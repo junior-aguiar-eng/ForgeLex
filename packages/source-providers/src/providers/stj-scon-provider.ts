@@ -17,6 +17,7 @@ export interface StjSconFetchResponse {
   ok: boolean;
   status: number;
   text(): Promise<string>;
+  arrayBuffer?(): Promise<ArrayBuffer>;
 }
 
 export type StjSconFetch = (
@@ -41,7 +42,7 @@ interface ParsedStjResult {
   sourceUrl: string;
 }
 
-const DEFAULT_BASE_URL = 'https://scon.stj.jus.br/SCON';
+const DEFAULT_BASE_URL = 'https://processo.stj.jus.br/SCON';
 const DEFAULT_USER_AGENT = 'ForgeLexResearch/0.1 (+https://forgelex.ai)';
 
 function normalizeDate(value: string): string {
@@ -109,24 +110,37 @@ function extractDate(block: string, labels: string[]): string | undefined {
   return match?.[1];
 }
 
+function extractSconField(block: string, label: string): string | undefined {
+  const match = block.match(
+    new RegExp(
+      `<div[^>]*class=["'][^"']*docTitulo[^"']*["'][^>]*>\\s*${label}[\\s\\S]*?<div[^>]*class=["'][^"']*docTexto[^"']*["'][^>]*>([\\s\\S]*?)<\\/div>`,
+      'i'
+    )
+  );
+  return match?.[1] ? cleanText(match[1]) : undefined;
+}
+
 function parseBlock(block: string, pageUrl: string): ParsedStjResult | undefined {
   const text = cleanText(block);
   const processMatch = text.match(
     /\b(?:AgInt\s+no\s+REsp|AgInt\s+em\s+REsp|REsp|AREsp|HC|RHC|RMS|CC|MS|EDcl)\s+[\d.]+\s*(?:\/|-)\s*[A-Z]{2}\b/i
   );
+  const sconSyllabus = block.match(/<textarea\b[^>]*class=["'][^"']*textareaSemformatacao[^"']*["'][^>]*>([\s\S]*?)<\/textarea>/i);
   const syllabusElement = block.match(
     /<(?:div|p|span)[^>]*class=["'][^"']*ementa[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|p|span)>/i
   );
+  const sourcePath = block.match(/inteiro_teor\(['"]([^'"]+GetInteiroTeorDoAcordao[^'"]*)['"]\)/i)?.[1];
   const sourceAnchor = block.match(/<a\b[^>]*href=["'][^"']*(?:inteiro|acordao|processo)[^"']*["'][^>]*>/i);
-  const sourceUrl = sourceAnchor ? new URL(attribute(sourceAnchor[0], 'href') ?? pageUrl, pageUrl).toString() : pageUrl;
+  const sourceHref = sourcePath ?? (sourceAnchor ? attribute(sourceAnchor[0], 'href') : undefined);
+  const sourceUrl = sourceHref ? new URL(decodeHtml(sourceHref), pageUrl).toString() : pageUrl;
 
   if (!processMatch) return undefined;
 
-  const syllabus = cleanText(syllabusElement?.[1] ?? extractField(block, ['Ementa']) ?? '');
-  const rapporteur = extractField(block, ['Relator(?:a)?', 'Ministro(?:a)? relator']) ?? '';
-  const chamber = extractField(block, ['Órgão julgador', 'Órgão', 'Turma', 'Seção']);
-  const judgmentDate = extractDate(block, ['Data do julgamento', 'Julgamento', 'Julgado']) ?? '';
-  const publicationDate = extractDate(block, ['Data de publicação', 'Publicação', 'Publicado', 'DJe']) ?? judgmentDate;
+  const syllabus = cleanText(sconSyllabus?.[1] ?? syllabusElement?.[1] ?? extractSconField(block, 'Ementa') ?? extractField(block, ['Ementa']) ?? '');
+  const rapporteur = extractSconField(block, 'Relator(?:a)?') ?? extractField(block, ['Relator(?:a)?', 'Ministro(?:a)? relator']) ?? '';
+  const chamber = extractSconField(block, 'Órgão\\s+Julgador') ?? extractField(block, ['Órgão julgador', 'Órgão', 'Turma', 'Seção']);
+  const judgmentDate = extractDate(extractSconField(block, 'Data\\s+do\\s+Julgamento') ?? block, ['Data do julgamento', 'Julgamento', 'Julgado']) ?? extractSconField(block, 'Data\\s+do\\s+Julgamento')?.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] ?? '';
+  const publicationDate = extractSconField(block, 'Data\\s+da\\s+Publicação(?:\\/Fonte)?')?.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] ?? extractDate(block, ['Data de publicação', 'Publicação', 'Publicado', 'DJe']) ?? judgmentDate;
 
   if (syllabus.length < 10 || rapporteur.length < 2 || !judgmentDate || !publicationDate) {
     return undefined;
@@ -151,6 +165,10 @@ function parseBlock(block: string, pageUrl: string): ParsedStjResult | undefined
 export function parseStjSconResults(html: string, pageUrl: string): ParsedStjResult[] {
   const withoutNoise = html.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, '');
   const blocks = [
+    ...Array.from(
+      withoutNoise.matchAll(/<a\s+name=["']DOC\d+["'][\s\S]*?(?=<a\s+name=["']DOC\d+["']|<div\s+class=["']paginacao|$)/gi),
+      (match) => match[0]
+    ),
     ...Array.from(withoutNoise.matchAll(/<article\b[\s\S]*?<\/article>/gi), (match) => match[0]),
     ...Array.from(
       withoutNoise.matchAll(/<div\b[^>]*class=["'][^"']*(?:resultado|acordao|jurisprudencia)[^"']*["'][^>]*>[\s\S]*?<\/div>/gi),
@@ -250,9 +268,16 @@ export class StjSconProvider implements LegalSourceProvider {
     return court.trim().toUpperCase() === 'STJ';
   }
 
-  public buildSearchUrl(query: string): string {
-    const url = new URL(`${this.baseUrl}/jurisprudencia/toc.jsp`);
+  public buildSearchUrl(query: string, limit = 20): string {
+    const url = new URL(`${this.baseUrl}/pesquisar.jsp`);
+    url.searchParams.set('O', 'JT');
+    url.searchParams.set('b', 'ACOR');
     url.searchParams.set('livre', query);
+    url.searchParams.set('l', String(Math.min(Math.max(limit, 1), 20)));
+    url.searchParams.set('p', 'false');
+    url.searchParams.set('i', '1');
+    url.searchParams.set('operador', 'AND');
+    url.searchParams.set('ordenacao', 'TEMA,-DTPB,@NUM,CLAS');
     return url.toString();
   }
 
@@ -268,8 +293,10 @@ export class StjSconProvider implements LegalSourceProvider {
         },
         signal: controller.signal,
       });
-      const body = await response.text();
-      if (/cloudflare|verificação automática|checking your browser/i.test(body)) {
+      const body = response.arrayBuffer
+        ? new TextDecoder('windows-1252').decode(await response.arrayBuffer())
+        : await response.text();
+      if (/verificação automática em andamento|<title>\s*(?:just a moment|checking your browser)/i.test(body)) {
         throw new Error('SOURCE_PROVIDER_BLOCKED: SCON recusou a consulta automatizada.');
       }
       if (!response.ok) {
@@ -289,7 +316,7 @@ export class StjSconProvider implements LegalSourceProvider {
   public async search(query: string, options: SearchOptions = {}): Promise<JurisprudenceDocument[]> {
     if (options.court && !this.supportsCourt(options.court)) return [];
 
-    const pageUrl = this.buildSearchUrl(query);
+    const pageUrl = this.buildSearchUrl(query, options.limit);
     const html = await this.fetchPage(pageUrl);
     const capturedAt = new Date().toISOString();
     const documents = parseStjSconResults(html, pageUrl).map((item) => documentFromParsed(item, capturedAt));
@@ -322,7 +349,7 @@ export class StjSconProvider implements LegalSourceProvider {
   public async health(): Promise<ProviderHealth> {
     const checkedAt = new Date().toISOString();
     try {
-      await this.fetchPage(`${this.baseUrl}/jurisprudencia/SOS_avancado.jsp`);
+      await this.fetchPage(this.buildSearchUrl('responsabilidade civil', 1));
       return { providerId: this.id, status: 'AVAILABLE', checkedAt };
     } catch (error) {
       return {

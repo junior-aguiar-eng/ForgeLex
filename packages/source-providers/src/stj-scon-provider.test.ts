@@ -15,9 +15,24 @@ const officialResultHtml = `
   </body></html>
 `;
 
+const currentSconResultHtml = `
+  <a name="DOC1" id="DOC1"></a>
+  <div class="documento">
+    <div class="clsIdentificacaoDocumento">RESP 1740911</div>
+    <a href="javascript:inteiro_teor('/SCON/GetInteiroTeorDoAcordao?num_registro=201801092506&amp;dt_publicacao=22/08/2019')">Inteiro teor</a>
+    <textarea class="textareaSemformatacao">RECURSO ESPECIAL. RESPONSABILIDADE CIVIL. EMENTA OFICIAL.</textarea>
+    <div class="docTitulo">Processo</div><div class="docTexto">REsp 1740911 / DF</div>
+    <div class="docTitulo">Relator</div><div class="docTexto"><pre>Ministro MOURA RIBEIRO (1156)</pre></div>
+    <div class="docTitulo">Órgão Julgador</div><div class="docTexto"><pre>S2 - SEGUNDA SEÇÃO</pre></div>
+    <div class="docTitulo">Data do Julgamento</div><div class="docTexto"><pre>14/08/2019</pre></div>
+    <div class="docTitulo">Data da Publicação/Fonte</div><div class="docTexto"><pre>DJe 22/08/2019</pre></div>
+  </div>
+  <div class="paginacao"></div>
+`;
+
 describe('StjSconProvider', () => {
   it('deve converter o resultado HTML oficial em documento com proveniência e hash', () => {
-    const pageUrl = 'https://scon.stj.jus.br/SCON/jurisprudencia/toc.jsp?livre=contrato';
+    const pageUrl = 'https://processo.stj.jus.br/SCON/pesquisar.jsp?livre=contrato';
     const results = parseStjSconResults(officialResultHtml, pageUrl);
 
     expect(results).toHaveLength(1);
@@ -43,7 +58,8 @@ describe('StjSconProvider', () => {
     const results = await router.search('contrato bancário', { court: 'STJ', limit: 1 });
 
     expect(fetcher).toHaveBeenCalledOnce();
-    expect(fetcher.mock.calls[0][0]).toContain('/SCON/jurisprudencia/toc.jsp');
+    expect(fetcher.mock.calls[0][0]).toContain('/SCON/pesquisar.jsp');
+    expect(fetcher.mock.calls[0][0]).toContain('b=ACOR');
     expect(results[0].provenance.source.provider).toBe('provider_stj_scon');
     expect(results[0].provenance.source.sourceUrl).toContain('GetInteiroTeorDoAcordao');
     expect(results[0].snapshot.contentHash).toHaveLength(64);
@@ -54,6 +70,25 @@ describe('StjSconProvider', () => {
       judgmentDate: '2025-03-12',
     });
     expect(verification.status).toBe('VERIFIED_OFFICIAL');
+  });
+
+  it('deve interpretar a marcação vigente da página de resultados do SCON', () => {
+    const results = parseStjSconResults(
+      currentSconResultHtml,
+      'https://processo.stj.jus.br/SCON/pesquisar.jsp?livre=responsabilidade'
+    );
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        processNumber: 'REsp 1740911 / DF',
+        rapporteur: 'Ministro MOURA RIBEIRO (1156)',
+        chamber: 'S2 - SEGUNDA SEÇÃO',
+        judgmentDate: '14/08/2019',
+        publicationDate: '22/08/2019',
+        sourceUrl:
+          'https://processo.stj.jus.br/SCON/GetInteiroTeorDoAcordao?num_registro=201801092506&dt_publicacao=22/08/2019',
+      }),
+    ]);
   });
 
   it('deve falhar fechado quando a página protegida não contém resultados reconhecíveis', () => {
