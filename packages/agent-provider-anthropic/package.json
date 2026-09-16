@@ -17,10 +17,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@forgelex/domain": "workspace:*",
+    "@anthropic-ai/claude-agent-sdk": "0.3.273",
+    "@anthropic-ai/sdk": "^0.126.0",
     "@forgelex/agent-core": "workspace:*",
-    "@anthropic-ai/sdk": "^0.39.0",
-    "zod": "^3.24.2",
+    "@forgelex/domain": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "zod": "^4.6.5",
     "zod-to-json-schema": "^3.24.3"
   },
   "devDependencies": {

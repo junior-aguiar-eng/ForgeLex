@@ -15,7 +15,7 @@
 O **FORGELEX V2** foi construído para superar as limitações das ferramentas jurídicas de 1ª geração (prompts estáticos, alucinações de ementas, dependência de fornecedor único e falta de governança).
 
 ### Pilares Fundamentais:
-1. **Microkernel Agêntico Vendor-Neutral:** Suporte nativo a **Anthropic Claude 3.5 Sonnet**, **OpenAI GPT-4o** e **LLMs Soberanos Locais** (Ollama/VLLM).
+1. **Microkernel Agêntico Vendor-Neutral:** Suporte nativo a **Anthropic Claude Sonnet 5**, **OpenAI GPT-4o** e **LLMs Soberanos Locais** (Ollama/VLLM).
 2. **Governança Forense Human-in-the-Loop:** Classificação estrita de impacto em 5 níveis (`L0_OBSERVATION` a `L4_EXTERNAL_EFFECT`). Mutações externas exigem token criptográfico de aprovação do advogado.
 3. **Rastreabilidade e Anti-Alucinação:** Todo acórdão retornado possui ancoragem com URL oficial verificada e hash criptográfico SHA-256 imutável.
 4. **Legal Data Plane com Deduplicação:** Normalização algorítmica de números CNJ, tribunais e datas através de `dedupeKey` determinística.
@@ -34,7 +34,7 @@ O **FORGELEX V2** foi construído para superar as limitações das ferramentas j
 ├── packages/
 │   ├── domain/                # Contratos canônicos, níveis L0-L4, proveniência e DomainErrors
 │   ├── agent-core/            # Microkernel agêntico, SessionStateMachine, PolicyEngine, ToolRegistry
-│   ├── agent-provider-anthropic/ # Conector oficial Claude 3.5 Sonnet (@anthropic-ai/sdk)
+│   ├── agent-provider-anthropic/ # Adapter Claude Agent SDK (Claude Sonnet 5)
 │   ├── agent-provider-openai/    # Conector oficial OpenAI GPT-4o (openai)
 │   ├── persistence/           # Drizzle ORM Dual-Driver (SQLite local/testes, PostgreSQL prod)
 │   ├── audit/                 # AuditRecorder com sanitização e hashing SHA-256 (OAB/LGPD)
