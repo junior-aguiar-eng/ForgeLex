@@ -4,7 +4,7 @@
 > Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-95%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-107%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -167,6 +167,12 @@ pesquisa no matter autenticado por `POST /api/v2/matters/{matterId}/authorities`
 e recuperá-la por `GET /api/v2/matters/{matterId}/authorities`. O salvamento
 preserva a proveniência e é idempotente por `dedupeKey` dentro do matter.
 
+A paridade entre os adapters Anthropic e OpenAI está documentada em
+[RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md](RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md).
+Os testes locais e a integração ForgeLex estão aprovados para ambos; chamadas
+reais permanecem `BLOCKED_CREDENTIALS` quando as respectivas chaves não estão
+disponíveis no ambiente.
+
 As API keys persistidas em `api_keys` armazenam somente o hash SHA-256 e podem
 ser criadas, listadas e revogadas pelas rotas `/api/v2/api-keys`. O segredo é
 retornado uma única vez na criação. A fundação de webhooks está disponível em
@@ -184,15 +190,16 @@ $ vitest run
  ✓ packages/audit/src/audit-recorder.test.ts (3 tests)
  ✓ packages/legal-tools/src/facts-evidence/facts-evidence-tools.test.ts (1 test)
  ✓ packages/legal-tools/src/drafting-review.test.ts (1 test)
- ✓ packages/persistence/src/persistence.test.ts (8 tests)
+ ✓ packages/persistence/src/persistence.test.ts (9 tests)
  ✓ packages/billing-ledger/src/ledger.test.ts (7 tests)
  ✓ packages/legal-workflows/src/workflow-engine.test.ts (3 tests)
- ✓ packages/mcp-server/src/mcp-server.test.ts (4 tests)
+ ✓ packages/mcp-server/src/mcp-server.test.ts (5 tests)
  ✓ packages/source-providers/src/stj-scon-provider.test.ts (4 tests)
  ✓ packages/legal-workflows/src/research-memo/legal-research-memo.test.ts (4 tests)
- ✓ packages/legal-tools/src/research/research-tools.test.ts (3 tests)
- ✓ apps/api/src/app.test.ts (17 tests)
- ✓ packages/agent-provider-anthropic/src/anthropic-agent-provider.test.ts (5 tests)
+ ✓ packages/legal-tools/src/research/research-tools.test.ts (4 tests)
+ ✓ apps/api/src/app.test.ts (21 tests)
+ ✓ packages/agent-provider-anthropic/src/anthropic-agent-provider.test.ts (9 tests)
+ ✓ apps/api/src/provider-parity.test.ts (2 tests)
  ✓ packages/domain/src/contracts/matter.test.ts (2 tests)
  ✓ packages/domain/src/contracts/facts-evidence.test.ts (3 tests)
  ✓ apps/api/src/auth/fastify-auth.test.ts (4 tests)
@@ -200,10 +207,10 @@ $ vitest run
  ✓ packages/domain/src/contracts/provenance.test.ts (4 tests)
  ✓ packages/legal-data/src/legal-data.test.ts (3 tests)
  ✓ packages/source-catalog/src/court-catalog.test.ts (3 tests)
- ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (5 tests)
+ ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (9 tests)
 
  Test Files  21 passed (21)
- Tests  95 passed (95)
+ Tests  107 passed (107)
 ```
 
 ---

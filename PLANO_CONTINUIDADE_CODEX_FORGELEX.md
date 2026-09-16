@@ -1204,6 +1204,25 @@ Esse é o primeiro slice realmente vendável.
 
 ---
 
+# Gate anterior ao Segundo vertical slice — Provider parity
+
+O adendo `ADENDO_PROMPT_PARIDADE_PROVIDERS_FORGELEX.md` exige que Anthropic e
+OpenAI atravessem a mesma matriz de contrato e integração antes do início do
+Segundo vertical slice.
+
+| Provider | Adapter | Testes locais | Integração ForgeLex | API real | Situação |
+|---|---|---|---|---|---|
+| Anthropic | `PASSED_LOCAL` | `PASSED_LOCAL` | `PASSED_INTEGRATION` | `BLOCKED_CREDENTIALS` | `BLOCKED_CREDENTIALS` |
+| OpenAI | `PASSED_LOCAL` | `PASSED_LOCAL` | `PASSED_INTEGRATION` | `BLOCKED_CREDENTIALS` | `BLOCKED_CREDENTIALS` |
+
+Os estados locais são demonstrados pelos testes determinísticos com runtimes
+injetados. A ausência das chaves `ANTHROPIC_API_KEY` e `OPENAI_API_KEY` impede
+de declarar `PASSED_EXTERNAL`; nenhuma fixture local substitui essa validação.
+O Segundo vertical slice não deve ser iniciado enquanto esse gate externo não
+for concluído ou formalmente atualizado com o resultado de cada provider.
+
+---
+
 # 24. Segundo vertical slice
 
 ```text

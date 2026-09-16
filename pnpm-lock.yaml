@@ -57,6 +57,12 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
+      '@forgelex/agent-provider-anthropic':
+        specifier: workspace:*
+        version: link:../../packages/agent-provider-anthropic
+      '@forgelex/agent-provider-openai':
+        specifier: workspace:*
+        version: link:../../packages/agent-provider-openai
       '@types/node':
         specifier: ^22.13.9
         version: 22.20.2

@@ -59,6 +59,10 @@ function stringifyToolOutput(value: unknown): string {
   return serialized === undefined ? String(value) : serialized;
 }
 
+function redactSecret(value: string, secret: string): string {
+  return secret ? value.split(secret).join('[REDACTED]') : value;
+}
+
 function getZodRawShape(schema: unknown): Record<string, unknown> {
   const candidate = schema as {
     shape?: unknown;
@@ -280,7 +284,10 @@ export class AnthropicAgentProvider implements AgentProvider {
               isError: !result.success,
             };
           } catch (error) {
-            const message = error instanceof Error ? error.message : 'Erro desconhecido na ferramenta ForgeLex.';
+            const message = redactSecret(
+              error instanceof Error ? error.message : 'Erro desconhecido na ferramenta ForgeLex.',
+              this.apiKey,
+            );
             enqueue({
               type: 'error',
               sessionId: input.sessionId,
@@ -329,6 +336,19 @@ export class AnthropicAgentProvider implements AgentProvider {
     try {
       for (const event of drainEvents()) {
         yield event;
+      }
+
+      if (input.abortSignal.aborted) {
+        stateMachine.cancel();
+        terminalEventEmitted = true;
+        yield {
+          type: 'error',
+          sessionId: input.sessionId,
+          code: 'SESSION_CANCELLED',
+          message: 'Sessão cancelada antes da execução do provider Anthropic.',
+          timestamp: new Date().toISOString(),
+        };
+        return;
       }
 
       const queryOptions: AnthropicQueryOptions = {
@@ -398,6 +418,21 @@ export class AnthropicAgentProvider implements AgentProvider {
           }
 
           if (result.subtype === 'success' && !result.is_error) {
+            const maxTurns = input.maxTurns ?? 10;
+            if (result.num_turns > maxTurns) {
+              const message = `Limite de ${maxTurns} turnos excedido.`;
+              stateMachine.fail(message);
+              terminalEventEmitted = true;
+              yield {
+                type: 'error',
+                sessionId: input.sessionId,
+                code: 'TURN_LIMIT_EXCEEDED',
+                message,
+                details: { maxTurns, totalTurns: result.num_turns },
+                timestamp: new Date().toISOString(),
+              };
+              return;
+            }
             stateMachine.complete();
             terminalEventEmitted = true;
             yield {
@@ -415,9 +450,12 @@ export class AnthropicAgentProvider implements AgentProvider {
             return;
           }
 
-          const errorMessage = 'errors' in result && result.errors.length > 0
-            ? result.errors.join('; ')
-            : `Execução Anthropic encerrada com ${result.subtype}.`;
+          const errorMessage = redactSecret(
+            'errors' in result && result.errors.length > 0
+              ? result.errors.join('; ')
+              : `Execução Anthropic encerrada com ${result.subtype}.`,
+            this.apiKey,
+          );
           stateMachine.fail(errorMessage);
           terminalEventEmitted = true;
           yield {
@@ -481,7 +519,10 @@ export class AnthropicAgentProvider implements AgentProvider {
         return;
       }
 
-      const message = error instanceof Error ? error.message : 'Erro desconhecido no runtime Anthropic.';
+      const message = redactSecret(
+        error instanceof Error ? error.message : 'Erro desconhecido no runtime Anthropic.',
+        this.apiKey,
+      );
       stateMachine.fail(message);
       if (!terminalEventEmitted) {
         terminalEventEmitted = true;

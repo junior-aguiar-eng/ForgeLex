@@ -3,7 +3,7 @@ import { AnthropicAgentProvider } from './anthropic-agent-provider.js';
 import { convertZodToToolJsonSchema } from './schema-converter.js';
 import { z } from 'zod/v3';
 import { searchCaseLawTool, saveFinalDraftTool } from '@forgelex/legal-tools';
-import { AgentEvent } from '@forgelex/agent-core';
+import { AgentEvent, AgentTool } from '@forgelex/agent-core';
 
 function sdkAssistantMessage(content: unknown[]): any {
   return {
@@ -123,6 +123,56 @@ describe('AnthropicAgentProvider (Claude)', () => {
     expect(mockQuery.mock.calls[0][0].options.mcpServers.forgelex).toBeDefined();
   });
 
+  it('deve preservar o contexto ForgeLex e validar argumentos antes da ferramenta', async () => {
+    const captured: { context?: unknown } = {};
+    const contextTool: AgentTool = {
+      name: 'research.context_probe',
+      description: 'Ferramenta determinística de teste.',
+      impactLevel: 'L1_ANALYSIS',
+      inputSchema: z.object({ query: z.string().min(2) }),
+      outputSchema: z.object({ ok: z.boolean() }),
+      execute: async (_input, context) => {
+        captured.context = context;
+        return { success: true, data: { ok: true } };
+      },
+    };
+    const mockQuery = vi.fn((params: any) => {
+      const registeredTool = params.options.mcpServers.forgelex.instance._registeredTools['research.context_probe'];
+      const messages = (async function* () {
+        await registeredTool.handler({ query: 'ok' }, { toolUseId: 'call_valid' });
+        await registeredTool.handler({ query: '' }, { toolUseId: 'call_invalid' });
+        yield sdkAssistantMessage([
+          { type: 'tool_use', id: 'call_valid', name: 'mcp__forgelex__research.context_probe', input: { query: 'ok' } },
+          { type: 'tool_use', id: 'call_invalid', name: 'mcp__forgelex__research.context_probe', input: { query: '' } },
+        ]);
+        yield sdkResultMessage();
+      })();
+      return Object.assign(messages, { close: vi.fn() });
+    });
+    const provider = new AnthropicAgentProvider({ apiKey: 'test-key', query: mockQuery });
+    const events: AgentEvent[] = [];
+
+    for await (const event of provider.run({
+      sessionId: '33333333-3333-4333-8333-333333333333',
+      tenantId: 'tenant_context',
+      userId: 'user_context',
+      matterId: '44444444-4444-4444-8444-444444444444',
+      prompt: 'Teste de contexto',
+      tools: [contextTool],
+      abortSignal: new AbortController().signal,
+    })) {
+      events.push(event);
+    }
+
+    expect(events.some((event) => event.type === 'error' && event.code === 'TOOL_EXECUTION_FAILED')).toBe(true);
+    expect(captured.context).toMatchObject({
+      sessionId: '33333333-3333-4333-8333-333333333333',
+      tenantId: 'tenant_context',
+      userId: 'user_context',
+      matterId: '44444444-4444-4444-8444-444444444444',
+    });
+  });
+
   it('deve suspender a sessão e emitir aprovação (Human-in-the-Loop) quando o Claude chamar ferramenta L4', async () => {
     const mockQuery = vi.fn((params: any) => {
       const messages = (async function* () {
@@ -231,5 +281,130 @@ describe('AnthropicAgentProvider (Claude)', () => {
     if (cancelled.value?.type === 'error') {
       expect(cancelled.value.code).toBe('SESSION_CANCELLED');
     }
+  });
+
+  it('deve normalizar limite de turnos, ausência de resultado e erro do runtime', async () => {
+    const overLimitQuery = vi.fn((_: any) => {
+      const messages = (async function* () {
+        yield sdkResultMessage({ num_turns: 3 });
+      })();
+      return Object.assign(messages, { close: vi.fn() });
+    });
+    const overLimitProvider = new AnthropicAgentProvider({ apiKey: 'anthropic-secret', query: overLimitQuery });
+    const overLimitEvents: AgentEvent[] = [];
+    for await (const event of overLimitProvider.run({
+      sessionId: '55555555-5555-4555-8555-555555555555',
+      tenantId: 'tenant_1',
+      userId: 'user_1',
+      prompt: 'Limite',
+      maxTurns: 2,
+      tools: [],
+      abortSignal: new AbortController().signal,
+    })) {
+      overLimitEvents.push(event);
+    }
+    expect(overLimitEvents.find((event) => event.type === 'error')?.code).toBe('TURN_LIMIT_EXCEEDED');
+
+    const noResultQuery = vi.fn((_: any) => {
+      const messages = (async function* () {})();
+      return Object.assign(messages, { close: vi.fn() });
+    });
+    const noResultProvider = new AnthropicAgentProvider({ apiKey: 'test-key', query: noResultQuery });
+    const noResultEvents: AgentEvent[] = [];
+    for await (const event of noResultProvider.run({
+      sessionId: '66666666-6666-4666-8666-666666666666',
+      tenantId: 'tenant_1',
+      userId: 'user_1',
+      prompt: 'Sem resultado',
+      tools: [],
+      abortSignal: new AbortController().signal,
+    })) {
+      noResultEvents.push(event);
+    }
+    expect(noResultEvents.find((event) => event.type === 'error')?.code).toBe('ANTHROPIC_AGENT_NO_RESULT');
+
+    const runtimeErrorQuery = vi.fn((_: any) => {
+      throw new Error('falha externa anthropic-secret');
+    });
+    const runtimeErrorProvider = new AnthropicAgentProvider({ apiKey: 'anthropic-secret', query: runtimeErrorQuery });
+    const runtimeErrorEvents: AgentEvent[] = [];
+    for await (const event of runtimeErrorProvider.run({
+      sessionId: '77777777-7777-4777-8777-777777777777',
+      tenantId: 'tenant_1',
+      userId: 'user_1',
+      prompt: 'Erro',
+      tools: [],
+      abortSignal: new AbortController().signal,
+    })) {
+      runtimeErrorEvents.push(event);
+    }
+    const runtimeError = runtimeErrorEvents.find((event) => event.type === 'error');
+    expect(runtimeError?.code).toBe('ANTHROPIC_AGENT_ERROR');
+    expect(runtimeError?.message).not.toContain('anthropic-secret');
+  });
+
+  it('deve respeitar AbortSignal já cancelado antes de iniciar a chamada', async () => {
+    const query = vi.fn((_: any) => {
+      const messages = (async function* () {})();
+      return Object.assign(messages, { close: vi.fn() });
+    });
+    const provider = new AnthropicAgentProvider({ apiKey: 'test-key', query });
+    const controller = new AbortController();
+    controller.abort();
+    const events: AgentEvent[] = [];
+
+    for await (const event of provider.run({
+      sessionId: '88888888-8888-4888-8888-888888888888',
+      tenantId: 'tenant_1',
+      userId: 'user_1',
+      prompt: 'Cancelado',
+      tools: [],
+      abortSignal: controller.signal,
+    })) {
+      events.push(event);
+    }
+
+    expect(query).not.toHaveBeenCalled();
+    expect(events.find((event) => event.type === 'error')?.code).toBe('SESSION_CANCELLED');
+    expect(provider.getSessionState('88888888-8888-4888-8888-888888888888')?.getStatus()).toBe('CANCELLED');
+  });
+
+  it('deve normalizar timeout da ferramenta sem deixar a sessão pendente', async () => {
+    const slowTool: AgentTool = {
+      name: 'research.slow_probe',
+      description: 'Ferramenta determinística de timeout.',
+      impactLevel: 'L1_ANALYSIS',
+      inputSchema: z.object({ query: z.string() }),
+      outputSchema: z.object({ ok: z.boolean() }),
+      timeoutMs: 1,
+      execute: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return { success: true, data: { ok: true } };
+      },
+    };
+    const query = vi.fn((params: any) => {
+      const registeredTool = params.options.mcpServers.forgelex.instance._registeredTools['research.slow_probe'];
+      const messages = (async function* () {
+        await registeredTool.handler({ query: 'timeout' }, { toolUseId: 'call_timeout' });
+        yield sdkAssistantMessage([{ type: 'tool_use', id: 'call_timeout', name: 'mcp__forgelex__research.slow_probe', input: { query: 'timeout' } }]);
+        yield sdkResultMessage();
+      })();
+      return Object.assign(messages, { close: vi.fn() });
+    });
+    const provider = new AnthropicAgentProvider({ apiKey: 'test-key', query });
+    const events: AgentEvent[] = [];
+
+    for await (const event of provider.run({
+      sessionId: '99999999-9999-4999-8999-999999999999',
+      tenantId: 'tenant_1',
+      userId: 'user_1',
+      prompt: 'Timeout',
+      tools: [slowTool],
+      abortSignal: new AbortController().signal,
+    })) {
+      events.push(event);
+    }
+
+    expect(events.some((event) => event.type === 'error' && event.code === 'TOOL_EXECUTION_FAILED')).toBe(true);
   });
 });

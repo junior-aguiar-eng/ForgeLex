@@ -25,6 +25,8 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@forgelex/agent-provider-anthropic": "workspace:*",
+    "@forgelex/agent-provider-openai": "workspace:*",
     "@types/node": "^22.13.9",
     "typescript": "^5.7.3"
   }

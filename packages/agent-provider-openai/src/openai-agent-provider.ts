@@ -78,6 +78,10 @@ function stringifyToolOutput(value: unknown): string {
   return serialized === undefined ? String(value) : serialized;
 }
 
+function redactSecret(value: string, secret: string): string {
+  return secret ? value.split(secret).join('[REDACTED]') : value;
+}
+
 function toWireToolName(name: string, usedNames: Set<string>): string {
   const base = `forgelex_${name.replace(/[^a-zA-Z0-9_-]/g, '_')}`.slice(0, 56);
   let candidate = base;
@@ -323,7 +327,10 @@ export class OpenAIAgentProvider implements AgentProvider {
 
             return stringifyToolOutput(result.data);
           } catch (error) {
-            const message = errorMessage(error, `Falha na ferramenta '${forgeLexTool.name}'.`);
+            const message = redactSecret(
+              errorMessage(error, `Falha na ferramenta '${forgeLexTool.name}'.`),
+              this.apiKey,
+            );
             enqueue({
               type: 'error',
               sessionId: input.sessionId,
@@ -381,6 +388,19 @@ export class OpenAIAgentProvider implements AgentProvider {
     try {
       for (const event of drainEvents()) {
         yield event;
+      }
+
+      if (input.abortSignal.aborted) {
+        stateMachine.cancel();
+        terminalEventEmitted = true;
+        yield {
+          type: 'error',
+          sessionId: input.sessionId,
+          code: 'SESSION_CANCELLED',
+          message: 'Sessão cancelada antes da execução do provider OpenAI.',
+          timestamp: new Date().toISOString(),
+        };
+        return;
       }
 
       stream = await this.runAgent(agent, input.prompt, {
@@ -484,6 +504,22 @@ export class OpenAIAgentProvider implements AgentProvider {
         throw stream.error;
       }
 
+      const maxTurns = input.maxTurns ?? 10;
+      if (stream.currentTurn !== undefined && stream.currentTurn > maxTurns) {
+        const message = `Limite de ${maxTurns} turnos excedido.`;
+        stateMachine.fail(message);
+        terminalEventEmitted = true;
+        yield {
+          type: 'error',
+          sessionId: input.sessionId,
+          code: 'TURN_LIMIT_EXCEEDED',
+          message,
+          details: { maxTurns, totalTurns: stream.currentTurn },
+          timestamp: new Date().toISOString(),
+        };
+        return;
+      }
+
       if (stream.finalOutput !== undefined) {
         stateMachine.complete();
         terminalEventEmitted = true;
@@ -526,7 +562,10 @@ export class OpenAIAgentProvider implements AgentProvider {
 
       const name = errorName(error);
       const code = name.includes('MaxTurnsExceeded') ? 'TURN_LIMIT_EXCEEDED' : 'OPENAI_AGENT_ERROR';
-      const message = errorMessage(error, 'Erro desconhecido no runtime OpenAI.');
+      const message = redactSecret(
+        errorMessage(error, 'Erro desconhecido no runtime OpenAI.'),
+        this.apiKey,
+      );
       stateMachine.fail(message);
       if (!terminalEventEmitted) {
         terminalEventEmitted = true;

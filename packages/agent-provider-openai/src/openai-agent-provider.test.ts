@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v3';
-import { AgentEvent } from '@forgelex/agent-core';
+import { AgentEvent, AgentTool } from '@forgelex/agent-core';
 import { searchCaseLawTool, saveFinalDraftTool } from '@forgelex/legal-tools';
 import { OpenAIAgentProvider } from './openai-agent-provider.js';
 import { convertZodToOpenAIToolSchema } from './schema-converter.js';
@@ -122,6 +122,62 @@ describe('OpenAIAgentProvider (OpenAI Agents SDK)', () => {
     expect(run).toHaveBeenCalledOnce();
   });
 
+  it('deve preservar o contexto ForgeLex e validar argumentos antes da ferramenta', async () => {
+    const captured: { context?: unknown } = {};
+    const contextTool: AgentTool = {
+      name: 'research.context_probe',
+      description: 'Ferramenta determinística de teste.',
+      impactLevel: 'L1_ANALYSIS',
+      inputSchema: z.object({ query: z.string().min(2) }),
+      outputSchema: z.object({ ok: z.boolean() }),
+      execute: async (_input, context) => {
+        captured.context = context;
+        return { success: true, data: { ok: true } };
+      },
+    };
+    const run = vi.fn(async (agent: any, _prompt: string, options: any): Promise<FakeStream> => {
+      const sdkTool = agent.tools[0];
+      await sdkTool.invoke({ context: options.context }, JSON.stringify({ query: 'ok' }), {
+        toolCall: { callId: 'call_valid' },
+      });
+      await sdkTool.invoke({ context: options.context }, JSON.stringify({ query: '' }), {
+        toolCall: { callId: 'call_invalid' },
+      });
+      return fakeStream([
+        runItem('tool_called', {
+          type: 'tool_call_item',
+          rawItem: { type: 'function_call', name: sdkTool.name, callId: 'call_valid', arguments: JSON.stringify({ query: 'ok' }) },
+        }),
+        runItem('tool_called', {
+          type: 'tool_call_item',
+          rawItem: { type: 'function_call', name: sdkTool.name, callId: 'call_invalid', arguments: JSON.stringify({ query: '' }) },
+        }),
+      ], { finalOutput: 'Resultado de teste.', currentTurn: 1 });
+    });
+    const provider = new OpenAIAgentProvider({ apiKey: 'test-key', run });
+    const events: AgentEvent[] = [];
+
+    for await (const event of provider.run({
+      sessionId: '33333333-3333-4333-8333-333333333333',
+      tenantId: 'tenant_context',
+      userId: 'user_context',
+      matterId: '44444444-4444-4444-8444-444444444444',
+      prompt: 'Teste de contexto',
+      tools: [contextTool],
+      abortSignal: new AbortController().signal,
+    })) {
+      events.push(event);
+    }
+
+    expect(events.some((event) => event.type === 'error' && event.code === 'TOOL_EXECUTION_FAILED')).toBe(true);
+    expect(captured.context).toMatchObject({
+      sessionId: '33333333-3333-4333-8333-333333333333',
+      tenantId: 'tenant_context',
+      userId: 'user_context',
+      matterId: '44444444-4444-4444-8444-444444444444',
+    });
+  });
+
   it('deve suspender a sessão para aprovação humana em ferramenta L4', async () => {
     const run = vi.fn(async (agent: any, _prompt: string, options: any): Promise<FakeStream> => {
       const sdkTool = agent.tools[0];
@@ -210,5 +266,131 @@ describe('OpenAIAgentProvider (OpenAI Agents SDK)', () => {
 
     expect(events.some((event) => event.type === 'error' && event.code === 'SESSION_CANCELLED')).toBe(true);
     expect(provider.getSessionState('sess_openai_cancel_test')?.getStatus()).toBe('CANCELLED');
+  });
+
+  it('deve normalizar limite de turnos, ausência de resultado e erro do runtime', async () => {
+    const overLimitRun = vi.fn(async (_agent: any, _prompt: string, _options: any): Promise<FakeStream> =>
+      fakeStream([], { finalOutput: 'Resultado além do limite.', currentTurn: 3 })
+    );
+    const overLimitProvider = new OpenAIAgentProvider({ apiKey: 'openai-secret', run: overLimitRun });
+    const overLimitEvents: AgentEvent[] = [];
+    for await (const event of overLimitProvider.run({
+      sessionId: '55555555-5555-4555-8555-555555555555',
+      tenantId: 'tenant_1',
+      userId: 'user_1',
+      prompt: 'Limite',
+      maxTurns: 2,
+      tools: [],
+      abortSignal: new AbortController().signal,
+    })) {
+      overLimitEvents.push(event);
+    }
+    expect(overLimitEvents.find((event) => event.type === 'error')?.code).toBe('TURN_LIMIT_EXCEEDED');
+
+    const noResultRun = vi.fn(async (_agent: any, _prompt: string, _options: any): Promise<FakeStream> =>
+      fakeStream([], { currentTurn: 1 })
+    );
+    const noResultProvider = new OpenAIAgentProvider({ apiKey: 'test-key', run: noResultRun });
+    const noResultEvents: AgentEvent[] = [];
+    for await (const event of noResultProvider.run({
+      sessionId: '66666666-6666-4666-8666-666666666666',
+      tenantId: 'tenant_1',
+      userId: 'user_1',
+      prompt: 'Sem resultado',
+      tools: [],
+      abortSignal: new AbortController().signal,
+    })) {
+      noResultEvents.push(event);
+    }
+    expect(noResultEvents.find((event) => event.type === 'error')?.code).toBe('OPENAI_AGENT_NO_RESULT');
+
+    const runtimeErrorRun = vi.fn(async (_agent: any, _prompt: string, _options: any): Promise<FakeStream> => {
+      throw new Error('falha externa openai-secret');
+    });
+    const runtimeErrorProvider = new OpenAIAgentProvider({ apiKey: 'openai-secret', run: runtimeErrorRun });
+    const runtimeErrorEvents: AgentEvent[] = [];
+    for await (const event of runtimeErrorProvider.run({
+      sessionId: '77777777-7777-4777-8777-777777777777',
+      tenantId: 'tenant_1',
+      userId: 'user_1',
+      prompt: 'Erro',
+      tools: [],
+      abortSignal: new AbortController().signal,
+    })) {
+      runtimeErrorEvents.push(event);
+    }
+    const runtimeError = runtimeErrorEvents.find((event) => event.type === 'error');
+    expect(runtimeError?.code).toBe('OPENAI_AGENT_ERROR');
+    expect(runtimeError?.message).not.toContain('openai-secret');
+  });
+
+  it('deve respeitar AbortSignal já cancelado antes de iniciar a chamada', async () => {
+    const run = vi.fn(async (_agent: any, _prompt: string, _options: any): Promise<FakeStream> => fakeStream([]));
+    const provider = new OpenAIAgentProvider({ apiKey: 'test-key', run });
+    const controller = new AbortController();
+    controller.abort();
+    const events: AgentEvent[] = [];
+
+    for await (const event of provider.run({
+      sessionId: '88888888-8888-4888-8888-888888888888',
+      tenantId: 'tenant_1',
+      userId: 'user_1',
+      prompt: 'Cancelado',
+      tools: [],
+      abortSignal: controller.signal,
+    })) {
+      events.push(event);
+    }
+
+    expect(run).not.toHaveBeenCalled();
+    expect(events.find((event) => event.type === 'error')?.code).toBe('SESSION_CANCELLED');
+    expect(provider.getSessionState('88888888-8888-4888-8888-888888888888')?.getStatus()).toBe('CANCELLED');
+  });
+
+  it('deve normalizar timeout da ferramenta sem deixar a sessão pendente', async () => {
+    const slowTool: AgentTool = {
+      name: 'research.slow_probe',
+      description: 'Ferramenta determinística de timeout.',
+      impactLevel: 'L1_ANALYSIS',
+      inputSchema: z.object({ query: z.string() }),
+      outputSchema: z.object({ ok: z.boolean() }),
+      timeoutMs: 1,
+      execute: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return { success: true, data: { ok: true } };
+      },
+    };
+    const run = vi.fn(async (agent: any, _prompt: string, options: any): Promise<FakeStream> => {
+      const sdkTool = agent.tools[0];
+      await sdkTool.invoke({ context: options.context }, JSON.stringify({ query: 'timeout' }), {
+        toolCall: { callId: 'call_timeout' },
+      });
+      return fakeStream([
+        runItem('tool_called', {
+          type: 'tool_call_item',
+          rawItem: {
+            type: 'function_call',
+            name: sdkTool.name,
+            callId: 'call_timeout',
+            arguments: JSON.stringify({ query: 'timeout' }),
+          },
+        }),
+      ], { finalOutput: 'Timeout tratado.', currentTurn: 1 });
+    });
+    const provider = new OpenAIAgentProvider({ apiKey: 'test-key', run });
+    const events: AgentEvent[] = [];
+
+    for await (const event of provider.run({
+      sessionId: '99999999-9999-4999-8999-999999999999',
+      tenantId: 'tenant_1',
+      userId: 'user_1',
+      prompt: 'Timeout',
+      tools: [slowTool],
+      abortSignal: new AbortController().signal,
+    })) {
+      events.push(event);
+    }
+
+    expect(events.some((event) => event.type === 'error' && event.code === 'TOOL_EXECUTION_FAILED')).toBe(true);
   });
 });
