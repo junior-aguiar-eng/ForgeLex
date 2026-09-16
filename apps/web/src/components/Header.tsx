@@ -45,12 +45,8 @@ const NavigationButton: React.FC<{
 };
 
 export const Header: React.FC = () => {
-  const { activeTab, setActiveTab, totalBalanceCents } = useApp();
+  const { activeTab, setActiveTab } = useApp();
   const [menuOpen, setMenuOpen] = React.useState(false);
-
-  const formatCurrency = (cents: number) => {
-    return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  };
 
   const selectTab = (tab: AppTab) => {
     setActiveTab(tab);
@@ -88,11 +84,10 @@ export const Header: React.FC = () => {
               type="button"
               onClick={() => selectTab('credits')}
               className="hidden min-h-10 items-center gap-1.5 rounded-lg border border-champagne-border bg-white/70 px-2.5 py-1.5 text-xs text-stone-600 transition-colors hover:border-cognac-400 sm:flex"
-              title="Saldo disponível para consultas e fluxos"
+              title="Acessar créditos e faturamento"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-              <span>Saldo</span>
-              <span className="font-bold text-cognac-800">{formatCurrency(totalBalanceCents)}</span>
+              <WalletCards className="h-4 w-4 text-cognac-700" aria-hidden="true" />
+              <span>Créditos</span>
             </button>
 
             <button

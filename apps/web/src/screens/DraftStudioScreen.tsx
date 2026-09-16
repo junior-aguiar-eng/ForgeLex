@@ -251,7 +251,7 @@ export const DraftStudioScreen: React.FC = () => {
         </div>
 
         <details className="technical-access">
-          <summary>Acesso técnico da sessão</summary>
+              <summary>Detalhes técnicos</summary>
           <div className="technical-access__content space-y-3 pt-3">
             <div className="flex items-center gap-2 text-stone-900"><LockKeyhole className="h-4 w-4 text-cognac-700" aria-hidden="true" /><h2 className="text-sm font-bold">Conexão com a área de rascunhos</h2></div>
             <div className="flex flex-col gap-3 sm:flex-row">

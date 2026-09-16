@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp, SearchResultItem } from '../context/AppContext';
 import { 
-  Search, BookOpen, FileText, ArrowUpRight, Scale, Shield, 
+  Search, BookOpen, FileText, ArrowUpRight, Scale, Shield, FolderOpen,
   ExternalLink, Copy, Check, Sparkles, AlertCircle, BookmarkCheck
 } from 'lucide-react';
 
@@ -81,7 +81,7 @@ export const LandingScreen: React.FC = () => {
         </div>
 
         {/* 4 ACTION TRIGGERS (Inspirados em ForgeLex_01_Landing.png) */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="hidden grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div
             role="button"
             tabIndex={0}
@@ -175,6 +175,8 @@ export const LandingScreen: React.FC = () => {
           </div>
         </div>
 
+        <div className="surface-subtle mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-stone-800">Comece pelo trabalho do caso</p><p className="text-xs text-stone-500">Abra um caso ou pesquise uma fonte jurídica para iniciar.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setActiveTab('matter')} className="btn-secondary inline-flex items-center gap-2"><FolderOpen className="h-4 w-4" aria-hidden="true" />Abrir um caso</button><button type="button" onClick={() => document.getElementById('pesquisa-principal')?.focus()} className="btn-primary">Nova pesquisa</button></div></div>
+
         {/* SEARCH BAR (Inspirada em ForgeLex_01_Landing.png) */}
         <div className="champagne-card mx-auto max-w-4xl space-y-4 rounded-xl bg-white p-4 sm:p-5">
           <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
@@ -183,6 +185,7 @@ export const LandingScreen: React.FC = () => {
             <div className="relative flex-1">
               <Search className="w-5 h-5 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
+                id="pesquisa-principal"
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -436,6 +439,9 @@ export const LandingScreen: React.FC = () => {
         )}
 
         {/* RECENT SEARCHES FOOTER */}
+        {recentSearches.length === 0 && !results.length && (
+          <div className="surface-subtle mx-auto max-w-4xl p-4 text-center"><h2 className="text-sm font-semibold text-stone-800">Seu histórico aparecerá aqui</h2><p className="mt-1 text-xs text-stone-500">Faça uma pesquisa para registrar consultas e retomá-las no contexto do caso.</p></div>
+        )}
         <div className="champagne-card-subtle p-6 rounded-2xl max-w-4xl mx-auto space-y-3">
           <h4 className="text-xs uppercase font-bold tracking-wider text-stone-500">
             Consultas recentes

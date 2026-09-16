@@ -223,41 +223,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   // Human in the loop approvals
-  const [approvals, setApprovals] = useState<ApprovalRequest[]>([
-    {
-      id: 'appr_1',
-      token: 'tok_appr_89f3a21b47c0e',
-      toolName: 'drafting.save_final_draft',
-      title: 'Petição Inicial de Danos Morais e Materiais',
-      description: 'Ação Cível com pedido de tutela antecipada contra instituição bancária por cobrança indevida de encargos CCB.',
-      court: 'TJSP - 1ª Vara Cível Central',
-      draftContent: 'EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA 1ª VARA CÍVEL DA COMARCA DA CAPITAL - SP\n\nAUTOR, brasileiro, casado, portador do RG nº ..., devidamente representado por seus procuradores, vem perante V. Exa. propor a presente AÇÃO DECLARATÓRIA DE NULIDADE DE CLÁUSULAS CONTRATUAIS C/C REPETIÇÃO DO INDÉBITO E REPARAÇÃO POR DANOS MORAIS com amparo no Código de Defesa do Consumidor e precedentes vinculantes do STJ (Súmula 539)...',
-      requestedAt: '16/09/2026 03:10',
-      status: 'PENDING',
-    },
-    {
-      id: 'appr_2',
-      token: 'tok_appr_9a12bc443f11d',
-      toolName: 'drafting.save_final_draft',
-      title: 'Recurso Especial — Violação ao Art. 1.022 CPC',
-      description: 'Minuta recursal ao STJ apontando omissão relevante não sanada em embargos declaratórios pelo TJSP.',
-      court: 'STJ - Superior Tribunal de Justiça',
-      draftContent: 'EXCELENTÍSSIMO SENHOR MINISTRO PRESIDENTE DO SUPERIOR TRIBUNAL DE JUSTIÇA\n\nRECORRENTE, devidamente qualificado nos autos do Agravo em Recurso Especial nº ..., vem, tempestivamente, expor e requerer...',
-      requestedAt: '16/09/2026 02:45',
-      status: 'PENDING',
-    }
-  ]);
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
 
   const [stats, setStats] = useState({
-    totalSearches: 142,
-    totalMemos: 38,
-    totalDrafts: 64,
+    totalSearches: 0,
+    totalMemos: 0,
+    totalDrafts: 0,
   });
 
-  const [recentSearches, setRecentSearches] = useState([
-    { query: 'Capitalização mensal de juros cédula de crédito bancário', court: 'STJ', timestamp: 'Hoje às 03:15', count: 1 },
-    { query: 'Proteção de dados pessoais autodeterminação informativa', court: 'STF', timestamp: 'Hoje às 02:50', count: 1 },
-    { query: 'Atraso de entrega de imóvel compromisso compra e venda', court: 'TJSP', timestamp: 'Ontem às 18:20', count: 1 },
+  const [recentSearches, setRecentSearches] = useState<{ query: string; court: string; timestamp: string; count: number }[]>([
   ]);
 
   // Total balance

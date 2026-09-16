@@ -185,7 +185,7 @@
 .technical-access {
   border: 1px solid rgba(180, 150, 110, 0.16);
   border-radius: 0.875rem;
-  background: rgba(255, 255, 255, 0.58);
+  background: transparent;
 }
 
 .technical-access > summary {
