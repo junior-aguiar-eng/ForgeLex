@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CanonicalFixtureProvider } from './providers/canonical-fixture-provider.js';
-import { SourceRouter } from './router/source-router.js';
+import { SourceRouter, SourceRouterError } from './router/source-router.js';
 import { LegalSourceProvider } from './contracts/legal-source-provider.js';
 import { JurisprudenceDocument } from '@forgelex/legal-data';
 
@@ -56,5 +56,21 @@ describe('SourceRouter & Providers (Deduplicação e Roteamento de Jurisprudênc
     const results = await router.search('dados', { court: 'STF', limit: 1 });
     expect(results.length).toBe(1);
     expect(results[0].court).toBe('STF');
+  });
+
+  it('deve falhar explicitamente quando todos os provedores falharem', async () => {
+    const router = new SourceRouter({ timeoutMs: 50 });
+    router.registerProvider({
+      id: 'provider_unavailable',
+      name: 'Indisponível',
+      isOfficial: true,
+      supportsCourt: () => true,
+      search: async () => {
+        throw new Error('falha de rede');
+      },
+    });
+
+    await expect(router.search('teste')).rejects.toBeInstanceOf(SourceRouterError);
+    await expect(router.search('teste')).rejects.toMatchObject({ code: 'SOURCE_PROVIDER_UNAVAILABLE' });
   });
 });

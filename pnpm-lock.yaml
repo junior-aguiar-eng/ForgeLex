@@ -26,6 +26,9 @@ importers:
       '@forgelex/agent-core':
         specifier: workspace:*
         version: link:../../packages/agent-core
+      '@forgelex/audit':
+        specifier: workspace:*
+        version: link:../../packages/audit
       '@forgelex/billing-ledger':
         specifier: workspace:*
         version: link:../../packages/billing-ledger
@@ -245,6 +248,12 @@ importers:
       '@forgelex/domain':
         specifier: workspace:*
         version: link:../domain
+      '@forgelex/legal-data':
+        specifier: workspace:*
+        version: link:../legal-data
+      '@forgelex/source-providers':
+        specifier: workspace:*
+        version: link:../source-providers
       zod:
         specifier: ^3.24.2
         version: 3.25.76
@@ -277,6 +286,9 @@ importers:
       '@forgelex/agent-core':
         specifier: workspace:*
         version: link:../agent-core
+      '@forgelex/audit':
+        specifier: workspace:*
+        version: link:../audit
       '@forgelex/billing-ledger':
         specifier: workspace:*
         version: link:../billing-ledger

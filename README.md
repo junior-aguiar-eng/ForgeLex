@@ -4,7 +4,7 @@
 > Plataforma comercializável, vendor-neutral e orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-60%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-69%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP Ready](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -21,6 +21,16 @@ O **FORGELEX V2** foi construído para superar as limitações das ferramentas j
 4. **Legal Data Plane com Deduplicação:** Normalização algorítmica de números CNJ, tribunais e datas através de `dedupeKey` determinística.
 5. **Ledger Contábil de Dupla Carteira (Apêndice Q):** Controle de saldo pago vs promocional com prevenção a dupla cobrança por replay idempotente.
 6. **Distribuição Aberta MCP:** Servidor Model Context Protocol (JSON-RPC 2.0) em `https://mcp.forgelex.ai` para uso em Claude Desktop, Cursor e plataformas integradas.
+
+### Pesquisa jurídica real
+
+O caminho produtivo de pesquisa usa o `StjSconProvider`, que consulta o SCON
+oficial do STJ, normaliza metadados, gera `contentHash`/`dedupeKey` e falha
+explicitamente quando a fonte está indisponível ou bloqueia automação. O
+endpoint `POST /api/v2/research/verify-authority` reaproveita o mesmo serviço,
+com cobrança idempotente e evento de auditoria. O endereço-base pode ser
+substituído por `FORGELEX_STJ_SCON_BASE_URL`; fixtures continuam restritas a
+testes e workflows determinísticos.
 
 ---
 
@@ -41,7 +51,7 @@ O **FORGELEX V2** foi construído para superar as limitações das ferramentas j
 │   ├── legal-data/            # Contratos de jurisprudência, dedupeKey e contentHash
 │   ├── source-catalog/        # Catálogo nacional de tribunais (STF, STJ, TST, TJSP, etc.)
 │   ├── source-providers/      # Provedores de fontes e SourceRouter com reconciliação
-│   ├── legal-tools/           # Ferramentas registradas (research.search_case_law, drafting.save_final_draft)
+│   ├── legal-tools/           # Ferramentas registradas (pesquisa e verificação de autoridades)
 │   ├── legal-workflows/       # Workflows orquestrados (legal-research-memo)
 │   ├── billing-ledger/        # Dual-wallet ledger idempotente com priorização promocional
 │   └── mcp-server/            # Implementação JSON-RPC 2.0 do Model Context Protocol
@@ -59,7 +69,8 @@ O frontend foi desenvolvido reproduzindo rigorosamente o design system editorial
   2. `Painel do Advogado`: 4 cartões de métricas, gráfico de 30 dias e fila de aprovação L4.
   3. `Conexões & Provedores`: Gestão de chaves Claude/GPT-4o, status MCP e sandbox de inferência.
   4. `Créditos & Faturamento`: Saldo dual-wallet, pacotes de recarga e checkout simulado via PIX/Cartão.
-  5. `Documentação da API`: Gerenciador de chaves, playgrounds interativos e exemplos cURL/Node/Python.
+  5. `Research Desk`: pesquisa, proveniência e verificação de autoridade em uma vertical única.
+  6. `Documentação da API`: Gerenciador de chaves, playgrounds interativos e exemplos cURL/Node/Python.
 
 ---
 
@@ -133,13 +144,13 @@ $ vitest run
  ✓ packages/mcp-server/src/mcp-server.test.ts (4 tests)
  ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (4 tests)
  ✓ packages/domain/src/contracts/provenance.test.ts (4 tests)
- ✓ packages/source-providers/src/source-router.test.ts (3 tests)
+ ✓ packages/source-providers/src/source-router.test.ts (4 tests)
  ✓ packages/source-catalog/src/court-catalog.test.ts (3 tests)
- ✓ apps/api/src/app.test.ts (11 tests)
+ ✓ apps/api/src/app.test.ts (13 tests)
  ✓ apps/api/src/auth/fastify-auth.test.ts (4 tests)
 
- Test Files  13 passed (13)
- Tests  58 passed (58)
+ Test Files  15 passed (15)
+ Tests  69 passed (69)
 ```
 
 ---

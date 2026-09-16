@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 
 export const ApiDocsScreen: React.FC = () => {
-  const [selectedEndpoint, setSelectedEndpoint] = useState<'mcp' | 'jurisprudencias' | 'tribunals' | 'health'>('mcp');
+  const [selectedEndpoint, setSelectedEndpoint] = useState<'mcp' | 'jurisprudencias' | 'verify_authority' | 'tribunals' | 'health'>('mcp');
   const [selectedLang, setSelectedLang] = useState<'curl' | 'node' | 'python'>('curl');
   
   const [apiKey, setApiKey] = useState('flx_live_9a87f2e410b3849cd5e8103721');
@@ -156,6 +156,41 @@ print(response.json())`,
         ]
       }
     },
+    verify_authority: {
+      curl: `curl -X POST "https://api.forgelex.ai/api/v2/research/verify-authority" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -H "Idempotency-Key: verify-req-1" \\
+  -d '{"court":"STJ","processNumber":"REsp 1.823.450/SP","judgmentDate":"2023-04-18"}'`,
+      node: `const response = await fetch('https://api.forgelex.ai/api/v2/research/verify-authority', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ${apiKey}',
+    'Idempotency-Key': 'verify-req-1',
+  },
+  body: JSON.stringify({
+    court: 'STJ',
+    processNumber: 'REsp 1.823.450/SP',
+    judgmentDate: '2023-04-18',
+  }),
+});
+console.log(await response.json());`,
+      python: `import httpx
+
+response = httpx.post(
+    "https://api.forgelex.ai/api/v2/research/verify-authority",
+    json={"court": "STJ", "processNumber": "REsp 1.823.450/SP", "judgmentDate": "2023-04-18"},
+    headers={"Authorization": "Bearer ${apiKey}", "Idempotency-Key": "verify-req-1"}
+)
+print(response.json())`,
+      sampleResponse: {
+        status: "VERIFIED_OFFICIAL",
+        providerId: "provider_stj_scon",
+        checkedAt: "2026-09-16T12:00:00.000Z",
+        authority: { court: "STJ", processNumber: "REsp 1.823.450/SP" }
+      }
+    },
     tribunals: {
       curl: `curl -X GET https://api.forgelex.ai/api/v2/tribunals \\
   -H "Authorization: Bearer ${apiKey}"`,
@@ -296,6 +331,18 @@ print(httpx.get("https://api.forgelex.ai/health").json())`,
                 >
                   <span className="font-bold text-amber-700">POST</span>
                   <span>/mcp</span>
+                </button>
+
+                <button
+                  onClick={() => { setSelectedEndpoint('verify_authority'); setResponseOutput(null); }}
+                  className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center space-x-1.5 transition-colors ${
+                    selectedEndpoint === 'verify_authority'
+                      ? 'border-cognac-600 bg-cognac-50 text-cognac-900 shadow-sm'
+                      : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50'
+                  }`}
+                >
+                  <span className="font-bold text-amber-700">POST</span>
+                  <span>/verify</span>
                 </button>
 
                 <button

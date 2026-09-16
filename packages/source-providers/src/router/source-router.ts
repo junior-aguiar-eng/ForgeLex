@@ -1,8 +1,33 @@
-import { LegalSourceProvider, SearchOptions } from '../contracts/legal-source-provider.js';
+import {
+  AuthorityVerificationQuery,
+  AuthorityVerificationResult,
+  LegalSourceProvider,
+  SearchOptions,
+} from '../contracts/legal-source-provider.js';
 import { JurisprudenceDocument } from '@forgelex/legal-data';
+
+export class SourceRouterError extends Error {
+  public readonly code: 'SOURCE_PROVIDER_UNAVAILABLE' | 'SOURCE_PROVIDER_TIMEOUT';
+
+  constructor(code: SourceRouterError['code'], message: string) {
+    super(message);
+    this.name = 'SourceRouterError';
+    this.code = code;
+  }
+}
+
+function normalizeDate(value: string): string {
+  const brazilianDate = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return brazilianDate ? `${brazilianDate[3]}-${brazilianDate[2]}-${brazilianDate[1]}` : value.slice(0, 10);
+}
 
 export class SourceRouter {
   private readonly providers: LegalSourceProvider[] = [];
+  private readonly timeoutMs: number;
+
+  constructor(options: { timeoutMs?: number } = {}) {
+    this.timeoutMs = options.timeoutMs ?? 20000;
+  }
 
   public registerProvider(provider: LegalSourceProvider): void {
     this.providers.push(provider);
@@ -27,17 +52,34 @@ export class SourceRouter {
       return [];
     }
 
-    // Consulta todos os provedores em paralelo
+    // Provedores oficiais têm prioridade, mas a consulta ainda reconcilia
+    // respostas de todos os provedores elegíveis.
+    eligibleProviders.sort((left, right) => Number(right.isOfficial) - Number(left.isOfficial));
+
+    // Consulta todos os provedores em paralelo com timeout explícito.
     const searchPromises = eligibleProviders.map((p) =>
-      p.search(query, options).catch((err) => {
-        // Tolerância a falhas parciais de rede/provedor externo
-        console.warn(`[SourceRouter] Falha no provedor ${p.id}:`, err);
-        return [] as JurisprudenceDocument[];
-      })
+      this.withTimeout(p.search(query, options), p.id).catch((err) => ({ providerId: p.id, error: err }))
     );
 
     const allResultsArrays = await Promise.all(searchPromises);
-    const combined = allResultsArrays.flat();
+    const failures = allResultsArrays.filter((item): item is { providerId: string; error: unknown } => 'error' in item);
+    const combined = allResultsArrays
+      .filter((item): item is JurisprudenceDocument[] => Array.isArray(item))
+      .flat();
+
+    if (combined.length === 0 && failures.length > 0) {
+      const error = failures[0].error;
+      const message = error instanceof Error ? error.message : 'Todos os provedores de fonte falharam.';
+      const code = /TIMEOUT/i.test(message) ? 'SOURCE_PROVIDER_TIMEOUT' : 'SOURCE_PROVIDER_UNAVAILABLE';
+      throw new SourceRouterError(code, `Nenhum provedor conseguiu concluir a pesquisa: ${message}`);
+    }
+
+    if (failures.length > 0) {
+      console.warn(
+        `[SourceRouter] ${failures.length} provedor(es) falharam; resultados parciais preservados.`,
+        failures.map((failure) => failure.providerId)
+      );
+    }
 
     // Reconciliação determinística por dedupeKey
     const deduplicatedMap = new Map<string, JurisprudenceDocument>();
@@ -54,8 +96,12 @@ export class SourceRouter {
         const latestLastSeen =
           new Date(doc.lastSeenAt) > new Date(existing.lastSeenAt) ? doc.lastSeenAt : existing.lastSeenAt;
 
+        const existingProvider = this.providers.find((provider) => provider.id === existing.provenance.source.provider);
+        const currentProvider = this.providers.find((provider) => provider.id === doc.provenance.source.provider);
+        const preferred = currentProvider?.isOfficial && !existingProvider?.isOfficial ? doc : existing;
+
         deduplicatedMap.set(doc.dedupeKey, {
-          ...existing,
+          ...preferred,
           firstSeenAt: earliestFirstSeen,
           lastSeenAt: latestLastSeen,
         });
@@ -65,5 +111,62 @@ export class SourceRouter {
     const finalResults = Array.from(deduplicatedMap.values());
     const limit = options.limit ?? 20;
     return finalResults.slice(0, limit);
+  }
+
+  public async verifyAuthority(query: AuthorityVerificationQuery): Promise<AuthorityVerificationResult> {
+    const checkedAt = new Date().toISOString();
+    const documents = await this.search(query.processNumber, { court: query.court, limit: 20 });
+    const normalizedNumber = query.processNumber.replace(/[^a-z0-9]/gi, '').toUpperCase();
+    const matches = documents.filter(
+      (item) => item.processNumber.replace(/[^a-z0-9]/gi, '').toUpperCase() === normalizedNumber
+    );
+
+    if (matches.length === 0) {
+      return { status: 'NOT_FOUND', checkedAt };
+    }
+
+    const selected = matches.find((item) =>
+      this.providers.find((provider) => provider.id === item.provenance.source.provider)?.isOfficial
+    ) ?? matches[0];
+    if (
+      query.judgmentDate &&
+      !matches.some((item) => normalizeDate(item.judgmentDate) === normalizeDate(query.judgmentDate!))
+    ) {
+      return {
+        status: 'CONFLICTING_METADATA',
+        providerId: selected.provenance.source.provider,
+        checkedAt,
+        document: selected,
+        reason: 'A data de julgamento informada diverge das fontes consultadas.',
+      };
+    }
+
+    const selectedProvider = this.providers.find((provider) => provider.id === selected.provenance.source.provider);
+    return {
+      status: selected.provenance.verified
+        ? selectedProvider?.isOfficial
+          ? 'VERIFIED_OFFICIAL'
+          : 'VERIFIED_PROVIDER'
+        : 'UNVERIFIED',
+      providerId: selected.provenance.source.provider,
+      checkedAt,
+      document: selected,
+    };
+  }
+
+  private async withTimeout<T>(promise: Promise<T>, providerId: string): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new SourceRouterError('SOURCE_PROVIDER_TIMEOUT', `Timeout no provedor '${providerId}'.`)),
+        this.timeoutMs
+      );
+    });
+
+    try {
+      return await Promise.race([promise, timeout]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 }

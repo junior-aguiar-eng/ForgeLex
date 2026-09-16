@@ -22,7 +22,7 @@ export class CanonicalFixtureProvider implements LegalSourceProvider {
         judgmentDate: '2023-04-18',
         publicationDate: '2023-04-24',
         syllabus:
-          'CIVIL E PROCESSUAL CIVIL. RECURSO ESPECIAL. AÇÃO DE INDENIZAÇÃO POR DANOS MATERIAIS E MORAIS. VAZAMENTO DE DADOS PESSOAIS. LGPD. DANO MORAL IN RE IPSA NÃO CONFIGURADO. NECESSIDADE DE DEMONSTRAÇÃO DE PREJUÍZO EFETIVO.',
+          'CIVIL E PROCESSUAL CIVIL. RECURSO ESPECIAL. AÇÃO DE INDENIZAÇÃO POR DANOS MATERIAIS E MORAIS. VAZAMENTO DE DADOS PESSOAIS. LGPD. DANO MORAL IN RE IPSA NÃO CONFIGURADO. NECESSIDADE DE DEMONSTRAÇÃO DE PREJUÍZO EFETIVO. A violação a dados pessoais comuns não gera dano moral in re ipsa.',
         fullText:
           'O simples vazamento de dados pessoais não sensíveis desacompanhado de prova de dano concreto ou uso indevido por terceiros não acarreta dano moral presumido.',
       },
@@ -65,7 +65,7 @@ export class CanonicalFixtureProvider implements LegalSourceProvider {
         provenance: {
           id: randomUUID(),
           source: {
-            provider: 'OFFICIAL_TRIBUNAL_PORTAL',
+            provider: this.id,
             court: d.court,
             documentId: d.processNumber,
             contentHash,

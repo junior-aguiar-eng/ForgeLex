@@ -7,6 +7,7 @@ export const JurisprudenceDocumentSchema = z.object({
   court: z.string().min(2),
   processNumber: z.string().min(5),
   rapporteur: z.string().min(2),
+  chamber: z.string().min(2).optional(),
   judgmentDate: z.string(),
   publicationDate: z.string(),
   syllabus: z.string().min(10),

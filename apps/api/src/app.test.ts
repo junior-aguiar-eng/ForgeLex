@@ -4,7 +4,10 @@ import { FastifyInstance } from 'fastify';
 import { AuthAdapter } from './auth/fastify-auth.js';
 import { AuthenticatedPrincipal, TokenVerifier } from '@forgelex/domain';
 import { createDatabase } from '@forgelex/persistence';
+import { runPersistenceMigrations } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
+import { AuditRecorder } from '@forgelex/audit';
+import { CanonicalFixtureProvider, SourceRouter } from '@forgelex/source-providers';
 import type { Client } from '@libsql/client';
 
 const testPrincipal: AuthenticatedPrincipal = {
@@ -35,11 +38,13 @@ const authHeaders = { authorization: 'Bearer test-token' };
 describe('Fastify API & Remote MCP Edge (apps/api)', () => {
   let app: FastifyInstance;
   let client: Client;
+  let auditRecorder: AuditRecorder;
 
   beforeAll(async () => {
     const connection = await createDatabase({ url: 'file::memory:?cache=shared' });
     client = connection.client;
     const ledgerService = new LedgerService(connection.db, client);
+    await runPersistenceMigrations(client);
     await ledgerService.runMigrations();
     await ledgerService.provisionAccount('tenant_test', {
       paidBalanceCents: 6300,
@@ -47,9 +52,15 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       promoExpiresAt: new Date(Date.now() + 60_000).toISOString(),
     });
 
+    const sourceRouter = new SourceRouter();
+    sourceRouter.registerProvider(new CanonicalFixtureProvider());
+    auditRecorder = new AuditRecorder(connection.db);
+
     app = await buildApp({
       authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
       ledgerService,
+      sourceRouter,
+      auditRecorder,
       environment: {
         NODE_ENV: 'test',
         FORGELEX_ALLOWED_ORIGINS: 'http://localhost:3000',
@@ -163,6 +174,34 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(body.results[0].court).toBe('STJ');
   });
 
+  it('POST /api/v2/research/verify-authority deve verificar metadados e faturar a operação', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v2/research/verify-authority',
+      headers: {
+        ...authHeaders,
+        'idempotency-key': 'test_verify_authority_101',
+      },
+      payload: {
+        court: 'STJ',
+        processNumber: 'REsp 1.823.450/SP',
+        judgmentDate: '2023-04-18',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-credits-charged']).toBe('0.15');
+    expect(JSON.parse(response.body)).toMatchObject({
+      status: 'VERIFIED_OFFICIAL',
+      authority: { processNumber: 'REsp 1.823.450/SP' },
+    });
+
+    const auditLogs = await auditRecorder.getLogsForSession('rest_test_verify_authority_101');
+    expect(auditLogs).toHaveLength(1);
+    expect(auditLogs[0].toolName).toBe('research.verify_authority');
+    expect(auditLogs[0].status).toBe('SUCCESS');
+  });
+
   it('deve derivar o tenant da credencial e ignorar headers de spoofing', async () => {
     const idempotencyKey = 'test_tenant_spoofing_001';
     const firstResponse = await app.inject({
@@ -223,6 +262,19 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
     expect(body.result.serverInfo.name).toBe('forgelex-mcp-server');
+  });
+
+  it('MCP deve expor a ferramenta de verificação de autoridade', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: authHeaders,
+      payload: { jsonrpc: '2.0', id: 2, method: 'tools/list' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const tools = JSON.parse(response.body).result.tools;
+    expect(tools.some((tool: { name: string }) => tool.name === 'research.verify_authority')).toBe(true);
   });
 
   it('GET /mcp deve retornar 405 Method Not Allowed conforme padrão do protocolo', async () => {

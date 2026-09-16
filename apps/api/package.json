@@ -13,6 +13,7 @@
   "dependencies": {
     "@forgelex/domain": "workspace:*",
     "@forgelex/agent-core": "workspace:*",
+    "@forgelex/audit": "workspace:*",
     "@forgelex/legal-tools": "workspace:*",
     "@forgelex/persistence": "workspace:*",
     "@forgelex/source-catalog": "workspace:*",

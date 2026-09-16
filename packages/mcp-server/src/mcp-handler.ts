@@ -1,5 +1,6 @@
 import { ToolRegistry } from '@forgelex/agent-core';
 import { LedgerService } from '@forgelex/billing-ledger';
+import { AuditRecorder } from '@forgelex/audit';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { randomUUID } from 'node:crypto';
 
@@ -24,10 +25,12 @@ export interface JsonRpcResponse {
 export class McpHandler {
   private readonly toolRegistry: ToolRegistry;
   private readonly ledgerService: LedgerService;
+  private readonly auditRecorder?: AuditRecorder;
 
-  constructor(toolRegistry: ToolRegistry, ledgerService: LedgerService) {
+  constructor(toolRegistry: ToolRegistry, ledgerService: LedgerService, auditRecorder?: AuditRecorder) {
     this.toolRegistry = toolRegistry;
     this.ledgerService = ledgerService;
+    this.auditRecorder = auditRecorder;
   }
 
   public async handleRequest(
@@ -107,6 +110,8 @@ export class McpHandler {
           context.idempotencyKey ??
           request.params?._idempotencyKey ??
           `mcp_${name}_${JSON.stringify(toolArgs ?? {})}`;
+        const sessionId = randomUUID();
+        const startedAt = Date.now();
 
         try {
           // Executa através do Algoritmo de Execução Faturável Idempotente (R$ 0,15 por busca)
@@ -119,17 +124,32 @@ export class McpHandler {
               capability: name,
               toolName: name,
               requestId: idempotencyKey,
+              sessionId,
+              userId,
             },
             operation: async () => {
               const controller = new AbortController();
               return await this.toolRegistry.executeTool(name, toolArgs ?? {}, {
-                sessionId: randomUUID(),
+                sessionId,
                 tenantId,
                 userId,
                 abortSignal: controller.signal,
               });
             },
           });
+
+          if (!execution.isReplay) {
+            await this.recordAudit({
+              sessionId,
+              tenantId,
+              userId,
+              toolName: name,
+              durationMs: Date.now() - startedAt,
+              status: 'SUCCESS',
+              payload: { arguments: toolArgs, success: execution.data.success },
+              costMetadata: { estimatedCostUsd: 0 },
+            });
+          }
 
           return {
             jsonrpc: '2.0',
@@ -149,6 +169,15 @@ export class McpHandler {
             },
           };
         } catch (err: any) {
+          await this.recordAudit({
+            sessionId,
+            tenantId,
+            userId,
+            toolName: name,
+            durationMs: Date.now() - startedAt,
+            status: 'FAILED',
+            payload: { arguments: toolArgs, error: err?.message },
+          });
           return {
             jsonrpc: '2.0',
             id,
@@ -167,6 +196,15 @@ export class McpHandler {
           id,
           error: { code: -32601, message: `Method not found: ${request.method}` },
         };
+    }
+  }
+
+  private async recordAudit(event: Parameters<AuditRecorder['recordEvent']>[0]): Promise<void> {
+    if (!this.auditRecorder) return;
+    try {
+      await this.auditRecorder.recordEvent(event);
+    } catch {
+      // A falha de auditoria não deve mascarar o resultado já faturado.
     }
   }
 }

@@ -6,6 +6,7 @@ export const CaseLawSchema = z.object({
   court: z.string().min(2, 'Sigla do tribunal é obrigatória (ex: STJ, STF, TJSP)'),
   processNumber: z.string().min(5, 'Número de processo é obrigatório'),
   rapporteur: z.string().min(1, 'Nome do relator é obrigatório'),
+  chamber: z.string().min(2).optional(),
   judgmentDate: z.string(),
   publicationDate: z.string(),
   syllabus: z.string().min(10, 'Ementa do acórdão deve conter conteúdo substantivo'),

@@ -39,15 +39,26 @@ export interface SearchResultItem {
   processNumber: string;
   relator: string;
   judgmentDate: string;
+  publicationDate: string;
+  chamber?: string;
   ementa: string;
   sourceUrl: string;
+  sourceProvider: string;
   dedupeKey: string;
   isBinding: boolean;
+  verificationStatus: 'VERIFIED_OFFICIAL' | 'VERIFIED_PROVIDER' | 'UNVERIFIED' | 'CONFLICTING_METADATA' | 'NOT_FOUND';
+}
+
+export interface AuthorityVerification {
+  status: SearchResultItem['verificationStatus'];
+  checkedAt: string;
+  authority?: SearchResultItem;
+  reason?: string;
 }
 
 interface AppContextType {
-  activeTab: 'landing' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
-  setActiveTab: (tab: 'landing' | 'dashboard' | 'connections' | 'credits' | 'api_docs') => void;
+  activeTab: 'landing' | 'research' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
+  setActiveTab: (tab: 'landing' | 'research' | 'dashboard' | 'connections' | 'credits' | 'api_docs') => void;
   
   // Balances
   paidBalanceCents: number;
@@ -68,6 +79,7 @@ interface AppContextType {
   
   // Search & Activity
   performSearch: (query: string, court?: string) => Promise<SearchResultItem[]>;
+  verifyAuthority: (court: string, processNumber: string, judgmentDate?: string) => Promise<AuthorityVerification>;
   recentSearches: { query: string; court: string; timestamp: string; count: number }[];
   
   // Stats
@@ -87,10 +99,13 @@ const CANONICAL_JURISPRUDENCIA: SearchResultItem[] = [
     processNumber: 'REsp 1.823.450/SP',
     relator: 'Min. Marco Aurélio Bellizze',
     judgmentDate: '18/04/2023',
+    publicationDate: '24/04/2023',
     ementa: 'CIVIL E PROCESSUAL CIVIL. RECURSO ESPECIAL. AÇÃO REVISIONAL DE CONTRATO BANCÁRIO. CÉDULA DE CRÉDITO BANCÁRIO. CAPITALIZAÇÃO DE JUROS COM PERIODICIDADE INFERIOR À ANUAL. PACTUAÇÃO EXPRESSA. SÚMULA 539/STJ. TAXA DE JUROS REMUNERATÓRIOS. LIMITAÇÃO À TAXA MÉDIA DE MERCADO DIVULGADA PELO BACEN. AUSÊNCIA DE ABUSIVIDADE MANIFESTA. RECURSO PROVIDO.',
     sourceUrl: 'https://processo.stj.jus.br/processo/julgados/resp1823450',
+    sourceProvider: 'STJ_OFICIAL',
     dedupeKey: 'stj_resp1823450sp_20230418',
     isBinding: true,
+    verificationStatus: 'VERIFIED_OFFICIAL',
   },
   {
     id: 'jur_2',
@@ -98,10 +113,13 @@ const CANONICAL_JURISPRUDENCIA: SearchResultItem[] = [
     processNumber: 'ADI 6.387/DF',
     relator: 'Min. Rosa Weber',
     judgmentDate: '07/05/2020',
+    publicationDate: '12/11/2020',
     ementa: 'DIREITO CONSTITUCIONAL E REGULATÓRIO. MEDIDA PROVISÓRIA Nº 954/2020. COMPARTILHAMENTO DE DADOS DE USUÁRIOS POR EMPRESAS DE TELEFONIA COM O IBGE. DIREITO FUNDAMENTAL À PROTEÇÃO DE DADOS PESSOAIS E AUTODETERMINAÇÃO INFORMATIVA. AUSÊNCIA DE FINALIDADE LEGÍTIMA E SALVAGUARDAS. INCONSTITUCIONALIDADE. EFICÁCIA ERGA OMNES.',
     sourceUrl: 'https://portal.stf.jus.br/processos/detalhe.asp?incidente=5898124',
+    sourceProvider: 'STF_OFICIAL',
     dedupeKey: 'stf_adi6387df_20200507',
     isBinding: true,
+    verificationStatus: 'VERIFIED_OFFICIAL',
   },
   {
     id: 'jur_3',
@@ -109,10 +127,13 @@ const CANONICAL_JURISPRUDENCIA: SearchResultItem[] = [
     processNumber: 'Apelação Cível 1002345-88.2023.8.26.0100',
     relator: 'Des. Francisco Loureiro',
     judgmentDate: '12/11/2024',
+    publicationDate: '19/11/2024',
     ementa: 'RESPONSABILIDADE CIVIL. COMPROMISSO DE COMPRA E VENDA DE IMÓVEL. ATRASO SUBSTANCIAL NA ENTREGA DA OBRA ALÉM DO PRAZO DE TOLERÂNCIA DE 180 DIAS. LUCROS CESSANTES PRESUMIDOS. TEMA 996 DO STJ. RESTITUIÇÃO INTEGRAL DAS PARCELAS PAGAS COM JUROS MORATÓRIOS. DANO MORAL CONFIGURADO DIANTE DA FRUSTRAÇÃO DECORRENTE DE MORA EXCESSIVA. SENTENÇA MANTIDA.',
     sourceUrl: 'https://esaj.tjsp.jus.br/cposg/show.do?processo.codigo=1002345-88.2023',
+    sourceProvider: 'TJSP_OFICIAL',
     dedupeKey: 'tjsp_ac10023458820238260100_20241112',
     isBinding: false,
+    verificationStatus: 'VERIFIED_OFFICIAL',
   },
   {
     id: 'jur_4',
@@ -120,15 +141,18 @@ const CANONICAL_JURISPRUDENCIA: SearchResultItem[] = [
     processNumber: 'RR 1000892-45.2022.5.02.0034',
     relator: 'Min. Mauricio Godinho Delgado',
     judgmentDate: '03/10/2024',
+    publicationDate: '11/10/2024',
     ementa: 'RECURSO DE REVISTA. PEJOTIZAÇÃO FRAUDULENTA. ARTIGOS 2º, 3º E 9º DA CLT. PRESENÇA DE SUBORDINAÇÃO JURÍDICA DIRETA, HABITUALIDADE, ONEROSIDADE E PESSOALIDADE. NULIDADE DO CONTRATO DE PRESTAÇÃO DE SERVIÇOS PJ. RECONHECIMENTO DO VÍNCULO EMPREGATÍCIO COM VERBAS RESCISÓRIAS DEVIDAS. PROVIMENTO.',
     sourceUrl: 'https://jurisprudencia.tst.jus.br/rr1000892',
+    sourceProvider: 'TST_OFICIAL',
     dedupeKey: 'tst_rr10008924520225020034_20241003',
     isBinding: false,
+    verificationStatus: 'VERIFIED_OFFICIAL',
   }
 ];
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<'landing' | 'dashboard' | 'connections' | 'credits' | 'api_docs'>('landing');
+  const [activeTab, setActiveTab] = useState<'landing' | 'research' | 'dashboard' | 'connections' | 'credits' | 'api_docs'>('landing');
 
   // Ledger Balances (in cents)
   const [paidBalanceCents, setPaidBalanceCents] = useState(14250); // R$ 142,50
@@ -373,6 +397,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return results;
   };
 
+  const verifyAuthority = async (
+    court: string,
+    processNumber: string,
+    judgmentDate?: string
+  ): Promise<AuthorityVerification> => {
+    const deduction = deductCredit(15, `Verificação de autoridade: "${processNumber}"`);
+    if (!deduction.success) {
+      throw new Error(deduction.error);
+    }
+
+    const normalized = processNumber.replace(/[^a-z0-9]/gi, '').toUpperCase();
+    const authority = CANONICAL_JURISPRUDENCIA.find(
+      (item) =>
+        item.court.toUpperCase() === court.toUpperCase() &&
+        item.processNumber.replace(/[^a-z0-9]/gi, '').toUpperCase() === normalized
+    );
+    const checkedAt = new Date().toISOString();
+
+    if (!authority) return { status: 'NOT_FOUND', checkedAt };
+    if (judgmentDate && judgmentDate !== authority.judgmentDate) {
+      return {
+        status: 'CONFLICTING_METADATA',
+        checkedAt,
+        authority,
+        reason: 'A data de julgamento informada diverge da fonte oficial.',
+      };
+    }
+    return { status: authority.verificationStatus, checkedAt, authority };
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -390,6 +444,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         approvals,
         resolveApproval,
         performSearch,
+        verifyAuthority,
         recentSearches,
         stats,
       }}

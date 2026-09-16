@@ -129,7 +129,7 @@ export const ConnectionsScreen: React.FC = () => {
           <div className="pt-2 flex flex-wrap items-center gap-4 text-xs text-stone-500 border-t border-stone-200/60">
             <span>Versão: <strong>2024-11-05</strong></span>
             <span>•</span>
-            <span>Ferramentas Expostas: <strong>research.search_case_law, drafting.save_final_draft</strong></span>
+            <span>Ferramentas Expostas: <strong>research.search_case_law, research.verify_authority, drafting.save_final_draft</strong></span>
             <span>•</span>
             <span>Tarifação Atômica: <strong>R$ 0,15/chamada com anti-dupla-cobrança</strong></span>
           </div>
