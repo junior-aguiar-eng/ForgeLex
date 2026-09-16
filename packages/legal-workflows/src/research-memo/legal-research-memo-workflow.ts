@@ -1,5 +1,6 @@
 import { AgentEvent, AgentRuntime } from '@forgelex/agent-core';
 import {
+  CaseLaw,
   LegalAuthority,
   LegalAuthoritySchema,
   LegalResearchMemo,
@@ -31,6 +32,51 @@ interface MemoWorkflowState {
   verificationStatuses: string[];
   adversarialFindings: string[];
   memo?: LegalResearchMemo;
+}
+
+export function caseLawToLegalAuthority(item: CaseLaw): LegalAuthority {
+  return LegalAuthoritySchema.parse({
+    id: item.id,
+    type: 'CASE_LAW',
+    citation: `${item.court} - ${item.processNumber}`,
+    title: item.rapporteur ? `Acórdão relatado por ${item.rapporteur}` : 'Acórdão localizado na pesquisa',
+    summary: item.syllabus,
+    provenance: item.provenance,
+    relevanceScore: 0.5,
+    isBinding: false,
+  });
+}
+
+export function compileLegalResearchMemo(input: {
+  query: string;
+  authorities: LegalAuthority[];
+  matterId?: string;
+  issues?: string[];
+}): LegalResearchMemo {
+  const citations = input.authorities.map((authority) => authority.citation).join('; ');
+  const issueTheses = (input.issues ?? []).map((issue) => `Questão jurídica registrada: ${issue}.`);
+  return LegalResearchMemoSchema.parse({
+    id: randomUUID(),
+    title: `Memorando Jurídico: ${input.query}`,
+    query: input.query,
+    clientOrMatterId: input.matterId,
+    executiveSummary: input.authorities.length > 0
+      ? `Foram localizadas ${input.authorities.length} autoridade(s) para o recorte informado. O material permanece sujeito à conferência humana antes de qualquer conclusão jurídica.`
+      : 'Nenhuma autoridade foi localizada para o recorte informado; não há base suficiente para uma síntese jurídica conclusiva.',
+    keyTheses: [
+      `Recorte pesquisado: ${input.query}.`,
+      ...issueTheses,
+      citations ? `Autoridades estruturadas: ${citations}.` : 'Autoridades estruturadas: nenhuma.',
+      'Status da revisão humana: pendente.',
+    ],
+    applicableAuthorities: input.authorities,
+    riskAnalysis: input.authorities.some((authority) => !authority.provenance.verified)
+      ? 'Existem resultados sem verificação positiva; qualquer uso exige conferência da fonte e dos metadados.'
+      : 'A saída não substitui a conferência da fonte, do contexto do precedente e da pertinência ao caso concreto.',
+    recommendedAction: 'Conferir as fontes, delimitar as questões jurídicas e revisar o memorando antes de utilizá-lo.',
+    generatedAt: new Date().toISOString(),
+    verifiedByHuman: false,
+  });
 }
 
 export class LegalResearchMemoWorkflow {
@@ -189,28 +235,7 @@ export class LegalResearchMemoWorkflow {
   }
 
   public compileFinalMemo(query: string, authorities: LegalAuthority[], matterId?: string): LegalResearchMemo {
-    const citations = authorities.map((authority) => authority.citation).join('; ');
-    return LegalResearchMemoSchema.parse({
-      id: randomUUID(),
-      title: `Memorando Jurídico: ${query}`,
-      query,
-      clientOrMatterId: matterId,
-      executiveSummary: authorities.length > 0
-        ? `Foram localizadas ${authorities.length} autoridade(s) para o recorte informado. O material permanece sujeito à conferência humana antes de qualquer conclusão jurídica.`
-        : 'Nenhuma autoridade foi localizada para o recorte informado; não há base suficiente para uma síntese jurídica conclusiva.',
-      keyTheses: [
-        `Recorte pesquisado: ${query}.`,
-        citations ? `Autoridades estruturadas: ${citations}.` : 'Autoridades estruturadas: nenhuma.',
-        'Status da revisão humana: pendente.',
-      ],
-      applicableAuthorities: authorities,
-      riskAnalysis: authorities.some((authority) => !authority.provenance.verified)
-        ? 'Existem resultados sem verificação positiva; qualquer uso exige conferência da fonte e dos metadados.'
-        : 'A saída não substitui a conferência da fonte, do contexto do precedente e da pertinência ao caso concreto.',
-      recommendedAction: 'Conferir as fontes, delimitar as questões jurídicas e revisar o memorando antes de utilizá-lo.',
-      generatedAt: new Date().toISOString(),
-      verifiedByHuman: false,
-    });
+    return compileLegalResearchMemo({ query, authorities, matterId });
   }
 
   private toLegalAuthority(item: unknown): LegalAuthority | undefined {

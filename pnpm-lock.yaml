@@ -38,6 +38,9 @@ importers:
       '@forgelex/legal-tools':
         specifier: workspace:*
         version: link:../../packages/legal-tools
+      '@forgelex/legal-workflows':
+        specifier: workspace:*
+        version: link:../../packages/legal-workflows
       '@forgelex/mcp-server':
         specifier: workspace:*
         version: link:../../packages/mcp-server

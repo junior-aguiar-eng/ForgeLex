@@ -1218,8 +1218,9 @@ Segundo vertical slice.
 Os estados locais são demonstrados pelos testes determinísticos com runtimes
 injetados. A ausência das chaves `ANTHROPIC_API_KEY` e `OPENAI_API_KEY` impede
 de declarar `PASSED_EXTERNAL`; nenhuma fixture local substitui essa validação.
-O Segundo vertical slice não deve ser iniciado enquanto esse gate externo não
-for concluído ou formalmente atualizado com o resultado de cada provider.
+O gate externo continua aberto exclusivamente para a declaração de
+`PASSED_EXTERNAL`. A execução local e de integração do Segundo vertical slice,
+registrada abaixo, não promove fixture a fonte externa nem altera esse estado.
 
 ---
 
@@ -1235,6 +1236,25 @@ matter
 -> research memo
 -> revisão humana
 ```
+
+## Estado de execução
+
+O slice foi executado localmente e na integração REST sobre o contrato atual:
+
+```text
+matter autenticado
+-> documento textual com hash e âncoras
+-> fatos e provas persistidos
+-> suporte explícito e cobertura
+-> questões jurídicas persistidas
+-> pesquisa faturável com proveniência
+-> research memo versionado e idempotente
+-> revisão humana APPROVED/REJECTED
+```
+
+O resultado externo dos providers Anthropic/OpenAI permanece separado e ainda é
+`BLOCKED_CREDENTIALS`; essa limitação não é apresentada como validação do slice
+contra API paga.
 
 ---
 

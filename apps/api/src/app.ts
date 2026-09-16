@@ -20,6 +20,8 @@ import {
   ForgeLexDatabase,
   MatterRepository,
   MatterAuthorityRepository,
+  LegalIssueRepository,
+  ResearchMemoRepository,
   ApiKeyRepository,
   runPersistenceMigrations,
 } from '@forgelex/persistence';
@@ -35,6 +37,7 @@ import {
 import { ApiKeyService } from './auth/api-key-service.js';
 import { buildOpenApiDocument } from './distribution/openapi.js';
 import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
+import { caseLawToLegalAuthority, compileLegalResearchMemo } from '@forgelex/legal-workflows';
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
@@ -74,6 +77,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await ledgerService.runMigrations();
   const matterRepository = database ? new MatterRepository(database) : undefined;
   const matterAuthorityRepository = database ? new MatterAuthorityRepository(database) : undefined;
+  const legalIssueRepository = database ? new LegalIssueRepository(database) : undefined;
+  const researchMemoRepository = database ? new ResearchMemoRepository(database) : undefined;
   const factsEvidenceService = database
     ? new FactsEvidenceService(new FactsEvidenceRepository(database))
     : undefined;
@@ -513,6 +518,65 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   );
 
   app.get(
+    '/api/v2/matters/:matterId/issues',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository || !legalIssueRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de questões jurídicas não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      if (!(await matterRepository.getMatter(req.principal.tenantId, matterId))) {
+        reply.status(404);
+        return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+      }
+      const items = await legalIssueRepository.listIssues(req.principal.tenantId, matterId);
+      return { items, total: items.length };
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/issues',
+    { preHandler: authAdapter.createPreHandler(['matter:write']) },
+    async (req, reply) => {
+      if (!matterRepository || !legalIssueRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de questões jurídicas não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      const body = (req.body ?? {}) as { statement?: string; status?: 'OPEN' | 'ADDRESSED' | 'DISMISSED' };
+      if (!body.statement?.trim()) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'statement é obrigatório para registrar uma questão jurídica.' };
+      }
+      try {
+        const issue = await legalIssueRepository.createIssue({
+          tenantId: req.principal.tenantId,
+          matterId,
+          createdBy: req.principal.userId,
+          statement: body.statement,
+          status: body.status,
+        });
+        await recordAudit({
+          sessionId: `issue_${issue.id}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'strategy.issue.created',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { issueId: issue.id, matterId, status: issue.status },
+        });
+        reply.status(201);
+        return issue;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível registrar a questão jurídica.';
+        reply.status(message.startsWith('MATTER_NOT_FOUND') ? 404 : 400);
+        return { error: message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  app.get(
     '/api/v2/matters/:matterId/authorities',
     { preHandler: authAdapter.createPreHandler(['matter:read']) },
     async (req, reply) => {
@@ -865,6 +929,267 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         const notFound = /^(MATTER|ANCHOR)_NOT_FOUND/.test(message);
         reply.status(notFound ? 404 : 400);
         return { error: notFound ? message.split(':')[0] : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  // 5. Research memo do matter: contexto forense, pesquisa e revisão humana
+  app.get(
+    '/api/v2/matters/:matterId/research-memos',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository || !researchMemoRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de memorandos não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      if (!(await matterRepository.getMatter(req.principal.tenantId, matterId))) {
+        reply.status(404);
+        return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+      }
+      const items = await researchMemoRepository.listMemos(req.principal.tenantId, matterId);
+      return { items, total: items.length };
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/research-memos',
+    { preHandler: authAdapter.createPreHandler(['matter:write', 'research:read']) },
+    async (req, reply) => {
+      if (!matterRepository || !legalIssueRepository || !researchMemoRepository || !factsEvidenceService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'A infraestrutura do research memo não está disponível.' };
+      }
+
+      const { matterId } = req.params as { matterId: string };
+      const body = (req.body ?? {}) as {
+        query?: unknown;
+        court?: unknown;
+        limit?: unknown;
+        issueIds?: unknown;
+      };
+      const query = typeof body.query === 'string' ? body.query.trim() : '';
+      const court = typeof body.court === 'string' && body.court.trim() ? body.court.trim() : undefined;
+      const limit = body.limit === undefined ? 10 : body.limit;
+      if (
+        query.length < 3 ||
+        typeof limit !== 'number' ||
+        !Number.isInteger(limit) ||
+        limit < 1 ||
+        limit > 20
+      ) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'query deve conter pelo menos 3 caracteres e limit deve ser um inteiro entre 1 e 20.' };
+      }
+
+      const issueIdsProvided = body.issueIds !== undefined;
+      if (issueIdsProvided && (!Array.isArray(body.issueIds) || !body.issueIds.every((item) => typeof item === 'string'))) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'issueIds deve ser uma lista de identificadores.' };
+      }
+
+      if (!(await matterRepository.getMatter(req.principal.tenantId, matterId))) {
+        reply.status(404);
+        return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+      }
+
+      const requestedIssueIds = issueIdsProvided
+        ? [...new Set((body.issueIds as string[]).map((item) => item.trim()).filter(Boolean))]
+        : undefined;
+      const allIssues = await legalIssueRepository.listIssues(req.principal.tenantId, matterId);
+      const selectedIssues = requestedIssueIds === undefined
+        ? allIssues
+        : allIssues.filter((issue) => requestedIssueIds.includes(issue.id));
+      if (requestedIssueIds && selectedIssues.length !== requestedIssueIds.length) {
+        reply.status(404);
+        return { error: 'LEGAL_ISSUE_NOT_FOUND', message: 'Uma ou mais questões jurídicas não pertencem ao matter autenticado.' };
+      }
+
+      const idempotencyKey =
+        (req.headers['idempotency-key'] as string | undefined) ??
+        `research_memo_${matterId}_${query}_${court ?? 'all'}_${limit}_${selectedIssues.map((issue) => issue.id).join(',')}`;
+      const existing = await researchMemoRepository.getByIdempotencyKey(
+        req.principal.tenantId,
+        matterId,
+        idempotencyKey,
+      );
+      if (existing) {
+        const factsResult = await factsEvidenceService.listFacts({
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          matterId,
+        });
+        return {
+          memo: existing.memo,
+          record: existing,
+          issues: selectedIssues,
+          context: {
+            documentCount: (await matterRepository.listDocuments(req.principal.tenantId, matterId)).length,
+            factCount: factsResult.items.length,
+            evidenceCount: (await factsEvidenceService.listEvidence({ tenantId: req.principal.tenantId, userId: req.principal.userId, matterId })).length,
+            coverage: factsResult.coverage,
+          },
+          research: { query, court, total: existing.memo.applicableAuthorities.length },
+          billed: false,
+          idempotentReplay: true,
+        };
+      }
+
+      const sessionId = `memo_${idempotencyKey}`;
+      const startedAt = Date.now();
+      try {
+        const execution = await ledgerService.executeBillableOperation({
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          idempotencyKey,
+          costCents: 15,
+          usage: {
+            capability: 'research.generate_memo',
+            toolName: 'research.generate_memo',
+            provider: 'provider_stj_scon',
+            requestId: idempotencyKey,
+            sessionId,
+            userId: req.principal.userId,
+          },
+          operation: async () => researchService.searchCaseLaw({ query, court, limit }),
+        });
+
+        const authorities = execution.data.items.map(caseLawToLegalAuthority);
+        const memo = compileLegalResearchMemo({
+          query,
+          matterId,
+          authorities,
+          issues: selectedIssues.map((issue) => issue.statement),
+        });
+        let record;
+        try {
+          record = await researchMemoRepository.createMemo({
+            tenantId: req.principal.tenantId,
+            matterId,
+            query,
+            issueIds: selectedIssues.map((issue) => issue.id),
+            memo,
+            workflowVersion: '2.0.0',
+            idempotencyKey,
+            createdBy: req.principal.userId,
+          });
+        } catch (error) {
+          const concurrentRecord = await researchMemoRepository.getByIdempotencyKey(
+            req.principal.tenantId,
+            matterId,
+            idempotencyKey,
+          );
+          if (!concurrentRecord) throw error;
+          record = concurrentRecord;
+        }
+
+        const factsResult = await factsEvidenceService.listFacts({
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          matterId,
+        });
+        const evidence = await factsEvidenceService.listEvidence({
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          matterId,
+        });
+        if (!execution.isReplay) {
+          await recordAudit({
+            sessionId,
+            tenantId: req.principal.tenantId,
+            userId: req.principal.userId,
+            toolName: 'research.memo.generated',
+            durationMs: Date.now() - startedAt,
+            status: 'SUCCESS',
+            payload: {
+              memoId: record.id,
+              matterId,
+              query,
+              issueCount: selectedIssues.length,
+              authorityCount: authorities.length,
+              documentCount: (await matterRepository.listDocuments(req.principal.tenantId, matterId)).length,
+              factCount: factsResult.items.length,
+              evidenceCount: evidence.length,
+            },
+            costMetadata: { estimatedCostUsd: 0 },
+          });
+        }
+
+        return {
+          memo: record.memo,
+          record,
+          issues: selectedIssues,
+          context: {
+            documentCount: (await matterRepository.listDocuments(req.principal.tenantId, matterId)).length,
+            factCount: factsResult.items.length,
+            evidenceCount: evidence.length,
+            coverage: factsResult.coverage,
+          },
+          research: { query, court, total: execution.data.total },
+          billed: !execution.isReplay,
+          idempotentReplay: execution.isReplay,
+        };
+      } catch (error) {
+        const details = error as { code?: unknown; details?: unknown; message?: unknown };
+        const code = typeof details.code === 'string' ? details.code : '';
+        const message = typeof details.message === 'string' ? details.message : 'Não foi possível gerar o research memo.';
+        const sourceFailure = code.startsWith('SOURCE_PROVIDER_');
+        await recordAudit({
+          sessionId,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'research.memo.generated',
+          durationMs: Date.now() - startedAt,
+          status: 'FAILED',
+          payload: { matterId, query, issueCount: selectedIssues.length, error: message },
+        });
+        reply.status(sourceFailure ? 503 : 402);
+        return {
+          error: sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+          message,
+          details: details.details,
+        };
+      }
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/research-memos/:memoId/review',
+    { preHandler: authAdapter.createPreHandler(['matter:write']) },
+    async (req, reply) => {
+      if (!researchMemoRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de revisão de memorandos não está disponível.' };
+      }
+      const { matterId, memoId } = req.params as { matterId: string; memoId: string };
+      const body = (req.body ?? {}) as { decision?: unknown; reason?: unknown };
+      if (body.decision !== 'APPROVED' && body.decision !== 'REJECTED') {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'decision deve ser APPROVED ou REJECTED.' };
+      }
+      try {
+        const record = await researchMemoRepository.reviewMemo({
+          tenantId: req.principal.tenantId,
+          matterId,
+          memoId,
+          decision: body.decision,
+          reviewedBy: req.principal.userId,
+          reason: typeof body.reason === 'string' ? body.reason : undefined,
+        });
+        await recordAudit({
+          sessionId: `memo_${memoId}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'research.memo.reviewed',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { memoId, matterId, decision: record.status },
+        });
+        return { memo: record.memo, record };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível registrar a revisão humana.';
+        reply.status(message.includes('NOT_FOUND') ? 404 : 409);
+        return { error: message.includes('NOT_FOUND') ? 'RESEARCH_MEMO_NOT_FOUND' : 'RESEARCH_MEMO_REVIEW_FAILED', message };
       }
     },
   );

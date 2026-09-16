@@ -62,6 +62,42 @@ interface TimelineEvent {
   sourceAnchorId?: string;
 }
 
+interface DocumentAnchor {
+  id: string;
+  anchorKey: string;
+  text: string;
+}
+
+interface LegalIssue {
+  id: string;
+  statement: string;
+  status: 'OPEN' | 'ADDRESSED' | 'DISMISSED';
+  createdAt: string;
+}
+
+interface ResearchMemo {
+  id: string;
+  matterId: string;
+  query: string;
+  issueIds: string[];
+  memo: {
+    title: string;
+    executiveSummary: string;
+    keyTheses: string[];
+    applicableAuthorities: Array<{ id: string; citation: string; title: string; summary: string; provenance: { verified: boolean; source: { provider: string; sourceUrl?: string } } }>;
+    riskAnalysis: string;
+    recommendedAction: string;
+    generatedAt: string;
+    verifiedByHuman: boolean;
+  };
+  status: 'PENDING_HUMAN_REVIEW' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  updatedAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewReason?: string;
+}
+
 const categoryLabels: Record<Fact['category'], string> = {
   FACTUAL: 'Fato',
   PROCEDURAL: 'Processual',
@@ -96,6 +132,18 @@ const coverageLabels: Record<EvidenceCoverage['coverage'], string> = {
   PARTIAL: 'Suporte parcial',
   UNSUPPORTED: 'Sem suporte',
   CONFLICTING: 'Em conflito',
+};
+
+const issueStatusLabels: Record<LegalIssue['status'], string> = {
+  OPEN: 'Em aberto',
+  ADDRESSED: 'Endereçada',
+  DISMISSED: 'Descartada',
+};
+
+const memoStatusLabels: Record<ResearchMemo['status'], string> = {
+  PENDING_HUMAN_REVIEW: 'Aguardando revisão humana',
+  APPROVED: 'Aprovado por revisão humana',
+  REJECTED: 'Rejeitado na revisão humana',
 };
 
 const apiUrl = import.meta.env.VITE_FORGELEX_API_URL ?? 'http://localhost:3001';
@@ -135,6 +183,9 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [coverage, setCoverage] = useState<EvidenceCoverage[]>([]);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+  const [anchors, setAnchors] = useState<DocumentAnchor[]>([]);
+  const [issues, setIssues] = useState<LegalIssue[]>([]);
+  const [memos, setMemos] = useState<ResearchMemo[]>([]);
   const [title, setTitle] = useState('');
   const [practiceArea, setPracticeArea] = useState('');
   const [documentTitle, setDocumentTitle] = useState('');
@@ -147,6 +198,12 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const [timelineTitle, setTimelineTitle] = useState('');
   const [timelineDate, setTimelineDate] = useState('');
   const [timelineDescription, setTimelineDescription] = useState('');
+  const [issueStatement, setIssueStatement] = useState('');
+  const [memoQuery, setMemoQuery] = useState('');
+  const [supportFactId, setSupportFactId] = useState('');
+  const [supportEvidenceId, setSupportEvidenceId] = useState('');
+  const [supportAnchorId, setSupportAnchorId] = useState('');
+  const [supportRelation, setSupportRelation] = useState<'SUPPORTS' | 'CONTRADICTS' | 'CONTEXT'>('SUPPORTS');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -162,21 +219,32 @@ export const MatterWorkspaceScreen: React.FC = () => {
     setEvidence([]);
     setCoverage([]);
     setTimeline([]);
+    setAnchors([]);
+    setIssues([]);
+    setMemos([]);
   };
 
   const loadMatterResources = async (matterId: string) => {
-    const [detail, factsResponse, evidenceResponse, coverageResponse, timelineResponse] = await Promise.all([
+    const [detail, factsResponse, evidenceResponse, coverageResponse, timelineResponse, issuesResponse, memosResponse] = await Promise.all([
       request<MatterDetailResponse>(`/api/v2/matters/${matterId}`, token),
       request<{ items: Fact[] }>(`/api/v2/matters/${matterId}/facts`, token),
       request<{ items: EvidenceItem[] }>(`/api/v2/matters/${matterId}/evidence`, token),
       request<{ items: EvidenceCoverage[] }>(`/api/v2/matters/${matterId}/evidence/coverage`, token),
       request<{ items: TimelineEvent[] }>(`/api/v2/matters/${matterId}/timeline`, token),
+      request<{ items: LegalIssue[] }>(`/api/v2/matters/${matterId}/issues`, token),
+      request<{ items: ResearchMemo[] }>(`/api/v2/matters/${matterId}/research-memos`, token),
     ]);
+    const documentDetails = await Promise.all(detail.documents.map((document) =>
+      request<{ anchors: DocumentAnchor[] }>(`/api/v2/matters/${matterId}/documents/${document.id}`, token),
+    ));
     setDocuments(detail.documents);
     setFacts(factsResponse.items);
     setEvidence(evidenceResponse.items);
     setCoverage(coverageResponse.items);
     setTimeline(timelineResponse.items);
+    setAnchors(documentDetails.flatMap((item) => item.anchors));
+    setIssues(issuesResponse.items);
+    setMemos(memosResponse.items);
   };
 
   const loadMatters = async () => {
@@ -328,6 +396,94 @@ export const MatterWorkspaceScreen: React.FC = () => {
     }
   };
 
+  const createIssue = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!token || !selectedMatterId || issueStatement.trim().length < 3) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const issue = await request<LegalIssue>(`/api/v2/matters/${selectedMatterId}/issues`, token, {
+        method: 'POST',
+        body: JSON.stringify({ statement: issueStatement }),
+      });
+      setIssues((current) => [issue, ...current]);
+      setIssueStatement('');
+      setNotice('Questão jurídica registrada e disponível para o research memo.');
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Não foi possível registrar a questão jurídica.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const mapSupport = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!token || !selectedMatterId || !supportFactId || (!supportEvidenceId && !supportAnchorId)) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await request(`/api/v2/matters/${selectedMatterId}/facts/${supportFactId}/support`, token, {
+        method: 'POST',
+        body: JSON.stringify({
+          evidenceItemId: supportEvidenceId || undefined,
+          anchorId: supportAnchorId || undefined,
+          relation: supportRelation,
+        }),
+      });
+      await loadMatterResources(selectedMatterId);
+      setSupportFactId('');
+      setSupportEvidenceId('');
+      setSupportAnchorId('');
+      setNotice('Vínculo de suporte registrado; a cobertura do fato foi recalculada.');
+    } catch (supportError) {
+      setError(supportError instanceof Error ? supportError.message : 'Não foi possível mapear o suporte.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const generateMemo = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!token || !selectedMatterId || memoQuery.trim().length < 3) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const response = await request<{ record: ResearchMemo }>(`/api/v2/matters/${selectedMatterId}/research-memos`, token, {
+        method: 'POST',
+        headers: { 'Idempotency-Key': `web_research_memo_${selectedMatterId}_${memoQuery.trim()}` },
+        body: JSON.stringify({ query: memoQuery.trim(), issueIds: issues.map((issue) => issue.id) }),
+      });
+      setMemos((current) => [response.record, ...current.filter((item) => item.id !== response.record.id)]);
+      setNotice('Research memo gerado e encaminhado para revisão humana.');
+    } catch (memoError) {
+      setError(memoError instanceof Error ? memoError.message : 'Não foi possível gerar o research memo.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reviewMemo = async (memoId: string, decision: 'APPROVED' | 'REJECTED') => {
+    if (!token || !selectedMatterId) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const response = await request<{ record: ResearchMemo }>(`/api/v2/matters/${selectedMatterId}/research-memos/${memoId}/review`, token, {
+        method: 'POST',
+        body: JSON.stringify({ decision }),
+      });
+      setMemos((current) => current.map((item) => item.id === response.record.id ? response.record : item));
+      setNotice(decision === 'APPROVED' ? 'Research memo aprovado por revisão humana.' : 'Research memo rejeitado por revisão humana.');
+    } catch (reviewError) {
+      setError(reviewError instanceof Error ? reviewError.message : 'Não foi possível registrar a revisão humana.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const ingestDocument = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!token || !selectedMatterId || !documentTitle.trim() || !filename.trim() || !content.trim()) return;
@@ -371,7 +527,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
             </div>
             <h1 className="font-editorial text-4xl font-bold text-stone-950">Área do caso</h1>
             <p className="max-w-2xl text-sm leading-relaxed text-stone-600">
-              Reúna documentos, fatos, provas e eventos em um único contexto de trabalho.
+              Reúna documentos, fatos, provas e questões jurídicas para pesquisar e revisar o caso em um único contexto de trabalho.
             </p>
           </div>
           <div className="inline-flex items-center gap-2 text-xs text-stone-500">
@@ -442,12 +598,14 @@ export const MatterWorkspaceScreen: React.FC = () => {
                     </div>
                     <span className="text-[11px] text-stone-400">Atualizado em {new Date(selectedMatter.updatedAt).toLocaleDateString('pt-BR')}</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
                     {[
                       ['Documentos', documents.length],
                       ['Fatos', facts.length],
                       ['Provas', evidence.length],
                       ['Eventos', timeline.length],
+                      ['Questões', issues.length],
+                      ['Memos', memos.length],
                     ].map(([section, count]) => <div key={section} className="p-3 rounded-xl bg-[#FDFBF7] border border-champagne-border"><span className="block text-xs font-semibold text-stone-700">{section}</span><span className="text-[10px] text-stone-500">{count} registrado(s)</span></div>)}
                   </div>
                   <nav className="flex flex-wrap gap-2 border-t border-stone-100 pt-4" aria-label="Seções do caso">
@@ -456,6 +614,8 @@ export const MatterWorkspaceScreen: React.FC = () => {
                       ['fatos', 'Fatos e provas'],
                       ['provas', 'Provas'],
                       ['linha-do-tempo', 'Linha do tempo'],
+                      ['questoes', 'Questões jurídicas'],
+                      ['research-memo', 'Research memo'],
                     ].map(([id, label]) => <button key={id} type="button" onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="btn-quiet min-h-9 px-2.5 text-xs">{label}</button>)}
                     <button type="button" onClick={() => setActiveTab('research')} className="btn-quiet min-h-9 px-2.5 text-xs">Fontes</button>
                     <button type="button" onClick={() => setActiveTab('draft_studio')} className="btn-quiet min-h-9 px-2.5 text-xs">Rascunhos</button>
@@ -517,14 +677,38 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   </div>
                   <span className="text-xs text-stone-500">{evidence.length}</span>
                 </div>
-                <form onSubmit={createEvidence} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3">
+              <form onSubmit={createEvidence} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3">
                   <input value={evidenceTitle} onChange={(event) => setEvidenceTitle(event.target.value)} placeholder="Título do item de prova" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                   <select value={evidenceType} onChange={(event) => setEvidenceType(event.target.value as EvidenceItem['evidenceType'])} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">
                     <option value="DOCUMENT">Documento</option><option value="TESTIMONY">Depoimento</option><option value="RECORD">Registro</option><option value="EXPERT_REPORT">Laudo</option><option value="OTHER">Outro</option>
                   </select>
-                  <button disabled={!token || busy || evidenceTitle.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
-                </form>
-                <div className="space-y-2">
+                <button disabled={!token || busy || evidenceTitle.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
+              </form>
+              <form onSubmit={mapSupport} className="rounded-xl border border-cognac-100 bg-cognac-50/40 p-4 space-y-3">
+                <div>
+                  <p className="text-xs font-bold text-stone-800">Mapear suporte</p>
+                  <p className="text-[11px] text-stone-500 mt-1">Vincule um fato a uma prova ou a uma âncora do documento; o vínculo não conclui autenticidade.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                  <select value={supportFactId} onChange={(event) => setSupportFactId(event.target.value)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
+                    <option value="">Selecione o fato</option>
+                    {facts.map((fact) => <option key={fact.id} value={fact.id}>{fact.statement.slice(0, 55)}</option>)}
+                  </select>
+                  <select value={supportEvidenceId} onChange={(event) => setSupportEvidenceId(event.target.value)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
+                    <option value="">Selecione a prova</option>
+                    {evidence.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+                  </select>
+                  <select value={supportAnchorId} onChange={(event) => setSupportAnchorId(event.target.value)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
+                    <option value="">Selecione a âncora (opcional)</option>
+                    {anchors.map((anchor) => <option key={anchor.id} value={anchor.id}>{anchor.anchorKey}: {anchor.text.slice(0, 42)}</option>)}
+                  </select>
+                  <select value={supportRelation} onChange={(event) => setSupportRelation(event.target.value as typeof supportRelation)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
+                    <option value="SUPPORTS">Sustenta</option><option value="CONTRADICTS">Contradiz</option><option value="CONTEXT">Contextualiza</option>
+                  </select>
+                </div>
+                <button disabled={!token || busy || !supportFactId || (!supportEvidenceId && !supportAnchorId)} className="px-3 py-2 rounded-lg border border-cognac-200 bg-white disabled:bg-stone-100 text-cognac-800 text-xs font-semibold">Salvar vínculo</button>
+              </form>
+              <div className="space-y-2">
                   {evidence.map((item) => <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span><span className="text-[11px] text-stone-500">{evidenceTypeLabels[item.evidenceType]} · {evidenceStatusLabels[item.status]}</span></div><span className="text-[10px] text-stone-400">Item registrado</span></div>)}
                   {evidence.length === 0 && <p className="text-xs text-stone-500">Nenhum item de prova registrado neste caso.</p>}
                 </div>
@@ -549,6 +733,49 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   {timeline.length === 0 && <p className="text-xs text-stone-500">Nenhum evento registrado neste caso.</p>}
                 </div>
                 <p className="text-[11px] text-stone-400">A cobertura considera apenas vínculos explícitos registrados; não constitui conclusão sobre autenticidade, suficiência ou procedência da prova.</p>
+              </section>
+
+              <section id="questoes" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-editorial text-xl font-bold text-stone-900">Questões jurídicas</h2>
+                    <p className="text-xs text-stone-500 mt-1">Delimite os pontos que orientarão a pesquisa do caso.</p>
+                  </div>
+                  <span className="text-xs text-stone-500">{issues.length}</span>
+                </div>
+                <form onSubmit={createIssue} className="flex flex-col md:flex-row gap-3">
+                  <input value={issueStatement} onChange={(event) => setIssueStatement(event.target.value)} placeholder="Ex.: a violação de dados gera dano indenizável neste caso?" className="flex-1 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                  <button disabled={!token || busy || issueStatement.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar questão</button>
+                </form>
+                <div className="space-y-2">
+                  {issues.map((issue) => <div key={issue.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><p className="text-sm text-stone-800">{issue.statement}</p><span className="text-[10px] uppercase tracking-wide text-cognac-700">{issueStatusLabels[issue.status]}</span></div>)}
+                  {issues.length === 0 && <p className="text-xs text-stone-500">Nenhuma questão jurídica registrada. O memo ainda pode ser gerado com uma consulta livre.</p>}
+                </div>
+              </section>
+
+              <section id="research-memo" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div>
+                    <h2 className="font-editorial text-xl font-bold text-stone-900">Research memo</h2>
+                    <p className="text-xs text-stone-500 mt-1">Cruze o contexto registrado com a pesquisa e encaminhe o resultado para revisão humana.</p>
+                  </div>
+                  <span className="text-[10px] uppercase tracking-wide text-amber-700">Revisão humana obrigatória</span>
+                </div>
+                <form onSubmit={generateMemo} className="flex flex-col md:flex-row gap-3">
+                  <input value={memoQuery} onChange={(event) => setMemoQuery(event.target.value)} placeholder="Recorte de pesquisa jurídica" className="flex-1 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                  <button disabled={!token || busy || memoQuery.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">{busy ? 'Pesquisando...' : 'Gerar memo'}</button>
+                </form>
+                <div className="space-y-4">
+                  {memos.map((record) => <article key={record.id} className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2"><div><p className="text-sm font-bold text-stone-900">{record.memo.title}</p><p className="text-[11px] text-stone-500 mt-1">Consulta: {record.query} · {new Date(record.createdAt).toLocaleString('pt-BR')}</p></div><span className={`text-[10px] uppercase tracking-wide ${record.status === 'APPROVED' ? 'text-emerald-700' : record.status === 'REJECTED' ? 'text-red-700' : 'text-amber-700'}`}>{memoStatusLabels[record.status]}</span></div>
+                    <p className="text-sm leading-relaxed text-stone-700">{record.memo.executiveSummary}</p>
+                    <div className="space-y-1"><p className="text-[10px] uppercase tracking-wide font-bold text-stone-500">Teses estruturadas</p>{record.memo.keyTheses.map((thesis) => <p key={thesis} className="text-xs text-stone-700">{thesis}</p>)}</div>
+                    <div className="space-y-1"><p className="text-[10px] uppercase tracking-wide font-bold text-stone-500">Autoridades localizadas</p>{record.memo.applicableAuthorities.map((authority) => <p key={authority.id} className="text-xs text-stone-700">{authority.citation} · {authority.provenance.verified ? 'proveniência verificada' : 'conferência pendente'}</p>)}{record.memo.applicableAuthorities.length === 0 && <p className="text-xs text-stone-500">Nenhuma autoridade retornada.</p>}</div>
+                    <div className="rounded-lg border border-amber-100 bg-amber-50/60 p-3"><p className="text-xs text-amber-900"><span className="font-bold">Risco:</span> {record.memo.riskAnalysis}</p><p className="text-xs text-amber-900 mt-1"><span className="font-bold">Providência:</span> {record.memo.recommendedAction}</p></div>
+                    {record.status === 'PENDING_HUMAN_REVIEW' && <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void reviewMemo(record.id, 'APPROVED')} disabled={busy} className="px-3 py-2 rounded-lg bg-emerald-700 text-white text-xs font-semibold">Aprovar revisão</button><button type="button" onClick={() => void reviewMemo(record.id, 'REJECTED')} disabled={busy} className="px-3 py-2 rounded-lg border border-red-200 text-red-700 text-xs font-semibold">Rejeitar memo</button></div>}
+                  </article>)}
+                  {memos.length === 0 && <p className="text-xs text-stone-500">Nenhum research memo gerado para este caso.</p>}
+                </div>
               </section>
             </>}
           </main>

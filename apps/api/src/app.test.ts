@@ -170,6 +170,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(body.openapi).toBe('3.1.0');
     expect(body.paths['/api/v2/research/search-case-law'].post['x-forgelex-tool']).toBe('research.search_case_law');
     expect(body.paths['/api/v2/matters/{matterId}/authorities'].post['x-forgelex-required-scopes']).toEqual(['matter:write']);
+    expect(body.paths['/api/v2/matters/{matterId}/research-memos'].post['x-forgelex-required-scopes']).toEqual(['matter:write', 'research:read']);
     expect(body.paths['/mcp'].post['x-forgelex-required-scopes']).toEqual(['mcp']);
     expect(body.components.securitySchemes.BearerAuth.scheme).toBe('bearer');
   });
@@ -593,6 +594,112 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const otherTenantResponse = await app.inject({
       method: 'GET',
       url: `/api/v2/matters/${matter.id}/drafts/${created.draft.id}`,
+      headers: { authorization: 'Bearer tenant-b-token' },
+    });
+    expect(otherTenantResponse.statusCode).toBe(404);
+  });
+
+  it('deve executar o segundo vertical slice do matter até o research memo e a revisão humana', async () => {
+    const matterResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/matters',
+      headers: authHeaders,
+      payload: { title: 'Matter do segundo vertical slice', practiceArea: 'Proteção de dados' },
+    });
+    const matter = JSON.parse(matterResponse.body);
+
+    const documentResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/documents`,
+      headers: authHeaders,
+      payload: {
+        title: 'Relato do incidente',
+        originalFilename: 'incidente.txt',
+        content: 'A empresa comunicou o incidente em 15 de janeiro de 2026.\n\nO titular não recebeu informação sobre a extensão do evento.',
+      },
+    });
+    const document = JSON.parse(documentResponse.body);
+
+    const factResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/facts`,
+      headers: authHeaders,
+      payload: { statement: 'A empresa comunicou o incidente em 15 de janeiro de 2026.', category: 'TEMPORAL' },
+    });
+    const fact = JSON.parse(factResponse.body);
+    const evidenceResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/evidence`,
+      headers: authHeaders,
+      payload: { title: 'Relato empresarial', evidenceType: 'DOCUMENT' },
+    });
+    const evidence = JSON.parse(evidenceResponse.body);
+    const supportResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/facts/${fact.id}/support`,
+      headers: authHeaders,
+      payload: { anchorId: document.anchors[0].id, evidenceItemId: evidence.id, relation: 'SUPPORTS' },
+    });
+    expect(supportResponse.statusCode).toBe(200);
+
+    const issueResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/issues`,
+      headers: authHeaders,
+      payload: { statement: 'A comunicação tardia do incidente gera consequência indenizável?' },
+    });
+    expect(issueResponse.statusCode).toBe(201);
+    const issue = JSON.parse(issueResponse.body);
+
+    const idempotencyKey = 'second-vertical-slice-memo-1';
+    const memoResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/research-memos`,
+      headers: { ...authHeaders, 'idempotency-key': idempotencyKey },
+      payload: {
+        query: 'comunicação de incidente e dano moral',
+        issueIds: [issue.id],
+        court: 'STJ',
+        limit: 5,
+      },
+    });
+    expect(memoResponse.statusCode).toBe(200);
+    const generated = JSON.parse(memoResponse.body);
+    expect(generated).toMatchObject({
+      billed: true,
+      idempotentReplay: false,
+      record: { matterId: matter.id, status: 'PENDING_HUMAN_REVIEW', issueIds: [issue.id] },
+      context: { documentCount: 1, factCount: 1, evidenceCount: 1 },
+      research: { total: 1 },
+    });
+    expect(generated.memo.applicableAuthorities[0].provenance.source.provider).toBe('provider_canonical_fixtures');
+    expect(generated.memo.keyTheses.some((thesis: string) => thesis.includes(issue.statement))).toBe(true);
+
+    const replayResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/research-memos`,
+      headers: { ...authHeaders, 'idempotency-key': idempotencyKey },
+      payload: { query: 'comunicação de incidente e dano moral', issueIds: [issue.id], court: 'STJ', limit: 5 },
+    });
+    expect(replayResponse.statusCode).toBe(200);
+    expect(JSON.parse(replayResponse.body)).toMatchObject({ billed: false, idempotentReplay: true, record: { id: generated.record.id } });
+
+    const reviewResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/research-memos/${generated.record.id}/review`,
+      headers: authHeaders,
+      payload: { decision: 'APPROVED', reason: 'Conferência humana concluída.' },
+    });
+    expect(reviewResponse.statusCode).toBe(200);
+    expect(JSON.parse(reviewResponse.body)).toMatchObject({ record: { status: 'APPROVED' }, memo: { verifiedByHuman: true } });
+
+    const usage = await ledgerService.getUsageEvents('tenant_test');
+    expect(usage.filter((event) => event.requestId === idempotencyKey && event.capability === 'research.generate_memo')).toHaveLength(1);
+    expect((await auditRecorder.getLogsForSession(`memo_${idempotencyKey}`)).map((log) => log.toolName)).toContain('research.memo.generated');
+
+    const otherTenantResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}/research-memos`,
       headers: { authorization: 'Bearer tenant-b-token' },
     });
     expect(otherTenantResponse.statusCode).toBe(404);

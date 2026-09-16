@@ -485,6 +485,57 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `,
     ],
   },
+  {
+    id: 'persistence-0007-legal-issues',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS legal_issues (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          statement TEXT NOT NULL,
+          status TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS legal_issues_tenant_matter_updated_idx
+        ON legal_issues (tenant_id, matter_id, updated_at DESC);
+      `,
+    ],
+  },
+  {
+    id: 'persistence-0008-research-memos',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS research_memos (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          query TEXT NOT NULL,
+          issue_ids TEXT NOT NULL,
+          workflow_id TEXT NOT NULL,
+          workflow_version TEXT NOT NULL,
+          memo_json TEXT NOT NULL,
+          status TEXT NOT NULL,
+          idempotency_key TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          reviewed_by TEXT,
+          reviewed_at TEXT,
+          review_reason TEXT,
+          UNIQUE (tenant_id, matter_id, idempotency_key)
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS research_memos_tenant_matter_updated_idx
+        ON research_memos (tenant_id, matter_id, updated_at DESC);
+      `,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

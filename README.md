@@ -4,7 +4,7 @@
 > Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-107%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-108%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -39,16 +39,18 @@ do tempo. Fatos e provas podem ser vinculados a âncoras de parágrafo e entre s
 a cobertura informa somente os vínculos explícitos registrados (`SUPPORTED`,
 `PARTIAL`, `UNSUPPORTED` ou `CONFLICTING`). O sistema não confirma
 automaticamente a veracidade, autenticidade ou suficiência jurídica do material.
+Questões jurídicas podem ser delimitadas no próprio matter e alimentam o
+research memo, que preserva as autoridades localizadas, a cobertura factual e
+o estado explícito de revisão humana.
 
 ### Legal Workflows
 
 Os fluxos `legal-research-memo`, `case-document-analysis` e `pleading-draft`
 usam checkpoints versionados, retomada por execução e eventos estruturados.
 Pesquisa e análise preservam a proveniência disponível; questões jurídicas são
-entradas explícitas; e a minuta permanece `DRAFT_ONLY`, com aprovação humana
-pendente e sem efeito externo. Neste marco, os workflows são executáveis no
-pacote e ainda não constituem uma exposição REST/MCP nem extraem fatos novos ou
-geram automaticamente uma tese jurídica final.
+entradas explícitas; o research memo é exposto pela API do matter com estado
+`PENDING_HUMAN_REVIEW`; e a minuta permanece `DRAFT_ONLY`, sem efeito externo.
+O fluxo não extrai fatos novos nem gera automaticamente uma tese jurídica final.
 
 ### Drafting & Review
 
@@ -97,7 +99,9 @@ O frontend foi desenvolvido reproduzindo rigorosamente o design system editorial
   3. `Conexões & Provedores`: Configuração local de credenciais, sem presumir conexão verificada.
   4. `Créditos & Faturamento`: Estado explícito de conta, sem saldo ou checkout presumidos.
   5. `Research Desk`: pesquisa, proveniência e verificação de autoridade em uma vertical única.
-  6. `Documentação da API`: referência visual para o contrato público, sem executar chamadas externas por padrão.
+  6. `Matter Workspace`: documentos ancorados, fatos, provas, questões jurídicas e research memo.
+  7. `Draft Studio`: outline, versões, revisão e aprovação humana de rascunhos.
+  8. `Documentação da API`: referência visual para o contrato público, sem executar chamadas externas por padrão.
 
 ---
 
@@ -180,6 +184,22 @@ retornado uma única vez na criação. A fundação de webhooks está disponíve
 minutos; a entrega e a persistência de assinaturas ainda dependem da escolha
 do transporte operacional.
 
+### Segundo vertical slice
+
+O Matter Workspace agora percorre o segundo slice no mesmo matter: registra
+documentos textuais com âncoras, fatos e provas, mapeia suporte, delimita
+questões jurídicas, executa pesquisa faturável, persiste o `research memo` e
+registra a decisão humana como `APPROVED` ou `REJECTED`. As rotas são:
+
+```text
+GET/POST /api/v2/matters/{matterId}/issues
+GET/POST /api/v2/matters/{matterId}/research-memos
+POST     /api/v2/matters/{matterId}/research-memos/{memoId}/review
+```
+
+O memo é idempotente por `Idempotency-Key`, mantém a proveniência retornada
+pela fonte e não confunde fixture de teste com validação externa.
+
 ---
 
 ## 🧪 Suíte de Testes Automatizados
@@ -197,7 +217,7 @@ $ vitest run
  ✓ packages/source-providers/src/stj-scon-provider.test.ts (4 tests)
  ✓ packages/legal-workflows/src/research-memo/legal-research-memo.test.ts (4 tests)
  ✓ packages/legal-tools/src/research/research-tools.test.ts (4 tests)
- ✓ apps/api/src/app.test.ts (21 tests)
+ ✓ apps/api/src/app.test.ts (22 tests)
  ✓ packages/agent-provider-anthropic/src/anthropic-agent-provider.test.ts (9 tests)
  ✓ apps/api/src/provider-parity.test.ts (2 tests)
  ✓ packages/domain/src/contracts/matter.test.ts (2 tests)
@@ -209,8 +229,8 @@ $ vitest run
  ✓ packages/source-catalog/src/court-catalog.test.ts (3 tests)
  ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (9 tests)
 
- Test Files  21 passed (21)
- Tests  107 passed (107)
+ Test Files  22 passed (22)
+ Tests  108 passed (108)
 ```
 
 ---

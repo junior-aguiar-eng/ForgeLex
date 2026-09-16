@@ -424,3 +424,44 @@ export const matterAuthorities = sqliteTable(
     index('matter_authorities_tenant_matter_saved_idx').on(table.tenantId, table.matterId, table.savedAt),
   ],
 );
+
+export const legalIssues = sqliteTable(
+  'legal_issues',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').notNull().references(() => matters.id),
+    statement: text('statement').notNull(),
+    status: text('status').notNull(),
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [index('legal_issues_tenant_matter_updated_idx').on(table.tenantId, table.matterId, table.updatedAt)],
+);
+
+export const researchMemos = sqliteTable(
+  'research_memos',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').notNull().references(() => matters.id),
+    query: text('query').notNull(),
+    issueIds: text('issue_ids').notNull(),
+    workflowId: text('workflow_id').notNull(),
+    workflowVersion: text('workflow_version').notNull(),
+    memoJson: text('memo_json').notNull(),
+    status: text('status').notNull(),
+    idempotencyKey: text('idempotency_key').notNull(),
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    reviewedBy: text('reviewed_by'),
+    reviewedAt: text('reviewed_at'),
+    reviewReason: text('review_reason'),
+  },
+  (table) => [
+    uniqueIndex('research_memos_tenant_matter_idempotency_idx').on(table.tenantId, table.matterId, table.idempotencyKey),
+    index('research_memos_tenant_matter_updated_idx').on(table.tenantId, table.matterId, table.updatedAt),
+  ],
+);
