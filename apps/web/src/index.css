@@ -3,14 +3,149 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    background-color: #FBF9F5;
-    color: #2D2721;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  :root {
+    --forgelex-ivory: #fbf9f5;
+    --forgelex-paper: #ffffff;
+    --forgelex-ink: #2d2721;
+    --forgelex-muted: #71695f;
+    --forgelex-line: rgba(180, 150, 110, 0.2);
+    --forgelex-accent: #8e5d2a;
+    --forgelex-accent-soft: #f9ede0;
   }
-  
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    overflow-x: hidden;
+    background: var(--forgelex-ivory);
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    background-color: var(--forgelex-ivory);
+    color: var(--forgelex-ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+  }
+
   h1, h2, h3, .font-editorial {
     font-family: 'Merriweather', 'Playfair Display', Georgia, serif;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 3px solid rgba(142, 93, 42, 0.45);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .page-container {
+    width: min(100% - 2rem, 1200px);
+    margin-inline: auto;
+  }
+
+  .surface {
+    background: var(--forgelex-paper);
+    border: 1px solid var(--forgelex-line);
+    border-radius: 1rem;
+    box-shadow: 0 1px 4px rgba(66, 45, 25, 0.035);
+  }
+
+  .surface-subtle {
+    background: #fdfbf7;
+    border: 1px solid rgba(180, 150, 110, 0.16);
+    border-radius: 0.875rem;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-quiet {
+    min-height: 2.625rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .btn-primary {
+    border: 1px solid var(--forgelex-accent);
+    background: #8e5d2a;
+    color: white;
+    box-shadow: 0 2px 5px rgba(91, 55, 22, 0.12);
+  }
+
+  .btn-primary:hover {
+    background: #73481d;
+  }
+
+  .btn-secondary {
+    border: 1px solid rgba(142, 93, 42, 0.28);
+    background: #fff;
+    color: #73481d;
+  }
+
+  .btn-secondary:hover,
+  .btn-quiet:hover {
+    border-color: rgba(142, 93, 42, 0.5);
+    background: var(--forgelex-accent-soft);
+  }
+
+  .btn-quiet {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--forgelex-muted);
+  }
+
+  .input-control {
+    min-height: 2.75rem;
+    width: 100%;
+    border: 1px solid var(--forgelex-line);
+    border-radius: 0.75rem;
+    background: #fdfbf7;
+    padding: 0.625rem 0.875rem;
+    color: var(--forgelex-ink);
+    font-size: 0.875rem;
+  }
+
+  .input-control::placeholder {
+    color: #a19a91;
+  }
+
+  .input-control:focus {
+    border-color: rgba(142, 93, 42, 0.7);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(142, 93, 42, 0.12);
+  }
+
+  .eyebrow {
+    color: #8e5d2a;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1.2;
+    text-transform: uppercase;
   }
 }
 
@@ -33,7 +168,7 @@
 .champagne-card {
   background: #FFFFFF;
   border: 1px solid rgba(180, 150, 110, 0.22);
-  box-shadow: 0 2px 12px rgba(142, 93, 42, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 1px 4px rgba(66, 45, 25, 0.035);
 }
 
 .champagne-card-subtle {
@@ -45,4 +180,47 @@
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(180, 150, 110, 0.25);
+}
+
+.technical-access {
+  border: 1px solid rgba(180, 150, 110, 0.16);
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.technical-access > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.8rem 1rem;
+  color: #71695f;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.technical-access > summary::-webkit-details-marker {
+  display: none;
+}
+
+.technical-access > summary::before {
+  content: '+';
+  display: inline-block;
+  width: 1rem;
+  color: #8e5d2a;
+  font-size: 1rem;
+  line-height: 0.75;
+}
+
+.technical-access[open] > summary::before {
+  content: '−';
+}
+
+.technical-access__content {
+  border-top: 1px solid rgba(180, 150, 110, 0.14);
+  padding: 0 1rem 1rem;
+}
+
+@media (max-width: 639px) {
+  .page-container {
+    width: min(100% - 1.25rem, 1200px);
+  }
 }

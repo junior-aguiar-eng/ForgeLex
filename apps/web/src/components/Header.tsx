@@ -1,175 +1,136 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Scale, Wallet, Cpu, LayoutDashboard, FileCode, Search, ShieldCheck, FileCheck2, FolderOpen, FileText } from 'lucide-react';
+import { FileCode2, FileText, FolderOpen, Menu, Scale, Search, Settings2, WalletCards, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
+
+const primaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
+  { tab: 'matter', label: 'Casos', icon: FolderOpen },
+  { tab: 'research', label: 'Pesquisa', icon: Search },
+  { tab: 'draft_studio', label: 'Rascunhos', icon: FileText },
+  { tab: 'dashboard', label: 'Revisão', icon: FileCode2 },
+];
+
+const secondaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
+  { tab: 'landing', label: 'Início', icon: Scale },
+  { tab: 'connections', label: 'Configurações de modelos', icon: Settings2 },
+  { tab: 'credits', label: 'Créditos e faturamento', icon: WalletCards },
+  { tab: 'api_docs', label: 'Área técnica', icon: FileCode2 },
+];
+
+const NavigationButton: React.FC<{
+  item: { tab: AppTab; label: string; icon: LucideIcon };
+  active: boolean;
+  onSelect: (tab: AppTab) => void;
+  mobile?: boolean;
+}> = ({ item, active, onSelect, mobile = false }) => {
+  const Icon = item.icon;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(item.tab)}
+      className={`${mobile ? 'w-full justify-start px-3' : 'px-3'} inline-flex min-h-10 items-center gap-2 rounded-lg text-sm font-medium transition-colors ${
+        active
+          ? 'bg-cognac-100 text-cognac-800 font-semibold'
+          : 'text-stone-600 hover:bg-stone-100/70 hover:text-stone-900'
+      }`}
+      aria-current={active ? 'page' : undefined}
+    >
+      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <span>{item.label}</span>
+    </button>
+  );
+};
 
 export const Header: React.FC = () => {
-  const { activeTab, setActiveTab, totalBalanceCents, approvals } = useApp();
-
-  const pendingApprovalsCount = approvals.filter((a) => a.status === 'PENDING').length;
+  const { activeTab, setActiveTab, totalBalanceCents } = useApp();
+  const [menuOpen, setMenuOpen] = React.useState(false);
 
   const formatCurrency = (cents: number) => {
     return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
+  const selectTab = (tab: AppTab) => {
+    setActiveTab(tab);
+    setMenuOpen(false);
+  };
+
   return (
-    <header className="sticky top-0 z-50 bg-[#FBF9F5]/90 backdrop-blur-md border-b border-champagne-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          
-          {/* Logo Brand */}
-          <div 
-            onClick={() => setActiveTab('landing')}
-            className="flex items-center space-x-3 cursor-pointer group"
+    <header className="sticky top-0 z-50 border-b border-champagne-border bg-[#FBF9F5]/95 backdrop-blur-md">
+      <div className="page-container">
+        <div className="flex min-h-16 items-center gap-3 py-2">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => selectTab('landing')}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') selectTab('landing');
+            }}
+            className="group flex min-w-0 shrink-0 cursor-pointer items-center gap-2.5 rounded-lg pr-2"
+            aria-label="ForgeLex, ir para o início"
           >
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cognac-600 to-cognac-800 flex items-center justify-center shadow-md shadow-cognac-900/15 group-hover:scale-105 transition-transform duration-200">
-              <Scale className="w-6 h-6 text-[#FBF9F5]" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cognac-700 text-[#FBF9F5] transition-transform duration-200 group-hover:scale-105">
+              <Scale className="h-5 w-5" aria-hidden="true" />
             </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-editorial text-2xl font-bold tracking-tight text-stone-900">
-                  FORGELEX
-                </span>
-                <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-cognac-100 text-cognac-800 border border-cognac-200">
-                  V2 AGNÓSTICA
-                </span>
-              </div>
-              <p className="text-xs text-stone-500 font-medium hidden sm:block">
-                Inteligência Agêntica com Rastreabilidade Forense
-              </p>
-            </div>
+            <span className="font-editorial truncate text-xl font-bold tracking-tight text-stone-900">ForgeLex</span>
           </div>
 
-          {/* Nav Links */}
-          <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
-            <button
-              onClick={() => setActiveTab('landing')}
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 ${
-                activeTab === 'landing'
-                  ? 'bg-cognac-100/80 text-cognac-800 font-semibold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/60'
-              }`}
-            >
-              <Search className="w-4 h-4" />
-              <span>Início</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('research')}
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 ${
-                activeTab === 'research'
-                  ? 'bg-cognac-100/80 text-cognac-800 font-semibold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/60'
-              }`}
-            >
-              <FileCheck2 className="w-4 h-4" />
-              <span>Research Desk</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('matter')}
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 ${
-                activeTab === 'matter'
-                  ? 'bg-cognac-100/80 text-cognac-800 font-semibold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/60'
-              }`}
-            >
-              <FolderOpen className="w-4 h-4" />
-              <span>Casos</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 relative ${
-                activeTab === 'dashboard'
-                  ? 'bg-cognac-100/80 text-cognac-800 font-semibold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/60'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Painel</span>
-              {pendingApprovalsCount > 0 && (
-                <span className="ml-1 w-5 h-5 text-xs bg-amber-600 text-white rounded-full flex items-center justify-center font-bold animate-pulse">
-                  {pendingApprovalsCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('draft_studio')}
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 ${
-                activeTab === 'draft_studio'
-                  ? 'bg-cognac-100/80 text-cognac-800 font-semibold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/60'
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              <span>Draft Studio</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('connections')}
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 ${
-                activeTab === 'connections'
-                  ? 'bg-cognac-100/80 text-cognac-800 font-semibold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/60'
-              }`}
-            >
-              <Cpu className="w-4 h-4" />
-              <span>Conexões</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('credits')}
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 ${
-                activeTab === 'credits'
-                  ? 'bg-cognac-100/80 text-cognac-800 font-semibold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/60'
-              }`}
-            >
-              <Wallet className="w-4 h-4" />
-              <span>Créditos</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('api_docs')}
-              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 ${
-                activeTab === 'api_docs'
-                  ? 'bg-cognac-100/80 text-cognac-800 font-semibold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/60'
-              }`}
-            >
-              <FileCode className="w-4 h-4" />
-              <span>API & Docs</span>
-            </button>
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex" aria-label="Navegação principal">
+            {primaryNavigation.map((item) => (
+              <NavigationButton key={item.tab} item={item} active={item.tab === activeTab} onSelect={selectTab} />
+            ))}
           </nav>
 
-          {/* Right Action: Balance Pill & Access */}
-          <div className="flex items-center space-x-3">
-            {/* Live Wallet Badge */}
-            <div 
-              onClick={() => setActiveTab('credits')}
-              className="champagne-card px-3.5 py-1.5 rounded-full flex items-center space-x-2 cursor-pointer hover:border-cognac-400 transition-colors shadow-sm"
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => selectTab('credits')}
+              className="hidden min-h-10 items-center gap-1.5 rounded-lg border border-champagne-border bg-white/70 px-2.5 py-1.5 text-xs text-stone-600 transition-colors hover:border-cognac-400 sm:flex"
               title="Saldo disponível para consultas e fluxos"
             >
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-xs text-stone-500 font-medium">Saldo:</span>
-              <span className="text-sm font-bold text-cognac-800">
-                {formatCurrency(totalBalanceCents)}
-              </span>
-            </div>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+              <span>Saldo</span>
+              <span className="font-bold text-cognac-800">{formatCurrency(totalBalanceCents)}</span>
+            </button>
 
-            {/* Main Action Button */}
             <button
-              onClick={() => setActiveTab(activeTab === 'landing' ? 'dashboard' : 'landing')}
-              className="hidden sm:inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-cognac-700 hover:bg-cognac-800 text-white text-sm font-medium shadow-md shadow-cognac-900/10 transition-all hover:shadow-lg active:scale-95"
+              type="button"
+              onClick={() => selectTab('research')}
+              className="hidden min-h-10 items-center gap-2 rounded-lg bg-cognac-700 px-3 text-sm font-semibold text-white transition-colors hover:bg-cognac-800 xl:inline-flex"
             >
-              <ShieldCheck className="w-4 h-4" />
-              <span>{activeTab === 'landing' ? 'Acessar Painel' : 'Nova Pesquisa'}</span>
+              <Search className="h-4 w-4" aria-hidden="true" />
+              <span>Nova pesquisa</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMenuOpen((current) => !current)}
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-champagne-border bg-white/70 px-3 text-sm font-semibold text-stone-700 hover:border-cognac-400 hover:bg-white lg:hidden"
+              aria-expanded={menuOpen}
+              aria-controls="forgelex-mobile-navigation"
+            >
+              {menuOpen ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
+              <span className="hidden sm:inline">Menu</span>
             </button>
           </div>
-
         </div>
+
+        {menuOpen && (
+          <div id="forgelex-mobile-navigation" className="border-t border-stone-200/80 py-3 lg:hidden">
+            <nav className="grid gap-1" aria-label="Navegação do aplicativo">
+              {primaryNavigation.map((item) => (
+                <NavigationButton key={item.tab} item={item} active={item.tab === activeTab} onSelect={selectTab} mobile />
+              ))}
+              <div className="my-2 border-t border-stone-100" />
+              <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-stone-400">Conta e área técnica</p>
+              {secondaryNavigation.map((item) => (
+                <NavigationButton key={item.tab} item={item} active={item.tab === activeTab} onSelect={selectTab} mobile />
+              ))}
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );

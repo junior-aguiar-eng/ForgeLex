@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, FileText, FolderOpen, LockKeyhole, Plus, RefreshCw, ShieldCheck } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 interface Matter {
   id: string;
@@ -61,6 +62,42 @@ interface TimelineEvent {
   sourceAnchorId?: string;
 }
 
+const categoryLabels: Record<Fact['category'], string> = {
+  FACTUAL: 'Fato',
+  PROCEDURAL: 'Processual',
+  TEMPORAL: 'Temporal',
+  DAMAGE: 'Dano',
+  OTHER: 'Outro',
+};
+
+const factStatusLabels: Record<Fact['status'], string> = {
+  ASSERTED: 'Candidato',
+  CONFIRMED: 'Confirmado',
+  DISPUTED: 'Contestado',
+  REJECTED: 'Rejeitado',
+};
+
+const evidenceTypeLabels: Record<EvidenceItem['evidenceType'], string> = {
+  DOCUMENT: 'Documento',
+  TESTIMONY: 'Depoimento',
+  RECORD: 'Registro',
+  EXPERT_REPORT: 'Laudo',
+  OTHER: 'Outro',
+};
+
+const evidenceStatusLabels: Record<EvidenceItem['status'], string> = {
+  AVAILABLE: 'Disponível',
+  MISSING: 'Ausente',
+  CONTESTED: 'Contestado',
+};
+
+const coverageLabels: Record<EvidenceCoverage['coverage'], string> = {
+  SUPPORTED: 'Com suporte',
+  PARTIAL: 'Suporte parcial',
+  UNSUPPORTED: 'Sem suporte',
+  CONFLICTING: 'Em conflito',
+};
+
 const apiUrl = import.meta.env.VITE_FORGELEX_API_URL ?? 'http://localhost:3001';
 
 function initialToken(): string {
@@ -89,6 +126,7 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
 }
 
 export const MatterWorkspaceScreen: React.FC = () => {
+  const { setActiveTab } = useApp();
   const [token, setToken] = useState(initialToken);
   const [matters, setMatters] = useState<Matter[]>([]);
   const [selectedMatterId, setSelectedMatterId] = useState<string | null>(null);
@@ -259,7 +297,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
       });
       setEvidence((current) => [item, ...current]);
       setEvidenceTitle('');
-      setNotice('Item de prova registrado. O vínculo com fatos e âncoras pode ser feito pela API ou pelas tools internas.');
+      setNotice('Item de prova registrado. O vínculo com fatos e origens pode ser concluído na revisão do caso.');
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'Não foi possível registrar a prova.');
     } finally {
@@ -323,17 +361,17 @@ export const MatterWorkspaceScreen: React.FC = () => {
   };
 
   return (
-    <div className="py-10 md:py-14">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="py-8 md:py-12">
+      <div className="page-container space-y-8">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cognac-100 border border-cognac-200 text-cognac-800 text-xs font-bold uppercase tracking-wider">
               <FolderOpen className="w-3.5 h-3.5" />
-              Área de casos
+              Caso
             </div>
-            <h1 className="font-editorial text-4xl font-bold text-stone-950">Matter Workspace</h1>
+            <h1 className="font-editorial text-4xl font-bold text-stone-950">Área do caso</h1>
             <p className="max-w-2xl text-sm leading-relaxed text-stone-600">
-              Reúna o contexto do caso e os documentos que sustentam a análise. Cada documento textual recebe versão, hash e âncoras de parágrafo.
+              Reúna documentos, fatos, provas e eventos em um único contexto de trabalho.
             </p>
           </div>
           <div className="inline-flex items-center gap-2 text-xs text-stone-500">
@@ -342,25 +380,30 @@ export const MatterWorkspaceScreen: React.FC = () => {
           </div>
         </div>
 
-        <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-3">
-          <div className="flex items-center gap-2 text-stone-900">
-            <LockKeyhole className="w-4 h-4 text-cognac-700" />
-            <h2 className="text-sm font-bold">Acesso à área de casos</h2>
+        <details className="technical-access">
+          <summary>Acesso técnico da sessão</summary>
+          <div className="technical-access__content space-y-3 pt-3">
+            <div className="flex items-center gap-2 text-stone-900">
+              <LockKeyhole className="h-4 w-4 text-cognac-700" aria-hidden="true" />
+              <h2 className="text-sm font-bold">Conexão com a área de casos</h2>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <label className="sr-only" htmlFor="matter-api-token">Credencial da API</label>
+              <input
+                id="matter-api-token"
+                value={token}
+                onChange={(event) => saveToken(event.target.value)}
+                type="password"
+                placeholder="Credencial da API"
+                className="input-control flex-1"
+              />
+              <button type="button" onClick={() => void loadMatters()} disabled={!token || busy} className="btn-secondary disabled:opacity-50">
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />Atualizar casos
+              </button>
+            </div>
+            <p className="text-[11px] text-stone-500">A conexão usa {apiUrl}. A credencial permanece no navegador e não é enviada para outro destino.</p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              value={token}
-              onChange={(event) => saveToken(event.target.value)}
-              type="password"
-              placeholder="Token Bearer da API"
-              className="flex-1 px-4 py-2.5 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm"
-            />
-            <button type="button" onClick={() => void loadMatters()} disabled={!token || busy} className="px-4 py-2.5 rounded-xl border border-cognac-200 text-cognac-800 text-sm font-semibold disabled:opacity-50">
-              <RefreshCw className="w-4 h-4 inline mr-2" />Atualizar
-            </button>
-          </div>
-          <p className="text-[11px] text-stone-500">API configurada em {apiUrl}. O token permanece no navegador e não é enviado para outro destino.</p>
-        </section>
+        </details>
 
         {notice && <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-3 text-sm"><CheckCircle2 className="w-5 h-5" />{notice}</div>}
         {error && <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center gap-3 text-sm"><AlertCircle className="w-5 h-5" />{error}</div>}
@@ -380,7 +423,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
               {matters.map((matter) => (
                 <button key={matter.id} onClick={() => void selectMatter(matter.id)} className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedMatterId === matter.id ? 'border-cognac-400 bg-cognac-50' : 'border-champagne-border hover:border-cognac-300'}`}>
                   <span className="block text-sm font-semibold text-stone-900 truncate">{matter.title}</span>
-                  <span className="text-[11px] text-stone-500">{matter.practiceArea || 'Área não informada'} · {matter.status === 'OPEN' ? 'Aberto' : matter.status}</span>
+                  <span className="text-[11px] text-stone-500">{matter.practiceArea || 'Área não informada'} · {matter.status === 'OPEN' ? 'Aberto' : matter.status === 'CLOSED' ? 'Encerrado' : 'Arquivado'}</span>
                 </button>
               ))}
               {matters.length === 0 && <p className="text-xs text-stone-500 leading-relaxed">Nenhum caso carregado. Informe um token com escopo de matters ou crie o primeiro caso.</p>}
@@ -407,13 +450,24 @@ export const MatterWorkspaceScreen: React.FC = () => {
                       ['Eventos', timeline.length],
                     ].map(([section, count]) => <div key={section} className="p-3 rounded-xl bg-[#FDFBF7] border border-champagne-border"><span className="block text-xs font-semibold text-stone-700">{section}</span><span className="text-[10px] text-stone-500">{count} registrado(s)</span></div>)}
                   </div>
+                  <nav className="flex flex-wrap gap-2 border-t border-stone-100 pt-4" aria-label="Seções do caso">
+                    {[
+                      ['documentos', 'Documentos'],
+                      ['fatos', 'Fatos e provas'],
+                      ['provas', 'Provas'],
+                      ['linha-do-tempo', 'Linha do tempo'],
+                    ].map(([id, label]) => <button key={id} type="button" onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="btn-quiet min-h-9 px-2.5 text-xs">{label}</button>)}
+                    <button type="button" onClick={() => setActiveTab('research')} className="btn-quiet min-h-9 px-2.5 text-xs">Fontes</button>
+                    <button type="button" onClick={() => setActiveTab('draft_studio')} className="btn-quiet min-h-9 px-2.5 text-xs">Rascunhos</button>
+                    <button type="button" onClick={() => setActiveTab('dashboard')} className="btn-quiet min-h-9 px-2.5 text-xs">Revisão e atividade</button>
+                  </nav>
                 </>
               ) : (
                 <div className="py-12 text-center space-y-3"><FolderOpen className="w-10 h-10 mx-auto text-cognac-400" /><h2 className="font-editorial text-xl font-bold text-stone-900">Selecione ou crie um caso</h2><p className="text-sm text-stone-500">O contexto e os documentos aparecerão aqui.</p></div>
               )}
             </section>
 
-            {selectedMatter && <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
+            {selectedMatter && <section id="documentos" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
               <div className="flex items-center gap-2"><FileText className="w-5 h-5 text-cognac-700" /><h2 className="font-editorial text-xl font-bold text-stone-900">Documentos do caso</h2><span className="text-xs text-stone-500">{documents.length}</span></div>
               <form onSubmit={ingestDocument} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="Título do documento" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
@@ -428,7 +482,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
             </section>}
 
             {selectedMatter && <>
-              <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
+              <section id="fatos" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h2 className="font-editorial text-xl font-bold text-stone-900">Fatos</h2>
@@ -447,15 +501,15 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   {facts.map((fact) => {
                     const factCoverage = coverage.find((item) => item.factId === fact.id);
                     return <div key={fact.id} className="p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]">
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2"><p className="text-sm text-stone-800">{fact.statement}</p><span className="shrink-0 text-[10px] uppercase tracking-wide text-cognac-700">{fact.status === 'ASSERTED' ? 'Candidato' : fact.status}</span></div>
-                      <p className="text-[11px] text-stone-500 mt-2">{fact.category} · Cobertura: {factCoverage?.coverage ?? 'UNSUPPORTED'} · {factCoverage?.supportingAnchorCount ?? 0} âncora(s) · {factCoverage?.supportingEvidenceCount ?? 0} prova(s)</p>
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2"><p className="text-sm text-stone-800">{fact.statement}</p><span className="shrink-0 text-[10px] uppercase tracking-wide text-cognac-700">{factStatusLabels[fact.status]}</span></div>
+                      <p className="text-[11px] text-stone-500 mt-2">{categoryLabels[fact.category]} · {factStatusLabels[fact.status]} · Cobertura: {coverageLabels[factCoverage?.coverage ?? 'UNSUPPORTED']} · {factCoverage?.supportingAnchorCount ?? 0} origem(ns) · {factCoverage?.supportingEvidenceCount ?? 0} prova(s)</p>
                     </div>;
                   })}
                   {facts.length === 0 && <p className="text-xs text-stone-500">Nenhum fato registrado neste caso.</p>}
                 </div>
               </section>
 
-              <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
+              <section id="provas" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h2 className="font-editorial text-xl font-bold text-stone-900">Provas</h2>
@@ -471,12 +525,12 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   <button disabled={!token || busy || evidenceTitle.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
                 </form>
                 <div className="space-y-2">
-                  {evidence.map((item) => <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span><span className="text-[11px] text-stone-500">{item.evidenceType} · {item.status === 'AVAILABLE' ? 'Disponível' : item.status}</span></div><span className="text-[10px] text-stone-400 font-mono">{item.id.slice(0, 8)}…</span></div>)}
+                  {evidence.map((item) => <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span><span className="text-[11px] text-stone-500">{evidenceTypeLabels[item.evidenceType]} · {evidenceStatusLabels[item.status]}</span></div><span className="text-[10px] text-stone-400">Item registrado</span></div>)}
                   {evidence.length === 0 && <p className="text-xs text-stone-500">Nenhum item de prova registrado neste caso.</p>}
                 </div>
               </section>
 
-              <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
+              <section id="linha-do-tempo" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h2 className="font-editorial text-xl font-bold text-stone-900">Linha do tempo</h2>
@@ -494,7 +548,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   {timeline.map((item) => <div key={item.id} className="flex gap-3 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><span className="text-xs font-semibold text-cognac-700 min-w-24">{new Date(`${item.eventDate}T00:00:00`).toLocaleDateString('pt-BR')}</span><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span>{item.description && <span className="text-xs text-stone-500">{item.description}</span>}</div></div>)}
                   {timeline.length === 0 && <p className="text-xs text-stone-500">Nenhum evento registrado neste caso.</p>}
                 </div>
-                <p className="text-[11px] text-stone-400">A cobertura é uma leitura dos vínculos explícitos registrados; não constitui conclusão sobre autenticidade, suficiência ou procedência da prova.</p>
+                <p className="text-[11px] text-stone-400">A cobertura considera apenas vínculos explícitos registrados; não constitui conclusão sobre autenticidade, suficiência ou procedência da prova.</p>
               </section>
             </>}
           </main>

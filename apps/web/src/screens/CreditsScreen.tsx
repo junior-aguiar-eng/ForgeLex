@@ -56,23 +56,23 @@ export const CreditsScreen: React.FC = () => {
   const totalSearchesAvailable = Math.floor(totalBalanceCents / 15);
 
   return (
-    <div className="py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <div className="py-8 md:py-12">
+      <div className="page-container space-y-8">
         
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-champagne-border pb-6">
           <div>
             <h1 className="font-editorial text-3xl sm:text-4xl font-bold text-stone-900">
-              Créditos & Faturamento
+              Créditos e faturamento
             </h1>
             <p className="text-sm text-stone-500 mt-1">
-              Ledger de dupla carteira com liquidação atômica e proteção contra dupla cobrança.
+              Acompanhe seu saldo e recarregue créditos para continuar pesquisando.
             </p>
           </div>
 
           <div className="flex items-center space-x-2 text-xs font-semibold text-cognac-800 bg-cognac-100/70 px-3 py-1.5 rounded-full border border-cognac-200">
             <Sparkles className="w-3.5 h-3.5 text-cognac-600" />
-            <span>Motor Contábil Apêndice Q Ativo</span>
+            <span>Saldo atualizado</span>
           </div>
         </div>
 
@@ -91,7 +91,7 @@ export const CreditsScreen: React.FC = () => {
             {/* Total Balance Hero */}
             <div className="space-y-1">
               <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                Saldo Total Disponível
+                Saldo disponível
               </span>
               <div className="flex items-baseline space-x-3">
                 <span className="font-editorial text-4xl sm:text-5xl font-bold text-stone-900">
@@ -101,9 +101,7 @@ export const CreditsScreen: React.FC = () => {
                   {totalSearchesAvailable} pesquisas disponíveis
                 </span>
               </div>
-              <p className="text-xs text-stone-400">
-                Custo de R$ 0,15 por acórdão consultado nos tribunais integrados.
-              </p>
+              <p className="text-xs text-stone-400">Cada pesquisa jurídica custa R$ 0,15.</p>
             </div>
 
             {/* Wallet Breakdown Pills */}

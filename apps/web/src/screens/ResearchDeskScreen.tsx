@@ -48,13 +48,13 @@ export const ResearchDeskScreen: React.FC = () => {
   };
 
   return (
-    <div className="py-10 md:py-14">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="py-8 md:py-12">
+      <div className="page-container space-y-8">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cognac-100 border border-cognac-200 text-cognac-800 text-xs font-bold uppercase tracking-wider">
+            <div className="eyebrow inline-flex items-center gap-2 rounded-full bg-cognac-100 px-3 py-1">
               <ShieldCheck className="w-3.5 h-3.5" />
-              Research Desk
+              Pesquisa jurídica
             </div>
             <h1 className="font-editorial text-4xl font-bold text-stone-950">Pesquisa com trilha de proveniência</h1>
             <p className="max-w-2xl text-sm leading-relaxed text-stone-600">
@@ -83,7 +83,7 @@ export const ResearchDeskScreen: React.FC = () => {
                 </select>
                 <button disabled={busy} className="px-5 py-3 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">{busy ? 'Consultando...' : 'Consultar'}</button>
               </div>
-              <p className="text-[11px] text-stone-500">Resultados exibem o tribunal, a fonte, o hash de deduplicação e o estado da verificação.</p>
+              <p className="text-[11px] text-stone-500">Cada resultado mantém a fonte e o estado de verificação para conferência.</p>
             </form>
 
             {results.length > 0 && (
@@ -100,7 +100,7 @@ export const ResearchDeskScreen: React.FC = () => {
                     <p className="text-xs text-stone-700 leading-relaxed">{item.ementa}</p>
                     <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-500">
                       <span>Relatoria: {item.relator} · {item.chamber ? `${item.chamber} · ` : ''}Julgamento: {item.judgmentDate}</span>
-                      <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-cognac-700 font-semibold hover:underline">Fonte {item.sourceProvider}<ExternalLink className="w-3 h-3" /></a>
+                      <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-cognac-700 hover:underline">Ver fonte oficial<ExternalLink className="h-3 w-3" /></a>
                     </div>
                   </article>
                 ))}

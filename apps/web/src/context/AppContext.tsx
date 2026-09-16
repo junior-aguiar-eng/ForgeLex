@@ -183,7 +183,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: 'tx_3',
       idempotencyKey: 'idem_search_stj_99',
       date: '15/09/2026 09:15',
-      description: 'Pesquisa Forense Agêntica — Tema 996 STJ',
+      description: 'Pesquisa jurídica — Tema 996 STJ',
       type: 'DEBIT',
       amountCents: 15,
       wallet: 'PROMOTIONAL',

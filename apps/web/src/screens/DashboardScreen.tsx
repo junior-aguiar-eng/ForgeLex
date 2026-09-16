@@ -15,14 +15,14 @@ export const DashboardScreen: React.FC = () => {
   const handleApprove = (id: string) => {
     resolveApproval(id, 'APPROVED');
     setSelectedApproval(null);
-    setActionSuccessMessage('Aprovação L4 concedida com sucesso! Minuta protocolada no fluxo.');
+    setActionSuccessMessage('Aprovação concedida. A minuta avançou no fluxo.');
     setTimeout(() => setActionSuccessMessage(null), 4000);
   };
 
   const handleReject = (id: string) => {
     resolveApproval(id, 'REJECTED');
     setSelectedApproval(null);
-    setActionSuccessMessage('Operação L4 rejeitada. A minuta foi arquivada para revisão manual.');
+    setActionSuccessMessage('A minuta foi rejeitada e arquivada para revisão manual.');
     setTimeout(() => setActionSuccessMessage(null), 4000);
   };
 
@@ -38,17 +38,17 @@ export const DashboardScreen: React.FC = () => {
   ];
 
   return (
-    <div className="py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <div className="py-8 md:py-12">
+      <div className="page-container space-y-8">
         
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-champagne-border pb-6">
           <div>
             <h1 className="font-editorial text-3xl sm:text-4xl font-bold text-stone-900">
-              Painel do Advogado
+              Revisão e atividade
             </h1>
             <p className="text-sm text-stone-500 mt-1">
-              Visão geral de operações agênticas, volumetria forense e governança Human-in-the-Loop.
+              Acompanhe pendências que exigem sua conferência e o histórico de trabalho do escritório.
             </p>
           </div>
 
@@ -65,7 +65,7 @@ export const DashboardScreen: React.FC = () => {
               onClick={() => setActiveTab('connections')}
               className="px-4 py-2.5 rounded-xl bg-cognac-700 hover:bg-cognac-800 text-white text-sm font-medium shadow-sm flex items-center space-x-2"
             >
-              <span>Gerenciar Modelos</span>
+              <span>Configurações de modelos</span>
               <ArrowUpRight className="w-4 h-4" />
             </button>
           </div>
@@ -85,7 +85,7 @@ export const DashboardScreen: React.FC = () => {
           <div className="champagne-card p-6 rounded-2xl bg-white shadow-card space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                Pesquisas Forenses
+                Pesquisas jurídicas
               </span>
               <div className="w-9 h-9 rounded-lg bg-cognac-50 border border-cognac-200 flex items-center justify-center">
                 <Scale className="w-4 h-4 text-cognac-700" />
@@ -95,7 +95,7 @@ export const DashboardScreen: React.FC = () => {
               <span className="text-3xl font-bold text-stone-900">{stats.totalSearches}</span>
               <span className="text-xs font-semibold text-emerald-600">+18% este mês</span>
             </div>
-            <p className="text-[11px] text-stone-400">Jurisprudência com proveniência e hash SHA-256</p>
+            <p className="text-[11px] text-stone-400">Resultados com fonte e verificação</p>
           </div>
 
           <div className="champagne-card p-6 rounded-2xl bg-white shadow-card space-y-3">
@@ -117,7 +117,7 @@ export const DashboardScreen: React.FC = () => {
           <div className="champagne-card p-6 rounded-2xl bg-white shadow-card space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                Minutas Estruturadas
+                Rascunhos
               </span>
               <div className="w-9 h-9 rounded-lg bg-cognac-50 border border-cognac-200 flex items-center justify-center">
                 <FileText className="w-4 h-4 text-cognac-700" />
@@ -127,7 +127,7 @@ export const DashboardScreen: React.FC = () => {
               <span className="text-3xl font-bold text-stone-900">{stats.totalDrafts}</span>
               <span className="text-xs font-semibold text-emerald-600">+24% este mês</span>
             </div>
-            <p className="text-[11px] text-stone-400">Peças processuais geradas por IA e auditadas</p>
+            <p className="text-[11px] text-stone-400">Versões organizadas por caso</p>
           </div>
 
           <div className={`p-6 rounded-2xl shadow-card space-y-3 border transition-colors ${
@@ -137,7 +137,7 @@ export const DashboardScreen: React.FC = () => {
           }`}>
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
-                Aprovações Pendentes
+                Pendências de revisão
               </span>
               <div className="w-9 h-9 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center">
                 <AlertTriangle className="w-4 h-4 text-amber-700" />
@@ -145,7 +145,7 @@ export const DashboardScreen: React.FC = () => {
             </div>
             <div className="flex items-baseline space-x-2">
               <span className="text-3xl font-bold text-amber-900">{pendingApprovals.length}</span>
-              <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">Human-in-the-Loop L4</span>
+              <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">Aguardando sua conferência</span>
             </div>
             <p className="text-[11px] text-amber-800/80">Requer validação do advogado antes de efetivar</p>
           </div>
@@ -160,10 +160,10 @@ export const DashboardScreen: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-editorial text-xl font-bold text-stone-900">
-                  Volumetria Agêntica (Últimos 30 Dias)
+                  Atividade recente
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Consultas e minutas executadas pelo runtime com reconciliação contábil.
+                  Consultas e rascunhos registrados nos últimos 30 dias.
                 </p>
               </div>
               <div className="flex items-center space-x-3 text-xs">
@@ -224,7 +224,7 @@ export const DashboardScreen: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <ShieldAlert className="w-5 h-5 text-amber-600" />
                 <h3 className="font-editorial text-lg font-bold text-stone-900">
-                  Fila L4 Forense
+                  Fila de revisão
                 </h3>
               </div>
               <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">
@@ -265,7 +265,7 @@ export const DashboardScreen: React.FC = () => {
                     </p>
 
                     <div className="text-[10px] font-mono text-stone-500 bg-white/70 px-2 py-1 rounded border border-amber-100 truncate">
-                      Token: {appr.token}
+                      Revisão humana necessária
                     </div>
 
                     <div className="flex items-center space-x-2 pt-1">
@@ -291,7 +291,7 @@ export const DashboardScreen: React.FC = () => {
 
         </div>
 
-        {/* MODAL REVISÃO E APROVAÇÃO L4 */}
+        {/* MODAL DE REVISÃO E APROVAÇÃO */}
         {selectedApproval && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fadeIn">
             <div className="champagne-card bg-white w-full max-w-3xl rounded-2xl p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
@@ -299,10 +299,10 @@ export const DashboardScreen: React.FC = () => {
                 <div>
                   <div className="flex items-center space-x-2 mb-1">
                     <span className="px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-xs font-bold">
-                      Nível L4 — External Effect
+                      Efeito externo condicionado à sua aprovação
                     </span>
                     <span className="text-xs font-mono text-stone-400">
-                      {selectedApproval.token}
+                      Código de autorização reservado
                     </span>
                   </div>
                   <h3 className="font-editorial text-xl font-bold text-stone-900">
@@ -323,10 +323,10 @@ export const DashboardScreen: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs">
                   <span className="uppercase font-bold tracking-wider text-stone-500">
-                    Inteiro Teor da Minuta Agêntica
+                    Conteúdo da minuta
                   </span>
                   <span className="text-stone-400 font-mono">
-                    Ferramenta: {selectedApproval.toolName}
+                    Solicitação de revisão
                   </span>
                 </div>
                 <div className="p-5 rounded-xl bg-[#FDFBF7] border border-champagne-border font-serif text-xs sm:text-sm text-stone-800 leading-relaxed whitespace-pre-wrap max-h-72 overflow-y-auto">
@@ -337,8 +337,7 @@ export const DashboardScreen: React.FC = () => {
               <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center space-x-3">
                 <ShieldAlert className="w-5 h-5 text-amber-700 flex-shrink-0" />
                 <span>
-                  <strong>Aviso de Conformidade OAB:</strong> Ao conceder este token criptográfico, 
-                  você confirma a revisão humana e autoriza o arquivamento definitivo da peça processual.
+                  <strong>Conferência humana:</strong> ao aprovar, você confirma a revisão do conteúdo e autoriza o próximo passo do fluxo processual.
                 </span>
               </div>
 

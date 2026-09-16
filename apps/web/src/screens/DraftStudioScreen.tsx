@@ -234,15 +234,15 @@ export const DraftStudioScreen: React.FC = () => {
   };
 
   return (
-    <div className="py-10 md:py-14">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="py-8 md:py-12">
+      <div className="page-container space-y-8">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cognac-100 border border-cognac-200 text-cognac-800 text-xs font-bold uppercase tracking-wider">
+            <div className="eyebrow inline-flex items-center gap-2 rounded-full bg-cognac-100 px-3 py-1">
               <FileText className="w-3.5 h-3.5" />
-              Draft Studio
+              Rascunhos
             </div>
-            <h1 className="font-editorial text-4xl font-bold text-stone-950">Rascunhos com revisão rastreável</h1>
+            <h1 className="font-editorial text-4xl font-bold text-stone-950">Rascunho do caso</h1>
             <p className="max-w-2xl text-sm leading-relaxed text-stone-600">
               Organize o outline, os vínculos do caso e o histórico de versões. O conteúdo permanece minuta até a conferência humana.
             </p>
@@ -250,17 +250,21 @@ export const DraftStudioScreen: React.FC = () => {
           <div className="inline-flex items-center gap-2 text-xs text-stone-500"><ShieldAlert className="w-4 h-4 text-amber-600" />Sem efeito externo automático</div>
         </div>
 
-        <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-3">
-          <div className="flex items-center gap-2 text-stone-900"><LockKeyhole className="w-4 h-4 text-cognac-700" /><h2 className="text-sm font-bold">Acesso à área de rascunhos</h2></div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input value={token} onChange={(event) => saveToken(event.target.value)} type="password" placeholder="Token Bearer da API" className="flex-1 px-4 py-2.5 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm" />
-            <button type="button" onClick={() => void loadMatters()} disabled={!token || busy} className="px-4 py-2.5 rounded-xl border border-cognac-200 text-cognac-800 text-sm font-semibold disabled:opacity-50"><RefreshCw className="w-4 h-4 inline mr-2" />Atualizar casos</button>
+        <details className="technical-access">
+          <summary>Acesso técnico da sessão</summary>
+          <div className="technical-access__content space-y-3 pt-3">
+            <div className="flex items-center gap-2 text-stone-900"><LockKeyhole className="h-4 w-4 text-cognac-700" aria-hidden="true" /><h2 className="text-sm font-bold">Conexão com a área de rascunhos</h2></div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <label className="sr-only" htmlFor="draft-api-token">Credencial da API</label>
+              <input id="draft-api-token" value={token} onChange={(event) => saveToken(event.target.value)} type="password" placeholder="Credencial da API" className="input-control flex-1" />
+              <button type="button" onClick={() => void loadMatters()} disabled={!token || busy} className="btn-secondary disabled:opacity-50"><RefreshCw className="h-4 w-4" aria-hidden="true" />Atualizar casos</button>
+            </div>
+            <p className="text-[11px] text-stone-500">A conexão usa {apiUrl}. A credencial permanece no navegador.</p>
           </div>
-          <p className="text-[11px] text-stone-500">O token é usado apenas para chamar a API configurada em {apiUrl}.</p>
-        </section>
+        </details>
 
         {reviewStatus && <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-3 text-sm"><CheckCircle2 className="w-5 h-5" />{reviewStatus}</div>}
-        {approvalToken && <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 space-y-2 text-sm"><p className="font-semibold">Token de aprovação emitido para esta conferência</p><code className="block break-all text-xs bg-white/70 rounded-lg p-3">{approvalToken}</code><p className="text-xs">Guarde-o para registrar a decisão. Ele não é persistido em texto bruto.</p></div>}
+        {approvalToken && <details className="technical-access"><summary>Autorização de aprovação emitida</summary><div className="technical-access__content space-y-2 pt-3 text-sm text-amber-900"><code className="block break-all rounded-lg bg-white/70 p-3 text-xs">{approvalToken}</code><p className="text-xs">Guarde este código para registrar a decisão. Ele não é persistido em texto bruto.</p></div></details>}
         {error && <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 flex items-center gap-3 text-sm"><AlertCircle className="w-5 h-5" />{error}</div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
@@ -280,10 +284,10 @@ export const DraftStudioScreen: React.FC = () => {
                 <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Título do rascunho" className="w-full px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm" />
                 <div className="space-y-3">{sections.map((section, index) => <div key={`${section.title}-${index}`} className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-2"><div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-cognac-100 text-cognac-800 text-xs font-bold flex items-center justify-center">{index + 1}</span><input value={section.title} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} className="flex-1 bg-transparent text-sm font-semibold text-stone-900 border-b border-transparent focus:border-cognac-300 focus:outline-none" /></div><textarea value={section.content} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, content: event.target.value } : item))} rows={3} placeholder="Conteúdo da seção para conferência..." className="w-full px-3 py-2 rounded-lg border border-champagne-border bg-white text-sm resize-y" /></div>)}</div>
                 <div className="flex flex-wrap gap-3"><button type="submit" disabled={busy || !draftTitle.trim()} className="px-4 py-2.5 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold"><Plus className="w-4 h-4 inline mr-2" />{selectedDraftId ? 'Salvar nova versão' : 'Criar rascunho'}</button>{selectedDraftId && <><button type="button" onClick={() => void runReview()} disabled={busy} className="px-4 py-2.5 rounded-xl border border-cognac-200 text-cognac-800 text-sm font-semibold">Executar revisão</button><button type="button" onClick={() => void requestApproval()} disabled={busy || !details?.currentVersion} className="px-4 py-2.5 rounded-xl border border-amber-300 text-amber-800 text-sm font-semibold"><Send className="w-4 h-4 inline mr-2" />Encaminhar à aprovação</button></>}</div>
-                <p className="text-[11px] text-stone-400">A primeira versão do Draft Studio organiza seções e vínculos; não é um editor de petição final.</p>
+                <p className="text-[11px] text-stone-400">Organize a estrutura e a revisão da peça. A versão atual permanece em rascunho até a conferência humana.</p>
               </form>
 
-              {details && <div className="grid grid-cols-1 xl:grid-cols-2 gap-6"><section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-4"><div className="flex items-center gap-2"><History className="w-5 h-5 text-cognac-700" /><h2 className="font-editorial text-xl font-bold text-stone-900">Histórico de versões</h2></div>{details.versions.map((version) => <div key={version.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><p className="text-sm font-semibold text-stone-800">Versão {version.versionNumber} · {statusLabel[version.status]}</p><p className="text-[11px] text-stone-500">{new Date(version.createdAt).toLocaleString('pt-BR')}</p></div><span className="text-[10px] text-stone-400 font-mono">SHA-256 {version.contentHash.slice(0, 12)}…</span></div>)}</section><section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-4"><div className="flex items-center justify-between"><div><h2 className="font-editorial text-xl font-bold text-stone-900">Review Center</h2><p className="text-xs text-stone-500 mt-1">Achados da versão atual</p></div><span className="text-xs text-stone-500">{details.reviewFindings.length}</span></div>{details.reviewFindings.map((finding) => <div key={finding.id} className={`p-3 rounded-xl border ${finding.severity === 'BLOCKING' ? 'border-red-200 bg-red-50' : finding.severity === 'WARNING' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}><p className="text-xs font-bold text-stone-800">{finding.severity} · {finding.reviewType}</p><p className="text-xs text-stone-700 mt-1">{finding.message}</p></div>)}{details.reviewFindings.length === 0 && <p className="text-xs text-stone-500">Execute a revisão para registrar citações, suporte factual e achados adversariais.</p>}</section></div>}
+                {details && <div className="grid grid-cols-1 gap-6 xl:grid-cols-2"><section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-4"><div className="flex items-center gap-2"><History className="h-5 w-5 text-cognac-700" aria-hidden="true" /><h2 className="font-editorial text-xl font-bold text-stone-900">Histórico de versões</h2></div>{details.versions.map((version) => <div key={version.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><p className="text-sm font-semibold text-stone-800">Versão {version.versionNumber} · {statusLabel[version.status]}</p><p className="text-[11px] text-stone-500">{new Date(version.createdAt).toLocaleString('pt-BR')}</p></div><span className="text-[10px] text-stone-400">Versão registrada</span></div>)}</section><section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-4"><div className="flex items-center justify-between"><div><h2 className="font-editorial text-xl font-bold text-stone-900">Pendências de revisão</h2><p className="text-xs text-stone-500 mt-1">Achados da versão atual</p></div><span className="text-xs text-stone-500">{details.reviewFindings.length}</span></div>{details.reviewFindings.map((finding) => <div key={finding.id} className={`p-3 rounded-xl border ${finding.severity === 'BLOCKING' ? 'border-red-200 bg-red-50' : finding.severity === 'WARNING' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}><p className="text-xs font-bold text-stone-800">{finding.severity === 'BLOCKING' ? 'Bloqueador' : finding.severity === 'WARNING' ? 'Alerta' : 'Informação'}</p><p className="text-xs text-stone-700 mt-1">{finding.message}</p></div>)}{details.reviewFindings.length === 0 && <p className="text-xs text-stone-500">Execute a revisão para registrar citações, suporte factual e achados adversariais.</p>}</section></div>}
             </>}
           </main>
         </div>

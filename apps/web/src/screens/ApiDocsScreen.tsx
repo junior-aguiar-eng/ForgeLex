@@ -250,17 +250,17 @@ print(httpx.get("https://api.forgelex.ai/health").json())`,
   };
 
   return (
-    <div className="py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <div className="py-8 md:py-12">
+      <div className="page-container space-y-8">
         
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-champagne-border pb-6">
           <div>
             <h1 className="font-editorial text-3xl sm:text-4xl font-bold text-stone-900">
-              Documentação da API & Playground
+              Área técnica
             </h1>
             <p className="text-sm text-stone-500 mt-1">
-              Referência técnica para integração agêntica via MCP (JSON-RPC 2.0) e REST APIs.
+              Documentação e ferramentas para integrações externas. Esta área não faz parte do fluxo jurídico cotidiano.
             </p>
           </div>
 
@@ -277,14 +277,14 @@ print(httpx.get("https://api.forgelex.ai/health").json())`,
               <div className="flex items-center space-x-2">
                 <Key className="w-5 h-5 text-cognac-700" />
                 <h3 className="font-editorial text-lg font-bold text-stone-900">
-                  Sua Chave de API de Produção
+                  Credencial de integração
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase">
-                  Ativa • Permissão Total (L0-L4)
+                  Ativa
                 </span>
               </div>
               <p className="text-xs text-stone-500">
-                Utilize esta chave no header <code>Authorization: Bearer</code> para autenticar chamadas REST e MCP.
+                Use esta credencial somente em integrações autorizadas com a API e o MCP.
               </p>
             </div>
 
@@ -318,7 +318,7 @@ print(httpx.get("https://api.forgelex.ai/health").json())`,
             {/* Endpoint Tabs */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-stone-500">
-                Selecione o Endpoint
+              Selecione o recurso
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
