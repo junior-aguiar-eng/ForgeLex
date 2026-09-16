@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CanonicalFixtureProvider, SourceRouter } from '@forgelex/source-providers';
 import { createSearchCaseLawTool } from './search-case-law.js';
 import { createVerifyAuthorityTool } from './verify-authority.js';
+import { createGetAuthorityTool } from './get-authority.js';
 import { ResearchService } from './research-service.js';
 
 const context = {
@@ -37,6 +38,17 @@ describe('Research tools', () => {
 
     expect(result.data.status).toBe('VERIFIED_OFFICIAL');
     expect(result.data.authority?.processNumber).toBe('REsp 1.823.450/SP');
+  });
+
+  it('deve obter uma autoridade através da capability de distribuição', async () => {
+    const result = await createGetAuthorityTool(createService()).execute(
+      { court: 'STJ', processNumber: 'REsp 1.823.450/SP' },
+      context,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data.authority?.court).toBe('STJ');
+    expect(result.data.authority?.provenance.source.provider).toBe('provider_canonical_fixtures');
   });
 
   it('deve expor conflito quando a data informada divergir da fonte', async () => {

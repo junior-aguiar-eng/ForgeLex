@@ -4,7 +4,7 @@
 > Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-88%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-95%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -20,7 +20,7 @@ O **FORGELEX V2** foi construído para superar as limitações das ferramentas j
 3. **Rastreabilidade e Anti-Alucinação:** Todo acórdão retornado possui ancoragem com URL oficial verificada e hash criptográfico SHA-256 imutável.
 4. **Legal Data Plane com Deduplicação:** Normalização algorítmica de números CNJ, tribunais e datas através de `dedupeKey` determinística.
 5. **Ledger Contábil de Dupla Carteira (Apêndice Q):** Controle de saldo pago vs promocional com prevenção a dupla cobrança por replay idempotente.
-6. **Integração MCP:** Servidor JSON-RPC 2.0 autenticado, com ferramentas expostas de forma controlada conforme o registry configurado.
+6. **Integração MCP:** Gateway JSON-RPC 2.0 autenticado, com pacote externo allowlisted e sem exposição de ferramentas internas por padrão.
 
 ### Pesquisa jurídica real
 
@@ -65,7 +65,7 @@ outro efeito externo automático.
 
 ```text
 ├── apps/
-│   ├── api/                   # Serviço Backend Fastify de Produção (REST + MCP Gateway)
+│   ├── api/                   # Serviço Fastify (REST + MCP Gateway + contrato OpenAPI)
 │   └── web/                   # Frontend React 18 + Vite + Tailwind (5 Telas Canônicas)
 │
 ├── packages/
@@ -92,12 +92,12 @@ O frontend foi desenvolvido reproduzindo rigorosamente o design system editorial
 * **Paleta:** Marfim quente (`#FBF9F5`), conhaque imperial (`#8E5D2A`) e bordas champanhe (`rgba(180, 150, 110, 0.22)`).
 * **Tipografia:** Serifada editorial clássica combinada com interface moderna sans-serif.
 * **Telas Implementadas:**
-  1. `Landing Page`: 4 gatilhos de ação direta e barra de busca forense ao vivo (R$ 0,15/busca).
+  1. `Landing Page`: abertura de caso e barra de busca forense ao vivo (R$ 0,15/busca).
   2. `Painel do Advogado`: 4 cartões de métricas, gráfico de 30 dias e fila de aprovação L4.
-  3. `Conexões & Provedores`: Gestão de chaves Claude/GPT-4o, status MCP e sandbox de inferência.
-  4. `Créditos & Faturamento`: Saldo dual-wallet, pacotes de recarga e checkout simulado via PIX/Cartão.
+  3. `Conexões & Provedores`: Configuração local de credenciais, sem presumir conexão verificada.
+  4. `Créditos & Faturamento`: Estado explícito de conta, sem saldo ou checkout presumidos.
   5. `Research Desk`: pesquisa, proveniência e verificação de autoridade em uma vertical única.
-  6. `Documentação da API`: Gerenciador de chaves, playgrounds interativos e exemplos cURL/Node/Python.
+  6. `Documentação da API`: referência visual para o contrato público, sem executar chamadas externas por padrão.
 
 ---
 
@@ -155,6 +155,20 @@ Defina `FORGELEX_ALLOWED_ORIGINS` com origens separadas por vírgula; fora de
 produção, sem essa variável, somente `http://localhost:3000` e
 `http://localhost:3001` são permitidos.
 
+### Distribuição pública (Marco 10)
+
+O contrato REST gerado está disponível em `GET /openapi.json` e
+`GET /api/v2/openapi.json`. A superfície canônica de pesquisa é
+`POST /api/v2/research/search-case-law`; ela usa o mesmo `ResearchService`,
+ledger idempotente e auditoria da capability exposta pelo MCP.
+
+As API keys persistidas em `api_keys` armazenam somente o hash SHA-256 e podem
+ser criadas, listadas e revogadas pelas rotas `/api/v2/api-keys`. O segredo é
+retornado uma única vez na criação. A fundação de webhooks está disponível em
+`GET /api/v2/webhooks/events`, com contrato HMAC-SHA256 e tolerância de cinco
+minutos; a entrega e a persistência de assinaturas ainda dependem da escolha
+do transporte operacional.
+
 ---
 
 ## 🧪 Suíte de Testes Automatizados
@@ -183,8 +197,8 @@ $ vitest run
  ✓ packages/source-catalog/src/court-catalog.test.ts (3 tests)
  ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (5 tests)
 
- Test Files  20 passed (20)
- Tests  88 passed (88)
+ Test Files  21 passed (21)
+ Tests  95 passed (95)
 ```
 
 ---

@@ -439,6 +439,30 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `,
     ],
   },
+  {
+    id: 'persistence-0005-api-keys',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS api_keys (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          subject_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          key_prefix TEXT NOT NULL,
+          token_hash TEXT NOT NULL UNIQUE,
+          roles TEXT NOT NULL,
+          scopes TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          revoked_at TEXT
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS api_keys_tenant_created_idx
+        ON api_keys (tenant_id, created_at DESC);
+      `,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

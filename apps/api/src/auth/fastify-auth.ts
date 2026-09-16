@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AuthenticatedPrincipal, TokenVerifier } from '@forgelex/domain';
+import type { ApiKeyRepository } from '@forgelex/persistence';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -111,6 +112,36 @@ export class EnvironmentTokenVerifier implements TokenVerifier {
   }
 }
 
+export class DatabaseApiKeyVerifier implements TokenVerifier {
+  public constructor(private readonly apiKeyRepository: ApiKeyRepository) {}
+
+  public async verify(token: string): Promise<AuthenticatedPrincipal | null> {
+    const record = await this.apiKeyRepository.findActiveByTokenHash(hashApiKey(token));
+    if (!record) return null;
+
+    return {
+      subjectId: record.subjectId,
+      tenantId: record.tenantId,
+      userId: record.userId,
+      roles: [...record.roles],
+      scopes: [...record.scopes],
+      authMethod: 'api_key',
+    };
+  }
+}
+
+export class CompositeTokenVerifier implements TokenVerifier {
+  public constructor(private readonly verifiers: readonly TokenVerifier[]) {}
+
+  public async verify(token: string): Promise<AuthenticatedPrincipal | null> {
+    for (const verifier of this.verifiers) {
+      const principal = await verifier.verify(token);
+      if (principal) return principal;
+    }
+    return null;
+  }
+}
+
 function isAuthenticatedPrincipal(value: unknown): value is AuthenticatedPrincipal {
   if (!value || typeof value !== 'object') {
     return false;
@@ -193,9 +224,12 @@ export class AuthAdapter {
 }
 
 export function createDefaultAuthAdapter(
-  environment: Record<string, string | undefined>
+  environment: Record<string, string | undefined>,
+  apiKeyRepository?: ApiKeyRepository,
 ): AuthAdapter {
-  return new AuthAdapter(EnvironmentTokenVerifier.fromEnvironment(environment));
+  const verifiers: TokenVerifier[] = [EnvironmentTokenVerifier.fromEnvironment(environment)];
+  if (apiKeyRepository) verifiers.push(new DatabaseApiKeyVerifier(apiKeyRepository));
+  return new AuthAdapter(verifiers.length === 1 ? verifiers[0] : new CompositeTokenVerifier(verifiers));
 }
 
 export function resolveAllowedOrigins(environment: Record<string, string | undefined>): string[] {

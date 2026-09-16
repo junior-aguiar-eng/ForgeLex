@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { McpHandler } from './mcp-handler.js';
 import { ToolRegistry } from '@forgelex/agent-core';
-import { searchCaseLawTool } from '@forgelex/legal-tools';
+import { searchCaseLawTool, verifyAuthorityTool } from '@forgelex/legal-tools';
 import { createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
 import { Client } from '@libsql/client';
@@ -26,6 +26,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
 
     const registry = new ToolRegistry();
     registry.register(searchCaseLawTool);
+    registry.register(verifyAuthorityTool);
 
     handler = new McpHandler(registry, ledger);
   });
@@ -93,5 +94,24 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
 
     expect(response.error).toBeDefined();
     expect(response.error?.code).toBe(-32601);
+  });
+
+  it('deve limitar o pacote MCP externo à allowlist declarada', async () => {
+    const externalRegistry = new ToolRegistry();
+    externalRegistry.register(searchCaseLawTool);
+    externalRegistry.register(verifyAuthorityTool);
+    const externalHandler = new McpHandler(externalRegistry, new LedgerService(db), undefined, {
+      exposedToolNames: ['research.search_case_law'],
+    });
+    const listed = await externalHandler.handleRequest({ jsonrpc: '2.0', id: 10, method: 'tools/list' });
+    expect(listed.result.tools.map((tool: { name: string }) => tool.name)).toEqual(['research.search_case_law']);
+
+    const hiddenCall = await externalHandler.handleRequest({
+      jsonrpc: '2.0',
+      id: 11,
+      method: 'tools/call',
+      params: { name: 'research.verify_authority', arguments: { court: 'STJ', processNumber: 'REsp 1.823.450/SP' } },
+    });
+    expect(hiddenCall.error?.code).toBe(-32601);
   });
 });

@@ -22,15 +22,26 @@ export interface JsonRpcResponse {
   };
 }
 
+export interface McpHandlerOptions {
+  exposedToolNames?: readonly string[];
+}
+
 export class McpHandler {
   private readonly toolRegistry: ToolRegistry;
   private readonly ledgerService: LedgerService;
   private readonly auditRecorder?: AuditRecorder;
+  private readonly exposedToolNames?: ReadonlySet<string>;
 
-  constructor(toolRegistry: ToolRegistry, ledgerService: LedgerService, auditRecorder?: AuditRecorder) {
+  constructor(
+    toolRegistry: ToolRegistry,
+    ledgerService: LedgerService,
+    auditRecorder?: AuditRecorder,
+    options: McpHandlerOptions = {},
+  ) {
     this.toolRegistry = toolRegistry;
     this.ledgerService = ledgerService;
     this.auditRecorder = auditRecorder;
+    this.exposedToolNames = options.exposedToolNames ? new Set(options.exposedToolNames) : undefined;
   }
 
   public async handleRequest(
@@ -69,16 +80,19 @@ export class McpHandler {
       }
 
       case 'tools/list': {
-        const tools = this.toolRegistry.list().map((tool) => {
-          const rawSchema = zodToJsonSchema(tool.inputSchema, { target: 'jsonSchema7' }) as any;
-          const { $schema, ...cleanSchema } = rawSchema;
+        const tools = this.toolRegistry
+          .list()
+          .filter((tool) => this.isExposed(tool.name))
+          .map((tool) => {
+            const rawSchema = zodToJsonSchema(tool.inputSchema, { target: 'jsonSchema7' }) as any;
+            const { $schema, ...cleanSchema } = rawSchema;
 
-          return {
-            name: tool.name,
-            description: tool.description,
-            inputSchema: cleanSchema,
-          };
-        });
+            return {
+              name: tool.name,
+              description: tool.description,
+              inputSchema: cleanSchema,
+            };
+          });
 
         return {
           jsonrpc: '2.0',
@@ -98,11 +112,11 @@ export class McpHandler {
         }
 
         const tool = this.toolRegistry.get(name);
-        if (!tool) {
+        if (!tool || !this.isExposed(name)) {
           return {
             jsonrpc: '2.0',
             id,
-            error: { code: -32601, message: `Method not found: ferramenta '${name}' não encontrada.` },
+            error: { code: -32601, message: `Method not found: ferramenta '${name}' não está disponível no pacote externo.` },
           };
         }
 
@@ -206,5 +220,9 @@ export class McpHandler {
     } catch {
       // A falha de auditoria não deve mascarar o resultado já faturado.
     }
+  }
+
+  private isExposed(toolName: string): boolean {
+    return this.exposedToolNames === undefined || this.exposedToolNames.has(toolName);
   }
 }

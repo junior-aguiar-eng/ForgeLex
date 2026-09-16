@@ -1,10 +1,11 @@
-import Fastify, { FastifyInstance } from 'fastify';
+import Fastify, { FastifyInstance, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import { CourtCatalog } from '@forgelex/source-catalog';
 import { SourceRouter, StjSconProvider } from '@forgelex/source-providers';
 import { ToolRegistry } from '@forgelex/agent-core';
 import {
   createSearchCaseLawTool,
+  createGetAuthorityTool,
   createVerifyAuthorityTool,
   DraftReviewService,
   DraftingService,
@@ -18,16 +19,21 @@ import {
   FactsEvidenceRepository,
   ForgeLexDatabase,
   MatterRepository,
+  ApiKeyRepository,
   runPersistenceMigrations,
 } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
-import { McpHandler } from '@forgelex/mcp-server';
+import { EXTERNAL_MCP_TOOL_NAMES, McpHandler } from '@forgelex/mcp-server';
+import type { AuthenticatedPrincipal } from '@forgelex/domain';
 import {
   AuthAdapter,
   createDefaultAuthAdapter,
   resolveAllowedOrigins,
 } from './auth/fastify-auth.js';
+import { ApiKeyService } from './auth/api-key-service.js';
+import { buildOpenApiDocument } from './distribution/openapi.js';
+import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
@@ -41,7 +47,6 @@ export interface BuildAppOptions {
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   const environment = options.environment ?? process.env;
-  const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(environment);
   await app.register(cors, {
     origin: resolveAllowedOrigins(environment),
     allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
@@ -60,9 +65,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     await runPersistenceMigrations(connection.client);
   }
 
+  const database = options.database ?? connection?.db;
+  const apiKeyRepository = database ? new ApiKeyRepository(database) : undefined;
+  const apiKeyService = apiKeyRepository ? new ApiKeyService(apiKeyRepository) : undefined;
+  const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(environment, apiKeyRepository);
   const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client);
   await ledgerService.runMigrations();
-  const database = options.database ?? connection?.db;
   const matterRepository = database ? new MatterRepository(database) : undefined;
   const factsEvidenceService = database
     ? new FactsEvidenceService(new FactsEvidenceRepository(database))
@@ -84,10 +92,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   const toolRegistry = new ToolRegistry();
   toolRegistry.register(createSearchCaseLawTool(researchService));
+  toolRegistry.register(createGetAuthorityTool(researchService));
   toolRegistry.register(createVerifyAuthorityTool(researchService));
 
   const auditRecorder = options.auditRecorder ?? (connection ? new AuditRecorder(connection.db) : undefined);
-  const mcpHandler = new McpHandler(toolRegistry, ledgerService, auditRecorder);
+  const mcpHandler = new McpHandler(toolRegistry, ledgerService, auditRecorder, {
+    exposedToolNames: EXTERNAL_MCP_TOOL_NAMES,
+  });
 
   const setBillingHeaders = (reply: { header: (name: string, value: string | number) => unknown }, execution: {
     chargedCents: number;
@@ -110,6 +121,78 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   };
 
+  const runBillableSearchCaseLaw = async (input: {
+    principal: AuthenticatedPrincipal;
+    reply: FastifyReply;
+    query: string;
+    court?: string;
+    limit: number;
+    idempotencyKey?: string;
+  }) => {
+    const idempotencyKey = input.idempotencyKey ?? `rest_search_${input.query}_${input.court ?? 'all'}_${input.limit}`;
+    const sessionId = `rest_${idempotencyKey}`;
+    const startedAt = Date.now();
+
+    try {
+      const execution = await ledgerService.executeBillableOperation({
+        tenantId: input.principal.tenantId,
+        userId: input.principal.userId,
+        idempotencyKey,
+        costCents: 15,
+        usage: {
+          capability: 'research.search_case_law',
+          toolName: 'research.search_case_law',
+          provider: 'provider_stj_scon',
+          requestId: idempotencyKey,
+          sessionId,
+          userId: input.principal.userId,
+        },
+        operation: async () => researchService.searchCaseLaw({ query: input.query, court: input.court, limit: input.limit }),
+      });
+
+      setBillingHeaders(input.reply, execution);
+      if (!execution.isReplay) {
+        await recordAudit({
+          sessionId,
+          tenantId: input.principal.tenantId,
+          userId: input.principal.userId,
+          toolName: 'research.search_case_law',
+          durationMs: Date.now() - startedAt,
+          status: 'SUCCESS',
+          payload: { query: input.query, court: input.court, limit: input.limit, resultCount: execution.data.total },
+          costMetadata: { estimatedCostUsd: 0 },
+        });
+      }
+
+      return {
+        query: input.query,
+        court: input.court,
+        total: execution.data.total,
+        results: execution.data.items,
+      };
+    } catch (error) {
+      const details = error as { code?: unknown; details?: unknown; message?: unknown };
+      const code = typeof details.code === 'string' ? details.code : '';
+      const message = typeof details.message === 'string' ? details.message : 'Falha ao pesquisar jurisprudência.';
+      const sourceFailure = code.startsWith('SOURCE_PROVIDER_');
+      await recordAudit({
+        sessionId,
+        tenantId: input.principal.tenantId,
+        userId: input.principal.userId,
+        toolName: 'research.search_case_law',
+        durationMs: Date.now() - startedAt,
+        status: 'FAILED',
+        payload: { query: input.query, court: input.court, limit: input.limit, error: message },
+      });
+      input.reply.status(sourceFailure ? 503 : 402);
+      return {
+        error: sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+        message,
+        details: details.details,
+      };
+    }
+  };
+
   // 2. Healthcheck
   app.get('/health', async () => {
     return {
@@ -119,6 +202,112 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       timestamp: new Date().toISOString(),
     };
   });
+
+  const openApiDocument = buildOpenApiDocument(environment.FORGELEX_PUBLIC_API_URL ?? 'http://localhost:3001');
+  app.get('/openapi.json', async () => openApiDocument);
+  app.get('/api/v2/openapi.json', async () => openApiDocument);
+
+  app.get('/api/v2/webhooks/events', async () => ({
+    eventTypes: [...WEBHOOK_EVENT_TYPES],
+    delivery: {
+      signatureHeader: 'X-ForgeLex-Webhook-Signature',
+      timestampHeader: 'X-ForgeLex-Webhook-Timestamp',
+      signedPayload: '<unix_timestamp>.<raw_json_payload>',
+      algorithm: 'HMAC-SHA256',
+      toleranceSeconds: 300,
+    },
+    status: 'CONTRACT_ONLY',
+    message: 'A entrega e a persistência de assinaturas serão habilitadas após a escolha do transporte operacional.',
+  }));
+
+  app.get(
+    '/api/v2/api-keys',
+    { preHandler: authAdapter.createPreHandler(['billing:read']) },
+    async (req, reply) => {
+      if (!apiKeyService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de chaves de API não está disponível.' };
+      }
+      const items = await apiKeyService.list(req.principal.tenantId);
+      return { items, total: items.length };
+    },
+  );
+
+  app.post(
+    '/api/v2/api-keys',
+    { preHandler: authAdapter.createPreHandler(['billing:read']) },
+    async (req, reply) => {
+      if (!apiKeyService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de chaves de API não está disponível.' };
+      }
+      const body = (req.body ?? {}) as { name?: string; scopes?: unknown };
+      if (!body.name?.trim()) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'name é obrigatório para criar uma chave de API.' };
+      }
+      if (body.scopes !== undefined && (!Array.isArray(body.scopes) || !body.scopes.every((scope) => typeof scope === 'string'))) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'scopes deve ser uma lista de textos.' };
+      }
+      const scopes = [...new Set((body.scopes as string[] | undefined) ?? ['mcp', 'research:read'])];
+      const missingScopes = scopes.filter((scope) => !req.principal.scopes.includes(scope));
+      if (missingScopes.length > 0) {
+        reply.status(403);
+        return { error: 'INSUFFICIENT_SCOPE', message: 'A nova chave não pode receber escopos além dos autorizados na credencial atual.', missingScopes };
+      }
+
+      const key = await apiKeyService.create({
+        tenantId: req.principal.tenantId,
+        subjectId: req.principal.subjectId,
+        userId: req.principal.userId,
+        name: body.name.trim(),
+        roles: req.principal.roles,
+        scopes,
+      });
+      await recordAudit({
+        sessionId: `api_key_${key.id}`,
+        tenantId: req.principal.tenantId,
+        userId: req.principal.userId,
+        toolName: 'api_key.created',
+        durationMs: 0,
+        status: 'SUCCESS',
+        payload: { keyId: key.id, keyPrefix: key.keyPrefix, scopes: key.scopes },
+      });
+      reply.status(201);
+      return {
+        key,
+        warning: 'O segredo token é exibido somente nesta resposta. Armazene-o com segurança; o ForgeLex persiste apenas o hash.',
+      };
+    },
+  );
+
+  app.delete(
+    '/api/v2/api-keys/:keyId',
+    { preHandler: authAdapter.createPreHandler(['billing:read']) },
+    async (req, reply) => {
+      if (!apiKeyService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de chaves de API não está disponível.' };
+      }
+      const { keyId } = req.params as { keyId: string };
+      const revoked = await apiKeyService.revoke(req.principal.tenantId, keyId);
+      if (!revoked) {
+        reply.status(404);
+        return { error: 'API_KEY_NOT_FOUND', message: 'Chave de API ativa não localizada para o tenant autenticado.' };
+      }
+      await recordAudit({
+        sessionId: `api_key_${keyId}`,
+        tenantId: req.principal.tenantId,
+        userId: req.principal.userId,
+        toolName: 'api_key.revoked',
+        durationMs: 0,
+        status: 'SUCCESS',
+        payload: { keyId },
+      });
+      return { key: revoked };
+    },
+  );
 
   // 3. OAuth 2.1 Protected Resource Metadata (RFC 9207 / Benchmark Exordial)
   app.get('/.well-known/oauth-protected-resource', async () => {
@@ -931,6 +1120,117 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         };
       }
     }
+  );
+
+  app.post(
+    '/api/v2/research/search-case-law',
+    { preHandler: authAdapter.createPreHandler(['research:read']) },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as { query?: unknown; court?: unknown; limit?: unknown };
+      const query = typeof body.query === 'string' ? body.query : '';
+      const court = typeof body.court === 'string' ? body.court : undefined;
+      const limit = body.limit === undefined ? 10 : body.limit;
+      if (
+        query.trim().length < 2 ||
+        typeof limit !== 'number' ||
+        !Number.isInteger(limit) ||
+        limit < 1 ||
+        limit > 20
+      ) {
+        reply.status(400);
+        return {
+          error: 'INVALID_REQUEST',
+          message: 'query deve conter pelo menos 2 caracteres e limit deve ser um inteiro entre 1 e 20.',
+        };
+      }
+
+      return runBillableSearchCaseLaw({
+        principal: req.principal,
+        reply,
+        query,
+        court,
+        limit,
+        idempotencyKey: req.headers['idempotency-key'] as string | undefined,
+      });
+    },
+  );
+
+  app.post(
+    '/api/v2/research/get-authority',
+    { preHandler: authAdapter.createPreHandler(['research:read']) },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as { court?: unknown; processNumber?: unknown; judgmentDate?: unknown };
+      const court = typeof body.court === 'string' ? body.court : '';
+      const processNumber = typeof body.processNumber === 'string' ? body.processNumber : '';
+      const judgmentDate = typeof body.judgmentDate === 'string' ? body.judgmentDate : undefined;
+
+      if (court.trim().length < 2 || processNumber.trim().length < 5) {
+        reply.status(400);
+        return {
+          error: 'INVALID_REQUEST',
+          message: 'court e processNumber são obrigatórios para obter a autoridade.',
+        };
+      }
+
+      const idempotencyKey =
+        (req.headers['idempotency-key'] as string) ??
+        `rest_get_authority_${court}_${processNumber}_${judgmentDate ?? ''}`;
+      const sessionId = `rest_${idempotencyKey}`;
+      const startedAt = Date.now();
+
+      try {
+        const execution = await ledgerService.executeBillableOperation({
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          idempotencyKey,
+          costCents: 15,
+          usage: {
+            capability: 'research.get_authority',
+            toolName: 'research.get_authority',
+            provider: 'provider_stj_scon',
+            requestId: idempotencyKey,
+            sessionId,
+            userId: req.principal.userId,
+          },
+          operation: async () => researchService.verifyAuthority({ court, processNumber, judgmentDate }),
+        });
+
+        setBillingHeaders(reply, execution);
+        if (!execution.isReplay) {
+          await recordAudit({
+            sessionId,
+            tenantId: req.principal.tenantId,
+            userId: req.principal.userId,
+            toolName: 'research.get_authority',
+            durationMs: Date.now() - startedAt,
+            status: 'SUCCESS',
+            payload: { court, processNumber, judgmentDate, status: execution.data.status },
+            costMetadata: { estimatedCostUsd: 0 },
+          });
+        }
+        return execution.data;
+      } catch (error) {
+        const details = error as { code?: unknown; details?: unknown; message?: unknown };
+        const code = typeof details.code === 'string' ? details.code : '';
+        const message = typeof details.message === 'string' ? details.message : 'Falha ao obter a autoridade.';
+        const sourceFailure = code.startsWith('SOURCE_PROVIDER_');
+        await recordAudit({
+          sessionId,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'research.get_authority',
+          durationMs: Date.now() - startedAt,
+          status: 'FAILED',
+          payload: { court, processNumber, judgmentDate, error: message },
+        });
+        reply.status(sourceFailure ? 503 : 402);
+        return {
+          error: sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+          message,
+          details: details.details,
+        };
+      }
+    },
   );
 
   app.post(

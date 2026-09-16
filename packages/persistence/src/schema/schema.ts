@@ -385,3 +385,24 @@ export const draftApprovalTokens = sqliteTable(
   },
   (table) => [index('draft_approval_tokens_request_idx').on(table.tenantId, table.requestId)],
 );
+
+export const apiKeys = sqliteTable(
+  'api_keys',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    subjectId: text('subject_id').notNull(),
+    userId: text('user_id').notNull(),
+    name: text('name').notNull(),
+    keyPrefix: text('key_prefix').notNull(),
+    tokenHash: text('token_hash').notNull(),
+    roles: text('roles').notNull(),
+    scopes: text('scopes').notNull(),
+    createdAt: text('created_at').notNull(),
+    revokedAt: text('revoked_at'),
+  },
+  (table) => [
+    uniqueIndex('api_keys_token_hash_idx').on(table.tokenHash),
+    index('api_keys_tenant_created_idx').on(table.tenantId, table.createdAt),
+  ],
+);

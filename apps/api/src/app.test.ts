@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildApp } from './app.js';
 import { FastifyInstance } from 'fastify';
-import { AuthAdapter } from './auth/fastify-auth.js';
+import { AuthAdapter, hashApiKey } from './auth/fastify-auth.js';
 import { AuthenticatedPrincipal, TokenVerifier } from '@forgelex/domain';
 import { createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
 import { runPersistenceMigrations } from '@forgelex/persistence';
@@ -159,6 +159,85 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const body = JSON.parse(response.body);
     expect(body.total).toBeGreaterThanOrEqual(4);
     expect(body.tribunals.some((t: any) => t.code === 'STJ')).toBe(true);
+  });
+
+  it('GET /openapi.json deve expor o contrato gerado e a paridade REST/MCP', async () => {
+    const response = await app.inject({ method: 'GET', url: '/openapi.json' });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.openapi).toBe('3.1.0');
+    expect(body.paths['/api/v2/research/search-case-law'].post['x-forgelex-tool']).toBe('research.search_case_law');
+    expect(body.paths['/mcp'].post['x-forgelex-required-scopes']).toEqual(['mcp']);
+    expect(body.components.securitySchemes.BearerAuth.scheme).toBe('bearer');
+  });
+
+  it('POST /api/v2/research/search-case-law usa a mesma capability faturável da superfície MCP', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v2/research/search-case-law',
+      headers: { ...authHeaders, 'idempotency-key': 'rest_canonical_search_001' },
+      payload: { query: 'vazamento de dados', limit: 5 },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-billable-units']).toBe('1');
+    expect(JSON.parse(response.body).total).toBeGreaterThan(0);
+  });
+
+  it('API keys persistem somente hashes, retornam o segredo uma vez e autentica a chave criada', async () => {
+    const bootstrapToken = 'bootstrap-api-key-token';
+    const keyApp = await buildApp({
+      environment: {
+        NODE_ENV: 'test',
+        FORGELEX_API_KEYS: JSON.stringify([{
+          tokenHash: hashApiKey(bootstrapToken),
+          subjectId: 'subject_key_admin',
+          tenantId: 'tenant_key_test',
+          userId: 'user_key_admin',
+          roles: ['admin'],
+          scopes: ['billing:read'],
+        }]),
+      },
+    });
+
+    try {
+      const createResponse = await keyApp.inject({
+        method: 'POST',
+        url: '/api/v2/api-keys',
+        headers: { authorization: `Bearer ${bootstrapToken}` },
+        payload: { name: 'Integração externa', scopes: ['billing:read'] },
+      });
+      expect(createResponse.statusCode).toBe(201);
+      const created = JSON.parse(createResponse.body).key;
+      expect(created.token).toMatch(/^flx_live_/);
+      expect(created.tokenHash).toBeUndefined();
+
+      const generatedKeyResponse = await keyApp.inject({
+        method: 'GET',
+        url: '/api/v2/api-keys',
+        headers: { authorization: `Bearer ${created.token}` },
+      });
+      expect(generatedKeyResponse.statusCode).toBe(200);
+      expect(JSON.parse(generatedKeyResponse.body).items.some((item: { id: string }) => item.id === created.id)).toBe(true);
+
+      const revokeResponse = await keyApp.inject({
+        method: 'DELETE',
+        url: `/api/v2/api-keys/${created.id}`,
+        headers: { authorization: `Bearer ${bootstrapToken}` },
+      });
+      expect(revokeResponse.statusCode).toBe(200);
+      expect(JSON.parse(revokeResponse.body).key.revokedAt).toBeTruthy();
+
+      const revokedResponse = await keyApp.inject({
+        method: 'GET',
+        url: '/api/v2/api-keys',
+        headers: { authorization: `Bearer ${created.token}` },
+      });
+      expect(revokedResponse.statusCode).toBe(401);
+    } finally {
+      await keyApp.close();
+    }
   });
 
   it('deve criar, listar e consultar matters isolados pelo tenant autenticado', async () => {
@@ -529,6 +608,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
 
     expect(response.statusCode).toBe(200);
     const tools = JSON.parse(response.body).result.tools;
+    expect(tools.some((tool: { name: string }) => tool.name === 'research.get_authority')).toBe(true);
     expect(tools.some((tool: { name: string }) => tool.name === 'research.verify_authority')).toBe(true);
   });
 
