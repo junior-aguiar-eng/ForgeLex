@@ -8,7 +8,7 @@ import {
   createVerifyAuthorityTool,
   ResearchService,
 } from '@forgelex/legal-tools';
-import { createDatabase, runPersistenceMigrations } from '@forgelex/persistence';
+import { createDatabase, ForgeLexDatabase, MatterRepository, runPersistenceMigrations } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { McpHandler } from '@forgelex/mcp-server';
@@ -21,6 +21,7 @@ import {
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
   ledgerService?: LedgerService;
+  database?: ForgeLexDatabase;
   sourceRouter?: SourceRouter;
   auditRecorder?: AuditRecorder;
   environment?: Record<string, string | undefined>;
@@ -50,6 +51,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client);
   await ledgerService.runMigrations();
+  const database = options.database ?? connection?.db;
+  const matterRepository = database ? new MatterRepository(database) : undefined;
 
   const courtCatalog = new CourtCatalog();
   const sourceRouter = options.sourceRouter ?? new SourceRouter();
@@ -103,7 +106,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     return {
       resource: 'https://mcp.forgelex.ai',
       authorization_servers: ['https://auth.forgelex.ai'],
-      scopes_supported: ['mcp', 'research:read', 'matter:read', 'draft:write', 'billing:read'],
+      scopes_supported: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read'],
       bearer_methods_supported: ['header'],
       resource_documentation: 'https://forgelex.ai/documentacao-api',
     };
@@ -117,6 +120,184 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       return {
         tribunals: courtCatalog.getAllCourts(),
         total: courtCatalog.getAllCourts().length,
+      };
+    }
+  );
+
+  app.get(
+    '/api/v2/matters',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de matters não está disponível.' };
+      }
+      const items = await matterRepository.listMatters(req.principal.tenantId);
+      return { items, total: items.length };
+    }
+  );
+
+  app.post(
+    '/api/v2/matters',
+    { preHandler: authAdapter.createPreHandler(['matter:write']) },
+    async (req, reply) => {
+      if (!matterRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de matters não está disponível.' };
+      }
+      const body = (req.body ?? {}) as {
+        title?: string;
+        clientId?: string;
+        description?: string;
+        practiceArea?: string;
+        jurisdiction?: string;
+      };
+      if (!body.title?.trim()) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'title é obrigatório para criar um matter.' };
+      }
+      try {
+        const matter = await matterRepository.createMatter({
+          tenantId: req.principal.tenantId,
+          createdBy: req.principal.userId,
+          title: body.title,
+          clientId: body.clientId,
+          description: body.description,
+          practiceArea: body.practiceArea,
+          jurisdiction: body.jurisdiction,
+        });
+        await recordAudit({
+          sessionId: `matter_${matter.id}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'matter.created',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { matterId: matter.id, title: matter.title },
+        });
+        return matter;
+      } catch (error) {
+        reply.status(400);
+        return {
+          error: 'INVALID_REQUEST',
+          message: error instanceof Error ? error.message : 'Dados do matter inválidos.',
+        };
+      }
+    }
+  );
+
+  app.get(
+    '/api/v2/matters/:matterId',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de matters não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      const matter = await matterRepository.getMatter(req.principal.tenantId, matterId);
+      if (!matter) {
+        reply.status(404);
+        return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+      }
+      const documents = await matterRepository.listDocuments(req.principal.tenantId, matterId);
+      return { matter, documents };
+    }
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/documents',
+    { preHandler: authAdapter.createPreHandler(['matter:write']) },
+    async (req, reply) => {
+      if (!matterRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de documentos não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      const body = (req.body ?? {}) as {
+        title?: string;
+        originalFilename?: string;
+        mimeType?: string;
+        content?: string;
+      };
+      if (!body.title?.trim() || !body.originalFilename?.trim() || !body.content?.trim()) {
+        reply.status(400);
+        return {
+          error: 'INVALID_REQUEST',
+          message: 'title, originalFilename e content são obrigatórios para ingerir o documento.',
+        };
+      }
+      try {
+        const ingested = await matterRepository.ingestTextDocument({
+          tenantId: req.principal.tenantId,
+          matterId,
+          createdBy: req.principal.userId,
+          title: body.title,
+          originalFilename: body.originalFilename,
+          mimeType: body.mimeType ?? 'text/plain',
+          content: body.content,
+        });
+        await recordAudit({
+          sessionId: `document_${ingested.document.id}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'document.ingested',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: {
+            documentId: ingested.document.id,
+            matterId,
+            contentHash: ingested.document.contentHash,
+            anchorCount: ingested.anchors.length,
+          },
+        });
+        return {
+          document: ingested.document,
+          version: {
+            id: ingested.version.id,
+            documentId: ingested.version.documentId,
+            versionNumber: ingested.version.versionNumber,
+            contentHash: ingested.version.contentHash,
+            createdAt: ingested.version.createdAt,
+          },
+          anchors: ingested.anchors,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível ingerir o documento.';
+        reply.status(message.startsWith('MATTER_NOT_FOUND') ? 404 : 400);
+        return {
+          error: message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST',
+          message,
+        };
+      }
+    }
+  );
+
+  app.get(
+    '/api/v2/matters/:matterId/documents/:documentId',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de documentos não está disponível.' };
+      }
+      const { matterId, documentId } = req.params as { matterId: string; documentId: string };
+      const matter = await matterRepository.getMatter(req.principal.tenantId, matterId);
+      const result = await matterRepository.getDocumentVersion(req.principal.tenantId, documentId);
+      if (!matter || !result || result.document.matterId !== matterId) {
+        reply.status(404);
+        return { error: 'DOCUMENT_NOT_FOUND', message: 'Documento não localizado no matter do tenant autenticado.' };
+      }
+      return {
+        document: result.document,
+        version: {
+          id: result.version.id,
+          documentId: result.version.documentId,
+          versionNumber: result.version.versionNumber,
+          contentHash: result.version.contentHash,
+          createdAt: result.version.createdAt,
+        },
+        anchors: result.anchors,
       };
     }
   );

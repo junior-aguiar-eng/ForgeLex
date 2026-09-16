@@ -3,6 +3,7 @@ import { createDatabase, ForgeLexDatabase } from './db.js';
 import { runPersistenceMigrations } from './migrations/migration-runner.js';
 import { SessionRepository } from './repositories/session-repository.js';
 import { Client } from '@libsql/client';
+import { MatterRepository } from './repositories/matter-repository.js';
 
 describe('Persistence Layer (Drizzle ORM + LibSQL / SQLite)', () => {
   let db: ForgeLexDatabase;
@@ -110,5 +111,70 @@ describe('Persistence Layer (Drizzle ORM + LibSQL / SQLite)', () => {
 
     const snapshot = JSON.parse(latest!.stateSnapshot);
     expect(snapshot.draftingStarted).toBe(true);
+  });
+
+  it('deve criar matter e impedir leitura por outro tenant', async () => {
+    const matterRepository = new MatterRepository(db);
+    const matter = await matterRepository.createMatter({
+      tenantId: 'tenant_a',
+      createdBy: 'user_a',
+      title: 'Ação de responsabilidade civil',
+      practiceArea: 'Cível',
+      jurisdiction: 'TJSP',
+    });
+
+    expect(await matterRepository.getMatter('tenant_a', matter.id)).toMatchObject({
+      id: matter.id,
+      tenantId: 'tenant_a',
+      title: 'Ação de responsabilidade civil',
+    });
+    expect(await matterRepository.getMatter('tenant_b', matter.id)).toBeUndefined();
+    expect(await matterRepository.listMatters('tenant_b')).toEqual([]);
+  });
+
+  it('deve ingerir documento textual em versão imutável com âncoras e hash', async () => {
+    const matterRepository = new MatterRepository(db);
+    const matter = await matterRepository.createMatter({
+      tenantId: 'tenant_a',
+      createdBy: 'user_a',
+      title: 'Matter documental',
+    });
+    const content = 'Primeiro fato documentado.\n\nSegundo fato documentado.';
+
+    const ingested = await matterRepository.ingestTextDocument({
+      tenantId: 'tenant_a',
+      matterId: matter.id,
+      createdBy: 'user_a',
+      title: 'Declaração inicial',
+      originalFilename: 'declaracao.txt',
+      mimeType: 'text/plain',
+      content,
+    });
+
+    expect(ingested.document.status).toBe('INDEXED');
+    expect(ingested.version.versionNumber).toBe(1);
+    expect(ingested.version.contentHash).toHaveLength(64);
+    expect(ingested.anchors).toHaveLength(2);
+    expect(ingested.anchors[0]).toMatchObject({ anchorKey: 'p1', startOffset: 0 });
+    expect(ingested.anchors[1].text).toBe('Segundo fato documentado.');
+
+    const recovered = await matterRepository.getDocumentVersion('tenant_a', ingested.document.id);
+    expect(recovered?.version.content).toBe(content);
+    expect(await matterRepository.getDocumentVersion('tenant_b', ingested.document.id)).toBeUndefined();
+  });
+
+  it('deve rejeitar ingestão em matter inexistente', async () => {
+    const matterRepository = new MatterRepository(db);
+    await expect(
+      matterRepository.ingestTextDocument({
+        tenantId: 'tenant_a',
+        matterId: '44444444-4444-4444-8444-444444444444',
+        createdBy: 'user_a',
+        title: 'Documento',
+        originalFilename: 'documento.txt',
+        mimeType: 'text/plain',
+        content: 'Conteúdo suficiente para o documento.',
+      })
+    ).rejects.toThrow('MATTER_NOT_FOUND');
   });
 });

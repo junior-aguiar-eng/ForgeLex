@@ -110,6 +110,76 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `,
     ],
   },
+  {
+    id: 'persistence-0002-matter-foundation',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS matters (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          client_id TEXT,
+          title TEXT NOT NULL,
+          description TEXT,
+          practice_area TEXT,
+          jurisdiction TEXT,
+          status TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS matters_tenant_updated_idx
+        ON matters (tenant_id, updated_at DESC);
+      `,
+      `
+        CREATE TABLE IF NOT EXISTS legal_documents (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          title TEXT NOT NULL,
+          original_filename TEXT NOT NULL,
+          mime_type TEXT NOT NULL,
+          byte_size INTEGER NOT NULL,
+          content_hash TEXT NOT NULL,
+          status TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS legal_documents_tenant_matter_idx
+        ON legal_documents (tenant_id, matter_id, created_at DESC);
+      `,
+      `
+        CREATE TABLE IF NOT EXISTS document_versions (
+          id TEXT PRIMARY KEY,
+          document_id TEXT NOT NULL REFERENCES legal_documents(id),
+          version_number INTEGER NOT NULL,
+          content_hash TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          UNIQUE (document_id, version_number)
+        );
+      `,
+      `
+        CREATE TABLE IF NOT EXISTS document_anchors (
+          id TEXT PRIMARY KEY,
+          document_version_id TEXT NOT NULL REFERENCES document_versions(id),
+          anchor_key TEXT NOT NULL,
+          anchor_type TEXT NOT NULL,
+          ordinal INTEGER NOT NULL,
+          start_offset INTEGER NOT NULL,
+          end_offset INTEGER NOT NULL,
+          text TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          UNIQUE (document_version_id, anchor_key)
+        );
+      `,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

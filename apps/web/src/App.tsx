@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { LandingScreen } from './screens/LandingScreen';
 import { ResearchDeskScreen } from './screens/ResearchDeskScreen';
+import { MatterWorkspaceScreen } from './screens/MatterWorkspaceScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { ConnectionsScreen } from './screens/ConnectionsScreen';
 import { CreditsScreen } from './screens/CreditsScreen';
@@ -21,6 +22,7 @@ const AppContent: React.FC = () => {
       <main className="flex-1">
         {activeTab === 'landing' && <LandingScreen />}
         {activeTab === 'research' && <ResearchDeskScreen />}
+        {activeTab === 'matter' && <MatterWorkspaceScreen />}
         {activeTab === 'dashboard' && <DashboardScreen />}
         {activeTab === 'connections' && <ConnectionsScreen />}
         {activeTab === 'credits' && <CreditsScreen />}

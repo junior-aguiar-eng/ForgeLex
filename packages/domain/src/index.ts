@@ -4,3 +4,4 @@ export * from './contracts/legal-objects.js';
 export * from './contracts/errors.js';
 export * from './contracts/auth.js';
 export * from './contracts/billing.js';
+export * from './contracts/matter.js';

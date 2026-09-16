@@ -57,8 +57,8 @@ export interface AuthorityVerification {
 }
 
 interface AppContextType {
-  activeTab: 'landing' | 'research' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
-  setActiveTab: (tab: 'landing' | 'research' | 'dashboard' | 'connections' | 'credits' | 'api_docs') => void;
+  activeTab: 'landing' | 'research' | 'matter' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
+  setActiveTab: (tab: 'landing' | 'research' | 'matter' | 'dashboard' | 'connections' | 'credits' | 'api_docs') => void;
   
   // Balances
   paidBalanceCents: number;
@@ -152,7 +152,7 @@ const CANONICAL_JURISPRUDENCIA: SearchResultItem[] = [
 ];
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<'landing' | 'research' | 'dashboard' | 'connections' | 'credits' | 'api_docs'>('landing');
+  const [activeTab, setActiveTab] = useState<'landing' | 'research' | 'matter' | 'dashboard' | 'connections' | 'credits' | 'api_docs'>('landing');
 
   // Ledger Balances (in cents)
   const [paidBalanceCents, setPaidBalanceCents] = useState(14250); // R$ 142,50

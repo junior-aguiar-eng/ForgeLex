@@ -3,7 +3,7 @@ import { buildApp } from './app.js';
 import { FastifyInstance } from 'fastify';
 import { AuthAdapter } from './auth/fastify-auth.js';
 import { AuthenticatedPrincipal, TokenVerifier } from '@forgelex/domain';
-import { createDatabase } from '@forgelex/persistence';
+import { createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
 import { runPersistenceMigrations } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
@@ -15,7 +15,7 @@ const testPrincipal: AuthenticatedPrincipal = {
   tenantId: 'tenant_test',
   userId: 'user_test',
   roles: ['lawyer'],
-  scopes: ['mcp', 'research:read', 'billing:read'],
+  scopes: ['mcp', 'research:read', 'matter:read', 'matter:write', 'billing:read'],
   authMethod: 'api_key',
 };
 
@@ -29,6 +29,10 @@ class FixtureTokenVerifier implements TokenVerifier {
       return { ...testPrincipal, scopes: ['mcp'] };
     }
 
+    if (token === 'tenant-b-token') {
+      return { ...testPrincipal, tenantId: 'tenant_b', userId: 'user_b' };
+    }
+
     return null;
   }
 }
@@ -38,10 +42,12 @@ const authHeaders = { authorization: 'Bearer test-token' };
 describe('Fastify API & Remote MCP Edge (apps/api)', () => {
   let app: FastifyInstance;
   let client: Client;
+  let database: ForgeLexDatabase;
   let auditRecorder: AuditRecorder;
 
   beforeAll(async () => {
     const connection = await createDatabase({ url: 'file::memory:?cache=shared' });
+    database = connection.db;
     client = connection.client;
     const ledgerService = new LedgerService(connection.db, client);
     await runPersistenceMigrations(client);
@@ -59,6 +65,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     app = await buildApp({
       authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
       ledgerService,
+      database,
       sourceRouter,
       auditRecorder,
       environment: {
@@ -152,6 +159,85 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const body = JSON.parse(response.body);
     expect(body.total).toBeGreaterThanOrEqual(4);
     expect(body.tribunals.some((t: any) => t.code === 'STJ')).toBe(true);
+  });
+
+  it('deve criar, listar e consultar matters isolados pelo tenant autenticado', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/matters',
+      headers: authHeaders,
+      payload: {
+        title: 'Ação de responsabilidade civil',
+        practiceArea: 'Cível',
+        jurisdiction: 'TJSP',
+      },
+    });
+    expect(createResponse.statusCode).toBe(200);
+    const matter = JSON.parse(createResponse.body);
+    expect(matter).toMatchObject({ tenantId: 'tenant_test', title: 'Ação de responsabilidade civil', status: 'OPEN' });
+    expect((await auditRecorder.getLogsForSession(`matter_${matter.id}`))[0].toolName).toBe('matter.created');
+
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/api/v2/matters',
+      headers: authHeaders,
+    });
+    expect(listResponse.statusCode).toBe(200);
+    expect(JSON.parse(listResponse.body).items).toHaveLength(1);
+
+    const detailResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}`,
+      headers: authHeaders,
+    });
+    expect(detailResponse.statusCode).toBe(200);
+    expect(JSON.parse(detailResponse.body).matter.id).toBe(matter.id);
+
+    const otherTenantResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}`,
+      headers: { authorization: 'Bearer tenant-b-token' },
+    });
+    expect(otherTenantResponse.statusCode).toBe(404);
+  });
+
+  it('deve ingerir texto e devolver versão, hash e âncoras do documento', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/matters',
+      headers: authHeaders,
+      payload: { title: 'Matter com documentos' },
+    });
+    const matter = JSON.parse(createResponse.body);
+
+    const documentResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/documents`,
+      headers: authHeaders,
+      payload: {
+        title: 'Relato dos fatos',
+        originalFilename: 'relato.txt',
+        mimeType: 'text/plain',
+        content: 'Primeiro fato.\n\nSegundo fato.',
+      },
+    });
+
+    expect(documentResponse.statusCode).toBe(200);
+    const body = JSON.parse(documentResponse.body);
+    expect(body.document.status).toBe('INDEXED');
+    expect(body.version).not.toHaveProperty('content');
+    expect(body.version.contentHash).toHaveLength(64);
+    expect(body.anchors).toHaveLength(2);
+    expect(body.anchors[0].anchorKey).toBe('p1');
+    expect((await auditRecorder.getLogsForSession(`document_${body.document.id}`))[0].toolName).toBe('document.ingested');
+
+    const documentDetailResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}/documents/${body.document.id}`,
+      headers: authHeaders,
+    });
+    expect(documentDetailResponse.statusCode).toBe(200);
+    expect(JSON.parse(documentDetailResponse.body).anchors).toHaveLength(2);
   });
 
   it('GET /api/v2/jurisprudencias deve retornar acórdãos com headers de faturamento', async () => {
