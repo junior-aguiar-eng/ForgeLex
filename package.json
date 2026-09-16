@@ -4,10 +4,10 @@
   "private": true,
   "description": "FORGELEX — Plataforma Agêntica Jurídica Agnóstica",
   "scripts": {
-    "build": "pnpm -r run build",
-    "test": "vitest run",
+    "build": "pnpm -r --sort run build",
+    "test": "pnpm build && vitest run",
     "test:watch": "vitest",
-    "typecheck": "pnpm -r run typecheck"
+    "typecheck": "pnpm build && pnpm -r run typecheck"
   },
   "devDependencies": {
     "@types/node": "^22.13.9",
