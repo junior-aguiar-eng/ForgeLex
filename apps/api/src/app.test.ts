@@ -44,12 +44,13 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
   let client: Client;
   let database: ForgeLexDatabase;
   let auditRecorder: AuditRecorder;
+  let ledgerService: LedgerService;
 
   beforeAll(async () => {
     const connection = await createDatabase({ url: 'file::memory:?cache=shared' });
     database = connection.db;
     client = connection.client;
-    const ledgerService = new LedgerService(connection.db, client);
+    ledgerService = new LedgerService(connection.db, client);
     await runPersistenceMigrations(client);
     await ledgerService.runMigrations();
     await ledgerService.provisionAccount('tenant_test', {
@@ -168,6 +169,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const body = JSON.parse(response.body);
     expect(body.openapi).toBe('3.1.0');
     expect(body.paths['/api/v2/research/search-case-law'].post['x-forgelex-tool']).toBe('research.search_case_law');
+    expect(body.paths['/api/v2/matters/{matterId}/authorities'].post['x-forgelex-required-scopes']).toEqual(['matter:write']);
     expect(body.paths['/mcp'].post['x-forgelex-required-scopes']).toEqual(['mcp']);
     expect(body.components.securitySchemes.BearerAuth.scheme).toBe('bearer');
   });
@@ -183,6 +185,112 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(response.statusCode).toBe(200);
     expect(response.headers['x-billable-units']).toBe('1');
     expect(JSON.parse(response.body).total).toBeGreaterThan(0);
+  });
+
+  it('deve concluir o primeiro vertical slice comercial com authority salva, billing, auditoria e MCP', async () => {
+    const matterResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/matters',
+      headers: authHeaders,
+      payload: {
+        title: 'Slice comercial de responsabilidade civil',
+        practiceArea: 'Cível',
+        jurisdiction: 'STJ',
+      },
+    });
+    expect(matterResponse.statusCode).toBe(200);
+    const matter = JSON.parse(matterResponse.body);
+
+    const documentResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/documents`,
+      headers: authHeaders,
+      payload: {
+        title: 'Contrato e ocorrência',
+        originalFilename: 'contrato.txt',
+        mimeType: 'text/plain',
+        content: 'O contrato foi celebrado em janeiro.\n\nO incidente de dados ocorreu em março.',
+      },
+    });
+    expect(documentResponse.statusCode).toBe(200);
+    const document = JSON.parse(documentResponse.body);
+    expect(document.anchors.length).toBeGreaterThan(0);
+
+    const idempotencyKey = 'commercial_slice_search_001';
+    const searchResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/research/search-case-law',
+      headers: { ...authHeaders, 'idempotency-key': idempotencyKey },
+      payload: { query: 'vazamento de dados', court: 'STJ', limit: 5 },
+    });
+    expect(searchResponse.statusCode).toBe(200);
+    expect(searchResponse.headers['x-credits-charged']).toBe('0.15');
+    const search = JSON.parse(searchResponse.body);
+    expect(search.results).toHaveLength(1);
+    expect(search.results[0].provenance).toMatchObject({
+      verified: true,
+      verificationMethod: 'OFFICIAL_SOURCE_HASH',
+    });
+
+    const saveResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/authorities`,
+      headers: authHeaders,
+      payload: { authority: search.results[0] },
+    });
+    expect(saveResponse.statusCode).toBe(201);
+    const saved = JSON.parse(saveResponse.body);
+    expect(saved).toMatchObject({
+      created: true,
+      record: {
+        tenantId: 'tenant_test',
+        matterId: matter.id,
+        authority: { id: search.results[0].id, dedupeKey: search.results[0].dedupeKey },
+      },
+    });
+
+    const authoritiesResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}/authorities`,
+      headers: authHeaders,
+    });
+    expect(authoritiesResponse.statusCode).toBe(200);
+    expect(JSON.parse(authoritiesResponse.body).items).toHaveLength(1);
+
+    const mcpResponse = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: authHeaders,
+      payload: {
+        jsonrpc: '2.0',
+        id: 'commercial-slice-mcp',
+        method: 'tools/call',
+        params: {
+          name: 'research.search_case_law',
+          arguments: { query: 'vazamento de dados', court: 'STJ', limit: 5 },
+        },
+      },
+    });
+    expect(mcpResponse.statusCode).toBe(200);
+    const mcpBody = JSON.parse(mcpResponse.body);
+    const mcpData = JSON.parse(mcpBody.result.content[0].text);
+    expect(mcpData.data.items[0].provenance.source.provider).toBe('provider_canonical_fixtures');
+
+    const usage = await ledgerService.getUsageEvents('tenant_test');
+    expect(usage.some((event) => event.requestId === idempotencyKey && event.capability === 'research.search_case_law')).toBe(true);
+    expect((await auditRecorder.getLogsForSession(`rest_${idempotencyKey}`))[0]).toMatchObject({
+      tenantId: 'tenant_test',
+      toolName: 'research.search_case_law',
+      status: 'SUCCESS',
+    });
+    expect((await auditRecorder.getLogsForSession(`matter_${matter.id}`)).some((log) => log.toolName === 'matter.authority.saved')).toBe(true);
+
+    const otherTenantResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}/authorities`,
+      headers: { authorization: 'Bearer tenant-b-token' },
+    });
+    expect(otherTenantResponse.statusCode).toBe(404);
   });
 
   it('API keys persistem somente hashes, retornam o segredo uma vez e autentica a chave criada', async () => {
@@ -262,7 +370,9 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       headers: authHeaders,
     });
     expect(listResponse.statusCode).toBe(200);
-    expect(JSON.parse(listResponse.body).items).toHaveLength(1);
+    expect(JSON.parse(listResponse.body).items).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: matter.id, title: 'Ação de responsabilidade civil' })]),
+    );
 
     const detailResponse = await app.inject({
       method: 'GET',

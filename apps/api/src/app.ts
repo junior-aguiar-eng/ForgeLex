@@ -19,13 +19,14 @@ import {
   FactsEvidenceRepository,
   ForgeLexDatabase,
   MatterRepository,
+  MatterAuthorityRepository,
   ApiKeyRepository,
   runPersistenceMigrations,
 } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { EXTERNAL_MCP_TOOL_NAMES, McpHandler } from '@forgelex/mcp-server';
-import type { AuthenticatedPrincipal } from '@forgelex/domain';
+import { CaseLawSchema, type AuthenticatedPrincipal } from '@forgelex/domain';
 import {
   AuthAdapter,
   createDefaultAuthAdapter,
@@ -72,6 +73,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client);
   await ledgerService.runMigrations();
   const matterRepository = database ? new MatterRepository(database) : undefined;
+  const matterAuthorityRepository = database ? new MatterAuthorityRepository(database) : undefined;
   const factsEvidenceService = database
     ? new FactsEvidenceService(new FactsEvidenceRepository(database))
     : undefined;
@@ -508,6 +510,79 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         anchors: result.anchors,
       };
     }
+  );
+
+  app.get(
+    '/api/v2/matters/:matterId/authorities',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository || !matterAuthorityRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de authorities não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      if (!(await matterRepository.getMatter(req.principal.tenantId, matterId))) {
+        reply.status(404);
+        return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+      }
+      const items = await matterAuthorityRepository.listAuthorities(req.principal.tenantId, matterId);
+      return { items, total: items.length };
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/authorities',
+    { preHandler: authAdapter.createPreHandler(['matter:write']) },
+    async (req, reply) => {
+      if (!matterRepository || !matterAuthorityRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de authorities não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      const body = (req.body ?? {}) as { authority?: unknown };
+      const candidate = body.authority ?? req.body;
+      const parsed = CaseLawSchema.safeParse(candidate);
+      if (!parsed.success) {
+        reply.status(400);
+        return {
+          error: 'INVALID_REQUEST',
+          message: 'authority deve conter uma autoridade judicial com proveniência válida.',
+          details: parsed.error.issues,
+        };
+      }
+
+      try {
+        const result = await matterAuthorityRepository.saveAuthority({
+          tenantId: req.principal.tenantId,
+          matterId,
+          savedBy: req.principal.userId,
+          authority: parsed.data,
+        });
+        await recordAudit({
+          sessionId: `matter_${matterId}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'matter.authority.saved',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: {
+            matterId,
+            authorityId: result.record.authority.id,
+            dedupeKey: result.record.authority.dedupeKey,
+            created: result.created,
+          },
+        });
+        reply.status(result.created ? 201 : 200);
+        return result;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível salvar a autoridade.';
+        reply.status(message.startsWith('MATTER_NOT_FOUND') ? 404 : 409);
+        return {
+          error: message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'AUTHORITY_SAVE_FAILED',
+          message,
+        };
+      }
+    },
   );
 
   app.get(

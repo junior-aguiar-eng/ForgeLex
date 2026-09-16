@@ -26,6 +26,8 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/api/v2/matters/{matterId}', summary: 'Consultar caso', description: 'Retorna um caso e seus documentos.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/matters/{matterId}/documents', summary: 'Ingerir documento', description: 'Ingere texto, versão e âncoras de um documento.', scopes: ['matter:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/matters/{matterId}/documents/{documentId}', summary: 'Consultar documento', description: 'Retorna o documento e sua versão mais recente.', scopes: ['matter:read'] },
+  { method: 'get', path: '/api/v2/matters/{matterId}/authorities', summary: 'Listar authorities salvas', description: 'Lista as autoridades judiciais salvas no caso.', scopes: ['matter:read'] },
+  { method: 'post', path: '/api/v2/matters/{matterId}/authorities', summary: 'Salvar authority', description: 'Salva uma autoridade judicial com sua proveniência no caso.', scopes: ['matter:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/matters/{matterId}/facts', summary: 'Listar fatos', description: 'Lista fatos e cobertura explícita do caso.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/matters/{matterId}/facts', summary: 'Registrar fato', description: 'Registra um fato candidato no caso.', scopes: ['matter:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/matters/{matterId}/evidence', summary: 'Listar provas', description: 'Lista itens de prova do caso.', scopes: ['matter:read'] },

@@ -463,6 +463,28 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `,
     ],
   },
+  {
+    id: 'persistence-0006-matter-authorities',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS matter_authorities (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          authority_id TEXT NOT NULL,
+          dedupe_key TEXT NOT NULL,
+          authority_json TEXT NOT NULL,
+          saved_by TEXT NOT NULL,
+          saved_at TEXT NOT NULL,
+          UNIQUE (matter_id, dedupe_key)
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS matter_authorities_tenant_matter_saved_idx
+        ON matter_authorities (tenant_id, matter_id, saved_at DESC);
+      `,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

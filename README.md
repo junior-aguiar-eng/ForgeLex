@@ -162,6 +162,11 @@ O contrato REST gerado está disponível em `GET /openapi.json` e
 `POST /api/v2/research/search-case-law`; ela usa o mesmo `ResearchService`,
 ledger idempotente e auditoria da capability exposta pelo MCP.
 
+O primeiro vertical slice também permite salvar a authority retornada pela
+pesquisa no matter autenticado por `POST /api/v2/matters/{matterId}/authorities`
+e recuperá-la por `GET /api/v2/matters/{matterId}/authorities`. O salvamento
+preserva a proveniência e é idempotente por `dedupeKey` dentro do matter.
+
 As API keys persistidas em `api_keys` armazenam somente o hash SHA-256 e podem
 ser criadas, listadas e revogadas pelas rotas `/api/v2/api-keys`. O segredo é
 retornado uma única vez na criação. A fundação de webhooks está disponível em

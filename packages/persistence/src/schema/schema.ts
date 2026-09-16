@@ -406,3 +406,21 @@ export const apiKeys = sqliteTable(
     index('api_keys_tenant_created_idx').on(table.tenantId, table.createdAt),
   ],
 );
+
+export const matterAuthorities = sqliteTable(
+  'matter_authorities',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').notNull().references(() => matters.id),
+    authorityId: text('authority_id').notNull(),
+    dedupeKey: text('dedupe_key').notNull(),
+    authorityJson: text('authority_json').notNull(),
+    savedBy: text('saved_by').notNull(),
+    savedAt: text('saved_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('matter_authorities_matter_dedupe_idx').on(table.matterId, table.dedupeKey),
+    index('matter_authorities_tenant_matter_saved_idx').on(table.tenantId, table.matterId, table.savedAt),
+  ],
+);

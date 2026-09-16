@@ -17,6 +17,17 @@ export const CaseLawSchema = z.object({
 
 export type CaseLaw = z.infer<typeof CaseLawSchema>;
 
+export const SavedAuthoritySchema = z.object({
+  id: z.string().uuid(),
+  tenantId: z.string().min(1),
+  matterId: z.string().uuid(),
+  authority: CaseLawSchema,
+  savedBy: z.string().min(1),
+  savedAt: z.string().datetime(),
+});
+
+export type SavedAuthority = z.infer<typeof SavedAuthoritySchema>;
+
 export const LegalAuthoritySchema = z.object({
   id: z.string().uuid(),
   type: z.enum(['PRECEDENT_BINDING', 'CASE_LAW', 'STATUTE', 'CONSTITUTIONAL_PROVISION', 'LEGAL_DOCTRINE']),

@@ -5,6 +5,7 @@ import { SessionRepository } from './repositories/session-repository.js';
 import { Client } from '@libsql/client';
 import { MatterRepository } from './repositories/matter-repository.js';
 import { FactsEvidenceRepository } from './repositories/facts-evidence-repository.js';
+import { MatterAuthorityRepository } from './repositories/matter-authority-repository.js';
 
 describe('Persistence Layer (Drizzle ORM + LibSQL / SQLite)', () => {
   let db: ForgeLexDatabase;
@@ -322,5 +323,68 @@ describe('Persistence Layer (Drizzle ORM + LibSQL / SQLite)', () => {
       eventDate: '2026-01-15',
       sourceAnchorId: documentA.anchors[0].id,
     });
+  });
+
+  it('deve salvar authority com proveniência no matter e tornar o salvamento idempotente', async () => {
+    const matterRepository = new MatterRepository(db);
+    const authorityRepository = new MatterAuthorityRepository(db);
+    const matter = await matterRepository.createMatter({
+      tenantId: 'tenant_a',
+      createdBy: 'user_a',
+      title: 'Matter de pesquisa jurídica',
+    });
+    const authority = {
+      id: '11111111-1111-4111-8111-111111111111',
+      court: 'STJ',
+      processNumber: 'REsp 1.823.450/SP',
+      rapporteur: 'Min. Nancy Andrighi',
+      judgmentDate: '2023-04-18',
+      publicationDate: '2023-04-24',
+      syllabus: 'CIVIL E PROCESSUAL CIVIL. RECURSO ESPECIAL. VAZAMENTO DE DADOS PESSOAIS. LGPD.',
+      dedupeKey: 'stj_resp1823450sp_20230418',
+      provenance: {
+        id: '22222222-2222-4222-8222-222222222222',
+        source: {
+          provider: 'provider_stj_scon',
+          court: 'STJ',
+          documentId: 'REsp 1.823.450/SP',
+          dedupeKey: 'stj_resp1823450sp_20230418',
+          contentHash: 'a'.repeat(64),
+          capturedAt: '2026-09-16T00:00:00.000Z',
+        },
+        verified: true,
+        verificationMethod: 'OFFICIAL_SOURCE_HASH' as const,
+        verifiedAt: '2026-09-16T00:00:00.000Z',
+        snippet: 'CIVIL E PROCESSUAL CIVIL. RECURSO ESPECIAL. VAZAMENTO DE DADOS PESSOAIS. LGPD.',
+        confidence: 0.98,
+      },
+    };
+
+    const first = await authorityRepository.saveAuthority({
+      tenantId: 'tenant_a',
+      matterId: matter.id,
+      savedBy: 'user_a',
+      authority,
+    });
+    const replay = await authorityRepository.saveAuthority({
+      tenantId: 'tenant_a',
+      matterId: matter.id,
+      savedBy: 'user_a',
+      authority,
+    });
+
+    expect(first.created).toBe(true);
+    expect(first.record.authority.provenance.source.provider).toBe('provider_stj_scon');
+    expect(replay).toMatchObject({ created: false, record: { id: first.record.id } });
+    expect(await authorityRepository.listAuthorities('tenant_a', matter.id)).toHaveLength(1);
+    expect(await authorityRepository.listAuthorities('tenant_b', matter.id)).toEqual([]);
+    await expect(
+      authorityRepository.saveAuthority({
+        tenantId: 'tenant_b',
+        matterId: matter.id,
+        savedBy: 'user_b',
+        authority,
+      }),
+    ).rejects.toThrow('MATTER_NOT_FOUND');
   });
 });
