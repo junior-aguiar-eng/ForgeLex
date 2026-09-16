@@ -297,6 +297,7 @@ export const draftSections = sqliteTable(
     linkedFactIds: text('linked_fact_ids').notNull(),
     linkedEvidenceIds: text('linked_evidence_ids').notNull(),
     linkedAuthorityIds: text('linked_authority_ids').notNull(),
+    linkedThesisIds: text('linked_thesis_ids').notNull(),
     createdAt: text('created_at').notNull(),
   },
   (table) => [index('draft_sections_version_ordinal_idx').on(table.draftVersionId, table.ordinal)],
@@ -464,4 +465,25 @@ export const researchMemos = sqliteTable(
     uniqueIndex('research_memos_tenant_matter_idempotency_idx').on(table.tenantId, table.matterId, table.idempotencyKey),
     index('research_memos_tenant_matter_updated_idx').on(table.tenantId, table.matterId, table.updatedAt),
   ],
+);
+
+export const legalTheses = sqliteTable(
+  'legal_theses',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').notNull().references(() => matters.id),
+    title: text('title').notNull(),
+    statement: text('statement').notNull(),
+    rationale: text('rationale'),
+    issueIds: text('issue_ids').notNull(),
+    factIds: text('fact_ids').notNull(),
+    evidenceIds: text('evidence_ids').notNull(),
+    authorityIds: text('authority_ids').notNull(),
+    status: text('status').notNull(),
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [index('legal_theses_tenant_matter_updated_idx').on(table.tenantId, table.matterId, table.updatedAt)],
 );

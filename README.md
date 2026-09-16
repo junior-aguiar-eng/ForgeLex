@@ -55,7 +55,9 @@ O fluxo não extrai fatos novos nem gera automaticamente uma tese jurídica fina
 ### Drafting & Review
 
 O `Draft Studio` organiza rascunhos em versões imutáveis, seções e vínculos
-explícitos com fatos, provas e autoridades. O `Review Center` registra achados
+explícitos com teses, fatos, provas e authorities. O mapa de teses é persistido
+por matter, com vínculos explícitos às questões jurídicas e às fontes que o
+sustentam. O `Review Center` registra achados
 de citações, suporte factual e revisão adversarial; versões com apontamentos
 bloqueadores não podem ser encaminhadas à aprovação. A decisão humana usa token
 efêmero, persistido somente por hash, e a aprovação não equivale a protocolo ou
@@ -199,6 +201,26 @@ POST     /api/v2/matters/{matterId}/research-memos/{memoId}/review
 
 O memo é idempotente por `Idempotency-Key`, mantém a proveniência retornada
 pela fonte e não confunde fixture de teste com validação externa.
+
+### Terceiro vertical slice
+
+O fluxo de redação parte do matter estruturado, monta o mapa de teses e registra
+uma minuta com vínculos explícitos. A revisão confere as âncoras de citação, o
+suporte factual e a estrutura adversarial; novas versões preservam o histórico,
+e a aprovação continua condicionada à conferência humana. As rotas centrais são:
+
+```text
+GET/POST /api/v2/matters/{matterId}/theses
+GET      /api/v2/matters/{matterId}/thesis-map
+GET/POST /api/v2/matters/{matterId}/drafts
+POST     /api/v2/matters/{matterId}/drafts/{draftId}/versions
+POST     /api/v2/matters/{matterId}/drafts/{draftId}/review
+POST     /api/v2/matters/{matterId}/drafts/{draftId}/approval
+```
+
+O Slice 3 foi validado localmente com persistência, isolamento por tenant,
+versionamento, revisão e aprovação humana; isso não certifica uma chamada a
+provider externo.
 
 ---
 

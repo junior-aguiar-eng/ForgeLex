@@ -8,3 +8,4 @@ export * from './contracts/matter.js';
 export * from './contracts/facts-evidence.js';
 export * from './contracts/drafting.js';
 export * from './contracts/research.js';
+export * from './contracts/strategy.js';

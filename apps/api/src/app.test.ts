@@ -705,6 +705,207 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(otherTenantResponse.statusCode).toBe(404);
   });
 
+  it('deve executar o terceiro vertical slice do mapa de teses à aprovação da minuta', async () => {
+    const matterResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/matters',
+      headers: authHeaders,
+      payload: { title: 'Matter do terceiro vertical slice', practiceArea: 'Responsabilidade civil' },
+    });
+    const matter = JSON.parse(matterResponse.body);
+
+    const documentResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/documents`,
+      headers: authHeaders,
+      payload: {
+        title: 'Documento-base da tese',
+        originalFilename: 'base.txt',
+        content: 'A empresa recebeu a notificação em 10 de fevereiro de 2026.\n\nA resposta foi apresentada fora do prazo contratual.',
+      },
+    });
+    const document = JSON.parse(documentResponse.body);
+    const factResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/facts`,
+      headers: authHeaders,
+      payload: { statement: 'A empresa recebeu a notificação em 10 de fevereiro de 2026.', category: 'TEMPORAL' },
+    });
+    const fact = JSON.parse(factResponse.body);
+    const evidenceResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/evidence`,
+      headers: authHeaders,
+      payload: { title: 'Notificação recebida', evidenceType: 'DOCUMENT' },
+    });
+    const evidence = JSON.parse(evidenceResponse.body);
+    const supportResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/facts/${fact.id}/support`,
+      headers: authHeaders,
+      payload: { anchorId: document.anchors[0].id, evidenceItemId: evidence.id, relation: 'SUPPORTS' },
+    });
+    expect(supportResponse.statusCode).toBe(200);
+
+    const issueResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/issues`,
+      headers: authHeaders,
+      payload: { statement: 'A resposta fora do prazo contratual gera responsabilidade indenizável?' },
+    });
+    const issue = JSON.parse(issueResponse.body);
+
+    const searchResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/research/search-case-law',
+      headers: { ...authHeaders, 'idempotency-key': 'third-vertical-slice-authority-1' },
+      payload: { query: 'vazamento de dados', court: 'STJ', limit: 5 },
+    });
+    const search = JSON.parse(searchResponse.body);
+    const saveAuthorityResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/authorities`,
+      headers: authHeaders,
+      payload: { authority: search.results[0] },
+    });
+    const savedAuthority = JSON.parse(saveAuthorityResponse.body).record;
+
+    const thesisResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/theses`,
+      headers: authHeaders,
+      payload: {
+        title: 'Tese de responsabilidade por atraso',
+        statement: 'A resposta fora do prazo, comprovada pela notificação e pela authority, sustenta a responsabilização contratual.',
+        issueIds: [issue.id],
+        factIds: [fact.id],
+        evidenceIds: [evidence.id],
+        authorityIds: [savedAuthority.id],
+      },
+    });
+    expect(thesisResponse.statusCode).toBe(201);
+    const thesis = JSON.parse(thesisResponse.body);
+
+    const mapResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}/thesis-map`,
+      headers: authHeaders,
+    });
+    expect(mapResponse.statusCode).toBe(200);
+    expect(JSON.parse(mapResponse.body)).toMatchObject({ matterId: matter.id, issues: [expect.objectContaining({ id: issue.id })], theses: [expect.objectContaining({ id: thesis.id })] });
+
+    const firstDraftResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts`,
+      headers: authHeaders,
+      payload: {
+        title: 'Minuta fundamentada',
+        sections: [
+          {
+            ordinal: 0,
+            title: 'Síntese dos fatos',
+            content: 'A notificação foi recebida e a resposta apresentada fora do prazo.',
+            linkedFactIds: [fact.id],
+            linkedEvidenceIds: [evidence.id],
+            linkedThesisIds: [thesis.id],
+          },
+          {
+            ordinal: 1,
+            title: 'Fundamentação jurídica',
+            content: 'A tese de responsabilidade será submetida à conferência humana.',
+            linkedFactIds: [fact.id],
+            linkedEvidenceIds: [evidence.id],
+            linkedAuthorityIds: [savedAuthority.id],
+            linkedThesisIds: [thesis.id],
+          },
+        ],
+        citations: [{
+          sectionOrdinal: 1,
+          targetType: 'AUTHORITY',
+          targetId: savedAuthority.id,
+          citationText: 'Authority judicial salva no matter',
+          verified: true,
+        }],
+      },
+    });
+    expect(firstDraftResponse.statusCode).toBe(200);
+    const firstDraft = JSON.parse(firstDraftResponse.body);
+    expect(firstDraft.sections[1].linkedThesisIds).toEqual([thesis.id]);
+
+    const reviewResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts/${firstDraft.draft.id}/review`,
+      headers: authHeaders,
+      payload: { type: 'all' },
+    });
+    expect(reviewResponse.statusCode).toBe(200);
+    expect(JSON.parse(reviewResponse.body)).toMatchObject({ status: 'PASSED', blockingCount: 0 });
+
+    const secondVersionResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts/${firstDraft.draft.id}/versions`,
+      headers: authHeaders,
+      payload: {
+        title: 'Minuta fundamentada revisada',
+        sections: [
+          {
+            ordinal: 0,
+            title: 'Síntese dos fatos',
+            content: 'A notificação foi recebida e a resposta apresentada fora do prazo contratual.',
+            linkedFactIds: [fact.id],
+            linkedEvidenceIds: [evidence.id],
+            linkedThesisIds: [thesis.id],
+          },
+          {
+            ordinal: 1,
+            title: 'Fundamentação jurídica',
+            content: 'A tese de responsabilidade permanece condicionada à conferência humana final.',
+            linkedFactIds: [fact.id],
+            linkedEvidenceIds: [evidence.id],
+            linkedAuthorityIds: [savedAuthority.id],
+            linkedThesisIds: [thesis.id],
+          },
+        ],
+        citations: [{ sectionOrdinal: 1, targetType: 'AUTHORITY', targetId: savedAuthority.id, citationText: 'Authority judicial conferida', verified: true }],
+      },
+    });
+    expect(secondVersionResponse.statusCode).toBe(200);
+    const secondVersion = JSON.parse(secondVersionResponse.body);
+    expect(secondVersion.version.versionNumber).toBe(2);
+
+    const secondReviewResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts/${firstDraft.draft.id}/review`,
+      headers: authHeaders,
+      payload: { type: 'all', versionId: secondVersion.version.id },
+    });
+    expect(JSON.parse(secondReviewResponse.body).status).toBe('PASSED');
+
+    const approvalResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts/${firstDraft.draft.id}/approval`,
+      headers: authHeaders,
+      payload: { versionId: secondVersion.version.id },
+    });
+    expect(approvalResponse.statusCode).toBe(200);
+    const approval = JSON.parse(approvalResponse.body);
+    const resolveResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/draft-approvals/resolve',
+      headers: authHeaders,
+      payload: { token: approval.token, decision: 'APPROVED', reason: 'Aprovação humana do Slice 3.' },
+    });
+    expect(resolveResponse.statusCode).toBe(200);
+    expect(JSON.parse(resolveResponse.body).request.status).toBe('APPROVED');
+
+    const otherTenantResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}/thesis-map`,
+      headers: { authorization: 'Bearer tenant-b-token' },
+    });
+    expect(otherTenantResponse.statusCode).toBe(404);
+  });
+
   it('GET /api/v2/jurisprudencias deve retornar acórdãos com headers de faturamento', async () => {
     const response = await app.inject({
       method: 'GET',

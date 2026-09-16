@@ -1260,6 +1260,8 @@ contra API paga.
 
 # 25. Terceiro vertical slice
 
+Implementado localmente: matter estruturado -> mapa de teses -> Draft Studio com vínculos explícitos a teses, fatos, provas e authorities -> verificação de citações -> revisão adversarial -> versionamento -> aprovação humana. A superfície inclui `strategy.identify_issues`, `strategy.build_thesis_map`, `drafting.create_draft`, `drafting.update_draft`, `drafting.get_draft`, `review.verify_citations`, `review.check_fact_support` e `review.adversarial_review`. O mapa de teses é persistido por tenant/matter e a aprovação continua condicionada à ausência de achados bloqueadores. A validação desta etapa é local/integrada; não certifica uma chamada a provider externo.
+
 ```text
 matter estruturado
 -> thesis map

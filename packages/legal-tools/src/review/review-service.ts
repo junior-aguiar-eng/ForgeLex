@@ -27,9 +27,20 @@ export class DraftReviewService {
 
   public async verifyCitations(context: DraftContext, draftId: string, versionId?: string): Promise<ReviewResult> {
     const version = await this.requireVersion(context, draftId, versionId);
-    const findings = version.citations
-      .filter((citation) => !citation.verified)
-      .map((citation) => this.finding(context, draftId, version.version.id, 'CITATION', 'BLOCKING', 'CITATION_NOT_VERIFIED', 'A citação não possui verificação positiva.', citation.sectionId, citation.targetId));
+    const findings = version.citations.flatMap((citation) => {
+      if (!citation.verified) {
+        return [this.finding(context, draftId, version.version.id, 'CITATION', 'BLOCKING', 'CITATION_NOT_VERIFIED', 'A citação não possui verificação positiva.', citation.sectionId, citation.targetId)];
+      }
+      const section = version.sections.find((item) => item.id === citation.sectionId);
+      const linkedIds = citation.targetType === 'AUTHORITY'
+        ? section?.linkedAuthorityIds ?? []
+        : citation.targetType === 'FACT'
+          ? section?.linkedFactIds ?? []
+          : section?.linkedEvidenceIds ?? [];
+      return linkedIds.includes(citation.targetId)
+        ? []
+        : [this.finding(context, draftId, version.version.id, 'CITATION', 'BLOCKING', 'CITATION_TARGET_NOT_LINKED', 'A citação verificada não está vinculada à seção correspondente.', citation.sectionId, citation.targetId)];
+    });
     if (version.citations.length === 0) {
       findings.push(this.finding(context, draftId, version.version.id, 'CITATION', 'WARNING', 'CITATIONS_MISSING', 'A versão não possui âncoras de citação registradas.'));
     }

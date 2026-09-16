@@ -10,6 +10,7 @@ const DraftSectionInputSchema = z.object({
   linkedFactIds: z.array(z.string().uuid()).default([]),
   linkedEvidenceIds: z.array(z.string().uuid()).default([]),
   linkedAuthorityIds: z.array(z.string().uuid()).default([]),
+  linkedThesisIds: z.array(z.string().uuid()).default([]),
 });
 const CitationInputSchema = z.object({
   sectionOrdinal: z.number().int().nonnegative(),

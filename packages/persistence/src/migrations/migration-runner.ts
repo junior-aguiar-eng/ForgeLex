@@ -536,6 +536,42 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `,
     ],
   },
+  {
+    id: 'persistence-0009-legal-theses',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS legal_theses (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          title TEXT NOT NULL,
+          statement TEXT NOT NULL,
+          rationale TEXT,
+          issue_ids TEXT NOT NULL,
+          fact_ids TEXT NOT NULL,
+          evidence_ids TEXT NOT NULL,
+          authority_ids TEXT NOT NULL,
+          status TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS legal_theses_tenant_matter_updated_idx
+        ON legal_theses (tenant_id, matter_id, updated_at DESC);
+      `,
+    ],
+  },
+  {
+    id: 'persistence-0010-draft-thesis-links',
+    statements: [
+      `
+        ALTER TABLE draft_sections
+        ADD COLUMN linked_thesis_ids TEXT NOT NULL DEFAULT '[]';
+      `,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

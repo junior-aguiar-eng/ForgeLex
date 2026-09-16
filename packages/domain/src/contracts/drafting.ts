@@ -46,6 +46,7 @@ export const DraftSectionSchema = z.object({
   linkedFactIds: z.array(z.string().uuid()),
   linkedEvidenceIds: z.array(z.string().uuid()),
   linkedAuthorityIds: z.array(z.string().uuid()),
+  linkedThesisIds: z.array(z.string().uuid()),
   createdAt: z.string().datetime(),
 });
 export type DraftSection = z.infer<typeof DraftSectionSchema>;

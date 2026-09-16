@@ -12,6 +12,8 @@ import {
   DraftCreateInputSchema,
   FactsEvidenceService,
   ResearchService,
+  StrategyService,
+  createStrategyTools,
 } from '@forgelex/legal-tools';
 import {
   createDatabase,
@@ -22,6 +24,7 @@ import {
   MatterAuthorityRepository,
   LegalIssueRepository,
   ResearchMemoRepository,
+  LegalThesisRepository,
   ApiKeyRepository,
   runPersistenceMigrations,
 } from '@forgelex/persistence';
@@ -79,6 +82,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const matterAuthorityRepository = database ? new MatterAuthorityRepository(database) : undefined;
   const legalIssueRepository = database ? new LegalIssueRepository(database) : undefined;
   const researchMemoRepository = database ? new ResearchMemoRepository(database) : undefined;
+  const legalThesisRepository = database ? new LegalThesisRepository(database) : undefined;
   const factsEvidenceService = database
     ? new FactsEvidenceService(new FactsEvidenceRepository(database))
     : undefined;
@@ -86,6 +90,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const draftingService = draftRepository ? new DraftingService(draftRepository) : undefined;
   const draftReviewService = draftRepository && factsEvidenceService
     ? new DraftReviewService(draftRepository, factsEvidenceService)
+    : undefined;
+  const strategyService = legalThesisRepository && legalIssueRepository
+    ? new StrategyService(legalThesisRepository, legalIssueRepository)
     : undefined;
 
   const courtCatalog = new CourtCatalog();
@@ -101,6 +108,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   toolRegistry.register(createSearchCaseLawTool(researchService));
   toolRegistry.register(createGetAuthorityTool(researchService));
   toolRegistry.register(createVerifyAuthorityTool(researchService));
+  if (strategyService) {
+    const strategyTools = createStrategyTools(strategyService);
+    toolRegistry.register(strategyTools.identifyIssuesTool);
+    toolRegistry.register(strategyTools.buildThesisMapTool);
+    toolRegistry.register(strategyTools.createThesisTool);
+  }
 
   const auditRecorder = options.auditRecorder ?? (connection ? new AuditRecorder(connection.db) : undefined);
   const mcpHandler = new McpHandler(toolRegistry, ledgerService, auditRecorder, {
@@ -572,6 +585,121 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         const message = error instanceof Error ? error.message : 'Não foi possível registrar a questão jurídica.';
         reply.status(message.startsWith('MATTER_NOT_FOUND') ? 404 : 400);
         return { error: message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  app.get(
+    '/api/v2/matters/:matterId/theses',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository || !legalThesisRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência do mapa de teses não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      if (!(await matterRepository.getMatter(req.principal.tenantId, matterId))) {
+        reply.status(404);
+        return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+      }
+      const items = await legalThesisRepository.listTheses(req.principal.tenantId, matterId);
+      return { items, total: items.length };
+    },
+  );
+
+  app.get(
+    '/api/v2/matters/:matterId/thesis-map',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository || !strategyService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Serviço de estratégia não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      try {
+        if (!(await matterRepository.getMatter(req.principal.tenantId, matterId))) {
+          reply.status(404);
+          return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+        }
+        const map = await strategyService.buildThesisMap({
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          matterId,
+        });
+        await recordAudit({
+          sessionId: `matter_${matterId}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'strategy.build_thesis_map',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { matterId, issueCount: map.issues.length, thesisCount: map.theses.length },
+        });
+        return map;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível montar o mapa de teses.';
+        reply.status(message.startsWith('MATTER_NOT_FOUND') ? 404 : 400);
+        return { error: message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/theses',
+    { preHandler: authAdapter.createPreHandler(['matter:write']) },
+    async (req, reply) => {
+      if (!matterRepository || !strategyService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Serviço de estratégia não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      const body = (req.body ?? {}) as {
+        title?: unknown;
+        statement?: unknown;
+        rationale?: unknown;
+        issueIds?: unknown;
+        factIds?: unknown;
+        evidenceIds?: unknown;
+        authorityIds?: unknown;
+        status?: unknown;
+      };
+      const ids = (value: unknown): string[] => Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === 'string')
+        : [];
+      if (typeof body.title !== 'string' || body.title.trim().length < 3 || typeof body.statement !== 'string' || body.statement.trim().length < 10) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'title e statement são obrigatórios para registrar uma tese.' };
+      }
+      try {
+        const thesis = await strategyService.createThesis(
+          { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+          {
+            title: body.title.trim(),
+            statement: body.statement.trim(),
+            rationale: typeof body.rationale === 'string' ? body.rationale : undefined,
+            issueIds: ids(body.issueIds),
+            factIds: ids(body.factIds),
+            evidenceIds: ids(body.evidenceIds),
+            authorityIds: ids(body.authorityIds),
+            status: body.status === 'REVIEWED' || body.status === 'REJECTED' ? body.status : 'PROPOSED',
+          },
+        );
+        await recordAudit({
+          sessionId: `thesis_${thesis.id}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'strategy.thesis.created',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { thesisId: thesis.id, matterId, issueCount: thesis.issueIds.length, factCount: thesis.factIds.length },
+        });
+        reply.status(201);
+        return thesis;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível registrar a tese.';
+        const notFound = /^(MATTER|THESIS_.*)_NOT_FOUND/.test(message);
+        reply.status(notFound ? 404 : 400);
+        return { error: notFound ? message.split(':')[0] : 'INVALID_REQUEST', message };
       }
     },
   );

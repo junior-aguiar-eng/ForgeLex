@@ -7,6 +7,8 @@ export * from './drafting/draft-service.js';
 export * from './drafting/draft-tools.js';
 export * from './review/review-service.js';
 export * from './review/review-tools.js';
+export * from './strategy/strategy-service.js';
+export * from './strategy/strategy-tools.js';
 export * from './facts-evidence/facts-evidence-service.js';
 export * from './facts-evidence/facts-evidence-tools.js';
 export * from './fixtures/stj-sample-data.js';

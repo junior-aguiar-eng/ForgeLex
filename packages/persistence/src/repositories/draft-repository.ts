@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   ApprovalDecision,
@@ -70,6 +70,7 @@ function toDraftSection(row: typeof schema.draftSections.$inferSelect): DraftSec
     linkedFactIds: parseIds(row.linkedFactIds),
     linkedEvidenceIds: parseIds(row.linkedEvidenceIds),
     linkedAuthorityIds: parseIds(row.linkedAuthorityIds),
+    linkedThesisIds: parseIds(row.linkedThesisIds),
     createdAt: row.createdAt,
   });
 }
@@ -143,6 +144,7 @@ export interface DraftSectionInput {
   linkedFactIds?: string[];
   linkedEvidenceIds?: string[];
   linkedAuthorityIds?: string[];
+  linkedThesisIds?: string[];
 }
 
 export interface CitationAnchorInput {
@@ -239,6 +241,23 @@ export class DraftRepository {
     if (!draft) throw new Error('DRAFT_NOT_FOUND: rascunho não localizado no matter do tenant autenticado.');
     if (input.sections.length === 0) throw new Error('DRAFT_SECTIONS_REQUIRED: a versão precisa conter ao menos uma seção.');
 
+    const thesisIds = [...new Set(input.sections.flatMap((section) => section.linkedThesisIds ?? []))];
+    if (thesisIds.length > 0) {
+      const thesisRows = await this.db
+        .select({ id: schema.legalTheses.id })
+        .from(schema.legalTheses)
+        .innerJoin(schema.matters, eq(schema.legalTheses.matterId, schema.matters.id))
+        .where(and(
+          eq(schema.legalTheses.tenantId, input.tenantId),
+          eq(schema.legalTheses.matterId, input.matterId),
+          eq(schema.matters.tenantId, input.tenantId),
+          inArray(schema.legalTheses.id, thesisIds),
+        ));
+      const availableIds = new Set(thesisRows.map((row) => row.id));
+      const missing = thesisIds.find((id) => !availableIds.has(id));
+      if (missing) throw new Error('DRAFT_THESIS_NOT_FOUND: a tese vinculada não pertence ao matter do tenant autenticado.');
+    }
+
     const previousVersions = await this.listVersions(input.tenantId, input.matterId, input.draftId);
     const version = DraftVersionSchema.parse({
       id: randomUUID(),
@@ -266,6 +285,7 @@ export class DraftRepository {
       linkedFactIds: item.linkedFactIds ?? [],
       linkedEvidenceIds: item.linkedEvidenceIds ?? [],
       linkedAuthorityIds: item.linkedAuthorityIds ?? [],
+      linkedThesisIds: item.linkedThesisIds ?? [],
       createdAt,
     }));
     const sectionByOrdinal = new Map(sections.map((section) => [section.ordinal, section]));
@@ -294,6 +314,7 @@ export class DraftRepository {
         linkedFactIds: JSON.stringify(section.linkedFactIds),
         linkedEvidenceIds: JSON.stringify(section.linkedEvidenceIds),
         linkedAuthorityIds: JSON.stringify(section.linkedAuthorityIds),
+        linkedThesisIds: JSON.stringify(section.linkedThesisIds),
       })));
       if (citations.length > 0) await tx.insert(schema.citationAnchors).values(citations.map((citation) => ({ ...citation })));
       await tx.update(schema.drafts).set({
