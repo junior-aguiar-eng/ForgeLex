@@ -4,6 +4,7 @@ import { runPersistenceMigrations } from './migrations/migration-runner.js';
 import { SessionRepository } from './repositories/session-repository.js';
 import { Client } from '@libsql/client';
 import { MatterRepository } from './repositories/matter-repository.js';
+import { FactsEvidenceRepository } from './repositories/facts-evidence-repository.js';
 
 describe('Persistence Layer (Drizzle ORM + LibSQL / SQLite)', () => {
   let db: ForgeLexDatabase;
@@ -176,5 +177,150 @@ describe('Persistence Layer (Drizzle ORM + LibSQL / SQLite)', () => {
         content: 'Conteúdo suficiente para o documento.',
       })
     ).rejects.toThrow('MATTER_NOT_FOUND');
+  });
+
+  it('deve persistir fatos, provas, cobertura e linha do tempo com isolamento por tenant', async () => {
+    const matterRepository = new MatterRepository(db);
+    const factsEvidenceRepository = new FactsEvidenceRepository(db);
+    const matterA = await matterRepository.createMatter({
+      tenantId: 'tenant_a',
+      createdBy: 'user_a',
+      title: 'Matter de fatos e provas',
+    });
+    const documentA = await matterRepository.ingestTextDocument({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      createdBy: 'user_a',
+      title: 'Relato documental',
+      originalFilename: 'relato.txt',
+      mimeType: 'text/plain',
+      content: 'A contratação ocorreu em janeiro.\n\nO pagamento foi interrompido em março.',
+    });
+    const matterB = await matterRepository.createMatter({
+      tenantId: 'tenant_b',
+      createdBy: 'user_b',
+      title: 'Matter de outro tenant',
+    });
+    const documentB = await matterRepository.ingestTextDocument({
+      tenantId: 'tenant_b',
+      matterId: matterB.id,
+      createdBy: 'user_b',
+      title: 'Documento isolado',
+      originalFilename: 'isolado.txt',
+      mimeType: 'text/plain',
+      content: 'Conteúdo exclusivo do tenant B.',
+    });
+
+    const supportedFact = await factsEvidenceRepository.createFact({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      createdBy: 'user_a',
+      statement: 'A contratação ocorreu em janeiro.',
+      category: 'TEMPORAL',
+    });
+    await factsEvidenceRepository.linkFactToAnchor({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      factId: supportedFact.id,
+      documentAnchorId: documentA.anchors[0].id,
+      relation: 'SUPPORTS',
+    });
+    const evidence = await factsEvidenceRepository.createEvidenceItem({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      createdBy: 'user_a',
+      title: 'Comprovante de contratação',
+      evidenceType: 'DOCUMENT',
+    });
+    await factsEvidenceRepository.linkEvidenceToFact({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      factId: supportedFact.id,
+      evidenceItemId: evidence.id,
+      relation: 'SUPPORTS',
+    });
+    await factsEvidenceRepository.linkEvidenceToAnchor({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      evidenceItemId: evidence.id,
+      documentAnchorId: documentA.anchors[0].id,
+      relation: 'PROVES',
+    });
+
+    const partialFact = await factsEvidenceRepository.createFact({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      createdBy: 'user_a',
+      statement: 'O pagamento foi interrompido em março.',
+    });
+    await factsEvidenceRepository.linkFactToAnchor({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      factId: partialFact.id,
+      documentAnchorId: documentA.anchors[1].id,
+      relation: 'CONTEXT',
+    });
+
+    const conflictingFact = await factsEvidenceRepository.createFact({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      createdBy: 'user_a',
+      statement: 'A contratação foi rescindida antes do pagamento.',
+    });
+    await factsEvidenceRepository.linkFactToAnchor({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      factId: conflictingFact.id,
+      documentAnchorId: documentA.anchors[0].id,
+      relation: 'SUPPORTS',
+    });
+    await factsEvidenceRepository.linkFactToAnchor({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      factId: conflictingFact.id,
+      documentAnchorId: documentA.anchors[1].id,
+      relation: 'CONTRADICTS',
+    });
+
+    const unsupportedFact = await factsEvidenceRepository.createFact({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      createdBy: 'user_a',
+      statement: 'Não há outro fato documental registrado.',
+    });
+    const coverage = await factsEvidenceRepository.getEvidenceCoverage('tenant_a', matterA.id);
+    expect(coverage.find((item) => item.factId === supportedFact.id)).toMatchObject({
+      coverage: 'SUPPORTED',
+      supportingEvidenceCount: 1,
+      supportingAnchorCount: 1,
+    });
+    expect(coverage.find((item) => item.factId === partialFact.id)?.coverage).toBe('PARTIAL');
+    expect(coverage.find((item) => item.factId === conflictingFact.id)?.coverage).toBe('CONFLICTING');
+    expect(coverage.find((item) => item.factId === unsupportedFact.id)?.coverage).toBe('UNSUPPORTED');
+
+    await expect(
+      factsEvidenceRepository.linkFactToAnchor({
+        tenantId: 'tenant_a',
+        matterId: matterA.id,
+        factId: supportedFact.id,
+        documentAnchorId: documentB.anchors[0].id,
+        relation: 'SUPPORTS',
+      }),
+    ).rejects.toThrow('ANCHOR_NOT_FOUND');
+    expect(await factsEvidenceRepository.listFacts('tenant_b', matterA.id)).toEqual([]);
+
+    const event = await factsEvidenceRepository.createTimelineEvent({
+      tenantId: 'tenant_a',
+      matterId: matterA.id,
+      createdBy: 'user_a',
+      title: 'Contratação',
+      eventDate: '2026-01-15',
+      sourceAnchorId: documentA.anchors[0].id,
+    });
+    expect((await factsEvidenceRepository.listTimelineEvents('tenant_a', matterA.id))[0]).toMatchObject({
+      id: event.id,
+      eventDate: '2026-01-15',
+      sourceAnchorId: documentA.anchors[0].id,
+    });
   });
 });

@@ -20,6 +20,7 @@
     "@forgelex/domain": "workspace:*",
     "@forgelex/agent-core": "workspace:*",
     "@forgelex/legal-data": "workspace:*",
+    "@forgelex/persistence": "workspace:*",
     "@forgelex/source-providers": "workspace:*",
     "zod": "^3.24.2"
   },

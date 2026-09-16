@@ -251,6 +251,9 @@ importers:
       '@forgelex/legal-data':
         specifier: workspace:*
         version: link:../legal-data
+      '@forgelex/persistence':
+        specifier: workspace:*
+        version: link:../persistence
       '@forgelex/source-providers':
         specifier: workspace:*
         version: link:../source-providers

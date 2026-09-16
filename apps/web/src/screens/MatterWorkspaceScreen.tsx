@@ -27,6 +27,40 @@ interface MatterDetailResponse {
   documents: LegalDocument[];
 }
 
+interface Fact {
+  id: string;
+  statement: string;
+  category: 'FACTUAL' | 'PROCEDURAL' | 'TEMPORAL' | 'DAMAGE' | 'OTHER';
+  status: 'ASSERTED' | 'CONFIRMED' | 'DISPUTED' | 'REJECTED';
+  createdAt: string;
+}
+
+interface EvidenceItem {
+  id: string;
+  title: string;
+  description?: string;
+  evidenceType: 'DOCUMENT' | 'TESTIMONY' | 'RECORD' | 'EXPERT_REPORT' | 'OTHER';
+  status: 'AVAILABLE' | 'MISSING' | 'CONTESTED';
+  createdAt: string;
+}
+
+interface EvidenceCoverage {
+  factId: string;
+  coverage: 'SUPPORTED' | 'PARTIAL' | 'UNSUPPORTED' | 'CONFLICTING';
+  supportingEvidenceCount: number;
+  contradictingEvidenceCount: number;
+  supportingAnchorCount: number;
+  contradictingAnchorCount: number;
+}
+
+interface TimelineEvent {
+  id: string;
+  title: string;
+  eventDate: string;
+  description?: string;
+  sourceAnchorId?: string;
+}
+
 const apiUrl = import.meta.env.VITE_FORGELEX_API_URL ?? 'http://localhost:3001';
 
 function initialToken(): string {
@@ -59,11 +93,22 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const [matters, setMatters] = useState<Matter[]>([]);
   const [selectedMatterId, setSelectedMatterId] = useState<string | null>(null);
   const [documents, setDocuments] = useState<LegalDocument[]>([]);
+  const [facts, setFacts] = useState<Fact[]>([]);
+  const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
+  const [coverage, setCoverage] = useState<EvidenceCoverage[]>([]);
+  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [title, setTitle] = useState('');
   const [practiceArea, setPracticeArea] = useState('');
   const [documentTitle, setDocumentTitle] = useState('');
   const [filename, setFilename] = useState('');
   const [content, setContent] = useState('');
+  const [factStatement, setFactStatement] = useState('');
+  const [factCategory, setFactCategory] = useState<Fact['category']>('FACTUAL');
+  const [evidenceTitle, setEvidenceTitle] = useState('');
+  const [evidenceType, setEvidenceType] = useState<EvidenceItem['evidenceType']>('DOCUMENT');
+  const [timelineTitle, setTimelineTitle] = useState('');
+  const [timelineDate, setTimelineDate] = useState('');
+  const [timelineDescription, setTimelineDescription] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -72,6 +117,29 @@ export const MatterWorkspaceScreen: React.FC = () => {
     () => matters.find((matter) => matter.id === selectedMatterId) ?? null,
     [matters, selectedMatterId]
   );
+
+  const clearMatterResources = () => {
+    setDocuments([]);
+    setFacts([]);
+    setEvidence([]);
+    setCoverage([]);
+    setTimeline([]);
+  };
+
+  const loadMatterResources = async (matterId: string) => {
+    const [detail, factsResponse, evidenceResponse, coverageResponse, timelineResponse] = await Promise.all([
+      request<MatterDetailResponse>(`/api/v2/matters/${matterId}`, token),
+      request<{ items: Fact[] }>(`/api/v2/matters/${matterId}/facts`, token),
+      request<{ items: EvidenceItem[] }>(`/api/v2/matters/${matterId}/evidence`, token),
+      request<{ items: EvidenceCoverage[] }>(`/api/v2/matters/${matterId}/evidence/coverage`, token),
+      request<{ items: TimelineEvent[] }>(`/api/v2/matters/${matterId}/timeline`, token),
+    ]);
+    setDocuments(detail.documents);
+    setFacts(factsResponse.items);
+    setEvidence(evidenceResponse.items);
+    setCoverage(coverageResponse.items);
+    setTimeline(timelineResponse.items);
+  };
 
   const loadMatters = async () => {
     if (!token) return;
@@ -85,10 +153,9 @@ export const MatterWorkspaceScreen: React.FC = () => {
         : response.items[0]?.id ?? null;
       setSelectedMatterId(nextMatterId);
       if (nextMatterId) {
-        const detail = await request<MatterDetailResponse>(`/api/v2/matters/${nextMatterId}`, token);
-        setDocuments(detail.documents);
+        await loadMatterResources(nextMatterId);
       } else {
-        setDocuments([]);
+        clearMatterResources();
       }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar os casos.');
@@ -109,8 +176,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
     setBusy(true);
     setError(null);
     try {
-      const detail = await request<MatterDetailResponse>(`/api/v2/matters/${matterId}`, token);
-      setDocuments(detail.documents);
+      await loadMatterResources(matterId);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar os documentos.');
     } finally {
@@ -142,10 +208,83 @@ export const MatterWorkspaceScreen: React.FC = () => {
       setPracticeArea('');
       setMatters((current) => [matter, ...current]);
       setSelectedMatterId(matter.id);
-      setDocuments([]);
+      clearMatterResources();
       setNotice('Caso criado e pronto para receber documentos.');
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'Não foi possível criar o caso.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createFact = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!token || !selectedMatterId || factStatement.trim().length < 3) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const fact = await request<Fact>(`/api/v2/matters/${selectedMatterId}/facts`, token, {
+        method: 'POST',
+        body: JSON.stringify({ statement: factStatement, category: factCategory }),
+      });
+      setFacts((current) => [fact, ...current]);
+      setCoverage((current) => [{
+        factId: fact.id,
+        coverage: 'UNSUPPORTED',
+        supportingEvidenceCount: 0,
+        contradictingEvidenceCount: 0,
+        supportingAnchorCount: 0,
+        contradictingAnchorCount: 0,
+      }, ...current]);
+      setFactStatement('');
+      setNotice('Fato candidato registrado. Vincule uma âncora ou prova para calcular sua cobertura.');
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Não foi possível registrar o fato.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createEvidence = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!token || !selectedMatterId || evidenceTitle.trim().length < 3) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const item = await request<EvidenceItem>(`/api/v2/matters/${selectedMatterId}/evidence`, token, {
+        method: 'POST',
+        body: JSON.stringify({ title: evidenceTitle, evidenceType }),
+      });
+      setEvidence((current) => [item, ...current]);
+      setEvidenceTitle('');
+      setNotice('Item de prova registrado. O vínculo com fatos e âncoras pode ser feito pela API ou pelas tools internas.');
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Não foi possível registrar a prova.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createTimelineEvent = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!token || !selectedMatterId || timelineTitle.trim().length < 3 || !timelineDate) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const item = await request<TimelineEvent>(`/api/v2/matters/${selectedMatterId}/timeline`, token, {
+        method: 'POST',
+        body: JSON.stringify({ title: timelineTitle, eventDate: timelineDate, description: timelineDescription || undefined }),
+      });
+      setTimeline((current) => [...current, item].sort((left, right) => left.eventDate.localeCompare(right.eventDate)));
+      setTimelineTitle('');
+      setTimelineDate('');
+      setTimelineDescription('');
+      setNotice('Evento adicionado à linha do tempo.');
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Não foi possível registrar o evento.');
     } finally {
       setBusy(false);
     }
@@ -261,7 +400,12 @@ export const MatterWorkspaceScreen: React.FC = () => {
                     <span className="text-[11px] text-stone-400">Atualizado em {new Date(selectedMatter.updatedAt).toLocaleDateString('pt-BR')}</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                    {['Resumo', 'Documentos', 'Pesquisa', 'Rascunhos'].map((section) => <div key={section} className="p-3 rounded-xl bg-[#FDFBF7] border border-champagne-border"><span className="block text-xs font-semibold text-stone-700">{section}</span><span className="text-[10px] text-stone-400">Em evolução</span></div>)}
+                    {[
+                      ['Documentos', documents.length],
+                      ['Fatos', facts.length],
+                      ['Provas', evidence.length],
+                      ['Eventos', timeline.length],
+                    ].map(([section, count]) => <div key={section} className="p-3 rounded-xl bg-[#FDFBF7] border border-champagne-border"><span className="block text-xs font-semibold text-stone-700">{section}</span><span className="text-[10px] text-stone-500">{count} registrado(s)</span></div>)}
                   </div>
                 </>
               ) : (
@@ -282,6 +426,77 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 {documents.length === 0 && <p className="text-xs text-stone-500">Este caso ainda não possui documentos.</p>}
               </div>
             </section>}
+
+            {selectedMatter && <>
+              <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-editorial text-xl font-bold text-stone-900">Fatos</h2>
+                    <p className="text-xs text-stone-500 mt-1">Registre candidatos e mantenha separado o que foi afirmado do que está confirmado.</p>
+                  </div>
+                  <span className="text-xs text-stone-500">{facts.length}</span>
+                </div>
+                <form onSubmit={createFact} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3">
+                  <input value={factStatement} onChange={(event) => setFactStatement(event.target.value)} placeholder="Ex.: o contrato foi assinado em janeiro" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                  <select value={factCategory} onChange={(event) => setFactCategory(event.target.value as Fact['category'])} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">
+                    <option value="FACTUAL">Factual</option><option value="PROCEDURAL">Processual</option><option value="TEMPORAL">Temporal</option><option value="DAMAGE">Dano</option><option value="OTHER">Outro</option>
+                  </select>
+                  <button disabled={!token || busy || factStatement.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
+                </form>
+                <div className="space-y-2">
+                  {facts.map((fact) => {
+                    const factCoverage = coverage.find((item) => item.factId === fact.id);
+                    return <div key={fact.id} className="p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2"><p className="text-sm text-stone-800">{fact.statement}</p><span className="shrink-0 text-[10px] uppercase tracking-wide text-cognac-700">{fact.status === 'ASSERTED' ? 'Candidato' : fact.status}</span></div>
+                      <p className="text-[11px] text-stone-500 mt-2">{fact.category} · Cobertura: {factCoverage?.coverage ?? 'UNSUPPORTED'} · {factCoverage?.supportingAnchorCount ?? 0} âncora(s) · {factCoverage?.supportingEvidenceCount ?? 0} prova(s)</p>
+                    </div>;
+                  })}
+                  {facts.length === 0 && <p className="text-xs text-stone-500">Nenhum fato registrado neste caso.</p>}
+                </div>
+              </section>
+
+              <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-editorial text-xl font-bold text-stone-900">Provas</h2>
+                    <p className="text-xs text-stone-500 mt-1">Cadastre a disponibilidade da prova antes de vinculá-la a fatos e âncoras.</p>
+                  </div>
+                  <span className="text-xs text-stone-500">{evidence.length}</span>
+                </div>
+                <form onSubmit={createEvidence} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3">
+                  <input value={evidenceTitle} onChange={(event) => setEvidenceTitle(event.target.value)} placeholder="Título do item de prova" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                  <select value={evidenceType} onChange={(event) => setEvidenceType(event.target.value as EvidenceItem['evidenceType'])} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">
+                    <option value="DOCUMENT">Documento</option><option value="TESTIMONY">Depoimento</option><option value="RECORD">Registro</option><option value="EXPERT_REPORT">Laudo</option><option value="OTHER">Outro</option>
+                  </select>
+                  <button disabled={!token || busy || evidenceTitle.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
+                </form>
+                <div className="space-y-2">
+                  {evidence.map((item) => <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span><span className="text-[11px] text-stone-500">{item.evidenceType} · {item.status === 'AVAILABLE' ? 'Disponível' : item.status}</span></div><span className="text-[10px] text-stone-400 font-mono">{item.id.slice(0, 8)}…</span></div>)}
+                  {evidence.length === 0 && <p className="text-xs text-stone-500">Nenhum item de prova registrado neste caso.</p>}
+                </div>
+              </section>
+
+              <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-editorial text-xl font-bold text-stone-900">Linha do tempo</h2>
+                    <p className="text-xs text-stone-500 mt-1">Ordenação civil por data; o vínculo documental é opcional.</p>
+                  </div>
+                  <span className="text-xs text-stone-500">{timeline.length}</span>
+                </div>
+                <form onSubmit={createTimelineEvent} className="grid grid-cols-1 md:grid-cols-[1fr_170px_auto] gap-3">
+                  <input value={timelineTitle} onChange={(event) => setTimelineTitle(event.target.value)} placeholder="Descrição do evento" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                  <input type="date" value={timelineDate} onChange={(event) => setTimelineDate(event.target.value)} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                  <button disabled={!token || busy || timelineTitle.trim().length < 3 || !timelineDate} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Adicionar</button>
+                  <input value={timelineDescription} onChange={(event) => setTimelineDescription(event.target.value)} placeholder="Observação (opcional)" className="md:col-span-3 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                </form>
+                <div className="space-y-2">
+                  {timeline.map((item) => <div key={item.id} className="flex gap-3 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><span className="text-xs font-semibold text-cognac-700 min-w-24">{new Date(`${item.eventDate}T00:00:00`).toLocaleDateString('pt-BR')}</span><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span>{item.description && <span className="text-xs text-stone-500">{item.description}</span>}</div></div>)}
+                  {timeline.length === 0 && <p className="text-xs text-stone-500">Nenhum evento registrado neste caso.</p>}
+                </div>
+                <p className="text-[11px] text-stone-400">A cobertura é uma leitura dos vínculos explícitos registrados; não constitui conclusão sobre autenticidade, suficiência ou procedência da prova.</p>
+              </section>
+            </>}
           </main>
         </div>
       </div>

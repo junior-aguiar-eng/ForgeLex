@@ -240,6 +240,115 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(JSON.parse(documentDetailResponse.body).anchors).toHaveLength(2);
   });
 
+  it('deve registrar fatos, provas, suporte, cobertura e linha do tempo no matter autenticado', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/matters',
+      headers: authHeaders,
+      payload: { title: 'Matter de evidências' },
+    });
+    const matter = JSON.parse(createResponse.body);
+    const documentResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/documents`,
+      headers: authHeaders,
+      payload: {
+        title: 'Prova textual',
+        originalFilename: 'prova.txt',
+        content: 'O contrato foi assinado em janeiro.\n\nO pagamento foi interrompido em março.',
+      },
+    });
+    const document = JSON.parse(documentResponse.body);
+    const factResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/facts`,
+      headers: authHeaders,
+      payload: {
+        statement: 'O contrato foi assinado em janeiro.',
+        category: 'TEMPORAL',
+      },
+    });
+    expect(factResponse.statusCode).toBe(200);
+    const fact = JSON.parse(factResponse.body);
+    expect(fact).toMatchObject({ tenantId: 'tenant_test', matterId: matter.id, status: 'ASSERTED' });
+
+    const evidenceResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/evidence`,
+      headers: authHeaders,
+      payload: { title: 'Contrato assinado', evidenceType: 'DOCUMENT' },
+    });
+    expect(evidenceResponse.statusCode).toBe(200);
+    const evidence = JSON.parse(evidenceResponse.body);
+
+    const supportResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/facts/${fact.id}/support`,
+      headers: authHeaders,
+      payload: {
+        anchorId: document.anchors[0].id,
+        evidenceItemId: evidence.id,
+        relation: 'SUPPORTS',
+        note: 'Trecho que descreve a assinatura.',
+      },
+    });
+    expect(supportResponse.statusCode).toBe(200);
+    expect(JSON.parse(supportResponse.body).factSourceLink.documentAnchorId).toBe(document.anchors[0].id);
+
+    const factsResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}/facts`,
+      headers: authHeaders,
+    });
+    expect(factsResponse.statusCode).toBe(200);
+    expect(JSON.parse(factsResponse.body).items).toHaveLength(1);
+
+    const coverageResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}/evidence/coverage`,
+      headers: authHeaders,
+    });
+    expect(coverageResponse.statusCode).toBe(200);
+    expect(JSON.parse(coverageResponse.body).items[0]).toMatchObject({
+      factId: fact.id,
+      coverage: 'SUPPORTED',
+      supportingEvidenceCount: 1,
+      supportingAnchorCount: 1,
+    });
+
+    const timelineResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/timeline`,
+      headers: authHeaders,
+      payload: {
+        title: 'Assinatura do contrato',
+        eventDate: '2026-01-15',
+        sourceAnchorId: document.anchors[0].id,
+      },
+    });
+    expect(timelineResponse.statusCode).toBe(200);
+    const timeline = JSON.parse(timelineResponse.body);
+    expect(timeline.sourceAnchorId).toBe(document.anchors[0].id);
+
+    const timelineListResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}/timeline`,
+      headers: authHeaders,
+    });
+    expect(JSON.parse(timelineListResponse.body).items[0].eventDate).toBe('2026-01-15');
+
+    const auditLogs = await auditRecorder.getLogsForSession(`fact_${fact.id}`);
+    expect(auditLogs.map((log) => log.toolName)).toEqual(['facts.created', 'facts.support.mapped']);
+    expect(auditLogs.map((log) => log.payloadHash).join(' ')).not.toContain('O contrato foi assinado');
+
+    const otherTenantResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}/facts`,
+      headers: { authorization: 'Bearer tenant-b-token' },
+    });
+    expect(otherTenantResponse.statusCode).toBe(404);
+  });
+
   it('GET /api/v2/jurisprudencias deve retornar acórdãos com headers de faturamento', async () => {
     const response = await app.inject({
       method: 'GET',

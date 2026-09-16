@@ -1,11 +1,11 @@
 # FORGELEX — Plataforma Agêntica Jurídica Agnóstica V2
 
 > **A inteligência jurídica que pensa antes de peticionar.**  
-> Plataforma comercializável, vendor-neutral e orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
+> Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-69%20Passing-brightgreen.svg)](https://vitest.dev/)
-[![MCP Ready](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
+[![Vitest](https://img.shields.io/badge/Tests-83%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
 ---
@@ -15,12 +15,12 @@
 O **FORGELEX V2** foi construído para superar as limitações das ferramentas jurídicas de 1ª geração (prompts estáticos, alucinações de ementas, dependência de fornecedor único e falta de governança).
 
 ### Pilares Fundamentais:
-1. **Microkernel Agêntico Vendor-Neutral:** Suporte nativo a **Anthropic Claude Sonnet 5**, **OpenAI Agents SDK (Responses API)** e **LLMs Soberanos Locais** (Ollama/VLLM).
+1. **Microkernel Agêntico Vendor-Neutral:** Contratos comuns para adapters Anthropic, OpenAI e modelos locais.
 2. **Governança Forense Human-in-the-Loop:** Classificação estrita de impacto em 5 níveis (`L0_OBSERVATION` a `L4_EXTERNAL_EFFECT`). Mutações externas exigem token criptográfico de aprovação do advogado.
 3. **Rastreabilidade e Anti-Alucinação:** Todo acórdão retornado possui ancoragem com URL oficial verificada e hash criptográfico SHA-256 imutável.
 4. **Legal Data Plane com Deduplicação:** Normalização algorítmica de números CNJ, tribunais e datas através de `dedupeKey` determinística.
 5. **Ledger Contábil de Dupla Carteira (Apêndice Q):** Controle de saldo pago vs promocional com prevenção a dupla cobrança por replay idempotente.
-6. **Distribuição Aberta MCP:** Servidor Model Context Protocol (JSON-RPC 2.0) em `https://mcp.forgelex.ai` para uso em Claude Desktop, Cursor e plataformas integradas.
+6. **Integração MCP:** Servidor JSON-RPC 2.0 autenticado, com ferramentas expostas de forma controlada conforme o registry configurado.
 
 ### Pesquisa jurídica real
 
@@ -31,6 +31,14 @@ endpoint `POST /api/v2/research/verify-authority` reaproveita o mesmo serviço,
 com cobrança idempotente e evento de auditoria. O endereço-base pode ser
 substituído por `FORGELEX_STJ_SCON_BASE_URL`; fixtures continuam restritas a
 testes e workflows determinísticos.
+
+### Facts & Evidence
+
+O Matter Workspace registra fatos candidatos, itens de prova e eventos de linha
+do tempo. Fatos e provas podem ser vinculados a âncoras de parágrafo e entre si;
+a cobertura informa somente os vínculos explícitos registrados (`SUPPORTED`,
+`PARTIAL`, `UNSUPPORTED` ou `CONFLICTING`). O sistema não confirma
+automaticamente a veracidade, autenticidade ou suficiência jurídica do material.
 
 ---
 
@@ -51,7 +59,7 @@ testes e workflows determinísticos.
 │   ├── legal-data/            # Contratos de jurisprudência, dedupeKey e contentHash
 │   ├── source-catalog/        # Catálogo nacional de tribunais (STF, STJ, TST, TJSP, etc.)
 │   ├── source-providers/      # Provedores de fontes e SourceRouter com reconciliação
-│   ├── legal-tools/           # Ferramentas registradas (pesquisa e verificação de autoridades)
+│   ├── legal-tools/           # Ferramentas de pesquisa, fatos e verificação de autoridades
 │   ├── legal-workflows/       # Workflows orquestrados (legal-research-memo)
 │   ├── billing-ledger/        # Dual-wallet ledger idempotente com priorização promocional
 │   └── mcp-server/            # Implementação JSON-RPC 2.0 do Model Context Protocol
@@ -149,8 +157,8 @@ $ vitest run
  ✓ apps/api/src/app.test.ts (13 tests)
  ✓ apps/api/src/auth/fastify-auth.test.ts (4 tests)
 
- Test Files  15 passed (15)
- Tests  69 passed (69)
+ Test Files  18 passed (18)
+ Tests  83 passed (83)
 ```
 
 ---

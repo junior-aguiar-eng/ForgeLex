@@ -6,9 +6,16 @@ import { ToolRegistry } from '@forgelex/agent-core';
 import {
   createSearchCaseLawTool,
   createVerifyAuthorityTool,
+  FactsEvidenceService,
   ResearchService,
 } from '@forgelex/legal-tools';
-import { createDatabase, ForgeLexDatabase, MatterRepository, runPersistenceMigrations } from '@forgelex/persistence';
+import {
+  createDatabase,
+  FactsEvidenceRepository,
+  ForgeLexDatabase,
+  MatterRepository,
+  runPersistenceMigrations,
+} from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { McpHandler } from '@forgelex/mcp-server';
@@ -53,6 +60,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await ledgerService.runMigrations();
   const database = options.database ?? connection?.db;
   const matterRepository = database ? new MatterRepository(database) : undefined;
+  const factsEvidenceService = database
+    ? new FactsEvidenceService(new FactsEvidenceRepository(database))
+    : undefined;
 
   const courtCatalog = new CourtCatalog();
   const sourceRouter = options.sourceRouter ?? new SourceRouter();
@@ -300,6 +310,290 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         anchors: result.anchors,
       };
     }
+  );
+
+  app.get(
+    '/api/v2/matters/:matterId/facts',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository || !factsEvidenceService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de fatos não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      if (!(await matterRepository.getMatter(req.principal.tenantId, matterId))) {
+        reply.status(404);
+        return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+      }
+      const result = await factsEvidenceService.listFacts({
+        tenantId: req.principal.tenantId,
+        userId: req.principal.userId,
+        matterId,
+      });
+      return { items: result.items, coverage: result.coverage, total: result.items.length };
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/facts',
+    { preHandler: authAdapter.createPreHandler(['matter:write']) },
+    async (req, reply) => {
+      if (!matterRepository || !factsEvidenceService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de fatos não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      const body = (req.body ?? {}) as {
+        statement?: string;
+        category?: 'FACTUAL' | 'PROCEDURAL' | 'TEMPORAL' | 'DAMAGE' | 'OTHER';
+        status?: 'ASSERTED' | 'CONFIRMED' | 'DISPUTED' | 'REJECTED';
+      };
+      if (!body.statement?.trim()) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'statement é obrigatório para registrar um fato.' };
+      }
+      try {
+        const fact = await factsEvidenceService.createFact(
+          { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+          { statement: body.statement, category: body.category, status: body.status },
+        );
+        await recordAudit({
+          sessionId: `fact_${fact.id}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'facts.created',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { factId: fact.id, matterId, category: fact.category, status: fact.status },
+        });
+        return fact;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível registrar o fato.';
+        reply.status(message.startsWith('MATTER_NOT_FOUND') ? 404 : 400);
+        return { error: message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  app.get(
+    '/api/v2/matters/:matterId/evidence',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository || !factsEvidenceService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de provas não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      if (!(await matterRepository.getMatter(req.principal.tenantId, matterId))) {
+        reply.status(404);
+        return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+      }
+      const items = await factsEvidenceService.listEvidence(
+        { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+      );
+      return { items, total: items.length };
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/evidence',
+    { preHandler: authAdapter.createPreHandler(['matter:write']) },
+    async (req, reply) => {
+      if (!matterRepository || !factsEvidenceService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de provas não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      const body = (req.body ?? {}) as {
+        title?: string;
+        description?: string;
+        evidenceType?: 'DOCUMENT' | 'TESTIMONY' | 'RECORD' | 'EXPERT_REPORT' | 'OTHER';
+        status?: 'AVAILABLE' | 'MISSING' | 'CONTESTED';
+      };
+      if (!body.title?.trim()) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'title é obrigatório para registrar uma prova.' };
+      }
+      try {
+        const evidence = await factsEvidenceService.createEvidence(
+          { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+          {
+            title: body.title,
+            description: body.description,
+            evidenceType: body.evidenceType,
+            status: body.status,
+          },
+        );
+        await recordAudit({
+          sessionId: `evidence_${evidence.id}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'evidence.created',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { evidenceItemId: evidence.id, matterId, evidenceType: evidence.evidenceType, status: evidence.status },
+        });
+        return evidence;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível registrar a prova.';
+        reply.status(message.startsWith('MATTER_NOT_FOUND') ? 404 : 400);
+        return { error: message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/facts/:factId/support',
+    { preHandler: authAdapter.createPreHandler(['matter:write']) },
+    async (req, reply) => {
+      if (!matterRepository || !factsEvidenceService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de suporte não está disponível.' };
+      }
+      const { matterId, factId } = req.params as { matterId: string; factId: string };
+      const body = (req.body ?? {}) as {
+        anchorId?: string;
+        evidenceItemId?: string;
+        relation?: 'SUPPORTS' | 'CONTRADICTS' | 'CONTEXT';
+        note?: string;
+      };
+      if (!body.anchorId && !body.evidenceItemId) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'anchorId ou evidenceItemId é obrigatório para mapear suporte.' };
+      }
+      try {
+        const relation = body.relation ?? 'SUPPORTS';
+        const context = { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId };
+        const factSourceLink = body.anchorId
+          ? await factsEvidenceService.linkFactToAnchor(context, {
+              factId,
+              documentAnchorId: body.anchorId,
+              relation,
+              note: body.note,
+            })
+          : undefined;
+        const evidenceLink = body.evidenceItemId
+          ? await factsEvidenceService.linkEvidenceToFact(context, {
+              factId,
+              evidenceItemId: body.evidenceItemId,
+              relation,
+              note: body.note,
+            })
+          : undefined;
+        await recordAudit({
+          sessionId: `fact_${factId}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'facts.support.mapped',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { matterId, factId, anchorId: body.anchorId, evidenceItemId: body.evidenceItemId, relation },
+        });
+        return { factSourceLink, evidenceLink };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível mapear o suporte.';
+        const notFound = /^(MATTER|FACT|EVIDENCE|ANCHOR)_NOT_FOUND/.test(message);
+        reply.status(notFound ? 404 : 400);
+        return { error: notFound ? message.split(':')[0] : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  app.get(
+    '/api/v2/matters/:matterId/evidence/coverage',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository || !factsEvidenceService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de cobertura não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      if (!(await matterRepository.getMatter(req.principal.tenantId, matterId))) {
+        reply.status(404);
+        return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+      }
+      const coverage = await factsEvidenceService.getCoverage(
+        { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+      );
+      await recordAudit({
+        sessionId: `matter_${matterId}`,
+        tenantId: req.principal.tenantId,
+        userId: req.principal.userId,
+        toolName: 'evidence.coverage.read',
+        durationMs: 0,
+        status: 'SUCCESS',
+        payload: { matterId, factCount: coverage.length },
+      });
+      return { items: coverage, total: coverage.length };
+    },
+  );
+
+  app.get(
+    '/api/v2/matters/:matterId/timeline',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!matterRepository || !factsEvidenceService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência da linha do tempo não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      if (!(await matterRepository.getMatter(req.principal.tenantId, matterId))) {
+        reply.status(404);
+        return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+      }
+      const items = await factsEvidenceService.listTimeline(
+        { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+      );
+      return { items, total: items.length };
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/timeline',
+    { preHandler: authAdapter.createPreHandler(['matter:write']) },
+    async (req, reply) => {
+      if (!matterRepository || !factsEvidenceService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência da linha do tempo não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      const body = (req.body ?? {}) as {
+        title?: string;
+        eventDate?: string;
+        description?: string;
+        sourceAnchorId?: string;
+      };
+      if (!body.title?.trim() || !body.eventDate?.trim()) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'title e eventDate são obrigatórios para registrar um evento.' };
+      }
+      try {
+        const event = await factsEvidenceService.createTimeline(
+          { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+          {
+            title: body.title,
+            eventDate: body.eventDate,
+            description: body.description,
+            sourceAnchorId: body.sourceAnchorId,
+          },
+        );
+        await recordAudit({
+          sessionId: `timeline_${event.id}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'timeline.created',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { timelineEventId: event.id, matterId, eventDate: event.eventDate },
+        });
+        return event;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível registrar o evento.';
+        const notFound = /^(MATTER|ANCHOR)_NOT_FOUND/.test(message);
+        reply.status(notFound ? 404 : 400);
+        return { error: notFound ? message.split(':')[0] : 'INVALID_REQUEST', message };
+      }
+    },
   );
 
   // 5. REST v2: Busca de Jurisprudência Faturável e Idempotente

@@ -5,3 +5,4 @@ export * from './contracts/errors.js';
 export * from './contracts/auth.js';
 export * from './contracts/billing.js';
 export * from './contracts/matter.js';
+export * from './contracts/facts-evidence.js';
