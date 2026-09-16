@@ -276,6 +276,9 @@ importers:
       '@forgelex/legal-tools':
         specifier: workspace:*
         version: link:../legal-tools
+      '@forgelex/persistence':
+        specifier: workspace:*
+        version: link:../persistence
       zod:
         specifier: ^3.24.2
         version: 3.25.76

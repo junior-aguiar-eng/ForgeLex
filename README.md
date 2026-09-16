@@ -4,7 +4,7 @@
 > Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-83%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-86%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -40,6 +40,16 @@ a cobertura informa somente os vínculos explícitos registrados (`SUPPORTED`,
 `PARTIAL`, `UNSUPPORTED` ou `CONFLICTING`). O sistema não confirma
 automaticamente a veracidade, autenticidade ou suficiência jurídica do material.
 
+### Legal Workflows
+
+Os fluxos `legal-research-memo`, `case-document-analysis` e `pleading-draft`
+usam checkpoints versionados, retomada por execução e eventos estruturados.
+Pesquisa e análise preservam a proveniência disponível; questões jurídicas são
+entradas explícitas; e a minuta permanece `DRAFT_ONLY`, com aprovação humana
+pendente e sem efeito externo. Neste marco, os workflows são executáveis no
+pacote e ainda não constituem uma exposição REST/MCP nem extraem fatos novos ou
+geram automaticamente uma tese jurídica final.
+
 ---
 
 ## 📦 Estrutura do Monorepo
@@ -60,7 +70,7 @@ automaticamente a veracidade, autenticidade ou suficiência jurídica do materia
 │   ├── source-catalog/        # Catálogo nacional de tribunais (STF, STJ, TST, TJSP, etc.)
 │   ├── source-providers/      # Provedores de fontes e SourceRouter com reconciliação
 │   ├── legal-tools/           # Ferramentas de pesquisa, fatos e verificação de autoridades
-│   ├── legal-workflows/       # Workflows orquestrados (legal-research-memo)
+│   ├── legal-workflows/       # Workflows versionados de pesquisa, análise e minuta
 │   ├── billing-ledger/        # Dual-wallet ledger idempotente com priorização promocional
 │   └── mcp-server/            # Implementação JSON-RPC 2.0 do Model Context Protocol
 ```
@@ -143,22 +153,28 @@ produção, sem essa variável, somente `http://localhost:3000` e
 ```bash
 $ vitest run
 
- ✓ packages/agent-provider-anthropic/src/anthropic-agent-provider.test.ts (4 tests)
- ✓ packages/legal-workflows/src/research-memo/legal-research-memo.test.ts (4 tests)
- ✓ packages/persistence/src/persistence.test.ts (4 tests)
  ✓ packages/audit/src/audit-recorder.test.ts (3 tests)
+ ✓ packages/legal-tools/src/facts-evidence/facts-evidence-tools.test.ts (1 test)
+ ✓ packages/persistence/src/persistence.test.ts (8 tests)
  ✓ packages/billing-ledger/src/ledger.test.ts (7 tests)
- ✓ packages/legal-data/src/legal-data.test.ts (3 tests)
+ ✓ packages/legal-workflows/src/workflow-engine.test.ts (3 tests)
  ✓ packages/mcp-server/src/mcp-server.test.ts (4 tests)
- ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (4 tests)
- ✓ packages/domain/src/contracts/provenance.test.ts (4 tests)
- ✓ packages/source-providers/src/source-router.test.ts (4 tests)
- ✓ packages/source-catalog/src/court-catalog.test.ts (3 tests)
- ✓ apps/api/src/app.test.ts (13 tests)
+ ✓ packages/source-providers/src/stj-scon-provider.test.ts (4 tests)
+ ✓ packages/legal-workflows/src/research-memo/legal-research-memo.test.ts (4 tests)
+ ✓ packages/legal-tools/src/research/research-tools.test.ts (3 tests)
+ ✓ apps/api/src/app.test.ts (16 tests)
+ ✓ packages/agent-provider-anthropic/src/anthropic-agent-provider.test.ts (5 tests)
+ ✓ packages/domain/src/contracts/matter.test.ts (2 tests)
+ ✓ packages/domain/src/contracts/facts-evidence.test.ts (3 tests)
  ✓ apps/api/src/auth/fastify-auth.test.ts (4 tests)
+ ✓ packages/source-providers/src/source-router.test.ts (4 tests)
+ ✓ packages/domain/src/contracts/provenance.test.ts (4 tests)
+ ✓ packages/legal-data/src/legal-data.test.ts (3 tests)
+ ✓ packages/source-catalog/src/court-catalog.test.ts (3 tests)
+ ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (5 tests)
 
- Test Files  18 passed (18)
- Tests  83 passed (83)
+ Test Files  19 passed (19)
+ Tests  86 passed (86)
 ```
 
 ---
