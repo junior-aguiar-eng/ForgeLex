@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
+import { createDatabase, ForgeLexDatabase, runPersistenceMigrations } from '@forgelex/persistence';
 import { AuditRecorder } from './audit-recorder.js';
 import { Client } from '@libsql/client';
 
@@ -12,6 +12,7 @@ describe('AuditRecorder (Conformidade e Sigilo Jurídico)', () => {
     const connection = await createDatabase({ url: 'file::memory:?cache=shared' });
     db = connection.db;
     client = connection.client;
+    await runPersistenceMigrations(client);
     recorder = new AuditRecorder(db);
   });
 

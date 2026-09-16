@@ -4,7 +4,7 @@ import { CourtCatalog } from '@forgelex/source-catalog';
 import { SourceRouter, CanonicalFixtureProvider } from '@forgelex/source-providers';
 import { ToolRegistry } from '@forgelex/agent-core';
 import { searchCaseLawTool } from '@forgelex/legal-tools';
-import { createDatabase } from '@forgelex/persistence';
+import { createDatabase, runPersistenceMigrations } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
 import { McpHandler } from '@forgelex/mcp-server';
 import {
@@ -15,6 +15,7 @@ import {
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
+  ledgerService?: LedgerService;
   environment?: Record<string, string | undefined>;
 }
 
@@ -35,9 +36,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   // 1. Inicialização dos serviços fundamentais
-  const { db } = await createDatabase({ url: 'file::memory:?cache=shared' });
-  const ledgerService = new LedgerService(db);
-  await ledgerService.bootstrapTables();
+  const connection = options.ledgerService ? undefined : await createDatabase({ url: 'file::memory:?cache=shared' });
+  if (connection) {
+    await runPersistenceMigrations(connection.client);
+  }
+
+  const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client);
+  await ledgerService.runMigrations();
 
   const courtCatalog = new CourtCatalog();
   const sourceRouter = new SourceRouter();
@@ -98,8 +103,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       try {
         const execution = await ledgerService.executeBillableOperation({
           tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
           idempotencyKey,
           costCents: 15, // R$ 0,15 por busca
+          usage: {
+            capability: 'research.search_case_law',
+            toolName: 'research.search_case_law',
+            requestId: idempotencyKey,
+          },
           operation: async () => {
             return await sourceRouter.search(q, { court, limit });
           },

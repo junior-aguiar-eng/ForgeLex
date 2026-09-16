@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
+import { createDatabase, ForgeLexDatabase, runPersistenceMigrations } from '@forgelex/persistence';
 import { LedgerService } from './ledger-service.js';
 import { Client } from '@libsql/client';
+import { ledgerEntries } from './schema/ledger-schema.js';
 
 describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', () => {
   let db: ForgeLexDatabase;
@@ -13,7 +14,11 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
     db = connection.db;
     client = connection.client;
     ledger = new LedgerService(db);
+    await runPersistenceMigrations(client);
     await ledger.bootstrapTables();
+    await client.execute('DELETE FROM ledger_entries');
+    await client.execute('DELETE FROM usage_events');
+    await client.execute('DELETE FROM ledger_accounts');
   });
 
   afterEach(() => {
@@ -22,7 +27,11 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
 
   it('deve debitar saldo promocional com validade antes de tocar no saldo pago', async () => {
     // Conta criada com R$ 63,00 de saldo pago (6300 centavos) e R$ 15,00 de saldo promocional (1500 centavos)
-    const account = await ledger.getOrCreateAccount('tenant_albuquerque', 6300, 1500);
+    const account = await ledger.provisionAccount('tenant_albuquerque', {
+      paidBalanceCents: 6300,
+      promotionalBalanceCents: 1500,
+      promoExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
     expect(account.paidBalanceCents).toBe(6300);
     expect(account.promotionalBalanceCents).toBe(1500);
 
@@ -46,6 +55,11 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
 
   it('deve garantir idempotência absoluta e prevenir double-billing em retries', async () => {
     let executionCounter = 0;
+
+    await ledger.provisionAccount('tenant_1', {
+      paidBalanceCents: 100,
+      promotionalBalanceCents: 0,
+    });
 
     const op = async () => {
       executionCounter++;
@@ -85,7 +99,10 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
 
   it('deve rejeitar execução quando o saldo disponível for insuficiente', async () => {
     // Conta zerada
-    await ledger.getOrCreateAccount('tenant_sem_saldo', 0, 0);
+    await ledger.provisionAccount('tenant_sem_saldo', {
+      paidBalanceCents: 0,
+      promotionalBalanceCents: 0,
+    });
 
     await expect(
       ledger.executeBillableOperation({
@@ -95,5 +112,104 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
         operation: async () => 'ok',
       })
     ).rejects.toThrow('Saldo insuficiente');
+  });
+
+  it('deve provisionar saldo zero por padrão, sem crédito implícito', async () => {
+    const account = await ledger.getOrCreateAccount('tenant_zero_default');
+
+    expect(account.paidBalanceCents).toBe(0);
+    expect(account.promotionalBalanceCents).toBe(0);
+    expect(account.promoExpiresAt).toBeNull();
+  });
+
+  it('deve registrar um UsageEvent e vinculá-lo ao débito', async () => {
+    await ledger.provisionAccount('tenant_usage', {
+      paidBalanceCents: 100,
+      promotionalBalanceCents: 0,
+    });
+
+    const result = await ledger.executeBillableOperation({
+      tenantId: 'tenant_usage',
+      userId: 'user_usage',
+      idempotencyKey: 'usage_event_001',
+      costCents: 15,
+      usage: {
+        capability: 'research.search_case_law',
+        toolName: 'research.search_case_law',
+        units: 1,
+      },
+      operation: async () => ({ ok: true }),
+    });
+
+    expect(result.chargedCents).toBe(15);
+    const usage = await ledger.getUsageEvents('tenant_usage');
+    expect(usage).toHaveLength(1);
+    expect(usage[0].capability).toBe('research.search_case_law');
+    expect(usage[0].legalCredits).toBe(1);
+    expect(usage[0].requestId).toBe('usage_event_001');
+
+    const entries = await db.select().from(ledgerEntries);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].usageEventId).toBe(usage[0].id);
+  });
+
+  it('deve serializar débitos concorrentes e impedir saldo negativo', async () => {
+    await ledger.provisionAccount('tenant_concurrent', {
+      paidBalanceCents: 15,
+      promotionalBalanceCents: 0,
+    });
+
+    let executionCounter = 0;
+    const operation = async () => {
+      executionCounter++;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return { executionCounter };
+    };
+
+    const results = await Promise.allSettled([
+      ledger.executeBillableOperation({
+        tenantId: 'tenant_concurrent',
+        idempotencyKey: 'concurrent_001',
+        costCents: 15,
+        operation,
+      }),
+      ledger.executeBillableOperation({
+        tenantId: 'tenant_concurrent',
+        idempotencyKey: 'concurrent_002',
+        costCents: 15,
+        operation,
+      }),
+    ]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
+    expect(executionCounter).toBe(1);
+
+    const account = await ledger.getOrCreateAccount('tenant_concurrent');
+    expect(account.paidBalanceCents).toBe(0);
+    expect(account.promotionalBalanceCents).toBe(0);
+  });
+
+  it('deve fazer rollback do débito e do UsageEvent quando a operação falhar', async () => {
+    await ledger.provisionAccount('tenant_rollback', {
+      paidBalanceCents: 100,
+      promotionalBalanceCents: 0,
+    });
+
+    await expect(
+      ledger.executeBillableOperation({
+        tenantId: 'tenant_rollback',
+        idempotencyKey: 'rollback_001',
+        costCents: 15,
+        operation: async () => {
+          throw new Error('upstream unavailable');
+        },
+      })
+    ).rejects.toThrow('upstream unavailable');
+
+    const account = await ledger.getOrCreateAccount('tenant_rollback');
+    expect(account.paidBalanceCents).toBe(100);
+    expect(await ledger.getUsageEvents('tenant_rollback')).toHaveLength(0);
+    expect(await db.select().from(ledgerEntries)).toHaveLength(0);
   });
 });

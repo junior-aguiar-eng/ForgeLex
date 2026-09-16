@@ -112,8 +112,14 @@ export class McpHandler {
           // Executa através do Algoritmo de Execução Faturável Idempotente (R$ 0,15 por busca)
           const execution = await this.ledgerService.executeBillableOperation({
             tenantId,
+            userId,
             idempotencyKey,
             costCents: 15,
+            usage: {
+              capability: name,
+              toolName: name,
+              requestId: idempotencyKey,
+            },
             operation: async () => {
               const controller = new AbortController();
               return await this.toolRegistry.executeTool(name, toolArgs ?? {}, {

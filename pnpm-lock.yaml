@@ -194,6 +194,9 @@ importers:
       '@forgelex/persistence':
         specifier: workspace:*
         version: link:../persistence
+      '@libsql/client':
+        specifier: ^0.14.0
+        version: 0.14.0
       drizzle-orm:
         specifier: ^0.39.3
         version: 0.39.3(@libsql/client@0.14.0)

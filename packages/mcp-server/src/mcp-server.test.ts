@@ -18,6 +18,11 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
 
     const ledger = new LedgerService(db);
     await ledger.bootstrapTables();
+    await ledger.provisionAccount('tenant_mcp_test', {
+      paidBalanceCents: 6300,
+      promotionalBalanceCents: 1500,
+      promoExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
 
     const registry = new ToolRegistry();
     registry.register(searchCaseLawTool);

@@ -3,6 +3,9 @@ import { buildApp } from './app.js';
 import { FastifyInstance } from 'fastify';
 import { AuthAdapter } from './auth/fastify-auth.js';
 import { AuthenticatedPrincipal, TokenVerifier } from '@forgelex/domain';
+import { createDatabase } from '@forgelex/persistence';
+import { LedgerService } from '@forgelex/billing-ledger';
+import type { Client } from '@libsql/client';
 
 const testPrincipal: AuthenticatedPrincipal = {
   subjectId: 'subject_test',
@@ -31,10 +34,22 @@ const authHeaders = { authorization: 'Bearer test-token' };
 
 describe('Fastify API & Remote MCP Edge (apps/api)', () => {
   let app: FastifyInstance;
+  let client: Client;
 
   beforeAll(async () => {
+    const connection = await createDatabase({ url: 'file::memory:?cache=shared' });
+    client = connection.client;
+    const ledgerService = new LedgerService(connection.db, client);
+    await ledgerService.runMigrations();
+    await ledgerService.provisionAccount('tenant_test', {
+      paidBalanceCents: 6300,
+      promotionalBalanceCents: 1500,
+      promoExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+
     app = await buildApp({
       authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
+      ledgerService,
       environment: {
         NODE_ENV: 'test',
         FORGELEX_ALLOWED_ORIGINS: 'http://localhost:3000',
@@ -44,6 +59,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
 
   afterAll(async () => {
     await app.close();
+    client.close();
   });
 
   it('GET /health deve responder 200 OK com metadados do serviço', async () => {

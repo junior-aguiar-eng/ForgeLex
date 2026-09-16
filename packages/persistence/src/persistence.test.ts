@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createDatabase, ForgeLexDatabase } from './db.js';
+import { runPersistenceMigrations } from './migrations/migration-runner.js';
 import { SessionRepository } from './repositories/session-repository.js';
 import { Client } from '@libsql/client';
 
@@ -12,6 +13,7 @@ describe('Persistence Layer (Drizzle ORM + LibSQL / SQLite)', () => {
     const connection = await createDatabase({ url: 'file::memory:?cache=shared' });
     db = connection.db;
     client = connection.client;
+    await runPersistenceMigrations(client);
     repository = new SessionRepository(db);
   });
 

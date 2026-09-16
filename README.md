@@ -4,7 +4,7 @@
 > Plataforma comercializável, vendor-neutral e orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-54%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-58%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP Ready](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -128,7 +128,7 @@ $ vitest run
  ✓ packages/legal-workflows/src/research-memo/legal-research-memo.test.ts (4 tests)
  ✓ packages/persistence/src/persistence.test.ts (4 tests)
  ✓ packages/audit/src/audit-recorder.test.ts (3 tests)
- ✓ packages/billing-ledger/src/ledger.test.ts (3 tests)
+ ✓ packages/billing-ledger/src/ledger.test.ts (7 tests)
  ✓ packages/legal-data/src/legal-data.test.ts (3 tests)
  ✓ packages/mcp-server/src/mcp-server.test.ts (4 tests)
  ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (4 tests)
@@ -139,7 +139,7 @@ $ vitest run
  ✓ apps/api/src/auth/fastify-auth.test.ts (4 tests)
 
  Test Files  13 passed (13)
- Tests  54 passed (54)
+ Tests  58 passed (58)
 ```
 
 ---
@@ -149,6 +149,7 @@ $ vitest run
 * **Código de Ética da OAB:** Proteção irrestrita ao sigilo profissional. Payloads brutos de clientes nunca são persistidos em logs de auditoria; apenas hashes SHA-256 e metadados sanitizados.
 * **LGPD (Lei 13.709/2018):** Sanitização recursiva em trânsito de chaves, credenciais e dados de identificação pessoal.
 * **Anti-Double Billing:** Proteção contra repetição indevida de débitos em falhas transitórias de conexão por chave de idempotência exclusiva.
+* **Ledger transacional:** Carteiras começam com saldo zero por padrão; provisionamentos de saldo e migrations são explícitos, e cada operação faturável registra `UsageEvent` junto do débito e do snapshot de resultado.
 
 ---
 
