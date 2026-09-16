@@ -80,7 +80,7 @@ export const LandingScreen: React.FC = () => {
           </div>
         </div>
 
-        <div className="surface-subtle mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-stone-800">Comece pelo trabalho do caso</p><p className="text-xs text-stone-500">Abra um caso ou pesquise uma fonte jurídica para iniciar.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setActiveTab('matter')} className="btn-secondary inline-flex items-center gap-2"><FolderOpen className="h-4 w-4" aria-hidden="true" />Abrir um caso</button><button type="button" onClick={() => document.getElementById('pesquisa-principal')?.focus()} className="btn-primary">Nova pesquisa</button></div></div>
+        <div className="surface-subtle mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-stone-800">Comece pelo trabalho do caso</p><p className="text-xs text-stone-500">Abra um caso ou pesquise uma fonte jurídica para iniciar.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setActiveTab('matter')} className="btn-secondary inline-flex items-center gap-2"><FolderOpen className="h-4 w-4" aria-hidden="true" />Abrir caso</button></div></div>
 
         {/* SEARCH BAR (Inspirada em ForgeLex_01_Landing.png) */}
         <div className="champagne-card mx-auto max-w-4xl space-y-4 rounded-xl bg-white p-4 sm:p-5">
@@ -130,7 +130,7 @@ export const LandingScreen: React.FC = () => {
               ) : (
                 <>
                   <Search className="w-4 h-4" />
-                  <span>Pesquisar</span>
+                  <span>Consultar</span>
                 </>
               )}
             </button>
@@ -139,7 +139,7 @@ export const LandingScreen: React.FC = () => {
           {/* Quick Queries & Info */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs text-stone-500 border-t border-stone-100">
             <div className="flex items-center space-x-2 flex-wrap">
-              <span className="font-semibold text-stone-700">Sugestões rápidas:</span>
+              <span className="font-semibold text-stone-700">Exemplos de temas:</span>
               <button 
                 type="button" 
                 onClick={() => handleQuickTrigger('capitalização diária de juros')}
@@ -334,7 +334,7 @@ export const LandingScreen: React.FC = () => {
                   }}
                   className="px-5 py-2 rounded-xl bg-cognac-700 hover:bg-cognac-800 text-white text-sm font-medium shadow-sm"
                 >
-                  Abrir um caso
+                  Abrir caso
                 </button>
               </div>
             </div>
@@ -343,7 +343,7 @@ export const LandingScreen: React.FC = () => {
 
         {/* RECENT SEARCHES FOOTER */}
         {recentSearches.length === 0 && !results.length && (
-          <div className="surface-subtle mx-auto max-w-4xl p-4 text-center"><h2 className="text-sm font-semibold text-stone-800">Seu histórico aparecerá aqui</h2><p className="mt-1 text-xs text-stone-500">Faça uma pesquisa para registrar consultas e retomá-las no contexto do caso.</p></div>
+          <div className="surface-subtle mx-auto max-w-4xl p-4 text-center"><h2 className="text-sm font-semibold text-stone-800">Nenhuma consulta realizada</h2><p className="mt-1 text-xs text-stone-500">As consultas feitas nesta sessão aparecerão aqui.</p></div>
         )}
         {recentSearches.length > 0 && <div className="champagne-card-subtle p-6 rounded-2xl max-w-4xl mx-auto space-y-3">
           <h4 className="text-xs uppercase font-bold tracking-wider text-stone-500">

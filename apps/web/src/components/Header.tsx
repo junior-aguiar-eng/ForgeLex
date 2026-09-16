@@ -1,22 +1,15 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { FileCode2, FileText, FolderOpen, Menu, Scale, Search, Settings2, WalletCards, X } from 'lucide-react';
+import { FileCode2, FileText, FolderOpen, Menu, Scale, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
+export type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
 
 const primaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
   { tab: 'matter', label: 'Casos', icon: FolderOpen },
   { tab: 'research', label: 'Pesquisa', icon: Search },
   { tab: 'draft_studio', label: 'Rascunhos', icon: FileText },
   { tab: 'dashboard', label: 'Revisão', icon: FileCode2 },
-];
-
-const secondaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
-  { tab: 'landing', label: 'Início', icon: Scale },
-  { tab: 'connections', label: 'Configurações de modelos', icon: Settings2 },
-  { tab: 'credits', label: 'Créditos e faturamento', icon: WalletCards },
-  { tab: 'api_docs', label: 'Área técnica', icon: FileCode2 },
 ];
 
 const NavigationButton: React.FC<{
@@ -44,13 +37,11 @@ const NavigationButton: React.FC<{
   );
 };
 
-export const Header: React.FC = () => {
+export const Header: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }> = ({ menuOpen, onMenuToggle }) => {
   const { activeTab, setActiveTab } = useApp();
-  const [menuOpen, setMenuOpen] = React.useState(false);
 
   const selectTab = (tab: AppTab) => {
     setActiveTab(tab);
-    setMenuOpen(false);
   };
 
   return (
@@ -82,50 +73,26 @@ export const Header: React.FC = () => {
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => selectTab('credits')}
-              className="hidden min-h-10 items-center gap-1.5 rounded-lg border border-champagne-border bg-white/70 px-2.5 py-1.5 text-xs text-stone-600 transition-colors hover:border-cognac-400 sm:flex"
-              title="Acessar créditos e faturamento"
-            >
-              <WalletCards className="h-4 w-4 text-cognac-700" aria-hidden="true" />
-              <span>Créditos</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => selectTab('research')}
               className="hidden min-h-10 items-center gap-2 rounded-lg bg-cognac-700 px-3 text-sm font-semibold text-white transition-colors hover:bg-cognac-800 xl:inline-flex"
             >
               <Search className="h-4 w-4" aria-hidden="true" />
-              <span>Nova pesquisa</span>
+              <span>Pesquisar</span>
             </button>
 
             <button
               type="button"
-              onClick={() => setMenuOpen((current) => !current)}
+              onClick={onMenuToggle}
               className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-champagne-border bg-white/70 px-3 text-sm font-semibold text-stone-700 hover:border-cognac-400 hover:bg-white lg:hidden"
+              aria-label={menuOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
               aria-expanded={menuOpen}
-              aria-controls="forgelex-mobile-navigation"
+              aria-controls="forgelex-sidebar"
             >
-              {menuOpen ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
+              <Menu className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Menu</span>
             </button>
           </div>
         </div>
-
-        {menuOpen && (
-          <div id="forgelex-mobile-navigation" className="border-t border-stone-200/80 py-3 lg:hidden">
-            <nav className="grid gap-1" aria-label="Navegação do aplicativo">
-              {primaryNavigation.map((item) => (
-                <NavigationButton key={item.tab} item={item} active={item.tab === activeTab} onSelect={selectTab} mobile />
-              ))}
-              <div className="my-2 border-t border-stone-100" />
-              <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-stone-400">Conta e área técnica</p>
-              {secondaryNavigation.map((item) => (
-                <NavigationButton key={item.tab} item={item} active={item.tab === activeTab} onSelect={selectTab} mobile />
-              ))}
-            </nav>
-          </div>
-        )}
       </div>
     </header>
   );
