@@ -4,7 +4,7 @@
 > Plataforma comercializável, vendor-neutral e orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-58%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-60%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP Ready](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -15,7 +15,7 @@
 O **FORGELEX V2** foi construído para superar as limitações das ferramentas jurídicas de 1ª geração (prompts estáticos, alucinações de ementas, dependência de fornecedor único e falta de governança).
 
 ### Pilares Fundamentais:
-1. **Microkernel Agêntico Vendor-Neutral:** Suporte nativo a **Anthropic Claude Sonnet 5**, **OpenAI GPT-4o** e **LLMs Soberanos Locais** (Ollama/VLLM).
+1. **Microkernel Agêntico Vendor-Neutral:** Suporte nativo a **Anthropic Claude Sonnet 5**, **OpenAI Agents SDK (Responses API)** e **LLMs Soberanos Locais** (Ollama/VLLM).
 2. **Governança Forense Human-in-the-Loop:** Classificação estrita de impacto em 5 níveis (`L0_OBSERVATION` a `L4_EXTERNAL_EFFECT`). Mutações externas exigem token criptográfico de aprovação do advogado.
 3. **Rastreabilidade e Anti-Alucinação:** Todo acórdão retornado possui ancoragem com URL oficial verificada e hash criptográfico SHA-256 imutável.
 4. **Legal Data Plane com Deduplicação:** Normalização algorítmica de números CNJ, tribunais e datas através de `dedupeKey` determinística.
@@ -35,7 +35,7 @@ O **FORGELEX V2** foi construído para superar as limitações das ferramentas j
 │   ├── domain/                # Contratos canônicos, níveis L0-L4, proveniência e DomainErrors
 │   ├── agent-core/            # Microkernel agêntico, SessionStateMachine, PolicyEngine, ToolRegistry
 │   ├── agent-provider-anthropic/ # Adapter Claude Agent SDK (Claude Sonnet 5)
-│   ├── agent-provider-openai/    # Conector oficial OpenAI GPT-4o (openai)
+│   ├── agent-provider-openai/    # Adapter oficial OpenAI Agents SDK (Responses API)
 │   ├── persistence/           # Drizzle ORM Dual-Driver (SQLite local/testes, PostgreSQL prod)
 │   ├── audit/                 # AuditRecorder com sanitização e hashing SHA-256 (OAB/LGPD)
 │   ├── legal-data/            # Contratos de jurisprudência, dedupeKey e contentHash
