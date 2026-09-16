@@ -3,4 +3,5 @@ export * from './db.js';
 export * from './repositories/session-repository.js';
 export * from './repositories/matter-repository.js';
 export * from './repositories/facts-evidence-repository.js';
+export * from './repositories/draft-repository.js';
 export * from './migrations/migration-runner.js';

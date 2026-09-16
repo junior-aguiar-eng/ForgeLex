@@ -288,6 +288,157 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `,
     ],
   },
+  {
+    id: 'persistence-0004-drafting-review',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS drafts (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          title TEXT NOT NULL,
+          status TEXT NOT NULL,
+          current_version_id TEXT,
+          created_by TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS drafts_tenant_matter_updated_idx
+        ON drafts (tenant_id, matter_id, updated_at DESC);
+      `,
+      `
+        CREATE TABLE IF NOT EXISTS draft_versions (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          draft_id TEXT NOT NULL REFERENCES drafts(id),
+          version_number INTEGER NOT NULL,
+          source TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          status TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          notes TEXT,
+          created_at TEXT NOT NULL,
+          UNIQUE (draft_id, version_number)
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS draft_versions_tenant_matter_idx
+        ON draft_versions (tenant_id, matter_id, created_at DESC);
+      `,
+      `
+        CREATE TABLE IF NOT EXISTS draft_sections (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          draft_id TEXT NOT NULL REFERENCES drafts(id),
+          draft_version_id TEXT NOT NULL REFERENCES draft_versions(id),
+          ordinal INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          linked_fact_ids TEXT NOT NULL,
+          linked_evidence_ids TEXT NOT NULL,
+          linked_authority_ids TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS draft_sections_version_ordinal_idx
+        ON draft_sections (draft_version_id, ordinal);
+      `,
+      `
+        CREATE TABLE IF NOT EXISTS citation_anchors (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          draft_id TEXT NOT NULL REFERENCES drafts(id),
+          draft_version_id TEXT NOT NULL REFERENCES draft_versions(id),
+          section_id TEXT NOT NULL REFERENCES draft_sections(id),
+          target_type TEXT NOT NULL,
+          target_id TEXT NOT NULL,
+          citation_text TEXT NOT NULL,
+          verified INTEGER NOT NULL,
+          created_at TEXT NOT NULL
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS citation_anchors_version_idx
+        ON citation_anchors (draft_version_id, section_id);
+      `,
+      `
+        CREATE TABLE IF NOT EXISTS draft_review_findings (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          draft_id TEXT NOT NULL REFERENCES drafts(id),
+          draft_version_id TEXT NOT NULL REFERENCES draft_versions(id),
+          review_type TEXT NOT NULL,
+          severity TEXT NOT NULL,
+          code TEXT NOT NULL,
+          message TEXT NOT NULL,
+          section_id TEXT,
+          target_id TEXT,
+          created_at TEXT NOT NULL
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS draft_review_findings_version_idx
+        ON draft_review_findings (tenant_id, draft_version_id, severity);
+      `,
+      `
+        CREATE TABLE IF NOT EXISTS draft_approval_requests (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          draft_id TEXT NOT NULL REFERENCES drafts(id),
+          draft_version_id TEXT NOT NULL REFERENCES draft_versions(id),
+          requested_by TEXT NOT NULL,
+          proposed_action TEXT NOT NULL,
+          status TEXT NOT NULL,
+          requested_at TEXT NOT NULL,
+          decided_at TEXT,
+          decided_by TEXT,
+          decision_reason TEXT
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS draft_approval_requests_tenant_status_idx
+        ON draft_approval_requests (tenant_id, status, requested_at DESC);
+      `,
+      `
+        CREATE TABLE IF NOT EXISTS draft_approval_decisions (
+          id TEXT PRIMARY KEY,
+          request_id TEXT NOT NULL REFERENCES draft_approval_requests(id),
+          tenant_id TEXT NOT NULL,
+          decision TEXT NOT NULL,
+          decided_by TEXT NOT NULL,
+          reason TEXT,
+          decided_at TEXT NOT NULL
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS draft_approval_decisions_request_idx
+        ON draft_approval_decisions (tenant_id, request_id, decided_at DESC);
+      `,
+      `
+        CREATE TABLE IF NOT EXISTS draft_approval_tokens (
+          id TEXT PRIMARY KEY,
+          request_id TEXT NOT NULL REFERENCES draft_approval_requests(id),
+          tenant_id TEXT NOT NULL,
+          token_hash TEXT NOT NULL UNIQUE,
+          issued_at TEXT NOT NULL,
+          expires_at TEXT,
+          used_at TEXT
+        );
+      `,
+      `
+        CREATE INDEX IF NOT EXISTS draft_approval_tokens_request_idx
+        ON draft_approval_tokens (tenant_id, request_id);
+      `,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

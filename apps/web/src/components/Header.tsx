@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Scale, Wallet, Cpu, LayoutDashboard, FileCode, Search, ShieldCheck, FileCheck2, FolderOpen } from 'lucide-react';
+import { Scale, Wallet, Cpu, LayoutDashboard, FileCode, Search, ShieldCheck, FileCheck2, FolderOpen, FileText } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { activeTab, setActiveTab, totalBalanceCents, approvals } = useApp();
@@ -92,6 +92,18 @@ export const Header: React.FC = () => {
                   {pendingApprovalsCount}
                 </span>
               )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('draft_studio')}
+              className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 ${
+                activeTab === 'draft_studio'
+                  ? 'bg-cognac-100/80 text-cognac-800 font-semibold'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100/60'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>Draft Studio</span>
             </button>
 
             <button

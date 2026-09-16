@@ -15,7 +15,7 @@ const testPrincipal: AuthenticatedPrincipal = {
   tenantId: 'tenant_test',
   userId: 'user_test',
   roles: ['lawyer'],
-  scopes: ['mcp', 'research:read', 'matter:read', 'matter:write', 'billing:read'],
+  scopes: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read'],
   authMethod: 'api_key',
 };
 
@@ -344,6 +344,66 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const otherTenantResponse = await app.inject({
       method: 'GET',
       url: `/api/v2/matters/${matter.id}/facts`,
+      headers: { authorization: 'Bearer tenant-b-token' },
+    });
+    expect(otherTenantResponse.statusCode).toBe(404);
+  });
+
+  it('deve versionar, revisar e encaminhar rascunho para aprovação humana', async () => {
+    const matterResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/matters',
+      headers: authHeaders,
+      payload: { title: 'Matter do Draft Studio' },
+    });
+    const matter = JSON.parse(matterResponse.body);
+
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts`,
+      headers: authHeaders,
+      payload: {
+        title: 'Minuta contratual',
+        sections: [{ ordinal: 0, title: 'Síntese dos fatos', content: 'Conteúdo inicial para revisão.' }],
+      },
+    });
+    expect(createResponse.statusCode).toBe(200);
+    const created = JSON.parse(createResponse.body);
+    expect(created.version.versionNumber).toBe(1);
+    expect(created.draft.currentVersionId).toBe(created.version.id);
+
+    const reviewResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts/${created.draft.id}/review`,
+      headers: authHeaders,
+      payload: { type: 'all' },
+    });
+    expect(reviewResponse.statusCode).toBe(200);
+    expect(JSON.parse(reviewResponse.body).status).toBe('WARNINGS');
+
+    const approvalResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts/${created.draft.id}/approval`,
+      headers: authHeaders,
+      payload: { versionId: created.version.id },
+    });
+    expect(approvalResponse.statusCode).toBe(200);
+    const approval = JSON.parse(approvalResponse.body);
+    expect(approval.request.status).toBe('PENDING');
+    expect(approval.token).toBeTruthy();
+
+    const resolveResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/draft-approvals/resolve',
+      headers: authHeaders,
+      payload: { token: approval.token, decision: 'APPROVED', reason: 'Revisão humana realizada.' },
+    });
+    expect(resolveResponse.statusCode).toBe(200);
+    expect(JSON.parse(resolveResponse.body).request.status).toBe('APPROVED');
+
+    const otherTenantResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/matters/${matter.id}/drafts/${created.draft.id}`,
       headers: { authorization: 'Bearer tenant-b-token' },
     });
     expect(otherTenantResponse.statusCode).toBe(404);

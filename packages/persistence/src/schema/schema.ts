@@ -245,3 +245,143 @@ export const timelineEvents = sqliteTable(
   },
   (table) => [index('timeline_events_tenant_matter_date_idx').on(table.tenantId, table.matterId, table.eventDate)],
 );
+
+export const drafts = sqliteTable(
+  'drafts',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').notNull().references(() => matters.id),
+    title: text('title').notNull(),
+    status: text('status').notNull(),
+    currentVersionId: text('current_version_id'),
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [index('drafts_tenant_matter_updated_idx').on(table.tenantId, table.matterId, table.updatedAt)],
+);
+
+export const draftVersions = sqliteTable(
+  'draft_versions',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').notNull().references(() => matters.id),
+    draftId: text('draft_id').notNull().references(() => drafts.id),
+    versionNumber: integer('version_number').notNull(),
+    source: text('source').notNull(),
+    contentHash: text('content_hash').notNull(),
+    status: text('status').notNull(),
+    createdBy: text('created_by').notNull(),
+    notes: text('notes'),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('draft_versions_draft_number_idx').on(table.draftId, table.versionNumber),
+    index('draft_versions_tenant_matter_idx').on(table.tenantId, table.matterId, table.createdAt),
+  ],
+);
+
+export const draftSections = sqliteTable(
+  'draft_sections',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').notNull().references(() => matters.id),
+    draftId: text('draft_id').notNull().references(() => drafts.id),
+    draftVersionId: text('draft_version_id').notNull().references(() => draftVersions.id),
+    ordinal: integer('ordinal').notNull(),
+    title: text('title').notNull(),
+    content: text('content').notNull(),
+    linkedFactIds: text('linked_fact_ids').notNull(),
+    linkedEvidenceIds: text('linked_evidence_ids').notNull(),
+    linkedAuthorityIds: text('linked_authority_ids').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [index('draft_sections_version_ordinal_idx').on(table.draftVersionId, table.ordinal)],
+);
+
+export const citationAnchors = sqliteTable(
+  'citation_anchors',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').notNull().references(() => matters.id),
+    draftId: text('draft_id').notNull().references(() => drafts.id),
+    draftVersionId: text('draft_version_id').notNull().references(() => draftVersions.id),
+    sectionId: text('section_id').notNull().references(() => draftSections.id),
+    targetType: text('target_type').notNull(),
+    targetId: text('target_id').notNull(),
+    citationText: text('citation_text').notNull(),
+    verified: integer('verified', { mode: 'boolean' }).notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [index('citation_anchors_version_idx').on(table.draftVersionId, table.sectionId)],
+);
+
+export const draftReviewFindings = sqliteTable(
+  'draft_review_findings',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').notNull().references(() => matters.id),
+    draftId: text('draft_id').notNull().references(() => drafts.id),
+    draftVersionId: text('draft_version_id').notNull().references(() => draftVersions.id),
+    reviewType: text('review_type').notNull(),
+    severity: text('severity').notNull(),
+    code: text('code').notNull(),
+    message: text('message').notNull(),
+    sectionId: text('section_id'),
+    targetId: text('target_id'),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [index('draft_review_findings_version_idx').on(table.tenantId, table.draftVersionId, table.severity)],
+);
+
+export const draftApprovalRequests = sqliteTable(
+  'draft_approval_requests',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').notNull().references(() => matters.id),
+    draftId: text('draft_id').notNull().references(() => drafts.id),
+    draftVersionId: text('draft_version_id').notNull().references(() => draftVersions.id),
+    requestedBy: text('requested_by').notNull(),
+    proposedAction: text('proposed_action').notNull(),
+    status: text('status').notNull(),
+    requestedAt: text('requested_at').notNull(),
+    decidedAt: text('decided_at'),
+    decidedBy: text('decided_by'),
+    decisionReason: text('decision_reason'),
+  },
+  (table) => [index('draft_approval_requests_tenant_status_idx').on(table.tenantId, table.status, table.requestedAt)],
+);
+
+export const draftApprovalDecisions = sqliteTable(
+  'draft_approval_decisions',
+  {
+    id: text('id').primaryKey(),
+    requestId: text('request_id').notNull().references(() => draftApprovalRequests.id),
+    tenantId: text('tenant_id').notNull(),
+    decision: text('decision').notNull(),
+    decidedBy: text('decided_by').notNull(),
+    reason: text('reason'),
+    decidedAt: text('decided_at').notNull(),
+  },
+  (table) => [index('draft_approval_decisions_request_idx').on(table.tenantId, table.requestId, table.decidedAt)],
+);
+
+export const draftApprovalTokens = sqliteTable(
+  'draft_approval_tokens',
+  {
+    id: text('id').primaryKey(),
+    requestId: text('request_id').notNull().references(() => draftApprovalRequests.id),
+    tenantId: text('tenant_id').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    issuedAt: text('issued_at').notNull(),
+    expiresAt: text('expires_at'),
+    usedAt: text('used_at'),
+  },
+  (table) => [index('draft_approval_tokens_request_idx').on(table.tenantId, table.requestId)],
+);

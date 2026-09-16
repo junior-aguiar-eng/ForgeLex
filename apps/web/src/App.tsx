@@ -8,6 +8,7 @@ import { DashboardScreen } from './screens/DashboardScreen';
 import { ConnectionsScreen } from './screens/ConnectionsScreen';
 import { CreditsScreen } from './screens/CreditsScreen';
 import { ApiDocsScreen } from './screens/ApiDocsScreen';
+import { DraftStudioScreen } from './screens/DraftStudioScreen';
 import { Scale, ShieldCheck, Lock } from 'lucide-react';
 
 const AppContent: React.FC = () => {
@@ -23,6 +24,7 @@ const AppContent: React.FC = () => {
         {activeTab === 'landing' && <LandingScreen />}
         {activeTab === 'research' && <ResearchDeskScreen />}
         {activeTab === 'matter' && <MatterWorkspaceScreen />}
+        {activeTab === 'draft_studio' && <DraftStudioScreen />}
         {activeTab === 'dashboard' && <DashboardScreen />}
         {activeTab === 'connections' && <ConnectionsScreen />}
         {activeTab === 'credits' && <CreditsScreen />}
@@ -68,6 +70,7 @@ const AppContent: React.FC = () => {
               <h4 className="font-bold uppercase tracking-wider text-stone-700">Navegação</h4>
               <ul className="space-y-1.5 text-stone-500">
                 <li><button onClick={() => setActiveTab('research')} className="hover:text-cognac-800">Research Desk</button></li>
+                <li><button onClick={() => setActiveTab('draft_studio')} className="hover:text-cognac-800">Draft Studio</button></li>
                 <li><button onClick={() => setActiveTab('landing')} className="hover:text-cognac-800">Página inicial</button></li>
                 <li><button onClick={() => setActiveTab('dashboard')} className="hover:text-cognac-800">Painel do Advogado</button></li>
                 <li><button onClick={() => setActiveTab('connections')} className="hover:text-cognac-800">Modelos & Provedores</button></li>

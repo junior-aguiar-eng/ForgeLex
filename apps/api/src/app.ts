@@ -6,11 +6,15 @@ import { ToolRegistry } from '@forgelex/agent-core';
 import {
   createSearchCaseLawTool,
   createVerifyAuthorityTool,
+  DraftReviewService,
+  DraftingService,
+  DraftCreateInputSchema,
   FactsEvidenceService,
   ResearchService,
 } from '@forgelex/legal-tools';
 import {
   createDatabase,
+  DraftRepository,
   FactsEvidenceRepository,
   ForgeLexDatabase,
   MatterRepository,
@@ -62,6 +66,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const matterRepository = database ? new MatterRepository(database) : undefined;
   const factsEvidenceService = database
     ? new FactsEvidenceService(new FactsEvidenceRepository(database))
+    : undefined;
+  const draftRepository = database ? new DraftRepository(database) : undefined;
+  const draftingService = draftRepository ? new DraftingService(draftRepository) : undefined;
+  const draftReviewService = draftRepository && factsEvidenceService
+    ? new DraftReviewService(draftRepository, factsEvidenceService)
     : undefined;
 
   const courtCatalog = new CourtCatalog();
@@ -596,7 +605,252 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     },
   );
 
-  // 5. REST v2: Busca de Jurisprudência Faturável e Idempotente
+  // 5. REST v2: Draft Studio, revisão e aprovação humana
+  app.get(
+    '/api/v2/matters/:matterId/drafts',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!draftRepository || !matterRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de rascunhos não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      if (!(await matterRepository.getMatter(req.principal.tenantId, matterId))) {
+        reply.status(404);
+        return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
+      }
+      const items = await draftRepository.listDrafts(req.principal.tenantId, matterId);
+      return { items, total: items.length };
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/drafts',
+    { preHandler: authAdapter.createPreHandler(['draft:write']) },
+    async (req, reply) => {
+      if (!draftingService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de rascunhos não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      const parsed = DraftCreateInputSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'Título, seções e vínculos do rascunho são inválidos.', details: parsed.error.flatten() };
+      }
+      try {
+        const result = await draftingService.createDraft(
+          { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+          parsed.data,
+        );
+        await recordAudit({
+          sessionId: `draft_${result.draft.id}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'drafting.create_draft',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { draftId: result.draft.id, draftVersionId: result.version.id, sectionCount: result.sections.length },
+        });
+        return result;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível criar o rascunho.';
+        reply.status(message.startsWith('MATTER_NOT_FOUND') ? 404 : 400);
+        return { error: message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  app.get(
+    '/api/v2/matters/:matterId/drafts/:draftId',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!draftingService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de rascunhos não está disponível.' };
+      }
+      const { matterId, draftId } = req.params as { matterId: string; draftId: string };
+      try {
+        return await draftingService.getDraft(
+          { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+          draftId,
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível consultar o rascunho.';
+        reply.status(message.startsWith('DRAFT_NOT_FOUND') ? 404 : 400);
+        return { error: message.startsWith('DRAFT_NOT_FOUND') ? 'DRAFT_NOT_FOUND' : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/drafts/:draftId/versions',
+    { preHandler: authAdapter.createPreHandler(['draft:write']) },
+    async (req, reply) => {
+      if (!draftingService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de rascunhos não está disponível.' };
+      }
+      const { matterId, draftId } = req.params as { matterId: string; draftId: string };
+      const parsed = DraftCreateInputSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'Conteúdo da nova versão é inválido.', details: parsed.error.flatten() };
+      }
+      try {
+        const result = await draftingService.updateDraft(
+          { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+          draftId,
+          parsed.data,
+        );
+        await recordAudit({
+          sessionId: `draft_${draftId}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'drafting.update_draft',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { draftId, draftVersionId: result.version.id, versionNumber: result.version.versionNumber },
+        });
+        return result;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível criar a versão.';
+        reply.status(message.startsWith('DRAFT_NOT_FOUND') ? 404 : 400);
+        return { error: message.startsWith('DRAFT_NOT_FOUND') ? 'DRAFT_NOT_FOUND' : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/drafts/:draftId/review',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!draftReviewService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Serviço de revisão não está disponível.' };
+      }
+      const { matterId, draftId } = req.params as { matterId: string; draftId: string };
+      const body = (req.body ?? {}) as { type?: 'citations' | 'fact_support' | 'adversarial' | 'all'; versionId?: string };
+      const context = { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId };
+      try {
+        const result = body.type === 'citations'
+          ? await draftReviewService.verifyCitations(context, draftId, body.versionId)
+          : body.type === 'fact_support'
+            ? await draftReviewService.checkFactSupport(context, draftId, body.versionId)
+            : body.type === 'adversarial'
+              ? await draftReviewService.adversarialReview(context, draftId, body.versionId)
+              : body.type === 'all' || body.type === undefined
+                ? await draftReviewService.runAll(context, draftId, body.versionId)
+                : undefined;
+        if (!result) {
+          reply.status(400);
+          return { error: 'INVALID_REQUEST', message: 'type deve ser citations, fact_support, adversarial ou all.' };
+        }
+        await recordAudit({
+          sessionId: `draft_${draftId}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: `review.${body.type ?? 'all'}`,
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { draftId, draftVersionId: result.draftVersionId, status: result.status, findingCount: result.findings.length },
+        });
+        return result;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível revisar o rascunho.';
+        reply.status(message.includes('NOT_FOUND') ? 404 : 400);
+        return { error: message.includes('NOT_FOUND') ? 'DRAFT_NOT_FOUND' : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  app.post(
+    '/api/v2/matters/:matterId/drafts/:draftId/approval',
+    { preHandler: authAdapter.createPreHandler(['draft:write']) },
+    async (req, reply) => {
+      if (!draftingService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de aprovações não está disponível.' };
+      }
+      const { matterId, draftId } = req.params as { matterId: string; draftId: string };
+      const body = (req.body ?? {}) as { versionId?: string };
+      try {
+        const result = await draftingService.requestApproval(
+          { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+          draftId,
+          body.versionId,
+        );
+        await recordAudit({
+          sessionId: `draft_${draftId}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'drafting.request_approval',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { draftId, approvalRequestId: result.request.id, draftVersionId: result.request.draftVersionId },
+        });
+        return result;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível solicitar aprovação.';
+        reply.status(message.includes('NOT_FOUND') ? 404 : 409);
+        return { error: message.includes('NOT_FOUND') ? 'DRAFT_NOT_FOUND' : 'APPROVAL_REQUEST_REJECTED', message };
+      }
+    },
+  );
+
+  app.get(
+    '/api/v2/matters/:matterId/draft-approvals',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!draftRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de aprovações não está disponível.' };
+      }
+      const { matterId } = req.params as { matterId: string };
+      const items = await draftRepository.listApprovalRequests(req.principal.tenantId, matterId);
+      return { items, total: items.length };
+    },
+  );
+
+  app.post(
+    '/api/v2/draft-approvals/resolve',
+    { preHandler: authAdapter.createPreHandler(['draft:write']) },
+    async (req, reply) => {
+      if (!draftingService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de aprovações não está disponível.' };
+      }
+      const body = (req.body ?? {}) as { token?: string; decision?: 'APPROVED' | 'REJECTED'; reason?: string };
+      if (!body.token?.trim() || !body.decision || !['APPROVED', 'REJECTED'].includes(body.decision)) {
+        reply.status(400);
+        return { error: 'INVALID_REQUEST', message: 'token e decision APPROVED/REJECTED são obrigatórios.' };
+      }
+      try {
+        const result = await draftingService.resolveApproval(
+          { tenantId: req.principal.tenantId, userId: req.principal.userId },
+          body.token,
+          body.decision,
+          body.reason,
+        );
+        await recordAudit({
+          sessionId: `draft_${result.request.draftId}`,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          toolName: 'drafting.resolve_approval',
+          durationMs: 0,
+          status: 'SUCCESS',
+          payload: { draftId: result.request.draftId, approvalRequestId: result.request.id, decision: body.decision },
+        });
+        return { request: result.request, decision: result.decision };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Não foi possível resolver a aprovação.';
+        reply.status(message.includes('INVALID') || message.includes('EXPIRED') || message.includes('USED') ? 400 : 404);
+        return { error: 'APPROVAL_RESOLUTION_FAILED', message };
+      }
+    },
+  );
+
+  // 6. REST v2: Busca de Jurisprudência Faturável e Idempotente
   app.get(
     '/api/v2/jurisprudencias',
     { preHandler: authAdapter.createPreHandler(['research:read']) },
