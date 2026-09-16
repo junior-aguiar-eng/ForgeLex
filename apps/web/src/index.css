@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FBF9F5;
+    color: #2D2721;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
+  h1, h2, h3, .font-editorial {
+    font-family: 'Merriweather', 'Playfair Display', Georgia, serif;
+  }
+}
+
+/* Custom fine scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F4EDE2;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4C3AC;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B87A3E;
+}
+
+.champagne-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(180, 150, 110, 0.22);
+  box-shadow: 0 2px 12px rgba(142, 93, 42, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.champagne-card-subtle {
+  background: #FDFBF7;
+  border: 1px solid rgba(180, 150, 110, 0.16);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(180, 150, 110, 0.25);
+}
