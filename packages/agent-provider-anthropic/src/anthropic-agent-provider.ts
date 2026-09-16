@@ -23,8 +23,17 @@ export class AnthropicAgentProvider implements AgentProvider {
   private readonly activeSessions = new Map<string, SessionStateMachine>();
 
   constructor(options: AnthropicProviderOptions = {}) {
-    const apiKey = options.apiKey ?? process.env.ANTHROPIC_API_KEY ?? 'mock-anthropic-key';
-    this.client = options.client ?? new Anthropic({ apiKey });
+    if (options.client) {
+      this.client = options.client;
+    } else {
+      const apiKey = options.apiKey !== undefined ? options.apiKey : process.env.ANTHROPIC_API_KEY;
+      if (!apiKey?.trim()) {
+        throw new Error('PROVIDER_NOT_CONFIGURED: ANTHROPIC_API_KEY não configurada.');
+      }
+
+      this.client = new Anthropic({ apiKey });
+    }
+
     this.model = options.model ?? 'claude-3-5-sonnet-20241022';
     this.policyEngine = options.policyEngine ?? new PolicyEngine();
   }

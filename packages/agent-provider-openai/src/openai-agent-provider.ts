@@ -23,8 +23,17 @@ export class OpenAIAgentProvider implements AgentProvider {
   private readonly activeSessions = new Map<string, SessionStateMachine>();
 
   constructor(options: OpenAIProviderOptions = {}) {
-    const apiKey = options.apiKey ?? process.env.OPENAI_API_KEY ?? 'mock-openai-key';
-    this.client = options.client ?? new OpenAI({ apiKey });
+    if (options.client) {
+      this.client = options.client;
+    } else {
+      const apiKey = options.apiKey !== undefined ? options.apiKey : process.env.OPENAI_API_KEY;
+      if (!apiKey?.trim()) {
+        throw new Error('PROVIDER_NOT_CONFIGURED: OPENAI_API_KEY não configurada.');
+      }
+
+      this.client = new OpenAI({ apiKey });
+    }
+
     this.model = options.model ?? 'gpt-4o';
     this.policyEngine = options.policyEngine ?? new PolicyEngine();
   }

@@ -6,6 +6,10 @@ import { searchCaseLawTool, saveFinalDraftTool } from '@forgelex/legal-tools';
 import { AgentEvent } from '@forgelex/agent-core';
 
 describe('OpenAIAgentProvider (ChatGPT / GPT-4o)', () => {
+  it('deve falhar fechado quando nenhuma credencial é configurada', () => {
+    expect(() => new OpenAIAgentProvider({ apiKey: '' })).toThrow('PROVIDER_NOT_CONFIGURED');
+  });
+
   it('deve converter schema Zod para formato Function Calling da OpenAI', () => {
     const testSchema = z.object({
       query: z.string().min(2),

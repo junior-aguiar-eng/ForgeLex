@@ -4,7 +4,7 @@
 > Plataforma comercializável, vendor-neutral e orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-43%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-54%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP Ready](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -90,6 +90,33 @@ pnpm --filter @forgelex/web dev
 
 O frontend estará disponível em `http://localhost:3000` e a API em `http://localhost:3001`.
 
+### Autenticação e CORS
+
+As rotas REST e MCP protegidas exigem `Authorization: Bearer <token>`. A identidade
+de tenant e usuário é derivada da credencial; os headers `x-tenant-id` e `x-user-id`
+não são fontes de identidade.
+
+Para o modo inicial com API keys, configure `FORGELEX_API_KEYS` como um JSON de
+registros contendo apenas hashes SHA-256 das chaves:
+
+```json
+[
+  {
+    "tokenHash": "sha256:<64 caracteres hexadecimais>",
+    "subjectId": "subject_1",
+    "tenantId": "tenant_1",
+    "userId": "user_1",
+    "roles": ["lawyer"],
+    "scopes": ["mcp", "research:read", "billing:read"]
+  }
+]
+```
+
+Sem credenciais válidas configuradas, as rotas protegidas recusam a requisição.
+Defina `FORGELEX_ALLOWED_ORIGINS` com origens separadas por vírgula; fora de
+produção, sem essa variável, somente `http://localhost:3000` e
+`http://localhost:3001` são permitidos.
+
 ---
 
 ## 🧪 Suíte de Testes Automatizados
@@ -97,21 +124,22 @@ O frontend estará disponível em `http://localhost:3000` e a API em `http://loc
 ```bash
 $ vitest run
 
- ✓ packages/agent-provider-anthropic/src/anthropic-agent-provider.test.ts (3 tests)
+ ✓ packages/agent-provider-anthropic/src/anthropic-agent-provider.test.ts (4 tests)
  ✓ packages/legal-workflows/src/research-memo/legal-research-memo.test.ts (4 tests)
  ✓ packages/persistence/src/persistence.test.ts (4 tests)
  ✓ packages/audit/src/audit-recorder.test.ts (3 tests)
  ✓ packages/billing-ledger/src/ledger.test.ts (3 tests)
  ✓ packages/legal-data/src/legal-data.test.ts (3 tests)
  ✓ packages/mcp-server/src/mcp-server.test.ts (4 tests)
- ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (3 tests)
+ ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (4 tests)
  ✓ packages/domain/src/contracts/provenance.test.ts (4 tests)
  ✓ packages/source-providers/src/source-router.test.ts (3 tests)
  ✓ packages/source-catalog/src/court-catalog.test.ts (3 tests)
- ✓ apps/api/src/app.test.ts (6 tests)
+ ✓ apps/api/src/app.test.ts (11 tests)
+ ✓ apps/api/src/auth/fastify-auth.test.ts (4 tests)
 
- Test Files  12 passed (12)
-      Tests  43 passed (43)
+ Test Files  13 passed (13)
+ Tests  54 passed (54)
 ```
 
 ---

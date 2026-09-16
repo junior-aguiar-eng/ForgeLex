@@ -6,6 +6,10 @@ import { searchCaseLawTool, saveFinalDraftTool } from '@forgelex/legal-tools';
 import { AgentEvent } from '@forgelex/agent-core';
 
 describe('AnthropicAgentProvider (Claude)', () => {
+  it('deve falhar fechado quando nenhuma credencial é configurada', () => {
+    expect(() => new AnthropicAgentProvider({ apiKey: '' })).toThrow('PROVIDER_NOT_CONFIGURED');
+  });
+
   it('deve converter schema Zod em formato JSON Schema aceito pela Anthropic', () => {
     const testSchema = z.object({
       processNumber: z.string().min(5),
