@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useApp, SearchResultItem } from '../context/AppContext';
 import { 
-  Search, BookOpen, FileText, ArrowUpRight, Scale, Shield, FolderOpen,
+  Search, Scale, Shield, FolderOpen,
   ExternalLink, Copy, Check, Sparkles, AlertCircle, BookmarkCheck
 } from 'lucide-react';
 
 export const LandingScreen: React.FC = () => {
-  const { performSearch, recentSearches, totalBalanceCents, setActiveTab } = useApp();
+  const { performSearch, recentSearches, setActiveTab } = useApp();
   const [query, setQuery] = useState('');
   const [court, setCourt] = useState('TODOS');
   const [results, setResults] = useState<SearchResultItem[]>([]);
@@ -76,101 +76,6 @@ export const LandingScreen: React.FC = () => {
             <div className="flex items-center space-x-1.5">
               <Scale className="w-4 h-4 text-amber-600" />
               <span>Pesquisa com cobrança transparente</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 4 ACTION TRIGGERS (Inspirados em ForgeLex_01_Landing.png) */}
-        <div className="hidden grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => handleQuickTrigger('capitalização mensal de juros')}
-            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') handleQuickTrigger('capitalização mensal de juros'); }}
-            aria-label="Pesquisar capitalização mensal de juros"
-            className="champagne-card group cursor-pointer rounded-xl bg-white p-5 transition-all duration-200 hover:border-cognac-500 hover:shadow-card-hover"
-          >
-            <div className="w-10 h-10 rounded-xl bg-cognac-50 border border-cognac-200 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <BookOpen className="w-5 h-5 text-cognac-700" />
-            </div>
-            <h3 className="font-editorial font-bold text-lg text-stone-900 mb-1 group-hover:text-cognac-800">
-              Análise Preliminar & Teses
-            </h3>
-            <p className="text-xs text-stone-500 leading-relaxed">
-              Mapeamento de teses recursais, nulidades contratuais e divergências jurisprudenciais.
-            </p>
-            <div className="mt-4 flex items-center text-xs font-semibold text-cognac-700 group-hover:translate-x-1 transition-transform">
-              <span>Pesquisar tema</span>
-              <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
-            </div>
-          </div>
-
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => handleQuickTrigger('atraso na entrega de imóvel')}
-            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') handleQuickTrigger('atraso na entrega de imóvel'); }}
-            aria-label="Pesquisar atraso na entrega de imóvel"
-            className="champagne-card group cursor-pointer rounded-xl bg-white p-5 transition-all duration-200 hover:border-cognac-500 hover:shadow-card-hover"
-          >
-            <div className="w-10 h-10 rounded-xl bg-cognac-50 border border-cognac-200 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <FileText className="w-5 h-5 text-cognac-700" />
-            </div>
-            <h3 className="font-editorial font-bold text-lg text-stone-900 mb-1 group-hover:text-cognac-800">
-              Petição Inicial Cível
-            </h3>
-            <p className="text-xs text-stone-500 leading-relaxed">
-              Minutagem de fatos, direito e pedidos lastreados em precedentes qualificados.
-            </p>
-            <div className="mt-4 flex items-center text-xs font-semibold text-cognac-700 group-hover:translate-x-1 transition-transform">
-              <span>Pesquisar tema</span>
-              <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
-            </div>
-          </div>
-
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => handleQuickTrigger('Súmula 539 STJ')}
-            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') handleQuickTrigger('Súmula 539 STJ'); }}
-            aria-label="Pesquisar Súmula 539 do STJ"
-            className="champagne-card group cursor-pointer rounded-xl bg-white p-5 transition-all duration-200 hover:border-cognac-500 hover:shadow-card-hover"
-          >
-            <div className="w-10 h-10 rounded-xl bg-cognac-50 border border-cognac-200 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Scale className="w-5 h-5 text-cognac-700" />
-            </div>
-            <h3 className="font-editorial font-bold text-lg text-stone-900 mb-1 group-hover:text-cognac-800">
-              Recurso Especial (STJ)
-            </h3>
-            <p className="text-xs text-stone-500 leading-relaxed">
-              Demonstração analítica de violação de tratado/lei federal e divergência notória.
-            </p>
-            <div className="mt-4 flex items-center text-xs font-semibold text-cognac-700 group-hover:translate-x-1 transition-transform">
-              <span>Pesquisar tema</span>
-              <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
-            </div>
-          </div>
-
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => handleQuickTrigger('proteção de dados autodeterminação')}
-            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') handleQuickTrigger('proteção de dados autodeterminação'); }}
-            aria-label="Pesquisar proteção de dados e autodeterminação informativa"
-            className="champagne-card group cursor-pointer rounded-xl bg-white p-5 transition-all duration-200 hover:border-cognac-500 hover:shadow-card-hover"
-          >
-            <div className="w-10 h-10 rounded-xl bg-cognac-50 border border-cognac-200 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Shield className="w-5 h-5 text-cognac-700" />
-            </div>
-            <h3 className="font-editorial font-bold text-lg text-stone-900 mb-1 group-hover:text-cognac-800">
-              Questões de risco
-            </h3>
-            <p className="text-xs text-stone-500 leading-relaxed">
-              Consulte precedentes e organize os pontos que merecem conferência no caso.
-            </p>
-            <div className="mt-4 flex items-center text-xs font-semibold text-cognac-700 group-hover:translate-x-1 transition-transform">
-              <span>Pesquisar tema</span>
-              <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
             </div>
           </div>
         </div>
@@ -261,7 +166,7 @@ export const LandingScreen: React.FC = () => {
             </div>
 
             <div className="text-right font-medium text-stone-500">
-              Pesquisa: <span className="font-bold text-cognac-700">R$ 0,15</span> · saldo R$ {(totalBalanceCents / 100).toFixed(2)}
+              A tarifa e o saldo serão informados pela API autenticada.
             </div>
           </div>
         </div>
@@ -334,7 +239,7 @@ export const LandingScreen: React.FC = () => {
 
                   {/* Bottom Actions */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-xs">
-                    <div className="text-[11px] text-stone-400">Fonte oficial e dados reconciliados</div>
+                    <div className="text-[11px] text-stone-400">Proveniência retornada pela API</div>
 
                     <div className="flex items-center space-x-2">
                       <button
@@ -410,10 +315,8 @@ export const LandingScreen: React.FC = () => {
                   <span className="font-bold text-stone-800">{selectedDoc.isBinding ? 'Sim (Súmula / Tema)' : 'Jurisprudência Persuasiva'}</span>
                 </div>
                 <div className="p-3 rounded-lg bg-stone-50 border border-stone-200">
-                  <span className="text-stone-400 block mb-0.5">Consulta Oficial:</span>
-                  <a href={selectedDoc.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-cognac-700 hover:underline flex items-center">
-                    Acessar Tribunal <ExternalLink className="w-3 h-3 ml-1" />
-                  </a>
+                  <span className="text-stone-400 block mb-0.5">Proveniência:</span>
+                  {selectedDoc.sourceUrl ? <a href={selectedDoc.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-cognac-700 hover:underline flex items-center">Acessar fonte retornada <ExternalLink className="w-3 h-3 ml-1" /></a> : <span className="font-semibold text-stone-600">Não informada pela API</span>}
                 </div>
               </div>
 
@@ -427,11 +330,11 @@ export const LandingScreen: React.FC = () => {
                 <button
                   onClick={() => {
                     setSelectedDoc(null);
-                    setActiveTab('dashboard');
+                    setActiveTab('matter');
                   }}
                   className="px-5 py-2 rounded-xl bg-cognac-700 hover:bg-cognac-800 text-white text-sm font-medium shadow-sm"
                 >
-                  Abrir revisão
+                  Abrir um caso
                 </button>
               </div>
             </div>
@@ -442,7 +345,7 @@ export const LandingScreen: React.FC = () => {
         {recentSearches.length === 0 && !results.length && (
           <div className="surface-subtle mx-auto max-w-4xl p-4 text-center"><h2 className="text-sm font-semibold text-stone-800">Seu histórico aparecerá aqui</h2><p className="mt-1 text-xs text-stone-500">Faça uma pesquisa para registrar consultas e retomá-las no contexto do caso.</p></div>
         )}
-        <div className="champagne-card-subtle p-6 rounded-2xl max-w-4xl mx-auto space-y-3">
+        {recentSearches.length > 0 && <div className="champagne-card-subtle p-6 rounded-2xl max-w-4xl mx-auto space-y-3">
           <h4 className="text-xs uppercase font-bold tracking-wider text-stone-500">
             Consultas recentes
           </h4>
@@ -463,7 +366,7 @@ export const LandingScreen: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
+        </div>}
 
       </div>
     </div>

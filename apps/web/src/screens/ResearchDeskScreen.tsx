@@ -11,18 +11,20 @@ const statusLabel: Record<AuthorityVerification['status'], string> = {
 };
 
 export const ResearchDeskScreen: React.FC = () => {
-  const { performSearch, verifyAuthority, totalBalanceCents } = useApp();
-  const [query, setQuery] = useState('proteção de dados pessoais');
-  const [court, setCourt] = useState('STJ');
+  const { performSearch, verifyAuthority } = useApp();
+  const [query, setQuery] = useState('');
+  const [court, setCourt] = useState('TODOS');
   const [results, setResults] = useState<SearchResultItem[]>([]);
-  const [processNumber, setProcessNumber] = useState('REsp 1.823.450/SP');
+  const [processNumber, setProcessNumber] = useState('');
   const [judgmentDate, setJudgmentDate] = useState('');
   const [verification, setVerification] = useState<AuthorityVerification | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const search = async (event: React.FormEvent) => {
     event.preventDefault();
+    setHasSearched(true);
     setBusy(true);
     setError(null);
     try {
@@ -61,9 +63,7 @@ export const ResearchDeskScreen: React.FC = () => {
               Consulte resultados reconciliados por tribunal, confira a autoridade pelo número do processo e mantenha visível a fonte que sustenta cada resultado.
             </p>
           </div>
-          <div className="text-right text-xs text-stone-500">
-            Saldo disponível <span className="font-bold text-cognac-800">R$ {(totalBalanceCents / 100).toFixed(2)}</span>
-          </div>
+          <div className="text-right text-xs text-stone-500">Resultados e cobrança dependem da API autenticada.</div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
@@ -76,6 +76,7 @@ export const ResearchDeskScreen: React.FC = () => {
               <div className="flex flex-col md:flex-row gap-3">
                 <input value={query} onChange={(event) => setQuery(event.target.value)} className="flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
                 <select value={court} onChange={(event) => setCourt(event.target.value)} className="md:w-40 px-3 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm">
+                  <option value="TODOS">Todos</option>
                   <option>STJ</option>
                   <option>STF</option>
                   <option>TJSP</option>
@@ -100,12 +101,13 @@ export const ResearchDeskScreen: React.FC = () => {
                     <p className="text-xs text-stone-700 leading-relaxed">{item.ementa}</p>
                     <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-500">
                       <span>Relatoria: {item.relator} · {item.chamber ? `${item.chamber} · ` : ''}Julgamento: {item.judgmentDate}</span>
-                      <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-cognac-700 hover:underline">Ver fonte oficial<ExternalLink className="h-3 w-3" /></a>
+                      {item.sourceUrl ? <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-cognac-700 hover:underline">Ver fonte retornada<ExternalLink className="h-3 w-3" /></a> : <span>Fonte não informada</span>}
                     </div>
                   </article>
                 ))}
               </div>
             )}
+            {hasSearched && !busy && results.length === 0 && !error && <div className="surface-subtle p-6 text-center text-sm text-stone-500">Nenhum resultado retornado pela API para esta consulta.</div>}
           </section>
 
           <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
