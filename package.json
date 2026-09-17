@@ -7,9 +7,11 @@
     "build": "pnpm -r --sort run build",
     "test": "pnpm build && vitest run",
     "test:watch": "vitest",
-    "typecheck": "pnpm build && pnpm -r run typecheck"
+    "typecheck": "pnpm build && pnpm -r run typecheck",
+    "db:migrate": "pnpm build && node scripts/migrate-postgres.mjs"
   },
   "devDependencies": {
+    "postgres": "^3.4.9",
     "@types/node": "^22.13.9",
     "typescript": "^5.7.3",
     "vitest": "^3.0.7"

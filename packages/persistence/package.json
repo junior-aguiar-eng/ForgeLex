@@ -21,6 +21,7 @@
     "@forgelex/agent-core": "workspace:*",
     "drizzle-orm": "^0.39.3",
     "@libsql/client": "^0.14.0",
+    "postgres": "^3.4.9",
     "zod": "^3.24.2"
   },
   "devDependencies": {

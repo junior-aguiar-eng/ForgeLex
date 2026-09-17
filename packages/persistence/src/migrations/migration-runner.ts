@@ -572,6 +572,59 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `,
     ],
   },
+  {
+    id: 'persistence-0011-webhook-outbox',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS webhook_endpoints (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          url TEXT NOT NULL,
+          description TEXT,
+          secret_ciphertext TEXT NOT NULL,
+          event_types TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'ACTIVE',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          revoked_at TEXT
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS webhook_endpoints_tenant_status_idx ON webhook_endpoints (tenant_id, status);`,
+      `
+        CREATE TABLE IF NOT EXISTS webhook_events (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          event_type TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          occurred_at TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS webhook_events_tenant_created_idx ON webhook_events (tenant_id, created_at);`,
+      `
+        CREATE TABLE IF NOT EXISTS webhook_deliveries (
+          id TEXT PRIMARY KEY,
+          event_id TEXT NOT NULL REFERENCES webhook_events(id),
+          endpoint_id TEXT NOT NULL REFERENCES webhook_endpoints(id),
+          tenant_id TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'PENDING',
+          attempt_count INTEGER NOT NULL DEFAULT 0,
+          max_attempts INTEGER NOT NULL DEFAULT 8,
+          next_attempt_at TEXT NOT NULL,
+          last_attempt_at TEXT,
+          response_status INTEGER,
+          response_body_excerpt TEXT,
+          last_error TEXT,
+          delivered_at TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          UNIQUE (event_id, endpoint_id)
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS webhook_deliveries_due_idx ON webhook_deliveries (status, next_attempt_at);`,
+      `CREATE INDEX IF NOT EXISTS webhook_deliveries_tenant_idx ON webhook_deliveries (tenant_id, created_at);`,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {
