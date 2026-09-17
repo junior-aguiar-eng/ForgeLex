@@ -154,16 +154,17 @@ export class WebhookRepository {
     await this.client.execute({ sql: "UPDATE webhook_deliveries SET status = 'DELIVERED', response_status = ?, response_body_excerpt = ?, delivered_at = ?, updated_at = ? WHERE id = ? AND status = 'DELIVERING'", args: [statusCode, responseExcerpt, now, now, deliveryId] });
   }
 
-  public async markDeliveryFailure(deliveryId: string, error: string, statusCode?: number, responseExcerpt?: string): Promise<void> {
+  public async markDeliveryFailure(deliveryId: string, error: string, statusCode?: number, responseExcerpt?: string): Promise<'RETRYING' | 'FAILED'> {
     const current = await this.client.execute({ sql: 'SELECT attempt_count, max_attempts FROM webhook_deliveries WHERE id = ?', args: [deliveryId] });
     const row = current.rows[0] as Record<string, unknown> | undefined;
-    if (!row) return;
+    if (!row) return 'FAILED';
     const attemptCount = Number(row.attempt_count);
     const maxAttempts = Number(row.max_attempts);
     const terminal = attemptCount >= maxAttempts;
     const nextAttemptAt = new Date(Date.now() + Math.min(3_600_000, 1_000 * 2 ** Math.max(0, attemptCount - 1))).toISOString();
     const now = new Date().toISOString();
     await this.client.execute({ sql: `UPDATE webhook_deliveries SET status = ?, next_attempt_at = ?, response_status = ?, response_body_excerpt = ?, last_error = ?, updated_at = ? WHERE id = ? AND status = 'DELIVERING'`, args: [terminal ? 'FAILED' : 'RETRYING', nextAttemptAt, statusCode ?? null, responseExcerpt ?? null, error.slice(0, 500), now, deliveryId] });
+    return terminal ? 'FAILED' : 'RETRYING';
   }
 
   private deliveryFromRow(row: Record<string, unknown>): WebhookDeliveryRecord {

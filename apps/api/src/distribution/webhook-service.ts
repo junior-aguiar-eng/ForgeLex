@@ -23,7 +23,10 @@ export function decryptWebhookSecret(value: string, masterKey: string): string {
   return Buffer.concat([decipher.update(Buffer.from(ciphertextText, 'base64url')), decipher.final()]).toString('utf8');
 }
 
-export interface WebhookServiceOptions { masterKey?: string; }
+export interface WebhookServiceOptions {
+  masterKey?: string;
+  timeoutMs?: number;
+}
 
 export class WebhookService {
   public constructor(private readonly repository: WebhookRepository, private readonly options: WebhookServiceOptions = {}) {}
@@ -49,16 +52,16 @@ export class WebhookService {
     return this.repository.enqueueEvent({ id: event.id, tenantId: input.tenantId, eventType: input.type, payloadJson: JSON.stringify(event), endpointIds: input.endpointId ? endpoints.filter((endpoint) => endpoint.id === input.endpointId).map((endpoint) => endpoint.id) : endpoints.map((endpoint) => endpoint.id) });
   }
 
-  public async deliverOne(fetcher: typeof fetch = fetch): Promise<'delivered' | 'retrying' | 'idle'> {
+  public async deliverOne(fetcher: typeof fetch = fetch): Promise<'delivered' | 'retrying' | 'failed' | 'idle'> {
     const dispatch = await this.repository.claimDueDelivery();
     if (!dispatch) return 'idle';
     const masterKey = this.options.masterKey;
     if (!masterKey) {
-      await this.repository.markDeliveryFailure(dispatch.id, 'WEBHOOK_MASTER_KEY_NOT_CONFIGURED');
-      return 'retrying';
+      const status = await this.repository.markDeliveryFailure(dispatch.id, 'WEBHOOK_MASTER_KEY_NOT_CONFIGURED');
+      return status === 'FAILED' ? 'failed' : 'retrying';
     }
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10_000);
+    const timer = setTimeout(() => controller.abort(), this.options.timeoutMs ?? 10_000);
     try {
       const secret = decryptWebhookSecret(dispatch.endpoint.secretCiphertext, masterKey);
       const event = JSON.parse(dispatch.payloadJson) as ForgeLexWebhookEvent;
@@ -69,11 +72,11 @@ export class WebhookService {
         await this.repository.markDelivered(dispatch.id, response.status, responseExcerpt);
         return 'delivered';
       }
-      await this.repository.markDeliveryFailure(dispatch.id, `WEBHOOK_HTTP_${response.status}`, response.status, responseExcerpt);
-      return 'retrying';
+      const status = await this.repository.markDeliveryFailure(dispatch.id, `WEBHOOK_HTTP_${response.status}`, response.status, responseExcerpt);
+      return status === 'FAILED' ? 'failed' : 'retrying';
     } catch (error) {
-      await this.repository.markDeliveryFailure(dispatch.id, error instanceof Error && error.name === 'AbortError' ? 'WEBHOOK_TIMEOUT' : 'WEBHOOK_NETWORK_ERROR');
-      return 'retrying';
+      const status = await this.repository.markDeliveryFailure(dispatch.id, error instanceof Error && error.name === 'AbortError' ? 'WEBHOOK_TIMEOUT' : 'WEBHOOK_NETWORK_ERROR');
+      return status === 'FAILED' ? 'failed' : 'retrying';
     } finally {
       clearTimeout(timer);
     }

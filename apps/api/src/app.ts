@@ -110,13 +110,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   const database = options.database ?? connection?.db;
   const databaseClient = options.databaseClient ?? connection?.client;
+  const configuredWebhookTimeoutMs = Number(environment.FORGELEX_WEBHOOK_TIMEOUT_MS);
+  const webhookTimeoutMs = Number.isFinite(configuredWebhookTimeoutMs) && configuredWebhookTimeoutMs > 0
+    ? configuredWebhookTimeoutMs
+    : undefined;
   const webhookService = databaseClient
-    ? new WebhookService(new WebhookRepository(databaseClient), { masterKey: environment.FORGELEX_WEBHOOK_MASTER_KEY })
+    ? new WebhookService(new WebhookRepository(databaseClient), {
+      masterKey: environment.FORGELEX_WEBHOOK_MASTER_KEY,
+      timeoutMs: webhookTimeoutMs,
+    })
     : undefined;
   const webhookWorker = webhookService && environment.FORGELEX_WEBHOOK_WORKER_ENABLED === 'true'
-    ? setInterval(() => void webhookService.deliverOne().catch((error) => structuredLog('error', 'webhook.worker.failed', {
-      error: error instanceof Error ? error.message : String(error),
-    })), 1_000)
+    ? setInterval(() => void webhookService.deliverOne()
+      .then((result) => metrics.observeWebhookDelivery(result))
+      .catch((error) => structuredLog('error', 'webhook.worker.failed', {
+        error: error instanceof Error ? error.message : String(error),
+      })), 1_000)
     : undefined;
   if (webhookWorker) app.addHook('onClose', async () => clearInterval(webhookWorker));
   const apiKeyRepository = database ? new ApiKeyRepository(database) : undefined;
@@ -195,6 +204,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (!webhookService) return;
     try {
       await webhookService.enqueue(input);
+      metrics.observeWebhookQueued();
     } catch (error) {
       structuredLog('error', 'webhook.enqueue.failed', {
         tenantId: input.tenantId,
@@ -213,6 +223,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     execution: { chargedCents: number; remainingBalanceCents: number; isReplay: boolean };
   }): Promise<void> => {
     if (input.execution.isReplay) return;
+    metrics.observeBilling();
     const payload = {
       capability: input.capability,
       provider: input.provider,
@@ -317,10 +328,19 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   app.get('/readyz', async (_, reply) => {
-    const ready = Boolean(database && ledgerService);
+    let persistenceReady = false;
+    if (database && databaseClient) {
+      try {
+        await databaseClient.execute('SELECT 1');
+        persistenceReady = true;
+      } catch {
+        persistenceReady = false;
+      }
+    }
+    const ready = persistenceReady && Boolean(ledgerService);
     if (!ready) {
       reply.status(503);
-      return { status: 'not_ready', service: 'forgelex-api', checks: { persistence: false, billing: Boolean(ledgerService) } };
+      return { status: 'not_ready', service: 'forgelex-api', checks: { persistence: persistenceReady, billing: persistenceReady && Boolean(ledgerService) } };
     }
     return { status: 'ready', service: 'forgelex-api', checks: { persistence: true, billing: true } };
   });

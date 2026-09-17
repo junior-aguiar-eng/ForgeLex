@@ -9,6 +9,7 @@ import { LedgerService } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { CanonicalFixtureProvider, SourceRouter } from '@forgelex/source-providers';
 import type { Client } from '@libsql/client';
+import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
 
 const testPrincipal: AuthenticatedPrincipal = {
   subjectId: 'subject_test',
@@ -33,11 +34,24 @@ class FixtureTokenVerifier implements TokenVerifier {
       return { ...testPrincipal, tenantId: 'tenant_b', userId: 'user_b' };
     }
 
+    if (token === 'webhook-suite-token') {
+      return webhookSuitePrincipal;
+    }
+
     return null;
   }
 }
 
 const authHeaders = { authorization: 'Bearer test-token' };
+const webhookSuitePrincipal: AuthenticatedPrincipal = {
+  subjectId: 'subject_webhook_suite',
+  tenantId: 'tenant_webhook_suite',
+  userId: 'user_webhook_suite',
+  roles: ['lawyer'],
+  scopes: ['research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read'],
+  authMethod: 'api_key',
+};
+const webhookSuiteHeaders = { authorization: 'Bearer webhook-suite-token' };
 
 describe('Fastify API & Remote MCP Edge (apps/api)', () => {
   let app: FastifyInstance;
@@ -57,6 +71,10 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       paidBalanceCents: 6300,
       promotionalBalanceCents: 1500,
       promoExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+    await ledgerService.provisionAccount('tenant_webhook_suite', {
+      paidBalanceCents: 3000,
+      promotionalBalanceCents: 0,
     });
 
     const sourceRouter = new SourceRouter();
@@ -95,6 +113,26 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(body.service).toBe('forgelex-api');
   });
 
+  it('GET /readyz consulta a persistência e separa processo ativo de dependência indisponível', async () => {
+    const readyResponse = await app.inject({ method: 'GET', url: '/readyz' });
+    expect(readyResponse.statusCode).toBe(200);
+    expect(JSON.parse(readyResponse.body)).toMatchObject({ status: 'ready', checks: { persistence: true, billing: true } });
+
+    const unavailableApp = await buildApp({
+      database,
+      databaseClient: { execute: async () => { throw new Error('database unavailable'); } } as unknown as Client,
+      ledgerService,
+      environment: { NODE_ENV: 'test' },
+    });
+    try {
+      const unavailableResponse = await unavailableApp.inject({ method: 'GET', url: '/readyz' });
+      expect(unavailableResponse.statusCode).toBe(503);
+      expect(JSON.parse(unavailableResponse.body)).toMatchObject({ status: 'not_ready', checks: { persistence: false, billing: false } });
+    } finally {
+      await unavailableApp.close();
+    }
+  });
+
   it('expõe as métricas preservadas em formato compatível com Prometheus', async () => {
     await app.inject({ method: 'GET', url: '/health' });
     const response = await app.inject({ method: 'GET', url: '/metrics/prometheus' });
@@ -103,6 +141,11 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(response.headers['content-type']).toContain('text/plain');
     expect(response.body).toContain('forgelex_http_requests_total');
     expect(response.body).toContain('forgelex_http_latency_ms_total');
+    expect(response.body).toContain('forgelex_webhook_events_queued_total');
+    expect(response.body).toContain('forgelex_webhook_deliveries_total');
+    expect(response.body).toContain('forgelex_webhook_retries_total');
+    expect(response.body).toContain('forgelex_webhook_failures_total');
+    expect(response.body).toContain('forgelex_billing_operations_total');
   });
 
   it('GET /.well-known/oauth-protected-resource deve responder metadados OAuth 2.1 corretos', async () => {
@@ -432,6 +475,121 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(JSON.parse(deliveriesResponse.body)).toEqual(
       expect.arrayContaining([expect.objectContaining({ endpointId: endpoint.id, status: 'PENDING', attemptCount: 0 })]),
     );
+  });
+
+  it('emite os eventos de negócio e billing do fluxo completo no outbox do tenant', async () => {
+    const endpointResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/webhooks/endpoints',
+      headers: webhookSuiteHeaders,
+      payload: { url: 'https://example.test/all-events', eventTypes: [...WEBHOOK_EVENT_TYPES] },
+    });
+    expect(endpointResponse.statusCode).toBe(201);
+
+    const matterResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/matters',
+      headers: webhookSuiteHeaders,
+      payload: { title: 'Matter do contrato de eventos' },
+    });
+    expect(matterResponse.statusCode).toBe(200);
+    const matter = JSON.parse(matterResponse.body);
+
+    const documentResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/documents`,
+      headers: webhookSuiteHeaders,
+      payload: {
+        title: 'Documento do contrato de eventos',
+        originalFilename: 'eventos.txt',
+        mimeType: 'text/plain',
+        content: 'O fato jurídico relevante ocorreu em janeiro de 2026.',
+      },
+    });
+    expect(documentResponse.statusCode).toBe(200);
+
+    const draftResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts`,
+      headers: webhookSuiteHeaders,
+      payload: {
+        title: 'Minuta inicial de eventos',
+        sections: [{ ordinal: 0, title: 'Síntese', content: 'Conteúdo inicial.' }],
+      },
+    });
+    expect(draftResponse.statusCode).toBe(200);
+    const draft = JSON.parse(draftResponse.body);
+
+    const versionResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts/${draft.draft.id}/versions`,
+      headers: webhookSuiteHeaders,
+      payload: {
+        title: 'Minuta revisada de eventos',
+        sections: [{ ordinal: 0, title: 'Síntese', content: 'Conteúdo revisado.' }],
+      },
+    });
+    expect(versionResponse.statusCode).toBe(200);
+    const version = JSON.parse(versionResponse.body);
+
+    const reviewResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts/${draft.draft.id}/review`,
+      headers: webhookSuiteHeaders,
+      payload: { type: 'all', versionId: version.version.id },
+    });
+    expect(reviewResponse.statusCode).toBe(200);
+
+    const approvalResponse = await app.inject({
+      method: 'POST',
+      url: `/api/v2/matters/${matter.id}/drafts/${draft.draft.id}/approval`,
+      headers: webhookSuiteHeaders,
+      payload: { versionId: version.version.id },
+    });
+    expect(approvalResponse.statusCode).toBe(200);
+    const approval = JSON.parse(approvalResponse.body);
+
+    const resolveResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/draft-approvals/resolve',
+      headers: webhookSuiteHeaders,
+      payload: { token: approval.token, decision: 'APPROVED', reason: 'Fluxo de eventos validado.' },
+    });
+    expect(resolveResponse.statusCode).toBe(200);
+
+    const searchResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/research/search-case-law',
+      headers: { ...webhookSuiteHeaders, 'idempotency-key': 'webhook-suite-search-001' },
+      payload: { query: 'LGPD dano moral', court: 'STJ', limit: 5 },
+    });
+    expect(searchResponse.statusCode).toBe(200);
+
+    const verifyResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/research/verify-authority',
+      headers: { ...webhookSuiteHeaders, 'idempotency-key': 'webhook-suite-verify-001' },
+      payload: { court: 'STJ', processNumber: 'REsp 1.823.450/SP', judgmentDate: '2023-04-18' },
+    });
+    expect(verifyResponse.statusCode).toBe(200);
+
+    const result = await client.execute({
+      sql: 'SELECT event_type FROM webhook_events WHERE tenant_id = ? ORDER BY created_at ASC',
+      args: [webhookSuitePrincipal.tenantId],
+    });
+    const eventTypes = result.rows.map((row) => String((row as Record<string, unknown>).event_type));
+    expect(eventTypes).toEqual(expect.arrayContaining([
+      'matter.created',
+      'document.ingested',
+      'draft.created',
+      'draft.versioned',
+      'draft.review.completed',
+      'draft.approval.requested',
+      'draft.approval.resolved',
+      'research.authority.verified',
+    ]));
+    expect(eventTypes.filter((type) => type === 'billing.usage.recorded')).toHaveLength(2);
+    expect(eventTypes.filter((type) => type === 'billing.debit.recorded')).toHaveLength(2);
   });
 
   it('deve ingerir texto e devolver versão, hash e âncoras do documento', async () => {

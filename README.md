@@ -4,7 +4,7 @@
 > Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-114%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-118%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -17,20 +17,24 @@ O **FORGELEX V2** foi construído para superar as limitações das ferramentas j
 ### Pilares Fundamentais:
 1. **Microkernel Agêntico Vendor-Neutral:** Contratos comuns para adapters Anthropic, OpenAI e modelos locais.
 2. **Governança Forense Human-in-the-Loop:** Classificação estrita de impacto em 5 níveis (`L0_OBSERVATION` a `L4_EXTERNAL_EFFECT`). Mutações externas exigem token criptográfico de aprovação do advogado.
-3. **Rastreabilidade e Anti-Alucinação:** Todo acórdão retornado possui ancoragem com URL oficial verificada e hash criptográfico SHA-256 imutável.
+3. **Rastreabilidade e controle de alucinação:** Resultados com proveniência
+   disponível preservam metadados, hash SHA-256 e estado de verificação para
+   conferência; isso não substitui a revisão jurídica humana.
 4. **Legal Data Plane com Deduplicação:** Normalização algorítmica de números CNJ, tribunais e datas através de `dedupeKey` determinística.
 5. **Ledger Contábil de Dupla Carteira (Apêndice Q):** Controle de saldo pago vs promocional com prevenção a dupla cobrança por replay idempotente.
 6. **Integração MCP:** Gateway JSON-RPC 2.0 autenticado, com pacote externo allowlisted e sem exposição de ferramentas internas por padrão.
 
-### Pesquisa jurídica real
+### Pesquisa jurídica com proveniência condicionada
 
-O caminho produtivo de pesquisa usa o `StjSconProvider`, que consulta o SCON
-oficial do STJ, normaliza metadados, gera `contentHash`/`dedupeKey` e falha
-explicitamente quando a fonte está indisponível ou bloqueia automação. O
-endpoint `POST /api/v2/research/verify-authority` reaproveita o mesmo serviço,
-com cobrança idempotente e evento de auditoria. O endereço-base pode ser
-substituído por `FORGELEX_STJ_SCON_BASE_URL`; fixtures continuam restritas a
-testes e workflows determinísticos.
+O caminho de integração produtivo usa o `StjSconProvider`, configurado para
+consultar o SCON oficial do STJ, normalizar metadados e gerar
+`contentHash`/`dedupeKey`. Ele falha explicitamente quando a fonte está
+indisponível ou bloqueia automação. O endpoint
+`POST /api/v2/research/verify-authority` reaproveita o mesmo serviço, com
+cobrança idempotente e evento de auditoria. O endereço-base pode ser
+substituído por `FORGELEX_STJ_SCON_BASE_URL`; a chamada externa não foi
+validada neste ambiente e fixtures permanecem restritas a testes e workflows
+determinísticos.
 
 ### Facts & Evidence
 
@@ -121,7 +125,9 @@ equivale à validação de produção.
   permanecer `SKIPPED`/`BLOCKED_CREDENTIALS`.
 - A API usa `DATABASE_URL` (ou `FORGELEX_DATABASE_URL`) para inicializar o
   driver PostgreSQL; sem a variável, os testes e o desenvolvimento usam
-  SQLite em memória. O ambiente PostgreSQL reproduzível usa `docker compose`.
+  SQLite em memória. O ambiente PostgreSQL reproduzível usa `docker compose`;
+  `pnpm test:postgres` executa um smoke test idempotente contra a URL configurada
+  e retorna `BLOCKED_DATABASE_URL` quando ela não estiver disponível.
 - Webhooks usam outbox PostgreSQL e worker interno; a entrega efetiva exige
   `FORGELEX_WEBHOOK_MASTER_KEY`, destinos acessíveis e
   `FORGELEX_WEBHOOK_WORKER_ENABLED=true`.
@@ -160,6 +166,9 @@ docker compose up -d postgres
 # 7. Aplicar migrations no PostgreSQL local
 $env:DATABASE_URL = "postgres://forgelex:forgelex@localhost:55432/forgelex"
 pnpm db:migrate
+
+# 8. Validar persistência, ledger e outbox no PostgreSQL local
+pnpm test:postgres
 ```
 
 O frontend estará disponível em `http://localhost:3000` e a API em `http://localhost:3001`.
@@ -274,10 +283,10 @@ $ vitest run
  ✓ packages/source-providers/src/stj-scon-provider.test.ts (4 tests)
  ✓ packages/legal-workflows/src/research-memo/legal-research-memo.test.ts (4 tests)
  ✓ packages/legal-tools/src/research/research-tools.test.ts (4 tests)
- ✓ apps/api/src/app.test.ts (25 tests)
+ ✓ apps/api/src/app.test.ts (27 tests)
  ✓ packages/agent-provider-anthropic/src/anthropic-agent-provider.test.ts (9 tests)
  ✓ apps/api/src/provider-parity.test.ts (2 tests)
- ✓ apps/api/src/distribution/webhook-service.test.ts (2 tests)
+ ✓ apps/api/src/distribution/webhook-service.test.ts (4 tests)
  ✓ apps/api/src/distribution/webhooks.test.ts (2 tests)
  ✓ packages/persistence/src/repositories/webhook-repository.test.ts (1 test)
  ↓ apps/api/src/provider-real.integration.test.ts (2 tests condicionais)
@@ -291,7 +300,7 @@ $ vitest run
  ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (9 tests)
 
  Test Files  24 passed | 1 skipped (25)
- Tests  114 passed | 2 skipped (116)
+ Tests  118 passed | 2 skipped (120)
 ```
 
 ---
