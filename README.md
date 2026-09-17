@@ -4,7 +4,7 @@
 > Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-108%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-114%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -109,9 +109,32 @@ O frontend foi desenvolvido reproduzindo rigorosamente o design system editorial
 
 ## 🚀 Como Executar Localmente
 
+### Limites atuais
+
+O estado comprovado localmente inclui build, typecheck, testes automatizados,
+isolamento de tenant, persistência SQLite, persistência PostgreSQL local,
+contratos de auditoria, billing e paridade estrutural dos adapters. Isso não
+equivale à validação de produção.
+
+- Chamadas reais Anthropic e OpenAI dependem de `ANTHROPIC_API_KEY` e
+  `OPENAI_API_KEY`. Sem essas variáveis, os testes de integração externa devem
+  permanecer `SKIPPED`/`BLOCKED_CREDENTIALS`.
+- A API usa `DATABASE_URL` (ou `FORGELEX_DATABASE_URL`) para inicializar o
+  driver PostgreSQL; sem a variável, os testes e o desenvolvimento usam
+  SQLite em memória. O ambiente PostgreSQL reproduzível usa `docker compose`.
+- Webhooks usam outbox PostgreSQL e worker interno; a entrega efetiva exige
+  `FORGELEX_WEBHOOK_MASTER_KEY`, destinos acessíveis e
+  `FORGELEX_WEBHOOK_WORKER_ENABLED=true`.
+- Observabilidade local fornece logs estruturados, correlação e métricas
+  internas. `GET /metrics/prometheus` expõe formato compatível com scrape;
+  nenhum coletor externo está configurado neste ambiente.
+- Testes locais, fixtures e respostas de indisponibilidade não comprovam
+  credenciais, limites, migrations ou disponibilidade do ambiente definitivo.
+
 ### Pré-requisitos
 * Node.js >= 20.x (Recomendado Node 22+)
 * pnpm >= 9.x (Recomendado pnpm 11+)
+* Docker (necessário para a validação local PostgreSQL)
 
 ### Instalação e Execução
 
@@ -130,6 +153,13 @@ pnpm --filter @forgelex/api dev
 
 # 5. Iniciar o Frontend Web (React + Vite)
 pnpm --filter @forgelex/web dev
+
+# 6. Subir PostgreSQL para validação local
+docker compose up -d postgres
+
+# 7. Aplicar migrations no PostgreSQL local
+$env:DATABASE_URL = "postgres://forgelex:forgelex@localhost:55432/forgelex"
+pnpm db:migrate
 ```
 
 O frontend estará disponível em `http://localhost:3000` e a API em `http://localhost:3001`.
@@ -175,16 +205,21 @@ preserva a proveniência e é idempotente por `dedupeKey` dentro do matter.
 
 A paridade entre os adapters Anthropic e OpenAI está documentada em
 [RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md](RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md).
-Os testes locais e a integração ForgeLex estão aprovados para ambos; chamadas
-reais permanecem `BLOCKED_CREDENTIALS` quando as respectivas chaves não estão
-disponíveis no ambiente.
+Os testes locais e a integração controlada do ForgeLex cobrem o contrato comum;
+chamadas reais permanecem `BLOCKED_CREDENTIALS` quando as respectivas chaves
+não estão disponíveis no ambiente.
+
+As métricas podem ser coletadas por Prometheus apontando o scrape para
+`/metrics/prometheus`; a integração com um coletor externo continua sendo
+parâmetro operacional.
 
 As API keys persistidas em `api_keys` armazenam somente o hash SHA-256 e podem
 ser criadas, listadas e revogadas pelas rotas `/api/v2/api-keys`. O segredo é
-retornado uma única vez na criação. A fundação de webhooks está disponível em
-`GET /api/v2/webhooks/events`, com contrato HMAC-SHA256 e tolerância de cinco
-minutos; a entrega e a persistência de assinaturas ainda dependem da escolha
-do transporte operacional.
+retornado uma única vez na criação. Webhooks expõem o contrato em
+`GET /api/v2/webhooks/events` e o transporte local em
+`/api/v2/webhooks/endpoints` e `/api/v2/webhooks/deliveries`, com assinatura
+HMAC-SHA256, tolerância de cinco minutos, retries e backoff. A operação externa
+do destino ainda depende de configuração e disponibilidade do ambiente.
 
 ### Segundo vertical slice
 
@@ -239,9 +274,13 @@ $ vitest run
  ✓ packages/source-providers/src/stj-scon-provider.test.ts (4 tests)
  ✓ packages/legal-workflows/src/research-memo/legal-research-memo.test.ts (4 tests)
  ✓ packages/legal-tools/src/research/research-tools.test.ts (4 tests)
- ✓ apps/api/src/app.test.ts (22 tests)
+ ✓ apps/api/src/app.test.ts (25 tests)
  ✓ packages/agent-provider-anthropic/src/anthropic-agent-provider.test.ts (9 tests)
  ✓ apps/api/src/provider-parity.test.ts (2 tests)
+ ✓ apps/api/src/distribution/webhook-service.test.ts (2 tests)
+ ✓ apps/api/src/distribution/webhooks.test.ts (2 tests)
+ ✓ packages/persistence/src/repositories/webhook-repository.test.ts (1 test)
+ ↓ apps/api/src/provider-real.integration.test.ts (2 tests condicionais)
  ✓ packages/domain/src/contracts/matter.test.ts (2 tests)
  ✓ packages/domain/src/contracts/facts-evidence.test.ts (3 tests)
  ✓ apps/api/src/auth/fastify-auth.test.ts (4 tests)
@@ -251,8 +290,8 @@ $ vitest run
  ✓ packages/source-catalog/src/court-catalog.test.ts (3 tests)
  ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (9 tests)
 
- Test Files  22 passed (22)
- Tests  108 passed (108)
+ Test Files  24 passed | 1 skipped (25)
+ Tests  114 passed | 2 skipped (116)
 ```
 
 ---
