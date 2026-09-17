@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import Fastify, { FastifyInstance, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import { CourtCatalog } from '@forgelex/source-catalog';
@@ -40,12 +41,17 @@ import {
 import { ApiKeyService } from './auth/api-key-service.js';
 import { buildOpenApiDocument } from './distribution/openapi.js';
 import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
+import { WebhookRepository } from '@forgelex/persistence';
+import { WebhookService } from './distribution/webhook-service.js';
+import type { Client } from '@forgelex/persistence';
 import { caseLawToLegalAuthority, compileLegalResearchMemo } from '@forgelex/legal-workflows';
+import { RequestMetrics, structuredLog } from './observability.js';
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
   ledgerService?: LedgerService;
   database?: ForgeLexDatabase;
+  databaseClient?: Client;
   sourceRouter?: SourceRouter;
   auditRecorder?: AuditRecorder;
   environment?: Record<string, string | undefined>;
@@ -53,6 +59,33 @@ export interface BuildAppOptions {
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
+  const metrics = new RequestMetrics();
+  const requestStartedAt = new WeakMap<object, number>();
+  const requestTraceIds = new WeakMap<object, string>();
+  app.addHook('onRequest', async (request, reply) => {
+    const requestId = request.headers['x-request-id'] ?? request.id;
+    const traceId = request.headers['x-trace-id'] ?? randomUUID();
+    reply.header('x-request-id', Array.isArray(requestId) ? requestId[0] ?? request.id : requestId);
+    reply.header('x-trace-id', Array.isArray(traceId) ? traceId[0] ?? randomUUID() : traceId);
+    requestStartedAt.set(request.raw, Date.now());
+    requestTraceIds.set(request.raw, Array.isArray(traceId) ? traceId[0] ?? '' : traceId);
+  });
+  app.addHook('onResponse', async (request, reply) => {
+    const startedAt = requestStartedAt.get(request.raw) ?? Date.now();
+    const latencyMs = Date.now() - startedAt;
+    metrics.observe({ latencyMs, statusCode: reply.statusCode });
+    if (reply.statusCode >= 400) {
+      structuredLog('warn', 'http.request.completed', {
+        requestId: request.id,
+        traceId: requestTraceIds.get(request.raw),
+        tenantId: request.principal?.tenantId,
+        method: request.method,
+        route: request.routeOptions.url,
+        statusCode: reply.statusCode,
+        latencyMs,
+      });
+    }
+  });
   const environment = options.environment ?? process.env;
   await app.register(cors, {
     origin: resolveAllowedOrigins(environment),
@@ -67,12 +100,25 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   // 1. Inicialização dos serviços fundamentais
-  const connection = options.ledgerService ? undefined : await createDatabase({ url: 'file::memory:?cache=shared' });
+  const connection = options.ledgerService
+    ? undefined
+    : await createDatabase({ url: environment.FORGELEX_DATABASE_URL ?? environment.DATABASE_URL ?? 'file::memory:?cache=shared' });
   if (connection) {
     await runPersistenceMigrations(connection.client);
+    app.addHook('onClose', async () => connection.client.close());
   }
 
   const database = options.database ?? connection?.db;
+  const databaseClient = options.databaseClient ?? connection?.client;
+  const webhookService = databaseClient
+    ? new WebhookService(new WebhookRepository(databaseClient), { masterKey: environment.FORGELEX_WEBHOOK_MASTER_KEY })
+    : undefined;
+  const webhookWorker = webhookService && environment.FORGELEX_WEBHOOK_WORKER_ENABLED === 'true'
+    ? setInterval(() => void webhookService.deliverOne().catch((error) => structuredLog('error', 'webhook.worker.failed', {
+      error: error instanceof Error ? error.message : String(error),
+    })), 1_000)
+    : undefined;
+  if (webhookWorker) app.addHook('onClose', async () => clearInterval(webhookWorker));
   const apiKeyRepository = database ? new ApiKeyRepository(database) : undefined;
   const apiKeyService = apiKeyRepository ? new ApiKeyService(apiKeyRepository) : undefined;
   const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(environment, apiKeyRepository);
@@ -141,6 +187,45 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   };
 
+  const emitWebhook = async (input: {
+    tenantId: string;
+    type: Parameters<WebhookService['enqueue']>[0]['type'];
+    payload: Record<string, unknown>;
+  }): Promise<void> => {
+    if (!webhookService) return;
+    try {
+      await webhookService.enqueue(input);
+    } catch (error) {
+      structuredLog('error', 'webhook.enqueue.failed', {
+        tenantId: input.tenantId,
+        eventType: input.type,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  const emitBillingWebhooks = async (input: {
+    principal: AuthenticatedPrincipal;
+    capability: string;
+    provider: string;
+    idempotencyKey: string;
+    sessionId: string;
+    execution: { chargedCents: number; remainingBalanceCents: number; isReplay: boolean };
+  }): Promise<void> => {
+    if (input.execution.isReplay) return;
+    const payload = {
+      capability: input.capability,
+      provider: input.provider,
+      idempotencyKey: input.idempotencyKey,
+      sessionId: input.sessionId,
+      units: 1,
+      chargedCents: input.execution.chargedCents,
+      remainingBalanceCents: input.execution.remainingBalanceCents,
+    };
+    await emitWebhook({ tenantId: input.principal.tenantId, type: 'billing.usage.recorded', payload });
+    await emitWebhook({ tenantId: input.principal.tenantId, type: 'billing.debit.recorded', payload });
+  };
+
   const runBillableSearchCaseLaw = async (input: {
     principal: AuthenticatedPrincipal;
     reply: FastifyReply;
@@ -183,6 +268,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           costMetadata: { estimatedCostUsd: 0 },
         });
       }
+      await emitBillingWebhooks({
+        principal: input.principal,
+        capability: 'research.search_case_law',
+        provider: 'provider_stj_scon',
+        idempotencyKey,
+        sessionId,
+        execution,
+      });
 
       return {
         query: input.query,
@@ -223,6 +316,20 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     };
   });
 
+  app.get('/readyz', async (_, reply) => {
+    const ready = Boolean(database && ledgerService);
+    if (!ready) {
+      reply.status(503);
+      return { status: 'not_ready', service: 'forgelex-api', checks: { persistence: false, billing: Boolean(ledgerService) } };
+    }
+    return { status: 'ready', service: 'forgelex-api', checks: { persistence: true, billing: true } };
+  });
+
+  app.get('/metrics', async () => ({ service: 'forgelex-api', metrics: metrics.read() }));
+  app.get('/metrics/prometheus', async (_, reply) => {
+    return reply.type('text/plain; version=0.0.4').send(metrics.toPrometheus());
+  });
+
   const openApiDocument = buildOpenApiDocument(environment.FORGELEX_PUBLIC_API_URL ?? 'http://localhost:3001');
   app.get('/openapi.json', async () => openApiDocument);
   app.get('/api/v2/openapi.json', async () => openApiDocument);
@@ -236,9 +343,65 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       algorithm: 'HMAC-SHA256',
       toleranceSeconds: 300,
     },
-    status: 'CONTRACT_ONLY',
-    message: 'A entrega e a persistência de assinaturas serão habilitadas após a escolha do transporte operacional.',
+    status: webhookService ? 'OUTBOX_PERSISTENCE_READY' : 'PERSISTENCE_UNAVAILABLE',
+    transport: 'POSTGRES_OUTBOX_WORKER',
+    message: webhookService
+      ? 'Cadastro e persistência local estão disponíveis; a entrega exige worker e configuração operacional.'
+      : 'Persistência de webhooks indisponível neste processo.',
   }));
+
+  app.post('/api/v2/webhooks/endpoints', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+    const principal = request.principal;
+    const body = request.body as { url?: string; description?: string; secret?: string; eventTypes?: string[] };
+    if (!body.url) return reply.status(400).send({ error: 'WEBHOOK_URL_REQUIRED' });
+    try {
+      const created = await webhookService.createEndpoint({ tenantId: principal.tenantId, ...body, url: body.url });
+      const { secretCiphertext: _secretCiphertext, ...publicRecord } = created;
+      return reply.status(201).send(publicRecord);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'WEBHOOK_ENDPOINT_INVALID';
+      return reply.status(message === 'WEBHOOK_MASTER_KEY_NOT_CONFIGURED' ? 503 : 400).send({ error: message });
+    }
+  });
+
+  app.get('/api/v2/webhooks/endpoints', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+    const principal = request.principal;
+    const endpoints = await webhookService.listEndpoints(principal.tenantId);
+    return endpoints.map(({ secretCiphertext: _secret, ...endpoint }) => endpoint);
+  });
+
+  app.delete('/api/v2/webhooks/endpoints/:endpointId', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+    const principal = request.principal;
+    const endpointId = (request.params as { endpointId: string }).endpointId;
+    return { revoked: await webhookService.revokeEndpoint(principal.tenantId, endpointId) };
+  });
+
+  app.post('/api/v2/webhooks/endpoints/:endpointId/test', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+    const principal = request.principal;
+    const endpointId = (request.params as { endpointId: string }).endpointId;
+    const endpoint = await webhookService.listEndpoints(principal.tenantId);
+    if (!endpoint.some((item) => item.id === endpointId && item.status === 'ACTIVE')) return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
+    const eventId = await webhookService.enqueue({ tenantId: principal.tenantId, endpointId, type: 'matter.created', payload: { test: true, requestedBy: principal.userId } });
+    return reply.status(202).send({ eventId, status: 'QUEUED' });
+  });
+
+  app.get('/api/v2/webhooks/deliveries', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+    const principal = request.principal;
+    const endpointId = (request.query as { endpointId?: string }).endpointId;
+    return webhookService.listDeliveries(principal.tenantId, endpointId);
+  });
+
+  app.post('/api/v2/webhooks/deliveries/:deliveryId/retry', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+    const principal = request.principal;
+    const deliveryId = (request.params as { deliveryId: string }).deliveryId;
+    return { requeued: await webhookService.requeue(principal.tenantId, deliveryId) };
+  });
 
   app.get(
     '/api/v2/api-keys',
@@ -403,6 +566,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           status: 'SUCCESS',
           payload: { matterId: matter.id, title: matter.title },
         });
+        await emitWebhook({
+          tenantId: req.principal.tenantId,
+          type: 'matter.created',
+          payload: { matterId: matter.id, title: matter.title, status: matter.status },
+        });
         return matter;
       } catch (error) {
         reply.status(400);
@@ -472,6 +640,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           toolName: 'document.ingested',
           durationMs: 0,
           status: 'SUCCESS',
+          payload: {
+            documentId: ingested.document.id,
+            matterId,
+            contentHash: ingested.document.contentHash,
+            anchorCount: ingested.anchors.length,
+          },
+        });
+        await emitWebhook({
+          tenantId: req.principal.tenantId,
+          type: 'document.ingested',
           payload: {
             documentId: ingested.document.id,
             matterId,
@@ -1242,6 +1420,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             costMetadata: { estimatedCostUsd: 0 },
           });
         }
+        await emitBillingWebhooks({
+          principal: req.principal,
+          capability: 'research.generate_memo',
+          provider: 'provider_stj_scon',
+          idempotencyKey,
+          sessionId,
+          execution,
+        });
 
         return {
           memo: record.memo,
@@ -1369,6 +1555,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           status: 'SUCCESS',
           payload: { draftId: result.draft.id, draftVersionId: result.version.id, sectionCount: result.sections.length },
         });
+        await emitWebhook({
+          tenantId: req.principal.tenantId,
+          type: 'draft.created',
+          payload: { matterId, draftId: result.draft.id, draftVersionId: result.version.id },
+        });
         return result;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Não foi possível criar o rascunho.';
@@ -1429,6 +1620,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           status: 'SUCCESS',
           payload: { draftId, draftVersionId: result.version.id, versionNumber: result.version.versionNumber },
         });
+        await emitWebhook({
+          tenantId: req.principal.tenantId,
+          type: 'draft.versioned',
+          payload: { matterId, draftId, draftVersionId: result.version.id, versionNumber: result.version.versionNumber },
+        });
         return result;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Não foi possível criar a versão.';
@@ -1472,6 +1668,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           status: 'SUCCESS',
           payload: { draftId, draftVersionId: result.draftVersionId, status: result.status, findingCount: result.findings.length },
         });
+        await emitWebhook({
+          tenantId: req.principal.tenantId,
+          type: 'draft.review.completed',
+          payload: { matterId, draftId, draftVersionId: result.draftVersionId, status: result.status, findingCount: result.findings.length },
+        });
         return result;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Não foi possível revisar o rascunho.';
@@ -1505,6 +1706,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           durationMs: 0,
           status: 'SUCCESS',
           payload: { draftId, approvalRequestId: result.request.id, draftVersionId: result.request.draftVersionId },
+        });
+        await emitWebhook({
+          tenantId: req.principal.tenantId,
+          type: 'draft.approval.requested',
+          payload: { matterId, draftId, approvalRequestId: result.request.id, draftVersionId: result.request.draftVersionId },
         });
         return result;
       } catch (error) {
@@ -1557,6 +1763,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           durationMs: 0,
           status: 'SUCCESS',
           payload: { draftId: result.request.draftId, approvalRequestId: result.request.id, decision: body.decision },
+        });
+        await emitWebhook({
+          tenantId: req.principal.tenantId,
+          type: 'draft.approval.resolved',
+          payload: { matterId: result.request.matterId, draftId: result.request.draftId, approvalRequestId: result.request.id, decision: body.decision },
         });
         return { request: result.request, decision: result.decision };
       } catch (error) {
@@ -1623,6 +1834,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             costMetadata: { estimatedCostUsd: 0 },
           });
         }
+        await emitBillingWebhooks({
+          principal: req.principal,
+          capability: 'research.search_case_law',
+          provider: 'provider_stj_scon',
+          idempotencyKey,
+          sessionId,
+          execution,
+        });
 
         return {
           query: q,
@@ -1736,6 +1955,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             costMetadata: { estimatedCostUsd: 0 },
           });
         }
+        await emitBillingWebhooks({
+          principal: req.principal,
+          capability: 'research.get_authority',
+          provider: 'provider_stj_scon',
+          idempotencyKey,
+          sessionId,
+          execution,
+        });
+        if (!execution.isReplay && execution.data.status === 'VERIFIED_OFFICIAL') {
+          await emitWebhook({
+            tenantId: req.principal.tenantId,
+            type: 'research.authority.verified',
+            payload: { court, processNumber, judgmentDate, status: execution.data.status },
+          });
+        }
         return execution.data;
       } catch (error) {
         const details = error as { code?: unknown; details?: unknown; message?: unknown };
@@ -1812,6 +2046,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             status: 'SUCCESS',
             payload: { court, processNumber, judgmentDate: body.judgmentDate, status: execution.data.status },
             costMetadata: { estimatedCostUsd: 0 },
+          });
+        }
+        await emitBillingWebhooks({
+          principal: req.principal,
+          capability: 'research.verify_authority',
+          provider: 'provider_stj_scon',
+          idempotencyKey,
+          sessionId,
+          execution,
+        });
+        if (!execution.isReplay && execution.data.status === 'VERIFIED_OFFICIAL') {
+          await emitWebhook({
+            tenantId: req.principal.tenantId,
+            type: 'research.authority.verified',
+            payload: { court, processNumber, judgmentDate: body.judgmentDate, status: execution.data.status },
           });
         }
         return execution.data;
