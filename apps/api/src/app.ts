@@ -27,6 +27,7 @@ import {
   ResearchMemoRepository,
   LegalThesisRepository,
   ApiKeyRepository,
+  AccountRepository,
   runPersistenceMigrations,
 } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
@@ -36,7 +37,10 @@ import { CaseLawSchema, type AuthenticatedPrincipal } from '@forgelex/domain';
 import {
   AuthAdapter,
   createDefaultAuthAdapter,
+  createSupabaseIdentityVerifier,
+  extractBearerToken,
   resolveAllowedOrigins,
+  SupabaseIdentityVerifier,
 } from './auth/fastify-auth.js';
 import { ApiKeyService } from './auth/api-key-service.js';
 import { buildOpenApiDocument } from './distribution/openapi.js';
@@ -54,6 +58,7 @@ export interface BuildAppOptions {
   databaseClient?: Client;
   sourceRouter?: SourceRouter;
   auditRecorder?: AuditRecorder;
+  supabaseIdentityVerifier?: SupabaseIdentityVerifier;
   environment?: Record<string, string | undefined>;
 }
 
@@ -130,7 +135,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   if (webhookWorker) app.addHook('onClose', async () => clearInterval(webhookWorker));
   const apiKeyRepository = database ? new ApiKeyRepository(database) : undefined;
   const apiKeyService = apiKeyRepository ? new ApiKeyService(apiKeyRepository) : undefined;
-  const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(environment, apiKeyRepository);
+  const accountRepository = database ? new AccountRepository(database) : undefined;
+  const supabaseIdentityVerifier = options.supabaseIdentityVerifier ?? createSupabaseIdentityVerifier(environment);
+  const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(environment, apiKeyRepository, accountRepository);
   const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client);
   await ledgerService.runMigrations();
   const matterRepository = database ? new MatterRepository(database) : undefined;
@@ -195,6 +202,120 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       app.log.warn({ error }, 'Falha ao registrar evento de auditoria');
     }
   };
+
+  const accountResponse = (account: Awaited<ReturnType<AccountRepository['findByUserAndTenant']>>) => {
+    if (!account) return undefined;
+    return {
+      user: {
+        id: account.user.id,
+        email: account.user.email,
+        displayName: account.user.displayName,
+        status: account.user.status,
+        createdAt: account.user.createdAt,
+      },
+      workspace: {
+        id: account.tenant.id,
+        name: account.tenant.name,
+        status: account.tenant.status,
+        createdAt: account.tenant.createdAt,
+      },
+      membership: {
+        role: account.membership.role,
+        status: account.membership.status,
+      },
+    };
+  };
+
+  app.post('/api/v2/auth/bootstrap', async (request, reply) => {
+    if (!accountRepository || !supabaseIdentityVerifier) {
+      reply.status(503);
+      return { error: 'AUTH_UNAVAILABLE', message: 'O acesso por conta ainda não está configurado.' };
+    }
+
+    let identity;
+    try {
+      identity = await supabaseIdentityVerifier.verify(extractBearerToken(request.headers.authorization));
+    } catch {
+      reply.status(401);
+      return { error: 'UNAUTHENTICATED', message: 'Não foi possível confirmar seu acesso.' };
+    }
+
+    if (!identity) {
+      structuredLog('warn', 'account.bootstrap.rejected', { requestId: request.id, reason: 'invalid_session' });
+      reply.status(401);
+      return { error: 'UNAUTHENTICATED', message: 'Não foi possível confirmar seu acesso.' };
+    }
+    if (!identity.emailConfirmed) {
+      structuredLog('warn', 'account.bootstrap.rejected', { requestId: request.id, reason: 'email_not_confirmed' });
+      reply.status(403);
+      return { error: 'EMAIL_NOT_CONFIRMED', message: 'Confirme seu e-mail para continuar.' };
+    }
+
+    const body = (request.body ?? {}) as { displayName?: unknown };
+    const displayName = typeof body.displayName === 'string'
+      ? body.displayName.trim()
+      : identity.displayName?.trim() ?? '';
+    if (displayName.length < 2 || displayName.length > 120) {
+      reply.status(400);
+      return { error: 'INVALID_REQUEST', message: 'Informe seu nome para concluir o cadastro.' };
+    }
+
+    try {
+      const account = await accountRepository.bootstrap({
+        supabaseUserId: identity.id,
+        email: identity.email,
+        displayName,
+      });
+      if (account.user.status !== 'ACTIVE' || account.tenant.status !== 'ACTIVE' || account.membership.status !== 'ACTIVE') {
+        await recordAudit({
+          sessionId: `account_${account.user.id}`,
+          tenantId: account.tenant.id,
+          userId: account.user.id,
+          toolName: 'account.bootstrap.rejected',
+          durationMs: 0,
+          status: 'FAILED',
+          payload: { reason: 'account_disabled' },
+        });
+        reply.status(403);
+        return { error: 'ACCOUNT_DISABLED', message: 'Sua conta não está disponível. Procure o responsável pelo acesso.' };
+      }
+      await recordAudit({
+        sessionId: `account_${account.user.id}`,
+        tenantId: account.tenant.id,
+        userId: account.user.id,
+        toolName: 'account.bootstrap',
+        durationMs: 0,
+        status: 'SUCCESS',
+        payload: { authMethod: 'supabase_session' },
+      });
+      return accountResponse(account);
+    } catch (error) {
+      structuredLog('error', 'account.bootstrap.failed', {
+        requestId: request.id,
+        traceId: request.headers['x-trace-id'],
+        error: error instanceof Error ? error.message : String(error),
+      });
+      reply.status(503);
+      return { error: 'ACCOUNT_UNAVAILABLE', message: 'Não foi possível preparar seu espaço agora.' };
+    }
+  });
+
+  app.get('/api/v2/auth/me', { preHandler: authAdapter.createPreHandler() }, async (request, reply) => {
+    if (request.principal.authMethod !== 'session' || !accountRepository) {
+      reply.status(403);
+      return { error: 'SESSION_REQUIRED', message: 'Entre na sua conta para continuar.' };
+    }
+    const account = await accountRepository.findByUserAndTenant(request.principal.userId, request.principal.tenantId);
+    if (!account) {
+      reply.status(404);
+      return { error: 'ACCOUNT_NOT_FOUND', message: 'Não foi possível localizar sua conta.' };
+    }
+    if (account.user.status !== 'ACTIVE' || account.tenant.status !== 'ACTIVE' || account.membership.status !== 'ACTIVE') {
+      reply.status(403);
+      return { error: 'ACCOUNT_DISABLED', message: 'Sua conta não está disponível. Procure o responsável pelo acesso.' };
+    }
+    return accountResponse(account);
+  });
 
   const emitWebhook = async (input: {
     tenantId: string;

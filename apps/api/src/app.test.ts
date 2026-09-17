@@ -227,6 +227,8 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(body.paths['/api/v2/matters/{matterId}/authorities'].post['x-forgelex-required-scopes']).toEqual(['matter:write']);
     expect(body.paths['/api/v2/matters/{matterId}/research-memos'].post['x-forgelex-required-scopes']).toEqual(['matter:write', 'research:read']);
     expect(body.paths['/mcp'].post['x-forgelex-required-scopes']).toEqual(['mcp']);
+    expect(body.paths['/api/v2/auth/bootstrap'].post.security).toEqual([{ BearerAuth: [] }]);
+    expect(body.paths['/api/v2/auth/me'].get.security).toEqual([{ BearerAuth: [] }]);
     expect(body.components.securitySchemes.BearerAuth.scheme).toBe('bearer');
   });
 

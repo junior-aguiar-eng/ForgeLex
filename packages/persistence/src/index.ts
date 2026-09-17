@@ -10,5 +10,6 @@ export * from './repositories/legal-issue-repository.js';
 export * from './repositories/research-memo-repository.js';
 export * from './repositories/legal-thesis-repository.js';
 export * from './repositories/webhook-repository.js';
+export * from './repositories/account-repository.js';
 export * from './migrations/migration-runner.js';
 export type { Client } from '@libsql/client';

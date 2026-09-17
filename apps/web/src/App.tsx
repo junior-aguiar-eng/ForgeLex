@@ -10,11 +10,21 @@ import { ConnectionsScreen } from './screens/ConnectionsScreen';
 import { CreditsScreen } from './screens/CreditsScreen';
 import { ApiDocsScreen } from './screens/ApiDocsScreen';
 import { DraftStudioScreen } from './screens/DraftStudioScreen';
+import AuthScreen from './screens/AuthScreen';
+import { AuthProvider, useAuth } from './auth/AuthContext';
 import { Scale } from 'lucide-react';
 
 const AppContent: React.FC = () => {
   const { activeTab, setActiveTab } = useApp();
+  const { status, passwordRecovery } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+
+  if (status !== 'authenticated' && status !== 'legacy') {
+    return <AuthScreen initialView={passwordRecovery ? 'reset_password' : 'sign_in'} status={status} />;
+  }
+  if (passwordRecovery) {
+    return <AuthScreen initialView="reset_password" status={status} />;
+  }
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-[#FBF9F5]">
@@ -51,9 +61,11 @@ const AppContent: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </AuthProvider>
   );
 };
 

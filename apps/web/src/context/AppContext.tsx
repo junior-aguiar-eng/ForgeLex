@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { requestApi } from '../api-client';
 
 export interface LedgerTransaction {
   id: string;
@@ -77,29 +78,6 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | null>(null);
-
-const apiUrl = import.meta.env.VITE_FORGELEX_API_URL ?? 'http://localhost:3001';
-
-function getApiToken(): string {
-  if (import.meta.env.VITE_FORGELEX_API_TOKEN) return import.meta.env.VITE_FORGELEX_API_TOKEN;
-  try {
-    return window.localStorage.getItem('forgelex_api_token') ?? '';
-  } catch {
-    return '';
-  }
-}
-
-async function requestApi<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getApiToken();
-  if (!token) throw new Error('Nenhuma credencial da API foi configurada. Abra “Detalhes técnicos” em Casos ou Rascunhos para conectar a conta.');
-  const response = await fetch(`${apiUrl}${path}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(init?.headers ?? {}) },
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.message ?? `A API respondeu HTTP ${response.status}.`);
-  return body as T;
-}
 
 function mapSearchResult(item: any): SearchResultItem {
   return {

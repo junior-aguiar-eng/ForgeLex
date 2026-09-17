@@ -7,9 +7,10 @@ export interface PublicApiRouteDefinition {
   path: string;
   summary: string;
   description: string;
+  requiresAuthentication?: boolean;
   scopes?: readonly string[];
   toolName?: string;
-  requestBody?: 'object' | 'search-case-law' | 'verify-authority' | 'api-key';
+  requestBody?: 'object' | 'search-case-law' | 'verify-authority' | 'api-key' | 'account-bootstrap';
 }
 
 const genericObjectSchema = { type: 'object', additionalProperties: true };
@@ -20,6 +21,8 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/openapi.json', summary: 'Especificação OpenAPI', description: 'Retorna esta especificação gerada.' },
   { method: 'get', path: '/api/v2/openapi.json', summary: 'Especificação OpenAPI v2', description: 'Retorna esta especificação gerada.' },
   { method: 'get', path: '/api/v2/webhooks/events', summary: 'Eventos de webhook', description: 'Lista os tipos de evento e o contrato de assinatura disponível.' },
+  { method: 'post', path: '/api/v2/auth/bootstrap', summary: 'Preparar conta', description: 'Cria de forma idempotente o perfil e o espaço pessoal do usuário autenticado.', requiresAuthentication: true, requestBody: 'account-bootstrap' },
+  { method: 'get', path: '/api/v2/auth/me', summary: 'Consultar conta', description: 'Retorna o perfil, o espaço pessoal e o vínculo do usuário autenticado.', requiresAuthentication: true },
   { method: 'get', path: '/readyz', summary: 'Readiness', description: 'Verifica se as dependências locais necessárias estão disponíveis.' },
   { method: 'get', path: '/metrics', summary: 'Métricas internas', description: 'Retorna contadores internos de requisições e latência.' },
   { method: 'get', path: '/metrics/prometheus', summary: 'Métricas Prometheus', description: 'Expõe as métricas internas em formato compatível com scrape do Prometheus.' },
@@ -99,7 +102,7 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
   };
   const parameters = pathParameters(route.path);
   if (parameters.length > 0) operation.parameters = parameters;
-  if (route.scopes && route.scopes.length > 0) {
+  if (route.requiresAuthentication || (route.scopes && route.scopes.length > 0)) {
     operation.security = [{ BearerAuth: [] }];
     operation['x-forgelex-required-scopes'] = route.scopes;
   }
@@ -111,6 +114,8 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
         ? { type: 'object', required: ['court', 'processNumber'], properties: { court: { type: 'string' }, processNumber: { type: 'string' }, judgmentDate: { type: 'string' } } }
         : route.requestBody === 'api-key'
           ? { type: 'object', required: ['name'], properties: { name: { type: 'string', minLength: 1 }, scopes: { type: 'array', items: { type: 'string' } } } }
+          : route.requestBody === 'account-bootstrap'
+            ? { type: 'object', required: ['displayName'], properties: { displayName: { type: 'string', minLength: 2, maxLength: 120 } } }
           : genericObjectSchema;
     operation.requestBody = { required: true, content: { 'application/json': { schema } } };
   }

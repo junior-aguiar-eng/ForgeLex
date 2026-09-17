@@ -625,6 +625,49 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `CREATE INDEX IF NOT EXISTS webhook_deliveries_tenant_idx ON webhook_deliveries (tenant_id, created_at);`,
     ],
   },
+  {
+    id: 'persistence-0012-account-identity',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS forgelex_user_profiles (
+          id TEXT PRIMARY KEY,
+          supabase_user_id TEXT NOT NULL UNIQUE,
+          email TEXT NOT NULL,
+          display_name TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'ACTIVE',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          deactivated_at TEXT
+        );
+      `,
+      `CREATE UNIQUE INDEX IF NOT EXISTS forgelex_user_profiles_supabase_id_idx ON forgelex_user_profiles (supabase_user_id);`,
+      `
+        CREATE TABLE IF NOT EXISTS forgelex_tenants (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'ACTIVE',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          deactivated_at TEXT
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS forgelex_tenants_status_idx ON forgelex_tenants (status);`,
+      `
+        CREATE TABLE IF NOT EXISTS forgelex_tenant_memberships (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL REFERENCES forgelex_tenants(id),
+          user_id TEXT NOT NULL REFERENCES forgelex_user_profiles(id),
+          role TEXT NOT NULL DEFAULT 'OWNER',
+          status TEXT NOT NULL DEFAULT 'ACTIVE',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          revoked_at TEXT,
+          UNIQUE (tenant_id, user_id)
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS forgelex_tenant_memberships_user_status_idx ON forgelex_tenant_memberships (user_id, status);`,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

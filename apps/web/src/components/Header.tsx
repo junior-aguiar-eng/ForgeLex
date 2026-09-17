@@ -1,7 +1,8 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { FileCode2, FileText, FolderOpen, Menu, Scale, Search } from 'lucide-react';
+import { FileCode2, FileText, FolderOpen, LogOut, Menu, Scale, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 
 export type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
 
@@ -39,6 +40,7 @@ const NavigationButton: React.FC<{
 
 export const Header: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }> = ({ menuOpen, onMenuToggle }) => {
   const { activeTab, setActiveTab } = useApp();
+  const { account, signOut } = useAuth();
 
   const selectTab = (tab: AppTab) => {
     setActiveTab(tab);
@@ -91,6 +93,13 @@ export const Header: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }> =
               <Menu className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">Menu</span>
             </button>
+            {account && <div className="hidden items-center gap-2 xl:flex">
+              <span className="max-w-40 truncate text-sm text-stone-600" title={account.user.displayName}>{account.user.displayName}</span>
+              <button type="button" onClick={() => void signOut()} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-champagne-border bg-white/70 px-3 text-sm font-semibold text-stone-700 hover:border-cognac-400 hover:bg-white" aria-label="Sair da conta">
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                <span>Sair</span>
+              </button>
+            </div>}
           </div>
         </div>
       </div>

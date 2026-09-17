@@ -1,5 +1,55 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+export const forgelexUserProfiles = sqliteTable(
+  'forgelex_user_profiles',
+  {
+    id: text('id').primaryKey(),
+    supabaseUserId: text('supabase_user_id').notNull(),
+    email: text('email').notNull(),
+    displayName: text('display_name').notNull(),
+    status: text('status').notNull().default('ACTIVE'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    deactivatedAt: text('deactivated_at'),
+  },
+  (table) => [uniqueIndex('forgelex_user_profiles_supabase_id_idx').on(table.supabaseUserId)],
+);
+
+export const forgelexTenants = sqliteTable(
+  'forgelex_tenants',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    status: text('status').notNull().default('ACTIVE'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    deactivatedAt: text('deactivated_at'),
+  },
+  (table) => [index('forgelex_tenants_status_idx').on(table.status)],
+);
+
+export const forgelexTenantMemberships = sqliteTable(
+  'forgelex_tenant_memberships',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => forgelexTenants.id),
+    userId: text('user_id')
+      .notNull()
+      .references(() => forgelexUserProfiles.id),
+    role: text('role').notNull().default('OWNER'),
+    status: text('status').notNull().default('ACTIVE'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    revokedAt: text('revoked_at'),
+  },
+  (table) => [
+    uniqueIndex('forgelex_tenant_memberships_tenant_user_idx').on(table.tenantId, table.userId),
+    index('forgelex_tenant_memberships_user_status_idx').on(table.userId, table.status),
+  ],
+);
+
 export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull(),

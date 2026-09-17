@@ -4,7 +4,7 @@
 > Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-118%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-125%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -200,6 +200,42 @@ Defina `FORGELEX_ALLOWED_ORIGINS` com origens separadas por vírgula; fora de
 produção, sem essa variável, somente `http://localhost:3000` e
 `http://localhost:3001` são permitidos.
 
+### Conta e cadastro
+
+O acesso comum ao ForgeLex usa o Supabase Auth com nome, e-mail e senha. A
+confirmação do e-mail é obrigatória antes de entrar; celular e CPF não são
+solicitados nesta etapa. O Supabase administra a senha, a confirmação, a
+recuperação e o encerramento da sessão. O ForgeLex nunca recebe ou armazena a
+senha.
+
+No primeiro acesso confirmado, a API cria de forma idempotente o perfil do
+usuário, um espaço pessoal e o vínculo de proprietário. Os identificadores do
+usuário e do espaço vêm da sessão confirmada, não de campos enviados pelo
+navegador. O endpoint `POST /api/v2/auth/bootstrap` prepara esse vínculo e
+`GET /api/v2/auth/me` retorna somente os dados da conta autenticada.
+
+Para habilitar o cadastro no frontend, configure apenas a chave pública do
+projeto:
+
+```text
+VITE_SUPABASE_URL=https://<projeto>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<chave-publica>
+```
+
+Para a API validar as sessões, configure as mesmas informações no ambiente do
+servidor:
+
+```text
+FORGELEX_SUPABASE_URL=https://<projeto>.supabase.co
+FORGELEX_SUPABASE_PUBLISHABLE_KEY=<chave-publica>
+```
+
+Não coloque `service_role`, senha do banco ou qualquer outro segredo no
+frontend. No painel do Supabase, mantenha a confirmação de e-mail ativada e
+configure a URL de retorno do aplicativo para que os links de confirmação e
+recuperação funcionem. Sem essas variáveis, o frontend informa que o acesso
+ainda não está disponível; não existe usuário ou espaço padrão.
+
 ### Distribuição pública (Marco 10)
 
 O contrato REST gerado está disponível em `GET /openapi.json` e
@@ -284,6 +320,7 @@ $ vitest run
  ✓ packages/legal-workflows/src/research-memo/legal-research-memo.test.ts (4 tests)
  ✓ packages/legal-tools/src/research/research-tools.test.ts (4 tests)
  ✓ apps/api/src/app.test.ts (27 tests)
+ ✓ apps/api/src/account-routes.test.ts (2 tests)
  ✓ packages/agent-provider-anthropic/src/anthropic-agent-provider.test.ts (9 tests)
  ✓ apps/api/src/provider-parity.test.ts (2 tests)
  ✓ apps/api/src/distribution/webhook-service.test.ts (4 tests)
@@ -293,14 +330,16 @@ $ vitest run
  ✓ packages/domain/src/contracts/matter.test.ts (2 tests)
  ✓ packages/domain/src/contracts/facts-evidence.test.ts (3 tests)
  ✓ apps/api/src/auth/fastify-auth.test.ts (4 tests)
+ ✓ apps/api/src/auth/supabase-auth.test.ts (3 tests)
+ ✓ packages/persistence/src/repositories/account-repository.test.ts (2 tests)
  ✓ packages/source-providers/src/source-router.test.ts (4 tests)
  ✓ packages/domain/src/contracts/provenance.test.ts (4 tests)
  ✓ packages/legal-data/src/legal-data.test.ts (3 tests)
  ✓ packages/source-catalog/src/court-catalog.test.ts (3 tests)
  ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (9 tests)
 
- Test Files  24 passed | 1 skipped (25)
- Tests  118 passed | 2 skipped (120)
+ Test Files  27 passed | 1 skipped (28)
+ Tests  125 passed | 2 skipped (127)
 ```
 
 ---
