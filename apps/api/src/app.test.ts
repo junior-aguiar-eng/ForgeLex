@@ -67,11 +67,13 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
       ledgerService,
       database,
+      databaseClient: client,
       sourceRouter,
       auditRecorder,
       environment: {
         NODE_ENV: 'test',
         FORGELEX_ALLOWED_ORIGINS: 'http://localhost:3000',
+        FORGELEX_WEBHOOK_MASTER_KEY: 'test-webhook-master-key',
       },
     });
   });
@@ -91,6 +93,16 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const body = JSON.parse(response.body);
     expect(body.status).toBe('ok');
     expect(body.service).toBe('forgelex-api');
+  });
+
+  it('expõe as métricas preservadas em formato compatível com Prometheus', async () => {
+    await app.inject({ method: 'GET', url: '/health' });
+    const response = await app.inject({ method: 'GET', url: '/metrics/prometheus' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('text/plain');
+    expect(response.body).toContain('forgelex_http_requests_total');
+    expect(response.body).toContain('forgelex_http_latency_ms_total');
   });
 
   it('GET /.well-known/oauth-protected-resource deve responder metadados OAuth 2.1 corretos', async () => {
@@ -389,6 +401,37 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       headers: { authorization: 'Bearer tenant-b-token' },
     });
     expect(otherTenantResponse.statusCode).toBe(404);
+  });
+
+  it('emite matter.created automaticamente no outbox do tenant', async () => {
+    const endpointResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/webhooks/endpoints',
+      headers: authHeaders,
+      payload: { url: 'https://example.test/forgelex', eventTypes: ['matter.created'] },
+    });
+    expect(endpointResponse.statusCode).toBe(201);
+    const endpoint = JSON.parse(endpointResponse.body);
+    expect(endpoint.secret).toBeTruthy();
+    expect(endpoint).not.toHaveProperty('secretCiphertext');
+
+    const matterResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/matters',
+      headers: authHeaders,
+      payload: { title: 'Matter com evento automático' },
+    });
+    expect(matterResponse.statusCode).toBe(200);
+
+    const deliveriesResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v2/webhooks/deliveries?endpointId=${endpoint.id}`,
+      headers: authHeaders,
+    });
+    expect(deliveriesResponse.statusCode).toBe(200);
+    expect(JSON.parse(deliveriesResponse.body)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ endpointId: endpoint.id, status: 'PENDING', attemptCount: 0 })]),
+    );
   });
 
   it('deve ingerir texto e devolver versão, hash e âncoras do documento', async () => {
