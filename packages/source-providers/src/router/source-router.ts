@@ -7,7 +7,7 @@ import {
 import { JurisprudenceDocument } from '@forgelex/legal-data';
 
 export class SourceRouterError extends Error {
-  public readonly code: 'SOURCE_PROVIDER_UNAVAILABLE' | 'SOURCE_PROVIDER_TIMEOUT';
+  public readonly code: 'UNSUPPORTED_COURT' | 'SOURCE_PROVIDER_UNAVAILABLE' | 'SOURCE_PROVIDER_TIMEOUT';
 
   constructor(code: SourceRouterError['code'], message: string) {
     super(message);
@@ -24,9 +24,13 @@ function normalizeDate(value: string): string {
 export class SourceRouter {
   private readonly providers: LegalSourceProvider[] = [];
   private readonly timeoutMs: number;
+  private enabledCourts?: ReadonlySet<string>;
 
-  constructor(options: { timeoutMs?: number } = {}) {
+  constructor(options: { timeoutMs?: number; enabledCourts?: readonly string[] } = {}) {
     this.timeoutMs = options.timeoutMs ?? 20000;
+    this.enabledCourts = options.enabledCourts
+      ? new Set(options.enabledCourts.map((court) => court.trim().toUpperCase()))
+      : undefined;
   }
 
   public registerProvider(provider: LegalSourceProvider): void {
@@ -37,19 +41,44 @@ export class SourceRouter {
     return [...this.providers];
   }
 
+  public setEnabledCourts(courts: readonly string[]): void {
+    this.enabledCourts = new Set(courts.map((court) => court.trim().toUpperCase()));
+  }
+
+  public isCourtSearchable(court: string): boolean {
+    const normalizedCourt = court.trim().toUpperCase();
+    if (this.enabledCourts && !this.enabledCourts.has(normalizedCourt)) return false;
+    return this.providers.some((provider) => provider.supportsCourt(normalizedCourt));
+  }
+
   /**
    * Consulta os provedores elegíveis e reconcilia resultados por dedupeKey,
    * garantindo que acórdãos idênticos vindos de fontes distintas não dupliquem.
    */
   public async search(query: string, options: SearchOptions = {}): Promise<JurisprudenceDocument[]> {
+    const requestedCourt = options.court?.trim().toUpperCase()
+      ?? (this.enabledCourts?.size === 1 ? [...this.enabledCourts][0] : undefined);
+
+    if (requestedCourt && !this.isCourtSearchable(requestedCourt)) {
+      throw new SourceRouterError(
+        'UNSUPPORTED_COURT',
+        `O tribunal '${requestedCourt}' não está habilitado para pesquisa.`,
+      );
+    }
+
     const eligibleProviders = this.providers.filter((p) => {
-      if (!options.court) return true;
-      return p.supportsCourt(options.court);
+      if (!requestedCourt) return true;
+      return p.supportsCourt(requestedCourt);
     });
 
-    // Se nenhum provedor elegível for encontrado, retorna vazio
+    // Um catálogo sem provedor não é uma pesquisa sem resultados.
     if (eligibleProviders.length === 0) {
-      return [];
+      throw new SourceRouterError(
+        'UNSUPPORTED_COURT',
+        requestedCourt
+          ? `O tribunal '${requestedCourt}' não possui provedor habilitado.`
+          : 'Nenhum provedor de fonte está habilitado para pesquisa.',
+      );
     }
 
     // Provedores oficiais têm prioridade, mas a consulta ainda reconcilia
@@ -58,7 +87,10 @@ export class SourceRouter {
 
     // Consulta todos os provedores em paralelo com timeout explícito.
     const searchPromises = eligibleProviders.map((p) =>
-      this.withTimeout(p.search(query, options), p.id).catch((err) => ({ providerId: p.id, error: err }))
+      this.withTimeout(
+        p.search(query, requestedCourt ? { ...options, court: requestedCourt } : options),
+        p.id,
+      ).catch((err) => ({ providerId: p.id, error: err }))
     );
 
     const allResultsArrays = await Promise.all(searchPromises);

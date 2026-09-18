@@ -78,7 +78,9 @@ function mapSearchResult(item: any): SearchResultItem {
     sourceProvider: item.provenance?.source?.provider ?? 'API',
     dedupeKey: item.dedupeKey,
     isBinding: false,
-    verificationStatus: item.provenance?.verified ? 'VERIFIED_PROVIDER' : 'UNVERIFIED',
+    verificationStatus: item.provenance?.verified
+      ? item.provenance?.verificationMethod === 'OFFICIAL_SOURCE_HASH' ? 'VERIFIED_OFFICIAL' : 'VERIFIED_PROVIDER'
+      : 'UNVERIFIED',
   };
 }
 

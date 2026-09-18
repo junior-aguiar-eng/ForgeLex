@@ -213,8 +213,89 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(body.total).toBeGreaterThanOrEqual(4);
-    expect(body.tribunals.some((t: any) => t.code === 'STJ')).toBe(true);
+    expect(body.total).toBe(6);
+    expect(body.tribunals.find((t: any) => t.code === 'STJ')).toMatchObject({
+      searchable: true,
+      verifiable: true,
+      status: 'ONLINE',
+      providerId: 'provider_canonical_fixtures',
+    });
+    expect(body.tribunals.find((t: any) => t.code === 'STF')).toMatchObject({
+      searchable: false,
+      verifiable: false,
+      status: 'UNAVAILABLE',
+    });
+  });
+
+  it('deve rejeitar busca de tribunal não habilitado sem alterar o saldo', async () => {
+    const before = await ledgerService.provisionAccount('tenant_test');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v2/research/search-case-law',
+      headers: { ...authHeaders, 'idempotency-key': 'unsupported-court-001' },
+      payload: { query: 'proteção de dados', court: 'STF', limit: 5 },
+    });
+    const after = await ledgerService.provisionAccount('tenant_test');
+
+    expect(response.statusCode).toBe(422);
+    expect(JSON.parse(response.body)).toMatchObject({ error: 'UNSUPPORTED_COURT' });
+    expect(after).toMatchObject({
+      paidBalanceCents: before.paidBalanceCents,
+      promotionalBalanceCents: before.promotionalBalanceCents,
+    });
+  });
+
+  it('deve exigir q sem cobrar quando a busca REST não informa a consulta', async () => {
+    const before = await ledgerService.provisionAccount('tenant_test');
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v2/jurisprudencias?court=STJ',
+      headers: authHeaders,
+    });
+    const after = await ledgerService.provisionAccount('tenant_test');
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.body)).toMatchObject({ error: 'INVALID_REQUEST' });
+    expect(after).toMatchObject({
+      paidBalanceCents: before.paidBalanceCents,
+      promotionalBalanceCents: before.promotionalBalanceCents,
+    });
+  });
+
+  it('deve rejeitar operação REST faturável sem Idempotency-Key', async () => {
+    const before = await ledgerService.provisionAccount('tenant_test');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v2/research/search-case-law',
+      headers: authHeaders,
+      payload: { query: 'proteção de dados', court: 'STJ', limit: 5 },
+    });
+    const after = await ledgerService.provisionAccount('tenant_test');
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.body)).toMatchObject({ error: 'IDEMPOTENCY_KEY_REQUIRED' });
+    expect(after).toMatchObject({
+      paidBalanceCents: before.paidBalanceCents,
+      promotionalBalanceCents: before.promotionalBalanceCents,
+    });
+  });
+
+  it('deve cobrar uma busca STJ mesmo quando não houver resultados', async () => {
+    const before = await ledgerService.provisionAccount('tenant_test');
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v2/jurisprudencias?q=termo-sem-resultado-ForgeLex&court=STJ',
+      headers: { ...authHeaders, 'idempotency-key': 'stj-no-results-001' },
+    });
+    const after = await ledgerService.provisionAccount('tenant_test');
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body).total).toBe(0);
+    expect(response.headers['x-credits-charged']).toBe('0.2');
+    expect(after.paidBalanceCents + after.promotionalBalanceCents).toBe(
+      before.paidBalanceCents + before.promotionalBalanceCents - 20,
+    );
+    expect((await ledgerService.getUsageEvents('tenant_test')).filter((event) => event.requestId === 'stj-no-results-001')).toHaveLength(1);
   });
 
   it('GET /openapi.json deve expor o contrato gerado e a paridade REST/MCP', async () => {
@@ -224,6 +305,9 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const body = JSON.parse(response.body);
     expect(body.openapi).toBe('3.1.0');
     expect(body.paths['/api/v2/research/search-case-law'].post['x-forgelex-tool']).toBe('research.search_case_law');
+    expect(body.paths['/api/v2/research/search-case-law'].post.parameters).toContainEqual(expect.objectContaining({ name: 'Idempotency-Key', required: true }));
+    expect(body.paths['/api/v2/research/search-case-law'].post.description).toContain('infraestrutura STJ');
+    expect(body.paths['/api/v2/research/search-case-law'].post.responses['422']).toBeDefined();
     expect(body.paths['/api/v2/matters/{matterId}/authorities'].post['x-forgelex-required-scopes']).toEqual(['matter:write']);
     expect(body.paths['/api/v2/matters/{matterId}/research-memos'].post['x-forgelex-required-scopes']).toEqual(['matter:write', 'research:read']);
     expect(body.paths['/mcp'].post['x-forgelex-required-scopes']).toEqual(['mcp']);
@@ -318,7 +402,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const mcpResponse = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: authHeaders,
+      headers: { ...authHeaders, 'idempotency-key': 'commercial-slice-mcp-001' },
       payload: {
         jsonrpc: '2.0',
         id: 'commercial-slice-mcp',
@@ -333,6 +417,23 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const mcpBody = JSON.parse(mcpResponse.body);
     const mcpData = JSON.parse(mcpBody.result.content[0].text);
     expect(mcpData.data.items[0].provenance.source.provider).toBe('provider_canonical_fixtures');
+
+    const unsupportedMcpResponse = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { ...authHeaders, 'idempotency-key': 'commercial-slice-mcp-unsupported-001' },
+      payload: {
+        jsonrpc: '2.0',
+        id: 'commercial-slice-mcp-unsupported',
+        method: 'tools/call',
+        params: {
+          name: 'research.search_case_law',
+          arguments: { query: 'vazamento de dados', court: 'STF', limit: 5 },
+        },
+      },
+    });
+    expect(unsupportedMcpResponse.statusCode).toBe(200);
+    expect(JSON.parse(unsupportedMcpResponse.body).error.message).toContain('não está habilitado');
 
     const usage = await ledgerService.getUsageEvents('tenant_test');
     expect(usage.some((event) => event.requestId === idempotencyKey && event.capability === 'research.search_case_law')).toBe(true);

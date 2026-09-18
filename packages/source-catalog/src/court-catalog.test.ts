@@ -29,4 +29,26 @@ describe('CourtCatalog (Catálogo Canônico de Tribunais)', () => {
     expect(catalog.isCourtSupported('tjsp')).toBe(true);
     expect(catalog.isCourtSupported('TRIBUNAL_INEXISTENTE')).toBe(false);
   });
+
+  it('deve derivar capabilities do registro real de provedores e do escopo comercial habilitado', () => {
+    const capabilities = catalog.getCapabilities({
+      providers: [{ id: 'provider_stj_scon', supportsCourt: (court) => court === 'STJ' }],
+      enabledCourts: ['STJ'],
+      checkedAt: '2026-09-18T00:00:00.000Z',
+    });
+
+    expect(capabilities.find((item) => item.code === 'STJ')).toMatchObject({
+      searchable: true,
+      verifiable: true,
+      ingestionReady: false,
+      providerId: 'provider_stj_scon',
+      status: 'ONLINE',
+      lastCheckedAt: '2026-09-18T00:00:00.000Z',
+    });
+    expect(capabilities.find((item) => item.code === 'STF')).toMatchObject({
+      searchable: false,
+      verifiable: false,
+      status: 'UNAVAILABLE',
+    });
+  });
 });

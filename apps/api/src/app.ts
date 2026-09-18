@@ -187,12 +187,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     : undefined;
 
   const courtCatalog = new CourtCatalog();
+  const commercialEnabledCourts = ['STJ'] as const;
   const sourceRouter = options.sourceRouter ?? new SourceRouter();
   if (!options.sourceRouter) {
     sourceRouter.registerProvider(new StjSconProvider({
       baseUrl: environment.FORGELEX_STJ_SCON_BASE_URL,
     }));
   }
+  sourceRouter.setEnabledCourts(commercialEnabledCourts);
   const researchService = new ResearchService(sourceRouter);
 
   const toolRegistry = new ToolRegistry();
@@ -221,6 +223,40 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     reply.header('X-Credits-Charged', execution.chargedCents / 100);
     reply.header('X-Remaining-Balance', (execution.remainingBalanceCents / 100).toFixed(2));
     reply.header('X-Idempotent-Replay', execution.isReplay ? 'true' : 'false');
+  };
+
+  const readIdempotencyKey = (headers: Record<string, string | string[] | undefined>): string | undefined => {
+    const header = headers['idempotency-key'];
+    const value = Array.isArray(header) ? header[0] : header;
+    return value?.trim() || undefined;
+  };
+
+  const normalizeSearchCourt = (court?: string): string => {
+    const normalized = court?.trim().toUpperCase();
+    return !normalized || normalized === 'TODOS' ? 'STJ' : normalized;
+  };
+
+  const getSearchableCourt = (court?: string): string | undefined => {
+    const normalized = normalizeSearchCourt(court);
+    const capabilities = courtCatalog.getCapabilities({
+      providers: sourceRouter.getProviders(),
+      enabledCourts: commercialEnabledCourts,
+    });
+    return capabilities.some((item) => item.code === normalized && item.searchable) ? normalized : undefined;
+  };
+
+  const unsupportedCourtResponse = (reply: FastifyReply, court?: string) => {
+    const normalized = normalizeSearchCourt(court);
+    reply.status(422);
+    return {
+      error: 'UNSUPPORTED_COURT',
+      message: `O tribunal '${normalized}' não está habilitado para pesquisa no ForgeLex.`,
+    };
+  };
+
+  const missingIdempotencyResponse = (reply: FastifyReply) => {
+    reply.status(400);
+    return { error: 'IDEMPOTENCY_KEY_REQUIRED', message: 'A chave de idempotência é obrigatória.' };
   };
 
   const recordAudit = async (event: Parameters<AuditRecorder['recordEvent']>[0]): Promise<void> => {
@@ -557,9 +593,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     query: string;
     court?: string;
     limit: number;
-    idempotencyKey?: string;
+    idempotencyKey: string;
   }) => {
-    const idempotencyKey = input.idempotencyKey ?? `rest_search_${input.query}_${input.court ?? 'all'}_${input.limit}`;
+    const court = getSearchableCourt(input.court);
+    if (!court) return unsupportedCourtResponse(input.reply, input.court);
+    if (!input.idempotencyKey) return missingIdempotencyResponse(input.reply);
+
+    const idempotencyKey = input.idempotencyKey;
     const sessionId = `rest_${idempotencyKey}`;
     const startedAt = Date.now();
 
@@ -577,7 +617,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           sessionId,
           userId: input.principal.userId,
         },
-        operation: async () => researchService.searchCaseLaw({ query: input.query, court: input.court, limit: input.limit }),
+        operation: async () => researchService.searchCaseLaw({ query: input.query, court, limit: input.limit }),
       });
 
       setBillingHeaders(input.reply, execution);
@@ -589,7 +629,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           toolName: 'research.search_case_law',
           durationMs: Date.now() - startedAt,
           status: 'SUCCESS',
-          payload: { query: input.query, court: input.court, limit: input.limit, resultCount: execution.data.total },
+          payload: { query: input.query, court, limit: input.limit, resultCount: execution.data.total },
         });
       }
       await emitBillingWebhooks({
@@ -619,11 +659,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         toolName: 'research.search_case_law',
         durationMs: Date.now() - startedAt,
         status: 'FAILED',
-        payload: { query: input.query, court: input.court, limit: input.limit, error: message },
+        payload: { query: input.query, court, limit: input.limit, error: message },
       });
-      input.reply.status(sourceFailure ? 503 : 402);
+      input.reply.status(code === 'UNSUPPORTED_COURT' ? 422 : sourceFailure ? 503 : 402);
       return {
-        error: sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+        error: code === 'UNSUPPORTED_COURT' ? 'UNSUPPORTED_COURT' : sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
         message,
         details: details.details,
       };
@@ -841,9 +881,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     '/api/v2/tribunals',
     { preHandler: authAdapter.createPreHandler(['research:read']) },
     async () => {
+      const tribunals = courtCatalog.getCapabilities({
+        providers: sourceRouter.getProviders(),
+        enabledCourts: commercialEnabledCourts,
+      });
       return {
-        tribunals: courtCatalog.getAllCourts(),
-        total: courtCatalog.getAllCourts().length,
+        tribunals,
+        total: tribunals.length,
       };
     }
   );
@@ -1608,7 +1652,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         issueIds?: unknown;
       };
       const query = typeof body.query === 'string' ? body.query.trim() : '';
-      const court = typeof body.court === 'string' && body.court.trim() ? body.court.trim() : undefined;
+      const requestedCourt = typeof body.court === 'string' && body.court.trim() ? body.court.trim() : undefined;
+      const court = getSearchableCourt(requestedCourt);
       const limit = body.limit === undefined ? 10 : body.limit;
       if (
         query.length < 3 ||
@@ -1620,6 +1665,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         reply.status(400);
         return { error: 'INVALID_REQUEST', message: 'query deve conter pelo menos 3 caracteres e limit deve ser um inteiro entre 1 e 20.' };
       }
+      if (!court) return unsupportedCourtResponse(reply, requestedCourt);
+
+      const idempotencyKey = readIdempotencyKey(req.headers);
+      if (!idempotencyKey) return missingIdempotencyResponse(reply);
 
       const issueIdsProvided = body.issueIds !== undefined;
       if (issueIdsProvided && (!Array.isArray(body.issueIds) || !body.issueIds.every((item) => typeof item === 'string'))) {
@@ -1644,9 +1693,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return { error: 'LEGAL_ISSUE_NOT_FOUND', message: 'Uma ou mais questões jurídicas não pertencem ao matter autenticado.' };
       }
 
-      const idempotencyKey =
-        (req.headers['idempotency-key'] as string | undefined) ??
-        `research_memo_${matterId}_${query}_${court ?? 'all'}_${limit}_${selectedIssues.map((issue) => issue.id).join(',')}`;
       const existing = await researchMemoRepository.getByIdempotencyKey(
         req.principal.tenantId,
         matterId,
@@ -2116,21 +2162,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     { preHandler: authAdapter.createPreHandler(['research:read']) },
     async (req, reply) => {
       const query = req.query as { q?: string; court?: string; limit?: string };
-      const q = query.q ?? 'direito fundamental';
-      const court = query.court;
+      const q = typeof query.q === 'string' ? query.q.trim() : '';
+      const court = getSearchableCourt(query.court);
       const limit = query.limit ? parseInt(query.limit, 10) : 10;
 
-      if (q.trim().length < 2 || !Number.isInteger(limit) || limit < 1 || limit > 20) {
+      if (q.length < 2 || !Number.isInteger(limit) || limit < 1 || limit > 20) {
         reply.status(400);
         return {
           error: 'INVALID_REQUEST',
           message: 'q deve conter pelo menos 2 caracteres e limit deve estar entre 1 e 20.',
         };
       }
+      if (!court) return unsupportedCourtResponse(reply, query.court);
 
-      const idempotencyKey =
-        (req.headers['idempotency-key'] as string) ??
-        `rest_juris_${q}_${court ?? 'all'}_${limit}`;
+      const idempotencyKey = readIdempotencyKey(req.headers);
+      if (!idempotencyKey) return missingIdempotencyResponse(reply);
       const sessionId = `rest_${idempotencyKey}`;
       const startedAt = Date.now();
 
@@ -2190,9 +2236,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           status: 'FAILED',
           payload: { query: q, court, limit, error: err?.message },
         });
-        reply.status(err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 503 : 402);
+        const unsupportedCourt = err?.code === 'UNSUPPORTED_COURT';
+        reply.status(unsupportedCourt ? 422 : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 503 : 402);
         return {
-          error: err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+          error: unsupportedCourt ? 'UNSUPPORTED_COURT' : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
           message: err.message,
           details: err.details,
         };
@@ -2205,7 +2252,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     { preHandler: authAdapter.createPreHandler(['research:read']) },
     async (req, reply) => {
       const body = (req.body ?? {}) as { query?: unknown; court?: unknown; limit?: unknown };
-      const query = typeof body.query === 'string' ? body.query : '';
+      const query = typeof body.query === 'string' ? body.query.trim() : '';
       const court = typeof body.court === 'string' ? body.court : undefined;
       const limit = body.limit === undefined ? 10 : body.limit;
       if (
@@ -2222,13 +2269,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         };
       }
 
+      const idempotencyKey = readIdempotencyKey(req.headers);
+      if (!idempotencyKey) return missingIdempotencyResponse(reply);
+
       return runBillableSearchCaseLaw({
         principal: req.principal,
         reply,
         query,
         court,
         limit,
-        idempotencyKey: req.headers['idempotency-key'] as string | undefined,
+        idempotencyKey,
       });
     },
   );
@@ -2250,9 +2300,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         };
       }
 
-      const idempotencyKey =
-        (req.headers['idempotency-key'] as string) ??
-        `rest_get_authority_${court}_${processNumber}_${judgmentDate ?? ''}`;
+      const searchableCourt = getSearchableCourt(court);
+      if (!searchableCourt) return unsupportedCourtResponse(reply, court);
+      const idempotencyKey = readIdempotencyKey(req.headers);
+      if (!idempotencyKey) return missingIdempotencyResponse(reply);
       const sessionId = `rest_${idempotencyKey}`;
       const startedAt = Date.now();
 
@@ -2270,7 +2321,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             sessionId,
             userId: req.principal.userId,
           },
-          operation: async () => researchService.verifyAuthority({ court, processNumber, judgmentDate }),
+          operation: async () => researchService.verifyAuthority({ court: searchableCourt, processNumber, judgmentDate }),
         });
 
         setBillingHeaders(reply, execution);
@@ -2282,7 +2333,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             toolName: 'research.get_authority',
             durationMs: Date.now() - startedAt,
             status: 'SUCCESS',
-            payload: { court, processNumber, judgmentDate, status: execution.data.status },
+            payload: { court: searchableCourt, processNumber, judgmentDate, status: execution.data.status },
           });
         }
         await emitBillingWebhooks({
@@ -2313,11 +2364,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           toolName: 'research.get_authority',
           durationMs: Date.now() - startedAt,
           status: 'FAILED',
-          payload: { court, processNumber, judgmentDate, error: message },
+          payload: { court: searchableCourt, processNumber, judgmentDate, error: message },
         });
-        reply.status(sourceFailure ? 503 : 402);
+        reply.status(code === 'UNSUPPORTED_COURT' ? 422 : sourceFailure ? 503 : 402);
         return {
-          error: sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+          error: code === 'UNSUPPORTED_COURT' ? 'UNSUPPORTED_COURT' : sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
           message,
           details: details.details,
         };
@@ -2340,9 +2391,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           message: 'court e processNumber são obrigatórios para verificar a autoridade.',
         };
       }
-      const idempotencyKey =
-        (req.headers['idempotency-key'] as string) ??
-        `rest_verify_${court}_${processNumber}_${body.judgmentDate ?? ''}`;
+      const searchableCourt = getSearchableCourt(court);
+      if (!searchableCourt) return unsupportedCourtResponse(reply, court);
+      const idempotencyKey = readIdempotencyKey(req.headers);
+      if (!idempotencyKey) return missingIdempotencyResponse(reply);
       const sessionId = `rest_${idempotencyKey}`;
       const startedAt = Date.now();
 
@@ -2361,7 +2413,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             userId: req.principal.userId,
           },
           operation: async () => {
-            return await researchService.verifyAuthority({ court, processNumber, judgmentDate: body.judgmentDate });
+            return await researchService.verifyAuthority({ court: searchableCourt, processNumber, judgmentDate: body.judgmentDate });
           },
         });
 
@@ -2374,7 +2426,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             toolName: 'research.verify_authority',
             durationMs: Date.now() - startedAt,
             status: 'SUCCESS',
-            payload: { court, processNumber, judgmentDate: body.judgmentDate, status: execution.data.status },
+            payload: { court: searchableCourt, processNumber, judgmentDate: body.judgmentDate, status: execution.data.status },
           });
         }
         await emitBillingWebhooks({
@@ -2401,11 +2453,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           toolName: 'research.verify_authority',
           durationMs: Date.now() - startedAt,
           status: 'FAILED',
-          payload: { court, processNumber, judgmentDate: body.judgmentDate, error: err?.message },
+          payload: { court: searchableCourt, processNumber, judgmentDate: body.judgmentDate, error: err?.message },
         });
-        reply.status(err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 503 : 402);
+        const unsupportedCourt = err?.code === 'UNSUPPORTED_COURT';
+        reply.status(unsupportedCourt ? 422 : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 503 : 402);
         return {
-          error: err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+          error: unsupportedCourt ? 'UNSUPPORTED_COURT' : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
           message: err.message,
           details: err.details,
         };
@@ -2419,7 +2472,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     { preHandler: authAdapter.createPreHandler(['mcp']) },
     async (req) => {
       const body = req.body as any;
-      const idempotencyKey = req.headers['idempotency-key'] as string | undefined;
+      const idempotencyKey = readIdempotencyKey(req.headers);
 
       return await mcpHandler.handleRequest(body, {
         idempotencyKey,

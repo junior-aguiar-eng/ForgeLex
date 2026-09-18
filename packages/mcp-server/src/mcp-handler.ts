@@ -120,10 +120,14 @@ export class McpHandler {
           };
         }
 
-        const idempotencyKey =
-          context.idempotencyKey ??
-          request.params?._idempotencyKey ??
-          `mcp_${name}_${JSON.stringify(toolArgs ?? {})}`;
+        const idempotencyKey = context.idempotencyKey?.trim();
+        if (!idempotencyKey) {
+          return {
+            jsonrpc: '2.0',
+            id,
+            error: { code: -32602, message: 'Invalid params: a chave de idempotência é obrigatória.' },
+          };
+        }
         const sessionId = randomUUID();
         const startedAt = Date.now();
 

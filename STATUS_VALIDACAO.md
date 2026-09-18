@@ -1,8 +1,29 @@
 # Auditoria e status canônico do ForgeLex
 
-Última auditoria: 2026-09-18. Branch: `main`. A auditoria anterior está
-consolidada no commit mais recente desta branch; a remoção definitiva do
-provider anterior está implementada no worktree e ainda aguarda commit.
+Última auditoria: 2026-09-18. Branch: `main`.
+
+## Fase 0 — baseline exclusivo do STJ
+
+A Fase 0 do plano progressivo foi concluída localmente e consolidada no commit
+`e220cb2`. API REST, MCP e
+interface agora tratam o STJ como o único tribunal comercialmente pesquisável
+nesta etapa. O catálogo permanece capaz de listar STF, TST, TJSP, TJRJ e TRF3,
+mas esses registros retornam `searchable: false`, `verifiable: false` e
+`status: UNAVAILABLE` até que uma fase posterior homologue seus providers.
+
+O catálogo de capabilities é derivado do registro efetivo de providers. Busca
+sem provider elegível não é tratada como consulta vazia: REST responde
+`UNSUPPORTED_COURT` com HTTP 422 antes do ledger e o MCP rejeita a chamada
+equivalente. `q` e `Idempotency-Key` são obrigatórios nas operações REST
+faturáveis; uma busca STJ sem resultados permanece válida e é debitada uma
+única unidade de R$ 0,20. O MCP exige chave explícita e não cria chave
+determinística baseada nos argumentos.
+
+Os contratos OpenAPI, snippets da documentação, `.env.example` e seletores da
+interface foram alinhados ao escopo STJ. O MCP continua recebendo apenas a
+chamada autenticada e os argumentos da ferramenta, sem acesso a conversas,
+arquivos ou histórico do usuário. Não foram executados migration remota,
+deploy ou push.
 
 ## Estado implementado
 
@@ -39,7 +60,7 @@ provider anterior está implementada no worktree e ainda aguarda commit.
 
 | Gate | Resultado | Evidência |
 |---|---|---|
-| `pnpm test` | PASS | 36 arquivos aprovados; 165 testes aprovados; 1 arquivo e 2 testes condicionais ignorados |
+| `pnpm test` | PASS | 36 arquivos aprovados; 172 testes aprovados; 1 arquivo e 2 testes condicionais ignorados |
 | `pnpm typecheck` | PASS | todos os 15 projetos verificaram tipos |
 | `pnpm --filter @forgelex/web build` | PASS | 1.648 módulos; bundle inicial de aproximadamente 408 kB |
 | `git diff --check` | PASS | apenas avisos normais de conversão LF/CRLF |
@@ -118,7 +139,6 @@ providers Anthropic/OpenAI.
 
 ## Estado do repositório
 
-As alterações anteriores estão em `50878e1` e `ba9925d`. A remoção do provider
-anterior e a migração de identificadores neutros permanecem como alterações
-locais não commitadas até autorização específica. Nenhuma alteração de
-ferramenta jurídica foi feita.
+As alterações anteriores de billing estão em `50878e1`, `ba9925d` e
+`6b3c8c5`. A Fase 0 não altera as ferramentas jurídicas nem executa migration
+remota.

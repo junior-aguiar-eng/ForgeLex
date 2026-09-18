@@ -108,6 +108,21 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(JSON.stringify(response)).not.toContain(privateMarker);
   });
 
+  it('deve rejeitar tools/call faturável sem chave de idempotência explícita', async () => {
+    const response = await handler.handleRequest({
+      jsonrpc: '2.0',
+      id: 5,
+      method: 'tools/call',
+      params: {
+        name: 'research.search_case_law',
+        arguments: { query: 'vazamento de dados' },
+      },
+    }, { tenantId: 'tenant_mcp_test' });
+
+    expect(response.error?.code).toBe(-32602);
+    expect(response.error?.message).toContain('idempotência');
+  });
+
   it('deve rejeitar métodos inexistentes com código JSON-RPC -32601', async () => {
     const response = await handler.handleRequest({
       jsonrpc: '2.0',

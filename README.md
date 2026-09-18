@@ -84,7 +84,7 @@ outro efeito externo automático.
 │   ├── persistence/           # Drizzle ORM Dual-Driver (SQLite local/testes, PostgreSQL prod)
 │   ├── audit/                 # AuditRecorder com sanitização e hashing SHA-256 (OAB/LGPD)
 │   ├── legal-data/            # Contratos de jurisprudência, dedupeKey e contentHash
-│   ├── source-catalog/        # Catálogo nacional de tribunais (STF, STJ, TST, TJSP, etc.)
+│   ├── source-catalog/        # Catálogo canônico e capabilities dos tribunais
 │   ├── source-providers/      # Provedores de fontes e SourceRouter com reconciliação
 │   ├── legal-tools/           # Ferramentas de pesquisa, fatos e verificação de autoridades
 │   ├── legal-workflows/       # Workflows versionados de pesquisa, análise e minuta
@@ -137,6 +137,11 @@ equivale à validação de produção.
   nenhum coletor externo está configurado neste ambiente.
 - Testes locais, fixtures e respostas de indisponibilidade não comprovam
   credenciais, limites, migrations ou disponibilidade do ambiente definitivo.
+
+A pesquisa comercial desta fase está habilitada somente para o STJ. O catálogo
+pode listar outros tribunais como `UNAVAILABLE`, mas API, MCP e interface não
+anunciam esses tribunais como fontes pesquisáveis até que tenham provider e
+capability próprios homologados.
 
 ### Pré-requisitos
 * Node.js >= 20.x (Recomendado Node 22+)
@@ -272,6 +277,12 @@ O contrato REST gerado está disponível em `GET /openapi.json` e
 `GET /api/v2/openapi.json`. A superfície canônica de pesquisa é
 `POST /api/v2/research/search-case-law`; ela usa o mesmo `ResearchService`,
 ledger idempotente e auditoria da capability exposta pelo MCP.
+
+Na fase inicial, `GET /api/v2/tribunals` informa a capability real de cada
+fonte: somente o STJ aparece como `searchable` e `verifiable`. As operações
+REST faturáveis exigem `Idempotency-Key`; a ausência de `q` ou a solicitação de
+tribunal não habilitado é rejeitada antes do ledger. Uma busca STJ sem
+resultados ainda é uma operação própria válida e pode ser debitada.
 
 O primeiro vertical slice também permite salvar a authority retornada pela
 pesquisa no matter autenticado por `POST /api/v2/matters/{matterId}/authorities`
