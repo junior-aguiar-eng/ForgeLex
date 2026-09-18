@@ -1204,7 +1204,13 @@ Esse é o primeiro slice realmente vendável.
 
 ---
 
-# Gate anterior ao Segundo vertical slice — Provider parity
+# Registro histórico — Provider parity
+
+Este bloco registra uma validação técnica histórica dos adapters opcionais.
+Não é contrato comercial atual: o ForgeLex não fornece modelos de IA, não
+recebe chaves OpenAI/Anthropic e não vincula esses adapters ao billing REST/MCP.
+O modelo comercial vigente é o uso da API REST ou do MCP para operações da
+infraestrutura jurisprudencial própria.
 
 O adendo `ADENDO_PROMPT_PARIDADE_PROVIDERS_FORGELEX.md` exige que Anthropic e
 OpenAI atravessem a mesma matriz de contrato e integração antes do início do
@@ -1216,11 +1222,8 @@ Segundo vertical slice.
 | OpenAI | `PASSED_LOCAL` | `PASSED_LOCAL` | `PASSED_INTEGRATION` | `BLOCKED_CREDENTIALS` | `BLOCKED_CREDENTIALS` |
 
 Os estados locais são demonstrados pelos testes determinísticos com runtimes
-injetados. A ausência das chaves `ANTHROPIC_API_KEY` e `OPENAI_API_KEY` impede
-de declarar `PASSED_EXTERNAL`; nenhuma fixture local substitui essa validação.
-O gate externo continua aberto exclusivamente para a declaração de
-`PASSED_EXTERNAL`. A execução local e de integração do Segundo vertical slice,
-registrada abaixo, não promove fixture a fonte externa nem altera esse estado.
+injetados. A validação externa desses adapters é opcional e não habilita
+modelo, cobrança ou acesso adicional no produto comercial.
 
 ---
 

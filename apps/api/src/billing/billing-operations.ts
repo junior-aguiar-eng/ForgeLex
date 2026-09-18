@@ -33,7 +33,7 @@ export interface PaymentProvider {
     idempotencyKey: string;
     customerId?: string;
   }): Promise<{ id: string; url: string }>;
-  createSetupIntent(input: { customerId: string; idempotencyKey: string; tenantId?: string }): Promise<{ id: string; clientSecret: string }>;
+  createPaymentMethodSetup(input: { customerId: string; idempotencyKey: string; tenantId?: string }): Promise<{ id: string; clientSecret: string }>;
   listPaymentMethods(customerId: string): Promise<Array<{ id: string; type: string; brand?: string; last4?: string; expMonth?: number; expYear?: number }>>;
   createOffSessionPayment(input: {
     customerId: string;
@@ -42,7 +42,7 @@ export interface PaymentProvider {
     idempotencyKey: string;
     metadata: Record<string, string>;
   }): Promise<Record<string, unknown>>;
-  refundPayment(input: { paymentIntentId: string; amountCents: number; idempotencyKey: string }): Promise<Record<string, unknown>>;
+  refundPayment(input: { providerPaymentId: string; amountCents: number; idempotencyKey: string }): Promise<Record<string, unknown>>;
 }
 
 export class BillingOperationsService {
@@ -88,9 +88,9 @@ export class BillingOperationsService {
       amountCents: validated.amountCents,
       currency: BILLING_CURRENCY,
       status: 'PENDING',
-      stripeCheckoutSessionId: null,
+      providerCheckoutId: null,
       checkoutUrl: null,
-      stripePaymentIntentId: null,
+      providerPaymentId: null,
       receiptUrl: null,
       createdAt: new Date().toISOString(),
       paidAt: null,
@@ -107,10 +107,10 @@ export class BillingOperationsService {
       successUrl: `${this.origin}/?billing_purchase=${purchase.id}`,
       cancelUrl: `${this.origin}/?billing_canceled=${purchase.id}`,
       idempotencyKey: input.idempotencyKey,
-      customerId: billingAccount[0]?.stripeCustomerId ?? undefined,
+      customerId: billingAccount[0]?.providerCustomerId ?? undefined,
     });
     const updated = new Date().toISOString();
-    await this.db.update(billingPurchases).set({ stripeCheckoutSessionId: checkout.id, checkoutUrl: checkout.url, updatedAt: updated }).where(eq(billingPurchases.id, purchase.id));
+    await this.db.update(billingPurchases).set({ providerCheckoutId: checkout.id, checkoutUrl: checkout.url, updatedAt: updated }).where(eq(billingPurchases.id, purchase.id));
     return { purchaseId: purchase.id, amountCents: validated.amountCents, currency: BILLING_CURRENCY, status: 'PENDING', checkoutUrl: checkout.url };
   }
 
@@ -121,7 +121,7 @@ export class BillingOperationsService {
     data: { object: Record<string, unknown> };
   }): Promise<void> {
     await this.billing.runMigrations();
-    const provider = event.provider ?? 'stripe';
+    const provider = event.provider ?? 'mercadopago';
     const existing = await this.db.select().from(billingWebhookEvents).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id)));
     if (existing[0]) return;
     const receivedAt = new Date().toISOString();
@@ -131,21 +131,20 @@ export class BillingOperationsService {
       const object = event.data.object;
       const metadata = typeof object.metadata === 'object' && object.metadata !== null ? object.metadata as Record<string, unknown> : {};
       const purchaseId = typeof metadata.purchase_id === 'string' ? metadata.purchase_id : undefined;
-      if (purchaseId && (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded')) {
+      if (purchaseId && ['payment.approved', 'payment.succeeded'].includes(event.type)) {
         const paymentStatus = typeof object.payment_status === 'string' ? object.payment_status : 'paid';
-        if (paymentStatus === 'paid' || event.type === 'checkout.session.async_payment_succeeded') await this.completePurchase(purchaseId, object, provider);
+        if (paymentStatus === 'paid' || event.type === 'payment.succeeded') await this.completePurchase(purchaseId, object, provider);
         else await this.db.update(billingPurchases).set({ status: 'PROCESSING', updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
       }
-      if (purchaseId && event.type === 'checkout.session.processing') await this.db.update(billingPurchases).set({ status: 'PROCESSING', updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
-      if (purchaseId && event.type === 'checkout.session.async_payment_failed') await this.db.update(billingPurchases).set({ status: 'FAILED', updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
-      if (purchaseId && event.type === 'payment_intent.succeeded') await this.completePurchase(purchaseId, { ...object, payment_intent: object.id }, provider);
-      if (purchaseId && ['payment_intent.payment_failed', 'payment_intent.canceled'].includes(event.type)) {
+      if (purchaseId && event.type === 'payment.processing') await this.db.update(billingPurchases).set({ status: 'PROCESSING', updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
+      if (purchaseId && event.type === 'payment.failed') await this.db.update(billingPurchases).set({ status: 'FAILED', updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
+      if (purchaseId && event.type === 'payment.succeeded') await this.completePurchase(purchaseId, { ...object, provider_payment_id: object.id }, provider);
+      if (purchaseId && ['payment.failed', 'payment.canceled'].includes(event.type)) {
         await this.db.update(billingPurchases).set({ status: 'FAILED', updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
         if (metadata.auto_recharge === 'true') {
           await this.db.update(billingAccounts).set({ autoRechargeEnabled: 0, updatedAt: new Date().toISOString() }).where(eq(billingAccounts.tenantId, typeof metadata.tenant_id === 'string' ? metadata.tenant_id : ''));
         }
       }
-      if (provider === 'stripe' && event.type === 'setup_intent.succeeded') await this.savePaymentMethodFromSetupEvent(object);
       await this.db.update(billingWebhookEvents).set({ status: 'PROCESSED', processedAt: new Date().toISOString() }).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id)));
     } catch (error) {
       await this.db.update(billingWebhookEvents).set({ status: 'FAILED', errorMessage: error instanceof Error ? error.message : String(error) }).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id)));
@@ -208,18 +207,18 @@ export class BillingOperationsService {
     return this.db.select().from(billingInvoices).where(eq(billingInvoices.tenantId, tenantId)).orderBy(desc(billingInvoices.issuedAt));
   }
 
-  public async setupPaymentMethod(input: { tenantId: string; idempotencyKey: string }): Promise<{ setupIntentId: string; clientSecret: string }> {
+  public async setupPaymentMethod(input: { tenantId: string; idempotencyKey: string }): Promise<{ setupId: string; clientSecret: string }> {
     const account = await this.getBillingAccount(input.tenantId);
-    if (!account.stripeCustomerId) throw new Error('STRIPE_CUSTOMER_NOT_READY');
-    const setupIntent = await this.provider.createSetupIntent({ customerId: account.stripeCustomerId, tenantId: input.tenantId, idempotencyKey: input.idempotencyKey });
-    return { setupIntentId: setupIntent.id, clientSecret: setupIntent.clientSecret };
+    if (!account.providerCustomerId) throw new Error('PAYMENT_PROVIDER_CUSTOMER_NOT_READY');
+    const setup = await this.provider.createPaymentMethodSetup({ customerId: account.providerCustomerId, tenantId: input.tenantId, idempotencyKey: input.idempotencyKey });
+    return { setupId: setup.id, clientSecret: setup.clientSecret };
   }
 
   public async listPaymentMethods(tenantId: string): Promise<Array<typeof billingPaymentMethods.$inferSelect>> {
     const account = await this.getBillingAccount(tenantId);
-    if (!account.stripeCustomerId) return [];
-    const methods = await this.provider.listPaymentMethods(account.stripeCustomerId);
-    const providerName = this.provider.providerName ?? 'stripe';
+    if (!account.providerCustomerId) return [];
+    const methods = await this.provider.listPaymentMethods(account.providerCustomerId);
+    const providerName = this.provider.providerName ?? 'mercadopago';
     const now = new Date().toISOString();
     for (const method of methods) {
       await this.db.insert(billingPaymentMethods).values({
@@ -264,17 +263,17 @@ export class BillingOperationsService {
     await this.db.insert(billingPurchases).values({
       id: purchaseId, tenantId, userId: tenantId, packageId: 'auto_recharge', idempotencyKey: `auto-recharge:${tenantId}:${purchaseId}`,
       amountCents: account.lastRechargeAmountCents, currency: BILLING_CURRENCY, status: 'PROCESSING',
-      stripeCheckoutSessionId: null, checkoutUrl: null, stripePaymentIntentId: null, receiptUrl: null,
+      providerCheckoutId: null, checkoutUrl: null, providerPaymentId: null, receiptUrl: null,
       createdAt: now, paidAt: null, updatedAt: now,
     });
     try {
       const payment = await this.provider.createOffSessionPayment({
-        customerId: account.stripeCustomerId ?? '', paymentMethodId: account.defaultPaymentMethodId,
+        customerId: account.providerCustomerId ?? '', paymentMethodId: account.defaultPaymentMethodId,
         amountCents: account.lastRechargeAmountCents, idempotencyKey: `auto-payment:${purchaseId}`,
         metadata: { tenant_id: tenantId, purchase_id: purchaseId, auto_recharge: 'true' },
       });
-      const paymentIntentId = typeof payment.id === 'string' ? payment.id : null;
-      await this.db.update(billingPurchases).set({ stripePaymentIntentId: paymentIntentId, updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
+      const providerPaymentId = typeof payment.id === 'string' ? payment.id : null;
+      await this.db.update(billingPurchases).set({ providerPaymentId, updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
       await this.db.update(billingAccounts).set({ autoRechargeArmed: 0, updatedAt: new Date().toISOString() }).where(eq(billingAccounts.id, account.id));
       return { started: true, purchaseId };
     } catch (error) {
@@ -329,8 +328,8 @@ export class BillingOperationsService {
     if (!Number.isInteger(approvedAmountCents) || approvedAmountCents <= 0) throw new Error('BILLING_REFUND_AMOUNT_INVALID');
     const purchases = await this.db.select().from(billingPurchases).where(eq(billingPurchases.id, request.purchaseId));
     const purchase = purchases[0];
-    if (!purchase?.stripePaymentIntentId) throw new Error('BILLING_PAYMENT_INTENT_NOT_FOUND');
-    await this.provider.refundPayment({ paymentIntentId: purchase.stripePaymentIntentId, amountCents: approvedAmountCents, idempotencyKey: `refund:${request.id}` });
+    if (!purchase?.providerPaymentId) throw new Error('BILLING_PROVIDER_PAYMENT_NOT_FOUND');
+    await this.provider.refundPayment({ providerPaymentId: purchase.providerPaymentId, amountCents: approvedAmountCents, idempotencyKey: `refund:${request.id}` });
     await this.billing.refundUnusedCredits({ tenantId: request.tenantId, purchaseId: request.purchaseId, amountCents: approvedAmountCents, idempotencyKey: `refund-ledger:${request.id}` });
     await this.db.update(billingRefundRequests).set({ status: 'APPROVED', approvedAmountCents, reason: input.reason ?? request.reason, reviewedBy: input.reviewerId, reviewedAt: now, updatedAt: now }).where(eq(billingRefundRequests.id, input.requestId));
     await this.db.update(billingPayments).set({ status: 'REFUNDED', updatedAt: now }).where(eq(billingPayments.purchaseId, request.purchaseId));
@@ -342,39 +341,24 @@ export class BillingOperationsService {
     const existing = await this.db.select().from(billingAccounts).where(eq(billingAccounts.tenantId, tenantId));
     if (existing[0]) return;
     const now = new Date().toISOString();
-    const stripeCustomer = await this.provider.createCustomer({ tenantId, idempotencyKey: `customer:${tenantId}` });
-    await this.db.insert(billingAccounts).values({ id: randomUUID(), tenantId, stripeCustomerId: stripeCustomer.id, autoRechargeEnabled: 0, autoRechargeThresholdCents: 500, lastRechargeAmountCents: null, defaultPaymentMethodId: null, autoRechargeArmed: 1, createdAt: now, updatedAt: now });
+    const providerCustomer = await this.provider.createCustomer({ tenantId, idempotencyKey: `customer:${tenantId}` });
+    await this.db.insert(billingAccounts).values({ id: randomUUID(), tenantId, providerCustomerId: providerCustomer.id, autoRechargeEnabled: 0, autoRechargeThresholdCents: 500, lastRechargeAmountCents: null, defaultPaymentMethodId: null, autoRechargeArmed: 1, createdAt: now, updatedAt: now });
   }
 
-  private async completePurchase(purchaseId: string, object: Record<string, unknown>, provider = 'stripe'): Promise<void> {
+  private async completePurchase(purchaseId: string, object: Record<string, unknown>, provider = 'mercadopago'): Promise<void> {
     const purchases = await this.db.select().from(billingPurchases).where(eq(billingPurchases.id, purchaseId));
     const purchase = purchases[0];
     if (!purchase || purchase.status === 'PAID') return;
-    const paymentIntentId = typeof object.payment_intent === 'string' ? object.payment_intent : null;
+    const providerPaymentId = typeof object.provider_payment_id === 'string' ? object.provider_payment_id : null;
     await this.billing.creditPurchase({ tenantId: purchase.tenantId, purchaseId: purchase.id, amountCents: purchase.amountCents, idempotencyKey: `${provider}:purchase:${purchase.id}` });
     const now = new Date().toISOString();
-    await this.db.update(billingPurchases).set({ status: 'PAID', stripePaymentIntentId: paymentIntentId, paidAt: now, receiptUrl: typeof object.receipt_url === 'string' ? object.receipt_url : null, updatedAt: now }).where(eq(billingPurchases.id, purchase.id));
-    if (paymentIntentId) await this.db.insert(billingPayments).values({ id: randomUUID(), tenantId: purchase.tenantId, purchaseId: purchase.id, provider, providerPaymentId: paymentIntentId, amountCents: purchase.amountCents, currency: purchase.currency, status: 'SUCCEEDED', paymentMethodType: null, createdAt: now, updatedAt: now }).onConflictDoNothing();
+    await this.db.update(billingPurchases).set({ status: 'PAID', providerPaymentId, paidAt: now, receiptUrl: typeof object.receipt_url === 'string' ? object.receipt_url : null, updatedAt: now }).where(eq(billingPurchases.id, purchase.id));
+    if (providerPaymentId) await this.db.insert(billingPayments).values({ id: randomUUID(), tenantId: purchase.tenantId, purchaseId: purchase.id, provider, providerPaymentId, amountCents: purchase.amountCents, currency: purchase.currency, status: 'SUCCEEDED', paymentMethodType: null, createdAt: now, updatedAt: now }).onConflictDoNothing();
     await this.db.insert(billingInvoices).values({ id: randomUUID(), tenantId: purchase.tenantId, purchaseId: purchase.id, number: `FL-${purchase.id.slice(0, 8).toUpperCase()}`, status: 'PAID', amountCents: purchase.amountCents, currency: purchase.currency, receiptUrl: typeof object.receipt_url === 'string' ? object.receipt_url : null, issuedAt: now }).onConflictDoNothing({ target: billingInvoices.purchaseId });
     const metadata = typeof object.metadata === 'object' && object.metadata !== null ? object.metadata as Record<string, unknown> : {};
     if (metadata.auto_recharge === 'true') {
       await this.db.update(billingAccounts).set({ autoRechargeArmed: 1, updatedAt: now }).where(eq(billingAccounts.tenantId, purchase.tenantId));
     }
-  }
-
-  private async savePaymentMethodFromSetupEvent(object: Record<string, unknown>): Promise<void> {
-    const customerId = typeof object.customer === 'string' ? object.customer : undefined;
-    const paymentMethodId = typeof object.payment_method === 'string' ? object.payment_method : undefined;
-    if (!customerId || !paymentMethodId) return;
-    const accounts = await this.db.select().from(billingAccounts).where(eq(billingAccounts.stripeCustomerId, customerId));
-    const account = accounts[0];
-    if (!account) return;
-    const now = new Date().toISOString();
-    await this.db.insert(billingPaymentMethods).values({
-      id: randomUUID(), tenantId: account.tenantId, provider: 'stripe', providerPaymentMethodId: paymentMethodId,
-      type: 'card', brand: null, last4: null, expMonth: null, expYear: null, isDefault: 1, createdAt: now, revokedAt: null,
-    }).onConflictDoNothing({ target: billingPaymentMethods.providerPaymentMethodId });
-    await this.db.update(billingAccounts).set({ defaultPaymentMethodId: paymentMethodId, updatedAt: now }).where(eq(billingAccounts.id, account.id));
   }
 
   private purchaseResponse(purchase: typeof billingPurchases.$inferSelect) {

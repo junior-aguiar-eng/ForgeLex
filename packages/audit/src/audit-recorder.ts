@@ -10,11 +10,6 @@ export interface AuditEventData {
   durationMs: number;
   status: 'SUCCESS' | 'FAILED' | 'SUSPENDED_APPROVAL' | 'CANCELLED';
   payload?: unknown;
-  costMetadata?: {
-    tokensIn?: number;
-    tokensOut?: number;
-    estimatedCostUsd?: number;
-  };
 }
 
 export class AuditRecorder {
@@ -80,7 +75,7 @@ export class AuditRecorder {
       durationMs: event.durationMs,
       status: event.status,
       payloadHash,
-      costMetadata: event.costMetadata ? JSON.stringify(event.costMetadata) : null,
+      costMetadata: null,
       createdAt: now,
     });
 

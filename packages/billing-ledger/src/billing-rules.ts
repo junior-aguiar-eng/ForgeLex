@@ -9,7 +9,6 @@ export const JURISPRUDENCE_SEARCH_COST_CENTS = 20;
 export const CUSTOM_AMOUNT_MIN_CENTS = 2_500;
 export const CUSTOM_AMOUNT_MAX_CENTS = 50_000;
 export const AUTO_RECHARGE_THRESHOLD_CENTS = 500;
-export const DEFAULT_AI_MARGIN_BPS = 3_000;
 
 export interface CreditPurchaseInput {
   packageId?: string;
@@ -19,17 +18,6 @@ export interface CreditPurchaseInput {
 export interface ValidatedCreditPurchase {
   amountCents: number;
   packageId: string;
-}
-
-export interface TokenPricingInput {
-  inputTokens: number;
-  outputTokens: number;
-  cachedInputTokens?: number;
-  inputUsdPerMillion: number;
-  outputUsdPerMillion: number;
-  cachedInputUsdPerMillion?: number;
-  usdToBrl: number;
-  marginBps: number;
 }
 
 export function validateCreditPurchase(input: CreditPurchaseInput): ValidatedCreditPurchase {
@@ -52,35 +40,6 @@ export function validateCreditPurchase(input: CreditPurchaseInput): ValidatedCre
   }
 
   return { amountCents: input.amountCents, packageId: 'custom' };
-}
-
-export function calculateTokenChargeCents(input: TokenPricingInput): number {
-  const cachedInputTokens = input.cachedInputTokens ?? 0;
-  if (
-    !Number.isInteger(input.inputTokens) ||
-    !Number.isInteger(input.outputTokens) ||
-    !Number.isInteger(cachedInputTokens) ||
-    input.inputTokens < 0 ||
-    input.outputTokens < 0 ||
-    cachedInputTokens < 0 ||
-    cachedInputTokens > input.inputTokens ||
-    input.inputUsdPerMillion < 0 ||
-    input.outputUsdPerMillion < 0 ||
-    (input.cachedInputUsdPerMillion !== undefined && input.cachedInputUsdPerMillion < 0) ||
-    input.usdToBrl <= 0 ||
-    input.marginBps < 0
-  ) {
-    throw new Error('BILLING_TOKEN_USAGE_INVALID');
-  }
-
-  const regularInputTokens = input.inputTokens - cachedInputTokens;
-  const cachedRate = input.cachedInputUsdPerMillion ?? input.inputUsdPerMillion;
-  const providerUsd =
-    (regularInputTokens / 1_000_000) * input.inputUsdPerMillion +
-    (cachedInputTokens / 1_000_000) * cachedRate +
-    (input.outputTokens / 1_000_000) * input.outputUsdPerMillion;
-  const customerBrl = providerUsd * input.usdToBrl * (1 + input.marginBps / 10_000);
-  return Math.ceil(customerBrl * 100);
 }
 
 export function calculateRefundableCents(input: {

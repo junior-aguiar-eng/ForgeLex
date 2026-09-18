@@ -2,6 +2,12 @@
 
 Data da validação: 2026-09-16.
 
+Este é um relatório técnico de adapters opcionais e não descreve o modelo
+comercial vigente. O ForgeLex não fornece modelos de IA, não recebe chaves
+OpenAI/Anthropic e não cobra tokens. API REST e MCP cobram somente operações da
+infraestrutura jurisprudencial própria; qualquer modelo usado pelo
+desenvolvedor ou pelo host do MCP fica fora desse billing.
+
 Esta entrega executa o `ADENDO_PROMPT_PARIDADE_PROVIDERS_FORGELEX.md` com a
 mesma matriz local para Anthropic e OpenAI. Os runtimes foram injetados nos
 testes; nenhuma fixture local é apresentada como chamada real de API.
@@ -22,9 +28,10 @@ runtime, limite de turnos e ausência de resultado final. Os erros dos runtimes
 também são sanitizados para não reproduzir a chave configurada em eventos.
 
 O teste integrado percorre `AgentRuntime`, `ToolRegistry`,
-`research.search_case_law`, proveniência, persistência no matter, auditoria,
-usage/billing idempotente e isolamento entre tenants. A operação faturável é
-reexecutada com a mesma `idempotencyKey` e produz um único `UsageEvent`.
+`research.search_case_law`, proveniência, persistência no matter, auditoria e
+isolamento entre tenants. O uso de billing registrado nesses testes é legado
+de validação técnica e não representa cobrança de tokens nem um modelo
+fornecido pelo ForgeLex.
 
 ## Validação externa
 
@@ -33,6 +40,6 @@ no ambiente de execução. Nenhuma chamada externa foi iniciada. Por isso, o
 estado correto é `BLOCKED_CREDENTIALS`, separado dos estados locais aprovados;
 não há claim de `PASSED_EXTERNAL`.
 
-O Segundo vertical slice permanece bloqueado pelo gate externo de cada
-provider até que as respectivas credenciais sejam fornecidas em ambiente
-seguro e a chamada mínima, não mutável e sem dados reais seja executada.
+Nenhum gate comercial depende de credenciais desses providers. Chamadas
+externas, quando realizadas, são testes opcionais de integração dos adapters e
+devem ocorrer fora da configuração operacional do ForgeLex.

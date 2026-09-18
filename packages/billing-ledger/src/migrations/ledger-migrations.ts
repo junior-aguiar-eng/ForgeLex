@@ -175,6 +175,14 @@ export const ledgerMigrations: readonly SqlMigration[] = [
       `ALTER TABLE billing_accounts ADD COLUMN auto_recharge_armed INTEGER NOT NULL DEFAULT 1;`,
     ],
   },
+  {
+    id: 'billing-ledger-0004-provider-neutral-identifiers',
+    statements: [
+      `ALTER TABLE billing_accounts RENAME COLUMN stripe_customer_id TO provider_customer_id;`,
+      `ALTER TABLE billing_purchases RENAME COLUMN stripe_checkout_session_id TO provider_checkout_id;`,
+      `ALTER TABLE billing_purchases RENAME COLUMN stripe_payment_intent_id TO provider_payment_id;`,
+    ],
+  },
 ];
 
 export async function runLedgerMigrations(client: Client): Promise<void> {

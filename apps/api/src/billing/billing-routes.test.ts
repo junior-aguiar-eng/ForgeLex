@@ -25,14 +25,14 @@ class Provider implements PaymentProvider {
   public readonly supportsAutoRecharge = false;
   public async createCustomer(): Promise<{ id: string }> { return { id: 'cus_route' }; }
   public async createCheckout(input: { purchaseId: string }): Promise<{ id: string; url: string }> { return { id: `cs_${input.purchaseId}`, url: `https://checkout.test/${input.purchaseId}` }; }
-  public async createSetupIntent(): Promise<{ id: string; clientSecret: string }> { return { id: 'seti_test', clientSecret: 'secret' }; }
+  public async createPaymentMethodSetup(): Promise<{ id: string; clientSecret: string }> { return { id: 'setup_test', clientSecret: 'secret' }; }
   public async listPaymentMethods(): Promise<Array<{ id: string; type: string }>> { return []; }
   public async createOffSessionPayment(): Promise<Record<string, unknown>> { return { id: 'pi_auto', status: 'succeeded' }; }
   public async refundPayment(): Promise<Record<string, unknown>> { return { id: 're_test', status: 'succeeded' }; }
 }
 
 describe('rotas de billing', () => {
-  it('retorna conta de billing com BRL, pacotes e custo de busca', async () => {
+  it('não expõe catálogo de preços de modelos na conta de billing', async () => {
     const connection = await createDatabase();
     await runPersistenceMigrations(connection.client);
     const ledger = new LedgerService(connection.db, connection.client);
@@ -44,13 +44,19 @@ describe('rotas de billing', () => {
       database: connection.db,
       databaseClient: connection.client,
       billingOperationsService: operations,
-      environment: { NODE_ENV: 'test', FORGELEX_ALLOWED_ORIGINS: 'http://localhost:3000' },
+      environment: {
+        NODE_ENV: 'test',
+        FORGELEX_ALLOWED_ORIGINS: 'http://localhost:3000',
+        FORGELEX_MODEL_PRICING_JSON: JSON.stringify([{ provider: 'openai', model: 'legacy-model' }]),
+      },
     });
 
     const response = await app.inject({ method: 'GET', url: '/api/v2/billing/account', headers: { authorization: 'Bearer billing-token' } });
 
     expect(response.statusCode).toBe(200);
-    expect(JSON.parse(response.body)).toMatchObject({ currency: 'brl', searchCostCents: 20, packages: [{ amountCents: 2500 }, { amountCents: 5000 }, { amountCents: 8000 }], autoRecharge: { available: false } });
+    const body = JSON.parse(response.body);
+    expect(body).toMatchObject({ currency: 'brl', searchCostCents: 20, packages: [{ amountCents: 2500 }, { amountCents: 5000 }, { amountCents: 8000 }], autoRecharge: { available: false } });
+    expect(body).not.toHaveProperty('modelPricing');
     await app.close();
     connection.client.close();
   });
@@ -73,7 +79,7 @@ describe('rotas de billing', () => {
     connection.client.close();
   });
 
-  it('expõe extrato, faturas, métodos de pagamento, SetupIntent e recarga sem saldo local fictício', async () => {
+  it('expõe extrato, faturas, métodos de pagamento e recarga sem saldo local fictício', async () => {
     const connection = await createDatabase();
     await runPersistenceMigrations(connection.client);
     const ledger = new LedgerService(connection.db, connection.client);
@@ -142,6 +148,28 @@ describe('rotas de billing', () => {
     expect(second.statusCode).toBe(200);
     const purchase = await operations.getPurchase(purchaseId, principal.tenantId);
     expect(purchase?.status).toBe('PAID');
+    await app.close();
+    connection.client.close();
+  });
+
+  it('não expõe endpoint de webhook de provedor removido', async () => {
+    const connection = await createDatabase();
+    await runPersistenceMigrations(connection.client);
+    const ledger = new LedgerService(connection.db, connection.client);
+    await ledger.runMigrations();
+    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), new Provider());
+    const app = await buildApp({
+      authAdapter: new AuthAdapter(new TokenVerifier()),
+      ledgerService: ledger,
+      database: connection.db,
+      databaseClient: connection.client,
+      billingOperationsService: operations,
+      environment: { NODE_ENV: 'test' },
+    });
+
+    const response = await app.inject({ method: 'POST', url: '/api/v2/webhooks/stripe', payload: {} });
+
+    expect(response.statusCode).toBe(404);
     await app.close();
     connection.client.close();
   });

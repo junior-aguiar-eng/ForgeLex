@@ -4,7 +4,7 @@
 > Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-125%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-165%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -15,7 +15,7 @@
 O **FORGELEX V2** foi construído para superar as limitações das ferramentas jurídicas de 1ª geração (prompts estáticos, alucinações de ementas, dependência de fornecedor único e falta de governança).
 
 ### Pilares Fundamentais:
-1. **Microkernel Agêntico Vendor-Neutral:** Contratos comuns para adapters Anthropic, OpenAI e modelos locais.
+1. **Microkernel Agêntico Vendor-Neutral:** Contratos para integrações próprias de agentes, sem modelo de IA gerenciado pelo ForgeLex.
 2. **Governança Forense Human-in-the-Loop:** Classificação estrita de impacto em 5 níveis (`L0_OBSERVATION` a `L4_EXTERNAL_EFFECT`). Mutações externas exigem token criptográfico de aprovação do advogado.
 3. **Rastreabilidade e controle de alucinação:** Resultados com proveniência
    disponível preservam metadados, hash SHA-256 e estado de verificação para
@@ -79,8 +79,8 @@ outro efeito externo automático.
 ├── packages/
 │   ├── domain/                # Contratos canônicos, níveis L0-L4, proveniência e DomainErrors
 │   ├── agent-core/            # Microkernel agêntico, SessionStateMachine, PolicyEngine, ToolRegistry
-│   ├── agent-provider-anthropic/ # Adapter Claude Agent SDK (Claude Sonnet 5)
-│   ├── agent-provider-openai/    # Adapter oficial OpenAI Agents SDK (Responses API)
+│   ├── agent-provider-anthropic/ # Adapter opcional para integração/testes locais; não é runtime comercial
+│   ├── agent-provider-openai/    # Adapter opcional para integração/testes locais; não é runtime comercial
 │   ├── persistence/           # Drizzle ORM Dual-Driver (SQLite local/testes, PostgreSQL prod)
 │   ├── audit/                 # AuditRecorder com sanitização e hashing SHA-256 (OAB/LGPD)
 │   ├── legal-data/            # Contratos de jurisprudência, dedupeKey e contentHash
@@ -102,7 +102,7 @@ O frontend foi desenvolvido reproduzindo rigorosamente o design system editorial
 * **Telas Implementadas:**
   1. `Landing Page`: abertura de caso e barra de busca forense ao vivo (R$ 0,20/busca).
   2. `Painel do Advogado`: 4 cartões de métricas, gráfico de 30 dias e fila de aprovação L4.
-  3. `Conexões & Provedores`: Configuração local de credenciais, sem presumir conexão verificada.
+  3. `Canais de acesso`: MCP no ChatGPT/Claude e API REST no software do desenvolvedor.
   4. `Créditos & Faturamento`: Estado explícito de conta, sem saldo ou checkout presumidos.
   5. `Research Desk`: pesquisa, proveniência e verificação de autoridade em uma vertical única.
   6. `Matter Workspace`: documentos ancorados, fatos, provas, questões jurídicas e research memo.
@@ -120,9 +120,10 @@ isolamento de tenant, persistência SQLite, persistência PostgreSQL local,
 contratos de auditoria, billing e paridade estrutural dos adapters. Isso não
 equivale à validação de produção.
 
-- Chamadas reais Anthropic e OpenAI dependem de `ANTHROPIC_API_KEY` e
-  `OPENAI_API_KEY`. Sem essas variáveis, os testes de integração externa devem
-  permanecer `SKIPPED`/`BLOCKED_CREDENTIALS`.
+- Os adapters locais de Anthropic e OpenAI existem apenas para integração/testes
+  opcionais e não são inicializados pelo runtime comercial. O ForgeLex não
+  fornece modelo, não solicita essas chaves e não as inclui na configuração
+  operacional de exemplo.
 - A API usa `DATABASE_URL` (ou `FORGELEX_DATABASE_URL`) para inicializar o
   driver PostgreSQL; sem a variável, os testes e o desenvolvimento usam
   SQLite em memória. O ambiente PostgreSQL reproduzível usa `docker compose`;
@@ -241,6 +242,30 @@ configure a URL de retorno do aplicativo para que os links de confirmação e
 recuperação funcionem. Sem essas variáveis, o frontend informa que o acesso
 ainda não está disponível; não existe usuário ou espaço padrão.
 
+### Billing e superfícies de integração
+
+O Mercado Pago é o único provedor de pagamento do ForgeLex. O modelo comercial
+é pré-pago, em BRL, sem mensalidade: o usuário compra créditos e o backend só
+lança o saldo depois da confirmação do pagamento pelo webhook validado.
+
+Há duas superfícies distintas de uso:
+
+1. **API para desenvolvedores.** O software do desenvolvedor autentica com API
+   key do ForgeLex, recebe jurisprudência, ementas e metadados e paga pelas
+   operações da API. A API key é somente uma credencial; não é token de IA. Se
+   o software usar OpenAI, Anthropic ou outro modelo, essa integração e esse
+   billing pertencem ao desenvolvedor, fora do ForgeLex.
+2. **MCP para advogados.** O advogado conecta o MCP ao ChatGPT ou Claude e usa
+   sua própria conta e assinatura. O ForgeLex autentica o usuário e consulta
+   a mesma infraestrutura jurisprudencial disponibilizada pela API REST,
+   cobrando apenas as operações ForgeLex executadas, inicialmente R$ 0,20 por
+   busca jurisprudencial.
+
+Assim, a assinatura do ChatGPT ou Claude paga o modelo do host; os créditos
+ForgeLex pagam dados, pesquisa e infraestrutura jurídica. O MCP recebe somente
+a chamada autenticada e os argumentos da ferramenta: não acessa conversas,
+arquivos ou histórico do usuário.
+
 ### Distribuição pública (Marco 10)
 
 O contrato REST gerado está disponível em `GET /openapi.json` e
@@ -253,11 +278,10 @@ pesquisa no matter autenticado por `POST /api/v2/matters/{matterId}/authorities`
 e recuperá-la por `GET /api/v2/matters/{matterId}/authorities`. O salvamento
 preserva a proveniência e é idempotente por `dedupeKey` dentro do matter.
 
-A paridade entre os adapters Anthropic e OpenAI está documentada em
-[RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md](RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md).
-Os testes locais e a integração controlada do ForgeLex cobrem o contrato comum;
-chamadas reais permanecem `BLOCKED_CREDENTIALS` quando as respectivas chaves
-não estão disponíveis no ambiente.
+A paridade técnica dos adapters opcionais Anthropic e OpenAI está documentada
+em [RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md](RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md).
+Ela não representa modelo fornecido pelo ForgeLex nem cria relação de billing
+com a API ou o MCP comerciais.
 
 As métricas podem ser coletadas por Prometheus apontando o scrape para
 `/metrics/prometheus`; a integração com um coletor externo continua sendo
@@ -314,13 +338,13 @@ provider externo.
 ```bash
 $ vitest run
 
- ✓ packages/audit/src/audit-recorder.test.ts (3 tests)
+ ✓ packages/audit/src/audit-recorder.test.ts (4 tests)
  ✓ packages/legal-tools/src/facts-evidence/facts-evidence-tools.test.ts (1 test)
  ✓ packages/legal-tools/src/drafting-review.test.ts (1 test)
  ✓ packages/persistence/src/persistence.test.ts (9 tests)
  ✓ packages/billing-ledger/src/ledger.test.ts (7 tests)
  ✓ packages/legal-workflows/src/workflow-engine.test.ts (3 tests)
- ✓ packages/mcp-server/src/mcp-server.test.ts (5 tests)
+ ✓ packages/mcp-server/src/mcp-server.test.ts (6 tests)
  ✓ packages/source-providers/src/stj-scon-provider.test.ts (4 tests)
  ✓ packages/legal-workflows/src/research-memo/legal-research-memo.test.ts (4 tests)
  ✓ packages/legal-tools/src/research/research-tools.test.ts (4 tests)
@@ -343,8 +367,8 @@ $ vitest run
  ✓ packages/source-catalog/src/court-catalog.test.ts (3 tests)
  ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (9 tests)
 
- Test Files  27 passed | 1 skipped (28)
- Tests  125 passed | 2 skipped (127)
+ Test Files  36 passed | 1 skipped (37)
+ Tests  165 passed | 2 skipped (167)
 ```
 
 ---

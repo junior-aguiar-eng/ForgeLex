@@ -7,6 +7,13 @@
 > **Nome:** `FORGELEX` é provisório e pode ser substituído sem impacto arquitetural.  
 > **Escopo:** produto novo e independente, concebido desde a origem como plataforma jurídica agêntica vendor-neutral, distribuível como aplicação profissional, API e infraestrutura MCP.
 
+> **Atualização comercial de 18/09/2026:** este documento preserva uma
+> arquitetura histórica e não substitui o contrato comercial atual. O runtime
+> comercial do ForgeLex não fornece modelo de IA, não recebe chaves
+> OpenAI/Anthropic e não cobra tokens. O produto atual vende a própria base e
+> infraestrutura jurisprudencial por API REST e MCP; modelos usados pelo
+> desenvolvedor ou pelo host do MCP pertencem a essas integrações.
+
 ---
 
 ## Revisão consolidada V2
@@ -2750,17 +2757,25 @@ O texto pode conter argumento original, mas deve separar argumento de autoridade
 
 ---
 
-# 56. CUSTO, METERING E ROTEAMENTO
+# 56. CUSTO, METERING E ROTEAMENTO — STATUS COMERCIAL ATUAL
 
-A plataforma distingue três grandezas diferentes:
+O contrato comercial atual distingue somente a operação jurídica própria e o
+saldo ForgeLex. Não existe cobrança de modelo, margem sobre OpenAI/Anthropic,
+conversão USD/BRL ou catálogo de tokens no runtime comercial.
 
 ```text
-1. provider compute cost    -> custo Anthropic/OpenAI/modelo
-2. upstream data cost       -> custo de fonte/API jurídica externa
-3. commercial usage unit   -> unidade FORGELEX apresentada ao cliente
+1. legal operation          -> busca, verificação ou outra capability própria
+2. source infrastructure    -> base e infraestrutura jurisprudencial ForgeLex
+3. commercial credit        -> saldo pré-pago em BRL consumido pela operação
 ```
 
-Essas grandezas não devem ser confundidas nem expostas necessariamente na mesma unidade.
+API REST e MCP são canais diferentes para a mesma infraestrutura. A API key
+autentica a integração do desenvolvedor; o MCP autentica o usuário no
+ChatGPT/Claude. Nenhum dos dois transporta ou fatura tokens do modelo host.
+
+Adapters de Anthropic/OpenAI e eventuais `ModelRouter` pertencem apenas a
+integrações ou validações técnicas externas ao runtime comercial. O billing
+ForgeLex não escolhe, recebe ou tarifa esses modelos.
 
 `ModelRouter` escolhe provider/model profile com base em:
 
@@ -2799,23 +2814,15 @@ verification              -> official source when available
 
 ## 56.1 Metering canônico
 
-Toda operação potencialmente faturável gera `UsageEvent` próprio antes de agregação financeira. O evento pode medir:
-
-- model input/output;
-- tool execution;
-- search page;
-- document detail;
-- OCR pages;
-- ingest volume;
-- storage;
-- connector execution;
-- workflow premium.
-
-O pricing engine transforma usage em unidades comerciais segundo versão de preço/plan vigente. O domínio jurídico nunca contém regra de preço.
+Toda operação potencialmente faturável gera `UsageEvent` próprio antes da
+agregação financeira. No contrato atual, o evento registra a capability,
+ferramenta, idempotência, tenant, resultado e custo em centavos da operação
+ForgeLex. O domínio jurídico nunca contém regra de preço de modelo.
 
 ## 56.2 Legal Compute Credits
 
-Quando o produto usar franquia de consumo, o nome comercial recomendado é uma unidade própria como `Legal Compute Credits`, não tokens do fornecedor. Créditos podem representar custo agregado de IA, fontes jurídicas e processamento pesado, permitindo trocar provider sem alterar a promessa comercial.
+Os créditos ForgeLex representam saldo para operações jurídicas próprias, não
+tokens de fornecedor, custo agregado de IA ou margem sobre um modelo externo.
 
 ## 56.3 Quote e consentimento
 

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   CREDIT_PACKAGES,
   JURISPRUDENCE_SEARCH_COST_CENTS,
-  calculateTokenChargeCents,
   calculateRefundableCents,
   validateCreditPurchase,
 } from './billing-rules.js';
@@ -30,17 +29,6 @@ describe('regras comerciais do billing ForgeLex', () => {
 
   it('cobra R$ 0,20 por busca jurisprudencial', () => {
     expect(JURISPRUDENCE_SEARCH_COST_CENTS).toBe(20);
-  });
-
-  it('calcula custo de IA por tokens e margem, arredondando para centavos', () => {
-    expect(calculateTokenChargeCents({
-      inputTokens: 1_000_000,
-      outputTokens: 100_000,
-      inputUsdPerMillion: 2,
-      outputUsdPerMillion: 10,
-      usdToBrl: 5,
-      marginBps: 3000,
-    })).toBe(1_950);
   });
 
   it('limita o reembolso ao saldo ainda disponível do lote comprado', () => {

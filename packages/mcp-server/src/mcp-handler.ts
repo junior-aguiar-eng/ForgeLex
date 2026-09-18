@@ -161,7 +161,6 @@ export class McpHandler {
               durationMs: Date.now() - startedAt,
               status: 'SUCCESS',
               payload: { arguments: toolArgs, success: execution.data.success },
-              costMetadata: { estimatedCostUsd: 0 },
             });
           }
 

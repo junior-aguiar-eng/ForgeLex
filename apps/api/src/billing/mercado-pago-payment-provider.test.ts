@@ -147,10 +147,10 @@ describe('MercadoPagoPaymentProvider', () => {
     expect(event).toMatchObject({
       id: '99',
       provider: 'mercadopago',
-      type: 'checkout.session.completed',
+      type: 'payment.approved',
       data: { object: {
         payment_status: 'paid',
-        payment_intent: 'ORDTEST123',
+        provider_payment_id: 'ORDTEST123',
         metadata: { purchase_id: 'purchase_1' },
       } },
     });
@@ -177,7 +177,7 @@ describe('MercadoPagoPaymentProvider', () => {
       .mockResolvedValueOnce(response({ id: 'ORDTEST123', status: 'processed' }));
     const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher });
 
-    await provider.refundPayment({ paymentIntentId: 'ORDTEST123', amountCents: 1250, idempotencyKey: 'refund_1' });
+    await provider.refundPayment({ providerPaymentId: 'ORDTEST123', amountCents: 1250, idempotencyKey: 'refund_1' });
 
     expect(fetcher).toHaveBeenNthCalledWith(2, 'https://api.mercadopago.com/v1/orders/ORDTEST123/refund', expect.objectContaining({
       method: 'POST',
@@ -189,7 +189,7 @@ describe('MercadoPagoPaymentProvider', () => {
   it('mantém recarga automática e cartão salvo bloqueados até haver fluxo próprio do Mercado Pago', async () => {
     const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret' });
 
-    await expect(provider.createSetupIntent({ customerId: 'tenant_1', idempotencyKey: 'setup_1' })).rejects.toThrow('MERCADOPAGO_PAYMENT_METHODS_UNAVAILABLE');
+    await expect(provider.createPaymentMethodSetup({ customerId: 'tenant_1', idempotencyKey: 'setup_1' })).rejects.toThrow('MERCADOPAGO_PAYMENT_METHODS_UNAVAILABLE');
     await expect(provider.createOffSessionPayment({
       customerId: 'tenant_1',
       paymentMethodId: 'card_1',

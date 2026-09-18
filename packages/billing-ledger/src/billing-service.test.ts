@@ -19,13 +19,13 @@ describe('BillingService', () => {
       tenantId,
       purchaseId: 'purchase_a',
       amountCents: 5000,
-      idempotencyKey: 'stripe:payment_intent:pi_a',
+      idempotencyKey: 'mercadopago:payment:payment_a',
     });
     const replay = await billing.creditPurchase({
       tenantId,
       purchaseId: 'purchase_a',
       amountCents: 5000,
-      idempotencyKey: 'stripe:payment_intent:pi_a',
+      idempotencyKey: 'mercadopago:payment:payment_a',
     });
 
     expect(first).toMatchObject({ creditedCents: 5000, isReplay: false, remainingBalanceCents: 5000 });
@@ -62,5 +62,23 @@ describe('BillingService', () => {
 
     await expect(billing.refundUnusedCredits({ tenantId: `other_${tenantId}`, purchaseId: `purchase_${tenantId}`, idempotencyKey: `refund_${tenantId}` }))
       .rejects.toThrow('BILLING_PURCHASE_NOT_FOUND');
+  });
+
+  it('migra identificadores de pagamento para nomes independentes do provedor', async () => {
+    const connection = await createDatabase();
+    await runPersistenceMigrations(connection.client);
+    const billing = new BillingService(connection.db, connection.client);
+    await billing.runMigrations();
+
+    const accounts = await connection.client.execute('PRAGMA table_info(billing_accounts)');
+    const purchases = await connection.client.execute('PRAGMA table_info(billing_purchases)');
+
+    expect(accounts.rows.map((row) => row.name)).toContain('provider_customer_id');
+    expect(accounts.rows.map((row) => row.name)).not.toContain('stripe_customer_id');
+    expect(purchases.rows.map((row) => row.name)).toContain('provider_checkout_id');
+    expect(purchases.rows.map((row) => row.name)).toContain('provider_payment_id');
+    expect(purchases.rows.map((row) => row.name)).not.toContain('stripe_checkout_session_id');
+    expect(purchases.rows.map((row) => row.name)).not.toContain('stripe_payment_intent_id');
+    connection.client.close();
   });
 });

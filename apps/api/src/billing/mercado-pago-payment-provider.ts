@@ -100,7 +100,7 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
     return { id, url };
   }
 
-  public async createSetupIntent(input: { customerId: string; idempotencyKey: string; tenantId?: string }): Promise<{ id: string; clientSecret: string }> {
+  public async createPaymentMethodSetup(input: { customerId: string; idempotencyKey: string; tenantId?: string }): Promise<{ id: string; clientSecret: string }> {
     void input;
     throw new Error('MERCADOPAGO_PAYMENT_METHODS_UNAVAILABLE');
   }
@@ -121,11 +121,11 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
     throw new Error('MERCADOPAGO_AUTO_RECHARGE_UNAVAILABLE');
   }
 
-  public async refundPayment(input: { paymentIntentId: string; amountCents: number; idempotencyKey: string }): Promise<Record<string, unknown>> {
-    const order = await this.request(`/v1/orders/${encodeURIComponent(input.paymentIntentId)}`, { method: 'GET' }) as MercadoPagoOrder;
+  public async refundPayment(input: { providerPaymentId: string; amountCents: number; idempotencyKey: string }): Promise<Record<string, unknown>> {
+    const order = await this.request(`/v1/orders/${encodeURIComponent(input.providerPaymentId)}`, { method: 'GET' }) as MercadoPagoOrder;
     const paymentId = this.extractPaymentId(order);
     if (!paymentId) throw new Error('MERCADOPAGO_PAYMENT_NOT_FOUND');
-    return this.request(`/v1/orders/${encodeURIComponent(input.paymentIntentId)}/refund`, {
+    return this.request(`/v1/orders/${encodeURIComponent(input.providerPaymentId)}/refund`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Idempotency-Key': input.idempotencyKey },
       body: JSON.stringify({ transactions: [{ id: paymentId, amount: this.formatAmount(input.amountCents) }] }),
@@ -147,12 +147,12 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
       ? (typeof resource.id === 'string' ? resource.id : input.dataId)
       : (typeof resource.order_id === 'string' ? resource.order_id : input.dataId);
     const eventType = status === 'paid'
-      ? 'checkout.session.completed'
+      ? 'payment.approved'
       : status === 'failed'
-        ? 'checkout.session.async_payment_failed'
+        ? 'payment.failed'
         : status === 'refunded'
-          ? 'mercadopago.order.refunded'
-          : 'checkout.session.processing';
+          ? 'payment.refunded'
+          : 'payment.processing';
     const eventId = input.payload.id === undefined || input.payload.id === null
       ? `${resourceType}:${input.dataId}`
       : String(input.payload.id);
@@ -164,7 +164,7 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
         object: {
           id: providerReference,
           payment_status: status,
-          payment_intent: providerReference,
+          provider_payment_id: providerReference,
           ...(purchaseId ? { metadata: { purchase_id: purchaseId } } : {}),
           ...(typeof resource.total_amount === 'string' ? { amount_total: Math.round(Number(resource.total_amount) * 100) } : {}),
         },

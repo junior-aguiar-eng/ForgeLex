@@ -85,6 +85,29 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(parsedData.data.items[0].court).toBe('STJ');
   });
 
+  it('não recebe conversas, arquivos ou histórico do cliente MCP', async () => {
+    const privateMarker = 'conteudo-privado-do-host';
+    const response = await handler.handleRequest(
+      {
+        jsonrpc: '2.0',
+        id: 4,
+        method: 'tools/call',
+        params: {
+          name: 'research.search_case_law',
+          arguments: {
+            query: 'vazamento de dados',
+            conversation: privateMarker,
+            files: [privateMarker],
+            history: [privateMarker],
+          },
+        },
+      },
+      { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_privacy_001' }
+    );
+
+    expect(JSON.stringify(response)).not.toContain(privateMarker);
+  });
+
   it('deve rejeitar métodos inexistentes com código JSON-RPC -32601', async () => {
     const response = await handler.handleRequest({
       jsonrpc: '2.0',

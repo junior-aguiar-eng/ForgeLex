@@ -124,7 +124,6 @@ function createBilledResearchTool(
           durationMs: 0,
           status: 'SUCCESS',
           payload: { provider, resultCount: execution.data.data.total },
-          costMetadata: { provider: `agent_${provider}` },
         });
       }
 

@@ -30,7 +30,7 @@ import {
   AccountRepository,
   runPersistenceMigrations,
 } from '@forgelex/persistence';
-import { BillingService, CREDIT_PACKAGES, JURISPRUDENCE_SEARCH_COST_CENTS, LedgerService, ModelPricingCatalog } from '@forgelex/billing-ledger';
+import { BillingService, CREDIT_PACKAGES, JURISPRUDENCE_SEARCH_COST_CENTS, LedgerService } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { EXTERNAL_MCP_TOOL_NAMES, McpHandler } from '@forgelex/mcp-server';
 import { CaseLawSchema, type AuthenticatedPrincipal } from '@forgelex/domain';
@@ -51,7 +51,6 @@ import type { Client } from '@forgelex/persistence';
 import { caseLawToLegalAuthority, compileLegalResearchMemo } from '@forgelex/legal-workflows';
 import { RequestMetrics, structuredLog } from './observability.js';
 import { BillingOperationsService, type PaymentProvider } from './billing/billing-operations.js';
-import { StripePaymentProvider } from './billing/stripe-payment-provider.js';
 import { MercadoPagoPaymentProvider } from './billing/mercado-pago-payment-provider.js';
 
 export interface BuildAppOptions {
@@ -65,7 +64,6 @@ export interface BuildAppOptions {
   environment?: Record<string, string | undefined>;
   billingOperationsService?: BillingOperationsService;
   paymentProvider?: PaymentProvider;
-  stripePaymentProvider?: StripePaymentProvider;
   mercadoPagoPaymentProvider?: MercadoPagoPaymentProvider;
 }
 
@@ -153,16 +151,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(environment, apiKeyRepository, accountRepository);
   const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client);
   await ledgerService.runMigrations();
-  const stripePaymentProvider = options.stripePaymentProvider ?? (
-    environment.FORGELEX_BILLING_ENABLED === 'true'
-      && environment.STRIPE_SECRET_KEY
-      && environment.STRIPE_WEBHOOK_SECRET
-      ? new StripePaymentProvider({ secretKey: environment.STRIPE_SECRET_KEY, webhookSecret: environment.STRIPE_WEBHOOK_SECRET })
-      : undefined
-  );
   const mercadoPagoPaymentProvider = options.mercadoPagoPaymentProvider ?? (
     environment.FORGELEX_BILLING_ENABLED === 'true'
-      && environment.FORGELEX_PAYMENT_PROVIDER === 'mercadopago'
       && environment.MERCADOPAGO_ACCESS_TOKEN
       && environment.MERCADOPAGO_WEBHOOK_SECRET
       && environment.MERCADOPAGO_NOTIFICATION_URL
@@ -173,13 +163,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       })
       : undefined
   );
-  const activePaymentProvider = options.paymentProvider ?? mercadoPagoPaymentProvider ?? stripePaymentProvider;
+  const activePaymentProvider = options.paymentProvider ?? mercadoPagoPaymentProvider;
   const billingOperationsService = options.billingOperationsService ?? (
     database && databaseClient && activePaymentProvider
       ? new BillingOperationsService(database, databaseClient, new BillingService(database, databaseClient), activePaymentProvider, environment.FORGELEX_WEB_URL ?? 'http://localhost:3000')
       : undefined
   );
-  const modelPricingCatalog = ModelPricingCatalog.fromJson(environment.FORGELEX_MODEL_PRICING_JSON);
   const matterRepository = database ? new MatterRepository(database) : undefined;
   const matterAuthorityRepository = database ? new MatterAuthorityRepository(database) : undefined;
   const legalIssueRepository = database ? new LegalIssueRepository(database) : undefined;
@@ -289,7 +278,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         amountCents: billingAccount.lastRechargeAmountCents,
         paymentMethodId: billingAccount.defaultPaymentMethodId,
       },
-      modelPricing: modelPricingCatalog.list(),
     };
   });
 
@@ -399,27 +387,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       return { error: 'BILLING_PURCHASE_NOT_FOUND', message: 'Compra não encontrada.' };
     }
     return purchase;
-  });
-
-  app.post('/api/v2/webhooks/stripe', async (request, reply) => {
-    if (!billingOperationsService || !stripePaymentProvider) {
-      reply.status(503);
-      return { error: 'BILLING_UNAVAILABLE', message: 'O webhook Stripe ainda não está configurado.' };
-    }
-    const signature = request.headers['stripe-signature'];
-    const rawBody = (request as typeof request & { rawBody?: string }).rawBody;
-    if (typeof signature !== 'string' || !rawBody) {
-      reply.status(400);
-      return { error: 'STRIPE_SIGNATURE_INVALID', message: 'Assinatura Stripe ausente.' };
-    }
-    try {
-      const event = stripePaymentProvider.verifyWebhook(rawBody, signature);
-      await billingOperationsService.processWebhook(event);
-      return { received: true };
-    } catch (error) {
-      reply.status(400);
-      return { error: error instanceof Error ? error.message.split(':')[0] : 'STRIPE_WEBHOOK_INVALID', message: 'Webhook Stripe rejeitado.' };
-    }
   });
 
   app.post('/api/v2/webhooks/mercadopago', async (request, reply) => {
@@ -623,7 +590,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           durationMs: Date.now() - startedAt,
           status: 'SUCCESS',
           payload: { query: input.query, court: input.court, limit: input.limit, resultCount: execution.data.total },
-          costMetadata: { estimatedCostUsd: 0 },
         });
       }
       await emitBillingWebhooks({
@@ -1784,7 +1750,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
               factCount: factsResult.items.length,
               evidenceCount: evidence.length,
             },
-            costMetadata: { estimatedCostUsd: 0 },
           });
         }
         await emitBillingWebhooks({
@@ -2198,7 +2163,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             durationMs: Date.now() - startedAt,
             status: 'SUCCESS',
             payload: { query: q, court, limit, resultCount: execution.data.total },
-            costMetadata: { estimatedCostUsd: 0 },
           });
         }
         await emitBillingWebhooks({
@@ -2319,7 +2283,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             durationMs: Date.now() - startedAt,
             status: 'SUCCESS',
             payload: { court, processNumber, judgmentDate, status: execution.data.status },
-            costMetadata: { estimatedCostUsd: 0 },
           });
         }
         await emitBillingWebhooks({
@@ -2412,7 +2375,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             durationMs: Date.now() - startedAt,
             status: 'SUCCESS',
             payload: { court, processNumber, judgmentDate: body.judgmentDate, status: execution.data.status },
-            costMetadata: { estimatedCostUsd: 0 },
           });
         }
         await emitBillingWebhooks({

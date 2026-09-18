@@ -15,8 +15,8 @@ class FakePaymentProvider implements PaymentProvider {
     return { id: `cs_${String(input.purchaseId)}`, url: `https://checkout.test/${String(input.purchaseId)}` };
   }
 
-  public async createSetupIntent(): Promise<{ id: string; clientSecret: string }> {
-    return { id: 'seti_test', clientSecret: 'seti_secret_test' };
+  public async createPaymentMethodSetup(): Promise<{ id: string; clientSecret: string }> {
+    return { id: 'setup_test', clientSecret: 'setup_secret_test' };
   }
 
   public async listPaymentMethods(): Promise<Array<{ id: string; type: string }>> { return []; }
@@ -53,8 +53,8 @@ describe('BillingOperationsService', () => {
     const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
     const event = {
       id: `evt_paid_${tenantId}`,
-      type: 'checkout.session.completed',
-      data: { object: { id: `cs_test_${tenantId}`, payment_status: 'paid', payment_intent: `pi_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } },
+      type: 'payment.approved',
+      data: { object: { id: `checkout_test_${tenantId}`, payment_status: 'paid', provider_payment_id: `payment_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } },
     };
 
     await operations.processWebhook(event);
@@ -69,8 +69,8 @@ describe('BillingOperationsService', () => {
     const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_50', idempotencyKey: `checkout_${tenantId}` });
     await operations.processWebhook({
       id: `evt_paid_${tenantId}`,
-      type: 'checkout.session.completed',
-      data: { object: { id: `cs_test_${tenantId}`, payment_status: 'paid', payment_intent: `pi_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } },
+      type: 'payment.approved',
+      data: { object: { id: `checkout_test_${tenantId}`, payment_status: 'paid', provider_payment_id: `payment_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } },
     });
     await operations.getBillingService().debitPaidCredits({ tenantId, amountCents: 1800, idempotencyKey: `usage_${tenantId}` });
 
@@ -82,7 +82,7 @@ describe('BillingOperationsService', () => {
   it('inicia uma única recarga automática no cruzamento do limite e aguarda webhook', async () => {
     const tenantId = `tenant_auto_${randomUUID()}`;
     const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
-    await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'checkout.session.completed', data: { object: { payment_status: 'paid', payment_intent: `pi_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } });
+    await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'payment.approved', data: { object: { payment_status: 'paid', provider_payment_id: `payment_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } });
     const account = await operations.getBillingAccount(tenantId);
     await operations.updateAutoRecharge({ tenantId, enabled: true, amountCents: 2500, paymentMethodId: 'pm_test' });
     await operations.getBillingService().debitPaidCredits({ tenantId, amountCents: 2300, idempotencyKey: `usage_${tenantId}` });
@@ -93,15 +93,15 @@ describe('BillingOperationsService', () => {
     expect(first.started).toBe(true);
     expect(replay.started).toBe(false);
     expect(provider.autoPayments).toHaveLength(1);
-    await operations.processWebhook({ id: `evt_auto_${tenantId}`, type: 'payment_intent.succeeded', data: { object: { id: 'pi_auto_1', metadata: { tenant_id: tenantId, purchase_id: first.purchaseId, auto_recharge: 'true' } } } });
+    await operations.processWebhook({ id: `evt_auto_${tenantId}`, type: 'payment.succeeded', data: { object: { id: 'payment_auto_1', metadata: { tenant_id: tenantId, purchase_id: first.purchaseId, auto_recharge: 'true' } } } });
     expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2700);
-    expect(account.stripeCustomerId).toBeTruthy();
+    expect(account.providerCustomerId).toBeTruthy();
   });
 
   it('aprova reembolso real somente pelo saldo não consumido do lote', async () => {
     const tenantId = `tenant_review_${randomUUID()}`;
     const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
-    await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'checkout.session.completed', data: { object: { payment_status: 'paid', payment_intent: `pi_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } });
+    await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'payment.approved', data: { object: { payment_status: 'paid', provider_payment_id: `payment_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } });
     const request = await operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId });
     const reviewed = await operations.reviewRefundRequest({ requestId: request.id, reviewerId: 'admin_1', decision: 'APPROVED' });
 
@@ -113,14 +113,14 @@ describe('BillingOperationsService', () => {
   it('recusa solicitação fora da janela de sete dias antes de chamar provider', async () => {
     const tenantId = `tenant_expired_${randomUUID()}`;
     const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
-    await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'checkout.session.completed', data: { object: { payment_status: 'paid', payment_intent: `pi_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } });
+    await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'payment.approved', data: { object: { payment_status: 'paid', provider_payment_id: `payment_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } });
     await expect(operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId, now: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString() })).rejects.toThrow('BILLING_REFUND_WINDOW_EXPIRED');
   });
 
   it('impede solicitações de reembolso duplicadas enquanto a compra está em análise', async () => {
     const tenantId = `tenant_refund_duplicate_${randomUUID()}`;
     const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
-    await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'checkout.session.completed', data: { object: { payment_status: 'paid', payment_intent: `pi_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } });
+    await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'payment.approved', data: { object: { payment_status: 'paid', provider_payment_id: `payment_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } });
 
     await operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId });
 
