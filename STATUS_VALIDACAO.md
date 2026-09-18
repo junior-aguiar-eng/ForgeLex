@@ -1,96 +1,98 @@
 # Auditoria e status canônico do ForgeLex
 
-Última auditoria: 2026-09-18. Checkout: `main` em `a7058f3`.
+Última auditoria: 2026-09-18. Branch: `main`. Auditoria final consolidada no
+commit mais recente desta branch.
 
-## O que está concluído
+## Estado implementado
 
 - A superfície pública comercial foi removida. `/` entrega somente o painel
-  consolidado de autenticação; `LandingScreen` continua existindo apenas como
-  ferramenta interna após o login.
-- As ferramentas autenticadas, os providers, os contratos da API e o backend
-  não foram redesenhados nem removidos.
-- O frontend agora usa a sessão Supabase também nas telas de Casos e Minutas.
-  O token legado continua disponível para os fluxos técnicos que ainda o
-  utilizarem.
-- Falhas de conexão com a API deixaram de ser confundidas com uma simples
-  sessão encerrada: o frontend as classifica como `API_UNAVAILABLE`.
-- O CORS local foi alinhado para `localhost:3000` e `127.0.0.1:3000` no `.env`
-  ignorado pelo Git.
-- Os exemplos cURL da documentação autenticada foram corrigidos e os metadados
-  do frontend deixaram de mencionar rascunhos e revisão humana como proposta
-  institucional.
-- O README foi alinhado ao script real `pnpm --filter @forgelex/api start` e
-  passou a registrar que o bootstrap atual da API executa migrations
-  idempotentes.
-- As telas autenticadas passaram a ser carregadas sob demanda, reduzindo o
-  bundle inicial e eliminando o alerta de chunk acima de 500 kB.
+  consolidado de autenticação; `LandingScreen` continua sendo uma ferramenta
+  interna após o login.
+- Autenticação Supabase, bootstrap, sessão persistida, CORS local e tratamento
+  distinto para indisponibilidade da API estão implementados.
+- As ferramentas autenticadas, providers, MCP, contratos da API e backend
+  jurídico foram preservados.
+- O billing pré-pago local está implementado com Mercado Pago ativo:
+  pacotes de R$ 25, R$ 50 e R$ 80, valor personalizado entre R$ 25 e R$ 500,
+  custo de R$ 0,20 por busca, ledger, lotes, extrato, faturas internas,
+  solicitações de reembolso e idempotência.
+- O retorno aprovado do Mercado Pago é interpretado pelo frontend, que
+  consulta a compra até o webhook concluir o processamento; saldo só é
+  apresentado como atualizado após a compra estar `PAID`.
+- A tela de Conexões informa que OpenAI e Anthropic são providers gerenciados
+  pelo ForgeLex e não mantém chaves secretas no navegador.
+- A recarga automática permanece disponível apenas quando o provider ativo a
+  suporta. Como o adapter atual do Mercado Pago não oferece cobrança
+  `off_session`, a UI exibe a função como indisponível e mantém a recarga
+  manual. O fluxo compatível com provider fake/Stripe continua coberto por
+  testes.
 
-## Validações executadas
+## Validações locais
 
 | Gate | Resultado | Evidência |
 |---|---|---|
-| Build completo | PASS | `pnpm test` compilou os 15 projetos do workspace |
-| Build do frontend | PASS | `pnpm --filter @forgelex/web build` |
-| Typecheck completo | PASS | `pnpm typecheck` |
-| Testes automatizados | PASS | 29 arquivos aprovados; 128 testes aprovados; 1 arquivo e 2 testes condicionais ignorados |
-| Verificação de diff | PASS | `git diff --check` |
-| Readiness da API | PASS | `GET /readyz` respondeu `200` com persistência e billing prontos |
-| Catálogo de webhooks | PASS | `GET /api/v2/webhooks/events` respondeu `200` com outbox PostgreSQL disponível |
-| Métricas | PASS | `GET /metrics` respondeu `200` sem erros ou falhas de webhook |
-| API sem token | PASS | `POST /api/v2/auth/bootstrap` respondeu `401 UNAUTHENTICATED` |
-| CORS local | PASS | `OPTIONS` respondeu `204` para `localhost:3000` e `127.0.0.1:3000` |
-| Supabase | VALIDADO LOCALMENTE | Login concluído no ForgeLex; workspace autenticado carregado após recarregamento e métricas da API permaneceram sem erros |
-| PostgreSQL | PARCIAL | `SELECT 1` previamente validado; API iniciou com rotinas idempotentes e registrou relações de migration já existentes |
-| Fluxo autenticado | PASS (renderização) | Casos, Pesquisa, Rascunhos, Revisão, Integrações e Documentação da API carregaram no navegador sem executar consulta faturável |
+| `pnpm test` | PASS | 38 arquivos aprovados; 168 testes aprovados; 1 arquivo e 2 testes condicionais ignorados |
+| `pnpm typecheck` | PASS | todos os 15 projetos verificaram tipos |
+| `pnpm --filter @forgelex/web build` | PASS | 1.648 módulos; bundle inicial de aproximadamente 408 kB |
+| `git diff --check` | PASS | apenas avisos normais de conversão LF/CRLF |
+| `GET /readyz` | PASS | HTTP 200; persistência e billing prontos |
+| `GET /metrics` | PASS | HTTP 200; erros e falhas de webhook em zero |
+| Teste de reembolso duplicado | PASS | segunda solicitação pendente rejeitada por compra e tenant |
 
-O bundle inicial do frontend ficou em aproximadamente 408 kB e as telas
-autenticadas foram separadas em chunks próprios. Os dois testes condicionais
-ignorados correspondem às integrações reais Anthropic e OpenAI sem as
-respectivas credenciais.
+## Evidência externa já obtida
 
-## Bugs corrigidos nesta auditoria
+Foi concluído um Checkout de teste do Mercado Pago com pagamento aprovado e
+acreditado. A compra `12649c79-7fba-4616-9529-c3d59cc6e6cb` foi reconciliada
+como `PAID`, creditada uma única vez no ledger e consultada novamente na API do
+Mercado Pago. O replay do evento não duplicou o crédito.
 
-1. O frontend autenticado consultava Casos e Minutas com `fetch` próprio e
-   dependia de token legado, ignorando a sessão Supabase.
-2. A indisponibilidade da API produzia um erro genérico e podia devolver o
-   usuário à tela de login sem distinguir falha de infraestrutura.
-3. A origem `127.0.0.1:3000` não estava autorizada no CORS local.
-4. Os exemplos cURL exibiam marcadores `+` indevidos.
-5. O README instruía um script `dev` inexistente para a API.
-6. O `index.html` mantinha metadados institucionais incompatíveis com a
-   direção atual do produto.
-7. O bundle inicial carregava todas as telas autenticadas, mesmo antes do
-   usuário acessá-las.
+O processamento local do webhook com assinatura HMAC foi validado usando o ID
+real do pagamento. A entrega efetiva Mercado Pago → URL pública não foi
+confirmada porque os túneis locais expiraram; portanto isso não equivale a
+homologação externa do webhook.
 
-## Onde o trabalho parou
+## Correções desta auditoria
 
-O login real foi concluído no ForgeLex. O workspace autenticado carregou após a
-entrada e permaneceu disponível depois de um recarregamento, confirmando o
-fluxo local de sessão e bootstrap da conta. As principais telas autenticadas
-também foram percorridas sem executar consultas, pagamentos ou chamadas reais
-de providers. A API permanece ativa em `http://127.0.0.1:3001` após a
-autorização explícita para o startup que executa
-`runPersistenceMigrations()` e `ledgerService.runMigrations()`.
+1. O callback de pagamento aprovado não era interpretado pelo frontend; agora
+   ele direciona para Créditos e acompanha o estado real da compra.
+2. A tela de créditos ainda mencionava Stripe em um fluxo que usa Mercado
+   Pago; os textos foram alinhados ao provider ativo.
+3. A API declarava recarga automática sem informar sua disponibilidade real;
+   agora o contrato expõe `autoRecharge.available` e a UI não oferece um
+   controle que falharia no Mercado Pago.
+4. O estado legado de conexões e funções de API key foi removido do contexto
+   global porque não possuía consumidores.
+5. Uma mesma compra podia receber solicitações de reembolso pendentes
+   duplicadas; a segunda agora é rejeitada de forma idempotente por tenant e
+   compra.
 
-Não foi executado `pnpm db:migrate`, `pnpm test:postgres`, deploy, push ou
-commit. A auditoria visual percorreu as principais rotas autenticadas e não
-executou consultas faturáveis, pagamentos, providers reais ou entregas externas.
+## Correlação com o plano original
 
-## Pendências externas
+Atendido localmente: autenticação, ledger e persistência de billing, adapter
+Mercado Pago, Checkout, processamento HMAC e idempotente de webhook, conta,
+extrato, compra, fatura, reembolso, catálogo de modelos e testes de tarifas,
+providers gerenciados no frontend e login público consolidado.
 
-- validar providers Anthropic/OpenAI com credenciais controladas; no estado
-  atual, as chaves correspondentes não estão configuradas no `.env` e o botão
-  de conexão do frontend permanece sem chamada real ao provider;
-- validar entrega efetiva de webhooks com destino acessível;
-- realizar QA visual das rotas autenticadas principais após restabelecer uma
-  sessão válida; a tela consolidada autenticada já foi carregada nesta
-  auditoria;
-- decidir se a documentação pública planejada será retomada. O plano em
-  `docs/superpowers/plans/2026-09-17-forgelex-ui-publica.md` foi superado
-  pela decisão posterior de manter apenas o login público.
+Parcial: entrega externa do webhook, atualização visual do saldo após o teste
+real na sessão do navegador, Pix pendente, falha de pagamento, recarga
+automática real e reembolso real. Providers Anthropic/OpenAI reais também não
+foram executados porque não há credenciais configuradas.
 
-## Estado local preservado
+O plano de UI pública com `/para-advogados`, `/para-desenvolvedores` e
+`/documentacao` foi superado pela decisão posterior de manter apenas o login
+público. O arquivo `docs/superpowers/plans/2026-09-17-forgelex-ui-publica.md`
+foi preservado como histórico.
 
-Não houve commit. Permanecem no worktree as alterações anteriores e as
-correções desta auditoria; o diff deve continuar sendo revisado antes de
-qualquer integração.
+## Limites operacionais
+
+Não foi executado `pnpm db:migrate`, migration remota, deploy ou push. O
+arquivo raiz `.env` continua ignorado pelo Git e não deve ser incluído em
+commit. A configuração real de Mercado Pago depende de uma URL pública HTTPS
+estável e de credenciais externas válidas. Não foram feitas chamadas reais aos
+providers Anthropic/OpenAI.
+
+## Estado do repositório
+
+As alterações anteriores estão em `50878e1` e a auditoria final está
+consolidada no commit mais recente desta branch. Nenhuma alteração de
+ferramenta jurídica foi feita.

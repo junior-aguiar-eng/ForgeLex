@@ -22,6 +22,7 @@ class TokenVerifier implements TokenVerifier {
 }
 
 class Provider implements PaymentProvider {
+  public readonly supportsAutoRecharge = false;
   public async createCustomer(): Promise<{ id: string }> { return { id: 'cus_route' }; }
   public async createCheckout(input: { purchaseId: string }): Promise<{ id: string; url: string }> { return { id: `cs_${input.purchaseId}`, url: `https://checkout.test/${input.purchaseId}` }; }
   public async createSetupIntent(): Promise<{ id: string; clientSecret: string }> { return { id: 'seti_test', clientSecret: 'secret' }; }
@@ -49,7 +50,7 @@ describe('rotas de billing', () => {
     const response = await app.inject({ method: 'GET', url: '/api/v2/billing/account', headers: { authorization: 'Bearer billing-token' } });
 
     expect(response.statusCode).toBe(200);
-    expect(JSON.parse(response.body)).toMatchObject({ currency: 'brl', searchCostCents: 20, packages: [{ amountCents: 2500 }, { amountCents: 5000 }, { amountCents: 8000 }] });
+    expect(JSON.parse(response.body)).toMatchObject({ currency: 'brl', searchCostCents: 20, packages: [{ amountCents: 2500 }, { amountCents: 5000 }, { amountCents: 8000 }], autoRecharge: { available: false } });
     await app.close();
     connection.client.close();
   });

@@ -56,6 +56,10 @@ export class BillingOperationsService {
 
   public getBillingService(): BillingService { return this.billing; }
 
+  public isAutoRechargeAvailable(): boolean {
+    return this.provider.supportsAutoRecharge !== false;
+  }
+
   public async createCheckout(input: {
     tenantId: string;
     userId: string;
@@ -287,6 +291,8 @@ export class BillingOperationsService {
     const now = new Date(input.now ?? Date.now()).getTime();
     const createdAt = new Date(purchase.createdAt).getTime();
     if (now - createdAt > 7 * 24 * 60 * 60 * 1000) throw new Error('BILLING_REFUND_WINDOW_EXPIRED');
+    const existingRequests = await this.db.select({ status: billingRefundRequests.status }).from(billingRefundRequests).where(and(eq(billingRefundRequests.tenantId, input.tenantId), eq(billingRefundRequests.purchaseId, input.purchaseId)));
+    if (existingRequests.some((item) => item.status === 'PENDING' || item.status === 'APPROVED')) throw new Error('BILLING_REFUND_REQUEST_ALREADY_EXISTS');
     const lot = (await this.billing.getCreditLots(input.tenantId)).find((item) => item.purchaseId === input.purchaseId);
     const eligibleAmountCents = calculateRefundableCents({ purchaseAmountCents: purchase.amountCents, remainingCreditCents: lot?.remainingCents ?? 0 });
     const nowIso = new Date().toISOString();

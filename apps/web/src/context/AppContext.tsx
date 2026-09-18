@@ -24,16 +24,6 @@ export interface ApprovalRequest {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
-export interface ModelConnection {
-  provider: 'anthropic' | 'openai' | 'local';
-  name: string;
-  model: string;
-  status: 'connected' | 'configured' | 'disconnected';
-  apiKey: string;
-  latencyMs?: number;
-  lastTested?: string;
-}
-
 export interface SearchResultItem {
   id: string;
   court: string;
@@ -60,11 +50,6 @@ export interface AuthorityVerification {
 interface AppContextType {
   activeTab: 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
   setActiveTab: (tab: 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_docs') => void;
-  
-  // Model Connections
-  connections: Record<string, ModelConnection>;
-  updateApiKey: (provider: 'anthropic' | 'openai', key: string) => void;
-  testConnection: (provider: 'anthropic' | 'openai') => Promise<{ success: boolean; latency: number }>;
   
   // Human-in-the-loop Approvals
   approvals: ApprovalRequest[];
@@ -100,53 +85,11 @@ function mapSearchResult(item: any): SearchResultItem {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_docs'>('landing');
 
-  // Model Connections
-  const [connections, setConnections] = useState<Record<string, ModelConnection>>({
-    anthropic: {
-      provider: 'anthropic',
-      name: 'Anthropic Claude',
-      model: 'claude-3-5-sonnet-20241022',
-      status: 'disconnected',
-      apiKey: '',
-    },
-    openai: {
-      provider: 'openai',
-      name: 'OpenAI ChatGPT',
-      model: 'gpt-4o',
-      status: 'disconnected',
-      apiKey: '',
-    },
-    local: {
-      provider: 'local',
-      name: 'ForgeLex Sovereign Kernel',
-      model: 'mistral-large-sovereign-q4',
-      status: 'disconnected',
-      apiKey: '',
-    },
-  });
-
   // Human in the loop approvals
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
 
   const [recentSearches, setRecentSearches] = useState<{ query: string; court: string; timestamp: string; count: number }[]>([
   ]);
-
-  const updateApiKey = (provider: 'anthropic' | 'openai', key: string) => {
-    setConnections((prev) => ({
-      ...prev,
-      [provider]: {
-        ...prev[provider],
-        apiKey: key,
-        status: key.trim() ? 'configured' : 'disconnected',
-        lastTested: undefined,
-      },
-    }));
-  };
-
-  const testConnection = async (provider: 'anthropic' | 'openai') => {
-    void provider;
-    return { success: false, latency: 0 };
-  };
 
   const resolveApproval = (id: string, action: 'APPROVED' | 'REJECTED') => {
     setApprovals((prev) =>
@@ -193,9 +136,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         activeTab,
         setActiveTab,
-        connections,
-        updateApiKey,
-        testConnection,
         approvals,
         resolveApproval,
         performSearch,

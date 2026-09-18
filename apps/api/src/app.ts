@@ -283,6 +283,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       packages: CREDIT_PACKAGES.map((item) => ({ ...item, label: `R$ ${(item.amountCents / 100).toFixed(2).replace('.', ',')}`, estimatedSearches: Math.floor(item.amountCents / JURISPRUDENCE_SEARCH_COST_CENTS) })),
       customAmount: { minCents: 2500, maxCents: 50000 },
       autoRecharge: {
+        available: billingOperationsService.isAutoRechargeAvailable(),
         thresholdCents: billingAccount.autoRechargeThresholdCents,
         enabled: billingAccount.autoRechargeEnabled === 1,
         amountCents: billingAccount.lastRechargeAmountCents,

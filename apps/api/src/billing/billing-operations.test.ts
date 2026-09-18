@@ -116,4 +116,14 @@ describe('BillingOperationsService', () => {
     await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'checkout.session.completed', data: { object: { payment_status: 'paid', payment_intent: `pi_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } });
     await expect(operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId, now: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString() })).rejects.toThrow('BILLING_REFUND_WINDOW_EXPIRED');
   });
+
+  it('impede solicitações de reembolso duplicadas enquanto a compra está em análise', async () => {
+    const tenantId = `tenant_refund_duplicate_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
+    await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'checkout.session.completed', data: { object: { payment_status: 'paid', payment_intent: `pi_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } });
+
+    await operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId });
+
+    await expect(operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId })).rejects.toThrow('BILLING_REFUND_REQUEST_ALREADY_EXISTS');
+  });
 });
