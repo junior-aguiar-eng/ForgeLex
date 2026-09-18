@@ -100,7 +100,7 @@ O frontend foi desenvolvido reproduzindo rigorosamente o design system editorial
 * **Paleta:** Marfim quente (`#FBF9F5`), conhaque imperial (`#8E5D2A`) e bordas champanhe (`rgba(180, 150, 110, 0.22)`).
 * **Tipografia:** Serifada editorial clássica combinada com interface moderna sans-serif.
 * **Telas Implementadas:**
-  1. `Landing Page`: abertura de caso e barra de busca forense ao vivo (R$ 0,15/busca).
+  1. `Landing Page`: abertura de caso e barra de busca forense ao vivo (R$ 0,20/busca).
   2. `Painel do Advogado`: 4 cartões de métricas, gráfico de 30 dias e fila de aprovação L4.
   3. `Conexões & Provedores`: Configuração local de credenciais, sem presumir conexão verificada.
   4. `Créditos & Faturamento`: Estado explícito de conta, sem saldo ou checkout presumidos.
@@ -155,7 +155,7 @@ pnpm build
 pnpm test
 
 # 4. Iniciar a API Backend (Fastify)
-pnpm --filter @forgelex/api dev
+pnpm --filter @forgelex/api start
 
 # 5. Iniciar o Frontend Web (React + Vite)
 pnpm --filter @forgelex/web dev
@@ -172,6 +172,9 @@ pnpm test:postgres
 ```
 
 O frontend estará disponível em `http://localhost:3000` e a API em `http://localhost:3001`.
+O script de inicialização da API carrega o `.env` da raiz e o bootstrap atual
+executa migrations idempotentes de persistência e ledger; não aponte esse
+processo para um banco remoto sem autorização operacional explícita.
 
 ### Autenticação e CORS
 
@@ -199,6 +202,8 @@ Sem credenciais válidas configuradas, as rotas protegidas recusam a requisiçã
 Defina `FORGELEX_ALLOWED_ORIGINS` com origens separadas por vírgula; fora de
 produção, sem essa variável, somente `http://localhost:3000` e
 `http://localhost:3001` são permitidos.
+Se o navegador abrir o Vite por `http://127.0.0.1:3000`, essa origem também
+precisa ser incluída explicitamente na variável.
 
 ### Conta e cadastro
 

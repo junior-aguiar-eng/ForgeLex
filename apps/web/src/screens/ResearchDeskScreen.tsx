@@ -125,7 +125,7 @@ export const ResearchDeskScreen: React.FC = () => {
               <label className="block text-xs font-semibold text-stone-600">Data do julgamento (opcional)
                 <input value={judgmentDate} onChange={(event) => setJudgmentDate(event.target.value)} placeholder="DD/MM/AAAA" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
               </label>
-              <button disabled={busy} className="w-full px-4 py-3 rounded-xl border border-cognac-300 bg-cognac-50 hover:bg-cognac-100 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Verificar por R$ 0,15</button>
+              <button disabled={busy} className="w-full px-4 py-3 rounded-xl border border-cognac-300 bg-cognac-50 hover:bg-cognac-100 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Verificar por R$ 0,20</button>
             </form>
 
             {verification && (

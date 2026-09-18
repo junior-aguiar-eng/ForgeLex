@@ -24,17 +24,19 @@ export interface ForgeLexAccount {
 }
 
 export type AuthStatus = 'loading' | 'signed_out' | 'authenticated' | 'legacy' | 'disabled' | 'expired' | 'error' | 'unconfigured';
-export type AuthView = 'sign_in' | 'sign_up' | 'forgot_password' | 'confirmation' | 'reset_password';
+export type AuthView = 'sign_in' | 'sign_up' | 'forgot_password' | 'confirmation' | 'reset_password' | 'recovery_error';
 
 interface AuthContextValue {
   status: AuthStatus;
   account?: ForgeLexAccount;
   passwordRecovery: boolean;
+  passwordRecoveryError: boolean;
   signUp: (input: { displayName: string; email: string; password: string }) => Promise<{ confirmationRequired: boolean }>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
+  clearPasswordRecovery: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -48,8 +50,36 @@ function hasLegacyApiToken(): boolean {
   }
 }
 
+function isPasswordRecoveryCallback(): boolean {
+  try {
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const queryParams = new URLSearchParams(window.location.search);
+    return hashParams.get('type') === 'recovery' || queryParams.get('type') === 'recovery';
+  } catch {
+    return false;
+  }
+}
+
+function isPasswordRecoveryErrorCallback(): boolean {
+  try {
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const queryParams = new URLSearchParams(window.location.search);
+    const errorCode = hashParams.get('error_code') ?? queryParams.get('error_code');
+    const error = hashParams.get('error') ?? queryParams.get('error');
+    return errorCode === 'otp_expired' || error === 'access_denied';
+  } catch {
+    return false;
+  }
+}
+
 function friendlySupabaseError(error: unknown, fallback: string): Error {
   const message = error instanceof Error ? error.message.toLowerCase() : '';
+  const status = typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number'
+    ? error.status
+    : undefined;
+  if (status === 429 || message.includes('rate limit') || message.includes('too many requests')) {
+    return new Error('Você solicitou uma mensagem há pouco. Aguarde alguns minutos e tente novamente.');
+  }
   if (message.includes('password') && (message.includes('12') || message.includes('weak'))) {
     return new Error('Escolha uma senha com pelo menos 12 caracteres.');
   }
@@ -69,7 +99,8 @@ function accountDisplayName(session: Session): string {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [status, setStatus] = useState<AuthStatus>(supabase ? 'loading' : hasLegacyApiToken() ? 'legacy' : 'unconfigured');
   const [account, setAccount] = useState<ForgeLexAccount>();
-  const [passwordRecovery, setPasswordRecovery] = useState(false);
+  const [passwordRecovery, setPasswordRecovery] = useState(isPasswordRecoveryCallback);
+  const [passwordRecoveryError, setPasswordRecoveryError] = useState(isPasswordRecoveryErrorCallback);
 
   const loadAccount = useCallback(async (session: Session): Promise<void> => {
     try {
@@ -97,9 +128,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!supabase) return undefined;
     let active = true;
+    const recoveryCallback = isPasswordRecoveryCallback();
+    const recoveryErrorCallback = isPasswordRecoveryErrorCallback();
+    if (recoveryCallback) setPasswordRecovery(true);
+    if (recoveryErrorCallback) setPasswordRecoveryError(true);
 
     void supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
+      if (recoveryCallback) setPasswordRecovery(true);
+      if (recoveryErrorCallback) setPasswordRecoveryError(true);
       if (data.session) {
         void loadAccount(data.session).catch(() => undefined);
       } else {
@@ -109,7 +146,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
-      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecoveryError(false);
+        setPasswordRecovery(true);
+      }
       if (event === 'SIGNED_OUT' || !session) {
         setAccount(undefined);
         setStatus('signed_out');
@@ -153,6 +193,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (supabase) await supabase.auth.signOut();
     setAccount(undefined);
     setPasswordRecovery(false);
+    setPasswordRecoveryError(false);
+    setStatus(supabase ? 'signed_out' : 'unconfigured');
+  }, []);
+
+  const clearPasswordRecovery = useCallback(() => {
+    setPasswordRecovery(false);
+    setPasswordRecoveryError(false);
+    setAccount(undefined);
     setStatus(supabase ? 'signed_out' : 'unconfigured');
   }, []);
 
@@ -171,15 +219,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data.session) await loadAccount(data.session);
   }, [loadAccount]);
 
-  const value = useMemo(() => ({ status, account, passwordRecovery, signUp, signIn, signOut, sendPasswordReset, updatePassword }), [
+  const value = useMemo(() => ({ status, account, passwordRecovery, passwordRecoveryError, signUp, signIn, signOut, sendPasswordReset, updatePassword, clearPasswordRecovery }), [
     status,
     account,
     passwordRecovery,
+    passwordRecoveryError,
     signUp,
     signIn,
     signOut,
     sendPasswordReset,
     updatePassword,
+    clearPasswordRecovery,
   ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

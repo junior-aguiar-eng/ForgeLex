@@ -10,6 +10,7 @@ import {
   AgentProvider,
   AgentRunInput,
   AgentTool,
+  normalizeProviderUsage,
   PolicyEngine,
   SessionStateMachine,
   ToolRegistry,
@@ -150,6 +151,19 @@ function errorName(error: unknown): string {
 function errorMessage(error: unknown, fallback: string): string {
   const record = asRecord(error);
   return typeof record.message === 'string' && record.message ? record.message : fallback;
+}
+
+function extractOpenAIUsage(stream: OpenAIStreamResult, model: string) {
+  const direct = normalizeProviderUsage('openai', model, stream);
+  if (direct) return direct;
+  const rawResponses = asRecord(stream).rawResponses;
+  if (Array.isArray(rawResponses)) {
+    for (let index = rawResponses.length - 1; index >= 0; index -= 1) {
+      const usage = normalizeProviderUsage('openai', model, rawResponses[index]);
+      if (usage) return usage;
+    }
+  }
+  return normalizeProviderUsage('openai', model, stream.finalOutput);
 }
 
 export interface OpenAIProviderOptions {
@@ -529,6 +543,7 @@ export class OpenAIAgentProvider implements AgentProvider {
           output: stream.finalOutput,
           totalTurns: Math.max(stream.currentTurn ?? 1, 1),
           totalDurationMs: Date.now() - startTime,
+          usage: extractOpenAIUsage(stream, this.model),
           timestamp: new Date().toISOString(),
         };
         return;

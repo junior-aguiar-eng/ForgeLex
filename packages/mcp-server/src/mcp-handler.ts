@@ -1,5 +1,5 @@
 import { ToolRegistry } from '@forgelex/agent-core';
-import { LedgerService } from '@forgelex/billing-ledger';
+import { JURISPRUDENCE_SEARCH_COST_CENTS, LedgerService } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { randomUUID } from 'node:crypto';
@@ -128,12 +128,12 @@ export class McpHandler {
         const startedAt = Date.now();
 
         try {
-          // Executa através do Algoritmo de Execução Faturável Idempotente (R$ 0,15 por busca)
+          // Executa através do Algoritmo de Execução Faturável Idempotente.
           const execution = await this.ledgerService.executeBillableOperation({
             tenantId,
             userId,
             idempotencyKey,
-            costCents: 15,
+            costCents: JURISPRUDENCE_SEARCH_COST_CENTS,
             usage: {
               capability: name,
               toolName: name,

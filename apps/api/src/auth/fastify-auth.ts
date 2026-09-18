@@ -139,7 +139,7 @@ export class SupabaseTokenVerifier implements TokenVerifier {
       tenantId: account.tenant.id,
       userId: account.user.id,
       roles: [account.membership.role.toLowerCase()],
-      scopes: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read'],
+      scopes: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write'],
       authMethod: 'session',
     };
   }

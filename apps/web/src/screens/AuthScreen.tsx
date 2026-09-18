@@ -6,8 +6,8 @@ function inputError(value: string, label: string): string | undefined {
   return value.trim() ? undefined : `${label} é obrigatório.`;
 }
 
-const AuthScreen: React.FC<{ initialView?: AuthView; status: AuthStatus }> = ({ initialView = 'sign_in', status }) => {
-  const { signUp, signIn, signOut, sendPasswordReset, updatePassword } = useAuth();
+const AuthScreen: React.FC<{ initialView?: AuthView; status: AuthStatus; onBackToLanding?: () => void }> = ({ initialView = 'sign_in', status, onBackToLanding }) => {
+  const { signUp, signIn, signOut, sendPasswordReset, updatePassword, clearPasswordRecovery } = useAuth();
   const [view, setView] = useState<AuthView>(initialView);
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -24,6 +24,12 @@ const AuthScreen: React.FC<{ initialView?: AuthView; status: AuthStatus }> = ({ 
     setSuccess('');
     setPassword('');
     setPasswordConfirmation('');
+  };
+
+  const requestNewRecoveryLink = () => {
+    clearPasswordRecovery();
+    window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+    switchView('forgot_password');
   };
 
   const submit = async (event: React.FormEvent) => {
@@ -64,6 +70,10 @@ const AuthScreen: React.FC<{ initialView?: AuthView; status: AuthStatus }> = ({ 
     }
   };
 
+  if (view === 'recovery_error') {
+    return <AuthLayout><MessageState title="O link expirou" body="Solicite uma nova mensagem para escolher sua senha. Por segurança, cada link funciona uma única vez e por tempo limitado." action={<button type="button" className="btn-primary w-full" onClick={requestNewRecoveryLink}>Solicitar outro link</button>} /></AuthLayout>;
+  }
+
   if (status === 'unconfigured') {
     return <AuthLayout><MessageState title="O acesso ainda não está disponível" body="Esta área ainda está sendo preparada. Tente novamente quando o acesso estiver liberado." /></AuthLayout>;
   }
@@ -71,7 +81,7 @@ const AuthScreen: React.FC<{ initialView?: AuthView; status: AuthStatus }> = ({ 
     return <AuthLayout><MessageState title="Carregando seu acesso" body="Só um instante. Estamos preparando seu espaço." /></AuthLayout>;
   }
   if (status === 'error') {
-    return <AuthLayout><MessageState title="Não foi possível carregar seu acesso" body="Tente novamente em instantes." action={<button type="button" className="btn-primary w-full" onClick={() => window.location.reload()}>Tentar novamente</button>} /></AuthLayout>;
+    return <AuthLayout><MessageState title="Não foi possível carregar seu acesso" body="A API não respondeu ou não conseguiu preparar sua conta. Verifique se o serviço está ativo e tente novamente." action={<button type="button" className="btn-primary w-full" onClick={() => window.location.reload()}>Tentar novamente</button>} /></AuthLayout>;
   }
   if (status === 'disabled') {
     return <AuthLayout><MessageState title="Sua conta está indisponível" body="Procure o responsável pelo seu acesso para saber como continuar." /></AuthLayout>;
@@ -120,6 +130,7 @@ const AuthScreen: React.FC<{ initialView?: AuthView; status: AuthStatus }> = ({ 
       <div className="mt-6 space-y-3 text-center text-sm">
         {view === 'sign_in' && <><button type="button" className="font-semibold text-cognac-800 hover:underline" onClick={() => switchView('forgot_password')}>Esqueci minha senha</button><p className="text-stone-500">Ainda não tem acesso? <button type="button" className="font-semibold text-cognac-800 hover:underline" onClick={() => switchView('sign_up')}>Criar agora</button></p></>}
         {(isSignUp || isForgot) && <button type="button" className="font-semibold text-cognac-800 hover:underline" onClick={() => switchView('sign_in')}>Voltar para entrar</button>}
+        {onBackToLanding && <button type="button" className="text-stone-500 hover:text-cognac-700 hover:underline" onClick={onBackToLanding}>Voltar para a página inicial</button>}
       </div>
       <p className="mt-8 text-center text-xs leading-5 text-stone-400">Confirmaremos seu e-mail para proteger o acesso. Sua senha não fica visível para o ForgeLex.</p>
     </AuthLayout>

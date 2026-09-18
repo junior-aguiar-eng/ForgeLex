@@ -78,7 +78,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(response.result).toBeDefined();
     expect(response.result.content).toBeDefined();
     expect(response.result.content[0].type).toBe('text');
-    expect(response.result.billing.chargedCents).toBe(15);
+    expect(response.result.billing.chargedCents).toBe(20);
 
     const parsedData = JSON.parse(response.result.content[0].text);
     expect(parsedData.data.items.length).toBeGreaterThan(0);

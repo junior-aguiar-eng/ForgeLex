@@ -20,30 +20,41 @@ function getLegacyApiToken(): string {
   }
 }
 
-async function getAccessToken(sessionOnly: boolean): Promise<string> {
+async function getAccessToken(sessionOnly: boolean, explicitToken?: string): Promise<string> {
   if (supabase) {
     const { data } = await supabase.auth.getSession();
     if (data.session?.access_token) return data.session.access_token;
   }
   if (sessionOnly) return '';
+  if (explicitToken?.trim()) return explicitToken.trim();
   return getLegacyApiToken();
 }
 
-export async function requestApi<T>(path: string, init: RequestInit = {}, options: { sessionOnly?: boolean } = {}): Promise<T> {
-  const token = await getAccessToken(options.sessionOnly ?? false);
+export interface RequestApiOptions {
+  sessionOnly?: boolean;
+  accessToken?: string;
+}
+
+export async function requestApi<T>(path: string, init: RequestInit = {}, options: RequestApiOptions = {}): Promise<T> {
+  const token = await getAccessToken(options.sessionOnly ?? false, options.accessToken);
   if (!token) {
     throw new ApiRequestError('Entre na sua conta para continuar.', 'UNAUTHENTICATED', 401);
   }
 
   const apiUrl = import.meta.env.VITE_FORGELEX_API_URL ?? 'http://localhost:3001';
-  const response = await fetch(`${apiUrl}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(init.headers ?? {}),
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiUrl}${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch {
+    throw new ApiRequestError('Não foi possível conectar à API do ForgeLex.', 'API_UNAVAILABLE', 503);
+  }
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new ApiRequestError(
@@ -53,4 +64,8 @@ export async function requestApi<T>(path: string, init: RequestInit = {}, option
     );
   }
   return body as T;
+}
+
+export function requestApiWithToken<T>(path: string, accessToken: string, init: RequestInit = {}): Promise<T> {
+  return requestApi<T>(path, init, { accessToken });
 }

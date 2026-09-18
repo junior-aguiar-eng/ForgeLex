@@ -1,0 +1,100 @@
+export const CREDIT_PACKAGES = [
+  { id: 'credits_25', amountCents: 2_500 },
+  { id: 'credits_50', amountCents: 5_000 },
+  { id: 'credits_80', amountCents: 8_000 },
+] as const;
+
+export const BILLING_CURRENCY = 'brl' as const;
+export const JURISPRUDENCE_SEARCH_COST_CENTS = 20;
+export const CUSTOM_AMOUNT_MIN_CENTS = 2_500;
+export const CUSTOM_AMOUNT_MAX_CENTS = 50_000;
+export const AUTO_RECHARGE_THRESHOLD_CENTS = 500;
+export const DEFAULT_AI_MARGIN_BPS = 3_000;
+
+export interface CreditPurchaseInput {
+  packageId?: string;
+  amountCents?: number;
+}
+
+export interface ValidatedCreditPurchase {
+  amountCents: number;
+  packageId: string;
+}
+
+export interface TokenPricingInput {
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens?: number;
+  inputUsdPerMillion: number;
+  outputUsdPerMillion: number;
+  cachedInputUsdPerMillion?: number;
+  usdToBrl: number;
+  marginBps: number;
+}
+
+export function validateCreditPurchase(input: CreditPurchaseInput): ValidatedCreditPurchase {
+  if (input.packageId !== undefined) {
+    const selected = CREDIT_PACKAGES.find((item) => item.id === input.packageId);
+    if (!selected) throw new Error('BILLING_PACKAGE_INVALID');
+    if (input.amountCents !== undefined && input.amountCents !== selected.amountCents) {
+      throw new Error('BILLING_AMOUNT_INVALID');
+    }
+    return { amountCents: selected.amountCents, packageId: selected.id };
+  }
+
+  if (
+    input.amountCents === undefined ||
+    !Number.isInteger(input.amountCents) ||
+    input.amountCents < CUSTOM_AMOUNT_MIN_CENTS ||
+    input.amountCents > CUSTOM_AMOUNT_MAX_CENTS
+  ) {
+    throw new Error('BILLING_AMOUNT_INVALID');
+  }
+
+  return { amountCents: input.amountCents, packageId: 'custom' };
+}
+
+export function calculateTokenChargeCents(input: TokenPricingInput): number {
+  const cachedInputTokens = input.cachedInputTokens ?? 0;
+  if (
+    !Number.isInteger(input.inputTokens) ||
+    !Number.isInteger(input.outputTokens) ||
+    !Number.isInteger(cachedInputTokens) ||
+    input.inputTokens < 0 ||
+    input.outputTokens < 0 ||
+    cachedInputTokens < 0 ||
+    cachedInputTokens > input.inputTokens ||
+    input.inputUsdPerMillion < 0 ||
+    input.outputUsdPerMillion < 0 ||
+    (input.cachedInputUsdPerMillion !== undefined && input.cachedInputUsdPerMillion < 0) ||
+    input.usdToBrl <= 0 ||
+    input.marginBps < 0
+  ) {
+    throw new Error('BILLING_TOKEN_USAGE_INVALID');
+  }
+
+  const regularInputTokens = input.inputTokens - cachedInputTokens;
+  const cachedRate = input.cachedInputUsdPerMillion ?? input.inputUsdPerMillion;
+  const providerUsd =
+    (regularInputTokens / 1_000_000) * input.inputUsdPerMillion +
+    (cachedInputTokens / 1_000_000) * cachedRate +
+    (input.outputTokens / 1_000_000) * input.outputUsdPerMillion;
+  const customerBrl = providerUsd * input.usdToBrl * (1 + input.marginBps / 10_000);
+  return Math.ceil(customerBrl * 100);
+}
+
+export function calculateRefundableCents(input: {
+  purchaseAmountCents: number;
+  remainingCreditCents: number;
+}): number {
+  if (
+    !Number.isInteger(input.purchaseAmountCents) ||
+    !Number.isInteger(input.remainingCreditCents) ||
+    input.purchaseAmountCents < 0 ||
+    input.remainingCreditCents < 0
+  ) {
+    throw new Error('BILLING_REFUND_AMOUNT_INVALID');
+  }
+
+  return Math.min(input.purchaseAmountCents, input.remainingCreditCents);
+}

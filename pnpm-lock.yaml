@@ -56,6 +56,9 @@ importers:
       '@forgelex/source-providers':
         specifier: workspace:*
         version: link:../../packages/source-providers
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@libsql/client@0.14.0)(postgres@3.4.9)
       fastify:
         specifier: ^5.2.1
         version: 5.12.4

@@ -5,9 +5,9 @@ type Endpoint = 'mcp' | 'jurisprudencias' | 'verify_authority' | 'tribunals' | '
 type Language = 'curl' | 'node' | 'python';
 
 const token = '<SEU_TOKEN_DA_API>';
-const snippets: Record<Endpoint, Record<Language, string> & { example: object }> = {
+export const snippets: Record<Endpoint, Record<Language, string> & { example: object }> = {
   mcp: {
-    curl: `curl -X POST http://localhost:3001/mcp \\\n+  -H "Content-Type: application/json" \\\n+  -H "Authorization: Bearer ${token}" \\\n+  -d '{"jsonrpc":"2.0","id":"req-1","method":"tools/list"}'`,
+    curl: `curl -X POST http://localhost:3001/mcp \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${token}" \\\n  -d '{"jsonrpc":"2.0","id":"req-1","method":"tools/list"}'`,
     node: `const response = await fetch('http://localhost:3001/mcp', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${token}' },
@@ -25,7 +25,7 @@ print(response.json())`,
     example: { demonstracao: true, observacao: 'A resposta depende do ambiente e da credencial autenticada.' },
   },
   jurisprudencias: {
-    curl: `curl -G http://localhost:3001/api/v2/jurisprudencias \\\n+  --data-urlencode "q=juros capitalizados" --data-urlencode "court=STJ" \\\n+  -H "Authorization: Bearer ${token}"`,
+    curl: `curl -G http://localhost:3001/api/v2/jurisprudencias \\\n  --data-urlencode "q=juros capitalizados" --data-urlencode "court=STJ" \\\n  -H "Authorization: Bearer ${token}"`,
     node: `const params = new URLSearchParams({ q: 'juros capitalizados', court: 'STJ' });
 const response = await fetch('http://localhost:3001/api/v2/jurisprudencias?' + params, {
   headers: { 'Authorization': 'Bearer ${token}' },
@@ -42,7 +42,7 @@ print(response.json())`,
     example: { demonstracao: true, results: [], observacao: 'Resultados reais dependem da fonte e da consulta.' },
   },
   verify_authority: {
-    curl: `curl -X POST http://localhost:3001/api/v2/research/verify-authority \\\n+  -H "Content-Type: application/json" -H "Authorization: Bearer ${token}" \\\n+  -d '{"court":"STJ","processNumber":"<NUMERO_DO_PROCESSO>"}'`,
+    curl: `curl -X POST http://localhost:3001/api/v2/research/verify-authority \\\n  -H "Content-Type: application/json" -H "Authorization: Bearer ${token}" \\\n  -d '{"court":"STJ","processNumber":"<NUMERO_DO_PROCESSO>"}'`,
     node: `const response = await fetch('http://localhost:3001/api/v2/research/verify-authority', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${token}' },

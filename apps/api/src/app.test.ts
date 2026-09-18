@@ -282,7 +282,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       payload: { query: 'vazamento de dados', court: 'STJ', limit: 5 },
     });
     expect(searchResponse.statusCode).toBe(200);
-    expect(searchResponse.headers['x-credits-charged']).toBe('0.15');
+    expect(searchResponse.headers['x-credits-charged']).toBe('0.2');
     const search = JSON.parse(searchResponse.body);
     expect(search.results).toHaveLength(1);
     expect(search.results[0].provenance).toMatchObject({
@@ -1121,8 +1121,8 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['x-billable-units']).toBe('1');
-    expect(response.headers['x-credit-cost-per-unit']).toBe('0.15');
-    expect(response.headers['x-credits-charged']).toBe('0.15');
+    expect(response.headers['x-credit-cost-per-unit']).toBe('0.20');
+    expect(response.headers['x-credits-charged']).toBe('0.2');
 
     const body = JSON.parse(response.body);
     expect(body.results.length).toBeGreaterThanOrEqual(1);
@@ -1145,7 +1145,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.headers['x-credits-charged']).toBe('0.15');
+    expect(response.headers['x-credits-charged']).toBe('0.2');
     expect(JSON.parse(response.body)).toMatchObject({
       status: 'VERIFIED_OFFICIAL',
       authority: { processNumber: 'REsp 1.823.450/SP' },

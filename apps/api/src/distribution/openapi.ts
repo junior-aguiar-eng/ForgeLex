@@ -1,6 +1,6 @@
 import { EXTERNAL_MCP_TOOL_NAMES } from '@forgelex/mcp-server';
 
-type HttpMethod = 'get' | 'post' | 'delete';
+type HttpMethod = 'get' | 'post' | 'put' | 'delete';
 
 export interface PublicApiRouteDefinition {
   method: HttpMethod;
@@ -23,6 +23,19 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/api/v2/webhooks/events', summary: 'Eventos de webhook', description: 'Lista os tipos de evento e o contrato de assinatura disponível.' },
   { method: 'post', path: '/api/v2/auth/bootstrap', summary: 'Preparar conta', description: 'Cria de forma idempotente o perfil e o espaço pessoal do usuário autenticado.', requiresAuthentication: true, requestBody: 'account-bootstrap' },
   { method: 'get', path: '/api/v2/auth/me', summary: 'Consultar conta', description: 'Retorna o perfil, o espaço pessoal e o vínculo do usuário autenticado.', requiresAuthentication: true },
+  { method: 'get', path: '/api/v2/billing/account', summary: 'Consultar conta de billing', description: 'Retorna saldo, pacotes, custo de busca, recarga automática e catálogo tarifário.', scopes: ['billing:read'] },
+  { method: 'get', path: '/api/v2/billing/transactions', summary: 'Listar extrato', description: 'Lista lançamentos, compras, pagamentos e solicitações de reembolso do tenant.', scopes: ['billing:read'] },
+  { method: 'get', path: '/api/v2/billing/invoices', summary: 'Listar faturas', description: 'Lista faturas internas e recibos do provedor de pagamento disponíveis.', scopes: ['billing:read'] },
+  { method: 'post', path: '/api/v2/billing/checkout', summary: 'Criar Checkout de créditos', description: 'Cria uma compra avulsa pré-paga em BRL.', scopes: ['billing:write'], requestBody: 'object' },
+  { method: 'get', path: '/api/v2/billing/purchases/{purchaseId}', summary: 'Consultar compra', description: 'Consulta o estado de uma compra do tenant autenticado.', scopes: ['billing:read'] },
+  { method: 'get', path: '/api/v2/billing/payment-methods', summary: 'Listar métodos de pagamento', description: 'Lista somente metadados públicos dos cartões salvos.', scopes: ['billing:read'] },
+  { method: 'post', path: '/api/v2/billing/payment-methods/setup', summary: 'Preparar cartão', description: 'Cria um SetupIntent para salvar cartão com uso futuro fora de sessão.', scopes: ['billing:write'], requestBody: 'object' },
+  { method: 'put', path: '/api/v2/billing/auto-recharge', summary: 'Configurar recarga automática', description: 'Habilita ou desabilita recarga automática no limite fixo de R$ 5.', scopes: ['billing:write'], requestBody: 'object' },
+  { method: 'post', path: '/api/v2/billing/refund-requests', summary: 'Solicitar reembolso', description: 'Registra solicitação manual dentro do prazo de sete dias e limitada ao saldo não consumido.', scopes: ['billing:write'], requestBody: 'object' },
+  { method: 'post', path: '/api/v2/webhooks/stripe', summary: 'Receber webhook Stripe', description: 'Recebe eventos Stripe e valida exclusivamente a assinatura do provedor.' },
+  { method: 'post', path: '/api/v2/webhooks/mercadopago', summary: 'Receber webhook Mercado Pago', description: 'Recebe notificações do Mercado Pago e valida a assinatura HMAC do provedor.' },
+  { method: 'get', path: '/api/v2/admin/billing/refund-requests', summary: 'Listar solicitações de reembolso', description: 'Consulta administrativa de solicitações de reembolso.', scopes: ['billing:admin'] },
+  { method: 'post', path: '/api/v2/admin/billing/refund-requests/{requestId}/review', summary: 'Revisar solicitação de reembolso', description: 'Aprova ou rejeita manualmente uma solicitação de reembolso.', scopes: ['billing:admin'], requestBody: 'object' },
   { method: 'get', path: '/readyz', summary: 'Readiness', description: 'Verifica se as dependências locais necessárias estão disponíveis.' },
   { method: 'get', path: '/metrics', summary: 'Métricas internas', description: 'Retorna contadores internos de requisições e latência.' },
   { method: 'get', path: '/metrics/prometheus', summary: 'Métricas Prometheus', description: 'Expõe as métricas internas em formato compatível com scrape do Prometheus.' },

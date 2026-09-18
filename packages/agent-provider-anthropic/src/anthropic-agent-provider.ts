@@ -13,6 +13,7 @@ import {
   AgentRunInput,
   AgentEvent,
   AgentTool,
+  normalizeProviderUsage,
   PolicyEngine,
   SessionStateMachine,
   ToolRegistry,
@@ -441,6 +442,7 @@ export class AnthropicAgentProvider implements AgentProvider {
               output: result.result,
               totalTurns: result.num_turns,
               totalDurationMs: result.duration_ms || Date.now() - startTime,
+              usage: normalizeProviderUsage('anthropic', this.model, result),
               timestamp: new Date().toISOString(),
             };
             return;
