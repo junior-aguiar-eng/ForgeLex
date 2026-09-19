@@ -38,6 +38,9 @@ importers:
       '@forgelex/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@forgelex/legal-data':
+        specifier: workspace:*
+        version: link:../../packages/legal-data
       '@forgelex/legal-tools':
         specifier: workspace:*
         version: link:../../packages/legal-tools
@@ -347,6 +350,9 @@ importers:
       '@forgelex/domain':
         specifier: workspace:*
         version: link:../domain
+      '@forgelex/legal-data':
+        specifier: workspace:*
+        version: link:../legal-data
       '@libsql/client':
         specifier: ^0.14.0
         version: 0.14.0

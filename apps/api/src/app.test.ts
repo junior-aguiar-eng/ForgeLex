@@ -10,6 +10,8 @@ import { AuditRecorder } from '@forgelex/audit';
 import { CanonicalFixtureProvider, SourceRouter } from '@forgelex/source-providers';
 import type { Client } from '@libsql/client';
 import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
+import { JurisprudenceIngestionService } from '@forgelex/legal-data';
+import { IngestionRunRepository, JurisprudenceRepository } from '@forgelex/persistence';
 
 const testPrincipal: AuthenticatedPrincipal = {
   subjectId: 'subject_test',
@@ -78,7 +80,13 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     });
 
     const sourceRouter = new SourceRouter();
-    sourceRouter.registerProvider(new CanonicalFixtureProvider());
+    const fixtureProvider = new CanonicalFixtureProvider();
+    sourceRouter.registerProvider(fixtureProvider);
+    const fixtureDocuments = await fixtureProvider.search('vazamento', { court: 'STJ', limit: 10 });
+    await new JurisprudenceIngestionService(
+      new JurisprudenceRepository(database),
+      new IngestionRunRepository(database),
+    ).ingest({ providerId: fixtureProvider.id, court: 'STJ', documents: fixtureDocuments });
     auditRecorder = new AuditRecorder(connection.db);
 
     app = await buildApp({

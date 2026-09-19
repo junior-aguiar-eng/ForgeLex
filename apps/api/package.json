@@ -15,6 +15,7 @@
     "@forgelex/agent-core": "workspace:*",
     "@forgelex/audit": "workspace:*",
     "@forgelex/legal-tools": "workspace:*",
+    "@forgelex/legal-data": "workspace:*",
     "@forgelex/legal-workflows": "workspace:*",
     "@forgelex/persistence": "workspace:*",
     "@forgelex/source-catalog": "workspace:*",

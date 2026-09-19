@@ -5,7 +5,7 @@
 ## Fase 0 — baseline exclusivo do STJ
 
 A Fase 0 do plano progressivo foi concluída localmente e consolidada no commit
-`e220cb2`. API REST, MCP e
+`b7f1a84`. API REST, MCP e
 interface agora tratam o STJ como o único tribunal comercialmente pesquisável
 nesta etapa. O catálogo permanece capaz de listar STF, TST, TJSP, TJRJ e TRF3,
 mas esses registros retornam `searchable: false`, `verifiable: false` e
@@ -24,6 +24,32 @@ interface foram alinhados ao escopo STJ. O MCP continua recebendo apenas a
 chamada autenticada e os argumentos da ferramenta, sem acesso a conversas,
 arquivos ou histórico do usuário. Não foram executados migration remota,
 deploy ou push.
+
+## Fase 1 — fundação persistida do data plane jurisprudencial
+
+A fundação técnica da fase foi implementada localmente nesta frente. A
+migração incremental `persistence-0013-jurisprudence-data-plane` cria o corpus
+global do STJ sem `tenant_id`, suas versões, termos indexados e execuções de
+ingestão. O repositório preserva processo, classe, relator, órgão julgador,
+datas, ementa, íntegra, URL oficial, hash, dedupe key, proveniência, primeira e
+última captura e status de verificação. O upsert é idempotente, cria versão
+somente quando o hash muda e o lote é transacional.
+
+O caminho comercial da API e do MCP agora pode receber um
+`JurisprudenceSearchService` persistido. No runtime da API, a pesquisa lê o
+repositório próprio; o provider oficial continua reservado à aquisição,
+verificação e atualização. A rejeição de tribunal não habilitado continua
+ocorrendo antes da consulta persistida e antes do débito.
+
+A fonte histórica oficial e o critério de cobertura foram registrados em
+`docs/jurisprudencia/stj-historical-source.md`. A descoberta local do catálogo
+foi executada contra a API oficial: 10 datasets, 530 recursos enumeráveis, 10
+snapshots históricos e 12 recursos não classificáveis (dicionários ou arquivos
+sem data no nome), sem alerta de ausência de snapshot. A conclusão integral da
+fase continua pendente da importação dos snapshots e incrementais, da
+reconciliação das contagens de registros, da detecção de lacunas no conteúdo e
+da publicação idempotente do corpus. Não se declara, portanto, cobertura
+histórica integral do STJ nem se inicia a Fase 2.
 
 ## Estado implementado
 

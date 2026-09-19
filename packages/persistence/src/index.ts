@@ -11,5 +11,7 @@ export * from './repositories/research-memo-repository.js';
 export * from './repositories/legal-thesis-repository.js';
 export * from './repositories/webhook-repository.js';
 export * from './repositories/account-repository.js';
+export * from './repositories/jurisprudence-repository.js';
+export * from './repositories/ingestion-run-repository.js';
 export * from './migrations/migration-runner.js';
 export type { Client } from '@libsql/client';

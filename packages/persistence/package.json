@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@forgelex/domain": "workspace:*",
+    "@forgelex/legal-data": "workspace:*",
     "@forgelex/agent-core": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "@libsql/client": "^0.14.0",

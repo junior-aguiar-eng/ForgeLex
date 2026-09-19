@@ -45,6 +45,10 @@ export class SourceRouter {
     this.enabledCourts = new Set(courts.map((court) => court.trim().toUpperCase()));
   }
 
+  public getDefaultSearchCourt(): string | undefined {
+    return this.enabledCourts?.size === 1 ? [...this.enabledCourts][0] : undefined;
+  }
+
   public isCourtSearchable(court: string): boolean {
     const normalizedCourt = court.trim().toUpperCase();
     if (this.enabledCourts && !this.enabledCourts.has(normalizedCourt)) return false;

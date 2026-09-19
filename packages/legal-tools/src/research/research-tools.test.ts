@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CanonicalFixtureProvider, SourceRouter } from '@forgelex/source-providers';
+import { JurisprudenceSearchService } from '@forgelex/legal-data';
 import { createSearchCaseLawTool } from './search-case-law.js';
 import { createVerifyAuthorityTool } from './verify-authority.js';
 import { createGetAuthorityTool } from './get-authority.js';
@@ -59,5 +60,21 @@ describe('Research tools', () => {
 
     expect(result.data.status).toBe('CONFLICTING_METADATA');
     expect(result.data.reason).toContain('diverge');
+  });
+
+  it('usa o corpus persistido sem consultar o provider de aquisição no caminho comercial', async () => {
+    const provider = new CanonicalFixtureProvider();
+    const router = new SourceRouter();
+    router.registerProvider(provider);
+    const documents = await provider.search('vazamento de dados', { court: 'STJ', limit: 10 });
+    const liveSearch = vi.spyOn(provider, 'search');
+    const service = new ResearchService(router, new JurisprudenceSearchService({
+      async search() { return documents; },
+    }));
+
+    const result = await service.searchCaseLaw({ query: 'vazamento de dados', court: 'STJ', limit: 10 });
+
+    expect(result.items).toHaveLength(1);
+    expect(liveSearch).not.toHaveBeenCalled();
   });
 });

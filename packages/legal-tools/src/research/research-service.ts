@@ -1,6 +1,6 @@
 import { CaseLaw, CaseLawSchema } from '@forgelex/domain';
-import { JurisprudenceDocument } from '@forgelex/legal-data';
-import { CanonicalFixtureProvider, SourceRouter } from '@forgelex/source-providers';
+import { JurisprudenceDocument, JurisprudenceSearchService } from '@forgelex/legal-data';
+import { CanonicalFixtureProvider, SourceRouter, SourceRouterError } from '@forgelex/source-providers';
 
 export interface SearchCaseLawRequest {
   query: string;
@@ -46,13 +46,25 @@ function toCaseLaw(document: JurisprudenceDocument): CaseLaw {
 }
 
 export class ResearchService {
-  constructor(private readonly sourceRouter: SourceRouter) {}
+  constructor(
+    private readonly sourceRouter: SourceRouter,
+    private readonly jurisprudenceSearchService?: JurisprudenceSearchService,
+  ) {}
 
   public async searchCaseLaw(request: SearchCaseLawRequest): Promise<SearchCaseLawResponse> {
-    const documents = await this.sourceRouter.search(request.query, {
-      court: request.court,
-      limit: request.limit,
-    });
+    const effectiveCourt = request.court ?? this.sourceRouter.getDefaultSearchCourt();
+    if (effectiveCourt && !this.sourceRouter.isCourtSearchable(effectiveCourt)) {
+      throw new SourceRouterError(
+        'UNSUPPORTED_COURT',
+        `O tribunal '${effectiveCourt.trim().toUpperCase()}' não está habilitado para pesquisa.`,
+      );
+    }
+    const documents = this.jurisprudenceSearchService
+      ? await this.jurisprudenceSearchService.search({ query: request.query, court: effectiveCourt, limit: request.limit })
+      : await this.sourceRouter.search(request.query, {
+        court: effectiveCourt,
+        limit: request.limit,
+      });
 
     return {
       items: documents.map(toCaseLaw),
@@ -63,6 +75,39 @@ export class ResearchService {
   }
 
   public async verifyAuthority(request: VerifyAuthorityRequest): Promise<VerifyAuthorityResponse> {
+    if (!this.sourceRouter.isCourtSearchable(request.court)) {
+      throw new SourceRouterError(
+        'UNSUPPORTED_COURT',
+        `O tribunal '${request.court.trim().toUpperCase()}' não está habilitado para pesquisa.`,
+      );
+    }
+    if (this.jurisprudenceSearchService) {
+      const document = await this.jurisprudenceSearchService.getByProcessNumber({
+        court: request.court,
+        processNumber: request.processNumber,
+      });
+      const checkedAt = new Date().toISOString();
+      if (!document) {
+        return { status: 'NOT_FOUND', checkedAt, reason: 'Autoridade não encontrada no corpus jurisprudencial persistido.' };
+      }
+      if (request.judgmentDate && request.judgmentDate !== document.judgmentDate) {
+        return {
+          status: 'CONFLICTING_METADATA',
+          providerId: document.provenance.source.provider,
+          checkedAt,
+          authority: toCaseLaw(document),
+          reason: `A data informada (${request.judgmentDate}) diverge da fonte (${document.judgmentDate}).`,
+        };
+      }
+      return {
+        status: document.provenance.verified
+          ? document.provenance.verificationMethod === 'OFFICIAL_SOURCE_HASH' ? 'VERIFIED_OFFICIAL' : 'VERIFIED_PROVIDER'
+          : 'UNVERIFIED',
+        providerId: document.provenance.source.provider,
+        checkedAt,
+        authority: toCaseLaw(document),
+      };
+    }
     const result = await this.sourceRouter.verifyAuthority(request);
     return {
       status: result.status,

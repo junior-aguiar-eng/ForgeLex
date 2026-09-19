@@ -27,6 +27,7 @@ import {
   ResearchMemoRepository,
   LegalThesisRepository,
   ApiKeyRepository,
+  JurisprudenceRepository,
   AccountRepository,
   runPersistenceMigrations,
 } from '@forgelex/persistence';
@@ -34,6 +35,7 @@ import { BillingService, CREDIT_PACKAGES, JURISPRUDENCE_SEARCH_COST_CENTS, Ledge
 import { AuditRecorder } from '@forgelex/audit';
 import { EXTERNAL_MCP_TOOL_NAMES, McpHandler } from '@forgelex/mcp-server';
 import { CaseLawSchema, type AuthenticatedPrincipal } from '@forgelex/domain';
+import { JurisprudenceSearchService } from '@forgelex/legal-data';
 import {
   AuthAdapter,
   createDefaultAuthAdapter,
@@ -195,7 +197,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }));
   }
   sourceRouter.setEnabledCourts(commercialEnabledCourts);
-  const researchService = new ResearchService(sourceRouter);
+  const jurisprudenceSearchService = database
+    ? new JurisprudenceSearchService(new JurisprudenceRepository(database))
+    : undefined;
+  const researchService = new ResearchService(sourceRouter, jurisprudenceSearchService);
 
   const toolRegistry = new ToolRegistry();
   toolRegistry.register(createSearchCaseLawTool(researchService));

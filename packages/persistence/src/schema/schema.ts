@@ -537,3 +537,102 @@ export const legalTheses = sqliteTable(
   },
   (table) => [index('legal_theses_tenant_matter_updated_idx').on(table.tenantId, table.matterId, table.updatedAt)],
 );
+
+export const jurisprudenceIngestionRuns = sqliteTable(
+  'jurisprudence_ingestion_runs',
+  {
+    id: text('id').primaryKey(),
+    providerId: text('provider_id').notNull(),
+    court: text('court').notNull(),
+    status: text('status').notNull(),
+    documentsSeen: integer('documents_seen').notNull().default(0),
+    documentsPublished: integer('documents_published').notNull().default(0),
+    coverageStart: text('coverage_start'),
+    coverageEnd: text('coverage_end'),
+    startedAt: text('started_at').notNull(),
+    completedAt: text('completed_at'),
+    error: text('error'),
+  },
+  (table) => [
+    index('jurisprudence_ingestion_runs_court_started_idx').on(table.court, table.startedAt),
+    index('jurisprudence_ingestion_runs_status_idx').on(table.status),
+  ],
+);
+
+export const jurisprudenceDocuments = sqliteTable(
+  'jurisprudence_documents',
+  {
+    id: text('id').primaryKey(),
+    court: text('court').notNull(),
+    processNumber: text('process_number').notNull(),
+    normalizedProcessNumber: text('normalized_process_number').notNull(),
+    processClass: text('process_class'),
+    rapporteur: text('rapporteur').notNull(),
+    chamber: text('chamber'),
+    judgmentDate: text('judgment_date').notNull(),
+    publicationDate: text('publication_date').notNull(),
+    syllabus: text('syllabus').notNull(),
+    fullText: text('full_text'),
+    officialUrl: text('official_url'),
+    providerId: text('provider_id').notNull(),
+    contentHash: text('content_hash').notNull(),
+    dedupeKey: text('dedupe_key').notNull(),
+    currentVersionId: text('current_version_id'),
+    firstSeenAt: text('first_seen_at').notNull(),
+    lastSeenAt: text('last_seen_at').notNull(),
+    verificationStatus: text('verification_status').notNull(),
+    provenanceJson: text('provenance_json').notNull(),
+    ingestionRunId: text('ingestion_run_id').notNull().references(() => jurisprudenceIngestionRuns.id),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('jurisprudence_documents_dedupe_idx').on(table.dedupeKey),
+    index('jurisprudence_documents_court_judgment_idx').on(table.court, table.judgmentDate),
+    index('jurisprudence_documents_process_idx').on(table.court, table.normalizedProcessNumber),
+    index('jurisprudence_documents_content_hash_idx').on(table.contentHash),
+  ],
+);
+
+export const jurisprudenceDocumentVersions = sqliteTable(
+  'jurisprudence_document_versions',
+  {
+    id: text('id').primaryKey(),
+    documentId: text('document_id').notNull().references(() => jurisprudenceDocuments.id),
+    versionNumber: integer('version_number').notNull(),
+    processNumber: text('process_number').notNull(),
+    processClass: text('process_class'),
+    rapporteur: text('rapporteur').notNull(),
+    chamber: text('chamber'),
+    judgmentDate: text('judgment_date').notNull(),
+    publicationDate: text('publication_date').notNull(),
+    syllabus: text('syllabus').notNull(),
+    fullText: text('full_text'),
+    officialUrl: text('official_url'),
+    providerId: text('provider_id').notNull(),
+    contentHash: text('content_hash').notNull(),
+    verificationStatus: text('verification_status').notNull(),
+    provenanceJson: text('provenance_json').notNull(),
+    ingestionRunId: text('ingestion_run_id').notNull().references(() => jurisprudenceIngestionRuns.id),
+    capturedAt: text('captured_at').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('jurisprudence_document_versions_number_idx').on(table.documentId, table.versionNumber),
+    index('jurisprudence_document_versions_document_idx').on(table.documentId, table.versionNumber),
+  ],
+);
+
+export const jurisprudenceDocumentTerms = sqliteTable(
+  'jurisprudence_document_terms',
+  {
+    id: text('id').primaryKey(),
+    documentId: text('document_id').notNull().references(() => jurisprudenceDocuments.id),
+    term: text('term').notNull(),
+    field: text('field').notNull(),
+  },
+  (table) => [
+    uniqueIndex('jurisprudence_document_terms_unique_idx').on(table.documentId, table.term, table.field),
+    index('jurisprudence_document_terms_term_idx').on(table.term, table.documentId),
+  ],
+);

@@ -7,6 +7,14 @@ export interface SearchOptions {
   toDate?: string;
 }
 
+export interface EnumerationOptions {
+  court: string;
+  fromDate?: string;
+  toDate?: string;
+  cursor?: string;
+  pageSize?: number;
+}
+
 export type ProviderHealthStatus = 'AVAILABLE' | 'DEGRADED' | 'UNAVAILABLE';
 
 export interface ProviderHealth {
@@ -43,6 +51,8 @@ export interface LegalSourceProvider {
   readonly isOfficial: boolean;
   supportsCourt(court: string): boolean;
   search(query: string, options?: SearchOptions): Promise<JurisprudenceDocument[]>;
+  /** Aquisição enumerável para carga/reconciliação; não é usada como resposta comercial direta. */
+  enumerate?(options: EnumerationOptions): AsyncIterable<JurisprudenceDocument>;
   health?(): Promise<ProviderHealth>;
   verifyAuthority?(query: AuthorityVerificationQuery): Promise<AuthorityVerificationResult>;
 }

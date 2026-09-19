@@ -668,6 +668,93 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `CREATE INDEX IF NOT EXISTS forgelex_tenant_memberships_user_status_idx ON forgelex_tenant_memberships (user_id, status);`,
     ],
   },
+  {
+    id: 'persistence-0013-jurisprudence-data-plane',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_ingestion_runs (
+          id TEXT PRIMARY KEY,
+          provider_id TEXT NOT NULL,
+          court TEXT NOT NULL,
+          status TEXT NOT NULL,
+          documents_seen INTEGER NOT NULL DEFAULT 0,
+          documents_published INTEGER NOT NULL DEFAULT 0,
+          coverage_start TEXT,
+          coverage_end TEXT,
+          started_at TEXT NOT NULL,
+          completed_at TEXT,
+          error TEXT
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_ingestion_runs_court_started_idx ON jurisprudence_ingestion_runs (court, started_at);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_ingestion_runs_status_idx ON jurisprudence_ingestion_runs (status);`,
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_documents (
+          id TEXT PRIMARY KEY,
+          court TEXT NOT NULL,
+          process_number TEXT NOT NULL,
+          normalized_process_number TEXT NOT NULL,
+          process_class TEXT,
+          rapporteur TEXT NOT NULL,
+          chamber TEXT,
+          judgment_date TEXT NOT NULL,
+          publication_date TEXT NOT NULL,
+          syllabus TEXT NOT NULL,
+          full_text TEXT,
+          official_url TEXT,
+          provider_id TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          dedupe_key TEXT NOT NULL UNIQUE,
+          current_version_id TEXT,
+          first_seen_at TEXT NOT NULL,
+          last_seen_at TEXT NOT NULL,
+          verification_status TEXT NOT NULL,
+          provenance_json TEXT NOT NULL,
+          ingestion_run_id TEXT NOT NULL REFERENCES jurisprudence_ingestion_runs(id),
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_documents_court_judgment_idx ON jurisprudence_documents (court, judgment_date);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_documents_process_idx ON jurisprudence_documents (court, normalized_process_number);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_documents_content_hash_idx ON jurisprudence_documents (content_hash);`,
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_document_versions (
+          id TEXT PRIMARY KEY,
+          document_id TEXT NOT NULL REFERENCES jurisprudence_documents(id),
+          version_number INTEGER NOT NULL,
+          process_number TEXT NOT NULL,
+          process_class TEXT,
+          rapporteur TEXT NOT NULL,
+          chamber TEXT,
+          judgment_date TEXT NOT NULL,
+          publication_date TEXT NOT NULL,
+          syllabus TEXT NOT NULL,
+          full_text TEXT,
+          official_url TEXT,
+          provider_id TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          verification_status TEXT NOT NULL,
+          provenance_json TEXT NOT NULL,
+          ingestion_run_id TEXT NOT NULL REFERENCES jurisprudence_ingestion_runs(id),
+          captured_at TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          UNIQUE (document_id, version_number)
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_document_versions_document_idx ON jurisprudence_document_versions (document_id, version_number);`,
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_document_terms (
+          id TEXT PRIMARY KEY,
+          document_id TEXT NOT NULL REFERENCES jurisprudence_documents(id),
+          term TEXT NOT NULL,
+          field TEXT NOT NULL,
+          UNIQUE (document_id, term, field)
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_document_terms_term_idx ON jurisprudence_document_terms (term, document_id);`,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {
