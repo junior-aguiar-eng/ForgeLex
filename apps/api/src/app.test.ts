@@ -341,6 +341,11 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const body = JSON.parse(response.body);
     expect(body.openapi).toBe('3.1.0');
     expect(body.paths['/api/v2/research/search-case-law'].post['x-forgelex-tool']).toBe('research.search_case_law');
+    expect(body.paths['/api/v2/research/search-case-law'].post['x-forgelex-tool-contract']).toMatchObject({
+      contractVersion: '1.0.0',
+      operationKind: 'OBSERVATION',
+      billing: { mode: 'METERED', unit: 'STJ_CASE_LAW_SEARCH', costCents: 20 },
+    });
     expect(body.paths['/api/v2/research/search-case-law'].post.parameters).toContainEqual(expect.objectContaining({ name: 'Idempotency-Key', required: true }));
     expect(body.paths['/api/v2/research/search-case-law'].post.description).toContain('R$ 0,20');
     expect(body.paths['/api/v2/research/search-case-law'].post.responses['200'].headers['X-ForgeLex-Billing-Mode']).toBeDefined();

@@ -1,4 +1,5 @@
 import { ToolRegistry } from '@forgelex/agent-core';
+import { getLegalToolContract, LegalToolGatewayError } from '@forgelex/legal-tools';
 import { getForgeLexBillingPolicy, LedgerService } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -90,10 +91,12 @@ export class McpHandler {
             const rawSchema = zodToJsonSchema(tool.inputSchema, { target: 'jsonSchema7' }) as any;
             const { $schema, ...cleanSchema } = rawSchema;
 
+            const contract = getLegalToolContract(tool.name);
             return {
               name: tool.name,
               description: tool.description,
               inputSchema: cleanSchema,
+              ...(contract ? { 'x-forgelex-contract': contract } : {}),
             };
           });
 
@@ -214,7 +217,7 @@ export class McpHandler {
             error: {
               code: -32000,
               message: err.message ?? 'Falha na execução da ferramenta.',
-              data: err.details,
+              data: this.toStructuredError(err),
             },
           };
         }
@@ -240,5 +243,17 @@ export class McpHandler {
 
   private isExposed(toolName: string): boolean {
     return this.exposedToolNames === undefined || this.exposedToolNames.has(toolName);
+  }
+
+  private toStructuredError(error: unknown): Record<string, unknown> {
+    if (error instanceof LegalToolGatewayError) return error.toJSON();
+    const candidate = error as { code?: unknown; details?: unknown; message?: unknown };
+    const code = typeof candidate?.code === 'string' ? candidate.code : 'TOOL_EXECUTION_FAILED';
+    return {
+      code,
+      message: typeof candidate?.message === 'string' ? candidate.message : 'Falha na execução da ferramenta.',
+      retryable: code === 'SOURCE_PROVIDER_UNAVAILABLE' || code === 'SOURCE_PROVIDER_TIMEOUT',
+      ...(candidate?.details && typeof candidate.details === 'object' ? { details: candidate.details as Record<string, unknown> } : {}),
+    };
   }
 }

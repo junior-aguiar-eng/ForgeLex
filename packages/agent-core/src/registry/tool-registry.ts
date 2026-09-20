@@ -50,9 +50,16 @@ export class ToolRegistry {
       });
     });
 
-    return await Promise.race([
+    const result = await Promise.race([
       tool.execute(parseResult.data, context),
       timeoutPromise,
     ]);
+    const outputResult = tool.outputSchema.safeParse(result.data);
+    if (!outputResult.success) {
+      throw new DomainError('INVALID_CANONICAL_STATE', `Falha de validação na saída da ferramenta '${name}'`, {
+        issues: outputResult.error.issues,
+      });
+    }
+    return { ...result, data: outputResult.data };
   }
 }

@@ -5,14 +5,14 @@ import { CourtCatalog } from '@forgelex/source-catalog';
 import { SourceRouter, StjSconProvider } from '@forgelex/source-providers';
 import { ToolRegistry } from '@forgelex/agent-core';
 import {
-  createSearchCaseLawTool,
-  createGetAuthorityTool,
-  createVerifyAuthorityTool,
+  createLegalToolGateway,
   DraftReviewService,
   DraftingService,
   DraftCreateInputSchema,
   FactsEvidenceService,
   ResearchService,
+  type SearchCaseLawOutput,
+  type VerifyAuthorityOutput,
   StrategyService,
   createStrategyTools,
 } from '@forgelex/legal-tools';
@@ -220,9 +220,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   };
 
   const toolRegistry = new ToolRegistry();
-  toolRegistry.register(createSearchCaseLawTool(researchService));
-  toolRegistry.register(createGetAuthorityTool(researchService));
-  toolRegistry.register(createVerifyAuthorityTool(researchService));
+  createLegalToolGateway(researchService).registerInto(toolRegistry);
+  type LegalGatewayToolName = 'research.search_case_law' | 'research.get_authority' | 'research.verify_authority';
+  type LegalGatewayToolOutput<TName extends LegalGatewayToolName> = TName extends 'research.search_case_law'
+    ? SearchCaseLawOutput
+    : VerifyAuthorityOutput;
+  const executeLegalGatewayTool = async <TName extends LegalGatewayToolName>(
+    toolName: TName,
+    input: Record<string, unknown>,
+    context: { sessionId: string; tenantId: string; userId: string },
+  ): Promise<{ data: LegalGatewayToolOutput<TName> }> => {
+    const execution = await toolRegistry.executeTool(toolName, input, {
+      ...context,
+      abortSignal: new AbortController().signal,
+    });
+    return execution as { data: LegalGatewayToolOutput<TName> };
+  };
   if (strategyService) {
     const strategyTools = createStrategyTools(strategyService);
     toolRegistry.register(strategyTools.identifyIssuesTool);
@@ -654,7 +667,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           sessionId,
           userId: input.principal.userId,
         },
-        operation: async () => researchService.searchCaseLaw({ query: input.query, court, limit: input.limit }),
+        operation: async () => (await executeLegalGatewayTool('research.search_case_law', {
+          query: input.query, court, limit: input.limit,
+        }, { sessionId, tenantId: input.principal.tenantId, userId: input.principal.userId })).data,
       });
 
       setBillingHeaders(input.reply, execution);
@@ -2230,9 +2245,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             sessionId,
             userId: req.principal.userId,
           },
-          operation: async () => {
-            return await researchService.searchCaseLaw({ query: q, court, limit });
-          },
+          operation: async () => (await executeLegalGatewayTool('research.search_case_law', {
+            query: q, court, limit,
+          }, { sessionId, tenantId: req.principal.tenantId, userId: req.principal.userId })).data,
         });
 
         setBillingHeaders(reply, execution);
@@ -2358,7 +2373,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             sessionId,
             userId: req.principal.userId,
           },
-          operation: async () => researchService.verifyAuthority({ court: searchableCourt, processNumber, judgmentDate }),
+          operation: async () => (await executeLegalGatewayTool('research.get_authority', {
+            court: searchableCourt, processNumber, judgmentDate,
+          }, { sessionId, tenantId: req.principal.tenantId, userId: req.principal.userId })).data,
         });
 
         setBillingHeaders(reply, execution);
@@ -2442,9 +2459,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             sessionId,
             userId: req.principal.userId,
           },
-          operation: async () => {
-            return await researchService.verifyAuthority({ court: searchableCourt, processNumber, judgmentDate: body.judgmentDate });
-          },
+          operation: async () => (await executeLegalGatewayTool('research.verify_authority', {
+            court: searchableCourt, processNumber, judgmentDate: body.judgmentDate,
+          }, { sessionId, tenantId: req.principal.tenantId, userId: req.principal.userId })).data,
         });
 
         setBillingHeaders(reply, execution);
