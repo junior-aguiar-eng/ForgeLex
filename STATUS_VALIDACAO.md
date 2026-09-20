@@ -28,8 +28,8 @@ deploy ou push.
 
 ## Fase 1 — fundação persistida do data plane jurisprudencial
 
-A fundação técnica da fase está parcialmente implementada localmente, mas a
-Fase 1 ainda não está formalmente concluída. A migration incremental
+A fundação técnica da fase foi implementada e validada localmente para o
+corpus histórico definido pelo STJ Open Data. A migration incremental
 `persistence-0013-jurisprudence-data-plane` cria o corpus global do STJ sem
 `tenant_id`, suas versões e execuções de ingestão. A nova
 `persistence-0014-stj-source-manifest` adiciona manifestos de recurso e
