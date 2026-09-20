@@ -27,6 +27,8 @@ for role in roles/artifactregistry.writer roles/cloudbuild.builds.editor roles/r
   gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$DEPLOY_EMAIL" --role="$role" --condition=None --quiet >/dev/null
 done
 gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_EMAIL" --member="serviceAccount:$DEPLOY_EMAIL" --role=roles/iam.serviceAccountUser --project="$PROJECT_ID" --quiet >/dev/null
+BUILD_EMAIL="$(gcloud builds get-default-service-account --project="$PROJECT_ID")"
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$BUILD_EMAIL" --role=roles/cloudbuild.builds.builder --condition=None --quiet >/dev/null
 
 gcloud sql instances describe "$SQL_INSTANCE" --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud sql instances create "$SQL_INSTANCE" --database-version=POSTGRES_16 --edition=enterprise --tier=db-f1-micro --region="$REGION" --availability-type=ZONAL --storage-size=10 --storage-type=SSD --storage-auto-increase --backup-start-time=03:00 --retained-backups-count=7 --project="$PROJECT_ID"
 gcloud beta sql instances patch "$SQL_INSTANCE" --update-labels="$LABELS" --project="$PROJECT_ID" --quiet
