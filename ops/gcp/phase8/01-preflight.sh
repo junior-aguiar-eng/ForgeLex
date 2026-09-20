@@ -10,7 +10,14 @@ test -n "$ACCOUNT" && test "$ACCOUNT" != "(unset)" || { echo "ACTIVE_ACCOUNT_REQ
 
 BILLING_ACCOUNT="$(gcloud billing projects describe "$PROJECT_ID" --format='value(billingAccountName.basename())')"
 test -n "$BILLING_ACCOUNT" || { echo "BILLING_REQUIRED" >&2; exit 1; }
-gcloud beta billing budgets list --billing-account="$BILLING_ACCOUNT" --format=json | jq -e 'length > 0' >/dev/null
+BUDGET_API_ENABLED="$(gcloud services list --enabled --project="$PROJECT_ID" --filter='config.name=billingbudgets.googleapis.com' --format='value(config.name)')"
+if test "$BUDGET_API_ENABLED" = "billingbudgets.googleapis.com"; then
+  gcloud beta billing budgets list --billing-account="$BILLING_ACCOUNT" --format=json | jq -e 'length > 0' >/dev/null
+  BUDGET_STATUS="api-confirmed"
+else
+  test "${FORGELEX_PHASE8_BUDGET_CONFIRMED:-}" = "confirmed" || { echo "BUDGET_CONSOLE_CONFIRMATION_REQUIRED" >&2; exit 1; }
+  BUDGET_STATUS="console-confirmed"
+fi
 
 REQUIRED_APIS=(run.googleapis.com sqladmin.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com secretmanager.googleapis.com compute.googleapis.com logging.googleapis.com)
 MISSING_APIS=()
@@ -32,4 +39,4 @@ assert_owned_or_absent "gcloud sql instances describe '$SQL_INSTANCE' --project=
 assert_owned_or_absent "gcloud artifacts repositories describe '$AR_REPOSITORY' --location='$REGION' --project='$PROJECT_ID' --format='value(labels)'" "$AR_REPOSITORY"
 
 MISSING_APIS_JSON="$(printf '%s\n' "${MISSING_APIS[@]:-}" | jq -Rsc 'split("\n") | map(select(length > 0))')"
-jq -n --arg project "$PROJECT_ID" --arg account "$ACCOUNT" --arg billingAccount "$BILLING_ACCOUNT" --argjson missingApis "$MISSING_APIS_JSON" '{status:"passed",project:$project,account:$account,billingAccount:$billingAccount,missingApis:$missingApis}'
+jq -n --arg project "$PROJECT_ID" --arg account "$ACCOUNT" --arg billingAccount "$BILLING_ACCOUNT" --arg budgetStatus "$BUDGET_STATUS" --argjson missingApis "$MISSING_APIS_JSON" '{status:"passed",project:$project,account:$account,billingAccount:$billingAccount,budgetStatus:$budgetStatus,missingApis:$missingApis}'
