@@ -76,11 +76,8 @@ export const ResearchDeskScreen: React.FC = () => {
               <div className="flex flex-col md:flex-row gap-3">
                 <input value={query} onChange={(event) => setQuery(event.target.value)} className="flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
                 <select value={court} onChange={(event) => setCourt(event.target.value)} className="md:w-40 px-3 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm">
-                  <option value="TODOS">Todos</option>
+                  <option value="TODOS">Todos (STJ nesta fase)</option>
                   <option>STJ</option>
-                  <option>STF</option>
-                  <option>TJSP</option>
-                  <option>TST</option>
                 </select>
                 <button disabled={busy} className="px-5 py-3 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">{busy ? 'Consultando...' : 'Consultar'}</button>
               </div>
@@ -117,7 +114,7 @@ export const ResearchDeskScreen: React.FC = () => {
             </div>
             <form onSubmit={verify} className="space-y-3">
               <label className="block text-xs font-semibold text-stone-600">Tribunal
-                <select value={court} onChange={(event) => setCourt(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm"><option>STJ</option><option>STF</option><option>TJSP</option><option>TST</option></select>
+                <select value={court === 'TODOS' ? 'STJ' : court} onChange={(event) => setCourt(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm"><option>STJ</option></select>
               </label>
               <label className="block text-xs font-semibold text-stone-600">Número do processo
                 <input value={processNumber} onChange={(event) => setProcessNumber(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
@@ -125,7 +122,7 @@ export const ResearchDeskScreen: React.FC = () => {
               <label className="block text-xs font-semibold text-stone-600">Data do julgamento (opcional)
                 <input value={judgmentDate} onChange={(event) => setJudgmentDate(event.target.value)} placeholder="DD/MM/AAAA" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
               </label>
-              <button disabled={busy} className="w-full px-4 py-3 rounded-xl border border-cognac-300 bg-cognac-50 hover:bg-cognac-100 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Verificar por R$ 0,15</button>
+              <button disabled={busy} className="w-full px-4 py-3 rounded-xl border border-cognac-300 bg-cognac-50 hover:bg-cognac-100 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Verificar por R$ 0,20</button>
             </form>
 
             {verification && (

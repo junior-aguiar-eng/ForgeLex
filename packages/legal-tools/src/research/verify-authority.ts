@@ -5,7 +5,7 @@ import { ResearchService, createFixtureResearchService } from './research-servic
 
 export const VerifyAuthorityInputSchema = z.object({
   court: z.string().min(2),
-  processNumber: z.string().min(5),
+  processNumber: z.string().min(1),
   judgmentDate: z.string().optional(),
 });
 

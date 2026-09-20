@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, FileText, History, LockKeyhole, Plus, RefreshCw, Send, ShieldAlert } from 'lucide-react';
+import { requestApiWithToken } from '../api-client';
+import { useAuth } from '../auth/AuthContext';
 
 interface Matter {
   id: string;
@@ -127,13 +129,7 @@ function initialToken(): string {
 }
 
 async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiUrl}${path}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(init?.headers ?? {}) },
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.message ?? `A API respondeu com status ${response.status}.`);
-  return body as T;
+  return requestApiWithToken<T>(path, token, init);
 }
 
 const statusLabel: Record<Draft['status'], string> = {
@@ -146,6 +142,7 @@ const statusLabel: Record<Draft['status'], string> = {
 };
 
 export const DraftStudioScreen: React.FC = () => {
+  const { status: authStatus } = useAuth();
   const [token, setToken] = useState(initialToken);
   const [matters, setMatters] = useState<Matter[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -181,6 +178,7 @@ export const DraftStudioScreen: React.FC = () => {
   const [approvalToken, setApprovalToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasApiAccess = Boolean(token.trim()) || authStatus === 'authenticated' || authStatus === 'legacy';
 
   const selectedMatter = useMemo(() => matters.find((matter) => matter.id === selectedMatterId), [matters, selectedMatterId]);
 
@@ -194,7 +192,7 @@ export const DraftStudioScreen: React.FC = () => {
   };
 
   const loadMatters = async () => {
-    if (!token) return;
+    if (!hasApiAccess) return;
     setBusy(true);
     setError(null);
     try {
@@ -427,7 +425,7 @@ export const DraftStudioScreen: React.FC = () => {
             <div className="flex flex-col gap-3 sm:flex-row">
               <label className="sr-only" htmlFor="draft-api-token">Credencial da API</label>
               <input id="draft-api-token" value={token} onChange={(event) => saveToken(event.target.value)} type="password" placeholder="Credencial da API" className="input-control flex-1" />
-              <button type="button" onClick={() => void loadMatters()} disabled={!token || busy} className="btn-secondary disabled:opacity-50"><RefreshCw className="h-4 w-4" aria-hidden="true" />Atualizar casos</button>
+              <button type="button" onClick={() => void loadMatters()} disabled={!hasApiAccess || busy} className="btn-secondary disabled:opacity-50"><RefreshCw className="h-4 w-4" aria-hidden="true" />Atualizar casos</button>
             </div>
             <p className="text-[11px] text-stone-500">A conexão usa {apiUrl}. A credencial permanece no navegador.</p>
           </div>

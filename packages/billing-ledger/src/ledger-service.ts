@@ -6,9 +6,19 @@ import { DomainError } from '@forgelex/domain';
 import type { ForgeLexDatabase } from '@forgelex/persistence';
 import { ledgerAccounts, ledgerEntries, usageEvents } from './schema/ledger-schema.js';
 import { runLedgerMigrations } from './migrations/ledger-migrations.js';
+import type { ForgeLexBillingPolicy } from './billing-rules.js';
 
 export interface BillableExecutionResult<T> {
   data: T;
+  billingMode: 'METERED';
+  isReplay: boolean;
+  chargedCents: number;
+  remainingBalanceCents: number;
+}
+
+export interface OperationExecutionResult<T> {
+  data: T;
+  billingMode: ForgeLexBillingPolicy['mode'];
   isReplay: boolean;
   chargedCents: number;
   remainingBalanceCents: number;
@@ -73,6 +83,54 @@ export class LedgerService {
     await this.runMigrations();
   }
 
+  public async executeOperation<T>(params: {
+    tenantId: string;
+    idempotencyKey: string;
+    billing: ForgeLexBillingPolicy;
+    userId?: string;
+    sessionId?: string;
+    usage?: BillableUsageInput;
+    operation: () => Promise<T>;
+  }): Promise<OperationExecutionResult<T>> {
+    if (params.billing.mode === 'METERED') {
+      const execution = await this.executeBillableOperation({
+        tenantId: params.tenantId,
+        idempotencyKey: params.idempotencyKey,
+        costCents: params.billing.costCents,
+        userId: params.userId,
+        sessionId: params.sessionId,
+        usage: params.usage,
+        operation: params.operation,
+      });
+      return execution;
+    }
+
+    if (!params.idempotencyKey.trim()) {
+      throw new DomainError('INVALID_CANONICAL_STATE', 'A chave de idempotência é obrigatória.');
+    }
+    await this.runMigrations();
+    const accountRows = await this.db
+      .select()
+      .from(ledgerAccounts)
+      .where(eq(ledgerAccounts.tenantId, params.tenantId));
+    const account = accountRows[0];
+    if (!account) {
+      throw new DomainError(
+        'BILLING_ACCOUNT_NOT_PROVISIONED',
+        `A carteira do tenant '${params.tenantId}' não foi provisionada.`,
+        { tenantId: params.tenantId },
+      );
+    }
+
+    return {
+      data: await params.operation(),
+      billingMode: 'FREE',
+      isReplay: false,
+      chargedCents: 0,
+      remainingBalanceCents: this.availableBalance(account),
+    };
+  }
+
   public async provisionAccount(
     tenantId: string,
     requestedProvision?: BillingAccountProvisioning
@@ -119,6 +177,23 @@ export class LedgerService {
     return created[0];
   }
 
+  public async getAvailableBalanceCents(tenantId: string): Promise<number> {
+    await this.runMigrations();
+    const accountRows = await this.db
+      .select()
+      .from(ledgerAccounts)
+      .where(eq(ledgerAccounts.tenantId, tenantId));
+    const account = accountRows[0];
+    if (!account) {
+      throw new DomainError(
+        'BILLING_ACCOUNT_NOT_PROVISIONED',
+        `A carteira do tenant '${tenantId}' não foi provisionada.`,
+        { tenantId },
+      );
+    }
+    return this.availableBalance(account);
+  }
+
   /**
    * Compatibilidade com a API inicial. A ausência de valores agora significa
    * provisionamento pela política explícita, cujo padrão tem saldo zero.
@@ -154,13 +229,13 @@ export class LedgerService {
   public async executeBillableOperation<T>(params: {
     tenantId: string;
     idempotencyKey: string;
-    costCents?: number;
+    costCents: number;
     userId?: string;
     sessionId?: string;
     usage?: BillableUsageInput;
     operation: () => Promise<T>;
   }): Promise<BillableExecutionResult<T>> {
-    const costCents = params.costCents ?? 15;
+    const costCents = params.costCents;
     this.validateBillableInput(params.idempotencyKey, costCents);
     await this.runMigrations();
 
@@ -283,6 +358,7 @@ export class LedgerService {
 
         return {
           data: result,
+          billingMode: 'METERED',
           isReplay: false,
           chargedCents: costCents,
           remainingBalanceCents: settlement.paidBalanceCents + settlement.promotionalBalanceCents,
@@ -369,10 +445,18 @@ export class LedgerService {
 
     return {
       data: JSON.parse(operationResultSnapshot) as T,
+      billingMode: 'METERED',
       isReplay: true,
       chargedCents: 0,
       remainingBalanceCents: account.paidBalanceCents + effectivePromo,
     };
+  }
+
+  private availableBalance(account: typeof ledgerAccounts.$inferSelect): number {
+    const effectivePromo = this.isPromotionValid(account.promoExpiresAt)
+      ? account.promotionalBalanceCents
+      : 0;
+    return account.paidBalanceCents + effectivePromo;
   }
 
   private createUsageEvent(

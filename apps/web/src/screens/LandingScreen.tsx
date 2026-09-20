@@ -106,13 +106,8 @@ export const LandingScreen: React.FC = () => {
                 onChange={(e) => setCourt(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm font-medium text-stone-700 focus:outline-none focus:border-cognac-600"
               >
-                <option value="TODOS">Todos os Tribunais</option>
-                <option value="STF">STF (Constitucional)</option>
+                <option value="TODOS">Todos (STJ nesta fase)</option>
                 <option value="STJ">STJ (Federal Cível/Penal)</option>
-                <option value="TST">TST (Trabalhista)</option>
-                <option value="TJSP">TJSP (São Paulo)</option>
-                <option value="TJRJ">TJRJ (Rio de Janeiro)</option>
-                <option value="TRF3">TRF3 (Federal 3ª Região)</option>
               </select>
             </div>
 

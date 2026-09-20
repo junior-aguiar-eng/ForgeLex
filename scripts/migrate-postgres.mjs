@@ -17,7 +17,7 @@ try {
     const applied = await sql`SELECT id FROM forgelex_migrations WHERE id = ${migration.id}`;
     if (applied.length > 0) continue;
     await sql.begin(async (transaction) => {
-      for (const statement of migration.statements) await transaction.unsafe(statement);
+      for (const statement of [...migration.statements, ...(migration.postgresStatements ?? [])]) await transaction.unsafe(statement);
       await transaction`INSERT INTO forgelex_migrations (id, applied_at) VALUES (${migration.id}, ${new Date().toISOString()})`;
     });
     console.log(`applied ${migration.id}`);

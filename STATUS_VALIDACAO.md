@@ -1,0 +1,223 @@
+# Auditoria e status canônico do ForgeLex
+
+Última auditoria: 2026-09-20. Branch: `main`. A implementação desta frente
+permanece local e não foi commitada, publicada ou aplicada a banco remoto.
+
+## Fase 0 — baseline exclusivo do STJ
+
+A Fase 0 do plano progressivo foi concluída localmente e consolidada no commit
+`b7f1a84`. API REST, MCP e
+interface agora tratam o STJ como o único tribunal comercialmente pesquisável
+nesta etapa. O catálogo permanece capaz de listar STF, TST, TJSP, TJRJ e TRF3,
+mas esses registros retornam `searchable: false`, `verifiable: false` e
+`status: UNAVAILABLE` até que uma fase posterior homologue seus providers.
+
+O catálogo de capabilities é derivado do registro efetivo de providers. Busca
+sem provider elegível não é tratada como consulta vazia: REST responde
+`UNSUPPORTED_COURT` com HTTP 422 antes do ledger e o MCP rejeita a chamada
+equivalente. `q` e `Idempotency-Key` são obrigatórios nas operações REST
+faturáveis; uma busca STJ sem resultados permanece válida e é debitada uma
+única unidade de R$ 0,20. O MCP exige chave explícita e não cria chave
+determinística baseada nos argumentos.
+
+Os contratos OpenAPI, snippets da documentação, `.env.example` e seletores da
+interface foram alinhados ao escopo STJ. O MCP continua recebendo apenas a
+chamada autenticada e os argumentos da ferramenta, sem acesso a conversas,
+arquivos ou histórico do usuário. Não foram executados migration remota,
+deploy ou push.
+
+## Fase 1 — fundação persistida do data plane jurisprudencial
+
+A fundação técnica da fase está parcialmente implementada localmente, mas a
+Fase 1 ainda não está formalmente concluída. A migration incremental
+`persistence-0013-jurisprudence-data-plane` cria o corpus global do STJ sem
+`tenant_id`, suas versões e execuções de ingestão. A nova
+`persistence-0014-stj-source-manifest` adiciona manifestos de recurso e
+staging. As migrations `persistence-0015-compact-jurisprudence-search` e
+`persistence-0016-native-jurisprudence-full-text` removem a tabela relacional
+de um registro por termo e implantam FTS5 ponderado no SQLite e `tsvector` com
+GIN no PostgreSQL. As migrations `persistence-0017-canonical-jurisprudence-version`,
+`persistence-0018-version-source-manifest-link` e
+`persistence-0019-explicit-version-publication-status` normalizam a raiz do
+documento, vinculam versões novas ao manifesto e distinguem explicitamente a
+compatibilidade histórica da publicação nova. Nenhuma migration foi executada
+remotamente.
+
+O repositório preserva processo, classe, relator, órgão julgador, datas,
+ementa, íntegra quando existente, URL individual verificável quando existente,
+hash, dedupe key, proveniência, primeira e última captura e status de
+verificação. O upsert é idempotente, cria versão somente quando o hash muda e
+a publicação do recurso ocorre após validação integral.
+
+O caminho comercial da API e do MCP agora pode receber um
+`JurisprudenceSearchService` persistido. No runtime da API, a pesquisa lê o
+repositório próprio; o provider oficial continua reservado à aquisição,
+verificação e atualização. A rejeição de tribunal não habilitado continua
+ocorrendo antes da consulta persistida e antes do débito.
+
+A fonte histórica oficial e o critério de cobertura foram registrados em
+`docs/jurisprudencia/stj-historical-source.md`. A descoberta local do catálogo
+foi executada contra a API oficial: 10 datasets, 530 recursos enumeráveis, 10
+snapshots históricos e 12 recursos não classificáveis (dicionários ou arquivos
+sem data no nome), sem alerta de ausência de snapshot. O provider
+`provider_stj_open_data`, o parser ZIP/JSON com `fflate`, o hash do recurso, o
+manifesto, o staging e a publicação transacional foram implementados e
+testados. A carga local já existente contém 874.450 documentos e 874.516
+versões; após a normalização, não há ponteiro de versão atual quebrado nem hash
+atual divergente. O staging lógico está zerado. A raiz do documento deixou de
+duplicar ementa, metadados jurídicos e proveniência: a tabela raiz foi
+compactada de 7.739 MB para 3.571 MB, e o diretório PostgreSQL local caiu de
+11,9 GB para 7,8 GB após `VACUUM FULL`. A consulta persistida pelo repositório
+retornou documentos `provider_stj_open_data`; o índice GIN é usado para a busca
+por `responsabilidade`. As versões do corpus já carregado estão marcadas
+explicitamente como `LEGACY_COMPATIBILITY`; cargas futuras usarão vínculo direto
+ao manifesto e só serão visíveis quando esse manifesto estiver concluído.
+
+O único manifesto ainda marcado como `FAILED` foi reavaliado contra a URL
+oficial: `20240229.json`, incremental da Segunda Seção, manteve o SHA-256
+`ea2537c36c1e11d5206f7cee7b82178fc455cb8832cd7110a1acc807b7da9b46` e é um
+JSON malformado de 599 bytes, com chave de fechamento extra na linha 24,
+coluna 1. Ele contém apenas o aviso oficial de ausência de lançamentos para
+fevereiro de 2024; continua sem staging, documento ou versão publicada. A
+lacuna foi registrada no próprio manifesto, sem alterar o parser ou corrigir o
+conteúdo de origem.
+
+O job de ingestão foi coberto por fixture local de idempotência: uma execução
+com manifesto já concluído e essa lacuna terminal não criou documentos ou
+versões, reportou os estados `SKIPPED_ALREADY_COMPLETED` e
+`SKIPPED_TERMINAL_SOURCE_GAP` e não chamou o provider para o recurso
+malformado.
+
+A Fase 1 está concluída localmente para o corpus histórico definido pelo STJ
+Open Data: a enumeração atual confirmou 10 datasets, 530 recursos
+classificáveis (10 snapshots e 520 incrementais) e 12 não classificáveis. Há
+10 snapshots concluídos, 519 incrementais concluídos e uma única lacuna oficial
+terminal, sem registros jurídicos, formalmente documentada. A repetição foi
+validada em fixture local representativa, sem download do recurso malformado e
+sem novas versões. Isso não declara que o ForgeLex reproduz toda a base interna
+do STJ; declara somente a cobertura do corpus oficial definido nesta fase. A
+Fase 3 deixa de estar bloqueada pelo gate da Fase 1.
+
+## Estado implementado
+
+- A superfície pública comercial foi removida. `/` entrega somente o painel
+  consolidado de autenticação; `LandingScreen` continua sendo uma ferramenta
+  interna após o login.
+- Autenticação Supabase, bootstrap, sessão persistida, CORS local e tratamento
+  distinto para indisponibilidade da API estão implementados.
+- As ferramentas autenticadas, MCP, contratos da API e backend jurídico foram
+  preservados. Os adapters opcionais de providers não fazem parte do runtime
+  comercial nem do billing do ForgeLex.
+- O billing pré-pago local está implementado com Mercado Pago ativo:
+  pacotes de R$ 25, R$ 50 e R$ 80, valor personalizado entre R$ 25 e R$ 500,
+  custo de R$ 0,20 por busca, ledger, lotes, extrato, faturas internas,
+  solicitações de reembolso e idempotência.
+- O retorno aprovado do Mercado Pago é interpretado pelo frontend, que
+  consulta a compra até o webhook concluir o processamento; saldo só é
+  apresentado como atualizado após a compra estar `PAID`.
+- A tela de Conexões informa que o advogado usa o MCP dentro da própria conta
+  ChatGPT/Claude e que o desenvolvedor usa a API REST no próprio software. O
+  ForgeLex não fornece modelo, não recebe chaves OpenAI/Anthropic e não cobra
+  tokens.
+- A recarga automática permanece disponível apenas quando o provider ativo a
+  suporta. Como o adapter atual do Mercado Pago não oferece cobrança
+  `off_session`, a UI exibe a função como indisponível e mantém a recarga
+  manual. O contrato abstrato continua coberto por testes locais.
+- O Mercado Pago é o único provider de pagamento ativo. O adapter de pagamento
+  anterior foi removido da aplicação, do OpenAPI e do `.env.example`.
+- A política de billing é fechada por capability: somente
+  `research.search_case_law` é `METERED` por R$ 0,20; obtenção, verificação e
+  memo são `FREE`, sem `DEBIT`, `UsageEvent` financeiro ou webhook de billing.
+  As operações gratuitas exigem chave de idempotência para rastreabilidade,
+  sem replay financeiro.
+- Os identificadores persistidos de cliente, checkout e pagamento foram
+  renomeados para nomes neutros ao provider por migração incremental; os dados
+  existentes são preservados.
+
+## Validações locais
+
+| Gate | Resultado | Evidência |
+|---|---|---|
+| `pnpm test` | PASS | 45 arquivos aprovados; 215 testes aprovados; 1 arquivo e 4 testes condicionais ignorados |
+| `pnpm typecheck` | PASS | todos os 15 projetos verificaram tipos |
+| `pnpm --filter @forgelex/web build` | PASS | 1.648 módulos; bundle inicial de 408,43 kB |
+| `git diff --check` | PASS | apenas avisos normais de conversão LF/CRLF |
+| Migration/repositories PostgreSQL local | PASS | PostgreSQL 16 saudável; migrations até `persistence-0019-explicit-version-publication-status` aplicadas somente em `localhost:55432`; integridade de 874.450 documentos/874.516 versões comprovada |
+| `GET /readyz` | PASS | HTTP 200; persistência e billing prontos |
+| `GET /metrics` | PASS | HTTP 200; erros e falhas de webhook em zero |
+| Teste de reembolso duplicado | PASS | segunda solicitação pendente rejeitada por compra e tenant |
+
+## Evidência externa já obtida
+
+Foi concluído um Checkout de teste do Mercado Pago com pagamento aprovado e
+acreditado. A compra `12649c79-7fba-4616-9529-c3d59cc6e6cb` foi reconciliada
+como `PAID`, creditada uma única vez no ledger e consultada novamente na API do
+Mercado Pago. O replay do evento não duplicou o crédito.
+
+O processamento local do webhook com assinatura HMAC foi validado usando o ID
+real do pagamento. A entrega efetiva Mercado Pago → URL pública não foi
+confirmada porque os túneis locais expiraram; portanto isso não equivale a
+homologação externa do webhook.
+
+## Correções desta auditoria
+
+1. O callback de pagamento aprovado não era interpretado pelo frontend; agora
+   ele direciona para Créditos e acompanha o estado real da compra.
+2. A tela de créditos ainda mencionava o provider de pagamento anterior em um
+   fluxo que usa Mercado Pago; os textos foram alinhados ao provider ativo.
+3. A API declarava recarga automática sem informar sua disponibilidade real;
+   agora o contrato expõe `autoRecharge.available` e a UI não oferece um
+   controle que falharia no Mercado Pago.
+4. O estado legado de conexões e funções de API key foi removido do contexto
+   global porque não possuía consumidores.
+5. Uma mesma compra podia receber solicitações de reembolso pendentes
+   duplicadas; a segunda agora é rejeitada de forma idempotente por tenant e
+   compra.
+6. O catálogo de pricing de modelos, a cobrança por tokens, a margem sobre
+   providers e a conversão USD/BRL foram removidos do billing ativo, da conta
+   de billing e da configuração de exemplo.
+7. API REST e MCP foram documentados como canais para a mesma infraestrutura
+   jurisprudencial, sem acesso do MCP a conversas, arquivos ou histórico do
+   host.
+
+## Correlação com o plano original
+
+Atendido localmente: autenticação, ledger e persistência de billing, Mercado
+Pago como provider único, Checkout, processamento HMAC e idempotente de
+webhook, conta, extrato, compra, fatura, reembolso, cobrança por operações
+jurídicas próprias, canais REST/MCP sobre a mesma infraestrutura e login
+público consolidado.
+
+Parcial: data plane histórico completo do STJ, entrega externa do webhook, atualização visual do saldo após o teste
+real na sessão do navegador, Pix pendente, falha de pagamento, recarga
+automática real e reembolso real. Os adapters opcionais Anthropic/OpenAI não
+foram executados contra APIs externas; isso não é requisito do runtime
+comercial do ForgeLex.
+
+Não existe billing de modelos no ForgeLex. A API key do desenvolvedor
+autentica a integração REST; o software dele recebe os dados jurídicos e
+assume qualquer modelo e billing de terceiros. No MCP usado dentro do ChatGPT
+ou Claude, a assinatura do usuário paga a inferência e o ForgeLex cobra
+somente as operações jurídicas executadas com os créditos pré-pagos. O MCP não
+acessa conversas, arquivos ou histórico do host.
+
+O plano de UI pública com `/para-advogados`, `/para-desenvolvedores` e
+`/documentacao` foi superado pela decisão posterior de manter apenas o login
+público. O arquivo `docs/superpowers/plans/2026-09-17-forgelex-ui-publica.md`
+foi preservado como histórico.
+
+## Limites operacionais
+
+Não foi executado `pnpm db:migrate`, migration remota, deploy, push ou commit.
+As migrations de data plane `0013` e `0014` foram apenas adicionadas/testadas
+localmente e ainda não foram aplicadas a banco remoto. O
+arquivo raiz `.env` continua ignorado pelo Git e não deve ser incluído em
+commit. A configuração real de Mercado Pago depende de uma URL pública HTTPS
+estável e de credenciais externas válidas. Não foram feitas chamadas reais aos
+providers Anthropic/OpenAI.
+
+## Estado do repositório
+
+As alterações anteriores de billing estão em `50878e1`, `ba9925d` e
+`6b3c8c5`. A Fase 0 não altera as ferramentas jurídicas nem executa migration
+remota.

@@ -103,7 +103,7 @@ function createBilledResearchTool(
         userId: context.userId,
         sessionId: context.sessionId,
         idempotencyKey,
-        costCents: 15,
+        costCents: 20,
         usage: {
           capability: sourceTool.name,
           toolName: sourceTool.name,
@@ -124,7 +124,6 @@ function createBilledResearchTool(
           durationMs: 0,
           status: 'SUCCESS',
           payload: { provider, resultCount: execution.data.data.total },
-          costMetadata: { provider: `agent_${provider}` },
         });
       }
 

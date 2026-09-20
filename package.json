@@ -9,7 +9,8 @@
     "test:watch": "vitest",
     "typecheck": "pnpm build && pnpm -r run typecheck",
     "db:migrate": "pnpm build && node scripts/migrate-postgres.mjs",
-    "test:postgres": "pnpm build && node scripts/smoke-postgres.mjs"
+    "test:postgres": "pnpm build && node scripts/smoke-postgres.mjs",
+    "ingest:stj": "pnpm build && node scripts/ingest-stj-open-data.mjs"
   },
   "devDependencies": {
     "postgres": "^3.4.9",

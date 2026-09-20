@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, FileText, FolderOpen, LockKeyhole, Plus, RefreshCw, ShieldCheck } from 'lucide-react';
+import { requestApiWithToken } from '../api-client';
+import { useAuth } from '../auth/AuthContext';
 import { useApp } from '../context/AppContext';
 
 interface Matter {
@@ -158,23 +160,12 @@ function initialToken(): string {
 }
 
 async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiUrl}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(init?.headers ?? {}),
-    },
-  });
-  const body = (await response.json()) as T & { message?: string };
-  if (!response.ok) {
-    throw new Error(body.message ?? `A API respondeu HTTP ${response.status}.`);
-  }
-  return body;
+  return requestApiWithToken<T>(path, token, init);
 }
 
 export const MatterWorkspaceScreen: React.FC = () => {
   const { setActiveTab } = useApp();
+  const { status: authStatus } = useAuth();
   const [token, setToken] = useState(initialToken);
   const [matters, setMatters] = useState<Matter[]>([]);
   const [selectedMatterId, setSelectedMatterId] = useState<string | null>(null);
@@ -207,6 +198,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const hasApiAccess = Boolean(token.trim()) || authStatus === 'authenticated' || authStatus === 'legacy';
 
   const selectedMatter = useMemo(
     () => matters.find((matter) => matter.id === selectedMatterId) ?? null,
@@ -248,7 +240,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
   };
 
   const loadMatters = async () => {
-    if (!token) return;
+    if (!hasApiAccess) return;
     setBusy(true);
     setError(null);
     try {
@@ -272,13 +264,13 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   useEffect(() => {
     void loadMatters();
-    // A troca do token deve iniciar uma nova leitura da área de casos.
+    // Uma troca de sessão ou credencial deve iniciar uma nova leitura da área de casos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, authStatus]);
 
   const selectMatter = async (matterId: string) => {
     setSelectedMatterId(matterId);
-    if (!token) return;
+    if (!hasApiAccess) return;
     setBusy(true);
     setError(null);
     try {
@@ -301,7 +293,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const createMatter = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!token || !title.trim()) return;
+    if (!hasApiAccess || !title.trim()) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -325,7 +317,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const createFact = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!token || !selectedMatterId || factStatement.trim().length < 3) return;
+    if (!hasApiAccess || !selectedMatterId || factStatement.trim().length < 3) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -354,7 +346,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const createEvidence = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!token || !selectedMatterId || evidenceTitle.trim().length < 3) return;
+    if (!hasApiAccess || !selectedMatterId || evidenceTitle.trim().length < 3) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -375,7 +367,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const createTimelineEvent = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!token || !selectedMatterId || timelineTitle.trim().length < 3 || !timelineDate) return;
+    if (!hasApiAccess || !selectedMatterId || timelineTitle.trim().length < 3 || !timelineDate) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -398,7 +390,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const createIssue = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!token || !selectedMatterId || issueStatement.trim().length < 3) return;
+    if (!hasApiAccess || !selectedMatterId || issueStatement.trim().length < 3) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -419,7 +411,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const mapSupport = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!token || !selectedMatterId || !supportFactId || (!supportEvidenceId && !supportAnchorId)) return;
+    if (!hasApiAccess || !selectedMatterId || !supportFactId || (!supportEvidenceId && !supportAnchorId)) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -446,7 +438,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const generateMemo = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!token || !selectedMatterId || memoQuery.trim().length < 3) return;
+    if (!hasApiAccess || !selectedMatterId || memoQuery.trim().length < 3) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -466,7 +458,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
   };
 
   const reviewMemo = async (memoId: string, decision: 'APPROVED' | 'REJECTED') => {
-    if (!token || !selectedMatterId) return;
+    if (!hasApiAccess || !selectedMatterId) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -486,7 +478,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const ingestDocument = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!token || !selectedMatterId || !documentTitle.trim() || !filename.trim() || !content.trim()) return;
+    if (!hasApiAccess || !selectedMatterId || !documentTitle.trim() || !filename.trim() || !content.trim()) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -553,7 +545,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 placeholder="Credencial da API"
                 className="input-control flex-1"
               />
-              <button type="button" onClick={() => void loadMatters()} disabled={!token || busy} className="btn-secondary disabled:opacity-50">
+              <button type="button" onClick={() => void loadMatters()} disabled={!hasApiAccess || busy} className="btn-secondary disabled:opacity-50">
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />Atualizar casos
               </button>
             </div>
@@ -573,7 +565,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
             <form onSubmit={createMatter} className="space-y-2">
               <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Nome do novo caso" className="w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
               <input value={practiceArea} onChange={(event) => setPracticeArea(event.target.value)} placeholder="Área jurídica (opcional)" className="w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
-              <button disabled={!token || busy || title.trim().length < 3} className="w-full px-3 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold"><Plus className="w-4 h-4 inline mr-1" />Criar caso</button>
+              <button disabled={!hasApiAccess || busy || title.trim().length < 3} className="w-full px-3 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold"><Plus className="w-4 h-4 inline mr-1" />Criar caso</button>
             </form>
             <div className="space-y-2">
               {matters.map((matter) => (
@@ -633,7 +625,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 <input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="Título do documento" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                 <input value={filename} onChange={(event) => setFilename(event.target.value)} placeholder="Nome do arquivo (ex.: fatos.txt)" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                 <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Cole o texto do documento para criar a primeira versão e suas âncoras..." rows={5} className="md:col-span-2 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm resize-y" />
-                <button disabled={!token || busy || !content.trim()} className="md:col-span-2 px-4 py-2.5 rounded-xl bg-cognac-50 hover:bg-cognac-100 border border-cognac-200 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Ingerir documento textual</button>
+                <button disabled={!hasApiAccess || busy || !content.trim()} className="md:col-span-2 px-4 py-2.5 rounded-xl bg-cognac-50 hover:bg-cognac-100 border border-cognac-200 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Ingerir documento textual</button>
               </form>
               <div className="space-y-2">
                 {documents.map((document) => <div key={document.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{document.title}</span><span className="text-[11px] text-stone-500">{document.originalFilename} · {document.status === 'INDEXED' ? 'Ancorado' : 'Falhou'}</span></div><span className="text-[10px] text-stone-400 font-mono">SHA-256 {document.contentHash.slice(0, 12)}…</span></div>)}
@@ -655,7 +647,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   <select value={factCategory} onChange={(event) => setFactCategory(event.target.value as Fact['category'])} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">
                     <option value="FACTUAL">Factual</option><option value="PROCEDURAL">Processual</option><option value="TEMPORAL">Temporal</option><option value="DAMAGE">Dano</option><option value="OTHER">Outro</option>
                   </select>
-                  <button disabled={!token || busy || factStatement.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
+                  <button disabled={!hasApiAccess || busy || factStatement.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
                 </form>
                 <div className="space-y-2">
                   {facts.map((fact) => {
@@ -682,7 +674,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   <select value={evidenceType} onChange={(event) => setEvidenceType(event.target.value as EvidenceItem['evidenceType'])} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">
                     <option value="DOCUMENT">Documento</option><option value="TESTIMONY">Depoimento</option><option value="RECORD">Registro</option><option value="EXPERT_REPORT">Laudo</option><option value="OTHER">Outro</option>
                   </select>
-                <button disabled={!token || busy || evidenceTitle.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
+                <button disabled={!hasApiAccess || busy || evidenceTitle.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
               </form>
               <form onSubmit={mapSupport} className="rounded-xl border border-cognac-100 bg-cognac-50/40 p-4 space-y-3">
                 <div>
@@ -706,7 +698,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                     <option value="SUPPORTS">Sustenta</option><option value="CONTRADICTS">Contradiz</option><option value="CONTEXT">Contextualiza</option>
                   </select>
                 </div>
-                <button disabled={!token || busy || !supportFactId || (!supportEvidenceId && !supportAnchorId)} className="px-3 py-2 rounded-lg border border-cognac-200 bg-white disabled:bg-stone-100 text-cognac-800 text-xs font-semibold">Salvar vínculo</button>
+                  <button disabled={!hasApiAccess || busy || !supportFactId || (!supportEvidenceId && !supportAnchorId)} className="px-3 py-2 rounded-lg border border-cognac-200 bg-white disabled:bg-stone-100 text-cognac-800 text-xs font-semibold">Salvar vínculo</button>
               </form>
               <div className="space-y-2">
                   {evidence.map((item) => <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span><span className="text-[11px] text-stone-500">{evidenceTypeLabels[item.evidenceType]} · {evidenceStatusLabels[item.status]}</span></div><span className="text-[10px] text-stone-400">Item registrado</span></div>)}
@@ -725,7 +717,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 <form onSubmit={createTimelineEvent} className="grid grid-cols-1 md:grid-cols-[1fr_170px_auto] gap-3">
                   <input value={timelineTitle} onChange={(event) => setTimelineTitle(event.target.value)} placeholder="Descrição do evento" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                   <input type="date" value={timelineDate} onChange={(event) => setTimelineDate(event.target.value)} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
-                  <button disabled={!token || busy || timelineTitle.trim().length < 3 || !timelineDate} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Adicionar</button>
+                  <button disabled={!hasApiAccess || busy || timelineTitle.trim().length < 3 || !timelineDate} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Adicionar</button>
                   <input value={timelineDescription} onChange={(event) => setTimelineDescription(event.target.value)} placeholder="Observação (opcional)" className="md:col-span-3 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                 </form>
                 <div className="space-y-2">
@@ -745,7 +737,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 </div>
                 <form onSubmit={createIssue} className="flex flex-col md:flex-row gap-3">
                   <input value={issueStatement} onChange={(event) => setIssueStatement(event.target.value)} placeholder="Ex.: a violação de dados gera dano indenizável neste caso?" className="flex-1 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
-                  <button disabled={!token || busy || issueStatement.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar questão</button>
+                  <button disabled={!hasApiAccess || busy || issueStatement.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar questão</button>
                 </form>
                 <div className="space-y-2">
                   {issues.map((issue) => <div key={issue.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><p className="text-sm text-stone-800">{issue.statement}</p><span className="text-[10px] uppercase tracking-wide text-cognac-700">{issueStatusLabels[issue.status]}</span></div>)}
@@ -763,7 +755,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 </div>
                 <form onSubmit={generateMemo} className="flex flex-col md:flex-row gap-3">
                   <input value={memoQuery} onChange={(event) => setMemoQuery(event.target.value)} placeholder="Recorte de pesquisa jurídica" className="flex-1 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
-                  <button disabled={!token || busy || memoQuery.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">{busy ? 'Pesquisando...' : 'Gerar memo'}</button>
+                  <button disabled={!hasApiAccess || busy || memoQuery.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">{busy ? 'Pesquisando...' : 'Gerar memo'}</button>
                 </form>
                 <div className="space-y-4">
                   {memos.map((record) => <article key={record.id} className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-3">

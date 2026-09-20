@@ -1,5 +1,11 @@
 # Relatório de engenharia — Exordial Jurisprudência
 
+> **Referência histórica:** este relatório descreve o produto Exordial e não é
+> contrato comercial ou configuração atual do ForgeLex. Valores de R$ 0,15,
+> Stripe, cartão, recarga automática e demais referências de provider abaixo
+> não governam o runtime nem o billing atuais. O plano canônico vigente é
+> `Plano de conclusão progressiva do F.md`.
+
 **Data da inspeção:** 16/09/2026  
 **Escopo:** superfícies públicas e autenticadas acessíveis pelo navegador, contrato OpenAPI público, bundle JavaScript entregue ao cliente, metadados OAuth e respostas HTTP sem credenciais. Não houve criação de chave, pagamento, alteração de conta, consumo de saldo nem tentativa de acesso ao backend privado.
 
@@ -192,4 +198,3 @@ A maturidade não pode ser certificada externamente. Permanecem sem prova: consi
 - [OpenAPI](https://jurisprudencia.exordial.ai/openapi.json)
 - [Metadados OAuth](https://jurisprudencia.exordial.ai/.well-known/oauth-authorization-server)
 - [Metadados do recurso protegido](https://jurisprudencia.exordial.ai/.well-known/oauth-protected-resource)
-

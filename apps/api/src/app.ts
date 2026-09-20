@@ -27,16 +27,28 @@ import {
   ResearchMemoRepository,
   LegalThesisRepository,
   ApiKeyRepository,
+  JurisprudenceRepository,
+  AccountRepository,
   runPersistenceMigrations,
 } from '@forgelex/persistence';
-import { LedgerService } from '@forgelex/billing-ledger';
+import {
+  BillingService,
+  CREDIT_PACKAGES,
+  getForgeLexBillingPolicy,
+  JURISPRUDENCE_SEARCH_COST_CENTS,
+  LedgerService,
+} from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { EXTERNAL_MCP_TOOL_NAMES, McpHandler } from '@forgelex/mcp-server';
 import { CaseLawSchema, type AuthenticatedPrincipal } from '@forgelex/domain';
+import { JurisprudenceSearchService } from '@forgelex/legal-data';
 import {
   AuthAdapter,
   createDefaultAuthAdapter,
+  createSupabaseIdentityVerifier,
+  extractBearerToken,
   resolveAllowedOrigins,
+  SupabaseIdentityVerifier,
 } from './auth/fastify-auth.js';
 import { ApiKeyService } from './auth/api-key-service.js';
 import { buildOpenApiDocument } from './distribution/openapi.js';
@@ -46,6 +58,8 @@ import { WebhookService } from './distribution/webhook-service.js';
 import type { Client } from '@forgelex/persistence';
 import { caseLawToLegalAuthority, compileLegalResearchMemo } from '@forgelex/legal-workflows';
 import { RequestMetrics, structuredLog } from './observability.js';
+import { BillingOperationsService, type PaymentProvider } from './billing/billing-operations.js';
+import { MercadoPagoPaymentProvider } from './billing/mercado-pago-payment-provider.js';
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
@@ -54,11 +68,21 @@ export interface BuildAppOptions {
   databaseClient?: Client;
   sourceRouter?: SourceRouter;
   auditRecorder?: AuditRecorder;
+  supabaseIdentityVerifier?: SupabaseIdentityVerifier;
   environment?: Record<string, string | undefined>;
+  billingOperationsService?: BillingOperationsService;
+  paymentProvider?: PaymentProvider;
+  mercadoPagoPaymentProvider?: MercadoPagoPaymentProvider;
 }
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
+  app.removeContentTypeParser('application/json');
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (request, body, done) => {
+    const rawBody = typeof body === 'string' ? body : body.toString('utf8');
+    (request as typeof request & { rawBody?: string }).rawBody = rawBody;
+    try { done(null, JSON.parse(rawBody)); } catch { done(new Error('INVALID_JSON')); }
+  });
   const metrics = new RequestMetrics();
   const requestStartedAt = new WeakMap<object, number>();
   const requestTraceIds = new WeakMap<object, string>();
@@ -96,6 +120,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       'X-Credits-Charged',
       'X-Remaining-Balance',
       'X-Idempotent-Replay',
+      'X-ForgeLex-Billing-Mode',
     ],
   });
 
@@ -130,9 +155,29 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   if (webhookWorker) app.addHook('onClose', async () => clearInterval(webhookWorker));
   const apiKeyRepository = database ? new ApiKeyRepository(database) : undefined;
   const apiKeyService = apiKeyRepository ? new ApiKeyService(apiKeyRepository) : undefined;
-  const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(environment, apiKeyRepository);
+  const accountRepository = database ? new AccountRepository(database) : undefined;
+  const supabaseIdentityVerifier = options.supabaseIdentityVerifier ?? createSupabaseIdentityVerifier(environment);
+  const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(environment, apiKeyRepository, accountRepository);
   const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client);
   await ledgerService.runMigrations();
+  const mercadoPagoPaymentProvider = options.mercadoPagoPaymentProvider ?? (
+    environment.FORGELEX_BILLING_ENABLED === 'true'
+      && environment.MERCADOPAGO_ACCESS_TOKEN
+      && environment.MERCADOPAGO_WEBHOOK_SECRET
+      && environment.MERCADOPAGO_NOTIFICATION_URL
+      ? new MercadoPagoPaymentProvider({
+        accessToken: environment.MERCADOPAGO_ACCESS_TOKEN,
+        webhookSecret: environment.MERCADOPAGO_WEBHOOK_SECRET,
+        notificationUrl: environment.MERCADOPAGO_NOTIFICATION_URL,
+      })
+      : undefined
+  );
+  const activePaymentProvider = options.paymentProvider ?? mercadoPagoPaymentProvider;
+  const billingOperationsService = options.billingOperationsService ?? (
+    database && databaseClient && activePaymentProvider
+      ? new BillingOperationsService(database, databaseClient, new BillingService(database, databaseClient), activePaymentProvider, environment.FORGELEX_WEB_URL ?? 'http://localhost:3000')
+      : undefined
+  );
   const matterRepository = database ? new MatterRepository(database) : undefined;
   const matterAuthorityRepository = database ? new MatterAuthorityRepository(database) : undefined;
   const legalIssueRepository = database ? new LegalIssueRepository(database) : undefined;
@@ -151,13 +196,28 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     : undefined;
 
   const courtCatalog = new CourtCatalog();
+  const commercialEnabledCourts = ['STJ'] as const;
   const sourceRouter = options.sourceRouter ?? new SourceRouter();
   if (!options.sourceRouter) {
     sourceRouter.registerProvider(new StjSconProvider({
       baseUrl: environment.FORGELEX_STJ_SCON_BASE_URL,
     }));
   }
-  const researchService = new ResearchService(sourceRouter);
+  sourceRouter.setEnabledCourts(commercialEnabledCourts);
+  const jurisprudenceSearchService = database
+    ? new JurisprudenceSearchService(new JurisprudenceRepository(database))
+    : undefined;
+  const researchService = new ResearchService(sourceRouter, jurisprudenceSearchService, {
+    requirePersistentDataPlane: true,
+  });
+  const researchBillingProvider = database ? 'forgelex_index' : 'provider_stj_scon';
+  const persistentResearchDataPlaneUnavailable = (reply: FastifyReply) => {
+    reply.status(503);
+    return {
+      error: 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE',
+      message: 'O índice jurisprudencial persistido não está disponível.',
+    };
+  };
 
   const toolRegistry = new ToolRegistry();
   toolRegistry.register(createSearchCaseLawTool(researchService));
@@ -173,18 +233,64 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const auditRecorder = options.auditRecorder ?? (connection ? new AuditRecorder(connection.db) : undefined);
   const mcpHandler = new McpHandler(toolRegistry, ledgerService, auditRecorder, {
     exposedToolNames: EXTERNAL_MCP_TOOL_NAMES,
+    beforeToolCall: async (toolName) => {
+      if (!jurisprudenceSearchService && toolName.startsWith('research.')) {
+        throw Object.assign(
+          new Error('O índice jurisprudencial persistido não está disponível.'),
+          { code: 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE' },
+        );
+      }
+    },
   });
 
   const setBillingHeaders = (reply: { header: (name: string, value: string | number) => unknown }, execution: {
+    billingMode: 'METERED' | 'FREE';
     chargedCents: number;
     remainingBalanceCents: number;
     isReplay: boolean;
   }) => {
-    reply.header('X-Billable-Units', '1');
-    reply.header('X-Credit-Cost-Per-Unit', '0.15');
+    reply.header('X-ForgeLex-Billing-Mode', execution.billingMode);
+    if (execution.billingMode === 'METERED') {
+      reply.header('X-Billable-Units', '1');
+      reply.header('X-Credit-Cost-Per-Unit', (JURISPRUDENCE_SEARCH_COST_CENTS / 100).toFixed(2));
+    }
     reply.header('X-Credits-Charged', execution.chargedCents / 100);
     reply.header('X-Remaining-Balance', (execution.remainingBalanceCents / 100).toFixed(2));
     reply.header('X-Idempotent-Replay', execution.isReplay ? 'true' : 'false');
+  };
+
+  const readIdempotencyKey = (headers: Record<string, string | string[] | undefined>): string | undefined => {
+    const header = headers['idempotency-key'];
+    const value = Array.isArray(header) ? header[0] : header;
+    return value?.trim() || undefined;
+  };
+
+  const normalizeSearchCourt = (court?: string): string => {
+    const normalized = court?.trim().toUpperCase();
+    return !normalized || normalized === 'TODOS' ? 'STJ' : normalized;
+  };
+
+  const getSearchableCourt = (court?: string): string | undefined => {
+    const normalized = normalizeSearchCourt(court);
+    const capabilities = courtCatalog.getCapabilities({
+      providers: sourceRouter.getProviders(),
+      enabledCourts: commercialEnabledCourts,
+    });
+    return capabilities.some((item) => item.code === normalized && item.searchable) ? normalized : undefined;
+  };
+
+  const unsupportedCourtResponse = (reply: FastifyReply, court?: string) => {
+    const normalized = normalizeSearchCourt(court);
+    reply.status(422);
+    return {
+      error: 'UNSUPPORTED_COURT',
+      message: `O tribunal '${normalized}' não está habilitado para pesquisa no ForgeLex.`,
+    };
+  };
+
+  const missingIdempotencyResponse = (reply: FastifyReply) => {
+    reply.status(400);
+    return { error: 'IDEMPOTENCY_KEY_REQUIRED', message: 'A chave de idempotência é obrigatória.' };
   };
 
   const recordAudit = async (event: Parameters<AuditRecorder['recordEvent']>[0]): Promise<void> => {
@@ -195,6 +301,278 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       app.log.warn({ error }, 'Falha ao registrar evento de auditoria');
     }
   };
+
+  const accountResponse = (account: Awaited<ReturnType<AccountRepository['findByUserAndTenant']>>) => {
+    if (!account) return undefined;
+    return {
+      user: {
+        id: account.user.id,
+        email: account.user.email,
+        displayName: account.user.displayName,
+        status: account.user.status,
+        createdAt: account.user.createdAt,
+      },
+      workspace: {
+        id: account.tenant.id,
+        name: account.tenant.name,
+        status: account.tenant.status,
+        createdAt: account.tenant.createdAt,
+      },
+      membership: {
+        role: account.membership.role,
+        status: account.membership.status,
+      },
+    };
+  };
+
+  app.get('/api/v2/billing/account', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+    if (!billingOperationsService) {
+      reply.status(503);
+      return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' };
+    }
+    const account = await billingOperationsService.getAccount(request.principal.tenantId);
+    const billingAccount = await billingOperationsService.getBillingAccount(request.principal.tenantId);
+    return {
+      tenantId: request.principal.tenantId,
+      currency: 'brl',
+      balanceCents: account.paidBalanceCents + account.promotionalBalanceCents,
+      paidBalanceCents: account.paidBalanceCents,
+      promotionalBalanceCents: account.promotionalBalanceCents,
+      searchCostCents: JURISPRUDENCE_SEARCH_COST_CENTS,
+      packages: CREDIT_PACKAGES.map((item) => ({ ...item, label: `R$ ${(item.amountCents / 100).toFixed(2).replace('.', ',')}`, estimatedSearches: Math.floor(item.amountCents / JURISPRUDENCE_SEARCH_COST_CENTS) })),
+      customAmount: { minCents: 2500, maxCents: 50000 },
+      autoRecharge: {
+        available: billingOperationsService.isAutoRechargeAvailable(),
+        thresholdCents: billingAccount.autoRechargeThresholdCents,
+        enabled: billingAccount.autoRechargeEnabled === 1,
+        amountCents: billingAccount.lastRechargeAmountCents,
+        paymentMethodId: billingAccount.defaultPaymentMethodId,
+      },
+    };
+  });
+
+  app.get('/api/v2/billing/transactions', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+    if (!billingOperationsService) { reply.status(503); return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' }; }
+    const query = request.query as { limit?: string; offset?: string };
+    const limit = Math.min(Math.max(Number(query.limit ?? 50) || 50, 1), 100);
+    const offset = Math.max(Number(query.offset ?? 0) || 0, 0);
+    return billingOperationsService.listTransactions(request.principal.tenantId, limit, offset);
+  });
+
+  app.get('/api/v2/billing/invoices', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (_request, reply) => {
+    if (!billingOperationsService) { reply.status(503); return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' }; }
+    return { invoices: await billingOperationsService.listInvoices(_request.principal.tenantId) };
+  });
+
+  app.get('/api/v2/billing/payment-methods', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+    if (!billingOperationsService) { reply.status(503); return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' }; }
+    return { paymentMethods: await billingOperationsService.listPaymentMethods(request.principal.tenantId) };
+  });
+
+  app.post('/api/v2/billing/payment-methods/setup', { preHandler: authAdapter.createPreHandler(['billing:write']) }, async (request, reply) => {
+    if (!billingOperationsService) { reply.status(503); return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' }; }
+    const header = request.headers['idempotency-key'];
+    const idempotencyKey = Array.isArray(header) ? header[0] : header;
+    if (!idempotencyKey?.trim()) { reply.status(400); return { error: 'IDEMPOTENCY_KEY_REQUIRED', message: 'A chave de idempotência é obrigatória.' }; }
+    try { return await billingOperationsService.setupPaymentMethod({ tenantId: request.principal.tenantId, idempotencyKey }); }
+    catch (error) { reply.status(400); return { error: error instanceof Error ? error.message : 'PAYMENT_METHOD_SETUP_FAILED', message: 'Não foi possível preparar o cartão.' }; }
+  });
+
+  app.put('/api/v2/billing/auto-recharge', { preHandler: authAdapter.createPreHandler(['billing:write']) }, async (request, reply) => {
+    if (!billingOperationsService) { reply.status(503); return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' }; }
+    const body = (request.body ?? {}) as { enabled?: unknown; amountCents?: unknown; paymentMethodId?: unknown };
+    if (typeof body.enabled !== 'boolean') { reply.status(400); return { error: 'INVALID_REQUEST', message: 'enabled deve ser booleano.' }; }
+    try {
+      const account = await billingOperationsService.updateAutoRecharge({
+        tenantId: request.principal.tenantId,
+        enabled: body.enabled,
+        amountCents: typeof body.amountCents === 'number' ? body.amountCents : undefined,
+        paymentMethodId: typeof body.paymentMethodId === 'string' ? body.paymentMethodId : undefined,
+      });
+      return { thresholdCents: account.autoRechargeThresholdCents, enabled: account.autoRechargeEnabled === 1, amountCents: account.lastRechargeAmountCents, paymentMethodId: account.defaultPaymentMethodId };
+    } catch (error) { reply.status(400); return { error: error instanceof Error ? error.message : 'AUTO_RECHARGE_FAILED', message: 'Não foi possível atualizar a recarga automática.' }; }
+  });
+
+  app.post('/api/v2/billing/refund-requests', { preHandler: authAdapter.createPreHandler(['billing:write']) }, async (request, reply) => {
+    if (!billingOperationsService) { reply.status(503); return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' }; }
+    const body = (request.body ?? {}) as { purchaseId?: unknown; reason?: unknown };
+    if (typeof body.purchaseId !== 'string' || !body.purchaseId.trim()) { reply.status(400); return { error: 'INVALID_REQUEST', message: 'purchaseId é obrigatório.' }; }
+    try { reply.status(201); return await billingOperationsService.createRefundRequest({ tenantId: request.principal.tenantId, userId: request.principal.userId, purchaseId: body.purchaseId, reason: typeof body.reason === 'string' ? body.reason : undefined }); }
+    catch (error) { reply.status(400); return { error: error instanceof Error ? error.message : 'REFUND_REQUEST_FAILED', message: 'Não foi possível criar a solicitação de reembolso.' }; }
+  });
+
+  app.get('/api/v2/admin/billing/refund-requests', { preHandler: authAdapter.createPreHandler(['billing:admin']) }, async (_request, reply) => {
+    if (!billingOperationsService) { reply.status(503); return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' }; }
+    return { requests: await billingOperationsService.listRefundRequests() };
+  });
+
+  app.post('/api/v2/admin/billing/refund-requests/:requestId/review', { preHandler: authAdapter.createPreHandler(['billing:admin']) }, async (request, reply) => {
+    if (!billingOperationsService) { reply.status(503); return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' }; }
+    const params = request.params as { requestId?: string };
+    const body = (request.body ?? {}) as { decision?: unknown; approvedAmountCents?: unknown; reason?: unknown };
+    if (!params.requestId || (body.decision !== 'APPROVED' && body.decision !== 'REJECTED')) { reply.status(400); return { error: 'INVALID_REQUEST', message: 'decision e requestId são obrigatórios.' }; }
+    try {
+      return await billingOperationsService.reviewRefundRequest({ requestId: params.requestId, reviewerId: request.principal.userId, decision: body.decision, approvedAmountCents: typeof body.approvedAmountCents === 'number' ? body.approvedAmountCents : undefined, reason: typeof body.reason === 'string' ? body.reason : undefined });
+    } catch (error) { reply.status(400); return { error: error instanceof Error ? error.message : 'REFUND_REVIEW_FAILED', message: 'Não foi possível revisar o reembolso.' }; }
+  });
+
+  app.post('/api/v2/billing/checkout', { preHandler: authAdapter.createPreHandler(['billing:write']) }, async (request, reply) => {
+    if (!billingOperationsService) {
+      reply.status(503);
+      return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' };
+    }
+    const idempotencyKeyHeader = request.headers['idempotency-key'];
+    const idempotencyKey = Array.isArray(idempotencyKeyHeader) ? idempotencyKeyHeader[0] : idempotencyKeyHeader;
+    if (!idempotencyKey?.trim()) {
+      reply.status(400);
+      return { error: 'IDEMPOTENCY_KEY_REQUIRED', message: 'A chave de idempotência é obrigatória.' };
+    }
+    const body = (request.body ?? {}) as { packageId?: unknown; amountCents?: unknown };
+    try {
+      const result = await billingOperationsService.createCheckout({
+        tenantId: request.principal.tenantId,
+        userId: request.principal.userId,
+        packageId: typeof body.packageId === 'string' ? body.packageId : undefined,
+        amountCents: typeof body.amountCents === 'number' ? body.amountCents : undefined,
+        idempotencyKey,
+      });
+      reply.status(201);
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      reply.status(message.startsWith('BILLING_') || message.startsWith('INVALID_') ? 400 : 503);
+      return { error: message.split(':')[0] ?? 'BILLING_CHECKOUT_FAILED', message: 'Não foi possível criar o Checkout.' };
+    }
+  });
+
+  app.get('/api/v2/billing/purchases/:purchaseId', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+    if (!billingOperationsService) {
+      reply.status(503);
+      return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' };
+    }
+    const params = request.params as { purchaseId?: string };
+    const purchase = params.purchaseId ? await billingOperationsService.getPurchase(params.purchaseId, request.principal.tenantId) : undefined;
+    if (!purchase) {
+      reply.status(404);
+      return { error: 'BILLING_PURCHASE_NOT_FOUND', message: 'Compra não encontrada.' };
+    }
+    return purchase;
+  });
+
+  app.post('/api/v2/webhooks/mercadopago', async (request, reply) => {
+    if (!billingOperationsService || !mercadoPagoPaymentProvider) {
+      reply.status(503);
+      return { error: 'BILLING_UNAVAILABLE', message: 'O webhook Mercado Pago ainda não está configurado.' };
+    }
+    const signature = request.headers['x-signature'];
+    const requestId = request.headers['x-request-id'];
+    const query = request.query as Record<string, unknown>;
+    const dataId = typeof query['data.id'] === 'string' ? query['data.id'] : undefined;
+    if (typeof signature !== 'string' || typeof requestId !== 'string' || !dataId) {
+      reply.status(400);
+      return { error: 'MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID', message: 'Assinatura Mercado Pago ausente.' };
+    }
+    try {
+      const payload = request.body && typeof request.body === 'object' ? request.body as Record<string, unknown> : {};
+      const event = await mercadoPagoPaymentProvider.normalizeWebhook({ payload, dataId, requestId, signature });
+      await billingOperationsService.processWebhook(event);
+      return { received: true };
+    } catch (error) {
+      reply.status(400);
+      return { error: error instanceof Error ? error.message.split(':')[0] : 'MERCADOPAGO_WEBHOOK_INVALID', message: 'Webhook Mercado Pago rejeitado.' };
+    }
+  });
+
+  app.post('/api/v2/auth/bootstrap', async (request, reply) => {
+    if (!accountRepository || !supabaseIdentityVerifier) {
+      reply.status(503);
+      return { error: 'AUTH_UNAVAILABLE', message: 'O acesso por conta ainda não está configurado.' };
+    }
+
+    let identity;
+    try {
+      identity = await supabaseIdentityVerifier.verify(extractBearerToken(request.headers.authorization));
+    } catch {
+      reply.status(401);
+      return { error: 'UNAUTHENTICATED', message: 'Não foi possível confirmar seu acesso.' };
+    }
+
+    if (!identity) {
+      structuredLog('warn', 'account.bootstrap.rejected', { requestId: request.id, reason: 'invalid_session' });
+      reply.status(401);
+      return { error: 'UNAUTHENTICATED', message: 'Não foi possível confirmar seu acesso.' };
+    }
+    if (!identity.emailConfirmed) {
+      structuredLog('warn', 'account.bootstrap.rejected', { requestId: request.id, reason: 'email_not_confirmed' });
+      reply.status(403);
+      return { error: 'EMAIL_NOT_CONFIRMED', message: 'Confirme seu e-mail para continuar.' };
+    }
+
+    const body = (request.body ?? {}) as { displayName?: unknown };
+    const displayName = typeof body.displayName === 'string'
+      ? body.displayName.trim()
+      : identity.displayName?.trim() ?? '';
+    if (displayName.length < 2 || displayName.length > 120) {
+      reply.status(400);
+      return { error: 'INVALID_REQUEST', message: 'Informe seu nome para concluir o cadastro.' };
+    }
+
+    try {
+      const account = await accountRepository.bootstrap({
+        supabaseUserId: identity.id,
+        email: identity.email,
+        displayName,
+      });
+      if (account.user.status !== 'ACTIVE' || account.tenant.status !== 'ACTIVE' || account.membership.status !== 'ACTIVE') {
+        await recordAudit({
+          sessionId: `account_${account.user.id}`,
+          tenantId: account.tenant.id,
+          userId: account.user.id,
+          toolName: 'account.bootstrap.rejected',
+          durationMs: 0,
+          status: 'FAILED',
+          payload: { reason: 'account_disabled' },
+        });
+        reply.status(403);
+        return { error: 'ACCOUNT_DISABLED', message: 'Sua conta não está disponível. Procure o responsável pelo acesso.' };
+      }
+      await recordAudit({
+        sessionId: `account_${account.user.id}`,
+        tenantId: account.tenant.id,
+        userId: account.user.id,
+        toolName: 'account.bootstrap',
+        durationMs: 0,
+        status: 'SUCCESS',
+        payload: { authMethod: 'supabase_session' },
+      });
+      return accountResponse(account);
+    } catch (error) {
+      structuredLog('error', 'account.bootstrap.failed', {
+        requestId: request.id,
+        traceId: request.headers['x-trace-id'],
+        error: error instanceof Error ? error.message : String(error),
+      });
+      reply.status(503);
+      return { error: 'ACCOUNT_UNAVAILABLE', message: 'Não foi possível preparar seu espaço agora.' };
+    }
+  });
+
+  app.get('/api/v2/auth/me', { preHandler: authAdapter.createPreHandler() }, async (request, reply) => {
+    if (request.principal.authMethod !== 'session' || !accountRepository) {
+      reply.status(403);
+      return { error: 'SESSION_REQUIRED', message: 'Entre na sua conta para continuar.' };
+    }
+    const account = await accountRepository.findByUserAndTenant(request.principal.userId, request.principal.tenantId);
+    if (!account) {
+      reply.status(404);
+      return { error: 'ACCOUNT_NOT_FOUND', message: 'Não foi possível localizar sua conta.' };
+    }
+    if (account.user.status !== 'ACTIVE' || account.tenant.status !== 'ACTIVE' || account.membership.status !== 'ACTIVE') {
+      reply.status(403);
+      return { error: 'ACCOUNT_DISABLED', message: 'Sua conta não está disponível. Procure o responsável pelo acesso.' };
+    }
+    return accountResponse(account);
+  });
 
   const emitWebhook = async (input: {
     tenantId: string;
@@ -235,6 +613,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     };
     await emitWebhook({ tenantId: input.principal.tenantId, type: 'billing.usage.recorded', payload });
     await emitWebhook({ tenantId: input.principal.tenantId, type: 'billing.debit.recorded', payload });
+    if (billingOperationsService) {
+      void billingOperationsService.startAutoRecharge(input.principal.tenantId).catch((error) => structuredLog('error', 'billing.auto_recharge.failed', {
+        tenantId: input.principal.tenantId,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    }
   };
 
   const runBillableSearchCaseLaw = async (input: {
@@ -243,27 +627,34 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     query: string;
     court?: string;
     limit: number;
-    idempotencyKey?: string;
+    idempotencyKey: string;
   }) => {
-    const idempotencyKey = input.idempotencyKey ?? `rest_search_${input.query}_${input.court ?? 'all'}_${input.limit}`;
+    if (!jurisprudenceSearchService) {
+      return persistentResearchDataPlaneUnavailable(input.reply);
+    }
+    const court = getSearchableCourt(input.court);
+    if (!court) return unsupportedCourtResponse(input.reply, input.court);
+    if (!input.idempotencyKey) return missingIdempotencyResponse(input.reply);
+
+    const idempotencyKey = input.idempotencyKey;
     const sessionId = `rest_${idempotencyKey}`;
     const startedAt = Date.now();
 
     try {
-      const execution = await ledgerService.executeBillableOperation({
+      const execution = await ledgerService.executeOperation({
         tenantId: input.principal.tenantId,
         userId: input.principal.userId,
         idempotencyKey,
-        costCents: 15,
+        billing: getForgeLexBillingPolicy('research.search_case_law'),
         usage: {
           capability: 'research.search_case_law',
           toolName: 'research.search_case_law',
-          provider: 'provider_stj_scon',
+          provider: researchBillingProvider,
           requestId: idempotencyKey,
           sessionId,
           userId: input.principal.userId,
         },
-        operation: async () => researchService.searchCaseLaw({ query: input.query, court: input.court, limit: input.limit }),
+        operation: async () => researchService.searchCaseLaw({ query: input.query, court, limit: input.limit }),
       });
 
       setBillingHeaders(input.reply, execution);
@@ -275,14 +666,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           toolName: 'research.search_case_law',
           durationMs: Date.now() - startedAt,
           status: 'SUCCESS',
-          payload: { query: input.query, court: input.court, limit: input.limit, resultCount: execution.data.total },
-          costMetadata: { estimatedCostUsd: 0 },
+          payload: { query: input.query, court, limit: input.limit, resultCount: execution.data.total },
         });
       }
       await emitBillingWebhooks({
         principal: input.principal,
         capability: 'research.search_case_law',
-        provider: 'provider_stj_scon',
+        provider: researchBillingProvider,
         idempotencyKey,
         sessionId,
         execution,
@@ -306,11 +696,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         toolName: 'research.search_case_law',
         durationMs: Date.now() - startedAt,
         status: 'FAILED',
-        payload: { query: input.query, court: input.court, limit: input.limit, error: message },
+        payload: { query: input.query, court, limit: input.limit, error: message },
       });
-      input.reply.status(sourceFailure ? 503 : 402);
+      input.reply.status(code === 'UNSUPPORTED_COURT' ? 422 : sourceFailure ? 503 : 402);
       return {
-        error: sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+        error: code === 'UNSUPPORTED_COURT' ? 'UNSUPPORTED_COURT' : sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
         message,
         details: details.details,
       };
@@ -517,7 +907,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     return {
       resource: 'https://mcp.forgelex.ai',
       authorization_servers: ['https://auth.forgelex.ai'],
-      scopes_supported: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read'],
+      scopes_supported: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write', 'billing:admin'],
       bearer_methods_supported: ['header'],
       resource_documentation: 'https://forgelex.ai/documentacao-api',
     };
@@ -528,9 +918,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     '/api/v2/tribunals',
     { preHandler: authAdapter.createPreHandler(['research:read']) },
     async () => {
+      const tribunals = courtCatalog.getCapabilities({
+        providers: sourceRouter.getProviders(),
+        enabledCourts: commercialEnabledCourts,
+      });
       return {
-        tribunals: courtCatalog.getAllCourts(),
-        total: courtCatalog.getAllCourts().length,
+        tribunals,
+        total: tribunals.length,
       };
     }
   );
@@ -1295,7 +1689,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         issueIds?: unknown;
       };
       const query = typeof body.query === 'string' ? body.query.trim() : '';
-      const court = typeof body.court === 'string' && body.court.trim() ? body.court.trim() : undefined;
+      const requestedCourt = typeof body.court === 'string' && body.court.trim() ? body.court.trim() : undefined;
+      const court = getSearchableCourt(requestedCourt);
       const limit = body.limit === undefined ? 10 : body.limit;
       if (
         query.length < 3 ||
@@ -1307,6 +1702,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         reply.status(400);
         return { error: 'INVALID_REQUEST', message: 'query deve conter pelo menos 3 caracteres e limit deve ser um inteiro entre 1 e 20.' };
       }
+      if (!court) return unsupportedCourtResponse(reply, requestedCourt);
+
+      const idempotencyKey = readIdempotencyKey(req.headers);
+      if (!idempotencyKey) return missingIdempotencyResponse(reply);
 
       const issueIdsProvided = body.issueIds !== undefined;
       if (issueIdsProvided && (!Array.isArray(body.issueIds) || !body.issueIds.every((item) => typeof item === 'string'))) {
@@ -1331,15 +1730,18 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return { error: 'LEGAL_ISSUE_NOT_FOUND', message: 'Uma ou mais questões jurídicas não pertencem ao matter autenticado.' };
       }
 
-      const idempotencyKey =
-        (req.headers['idempotency-key'] as string | undefined) ??
-        `research_memo_${matterId}_${query}_${court ?? 'all'}_${limit}_${selectedIssues.map((issue) => issue.id).join(',')}`;
       const existing = await researchMemoRepository.getByIdempotencyKey(
         req.principal.tenantId,
         matterId,
         idempotencyKey,
       );
       if (existing) {
+        setBillingHeaders(reply, {
+          billingMode: 'FREE',
+          chargedCents: 0,
+          remainingBalanceCents: await ledgerService.getAvailableBalanceCents(req.principal.tenantId),
+          isReplay: false,
+        });
         const factsResult = await factsEvidenceService.listFacts({
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
@@ -1364,21 +1766,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const sessionId = `memo_${idempotencyKey}`;
       const startedAt = Date.now();
       try {
-        const execution = await ledgerService.executeBillableOperation({
+        const execution = await ledgerService.executeOperation({
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
           idempotencyKey,
-          costCents: 15,
+          billing: getForgeLexBillingPolicy('research.generate_memo'),
           usage: {
             capability: 'research.generate_memo',
             toolName: 'research.generate_memo',
-            provider: 'provider_stj_scon',
+            provider: researchBillingProvider,
             requestId: idempotencyKey,
             sessionId,
             userId: req.principal.userId,
           },
           operation: async () => researchService.searchCaseLaw({ query, court, limit }),
         });
+        setBillingHeaders(reply, execution);
 
         const authorities = execution.data.items.map(caseLawToLegalAuthority);
         const memo = compileLegalResearchMemo({
@@ -1437,18 +1840,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
               factCount: factsResult.items.length,
               evidenceCount: evidence.length,
             },
-            costMetadata: { estimatedCostUsd: 0 },
           });
         }
-        await emitBillingWebhooks({
-          principal: req.principal,
-          capability: 'research.generate_memo',
-          provider: 'provider_stj_scon',
-          idempotencyKey,
-          sessionId,
-          execution,
-        });
-
         return {
           memo: record.memo,
           record,
@@ -1460,8 +1853,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             coverage: factsResult.coverage,
           },
           research: { query, court, total: execution.data.total },
-          billed: !execution.isReplay,
-          idempotentReplay: execution.isReplay,
+          billed: execution.billingMode === 'METERED' && !execution.isReplay,
+          idempotentReplay: false,
         };
       } catch (error) {
         const details = error as { code?: unknown; details?: unknown; message?: unknown };
@@ -1804,34 +2197,35 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     { preHandler: authAdapter.createPreHandler(['research:read']) },
     async (req, reply) => {
       const query = req.query as { q?: string; court?: string; limit?: string };
-      const q = query.q ?? 'direito fundamental';
-      const court = query.court;
+      const q = typeof query.q === 'string' ? query.q.trim() : '';
+      const court = getSearchableCourt(query.court);
       const limit = query.limit ? parseInt(query.limit, 10) : 10;
 
-      if (q.trim().length < 2 || !Number.isInteger(limit) || limit < 1 || limit > 20) {
+      if (q.length < 2 || !Number.isInteger(limit) || limit < 1 || limit > 20) {
         reply.status(400);
         return {
           error: 'INVALID_REQUEST',
           message: 'q deve conter pelo menos 2 caracteres e limit deve estar entre 1 e 20.',
         };
       }
+      if (!court) return unsupportedCourtResponse(reply, query.court);
+      if (!jurisprudenceSearchService) return persistentResearchDataPlaneUnavailable(reply);
 
-      const idempotencyKey =
-        (req.headers['idempotency-key'] as string) ??
-        `rest_juris_${q}_${court ?? 'all'}_${limit}`;
+      const idempotencyKey = readIdempotencyKey(req.headers);
+      if (!idempotencyKey) return missingIdempotencyResponse(reply);
       const sessionId = `rest_${idempotencyKey}`;
       const startedAt = Date.now();
 
       try {
-        const execution = await ledgerService.executeBillableOperation({
+        const execution = await ledgerService.executeOperation({
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
           idempotencyKey,
-          costCents: 15, // R$ 0,15 por busca
+          billing: getForgeLexBillingPolicy('research.search_case_law'),
           usage: {
             capability: 'research.search_case_law',
             toolName: 'research.search_case_law',
-            provider: 'provider_stj_scon',
+            provider: researchBillingProvider,
             requestId: idempotencyKey,
             sessionId,
             userId: req.principal.userId,
@@ -1851,13 +2245,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             durationMs: Date.now() - startedAt,
             status: 'SUCCESS',
             payload: { query: q, court, limit, resultCount: execution.data.total },
-            costMetadata: { estimatedCostUsd: 0 },
           });
         }
         await emitBillingWebhooks({
           principal: req.principal,
           capability: 'research.search_case_law',
-          provider: 'provider_stj_scon',
+          provider: researchBillingProvider,
           idempotencyKey,
           sessionId,
           execution,
@@ -1879,9 +2272,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           status: 'FAILED',
           payload: { query: q, court, limit, error: err?.message },
         });
-        reply.status(err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 503 : 402);
+        const unsupportedCourt = err?.code === 'UNSUPPORTED_COURT';
+        reply.status(unsupportedCourt ? 422 : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 503 : 402);
         return {
-          error: err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+          error: unsupportedCourt ? 'UNSUPPORTED_COURT' : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
           message: err.message,
           details: err.details,
         };
@@ -1894,7 +2288,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     { preHandler: authAdapter.createPreHandler(['research:read']) },
     async (req, reply) => {
       const body = (req.body ?? {}) as { query?: unknown; court?: unknown; limit?: unknown };
-      const query = typeof body.query === 'string' ? body.query : '';
+      const query = typeof body.query === 'string' ? body.query.trim() : '';
       const court = typeof body.court === 'string' ? body.court : undefined;
       const limit = body.limit === undefined ? 10 : body.limit;
       if (
@@ -1911,13 +2305,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         };
       }
 
+      const idempotencyKey = readIdempotencyKey(req.headers);
+      if (!idempotencyKey) return missingIdempotencyResponse(reply);
+
       return runBillableSearchCaseLaw({
         principal: req.principal,
         reply,
         query,
         court,
         limit,
-        idempotencyKey: req.headers['idempotency-key'] as string | undefined,
+        idempotencyKey,
       });
     },
   );
@@ -1931,7 +2328,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const processNumber = typeof body.processNumber === 'string' ? body.processNumber : '';
       const judgmentDate = typeof body.judgmentDate === 'string' ? body.judgmentDate : undefined;
 
-      if (court.trim().length < 2 || processNumber.trim().length < 5) {
+      if (court.trim().length < 2 || processNumber.trim().length === 0) {
         reply.status(400);
         return {
           error: 'INVALID_REQUEST',
@@ -1939,27 +2336,29 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         };
       }
 
-      const idempotencyKey =
-        (req.headers['idempotency-key'] as string) ??
-        `rest_get_authority_${court}_${processNumber}_${judgmentDate ?? ''}`;
+      const searchableCourt = getSearchableCourt(court);
+      if (!searchableCourt) return unsupportedCourtResponse(reply, court);
+      if (!jurisprudenceSearchService) return persistentResearchDataPlaneUnavailable(reply);
+      const idempotencyKey = readIdempotencyKey(req.headers);
+      if (!idempotencyKey) return missingIdempotencyResponse(reply);
       const sessionId = `rest_${idempotencyKey}`;
       const startedAt = Date.now();
 
       try {
-        const execution = await ledgerService.executeBillableOperation({
+        const execution = await ledgerService.executeOperation({
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
           idempotencyKey,
-          costCents: 15,
+          billing: getForgeLexBillingPolicy('research.get_authority'),
           usage: {
             capability: 'research.get_authority',
             toolName: 'research.get_authority',
-            provider: 'provider_stj_scon',
+            provider: researchBillingProvider,
             requestId: idempotencyKey,
             sessionId,
             userId: req.principal.userId,
           },
-          operation: async () => researchService.verifyAuthority({ court, processNumber, judgmentDate }),
+          operation: async () => researchService.verifyAuthority({ court: searchableCourt, processNumber, judgmentDate }),
         });
 
         setBillingHeaders(reply, execution);
@@ -1971,18 +2370,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             toolName: 'research.get_authority',
             durationMs: Date.now() - startedAt,
             status: 'SUCCESS',
-            payload: { court, processNumber, judgmentDate, status: execution.data.status },
-            costMetadata: { estimatedCostUsd: 0 },
+            payload: { court: searchableCourt, processNumber, judgmentDate, status: execution.data.status },
           });
         }
-        await emitBillingWebhooks({
-          principal: req.principal,
-          capability: 'research.get_authority',
-          provider: 'provider_stj_scon',
-          idempotencyKey,
-          sessionId,
-          execution,
-        });
         if (!execution.isReplay && execution.data.status === 'VERIFIED_OFFICIAL') {
           await emitWebhook({
             tenantId: req.principal.tenantId,
@@ -2003,11 +2393,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           toolName: 'research.get_authority',
           durationMs: Date.now() - startedAt,
           status: 'FAILED',
-          payload: { court, processNumber, judgmentDate, error: message },
+          payload: { court: searchableCourt, processNumber, judgmentDate, error: message },
         });
-        reply.status(sourceFailure ? 503 : 402);
+        reply.status(code === 'UNSUPPORTED_COURT' ? 422 : sourceFailure ? 503 : 402);
         return {
-          error: sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+          error: code === 'UNSUPPORTED_COURT' ? 'UNSUPPORTED_COURT' : sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
           message,
           details: details.details,
         };
@@ -2023,35 +2413,37 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const court = body.court ?? '';
       const processNumber = body.processNumber ?? '';
 
-      if (court.trim().length < 2 || processNumber.trim().length < 5) {
+      if (court.trim().length < 2 || processNumber.trim().length === 0) {
         reply.status(400);
         return {
           error: 'INVALID_REQUEST',
           message: 'court e processNumber são obrigatórios para verificar a autoridade.',
         };
       }
-      const idempotencyKey =
-        (req.headers['idempotency-key'] as string) ??
-        `rest_verify_${court}_${processNumber}_${body.judgmentDate ?? ''}`;
+      const searchableCourt = getSearchableCourt(court);
+      if (!searchableCourt) return unsupportedCourtResponse(reply, court);
+      if (!jurisprudenceSearchService) return persistentResearchDataPlaneUnavailable(reply);
+      const idempotencyKey = readIdempotencyKey(req.headers);
+      if (!idempotencyKey) return missingIdempotencyResponse(reply);
       const sessionId = `rest_${idempotencyKey}`;
       const startedAt = Date.now();
 
       try {
-        const execution = await ledgerService.executeBillableOperation({
+        const execution = await ledgerService.executeOperation({
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
           idempotencyKey,
-          costCents: 15,
+          billing: getForgeLexBillingPolicy('research.verify_authority'),
           usage: {
             capability: 'research.verify_authority',
             toolName: 'research.verify_authority',
-            provider: 'provider_stj_scon',
+          provider: researchBillingProvider,
             requestId: idempotencyKey,
             sessionId,
             userId: req.principal.userId,
           },
           operation: async () => {
-            return await researchService.verifyAuthority({ court, processNumber, judgmentDate: body.judgmentDate });
+            return await researchService.verifyAuthority({ court: searchableCourt, processNumber, judgmentDate: body.judgmentDate });
           },
         });
 
@@ -2064,18 +2456,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             toolName: 'research.verify_authority',
             durationMs: Date.now() - startedAt,
             status: 'SUCCESS',
-            payload: { court, processNumber, judgmentDate: body.judgmentDate, status: execution.data.status },
-            costMetadata: { estimatedCostUsd: 0 },
+            payload: { court: searchableCourt, processNumber, judgmentDate: body.judgmentDate, status: execution.data.status },
           });
         }
-        await emitBillingWebhooks({
-          principal: req.principal,
-          capability: 'research.verify_authority',
-          provider: 'provider_stj_scon',
-          idempotencyKey,
-          sessionId,
-          execution,
-        });
         if (!execution.isReplay && execution.data.status === 'VERIFIED_OFFICIAL') {
           await emitWebhook({
             tenantId: req.principal.tenantId,
@@ -2092,11 +2475,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           toolName: 'research.verify_authority',
           durationMs: Date.now() - startedAt,
           status: 'FAILED',
-          payload: { court, processNumber, judgmentDate: body.judgmentDate, error: err?.message },
+          payload: { court: searchableCourt, processNumber, judgmentDate: body.judgmentDate, error: err?.message },
         });
-        reply.status(err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 503 : 402);
+        const unsupportedCourt = err?.code === 'UNSUPPORTED_COURT';
+        reply.status(unsupportedCourt ? 422 : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 503 : 402);
         return {
-          error: err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+          error: unsupportedCourt ? 'UNSUPPORTED_COURT' : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
           message: err.message,
           details: err.details,
         };
@@ -2110,7 +2494,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     { preHandler: authAdapter.createPreHandler(['mcp']) },
     async (req) => {
       const body = req.body as any;
-      const idempotencyKey = req.headers['idempotency-key'] as string | undefined;
+      const idempotencyKey = readIdempotencyKey(req.headers);
 
       return await mcpHandler.handleRequest(body, {
         idempotencyKey,

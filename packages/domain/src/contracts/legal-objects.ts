@@ -4,7 +4,7 @@ import { ProvenanceMetadataSchema } from './provenance.js';
 export const CaseLawSchema = z.object({
   id: z.string().uuid(),
   court: z.string().min(2, 'Sigla do tribunal é obrigatória (ex: STJ, STF, TJSP)'),
-  processNumber: z.string().min(5, 'Número de processo é obrigatório'),
+  processNumber: z.string().min(1, 'Número de processo é obrigatório'),
   rapporteur: z.string().min(1, 'Nome do relator é obrigatório'),
   chamber: z.string().min(2).optional(),
   judgmentDate: z.string(),

@@ -1,5 +1,55 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+export const forgelexUserProfiles = sqliteTable(
+  'forgelex_user_profiles',
+  {
+    id: text('id').primaryKey(),
+    supabaseUserId: text('supabase_user_id').notNull(),
+    email: text('email').notNull(),
+    displayName: text('display_name').notNull(),
+    status: text('status').notNull().default('ACTIVE'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    deactivatedAt: text('deactivated_at'),
+  },
+  (table) => [uniqueIndex('forgelex_user_profiles_supabase_id_idx').on(table.supabaseUserId)],
+);
+
+export const forgelexTenants = sqliteTable(
+  'forgelex_tenants',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    status: text('status').notNull().default('ACTIVE'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    deactivatedAt: text('deactivated_at'),
+  },
+  (table) => [index('forgelex_tenants_status_idx').on(table.status)],
+);
+
+export const forgelexTenantMemberships = sqliteTable(
+  'forgelex_tenant_memberships',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => forgelexTenants.id),
+    userId: text('user_id')
+      .notNull()
+      .references(() => forgelexUserProfiles.id),
+    role: text('role').notNull().default('OWNER'),
+    status: text('status').notNull().default('ACTIVE'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    revokedAt: text('revoked_at'),
+  },
+  (table) => [
+    uniqueIndex('forgelex_tenant_memberships_tenant_user_idx').on(table.tenantId, table.userId),
+    index('forgelex_tenant_memberships_user_status_idx').on(table.userId, table.status),
+  ],
+);
+
 export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull(),
@@ -486,4 +536,136 @@ export const legalTheses = sqliteTable(
     updatedAt: text('updated_at').notNull(),
   },
   (table) => [index('legal_theses_tenant_matter_updated_idx').on(table.tenantId, table.matterId, table.updatedAt)],
+);
+
+export const jurisprudenceIngestionRuns = sqliteTable(
+  'jurisprudence_ingestion_runs',
+  {
+    id: text('id').primaryKey(),
+    providerId: text('provider_id').notNull(),
+    court: text('court').notNull(),
+    status: text('status').notNull(),
+    documentsSeen: integer('documents_seen').notNull().default(0),
+    documentsPublished: integer('documents_published').notNull().default(0),
+    coverageStart: text('coverage_start'),
+    coverageEnd: text('coverage_end'),
+    startedAt: text('started_at').notNull(),
+    completedAt: text('completed_at'),
+    error: text('error'),
+  },
+  (table) => [
+    index('jurisprudence_ingestion_runs_court_started_idx').on(table.court, table.startedAt),
+    index('jurisprudence_ingestion_runs_status_idx').on(table.status),
+  ],
+);
+
+export const jurisprudenceDocuments = sqliteTable(
+  'jurisprudence_documents',
+  {
+    id: text('id').primaryKey(),
+    court: text('court').notNull(),
+    processNumber: text('process_number').notNull(),
+    normalizedProcessNumber: text('normalized_process_number').notNull(),
+    searchText: text('search_text').notNull(),
+    searchIdentityText: text('search_identity_text').notNull(),
+    searchAuthorityText: text('search_authority_text').notNull(),
+    searchVector: text('search_vector').notNull(),
+    contentHash: text('content_hash').notNull(),
+    dedupeKey: text('dedupe_key').notNull(),
+    currentVersionId: text('current_version_id'),
+    firstSeenAt: text('first_seen_at').notNull(),
+    lastSeenAt: text('last_seen_at').notNull(),
+    ingestionRunId: text('ingestion_run_id').notNull().references(() => jurisprudenceIngestionRuns.id),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('jurisprudence_documents_dedupe_idx').on(table.dedupeKey),
+    index('jurisprudence_documents_court_idx').on(table.court),
+    index('jurisprudence_documents_process_idx').on(table.court, table.normalizedProcessNumber),
+    index('jurisprudence_documents_content_hash_idx').on(table.contentHash),
+  ],
+);
+
+export const jurisprudenceDocumentVersions = sqliteTable(
+  'jurisprudence_document_versions',
+  {
+    id: text('id').primaryKey(),
+    documentId: text('document_id').notNull().references(() => jurisprudenceDocuments.id),
+    versionNumber: integer('version_number').notNull(),
+    processNumber: text('process_number').notNull(),
+    processClass: text('process_class'),
+    rapporteur: text('rapporteur').notNull(),
+    chamber: text('chamber'),
+    judgmentDate: text('judgment_date').notNull(),
+    publicationDate: text('publication_date').notNull(),
+    syllabus: text('syllabus').notNull(),
+    fullText: text('full_text'),
+    officialUrl: text('official_url'),
+    providerId: text('provider_id').notNull(),
+    contentHash: text('content_hash').notNull(),
+    verificationStatus: text('verification_status').notNull(),
+    provenanceJson: text('provenance_json').notNull(),
+    sourceManifestId: text('source_manifest_id').references(() => jurisprudenceSourceManifests.id),
+    publicationStatus: text('publication_status').notNull().default('PUBLISHED'),
+    ingestionRunId: text('ingestion_run_id').notNull().references(() => jurisprudenceIngestionRuns.id),
+    capturedAt: text('captured_at').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('jurisprudence_document_versions_number_idx').on(table.documentId, table.versionNumber),
+    index('jurisprudence_document_versions_document_idx').on(table.documentId, table.versionNumber),
+    index('jurisprudence_document_versions_manifest_idx').on(table.sourceManifestId),
+  ],
+);
+
+export const jurisprudenceSourceManifests = sqliteTable(
+  'jurisprudence_source_manifests',
+  {
+    id: text('id').primaryKey(),
+    datasetId: text('dataset_id').notNull(),
+    datasetTitle: text('dataset_title').notNull(),
+    resourceId: text('resource_id').notNull(),
+    resourceName: text('resource_name').notNull(),
+    resourceUrl: text('resource_url').notNull(),
+    resourceRole: text('resource_role').notNull(),
+    extractionDate: text('extraction_date').notNull(),
+    resourceSha256: text('resource_sha256').notNull(),
+    status: text('status').notNull(),
+    rawRecordCount: integer('raw_record_count').notNull().default(0),
+    acceptedRecordCount: integer('accepted_record_count').notNull().default(0),
+    rejectedRecordCount: integer('rejected_record_count').notNull().default(0),
+    duplicateRecordCount: integer('duplicate_record_count').notNull().default(0),
+    publishedRecordCount: integer('published_record_count').notNull().default(0),
+    coverageStart: text('coverage_start'),
+    coverageEnd: text('coverage_end'),
+    warningsJson: text('warnings_json').notNull().default('[]'),
+    error: text('error'),
+    ingestionRunId: text('ingestion_run_id').references(() => jurisprudenceIngestionRuns.id),
+    startedAt: text('started_at').notNull(),
+    completedAt: text('completed_at'),
+  },
+  (table) => [
+    index('jurisprudence_source_manifests_resource_hash_idx').on(table.resourceId, table.resourceSha256, table.status),
+    index('jurisprudence_source_manifests_resource_idx').on(table.resourceId, table.extractionDate),
+    index('jurisprudence_source_manifests_status_idx').on(table.status, table.startedAt),
+  ],
+);
+
+export const jurisprudenceIngestionStaging = sqliteTable(
+  'jurisprudence_ingestion_staging',
+  {
+    id: text('id').primaryKey(),
+    manifestId: text('manifest_id').notNull().references(() => jurisprudenceSourceManifests.id),
+    recordOrdinal: integer('record_ordinal').notNull(),
+    sourceRecordId: text('source_record_id').notNull(),
+    dedupeKey: text('dedupe_key').notNull(),
+    contentHash: text('content_hash').notNull(),
+    documentJson: text('document_json').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('jurisprudence_ingestion_staging_manifest_ordinal_idx').on(table.manifestId, table.recordOrdinal),
+    index('jurisprudence_ingestion_staging_manifest_idx').on(table.manifestId, table.recordOrdinal),
+  ],
 );

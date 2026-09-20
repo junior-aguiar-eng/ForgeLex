@@ -3,6 +3,8 @@ import type { Client } from '@libsql/client';
 export interface SqlMigration {
   id: string;
   statements: readonly string[];
+  sqliteStatements?: readonly string[];
+  postgresStatements?: readonly string[];
 }
 
 const migrationTableStatement = `
@@ -27,7 +29,9 @@ export async function runMigrations(client: Client, migrations: readonly SqlMigr
 
     const transaction = await client.transaction();
     try {
-      for (const statement of migration.statements) {
+      const dialect = (client as Client & { forgelexDialect?: 'sqlite' | 'postgres' }).forgelexDialect ?? 'sqlite';
+      const dialectStatements = dialect === 'postgres' ? migration.postgresStatements : migration.sqliteStatements;
+      for (const statement of [...migration.statements, ...(dialectStatements ?? [])]) {
         await transaction.execute(statement);
       }
 
@@ -623,6 +627,319 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `,
       `CREATE INDEX IF NOT EXISTS webhook_deliveries_due_idx ON webhook_deliveries (status, next_attempt_at);`,
       `CREATE INDEX IF NOT EXISTS webhook_deliveries_tenant_idx ON webhook_deliveries (tenant_id, created_at);`,
+    ],
+  },
+  {
+    id: 'persistence-0012-account-identity',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS forgelex_user_profiles (
+          id TEXT PRIMARY KEY,
+          supabase_user_id TEXT NOT NULL UNIQUE,
+          email TEXT NOT NULL,
+          display_name TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'ACTIVE',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          deactivated_at TEXT
+        );
+      `,
+      `CREATE UNIQUE INDEX IF NOT EXISTS forgelex_user_profiles_supabase_id_idx ON forgelex_user_profiles (supabase_user_id);`,
+      `
+        CREATE TABLE IF NOT EXISTS forgelex_tenants (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'ACTIVE',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          deactivated_at TEXT
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS forgelex_tenants_status_idx ON forgelex_tenants (status);`,
+      `
+        CREATE TABLE IF NOT EXISTS forgelex_tenant_memberships (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL REFERENCES forgelex_tenants(id),
+          user_id TEXT NOT NULL REFERENCES forgelex_user_profiles(id),
+          role TEXT NOT NULL DEFAULT 'OWNER',
+          status TEXT NOT NULL DEFAULT 'ACTIVE',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          revoked_at TEXT,
+          UNIQUE (tenant_id, user_id)
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS forgelex_tenant_memberships_user_status_idx ON forgelex_tenant_memberships (user_id, status);`,
+    ],
+  },
+  {
+    id: 'persistence-0013-jurisprudence-data-plane',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_ingestion_runs (
+          id TEXT PRIMARY KEY,
+          provider_id TEXT NOT NULL,
+          court TEXT NOT NULL,
+          status TEXT NOT NULL,
+          documents_seen INTEGER NOT NULL DEFAULT 0,
+          documents_published INTEGER NOT NULL DEFAULT 0,
+          coverage_start TEXT,
+          coverage_end TEXT,
+          started_at TEXT NOT NULL,
+          completed_at TEXT,
+          error TEXT
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_ingestion_runs_court_started_idx ON jurisprudence_ingestion_runs (court, started_at);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_ingestion_runs_status_idx ON jurisprudence_ingestion_runs (status);`,
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_documents (
+          id TEXT PRIMARY KEY,
+          court TEXT NOT NULL,
+          process_number TEXT NOT NULL,
+          normalized_process_number TEXT NOT NULL,
+          process_class TEXT,
+          rapporteur TEXT NOT NULL,
+          chamber TEXT,
+          judgment_date TEXT NOT NULL,
+          publication_date TEXT NOT NULL,
+          syllabus TEXT NOT NULL,
+          full_text TEXT,
+          official_url TEXT,
+          provider_id TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          dedupe_key TEXT NOT NULL UNIQUE,
+          current_version_id TEXT,
+          first_seen_at TEXT NOT NULL,
+          last_seen_at TEXT NOT NULL,
+          verification_status TEXT NOT NULL,
+          provenance_json TEXT NOT NULL,
+          ingestion_run_id TEXT NOT NULL REFERENCES jurisprudence_ingestion_runs(id),
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_documents_court_judgment_idx ON jurisprudence_documents (court, judgment_date);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_documents_process_idx ON jurisprudence_documents (court, normalized_process_number);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_documents_content_hash_idx ON jurisprudence_documents (content_hash);`,
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_document_versions (
+          id TEXT PRIMARY KEY,
+          document_id TEXT NOT NULL REFERENCES jurisprudence_documents(id),
+          version_number INTEGER NOT NULL,
+          process_number TEXT NOT NULL,
+          process_class TEXT,
+          rapporteur TEXT NOT NULL,
+          chamber TEXT,
+          judgment_date TEXT NOT NULL,
+          publication_date TEXT NOT NULL,
+          syllabus TEXT NOT NULL,
+          full_text TEXT,
+          official_url TEXT,
+          provider_id TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          verification_status TEXT NOT NULL,
+          provenance_json TEXT NOT NULL,
+          ingestion_run_id TEXT NOT NULL REFERENCES jurisprudence_ingestion_runs(id),
+          captured_at TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          UNIQUE (document_id, version_number)
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_document_versions_document_idx ON jurisprudence_document_versions (document_id, version_number);`,
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_document_terms (
+          id TEXT PRIMARY KEY,
+          document_id TEXT NOT NULL REFERENCES jurisprudence_documents(id),
+          term TEXT NOT NULL,
+          field TEXT NOT NULL,
+          UNIQUE (document_id, term, field)
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_document_terms_term_idx ON jurisprudence_document_terms (term, document_id);`,
+    ],
+  },
+  {
+    id: 'persistence-0014-stj-source-manifest',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_source_manifests (
+          id TEXT PRIMARY KEY,
+          dataset_id TEXT NOT NULL,
+          dataset_title TEXT NOT NULL,
+          resource_id TEXT NOT NULL,
+          resource_name TEXT NOT NULL,
+          resource_url TEXT NOT NULL,
+          resource_role TEXT NOT NULL,
+          extraction_date TEXT NOT NULL,
+          resource_sha256 TEXT NOT NULL,
+          status TEXT NOT NULL,
+          raw_record_count INTEGER NOT NULL DEFAULT 0,
+          accepted_record_count INTEGER NOT NULL DEFAULT 0,
+          rejected_record_count INTEGER NOT NULL DEFAULT 0,
+          duplicate_record_count INTEGER NOT NULL DEFAULT 0,
+          published_record_count INTEGER NOT NULL DEFAULT 0,
+          coverage_start TEXT,
+          coverage_end TEXT,
+          warnings_json TEXT NOT NULL DEFAULT '[]',
+          error TEXT,
+          ingestion_run_id TEXT REFERENCES jurisprudence_ingestion_runs(id),
+          started_at TEXT NOT NULL,
+          completed_at TEXT
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_source_manifests_resource_hash_idx ON jurisprudence_source_manifests (resource_id, resource_sha256, status);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_source_manifests_resource_idx ON jurisprudence_source_manifests (resource_id, extraction_date);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_source_manifests_status_idx ON jurisprudence_source_manifests (status, started_at);`,
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_ingestion_staging (
+          id TEXT PRIMARY KEY,
+          manifest_id TEXT NOT NULL REFERENCES jurisprudence_source_manifests(id),
+          record_ordinal INTEGER NOT NULL,
+          source_record_id TEXT NOT NULL,
+          dedupe_key TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          document_json TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          UNIQUE (manifest_id, record_ordinal)
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_ingestion_staging_manifest_idx ON jurisprudence_ingestion_staging (manifest_id, record_ordinal);`,
+    ],
+  },
+  {
+    id: 'persistence-0015-compact-jurisprudence-search',
+    statements: [
+      `ALTER TABLE jurisprudence_documents ADD COLUMN search_text TEXT NOT NULL DEFAULT '';`,
+      `DROP TABLE IF EXISTS jurisprudence_document_terms;`,
+    ],
+  },
+  {
+    id: 'persistence-0016-native-jurisprudence-full-text',
+    statements: [
+      `ALTER TABLE jurisprudence_documents ADD COLUMN search_identity_text TEXT NOT NULL DEFAULT '';`,
+      `ALTER TABLE jurisprudence_documents ADD COLUMN search_authority_text TEXT NOT NULL DEFAULT '';`,
+    ],
+    sqliteStatements: [
+      `
+        CREATE VIRTUAL TABLE jurisprudence_documents_fts USING fts5(
+          search_identity_text,
+          search_authority_text,
+          search_text,
+          content='jurisprudence_documents',
+          content_rowid='rowid',
+          tokenize='unicode61 remove_diacritics 2'
+        );
+      `,
+      `
+        CREATE TRIGGER jurisprudence_documents_fts_insert AFTER INSERT ON jurisprudence_documents BEGIN
+          INSERT INTO jurisprudence_documents_fts(rowid, search_identity_text, search_authority_text, search_text)
+          VALUES (new.rowid, new.search_identity_text, new.search_authority_text, new.search_text);
+        END;
+      `,
+      `
+        CREATE TRIGGER jurisprudence_documents_fts_delete AFTER DELETE ON jurisprudence_documents BEGIN
+          INSERT INTO jurisprudence_documents_fts(jurisprudence_documents_fts, rowid, search_identity_text, search_authority_text, search_text)
+          VALUES ('delete', old.rowid, old.search_identity_text, old.search_authority_text, old.search_text);
+        END;
+      `,
+      `
+        CREATE TRIGGER jurisprudence_documents_fts_update AFTER UPDATE ON jurisprudence_documents BEGIN
+          INSERT INTO jurisprudence_documents_fts(jurisprudence_documents_fts, rowid, search_identity_text, search_authority_text, search_text)
+          VALUES ('delete', old.rowid, old.search_identity_text, old.search_authority_text, old.search_text);
+          INSERT INTO jurisprudence_documents_fts(rowid, search_identity_text, search_authority_text, search_text)
+          VALUES (new.rowid, new.search_identity_text, new.search_authority_text, new.search_text);
+        END;
+      `,
+      `INSERT INTO jurisprudence_documents_fts(jurisprudence_documents_fts) VALUES ('rebuild');`,
+    ],
+    postgresStatements: [
+      `
+        CREATE INDEX jurisprudence_documents_search_fts_idx
+        ON jurisprudence_documents USING GIN ((
+          setweight(to_tsvector('simple', search_identity_text), 'A') ||
+          setweight(to_tsvector('simple', search_authority_text), 'B') ||
+          setweight(to_tsvector('simple', search_text), 'C')
+        ));
+      `,
+    ],
+  },
+  {
+    id: 'persistence-0017-canonical-jurisprudence-version',
+    statements: [],
+    sqliteStatements: [
+      `ALTER TABLE jurisprudence_documents ADD COLUMN search_vector TEXT NOT NULL DEFAULT '';`,
+      `DROP INDEX IF EXISTS jurisprudence_documents_court_judgment_idx;`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_documents_court_idx ON jurisprudence_documents (court);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_document_versions_judgment_idx ON jurisprudence_document_versions (judgment_date);`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN process_class;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN rapporteur;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN chamber;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN judgment_date;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN publication_date;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN syllabus;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN full_text;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN official_url;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN provider_id;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN verification_status;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN provenance_json;`,
+    ],
+    postgresStatements: [
+      `ALTER TABLE jurisprudence_documents ADD COLUMN search_vector tsvector NOT NULL DEFAULT ''::tsvector;`,
+      `
+        UPDATE jurisprudence_documents
+        SET search_vector =
+          setweight(to_tsvector('simple', search_identity_text), 'A') ||
+          setweight(to_tsvector('simple', search_authority_text), 'B') ||
+          setweight(to_tsvector('simple', search_text), 'C');
+      `,
+      `
+        CREATE OR REPLACE FUNCTION jurisprudence_documents_search_vector_sync()
+        RETURNS trigger AS $$
+        BEGIN
+          NEW.search_vector :=
+            setweight(to_tsvector('simple', NEW.search_identity_text), 'A') ||
+            setweight(to_tsvector('simple', NEW.search_authority_text), 'B') ||
+            setweight(to_tsvector('simple', NEW.search_text), 'C');
+          RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      `
+        CREATE TRIGGER jurisprudence_documents_search_vector_sync_trigger
+        BEFORE INSERT OR UPDATE OF search_identity_text, search_authority_text, search_text
+        ON jurisprudence_documents
+        FOR EACH ROW EXECUTE FUNCTION jurisprudence_documents_search_vector_sync();
+      `,
+      `DROP INDEX IF EXISTS jurisprudence_documents_search_fts_idx;`,
+      `DROP INDEX IF EXISTS jurisprudence_documents_court_judgment_idx;`,
+      `CREATE INDEX jurisprudence_documents_court_idx ON jurisprudence_documents (court);`,
+      `CREATE INDEX jurisprudence_document_versions_judgment_idx ON jurisprudence_document_versions (judgment_date);`,
+      `CREATE INDEX jurisprudence_documents_search_vector_idx ON jurisprudence_documents USING GIN (search_vector);`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN process_class;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN rapporteur;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN chamber;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN judgment_date;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN publication_date;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN syllabus;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN full_text;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN official_url;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN provider_id;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN verification_status;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN provenance_json;`,
+    ],
+  },
+  {
+    id: 'persistence-0018-version-source-manifest-link',
+    statements: [
+      `ALTER TABLE jurisprudence_document_versions ADD COLUMN source_manifest_id TEXT REFERENCES jurisprudence_source_manifests(id);`,
+      `CREATE INDEX jurisprudence_document_versions_manifest_idx ON jurisprudence_document_versions (source_manifest_id);`,
+    ],
+  },
+  {
+    id: 'persistence-0019-explicit-version-publication-status',
+    statements: [
+      `ALTER TABLE jurisprudence_document_versions ADD COLUMN publication_status TEXT NOT NULL DEFAULT 'LEGACY_COMPATIBILITY';`,
     ],
   },
 ];

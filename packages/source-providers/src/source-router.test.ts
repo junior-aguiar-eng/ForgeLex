@@ -73,4 +73,16 @@ describe('SourceRouter & Providers (Deduplicação e Roteamento de Jurisprudênc
     await expect(router.search('teste')).rejects.toBeInstanceOf(SourceRouterError);
     await expect(router.search('teste')).rejects.toMatchObject({ code: 'SOURCE_PROVIDER_UNAVAILABLE' });
   });
+
+  it('deve bloquear tribunal fora do escopo habilitado antes de consultar o provedor', async () => {
+    const router = new SourceRouter({ enabledCourts: ['STJ'] });
+    router.registerProvider(new CanonicalFixtureProvider());
+
+    await expect(router.search('dados', { court: 'STF' })).rejects.toMatchObject({
+      code: 'UNSUPPORTED_COURT',
+    });
+
+    const results = await router.search('dados');
+    expect(results.every((item) => item.court === 'STJ')).toBe(true);
+  });
 });

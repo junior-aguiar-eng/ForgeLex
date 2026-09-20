@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AuthenticatedPrincipal, TokenVerifier } from '@forgelex/domain';
-import type { ApiKeyRepository } from '@forgelex/persistence';
+import type { AccountRepository, ApiKeyRepository } from '@forgelex/persistence';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -26,6 +26,20 @@ export interface ApiKeyPrincipalRecord {
   scopes?: string[];
 }
 
+export interface SupabaseIdentity {
+  id: string;
+  email: string;
+  emailConfirmed: boolean;
+  displayName?: string;
+}
+
+export interface SupabaseIdentityVerifierOptions {
+  baseUrl: string;
+  publishableKey: string;
+  timeoutMs?: number;
+  fetchImpl?: typeof fetch;
+}
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -36,6 +50,99 @@ function isStringArray(value: unknown): value is string[] {
 
 function normalizeTokenHash(value: string): string {
   return value.toLowerCase().replace(/^sha256:/, '');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object';
+}
+
+function readSupabaseIdentity(value: unknown): SupabaseIdentity | null {
+  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.email !== 'string') {
+    return null;
+  }
+
+  const id = value.id.trim();
+  const email = value.email.trim().toLowerCase();
+  if (!id || !email) return null;
+
+  const metadata = isRecord(value.user_metadata) ? value.user_metadata : undefined;
+  const displayName = metadata && typeof metadata.full_name === 'string'
+    ? metadata.full_name.trim()
+    : undefined;
+  const confirmedAt = value.email_confirmed_at;
+
+  return {
+    id,
+    email,
+    emailConfirmed: typeof confirmedAt === 'string' && confirmedAt.length > 0,
+    displayName: displayName || undefined,
+  };
+}
+
+export class SupabaseIdentityVerifier {
+  private readonly baseUrl: string;
+  private readonly publishableKey: string;
+  private readonly timeoutMs: number;
+  private readonly fetchImpl: typeof fetch;
+
+  public constructor(options: SupabaseIdentityVerifierOptions) {
+    this.baseUrl = options.baseUrl.replace(/\/$/, '');
+    this.publishableKey = options.publishableKey;
+    this.timeoutMs = options.timeoutMs ?? 5_000;
+    this.fetchImpl = options.fetchImpl ?? fetch;
+  }
+
+  public async verify(token: string): Promise<SupabaseIdentity | null> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const response = await this.fetchImpl(`${this.baseUrl}/auth/v1/user`, {
+        method: 'GET',
+        headers: {
+          apikey: this.publishableKey,
+          Authorization: `Bearer ${token}`,
+        },
+        signal: controller.signal,
+      });
+      if (!response.ok) return null;
+      return readSupabaseIdentity(await response.json().catch(() => null));
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+export class SupabaseTokenVerifier implements TokenVerifier {
+  public constructor(
+    private readonly identityVerifier: SupabaseIdentityVerifier,
+    private readonly accountRepository: AccountRepository,
+  ) {}
+
+  public async verify(token: string): Promise<AuthenticatedPrincipal | null> {
+    const identity = await this.identityVerifier.verify(token);
+    if (!identity?.emailConfirmed) return null;
+
+    const account = await this.accountRepository.findBySupabaseUserId(identity.id);
+    if (
+      !account ||
+      account.user.status !== 'ACTIVE' ||
+      account.tenant.status !== 'ACTIVE' ||
+      account.membership.status !== 'ACTIVE'
+    ) {
+      return null;
+    }
+
+    return {
+      subjectId: identity.id,
+      tenantId: account.tenant.id,
+      userId: account.user.id,
+      roles: [account.membership.role.toLowerCase()],
+      scopes: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write'],
+      authMethod: 'session',
+    };
+  }
 }
 
 function isApiKeyPrincipalRecord(value: unknown): value is ApiKeyPrincipalRecord {
@@ -160,7 +267,7 @@ function isAuthenticatedPrincipal(value: unknown): value is AuthenticatedPrincip
   );
 }
 
-function extractBearerToken(authorization: string | undefined): string {
+export function extractBearerToken(authorization: string | undefined): string {
   if (!authorization) {
     throw new AuthenticationError('Credencial Bearer ausente.');
   }
@@ -226,10 +333,24 @@ export class AuthAdapter {
 export function createDefaultAuthAdapter(
   environment: Record<string, string | undefined>,
   apiKeyRepository?: ApiKeyRepository,
+  accountRepository?: AccountRepository,
 ): AuthAdapter {
   const verifiers: TokenVerifier[] = [EnvironmentTokenVerifier.fromEnvironment(environment)];
   if (apiKeyRepository) verifiers.push(new DatabaseApiKeyVerifier(apiKeyRepository));
+  const supabaseIdentityVerifier = createSupabaseIdentityVerifier(environment);
+  if (supabaseIdentityVerifier && accountRepository) {
+    verifiers.push(new SupabaseTokenVerifier(supabaseIdentityVerifier, accountRepository));
+  }
   return new AuthAdapter(verifiers.length === 1 ? verifiers[0] : new CompositeTokenVerifier(verifiers));
+}
+
+export function createSupabaseIdentityVerifier(
+  environment: Record<string, string | undefined>,
+): SupabaseIdentityVerifier | undefined {
+  const baseUrl = environment.FORGELEX_SUPABASE_URL?.trim();
+  const publishableKey = environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY?.trim();
+  if (!baseUrl || !publishableKey) return undefined;
+  return new SupabaseIdentityVerifier({ baseUrl, publishableKey });
 }
 
 export function resolveAllowedOrigins(environment: Record<string, string | undefined>): string[] {

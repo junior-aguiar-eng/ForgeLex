@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import {
   createDatabase,
+  AccountRepository,
   DraftRepository,
   MatterRepository,
   WebhookRepository,
@@ -15,6 +16,8 @@ if (!databaseUrl || !/^postgres(?:ql)?:\/\//i.test(databaseUrl)) {
   process.exitCode = 2;
 } else {
   const tenantId = `smoke_${randomUUID()}`;
+  const supabaseUserId = `postgres-smoke-user-${randomUUID()}`;
+  let accountTenantId;
   const connection = await createDatabase({ url: databaseUrl });
   const client = connection.client;
 
@@ -23,6 +26,13 @@ if (!databaseUrl || !/^postgres(?:ql)?:\/\//i.test(databaseUrl)) {
     await runPersistenceMigrations(client);
     const ledger = new LedgerService(connection.db, client);
     await ledger.runMigrations();
+
+    const account = await new AccountRepository(connection.db).bootstrap({
+      supabaseUserId,
+      email: `${supabaseUserId}@example.test`,
+      displayName: 'Postgres Smoke',
+    });
+    accountTenantId = account.tenant.id;
     await ledger.runMigrations();
 
     const matter = await new MatterRepository(connection.db).createMatter({
@@ -51,7 +61,7 @@ if (!databaseUrl || !/^postgres(?:ql)?:\/\//i.test(databaseUrl)) {
       tenantId,
       userId: 'postgres-smoke',
       idempotencyKey: `postgres-smoke-${randomUUID()}`,
-      costCents: 15,
+      costCents: 20,
       usage: { capability: 'postgres.smoke', toolName: 'postgres.smoke', units: 1 },
       operation: async () => ({ ok: true }),
     });
@@ -78,8 +88,10 @@ if (!databaseUrl || !/^postgres(?:ql)?:\/\//i.test(databaseUrl)) {
         (SELECT COUNT(*) FROM drafts WHERE tenant_id = ?) AS drafts,
         (SELECT COUNT(*) FROM usage_events WHERE tenant_id = ?) AS usage_events,
         (SELECT COUNT(*) FROM webhook_events WHERE tenant_id = ?) AS webhook_events,
-        (SELECT COUNT(*) FROM webhook_deliveries WHERE tenant_id = ?) AS webhook_deliveries`,
-      args: [tenantId, tenantId, tenantId, tenantId, tenantId, tenantId],
+        (SELECT COUNT(*) FROM webhook_deliveries WHERE tenant_id = ?) AS webhook_deliveries,
+        (SELECT COUNT(*) FROM forgelex_user_profiles WHERE supabase_user_id = ?) AS account_users,
+        (SELECT COUNT(*) FROM forgelex_tenant_memberships WHERE user_id = ?) AS account_memberships`,
+      args: [tenantId, tenantId, tenantId, tenantId, tenantId, tenantId, supabaseUserId, account.user.id],
     });
     const row = counts.rows[0];
     assert.equal(Number(row.matters), 1);
@@ -88,6 +100,8 @@ if (!databaseUrl || !/^postgres(?:ql)?:\/\//i.test(databaseUrl)) {
     assert.equal(Number(row.usage_events), 1);
     assert.equal(Number(row.webhook_events), 1);
     assert.equal(Number(row.webhook_deliveries), 1);
+    assert.equal(Number(row.account_users), 1);
+    assert.equal(Number(row.account_memberships), 1);
     assert.equal(execution.data.ok, true);
     assert.equal(ingested.document.matterId, matter.id);
     assert.equal(draft.matterId, matter.id);
@@ -138,6 +152,19 @@ if (!databaseUrl || !/^postgres(?:ql)?:\/\//i.test(databaseUrl)) {
         await client.execute({ sql, args: [tenantId] });
       } catch {
         // A partial setup may not have created every table before failing.
+      }
+    }
+    if (accountTenantId) {
+      for (const [sql, argument] of [
+        ['DELETE FROM forgelex_tenant_memberships WHERE user_id IN (SELECT id FROM forgelex_user_profiles WHERE supabase_user_id = ?)', supabaseUserId],
+        ['DELETE FROM forgelex_tenants WHERE id = ?', accountTenantId],
+        ['DELETE FROM forgelex_user_profiles WHERE supabase_user_id = ?', supabaseUserId],
+      ]) {
+        try {
+          await client.execute({ sql, args: [argument] });
+        } catch {
+          // A partial setup may not have created every table before failing.
+        }
       }
     }
     client.close();

@@ -45,7 +45,7 @@ describe('AuditRecorder (Conformidade e Sigilo Jurídico)', () => {
     expect(hash1.length).toBe(64); // SHA-256 em hex tem 64 caracteres
   });
 
-  it('deve registrar e recuperar eventos de auditoria vinculados à sessão', async () => {
+  it('não persiste metadata legado de custo de modelo em operação jurídica', async () => {
     const auditId = await recorder.recordEvent({
       sessionId: 'sess_auditoria_test',
       tenantId: 'tenant_escritorio',
@@ -59,7 +59,7 @@ describe('AuditRecorder (Conformidade e Sigilo Jurídico)', () => {
         tokensOut: 400,
         estimatedCostUsd: 0.002,
       },
-    });
+    } as any);
 
     expect(auditId).toBeDefined();
 
@@ -70,7 +70,24 @@ describe('AuditRecorder (Conformidade e Sigilo Jurídico)', () => {
     expect(logs[0].status).toBe('SUCCESS');
     expect(logs[0].payloadHash).toBeDefined();
 
-    const cost = JSON.parse(logs[0].costMetadata!);
-    expect(cost.tokensIn).toBe(150);
+    expect(logs[0].costMetadata).toBeNull();
+  });
+
+  it('não transporta conversas, arquivos ou histórico no evento MCP', async () => {
+    const auditId = await recorder.recordEvent({
+      sessionId: 'sess_mcp_privacy_test',
+      tenantId: 'tenant_escritorio',
+      userId: 'user_1',
+      toolName: 'research.search_case_law',
+      durationMs: 100,
+      status: 'SUCCESS',
+      payload: { query: 'LGPD dano moral' },
+    });
+
+    expect(auditId).toBeDefined();
+    const log = (await recorder.getLogsForSession('sess_mcp_privacy_test'))[0];
+    expect(JSON.stringify(log)).not.toContain('conversation');
+    expect(JSON.stringify(log)).not.toContain('files');
+    expect(JSON.stringify(log)).not.toContain('history');
   });
 });

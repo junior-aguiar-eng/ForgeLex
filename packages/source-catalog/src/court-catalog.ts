@@ -7,7 +7,20 @@ export interface CourtMetadata {
   jurisdiction: string;
   hasBindingPrecedents: boolean;
   officialSearchUrl: string;
-  status: 'ONLINE' | 'DEGRADED' | 'MAINTENANCE';
+  status: 'ONLINE' | 'DEGRADED' | 'MAINTENANCE' | 'UNAVAILABLE';
+}
+
+export interface CourtCapability extends CourtMetadata {
+  searchable: boolean;
+  verifiable: boolean;
+  ingestionReady: boolean;
+  providerId?: string;
+  lastCheckedAt: string;
+}
+
+export interface CourtCapabilityProvider {
+  id: string;
+  supportsCourt(court: string): boolean;
 }
 
 export const CANONICAL_COURTS: CourtMetadata[] = [
@@ -86,5 +99,29 @@ export class CourtCatalog {
 
   public getCourtsByType(type: CourtType): CourtMetadata[] {
     return CANONICAL_COURTS.filter((c) => c.type === type);
+  }
+
+  public getCapabilities(options: {
+    providers: readonly CourtCapabilityProvider[];
+    enabledCourts: readonly string[];
+    checkedAt?: string;
+  }): CourtCapability[] {
+    const enabledCourts = new Set(options.enabledCourts.map((court) => court.trim().toUpperCase()));
+    const checkedAt = options.checkedAt ?? new Date().toISOString();
+
+    return CANONICAL_COURTS.map((court) => {
+      const provider = options.providers.find((candidate) => candidate.supportsCourt(court.code));
+      const available = enabledCourts.has(court.code) && provider !== undefined;
+
+      return {
+        ...court,
+        status: available ? 'ONLINE' : 'UNAVAILABLE',
+        searchable: available,
+        verifiable: available,
+        ingestionReady: false,
+        ...(available ? { providerId: provider.id } : {}),
+        lastCheckedAt: checkedAt,
+      };
+    });
   }
 }

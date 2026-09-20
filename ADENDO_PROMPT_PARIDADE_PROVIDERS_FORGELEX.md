@@ -1,8 +1,17 @@
 # Adendo — Paridade operacional dos Agent Providers do FORGELEX
 
-## Objetivo
+> Registro técnico histórico e opcional. Não é o contrato comercial vigente:
+> o ForgeLex não fornece modelo de IA, não recebe chaves OpenAI/Anthropic e
+> não cobra tokens. API REST e MCP cobram somente operações da infraestrutura
+> jurisprudencial própria; qualquer modelo usado pelo desenvolvedor ou pelo
+> host do MCP fica fora do billing ForgeLex.
 
-Antes de iniciar o Segundo vertical slice, fechar a paridade entre os providers de agente suportados pelo FORGELEX. Anthropic e OpenAI devem ser tratados como entregas equivalentes. Nenhum provider pode ser considerado concluído apenas porque possui um adapter compilável ou testes unitários locais.
+## Objetivo histórico
+
+Registrar a paridade técnica entre adapters opcionais de agente usados em
+testes locais. Anthropic e OpenAI devem ser tratados como implementações
+equivalentes do contrato técnico; isso não os transforma em modelos fornecidos
+pelo ForgeLex nem os vincula ao billing comercial atual.
 
 ## Situação atual a considerar
 
@@ -15,7 +24,10 @@ Antes de iniciar o Segundo vertical slice, fechar a paridade entre os providers 
 
 ## Escopo obrigatório
 
-Executar uma auditoria e, se necessário, implementar as correções para que Anthropic e OpenAI cumpram o mesmo contrato `AgentProvider` e o mesmo fluxo comercial.
+Executar uma auditoria e, se necessário, implementar as correções para que os
+adapters opcionais de Anthropic e OpenAI cumpram o mesmo contrato
+`AgentProvider`. Esses adapters pertencem à integração que o desenvolvedor ou
+o host do MCP mantém; não fazem parte do runtime comercial do ForgeLex.
 
 ### 1. Auditoria do contrato comum
 
@@ -54,7 +66,7 @@ Criar ou completar testes locais determinísticos para ambos os providers, usand
 
 Os testes devem comparar invariantes do contrato, não detalhes acidentais de cada SDK.
 
-### 3. Integração com o fluxo comercial
+### 3. Integração técnica externa ao billing do ForgeLex
 
 Demonstrar, para cada provider, o caminho:
 
@@ -66,7 +78,7 @@ AgentProvider
   -> authority com provenance
   -> matter
   -> audit
-  -> usage/billing
+  -> resultado jurídico para a integração
 ```
 
 Criar um teste de integração por provider que confirme, no mínimo:
@@ -77,15 +89,20 @@ Criar um teste de integração por provider que confirme, no mínimo:
 - retorno de authority com proveniência verificável;
 - preservação do contexto do matter;
 - registro de auditoria;
-- registro de usage/billing sem duplicidade;
+- registro de auditoria sem duplicidade;
 - isolamento entre tenants;
 - aprovação humana quando o agente tentar uma operação mutável.
 
-O teste não deve depender de saldo ou estado compartilhado de outros testes.
+O teste não deve depender de saldo ou estado compartilhado de outros testes e
+não deve atribuir ao ForgeLex custo de modelo, tokens ou provider externo.
 
 ### 4. Validação operacional externa
 
-Se `ANTHROPIC_API_KEY` estiver disponível no ambiente de execução, executar uma chamada real mínima e segura contra a Anthropic. Se `OPENAI_API_KEY` estiver disponível, executar a chamada equivalente contra a OpenAI.
+Se o desenvolvedor fornecer `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` no
+ambiente local da própria integração, pode executar uma chamada real mínima e
+segura contra o respectivo provider. Essas credenciais não são configuração do
+ForgeLex, não devem ser enviadas ao ForgeLex e não participam do billing do
+ForgeLex.
 
 Cada chamada deve:
 
@@ -111,7 +128,7 @@ Verificar que:
 - nenhum provider é escolhido silenciosamente por preferência não documentada;
 - a seleção do provider é explícita e validada;
 - o provider indisponível falha de modo identificável e fail-closed;
-- o billing não registra uma cobrança duplicada em retry ou erro;
+- uma chamada à operação ForgeLex não gera cobrança duplicada em retry ou erro;
 - o mesmo `idempotencyKey` mantém comportamento coerente entre providers.
 
 ## Critérios de aceite
@@ -120,7 +137,8 @@ Esta entrega só pode ser marcada como concluída quando:
 
 1. Anthropic e OpenAI passarem pela mesma matriz de contrato e integração.
 2. Os testes locais dos dois pacotes estiverem verdes.
-3. O teste integrado de cada provider demonstrar uso de ferramenta, provenance, tenant, auditoria e billing.
+3. O teste integrado de cada provider demonstrar uso de ferramenta,
+   provenance, tenant e auditoria, sem billing de modelo.
 4. A validação externa de cada chave disponível estiver concluída; a ausência de chave estiver registrada explicitamente como bloqueio, não como sucesso.
 5. Não houver alteração específica que favoreça um provider em detrimento do outro sem justificativa documentada.
 6. `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test`, `pnpm build` e `git diff --check` passarem.

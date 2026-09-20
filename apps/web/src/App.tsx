@@ -1,20 +1,40 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
-import { LandingScreen } from './screens/LandingScreen';
-import { ResearchDeskScreen } from './screens/ResearchDeskScreen';
-import { MatterWorkspaceScreen } from './screens/MatterWorkspaceScreen';
-import { DashboardScreen } from './screens/DashboardScreen';
-import { ConnectionsScreen } from './screens/ConnectionsScreen';
-import { CreditsScreen } from './screens/CreditsScreen';
-import { ApiDocsScreen } from './screens/ApiDocsScreen';
-import { DraftStudioScreen } from './screens/DraftStudioScreen';
+import AuthScreen from './screens/AuthScreen';
+import { AuthProvider, useAuth } from './auth/AuthContext';
 import { Scale } from 'lucide-react';
+import { parseBillingReturn } from './billing-return';
+
+const LandingScreen = lazy(() => import('./screens/LandingScreen').then(({ LandingScreen: screen }) => ({ default: screen })));
+const ResearchDeskScreen = lazy(() => import('./screens/ResearchDeskScreen').then(({ ResearchDeskScreen: screen }) => ({ default: screen })));
+const MatterWorkspaceScreen = lazy(() => import('./screens/MatterWorkspaceScreen').then(({ MatterWorkspaceScreen: screen }) => ({ default: screen })));
+const DraftStudioScreen = lazy(() => import('./screens/DraftStudioScreen').then(({ DraftStudioScreen: screen }) => ({ default: screen })));
+const DashboardScreen = lazy(() => import('./screens/DashboardScreen').then(({ DashboardScreen: screen }) => ({ default: screen })));
+const ConnectionsScreen = lazy(() => import('./screens/ConnectionsScreen').then(({ ConnectionsScreen: screen }) => ({ default: screen })));
+const CreditsScreen = lazy(() => import('./screens/CreditsScreen').then(({ CreditsScreen: screen }) => ({ default: screen })));
+const ApiDocsScreen = lazy(() => import('./screens/ApiDocsScreen').then(({ ApiDocsScreen: screen }) => ({ default: screen })));
 
 const AppContent: React.FC = () => {
   const { activeTab, setActiveTab } = useApp();
+  const { status, passwordRecovery, passwordRecoveryError } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const billingReturn = React.useMemo(() => parseBillingReturn(window.location.search), []);
+
+  React.useEffect(() => {
+    if (billingReturn) setActiveTab('credits');
+  }, [billingReturn, setActiveTab]);
+
+  if (passwordRecoveryError) {
+    return <AuthScreen initialView="recovery_error" status="signed_out" />;
+  }
+  if (passwordRecovery) {
+    return <AuthScreen initialView="reset_password" status="signed_out" />;
+  }
+  if (status !== 'authenticated' && status !== 'legacy') {
+    return <AuthScreen initialView="sign_in" status={status} />;
+  }
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-[#FBF9F5]">
@@ -24,14 +44,16 @@ const AppContent: React.FC = () => {
       <div className="relative flex min-w-0 flex-1">
         <Sidebar activeTab={activeTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={setActiveTab} />
         <main className="min-w-0 flex-1">
-          {activeTab === 'landing' && <LandingScreen />}
-          {activeTab === 'research' && <ResearchDeskScreen />}
-          {activeTab === 'matter' && <MatterWorkspaceScreen />}
-          {activeTab === 'draft_studio' && <DraftStudioScreen />}
-          {activeTab === 'dashboard' && <DashboardScreen />}
-          {activeTab === 'connections' && <ConnectionsScreen />}
-          {activeTab === 'credits' && <CreditsScreen />}
-          {activeTab === 'api_docs' && <ApiDocsScreen />}
+          <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
+            {activeTab === 'landing' && <LandingScreen />}
+            {activeTab === 'research' && <ResearchDeskScreen />}
+            {activeTab === 'matter' && <MatterWorkspaceScreen />}
+            {activeTab === 'draft_studio' && <DraftStudioScreen />}
+            {activeTab === 'dashboard' && <DashboardScreen />}
+            {activeTab === 'connections' && <ConnectionsScreen />}
+            {activeTab === 'credits' && <CreditsScreen />}
+            {activeTab === 'api_docs' && <ApiDocsScreen />}
+          </Suspense>
         </main>
       </div>
 
@@ -51,9 +73,11 @@ const AppContent: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </AuthProvider>
   );
 };
 
