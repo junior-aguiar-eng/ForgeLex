@@ -28,7 +28,8 @@ for role in roles/artifactregistry.writer roles/cloudbuild.builds.editor roles/r
 done
 gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_EMAIL" --member="serviceAccount:$DEPLOY_EMAIL" --role=roles/iam.serviceAccountUser --project="$PROJECT_ID" --quiet >/dev/null
 
-gcloud sql instances describe "$SQL_INSTANCE" --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud sql instances create "$SQL_INSTANCE" --database-version=POSTGRES_16 --tier=db-f1-micro --region="$REGION" --availability-type=ZONAL --storage-size=10 --storage-type=SSD --storage-auto-increase --backup-start-time=03:00 --retained-backups-count=7 --labels="$LABELS" --project="$PROJECT_ID"
+gcloud sql instances describe "$SQL_INSTANCE" --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud sql instances create "$SQL_INSTANCE" --database-version=POSTGRES_16 --tier=db-f1-micro --region="$REGION" --availability-type=ZONAL --storage-size=10 --storage-type=SSD --storage-auto-increase --backup-start-time=03:00 --retained-backups-count=7 --project="$PROJECT_ID"
+gcloud sql instances patch "$SQL_INSTANCE" --update-labels="$LABELS" --project="$PROJECT_ID" --quiet
 gcloud sql databases describe "$SQL_DATABASE" --instance="$SQL_INSTANCE" --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud sql databases create "$SQL_DATABASE" --instance="$SQL_INSTANCE" --project="$PROJECT_ID"
 gcloud sql users describe "$SQL_USER" --instance="$SQL_INSTANCE" --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud sql users create "$SQL_USER" --instance="$SQL_INSTANCE" --password="$FORGELEX_PHASE8_DB_PASSWORD" --project="$PROJECT_ID"
 gcloud sql users set-password "$SQL_USER" --instance="$SQL_INSTANCE" --password="$FORGELEX_PHASE8_DB_PASSWORD" --project="$PROJECT_ID"
