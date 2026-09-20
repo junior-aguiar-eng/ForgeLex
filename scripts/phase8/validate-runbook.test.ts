@@ -9,6 +9,7 @@ describe('runbook GCP da Fase 8', () => {
   it('fixa o projeto e os nomes aprovados', () => {
     const config = readFileSync(resolve(root, 'config.env.example'), 'utf8');
     for (const line of ['PROJECT_ID=project-bbbe1209-c295-4720-867', 'REGION=southamerica-east1', 'SERVICE=forgelex-api-hml', 'SQL_INSTANCE=forgelex-hml-pg', 'AR_REPOSITORY=forgelex-hml', 'DOMAIN=hml.nexojuris.ia.br']) expect(config).toContain(line);
+    for (const name of ['COMMIT_SHA', 'FORGELEX_PHASE8_DB_PASSWORD', 'FORGELEX_PHASE8_WEBHOOK_MASTER_KEY', 'FORGELEX_PHASE8_METRICS_TOKEN']) expect(config).toContain(`${name}=\${${name}:-}`);
   });
 
   it('não contém arquitetura ou credenciais proibidas', () => {
