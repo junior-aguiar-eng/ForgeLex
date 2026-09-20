@@ -31,6 +31,7 @@ interface FakeStream extends AsyncIterable<unknown> {
   finalOutput?: unknown;
   interruptions?: unknown[];
   currentTurn?: number;
+  usage?: unknown;
   completed: Promise<void>;
 }
 
@@ -44,7 +45,7 @@ function assistantMessage(content: unknown[]): unknown {
   };
 }
 
-function resultMessage(): unknown {
+function resultMessage(usage?: unknown): unknown {
   return {
     type: 'result',
     subtype: 'success',
@@ -55,6 +56,7 @@ function resultMessage(): unknown {
     errors: [],
     uuid: 'integration-result-message',
     session_id: 'integration-session',
+    ...(usage === undefined ? {} : { usage }),
   };
 }
 
@@ -64,7 +66,7 @@ function runItem(name: string, item: Record<string, unknown>): unknown {
 
 function fakeStream(
   events: unknown[],
-  options: { finalOutput?: unknown; interruptions?: unknown[]; currentTurn?: number } = {},
+  options: { finalOutput?: unknown; interruptions?: unknown[]; currentTurn?: number; usage?: unknown } = {},
 ): FakeStream {
   return {
     async *[Symbol.asyncIterator]() {
@@ -107,7 +109,7 @@ function createBilledResearchTool(
         usage: {
           capability: sourceTool.name,
           toolName: sourceTool.name,
-          provider: `agent_${provider}`,
+          provider: 'forgelex_index',
           requestId: idempotencyKey,
           sessionId: context.sessionId,
           userId: context.userId,
@@ -151,7 +153,7 @@ function createSearchProvider(
           },
         ]);
         yield assistantMessage([{ type: 'text', text: 'A authority foi encontrada.' }]);
-        yield resultMessage();
+        yield resultMessage({ input_tokens: 11, output_tokens: 7 });
       })();
       return Object.assign(messages, { close: vi.fn() });
     });
@@ -181,7 +183,11 @@ function createSearchProvider(
           content: 'A authority foi encontrada.',
         }),
       ],
-      { finalOutput: 'A autoridade foi encontrada.', currentTurn: 2 },
+      {
+        finalOutput: 'A autoridade foi encontrada.',
+        currentTurn: 2,
+        usage: { prompt_tokens: 11, completion_tokens: 7 },
+      },
     );
   });
   return new OpenAIAgentProvider({ apiKey: 'test-key', run });
@@ -255,6 +261,42 @@ describe('Provider parity: integração comercial ForgeLex', () => {
     client = undefined;
   });
 
+  it('mantém metadados de token fora do ledger quando nenhuma tool jurídica é executada', async () => {
+    const connection = await createDatabase({ url: 'file::memory:?cache=shared' });
+    client = connection.client;
+    await runPersistenceMigrations(client);
+    const ledgerService = new LedgerService(connection.db, client);
+    await ledgerService.runMigrations();
+    await ledgerService.provisionAccount('tenant_usage_only', {
+      paidBalanceCents: 3000, promotionalBalanceCents: 0, promoExpiresAt: null,
+    });
+    const provider: AgentProvider = {
+      id: 'fake',
+      async *run(input) {
+        yield { type: 'lifecycle:started', sessionId: input.sessionId, model: 'integrator-model', timestamp: new Date().toISOString() };
+        yield {
+          type: 'lifecycle:completed', sessionId: input.sessionId, output: 'síntese do integrador',
+          totalTurns: 1, totalDurationMs: 1,
+          usage: { provider: 'integrator', model: 'integrator-model', inputTokens: 11, outputTokens: 7 },
+          timestamp: new Date().toISOString(),
+        };
+      },
+      async cancel() {},
+    };
+    const runtime = new AgentRuntime({ provider, toolRegistry: new ToolRegistry() });
+    const before = await ledgerService.getAvailableBalanceCents('tenant_usage_only');
+    const events = await collectEvents(runtime.run({
+      sessionId: '55555555-5555-4555-8555-555555555555', tenantId: 'tenant_usage_only',
+      userId: 'user_usage_only', prompt: 'Sintetize sem tool.',
+    }));
+
+    expect(events).toContainEqual(expect.objectContaining({
+      type: 'lifecycle:completed', usage: { provider: 'integrator', model: 'integrator-model', inputTokens: 11, outputTokens: 7 },
+    }));
+    expect(await ledgerService.getAvailableBalanceCents('tenant_usage_only')).toBe(before);
+    expect(await ledgerService.getUsageEvents('tenant_usage_only')).toEqual([]);
+  });
+
   it.each(['anthropic', 'openai'] as const)(
     '%s percorre Agent Core, pesquisa, matter, auditoria e billing sem duplicidade',
     async (providerName) => {
@@ -263,7 +305,8 @@ describe('Provider parity: integração comercial ForgeLex', () => {
       await runPersistenceMigrations(client);
       const ledgerService = new LedgerService(connection.db, client);
       await ledgerService.runMigrations();
-      await ledgerService.provisionAccount('tenant_provider_parity', {
+      const tenantId = `tenant_provider_parity_${providerName}`;
+      await ledgerService.provisionAccount(tenantId, {
         paidBalanceCents: 3000,
         promotionalBalanceCents: 0,
         promoExpiresAt: null,
@@ -272,7 +315,7 @@ describe('Provider parity: integração comercial ForgeLex', () => {
       const matterRepository = new MatterRepository(connection.db);
       const authorityRepository = new MatterAuthorityRepository(connection.db);
       const matter = await matterRepository.createMatter({
-        tenantId: 'tenant_provider_parity',
+        tenantId,
         createdBy: 'user_provider_parity',
         title: `Pesquisa comercial ${providerName}`,
       });
@@ -303,8 +346,26 @@ describe('Provider parity: integração comercial ForgeLex', () => {
         maxTurns: 3,
       }));
       const firstCompleted = firstEvents.find((event) => event.type === 'tool:completed');
+      const providerCompleted = firstEvents.find((event) => event.type === 'lifecycle:completed');
       expect(firstCompleted?.type).toBe('tool:completed');
       expect(firstEvents.some((event) => event.type === 'lifecycle:completed')).toBe(true);
+      expect(providerCompleted).toMatchObject({
+        type: 'lifecycle:completed',
+        usage: providerName === 'anthropic'
+          ? { provider: 'anthropic', inputTokens: 11, outputTokens: 7 }
+          : { provider: 'openai', inputTokens: 11, outputTokens: 7 },
+      });
+      expect(await ledgerService.getAvailableBalanceCents(matter.tenantId)).toBe(2980);
+      const legalUsageEvents = (await ledgerService.getUsageEvents(matter.tenantId))
+        .filter((event) => event.requestId === idempotencyKey);
+      expect(legalUsageEvents).toHaveLength(1);
+      expect(legalUsageEvents[0]).toMatchObject({
+        provider: 'forgelex_index',
+        model: null,
+        units: 1,
+        legalCredits: 1,
+        monetaryCostCents: 20,
+      });
       if (!firstCompleted || firstCompleted.type !== 'tool:completed') throw new Error('Tool completion ausente.');
       const searchOutput = firstCompleted.output as { items: Array<Record<string, unknown>>; total: number };
       const authority = searchOutput.items[0];

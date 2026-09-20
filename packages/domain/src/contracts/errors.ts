@@ -8,6 +8,7 @@ export type CanonicalErrorCode =
   | 'TOOL_EXECUTION_FAILED'
   | 'BILLING_ACCOUNT_NOT_PROVISIONED'
   | 'SESSION_CANCELLED'
+  | 'SESSION_RESUME_UNSUPPORTED'
   | 'POLICY_VIOLATION';
 
 export class DomainError extends Error {

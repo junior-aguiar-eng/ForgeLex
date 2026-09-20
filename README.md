@@ -129,6 +129,12 @@ equivale à validação de produção.
   opcionais e não são inicializados pelo runtime comercial. O ForgeLex não
   fornece modelo, não solicita essas chaves e não as inclui na configuração
   operacional de exemplo.
+- `AgentRuntime` usa contrato vendor-neutral e suas sessões de SDK são
+  efêmeras: não se confundem com sessões comerciais persistidas da API ou com
+  conexões MCP. Aprovação, cancelamento, timeout e erro são eventos
+  normalizados; a retomada só é oferecida por provider que a implemente. O uso
+  de tokens permanece metadado do evento de integração e jamais alcança o
+  ledger, cujo provider é sempre a infraestrutura jurídica ForgeLex.
 - A API usa `DATABASE_URL` (ou `FORGELEX_DATABASE_URL`) para inicializar o
   driver PostgreSQL; sem a variável, os testes e o desenvolvimento usam
   SQLite em memória. O ambiente PostgreSQL reproduzível usa `docker compose`;

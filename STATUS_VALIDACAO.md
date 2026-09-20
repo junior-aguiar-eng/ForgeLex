@@ -186,6 +186,42 @@ mantêm no host a seleção de tool, modelo, raciocínio e síntese, vedando
 invenção de autoridade. As três capabilities são de observação e não exigem
 aprovação humana; impacto futuro continua sujeito à política aplicável.
 
+## Fase 5 — Agent Core opcional e paridade de providers
+
+O `AgentRuntime` permanece vendor-neutral e agora expõe retomada somente para
+providers que a suportem; provider sem continuidade falha de forma estruturada
+com `SESSION_RESUME_UNSUPPORTED`. O `FakeAgentProvider` preserva uma ação L4
+pendente, valida o token de aprovação na `SessionStateMachine`, executa a ação
+uma única vez após a retomada e normaliza erro planejado sem expor o detalhe
+sensível. Cancelamento, timeout de tool, limite de turnos, aprovação humana e
+erro de provider continuam cobertos pelos contratos e streams falsos.
+
+Os adapters opcionais OpenAI e Anthropic seguem equivalentes nos eventos
+normalizados e não pertencem ao runtime comercial. A paridade integrou o mesmo
+`research.search_case_law` do Legal Tool Gateway para ambos: o metadado de
+uso externo é emitido em `lifecycle:completed`, mas o ledger registra somente
+a operação jurídica, com `provider: forgelex_index`, uma unidade e R$ 0,20.
+Não há modelo, token, provider externo, custo técnico, preço, margem ou
+conversão no lançamento financeiro. As sessões SDK também não são sessões
+comerciais persistidas da REST API nem conexões MCP.
+
+Validação local da Fase 5 no checkout `main` em `be8a088`:
+
+- `pnpm typecheck`: PASS, build e typecheck dos 15 projetos;
+- `pnpm test`: PASS, 50 arquivos aprovados, 1 condicional ignorado, 233 testes
+  aprovados e 4 condicionais ignorados;
+- `pnpm --filter @forgelex/web build`: PASS, 1.648 módulos;
+- `pnpm --filter @forgelex/api test -- provider-parity.test.ts`: PASS, 2 testes;
+- `pnpm --filter @forgelex/agent-core test`: PASS, 3 arquivos e 6 testes;
+- `pnpm --filter @forgelex/agent-provider-openai test` e
+  `pnpm --filter @forgelex/agent-provider-anthropic test`: PASS, 9 testes em
+  cada adapter;
+- `git diff --check`: PASS.
+
+Não houve credential live, migration remota, deploy, commit ou push. REST,
+MCP, ingestão, busca STJ e billing jurídico continuam operacionais sem carregar
+os adapters opcionais.
+
 ## Estado implementado
 
 - A superfície pública comercial foi removida. `/` entrega somente o painel

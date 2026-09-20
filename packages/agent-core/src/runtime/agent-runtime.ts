@@ -1,7 +1,9 @@
-import { AgentProvider, AgentRunInput } from '../contracts/agent-provider.js';
+import { AgentProvider, AgentRunInput, AgentResumeResult } from '../contracts/agent-provider.js';
 import { AgentEvent } from '../contracts/agent-events.js';
 import { ToolRegistry } from '../registry/tool-registry.js';
 import { PolicyEngine } from '../policy/policy-engine.js';
+import { DomainError } from '@forgelex/domain';
+import { SessionStateMachine } from './session-state-machine.js';
 
 export interface AgentRuntimeOptions {
   provider: AgentProvider;
@@ -44,6 +46,21 @@ export class AgentRuntime {
 
   public async cancel(sessionId: string): Promise<void> {
     await this.provider.cancel(sessionId);
+  }
+
+  public async resume(sessionId: string, approvalToken: string): Promise<AgentResumeResult> {
+    if (!this.provider.resume) {
+      throw new DomainError(
+        'SESSION_RESUME_UNSUPPORTED',
+        `O provider '${this.provider.id}' não suporta retomada de sessão.`
+      );
+    }
+
+    return this.provider.resume(sessionId, approvalToken);
+  }
+
+  public getSessionState(sessionId: string): SessionStateMachine | undefined {
+    return this.provider.getSessionState?.(sessionId);
   }
 
   public getRegistry(): ToolRegistry {
