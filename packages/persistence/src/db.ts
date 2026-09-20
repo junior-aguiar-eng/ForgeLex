@@ -22,6 +22,13 @@ function postgresStatement(statement: string): string {
   return statement.replace(/\?/g, () => `$${++index}`);
 }
 
+export function normalizePostgresConnection(url: string): Readonly<{ url: string; host?: string }> {
+  const parsed = new URL(url);
+  const host = parsed.searchParams.get('host') ?? undefined;
+  if (host) parsed.searchParams.delete('host');
+  return Object.freeze({ url: parsed.toString(), ...(host ? { host } : {}) });
+}
+
 class PostgresTransaction {
   private readonly statements: ExecutableStatement[] = [];
   public constructor(private readonly sql: Sql, private finished = false) {}
@@ -63,7 +70,8 @@ export async function createDatabase(config: DatabaseConfig = {}): Promise<{
   const url = config.url ?? 'file::memory:?cache=shared';
   const isPostgres = config.driver === 'postgres' || url.startsWith('postgres://') || url.startsWith('postgresql://');
   if (isPostgres) {
-    const sql = postgres(url, { max: 10, onnotice: () => undefined });
+    const connection = normalizePostgresConnection(url);
+    const sql = postgres(connection.url, { max: 10, ...(connection.host ? { host: connection.host } : {}), onnotice: () => undefined });
     const db = drizzlePostgres(sql, { schema }) as unknown as ForgeLexDatabase;
     Object.defineProperty(db, '$forgelexDialect', { value: 'postgres', enumerable: false });
     return { db, client: new PostgresClientAdapter(sql) as unknown as Client };

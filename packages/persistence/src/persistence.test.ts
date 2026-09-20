@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createDatabase, ForgeLexDatabase } from './db.js';
+import { createDatabase, ForgeLexDatabase, normalizePostgresConnection } from './db.js';
 import { runPersistenceMigrations } from './migrations/migration-runner.js';
 import { SessionRepository } from './repositories/session-repository.js';
 import { Client } from '@libsql/client';
@@ -11,6 +11,13 @@ describe('Persistence Layer (Drizzle ORM + LibSQL / SQLite)', () => {
   let db: ForgeLexDatabase;
   let client: Client;
   let repository: SessionRepository;
+
+  it('normaliza socket Unix do Cloud SQL sem enviá-lo como parâmetro de sessão', () => {
+    expect(normalizePostgresConnection('postgresql://user:secret@localhost/forgelex?host=%2Fcloudsql%2Fproject%3Aregion%3Ainstance')).toEqual({
+      url: 'postgresql://user:secret@localhost/forgelex',
+      host: '/cloudsql/project:region:instance',
+    });
+  });
 
   beforeEach(async () => {
     const connection = await createDatabase({ url: 'file::memory:?cache=shared' });
