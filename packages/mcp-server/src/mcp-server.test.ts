@@ -191,6 +191,28 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(response.error?.code).toBe(-32601);
   });
 
+  it('executa a cadeia verificável pesquisa, obtenção e verificação sem modelo ForgeLex', async () => {
+    const search = await handler.handleRequest({
+      jsonrpc: '2.0', id: 'chain-search', method: 'tools/call',
+      params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados', court: 'STJ' } },
+    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'chain-search-001' });
+    const candidate = JSON.parse(search.result.content[0].text).data.items[0];
+    const authorityInput = { court: candidate.court, processNumber: candidate.processNumber, judgmentDate: candidate.judgmentDate };
+    const get = await handler.handleRequest({
+      jsonrpc: '2.0', id: 'chain-get', method: 'tools/call',
+      params: { name: 'research.get_authority', arguments: authorityInput },
+    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'chain-get-001' });
+    const verify = await handler.handleRequest({
+      jsonrpc: '2.0', id: 'chain-verify', method: 'tools/call',
+      params: { name: 'research.verify_authority', arguments: authorityInput },
+    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'chain-verify-001' });
+
+    expect(search.result.billing).toMatchObject({ mode: 'METERED', chargedCents: 20 });
+    expect(get.result.billing).toMatchObject({ mode: 'FREE', chargedCents: 0 });
+    expect(verify.result.billing).toMatchObject({ mode: 'FREE', chargedCents: 0 });
+    expect(JSON.parse(verify.result.content[0].text).data.authority.provenance).toBeDefined();
+  });
+
   it('propaga cancelamento do host sem criar uso financeiro', async () => {
     const controller = new AbortController();
     controller.abort();

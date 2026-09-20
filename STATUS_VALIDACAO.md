@@ -166,6 +166,26 @@ STJ foi iniciado; não houve Agent Core como requisito comercial, provider de
 modelo, chave OpenAI/Anthropic ou cobrança por token. A Fase 4 não foi
 iniciada.
 
+## Fase 4 — primeiro fluxo agêntico verificável pelo MCP
+
+O fluxo verificável foi exercitado por host externo simulado sem modelo, runtime
+de agente, chave OpenAI/Anthropic ou billing de tokens no ForgeLex:
+`research.search_case_law` no STJ, seguida de `research.get_authority` e
+`research.verify_authority` para a autoridade retornada. O MCP devolve somente
+dados estruturados, status e proveniência; a síntese pertence ao host.
+
+A busca concluída custa R$ 0,20; obtenção e verificação são gratuitas. Replay,
+ausência de idempotência, tribunal não habilitado, provider indisponível e
+cancelamento seguem os contratos do gateway sem débito indevido. REST usa o
+mesmo gateway, corpus, proveniência e billing; não há implementação jurídica
+exclusiva do MCP. O MCP rejeita conversa, arquivos e histórico antes de
+executar ou registrar a chamada.
+
+Os prompts e o workflow em `packages/legal-workflows/src/agentic-contracts.ts`
+mantêm no host a seleção de tool, modelo, raciocínio e síntese, vedando
+invenção de autoridade. As três capabilities são de observação e não exigem
+aprovação humana; impacto futuro continua sujeito à política aplicável.
+
 ## Estado implementado
 
 - A superfície pública comercial foi removida. `/` entrega somente o painel
