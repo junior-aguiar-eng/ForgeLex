@@ -1,4 +1,5 @@
 import { EXTERNAL_MCP_TOOL_NAMES } from '@forgelex/mcp-server';
+import { getLegalToolContract } from '@forgelex/legal-tools';
 
 type HttpMethod = 'get' | 'post' | 'put' | 'delete';
 
@@ -133,6 +134,10 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
     operation['x-forgelex-required-scopes'] = route.scopes;
   }
   if (route.toolName) operation['x-forgelex-tool'] = route.toolName;
+  if (route.toolName) {
+    const contract = getLegalToolContract(route.toolName);
+    if (contract) operation['x-forgelex-tool-contract'] = contract;
+  }
   const isBillingRoute = Boolean(route.toolName) || route.path.endsWith('/research-memos');
   if (isBillingRoute) {
     const isMetered = route.toolName === 'research.search_case_law';

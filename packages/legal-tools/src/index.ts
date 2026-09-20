@@ -12,3 +12,4 @@ export * from './strategy/strategy-tools.js';
 export * from './facts-evidence/facts-evidence-service.js';
 export * from './facts-evidence/facts-evidence-tools.js';
 export * from './fixtures/stj-sample-data.js';
+export * from './gateway/legal-tool-gateway.js';

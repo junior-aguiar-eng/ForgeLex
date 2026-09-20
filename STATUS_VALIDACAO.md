@@ -98,6 +98,36 @@ sem novas versões. Isso não declara que o ForgeLex reproduz toda a base intern
 do STJ; declara somente a cobertura do corpus oficial definido nesta fase. A
 Fase 3 deixa de estar bloqueada pelo gate da Fase 1.
 
+## Fase 2 — Legal Tool Gateway e contratos agênticos
+
+O gateway canônico local foi adicionado em
+`packages/legal-tools/src/gateway/legal-tool-gateway.ts`. As capabilities
+`research.search_case_law`, `research.get_authority` e
+`research.verify_authority` passaram a ter contrato `1.0.0` com descrição
+semântica, scopes, schemas Zod, pré-condições, limites, cancelamento,
+classificação de impacto, política de aprovação humana, erros estruturados,
+billing próprio e proveniência do índice ForgeLex/STJ Open Data. Todas são
+operações de observação (`L0_OBSERVATION`), sem aprovação humana; qualquer
+efeito futuro deverá seguir a policy de impacto já existente.
+
+O gateway restringe as três capabilities ao STJ antes da execução. Somente
+`research.search_case_law` é `METERED`, em uma busca STJ por R$ 0,20;
+obtenção e verificação permanecem `FREE`, sem `UsageEvent` ou débito. A
+validação de saída passou a ser obrigatória no `ToolRegistry`.
+
+REST e MCP projetam o mesmo contrato, respectivamente em
+`x-forgelex-tool-contract` e `x-forgelex-contract`; o MCP devolve erros
+estruturados com código e possibilidade de repetição. As instruções e o
+workflow de pesquisa de autoridade estão versionados em
+`packages/legal-workflows/src/agentic-contracts.ts`: exigem pesquisa,
+obtenção e verificação sucessivas e vedam inventar autoridade. O contrato é
+agnóstico de host e declara paridade para ChatGPT/OpenAI, Claude/Anthropic e
+REST. O ForgeLex não recebe chaves desses providers, não hospeda modelo e não
+gera cobrança por tokens.
+
+A Fase 2 está concluída localmente. Nenhuma entrega da Fase 3 foi iniciada;
+não houve migration remota, deploy, push ou commit.
+
 ## Estado implementado
 
 - A superfície pública comercial foi removida. `/` entrega somente o painel
@@ -138,6 +168,7 @@ Fase 3 deixa de estar bloqueada pelo gate da Fase 1.
 
 | Gate | Resultado | Evidência |
 |---|---|---|
+| Fase 2 — gateway, MCP, REST e contratos agênticos | PASS | 48 arquivos de teste aprovados, 222 testes aprovados e 4 condicionais ignorados em `pnpm test` |
 | `pnpm test` | PASS | 45 arquivos aprovados; 215 testes aprovados; 1 arquivo e 4 testes condicionais ignorados |
 | `pnpm typecheck` | PASS | todos os 15 projetos verificaram tipos |
 | `pnpm --filter @forgelex/web build` | PASS | 1.648 módulos; bundle inicial de 408,43 kB |

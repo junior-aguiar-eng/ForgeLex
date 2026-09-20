@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { McpHandler } from './mcp-handler.js';
 import { ToolRegistry } from '@forgelex/agent-core';
-import { searchCaseLawTool, verifyAuthorityTool } from '@forgelex/legal-tools';
+import { searchCaseLawTool, verifyAuthorityTool, createFixtureResearchService, createLegalToolGateway } from '@forgelex/legal-tools';
 import { createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
 import { Client } from '@libsql/client';
@@ -25,8 +25,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     });
 
     const registry = new ToolRegistry();
-    registry.register(searchCaseLawTool);
-    registry.register(verifyAuthorityTool);
+    createLegalToolGateway(createFixtureResearchService()).registerInto(registry);
 
     handler = new McpHandler(registry, ledger);
   });
@@ -59,6 +58,16 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(response.result.tools.length).toBeGreaterThanOrEqual(1);
     expect(response.result.tools[0].name).toBe('research.search_case_law');
     expect(response.result.tools[0].inputSchema.type).toBe('object');
+    expect(response.result.tools[0]['x-forgelex-contract']).toMatchObject({
+      contractVersion: '1.0.0',
+      requiredScopes: ['research:read'],
+      billing: { mode: 'METERED', unit: 'STJ_CASE_LAW_SEARCH', costCents: 20 },
+    });
+    expect(response.result.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      'research.search_case_law',
+      'research.get_authority',
+      'research.verify_authority',
+    ]);
   });
 
   it('deve executar tools/call faturando o ledger e devolvendo resultado de jurisprudência', async () => {
@@ -141,6 +150,33 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
 
     expect(response.error?.code).toBe(-32602);
     expect(response.error?.message).toContain('idempotência');
+  });
+
+  it('devolve erro estruturado para tribunal não habilitado antes de criar uso financeiro', async () => {
+    const before = await new LedgerService(db).getUsageEvents('tenant_mcp_test');
+    const response = await handler.handleRequest({
+      jsonrpc: '2.0', id: 7, method: 'tools/call',
+      params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados', court: 'STF' } },
+    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_unsupported_court_001' });
+
+    expect(response.error).toMatchObject({ code: -32000, data: { code: 'UNSUPPORTED_COURT', retryable: false } });
+    expect(await new LedgerService(db).getUsageEvents('tenant_mcp_test')).toHaveLength(before.length);
+  });
+
+  it('marca indisponibilidade de provider como repetível no erro estruturado', async () => {
+    const registry = new ToolRegistry();
+    registry.register({
+      ...searchCaseLawTool,
+      execute: async () => { throw Object.assign(new Error('Provider indisponível.'), { code: 'SOURCE_PROVIDER_UNAVAILABLE' }); },
+    });
+    const unavailableHandler = new McpHandler(registry, new LedgerService(db));
+
+    const response = await unavailableHandler.handleRequest({
+      jsonrpc: '2.0', id: 8, method: 'tools/call',
+      params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados' } },
+    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_provider_unavailable_001' });
+
+    expect(response.error).toMatchObject({ data: { code: 'SOURCE_PROVIDER_UNAVAILABLE', retryable: true } });
   });
 
   it('deve rejeitar métodos inexistentes com código JSON-RPC -32601', async () => {
