@@ -6,7 +6,7 @@ describe('ForgeLexBillingPolicy', () => {
     expect(getForgeLexBillingPolicy('research.search_case_law')).toEqual({ mode: 'METERED', costCents: 20 });
     expect(getForgeLexBillingPolicy('research.get_authority')).toEqual({ mode: 'FREE' });
     expect(getForgeLexBillingPolicy('research.verify_authority')).toEqual({ mode: 'FREE' });
-    expect(getForgeLexBillingPolicy('research.generate_memo')).toEqual({ mode: 'FREE' });
+    expect(getForgeLexBillingPolicy('workflow.legal_research_memo')).toEqual({ mode: 'FREE' });
   });
 
   it('recusa capability sem política comercial explícita', () => {

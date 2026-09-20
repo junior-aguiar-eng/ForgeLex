@@ -180,6 +180,7 @@ export class McpHandler {
                 tenantId,
                 userId,
                 abortSignal: context.abortSignal ?? new AbortController().signal,
+                source: 'MCP',
               });
             },
           });

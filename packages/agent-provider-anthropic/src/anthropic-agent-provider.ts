@@ -267,6 +267,7 @@ export class AnthropicAgentProvider implements AgentProvider {
               userId: input.userId,
               matterId: input.matterId,
               abortSignal: internalAbortController.signal,
+              source: 'AGENT_CORE',
             });
 
             enqueue({

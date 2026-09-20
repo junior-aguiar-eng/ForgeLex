@@ -1,6 +1,10 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { CaseLaw, CaseLawSchema, SavedAuthority, SavedAuthoritySchema } from '@forgelex/domain';
+type AuthorityVerificationSnapshot = {
+  status: 'VERIFIED_OFFICIAL' | 'VERIFIED_PROVIDER' | 'UNVERIFIED' | 'CONFLICTING_METADATA' | 'NOT_FOUND';
+  providerId?: string; checkedAt: string; authority?: CaseLaw; reason?: string;
+};
 import type { ForgeLexDatabase } from '../db.js';
 import * as schema from '../schema/schema.js';
 import { MatterRepository } from './matter-repository.js';
@@ -85,6 +89,33 @@ export class MatterAuthorityRepository {
       )
       .orderBy(desc(schema.matterAuthorities.savedAt));
     return rows.map((row) => toSavedAuthority(row.matter_authorities));
+  }
+
+  public async recordVerification(input: {
+    tenantId: string; matterId: string; savedAuthorityId: string; createdBy: string; verification: AuthorityVerificationSnapshot;
+  }): Promise<void> {
+    await this.requireMatter(input.tenantId, input.matterId);
+    const authority = (await this.listAuthorities(input.tenantId, input.matterId)).find((item) => item.id === input.savedAuthorityId);
+    if (!authority) throw new Error('MATTER_AUTHORITY_NOT_FOUND');
+    await this.db.insert(schema.matterAuthorityVerifications).values({ id: randomUUID(), tenantId: input.tenantId,
+      matterId: input.matterId, savedAuthorityId: input.savedAuthorityId, status: input.verification.status,
+      checkedAt: input.verification.checkedAt, providerId: input.verification.providerId ?? null,
+      reason: input.verification.reason ?? null,
+      authoritySnapshotJson: input.verification.authority ? JSON.stringify(input.verification.authority) : null,
+      createdBy: input.createdBy, createdAt: new Date().toISOString() });
+  }
+
+  public async listVerifications(tenantId: string, matterId: string, savedAuthorityId: string): Promise<Array<{
+    id: string; status: AuthorityVerificationSnapshot['status']; checkedAt: string; providerId?: string;
+    reason?: string; authoritySnapshot?: CaseLaw;
+  }>> {
+    const rows = await this.db.select().from(schema.matterAuthorityVerifications).where(and(
+      eq(schema.matterAuthorityVerifications.tenantId, tenantId), eq(schema.matterAuthorityVerifications.matterId, matterId),
+      eq(schema.matterAuthorityVerifications.savedAuthorityId, savedAuthorityId),
+    )).orderBy(schema.matterAuthorityVerifications.createdAt);
+    return rows.map((row) => ({ id: row.id, status: row.status as AuthorityVerificationSnapshot['status'], checkedAt: row.checkedAt,
+      providerId: row.providerId ?? undefined, reason: row.reason ?? undefined,
+      authoritySnapshot: row.authoritySnapshotJson ? CaseLawSchema.parse(JSON.parse(row.authoritySnapshotJson)) : undefined }));
   }
 
   private async findByDedupeKey(

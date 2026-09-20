@@ -156,7 +156,7 @@ capability próprios homologados.
 
 O billing da fase é fechado por capability: `research.search_case_law` custa
 R$ 0,20 por execução válida; `research.get_authority`,
-`research.verify_authority` e `research.generate_memo` permanecem sem preço e
+`research.verify_authority` e `workflow.legal_research_memo` permanecem sem preço e
 sem débito financeiro. Essas operações gratuitas exigem `Idempotency-Key` para
 rastreabilidade, mas não geram replay financeiro, `DEBIT`, `UsageEvent`
 financeiro ou webhook de billing.

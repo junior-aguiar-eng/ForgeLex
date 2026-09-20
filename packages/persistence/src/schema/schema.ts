@@ -517,6 +517,47 @@ export const researchMemos = sqliteTable(
   ],
 );
 
+export const matterAuthorityVerifications = sqliteTable(
+  'matter_authority_verifications',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').notNull().references(() => matters.id),
+    savedAuthorityId: text('saved_authority_id').notNull().references(() => matterAuthorities.id),
+    status: text('status').notNull(),
+    checkedAt: text('checked_at').notNull(),
+    providerId: text('provider_id'),
+    reason: text('reason'),
+    authoritySnapshotJson: text('authority_snapshot_json'),
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [index('matter_authority_verifications_history_idx').on(table.tenantId, table.matterId, table.savedAuthorityId, table.createdAt)],
+);
+
+export const workflowCheckpoints = sqliteTable(
+  'workflow_checkpoints',
+  {
+    id: text('id').primaryKey(),
+    executionId: text('execution_id').notNull(),
+    tenantId: text('tenant_id').notNull(),
+    matterId: text('matter_id').references(() => matters.id),
+    workflowId: text('workflow_id').notNull(),
+    workflowVersion: text('workflow_version').notNull(),
+    source: text('source').notNull().default('INTERNAL'),
+    idempotencyKey: text('idempotency_key'),
+    stepId: text('step_id').notNull(),
+    stepIndex: integer('step_index').notNull(),
+    status: text('status').notNull(),
+    stateJson: text('state_json').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    index('workflow_checkpoints_execution_tenant_idx').on(table.executionId, table.tenantId, table.createdAt),
+    index('workflow_checkpoints_tenant_matter_idx').on(table.tenantId, table.matterId, table.createdAt),
+  ],
+);
+
 export const legalTheses = sqliteTable(
   'legal_theses',
   {

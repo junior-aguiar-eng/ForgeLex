@@ -222,6 +222,43 @@ Não houve credential live, migration remota, deploy, commit ou push. REST,
 MCP, ingestão, busca STJ e billing jurídico continuam operacionais sem carregar
 os adapters opcionais.
 
+## Fase 6 — Workflows jurídicos e integração com matters
+
+O `legal-research-memo` foi consolidado na capability canônica
+`workflow.legal_research_memo`, versão `3.0.0`. A definição publica schemas de
+entrada e saída, capabilities jurídicas permitidas, limite de resultados,
+tribunal habilitado, steps ordenados e política explícita de revisão humana.
+Não existe uma segunda implementação do memo na rota REST: REST, MCP e Agent
+Core executam a mesma tool registrada no `ToolRegistry`.
+
+O executor valida tenant, matter, questões jurídicas e idempotência antes da
+execução. Ele compõe intake, issues, busca no índice ForgeLex, verificação,
+síntese, checagem adversarial, persistência do memo e revisão humana pendente.
+Falha do índice registra checkpoint de falha e não cria memo. Replay devolve o
+mesmo registro; reutilização da chave com parâmetros diferentes falha com
+`IDEMPOTENCY_CONFLICT`.
+
+Checkpoints são persistidos por execução, tenant, matter, workflow/versão e
+step. Authorities usadas no memo são salvas como snapshots, e cada verificação
+é acrescentada ao histórico em registro próprio. Revalidação conflitante não
+sobrescreve a authority histórica nem o memo já persistido. A decisão humana
+continua sendo a única transição de `PENDING_HUMAN_REVIEW` para `APPROVED` ou
+`REJECTED`.
+
+Validação local da Fase 6 no checkout `main` sobre `1a6f4e1`:
+
+- `pnpm typecheck`: PASS, build e typecheck dos 15 projetos;
+- `pnpm test`: PASS, 50 arquivos aprovados, 1 condicional ignorado, 233 testes
+  aprovados e 4 condicionais ignorados;
+- `pnpm --filter @forgelex/web build`: PASS, 1.648 módulos;
+- testes focados de persistence, legal-workflows, billing-ledger, MCP,
+  Agent Core e API: PASS;
+- `git diff --check`: PASS.
+
+Não houve migration remota, deploy, commit ou push. O workflow não fornece
+modelo, não cobra tokens e permanece gratuito; a política comercial da busca
+jurisprudencial continua isolada em `research.search_case_law`.
+
 ## Estado implementado
 
 - A superfície pública comercial foi removida. `/` entrega somente o painel

@@ -18,7 +18,7 @@ const FORGELEX_BILLING_POLICIES: Readonly<Record<string, ForgeLexBillingPolicy>>
   'research.search_case_law': { mode: 'METERED', costCents: JURISPRUDENCE_SEARCH_COST_CENTS },
   'research.get_authority': { mode: 'FREE' },
   'research.verify_authority': { mode: 'FREE' },
-  'research.generate_memo': { mode: 'FREE' },
+  'workflow.legal_research_memo': { mode: 'FREE' },
 };
 
 export function getForgeLexBillingPolicy(capability: string): ForgeLexBillingPolicy {

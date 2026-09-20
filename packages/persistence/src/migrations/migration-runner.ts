@@ -942,6 +942,51 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `ALTER TABLE jurisprudence_document_versions ADD COLUMN publication_status TEXT NOT NULL DEFAULT 'LEGACY_COMPATIBILITY';`,
     ],
   },
+  {
+    id: 'persistence-0020-workflow-checkpoints',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS workflow_checkpoints (
+          id TEXT PRIMARY KEY,
+          execution_id TEXT NOT NULL,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT REFERENCES matters(id),
+          workflow_id TEXT NOT NULL,
+          workflow_version TEXT NOT NULL,
+          source TEXT NOT NULL DEFAULT 'INTERNAL',
+          idempotency_key TEXT,
+          step_id TEXT NOT NULL,
+          step_index INTEGER NOT NULL,
+          status TEXT NOT NULL,
+          state_json TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS workflow_checkpoints_execution_tenant_idx ON workflow_checkpoints (execution_id, tenant_id, created_at);`,
+      `CREATE INDEX IF NOT EXISTS workflow_checkpoints_tenant_matter_idx ON workflow_checkpoints (tenant_id, matter_id, created_at);`,
+    ],
+  },
+  {
+    id: 'persistence-0021-authority-verification-history',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS matter_authority_verifications (
+          id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          matter_id TEXT NOT NULL REFERENCES matters(id),
+          saved_authority_id TEXT NOT NULL REFERENCES matter_authorities(id),
+          status TEXT NOT NULL,
+          checked_at TEXT NOT NULL,
+          provider_id TEXT,
+          reason TEXT,
+          authority_snapshot_json TEXT,
+          created_by TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS matter_authority_verifications_history_idx ON matter_authority_verifications (tenant_id, matter_id, saved_authority_id, created_at);`,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

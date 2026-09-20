@@ -25,6 +25,7 @@ import {
   MatterAuthorityRepository,
   LegalIssueRepository,
   ResearchMemoRepository,
+  PersistentWorkflowCheckpointStore,
   LegalThesisRepository,
   ApiKeyRepository,
   JurisprudenceRepository,
@@ -57,7 +58,7 @@ import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
 import { WebhookRepository } from '@forgelex/persistence';
 import { WebhookService } from './distribution/webhook-service.js';
 import type { Client } from '@forgelex/persistence';
-import { caseLawToLegalAuthority, compileLegalResearchMemo } from '@forgelex/legal-workflows';
+import { createLegalResearchMemoTool, LegalResearchMemoExecutionService } from '@forgelex/legal-workflows';
 import { RequestMetrics, structuredLog } from './observability.js';
 import { BillingOperationsService, type PaymentProvider } from './billing/billing-operations.js';
 import { MercadoPagoPaymentProvider } from './billing/mercado-pago-payment-provider.js';
@@ -237,6 +238,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     });
     return execution as { data: LegalGatewayToolOutput<TName> };
   };
+  const legalResearchMemoExecutionService = database && matterRepository && legalIssueRepository && researchMemoRepository
+    ? new LegalResearchMemoExecutionService({
+        matterRepository,
+        legalIssueRepository,
+        researchMemoRepository,
+        matterAuthorityRepository: matterAuthorityRepository!,
+        checkpointStore: new PersistentWorkflowCheckpointStore(database),
+        toolRegistry,
+      })
+    : undefined;
+  if (legalResearchMemoExecutionService) toolRegistry.register(createLegalResearchMemoTool(legalResearchMemoExecutionService));
   if (strategyService) {
     const strategyTools = createStrategyTools(strategyService);
     toolRegistry.register(strategyTools.identifyIssuesTool);
@@ -1750,87 +1762,19 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return { error: 'LEGAL_ISSUE_NOT_FOUND', message: 'Uma ou mais questões jurídicas não pertencem ao matter autenticado.' };
       }
 
-      const existing = await researchMemoRepository.getByIdempotencyKey(
-        req.principal.tenantId,
-        matterId,
-        idempotencyKey,
-      );
-      if (existing) {
-        setBillingHeaders(reply, {
-          billingMode: 'FREE',
-          chargedCents: 0,
-          remainingBalanceCents: await ledgerService.getAvailableBalanceCents(req.principal.tenantId),
-          isReplay: false,
-        });
-        const factsResult = await factsEvidenceService.listFacts({
-          tenantId: req.principal.tenantId,
-          userId: req.principal.userId,
-          matterId,
-        });
-        return {
-          memo: existing.memo,
-          record: existing,
-          issues: selectedIssues,
-          context: {
-            documentCount: (await matterRepository.listDocuments(req.principal.tenantId, matterId)).length,
-            factCount: factsResult.items.length,
-            evidenceCount: (await factsEvidenceService.listEvidence({ tenantId: req.principal.tenantId, userId: req.principal.userId, matterId })).length,
-            coverage: factsResult.coverage,
-          },
-          research: { query, court, total: existing.memo.applicableAuthorities.length },
-          billed: false,
-          idempotentReplay: true,
-        };
-      }
-
       const sessionId = `memo_${idempotencyKey}`;
       const startedAt = Date.now();
+      const requestAbort = createRequestAbortSignal(req.raw);
       try {
-        const execution = await ledgerService.executeOperation({
-          tenantId: req.principal.tenantId,
-          userId: req.principal.userId,
-          idempotencyKey,
-          billing: getForgeLexBillingPolicy('research.generate_memo'),
-          usage: {
-            capability: 'research.generate_memo',
-            toolName: 'research.generate_memo',
-            provider: researchBillingProvider,
-            requestId: idempotencyKey,
-            sessionId,
-            userId: req.principal.userId,
-          },
-          operation: async () => researchService.searchCaseLaw({ query, court, limit }),
+        if (!legalResearchMemoExecutionService) throw new Error('WORKFLOW_UNAVAILABLE');
+        const workflow = await legalResearchMemoExecutionService.execute({ matterId, query, court: 'STJ', limit,
+          issueIds: selectedIssues.map((issue) => issue.id), idempotencyKey }, {
+          tenantId: req.principal.tenantId, userId: req.principal.userId, sessionId,
+          abortSignal: requestAbort.signal, source: 'REST',
         });
-        setBillingHeaders(reply, execution);
-
-        const authorities = execution.data.items.map(caseLawToLegalAuthority);
-        const memo = compileLegalResearchMemo({
-          query,
-          matterId,
-          authorities,
-          issues: selectedIssues.map((issue) => issue.statement),
-        });
-        let record;
-        try {
-          record = await researchMemoRepository.createMemo({
-            tenantId: req.principal.tenantId,
-            matterId,
-            query,
-            issueIds: selectedIssues.map((issue) => issue.id),
-            memo,
-            workflowVersion: '2.0.0',
-            idempotencyKey,
-            createdBy: req.principal.userId,
-          });
-        } catch (error) {
-          const concurrentRecord = await researchMemoRepository.getByIdempotencyKey(
-            req.principal.tenantId,
-            matterId,
-            idempotencyKey,
-          );
-          if (!concurrentRecord) throw error;
-          record = concurrentRecord;
-        }
+        setBillingHeaders(reply, { billingMode: 'FREE', chargedCents: 0,
+          remainingBalanceCents: await ledgerService.getAvailableBalanceCents(req.principal.tenantId),
+          isReplay: workflow.idempotentReplay });
 
         const factsResult = await factsEvidenceService.listFacts({
           tenantId: req.principal.tenantId,
@@ -1842,7 +1786,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           userId: req.principal.userId,
           matterId,
         });
-        if (!execution.isReplay) {
+        if (!workflow.idempotentReplay) {
           await recordAudit({
             sessionId,
             tenantId: req.principal.tenantId,
@@ -1851,11 +1795,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             durationMs: Date.now() - startedAt,
             status: 'SUCCESS',
             payload: {
-              memoId: record.id,
+              memoId: workflow.record.id,
               matterId,
               query,
               issueCount: selectedIssues.length,
-              authorityCount: authorities.length,
+              authorityCount: workflow.record.memo.applicableAuthorities.length,
               documentCount: (await matterRepository.listDocuments(req.principal.tenantId, matterId)).length,
               factCount: factsResult.items.length,
               evidenceCount: evidence.length,
@@ -1863,8 +1807,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           });
         }
         return {
-          memo: record.memo,
-          record,
+          workflowId: workflow.workflowId,
+          workflowVersion: workflow.workflowVersion,
+          executionId: workflow.executionId,
+          executionSource: workflow.source,
+          memo: workflow.record.memo,
+          record: workflow.record,
           issues: selectedIssues,
           context: {
             documentCount: (await matterRepository.listDocuments(req.principal.tenantId, matterId)).length,
@@ -1872,15 +1820,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             evidenceCount: evidence.length,
             coverage: factsResult.coverage,
           },
-          research: { query, court, total: execution.data.total },
-          billed: execution.billingMode === 'METERED' && !execution.isReplay,
-          idempotentReplay: false,
+          research: workflow.research,
+          billed: false,
+          idempotentReplay: workflow.idempotentReplay,
         };
       } catch (error) {
         const details = error as { code?: unknown; details?: unknown; message?: unknown };
         const code = typeof details.code === 'string' ? details.code : '';
         const message = typeof details.message === 'string' ? details.message : 'Não foi possível gerar o research memo.';
-        const sourceFailure = code.startsWith('SOURCE_PROVIDER_');
+        const sourceFailure = code.startsWith('SOURCE_PROVIDER_') || code === 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE';
+        const idempotencyConflict = code === 'IDEMPOTENCY_CONFLICT' || message.startsWith('IDEMPOTENCY_CONFLICT');
         await recordAudit({
           sessionId,
           tenantId: req.principal.tenantId,
@@ -1890,12 +1839,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           status: 'FAILED',
           payload: { matterId, query, issueCount: selectedIssues.length, error: message },
         });
-        reply.status(sourceFailure ? 503 : 402);
+        reply.status(sourceFailure ? 503 : idempotencyConflict ? 409 : 400);
         return {
-          error: sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
+          error: sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : idempotencyConflict ? 'IDEMPOTENCY_CONFLICT' : 'WORKFLOW_EXECUTION_FAILED',
           message,
           details: details.details,
         };
+      } finally {
+        requestAbort.dispose();
       }
     },
   );

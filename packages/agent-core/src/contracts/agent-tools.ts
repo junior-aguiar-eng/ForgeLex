@@ -7,6 +7,7 @@ export interface ToolExecutionContext {
   userId: string;
   matterId?: string;
   abortSignal: AbortSignal;
+  source?: 'REST' | 'MCP' | 'AGENT_CORE';
 }
 
 export interface ToolExecutionResult<TOutput = unknown> {

@@ -378,6 +378,21 @@ describe('Persistence Layer (Drizzle ORM + LibSQL / SQLite)', () => {
     expect(replay).toMatchObject({ created: false, record: { id: first.record.id } });
     expect(await authorityRepository.listAuthorities('tenant_a', matter.id)).toHaveLength(1);
     expect(await authorityRepository.listAuthorities('tenant_b', matter.id)).toEqual([]);
+    await authorityRepository.recordVerification({ tenantId: 'tenant_a', matterId: matter.id,
+      savedAuthorityId: first.record.id, createdBy: 'user_a', verification: {
+        status: 'VERIFIED_OFFICIAL', checkedAt: '2026-09-16T00:00:00.000Z', authority,
+      } });
+    await authorityRepository.recordVerification({ tenantId: 'tenant_a', matterId: matter.id,
+      savedAuthorityId: first.record.id, createdBy: 'user_a', verification: {
+        status: 'CONFLICTING_METADATA', checkedAt: '2026-09-20T00:00:00.000Z',
+        reason: 'Data divergente', authority: { ...authority, judgmentDate: '2023-04-19' },
+      } });
+    expect(await authorityRepository.listVerifications('tenant_a', matter.id, first.record.id)).toMatchObject([
+      { status: 'VERIFIED_OFFICIAL', authoritySnapshot: { judgmentDate: '2023-04-18' } },
+      { status: 'CONFLICTING_METADATA', authoritySnapshot: { judgmentDate: '2023-04-19' } },
+    ]);
+    expect((await authorityRepository.listAuthorities('tenant_a', matter.id))[0].authority.judgmentDate).toBe('2023-04-18');
+    expect(await authorityRepository.listVerifications('tenant_b', matter.id, first.record.id)).toEqual([]);
     await expect(
       authorityRepository.saveAuthority({
         tenantId: 'tenant_b',

@@ -1122,12 +1122,15 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
         limit: 5,
       },
     });
-    expect(memoResponse.statusCode).toBe(200);
+    expect(memoResponse.statusCode, memoResponse.body).toBe(200);
     expect(memoResponse.headers['x-forgelex-billing-mode']).toBe('FREE');
     expect(memoResponse.headers['x-credits-charged']).toBe('0');
     expect(memoResponse.headers['x-billable-units']).toBeUndefined();
     const generated = JSON.parse(memoResponse.body);
     expect(generated).toMatchObject({
+      workflowId: 'legal-research-memo',
+      workflowVersion: '3.0.0',
+      executionSource: 'REST',
       billed: false,
       idempotentReplay: false,
       record: { matterId: matter.id, status: 'PENDING_HUMAN_REVIEW', issueIds: [issue.id] },
@@ -1145,8 +1148,32 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     });
     expect(replayResponse.statusCode).toBe(200);
     expect(replayResponse.headers['x-forgelex-billing-mode']).toBe('FREE');
-    expect(replayResponse.headers['x-idempotent-replay']).toBe('false');
+    expect(replayResponse.headers['x-idempotent-replay']).toBe('true');
     expect(JSON.parse(replayResponse.body)).toMatchObject({ billed: false, idempotentReplay: true, record: { id: generated.record.id } });
+
+    const conflictingReplay = await app.inject({
+      method: 'POST', url: `/api/v2/matters/${matter.id}/research-memos`,
+      headers: { ...authHeaders, 'idempotency-key': idempotencyKey },
+      payload: { query: 'consulta materialmente diferente', issueIds: [issue.id], court: 'STJ', limit: 5 },
+    });
+    expect(conflictingReplay.statusCode).toBe(409);
+    expect(JSON.parse(conflictingReplay.body)).toMatchObject({ error: 'IDEMPOTENCY_CONFLICT' });
+
+    const mcpReplayResponse = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { ...authHeaders, 'idempotency-key': 'mcp-workflow-replay-1' },
+      payload: {
+        jsonrpc: '2.0', id: 'memo-replay', method: 'tools/call',
+        params: { name: 'workflow.legal_research_memo', arguments: {
+          matterId: matter.id, query: 'comunicação de incidente e dano moral', issueIds: [issue.id],
+          court: 'STJ', limit: 5, idempotencyKey, source: 'REST',
+        } },
+      },
+    });
+    expect(mcpReplayResponse.statusCode).toBe(200);
+    const mcpWorkflow = JSON.parse(JSON.parse(mcpReplayResponse.body).result.content[0].text).data;
+    expect(mcpWorkflow).toMatchObject({ source: 'MCP', idempotentReplay: true, record: { id: generated.record.id } });
 
     const reviewResponse = await app.inject({
       method: 'POST',
@@ -1158,7 +1185,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(JSON.parse(reviewResponse.body)).toMatchObject({ record: { status: 'APPROVED' }, memo: { verifiedByHuman: true } });
 
     const usage = await ledgerService.getUsageEvents('tenant_test');
-    expect(usage.filter((event) => event.requestId === idempotencyKey && event.capability === 'research.generate_memo')).toHaveLength(0);
+    expect(usage.filter((event) => event.requestId === idempotencyKey)).toHaveLength(0);
     expect((await auditRecorder.getLogsForSession(`memo_${idempotencyKey}`)).map((log) => log.toolName)).toContain('research.memo.generated');
 
     const otherTenantResponse = await app.inject({

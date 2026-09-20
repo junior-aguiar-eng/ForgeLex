@@ -326,6 +326,7 @@ export class OpenAIAgentProvider implements AgentProvider {
               userId: context.userId,
               matterId: context.matterId,
               abortSignal: internalAbortController.signal,
+              source: 'AGENT_CORE',
             });
 
             enqueue({

@@ -177,6 +177,7 @@ export class FakeAgentProvider implements AgentProvider {
             userId: input.userId,
             matterId: input.matterId,
             abortSignal: sessionAbortController.signal,
+            source: 'AGENT_CORE',
           });
 
           yield {
@@ -242,6 +243,7 @@ export class FakeAgentProvider implements AgentProvider {
         userId: pending.context.userId,
         matterId: pending.context.matterId,
         abortSignal: pending.abortSignal,
+        source: 'AGENT_CORE',
       });
       events.push({
         type: 'tool:completed', sessionId, toolName: pending.toolName, callId: pending.callId,
@@ -286,7 +288,7 @@ export class FakeAgentProvider implements AgentProvider {
         }
         const result = await this.toolRegistry.executeTool(tool.name, step.toolCall.input, {
           sessionId, tenantId: pending.context.tenantId, userId: pending.context.userId,
-          matterId: pending.context.matterId, abortSignal: pending.abortSignal,
+          matterId: pending.context.matterId, abortSignal: pending.abortSignal, source: 'AGENT_CORE',
         });
         events.push({ type: 'tool:completed', sessionId, toolName: tool.name, callId, output: result.data, provenance: result.provenance, durationMs: 0, timestamp: new Date().toISOString() });
       }
