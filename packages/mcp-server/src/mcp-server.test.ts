@@ -95,7 +95,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(parsedData.data.items[0].court).toBe('STJ');
   });
 
-  it('não recebe conversas, arquivos ou histórico do cliente MCP', async () => {
+  it('rejeita conversas, arquivos ou histórico do cliente MCP antes da execução', async () => {
     const privateMarker = 'conteudo-privado-do-host';
     const response = await handler.handleRequest(
       {
@@ -115,6 +115,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
       { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_privacy_001' }
     );
 
+    expect(response.error).toMatchObject({ code: -32602, data: { code: 'PRIVATE_CONTEXT_FORBIDDEN' } });
     expect(JSON.stringify(response)).not.toContain(privateMarker);
   });
 
@@ -188,6 +189,19 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
 
     expect(response.error).toBeDefined();
     expect(response.error?.code).toBe(-32601);
+  });
+
+  it('propaga cancelamento do host sem criar uso financeiro', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const before = await new LedgerService(db).getUsageEvents('tenant_mcp_test');
+    const response = await handler.handleRequest({
+      jsonrpc: '2.0', id: 12, method: 'tools/call',
+      params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados' } },
+    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_cancelled_001', abortSignal: controller.signal });
+
+    expect(response.error).toMatchObject({ data: { code: 'SESSION_CANCELLED', retryable: false } });
+    expect(await new LedgerService(db).getUsageEvents('tenant_mcp_test')).toHaveLength(before.length);
   });
 
   it('deve limitar o pacote MCP externo à allowlist declarada', async () => {

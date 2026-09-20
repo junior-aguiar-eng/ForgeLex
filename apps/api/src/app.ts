@@ -52,6 +52,7 @@ import {
 } from './auth/fastify-auth.js';
 import { ApiKeyService } from './auth/api-key-service.js';
 import { buildOpenApiDocument } from './distribution/openapi.js';
+import { createRequestAbortSignal } from './distribution/request-abort-signal.js';
 import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
 import { WebhookRepository } from '@forgelex/persistence';
 import { WebhookService } from './distribution/webhook-service.js';
@@ -228,11 +229,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const executeLegalGatewayTool = async <TName extends LegalGatewayToolName>(
     toolName: TName,
     input: Record<string, unknown>,
-    context: { sessionId: string; tenantId: string; userId: string },
+    context: { sessionId: string; tenantId: string; userId: string; abortSignal?: AbortSignal },
   ): Promise<{ data: LegalGatewayToolOutput<TName> }> => {
     const execution = await toolRegistry.executeTool(toolName, input, {
       ...context,
-      abortSignal: new AbortController().signal,
+      abortSignal: context.abortSignal ?? new AbortController().signal,
     });
     return execution as { data: LegalGatewayToolOutput<TName> };
   };
@@ -641,6 +642,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     court?: string;
     limit: number;
     idempotencyKey: string;
+    abortSignal?: AbortSignal;
   }) => {
     if (!jurisprudenceSearchService) {
       return persistentResearchDataPlaneUnavailable(input.reply);
@@ -669,7 +671,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         },
         operation: async () => (await executeLegalGatewayTool('research.search_case_law', {
           query: input.query, court, limit: input.limit,
-        }, { sessionId, tenantId: input.principal.tenantId, userId: input.principal.userId })).data,
+        }, { sessionId, tenantId: input.principal.tenantId, userId: input.principal.userId, abortSignal: input.abortSignal })).data,
       });
 
       setBillingHeaders(input.reply, execution);
@@ -919,9 +921,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // 3. OAuth 2.1 Protected Resource Metadata (RFC 9207 / Benchmark Exordial)
   app.get('/.well-known/oauth-protected-resource', async () => {
+    const normalizedUrl = (value: string) => value.trim().replace(/\/$/, '');
+    const authorizationServers = (environment.FORGELEX_OAUTH_AUTHORIZATION_SERVERS ?? 'https://auth.forgelex.ai')
+      .split(',').map(normalizedUrl).filter(Boolean);
     return {
-      resource: 'https://mcp.forgelex.ai',
-      authorization_servers: ['https://auth.forgelex.ai'],
+      resource: normalizedUrl(environment.FORGELEX_MCP_RESOURCE_URL ?? 'https://mcp.forgelex.ai'),
+      authorization_servers: authorizationServers.length > 0 ? authorizationServers : ['https://auth.forgelex.ai'],
       scopes_supported: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write', 'billing:admin'],
       bearer_methods_supported: ['header'],
       resource_documentation: 'https://forgelex.ai/documentacao-api',
@@ -2230,6 +2235,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       if (!idempotencyKey) return missingIdempotencyResponse(reply);
       const sessionId = `rest_${idempotencyKey}`;
       const startedAt = Date.now();
+      const requestAbort = createRequestAbortSignal(req.raw);
 
       try {
         const execution = await ledgerService.executeOperation({
@@ -2247,7 +2253,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           },
           operation: async () => (await executeLegalGatewayTool('research.search_case_law', {
             query: q, court, limit,
-          }, { sessionId, tenantId: req.principal.tenantId, userId: req.principal.userId })).data,
+          }, { sessionId, tenantId: req.principal.tenantId, userId: req.principal.userId, abortSignal: requestAbort.signal })).data,
         });
 
         setBillingHeaders(reply, execution);
@@ -2294,6 +2300,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           message: err.message,
           details: err.details,
         };
+      } finally {
+        requestAbort.dispose();
       }
     }
   );
@@ -2323,14 +2331,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const idempotencyKey = readIdempotencyKey(req.headers);
       if (!idempotencyKey) return missingIdempotencyResponse(reply);
 
-      return runBillableSearchCaseLaw({
-        principal: req.principal,
-        reply,
-        query,
-        court,
-        limit,
-        idempotencyKey,
-      });
+      const requestAbort = createRequestAbortSignal(req.raw);
+      try {
+        return await runBillableSearchCaseLaw({
+          principal: req.principal, reply, query, court, limit, idempotencyKey, abortSignal: requestAbort.signal,
+        });
+      } finally {
+        requestAbort.dispose();
+      }
     },
   );
 
@@ -2359,6 +2367,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const sessionId = `rest_${idempotencyKey}`;
       const startedAt = Date.now();
 
+      const requestAbort = createRequestAbortSignal(req.raw);
       try {
         const execution = await ledgerService.executeOperation({
           tenantId: req.principal.tenantId,
@@ -2375,7 +2384,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           },
           operation: async () => (await executeLegalGatewayTool('research.get_authority', {
             court: searchableCourt, processNumber, judgmentDate,
-          }, { sessionId, tenantId: req.principal.tenantId, userId: req.principal.userId })).data,
+          }, { sessionId, tenantId: req.principal.tenantId, userId: req.principal.userId, abortSignal: requestAbort.signal })).data,
         });
 
         setBillingHeaders(reply, execution);
@@ -2418,6 +2427,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           message,
           details: details.details,
         };
+      } finally {
+        requestAbort.dispose();
       }
     },
   );
@@ -2445,6 +2456,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const sessionId = `rest_${idempotencyKey}`;
       const startedAt = Date.now();
 
+      const requestAbort = createRequestAbortSignal(req.raw);
       try {
         const execution = await ledgerService.executeOperation({
           tenantId: req.principal.tenantId,
@@ -2461,7 +2473,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           },
           operation: async () => (await executeLegalGatewayTool('research.verify_authority', {
             court: searchableCourt, processNumber, judgmentDate: body.judgmentDate,
-          }, { sessionId, tenantId: req.principal.tenantId, userId: req.principal.userId })).data,
+          }, { sessionId, tenantId: req.principal.tenantId, userId: req.principal.userId, abortSignal: requestAbort.signal })).data,
         });
 
         setBillingHeaders(reply, execution);
@@ -2501,6 +2513,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           message: err.message,
           details: err.details,
         };
+      } finally {
+        requestAbort.dispose();
       }
     }
   );
@@ -2512,12 +2526,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     async (req) => {
       const body = req.body as any;
       const idempotencyKey = readIdempotencyKey(req.headers);
-
-      return await mcpHandler.handleRequest(body, {
-        idempotencyKey,
-        tenantId: req.principal.tenantId,
-        userId: req.principal.userId,
-      });
+      const requestAbort = createRequestAbortSignal(req.raw);
+      try {
+        return await mcpHandler.handleRequest(body, {
+          idempotencyKey,
+          tenantId: req.principal.tenantId,
+          userId: req.principal.userId,
+          abortSignal: requestAbort.signal,
+        });
+      } finally {
+        requestAbort.dispose();
+      }
     }
   );
 

@@ -128,6 +128,44 @@ gera cobrança por tokens.
 A Fase 2 está concluída localmente. Nenhuma entrega da Fase 3 foi iniciada;
 não houve migration remota, deploy, push ou commit.
 
+## Fase 3 — API REST e MCP equivalentes
+
+Os adapters REST e MCP continuam encaminhando as três capabilities do
+`LegalToolGateway` ao mesmo `ToolRegistry`, ledger e registro de auditoria. A
+API REST autentica a integração por credencial Bearer/API key; MCP resolve
+tenant e identidade no servidor. Ambos exigem `Idempotency-Key` para as
+operações jurídicas e só `research.search_case_law` é faturável, por R$ 0,20.
+Rejeições de tribunal, capability ou entitlement ocorrem antes do ledger.
+
+O OpenAPI passou a referenciar schemas concretos para todos os corpos de
+requisição publicados, incluindo pesquisa, authority, tribunal/capability e
+erro estruturado. A documentação registra idempotência, headers comerciais e
+respostas 400, 401, 402, 403, 409, 422 e 503. Os metadados OAuth do recurso
+protegido são derivados de `FORGELEX_MCP_RESOURCE_URL` e
+`FORGELEX_OAUTH_AUTHORIZATION_SERVERS`, preservando defaults locais seguros.
+
+O cancelamento HTTP é propagado como `AbortSignal` ao MCP e às três tools
+REST; o `ToolRegistry` rejeita sinal já cancelado com `SESSION_CANCELLED` antes
+da execução e sem criar uso financeiro. O MCP permanece limitado às três tools
+jurisprudenciais, recebe apenas argumentos declarados e não recebe conversa,
+arquivos ou histórico de ChatGPT/OpenAI, Claude/Anthropic ou outro host. Esses
+hosts fornecem modelo, raciocínio e contexto; ForgeLex fornece somente tools,
+dados, proveniência, autorização e billing da operação própria.
+
+Validação local da Fase 3 no checkout `main` em `0f895dd`:
+
+- `pnpm typecheck`: PASS, 15 projetos;
+- `pnpm test`: PASS, 49 arquivos aprovados, 1 condicional ignorado, 227 testes
+  aprovados e 4 condicionais ignorados;
+- testes focalizados de OpenAPI, OAuth, cancelamento REST/MCP e registry: PASS,
+  4 arquivos e 49 testes;
+- `git diff --check`: PASS.
+
+Não houve migration remota, deploy, push ou commit. Nenhum tribunal além do
+STJ foi iniciado; não houve Agent Core como requisito comercial, provider de
+modelo, chave OpenAI/Anthropic ou cobrança por token. A Fase 4 não foi
+iniciada.
+
 ## Estado implementado
 
 - A superfície pública comercial foi removida. `/` entrega somente o painel

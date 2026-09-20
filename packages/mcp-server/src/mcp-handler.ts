@@ -50,7 +50,7 @@ export class McpHandler {
 
   public async handleRequest(
     request: JsonRpcRequest,
-    context: { tenantId?: string; userId?: string; idempotencyKey?: string } = {}
+    context: { tenantId?: string; userId?: string; idempotencyKey?: string; abortSignal?: AbortSignal } = {}
   ): Promise<JsonRpcResponse> {
     const id = request.id;
     const tenantId = context.tenantId ?? 'tenant_default_mcp';
@@ -117,6 +117,18 @@ export class McpHandler {
           };
         }
 
+        if (toolArgs && typeof toolArgs === 'object' && ['conversation', 'files', 'history'].some((field) => field in toolArgs)) {
+          return {
+            jsonrpc: '2.0',
+            id,
+            error: {
+              code: -32602,
+              message: 'Invalid params: contexto privado do host não é aceito pelo ForgeLex.',
+              data: { code: 'PRIVATE_CONTEXT_FORBIDDEN', retryable: false },
+            },
+          };
+        }
+
         const tool = this.toolRegistry.get(name);
         if (!tool || !this.isExposed(name)) {
           return {
@@ -163,12 +175,11 @@ export class McpHandler {
               userId,
             },
             operation: async () => {
-              const controller = new AbortController();
               return await this.toolRegistry.executeTool(name, toolArgs ?? {}, {
                 sessionId,
                 tenantId,
                 userId,
-                abortSignal: controller.signal,
+                abortSignal: context.abortSignal ?? new AbortController().signal,
               });
             },
           });

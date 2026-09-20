@@ -37,23 +37,33 @@ export class ToolRegistry {
       });
     }
 
+    if (context.abortSignal.aborted) {
+      throw new DomainError('SESSION_CANCELLED', `Operação cancelada pelo usuário antes de '${name}'.`);
+    }
+
     // 2. Execução com timeout e suporte a cancelamento
     const timeoutMs = tool.timeoutMs ?? 30000;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         reject(new DomainError('TOOL_EXECUTION_FAILED', `Timeout excedido (${timeoutMs}ms) na ferramenta '${name}'.`));
       }, timeoutMs);
 
-      context.abortSignal.addEventListener('abort', () => {
-        clearTimeout(timer);
+      onAbort = () => {
+        if (timer) clearTimeout(timer);
         reject(new DomainError('SESSION_CANCELLED', `Operação cancelada pelo usuário durante '${name}'.`));
-      });
+      };
+      context.abortSignal.addEventListener('abort', onAbort, { once: true });
     });
 
-    const result = await Promise.race([
-      tool.execute(parseResult.data, context),
-      timeoutPromise,
-    ]);
+    let result: ToolExecutionResult;
+    try {
+      result = await Promise.race([tool.execute(parseResult.data, context), timeoutPromise]);
+    } finally {
+      if (timer) clearTimeout(timer);
+      if (onAbort) context.abortSignal.removeEventListener('abort', onAbort);
+    }
     const outputResult = tool.outputSchema.safeParse(result.data);
     if (!outputResult.success) {
       throw new DomainError('INVALID_CANONICAL_STATE', `Falha de validação na saída da ferramenta '${name}'`, {

@@ -197,6 +197,26 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(body.scopes_supported).toContain('research:read');
   });
 
+  it('deriva os metadados OAuth do ambiente de implantação', async () => {
+    const configuredApp = await buildApp({
+      authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
+      environment: {
+        NODE_ENV: 'test',
+        FORGELEX_MCP_RESOURCE_URL: 'https://mcp.staging.example/',
+        FORGELEX_OAUTH_AUTHORIZATION_SERVERS: 'https://auth-a.example/, https://auth-b.example',
+      },
+    });
+    try {
+      const response = await configuredApp.inject({ method: 'GET', url: '/.well-known/oauth-protected-resource' });
+      expect(JSON.parse(response.body)).toMatchObject({
+        resource: 'https://mcp.staging.example',
+        authorization_servers: ['https://auth-a.example', 'https://auth-b.example'],
+      });
+    } finally {
+      await configuredApp.close();
+    }
+  });
+
   it('rotas protegidas devem rejeitar credencial ausente', async () => {
     const response = await app.inject({
       method: 'GET',
@@ -354,6 +374,30 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(body.paths['/api/v2/research/verify-authority'].post.responses['200'].headers['X-Billable-Units']).toBeUndefined();
     expect(body.paths['/api/v2/matters/{matterId}/research-memos'].post.description).toContain('não tem preço próprio');
     expect(body.paths['/api/v2/research/search-case-law'].post.responses['422']).toBeDefined();
+    expect(body.paths['/api/v2/research/search-case-law'].post.responses['402']).toBeDefined();
+    expect(body.paths['/api/v2/research/search-case-law'].post.responses['409']).toBeDefined();
+    expect(body.paths['/api/v2/research/search-case-law'].post.responses['503']).toBeDefined();
+    expect(body.paths['/api/v2/research/search-case-law'].post.requestBody.content['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/SearchCaseLawRequest',
+    });
+    expect(body.components.schemas.SearchCaseLawRequest).toMatchObject({
+      type: 'object', required: ['query'], additionalProperties: false,
+    });
+    expect(body.components.schemas.TribunalCapability).toMatchObject({
+      type: 'object', required: ['code', 'searchable', 'verifiable', 'status', 'providerId'],
+    });
+    expect(body.components.schemas.ErrorResponse).toMatchObject({ type: 'object', required: ['error', 'message'] });
+    expect(body.paths['/api/v2/research/search-case-law'].post.responses['400'].content['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/ErrorResponse',
+    });
+    expect(body.components.schemas.LegalIssueRequest).toMatchObject({ required: ['statement'] });
+    expect(body.components.schemas.MatterDocumentRequest).toMatchObject({ required: ['title', 'originalFilename', 'content'] });
+    for (const path of Object.values(body.paths) as Array<Record<string, any>>) {
+      for (const operation of Object.values(path)) {
+        const schema = operation.requestBody?.content?.['application/json']?.schema;
+        if (schema) expect(schema.$ref).toMatch(/^#\/components\/schemas\//);
+      }
+    }
     expect(body.paths['/api/v2/matters/{matterId}/authorities'].post['x-forgelex-required-scopes']).toEqual(['matter:write']);
     expect(body.paths['/api/v2/matters/{matterId}/research-memos'].post['x-forgelex-required-scopes']).toEqual(['matter:write', 'research:read']);
     expect(body.paths['/mcp'].post['x-forgelex-required-scopes']).toEqual(['mcp']);

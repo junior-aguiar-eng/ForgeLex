@@ -15,7 +15,52 @@ export interface PublicApiRouteDefinition {
   requiresIdempotencyKey?: boolean;
 }
 
-const genericObjectSchema = { type: 'object', additionalProperties: true };
+const OPENAPI_SCHEMAS = {
+  SearchCaseLawRequest: {
+    type: 'object', additionalProperties: false, required: ['query'],
+    properties: { query: { type: 'string', minLength: 2 }, court: { type: 'string', enum: ['STJ'] }, limit: { type: 'integer', minimum: 1, maximum: 20 } },
+  },
+  AuthorityLookupRequest: {
+    type: 'object', additionalProperties: false, required: ['court', 'processNumber'],
+    properties: { court: { type: 'string', enum: ['STJ'] }, processNumber: { type: 'string', minLength: 1 }, judgmentDate: { type: 'string', format: 'date' } },
+  },
+  TribunalCapability: {
+    type: 'object', additionalProperties: false, required: ['code', 'searchable', 'verifiable', 'status', 'providerId'],
+    properties: { code: { type: 'string' }, searchable: { type: 'boolean' }, verifiable: { type: 'boolean' }, status: { type: 'string', enum: ['ONLINE', 'UNAVAILABLE'] }, providerId: { type: ['string', 'null'] } },
+  },
+  ErrorResponse: {
+    type: 'object', additionalProperties: true, required: ['error', 'message'],
+    properties: { error: { type: 'string' }, message: { type: 'string' }, details: { type: 'object' } },
+  },
+  AccountBootstrapRequest: { type: 'object', additionalProperties: false, required: ['displayName'], properties: { displayName: { type: 'string', minLength: 2, maxLength: 120 } } },
+  ApiKeyRequest: { type: 'object', additionalProperties: false, required: ['name'], properties: { name: { type: 'string', minLength: 1 }, scopes: { type: 'array', items: { type: 'string' } } } },
+  BillingCheckoutRequest: { type: 'object', additionalProperties: false, properties: { packageId: { type: 'string' }, amountCents: { type: 'integer', minimum: 2500, maximum: 50000 } } },
+  PaymentMethodSetupRequest: { type: 'object', additionalProperties: false, properties: { returnUrl: { type: 'string', format: 'uri' } } },
+  AutoRechargeRequest: { type: 'object', additionalProperties: false, required: ['enabled'], properties: { enabled: { type: 'boolean' } } },
+  RefundRequest: { type: 'object', additionalProperties: false, required: ['purchaseId'], properties: { purchaseId: { type: 'string' }, reason: { type: 'string' } } },
+  RefundReviewRequest: { type: 'object', additionalProperties: false, required: ['decision'], properties: { decision: { type: 'string', enum: ['APPROVED', 'REJECTED'] }, reason: { type: 'string' } } },
+  WebhookEndpointRequest: { type: 'object', additionalProperties: false, required: ['url', 'eventTypes'], properties: { url: { type: 'string', format: 'uri' }, eventTypes: { type: 'array', minItems: 1, items: { type: 'string' } } } },
+  MatterRequest: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string', minLength: 1 }, practiceArea: { type: 'string' }, jurisdiction: { type: 'string' } } },
+  MatterDocumentRequest: { type: 'object', additionalProperties: false, required: ['title', 'originalFilename', 'content'], properties: { title: { type: 'string' }, originalFilename: { type: 'string' }, mimeType: { type: 'string' }, content: { type: 'string' } } },
+  AuthoritySaveRequest: { type: 'object', additionalProperties: false, required: ['authority'], properties: { authority: { type: 'object' } } },
+  FactRequest: { type: 'object', additionalProperties: false, required: ['statement'], properties: { statement: { type: 'string' }, occurredAt: { type: 'string', format: 'date-time' } } },
+  EvidenceRequest: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string' }, description: { type: 'string' } } },
+  FactSupportRequest: { type: 'object', additionalProperties: false, properties: { evidenceId: { type: 'string' }, anchorId: { type: 'string' } }, minProperties: 1 },
+  TimelineEventRequest: { type: 'object', additionalProperties: false, required: ['title', 'occurredAt'], properties: { title: { type: 'string' }, occurredAt: { type: 'string', format: 'date-time' }, description: { type: 'string' } } },
+  LegalIssueRequest: { type: 'object', additionalProperties: false, required: ['statement'], properties: { statement: { type: 'string' }, status: { type: 'string', enum: ['OPEN', 'ADDRESSED', 'DISMISSED'] } } },
+  ThesisRequest: { type: 'object', additionalProperties: false, required: ['statement'], properties: { statement: { type: 'string' }, issueId: { type: 'string' } } },
+  ResearchMemoRequest: { type: 'object', additionalProperties: false, properties: { title: { type: 'string' }, query: { type: 'string' } } },
+  ResearchMemoReviewRequest: { type: 'object', additionalProperties: false, required: ['decision'], properties: { decision: { type: 'string', enum: ['APPROVED', 'REJECTED'] }, notes: { type: 'string' } } },
+  DraftRequest: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string' }, content: { type: 'string' } } },
+  DraftVersionRequest: { type: 'object', additionalProperties: false, required: ['content'], properties: { content: { type: 'string' } } },
+  DraftReviewRequest: { type: 'object', additionalProperties: false, required: ['mode'], properties: { mode: { type: 'string' } } },
+  DraftApprovalRequest: { type: 'object', additionalProperties: false, required: ['versionId'], properties: { versionId: { type: 'string' } } },
+  DraftApprovalResolutionRequest: { type: 'object', additionalProperties: false, required: ['token', 'decision'], properties: { token: { type: 'string' }, decision: { type: 'string', enum: ['APPROVED', 'REJECTED'] }, reason: { type: 'string' } } },
+} as const;
+
+const OBJECT_REQUEST_SCHEMA_BY_PATH: Readonly<Record<string, keyof typeof OPENAPI_SCHEMAS>> = {
+  '/api/v2/billing/checkout': 'BillingCheckoutRequest', '/api/v2/billing/payment-methods/setup': 'PaymentMethodSetupRequest', '/api/v2/billing/auto-recharge': 'AutoRechargeRequest', '/api/v2/billing/refund-requests': 'RefundRequest', '/api/v2/admin/billing/refund-requests/{requestId}/review': 'RefundReviewRequest', '/api/v2/webhooks/endpoints': 'WebhookEndpointRequest', '/api/v2/matters': 'MatterRequest', '/api/v2/matters/{matterId}/documents': 'MatterDocumentRequest', '/api/v2/matters/{matterId}/authorities': 'AuthoritySaveRequest', '/api/v2/matters/{matterId}/facts': 'FactRequest', '/api/v2/matters/{matterId}/evidence': 'EvidenceRequest', '/api/v2/matters/{matterId}/facts/{factId}/support': 'FactSupportRequest', '/api/v2/matters/{matterId}/timeline': 'TimelineEventRequest', '/api/v2/matters/{matterId}/issues': 'LegalIssueRequest', '/api/v2/matters/{matterId}/theses': 'ThesisRequest', '/api/v2/matters/{matterId}/research-memos': 'ResearchMemoRequest', '/api/v2/matters/{matterId}/research-memos/{memoId}/review': 'ResearchMemoReviewRequest', '/api/v2/matters/{matterId}/drafts': 'DraftRequest', '/api/v2/matters/{matterId}/drafts/{draftId}/versions': 'DraftVersionRequest', '/api/v2/matters/{matterId}/drafts/{draftId}/review': 'DraftReviewRequest', '/api/v2/matters/{matterId}/drafts/{draftId}/approval': 'DraftApprovalRequest', '/api/v2/draft-approvals/resolve': 'DraftApprovalResolutionRequest',
+};
 
 export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/health', summary: 'Healthcheck', description: 'Verifica a disponibilidade do serviço.' },
@@ -170,15 +215,31 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
   }
   if (route.requestBody) {
     const schema = route.requestBody === 'search-case-law'
-      ? { type: 'object', required: ['query'], properties: { query: { type: 'string', minLength: 2 }, court: { type: 'string', description: 'Tribunal habilitado. Nesta fase, somente STJ.' }, limit: { type: 'integer', minimum: 1, maximum: 20 } } }
+      ? { $ref: '#/components/schemas/SearchCaseLawRequest' }
       : route.requestBody === 'verify-authority'
-        ? { type: 'object', required: ['court', 'processNumber'], properties: { court: { type: 'string' }, processNumber: { type: 'string' }, judgmentDate: { type: 'string' } } }
+        ? { $ref: '#/components/schemas/AuthorityLookupRequest' }
         : route.requestBody === 'api-key'
-          ? { type: 'object', required: ['name'], properties: { name: { type: 'string', minLength: 1 }, scopes: { type: 'array', items: { type: 'string' } } } }
+          ? { $ref: '#/components/schemas/ApiKeyRequest' }
           : route.requestBody === 'account-bootstrap'
-            ? { type: 'object', required: ['displayName'], properties: { displayName: { type: 'string', minLength: 2, maxLength: 120 } } }
-          : genericObjectSchema;
+            ? { $ref: '#/components/schemas/AccountBootstrapRequest' }
+          : { $ref: `#/components/schemas/${OBJECT_REQUEST_SCHEMA_BY_PATH[route.path]}` };
     operation.requestBody = { required: true, content: { 'application/json': { schema } } };
+  }
+  if (route.requiresAuthentication || (route.scopes && route.scopes.length > 0)) {
+    Object.assign(operation.responses as Record<string, unknown>, {
+      '402': { description: 'Saldo de créditos insuficiente para a operação faturável.' },
+      '409': { description: 'Conflito de idempotência ou estado do recurso.' },
+      '503': { description: 'Infraestrutura jurisprudencial ou provider indisponível.' },
+    });
+  }
+  for (const status of ['400', '401', '402', '403', '409', '422', '503']) {
+    const responses = operation.responses as Record<string, Record<string, unknown>>;
+    if (responses[status]) {
+      responses[status] = {
+        ...responses[status],
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+      };
+    }
   }
   return operation;
 }
@@ -201,6 +262,7 @@ export function buildOpenApiDocument(serverUrl = 'http://localhost:3001'): Recor
     tags: [{ name: 'Research' }, { name: 'Matters' }, { name: 'Drafts' }, { name: 'Distribution' }, { name: 'MCP' }],
     paths,
     components: {
+      schemas: OPENAPI_SCHEMAS,
       securitySchemes: {
         BearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'API key or OAuth access token' },
       },
