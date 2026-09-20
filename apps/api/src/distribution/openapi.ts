@@ -13,6 +13,7 @@ export interface PublicApiRouteDefinition {
   toolName?: string;
   requestBody?: 'object' | 'search-case-law' | 'verify-authority' | 'api-key' | 'account-bootstrap';
   requiresIdempotencyKey?: boolean;
+  responseSchema?: keyof typeof OPENAPI_SCHEMAS;
 }
 
 const OPENAPI_SCHEMAS = {
@@ -56,6 +57,24 @@ const OPENAPI_SCHEMAS = {
   DraftReviewRequest: { type: 'object', additionalProperties: false, required: ['mode'], properties: { mode: { type: 'string' } } },
   DraftApprovalRequest: { type: 'object', additionalProperties: false, required: ['versionId'], properties: { versionId: { type: 'string' } } },
   DraftApprovalResolutionRequest: { type: 'object', additionalProperties: false, required: ['token', 'decision'], properties: { token: { type: 'string' }, decision: { type: 'string', enum: ['APPROVED', 'REJECTED'] }, reason: { type: 'string' } } },
+  ResearchHistoryResponse: {
+    type: 'object', additionalProperties: false, required: ['items', 'total'],
+    properties: {
+      items: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'operationId', 'query', 'court', 'resultCount', 'billingMode', 'chargedCents', 'createdAt'], properties: { id: { type: 'string' }, operationId: { type: 'string' }, query: { type: 'string' }, court: { type: 'string' }, resultCount: { type: 'integer' }, billingMode: { type: 'string', enum: ['FREE', 'METERED'] }, chargedCents: { type: 'integer' }, createdAt: { type: 'string', format: 'date-time' } } } },
+      total: { type: 'integer', minimum: 0 },
+    },
+  },
+  ReviewQueueResponse: {
+    type: 'object', additionalProperties: false, required: ['items', 'total'],
+    properties: {
+      items: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'kind', 'matterId', 'targetId', 'title', 'summary', 'status', 'requestedAt', 'actionUrl'], properties: { id: { type: 'string' }, kind: { type: 'string', enum: ['DRAFT', 'RESEARCH_MEMO'] }, matterId: { type: 'string' }, targetId: { type: 'string' }, title: { type: 'string' }, summary: { type: 'string' }, status: { type: 'string', enum: ['PENDING', 'APPROVED', 'REJECTED'] }, requestedAt: { type: 'string', format: 'date-time' }, decidedAt: { type: 'string', format: 'date-time' }, actionUrl: { type: 'string' } } } },
+      total: { type: 'integer', minimum: 0 },
+    },
+  },
+  OperationalStatusResponse: {
+    type: 'object', additionalProperties: false, required: ['status', 'service', 'checks'],
+    properties: { status: { type: 'string', enum: ['ready', 'not_ready'] }, service: { type: 'string' }, checks: { type: 'object', additionalProperties: { type: 'boolean' } } },
+  },
 } as const;
 
 const OBJECT_REQUEST_SCHEMA_BY_PATH: Readonly<Record<string, keyof typeof OPENAPI_SCHEMAS>> = {
@@ -82,7 +101,7 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'post', path: '/api/v2/webhooks/mercadopago', summary: 'Receber webhook Mercado Pago', description: 'Recebe notificações do Mercado Pago e valida a assinatura HMAC do provedor.' },
   { method: 'get', path: '/api/v2/admin/billing/refund-requests', summary: 'Listar solicitações de reembolso', description: 'Consulta administrativa de solicitações de reembolso.', scopes: ['billing:admin'] },
   { method: 'post', path: '/api/v2/admin/billing/refund-requests/{requestId}/review', summary: 'Revisar solicitação de reembolso', description: 'Aprova ou rejeita manualmente uma solicitação de reembolso.', scopes: ['billing:admin'], requestBody: 'object' },
-  { method: 'get', path: '/readyz', summary: 'Readiness', description: 'Verifica se as dependências locais necessárias estão disponíveis.' },
+  { method: 'get', path: '/readyz', summary: 'Readiness', description: 'Verifica se as dependências locais necessárias estão disponíveis.', responseSchema: 'OperationalStatusResponse' },
   { method: 'get', path: '/metrics', summary: 'Métricas internas', description: 'Retorna contadores internos de requisições e latência.' },
   { method: 'get', path: '/metrics/prometheus', summary: 'Métricas Prometheus', description: 'Expõe as métricas internas em formato compatível com scrape do Prometheus.' },
   { method: 'get', path: '/api/v2/webhooks/endpoints', summary: 'Listar destinos de webhook', description: 'Lista destinos ativos e revogados do tenant.', scopes: ['billing:read'] },
@@ -92,6 +111,8 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/api/v2/webhooks/deliveries', summary: 'Listar entregas de webhook', description: 'Lista entregas e tentativas do tenant.', scopes: ['billing:read'] },
   { method: 'post', path: '/api/v2/webhooks/deliveries/{deliveryId}/retry', summary: 'Reprocessar entrega de webhook', description: 'Recoloca uma entrega falha na fila.', scopes: ['billing:read'] },
   { method: 'get', path: '/api/v2/tribunals', summary: 'Listar tribunais', description: 'Retorna o catálogo com capabilities derivadas do registro de provedores. Durante a estabilização inicial, somente o STJ é pesquisável; os demais tribunais permanecem visíveis como não habilitados.', scopes: ['research:read'] },
+  { method: 'get', path: '/api/v2/research/history', summary: 'Listar histórico de pesquisa', description: 'Lista pesquisas concluídas do usuário autenticado no tenant atual.', scopes: ['research:read'], responseSchema: 'ResearchHistoryResponse' },
+  { method: 'get', path: '/api/v2/review-queue', summary: 'Listar fila de revisão', description: 'Lista drafts e memorandos submetidos à revisão humana sem expor tokens ou conteúdo integral.', scopes: ['matter:read'], responseSchema: 'ReviewQueueResponse' },
   { method: 'get', path: '/api/v2/matters', summary: 'Listar casos', description: 'Lista os casos do tenant autenticado.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/matters', summary: 'Criar caso', description: 'Cria um caso no tenant autenticado.', scopes: ['matter:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/matters/{matterId}', summary: 'Consultar caso', description: 'Retorna um caso e seus documentos.', scopes: ['matter:read'] },
@@ -159,6 +180,13 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
       '403': { description: 'Escopo insuficiente.' },
     },
   };
+  if (route.responseSchema) {
+    const responses = operation.responses as Record<string, Record<string, unknown>>;
+    responses['200'] = {
+      ...responses['200'],
+      content: { 'application/json': { schema: { $ref: `#/components/schemas/${route.responseSchema}` } } },
+    };
+  }
   if (route.toolName || route.path === '/api/v2/tribunals') {
     (operation.responses as Record<string, unknown>)['422'] = { description: 'Tribunal não habilitado para a capability solicitada.' };
   }
@@ -229,10 +257,11 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
     Object.assign(operation.responses as Record<string, unknown>, {
       '402': { description: 'Saldo de créditos insuficiente para a operação faturável.' },
       '409': { description: 'Conflito de idempotência ou estado do recurso.' },
+      '404': { description: 'Recurso não localizado no tenant autenticado.' },
       '503': { description: 'Infraestrutura jurisprudencial ou provider indisponível.' },
     });
   }
-  for (const status of ['400', '401', '402', '403', '409', '422', '503']) {
+  for (const status of ['400', '401', '402', '403', '404', '409', '422', '503']) {
     const responses = operation.responses as Record<string, Record<string, unknown>>;
     if (responses[status]) {
       responses[status] = {

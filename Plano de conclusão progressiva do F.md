@@ -506,6 +506,11 @@ pergunta do usuário
 
 ## Fase 7 — Frontend, persistência PostgreSQL e operação comercial
 
+**Estado em 2026-09-20:** concluída localmente no checkout `main` sobre
+`a9e3b24`. O gate foi validado em PostgreSQL 16 local, Chromium e fixtures
+controladas; migration remota, deploy e credenciais live permanecem gates
+separados e não executados.
+
 **Objetivo:** fazer a interface e a operação persistida refletirem exclusivamente capabilities concluídas, estados reais do MCP/API e o comportamento comercial do STJ em PostgreSQL local.
 
 **Áreas:**
@@ -559,6 +564,16 @@ pergunta do usuário
 - frontend build.
 
 **Gate de saída:** a UI não anuncia tribunal sem provider, não apresenta aprovação fictícia, reproduz fielmente os estados REST/MCP e o produto STJ funciona em PostgreSQL com ledger concorrente, outbox, auth, billing, ingestão e operação sem banco efêmero. Nenhum modelo externo é vendido ou cobrado pelo ForgeLex.
+
+**Evidência do gate:** `pnpm db:migrate`, `pnpm test:postgres`,
+`pnpm test:e2e:phase7`, `pnpm test:load:search`, `pnpm typecheck`,
+`pnpm test`, `pnpm --filter @forgelex/web build` e `git diff --check`
+passaram. O smoke cobriu os 12 checks operacionais previstos; o E2E cobriu
+login real da UI contra Supabase simulado, catálogo exclusivo STJ, busca com e
+sem resultado, verificação gratuita, compra pendente/confirmada e decisão da
+fila. A carga executou 25 intenções e 3 retries, sem erros ou 5xx, com débito
+único de 500 centavos; p50 de 333,34 ms e p95 de 567,24 ms são apenas a
+medição local desta execução, não um SLA.
 
 ---
 

@@ -4,7 +4,7 @@
 > Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-209%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-271%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -193,6 +193,13 @@ pnpm db:migrate
 
 # 8. Validar persistência, ledger e outbox no PostgreSQL local
 pnpm test:postgres
+
+# 9. Executar E2E Chromium com Supabase e pagamento simulados localmente
+pnpm exec playwright install chromium
+pnpm test:e2e:phase7
+
+# 10. Executar carga básica da busca (25 intenções, concorrência 5)
+pnpm test:load:search
 ```
 
 O frontend estará disponível em `http://localhost:3000` e a API em `http://localhost:3001`.

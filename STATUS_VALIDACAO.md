@@ -259,6 +259,43 @@ Não houve migration remota, deploy, commit ou push. O workflow não fornece
 modelo, não cobra tokens e permanece gratuito; a política comercial da busca
 jurisprudencial continua isolada em `research.search_case_law`.
 
+## Fase 7 — Frontend, PostgreSQL e operação comercial
+
+A Fase 7 foi concluída localmente em 2026-09-20, no branch `main`, sobre o
+HEAD `a9e3b240b19ecf4870a3413fcffc352b97e46799`, com alterações ainda não
+commitadas. A API recusa fallback silencioso para SQLite em produção; conta
+Supabase confirmada, retenção operacional, histórico de pesquisa e fila de
+revisão passaram a ter contratos persistidos. A busca da interface consome o
+catálogo remoto e expõe somente tribunais pesquisáveis, distinguindo
+indisponibilidade, resultado vazio, cobrança e replay.
+
+O PostgreSQL 16 local em `127.0.0.1:55432` recebeu somente migrations locais.
+`pnpm test:postgres` passou nos 12 checks previstos:
+`migrations_idempotent`, `corpus_global`, `tenant_isolation`,
+`billing_reservation_concurrency`, `refund_concurrency`,
+`matter_workflow`, `research_history`, `review_queue`,
+`outbox_two_workers`, `worker_restart`, `readiness` e `metrics`.
+O teste usa prefixo único e remove somente os registros do próprio tenant,
+sem apagar corpus global.
+
+O E2E Chromium passou com Supabase e pagamento simulados localmente, sem
+Mercado Pago ou Supabase live. Ele cobriu login pela tela real, bootstrap,
+catálogo somente STJ, busca com resultado, busca vazia, verificação gratuita,
+compra `PENDING` seguida de confirmação `PAID`, fila persistida e decisão
+humana. A carga básica executou 25 intenções, concorrência 5 e 3 retries:
+zero erros, zero 5xx, 3 replays, débito de 500 centavos, p50 333,34 ms e p95
+567,24 ms. Essas latências descrevem apenas a execução local e não constituem
+SLA.
+
+Gates finais: `pnpm typecheck` PASS nos 15 projetos; `pnpm test` PASS com
+58 arquivos e 271 testes aprovados, 1 arquivo e 4 testes condicionais
+ignorados, sem queda de worker; build web PASS com 1.652 módulos; e
+`git diff --check` PASS. A CI agora mantém o job padrão e inclui jobs
+isolados para PostgreSQL e E2E local, sem APIs pagas ou secrets reais.
+
+Não foram executados migration remota, deploy, credenciais live, homologação
+pública, commit ou push.
+
 ## Estado implementado
 
 - A superfície pública comercial foi removida. `/` entrega somente o painel

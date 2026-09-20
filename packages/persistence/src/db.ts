@@ -63,7 +63,7 @@ export async function createDatabase(config: DatabaseConfig = {}): Promise<{
   const url = config.url ?? 'file::memory:?cache=shared';
   const isPostgres = config.driver === 'postgres' || url.startsWith('postgres://') || url.startsWith('postgresql://');
   if (isPostgres) {
-    const sql = postgres(url, { max: 10 });
+    const sql = postgres(url, { max: 10, onnotice: () => undefined });
     const db = drizzlePostgres(sql, { schema }) as unknown as ForgeLexDatabase;
     Object.defineProperty(db, '$forgelexDialect', { value: 'postgres', enumerable: false });
     return { db, client: new PostgresClientAdapter(sql) as unknown as Client };

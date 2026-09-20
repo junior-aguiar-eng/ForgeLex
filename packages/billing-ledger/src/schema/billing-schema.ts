@@ -104,6 +104,7 @@ export const billingRefundRequests = sqliteTable('billing_refund_requests', {
   purchaseId: text('purchase_id').notNull(),
   requestedBy: text('requested_by').notNull(),
   status: text('status').notNull(),
+  openKey: text('open_key'),
   eligibleAmountCents: integer('eligible_amount_cents').notNull(),
   approvedAmountCents: integer('approved_amount_cents'),
   reason: text('reason'),
@@ -113,6 +114,7 @@ export const billingRefundRequests = sqliteTable('billing_refund_requests', {
   updatedAt: text('updated_at').notNull(),
 }, (table) => [
   index('billing_refund_requests_tenant_created_idx').on(table.tenantId, table.createdAt),
+  uniqueIndex('billing_refund_requests_tenant_open_unique').on(table.tenantId, table.openKey),
 ]);
 
 export const billingCreditLots = sqliteTable('billing_credit_lots', {

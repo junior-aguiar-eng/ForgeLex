@@ -152,6 +152,31 @@ describe('rotas de billing', () => {
     connection.client.close();
   });
 
+  it('rejeita webhook Mercado Pago com assinatura inválida', async () => {
+    const connection = await createDatabase();
+    await runPersistenceMigrations(connection.client);
+    const ledger = new LedgerService(connection.db, connection.client);
+    await ledger.runMigrations();
+    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), new Provider());
+    const mercadoPago = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret' });
+    const app = await buildApp({
+      authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger,
+      database: connection.db, databaseClient: connection.client,
+      billingOperationsService: operations, mercadoPagoPaymentProvider: mercadoPago,
+      environment: { NODE_ENV: 'test' },
+    });
+
+    const response = await app.inject({
+      method: 'POST', url: '/api/v2/webhooks/mercadopago?data.id=ORDER1',
+      headers: { 'x-signature': 'ts=1,v1=invalid', 'x-request-id': 'request-invalid' },
+      payload: { id: 1, type: 'order', data: { id: 'ORDER1' } },
+    });
+
+    expect(response.statusCode).toBe(401);
+    await app.close();
+    connection.client.close();
+  });
+
   it('não expõe endpoint de webhook de provedor removido', async () => {
     const connection = await createDatabase();
     await runPersistenceMigrations(connection.client);

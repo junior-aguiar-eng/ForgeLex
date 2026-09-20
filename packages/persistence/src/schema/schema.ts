@@ -517,6 +517,26 @@ export const researchMemos = sqliteTable(
   ],
 );
 
+export const researchSearchHistory = sqliteTable(
+  'research_search_history',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id').notNull(),
+    userId: text('user_id').notNull(),
+    operationId: text('operation_id').notNull(),
+    query: text('query').notNull(),
+    court: text('court').notNull(),
+    resultCount: integer('result_count').notNull(),
+    billingMode: text('billing_mode').notNull(),
+    chargedCents: integer('charged_cents').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('research_history_tenant_operation_unique').on(table.tenantId, table.operationId),
+    index('research_history_tenant_user_created_idx').on(table.tenantId, table.userId, table.createdAt),
+  ],
+);
+
 export const matterAuthorityVerifications = sqliteTable(
   'matter_authority_verifications',
   {

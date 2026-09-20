@@ -8,6 +8,7 @@ export * from './repositories/api-key-repository.js';
 export * from './repositories/matter-authority-repository.js';
 export * from './repositories/legal-issue-repository.js';
 export * from './repositories/research-memo-repository.js';
+export * from './repositories/research-history-repository.js';
 export * from './repositories/workflow-checkpoint-repository.js';
 export * from './repositories/legal-thesis-repository.js';
 export * from './repositories/webhook-repository.js';

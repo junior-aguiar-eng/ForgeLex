@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const ledgerAccounts = sqliteTable('ledger_accounts', {
   id: text('id').primaryKey(),
@@ -49,4 +49,22 @@ export const ledgerEntries = sqliteTable('ledger_entries', {
     table.accountId,
     table.idempotencyKey
   ),
+}));
+
+export const billingOperations = sqliteTable('billing_operations', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  accountId: text('account_id').notNull().references(() => ledgerAccounts.id),
+  idempotencyKey: text('idempotency_key').notNull(),
+  status: text('status').notNull(),
+  reservedAmountCents: integer('reserved_amount_cents').notNull(),
+  leaseOwner: text('lease_owner'),
+  leaseExpiresAt: text('lease_expires_at'),
+  resultSnapshot: text('result_snapshot'),
+  errorCode: text('error_code'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, (table) => ({
+  tenantKeyUnique: uniqueIndex('billing_operations_tenant_key_unique').on(table.tenantId, table.idempotencyKey),
+  accountStatusIndex: index('billing_operations_account_status_idx').on(table.accountId, table.status),
 }));

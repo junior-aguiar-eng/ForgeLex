@@ -25,6 +25,7 @@ import {
   MatterAuthorityRepository,
   LegalIssueRepository,
   ResearchMemoRepository,
+  ResearchHistoryRepository,
   PersistentWorkflowCheckpointStore,
   LegalThesisRepository,
   ApiKeyRepository,
@@ -62,6 +63,9 @@ import { createLegalResearchMemoTool, LegalResearchMemoExecutionService } from '
 import { RequestMetrics, structuredLog } from './observability.js';
 import { BillingOperationsService, type PaymentProvider } from './billing/billing-operations.js';
 import { MercadoPagoPaymentProvider } from './billing/mercado-pago-payment-provider.js';
+import { resolveDatabasePolicy } from './config/database-policy.js';
+import { OperationalRetentionService, resolveRetentionPolicy } from './operations/retention-service.js';
+import { ReviewQueueService } from './review/review-queue-service.js';
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
@@ -127,9 +131,15 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   // 1. Inicialização dos serviços fundamentais
-  const connection = options.ledgerService
-    ? undefined
-    : await createDatabase({ url: environment.FORGELEX_DATABASE_URL ?? environment.DATABASE_URL ?? 'file::memory:?cache=shared' });
+  const hasInjectedPersistence = Boolean(options.database && options.databaseClient);
+  const shouldOpenConnection = !hasInjectedPersistence
+    && (!options.ledgerService || environment.NODE_ENV === 'production');
+  const databasePolicy = shouldOpenConnection
+    ? resolveDatabasePolicy({ ...environment, NODE_ENV: environment.NODE_ENV ?? process.env.NODE_ENV })
+    : undefined;
+  const connection = shouldOpenConnection
+    ? await createDatabase({ url: databasePolicy?.url ?? 'file::memory:?cache=shared' })
+    : undefined;
   if (connection) {
     await runPersistenceMigrations(connection.client);
     app.addHook('onClose', async () => connection.client.close());
@@ -137,6 +147,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   const database = options.database ?? connection?.db;
   const databaseClient = options.databaseClient ?? connection?.client;
+  const retentionPolicy = resolveRetentionPolicy(environment);
+  const retentionService = databaseClient && retentionPolicy.enabled
+    ? new OperationalRetentionService(databaseClient, retentionPolicy.retentionDays)
+    : undefined;
+  const retentionWorker = retentionService
+    ? setInterval(() => void retentionService.purge().catch((error) => structuredLog('error', 'retention.worker.failed', {
+      error: error instanceof Error ? error.message : String(error),
+    })), 86_400_000)
+    : undefined;
+  if (retentionWorker) app.addHook('onClose', async () => clearInterval(retentionWorker));
   const configuredWebhookTimeoutMs = Number(environment.FORGELEX_WEBHOOK_TIMEOUT_MS);
   const webhookTimeoutMs = Number.isFinite(configuredWebhookTimeoutMs) && configuredWebhookTimeoutMs > 0
     ? configuredWebhookTimeoutMs
@@ -184,6 +204,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const matterAuthorityRepository = database ? new MatterAuthorityRepository(database) : undefined;
   const legalIssueRepository = database ? new LegalIssueRepository(database) : undefined;
   const researchMemoRepository = database ? new ResearchMemoRepository(database) : undefined;
+  const researchHistoryRepository = database ? new ResearchHistoryRepository(database) : undefined;
+  const reviewQueueService = database ? new ReviewQueueService(database) : undefined;
   const legalThesisRepository = database ? new LegalThesisRepository(database) : undefined;
   const factsEvidenceService = database
     ? new FactsEvidenceService(new FactsEvidenceRepository(database))
@@ -504,8 +526,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       await billingOperationsService.processWebhook(event);
       return { received: true };
     } catch (error) {
-      reply.status(400);
-      return { error: error instanceof Error ? error.message.split(':')[0] : 'MERCADOPAGO_WEBHOOK_INVALID', message: 'Webhook Mercado Pago rejeitado.' };
+      const code = error instanceof Error ? error.message.split(':')[0] : 'MERCADOPAGO_WEBHOOK_INVALID';
+      reply.status(code === 'MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID' ? 401 : 400);
+      return { error: code, message: 'Webhook Mercado Pago rejeitado.' };
     }
   });
 
@@ -687,6 +710,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       });
 
       setBillingHeaders(input.reply, execution);
+      await researchHistoryRepository?.record({
+        tenantId: input.principal.tenantId,
+        userId: input.principal.userId,
+        operationId: idempotencyKey,
+        query: input.query,
+        court,
+        resultCount: execution.data.total,
+        billingMode: execution.billingMode,
+        chargedCents: execution.chargedCents,
+      });
       if (!execution.isReplay) {
         await recordAudit({
           sessionId,
@@ -756,12 +789,20 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         persistenceReady = false;
       }
     }
-    const ready = persistenceReady && Boolean(ledgerService);
+    const checks = {
+      persistence: persistenceReady,
+      migrations: persistenceReady && Boolean(databaseClient),
+      billing: persistenceReady && Boolean(ledgerService),
+      source: persistenceReady && Boolean(jurisprudenceSearchService),
+      auth: persistenceReady && Boolean(options.authAdapter || apiKeyRepository || supabaseIdentityVerifier),
+      outbox: persistenceReady && Boolean(webhookService && environment.FORGELEX_WEBHOOK_MASTER_KEY),
+    };
+    const ready = Object.values(checks).every(Boolean);
     if (!ready) {
       reply.status(503);
-      return { status: 'not_ready', service: 'forgelex-api', checks: { persistence: persistenceReady, billing: persistenceReady && Boolean(ledgerService) } };
+      return { status: 'not_ready', service: 'forgelex-api', checks };
     }
-    return { status: 'ready', service: 'forgelex-api', checks: { persistence: true, billing: true } };
+    return { status: 'ready', service: 'forgelex-api', checks };
   });
 
   app.get('/metrics', async () => ({ service: 'forgelex-api', metrics: metrics.read() }));
@@ -959,6 +1000,34 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         total: tribunals.length,
       };
     }
+  );
+
+  app.get(
+    '/api/v2/research/history',
+    { preHandler: authAdapter.createPreHandler(['research:read']) },
+    async (req, reply) => {
+      if (!researchHistoryRepository) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Histórico de pesquisa indisponível.' };
+      }
+      const requestedLimit = Number((req.query as { limit?: string }).limit ?? 20);
+      const limit = Number.isInteger(requestedLimit) ? requestedLimit : 20;
+      const items = await researchHistoryRepository.list(req.principal.tenantId, req.principal.userId, limit);
+      return { items, total: items.length };
+    },
+  );
+
+  app.get(
+    '/api/v2/review-queue',
+    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    async (req, reply) => {
+      if (!reviewQueueService) {
+        reply.status(503);
+        return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Fila de revisão indisponível.' };
+      }
+      const items = await reviewQueueService.list(req.principal.tenantId);
+      return { items, total: items.length };
+    },
   );
 
   app.get(

@@ -79,6 +79,17 @@ describe('Supabase authentication', () => {
     expect(await malformed.verify('access-token')).toBeNull();
   });
 
+  it('aceita o campo confirmed_at usado por identidades Supabase confirmadas', async () => {
+    const identityVerifier = verifierFor({
+      id: 'supabase-user-1',
+      email: 'pessoa@exemplo.com',
+      confirmed_at: '2026-09-17T00:00:00.000Z',
+    });
+    const accountRepository = { findBySupabaseUserId: async () => activeAccount } as unknown as AccountRepository;
+    const principal = await new SupabaseTokenVerifier(identityVerifier, accountRepository).verify('access-token');
+    expect(principal?.tenantId).toBe('tenant_1');
+  });
+
   it('falha fechado em timeout ou indisponibilidade e não exige configuração ausente', async () => {
     const unavailable = new SupabaseIdentityVerifier({
       baseUrl: 'https://project.supabase.co',

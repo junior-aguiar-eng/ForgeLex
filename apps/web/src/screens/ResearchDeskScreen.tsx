@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertCircle, ExternalLink, FileCheck2, Search, ShieldCheck } from 'lucide-react';
 import { AuthorityVerification, SearchResultItem, useApp } from '../context/AppContext';
+import { createSearchIntent } from '../operations/contracts';
+import { createResearchDeskModel } from './research-desk-model';
+import { ApiRequestError } from '../api-client';
 
 const statusLabel: Record<AuthorityVerification['status'], string> = {
   VERIFIED_OFFICIAL: 'Verificado na fonte oficial',
@@ -11,9 +14,9 @@ const statusLabel: Record<AuthorityVerification['status'], string> = {
 };
 
 export const ResearchDeskScreen: React.FC = () => {
-  const { performSearch, verifyAuthority } = useApp();
+  const { performSearch, verifyAuthority, tribunals } = useApp();
   const [query, setQuery] = useState('');
-  const [court, setCourt] = useState('TODOS');
+  const [court, setCourt] = useState('STJ');
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [processNumber, setProcessNumber] = useState('');
   const [judgmentDate, setJudgmentDate] = useState('');
@@ -21,16 +24,26 @@ export const ResearchDeskScreen: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchState, setSearchState] = useState<{ state: 'idle' | 'loading' | 'unavailable' | 'error' } | { state: 'ready'; chargedCents: number; resultCount: number; isReplay: boolean }>({ state: 'idle' });
+  const model = createResearchDeskModel({ tribunals: tribunals.data, search: searchState, verificationStatus: verification?.status });
+
+  useEffect(() => {
+    if (!model.courts.some((item) => item.code === court) && model.courts[0]) setCourt(model.courts[0].code);
+  }, [tribunals.data]);
 
   const search = async (event: React.FormEvent) => {
     event.preventDefault();
     setHasSearched(true);
     setBusy(true);
+    setSearchState({ state: 'loading' });
     setError(null);
     try {
-      setResults(await performSearch(query, court));
+      const execution = await performSearch(createSearchIntent(query, court as 'STJ'));
+      setResults(execution.results);
+      setSearchState({ state: 'ready', chargedCents: execution.chargedCents, resultCount: execution.resultCount, isReplay: execution.isReplay });
     } catch (searchError) {
       setError(searchError instanceof Error ? searchError.message : 'Não foi possível concluir a pesquisa.');
+      setSearchState({ state: searchError instanceof ApiRequestError && searchError.status === 503 ? 'unavailable' : 'error' });
     } finally {
       setBusy(false);
     }
@@ -76,10 +89,9 @@ export const ResearchDeskScreen: React.FC = () => {
               <div className="flex flex-col md:flex-row gap-3">
                 <input value={query} onChange={(event) => setQuery(event.target.value)} className="flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
                 <select value={court} onChange={(event) => setCourt(event.target.value)} className="md:w-40 px-3 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm">
-                  <option value="TODOS">Todos (STJ nesta fase)</option>
-                  <option>STJ</option>
+                  {model.courts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
                 </select>
-                <button disabled={busy} className="px-5 py-3 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">{busy ? 'Consultando...' : 'Consultar'}</button>
+                <button disabled={busy || !model.canSearch} className="px-5 py-3 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">{busy ? 'Consultando...' : 'Consultar'}</button>
               </div>
               <p className="text-[11px] text-stone-500">Cada resultado mantém a fonte e o estado de verificação para conferência.</p>
             </form>
@@ -104,7 +116,8 @@ export const ResearchDeskScreen: React.FC = () => {
                 ))}
               </div>
             )}
-            {hasSearched && !busy && results.length === 0 && !error && <div className="surface-subtle p-6 text-center text-sm text-stone-500">Nenhum resultado retornado pela API para esta consulta.</div>}
+            {model.billingMessage && <div className="surface-subtle p-3 text-xs text-stone-600">{model.billingMessage}</div>}
+            {hasSearched && !busy && results.length === 0 && !error && <div className="surface-subtle p-6 text-center text-sm text-stone-500">{model.emptyMessage}</div>}
           </section>
 
           <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
@@ -114,7 +127,7 @@ export const ResearchDeskScreen: React.FC = () => {
             </div>
             <form onSubmit={verify} className="space-y-3">
               <label className="block text-xs font-semibold text-stone-600">Tribunal
-                <select value={court === 'TODOS' ? 'STJ' : court} onChange={(event) => setCourt(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm"><option>STJ</option></select>
+                <select value={court} onChange={(event) => setCourt(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">{model.courts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}</select>
               </label>
               <label className="block text-xs font-semibold text-stone-600">Número do processo
                 <input value={processNumber} onChange={(event) => setProcessNumber(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
@@ -122,7 +135,7 @@ export const ResearchDeskScreen: React.FC = () => {
               <label className="block text-xs font-semibold text-stone-600">Data do julgamento (opcional)
                 <input value={judgmentDate} onChange={(event) => setJudgmentDate(event.target.value)} placeholder="DD/MM/AAAA" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
               </label>
-              <button disabled={busy} className="w-full px-4 py-3 rounded-xl border border-cognac-300 bg-cognac-50 hover:bg-cognac-100 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Verificar por R$ 0,20</button>
+              <button disabled={busy || !model.canSearch} className="w-full px-4 py-3 rounded-xl border border-cognac-300 bg-cognac-50 hover:bg-cognac-100 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">{model.verificationActionLabel}</button>
             </form>
 
             {verification && (

@@ -35,7 +35,13 @@ export interface RequestApiOptions {
   accessToken?: string;
 }
 
-export async function requestApi<T>(path: string, init: RequestInit = {}, options: RequestApiOptions = {}): Promise<T> {
+export interface ApiResponse<T> {
+  data: T;
+  status: number;
+  headers: Headers;
+}
+
+export async function requestApiResponse<T>(path: string, init: RequestInit = {}, options: RequestApiOptions = {}): Promise<ApiResponse<T>> {
   const token = await getAccessToken(options.sessionOnly ?? false, options.accessToken);
   if (!token) {
     throw new ApiRequestError('Entre na sua conta para continuar.', 'UNAUTHENTICATED', 401);
@@ -63,7 +69,11 @@ export async function requestApi<T>(path: string, init: RequestInit = {}, option
       response.status,
     );
   }
-  return body as T;
+  return { data: body as T, status: response.status, headers: response.headers };
+}
+
+export async function requestApi<T>(path: string, init: RequestInit = {}, options: RequestApiOptions = {}): Promise<T> {
+  return (await requestApiResponse<T>(path, init, options)).data;
 }
 
 export function requestApiWithToken<T>(path: string, accessToken: string, init: RequestInit = {}): Promise<T> {

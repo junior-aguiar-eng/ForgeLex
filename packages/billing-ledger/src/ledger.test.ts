@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createDatabase, ForgeLexDatabase, runPersistenceMigrations } from '@forgelex/persistence';
 import { LedgerService } from './ledger-service.js';
 import { Client } from '@libsql/client';
-import { ledgerEntries } from './schema/ledger-schema.js';
+import { billingOperations, ledgerEntries } from './schema/ledger-schema.js';
+import { eq } from 'drizzle-orm';
 
 describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', () => {
   let db: ForgeLexDatabase;
@@ -16,6 +17,7 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
     ledger = new LedgerService(db);
     await runPersistenceMigrations(client);
     await ledger.bootstrapTables();
+    await client.execute('DELETE FROM billing_operations');
     await client.execute('DELETE FROM ledger_entries');
     await client.execute('DELETE FROM usage_events');
     await client.execute('DELETE FROM ledger_accounts');
@@ -95,6 +97,39 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
     expect(secondCall.chargedCents).toBe(0);
     expect(secondCall.data.jurisprudenciaId).toBe('stj_123');
     expect(executionCounter).toBe(1);
+  });
+
+  it('preserva o replay idempotente após reiniciar o serviço', async () => {
+    await ledger.provisionAccount('tenant_restart', { paidBalanceCents: 100, promotionalBalanceCents: 0 });
+    await ledger.executeBillableOperation({
+      tenantId: 'tenant_restart', idempotencyKey: 'restart-key', costCents: 20,
+      operation: async () => ({ authorityId: 'stj-1' }),
+    });
+
+    const restartedLedger = new LedgerService(db, client);
+    const replay = await restartedLedger.executeBillableOperation({
+      tenantId: 'tenant_restart', idempotencyKey: 'restart-key', costCents: 20,
+      operation: async () => { throw new Error('não deveria executar'); },
+    });
+
+    expect(replay).toMatchObject({ isReplay: true, chargedCents: 0, data: { authorityId: 'stj-1' } });
+    expect(await db.select().from(ledgerEntries)).toHaveLength(1);
+  });
+
+  it('rejeita snapshot idempotente corrompido sem reexecutar a operação', async () => {
+    await ledger.provisionAccount('tenant_bad_snapshot', { paidBalanceCents: 100, promotionalBalanceCents: 0 });
+    await ledger.executeBillableOperation({
+      tenantId: 'tenant_bad_snapshot', idempotencyKey: 'bad-snapshot-key', costCents: 20,
+      operation: async () => ({ ok: true }),
+    });
+    const operation = (await db.select().from(billingOperations))[0];
+    await db.update(billingOperations).set({ resultSnapshot: '{invalid' }).where(eq(billingOperations.id, operation.id));
+
+    await expect(ledger.executeBillableOperation({
+      tenantId: 'tenant_bad_snapshot', idempotencyKey: 'bad-snapshot-key', costCents: 20,
+      operation: async () => { throw new Error('não deveria executar'); },
+    })).rejects.toMatchObject({ code: 'IDEMPOTENCY_RESULT_INVALID' });
+    expect(await db.select().from(ledgerEntries)).toHaveLength(1);
   });
 
   it('deve rejeitar execução quando o saldo disponível for insuficiente', async () => {
@@ -238,6 +273,61 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
     const account = await ledger.getOrCreateAccount('tenant_concurrent');
     expect(account.paidBalanceCents).toBe(0);
     expect(account.promotionalBalanceCents).toBe(0);
+  });
+
+  it('executa uma única vez quando duas chamadas concorrentes usam a mesma chave', async () => {
+    await ledger.provisionAccount('tenant_same_key', { paidBalanceCents: 100, promotionalBalanceCents: 0 });
+    const calls: string[] = [];
+    const input = { tenantId: 'tenant_same_key', idempotencyKey: 'same', costCents: 20 };
+
+    const first = ledger.executeBillableOperation({ ...input, operation: async () => {
+      calls.push('executed');
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return { ids: ['a'] };
+    } });
+    const second = ledger.executeBillableOperation({ ...input, operation: async () => {
+      calls.push('duplicate');
+      return { ids: ['b'] };
+    } });
+
+    const [a, b] = await Promise.all([first, second]);
+    expect(calls).toEqual(['executed']);
+    expect(a.data).toEqual(b.data);
+    expect([a.chargedCents, b.chargedCents].sort((x, y) => x - y)).toEqual([0, 20]);
+  });
+
+  it('retoma reserva expirada sem criar dois débitos', async () => {
+    const account = await ledger.provisionAccount('tenant_expired_reservation', { paidBalanceCents: 100, promotionalBalanceCents: 0 });
+    const old = new Date(Date.now() - 60_000).toISOString();
+    await db.insert(billingOperations).values({
+      id: 'expired-operation', tenantId: 'tenant_expired_reservation', accountId: account.id,
+      idempotencyKey: 'expired-key', status: 'PENDING', reservedAmountCents: 20,
+      leaseOwner: 'dead-worker', leaseExpiresAt: old, resultSnapshot: null, errorCode: null,
+      createdAt: old, updatedAt: old,
+    });
+
+    const result = await ledger.executeBillableOperation({
+      tenantId: 'tenant_expired_reservation', idempotencyKey: 'expired-key', costCents: 20,
+      operation: async () => ({ ok: true }),
+    });
+    expect(result).toMatchObject({ chargedCents: 20, isReplay: false, data: { ok: true } });
+    expect(await db.select().from(ledgerEntries)).toHaveLength(1);
+    expect((await db.select().from(billingOperations))[0]).toMatchObject({ status: 'COMPLETED', leaseOwner: null });
+  });
+
+  it('limita o snapshot de replay a 256.000 bytes', async () => {
+    await ledger.provisionAccount('tenant_snapshot_limit', { paidBalanceCents: 100, promotionalBalanceCents: 0 });
+    const exact = await ledger.executeBillableOperation({
+      tenantId: 'tenant_snapshot_limit', idempotencyKey: 'snapshot-exact', costCents: 20,
+      operation: async () => 'x'.repeat(255_998),
+    });
+    expect(Buffer.byteLength(JSON.stringify(exact.data), 'utf8')).toBe(256_000);
+
+    await expect(ledger.executeBillableOperation({
+      tenantId: 'tenant_snapshot_limit', idempotencyKey: 'snapshot-over', costCents: 20,
+      operation: async () => 'x'.repeat(255_999),
+    })).rejects.toMatchObject({ code: 'OPERATION_RESULT_TOO_LARGE' });
+    expect((await ledger.getOrCreateAccount('tenant_snapshot_limit')).paidBalanceCents).toBe(80);
   });
 
   it('deve fazer rollback do débito e do UsageEvent quando a operação falhar', async () => {

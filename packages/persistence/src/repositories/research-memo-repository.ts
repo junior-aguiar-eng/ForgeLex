@@ -107,6 +107,15 @@ export class ResearchMemoRepository {
     return rows.map(toResearchMemo);
   }
 
+  public async listPendingForTenant(tenantId: string): Promise<ResearchMemoRecord[]> {
+    const rows = await this.db
+      .select()
+      .from(schema.researchMemos)
+      .where(and(eq(schema.researchMemos.tenantId, tenantId), eq(schema.researchMemos.status, 'PENDING_HUMAN_REVIEW')))
+      .orderBy(desc(schema.researchMemos.updatedAt));
+    return rows.map(toResearchMemo);
+  }
+
   public async getMemo(tenantId: string, matterId: string, memoId: string): Promise<ResearchMemoRecord | undefined> {
     const rows = await this.db
       .select()

@@ -114,39 +114,47 @@ export class WebhookRepository {
   }
 
   public async claimDueDelivery(now = new Date().toISOString(), leaseMs = 30_000): Promise<WebhookDispatchRecord | undefined> {
-    const candidates = await this.client.execute({
-      sql: `SELECT d.id FROM webhook_deliveries d JOIN webhook_endpoints e ON e.id = d.endpoint_id
-            WHERE d.status IN ('PENDING', 'RETRYING', 'DELIVERING') AND d.next_attempt_at <= ? AND e.status = 'ACTIVE'
-            ORDER BY d.next_attempt_at ASC LIMIT 20`,
-      args: [now],
-    });
-    for (const candidate of candidates.rows) {
-      const id = String((candidate as Record<string, unknown>).id);
-      const leaseUntil = new Date(Date.parse(now) + leaseMs).toISOString();
+    const leaseUntil = new Date(Date.parse(now) + leaseMs).toISOString();
+    const dialect = (this.client as Client & { forgelexDialect?: 'sqlite' | 'postgres' }).forgelexDialect ?? 'sqlite';
+    let id: string | undefined;
+
+    if (dialect === 'postgres') {
       const claimed = await this.client.execute({
-        sql: `UPDATE webhook_deliveries SET status = 'DELIVERING', attempt_count = attempt_count + 1,
-              last_attempt_at = ?, next_attempt_at = ?, updated_at = ?
-              WHERE id = ? AND status IN ('PENDING', 'RETRYING', 'DELIVERING') AND next_attempt_at <= ?`,
-        args: [now, leaseUntil, now, id, now],
+        sql: `WITH candidate AS (
+                SELECT d.id FROM webhook_deliveries d
+                JOIN webhook_endpoints e ON e.id = d.endpoint_id
+                WHERE d.status IN ('PENDING', 'RETRYING', 'DELIVERING')
+                  AND d.next_attempt_at <= ? AND e.status = 'ACTIVE'
+                ORDER BY d.next_attempt_at ASC
+                FOR UPDATE SKIP LOCKED LIMIT 1
+              )
+              UPDATE webhook_deliveries d
+              SET status = 'DELIVERING', attempt_count = d.attempt_count + 1,
+                  last_attempt_at = ?, next_attempt_at = ?, updated_at = ?
+              FROM candidate WHERE d.id = candidate.id RETURNING d.id`,
+        args: [now, now, leaseUntil, now],
       });
-      if (claimed.rowsAffected === 0) continue;
-      const result = await this.client.execute({
-        sql: `SELECT d.*, e.url, e.description, e.secret_ciphertext, e.event_types, e.status endpoint_status,
-              e.created_at endpoint_created_at, e.updated_at endpoint_updated_at, e.revoked_at endpoint_revoked_at,
-              w.event_type, w.payload_json, w.occurred_at
-              FROM webhook_deliveries d JOIN webhook_endpoints e ON e.id = d.endpoint_id
-              JOIN webhook_events w ON w.id = d.event_id WHERE d.id = ?`,
-        args: [id],
+      id = claimed.rows[0] ? String((claimed.rows[0] as Record<string, unknown>).id) : undefined;
+    } else {
+      const claimed = await this.client.execute({
+        sql: `UPDATE webhook_deliveries
+              SET status = 'DELIVERING', attempt_count = attempt_count + 1,
+                  last_attempt_at = ?, next_attempt_at = ?, updated_at = ?
+              WHERE id = (
+                SELECT d.id FROM webhook_deliveries d
+                JOIN webhook_endpoints e ON e.id = d.endpoint_id
+                WHERE d.status IN ('PENDING', 'RETRYING', 'DELIVERING')
+                  AND d.next_attempt_at <= ? AND e.status = 'ACTIVE'
+                ORDER BY d.next_attempt_at ASC LIMIT 1
+              )
+              AND status IN ('PENDING', 'RETRYING', 'DELIVERING') AND next_attempt_at <= ?
+              RETURNING id`,
+        args: [now, leaseUntil, now, now, now],
       });
-      const row = result.rows[0] as Record<string, unknown> | undefined;
-      if (!row) return undefined;
-      return {
-        ...this.deliveryFromRow(row),
-        endpoint: { id: String(row.endpoint_id), tenantId: String(row.tenant_id), url: String(row.url), description: text(row.description), secretCiphertext: String(row.secret_ciphertext), eventTypes: JSON.parse(String(row.event_types)) as string[], status: String(row.endpoint_status) as WebhookEndpointStatus, createdAt: String(row.endpoint_created_at), updatedAt: String(row.endpoint_updated_at), revokedAt: text(row.endpoint_revoked_at) },
-        eventType: String(row.event_type), payloadJson: String(row.payload_json), occurredAt: String(row.occurred_at),
-      };
+      id = claimed.rows[0] ? String((claimed.rows[0] as Record<string, unknown>).id) : undefined;
     }
-    return undefined;
+
+    return id ? this.findDispatch(id) : undefined;
   }
 
   public async markDelivered(deliveryId: string, statusCode: number, responseExcerpt: string): Promise<void> {
@@ -169,5 +177,23 @@ export class WebhookRepository {
 
   private deliveryFromRow(row: Record<string, unknown>): WebhookDeliveryRecord {
     return { id: String(row.id), eventId: String(row.event_id), endpointId: String(row.endpoint_id), tenantId: String(row.tenant_id), status: String(row.status) as WebhookDeliveryStatus, attemptCount: Number(row.attempt_count), maxAttempts: Number(row.max_attempts), nextAttemptAt: String(row.next_attempt_at), responseStatus: row.response_status == null ? undefined : Number(row.response_status), responseBodyExcerpt: text(row.response_body_excerpt), lastError: text(row.last_error), deliveredAt: text(row.delivered_at), createdAt: String(row.created_at), updatedAt: String(row.updated_at) };
+  }
+
+  private async findDispatch(id: string): Promise<WebhookDispatchRecord | undefined> {
+    const result = await this.client.execute({
+      sql: `SELECT d.*, e.url, e.description, e.secret_ciphertext, e.event_types, e.status endpoint_status,
+            e.created_at endpoint_created_at, e.updated_at endpoint_updated_at, e.revoked_at endpoint_revoked_at,
+            w.event_type, w.payload_json, w.occurred_at
+            FROM webhook_deliveries d JOIN webhook_endpoints e ON e.id = d.endpoint_id
+            JOIN webhook_events w ON w.id = d.event_id WHERE d.id = ?`,
+      args: [id],
+    });
+    const row = result.rows[0] as Record<string, unknown> | undefined;
+    if (!row) return undefined;
+    return {
+      ...this.deliveryFromRow(row),
+      endpoint: { id: String(row.endpoint_id), tenantId: String(row.tenant_id), url: String(row.url), description: text(row.description), secretCiphertext: String(row.secret_ciphertext), eventTypes: JSON.parse(String(row.event_types)) as string[], status: String(row.endpoint_status) as WebhookEndpointStatus, createdAt: String(row.endpoint_created_at), updatedAt: String(row.endpoint_updated_at), revokedAt: text(row.endpoint_revoked_at) },
+      eventType: String(row.event_type), payloadJson: String(row.payload_json), occurredAt: String(row.occurred_at),
+    };
   }
 }

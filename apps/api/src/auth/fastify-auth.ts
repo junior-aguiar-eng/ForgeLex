@@ -69,7 +69,7 @@ function readSupabaseIdentity(value: unknown): SupabaseIdentity | null {
   const displayName = metadata && typeof metadata.full_name === 'string'
     ? metadata.full_name.trim()
     : undefined;
-  const confirmedAt = value.email_confirmed_at;
+  const confirmedAt = value.email_confirmed_at ?? value.confirmed_at;
 
   return {
     id,

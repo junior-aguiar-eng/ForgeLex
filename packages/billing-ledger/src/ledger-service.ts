@@ -4,7 +4,7 @@ import { and, eq } from 'drizzle-orm';
 import type { UsageEvent } from '@forgelex/domain';
 import { DomainError } from '@forgelex/domain';
 import type { ForgeLexDatabase } from '@forgelex/persistence';
-import { ledgerAccounts, ledgerEntries, usageEvents } from './schema/ledger-schema.js';
+import { billingOperations, ledgerAccounts, ledgerEntries, usageEvents } from './schema/ledger-schema.js';
 import { runLedgerMigrations } from './migrations/ledger-migrations.js';
 import type { ForgeLexBillingPolicy } from './billing-rules.js';
 
@@ -60,6 +60,8 @@ export interface LedgerServiceOptions {
 }
 
 export class LedgerService {
+  private static readonly RESERVATION_LEASE_MS = 30_000;
+  private static readonly MAX_SNAPSHOT_BYTES = 256_000;
   private readonly db: ForgeLexDatabase;
   private readonly client?: Client;
   private readonly provisioningPolicy: BillingAccountProvisioningPolicy;
@@ -218,14 +220,6 @@ export class LedgerService {
     });
   }
 
-  /**
-   * Executa e liquida uma operação dentro da mesma transação.
-   *
-   * O lock lógico local reduz contenção entre chamadas no mesmo processo. A
-   * atualização de lock do account dentro da transação força a aquisição de
-   * lock de escrita no SQLite e de row lock no PostgreSQL, quando o driver
-   * correspondente estiver conectado à mesma camada de persistência.
-   */
   public async executeBillableOperation<T>(params: {
     tenantId: string;
     idempotencyKey: string;
@@ -239,8 +233,9 @@ export class LedgerService {
     this.validateBillableInput(params.idempotencyKey, costCents);
     await this.runMigrations();
 
-    return this.withTenantLock(params.tenantId, async () =>
-      this.db.transaction(async (transaction) => {
+    const reservation = await this.withTenantLock(params.tenantId, async () => {
+      const leaseOwner = randomUUID();
+      return this.db.transaction(async (transaction) => {
         const accountRows = await transaction
           .select()
           .from(ledgerAccounts)
@@ -255,54 +250,46 @@ export class LedgerService {
           );
         }
 
-        const existingEntry = await transaction
+        await transaction.update(ledgerAccounts).set({ updatedAt: account.updatedAt }).where(eq(ledgerAccounts.id, account.id));
+        const lockedRows = await transaction.select().from(ledgerAccounts).where(eq(ledgerAccounts.id, account.id));
+        const lockedAccount = lockedRows[0];
+        if (!lockedAccount) throw new DomainError('TOOL_EXECUTION_FAILED', 'A carteira desapareceu durante a reserva.');
+
+        const existingOperations = await transaction
           .select()
-          .from(ledgerEntries)
+          .from(billingOperations)
           .where(
             and(
-              eq(ledgerEntries.accountId, account.id),
-              eq(ledgerEntries.idempotencyKey, params.idempotencyKey)
+              eq(billingOperations.tenantId, params.tenantId),
+              eq(billingOperations.idempotencyKey, params.idempotencyKey),
             )
           );
-
-        if (existingEntry[0]?.operationResultSnapshot) {
-          return this.createReplayResult<T>(existingEntry[0].operationResultSnapshot, account);
+        const existing = existingOperations[0];
+        if (existing && existing.reservedAmountCents !== costCents) {
+          throw new DomainError('IDEMPOTENCY_CONFLICT', 'A chave de idempotência já foi usada com outro custo.');
+        }
+        if (existing?.status === 'COMPLETED') {
+          if (!existing.resultSnapshot) throw new DomainError('IDEMPOTENCY_RESULT_EXPIRED', 'O resultado idempotente expirou.');
+          return { kind: 'replay' as const, account: lockedAccount, snapshot: existing.resultSnapshot };
         }
 
-        // O update é intencionalmente executado antes da operação externa:
-        // ele serializa o acesso à carteira dentro da transação aberta.
-        await transaction
-          .update(ledgerAccounts)
-          .set({ updatedAt: account.updatedAt })
-          .where(eq(ledgerAccounts.id, account.id));
+        const now = new Date();
+        const nowIso = now.toISOString();
+        if (existing?.status === 'PENDING' && existing.leaseExpiresAt && existing.leaseExpiresAt > nowIso) {
+          return { kind: 'wait' as const, id: existing.id, account: lockedAccount };
+        }
 
-        const lockedAccountRows = await transaction
+        const pending = await transaction
           .select()
-          .from(ledgerAccounts)
-          .where(eq(ledgerAccounts.id, account.id));
-        const lockedAccount = lockedAccountRows[0];
-
-        if (!lockedAccount) {
-          throw new DomainError('TOOL_EXECUTION_FAILED', 'A carteira desapareceu durante a liquidação.');
-        }
-
-        const entryAfterLock = await transaction
-          .select()
-          .from(ledgerEntries)
-          .where(
-            and(
-              eq(ledgerEntries.accountId, lockedAccount.id),
-              eq(ledgerEntries.idempotencyKey, params.idempotencyKey)
-            )
-          );
-
-        if (entryAfterLock[0]?.operationResultSnapshot) {
-          return this.createReplayResult<T>(entryAfterLock[0].operationResultSnapshot, lockedAccount);
-        }
+          .from(billingOperations)
+          .where(and(eq(billingOperations.accountId, lockedAccount.id), eq(billingOperations.status, 'PENDING')));
+        const reservedCents = pending
+          .filter((item) => item.id !== existing?.id && Boolean(item.leaseExpiresAt && item.leaseExpiresAt > nowIso))
+          .reduce((total, item) => total + item.reservedAmountCents, 0);
 
         const promoValid = this.isPromotionValid(lockedAccount.promoExpiresAt);
         const effectivePromo = promoValid ? lockedAccount.promotionalBalanceCents : 0;
-        const totalAvailable = lockedAccount.paidBalanceCents + effectivePromo;
+        const totalAvailable = lockedAccount.paidBalanceCents + effectivePromo - reservedCents;
 
         if (totalAvailable < costCents) {
           throw new DomainError(
@@ -312,59 +299,39 @@ export class LedgerService {
           );
         }
 
-        // A operação permanece dentro da fronteira transacional. Qualquer
-        // erro antes do commit desfaz reserva, débito, usage e snapshot.
-        const result = await params.operation();
-        const settlement = this.calculateSettlement(lockedAccount, effectivePromo, costCents, promoValid);
-        const timestamp = new Date().toISOString();
-
-        await transaction
-          .update(ledgerAccounts)
-          .set({
-            paidBalanceCents: settlement.paidBalanceCents,
-            promotionalBalanceCents: settlement.promotionalBalanceCents,
-            updatedAt: timestamp,
-          })
-          .where(eq(ledgerAccounts.id, lockedAccount.id));
-
-        const usageEvent = this.createUsageEvent(params, costCents, timestamp);
-        await transaction.insert(usageEvents).values({
-          id: usageEvent.id,
-          tenantId: usageEvent.tenantId,
-          userId: usageEvent.userId,
-          capability: usageEvent.capability,
-          toolName: usageEvent.toolName,
-          provider: usageEvent.provider,
-          model: usageEvent.model,
-          units: usageEvent.units,
-          legalCredits: usageEvent.legalCredits,
-          monetaryCostCents: usageEvent.monetaryCostCents,
-          requestId: usageEvent.requestId,
-          sessionId: usageEvent.sessionId,
-          occurredAt: usageEvent.timestamp,
+        const leaseExpiresAt = new Date(now.getTime() + LedgerService.RESERVATION_LEASE_MS).toISOString();
+        if (existing) {
+          await transaction.update(billingOperations).set({
+            status: 'PENDING', leaseOwner, leaseExpiresAt, errorCode: null, updatedAt: nowIso,
+          }).where(eq(billingOperations.id, existing.id));
+          return { kind: 'execute' as const, id: existing.id, leaseOwner };
+        }
+        const id = randomUUID();
+        await transaction.insert(billingOperations).values({
+          id, tenantId: params.tenantId, accountId: lockedAccount.id,
+          idempotencyKey: params.idempotencyKey, status: 'PENDING', reservedAmountCents: costCents,
+          leaseOwner, leaseExpiresAt, resultSnapshot: null, errorCode: null,
+          createdAt: nowIso, updatedAt: nowIso,
         });
+        return { kind: 'execute' as const, id, leaseOwner };
+      });
+    });
 
-        await transaction.insert(ledgerEntries).values({
-          id: randomUUID(),
-          accountId: lockedAccount.id,
-          usageEventId: usageEvent.id,
-          idempotencyKey: params.idempotencyKey,
-          kind: 'DEBIT',
-          bucket: settlement.bucket,
-          amountCents: costCents,
-          operationResultSnapshot: JSON.stringify(result),
-          createdAt: timestamp,
-        });
+    if (reservation.kind === 'replay') return this.createReplayResult<T>(reservation.snapshot, reservation.account);
+    if (reservation.kind === 'wait') return this.waitForReservation<T>(reservation.id);
 
-        return {
-          data: result,
-          billingMode: 'METERED',
-          isReplay: false,
-          chargedCents: costCents,
-          remainingBalanceCents: settlement.paidBalanceCents + settlement.promotionalBalanceCents,
-        };
-      })
-    );
+    try {
+      const result = await params.operation();
+      const snapshot = JSON.stringify(result);
+      if (Buffer.byteLength(snapshot, 'utf8') > LedgerService.MAX_SNAPSHOT_BYTES) {
+        throw new DomainError('OPERATION_RESULT_TOO_LARGE', 'Resultado excede o limite de replay.');
+      }
+      return await this.withTenantLock(params.tenantId, () =>
+        this.completeReservation(reservation.id, reservation.leaseOwner, params, result, snapshot, costCents));
+    } catch (error) {
+      await this.withTenantLock(params.tenantId, () => this.failReservation(reservation.id, reservation.leaseOwner, error));
+      throw error;
+    }
   }
 
   public async getUsageEvents(tenantId: string): Promise<typeof usageEvents.$inferSelect[]> {
@@ -443,13 +410,188 @@ export class LedgerService {
       ? account.promotionalBalanceCents
       : 0;
 
+    let data: T;
+    try {
+      data = JSON.parse(operationResultSnapshot) as T;
+    } catch {
+      throw new DomainError('IDEMPOTENCY_RESULT_INVALID', 'O resultado idempotente persistido está corrompido.');
+    }
+
     return {
-      data: JSON.parse(operationResultSnapshot) as T,
+      data,
       billingMode: 'METERED',
       isReplay: true,
       chargedCents: 0,
       remainingBalanceCents: account.paidBalanceCents + effectivePromo,
     };
+  }
+
+  private async waitForReservation<T>(operationId: string): Promise<BillableExecutionResult<T>> {
+    for (;;) {
+      const operations = await this.db
+        .select()
+        .from(billingOperations)
+        .where(eq(billingOperations.id, operationId));
+      const operation = operations[0];
+      if (!operation) {
+        throw new DomainError('TOOL_EXECUTION_FAILED', 'A reserva faturável deixou de existir.');
+      }
+
+      if (operation.status === 'COMPLETED') {
+        if (!operation.resultSnapshot) {
+          throw new DomainError('IDEMPOTENCY_RESULT_EXPIRED', 'O resultado idempotente expirou.');
+        }
+        const accounts = await this.db
+          .select()
+          .from(ledgerAccounts)
+          .where(eq(ledgerAccounts.id, operation.accountId));
+        if (!accounts[0]) {
+          throw new DomainError('BILLING_ACCOUNT_NOT_PROVISIONED', 'A carteira da reserva não existe.');
+        }
+        return this.createReplayResult<T>(operation.resultSnapshot, accounts[0]);
+      }
+
+      if (operation.status === 'FAILED') {
+        throw new DomainError(
+          'TOOL_EXECUTION_FAILED',
+          'A execução faturável concorrente falhou.',
+          { operationId, upstreamCode: operation.errorCode },
+        );
+      }
+
+      if (!operation.leaseExpiresAt || operation.leaseExpiresAt <= new Date().toISOString()) {
+        throw new DomainError('OPERATION_LEASE_EXPIRED', 'A reserva faturável expirou e pode ser retomada.');
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+
+  private async completeReservation<T>(
+    operationId: string,
+    leaseOwner: string,
+    params: {
+      tenantId: string;
+      idempotencyKey: string;
+      userId?: string;
+      sessionId?: string;
+      usage?: BillableUsageInput;
+    },
+    result: T,
+    snapshot: string,
+    costCents: number,
+  ): Promise<BillableExecutionResult<T>> {
+    return this.db.transaction(async (transaction) => {
+      const operationRows = await transaction
+        .select()
+        .from(billingOperations)
+        .where(eq(billingOperations.id, operationId));
+      const operation = operationRows[0];
+      if (!operation) throw new DomainError('TOOL_EXECUTION_FAILED', 'A reserva faturável deixou de existir.');
+
+      const accountRows = await transaction
+        .select()
+        .from(ledgerAccounts)
+        .where(eq(ledgerAccounts.id, operation.accountId));
+      const account = accountRows[0];
+      if (!account) throw new DomainError('BILLING_ACCOUNT_NOT_PROVISIONED', 'A carteira da reserva não existe.');
+
+      await transaction
+        .update(ledgerAccounts)
+        .set({ updatedAt: account.updatedAt })
+        .where(eq(ledgerAccounts.id, account.id));
+      const lockedRows = await transaction
+        .select()
+        .from(ledgerAccounts)
+        .where(eq(ledgerAccounts.id, account.id));
+      const lockedAccount = lockedRows[0];
+      if (!lockedAccount) throw new DomainError('TOOL_EXECUTION_FAILED', 'A carteira desapareceu durante a liquidação.');
+
+      const currentRows = await transaction
+        .select()
+        .from(billingOperations)
+        .where(eq(billingOperations.id, operationId));
+      const current = currentRows[0];
+      if (current?.status === 'COMPLETED') {
+        if (!current.resultSnapshot) throw new DomainError('IDEMPOTENCY_RESULT_EXPIRED', 'O resultado idempotente expirou.');
+        return this.createReplayResult<T>(current.resultSnapshot, lockedAccount);
+      }
+      if (!current || current.status !== 'PENDING' || current.leaseOwner !== leaseOwner) {
+        throw new DomainError('OPERATION_LEASE_EXPIRED', 'A reserva faturável foi assumida por outra execução.');
+      }
+
+      const promoValid = this.isPromotionValid(lockedAccount.promoExpiresAt);
+      const effectivePromo = promoValid ? lockedAccount.promotionalBalanceCents : 0;
+      if (lockedAccount.paidBalanceCents + effectivePromo < costCents) {
+        throw new DomainError('TOOL_EXECUTION_FAILED', 'Saldo insuficiente durante a liquidação da reserva.');
+      }
+      const settlement = this.calculateSettlement(lockedAccount, effectivePromo, costCents, promoValid);
+      const timestamp = new Date().toISOString();
+      const usageEvent = this.createUsageEvent(params, costCents, timestamp);
+
+      await transaction.insert(usageEvents).values({
+        id: usageEvent.id,
+        tenantId: usageEvent.tenantId,
+        userId: usageEvent.userId,
+        capability: usageEvent.capability,
+        toolName: usageEvent.toolName,
+        provider: usageEvent.provider,
+        model: usageEvent.model,
+        units: usageEvent.units,
+        legalCredits: usageEvent.legalCredits,
+        monetaryCostCents: usageEvent.monetaryCostCents,
+        requestId: usageEvent.requestId,
+        sessionId: usageEvent.sessionId,
+        occurredAt: usageEvent.timestamp,
+      });
+      await transaction.insert(ledgerEntries).values({
+        id: randomUUID(),
+        accountId: lockedAccount.id,
+        usageEventId: usageEvent.id,
+        idempotencyKey: params.idempotencyKey,
+        kind: 'DEBIT',
+        bucket: settlement.bucket,
+        amountCents: costCents,
+        operationResultSnapshot: snapshot,
+        createdAt: timestamp,
+      });
+      await transaction.update(ledgerAccounts).set({
+        paidBalanceCents: settlement.paidBalanceCents,
+        promotionalBalanceCents: settlement.promotionalBalanceCents,
+        updatedAt: timestamp,
+      }).where(eq(ledgerAccounts.id, lockedAccount.id));
+      await transaction.update(billingOperations).set({
+        status: 'COMPLETED',
+        leaseOwner: null,
+        leaseExpiresAt: null,
+        resultSnapshot: snapshot,
+        errorCode: null,
+        updatedAt: timestamp,
+      }).where(and(eq(billingOperations.id, operationId), eq(billingOperations.leaseOwner, leaseOwner)));
+
+      return {
+        data: result,
+        billingMode: 'METERED',
+        isReplay: false,
+        chargedCents: costCents,
+        remainingBalanceCents: settlement.paidBalanceCents + settlement.promotionalBalanceCents,
+      };
+    });
+  }
+
+  private async failReservation(operationId: string, leaseOwner: string, error: unknown): Promise<void> {
+    const errorCode = error instanceof DomainError ? error.code : 'TOOL_EXECUTION_FAILED';
+    await this.db.update(billingOperations).set({
+      status: 'FAILED',
+      leaseOwner: null,
+      leaseExpiresAt: null,
+      errorCode,
+      updatedAt: new Date().toISOString(),
+    }).where(and(
+      eq(billingOperations.id, operationId),
+      eq(billingOperations.status, 'PENDING'),
+      eq(billingOperations.leaseOwner, leaseOwner),
+    ));
   }
 
   private availableBalance(account: typeof ledgerAccounts.$inferSelect): number {

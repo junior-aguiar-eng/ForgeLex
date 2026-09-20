@@ -183,6 +183,35 @@ export const ledgerMigrations: readonly SqlMigration[] = [
       `ALTER TABLE billing_purchases RENAME COLUMN stripe_payment_intent_id TO provider_payment_id;`,
     ],
   },
+  {
+    id: 'billing-ledger-0005-operation-reservations',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS billing_operations (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        account_id TEXT NOT NULL REFERENCES ledger_accounts(id),
+        idempotency_key TEXT NOT NULL,
+        status TEXT NOT NULL,
+        reserved_amount_cents INTEGER NOT NULL,
+        lease_owner TEXT,
+        lease_expires_at TEXT,
+        result_snapshot TEXT,
+        error_code TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE (tenant_id, idempotency_key)
+      );`,
+      `CREATE INDEX IF NOT EXISTS billing_operations_account_status_idx ON billing_operations(account_id, status);`,
+    ],
+  },
+  {
+    id: 'billing-ledger-0006-refund-open-key',
+    statements: [
+      `ALTER TABLE billing_refund_requests ADD COLUMN open_key TEXT;`,
+      `UPDATE billing_refund_requests SET open_key = purchase_id WHERE status = 'PENDING';`,
+      `CREATE UNIQUE INDEX billing_refund_requests_tenant_open_unique ON billing_refund_requests(tenant_id, open_key);`,
+    ],
+  },
 ];
 
 export async function runLedgerMigrations(client: Client): Promise<void> {

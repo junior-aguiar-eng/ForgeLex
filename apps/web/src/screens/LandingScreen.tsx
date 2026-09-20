@@ -1,19 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp, SearchResultItem } from '../context/AppContext';
+import { createSearchIntent } from '../operations/contracts';
 import { 
   Search, Scale, Shield, FolderOpen,
   ExternalLink, Copy, Check, Sparkles, AlertCircle, BookmarkCheck
 } from 'lucide-react';
 
 export const LandingScreen: React.FC = () => {
-  const { performSearch, recentSearches, setActiveTab } = useApp();
+  const { performSearch, recentSearches, setActiveTab, tribunals } = useApp();
   const [query, setQuery] = useState('');
-  const [court, setCourt] = useState('TODOS');
+  const [court, setCourt] = useState('STJ');
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<SearchResultItem | null>(null);
+  const searchableCourts = tribunals.data.filter((item) => item.searchable);
+
+  useEffect(() => {
+    if (!searchableCourts.some((item) => item.code === court) && searchableCourts[0]) {
+      setCourt(searchableCourts[0].code);
+    }
+  }, [court, searchableCourts]);
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -23,8 +31,8 @@ export const LandingScreen: React.FC = () => {
     setSearchError(null);
 
     try {
-      const data = await performSearch(query, court);
-      setResults(data);
+      const execution = await performSearch(createSearchIntent(query, court as 'STJ'));
+      setResults(execution.results);
     } catch (err: any) {
       setSearchError(err.message || 'Erro ao consultar jurisprudência.');
     } finally {
@@ -34,7 +42,8 @@ export const LandingScreen: React.FC = () => {
 
   const handleQuickTrigger = (text: string) => {
     setQuery(text);
-    performSearch(text, court).then(setResults).catch(() => {});
+    if (!searchableCourts.some((item) => item.code === court)) return;
+    performSearch(createSearchIntent(text, court as 'STJ')).then((execution) => setResults(execution.results)).catch(() => {});
   };
 
   const handleCopy = (id: string, text: string) => {
@@ -106,15 +115,14 @@ export const LandingScreen: React.FC = () => {
                 onChange={(e) => setCourt(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm font-medium text-stone-700 focus:outline-none focus:border-cognac-600"
               >
-                <option value="TODOS">Todos (STJ nesta fase)</option>
-                <option value="STJ">STJ (Federal Cível/Penal)</option>
+                {searchableCourts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
               </select>
             </div>
 
             {/* Search Button */}
             <button
               type="submit"
-              disabled={isSearching}
+              disabled={isSearching || searchableCourts.length === 0}
               className="px-6 py-3.5 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white font-medium text-sm shadow-md shadow-cognac-900/10 flex items-center justify-center space-x-2 transition-all active:scale-95"
             >
               {isSearching ? (
@@ -337,23 +345,23 @@ export const LandingScreen: React.FC = () => {
         )}
 
         {/* RECENT SEARCHES FOOTER */}
-        {recentSearches.length === 0 && !results.length && (
-          <div className="surface-subtle mx-auto max-w-4xl p-4 text-center"><h2 className="text-sm font-semibold text-stone-800">Nenhuma consulta realizada</h2><p className="mt-1 text-xs text-stone-500">As consultas feitas nesta sessão aparecerão aqui.</p></div>
+        {recentSearches.data.length === 0 && !results.length && (
+          <div className="surface-subtle mx-auto max-w-4xl p-4 text-center"><h2 className="text-sm font-semibold text-stone-800">Nenhuma consulta persistida</h2><p className="mt-1 text-xs text-stone-500">Pesquisas concluídas aparecerão aqui após confirmação da API.</p></div>
         )}
-        {recentSearches.length > 0 && <div className="champagne-card-subtle p-6 rounded-2xl max-w-4xl mx-auto space-y-3">
+        {recentSearches.data.length > 0 && <div className="champagne-card-subtle p-6 rounded-2xl max-w-4xl mx-auto space-y-3">
           <h4 className="text-xs uppercase font-bold tracking-wider text-stone-500">
             Consultas recentes
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {recentSearches.map((item, idx) => (
+            {recentSearches.data.map((item) => (
               <div 
-                key={idx}
+                key={item.id}
                 onClick={() => handleQuickTrigger(item.query)}
                 className="p-3 rounded-xl bg-white border border-champagne-border hover:border-cognac-400 cursor-pointer transition-colors"
               >
                 <div className="flex items-center justify-between text-[11px] text-stone-400 mb-1">
                   <span className="font-semibold text-cognac-700">{item.court}</span>
-                  <span>{item.timestamp}</span>
+                  <span>{new Date(item.createdAt).toLocaleString('pt-BR')}</span>
                 </div>
                 <p className="text-xs text-stone-800 font-medium line-clamp-1">
                   {item.query}

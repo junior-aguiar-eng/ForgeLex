@@ -987,6 +987,25 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `CREATE INDEX IF NOT EXISTS matter_authority_verifications_history_idx ON matter_authority_verifications (tenant_id, matter_id, saved_authority_id, created_at);`,
     ],
   },
+  {
+    id: 'persistence-0022-research-history',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS research_search_history (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        operation_id TEXT NOT NULL,
+        query TEXT NOT NULL,
+        court TEXT NOT NULL,
+        result_count INTEGER NOT NULL,
+        billing_mode TEXT NOT NULL,
+        charged_cents INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE (tenant_id, operation_id)
+      );`,
+      `CREATE INDEX IF NOT EXISTS research_history_tenant_user_created_idx ON research_search_history(tenant_id, user_id, created_at);`,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

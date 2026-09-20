@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Client } from '@forgelex/persistence';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { ForgeLexDatabase } from '@forgelex/persistence';
 import {
   BILLING_CURRENCY,
@@ -122,10 +122,12 @@ export class BillingOperationsService {
   }): Promise<void> {
     await this.billing.runMigrations();
     const provider = event.provider ?? 'mercadopago';
-    const existing = await this.db.select().from(billingWebhookEvents).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id)));
-    if (existing[0]) return;
     const receivedAt = new Date().toISOString();
-    await this.db.insert(billingWebhookEvents).values({ id: event.id, provider, eventType: event.type, payload: JSON.stringify(event), status: 'RECEIVED', receivedAt, processedAt: null, errorMessage: null });
+    const inserted = await this.db.insert(billingWebhookEvents)
+      .values({ id: event.id, provider, eventType: event.type, payload: JSON.stringify(event), status: 'RECEIVED', receivedAt, processedAt: null, errorMessage: null })
+      .onConflictDoNothing()
+      .returning({ id: billingWebhookEvents.id });
+    if (!inserted[0]) return;
 
     try {
       const object = event.data.object;
@@ -134,13 +136,13 @@ export class BillingOperationsService {
       if (purchaseId && ['payment.approved', 'payment.succeeded'].includes(event.type)) {
         const paymentStatus = typeof object.payment_status === 'string' ? object.payment_status : 'paid';
         if (paymentStatus === 'paid' || event.type === 'payment.succeeded') await this.completePurchase(purchaseId, object, provider);
-        else await this.db.update(billingPurchases).set({ status: 'PROCESSING', updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
+        else await this.transitionPurchase(purchaseId, 'PROCESSING');
       }
-      if (purchaseId && event.type === 'payment.processing') await this.db.update(billingPurchases).set({ status: 'PROCESSING', updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
-      if (purchaseId && event.type === 'payment.failed') await this.db.update(billingPurchases).set({ status: 'FAILED', updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
+      if (purchaseId && event.type === 'payment.processing') await this.transitionPurchase(purchaseId, 'PROCESSING');
+      if (purchaseId && event.type === 'payment.failed') await this.transitionPurchase(purchaseId, 'FAILED');
       if (purchaseId && event.type === 'payment.succeeded') await this.completePurchase(purchaseId, { ...object, provider_payment_id: object.id }, provider);
       if (purchaseId && ['payment.failed', 'payment.canceled'].includes(event.type)) {
-        await this.db.update(billingPurchases).set({ status: 'FAILED', updatedAt: new Date().toISOString() }).where(eq(billingPurchases.id, purchaseId));
+        await this.transitionPurchase(purchaseId, 'FAILED');
         if (metadata.auto_recharge === 'true') {
           await this.db.update(billingAccounts).set({ autoRechargeEnabled: 0, updatedAt: new Date().toISOString() }).where(eq(billingAccounts.tenantId, typeof metadata.tenant_id === 'string' ? metadata.tenant_id : ''));
         }
@@ -290,14 +292,20 @@ export class BillingOperationsService {
     const now = new Date(input.now ?? Date.now()).getTime();
     const createdAt = new Date(purchase.createdAt).getTime();
     if (now - createdAt > 7 * 24 * 60 * 60 * 1000) throw new Error('BILLING_REFUND_WINDOW_EXPIRED');
-    const existingRequests = await this.db.select({ status: billingRefundRequests.status }).from(billingRefundRequests).where(and(eq(billingRefundRequests.tenantId, input.tenantId), eq(billingRefundRequests.purchaseId, input.purchaseId)));
-    if (existingRequests.some((item) => item.status === 'PENDING' || item.status === 'APPROVED')) throw new Error('BILLING_REFUND_REQUEST_ALREADY_EXISTS');
     const lot = (await this.billing.getCreditLots(input.tenantId)).find((item) => item.purchaseId === input.purchaseId);
     const eligibleAmountCents = calculateRefundableCents({ purchaseAmountCents: purchase.amountCents, remainingCreditCents: lot?.remainingCents ?? 0 });
     const nowIso = new Date().toISOString();
-    const request = { id: randomUUID(), tenantId: input.tenantId, purchaseId: input.purchaseId, requestedBy: input.userId, status: 'PENDING', eligibleAmountCents, approvedAmountCents: null, reason: input.reason ?? null, reviewedBy: null, reviewedAt: null, createdAt: nowIso, updatedAt: nowIso };
-    await this.db.insert(billingRefundRequests).values(request);
-    return request;
+    const request = { id: randomUUID(), tenantId: input.tenantId, purchaseId: input.purchaseId, requestedBy: input.userId, status: 'PENDING', openKey: input.purchaseId, eligibleAmountCents, approvedAmountCents: null, reason: input.reason ?? null, reviewedBy: null, reviewedAt: null, createdAt: nowIso, updatedAt: nowIso };
+    try {
+      const created = await this.db.insert(billingRefundRequests).values(request).returning();
+      if (!created[0]) throw new Error('REFUND_REQUEST_CREATE_FAILED');
+      return created[0];
+    } catch (error) {
+      if (this.isRefundOpenKeyConflict(error)) {
+        throw new Error('REFUND_REQUEST_ALREADY_PENDING');
+      }
+      throw error;
+    }
   }
 
   public async listRefundRequests(tenantId?: string): Promise<Array<typeof billingRefundRequests.$inferSelect>> {
@@ -321,7 +329,7 @@ export class BillingOperationsService {
     if (request.status !== 'PENDING') throw new Error('BILLING_REFUND_REQUEST_ALREADY_REVIEWED');
     const now = new Date().toISOString();
     if (input.decision === 'REJECTED') {
-      await this.db.update(billingRefundRequests).set({ status: 'REJECTED', approvedAmountCents: 0, reason: input.reason ?? request.reason, reviewedBy: input.reviewerId, reviewedAt: now, updatedAt: now }).where(eq(billingRefundRequests.id, input.requestId));
+      await this.db.update(billingRefundRequests).set({ status: 'REJECTED', openKey: null, approvedAmountCents: 0, reason: input.reason ?? request.reason, reviewedBy: input.reviewerId, reviewedAt: now, updatedAt: now }).where(eq(billingRefundRequests.id, input.requestId));
       return (await this.db.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, input.requestId)))[0] as typeof request;
     }
     const approvedAmountCents = Math.min(request.eligibleAmountCents, input.approvedAmountCents ?? request.eligibleAmountCents);
@@ -331,7 +339,7 @@ export class BillingOperationsService {
     if (!purchase?.providerPaymentId) throw new Error('BILLING_PROVIDER_PAYMENT_NOT_FOUND');
     await this.provider.refundPayment({ providerPaymentId: purchase.providerPaymentId, amountCents: approvedAmountCents, idempotencyKey: `refund:${request.id}` });
     await this.billing.refundUnusedCredits({ tenantId: request.tenantId, purchaseId: request.purchaseId, amountCents: approvedAmountCents, idempotencyKey: `refund-ledger:${request.id}` });
-    await this.db.update(billingRefundRequests).set({ status: 'APPROVED', approvedAmountCents, reason: input.reason ?? request.reason, reviewedBy: input.reviewerId, reviewedAt: now, updatedAt: now }).where(eq(billingRefundRequests.id, input.requestId));
+    await this.db.update(billingRefundRequests).set({ status: 'APPROVED', openKey: null, approvedAmountCents, reason: input.reason ?? request.reason, reviewedBy: input.reviewerId, reviewedAt: now, updatedAt: now }).where(eq(billingRefundRequests.id, input.requestId));
     await this.db.update(billingPayments).set({ status: 'REFUNDED', updatedAt: now }).where(eq(billingPayments.purchaseId, request.purchaseId));
     return (await this.db.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, input.requestId)))[0] as typeof request;
   }
@@ -348,17 +356,38 @@ export class BillingOperationsService {
   private async completePurchase(purchaseId: string, object: Record<string, unknown>, provider = 'mercadopago'): Promise<void> {
     const purchases = await this.db.select().from(billingPurchases).where(eq(billingPurchases.id, purchaseId));
     const purchase = purchases[0];
-    if (!purchase || purchase.status === 'PAID') return;
+    if (!purchase || !['PENDING', 'PROCESSING'].includes(purchase.status)) return;
     const providerPaymentId = typeof object.provider_payment_id === 'string' ? object.provider_payment_id : null;
     await this.billing.creditPurchase({ tenantId: purchase.tenantId, purchaseId: purchase.id, amountCents: purchase.amountCents, idempotencyKey: `${provider}:purchase:${purchase.id}` });
     const now = new Date().toISOString();
-    await this.db.update(billingPurchases).set({ status: 'PAID', providerPaymentId, paidAt: now, receiptUrl: typeof object.receipt_url === 'string' ? object.receipt_url : null, updatedAt: now }).where(eq(billingPurchases.id, purchase.id));
+    await this.db.update(billingPurchases).set({ status: 'PAID', providerPaymentId, paidAt: now, receiptUrl: typeof object.receipt_url === 'string' ? object.receipt_url : null, updatedAt: now }).where(and(eq(billingPurchases.id, purchase.id), inArray(billingPurchases.status, ['PENDING', 'PROCESSING'])));
     if (providerPaymentId) await this.db.insert(billingPayments).values({ id: randomUUID(), tenantId: purchase.tenantId, purchaseId: purchase.id, provider, providerPaymentId, amountCents: purchase.amountCents, currency: purchase.currency, status: 'SUCCEEDED', paymentMethodType: null, createdAt: now, updatedAt: now }).onConflictDoNothing();
     await this.db.insert(billingInvoices).values({ id: randomUUID(), tenantId: purchase.tenantId, purchaseId: purchase.id, number: `FL-${purchase.id.slice(0, 8).toUpperCase()}`, status: 'PAID', amountCents: purchase.amountCents, currency: purchase.currency, receiptUrl: typeof object.receipt_url === 'string' ? object.receipt_url : null, issuedAt: now }).onConflictDoNothing({ target: billingInvoices.purchaseId });
     const metadata = typeof object.metadata === 'object' && object.metadata !== null ? object.metadata as Record<string, unknown> : {};
     if (metadata.auto_recharge === 'true') {
       await this.db.update(billingAccounts).set({ autoRechargeArmed: 1, updatedAt: now }).where(eq(billingAccounts.tenantId, purchase.tenantId));
     }
+  }
+
+  private async transitionPurchase(purchaseId: string, target: 'PROCESSING' | 'FAILED'): Promise<void> {
+    const allowedFrom = target === 'PROCESSING' ? ['PENDING'] : ['PENDING', 'PROCESSING'];
+    await this.db.update(billingPurchases)
+      .set({ status: target, updatedAt: new Date().toISOString() })
+      .where(and(eq(billingPurchases.id, purchaseId), inArray(billingPurchases.status, allowedFrom)));
+  }
+
+  private isRefundOpenKeyConflict(error: unknown): boolean {
+    let current: unknown = error;
+    while (current instanceof Error) {
+      const code = 'code' in current ? String(current.code) : '';
+      if (
+        code.includes('CONSTRAINT_UNIQUE') ||
+        current.message.includes('billing_refund_requests_tenant_open_unique') ||
+        current.message.includes('billing_refund_requests.tenant_id, billing_refund_requests.open_key')
+      ) return true;
+      current = 'cause' in current ? current.cause : undefined;
+    }
+    return false;
   }
 
   private purchaseResponse(purchase: typeof billingPurchases.$inferSelect) {

@@ -124,6 +124,42 @@ describe('BillingOperationsService', () => {
 
     await operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId });
 
-    await expect(operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId })).rejects.toThrow('BILLING_REFUND_REQUEST_ALREADY_EXISTS');
+    await expect(operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId })).rejects.toThrow('REFUND_REQUEST_ALREADY_PENDING');
+  });
+
+  it('serializa solicitações concorrentes de reembolso para a mesma compra', async () => {
+    const tenantId = `tenant_refund_concurrent_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
+    await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'payment.approved', data: { object: { payment_status: 'paid', provider_payment_id: `payment_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } });
+
+    const results = await Promise.allSettled([
+      operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId }),
+      operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId }),
+    ]);
+
+    expect(results.map((result) => result.status).sort()).toEqual(['fulfilled', 'rejected']);
+    const rejected = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+    expect(rejected?.reason).toMatchObject({ message: 'REFUND_REQUEST_ALREADY_PENDING' });
+  });
+
+  it('não regride compra paga quando recebe falha posterior', async () => {
+    const tenantId = `tenant_monotonic_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
+    const object = { provider_payment_id: `payment_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } };
+    await operations.processWebhook({ id: `evt_paid_${tenantId}`, type: 'payment.approved', data: { object: { ...object, payment_status: 'paid' } } });
+    await operations.processWebhook({ id: `evt_failed_${tenantId}`, type: 'payment.failed', data: { object } });
+
+    expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('PAID');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
+  });
+
+  it('processa simultaneamente o mesmo evento do provedor sem duplicar crédito', async () => {
+    const tenantId = `tenant_event_concurrent_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
+    const event = { id: `evt_concurrent_${tenantId}`, type: 'payment.approved', data: { object: { payment_status: 'paid', provider_payment_id: `payment_test_${tenantId}`, metadata: { purchase_id: purchase.purchaseId } } } };
+
+    await Promise.all([operations.processWebhook(event), operations.processWebhook(event)]);
+
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
   });
 });

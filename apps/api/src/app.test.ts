@@ -124,7 +124,14 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
   it('GET /readyz consulta a persistência e separa processo ativo de dependência indisponível', async () => {
     const readyResponse = await app.inject({ method: 'GET', url: '/readyz' });
     expect(readyResponse.statusCode).toBe(200);
-    expect(JSON.parse(readyResponse.body)).toMatchObject({ status: 'ready', checks: { persistence: true, billing: true } });
+    expect(JSON.parse(readyResponse.body)).toMatchObject({ status: 'ready', checks: {
+      persistence: true,
+      migrations: true,
+      billing: true,
+      source: true,
+      auth: true,
+      outbox: true,
+    } });
 
     const unavailableApp = await buildApp({
       database,
@@ -135,7 +142,14 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     try {
       const unavailableResponse = await unavailableApp.inject({ method: 'GET', url: '/readyz' });
       expect(unavailableResponse.statusCode).toBe(503);
-      expect(JSON.parse(unavailableResponse.body)).toMatchObject({ status: 'not_ready', checks: { persistence: false, billing: false } });
+      expect(JSON.parse(unavailableResponse.body)).toMatchObject({ status: 'not_ready', checks: {
+        persistence: false,
+        migrations: false,
+        billing: false,
+        source: false,
+        auth: false,
+        outbox: false,
+      } });
     } finally {
       await unavailableApp.close();
     }
@@ -229,7 +243,12 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
   });
 
   it('a configuração padrão deve falhar fechado sem credenciais de API', async () => {
-    const defaultApp = await buildApp({ environment: { NODE_ENV: 'production' } });
+    const defaultApp = await buildApp({
+      database,
+      databaseClient: client,
+      ledgerService,
+      environment: { NODE_ENV: 'production', FORGELEX_WEBHOOK_MASTER_KEY: 'test-webhook-master-key' },
+    });
 
     try {
       const response = await defaultApp.inject({
@@ -387,6 +406,10 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       type: 'object', required: ['code', 'searchable', 'verifiable', 'status', 'providerId'],
     });
     expect(body.components.schemas.ErrorResponse).toMatchObject({ type: 'object', required: ['error', 'message'] });
+    expect(body.paths['/api/v2/review-queue'].get.responses['200'].content['application/json'].schema.$ref).toBe('#/components/schemas/ReviewQueueResponse');
+    expect(body.paths['/api/v2/research/history'].get.responses['200'].content['application/json'].schema.$ref).toBe('#/components/schemas/ResearchHistoryResponse');
+    expect(body.paths['/readyz'].get.responses['200'].content['application/json'].schema.$ref).toBe('#/components/schemas/OperationalStatusResponse');
+    expect(body.paths['/api/v2/review-queue'].get.responses['404'].content['application/json'].schema.$ref).toBe('#/components/schemas/ErrorResponse');
     expect(body.paths['/api/v2/research/search-case-law'].post.responses['400'].content['application/json'].schema).toEqual({
       $ref: '#/components/schemas/ErrorResponse',
     });
@@ -418,6 +441,33 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(response.headers['x-forgelex-billing-mode']).toBe('METERED');
     expect(response.headers['x-billable-units']).toBe('1');
     expect(JSON.parse(response.body).total).toBeGreaterThan(0);
+  });
+
+  it('persiste histórico concluído uma vez por operação e o isola por tenant e escopo', async () => {
+    const idempotencyKey = 'history-rest-001';
+    const payload = { query: 'vazamento de dados', court: 'STJ', limit: 5 };
+    await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers: { ...authHeaders, 'idempotency-key': idempotencyKey }, payload });
+    await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers: { ...authHeaders, 'idempotency-key': idempotencyKey }, payload });
+
+    const history = await app.inject({ method: 'GET', url: '/api/v2/research/history', headers: authHeaders });
+    const tenantB = await app.inject({ method: 'GET', url: '/api/v2/research/history', headers: { authorization: 'Bearer tenant-b-token' } });
+    const missingScope = await app.inject({ method: 'GET', url: '/api/v2/research/history', headers: { authorization: 'Bearer mcp-only-token' } });
+
+    expect(history.statusCode).toBe(200);
+    expect(JSON.parse(history.body).items.filter((item: { operationId: string }) => item.operationId === idempotencyKey)).toHaveLength(1);
+    expect(JSON.parse(tenantB.body)).toEqual({ items: [], total: 0 });
+    expect(missingScope.statusCode).toBe(403);
+  });
+
+  it('expõe fila de revisão isolada e sem credenciais de decisão', async () => {
+    const queue = await app.inject({ method: 'GET', url: '/api/v2/review-queue', headers: authHeaders });
+    const tenantB = await app.inject({ method: 'GET', url: '/api/v2/review-queue', headers: { authorization: 'Bearer tenant-b-token' } });
+    const missingScope = await app.inject({ method: 'GET', url: '/api/v2/review-queue', headers: { authorization: 'Bearer mcp-only-token' } });
+
+    expect(queue.statusCode).toBe(200);
+    expect(JSON.parse(queue.body).items.every((item: object) => !('token' in item))).toBe(true);
+    expect(JSON.parse(tenantB.body)).toEqual({ items: [], total: 0 });
+    expect(missingScope.statusCode).toBe(403);
   });
 
   it('mantém a busca comercial no índice persistido mesmo quando o provider live falha', async () => {
