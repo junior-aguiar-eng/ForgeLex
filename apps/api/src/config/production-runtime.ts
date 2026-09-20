@@ -6,6 +6,17 @@ export interface ProductionRuntime {
   metricsToken: string;
 }
 
+export function startupErrorForLog(error: unknown): Readonly<{ name: string; code: string }> {
+  if (!(error instanceof Error)) return Object.freeze({ name: 'UnknownError', code: 'STARTUP_FAILED' });
+  const candidate = error as Error & { code?: unknown };
+  return Object.freeze({
+    name: error.name || 'Error',
+    code: typeof candidate.code === 'string' && /^[A-Z0-9_]+$/.test(candidate.code)
+      ? candidate.code
+      : 'STARTUP_FAILED',
+  });
+}
+
 export function resolveProductionRuntime(
   environment: Record<string, string | undefined>,
 ): Readonly<ProductionRuntime> {

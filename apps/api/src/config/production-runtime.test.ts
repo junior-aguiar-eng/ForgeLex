@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveProductionRuntime } from './production-runtime.js';
+import { resolveProductionRuntime, startupErrorForLog } from './production-runtime.js';
 
 const validEnvironment = {
   NODE_ENV: 'production',
@@ -45,5 +45,14 @@ describe('resolveProductionRuntime', () => {
       metricsToken: 'metrics-secret',
     });
     expect(Object.isFrozen(runtime)).toBe(true);
+  });
+});
+
+describe('startupErrorForLog', () => {
+  it('não inclui mensagem, stack ou URL com credenciais', () => {
+    const error = Object.assign(new TypeError('postgresql://user:secret@localhost/db'), { code: 'ERR_INVALID_URL' });
+    const safe = startupErrorForLog(error);
+    expect(safe).toEqual({ name: 'TypeError', code: 'ERR_INVALID_URL' });
+    expect(JSON.stringify(safe)).not.toMatch(/secret|postgresql|localhost/);
   });
 });

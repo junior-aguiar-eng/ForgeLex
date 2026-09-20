@@ -38,7 +38,7 @@ gcloud sql users set-password "$SQL_USER" --instance="$SQL_INSTANCE" --password=
 
 CONNECTION_NAME="$(gcloud sql instances describe "$SQL_INSTANCE" --project="$PROJECT_ID" --format='value(connectionName)')"
 ENCODED_DB_PASSWORD="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$FORGELEX_PHASE8_DB_PASSWORD")"
-DATABASE_URL="postgresql://$SQL_USER:$ENCODED_DB_PASSWORD@/$SQL_DATABASE?host=/cloudsql/$CONNECTION_NAME"
+DATABASE_URL="postgresql://$SQL_USER:$ENCODED_DB_PASSWORD@localhost/$SQL_DATABASE?host=/cloudsql/$CONNECTION_NAME"
 put_secret() {
   local name="$1" value="$2"
   gcloud secrets describe "$name" --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud secrets create "$name" --replication-policy=automatic --labels="$LABELS" --project="$PROJECT_ID"

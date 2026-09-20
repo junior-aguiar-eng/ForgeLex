@@ -1,5 +1,5 @@
 import { buildApp } from './app.js';
-import { resolveProductionRuntime } from './config/production-runtime.js';
+import { resolveProductionRuntime, startupErrorForLog } from './config/production-runtime.js';
 import { installGracefulShutdown } from './graceful-shutdown.js';
 
 const runtime = process.env.NODE_ENV === 'production'
@@ -16,7 +16,7 @@ async function start() {
     installGracefulShutdown(app);
     console.log(`[FORGELEX API] Servidor iniciado com sucesso em http://${runtime.host}:${runtime.port}`);
   } catch (err) {
-    console.error('[FORGELEX API] Erro fatal ao iniciar:', err);
+    console.error('[FORGELEX API] Erro fatal ao iniciar:', startupErrorForLog(err));
     process.exit(1);
   }
 }
