@@ -10,6 +10,23 @@ export const CUSTOM_AMOUNT_MIN_CENTS = 2_500;
 export const CUSTOM_AMOUNT_MAX_CENTS = 50_000;
 export const AUTO_RECHARGE_THRESHOLD_CENTS = 500;
 
+export type ForgeLexBillingPolicy =
+  | { mode: 'METERED'; costCents: typeof JURISPRUDENCE_SEARCH_COST_CENTS }
+  | { mode: 'FREE' };
+
+const FORGELEX_BILLING_POLICIES: Readonly<Record<string, ForgeLexBillingPolicy>> = {
+  'research.search_case_law': { mode: 'METERED', costCents: JURISPRUDENCE_SEARCH_COST_CENTS },
+  'research.get_authority': { mode: 'FREE' },
+  'research.verify_authority': { mode: 'FREE' },
+  'research.generate_memo': { mode: 'FREE' },
+};
+
+export function getForgeLexBillingPolicy(capability: string): ForgeLexBillingPolicy {
+  const policy = FORGELEX_BILLING_POLICIES[capability];
+  if (!policy) throw new Error('BILLING_POLICY_UNDECLARED');
+  return policy;
+}
+
 export interface CreditPurchaseInput {
   packageId?: string;
   amountCents?: number;

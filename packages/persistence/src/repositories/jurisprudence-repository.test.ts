@@ -64,6 +64,8 @@ function createDocument(overrides: Partial<JurisprudenceDocument> = {}): Jurispr
 }
 
 describe('JurisprudenceRepository', () => {
+  const localPostgresUrl = process.env.FORGELEX_LOCAL_POSTGRES_URL;
+  const hasLocalPostgres = Boolean(localPostgresUrl && /^postgres(?:ql)?:\/\/(?:[^/]+@)?(?:localhost|127\.0\.0\.1)(?::\d+)?\//i.test(localPostgresUrl));
   let db: ForgeLexDatabase;
   let client: Client;
   let repository: JurisprudenceRepository;
@@ -77,7 +79,9 @@ describe('JurisprudenceRepository', () => {
     client = connection.client;
     await runPersistenceMigrations(client);
     repository = new JurisprudenceRepository(db);
-    runId = (await new IngestionRunRepository(db).start({ providerId: 'provider_stj_scon', court: 'STJ' })).id;
+    const ingestionRuns = new IngestionRunRepository(db);
+    runId = (await ingestionRuns.start({ providerId: 'provider_stj_scon', court: 'STJ' })).id;
+    await ingestionRuns.complete(runId, { documentsSeen: 0, documentsPublished: 0 });
   });
 
   afterEach(() => {
@@ -104,6 +108,71 @@ describe('JurisprudenceRepository', () => {
     const tenantAView = await repository.search({ query: 'responsabilidade', court: 'STJ', limit: 10 });
     const tenantBView = await repository.search({ query: 'responsabilidade', court: 'STJ', limit: 10 });
     expect(tenantAView).toEqual(tenantBView);
+  });
+
+  it('pesquisa texto normalizado sem materializar uma linha por termo', async () => {
+    const document = createDocument({
+      syllabus: 'RESPONSABILIDADE CIVIL. Dano moral por cobrança indevida.',
+    });
+    await repository.upsertDocument({ document, ingestionRunId: runId });
+
+    expect(await repository.search({ query: 'cobranca indevida', court: 'STJ', limit: 10 })).toHaveLength(1);
+    const rows = await client.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'jurisprudence_document_terms'");
+    expect(rows.rows).toHaveLength(0);
+  });
+
+  it('preserva busca por palavra inteira na projeção compacta', async () => {
+    await repository.upsertDocument({
+      document: createDocument({ syllabus: 'RESPONSABILIDADE CIVIL. DANO MORAL.' }),
+      ingestionRunId: runId,
+    });
+
+    expect(await repository.search({ query: 'moral', court: 'STJ', limit: 10 })).toHaveLength(1);
+    expect(await repository.search({ query: 'mora', court: 'STJ', limit: 10 })).toHaveLength(0);
+  });
+
+  it('prioriza identidade processual sobre ocorrência apenas na ementa', async () => {
+    const identityMatch = createDocument({
+      id: '12121212-1212-4121-8121-121212121212',
+      processNumber: 'Especial 123',
+      processClass: 'Especial',
+      judgmentDate: '2020-01-01',
+      dedupeKey: generateDedupeKey('STJ', 'Especial 123', '2020-01-01'),
+      syllabus: 'DIREITO CIVIL. RESPONSABILIDADE CONTRATUAL.',
+    });
+    const syllabusMatch = createDocument({
+      id: '34343434-3434-4343-8343-343434343434',
+      processNumber: 'REsp 999',
+      processClass: 'REsp',
+      judgmentDate: '2025-01-01',
+      dedupeKey: generateDedupeKey('STJ', 'REsp 999', '2025-01-01'),
+      syllabus: 'DIREITO ESPECIAL. OCORRÊNCIA APENAS NA EMENTA.',
+    });
+    await repository.upsertDocuments({ documents: [identityMatch, syllabusMatch], ingestionRunId: runId });
+
+    const results = await repository.search({ query: 'especial', court: 'STJ', limit: 10 });
+    expect(results.map((result) => result.id)).toEqual([identityMatch.id, syllabusMatch.id]);
+  });
+
+  it('preserva consulta por frase exata no índice full-text', async () => {
+    const phraseMatch = createDocument({
+      id: '90909090-9090-4909-8909-909090909090',
+      processNumber: 'REsp 100',
+      dedupeKey: generateDedupeKey('STJ', 'REsp 100', '2024-01-01'),
+      judgmentDate: '2024-01-01',
+      syllabus: 'INDENIZAÇÃO POR DANO MORAL CONFIGURADA.',
+    });
+    const separatedTerms = createDocument({
+      id: '91919191-9191-4919-8919-919191919191',
+      processNumber: 'REsp 101',
+      dedupeKey: generateDedupeKey('STJ', 'REsp 101', '2025-01-01'),
+      judgmentDate: '2025-01-01',
+      syllabus: 'DANO MATERIAL E REPERCUSSÃO MORAL.',
+    });
+    await repository.upsertDocuments({ documents: [phraseMatch, separatedTerms], ingestionRunId: runId });
+
+    const results = await repository.search({ query: '"dano moral"', court: 'STJ', limit: 10 });
+    expect(results.map((result) => result.id)).toEqual([phraseMatch.id]);
   });
 
   it('faz upsert idempotente e cria nova versão somente quando o hash muda', async () => {
@@ -182,5 +251,41 @@ describe('JurisprudenceRepository', () => {
 
     expect(await repository.search({ query: 'responsabilidade', court: 'STJ', limit: 10 })).toEqual([]);
     expect(await repository.listVersions(first.id)).toEqual([]);
+  });
+
+  it.skipIf(!hasLocalPostgres)('usa ranking full-text e índice GIN no PostgreSQL local', async () => {
+    const connection = await createDatabase({ url: localPostgresUrl! });
+    try {
+      await runPersistenceMigrations(connection.client);
+      await connection.client.execute('TRUNCATE TABLE jurisprudence_ingestion_staging, jurisprudence_source_manifests, jurisprudence_document_versions, jurisprudence_documents, jurisprudence_ingestion_runs');
+      const postgresRepository = new JurisprudenceRepository(connection.db);
+      const ingestionRuns = new IngestionRunRepository(connection.db);
+      const postgresRunId = (await ingestionRuns.start({ providerId: 'provider_stj_open_data', court: 'STJ' })).id;
+      await ingestionRuns.complete(postgresRunId, { documentsSeen: 2, documentsPublished: 2 });
+      const identityMatch = createDocument({
+        id: '56565656-5656-4565-8565-565656565656',
+        processNumber: 'Especial 456',
+        processClass: 'Especial',
+        judgmentDate: '2020-01-01',
+        dedupeKey: generateDedupeKey('STJ', 'Especial 456', '2020-01-01'),
+        syllabus: 'DIREITO CIVIL. RESPONSABILIDADE CONTRATUAL.',
+      });
+      const syllabusMatch = createDocument({
+        id: '78787878-7878-4787-8787-787878787878',
+        processNumber: 'REsp 456',
+        processClass: 'REsp',
+        judgmentDate: '2025-01-01',
+        dedupeKey: generateDedupeKey('STJ', 'REsp 456', '2025-01-01'),
+        syllabus: 'DIREITO ESPECIAL. COBRANÇA INDEVIDA.',
+      });
+      await postgresRepository.upsertDocuments({ documents: [identityMatch, syllabusMatch], ingestionRunId: postgresRunId });
+
+      const results = await postgresRepository.search({ query: 'especial', court: 'STJ', limit: 10 });
+      expect(results.map((result) => result.id)).toEqual([identityMatch.id, syllabusMatch.id]);
+      await expect(postgresRepository.search({ query: 'cobranca', court: 'STJ', limit: 10 })).resolves.toHaveLength(1);
+    } finally {
+      await connection.client.execute('TRUNCATE TABLE jurisprudence_ingestion_staging, jurisprudence_source_manifests, jurisprudence_document_versions, jurisprudence_documents, jurisprudence_ingestion_runs');
+      connection.client.close();
+    }
   });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { buildApp } from './app.js';
 import { FastifyInstance } from 'fastify';
 import { AuthAdapter, hashApiKey } from './auth/fastify-auth.js';
@@ -138,6 +138,34 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       expect(JSON.parse(unavailableResponse.body)).toMatchObject({ status: 'not_ready', checks: { persistence: false, billing: false } });
     } finally {
       await unavailableApp.close();
+    }
+  });
+
+  it('recusa pesquisa comercial sem data plane persistido antes de debitar ou consultar provider live', async () => {
+    const sourceRouter = new SourceRouter();
+    sourceRouter.registerProvider(new CanonicalFixtureProvider());
+    const appWithoutPersistence = await buildApp({
+      authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
+      ledgerService,
+      sourceRouter,
+      environment: { NODE_ENV: 'test' },
+    });
+    const balanceBefore = await ledgerService.getAvailableBalanceCents('tenant_test');
+
+    try {
+      const response = await appWithoutPersistence.inject({
+        method: 'POST',
+        url: '/api/v2/research/search-case-law',
+        headers: { ...authHeaders, 'idempotency-key': 'missing-data-plane-001' },
+        payload: { query: 'vazamento de dados', court: 'STJ', limit: 5 },
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(JSON.parse(response.body)).toMatchObject({ error: 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE' });
+      expect(await ledgerService.getAvailableBalanceCents('tenant_test')).toBe(balanceBefore);
+      expect((await ledgerService.getUsageEvents('tenant_test')).some((event) => event.requestId === 'missing-data-plane-001')).toBe(false);
+    } finally {
+      await appWithoutPersistence.close();
     }
   });
 
@@ -314,7 +342,12 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(body.openapi).toBe('3.1.0');
     expect(body.paths['/api/v2/research/search-case-law'].post['x-forgelex-tool']).toBe('research.search_case_law');
     expect(body.paths['/api/v2/research/search-case-law'].post.parameters).toContainEqual(expect.objectContaining({ name: 'Idempotency-Key', required: true }));
-    expect(body.paths['/api/v2/research/search-case-law'].post.description).toContain('infraestrutura STJ');
+    expect(body.paths['/api/v2/research/search-case-law'].post.description).toContain('R$ 0,20');
+    expect(body.paths['/api/v2/research/search-case-law'].post.responses['200'].headers['X-ForgeLex-Billing-Mode']).toBeDefined();
+    expect(body.paths['/api/v2/research/search-case-law'].post.responses['200'].headers['X-Billable-Units']).toBeDefined();
+    expect(body.paths['/api/v2/research/verify-authority'].post.description).toContain('não gera débito');
+    expect(body.paths['/api/v2/research/verify-authority'].post.responses['200'].headers['X-Billable-Units']).toBeUndefined();
+    expect(body.paths['/api/v2/matters/{matterId}/research-memos'].post.description).toContain('não tem preço próprio');
     expect(body.paths['/api/v2/research/search-case-law'].post.responses['422']).toBeDefined();
     expect(body.paths['/api/v2/matters/{matterId}/authorities'].post['x-forgelex-required-scopes']).toEqual(['matter:write']);
     expect(body.paths['/api/v2/matters/{matterId}/research-memos'].post['x-forgelex-required-scopes']).toEqual(['matter:write', 'research:read']);
@@ -333,8 +366,73 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     });
 
     expect(response.statusCode).toBe(200);
+    expect(response.headers['x-forgelex-billing-mode']).toBe('METERED');
     expect(response.headers['x-billable-units']).toBe('1');
     expect(JSON.parse(response.body).total).toBeGreaterThan(0);
+  });
+
+  it('mantém a busca comercial no índice persistido mesmo quando o provider live falha', async () => {
+    const liveSearch = vi.fn(async () => { throw new Error('SCON live must not be called'); });
+    const failingRouter = new SourceRouter();
+    failingRouter.registerProvider({
+      id: 'provider_stj_scon',
+      name: 'STJ SCON indisponível',
+      isOfficial: true,
+      supportsCourt: (court) => court.trim().toUpperCase() === 'STJ',
+      search: liveSearch,
+    });
+    const persistedApp = await buildApp({
+      authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
+      ledgerService,
+      database,
+      databaseClient: client,
+      sourceRouter: failingRouter,
+      auditRecorder,
+      environment: { NODE_ENV: 'test', FORGELEX_WEBHOOK_MASTER_KEY: 'test-webhook-master-key' },
+    });
+    try {
+      const response = await persistedApp.inject({
+        method: 'POST',
+        url: '/api/v2/research/search-case-law',
+        headers: { ...authHeaders, 'idempotency-key': 'persisted-index-with-live-failure-001' },
+        payload: { query: 'vazamento de dados', court: 'STJ', limit: 5 },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body).results[0].provenance.source.provider).toBe('provider_canonical_fixtures');
+      expect(liveSearch).not.toHaveBeenCalled();
+    } finally {
+      await persistedApp.close();
+    }
+  });
+
+  it('REST e MCP devolvem os mesmos documentos e proveniência a partir do índice persistido', async () => {
+    const restResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v2/research/search-case-law',
+      headers: { ...authHeaders, 'idempotency-key': 'parity-rest-001' },
+      payload: { query: 'vazamento de dados', court: 'STJ', limit: 5 },
+    });
+    const mcpResponse = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { ...authHeaders, 'idempotency-key': 'parity-mcp-001' },
+      payload: {
+        jsonrpc: '2.0',
+        id: 'parity-mcp',
+        method: 'tools/call',
+        params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados', court: 'STJ', limit: 5 } },
+      },
+    });
+
+    const rest = JSON.parse(restResponse.body);
+    const mcp = JSON.parse(JSON.parse(mcpResponse.body).result.content[0].text).data;
+    expect(restResponse.statusCode).toBe(200);
+    expect(mcpResponse.statusCode).toBe(200);
+    expect(mcp.items).toEqual(rest.results);
+    expect(mcp.total).toBe(rest.total);
+    expect(mcp.queryExecuted).toBe(rest.query);
+    expect(mcp.courtFilter).toBe(rest.court);
   });
 
   it('deve concluir o primeiro vertical slice comercial com authority salva, billing, auditoria e MCP', async () => {
@@ -699,8 +797,8 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       'draft.approval.resolved',
       'research.authority.verified',
     ]));
-    expect(eventTypes.filter((type) => type === 'billing.usage.recorded')).toHaveLength(2);
-    expect(eventTypes.filter((type) => type === 'billing.debit.recorded')).toHaveLength(2);
+    expect(eventTypes.filter((type) => type === 'billing.usage.recorded')).toHaveLength(1);
+    expect(eventTypes.filter((type) => type === 'billing.debit.recorded')).toHaveLength(1);
   });
 
   it('deve ingerir texto e devolver versão, hash e âncoras do documento', async () => {
@@ -976,9 +1074,12 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       },
     });
     expect(memoResponse.statusCode).toBe(200);
+    expect(memoResponse.headers['x-forgelex-billing-mode']).toBe('FREE');
+    expect(memoResponse.headers['x-credits-charged']).toBe('0');
+    expect(memoResponse.headers['x-billable-units']).toBeUndefined();
     const generated = JSON.parse(memoResponse.body);
     expect(generated).toMatchObject({
-      billed: true,
+      billed: false,
       idempotentReplay: false,
       record: { matterId: matter.id, status: 'PENDING_HUMAN_REVIEW', issueIds: [issue.id] },
       context: { documentCount: 1, factCount: 1, evidenceCount: 1 },
@@ -994,6 +1095,8 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       payload: { query: 'comunicação de incidente e dano moral', issueIds: [issue.id], court: 'STJ', limit: 5 },
     });
     expect(replayResponse.statusCode).toBe(200);
+    expect(replayResponse.headers['x-forgelex-billing-mode']).toBe('FREE');
+    expect(replayResponse.headers['x-idempotent-replay']).toBe('false');
     expect(JSON.parse(replayResponse.body)).toMatchObject({ billed: false, idempotentReplay: true, record: { id: generated.record.id } });
 
     const reviewResponse = await app.inject({
@@ -1006,7 +1109,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(JSON.parse(reviewResponse.body)).toMatchObject({ record: { status: 'APPROVED' }, memo: { verifiedByHuman: true } });
 
     const usage = await ledgerService.getUsageEvents('tenant_test');
-    expect(usage.filter((event) => event.requestId === idempotencyKey && event.capability === 'research.generate_memo')).toHaveLength(1);
+    expect(usage.filter((event) => event.requestId === idempotencyKey && event.capability === 'research.generate_memo')).toHaveLength(0);
     expect((await auditRecorder.getLogsForSession(`memo_${idempotencyKey}`)).map((log) => log.toolName)).toContain('research.memo.generated');
 
     const otherTenantResponse = await app.inject({
@@ -1238,7 +1341,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(body.results[0].court).toBe('STJ');
   });
 
-  it('POST /api/v2/research/verify-authority deve verificar metadados e faturar a operação', async () => {
+  it('POST /api/v2/research/verify-authority deve verificar metadados sem faturar a operação', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v2/research/verify-authority',
@@ -1254,11 +1357,17 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.headers['x-credits-charged']).toBe('0.2');
+    expect(response.headers['x-forgelex-billing-mode']).toBe('FREE');
+    expect(response.headers['x-credits-charged']).toBe('0');
+    expect(response.headers['x-idempotent-replay']).toBe('false');
+    expect(response.headers['x-billable-units']).toBeUndefined();
     expect(JSON.parse(response.body)).toMatchObject({
       status: 'VERIFIED_OFFICIAL',
       authority: { processNumber: 'REsp 1.823.450/SP' },
     });
+
+    const usage = await ledgerService.getUsageEvents('tenant_test');
+    expect(usage.filter((event) => event.requestId === 'test_verify_authority_101')).toHaveLength(0);
 
     const auditLogs = await auditRecorder.getLogsForSession('rest_test_verify_authority_101');
     expect(auditLogs).toHaveLength(1);

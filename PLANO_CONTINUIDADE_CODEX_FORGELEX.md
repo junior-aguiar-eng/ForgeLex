@@ -1,5 +1,12 @@
 # FORGELEX — Plano de Continuidade para Codex
 
+> **Nota de governança documental (2026-09-19):** este arquivo é um roadmap
+> histórico. Sua ordem P0–P6, suas prioridades e referências antigas a
+> `R$ 0,15` não governam a execução atual. O plano canônico é o arquivo
+> `Plano de conclusão progressiva do F.md` no SDK, que mantém o STJ como único
+> tribunal das Fases 0 a 8, exige o gate integral do data plane e fixa R$ 0,20
+> somente para `research.search_case_law`.
+
 > **Repositório:** `junior-aguiar-eng/ForgeLex`  
 > **Base auditada:** `main` — commit `8a7f1618c754e309d0aacd88b7ac46a86cb19cea`  
 > **Natureza deste plano:** continuidade evolutiva. Não refundar o projeto. Aproveitar ao máximo o código existente, corrigir pontos provisórios e completar as capacidades pendentes do documento mestre V2.

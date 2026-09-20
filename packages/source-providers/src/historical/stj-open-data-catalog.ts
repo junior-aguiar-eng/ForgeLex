@@ -37,7 +37,17 @@ interface StjOpenDataPackage {
   resources: StjOpenDataResource[];
 }
 
-export type StjHistoricalResourceRole = 'HISTORICAL_SNAPSHOT' | 'INCREMENTAL';
+export type StjHistoricalResourceRole = 'HISTORICAL_SNAPSHOT' | 'INCREMENTAL' | 'UNCLASSIFIED';
+
+export interface StjUnclassifiedResource {
+  datasetId: string;
+  datasetTitle: string;
+  resourceId: string;
+  name: string;
+  format: string;
+  url: string;
+  reason: string;
+}
 
 export interface StjHistoricalResource {
   datasetId: string;
@@ -54,6 +64,7 @@ export interface StjHistoricalCoveragePlan {
   datasets: string[];
   resources: StjHistoricalResource[];
   unclassifiedResources: string[];
+  unclassifiedResourceDetails: StjUnclassifiedResource[];
   warnings: string[];
 }
 
@@ -100,6 +111,7 @@ export class StjOpenDataCatalog {
   public async discover(datasetIds: readonly string[] = STJ_OPEN_DATA_DATASET_IDS): Promise<StjHistoricalCoveragePlan> {
     const resources: StjHistoricalResource[] = [];
     const unclassifiedResources: string[] = [];
+    const unclassifiedResourceDetails: StjUnclassifiedResource[] = [];
     const warnings: string[] = [];
 
     for (const datasetId of datasetIds) {
@@ -118,7 +130,18 @@ export class StjOpenDataCatalog {
 
       const dataResourceIds = new Set(dataResources.map((item) => item.resource.id));
       for (const resource of parsedResources) {
-        if (!dataResourceIds.has(resource.id)) unclassifiedResources.push(resource.name || resource.id);
+        if (!dataResourceIds.has(resource.id)) {
+          unclassifiedResources.push(resource.name || resource.id);
+          unclassifiedResourceDetails.push({
+            datasetId,
+            datasetTitle: packageData.title,
+            resourceId: resource.id,
+            name: resource.name || resource.id,
+            format: resource.format,
+            url: resource.url,
+            reason: 'RESOURCE_NAME_OR_FORMAT_NOT_ENUMERABLE',
+          });
+        }
       }
       if (dataResources.length === 0) {
         warnings.push(`NO_ENUMERABLE_RESOURCES:${datasetId}`);
@@ -142,6 +165,6 @@ export class StjOpenDataCatalog {
       });
     }
 
-    return { datasets: [...datasetIds], resources, unclassifiedResources, warnings };
+    return { datasets: [...datasetIds], resources, unclassifiedResources, unclassifiedResourceDetails, warnings };
   }
 }

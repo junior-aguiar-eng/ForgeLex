@@ -4,7 +4,7 @@
 > Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-165%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/Tests-209%20Passing-brightgreen.svg)](https://vitest.dev/)
 [![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -24,17 +24,22 @@ O **FORGELEX V2** foi construído para superar as limitações das ferramentas j
 5. **Ledger Contábil de Dupla Carteira (Apêndice Q):** Controle de saldo pago vs promocional com prevenção a dupla cobrança por replay idempotente.
 6. **Integração MCP:** Gateway JSON-RPC 2.0 autenticado, com pacote externo allowlisted e sem exposição de ferramentas internas por padrão.
 
-### Pesquisa jurídica com proveniência condicionada
+### Pesquisa jurídica sobre índice próprio persistido
 
-O caminho de integração produtivo usa o `StjSconProvider`, configurado para
-consultar o SCON oficial do STJ, normalizar metadados e gerar
-`contentHash`/`dedupeKey`. Ele falha explicitamente quando a fonte está
-indisponível ou bloqueia automação. O endpoint
-`POST /api/v2/research/verify-authority` reaproveita o mesmo serviço, com
-cobrança idempotente e evento de auditoria. O endereço-base pode ser
-substituído por `FORGELEX_STJ_SCON_BASE_URL`; a chamada externa não foi
-validada neste ambiente e fixtures permanecem restritas a testes e workflows
-determinísticos.
+O Portal de Dados Abertos do STJ e o SCON são fontes oficiais de aquisição,
+verificação e atualização. Depois de persistidos os documentos, versões,
+hashes, proveniência e manifestos, a busca comercial REST/MCP consulta o índice
+próprio do ForgeLex; não consulta o `StjSconProvider` live como caminho normal
+de resposta. O SCON permanece disponível para aquisição, health check ou
+verificação técnica. O endereço-base pode ser substituído por
+`FORGELEX_STJ_SCON_BASE_URL`; fixtures permanecem restritas a testes e
+workflows determinísticos.
+
+A pesquisa persistida usa índice full-text nativo: FTS5 ponderado no SQLite e
+`tsvector` com GIN no PostgreSQL. Identidade processual, autoridade e conteúdo
+recebem pesos distintos; não existe tabela relacional com uma linha por termo.
+O staging de carga concluída é descartado transacionalmente, enquanto cargas
+falhas preservam staging para diagnóstico explícito.
 
 ### Facts & Evidence
 
@@ -100,7 +105,7 @@ O frontend foi desenvolvido reproduzindo rigorosamente o design system editorial
 * **Paleta:** Marfim quente (`#FBF9F5`), conhaque imperial (`#8E5D2A`) e bordas champanhe (`rgba(180, 150, 110, 0.22)`).
 * **Tipografia:** Serifada editorial clássica combinada com interface moderna sans-serif.
 * **Telas Implementadas:**
-  1. `Landing Page`: abertura de caso e barra de busca forense ao vivo (R$ 0,20/busca).
+  1. `Landing Page`: abertura de caso e barra de busca forense sobre o índice persistido (R$ 0,20/busca).
   2. `Painel do Advogado`: 4 cartões de métricas, gráfico de 30 dias e fila de aprovação L4.
   3. `Canais de acesso`: MCP no ChatGPT/Claude e API REST no software do desenvolvedor.
   4. `Créditos & Faturamento`: Estado explícito de conta, sem saldo ou checkout presumidos.
@@ -142,6 +147,13 @@ A pesquisa comercial desta fase está habilitada somente para o STJ. O catálogo
 pode listar outros tribunais como `UNAVAILABLE`, mas API, MCP e interface não
 anunciam esses tribunais como fontes pesquisáveis até que tenham provider e
 capability próprios homologados.
+
+O billing da fase é fechado por capability: `research.search_case_law` custa
+R$ 0,20 por execução válida; `research.get_authority`,
+`research.verify_authority` e `research.generate_memo` permanecem sem preço e
+sem débito financeiro. Essas operações gratuitas exigem `Idempotency-Key` para
+rastreabilidade, mas não geram replay financeiro, `DEBIT`, `UsageEvent`
+financeiro ou webhook de billing.
 
 ### Pré-requisitos
 * Node.js >= 20.x (Recomendado Node 22+)
@@ -276,7 +288,8 @@ arquivos ou histórico do usuário.
 O contrato REST gerado está disponível em `GET /openapi.json` e
 `GET /api/v2/openapi.json`. A superfície canônica de pesquisa é
 `POST /api/v2/research/search-case-law`; ela usa o mesmo `ResearchService`,
-ledger idempotente e auditoria da capability exposta pelo MCP.
+índice persistido, auditoria e política de billing da capability exposta pelo
+MCP. Só a busca gera débito; as operações gratuitas preservam o saldo.
 
 Na fase inicial, `GET /api/v2/tribunals` informa a capability real de cada
 fonte: somente o STJ aparece como `searchable` e `verifiable`. As operações
@@ -310,8 +323,9 @@ do destino ainda depende de configuração e disponibilidade do ambiente.
 
 O Matter Workspace agora percorre o segundo slice no mesmo matter: registra
 documentos textuais com âncoras, fatos e provas, mapeia suporte, delimita
-questões jurídicas, executa pesquisa faturável, persiste o `research memo` e
-registra a decisão humana como `APPROVED` ou `REJECTED`. As rotas são:
+questões jurídicas, consulta o índice persistido sem preço próprio para o
+workflow de memo, persiste o `research memo` e registra a decisão humana como
+`APPROVED` ou `REJECTED`. As rotas são:
 
 ```text
 GET/POST /api/v2/matters/{matterId}/issues
@@ -319,8 +333,9 @@ GET/POST /api/v2/matters/{matterId}/research-memos
 POST     /api/v2/matters/{matterId}/research-memos/{memoId}/review
 ```
 
-O memo é idempotente por `Idempotency-Key`, mantém a proveniência retornada
-pela fonte e não confunde fixture de teste com validação externa.
+O memo exige `Idempotency-Key` para rastreabilidade, mantém a proveniência
+retornada pelo índice persistido e não confunde fixture de teste com validação
+externa. Nesta fase, não possui preço próprio nem gera débito de workflow.
 
 ### Terceiro vertical slice
 
@@ -346,40 +361,15 @@ provider externo.
 
 ## 🧪 Suíte de Testes Automatizados
 
-```bash
-$ vitest run
+```text
+pnpm test
 
- ✓ packages/audit/src/audit-recorder.test.ts (4 tests)
- ✓ packages/legal-tools/src/facts-evidence/facts-evidence-tools.test.ts (1 test)
- ✓ packages/legal-tools/src/drafting-review.test.ts (1 test)
- ✓ packages/persistence/src/persistence.test.ts (9 tests)
- ✓ packages/billing-ledger/src/ledger.test.ts (7 tests)
- ✓ packages/legal-workflows/src/workflow-engine.test.ts (3 tests)
- ✓ packages/mcp-server/src/mcp-server.test.ts (6 tests)
- ✓ packages/source-providers/src/stj-scon-provider.test.ts (4 tests)
- ✓ packages/legal-workflows/src/research-memo/legal-research-memo.test.ts (4 tests)
- ✓ packages/legal-tools/src/research/research-tools.test.ts (4 tests)
- ✓ apps/api/src/app.test.ts (27 tests)
- ✓ apps/api/src/account-routes.test.ts (2 tests)
- ✓ packages/agent-provider-anthropic/src/anthropic-agent-provider.test.ts (9 tests)
- ✓ apps/api/src/provider-parity.test.ts (2 tests)
- ✓ apps/api/src/distribution/webhook-service.test.ts (4 tests)
- ✓ apps/api/src/distribution/webhooks.test.ts (2 tests)
- ✓ packages/persistence/src/repositories/webhook-repository.test.ts (1 test)
- ↓ apps/api/src/provider-real.integration.test.ts (2 tests condicionais)
- ✓ packages/domain/src/contracts/matter.test.ts (2 tests)
- ✓ packages/domain/src/contracts/facts-evidence.test.ts (3 tests)
- ✓ apps/api/src/auth/fastify-auth.test.ts (4 tests)
- ✓ apps/api/src/auth/supabase-auth.test.ts (3 tests)
- ✓ packages/persistence/src/repositories/account-repository.test.ts (2 tests)
- ✓ packages/source-providers/src/source-router.test.ts (4 tests)
- ✓ packages/domain/src/contracts/provenance.test.ts (4 tests)
- ✓ packages/legal-data/src/legal-data.test.ts (3 tests)
- ✓ packages/source-catalog/src/court-catalog.test.ts (3 tests)
- ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (9 tests)
+Test Files  45 passed | 1 skipped (46)
+Tests       203 passed | 3 skipped (206)
 
- Test Files  36 passed | 1 skipped (37)
- Tests  165 passed | 2 skipped (167)
+O build executado pelo script também passou. O resultado inclui os testes de
+billing por capability, parser/provider STJ Open Data, migration 0014,
+manifesto/staging, equivalência REST/MCP e o job de ingestão.
 ```
 
 ---

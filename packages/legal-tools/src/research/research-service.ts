@@ -39,7 +39,7 @@ function toCaseLaw(document: JurisprudenceDocument): CaseLaw {
     judgmentDate: document.judgmentDate,
     publicationDate: document.publicationDate,
     syllabus: document.syllabus,
-    fullTextUrl: document.provenance.source.sourceUrl,
+    fullTextUrl: document.officialUrl,
     dedupeKey: document.dedupeKey,
     provenance: document.provenance,
   });
@@ -49,6 +49,7 @@ export class ResearchService {
   constructor(
     private readonly sourceRouter: SourceRouter,
     private readonly jurisprudenceSearchService?: JurisprudenceSearchService,
+    private readonly options: { requirePersistentDataPlane?: boolean } = {},
   ) {}
 
   public async searchCaseLaw(request: SearchCaseLawRequest): Promise<SearchCaseLawResponse> {
@@ -57,6 +58,12 @@ export class ResearchService {
       throw new SourceRouterError(
         'UNSUPPORTED_COURT',
         `O tribunal '${effectiveCourt.trim().toUpperCase()}' não está habilitado para pesquisa.`,
+      );
+    }
+    if (!this.jurisprudenceSearchService && this.options.requirePersistentDataPlane) {
+      throw Object.assign(
+        new Error('O índice jurisprudencial persistido não está disponível.'),
+        { code: 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE' },
       );
     }
     const documents = this.jurisprudenceSearchService
@@ -107,6 +114,12 @@ export class ResearchService {
         checkedAt,
         authority: toCaseLaw(document),
       };
+    }
+    if (this.options.requirePersistentDataPlane) {
+      throw Object.assign(
+        new Error('O índice jurisprudencial persistido não está disponível.'),
+        { code: 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE' },
+      );
     }
     const result = await this.sourceRouter.verifyAuthority(request);
     return {

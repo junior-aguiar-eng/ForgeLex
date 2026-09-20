@@ -1,5 +1,11 @@
 # Correção do modelo comercial do ForgeLex Implementation Plan
 
+> **Status:** concluído e histórico. Este plano registra a remoção do pricing
+> de modelos e a correção inicial do modelo comercial; não governa a execução
+> corrente do data plane. A referência atual é o plano canônico do SDK. As
+> variáveis e contratos antigos abaixo podem aparecer apenas como histórico da
+> remoção e não representam configuração atual.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Fazer o código, os contratos, a documentação e a interface refletirem que o ForgeLex vende operações da própria infraestrutura jurisprudencial por API REST e MCP, sem fornecer modelos de IA ou cobrar tokens.

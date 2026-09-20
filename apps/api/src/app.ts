@@ -31,7 +31,13 @@ import {
   AccountRepository,
   runPersistenceMigrations,
 } from '@forgelex/persistence';
-import { BillingService, CREDIT_PACKAGES, JURISPRUDENCE_SEARCH_COST_CENTS, LedgerService } from '@forgelex/billing-ledger';
+import {
+  BillingService,
+  CREDIT_PACKAGES,
+  getForgeLexBillingPolicy,
+  JURISPRUDENCE_SEARCH_COST_CENTS,
+  LedgerService,
+} from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { EXTERNAL_MCP_TOOL_NAMES, McpHandler } from '@forgelex/mcp-server';
 import { CaseLawSchema, type AuthenticatedPrincipal } from '@forgelex/domain';
@@ -114,6 +120,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       'X-Credits-Charged',
       'X-Remaining-Balance',
       'X-Idempotent-Replay',
+      'X-ForgeLex-Billing-Mode',
     ],
   });
 
@@ -200,7 +207,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const jurisprudenceSearchService = database
     ? new JurisprudenceSearchService(new JurisprudenceRepository(database))
     : undefined;
-  const researchService = new ResearchService(sourceRouter, jurisprudenceSearchService);
+  const researchService = new ResearchService(sourceRouter, jurisprudenceSearchService, {
+    requirePersistentDataPlane: true,
+  });
+  const researchBillingProvider = database ? 'forgelex_index' : 'provider_stj_scon';
+  const persistentResearchDataPlaneUnavailable = (reply: FastifyReply) => {
+    reply.status(503);
+    return {
+      error: 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE',
+      message: 'O índice jurisprudencial persistido não está disponível.',
+    };
+  };
 
   const toolRegistry = new ToolRegistry();
   toolRegistry.register(createSearchCaseLawTool(researchService));
@@ -216,15 +233,27 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const auditRecorder = options.auditRecorder ?? (connection ? new AuditRecorder(connection.db) : undefined);
   const mcpHandler = new McpHandler(toolRegistry, ledgerService, auditRecorder, {
     exposedToolNames: EXTERNAL_MCP_TOOL_NAMES,
+    beforeToolCall: async (toolName) => {
+      if (!jurisprudenceSearchService && toolName.startsWith('research.')) {
+        throw Object.assign(
+          new Error('O índice jurisprudencial persistido não está disponível.'),
+          { code: 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE' },
+        );
+      }
+    },
   });
 
   const setBillingHeaders = (reply: { header: (name: string, value: string | number) => unknown }, execution: {
+    billingMode: 'METERED' | 'FREE';
     chargedCents: number;
     remainingBalanceCents: number;
     isReplay: boolean;
   }) => {
-    reply.header('X-Billable-Units', '1');
-    reply.header('X-Credit-Cost-Per-Unit', (JURISPRUDENCE_SEARCH_COST_CENTS / 100).toFixed(2));
+    reply.header('X-ForgeLex-Billing-Mode', execution.billingMode);
+    if (execution.billingMode === 'METERED') {
+      reply.header('X-Billable-Units', '1');
+      reply.header('X-Credit-Cost-Per-Unit', (JURISPRUDENCE_SEARCH_COST_CENTS / 100).toFixed(2));
+    }
     reply.header('X-Credits-Charged', execution.chargedCents / 100);
     reply.header('X-Remaining-Balance', (execution.remainingBalanceCents / 100).toFixed(2));
     reply.header('X-Idempotent-Replay', execution.isReplay ? 'true' : 'false');
@@ -600,6 +629,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     limit: number;
     idempotencyKey: string;
   }) => {
+    if (!jurisprudenceSearchService) {
+      return persistentResearchDataPlaneUnavailable(input.reply);
+    }
     const court = getSearchableCourt(input.court);
     if (!court) return unsupportedCourtResponse(input.reply, input.court);
     if (!input.idempotencyKey) return missingIdempotencyResponse(input.reply);
@@ -609,15 +641,15 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     const startedAt = Date.now();
 
     try {
-      const execution = await ledgerService.executeBillableOperation({
+      const execution = await ledgerService.executeOperation({
         tenantId: input.principal.tenantId,
         userId: input.principal.userId,
         idempotencyKey,
-        costCents: JURISPRUDENCE_SEARCH_COST_CENTS,
+        billing: getForgeLexBillingPolicy('research.search_case_law'),
         usage: {
           capability: 'research.search_case_law',
           toolName: 'research.search_case_law',
-          provider: 'provider_stj_scon',
+          provider: researchBillingProvider,
           requestId: idempotencyKey,
           sessionId,
           userId: input.principal.userId,
@@ -640,7 +672,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       await emitBillingWebhooks({
         principal: input.principal,
         capability: 'research.search_case_law',
-        provider: 'provider_stj_scon',
+        provider: researchBillingProvider,
         idempotencyKey,
         sessionId,
         execution,
@@ -1704,6 +1736,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         idempotencyKey,
       );
       if (existing) {
+        setBillingHeaders(reply, {
+          billingMode: 'FREE',
+          chargedCents: 0,
+          remainingBalanceCents: await ledgerService.getAvailableBalanceCents(req.principal.tenantId),
+          isReplay: false,
+        });
         const factsResult = await factsEvidenceService.listFacts({
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
@@ -1728,21 +1766,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const sessionId = `memo_${idempotencyKey}`;
       const startedAt = Date.now();
       try {
-        const execution = await ledgerService.executeBillableOperation({
+        const execution = await ledgerService.executeOperation({
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
           idempotencyKey,
-          costCents: JURISPRUDENCE_SEARCH_COST_CENTS,
+          billing: getForgeLexBillingPolicy('research.generate_memo'),
           usage: {
             capability: 'research.generate_memo',
             toolName: 'research.generate_memo',
-            provider: 'provider_stj_scon',
+            provider: researchBillingProvider,
             requestId: idempotencyKey,
             sessionId,
             userId: req.principal.userId,
           },
           operation: async () => researchService.searchCaseLaw({ query, court, limit }),
         });
+        setBillingHeaders(reply, execution);
 
         const authorities = execution.data.items.map(caseLawToLegalAuthority);
         const memo = compileLegalResearchMemo({
@@ -1803,15 +1842,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             },
           });
         }
-        await emitBillingWebhooks({
-          principal: req.principal,
-          capability: 'research.generate_memo',
-          provider: 'provider_stj_scon',
-          idempotencyKey,
-          sessionId,
-          execution,
-        });
-
         return {
           memo: record.memo,
           record,
@@ -1823,8 +1853,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             coverage: factsResult.coverage,
           },
           research: { query, court, total: execution.data.total },
-          billed: !execution.isReplay,
-          idempotentReplay: execution.isReplay,
+          billed: execution.billingMode === 'METERED' && !execution.isReplay,
+          idempotentReplay: false,
         };
       } catch (error) {
         const details = error as { code?: unknown; details?: unknown; message?: unknown };
@@ -2179,6 +2209,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         };
       }
       if (!court) return unsupportedCourtResponse(reply, query.court);
+      if (!jurisprudenceSearchService) return persistentResearchDataPlaneUnavailable(reply);
 
       const idempotencyKey = readIdempotencyKey(req.headers);
       if (!idempotencyKey) return missingIdempotencyResponse(reply);
@@ -2186,15 +2217,15 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const startedAt = Date.now();
 
       try {
-        const execution = await ledgerService.executeBillableOperation({
+        const execution = await ledgerService.executeOperation({
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
           idempotencyKey,
-          costCents: JURISPRUDENCE_SEARCH_COST_CENTS,
+          billing: getForgeLexBillingPolicy('research.search_case_law'),
           usage: {
             capability: 'research.search_case_law',
             toolName: 'research.search_case_law',
-            provider: 'provider_stj_scon',
+            provider: researchBillingProvider,
             requestId: idempotencyKey,
             sessionId,
             userId: req.principal.userId,
@@ -2219,7 +2250,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         await emitBillingWebhooks({
           principal: req.principal,
           capability: 'research.search_case_law',
-          provider: 'provider_stj_scon',
+          provider: researchBillingProvider,
           idempotencyKey,
           sessionId,
           execution,
@@ -2297,7 +2328,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const processNumber = typeof body.processNumber === 'string' ? body.processNumber : '';
       const judgmentDate = typeof body.judgmentDate === 'string' ? body.judgmentDate : undefined;
 
-      if (court.trim().length < 2 || processNumber.trim().length < 5) {
+      if (court.trim().length < 2 || processNumber.trim().length === 0) {
         reply.status(400);
         return {
           error: 'INVALID_REQUEST',
@@ -2307,21 +2338,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
       const searchableCourt = getSearchableCourt(court);
       if (!searchableCourt) return unsupportedCourtResponse(reply, court);
+      if (!jurisprudenceSearchService) return persistentResearchDataPlaneUnavailable(reply);
       const idempotencyKey = readIdempotencyKey(req.headers);
       if (!idempotencyKey) return missingIdempotencyResponse(reply);
       const sessionId = `rest_${idempotencyKey}`;
       const startedAt = Date.now();
 
       try {
-        const execution = await ledgerService.executeBillableOperation({
+        const execution = await ledgerService.executeOperation({
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
           idempotencyKey,
-          costCents: JURISPRUDENCE_SEARCH_COST_CENTS,
+          billing: getForgeLexBillingPolicy('research.get_authority'),
           usage: {
             capability: 'research.get_authority',
             toolName: 'research.get_authority',
-            provider: 'provider_stj_scon',
+            provider: researchBillingProvider,
             requestId: idempotencyKey,
             sessionId,
             userId: req.principal.userId,
@@ -2341,14 +2373,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             payload: { court: searchableCourt, processNumber, judgmentDate, status: execution.data.status },
           });
         }
-        await emitBillingWebhooks({
-          principal: req.principal,
-          capability: 'research.get_authority',
-          provider: 'provider_stj_scon',
-          idempotencyKey,
-          sessionId,
-          execution,
-        });
         if (!execution.isReplay && execution.data.status === 'VERIFIED_OFFICIAL') {
           await emitWebhook({
             tenantId: req.principal.tenantId,
@@ -2389,7 +2413,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const court = body.court ?? '';
       const processNumber = body.processNumber ?? '';
 
-      if (court.trim().length < 2 || processNumber.trim().length < 5) {
+      if (court.trim().length < 2 || processNumber.trim().length === 0) {
         reply.status(400);
         return {
           error: 'INVALID_REQUEST',
@@ -2398,21 +2422,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       }
       const searchableCourt = getSearchableCourt(court);
       if (!searchableCourt) return unsupportedCourtResponse(reply, court);
+      if (!jurisprudenceSearchService) return persistentResearchDataPlaneUnavailable(reply);
       const idempotencyKey = readIdempotencyKey(req.headers);
       if (!idempotencyKey) return missingIdempotencyResponse(reply);
       const sessionId = `rest_${idempotencyKey}`;
       const startedAt = Date.now();
 
       try {
-        const execution = await ledgerService.executeBillableOperation({
+        const execution = await ledgerService.executeOperation({
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
           idempotencyKey,
-          costCents: JURISPRUDENCE_SEARCH_COST_CENTS,
+          billing: getForgeLexBillingPolicy('research.verify_authority'),
           usage: {
             capability: 'research.verify_authority',
             toolName: 'research.verify_authority',
-            provider: 'provider_stj_scon',
+          provider: researchBillingProvider,
             requestId: idempotencyKey,
             sessionId,
             userId: req.principal.userId,
@@ -2434,14 +2459,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             payload: { court: searchableCourt, processNumber, judgmentDate: body.judgmentDate, status: execution.data.status },
           });
         }
-        await emitBillingWebhooks({
-          principal: req.principal,
-          capability: 'research.verify_authority',
-          provider: 'provider_stj_scon',
-          idempotencyKey,
-          sessionId,
-          execution,
-        });
         if (!execution.isReplay && execution.data.status === 'VERIFIED_OFFICIAL') {
           await emitWebhook({
             tenantId: req.principal.tenantId,

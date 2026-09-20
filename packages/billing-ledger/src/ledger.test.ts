@@ -35,21 +35,21 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
     expect(account.paidBalanceCents).toBe(6300);
     expect(account.promotionalBalanceCents).toBe(1500);
 
-    // Executa uma consulta jurídica de R$ 0,15 (15 centavos)
+    // Executa uma busca jurisprudencial de R$ 0,20 (20 centavos)
     const result = await ledger.executeBillableOperation({
       tenantId: 'tenant_albuquerque',
       idempotencyKey: 'query_req_001',
-      costCents: 15,
+      costCents: 20,
       operation: async () => ({ resultado: 'acordao_encontrado' }),
     });
 
     expect(result.data.resultado).toBe('acordao_encontrado');
-    expect(result.chargedCents).toBe(15);
+    expect(result.chargedCents).toBe(20);
     expect(result.isReplay).toBe(false);
 
-    // O saldo promocional deve ter diminuído de 1500 para 1485 centavos, mantendo o saldo pago intacto (6300)
+    // O saldo promocional deve ter diminuído de 1500 para 1480 centavos, mantendo o saldo pago intacto (6300)
     const updated = await ledger.getOrCreateAccount('tenant_albuquerque');
-    expect(updated.promotionalBalanceCents).toBe(1485);
+    expect(updated.promotionalBalanceCents).toBe(1480);
     expect(updated.paidBalanceCents).toBe(6300);
   });
 
@@ -72,19 +72,19 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
     const firstCall = await ledger.executeBillableOperation({
       tenantId: 'tenant_1',
       idempotencyKey,
-      costCents: 15,
+      costCents: 20,
       operation: op,
     });
 
     expect(firstCall.isReplay).toBe(false);
-    expect(firstCall.chargedCents).toBe(15);
+    expect(firstCall.chargedCents).toBe(20);
     expect(executionCounter).toBe(1);
 
     // 2ª execução (Retry simulado de cliente MCP com a mesma idempotencyKey)
     const secondCall = await ledger.executeBillableOperation({
       tenantId: 'tenant_1',
       idempotencyKey,
-      costCents: 15,
+      costCents: 20,
       operation: op,
     });
 
@@ -108,7 +108,7 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
       ledger.executeBillableOperation({
         tenantId: 'tenant_sem_saldo',
         idempotencyKey: 'req_sem_saldo',
-        costCents: 15,
+        costCents: 20,
         operation: async () => 'ok',
       })
     ).rejects.toThrow('Saldo insuficiente');
@@ -122,6 +122,21 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
     expect(account.promoExpiresAt).toBeNull();
   });
 
+  it('exige custo explícito para impedir preço comercial por fallback', async () => {
+    await ledger.provisionAccount('tenant_explicit_cost', {
+      paidBalanceCents: 100,
+      promotionalBalanceCents: 0,
+    });
+
+    await expect(
+      ledger.executeBillableOperation({
+        tenantId: 'tenant_explicit_cost',
+        idempotencyKey: 'explicit_cost_001',
+        operation: async () => ({ ok: true }),
+      } as never),
+    ).rejects.toThrow('O custo da operação deve ser inteiro positivo.');
+  });
+
   it('deve registrar um UsageEvent e vinculá-lo ao débito', async () => {
     await ledger.provisionAccount('tenant_usage', {
       paidBalanceCents: 100,
@@ -132,7 +147,7 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
       tenantId: 'tenant_usage',
       userId: 'user_usage',
       idempotencyKey: 'usage_event_001',
-      costCents: 15,
+      costCents: 20,
       usage: {
         capability: 'research.search_case_law',
         toolName: 'research.search_case_law',
@@ -141,7 +156,7 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
       operation: async () => ({ ok: true }),
     });
 
-    expect(result.chargedCents).toBe(15);
+    expect(result.chargedCents).toBe(20);
     const usage = await ledger.getUsageEvents('tenant_usage');
     expect(usage).toHaveLength(1);
     expect(usage[0].capability).toBe('research.search_case_law');
@@ -153,9 +168,44 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
     expect(entries[0].usageEventId).toBe(usage[0].id);
   });
 
+  it('deve executar operação gratuita sem débito, UsageEvent ou replay financeiro', async () => {
+    await ledger.provisionAccount('tenant_free_operation', {
+      paidBalanceCents: 100,
+      promotionalBalanceCents: 50,
+    });
+
+    let executionCounter = 0;
+    const first = await ledger.executeOperation({
+      tenantId: 'tenant_free_operation',
+      userId: 'user_free_operation',
+      idempotencyKey: 'free_operation_001',
+      billing: { mode: 'FREE' },
+      usage: {
+        capability: 'research.verify_authority',
+        toolName: 'research.verify_authority',
+      },
+      operation: async () => ({ executionCounter: ++executionCounter }),
+    });
+    const second = await ledger.executeOperation({
+      tenantId: 'tenant_free_operation',
+      userId: 'user_free_operation',
+      idempotencyKey: 'free_operation_001',
+      billing: { mode: 'FREE' },
+      operation: async () => ({ executionCounter: ++executionCounter }),
+    });
+
+    expect(first).toMatchObject({ billingMode: 'FREE', chargedCents: 0, isReplay: false, data: { executionCounter: 1 } });
+    expect(second).toMatchObject({ billingMode: 'FREE', chargedCents: 0, isReplay: false, data: { executionCounter: 2 } });
+    expect(executionCounter).toBe(2);
+    expect((await ledger.getOrCreateAccount('tenant_free_operation')).paidBalanceCents).toBe(100);
+    expect((await ledger.getOrCreateAccount('tenant_free_operation')).promotionalBalanceCents).toBe(50);
+    expect(await ledger.getUsageEvents('tenant_free_operation')).toHaveLength(0);
+    expect(await db.select().from(ledgerEntries)).toHaveLength(0);
+  });
+
   it('deve serializar débitos concorrentes e impedir saldo negativo', async () => {
     await ledger.provisionAccount('tenant_concurrent', {
-      paidBalanceCents: 15,
+      paidBalanceCents: 20,
       promotionalBalanceCents: 0,
     });
 
@@ -170,13 +220,13 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
       ledger.executeBillableOperation({
         tenantId: 'tenant_concurrent',
         idempotencyKey: 'concurrent_001',
-        costCents: 15,
+        costCents: 20,
         operation,
       }),
       ledger.executeBillableOperation({
         tenantId: 'tenant_concurrent',
         idempotencyKey: 'concurrent_002',
-        costCents: 15,
+        costCents: 20,
         operation,
       }),
     ]);
@@ -200,7 +250,7 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
       ledger.executeBillableOperation({
         tenantId: 'tenant_rollback',
         idempotencyKey: 'rollback_001',
-        costCents: 15,
+        costCents: 20,
         operation: async () => {
           throw new Error('upstream unavailable');
         },

@@ -61,7 +61,7 @@ if (!databaseUrl || !/^postgres(?:ql)?:\/\//i.test(databaseUrl)) {
       tenantId,
       userId: 'postgres-smoke',
       idempotencyKey: `postgres-smoke-${randomUUID()}`,
-      costCents: 15,
+      costCents: 20,
       usage: { capability: 'postgres.smoke', toolName: 'postgres.smoke', units: 1 },
       operation: async () => ({ ok: true }),
     });

@@ -20,6 +20,7 @@
     "@forgelex/domain": "workspace:*",
     "@forgelex/legal-data": "workspace:*",
     "@forgelex/source-catalog": "workspace:*",
+    "fflate": "^0.8.3",
     "zod": "^3.24.2"
   },
   "devDependencies": {

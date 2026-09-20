@@ -133,7 +133,7 @@ API REST e MCP são duas superfícies de distribuição para a mesma infraestrut
 
 **Objetivo:** substituir a dependência de consulta live no caminho comercial por uma base própria, versionada, reconciliada e pesquisável, concluindo o corpus inicial do STJ antes de expor novas camadas comerciais.
 
-**Readequação da fase já concluída:** a fundação persistida, a ingestão, o versionamento, os hashes, a proveniência, a cobertura e a busca própria já realizados são preservados. O complemento limita-se a confirmar que esse mesmo data plane atende REST e MCP indistintamente e não conhece modelo, tokens, Agent Core ou provider de IA.
+**Estado concluído localmente:** a fundação persistida, o versionamento, os hashes, a proveniência e a busca própria foram validados para o corpus histórico definido pelo STJ Open Data. A enumeração atual confirmou dez datasets, 530 recursos classificáveis e 12 não classificáveis; os dez snapshots e 519 incrementais foram concluídos. O único incremental remanescente é a lacuna oficial `20240229.json` da Segunda Seção: o arquivo oficial, de mesmo hash confirmado, informa ausência de lançamentos e é JSON malformado, permanecendo documentado sem publicação. A repetição idempotente foi comprovada em fixture local sem novo download desse recurso, e a reconciliação do corpus não encontrou documentos ou versões duplicadas. Esta conclusão não afirma espelho da base interna do STJ, somente cobertura do corpus oficial definido para a fase.
 
 **Áreas:**
 
@@ -142,7 +142,8 @@ API REST e MCP são duas superfícies de distribuição para a mesma infraestrut
 - `packages/persistence/src/migrations/migration-runner.ts`;
 - repository de jurisprudência em `packages/persistence/src/repositories`;
 - `packages/source-providers/src/contracts`;
-- `packages/source-providers/src/providers/stj-scon-provider.ts`;
+- `packages/source-providers/src/providers/stj-open-data-provider.ts` e parser do Open Data;
+- `packages/source-providers/src/providers/stj-scon-provider.ts`, restrito a aquisição, health check ou verificação técnica;
 - `StjIngestionService` e job/CLI de ingestão;
 - `packages/legal-tools/src/research`;
 - fixtures oficiais sanitizadas e observabilidade de ingestão.
@@ -154,7 +155,7 @@ Criar entidades globais, sem `tenant_id`:
 - `jurisprudence_documents`;
 - `jurisprudence_document_versions`;
 - `jurisprudence_ingestion_runs`;
-- tabela de termos/índice compatível com SQLite e PostgreSQL;
+- índice full-text nativo e ponderado: FTS5 no SQLite e `tsvector`/GIN no PostgreSQL, sem tabela relacional de uma linha por termo;
 - manifesto de recursos, janelas e reconciliação da fonte oficial, quando necessário para provar cobertura.
 
 O documento deverá preservar:
@@ -178,13 +179,15 @@ O documento deverá preservar:
 
 **Implementação:**
 
-- preservar o SCON como fonte oficial primária ou a fonte oficial enumerável aprovada pelo catálogo, sem consultá-la diretamente para responder à busca comercial;
+- usar o STJ Open Data como fonte oficial enumerável da ingestão histórica e incremental, mantendo o SCON restrito a aquisição, health check ou verificação técnica, sem consultá-lo diretamente para responder à busca comercial;
 - implementar ingestão histórica e incremental, com snapshot histórico, recursos subsequentes, janela, contagem, hash e status de cada execução;
 - converter e validar os resultados em documentos do corpus próprio, rejeitando markup ou registros inválidos sem publicar versão parcial;
 - deduplicar por identificador oficial, processo, data e conteúdo normalizado, conforme o contrato real da fonte;
 - registrar período coberto, lacunas, documentos rejeitados, duplicados, versões e reconciliação de contagens;
 - tornar a importação repetível e idempotente, com reprocessamento de execução interrompida;
 - buscar no índice ForgeLex com filtros efetivos de tribunal, datas, classe, processo e metadados disponíveis;
+- ponderar identidade processual, autoridade e conteúdo no ranking; preservar busca por palavra inteira, frase e normalização de acentos;
+- remover staging de cargas concluídas e preservar staging de cargas falhas para diagnóstico;
 - manter ementa e metadados como requisito; manter `fullTextUrl` quando existir, sem alegar armazenamento do inteiro teor;
 - implementar retry controlado, timeout, backoff e circuit breaker somente na ingestão, além de métricas de capturados, atualizados, rejeitados e duplicados;
 - fazer `research.search_case_law` e `research.verify_authority` lerem a base persistida e devolverem proveniência completa.
@@ -209,7 +212,7 @@ O documento deverá preservar:
 A resposta deverá distinguir:
 
 - `source: forgelex_index`;
-- `upstreamSource: STJ SCON Oficial`;
+- `upstreamSource: STJ Open Data Oficial`;
 - `capturedAt`;
 - `contentHash`;
 - `verified`;
@@ -242,6 +245,8 @@ Se a fonte oficial não permitir enumerar o acervo histórico definido, a fase n
 - manutenção de `firstSeenAt` e `lastSeenAt`;
 - deduplicação por identificador oficial/processo/data/hash;
 - busca por termos, processo, tribunal e intervalo de datas;
+- busca por frase, normalização de acentos, ranking ponderado e uso efetivo do índice GIN/FTS5;
+- medição de tamanho e latência em carga persistida representativa antes do corpus integral;
 - recuperação da proveniência completa e cobertura declarada;
 - documento corrompido não substitui a versão válida;
 - falha de ingestão sem publicar versão parcial;
@@ -249,6 +254,8 @@ Se a fonte oficial não permitir enumerar o acervo histórico definido, a fase n
 - indisponibilidade da fonte sem transformar a busca comercial em consulta live.
 
 **Gate de saída:** a base própria do STJ está carregada com cobertura histórica comprovada, ingestão incremental idempotente, ementa/metadados, filtros, versões, proveniência e recuperação diante de falhas; o mesmo data plane atende REST e MCP sem depender de modelo ou Agent Core. A busca comercial não depende de consulta live e nenhuma capacidade de outro tribunal é declarada concluída por atalho.
+
+A Fase 3 — API REST e MCP equivalentes — deixa de estar bloqueada pelo gate da Fase 1. A busca comercial continua operacional somente sobre documentos publicados em manifestos concluídos; a lacuna oficial terminal não produz resultado nem débito adicional por reprocessamento.
 
 ---
 

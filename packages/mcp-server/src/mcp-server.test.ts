@@ -78,6 +78,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(response.result).toBeDefined();
     expect(response.result.content).toBeDefined();
     expect(response.result.content[0].type).toBe('text');
+    expect(response.result.billing.mode).toBe('METERED');
     expect(response.result.billing.chargedCents).toBe(20);
 
     const parsedData = JSON.parse(response.result.content[0].text);
@@ -106,6 +107,25 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     );
 
     expect(JSON.stringify(response)).not.toContain(privateMarker);
+  });
+
+  it('deve executar verificação de autoridade no MCP sem débito financeiro', async () => {
+    const usageEventsBefore = await new LedgerService(db).getUsageEvents('tenant_mcp_test');
+    const response = await handler.handleRequest(
+      {
+        jsonrpc: '2.0',
+        id: 6,
+        method: 'tools/call',
+        params: {
+          name: 'research.verify_authority',
+          arguments: { court: 'STJ', processNumber: 'REsp 1.823.450/SP' },
+        },
+      },
+      { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_free_verify_001' },
+    );
+
+    expect(response.result.billing).toMatchObject({ mode: 'FREE', chargedCents: 0, isReplay: false });
+    expect(await new LedgerService(db).getUsageEvents('tenant_mcp_test')).toHaveLength(usageEventsBefore.length);
   });
 
   it('deve rejeitar tools/call faturável sem chave de idempotência explícita', async () => {

@@ -59,6 +59,21 @@ class FakeRuns implements IngestionRunPort {
   public async fail(id: string): Promise<void> { this.failed.push(id); }
 }
 
+class FakeSourceManifest {
+  public staged: JurisprudenceDocument[] = [];
+  public completed: string[] = [];
+  public failed: string[] = [];
+  public async start(): Promise<{ id: string }> { return { id: 'manifest-1' }; }
+  public async stageBatch(input: { records: Array<{ document: JurisprudenceDocument }> }): Promise<void> {
+    this.staged.push(...input.records.map((record) => record.document));
+  }
+  public async publishStaged(): Promise<{ publishedRecordCount: number }> {
+    return { publishedRecordCount: this.staged.length };
+  }
+  public async complete(input: { manifestId: string }): Promise<void> { this.completed.push(input.manifestId); }
+  public async fail(input: { manifestId: string }): Promise<void> { this.failed.push(input.manifestId); }
+}
+
 describe('data plane jurisprudencial', () => {
   it('ingere em lote e somente publica depois da validação completa', async () => {
     const repository = new FakeIngestionRepository();
@@ -104,5 +119,34 @@ describe('data plane jurisprudencial', () => {
 
     await expect(service.search({ query: 'responsabilidade', court: 'STJ', limit: 10 })).resolves.toEqual([document]);
     expect(searched).toEqual(['responsabilidade']);
+  });
+
+  it('usa staging e publicação do manifesto quando o recurso possui proveniência de carga', async () => {
+    const repository = new FakeIngestionRepository();
+    const runs = new FakeRuns();
+    const manifests = new FakeSourceManifest();
+    const service = new JurisprudenceIngestionService(repository, runs, manifests);
+
+    const result = await service.ingest({
+      providerId: 'provider_stj_scon',
+      court: 'STJ',
+      documents: [document],
+      sourceManifest: {
+        datasetId: 'dataset-1',
+        datasetTitle: 'Dataset STJ',
+        resourceId: 'resource-1',
+        resourceName: '20220508.json',
+        resourceUrl: 'https://dados.example/resource-1',
+        resourceRole: 'INCREMENTAL',
+        extractionDate: '2022-05-08',
+        resourceSha256: 'a'.repeat(64),
+      },
+    });
+
+    expect(result.documentsPublished).toBe(1);
+    expect(repository.calls).toHaveLength(0);
+    expect(manifests.staged).toHaveLength(1);
+    expect(manifests.completed).toEqual(['manifest-1']);
+    expect(manifests.failed).toEqual([]);
   });
 });

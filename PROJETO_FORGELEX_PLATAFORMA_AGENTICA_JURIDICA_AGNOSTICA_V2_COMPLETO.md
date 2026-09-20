@@ -1,6 +1,14 @@
 # FORGELEX
 ## Plataforma Agêntica Jurídica Agnóstica para Prática Forense, Pesquisa e Produção Profissional
 
+> **Nota de governança documental (2026-09-19):** este documento preserva a
+> arquitetura e o roadmap históricos. As seções antigas que posicionam Agent
+> Core e adapters antes do data plane não governam a execução atual; o plano
+> canônico versionado no SDK prioriza Legal Data Plane, Legal Tool Gateway,
+> API REST/MCP e o primeiro fluxo agêntico por MCP, deixando Agent Core e
+> adapters OpenAI/Anthropic como camadas opcionais. Consulte `Plano de
+> conclusão progressiva do F.md` para a ordem vigente.
+
 > **Documento mestre de arquitetura, produto e implementação**  
 > **Status:** especificação técnica consolidada — arquitetura de implementação  
 > **Data de referência:** 16/09/2026  

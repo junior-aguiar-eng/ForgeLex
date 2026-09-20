@@ -1,4 +1,18 @@
 import { describe, expect, it } from 'vitest';
+import { getForgeLexBillingPolicy } from './billing-rules.js';
+
+describe('ForgeLexBillingPolicy', () => {
+  it('classifica somente a busca jurisprudencial como operação metered', () => {
+    expect(getForgeLexBillingPolicy('research.search_case_law')).toEqual({ mode: 'METERED', costCents: 20 });
+    expect(getForgeLexBillingPolicy('research.get_authority')).toEqual({ mode: 'FREE' });
+    expect(getForgeLexBillingPolicy('research.verify_authority')).toEqual({ mode: 'FREE' });
+    expect(getForgeLexBillingPolicy('research.generate_memo')).toEqual({ mode: 'FREE' });
+  });
+
+  it('recusa capability sem política comercial explícita', () => {
+    expect(() => getForgeLexBillingPolicy('unknown.capability')).toThrow('BILLING_POLICY_UNDECLARED');
+  });
+});
 import {
   CREDIT_PACKAGES,
   JURISPRUDENCE_SEARCH_COST_CENTS,

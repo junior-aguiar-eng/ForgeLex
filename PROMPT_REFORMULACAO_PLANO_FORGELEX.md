@@ -1,5 +1,11 @@
 # Prompt para reformulação do plano de conclusão do ForgeLex
 
+> **Registro histórico da tarefa executada (2026-09-19):** este prompt descreve
+> a reformulação que originou o plano versionado no SDK. O caminho canônico
+> atual é `C:\Users\Boni Jr\.antigravity-ide\SDK\Plano de conclusão progressiva do F.md`.
+> O arquivo antigo do Desktop indicado abaixo é referência histórica
+> superseded e não deve ser editado por agentes futuros.
+
 Você deve reformular o plano de conclusão progressiva do ForgeLex para que ele permaneça fiel ao projeto original, sem executar alterações no código nesta tarefa.
 
 ## Documento que deve ser editado
@@ -8,7 +14,9 @@ Edite exclusivamente este arquivo:
 
 `C:\Users\Boni Jr\Desktop\Plano de conclusão progressiva do F.md`
 
-Esse é o documento oficial de planejamento. Não crie uma cópia no repositório, não edite outro arquivo de plano e não substitua o documento por uma resposta no chat.
+Esse era o documento oficial de planejamento no momento da tarefa. Atualmente,
+o documento canônico é o plano versionado no SDK; não edite esse caminho do
+Desktop nem crie outro plano concorrente.
 
 ## Contexto obrigatório
 

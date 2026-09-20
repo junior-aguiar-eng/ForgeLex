@@ -28,4 +28,39 @@ O primeiro recurso histórico de cada dataset deve ser importado antes dos incre
 
 ## Estado desta fase
 
-A descoberta local da API foi executada e encontrou 10 datasets, 530 recursos enumeráveis, 10 snapshots históricos e 12 recursos não classificáveis, sem dataset sem snapshot. A Fase 1 somente será marcada como concluída depois da importação do snapshot histórico e dos incrementais disponíveis, reconciliação das contagens, registro das lacunas do conteúdo e verificação de repetição idempotente. Até lá, o runtime pode pesquisar o corpus próprio já ingerido, mas não deve anunciar cobertura histórica integral do STJ.
+A enumeração atual da API oficial confirmou 10 datasets, 530 recursos
+classificáveis — 10 snapshots históricos e 520 incrementais — e 12 recursos
+não classificáveis, sem dataset sem snapshot. A Fase 1 foi concluída localmente
+para esse corpus oficial definido; isso não afirma que o ForgeLex reproduz a
+base interna integral do STJ.
+
+O provider `provider_stj_open_data`, o parser cross-platform com `fflate`, o
+manifesto e o staging foram implementados localmente. A migration incremental
+`persistence-0014-stj-source-manifest` cria os manifestos e o staging sem
+alterar migrations anteriores. As migrations incrementais 0015 e 0016
+substituem a antiga tabela relacional de termos por FTS5 no SQLite e
+`tsvector`/GIN no PostgreSQL, com pesos distintos para identidade processual,
+autoridade e conteúdo. O staging é removido após conclusão transacional e
+preservado quando a carga falha. Nenhuma migration remota foi executada.
+
+A reconciliação local registra dez snapshots concluídos, 519 incrementais
+concluídos e uma única lacuna oficial terminal. O corpus tem 874.450 documentos
+e 874.516 versões, sem documentos duplicados por `dedupe_key`, versões repetidas
+por hash ou ponteiros de versão atual quebrados. A repetição idempotente foi
+validada em fixture local com manifesto concluído, recurso não classificável e
+lacuna terminal, sem novo download do recurso malformado ou criação de novas
+versões.
+
+### Lacuna oficial registrada
+
+O incremental `20240229.json` da Segunda Seção foi novamente obtido da URL
+oficial em 2026-09-20. O SHA-256 permaneceu
+`ea2537c36c1e11d5206f7cee7b82178fc455cb8832cd7110a1acc807b7da9b46` e os
+599 bytes recebidos terminam com uma chave de fechamento adicional na linha 24,
+coluna 1. O arquivo anuncia “Sem lançamentos para o mês de fevereiro/2024”,
+mas não é JSON válido. O manifesto `dddb5398-79d4-45bc-9f08-662d6d98a4ef`
+permanece `FAILED`, com zero registros publicados e a evidência de origem
+registrada. O ForgeLex não corrige nem publica silenciosamente esse conteúdo.
+O job reconhece essa lacuna terminal pelo `resource_id` e pelo manifesto com
+hash documentado antes de chamar o provider; uma repetição não baixa novamente
+esse recurso enquanto a exceção permanecer registrada.

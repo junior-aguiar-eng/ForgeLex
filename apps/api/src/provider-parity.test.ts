@@ -103,7 +103,7 @@ function createBilledResearchTool(
         userId: context.userId,
         sessionId: context.sessionId,
         idempotencyKey,
-        costCents: 15,
+        costCents: 20,
         usage: {
           capability: sourceTool.name,
           toolName: sourceTool.name,

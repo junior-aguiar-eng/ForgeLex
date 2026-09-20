@@ -1,6 +1,7 @@
 # Auditoria e status canônico do ForgeLex
 
-Última auditoria: 2026-09-18. Branch: `main`.
+Última auditoria: 2026-09-20. Branch: `main`. A implementação desta frente
+permanece local e não foi commitada, publicada ou aplicada a banco remoto.
 
 ## Fase 0 — baseline exclusivo do STJ
 
@@ -27,13 +28,26 @@ deploy ou push.
 
 ## Fase 1 — fundação persistida do data plane jurisprudencial
 
-A fundação técnica da fase foi implementada localmente nesta frente. A
-migração incremental `persistence-0013-jurisprudence-data-plane` cria o corpus
-global do STJ sem `tenant_id`, suas versões, termos indexados e execuções de
-ingestão. O repositório preserva processo, classe, relator, órgão julgador,
-datas, ementa, íntegra, URL oficial, hash, dedupe key, proveniência, primeira e
-última captura e status de verificação. O upsert é idempotente, cria versão
-somente quando o hash muda e o lote é transacional.
+A fundação técnica da fase está parcialmente implementada localmente, mas a
+Fase 1 ainda não está formalmente concluída. A migration incremental
+`persistence-0013-jurisprudence-data-plane` cria o corpus global do STJ sem
+`tenant_id`, suas versões e execuções de ingestão. A nova
+`persistence-0014-stj-source-manifest` adiciona manifestos de recurso e
+staging. As migrations `persistence-0015-compact-jurisprudence-search` e
+`persistence-0016-native-jurisprudence-full-text` removem a tabela relacional
+de um registro por termo e implantam FTS5 ponderado no SQLite e `tsvector` com
+GIN no PostgreSQL. As migrations `persistence-0017-canonical-jurisprudence-version`,
+`persistence-0018-version-source-manifest-link` e
+`persistence-0019-explicit-version-publication-status` normalizam a raiz do
+documento, vinculam versões novas ao manifesto e distinguem explicitamente a
+compatibilidade histórica da publicação nova. Nenhuma migration foi executada
+remotamente.
+
+O repositório preserva processo, classe, relator, órgão julgador, datas,
+ementa, íntegra quando existente, URL individual verificável quando existente,
+hash, dedupe key, proveniência, primeira e última captura e status de
+verificação. O upsert é idempotente, cria versão somente quando o hash muda e
+a publicação do recurso ocorre após validação integral.
 
 O caminho comercial da API e do MCP agora pode receber um
 `JurisprudenceSearchService` persistido. No runtime da API, a pesquisa lê o
@@ -45,11 +59,44 @@ A fonte histórica oficial e o critério de cobertura foram registrados em
 `docs/jurisprudencia/stj-historical-source.md`. A descoberta local do catálogo
 foi executada contra a API oficial: 10 datasets, 530 recursos enumeráveis, 10
 snapshots históricos e 12 recursos não classificáveis (dicionários ou arquivos
-sem data no nome), sem alerta de ausência de snapshot. A conclusão integral da
-fase continua pendente da importação dos snapshots e incrementais, da
-reconciliação das contagens de registros, da detecção de lacunas no conteúdo e
-da publicação idempotente do corpus. Não se declara, portanto, cobertura
-histórica integral do STJ nem se inicia a Fase 2.
+sem data no nome), sem alerta de ausência de snapshot. O provider
+`provider_stj_open_data`, o parser ZIP/JSON com `fflate`, o hash do recurso, o
+manifesto, o staging e a publicação transacional foram implementados e
+testados. A carga local já existente contém 874.450 documentos e 874.516
+versões; após a normalização, não há ponteiro de versão atual quebrado nem hash
+atual divergente. O staging lógico está zerado. A raiz do documento deixou de
+duplicar ementa, metadados jurídicos e proveniência: a tabela raiz foi
+compactada de 7.739 MB para 3.571 MB, e o diretório PostgreSQL local caiu de
+11,9 GB para 7,8 GB após `VACUUM FULL`. A consulta persistida pelo repositório
+retornou documentos `provider_stj_open_data`; o índice GIN é usado para a busca
+por `responsabilidade`. As versões do corpus já carregado estão marcadas
+explicitamente como `LEGACY_COMPATIBILITY`; cargas futuras usarão vínculo direto
+ao manifesto e só serão visíveis quando esse manifesto estiver concluído.
+
+O único manifesto ainda marcado como `FAILED` foi reavaliado contra a URL
+oficial: `20240229.json`, incremental da Segunda Seção, manteve o SHA-256
+`ea2537c36c1e11d5206f7cee7b82178fc455cb8832cd7110a1acc807b7da9b46` e é um
+JSON malformado de 599 bytes, com chave de fechamento extra na linha 24,
+coluna 1. Ele contém apenas o aviso oficial de ausência de lançamentos para
+fevereiro de 2024; continua sem staging, documento ou versão publicada. A
+lacuna foi registrada no próprio manifesto, sem alterar o parser ou corrigir o
+conteúdo de origem.
+
+O job de ingestão foi coberto por fixture local de idempotência: uma execução
+com manifesto já concluído e essa lacuna terminal não criou documentos ou
+versões, reportou os estados `SKIPPED_ALREADY_COMPLETED` e
+`SKIPPED_TERMINAL_SOURCE_GAP` e não chamou o provider para o recurso
+malformado.
+
+A Fase 1 está concluída localmente para o corpus histórico definido pelo STJ
+Open Data: a enumeração atual confirmou 10 datasets, 530 recursos
+classificáveis (10 snapshots e 520 incrementais) e 12 não classificáveis. Há
+10 snapshots concluídos, 519 incrementais concluídos e uma única lacuna oficial
+terminal, sem registros jurídicos, formalmente documentada. A repetição foi
+validada em fixture local representativa, sem download do recurso malformado e
+sem novas versões. Isso não declara que o ForgeLex reproduz toda a base interna
+do STJ; declara somente a cobertura do corpus oficial definido nesta fase. A
+Fase 3 deixa de estar bloqueada pelo gate da Fase 1.
 
 ## Estado implementado
 
@@ -78,6 +125,11 @@ histórica integral do STJ nem se inicia a Fase 2.
   manual. O contrato abstrato continua coberto por testes locais.
 - O Mercado Pago é o único provider de pagamento ativo. O adapter de pagamento
   anterior foi removido da aplicação, do OpenAPI e do `.env.example`.
+- A política de billing é fechada por capability: somente
+  `research.search_case_law` é `METERED` por R$ 0,20; obtenção, verificação e
+  memo são `FREE`, sem `DEBIT`, `UsageEvent` financeiro ou webhook de billing.
+  As operações gratuitas exigem chave de idempotência para rastreabilidade,
+  sem replay financeiro.
 - Os identificadores persistidos de cliente, checkout e pagamento foram
   renomeados para nomes neutros ao provider por migração incremental; os dados
   existentes são preservados.
@@ -86,10 +138,11 @@ histórica integral do STJ nem se inicia a Fase 2.
 
 | Gate | Resultado | Evidência |
 |---|---|---|
-| `pnpm test` | PASS | 36 arquivos aprovados; 172 testes aprovados; 1 arquivo e 2 testes condicionais ignorados |
+| `pnpm test` | PASS | 45 arquivos aprovados; 215 testes aprovados; 1 arquivo e 4 testes condicionais ignorados |
 | `pnpm typecheck` | PASS | todos os 15 projetos verificaram tipos |
-| `pnpm --filter @forgelex/web build` | PASS | 1.648 módulos; bundle inicial de aproximadamente 408 kB |
+| `pnpm --filter @forgelex/web build` | PASS | 1.648 módulos; bundle inicial de 408,43 kB |
 | `git diff --check` | PASS | apenas avisos normais de conversão LF/CRLF |
+| Migration/repositories PostgreSQL local | PASS | PostgreSQL 16 saudável; migrations até `persistence-0019-explicit-version-publication-status` aplicadas somente em `localhost:55432`; integridade de 874.450 documentos/874.516 versões comprovada |
 | `GET /readyz` | PASS | HTTP 200; persistência e billing prontos |
 | `GET /metrics` | PASS | HTTP 200; erros e falhas de webhook em zero |
 | Teste de reembolso duplicado | PASS | segunda solicitação pendente rejeitada por compra e tenant |
@@ -135,7 +188,7 @@ webhook, conta, extrato, compra, fatura, reembolso, cobrança por operações
 jurídicas próprias, canais REST/MCP sobre a mesma infraestrutura e login
 público consolidado.
 
-Parcial: entrega externa do webhook, atualização visual do saldo após o teste
+Parcial: data plane histórico completo do STJ, entrega externa do webhook, atualização visual do saldo após o teste
 real na sessão do navegador, Pix pendente, falha de pagamento, recarga
 automática real e reembolso real. Os adapters opcionais Anthropic/OpenAI não
 foram executados contra APIs externas; isso não é requisito do runtime
@@ -155,9 +208,9 @@ foi preservado como histórico.
 
 ## Limites operacionais
 
-Não foi executado `pnpm db:migrate`, migration remota, deploy ou push. A
-migração de nomes neutros foi apenas adicionada ao código e ainda não foi
-aplicada a banco remoto. O
+Não foi executado `pnpm db:migrate`, migration remota, deploy, push ou commit.
+As migrations de data plane `0013` e `0014` foram apenas adicionadas/testadas
+localmente e ainda não foram aplicadas a banco remoto. O
 arquivo raiz `.env` continua ignorado pelo Git e não deve ser incluído em
 commit. A configuração real de Mercado Pago depende de uma URL pública HTTPS
 estável e de credenciais externas válidas. Não foram feitas chamadas reais aos

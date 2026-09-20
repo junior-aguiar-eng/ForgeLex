@@ -1,5 +1,5 @@
 import { ToolRegistry } from '@forgelex/agent-core';
-import { JURISPRUDENCE_SEARCH_COST_CENTS, LedgerService } from '@forgelex/billing-ledger';
+import { getForgeLexBillingPolicy, LedgerService } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { randomUUID } from 'node:crypto';
@@ -24,6 +24,7 @@ export interface JsonRpcResponse {
 
 export interface McpHandlerOptions {
   exposedToolNames?: readonly string[];
+  beforeToolCall?: (toolName: string) => void | Promise<void>;
 }
 
 export class McpHandler {
@@ -31,6 +32,7 @@ export class McpHandler {
   private readonly ledgerService: LedgerService;
   private readonly auditRecorder?: AuditRecorder;
   private readonly exposedToolNames?: ReadonlySet<string>;
+  private readonly beforeToolCall?: (toolName: string) => void | Promise<void>;
 
   constructor(
     toolRegistry: ToolRegistry,
@@ -42,6 +44,7 @@ export class McpHandler {
     this.ledgerService = ledgerService;
     this.auditRecorder = auditRecorder;
     this.exposedToolNames = options.exposedToolNames ? new Set(options.exposedToolNames) : undefined;
+    this.beforeToolCall = options.beforeToolCall;
   }
 
   public async handleRequest(
@@ -120,6 +123,17 @@ export class McpHandler {
           };
         }
 
+        let billing;
+        try {
+          billing = getForgeLexBillingPolicy(name);
+        } catch {
+          return {
+            jsonrpc: '2.0',
+            id,
+            error: { code: -32601, message: `Method not found: a capability '${name}' não possui política comercial declarada.` },
+          };
+        }
+
         const idempotencyKey = context.idempotencyKey?.trim();
         if (!idempotencyKey) {
           return {
@@ -132,12 +146,12 @@ export class McpHandler {
         const startedAt = Date.now();
 
         try {
-          // Executa através do Algoritmo de Execução Faturável Idempotente.
-          const execution = await this.ledgerService.executeBillableOperation({
+          await this.beforeToolCall?.(name);
+          const execution = await this.ledgerService.executeOperation({
             tenantId,
             userId,
             idempotencyKey,
-            costCents: JURISPRUDENCE_SEARCH_COST_CENTS,
+            billing,
             usage: {
               capability: name,
               toolName: name,
@@ -156,17 +170,15 @@ export class McpHandler {
             },
           });
 
-          if (!execution.isReplay) {
-            await this.recordAudit({
-              sessionId,
-              tenantId,
-              userId,
-              toolName: name,
-              durationMs: Date.now() - startedAt,
-              status: 'SUCCESS',
-              payload: { arguments: toolArgs, success: execution.data.success },
-            });
-          }
+          await this.recordAudit({
+            sessionId,
+            tenantId,
+            userId,
+            toolName: name,
+            durationMs: Date.now() - startedAt,
+            status: 'SUCCESS',
+            payload: { arguments: toolArgs, success: execution.data.success, billingMode: execution.billingMode },
+          });
 
           return {
             jsonrpc: '2.0',
@@ -179,6 +191,7 @@ export class McpHandler {
                 },
               ],
               billing: {
+                mode: execution.billingMode,
                 isReplay: execution.isReplay,
                 chargedCents: execution.chargedCents,
                 remainingBalanceCents: execution.remainingBalanceCents,

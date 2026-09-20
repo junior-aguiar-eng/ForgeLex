@@ -67,7 +67,7 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/api/v2/matters/{matterId}/thesis-map', summary: 'Montar mapa de teses', description: 'Retorna questões e teses persistidas para orientar a redação do caso.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/matters/{matterId}/theses', summary: 'Registrar tese jurídica', description: 'Registra uma tese com vínculos a questões, fatos, provas e authorities do caso.', scopes: ['matter:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/matters/{matterId}/research-memos', summary: 'Listar research memos', description: 'Lista os memorandos de pesquisa do caso e seu estado de revisão humana.', scopes: ['matter:read'] },
-  { method: 'post', path: '/api/v2/matters/{matterId}/research-memos', summary: 'Gerar research memo', description: 'Cruza questões e contexto do matter com pesquisa jurisprudencial faturável. A consulta usa somente a infraestrutura STJ habilitada nesta fase.', scopes: ['matter:write', 'research:read'], requestBody: 'object', requiresIdempotencyKey: true },
+  { method: 'post', path: '/api/v2/matters/{matterId}/research-memos', summary: 'Gerar research memo', description: 'Cruza questões e contexto do matter com pesquisa jurisprudencial do ForgeLex. O memo não tem preço próprio nesta fase: a operação é gratuita, embora a chave seja obrigatória para rastreabilidade; a consulta usa somente a infraestrutura STJ habilitada nesta fase.', scopes: ['matter:write', 'research:read'], requestBody: 'object', requiresIdempotencyKey: true },
   { method: 'post', path: '/api/v2/matters/{matterId}/research-memos/{memoId}/review', summary: 'Revisar research memo', description: 'Registra a decisão humana sobre o memorando de pesquisa.', scopes: ['matter:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/matters/{matterId}/drafts', summary: 'Listar rascunhos', description: 'Lista rascunhos do caso.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/matters/{matterId}/drafts', summary: 'Criar rascunho', description: 'Cria rascunho estruturado.', scopes: ['draft:write'], requestBody: 'object' },
@@ -77,10 +77,10 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'post', path: '/api/v2/matters/{matterId}/drafts/{draftId}/approval', summary: 'Solicitar aprovação', description: 'Solicita aprovação humana para uma versão.', scopes: ['draft:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/matters/{matterId}/draft-approvals', summary: 'Listar aprovações', description: 'Lista solicitações de aprovação do caso.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/draft-approvals/resolve', summary: 'Resolver aprovação', description: 'Registra decisão humana usando token efêmero.', scopes: ['draft:write'], requestBody: 'object' },
-  { method: 'get', path: '/api/v2/jurisprudencias', summary: 'Pesquisar jurisprudência', description: 'Alias compatível da pesquisa faturável na infraestrutura STJ. q e Idempotency-Key são obrigatórios; uma consulta sem resultados continua sendo uma operação válida e faturável.', scopes: ['research:read'], toolName: 'research.search_case_law', requiresIdempotencyKey: true },
-  { method: 'post', path: '/api/v2/research/search-case-law', summary: 'Pesquisar jurisprudência', description: 'Executa a capability research.search_case_law na infraestrutura STJ com o mesmo serviço usado pelo MCP. Exige Idempotency-Key e rejeita tribunais não habilitados com 422.', scopes: ['research:read'], toolName: 'research.search_case_law', requestBody: 'search-case-law', requiresIdempotencyKey: true },
-  { method: 'post', path: '/api/v2/research/get-authority', summary: 'Obter autoridade', description: 'Obtém uma autoridade STJ identificada e devolve o status de verificação e a proveniência.', scopes: ['research:read'], toolName: 'research.get_authority', requestBody: 'verify-authority', requiresIdempotencyKey: true },
-  { method: 'post', path: '/api/v2/research/verify-authority', summary: 'Verificar autoridade', description: 'Executa a capability research.verify_authority na infraestrutura STJ com proveniência.', scopes: ['research:read'], toolName: 'research.verify_authority', requestBody: 'verify-authority', requiresIdempotencyKey: true },
+  { method: 'get', path: '/api/v2/jurisprudencias', summary: 'Pesquisar jurisprudência', description: 'Alias compatível da pesquisa faturável na infraestrutura STJ por R$ 0,20 por execução válida. q e Idempotency-Key são obrigatórios; uma consulta sem resultados continua sendo uma operação válida e faturável.', scopes: ['research:read'], toolName: 'research.search_case_law', requiresIdempotencyKey: true },
+  { method: 'post', path: '/api/v2/research/search-case-law', summary: 'Pesquisar jurisprudência', description: 'Executa a capability research.search_case_law na infraestrutura STJ com o mesmo serviço usado pelo MCP. A operação é faturável por R$ 0,20 por execução válida, inclusive sem resultados. Exige Idempotency-Key e rejeita tribunais não habilitados com 422.', scopes: ['research:read'], toolName: 'research.search_case_law', requestBody: 'search-case-law', requiresIdempotencyKey: true },
+  { method: 'post', path: '/api/v2/research/get-authority', summary: 'Obter autoridade', description: 'Obtém uma autoridade STJ identificada e devolve o status de verificação e a proveniência. A operação é gratuita e não gera débito nesta fase; Idempotency-Key é exigida apenas para rastreabilidade.', scopes: ['research:read'], toolName: 'research.get_authority', requestBody: 'verify-authority', requiresIdempotencyKey: true },
+  { method: 'post', path: '/api/v2/research/verify-authority', summary: 'Verificar autoridade', description: 'Executa a capability research.verify_authority na infraestrutura STJ com proveniência. A operação é gratuita e não gera débito nesta fase; Idempotency-Key é exigida apenas para rastreabilidade.', scopes: ['research:read'], toolName: 'research.verify_authority', requestBody: 'verify-authority', requiresIdempotencyKey: true },
   { method: 'get', path: '/api/v2/api-keys', summary: 'Listar chaves de API', description: 'Lista somente metadados das chaves do tenant.', scopes: ['billing:read'] },
   { method: 'post', path: '/api/v2/api-keys', summary: 'Criar chave de API', description: 'Cria chave e retorna o segredo uma única vez.', scopes: ['billing:read'], requestBody: 'api-key' },
   { method: 'delete', path: '/api/v2/api-keys/{keyId}', summary: 'Revogar chave de API', description: 'Revoga uma chave do tenant autenticado.', scopes: ['billing:read'] },
@@ -123,7 +123,7 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
       name: 'Idempotency-Key',
       in: 'header',
       required: true,
-      description: 'Chave fornecida pelo cliente para repetir a mesma operação sem novo débito.',
+      description: 'Chave fornecida pelo cliente para rastreabilidade. Na busca, permite replay financeiro sem novo débito; nas operações gratuitas, não cria replay financeiro.',
       schema: { type: 'string', minLength: 1 },
     };
     operation.parameters = [...(Array.isArray(operation.parameters) ? operation.parameters : []), header];
@@ -133,6 +133,36 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
     operation['x-forgelex-required-scopes'] = route.scopes;
   }
   if (route.toolName) operation['x-forgelex-tool'] = route.toolName;
+  const isBillingRoute = Boolean(route.toolName) || route.path.endsWith('/research-memos');
+  if (isBillingRoute) {
+    const isMetered = route.toolName === 'research.search_case_law';
+    const headers: Record<string, unknown> = {
+      'X-ForgeLex-Billing-Mode': {
+        description: `Modo de cobrança efetivo: ${isMetered ? 'METERED' : 'FREE'}.`,
+        schema: { type: 'string', enum: [isMetered ? 'METERED' : 'FREE'] },
+      },
+      'X-Credits-Charged': {
+        description: isMetered ? 'Créditos debitados pela execução.' : 'Sempre 0 nas operações gratuitas desta fase.',
+        schema: { type: 'number', format: 'double' },
+      },
+      'X-Remaining-Balance': {
+        description: 'Saldo de créditos restante após a operação.',
+        schema: { type: 'number', format: 'double' },
+      },
+      'X-Idempotent-Replay': {
+        description: isMetered ? 'Indica replay financeiro idempotente.' : 'Sempre false: operações gratuitas não têm replay financeiro.',
+        schema: { type: 'string', enum: ['true', 'false'] },
+      },
+    };
+    if (isMetered) {
+      headers['X-Billable-Units'] = { description: 'Unidades faturáveis da execução.', schema: { type: 'string' } };
+      headers['X-Credit-Cost-Per-Unit'] = { description: 'Custo por unidade em BRL.', schema: { type: 'string', example: '0.20' } };
+    }
+    (operation.responses as Record<string, unknown>)['200'] = {
+      description: 'Operação concluída.',
+      headers,
+    };
+  }
   if (route.requestBody) {
     const schema = route.requestBody === 'search-case-law'
       ? { type: 'object', required: ['query'], properties: { query: { type: 'string', minLength: 2 }, court: { type: 'string', description: 'Tribunal habilitado. Nesta fase, somente STJ.' }, limit: { type: 'integer', minimum: 1, maximum: 20 } } }
@@ -160,7 +190,7 @@ export function buildOpenApiDocument(serverUrl = 'http://localhost:3001'): Recor
     info: {
       title: 'ForgeLex Public API',
       version: '2.0.0',
-      description: 'Contrato gerado a partir das duas superfícies de acesso à mesma infraestrutura jurisprudencial do ForgeLex: API REST para integrações próprias e MCP para ChatGPT ou Claude. O ForgeLex não fornece modelo de IA nem cobra tokens; resultados jurídicos preservam a proveniência disponível e nenhuma rota presume efeito externo.',
+      description: 'Contrato gerado a partir das duas superfícies de acesso à mesma infraestrutura jurisprudencial do ForgeLex: API REST para integrações próprias e MCP para ChatGPT ou Claude. Nesta fase, somente research.search_case_law é faturável por R$ 0,20; obtenção, verificação e memo são gratuitos. O ForgeLex não fornece modelo de IA nem cobra tokens; resultados jurídicos preservam a proveniência disponível e nenhuma rota presume efeito externo.',
     },
     servers: [{ url: serverUrl.replace(/\/$/, '') }],
     tags: [{ name: 'Research' }, { name: 'Matters' }, { name: 'Drafts' }, { name: 'Distribution' }, { name: 'MCP' }],

@@ -3,6 +3,8 @@ import type { Client } from '@libsql/client';
 export interface SqlMigration {
   id: string;
   statements: readonly string[];
+  sqliteStatements?: readonly string[];
+  postgresStatements?: readonly string[];
 }
 
 const migrationTableStatement = `
@@ -27,7 +29,9 @@ export async function runMigrations(client: Client, migrations: readonly SqlMigr
 
     const transaction = await client.transaction();
     try {
-      for (const statement of migration.statements) {
+      const dialect = (client as Client & { forgelexDialect?: 'sqlite' | 'postgres' }).forgelexDialect ?? 'sqlite';
+      const dialectStatements = dialect === 'postgres' ? migration.postgresStatements : migration.sqliteStatements;
+      for (const statement of [...migration.statements, ...(dialectStatements ?? [])]) {
         await transaction.execute(statement);
       }
 
@@ -753,6 +757,189 @@ export const persistenceMigrations: readonly SqlMigration[] = [
         );
       `,
       `CREATE INDEX IF NOT EXISTS jurisprudence_document_terms_term_idx ON jurisprudence_document_terms (term, document_id);`,
+    ],
+  },
+  {
+    id: 'persistence-0014-stj-source-manifest',
+    statements: [
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_source_manifests (
+          id TEXT PRIMARY KEY,
+          dataset_id TEXT NOT NULL,
+          dataset_title TEXT NOT NULL,
+          resource_id TEXT NOT NULL,
+          resource_name TEXT NOT NULL,
+          resource_url TEXT NOT NULL,
+          resource_role TEXT NOT NULL,
+          extraction_date TEXT NOT NULL,
+          resource_sha256 TEXT NOT NULL,
+          status TEXT NOT NULL,
+          raw_record_count INTEGER NOT NULL DEFAULT 0,
+          accepted_record_count INTEGER NOT NULL DEFAULT 0,
+          rejected_record_count INTEGER NOT NULL DEFAULT 0,
+          duplicate_record_count INTEGER NOT NULL DEFAULT 0,
+          published_record_count INTEGER NOT NULL DEFAULT 0,
+          coverage_start TEXT,
+          coverage_end TEXT,
+          warnings_json TEXT NOT NULL DEFAULT '[]',
+          error TEXT,
+          ingestion_run_id TEXT REFERENCES jurisprudence_ingestion_runs(id),
+          started_at TEXT NOT NULL,
+          completed_at TEXT
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_source_manifests_resource_hash_idx ON jurisprudence_source_manifests (resource_id, resource_sha256, status);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_source_manifests_resource_idx ON jurisprudence_source_manifests (resource_id, extraction_date);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_source_manifests_status_idx ON jurisprudence_source_manifests (status, started_at);`,
+      `
+        CREATE TABLE IF NOT EXISTS jurisprudence_ingestion_staging (
+          id TEXT PRIMARY KEY,
+          manifest_id TEXT NOT NULL REFERENCES jurisprudence_source_manifests(id),
+          record_ordinal INTEGER NOT NULL,
+          source_record_id TEXT NOT NULL,
+          dedupe_key TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          document_json TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          UNIQUE (manifest_id, record_ordinal)
+        );
+      `,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_ingestion_staging_manifest_idx ON jurisprudence_ingestion_staging (manifest_id, record_ordinal);`,
+    ],
+  },
+  {
+    id: 'persistence-0015-compact-jurisprudence-search',
+    statements: [
+      `ALTER TABLE jurisprudence_documents ADD COLUMN search_text TEXT NOT NULL DEFAULT '';`,
+      `DROP TABLE IF EXISTS jurisprudence_document_terms;`,
+    ],
+  },
+  {
+    id: 'persistence-0016-native-jurisprudence-full-text',
+    statements: [
+      `ALTER TABLE jurisprudence_documents ADD COLUMN search_identity_text TEXT NOT NULL DEFAULT '';`,
+      `ALTER TABLE jurisprudence_documents ADD COLUMN search_authority_text TEXT NOT NULL DEFAULT '';`,
+    ],
+    sqliteStatements: [
+      `
+        CREATE VIRTUAL TABLE jurisprudence_documents_fts USING fts5(
+          search_identity_text,
+          search_authority_text,
+          search_text,
+          content='jurisprudence_documents',
+          content_rowid='rowid',
+          tokenize='unicode61 remove_diacritics 2'
+        );
+      `,
+      `
+        CREATE TRIGGER jurisprudence_documents_fts_insert AFTER INSERT ON jurisprudence_documents BEGIN
+          INSERT INTO jurisprudence_documents_fts(rowid, search_identity_text, search_authority_text, search_text)
+          VALUES (new.rowid, new.search_identity_text, new.search_authority_text, new.search_text);
+        END;
+      `,
+      `
+        CREATE TRIGGER jurisprudence_documents_fts_delete AFTER DELETE ON jurisprudence_documents BEGIN
+          INSERT INTO jurisprudence_documents_fts(jurisprudence_documents_fts, rowid, search_identity_text, search_authority_text, search_text)
+          VALUES ('delete', old.rowid, old.search_identity_text, old.search_authority_text, old.search_text);
+        END;
+      `,
+      `
+        CREATE TRIGGER jurisprudence_documents_fts_update AFTER UPDATE ON jurisprudence_documents BEGIN
+          INSERT INTO jurisprudence_documents_fts(jurisprudence_documents_fts, rowid, search_identity_text, search_authority_text, search_text)
+          VALUES ('delete', old.rowid, old.search_identity_text, old.search_authority_text, old.search_text);
+          INSERT INTO jurisprudence_documents_fts(rowid, search_identity_text, search_authority_text, search_text)
+          VALUES (new.rowid, new.search_identity_text, new.search_authority_text, new.search_text);
+        END;
+      `,
+      `INSERT INTO jurisprudence_documents_fts(jurisprudence_documents_fts) VALUES ('rebuild');`,
+    ],
+    postgresStatements: [
+      `
+        CREATE INDEX jurisprudence_documents_search_fts_idx
+        ON jurisprudence_documents USING GIN ((
+          setweight(to_tsvector('simple', search_identity_text), 'A') ||
+          setweight(to_tsvector('simple', search_authority_text), 'B') ||
+          setweight(to_tsvector('simple', search_text), 'C')
+        ));
+      `,
+    ],
+  },
+  {
+    id: 'persistence-0017-canonical-jurisprudence-version',
+    statements: [],
+    sqliteStatements: [
+      `ALTER TABLE jurisprudence_documents ADD COLUMN search_vector TEXT NOT NULL DEFAULT '';`,
+      `DROP INDEX IF EXISTS jurisprudence_documents_court_judgment_idx;`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_documents_court_idx ON jurisprudence_documents (court);`,
+      `CREATE INDEX IF NOT EXISTS jurisprudence_document_versions_judgment_idx ON jurisprudence_document_versions (judgment_date);`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN process_class;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN rapporteur;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN chamber;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN judgment_date;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN publication_date;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN syllabus;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN full_text;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN official_url;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN provider_id;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN verification_status;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN provenance_json;`,
+    ],
+    postgresStatements: [
+      `ALTER TABLE jurisprudence_documents ADD COLUMN search_vector tsvector NOT NULL DEFAULT ''::tsvector;`,
+      `
+        UPDATE jurisprudence_documents
+        SET search_vector =
+          setweight(to_tsvector('simple', search_identity_text), 'A') ||
+          setweight(to_tsvector('simple', search_authority_text), 'B') ||
+          setweight(to_tsvector('simple', search_text), 'C');
+      `,
+      `
+        CREATE OR REPLACE FUNCTION jurisprudence_documents_search_vector_sync()
+        RETURNS trigger AS $$
+        BEGIN
+          NEW.search_vector :=
+            setweight(to_tsvector('simple', NEW.search_identity_text), 'A') ||
+            setweight(to_tsvector('simple', NEW.search_authority_text), 'B') ||
+            setweight(to_tsvector('simple', NEW.search_text), 'C');
+          RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      `
+        CREATE TRIGGER jurisprudence_documents_search_vector_sync_trigger
+        BEFORE INSERT OR UPDATE OF search_identity_text, search_authority_text, search_text
+        ON jurisprudence_documents
+        FOR EACH ROW EXECUTE FUNCTION jurisprudence_documents_search_vector_sync();
+      `,
+      `DROP INDEX IF EXISTS jurisprudence_documents_search_fts_idx;`,
+      `DROP INDEX IF EXISTS jurisprudence_documents_court_judgment_idx;`,
+      `CREATE INDEX jurisprudence_documents_court_idx ON jurisprudence_documents (court);`,
+      `CREATE INDEX jurisprudence_document_versions_judgment_idx ON jurisprudence_document_versions (judgment_date);`,
+      `CREATE INDEX jurisprudence_documents_search_vector_idx ON jurisprudence_documents USING GIN (search_vector);`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN process_class;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN rapporteur;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN chamber;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN judgment_date;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN publication_date;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN syllabus;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN full_text;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN official_url;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN provider_id;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN verification_status;`,
+      `ALTER TABLE jurisprudence_documents DROP COLUMN provenance_json;`,
+    ],
+  },
+  {
+    id: 'persistence-0018-version-source-manifest-link',
+    statements: [
+      `ALTER TABLE jurisprudence_document_versions ADD COLUMN source_manifest_id TEXT REFERENCES jurisprudence_source_manifests(id);`,
+      `CREATE INDEX jurisprudence_document_versions_manifest_idx ON jurisprudence_document_versions (source_manifest_id);`,
+    ],
+  },
+  {
+    id: 'persistence-0019-explicit-version-publication-status',
+    statements: [
+      `ALTER TABLE jurisprudence_document_versions ADD COLUMN publication_status TEXT NOT NULL DEFAULT 'LEGACY_COMPATIBILITY';`,
     ],
   },
 ];

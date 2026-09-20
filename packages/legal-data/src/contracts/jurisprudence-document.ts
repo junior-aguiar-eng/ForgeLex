@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 export const JurisprudenceDocumentSchema = z.object({
   id: z.string().uuid(),
   court: z.string().min(2),
-  processNumber: z.string().min(5),
+  processNumber: z.string().min(1),
   processClass: z.string().min(1).optional(),
   rapporteur: z.string().min(2),
   chamber: z.string().min(2).optional(),

@@ -10,7 +10,9 @@ export interface DatabaseConfig {
   driver?: 'sqlite' | 'postgres';
 }
 
-export type ForgeLexDatabase = LibSQLDatabase<typeof schema>;
+export type ForgeLexDatabase = LibSQLDatabase<typeof schema> & {
+  readonly $forgelexDialect: 'sqlite' | 'postgres';
+};
 
 interface ExecutableStatement { sql: string; args?: unknown[]; }
 interface ExecutionResult { rows: Record<string, unknown>[]; rowsAffected: number; }
@@ -43,6 +45,7 @@ class PostgresTransaction {
 }
 
 class PostgresClientAdapter {
+  public readonly forgelexDialect = 'postgres' as const;
   public constructor(private readonly sql: Sql) {}
   public async execute(statement: string | ExecutableStatement): Promise<ExecutionResult> {
     const input = typeof statement === 'string' ? { sql: statement, args: [] } : { sql: statement.sql, args: statement.args ?? [] };
@@ -62,6 +65,7 @@ export async function createDatabase(config: DatabaseConfig = {}): Promise<{
   if (isPostgres) {
     const sql = postgres(url, { max: 10 });
     const db = drizzlePostgres(sql, { schema }) as unknown as ForgeLexDatabase;
+    Object.defineProperty(db, '$forgelexDialect', { value: 'postgres', enumerable: false });
     return { db, client: new PostgresClientAdapter(sql) as unknown as Client };
   }
   const client = createClient({
@@ -69,7 +73,8 @@ export async function createDatabase(config: DatabaseConfig = {}): Promise<{
     authToken: config.authToken,
   });
 
-  const db = drizzle(client, { schema });
+  const db = drizzle(client, { schema }) as unknown as ForgeLexDatabase;
+  Object.defineProperty(db, '$forgelexDialect', { value: 'sqlite', enumerable: false });
 
   return { db, client };
 }
