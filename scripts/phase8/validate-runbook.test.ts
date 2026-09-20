@@ -30,6 +30,7 @@ describe('runbook GCP da Fase 8', () => {
     expect(preflight).toContain('missingApis');
     expect(preflight).toContain('FORGELEX_PHASE8_BUDGET_CONFIRMED');
     expect(provision).toContain('gcloud services enable');
+    expect(provision).toContain('--edition=enterprise');
     expect(provision).toMatch(/--min-instances=0[\s\S]*--max-instances=2/);
     expect(readFileSync(resolve(root, '05-teardown.sh'), 'utf8')).toContain('FORGELEX_PHASE8_TEARDOWN');
     expect(readFileSync(resolve(root, '03-publish-gate-b.sh'), 'utf8')).toContain('status == "passed"');
