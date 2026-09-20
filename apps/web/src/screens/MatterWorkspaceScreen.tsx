@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, FileText, FolderOpen, LockKeyhole, Plus, RefreshCw, ShieldCheck } from 'lucide-react';
-import { requestApiWithToken } from '../api-client';
+import { requestApiWithToken, resolveApiOrigin } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 import { useApp } from '../context/AppContext';
 
@@ -148,10 +148,9 @@ const memoStatusLabels: Record<ResearchMemo['status'], string> = {
   REJECTED: 'Rejeitado na revisão humana',
 };
 
-const apiUrl = import.meta.env.VITE_FORGELEX_API_URL ?? 'http://localhost:3001';
+const apiUrl = resolveApiOrigin();
 
 function initialToken(): string {
-  if (import.meta.env.VITE_FORGELEX_API_TOKEN) return import.meta.env.VITE_FORGELEX_API_TOKEN;
   try {
     return window.localStorage.getItem('forgelex_api_token') ?? '';
   } catch {

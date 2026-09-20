@@ -96,13 +96,13 @@ try {
   assert.equal(reclaimed?.id, claims[0].id);
   passed.add('worker_restart');
 
-  const app = await buildApp({ database: db, databaseClient: client, ledgerService: ledger, environment: { NODE_ENV: 'test', DATABASE_URL: databaseUrl, FORGELEX_WEBHOOK_MASTER_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef' } });
+  const app = await buildApp({ database: db, databaseClient: client, ledgerService: ledger, environment: { NODE_ENV: 'test', DATABASE_URL: databaseUrl, FORGELEX_WEBHOOK_MASTER_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', FORGELEX_METRICS_TOKEN: 'phase7-postgres-smoke-metrics' } });
   const ready = await app.inject({ method: 'GET', url: '/readyz' });
   assert.equal(ready.statusCode, 200);
   assert.equal(ready.json().status, 'ready');
   assert.equal(ready.json().checks.persistence, true);
   passed.add('readiness');
-  const metrics = await app.inject({ method: 'GET', url: '/metrics' });
+  const metrics = await app.inject({ method: 'GET', url: '/metrics', headers: { authorization: 'Bearer phase7-postgres-smoke-metrics' } });
   assert.equal(metrics.statusCode, 200);
   assert.ok(metrics.json().metrics.requests >= 1);
   passed.add('metrics');

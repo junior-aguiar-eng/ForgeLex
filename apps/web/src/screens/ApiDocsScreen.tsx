@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { Check, Code2, Copy, FileCode2, Info, Play, Terminal } from 'lucide-react';
+import { resolveApiOrigin } from '../api-client';
 
 type Endpoint = 'mcp' | 'jurisprudencias' | 'verify_authority' | 'tribunals' | 'health';
 type Language = 'curl' | 'node' | 'python';
 
 const token = '<SEU_TOKEN_DA_API>';
+const apiUrl = resolveApiOrigin();
 export const operationalDisclosure = 'O host fornece o modelo e o contexto; o ForgeLex cobra apenas a busca jurisprudencial no STJ, inicialmente R$ 0,20 por execução válida, e não cobra tokens de IA.';
-export const snippets: Record<Endpoint, Record<Language, string> & { example: object }> = {
+const rawSnippets: Record<Endpoint, Record<Language, string> & { example: object }> = {
   mcp: {
     curl: `curl -X POST http://localhost:3001/mcp \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${token}" \\\n  -d '{"jsonrpc":"2.0","id":"req-1","method":"tools/list"}'`,
-    node: `const response = await fetch('http://localhost:3001/mcp', {
+    node: `const response = await fetch('${apiUrl}/mcp', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${token}' },
   body: JSON.stringify({ jsonrpc: '2.0', id: 'req-1', method: 'tools/list' }),
@@ -18,7 +20,7 @@ console.log(await response.json());`,
     python: `import httpx
 
 response = httpx.post(
-    'http://localhost:3001/mcp',
+    '${apiUrl}/mcp',
     json={'jsonrpc': '2.0', 'id': 'req-1', 'method': 'tools/list'},
     headers={'Authorization': 'Bearer ${token}'}
 )
@@ -28,14 +30,14 @@ print(response.json())`,
   jurisprudencias: {
     curl: `curl -G http://localhost:3001/api/v2/jurisprudencias \\\n  --data-urlencode "q=juros capitalizados" --data-urlencode "court=STJ" \\\n  -H "Authorization: Bearer ${token}" -H "Idempotency-Key: pesquisa-stj-001"`,
     node: `const params = new URLSearchParams({ q: 'juros capitalizados', court: 'STJ' });
-const response = await fetch('http://localhost:3001/api/v2/jurisprudencias?' + params, {
+const response = await fetch('${apiUrl}/api/v2/jurisprudencias?' + params, {
   headers: { 'Authorization': 'Bearer ${token}', 'Idempotency-Key': 'pesquisa-stj-001' },
 });
 console.log(await response.json());`,
     python: `import httpx
 
 response = httpx.get(
-    'http://localhost:3001/api/v2/jurisprudencias',
+    '${apiUrl}/api/v2/jurisprudencias',
     params={'q': 'juros capitalizados', 'court': 'STJ'},
     headers={'Authorization': 'Bearer ${token}', 'Idempotency-Key': 'pesquisa-stj-001'}
 )
@@ -44,7 +46,7 @@ print(response.json())`,
   },
   verify_authority: {
     curl: `curl -X POST http://localhost:3001/api/v2/research/verify-authority \\\n  -H "Content-Type: application/json" -H "Authorization: Bearer ${token}" -H "Idempotency-Key: verifica-stj-001" \\\n  -d '{"court":"STJ","processNumber":"<NUMERO_DO_PROCESSO>"}'`,
-    node: `const response = await fetch('http://localhost:3001/api/v2/research/verify-authority', {
+    node: `const response = await fetch('${apiUrl}/api/v2/research/verify-authority', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${token}', 'Idempotency-Key': 'verifica-stj-001' },
   body: JSON.stringify({ court: 'STJ', processNumber: '<NUMERO_DO_PROCESSO>' }),
@@ -53,7 +55,7 @@ console.log(await response.json());`,
     python: `import httpx
 
 response = httpx.post(
-    'http://localhost:3001/api/v2/research/verify-authority',
+    '${apiUrl}/api/v2/research/verify-authority',
     json={'court': 'STJ', 'processNumber': '<NUMERO_DO_PROCESSO>'},
     headers={'Authorization': 'Bearer ${token}', 'Idempotency-Key': 'verifica-stj-001'}
 )
@@ -61,24 +63,33 @@ print(response.json())`,
     example: { demonstracao: true, status: 'NOT_FOUND', observacao: 'Substitua o número pelo processo a verificar.' },
   },
   tribunals: {
-    curl: `curl http://localhost:3001/api/v2/tribunals -H "Authorization: Bearer ${token}"`,
-    node: `const response = await fetch('http://localhost:3001/api/v2/tribunals', {
+    curl: `curl ${apiUrl}/api/v2/tribunals -H "Authorization: Bearer ${token}"`,
+    node: `const response = await fetch('${apiUrl}/api/v2/tribunals', {
   headers: { 'Authorization': 'Bearer ${token}' },
 });
 console.log(await response.json());`,
     python: `import httpx
-print(httpx.get('http://localhost:3001/api/v2/tribunals', headers={'Authorization': 'Bearer ${token}'}).json())`,
+print(httpx.get('${apiUrl}/api/v2/tribunals', headers={'Authorization': 'Bearer ${token}'}).json())`,
     example: { demonstracao: true, tribunals: [], observacao: 'O catálogo é retornado pelo ambiente autenticado.' },
   },
   health: {
-    curl: 'curl http://localhost:3001/health',
-    node: `const response = await fetch('http://localhost:3001/health');
+    curl: `curl ${apiUrl}/healthz`,
+    node: `const response = await fetch('${apiUrl}/healthz');
 console.log(await response.json());`,
     python: `import httpx
-print(httpx.get('http://localhost:3001/health').json())`,
+print(httpx.get('${apiUrl}/healthz').json())`,
     example: { demonstracao: true, status: 'ok', observacao: 'Exemplo de estrutura; não é uma leitura ao vivo.' },
   },
 };
+
+export const snippets = Object.fromEntries(
+  Object.entries(rawSnippets).map(([endpoint, values]) => [endpoint, {
+    ...values,
+    curl: values.curl.replaceAll('http://localhost:3001', apiUrl),
+    node: values.node.replaceAll('http://localhost:3001', apiUrl),
+    python: values.python.replaceAll('http://localhost:3001', apiUrl),
+  }]),
+) as Record<Endpoint, Record<Language, string> & { example: object }>;
 
 const endpointLabels: Record<Endpoint, string> = { mcp: 'MCP', jurisprudencias: 'Jurisprudência', verify_authority: 'Verificar autoridade', tribunals: 'Tribunais', health: 'Saúde do serviço' };
 

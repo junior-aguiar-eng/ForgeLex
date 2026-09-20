@@ -26,6 +26,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['**/*.test.ts'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.superpowers/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

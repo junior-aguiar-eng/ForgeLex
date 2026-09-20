@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import Fastify, { FastifyInstance, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import { CourtCatalog } from '@forgelex/source-catalog';
@@ -66,6 +66,7 @@ import { MercadoPagoPaymentProvider } from './billing/mercado-pago-payment-provi
 import { resolveDatabasePolicy } from './config/database-policy.js';
 import { OperationalRetentionService, resolveRetentionPolicy } from './operations/retention-service.js';
 import { ReviewQueueService } from './review/review-queue-service.js';
+import { registerStaticWeb } from './static-web.js';
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
@@ -770,14 +771,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   };
 
   // 2. Healthcheck
-  app.get('/health', async () => {
-    return {
+  const healthResponse = () => ({
       status: 'ok',
       service: 'forgelex-api',
       version: '2.0.0',
       timestamp: new Date().toISOString(),
-    };
   });
+  app.get('/healthz', async () => healthResponse());
+  app.get('/health', async () => healthResponse());
 
   app.get('/readyz', async (_, reply) => {
     let persistenceReady = false;
@@ -805,8 +806,19 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     return { status: 'ready', service: 'forgelex-api', checks };
   });
 
-  app.get('/metrics', async () => ({ service: 'forgelex-api', metrics: metrics.read() }));
-  app.get('/metrics/prometheus', async (_, reply) => {
+  const metricsPreHandler = async (request: { headers: Record<string, string | string[] | undefined> }, reply: FastifyReply) => {
+    const suppliedHeader = request.headers.authorization;
+    const supplied = Array.isArray(suppliedHeader) ? suppliedHeader[0] : suppliedHeader;
+    const configured = environment.FORGELEX_METRICS_TOKEN;
+    const expected = configured ? `Bearer ${configured}` : '';
+    const valid = Boolean(supplied && expected && supplied.length === expected.length
+      && timingSafeEqual(Buffer.from(supplied), Buffer.from(expected)));
+    if (!valid) {
+      reply.status(401).send({ error: 'UNAUTHORIZED', message: 'Credencial ausente ou inválida.' });
+    }
+  };
+  app.get('/metrics', { preHandler: metricsPreHandler }, async () => ({ service: 'forgelex-api', metrics: metrics.read() }));
+  app.get('/metrics/prometheus', { preHandler: metricsPreHandler }, async (_, reply) => {
     return reply.type('text/plain; version=0.0.4').send(metrics.toPrometheus());
   });
 
@@ -2568,6 +2580,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       message: 'O conector MCP requer requisições HTTP POST com payloads JSON-RPC 2.0.',
     };
   });
+
+  if (environment.FORGELEX_WEB_ROOT) {
+    await registerStaticWeb(app, environment.FORGELEX_WEB_ROOT);
+  }
 
   return app;
 }

@@ -12,12 +12,33 @@ export class ApiRequestError extends Error {
 }
 
 function getLegacyApiToken(): string {
-  if (import.meta.env.VITE_FORGELEX_API_TOKEN) return import.meta.env.VITE_FORGELEX_API_TOKEN;
   try {
     return window.localStorage.getItem('forgelex_api_token') ?? '';
   } catch {
     return '';
   }
+}
+
+export interface ApiOriginInput {
+  configured?: string;
+  browserOrigin?: string;
+}
+
+export function resolveApiOrigin(input: ApiOriginInput = {}): string {
+  const configured = input.configured ?? import.meta.env.VITE_FORGELEX_API_URL;
+  if (configured?.trim()) return configured.trim().replace(/\/$/, '');
+
+  const browserOrigin = input.browserOrigin
+    ?? (typeof window !== 'undefined' ? window.location?.origin : undefined);
+  if (browserOrigin) {
+    try {
+      const parsed = new URL(browserOrigin);
+      if (parsed.protocol === 'https:') return parsed.origin;
+    } catch {
+      // Origem inválida cai no endpoint local seguro de desenvolvimento.
+    }
+  }
+  return 'http://localhost:3001';
 }
 
 async function getAccessToken(sessionOnly: boolean, explicitToken?: string): Promise<string> {
@@ -47,7 +68,7 @@ export async function requestApiResponse<T>(path: string, init: RequestInit = {}
     throw new ApiRequestError('Entre na sua conta para continuar.', 'UNAUTHENTICATED', 401);
   }
 
-  const apiUrl = import.meta.env.VITE_FORGELEX_API_URL ?? 'http://localhost:3001';
+  const apiUrl = resolveApiOrigin();
   let response: Response;
   try {
     response = await fetch(`${apiUrl}${path}`, {

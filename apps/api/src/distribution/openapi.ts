@@ -83,6 +83,7 @@ const OBJECT_REQUEST_SCHEMA_BY_PATH: Readonly<Record<string, keyof typeof OPENAP
 
 export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/health', summary: 'Healthcheck', description: 'Verifica a disponibilidade do serviço.' },
+  { method: 'get', path: '/healthz', summary: 'Liveness', description: 'Verifica se o processo do serviço está ativo.' },
   { method: 'get', path: '/.well-known/oauth-protected-resource', summary: 'Metadados do recurso protegido', description: 'Publica os metadados OAuth do recurso MCP.' },
   { method: 'get', path: '/openapi.json', summary: 'Especificação OpenAPI', description: 'Retorna esta especificação gerada.' },
   { method: 'get', path: '/api/v2/openapi.json', summary: 'Especificação OpenAPI v2', description: 'Retorna esta especificação gerada.' },
@@ -102,8 +103,8 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/api/v2/admin/billing/refund-requests', summary: 'Listar solicitações de reembolso', description: 'Consulta administrativa de solicitações de reembolso.', scopes: ['billing:admin'] },
   { method: 'post', path: '/api/v2/admin/billing/refund-requests/{requestId}/review', summary: 'Revisar solicitação de reembolso', description: 'Aprova ou rejeita manualmente uma solicitação de reembolso.', scopes: ['billing:admin'], requestBody: 'object' },
   { method: 'get', path: '/readyz', summary: 'Readiness', description: 'Verifica se as dependências locais necessárias estão disponíveis.', responseSchema: 'OperationalStatusResponse' },
-  { method: 'get', path: '/metrics', summary: 'Métricas internas', description: 'Retorna contadores internos de requisições e latência.' },
-  { method: 'get', path: '/metrics/prometheus', summary: 'Métricas Prometheus', description: 'Expõe as métricas internas em formato compatível com scrape do Prometheus.' },
+  { method: 'get', path: '/metrics', summary: 'Métricas internas', description: 'Retorna contadores internos de requisições e latência.', requiresAuthentication: true },
+  { method: 'get', path: '/metrics/prometheus', summary: 'Métricas Prometheus', description: 'Expõe as métricas internas em formato compatível com scrape do Prometheus.', requiresAuthentication: true },
   { method: 'get', path: '/api/v2/webhooks/endpoints', summary: 'Listar destinos de webhook', description: 'Lista destinos ativos e revogados do tenant.', scopes: ['billing:read'] },
   { method: 'post', path: '/api/v2/webhooks/endpoints', summary: 'Cadastrar destino de webhook', description: 'Cadastra um destino e retorna o segredo uma única vez.', scopes: ['billing:read'], requestBody: 'object' },
   { method: 'delete', path: '/api/v2/webhooks/endpoints/{endpointId}', summary: 'Revogar destino de webhook', description: 'Revoga um destino sem apagar seu histórico.', scopes: ['billing:read'] },

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, FileText, History, LockKeyhole, Plus, RefreshCw, Send, ShieldAlert } from 'lucide-react';
-import { requestApiWithToken } from '../api-client';
+import { requestApiWithToken, resolveApiOrigin } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 
 interface Matter {
@@ -117,10 +117,9 @@ function initialSections(): EditableSection[] {
   ];
 }
 
-const apiUrl = import.meta.env.VITE_FORGELEX_API_URL ?? 'http://localhost:3001';
+const apiUrl = resolveApiOrigin();
 
 function initialToken(): string {
-  if (import.meta.env.VITE_FORGELEX_API_TOKEN) return import.meta.env.VITE_FORGELEX_API_TOKEN;
   try {
     return window.localStorage.getItem('forgelex_api_token') ?? '';
   } catch {

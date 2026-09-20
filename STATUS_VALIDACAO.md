@@ -3,6 +3,31 @@
 Última auditoria: 2026-09-20. Branch: `main`. A implementação desta frente
 permanece local e não foi commitada, publicada ou aplicada a banco remoto.
 
+## Fase 8 — preflight de homologação Google Cloud
+
+O preflight local da Fase 8 foi aprovado sobre o HEAD-base `95032e2`, com as
+alterações ainda não commitadas. A imagem `forgelex-api:95032e2`, image ID local
+`sha256:9354f8a662827588b2cec79610f5936b57455d3797d1ded46a912bbb96aa6508`,
+tem 413.005.974 bytes e passou nos smokes locais contra PostgreSQL 16.
+
+O corpus integral medido no banco `forgelex_phase1` contém 874.450 documentos,
+874.516 versões e 544 manifestos. O banco ocupa 7.285.799.959 bytes; a projeção
+em 10 GiB preserva margem de 32,15%. A calculadora oficial estimou o gate A em
+R$ 82,76/mês: R$ 82,68 para Cloud SQL PostgreSQL zonal `db-f1-micro`, SSD de
+10 GiB, e R$ 0,08 para Cloud Run com escala a zero.
+
+No Edge foram confirmados o projeto `project-bbbe1209-c295-4720-867` (`My First
+Project`), billing trial, orçamento mensal de R$ 100, APIs essenciais e
+inventário vazio para Cloud Run, Cloud SQL, Artifact Registry e Secret Manager.
+O domínio correto é `nexojuris.ia.br`; `hml.nexojuris.ia.br` não tinha registro
+A público conflitante. Nenhum recurso, secret ou DNS foi criado ou alterado.
+
+Gates: `pnpm typecheck` PASS nos 15 projetos; `pnpm test` PASS com 71 arquivos
+e 326 testes, além de 1 arquivo e 4 testes ignorados; build web PASS com 1.652
+módulos; `pnpm test:postgres` PASS nos 12 checks; validação do runbook PASS; e
+`git diff --check` PASS. A evidência detalhada está em
+`docs/operations/phase8/preflight.md`.
+
 ## Fase 0 — baseline exclusivo do STJ
 
 A Fase 0 do plano progressivo foi concluída localmente e consolidada no commit

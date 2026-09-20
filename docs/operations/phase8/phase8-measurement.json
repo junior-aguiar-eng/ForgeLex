@@ -1,0 +1,19 @@
+{
+  "databaseBytes": 7285799959,
+  "corpusTableBytes": 7226515456,
+  "corpusIndexBytes": 749461504,
+  "dumpBytes": 0,
+  "imageBytes": 413005974,
+  "plannedRequests": 1000,
+  "plannedIngressBytes": 10485760,
+  "plannedEgressBytes": 104857600,
+  "logRetentionDays": 7,
+  "storageHeadroomRatio": 0.3215,
+  "estimatedMonthlyBrl": 82.76,
+  "tableCounts": {
+    "jurisprudence_ingestion_runs": 3,
+    "jurisprudence_source_manifests": 544,
+    "jurisprudence_documents": 874450,
+    "jurisprudence_document_versions": 874516
+  }
+}

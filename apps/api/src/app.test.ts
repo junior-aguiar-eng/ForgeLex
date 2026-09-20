@@ -100,6 +100,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
         NODE_ENV: 'test',
         FORGELEX_ALLOWED_ORIGINS: 'http://localhost:3000',
         FORGELEX_WEBHOOK_MASTER_KEY: 'test-webhook-master-key',
+        FORGELEX_METRICS_TOKEN: 'test-metrics-token',
       },
     });
   });
@@ -119,6 +120,10 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const body = JSON.parse(response.body);
     expect(body.status).toBe('ok');
     expect(body.service).toBe('forgelex-api');
+
+    const canonical = await app.inject({ method: 'GET', url: '/healthz' });
+    expect(canonical.statusCode).toBe(200);
+    expect(canonical.json()).toMatchObject({ status: 'ok', service: 'forgelex-api' });
   });
 
   it('GET /readyz consulta a persistência e separa processo ativo de dependência indisponível', async () => {
@@ -185,8 +190,17 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
 
   it('expõe as métricas preservadas em formato compatível com Prometheus', async () => {
     await app.inject({ method: 'GET', url: '/health' });
-    const response = await app.inject({ method: 'GET', url: '/metrics/prometheus' });
+    const missing = await app.inject({ method: 'GET', url: '/metrics/prometheus' });
+    const invalid = await app.inject({
+      method: 'GET', url: '/metrics/prometheus', headers: { authorization: 'Bearer wrong-token' },
+    });
+    const response = await app.inject({
+      method: 'GET', url: '/metrics/prometheus', headers: { authorization: 'Bearer test-metrics-token' },
+    });
 
+    expect(missing.statusCode).toBe(401);
+    expect(invalid.statusCode).toBe(401);
+    expect(missing.json()).toEqual({ error: 'UNAUTHORIZED', message: 'Credencial ausente ou inválida.' });
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toContain('text/plain');
     expect(response.body).toContain('forgelex_http_requests_total');

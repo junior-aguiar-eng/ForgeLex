@@ -12,7 +12,15 @@
     "test:postgres": "pnpm build && node scripts/smoke-postgres.mjs",
     "test:e2e:phase7": "playwright test tests/e2e/phase-7.spec.ts --project=chromium",
     "test:load:search": "pnpm build && node scripts/load-search.mjs",
-    "ingest:stj": "pnpm build && node scripts/ingest-stj-open-data.mjs"
+    "ingest:stj": "pnpm build && node scripts/ingest-stj-open-data.mjs",
+    "phase8:measure": "node scripts/phase8/measure-source.mjs",
+    "phase8:export-stj": "node scripts/phase8/export-global-stj.mjs",
+    "phase8:verify-corpus": "node scripts/phase8/verify-corpus.mjs",
+    "phase8:seed-gate-a": "pnpm build && node scripts/phase8/seed-gate-a.mjs",
+    "phase8:bootstrap-tenant": "pnpm build && node scripts/phase8/bootstrap-synthetic-tenant.mjs",
+    "phase8:smoke-remote": "node scripts/phase8/remote-http.mjs",
+    "phase8:mcp-remote": "node scripts/phase8/mcp-client.mjs",
+    "phase8:agent-core-remote": "pnpm build && node scripts/phase8/agent-core-remote.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
