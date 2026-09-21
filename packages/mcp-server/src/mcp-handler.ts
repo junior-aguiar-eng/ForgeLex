@@ -90,6 +90,13 @@ export class McpHandler {
           .map((tool) => {
             const rawSchema = zodToJsonSchema(tool.inputSchema, { target: 'jsonSchema7' }) as any;
             const { $schema, ...cleanSchema } = rawSchema;
+            cleanSchema.properties = {
+              ...(cleanSchema.properties ?? {}),
+              idempotencyKey: {
+                type: 'string', minLength: 1,
+                description: 'Chave de idempotência da operação. Use quando o host MCP não permitir enviar o header Idempotency-Key.',
+              },
+            };
 
             const contract = getLegalToolContract(tool.name);
             return {
@@ -149,7 +156,8 @@ export class McpHandler {
           };
         }
 
-        const idempotencyKey = context.idempotencyKey?.trim();
+        const hostIdempotencyKey = typeof toolArgs?.idempotencyKey === 'string' ? toolArgs.idempotencyKey.trim() : '';
+        const idempotencyKey = context.idempotencyKey?.trim() || hostIdempotencyKey;
         if (!idempotencyKey) {
           return {
             jsonrpc: '2.0',
@@ -175,7 +183,8 @@ export class McpHandler {
               userId,
             },
             operation: async () => {
-              return await this.toolRegistry.executeTool(name, toolArgs ?? {}, {
+              const { idempotencyKey: _idempotencyKey, ...executionArgs } = toolArgs ?? {};
+              return await this.toolRegistry.executeTool(name, executionArgs, {
                 sessionId,
                 tenantId,
                 userId,

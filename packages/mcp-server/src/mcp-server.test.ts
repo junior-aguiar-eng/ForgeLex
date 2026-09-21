@@ -191,6 +191,15 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(response.error?.code).toBe(-32601);
   });
 
+  it('aceita a chave de idempotência nos argumentos para hosts MCP sem suporte a headers', async () => {
+    const response = await handler.handleRequest({
+      jsonrpc: '2.0', id: 'host-key', method: 'tools/call',
+      params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados', idempotencyKey: 'mcp-host-key-001' } },
+    }, { tenantId: 'tenant_mcp_test' });
+
+    expect(response.result?.billing).toMatchObject({ chargedCents: 20, isReplay: false });
+  });
+
   it('executa a cadeia verificável pesquisa, obtenção e verificação sem modelo ForgeLex', async () => {
     const search = await handler.handleRequest({
       jsonrpc: '2.0', id: 'chain-search', method: 'tools/call',
