@@ -1,8 +1,8 @@
 # Fase 8 — validação final técnica da homologação
 
 Data: 2026-09-21  
-Status: `TECHNICAL_GATES_PASSED`; site definitivo publicado. A ativação comercial
-externa permanece um gate separado.
+Status: `TECHNICAL_GATES_PASSED`; site definitivo e configuração produtiva do
+provedor de pagamentos publicados. Nenhuma cobrança real foi criada nesta validação.
 
 ## Perímetro publicado
 
@@ -42,6 +42,25 @@ A conta de recarga do Mercado Pago retornou `503` nesse lote porque as
 credenciais produtivas ainda não foram ativadas. Essa dependência não foi
 mascarada como sucesso nem impede o ledger jurídico que foi exercitado acima;
 a publicação posterior de `nexojuris.ia.br` não altera esse resultado.
+
+## Configuração produtiva do Mercado Pago
+
+Após os smokes da Fase 8, a aplicação `ForgeLex - Créditos` recebeu
+credenciais produtivas, com setor `Serviços de TI`, site
+`https://nexojuris.ia.br` e webhook produtivo
+`https://nexojuris.ia.br/api/v2/webhooks/mercadopago`, restrito ao evento
+`Order (Mercado Pago)`. O Access Token e a assinatura do webhook foram
+armazenados somente no Secret Manager como
+`forgelex-mercadopago-access-token` e
+`forgelex-mercadopago-webhook-secret`; a identidade de execução possui acesso
+de leitura nesses dois segredos. A revisão
+`forgelex-api-hml-00011-q2f` referencia ambos e atende 100% do tráfego.
+
+Os domínios raiz e de homologação responderam `200` em `/health`. Uma chamada
+sem assinatura ao webhook retornou `400 MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID`,
+comprovando que o handler deixou de estar indisponível (`503`) e valida a
+assinatura do provedor. Não foi criada preferência, cobrança ou crédito para
+fins de teste.
 
 O Cloud Build `3c74f210-a445-4003-bc80-9ada6dfedda4` executou carga limitada
 de 25 buscas STJ com concorrência cinco: sem 5xx, p50 de 532,66 ms, p95 de
