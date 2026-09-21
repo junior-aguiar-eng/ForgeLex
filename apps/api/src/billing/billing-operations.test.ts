@@ -38,12 +38,12 @@ describe('BillingOperationsService', () => {
     operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), provider);
   });
 
-  it('cria Checkout idempotente para pacote em BRL', async () => {
+  it('cria uma única order idempotente para credits_25', async () => {
     const tenantId = `tenant_${randomUUID()}`;
-    const first = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_50', idempotencyKey: `checkout_${tenantId}` });
-    const replay = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_50', idempotencyKey: `checkout_${tenantId}` });
+    const first = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
+    const replay = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
 
-    expect(first).toMatchObject({ status: 'PENDING', amountCents: 5000, checkoutUrl: 'https://checkout.test/' + first.purchaseId });
+    expect(first).toMatchObject({ status: 'PENDING', amountCents: 2500, checkoutUrl: 'https://checkout.test/' + first.purchaseId });
     expect(replay.purchaseId).toBe(first.purchaseId);
     expect(provider.checkouts).toHaveLength(1);
   });

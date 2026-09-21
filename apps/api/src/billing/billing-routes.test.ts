@@ -17,8 +17,20 @@ const principal: AuthenticatedPrincipal = {
   authMethod: 'api_key',
 };
 
+const billingOnlyPrincipal: AuthenticatedPrincipal = {
+  ...principal,
+  subjectId: 'subject_billing_only',
+  tenantId: 'tenant_billing_only',
+  userId: 'user_billing_only',
+  scopes: ['billing:read', 'billing:write'],
+};
+
 class TokenVerifier implements TokenVerifier {
-  public async verify(token: string): Promise<AuthenticatedPrincipal | null> { return token === 'billing-token' ? principal : null; }
+  public async verify(token: string): Promise<AuthenticatedPrincipal | null> {
+    if (token === 'billing-token') return principal;
+    if (token === 'billing-only-token') return billingOnlyPrincipal;
+    return null;
+  }
 }
 
 class Provider implements PaymentProvider {
@@ -32,6 +44,26 @@ class Provider implements PaymentProvider {
 }
 
 describe('rotas de billing', () => {
+  it('impede chave exclusiva de billing de pesquisar jurisprudência', async () => {
+    const connection = await createDatabase();
+    await runPersistenceMigrations(connection.client);
+    const ledger = new LedgerService(connection.db, connection.client);
+    await ledger.runMigrations();
+    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), new Provider());
+    const app = await buildApp({ authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger, database: connection.db, databaseClient: connection.client, billingOperationsService: operations, environment: { NODE_ENV: 'test' } });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v2/research/search-case-law',
+      headers: { authorization: 'Bearer billing-only-token', 'idempotency-key': 'scope_14' },
+      payload: { query: 'vazamento', court: 'STJ', limit: 1 },
+    });
+
+    expect(response.statusCode).toBe(403);
+    await app.close();
+    connection.client.close();
+  });
+
   it('não expõe catálogo de preços de modelos na conta de billing', async () => {
     const connection = await createDatabase();
     await runPersistenceMigrations(connection.client);
