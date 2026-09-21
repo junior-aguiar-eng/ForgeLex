@@ -1,12 +1,12 @@
 # Plano de conclusão progressiva do ForgeLex
 
-**Objetivo:** estabilizar completamente o ForgeLex como infraestrutura jurídica própria, usando o STJ como única fonte jurisprudencial comercial inicial, fechando as dependências do produto e somente depois expandindo a cobertura para STF, TST, TJSP, TJRJ e TRF3, um tribunal por fase.
+**Objetivo:** estabilizar completamente o ForgeLex como infraestrutura jurídica própria, usando o STJ como única fonte jurisprudencial comercial. A expansão para STF, TST, TJSP, TJRJ e TRF3 é opcional, individual e não integra o critério de completude do produto STJ.
 
 **Arquitetura:** o ForgeLex fornecerá ferramentas jurídicas verificáveis, prompts e workflows versionados, API REST e MCP remoto sobre a mesma infraestrutura jurisprudencial própria. A busca pública não consultará diretamente o SCON a cada operação: o SCON será fonte oficial de ingestão, enquanto o ForgeLex manterá documentos, versões, proveniência, hashes, cobertura e índice próprios. No caso agêntico comercial inicial, ChatGPT, Claude ou outro host externo fornecerá o modelo e o raciocínio; o MCP fornecerá as tools, schemas, autenticação, autorização, proveniência, limites e cobrança das operações próprias. O Agent Core e os adapters OpenAI/Anthropic permanecerão camadas opcionais para integrações próprias, fora do runtime comercial e sem qualquer relação com billing de tokens.
 
 **Critério central:** nenhuma fase posterior começa enquanto a fase anterior não estiver concluída em código, contratos, testes, documentação e validação operacional. Uma pendência descoberta durante uma fase retorna para a fase responsável; não será empurrada para uma etapa posterior.
 
-**Regra de sequência do produto:** a dependência obrigatória é `Legal Data Plane → Legal Tool Gateway → API REST e MCP → prompts e workflows agênticos → Agent Core opcional → adapters opcionais de providers`. API REST e MCP nunca dependerão do Agent Core. As Fases 0 a 8 formam um único ciclo de estabilização completa do ForgeLex usando exclusivamente o STJ. STF, TST, TJSP, TJRJ e TRF3 não serão implementados, integrados, habilitados ou tratados como escopo paralelo antes da aprovação do gate da Fase 8. A Fase 9 será a primeira expansão posterior ao STJ.
+**Regra de sequência do produto:** a dependência obrigatória é `Legal Data Plane → Legal Tool Gateway → API REST e MCP → prompts e workflows agênticos → Agent Core opcional → adapters opcionais de providers`. API REST e MCP nunca dependerão do Agent Core. As Fases 0 a 8 formam um único ciclo de estabilização completa do ForgeLex usando exclusivamente o STJ. A decisão estratégica `STRATEGIC_FREEZE_2026-09-21` congela as Fases 9 a 13: STF, TST, TJSP, TJRJ e TRF3 não serão implementados, integrados, habilitados nem tratados como pendência ou bloqueio. A Fase 14 passa a suceder a Fase 8 como consolidação operacional do produto STJ; a expansão só poderá ser retomada por decisão estratégica expressa.
 
 ## Regras globais
 
@@ -641,11 +641,13 @@ Também deverá ser produzido um relatório com:
 
 Nenhuma fase de outro tribunal começa antes deste gate. Até aqui, o projeto inteiro é estabilizado exclusivamente sobre o STJ.
 
+> **Decisão estratégica — 2026-09-21:** as Fases 9 a 13 estão `FROZEN_STRATEGICALLY`. Elas não foram iniciadas, não representam incompletude do ForgeLex/STJ e não bloqueiam a Fase 14. O catálogo comercial continua a expor exclusivamente capabilities STJ; tribunais sem provider permanecem indisponíveis e sem cobrança. O registro detalhado desta decisão está em `docs/operations/phase14/strategic-freeze.md`.
+
 ---
 
-## Fase 9 — Primeiro tribunal posterior ao gate do STJ: STF
+## Fase 9 — STF (`FROZEN_STRATEGICALLY`)
 
-Esta fase só pode começar depois que as Fases 0 a 8 estiverem completamente concluídas e o gate de estabilidade integral do ForgeLex com STJ estiver aprovado. STF não é dependência, escopo paralelo ou trabalho antecipado das fases anteriores.
+Esta fase permanece preservada como backlog de expansão futura. Não deve começar enquanto vigorar `STRATEGIC_FREEZE_2026-09-21`; STF não é dependência do produto STJ, da Fase 14 ou de qualquer gate de estabilidade.
 
 Repetir a mesma definição de completude:
 
@@ -666,7 +668,7 @@ Repetir a mesma definição de completude:
 
 O STF só será marcado como `searchable: true` após todos os itens passarem.
 
-## Fase 10 — TST
+## Fase 10 — TST (`FROZEN_STRATEGICALLY`)
 
 Aplicar o mesmo ciclo integral, sem reutilizar parser ou pressupor que o contrato do STJ seja equivalente:
 
@@ -683,35 +685,34 @@ Aplicar o mesmo ciclo integral, sem reutilizar parser ou pressupor que o contrat
 - documentação;
 - habilitação progressiva.
 
-## Fase 11 — TJSP
+## Fase 11 — TJSP (`FROZEN_STRATEGICALLY`)
 
 Aplicar o mesmo ciclo, incluindo validação específica de volume, paginação, identificação processual e estabilidade da fonte estadual.
 
-## Fase 12 — TJRJ
+## Fase 12 — TJRJ (`FROZEN_STRATEGICALLY`)
 
 Aplicar o mesmo ciclo, com contrato, cobertura e parser independentes.
 
-## Fase 13 — TRF3
+## Fase 13 — TRF3 (`FROZEN_STRATEGICALLY`)
 
 Aplicar o mesmo ciclo, com validação específica de classes processuais, identificação dos julgados e cobertura regional.
 
-Cada uma das fases 9 a 13 será um incremento isolado. Um tribunal com provider apenas parcialmente funcional permanecerá fora do catálogo comercial e não será cobrado.
+Cada uma das fases 9 a 13 permanece um incremento isolado, se e quando a decisão estratégica for revogada. Um tribunal com provider apenas parcialmente funcional permanecerá fora do catálogo comercial e não será cobrado.
 
 ---
 
-## Fase 14 — Consolidação nacional
+## Fase 14 — Consolidação operacional e estabilização do produto STJ
 
-**Objetivo:** consolidar o produto depois que todos os tribunais individuais estiverem concluídos.
+**Objetivo:** consolidar a operação do produto comercial limitado ao STJ antes de qualquer expansão de tribunal, sem pressupor corpus, provider ou capability de STF, TST, TJSP, TJRJ ou TRF3.
 
 **Implementação:**
 
-- substituir o catálogo por capacidades reais agregadas;
-- definir comportamento de `court=TODOS`;
-- ordenar resultados entre tribunais sem perder relevância;
-- preservar provider, tribunal, versão e proveniência;
-- definir política de resultados parciais;
-- criar métricas por tribunal;
-- criar healthcheck agregado;
+- manter o catálogo limitado às capabilities STJ efetivamente homologadas;
+- consolidar monitoramento, custos, logs e runbooks da operação pública;
+- exercitar recuperação operacional, indisponibilidade controlada, autenticação, billing e webhook sem criar cobrança real desnecessária;
+- validar integridade de deploy, banco, segredos, domínio, TLS e rotas públicas;
+- preservar provider, tribunal, versão e proveniência do corpus STJ;
+- documentar critérios objetivos para eventual retomada de um novo tribunal, sem iniciar provider, coleta, parser ou importação;
 - atualizar OpenAPI e MCP;
 - atualizar documentação comercial;
 - remover todos os claims aspiracionais;
@@ -721,14 +722,14 @@ Cada uma das fases 9 a 13 será um incremento isolado. Um tribunal com provider 
 
 **Gate final:**
 
-- nenhum tribunal habilitado sem corpus e provider concluídos;
+- somente STJ permanece habilitado; nenhum outro tribunal é requisito deste gate;
 - nenhum endpoint cobra capacidade inexistente;
 - REST e MCP retornam a mesma infraestrutura;
 - documentação não menciona modelo fornecido pelo ForgeLex;
 - nenhum billing por token, margem, cotação ou provider de IA;
 - todos os gates automatizados passam;
-- PostgreSQL local passa;
-- evidências externas disponíveis para os serviços que dependem de ambiente público.
+- evidências operacionais externas estão disponíveis para os serviços públicos STJ;
+- as Fases 9 a 13 constam expressamente como `FROZEN_STRATEGICALLY`, sem claim de cobertura nacional.
 
 ## Sequência de commits planejada
 
