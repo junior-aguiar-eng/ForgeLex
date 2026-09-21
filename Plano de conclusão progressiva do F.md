@@ -8,6 +8,18 @@
 
 **Regra de sequência do produto:** a dependência obrigatória é `Legal Data Plane → Legal Tool Gateway → API REST e MCP → prompts e workflows agênticos → Agent Core opcional → adapters opcionais de providers`. API REST e MCP nunca dependerão do Agent Core. As Fases 0 a 8 formam um único ciclo de estabilização completa do ForgeLex usando exclusivamente o STJ. A decisão estratégica `STRATEGIC_FREEZE_2026-09-21` congela as Fases 9 a 13: STF, TST, TJSP, TJRJ e TRF3 não serão implementados, integrados, habilitados nem tratados como pendência ou bloqueio. A Fase 14 passa a suceder a Fase 8 como consolidação operacional do produto STJ; a expansão só poderá ser retomada por decisão estratégica expressa.
 
+## Estado consolidado do programa — 2026-09-21
+
+| Fases | Estado | Registro canônico |
+| --- | --- | --- |
+| 0 a 8 | `COMPLETED` | `STATUS_VALIDACAO.md` e `docs/operations/phase8/final-validation.md` |
+| 9 a 13 | `FROZEN_STRATEGICALLY` | `docs/operations/phase14/strategic-freeze.md` |
+| 14 | `COMPLETED` | `docs/operations/phase14/controlled-charge-evidence.md` |
+
+O ForgeLex/STJ está concluído no escopo aprovado. A eventual retomada de um
+novo tribunal exige decisão estratégica expressa e abre fase própria; não é
+pendência residual deste programa.
+
 ## Regras globais
 
 - O ForgeLex nunca fornecerá modelo de IA, receberá chaves OpenAI/Anthropic ou cobrará tokens.
@@ -577,7 +589,7 @@ medição local desta execução, não um SLA.
 
 ---
 
-## Fase 8 — Gate de estabilidade integral do ForgeLex com STJ
+## Fase 8 — Gate de estabilidade integral do ForgeLex com STJ (`COMPLETED`)
 
 **Objetivo:** declarar o projeto comercialmente estável antes de iniciar qualquer novo tribunal.
 
@@ -641,6 +653,11 @@ Também deverá ser produzido um relatório com:
 
 Nenhuma fase de outro tribunal começa antes deste gate. Até aqui, o projeto inteiro é estabilizado exclusivamente sobre o STJ.
 
+**Encerramento:** os gates pelo domínio canônico, a restrição de ingress, os
+smokes REST/MCP/Agent Core, o host MCP externo, a revogação da credencial
+sintética e a evidência saneada foram concluídos. O registro final está em
+`docs/operations/phase8/final-validation.md`.
+
 > **Decisão estratégica — 2026-09-21:** as Fases 9 a 13 estão `FROZEN_STRATEGICALLY`. Elas não foram iniciadas, não representam incompletude do ForgeLex/STJ e não bloqueiam a Fase 14. O catálogo comercial continua a expor exclusivamente capabilities STJ; tribunais sem provider permanecem indisponíveis e sem cobrança. O registro detalhado desta decisão está em `docs/operations/phase14/strategic-freeze.md`.
 
 ---
@@ -701,9 +718,14 @@ Cada uma das fases 9 a 13 permanece um incremento isolado, se e quando a decisã
 
 ---
 
-## Fase 14 — Consolidação operacional e estabilização do produto STJ
+## Fase 14 — Consolidação operacional e estabilização do produto STJ (`COMPLETED`)
 
 **Objetivo:** consolidar a operação do produto comercial limitado ao STJ antes de qualquer expansão de tribunal, sem pressupor corpus, provider ou capability de STF, TST, TJSP, TJRJ ou TRF3.
+
+**Encerramento:** uma única cobrança produtiva controlada foi processada e
+reconciliada, com idempotência, webhook autenticado, saldo creditado, revogação
+da chave temporária e `401` posterior comprovados. A evidência saneada está em
+`docs/operations/phase14/controlled-charge-evidence.md`.
 
 **Implementação:**
 

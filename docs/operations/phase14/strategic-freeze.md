@@ -1,12 +1,12 @@
 # Fase 14 — decisão estratégica de estabilização STJ
 
 Data: 2026-09-21  
-Status: `APPROVED_STRATEGIC_SCOPE`
+Status: `ACTIVE_STRATEGIC_SCOPE`; produto STJ `COMPLETED`
 
 ## Decisão
 
-O ForgeLex permanecerá deliberadamente limitado ao STJ enquanto o produto,
-suas operações públicas e a integração comercial forem estabilizados. As
+O ForgeLex permanece deliberadamente limitado ao STJ após a conclusão do
+produto, de suas operações públicas e da integração comercial. As
 Fases 9 a 13 — STF, TST, TJSP, TJRJ e TRF3 — estão
 `FROZEN_STRATEGICALLY`: não foram iniciadas, não são escopo implícito e não
 constituem incompletude, falha ou bloqueio do produto STJ.
@@ -19,9 +19,10 @@ constituem incompletude, falha ou bloqueio do produto STJ.
   rejeitar suas buscas antes do ledger.
 - Não anunciar cobertura nacional, multi-tribunal, `court=TODOS` ou resultados
   agregados.
-- A Fase 14 sucede diretamente a Fase 8 e concentra-se em estabilidade
+- A Fase 14 sucedeu diretamente a Fase 8 e consolidou estabilidade
   operacional, segurança, disponibilidade, observabilidade, custo, billing,
-  webhook, banco, deploy, domínio e documentação do produto STJ.
+  webhook, banco, deploy, domínio e documentação do produto STJ. A evidência
+  final está em `controlled-charge-evidence.md`.
 
 ## Regra de retomada
 

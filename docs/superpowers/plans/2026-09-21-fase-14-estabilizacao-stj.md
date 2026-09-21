@@ -10,6 +10,12 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-21-fase-14-estabilizacao-stj-design.md`
 
+**Execution status:** `COMPLETED` em 2026-09-21. A evidência operacional
+canônica está em `docs/operations/phase14/controlled-charge-evidence.md`.
+O registro final preserva `docs/operations/phase8/final-validation.md` como
+artefato histórico imutável: a evidência complementar desta fase foi mantida
+no documento próprio da Fase 14.
+
 ## Global Constraints
 
 - Fases 9 a 13 permanecem `FROZEN_STRATEGICALLY`; STJ é a única capability jurídica comercial.
@@ -41,7 +47,7 @@
 - Consumes: `AccountRepository.bootstrap`, `LedgerService.provisionAccount`, `ApiKeyService.create`, `assertRemoteSeed` e `writeTokenToSecret`.
 - Produces: `bootstrapBillingTenant(deps, identityPrefix): Promise<{ tenantId: string; userId: string; keyId: string; keyPrefix: string }>`.
 
-- [ ] **Step 1: Escrever o teste de escopo e saldo mínimos**
+- [x] **Step 1: Escrever o teste de escopo e saldo mínimos**
 
 ```ts
 import { expect, it, vi } from 'vitest';
@@ -61,13 +67,13 @@ it('cria identidade de billing sem saldo e sem scope jurídico', async () => {
 });
 ```
 
-- [ ] **Step 2: Executar o teste e confirmar a falha inicial**
+- [x] **Step 2: Executar o teste e confirmar a falha inicial**
 
 Run: `pnpm vitest run scripts/phase14/bootstrap-billing-tenant.test.ts`
 
 Expected: FAIL porque o módulo ainda não existe.
 
-- [ ] **Step 3: Implementar o bootstrap isolado**
+- [x] **Step 3: Implementar o bootstrap isolado**
 
 ```js
 export const BILLING_SCOPES = Object.freeze(['billing:read', 'billing:write']);
@@ -91,7 +97,7 @@ export async function bootstrapBillingTenant(deps, identityPrefix) {
 
 O entrypoint exige `FORGELEX_PHASE14_TARGET_DATABASE_URL`, `FORGELEX_PHASE14_ALLOW_REMOTE_SEED=confirmed`, `FORGELEX_PHASE14_TARGET_KIND=cloud-sql-auth-proxy`, `FORGELEX_PHASE14_TOKEN_SECRET` e `FORGELEX_PHASE14_GCP_PROJECT`; usa o padrão de `scripts/phase8/bootstrap-synthetic-tenant.mjs`, nunca imprime o token e só o encaminha para `writeTokenToSecret`.
 
-- [ ] **Step 4: Executar testes focados e adicionar o script do pacote**
+- [x] **Step 4: Executar testes focados e adicionar o script do pacote**
 
 Run: `pnpm vitest run scripts/phase14/bootstrap-billing-tenant.test.ts scripts/phase8/bootstrap-synthetic-tenant.test.ts`
 
@@ -101,7 +107,7 @@ Expected: PASS, com escopos exclusivos de billing, saldo zero e token ausente do
 "phase14:bootstrap-billing": "pnpm build && node scripts/phase14/bootstrap-billing-tenant.mjs"
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package.json scripts/phase14/bootstrap-billing-tenant.mjs scripts/phase14/bootstrap-billing-tenant.test.ts
@@ -119,7 +125,7 @@ git commit -m "feat(phase14): isolar identidade de cobrança"
 - Consumes: `POST /api/v2/billing/checkout`, `POST /api/v2/webhooks/mercadopago`, `BillingOperationsService.createCheckout` e `processWebhook`.
 - Produces: contrato de uma ordem por idempotency key, `400` sem chave, `401` para assinatura inválida e saldo único `2500` após replay.
 
-- [ ] **Step 1: Adicionar teste de bloqueio da pesquisa para chave billing-only**
+- [x] **Step 1: Adicionar teste de bloqueio da pesquisa para chave billing-only**
 
 ```ts
 const response = await app.inject({
@@ -132,13 +138,13 @@ expect(response.statusCode).toBe(403);
 
 O `TokenVerifier` deve devolver, somente para `billing-only-token`, um principal com `scopes: ['billing:read', 'billing:write']`.
 
-- [ ] **Step 2: Executar a falha de fronteira e ajustar somente o fixture**
+- [x] **Step 2: Executar a falha de fronteira e ajustar somente o fixture**
 
 Run: `pnpm --filter @forgelex/api test -- billing-routes.test.ts`
 
 Expected: após o fixture reconhecer o token, PASS com `403`; a rota produtiva não é alterada.
 
-- [ ] **Step 3: Fixar unicidade de `credits_25` no serviço**
+- [x] **Step 3: Fixar unicidade de `credits_25` no serviço**
 
 ```ts
 const first = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
@@ -148,13 +154,13 @@ expect(provider.checkouts).toHaveLength(1);
 expect(first.amountCents).toBe(2500);
 ```
 
-- [ ] **Step 4: Executar a matriz de regressão de billing**
+- [x] **Step 4: Executar a matriz de regressão de billing**
 
 Run: `pnpm --filter @forgelex/api test -- billing-routes.test.ts billing-operations.test.ts mercado-pago-payment-provider.test.ts`
 
 Expected: PASS, inclusive `400` sem `Idempotency-Key`, `401` para assinatura inválida e `2500` após dois processamentos do mesmo evento.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/src/billing/billing-routes.test.ts apps/api/src/billing/billing-operations.test.ts apps/api/src/billing/mercado-pago-payment-provider.test.ts
@@ -171,7 +177,7 @@ git commit -m "test(phase14): fixar limites do checkout"
 - Consumes: domínios raiz/HML, revisão Cloud Run, referências Secret Manager e saúde HTTP.
 - Produces: evidência saneada `READY_FOR_SINGLE_CHECKOUT` ou `STOPPED_BEFORE_FINANCIAL_MUTATION`.
 
-- [ ] **Step 1: Criar o registro de evidência com os campos abaixo**
+- [x] **Step 1: Criar o registro de evidência com os campos abaixo**
 
 ```markdown
 # Fase 14 — evidência de cobrança controlada
@@ -188,7 +194,7 @@ git commit -m "test(phase14): fixar limites do checkout"
 - decisão: `READY_FOR_SINGLE_CHECKOUT` ou `STOPPED_BEFORE_FINANCIAL_MUTATION`.
 ```
 
-- [ ] **Step 2: Consultar saúde, ingress e env refs sem mutação**
+- [x] **Step 2: Consultar saúde, ingress e env refs sem mutação**
 
 Run:
 
@@ -204,7 +210,7 @@ gcloud compute ssl-certificates describe forgelex-api-hml-cert --project=$p --gl
 
 Expected: ambas as saúdes `200`, ingress `internal-and-cloud-load-balancing`, os dois certificados `ACTIVE` e referências, não valores, dos segredos Mercado Pago.
 
-- [ ] **Step 3: Confirmar bloqueio da URL nativa**
+- [x] **Step 3: Confirmar bloqueio da URL nativa**
 
 Run:
 
@@ -215,7 +221,7 @@ try { (Invoke-WebRequest "$u/health" -UseBasicParsing -ErrorAction Stop).StatusC
 
 Expected: `404`; qualquer divergência grava `STOPPED_BEFORE_FINANCIAL_MUTATION` e encerra antes de criar a ordem.
 
-- [ ] **Step 4: Testar saneamento e commit**
+- [x] **Step 4: Testar saneamento e commit**
 
 Run: `pnpm vitest run scripts/phase8/redact-evidence.test.ts`
 
@@ -235,7 +241,7 @@ git commit -m "docs(phase14): registrar preflight de cobrança"
 - Consumes: segredo temporário `forgelex-phase14-billing-token`, checkout e consulta da compra.
 - Produces: uma compra `PENDING`, uma order Mercado Pago e evidência de replay sem segunda compra.
 
-- [ ] **Step 1: Executar bootstrap com proxy Cloud SQL e Secret Manager**
+- [x] **Step 1: Executar bootstrap com proxy Cloud SQL e Secret Manager**
 
 Run:
 
@@ -250,7 +256,7 @@ pnpm run phase14:bootstrap-billing
 
 Expected: somente `tenantId`, `userId`, `keyId` e `keyPrefix` são impressos.
 
-- [ ] **Step 2: Consultar a conta vazia sem imprimir a chave**
+- [x] **Step 2: Consultar a conta vazia sem imprimir a chave**
 
 Run:
 
@@ -262,11 +268,11 @@ Remove-Variable token
 
 Expected: saldo pago `0` e pacote `credits_25` com `amountCents: 2500`.
 
-- [ ] **Step 3: Obter confirmação expressa imediatamente antes de criar a ordem**
+- [x] **Step 3: Obter confirmação expressa imediatamente antes de criar a ordem**
 
 Expected: sem confirmação, não executar POST, não abrir navegador e não criar ordem.
 
-- [ ] **Step 4: Criar checkout e repetir somente a mesma idempotency key**
+- [x] **Step 4: Criar checkout e repetir somente a mesma idempotency key**
 
 Run:
 
@@ -281,7 +287,7 @@ Remove-Variable token
 
 Expected: ambos retornam o mesmo `purchaseId`, `PENDING` e `2500`; URL de checkout fica somente na sessão e o identificador vira hash curto na evidência.
 
-- [ ] **Step 5: Obter confirmação expressa imediatamente antes de abrir e pagar**
+- [x] **Step 5: Obter confirmação expressa imediatamente antes de abrir e pagar**
 
 Expected: sem confirmação, encerrar com a compra pendente, sem abrir checkout e sem cobrança.
 
@@ -295,11 +301,11 @@ Expected: sem confirmação, encerrar com a compra pendente, sem abrir checkout 
 - Consumes: checkout da Task 4, webhook Mercado Pago, API de compra/conta/extrato e console Mercado Pago.
 - Produces: uma ordem, uma compra `PAID`, saldo `2500`, evidência de idempotência e chave temporária inválida.
 
-- [ ] **Step 1: Abrir a única URL de checkout já criada e pagar somente após confirmação do usuário**
+- [x] **Step 1: Abrir a única URL de checkout já criada e pagar somente após confirmação do usuário**
 
 Expected: uma aprovação produtiva de R$ 25,00; falha de pagamento não autoriza outra compra.
 
-- [ ] **Step 2: Consultar compra, conta e extrato após webhook assinado**
+- [x] **Step 2: Consultar compra, conta e extrato após webhook assinado**
 
 Run:
 
@@ -314,11 +320,11 @@ Remove-Variable token
 
 Expected: compra `PAID`, saldo exato `2500`, um crédito e nenhuma operação jurídica.
 
-- [ ] **Step 3: Reconciliar com Mercado Pago e testar reentrega segura**
+- [x] **Step 3: Reconciliar com Mercado Pago e testar reentrega segura**
 
 Expected: painel do provider mostra aprovação/processamento de R$ 25,00 e referência externa compatível com o hash da compra. Reentregar apenas evento já entregue pelo provider; compra continua `PAID` e saldo continua `2500`. Sem opção segura de reentrega, registrar o limite e usar o teste local de replay da Task 2.
 
-- [ ] **Step 4: Revogar a chave, testar `401` e desabilitar seu segredo**
+- [x] **Step 4: Revogar a chave, testar `401` e desabilitar seu segredo**
 
 Run:
 
@@ -332,7 +338,7 @@ gcloud secrets versions disable latest --secret=forgelex-phase14-billing-token -
 
 Expected: `401`; não apagar tenant, compra ou dados financeiros.
 
-- [ ] **Step 5: Consolidar documentação, verificar e publicar**
+- [x] **Step 5: Consolidar documentação, verificar e publicar**
 
 Run:
 
@@ -360,3 +366,22 @@ git push origin main
 **Consistência de interfaces:** `BILLING_SCOPES`, `bootstrapBillingTenant`, `forgelex-phase14-billing-token`, `credits_25`, `2500` e os endpoints de checkout/consulta mantêm o mesmo nome em todas as tarefas.
 
 **Review focus:** os cinco riscos listados têm teste ou reconciliação associada nas Tasks 1, 2, 4 e 5; nenhum exige reexecução de ingestão ou pesquisa jurídica.
+
+## Registro de encerramento
+
+- Todas as etapas deste plano foram executadas e verificadas. A matriz focada
+  de billing passou com `25/25` testes e o bootstrap/saneamento com `12/12`.
+- A única ordem produtiva foi processada e reconciliada como `PAID`, com saldo
+  pago de `2500` centavos. A mesma chave de idempotência não criou segunda
+  ordem.
+- A primeira entrega do provider falhou antes da correção da assinatura. Após
+  reconciliar a assinatura efetiva na revisão ativa do Cloud Run, um replay
+  autenticado do mesmo evento retornou `200`, sem crédito manual, nova compra,
+  recarga, consumo ou reembolso.
+- A chave de billing temporária foi revogada, sua reutilização retornou `401`
+  e a versão do segredo temporário foi desabilitada. A compra e o ledger foram
+  preservados para auditoria.
+- A ausência de uma entrega espontânea posterior do provider não é pendência
+  desta fase: o teto de uma única cobrança impede criar uma segunda ordem só
+  para essa observação. O primeiro pagamento futuro pode ser monitorado como
+  evidência operacional ordinária.

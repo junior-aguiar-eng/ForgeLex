@@ -4,7 +4,7 @@
 > Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest](https://img.shields.io/badge/Tests-271%20Passing-brightgreen.svg)](https://vitest.dev/)
+[![Validation](https://img.shields.io/badge/Validation-STJ%20Completed-brightgreen.svg)](STATUS_VALIDACAO.md)
 [![MCP](https://img.shields.io/badge/Protocol-Model%20Context%20Protocol%20(MCP)-orange.svg)](https://modelcontextprotocol.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Vendor--Neutral%20Kernel-purple.svg)](#arquitetura-do-monorepo)
 
@@ -13,6 +13,27 @@
 ## 🏛️ Visão Geral
 
 O **FORGELEX V2** foi construído para superar as limitações das ferramentas jurídicas de 1ª geração (prompts estáticos, alucinações de ementas, dependência de fornecedor único e falta de governança).
+
+## Estado atual do produto
+
+O ForgeLex está concluído no escopo comercial aprovado: pesquisa jurídica sobre
+índice próprio do **STJ**, distribuída por REST e MCP remoto, com cobrança
+pré-paga em BRL exclusivamente pelas operações jurídicas do ForgeLex. O
+produto público opera em `https://nexojuris.ia.br`; o Cloud Run aceita tráfego
+externo somente pelo balanceador HTTPS.
+
+- REST, OpenAPI, MCP remoto, host externo e Agent Core foram exercitados pelo
+  domínio canônico; REST e MCP usam a mesma infraestrutura jurídica.
+- O checkout, webhook autenticado, idempotência e crédito pré-pago foram
+  validados por uma única cobrança produtiva controlada. Não há billing de
+  modelo, token ou provider de IA.
+- STF, TST, TJSP, TJRJ e TRF3 estão `FROZEN_STRATEGICALLY`: não são
+  capabilities pesquisáveis, não geram cobrança e não constituem pendência do
+  produto STJ.
+
+O estado do programa está em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md), o
+plano mestre em [Plano de conclusão progressiva do ForgeLex](Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md) e as evidências operacionais estão
+indexadas em [docs/README.md](docs/README.md).
 
 ### Pilares Fundamentais:
 1. **Microkernel Agêntico Vendor-Neutral:** Contratos para integrações próprias de agentes, sem modelo de IA gerenciado pelo ForgeLex.
@@ -118,12 +139,12 @@ O frontend foi desenvolvido reproduzindo rigorosamente o design system editorial
 
 ## 🚀 Como Executar Localmente
 
-### Limites atuais
+### Limites e ambientes
 
-O estado comprovado localmente inclui build, typecheck, testes automatizados,
-isolamento de tenant, persistência SQLite, persistência PostgreSQL local,
-contratos de auditoria, billing e paridade estrutural dos adapters. Isso não
-equivale à validação de produção.
+A validação externa do produto STJ foi concluída e está documentada. O ambiente
+local continua sendo necessário para desenvolvimento, testes e reprodução de
+contratos; ele não substitui as evidências operacionais publicadas nem deve ser
+apontado para banco remoto sem autorização operacional explícita.
 
 - Os adapters locais de Anthropic e OpenAI existem apenas para integração/testes
   opcionais e não são inicializados pelo runtime comercial. O ForgeLex não
@@ -296,7 +317,7 @@ ForgeLex pagam dados, pesquisa e infraestrutura jurídica. O MCP recebe somente
 a chamada autenticada e os argumentos da ferramenta: não acessa conversas,
 arquivos ou histórico do usuário.
 
-### Distribuição pública (Marco 10)
+### Distribuição pública e contratos
 
 O contrato REST gerado está disponível em `GET /openapi.json` e
 `GET /api/v2/openapi.json`. A superfície canônica de pesquisa é
@@ -321,8 +342,9 @@ Ela não representa modelo fornecido pelo ForgeLex nem cria relação de billing
 com a API ou o MCP comerciais.
 
 As métricas podem ser coletadas por Prometheus apontando o scrape para
-`/metrics/prometheus`; a integração com um coletor externo continua sendo
-parâmetro operacional.
+`/metrics/prometheus`; a evidência de métricas autenticadas pelo domínio
+canônico integra a validação da Fase 8. A integração contínua com coletor
+externo permanece uma decisão operacional independente.
 
 As API keys persistidas em `api_keys` armazenam somente o hash SHA-256 e podem
 ser criadas, listadas e revogadas pelas rotas `/api/v2/api-keys`. O segredo é
@@ -372,18 +394,20 @@ provider externo.
 
 ---
 
-## 🧪 Suíte de Testes Automatizados
+## 🧪 Verificação local
 
-```text
+```bash
+pnpm typecheck
 pnpm test
-
-Test Files  45 passed | 1 skipped (46)
-Tests       203 passed | 3 skipped (206)
-
-O build executado pelo script também passou. O resultado inclui os testes de
-billing por capability, parser/provider STJ Open Data, migration 0014,
-manifesto/staging, equivalência REST/MCP e o job de ingestão.
+pnpm --filter @forgelex/web build
+pnpm test:postgres
+git diff --check
 ```
+
+As contagens de testes evoluem com o monorepo; os resultados auditáveis de
+cada fase, inclusive a matriz de billing e o saneamento de evidências, estão
+registrados em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md) e em
+`docs/operations/`.
 
 ---
 

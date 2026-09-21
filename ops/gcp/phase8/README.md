@@ -1,5 +1,13 @@
 # Homologação Google Cloud — Fase 8
 
+> **Status:** runbook histórico de provisionamento. A Fase 8 e a Fase 14 estão
+> concluídas; não reexecute provisionamento, carga do corpus ou teardown como
+> rotina de validação. O serviço ativo recebe tráfego externo pelo balanceador,
+> e a URL nativa do Cloud Run permanece bloqueada. Consulte
+> `../../docs/operations/phase8/final-validation.md` e
+> `../../docs/operations/phase14/controlled-charge-evidence.md` para a
+> evidência final.
+
 Runbook de Cloud Shell para o projeto `project-bbbe1209-c295-4720-867`, região `southamerica-east1` e domínio `hml.nexojuris.ia.br`. O gate A usa apenas a URL nativa do Cloud Run; o gate B publica o balanceador HTTPS e somente imprime o registro A que deverá ser criado no Registro.br.
 
 1. Copie `config.env.example` para `config.env`, informe o SHA do commit, o digest quando já conhecido e as credenciais apenas no ambiente da sessão.

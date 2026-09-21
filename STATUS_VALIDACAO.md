@@ -1,8 +1,21 @@
 # Auditoria e status canônico do ForgeLex
 
-Última auditoria: 2026-09-21. Branch: `codex/fase8-homologacao-final`.
+Última auditoria: 2026-09-21. Branch: `main`.
 
-## Fase 8 — homologação Google Cloud: gates técnicos concluídos
+## Estado consolidado — produto STJ concluído
+
+As Fases 0 a 8 e a Fase 14 estão `COMPLETED` no escopo aprovado do ForgeLex:
+produto comercial limitado ao STJ, domínio canônico, Cloud Run restrito ao
+balanceador, REST/MCP/Agent Core, billing e webhook produtivos. As Fases 9 a
+13 estão `FROZEN_STRATEGICALLY`; não constituem incompletude nem bloqueio.
+
+A Fase 14 processou e reconciliou uma única cobrança produtiva controlada de
+R$ 25,00, com saldo pago de `2500` centavos. A chave de validação foi revogada,
+o uso posterior retornou `401` e a versão de seu segredo temporário foi
+desabilitada. A evidência saneada está em
+`docs/operations/phase14/controlled-charge-evidence.md`.
+
+## Fase 8 — homologação Google Cloud: gates concluídos
 
 O domínio canônico `hml.nexojuris.ia.br` foi revalidado na revisão
 `forgelex-api-hml-00010-n8d`: `/health` retornou 200, a URL `run.app` retornou
@@ -13,10 +26,9 @@ domínio. A chave sintética e o MCP temporário foram removidos; a credencial
 revogada foi comprovada com 401 em rota autenticada. A evidência saneada está
 em `docs/operations/phase8/final-validation.md`.
 
-A fase não é declarada integralmente concluída porque a ativação produtiva do
-Mercado Pago depende do site definitivo. A conta de recarga retorna 503 por
-ausência deliberada dessas credenciais; esse estado está documentado, sem
-afetar os gates técnicos e o ledger jurídico validados.
+A ativação produtiva do Mercado Pago e o domínio público definitivo foram
+concluídos na Fase 14. Esta seção permanece como registro dos gates técnicos
+da Fase 8; a reconciliação financeira final está na evidência da Fase 14.
 
 ## Fase 8 — homologação Google Cloud: gate A histórico
 

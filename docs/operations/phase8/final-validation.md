@@ -4,6 +4,12 @@ Data: 2026-09-21
 Status: `TECHNICAL_GATES_PASSED`; site definitivo e configuração produtiva do
 provedor de pagamentos publicados. Nenhuma cobrança real foi criada nesta validação.
 
+> **Natureza deste documento:** snapshot técnico da Fase 8. A conclusão do
+> produto STJ e a cobrança produtiva controlada foram registradas depois, na
+> Fase 14; consulte `../phase14/controlled-charge-evidence.md` e
+> `../../../STATUS_VALIDACAO.md` para o estado ativo. As revisões, builds e
+> medições abaixo permanecem evidência histórica, não inventário atual.
+
 ## Perímetro publicado
 
 - projeto: `project-bbbe1209-c295-4720-867`;

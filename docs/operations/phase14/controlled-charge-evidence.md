@@ -2,6 +2,11 @@
 
 Status: `COMPLETED`.
 
+Veja também o [estado canônico](../../../STATUS_VALIDACAO.md), o
+[plano mestre](../../../Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md) e a
+[decisão de escopo](strategic-freeze.md). Este documento preserva somente
+evidências saneadas; não é inventário de segredos ou dados financeiros.
+
 ## Preflight
 
 Executado em 2026-09-21 (UTC) antes de qualquer mutação financeira.
