@@ -1,7 +1,8 @@
 # Fase 8 — validação final técnica da homologação
 
 Data: 2026-09-21  
-Status: `TECHNICAL_GATES_PASSED`; ativação comercial externa pendente do site definitivo.
+Status: `TECHNICAL_GATES_PASSED`; site definitivo publicado. A ativação comercial
+externa permanece um gate separado.
 
 ## Perímetro publicado
 
@@ -9,10 +10,21 @@ Status: `TECHNICAL_GATES_PASSED`; ativação comercial externa pendente do site 
 - serviço/revisão: `forgelex-api-hml` / `forgelex-api-hml-00010-n8d`;
 - imagem: `sha256:285fa21519d01ad233be4649bf9c59a28f6c09c6188ccff26b02a4a8279daaff`;
 - domínio canônico: `https://hml.nexojuris.ia.br`;
+- domínio público definitivo: `https://nexojuris.ia.br`;
 - ingress: `internal-and-cloud-load-balancing`.
 
 O domínio canônico respondeu `200` em `/health`. A URL nativa `run.app`
 respondeu `404`, comprovando que não contorna o balanceador.
+
+## Publicação do domínio definitivo
+
+O registro A de `nexojuris.ia.br` aponta para o IP global `34.160.73.22` do
+mesmo balanceador da homologação. O certificado gerenciado
+`forgelex-api-prod-cert` está `ACTIVE` e foi associado ao proxy HTTPS sem
+remover `forgelex-api-hml-cert`. Em validação TLS independente, a raiz recebeu
+o certificado `CN=nexojuris.ia.br` e `hml` preservou
+`CN=hml.nexojuris.ia.br`. A raiz respondeu `200` em `/` e `/health`; a
+homologação continuou respondendo `200` em `/health`.
 
 ## Smokes canônicos
 
@@ -27,9 +39,9 @@ O Cloud Build `139918e7-fd6e-4cae-8642-ccfd95bc0861` passou integralmente:
 - Agent Core: a mesma cadeia remota de três tools foi concluída.
 
 A conta de recarga do Mercado Pago retornou `503` nesse lote porque as
-credenciais produtivas não foram ativadas: o site definitivo ainda não existe.
-Essa dependência não foi mascarada como sucesso nem impede o ledger jurídico
-que foi exercitado acima.
+credenciais produtivas ainda não foram ativadas. Essa dependência não foi
+mascarada como sucesso nem impede o ledger jurídico que foi exercitado acima;
+a publicação posterior de `nexojuris.ia.br` não altera esse resultado.
 
 O Cloud Build `3c74f210-a445-4003-bc80-9ada6dfedda4` executou carga limitada
 de 25 buscas STJ com concorrência cinco: sem 5xx, p50 de 532,66 ms, p95 de
