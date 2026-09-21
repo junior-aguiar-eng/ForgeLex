@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createRemoteHttpClient, validateRemoteEnvironment } from './remote-http.mjs';
+import { createRemoteHttpClient, runRemoteSmoke, validateRemoteEnvironment } from './remote-http.mjs';
 
 describe('remote HTTP', () => {
   it('exige HTTPS e chave', () => {
@@ -19,5 +19,16 @@ describe('remote HTTP', () => {
   it('cancela chamada excedida', async () => {
     const client = createRemoteHttpClient({ baseUrl: 'https://example.test', apiKey: 'key', timeoutMs: 5, fetcher: (_url: string, init: RequestInit) => new Promise((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))) });
     await expect(client.request('/healthz')).rejects.toThrow('REMOTE_HTTP_TIMEOUT');
+  });
+
+  it('usa a rota de saúde compatível com Cloud Run', async () => {
+    const statuses = [200, 200, 200, 200, 200, 200, 422, 200];
+    const request = vi.fn(async () => ({ status: statuses.shift(), headers: {}, body: {}, latencyMs: 1 }));
+    const client = { request };
+    await runRemoteSmoke(client, 'metrics-token', 'operation');
+    expect(request.mock.calls[0]?.[0]).toBe('/health');
+    expect(JSON.parse(String(request.mock.calls[4]?.[1]?.body))).toMatchObject({
+      query: '1823450', court: 'STJ', limit: 1,
+    });
   });
 });

@@ -37,7 +37,7 @@ export async function runMcpGate(client, idempotencyKey) {
     const tool = listed?.tools?.find((candidate) => candidate.name === name);
     if (!tool || tool.inputSchema?.type !== 'object') throw new Error(`MCP_TOOL_SCHEMA_INVALID:${name}`);
   }
-  const searchArgs = { query: 'vazamento de dados', court: 'STJ', limit: 5 };
+  const searchArgs = { query: '1823450', court: 'STJ', limit: 1 };
   const search = await client.callTool(expected[0], searchArgs, idempotencyKey);
   const replay = await client.callTool(expected[0], searchArgs, idempotencyKey);
   const authority = search.data.items?.[0];

@@ -3,6 +3,18 @@
 Última auditoria: 2026-09-20. Branch: `main`. A implementação desta frente
 permanece local e não foi commitada, publicada ou aplicada a banco remoto.
 
+## Fase 8 — homologação Google Cloud em execução
+
+O gate A foi aprovado no projeto `project-bbbe1209-c295-4720-867`: Cloud Run
+`forgelex-api-hml`, revisão `forgelex-api-hml-00004-q72`, digest
+`sha256:e76b8e91ed4b5fa52b7514d34bfb471e705a841182661327b9929edbde88ee49`,
+e Cloud SQL PostgreSQL 16 zonal `forgelex-hml-pg`. REST, MCP e Agent Core
+remotos passaram; replay foi gratuito; a carga limitada de 25 buscas passou
+sem 5xx, com p50 de 734,37 ms e p95 de 1.177,35 ms. A promoção transacional do
+corpus integral está em processamento pelo import nativo do Cloud SQL. O gate B,
+DNS/TLS e host MCP externo permanecem condicionados à integridade do corpus.
+A evidência detalhada do gate A está em `docs/operations/phase8/gate-a.md`.
+
 ## Fase 8 — preflight de homologação Google Cloud
 
 O preflight local da Fase 8 foi aprovado sobre o HEAD-base `95032e2`, com as

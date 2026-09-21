@@ -7,8 +7,10 @@ describe('cliente MCP remoto', () => {
   it('executa handshake, lista e fluxo com replay debitando apenas 20 centavos', async () => {
     const authority = { id: 'auth_1', court: 'STJ', processNumber: 'REsp 1', provenance: { verified: true, source: { provider: 'remote' } } };
     let searchCalls = 0;
+    const requests: Array<{ params?: { name?: string; arguments?: unknown } }> = [];
     const fetcher = async (_url: string, init: RequestInit) => {
       const rpc = JSON.parse(String(init.body));
+      requests.push(rpc);
       if (rpc.method === 'initialize') return response({ jsonrpc: '2.0', id: rpc.id, result: { protocolVersion: '2024-11-05' } });
       if (rpc.method === 'tools/list') return response({ jsonrpc: '2.0', id: rpc.id, result: { tools: ['research.search_case_law', 'research.get_authority', 'research.verify_authority'].map((name) => ({ name, inputSchema: { type: 'object' } })) } });
       const name = rpc.params.name;
@@ -18,6 +20,7 @@ describe('cliente MCP remoto', () => {
     };
     const result = await runMcpGate(createMcpClient({ baseUrl: 'https://example.test', apiKey: 'key', fetcher }), 'same-key');
     expect(result).toMatchObject({ status: 'passed', chargedCents: 20, authorityId: 'auth_1' });
+    expect(requests.find((request) => request.params?.name === 'research.search_case_law')?.params?.arguments).toMatchObject({ query: '1823450', limit: 1 });
   });
 
   it('rejeita resposta malformada, erro MCP e tribunal não habilitado', async () => {

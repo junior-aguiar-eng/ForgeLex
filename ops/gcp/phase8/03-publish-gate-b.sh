@@ -21,7 +21,7 @@ RULE="$SERVICE-https-rule"
 
 gcloud compute addresses describe "$ADDRESS" --global --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud compute addresses create "$ADDRESS" --global --description="ForgeLex phase8 homologation" --project="$PROJECT_ID"
 gcloud compute network-endpoint-groups describe "$NEG" --region="$REGION" --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud compute network-endpoint-groups create "$NEG" --region="$REGION" --network-endpoint-type=serverless --cloud-run-service="$SERVICE" --project="$PROJECT_ID"
-gcloud compute backend-services describe "$BACKEND" --global --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud compute backend-services create "$BACKEND" --global --load-balancing-scheme=EXTERNAL_MANAGED --protocol=HTTPS --project="$PROJECT_ID"
+gcloud compute backend-services describe "$BACKEND" --global --project="$PROJECT_ID" >/dev/null 2>&1 || gcloud compute backend-services create "$BACKEND" --global --load-balancing-scheme=EXTERNAL_MANAGED --project="$PROJECT_ID"
 if ! gcloud compute backend-services describe "$BACKEND" --global --project="$PROJECT_ID" --format=json | jq -e --arg neg "$NEG" '.backends // [] | any(.group | contains($neg))' >/dev/null; then
   gcloud compute backend-services add-backend "$BACKEND" --global --network-endpoint-group="$NEG" --network-endpoint-group-region="$REGION" --project="$PROJECT_ID"
 fi

@@ -12,6 +12,7 @@ describe('Agent Core remoto', () => {
     const result = await runRemoteAgentChain(client, 'intent_1');
     expect(result).toMatchObject({ status: 'passed', authorityId: 'remote_1', provider: 'remote' });
     expect(calls.map((call) => call.name)).toEqual(['research.search_case_law', 'research.get_authority', 'research.verify_authority']);
+    expect(calls[0]?.args).toMatchObject({ query: '1823450', court: 'STJ', limit: 1 });
     expect(JSON.stringify(calls)).not.toMatch(/conversation|files|history/);
   });
 });

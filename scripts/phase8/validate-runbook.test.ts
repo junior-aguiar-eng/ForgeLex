@@ -37,5 +37,6 @@ describe('runbook GCP da Fase 8', () => {
     expect(provision).toMatch(/--min-instances=0[\s\S]*--max-instances=2/);
     expect(readFileSync(resolve(root, '05-teardown.sh'), 'utf8')).toContain('FORGELEX_PHASE8_TEARDOWN');
     expect(readFileSync(resolve(root, '03-publish-gate-b.sh'), 'utf8')).toContain('status == "passed"');
+    expect(readFileSync(resolve(root, '03-publish-gate-b.sh'), 'utf8')).not.toMatch(/backend-services create[^\n]*--protocol=/);
   });
 });

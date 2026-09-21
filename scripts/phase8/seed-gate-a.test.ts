@@ -4,6 +4,7 @@ import { assertRemoteSeed, seedGateA } from './seed-gate-a.mjs';
 describe('phase8:seed-gate-a', () => {
   it('exige confirmação e banco remoto', () => {
     expect(() => assertRemoteSeed('postgres://u:p@localhost/db', 'confirmed')).toThrow('REMOTE_SEED_TARGET_REQUIRED');
+    expect(() => assertRemoteSeed('postgres://u:p@localhost/db', 'confirmed', 'cloud-sql-auth-proxy')).not.toThrow();
     expect(() => assertRemoteSeed('postgres://u:p@db.example.test/db', '')).toThrow('REMOTE_SEED_NOT_CONFIRMED');
   });
 

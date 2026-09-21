@@ -38,13 +38,13 @@ export function createRemoteHttpClient({ baseUrl, apiKey, fetcher = fetch, timeo
   };
 }
 
-export async function runRemoteSmoke(client, metricsToken, idempotencyKey = randomUUID()) {
+export async function runRemoteSmoke(client, metricsToken, idempotencyKey = randomUUID(), healthPath = process.env.FORGELEX_PHASE8_HEALTH_PATH ?? '/health') {
   const results = [];
-  results.push(await client.request('/healthz'));
+  results.push(await client.request(healthPath));
   results.push(await client.request('/readyz'));
   results.push(await client.request('/openapi.json'));
   results.push(await client.request('/api/v2/tribunals'));
-  const search = { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey }, body: JSON.stringify({ query: 'vazamento de dados', court: 'STJ', limit: 5 }) };
+  const search = { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey }, body: JSON.stringify({ query: '1823450', court: 'STJ', limit: 1 }) };
   results.push(await client.request('/api/v2/research/search-case-law', search));
   results.push(await client.request('/api/v2/research/search-case-law', search));
   results.push(await client.request('/api/v2/research/search-case-law', { ...search, headers: { ...search.headers, 'idempotency-key': `${idempotencyKey}-unsupported` }, body: JSON.stringify({ query: 'vazamento', court: 'STF', limit: 5 }) }));

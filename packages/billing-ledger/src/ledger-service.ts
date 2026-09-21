@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import type { Client } from '@libsql/client';
 import { and, eq } from 'drizzle-orm';
 import type { UsageEvent } from '@forgelex/domain';
@@ -61,7 +62,7 @@ export interface LedgerServiceOptions {
 
 export class LedgerService {
   private static readonly RESERVATION_LEASE_MS = 30_000;
-  private static readonly MAX_SNAPSHOT_BYTES = 256_000;
+  private static readonly MAX_SNAPSHOT_BYTES = 8_388_608;
   private readonly db: ForgeLexDatabase;
   private readonly client?: Client;
   private readonly provisioningPolicy: BillingAccountProvisioningPolicy;
@@ -322,10 +323,7 @@ export class LedgerService {
 
     try {
       const result = await params.operation();
-      const snapshot = JSON.stringify(result);
-      if (Buffer.byteLength(snapshot, 'utf8') > LedgerService.MAX_SNAPSHOT_BYTES) {
-        throw new DomainError('OPERATION_RESULT_TOO_LARGE', 'Resultado excede o limite de replay.');
-      }
+      const snapshot = this.serializeSnapshot(result);
       return await this.withTenantLock(params.tenantId, () =>
         this.completeReservation(reservation.id, reservation.leaseOwner, params, result, snapshot, costCents));
     } catch (error) {
@@ -412,7 +410,10 @@ export class LedgerService {
 
     let data: T;
     try {
-      data = JSON.parse(operationResultSnapshot) as T;
+      const serialized = operationResultSnapshot.startsWith('gzip:')
+        ? gunzipSync(Buffer.from(operationResultSnapshot.slice(5), 'base64')).toString('utf8')
+        : operationResultSnapshot;
+      data = JSON.parse(serialized) as T;
     } catch {
       throw new DomainError('IDEMPOTENCY_RESULT_INVALID', 'O resultado idempotente persistido está corrompido.');
     }
@@ -424,6 +425,16 @@ export class LedgerService {
       chargedCents: 0,
       remainingBalanceCents: account.paidBalanceCents + effectivePromo,
     };
+  }
+
+  private serializeSnapshot<T>(result: T): string {
+    const raw = JSON.stringify(result);
+    const compressed = `gzip:${gzipSync(raw).toString('base64')}`;
+    const snapshot = Buffer.byteLength(compressed, 'utf8') < Buffer.byteLength(raw, 'utf8') ? compressed : raw;
+    if (Buffer.byteLength(snapshot, 'utf8') > LedgerService.MAX_SNAPSHOT_BYTES) {
+      throw new DomainError('OPERATION_RESULT_TOO_LARGE', 'Resultado excede o limite de replay.');
+    }
+    return snapshot;
   }
 
   private async waitForReservation<T>(operationId: string): Promise<BillableExecutionResult<T>> {

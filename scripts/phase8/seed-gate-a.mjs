@@ -1,10 +1,11 @@
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
-export function assertRemoteSeed(databaseUrl, confirmation) {
+export function assertRemoteSeed(databaseUrl, confirmation, targetKind = '') {
   if (confirmation !== 'confirmed') throw new Error('REMOTE_SEED_NOT_CONFIRMED');
   const hostname = new URL(databaseUrl).hostname.toLowerCase();
-  if (['localhost', '127.0.0.1', '::1', 'host.docker.internal'].includes(hostname)) throw new Error('REMOTE_SEED_TARGET_REQUIRED');
+  const loopback = ['localhost', '127.0.0.1', '::1', 'host.docker.internal'].includes(hostname);
+  if (loopback && targetKind !== 'cloud-sql-auth-proxy') throw new Error('REMOTE_SEED_TARGET_REQUIRED');
 }
 export async function seedGateA({ provider, ingestion }) {
   const documents = await provider.search('vazamento', { court: 'STJ', limit: 10 });
@@ -19,7 +20,7 @@ export async function seedGateA({ provider, ingestion }) {
 async function main() {
   const databaseUrl = process.env.FORGELEX_PHASE8_TARGET_DATABASE_URL;
   if (!databaseUrl) throw new Error('FORGELEX_PHASE8_TARGET_DATABASE_URL_REQUIRED');
-  assertRemoteSeed(databaseUrl, process.env.FORGELEX_PHASE8_ALLOW_REMOTE_SEED);
+  assertRemoteSeed(databaseUrl, process.env.FORGELEX_PHASE8_ALLOW_REMOTE_SEED, process.env.FORGELEX_PHASE8_TARGET_KIND);
   const [{ createDatabase, IngestionRunRepository, JurisprudenceRepository, runPersistenceMigrations }, { JurisprudenceIngestionService }, { CanonicalFixtureProvider }] = await Promise.all([import('../../packages/persistence/dist/index.js'), import('../../packages/legal-data/dist/index.js'), import('../../packages/source-providers/dist/index.js')]);
   const connection = await createDatabase({ url: databaseUrl });
   try {

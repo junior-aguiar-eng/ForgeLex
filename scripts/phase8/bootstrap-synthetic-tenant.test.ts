@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { bootstrapSyntheticTenant, SYNTHETIC_SCOPES } from './bootstrap-synthetic-tenant.mjs';
+import { bootstrapSyntheticTenant, SYNTHETIC_SCOPES, writeTokenToSecret } from './bootstrap-synthetic-tenant.mjs';
 
 describe('phase8:bootstrap-tenant', () => {
   it('cria identidade sintética, scopes e exatamente R$ 20 promocionais sem vazar token', async () => {
@@ -12,10 +12,16 @@ describe('phase8:bootstrap-tenant', () => {
       writeToken: vi.fn(async () => undefined),
     };
     const result = await bootstrapSyntheticTenant(deps, 'phase8_hml_fixed');
-    expect(deps.provisionAccount).toHaveBeenCalledWith(account.tenant.id, { paidBalanceCents: 0, promotionalBalanceCents: 2_000 });
+    expect(deps.provisionAccount).toHaveBeenCalledWith(account.tenant.id, expect.objectContaining({ paidBalanceCents: 0, promotionalBalanceCents: 2_000, promoExpiresAt: expect.any(String) }));
     expect(deps.createApiKey).toHaveBeenCalledWith(expect.objectContaining({ scopes: SYNTHETIC_SCOPES }));
     expect(deps.writeToken).toHaveBeenCalledWith(apiKey.token);
     expect(JSON.stringify(result)).not.toContain(apiKey.token);
     expect(result).toEqual({ tenantId: account.tenant.id, userId: account.user.id, keyId: apiKey.id, keyPrefix: apiKey.keyPrefix });
+  });
+
+  it('envia o token ao Secret Manager somente pela entrada padrão', () => {
+    const runner = vi.fn(() => ({ status: 0 }));
+    writeTokenToSecret('flx_live_secret', { command: 'gcloud', secret: 'api-key', project: 'project-id', runner });
+    expect(runner).toHaveBeenCalledWith('gcloud', expect.not.arrayContaining(['flx_live_secret']), expect.objectContaining({ input: 'flx_live_secret\n' }));
   });
 });

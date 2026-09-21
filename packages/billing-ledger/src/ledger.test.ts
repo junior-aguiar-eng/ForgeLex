@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createDatabase, ForgeLexDatabase, runPersistenceMigrations } from '@forgelex/persistence';
 import { LedgerService } from './ledger-service.js';
@@ -315,19 +316,37 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
     expect((await db.select().from(billingOperations))[0]).toMatchObject({ status: 'COMPLETED', leaseOwner: null });
   });
 
-  it('limita o snapshot de replay a 256.000 bytes', async () => {
+  it('rejeita snapshot incompressível acima do limite persistido', async () => {
     await ledger.provisionAccount('tenant_snapshot_limit', { paidBalanceCents: 100, promotionalBalanceCents: 0 });
     const exact = await ledger.executeBillableOperation({
       tenantId: 'tenant_snapshot_limit', idempotencyKey: 'snapshot-exact', costCents: 20,
-      operation: async () => 'x'.repeat(255_998),
+      operation: async () => 'x'.repeat(8_388_606),
     });
-    expect(Buffer.byteLength(JSON.stringify(exact.data), 'utf8')).toBe(256_000);
+    expect(Buffer.byteLength(JSON.stringify(exact.data), 'utf8')).toBe(8_388_608);
 
     await expect(ledger.executeBillableOperation({
       tenantId: 'tenant_snapshot_limit', idempotencyKey: 'snapshot-over', costCents: 20,
-      operation: async () => 'x'.repeat(255_999),
+      operation: async () => randomBytes(8 * 1024 * 1024).toString('base64'),
     })).rejects.toMatchObject({ code: 'OPERATION_RESULT_TOO_LARGE' });
     expect((await ledger.getOrCreateAccount('tenant_snapshot_limit')).paidBalanceCents).toBe(80);
+  });
+
+  it('comprime resposta repetível acima do limite bruto sem perder o replay', async () => {
+    await ledger.provisionAccount('tenant_compressed_snapshot', { paidBalanceCents: 100, promotionalBalanceCents: 0 });
+    const first = await ledger.executeBillableOperation({
+      tenantId: 'tenant_compressed_snapshot', idempotencyKey: 'compressed-snapshot', costCents: 20,
+      operation: async () => ({ payload: 'x'.repeat(12 * 1024 * 1024) }),
+    });
+    const stored = (await db.select().from(billingOperations))[0]?.resultSnapshot;
+    expect(first.data.payload).toHaveLength(12 * 1024 * 1024);
+    expect(stored).toMatch(/^gzip:/);
+
+    const replay = await ledger.executeBillableOperation({
+      tenantId: 'tenant_compressed_snapshot', idempotencyKey: 'compressed-snapshot', costCents: 20,
+      operation: async () => { throw new Error('não deve reexecutar'); },
+    });
+    expect(replay).toMatchObject({ isReplay: true, chargedCents: 0 });
+    expect(replay.data.payload).toHaveLength(12 * 1024 * 1024);
   });
 
   it('deve fazer rollback do débito e do UsageEvent quando a operação falhar', async () => {

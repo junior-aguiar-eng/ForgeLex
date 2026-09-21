@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "project": "project-bbbe1209-c295-4720-867",
+  "region": "southamerica-east1",
+  "commit": "9e6f4ed23278820ef04e54e29b256317d09bfef3",
+  "digest": "sha256:e76b8e91ed4b5fa52b7514d34bfb471e705a841182661327b9929edbde88ee49",
+  "revision": "forgelex-api-hml-00004-q72",
+  "service": "forgelex-api-hml",
+  "database": "forgelex-hml-pg",
+  "remoteSmoke": "passed",
+  "mcp": "passed",
+  "agentCore": "passed",
+  "load": {
+    "operations": 25,
+    "concurrency": 5,
+    "p50Ms": 734.37,
+    "p95Ms": 1177.35,
+    "maxMs": 1257.19,
+    "chargedCents": 500
+  }
+}
