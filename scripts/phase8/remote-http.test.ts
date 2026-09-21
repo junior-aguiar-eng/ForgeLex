@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createRemoteHttpClient, runRemoteSmoke, validateRemoteEnvironment } from './remote-http.mjs';
+import { createRemoteHttpClient, runLimitedRemoteLoad, runRemoteSmoke, validateRemoteEnvironment } from './remote-http.mjs';
 
 describe('remote HTTP', () => {
   it('exige HTTPS e chave', () => {
@@ -28,7 +28,25 @@ describe('remote HTTP', () => {
     await runRemoteSmoke(client, 'metrics-token', 'operation');
     expect(request.mock.calls[0]?.[0]).toBe('/health');
     expect(JSON.parse(String(request.mock.calls[4]?.[1]?.body))).toMatchObject({
-      query: '1823450', court: 'STJ', limit: 1,
+      query: 'vazamento', court: 'STJ', limit: 1,
     });
+  });
+
+  it('executa carga limitada com concorrência fixa e cobra cada operação', async () => {
+    let active = 0;
+    let peak = 0;
+    const client = {
+      request: vi.fn(async () => {
+        active += 1;
+        peak = Math.max(peak, active);
+        await new Promise((resolve) => setTimeout(resolve, 2));
+        active -= 1;
+        return { status: 200, headers: { 'x-credits-charged': '0.2' }, body: {}, latencyMs: 10 };
+      }),
+    };
+    const result = await runLimitedRemoteLoad(client, 'load', { requests: 5, concurrency: 2 });
+    expect(client.request).toHaveBeenCalledTimes(5);
+    expect(peak).toBe(2);
+    expect(result).toMatchObject({ status: 'passed', requests: 5, concurrency: 2, chargedCents: 100 });
   });
 });

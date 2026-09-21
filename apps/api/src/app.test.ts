@@ -1236,7 +1236,9 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       },
     });
     expect(mcpReplayResponse.statusCode).toBe(200);
-    const mcpWorkflow = JSON.parse(JSON.parse(mcpReplayResponse.body).result.content[0].text).data;
+    const mcpPayload = JSON.parse(mcpReplayResponse.body);
+    expect(mcpPayload.result, mcpReplayResponse.body).toBeDefined();
+    const mcpWorkflow = JSON.parse(mcpPayload.result.content[0].text).data;
     expect(mcpWorkflow).toMatchObject({ source: 'MCP', idempotentReplay: true, record: { id: generated.record.id } });
 
     const reviewResponse = await app.inject({

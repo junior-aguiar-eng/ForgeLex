@@ -1,9 +1,24 @@
 # Auditoria e status canônico do ForgeLex
 
-Última auditoria: 2026-09-20. Branch: `main`. A implementação desta frente
-permanece local e não foi commitada, publicada ou aplicada a banco remoto.
+Última auditoria: 2026-09-21. Branch: `codex/fase8-homologacao-final`.
 
-## Fase 8 — homologação Google Cloud em execução
+## Fase 8 — homologação Google Cloud: gates técnicos concluídos
+
+O domínio canônico `hml.nexojuris.ia.br` foi revalidado na revisão
+`forgelex-api-hml-00010-n8d`: `/health` retornou 200, a URL `run.app` retornou
+404 e o ingress do Cloud Run está em `internal-and-cloud-load-balancing`.
+REST, OpenAPI, métricas, cobrança jurídica e replay, MCP remoto, Agent Core,
+host Codex externo e carga limitada (25 buscas, concorrência 5) passaram pelo
+domínio. A chave sintética e o MCP temporário foram removidos; a credencial
+revogada foi comprovada com 401 em rota autenticada. A evidência saneada está
+em `docs/operations/phase8/final-validation.md`.
+
+A fase não é declarada integralmente concluída porque a ativação produtiva do
+Mercado Pago depende do site definitivo. A conta de recarga retorna 503 por
+ausência deliberada dessas credenciais; esse estado está documentado, sem
+afetar os gates técnicos e o ledger jurídico validados.
+
+## Fase 8 — homologação Google Cloud: gate A histórico
 
 O gate A foi aprovado no projeto `project-bbbe1209-c295-4720-867`: Cloud Run
 `forgelex-api-hml`, revisão `forgelex-api-hml-00004-q72`, digest

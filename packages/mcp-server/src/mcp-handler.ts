@@ -183,7 +183,8 @@ export class McpHandler {
               userId,
             },
             operation: async () => {
-              const { idempotencyKey: _idempotencyKey, ...executionArgs } = toolArgs ?? {};
+              const { idempotencyKey: _idempotencyKey, ...withoutIdempotencyKey } = toolArgs ?? {};
+              const executionArgs = name === 'workflow.legal_research_memo' ? toolArgs ?? {} : withoutIdempotencyKey;
               return await this.toolRegistry.executeTool(name, executionArgs, {
                 sessionId,
                 tenantId,

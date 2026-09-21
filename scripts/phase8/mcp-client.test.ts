@@ -20,7 +20,7 @@ describe('cliente MCP remoto', () => {
     };
     const result = await runMcpGate(createMcpClient({ baseUrl: 'https://example.test', apiKey: 'key', fetcher }), 'same-key');
     expect(result).toMatchObject({ status: 'passed', chargedCents: 20, authorityId: 'auth_1' });
-    expect(requests.find((request) => request.params?.name === 'research.search_case_law')?.params?.arguments).toMatchObject({ query: '1823450', limit: 1 });
+    expect(requests.find((request) => request.params?.name === 'research.search_case_law')?.params?.arguments).toMatchObject({ query: 'vazamento', limit: 1 });
   });
 
   it('rejeita resposta malformada, erro MCP e tribunal não habilitado', async () => {

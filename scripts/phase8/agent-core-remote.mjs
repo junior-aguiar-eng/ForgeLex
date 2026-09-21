@@ -22,9 +22,9 @@ export async function runRemoteAgentChain(client, idempotencyKey) {
   registerProxy(registry, client, 'research.search_case_law', SearchCaseLawInputSchema, idempotencyKey);
   registerProxy(registry, client, 'research.get_authority', VerifyAuthorityInputSchema, idempotencyKey);
   registerProxy(registry, client, 'research.verify_authority', VerifyAuthorityInputSchema, idempotencyKey);
-  const authorityArgs = { court: 'STJ', processNumber: 'REsp 1.823.450/SP' };
+  const authorityArgs = { court: 'STJ', processNumber: '2077278', judgmentDate: '2023-10-03' };
   const provider = new FakeAgentProvider(registry, undefined, [
-    { thought: 'Pesquisar autoridade remota.', toolCall: { name: 'research.search_case_law', input: { query: '1823450', court: 'STJ', limit: 1 } } },
+    { thought: 'Pesquisar autoridade remota.', toolCall: { name: 'research.search_case_law', input: { query: 'vazamento', court: 'STJ', limit: 1 } } },
     { thought: 'Obter a autoridade remota.', toolCall: { name: 'research.get_authority', input: authorityArgs } },
     { thought: 'Verificar a autoridade remota.', toolCall: { name: 'research.verify_authority', input: authorityArgs } },
   ]);

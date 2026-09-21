@@ -1,0 +1,16 @@
+steps:
+  - name: node:22-bookworm
+    entrypoint: bash
+    secretEnv:
+      - FORGELEX_PHASE8_API_KEY
+    args:
+      - -ceu
+      - |
+        node --input-type=module -e "const r=await fetch('https://hml.nexojuris.ia.br/api/v2/research/search-case-law',{method:'POST',headers:{authorization:'Bearer '+process.env.FORGELEX_PHASE8_API_KEY,'content-type':'application/json','idempotency-key':'phase8-diagnose-$BUILD_ID'},body:JSON.stringify({query:'vazamento',court:'STJ',limit:1})}); const b=await r.json(); console.log(JSON.stringify({status:r.status,error:b?.error ?? null,message:b?.message ?? null,details:b?.details ?? null,chargedCents:Number(r.headers.get('x-credits-charged') ?? 0)*100,replay:r.headers.get('x-idempotent-replay') === 'true'})); if(r.status!==200) process.exitCode=2;"
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/forgelex-hml-api-key/versions/latest
+      env: FORGELEX_PHASE8_API_KEY
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 180s

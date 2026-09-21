@@ -1,0 +1,22 @@
+steps:
+  - name: node:22-bookworm
+    entrypoint: bash
+    secretEnv:
+      - FORGELEX_PHASE8_API_KEY
+    args:
+      - -ceu
+      - |
+        corepack enable
+        pnpm install --frozen-lockfile
+        export FORGELEX_PHASE8_BASE_URL=https://hml.nexojuris.ia.br
+        export FORGELEX_PHASE8_IDEMPOTENCY_KEY=phase8-mcp-revalidate-$BUILD_ID
+        pnpm phase8:mcp-remote
+        export FORGELEX_PHASE8_IDEMPOTENCY_KEY=phase8-agent-revalidate-$BUILD_ID
+        pnpm phase8:agent-core-remote
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/forgelex-hml-api-key/versions/2
+      env: FORGELEX_PHASE8_API_KEY
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 1200s

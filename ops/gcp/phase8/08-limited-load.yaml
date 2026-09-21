@@ -1,0 +1,16 @@
+steps:
+  - name: node:22-bookworm
+    entrypoint: bash
+    secretEnv:
+      - FORGELEX_PHASE8_API_KEY
+    args:
+      - -ceu
+      - |
+        node --input-type=module -e "import { createRemoteHttpClient, runLimitedRemoteLoad } from './scripts/phase8/remote-http.mjs'; const client=createRemoteHttpClient({baseUrl:'https://hml.nexojuris.ia.br',apiKey:process.env.FORGELEX_PHASE8_API_KEY,maxOperations:25}); console.log(JSON.stringify(await runLimitedRemoteLoad(client, 'phase8-load-$BUILD_ID', {requests:25,concurrency:5})));"
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/forgelex-hml-api-key/versions/latest
+      env: FORGELEX_PHASE8_API_KEY
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 600s
