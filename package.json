@@ -18,6 +18,7 @@
     "phase8:verify-corpus": "node scripts/phase8/verify-corpus.mjs",
     "phase8:seed-gate-a": "pnpm build && node scripts/phase8/seed-gate-a.mjs",
     "phase8:bootstrap-tenant": "pnpm build && node scripts/phase8/bootstrap-synthetic-tenant.mjs",
+    "phase14:bootstrap-billing": "pnpm build && node scripts/phase14/bootstrap-billing-tenant.mjs",
     "phase8:smoke-remote": "node scripts/phase8/remote-http.mjs",
     "phase8:mcp-remote": "node scripts/phase8/mcp-client.mjs",
     "phase8:agent-core-remote": "pnpm build && node scripts/phase8/agent-core-remote.mjs"
