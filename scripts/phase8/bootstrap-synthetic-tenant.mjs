@@ -6,10 +6,18 @@ import { resolve } from 'node:path';
 import { assertRemoteSeed } from './seed-gate-a.mjs';
 
 export const SYNTHETIC_SCOPES = Object.freeze(['mcp', 'research:read', 'matter:read', 'matter:write', 'billing:read']);
-export function writeTokenToSecret(token, { command, commandScript, secret, project, runner = spawnSync }) {
+function quotePowerShell(value) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
+export function writeTokenToSecret(token, { command, commandScript, secret, project, platform = process.platform, runner = spawnSync }) {
   if (!command || !secret || !project) throw new Error('FORGELEX_PHASE8_TOKEN_SECRET_CONFIG_REQUIRED');
-  const args = [...(commandScript ? [commandScript] : []), 'secrets', 'versions', 'add', secret, '--data-file=-', `--project=${project}`, '--quiet'];
-  const result = runner(command, args, {
+  const gcloudArgs = ['secrets', 'versions', 'add', secret, '--data-file=-', `--project=${project}`, '--quiet'];
+  const usePowerShell = platform === 'win32' && command === 'gcloud' && !commandScript;
+  const args = usePowerShell
+    ? ['-NoProfile', '-NonInteractive', '-Command', `& gcloud secrets versions add ${quotePowerShell(secret)} --data-file=- --project=${quotePowerShell(project)} --quiet`]
+    : [...(commandScript ? [commandScript] : []), ...gcloudArgs];
+  const result = runner(usePowerShell ? 'powershell.exe' : command, args, {
     input: `${token}\n`,
     encoding: 'utf8',
     stdio: ['pipe', 'ignore', 'inherit'],

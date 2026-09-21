@@ -21,7 +21,14 @@ describe('phase8:bootstrap-tenant', () => {
 
   it('envia o token ao Secret Manager somente pela entrada padrão', () => {
     const runner = vi.fn(() => ({ status: 0 }));
-    writeTokenToSecret('flx_live_secret', { command: 'gcloud', secret: 'api-key', project: 'project-id', runner });
+    writeTokenToSecret('flx_live_secret', { command: 'gcloud', secret: 'api-key', project: 'project-id', platform: 'linux', runner });
     expect(runner).toHaveBeenCalledWith('gcloud', expect.not.arrayContaining(['flx_live_secret']), expect.objectContaining({ input: 'flx_live_secret\n' }));
+  });
+
+  it('no Windows encaminha o token ao gcloud por PowerShell sem colocá-lo nos argumentos', () => {
+    const runner = vi.fn(() => ({ status: 0 }));
+    writeTokenToSecret('flx_live_secret', { command: 'gcloud', secret: 'api-key', project: 'project-id', platform: 'win32', runner });
+    expect(runner).toHaveBeenCalledWith('powershell.exe', expect.arrayContaining(['-NoProfile', '-NonInteractive', '-Command']), expect.objectContaining({ input: 'flx_live_secret\n' }));
+    expect(runner.mock.calls[0]?.[1]).not.toContain('flx_live_secret');
   });
 });
