@@ -20,6 +20,21 @@ O ForgeLex/STJ está concluído no escopo aprovado. A eventual retomada de um
 novo tribunal exige decisão estratégica expressa e abre fase própria; não é
 pendência residual deste programa.
 
+## Marco posterior — experiência do produto e ativação MCP
+
+O ciclo concluído passa a ser sucedido pelo plano de melhoria da experiência
+do produto, registrado em
+`docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md`.
+Seu estado é `PLANNED`: ele orienta incrementos futuros de navegação,
+onboarding MCP, conta e documentação segmentada, mas não modifica o estado
+`COMPLETED` das Fases 0 a 8 e 14, nem reabre as Fases 9 a 13 congeladas.
+
+O novo marco preserva o STJ como único tribunal comercialmente habilitado,
+o preço e o ledger atuais, a arquitetura REST/MCP compartilhada e a separação
+entre o contexto do host e as ferramentas do ForgeLex. Cada incremento exige
+gate próprio; commit, push, migração remota, OAuth live, deploy e homologação
+faturável continuam sendo autorizações independentes.
+
 ## Regras globais
 
 - O ForgeLex nunca fornecerá modelo de IA, receberá chaves OpenAI/Anthropic ou cobrará tokens.

@@ -15,6 +15,16 @@ o uso posterior retornou `401` e a versão de seu segredo temporário foi
 desabilitada. A evidência saneada está em
 `docs/operations/phase14/controlled-charge-evidence.md`.
 
+## Marco posterior — experiência do produto e ativação MCP
+
+O plano `docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md`
+foi versionado como etapa posterior, com estado `PLANNED`. Ele prioriza
+navegação endereçável, ativação MCP por plataforma, estado verificável,
+gestão de chaves, conta operacional e documentação separada para advogados e
+desenvolvedores. Não é evidência de implementação, não altera o escopo STJ
+concluído e não autoriza os seus incrementos, operações remotas ou ações de
+conta destrutivas.
+
 ## Fase 8 — homologação Google Cloud: gates concluídos
 
 O domínio canônico `hml.nexojuris.ia.br` foi revalidado na revisão

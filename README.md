@@ -35,6 +35,11 @@ O estado do programa está em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md), o
 plano mestre em [Plano de conclusão progressiva do ForgeLex](Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md) e as evidências operacionais estão
 indexadas em [docs/README.md](docs/README.md).
 
+O próximo marco de produto está planejado em
+[melhorias de experiência e ativação MCP](docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md).
+Ele sucede o produto STJ concluído sem reabrir suas fases nem ampliar os
+tribunais comercialmente habilitados.
+
 ### Pilares Fundamentais:
 1. **Microkernel Agêntico Vendor-Neutral:** Contratos para integrações próprias de agentes, sem modelo de IA gerenciado pelo ForgeLex.
 2. **Governança Forense Human-in-the-Loop:** Classificação estrita de impacto em 5 níveis (`L0_OBSERVATION` a `L4_EXTERNAL_EFFECT`). Mutações externas exigem token criptográfico de aprovação do advogado.
