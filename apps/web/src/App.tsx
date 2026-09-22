@@ -23,7 +23,7 @@ const AppContent: React.FC = () => {
   const billingReturn = React.useMemo(() => parseBillingReturn(window.location.search), []);
 
   React.useEffect(() => {
-    if (billingReturn) setActiveTab('credits');
+    if (billingReturn) setActiveTab('credits', 'replace');
   }, [billingReturn, setActiveTab]);
 
   if (passwordRecoveryError) {

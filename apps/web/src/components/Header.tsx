@@ -3,8 +3,7 @@ import { useApp } from '../context/AppContext';
 import { FileCode2, FileText, FolderOpen, LogOut, Menu, Scale, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
-
-export type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
+import type { AppTab } from '../navigation/routes';
 
 const primaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
   { tab: 'matter', label: 'Casos', icon: FolderOpen },

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FileCode2, LayoutDashboard, PanelLeftClose, PanelLeftOpen, Settings2, WalletCards, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { AppTab } from './Header';
+import type { AppTab } from '../navigation/routes';
 
 const secondaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
   { tab: 'landing', label: 'Visão geral', icon: LayoutDashboard },

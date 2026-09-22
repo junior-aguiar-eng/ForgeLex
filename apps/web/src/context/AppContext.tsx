@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { requestApi } from '../api-client';
 import { OperationsClient } from '../operations/operations-client';
 import type { OperationalResource, ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
+import { isKnownPath, navigateToTab, tabForPath, updateDocumentTitle, type AppTab } from '../navigation/routes';
 
 export type { ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
+export type { AppTab } from '../navigation/routes';
 
 export interface AuthorityVerification {
   status: SearchResultItem['verificationStatus'];
@@ -12,11 +14,9 @@ export interface AuthorityVerification {
   reason?: string;
 }
 
-type ActiveTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
-
 interface AppContextType {
-  activeTab: ActiveTab;
-  setActiveTab: (tab: ActiveTab) => void;
+  activeTab: AppTab;
+  setActiveTab: (tab: AppTab, mode?: 'push' | 'replace') => void;
   tribunals: OperationalResource<TribunalCapability[]>;
   recentSearches: OperationalResource<ResearchHistoryItem[]>;
   reviewQueue: OperationalResource<ReviewQueueItem[]>;
@@ -61,7 +61,7 @@ export function createOperationalActions(
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('landing');
+  const [activeTab, setCurrentTab] = useState<AppTab>(() => typeof window === 'undefined' ? 'landing' : tabForPath(window.location.pathname));
   const client = useMemo(() => new OperationsClient(), []);
   const [tribunals, setTribunals] = useState<OperationalResource<TribunalCapability[]>>(OperationsClient.loading([]));
   const [recentSearches, setRecentSearches] = useState<OperationalResource<ResearchHistoryItem[]>>(OperationsClient.loading([]));
@@ -77,6 +77,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   useEffect(() => { void refreshOperationalState(); }, []);
+
+  useEffect(() => {
+    const syncFromLocation = () => {
+      const tab = tabForPath(window.location.pathname);
+      if (!isKnownPath(window.location.pathname)) navigateToTab('landing', 'replace');
+      else updateDocumentTitle(tab);
+      setCurrentTab(tab);
+    };
+
+    syncFromLocation();
+    window.addEventListener('popstate', syncFromLocation);
+    return () => window.removeEventListener('popstate', syncFromLocation);
+  }, []);
+
+  const setActiveTab = useCallback((tab: AppTab, mode: 'push' | 'replace' = 'push') => {
+    navigateToTab(tab, mode);
+    setCurrentTab(tab);
+  }, []);
 
   const performSearch = async (intent: SearchIntent): Promise<SearchExecution> => {
     const execution = await client.searchCaseLaw(intent);
