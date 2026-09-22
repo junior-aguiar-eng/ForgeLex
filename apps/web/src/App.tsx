@@ -14,6 +14,7 @@ const DraftStudioScreen = lazy(() => import('./screens/DraftStudioScreen').then(
 const DashboardScreen = lazy(() => import('./screens/DashboardScreen').then(({ DashboardScreen: screen }) => ({ default: screen })));
 const ConnectionsScreen = lazy(() => import('./screens/ConnectionsScreen').then(({ ConnectionsScreen: screen }) => ({ default: screen })));
 const CreditsScreen = lazy(() => import('./screens/CreditsScreen').then(({ CreditsScreen: screen }) => ({ default: screen })));
+const AccountActivityScreen = lazy(() => import('./screens/AccountActivityScreen').then(({ AccountActivityScreen: screen }) => ({ default: screen })));
 const ApiKeysScreen = lazy(() => import('./screens/ApiKeysScreen').then(({ ApiKeysScreen: screen }) => ({ default: screen })));
 const ForLawyersGuideScreen = lazy(() => import('./screens/ForLawyersGuideScreen').then(({ ForLawyersGuideScreen: screen }) => ({ default: screen })));
 const ApiDocsScreen = lazy(() => import('./screens/ApiDocsScreen').then(({ ApiDocsScreen: screen }) => ({ default: screen })));
@@ -54,6 +55,7 @@ const AppContent: React.FC = () => {
             {activeTab === 'dashboard' && <DashboardScreen />}
             {activeTab === 'connections' && <ConnectionsScreen />}
             {activeTab === 'credits' && <CreditsScreen />}
+            {activeTab === 'account_activity' && <AccountActivityScreen />}
             {activeTab === 'api_keys' && <ApiKeysScreen />}
             {activeTab === 'for_lawyers_guide' && <ForLawyersGuideScreen />}
             {activeTab === 'api_docs' && <ApiDocsScreen />}

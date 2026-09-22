@@ -17,7 +17,22 @@ import {
   billingPaymentMethods,
   billingWebhookEvents,
 } from '@forgelex/billing-ledger';
-import { ledgerEntries } from '@forgelex/billing-ledger';
+import { ledgerEntries, usageEvents } from '@forgelex/billing-ledger';
+
+type ActivityChannel = 'WEB' | 'REST' | 'MCP';
+
+function activityChannel(sessionId: string | null): ActivityChannel | null {
+  if (!sessionId) return null;
+  if (sessionId.startsWith('web_')) return 'WEB';
+  if (sessionId.startsWith('rest_')) return 'REST';
+  if (sessionId.startsWith('mcp_')) return 'MCP';
+  return null;
+}
+
+function activityCapability(capability: string): string {
+  if (capability === 'research.search_case_law') return 'Pesquisa jurisprudencial';
+  return 'Operação ForgeLex';
+}
 
 export interface PaymentProvider {
   readonly providerName?: string;
@@ -179,7 +194,8 @@ export class BillingOperationsService {
     nextOffset: number | null;
   }> {
     const account = await this.billing.getAccount(tenantId);
-    const entries = await this.db.select().from(ledgerEntries)
+    const entries = await this.db.select({ entry: ledgerEntries, usage: usageEvents }).from(ledgerEntries)
+      .leftJoin(usageEvents, eq(ledgerEntries.usageEventId, usageEvents.id))
       .where(eq(ledgerEntries.accountId, account.id))
       .orderBy(desc(ledgerEntries.createdAt))
       .limit(limit + 1)
@@ -188,7 +204,7 @@ export class BillingOperationsService {
     const payments = await this.db.select().from(billingPayments).where(eq(billingPayments.tenantId, tenantId)).orderBy(desc(billingPayments.createdAt));
     const refunds = await this.db.select().from(billingRefundRequests).where(eq(billingRefundRequests.tenantId, tenantId)).orderBy(desc(billingRefundRequests.createdAt));
     return {
-      items: entries.slice(0, limit).map((entry) => ({
+      items: entries.slice(0, limit).map(({ entry, usage }) => ({
         id: entry.id,
         type: entry.kind,
         wallet: entry.bucket,
@@ -196,6 +212,14 @@ export class BillingOperationsService {
         status: 'SETTLED',
         date: entry.createdAt,
         idempotencyKey: entry.idempotencyKey,
+        capability: usage ? activityCapability(usage.capability) : null,
+        channel: usage ? activityChannel(usage.sessionId) : null,
+        technical: usage ? {
+          capability: usage.capability,
+          provider: usage.provider,
+          requestId: usage.requestId,
+          sessionId: usage.sessionId,
+        } : null,
       })),
       purchases,
       payments,

@@ -165,7 +165,7 @@ export class McpHandler {
             error: { code: -32602, message: 'Invalid params: a chave de idempotência é obrigatória.' },
           };
         }
-        const sessionId = randomUUID();
+        const sessionId = `mcp_${randomUUID()}`;
         const startedAt = Date.now();
 
         try {

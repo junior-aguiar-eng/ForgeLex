@@ -33,6 +33,11 @@ test('rotas do onboarding persistem em recarregamento e nos botões de históric
   await expect(page).toHaveURL(/\/guia\/mcp$/);
   await expect(page.getByRole('heading', { name: 'Guia de conexão para advogados' })).toBeVisible();
   await expect(page.getByText('Como revogar', { exact: true })).toBeVisible();
+
+  await page.goto('/conta/atividade');
+  await expect(page).toHaveURL(/\/conta\/atividade$/);
+  await expect(page.getByRole('heading', { name: 'Atividade da conta' })).toBeVisible();
+  await expect(page.getByText('Nenhuma operação faturável nos últimos 30 dias')).toBeVisible();
 });
 
 test('cria e revoga uma chave sintética sem reapresentar o segredo', async ({ page }) => {

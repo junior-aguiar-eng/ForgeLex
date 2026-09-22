@@ -25,10 +25,18 @@ const billingOnlyPrincipal: AuthenticatedPrincipal = {
   scopes: ['billing:read', 'billing:write'],
 };
 
+const activityPrincipal: AuthenticatedPrincipal = {
+  ...principal,
+  subjectId: 'subject_billing_activity',
+  tenantId: 'tenant_billing_activity',
+  userId: 'user_billing_activity',
+};
+
 class TokenVerifier implements TokenVerifier {
   public async verify(token: string): Promise<AuthenticatedPrincipal | null> {
     if (token === 'billing-token') return principal;
     if (token === 'billing-only-token') return billingOnlyPrincipal;
+    if (token === 'billing-activity-token') return activityPrincipal;
     return null;
   }
 }
@@ -135,6 +143,39 @@ describe('rotas de billing', () => {
     expect(refund.statusCode).toBe(400);
     expect(JSON.parse(transactions.body)).toMatchObject({ items: [], payments: [], refunds: [] });
     expect(JSON.parse(transactions.body).purchases).toHaveLength(1);
+    await app.close();
+    connection.client.close();
+  });
+
+  it('projeta atividade saneada por capacidade e canal, sem consulta jurídica ou duplicidade de replay', async () => {
+    const connection = await createDatabase();
+    await runPersistenceMigrations(connection.client);
+    const ledger = new LedgerService(connection.db, connection.client);
+    await ledger.runMigrations();
+    await ledger.provisionAccount(activityPrincipal.tenantId, { paidBalanceCents: 100, promotionalBalanceCents: 50, promoExpiresAt: new Date(Date.now() + 60_000).toISOString() });
+    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), new Provider());
+    const app = await buildApp({ authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger, database: connection.db, databaseClient: connection.client, billingOperationsService: operations, environment: { NODE_ENV: 'test' } });
+
+    const operation = {
+      tenantId: activityPrincipal.tenantId,
+      userId: activityPrincipal.userId,
+      idempotencyKey: 'activity_mcp_1',
+      billing: { mode: 'METERED' as const, unit: 'STJ_CASE_LAW_SEARCH', costCents: 20 },
+      usage: { capability: 'research.search_case_law', toolName: 'research.search_case_law', sessionId: 'mcp_activity_1', requestId: 'activity_mcp_1' },
+      operation: async () => ({ ok: true }),
+    };
+    await ledger.executeOperation(operation);
+    await ledger.executeOperation(operation);
+
+    const response = await app.inject({ method: 'GET', url: '/api/v2/billing/transactions', headers: { authorization: 'Bearer billing-activity-token' } });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0]).toMatchObject({
+      type: 'DEBIT', amountCents: 20, capability: 'Pesquisa jurisprudencial', channel: 'MCP', status: 'SETTLED',
+    });
+    expect(JSON.stringify(body.items[0])).not.toContain('query');
     await app.close();
     connection.client.close();
   });

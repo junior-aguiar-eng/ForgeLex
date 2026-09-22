@@ -71,6 +71,43 @@ export interface McpConnectionStatusResponse {
   billableOperationExecuted: boolean;
 }
 
+export type BillingActivityChannel = 'WEB' | 'REST' | 'MCP';
+
+export interface BillingPackage { id: string; amountCents: number; label: string; estimatedSearches: number; }
+export interface BillingAccount {
+  currency: string;
+  balanceCents: number;
+  paidBalanceCents: number;
+  promotionalBalanceCents: number;
+  searchCostCents: number;
+  packages: BillingPackage[];
+  customAmount: { minCents: number; maxCents: number };
+  autoRecharge: { available: boolean; thresholdCents: number; enabled: boolean; amountCents: number | null; paymentMethodId: string | null };
+}
+export interface BillingTransaction {
+  id: string;
+  type: string;
+  amountCents: number;
+  status: string;
+  date: string;
+  idempotencyKey?: string;
+  capability: string | null;
+  channel: BillingActivityChannel | null;
+  technical: { capability: string; provider: string | null; requestId: string; sessionId: string | null } | null;
+}
+export interface BillingPurchase { id: string; amountCents: number; status: string; createdAt: string; packageId: string; }
+export interface BillingInvoice { id: string; number: string; amountCents: number; status: string; issuedAt: string; receiptUrl: string | null; }
+export interface PaymentMethod { id: string; type: string; brand: string | null; last4: string | null; expMonth: number | null; expYear: number | null; isDefault: number; }
+export interface BillingTransactionsResponse { items: BillingTransaction[]; purchases: BillingPurchase[]; payments: unknown[]; refunds: unknown[]; nextOffset: number | null; }
+
+export function getBillingAccount(): Promise<BillingAccount> {
+  return requestApi<BillingAccount>('/api/v2/billing/account', {}, { sessionOnly: true });
+}
+
+export function getBillingTransactions(): Promise<BillingTransactionsResponse> {
+  return requestApi<BillingTransactionsResponse>('/api/v2/billing/transactions', {}, { sessionOnly: true });
+}
+
 export interface PublicApiKey {
   id: string;
   tenantId?: string;

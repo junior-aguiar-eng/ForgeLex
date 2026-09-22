@@ -1,4 +1,4 @@
-export type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_keys' | 'for_lawyers_guide' | 'api_docs';
+export type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'account_activity' | 'api_keys' | 'for_lawyers_guide' | 'api_docs';
 
 export type AppRoute = {
   tab: AppTab;
@@ -14,6 +14,7 @@ const routes: readonly AppRoute[] = [
   { tab: 'dashboard', path: '/revisao', title: 'Revisão' },
   { tab: 'connections', path: '/conectar', title: 'Conectar IA' },
   { tab: 'credits', path: '/conta', title: 'Conta' },
+  { tab: 'account_activity', path: '/conta/atividade', title: 'Atividade da conta' },
   { tab: 'api_keys', path: '/conta/chaves', title: 'Chaves de API' },
   { tab: 'for_lawyers_guide', path: '/guia/mcp', title: 'Guia de conexão' },
   { tab: 'api_docs', path: '/desenvolvedores/api', title: 'API para desenvolvedores' },
@@ -22,7 +23,6 @@ const routes: readonly AppRoute[] = [
 const routeByTab = new Map(routes.map((route) => [route.tab, route]));
 const tabByPath = new Map<string, AppTab>([
   ...routes.map((route) => [route.path, route.tab] as const),
-  ['/conta/atividade', 'credits'],
 ]);
 
 function normalizePath(pathname: string): string {

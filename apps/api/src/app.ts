@@ -690,7 +690,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (!input.idempotencyKey) return missingIdempotencyResponse(input.reply);
 
     const idempotencyKey = input.idempotencyKey;
-    const sessionId = `rest_${idempotencyKey}`;
+    const sessionId = `${input.principal.authMethod === 'session' ? 'web' : 'rest'}_${idempotencyKey}`;
     const startedAt = Date.now();
 
     try {
