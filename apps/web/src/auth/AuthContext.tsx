@@ -35,6 +35,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
+  requestPasswordChange: () => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   clearPasswordRecovery: () => void;
 }
@@ -210,6 +211,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw friendlySupabaseError(error, 'Não foi possível enviar a mensagem. Tente novamente em instantes.');
   }, []);
 
+  const requestPasswordChange = useCallback(async () => {
+    if (!account?.user.email) throw new Error('Entre com sua conta para alterar a senha.');
+    await sendPasswordReset(account.user.email);
+  }, [account?.user.email, sendPasswordReset]);
+
   const updatePassword = useCallback(async (password: string) => {
     if (!supabase) throw new Error('O acesso ainda não está configurado neste ambiente.');
     const { error } = await supabase.auth.updateUser({ password });
@@ -219,7 +225,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data.session) await loadAccount(data.session);
   }, [loadAccount]);
 
-  const value = useMemo(() => ({ status, account, passwordRecovery, passwordRecoveryError, signUp, signIn, signOut, sendPasswordReset, updatePassword, clearPasswordRecovery }), [
+  const value = useMemo(() => ({ status, account, passwordRecovery, passwordRecoveryError, signUp, signIn, signOut, sendPasswordReset, requestPasswordChange, updatePassword, clearPasswordRecovery }), [
     status,
     account,
     passwordRecovery,
@@ -228,6 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signOut,
     sendPasswordReset,
+    requestPasswordChange,
     updatePassword,
     clearPasswordRecovery,
   ]);

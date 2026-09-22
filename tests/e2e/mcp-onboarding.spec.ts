@@ -38,6 +38,11 @@ test('rotas do onboarding persistem em recarregamento e nos botões de históric
   await expect(page).toHaveURL(/\/conta\/atividade$/);
   await expect(page.getByRole('heading', { name: 'Atividade da conta' })).toBeVisible();
   await expect(page.getByText('Nenhuma operação faturável nos últimos 30 dias')).toBeVisible();
+
+  await page.goto('/conta/seguranca');
+  await expect(page).toHaveURL(/\/conta\/seguranca$/);
+  await expect(page.getByRole('heading', { name: 'Segurança da conta' })).toBeVisible();
+  await expect(page.getByText('Encerramento ainda indisponível')).toBeVisible();
 });
 
 test('cria e revoga uma chave sintética sem reapresentar o segredo', async ({ page }) => {

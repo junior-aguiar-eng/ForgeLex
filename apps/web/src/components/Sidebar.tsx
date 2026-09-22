@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Cable, FileCode2, KeyRound, LayoutDashboard, PanelLeftClose, PanelLeftOpen, WalletCards, X } from 'lucide-react';
+import { Activity, Cable, FileCode2, KeyRound, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ShieldCheck, WalletCards, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AppTab } from '../navigation/routes';
 
@@ -7,6 +7,7 @@ const secondaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon 
   { tab: 'landing', label: 'Visão geral', icon: LayoutDashboard },
   { tab: 'credits', label: 'Conta e faturamento', icon: WalletCards },
   { tab: 'account_activity', label: 'Atividade da conta', icon: Activity },
+  { tab: 'account_security', label: 'Segurança da conta', icon: ShieldCheck },
   { tab: 'connections', label: 'Conectar IA', icon: Cable },
   { tab: 'api_keys', label: 'Chaves de API', icon: KeyRound },
   { tab: 'api_docs', label: 'API para desenvolvedores', icon: FileCode2 },
