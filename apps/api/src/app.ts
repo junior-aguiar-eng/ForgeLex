@@ -31,6 +31,7 @@ import {
   ApiKeyRepository,
   JurisprudenceRepository,
   AccountRepository,
+  AccountClosureRepository,
   runPersistenceMigrations,
 } from '@forgelex/persistence';
 import {
@@ -67,6 +68,7 @@ import { resolveDatabasePolicy } from './config/database-policy.js';
 import { OperationalRetentionService, resolveRetentionPolicy } from './operations/retention-service.js';
 import { ReviewQueueService } from './review/review-queue-service.js';
 import { registerStaticWeb } from './static-web.js';
+import { digestClosureValue } from './account/account-closure-crypto.js';
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
@@ -181,8 +183,29 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const apiKeyRepository = database ? new ApiKeyRepository(database) : undefined;
   const apiKeyService = apiKeyRepository ? new ApiKeyService(apiKeyRepository) : undefined;
   const accountRepository = database ? new AccountRepository(database) : undefined;
+  const accountClosureRepository = databaseClient ? new AccountClosureRepository(databaseClient) : undefined;
+  const accountClosureHashSecret = environment.FORGELEX_ACCOUNT_CLOSURE_SUBJECT_HASH_SECRET?.trim();
+  const accountClosureBlocklist = accountClosureRepository
+    ? {
+        isBlocked: async (principal: AuthenticatedPrincipal) => accountClosureRepository.isBlocked({
+          ...principal,
+          ...(accountClosureHashSecret
+            ? {
+                subjectHash: digestClosureValue(accountClosureHashSecret, principal.subjectId),
+                userHash: digestClosureValue(accountClosureHashSecret, principal.userId),
+                tenantHash: digestClosureValue(accountClosureHashSecret, principal.tenantId),
+              }
+            : {}),
+        }),
+      }
+    : undefined;
   const supabaseIdentityVerifier = options.supabaseIdentityVerifier ?? createSupabaseIdentityVerifier(environment);
-  const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(environment, apiKeyRepository, accountRepository);
+  const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(
+    environment,
+    apiKeyRepository,
+    accountRepository,
+    accountClosureBlocklist,
+  );
   const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client);
   await ledgerService.runMigrations();
   const mercadoPagoPaymentProvider = options.mercadoPagoPaymentProvider ?? (

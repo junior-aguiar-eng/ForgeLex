@@ -86,6 +86,21 @@ export interface CreateAccountClosureInput {
   requestedAt: string;
 }
 
+export interface BeginAccountClosureInput {
+  id: string;
+  subjectId: string;
+  userId: string;
+  tenantId: string;
+  subjectHash: string;
+  userHash: string;
+  tenantHash: string;
+  statusTokenHash: string;
+  idempotencyKeyHash: string;
+  requestFingerprint: string;
+  policyVersion: string;
+  now: string;
+}
+
 export interface ClaimedClosureStep {
   closure: AccountClosureRecord;
   step: AccountClosureStepRecord;
@@ -166,8 +181,174 @@ function assertErrorCode(errorCode: string): void {
   }
 }
 
+function assertReplayCompatible(existing: AccountClosureRecord, input: BeginAccountClosureInput): void {
+  if (
+    existing.idempotencyKeyHash !== input.idempotencyKeyHash ||
+    existing.requestFingerprint !== input.requestFingerprint
+  ) {
+    throw new Error('ACCOUNT_CLOSURE_IDEMPOTENCY_CONFLICT');
+  }
+  if (existing.statusTokenHash !== input.statusTokenHash) {
+    throw new Error('ACCOUNT_CLOSURE_STATUS_TOKEN_MISMATCH');
+  }
+}
+
 export class AccountClosureRepository {
   public constructor(private readonly client: Client) {}
+
+  public async begin(input: BeginAccountClosureInput): Promise<{ closure: AccountClosureRecord; replay: boolean }> {
+    const dialect = (this.client as Client & { forgelexDialect?: 'sqlite' | 'postgres' }).forgelexDialect ?? 'sqlite';
+    const lockClause = dialect === 'postgres' ? ' FOR UPDATE' : '';
+    const transaction = await this.client.transaction();
+    try {
+      const existingResult = await transaction.execute({
+        sql: 'SELECT * FROM account_closures WHERE subject_hash = ?',
+        args: [input.subjectHash],
+      });
+      const existingRow = existingResult.rows[0] as Record<string, unknown> | undefined;
+      if (existingRow) {
+        const existing = closureFromRow(existingRow);
+        assertReplayCompatible(existing, input);
+        await transaction.commit();
+        return { closure: existing, replay: true };
+      }
+
+      const accountResult = await transaction.execute({
+        sql: `SELECT u.supabase_user_id, u.status AS user_status,
+          t.status AS tenant_status, m.role, m.status AS membership_status
+          FROM forgelex_user_profiles u
+          JOIN forgelex_tenant_memberships m ON m.user_id = u.id
+          JOIN forgelex_tenants t ON t.id = m.tenant_id
+          WHERE u.id = ? AND u.supabase_user_id = ? AND t.id = ? AND m.tenant_id = ?
+          LIMIT 1${lockClause}`,
+        args: [input.userId, input.subjectId, input.tenantId, input.tenantId],
+      });
+      const account = accountResult.rows[0] as Record<string, unknown> | undefined;
+      if (
+        !account ||
+        String(account.user_status) !== 'ACTIVE' ||
+        String(account.tenant_status) !== 'ACTIVE' ||
+        String(account.membership_status) !== 'ACTIVE'
+      ) {
+        throw new Error('ACCOUNT_CLOSURE_ACCOUNT_NOT_ACTIVE');
+      }
+
+      const membershipsResult = await transaction.execute({
+        sql: `SELECT user_id, role FROM forgelex_tenant_memberships
+          WHERE tenant_id = ? AND status = 'ACTIVE'${lockClause}`,
+        args: [input.tenantId],
+      });
+      if (
+        membershipsResult.rows.length !== 1 ||
+        String(membershipsResult.rows[0]?.user_id) !== input.userId ||
+        String(membershipsResult.rows[0]?.role) !== 'OWNER'
+      ) {
+        throw new Error('ACCOUNT_CLOSURE_REQUIRES_OWNERSHIP_TRANSFER');
+      }
+
+      await transaction.execute({
+        sql: `INSERT INTO account_closures (
+          id, subject_id, user_id, tenant_id, subject_hash, user_hash, tenant_hash,
+          status_token_hash, idempotency_key_hash, request_fingerprint, policy_version,
+          status, requested_at, updated_at, access_blocked_at, next_attempt_at, attempt_count
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACCESS_BLOCKED', ?, ?, ?, ?, 0)`,
+        args: [
+          input.id,
+          input.subjectId,
+          input.userId,
+          input.tenantId,
+          input.subjectHash,
+          input.userHash,
+          input.tenantHash,
+          input.statusTokenHash,
+          input.idempotencyKeyHash,
+          input.requestFingerprint,
+          input.policyVersion,
+          input.now,
+          input.now,
+          input.now,
+          input.now,
+        ],
+      });
+      for (const stepType of orderedStepTypes) {
+        await transaction.execute({
+          sql: `INSERT INTO account_closure_steps (
+            id, closure_id, step_type, status, attempt_count, next_attempt_at, created_at, updated_at
+          ) VALUES (?, ?, ?, 'PENDING', 0, ?, ?, ?)`,
+          args: [randomUUID(), input.id, stepType, input.now, input.now, input.now],
+        });
+      }
+
+      const userUpdate = await transaction.execute({
+        sql: `UPDATE forgelex_user_profiles
+          SET status = 'DISABLED', updated_at = ?, deactivated_at = ?
+          WHERE id = ? AND status = 'ACTIVE'`,
+        args: [input.now, input.now, input.userId],
+      });
+      const tenantUpdate = await transaction.execute({
+        sql: `UPDATE forgelex_tenants
+          SET status = 'DISABLED', updated_at = ?, deactivated_at = ?
+          WHERE id = ? AND status = 'ACTIVE'`,
+        args: [input.now, input.now, input.tenantId],
+      });
+      const membershipUpdate = await transaction.execute({
+        sql: `UPDATE forgelex_tenant_memberships
+          SET status = 'REVOKED', updated_at = ?, revoked_at = ?
+          WHERE tenant_id = ? AND user_id = ? AND status = 'ACTIVE'`,
+        args: [input.now, input.now, input.tenantId, input.userId],
+      });
+      if (userUpdate.rowsAffected !== 1 || tenantUpdate.rowsAffected !== 1 || membershipUpdate.rowsAffected !== 1) {
+        throw new Error('ACCOUNT_CLOSURE_CONCURRENT_ACCOUNT_CHANGE');
+      }
+      await transaction.execute({
+        sql: 'UPDATE api_keys SET revoked_at = ? WHERE tenant_id = ? AND revoked_at IS NULL',
+        args: [input.now, input.tenantId],
+      });
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      const existing = await this.findBySubjectHash(input.subjectHash);
+      if (existing) {
+        assertReplayCompatible(existing, input);
+        return { closure: existing, replay: true };
+      }
+      throw error;
+    }
+
+    const created = await this.findById(input.id);
+    if (!created) throw new Error('ACCOUNT_CLOSURE_CREATE_FAILED');
+    return { closure: created, replay: false };
+  }
+
+  public async isBlocked(input: {
+    subjectId: string;
+    userId: string;
+    tenantId: string;
+    subjectHash?: string;
+    userHash?: string;
+    tenantHash?: string;
+  }): Promise<boolean> {
+    const result = await this.client.execute({
+      sql: `SELECT 1 AS blocked FROM account_closures
+        WHERE subject_id = ? OR user_id = ? OR tenant_id = ?
+          OR (? IS NOT NULL AND subject_hash = ?)
+          OR (? IS NOT NULL AND user_hash = ?)
+          OR (? IS NOT NULL AND tenant_hash = ?)
+        LIMIT 1`,
+      args: [
+        input.subjectId,
+        input.userId,
+        input.tenantId,
+        input.subjectHash ?? null,
+        input.subjectHash ?? null,
+        input.userHash ?? null,
+        input.userHash ?? null,
+        input.tenantHash ?? null,
+        input.tenantHash ?? null,
+      ],
+    });
+    return result.rows.length > 0;
+  }
 
   public async create(input: CreateAccountClosureInput): Promise<AccountClosureRecord> {
     const transaction = await this.client.transaction();

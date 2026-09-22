@@ -249,6 +249,52 @@ export class CompositeTokenVerifier implements TokenVerifier {
   }
 }
 
+export interface PrincipalBlocklist {
+  isBlocked(principal: AuthenticatedPrincipal): Promise<boolean>;
+}
+
+export class ClosureAwareTokenVerifier implements TokenVerifier {
+  public constructor(
+    private readonly delegate: TokenVerifier,
+    private readonly blocklist: PrincipalBlocklist,
+  ) {}
+
+  public async verify(token: string): Promise<AuthenticatedPrincipal | null> {
+    const principal = await this.delegate.verify(token);
+    if (!principal || await this.blocklist.isBlocked(principal)) return null;
+    return principal;
+  }
+}
+
+export function readVerifiedPasswordAuthenticationAt(token: string): number | undefined {
+  const payloadPart = token.split('.')[1];
+  if (!payloadPart) return undefined;
+  try {
+    const payload: unknown = JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8'));
+    if (!isRecord(payload) || !Array.isArray(payload.amr)) return undefined;
+    const timestamps = payload.amr.flatMap((entry) => {
+      if (!isRecord(entry) || entry.method !== 'password') return [];
+      return typeof entry.timestamp === 'number' && Number.isSafeInteger(entry.timestamp) && entry.timestamp >= 0
+        ? [entry.timestamp]
+        : [];
+    });
+    return timestamps.length > 0 ? Math.max(...timestamps) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function isRecentPasswordAuthentication(
+  token: string,
+  now: Date,
+  maxAgeSeconds = 300,
+): boolean {
+  const authenticatedAt = readVerifiedPasswordAuthenticationAt(token);
+  if (authenticatedAt === undefined || maxAgeSeconds < 0) return false;
+  const ageSeconds = Math.floor(now.getTime() / 1_000) - authenticatedAt;
+  return ageSeconds >= 0 && ageSeconds <= maxAgeSeconds;
+}
+
 function isAuthenticatedPrincipal(value: unknown): value is AuthenticatedPrincipal {
   if (!value || typeof value !== 'object') {
     return false;
@@ -334,6 +380,7 @@ export function createDefaultAuthAdapter(
   environment: Record<string, string | undefined>,
   apiKeyRepository?: ApiKeyRepository,
   accountRepository?: AccountRepository,
+  blocklist?: PrincipalBlocklist,
 ): AuthAdapter {
   const verifiers: TokenVerifier[] = [EnvironmentTokenVerifier.fromEnvironment(environment)];
   if (apiKeyRepository) verifiers.push(new DatabaseApiKeyVerifier(apiKeyRepository));
@@ -341,7 +388,8 @@ export function createDefaultAuthAdapter(
   if (supabaseIdentityVerifier && accountRepository) {
     verifiers.push(new SupabaseTokenVerifier(supabaseIdentityVerifier, accountRepository));
   }
-  return new AuthAdapter(verifiers.length === 1 ? verifiers[0] : new CompositeTokenVerifier(verifiers));
+  const verifier = verifiers.length === 1 ? verifiers[0] : new CompositeTokenVerifier(verifiers);
+  return new AuthAdapter(blocklist ? new ClosureAwareTokenVerifier(verifier, blocklist) : verifier);
 }
 
 export function createSupabaseIdentityVerifier(

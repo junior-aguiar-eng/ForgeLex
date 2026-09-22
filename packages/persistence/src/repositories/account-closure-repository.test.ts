@@ -5,12 +5,15 @@ import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { createDatabase } from '../db.js';
+import { createDatabase, type ForgeLexDatabase } from '../db.js';
 import { runPersistenceMigrations } from '../migrations/migration-runner.js';
+import { AccountRepository, type StoredAccount } from './account-repository.js';
+import { ApiKeyRepository } from './api-key-repository.js';
 import { AccountClosureRepository } from './account-closure-repository.js';
 
 describe('AccountClosureRepository', () => {
   let client: Client;
+  let db: ForgeLexDatabase;
   let repository: AccountClosureRepository;
   let databasePath: string;
 
@@ -18,6 +21,7 @@ describe('AccountClosureRepository', () => {
     databasePath = join(tmpdir(), `.forgelex-account-closure-${randomUUID()}.db`);
     const connection = await createDatabase({ url: pathToFileURL(databasePath).toString() });
     client = connection.client;
+    db = connection.db;
     await runPersistenceMigrations(client);
     repository = new AccountClosureRepository(client);
   });
@@ -43,6 +47,105 @@ describe('AccountClosureRepository', () => {
       requestedAt: '2026-09-22T12:00:00.000Z',
     });
   }
+
+  async function createPersonalAccount(): Promise<StoredAccount> {
+    const account = await new AccountRepository(db).bootstrap({
+      supabaseUserId: 'supabase_1',
+      email: 'pessoa@exemplo.com',
+      displayName: 'Pessoa Exemplo',
+    });
+    await new ApiKeyRepository(db).create({
+      id: 'key_1',
+      tenantId: account.tenant.id,
+      subjectId: account.user.supabaseUserId,
+      userId: account.user.id,
+      name: 'Principal',
+      keyPrefix: 'flx_test',
+      tokenHash: 'a'.repeat(64),
+      roles: ['owner'],
+      scopes: ['mcp'],
+    });
+    return account;
+  }
+
+  function beginInput(account: StoredAccount) {
+    return {
+      id: 'acl_begin_1',
+      subjectId: account.user.supabaseUserId,
+      userId: account.user.id,
+      tenantId: account.tenant.id,
+      subjectHash: '1'.repeat(64),
+      userHash: '2'.repeat(64),
+      tenantHash: '3'.repeat(64),
+      statusTokenHash: '4'.repeat(64),
+      idempotencyKeyHash: '5'.repeat(64),
+      requestFingerprint: '6'.repeat(64),
+      policyVersion: '2026-09-22.v1',
+      now: '2026-09-22T12:00:00.000Z',
+    };
+  }
+
+  it('bloqueia conta e tenant e revoga todas as chaves na mesma transação', async () => {
+    const account = await createPersonalAccount();
+    const result = await repository.begin(beginInput(account));
+
+    expect(result).toMatchObject({ replay: false, closure: { status: 'ACCESS_BLOCKED' } });
+    expect((await new AccountRepository(db).findBySupabaseUserId('supabase_1'))?.user.status).toBe('DISABLED');
+    expect(await new ApiKeyRepository(db).findActiveByTokenHash('a'.repeat(64))).toBeUndefined();
+    expect(await repository.isBlocked({
+      subjectId: account.user.supabaseUserId,
+      userId: account.user.id,
+      tenantId: account.tenant.id,
+    })).toBe(true);
+    await client.execute({
+      sql: 'UPDATE account_closures SET subject_id = NULL, user_id = NULL, tenant_id = NULL WHERE id = ?',
+      args: [result.closure.id],
+    });
+    expect(await repository.isBlocked({
+      subjectId: account.user.supabaseUserId,
+      userId: account.user.id,
+      tenantId: account.tenant.id,
+      subjectHash: '1'.repeat(64),
+      userHash: '2'.repeat(64),
+      tenantHash: '3'.repeat(64),
+    })).toBe(true);
+  });
+
+  it('rejeita tenant compartilhado sem alterar conta ou credenciais', async () => {
+    const account = await createPersonalAccount();
+    await client.execute({
+      sql: `INSERT INTO forgelex_user_profiles
+        (id, supabase_user_id, email, display_name, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 'ACTIVE', ?, ?)`,
+      args: ['user_2', 'supabase_2', 'segunda@exemplo.com', 'Segunda Pessoa', account.user.createdAt, account.user.createdAt],
+    });
+    await client.execute({
+      sql: `INSERT INTO forgelex_tenant_memberships
+        (id, tenant_id, user_id, role, status, created_at, updated_at)
+        VALUES (?, ?, ?, 'MEMBER', 'ACTIVE', ?, ?)`,
+      args: ['membership_2', account.tenant.id, 'user_2', account.user.createdAt, account.user.createdAt],
+    });
+
+    await expect(repository.begin(beginInput(account)))
+      .rejects.toThrow('ACCOUNT_CLOSURE_REQUIRES_OWNERSHIP_TRANSFER');
+    expect((await new AccountRepository(db).findBySupabaseUserId('supabase_1'))?.user.status).toBe('ACTIVE');
+    expect(await new ApiKeyRepository(db).findActiveByTokenHash('a'.repeat(64))).toBeDefined();
+    expect(await repository.findById('acl_begin_1')).toBeUndefined();
+  });
+
+  it('reproduz a mesma saga e recusa fingerprint divergente', async () => {
+    const account = await createPersonalAccount();
+    const input = beginInput(account);
+    const first = await repository.begin(input);
+    const replay = await repository.begin({ ...input, id: 'acl_other' });
+
+    expect(replay).toMatchObject({ replay: true, closure: { id: first.closure.id } });
+    await expect(repository.begin({ ...input, id: 'acl_rotated_secret', statusTokenHash: '8'.repeat(64) }))
+      .rejects.toThrow('ACCOUNT_CLOSURE_STATUS_TOKEN_MISMATCH');
+    await expect(repository.begin({ ...input, id: 'acl_conflict', requestFingerprint: '7'.repeat(64) }))
+      .rejects.toThrow('ACCOUNT_CLOSURE_IDEMPOTENCY_CONFLICT');
+    expect(await repository.findById('acl_conflict')).toBeUndefined();
+  });
 
   it('persiste a saga e suas cinco etapas sem dados textuais do usuário', async () => {
     const created = await createClosure();

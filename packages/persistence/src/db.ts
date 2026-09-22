@@ -29,25 +29,52 @@ export function normalizePostgresConnection(url: string): Readonly<{ url: string
   return Object.freeze({ url: parsed.toString(), ...(host ? { host } : {}) });
 }
 
+const postgresRollbackSignal = new Error('POSTGRES_TRANSACTION_ROLLBACK');
+
 class PostgresTransaction {
-  private readonly statements: ExecutableStatement[] = [];
-  public constructor(private readonly sql: Sql, private finished = false) {}
+  private readonly ready: Promise<Sql>;
+  private readonly finish: Promise<'commit' | 'rollback'>;
+  private readonly transactionPromise: Promise<void>;
+  private resolveFinish!: (action: 'commit' | 'rollback') => void;
+  private finished = false;
+
+  public constructor(sql: Sql) {
+    let resolveReady!: (transaction: Sql) => void;
+    let rejectReady!: (error: unknown) => void;
+    this.ready = new Promise<Sql>((resolve, reject) => {
+      resolveReady = resolve;
+      rejectReady = reject;
+    });
+    this.finish = new Promise<'commit' | 'rollback'>((resolve) => {
+      this.resolveFinish = resolve;
+    });
+    this.transactionPromise = sql.begin(async (transaction) => {
+      resolveReady(transaction as unknown as Sql);
+      if (await this.finish === 'rollback') throw postgresRollbackSignal;
+    }).then(() => undefined).catch((error: unknown) => {
+      rejectReady(error);
+      if (error !== postgresRollbackSignal) throw error;
+    });
+  }
+
   public async execute(statement: string | ExecutableStatement): Promise<ExecutionResult> {
     if (this.finished) throw new Error('POSTGRES_TRANSACTION_CLOSED');
-    this.statements.push(typeof statement === 'string' ? { sql: statement } : statement);
-    return { rows: [], rowsAffected: 1 };
+    const input = typeof statement === 'string' ? { sql: statement, args: [] } : { sql: statement.sql, args: statement.args ?? [] };
+    const transaction = await this.ready;
+    const rows = await transaction.unsafe(postgresStatement(input.sql), input.args as any[]);
+    return { rows: rows as unknown as Record<string, unknown>[], rowsAffected: rows.count ?? rows.length };
   }
   public async commit(): Promise<void> {
     if (this.finished) return;
     this.finished = true;
-    const statements = [...this.statements];
-    await this.sql.begin(async (transaction) => {
-      for (const statement of statements) await transaction.unsafe(postgresStatement(statement.sql), (statement.args ?? []) as any[]);
-    });
+    this.resolveFinish('commit');
+    await this.transactionPromise;
   }
   public async rollback(): Promise<void> {
+    if (this.finished) return;
     this.finished = true;
-    this.statements.length = 0;
+    this.resolveFinish('rollback');
+    await this.transactionPromise;
   }
 }
 

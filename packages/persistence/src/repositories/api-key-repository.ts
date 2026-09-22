@@ -109,4 +109,13 @@ export class ApiKeyRepository {
 
     return toStoredApiKey({ ...existing[0], revokedAt });
   }
+
+  public async revokeAllByTenant(tenantId: string, revokedAt = new Date().toISOString()): Promise<number> {
+    const result = await this.db
+      .update(schema.apiKeys)
+      .set({ revokedAt })
+      .where(and(eq(schema.apiKeys.tenantId, tenantId), isNull(schema.apiKeys.revokedAt)));
+    const count = result as unknown as { rowsAffected?: number; rowCount?: number; count?: number };
+    return count.rowsAffected ?? count.rowCount ?? count.count ?? 0;
+  }
 }
