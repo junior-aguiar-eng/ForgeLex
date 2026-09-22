@@ -52,6 +52,8 @@ export const ConnectionsScreen: React.FC = () => {
         <span className="inline-flex w-fit items-center gap-2 rounded-full border border-stone-200 bg-stone-100 px-3 py-1.5 text-xs font-semibold text-stone-700"><ShieldCheck className="h-3.5 w-3.5 text-cognac-700" aria-hidden="true" /> Sem chaves de modelo no ForgeLex</span>
       </header>
 
+      <section className="surface-subtle flex flex-col gap-3 p-4 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between"><p>Prefere um roteiro sem termos técnicos? Veja o guia antes de configurar o host.</p><a href="/guia/mcp" className="btn-secondary shrink-0">Ver o guia completo para advogados</a></section>
+
       <section className="surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-cognac-700" aria-hidden="true" /><div><h2 className="font-editorial text-xl font-bold text-stone-900">Cobrança separada do host</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">A assinatura do host não paga operações ForgeLex. O ForgeLex cobra somente a pesquisa jurídica faturável; comandos de abrir autoridade e verificar proveniência são gratuitos.</p></div></div>
       </section>

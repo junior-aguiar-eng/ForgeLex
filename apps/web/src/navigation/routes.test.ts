@@ -15,6 +15,7 @@ describe('rotas do espaço de trabalho', () => {
     ['connections', '/conectar', 'Conectar IA'],
     ['credits', '/conta', 'Conta'],
     ['api_keys', '/conta/chaves', 'Chaves de API'],
+    ['for_lawyers_guide', '/guia/mcp', 'Guia de conexão'],
     ['api_docs', '/desenvolvedores/api', 'API para desenvolvedores'],
   ] as const)('expõe %s em %s', (tab, path, title) => {
     expect(routeForTab(tab)).toEqual({ tab, path, title });
@@ -30,7 +31,7 @@ describe('rotas do espaço de trabalho', () => {
     ['/conta', 'credits'],
     ['/conta/chaves', 'api_keys'],
     ['/conta/atividade', 'credits'],
-    ['/guia/mcp', 'connections'],
+    ['/guia/mcp', 'for_lawyers_guide'],
     ['/desenvolvedores/api', 'api_docs'],
     ['/rota-inexistente', 'landing'],
   ] as const)('resolve %s para %s', (pathname, tab) => {

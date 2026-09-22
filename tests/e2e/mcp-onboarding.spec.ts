@@ -28,6 +28,11 @@ test('rotas do onboarding persistem em recarregamento e nos botões de históric
   await page.goto('/desenvolvedores/api');
   await expect(page).toHaveURL(/\/desenvolvedores\/api$/);
   await expect(page.getByRole('heading', { name: 'API para desenvolvedores' })).toBeVisible();
+
+  await page.goto('/guia/mcp');
+  await expect(page).toHaveURL(/\/guia\/mcp$/);
+  await expect(page.getByRole('heading', { name: 'Guia de conexão para advogados' })).toBeVisible();
+  await expect(page.getByText('Como revogar', { exact: true })).toBeVisible();
 });
 
 test('cria e revoga uma chave sintética sem reapresentar o segredo', async ({ page }) => {
@@ -82,6 +87,10 @@ test('a seleção de host permanece operável por teclado em viewport móvel', a
   await expect(claude).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { name: 'Preparar o Claude' })).toBeVisible();
   await expect(page.getByText('Não configurado', { exact: true }).first()).toBeVisible();
+
+  await page.goto('/guia/mcp');
+  await expect(page.getByRole('heading', { name: 'Guia de conexão para advogados' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ir para a conta' })).toBeVisible();
 });
 
 test('teste gratuito de disponibilidade separa serviço, credencial e uso sem consultar saldo', async ({ page }) => {

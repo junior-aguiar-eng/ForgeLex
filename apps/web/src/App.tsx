@@ -15,6 +15,7 @@ const DashboardScreen = lazy(() => import('./screens/DashboardScreen').then(({ D
 const ConnectionsScreen = lazy(() => import('./screens/ConnectionsScreen').then(({ ConnectionsScreen: screen }) => ({ default: screen })));
 const CreditsScreen = lazy(() => import('./screens/CreditsScreen').then(({ CreditsScreen: screen }) => ({ default: screen })));
 const ApiKeysScreen = lazy(() => import('./screens/ApiKeysScreen').then(({ ApiKeysScreen: screen }) => ({ default: screen })));
+const ForLawyersGuideScreen = lazy(() => import('./screens/ForLawyersGuideScreen').then(({ ForLawyersGuideScreen: screen }) => ({ default: screen })));
 const ApiDocsScreen = lazy(() => import('./screens/ApiDocsScreen').then(({ ApiDocsScreen: screen }) => ({ default: screen })));
 
 const AppContent: React.FC = () => {
@@ -54,6 +55,7 @@ const AppContent: React.FC = () => {
             {activeTab === 'connections' && <ConnectionsScreen />}
             {activeTab === 'credits' && <CreditsScreen />}
             {activeTab === 'api_keys' && <ApiKeysScreen />}
+            {activeTab === 'for_lawyers_guide' && <ForLawyersGuideScreen />}
             {activeTab === 'api_docs' && <ApiDocsScreen />}
           </Suspense>
         </main>

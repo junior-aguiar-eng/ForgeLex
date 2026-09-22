@@ -15,6 +15,7 @@ describe('central de conexão', () => {
     expect(markup).toContain('Pesquisar jurisprudência do STJ');
     expect(markup).toContain('Abrir uma autoridade');
     expect(markup).toContain('Verificar proveniência');
+    expect(markup).toContain('Ver o guia completo para advogados');
     expect(markup).not.toContain('>Conectado<');
   });
 });

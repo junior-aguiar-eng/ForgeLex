@@ -44,6 +44,13 @@ O [contrato de onboarding MCP](docs/product/mcp-onboarding.md) fixa a
 taxonomia comercial, os estados verificáveis de conexão e os limites de
 telemetria que orientarão esse marco.
 
+O guia textual para advogados fica em `/guia/mcp`: ele separa a conexão no
+ChatGPT ou Claude da documentação de desenvolvedores, informa que a interface
+e a elegibilidade dependem do host e consulta o custo vigente pela conta
+autenticada. As instruções foram revisadas em 22 de setembro de 2026 contra as
+orientações oficiais de [MCP no ChatGPT](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt)
+e [conectores remotos no Claude](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp).
+
 ### Pilares Fundamentais:
 1. **Microkernel Agêntico Vendor-Neutral:** Contratos para integrações próprias de agentes, sem modelo de IA gerenciado pelo ForgeLex.
 2. **Governança Forense Human-in-the-Loop:** Classificação estrita de impacto em 5 níveis (`L0_OBSERVATION` a `L4_EXTERNAL_EFFECT`). Mutações externas exigem token criptográfico de aprovação do advogado.
