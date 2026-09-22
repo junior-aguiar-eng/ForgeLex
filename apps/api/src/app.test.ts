@@ -12,6 +12,7 @@ import type { Client } from '@libsql/client';
 import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
 import { JurisprudenceIngestionService } from '@forgelex/legal-data';
 import { IngestionRunRepository, JurisprudenceRepository } from '@forgelex/persistence';
+import type { AccountClosureReconciler } from './account/account-closure-reconciler.js';
 
 const testPrincipal: AuthenticatedPrincipal = {
   subjectId: 'subject_test',
@@ -161,6 +162,32 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       } });
     } finally {
       await unavailableApp.close();
+    }
+  });
+
+  it('executa e encerra o worker de encerramento somente quando habilitado', async () => {
+    vi.useFakeTimers();
+    const runOne = vi.fn().mockResolvedValue('idle');
+    const workerApp = await buildApp({
+      database,
+      databaseClient: client,
+      ledgerService,
+      accountClosureReconciler: { runOne } as unknown as AccountClosureReconciler,
+      environment: {
+        NODE_ENV: 'test',
+        FORGELEX_ACCOUNT_CLOSURE_ENABLED: 'true',
+        FORGELEX_ACCOUNT_CLOSURE_WORKER_ENABLED: 'true',
+      },
+    });
+    try {
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(runOne).toHaveBeenCalledTimes(1);
+      await workerApp.close();
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(runOne).toHaveBeenCalledTimes(1);
+    } finally {
+      await workerApp.close();
+      vi.useRealTimers();
     }
   });
 

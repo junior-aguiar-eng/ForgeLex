@@ -69,6 +69,11 @@ import { OperationalRetentionService, resolveRetentionPolicy } from './operation
 import { ReviewQueueService } from './review/review-queue-service.js';
 import { registerStaticWeb } from './static-web.js';
 import { digestClosureValue } from './account/account-closure-crypto.js';
+import { SupabaseAccountAdmin, type AccountIdentityAdmin } from './account/supabase-account-admin.js';
+import {
+  AccountClosureReconciler,
+  createAccountClosureStepHandlers,
+} from './account/account-closure-reconciler.js';
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
@@ -82,6 +87,9 @@ export interface BuildAppOptions {
   billingOperationsService?: BillingOperationsService;
   paymentProvider?: PaymentProvider;
   mercadoPagoPaymentProvider?: MercadoPagoPaymentProvider;
+  accountClosureRepository?: AccountClosureRepository;
+  accountIdentityAdmin?: AccountIdentityAdmin;
+  accountClosureReconciler?: AccountClosureReconciler;
 }
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
@@ -183,7 +191,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const apiKeyRepository = database ? new ApiKeyRepository(database) : undefined;
   const apiKeyService = apiKeyRepository ? new ApiKeyService(apiKeyRepository) : undefined;
   const accountRepository = database ? new AccountRepository(database) : undefined;
-  const accountClosureRepository = databaseClient ? new AccountClosureRepository(databaseClient) : undefined;
+  const accountClosureRepository = options.accountClosureRepository
+    ?? (databaseClient ? new AccountClosureRepository(databaseClient) : undefined);
   const accountClosureHashSecret = environment.FORGELEX_ACCOUNT_CLOSURE_SUBJECT_HASH_SECRET?.trim();
   const accountClosureBlocklist = accountClosureRepository
     ? {
@@ -199,6 +208,43 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         }),
       }
     : undefined;
+  const accountClosureEnabled = environment.FORGELEX_ACCOUNT_CLOSURE_ENABLED === 'true';
+  const accountClosureWorkerEnabled = environment.FORGELEX_ACCOUNT_CLOSURE_WORKER_ENABLED === 'true';
+  const accountIdentityAdmin = options.accountIdentityAdmin ?? (
+    accountClosureEnabled
+      && environment.FORGELEX_SUPABASE_URL?.trim()
+      && environment.FORGELEX_SUPABASE_SECRET_KEY?.trim()
+      ? new SupabaseAccountAdmin({
+          baseUrl: environment.FORGELEX_SUPABASE_URL,
+          secretKey: environment.FORGELEX_SUPABASE_SECRET_KEY,
+        })
+      : undefined
+  );
+  const accountClosureReconciler = options.accountClosureReconciler ?? (
+    accountClosureRepository && accountIdentityAdmin
+      ? new AccountClosureReconciler({
+          repository: accountClosureRepository,
+          handlers: createAccountClosureStepHandlers({ identityAdmin: accountIdentityAdmin }),
+          leaseOwner: `api_${process.pid}`,
+        })
+      : undefined
+  );
+  if (accountClosureWorkerEnabled && (!accountClosureEnabled || !accountClosureReconciler)) {
+    throw new Error('ACCOUNT_CLOSURE_WORKER_CONFIG_REQUIRED');
+  }
+  let accountClosureWorkerRunning = false;
+  const accountClosureWorker = accountClosureEnabled && accountClosureWorkerEnabled && accountClosureReconciler
+    ? setInterval(() => {
+        if (accountClosureWorkerRunning) return;
+        accountClosureWorkerRunning = true;
+        void accountClosureReconciler.runOne()
+          .catch(() => structuredLog('error', 'account_closure.worker.failed', {
+            errorCode: 'ACCOUNT_CLOSURE_WORKER_FAILED',
+          }))
+          .finally(() => { accountClosureWorkerRunning = false; });
+      }, 5_000)
+    : undefined;
+  if (accountClosureWorker) app.addHook('onClose', async () => clearInterval(accountClosureWorker));
   const supabaseIdentityVerifier = options.supabaseIdentityVerifier ?? createSupabaseIdentityVerifier(environment);
   const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(
     environment,

@@ -66,6 +66,9 @@ importers:
       '@forgelex/source-providers':
         specifier: workspace:*
         version: link:../../packages/source-providers
+      '@supabase/supabase-js':
+        specifier: ^2.116.0
+        version: 2.116.0
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@libsql/client@0.14.0)(postgres@3.4.9)
