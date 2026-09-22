@@ -71,6 +71,77 @@ export interface McpConnectionStatusResponse {
   billableOperationExecuted: boolean;
 }
 
+export interface AccountClosurePolicy {
+  enabled: boolean;
+  version: '2026-09-22.v1';
+  confirmation: 'ENCERRAR MINHA CONTA';
+  reauthenticationMaxAgeSeconds: number;
+  deadlines: { identityHours: number; privateContentDays: number; backupDays: number };
+  consequences: string[];
+  retention: { category: string; disposition: string; deadline: string }[];
+  personalTenantOnly: true;
+}
+
+export interface AccountClosureAccepted {
+  closureId: string;
+  statusToken: string;
+  status: 'ACCESS_BLOCKED';
+  requestedAt: string;
+  policyVersion: AccountClosurePolicy['version'];
+}
+
+export type AccountClosureSagaStatus = 'REQUESTED' | 'ACCESS_BLOCKED' | 'IDENTITY_REMOVED' | 'CREDENTIALS_REVOKED' | 'CONTENT_PURGING' | 'RETAINED_ONLY' | 'COMPLETED' | 'RECONCILIATION_REQUIRED';
+
+export interface AccountClosureStatus {
+  closureId: string;
+  status: AccountClosureSagaStatus;
+  requestedAt: string;
+  updatedAt: string;
+  accessBlockedAt?: string;
+  identityRemovedAt?: string;
+  completedAt?: string;
+  lastErrorCode?: string;
+}
+
+async function closureRequest<T>(path: string, headers: Record<string, string>, init: RequestInit = {}): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${resolveApiOrigin()}${path}`, { ...init, headers });
+  } catch {
+    throw new ApiRequestError('Não foi possível conectar à API do ForgeLex.', 'API_UNAVAILABLE', 503);
+  }
+  const body: unknown = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = body && typeof body === 'object' ? body as Record<string, unknown> : {};
+    throw new ApiRequestError(
+      typeof detail.message === 'string' ? detail.message : 'Não foi possível concluir a operação.',
+      typeof detail.error === 'string' ? detail.error : 'API_ERROR',
+      response.status,
+    );
+  }
+  return body as T;
+}
+
+export function getAccountClosurePolicy(accessToken: string): Promise<AccountClosurePolicy> {
+  if (!accessToken.trim()) throw new ApiRequestError('Entre na sua conta para continuar.', 'UNAUTHENTICATED', 401);
+  return closureRequest('/api/v2/account/closure-policy', { Authorization: `Bearer ${accessToken}` });
+}
+
+export function requestAccountClosure(input: { confirmation: string }, accessToken: string, idempotencyKey: string): Promise<AccountClosureAccepted> {
+  if (!accessToken.trim()) throw new ApiRequestError('Autentique-se novamente com senha.', 'UNAUTHENTICATED', 401);
+  if (!idempotencyKey.trim()) throw new Error('Chave de solicitação ausente.');
+  return closureRequest('/api/v2/account/closure', {
+    Authorization: `Bearer ${accessToken}`,
+    'Idempotency-Key': idempotencyKey,
+    'Content-Type': 'application/json',
+  }, { method: 'POST', body: JSON.stringify({ confirmation: input.confirmation, policyVersion: '2026-09-22.v1' }) });
+}
+
+export function getAccountClosureStatus(closureId: string, statusToken: string): Promise<AccountClosureStatus> {
+  if (!closureId || !statusToken) throw new Error('Recibo de acompanhamento incompleto.');
+  return closureRequest(`/api/v2/account/closure/${encodeURIComponent(closureId)}`, { 'X-Closure-Token': statusToken });
+}
+
 export type BillingActivityChannel = 'WEB' | 'REST' | 'MCP';
 
 export interface BillingPackage { id: string; amountCents: number; label: string; estimatedSearches: number; }

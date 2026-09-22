@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createApiKey, listApiKeys, requestApi, requestApiWithToken, resolveApiOrigin, revokeApiKey } from './api-client';
+import { createApiKey, getAccountClosurePolicy, getAccountClosureStatus, listApiKeys, requestAccountClosure, requestApi, requestApiWithToken, resolveApiOrigin, revokeApiKey } from './api-client';
 
 describe('api-client', () => {
   afterEach(() => {
@@ -70,5 +70,30 @@ describe('api-client', () => {
     expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: 'POST', body: JSON.stringify({ name: 'Pesquisa', scopes: ['research:read'] }) });
     expect(fetchMock.mock.calls[2][1]).toMatchObject({ method: 'DELETE' });
     expect(fetchMock.mock.calls[2][1].headers).not.toHaveProperty('Content-Type');
+  });
+
+  it('usa o JWT explícito e a chave idempotente para encerrar a conta', async () => {
+    const accepted = { closureId: 'closure-1', statusToken: 'flx_close_secret', status: 'ACCESS_BLOCKED', requestedAt: '2026-09-22T00:00:00Z', policyVersion: '2026-09-22.v1' };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(accepted), { status: 202 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(requestAccountClosure({ confirmation: 'ENCERRAR MINHA CONTA' }, 'fresh-jwt', 'closure-key')).resolves.toEqual(accepted);
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/v2/account/closure'), expect.objectContaining({
+      method: 'POST',
+      headers: expect.objectContaining({ Authorization: 'Bearer fresh-jwt', 'Idempotency-Key': 'closure-key' }),
+      body: JSON.stringify({ confirmation: 'ENCERRAR MINHA CONTA', policyVersion: '2026-09-22.v1' }),
+    }));
+  });
+
+  it('consulta a política com sessão explícita e o status só com token opaco', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ enabled: false }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ closureId: 'closure-1', status: 'ACCESS_BLOCKED', requestedAt: '2026-09-22T00:00:00Z', updatedAt: '2026-09-22T00:00:00Z' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await getAccountClosurePolicy('session-jwt');
+    await getAccountClosureStatus('closure-1', 'flx_close_secret');
+    expect(fetchMock.mock.calls[0][1].headers).toMatchObject({ Authorization: 'Bearer session-jwt' });
+    expect(fetchMock.mock.calls[1][1].headers).toEqual({ 'X-Closure-Token': 'flx_close_secret' });
+    expect(fetchMock.mock.calls[1][0]).toContain('/api/v2/account/closure/closure-1');
+    expect(fetchMock.mock.calls[1][0]).not.toContain('flx_close_secret');
   });
 });

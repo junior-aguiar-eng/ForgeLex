@@ -1023,7 +1023,7 @@ git commit -m "feat(api): publicar encerramento reconciliavel"
 - Modify: `apps/web/src/api-client.ts`
 - Modify: `apps/web/src/api-client.test.ts`
 - Modify: `apps/web/src/auth/AuthContext.tsx`
-- Modify: `apps/web/src/auth/AuthContext.test.ts`
+- Create: `apps/web/src/auth/AuthContext.test.ts`
 - Modify: `apps/web/src/screens/AccountSecurityScreen.tsx`
 - Modify: `apps/web/src/screens/AccountSecurityScreen.test.ts`
 - Create: `apps/web/src/account-closure-storage.ts`
@@ -1039,7 +1039,7 @@ git commit -m "feat(api): publicar encerramento reconciliavel"
 - Consumes: contratos HTTP da Task 5, `AuthContext`, Supabase Auth e `sessionStorage`.
 - Produces: `AccountClosurePolicy`, `AccountClosureAccepted`, `AccountClosureStatus`, `ClosureReceipt`, `AccountClosureStatusScreen` e reautenticação explícita por senha.
 
-- [ ] **Step 1: escrever os testes RED do cliente HTTP**
+- [x] **Step 1: escrever os testes RED do cliente HTTP**
 
 Em `api-client.test.ts`, exigir os contratos:
 
@@ -1064,15 +1064,17 @@ export interface AccountClosureStatus {
   closureId: string;
   status: AccountClosureSagaStatus;
   requestedAt: string;
-  completedAt: string | null;
-  heldCategories: string[];
-  policyVersion: '2026-09-22.v1';
+  updatedAt: string;
+  accessBlockedAt?: string;
+  identityRemovedAt?: string;
+  completedAt?: string;
+  lastErrorCode?: string;
 }
 ```
 
 Os testes devem provar que `requestAccountClosure` envia `Authorization`, `Idempotency-Key` e a confirmação exata, e que `getAccountClosureStatus` envia somente `X-Closure-Token`, sem bearer token.
 
-- [ ] **Step 2: escrever os testes RED da reautenticação**
+- [x] **Step 2: escrever os testes RED da reautenticação**
 
 Em `AuthContext.test.ts`, cobrir:
 
@@ -1084,7 +1086,7 @@ expect(result).toBe('fresh-access-token');
 
 Senha incorreta, identidade divergente, sessão ausente ou token sem `amr=password` não podem chamar `requestAccountClosure`. Após resposta `202`, executar somente `supabase.auth.signOut({ scope: 'local' })`; a revogação remota já pertence à saga do servidor.
 
-- [ ] **Step 3: escrever os testes RED do armazenamento do recibo**
+- [x] **Step 3: escrever os testes RED do armazenamento do recibo**
 
 Criar `account-closure-storage.test.ts` com estes invariantes:
 
@@ -1102,9 +1104,9 @@ interface ClosureReceipt {
 - ao atingir `COMPLETED`, o token é apagado e pode permanecer apenas um recibo não secreto com `closureId`, datas e versão da política;
 - ao fechar a aba antes da conclusão, o usuário deve guardar o recibo exportável ou recorrer ao suporte; o cliente não inventa mecanismo de recuperação.
 
-- [ ] **Step 4: escrever os testes RED da jornada destrutiva**
+- [x] **Step 4: escrever os testes RED da jornada destrutiva**
 
-Em `AccountSecurityScreen.test.tsx`, cobrir a sequência obrigatória:
+Em `AccountSecurityScreen.test.ts`, cobrir a sequência obrigatória:
 
 1. resumo de efeitos e prazos;
 2. confirmação de que o tenant é pessoal;
@@ -1115,7 +1117,7 @@ Em `AccountSecurityScreen.test.tsx`, cobrir a sequência obrigatória:
 
 Também provar que falha na reautenticação, política desabilitada ou divergência na frase não cria solicitação.
 
-- [ ] **Step 5: executar os testes e confirmar a falha RED**
+- [x] **Step 5: executar os testes e confirmar a falha RED**
 
 Run:
 
@@ -1125,7 +1127,7 @@ pnpm exec vitest run apps/web/src/api-client.test.ts apps/web/src/auth/AuthConte
 
 Expected: FAIL pelos contratos, armazenamento e tela ainda ausentes.
 
-- [ ] **Step 6: implementar cliente HTTP e reautenticação**
+- [x] **Step 6: implementar cliente HTTP e reautenticação**
 
 Adicionar:
 
@@ -1137,7 +1139,7 @@ getAccountClosureStatus(closureId: string, statusToken: string): Promise<Account
 
 `AuthContext.reauthenticateForClosure(password)` deve chamar `signInWithPassword` para a identidade corrente, verificar que o usuário retornado é o mesmo e devolver o novo access token. Não aceitar apenas refresh de sessão como prova de senha recente.
 
-- [ ] **Step 7: implementar recibo e tela de acompanhamento**
+- [x] **Step 7: implementar recibo e tela de acompanhamento**
 
 `AccountClosureStatusScreen` deve:
 
@@ -1150,25 +1152,27 @@ getAccountClosureStatus(closureId: string, statusToken: string): Promise<Account
 
 Em `App.tsx`, renderizar essa tela antes do gate de autenticação quando houver recibo ativo. Isso preserva o acompanhamento depois do logout local sem reabrir a conta.
 
-- [ ] **Step 8: integrar a jornada à tela de segurança**
+- [x] **Step 8: integrar a jornada à tela de segurança**
 
 Manter o encerramento em seção visualmente separada das ações reversíveis. Após `202`, salvar recibo, limpar estado sensível do formulário, fazer logout local e navegar para a tela de acompanhamento. Não adicionar rota pública com token em query string.
 
-- [ ] **Step 9: atualizar o E2E compartilhado não destrutivo**
+- [x] **Step 9: atualizar o E2E compartilhado não destrutivo**
 
 No smoke existente, com `FORGELEX_ACCOUNT_CLOSURE_ENABLED=false`, comprovar que a seção informa indisponibilidade e não oferece botão executável. Esse teste não deve criar nem excluir usuários.
 
-- [ ] **Step 10: executar testes, typecheck e build da web**
+- [x] **Step 10: executar testes, typecheck e build da web**
 
 Run:
 
 ```powershell
 pnpm exec vitest run apps/web/src/api-client.test.ts apps/web/src/auth/AuthContext.test.ts apps/web/src/account-closure-storage.test.ts apps/web/src/screens/AccountSecurityScreen.test.ts apps/web/src/screens/AccountClosureStatusScreen.test.ts apps/web/src/navigation/routes.test.ts
-pnpm --filter @forgelex/web typecheck
+pnpm exec tsc --project apps/web/tsconfig.json --noEmit
 pnpm --filter @forgelex/web build
 ```
 
 Expected: todos passam; bundle não contém token ou fixture real.
+
+Execução local em 2026-09-22, checkout `feat/incremento-7-1-encerramento`, base `fd3e2c9`: testes focados da 7.7 (49/49), `pnpm --filter @forgelex/web build`, `pnpm format:check`, `pnpm lint` e `pnpm typecheck` aprovados. A suíte integral com `pnpm exec vitest run --maxWorkers=4` passou com 449 testes aprovados e 4 ignorados. `pnpm test` sem limite de workers executou 445 testes aprovados e 4 ignorados, mas saiu com erro por encerramento inesperado de um worker do Vitest; o mesmo problema ocorreu antes da 7.7. O E2E compartilhado foi atualizado, mas não executado porque os serviços locais PostgreSQL (porta 55432) e Supabase (porta 54321) não estavam ativos. Nenhuma conta foi encerrada, e não houve migration remota, deploy ou habilitação da flag.
 
 - [ ] **Step 11: criar checkpoint Git somente se autorizado**
 

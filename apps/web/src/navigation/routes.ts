@@ -1,4 +1,4 @@
-export type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'account_activity' | 'account_security' | 'api_keys' | 'for_lawyers_guide' | 'api_docs';
+export type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'account_activity' | 'account_security' | 'account_closure_status' | 'api_keys' | 'for_lawyers_guide' | 'api_docs';
 
 export type AppRoute = {
   tab: AppTab;
@@ -16,6 +16,7 @@ const routes: readonly AppRoute[] = [
   { tab: 'credits', path: '/conta', title: 'Conta' },
   { tab: 'account_activity', path: '/conta/atividade', title: 'Atividade da conta' },
   { tab: 'account_security', path: '/conta/seguranca', title: 'Segurança da conta' },
+  { tab: 'account_closure_status', path: '/conta/encerramento', title: 'Acompanhamento do encerramento' },
   { tab: 'api_keys', path: '/conta/chaves', title: 'Chaves de API' },
   { tab: 'for_lawyers_guide', path: '/guia/mcp', title: 'Guia de conexão' },
   { tab: 'api_docs', path: '/desenvolvedores/api', title: 'API para desenvolvedores' },

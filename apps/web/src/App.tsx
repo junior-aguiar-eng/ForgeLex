@@ -16,6 +16,7 @@ const ConnectionsScreen = lazy(() => import('./screens/ConnectionsScreen').then(
 const CreditsScreen = lazy(() => import('./screens/CreditsScreen').then(({ CreditsScreen: screen }) => ({ default: screen })));
 const AccountActivityScreen = lazy(() => import('./screens/AccountActivityScreen').then(({ AccountActivityScreen: screen }) => ({ default: screen })));
 const AccountSecurityScreen = lazy(() => import('./screens/AccountSecurityScreen').then(({ AccountSecurityScreen: screen }) => ({ default: screen })));
+const AccountClosureStatusScreen = lazy(() => import('./screens/AccountClosureStatusScreen').then(({ AccountClosureStatusScreen: screen }) => ({ default: screen })));
 const ApiKeysScreen = lazy(() => import('./screens/ApiKeysScreen').then(({ ApiKeysScreen: screen }) => ({ default: screen })));
 const ForLawyersGuideScreen = lazy(() => import('./screens/ForLawyersGuideScreen').then(({ ForLawyersGuideScreen: screen }) => ({ default: screen })));
 const ApiDocsScreen = lazy(() => import('./screens/ApiDocsScreen').then(({ ApiDocsScreen: screen }) => ({ default: screen })));
@@ -80,6 +81,9 @@ const AppContent: React.FC = () => {
 };
 
 export const App: React.FC = () => {
+  if (typeof window !== 'undefined' && window.location.pathname === '/conta/encerramento') {
+    return <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando acompanhamento…</div>}><AccountClosureStatusScreen /></Suspense>;
+  }
   return (
     <AuthProvider>
       <AppProvider>
