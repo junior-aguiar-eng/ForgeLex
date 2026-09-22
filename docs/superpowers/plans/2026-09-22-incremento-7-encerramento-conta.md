@@ -885,6 +885,11 @@ git commit -m "feat(account): expurgar dados e minimizar retencao"
 
 ### Task 5 — Subfase 7.6: contratos HTTP, OpenAPI e acompanhamento
 
+Implementação local validada em 2026-09-22. O checkpoint Git desta subfase
+foi autorizado separadamente do commit 14cf5ae, que publica a 7.5.
+O repositório de encerramento também foi ajustado para impedir a exclusão de
+um perfil ainda vinculado a outro workspace ativo.
+
 **Files:**
 - Create: `apps/api/src/account/account-closure-routes.ts`
 - Create: `apps/api/src/account/account-closure-routes.test.ts`
@@ -897,7 +902,7 @@ git commit -m "feat(account): expurgar dados e minimizar retencao"
 - Consumes: `AccountClosureService`, `AccountClosureRepository`, `SupabaseIdentityVerifier`, `AuthAdapter`, `ACCOUNT_CLOSURE_POLICY`.
 - Produces: `registerAccountClosureRoutes`, `AccountClosurePolicyResponse`, `AccountClosureAcceptedResponse`, `AccountClosureStatusResponse`.
 
-- [ ] **Step 1: escrever os testes RED da política e feature flag**
+- [x] **Step 1: escrever os testes RED da política e feature flag**
 
 ```ts
 it('expõe a política sem executar encerramento quando a feature está desligada', async () => {
@@ -909,7 +914,7 @@ it('expõe a política sem executar encerramento quando a feature está desligad
 });
 ```
 
-- [ ] **Step 2: escrever os testes RED de segurança e idempotência HTTP**
+- [x] **Step 2: escrever os testes RED de segurança e idempotência HTTP**
 
 Cobrir:
 
@@ -926,7 +931,7 @@ Cobrir:
 401 em qualquer rota jurídica com o JWT anterior após o 202.
 ```
 
-- [ ] **Step 3: escrever o teste RED do acompanhamento por token opaco**
+- [x] **Step 3: escrever o teste RED do acompanhamento por token opaco**
 
 ```ts
 const status = await app.inject({
@@ -939,13 +944,13 @@ expect(status.body).not.toContain('pessoa@exemplo.com');
 expect((await app.inject({ method: 'GET', url: status.url, headers: { 'x-closure-token': 'wrong' } })).statusCode).toBe(401);
 ```
 
-- [ ] **Step 4: executar os testes e confirmar a falha RED**
+- [x] **Step 4: executar os testes e confirmar a falha RED**
 
 Run: `pnpm exec vitest run apps/api/src/account/account-closure-routes.test.ts apps/api/src/account-routes.test.ts apps/api/src/app.test.ts`
 
 Expected: FAIL porque as rotas e o OpenAPI ainda não existem.
 
-- [ ] **Step 5: implementar os DTOs e o registro das rotas**
+- [x] **Step 5: implementar os DTOs e o registro das rotas**
 
 ```ts
 export interface AccountClosurePolicyResponse {
@@ -975,7 +980,7 @@ export function registerAccountClosureRoutes(app: FastifyInstance, dependencies:
 
 `POST /api/v2/account/closure` exige `Idempotency-Key`, session principal, identidade remota igual ao principal e `amr=password` recente. `GET .../:closureId` usa somente `X-Closure-Token` e comparação constante do hash.
 
-- [ ] **Step 6: impedir recriação pelo bootstrap**
+- [x] **Step 6: impedir recriação pelo bootstrap**
 
 Antes de `accountRepository.bootstrap`, calcular `subjectHash` e consultar tombstone. Se existir closure em qualquer estado, responder:
 
@@ -988,23 +993,23 @@ Antes de `accountRepository.bootstrap`, calcular `subjectHash` e consultar tombs
 
 Status HTTP: `403`.
 
-- [ ] **Step 7: adicionar os contratos ao OpenAPI**
+- [x] **Step 7: adicionar os contratos ao OpenAPI**
 
 Adicionar as três rotas, schemas de request/response, header `Idempotency-Key`, header `X-Closure-Token`, resposta `202` e códigos estáveis. A descrição deve declarar que o endpoint é irreversível, limitado a tenant pessoal e desligado por padrão.
 
-- [ ] **Step 8: executar os testes focados da subfase 7.6**
+- [x] **Step 8: executar os testes focados da subfase 7.6**
 
 Run: `pnpm exec vitest run apps/api/src/account/account-closure-routes.test.ts apps/api/src/account-routes.test.ts apps/api/src/app.test.ts`
 
 Expected: PASS; `DELETE /api/v2/account` continua `404`.
 
-- [ ] **Step 9: verificar typecheck e build da API**
+- [x] **Step 9: verificar typecheck e build da API**
 
 Run: `pnpm --filter @forgelex/api typecheck && pnpm --filter @forgelex/api build`
 
 Expected: exit 0.
 
-- [ ] **Step 10: criar checkpoint Git somente se autorizado**
+- [x] **Step 10: criar checkpoint Git somente se autorizado**
 
 ```powershell
 git add apps/api/src/account/account-closure-routes.ts apps/api/src/account/account-closure-routes.test.ts apps/api/src/app.ts apps/api/src/account-routes.test.ts apps/api/src/distribution/openapi.ts apps/api/src/app.test.ts

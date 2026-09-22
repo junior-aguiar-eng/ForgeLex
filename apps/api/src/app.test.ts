@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { buildApp } from './app.js';
 import { FastifyInstance } from 'fastify';
-import { AuthAdapter, hashApiKey } from './auth/fastify-auth.js';
+import { AuthAdapter, hashApiKey, SupabaseIdentityVerifier } from './auth/fastify-auth.js';
 import { AuthenticatedPrincipal, TokenVerifier } from '@forgelex/domain';
 import { createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
 import { runPersistenceMigrations } from '@forgelex/persistence';
@@ -173,10 +173,17 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       databaseClient: client,
       ledgerService,
       accountClosureReconciler: { runOne } as unknown as AccountClosureReconciler,
+      supabaseIdentityVerifier: new SupabaseIdentityVerifier({
+        baseUrl: 'https://project.supabase.co',
+        publishableKey: 'public-key',
+        fetchImpl: async () => new Response(null, { status: 401 }),
+      }),
       environment: {
         NODE_ENV: 'test',
         FORGELEX_ACCOUNT_CLOSURE_ENABLED: 'true',
         FORGELEX_ACCOUNT_CLOSURE_WORKER_ENABLED: 'true',
+        FORGELEX_ACCOUNT_CLOSURE_STATUS_TOKEN_SECRET: 's'.repeat(64),
+        FORGELEX_ACCOUNT_CLOSURE_SUBJECT_HASH_SECRET: 'h'.repeat(64),
       },
     });
     try {
@@ -480,6 +487,15 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
     expect(body.openapi).toBe('3.1.0');
+    const closure = body.paths['/api/v2/account/closure'].post;
+    expect(closure.parameters).toContainEqual(expect.objectContaining({ name: 'Idempotency-Key', required: true }));
+    expect(closure.responses['202'].content['application/json'].schema.$ref).toBe('#/components/schemas/AccountClosureAcceptedResponse');
+    expect(closure.requestBody.content['application/json'].schema.$ref).toBe('#/components/schemas/AccountClosureRequest');
+    expect(closure.description).toContain('irreversível');
+    expect(closure.description).toContain('desligado por padrão');
+    expect(body.paths['/api/v2/account/closure-policy'].get.responses['200'].content['application/json'].schema.$ref).toBe('#/components/schemas/AccountClosurePolicyResponse');
+    expect(body.paths['/api/v2/account/closure/{closureId}'].get.parameters).toContainEqual(expect.objectContaining({ name: 'X-Closure-Token', required: true }));
+    expect(body.paths['/api/v2/account/closure/{closureId}'].get.responses['200'].content['application/json'].schema.$ref).toBe('#/components/schemas/AccountClosureStatusResponse');
     expect(body.paths['/api/v2/research/search-case-law'].post['x-forgelex-tool']).toBe('research.search_case_law');
     expect(body.paths['/api/v2/research/search-case-law'].post['x-forgelex-tool-contract']).toMatchObject({
       contractVersion: '1.0.0',

@@ -76,6 +76,8 @@ import {
 } from './account/account-closure-reconciler.js';
 import { AccountClosurePurgeService } from './account/account-closure-purge-service.js';
 import { AccountClosureBillingRetention } from './account/account-closure-billing-retention.js';
+import { AccountClosureService } from './account/account-closure-service.js';
+import { registerAccountClosureRoutes } from './account/account-closure-routes.js';
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
@@ -134,7 +136,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const mcpResourceUrl = normalizePublicUrl(environment.FORGELEX_MCP_RESOURCE_URL ?? 'https://mcp.forgelex.ai');
   await app.register(cors, {
     origin: resolveAllowedOrigins(environment),
-    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-Closure-Token'],
     exposedHeaders: [
       'X-Billable-Units',
       'X-Credit-Cost-Per-Unit',
@@ -242,6 +244,28 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   if (accountClosureWorkerEnabled && (!accountClosureEnabled || !accountClosureReconciler)) {
     throw new Error('ACCOUNT_CLOSURE_WORKER_CONFIG_REQUIRED');
   }
+  const supabaseIdentityVerifier = options.supabaseIdentityVerifier ?? createSupabaseIdentityVerifier(environment);
+  const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(
+    environment,
+    apiKeyRepository,
+    accountRepository,
+    accountClosureBlocklist,
+  );
+  const accountClosureStatusTokenSecret = environment.FORGELEX_ACCOUNT_CLOSURE_STATUS_TOKEN_SECRET?.trim();
+  const accountClosureService = accountClosureRepository && accountClosureStatusTokenSecret && accountClosureHashSecret
+    ? new AccountClosureService(accountClosureRepository, {
+        statusTokenSecret: accountClosureStatusTokenSecret,
+        subjectHashSecret: accountClosureHashSecret,
+      })
+    : undefined;
+  registerAccountClosureRoutes(app, {
+    enabled: accountClosureEnabled,
+    authAdapter,
+    identityVerifier: supabaseIdentityVerifier,
+    service: accountClosureService,
+    repository: accountClosureRepository,
+    subjectHashSecret: accountClosureHashSecret,
+  });
   let accountClosureWorkerRunning = false;
   const accountClosureWorker = accountClosureEnabled && accountClosureWorkerEnabled && accountClosureReconciler
     ? setInterval(() => {
@@ -255,13 +279,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       }, 5_000)
     : undefined;
   if (accountClosureWorker) app.addHook('onClose', async () => clearInterval(accountClosureWorker));
-  const supabaseIdentityVerifier = options.supabaseIdentityVerifier ?? createSupabaseIdentityVerifier(environment);
-  const authAdapter = options.authAdapter ?? createDefaultAuthAdapter(
-    environment,
-    apiKeyRepository,
-    accountRepository,
-    accountClosureBlocklist,
-  );
   const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client);
   await ledgerService.runMigrations();
   const mercadoPagoPaymentProvider = options.mercadoPagoPaymentProvider ?? (
@@ -637,6 +654,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       structuredLog('warn', 'account.bootstrap.rejected', { requestId: request.id, reason: 'email_not_confirmed' });
       reply.status(403);
       return { error: 'EMAIL_NOT_CONFIRMED', message: 'Confirme seu e-mail para continuar.' };
+    }
+
+    if (accountClosureRepository && accountClosureHashSecret && await accountClosureRepository.findBySubjectHash(
+      digestClosureValue(accountClosureHashSecret, identity.id),
+    )) {
+      reply.status(403);
+      return { error: 'ACCOUNT_CLOSED', message: 'Esta conta foi encerrada e não pode ser reativada.' };
     }
 
     const body = (request.body ?? {}) as { displayName?: unknown };

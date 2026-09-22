@@ -245,6 +245,17 @@ export class AccountClosureRepository {
       ) {
         throw new Error('ACCOUNT_CLOSURE_REQUIRES_OWNERSHIP_TRANSFER');
       }
+      const userMemberships = await transaction.execute({
+        sql: `SELECT tenant_id FROM forgelex_tenant_memberships
+          WHERE user_id = ? AND status = 'ACTIVE'${lockClause}`,
+        args: [input.userId],
+      });
+      if (
+        userMemberships.rows.length !== 1 ||
+        String(userMemberships.rows[0]?.tenant_id) !== input.tenantId
+      ) {
+        throw new Error('ACCOUNT_CLOSURE_REQUIRES_OWNERSHIP_TRANSFER');
+      }
 
       await transaction.execute({
         sql: `INSERT INTO account_closures (
