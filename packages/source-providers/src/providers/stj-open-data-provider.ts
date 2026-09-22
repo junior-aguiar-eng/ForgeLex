@@ -148,7 +148,7 @@ export class StjOpenDataProvider implements LegalSourceProvider {
       try {
         records = parseStjOpenDataJsonRecords(entry.name, entry.bytes);
       } catch (error) {
-        throw new Error(`STJ_OPEN_DATA_RESOURCE_INVALID_JSON:${resource.resourceId}:${entry.name}:${error instanceof Error ? error.message : 'UNKNOWN'}`);
+        throw new Error(`STJ_OPEN_DATA_RESOURCE_INVALID_JSON:${resource.resourceId}:${entry.name}:${error instanceof Error ? error.message : 'UNKNOWN'}`, { cause: error });
       }
       for (const rawRecord of records) {
         rawRecordCount += 1;

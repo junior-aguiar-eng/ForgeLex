@@ -305,7 +305,7 @@ export class StjSconProvider implements LegalSourceProvider {
       return body;
     } catch (error) {
       if (controller.signal.aborted) {
-        throw new Error(`SOURCE_PROVIDER_TIMEOUT: SCON não respondeu em ${this.timeoutMs}ms.`);
+        throw new Error(`SOURCE_PROVIDER_TIMEOUT: SCON não respondeu em ${this.timeoutMs}ms.`, { cause: error });
       }
       throw error;
     } finally {

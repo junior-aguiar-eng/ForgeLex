@@ -619,6 +619,25 @@ git diff --cached --check
 git commit -m "feat(account): reconciliar exclusao de identidade"
 ```
 
+#### Registro de qualidade após a subfase 7.4
+
+Status em 2026-09-22: configuração concluída antes do início da subfase 7.5.
+
+- ESLint e Prettier configurados na raiz para `apps/*` e `packages/*`, com scripts `lint`, `lint:fix`, `format` e `format:check` compatíveis com pnpm.
+- ESLint cobre TypeScript, React e hooks; regras estilísticas ficam exclusivamente a cargo do Prettier por meio de `eslint-config-prettier`.
+- Prettier cobre TypeScript, TSX, JSON, Markdown e YAML. Os ignores abrangem dependências, builds, cobertura, artefatos gerados, resultados de testes e arquivos temporários.
+- A primeira execução de `pnpm format:check` encontrou 229 arquivos legados divergentes. `pnpm-workspace.yaml` foi formatado e os outros 228 arquivos foram registrados individualmente em `.prettierignore`, sem ignorar diretórios funcionais inteiros nem promover reescrita mecânica ampla. Cada entrada deve ser removida progressivamente quando o arquivo for alterado por trabalho funcional.
+- A primeira execução de `pnpm lint` encontrou 9 erros e 2 avisos preexistentes. Foram corrigidos apenas os diagnósticos reportados: preservação de causa, dependências de hooks, atribuições terminais sem leitura, variável imutável e fixture de stream vazio.
+
+Validação executada após as correções:
+
+- `pnpm format:check` — aprovado;
+- `pnpm lint` — aprovado sem erros ou avisos;
+- `pnpm typecheck` — aprovado nos 15 workspaces;
+- `pnpm test` — aprovado, com 86 arquivos de teste aprovados e 1 ignorado; 415 testes aprovados e 4 ignorados.
+
+O aviso transitivo de `node-domexception@1.0.0` permanece registrado como dívida preexistente da cadeia de `@libsql/client`; não constitui falha bloqueante deste gate.
+
 ### Task 4 — Subfase 7.5: expurgo privado, minimização fiscal e retenção excepcional
 
 **Files:**

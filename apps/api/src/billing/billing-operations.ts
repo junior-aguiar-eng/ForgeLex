@@ -326,7 +326,7 @@ export class BillingOperationsService {
       return created[0];
     } catch (error) {
       if (this.isRefundOpenKeyConflict(error)) {
-        throw new Error('REFUND_REQUEST_ALREADY_PENDING');
+        throw new Error('REFUND_REQUEST_ALREADY_PENDING', { cause: error });
       }
       throw error;
     }
