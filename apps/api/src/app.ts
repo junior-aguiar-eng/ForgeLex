@@ -214,6 +214,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     : undefined;
   const accountClosureEnabled = environment.FORGELEX_ACCOUNT_CLOSURE_ENABLED === 'true';
   const accountClosureWorkerEnabled = environment.FORGELEX_ACCOUNT_CLOSURE_WORKER_ENABLED === 'true';
+  const closureWorkerSetting = (name: string, fallback: number, maximum: number): number => {
+    const raw = environment[name];
+    if (raw === undefined || raw === '') return fallback;
+    if (!/^\d+$/.test(raw)) throw new Error('ACCOUNT_CLOSURE_WORKER_CONFIG_INVALID');
+    const value = Number(raw);
+    if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
+      throw new Error('ACCOUNT_CLOSURE_WORKER_CONFIG_INVALID');
+    }
+    return value;
+  };
+  const closureWorkerIntervalMs = accountClosureWorkerEnabled
+    ? closureWorkerSetting('FORGELEX_ACCOUNT_CLOSURE_RECONCILER_INTERVAL_MS', 60_000, 86_400_000)
+    : 60_000;
+  const closureWorkerMaxAttempts = accountClosureWorkerEnabled
+    ? closureWorkerSetting('FORGELEX_ACCOUNT_CLOSURE_MAX_ATTEMPTS', 12, 100)
+    : 12;
   const accountIdentityAdmin = options.accountIdentityAdmin ?? (
     accountClosureEnabled
       && environment.FORGELEX_SUPABASE_URL?.trim()
@@ -238,6 +254,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
               : {}),
           }),
           leaseOwner: `api_${process.pid}`,
+          maxAttempts: closureWorkerMaxAttempts,
         })
       : undefined
   );
@@ -276,7 +293,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             errorCode: 'ACCOUNT_CLOSURE_WORKER_FAILED',
           }))
           .finally(() => { accountClosureWorkerRunning = false; });
-      }, 5_000)
+      }, closureWorkerIntervalMs)
     : undefined;
   if (accountClosureWorker) app.addHook('onClose', async () => clearInterval(accountClosureWorker));
   const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client);

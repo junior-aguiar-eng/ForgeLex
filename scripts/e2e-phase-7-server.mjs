@@ -11,6 +11,11 @@ import {
 import { CanonicalFixtureProvider, SourceRouter } from '../packages/source-providers/dist/index.js';
 
 const databaseUrl = process.env.FORGELEX_DATABASE_URL ?? process.env.DATABASE_URL ?? 'postgres://forgelex:forgelex@127.0.0.1:55432/forgelex';
+const authUrl = process.env.FORGELEX_E2E_AUTH_URL ?? 'http://127.0.0.1:54321';
+const authPort = Number(new URL(authUrl).port);
+if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(authUrl) || !Number.isSafeInteger(authPort) || authPort < 1024) {
+  throw new Error('E2E_AUTH_URL_MUST_BE_LOCAL');
+}
 const token = 'phase7-e2e-access-token';
 const executionId = randomUUID();
 const identity = {
@@ -36,13 +41,13 @@ function send(response, status, body) {
 
 const authServer = http.createServer((request, response) => {
   if (request.method === 'OPTIONS') return send(response, 204, {});
-  const url = new URL(request.url ?? '/', 'http://127.0.0.1:54321');
+  const url = new URL(request.url ?? '/', authUrl);
   if (request.method === 'POST' && url.pathname === '/auth/v1/token' && url.searchParams.get('grant_type') === 'password') return send(response, 200, session);
   if (request.method === 'GET' && url.pathname === '/auth/v1/user' && request.headers.authorization === `Bearer ${token}`) return send(response, 200, identity);
   if (request.method === 'POST' && url.pathname === '/auth/v1/logout') return send(response, 204, {});
   return send(response, 404, { error: 'not_found' });
 });
-await new Promise((resolve, reject) => authServer.listen(54321, '127.0.0.1', resolve).once('error', reject));
+await new Promise((resolve, reject) => authServer.listen(authPort, '127.0.0.1', resolve).once('error', reject));
 
 const connection = await createDatabase({ url: databaseUrl });
 await runPersistenceMigrations(connection.client);
@@ -95,7 +100,7 @@ const app = await buildApp({
   database: connection.db, databaseClient: connection.client, ledgerService: ledger,
   sourceRouter, billingOperationsService: billingOperations, paymentProvider,
   environment: {
-    NODE_ENV: 'test', FORGELEX_SUPABASE_URL: 'http://127.0.0.1:54321',
+    NODE_ENV: 'test', FORGELEX_SUPABASE_URL: authUrl,
     FORGELEX_SUPABASE_PUBLISHABLE_KEY: 'phase7-e2e-publishable', FORGELEX_ALLOWED_ORIGINS: 'http://127.0.0.1:3000',
     FORGELEX_WEBHOOK_MASTER_KEY: 'phase7-e2e-master-key',
   },

@@ -339,24 +339,16 @@ export class AccountClosureRepository {
     userHash?: string;
     tenantHash?: string;
   }): Promise<boolean> {
+    const clauses = ['subject_id = ?', 'user_id = ?', 'tenant_id = ?'];
+    const args: string[] = [input.subjectId, input.userId, input.tenantId];
+    for (const [column, value] of [
+      ['subject_hash', input.subjectHash], ['user_hash', input.userHash], ['tenant_hash', input.tenantHash],
+    ] as const) {
+      if (value) { clauses.push(`${column} = ?`); args.push(value); }
+    }
     const result = await this.client.execute({
-      sql: `SELECT 1 AS blocked FROM account_closures
-        WHERE subject_id = ? OR user_id = ? OR tenant_id = ?
-          OR (? IS NOT NULL AND subject_hash = ?)
-          OR (? IS NOT NULL AND user_hash = ?)
-          OR (? IS NOT NULL AND tenant_hash = ?)
-        LIMIT 1`,
-      args: [
-        input.subjectId,
-        input.userId,
-        input.tenantId,
-        input.subjectHash ?? null,
-        input.subjectHash ?? null,
-        input.userHash ?? null,
-        input.userHash ?? null,
-        input.tenantHash ?? null,
-        input.tenantHash ?? null,
-      ],
+      sql: `SELECT 1 AS blocked FROM account_closures WHERE ${clauses.join(' OR ')} LIMIT 1`,
+      args,
     });
     return result.rows.length > 0;
   }
@@ -592,6 +584,54 @@ export class AccountClosureRepository {
             args: [input.errorCode, input.now, input.nextAttemptAt, input.closureId],
           });
       await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  /** Operator-controlled retry of the one failed step; never changes account access. */
+  public async resumeFailedStep(input: { closureId: string; now: string }): Promise<boolean> {
+    const previousStatus: Record<AccountClosureStepType, AccountClosureStatus> = {
+      DELETE_SUPABASE_IDENTITY: 'ACCESS_BLOCKED',
+      PURGE_PRIVATE_CONTENT: 'IDENTITY_REMOVED',
+      MINIMIZE_RETAINED_RECORDS: 'CREDENTIALS_REVOKED',
+      REMOVE_LOCAL_IDENTITY: 'CONTENT_PURGING',
+      VERIFY_RESIDUALS: 'RETAINED_ONLY',
+    };
+    const transaction = await this.client.transaction();
+    try {
+      const closure = await transaction.execute({
+        sql: "SELECT status FROM account_closures WHERE id = ?",
+        args: [input.closureId],
+      });
+      if (String(closure.rows[0]?.status) !== 'RECONCILIATION_REQUIRED') {
+        await transaction.commit();
+        return false;
+      }
+      const failed = await transaction.execute({
+        sql: "SELECT step_type FROM account_closure_steps WHERE closure_id = ? AND status = 'FAILED'",
+        args: [input.closureId],
+      });
+      if (failed.rows.length !== 1) throw new Error('ACCOUNT_CLOSURE_FAILED_STEP_AMBIGUOUS');
+      const stepType = String(failed.rows[0]?.step_type) as AccountClosureStepType;
+      const restoredStatus = previousStatus[stepType];
+      if (!restoredStatus) throw new Error('ACCOUNT_CLOSURE_FAILED_STEP_INVALID');
+      const step = await transaction.execute({
+        sql: `UPDATE account_closure_steps SET status = 'RETRYABLE', attempt_count = 0,
+          next_attempt_at = ?, last_error_code = NULL, updated_at = ?
+          WHERE closure_id = ? AND step_type = ? AND status = 'FAILED'`,
+        args: [input.now, input.now, input.closureId, stepType],
+      });
+      if (step.rowsAffected !== 1) throw new Error('ACCOUNT_CLOSURE_RESUME_CONFLICT');
+      const resumed = await transaction.execute({
+        sql: `UPDATE account_closures SET status = ?, next_attempt_at = ?, last_error_code = NULL, updated_at = ?
+          WHERE id = ? AND status = 'RECONCILIATION_REQUIRED'`,
+        args: [restoredStatus, input.now, input.now, input.closureId],
+      });
+      if (resumed.rowsAffected !== 1) throw new Error('ACCOUNT_CLOSURE_RESUME_CONFLICT');
+      await transaction.commit();
+      return true;
     } catch (error) {
       await transaction.rollback();
       throw error;

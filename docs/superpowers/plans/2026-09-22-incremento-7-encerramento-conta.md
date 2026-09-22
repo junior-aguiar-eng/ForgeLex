@@ -1203,7 +1203,7 @@ git commit -m "feat(web): conduzir encerramento irreversivel"
 - Consumes: fluxo completo das Tasks 1–6, PostgreSQL descartável, Supabase Auth simulado e matrizes aprovadas na 7.1.
 - Produces: prova E2E destrutiva isolada, prova de restauração, runbook operacional, minutas jurídicas para revisão humana e registro auditável de validação.
 
-- [ ] **Step 1: escrever o E2E destrutivo em ambiente descartável**
+- [x] **Step 1: escrever o E2E destrutivo em ambiente descartável**
 
 O servidor de teste deve criar usuário e tenant sintéticos exclusivos, emitir sessão com:
 
@@ -1216,7 +1216,7 @@ O servidor de teste deve criar usuário e tenant sintéticos exclusivos, emitir 
 
 O timestamp é gerado no runtime. O mock de administração Supabase deve registrar a exclusão da identidade e rejeitar autenticação subsequente. Nenhuma fixture pode apontar para projeto Supabase, banco ou usuário real.
 
-- [ ] **Step 2: cobrir a jornada completa no navegador**
+- [x] **Step 2: cobrir a jornada completa no navegador**
 
 Em `account-closure.spec.ts`:
 
@@ -1232,7 +1232,7 @@ test('encerra conta pessoal, bloqueia acesso imediato e conclui a saga', async (
 
 Adicionar cenário de falha parcial do provedor: o acesso continua bloqueado, o estado chega a `RECONCILIATION_REQUIRED`, o reconciliador retoma idempotentemente e conclui sem recriar identidade.
 
-- [ ] **Step 3: implementar smoke PostgreSQL focado**
+- [x] **Step 3: implementar smoke PostgreSQL focado**
 
 `scripts/smoke-account-closure-postgres.mjs` deve provar, com IDs aleatórios e limpeza explícita:
 
@@ -1246,7 +1246,7 @@ Adicionar cenário de falha parcial do provedor: o acesso continua bloqueado, o 
 - tenant-controle e corpus global permanecem intactos;
 - principal de sessão, API key persistida, API key estática e JWT ainda válido recebem bloqueio após a transação inicial.
 
-- [ ] **Step 4: implementar prova de backup e restauração**
+- [x] **Step 4: implementar prova de backup e restauração**
 
 `verify-account-closure-restore.mjs` deve:
 
@@ -1259,7 +1259,7 @@ Adicionar cenário de falha parcial do provedor: o acesso continua bloqueado, o 
 
 O script deve abortar antes de qualquer `DROP DATABASE` se host, nome ou prefixo não forem os esperados. Não usar banco de desenvolvimento compartilhado.
 
-- [ ] **Step 5: registrar scripts e variáveis operacionais**
+- [x] **Step 5: registrar scripts e variáveis operacionais**
 
 Adicionar ao `package.json`:
 
@@ -1281,13 +1281,13 @@ FORGELEX_ACCOUNT_CLOSURE_RECONCILER_INTERVAL_MS=60000
 FORGELEX_ACCOUNT_CLOSURE_MAX_ATTEMPTS=12
 ```
 
-- [ ] **Step 6: redigir as minutas jurídicas vinculadas à matriz técnica**
+- [x] **Step 6: redigir as minutas jurídicas vinculadas à matriz técnica**
 
 `account-closure-retention-policy.md` deve reproduzir, sem ampliar silenciosamente, finalidade, categoria, base jurídica a validar, prazo, evento inicial, destino, exceções e responsável de cada retenção da 7.1. `account-closure-terms-addendum.md` deve explicar irreversibilidade, perda de acesso, retenções obrigatórias, backups e canal de suporte.
 
 Ambos devem trazer no topo: `MINUTA — REQUER REVISÃO JURÍDICA HUMANA ANTES DE PUBLICAÇÃO`. Não afirmar aprovação de DPO, advogado, contabilidade ou responsável que não esteja documentada.
 
-- [ ] **Step 7: redigir runbook e matriz de evidências**
+- [x] **Step 7: redigir runbook e matriz de evidências**
 
 O runbook deve conter:
 
@@ -1301,7 +1301,7 @@ O runbook deve conter:
 
 `validation.md` deve mapear requisito -> teste/comando -> evidência -> commit -> data -> ambiente -> resultado. Campos sem evidência permanecem explicitamente `NÃO DEMONSTRADO`.
 
-- [ ] **Step 8: executar a matriz técnica completa**
+- [x] **Step 8: executar a matriz técnica completa**
 
 Run, nesta ordem:
 
@@ -1331,7 +1331,7 @@ Registrar separadamente:
 
 Resultado humano não pode ser inferido de testes automatizados. Registrar participantes por identificadores internos, versão avaliada, perguntas, aprovação/reprovação e observações, sem inserir dados pessoais desnecessários no Git.
 
-- [ ] **Step 10: atualizar o estado canônico apenas com evidência produzida**
+- [x] **Step 10: atualizar o estado canônico apenas com evidência produzida**
 
 Em `STATUS_VALIDACAO.md`, registrar checkout, branch, commit, banco descartável, comandos, contagens e limitações. Até as revisões humanas e autorizações operacionais existirem, manter:
 
@@ -1343,7 +1343,7 @@ Deploy: NÃO EXECUTADO.
 Feature flag em produção: DESABILITADA.
 ```
 
-- [ ] **Step 11: criar checkpoint Git somente se autorizado**
+- [x] **Step 11: criar checkpoint Git somente se autorizado**
 
 ```powershell
 git add tests/e2e/account-closure.spec.ts playwright.account-closure.config.ts scripts/e2e-account-closure-server.mjs scripts/smoke-account-closure-postgres.mjs scripts/verify-account-closure-restore.mjs package.json .env.example README.md docs/legal/account-closure-retention-policy.md docs/legal/account-closure-terms-addendum.md docs/operations/account-closure/runbook.md docs/operations/account-closure/validation.md STATUS_VALIDACAO.md

@@ -253,6 +253,37 @@ describe('AccountClosureRepository', () => {
     });
   });
 
+  it('retoma somente etapa terminal falha, sem reabrir acesso nem repetir etapa concluída', async () => {
+    const account = await createPersonalAccount();
+    const { closure } = await repository.begin(beginInput(account));
+    const first = await repository.claimNextStep({
+      now: '2026-09-22T12:00:01.000Z', leaseOwner: 'worker_1', leaseExpiresAt: '2026-09-22T12:01:01.000Z',
+    });
+    expect(first?.step.stepType).toBe('DELETE_SUPABASE_IDENTITY');
+    await repository.completeStep({
+      closureId: closure.id, stepType: 'DELETE_SUPABASE_IDENTITY',
+      now: '2026-09-22T12:00:02.000Z', nextStatus: 'IDENTITY_REMOVED',
+    });
+    const second = await repository.claimNextStep({
+      now: '2026-09-22T12:00:03.000Z', leaseOwner: 'worker_1', leaseExpiresAt: '2026-09-22T12:01:03.000Z',
+    });
+    expect(second?.step.stepType).toBe('PURGE_PRIVATE_CONTENT');
+    await repository.retryStep({
+      closureId: closure.id, stepType: 'PURGE_PRIVATE_CONTENT', now: '2026-09-22T12:00:04.000Z',
+      nextAttemptAt: '2026-09-22T12:01:04.000Z', errorCode: 'ACCOUNT_CLOSURE_STEP_FAILED', terminal: true,
+    });
+
+    expect(await repository.resumeFailedStep({ closureId: closure.id, now: '2026-09-22T12:00:05.000Z' }))
+      .toBe(true);
+    expect(await repository.resumeFailedStep({ closureId: closure.id, now: '2026-09-22T12:00:06.000Z' }))
+      .toBe(false);
+    expect(await repository.findById(closure.id)).toMatchObject({ status: 'IDENTITY_REMOVED' });
+    expect((await repository.listSteps(closure.id)).map((step) => step.status).slice(0, 2))
+      .toEqual(['COMPLETED', 'RETRYABLE']);
+    expect(await repository.isBlocked({ subjectId: account.user.supabaseUserId, userId: account.user.id, tenantId: account.tenant.id }))
+      .toBe(true);
+  });
+
   it('não permite concluir a saga antes da etapa de verificação residual', async () => {
     await createClosure();
     await repository.claimNextStep({

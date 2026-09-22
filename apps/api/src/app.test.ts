@@ -182,12 +182,14 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
         NODE_ENV: 'test',
         FORGELEX_ACCOUNT_CLOSURE_ENABLED: 'true',
         FORGELEX_ACCOUNT_CLOSURE_WORKER_ENABLED: 'true',
+        FORGELEX_ACCOUNT_CLOSURE_RECONCILER_INTERVAL_MS: '1200',
+        FORGELEX_ACCOUNT_CLOSURE_MAX_ATTEMPTS: '3',
         FORGELEX_ACCOUNT_CLOSURE_STATUS_TOKEN_SECRET: 's'.repeat(64),
         FORGELEX_ACCOUNT_CLOSURE_SUBJECT_HASH_SECRET: 'h'.repeat(64),
       },
     });
     try {
-      await vi.advanceTimersByTimeAsync(5_000);
+      await vi.advanceTimersByTimeAsync(1_200);
       expect(runOne).toHaveBeenCalledTimes(1);
       await workerApp.close();
       await vi.advanceTimersByTimeAsync(10_000);

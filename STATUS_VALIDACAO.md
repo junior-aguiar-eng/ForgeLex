@@ -1,6 +1,47 @@
 # Auditoria e status canônico do ForgeLex
 
-Última auditoria: 2026-09-21. Branch: `main`.
+## Incremento 7.8 — validação local do encerramento (22/09/2026)
+
+Checkout `C:\Users\Boni Jr\.antigravity-ide\SDK`, branch
+`feat/incremento-7-1-encerramento`, HEAD-base publicado
+`eee4bd363d19167feb51416d77019835340e1681`. A implementação 7.8 e esta
+matriz técnica integram o checkpoint da subfase. Os testes destrutivos usaram
+somente usuário/tenant sintéticos, SQLite em memória no E2E e PostgreSQL 18
+local em cluster isolado na porta 15432. Os bancos temporários prefixados de
+smoke, E2E MCP e restauração foram removidos após cada execução. Não houve
+acesso a Supabase real, migration remota, deploy nem habilitação da flag em
+produção.
+O servidor PostgreSQL privado da validação foi desligado; seus arquivos
+gerados (aprox. 59 MB) permanecem no diretório ignorado
+`.superpowers/sdd/2026-09-22-incremento-7-encerramento-conta-plans/pg-test-cluster`
+porque a remoção recursiva foi bloqueada pelo ambiente. Nenhum banco de
+teste prefixado permanece nele.
+
+`pnpm typecheck` passou; `pnpm test` passou com 92 arquivos, 450 testes
+aprovados e 4 ignorados; os builds de API e web passaram. O E2E MCP passou
+8/8 em banco descartável após configurar porta de Auth local fora da faixa
+reservada pelo Windows. A suíte Playwright padrão passou 9/9 em série, isolando
+a fixture compartilhada. O E2E de encerramento passou 2/2, cobrindo conclusão,
+bloqueio do JWT, falha do provedor e retomada. `pnpm test:postgres` passou 12
+checks; o smoke focado passou concorrência/replay, bloqueio, expurgo,
+minimização e preservação de tenant-controle e corpus global. A restauração
+passou com dois bancos temporários, tombstone, cinco etapas concluídas,
+retenção minimizada e bootstrap negado com `ACCOUNT_CLOSED`. Também passaram
+`pnpm format:check`, `pnpm lint` e `git diff --check`. Evidência detalhada:
+`docs/operations/account-closure/validation.md`.
+
+Implementação local: **VALIDADA tecnicamente no escopo acima**. Revisões
+jurídica, contábil/fiscal, de segurança e UX por pessoas responsáveis:
+**PENDENTES**; as minutas jurídicas não são publicáveis. Migration remota:
+**NÃO EXECUTADA**. Deploy: **NÃO EXECUTADO**. Feature flag: padrão do código
+**DESABILITADO** (`false`); configuração remota atual **NÃO REVALIDADA** e não
+alterada nesta execução. Esta validação não equivale à aceitação final da 7.8
+nem a autorização operacional.
+
+## Registro histórico anterior
+
+Auditoria de 2026-09-21 na branch `main`; as declarações abaixo se referem
+àquele checkout e não substituem a validação local do incremento 7.8 acima.
 
 ## Estado consolidado — produto STJ concluído
 
