@@ -40,6 +40,10 @@ O próximo marco de produto está planejado em
 Ele sucede o produto STJ concluído sem reabrir suas fases nem ampliar os
 tribunais comercialmente habilitados.
 
+O [contrato de onboarding MCP](docs/product/mcp-onboarding.md) fixa a
+taxonomia comercial, os estados verificáveis de conexão e os limites de
+telemetria que orientarão esse marco.
+
 ### Pilares Fundamentais:
 1. **Microkernel Agêntico Vendor-Neutral:** Contratos para integrações próprias de agentes, sem modelo de IA gerenciado pelo ForgeLex.
 2. **Governança Forense Human-in-the-Loop:** Classificação estrita de impacto em 5 níveis (`L0_OBSERVATION` a `L4_EXTERNAL_EFFECT`). Mutações externas exigem token criptográfico de aprovação do advogado.
