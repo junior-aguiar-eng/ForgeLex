@@ -74,6 +74,8 @@ import {
   AccountClosureReconciler,
   createAccountClosureStepHandlers,
 } from './account/account-closure-reconciler.js';
+import { AccountClosurePurgeService } from './account/account-closure-purge-service.js';
+import { AccountClosureBillingRetention } from './account/account-closure-billing-retention.js';
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
@@ -162,7 +164,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const databaseClient = options.databaseClient ?? connection?.client;
   const retentionPolicy = resolveRetentionPolicy(environment);
   const retentionService = databaseClient && retentionPolicy.enabled
-    ? new OperationalRetentionService(databaseClient, retentionPolicy.retentionDays)
+    ? new OperationalRetentionService(databaseClient, retentionPolicy)
     : undefined;
   const retentionWorker = retentionService
     ? setInterval(() => void retentionService.purge().catch((error) => structuredLog('error', 'retention.worker.failed', {
@@ -224,7 +226,15 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     accountClosureRepository && accountIdentityAdmin
       ? new AccountClosureReconciler({
           repository: accountClosureRepository,
-          handlers: createAccountClosureStepHandlers({ identityAdmin: accountIdentityAdmin }),
+          handlers: createAccountClosureStepHandlers({
+            identityAdmin: accountIdentityAdmin,
+            ...(databaseClient
+              ? {
+                  purgeService: new AccountClosurePurgeService(databaseClient),
+                  billingRetention: new AccountClosureBillingRetention(databaseClient),
+                }
+              : {}),
+          }),
           leaseOwner: `api_${process.pid}`,
         })
       : undefined

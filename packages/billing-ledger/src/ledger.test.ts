@@ -371,4 +371,17 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
     expect(await ledger.getUsageEvents('tenant_rollback')).toHaveLength(0);
     expect(await db.select().from(ledgerEntries)).toHaveLength(0);
   });
+
+  it('aplica ownership de retenção ao webhook financeiro uma única vez', async () => {
+    await ledger.runMigrations();
+
+    const columns = await client.execute("PRAGMA table_info('billing_webhook_events')");
+    const migrations = await client.execute({
+      sql: 'SELECT COUNT(*) AS count FROM forgelex_migrations WHERE id = ?',
+      args: ['billing-ledger-0007-webhook-retention-owner'],
+    });
+
+    expect(columns.rows.map((row) => row.name)).toContain('tenant_id');
+    expect(Number(migrations.rows[0]?.count)).toBe(1);
+  });
 });

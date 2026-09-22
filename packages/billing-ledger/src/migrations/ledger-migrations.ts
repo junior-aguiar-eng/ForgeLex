@@ -212,6 +212,13 @@ export const ledgerMigrations: readonly SqlMigration[] = [
       `CREATE UNIQUE INDEX billing_refund_requests_tenant_open_unique ON billing_refund_requests(tenant_id, open_key);`,
     ],
   },
+  {
+    id: 'billing-ledger-0007-webhook-retention-owner',
+    statements: [
+      `ALTER TABLE billing_webhook_events ADD COLUMN tenant_id TEXT;`,
+      `CREATE INDEX billing_webhook_events_tenant_received_idx ON billing_webhook_events(tenant_id, received_at);`,
+    ],
+  },
 ];
 
 export async function runLedgerMigrations(client: Client): Promise<void> {

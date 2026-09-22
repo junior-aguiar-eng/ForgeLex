@@ -1,7 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createDatabase, runPersistenceMigrations } from '@forgelex/persistence';
-import { BillingService, LedgerService } from '@forgelex/billing-ledger';
+import {
+  createDatabase,
+  runPersistenceMigrations,
+  type Client,
+  type ForgeLexDatabase,
+} from '@forgelex/persistence';
+import {
+  billingWebhookEvents,
+  BillingService,
+  LedgerService,
+} from '@forgelex/billing-ledger';
 import { BillingOperationsService, type PaymentProvider } from './billing-operations.js';
 
 class FakePaymentProvider implements PaymentProvider {
@@ -28,9 +37,13 @@ class FakePaymentProvider implements PaymentProvider {
 describe('BillingOperationsService', () => {
   let operations: BillingOperationsService;
   let provider: FakePaymentProvider;
+  let client: Client;
+  let db: ForgeLexDatabase;
 
   beforeEach(async () => {
     const connection = await createDatabase();
+    client = connection.client;
+    db = connection.db;
     await runPersistenceMigrations(connection.client);
     const ledger = new LedgerService(connection.db, connection.client);
     await ledger.runMigrations();
@@ -62,6 +75,35 @@ describe('BillingOperationsService', () => {
 
     expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
     expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('PAID');
+  });
+
+  it('atribui ownership do webhook pela compra persistida, não pelo metadata', async () => {
+    const tenantId = `tenant_owner_${randomUUID()}`;
+    const purchase = await operations.createCheckout({
+      tenantId,
+      userId: 'user_a',
+      packageId: 'credits_25',
+      idempotencyKey: `checkout_${tenantId}`,
+    });
+
+    await operations.processWebhook({
+      id: `evt_owner_${tenantId}`,
+      type: 'payment.processing',
+      data: {
+        object: {
+          metadata: {
+            purchase_id: purchase.purchaseId,
+            tenant_id: 'tenant_spoofed',
+          },
+        },
+      },
+    });
+
+    const stored = await client.execute({
+      sql: 'SELECT tenant_id FROM billing_webhook_events WHERE id = ?',
+      args: [`evt_owner_${tenantId}`],
+    });
+    expect(stored.rows[0]?.tenant_id).toBe(tenantId);
   });
 
   it('cria solicitação de reembolso somente dentro de sete dias e limita ao saldo não usado', async () => {

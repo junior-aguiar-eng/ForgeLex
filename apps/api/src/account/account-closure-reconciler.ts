@@ -5,6 +5,8 @@ import {
   type ClaimedClosureStep,
 } from '@forgelex/persistence';
 import { structuredLog } from '../observability.js';
+import type { AccountClosureBillingRetention } from './account-closure-billing-retention.js';
+import type { AccountClosurePurgeService } from './account-closure-purge-service.js';
 import type { AccountIdentityAdmin } from './supabase-account-admin.js';
 
 export interface AccountClosureStepHandler {
@@ -31,7 +33,17 @@ function unavailableHandler(): AccountClosureStepHandler {
 
 export function createAccountClosureStepHandlers(input: {
   identityAdmin: AccountIdentityAdmin;
+  purgeService?: Pick<
+    AccountClosurePurgeService,
+    'purgePrivateContent' | 'removeLocalIdentity' | 'verifyResiduals'
+  >;
+  billingRetention?: Pick<AccountClosureBillingRetention, 'minimize'>;
 }): Record<AccountClosureStepType, AccountClosureStepHandler> {
+  const pseudonyms = (step: ClaimedClosureStep) => ({
+    tenantPseudonym: `tenant_closed_${step.closure.tenantHash.slice(0, 24)}`,
+    userPseudonym: `user_closed_${step.closure.userHash.slice(0, 24)}`,
+    closurePseudonym: `closure_${step.closure.id}`,
+  });
   return {
     DELETE_SUPABASE_IDENTITY: {
       execute: async ({ closure }) => {
@@ -39,10 +51,59 @@ export function createAccountClosureStepHandlers(input: {
         await input.identityAdmin.deleteUser(closure.subjectId);
       },
     },
-    PURGE_PRIVATE_CONTENT: unavailableHandler(),
-    MINIMIZE_RETAINED_RECORDS: unavailableHandler(),
-    REMOVE_LOCAL_IDENTITY: unavailableHandler(),
-    VERIFY_RESIDUALS: unavailableHandler(),
+    PURGE_PRIVATE_CONTENT: input.purgeService
+      ? {
+          execute: async ({ closure }) => {
+            if (!closure.tenantId) throw new Error('ACCOUNT_CLOSURE_TENANT_NOT_AVAILABLE');
+            await input.purgeService?.purgePrivateContent({
+              tenantId: closure.tenantId,
+              closureId: closure.id,
+            });
+          },
+        }
+      : unavailableHandler(),
+    MINIMIZE_RETAINED_RECORDS: input.billingRetention
+      ? {
+          execute: async (step) => {
+            const { closure } = step;
+            if (!closure.tenantId || !closure.userId) {
+              throw new Error('ACCOUNT_CLOSURE_IDENTITY_NOT_AVAILABLE');
+            }
+            await input.billingRetention?.minimize({
+              tenantId: closure.tenantId,
+              userId: closure.userId,
+              ...pseudonyms(step),
+            });
+          },
+        }
+      : unavailableHandler(),
+    REMOVE_LOCAL_IDENTITY: input.purgeService
+      ? {
+          execute: async (step) => {
+            const { closure } = step;
+            if (Boolean(closure.tenantId) !== Boolean(closure.userId)) {
+              throw new Error('ACCOUNT_CLOSURE_IDENTITY_NOT_AVAILABLE');
+            }
+            await input.purgeService?.removeLocalIdentity({
+              closureId: closure.id,
+              tenantId: closure.tenantId ?? undefined,
+              userId: closure.userId ?? undefined,
+              ...pseudonyms(step),
+            });
+          },
+        }
+      : unavailableHandler(),
+    VERIFY_RESIDUALS: input.purgeService
+      ? {
+          execute: async (step) => {
+            await input.purgeService?.verifyResiduals({
+              closureId: step.closure.id,
+              tenantId: step.closure.tenantId ?? undefined,
+              tenantPseudonym: pseudonyms(step).tenantPseudonym,
+            });
+          },
+        }
+      : unavailableHandler(),
   };
 }
 

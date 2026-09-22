@@ -145,4 +145,96 @@ describe('AccountClosureReconciler', () => {
     await expect(reconciler().runOne(new Date('2026-09-22T12:00:00.000Z')))
       .resolves.toBe('idle');
   });
+
+  it('liga os quatro efeitos locais e conclui a sequência canônica', async () => {
+    const purgeService = {
+      purgePrivateContent: vi.fn().mockResolvedValue({
+        deletedRows: 0,
+        remainingPrivateRows: 0,
+        heldCategories: [],
+      }),
+      removeLocalIdentity: vi.fn().mockResolvedValue(undefined),
+      verifyResiduals: vi.fn().mockResolvedValue({
+        privateRows: 0,
+        activeCredentials: 0,
+        unredactedSnapshots: 0,
+        retainedFinancialRows: 1,
+        heldCategories: [],
+      }),
+    };
+    const billingRetention = { minimize: vi.fn().mockResolvedValue(undefined) };
+    const worker = new AccountClosureReconciler({
+      repository,
+      handlers: createAccountClosureStepHandlers({
+        identityAdmin,
+        purgeService,
+        billingRetention,
+      }),
+      leaseOwner: 'worker_local',
+    });
+
+    for (let step = 0; step < 5; step += 1) {
+      await expect(worker.runOne(new Date(`2026-09-22T12:0${step}:00.000Z`)))
+        .resolves.toBe('completed');
+    }
+
+    expect(purgeService.purgePrivateContent).toHaveBeenCalledOnce();
+    expect(billingRetention.minimize).toHaveBeenCalledOnce();
+    expect(purgeService.removeLocalIdentity).toHaveBeenCalledOnce();
+    expect(purgeService.verifyResiduals).toHaveBeenCalledOnce();
+    expect((await repository.findById('acl_1'))?.status).toBe('COMPLETED');
+  });
+
+  it('retoma remoção local quando os identificadores já foram limpos', async () => {
+    await client.execute({
+      sql: `UPDATE account_closure_steps SET status = 'COMPLETED'
+        WHERE closure_id = ? AND step_type IN (
+          'DELETE_SUPABASE_IDENTITY', 'PURGE_PRIVATE_CONTENT',
+          'MINIMIZE_RETAINED_RECORDS'
+        )`,
+      args: ['acl_1'],
+    });
+    await client.execute({
+      sql: "UPDATE account_closures SET status = 'CONTENT_PURGING' WHERE id = ?",
+      args: ['acl_1'],
+    });
+    const purgeService = {
+      purgePrivateContent: vi.fn(),
+      verifyResiduals: vi.fn().mockResolvedValue({
+        privateRows: 0,
+        activeCredentials: 0,
+        unredactedSnapshots: 0,
+        retainedFinancialRows: 1,
+        heldCategories: [],
+      }),
+      removeLocalIdentity: vi.fn().mockImplementation(async () => {
+        await client.execute({
+          sql: `UPDATE account_closures
+            SET subject_id = NULL, user_id = NULL, tenant_id = NULL WHERE id = ?`,
+          args: ['acl_1'],
+        });
+      }),
+    };
+    const completeStep = repository.completeStep.bind(repository);
+    repository.completeStep = vi.fn()
+      .mockRejectedValueOnce(new Error('LOCAL_COMMIT_FAILED'))
+      .mockImplementation(completeStep);
+    const worker = new AccountClosureReconciler({
+      repository,
+      handlers: createAccountClosureStepHandlers({
+        identityAdmin,
+        purgeService,
+        billingRetention: { minimize: vi.fn() },
+      }),
+      leaseOwner: 'worker_resume',
+    });
+
+    await expect(worker.runOne(new Date('2026-09-22T12:00:00.000Z')))
+      .rejects.toThrow('LOCAL_COMMIT_FAILED');
+    await expect(worker.runOne(new Date('2026-09-22T12:01:01.000Z')))
+      .resolves.toBe('completed');
+
+    expect(purgeService.removeLocalIdentity).toHaveBeenCalledTimes(2);
+    expect((await repository.findById('acl_1'))?.status).toBe('RETAINED_ONLY');
+  });
 });

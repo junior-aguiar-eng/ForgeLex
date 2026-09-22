@@ -658,7 +658,7 @@ O aviso transitivo de `node-domexception@1.0.0` permanece registrado como dívid
 - Consumes: `Client`, `AccountClosureRepository`, `RetentionExceptionRecord`, `AccountClosureStepHandler`.
 - Produces: `AccountClosurePurgeService`, `AccountClosureBillingRetention`, `PurgeSummary`, `ResidualVerification` e migration `billing-ledger-0007-webhook-retention-owner`.
 
-- [ ] **Step 1: escrever a fixture destrutiva isolada**
+- [x] **Step 1: escrever a fixture destrutiva isolada**
 
 Em `account-closure-purge-service.test.ts`, criar tenant descartável com uma linha em cada grupo do inventário, outro tenant-controle e corpus jurisprudencial global. A fixture deve devolver:
 
@@ -673,7 +673,7 @@ interface ClosurePurgeFixture {
 }
 ```
 
-- [ ] **Step 2: escrever os testes RED do expurgo**
+- [x] **Step 2: escrever os testes RED do expurgo**
 
 ```ts
 it('remove todo conteúdo privado sem tocar outro tenant ou corpus global', async () => {
@@ -692,7 +692,7 @@ it('preserva somente a categoria coberta por exceção vigente', async () => {
 });
 ```
 
-- [ ] **Step 3: escrever os testes RED da minimização financeira**
+- [x] **Step 3: escrever os testes RED da minimização financeira**
 
 ```ts
 it('mantém valores e referências fiscais sem conteúdo jurídico ou identificador direto', async () => {
@@ -704,13 +704,13 @@ it('mantém valores e referências fiscais sem conteúdo jurídico ou identifica
 });
 ```
 
-- [ ] **Step 4: executar os testes e confirmar a falha RED**
+- [x] **Step 4: executar os testes e confirmar a falha RED**
 
 Run: `pnpm exec vitest run apps/api/src/account/account-closure-purge-service.test.ts apps/api/src/account/account-closure-billing-retention.test.ts`
 
 Expected: FAIL pelos módulos ausentes.
 
-- [ ] **Step 5: acrescentar ownership ao webhook financeiro**
+- [x] **Step 5: acrescentar ownership ao webhook financeiro**
 
 Criar migration `billing-ledger-0007-webhook-retention-owner`:
 
@@ -722,7 +722,7 @@ CREATE INDEX billing_webhook_events_tenant_received_idx
 
 Modificar `BillingOperationsService.processWebhook` para preencher `tenant_id` assim que a compra associada for resolvida. Eventos legados sem tenant continuam sujeitos à retenção operacional de payload, mas não podem ser atribuídos silenciosamente a uma conta.
 
-- [ ] **Step 6: implementar a ordem explícita de exclusão privada**
+- [x] **Step 6: implementar a ordem explícita de exclusão privada**
 
 `AccountClosurePurgeService.purgePrivateContent` deve executar uma transação por tenant nesta ordem:
 
@@ -745,7 +745,7 @@ const deleteOrder = [
 
 Tabelas sem `tenant_id` devem ser selecionadas por FK/subquery antes da tabela pai. Cada categoria com exceção vigente é omitida e registrada em `heldCategories`; nenhuma exceção autoriza manter dados de outra categoria.
 
-- [ ] **Step 7: implementar a minimização financeira**
+- [x] **Step 7: implementar a minimização financeira**
 
 `AccountClosureBillingRetention.minimize` deve:
 
@@ -770,7 +770,7 @@ UPDATE billing_webhook_events: payload='{}', error_message=NULL
 
 As atualizações que alteram `tenant_id` devem ocorrer em ordem compatível com os vínculos por `account_id`, sem quebrar PK/FK.
 
-- [ ] **Step 8: remover identidade local e pseudonimizar auditoria**
+- [x] **Step 8: remover identidade local e pseudonimizar auditoria**
 
 O handler `REMOVE_LOCAL_IDENTITY` deve, na mesma transação:
 
@@ -783,7 +783,7 @@ DELETE forgelex_user_profiles WHERE id=user original;
 UPDATE account_closures SET subject_id=NULL, user_id=NULL, tenant_id=NULL.
 ```
 
-- [ ] **Step 9: implementar verificação residual fail-closed**
+- [x] **Step 9: implementar verificação residual fail-closed**
 
 ```ts
 export interface ResidualVerification {
@@ -797,7 +797,7 @@ export interface ResidualVerification {
 
 `VERIFY_RESIDUALS` só conclui quando os três primeiros contadores forem zero, exceto linhas cobertas por `heldCategories`. Caso contrário, lançar `ACCOUNT_CLOSURE_RESIDUAL_DATA` e manter `RECONCILIATION_REQUIRED` após o limite de retries.
 
-- [ ] **Step 10: estender retenção operacional para seis meses e cinco anos**
+- [x] **Step 10: estender retenção operacional para seis meses e cinco anos**
 
 `OperationalRetentionService.purge` deve receber política separada:
 
@@ -811,7 +811,7 @@ interface OperationalRetentionPolicy {
 
 Excluir `audit_logs` mais antigos que 180 dias e closures concluídas mais antigas que 1.827 dias somente quando não houver `retention_exceptions` ativa. Não alterar o corpus global.
 
-- [ ] **Step 11: ligar os quatro handlers locais ao reconciliador**
+- [x] **Step 11: ligar os quatro handlers locais ao reconciliador**
 
 Mapear:
 
@@ -824,19 +824,58 @@ VERIFY_RESIDUALS -> purgeService.verifyResiduals
 
 Transições esperadas: `IDENTITY_REMOVED -> CREDENTIALS_REVOKED -> CONTENT_PURGING -> RETAINED_ONLY -> COMPLETED`.
 
-- [ ] **Step 12: executar os testes focados da subfase 7.5**
+- [x] **Step 12: executar os testes focados da subfase 7.5**
 
 Run: `pnpm exec vitest run apps/api/src/account/account-closure-purge-service.test.ts apps/api/src/account/account-closure-billing-retention.test.ts apps/api/src/account/account-closure-reconciler.test.ts apps/api/src/operations/retention-service.test.ts packages/billing-ledger/src/ledger.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 13: verificar builds afetados**
+- [x] **Step 13: verificar builds afetados**
 
 Run: `pnpm --filter @forgelex/billing-ledger build && pnpm --filter @forgelex/api build`
 
 Expected: exit 0.
 
-- [ ] **Step 14: criar checkpoint Git somente se autorizado**
+Status em 2026-09-22: subfase 7.5 implementada e validada no checkout local,
+partindo do commit publicado `4b3c9f0`. O checkpoint Git da própria subfase
+acompanha este registro; nenhuma migration remota, deploy ou publicação foi
+executada.
+
+Alterações concluídas:
+
+- expurgo transacional em ordem explícita, isolado por tenant, com preservação
+  limitada à categoria coberta por `retention_exceptions` vigente;
+- migration `billing-ledger-0007-webhook-retention-owner` e atribuição de
+  `tenant_id` a partir da compra persistida, sem confiar no metadata do webhook;
+- minimização fiscal com pseudônimos, remoção de meios de pagamento e redação
+  de snapshots, URLs e textos livres dispensáveis;
+- remoção idempotente de identidade local, pseudonimização de auditoria e
+  retomada segura quando o efeito foi confirmado antes do checkpoint da saga;
+- verificação residual fail-closed, inclusive contra identificadores diretos
+  remanescentes em registros financeiros, e retenção operacional separada em
+  90, 180 e 1.827 dias, respeitando exceções ativas; payloads e erros de
+  webhooks financeiros, inclusive eventos legados sem `tenant_id`, são
+  redigidos em até 90 dias mesmo quando a janela operacional é maior;
+- ligação dos quatro handlers locais no bootstrap da API. Por coerência entre a
+  migration, o schema tipado e o runtime, a implementação também alterou
+  `packages/billing-ledger/src/schema/billing-schema.ts` e `apps/api/src/app.ts`,
+  além da lista inicial de arquivos desta task.
+
+Evidência executada após as correções:
+
+```text
+pnpm exec vitest run <6 arquivos focados>     PASS — 44 testes
+pnpm --filter @forgelex/billing-ledger build PASS
+pnpm --filter @forgelex/api build            PASS
+pnpm format:check                            PASS
+pnpm lint                                    PASS
+pnpm typecheck                               PASS — 15 projetos do workspace
+pnpm test                                    PASS — 88 arquivos aprovados,
+                                                    1 ignorado; 427 testes
+                                                    aprovados, 4 ignorados
+```
+
+- [x] **Step 14: criar checkpoint Git somente se autorizado**
 
 ```powershell
 git add apps/api/src/account/account-closure-purge-service.ts apps/api/src/account/account-closure-purge-service.test.ts apps/api/src/account/account-closure-billing-retention.ts apps/api/src/account/account-closure-billing-retention.test.ts apps/api/src/account/account-closure-reconciler.ts apps/api/src/account/account-closure-reconciler.test.ts apps/api/src/operations/retention-service.ts apps/api/src/operations/retention-service.test.ts packages/billing-ledger/src/migrations/ledger-migrations.ts packages/billing-ledger/src/ledger.test.ts
