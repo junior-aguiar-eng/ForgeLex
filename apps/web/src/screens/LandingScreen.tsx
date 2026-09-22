@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useApp, SearchResultItem } from '../context/AppContext';
 import { createSearchIntent } from '../operations/contracts';
-import { 
-  Search, Scale, Shield, FolderOpen,
+import {
+  ArrowUpRight, Search, Scale, Shield, FolderOpen,
   ExternalLink, Copy, Check, Sparkles, AlertCircle, BookmarkCheck
 } from 'lucide-react';
 
@@ -89,7 +89,7 @@ export const LandingScreen: React.FC = () => {
           </div>
         </div>
 
-        <div className="surface-subtle mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-stone-800">Comece pelo trabalho do caso</p><p className="text-xs text-stone-500">Abra um caso ou pesquise uma fonte jurídica para iniciar.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setActiveTab('matter')} className="btn-secondary inline-flex items-center gap-2"><FolderOpen className="h-4 w-4" aria-hidden="true" />Abrir caso</button></div></div>
+        <div className="surface-subtle mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-stone-800">Comece pelo trabalho do caso</p><p className="text-xs text-stone-500">Abra um caso ou pesquise uma fonte jurídica para iniciar.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setActiveTab('matter')} className="btn-secondary inline-flex items-center gap-2"><FolderOpen className="h-4 w-4" aria-hidden="true" />Abrir caso</button><button type="button" onClick={() => setActiveTab('connections')} className="btn-quiet inline-flex items-center gap-2">Usar no ChatGPT ou Claude<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></button></div></div>
 
         {/* SEARCH BAR (Inspirada em ForgeLex_01_Landing.png) */}
         <div className="champagne-card mx-auto max-w-4xl space-y-4 rounded-xl bg-white p-4 sm:p-5">
