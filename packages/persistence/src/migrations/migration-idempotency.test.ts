@@ -60,6 +60,38 @@ describe('persistence migrations', () => {
     expect(fullTextIndex.rows).toHaveLength(1);
   });
 
+  it('cria uma única vez as tabelas de encerramento e seus índices', async () => {
+    const databasePath = join(tmpdir(), `.forgelex-account-closure-migrations-${randomUUID()}.db`);
+    databasePaths.push(databasePath);
+    const connection = await createDatabase({ url: pathToFileURL(databasePath).toString() });
+    clients.push(connection.client);
+
+    await runPersistenceMigrations(connection.client);
+    await runPersistenceMigrations(connection.client);
+
+    const tables = await connection.client.execute({
+      sql: "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('account_closures','account_closure_steps','retention_exceptions') ORDER BY name",
+      args: [],
+    });
+    expect(tables.rows.map((row) => row.name)).toEqual([
+      'account_closure_steps',
+      'account_closures',
+      'retention_exceptions',
+    ]);
+
+    const migration = await connection.client.execute({
+      sql: 'SELECT COUNT(*) AS count FROM forgelex_migrations WHERE id = ?',
+      args: ['persistence-0023-account-closure'],
+    });
+    expect(Number(migration.rows[0]?.count)).toBe(1);
+
+    const indexes = await connection.client.execute({
+      sql: "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('account_closures_subject_idempotency_idx','account_closures_status_due_idx','account_closure_steps_closure_type_idx','account_closure_steps_due_idx','retention_exceptions_closure_status_idx') ORDER BY name",
+      args: [],
+    });
+    expect(indexes.rows).toHaveLength(5);
+  });
+
   it.skipIf(!hasLocalPostgres)('exerce idempotência em PostgreSQL local quando explicitamente habilitado', async () => {
     const connection = await createDatabase({ url: localPostgresUrl! });
     clients.push(connection.client);

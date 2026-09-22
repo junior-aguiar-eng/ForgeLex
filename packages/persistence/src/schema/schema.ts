@@ -50,6 +50,75 @@ export const forgelexTenantMemberships = sqliteTable(
   ],
 );
 
+export const accountClosures = sqliteTable(
+  'account_closures',
+  {
+    id: text('id').primaryKey(),
+    subjectId: text('subject_id'),
+    userId: text('user_id'),
+    tenantId: text('tenant_id'),
+    subjectHash: text('subject_hash').notNull().unique(),
+    userHash: text('user_hash').notNull(),
+    tenantHash: text('tenant_hash').notNull(),
+    statusTokenHash: text('status_token_hash').notNull().unique(),
+    idempotencyKeyHash: text('idempotency_key_hash').notNull(),
+    requestFingerprint: text('request_fingerprint').notNull(),
+    policyVersion: text('policy_version').notNull(),
+    status: text('status').notNull(),
+    requestedAt: text('requested_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    accessBlockedAt: text('access_blocked_at'),
+    identityRemovedAt: text('identity_removed_at'),
+    completedAt: text('completed_at'),
+    nextAttemptAt: text('next_attempt_at'),
+    attemptCount: integer('attempt_count').notNull().default(0),
+    lastErrorCode: text('last_error_code'),
+  },
+  (table) => [
+    uniqueIndex('account_closures_subject_idempotency_idx').on(table.subjectHash, table.idempotencyKeyHash),
+    index('account_closures_status_due_idx').on(table.status, table.nextAttemptAt),
+  ],
+);
+
+export const accountClosureSteps = sqliteTable(
+  'account_closure_steps',
+  {
+    id: text('id').primaryKey(),
+    closureId: text('closure_id').notNull().references(() => accountClosures.id),
+    stepType: text('step_type').notNull(),
+    status: text('status').notNull(),
+    attemptCount: integer('attempt_count').notNull().default(0),
+    leaseOwner: text('lease_owner'),
+    leaseExpiresAt: text('lease_expires_at'),
+    nextAttemptAt: text('next_attempt_at'),
+    lastErrorCode: text('last_error_code'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    completedAt: text('completed_at'),
+  },
+  (table) => [
+    uniqueIndex('account_closure_steps_closure_type_idx').on(table.closureId, table.stepType),
+    index('account_closure_steps_due_idx').on(table.status, table.nextAttemptAt),
+  ],
+);
+
+export const retentionExceptions = sqliteTable(
+  'retention_exceptions',
+  {
+    id: text('id').primaryKey(),
+    closureId: text('closure_id').notNull().references(() => accountClosures.id),
+    category: text('category').notNull(),
+    legalBasisReference: text('legal_basis_reference').notNull(),
+    authorityReference: text('authority_reference').notNull(),
+    responsible: text('responsible').notNull(),
+    startsAt: text('starts_at').notNull(),
+    reviewAt: text('review_at').notNull(),
+    endsAt: text('ends_at'),
+    status: text('status').notNull(),
+  },
+  (table) => [index('retention_exceptions_closure_status_idx').on(table.closureId, table.status, table.reviewAt)],
+);
+
 export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull(),
