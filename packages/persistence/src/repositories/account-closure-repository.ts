@@ -153,6 +153,19 @@ function stepFromRow(row: Record<string, unknown>): AccountClosureStepRecord {
   };
 }
 
+function assertCompletionTransition(stepType: AccountClosureStepType, nextStatus: AccountClosureStatus): void {
+  const invalid = stepType === 'VERIFY_RESIDUALS'
+    ? nextStatus !== 'COMPLETED'
+    : ['REQUESTED', 'ACCESS_BLOCKED', 'COMPLETED', 'RECONCILIATION_REQUIRED'].includes(nextStatus);
+  if (invalid) throw new Error('ACCOUNT_CLOSURE_INVALID_TRANSITION');
+}
+
+function assertErrorCode(errorCode: string): void {
+  if (!/^[A-Z][A-Z0-9_]{0,127}$/.test(errorCode)) {
+    throw new Error('ACCOUNT_CLOSURE_ERROR_CODE_INVALID');
+  }
+}
+
 export class AccountClosureRepository {
   public constructor(private readonly client: Client) {}
 
@@ -297,6 +310,7 @@ export class AccountClosureRepository {
     now: string;
     nextStatus: AccountClosureStatus;
   }): Promise<void> {
+    assertCompletionTransition(input.stepType, input.nextStatus);
     const transaction = await this.client.transaction();
     try {
       const completed = await transaction.execute({
@@ -351,6 +365,7 @@ export class AccountClosureRepository {
     errorCode: string;
     terminal: boolean;
   }): Promise<void> {
+    assertErrorCode(input.errorCode);
     const transaction = await this.client.transaction();
     try {
       const retried = await transaction.execute({

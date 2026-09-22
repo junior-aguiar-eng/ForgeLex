@@ -149,4 +149,43 @@ describe('AccountClosureRepository', () => {
       lastErrorCode: 'SUPABASE_DELETE_FAILED',
     });
   });
+
+  it('não permite concluir a saga antes da etapa de verificação residual', async () => {
+    await createClosure();
+    await repository.claimNextStep({
+      now: '2026-09-22T12:00:00.000Z',
+      leaseOwner: 'worker_1',
+      leaseExpiresAt: '2026-09-22T12:01:00.000Z',
+    });
+
+    await expect(repository.completeStep({
+      closureId: 'acl_1',
+      stepType: 'DELETE_SUPABASE_IDENTITY',
+      now: '2026-09-22T12:00:10.000Z',
+      nextStatus: 'COMPLETED',
+    })).rejects.toThrow('ACCOUNT_CLOSURE_INVALID_TRANSITION');
+
+    expect(await repository.findById('acl_1')).toMatchObject({ status: 'REQUESTED', completedAt: undefined });
+    expect((await repository.listSteps('acl_1'))[0]?.status).toBe('LEASED');
+  });
+
+  it('recusa mensagem livre no campo reservado a código de erro', async () => {
+    await createClosure();
+    await repository.claimNextStep({
+      now: '2026-09-22T12:00:00.000Z',
+      leaseOwner: 'worker_1',
+      leaseExpiresAt: '2026-09-22T12:01:00.000Z',
+    });
+
+    await expect(repository.retryStep({
+      closureId: 'acl_1',
+      stepType: 'DELETE_SUPABASE_IDENTITY',
+      now: '2026-09-22T12:00:10.000Z',
+      nextAttemptAt: '2026-09-22T12:05:00.000Z',
+      errorCode: 'provider returned pessoa@exemplo.com',
+      terminal: false,
+    })).rejects.toThrow('ACCOUNT_CLOSURE_ERROR_CODE_INVALID');
+
+    expect((await repository.listSteps('acl_1'))[0]).toMatchObject({ status: 'LEASED', lastErrorCode: undefined });
+  });
 });
