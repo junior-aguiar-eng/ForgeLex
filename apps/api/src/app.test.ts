@@ -32,6 +32,10 @@ class FixtureTokenVerifier implements TokenVerifier {
       return { ...testPrincipal, scopes: ['mcp'] };
     }
 
+    if (token === 'research-only-token') {
+      return { ...testPrincipal, scopes: ['research:read'] };
+    }
+
     if (token === 'tenant-b-token') {
       return { ...testPrincipal, tenantId: 'tenant_b', userId: 'user_b' };
     }
@@ -155,6 +159,62 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
         auth: false,
         outbox: false,
       } });
+    } finally {
+      await unavailableApp.close();
+    }
+  });
+
+  it('GET /api/v2/mcp/connection-status separa serviço de credencial sem expor segredo ou criar débito', async () => {
+    const balanceBefore = await ledgerService.getAvailableBalanceCents('tenant_test');
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v2/mcp/connection-status',
+      headers: authHeaders,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      serviceAvailable: true,
+      mcpUrl: 'https://mcp.forgelex.ai',
+      authenticatedCredential: true,
+      scopes: testPrincipal.scopes,
+      lastMcpUseAt: null,
+      billableOperationExecuted: false,
+    });
+    expect(await ledgerService.getAvailableBalanceCents('tenant_test')).toBe(balanceBefore);
+
+    const insufficientScope = await app.inject({
+      method: 'GET',
+      url: '/api/v2/mcp/connection-status',
+      headers: { authorization: 'Bearer research-only-token' },
+    });
+    expect(insufficientScope.statusCode).toBe(403);
+
+    const revokedCredential = await app.inject({
+      method: 'GET',
+      url: '/api/v2/mcp/connection-status',
+      headers: { authorization: 'Bearer revoked-token' },
+    });
+    expect(revokedCredential.statusCode).toBe(401);
+
+    const unavailableApp = await buildApp({
+      authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
+      ledgerService,
+      environment: { NODE_ENV: 'test' },
+    });
+    try {
+      const unavailableService = await unavailableApp.inject({
+        method: 'GET',
+        url: '/api/v2/mcp/connection-status',
+        headers: authHeaders,
+      });
+      expect(unavailableService.statusCode).toBe(200);
+      expect(unavailableService.json()).toMatchObject({
+        serviceAvailable: false,
+        authenticatedCredential: true,
+        billableOperationExecuted: false,
+      });
     } finally {
       await unavailableApp.close();
     }

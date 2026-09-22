@@ -1,4 +1,5 @@
 import { resolveApiOrigin } from '../../api-client';
+import type { McpConnectionStatusResponse } from '../../api-client';
 
 export type HostPlatform = 'chatgpt' | 'claude';
 export type ConnectionState = 'not_configured' | 'ready' | 'authorization_started' | 'verified' | 'revoked' | 'expired' | 'unavailable';
@@ -9,6 +10,13 @@ export interface PlatformConnection {
   mcpUrl: string;
   lastVerifiedAt: string | null;
   requirements: string[];
+}
+
+export interface McpConnectionSignal {
+  id: 'service' | 'credential' | 'use';
+  label: string;
+  detail: string;
+  tone: 'ready' | 'pending' | 'unavailable';
 }
 
 const stateLabels: Record<ConnectionState, string> = {
@@ -32,4 +40,24 @@ export function resolveMcpUrl(input: { configured?: string; apiOrigin?: string }
 
 export function createPlatformConnection(platform: HostPlatform, mcpUrl = resolveMcpUrl()): PlatformConnection {
   return { platform, state: 'not_configured', mcpUrl, lastVerifiedAt: null, requirements: requirementsByPlatform[platform] };
+}
+
+export function deriveMcpConnectionSignals(status: McpConnectionStatusResponse): McpConnectionSignal[] {
+  return [
+    status.serviceAvailable
+      ? { id: 'service', label: 'Serviço disponível', detail: 'O ForgeLex respondeu ao teste gratuito.', tone: 'ready' }
+      : { id: 'service', label: 'Serviço temporariamente indisponível', detail: 'Tente novamente em alguns instantes.', tone: 'unavailable' },
+    status.authenticatedCredential && status.scopes.includes('mcp')
+      ? { id: 'credential', label: 'Credencial pronta', detail: 'A credencial possui o escopo MCP necessário.', tone: 'ready' }
+      : { id: 'credential', label: 'Credencial MCP indisponível', detail: 'Configure uma credencial com o escopo MCP.', tone: 'unavailable' },
+    status.lastMcpUseAt
+      ? { id: 'use', label: 'Uso confirmado', detail: `Último uso auditável: ${new Date(status.lastMcpUseAt).toLocaleString('pt-BR')}.`, tone: 'ready' }
+      : { id: 'use', label: 'Uso confirmado ainda não registrado', detail: 'O host ainda não retornou uma execução auditável.', tone: 'pending' },
+  ];
+}
+
+export function connectionStatusErrorMessage(code: string): string {
+  if (code === 'INSUFFICIENT_SCOPE') return 'A credencial não possui o escopo MCP necessário.';
+  if (code === 'CREDENTIAL_REVOKED' || code === 'UNAUTHENTICATED') return 'A credencial está ausente, expirada ou revogada.';
+  return 'O ForgeLex está temporariamente indisponível. Tente novamente em alguns instantes.';
 }

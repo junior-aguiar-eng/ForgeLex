@@ -75,6 +75,14 @@ const OPENAPI_SCHEMAS = {
     type: 'object', additionalProperties: false, required: ['status', 'service', 'checks'],
     properties: { status: { type: 'string', enum: ['ready', 'not_ready'] }, service: { type: 'string' }, checks: { type: 'object', additionalProperties: { type: 'boolean' } } },
   },
+  McpConnectionStatusResponse: {
+    type: 'object', additionalProperties: false,
+    required: ['serviceAvailable', 'mcpUrl', 'authenticatedCredential', 'scopes', 'lastMcpUseAt', 'billableOperationExecuted'],
+    properties: {
+      serviceAvailable: { type: 'boolean' }, mcpUrl: { type: 'string', format: 'uri' }, authenticatedCredential: { type: 'boolean' },
+      scopes: { type: 'array', items: { type: 'string' } }, lastMcpUseAt: { type: ['string', 'null'], format: 'date-time' }, billableOperationExecuted: { type: 'boolean' },
+    },
+  },
 } as const;
 
 const OBJECT_REQUEST_SCHEMA_BY_PATH: Readonly<Record<string, keyof typeof OPENAPI_SCHEMAS>> = {
@@ -103,6 +111,7 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/api/v2/admin/billing/refund-requests', summary: 'Listar solicitações de reembolso', description: 'Consulta administrativa de solicitações de reembolso.', scopes: ['billing:admin'] },
   { method: 'post', path: '/api/v2/admin/billing/refund-requests/{requestId}/review', summary: 'Revisar solicitação de reembolso', description: 'Aprova ou rejeita manualmente uma solicitação de reembolso.', scopes: ['billing:admin'], requestBody: 'object' },
   { method: 'get', path: '/readyz', summary: 'Readiness', description: 'Verifica se as dependências locais necessárias estão disponíveis.', responseSchema: 'OperationalStatusResponse' },
+  { method: 'get', path: '/api/v2/mcp/connection-status', summary: 'Consultar disponibilidade MCP', description: 'Separa disponibilidade do serviço ForgeLex da validade da credencial MCP, sem executar pesquisa jurídica, criar débito ou expor segredos.', scopes: ['mcp'], responseSchema: 'McpConnectionStatusResponse' },
   { method: 'get', path: '/metrics', summary: 'Métricas internas', description: 'Retorna contadores internos de requisições e latência.', requiresAuthentication: true },
   { method: 'get', path: '/metrics/prometheus', summary: 'Métricas Prometheus', description: 'Expõe as métricas internas em formato compatível com scrape do Prometheus.', requiresAuthentication: true },
   { method: 'get', path: '/api/v2/webhooks/endpoints', summary: 'Listar destinos de webhook', description: 'Lista destinos ativos e revogados do tenant.', scopes: ['billing:read'] },

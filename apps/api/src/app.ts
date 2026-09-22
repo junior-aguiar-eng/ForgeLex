@@ -118,6 +118,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   });
   const environment = options.environment ?? process.env;
+  const normalizePublicUrl = (value: string) => value.trim().replace(/\/$/, '');
+  const mcpResourceUrl = normalizePublicUrl(environment.FORGELEX_MCP_RESOURCE_URL ?? 'https://mcp.forgelex.ai');
   await app.register(cors, {
     origin: resolveAllowedOrigins(environment),
     allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
@@ -984,13 +986,35 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     },
   );
 
+  app.get(
+    '/api/v2/mcp/connection-status',
+    { preHandler: authAdapter.createPreHandler(['mcp']) },
+    async (request) => {
+      let serviceAvailable = Boolean(jurisprudenceSearchService && databaseClient);
+      if (serviceAvailable) {
+        try {
+          await databaseClient!.execute('SELECT 1');
+        } catch {
+          serviceAvailable = false;
+        }
+      }
+      return {
+        serviceAvailable,
+        mcpUrl: mcpResourceUrl,
+        authenticatedCredential: true,
+        scopes: request.principal.scopes,
+        lastMcpUseAt: null,
+        billableOperationExecuted: false,
+      };
+    },
+  );
+
   // 3. OAuth 2.1 Protected Resource Metadata (RFC 9207 / Benchmark Exordial)
   app.get('/.well-known/oauth-protected-resource', async () => {
-    const normalizedUrl = (value: string) => value.trim().replace(/\/$/, '');
     const authorizationServers = (environment.FORGELEX_OAUTH_AUTHORIZATION_SERVERS ?? 'https://auth.forgelex.ai')
-      .split(',').map(normalizedUrl).filter(Boolean);
+      .split(',').map(normalizePublicUrl).filter(Boolean);
     return {
-      resource: normalizedUrl(environment.FORGELEX_MCP_RESOURCE_URL ?? 'https://mcp.forgelex.ai'),
+      resource: mcpResourceUrl,
       authorization_servers: authorizationServers.length > 0 ? authorizationServers : ['https://auth.forgelex.ai'],
       scopes_supported: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write', 'billing:admin'],
       bearer_methods_supported: ['header'],

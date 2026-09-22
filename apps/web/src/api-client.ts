@@ -62,6 +62,15 @@ export interface ApiResponse<T> {
   headers: Headers;
 }
 
+export interface McpConnectionStatusResponse {
+  serviceAvailable: boolean;
+  mcpUrl: string;
+  authenticatedCredential: boolean;
+  scopes: string[];
+  lastMcpUseAt: string | null;
+  billableOperationExecuted: boolean;
+}
+
 export async function requestApiResponse<T>(path: string, init: RequestInit = {}, options: RequestApiOptions = {}): Promise<ApiResponse<T>> {
   const token = await getAccessToken(options.sessionOnly ?? false, options.accessToken);
   if (!token) {
@@ -99,4 +108,8 @@ export async function requestApi<T>(path: string, init: RequestInit = {}, option
 
 export function requestApiWithToken<T>(path: string, accessToken: string, init: RequestInit = {}): Promise<T> {
   return requestApi<T>(path, init, { accessToken });
+}
+
+export function getMcpConnectionStatus(): Promise<McpConnectionStatusResponse> {
+  return requestApi<McpConnectionStatusResponse>('/api/v2/mcp/connection-status', {}, { sessionOnly: true });
 }

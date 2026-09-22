@@ -1,16 +1,22 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { ApiRequestError, getMcpConnectionStatus, type McpConnectionStatusResponse } from '../api-client';
 import { ConnectionChecklist } from './connections/ConnectionChecklist';
 import { FirstUseExamples } from './connections/FirstUseExamples';
 import { PlatformConnectionCard } from './connections/PlatformConnectionCard';
-import { createPlatformConnection, platformName, resolveMcpUrl, type HostPlatform } from './connections/connection-model';
+import { connectionStatusErrorMessage, createPlatformConnection, deriveMcpConnectionSignals, platformName, resolveMcpUrl, type HostPlatform } from './connections/connection-model';
 
 export const ConnectionsScreen: React.FC = () => {
   const [platform, setPlatform] = useState<HostPlatform>('chatgpt');
   const [copied, setCopied] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<McpConnectionStatusResponse | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [testingAvailability, setTestingAvailability] = useState(false);
   const mcpUrl = useMemo(() => resolveMcpUrl(), []);
-  const connections = useMemo(() => (['chatgpt', 'claude'] as const).map((item) => createPlatformConnection(item, mcpUrl)), [mcpUrl]);
+  const activeMcpUrl = connectionStatus?.mcpUrl ?? mcpUrl;
+  const connections = useMemo(() => (['chatgpt', 'claude'] as const).map((item) => createPlatformConnection(item, activeMcpUrl)), [activeMcpUrl]);
   const selectedConnection = connections.find((connection) => connection.platform === platform) ?? connections[0];
+  const connectionSignals = connectionStatus ? deriveMcpConnectionSignals(connectionStatus) : [];
 
   const copyUrl = async () => {
     try {
@@ -19,6 +25,19 @@ export const ConnectionsScreen: React.FC = () => {
       window.setTimeout(() => setCopied(false), 2_000);
     } catch {
       setCopied(false);
+    }
+  };
+
+  const testAvailability = async () => {
+    setTestingAvailability(true);
+    setStatusError(null);
+    try {
+      setConnectionStatus(await getMcpConnectionStatus());
+    } catch (error) {
+      setConnectionStatus(null);
+      setStatusError(connectionStatusErrorMessage(error instanceof ApiRequestError ? error.code : 'API_UNAVAILABLE'));
+    } finally {
+      setTestingAvailability(false);
     }
   };
 
@@ -42,6 +61,20 @@ export const ConnectionsScreen: React.FC = () => {
       </div>
 
       <ConnectionChecklist connection={selectedConnection} copied={copied} onCopyUrl={() => void copyUrl()} />
+
+      <section className="surface space-y-4 p-5" aria-labelledby="availability-heading">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="eyebrow">Teste gratuito</p>
+            <h2 id="availability-heading" className="font-editorial text-xl font-bold text-stone-900">Testar disponibilidade</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-stone-600">Verifica a disponibilidade do ForgeLex e a credencial MCP. Nenhuma pesquisa jurídica, saldo ou crédito é consultado neste teste.</p>
+          </div>
+          <button type="button" className="button-secondary shrink-0" onClick={() => void testAvailability()} disabled={testingAvailability}>{testingAvailability ? 'Testando disponibilidade…' : 'Testar disponibilidade'}</button>
+        </div>
+        {statusError ? <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{statusError}</p> : null}
+        {connectionSignals.length > 0 ? <dl className="grid gap-3 md:grid-cols-3">{connectionSignals.map((signal) => <div key={signal.id} className="rounded-lg border border-stone-200 bg-stone-50 p-3"><dt className={signal.tone === 'ready' ? 'font-semibold text-emerald-800' : signal.tone === 'unavailable' ? 'font-semibold text-red-800' : 'font-semibold text-stone-700'}>{signal.label}</dt><dd className="mt-1 text-xs leading-relaxed text-stone-600">{signal.detail}</dd></div>)}</dl> : null}
+      </section>
+
       <FirstUseExamples />
 
       <details className="surface p-5 text-sm leading-relaxed text-stone-600">

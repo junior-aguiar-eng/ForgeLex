@@ -48,3 +48,62 @@ test('a seleção de host permanece operável por teclado em viewport móvel', a
   await expect(page.getByRole('heading', { name: 'Preparar o Claude' })).toBeVisible();
   await expect(page.getByText('Não configurado', { exact: true }).first()).toBeVisible();
 });
+
+test('teste gratuito de disponibilidade separa serviço, credencial e uso sem consultar saldo', async ({ page }) => {
+  let billingRequested = false;
+  await page.route('**/api/v2/billing/account', (route) => {
+    billingRequested = true;
+    return route.abort();
+  });
+  await page.route('**/api/v2/mcp/connection-status', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      serviceAvailable: true,
+      mcpUrl: 'https://mcp.forgelex.ai',
+      authenticatedCredential: true,
+      scopes: ['mcp'],
+      lastMcpUseAt: null,
+      billableOperationExecuted: false,
+    }),
+  }));
+  const bootstrap = page.waitForResponse((response) => response.url().endsWith('/api/v2/auth/bootstrap') && response.request().method() === 'POST');
+
+  await page.goto('/conectar');
+  await page.getByLabel('E-mail').fill('fase7@forgelex.test');
+  await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-controlada-fase-7');
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  expect((await bootstrap).status()).toBe(200);
+
+  await page.getByRole('button', { name: 'Testar disponibilidade', exact: true }).click();
+  await expect(page.getByText('Serviço disponível', { exact: true })).toBeVisible();
+  await expect(page.getByText('Credencial pronta', { exact: true })).toBeVisible();
+  await expect(page.getByText('Uso confirmado ainda não registrado', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Nenhuma pesquisa jurídica, saldo ou crédito é consultado neste teste\./)).toBeVisible();
+  expect(billingRequested).toBe(false);
+});
+
+for (const scenario of [
+  { name: 'credencial ausente', status: 401, code: 'UNAUTHENTICATED', message: 'A credencial está ausente, expirada ou revogada.' },
+  { name: 'credencial revogada', status: 401, code: 'CREDENTIAL_REVOKED', message: 'A credencial está ausente, expirada ou revogada.' },
+  { name: 'escopo MCP insuficiente', status: 403, code: 'INSUFFICIENT_SCOPE', message: 'A credencial não possui o escopo MCP necessário.' },
+  { name: 'indisponibilidade temporária', status: 503, code: 'API_UNAVAILABLE', message: 'O ForgeLex está temporariamente indisponível. Tente novamente em alguns instantes.' },
+]) {
+  test(`teste gratuito informa ${scenario.name}`, async ({ page }) => {
+    await page.route('**/api/v2/mcp/connection-status', (route) => route.fulfill({
+      status: scenario.status,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: scenario.code, message: 'Resposta de teste.' }),
+    }));
+    const bootstrap = page.waitForResponse((response) => response.url().endsWith('/api/v2/auth/bootstrap') && response.request().method() === 'POST');
+
+    await page.goto('/conectar');
+    await page.getByLabel('E-mail').fill('fase7@forgelex.test');
+    await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-controlada-fase-7');
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+    expect((await bootstrap).status()).toBe(200);
+
+    await page.getByRole('button', { name: 'Testar disponibilidade', exact: true }).click();
+    await expect(page.getByRole('alert')).toHaveText(scenario.message);
+  });
+}
