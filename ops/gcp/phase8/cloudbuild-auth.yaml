@@ -1,0 +1,13 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - VITE_SUPABASE_URL=${_VITE_SUPABASE_URL}
+      - --build-arg
+      - VITE_SUPABASE_PUBLISHABLE_KEY=${_VITE_SUPABASE_PUBLISHABLE_KEY}
+      - --tag
+      - ${_IMAGE_URI}:${_IMAGE_TAG}
+      - .
+images:
+  - ${_IMAGE_URI}:${_IMAGE_TAG}
