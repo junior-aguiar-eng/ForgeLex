@@ -71,6 +71,38 @@ export interface McpConnectionStatusResponse {
   billableOperationExecuted: boolean;
 }
 
+export interface PublicApiKey {
+  id: string;
+  tenantId?: string;
+  subjectId?: string;
+  userId?: string;
+  name: string;
+  keyPrefix: string;
+  roles?: string[];
+  scopes: string[];
+  createdAt: string;
+  revokedAt?: string | null;
+}
+
+export interface CreatedApiKey extends PublicApiKey {
+  token: string;
+}
+
+export interface ApiKeyListResponse {
+  items: PublicApiKey[];
+  total: number;
+}
+
+export interface CreateApiKeyInput {
+  name: string;
+  scopes: string[];
+}
+
+export interface CreateApiKeyResponse {
+  key: CreatedApiKey;
+  warning?: string;
+}
+
 export async function requestApiResponse<T>(path: string, init: RequestInit = {}, options: RequestApiOptions = {}): Promise<ApiResponse<T>> {
   const token = await getAccessToken(options.sessionOnly ?? false, options.accessToken);
   if (!token) {
@@ -83,7 +115,7 @@ export async function requestApiResponse<T>(path: string, init: RequestInit = {}
     response = await fetch(`${apiUrl}${path}`, {
       ...init,
       headers: {
-        'Content-Type': 'application/json',
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
         Authorization: `Bearer ${token}`,
         ...(init.headers ?? {}),
       },
@@ -112,4 +144,21 @@ export function requestApiWithToken<T>(path: string, accessToken: string, init: 
 
 export function getMcpConnectionStatus(): Promise<McpConnectionStatusResponse> {
   return requestApi<McpConnectionStatusResponse>('/api/v2/mcp/connection-status', {}, { sessionOnly: true });
+}
+
+export function listApiKeys(accessToken?: string): Promise<ApiKeyListResponse> {
+  return requestApi<ApiKeyListResponse>('/api/v2/api-keys', {}, { sessionOnly: !accessToken, accessToken });
+}
+
+export function createApiKey(input: CreateApiKeyInput, accessToken?: string): Promise<CreateApiKeyResponse> {
+  return requestApi<CreateApiKeyResponse>('/api/v2/api-keys', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }, { sessionOnly: !accessToken, accessToken });
+}
+
+export function revokeApiKey(keyId: string, accessToken?: string): Promise<{ key: PublicApiKey }> {
+  return requestApi<{ key: PublicApiKey }>(`/api/v2/api-keys/${encodeURIComponent(keyId)}`, {
+    method: 'DELETE',
+  }, { sessionOnly: !accessToken, accessToken });
 }

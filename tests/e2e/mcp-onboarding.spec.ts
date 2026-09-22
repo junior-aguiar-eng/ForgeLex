@@ -27,7 +27,42 @@ test('rotas do onboarding persistem em recarregamento e nos botões de históric
 
   await page.goto('/desenvolvedores/api');
   await expect(page).toHaveURL(/\/desenvolvedores\/api$/);
-  await expect(page.getByRole('heading', { name: 'Documentação da API' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'API para desenvolvedores' })).toBeVisible();
+});
+
+test('cria e revoga uma chave sintética sem reapresentar o segredo', async ({ page }) => {
+  const bootstrap = page.waitForResponse((response) => response.url().endsWith('/api/v2/auth/bootstrap') && response.request().method() === 'POST');
+
+  await page.goto('/conta/chaves');
+  await page.getByLabel('E-mail').fill('fase7@forgelex.test');
+  await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-controlada-fase-7');
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  expect((await bootstrap).status()).toBe(200);
+
+  await expect(page.getByRole('heading', { name: 'Chaves de API' })).toBeVisible();
+  await page.getByLabel('Nome da chave').fill('E2E pesquisa');
+  await page.getByText('API de pesquisa', { exact: true }).click();
+  await page.getByRole('button', { name: 'Criar chave', exact: true }).click();
+
+  const secret = await page.locator('code').textContent();
+  expect(secret).toMatch(/^flx_live_/);
+  await expect(page.getByText('Copie agora: o segredo não será exibido novamente')).toBeVisible();
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Revogar', exact: true }).click();
+  await expect(page.getByText('Revogada', { exact: true })).toBeVisible();
+
+  const revokedStatus = await page.evaluate(async (token) => {
+    const response = await fetch('http://127.0.0.1:3001/api/v2/api-keys', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.status;
+  }, secret!);
+  expect(revokedStatus).toBe(401);
+
+  await page.reload();
+  await expect(page.getByText('Copie agora: o segredo não será exibido novamente')).toHaveCount(0);
+  await expect(page.getByText(secret!, { exact: true })).toHaveCount(0);
 });
 
 test('a seleção de host permanece operável por teclado em viewport móvel', async ({ page }) => {

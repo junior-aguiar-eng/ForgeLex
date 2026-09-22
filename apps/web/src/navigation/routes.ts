@@ -1,4 +1,4 @@
-export type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_docs';
+export type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'api_keys' | 'api_docs';
 
 export type AppRoute = {
   tab: AppTab;
@@ -14,13 +14,13 @@ const routes: readonly AppRoute[] = [
   { tab: 'dashboard', path: '/revisao', title: 'Revisão' },
   { tab: 'connections', path: '/conectar', title: 'Conectar IA' },
   { tab: 'credits', path: '/conta', title: 'Conta' },
+  { tab: 'api_keys', path: '/conta/chaves', title: 'Chaves de API' },
   { tab: 'api_docs', path: '/desenvolvedores/api', title: 'API para desenvolvedores' },
 ];
 
 const routeByTab = new Map(routes.map((route) => [route.tab, route]));
 const tabByPath = new Map<string, AppTab>([
   ...routes.map((route) => [route.path, route.tab] as const),
-  ['/conta/chaves', 'credits'],
   ['/conta/atividade', 'credits'],
   ['/guia/mcp', 'connections'],
 ]);

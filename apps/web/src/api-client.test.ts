@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { requestApi, requestApiWithToken, resolveApiOrigin } from './api-client';
+import { createApiKey, listApiKeys, requestApi, requestApiWithToken, resolveApiOrigin, revokeApiKey } from './api-client';
 
 describe('api-client', () => {
   afterEach(() => {
@@ -49,5 +49,26 @@ describe('api-client', () => {
         headers: expect.objectContaining({ Authorization: 'Bearer typed-token' }),
       }),
     );
+  });
+
+  it('lista, cria e revoga chaves pelos endpoints canônicos', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: 'key_1', name: 'MCP', keyPrefix: 'flx_live_123', scopes: ['mcp'], createdAt: '2026-09-22T00:00:00.000Z' }], total: 1 }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ key: { id: 'key_2', name: 'Pesquisa', keyPrefix: 'flx_live_456', scopes: ['research:read'], token: 'flx_live_secret', createdAt: '2026-09-22T00:00:00.000Z' } }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ key: { id: 'key_2', name: 'Pesquisa', keyPrefix: 'flx_live_456', scopes: ['research:read'], createdAt: '2026-09-22T00:00:00.000Z', revokedAt: '2026-09-22T00:01:00.000Z' } }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(listApiKeys('session-token')).resolves.toMatchObject({ total: 1 });
+    await expect(createApiKey({ name: 'Pesquisa', scopes: ['research:read'] }, 'session-token')).resolves.toMatchObject({ key: { token: 'flx_live_secret' } });
+    await expect(revokeApiKey('key_2', 'session-token')).resolves.toMatchObject({ key: { revokedAt: '2026-09-22T00:01:00.000Z' } });
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      expect.stringContaining('/api/v2/api-keys'),
+      expect.stringContaining('/api/v2/api-keys'),
+      expect.stringContaining('/api/v2/api-keys/key_2'),
+    ]);
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: 'POST', body: JSON.stringify({ name: 'Pesquisa', scopes: ['research:read'] }) });
+    expect(fetchMock.mock.calls[2][1]).toMatchObject({ method: 'DELETE' });
+    expect(fetchMock.mock.calls[2][1].headers).not.toHaveProperty('Content-Type');
   });
 });

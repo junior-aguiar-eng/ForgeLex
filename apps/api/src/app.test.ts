@@ -483,6 +483,11 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(body.paths['/api/v2/review-queue'].get.responses['200'].content['application/json'].schema.$ref).toBe('#/components/schemas/ReviewQueueResponse');
     expect(body.paths['/api/v2/research/history'].get.responses['200'].content['application/json'].schema.$ref).toBe('#/components/schemas/ResearchHistoryResponse');
     expect(body.paths['/readyz'].get.responses['200'].content['application/json'].schema.$ref).toBe('#/components/schemas/OperationalStatusResponse');
+    expect(body.paths['/api/v2/api-keys'].get.summary).toBe('Listar chaves de API');
+    expect(body.paths['/api/v2/api-keys'].post.requestBody.content['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/ApiKeyRequest',
+    });
+    expect(body.paths['/api/v2/api-keys/{keyId}'].delete.summary).toBe('Revogar chave de API');
     expect(body.paths['/api/v2/review-queue'].get.responses['404'].content['application/json'].schema.$ref).toBe('#/components/schemas/ErrorResponse');
     expect(body.paths['/api/v2/research/search-case-law'].post.responses['400'].content['application/json'].schema).toEqual({
       $ref: '#/components/schemas/ErrorResponse',

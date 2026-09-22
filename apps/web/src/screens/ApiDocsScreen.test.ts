@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { snippets, operationalDisclosure } from './ApiDocsScreen';
+import { developerWorkflow, snippets, operationalDisclosure } from './ApiDocsScreen';
 
 describe('documentação de API', () => {
   it('não inclui marcadores de patch nos exemplos cURL', () => {
@@ -13,5 +13,15 @@ describe('documentação de API', () => {
     expect(operationalDisclosure).toContain('busca jurisprudencial no STJ');
     expect(operationalDisclosure).not.toContain('cartão salvo');
     expect(operationalDisclosure).not.toContain('recarga automática');
+  });
+
+  it('organiza o roteiro técnico e documenta respostas operacionais', () => {
+    expect(developerWorkflow).toEqual([
+      'Criar uma chave',
+      'Listar tribunais',
+      'Pesquisar jurisprudência',
+      'Abrir autoridade',
+      'Tratar erros 401, 402, 403, 409, 422, 429 e 503',
+    ]);
   });
 });
