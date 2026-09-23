@@ -69,3 +69,44 @@ não acessa conversas, arquivos ou histórico do host.
 Interfaces de conexão, exemplos, pesquisa, documentação e billing devem usar
 estes estados e esta taxonomia. Nenhuma tela pode afirmar conexão confirmada
 sem a evidência definida acima ou apresentar cobrança para operação gratuita.
+
+## Incremento 8 — QA local
+
+Em 22/09/2026, sobre a base publicada `a3cae57`, uma conta descartável percorreu
+visão geral, conexão, guia, pesquisa, créditos, atividade, segurança, chaves e
+documentação da API. A auditoria automatizada em 375×812, 768×1024, 1366×768,
+1440×900 e 320×812 não encontrou rolagem horizontal, títulos `h1` duplicados,
+landmarks `main` duplicados ou contraste textual abaixo do limiar WCAG AA nas
+telas e estados observados. A medição de contraste é heurística (cores opacas
+computadas), não substitui inspeção de estados sobrepostos, leitor de tela ou
+auditoria formal de acessibilidade.
+
+Os testes de teclado cobrem seleção do host, navegação lateral fechada e retorno
+de foco ao fechar o menu por Escape. Ações móveis relevantes passaram a ter
+alvo mínimo de 44 px. A URL de desenvolvimento `127.0.0.1` é identificada
+como local e não pode ser copiada como se fosse uma URL MCP utilizável em host
+remoto. Selecionar Claude apenas mostra instruções internas; não conecta nem
+autentica uma conta Claude. Nenhum estado `Conectado` é inferido dessa seleção.
+
+A revisão de copy removeu promessas não demonstradas de expiração ilimitada do
+saldo e disponibilidade de Pix. A documentação da API deixou de repetir um
+preço fixo na tela autenticada; o guia e a conta leem `searchCostCents` da API.
+Se o faturamento ficar indisponível após uma carga anterior, créditos e
+atividade deixam de apresentar o saldo antigo como atual.
+O E2E usa resposta controlada para provar o preço variável no guia, saldo zero
+com billing disponível, billing desabilitado, credencial revogada e serviço
+indisponível. O teste de disponibilidade continua sem consultar saldo.
+
+Na rodada final, `pnpm format:check`, `pnpm lint`, `pnpm typecheck` (inclui build
+web), `pnpm test` e E2E Chromium passaram: 463 testes unitários aprovados, 4
+pulados e 21 E2E aprovados. O E2E usou somente um banco PostgreSQL descartável,
+removido depois dos testes; nenhuma cobrança ou conexão de host externo foi
+realizada. O runner E2E emitiu o aviso de ambiente `NO_COLOR`/`FORCE_COLOR`.
+Na suíte unitária, o Vitest registrou um timeout ao encerrar um worker de
+persistência após informar todos os testes aprovados (exit code 0); a mesma
+classe de testes passou isoladamente (9 aprovados, 1 pulado) sem o aviso.
+
+Esta evidência local não equivale a aceite de zoom nativo do navegador a 200%,
+varredura completa por teclado/leitor de tela, comportamento dos hosts externos
+ou publicação remota. Esses pontos continuam pendentes para o fechamento do
+Incremento 8.

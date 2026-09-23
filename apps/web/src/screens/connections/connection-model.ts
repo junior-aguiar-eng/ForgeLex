@@ -32,6 +32,21 @@ export function platformName(platform: HostPlatform): string { return platform =
 export function connectionStateLabel(state: ConnectionState): string { return stateLabels[state]; }
 export function isVerifiedConnection(state: ConnectionState): boolean { return state === 'verified'; }
 
+export function isLocalMcpUrl(value: string): boolean {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    const private172 = /^172\.(\d{1,3})\./.exec(hostname);
+    return hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.endsWith('.local')
+      || hostname === '::1' || hostname === '0.0.0.0' || hostname.startsWith('127.')
+      || hostname.startsWith('10.') || hostname.startsWith('192.168.')
+      || hostname.startsWith('169.254.')
+      || (private172 !== null && Number(private172[1]) >= 16 && Number(private172[1]) <= 31)
+      || /^(fc|fd|fe8|fe9|fea|feb)[0-9a-f]*:/.test(hostname);
+  } catch {
+    return true;
+  }
+}
+
 export function resolveMcpUrl(input: { configured?: string; apiOrigin?: string } = {}): string {
   const configured = input.configured ?? import.meta.env.VITE_FORGELEX_MCP_URL;
   if (configured?.trim()) return configured.trim().replace(/\/$/, '');

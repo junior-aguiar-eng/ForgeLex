@@ -463,14 +463,19 @@ interface McpConnectionStatusResponse {
 - Modificar: `playwright.config.ts` apenas se necessário para projetos mobile/desktop.
 - Atualizar: `docs/product/mcp-onboarding.md`
 
-- [ ] Auditar contraste, foco, landmarks, headings, nomes acessíveis, mensagens de erro e alvos de toque.
-- [ ] Validar 375×812, 768×1024, 1366×768 e 1440×900.
+- [x] Auditar contraste, foco, landmarks, headings, nomes acessíveis, mensagens de erro e alvos de toque nas telas do incremento; limitações da auditoria heurística registradas em `docs/product/mcp-onboarding.md`.
+- [x] Validar 375×812, 768×1024, 1366×768 e 1440×900; 320×812 foi inspecionado adicionalmente.
 - [ ] Verificar zoom de 200% e navegação completa por teclado.
-- [ ] Garantir que estados não dependam apenas de cor.
-- [ ] Revisar toda ocorrência de “ativo”, “conectado”, “gratuito”, “seguro”, “oficial” e “sem acesso” para evitar claims absolutos sem suporte.
-- [ ] Verificar consistência de preço, tribunal, plano do host e meios de pagamento entre todas as telas.
-- [ ] Executar E2E com serviço disponível, indisponível, saldo zero, chave revogada e billing desabilitado.
-- [ ] Rodar os gates proporcionais: testes focados, `pnpm typecheck`, `pnpm test`, build web, E2E Chromium e `git diff --check`.
+- [x] Garantir que estados observados não dependam apenas de cor.
+- [x] Revisar as ocorrências de “ativo”, “conectado”, “gratuito”, “seguro”, “oficial” e “sem acesso” nas telas tocadas, sem afirmar conexão do host por seleção local.
+- [x] Conferir preço e tribunal com a API e retirar claims não confirmados sobre saldo e meios de pagamento; disponibilidade de planos dos hosts permanece condicional.
+- [x] Executar E2E com serviço disponível, indisponível, saldo zero, chave revogada, billing desabilitado e transição disponível → indisponível.
+- [x] Rodar os gates proporcionais: testes focados, `pnpm typecheck`, `pnpm test`, build web, E2E Chromium e `git diff --check`.
+
+Em 22/09/2026, o QA técnico local está validado nos gates registrados em
+`docs/product/mcp-onboarding.md`. O incremento não recebe aceite integral antes
+da checagem de zoom nativo a 200% e da navegação completa por teclado/leitor de
+tela. Não foi feita conexão, autenticação ou chamada ao Claude.
 
 **Gate:** zero defeitos críticos de acessibilidade ou copy; nenhuma divergência comercial entre landing, conexão, pesquisa, documentação e billing.
 

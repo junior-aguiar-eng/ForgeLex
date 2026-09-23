@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, CircleDollarSign, ExternalLink, LockKeyhole, ShieldCheck } from 'lucide-react';
-import { requestApi } from '../api-client';
-
-type BillingCostResponse = { account: { searchCostCents: number } };
+import { getBillingAccount } from '../api-client';
 
 const reviewedOn = '22 de setembro de 2026';
 
@@ -41,13 +39,13 @@ export const ForLawyersGuideScreen: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    void requestApi<BillingCostResponse>('/api/v2/billing/account', {}, { sessionOnly: true })
-      .then((response) => { if (active) setSearchCostCents(response.account.searchCostCents); })
+    void getBillingAccount()
+      .then((account) => { if (active) setSearchCostCents(account.searchCostCents); })
       .catch(() => { if (active) setSearchCostCents(null); });
     return () => { active = false; };
   }, []);
 
-  return <div className="py-8 md:py-12"><main className="page-container space-y-8">
+  return <div className="py-8 md:py-12"><div className="page-container space-y-8">
     <header className="border-b border-champagne-border pb-6"><p className="eyebrow">Guia de primeiro uso</p><h1 className="font-editorial text-3xl font-bold text-stone-900 sm:text-4xl">Guia de conexão para advogados</h1><p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-600">Este roteiro explica como usar a pesquisa jurídica do ForgeLex no host de IA que você já utiliza, sem documentação de desenvolvedor.</p></header>
 
     <section className="surface space-y-3 p-5 sm:p-6" aria-labelledby="what-is"><h2 id="what-is" className="font-editorial text-2xl font-bold text-stone-900">O que é</h2><p className="text-sm leading-relaxed text-stone-600">O ForgeLex fornece ferramentas de pesquisa jurídica, autoridades e proveniência. O ChatGPT ou Claude formula a resposta: o modelo, a conta e a assinatura do host pertencem ao respectivo serviço.</p></section>
@@ -63,5 +61,5 @@ export const ForLawyersGuideScreen: React.FC = () => {
     <section className="surface space-y-4 p-5 sm:p-6" aria-labelledby="revoke"><div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-cognac-700" aria-hidden="true" /><div><h2 id="revoke" className="font-editorial text-2xl font-bold text-stone-900">Como revogar</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">Remova ou desative o conector no host. Se você também criou uma chave de API para integração manual, revogue-a na área de chaves; a revogação interrompe novas autenticações dessa chave.</p></div></div><a href="/conta/chaves" className="btn-secondary inline-flex items-center gap-2">Gerenciar chaves de API <ExternalLink className="h-4 w-4" aria-hidden="true" /></a></section>
 
     <footer className="flex flex-wrap items-center gap-2 text-xs text-stone-500"><CheckCircle2 className="h-4 w-4 text-emerald-700" aria-hidden="true" /><span>Depois da configuração, volte a <a className="font-semibold text-cognac-800 underline" href="/conectar">Conectar IA</a> e execute o teste gratuito de disponibilidade.</span></footer>
-  </main></div>;
+  </div></div>;
 };

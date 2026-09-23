@@ -24,7 +24,10 @@ export const Sidebar: React.FC<{
   useEffect(() => {
     if (!mobileOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCloseMobile();
+      if (event.key === 'Escape') {
+        onCloseMobile();
+        document.getElementById('forgelex-menu-toggle')?.focus();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -41,14 +44,14 @@ export const Sidebar: React.FC<{
       <aside
         id="forgelex-sidebar"
         aria-label="Navegação secundária"
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-champagne-border bg-[#FBF9F5] pt-16 shadow-xl transition-transform duration-200 lg:sticky lg:top-16 lg:z-30 lg:h-[calc(100vh-4rem)] lg:translate-x-0 lg:pt-0 lg:shadow-none ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-champagne-border bg-[#FBF9F5] pt-16 shadow-xl transition-transform duration-200 lg:sticky lg:top-16 lg:z-30 lg:h-[calc(100vh-4rem)] lg:visible lg:translate-x-0 lg:pt-0 lg:shadow-none ${
+          mobileOpen ? 'visible translate-x-0' : 'invisible -translate-x-full'
         } ${collapsed ? 'lg:w-20' : 'lg:w-64'}`}
       >
         <div className="flex min-h-16 items-center justify-between border-b border-stone-200/70 px-4">
           {!collapsed && <span className="eyebrow">Espaço de trabalho</span>}
-          <button type="button" onClick={onCloseMobile} className="rounded-lg p-2 text-stone-500 hover:bg-stone-100 lg:hidden" aria-label="Fechar menu lateral"><X className="h-5 w-5" aria-hidden="true" /></button>
-          <button type="button" onClick={() => setCollapsed((value) => !value)} className="hidden rounded-lg p-2 text-stone-500 hover:bg-stone-100 lg:block" aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'} aria-expanded={!collapsed} aria-controls="forgelex-sidebar">{collapsed ? <PanelLeftOpen className="h-5 w-5" aria-hidden="true" /> : <PanelLeftClose className="h-5 w-5" aria-hidden="true" />}</button>
+          <button type="button" onClick={onCloseMobile} className="min-h-11 min-w-11 rounded-lg p-2 text-stone-500 hover:bg-stone-100 lg:hidden" aria-label="Fechar menu lateral"><X className="h-5 w-5" aria-hidden="true" /></button>
+          <button type="button" onClick={() => setCollapsed((value) => !value)} className="hidden min-h-11 min-w-11 rounded-lg p-2 text-stone-500 hover:bg-stone-100 lg:block" aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'} aria-expanded={!collapsed} aria-controls="forgelex-sidebar">{collapsed ? <PanelLeftOpen className="h-5 w-5" aria-hidden="true" /> : <PanelLeftClose className="h-5 w-5" aria-hidden="true" />}</button>
         </div>
         <nav className="space-y-1 p-3" aria-label="Conta e recursos técnicos">
           {secondaryNavigation.map((item) => {

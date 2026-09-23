@@ -82,9 +82,10 @@ export const Header: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }> =
             </button>
 
             <button
+              id="forgelex-menu-toggle"
               type="button"
               onClick={onMenuToggle}
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-champagne-border bg-white/70 px-3 text-sm font-semibold text-stone-700 hover:border-cognac-400 hover:bg-white lg:hidden"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg border border-champagne-border bg-white/70 px-3 text-sm font-semibold text-stone-700 hover:border-cognac-400 hover:bg-white lg:hidden"
               aria-label={menuOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
               aria-expanded={menuOpen}
               aria-controls="forgelex-sidebar"
