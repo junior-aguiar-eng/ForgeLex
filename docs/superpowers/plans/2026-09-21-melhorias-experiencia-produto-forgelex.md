@@ -465,17 +465,21 @@ interface McpConnectionStatusResponse {
 
 - [x] Auditar contraste, foco, landmarks, headings, nomes acessíveis, mensagens de erro e alvos de toque nas telas do incremento; limitações da auditoria heurística registradas em `docs/product/mcp-onboarding.md`.
 - [x] Validar 375×812, 768×1024, 1366×768 e 1440×900; 320×812 foi inspecionado adicionalmente.
-- [ ] Verificar zoom de 200% e navegação completa por teclado.
+- [x] Verificar zoom nativo acima de 200% em `/conectar`: o usuário relatou navegação adequada até 350% e forneceu captura da tela em Chrome. A captura não mede automaticamente a escala nem cobre as demais rotas.
+- [x] Cobrir por E2E um percurso móvel apenas por teclado entre conexão, guia, conta, atividade, segurança, chaves e documentação; corrigir o retorno de foco após selecionar uma rota no menu móvel.
+- [ ] Completar a varredura manual por teclado e leitor de tela nas demais ações e estados das telas do incremento.
 - [x] Garantir que estados observados não dependam apenas de cor.
 - [x] Revisar as ocorrências de “ativo”, “conectado”, “gratuito”, “seguro”, “oficial” e “sem acesso” nas telas tocadas, sem afirmar conexão do host por seleção local.
 - [x] Conferir preço e tribunal com a API e retirar claims não confirmados sobre saldo e meios de pagamento; disponibilidade de planos dos hosts permanece condicional.
 - [x] Executar E2E com serviço disponível, indisponível, saldo zero, chave revogada, billing desabilitado e transição disponível → indisponível.
 - [x] Rodar os gates proporcionais: testes focados, `pnpm typecheck`, `pnpm test`, build web, E2E Chromium e `git diff --check`.
 
-Em 22/09/2026, o QA técnico local está validado nos gates registrados em
-`docs/product/mcp-onboarding.md`. O incremento não recebe aceite integral antes
-da checagem de zoom nativo a 200% e da navegação completa por teclado/leitor de
-tela. Não foi feita conexão, autenticação ou chamada ao Claude.
+Em 22/09/2026, o QA técnico local foi validado nos gates registrados em
+`docs/product/mcp-onboarding.md`. Em 23/09/2026, o usuário acrescentou a
+verificação manual de zoom em `/conectar`, e um novo E2E reproduziu e cobriu a
+correção de foco do menu móvel. O incremento ainda não recebe aceite integral
+sem a varredura manual restante por teclado/leitor de tela. Não foi feita
+conexão, autenticação ou chamada ao Claude.
 
 **Gate:** zero defeitos críticos de acessibilidade ou copy; nenhuma divergência comercial entre landing, conexão, pesquisa, documentação e billing.
 

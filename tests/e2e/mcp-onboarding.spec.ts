@@ -1,4 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+
+async function tabTo(page: Page, target: Locator, maxTabs = 60): Promise<void> {
+  for (let index = 0; index < maxTabs; index += 1) {
+    await page.keyboard.press('Tab');
+    if (await target.evaluate((element) => element === document.activeElement)) return;
+  }
+  throw new Error(`Controle não alcançado pelo teclado após ${maxTabs} Tabs`);
+}
 
 test('rotas do onboarding persistem em recarregamento e nos botões de histórico', async ({ page }) => {
   const bootstrap = page.waitForResponse((response) => response.url().endsWith('/api/v2/auth/bootstrap') && response.request().method() === 'POST');
@@ -80,6 +88,57 @@ test('cria e revoga uma chave sintética sem reapresentar o segredo', async ({ p
   await page.reload();
   await expect(page.getByText('Copie agora: o segredo não será exibido novamente')).toHaveCount(0);
   await expect(page.getByText(secret!, { exact: true })).toHaveCount(0);
+});
+
+test('guia e áreas de conta e integração são alcançáveis apenas por teclado no móvel', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/conectar');
+  await page.getByLabel('E-mail').fill('fase7@forgelex.test');
+  await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-controlada-fase-7');
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Conectar o ForgeLex ao ChatGPT ou Claude' })).toBeVisible();
+  await page.goto('/conectar');
+
+  await tabTo(page, page.getByRole('link', { name: 'Ver o guia completo para advogados' }));
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/guia\/mcp$/);
+  await tabTo(page, page.getByRole('link', { name: 'Ir para a conta' }));
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/conta$/);
+
+  const menu = page.getByRole('button', { name: 'Abrir menu lateral' });
+  await tabTo(page, menu);
+  await page.keyboard.press('Enter');
+  const activity = page.locator('#forgelex-sidebar').getByRole('button', { name: 'Atividade da conta' });
+  await tabTo(page, activity);
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/conta\/atividade$/);
+  await expect(menu).toBeFocused();
+
+  await page.keyboard.press('Enter');
+  const security = page.locator('#forgelex-sidebar').getByRole('button', { name: 'Segurança da conta' });
+  await tabTo(page, security);
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/conta\/seguranca$/);
+  await expect(menu).toBeFocused();
+
+  await page.keyboard.press('Enter');
+  const keys = page.locator('#forgelex-sidebar').getByRole('button', { name: 'Chaves de API' });
+  await tabTo(page, keys);
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/conta\/chaves$/);
+  await expect(menu).toBeFocused();
+
+  await page.keyboard.press('Enter');
+  const docs = page.locator('#forgelex-sidebar').getByRole('button', { name: 'API para desenvolvedores' });
+  await tabTo(page, docs);
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/desenvolvedores\/api$/);
+  await expect(menu).toBeFocused();
+
+  await tabTo(page, page.getByRole('button', { name: 'Node.js', exact: true }));
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Exemplo em Node.js' })).toBeVisible();
 });
 
 test('a seleção de host permanece operável por teclado em viewport móvel', async ({ page }) => {

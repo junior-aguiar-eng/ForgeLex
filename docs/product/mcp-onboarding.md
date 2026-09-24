@@ -106,7 +106,21 @@ Na suíte unitária, o Vitest registrou um timeout ao encerrar um worker de
 persistência após informar todos os testes aprovados (exit code 0); a mesma
 classe de testes passou isoladamente (9 aprovados, 1 pulado) sem o aviso.
 
-Esta evidência local não equivale a aceite de zoom nativo do navegador a 200%,
-varredura completa por teclado/leitor de tela, comportamento dos hosts externos
-ou publicação remota. Esses pontos continuam pendentes para o fechamento do
-Incremento 8.
+A rodada de 22/09 não incluiu zoom nativo do navegador a 200%, varredura
+completa por teclado/leitor de tela, comportamento dos hosts externos ou
+publicação remota.
+
+Em 23/09/2026, o usuário relatou que a rota `/conectar` permaneceu utilizável
+com zoom nativo no Chrome até 350% e forneceu uma captura da tela. É evidência
+manual daquela rota, não uma medição automatizada da escala nem uma inspeção das
+demais telas. Um E2E adicional percorreu por teclado, em viewport móvel, o guia,
+a conta, a atividade, a segurança, as chaves e a documentação. O teste encontrou
+o foco retido num item do menu lateral que acabara de ser ocultado; a navegação
+passou a devolver o foco ao botão de abertura do menu. A varredura manual
+completa por teclado e leitor de tela continua pendente. Nenhuma conta de host
+externo foi conectada.
+
+Na mesma rodada, `pnpm format:check`, `pnpm lint`, `pnpm typecheck` (com build),
+`pnpm test` (463 aprovados, 4 pulados) e E2E Chromium (22 aprovados) passaram.
+O E2E usou autenticação e API locais com banco em memória, não PostgreSQL ou
+serviços externos. Houve apenas o aviso `NO_COLOR`/`FORCE_COLOR` do runner.
