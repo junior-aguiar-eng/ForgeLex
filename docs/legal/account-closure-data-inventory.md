@@ -4,7 +4,7 @@
 
 **Escopo:** tenant pessoal com um único membro proprietário
 
-**Estado:** contrato técnico interno; retenções fiscal/contábil e publicação externa continuam sujeitas a revisão humana
+**Estado:** contrato técnico interno aprovado na revisão humana específica de 24/09/2026; publicação externa e parâmetros operacionais permanecem gates separados, conforme a [matriz de validação](../operations/account-closure/validation.md)
 
 **Especificação vinculante:** `docs/superpowers/specs/2026-09-22-incremento-7-encerramento-retencao-design.md`
 

@@ -30,13 +30,25 @@ retenção minimizada e bootstrap negado com `ACCOUNT_CLOSED`. Também passaram
 `pnpm format:check`, `pnpm lint` e `git diff --check`. Evidência detalhada:
 `docs/operations/account-closure/validation.md`.
 
-Implementação local: **VALIDADA tecnicamente no escopo acima**. Revisões
-jurídica, contábil/fiscal, de segurança e UX por pessoas responsáveis:
-**PENDENTES**; as minutas jurídicas não são publicáveis. Migration remota:
-**NÃO EXECUTADA**. Deploy: **NÃO EXECUTADO**. Feature flag: padrão do código
-**DESABILITADO** (`false`); configuração remota atual **NÃO REVALIDADA** e não
-alterada nesta execução. Esta validação não equivale à aceitação final da 7.8
-nem a autorização operacional.
+Implementação local: **VALIDADA tecnicamente no escopo acima**. Em 24/09/2026,
+Boni confirmou expressamente que suas aprovações dos documentos abrangem as
+revisões jurídica, contábil/fiscal e de segurança da 7.8; também percorreu e
+aprovou a UX destrutiva com conta sintética. Participante, versão, perguntas,
+decisões e limite da observação manual constam em
+`docs/operations/account-closure/validation.md`. O incremento 7.8 está
+**ACEITO no escopo local do plano**; a publicação externa das minutas e a
+operação remota são gates distintos. Migration remota: **NÃO EXECUTADA**.
+Deploy: **NÃO EXECUTADO**. Feature flag: padrão do código **DESABILITADO**
+(`false`); configuração remota atual **NÃO REVALIDADA** e não alterada nesta
+execução. Este aceite não é autorização operacional nem prova de encerramento
+de conta real.
+
+Revalidação do fechamento documental em 24/09/2026: `pnpm format:check`,
+`pnpm lint`, `pnpm typecheck`, `pnpm test` e `git diff --check` passaram;
+o teste geral registrou 463 aprovações e 4 ignorados. O E2E focado não
+iniciou nessa repetição porque a prévia local ocupava as portas 3000/3001;
+a evidência E2E anterior permanece identificada na matriz, sem afirmar nova
+execução dos cenários.
 
 ## Registro histórico anterior
 

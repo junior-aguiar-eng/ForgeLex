@@ -35,12 +35,14 @@ O estado do programa está em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md), o
 plano mestre em [Plano de conclusão progressiva do ForgeLex](Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md) e as evidências operacionais estão
 indexadas em [docs/README.md](docs/README.md).
 
-O incremento 7 de encerramento de conta pessoal está em validação local,
-separado do produto STJ já publicado. A operação destrutiva permanece
-desabilitada por padrão. O [runbook](docs/operations/account-closure/runbook.md),
-a [matriz de evidências](docs/operations/account-closure/validation.md) e as
-[minutas jurídicas](docs/legal/account-closure-retention-policy.md) descrevem
-os gates técnicos e humanos pendentes. Os comandos focados são
+O incremento 7 de encerramento de conta pessoal teve implementação e aceite
+local concluídos em 24/09/2026, separados do produto STJ já publicado. A
+operação destrutiva permanece desabilitada por padrão. O
+[runbook](docs/operations/account-closure/runbook.md), a
+[matriz de evidências](docs/operations/account-closure/validation.md) e as
+[minutas jurídicas](docs/legal/account-closure-retention-policy.md) registram
+as revisões humanas aprovadas e os gates de publicação e operação remota,
+que ainda não foram executados. Os comandos focados são
 `pnpm test:e2e:account-closure`, `pnpm test:postgres:account-closure` e
 `pnpm verify:account-closure-restore`; os dois últimos exigem PostgreSQL
 descartável local configurado por `FORGELEX_ACCOUNT_CLOSURE_TEST_ADMIN_URL`.

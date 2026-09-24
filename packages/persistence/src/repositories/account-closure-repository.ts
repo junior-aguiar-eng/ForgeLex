@@ -20,6 +20,9 @@ export type AccountClosureStepType =
 
 export type AccountClosureStepStatus = 'PENDING' | 'LEASED' | 'RETRYABLE' | 'COMPLETED' | 'FAILED';
 
+/** Durable marker in the existing column; never expose restored accounts until their saga finishes. */
+export const ACCOUNT_CLOSURE_RESTORE_PENDING_ATTEMPT_COUNT = -1;
+
 export interface AccountClosureRecord {
   id: string;
   subjectId?: string;
@@ -195,6 +198,110 @@ function assertReplayCompatible(existing: AccountClosureRecord, input: BeginAcco
 
 export class AccountClosureRepository {
   public constructor(private readonly client: Client) {}
+
+  public async assertPendingAccessBlocked(input: { userId: string; tenantId: string }): Promise<void> {
+    const result = await this.client.execute({
+      sql: `SELECT
+        (SELECT COUNT(*) FROM forgelex_user_profiles WHERE id = ? AND status != 'DISABLED') +
+        (SELECT COUNT(*) FROM forgelex_tenants WHERE id = ? AND status != 'DISABLED') +
+        (SELECT COUNT(*) FROM forgelex_tenant_memberships WHERE tenant_id = ? AND status != 'REVOKED') +
+        (SELECT COUNT(*) FROM api_keys WHERE tenant_id = ? AND revoked_at IS NULL) AS count`,
+      args: [input.userId, input.tenantId, input.tenantId, input.tenantId],
+    });
+    if (Number(result.rows[0]?.count ?? 0) > 0) {
+      throw new Error('ACCOUNT_CLOSURE_RESIDUAL_ACCESS');
+    }
+  }
+
+  /** A completed tombstone alone is not proof that an older, partially restored DB is safe. */
+  public async assertCompletedIdentityRemoved(input: { userId: string; tenantId: string }): Promise<void> {
+    const result = await this.client.execute({
+      sql: `SELECT
+        (SELECT COUNT(*) FROM forgelex_user_profiles WHERE id = ?) +
+        (SELECT COUNT(*) FROM forgelex_tenants WHERE id = ?) +
+        (SELECT COUNT(*) FROM forgelex_tenant_memberships WHERE tenant_id = ?) +
+        (SELECT COUNT(*) FROM api_keys WHERE tenant_id = ? AND revoked_at IS NULL) AS count`,
+      args: [input.userId, input.tenantId, input.tenantId, input.tenantId],
+    });
+    if (Number(result.rows[0]?.count ?? 0) > 0) {
+      throw new Error('ACCOUNT_CLOSURE_RESIDUAL_IDENTITY');
+    }
+  }
+
+  /** Reapply a journal-verified acceptance to an isolated, older backup. */
+  public async restoreAccepted(input: CreateAccountClosureInput): Promise<AccountClosureRecord> {
+    const transaction = await this.client.transaction();
+    try {
+      const found = await transaction.execute({
+        sql: 'SELECT * FROM account_closures WHERE subject_hash = ?',
+        args: [input.subjectHash],
+      });
+      const row = found.rows[0] as Record<string, unknown> | undefined;
+      if (row) {
+        const existing = closureFromRow(row);
+        if (existing.id !== input.id || existing.statusTokenHash !== input.statusTokenHash ||
+          existing.userHash !== input.userHash || existing.tenantHash !== input.tenantHash ||
+          existing.idempotencyKeyHash !== input.idempotencyKeyHash ||
+          existing.requestFingerprint !== input.requestFingerprint ||
+          existing.policyVersion !== input.policyVersion || !existing.accessBlockedAt) {
+          throw new Error('ACCOUNT_CLOSURE_RESTORE_CONFLICT');
+        }
+        await transaction.commit();
+        return existing;
+      }
+      const account = await transaction.execute({
+        sql: 'SELECT supabase_user_id FROM forgelex_user_profiles WHERE id = ?',
+        args: [input.userId],
+      });
+      if (account.rows[0] && String(account.rows[0].supabase_user_id) !== input.subjectId) {
+        throw new Error('ACCOUNT_CLOSURE_RESTORE_CONFLICT');
+      }
+      await transaction.execute({
+        sql: `INSERT INTO account_closures (
+          id, subject_id, user_id, tenant_id, subject_hash, user_hash, tenant_hash,
+          status_token_hash, idempotency_key_hash, request_fingerprint, policy_version,
+          status, requested_at, updated_at, access_blocked_at, next_attempt_at, attempt_count
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACCESS_BLOCKED', ?, ?, ?, ?, -1)`,
+        args: [
+          input.id, input.subjectId, input.userId, input.tenantId, input.subjectHash,
+          input.userHash, input.tenantHash, input.statusTokenHash, input.idempotencyKeyHash,
+          input.requestFingerprint, input.policyVersion, input.requestedAt, input.requestedAt,
+          input.requestedAt, input.requestedAt,
+        ],
+      });
+      for (const stepType of orderedStepTypes) {
+        await transaction.execute({
+          sql: `INSERT INTO account_closure_steps (
+            id, closure_id, step_type, status, attempt_count, next_attempt_at, created_at, updated_at
+          ) VALUES (?, ?, ?, 'PENDING', 0, ?, ?, ?)`,
+          args: [randomUUID(), input.id, stepType, input.requestedAt, input.requestedAt, input.requestedAt],
+        });
+      }
+      await transaction.execute({
+        sql: "UPDATE forgelex_user_profiles SET status = 'DISABLED', updated_at = ?, deactivated_at = ? WHERE id = ?",
+        args: [input.requestedAt, input.requestedAt, input.userId],
+      });
+      await transaction.execute({
+        sql: "UPDATE forgelex_tenants SET status = 'DISABLED', updated_at = ?, deactivated_at = ? WHERE id = ?",
+        args: [input.requestedAt, input.requestedAt, input.tenantId],
+      });
+      await transaction.execute({
+        sql: "UPDATE forgelex_tenant_memberships SET status = 'REVOKED', updated_at = ?, revoked_at = ? WHERE tenant_id = ?",
+        args: [input.requestedAt, input.requestedAt, input.tenantId],
+      });
+      await transaction.execute({
+        sql: 'UPDATE api_keys SET revoked_at = ? WHERE tenant_id = ? AND revoked_at IS NULL',
+        args: [input.requestedAt, input.tenantId],
+      });
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+    const created = await this.findById(input.id);
+    if (!created) throw new Error('ACCOUNT_CLOSURE_RESTORE_FAILED');
+    return created;
+  }
 
   public async begin(input: BeginAccountClosureInput): Promise<{ closure: AccountClosureRecord; replay: boolean }> {
     const dialect = (this.client as Client & { forgelexDialect?: 'sqlite' | 'postgres' }).forgelexDialect ?? 'sqlite';
@@ -428,12 +535,13 @@ export class AccountClosureRepository {
     return result.rows.map((row) => stepFromRow(row as Record<string, unknown>));
   }
 
-  public async claimNextStep(input: { now: string; leaseOwner: string; leaseExpiresAt: string }): Promise<ClaimedClosureStep | undefined> {
+  public async claimNextStep(input: { now: string; leaseOwner: string; leaseExpiresAt: string; closureId?: string }): Promise<ClaimedClosureStep | undefined> {
     const dialect = (this.client as Client & { forgelexDialect?: 'sqlite' | 'postgres' }).forgelexDialect ?? 'sqlite';
     const eligibility = `s.status IN ('PENDING', 'RETRYABLE', 'LEASED')
       AND (s.status != 'LEASED' OR s.lease_expires_at <= ?)
       AND (s.next_attempt_at IS NULL OR s.next_attempt_at <= ?)
       AND c.status NOT IN ('COMPLETED', 'RECONCILIATION_REQUIRED')
+      ${input.closureId ? 'AND c.id = ?' : ''}
       AND NOT EXISTS (
         SELECT 1 FROM account_closure_steps prior
         WHERE prior.closure_id = s.closure_id
@@ -454,7 +562,8 @@ export class AccountClosureRepository {
           SET status = 'LEASED', attempt_count = s.attempt_count + 1,
               lease_owner = ?, lease_expires_at = ?, updated_at = ?
           FROM candidate WHERE s.id = candidate.id RETURNING s.id`,
-          args: [input.now, input.now, input.leaseOwner, input.leaseExpiresAt, input.now],
+          args: [input.now, input.now, ...(input.closureId ? [input.closureId] : []),
+            input.leaseOwner, input.leaseExpiresAt, input.now],
         })
       : await this.client.execute({
           sql: `UPDATE account_closure_steps
@@ -475,6 +584,7 @@ export class AccountClosureRepository {
             input.now,
             input.now,
             input.now,
+            ...(input.closureId ? [input.closureId] : []),
             input.now,
           ],
         });
@@ -520,6 +630,7 @@ export class AccountClosureRepository {
               identity_removed_at = CASE WHEN ? = 'IDENTITY_REMOVED' THEN ? ELSE identity_removed_at END,
               completed_at = CASE WHEN ? = 'COMPLETED' THEN ? ELSE completed_at END,
               next_attempt_at = CASE WHEN ? IN ('COMPLETED', 'RECONCILIATION_REQUIRED') THEN NULL ELSE ? END,
+              attempt_count = CASE WHEN ? = 'COMPLETED' AND attempt_count < 0 THEN 0 ELSE attempt_count END,
               last_error_code = NULL
           WHERE id = ?`,
         args: [
@@ -531,6 +642,7 @@ export class AccountClosureRepository {
           input.now,
           input.nextStatus,
           input.now,
+          input.nextStatus,
           input.closureId,
         ],
       });
@@ -571,14 +683,16 @@ export class AccountClosureRepository {
       await transaction.execute(input.terminal
         ? {
             sql: `UPDATE account_closures
-              SET status = 'RECONCILIATION_REQUIRED', attempt_count = attempt_count + 1,
+              SET status = 'RECONCILIATION_REQUIRED',
+                  attempt_count = CASE WHEN attempt_count < 0 THEN attempt_count ELSE attempt_count + 1 END,
                   last_error_code = ?, updated_at = ?, next_attempt_at = NULL
               WHERE id = ?`,
             args: [input.errorCode, input.now, input.closureId],
           }
         : {
             sql: `UPDATE account_closures
-              SET attempt_count = attempt_count + 1, last_error_code = ?,
+              SET attempt_count = CASE WHEN attempt_count < 0 THEN attempt_count ELSE attempt_count + 1 END,
+                  last_error_code = ?,
                   updated_at = ?, next_attempt_at = ?
               WHERE id = ?`,
             args: [input.errorCode, input.now, input.nextAttemptAt, input.closureId],

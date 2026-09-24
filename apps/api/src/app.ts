@@ -78,6 +78,9 @@ import { AccountClosurePurgeService } from './account/account-closure-purge-serv
 import { AccountClosureBillingRetention } from './account/account-closure-billing-retention.js';
 import { AccountClosureService } from './account/account-closure-service.js';
 import { registerAccountClosureRoutes } from './account/account-closure-routes.js';
+import { GcsAccountClosureJournal } from './account/account-closure-journal-gcs.js';
+import type { AccountClosureJournal } from './account/account-closure-journal.js';
+import { AccountClosureRestoreGate } from './account/account-closure-restore.js';
 
 export interface BuildAppOptions {
   authAdapter?: AuthAdapter;
@@ -94,6 +97,8 @@ export interface BuildAppOptions {
   accountClosureRepository?: AccountClosureRepository;
   accountIdentityAdmin?: AccountIdentityAdmin;
   accountClosureReconciler?: AccountClosureReconciler;
+  accountClosureJournal?: AccountClosureJournal;
+  accountClosureRestoreGate?: AccountClosureRestoreGate;
 }
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
@@ -132,6 +137,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   });
   const environment = options.environment ?? process.env;
+  if (environment.NODE_ENV !== 'test' && environment.FORGELEX_ACCOUNT_CLOSURE_ENABLED === 'true' &&
+    environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_REQUIRED !== 'true') {
+    throw new Error('ACCOUNT_CLOSURE_JOURNAL_CONFIG_REQUIRED');
+  }
   const normalizePublicUrl = (value: string) => value.trim().replace(/\/$/, '');
   const mcpResourceUrl = normalizePublicUrl(environment.FORGELEX_MCP_RESOURCE_URL ?? 'https://mcp.forgelex.ai');
   await app.register(cors, {
@@ -231,7 +240,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     ? closureWorkerSetting('FORGELEX_ACCOUNT_CLOSURE_MAX_ATTEMPTS', 12, 100)
     : 12;
   const accountIdentityAdmin = options.accountIdentityAdmin ?? (
-    accountClosureEnabled
+    (accountClosureEnabled || accountClosureWorkerEnabled)
       && environment.FORGELEX_SUPABASE_URL?.trim()
       && environment.FORGELEX_SUPABASE_SECRET_KEY?.trim()
       ? new SupabaseAccountAdmin({
@@ -258,7 +267,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         })
       : undefined
   );
-  if (accountClosureWorkerEnabled && (!accountClosureEnabled || !accountClosureReconciler)) {
+  if (accountClosureWorkerEnabled && !accountClosureReconciler) {
     throw new Error('ACCOUNT_CLOSURE_WORKER_CONFIG_REQUIRED');
   }
   const supabaseIdentityVerifier = options.supabaseIdentityVerifier ?? createSupabaseIdentityVerifier(environment);
@@ -269,10 +278,65 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     accountClosureBlocklist,
   );
   const accountClosureStatusTokenSecret = environment.FORGELEX_ACCOUNT_CLOSURE_STATUS_TOKEN_SECRET?.trim();
+  const closureJournalRequired = environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_REQUIRED === 'true';
+  let journalKeys: Record<string, Buffer> = {};
+  let journalKeyVersion = '';
+  let accountClosureJournal = options.accountClosureJournal;
+  if (closureJournalRequired) {
+    try {
+      const raw = JSON.parse(environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_ENCRYPTION_KEYS_JSON ?? '') as Record<string, string>;
+      journalKeys = Object.fromEntries(Object.entries(raw).map(([version, value]) => [version, Buffer.from(value, 'base64')]));
+      journalKeyVersion = environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_ACTIVE_KEY_VERSION ?? '';
+      const journalAnchorId = environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_ANCHOR_ID;
+      if (!journalKeyVersion || journalKeys[journalKeyVersion]?.length !== 32 ||
+        Object.values(journalKeys).some((key) => key.length !== 32) ||
+        !environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_KEY_SECRET ||
+        !journalAnchorId ||
+        !accountClosureHashSecret || !accountClosureRepository || !databaseClient) {
+        throw new Error('invalid config');
+      }
+      if (!accountClosureJournal) {
+        const bucket = environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_BUCKET;
+        const macSecret = environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_MAC_SECRET;
+        if (!bucket || !macSecret) throw new Error('invalid config');
+        accountClosureJournal = new GcsAccountClosureJournal(bucket, macSecret);
+      }
+    } catch {
+      throw new Error('ACCOUNT_CLOSURE_JOURNAL_CONFIG_REQUIRED');
+    }
+  }
+  const accountClosureRestoreGate = closureJournalRequired && accountClosureJournal && accountClosureRepository && accountClosureHashSecret && databaseClient
+    ? options.accountClosureRestoreGate ?? new AccountClosureRestoreGate({
+        journal: accountClosureJournal,
+        repository: accountClosureRepository,
+        residualVerifier: new AccountClosurePurgeService(databaseClient),
+        reconciler: accountClosureReconciler,
+        subjectHashSecret: accountClosureHashSecret,
+        journalEncryptionKeys: journalKeys,
+        journalAnchorId: environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_ANCHOR_ID!,
+      })
+    : undefined;
+  if (accountClosureRestoreGate) {
+    await accountClosureRestoreGate.check();
+    app.addHook('onRequest', async (request, reply) => {
+      if ((request.url.startsWith('/api/') || request.url.startsWith('/mcp')) &&
+        !accountClosureRestoreGate.isVerified()) {
+        reply.status(503).send({ error: 'ACCOUNT_CLOSURE_RESTORE_BLOCKED', message: 'Serviço temporariamente indisponível.' });
+      }
+    });
+  }
   const accountClosureService = accountClosureRepository && accountClosureStatusTokenSecret && accountClosureHashSecret
     ? new AccountClosureService(accountClosureRepository, {
         statusTokenSecret: accountClosureStatusTokenSecret,
         subjectHashSecret: accountClosureHashSecret,
+        ...(closureJournalRequired && accountClosureJournal
+          ? {
+              journal: accountClosureJournal,
+              journalKeySecret: environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_KEY_SECRET,
+              journalEncryptionKeys: journalKeys,
+              journalEncryptionKeyVersion: journalKeyVersion,
+            }
+          : {}),
       })
     : undefined;
   registerAccountClosureRoutes(app, {
@@ -284,7 +348,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     subjectHashSecret: accountClosureHashSecret,
   });
   let accountClosureWorkerRunning = false;
-  const accountClosureWorker = accountClosureEnabled && accountClosureWorkerEnabled && accountClosureReconciler
+  const accountClosureWorker = accountClosureWorkerEnabled && accountClosureReconciler
     ? setInterval(() => {
         if (accountClosureWorkerRunning) return;
         accountClosureWorkerRunning = true;
@@ -912,6 +976,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         persistenceReady = false;
       }
     }
+    if (!persistenceReady) accountClosureRestoreGate?.invalidate();
+    const closureRestoreReady = accountClosureRestoreGate
+      ? persistenceReady && (accountClosureRestoreGate.isVerified() || await accountClosureRestoreGate.check())
+      : true;
     const checks = {
       persistence: persistenceReady,
       migrations: persistenceReady && Boolean(databaseClient),
@@ -919,6 +987,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       source: persistenceReady && Boolean(jurisprudenceSearchService),
       auth: persistenceReady && Boolean(options.authAdapter || apiKeyRepository || supabaseIdentityVerifier),
       outbox: persistenceReady && Boolean(webhookService && environment.FORGELEX_WEBHOOK_MASTER_KEY),
+      ...(accountClosureRestoreGate ? { accountClosureRestore: closureRestoreReady } : {}),
     };
     const ready = Object.values(checks).every(Boolean);
     if (!ready) {

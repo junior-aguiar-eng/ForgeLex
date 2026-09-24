@@ -13,6 +13,8 @@ import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
 import { JurisprudenceIngestionService } from '@forgelex/legal-data';
 import { IngestionRunRepository, JurisprudenceRepository } from '@forgelex/persistence';
 import type { AccountClosureReconciler } from './account/account-closure-reconciler.js';
+import type { AccountClosureJournal } from './account/account-closure-journal.js';
+import type { AccountClosureRestoreGate } from './account/account-closure-restore.js';
 
 const testPrincipal: AuthenticatedPrincipal = {
   subjectId: 'subject_test',
@@ -198,6 +200,46 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       await workerApp.close();
       vi.useRealTimers();
     }
+  });
+
+  it('nega rotas de negócio enquanto o diário externo não foi conferido', async () => {
+    let verified = false;
+    const gate = {
+      check: async () => verified,
+      isVerified: () => verified,
+      invalidate: () => { verified = false; },
+    } as unknown as AccountClosureRestoreGate;
+    const guarded = await buildApp({
+      database,
+      databaseClient: client,
+      ledgerService,
+      authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
+      accountClosureJournal: { list: async () => [] } as unknown as AccountClosureJournal,
+      accountClosureRestoreGate: gate,
+      environment: {
+        NODE_ENV: 'test',
+        FORGELEX_ACCOUNT_CLOSURE_JOURNAL_REQUIRED: 'true',
+        FORGELEX_ACCOUNT_CLOSURE_JOURNAL_KEY_SECRET: 'j'.repeat(64),
+        FORGELEX_ACCOUNT_CLOSURE_JOURNAL_ANCHOR_ID: 'synthetic_anchor_1234567890',
+        FORGELEX_ACCOUNT_CLOSURE_JOURNAL_ACTIVE_KEY_VERSION: 'v1',
+        FORGELEX_ACCOUNT_CLOSURE_JOURNAL_ENCRYPTION_KEYS_JSON: JSON.stringify({ v1: Buffer.alloc(32, 7).toString('base64') }),
+        FORGELEX_ACCOUNT_CLOSURE_SUBJECT_HASH_SECRET: 'h'.repeat(64),
+      },
+    });
+    try {
+      expect((await guarded.inject({ method: 'GET', url: '/readyz' })).statusCode).toBe(503);
+      expect((await guarded.inject({ method: 'GET', url: '/api/v2/tribunals' })).statusCode).toBe(503);
+      verified = true;
+      expect((await guarded.inject({ method: 'GET', url: '/api/v2/tribunals' })).statusCode).not.toBe(503);
+    } finally {
+      await guarded.close();
+    }
+  });
+
+  it('não inicia encerramento fora de testes sem diário obrigatório, mesmo sem NODE_ENV', async () => {
+    await expect(buildApp({
+      environment: { FORGELEX_ACCOUNT_CLOSURE_ENABLED: 'true' },
+    })).rejects.toThrow('ACCOUNT_CLOSURE_JOURNAL_CONFIG_REQUIRED');
   });
 
   it('GET /api/v2/mcp/connection-status separa serviço de credencial sem expor segredo ou criar débito', async () => {

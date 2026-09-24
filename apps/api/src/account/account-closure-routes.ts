@@ -205,6 +205,12 @@ export function registerAccountClosureRoutes(
           'Esta conta já possui outra solicitação de encerramento.',
         );
       }
+      if (code === 'ACCOUNT_CLOSURE_JOURNAL_CONFLICT') {
+        return fail(reply, 409, 'ACCOUNT_CLOSURE_IDEMPOTENCY_CONFLICT', 'Esta solicitação não pode ser reutilizada.');
+      }
+      if (code === 'ACCOUNT_CLOSURE_JOURNAL_UNAVAILABLE') {
+        return fail(reply, 503, code, 'Não foi possível registrar o encerramento com segurança. Tente novamente.');
+      }
       if (code === 'ACCOUNT_CLOSURE_ACCOUNT_NOT_ACTIVE' || code === 'ACCOUNT_CLOSURE_CONCURRENT_ACCOUNT_CHANGE') {
         return fail(reply, 409, 'ACCOUNT_CLOSURE_ACCOUNT_NOT_ACTIVE', 'A conta não está ativa.');
       }

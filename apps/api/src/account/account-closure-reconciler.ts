@@ -135,11 +135,20 @@ export class AccountClosureReconciler {
   }
 
   public async runOne(now = new Date()): Promise<'completed' | 'retrying' | 'failed' | 'idle'> {
+    return this.runClaim(now);
+  }
+
+  public async runOneForClosure(closureId: string, now = new Date()): Promise<'completed' | 'retrying' | 'failed' | 'idle'> {
+    return this.runClaim(now, closureId);
+  }
+
+  private async runClaim(now: Date, closureId?: string): Promise<'completed' | 'retrying' | 'failed' | 'idle'> {
     const nowIso = now.toISOString();
     const claimed = await this.input.repository.claimNextStep({
       now: nowIso,
       leaseOwner: this.input.leaseOwner,
       leaseExpiresAt: new Date(now.getTime() + this.leaseMs).toISOString(),
+      ...(closureId ? { closureId } : {}),
     });
     if (!claimed) return 'idle';
 

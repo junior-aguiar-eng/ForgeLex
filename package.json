@@ -18,6 +18,7 @@
     "test:e2e:account-closure": "playwright test --config playwright.account-closure.config.ts",
     "test:postgres:account-closure": "pnpm build && node scripts/smoke-account-closure-postgres.mjs",
     "verify:account-closure-restore": "pnpm build && node scripts/verify-account-closure-restore.mjs",
+    "verify:account-closure-preclosure-restore": "pnpm build && node scripts/verify-account-closure-preclosure-restore.mjs",
     "test:load:search": "pnpm build && node scripts/load-search.mjs",
     "ingest:stj": "pnpm build && node scripts/ingest-stj-open-data.mjs",
     "phase8:measure": "node scripts/phase8/measure-source.mjs",

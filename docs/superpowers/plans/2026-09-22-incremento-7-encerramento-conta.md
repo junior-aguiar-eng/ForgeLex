@@ -51,7 +51,7 @@
 - Consumes: `ForgeLexDatabase`, `Client` e `runPersistenceMigrations` de `@forgelex/persistence`.
 - Produces: `AccountClosureRepository`, `AccountClosureRecord`, `AccountClosureStatus`, `AccountClosureStepType`, `AccountClosureStepRecord`, `RetentionExceptionRecord` e as tabelas `account_closures`, `account_closure_steps`, `retention_exceptions`.
 
-- [ ] **Step 1: escrever o teste de migration e idempotência**
+- [x] **Step 1: escrever o teste de migration e idempotência**
 
 Adicionar a `migration-idempotency.test.ts`:
 
@@ -74,13 +74,13 @@ it('cria uma única vez as tabelas de encerramento e seus índices', async () =>
 });
 ```
 
-- [ ] **Step 2: executar o teste e confirmar a falha RED**
+- [x] **Step 2: executar o teste e confirmar a falha RED**
 
 Run: `pnpm exec vitest run packages/persistence/src/migrations/migration-idempotency.test.ts`
 
 Expected: FAIL porque as três tabelas ainda não existem.
 
-- [ ] **Step 3: declarar o contrato persistido no schema Drizzle**
+- [x] **Step 3: declarar o contrato persistido no schema Drizzle**
 
 Adicionar a `schema.ts` tipos compatíveis com estas colunas:
 
@@ -140,7 +140,7 @@ export const retentionExceptions = sqliteTable('retention_exceptions', {
 });
 ```
 
-- [ ] **Step 4: criar a migration `persistence-0023-account-closure`**
+- [x] **Step 4: criar a migration `persistence-0023-account-closure`**
 
 Adicionar as três DDLs equivalentes, mais estes índices:
 
@@ -159,13 +159,13 @@ CREATE INDEX retention_exceptions_closure_status_idx
 
 As tabelas não recebem FK para user ou tenant, pois esses registros serão eliminados ao final.
 
-- [ ] **Step 5: executar os testes de migration**
+- [x] **Step 5: executar os testes de migration**
 
 Run: `pnpm exec vitest run packages/persistence/src/migrations/migration-idempotency.test.ts`
 
 Expected: PASS em SQLite; o teste PostgreSQL permanece condicionado a `FORGELEX_LOCAL_POSTGRES_URL`.
 
-- [ ] **Step 6: escrever o teste RED do repositório**
+- [x] **Step 6: escrever o teste RED do repositório**
 
 Criar `account-closure-repository.test.ts` com fixture migrada e este contrato mínimo:
 
@@ -186,13 +186,13 @@ it('persiste a saga e suas cinco etapas sem dados textuais do usuário', async (
 });
 ```
 
-- [ ] **Step 7: executar o teste e confirmar a falha RED**
+- [x] **Step 7: executar o teste e confirmar a falha RED**
 
 Run: `pnpm exec vitest run packages/persistence/src/repositories/account-closure-repository.test.ts`
 
 Expected: FAIL porque o repositório ainda não existe.
 
-- [ ] **Step 8: implementar tipos e operações básicas do repositório**
+- [x] **Step 8: implementar tipos e operações básicas do repositório**
 
 Usar exatamente estes unions:
 
@@ -228,7 +228,7 @@ retryStep(input: { closureId: string; stepType: AccountClosureStepType; now: str
 
 O claim PostgreSQL deve usar `FOR UPDATE SKIP LOCKED`; SQLite deve usar update condicional com lease, seguindo o padrão de `WebhookRepository`.
 
-- [ ] **Step 9: registrar o inventário entidade por entidade**
+- [x] **Step 9: registrar o inventário entidade por entidade**
 
 Em `docs/legal/account-closure-data-inventory.md`, registrar quatro grupos completos:
 
@@ -258,19 +258,19 @@ jurisprudence_ingestion_staging, forgelex_migrations.
 
 Para cada tabela, incluir chave de seleção, dependência, destino, prazo e campos que não podem sobreviver.
 
-- [ ] **Step 10: executar os testes focados da subfase 7.2**
+- [x] **Step 10: executar os testes focados da subfase 7.2**
 
 Run: `pnpm exec vitest run packages/persistence/src/migrations/migration-idempotency.test.ts packages/persistence/src/repositories/account-closure-repository.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 11: verificar build do pacote**
+- [x] **Step 11: verificar build do pacote**
 
 Run: `pnpm --filter @forgelex/persistence build`
 
 Expected: exit 0.
 
-- [ ] **Step 12: criar checkpoint Git somente se autorizado**
+- [x] **Step 12: criar checkpoint Git somente se autorizado**
 
 ```powershell
 git add docs/legal/account-closure-data-inventory.md packages/persistence/src/schema/schema.ts packages/persistence/src/migrations/migration-runner.ts packages/persistence/src/migrations/migration-idempotency.test.ts packages/persistence/src/repositories/account-closure-repository.ts packages/persistence/src/repositories/account-closure-repository.test.ts packages/persistence/src/index.ts
@@ -297,7 +297,7 @@ git commit -m "feat(account): persistir saga de encerramento"
 - Consumes: `AccountClosureRepository`, `ApiKeyRepository`, `AuthenticatedPrincipal`.
 - Produces: `ACCOUNT_CLOSURE_POLICY`, `digestClosureValue`, `deriveClosureStatusToken`, `readVerifiedPasswordAuthenticationAt`, `AccountClosureService.request`, `ClosureAwareTokenVerifier`.
 
-- [ ] **Step 1: escrever os testes RED de criptografia e reautenticação**
+- [x] **Step 1: escrever os testes RED de criptografia e reautenticação**
 
 Criar testes com JWTs sintéticos cujo payload contenha `amr`:
 
@@ -316,7 +316,7 @@ expect(deriveClosureStatusToken('secret', 'subject_1', 'idem_1'))
   .toBe(deriveClosureStatusToken('secret', 'subject_1', 'idem_1'));
 ```
 
-- [ ] **Step 2: escrever os testes RED da transação inicial**
+- [x] **Step 2: escrever os testes RED da transação inicial**
 
 Cobrir no repositório/serviço:
 
@@ -344,13 +344,13 @@ it('reproduz a mesma saga e recusa fingerprint divergente', async () => {
 });
 ```
 
-- [ ] **Step 3: executar os testes e confirmar a falha RED**
+- [x] **Step 3: executar os testes e confirmar a falha RED**
 
 Run: `pnpm exec vitest run apps/api/src/account/account-closure-service.test.ts packages/persistence/src/repositories/account-closure-repository.test.ts packages/persistence/src/repositories/api-key-repository.test.ts apps/api/src/auth/fastify-auth.test.ts apps/api/src/auth/supabase-auth.test.ts`
 
 Expected: FAIL pelos módulos e métodos ausentes.
 
-- [ ] **Step 4: implementar as constantes e funções criptográficas**
+- [x] **Step 4: implementar as constantes e funções criptográficas**
 
 `account-closure-policy.ts` deve exportar:
 
@@ -377,7 +377,7 @@ fingerprintClosureRequest(input: { confirmation: string; policyVersion: string }
 
 O token retornado começa com `flx_close_`; somente seu SHA-256 é persistido.
 
-- [ ] **Step 5: implementar reautenticação baseada em `amr`**
+- [x] **Step 5: implementar reautenticação baseada em `amr`**
 
 Após `SupabaseIdentityVerifier.verify(token)` confirmar o token no endpoint `/auth/v1/user`, ler o payload já verificado e extrair a entrada `amr` mais recente com `method === 'password'`. Não aceitar `iat`, `token_refresh`, `recovery`, `magiclink` ou OAuth como substituto da senha nesta versão.
 
@@ -390,7 +390,7 @@ export function isRecentPasswordAuthentication(
 ): boolean;
 ```
 
-- [ ] **Step 6: implementar `revokeAllByTenant`**
+- [x] **Step 6: implementar `revokeAllByTenant`**
 
 Adicionar ao `ApiKeyRepository`:
 
@@ -400,7 +400,7 @@ public async revokeAllByTenant(tenantId: string, revokedAt = new Date().toISOStr
 
 O update deve atingir apenas `revoked_at IS NULL` e devolver `rowsAffected`.
 
-- [ ] **Step 7: implementar a transação `begin` da saga**
+- [x] **Step 7: implementar a transação `begin` da saga**
 
 Adicionar ao `AccountClosureRepository`:
 
@@ -423,7 +423,7 @@ begin(input: {
 
 Na mesma transação: contar memberships ativas do tenant, exigir exatamente um `OWNER`, criar closure/steps, mudar user e tenant para `DISABLED`, membership para `REVOKED` e revogar todas as API keys. Conflito de fingerprint deve abortar sem alteração.
 
-- [ ] **Step 8: implementar `AccountClosureService.request`**
+- [x] **Step 8: implementar `AccountClosureService.request`**
 
 ```ts
 request(input: {
@@ -442,7 +442,7 @@ request(input: {
 
 O serviço valida sessão, confirmação, versão, senha recente e configuração dos segredos antes de chamar `repository.begin`.
 
-- [ ] **Step 9: bloquear qualquer credencial de subject ou tenant encerrado**
+- [x] **Step 9: bloquear qualquer credencial de subject ou tenant encerrado**
 
 Criar:
 
@@ -459,19 +459,19 @@ export class ClosureAwareTokenVerifier implements TokenVerifier {
 
 O wrapper consulta `AccountClosureRepository.isBlocked` depois da verificação da sessão, API key de banco ou chave estática de ambiente. Se subject ou tenant estiver bloqueado, retorna `null`.
 
-- [ ] **Step 10: executar os testes focados da subfase 7.3**
+- [x] **Step 10: executar os testes focados da subfase 7.3**
 
 Run: `pnpm exec vitest run apps/api/src/account/account-closure-service.test.ts packages/persistence/src/repositories/account-closure-repository.test.ts packages/persistence/src/repositories/api-key-repository.test.ts apps/api/src/auth/fastify-auth.test.ts apps/api/src/auth/supabase-auth.test.ts`
 
 Expected: PASS, incluindo JWT renovado sem senha, tenant compartilhado, replay e chave estática bloqueada.
 
-- [ ] **Step 11: verificar builds afetados**
+- [x] **Step 11: verificar builds afetados**
 
 Run: `pnpm --filter @forgelex/persistence build && pnpm --filter @forgelex/api build`
 
 Expected: exit 0.
 
-- [ ] **Step 12: criar checkpoint Git somente se autorizado**
+- [x] **Step 12: criar checkpoint Git somente se autorizado**
 
 ```powershell
 git add apps/api/src/account packages/persistence/src/repositories/account-closure-repository.ts packages/persistence/src/repositories/account-closure-repository.test.ts packages/persistence/src/repositories/api-key-repository.ts packages/persistence/src/repositories/api-key-repository.test.ts apps/api/src/auth/fastify-auth.ts apps/api/src/auth/fastify-auth.test.ts apps/api/src/auth/supabase-auth.test.ts
@@ -495,13 +495,13 @@ git commit -m "feat(account): bloquear acesso no encerramento"
 - Consumes: `AccountClosureRepository.claimNextStep`, `completeStep`, `retryStep` e `structuredLog`.
 - Produces: `AccountIdentityAdmin`, `SupabaseAccountAdmin`, `AccountClosureStepHandler`, `AccountClosureReconciler.runOne`.
 
-- [ ] **Step 1: adicionar `@supabase/supabase-js` às dependências da API**
+- [x] **Step 1: adicionar `@supabase/supabase-js` às dependências da API**
 
 Run: `pnpm --filter @forgelex/api add @supabase/supabase-js@^2.116.0`
 
 Expected: `apps/api/package.json` e `pnpm-lock.yaml` atualizados sem segunda versão desnecessária.
 
-- [ ] **Step 2: escrever o teste RED do adapter administrativo**
+- [x] **Step 2: escrever o teste RED do adapter administrativo**
 
 ```ts
 it('trata usuário já ausente como exclusão idempotente', async () => {
@@ -515,7 +515,7 @@ it('não mascara indisponibilidade do Supabase', async () => {
 });
 ```
 
-- [ ] **Step 3: escrever os testes RED de reconciliação**
+- [x] **Step 3: escrever os testes RED de reconciliação**
 
 ```ts
 it('mantém bloqueio e agenda retry quando o efeito externo falha', async () => {
@@ -535,13 +535,13 @@ it('conclui o retry quando a exclusão externa ocorreu antes da falha local', as
 });
 ```
 
-- [ ] **Step 4: executar os testes e confirmar a falha RED**
+- [x] **Step 4: executar os testes e confirmar a falha RED**
 
 Run: `pnpm exec vitest run apps/api/src/account/supabase-account-admin.test.ts apps/api/src/account/account-closure-reconciler.test.ts`
 
 Expected: FAIL porque adapters e reconciliador ainda não existem.
 
-- [ ] **Step 5: implementar o adapter administrativo Supabase**
+- [x] **Step 5: implementar o adapter administrativo Supabase**
 
 ```ts
 export interface AccountIdentityAdmin {
@@ -556,7 +556,7 @@ export class SupabaseAccountAdmin implements AccountIdentityAdmin {
 
 Criar o client com `persistSession:false`, `autoRefreshToken:false` e `detectSessionInUrl:false`. Usar `auth.admin.deleteUser(subjectId, false)`. Nunca registrar `FORGELEX_SUPABASE_SECRET_KEY`.
 
-- [ ] **Step 6: implementar lease, backoff e limite de tentativas**
+- [x] **Step 6: implementar lease, backoff e limite de tentativas**
 
 O reconciliador usa lease de 60 segundos, máximo de 12 tentativas e backoff:
 
@@ -566,7 +566,7 @@ const retryDelayMs = Math.min(60_000 * 2 ** Math.max(0, attemptCount - 1), 21_60
 
 Depois da 12ª falha, marcar step `FAILED` e closure `RECONCILIATION_REQUIRED`, sem remover o bloqueio.
 
-- [ ] **Step 7: implementar `AccountClosureReconciler`**
+- [x] **Step 7: implementar `AccountClosureReconciler`**
 
 ```ts
 export interface AccountClosureStepHandler {
@@ -585,7 +585,7 @@ export class AccountClosureReconciler {
 
 O handler `DELETE_SUPABASE_IDENTITY` chama o adapter, trata `alreadyMissing` como sucesso e avança a closure para `IDENTITY_REMOVED`.
 
-- [ ] **Step 8: ligar o worker ao bootstrap da API sem habilitá-lo por padrão**
+- [x] **Step 8: ligar o worker ao bootstrap da API sem habilitá-lo por padrão**
 
 Adicionar a `BuildAppOptions` injeções opcionais para `accountClosureRepository`, `accountIdentityAdmin` e `accountClosureReconciler`. Resolver:
 
@@ -599,19 +599,19 @@ FORGELEX_SUPABASE_SECRET_KEY=
 
 Quando o worker estiver habilitado, executar `runOne()` a cada cinco segundos e limpar o timer em `onClose`.
 
-- [ ] **Step 9: executar os testes focados da subfase 7.4**
+- [x] **Step 9: executar os testes focados da subfase 7.4**
 
 Run: `pnpm exec vitest run apps/api/src/account/supabase-account-admin.test.ts apps/api/src/account/account-closure-reconciler.test.ts packages/persistence/src/repositories/account-closure-repository.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 10: verificar build da API**
+- [x] **Step 10: verificar build da API**
 
 Run: `pnpm --filter @forgelex/api build`
 
 Expected: exit 0.
 
-- [ ] **Step 11: criar checkpoint Git somente se autorizado**
+- [x] **Step 11: criar checkpoint Git somente se autorizado**
 
 ```powershell
 git add apps/api/package.json pnpm-lock.yaml apps/api/src/account/supabase-account-admin.ts apps/api/src/account/supabase-account-admin.test.ts apps/api/src/account/account-closure-reconciler.ts apps/api/src/account/account-closure-reconciler.test.ts packages/persistence/src/repositories/account-closure-repository.ts apps/api/src/app.ts
@@ -1174,7 +1174,7 @@ Expected: todos passam; bundle não contém token ou fixture real.
 
 Execução local em 2026-09-22, checkout `feat/incremento-7-1-encerramento`, base `fd3e2c9`: testes focados da 7.7 (49/49), `pnpm --filter @forgelex/web build`, `pnpm format:check`, `pnpm lint` e `pnpm typecheck` aprovados. A suíte integral com `pnpm exec vitest run --maxWorkers=4` passou com 449 testes aprovados e 4 ignorados. `pnpm test` sem limite de workers executou 445 testes aprovados e 4 ignorados, mas saiu com erro por encerramento inesperado de um worker do Vitest; o mesmo problema ocorreu antes da 7.7. O E2E compartilhado foi atualizado, mas não executado porque os serviços locais PostgreSQL (porta 55432) e Supabase (porta 54321) não estavam ativos. Nenhuma conta foi encerrada, e não houve migration remota, deploy ou habilitação da flag.
 
-- [ ] **Step 11: criar checkpoint Git somente se autorizado**
+- [x] **Step 11: criar checkpoint Git somente se autorizado**
 
 ```powershell
 git add apps/web/src/api-client.ts apps/web/src/api-client.test.ts apps/web/src/auth/AuthContext.tsx apps/web/src/auth/AuthContext.test.ts apps/web/src/screens/AccountSecurityScreen.tsx apps/web/src/screens/AccountSecurityScreen.test.ts apps/web/src/account-closure-storage.ts apps/web/src/account-closure-storage.test.ts apps/web/src/screens/AccountClosureStatusScreen.tsx apps/web/src/screens/AccountClosureStatusScreen.test.ts apps/web/src/App.tsx apps/web/src/navigation/routes.ts apps/web/src/navigation/routes.test.ts tests/e2e/mcp-onboarding.spec.ts
@@ -1285,7 +1285,7 @@ FORGELEX_ACCOUNT_CLOSURE_MAX_ATTEMPTS=12
 
 `account-closure-retention-policy.md` deve reproduzir, sem ampliar silenciosamente, finalidade, categoria, base jurídica a validar, prazo, evento inicial, destino, exceções e responsável de cada retenção da 7.1. `account-closure-terms-addendum.md` deve explicar irreversibilidade, perda de acesso, retenções obrigatórias, backups e canal de suporte.
 
-Ambos devem trazer no topo: `MINUTA — REQUER REVISÃO JURÍDICA HUMANA ANTES DE PUBLICAÇÃO`. Não afirmar aprovação de DPO, advogado, contabilidade ou responsável que não esteja documentada.
+No checkpoint inicial, ambos deveriam trazer no topo `MINUTA — REQUER REVISÃO JURÍDICA HUMANA ANTES DE PUBLICAÇÃO`. Após a revisão humana registrada em 24/09/2026, o aviso foi atualizado para indicar minuta revista internamente, ainda não publicada. Não atribuir aprovação a DPO, advogado, contador ou outro terceiro não documentado.
 
 - [x] **Step 7: redigir runbook e matriz de evidências**
 
@@ -1320,7 +1320,7 @@ git diff --check
 
 Expected: todos exit 0. Falha em qualquer gate impede marcar 7.8 como concluída.
 
-- [ ] **Step 9: realizar revisão humana antes da publicação**
+- [x] **Step 9: registrar as revisões humanas do plano local**
 
 Registrar separadamente:
 
@@ -1331,9 +1331,11 @@ Registrar separadamente:
 
 Resultado humano não pode ser inferido de testes automatizados. Registrar participantes por identificadores internos, versão avaliada, perguntas, aprovação/reprovação e observações, sem inserir dados pessoais desnecessários no Git.
 
+Registro em 24/09/2026: Boni confirmou expressamente que as aprovações já comunicadas abrangem as revisões específicas jurídica, fiscal/contábil e de segurança. Também percorreu como não autor a jornada destrutiva em `/conta/seguranca` com conta sintética, informou que deu certo e apresentou a tela de acompanhamento e um recibo exportado. A [matriz 7.8](../../operations/account-closure/validation.md) registra participante, versão, perguntas, decisões e limites observados. O token do recibo não foi inspecionado nem copiado para o repositório. Publicação, migration remota, deploy e habilitação permanecem decisões operacionais separadas.
+
 - [x] **Step 10: atualizar o estado canônico apenas com evidência produzida**
 
-Em `STATUS_VALIDACAO.md`, registrar checkout, branch, commit, banco descartável, comandos, contagens e limitações. Até as revisões humanas e autorizações operacionais existirem, manter:
+Em `STATUS_VALIDACAO.md`, registrar checkout, branch, commit, banco descartável, comandos, contagens e limitações. Antes das revisões humanas, o estado a manter era:
 
 ```text
 Implementação local: VALIDADA ou NÃO DEMONSTRADA conforme os testes reais.
@@ -1353,15 +1355,19 @@ git commit -m "test(account): validar encerramento ponta a ponta"
 
 ## Final acceptance gates
 
-- [ ] 7.2–7.7 implementadas por TDD e revisadas contra a especificação 7.1.
-- [ ] Bloqueio de acesso ocorre na transação inicial, antes das operações assíncronas.
-- [ ] Exclusão Supabase, revogação e expurgo são idempotentes e reconciliáveis.
-- [ ] Nenhum conteúdo jurídico privado permanece fora de retenção excepcional documentada.
-- [ ] Registros fiscais mantêm somente campos mínimos aprovados na matriz.
-- [ ] Testes focados, suíte integral, builds, E2E destrutivo, PostgreSQL e restauração passam com evidência anexada.
-- [ ] Revisões jurídica, contábil, segurança e UX foram registradas por responsáveis humanos.
-- [ ] Migration remota, deploy e habilitação continuam gates separados e exigem autorização explícita.
-- [ ] `FORGELEX_ACCOUNT_CLOSURE_ENABLED` permanece `false` até todos os gates anteriores estarem comprovados.
+- [x] 7.2–7.7 implementadas e validadas nos checkpoints da especificação 7.1; a extensão da evidência histórica de TDD está qualificada abaixo.
+- [x] Bloqueio de acesso ocorre na transação inicial, antes das operações assíncronas.
+- [x] Exclusão Supabase, revogação e expurgo são idempotentes e reconciliáveis nas fixtures testadas.
+- [x] Nenhum conteúdo jurídico privado permanece fora de retenção excepcional documentada nas fixtures testadas.
+- [x] Registros fiscais mantêm somente campos mínimos da matriz nas fixtures testadas.
+- [x] Testes focados, suíte integral, builds, E2E destrutivo, PostgreSQL e restauração pós-encerramento passaram com evidência na matriz 7.8.
+- [x] Revisões jurídica, contábil/fiscal, de segurança e UX foram registradas como aprovações humanas específicas do responsável pelo produto.
+- [x] Migration remota, deploy, publicação e habilitação continuam gates separados e exigem autorização explícita.
+- [x] `FORGELEX_ACCOUNT_CLOSURE_ENABLED` tem padrão `false` no código; a configuração remota não foi revalidada neste aceite.
+
+**Estado do plano:** implementação e aceite local do incremento 7.2–7.8 concluídos em 24/09/2026. Não houve publicação, migration, deploy ou habilitação por consequência deste aceite. A restauração ensaiada usa dump posterior ao encerramento; reaplicar tombstones posteriores a um backup anterior ao encerramento continua sem prova operacional e não deve ser presumido no gate de publicação.
+
+**Ruling de rastreabilidade:** as caixas históricas das Tasks 1–3 e do checkpoint da Task 6 foram reconciliadas em 24/09/2026 com os commits `9aef1a9`, `b960068`, `7c727b7`, `eee4bd3` e os ledgers locais em `.superpowers/sdd/2026-09-22-incremento-7-encerramento-conta*/progress.md`. Elas indicam artefatos, funcionalidades e checkpoints entregues, não afirmam que toda execução RED→GREEN das Tasks 1–3 foi preservada: esses outputs históricos estão **NÃO DEMONSTRADOS** nos ledgers disponíveis. Não é possível recriar retrospectivamente uma falha RED original sem simular um estado antigo; o aceite funcional usa os testes e E2E registrados. Custo se essa decisão estiver errada: alguma lacuna metodológica de cobertura pode não ter sido capturada pelo histórico.
 
 ## Execution handoff
 

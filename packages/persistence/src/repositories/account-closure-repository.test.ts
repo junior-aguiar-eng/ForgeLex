@@ -111,6 +111,74 @@ describe('AccountClosureRepository', () => {
     })).toBe(true);
   });
 
+  it('reaplica tombstone em backup anterior, sem duplicar saga e mesmo sem perfil', async () => {
+    const account = await createPersonalAccount();
+    const source = beginInput(account);
+    const input = {
+      ...source,
+      requestedAt: source.now,
+    };
+    const restored = await repository.restoreAccepted(input);
+    expect(restored).toMatchObject({ id: input.id, status: 'ACCESS_BLOCKED', accessBlockedAt: input.now,
+      attemptCount: -1 });
+    expect(await repository.isBlocked({
+      subjectId: account.user.supabaseUserId,
+      userId: account.user.id,
+      tenantId: account.tenant.id,
+    })).toBe(true);
+    expect((await new AccountRepository(db).findBySupabaseUserId('supabase_1'))?.user.status).toBe('DISABLED');
+    expect(await new ApiKeyRepository(db).findActiveByTokenHash('a'.repeat(64))).toBeUndefined();
+    expect(await repository.listSteps(input.id)).toHaveLength(5);
+    const claimed = await repository.claimNextStep({
+      closureId: input.id, now: input.now,
+      leaseOwner: 'synthetic_restore', leaseExpiresAt: '2026-09-22T12:01:00.000Z',
+    });
+    expect(claimed?.closure.id).toBe(input.id);
+    await repository.retryStep({
+      closureId: input.id, stepType: 'DELETE_SUPABASE_IDENTITY', now: input.now,
+      nextAttemptAt: '2026-09-22T12:02:00.000Z', errorCode: 'SYNTHETIC_RETRY', terminal: false,
+    });
+    expect((await repository.findById(input.id))?.attemptCount).toBe(-1);
+    expect((await repository.restoreAccepted(input)).id).toBe(input.id);
+    expect(await repository.listSteps(input.id)).toHaveLength(5);
+    await expect(repository.restoreAccepted({ ...input, id: 'other' }))
+      .rejects.toThrow('ACCOUNT_CLOSURE_RESTORE_CONFLICT');
+
+    await repository.restoreAccepted({
+      ...input,
+      id: 'missing_profile',
+      subjectId: 'missing_subject',
+      userId: 'missing_user',
+      tenantId: 'missing_tenant',
+      subjectHash: '7'.repeat(64),
+      userHash: '8'.repeat(64),
+      tenantHash: '9'.repeat(64),
+      statusTokenHash: 'a'.repeat(64),
+    });
+    expect(await repository.listSteps('missing_profile')).toHaveLength(5);
+  });
+
+  it('rejeita identidade ou credencial reaparecida mesmo com tombstone completo', async () => {
+    const account = await createPersonalAccount();
+    const identity = { userId: account.user.id, tenantId: account.tenant.id };
+    await expect(repository.assertCompletedIdentityRemoved(identity))
+      .rejects.toThrow('ACCOUNT_CLOSURE_RESIDUAL_IDENTITY');
+    await client.execute({ sql: 'DELETE FROM api_keys WHERE tenant_id = ?', args: [identity.tenantId] });
+    await client.execute({ sql: 'DELETE FROM forgelex_tenant_memberships WHERE tenant_id = ?', args: [identity.tenantId] });
+    await client.execute({ sql: 'DELETE FROM forgelex_tenants WHERE id = ?', args: [identity.tenantId] });
+    await client.execute({ sql: 'DELETE FROM forgelex_user_profiles WHERE id = ?', args: [identity.userId] });
+    await expect(repository.assertCompletedIdentityRemoved(identity)).resolves.toBeUndefined();
+  });
+
+  it('rejeita conta ainda ativa com tombstone aceito e permite acesso somente bloqueado', async () => {
+    const account = await createPersonalAccount();
+    const identity = { userId: account.user.id, tenantId: account.tenant.id };
+    await expect(repository.assertPendingAccessBlocked(identity))
+      .rejects.toThrow('ACCOUNT_CLOSURE_RESIDUAL_ACCESS');
+    await repository.begin(beginInput(account));
+    await expect(repository.assertPendingAccessBlocked(identity)).resolves.toBeUndefined();
+  });
+
   it('rejeita tenant compartilhado sem alterar conta ou credenciais', async () => {
     const account = await createPersonalAccount();
     await client.execute({
@@ -203,6 +271,23 @@ describe('AccountClosureRepository', () => {
     });
     expect(second?.step.stepType).toBe('PURGE_PRIVATE_CONTENT');
     expect((await repository.findById('acl_1'))?.status).toBe('IDENTITY_REMOVED');
+  });
+
+  it('reclama etapa dirigida sem executar closure vizinha', async () => {
+    await createClosure();
+    await repository.create({
+      id: 'acl_2', subjectId: 'supabase_2', userId: 'user_2', tenantId: 'tenant_2',
+      subjectHash: 'a'.repeat(64), userHash: 'b'.repeat(64), tenantHash: 'c'.repeat(64),
+      statusTokenHash: 'd'.repeat(64), idempotencyKeyHash: 'e'.repeat(64),
+      requestFingerprint: 'f'.repeat(64), policyVersion: 'v1',
+      requestedAt: '2026-09-22T12:00:00.000Z',
+    });
+    const claimed = await repository.claimNextStep({
+      closureId: 'acl_2', now: '2026-09-22T12:00:00.000Z',
+      leaseOwner: 'restore', leaseExpiresAt: '2026-09-22T12:01:00.000Z',
+    });
+    expect(claimed?.closure.id).toBe('acl_2');
+    expect((await repository.listSteps('acl_1'))[0]?.status).toBe('PENDING');
   });
 
   it('agenda retry sem vazar erro e preserva bloqueio em falha terminal', async () => {

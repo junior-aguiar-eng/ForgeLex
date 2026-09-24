@@ -1,6 +1,6 @@
 # Operação do encerramento de conta pessoal
 
-Estado: procedimento técnico local; publicação, migration remota, deploy e habilitação exigem autorizações separadas. Política e termos são minutas sem revisão jurídica humana. Usar somente com `FORGELEX_ACCOUNT_CLOSURE_ENABLED=false` até os gates documentados em [validation.md](validation.md) estarem aprovados.
+Estado: procedimento técnico local aceito na revisão humana de 24/09/2026, registrada em [validation.md](validation.md). Política e termos continuam minutas não publicadas; publicação, migration remota, deploy e habilitação exigem autorizações separadas. Manter `FORGELEX_ACCOUNT_CLOSURE_ENABLED=false` até os gates operacionais estarem aprovados.
 
 ## Pré-condições e ativação
 
@@ -12,7 +12,7 @@ Rollback operacional é desligar **somente** a aceitação de novas solicitaçõ
 
 Monitorar backlog de etapas `PENDING`/`RETRYABLE`/`LEASED`, idade da mais antiga, tentativas, latência entre `requested_at`, `identity_removed_at` e `completed_at`, falhas por código estável, `RECONCILIATION_REQUIRED`, exceções vencidas, expurgo residual e atraso dos backups. Alertar antes dos marcos de 24 horas para identidade, 7 dias para conteúdo privado e 35 dias para cópias. Não registrar token, senha, payload jurídico, e-mail nem segredo em logs. Correlacionar pelo `closureId` e código de erro; limitar o acesso aos registros.
 
-O suporte recebe somente `closureId`. Nunca solicitar `statusToken` por e-mail, chat ou outro canal inseguro, nem reproduzir o token em tickets. Validar a identidade do solicitante pelo procedimento institucional aprovado, ainda pendente nesta fase. Não prometer conclusão nem prazo diferente da matriz jurídica em revisão; `RECONCILIATION_REQUIRED` exige operador, sem reabertura de acesso.
+O suporte recebe somente `closureId`. Nunca solicitar `statusToken` por e-mail, chat ou outro canal inseguro, nem reproduzir o token em tickets. Validar a identidade do solicitante pelo procedimento institucional aprovado, ainda pendente para a operação remota. Não prometer conclusão nem prazo diferente da minuta jurídica aprovada internamente e ainda não publicada; `RECONCILIATION_REQUIRED` exige operador, sem reabertura de acesso.
 
 ## Falha e reconciliação
 
@@ -28,3 +28,11 @@ Uma retenção excepcional exige categoria específica, fundamento e referência
 ## Ensaios locais
 
 `pnpm test:e2e:account-closure` usa Auth simulado e banco em memória; não acessa projeto Supabase real. `pnpm test:postgres:account-closure` e `pnpm verify:account-closure-restore` exigem `FORGELEX_ACCOUNT_CLOSURE_TEST_ADMIN_URL` apontando para PostgreSQL **local** e banco administrativo `/postgres`; cada script cria e remove somente bancos com prefixo `forgelex_closure_smoke_` ou `forgelex_closure_restore_` e UUID próprio. A restauração precisa de `pg_dump` e `pg_restore` no `PATH` ou das variáveis `FORGELEX_PG_DUMP_BIN` e `FORGELEX_PG_RESTORE_BIN`. Nunca direcionar esses comandos ao banco compartilhado, remoto ou produtivo. O teste de restauração usa dois bancos temporários e um dump temporário; falha de cleanup deve ser investigada antes de repetir.
+
+## Proteção para backup anterior à solicitação
+
+O ensaio `pnpm verify:account-closure-preclosure-restore` complementa o teste acima: o dump é feito **antes** do encerramento e o diário cifrado fica fora dos bancos descartáveis. O script só aceita `FORGELEX_ACCOUNT_CLOSURE_TEST_ADMIN_URL` local com `/postgres`; usa banco, identidade `@example.invalid` e administrador de Auth simulados. O procedimento não é uma instrução para restaurar banco remoto.
+
+No futuro ambiente produtivo, `FORGELEX_ACCOUNT_CLOSURE_JOURNAL_REQUIRED=true` exigirá bucket dedicado, segredos distintos de chave de caminho, MAC e AES-256-GCM versionado (`FORGELEX_ACCOUNT_CLOSURE_JOURNAL_*` em `.env.example`), âncora MAC com ID fixo provisionada separadamente, política de retenção de pelo menos 42 dias e IAM sem exclusão para a identidade de execução. Backups restauráveis além de 35 dias exigem retenção maior do diário. Bucket vazio ou âncora ausente/burlada bloqueia o gate; a âncora não demonstra, por si, que nenhum evento foi excluído seletivamente. IAM, retenção imutável e inventário auditável são indispensáveis. A criação/configuração do bucket, Bucket Lock, âncora e segredos são gates remotos separados. O código impede a inicialização fora de testes de novas solicitações se o diário obrigatório estiver desabilitado; a flag de novas solicitações pode ser desligada mantendo a verificação de restauração e o worker.
+
+Uma restauração autorizada deve permanecer isolada de tráfego e worker até: parar a API antiga; restaurar o banco isolado; reiniciar a API apontando para ele; inventariar o diário sob retenção; resolver qualquer `PREPARED` sem terminal mediante tombstone correspondente; conferir integridade e versões de chave; executar o replay dirigido de cada `ACCEPTED`; confirmar as cinco etapas, bloqueios e resíduos; executar `/readyz` e abrir o tráfego apenas se `accountClosureRestore=true`. O gate também devolve 503 nas rotas de negócio enquanto não estiver verificado. Não trocar o banco sob uma API em execução, apagar eventos, presumir `PREPARED` como abortado nem executar SQL direto para marcar `COMPLETED`. Encerramentos históricos aceitos antes da instalação do diário não ganham proteção retroativa contra backups anteriores; seu inventário e janela de backup precisam de decisão operacional própria antes da ativação.
