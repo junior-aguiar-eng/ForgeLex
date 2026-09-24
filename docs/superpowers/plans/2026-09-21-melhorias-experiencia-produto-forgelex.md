@@ -1,6 +1,10 @@
 # Plano incremental de melhoria da experiência e do produto ForgeLex
 
-> **Para execução por agentes:** usar `superpowers:executing-plans` para executar este plano tarefa por tarefa. Cada incremento termina em um produto funcional e revisável. Commit, push, migração, deploy e publicação continuam sendo autorizações separadas.
+**Estado em 24/09/2026: CONCLUÍDO no escopo de implementação técnica local dos incrementos 0–8.** Este fechamento não é aceite de publicação, homologação em host real nem aprovação jurídica, fiscal ou de segurança. A decisão de produto exclui conexão, autenticação e chamadas reais pelo Claude deste marco; as instruções condicionais já exibidas na interface não comprovam integração com esse host.
+
+Os incrementos 0–6 têm entregas identificáveis nos commits `2c99857`, `622b886`, `a13261b`, `5bd1100`, `b2fb779`, `a6990ed` e `4f9bdce`. O incremento 7 tem implementação e testes locais documentados em `STATUS_VALIDACAO.md` e `docs/operations/account-closure/validation.md`, mas a operação destrutiva permanece desabilitada até os gates humanos e operacionais ali registrados. O incremento 8 tem QA local documentado em `docs/product/mcp-onboarding.md`, com aceite manual declarado pelo usuário em 24/09/2026. Os checklists abaixo preservam o roteiro original, não são uma certificação retroativa de que cada item foi executado literalmente; o escopo efetivamente concluído e os limites estão na seção 15.
+
+> **Registro de execução:** o roteiro abaixo orientou os incrementos locais. Seus checklists originais não são prova individual de execução; o fechamento e os gates remanescentes estão na seção 15. Commit, push, migração, deploy e publicação continuam sendo autorizações separadas.
 
 **Objetivo:** transformar o ForgeLex de uma aplicação tecnicamente clara, porém pouco orientada à ativação, em um produto de autoatendimento no qual um advogado consiga compreender, conectar, testar e acompanhar o MCP sem conhecimento técnico, preservando a arquitetura existente e a profundidade do espaço de trabalho jurídico.
 
@@ -89,6 +93,8 @@ As mudanças concentram-se em cinco unidades:
 ## 3. Jornada-alvo
 
 ### 3.1 Usuário advogado
+
+Os passos de retorno do host, primeira pesquisa dentro dele e confirmação de uso descrevem a jornada-alvo de publicação, não uma conexão com host real demonstrada neste fechamento local.
 
 1. Entra no ForgeLex e vê “Usar no ChatGPT ou Claude”.
 2. Escolhe a plataforma.
@@ -190,7 +196,7 @@ As mudanças concentram-se em cinco unidades:
 
 ---
 
-## 7. Plano de execução
+## 7. Plano de execução original (registro histórico)
 
 ### Incremento 0 — Congelar contratos de produto e métricas
 
@@ -301,7 +307,7 @@ export interface PlatformConnection {
 - [ ] Validar teclado, ordem de foco, nomes acessíveis e layout móvel.
 - [ ] Rodar testes focados, build web e E2E de navegação.
 
-**Gate:** cinco usuários de perfil jurídico conseguem explicar como conectar e qual operação custa crédito após observar a tela por no máximo dois minutos, sem orientação externa.
+**Gate de validação de produto pré-publicação, não executado:** cinco usuários de perfil jurídico conseguem explicar como conectar e qual operação custa crédito após observar a tela por no máximo dois minutos, sem orientação externa. O aceite manual do usuário no Incremento 8 não substitui essa amostra.
 
 ### Incremento 3 — Teste gratuito e estado verificável de conexão
 
@@ -467,7 +473,7 @@ interface McpConnectionStatusResponse {
 - [x] Validar 375×812, 768×1024, 1366×768 e 1440×900; 320×812 foi inspecionado adicionalmente.
 - [x] Verificar zoom nativo acima de 200% em `/conectar`: o usuário relatou navegação adequada até 350% e forneceu captura da tela em Chrome. A captura não mede automaticamente a escala nem cobre as demais rotas.
 - [x] Cobrir por E2E um percurso móvel apenas por teclado entre conexão, guia, conta, atividade, segurança, chaves e documentação; corrigir o retorno de foco após selecionar uma rota no menu móvel.
-- [ ] Completar a varredura manual por teclado e leitor de tela nas demais ações e estados das telas do incremento.
+- [x] Revisar manualmente as telas do incremento por teclado e leitor de tela: o usuário informou ter feito a revisão e aprovado a prévia em 24/09/2026; não forneceu matriz de ações, tecnologias assistivas ou resultados por estado.
 - [x] Garantir que estados observados não dependam apenas de cor.
 - [x] Revisar as ocorrências de “ativo”, “conectado”, “gratuito”, “seguro”, “oficial” e “sem acesso” nas telas tocadas, sem afirmar conexão do host por seleção local.
 - [x] Conferir preço e tribunal com a API e retirar claims não confirmados sobre saldo e meios de pagamento; disponibilidade de planos dos hosts permanece condicional.
@@ -477,9 +483,12 @@ interface McpConnectionStatusResponse {
 Em 22/09/2026, o QA técnico local foi validado nos gates registrados em
 `docs/product/mcp-onboarding.md`. Em 23/09/2026, o usuário acrescentou a
 verificação manual de zoom em `/conectar`, e um novo E2E reproduziu e cobriu a
-correção de foco do menu móvel. O incremento ainda não recebe aceite integral
-sem a varredura manual restante por teclado/leitor de tela. Não foi feita
-conexão, autenticação ou chamada ao Claude.
+correção de foco do menu móvel. Em 24/09/2026, após receber a prévia local, o
+usuário informou ter revisado e aprovado as telas do incremento por teclado e
+leitor de tela. O aceite manual encerra o gate local do Incremento 8, mas não
+constitui auditoria formal WCAG nem documenta a cobertura por ação ou estado.
+Não foi feita conexão, autenticação ou chamada ao Claude; os gates do plano
+que dependem de hosts reais ou usuários adicionais permanecem separados.
 
 **Gate:** zero defeitos críticos de acessibilidade ou copy; nenhuma divergência comercial entre landing, conexão, pesquisa, documentação e billing.
 
@@ -578,7 +587,7 @@ Não definir metas percentuais antes de obter uma linha de base real; os primeir
 
 ### Homologação real
 
-- executar separadamente em ChatGPT e Claude;
+- executar no ChatGPT antes de promover a conexão como autoatendimento; a conexão real ao Claude foi retirada do escopo por decisão do usuário;
 - registrar plano/versão do host e data;
 - validar `search → get authority → verify authority`;
 - validar saldo antes/depois e evento único;
@@ -586,6 +595,7 @@ Não definir metas percentuais antes de obter uma linha de base real; os primeir
 - revogar credencial de teste e comprovar `401`.
 
 Cliente HTTP isolado não substitui prova no host real.
+Esta homologação em ChatGPT não foi executada neste marco local.
 
 ## 12. Riscos e contenções
 
@@ -616,6 +626,9 @@ Este plano não autoriza nem inclui:
 - commit ou push;
 - exclusão de dados reais;
 - criação de aplicativo MCP separado.
+- conexão, autenticação ou chamadas reais ao Claude.
+
+Homologação no ChatGPT real, estudo com cinco usuários e revisões humanas do encerramento de conta são gates posteriores à implementação local; não foram aprovados por este fechamento.
 
 ## 14. Gates de entrega
 
@@ -632,21 +645,23 @@ Cada incremento deve passar, na medida aplicável:
 
 Os seguintes gates permanecem independentes e exigem autorização própria: commit, push, migração remota, configuração de OAuth live, deploy, homologação faturável e publicação.
 
-## 15. Definição de concluído
+## 15. Definição de concluído no escopo revisado
 
-O projeto de melhoria estará concluído quando:
+A implementação técnica local dos incrementos 0–8 está concluída e aceita para este marco porque:
 
-- o MCP for descoberto sem depender da documentação da API;
-- a conexão tiver caminho específico para ChatGPT e Claude;
-- disponibilidade, credencial e uso confirmado forem estados distintos;
-- o usuário receber exemplos de primeiro uso e custo antes da operação;
-- API keys puderem ser criadas e revogadas com segurança;
-- conta e atividade reconciliarem saldo e lançamentos;
-- rotas forem recarregáveis e compartilháveis;
-- documentação de advogados e desenvolvedores estiver separada;
-- preço, privacidade e limites forem consistentes em todas as superfícies;
-- os fluxos passarem nos hosts reais e nos gates automatizados;
-- nenhuma regressão for introduzida em casos, pesquisa, rascunhos, revisão ou billing.
+- o MCP é descoberto sem depender da documentação da API;
+- a interface oferece instruções distintas para ChatGPT e Claude, sem afirmar que qualquer host externo foi conectado;
+- disponibilidade, credencial e uso confirmado são estados distintos;
+- o usuário recebe exemplos de primeiro uso e custo antes da operação;
+- API keys podem ser criadas e revogadas com segurança;
+- conta e atividade apresentam saldo e lançamentos reconciliáveis nos testes locais;
+- as rotas são recarregáveis e compartilháveis;
+- a documentação de advogados e desenvolvedores está separada;
+- preço, privacidade e limites seguem contratos consistentes nas superfícies verificadas;
+- os fluxos locais passaram nos gates automatizados registrados em `docs/product/mcp-onboarding.md` e `docs/operations/account-closure/validation.md`;
+- o usuário aprovou a revisão manual das telas do Incremento 8, conforme registro em `docs/product/mcp-onboarding.md`.
+
+Este fechamento não declara ausência absoluta de regressões nem conformidade formal WCAG. Antes de publicar ou afirmar autoatendimento validado, permanecem independentes e **não executados neste marco**: revisão conjunta dos contratos de produto, jurídico e engenharia; estudo com cinco usuários jurídicos; homologação do fluxo real no ChatGPT, com reconciliação de débito e revogação; revisões jurídica, fiscal, de segurança e UX do encerramento de conta; e os gates de migração, configuração, deploy e habilitação pertinentes. A integração real com Claude não é pendência deste plano revisado.
 
 ## 16. Estado do checkout observado ao elaborar o plano
 

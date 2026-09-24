@@ -116,9 +116,14 @@ manual daquela rota, não uma medição automatizada da escala nem uma inspeçã
 demais telas. Um E2E adicional percorreu por teclado, em viewport móvel, o guia,
 a conta, a atividade, a segurança, as chaves e a documentação. O teste encontrou
 o foco retido num item do menu lateral que acabara de ser ocultado; a navegação
-passou a devolver o foco ao botão de abertura do menu. A varredura manual
-completa por teclado e leitor de tela continua pendente. Nenhuma conta de host
+passou a devolver o foco ao botão de abertura do menu. Nenhuma conta de host
 externo foi conectada.
+
+Em 24/09/2026, após receber a prévia local, o usuário informou ter revisado e
+aprovado as telas do Incremento 8 por teclado e leitor de tela. Esse aceite
+manual não veio acompanhado de matriz de ações, estados ou tecnologias
+assistivas e não equivale a uma auditoria formal WCAG ou a homologação nos
+hosts externos.
 
 Na mesma rodada, `pnpm format:check`, `pnpm lint`, `pnpm typecheck` (com build),
 `pnpm test` (463 aprovados, 4 pulados) e E2E Chromium (22 aprovados) passaram.

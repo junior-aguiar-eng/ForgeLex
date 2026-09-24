@@ -45,14 +45,17 @@ os gates técnicos e humanos pendentes. Os comandos focados são
 `pnpm verify:account-closure-restore`; os dois últimos exigem PostgreSQL
 descartável local configurado por `FORGELEX_ACCOUNT_CLOSURE_TEST_ADMIN_URL`.
 
-O próximo marco de produto está planejado em
+O marco de experiência do produto teve sua implementação técnica local encerrada
+no escopo revisado descrito em
 [melhorias de experiência e ativação MCP](docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md).
 Ele sucede o produto STJ concluído sem reabrir suas fases nem ampliar os
-tribunais comercialmente habilitados.
+tribunais comercialmente habilitados. O fechamento não inclui conexão real ao
+Claude nem substitui homologação no ChatGPT, validação com usuários ou os gates
+humanos e operacionais de publicação.
 
 O [contrato de onboarding MCP](docs/product/mcp-onboarding.md) fixa a
 taxonomia comercial, os estados verificáveis de conexão e os limites de
-telemetria que orientarão esse marco.
+telemetria que orientam a implementação.
 
 O guia textual para advogados fica em `/guia/mcp`: ele separa a conexão no
 ChatGPT ou Claude da documentação de desenvolvedores, informa que a interface
@@ -154,7 +157,7 @@ O frontend foi desenvolvido reproduzindo rigorosamente o design system editorial
 * **Telas Implementadas:**
   1. `Landing Page`: abertura de caso e barra de busca forense sobre o índice persistido (R$ 0,20/busca).
   2. `Painel do Advogado`: 4 cartões de métricas, gráfico de 30 dias e fila de aprovação L4.
-  3. `Canais de acesso`: MCP no ChatGPT/Claude e API REST no software do desenvolvedor.
+  3. `Canais de acesso`: instruções de MCP para ChatGPT/Claude e API REST para desenvolvedores; a interface não comprova conexão com os hosts.
   4. `Créditos & Faturamento`: Estado explícito de conta, sem saldo ou checkout presumidos.
   5. `Research Desk`: pesquisa, proveniência e verificação de autoridade em uma vertical única.
   6. `Matter Workspace`: documentos ancorados, fatos, provas, questões jurídicas e research memo.
@@ -332,10 +335,11 @@ Há duas superfícies distintas de uso:
    operações da API. A API key é somente uma credencial; não é token de IA. Se
    o software usar OpenAI, Anthropic ou outro modelo, essa integração e esse
    billing pertencem ao desenvolvedor, fora do ForgeLex.
-2. **MCP para advogados.** O advogado conecta o MCP ao ChatGPT ou Claude e usa
-   sua própria conta e assinatura. O ForgeLex autentica o usuário e consulta
-   a mesma infraestrutura jurisprudencial disponibilizada pela API REST,
-   cobrando apenas as operações ForgeLex executadas, inicialmente R$ 0,20 por
+2. **MCP para advogados.** A interface orienta a configuração no host de IA;
+   a operação real no ChatGPT ainda requer homologação, e a conexão real ao
+   Claude está fora do escopo deste marco. Quando uma chamada MCP autenticada
+   ocorrer, o ForgeLex usa a mesma infraestrutura jurisprudencial da API REST
+   e cobra apenas as operações ForgeLex executadas, inicialmente R$ 0,20 por
    busca jurisprudencial.
 
 Assim, a assinatura do ChatGPT ou Claude paga o modelo do host; os créditos
