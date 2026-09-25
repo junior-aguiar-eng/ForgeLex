@@ -133,6 +133,7 @@ const AuthScreen: React.FC<{ initialView?: AuthView; status: AuthStatus; onBackT
         {onBackToLanding && <button type="button" className="text-stone-500 hover:text-cognac-700 hover:underline" onClick={onBackToLanding}>Voltar para a página inicial</button>}
       </div>
       <p className="mt-8 text-center text-xs leading-5 text-stone-400">Confirmaremos seu e-mail para proteger o acesso. Sua senha não fica visível para o ForgeLex.</p>
+      <p className="mt-3 text-center text-xs leading-5 text-stone-500"><a className="underline hover:text-cognac-700" href="/legal/encerramento-de-conta.html">Termos de encerramento</a> · <a className="underline hover:text-cognac-700" href="/legal/retencao-pos-encerramento.html">Política de destinação</a></p>
     </AuthLayout>
   );
 };

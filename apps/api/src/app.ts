@@ -137,7 +137,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   });
   const environment = options.environment ?? process.env;
-  if (environment.NODE_ENV !== 'test' && environment.FORGELEX_ACCOUNT_CLOSURE_ENABLED === 'true' &&
+  if (environment.NODE_ENV !== 'test' &&
+    (environment.FORGELEX_ACCOUNT_CLOSURE_ENABLED === 'true' ||
+      environment.FORGELEX_ACCOUNT_CLOSURE_SCHEDULER_ENABLED === 'true') &&
     environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_REQUIRED !== 'true') {
     throw new Error('ACCOUNT_CLOSURE_JOURNAL_CONFIG_REQUIRED');
   }
@@ -223,6 +225,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     : undefined;
   const accountClosureEnabled = environment.FORGELEX_ACCOUNT_CLOSURE_ENABLED === 'true';
   const accountClosureWorkerEnabled = environment.FORGELEX_ACCOUNT_CLOSURE_WORKER_ENABLED === 'true';
+  const accountClosureSchedulerEnabled = environment.FORGELEX_ACCOUNT_CLOSURE_SCHEDULER_ENABLED === 'true';
   const closureWorkerSetting = (name: string, fallback: number, maximum: number): number => {
     const raw = environment[name];
     if (raw === undefined || raw === '') return fallback;
@@ -240,7 +243,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     ? closureWorkerSetting('FORGELEX_ACCOUNT_CLOSURE_MAX_ATTEMPTS', 12, 100)
     : 12;
   const accountIdentityAdmin = options.accountIdentityAdmin ?? (
-    (accountClosureEnabled || accountClosureWorkerEnabled)
+    (accountClosureEnabled || accountClosureWorkerEnabled || accountClosureSchedulerEnabled)
       && environment.FORGELEX_SUPABASE_URL?.trim()
       && environment.FORGELEX_SUPABASE_SECRET_KEY?.trim()
       ? new SupabaseAccountAdmin({
@@ -267,7 +270,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         })
       : undefined
   );
-  if (accountClosureWorkerEnabled && !accountClosureReconciler) {
+  if ((accountClosureWorkerEnabled || accountClosureSchedulerEnabled) && !accountClosureReconciler) {
     throw new Error('ACCOUNT_CLOSURE_WORKER_CONFIG_REQUIRED');
   }
   const supabaseIdentityVerifier = options.supabaseIdentityVerifier ?? createSupabaseIdentityVerifier(environment);
@@ -347,6 +350,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     repository: accountClosureRepository,
     subjectHashSecret: accountClosureHashSecret,
   });
+  if (accountClosureSchedulerEnabled && accountClosureReconciler) {
+    // Register only on the IAM-protected private service. The public service keeps this flag off.
+    app.post('/api/internal/account-closure/reconcile', async () => ({
+      result: await accountClosureReconciler.runOne(),
+    }));
+  }
   let accountClosureWorkerRunning = false;
   const accountClosureWorker = accountClosureWorkerEnabled && accountClosureReconciler
     ? setInterval(() => {

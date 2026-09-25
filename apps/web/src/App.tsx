@@ -73,6 +73,10 @@ const AppContent: React.FC = () => {
             <span className="font-editorial font-bold text-stone-800">ForgeLex</span>
             <span>· espaço de trabalho jurídico</span>
           </div>
+          <nav aria-label="Documentos legais" className="flex flex-wrap gap-x-4 gap-y-1">
+            <a className="hover:text-cognac-700 hover:underline" href="/legal/encerramento-de-conta.html">Termos de encerramento</a>
+            <a className="hover:text-cognac-700 hover:underline" href="/legal/retencao-pos-encerramento.html">Política de destinação</a>
+          </nav>
           <span>© 2026 · informação institucional</span>
         </div>
       </footer>

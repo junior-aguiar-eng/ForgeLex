@@ -202,6 +202,29 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     }
   });
 
+  it('expõe a reconciliação agendada apenas quando configurada e executa uma etapa', async () => {
+    expect((await app.inject({ method: 'POST', url: '/api/internal/account-closure/reconcile' })).statusCode).toBe(404);
+    const runOne = vi.fn().mockResolvedValue('completed');
+    const scheduledApp = await buildApp({
+      database,
+      databaseClient: client,
+      ledgerService,
+      accountClosureReconciler: { runOne } as unknown as AccountClosureReconciler,
+      environment: {
+        NODE_ENV: 'test',
+        FORGELEX_ACCOUNT_CLOSURE_SCHEDULER_ENABLED: 'true',
+      },
+    });
+    try {
+      const response = await scheduledApp.inject({ method: 'POST', url: '/api/internal/account-closure/reconcile' });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ result: 'completed' });
+      expect(runOne).toHaveBeenCalledTimes(1);
+    } finally {
+      await scheduledApp.close();
+    }
+  });
+
   it('nega rotas de negócio enquanto o diário externo não foi conferido', async () => {
     let verified = false;
     const gate = {
