@@ -7,24 +7,28 @@ export type AppRoute = {
 };
 
 const routes: readonly AppRoute[] = [
-  { tab: 'landing', path: '/', title: 'Visão geral' },
-  { tab: 'research', path: '/pesquisa', title: 'Pesquisa' },
-  { tab: 'matter', path: '/casos', title: 'Casos' },
-  { tab: 'draft_studio', path: '/rascunhos', title: 'Rascunhos' },
-  { tab: 'dashboard', path: '/revisao', title: 'Revisão' },
-  { tab: 'connections', path: '/conectar', title: 'Conectar IA' },
-  { tab: 'credits', path: '/conta', title: 'Conta' },
-  { tab: 'account_activity', path: '/conta/atividade', title: 'Atividade da conta' },
-  { tab: 'account_security', path: '/conta/seguranca', title: 'Segurança da conta' },
+  { tab: 'landing', path: '/app', title: 'Visão geral' },
+  { tab: 'research', path: '/app/pesquisa', title: 'Pesquisa' },
+  { tab: 'matter', path: '/app/casos', title: 'Casos' },
+  { tab: 'draft_studio', path: '/app/rascunhos', title: 'Rascunhos' },
+  { tab: 'dashboard', path: '/app/revisao', title: 'Revisão' },
+  { tab: 'connections', path: '/app/conectar', title: 'Conectar IA' },
+  { tab: 'credits', path: '/app/conta', title: 'Conta' },
+  { tab: 'account_activity', path: '/app/conta/atividade', title: 'Atividade da conta' },
+  { tab: 'account_security', path: '/app/conta/seguranca', title: 'Segurança da conta' },
   { tab: 'account_closure_status', path: '/conta/encerramento', title: 'Acompanhamento do encerramento' },
-  { tab: 'api_keys', path: '/conta/chaves', title: 'Chaves de API' },
-  { tab: 'for_lawyers_guide', path: '/guia/mcp', title: 'Guia de conexão' },
-  { tab: 'api_docs', path: '/desenvolvedores/api', title: 'API para desenvolvedores' },
+  { tab: 'api_keys', path: '/app/conta/chaves', title: 'Chaves de API' },
+  { tab: 'for_lawyers_guide', path: '/app/guia/mcp', title: 'Guia de conexão' },
+  { tab: 'api_docs', path: '/app/desenvolvedores/api', title: 'API para desenvolvedores' },
 ];
 
 const routeByTab = new Map(routes.map((route) => [route.tab, route]));
 const tabByPath = new Map<string, AppTab>([
   ...routes.map((route) => [route.path, route.tab] as const),
+  ['/pesquisa', 'research'], ['/casos', 'matter'], ['/rascunhos', 'draft_studio'],
+  ['/revisao', 'dashboard'], ['/conectar', 'connections'], ['/conta', 'credits'],
+  ['/conta/atividade', 'account_activity'], ['/conta/seguranca', 'account_security'],
+  ['/conta/chaves', 'api_keys'], ['/guia/mcp', 'for_lawyers_guide'],
 ]);
 
 function normalizePath(pathname: string): string {

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('Fase 7: login, pesquisa, verificação, billing e revisão operam com fixtures locais', async ({ page }) => {
   const bootstrap = page.waitForResponse((response) => response.url().endsWith('/api/v2/auth/bootstrap') && response.request().method() === 'POST');
-  await page.goto('/');
+  await page.goto('/entrar');
   await page.getByLabel('E-mail').fill('fase7@forgelex.test');
   await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-controlada-fase-7');
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
