@@ -1,5 +1,21 @@
 # Auditoria e status canônico do ForgeLex
 
+## Fase 4A da estabilização — ingestão STJ diária em homologação (26/09/2026)
+
+O Cloud Run Job dedicado `forgelex-stj-ingestion-hml` foi executado duas vezes
+em sequência com sucesso. O relatório read-only registrou, antes e depois,
+544 manifestos, 874.450 documentos e 874.516 versões; zero pendências ou
+falhas transitórias e uma lacuna oficial terminal. A última execução completa
+foi em `2026-09-26T16:51:46.134Z`. O alerta de falha disparou em ensaio
+controlado e o recebimento do e-mail foi confirmado por Boni. O Scheduler
+diário está ativo para 09:00 `America/Fortaleza`, com primeira execução prevista
+para 27/09/2026. Evidência, digest e limites estão em
+`docs/operations/stabilization/2026-09-26-phase4a.md`.
+
+O código da Fase 4A está na branch local `feat/stj-freshness-4a`, ainda sem
+commit ou push pela cadência acordada de três fases. A imagem implantada foi
+construída desse checkout e identificada por digest no registro de evidência.
+
 ## Fase 2 da estabilização — documentação reconciliada (26/09/2026)
 
 O prompt mestre integral do frontend foi copiado para

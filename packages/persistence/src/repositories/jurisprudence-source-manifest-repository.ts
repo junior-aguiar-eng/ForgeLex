@@ -225,6 +225,17 @@ export class JurisprudenceSourceManifestRepository {
     return rows[0] ? toManifest(rows[0]) : undefined;
   }
 
+  public async findLatestCompletedByResourceId(resourceId: string): Promise<SourceManifest | undefined> {
+    const rows = await this.db.select().from(schema.jurisprudenceSourceManifests)
+      .where(and(
+        eq(schema.jurisprudenceSourceManifests.resourceId, resourceId),
+        eq(schema.jurisprudenceSourceManifests.status, 'COMPLETED'),
+      ))
+      .orderBy(desc(schema.jurisprudenceSourceManifests.completedAt))
+      .limit(1);
+    return rows[0] ? toManifest(rows[0]) : undefined;
+  }
+
   public async findTerminalOfficialSourceGap(resourceId: string): Promise<SourceManifest | undefined> {
     const rows = await this.db.select().from(schema.jurisprudenceSourceManifests)
       .where(and(

@@ -23,6 +23,7 @@
     "verify:account-closure-preclosure-restore": "pnpm build && node scripts/verify-account-closure-preclosure-restore.mjs",
     "test:load:search": "pnpm build && node scripts/load-search.mjs",
     "ingest:stj": "pnpm build && node scripts/ingest-stj-open-data.mjs",
+    "report:stj:freshness": "node scripts/report-stj-freshness.mjs",
     "phase8:measure": "node scripts/phase8/measure-source.mjs",
     "phase8:export-stj": "node scripts/phase8/export-global-stj.mjs",
     "phase8:verify-corpus": "node scripts/phase8/verify-corpus.mjs",

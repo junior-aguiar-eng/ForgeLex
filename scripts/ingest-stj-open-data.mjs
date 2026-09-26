@@ -8,12 +8,16 @@ import {
 import { StjOpenDataProvider } from '../packages/source-providers/dist/index.js';
 import { pathToFileURL } from 'node:url';
 
-export function parseIngestArgs(argv) {
-  const result = { database: undefined, dryRun: false, dataset: undefined };
+export function parseIngestArgs(argv, env = process.env) {
+  const result = { database: env.DATABASE_URL || undefined, dryRun: false, dataset: undefined, incremental: false, singleFlight: false };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === '--dry-run') {
       result.dryRun = true;
+      continue;
+    }
+    if (argument === '--incremental' || argument === '--single-flight') {
+      result[argument === '--incremental' ? 'incremental' : 'singleFlight'] = true;
       continue;
     }
     if (argument === '--database' || argument === '--dataset') {
@@ -25,8 +29,23 @@ export function parseIngestArgs(argv) {
     }
     throw new Error(`Opção desconhecida: ${argument}`);
   }
-  if (!result.database) throw new Error('--database é obrigatório.');
+  if (!result.database) throw new Error('--database ou DATABASE_URL é obrigatório.');
   return result;
+}
+
+export async function withSingleFlight(database, task, connect = createDatabase) {
+  const connection = await connect({ url: database });
+  let transaction;
+  try {
+    if (connection.db.$forgelexDialect !== 'postgres') throw new Error('STJ_SINGLE_FLIGHT_REQUIRES_POSTGRES');
+    transaction = await connection.client.transaction();
+    const result = await transaction.execute('SELECT pg_try_advisory_xact_lock(731202604) AS acquired');
+    if (result.rows[0]?.acquired !== true) throw new Error('STJ_INGESTION_ALREADY_RUNNING');
+    return await task();
+  } finally {
+    await transaction?.rollback();
+    connection.client.close();
+  }
 }
 
 export function shouldProcessStjResource(blockedDatasetIds, resource) {
@@ -63,6 +82,13 @@ function resultSummary(resource, result, status = 'COMPLETED') {
 
 export async function runIngestion(argv, dependencies = {}) {
   const args = parseIngestArgs(argv);
+  const execute = () => runIngestionUnlocked(args, dependencies);
+  return args.singleFlight
+    ? withSingleFlight(args.database, execute, dependencies.connect ?? createDatabase)
+    : execute();
+}
+
+async function runIngestionUnlocked(args, dependencies) {
   const provider = dependencies.provider ?? new StjOpenDataProvider({ datasetIds: args.dataset ? [args.dataset] : undefined });
   const plan = await provider.discover();
   const summaries = [];
@@ -78,15 +104,24 @@ export async function runIngestion(argv, dependencies = {}) {
 
   if (!args.dryRun) {
     connection = await createDatabase({ url: args.database });
-    await runPersistenceMigrations(connection.client);
-    ingestionRun = await new IngestionRunRepository(connection.db).start({
-      providerId: provider.id,
-      court: 'STJ',
-    });
-    manifestRepository = new JurisprudenceSourceManifestRepository(
-      connection.db,
-      new JurisprudenceRepository(connection.db),
-    );
+    try {
+      if (!args.singleFlight) await runPersistenceMigrations(connection.client);
+      if (args.incremental) {
+        const baseline = await connection.client.execute("SELECT COUNT(*) AS count FROM jurisprudence_source_manifests WHERE status = 'COMPLETED' AND ingestion_run_id IN (SELECT id FROM jurisprudence_ingestion_runs WHERE provider_id = 'provider_stj_open_data' AND court = 'STJ')");
+        if (Number(baseline.rows[0]?.count ?? 0) === 0) throw new Error('STJ_INGESTION_BASELINE_REQUIRED');
+      }
+      ingestionRun = await new IngestionRunRepository(connection.db).start({
+        providerId: provider.id,
+        court: 'STJ',
+      });
+      manifestRepository = new JurisprudenceSourceManifestRepository(
+        connection.db,
+        new JurisprudenceRepository(connection.db),
+      );
+    } catch (error) {
+      connection.client.close();
+      throw error;
+    }
   }
 
   try {
@@ -166,8 +201,11 @@ export async function runIngestion(argv, dependencies = {}) {
         continue;
       }
       if (!args.dryRun) {
+        const completedById = args.incremental
+          ? await manifestRepository.findLatestCompletedByResourceId(resource.resourceId)
+          : undefined;
         const terminalSourceGap = await manifestRepository.findTerminalOfficialSourceGap(resource.resourceId);
-        const disposition = existingResourceDisposition(undefined, terminalSourceGap);
+        const disposition = existingResourceDisposition(completedById, terminalSourceGap);
         if (disposition) {
           const skipped = resultSummary(resource, disposition.manifest, disposition.status);
           summaries.push(skipped);
@@ -334,7 +372,9 @@ export async function runIngestion(argv, dependencies = {}) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  runIngestion(process.argv.slice(2)).catch((error) => {
+  runIngestion(process.argv.slice(2)).then((result) => {
+    if (result.hasFailure) process.exitCode = 1;
+  }).catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   });

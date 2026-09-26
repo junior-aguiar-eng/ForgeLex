@@ -64,3 +64,19 @@ registrada. O ForgeLex não corrige nem publica silenciosamente esse conteúdo.
 O job reconhece essa lacuna terminal pelo `resource_id` e pelo manifesto com
 hash documentado antes de chamar o provider; uma repetição não baixa novamente
 esse recurso enquanto a exceção permanecer registrada.
+
+## Observação em homologação — 2026-09-26
+
+O relatório read-only do banco de homologação, após duas execuções manuais
+sequenciais do job incremental, registrou **544 manifestos, 874.450 documentos
+e 874.516 versões**. As contagens foram iguais antes da primeira execução,
+depois da primeira e depois da segunda: nenhum recurso novo foi publicado e a
+repetição não criou versões indevidas. Em cada execução, o job ignorou 541
+recursos já concluídos e a única lacuna terminal conhecida.
+
+A última conclusão de manifesto observada foi em
+`2026-09-20T02:50:14.171Z`; a última execução completa do job foi em
+`2026-09-26T16:51:46.134Z`. O relatório registrou zero manifestos pendentes,
+zero falhas transitórias, uma lacuna terminal e `alert: false` após a segunda
+execução. Essa data de manifesto não é a data de publicação do STJ nem prova
+ausência de novos recursos no catálogo oficial.
