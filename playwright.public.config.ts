@@ -10,5 +10,9 @@ export default defineConfig({
     command: 'pnpm --filter @forgelex/web dev --host 127.0.0.1 --port 3137 --strictPort',
     url: 'http://127.0.0.1:3137',
     reuseExistingServer: !process.env.CI,
+    env: {
+      VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e_public',
+    },
   },
 });
