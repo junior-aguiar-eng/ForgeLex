@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 const api = 'http://127.0.0.1:3001';
 
 async function closeDisposableAccount(page: Page, email: string, password: string) {
-  await page.goto('/');
+  await page.goto('/entrar');
   await page.getByLabel('E-mail').fill(email);
   await page.getByRole('textbox', { name: 'Senha', exact: true }).fill(password);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();

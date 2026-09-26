@@ -1,7 +1,7 @@
 # FORGELEX — Plataforma Agêntica Jurídica Agnóstica V2
 
-> **A inteligência jurídica que pensa antes de peticionar.**  
-> Base vendor-neutral em evolução, orientada a conformidade forense para advocacia de alta performance e departamentos jurídicos.
+> **Do caso à minuta, conecte fatos, provas e jurisprudência.**
+> Organize o caso, pesquise o STJ em fontes rastreáveis e prepare rascunhos para revisão humana.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
 [![Validation](https://img.shields.io/badge/Validation-STJ%20Completed-brightgreen.svg)](STATUS_VALIDACAO.md)
@@ -19,8 +19,19 @@ O **FORGELEX V2** foi construído para superar as limitações das ferramentas j
 O ForgeLex está concluído no escopo comercial aprovado: pesquisa jurídica sobre
 índice próprio do **STJ**, distribuída por REST e MCP remoto, com cobrança
 pré-paga em BRL exclusivamente pelas operações jurídicas do ForgeLex. O
-produto público opera em `https://nexojuris.ia.br`; o Cloud Run aceita tráfego
-externo somente pelo balanceador HTTPS.
+domínio `https://nexojuris.ia.br` atende o produto publicado; o Cloud Run aceita
+tráfego externo somente pelo balanceador HTTPS.
+
+**Linha publicada observada em 26/09/2026:** o serviço público
+`forgelex-api-hml` direcionava 100% do tráfego à revisão
+`forgelex-api-hml-00021-max`, imagem `closure-release-f10e13f`. Essa imagem
+inclui o encerramento de conta publicado e habilitado. O site público com a
+headline acima está implementado no checkout desta branch, mas **não integra
+essa revisão publicada**. `origin/main` permanecia em `4f9bdce` e a branch
+de trabalho partia de `6850290`; integração, CI no SHA final e release são
+gates posteriores. O [baseline datado](docs/operations/stabilization/2026-09-25-baseline.md)
+separa essas superfícies e não presume que uma tag, sozinha, prove o SHA da
+imagem.
 
 - REST, OpenAPI, MCP remoto, host externo e Agent Core foram exercitados pelo
   domínio canônico; REST e MCP usam a mesma infraestrutura jurídica.
@@ -35,14 +46,15 @@ O estado do programa está em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md), o
 plano mestre em [Plano de conclusão progressiva do ForgeLex](Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md) e as evidências operacionais estão
 indexadas em [docs/README.md](docs/README.md).
 
-O incremento 7 de encerramento de conta pessoal teve implementação e aceite
-local concluídos em 24/09/2026, separados do produto STJ já publicado. A
-operação destrutiva permanece desabilitada por padrão. O
+O encerramento de conta pessoal teve implementação e aceite local concluídos
+em 24/09/2026 e foi publicado e habilitado no serviço público em 25/09/2026.
+O padrão do código continua desabilitado; a configuração remota observada em
+26/09/2026 era `FORGELEX_ACCOUNT_CLOSURE_ENABLED=true`. O
 [runbook](docs/operations/account-closure/runbook.md), a
 [matriz de evidências](docs/operations/account-closure/validation.md) e as
 [minutas jurídicas](docs/legal/account-closure-retention-policy.md) registram
-as revisões humanas aprovadas e os gates de publicação e operação remota,
-que ainda não foram executados. Os comandos focados são
+as revisões humanas aprovadas, a ativação e seus limites operacionais. Os
+comandos focados são
 `pnpm test:e2e:account-closure`, `pnpm test:postgres:account-closure` e
 `pnpm verify:account-closure-restore`; os dois últimos exigem PostgreSQL
 descartável local configurado por `FORGELEX_ACCOUNT_CLOSURE_TEST_ADMIN_URL`.
@@ -53,7 +65,12 @@ no escopo revisado descrito em
 Ele sucede o produto STJ concluído sem reabrir suas fases nem ampliar os
 tribunais comercialmente habilitados. O fechamento não inclui conexão real ao
 Claude nem substitui homologação no ChatGPT, validação com usuários ou os gates
-humanos e operacionais de publicação.
+de publicação do novo site público.
+
+O [prompt mestre do frontend](docs/product/frontend-master-prompt.md) é a
+referência canônica versionada para site público e aplicação autenticada. Ele
+preserva a jornada completa, o design e os critérios de conteúdo; o plano de
+estabilização organiza os gates sem substituir essa especificação.
 
 O [contrato de onboarding MCP](docs/product/mcp-onboarding.md) fixa a
 taxonomia comercial, os estados verificáveis de conexão e os limites de
@@ -131,7 +148,7 @@ outro efeito externo automático.
 ```text
 ├── apps/
 │   ├── api/                   # Serviço Fastify (REST + MCP Gateway + contrato OpenAPI)
-│   └── web/                   # Frontend React 18 + Vite + Tailwind (5 Telas Canônicas)
+│   └── web/                   # Site público e aplicação autenticada em React/Vite
 │
 ├── packages/
 │   ├── domain/                # Contratos canônicos, níveis L0-L4, proveniência e DomainErrors
@@ -153,11 +170,11 @@ outro efeito externo automático.
 
 ## 🖥️ Experiência Frontend Canônica (`apps/web`)
 
-O frontend foi desenvolvido reproduzindo rigorosamente o design system editorial:
+O frontend usa o design system editorial definido no prompt mestre:
 * **Paleta:** Marfim quente (`#FBF9F5`), conhaque imperial (`#8E5D2A`) e bordas champanhe (`rgba(180, 150, 110, 0.22)`).
 * **Tipografia:** Serifada editorial clássica combinada com interface moderna sans-serif.
 * **Telas Implementadas:**
-  1. `Landing Page`: abertura de caso e barra de busca forense sobre o índice persistido (R$ 0,20/busca).
+  1. `Site público`: apresentação do produto, funcionamento, integrações, preço, guias e entrada para cadastro ou login. A implementação da branch ainda não foi publicada.
   2. `Painel do Advogado`: 4 cartões de métricas, gráfico de 30 dias e fila de aprovação L4.
   3. `Canais de acesso`: instruções de MCP para ChatGPT/Claude e API REST para desenvolvedores; a interface não comprova conexão com os hosts.
   4. `Créditos & Faturamento`: Estado explícito de conta, sem saldo ou checkout presumidos.

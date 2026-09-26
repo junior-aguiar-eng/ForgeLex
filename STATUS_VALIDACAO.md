@@ -1,5 +1,55 @@
 # Auditoria e status canônico do ForgeLex
 
+## Fase 2 da estabilização — documentação reconciliada (26/09/2026)
+
+O prompt mestre integral do frontend foi copiado para
+`docs/product/frontend-master-prompt.md`, com proveniência e hash registrados em
+`docs/README.md`. A evidência documental da fase está em
+`docs/operations/stabilization/2026-09-26-phase2.md`. README, plano
+progressivo e plano de experiência agora
+distinguem três estados: o produto STJ das Fases 0–8 e 14 está concluído; o
+encerramento de conta foi publicado e habilitado; o novo site público está
+implementado na branch, ainda sem release da sua revisão. Outros tribunais
+continuam `FROZEN_STRATEGICALLY`.
+
+Consulta de leitura em 26/09/2026: `forgelex-api-hml-00021-max` recebia 100% do
+tráfego, com imagem `closure-release-f10e13f` e
+`FORGELEX_ACCOUNT_CLOSURE_ENABLED=true`. A prova de implantação e o ensaio
+sintético estão em `docs/operations/account-closure/validation.md`; a consulta
+atual de configuração não demonstra operação contínua futura. O CI da branch
+e o release do novo site seguem pendentes dos gates posteriores.
+
+## Fase 1 da estabilização — validação local (26/09/2026)
+
+O limite de dois workers do Vitest, a correção transitiva de `uuid` e a
+ampliação do CI foram implementados localmente sobre o HEAD-base `6850290`.
+`pnpm test` passou inicialmente três vezes com quatro workers, cada uma com
+496 testes aprovados e quatro ignorados. Na Fase 2, uma repetição com o novo
+teste editorial registrou erro de saída de fork; o limite foi reduzido a dois
+workers e o gate repetido. `pnpm audit --prod --audit-level moderate`,
+`pnpm lint`, `pnpm typecheck` e os E2E locais de site público, produto,
+onboarding MCP e encerramento passaram. Evidência, escopo das fixtures e
+limitações: `docs/operations/stabilization/2026-09-26-phase1.md`.
+
+O workflow atualizado ainda não foi executado pelo GitHub Actions; sua
+validação remota depende de commit/push após a terceira fase concluída, conforme
+a cadência definida por Boni. Nenhum commit, push, deploy ou mutation remota
+integra esta Fase 1.
+
+## Baseline da estabilização pós-auditoria (26/09/2026)
+
+A Fase 0 do plano de estabilização fixou o estado de Git, GitHub e Google Cloud
+observado em 26/09/2026. A branch `feat/incremento-7-1-encerramento` está em
+`6850290eda8c404504366d3ca75c526ce3a4a4ef`, vinte commits à frente de
+`origin/main` (`4f9bdce927a3911027cbd15957487c9d4b030575`), sem PR ou checks
+para esse HEAD. O serviço público ainda serve a revisão
+`forgelex-api-hml-00021-max`, com a imagem `closure-release-f10e13f`. Esses
+estados são distintos: o HEAD da branch não foi comprovado como publicado.
+
+A matriz de componentes, ambiente, evidência e próximo gate está em
+`docs/operations/stabilization/2026-09-25-baseline.md`. Este registro não
+substitui as validações históricas abaixo nem constitui autorização de release.
+
 ## Incremento 7.8 — validação local do encerramento (22/09/2026)
 
 Checkout `C:\Users\Boni Jr\.antigravity-ide\SDK`, branch
@@ -37,11 +87,12 @@ aprovou a UX destrutiva com conta sintética. Participante, versão, perguntas,
 decisões e limite da observação manual constam em
 `docs/operations/account-closure/validation.md`. O incremento 7.8 está
 **ACEITO no escopo local do plano**; a publicação externa das minutas e a
-operação remota são gates distintos. Migration remota: **NÃO EXECUTADA**.
-Deploy: **NÃO EXECUTADO**. Feature flag: padrão do código **DESABILITADO**
-(`false`); configuração remota atual **NÃO REVALIDADA** e não alterada nesta
-execução. Este aceite não é autorização operacional nem prova de encerramento
-de conta real.
+operação remota eram gates distintos. Migration remota: **NÃO EXECUTADA naquele
+checkpoint local**. Deploy: **NÃO EXECUTADO naquele checkpoint local**. Feature
+flag: padrão do código **DESABILITADO** (`false`); configuração remota **não
+revalidada naquela execução** e não alterada por ela. A implantação e ativação
+posteriores estão registradas no topo deste status e na matriz operacional. O
+aceite local não era autorização operacional nem prova de encerramento real.
 
 Revalidação do fechamento documental em 24/09/2026: `pnpm format:check`,
 `pnpm lint`, `pnpm typecheck`, `pnpm test` e `git diff --check` passaram;
@@ -71,12 +122,12 @@ desabilitada. A evidência saneada está em
 ## Marco posterior — experiência do produto e ativação MCP
 
 O plano `docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md`
-foi versionado como etapa posterior, com estado `PLANNED`. Ele prioriza
-navegação endereçável, ativação MCP por plataforma, estado verificável,
-gestão de chaves, conta operacional e documentação separada para advogados e
-desenvolvedores. Não é evidência de implementação, não altera o escopo STJ
-concluído e não autoriza os seus incrementos, operações remotas ou ações de
-conta destrutivas.
+teve implementação técnica local concluída nos incrementos 0–8. Ele cobre
+navegação endereçável, ativação MCP por plataforma, estado verificável, gestão
+de chaves, conta operacional e documentação segmentada. A ativação remota do
+encerramento ocorreu depois do checkpoint local e está registrada acima. O
+plano de experiência não demonstra conexão real com Claude, homologação do
+novo site público ou publicação do HEAD desta branch.
 
 ## Fase 8 — homologação Google Cloud: gates concluídos
 

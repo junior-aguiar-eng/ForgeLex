@@ -28,6 +28,8 @@ tmp/
 temp/
 
 # Baseline legado: remover cada caminho quando o arquivo for formatado intencionalmente.
+# Prompt mestre preservado byte a byte conforme o artefato de origem aprovado.
+docs/product/frontend-master-prompt.md
 ADENDO_PROMPT_CORRECAO_UI_FORGELEX.md
 ADENDO_PROMPT_PARIDADE_PROVIDERS_FORGELEX.md
 CORRECAO_UI_FORGELEX.md

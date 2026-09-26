@@ -9,6 +9,6 @@ export default defineConfig({
   webServer: {
     command: 'pnpm --filter @forgelex/web dev --host 127.0.0.1 --port 3137 --strictPort',
     url: 'http://127.0.0.1:3137',
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
   },
 });

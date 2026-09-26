@@ -1,8 +1,8 @@
 # Plano incremental de melhoria da experiência e do produto ForgeLex
 
-**Estado em 24/09/2026: CONCLUÍDO no escopo de implementação técnica local dos incrementos 0–8.** Este fechamento não é aceite de publicação, homologação em host real nem aprovação jurídica, fiscal ou de segurança. A decisão de produto exclui conexão, autenticação e chamadas reais pelo Claude deste marco; as instruções condicionais já exibidas na interface não comprovam integração com esse host.
+**Estado atualizado em 26/09/2026:** incrementos 0–8 concluídos no escopo técnico local. O encerramento de conta foi publicado e habilitado posteriormente, conforme `docs/operations/account-closure/validation.md`. O novo site público está implementado na branch e aguarda integração, CI no SHA final e release; seu prompt mestre canônico está em `docs/product/frontend-master-prompt.md`. A conexão real com Claude continua fora do escopo revisado; a interface não comprova integração com esse host.
 
-Os incrementos 0–6 têm entregas identificáveis nos commits `2c99857`, `622b886`, `a13261b`, `5bd1100`, `b2fb779`, `a6990ed` e `4f9bdce`. O incremento 7 tem implementação e testes locais documentados em `STATUS_VALIDACAO.md` e `docs/operations/account-closure/validation.md`, mas a operação destrutiva permanece desabilitada até os gates humanos e operacionais ali registrados. O incremento 8 tem QA local documentado em `docs/product/mcp-onboarding.md`, com aceite manual declarado pelo usuário em 24/09/2026. Os checklists abaixo preservam o roteiro original, não são uma certificação retroativa de que cada item foi executado literalmente; o escopo efetivamente concluído e os limites estão na seção 15.
+Os incrementos 0–6 têm entregas identificáveis nos commits `2c99857`, `622b886`, `a13261b`, `5bd1100`, `b2fb779`, `a6990ed` e `4f9bdce`. O incremento 7 tem implementação e testes locais documentados em `STATUS_VALIDACAO.md` e `docs/operations/account-closure/validation.md`; a matriz também registra as revisões humanas aprovadas, a implantação e a habilitação posteriores. O incremento 8 tem QA local documentado em `docs/product/mcp-onboarding.md`, com aceite manual declarado pelo usuário em 24/09/2026. Os checklists abaixo preservam o roteiro original, não são uma certificação retroativa de que cada item foi executado literalmente; o escopo efetivamente concluído e os limites estão na seção 15.
 
 > **Registro de execução:** o roteiro abaixo orientou os incrementos locais. Seus checklists originais não são prova individual de execução; o fechamento e os gates remanescentes estão na seção 15. Commit, push, migração, deploy e publicação continuam sendo autorizações separadas.
 
@@ -628,7 +628,7 @@ Este plano não autoriza nem inclui:
 - criação de aplicativo MCP separado.
 - conexão, autenticação ou chamadas reais ao Claude.
 
-Homologação no ChatGPT real, estudo com cinco usuários e revisões humanas do encerramento de conta são gates posteriores à implementação local; não foram aprovados por este fechamento.
+No fechamento local de 24/09/2026, homologação no ChatGPT real, estudo com cinco usuários e revisões humanas do encerramento ainda eram gates posteriores. As revisões humanas e a ativação do encerramento foram registradas depois na matriz operacional; a homologação real no ChatGPT e o estudo com usuários continuam sem prova neste plano.
 
 ## 14. Gates de entrega
 
@@ -661,7 +661,7 @@ A implementação técnica local dos incrementos 0–8 está concluída e aceita
 - os fluxos locais passaram nos gates automatizados registrados em `docs/product/mcp-onboarding.md` e `docs/operations/account-closure/validation.md`;
 - o usuário aprovou a revisão manual das telas do Incremento 8, conforme registro em `docs/product/mcp-onboarding.md`.
 
-Este fechamento não declara ausência absoluta de regressões nem conformidade formal WCAG. Antes de publicar ou afirmar autoatendimento validado, permanecem independentes e **não executados neste marco**: revisão conjunta dos contratos de produto, jurídico e engenharia; estudo com cinco usuários jurídicos; homologação do fluxo real no ChatGPT, com reconciliação de débito e revogação; revisões jurídica, fiscal, de segurança e UX do encerramento de conta; e os gates de migração, configuração, deploy e habilitação pertinentes. A integração real com Claude não é pendência deste plano revisado.
+Este fechamento local não declara ausência absoluta de regressões nem conformidade formal WCAG. Em 24/09/2026, estudo com cinco usuários jurídicos, homologação do fluxo real no ChatGPT e os gates remotos ainda não tinham sido demonstrados por este plano. Depois desse marco, as revisões jurídica, fiscal, de segurança e UX do encerramento foram aprovadas; a implantação e a habilitação foram registradas em `docs/operations/account-closure/validation.md`. Permanecem sem prova neste plano a homologação real no ChatGPT, com reconciliação de débito e revogação, e o estudo com cinco usuários jurídicos. O novo site público depende de release e validação próprios. A integração real com Claude não é pendência do escopo revisado.
 
 ## 16. Estado do checkout observado ao elaborar o plano
 

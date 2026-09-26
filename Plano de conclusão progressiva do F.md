@@ -25,9 +25,13 @@ pendência residual deste programa.
 O ciclo concluído passa a ser sucedido pelo plano de melhoria da experiência
 do produto, registrado em
 `docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md`.
-Seu estado é `PLANNED`: ele orienta incrementos futuros de navegação,
-onboarding MCP, conta e documentação segmentada, mas não modifica o estado
-`COMPLETED` das Fases 0 a 8 e 14, nem reabre as Fases 9 a 13 congeladas.
+Atualização de 26/09/2026: os incrementos 0–8 desse plano de experiência foram
+concluídos no escopo técnico local; o encerramento de conta foi posteriormente
+publicado e habilitado. O novo site público está implementado na branch de
+trabalho, mas ainda não compõe a revisão publicada. Esses marcos não modificam
+o estado `COMPLETED` das Fases 0 a 8 e 14 deste plano progressivo nem reabrem
+as Fases 9 a 13 congeladas. O prompt mestre versionado do frontend está em
+`docs/product/frontend-master-prompt.md`.
 
 O novo marco preserva o STJ como único tribunal comercialmente habilitado,
 o preço e o ledger atuais, a arquitetura REST/MCP compartilhada e a separação

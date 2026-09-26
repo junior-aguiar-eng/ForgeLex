@@ -33,7 +33,7 @@ test('rotas do onboarding persistem em recarregamento e nos botões de históric
   await expect(page).toHaveURL(/\/conectar$/);
   await expect(page.getByRole('heading', { name: 'Conectar o ForgeLex ao ChatGPT ou Claude' })).toBeVisible();
 
-  await page.goto('/desenvolvedores/api');
+  await page.goto('/app/desenvolvedores/api');
   await expect(page).toHaveURL(/\/desenvolvedores\/api$/);
   await expect(page.getByRole('heading', { name: 'API para desenvolvedores' })).toBeVisible();
 
@@ -220,7 +220,7 @@ test('URL local é apresentada como prévia e não pode ser copiada para um host
 });
 
 test('documentação da API mantém contraste de texto nos exemplos', async ({ page }) => {
-  await page.goto('/desenvolvedores/api');
+  await page.goto('/app/desenvolvedores/api');
   await page.getByLabel('E-mail').fill('fase7@forgelex.test');
   await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-controlada-fase-7');
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();

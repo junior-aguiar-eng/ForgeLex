@@ -25,6 +25,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    maxWorkers: 2,
     include: ['**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/.superpowers/**'],
     coverage: {
