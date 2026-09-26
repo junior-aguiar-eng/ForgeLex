@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   AuthAdapter,
+  ClosureAwareTokenVerifier,
+  createDefaultAuthAdapter,
   EnvironmentTokenVerifier,
   hashApiKey,
   resolveAllowedOrigins,
@@ -61,5 +63,28 @@ describe('Fastify auth adapter', () => {
       'http://localhost:3000',
       'http://localhost:3001',
     ]);
+  });
+
+  it('bloqueia credenciais de qualquer origem quando subject ou tenant possui tombstone', async () => {
+    const delegate = new EnvironmentTokenVerifier([{ tokenHash: hashApiKey('static-secret'), ...principal }]);
+    const allowed = new ClosureAwareTokenVerifier(delegate, { isBlocked: async () => false });
+    const blocked = new ClosureAwareTokenVerifier(delegate, { isBlocked: async (candidate) => candidate.tenantId === 'tenant_1' });
+
+    await expect(allowed.verify('static-secret')).resolves.toEqual(principal);
+    await expect(blocked.verify('static-secret')).resolves.toBeNull();
+  });
+
+  it('aplica a blocklist também às chaves estáticas do adaptador padrão', async () => {
+    const environment = {
+      FORGELEX_API_KEYS: JSON.stringify([{ tokenHash: hashApiKey('static-secret'), ...principal }]),
+    };
+    const adapter = createDefaultAuthAdapter(
+      environment,
+      undefined,
+      undefined,
+      { isBlocked: async () => true },
+    );
+
+    await expect(adapter.authenticate('Bearer static-secret')).rejects.toThrow('Credencial Bearer inválida.');
   });
 });

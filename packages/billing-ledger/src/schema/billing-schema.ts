@@ -56,6 +56,7 @@ export const billingWebhookEvents = sqliteTable('billing_webhook_events', {
   id: text('id').primaryKey(),
   provider: text('provider').notNull(),
   eventType: text('event_type').notNull(),
+  tenantId: text('tenant_id'),
   payload: text('payload').notNull(),
   status: text('status').notNull(),
   receivedAt: text('received_at').notNull(),
@@ -63,6 +64,7 @@ export const billingWebhookEvents = sqliteTable('billing_webhook_events', {
   errorMessage: text('error_message'),
 }, (table) => [
   uniqueIndex('billing_webhook_events_provider_id_unique').on(table.provider, table.id),
+  index('billing_webhook_events_tenant_received_idx').on(table.tenantId, table.receivedAt),
 ]);
 
 export const billingPaymentMethods = sqliteTable('billing_payment_methods', {

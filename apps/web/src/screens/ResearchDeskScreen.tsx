@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ExternalLink, FileCheck2, Search, ShieldCheck } from 'lucide-react';
 import { AuthorityVerification, SearchResultItem, useApp } from '../context/AppContext';
 import { createSearchIntent } from '../operations/contracts';
@@ -25,11 +25,14 @@ export const ResearchDeskScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchState, setSearchState] = useState<{ state: 'idle' | 'loading' | 'unavailable' | 'error' } | { state: 'ready'; chargedCents: number; resultCount: number; isReplay: boolean }>({ state: 'idle' });
-  const model = createResearchDeskModel({ tribunals: tribunals.data, search: searchState, verificationStatus: verification?.status });
+  const model = useMemo(
+    () => createResearchDeskModel({ tribunals: tribunals.data, search: searchState, verificationStatus: verification?.status }),
+    [tribunals.data, searchState, verification?.status],
+  );
 
   useEffect(() => {
     if (!model.courts.some((item) => item.code === court) && model.courts[0]) setCourt(model.courts[0].code);
-  }, [tribunals.data]);
+  }, [court, model.courts]);
 
   const search = async (event: React.FormEvent) => {
     event.preventDefault();

@@ -1,9 +1,13 @@
 packages:
-  - "packages/*"
-  - "apps/*"
+  - 'packages/*'
+  - 'apps/*'
 injectWorkspacePackages: true
 syncInjectedDepsAfterScripts:
   - build
+# Storage 8.2.0 still pulls gaxios 6.7.1, which requests vulnerable uuid 9.
+# Keep gaxios on its supported major and supply the patched CJS-compatible uuid.
+overrides:
+  gaxios@6.7.1>uuid: 11.1.1
 allowBuilds:
   esbuild: true
 minimumReleaseAgeExclude:

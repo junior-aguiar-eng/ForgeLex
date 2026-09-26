@@ -79,7 +79,7 @@ export class VersionedWorkflowRunner<TInput, TState, TResult> {
     let state = checkpoint
       ? (this.options.restoreState ? this.options.restoreState(checkpoint.state) : (checkpoint.state as TState))
       : initialState;
-    let startIndex = checkpoint
+    const startIndex = checkpoint
       ? checkpoint.status === 'FAILED'
         ? checkpoint.stepIndex
         : checkpoint.stepIndex + 1

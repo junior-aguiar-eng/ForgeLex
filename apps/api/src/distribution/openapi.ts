@@ -11,7 +11,7 @@ export interface PublicApiRouteDefinition {
   requiresAuthentication?: boolean;
   scopes?: readonly string[];
   toolName?: string;
-  requestBody?: 'object' | 'search-case-law' | 'verify-authority' | 'api-key' | 'account-bootstrap';
+  requestBody?: 'object' | 'search-case-law' | 'verify-authority' | 'api-key' | 'account-bootstrap' | 'account-closure';
   requiresIdempotencyKey?: boolean;
   responseSchema?: keyof typeof OPENAPI_SCHEMAS;
 }
@@ -34,6 +34,31 @@ const OPENAPI_SCHEMAS = {
     properties: { error: { type: 'string' }, message: { type: 'string' }, details: { type: 'object' } },
   },
   AccountBootstrapRequest: { type: 'object', additionalProperties: false, required: ['displayName'], properties: { displayName: { type: 'string', minLength: 2, maxLength: 120 } } },
+  AccountClosureRequest: {
+    type: 'object', additionalProperties: false, required: ['confirmation', 'policyVersion'],
+    properties: { confirmation: { type: 'string', enum: ['ENCERRAR MINHA CONTA'] }, policyVersion: { type: 'string', enum: ['2026-09-22.v1'] } },
+  },
+  AccountClosurePolicyResponse: {
+    type: 'object', additionalProperties: false,
+    required: ['enabled', 'version', 'confirmation', 'reauthenticationMaxAgeSeconds', 'deadlines', 'consequences', 'retention', 'personalTenantOnly'],
+    properties: {
+      enabled: { type: 'boolean' }, version: { type: 'string', enum: ['2026-09-22.v1'] }, confirmation: { type: 'string', enum: ['ENCERRAR MINHA CONTA'] },
+      reauthenticationMaxAgeSeconds: { type: 'integer' }, deadlines: { type: 'object', required: ['identityHours', 'privateContentDays', 'backupDays'], properties: { identityHours: { type: 'integer' }, privateContentDays: { type: 'integer' }, backupDays: { type: 'integer' } } },
+      consequences: { type: 'array', items: { type: 'string' } }, personalTenantOnly: { type: 'boolean', enum: [true] },
+      retention: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['category', 'disposition', 'deadline'], properties: { category: { type: 'string' }, disposition: { type: 'string' }, deadline: { type: 'string' } } } },
+    },
+  },
+  AccountClosureAcceptedResponse: {
+    type: 'object', additionalProperties: false, required: ['closureId', 'statusToken', 'status', 'requestedAt', 'policyVersion'],
+    properties: { closureId: { type: 'string' }, statusToken: { type: 'string' }, status: { type: 'string', enum: ['ACCESS_BLOCKED'] }, requestedAt: { type: 'string', format: 'date-time' }, policyVersion: { type: 'string', enum: ['2026-09-22.v1'] } },
+  },
+  AccountClosureStatusResponse: {
+    type: 'object', additionalProperties: false, required: ['closureId', 'status', 'requestedAt', 'updatedAt'],
+    properties: {
+      closureId: { type: 'string' }, status: { type: 'string', enum: ['REQUESTED', 'ACCESS_BLOCKED', 'IDENTITY_REMOVED', 'CREDENTIALS_REVOKED', 'CONTENT_PURGING', 'RETAINED_ONLY', 'COMPLETED', 'RECONCILIATION_REQUIRED'] },
+      requestedAt: { type: 'string', format: 'date-time' }, updatedAt: { type: 'string', format: 'date-time' }, accessBlockedAt: { type: 'string', format: 'date-time' }, identityRemovedAt: { type: 'string', format: 'date-time' }, completedAt: { type: 'string', format: 'date-time' }, lastErrorCode: { type: 'string' },
+    },
+  },
   ApiKeyRequest: { type: 'object', additionalProperties: false, required: ['name'], properties: { name: { type: 'string', minLength: 1 }, scopes: { type: 'array', items: { type: 'string' } } } },
   BillingCheckoutRequest: { type: 'object', additionalProperties: false, properties: { packageId: { type: 'string' }, amountCents: { type: 'integer', minimum: 2500, maximum: 50000 } } },
   PaymentMethodSetupRequest: { type: 'object', additionalProperties: false, properties: { returnUrl: { type: 'string', format: 'uri' } } },
@@ -98,6 +123,9 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/api/v2/webhooks/events', summary: 'Eventos de webhook', description: 'Lista os tipos de evento e o contrato de assinatura disponível.' },
   { method: 'post', path: '/api/v2/auth/bootstrap', summary: 'Preparar conta', description: 'Cria de forma idempotente o perfil e o espaço pessoal do usuário autenticado.', requiresAuthentication: true, requestBody: 'account-bootstrap' },
   { method: 'get', path: '/api/v2/auth/me', summary: 'Consultar conta', description: 'Retorna o perfil, o espaço pessoal e o vínculo do usuário autenticado.', requiresAuthentication: true },
+  { method: 'get', path: '/api/v2/account/closure-policy', summary: 'Consultar política de encerramento', description: 'Expõe a versão, as consequências e os prazos; não executa encerramento.', requiresAuthentication: true, responseSchema: 'AccountClosurePolicyResponse' },
+  { method: 'post', path: '/api/v2/account/closure', summary: 'Solicitar encerramento da conta', description: 'Encerramento irreversível, limitado ao tenant pessoal e desligado por padrão. Exige sessão Supabase com autenticação recente por senha, confirmação exata e Idempotency-Key.', requiresAuthentication: true, requestBody: 'account-closure', requiresIdempotencyKey: true, responseSchema: 'AccountClosureAcceptedResponse' },
+  { method: 'get', path: '/api/v2/account/closure/{closureId}', summary: 'Acompanhar encerramento', description: 'Consulta somente o estado e os horários por token opaco, sem sessão ou conteúdo privado.', responseSchema: 'AccountClosureStatusResponse' },
   { method: 'get', path: '/api/v2/billing/account', summary: 'Consultar conta de billing', description: 'Retorna saldo, pacotes, custo das operações ForgeLex e recarga automática.', scopes: ['billing:read'] },
   { method: 'get', path: '/api/v2/billing/transactions', summary: 'Listar extrato', description: 'Lista lançamentos, compras, pagamentos e solicitações de reembolso do tenant.', scopes: ['billing:read'] },
   { method: 'get', path: '/api/v2/billing/invoices', summary: 'Listar faturas', description: 'Lista faturas internas e recibos do provedor de pagamento disponíveis.', scopes: ['billing:read'] },
@@ -207,10 +235,19 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
       name: 'Idempotency-Key',
       in: 'header',
       required: true,
-      description: 'Chave fornecida pelo cliente para rastreabilidade. Na busca, permite replay financeiro sem novo débito; nas operações gratuitas, não cria replay financeiro.',
+      description: route.path === '/api/v2/account/closure'
+        ? 'Chave opaca para replay idempotente da mesma solicitação irreversível.'
+        : 'Chave fornecida pelo cliente para rastreabilidade. Na busca, permite replay financeiro sem novo débito; nas operações gratuitas, não cria replay financeiro.',
       schema: { type: 'string', minLength: 1 },
     };
     operation.parameters = [...(Array.isArray(operation.parameters) ? operation.parameters : []), header];
+  }
+  if (route.path === '/api/v2/account/closure/{closureId}') {
+    operation.parameters = [...(Array.isArray(operation.parameters) ? operation.parameters : []), {
+      name: 'X-Closure-Token', in: 'header', required: true,
+      description: 'Token opaco entregue somente na aceitação do encerramento.',
+      schema: { type: 'string', pattern: '^flx_close_[A-Za-z0-9_-]{43}$' },
+    }];
   }
   if (route.requiresAuthentication || (route.scopes && route.scopes.length > 0)) {
     operation.security = [{ BearerAuth: [] }];
@@ -260,6 +297,8 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
           ? { $ref: '#/components/schemas/ApiKeyRequest' }
           : route.requestBody === 'account-bootstrap'
             ? { $ref: '#/components/schemas/AccountBootstrapRequest' }
+          : route.requestBody === 'account-closure'
+            ? { $ref: '#/components/schemas/AccountClosureRequest' }
           : { $ref: `#/components/schemas/${OBJECT_REQUEST_SCHEMA_BY_PATH[route.path]}` };
     operation.requestBody = { required: true, content: { 'application/json': { schema } } };
   }
@@ -270,6 +309,26 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
       '404': { description: 'Recurso não localizado no tenant autenticado.' },
       '503': { description: 'Infraestrutura jurisprudencial ou provider indisponível.' },
     });
+  }
+  if (route.path === '/api/v2/account/closure') {
+    operation['x-forgelex-error-codes'] = [
+      'ACCOUNT_CLOSURE_DISABLED', 'ACCOUNT_CLOSURE_REAUTH_REQUIRED', 'ACCOUNT_CLOSURE_CONFIRMATION_INVALID',
+      'ACCOUNT_CLOSURE_POLICY_VERSION_MISMATCH', 'ACCOUNT_CLOSURE_REQUIRES_OWNERSHIP_TRANSFER',
+      'ACCOUNT_CLOSURE_IDEMPOTENCY_CONFLICT', 'SESSION_REQUIRED',
+    ];
+    const responses = operation.responses as Record<string, Record<string, unknown>>;
+    delete responses['200'];
+    responses['202'] = {
+      description: 'Conta bloqueada imediatamente; token de acompanhamento entregue.',
+      content: { 'application/json': { schema: { $ref: '#/components/schemas/AccountClosureAcceptedResponse' } } },
+    };
+    responses['400'] = { description: 'Confirmação ou chave de idempotência inválida.' };
+    responses['403'] = { description: 'Sessão obrigatória.' };
+    responses['404'] = { description: 'Recurso desligado por padrão.' };
+    responses['409'] = { description: 'Reautenticação, política, idempotência ou titularidade incompatíveis.' };
+  }
+  if (route.path === '/api/v2/account/closure/{closureId}') {
+    (operation.responses as Record<string, unknown>)['404'] = { description: 'Acompanhamento desabilitado.' };
   }
   for (const status of ['400', '401', '402', '403', '404', '409', '422', '503']) {
     const responses = operation.responses as Record<string, Record<string, unknown>>;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { connectionStateLabel, createPlatformConnection, deriveMcpConnectionSignals, isVerifiedConnection, type ConnectionState } from './connection-model';
+import { connectionStateLabel, createPlatformConnection, deriveMcpConnectionSignals, isLocalMcpUrl, isVerifiedConnection, type ConnectionState } from './connection-model';
 
 describe('modelo de conexão MCP', () => {
   it.each([
@@ -27,6 +27,24 @@ describe('modelo de conexão MCP', () => {
       mcpUrl: 'https://nexojuris.ia.br/mcp',
       lastVerifiedAt: null,
     });
+  });
+
+  it.each([
+    ['http://127.0.0.1:3001/mcp', true],
+    ['http://127.1:3001/mcp', true],
+    ['http://localhost:3001/mcp', true],
+    ['http://[::1]:3001/mcp', true],
+    ['http://192.168.1.10:3001/mcp', true],
+    ['http://10.0.0.3:3001/mcp', true],
+    ['http://172.20.0.3:3001/mcp', true],
+    ['http://169.254.1.3:3001/mcp', true],
+    ['http://forgelex.local:3001/mcp', true],
+    ['http://[fc00::1]:3001/mcp', true],
+    ['http://[fe80::1]:3001/mcp', true],
+    ['not-a-url', true],
+    ['https://mcp.forgelex.example/mcp', false],
+  ])('identifica se %s é apenas uma URL local', (url, expected) => {
+    expect(isLocalMcpUrl(url)).toBe(expected);
   });
 
   it('separa serviço, credencial e uso confirmado sem chamar nenhum sinal de ativo', () => {

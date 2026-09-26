@@ -564,7 +564,6 @@ export class OpenAIAgentProvider implements AgentProvider {
       if (internalAbortController.signal.aborted || input.abortSignal.aborted) {
         stateMachine.cancel();
         if (!terminalEventEmitted) {
-          terminalEventEmitted = true;
           yield {
             type: 'error',
             sessionId: input.sessionId,
@@ -584,7 +583,6 @@ export class OpenAIAgentProvider implements AgentProvider {
       );
       stateMachine.fail(message);
       if (!terminalEventEmitted) {
-        terminalEventEmitted = true;
         yield {
           type: 'error',
           sessionId: input.sessionId,

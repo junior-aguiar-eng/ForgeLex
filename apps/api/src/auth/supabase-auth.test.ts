@@ -4,6 +4,8 @@ import {
   SupabaseIdentityVerifier,
   SupabaseTokenVerifier,
   createSupabaseIdentityVerifier,
+  isRecentPasswordAuthentication,
+  readVerifiedPasswordAuthenticationAt,
 } from './fastify-auth.js';
 
 const activeAccount: StoredAccount = {
@@ -42,6 +44,11 @@ function verifierFor(body: unknown, status = 200) {
       return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
     },
   });
+}
+
+function jwt(payload: Record<string, unknown>): string {
+  const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  return `${encode({ alg: 'none', typ: 'JWT' })}.${encode(payload)}.`;
 }
 
 describe('Supabase authentication', () => {
@@ -102,5 +109,27 @@ describe('Supabase authentication', () => {
     expect(await unavailable.verify('access-token')).toBeNull();
     expect(createSupabaseIdentityVerifier({})).toBeUndefined();
     expect(createSupabaseIdentityVerifier({ FORGELEX_SUPABASE_URL: 'https://project.supabase.co' })).toBeUndefined();
+  });
+
+  it('usa somente a autenticação por senha mais recente do AMR verificado', () => {
+    const now = new Date('2026-09-22T12:00:00.000Z');
+    const nowSeconds = Math.floor(now.getTime() / 1_000);
+    expect(readVerifiedPasswordAuthenticationAt(jwt({
+      iat: nowSeconds,
+      amr: [{ method: 'token_refresh', timestamp: nowSeconds }],
+    }))).toBeUndefined();
+    expect(readVerifiedPasswordAuthenticationAt(jwt({
+      iat: nowSeconds,
+      amr: [
+        { method: 'password', timestamp: nowSeconds - 240 },
+        { method: 'password', timestamp: nowSeconds - 120 },
+      ],
+    }))).toBe(nowSeconds - 120);
+    expect(isRecentPasswordAuthentication(jwt({
+      amr: [{ method: 'password', timestamp: nowSeconds - 120 }],
+    }), now)).toBe(true);
+    expect(isRecentPasswordAuthentication(jwt({
+      amr: [{ method: 'password', timestamp: nowSeconds - 301 }],
+    }), now)).toBe(false);
   });
 });

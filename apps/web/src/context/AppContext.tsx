@@ -67,16 +67,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [recentSearches, setRecentSearches] = useState<OperationalResource<ResearchHistoryItem[]>>(OperationsClient.loading([]));
   const [reviewQueue, setReviewQueue] = useState<OperationalResource<ReviewQueueItem[]>>(OperationsClient.loading([]));
 
-  const refreshOperationalState = async (): Promise<void> => {
+  const refreshOperationalState = useCallback(async (): Promise<void> => {
     const [nextTribunals, nextHistory, nextQueue] = await Promise.all([
       client.loadTribunals(), client.loadHistory(), client.loadReviewQueue(),
     ]);
     setTribunals(nextTribunals);
     setRecentSearches(nextHistory);
     setReviewQueue(nextQueue);
-  };
+  }, [client]);
 
-  useEffect(() => { void refreshOperationalState(); }, []);
+  useEffect(() => { void refreshOperationalState(); }, [refreshOperationalState]);
 
   useEffect(() => {
     const syncFromLocation = () => {

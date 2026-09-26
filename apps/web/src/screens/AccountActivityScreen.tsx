@@ -30,16 +30,24 @@ export const AccountActivityScreen: React.FC = () => {
   const [transactions, setTransactions] = useState<BillingTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [billingUnavailable, setBillingUnavailable] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setBillingUnavailable(false);
     try {
       const [nextAccount, statement] = await Promise.all([getBillingAccount(), getBillingTransactions()]);
       setAccount(nextAccount);
       setTransactions(statement.items);
     } catch (cause) {
-      setError(cause instanceof ApiRequestError ? cause.message : 'Não foi possível carregar a atividade da conta.');
+      if (cause instanceof ApiRequestError && cause.code === 'BILLING_UNAVAILABLE') {
+        setAccount(null);
+        setTransactions([]);
+        setBillingUnavailable(true);
+      } else {
+        setError(cause instanceof ApiRequestError ? cause.message : 'Não foi possível carregar a atividade da conta.');
+      }
     } finally {
       setLoading(false);
     }
@@ -51,7 +59,7 @@ export const AccountActivityScreen: React.FC = () => {
   const summary = useMemo(() => summarizeActivities(activities), [activities]);
 
   if (loading && !account) return <div className="page-container py-16 text-sm text-stone-500">Carregando atividade da conta…</div>;
-  if (!account) return <div className="page-container py-12"><section className="surface max-w-2xl space-y-4 p-6 sm:p-8"><p className="eyebrow">Conta</p><h1 className="font-editorial text-3xl font-bold text-stone-900">Atividade indisponível</h1><p className="text-sm leading-relaxed text-stone-600">{error ?? 'A atividade fica disponível quando o faturamento estiver configurado.'}</p><button type="button" onClick={() => void load()} className="btn-secondary"><RefreshCw className="h-4 w-4" aria-hidden="true" />Tentar novamente</button></section></div>;
+  if (!account) return <div className="page-container py-12"><section className="surface max-w-2xl space-y-4 p-6 sm:p-8"><p className="eyebrow">Conta</p><h1 className="font-editorial text-3xl font-bold text-stone-900">{billingUnavailable ? 'Atividade financeira indisponível neste ambiente' : 'Não foi possível carregar a atividade'}</h1><p className="text-sm leading-relaxed text-stone-600">{billingUnavailable ? 'O faturamento não está habilitado neste ambiente. A atividade financeira não pode ser consultada aqui.' : error ?? 'Tente novamente em alguns instantes.'}</p><button type="button" onClick={() => void load()} className="btn-secondary"><RefreshCw className="h-4 w-4" aria-hidden="true" />Tentar novamente</button></section></div>;
 
   return <div className="py-8 md:py-12"><div className="page-container space-y-8">
     <div className="flex flex-col gap-4 border-b border-champagne-border pb-6 sm:flex-row sm:items-end sm:justify-between"><div><p className="eyebrow">Conta</p><h1 className="font-editorial text-3xl font-bold text-stone-900 sm:text-4xl">Atividade da conta</h1><p className="mt-1 max-w-2xl text-sm text-stone-500">Acompanhe o uso faturável por capacidade e canal. O ForgeLex não registra a sua consulta jurídica neste extrato.</p></div><button type="button" onClick={() => void load()} disabled={loading} className="btn-quiet">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}Atualizar</button></div>

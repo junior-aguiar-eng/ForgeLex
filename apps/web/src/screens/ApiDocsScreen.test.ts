@@ -11,6 +11,7 @@ describe('documentação de API', () => {
   it('atribui modelo e contexto ao host e limita a cobrança à busca STJ', () => {
     expect(operationalDisclosure).toContain('host fornece o modelo e o contexto');
     expect(operationalDisclosure).toContain('busca jurisprudencial no STJ');
+    expect(operationalDisclosure).not.toContain('R$ 0,20');
     expect(operationalDisclosure).not.toContain('cartão salvo');
     expect(operationalDisclosure).not.toContain('recarga automática');
   });

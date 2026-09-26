@@ -4,7 +4,7 @@ import { ApiRequestError, getMcpConnectionStatus, type McpConnectionStatusRespon
 import { ConnectionChecklist } from './connections/ConnectionChecklist';
 import { FirstUseExamples } from './connections/FirstUseExamples';
 import { PlatformConnectionCard } from './connections/PlatformConnectionCard';
-import { connectionStatusErrorMessage, createPlatformConnection, deriveMcpConnectionSignals, platformName, resolveMcpUrl, type HostPlatform } from './connections/connection-model';
+import { connectionStatusErrorMessage, createPlatformConnection, deriveMcpConnectionSignals, isLocalMcpUrl, platformName, resolveMcpUrl, type HostPlatform } from './connections/connection-model';
 
 export const ConnectionsScreen: React.FC = () => {
   const [platform, setPlatform] = useState<HostPlatform>('chatgpt');
@@ -19,6 +19,7 @@ export const ConnectionsScreen: React.FC = () => {
   const connectionSignals = connectionStatus ? deriveMcpConnectionSignals(connectionStatus) : [];
 
   const copyUrl = async () => {
+    if (isLocalMcpUrl(selectedConnection.mcpUrl)) return;
     try {
       await navigator.clipboard.writeText(selectedConnection.mcpUrl);
       setCopied(true);
@@ -71,7 +72,7 @@ export const ConnectionsScreen: React.FC = () => {
             <h2 id="availability-heading" className="font-editorial text-xl font-bold text-stone-900">Testar disponibilidade</h2>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-stone-600">Verifica a disponibilidade do ForgeLex e a credencial MCP. Nenhuma pesquisa jurídica, saldo ou crédito é consultado neste teste.</p>
           </div>
-          <button type="button" className="button-secondary shrink-0" onClick={() => void testAvailability()} disabled={testingAvailability}>{testingAvailability ? 'Testando disponibilidade…' : 'Testar disponibilidade'}</button>
+          <button type="button" className="btn-secondary min-h-11 shrink-0" onClick={() => void testAvailability()} disabled={testingAvailability}>{testingAvailability ? 'Testando disponibilidade…' : 'Testar disponibilidade'}</button>
         </div>
         {statusError ? <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{statusError}</p> : null}
         {connectionSignals.length > 0 ? <dl className="grid gap-3 md:grid-cols-3">{connectionSignals.map((signal) => <div key={signal.id} className="rounded-lg border border-stone-200 bg-stone-50 p-3"><dt className={signal.tone === 'ready' ? 'font-semibold text-emerald-800' : signal.tone === 'unavailable' ? 'font-semibold text-red-800' : 'font-semibold text-stone-700'}>{signal.label}</dt><dd className="mt-1 text-xs leading-relaxed text-stone-600">{signal.detail}</dd></div>)}</dl> : null}

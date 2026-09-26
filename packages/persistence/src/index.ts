@@ -13,6 +13,7 @@ export * from './repositories/workflow-checkpoint-repository.js';
 export * from './repositories/legal-thesis-repository.js';
 export * from './repositories/webhook-repository.js';
 export * from './repositories/account-repository.js';
+export * from './repositories/account-closure-repository.js';
 export * from './repositories/jurisprudence-repository.js';
 export * from './repositories/ingestion-run-repository.js';
 export * from './repositories/jurisprudence-source-manifest-repository.js';

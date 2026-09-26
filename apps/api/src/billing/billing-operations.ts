@@ -148,6 +148,19 @@ export class BillingOperationsService {
       const object = event.data.object;
       const metadata = typeof object.metadata === 'object' && object.metadata !== null ? object.metadata as Record<string, unknown> : {};
       const purchaseId = typeof metadata.purchase_id === 'string' ? metadata.purchase_id : undefined;
+      if (purchaseId) {
+        const purchases = await this.db.select({ tenantId: billingPurchases.tenantId })
+          .from(billingPurchases)
+          .where(eq(billingPurchases.id, purchaseId));
+        if (purchases[0]) {
+          await this.db.update(billingWebhookEvents)
+            .set({ tenantId: purchases[0].tenantId })
+            .where(and(
+              eq(billingWebhookEvents.provider, provider),
+              eq(billingWebhookEvents.id, event.id),
+            ));
+        }
+      }
       if (purchaseId && ['payment.approved', 'payment.succeeded'].includes(event.type)) {
         const paymentStatus = typeof object.payment_status === 'string' ? object.payment_status : 'paid';
         if (paymentStatus === 'paid' || event.type === 'payment.succeeded') await this.completePurchase(purchaseId, object, provider);
@@ -326,7 +339,7 @@ export class BillingOperationsService {
       return created[0];
     } catch (error) {
       if (this.isRefundOpenKeyConflict(error)) {
-        throw new Error('REFUND_REQUEST_ALREADY_PENDING');
+        throw new Error('REFUND_REQUEST_ALREADY_PENDING', { cause: error });
       }
       throw error;
     }

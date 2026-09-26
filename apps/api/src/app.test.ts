@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { buildApp } from './app.js';
 import { FastifyInstance } from 'fastify';
-import { AuthAdapter, hashApiKey } from './auth/fastify-auth.js';
+import { AuthAdapter, hashApiKey, SupabaseIdentityVerifier } from './auth/fastify-auth.js';
 import { AuthenticatedPrincipal, TokenVerifier } from '@forgelex/domain';
 import { createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
 import { runPersistenceMigrations } from '@forgelex/persistence';
@@ -12,6 +12,9 @@ import type { Client } from '@libsql/client';
 import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
 import { JurisprudenceIngestionService } from '@forgelex/legal-data';
 import { IngestionRunRepository, JurisprudenceRepository } from '@forgelex/persistence';
+import type { AccountClosureReconciler } from './account/account-closure-reconciler.js';
+import type { AccountClosureJournal } from './account/account-closure-journal.js';
+import type { AccountClosureRestoreGate } from './account/account-closure-restore.js';
 
 const testPrincipal: AuthenticatedPrincipal = {
   subjectId: 'subject_test',
@@ -162,6 +165,104 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     } finally {
       await unavailableApp.close();
     }
+  });
+
+  it('executa e encerra o worker de encerramento somente quando habilitado', async () => {
+    vi.useFakeTimers();
+    const runOne = vi.fn().mockResolvedValue('idle');
+    const workerApp = await buildApp({
+      database,
+      databaseClient: client,
+      ledgerService,
+      accountClosureReconciler: { runOne } as unknown as AccountClosureReconciler,
+      supabaseIdentityVerifier: new SupabaseIdentityVerifier({
+        baseUrl: 'https://project.supabase.co',
+        publishableKey: 'public-key',
+        fetchImpl: async () => new Response(null, { status: 401 }),
+      }),
+      environment: {
+        NODE_ENV: 'test',
+        FORGELEX_ACCOUNT_CLOSURE_ENABLED: 'true',
+        FORGELEX_ACCOUNT_CLOSURE_WORKER_ENABLED: 'true',
+        FORGELEX_ACCOUNT_CLOSURE_RECONCILER_INTERVAL_MS: '1200',
+        FORGELEX_ACCOUNT_CLOSURE_MAX_ATTEMPTS: '3',
+        FORGELEX_ACCOUNT_CLOSURE_STATUS_TOKEN_SECRET: 's'.repeat(64),
+        FORGELEX_ACCOUNT_CLOSURE_SUBJECT_HASH_SECRET: 'h'.repeat(64),
+      },
+    });
+    try {
+      await vi.advanceTimersByTimeAsync(1_200);
+      expect(runOne).toHaveBeenCalledTimes(1);
+      await workerApp.close();
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(runOne).toHaveBeenCalledTimes(1);
+    } finally {
+      await workerApp.close();
+      vi.useRealTimers();
+    }
+  });
+
+  it('expõe a reconciliação agendada apenas quando configurada e executa uma etapa', async () => {
+    expect((await app.inject({ method: 'POST', url: '/api/internal/account-closure/reconcile' })).statusCode).toBe(404);
+    const runOne = vi.fn().mockResolvedValue('completed');
+    const scheduledApp = await buildApp({
+      database,
+      databaseClient: client,
+      ledgerService,
+      accountClosureReconciler: { runOne } as unknown as AccountClosureReconciler,
+      environment: {
+        NODE_ENV: 'test',
+        FORGELEX_ACCOUNT_CLOSURE_SCHEDULER_ENABLED: 'true',
+      },
+    });
+    try {
+      const response = await scheduledApp.inject({ method: 'POST', url: '/api/internal/account-closure/reconcile' });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ result: 'completed' });
+      expect(runOne).toHaveBeenCalledTimes(1);
+    } finally {
+      await scheduledApp.close();
+    }
+  });
+
+  it('nega rotas de negócio enquanto o diário externo não foi conferido', async () => {
+    let verified = false;
+    const gate = {
+      check: async () => verified,
+      isVerified: () => verified,
+      invalidate: () => { verified = false; },
+    } as unknown as AccountClosureRestoreGate;
+    const guarded = await buildApp({
+      database,
+      databaseClient: client,
+      ledgerService,
+      authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
+      accountClosureJournal: { list: async () => [] } as unknown as AccountClosureJournal,
+      accountClosureRestoreGate: gate,
+      environment: {
+        NODE_ENV: 'test',
+        FORGELEX_ACCOUNT_CLOSURE_JOURNAL_REQUIRED: 'true',
+        FORGELEX_ACCOUNT_CLOSURE_JOURNAL_KEY_SECRET: 'j'.repeat(64),
+        FORGELEX_ACCOUNT_CLOSURE_JOURNAL_ANCHOR_ID: 'synthetic_anchor_1234567890',
+        FORGELEX_ACCOUNT_CLOSURE_JOURNAL_ACTIVE_KEY_VERSION: 'v1',
+        FORGELEX_ACCOUNT_CLOSURE_JOURNAL_ENCRYPTION_KEYS_JSON: JSON.stringify({ v1: Buffer.alloc(32, 7).toString('base64') }),
+        FORGELEX_ACCOUNT_CLOSURE_SUBJECT_HASH_SECRET: 'h'.repeat(64),
+      },
+    });
+    try {
+      expect((await guarded.inject({ method: 'GET', url: '/readyz' })).statusCode).toBe(503);
+      expect((await guarded.inject({ method: 'GET', url: '/api/v2/tribunals' })).statusCode).toBe(503);
+      verified = true;
+      expect((await guarded.inject({ method: 'GET', url: '/api/v2/tribunals' })).statusCode).not.toBe(503);
+    } finally {
+      await guarded.close();
+    }
+  });
+
+  it('não inicia encerramento fora de testes sem diário obrigatório, mesmo sem NODE_ENV', async () => {
+    await expect(buildApp({
+      environment: { FORGELEX_ACCOUNT_CLOSURE_ENABLED: 'true' },
+    })).rejects.toThrow('ACCOUNT_CLOSURE_JOURNAL_CONFIG_REQUIRED');
   });
 
   it('GET /api/v2/mcp/connection-status separa serviço de credencial sem expor segredo ou criar débito', async () => {
@@ -453,6 +554,15 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
     expect(body.openapi).toBe('3.1.0');
+    const closure = body.paths['/api/v2/account/closure'].post;
+    expect(closure.parameters).toContainEqual(expect.objectContaining({ name: 'Idempotency-Key', required: true }));
+    expect(closure.responses['202'].content['application/json'].schema.$ref).toBe('#/components/schemas/AccountClosureAcceptedResponse');
+    expect(closure.requestBody.content['application/json'].schema.$ref).toBe('#/components/schemas/AccountClosureRequest');
+    expect(closure.description).toContain('irreversível');
+    expect(closure.description).toContain('desligado por padrão');
+    expect(body.paths['/api/v2/account/closure-policy'].get.responses['200'].content['application/json'].schema.$ref).toBe('#/components/schemas/AccountClosurePolicyResponse');
+    expect(body.paths['/api/v2/account/closure/{closureId}'].get.parameters).toContainEqual(expect.objectContaining({ name: 'X-Closure-Token', required: true }));
+    expect(body.paths['/api/v2/account/closure/{closureId}'].get.responses['200'].content['application/json'].schema.$ref).toBe('#/components/schemas/AccountClosureStatusResponse');
     expect(body.paths['/api/v2/research/search-case-law'].post['x-forgelex-tool']).toBe('research.search_case_law');
     expect(body.paths['/api/v2/research/search-case-law'].post['x-forgelex-tool-contract']).toMatchObject({
       contractVersion: '1.0.0',

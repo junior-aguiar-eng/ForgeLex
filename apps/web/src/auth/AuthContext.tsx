@@ -34,7 +34,10 @@ interface AuthContextValue {
   signUp: (input: { displayName: string; email: string; password: string }) => Promise<{ confirmationRequired: boolean }>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signOutAfterClosure: () => Promise<void>;
+  reauthenticateForClosure: (password: string) => Promise<string>;
   sendPasswordReset: (email: string) => Promise<void>;
+  requestPasswordChange: () => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   clearPasswordRecovery: () => void;
 }
@@ -94,6 +97,50 @@ function accountDisplayName(session: Session): string {
   return typeof metadataName === 'string' && metadataName.trim().length >= 2
     ? metadataName.trim()
     : session.user.email?.split('@')[0] ?? 'Usuário ForgeLex';
+}
+
+interface ClosureAuthClient {
+  getSession: () => Promise<{ data: { session: { user: { id: string } } | null } }>;
+  signOut?: (options: { scope: 'local' }) => Promise<unknown>;
+  signInWithPassword: (input: { email: string; password: string }) => Promise<{
+    data: { user: { id: string } | null; session: { user: { id: string }; access_token: string } | null };
+    error: Error | null;
+  }>;
+}
+
+function hasRecentPasswordProof(token: string): boolean {
+  try {
+    const segment = token.split('.')[1];
+    if (!segment) return false;
+    const base64 = segment.replace(/-/g, '+').replace(/_/g, '/');
+    const payload: unknown = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')));
+    if (!payload || typeof payload !== 'object' || !('amr' in payload) || !Array.isArray(payload.amr)) return false;
+    const now = Math.floor(Date.now() / 1000);
+    return payload.amr.some((entry: unknown) => {
+      if (!entry || typeof entry !== 'object' || !('method' in entry) || !('timestamp' in entry)) return false;
+      return entry.method === 'password' && typeof entry.timestamp === 'number' && Number.isSafeInteger(entry.timestamp)
+        && now - entry.timestamp >= 0 && now - entry.timestamp <= 300;
+    });
+  } catch { return false; }
+}
+
+export async function reauthenticateClosureIdentity(auth: ClosureAuthClient, account: { email: string }, password: string): Promise<string> {
+  if (!password || !account.email) throw new Error('Informe sua senha para confirmar a identidade.');
+  const { data: current } = await auth.getSession();
+  if (!current.session) throw new Error('Sua sessão expirou. Entre novamente antes de encerrar a conta.');
+  const { data, error } = await auth.signInWithPassword({ email: account.email, password });
+  if (error || !data.session || !data.user) throw new Error('Não foi possível confirmar a senha. Confira os dados e tente novamente.');
+  if (data.user.id !== current.session.user.id || data.session.user.id !== current.session.user.id) {
+    try { await auth.signOut?.({ scope: 'local' }); } catch { /* A identidade divergente continua rejeitada. */ }
+    throw new Error('A identidade autenticada não corresponde à conta atual.');
+  }
+  if (!hasRecentPasswordProof(data.session.access_token)) throw new Error('A autenticação por senha não foi confirmada. Entre novamente.');
+  return data.session.access_token;
+}
+
+export async function signOutAfterClosure(auth: { signOut: (options: { scope: 'local' }) => Promise<{ error: Error | null }> }): Promise<void> {
+  const { error } = await auth.signOut({ scope: 'local' });
+  if (error) throw new Error('Não foi possível encerrar a sessão local. Feche esta aba após guardar o recibo.');
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -197,6 +244,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setStatus(supabase ? 'signed_out' : 'unconfigured');
   }, []);
 
+  const reauthenticateForClosure = useCallback(async (password: string) => {
+    if (!supabase || !account) throw new Error('Entre na sua conta antes de solicitar o encerramento.');
+    return reauthenticateClosureIdentity(supabase.auth, account.user, password);
+  }, [account]);
+
+  const closeLocalSession = useCallback(async () => {
+    try {
+      if (supabase) await signOutAfterClosure(supabase.auth);
+    } finally {
+      setAccount(undefined);
+      setPasswordRecovery(false);
+      setPasswordRecoveryError(false);
+      setStatus('signed_out');
+    }
+  }, []);
+
   const clearPasswordRecovery = useCallback(() => {
     setPasswordRecovery(false);
     setPasswordRecoveryError(false);
@@ -210,6 +273,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw friendlySupabaseError(error, 'Não foi possível enviar a mensagem. Tente novamente em instantes.');
   }, []);
 
+  const requestPasswordChange = useCallback(async () => {
+    if (!account?.user.email) throw new Error('Entre com sua conta para alterar a senha.');
+    await sendPasswordReset(account.user.email);
+  }, [account?.user.email, sendPasswordReset]);
+
   const updatePassword = useCallback(async (password: string) => {
     if (!supabase) throw new Error('O acesso ainda não está configurado neste ambiente.');
     const { error } = await supabase.auth.updateUser({ password });
@@ -219,7 +287,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data.session) await loadAccount(data.session);
   }, [loadAccount]);
 
-  const value = useMemo(() => ({ status, account, passwordRecovery, passwordRecoveryError, signUp, signIn, signOut, sendPasswordReset, updatePassword, clearPasswordRecovery }), [
+  const value = useMemo(() => ({ status, account, passwordRecovery, passwordRecoveryError, signUp, signIn, signOut, signOutAfterClosure: closeLocalSession, reauthenticateForClosure, sendPasswordReset, requestPasswordChange, updatePassword, clearPasswordRecovery }), [
     status,
     account,
     passwordRecovery,
@@ -227,7 +295,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signIn,
     signOut,
+    closeLocalSession,
+    reauthenticateForClosure,
     sendPasswordReset,
+    requestPasswordChange,
     updatePassword,
     clearPasswordRecovery,
   ]);

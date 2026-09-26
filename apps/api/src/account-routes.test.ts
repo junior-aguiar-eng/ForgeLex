@@ -93,4 +93,15 @@ describe('Account routes', () => {
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.body)).toMatchObject({ user: { email: 'pessoa@exemplo.com' }, membership: { role: 'OWNER' } });
   });
+
+  it('não publica encerramento antes de existir política de retenção aprovada', async () => {
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/api/v2/account',
+      headers: { authorization: 'Bearer access-token' },
+      payload: { confirmation: 'ENCERRAR' },
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
 });

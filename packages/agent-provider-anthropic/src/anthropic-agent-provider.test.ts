@@ -251,6 +251,7 @@ describe('AnthropicAgentProvider (Claude)', () => {
         await new Promise<void>((resolve) => {
           params.options.abortController.signal.addEventListener('abort', resolve, { once: true });
         });
+        yield* [];
       })();
       return Object.assign(messages, { close: vi.fn() });
     });

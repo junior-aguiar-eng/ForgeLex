@@ -6,6 +6,8 @@ import AuthScreen from './screens/AuthScreen';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { Scale } from 'lucide-react';
 import { parseBillingReturn } from './billing-return';
+import { PublicSite } from './public/PublicSite';
+import { resolveSiteRoute, safeWorkspaceDestination, type SiteRoute } from './navigation/site-routes';
 
 const LandingScreen = lazy(() => import('./screens/LandingScreen').then(({ LandingScreen: screen }) => ({ default: screen })));
 const ResearchDeskScreen = lazy(() => import('./screens/ResearchDeskScreen').then(({ ResearchDeskScreen: screen }) => ({ default: screen })));
@@ -15,6 +17,8 @@ const DashboardScreen = lazy(() => import('./screens/DashboardScreen').then(({ D
 const ConnectionsScreen = lazy(() => import('./screens/ConnectionsScreen').then(({ ConnectionsScreen: screen }) => ({ default: screen })));
 const CreditsScreen = lazy(() => import('./screens/CreditsScreen').then(({ CreditsScreen: screen }) => ({ default: screen })));
 const AccountActivityScreen = lazy(() => import('./screens/AccountActivityScreen').then(({ AccountActivityScreen: screen }) => ({ default: screen })));
+const AccountSecurityScreen = lazy(() => import('./screens/AccountSecurityScreen').then(({ AccountSecurityScreen: screen }) => ({ default: screen })));
+const AccountClosureStatusScreen = lazy(() => import('./screens/AccountClosureStatusScreen').then(({ AccountClosureStatusScreen: screen }) => ({ default: screen })));
 const ApiKeysScreen = lazy(() => import('./screens/ApiKeysScreen').then(({ ApiKeysScreen: screen }) => ({ default: screen })));
 const ForLawyersGuideScreen = lazy(() => import('./screens/ForLawyersGuideScreen').then(({ ForLawyersGuideScreen: screen }) => ({ default: screen })));
 const ApiDocsScreen = lazy(() => import('./screens/ApiDocsScreen').then(({ ApiDocsScreen: screen }) => ({ default: screen })));
@@ -56,6 +60,7 @@ const AppContent: React.FC = () => {
             {activeTab === 'connections' && <ConnectionsScreen />}
             {activeTab === 'credits' && <CreditsScreen />}
             {activeTab === 'account_activity' && <AccountActivityScreen />}
+            {activeTab === 'account_security' && <AccountSecurityScreen />}
             {activeTab === 'api_keys' && <ApiKeysScreen />}
             {activeTab === 'for_lawyers_guide' && <ForLawyersGuideScreen />}
             {activeTab === 'api_docs' && <ApiDocsScreen />}
@@ -70,6 +75,10 @@ const AppContent: React.FC = () => {
             <span className="font-editorial font-bold text-stone-800">ForgeLex</span>
             <span>· espaço de trabalho jurídico</span>
           </div>
+          <nav aria-label="Documentos legais" className="flex flex-wrap gap-x-4 gap-y-1">
+            <a className="hover:text-cognac-700 hover:underline" href="/legal/encerramento-de-conta.html">Termos de encerramento</a>
+            <a className="hover:text-cognac-700 hover:underline" href="/legal/retencao-pos-encerramento.html">Política de destinação</a>
+          </nav>
           <span>© 2026 · informação institucional</span>
         </div>
       </footer>
@@ -77,12 +86,43 @@ const AppContent: React.FC = () => {
   );
 };
 
+const AuthEntry: React.FC<{ route: SiteRoute }> = ({ route }) => {
+  const { status, passwordRecovery, passwordRecoveryError } = useAuth();
+  React.useEffect(() => {
+    if (route.kind !== 'auth' || (status !== 'authenticated' && status !== 'legacy') || passwordRecovery || passwordRecoveryError) return;
+    const next = safeWorkspaceDestination(new URLSearchParams(window.location.search).get('next'));
+    window.location.replace(next);
+  }, [route, status, passwordRecovery, passwordRecoveryError]);
+
+  if (route.kind === 'auth') {
+    if ((status === 'authenticated' || status === 'legacy') && !passwordRecovery && !passwordRecoveryError) {
+      return <div className="page-container py-16 text-sm text-stone-500">Abrindo seu espaço de trabalho…</div>;
+    }
+    return <AuthScreen key={route.view} initialView={route.view} status={status} onBackToLanding={() => window.location.assign('/')} />;
+  }
+  return <AppProvider><AppContent /></AppProvider>;
+};
+
 export const App: React.FC = () => {
+  if (typeof window !== 'undefined' && window.location.pathname === '/conta/encerramento') {
+    return <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando acompanhamento…</div>}><AccountClosureStatusScreen /></Suspense>;
+  }
+  if (typeof window !== 'undefined' && window.location.pathname === '/' && parseBillingReturn(window.location.search)) {
+    window.history.replaceState({}, document.title, `/app/conta${window.location.search}${window.location.hash}`);
+  }
+  const recoveryCallback = typeof window !== 'undefined' && window.location.pathname === '/' && (
+    new URLSearchParams(window.location.search).get('type') === 'recovery'
+    || new URLSearchParams(window.location.hash.replace(/^#/, '')).get('type') === 'recovery'
+    || new URLSearchParams(window.location.search).has('error_code')
+    || new URLSearchParams(window.location.hash.replace(/^#/, '')).has('error_code')
+    || new URLSearchParams(window.location.search).get('error') === 'access_denied'
+    || new URLSearchParams(window.location.hash.replace(/^#/, '')).get('error') === 'access_denied'
+  );
+  const route: SiteRoute = recoveryCallback ? { kind: 'auth', view: 'sign_in' } : resolveSiteRoute(window.location.pathname);
+  if (route.kind === 'public') return <PublicSite page={route.page} />;
   return (
     <AuthProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
+      <AuthEntry route={route} />
     </AuthProvider>
   );
 };
