@@ -1,0 +1,11 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file
+      - ops/gcp/stj-ingestion/Dockerfile
+      - --tag
+      - ${_IMAGE_URI}:${_IMAGE_TAG}
+      - .
+images:
+  - ${_IMAGE_URI}:${_IMAGE_TAG}

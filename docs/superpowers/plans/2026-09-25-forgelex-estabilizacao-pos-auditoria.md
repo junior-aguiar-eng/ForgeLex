@@ -340,27 +340,27 @@ Expected: o código do artefato atualmente publicado é ancestral de `main`, e o
 - Consumes: manifestos e serviço de ingestão existentes, Cloud SQL e fonte oficial STJ.
 - Produces: relatório saneado `{lastSuccessfulManifestAt, pending, failed, terminalGaps, lagHours}` e job idempotente.
 
-- [ ] **Step 1: testar cálculo de frescor**
+- [x] **Step 1: testar cálculo de frescor**
 
 Cobrir corpus atual, ausência de execução, execução em andamento, falha transitória e lacuna terminal oficial que não deve manter alerta infinito.
 
-- [ ] **Step 2: implementar relatório read-only**
+- [x] **Step 2: implementar relatório read-only**
 
 O script não deve baixar fonte, alterar manifesto ou expor conteúdo jurisprudencial; deve sair com código não zero quando `lagHours` ultrapassar o limite configurado.
 
-- [ ] **Step 3: empacotar ingestão como Cloud Run Job**
+- [x] **Step 3: empacotar ingestão como Cloud Run Job**
 
 Usar imagem dedicada sem servidor HTTP, secrets somente por referência e service account com acesso mínimo ao Cloud SQL e à rede necessária.
 
-- [ ] **Step 4: validar em homologação manualmente**
+- [x] **Step 4: validar em homologação manualmente**
 
 Executar duas vezes: a primeira processa somente recursos novos; a segunda prova idempotência sem novas versões indevidas.
 
-- [ ] **Step 5: agendar somente após o ensaio**
+- [x] **Step 5: agendar somente após o ensaio**
 
 Criar Scheduler para o job com frequência inicial conservadora diária. Falha do job deve gerar alerta; sobreposição deve ser impedida.
 
-- [ ] **Step 6: publicar a evidência de cobertura**
+- [x] **Step 6: publicar a evidência de cobertura**
 
 Atualizar `docs/jurisprudencia/stj-historical-source.md` apenas com contagens e datas efetivamente observadas.
 

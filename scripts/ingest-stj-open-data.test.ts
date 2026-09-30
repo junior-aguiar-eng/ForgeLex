@@ -11,7 +11,7 @@ import {
   JurisprudenceSourceManifestRepository,
   runPersistenceMigrations,
 } from '../packages/persistence/dist/index.js';
-import { existingResourceDisposition, parseIngestArgs, runIngestion, shouldProcessStjResource } from './ingest-stj-open-data.mjs';
+import { existingResourceDisposition, parseIngestArgs, runIngestion, shouldProcessStjResource, withSingleFlight } from './ingest-stj-open-data.mjs';
 
 describe('ingest-stj-open-data CLI', () => {
   const databasePaths = [];
@@ -26,11 +26,40 @@ describe('ingest-stj-open-data CLI', () => {
       database: 'file:local.db',
       dryRun: true,
       dataset: 'dataset-1',
+      incremental: false,
+      singleFlight: false,
     });
   });
 
   it('rejeita execução sem database', () => {
     expect(() => parseIngestArgs([])).toThrow('--database');
+  });
+
+  it('aceita banco no ambiente para o job sem expor a URL nos argumentos', () => {
+    expect(parseIngestArgs(['--incremental', '--single-flight'], { DATABASE_URL: 'postgres://localhost/db' })).toEqual({
+      database: 'postgres://localhost/db', dryRun: false, dataset: undefined, incremental: true, singleFlight: true,
+    });
+  });
+
+  it('impede sobreposição e libera o lock após a execução', async () => {
+    const events = [];
+    const transaction = {
+      execute: async () => ({ rows: [{ acquired: true }] }),
+      rollback: async () => { events.push('released'); },
+    };
+    const connection = { db: { $forgelexDialect: 'postgres' }, client: { transaction: async () => transaction, close: () => events.push('closed') } };
+    await expect(withSingleFlight('postgres://localhost/db', async () => { events.push('task'); return 7; }, async () => connection)).resolves.toBe(7);
+    expect(events).toEqual(['task', 'released', 'closed']);
+    transaction.execute = async () => ({ rows: [{ acquired: false }] });
+    await expect(withSingleFlight('postgres://localhost/db', async () => 8, async () => connection)).rejects.toThrow('STJ_INGESTION_ALREADY_RUNNING');
+  });
+
+  it('recusa modo incremental sem corpus previamente carregado', async () => {
+    const databasePath = join(tmpdir(), `.forgelex-empty-ingest-${randomUUID()}.db`);
+    databasePaths.push(databasePath);
+    const provider = { id: 'provider_stj_open_data', discover: async () => ({ resources: [], unclassifiedResourceDetails: [] }) };
+    await expect(runIngestion(['--database', pathToFileURL(databasePath).toString(), '--incremental'], { provider }))
+      .rejects.toThrow('STJ_INGESTION_BASELINE_REQUIRED');
   });
 
   it('não permite incremental depois que o snapshot histórico do mesmo dataset falha', () => {
@@ -156,6 +185,10 @@ describe('ingest-stj-open-data CLI', () => {
       'SKIPPED_ALREADY_COMPLETED',
       'SKIPPED_TERMINAL_SOURCE_GAP',
     ]);
+    processedResources.length = 0;
+    const incremental = await runIngestion(['--database', databaseUrl, '--incremental'], { provider });
+    expect(processedResources).toEqual([]);
+    expect(incremental.summaries.map((summary) => summary.status)).toEqual(result.summaries.map((summary) => summary.status));
     const verification = await createDatabase({ url: databaseUrl });
     const unclassifiedCount = await verification.client.execute({
       sql: "SELECT count(*) AS count FROM jurisprudence_source_manifests WHERE resource_id = 'resource-unclassified'",
