@@ -384,7 +384,7 @@ Atualizar `docs/jurisprudencia/stj-historical-source.md` apenas com contagens e 
 - Consumes: `main` integrado e serviços HML existentes.
 - Produces: autoridade de produção identificável por projeto, região, serviço, banco, Supabase, domínio e digest.
 
-- [ ] **Step 1: decidir entre promoção e isolamento**
+- [x] **Step 1: decidir entre promoção e isolamento**
 
 Comparar:
 
@@ -401,7 +401,7 @@ Registrar recursos, service accounts, secrets, banco, storage, Scheduler, DNS, c
 
 Imagem deve ser tagueada por SHA de `main` e registrada por digest. `latest` ou tag editorial isolada não pode ser a identidade de release.
 
-- [ ] **Step 4: validar configuração do frontend no build**
+- [x] **Step 4: validar configuração do frontend no build**
 
 Confirmar `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` no artefato sem imprimir valores; impedir qualquer `service_role`/secret no bundle.
 
