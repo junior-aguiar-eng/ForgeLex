@@ -2,15 +2,17 @@
 
 Autoridade e sequência: [decisão de topologia](../../../docs/operations/production/topology-decision.md).
 Este runbook não autoriza execução remota por si só. O Cloud SQL e o Supabase
-atuais são a autoridade das contas reais; `hml.nexojuris.ia.br` ainda aponta
-ao mesmo serviço que a raiz até a host rule ser separada.
+atuais são a autoridade das contas reais. Em 30/09/2026, as host rules foram
+separadas e testadas; o registro da execução está em
+[`2026-09-26-phase4b.md`](../../../docs/operations/stabilization/2026-09-26-phase4b.md).
+O serviço antigo `forgelex-api-hml` permanece como fallback de produção.
 
 ## Pré-condições verificáveis
 
 - Fases 4A e 4B integradas em `main`, CI verde no SHA final e checkout limpo.
 - Orçamento Google Cloud e custo do novo Cloud SQL HML registrados e aprovados.
 - Supabase HML `hhemvrxygfzbzpgmohfj` criado na organização `nexohub`,
-  ainda vazio e destinado apenas a contas sintéticas. Supabase de produção:
+  com contas sintéticas e destinado apenas a ensaios. Supabase de produção:
   projeto `mmywgqttfthtwntjkqgh`. Confirmar as
   [redirect URLs de Auth](https://supabase.com/docs/guides/auth/redirect-urls)
   antes do ensaio.
@@ -27,7 +29,7 @@ O Cloud SQL HML `forgelex-hml-isolated-pg` está isolado do banco produtivo,
 com 20 GiB SSD, somente IP privado, backups e crescimento automático
 desabilitados. Sua VPC é `forgelex-hml-vpc`, subnet
 `forgelex-hml-sa-east1` em `southamerica-east1`. O serviço Cloud Run HML
-deverá usar Direct VPC egress nessa subnet. O banco está parado por padrão;
+usa Direct VPC egress nessa subnet. O banco fica parado por padrão;
 inicie-o somente para configuração ou ensaio e pare após a verificação:
 
 ```powershell
@@ -37,7 +39,7 @@ gcloud sql instances patch forgelex-hml-isolated-pg --project=project-bbbe1209-c
 gcloud sql instances describe forgelex-hml-isolated-pg --project=project-bbbe1209-c295-4720-867 --format='value(state,settings.activationPolicy)'
 ```
 
-Enquanto `STOPPED`, `/readyz` do futuro serviço HML não passará. Não usar
+Enquanto `STOPPED`, `/readyz` do serviço HML não passará. Não usar
 essa indisponibilidade esperada para inferir falha de produção. Como não há
 backup automático, o ambiente HML só pode conter fixtures e corpus
 reconstituíveis. O SSD continua cobrado mesmo com a instância parada.

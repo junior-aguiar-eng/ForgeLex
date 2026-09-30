@@ -393,11 +393,11 @@ Comparar:
 
 Recomendação: isolamento, porque contas reais, billing e encerramento já compartilham o ambiente de homologação.
 
-- [ ] **Step 2: fixar inventário e custos**
+- [x] **Step 2: fixar inventário e custos**
 
 Registrar recursos, service accounts, secrets, banco, storage, Scheduler, DNS, certificados, orçamento e política de escala antes de provisionar.
 
-- [ ] **Step 3: construir por SHA imutável**
+- [x] **Step 3: construir por SHA imutável**
 
 Imagem deve ser tagueada por SHA de `main` e registrada por digest. `latest` ou tag editorial isolada não pode ser a identidade de release.
 
@@ -405,7 +405,7 @@ Imagem deve ser tagueada por SHA de `main` e registrada por digest. `latest` ou 
 
 Confirmar `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` no artefato sem imprimir valores; impedir qualquer `service_role`/secret no bundle.
 
-- [ ] **Step 5: executar ensaio de promoção e rollback**
+- [x] **Step 5: executar ensaio de promoção e rollback**
 
 Validar revisão sem tráfego, `readyz`, banco, auth, billing desabilitado para a conta de ensaio, REST, MCP e retorno à revisão anterior.
 
