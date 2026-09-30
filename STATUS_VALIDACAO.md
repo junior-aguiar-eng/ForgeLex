@@ -1,5 +1,23 @@
 # Auditoria e status canônico do ForgeLex
 
+## Fase 4B da estabilização — preparação de topologia (26/09/2026)
+
+A decisão registrada é preservar o Cloud SQL e o Supabase atuais como
+autoridade dos dados reais e criar uma homologação separada. Boni determinou
+reutilizar o projeto Supabase atual na produção. O novo projeto Supabase HML
+`hhemvrxygfzbzpgmohfj` está ativo e vazio. A validação local do build
+frontend passou, mas a Fase 4B ainda não atingiu o gate: o orçamento de
+R$ 100/mês foi identificado e, após aprovação de custo, o Cloud SQL isolado
+`forgelex-hml-isolated-pg` foi criado com 20 GiB SSD e está `STOPPED`, apenas
+com IP privado. Faltam runtime/segredos/bucket HML, integração em `main`,
+revisão remota sem tráfego e prova de
+rollback dos hosts. A PR da Fase 4A está aberta, com seis checks verdes, sem
+merge. A correção autorizada de grants no Supabase produtivo foi aplicada:
+46/46 tabelas `public` com RLS, nenhuma com `SELECT` para `anon` ou
+`authenticated`; `service_role` preservada. Inventário, limite dos privilégios
+padrão de `supabase_admin` e pendências estão em
+`docs/operations/stabilization/2026-09-26-phase4b.md`.
+
 ## Fase 4A da estabilização — ingestão STJ diária em homologação (26/09/2026)
 
 O Cloud Run Job dedicado `forgelex-stj-ingestion-hml` foi executado duas vezes
