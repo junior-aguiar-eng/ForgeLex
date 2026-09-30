@@ -1,8 +1,19 @@
 # Fase 4B — autoridade de produção e separação de homologação
 
+**Estado em 30/09/2026:** a decisão abaixo foi executada. A raiz usa
+`forgelex-api-prod` com os dados produtivos existentes; o subdomínio HML usa
+`forgelex-api-hml-isolated` com banco e Supabase próprios. O serviço antigo
+`forgelex-api-hml` permanece como backend padrão de rollback, ainda conectado
+aos dados reais. As duas host rules foram testadas com ida e volta observadas
+no domínio e nos logs. O Cloud SQL HML está `STOPPED` fora dos ensaios, por
+autorização de uso sob demanda, e o subdomínio não fica operacional nesse
+estado. A evidência de build, digests, testes e limites consta em
+[`2026-09-26-phase4b.md`](../stabilization/2026-09-26-phase4b.md).
+
 Data do inventário: 2026-09-26. Checkout de preparação: `feat/production-topology-4b`,
-partindo de `bb6cb7258c8dec45f75ac8f98be1abf6a9a44ab7`. Esta decisão não
-declara que a troca de tráfego ou o novo ambiente HML já ocorreram.
+partindo de `bb6cb7258c8dec45f75ac8f98be1abf6a9a44ab7`. O inventário
+abaixo registra a preparação anterior à implantação; o estado posterior está
+resumido acima.
 
 ## Decisão
 

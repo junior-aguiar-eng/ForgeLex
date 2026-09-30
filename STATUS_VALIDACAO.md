@@ -1,23 +1,33 @@
 # Auditoria e status canônico do ForgeLex
 
-## Fase 4B da estabilização — preparação de topologia (26/09/2026)
+## Fase 4B da estabilização — promoção e isolamento (30/09/2026)
 
-A decisão registrada é preservar o Cloud SQL e o Supabase atuais como
-autoridade dos dados reais e criar uma homologação separada. Boni determinou
-reutilizar o projeto Supabase atual na produção. O novo projeto Supabase HML
-`hhemvrxygfzbzpgmohfj` está ativo e vazio. A validação local do build
-frontend passou, mas a Fase 4B ainda não atingiu o gate: o orçamento de
-R$ 100/mês foi identificado e, após aprovação de custo, o Cloud SQL isolado
-`forgelex-hml-isolated-pg` foi criado com 20 GiB SSD e está `STOPPED`, apenas
-com IP privado. Bucket e identidades HML já foram criados; faltam runtime e
-segredos HML, integração em `main`,
-revisão remota sem tráfego e prova de
-rollback dos hosts. A PR #7 da Fase 4A foi mesclada com seis checks verdes;
-a PR #8 da Fase 4B aguarda CI no SHA final. A correção autorizada de grants no Supabase produtivo foi aplicada:
-46/46 tabelas `public` com RLS, nenhuma com `SELECT` para `anon` ou
-`authenticated`; `service_role` preservada. Inventário, limite dos privilégios
-padrão de `supabase_admin` e pendências estão em
+O Cloud SQL e o Supabase existentes permanecem autoridade dos dados reais.
+As PRs #7, #8, #9 e #10 foram mescladas em `main` após os seis checks de CI
+no SHA final de cada uma. A imagem da promoção foi construída do commit
+`8a0577acab8066964f200278a4c78229020eface` e implantada por digest em
+`forgelex-api-prod`; o novo `forgelex-api-hml-isolated` usa o Cloud SQL privado
+`forgelex-hml-isolated-pg` e o Supabase `hhemvrxygfzbzpgmohfj`, com somente
+contas sintéticas e uma fixture. Os serviços, identidades, segredos, backends e
+host rules são distintos. O serviço antigo `forgelex-api-hml` continua ligado
+aos dados reais como fallback, apesar do nome histórico.
+
+Em 30/09, os dois domínios passaram por validação pública de Auth, REST e MCP.
+O ensaio de rollback de cada host foi observado no backend anterior e a regra
+dedicada foi restaurada. Na raiz, a busca sem saldo retornou 402 sem alterar
+a carteira sintética e o webhook sem assinatura foi rejeitado. O Cloud SQL HML
+é operado sob demanda e deve permanecer `STOPPED` fora dos ensaios; assim, o
+subdomínio HML fica indisponível quando o banco está parado. O orçamento de
+R$ 100/mês cobre toda a conta e apenas alerta; a despesa real não foi apurada.
+O Supabase HML no plano Free precisou ser restaurado após ficar `INACTIVE`,
+logo sua disponibilidade contínua não foi demonstrada. Evidência, digests,
+limites e comandos de retomada estão em
 `docs/operations/stabilization/2026-09-26-phase4b.md`.
+
+A correção autorizada no Supabase produtivo permanece registrada: 46/46
+tabelas `public` com RLS, nenhuma com `SELECT` para `anon` ou `authenticated`,
+e `service_role` preservada. Os privilégios padrão de `supabase_admin`
+continuam fora do alcance da migration aplicada.
 
 ## Fase 4A da estabilização — ingestão STJ diária em homologação (26/09/2026)
 
@@ -31,9 +41,9 @@ diário está ativo para 09:00 `America/Fortaleza`, com primeira execução prev
 para 27/09/2026. Evidência, digest e limites estão em
 `docs/operations/stabilization/2026-09-26-phase4a.md`.
 
-O código da Fase 4A está na branch local `feat/stj-freshness-4a`, ainda sem
-commit ou push pela cadência acordada de três fases. A imagem implantada foi
-construída desse checkout e identificada por digest no registro de evidência.
+Naquele ensaio, a imagem havia sido construída da branch local e identificada
+por digest no registro de evidência. O código foi integrado posteriormente em
+`main` pela PR #7, com a exceção de publicação autorizada por Boni.
 
 ## Fase 2 da estabilização — documentação reconciliada (26/09/2026)
 
