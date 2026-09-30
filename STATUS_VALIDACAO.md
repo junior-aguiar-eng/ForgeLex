@@ -9,10 +9,11 @@ reutilizar o projeto Supabase atual na produção. O novo projeto Supabase HML
 frontend passou, mas a Fase 4B ainda não atingiu o gate: o orçamento de
 R$ 100/mês foi identificado e, após aprovação de custo, o Cloud SQL isolado
 `forgelex-hml-isolated-pg` foi criado com 20 GiB SSD e está `STOPPED`, apenas
-com IP privado. Faltam runtime/segredos/bucket HML, integração em `main`,
+com IP privado. Bucket e identidades HML já foram criados; faltam runtime e
+segredos HML, integração em `main`,
 revisão remota sem tráfego e prova de
-rollback dos hosts. A PR da Fase 4A está aberta, com seis checks verdes, sem
-merge. A correção autorizada de grants no Supabase produtivo foi aplicada:
+rollback dos hosts. A PR #7 da Fase 4A foi mesclada com seis checks verdes;
+a PR #8 da Fase 4B aguarda CI no SHA final. A correção autorizada de grants no Supabase produtivo foi aplicada:
 46/46 tabelas `public` com RLS, nenhuma com `SELECT` para `anon` ou
 `authenticated`; `service_role` preservada. Inventário, limite dos privilégios
 padrão de `supabase_admin` e pendências estão em
