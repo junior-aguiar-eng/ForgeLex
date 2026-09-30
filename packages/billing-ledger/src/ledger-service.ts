@@ -4,9 +4,9 @@ import type { Client } from '@libsql/client';
 import { and, eq } from 'drizzle-orm';
 import type { UsageEvent } from '@forgelex/domain';
 import { DomainError } from '@forgelex/domain';
-import type { ForgeLexDatabase } from '@forgelex/persistence';
+import { assertMigrationsApplied, type ForgeLexDatabase } from '@forgelex/persistence';
 import { billingOperations, ledgerAccounts, ledgerEntries, usageEvents } from './schema/ledger-schema.js';
-import { runLedgerMigrations } from './migrations/ledger-migrations.js';
+import { ledgerMigrations, runLedgerMigrations } from './migrations/ledger-migrations.js';
 import type { ForgeLexBillingPolicy } from './billing-rules.js';
 
 export interface BillableExecutionResult<T> {
@@ -58,6 +58,7 @@ export interface BillableUsageInput {
 
 export interface LedgerServiceOptions {
   provisioningPolicy?: BillingAccountProvisioningPolicy;
+  migrationMode?: 'apply' | 'verify';
 }
 
 export class LedgerService {
@@ -66,16 +67,22 @@ export class LedgerService {
   private readonly db: ForgeLexDatabase;
   private readonly client?: Client;
   private readonly provisioningPolicy: BillingAccountProvisioningPolicy;
+  private readonly migrationMode: 'apply' | 'verify';
   private readonly tenantLocks = new Map<string, Promise<void>>();
 
   public constructor(db: ForgeLexDatabase, client?: Client, options: LedgerServiceOptions = {}) {
     this.db = db;
     this.client = client;
     this.provisioningPolicy = options.provisioningPolicy ?? zeroBalanceProvisioningPolicy;
+    this.migrationMode = options.migrationMode ?? 'apply';
   }
 
   public async runMigrations(): Promise<void> {
-    await runLedgerMigrations(this.getClient());
+    if (this.migrationMode === 'verify') {
+      await assertMigrationsApplied(this.getClient(), ledgerMigrations);
+    } else {
+      await runLedgerMigrations(this.getClient());
+    }
   }
 
   /**

@@ -70,7 +70,10 @@ imagem por digest, `min-instances=0`, concorrência inicial 20, máximo de 2,
 runtime SA de produção e apenas versões de segredos necessárias. Copiar
 configurações existentes por campo revisado, não importar indiscriminadamente
 um export do serviço HML. Na revisão candidata, usar
-`FORGELEX_BILLING_ENABLED=false` e não enviar webhook externo. A revisão não
+`FORGELEX_BILLING_ENABLED=false` e `FORGELEX_AUTO_MIGRATE=false`, sem enviar
+webhook externo. Em produção, a API apenas confere os IDs de migrations por
+padrão e falha se algum estiver pendente; migrations exigem execução separada
+e revisão antes do deploy. A revisão não
 deve receber a host rule pública antes do ensaio.
 
 Registrar as respostas e os IDs sintéticos de teste, sem payload jurídico ou
