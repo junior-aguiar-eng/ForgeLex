@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createDatabase } from '../db.js';
-import { runPersistenceMigrations } from './migration-runner.js';
+import { assertMigrationsApplied, persistenceMigrations, runPersistenceMigrations } from './migration-runner.js';
 import type { Client } from '@libsql/client';
 
 describe('persistence migrations', () => {
@@ -21,6 +21,31 @@ describe('persistence migrations', () => {
       try { rmSync(databasePath, { force: true }); } catch { /* SQLite pode manter o arquivo bloqueado até o worker terminar. */ }
     }
     databasePaths = [];
+  });
+
+  it('verifica migrations sem criar tabelas nem aplicar pendências', async () => {
+    const databasePath = join(tmpdir(), `.forgelex-readonly-migrations-${randomUUID()}.db`);
+    databasePaths.push(databasePath);
+    const connection = await createDatabase({ url: pathToFileURL(databasePath).toString() });
+    clients.push(connection.client);
+
+    await expect(assertMigrationsApplied(connection.client, persistenceMigrations)).rejects.toThrow();
+    const before = await connection.client.execute({
+      sql: "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'forgelex_migrations'",
+      args: [],
+    });
+    expect(before.rows).toHaveLength(0);
+
+    await runPersistenceMigrations(connection.client);
+    await expect(assertMigrationsApplied(connection.client, persistenceMigrations)).resolves.toBeUndefined();
+    const missingId = persistenceMigrations.at(-1)!.id;
+    await connection.client.execute({ sql: 'DELETE FROM forgelex_migrations WHERE id = ?', args: [missingId] });
+    await expect(assertMigrationsApplied(connection.client, persistenceMigrations)).rejects.toThrow('MIGRATIONS_PENDING');
+    const after = await connection.client.execute({
+      sql: 'SELECT id FROM forgelex_migrations WHERE id = ?',
+      args: [missingId],
+    });
+    expect(after.rows).toHaveLength(0);
   });
 
   it('é idempotente em SQLite', async () => {

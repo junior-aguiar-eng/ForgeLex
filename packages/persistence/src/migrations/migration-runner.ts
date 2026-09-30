@@ -47,6 +47,17 @@ export async function runMigrations(client: Client, migrations: readonly SqlMigr
   }
 }
 
+export async function assertMigrationsApplied(client: Client, migrations: readonly SqlMigration[]): Promise<void> {
+  const result = await client.execute('SELECT id FROM forgelex_migrations');
+  const applied = new Set(result.rows.map((row) => String(row.id)));
+  const missing = migrations.filter((migration) => !applied.has(migration.id));
+  if (missing.length > 0) {
+    throw Object.assign(new Error(`MIGRATIONS_PENDING: ${missing.map((migration) => migration.id).join(', ')}`), {
+      code: 'MIGRATIONS_PENDING',
+    });
+  }
+}
+
 export const persistenceMigrations: readonly SqlMigration[] = [
   {
     id: 'persistence-0001-initial',

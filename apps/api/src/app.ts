@@ -32,6 +32,8 @@ import {
   JurisprudenceRepository,
   AccountRepository,
   AccountClosureRepository,
+  assertMigrationsApplied,
+  persistenceMigrations,
   runPersistenceMigrations,
 } from '@forgelex/persistence';
 import {
@@ -168,8 +170,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const connection = shouldOpenConnection
     ? await createDatabase({ url: databasePolicy?.url ?? 'file::memory:?cache=shared' })
     : undefined;
+  const autoMigrate = environment.NODE_ENV !== 'production' || environment.FORGELEX_AUTO_MIGRATE === 'true';
   if (connection) {
-    await runPersistenceMigrations(connection.client);
+    if (autoMigrate) await runPersistenceMigrations(connection.client);
+    else await assertMigrationsApplied(connection.client, persistenceMigrations);
     app.addHook('onClose', async () => connection.client.close());
   }
 
@@ -369,7 +373,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       }, closureWorkerIntervalMs)
     : undefined;
   if (accountClosureWorker) app.addHook('onClose', async () => clearInterval(accountClosureWorker));
-  const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client);
+  const ledgerService = options.ledgerService ?? new LedgerService(connection!.db, connection!.client, {
+    migrationMode: autoMigrate ? 'apply' : 'verify',
+  });
   await ledgerService.runMigrations();
   const mercadoPagoPaymentProvider = options.mercadoPagoPaymentProvider ?? (
     environment.FORGELEX_BILLING_ENABLED === 'true'

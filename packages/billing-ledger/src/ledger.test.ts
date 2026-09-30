@@ -1,7 +1,12 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createDatabase, ForgeLexDatabase, runPersistenceMigrations } from '@forgelex/persistence';
 import { LedgerService } from './ledger-service.js';
+import { ledgerMigrations } from './migrations/ledger-migrations.js';
 import { Client } from '@libsql/client';
 import { billingOperations, ledgerEntries } from './schema/ledger-schema.js';
 import { eq } from 'drizzle-orm';
@@ -26,6 +31,29 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
 
   afterEach(() => {
     client.close();
+  });
+
+  it('bloqueia schema incompleto no modo de verificação sem aplicar migration', async () => {
+    const databasePath = join(tmpdir(), `.forgelex-ledger-verify-${randomUUID()}.db`);
+    const verification = await createDatabase({ url: pathToFileURL(databasePath).toString() });
+    try {
+      await runPersistenceMigrations(verification.client);
+      const migrator = new LedgerService(verification.db, verification.client);
+      await migrator.runMigrations();
+      const verifier = new LedgerService(verification.db, verification.client, { migrationMode: 'verify' });
+      await expect(verifier.runMigrations()).resolves.toBeUndefined();
+
+      const missingId = ledgerMigrations.at(-1)!.id;
+      await verification.client.execute({ sql: 'DELETE FROM forgelex_migrations WHERE id = ?', args: [missingId] });
+      await expect(verifier.runMigrations()).rejects.toThrow('MIGRATIONS_PENDING');
+      const result = await verification.client.execute({
+        sql: 'SELECT id FROM forgelex_migrations WHERE id = ?', args: [missingId],
+      });
+      expect(result.rows).toHaveLength(0);
+    } finally {
+      verification.client.close();
+      try { rmSync(databasePath, { force: true }); } catch { /* Windows pode reter o arquivo até encerrar o worker. */ }
+    }
   });
 
   it('deve debitar saldo promocional com validade antes de tocar no saldo pago', async () => {
