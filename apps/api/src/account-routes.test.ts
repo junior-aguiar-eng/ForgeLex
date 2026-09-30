@@ -27,13 +27,14 @@ describe('Account routes', () => {
   let app: FastifyInstance;
   let client: Client;
   let database: ForgeLexDatabase;
+  let ledgerService: LedgerService;
 
   beforeAll(async () => {
     const connection = await createDatabase({ url: 'file::memory:?cache=shared' });
     database = connection.db;
     client = connection.client;
     await runPersistenceMigrations(client);
-    const ledgerService = new LedgerService(database, client);
+    ledgerService = new LedgerService(database, client);
     await ledgerService.runMigrations();
     const identityVerifier = new SupabaseIdentityVerifier({
       baseUrl: 'https://project.supabase.co',
@@ -92,6 +93,19 @@ describe('Account routes', () => {
 
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.body)).toMatchObject({ user: { email: 'pessoa@exemplo.com' }, membership: { role: 'OWNER' } });
+  });
+
+  it('provisiona carteira com saldo zero ao preparar a conta', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v2/auth/bootstrap',
+      headers: { authorization: 'Bearer access-token' },
+      payload: { displayName: 'Pessoa Exemplo' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const tenantId = JSON.parse(response.body).workspace.id as string;
+    expect(await ledgerService.getAvailableBalanceCents(tenantId)).toBe(0);
   });
 
   it('não publica encerramento antes de existir política de retenção aprovada', async () => {

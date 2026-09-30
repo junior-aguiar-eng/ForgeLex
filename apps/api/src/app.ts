@@ -787,6 +787,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         reply.status(403);
         return { error: 'ACCOUNT_DISABLED', message: 'Sua conta não está disponível. Procure o responsável pelo acesso.' };
       }
+      await ledgerService.provisionAccount(account.tenant.id);
       await recordAudit({
         sessionId: `account_${account.user.id}`,
         tenantId: account.tenant.id,
