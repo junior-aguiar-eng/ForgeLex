@@ -7,11 +7,14 @@ test('Fase 7: login, pesquisa, verificação, billing e revisão operam com fixt
   await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-controlada-fase-7');
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   const bootstrapResponse = await bootstrap;
-  expect(bootstrapResponse.status(), await bootstrapResponse.text()).toBe(200);
+  expect(bootstrapResponse.status()).toBe(200);
+  await page.waitForURL('**/app');
+  await expect(page.getByText('Operação Fase 7')).toBeVisible();
+  await expect(page.locator('select').first().locator('option')).toHaveText(['STJ']);
   const tribunalRequest = page.waitForResponse((response) => response.url().includes('/api/v2/tribunals'));
   await page.reload();
   const tribunalResponse = await tribunalRequest;
-  expect(tribunalResponse.status(), await tribunalResponse.text()).toBe(200);
+  expect(tribunalResponse.status()).toBe(200);
   await expect(page.getByText('Operação Fase 7')).toBeVisible();
   await expect(page.locator('select').first().locator('option')).toHaveText(['STJ']);
 
