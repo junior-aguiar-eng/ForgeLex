@@ -1,0 +1,416 @@
+{
+  "schemaVersion": 1,
+  "phase": 5,
+  "sourceSha": "d1e22ed370e73770b3085feefeeab076ba78152b",
+  "runtimeOriginUnaffectedByDocumentationSuccessor": true,
+  "build": {
+    "createTime": "2026-10-01T20:58:48.555787905Z",
+    "finishTime": "2026-10-01T21:02:37.161396Z",
+    "id": "c30673f3-6644-432d-98c0-267a56d2efbc",
+    "results": {
+      "images": [
+        {
+          "artifactRegistryPackage": "projects/project-bbbe1209-c295-4720-867/locations/southamerica-east1/repositories/forgelex-prod/packages/forgelex-api/versions/sha256:b12b7be89078765c113ba42cf6e0818cf6243571a85f1ddb206e69302d913b7f",
+          "digest": "sha256:b12b7be89078765c113ba42cf6e0818cf6243571a85f1ddb206e69302d913b7f",
+          "name": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api:d1e22ed370e73770b3085feefeeab076ba78152b",
+          "pushTiming": {
+            "endTime": "2026-10-01T21:02:35.525460872Z",
+            "startTime": "2026-10-01T21:02:12.796717562Z"
+          }
+        }
+      ]
+    },
+    "sourceProvenance": {
+      "resolvedStorageSource": {
+        "bucket": "project-bbbe1209-c295-4720-867_cloudbuild",
+        "generation": "1790888326114307",
+        "object": "source/1790888321.154233-2c16a1724dd6404bab2ff9d4d021a17a.tgz"
+      }
+    },
+    "startTime": "2026-10-01T20:58:49.529477032Z",
+    "status": "SUCCESS"
+  },
+  "imageSizeBytes": 95854672,
+  "candidate": {
+    "traffic": [
+      {
+        "revisionName": "forgelex-api-prod-00001-kay",
+        "tag": "phase4b-candidate",
+        "url": "https://phase4b-candidate---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app"
+      },
+      {
+        "revisionName": "forgelex-api-prod-00002-bul",
+        "tag": "phase4b-fixed",
+        "url": "https://phase4b-fixed---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app"
+      },
+      {
+        "percent": 100,
+        "revisionName": "forgelex-api-prod-00003-moc",
+        "tag": "phase4b-full",
+        "url": "https://phase4b-full---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app"
+      },
+      {
+        "revisionName": "forgelex-api-prod-phase5-d1e22ed3-r2",
+        "tag": "phase5-candidate",
+        "url": "https://phase5-candidate---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app"
+      }
+    ],
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:b12b7be89078765c113ba42cf6e0818cf6243571a85f1ddb206e69302d913b7f",
+    "timestamp": "2026-10-01T21:51:21.2859314Z",
+    "imageDigest": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:b12b7be89078765c113ba42cf6e0818cf6243571a85f1ddb206e69302d913b7f",
+    "ready": true,
+    "revision": "forgelex-api-prod-phase5-d1e22ed3-r2",
+    "ingress": "internal-and-cloud-load-balancing",
+    "flags": {
+      "FORGELEX_ACCOUNT_CLOSURE_ENABLED": "false",
+      "FORGELEX_AUTO_MIGRATE": "false",
+      "FORGELEX_BILLING_ENABLED": "false"
+    }
+  },
+  "matrix": {
+    "timestamp": "2026-10-01T20:58:18.7257948Z",
+    "sourceSha": "d1e22ed370e73770b3085feefeeab076ba78152b",
+    "results": [
+      {
+        "name": "install",
+        "exit": 0
+      },
+      {
+        "name": "lint",
+        "exit": 0
+      },
+      {
+        "name": "build",
+        "exit": 0
+      },
+      {
+        "name": "typecheck",
+        "exit": 0
+      },
+      {
+        "exit": 0,
+        "name": "unit"
+      },
+      {
+        "exit": 0,
+        "name": "postgres"
+      },
+      {
+        "exit": 0,
+        "name": "public"
+      },
+      {
+        "exit": 0,
+        "name": "product"
+      },
+      {
+        "exit": 0,
+        "name": "mcp"
+      },
+      {
+        "exit": 0,
+        "name": "closure"
+      },
+      {
+        "exit": 0,
+        "name": "audit"
+      },
+      {
+        "exit": 0,
+        "name": "diff"
+      }
+    ]
+  },
+  "validation": {
+    "unit": {
+      "passedFiles": 103,
+      "passed": 533,
+      "skipped": 2,
+      "skippedFiles": 1,
+      "postgresConditionalTestsEnabled": true,
+      "skipReason": "Real provider integrations without keys"
+    },
+    "firstUnitAttempt": {
+      "skipped": 2,
+      "passed": 532,
+      "reason": "Worker exited unexpectedly; specific cause not demonstrated",
+      "status": "failed"
+    },
+    "postgresControls": 12,
+    "e2e": {
+      "mcpOnboarding": 21,
+      "product": 1,
+      "public": 8,
+      "accountClosure": 2
+    },
+    "productionAuditKnownVulnerabilities": 0,
+    "mainCi": {
+      "runId": "36924361467",
+      "requiredChecks": ["validate", "postgres", "e2e-product", "e2e-public", "e2e-account-closure", "security"],
+      "status": "success"
+    }
+  },
+  "remoteSmoke": {
+    "apiKeyRevoked": true,
+    "authorityPublicationStatus": "LEGACY_COMPATIBILITY",
+    "authorityVerificationStatus": "VERIFIED_OFFICIAL",
+    "billing": {
+      "balanceCents": 0,
+      "usageEventsUnchanged": true
+    },
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/readyz",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/openapi.json",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/assets/index-C0JY9h86.js",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/produto",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/como-funciona",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/integracoes",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/creditos",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/guia",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/desenvolvedores/api",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/robots.txt",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/sitemap.xml",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/legal/termos-de-uso.html",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/legal/privacidade.html",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/api/v2/auth/bootstrap",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v2/auth/me",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v2/account/closure-policy",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/api/v2/api-keys",
+        "status": 201
+      },
+      {
+        "method": "POST",
+        "path": "/api/v2/research/search-case-law",
+        "status": 402
+      },
+      {
+        "method": "POST",
+        "path": "/api/v2/research/get-authority",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/api/v2/research/verify-authority",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/mcp",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/mcp",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/mcp",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/mcp",
+        "status": 200
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v2/api-keys/{synthetic-key-id}",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/v2/tribunals",
+        "status": 401
+      }
+    ],
+    "closureEnabled": false,
+    "imageDigest": "sha256:b12b7be89078765c113ba42cf6e0818cf6243571a85f1ddb206e69302d913b7f",
+    "phase": "5",
+    "sourceSha": "d1e22ed370e73770b3085feefeeab076ba78152b",
+    "status": "passed",
+    "tenantId": "tenant_0250f4223c13c041ff3dc3b22b1d7e5c",
+    "userId": "5b0dd565-ed3c-422f-93da-9a2825fdfe8b",
+    "execution": "forgelex-phase5-candidate-smoke-6z4dp",
+    "timestamp": "2026-10-01T21:43:37.722352Z"
+  },
+  "remoteSmokeRoute": {
+    "certificateVerified": true,
+    "existingProductionLoadBalancerChanged": false,
+    "kind": "Separate temporary HTTPS load balancer",
+    "target": "phase5-candidate tag only"
+  },
+  "cleanup": {
+    "syntheticAuth": {
+      "candidateSessionStatus": 401,
+      "status": "deleted",
+      "userId": "5b0dd565-ed3c-422f-93da-9a2825fdfe8b",
+      "globalLogoutRequested": true,
+      "authUserDeleted": true,
+      "adminUserStatus": 404,
+      "supabaseSessionStatus": 403,
+      "rejectionCode": 403,
+      "timestamp": "2026-10-01T21:47:46.347Z"
+    },
+    "loadBalancer": {
+      "timestamp": "2026-10-01T21:50:36.6384059Z",
+      "steps": [
+        {
+          "removed": true,
+          "resource": "forwarding-rule",
+          "name": "forgelex-phase5-candidate"
+        },
+        {
+          "removed": true,
+          "resource": "https-proxy",
+          "name": "forgelex-phase5-candidate"
+        },
+        {
+          "removed": true,
+          "resource": "ssl-certificate",
+          "name": "forgelex-phase5-candidate"
+        },
+        {
+          "removed": true,
+          "resource": "url-map",
+          "name": "forgelex-phase5-candidate"
+        },
+        {
+          "removed": true,
+          "resource": "backend-service",
+          "name": "forgelex-phase5-candidate"
+        },
+        {
+          "removed": true,
+          "resource": "serverless-neg",
+          "name": "forgelex-phase5-candidate"
+        },
+        {
+          "removed": true,
+          "resource": "address",
+          "name": "forgelex-phase5-candidate"
+        }
+      ]
+    },
+    "network": {
+      "timestamp": "2026-10-01T21:48:53.6520456Z",
+      "steps": [
+        {
+          "name": "forgelex-phase5-candidate-smoke",
+          "removed": true,
+          "resource": "job"
+        },
+        {
+          "name": "forgelex-phase5-synthetic-session",
+          "removed": true,
+          "resource": "secret"
+        },
+        {
+          "name": "forgelex-phase5-smoke-router",
+          "removed": true,
+          "resource": "router-and-nat"
+        }
+      ]
+    },
+    "diagnosticVmRemoved": true,
+    "disposableLocalPostgresRemoved": true,
+    "localTlsPrivateKeyRemoved": true,
+    "rejectedFirstCandidateRevisionRemoved": true,
+    "databaseSyntheticMetadataFullyPurged": false,
+    "pendingSubnet": {
+      "jobRemovalReceiptUtc": "2026-10-01T21:48:53.6520456Z",
+      "removed": false,
+      "name": "forgelex-phase5-smoke",
+      "documentation": "https://docs.cloud.google.com/run/docs/configuring/vpc-direct-vpc",
+      "cidr": "10.62.0.0/26",
+      "reason": "Cloud Run managed address reservation blocks deletion; documented release delay of 1-2 hours after deleting the job",
+      "managedReservation": "serverless-ipv4-cloudrun-1790888946805684798",
+      "region": "southamerica-east1"
+    }
+  },
+  "limitations": [
+    "Direct run.app URLs returned Google 404 before application; cause not demonstrated",
+    "Persisted LEGACY_COMPATIBILITY authority with VERIFIED_OFFICIAL status does not prove a fresh STJ lookup",
+    "SBOM and SLSA provenance unavailable: Container Analysis API disabled; SLSA level unknown",
+    "Cloud Resource Manager API remains enabled as an administrative prerequisite",
+    "No production traffic promotion, remote migration, purchase, debit, real account closure or corpus ingestion",
+    "Synthetic profile, audit and ledger metadata retained; no full database purge claimed",
+    "DELETE path normalizes the synthetic API key identifier; other receipt fields are preserved"
+  ]
+}

@@ -514,21 +514,21 @@ Testar assets, fallback SPA, rotas técnicas não capturadas e páginas legais e
 
 **Resultado:** um único SHA de `main` reúne engenharia, documentação e as quatro trilhas, sem ainda receber tráfego público.
 
-- [ ] **Step 1: integrar as Trilhas 4A–4D por PRs independentes**
+- [x] **Step 1: integrar as Trilhas 4A–4D por PRs independentes**
 
 Cada PR deve ter seu próprio gate; não agrupar ingestão, infraestrutura, jurídico e UI em um diff inseparável.
 
-- [ ] **Step 2: executar matriz completa no SHA final**
+- [x] **Step 2: executar matriz completa no SHA final**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test && pnpm test:postgres && pnpm test:e2e:public && pnpm test:e2e:phase7 && pnpm test:e2e:mcp-onboarding && pnpm test:e2e:account-closure && pnpm audit --prod --audit-level moderate && git diff --check`
 
 Expected: todos PASS; skips condicionais descritos e sem ocultar teste obrigatório.
 
-- [ ] **Step 3: construir a imagem por SHA**
+- [x] **Step 3: construir a imagem por SHA**
 
 Registrar build ID, digest, SBOM quando disponível, tamanho e origem do commit.
 
-- [ ] **Step 4: implantar revisão sem tráfego**
+- [x] **Step 4: implantar revisão sem tráfego**
 
 Validar `health`, `readyz`, OpenAPI, páginas públicas, auth, REST, MCP, billing bloqueado para tenant sem saldo e encerramento desabilitado para a conta de ensaio se aplicável.
 
