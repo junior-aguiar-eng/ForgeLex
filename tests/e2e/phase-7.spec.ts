@@ -8,6 +8,7 @@ test('Fase 7: login, pesquisa, verificação, billing e revisão operam com fixt
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   const bootstrapResponse = await bootstrap;
   expect(bootstrapResponse.status(), await bootstrapResponse.text()).toBe(200);
+  await page.waitForURL('**/app');
   const tribunalRequest = page.waitForResponse((response) => response.url().includes('/api/v2/tribunals'));
   await page.reload();
   const tribunalResponse = await tribunalRequest;
