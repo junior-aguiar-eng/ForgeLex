@@ -134,9 +134,10 @@ describe('persistence migrations', () => {
     });
     expect(compactSearch.rows[0]?.relation).toBeNull();
     const fullTextIndex = await connection.client.execute({
-      sql: "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'jurisprudence_documents_search_fts_idx'",
+      sql: "SELECT indexdef FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'jurisprudence_documents_search_vector_idx'",
       args: [],
     });
     expect(fullTextIndex.rows).toHaveLength(1);
+    expect(String(fullTextIndex.rows[0]?.indexdef)).toContain('USING gin (search_vector)');
   });
 });
