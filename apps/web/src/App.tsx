@@ -98,7 +98,8 @@ const AuthEntry: React.FC<{ route: SiteRoute }> = ({ route }) => {
     if ((status === 'authenticated' || status === 'legacy') && !passwordRecovery && !passwordRecoveryError) {
       return <div className="page-container py-16 text-sm text-stone-500">Abrindo seu espaço de trabalho…</div>;
     }
-    return <AuthScreen key={route.view} initialView={route.view} status={status} onBackToLanding={() => window.location.assign('/')} />;
+    const view = passwordRecoveryError ? 'recovery_error' : passwordRecovery ? 'reset_password' : route.view;
+    return <AuthScreen key={route.view} initialView={view} status={status} onBackToLanding={() => window.location.assign('/')} />;
   }
   return <AppProvider><AppContent /></AppProvider>;
 };

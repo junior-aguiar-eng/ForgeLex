@@ -41,10 +41,13 @@ test('rota protegida e retorno de pagamento preservam o acesso', async ({ page }
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Entre no ForgeLex');
 });
 
-test('erro de recuperação recebido na raiz preserva a rota de autenticação', async ({ page }) => {
+test('erro de recuperação na raiz permite solicitar outro link', async ({ page }) => {
   await page.goto('/#error=access_denied');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Entre no ForgeLex');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('O link expirou');
   await expect(page).toHaveURL(/#error=access_denied$/);
+  await page.getByRole('button', { name: 'Solicitar outro link' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recupere seu acesso');
+  await expect(page.getByLabel('E-mail', { exact: true })).toBeVisible();
 });
 
 test('menu mobile abre por teclado e fecha com Escape', async ({ page }) => {
