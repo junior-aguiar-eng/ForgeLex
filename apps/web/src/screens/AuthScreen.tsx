@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, Scale, UserRound } from 'lucide-react';
 import { useAuth, type AuthStatus, type AuthView } from '../auth/AuthContext';
 
@@ -17,6 +17,12 @@ const AuthScreen: React.FC<{ initialView?: AuthView; status: AuthStatus; onBackT
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    if (initialView === 'reset_password' || initialView === 'recovery_error') {
+      setView(initialView);
+    }
+  }, [initialView]);
 
   const switchView = (nextView: AuthView) => {
     setView(nextView);
