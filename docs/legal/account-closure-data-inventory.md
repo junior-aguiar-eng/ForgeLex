@@ -13,21 +13,22 @@ chave de seleção ambígua ou dependência não reconciliada impede o estado
 `COMPLETED`. Nenhuma regra autoriza selecionar por e-mail, nome, texto de
 consulta ou outro conteúdo livre.
 
+A [matriz candidata de retenção](account-closure-retention-policy.md) distingue prazos técnicos, decisões internas e bloqueios jurídicos. Este inventário preserva o histórico do contrato 2026-09-22.v1, sem transferir o aceite antigo à versão documental nova.
+
 ## Regras de execução
 
 - `DELETE_PRIVATE`: revogar quando aplicável e excluir do armazenamento ativo
   em até sete dias; credenciais são bloqueadas imediatamente.
 - `MINIMIZE_FINANCIAL`: conservar apenas prova comercial/fiscal mínima sob
-  pseudônimo pelo prazo interno provisório de cinco anos, sujeito a revisão
-  fiscal/contábil por categoria e termo inicial.
+  pseudônimo. A saga não elimina linhas financeiras por idade. Prazo e expurgo
+  dependem da decisão por categoria na matriz documental 2026-09-30.v1.
 - `DELETE_OPERATIONAL`: excluir identidade operacional após o expurgo das
   dependências, em até sete dias.
-- `MINIMIZE_OPERATIONAL`: conservar apenas logs de acesso abrangidos pelo art.
-  15 do Marco Civil por seis meses; auditoria interna sem esse enquadramento
-  não herda automaticamente o prazo.
-- `CONTROL_PLANE`: conservar recibo técnico pseudônimo e tombstone, sem
-  conteúdo jurídico, pelo prazo interno provisório de cinco anos; exceções
-  ativas são revistas no máximo a cada 90 dias.
+- `MINIMIZE_OPERATIONAL`: minimizar auditoria; prazo técnico de 180 dias não
+  comprova a guarda legal de seis meses de registros de acesso.
+- `CONTROL_PLANE`: recibos concluídos sem exceção ativa têm cutoff técnico de
+  1827 dias desde completed_at, condicionado ao worker de retenção. Tombstones
+  e diário de restauração exigem inventário próprio; não presumir o mesmo prazo.
 - `OUT_OF_SCOPE_GLOBAL`: não selecionar nem alterar em razão do encerramento de
   uma conta. A verificação residual deve provar que o corpus global permaneceu
   intacto.
@@ -72,19 +73,19 @@ consulta ou outro conteúdo livre.
 
 ## MINIMIZE_FINANCIAL
 
-| Tabela | Chave de seleção | Dependência/ordem | Destino e prazo provisório | Campos que não podem sobreviver |
+| Tabela | Chave de seleção | Dependência/ordem | Destino e limite de conservação | Campos que não podem sobreviver |
 | --- | --- | --- | --- | --- |
-| `ledger_accounts` | `tenant_id` | pai de entries/lots/operations | pseudonimizar tenant; 5 anos | tenant original e qualquer texto jurídico |
-| `usage_events` | `tenant_id` | antes da desvinculação de usuário/sessão | pseudonimizar tenant; 5 anos | `user_id`, `session_id`, `model`, prompt, consulta ou resultado |
-| `ledger_entries` | `account_id` do tenant | após minimizar uso | conservar valores e espécie; 5 anos | `operation_result_snapshot` e conteúdo jurídico |
-| `billing_accounts` | `tenant_id` | pai comercial | pseudonimizar tenant; 5 anos | customer direto, método padrão e autorrecarga ativa |
-| `billing_purchases` | `tenant_id` | pai de pagamentos/invoices/lots/reembolsos | pseudonimizar tenant/usuário; 5 anos | URLs de checkout/recibo e texto livre |
-| `billing_payments` | `tenant_id` | por purchase/provider | conservar referência financeira; 5 anos | identificador pessoal ou conteúdo jurídico |
-| `billing_webhook_events` | `tenant_id` após migration de ownership | não atribuir silenciosamente eventos legados | conservar envelope mínimo; 5 anos se necessário | `payload`, `error_message`, segredo ou conteúdo jurídico |
-| `billing_invoices` | `tenant_id` | por purchase | conservar número, valores e datas; 5 anos | URL com credencial e conteúdo jurídico |
-| `billing_refund_requests` | `tenant_id` | por purchase | pseudonimizar solicitante; 5 anos | `reason`, `reviewed_by` e identificadores diretos |
-| `billing_credit_lots` | `tenant_id` | por purchase/account | conservar valores e referências; 5 anos | tenant original e conteúdo jurídico |
-| `billing_operations` | `tenant_id` | por account/idempotência | conservar prova comercial mínima; 5 anos | `result_snapshot`, lease owner e texto de erro livre |
+| `ledger_accounts` | `tenant_id` | pai de entries/lots/operations | pseudonimizar tenant; prazo por categoria, bloqueado até revisão fiscal | tenant original e qualquer texto jurídico |
+| `usage_events` | `tenant_id` | antes da desvinculação de usuário/sessão | pseudonimizar tenant; prazo por categoria, bloqueado até revisão fiscal | `user_id`, `session_id`, `model`, prompt, consulta ou resultado |
+| `ledger_entries` | `account_id` do tenant | após minimizar uso | conservar valores e espécie; prazo por categoria, bloqueado até revisão fiscal | `operation_result_snapshot` e conteúdo jurídico |
+| `billing_accounts` | `tenant_id` | pai comercial | pseudonimizar tenant; prazo por categoria, bloqueado até revisão fiscal | customer direto, método padrão e autorrecarga ativa |
+| `billing_purchases` | `tenant_id` | pai de pagamentos/invoices/lots/reembolsos | pseudonimizar tenant/usuário; prazo por categoria, bloqueado até revisão fiscal | URLs de checkout/recibo e texto livre |
+| `billing_payments` | `tenant_id` | por purchase/provider | conservar referência financeira; prazo por categoria, bloqueado até revisão fiscal | identificador pessoal ou conteúdo jurídico |
+| `billing_webhook_events` | `tenant_id` após migration de ownership | não atribuir silenciosamente eventos legados | conservar envelope mínimo; prazo por categoria, bloqueado até revisão fiscal | `payload`, `error_message`, segredo ou conteúdo jurídico |
+| `billing_invoices` | `tenant_id` | por purchase | conservar número, valores e datas; prazo por categoria, bloqueado até revisão fiscal | URL com credencial e conteúdo jurídico |
+| `billing_refund_requests` | `tenant_id` | por purchase | pseudonimizar solicitante; prazo por categoria, bloqueado até revisão fiscal | `reason`, `reviewed_by` e identificadores diretos |
+| `billing_credit_lots` | `tenant_id` | por purchase/account | conservar valores e referências; prazo por categoria, bloqueado até revisão fiscal | tenant original e conteúdo jurídico |
+| `billing_operations` | `tenant_id` | por account/idempotência | conservar prova comercial mínima; prazo por categoria, bloqueado até revisão fiscal | `result_snapshot`, lease owner e texto de erro livre |
 
 `billing_webhook_events` ainda não possui `tenant_id` no estado inicial da
 7.2. Até a migration prevista na 7.5, esses eventos são **não selecionáveis de
@@ -104,14 +105,14 @@ lacuna, nunca inferir ownership pelo conteúdo do payload.
 
 | Tabela | Chave de seleção | Dependência/ordem | Destino e prazo | Campos que não podem sobreviver |
 | --- | --- | --- | --- | --- |
-| `audit_logs` | `tenant_id` | antes de remover tenant/perfil | pseudonimizar somente registros de acesso legalmente abrangidos; máximo de 6 meses | tenant, usuário e sessão originais, `cost_metadata` com conteúdo, payload ou resultado jurídico |
+| `audit_logs` | `tenant_id` | antes de remover tenant/perfil | pseudonimizar auditoria; limite técnico 180 dias sob worker; conformidade de registros de acesso bloqueada conforme matriz | tenant, usuário e sessão originais, `cost_metadata` com conteúdo, payload ou resultado jurídico |
 
 ## CONTROL_PLANE
 
-| Tabela | Chave de seleção | Dependência/ordem | Destino e prazo provisório | Campos que não podem sobreviver |
+| Tabela | Chave de seleção | Dependência/ordem | Destino e limite de conservação | Campos que não podem sobreviver |
 | --- | --- | --- | --- | --- |
-| `account_closures` | `id`, `subject_hash`, `tenant_hash` | registro raiz/tombstone | pseudonimizar após expurgo; 5 anos | `subject_id`, `user_id`, `tenant_id`, e-mail, confirmação, token em claro e erro livre |
-| `account_closure_steps` | `closure_id` | filha da closure | conservar estado, horários e códigos; 5 anos | payload, segredo, conteúdo jurídico e mensagem livre de provedor |
+| `account_closures` | `id`, `subject_hash`, `tenant_hash` | registro raiz/tombstone | pseudonimizar após expurgo; recibo conforme matriz de retenção | `subject_id`, `user_id`, `tenant_id`, e-mail, confirmação, token em claro e erro livre |
+| `account_closure_steps` | `closure_id` | filha da closure | conservar estado, horários e códigos; 1827 dias desde conclusão, sob worker | payload, segredo, conteúdo jurídico e mensagem livre de provedor |
 | `retention_exceptions` | `closure_id` e `status` | consultada antes de cada categoria | enquanto ativa, revisão em até 90 dias; ao encerrar, eliminar responsável/referência direta em D+7 e manter só prova mínima se necessária | conteúdo retido, descrição livre, dados além da categoria/fundamento/estado |
 
 ## OUT_OF_SCOPE_GLOBAL

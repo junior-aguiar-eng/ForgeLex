@@ -1,5 +1,22 @@
 # Auditoria e status canônico do ForgeLex
 
+## Fase 4C da estabilização — documentos aprovados (30/09/2026)
+
+Termos gerais, Privacidade, matriz de retenção e protocolo de suporte preparados
+na branch `codex/phase4c-legal-support`, versão documental `2026-09-30.v1`.
+O contrato técnico de encerramento permanece `2026-09-22.v1`. Não houve nova
+publicação remota. Boni autorizou endereço físico e eletrônico e determinou
+continuar sem CPF; o endereço e o novo e-mail foram incorporados aos documentos.
+O CEP 57063-000 foi confirmado por Boni e incorporado, sem preenchimento inferido.
+Em 30/09, Boni declarou “revisado e aprovado!” para esta versão documental,
+com aceite separado por alcance nas quatro áreas do registro. Não se trata
+de pareceres profissionais independentes ou comprovação de controles remotos.
+O aceite histórico não foi reaproveitado. As provas operacionais e a qualificação
+fiscal específica permanecem restrições das afirmações afetadas.
+Registro, limites e validação: `docs/operations/stabilization/2026-09-30-phase4c.md`.
+A Fase 4C está concluída no escopo documental; integração na Fase 4D liberada,
+sem deploy ou nova publicação autorizados por este aceite.
+
 ## Fase 4B da estabilização — promoção e isolamento (30/09/2026)
 
 O Cloud SQL e o Supabase existentes permanecem autoridade dos dados reais.
