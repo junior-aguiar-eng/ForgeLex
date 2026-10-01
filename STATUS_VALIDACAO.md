@@ -1,5 +1,27 @@
 # Auditoria e status canônico do ForgeLex
 
+## Fase 5 da estabilização — integração em preparo (01/10/2026)
+
+`origin/main` está em `0bbf8e4`, com 4A e 4B integradas. 4C (`ca59c77`) e
+4D (`6d4e030`) têm branches remotas próprias e nenhum PR aberto na consulta
+de 01/10. O preparo local segue em `codex/phase5-release-candidate`.
+Os PRs devem integrar 4C antes de 4D, ou usar base temporária 4C para o PR da
+4D, preservando diffs independentes. Revisão independente sem achados materiais.
+
+O novo gate de audit identificou advisory moderado no Fastify 5.12.4.
+Correção local para 5.12.5 altera somente a dependência e seu lockfile; audit
+posterior sem vulnerabilidades conhecidas, build, typecheck e lint aprovados.
+Matriz funcional pós-patch aprovada: smoke PostgreSQL 12 controles; E2E público
+8/8, produto 1/1, onboarding MCP 21/21 e encerramento 2/2. Ao habilitar os dois
+casos PostgreSQL condicionais, foi corrigida uma expectativa de índice anterior
+à migration 0017. Suíte completa final: 533 aprovados, 2 integrações de providers
+reais ignoradas por ausência de chaves, com dois workers e sem erro do runner.
+Nenhum novo commit, PR, merge,
+Cloud Build ou deploy foi executado nesta fase; tráfego não foi alterado.
+Evidência e gates: `docs/operations/stabilization/2026-10-01-phase5.md`.
+A Fase 5 ainda não está concluída: exige checks e matriz no SHA final de main,
+imagem por digest e revisão candidata validada sem tráfego.
+
 ## Fase 4D da estabilização — validação local concluída
 
 A Fase 4C aprovada foi commitada e enviada ao remoto como `ca59c77` na branch
