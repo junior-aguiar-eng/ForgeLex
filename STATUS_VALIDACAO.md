@@ -1,5 +1,26 @@
 # Auditoria e status canônico do ForgeLex
 
+## Fase 4D da estabilização — validação local concluída
+
+A Fase 4C aprovada foi commitada e enviada ao remoto como `ca59c77` na branch
+`codex/phase4c-legal-support`. A 4D segue na branch
+`codex/phase4d-public-hardening`, sem merge, deploy ou mudança de tráfego.
+O site público foi dividido em cabeçalho, rodapé, páginas e seções compartilhadas,
+preservando copy, tokens e prompt mestre. Metadados por rota, Open Graph/Twitter
+globais, robots, sitemap institucional e links gerais de Termos/Privacidade foram
+adicionados. O ciclo de foco ignora links ocultos no menu em 768 px.
+
+Validação: E2E público 8/8, sete páginas nas quatro resoluções previstas; build,
+lint e suíte geral com 530 testes aprovados e 4 ignorados. O teste do Fastify usa
+o build real e verifica assets, fallback, documentos legais e superfícies técnicas.
+Scan de padrões de credenciais no JS distribuído passou, sem constituir auditoria
+universal de segredos. QA humano visual e indexação remota não foram demonstrados.
+Evidência e limites: `docs/operations/stabilization/2026-09-30-phase4d.md`.
+
+Em 01/10, o slogan antigo também foi corrigido na `LandingScreen.tsx` de `/app`.
+O teste de copy passou a cobrir essa tela: 12 testes de copy/site público aprovados
+e novo build web concluído. A alteração permanece local, sem publicação remota.
+
 ## Fase 4C da estabilização — documentos aprovados (30/09/2026)
 
 Termos gerais, Privacidade, matriz de retenção e protocolo de suporte preparados

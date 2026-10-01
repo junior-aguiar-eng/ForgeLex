@@ -12,6 +12,7 @@ describe('site público', () => {
     expect(html).toContain('Estratégia e documentos');
     expect(html).toContain('Revisão e governança');
     expect(html).toContain('href="/cadastro"');
+    expect(html).toContain('href="/produto"');
     expect(html).not.toContain('href="#"');
     expect((html.match(/<details/g) ?? []).length).toBe(10);
   });
@@ -24,4 +25,14 @@ describe('site público', () => {
       expect(html).toContain('href="/entrar"');
     },
   );
+
+  it('mantém documentos gerais e de encerramento separados no rodapé', () => {
+    const html = renderToStaticMarkup(createElement(PublicSite, { page: 'home' }));
+    for (const name of ['termos-de-uso', 'privacidade', 'encerramento-de-conta', 'retencao-pos-encerramento']) {
+      expect(html).toContain(`href="/legal/${name}.html"`);
+    }
+    expect((html.match(/<main/g) ?? []).length).toBe(1);
+    expect((html.match(/<h1/g) ?? []).length).toBe(1);
+    expect(html).toContain('Pular para o conteúdo');
+  });
 });

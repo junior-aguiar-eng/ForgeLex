@@ -64,8 +64,7 @@ export const LandingScreen: React.FC = () => {
           </div>
 
           <h1 className="font-editorial text-4xl font-bold tracking-tight text-stone-950 leading-[1.15] sm:text-5xl">
-            A inteligência jurídica que <br className="hidden sm:inline" />
-            <span className="text-cognac-700 italic">pensa</span> antes de peticionar.
+            Do caso à minuta, conecte fatos, provas e jurisprudência.
           </h1>
 
           <p className="text-base sm:text-lg md:text-xl text-stone-600 max-w-2xl mx-auto font-normal leading-relaxed">
