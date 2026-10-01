@@ -1,0 +1,27 @@
+User-agent: *
+Disallow: /app
+Disallow: /entrar
+Disallow: /cadastro
+Disallow: /conta
+Disallow: /casos
+Disallow: /pesquisa
+Disallow: /rascunhos
+Disallow: /revisao
+Disallow: /conectar
+Disallow: /guia/mcp
+Disallow: /api
+Disallow: /mcp
+Disallow: /.well-known
+Disallow: /health
+Disallow: /readyz
+Disallow: /metrics
+Disallow: /openapi.json
+Disallow: /*?*billing_purchase=
+Disallow: /*?*code=
+Disallow: /*?*access_token=
+Disallow: /*?*token=
+Disallow: /*?*type=recovery
+Disallow: /*?*error_code=
+Disallow: /*?*error=access_denied
+
+Sitemap: https://nexojuris.ia.br/sitemap.xml

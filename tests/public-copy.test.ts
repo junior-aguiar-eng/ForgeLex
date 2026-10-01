@@ -4,7 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 const approvedHeadline = 'Do caso à minuta, conecte fatos, provas e jurisprudência.';
 const rejectedHeadline = 'A inteligência jurídica que pensa antes de peticionar.';
-const publicSurfaces = ['README.md', 'apps/web/index.html', 'apps/web/src/public/PublicSite.tsx'];
+const publicSurfaces = [
+  'README.md',
+  'apps/web/index.html',
+  'apps/web/src/public/pages/PublicSections.tsx',
+  'apps/web/src/screens/LandingScreen.tsx',
+];
 
 describe('public headline', () => {
   it.each(publicSurfaces)('%s uses the approved headline', (path) => {

@@ -1,6 +1,6 @@
 import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import Fastify from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 import { registerStaticWeb } from './static-web.js';
@@ -21,6 +21,31 @@ afterEach(async () => {
 });
 
 describe('registerStaticWeb', () => {
+  it('serve o build real, SEO, páginas legais e fallback sem capturar rotas técnicas', async () => {
+    const app = Fastify();
+    await registerStaticWeb(app, resolve('apps/web/dist'));
+    const root = await app.inject({ url: '/', headers: { accept: 'text/html' } });
+    expect(root.body).toContain('property="og:title"');
+    const assetPath = root.body.match(/src="(\/assets\/[^ ]+?)"/)?.[1];
+    expect(assetPath).toBeTruthy();
+    const asset = await app.inject({ url: assetPath! });
+    expect(asset.statusCode).toBe(200);
+    expect(asset.headers['content-type']).toContain('javascript');
+    for (const path of ['/produto', '/como-funciona', '/integracoes', '/creditos', '/guia', '/desenvolvedores/api']) {
+      const response = await app.inject({ url: path, headers: { accept: 'text/html' } });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toBe(root.body);
+    }
+    for (const path of ['/robots.txt', '/sitemap.xml', '/legal/termos-de-uso.html', '/legal/privacidade.html']) {
+      const response = await app.inject({ url: path });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).not.toContain('id="root"');
+    }
+    for (const path of ['/api/inexistente', '/mcp/inexistente', '/readyz', '/healthz', '/openapi.json']) {
+      expect((await app.inject({ url: path, headers: { accept: 'text/html' } })).statusCode).toBe(404);
+    }
+    await app.close();
+  });
   it('serve asset e fallback React apenas para navegação HTML', async () => {
     const app = Fastify();
     await registerStaticWeb(app, await createWebRoot());
