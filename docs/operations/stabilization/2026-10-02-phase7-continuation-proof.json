@@ -102,7 +102,7 @@
     "No full WCAG AA conformity claim",
     "Closure receipt states exercised only with disposable local fixtures; production focal used empty-receipt state",
     "Broad unquoted query cold ranking timeout and stale-tab chunk recovery remain P2",
-    "Phase8 seven-day observation not completed"
+    "Continuous operational follow-up remains ongoing and is not a calendar release gate"
   ],
   "checkoutRelease": {
     "sourceSha": "2355ce4d1e52cc637590e7997718368b20292197",
@@ -468,5 +468,23 @@
     "claimsLimitedToVerifiedScope": true,
     "individualValidationAccepted": true,
     "readerZoomDeclarationPreserved": true
+  },
+  "phase8Policy": {
+    "decisionDate": "2026-10-02",
+    "decidedBy": "Boni",
+    "status": "CONTINUOUS_NON_BLOCKING",
+    "sevenDayWindowIsGate": false,
+    "sevenDaysObservedClaim": false,
+    "scheduledFollowup": {
+      "kind": "thread heartbeat",
+      "frequency": "daily",
+      "localTime": "15:00",
+      "timezone": "America/Fortaleza",
+      "status": "ACTIVE",
+      "firstExecutionVerified": false
+    },
+    "futureEvolution": ["DataJud integration with scope to define"],
+    "commercialCoverageChanged": false,
+    "newIncidentRule": "A proven P0/P1 or material divergence affects the owning release or operation; independent evolution may continue"
   }
 }

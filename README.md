@@ -22,6 +22,13 @@ pré-paga em BRL exclusivamente pelas operações jurídicas do ForgeLex. O
 domínio `https://nexojuris.ia.br` atende o produto publicado; o Cloud Run aceita
 tráfego externo somente pelo balanceador HTTPS.
 
+O marco de estabilização e a fase 7 foram concluídos em 02/10/2026. A fase 8
+é acompanhamento operacional recorrente, sem gate de calendário para a entrega
+validada ou novas frentes. Integrações futuras, como DataJud, pertencem à
+evolução do projeto e não alteram a cobertura comercial STJ já publicada.
+O agendamento de acompanhamento não comprova execuções ou estabilidade por
+sete dias; os resultados permanecem documentados por verificação.
+
 **Linha publicada observada em 26/09/2026:** o serviço público
 `forgelex-api-hml` direcionava 100% do tráfego à revisão
 `forgelex-api-hml-00021-max`, imagem `closure-release-f10e13f`. Essa imagem

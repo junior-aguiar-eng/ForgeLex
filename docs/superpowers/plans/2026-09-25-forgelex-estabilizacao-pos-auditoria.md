@@ -62,7 +62,8 @@ flowchart TD
     D --> F5
     F5 --> F6[6. Publicação controlada]
     F6 --> F7[7. Validação externa]
-    F7 --> F8[8. Estabilização e encerramento]
+    F7 --> F8[8. Acompanhamento operacional contínuo]
+    F7 --> EV[Evolução do produto, como DataJud]
 ```
 
 As Trilhas 4A–4D não dependem umas das outras para implementação. A falha de uma não bloqueia o avanço técnico das demais, mas bloqueia a formação do release candidate da Fase 5.
@@ -605,39 +606,35 @@ responsável engenharia ForgeLex/Boni, revisão até 09/10. Não alegar certific
 
 ---
 
-## Fase 8 — Estabilização operacional e encerramento do programa
+## Fase 8 — Acompanhamento operacional contínuo, não bloqueante
 
-**Resultado:** operação observada por período suficiente, documentos atualizados e backlog residual classificado sem reabrir o programa.
+**Resultado:** acompanhar a operação em paralelo à evolução do produto, mantendo evidências, reconciliações e backlog atualizados. A observação não condiciona o uso, a entrega do escopo validado nem o início de novas frentes.
 
-- [ ] **Step 1: observar sete dias corridos**
+**Decisão de Boni em 02/10/2026:** substituir o gate de sete dias por acompanhamento sem bloqueio, preservando a continuidade do projeto e futuras integrações, como DataJud. O período de sete dias passa a ser referência de relatório, não prazo mínimo de aprovação. Não afirmar que esse período já foi observado.
 
-Acompanhar disponibilidade, 5xx, p95, falhas de billing/webhook, frescor STJ, Scheduler, closures, backups e alertas.
+- [ ] **Step 1: manter verificações operacionais recorrentes**
 
-- [ ] **Step 2: executar reconciliações**
+Acompanhar disponibilidade, 5xx, p95, billing/webhooks, frescor STJ, Scheduler, closures, backups e alertas. Registrar evidência e limites de cada execução. Verificação diária de leitura configurada no Codex às 15h, America/Fortaleza; agendamento ativo não equivale a execução bem-sucedida ou cobertura ininterrupta.
 
-Reconciliar ledger/saldo, pagamentos, outbox, manifestos STJ, closures e idade dos backups. Divergência material reabre somente a trilha proprietária.
+- [ ] **Step 2: manter reconciliações operacionais**
 
-- [ ] **Step 3: atualizar fontes canônicas**
+Conferir ledger/saldo, pagamentos, outbox, manifestos STJ, closures e idade dos backups. Uma divergência material aciona a trilha responsável; não reabre automaticamente todas as fases ou bloqueia frentes independentes.
 
-Atualizar `README.md`, `STATUS_VALIDACAO.md`, `docs/README.md` e runbooks com SHA, digest, revisões, data, evidências e limites.
+- [x] **Step 3: atualizar fontes canônicas para a decisão**
 
-- [ ] **Step 4: classificar backlog não bloqueante**
+README.md, STATUS_VALIDACAO.md, docs/README.md e registro operacional distinguem o marco entregue, a rotina de acompanhamento e a evolução futura. Atualizações posteriores devem registrar SHA, digest, revisão, data, evidências e limites.
 
-Manter fora do gate:
+- [x] **Step 4: classificar backlog de operação e evolução**
 
-- novos tribunais;
-- novas funcionalidades do Claude além da conexão real já homologada;
-- redesign geral;
-- troca de framework;
-- upgrades major sem necessidade funcional ou de segurança;
-- analytics externo sem política aprovada;
-- novas funcionalidades não exigidas pelos contratos atuais.
+Os dois P2 demonstrados (ranking OR frio e recuperação de aba antiga após publicação) seguem com engenharia ForgeLex/Boni e revisão até 09/10/2026. Integração DataJud foi incluída como evolução futura, com escopo técnico a definir; não está implementada nem habilita novos tribunais no contrato atual.
 
-- [ ] **Step 5: declarar encerramento**
+Novos tribunais, novas funcionalidades dos hosts, redesign, troca de framework, upgrades major e analytics externo continuam fora do aceite da entrega atual. Novos escopos podem avançar com seu próprio plano e validação, sem esperar a observação operacional encerrar. As fases congeladas do plano original não são descongeladas automaticamente.
 
-O programa só pode ser marcado `COMPLETED` quando não houver pendência P0/P1 sem proprietário, prazo e estado verificável.
+- [x] **Step 5: registrar o marco entregue sem gate de calendário**
 
-**Gate de saída:** linha de release reproduzível, operação observada, corpus com frescor mensurável, documentação coerente e pendências futuras explicitamente não bloqueantes.
+A fase 7 e a entrega do escopo validado permanecem fechadas. A fase 8 é uma rotina em andamento, não um impedimento para concluir esse marco ou continuar o projeto. P0/P1 comprovado pode bloquear a release ou operação afetada até correção ou contenção do risco; apenas atribuir responsável e prazo não torna esse risco aceitável. Frentes independentes podem continuar.
+
+**Critério operacional:** bloqueios dependem de defeitos ou divergências concretos e de seu impacto, com evidência verificável. A passagem de sete dias, a existência de backlog não bloqueante e novas funcionalidades não constituem gate. O projeto segue em evolução; acompanhamento ativo não significa estabilidade universal comprovada.
 
 ## Estratégia de commits e integração
 
@@ -666,5 +663,5 @@ Não fazer squash obrigatório entre trilhas independentes; preservar reversibil
 - Termos, Privacidade, retenção e suporte não contêm responsáveis ou fundamentos pendentes para conteúdo publicado.
 - O site público aprovado está implantado e suas rotas funcionam diretamente.
 - ChatGPT real e WCAG têm evidência posterior ao deploy; a validação individual de Boni está registrada, conforme critério revisado em 02/10/2026.
-- Scheduler, backups, billing, webhook, encerramento e ingestão foram observados e reconciliados.
+- Evidências de Scheduler, backups, billing, webhook, encerramento e ingestão são mantidas por verificação; acompanhamento e reconciliações futuros seguem como rotina não bloqueante, conforme decisão de 02/10/2026.
 - Fases congeladas e melhorias opcionais continuam fora do caminho crítico.
