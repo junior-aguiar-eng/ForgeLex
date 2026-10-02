@@ -37,6 +37,7 @@ class TokenVerifier implements TokenVerifier {
     if (token === 'billing-token') return principal;
     if (token === 'billing-only-token') return billingOnlyPrincipal;
     if (token === 'billing-activity-token') return activityPrincipal;
+    if (token === 'billing-public-return-token') return { ...principal, tenantId: 'tenant_public_return', userId: 'user_public_return' };
     return null;
   }
 }
@@ -52,6 +53,37 @@ class Provider implements PaymentProvider {
 }
 
 describe('rotas de billing', () => {
+  it('envia o retorno do checkout ao site publico quando WEB_URL nao esta configurada', async () => {
+    const connection = await createDatabase();
+    await runPersistenceMigrations(connection.client);
+    const ledger = new LedgerService(connection.db, connection.client);
+    await ledger.runMigrations();
+    const provider = new Provider();
+    vi.spyOn(provider, 'createCustomer').mockResolvedValue({ id: 'cus_public_return' });
+    const checkoutSpy = vi.spyOn(provider, 'createCheckout');
+    const app = await buildApp({
+      authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger,
+      database: connection.db, databaseClient: connection.client, paymentProvider: provider,
+      environment: { NODE_ENV: 'test', FORGELEX_PUBLIC_URL: 'https://nexojuris.ia.br' },
+    });
+    try {
+      const response = await app.inject({
+        method: 'POST', url: '/api/v2/billing/checkout',
+        headers: { authorization: 'Bearer billing-public-return-token', 'idempotency-key': 'public_return_1' },
+        payload: { packageId: 'credits_25' },
+      });
+      expect(response.statusCode).toBe(201);
+      const purchaseId = JSON.parse(response.body).purchaseId;
+      expect(checkoutSpy).toHaveBeenCalledWith(expect.objectContaining({
+        successUrl: `https://nexojuris.ia.br/?billing_purchase=${purchaseId}`,
+        cancelUrl: `https://nexojuris.ia.br/?billing_canceled=${purchaseId}`,
+      }));
+    } finally {
+      await app.close();
+      connection.client.close();
+    }
+  });
+
   it('impede chave exclusiva de billing de pesquisar jurisprudência', async () => {
     const connection = await createDatabase();
     await runPersistenceMigrations(connection.client);
