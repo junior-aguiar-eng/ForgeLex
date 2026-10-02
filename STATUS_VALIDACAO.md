@@ -1,5 +1,36 @@
 # Auditoria e status canônico do ForgeLex
 
+## Fase 6 da estabilização — publicada; e-mail pendente (01/10/2026)
+
+Execução autorizada por Boni. Correção de recuperação integrada na PR #17 após
+seis checks verdes; origem runtime `0268ffcbb5bd0a3f8f6bfd15cb3bdd2875b477fa`.
+Cloud Build `7c4fac25-5358-4943-982f-2f68ce70e065` aprovado, digest
+`sha256:e3a31359372134b26a610a2eee6f2c228f7f4fa6951f67a04776a24774cbdf70`.
+Revisão `forgelex-api-prod-phase6-0268ffcb` com 100% após promoção 5/25/100,
+rollback para `forgelex-api-prod-00003-moc` e retorno observado à nova revisão.
+Janela mínima de 120 segundos por etapa. Billing/encerramento habilitados;
+auto migration desabilitada, ingress e balanceador preservados.
+
+Recuperação com link novo, troca de senha, login posterior e solicitação de outro
+link aprovados no navegador produtivo. REST/MCP e revogação 401 aprovados, saldo
+e eventos de uso sintéticos preservados. Encerramento sintético aceito com 202,
+acesso bloqueado com 401. Nenhuma compra real ou migration remota.
+Local: 534 testes aprovados e 4 ignorados, público 8/8, lint/build/typecheck
+aprovados; CI do SHA integrado com seis checks verdes. Nenhum 5xx encontrado
+na janela consultada. Auth das fixtures removido/404, sessões rejeitadas/401.
+Job temporário removido; subnet pendente da Fase 5 excluída e ausência confirmada.
+
+Supabase Site URL corrigida para `https://nexojuris.ia.br`. Resend Free conectado,
+domínio verificado e três registros DNS autorizados salvos. SMTP próprio ainda
+desativado: integração aguarda confirmação de Auth/Projects READ + WRITE na
+organização nexohub; alias controlado e entrega/confirmação pública pendentes.
+O cadastro sintético por link administrativo não comprova entrega de e-mail.
+**Fase 6 não concluída enquanto esse gate permanecer pendente.**
+
+Evidências: `docs/operations/stabilization/2026-10-01-phase6.md`,
+`docs/operations/stabilization/2026-10-01-phase6-proof.json` e captura da recuperação.
+Os registros seguintes preservam o estado histórico da Fase 5 e fases anteriores.
+
 ## Fase 5 da estabilização — candidata validada (01/10/2026)
 
 PRs #12–#15 integrados separadamente após os seis checks obrigatórios.
