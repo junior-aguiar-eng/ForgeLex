@@ -1,0 +1,256 @@
+{
+  "runtime": {
+    "sourceSha": "80ef69a5417431b190bb7320350ed2e44ee8b933",
+    "revision": "forgelex-api-prod-mcp-80ef69a5-r2",
+    "digest": "sha256:5778b9a594b6bab950b77778f088a41f546ac1ef9de7f63494d5f7bd634cda4d",
+    "cloudBuild": "2a7ade8a-7e26-4042-8488-1c0090f9454b",
+    "ingress": "internal-and-cloud-load-balancing"
+  },
+  "promotion": {
+    "sourceSha": "80ef69a5417431b190bb7320350ed2e44ee8b933",
+    "revision": "forgelex-api-prod-mcp-80ef69a5-r2",
+    "rollbackRevision": "forgelex-api-prod-phase6-0268ffcb",
+    "startedAt": "2026-10-02T07:25:39.1594764Z",
+    "stages": [
+      {
+        "percent": 5,
+        "marker": "mcp-5-d70144dc548544d798d8bb13753878e8",
+        "startedAt": "2026-10-02T07:25:57.8321251Z",
+        "requests": 146,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-mcp-80ef69a5-r2",
+          "forgelex-api-prod-phase6-0268ffcb"
+        ],
+        "verified": true,
+        "completedAt": "2026-10-02T07:28:10.2038926Z",
+        "elapsedSeconds": 132.0
+      },
+      {
+        "percent": 25,
+        "marker": "mcp-25-05627fe1a5754d059f7a61848c1c228a",
+        "startedAt": "2026-10-02T07:28:18.2237930Z",
+        "requests": 143,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-mcp-80ef69a5-r2",
+          "forgelex-api-prod-phase6-0268ffcb"
+        ],
+        "verified": true,
+        "completedAt": "2026-10-02T07:30:31.9900798Z",
+        "elapsedSeconds": 134.0
+      },
+      {
+        "percent": 100,
+        "marker": "mcp-100-0b46ee526c8e4fdbb75fdc55bd727b14",
+        "startedAt": "2026-10-02T07:30:40.9420296Z",
+        "requests": 144,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-mcp-80ef69a5-r2"
+        ],
+        "verified": true,
+        "completedAt": "2026-10-02T07:32:54.7905604Z",
+        "elapsedSeconds": 134.0
+      }
+    ],
+    "checks": [
+      {
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "status": 200
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200
+      },
+      {
+        "path": "/app/conectar",
+        "status": 200
+      },
+      {
+        "path": "/guia/mcp",
+        "status": 200
+      },
+      {
+        "path": "/app/desenvolvedores/api",
+        "status": 200
+      },
+      {
+        "path": "/oauth/consent",
+        "status": 200
+      }
+    ],
+    "failures": [],
+    "completed": true,
+    "completedAt": "2026-10-02T07:32:57.0881489Z"
+  },
+  "firstPromotion": {
+    "sourceSha": "80ef69a5417431b190bb7320350ed2e44ee8b933",
+    "revision": "forgelex-api-prod-mcp-80ef69a5-r2",
+    "rollbackRevision": "forgelex-api-prod-phase6-0268ffcb",
+    "startedAt": "2026-10-02T07:17:07.6447640Z",
+    "stages": [
+      {
+        "percent": 5,
+        "marker": "mcp-5-5d13fae554db4c6d89292bfaf0adedb4",
+        "startedAt": "2026-10-02T07:17:26.5191587Z",
+        "requests": 115,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-mcp-80ef69a5-r2",
+          "forgelex-api-prod-phase6-0268ffcb"
+        ],
+        "verified": true,
+        "completedAt": "2026-10-02T07:19:39.0718161Z",
+        "elapsedSeconds": 133.0
+      },
+      {
+        "percent": 25,
+        "marker": "mcp-25-926d89316dde4eeca71ea9bb1ec40c63",
+        "startedAt": "2026-10-02T07:19:47.7020313Z",
+        "requests": 143,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-mcp-80ef69a5-r2",
+          "forgelex-api-prod-phase6-0268ffcb"
+        ],
+        "verified": true,
+        "completedAt": "2026-10-02T07:22:02.4264344Z",
+        "elapsedSeconds": 135.0
+      },
+      {
+        "percent": 100,
+        "marker": "mcp-100-48f9e70dd7b34888927d1d606758d3c6",
+        "startedAt": "2026-10-02T07:22:25.4138346Z",
+        "requests": 145,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-mcp-80ef69a5-r2"
+        ],
+        "verified": true,
+        "completedAt": "2026-10-02T07:24:39.2706541Z",
+        "elapsedSeconds": 134.0
+      }
+    ],
+    "checks": [
+      {
+        "status": 200,
+        "path": "/healthz"
+      },
+      {
+        "status": 200,
+        "path": "/.well-known/oauth-protected-resource/mcp"
+      },
+      {
+        "status": 200,
+        "path": "/.well-known/oauth-authorization-server"
+      },
+      {
+        "status": 200,
+        "path": "/openapi.json"
+      }
+    ],
+    "failures": [
+      "Response status code does not indicate success: 404 (Not Found)."
+    ],
+    "completed": false,
+    "rollbackAt": "2026-10-02T07:24:52.6767756Z"
+  },
+  "publicOAuth": {
+    "status": "PASS",
+    "startedAt": "2026-10-02T07:31:23.985Z",
+    "completedAt": "2026-10-02T07:31:32.499Z",
+    "gateway": "public HTTPS",
+    "cleanup": "synthetic SQL account closure accepted; Auth and clients deleted in finally",
+    "assertionCount": 50,
+    "assertions": [
+      "synthetic account created",
+      "password session established",
+      "public synthetic account bootstrap HTTP 200",
+      "gateway registration ForgeLex synthetic A HTTP 201",
+      "native client secret retained",
+      "upstream client is confidential",
+      "gateway registration ForgeLex synthetic B HTTP 201",
+      "native client secret retained",
+      "upstream client is confidential",
+      "gateway authorization redirect",
+      "native authorization redirect HTTP 302",
+      "consent authorization id",
+      "native consent identifies app",
+      "synthetic consent approved",
+      "native exchange without confidential secret rejected",
+      "gateway callback redirect",
+      "code cannot change registered external return",
+      "gateway code exchange HTTP 200",
+      "native access token never returned",
+      "hosted OAuth user and active grant verified",
+      "ForgeLex envelope rejected by native /user",
+      "ForgeLex envelope rejected by native /user/oauth/grants",
+      "hosted token verifies as restricted principal",
+      "native OAuth token rejected by ForgeLex",
+      "synthetic billing available before free call",
+      "public MCP handshake authenticated",
+      "public MCP exposes free connection tool",
+      "public OAuth MCP connection verified without charge",
+      "synthetic billing account unchanged after free verification",
+      "OAuth cannot access /api/v2/billing/account",
+      "OAuth cannot access /api/v2/account/closure-policy",
+      "public MCP rejects native OAuth token",
+      "cross client refresh rejected",
+      "hosted refresh succeeded",
+      "native plain request reaches consent for negative test",
+      "negative flow contains authorization id",
+      "negative flow details loaded HTTP 200",
+      "negative test consent issued HTTP 200 ",
+      "tampered upstream plain flow cannot issue ForgeLex token",
+      "native dynamic registration remains disabled",
+      "hosted grant revoked",
+      "issued access denied after revocation",
+      "refresh denied after revocation",
+      "public MCP rejects revoked grant",
+      "synthetic closure policy available",
+      "synthetic SQL account access blocked through closure",
+      "closed synthetic session denied",
+      "synthetic native client deletion confirmed",
+      "synthetic native client deletion confirmed",
+      "synthetic Auth user deletion confirmed"
+    ],
+    "account": "synthetic only",
+    "legalSearchExecuted": false
+  },
+  "logs": {
+    "queriedAt": "2026-10-02T07:33:03.5054401Z",
+    "revision": "forgelex-api-prod-mcp-80ef69a5-r2",
+    "http5xxCount": 0,
+    "since": "2026-10-02T07:25:39Z"
+  },
+  "host": {
+    "platform": "ChatGPT Pro / Edge",
+    "state": "Installed and connected account visible in ChatGPT; grant visible in ForgeLex",
+    "toolCallObserved": true,
+    "tool": "forgelex.connection_status",
+    "arguments": {},
+    "result": {
+      "authenticated": true,
+      "resource": "https://nexojuris.ia.br/mcp",
+      "authMethod": "oauth_access_token",
+      "verifiedAt": "2026-10-02T07:36:46.579Z",
+      "billable": false
+    },
+    "serverAuditConfirmed": true,
+    "serverAuditDisplayedAt": "02/10/2026, 04:36:46 (America/Fortaleza)",
+    "grantDisplayedAt": "02/10/2026, 04:34:52 (America/Fortaleza)",
+    "legalSearchExecuted": false,
+    "evidence": "ChatGPT connected-account screen and tool result; ForgeLex authorized-app and last audit-use UI"
+  },
+  "remoteMigrationExecuted": false,
+  "legalSearchExecuted": false
+}
