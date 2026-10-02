@@ -1,4 +1,4 @@
-# Continuação da fase 7 — 02/10/2026
+# Conclusão da fase 7 — 02/10/2026
 
 Execução autorizada por Boni. Checkout SDK; todas as identidades e gates são
 registrados separadamente. Nenhuma migration remota nesta frente.
@@ -52,7 +52,8 @@ A cadeia faturável e o replay foram executados posteriormente no ChatGPT real,
 conforme registro de fechamento focal ao final deste documento.
 O fluxo Pix como convidado dispensa outra conta Mercado Pago.
 O agente gerou a cobrança pendente, sem realizar pagamento.
-A fase 7 permanece em andamento; a fase 8 não é declarada concluída.
+A fase 7 foi concluída após a homologação e publicação descritas ao final;
+a fase 8 não é declarada concluída.
 A auditoria registra critérios parcialmente cobertos, sem inferir conformidade.
 
 Recibo saneado: 2026-10-02-phase7-continuation-proof.json.
@@ -139,5 +140,35 @@ Identificadores financeiros, tenant, sessão, grant e capturas da conta permanec
 fora do Git. Evidência publicada registra valores agregados, horários e limites.
 
 Regressões de espaçamento: 38/38 acessibilidade e 4/4 encerramento aprovados
-após as duas correções locais. Gate de publicação/focal produtivo ainda aberto
-para essas correções; não confundir aprovação local com runtime publicado.
+após as duas correções locais. A publicação e a validação focal produtiva foram concluídas conforme a seção seguinte.
+
+## Publicação final e gate fechado
+
+PR #27 integrada após seis checks verdes; CI do main 37035505975 também
+aprovado. Origem runtime b6c893c48ed99bca12216db9df1578cd57d344a9.
+Cloud Build 71836f10-7e4f-4c20-8e30-7d7cd176600a SUCCESS; digest
+sha256:9196b2c395184dad335cc233c63f1cac1401160da38706d7c42853ff133e89b2.
+Revisão forgelex-api-prod-a11y-b6c893c4 promovida 5/25/100, observações
+133/132/132 segundos, 457 readyz 200 e oito verificações finais 200.
+Concluído às 17:03:40Z de 02/10; fallback webhook-0f1ce2fe preservado.
+Ingress e URL pública mantidos; nenhuma migration remota.
+
+Edge produtivo em 320 px, com os quatro valores de espaçamento: Home passou
+de scrollWidth 346 para 320, com min-w-0/break-words publicados; acompanhamento
+de encerramento também mediu 320 e exibiu o container corrigido. Conteúdo
+visível inspecionado sem corte identificado. Estado produtivo sem recibo;
+recibo completo, identidade, confirmação e conclusão foram exercitados apenas
+em fixtures locais descartáveis. Nenhuma conta real foi encerrada. Overrides
+CSS/viewport removidos após capturas, mantidas fora do Git.
+
+Revogação corroborada por log produtivo HTTP 401 no MCP às 16:24:21.111845Z;
+reconexão posteriormente autorizada por Boni, status autenticado e gratuito.
+Consulta financeira final às 16:37:35Z manteve saldo 2.480 centavos e um usage de 20 centavos.
+A UI mostrou um crédito R$ 25,00 e um uso R$ 0,20.
+
+Gate da fase 7 fechado: cadeia real/replay/cobrança única/revogação comprovados,
+validação individual aceita, auditoria executada com limites explícitos e
+regressões demonstradas corrigidas/publicadas. Zero defeito crítico identificado
+no escopo verificado. P2 de OR frio e aba antiga mantidos com responsável/prazo;
+não estão resolvidos e não sustentam claim de conformidade AA integral.
+A fase 8 segue em observação; este fechamento não comprova sete dias operacionais.
