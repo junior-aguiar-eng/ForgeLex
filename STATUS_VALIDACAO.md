@@ -1,5 +1,27 @@
 # Auditoria e status canônico do ForgeLex
 
+## PDF textual e DOCX — integrados e publicados (02/10/2026)
+
+PR #30 integrada em `fbe32b2ed41488c56509f8cb35dbb36609f6f582`, com os seis checks da PR e de
+main aprovados. Deploy posterior autorizado por Boni: Cloud Build
+`ef753b00-eeea-4505-8884-3cacd718465b` SUCCESS; digest `sha256:9a9a1a935ccc9f5d84ca5f7ac1d277b316748b873b5b615919131f7fd52996f8`.
+Revisão `forgelex-api-prod-documents-fbe32b2` a **100%** em https://nexojuris.ia.br,
+confirmada nos logs e no inventário de tráfego, às `2026-10-02T21:06:11.7675209Z`.
+Fallback `forgelex-api-prod-a11y-b6c893c4` preservado.
+
+Quatro E2E passaram no frontend da candidata e dois fluxos principais foram
+repetidos no domínio normal após a promoção final; Auth/API e dados desses
+ensaios foram locais e descartáveis, sem escrita em contas reais. Worker PDF
+200/JavaScript. Promoção 5/25/100 com 645 sondas readyz 200, incluindo
+nova observação de 100% após corrigir o cabeçalho HTML do smoke que havia
+acionado rollback. Doze rotas finais 200 com o contrato HTTP correto.
+Banco, segredos, configuração operacional e ingresso preservados; sem migration.
+Recursos temporários de ensaio removidos. Checkout P2 original preservado.
+
+Evidência e limites: `docs/operations/stabilization/2026-10-02-document-io-publication.md`
+e recibo JSON associado. Os registros locais abaixo descrevem a etapa anterior
+à integração e à publicação; seus gates Git/runtime foram cumpridos nesta etapa.
+
 ## PDF textual e DOCX — entrega local concluída (02/10/2026)
 
 Escopo aprovado por Boni para execução individual e incremental: importação

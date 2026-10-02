@@ -1,0 +1,280 @@
+{
+  "recordedAt": "2026-10-02T21:07:41.302Z",
+  "sourceSha": "fbe32b2ed41488c56509f8cb35dbb36609f6f582",
+  "featurePullRequest": "https://github.com/junior-aguiar-eng/ForgeLex/pull/30",
+  "mainCi": {
+    "runId": "37059120155",
+    "status": "SUCCESS",
+    "checks": [
+      "validate",
+      "postgres",
+      "e2e-product",
+      "e2e-public",
+      "e2e-account-closure",
+      "security"
+    ]
+  },
+  "build": {
+    "finishTime": "2026-10-02T20:43:47.547205Z",
+    "id": "ef753b00-eeea-4505-8884-3cacd718465b",
+    "results": {
+      "images": [
+        {
+          "artifactRegistryPackage": "projects/project-bbbe1209-c295-4720-867/locations/southamerica-east1/repositories/forgelex-prod/packages/forgelex-api/versions/sha256:9a9a1a935ccc9f5d84ca5f7ac1d277b316748b873b5b615919131f7fd52996f8",
+          "digest": "sha256:9a9a1a935ccc9f5d84ca5f7ac1d277b316748b873b5b615919131f7fd52996f8",
+          "name": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api:fbe32b2ed41488c56509f8cb35dbb36609f6f582",
+          "pushTiming": {
+            "endTime": "2026-10-02T20:43:46.441622702Z",
+            "startTime": "2026-10-02T20:43:24.898201461Z"
+          }
+        }
+      ]
+    },
+    "sourceProvenance": {
+      "fileHashes": {
+        "gs://project-bbbe1209-c295-4720-867_cloudbuild/source/1790973577.131637-d6acfe057b0f4eed90474c0e4b725325.tgz#1790973586453414": {
+          "fileHash": [
+            {
+              "type": "MD5",
+              "value": "wgfgwFqSjYRqjlygetmyqw=="
+            },
+            {
+              "type": "SHA256",
+              "value": "LRzUK31Nf2MdgYytyGoWF0MKRs3qt5pDAp_T0hn0lxI="
+            }
+          ]
+        }
+      },
+      "resolvedStorageSource": {
+        "bucket": "project-bbbe1209-c295-4720-867_cloudbuild",
+        "generation": "1790973586453414",
+        "object": "source/1790973577.131637-d6acfe057b0f4eed90474c0e4b725325.tgz"
+      }
+    },
+    "startTime": "2026-10-02T20:39:48.178682030Z",
+    "status": "SUCCESS",
+    "substitutions": {
+      "_SOURCE_SHA": "fbe32b2ed41488c56509f8cb35dbb36609f6f582"
+    }
+  },
+  "digest": "sha256:9a9a1a935ccc9f5d84ca5f7ac1d277b316748b873b5b615919131f7fd52996f8",
+  "runtime": {
+    "recordedAt": "2026-10-02T21:07:34.4215865Z",
+    "latestReadyRevision": "forgelex-api-prod-documents-fbe32b2",
+    "traffic": [
+      {
+        "percent": 100,
+        "revisionName": "forgelex-api-prod-documents-fbe32b2"
+      }
+    ],
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:9a9a1a935ccc9f5d84ca5f7ac1d277b316748b873b5b615919131f7fd52996f8",
+    "sourceSha": "fbe32b2ed41488c56509f8cb35dbb36609f6f582",
+    "ingress": "internal-and-cloud-load-balancing"
+  },
+  "rollbackRevision": "forgelex-api-prod-a11y-b6c893c4",
+  "initialPromotionAttempt": {
+    "sourceSha": "fbe32b2ed41488c56509f8cb35dbb36609f6f582",
+    "revision": "forgelex-api-prod-documents-fbe32b2",
+    "rollbackRevision": "forgelex-api-prod-a11y-b6c893c4",
+    "startedAt": "2026-10-02T20:55:06.2654016Z",
+    "stages": [
+      {
+        "percent": 5,
+        "marker": "documents-5-06d9c98e26324ea2a45c29908d3efa11",
+        "startedAt": "2026-10-02T20:55:15.386Z",
+        "completedAt": "2026-10-02T20:57:15.467Z",
+        "elapsedSeconds": 120.081,
+        "successfulRequests": 159,
+        "observedRevisions": [
+          "forgelex-api-prod-a11y-b6c893c4",
+          "forgelex-api-prod-documents-fbe32b2"
+        ],
+        "loggedRequests": 159,
+        "verified": true
+      },
+      {
+        "percent": 25,
+        "marker": "documents-25-e82ea3a45de9425ca73892e8e1bc83e0",
+        "startedAt": "2026-10-02T20:57:42.574Z",
+        "completedAt": "2026-10-02T20:59:44.39Z",
+        "elapsedSeconds": 121.816,
+        "successfulRequests": 162,
+        "observedRevisions": [
+          "forgelex-api-prod-a11y-b6c893c4",
+          "forgelex-api-prod-documents-fbe32b2"
+        ],
+        "loggedRequests": 162,
+        "verified": true
+      },
+      {
+        "percent": 100,
+        "marker": "documents-100-3ec280ff82e148a298cc101eee97c11f",
+        "startedAt": "2026-10-02T21:00:16.912Z",
+        "completedAt": "2026-10-02T21:02:18.184Z",
+        "elapsedSeconds": 121.272,
+        "successfulRequests": 162,
+        "observedRevisions": [
+          "forgelex-api-prod-documents-fbe32b2"
+        ],
+        "loggedRequests": 162,
+        "verified": true
+      }
+    ],
+    "checks": [
+      {
+        "path": "/",
+        "status": 200
+      },
+      {
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "path": "/readyz",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "status": 200
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200
+      }
+    ],
+    "completed": false,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "rollbackCommandSucceeded": true
+  },
+  "initialProbeCorrection": {
+    "path": "/app/conectar",
+    "defaultAcceptStatusOnPreviousRevision": 404,
+    "navigationAcceptStatusOnPreviousRevision": 200,
+    "cause": "SPA fallback requires Accept: text/html; smoke probe lacked that header",
+    "applicationCodeChanged": false
+  },
+  "finalPromotion": {
+    "sourceSha": "fbe32b2ed41488c56509f8cb35dbb36609f6f582",
+    "revision": "forgelex-api-prod-documents-fbe32b2",
+    "rollbackRevision": "forgelex-api-prod-a11y-b6c893c4",
+    "startedAt": "2026-10-02T21:03:48.4275083Z",
+    "stages": [
+      {
+        "percent": 100,
+        "marker": "documents-100-8e7506ae5b824562b8d6e46a113e863b",
+        "startedAt": "2026-10-02T21:03:58.51Z",
+        "completedAt": "2026-10-02T21:06:00.156Z",
+        "elapsedSeconds": 121.646,
+        "successfulRequests": 162,
+        "observedRevisions": [
+          "forgelex-api-prod-documents-fbe32b2"
+        ],
+        "loggedRequests": 162,
+        "verified": true
+      }
+    ],
+    "checks": [
+      {
+        "path": "/",
+        "status": 200
+      },
+      {
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "path": "/readyz",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "status": 200
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200
+      },
+      {
+        "path": "/app/conectar",
+        "status": 200
+      },
+      {
+        "path": "/guia/mcp",
+        "status": 200
+      },
+      {
+        "path": "/app/desenvolvedores/api",
+        "status": 200
+      },
+      {
+        "path": "/oauth/consent",
+        "status": 200
+      },
+      {
+        "path": "/app/casos",
+        "status": 200
+      },
+      {
+        "path": "/app/rascunhos",
+        "status": 200
+      }
+    ],
+    "completed": true,
+    "completedAt": "2026-10-02T21:06:11.7675209Z"
+  },
+  "totalSuccessfulReadinessProbes": 645,
+  "candidateBrowser": {
+    "startTime": "2026-10-02T20:54:01.644Z",
+    "duration": 33030.604999999996,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "fixtures": "local Auth and compiled API, disposable SQLite",
+    "frontend": "actual candidate image served through temporary header-scoped load balancer route"
+  },
+  "finalPublicBrowser": {
+    "startTime": "2026-10-02T21:04:31.409Z",
+    "duration": 19876.179999999997,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "fixtures": "local Auth and compiled API, disposable SQLite",
+    "frontend": "normal public HTTPS domain, no candidate routing header"
+  },
+  "pdfWorker": {
+    "status": 200,
+    "mime": [
+      "application/javascript; charset=utf-8"
+    ],
+    "bytes": 1265413
+  },
+  "preservedRuntimeConfiguration": true,
+  "remoteMigrationsExecuted": false,
+  "productionAccountWritesByBrowserTests": false,
+  "cleanup": {
+    "temporaryRouteRemoved": true,
+    "baselineRoutingRestored": true,
+    "temporaryBackendRemoved": true,
+    "temporaryNegRemoved": true,
+    "recordedAt": "2026-10-02T21:01:19.4459643Z",
+    "temporaryCandidateTagRemoved": true
+  },
+  "runtimeErrorLogEntriesObserved": 0,
+  "limits": [
+    "Browser tests validate served release frontend using disposable local Auth/API/data; no production tenant write E2E",
+    "Automatic accessibility checks cover document import and loaded draft surfaces only",
+    "No OCR, original PDF storage or native PDF anchors",
+    "P2 search/chunk recovery work is outside this release",
+    "Short deploy observation does not prove continuous production reliability"
+  ]
+}
