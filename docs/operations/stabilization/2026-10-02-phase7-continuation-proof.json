@@ -1,0 +1,360 @@
+{
+  "recordedAt": "2026-10-02T15:24:59.2429901Z",
+  "guideSourceSha": "c722b382218f82464b6dd7dd3dec1efd11c8d934",
+  "buildId": "ae2a74c5-cd95-4a12-84fb-fd50187b6500",
+  "guideDigest": "sha256:6868ee5844f68f355f02e97c5e4da50ddd3232c51a361b096bae171f77057a76",
+  "guidePromotion": {
+    "sourceSha": "c722b382218f82464b6dd7dd3dec1efd11c8d934",
+    "revision": "forgelex-api-prod-guide-c722b382",
+    "rollbackRevision": "forgelex-api-prod-mcp-80ef69a5-r2",
+    "startedAt": "2026-10-02T14:53:11.8507195Z",
+    "stages": [
+      {
+        "percent": 5,
+        "marker": "mcp-5-85c7b8574a374be8baf295d1868114f4",
+        "startedAt": "2026-10-02T14:53:28.6679192Z",
+        "requests": 156,
+        "observationWindowSeconds": 120,
+        "observedRevisions": ["forgelex-api-prod-guide-c722b382", "forgelex-api-prod-mcp-80ef69a5-r2"],
+        "verified": true,
+        "completedAt": "2026-10-02T14:55:41.9518503Z",
+        "elapsedSeconds": 133.0
+      },
+      {
+        "percent": 25,
+        "marker": "mcp-25-f69764c67d0f4c99a83bfa873c4aa909",
+        "startedAt": "2026-10-02T14:55:50.4361972Z",
+        "requests": 152,
+        "observationWindowSeconds": 120,
+        "observedRevisions": ["forgelex-api-prod-guide-c722b382", "forgelex-api-prod-mcp-80ef69a5-r2"],
+        "verified": true,
+        "completedAt": "2026-10-02T14:58:02.710006Z",
+        "elapsedSeconds": 132.0
+      },
+      {
+        "percent": 100,
+        "marker": "mcp-100-568bf77d12334d64ade065bc1396523f",
+        "startedAt": "2026-10-02T14:58:10.5329755Z",
+        "requests": 156,
+        "observationWindowSeconds": 120,
+        "observedRevisions": ["forgelex-api-prod-guide-c722b382"],
+        "verified": true,
+        "completedAt": "2026-10-02T15:00:36.1438692Z",
+        "elapsedSeconds": 146.0
+      }
+    ],
+    "checks": [
+      {
+        "status": 200,
+        "path": "/healthz"
+      },
+      {
+        "status": 200,
+        "path": "/.well-known/oauth-protected-resource/mcp"
+      },
+      {
+        "status": 200,
+        "path": "/.well-known/oauth-authorization-server"
+      },
+      {
+        "status": 200,
+        "path": "/openapi.json"
+      },
+      {
+        "status": 200,
+        "path": "/app/conectar"
+      },
+      {
+        "status": 200,
+        "path": "/guia/mcp"
+      },
+      {
+        "status": 200,
+        "path": "/app/desenvolvedores/api"
+      },
+      {
+        "status": 200,
+        "path": "/oauth/consent"
+      }
+    ],
+    "failures": [],
+    "completed": true,
+    "completedAt": "2026-10-02T15:00:38.4962521Z"
+  },
+  "localChecks": {
+    "lint": "PASS",
+    "unitPassed": 547,
+    "accessibilityPassed": 38,
+    "typecheck": "PASS",
+    "closurePassed": 4,
+    "billingPassed": 17,
+    "unitSkipped": 4
+  },
+  "checkout": {
+    "paymentNotSubmittedByAgent": true,
+    "callbackLocalhostConfirmed": true,
+    "buttonDisabledObserved": true,
+    "fixCommit": "68b55fe",
+    "buyerMatchesCollector": true,
+    "pullRequest": 25
+  },
+  "limits": [
+    "Local text-spacing fixes await publication and production focal verification",
+    "No full WCAG AA conformity claim",
+    "Phase8 seven-day observation not completed"
+  ],
+  "checkoutRelease": {
+    "sourceSha": "2355ce4d1e52cc637590e7997718368b20292197",
+    "buildId": "0e8ede46-5404-404a-9769-b7785b4281e2",
+    "digest": "sha256:fc043005b98e6771394b28e1f83c51eb2ed9e2326d4077326f594e7f98525752",
+    "mainCiRun": 37024586847,
+    "promotion": {
+      "sourceSha": "2355ce4d1e52cc637590e7997718368b20292197",
+      "revision": "forgelex-api-prod-checkout-2355ce4d",
+      "rollbackRevision": "forgelex-api-prod-guide-c722b382",
+      "startedAt": "2026-10-02T15:15:31.4574393Z",
+      "stages": [
+        {
+          "percent": 5,
+          "marker": "mcp-5-0615df44a8c4493794b743c45781c4b3",
+          "startedAt": "2026-10-02T15:15:47.7806265Z",
+          "requests": 157,
+          "observationWindowSeconds": 120,
+          "observedRevisions": ["forgelex-api-prod-checkout-2355ce4d", "forgelex-api-prod-guide-c722b382"],
+          "verified": true,
+          "completedAt": "2026-10-02T15:18:01.1564287Z",
+          "elapsedSeconds": 133.0
+        },
+        {
+          "percent": 25,
+          "marker": "mcp-25-7b2e570c76a44cbba0f0ec7dce4f3e59",
+          "startedAt": "2026-10-02T15:18:09.3400148Z",
+          "requests": 158,
+          "observationWindowSeconds": 120,
+          "observedRevisions": ["forgelex-api-prod-checkout-2355ce4d", "forgelex-api-prod-guide-c722b382"],
+          "verified": true,
+          "completedAt": "2026-10-02T15:20:20.9983994Z",
+          "elapsedSeconds": 132.0
+        },
+        {
+          "percent": 100,
+          "marker": "mcp-100-5d0c52b8c71e4223b90ec8960ac21fa3",
+          "startedAt": "2026-10-02T15:20:30.1720896Z",
+          "requests": 158,
+          "observationWindowSeconds": 120,
+          "observedRevisions": ["forgelex-api-prod-checkout-2355ce4d"],
+          "verified": true,
+          "completedAt": "2026-10-02T15:22:42.5215438Z",
+          "elapsedSeconds": 132.0
+        }
+      ],
+      "checks": [
+        {
+          "status": 200,
+          "path": "/healthz"
+        },
+        {
+          "status": 200,
+          "path": "/.well-known/oauth-protected-resource/mcp"
+        },
+        {
+          "status": 200,
+          "path": "/.well-known/oauth-authorization-server"
+        },
+        {
+          "status": 200,
+          "path": "/openapi.json"
+        },
+        {
+          "status": 200,
+          "path": "/app/conectar"
+        },
+        {
+          "status": 200,
+          "path": "/guia/mcp"
+        },
+        {
+          "status": 200,
+          "path": "/app/desenvolvedores/api"
+        },
+        {
+          "status": 200,
+          "path": "/oauth/consent"
+        }
+      ],
+      "failures": [],
+      "completed": true,
+      "completedAt": "2026-10-02T15:22:44.9338617Z"
+    },
+    "newOrderReturnUrlsVerified": true,
+    "newOrderAmount": "25.00",
+    "pixVisible": true,
+    "paymentConfirmed": true
+  },
+  "paymentReconciliation": {
+    "providerPaymentApprovedAt": "2026-10-02T12:31:23-03:00",
+    "amountCents": 2500,
+    "providerOrderStatus": "processed",
+    "webhookDeliveryHttpStatus": 200,
+    "cause": "Missing notification ID fallback collided across order status transitions",
+    "reconciledAt": "2026-10-02T15:36:25.628Z",
+    "purchaseStatus": "PAID",
+    "paidBalanceCents": 2500,
+    "creditEntries": 1,
+    "creditTotalCents": 2500,
+    "reconciliationReplayExecuted": true,
+    "directBalanceEdit": false,
+    "uiBalanceVerified": true,
+    "fixCommit": "6c03266",
+    "pullRequest": 26,
+    "fixPublished": true,
+    "release": {
+      "sourceSha": "0f1ce2fe9ca91e507d22eb0baa90360c9cffdfc8",
+      "buildId": "a3348491-5d29-47b2-8e25-de55ef15b7b4",
+      "digest": "sha256:b13d0a013fe3c1db52e2110dadf57ebc113582ac3fdf633fdbb7800c39c2d98f",
+      "mainCiRun": 37028940509,
+      "mainCi": "PASS",
+      "revision": "forgelex-api-prod-webhook-0f1ce2fe",
+      "promotion": {
+        "sourceSha": "0f1ce2fe9ca91e507d22eb0baa90360c9cffdfc8",
+        "revision": "forgelex-api-prod-webhook-0f1ce2fe",
+        "rollbackRevision": "forgelex-api-prod-checkout-2355ce4d",
+        "startedAt": "2026-10-02T15:51:45.8863242Z",
+        "stages": [
+          {
+            "percent": 5,
+            "marker": "mcp-5-881887e183da440bafd490c09c231d36",
+            "startedAt": "2026-10-02T15:52:06.8647646Z",
+            "requests": 155,
+            "observationWindowSeconds": 120,
+            "observedRevisions": ["forgelex-api-prod-checkout-2355ce4d", "forgelex-api-prod-webhook-0f1ce2fe"],
+            "verified": true,
+            "completedAt": "2026-10-02T15:54:19.2134793Z",
+            "elapsedSeconds": 132.0
+          },
+          {
+            "percent": 25,
+            "marker": "mcp-25-7d6b5cde45e8469eb8409c0e2780bc1f",
+            "startedAt": "2026-10-02T15:54:26.8436878Z",
+            "requests": 156,
+            "observationWindowSeconds": 120,
+            "observedRevisions": ["forgelex-api-prod-checkout-2355ce4d", "forgelex-api-prod-webhook-0f1ce2fe"],
+            "verified": true,
+            "completedAt": "2026-10-02T15:56:37.7567982Z",
+            "elapsedSeconds": 131.0
+          },
+          {
+            "percent": 100,
+            "marker": "mcp-100-8cc9200b147a474ba55bcb120582667d",
+            "startedAt": "2026-10-02T15:56:46.7766052Z",
+            "requests": 157,
+            "observationWindowSeconds": 120,
+            "observedRevisions": ["forgelex-api-prod-webhook-0f1ce2fe"],
+            "verified": true,
+            "completedAt": "2026-10-02T15:58:58.4583363Z",
+            "elapsedSeconds": 132.0
+          }
+        ],
+        "checks": [
+          {
+            "status": 200,
+            "path": "/healthz"
+          },
+          {
+            "status": 200,
+            "path": "/.well-known/oauth-protected-resource/mcp"
+          },
+          {
+            "status": 200,
+            "path": "/.well-known/oauth-authorization-server"
+          },
+          {
+            "status": 200,
+            "path": "/openapi.json"
+          },
+          {
+            "status": 200,
+            "path": "/app/conectar"
+          },
+          {
+            "status": 200,
+            "path": "/guia/mcp"
+          },
+          {
+            "status": 200,
+            "path": "/app/desenvolvedores/api"
+          },
+          {
+            "status": 200,
+            "path": "/oauth/consent"
+          }
+        ],
+        "failures": [],
+        "completed": true,
+        "completedAt": "2026-10-02T15:59:00.7163482Z"
+      }
+    }
+  },
+  "hostChain": {
+    "observedAt": "2026-10-02T16:27:56.435Z",
+    "host": "ChatGPT Web",
+    "planEvidence": "Pro observado anteriormente",
+    "modelSelector": "GPT-6.1 Sol / Medio",
+    "query": "\"juros capitalizados\"",
+    "court": "STJ",
+    "limit": 3,
+    "searchSuccessAt": "2026-10-02T16:15:17.485Z",
+    "sameKeyReplaysAt": ["2026-10-02T16:15:27.787Z", "2026-10-02T16:22:48.099Z"],
+    "getAuthoritySuccessAt": "2026-10-02T16:22:54.956Z",
+    "verifyAuthoritySuccessAt": "2026-10-02T16:23:00.062Z",
+    "authorityStatus": "VERIFIED_OFFICIAL",
+    "balanceBeforeCents": 2500,
+    "balanceAfterCents": 2480,
+    "billableUsageCount": 1,
+    "billableUsageCents": 20,
+    "failedBroadSearchUsageCount": 0,
+    "revocationObserved": "grant ChatGPT removido na UI; host exigiu reconexao antes da ferramenta",
+    "claudeGrantPreserved": true,
+    "reconnectionAuthorizedByUser": true,
+    "restoredConnectionStatus": {
+      "authenticated": true,
+      "authMethod": "oauth_access_token",
+      "billable": false,
+      "verifiedAt": "2026-10-02T16:27:56.435Z"
+    },
+    "privateEvidenceExcludedFromGit": true
+  },
+  "residualIssues": [
+    {
+      "id": "P2-SEARCH-OR-COLD",
+      "severity": "P2",
+      "status": "open",
+      "owner": "engenharia ForgeLex/Boni",
+      "reviewBy": "2026-10-09",
+      "evidence": "OR com 33759 candidatos; EXPLAIN ANALYZE 14788 ms; timeout host 15000 ms, sem debito"
+    },
+    {
+      "id": "P2-STALE-CHUNK",
+      "severity": "P2",
+      "status": "open",
+      "owner": "engenharia ForgeLex/Boni",
+      "reviewBy": "2026-10-09",
+      "evidence": "aba antiga perdeu chunk apos deploy; reload recuperou"
+    }
+  ],
+  "accessibilityExtension": {
+    "scenariosPassed": 38,
+    "closureScenariosPassed": 4,
+    "visualSamplePassed": 4,
+    "spacing": {
+      "lineHeight": 1.5,
+      "letterSpacingEm": 0.12,
+      "wordSpacingEm": 0.16,
+      "paragraphMarginEm": 2
+    },
+    "defectsReproduced": ["home hero min-content overflow 320px", "closure receipt text overflow 320px"],
+    "localFixes": ["min-w-0 and break-words in Hero", "break-words in closure status content"],
+    "published": false,
+    "fullAAConformityClaim": false
+  }
+}

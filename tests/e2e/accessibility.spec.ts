@@ -9,20 +9,76 @@ async function audit(page: Page, testInfo: TestInfo): Promise<void> {
   const result = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
   await writeFile(testInfo.outputPath('wcag.json'), JSON.stringify(result, null, 2));
   await testInfo.attach('wcag-2.1-aa', {
-    body: JSON.stringify({
-      url: result.url, timestamp: result.timestamp, engine: result.testEngine,
-      violations: result.violations, incomplete: result.incomplete,
-      passedRules: result.passes.map((rule) => rule.id),
-    }, null, 2),
+    body: JSON.stringify(
+      {
+        url: result.url,
+        timestamp: result.timestamp,
+        engine: result.testEngine,
+        violations: result.violations,
+        incomplete: result.incomplete,
+        passedRules: result.passes.map((rule) => rule.id),
+      },
+      null,
+      2,
+    ),
     contentType: 'application/json',
   });
-  expect(result.violations.map((rule) => ({
-    id: rule.id, impact: rule.impact, targets: rule.nodes.map((node) => node.target),
-  }))).toEqual([]);
+  expect(
+    result.violations.map((rule) => ({
+      id: rule.id,
+      impact: rule.impact,
+      targets: rule.nodes.map((node) => node.target),
+    })),
+  ).toEqual([]);
+  const spacing = await page.addStyleTag({
+    content:
+      '* { line-height: 1.5 !important; letter-spacing: .12em !important; word-spacing: .16em !important; } p { margin-bottom: 2em !important; }',
+  });
+  await testInfo.attach('text-spacing-overflow', {
+    body: JSON.stringify(
+      await page.evaluate(() =>
+        [...document.querySelectorAll('body *')]
+          .filter((element) => element.getBoundingClientRect().right > window.innerWidth)
+          .map((element) => ({
+            tag: element.tagName,
+            className: element.className,
+            text: element.textContent?.slice(0, 120),
+            right: element.getBoundingClientRect().right,
+          })),
+      ),
+    ),
+    contentType: 'application/json',
+  });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    'reflow com espaçamento WCAG 1.4.12',
+  ).toBe(true);
+  await page.screenshot({ fullPage: true, path: testInfo.outputPath('text-spacing.png') });
+  await testInfo.attach('text-spacing', { path: testInfo.outputPath('text-spacing.png'), contentType: 'image/png' });
+  await spacing.evaluate((element) => element.remove());
 }
 
-const publicRoutes = ['/', '/produto', '/como-funciona', '/integracoes', '/creditos', '/guia', '/desenvolvedores/api', '/entrar', '/cadastro'];
-const workspaceRoutes = ['/app', '/pesquisa', '/casos', '/rascunhos', '/revisao', '/conta', '/conectar', '/conta/seguranca'];
+const publicRoutes = [
+  '/',
+  '/produto',
+  '/como-funciona',
+  '/integracoes',
+  '/creditos',
+  '/guia',
+  '/desenvolvedores/api',
+  '/entrar',
+  '/cadastro',
+];
+const workspaceRoutes = [
+  '/app',
+  '/pesquisa',
+  '/casos',
+  '/rascunhos',
+  '/revisao',
+  '/conta',
+  '/conectar',
+  '/conta/seguranca',
+];
 
 for (const width of [1366, 320]) {
   test.describe(`WCAG 2.1 AA em ${width}px`, () => {
