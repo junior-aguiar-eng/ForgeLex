@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-02",
+  "timezone": "America/Fortaleza",
+  "runtimeSourceSha": "80ef69a5417431b190bb7320350ed2e44ee8b933",
+  "host": "Claude Web / Pro / Edge",
+  "connector": {
+    "name": "ForgeLex",
+    "resource": "https://nexojuris.ia.br/mcp",
+    "authentication": "Sign in now",
+    "oauthClient": "Register automatically (DCR)",
+    "fixedHeaders": false,
+    "toolCount": 5,
+    "tools": [
+      "forgelex.connection_status",
+      "research.get_authority",
+      "research.search_case_law",
+      "research.verify_authority",
+      "workflow.legal_research_memo"
+    ]
+  },
+  "grantDisplayedAt": "02/10/2026, 11:19:46",
+  "grantScopes": [
+    "email",
+    "profile",
+    "offline_access"
+  ],
+  "toolCall": {
+    "name": "forgelex.connection_status",
+    "arguments": {},
+    "result": {
+      "authenticated": true,
+      "resource": "https://nexojuris.ia.br/mcp",
+      "authMethod": "oauth_access_token",
+      "verifiedAt": "2026-10-02T14:21:01.046Z",
+      "billable": false
+    },
+    "rawToolResponseObserved": true,
+    "serverAuditConfirmed": true,
+    "serverAuditDisplayedAt": "02/10/2026, 11:21:01"
+  },
+  "manualValidation": {
+    "reporter": "Boni",
+    "date": "2026-10-02",
+    "report": "testei o leitor de zoom e está funcionando como esperado",
+    "acceptedScope": "Leitor e zoom conforme declaração do responsável; configuração e páginas específicas não informadas",
+    "independentObservation": false,
+    "wcagConformanceDeclared": false
+  },
+  "legalSearchExecuted": false,
+  "credentialsChanged": false,
+  "initialDiscovery": {
+    "verified": false,
+    "causeEstablished": false,
+    "supportedManualConfigurationSucceeded": true
+  }
+}

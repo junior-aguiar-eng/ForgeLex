@@ -7,14 +7,15 @@ export const hostInstallationSteps = {
     { title: 'Selecione o ForgeLex na conversa', text: 'Abra uma nova conversa. No menu de ferramentas/aplicativos junto ao campo de mensagem, adicione o ForgeLex. Confira se as ferramentas de pesquisa, obtenção e verificação de autoridades estão listadas.' },
   ],
   claude: [
-    { title: 'Abra as configurações de conectores', text: 'No Claude Web ou Desktop, abra seu perfil → Settings (Configurações) → Connectors (Conectores). Em uma organização, conectores personalizados podem depender de liberação do administrador.' },
-    { title: 'Adicione um conector personalizado', text: 'Selecione Add custom connector (Adicionar conector personalizado). Informe o nome ForgeLex e cole o endereço abaixo no campo Remote MCP server URL, incluindo /mcp. Confirme em Add (Adicionar).' },
-    { title: 'Conecte sua conta ForgeLex', text: 'Na ficha do conector, selecione Connect (Conectar). Na página do ForgeLex, entre com sua conta, confira o aplicativo e as permissões e selecione Autorizar conexão. Aguarde o retorno ao Claude.' },
+    { title: 'Abra a área de conectores', text: 'No Claude, abra Personalizar → Conectores (Customize → Connectors). Se Configurações → Conectores mostrar um aviso de mudança, selecione Personalizar. Em uma organização, o administrador pode precisar liberar conectores personalizados.' },
+    { title: 'Adicione o ForgeLex', text: 'Selecione Adicionar → Adicionar conector personalizado. Informe o nome ForgeLex e cole a URL abaixo, incluindo /mcp. Selecione Continuar. Se a verificação não identificar o login do servidor, selecione Continuar mesmo assim para configurar o OAuth na etapa seguinte.' },
+    { title: 'Configure o login OAuth', text: 'Em Autenticação, selecione Entrar agora (Sign in now). Em Cliente OAuth, selecione Registrar automaticamente (Register automatically). Deixe os cabeçalhos de requisição vazios e selecione Adicionar. Essas são as opções compatíveis com a conexão ForgeLex.' },
+    { title: 'Vincule sua conta ForgeLex', text: 'Na ficha do conector, selecione Vincular (Connect). Na página do ForgeLex, entre com sua conta, confira o aplicativo Claude, as permissões e os custos e selecione Autorizar conexão. Aguarde o retorno: a ficha deve mostrar Desvincular e as ferramentas disponíveis.' },
     { title: 'Habilite as ferramentas na conversa', text: 'Abra uma nova conversa. No menu de ferramentas junto ao campo de mensagem, abra os conectores e habilite o ForgeLex para essa conversa. Confira a lista de ferramentas disponíveis.' },
   ],
 } as const;
 
 export const hostReferences = {
   chatgpt: { href: 'https://chatgpt.com/plugins', label: 'Abrir Plugins no ChatGPT', docs: 'https://developers.openai.com/plugins/deploy/connect-chatgpt' },
-  claude: { href: 'https://claude.ai/settings/connectors', label: 'Abrir conectores no Claude', docs: 'https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp' },
+  claude: { href: 'https://claude.ai/customize/connectors', label: 'Abrir conectores no Claude', docs: 'https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp' },
 };
