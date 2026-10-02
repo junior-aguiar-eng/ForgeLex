@@ -1,0 +1,222 @@
+{
+  "recordedAt": "2026-10-02T23:48:55.150115+00:00",
+  "sourceSha": "01fedabe1daf366ffb7a2508df73876e731dc8a7",
+  "featurePullRequest": "https://github.com/junior-aguiar-eng/ForgeLex/pull/32",
+  "ci": {
+    "prRunId": 37075830747,
+    "mainRunId": 37076269177,
+    "status": "SUCCESS",
+    "checks": ["validate", "postgres", "e2e-product", "e2e-public", "e2e-account-closure", "security"]
+  },
+  "build": {
+    "finishTime": "2026-10-02T23:15:41.765614Z",
+    "id": "6d4cbc00-c018-4e4c-bd7e-979bbc97ab11",
+    "results": {
+      "images": [
+        {
+          "artifactRegistryPackage": "projects/project-bbbe1209-c295-4720-867/locations/southamerica-east1/repositories/forgelex-prod/packages/forgelex-api/versions/sha256:9bbaaf29abe153e8381162a6d4d10ad1b9eb28e2662a2222e5101cfe19ea129e",
+          "digest": "sha256:9bbaaf29abe153e8381162a6d4d10ad1b9eb28e2662a2222e5101cfe19ea129e",
+          "name": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api:01fedabe1daf366ffb7a2508df73876e731dc8a7",
+          "pushTiming": {
+            "endTime": "2026-10-02T23:15:40.666233737Z",
+            "startTime": "2026-10-02T23:15:18.329250904Z"
+          }
+        }
+      ]
+    },
+    "startTime": "2026-10-02T23:11:51.162039234Z",
+    "status": "SUCCESS"
+  },
+  "upload": {
+    "workingTreeClean": true,
+    "fileCount": 424,
+    "sourceSha": "01fedabe1daf366ffb7a2508df73876e731dc8a7",
+    "privateFiles": 0
+  },
+  "migration": {
+    "column": {
+      "data_type": "integer",
+      "is_nullable": "YES"
+    },
+    "debitCountPreserved": true,
+    "historyCountPreserved": true,
+    "migration": {
+      "applied_at": "2026-10-02T23:16:34.892Z",
+      "id": "persistence-0024-research-judgment-year"
+    },
+    "pendingBefore": ["persistence-0024-research-judgment-year"],
+    "sourceSha": "01fedabe1daf366ffb7a2508df73876e731dc8a7",
+    "status": "passed"
+  },
+  "migrationExecution": {
+    "completionStatus": "EXECUTION_SUCCEEDED",
+    "completionTimestamp": "2026-10-02T23:16:38.826712Z",
+    "creationTimestamp": "2026-10-02T23:16:20.980849Z",
+    "name": "forgelex-research-migration-01fedab-plpqq"
+  },
+  "runtime": {
+    "revision": "forgelex-api-prod-research-01fedab",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:9bbaaf29abe153e8381162a6d4d10ad1b9eb28e2662a2222e5101cfe19ea129e",
+    "sourceSha": "01fedabe1daf366ffb7a2508df73876e731dc8a7",
+    "traffic": [
+      {
+        "percent": 100,
+        "revisionName": "forgelex-api-prod-research-01fedab"
+      }
+    ],
+    "ingress": "internal-and-cloud-load-balancing"
+  },
+  "configurationPreserved": {
+    "env_and_secret_refs": true,
+    "service_account": true,
+    "concurrency": true,
+    "timeout": true,
+    "resources": true,
+    "cloudsql": true,
+    "ingress": true
+  },
+  "candidateRequests": [
+    {
+      "httpRequest": {
+        "status": 200
+      },
+      "resource": {
+        "labels": {
+          "revision_name": "forgelex-api-prod-research-01fedab"
+        }
+      },
+      "timestamp": "2026-10-02T23:22:50.604449Z"
+    }
+  ],
+  "candidateBrowser": {
+    "expected": 7,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "duration": 28806.306999999997
+  },
+  "publicBrowser": {
+    "expected": 2,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "duration": 13411.439
+  },
+  "openApi": {
+    "judgmentYear": {
+      "type": "integer",
+      "minimum": 1989,
+      "maximum": 2026,
+      "description": "Ano da data de julgamento; omitido pesquisa todos os anos."
+    },
+    "historyYear": {
+      "type": ["integer", "null"]
+    },
+    "repeatCount": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "promotion": {
+    "sourceSha": "01fedabe1daf366ffb7a2508df73876e731dc8a7",
+    "revision": "forgelex-api-prod-research-01fedab",
+    "rollbackRevision": "forgelex-api-prod-documents-fbe32b2",
+    "startedAt": "2026-10-02T23:40:22.8292914Z",
+    "stages": [
+      {
+        "percent": 100,
+        "marker": "research-100-465f479e2dad47e6be1ba13caf9d93f5",
+        "startedAt": "2026-10-02T23:40:31.936Z",
+        "completedAt": "2026-10-02T23:42:33.536Z",
+        "elapsedSeconds": 121.6,
+        "successfulRequests": 162,
+        "observedRevisions": ["forgelex-api-prod-research-01fedab"],
+        "loggedRequests": 162
+      }
+    ],
+    "checks": [
+      {
+        "path": "/",
+        "status": 200
+      },
+      {
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "path": "/readyz",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "status": 200
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200
+      },
+      {
+        "path": "/app",
+        "status": 200
+      },
+      {
+        "path": "/pesquisa",
+        "status": 200
+      },
+      {
+        "path": "/conectar",
+        "status": 200
+      },
+      {
+        "path": "/guia/mcp",
+        "status": 200
+      },
+      {
+        "path": "/desenvolvedores/api",
+        "status": 200
+      },
+      {
+        "path": "/oauth/consent",
+        "status": 200
+      },
+      {
+        "path": "/casos",
+        "status": 200
+      },
+      {
+        "path": "/rascunhos",
+        "status": 200
+      }
+    ],
+    "completed": true,
+    "completedAt": "2026-10-02T23:42:45.1317412Z"
+  },
+  "cleanup": {
+    "urlMapRestored": true,
+    "recordedAt": "2026-10-02T23:48:30.1641028Z",
+    "checks": {
+      "backendRemoved": true,
+      "negRemoved": true,
+      "jobRemoved": true,
+      "tagRemoved": true
+    },
+    "errorLogEntries": 0,
+    "revision": "forgelex-api-prod-research-01fedab",
+    "traffic": [
+      {
+        "percent": 100,
+        "revisionName": "forgelex-api-prod-research-01fedab"
+      }
+    ]
+  },
+  "limits": {
+    "authApiAndBillingBrowserFixturesLocal": true,
+    "productionPaidQueriesExecuted": 0,
+    "newPermanentResultStorage": false,
+    "automaticRefunds": false
+  }
+}

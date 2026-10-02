@@ -1,5 +1,34 @@
 # Auditoria e status canônico do ForgeLex
 
+## Pesquisa, histórico e ano do julgamento — integrados e publicados (02/10/2026)
+
+PR #32 integrada em `01fedabe1daf366ffb7a2508df73876e731dc8a7`, com os seis
+checks da PR e de main aprovados. Cloud Build
+`6d4cbc00-c018-4e4c-bd7e-979bbc97ab11`: SUCCESS; digest
+`sha256:9bbaaf29abe153e8381162a6d4d10ad1b9eb28e2662a2222e5101cfe19ea129e`.
+Revisão `forgelex-api-prod-research-01fedab` a **100%** em
+https://nexojuris.ia.br. A migration aditiva
+`persistence-0024-research-judgment-year` foi aplicada antes da aplicação,
+às `2026-10-02T23:16:34.892Z`; coluna nullable e contagens de histórico e
+débitos preservadas. Rollback: `forgelex-api-prod-documents-fbe32b2`,
+podendo manter a coluna adicional.
+
+Sete E2E passaram no frontend remoto da candidata e dois fluxos principais
+passaram novamente no domínio normal após a promoção. Auth/API, SQLite,
+saldo e jurisprudência desses ensaios foram locais e fictícios; nenhuma
+consulta paga foi executada em produção. Observação a 100%: 162 respostas
+readyz 200 em 121,6 segundos, confirmadas nos logs da nova revisão;
+14 rotas finais retornaram 200. Configuração operacional preservada;
+rota, backend, NEG, tag e job temporários removidos. Inventário e logs
+conferidos às `2026-10-02T23:48:30Z`, sem entradas ERROR da nova revisão.
+Checkout P2 original preservado, sem novo armazenamento permanente de
+resultados ou estorno automático.
+
+Evidências e limites:
+`docs/operations/stabilization/2026-10-02-research-publication.md` e recibo
+JSON associado. O registro local abaixo descreve a etapa anterior; seus
+gates de integração e publicação foram cumpridos nesta etapa.
+
 ## Pesquisa, histórico e ano do julgamento — entrega local (02/10/2026)
 
 Plano implementado na branch `codex/research-history-year`, isolada de
