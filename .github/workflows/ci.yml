@@ -102,6 +102,7 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e:phase7
       - run: pnpm test:e2e:mcp-onboarding
+      - run: pnpm test:e2e:accessibility
 
   e2e-public:
     runs-on: ubuntu-latest
@@ -133,6 +134,12 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e:account-closure
+      - name: Preserve closure diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: account-closure-test-results
+          path: test-results/
 
   security:
     runs-on: ubuntu-latest

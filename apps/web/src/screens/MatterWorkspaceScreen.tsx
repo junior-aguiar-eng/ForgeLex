@@ -577,7 +577,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
             </div>
           </aside>
 
-          <main className="space-y-6">
+          <div className="space-y-6">
             <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
               {selectedMatter ? (
                 <>
@@ -587,7 +587,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                       <h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">{selectedMatter.title}</h2>
                       <p className="text-xs text-stone-500 mt-1">{selectedMatter.practiceArea || 'Área jurídica não informada'}{selectedMatter.jurisdiction ? ` · ${selectedMatter.jurisdiction}` : ''}</p>
                     </div>
-                    <span className="text-[11px] text-stone-400">Atualizado em {new Date(selectedMatter.updatedAt).toLocaleDateString('pt-BR')}</span>
+                    <span className="text-[11px] text-stone-500">Atualizado em {new Date(selectedMatter.updatedAt).toLocaleDateString('pt-BR')}</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
                     {[
@@ -627,7 +627,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 <button disabled={!hasApiAccess || busy || !content.trim()} className="md:col-span-2 px-4 py-2.5 rounded-xl bg-cognac-50 hover:bg-cognac-100 border border-cognac-200 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Ingerir documento textual</button>
               </form>
               <div className="space-y-2">
-                {documents.map((document) => <div key={document.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{document.title}</span><span className="text-[11px] text-stone-500">{document.originalFilename} · {document.status === 'INDEXED' ? 'Ancorado' : 'Falhou'}</span></div><span className="text-[10px] text-stone-400 font-mono">SHA-256 {document.contentHash.slice(0, 12)}…</span></div>)}
+                {documents.map((document) => <div key={document.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{document.title}</span><span className="text-[11px] text-stone-500">{document.originalFilename} · {document.status === 'INDEXED' ? 'Ancorado' : 'Falhou'}</span></div><span className="text-[10px] text-stone-500 font-mono">SHA-256 {document.contentHash.slice(0, 12)}…</span></div>)}
                 {documents.length === 0 && <p className="text-xs text-stone-500">Este caso ainda não possui documentos.</p>}
               </div>
             </section>}
@@ -643,7 +643,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 </div>
                 <form onSubmit={createFact} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3">
                   <input value={factStatement} onChange={(event) => setFactStatement(event.target.value)} placeholder="Ex.: o contrato foi assinado em janeiro" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
-                  <select value={factCategory} onChange={(event) => setFactCategory(event.target.value as Fact['category'])} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">
+                  <select aria-label="Categoria do fato" value={factCategory} onChange={(event) => setFactCategory(event.target.value as Fact['category'])} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">
                     <option value="FACTUAL">Factual</option><option value="PROCEDURAL">Processual</option><option value="TEMPORAL">Temporal</option><option value="DAMAGE">Dano</option><option value="OTHER">Outro</option>
                   </select>
                   <button disabled={!hasApiAccess || busy || factStatement.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
@@ -670,7 +670,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 </div>
               <form onSubmit={createEvidence} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3">
                   <input value={evidenceTitle} onChange={(event) => setEvidenceTitle(event.target.value)} placeholder="Título do item de prova" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
-                  <select value={evidenceType} onChange={(event) => setEvidenceType(event.target.value as EvidenceItem['evidenceType'])} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">
+                  <select aria-label="Tipo de prova" value={evidenceType} onChange={(event) => setEvidenceType(event.target.value as EvidenceItem['evidenceType'])} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">
                     <option value="DOCUMENT">Documento</option><option value="TESTIMONY">Depoimento</option><option value="RECORD">Registro</option><option value="EXPERT_REPORT">Laudo</option><option value="OTHER">Outro</option>
                   </select>
                 <button disabled={!hasApiAccess || busy || evidenceTitle.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
@@ -681,26 +681,26 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   <p className="text-[11px] text-stone-500 mt-1">Vincule um fato a uma prova ou a uma âncora do documento; o vínculo não conclui autenticidade.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                  <select value={supportFactId} onChange={(event) => setSupportFactId(event.target.value)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
+                  <select aria-label="Fato vinculado" value={supportFactId} onChange={(event) => setSupportFactId(event.target.value)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
                     <option value="">Selecione o fato</option>
                     {facts.map((fact) => <option key={fact.id} value={fact.id}>{fact.statement.slice(0, 55)}</option>)}
                   </select>
-                  <select value={supportEvidenceId} onChange={(event) => setSupportEvidenceId(event.target.value)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
+                  <select aria-label="Prova vinculada" value={supportEvidenceId} onChange={(event) => setSupportEvidenceId(event.target.value)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
                     <option value="">Selecione a prova</option>
                     {evidence.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
                   </select>
-                  <select value={supportAnchorId} onChange={(event) => setSupportAnchorId(event.target.value)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
+                  <select aria-label="Âncora documental" value={supportAnchorId} onChange={(event) => setSupportAnchorId(event.target.value)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
                     <option value="">Selecione a âncora (opcional)</option>
                     {anchors.map((anchor) => <option key={anchor.id} value={anchor.id}>{anchor.anchorKey}: {anchor.text.slice(0, 42)}</option>)}
                   </select>
-                  <select value={supportRelation} onChange={(event) => setSupportRelation(event.target.value as typeof supportRelation)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
+                  <select aria-label="Relação entre fato e prova" value={supportRelation} onChange={(event) => setSupportRelation(event.target.value as typeof supportRelation)} className="px-3 py-2 rounded-lg border border-champagne-border bg-white text-xs">
                     <option value="SUPPORTS">Sustenta</option><option value="CONTRADICTS">Contradiz</option><option value="CONTEXT">Contextualiza</option>
                   </select>
                 </div>
                   <button disabled={!hasApiAccess || busy || !supportFactId || (!supportEvidenceId && !supportAnchorId)} className="px-3 py-2 rounded-lg border border-cognac-200 bg-white disabled:bg-stone-100 text-cognac-800 text-xs font-semibold">Salvar vínculo</button>
               </form>
               <div className="space-y-2">
-                  {evidence.map((item) => <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span><span className="text-[11px] text-stone-500">{evidenceTypeLabels[item.evidenceType]} · {evidenceStatusLabels[item.status]}</span></div><span className="text-[10px] text-stone-400">Item registrado</span></div>)}
+                  {evidence.map((item) => <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span><span className="text-[11px] text-stone-500">{evidenceTypeLabels[item.evidenceType]} · {evidenceStatusLabels[item.status]}</span></div><span className="text-[10px] text-stone-500">Item registrado</span></div>)}
                   {evidence.length === 0 && <p className="text-xs text-stone-500">Nenhum item de prova registrado neste caso.</p>}
                 </div>
               </section>
@@ -715,7 +715,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 </div>
                 <form onSubmit={createTimelineEvent} className="grid grid-cols-1 md:grid-cols-[1fr_170px_auto] gap-3">
                   <input value={timelineTitle} onChange={(event) => setTimelineTitle(event.target.value)} placeholder="Descrição do evento" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
-                  <input type="date" value={timelineDate} onChange={(event) => setTimelineDate(event.target.value)} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                  <input aria-label="Data do evento" type="date" value={timelineDate} onChange={(event) => setTimelineDate(event.target.value)} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                   <button disabled={!hasApiAccess || busy || timelineTitle.trim().length < 3 || !timelineDate} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Adicionar</button>
                   <input value={timelineDescription} onChange={(event) => setTimelineDescription(event.target.value)} placeholder="Observação (opcional)" className="md:col-span-3 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                 </form>
@@ -723,7 +723,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   {timeline.map((item) => <div key={item.id} className="flex gap-3 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><span className="text-xs font-semibold text-cognac-700 min-w-24">{new Date(`${item.eventDate}T00:00:00`).toLocaleDateString('pt-BR')}</span><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span>{item.description && <span className="text-xs text-stone-500">{item.description}</span>}</div></div>)}
                   {timeline.length === 0 && <p className="text-xs text-stone-500">Nenhum evento registrado neste caso.</p>}
                 </div>
-                <p className="text-[11px] text-stone-400">A cobertura considera apenas vínculos explícitos registrados; não constitui conclusão sobre autenticidade, suficiência ou procedência da prova.</p>
+                <p className="text-[11px] text-stone-500">A cobertura considera apenas vínculos explícitos registrados; não constitui conclusão sobre autenticidade, suficiência ou procedência da prova.</p>
               </section>
 
               <section id="questoes" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
@@ -769,7 +769,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 </div>
               </section>
             </>}
-          </main>
+          </div>
         </div>
       </div>
     </div>

@@ -1,25 +1,33 @@
-import { expect, test, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
 const api = 'http://127.0.0.1:3001';
 
-async function closeDisposableAccount(page: Page, email: string, password: string) {
+async function closeDisposableAccount(page: Page, email: string, password: string, audit?: (stage: string) => Promise<void>) {
   await page.goto('/entrar');
   await page.getByLabel('E-mail').fill(email);
   await page.getByRole('textbox', { name: 'Senha', exact: true }).fill(password);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-  await expect(page.getByText('Conta descartável')).toBeVisible();
+  await page.waitForURL('**/app');
   const stillValidJwt = await page.evaluate(() => {
     const raw = Object.entries(localStorage).find(([key]) => key.includes('auth-token'))?.[1];
     return raw ? (JSON.parse(raw).access_token as string) : '';
   });
   expect(stillValidJwt).not.toBe('');
-  await page.getByRole('button', { name: 'Segurança da conta' }).click();
+  if ((page.viewportSize()?.width ?? 1366) >= 768) {
+    await page.getByRole('button', { name: 'Segurança da conta' }).click();
+  } else {
+    await page.goto('/conta/seguranca');
+  }
   await expect(page.getByRole('heading', { name: 'Encerrar conta e espaço pessoal' })).toBeVisible();
+  await audit?.('explanation');
   await page.getByRole('checkbox', { name: /Confirmo que desejo encerrar/ }).check();
   await page.getByRole('button', { name: 'Continuar para confirmação de identidade' }).click();
+  await audit?.('password');
   await page.getByLabel('Confirme sua senha atual').fill(password);
   await page.getByRole('button', { name: 'Confirmar senha' }).click();
   await page.getByLabel('Digite exatamente ENCERRAR MINHA CONTA').fill('ENCERRAR MINHA CONTA');
+  await audit?.('confirmation');
   const accepted = page.waitForResponse(
     (response) => response.url() === `${api}/api/v2/account/closure` && response.request().method() === 'POST',
   );
@@ -27,6 +35,7 @@ async function closeDisposableAccount(page: Page, email: string, password: strin
   const response = await accepted;
   expect(response.status()).toBe(202);
   await expect(page.getByRole('heading', { name: 'Acompanhamento do encerramento' })).toBeVisible();
+  await audit?.('receipt');
   const receipt = (await page.evaluate(() =>
     JSON.parse(sessionStorage.getItem('forgelex_account_closure_active') ?? 'null'),
   )) as { closureId: string; statusToken: string };
@@ -44,6 +53,32 @@ async function closeDisposableAccount(page: Page, email: string, password: strin
   expect(bootstrap.status()).toBe(403);
   expect((await bootstrap.json()).error).toBe('ACCOUNT_CLOSED');
   return { receipt, stillValidJwt };
+}
+
+async function auditClosure(page: Page, testInfo: TestInfo, stage: string) {
+  await page.waitForLoadState('networkidle');
+  const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  await testInfo.attach(`wcag-${stage}`, { body: JSON.stringify(result, null, 2), contentType: 'application/json' });
+  expect(result.violations.map((rule) => ({ id: rule.id, targets: rule.nodes.map((node) => node.target) }))).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+}
+
+for (const width of [1366, 320]) {
+  test(`acessibilidade do encerramento em ${width}px`, async ({ page, request }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    const fixture = (await (await request.post(`${api}/e2e/reset`)).json()) as { email: string; password: string };
+    const { receipt } = await closeDisposableAccount(page, fixture.email, fixture.password, (stage) => auditClosure(page, testInfo, stage));
+    for (let step = 0; step < 5; step += 1) {
+      const response = await request.post(`${api}/e2e/reconcile`, { data: { closureId: receipt.closureId } });
+      expect(await response.json(), `reconciliação ${step + 1}`).toMatchObject({ result: 'completed' });
+    }
+    const status = await request.get(`${api}/api/v2/account/closure/${receipt.closureId}`, {
+      headers: { 'x-closure-token': receipt.statusToken },
+    });
+    expect(await status.json()).toMatchObject({ status: 'COMPLETED' });
+    await expect(page.getByRole('heading', { name: 'Encerramento concluído' })).toBeVisible();
+    await auditClosure(page, testInfo, 'completed');
+  });
 }
 
 test('encerra conta descartável, bloqueia JWT válido e elimina o token do recibo', async ({ page, request }) => {

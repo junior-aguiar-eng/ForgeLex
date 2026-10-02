@@ -1,5 +1,22 @@
 # Auditoria e status canônico do ForgeLex
 
+## Fase 7 da estabilização — em andamento (01/10/2026)
+
+Validação no ChatGPT Pro/Edge chegou ao formulário MCP, mas a descoberta OAuth
+falhou. Metadados públicos anunciam `auth.forgelex.ai`, que não resolve DNS,
+e recurso `mcp.forgelex.ai`. Nenhuma instalação ou execução real no host foi
+concluída. Estudo com cinco usuários: roteiro/ficha preparados, **0/5 sessões**.
+
+Auditoria local em Chromium/axe-core encontrou defeitos de contraste, nomes
+acessíveis, teclado e landmarks; matriz final 38/38 e encerramento 4/4 aprovados.
+Lint/build/typecheck e 534 testes unitários aprovados (quatro ignorados).
+Correções e regressões estão na branch
+`codex/phase7-external-validation`. Leitor de tela, zoom manual e revalidação
+após publicação permanecem pendentes. Não há declaração de conformidade AA.
+Produção permanece na origem runtime `0268ffcbb5bd0a3f8f6bfd15cb3bdd2875b477fa`.
+Evidência e limites: `docs/operations/stabilization/2026-10-01-phase7.md`.
+**Gate da Fase 7 aberto; Fase 8 ainda não iniciada por esta execução.**
+
 ## Fase 6 da estabilização — concluída (01/10/2026)
 
 Execução autorizada por Boni. Correção de recuperação integrada na PR #17 após

@@ -158,7 +158,14 @@ app.post('/e2e/fail-next-delete', async () => {
   failNextDeletion = true;
   return { armed: true };
 });
-app.post('/e2e/reconcile', async () => ({ result: await worker.runOne(), deletedCount }));
+app.post('/e2e/reconcile', async (request) => {
+  const result = await worker.runOne();
+  const closureId = request.body?.closureId;
+  const steps = closureId ? (await repository.listSteps(closureId)).map((step) => ({
+    type: step.stepType, status: step.status, error: step.lastErrorCode,
+  })) : undefined;
+  return { result, deletedCount, steps };
+});
 app.post('/e2e/resume/:closureId', async (request) => ({
   resumed: await repository.resumeFailedStep({ closureId: request.params.closureId, now: new Date().toISOString() }),
 }));

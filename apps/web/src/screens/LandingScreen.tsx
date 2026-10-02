@@ -110,6 +110,7 @@ export const LandingScreen: React.FC = () => {
             {/* Court Dropdown */}
             <div className="w-full md:w-44">
               <select
+                aria-label="Tribunal da pesquisa"
                 value={court}
                 onChange={(e) => setCourt(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm font-medium text-stone-700 focus:outline-none focus:border-cognac-600"

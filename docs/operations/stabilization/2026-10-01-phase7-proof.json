@@ -1,0 +1,1956 @@
+{
+  "recordedAt": "2026-10-02T02:23:15.469Z",
+  "timezone": "America/Fortaleza",
+  "baseSha": "9e360203668dcf7db1e455f1a75e91c3d1d4b372",
+  "sourceCommit": "f7534f5bfd008c8eab051880bbfbe4cb61fdff5e",
+  "branch": "codex/phase7-external-validation",
+  "phaseStatus": "IN_PROGRESS",
+  "environment": "local synthetic Auth/API/SQLite, no real account or payment",
+  "production": {
+    "sourceSha": "0268ffcbb5bd0a3f8f6bfd15cb3bdd2875b477fa",
+    "revision": "forgelex-api-prod-phase6-0268ffcb",
+    "trafficPercent": 100,
+    "phase7Deployed": false
+  },
+  "chatgpt": {
+    "plan": "Pro",
+    "browser": "Edge",
+    "serverUrl": "https://nexojuris.ia.br/mcp",
+    "discovery": "FAILED",
+    "installed": false,
+    "realToolFlow": false,
+    "metadataStatus": 200,
+    "advertisedResource": "https://mcp.forgelex.ai",
+    "advertisedAuthorizationServer": "https://auth.forgelex.ai",
+    "authorizationServerDns": "UNRESOLVED"
+  },
+  "userStudy": {
+    "completed": 0,
+    "required": 5,
+    "simulated": false
+  },
+  "baseline": {
+    "passed": 20,
+    "failed": 14,
+    "cases": [
+      {
+        "case": "accessibility-WCAG-2-1-AA--17f05-público-desenvolvedores-api-chromium",
+        "rules": [
+          {
+            "id": "scrollable-region-focusable",
+            "impact": "serious",
+            "targets": [
+              [
+                ".min-w-0:nth-child(1) > pre"
+              ],
+              [
+                ".min-w-0:nth-child(2) > pre"
+              ],
+              [
+                ".min-w-0:nth-child(3) > pre"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA--8b58d-público-desenvolvedores-api-chromium",
+        "rules": [
+          {
+            "id": "scrollable-region-focusable",
+            "impact": "serious",
+            "targets": [
+              [
+                ".min-w-0:nth-child(1) > pre"
+              ],
+              [
+                ".min-w-0:nth-child(2) > pre"
+              ],
+              [
+                ".min-w-0:nth-child(3) > pre"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-1366px-autenticado-app-chromium",
+        "rules": [
+          {
+            "id": "select-name",
+            "impact": "critical",
+            "targets": [
+              [
+                "select"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-1366px-autenticado-casos-chromium",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "targets": [
+              [
+                ".pb-4 > .text-stone-400.text-\\[11px\\]"
+              ],
+              [
+                "#linha-do-tempo > .text-stone-400.text-\\[11px\\]"
+              ]
+            ]
+          },
+          {
+            "id": "label",
+            "impact": "critical",
+            "targets": [
+              [
+                "input[type=\"date\"]"
+              ]
+            ]
+          },
+          {
+            "id": "select-name",
+            "impact": "critical",
+            "targets": [
+              [
+                "#fatos > .md\\:grid-cols-\\[1fr_180px_auto\\].grid-cols-1.grid > select"
+              ],
+              [
+                "#provas > .md\\:grid-cols-\\[1fr_180px_auto\\].grid-cols-1.grid > select"
+              ],
+              [
+                "select:nth-child(1)"
+              ],
+              [
+                ".md\\:grid-cols-4 > select:nth-child(2)"
+              ],
+              [
+                "select:nth-child(3)"
+              ],
+              [
+                "select:nth-child(4)"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-1366px-autenticado-pesquisa-chromium",
+        "rules": [
+          {
+            "id": "select-name",
+            "impact": "critical",
+            "targets": [
+              [
+                ".md\\:w-40"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-1366px-autenticado-revisao-chromium",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "targets": [
+              [
+                ".text-stone-400"
+              ],
+              [
+                ".bg-emerald-600"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-1366px-público-cadastro-chromium",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "targets": [
+              [
+                ".mt-8"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-1366px-público-entrar-chromium",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "targets": [
+              [
+                ".mt-8"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-320px-autenticado-app-chromium",
+        "rules": [
+          {
+            "id": "select-name",
+            "impact": "critical",
+            "targets": [
+              [
+                "select"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-320px-autenticado-casos-chromium",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "targets": [
+              [
+                ".pb-4 > .text-stone-400.text-\\[11px\\]"
+              ],
+              [
+                "#linha-do-tempo > .text-stone-400.text-\\[11px\\]"
+              ]
+            ]
+          },
+          {
+            "id": "label",
+            "impact": "critical",
+            "targets": [
+              [
+                "input[type=\"date\"]"
+              ]
+            ]
+          },
+          {
+            "id": "select-name",
+            "impact": "critical",
+            "targets": [
+              [
+                "#fatos > .md\\:grid-cols-\\[1fr_180px_auto\\].grid-cols-1.grid > select"
+              ],
+              [
+                "#provas > .md\\:grid-cols-\\[1fr_180px_auto\\].grid-cols-1.grid > select"
+              ],
+              [
+                "select:nth-child(1)"
+              ],
+              [
+                ".md\\:grid-cols-4 > select:nth-child(2)"
+              ],
+              [
+                "select:nth-child(3)"
+              ],
+              [
+                "select:nth-child(4)"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-320px-autenticado-pesquisa-chromium",
+        "rules": [
+          {
+            "id": "select-name",
+            "impact": "critical",
+            "targets": [
+              [
+                ".md\\:w-40"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-320px-autenticado-revisao-chromium",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "targets": [
+              [
+                ".bg-emerald-600"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-320px-público-cadastro-chromium",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "targets": [
+              [
+                ".mt-8"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA-em-320px-público-entrar-chromium",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "targets": [
+              [
+                ".mt-8"
+              ]
+            ]
+          }
+        ]
+      }
+    ],
+    "loadedDraft": [
+      {
+        "case": "accessibility-WCAG-2-1-AA--80f1e-om-caso-e-seções-carregados-chromium",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "targets": [
+              [
+                ".pt-4.space-y-2.border-stone-100 > .text-\\[10px\\].uppercase.tracking-wider"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(1) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(1) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > .space-y-1 > p"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(1) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(2) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(2) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(2) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > .space-y-1 > p"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(2) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(2) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(3) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(3) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > .space-y-1 > p"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(3) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(2) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(4) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(4) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > .space-y-1 > p"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(4) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(2) > legend"
+              ],
+              [
+                "form > .text-\\[11px\\]"
+              ]
+            ]
+          },
+          {
+            "id": "label",
+            "impact": "critical",
+            "targets": [
+              [
+                "input[value=\"Síntese dos fatos\"]"
+              ],
+              [
+                "input[value=\"Questões jurídicas\"]"
+              ],
+              [
+                "input[value=\"Fundamentação a revisar\"]"
+              ],
+              [
+                "input[value=\"Pedidos e providências\"]"
+              ]
+            ]
+          },
+          {
+            "id": "select-name",
+            "impact": "critical",
+            "targets": [
+              [
+                ".md\\:grid-cols-4 > select:nth-child(1)"
+              ],
+              [
+                ".md\\:grid-cols-4 > select:nth-child(2)"
+              ],
+              [
+                ".md\\:grid-cols-4 > select:nth-child(3)"
+              ],
+              [
+                "select:nth-child(4)"
+              ],
+              [
+                ".md\\:grid-cols-5 > select:nth-child(1)"
+              ],
+              [
+                ".md\\:grid-cols-5 > select:nth-child(2)"
+              ],
+              [
+                ".md\\:col-span-2"
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "case": "accessibility-WCAG-2-1-AA--ecae4-om-caso-e-seções-carregados-chromium",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "targets": [
+              [
+                ".pt-4.space-y-2.border-stone-100 > .text-\\[10px\\].uppercase.tracking-wider"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(1) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(1) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > .space-y-1 > p"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(1) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(2) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(2) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(2) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > .space-y-1 > p"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(2) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(2) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(3) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(3) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > .space-y-1 > p"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(3) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(2) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(4) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > legend"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(4) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(1) > .space-y-1 > p"
+              ],
+              [
+                ".bg-\\[\\#FDFBF7\\].p-4.space-y-3:nth-child(4) > .pt-3.border-stone-100.md\\:grid-cols-2 > fieldset:nth-child(2) > legend"
+              ],
+              [
+                "form > .text-\\[11px\\]"
+              ]
+            ]
+          },
+          {
+            "id": "label",
+            "impact": "critical",
+            "targets": [
+              [
+                "input[value=\"Síntese dos fatos\"]"
+              ],
+              [
+                "input[value=\"Questões jurídicas\"]"
+              ],
+              [
+                "input[value=\"Fundamentação a revisar\"]"
+              ],
+              [
+                "input[value=\"Pedidos e providências\"]"
+              ]
+            ]
+          },
+          {
+            "id": "select-name",
+            "impact": "critical",
+            "targets": [
+              [
+                ".md\\:grid-cols-4 > select:nth-child(1)"
+              ],
+              [
+                ".md\\:grid-cols-4 > select:nth-child(2)"
+              ],
+              [
+                ".md\\:grid-cols-4 > select:nth-child(3)"
+              ],
+              [
+                "select:nth-child(4)"
+              ],
+              [
+                ".md\\:grid-cols-5 > select:nth-child(1)"
+              ],
+              [
+                ".md\\:grid-cols-5 > select:nth-child(2)"
+              ],
+              [
+                ".md\\:col-span-2"
+              ]
+            ]
+          }
+        ]
+      }
+    ],
+    "keyboard": "Initial review focus outside dialog, reproduced at both widths",
+    "landmarks": "Duplicate main in draft reproduced by count assertion"
+  },
+  "localValidation": {
+    "lint": "PASS",
+    "build": "PASS",
+    "typecheck": "PASS",
+    "unit": {
+      "passed": 534,
+      "skipped": 4
+    },
+    "accountClosure": {
+      "passed": 4,
+      "accessibilityWidths": [
+        1366,
+        320
+      ],
+      "states": [
+        "explanation",
+        "password",
+        "confirmation",
+        "receipt",
+        "completed"
+      ]
+    },
+    "accessibility": {
+      "passed": 38,
+      "failed": 0,
+      "viewports": [
+        {
+          "width": 1366,
+          "height": 900
+        },
+        {
+          "width": 320,
+          "height": 900
+        }
+      ],
+      "cases": [
+        {
+          "case": "accessibility-WCAG-2-1-AA--17f05-público-desenvolvedores-api-chromium",
+          "url": "http://127.0.0.1:3000/desenvolvedores/api",
+          "timestamp": "2026-10-02T02:20:01.477Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA--1ba93-autenticado-conta-seguranca-chromium",
+          "url": "http://127.0.0.1:3000/conta/seguranca",
+          "timestamp": "2026-10-02T02:22:50.499Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA--5f719-oco-nome-e-saída-por-Escape-chromium",
+          "url": "http://127.0.0.1:3000/revisao",
+          "timestamp": "2026-10-02T02:21:11.653Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA--80f1e-om-caso-e-seções-carregados-chromium",
+          "url": "http://127.0.0.1:3000/rascunhos",
+          "timestamp": "2026-10-02T02:22:56.132Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable",
+            "select-name",
+            "summary-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA--8b58d-público-desenvolvedores-api-chromium",
+          "url": "http://127.0.0.1:3000/desenvolvedores/api",
+          "timestamp": "2026-10-02T02:21:50.461Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA--a84b2-oco-nome-e-saída-por-Escape-chromium",
+          "url": "http://127.0.0.1:3000/revisao",
+          "timestamp": "2026-10-02T02:23:02.002Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [
+            {
+              "id": "color-contrast",
+              "targets": [
+                [
+                  ".text-\\[10px\\].text-stone-500.shrink-0"
+                ],
+                [
+                  ".border-stone-100.pb-4.items-start > div > .mt-1"
+                ],
+                [
+                  ".max-h-72"
+                ],
+                [
+                  ".bg-amber-50 > span"
+                ]
+              ]
+            }
+          ],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA--ecae4-om-caso-e-seções-carregados-chromium",
+          "url": "http://127.0.0.1:3000/rascunhos",
+          "timestamp": "2026-10-02T02:21:05.520Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "select-name",
+            "summary-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA--f498e-autenticado-conta-seguranca-chromium",
+          "url": "http://127.0.0.1:3000/conta/seguranca",
+          "timestamp": "2026-10-02T02:21:00.089Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-autenticado-app-chromium",
+          "url": "http://127.0.0.1:3000/app",
+          "timestamp": "2026-10-02T02:20:20.051Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "select-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-autenticado-casos-chromium",
+          "url": "http://127.0.0.1:3000/casos",
+          "timestamp": "2026-10-02T02:20:32.013Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "select-name",
+            "summary-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-autenticado-conectar-chromium",
+          "url": "http://127.0.0.1:3000/conectar",
+          "timestamp": "2026-10-02T02:20:54.309Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "nested-interactive",
+            "summary-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-autenticado-conta-chromium",
+          "url": "http://127.0.0.1:3000/conta",
+          "timestamp": "2026-10-02T02:20:48.993Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-autenticado-pesquisa-chromium",
+          "url": "http://127.0.0.1:3000/pesquisa",
+          "timestamp": "2026-10-02T02:20:26.030Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "select-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-autenticado-rascunhos-chromium",
+          "url": "http://127.0.0.1:3000/rascunhos",
+          "timestamp": "2026-10-02T02:20:38.250Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "summary-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-autenticado-revisao-chromium",
+          "url": "http://127.0.0.1:3000/revisao",
+          "timestamp": "2026-10-02T02:20:43.550Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-público--chromium",
+          "url": "http://127.0.0.1:3000/",
+          "timestamp": "2026-10-02T02:19:29.202Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [
+            {
+              "id": "aria-prohibited-attr",
+              "targets": [
+                [
+                  ".sm\\:p-8"
+                ]
+              ]
+            }
+          ],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable",
+            "summary-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-público-cadastro-chromium",
+          "url": "http://127.0.0.1:3000/cadastro",
+          "timestamp": "2026-10-02T02:20:14.154Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "autocomplete-valid",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-público-como-funciona-chromium",
+          "url": "http://127.0.0.1:3000/como-funciona",
+          "timestamp": "2026-10-02T02:19:40.020Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-público-creditos-chromium",
+          "url": "http://127.0.0.1:3000/creditos",
+          "timestamp": "2026-10-02T02:19:51.154Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-público-entrar-chromium",
+          "url": "http://127.0.0.1:3000/entrar",
+          "timestamp": "2026-10-02T02:20:06.947Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "autocomplete-valid",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-público-guia-chromium",
+          "url": "http://127.0.0.1:3000/guia",
+          "timestamp": "2026-10-02T02:19:56.344Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-público-integracoes-chromium",
+          "url": "http://127.0.0.1:3000/integracoes",
+          "timestamp": "2026-10-02T02:19:45.820Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-1366px-público-produto-chromium",
+          "url": "http://127.0.0.1:3000/produto",
+          "timestamp": "2026-10-02T02:19:34.493Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-autenticado-app-chromium",
+          "url": "http://127.0.0.1:3000/app",
+          "timestamp": "2026-10-02T02:22:06.559Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable",
+            "select-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-autenticado-casos-chromium",
+          "url": "http://127.0.0.1:3000/casos",
+          "timestamp": "2026-10-02T02:22:19.629Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable",
+            "select-name",
+            "summary-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-autenticado-conectar-chromium",
+          "url": "http://127.0.0.1:3000/conectar",
+          "timestamp": "2026-10-02T02:22:43.032Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable",
+            "summary-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-autenticado-conta-chromium",
+          "url": "http://127.0.0.1:3000/conta",
+          "timestamp": "2026-10-02T02:22:36.535Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-autenticado-pesquisa-chromium",
+          "url": "http://127.0.0.1:3000/pesquisa",
+          "timestamp": "2026-10-02T02:22:12.664Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable",
+            "select-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-autenticado-rascunhos-chromium",
+          "url": "http://127.0.0.1:3000/rascunhos",
+          "timestamp": "2026-10-02T02:22:25.182Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable",
+            "summary-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-autenticado-revisao-chromium",
+          "url": "http://127.0.0.1:3000/revisao",
+          "timestamp": "2026-10-02T02:22:31.061Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [
+            {
+              "id": "color-contrast",
+              "targets": [
+                [
+                  ".text-\\[10px\\].text-stone-500.shrink-0"
+                ]
+              ]
+            }
+          ],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-command-name",
+            "aria-conditional-attr",
+            "aria-deprecated-role",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-required-attr",
+            "aria-roles",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-público--chromium",
+          "url": "http://127.0.0.1:3000/",
+          "timestamp": "2026-10-02T02:21:17.249Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [
+            {
+              "id": "aria-prohibited-attr",
+              "targets": [
+                [
+                  ".sm\\:p-8"
+                ]
+              ]
+            }
+          ],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable",
+            "summary-name"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-público-cadastro-chromium",
+          "url": "http://127.0.0.1:3000/cadastro",
+          "timestamp": "2026-10-02T02:22:00.676Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "autocomplete-valid",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-público-como-funciona-chromium",
+          "url": "http://127.0.0.1:3000/como-funciona",
+          "timestamp": "2026-10-02T02:21:28.169Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-público-creditos-chromium",
+          "url": "http://127.0.0.1:3000/creditos",
+          "timestamp": "2026-10-02T02:21:40.268Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-público-entrar-chromium",
+          "url": "http://127.0.0.1:3000/entrar",
+          "timestamp": "2026-10-02T02:21:55.436Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "autocomplete-valid",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "duplicate-id-aria",
+            "form-field-multiple-labels",
+            "html-has-lang",
+            "html-lang-valid",
+            "label",
+            "link-name",
+            "meta-viewport",
+            "nested-interactive"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-público-guia-chromium",
+          "url": "http://127.0.0.1:3000/guia",
+          "timestamp": "2026-10-02T02:21:45.443Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-público-integracoes-chromium",
+          "url": "http://127.0.0.1:3000/integracoes",
+          "timestamp": "2026-10-02T02:21:33.777Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable"
+          ]
+        },
+        {
+          "case": "accessibility-WCAG-2-1-AA-em-320px-público-produto-chromium",
+          "url": "http://127.0.0.1:3000/produto",
+          "timestamp": "2026-10-02T02:21:22.804Z",
+          "engine": {
+            "name": "axe-core",
+            "version": "4.13.0"
+          },
+          "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+          "violations": [],
+          "incomplete": [],
+          "passedRules": [
+            "aria-allowed-attr",
+            "aria-conditional-attr",
+            "aria-hidden-body",
+            "aria-hidden-focus",
+            "aria-prohibited-attr",
+            "aria-valid-attr-value",
+            "aria-valid-attr",
+            "button-name",
+            "bypass",
+            "color-contrast",
+            "document-title",
+            "html-has-lang",
+            "html-lang-valid",
+            "link-name",
+            "list",
+            "listitem",
+            "meta-viewport",
+            "nested-interactive",
+            "scrollable-region-focusable"
+          ]
+        }
+      ]
+    }
+  },
+  "limits": [
+    "No WCAG conformance claim",
+    "Screen reader and real 200% zoom pending",
+    "Post-deploy revalidation pending",
+    "Real ChatGPT billing/replay/revocation pending",
+    "Five human participants pending"
+  ],
+  "review": {
+    "findings": 0,
+    "scope": "Whole branch read-only independent review",
+    "testExecutionByReviewer": false
+  }
+}
