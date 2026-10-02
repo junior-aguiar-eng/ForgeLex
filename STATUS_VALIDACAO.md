@@ -1,5 +1,69 @@
 # Auditoria e status canônico do ForgeLex
 
+## Continuação da fase 7 — guia publicado e retorno do Checkout corrigido (02/10/2026)
+
+Guia Claude da PR #24 publicado no runtime c722b382 após CI/build e promoção
+5/25/100. Defeito posterior comprovado: a recarga produtiva enviava callbacks
+para localhost:3000. Corrigido na PR #25, commit 68b55fe, merge e origem runtime
+`2355ce4d1e52cc637590e7997718368b20292197`; seis checks da PR e CI de main verdes.
+Cloud Build `0e8ede46-5404-404a-9769-b7785b4281e2` SUCCESS; digest
+`sha256:fc043005b98e6771394b28e1f83c51eb2ed9e2326d4077326f594e7f98525752`.
+Revisão `forgelex-api-prod-checkout-2355ce4d` a **100%**, após 5/25/100 com
+120 segundos mínimos por etapa, 473 respostas readyz 200 e oito rotas finais 200.
+Fallback `forgelex-api-prod-guide-c722b382` preservado. FORGELEX_WEB_URL aponta
+explicitamente para https://nexojuris.ia.br; nenhuma migration remota.
+
+Novo Checkout de R$ 25,00 criado pela UI após a promoção a 100%:
+success/failure/pending confirmados pela API no domínio público, opção Pix
+visível e selecionada. Conta compradora da primeira tentativa coincide com
+recebedora; botão Pagar/Gerar código desabilitado nessa sessão, sem causa
+específica retornada pelo provider. Ao reabrir o Checkout sem sessão, a opção
+“Sem conta Mercado Pago” permitiu selecionar Pix e gerar o código de R$ 25,00,
+com vencimento exibido em 03/10 às 11h29. Outra conta não é necessária nesse
+fluxo. Código e página de pagamento entregues a Boni; pagamento e crédito
+ainda não comprovados nesse momento. Nenhum pagamento executado pelo agente.
+
+Atualização financeira: Pix aprovado pelo Mercado Pago em 02/10 às 12h31min23s
+(America/Fortaleza). Webhook de confirmação chegou com HTTP 200, mas foi
+deduplicado indevidamente: notificações sem ID usavam somente o ID da order,
+já registrado no estado processing. Conciliação baseada em leitura autenticada
+da order processada, pelo BillingOperationsService existente, concluiu a compra
+às 15:36:25Z. Replay da conciliação confirmou um único crédito de 2.500 centavos;
+saldo de R$ 25,00, recibo e lançamento conferidos na UI. Correção do fallback
+inclui status no identificador; teste reproduziu o defeito antes da alteração,
+29 testes de billing passaram após a alteração, lint/typecheck aprovados.
+Commit 6c03266 e PR #26 integrados após seis checks verdes. CI de main
+37028940509 aprovado, origem `0f1ce2fe9ca91e507d22eb0baa90360c9cffdfc8`.
+Build a3348491-5d29-47b2-8e25-de55ef15b7b4 SUCCESS; digest
+`sha256:b13d0a013fe3c1db52e2110dadf57ebc113582ac3fdf633fdbb7800c39c2d98f`.
+Revisão `forgelex-api-prod-webhook-0f1ce2fe` promovida a 100% após 5/25/100,
+com observação mínima de 120 segundos por etapa e oito verificações finais.
+Fallback `forgelex-api-prod-checkout-2355ce4d` preservado, sem migration.
+
+Regressão do retorno observada falhar antes da correção; 17 testes de billing
+aprovados, suíte completa 547 aprovados/quatro ignorados, lint/typecheck verdes.
+Matriz de acessibilidade atual 38/38 e encerramento 4/4, com inspeção manual
+Edge e espaçamento ampliado em seis telas. Leitor/zoom declarados por Boni
+preservados; auditoria discrimina limitações por critério, sem declaração AA.
+Uma aba antiga falhou ao importar chunk durante o deploy e recuperou ao
+recarregar; resiliência a esse cenário permanece registrada, sem alegar correção.
+
+Backup automático de 02/10 SUCCESSFUL e dois schedulers ENABLED: fotografia
+operacional preparatória, não sete dias completos nem reconciliação financeira.
+**Fase 7 em fechamento:** cadeia real no ChatGPT comprovada em 02/10,
+search/get/verify, dois replays e um único débito de R$ 0,20; saldo R$ 24,80.
+Revogação bloqueou o acesso e reconexão autorizada voltou a autenticar, gratuita.
+Auditoria ampliada encontrou e corrigiu localmente overflow de espaçamento no
+Hero e no acompanhamento do encerramento; 38/38 + 4/4 regressões aprovadas.
+Falta publicar essas duas correções e validar o foco produtivo antes de fechar.
+Cobertura integral WCAG não demonstrada e não alegada; P2 de busca ampla
+e resiliência de aba antiga classificados com responsável/prazo no relatório. **Fase 8 iniciada em paralelo**
+em 02/10 às 13h01min57s (America/Fortaleza), com baseline e janela mínima
+até 09/10 às 13h01min57s; não concluída. Registro:
+`docs/operations/stabilization/2026-10-02-phase8-start.md`.
+Evidências: `docs/operations/stabilization/2026-10-02-phase7-continuation.md`,
+recibo JSON associado e `2026-10-02-accessibility-audit.md`.
+
 ## Onboarding MCP — ChatGPT e Claude conectados (02/10/2026)
 
 PR #22 integrada após seis checks verdes. CI do SHA integrado

@@ -578,15 +578,15 @@ Fase 6 concluída. Evidência e limites em
 
 **Resultado:** claims de autoatendimento e acessibilidade sustentados por evidência posterior ao deploy.
 
-- [ ] **Step 1: homologar no ChatGPT real**
+- [x] **Step 1: homologar no ChatGPT real**
 
-Executar `search → get authority → verify authority`, conferir saldo antes/depois, replay, evento único e revogação. Registrar plano/versão do host e data. Claude real permanece fora do escopo.
+Executar `search → get authority → verify authority`, conferir saldo antes/depois, replay, evento único e revogação. Registrar plano/versão do host e data. Claude foi incluído por solicitação posterior de Boni: instalação e chamada gratuita concluídas em 02/10/2026, sem substituir a cadeia faturável no ChatGPT.
 
 - [x] **Step 2: validação individual pelo responsável do produto**
 
 Critério alterado por Boni em 02/10/2026: informou que realizou a validação pessoalmente e não dispõe de cinco participantes. Sua declaração atende esta etapa no escopo individual aceito pelo solicitante. O estudo externo passa a ser opcional. Não atribuir notas por finalidade/conexão/cobrança/fonte, prazo de dois minutos, ausência de orientação ou validação independente sem evidência específica.
 
-- [ ] **Step 3: executar auditoria WCAG 2.1 AA**
+- [x] **Step 3: executar auditoria WCAG 2.1 AA**
 
 Cobrir site público, autenticação, pesquisa, matter, rascunho, revisão, conta, conexão e encerramento; registrar tecnologia assistiva, navegador, ação e resultado.
 
@@ -595,6 +595,12 @@ Cobrir site público, autenticação, pesquisa, matter, rascunho, revisão, cont
 Cada correção recebe teste de regressão e nova validação focal. Melhorias editoriais sem evidência entram em backlog, não atrasam o gate.
 
 **Gate de saída:** zero defeito crítico; claims de conexão e acessibilidade limitados ao que foi efetivamente homologado.
+
+02/10: cadeia/replay/débito único e revogação/restauração comprovados no ChatGPT.
+Auditoria executada com limites por critério, declaração de leitor/zoom aceita.
+Step 4: duas regressões de espaçamento corrigidas localmente (38/38 + 4/4);
+publicação e focal produtivo pendentes. P2 desempenho OR/aba antiga no backlog,
+responsável engenharia ForgeLex/Boni, revisão até 09/10. Não alegar certificado AA.
 
 ---
 
@@ -619,7 +625,7 @@ Atualizar `README.md`, `STATUS_VALIDACAO.md`, `docs/README.md` e runbooks com SH
 Manter fora do gate:
 
 - novos tribunais;
-- Claude real;
+- novas funcionalidades do Claude além da conexão real já homologada;
 - redesign geral;
 - troca de framework;
 - upgrades major sem necessidade funcional ou de segurança;

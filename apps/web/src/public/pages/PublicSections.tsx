@@ -112,7 +112,7 @@ export function SectionHeader({ eyebrow, title, text }: { eyebrow: string; title
 export function Hero() {
   return (
     <section className="page-container grid gap-10 py-16 sm:py-24 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-      <div>
+      <div className="min-w-0 break-words">
         <p className="eyebrow">Pesquisa, estratégia e preparação jurídica</p>
         <h1 className="mt-5 max-w-3xl font-editorial text-4xl font-bold leading-[1.16] tracking-tight text-stone-950 sm:text-5xl xl:text-6xl">
           Do caso à minuta, conecte fatos, provas e jurisprudência.
@@ -131,13 +131,13 @@ export function Hero() {
         </div>
         <p className="mt-8 text-sm text-stone-500">Índice próprio do STJ · fontes e proveniência · revisão humana</p>
       </div>
-      <div className="surface p-6 sm:p-8" aria-label="Percurso de trabalho">
+      <div className="surface min-w-0 break-words p-6 sm:p-8" aria-label="Percurso de trabalho">
         <p className="eyebrow">Um percurso com contexto</p>
         <ol className="mt-6 space-y-5">
           {movements.map((step) => (
             <li key={step.number} className="flex gap-4 border-b border-stone-100 pb-4 last:border-0 last:pb-0">
               <span className="font-editorial text-2xl text-cognac-700">{step.number}</span>
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold text-stone-900">{step.title}</p>
                 <p className="mt-1 text-sm leading-6 text-stone-600">{step.body}</p>
               </div>

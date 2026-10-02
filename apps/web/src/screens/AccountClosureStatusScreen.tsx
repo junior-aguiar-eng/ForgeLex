@@ -44,7 +44,7 @@ export const AccountClosureStatusView: React.FC<{
   const completed = Boolean(receipt && 'completedAt' in receipt) || status?.status === 'COMPLETED';
   return (
     <main className="min-h-screen bg-[#FBF9F5] py-12">
-      <div className="page-container max-w-3xl space-y-6">
+      <div className="page-container max-w-3xl break-words space-y-6">
         <p className="eyebrow">Conta · acompanhamento</p>
         <h1 className="font-editorial text-3xl font-bold text-stone-900">
           {completed ? 'Encerramento concluído' : 'Acompanhamento do encerramento'}

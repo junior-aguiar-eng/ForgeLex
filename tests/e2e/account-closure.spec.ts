@@ -3,7 +3,12 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
 const api = 'http://127.0.0.1:3001';
 
-async function closeDisposableAccount(page: Page, email: string, password: string, audit?: (stage: string) => Promise<void>) {
+async function closeDisposableAccount(
+  page: Page,
+  email: string,
+  password: string,
+  audit?: (stage: string) => Promise<void>,
+) {
   await page.goto('/entrar');
   await page.getByLabel('E-mail').fill(email);
   await page.getByRole('textbox', { name: 'Senha', exact: true }).fill(password);
@@ -59,15 +64,46 @@ async function auditClosure(page: Page, testInfo: TestInfo, stage: string) {
   await page.waitForLoadState('networkidle');
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   await testInfo.attach(`wcag-${stage}`, { body: JSON.stringify(result, null, 2), contentType: 'application/json' });
-  expect(result.violations.map((rule) => ({ id: rule.id, targets: rule.nodes.map((node) => node.target) }))).toEqual([]);
+  expect(result.violations.map((rule) => ({ id: rule.id, targets: rule.nodes.map((node) => node.target) }))).toEqual(
+    [],
+  );
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const spacing = await page.addStyleTag({
+    content:
+      '* { line-height: 1.5 !important; letter-spacing: .12em !important; word-spacing: .16em !important; } p { margin-bottom: 2em !important; }',
+  });
+  await testInfo.attach(`overflow-${stage}`, {
+    body: JSON.stringify(
+      await page.evaluate(() =>
+        [...document.querySelectorAll('body *')]
+          .filter((element) => element.getBoundingClientRect().right > window.innerWidth)
+          .map((element) => ({
+            tag: element.tagName,
+            className: element.className,
+            text: element.textContent?.slice(0, 120),
+            right: element.getBoundingClientRect().right,
+          })),
+      ),
+    ),
+    contentType: 'application/json',
+  });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    'reflow com espaçamento WCAG 1.4.12',
+  ).toBe(true);
+  const screenshotPath = testInfo.outputPath(`text-spacing-${stage}.png`);
+  await page.screenshot({ fullPage: true, path: screenshotPath });
+  await testInfo.attach(`text-spacing-${stage}`, { path: screenshotPath, contentType: 'image/png' });
+  await spacing.evaluate((element) => element.remove());
 }
 
 for (const width of [1366, 320]) {
   test(`acessibilidade do encerramento em ${width}px`, async ({ page, request }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     const fixture = (await (await request.post(`${api}/e2e/reset`)).json()) as { email: string; password: string };
-    const { receipt } = await closeDisposableAccount(page, fixture.email, fixture.password, (stage) => auditClosure(page, testInfo, stage));
+    const { receipt } = await closeDisposableAccount(page, fixture.email, fixture.password, (stage) =>
+      auditClosure(page, testInfo, stage),
+    );
     for (let step = 0; step < 5; step += 1) {
       const response = await request.post(`${api}/e2e/reconcile`, { data: { closureId: receipt.closureId } });
       expect(await response.json(), `reconciliação ${step + 1}`).toMatchObject({ result: 'completed' });
