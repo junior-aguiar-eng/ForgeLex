@@ -67,8 +67,15 @@ for (const width of [1366, 320]) {
   test(`acessibilidade do encerramento em ${width}px`, async ({ page, request }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     const fixture = (await (await request.post(`${api}/e2e/reset`)).json()) as { email: string; password: string };
-    await closeDisposableAccount(page, fixture.email, fixture.password, (stage) => auditClosure(page, testInfo, stage));
-    for (let step = 0; step < 5; step += 1) await request.post(`${api}/e2e/reconcile`);
+    const { receipt } = await closeDisposableAccount(page, fixture.email, fixture.password, (stage) => auditClosure(page, testInfo, stage));
+    for (let step = 0; step < 5; step += 1) {
+      const response = await request.post(`${api}/e2e/reconcile`, { data: { closureId: receipt.closureId } });
+      expect(await response.json(), `reconciliação ${step + 1}`).toMatchObject({ result: 'completed' });
+    }
+    const status = await request.get(`${api}/api/v2/account/closure/${receipt.closureId}`, {
+      headers: { 'x-closure-token': receipt.statusToken },
+    });
+    expect(await status.json()).toMatchObject({ status: 'COMPLETED' });
     await expect(page.getByRole('heading', { name: 'Encerramento concluído' })).toBeVisible();
     await auditClosure(page, testInfo, 'completed');
   });
