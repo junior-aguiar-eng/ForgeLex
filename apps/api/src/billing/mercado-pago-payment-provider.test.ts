@@ -157,6 +157,23 @@ describe('MercadoPagoPaymentProvider', () => {
     expect(fetcher).toHaveBeenCalledWith('https://api.mercadopago.com/v1/orders/ORDTEST123', expect.objectContaining({ method: 'GET' }));
   });
 
+  it('distingue mudança de status sem id de notificação e preserva replay', async () => {
+    let status = 'created';
+    const fetcher = vi.fn(async () => response({ id: 'ORDTEST123', status, external_reference: 'purchase_1', total_amount: '25.00' }));
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher });
+    const manifest = 'id:ordtest123;request-id:req_1;ts:1700000000;';
+    const signature = `ts=1700000000,v1=${createHmac('sha256', 'webhook-secret').update(manifest).digest('hex')}`;
+    const input = { payload: { type: 'order' }, dataId: 'ORDTEST123', requestId: 'req_1', signature };
+    const pending = await provider.normalizeWebhook(input);
+    status = 'processed';
+    const paid = await provider.normalizeWebhook(input);
+    const replay = await provider.normalizeWebhook(input);
+    expect(pending.type).toBe('payment.processing');
+    expect(paid.type).toBe('payment.approved');
+    expect(paid.id).not.toBe(pending.id);
+    expect(replay.id).toBe(paid.id);
+  });
+
   it('rejeita assinatura inválida antes de consultar a order', async () => {
     const fetcher = vi.fn(async () => response({}));
     const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher });

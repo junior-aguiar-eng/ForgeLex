@@ -154,7 +154,7 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
           ? 'payment.refunded'
           : 'payment.processing';
     const eventId = input.payload.id === undefined || input.payload.id === null
-      ? `${resourceType}:${input.dataId}`
+      ? `${resourceType}:${input.dataId}:${status}`
       : String(input.payload.id);
     return {
       id: eventId,
