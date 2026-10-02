@@ -5,7 +5,10 @@
 Validação no ChatGPT Pro/Edge chegou ao formulário MCP, mas a descoberta OAuth
 falhou. Metadados públicos anunciam `auth.forgelex.ai`, que não resolve DNS,
 e recurso `mcp.forgelex.ai`. Nenhuma instalação ou execução real no host foi
-concluída. Estudo com cinco usuários: roteiro/ficha preparados, **0/5 sessões**.
+concluída. Em 02/10/2026, Boni informou que realizou pessoalmente a validação.
+O critério foi alterado para validação individual pelo responsável do produto;
+cinco participantes externos deixam de ser requisito desta fase. Não há
+medição independente de tempo ou notas por item.
 
 Auditoria local em Chromium/axe-core encontrou defeitos de contraste, nomes
 acessíveis, teclado e landmarks; matriz final 38/38 e encerramento 4/4 aprovados.
