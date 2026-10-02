@@ -582,9 +582,9 @@ Fase 6 concluída. Evidência e limites em
 
 Executar `search → get authority → verify authority`, conferir saldo antes/depois, replay, evento único e revogação. Registrar plano/versão do host e data. Claude real permanece fora do escopo.
 
-- [ ] **Step 2: conduzir estudo com cinco usuários jurídicos**
+- [x] **Step 2: validação individual pelo responsável do produto**
 
-Sem orientação externa, medir se compreendem em até dois minutos: finalidade do ForgeLex, como conectar, qual operação custa crédito e onde revisar a fonte.
+Critério alterado por Boni em 02/10/2026: informou que realizou a validação pessoalmente e não dispõe de cinco participantes. Sua declaração atende esta etapa no escopo individual aceito pelo solicitante. O estudo externo passa a ser opcional. Não atribuir notas por finalidade/conexão/cobrança/fonte, prazo de dois minutos, ausência de orientação ou validação independente sem evidência específica.
 
 - [ ] **Step 3: executar auditoria WCAG 2.1 AA**
 
@@ -658,6 +658,6 @@ Não fazer squash obrigatório entre trilhas independentes; preservar reversibil
 - Produção e homologação têm relação explicitamente definida.
 - Termos, Privacidade, retenção e suporte não contêm responsáveis ou fundamentos pendentes para conteúdo publicado.
 - O site público aprovado está implantado e suas rotas funcionam diretamente.
-- ChatGPT real, cinco usuários jurídicos e WCAG têm evidência posterior ao deploy.
+- ChatGPT real e WCAG têm evidência posterior ao deploy; a validação individual de Boni está registrada, conforme critério revisado em 02/10/2026.
 - Scheduler, backups, billing, webhook, encerramento e ingestão foram observados e reconciliados.
 - Fases congeladas e melhorias opcionais continuam fora do caminho crítico.

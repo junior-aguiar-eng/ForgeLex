@@ -1,6 +1,6 @@
 # Fase 7 — protocolo de estudo com cinco usuários jurídicos
 
-Estado: preparado, **0/5 participações realizadas**. Boni informou em 01/10/2026 que ainda não dispõe dos cinco participantes. Este roteiro não constitui resultado de pesquisa.
+Estado atualizado em 02/10/2026: **roteiro externo opcional, fora do gate da fase 7**. Boni informou que realizou pessoalmente a validação. O critério da fase foi alterado para aceitar essa validação individual. Não foram informados duração, notas por item, navegador ou versão do teste pessoal; não atribuir a ele os resultados deste protocolo de cinco participantes.
 
 ## Participantes e ambiente
 
@@ -29,4 +29,4 @@ Para cada item marcar `compreendeu`, `parcial` ou `não compreendeu`, com fala b
 
 Preencher [a ficha CSV](2026-10-01-phase7-user-study-results.csv), mantendo a versão em branco até sessões reais. Registrar dificuldades observáveis e sua etapa, sem inferir causa. Depois das cinco sessões, consolidar cada item (n/5), tempos, pedidos de ajuda, defeitos demonstrados e limitações da amostra. Cinco participantes não sustentam generalização estatística.
 
-O gate requer os cinco participantes compreenderem os quatro itens no recorte previsto. Se houver falha, identificar o defeito de produto, corrigir com validação focal e repetir a tarefa com pessoas que não tenham recebido o gabarito. Não declarar a fase 7 concluída enquanto esse estudo permanecer pendente.
+Se o estudo externo opcional vier a ser realizado, avaliar os quatro itens no recorte previsto e registrar dificuldades demonstradas. Ele não impede o encerramento da fase 7 no critério revisado por Boni. OAuth/ChatGPT real e acessibilidade mantêm seus gates próprios.
