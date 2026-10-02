@@ -61,7 +61,7 @@ response = httpx.get('${apiUrl}/api/v2/jurisprudencias',
             ].map(([label, code]) => (
               <div key={label} className="min-w-0">
                 <h3 className="text-sm font-semibold text-stone-800">{label}</h3>
-                <pre className="mt-2 overflow-x-auto rounded-xl bg-stone-900 p-4 text-xs leading-5 text-stone-100">
+                <pre tabIndex={0} role="region" aria-label={`Exemplo de pesquisa em ${label}`} className="mt-2 overflow-x-auto rounded-xl bg-stone-900 p-4 text-xs leading-5 text-stone-100">
                   <code>{code}</code>
                 </pre>
               </div>
