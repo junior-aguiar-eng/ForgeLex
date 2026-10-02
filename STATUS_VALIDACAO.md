@@ -1,5 +1,30 @@
 # Auditoria e status canônico do ForgeLex
 
+## Correção do onboarding MCP — em validação (02/10/2026)
+
+PR #21 integrada após seis checks verdes; branch atual
+`codex/mcp-professional-onboarding`, baseada em main `c7a3d4e`.
+Supabase OAuth habilitado com consentimento em `/oauth/consent` por autorização
+expressa de Boni. Registro dinâmico nativo inicialmente ativado foi desativado
+após revisão: o gateway ForgeLex registra clientes confidenciais, retém seus
+segredos e entrega apenas envelopes vinculados ao recurso MCP. Tokens nativos
+OAuth não são aceitos diretamente pela API ForgeLex.
+
+Smoke real hospedado: 34 verificações aprovadas com conta e dois aplicativos
+sintéticos, incluindo troca, refresh, retorno A/B, adulteração para plain,
+revogação bloqueando acesso e refresh e rejeição do envelope no Auth nativo.
+Nenhuma pesquisa jurídica ou compra real. Roteiro reproduzível em
+`scripts/smoke-mcp-oauth.mjs`; arquitetura, limites e configuração em
+`ops/gcp/production/README.md`.
+
+Guia, Conectar IA, consentimento, autorizações/revogação e referência de API
+foram implementados. Lint, build e typecheck aprovados; 546 testes unitários
+aprovados (quatro ignorados), matriz Chromium/axe e onboarding 63/63 aprovada
+e seis verificações específicas posteriores aprovadas (recusa, login direto
+e retorno indeterminado incluídos). CI ainda pendente. Instalação no host,
+publicação e validação pós-publicação ainda não demonstradas. Produção
+permanece no runtime `0268ffcbb5bd0a3f8f6bfd15cb3bdd2875b477fa`.
+
 ## Fase 7 da estabilização — em andamento (01/10/2026)
 
 Validação no ChatGPT Pro/Edge chegou ao formulário MCP, mas a descoberta OAuth

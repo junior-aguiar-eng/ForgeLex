@@ -277,7 +277,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
       serviceAvailable: true,
-      mcpUrl: 'https://mcp.forgelex.ai',
+      mcpUrl: 'https://nexojuris.ia.br/mcp',
       authenticatedCredential: true,
       scopes: testPrincipal.scopes,
       lastMcpUseAt: null,
@@ -381,9 +381,9 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(body.resource).toBe('https://mcp.forgelex.ai');
-    expect(body.scopes_supported).toContain('mcp');
-    expect(body.scopes_supported).toContain('research:read');
+    expect(body.resource).toBe('https://nexojuris.ia.br/mcp');
+    expect(body.authorization_servers).toEqual([]);
+    expect(body.scopes_supported).toEqual(['email', 'profile']);
   });
 
   it('deriva os metadados OAuth do ambiente de implantação', async () => {
@@ -392,6 +392,11 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       environment: {
         NODE_ENV: 'test',
         FORGELEX_MCP_RESOURCE_URL: 'https://mcp.staging.example/',
+        FORGELEX_MCP_OAUTH_ENABLED: 'true',
+        FORGELEX_SUPABASE_URL: 'https://project.supabase.co',
+        FORGELEX_SUPABASE_PUBLISHABLE_KEY: 'publishable',
+        FORGELEX_SUPABASE_SECRET_KEY: 'secret-test',
+        FORGELEX_MCP_OAUTH_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
         FORGELEX_OAUTH_AUTHORIZATION_SERVERS: 'https://auth-a.example/, https://auth-b.example',
       },
     });
@@ -401,6 +406,14 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
         resource: 'https://mcp.staging.example',
         authorization_servers: ['https://auth-a.example', 'https://auth-b.example'],
       });
+      const challenge = await configuredApp.inject({ method: 'POST', url: '/mcp', payload: { jsonrpc: '2.0', id: 1, method: 'tools/list' } });
+      expect(challenge.statusCode).toBe(401);
+      expect(challenge.headers['www-authenticate']).toContain('resource_metadata="https://mcp.staging.example/.well-known/oauth-protected-resource/mcp"');
+      const check = await configuredApp.inject({ method: 'POST', url: '/mcp', headers: authHeaders, payload: { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'forgelex.connection_status', arguments: {} } } });
+      expect(check.json().result.structuredContent).toMatchObject({ authenticated: true, billable: false });
+      const notification = await configuredApp.inject({ method: 'POST', url: '/mcp', headers: authHeaders, payload: { jsonrpc: '2.0', method: 'notifications/initialized' } });
+      expect(notification.statusCode).toBe(202);
+      expect(notification.body).toBe('');
     } finally {
       await configuredApp.close();
     }

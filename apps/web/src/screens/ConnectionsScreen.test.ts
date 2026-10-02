@@ -10,7 +10,8 @@ describe('central de conexão', () => {
     expect(markup).toContain('Conectar o ForgeLex ao ChatGPT ou Claude');
     expect(markup).toContain('ChatGPT');
     expect(markup).toContain('Claude');
-    expect(markup).toContain('Não configurado');
+    expect(markup).toContain('Aplicativos autorizados');
+    expect(markup).toContain('Verifica o serviço e a sessão desta página');
     expect(markup).toContain('A assinatura do host não paga operações ForgeLex');
     expect(markup).toContain('Pesquisar jurisprudência do STJ');
     expect(markup).toContain('Abrir uma autoridade');

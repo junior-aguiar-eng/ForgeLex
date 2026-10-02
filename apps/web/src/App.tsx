@@ -22,6 +22,7 @@ const AccountClosureStatusScreen = lazy(() => import('./screens/AccountClosureSt
 const ApiKeysScreen = lazy(() => import('./screens/ApiKeysScreen').then(({ ApiKeysScreen: screen }) => ({ default: screen })));
 const ForLawyersGuideScreen = lazy(() => import('./screens/ForLawyersGuideScreen').then(({ ForLawyersGuideScreen: screen }) => ({ default: screen })));
 const ApiDocsScreen = lazy(() => import('./screens/ApiDocsScreen').then(({ ApiDocsScreen: screen }) => ({ default: screen })));
+const OAuthConsentScreen = lazy(() => import('./screens/OAuthConsentScreen').then(({ OAuthConsentScreen: screen }) => ({ default: screen })));
 
 const AppContent: React.FC = () => {
   const { activeTab, setActiveTab } = useApp();
@@ -105,6 +106,9 @@ const AuthEntry: React.FC<{ route: SiteRoute }> = ({ route }) => {
 };
 
 export const App: React.FC = () => {
+  if (typeof window !== 'undefined' && window.location.pathname === '/oauth/consent') {
+    return <AuthProvider><Suspense fallback={<p className="page-container py-16">Carregando autorização…</p>}><OAuthConsentScreen /></Suspense></AuthProvider>;
+  }
   if (typeof window !== 'undefined' && window.location.pathname === '/conta/encerramento') {
     return <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando acompanhamento…</div>}><AccountClosureStatusScreen /></Suspense>;
   }

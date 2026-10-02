@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { OAuthTokenVault } from './oauth-token-vault.js';
 import type { AccountRepository, StoredAccount } from '@forgelex/persistence';
 import {
   SupabaseIdentityVerifier,
@@ -52,6 +53,36 @@ function jwt(payload: Record<string, unknown>): string {
 }
 
 describe('Supabase authentication', () => {
+  it('restringe OAuth à pesquisa e exige autorização ainda vigente', async () => {
+    let revoked = false;
+    const payload = { sub: 'supabase-user-1', iss: 'https://project.supabase.co/auth/v1', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 300, client_id: 'client-1', session_id: 'session-1' };
+    const token = jwt(payload);
+    const identityVerifier = new SupabaseIdentityVerifier({
+      baseUrl: 'https://project.supabase.co', publishableKey: 'publishable',
+      fetchImpl: async (url) => new Response(JSON.stringify(String(url).endsWith('/user/oauth/grants')
+        ? revoked ? [] : [{ client: { id: 'client-1' }, scopes: ['email'] }]
+        : { id: payload.sub, email: 'pessoa@exemplo.com', email_confirmed_at: 'confirmed' }), { status: 200 }),
+    });
+    const repository = { findBySupabaseUserId: async () => activeAccount } as unknown as AccountRepository;
+    const vault = new OAuthTokenVault(Buffer.alloc(32, 7).toString('base64'), 'https://nexojuris.ia.br/mcp');
+    const verifier = new SupabaseTokenVerifier(identityVerifier, repository, vault);
+    expect(await verifier.verify(token)).toBeNull();
+    const sealed = vault.seal(token, 'access', Date.now() + 300000);
+    expect(await verifier.verify(sealed)).toMatchObject({ authMethod: 'oauth_access_token', scopes: ['mcp', 'research:read'], oauthClientId: 'client-1' });
+    revoked = true;
+    expect(await verifier.verify(sealed)).toBeNull();
+  });
+
+  it('recusa token OAuth com issuer, audience, sujeito ou validade divergentes', async () => {
+    const identityVerifier = new SupabaseIdentityVerifier({ baseUrl: 'https://project.supabase.co', publishableKey: 'publishable', fetchImpl: async () => new Response(JSON.stringify({ id: 'supabase-user-1', email: 'pessoa@exemplo.com', email_confirmed_at: 'confirmed' })) });
+    const repository = { findBySupabaseUserId: async () => activeAccount } as unknown as AccountRepository;
+    const vault = new OAuthTokenVault(Buffer.alloc(32, 7).toString('base64'), 'https://nexojuris.ia.br/mcp');
+    const verifier = new SupabaseTokenVerifier(identityVerifier, repository, vault);
+    const valid = { sub: 'supabase-user-1', iss: 'https://project.supabase.co/auth/v1', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 300, client_id: 'client-1', session_id: 'session-1' };
+    for (const changed of [{ iss: 'https://evil.example' }, { aud: 'other' }, { sub: 'another-user' }, { exp: 0 }, { session_id: '' }]) {
+      expect(await verifier.verify(vault.seal(jwt({ ...valid, ...changed }), 'access', Date.now() + 300000))).toBeNull();
+    }
+  });
   it('valida a identidade, exige e-mail confirmado e produz o principal do espaço', async () => {
     const identityVerifier = verifierFor({
       id: 'supabase-user-1',

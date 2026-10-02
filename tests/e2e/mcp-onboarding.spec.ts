@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 async function tabTo(page: Page, target: Locator, maxTabs = 60): Promise<void> {
   for (let index = 0; index < maxTabs; index += 1) {
@@ -138,7 +139,7 @@ test('guia e áreas de conta e integração são alcançáveis apenas por teclad
 
   await tabTo(page, page.getByRole('button', { name: 'Node.js', exact: true }));
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Exemplo em Node.js' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Requisição', exact: true })).toBeVisible();
 });
 
 test('a seleção de host permanece operável por teclado em viewport móvel', async ({ page }) => {
@@ -157,8 +158,8 @@ test('a seleção de host permanece operável por teclado em viewport móvel', a
 
   await expect(page).toHaveURL(/\/conectar$/);
   await expect(claude).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('heading', { name: 'Preparar o Claude' })).toBeVisible();
-  await expect(page.getByText('Não configurado', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Conectar ao Claude' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Aplicativos autorizados' })).toBeVisible();
 
   await page.goto('/guia/mcp');
   await expect(page.getByRole('heading', { name: 'Guia de conexão para advogados' })).toBeVisible();
@@ -228,8 +229,8 @@ test('documentação da API mantém contraste de texto nos exemplos', async ({ p
 
   const inactive = page.getByRole('button', { name: 'Node.js', exact: true });
   const color = await inactive.evaluate((element) => getComputedStyle(element).color);
-  expect(color).not.toBe('rgb(120, 113, 108)');
-  const hint = page.getByText('Escolha “Exibir exemplo de resposta”. O conteúdo será identificado como demonstração.');
+  expect(color).toBe('rgb(87, 83, 78)');
+  const hint = page.getByText('Execute uma chamada gratuita com sua sessão ForgeLex. A resposta exibida será a resposta real do serviço.');
   expect(await hint.evaluate((element) => getComputedStyle(element).color)).not.toBe('rgb(168, 162, 158)');
 });
 
@@ -406,7 +407,7 @@ test('teste gratuito de disponibilidade separa serviço, credencial e uso sem co
   await expect(page.getByText('Serviço disponível', { exact: true })).toBeVisible();
   await expect(page.getByText('Credencial pronta', { exact: true })).toBeVisible();
   await expect(page.getByText('Uso confirmado ainda não registrado', { exact: true })).toBeVisible();
-  await expect(page.getByText(/Nenhuma pesquisa jurídica, saldo ou crédito é consultado neste teste\./)).toBeVisible();
+  await expect(page.getByText(/Nenhuma pesquisa jurídica é executada\./)).toBeVisible();
   expect(billingRequested).toBe(false);
 });
 
@@ -434,3 +435,98 @@ for (const scenario of [
     await expect(page.getByRole('alert')).toHaveText(scenario.message);
   });
 }
+
+async function loginForOAuth(page: Page) {
+  await page.goto('/conectar');
+  await page.getByLabel('E-mail').fill('fase7@forgelex.test');
+  await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-controlada-fase-7');
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Conectar o ForgeLex ao ChatGPT ou Claude' })).toBeVisible();
+}
+
+test('OAuth identifica aplicativo, informa cobrança e retorna somente após consentimento', async ({ page }) => {
+  const id = '12345678-1234-1234-1234-123456789012';
+  await loginForOAuth(page);
+  await page.route(`**/auth/v1/oauth/authorizations/${id}`, (route) => route.fulfill({ json: { authorization_id: id, client: { id: 'client-test', name: 'ChatGPT de teste' }, user: { id: 'synthetic' }, redirect_uri: 'https://nexojuris.ia.br/oauth/callback', scope: 'email profile' } }));
+  let decision: string | null = null;
+  await page.route(`**/auth/v1/oauth/authorizations/${id}/consent`, (route) => { decision = route.request().postDataJSON().action; return route.fulfill({ json: { redirect_url: 'https://example.test/callback?code=synthetic' } }); });
+  await page.route('https://example.test/callback?code=synthetic', (route) => route.fulfill({ contentType: 'text/html', body: '<meta charset="utf-8"><h1>Retorno sintético</h1>' }));
+  await page.goto('/oauth/consent?authorization_id=' + id);
+  await expect(page.getByRole('heading', { name: 'Conectar ChatGPT de teste' })).toBeVisible();
+  await expect(page.getByText(/Debitar os créditos ForgeLex/)).toBeVisible();
+  expect(decision).toBeNull();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await page.screenshot({ path: '.superpowers/sdd/2026-10-02-mcp-professional-onboarding/consent-desktop.png', fullPage: true });
+  await page.getByRole('button', { name: 'Autorizar conexão', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Retorno sintético' })).toBeVisible();
+  expect(decision).toBe('approve');
+});
+
+test('solicitação OAuth expirada não oferece autorização', async ({ page }) => {
+  await loginForOAuth(page);
+  await page.route('**/auth/v1/oauth/authorizations/**', (route) => route.fulfill({ status: 400, json: { msg: 'expired', code: 'invalid_request' } }));
+  await page.goto('/oauth/consent?authorization_id=12345678-1234-1234-1234-123456789012');
+  await expect(page.getByRole('alert')).toContainText('expirou');
+  await expect(page.getByRole('button', { name: 'Autorizar conexão', exact: true })).toHaveCount(0);
+});
+
+test('revogação exige confirmação e mantém autorização quando servidor falha', async ({ page }) => {
+  let revokeFailed = true;
+  const grant = { client: { id: 'client-test', name: 'Aplicativo sintético' }, scopes: ['email', 'profile'], granted_at: '2026-10-02T00:00:00Z' };
+  await page.route('**/auth/v1/user/oauth/grants*', (route) => route.request().method() === 'DELETE' ? route.fulfill({ status: revokeFailed ? 503 : 204, ...(revokeFailed ? { json: { msg: 'unavailable' } } : { body: '' }) }) : route.fulfill({ json: [grant] }));
+  await loginForOAuth(page);
+  await expect(page.getByRole('heading', { name: 'Aplicativo sintético' })).toBeVisible();
+  await page.getByRole('button', { name: 'Revogar acesso' }).click();
+  await page.getByRole('button', { name: 'Confirmar revogação' }).click();
+  await expect(page.getByRole('alert')).toContainText('continua ativa');
+  await expect(page.getByRole('heading', { name: 'Aplicativo sintético' })).toBeVisible();
+  revokeFailed = false;
+  await page.getByRole('button', { name: 'Confirmar revogação' }).click();
+  await expect(page.getByRole('heading', { name: 'Aplicativo sintético' })).toHaveCount(0);
+});
+
+test('documentação executa apenas leitura gratuita e preserva largura móvel', async ({ page }) => {
+  await loginForOAuth(page);
+  await page.goto('/app/desenvolvedores/api');
+  await page.getByRole('button', { name: 'Saúde do serviço', exact: true }).click();
+  await page.getByRole('button', { name: 'Executar chamada gratuita', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('HTTP 200');
+  await page.getByRole('button', { name: 'Jurisprudência', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Executar chamada gratuita', exact: true })).toHaveCount(0);
+  await page.screenshot({ path: '.superpowers/sdd/2026-10-02-mcp-professional-onboarding/api-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 375, height: 812 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: '.superpowers/sdd/2026-10-02-mcp-professional-onboarding/api-mobile.png', fullPage: true });
+});
+
+for (const action of ['deny', 'uncertain'] as const) {
+  test(`OAuth ${action === 'deny' ? 'recusa preserva a decisão' : 'retorno inválido informa conclusão indeterminada'}`, async ({ page }) => {
+    const id = '12345678-1234-1234-1234-123456789012';
+    await loginForOAuth(page);
+    await page.route(`**/auth/v1/oauth/authorizations/${id}`, (route) => route.fulfill({ json: { authorization_id: id, client: { id: 'client-test', name: 'Aplicativo de teste' }, user: { id: 'synthetic' }, redirect_uri: 'https://nexojuris.ia.br/oauth/callback', scope: 'email profile' } }));
+    let decision = '';
+    await page.route(`**/auth/v1/oauth/authorizations/${id}/consent`, (route) => { decision = route.request().postDataJSON().action; return route.fulfill({ json: { redirect_url: action === 'deny' ? 'https://example.test/denied' : 'javascript:alert(1)' } }); });
+    await page.route('https://example.test/denied', (route) => route.fulfill({ contentType: 'text/html', body: '<meta charset="utf-8"><h1>Acesso recusado</h1>' }));
+    await page.goto('/oauth/consent?authorization_id=' + id);
+    await expect(page.getByRole('heading', { name: 'Conectar Aplicativo de teste' })).toBeVisible();
+    await page.getByRole('button', { name: action === 'deny' ? 'Recusar' : 'Autorizar conexão', exact: true }).click();
+    expect(decision).toBe(action === 'deny' ? 'deny' : 'approve');
+    if (action === 'deny') await expect(page.getByRole('heading', { name: 'Acesso recusado' })).toBeVisible();
+    else {
+      await expect(page.getByRole('alert')).toContainText('Não foi possível confirmar a conclusão');
+      await expect(page.getByRole('alert')).not.toContainText('Nenhuma confirmação');
+      await expect(page).toHaveURL(/oauth\/consent/);
+    }
+  });
+}
+
+test('login direto no consentimento preserva authorization_id', async ({ page }) => {
+  const id = '12345678-1234-1234-1234-123456789012';
+  await page.route(`**/auth/v1/oauth/authorizations/${id}`, (route) => route.fulfill({ json: { authorization_id: id, client: { id: 'client-test', name: 'Aplicativo após login' }, user: { id: 'synthetic' }, redirect_uri: 'https://nexojuris.ia.br/oauth/callback', scope: 'email' } }));
+  await page.goto('/oauth/consent?authorization_id=' + id);
+  await page.getByLabel('E-mail').fill('fase7@forgelex.test');
+  await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-controlada-fase-7');
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Conectar Aplicativo após login' })).toBeVisible();
+  await expect(page).toHaveURL('/oauth/consent?authorization_id=' + id);
+});
