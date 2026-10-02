@@ -406,7 +406,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const activePaymentProvider = options.paymentProvider ?? mercadoPagoPaymentProvider;
   const billingOperationsService = options.billingOperationsService ?? (
     database && databaseClient && activePaymentProvider
-      ? new BillingOperationsService(database, databaseClient, new BillingService(database, databaseClient), activePaymentProvider, environment.FORGELEX_WEB_URL ?? 'http://localhost:3000')
+      ? new BillingOperationsService(database, databaseClient, new BillingService(database, databaseClient), activePaymentProvider, environment.FORGELEX_WEB_URL ?? environment.FORGELEX_PUBLIC_URL ?? 'http://localhost:3000')
       : undefined
   );
   const matterRepository = database ? new MatterRepository(database) : undefined;
