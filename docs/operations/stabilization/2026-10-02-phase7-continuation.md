@@ -171,4 +171,6 @@ validação individual aceita, auditoria executada com limites explícitos e
 regressões demonstradas corrigidas/publicadas. Zero defeito crítico identificado
 no escopo verificado. P2 de OR frio e aba antiga mantidos com responsável/prazo;
 não estão resolvidos e não sustentam claim de conformidade AA integral.
-A fase 8 segue em observação; este fechamento não comprova sete dias operacionais.
+A fase 8 segue como acompanhamento não bloqueante, conforme decisão posterior
+de Boni em 02/10; este fechamento não comprova sete dias operacionais.
+A continuidade do projeto, incluindo futura integração DataJud, independe desse calendário.

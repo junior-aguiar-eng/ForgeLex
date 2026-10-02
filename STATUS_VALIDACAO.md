@@ -1,5 +1,20 @@
 # Auditoria e status canônico do ForgeLex
 
+## Acompanhamento não bloqueante e continuidade do projeto (02/10/2026)
+
+Boni substituiu o gate temporal da fase 8 por acompanhamento operacional
+contínuo. A fase 7 e o marco entregue permanecem fechados; não é necessário
+aguardar sete dias para continuar o projeto. DataJud foi registrado como
+integração futura no backlog de evolução, sem ampliar o contrato STJ atual.
+
+Verificação diária de leitura configurada no Codex às 15h (America/Fortaleza).
+Agendamento ativo não comprova execução, cobertura contínua ou sete dias
+observados. Backlog P2 preservado com responsável e revisão até 09/10.
+Bloqueio operacional exige P0/P1 ou divergência material comprovados e aplica-se
+à release/operação afetada, sem impedir automaticamente frentes independentes.
+
+Registro: `docs/operations/stabilization/2026-10-02-phase8-start.md`.
+
 ## Fase 7 concluída — conexão real, cobrança e acessibilidade (02/10/2026)
 
 Guia Claude da PR #24 publicado no runtime c722b382 após CI/build e promoção
@@ -60,9 +75,9 @@ sob espaçamento ampliado. Revisão a11y-b6c893c4 a 100%, fonte b6c893c,
 build `71836f10` SUCCESS e CI main `37035505975` aprovado;
 457 respostas readyz e oito rotas finais com HTTP 200.
 Cobertura integral WCAG não demonstrada e não alegada; P2 de busca ampla
-e resiliência de aba antiga classificados com responsável/prazo no relatório. **Fase 8 iniciada em paralelo**
-em 02/10 às 13h01min57s (America/Fortaleza), com baseline e janela mínima
-até 09/10 às 13h01min57s; não concluída. Registro:
+e resiliência de aba antiga classificados com responsável/prazo no relatório. **Fase 8 como acompanhamento não bloqueante**, iniciada em 02/10 às
+13h01min57s (America/Fortaleza). A referência de sete dias até 09/10 não
+condiciona a entrega ou evolução e não foi declarada observada. Registro:
 `docs/operations/stabilization/2026-10-02-phase8-start.md`.
 Evidências: `docs/operations/stabilization/2026-10-02-phase7-continuation.md`,
 recibo JSON associado e `2026-10-02-accessibility-audit.md`.
