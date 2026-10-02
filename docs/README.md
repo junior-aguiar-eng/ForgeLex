@@ -20,6 +20,8 @@ monitoramento e atendimento.
 - [Evidência saneada da cobrança controlada](operations/phase14/controlled-charge-evidence.md)
 - [Baseline da estabilização](operations/stabilization/2026-09-25-baseline.md)
 - [Gates locais da Fase 1](operations/stabilization/2026-09-26-phase1.md)
+- [Fase 7 em andamento e bloqueio OAuth](operations/stabilization/2026-10-01-phase7.md)
+- [Roteiro de compreensão com cinco usuários](operations/stabilization/2026-10-01-phase7-user-study.md)
 - [Reconciliação documental da Fase 2](operations/stabilization/2026-09-26-phase2.md)
 - [Plano de estabilização pós-auditoria](superpowers/plans/2026-09-25-forgelex-estabilizacao-pos-auditoria.md)
 
