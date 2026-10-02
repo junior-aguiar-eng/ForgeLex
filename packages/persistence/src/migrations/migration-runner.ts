@@ -1075,6 +1075,10 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `CREATE INDEX IF NOT EXISTS retention_exceptions_closure_status_idx ON retention_exceptions(closure_id, status, review_at);`,
     ],
   },
+  {
+    id: 'persistence-0024-research-judgment-year',
+    statements: ['ALTER TABLE research_search_history ADD COLUMN judgment_year INTEGER;'],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

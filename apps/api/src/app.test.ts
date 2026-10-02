@@ -11,7 +11,7 @@ import { CanonicalFixtureProvider, SourceRouter } from '@forgelex/source-provide
 import type { Client } from '@libsql/client';
 import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
 import { JurisprudenceIngestionService } from '@forgelex/legal-data';
-import { IngestionRunRepository, JurisprudenceRepository } from '@forgelex/persistence';
+import { IngestionRunRepository, JurisprudenceRepository, ResearchHistoryRepository } from '@forgelex/persistence';
 import type { AccountClosureReconciler } from './account/account-closure-reconciler.js';
 import type { AccountClosureJournal } from './account/account-closure-journal.js';
 import type { AccountClosureRestoreGate } from './account/account-closure-restore.js';
@@ -488,6 +488,67 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       verifiable: false,
       status: 'UNAVAILABLE',
     });
+  });
+
+  it('filtra ano, mantém o replay e registra um único histórico com o ano', async () => {
+    const headers = { ...authHeaders, 'idempotency-key': 'year-search-2022' };
+    const payload = { query: 'vazamento', court: 'STJ', judgmentYear: 2022, limit: 10 };
+    const before = await ledgerService.provisionAccount('tenant_test');
+    const first = await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers, payload });
+    const replay = await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers, payload });
+    expect(first.statusCode).toBe(200);
+    expect(first.json().results).toEqual([]);
+    expect(replay.headers['x-idempotent-replay']).toBe('true');
+    const after = await ledgerService.provisionAccount('tenant_test');
+    expect(before.paidBalanceCents + before.promotionalBalanceCents - after.paidBalanceCents - after.promotionalBalanceCents).toBe(20);
+    const history = await app.inject({ method: 'GET', url: '/api/v2/research/history?grouped=true', headers: authHeaders });
+    expect(history.json().items.filter((item: any) => item.operationId === 'year-search-2022')).toMatchObject([{ judgmentYear: 2022, repeatCount: 1 }]);
+    const get = await app.inject({ method: 'GET', url: '/api/v2/jurisprudencias?q=vazamento&court=STJ&judgmentYear=2022', headers: { ...authHeaders, 'idempotency-key': 'get-year-search-2022' } });
+    expect(get.statusCode).toBe(200);
+    expect(get.json().results).toEqual([]);
+  });
+
+  it('permite recuperar resultado já debitado quando a gravação do histórico falha', async () => {
+    const before = await ledgerService.provisionAccount('tenant_test');
+    const headers = { ...authHeaders, 'idempotency-key': 'history-save-failure-recovery' };
+    const payload = { query: 'vazamento', court: 'STJ', judgmentYear: 2023 };
+    const spy = vi.spyOn(ResearchHistoryRepository.prototype, 'record').mockRejectedValueOnce(new Error('temporary history failure'));
+    try {
+      const first = await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers, payload });
+      expect(first.statusCode).toBe(503);
+      expect(first.json().error).toBe('SEARCH_HISTORY_UNAVAILABLE');
+      const replay = await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers, payload });
+      expect(replay.statusCode).toBe(200);
+      expect(replay.json().results).toHaveLength(1);
+      expect(replay.headers['x-idempotent-replay']).toBe('true');
+      const history = await app.inject({ method: 'GET', url: '/api/v2/research/history', headers: authHeaders });
+      expect(history.json().items.find((item: any) => item.operationId === 'history-save-failure-recovery')?.chargedCents).toBe(20);
+      const after = await ledgerService.provisionAccount('tenant_test');
+      expect(before.paidBalanceCents + before.promotionalBalanceCents - after.paidBalanceCents - after.promotionalBalanceCents).toBe(20);
+    } finally { spy.mockRestore(); }
+  });
+
+  it('MCP aplica o ano informado no índice persistido', async () => {
+    for (const [judgmentYear, count] of [[2022, 0], [2023, 1]]) {
+      const response = await app.inject({ method: 'POST', url: '/mcp', headers: { ...authHeaders, 'idempotency-key': `mcp-positive-year-${judgmentYear}` }, payload: { jsonrpc: '2.0', id: judgmentYear, method: 'tools/call', params: { name: 'research.search_case_law', arguments: { query: 'vazamento', court: 'STJ', judgmentYear } } } });
+      expect(JSON.parse(response.json().result.content[0].text).data.items).toHaveLength(count);
+    }
+  });
+
+  it('rejeita ano inválido antes de reservar saldo no POST, GET e MCP', async () => {
+    const before = await ledgerService.provisionAccount('tenant_test');
+    for (const judgmentYear of [1988, 2023.5, '2023', new Date().getUTCFullYear() + 1]) {
+      const response = await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers: { ...authHeaders, 'idempotency-key': `invalid-year-${judgmentYear}` }, payload: { query: 'vazamento', judgmentYear } });
+      expect(response.statusCode).toBe(400);
+    }
+    const get = await app.inject({ method: 'GET', url: '/api/v2/jurisprudencias?q=vazamento&judgmentYear=2023x', headers: { ...authHeaders, 'idempotency-key': 'invalid-get-year' } });
+    expect(get.statusCode).toBe(400);
+    const mcp = await app.inject({ method: 'POST', url: '/mcp', headers: { ...authHeaders, 'idempotency-key': 'invalid-mcp-year' }, payload: { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'research.search_case_law', arguments: { query: 'vazamento', judgmentYear: 1988 } } } });
+    expect(mcp.json().error?.code).toBe(-32602);
+    const after = await ledgerService.provisionAccount('tenant_test');
+    expect(after.paidBalanceCents + after.promotionalBalanceCents).toBe(before.paidBalanceCents + before.promotionalBalanceCents);
+    const operations = await client.execute({ sql: "SELECT id FROM billing_operations WHERE tenant_id = ? AND idempotency_key IN (?, ?)", args: ['tenant_test', 'invalid-year-1988', 'invalid-mcp-year'] });
+    expect(operations.rows).toHaveLength(0);
   });
 
   it('deve rejeitar busca de tribunal não habilitado sem alterar o saldo', async () => {

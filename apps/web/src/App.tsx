@@ -88,7 +88,7 @@ const AppContent: React.FC = () => {
 };
 
 const AuthEntry: React.FC<{ route: SiteRoute }> = ({ route }) => {
-  const { status, passwordRecovery, passwordRecoveryError } = useAuth();
+  const { status, account, passwordRecovery, passwordRecoveryError } = useAuth();
   React.useEffect(() => {
     if (route.kind !== 'auth' || (status !== 'authenticated' && status !== 'legacy') || passwordRecovery || passwordRecoveryError) return;
     const next = safeWorkspaceDestination(new URLSearchParams(window.location.search).get('next'));
@@ -102,7 +102,7 @@ const AuthEntry: React.FC<{ route: SiteRoute }> = ({ route }) => {
     const view = passwordRecoveryError ? 'recovery_error' : passwordRecovery ? 'reset_password' : route.view;
     return <AuthScreen key={route.view} initialView={view} status={status} onBackToLanding={() => window.location.assign('/')} />;
   }
-  return <AppProvider><AppContent /></AppProvider>;
+  return <AppProvider key={`${status}:${account?.workspace.id ?? ''}:${account?.user.id ?? ''}`}><AppContent /></AppProvider>;
 };
 
 export const App: React.FC = () => {

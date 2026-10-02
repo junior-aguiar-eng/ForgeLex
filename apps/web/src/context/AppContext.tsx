@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { requestApi } from '../api-client';
+import { ApiRequestError, getBillingAccount, requestApi } from '../api-client';
+import { SearchCoordinator } from '../operations/search-coordinator';
 import { OperationsClient } from '../operations/operations-client';
 import type { OperationalResource, ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
 import { isKnownPath, navigateToTab, tabForPath, updateDocumentTitle, type AppTab } from '../navigation/routes';
@@ -23,6 +24,11 @@ interface AppContextType {
   refreshOperationalState: () => Promise<void>;
   performSearch: (intent: SearchIntent) => Promise<SearchExecution>;
   retrySearch: (intent: SearchIntent) => Promise<SearchExecution>;
+  searchBusy: boolean;
+  searchCostCents: number | null;
+  searchIntent: SearchIntent | null;
+  searchExecution: SearchExecution | null;
+  searchFailure: { message: string; intent: SearchIntent; retryable: boolean } | null;
   resolveReview: (item: ReviewQueueItem, decision: 'APPROVED' | 'REJECTED', reason?: string) => Promise<void>;
   verifyAuthority: (court: string, processNumber: string, judgmentDate?: string) => Promise<AuthorityVerification>;
 }
@@ -66,6 +72,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [tribunals, setTribunals] = useState<OperationalResource<TribunalCapability[]>>(OperationsClient.loading([]));
   const [recentSearches, setRecentSearches] = useState<OperationalResource<ResearchHistoryItem[]>>(OperationsClient.loading([]));
   const [reviewQueue, setReviewQueue] = useState<OperationalResource<ReviewQueueItem[]>>(OperationsClient.loading([]));
+  const [searchBusy, setSearchBusy] = useState(false);
+  const [searchCostCents, setSearchCostCents] = useState<number | null>(null);
+  const [searchIntent, setSearchIntent] = useState<SearchIntent | null>(null);
+  const [searchExecution, setSearchExecution] = useState<SearchExecution | null>(null);
+  const [searchFailure, setSearchFailure] = useState<AppContextType['searchFailure']>(null);
+  const searchCoordinator = useMemo(() => new SearchCoordinator(async (intent) => {
+    setSearchIntent(intent);
+    setSearchFailure(null);
+    try {
+      const execution = await client.searchCaseLaw(intent);
+      setSearchExecution(execution);
+      setRecentSearches(await client.loadHistory());
+      return execution;
+    } catch (failure) {
+      setSearchFailure({ intent,
+        message: failure instanceof Error ? failure.message : 'Não foi possível concluir a pesquisa.',
+        retryable: failure instanceof ApiRequestError && (failure.code === 'API_UNAVAILABLE' || failure.status >= 500),
+      });
+      throw failure;
+    }
+  }, setSearchBusy), [client]);
 
   const refreshOperationalState = useCallback(async (): Promise<void> => {
     const [nextTribunals, nextHistory, nextQueue] = await Promise.all([
@@ -77,6 +104,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [client]);
 
   useEffect(() => { void refreshOperationalState(); }, [refreshOperationalState]);
+
+  useEffect(() => {
+    if (activeTab !== 'landing' && activeTab !== 'research') return;
+    let cancelled = false;
+    void getBillingAccount().catch(() => null).then((account) => {
+      if (!cancelled) setSearchCostCents(account && Number.isInteger(account.searchCostCents) && account.searchCostCents >= 0 ? account.searchCostCents : null);
+    });
+    return () => { cancelled = true; };
+  }, [activeTab]);
 
   useEffect(() => {
     const syncFromLocation = () => {
@@ -97,9 +133,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const performSearch = async (intent: SearchIntent): Promise<SearchExecution> => {
-    const execution = await client.searchCaseLaw(intent);
-    setRecentSearches(await client.loadHistory());
-    return execution;
+    return searchCoordinator.search(intent);
   };
 
   const verifyAuthority = async (court: string, processNumber: string, judgmentDate?: string): Promise<AuthorityVerification> => {
@@ -113,7 +147,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const actions = createOperationalActions(client, setReviewQueue);
   return <AppContext.Provider value={{
     activeTab, setActiveTab, tribunals, recentSearches, reviewQueue,
-    refreshOperationalState, performSearch, retrySearch: (intent) => client.retrySearch(intent),
+    refreshOperationalState, performSearch, retrySearch: performSearch, searchBusy, searchCostCents, searchIntent, searchExecution, searchFailure,
     resolveReview: actions.resolveReview, verifyAuthority,
   }}>{children}</AppContext.Provider>;
 };

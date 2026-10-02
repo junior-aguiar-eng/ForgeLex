@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ExternalLink, FileCheck2, Search, ShieldCheck } from 'lucide-react';
-import { AuthorityVerification, SearchResultItem, useApp } from '../context/AppContext';
-import { createSearchIntent } from '../operations/contracts';
+import { AuthorityVerification, useApp } from '../context/AppContext';
+import { useCaseLawSearch } from '../operations/use-case-law-search';
+import { CopyCitationButton } from '../components/CopyCitationButton';
+import { ExecutedSearchLabel, JudgmentYearSelect, ResearchRetentionNotice, SearchChargeNotice } from '../components/ResearchControls';
 import { createResearchDeskModel } from './research-desk-model';
-import { ApiRequestError } from '../api-client';
 
 const statusLabel: Record<AuthorityVerification['status'], string> = {
   VERIFIED_OFFICIAL: 'Verificado na fonte oficial',
@@ -14,17 +15,19 @@ const statusLabel: Record<AuthorityVerification['status'], string> = {
 };
 
 export const ResearchDeskScreen: React.FC = () => {
-  const { performSearch, verifyAuthority, tribunals } = useApp();
-  const [query, setQuery] = useState('');
-  const [court, setCourt] = useState('STJ');
-  const [results, setResults] = useState<SearchResultItem[]>([]);
+  const { verifyAuthority, tribunals, searchIntent } = useApp();
+  const [query, setQuery] = useState(() => searchIntent?.query ?? '');
+  const [court, setCourt] = useState<string>(() => searchIntent?.court ?? 'STJ');
+  const [year, setYear] = useState(() => searchIntent?.judgmentYear?.toString() ?? '');
+  const { results, execution, error: searchError, busy: searchBusy, search, retry, canRetry, hasSearched } = useCaseLawSearch(query, court, year);
   const [processNumber, setProcessNumber] = useState('');
   const [judgmentDate, setJudgmentDate] = useState('');
   const [verification, setVerification] = useState<AuthorityVerification | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [searchState, setSearchState] = useState<{ state: 'idle' | 'loading' | 'unavailable' | 'error' } | { state: 'ready'; chargedCents: number; resultCount: number; isReplay: boolean }>({ state: 'idle' });
+  const searchState = useMemo(() => searchBusy ? { state: 'loading' as const } : searchError ? { state: 'error' as const } : execution
+    ? { state: 'ready' as const, chargedCents: execution.chargedCents, resultCount: execution.resultCount, isReplay: execution.isReplay }
+    : { state: 'idle' as const }, [searchBusy, searchError, execution]);
   const model = useMemo(
     () => createResearchDeskModel({ tribunals: tribunals.data, search: searchState, verificationStatus: verification?.status }),
     [tribunals.data, searchState, verification?.status],
@@ -33,24 +36,6 @@ export const ResearchDeskScreen: React.FC = () => {
   useEffect(() => {
     if (!model.courts.some((item) => item.code === court) && model.courts[0]) setCourt(model.courts[0].code);
   }, [court, model.courts]);
-
-  const search = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setHasSearched(true);
-    setBusy(true);
-    setSearchState({ state: 'loading' });
-    setError(null);
-    try {
-      const execution = await performSearch(createSearchIntent(query, court as 'STJ'));
-      setResults(execution.results);
-      setSearchState({ state: 'ready', chargedCents: execution.chargedCents, resultCount: execution.resultCount, isReplay: execution.isReplay });
-    } catch (searchError) {
-      setError(searchError instanceof Error ? searchError.message : 'Não foi possível concluir a pesquisa.');
-      setSearchState({ state: searchError instanceof ApiRequestError && searchError.status === 503 ? 'unavailable' : 'error' });
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const verify = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -88,17 +73,21 @@ export const ResearchDeskScreen: React.FC = () => {
               <Search className="w-5 h-5 text-cognac-700" />
               <h2 className="font-editorial text-xl font-bold">Consulta jurisprudencial</h2>
             </div>
+            <SearchChargeNotice />
             <form onSubmit={search} className="space-y-3">
               <div className="flex flex-col md:flex-row gap-3">
                 <input value={query} onChange={(event) => setQuery(event.target.value)} className="flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
                 <select aria-label="Tribunal da pesquisa" value={court} onChange={(event) => setCourt(event.target.value)} className="md:w-40 px-3 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm">
                   {model.courts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
                 </select>
-                <button disabled={busy || !model.canSearch} className="px-5 py-3 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">{busy ? 'Consultando...' : 'Consultar'}</button>
+                <JudgmentYearSelect value={year} onChange={setYear} />
+                <button disabled={busy || searchBusy || !model.canSearch} className="px-5 py-3 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">{searchBusy ? 'Consultando...' : 'Consultar'}</button>
               </div>
               <p className="text-[11px] text-stone-500">Cada resultado mantém a fonte e o estado de verificação para conferência.</p>
             </form>
 
+            <ExecutedSearchLabel execution={execution} />
+            {execution && <ResearchRetentionNotice />}
             {results.length > 0 && (
               <div className="space-y-3 pt-2">
                 {results.map((item) => (
@@ -115,12 +104,13 @@ export const ResearchDeskScreen: React.FC = () => {
                       <span>Relatoria: {item.relator} · {item.chamber ? `${item.chamber} · ` : ''}Julgamento: {item.judgmentDate}</span>
                       {item.sourceUrl ? <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-cognac-700 hover:underline">Ver fonte retornada<ExternalLink className="h-3 w-3" /></a> : <span>Fonte não informada</span>}
                     </div>
+                    <CopyCitationButton item={item} />
                   </article>
                 ))}
               </div>
             )}
             {model.billingMessage && <div className="surface-subtle p-3 text-xs text-stone-600">{model.billingMessage}</div>}
-            {hasSearched && !busy && results.length === 0 && !error && <div className="surface-subtle p-6 text-center text-sm text-stone-500">{model.emptyMessage}</div>}
+            {hasSearched && !searchBusy && results.length === 0 && !searchError && <div className="surface-subtle p-6 text-center text-sm text-stone-500">{model.emptyMessage}</div>}
           </section>
 
           <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
@@ -152,7 +142,8 @@ export const ResearchDeskScreen: React.FC = () => {
           </section>
         </div>
 
-        {error && <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center gap-3 text-sm"><AlertCircle className="w-5 h-5 flex-shrink-0" />{error}</div>}
+        {canRetry && <button type="button" disabled={searchBusy} onClick={() => void retry()} className="btn-secondary">Tentar novamente</button>}
+        {(searchError || error) && <div role="alert" className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center gap-3 text-sm"><AlertCircle className="w-5 h-5 flex-shrink-0" />{searchError || error}</div>}
       </div>
     </div>
   );

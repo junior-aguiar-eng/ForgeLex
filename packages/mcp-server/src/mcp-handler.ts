@@ -165,6 +165,12 @@ export class McpHandler {
             error: { code: -32602, message: 'Invalid params: a chave de idempotência é obrigatória.' },
           };
         }
+        if (name === 'research.search_case_law') {
+          const parsed = tool.inputSchema.safeParse(toolArgs ?? {});
+          if (!parsed.success) {
+            return { jsonrpc: '2.0', id, error: { code: -32602, message: 'Invalid params: filtros de pesquisa inválidos.', data: { code: 'INVALID_INPUT', retryable: false } } };
+          }
+        }
         const sessionId = `mcp_${randomUUID()}`;
         const startedAt = Date.now();
 

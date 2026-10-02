@@ -1,5 +1,31 @@
 # Auditoria e status canônico do ForgeLex
 
+## Pesquisa, histórico e ano do julgamento — entrega local (02/10/2026)
+
+Plano implementado na branch `codex/research-history-year`, isolada de
+`origin/main` em `dd8ce234fece8b02dac4c1f2827af33935b7f17f`, no worktree
+`C:\Users\Boni Jr\.codex\worktrees\document-io\SDK`. Checkout P2 original
+preservado. Histórico e exemplos somente recuperam filtros; Consultar
+inicia outra cobrança. Agrupamento mantém contagem e última consulta;
+extrato mantém cada débito. Ano opcional integrado nas duas telas, REST e
+MCP, pela data de julgamento antes do limite. Avisos, tarifa da API e cópia
+confirmada; bloqueio compartilhado e retry com a mesma chave, inclusive ao
+navegar. Resultados carregados permanecem em memória até encerrar a sessão.
+
+Verificação local: 562 testes aprovados/quatro ignorados na suíte geral;
+sete E2E específicos da pesquisa e 29 de MCP/fluxo principal aprovados;
+38 verificações existentes de acessibilidade aprovadas. PostgreSQL 18
+descartável: nove checks específicos e 12 gerais aprovados. Build, lint,
+typecheck e auditoria de dependências aprovados. Sem consultas pagas em
+produção nem participação de terceiros.
+
+Esta etapa não inclui push, integração em main ou deploy. Para publicar,
+aplicar primeiro `persistence-0024-research-judgment-year` (coluna nullable
+aditiva), depois a aplicação. O rollback pode conservar essa coluna.
+Não houve armazenamento permanente adicional de resultados nem estorno
+automático. Evidências, regressões corrigidas e limites:
+`docs/operations/stabilization/2026-10-02-research-history-year.md`.
+
 ## PDF textual e DOCX — integrados e publicados (02/10/2026)
 
 PR #30 integrada em `fbe32b2ed41488c56509f8cb35dbb36609f6f582`, com os seis checks da PR e de

@@ -37,8 +37,11 @@ export class OperationsClient {
     const response = await this.requester<{ results: unknown[]; total: number }>('/api/v2/research/search-case-law', {
       method: 'POST',
       headers: { 'Idempotency-Key': intent.idempotencyKey },
-      body: JSON.stringify({ query: intent.query, court: intent.court, limit: intent.limit }),
+      body: JSON.stringify({ query: intent.query, court: intent.court, limit: intent.limit, judgmentYear: intent.judgmentYear }),
     });
+    if (!response.data || !Array.isArray(response.data.results) || !Number.isInteger(response.data.total) || response.data.total < 0) {
+      throw new ApiRequestError('A resposta da pesquisa ficou incompleta. Tente novamente para recuperar a mesma operação.', 'API_UNAVAILABLE', 503);
+    }
     const results = response.data.results.map(mapSearchResult);
     return {
       intent,
@@ -58,7 +61,7 @@ export class OperationsClient {
   }
 
   public loadHistory(): Promise<OperationalResource<ResearchHistoryItem[]>> {
-    return this.load('/api/v2/research/history', (data: any) => data.items ?? []);
+    return this.load('/api/v2/research/history?grouped=true', (data: any) => data.items ?? []);
   }
 
   public loadReviewQueue(): Promise<OperationalResource<ReviewQueueItem[]>> {

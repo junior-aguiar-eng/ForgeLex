@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import type { ForgeLexDatabase } from '../db.js';
 import { researchSearchHistory } from '../schema/schema.js';
 
@@ -9,6 +9,7 @@ export interface ResearchHistoryInput {
   operationId: string;
   query: string;
   court: string;
+  judgmentYear?: number;
   resultCount: number;
   billingMode: 'FREE' | 'METERED';
   chargedCents: number;
@@ -26,7 +27,7 @@ export class ResearchHistoryRepository {
     if (!Number.isInteger(input.chargedCents) || input.chargedCents < 0) throw new Error('RESEARCH_HISTORY_CHARGE_INVALID');
     const record = {
       id: randomUUID(), tenantId: input.tenantId, userId: input.userId, operationId: input.operationId,
-      query, court: input.court.trim().toUpperCase(), resultCount: input.resultCount,
+      query, court: input.court.trim().toUpperCase(), judgmentYear: input.judgmentYear ?? null, resultCount: input.resultCount,
       billingMode: input.billingMode, chargedCents: input.chargedCents,
       createdAt: input.createdAt ?? new Date().toISOString(),
     };
@@ -46,6 +47,20 @@ export class ResearchHistoryRepository {
     return this.db.select().from(researchSearchHistory).where(and(
       eq(researchSearchHistory.tenantId, tenantId),
       eq(researchSearchHistory.userId, userId),
-    )).orderBy(desc(researchSearchHistory.createdAt)).limit(safeLimit);
+    )).orderBy(desc(researchSearchHistory.createdAt), desc(researchSearchHistory.id)).limit(safeLimit);
+  }
+
+  public async listGrouped(tenantId: string, userId: string, limit = 20): Promise<Array<typeof researchSearchHistory.$inferSelect & { repeatCount: number }>> {
+    const h = researchSearchHistory;
+    const partition = sql`${h.query}, ${h.court}, ${h.judgmentYear}`;
+    const ranked = this.db.select({
+      ...getTableColumns(h),
+      repeatCount: sql<number>`count(*) over (partition by ${partition})`.mapWith(Number).as('repeat_count'),
+      historyRank: sql<number>`row_number() over (partition by ${partition} order by ${h.createdAt} desc, ${h.id} desc)`.as('history_rank'),
+    }).from(h).where(and(eq(h.tenantId, tenantId), eq(h.userId, userId))).as('ranked_history');
+    const safeLimit = Math.max(1, Math.min(50, Number.isInteger(limit) ? limit : 20));
+    const rows = await this.db.select().from(ranked).where(eq(ranked.historyRank, 1))
+      .orderBy(desc(ranked.createdAt), desc(ranked.id)).limit(safeLimit);
+    return rows.map(({ historyRank: _rank, ...item }) => item);
   }
 }
