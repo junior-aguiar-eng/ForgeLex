@@ -11,6 +11,7 @@ import {
   DraftCreateInputSchema,
   FactsEvidenceService,
   ResearchService,
+  SearchCaseLawInputSchema,
   type SearchCaseLawOutput,
   type VerifyAuthorityOutput,
   StrategyService,
@@ -894,6 +895,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     reply: FastifyReply;
     query: string;
     court?: string;
+    judgmentYear?: number;
     limit: number;
     idempotencyKey: string;
     abortSignal?: AbortSignal;
@@ -924,21 +926,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           userId: input.principal.userId,
         },
         operation: async () => (await executeLegalGatewayTool('research.search_case_law', {
-          query: input.query, court, limit: input.limit,
+          query: input.query, court, limit: input.limit, judgmentYear: input.judgmentYear,
         }, { sessionId, tenantId: input.principal.tenantId, userId: input.principal.userId, abortSignal: input.abortSignal })).data,
       });
 
       setBillingHeaders(input.reply, execution);
-      await researchHistoryRepository?.record({
-        tenantId: input.principal.tenantId,
-        userId: input.principal.userId,
-        operationId: idempotencyKey,
-        query: input.query,
-        court,
-        resultCount: execution.data.total,
-        billingMode: execution.billingMode,
-        chargedCents: execution.chargedCents,
-      });
+
       if (!execution.isReplay) {
         await recordAudit({
           sessionId,
@@ -958,6 +951,29 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         sessionId,
         execution,
       });
+
+      try {
+        const historyChargeCents = execution.isReplay
+          ? await ledgerService.getSettledChargeCents(input.principal.tenantId, idempotencyKey)
+          : execution.chargedCents;
+        await researchHistoryRepository?.record({
+          tenantId: input.principal.tenantId,
+          userId: input.principal.userId,
+          operationId: idempotencyKey,
+          query: input.query,
+          court,
+          judgmentYear: input.judgmentYear,
+          resultCount: execution.data.total,
+          billingMode: execution.billingMode,
+          chargedCents: historyChargeCents,
+        });
+      } catch {
+        structuredLog('warn', 'research.history.failed', { tenantId: input.principal.tenantId, requestId: idempotencyKey });
+        return input.reply.status(503).send({
+          error: 'SEARCH_HISTORY_UNAVAILABLE',
+          message: 'A pesquisa foi concluída, mas o histórico não pôde ser atualizado. Tente novamente para recuperar a mesma operação sem outro desconto.',
+        });
+      }
 
       return {
         query: input.query,
@@ -1284,7 +1300,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       }
       const requestedLimit = Number((req.query as { limit?: string }).limit ?? 20);
       const limit = Number.isInteger(requestedLimit) ? requestedLimit : 20;
-      const items = await researchHistoryRepository.list(req.principal.tenantId, req.principal.userId, limit);
+      const grouped = (req.query as { grouped?: string }).grouped === 'true';
+      const items = await researchHistoryRepository[grouped ? 'listGrouped' : 'list'](req.principal.tenantId, req.principal.userId, limit);
       return { items, total: items.length };
     },
   );
@@ -2508,90 +2525,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     '/api/v2/jurisprudencias',
     { preHandler: authAdapter.createPreHandler(['research:read']) },
     async (req, reply) => {
-      const query = req.query as { q?: string; court?: string; limit?: string };
+      const query = req.query as { q?: string; court?: string; limit?: string; judgmentYear?: string };
       const q = typeof query.q === 'string' ? query.q.trim() : '';
       const court = getSearchableCourt(query.court);
-      const limit = query.limit ? parseInt(query.limit, 10) : 10;
-
-      if (q.length < 2 || !Number.isInteger(limit) || limit < 1 || limit > 20) {
-        reply.status(400);
-        return {
-          error: 'INVALID_REQUEST',
-          message: 'q deve conter pelo menos 2 caracteres e limit deve estar entre 1 e 20.',
-        };
+      const limit = query.limit ? Number(query.limit) : 10;
+      const judgmentYear = query.judgmentYear === undefined ? undefined : /^\d{4}$/.test(query.judgmentYear) ? Number(query.judgmentYear) : NaN;
+      const parsed = SearchCaseLawInputSchema.safeParse({ query: q, court: query.court, limit, judgmentYear });
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'INVALID_REQUEST', message: 'Informe q com ao menos 2 caracteres, limit entre 1 e 20 e ano do julgamento entre 1989 e o ano corrente.' });
       }
       if (!court) return unsupportedCourtResponse(reply, query.court);
-      if (!jurisprudenceSearchService) return persistentResearchDataPlaneUnavailable(reply);
-
       const idempotencyKey = readIdempotencyKey(req.headers);
       if (!idempotencyKey) return missingIdempotencyResponse(reply);
-      const sessionId = `rest_${idempotencyKey}`;
-      const startedAt = Date.now();
       const requestAbort = createRequestAbortSignal(req.raw);
-
       try {
-        const execution = await ledgerService.executeOperation({
-          tenantId: req.principal.tenantId,
-          userId: req.principal.userId,
-          idempotencyKey,
-          billing: getForgeLexBillingPolicy('research.search_case_law'),
-          usage: {
-            capability: 'research.search_case_law',
-            toolName: 'research.search_case_law',
-            provider: researchBillingProvider,
-            requestId: idempotencyKey,
-            sessionId,
-            userId: req.principal.userId,
-          },
-          operation: async () => (await executeLegalGatewayTool('research.search_case_law', {
-            query: q, court, limit,
-          }, { sessionId, tenantId: req.principal.tenantId, userId: req.principal.userId, abortSignal: requestAbort.signal })).data,
-        });
-
-        setBillingHeaders(reply, execution);
-        if (!execution.isReplay) {
-          await recordAudit({
-            sessionId,
-            tenantId: req.principal.tenantId,
-            userId: req.principal.userId,
-            toolName: 'research.search_case_law',
-            durationMs: Date.now() - startedAt,
-            status: 'SUCCESS',
-            payload: { query: q, court, limit, resultCount: execution.data.total },
-          });
-        }
-        await emitBillingWebhooks({
-          principal: req.principal,
-          capability: 'research.search_case_law',
-          provider: researchBillingProvider,
-          idempotencyKey,
-          sessionId,
-          execution,
-        });
-
-        return {
-          query: q,
-          court,
-          total: execution.data.total,
-          results: execution.data.items,
-        };
-      } catch (err: any) {
-        await recordAudit({
-          sessionId,
-          tenantId: req.principal.tenantId,
-          userId: req.principal.userId,
-          toolName: 'research.search_case_law',
-          durationMs: Date.now() - startedAt,
-          status: 'FAILED',
-          payload: { query: q, court, limit, error: err?.message },
-        });
-        const unsupportedCourt = err?.code === 'UNSUPPORTED_COURT';
-        reply.status(unsupportedCourt ? 422 : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 503 : 402);
-        return {
-          error: unsupportedCourt ? 'UNSUPPORTED_COURT' : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
-          message: err.message,
-          details: err.details,
-        };
+        return await runBillableSearchCaseLaw({ principal: req.principal, reply, query: q, court, limit, judgmentYear, idempotencyKey, abortSignal: requestAbort.signal });
       } finally {
         requestAbort.dispose();
       }
@@ -2602,22 +2550,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     '/api/v2/research/search-case-law',
     { preHandler: authAdapter.createPreHandler(['research:read']) },
     async (req, reply) => {
-      const body = (req.body ?? {}) as { query?: unknown; court?: unknown; limit?: unknown };
+      const body = (req.body ?? {}) as { query?: unknown; court?: unknown; limit?: unknown; judgmentYear?: unknown };
       const query = typeof body.query === 'string' ? body.query.trim() : '';
       const court = typeof body.court === 'string' ? body.court : undefined;
       const limit = body.limit === undefined ? 10 : body.limit;
-      if (
-        query.trim().length < 2 ||
-        typeof limit !== 'number' ||
-        !Number.isInteger(limit) ||
-        limit < 1 ||
-        limit > 20
-      ) {
-        reply.status(400);
-        return {
-          error: 'INVALID_REQUEST',
-          message: 'query deve conter pelo menos 2 caracteres e limit deve ser um inteiro entre 1 e 20.',
-        };
+      const parsed = SearchCaseLawInputSchema.safeParse({ query, court, limit, judgmentYear: body.judgmentYear });
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'INVALID_REQUEST', message: 'Informe query com ao menos 2 caracteres, limit entre 1 e 20 e ano do julgamento entre 1989 e o ano corrente.' });
       }
 
       const idempotencyKey = readIdempotencyKey(req.headers);
@@ -2626,7 +2565,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const requestAbort = createRequestAbortSignal(req.raw);
       try {
         return await runBillableSearchCaseLaw({
-          principal: req.principal, reply, query, court, limit, idempotencyKey, abortSignal: requestAbort.signal,
+          principal: req.principal, reply, query, court, limit: parsed.data.limit, judgmentYear: parsed.data.judgmentYear, idempotencyKey, abortSignal: requestAbort.signal,
         });
       } finally {
         requestAbort.dispose();

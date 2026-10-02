@@ -15,6 +15,8 @@ export interface ResearchHistoryItem {
   query: string;
   court: string;
   resultCount: number;
+  judgmentYear?: number | null;
+  repeatCount?: number;
   billingMode: 'FREE' | 'METERED';
   chargedCents: number;
   createdAt: string;
@@ -49,13 +51,14 @@ export interface SearchResultItem {
   verificationStatus: 'VERIFIED_OFFICIAL' | 'VERIFIED_PROVIDER' | 'UNVERIFIED' | 'CONFLICTING_METADATA' | 'NOT_FOUND';
 }
 
-export type SearchIntent = { idempotencyKey: string; query: string; court: 'STJ'; limit: number };
+export type SearchIntent = { idempotencyKey: string; query: string; court: 'STJ'; limit: number; judgmentYear?: number };
 
-export const createSearchIntent = (query: string, court: 'STJ', limit = 20): SearchIntent => ({
+export const createSearchIntent = (query: string, court: 'STJ', limit = 20, judgmentYear?: number): SearchIntent => Object.freeze({
   idempotencyKey: `web_search_${crypto.randomUUID()}`,
   query: query.trim(),
   court,
   limit,
+  ...(judgmentYear === undefined ? {} : { judgmentYear }),
 });
 
 export interface SearchExecution {

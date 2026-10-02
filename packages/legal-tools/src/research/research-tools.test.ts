@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CanonicalFixtureProvider, SourceRouter } from '@forgelex/source-providers';
 import { JurisprudenceSearchService } from '@forgelex/legal-data';
-import { createSearchCaseLawTool } from './search-case-law.js';
+import { createSearchCaseLawTool, SearchCaseLawInputSchema } from './search-case-law.js';
 import { createVerifyAuthorityTool } from './verify-authority.js';
 import { createGetAuthorityTool } from './get-authority.js';
 import { ResearchService } from './research-service.js';
@@ -20,6 +20,26 @@ function createService(): ResearchService {
 }
 
 describe('Research tools', () => {
+  it('valida o ano e aplica o intervalo ao índice persistido', async () => {
+    const router = new SourceRouter();
+    router.registerProvider(new CanonicalFixtureProvider());
+    const search = vi.fn(async () => []);
+    const service = new ResearchService(router, new JurisprudenceSearchService({ search }));
+    const input = SearchCaseLawInputSchema.parse({ query: 'vazamento', court: 'STJ', judgmentYear: 2023 });
+    expect(input.judgmentYear).toBe(2023);
+    await service.searchCaseLaw(input);
+    expect(search).toHaveBeenCalledWith({ query: 'vazamento', court: 'STJ', limit: 10, fromDate: '2023-01-01', toDate: '2023-12-31' });
+    for (const judgmentYear of [1988, 2023.5, '2023', new Date().getUTCFullYear() + 1]) {
+      expect(SearchCaseLawInputSchema.safeParse({ query: 'vazamento', judgmentYear }).success).toBe(false);
+    }
+  });
+
+  it('respeita o ano nas fixtures e preserva chamadas sem ano', async () => {
+    const service = createService();
+    expect((await service.searchCaseLaw({ query: 'vazamento', court: 'STJ', limit: 10, judgmentYear: 2022 })).items).toHaveLength(0);
+    expect((await service.searchCaseLaw({ query: 'vazamento', court: 'STJ', limit: 10, judgmentYear: 2023 })).items).toHaveLength(1);
+    expect((await service.searchCaseLaw({ query: 'vazamento', court: 'STJ', limit: 10 })).items).toHaveLength(1);
+  });
   it('deve executar pesquisa através do SourceRouter injetado', async () => {
     const result = await createSearchCaseLawTool(createService()).execute(
       { query: 'vazamento de dados', court: 'STJ', limit: 10 },

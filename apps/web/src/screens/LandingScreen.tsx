@@ -1,19 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp, SearchResultItem } from '../context/AppContext';
-import { createSearchIntent } from '../operations/contracts';
+import { useCaseLawSearch } from '../operations/use-case-law-search';
+import { CopyCitationButton } from '../components/CopyCitationButton';
+import { ExecutedSearchLabel, JudgmentYearSelect, ResearchRetentionNotice, SearchChargeNotice } from '../components/ResearchControls';
 import {
   ArrowUpRight, Search, Scale, Shield, FolderOpen,
-  ExternalLink, Copy, Check, Sparkles, AlertCircle, BookmarkCheck
+  ExternalLink, Sparkles, AlertCircle, BookmarkCheck
 } from 'lucide-react';
 
 export const LandingScreen: React.FC = () => {
-  const { performSearch, recentSearches, setActiveTab, tribunals } = useApp();
-  const [query, setQuery] = useState('');
-  const [court, setCourt] = useState('STJ');
-  const [results, setResults] = useState<SearchResultItem[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { recentSearches, setActiveTab, tribunals, searchIntent } = useApp();
+  const [query, setQuery] = useState(() => searchIntent?.query ?? '');
+  const [court, setCourt] = useState<string>(() => searchIntent?.court ?? 'STJ');
+  const [year, setYear] = useState(() => searchIntent?.judgmentYear?.toString() ?? '');
+  const queryInput = useRef<HTMLInputElement>(null);
+  const { results, execution, error: searchError, busy: isSearching, search: handleSearch, retry, canRetry, hasSearched } = useCaseLawSearch(query, court, year);
   const [selectedDoc, setSelectedDoc] = useState<SearchResultItem | null>(null);
   const searchableCourts = tribunals.data.filter((item) => item.searchable);
 
@@ -23,33 +24,9 @@ export const LandingScreen: React.FC = () => {
     }
   }, [court, searchableCourts]);
 
-  const handleSearch = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!query.trim()) return;
-
-    setIsSearching(true);
-    setSearchError(null);
-
-    try {
-      const execution = await performSearch(createSearchIntent(query, court as 'STJ'));
-      setResults(execution.results);
-    } catch (err: any) {
-      setSearchError(err.message || 'Erro ao consultar jurisprudência.');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
   const handleQuickTrigger = (text: string) => {
     setQuery(text);
-    if (!searchableCourts.some((item) => item.code === court)) return;
-    performSearch(createSearchIntent(text, court as 'STJ')).then((execution) => setResults(execution.results)).catch(() => {});
-  };
-
-  const handleCopy = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    queryInput.current?.focus();
   };
 
   return (
@@ -92,13 +69,16 @@ export const LandingScreen: React.FC = () => {
 
         {/* SEARCH BAR (Inspirada em ForgeLex_01_Landing.png) */}
         <div className="champagne-card mx-auto max-w-4xl space-y-4 rounded-xl bg-white p-4 sm:p-5">
-          <form onSubmit={handleSearch} className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+          <SearchChargeNotice />
+          <form onSubmit={handleSearch} className="flex flex-col lg:flex-row items-stretch md:items-center gap-3">
             
             {/* Input */}
             <div className="relative flex-1">
               <Search className="w-5 h-5 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 id="pesquisa-principal"
+                aria-label="Termo de pesquisa"
+                ref={queryInput}
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -118,6 +98,8 @@ export const LandingScreen: React.FC = () => {
                 {searchableCourts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
               </select>
             </div>
+
+            <JudgmentYearSelect value={year} onChange={setYear} />
 
             {/* Search Button */}
             <button
@@ -169,7 +151,7 @@ export const LandingScreen: React.FC = () => {
             </div>
 
             <div className="text-right font-medium text-stone-500">
-              A tarifa e o saldo serão informados pela API autenticada.
+              Uma nova consulta será cobrada conforme a tarifa vigente.
             </div>
           </div>
         </div>
@@ -178,7 +160,8 @@ export const LandingScreen: React.FC = () => {
         {searchError && (
           <div className="max-w-4xl mx-auto p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center space-x-3 text-sm">
             <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-            <span>{searchError}</span>
+            <span role="alert">{searchError}</span>
+            {canRetry && <button type="button" disabled={isSearching} onClick={() => void retry()} className="underline font-semibold">Tentar novamente</button>}
             <button 
               onClick={() => setActiveTab('credits')}
               className="ml-auto underline font-semibold hover:text-amber-900"
@@ -188,6 +171,8 @@ export const LandingScreen: React.FC = () => {
           </div>
         )}
 
+        {hasSearched && !isSearching && !searchError && execution?.resultCount === 0 && <div className="surface-subtle mx-auto max-w-4xl p-4 text-sm text-stone-600">A operação concluída não localizou resultados para esta consulta.</div>}
+        {execution && <div className="mx-auto max-w-4xl space-y-2"><ExecutedSearchLabel execution={execution} /><ResearchRetentionNotice /></div>}
         {/* SEARCH RESULTS FEED */}
         {results.length > 0 && (
           <div className="max-w-4xl mx-auto space-y-6">
@@ -245,23 +230,7 @@ export const LandingScreen: React.FC = () => {
                     <div className="text-[11px] text-stone-400">Proveniência retornada pela API</div>
 
                     <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(item.id, `${item.court}. ${item.processNumber}, Rel. ${item.relator}, j. ${item.judgmentDate}.\n\nEmenta:\n${item.ementa}`)}
-                        className="px-3 py-1.5 rounded-lg border border-stone-200 hover:bg-stone-50 text-stone-700 font-medium flex items-center space-x-1.5 transition-colors"
-                      >
-                        {copiedId === item.id ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            <span className="text-emerald-700">Copiado!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5 text-stone-500" />
-                            <span>Copiar Citação</span>
-                          </>
-                        )}
-                      </button>
+                      <CopyCitationButton item={item} />
 
                       <button
                         type="button"
@@ -298,6 +267,7 @@ export const LandingScreen: React.FC = () => {
                   </p>
                 </div>
                 <button
+                  aria-label="Fechar detalhes"
                   onClick={() => setSelectedDoc(null)}
                   className="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 font-bold"
                 >
@@ -352,21 +322,23 @@ export const LandingScreen: React.FC = () => {
           <h4 className="text-xs uppercase font-bold tracking-wider text-stone-500">
             Consultas recentes
           </h4>
+          <ResearchRetentionNotice />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {recentSearches.data.map((item) => (
-              <div 
+              <button
+                type="button"
                 key={item.id}
-                onClick={() => handleQuickTrigger(item.query)}
-                className="p-3 rounded-xl bg-white border border-champagne-border hover:border-cognac-400 cursor-pointer transition-colors"
+                aria-label={`Recuperar consulta: ${item.query} · ${item.court} · ${item.judgmentYear ?? 'Todos os anos'}`}
+                onClick={() => { setQuery(item.query); setCourt(item.court); setYear(item.judgmentYear?.toString() ?? ''); queryInput.current?.focus(); }}
+                className="p-3 text-left rounded-xl bg-white border border-champagne-border hover:border-cognac-400 focus-visible:outline-cognac-600 transition-colors"
               >
-                <div className="flex items-center justify-between text-[11px] text-stone-400 mb-1">
-                  <span className="font-semibold text-cognac-700">{item.court}</span>
+                <span className="flex items-center justify-between gap-2 text-[11px] text-stone-400 mb-1">
+                  <span className="font-semibold text-cognac-700">{item.court} · {item.judgmentYear ?? 'Todos os anos'}</span>
                   <span>{new Date(item.createdAt).toLocaleString('pt-BR')}</span>
-                </div>
-                <p className="text-xs text-stone-800 font-medium line-clamp-1">
-                  {item.query}
-                </p>
-              </div>
+                </span>
+                <span className="block text-xs text-stone-800 font-medium line-clamp-1">{item.query}</span>
+                <span className="mt-1 block text-[11px] text-stone-500">{item.repeatCount ?? 1} {(item.repeatCount ?? 1) === 1 ? 'consulta' : 'consultas'} · Preencher filtros</span>
+              </button>
             ))}
           </div>
         </div>}

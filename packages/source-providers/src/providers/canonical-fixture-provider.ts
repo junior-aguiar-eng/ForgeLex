@@ -95,6 +95,8 @@ export class CanonicalFixtureProvider implements LegalSourceProvider {
       }
 
       const searchable = `${doc.syllabus} ${doc.processNumber} ${doc.rapporteur}`.toLowerCase();
+      if (options.fromDate && doc.judgmentDate < options.fromDate) return false;
+      if (options.toDate && doc.judgmentDate > options.toDate) return false;
       return terms.some((t) => searchable.includes(t));
     });
   }

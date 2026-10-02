@@ -5,6 +5,7 @@ import { CanonicalFixtureProvider, SourceRouter, SourceRouterError } from '@forg
 export interface SearchCaseLawRequest {
   query: string;
   court?: string;
+  judgmentYear?: number;
   limit: number;
 }
 
@@ -66,11 +67,15 @@ export class ResearchService {
         { code: 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE' },
       );
     }
+    const dateFilter = request.judgmentYear === undefined ? {} : {
+      fromDate: `${request.judgmentYear}-01-01`, toDate: `${request.judgmentYear}-12-31`,
+    };
     const documents = this.jurisprudenceSearchService
-      ? await this.jurisprudenceSearchService.search({ query: request.query, court: effectiveCourt, limit: request.limit })
+      ? await this.jurisprudenceSearchService.search({ query: request.query, court: effectiveCourt, limit: request.limit, ...dateFilter })
       : await this.sourceRouter.search(request.query, {
         court: effectiveCourt,
         limit: request.limit,
+        ...dateFilter,
       });
 
     return {

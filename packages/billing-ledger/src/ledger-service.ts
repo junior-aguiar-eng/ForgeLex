@@ -204,6 +204,15 @@ export class LedgerService {
     return this.availableBalance(account);
   }
 
+  /** Original debit for metadata recovery; replay itself always charges zero. */
+  public async getSettledChargeCents(tenantId: string, idempotencyKey: string): Promise<number> {
+    const rows = await this.db.select({ amountCents: ledgerEntries.amountCents }).from(ledgerEntries)
+      .innerJoin(ledgerAccounts, eq(ledgerEntries.accountId, ledgerAccounts.id))
+      .where(and(eq(ledgerAccounts.tenantId, tenantId), eq(ledgerEntries.idempotencyKey, idempotencyKey), eq(ledgerEntries.kind, 'DEBIT'))).limit(1);
+    if (!rows[0]) throw new DomainError('IDEMPOTENCY_RESULT_INVALID', 'O débito original desta operação não foi localizado.');
+    return rows[0].amountCents;
+  }
+
   /**
    * Compatibilidade com a API inicial. A ausência de valores agora significa
    * provisionamento pela política explícita, cujo padrão tem saldo zero.

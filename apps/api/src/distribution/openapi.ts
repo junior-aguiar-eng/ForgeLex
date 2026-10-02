@@ -19,7 +19,7 @@ export interface PublicApiRouteDefinition {
 const OPENAPI_SCHEMAS = {
   SearchCaseLawRequest: {
     type: 'object', additionalProperties: false, required: ['query'],
-    properties: { query: { type: 'string', minLength: 2 }, court: { type: 'string', enum: ['STJ'] }, limit: { type: 'integer', minimum: 1, maximum: 20 } },
+    properties: { query: { type: 'string', minLength: 2 }, court: { type: 'string', enum: ['STJ'] }, judgmentYear: { type: 'integer', minimum: 1989, maximum: new Date().getUTCFullYear(), description: 'Ano da data de julgamento; omitido pesquisa todos os anos.' }, limit: { type: 'integer', minimum: 1, maximum: 20 } },
   },
   AuthorityLookupRequest: {
     type: 'object', additionalProperties: false, required: ['court', 'processNumber'],
@@ -85,7 +85,7 @@ const OPENAPI_SCHEMAS = {
   ResearchHistoryResponse: {
     type: 'object', additionalProperties: false, required: ['items', 'total'],
     properties: {
-      items: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'operationId', 'query', 'court', 'resultCount', 'billingMode', 'chargedCents', 'createdAt'], properties: { id: { type: 'string' }, operationId: { type: 'string' }, query: { type: 'string' }, court: { type: 'string' }, resultCount: { type: 'integer' }, billingMode: { type: 'string', enum: ['FREE', 'METERED'] }, chargedCents: { type: 'integer' }, createdAt: { type: 'string', format: 'date-time' } } } },
+      items: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'operationId', 'query', 'court', 'resultCount', 'billingMode', 'chargedCents', 'createdAt'], properties: { id: { type: 'string' }, operationId: { type: 'string' }, query: { type: 'string' }, court: { type: 'string' }, judgmentYear: { type: ['integer', 'null'] }, repeatCount: { type: 'integer', minimum: 1 }, resultCount: { type: 'integer' }, billingMode: { type: 'string', enum: ['FREE', 'METERED'] }, chargedCents: { type: 'integer' }, createdAt: { type: 'string', format: 'date-time' } } } },
       total: { type: 'integer', minimum: 0 },
     },
   },
@@ -149,7 +149,7 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/api/v2/webhooks/deliveries', summary: 'Listar entregas de webhook', description: 'Lista entregas e tentativas do tenant.', scopes: ['billing:read'] },
   { method: 'post', path: '/api/v2/webhooks/deliveries/{deliveryId}/retry', summary: 'Reprocessar entrega de webhook', description: 'Recoloca uma entrega falha na fila.', scopes: ['billing:read'] },
   { method: 'get', path: '/api/v2/tribunals', summary: 'Listar tribunais', description: 'Retorna o catálogo com capabilities derivadas do registro de provedores. Durante a estabilização inicial, somente o STJ é pesquisável; os demais tribunais permanecem visíveis como não habilitados.', scopes: ['research:read'] },
-  { method: 'get', path: '/api/v2/research/history', summary: 'Listar histórico de pesquisa', description: 'Lista pesquisas concluídas do usuário autenticado no tenant atual.', scopes: ['research:read'], responseSchema: 'ResearchHistoryResponse' },
+  { method: 'get', path: '/api/v2/research/history', summary: 'Listar histórico de pesquisa', description: 'Lista pesquisas concluídas do usuário autenticado no tenant atual. grouped=true retorna um item por termo, tribunal e ano, com repeatCount e data da última operação. Não contém cópias dos resultados.', scopes: ['research:read'], responseSchema: 'ResearchHistoryResponse' },
   { method: 'get', path: '/api/v2/review-queue', summary: 'Listar fila de revisão', description: 'Lista drafts e memorandos submetidos à revisão humana sem expor tokens ou conteúdo integral.', scopes: ['matter:read'], responseSchema: 'ReviewQueueResponse' },
   { method: 'get', path: '/api/v2/matters', summary: 'Listar casos', description: 'Lista os casos do tenant autenticado.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/matters', summary: 'Criar caso', description: 'Cria um caso no tenant autenticado.', scopes: ['matter:write'], requestBody: 'object' },
@@ -230,6 +230,20 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
   }
   const parameters = pathParameters(route.path);
   if (parameters.length > 0) operation.parameters = parameters;
+  if (route.path === '/api/v2/research/history') {
+    operation.parameters = [
+      { name: 'grouped', in: 'query', schema: { type: 'boolean', default: false }, description: 'Agrupa termo, tribunal e ano; repeatCount conta todas as operações do grupo.' },
+      { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 50, default: 20 } },
+    ];
+  }
+  if (route.path === '/api/v2/jurisprudencias') {
+    operation.parameters = [
+      { name: 'q', in: 'query', required: true, schema: { type: 'string', minLength: 2 } },
+      { name: 'court', in: 'query', schema: { type: 'string', enum: ['STJ'] } },
+      { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 20, default: 10 } },
+      { name: 'judgmentYear', in: 'query', schema: { type: 'integer', minimum: 1989, maximum: new Date().getUTCFullYear() } },
+    ];
+  }
   if (route.requiresIdempotencyKey) {
     const header = {
       name: 'Idempotency-Key',

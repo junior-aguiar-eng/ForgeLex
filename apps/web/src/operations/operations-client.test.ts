@@ -4,6 +4,21 @@ import { createSearchIntent } from './contracts';
 import { OperationsClient } from './operations-client';
 
 describe('OperationsClient', () => {
+  it('trata resposta incompleta como falha recuperável, para repetir a mesma operação', async () => {
+    const client = new OperationsClient(async () => ({ data: { total: 0 }, status: 200, headers: new Headers() }) as ApiResponse<any>);
+    await expect(client.searchCaseLaw(createSearchIntent('vazamento', 'STJ'))).rejects.toMatchObject({ code: 'API_UNAVAILABLE', status: 503 });
+  });
+  it('envia o ano em novas consultas e no replay e solicita histórico agrupado', async () => {
+    const requester = vi.fn(async (_path: string, _init?: RequestInit) => ({ data: { results: [], total: 0, items: [] }, status: 200, headers: new Headers() }) as ApiResponse<any>);
+    const client = new OperationsClient(requester);
+    const intent = createSearchIntent('vazamento', 'STJ', 20, 2023);
+    await client.searchCaseLaw(intent);
+    await client.retrySearch(intent);
+    await client.loadHistory();
+    expect(JSON.parse(requester.mock.calls[0][1]!.body as string).judgmentYear).toBe(2023);
+    expect(requester.mock.calls[1][1]!.body).toBe(requester.mock.calls[0][1]!.body);
+    expect(requester.mock.calls[2][0]).toBe('/api/v2/research/history?grouped=true');
+  });
   it('preserva a chave ao repetir a mesma intenção e gera outra para nova intenção', async () => {
     const requester = vi.fn(async (_path: string, _init?: RequestInit) => ({ data: { query: 'dano moral', court: 'STJ', total: 0, results: [] }, status: 200, headers: new Headers({ 'x-forgelex-billing-mode': 'METERED', 'x-credits-charged': '0.2', 'x-remaining-balance': '10', 'x-idempotent-replay': 'false' }) }) as ApiResponse<any>);
     const client = new OperationsClient(requester);

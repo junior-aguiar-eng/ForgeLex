@@ -595,6 +595,7 @@ export const researchSearchHistory = sqliteTable(
     operationId: text('operation_id').notNull(),
     query: text('query').notNull(),
     court: text('court').notNull(),
+    judgmentYear: integer('judgment_year'),
     resultCount: integer('result_count').notNull(),
     billingMode: text('billing_mode').notNull(),
     chargedCents: integer('charged_cents').notNull(),

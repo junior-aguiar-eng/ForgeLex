@@ -6,6 +6,7 @@ import { ResearchService, createFixtureResearchService } from './research-servic
 export const SearchCaseLawInputSchema = z.object({
   query: z.string().min(2, 'Termo de busca deve conter pelo menos 2 caracteres'),
   court: z.string().optional(),
+  judgmentYear: z.number().int().min(1989).refine((year) => year <= new Date().getUTCFullYear(), 'Ano do julgamento não pode estar no futuro').optional(),
   limit: z.number().int().min(1).max(20).default(10),
 });
 
