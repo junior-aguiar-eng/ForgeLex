@@ -1,6 +1,6 @@
 # Auditoria e status canônico do ForgeLex
 
-## Onboarding MCP — publicado e conectado ao ChatGPT (02/10/2026)
+## Onboarding MCP — ChatGPT e Claude conectados (02/10/2026)
 
 PR #22 integrada após seis checks verdes. CI do SHA integrado
 `80ef69a5417431b190bb7320350ed2e44ee8b933` aprovada na tentativa 2.
@@ -30,8 +30,16 @@ ChatGPT Pro/Edge instalado, conta original conectada e grant confirmado na UI
 ForgeLex. Chamada real `forgelex.connection_status` pelo host retornou
 `authenticated=true`, `authMethod=oauth_access_token` e `billable=false` às
 07:36:46.579Z, corroborada por **Uso confirmado** na UI ForgeLex (04:36:46 local).
-Nenhuma pesquisa jurídica faturável. Claude, leitor de tela e zoom manual
-continuam pendentes; fase 7 não declarada integralmente concluída.
+Nenhuma pesquisa jurídica faturável. Claude Web Pro/Edge também conectado,
+com cinco ferramentas visíveis; `forgelex.connection_status` retornou acesso
+OAuth válido e `billable=false` às 14:21:01.046Z, corroborado por uso auditável
+às 11:21:01 local. Sua configuração usa Entrar agora e Registrar automaticamente.
+
+Boni declarou em 02/10/2026 funcionamento esperado do leitor e do zoom. Essa
+validação manual pelo responsável está registrada no escopo informado; software,
+percentual e páginas não especificados. Não há declaração de conformidade AA.
+A fase 7 conserva os limites da cadeia faturável no host e da auditoria completa.
+Evidência: `docs/operations/stabilization/2026-10-02-claude-validation.md` e recibo JSON.
 
 Evidências e incidentes:
 `docs/operations/stabilization/2026-10-02-mcp-publication.md` e recibo JSON associado.
@@ -52,8 +60,9 @@ Auditoria local em Chromium/axe-core encontrou defeitos de contraste, nomes
 acessíveis, teclado e landmarks; matriz final 38/38 e encerramento 4/4 aprovados.
 Lint/build/typecheck e 534 testes unitários aprovados (quatro ignorados).
 Correções e regressões estão na branch
-`codex/phase7-external-validation`. Leitor de tela, zoom e auditoria manual
-após publicação permanecem pendentes. Não há declaração de conformidade AA.
+`codex/phase7-external-validation`. Boni declarou o teste manual do leitor e
+do zoom aprovado em 02/10/2026; seu escopo e os limites de auditoria completa
+estão no adendo Claude. Não há declaração de conformidade AA.
 Produção agora atende a origem runtime `80ef69a5417431b190bb7320350ed2e44ee8b933`;
 a evidência local anterior permanece registrada com seu escopo e data.
 Evidência e limites: `docs/operations/stabilization/2026-10-01-phase7.md`.
