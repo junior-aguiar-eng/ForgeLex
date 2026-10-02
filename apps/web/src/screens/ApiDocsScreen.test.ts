@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { developerWorkflow, snippets, operationalDisclosure } from './ApiDocsScreen';
+import { developerWorkflow, snippets, operationalDisclosure, freeDocumentationRequest } from './ApiDocsScreen';
 
 describe('documentação de API', () => {
+  it('limita execução pela tela a leitura gratuita e nunca dispara pesquisas', () => {
+    expect(freeDocumentationRequest('jurisprudencias')).toBeNull();
+    expect(freeDocumentationRequest('verify_authority')).toBeNull();
+    expect(JSON.parse(String(freeDocumentationRequest('mcp')?.init.body))).toMatchObject({ method: 'tools/list' });
+    expect(freeDocumentationRequest('health')?.path).toBe('/healthz');
+  });
   it('não inclui marcadores de patch nos exemplos cURL', () => {
     const curlExamples = Object.values(snippets).map((snippet) => snippet.curl);
 

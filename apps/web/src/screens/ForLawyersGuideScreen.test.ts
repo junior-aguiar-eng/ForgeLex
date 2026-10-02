@@ -7,16 +7,14 @@ describe('guia de conexão para advogados', () => {
   it('organiza o primeiro uso sem copiar documentação técnica', () => {
     const markup = renderToStaticMarkup(React.createElement(ForLawyersGuideScreen));
 
-    expect(markup).toContain('O que é');
-    expect(markup).toContain('Como conectar');
-    expect(markup).toContain('Como perguntar');
-    expect(markup).toContain('Quanto custa');
-    expect(markup).toContain('Privacidade');
+    expect(markup).toContain('Habilite o modo de desenvolvedor');
+    expect(markup).toContain('OAuth · sua conta ForgeLex');
+    expect(markup).toContain('Confirme o funcionamento');
+    expect(markup).toContain('Se a conexão falhar');
     expect(markup).toContain('Como revogar');
     expect(markup).toContain('ChatGPT');
     expect(markup).toContain('Claude');
-    expect(markup).toContain('Última revisão: 22 de setembro de 2026');
-    expect(markup).toContain('pesquisar → abrir autoridade → verificar');
+    expect(markup).toContain('A pesquisa consome créditos');
     expect(markup).not.toContain('curl');
     expect(markup).not.toContain('JSON-RPC');
   });

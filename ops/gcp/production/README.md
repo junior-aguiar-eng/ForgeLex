@@ -123,3 +123,40 @@ Após o ensaio, retirar a tag candidata se ela expuser endpoints de teste e
 preservar o fallback até o gate de release. Jobs de ingestão e encerramento
 com nomes históricos `hml` continuam produtivos enquanto conectados ao banco
 atual; não duplicar Scheduler ao reclassificá-los.
+
+
+## OAuth externo restrito ao MCP
+
+Configure o servidor OAuth Supabase de produção com Site URL
+`https://nexojuris.ia.br` e Authorization Path `/oauth/consent`. Mantenha
+**Allow Dynamic OAuth Apps desativado**: o registro público ocorre no gateway
+ForgeLex, que cria clientes confidenciais no Supabase. Não exponha seus
+segredos nem os tokens nativos ao host.
+
+A revisão candidata requer `FORGELEX_MCP_OAUTH_ENABLED=true`,
+`FORGELEX_PUBLIC_URL=https://nexojuris.ia.br`, a configuração Supabase já
+existente e `FORGELEX_MCP_OAUTH_ENCRYPTION_KEY` via Secret Manager. Essa chave
+é aleatória, de 32 bytes codificados em base64; não é variável pública de
+build. Sua troca invalida os envelopes de clientes e tokens previamente
+emitidos, exigindo nova instalação das conexões.
+
+A descoberta pública aponta para o gateway do próprio domínio. `/oauth/register`
+aceita somente retornos HTTPS e tem limite por origem de requisição;
+`/oauth/authorize` exige S256 e recurso MCP; `/oauth/callback` preserva o state
+externo; `/oauth/token` cifra acesso e refresh. O PKCE externo é independente
+do PKCE interno secreto. A API exige conta ativa e grant vigente em cada uso,
+sem conceder escopos de casos, rascunhos, billing ou administração de chaves.
+
+Após build local, `scripts/smoke-mcp-oauth.mjs` verifica o Supabase hospedado.
+Informe `FORGELEX_SMOKE_SUPABASE_URL`, `FORGELEX_SMOKE_SUPABASE_PUBLIC` e
+`FORGELEX_SMOKE_SUPABASE_SECRET` somente no ambiente temporário do processo.
+O teste cria usuário e dois clientes sintéticos, verifica troca/refresh,
+retorno A/B, adulteração plain, revogação e isolamento das credenciais,
+e remove exclusivamente os objetos criados nessa execução. Não realiza
+pesquisa jurídica nem envia mensagem de cadastro.
+
+A prova no ChatGPT ou Claude é separada desse smoke. Instalação só está
+confirmada quando o host conclui o retorno e exibe ferramentas; uso exige
+chamada observada. `forgelex.connection_status` verifica gratuitamente o
+acesso, sem consumir saldo. Aprovação e promoção de tráfego seguem os gates
+vigentes; `Ready` e CI verde não provam instalação no host.

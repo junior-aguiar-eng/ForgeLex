@@ -7,6 +7,7 @@ export interface AuthenticatedPrincipal {
   roles: string[];
   scopes: string[];
   authMethod: AuthMethod;
+  oauthClientId?: string;
 }
 
 export interface TokenVerifier {

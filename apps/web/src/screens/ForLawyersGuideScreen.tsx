@@ -1,65 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { CheckCircle2, CircleDollarSign, ExternalLink, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { getBillingAccount } from '../api-client';
-
-const reviewedOn = '22 de setembro de 2026';
-
-const hostInstructions = [
-  {
-    name: 'ChatGPT',
-    steps: [
-      'Use o ChatGPT na Web e confirme se seu plano ou workspace permite conectores MCP remotos.',
-      'No fluxo de conectores ou apps disponível na sua conta, informe a URL do ForgeLex e siga as confirmações mostradas pelo próprio host.',
-      'Se a opção não aparecer, não há uma configuração alternativa no ForgeLex: verifique a elegibilidade da conta no suporte oficial do host.',
-    ],
-  },
-  {
-    name: 'Claude',
-    steps: [
-      'No Claude, abra a área de conectores disponível na sua conta e confirme que conectores personalizados/remotos estão liberados.',
-      'Adicione a URL do ForgeLex e conclua a autenticação solicitada pelo host.',
-      'Ative o conector na conversa antes de enviar a primeira pergunta; a disponibilidade pode variar conforme plano, organização e interface do host.',
-    ],
-  },
-] as const;
-
-const examples = [
-  'Pesquise jurisprudência do STJ sobre [tema ou tese].',
-  'Abra a autoridade [identificador] e mostre a proveniência disponível.',
-  'Verifique a proveniência da autoridade [identificador].',
-] as const;
+import { HostInstallationGuide } from './connections/HostInstallationGuide';
+import { resolveMcpUrl, type HostPlatform } from './connections/connection-model';
 
 export function formatSearchCost(searchCostCents: number | null): string {
-  if (searchCostCents === null) return 'Consulte a conta para ver o custo atualizado da pesquisa.';
-  return `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(searchCostCents / 100)} por pesquisa jurisprudencial`;
+  return searchCostCents === null ? 'Consulte a conta para ver o custo atualizado da pesquisa.' : `${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(searchCostCents / 100)} por pesquisa jurisprudencial`;
 }
 
-export const ForLawyersGuideScreen: React.FC = () => {
+export function ForLawyersGuideScreen() {
+  const [platform, setPlatform] = useState<HostPlatform>('chatgpt');
   const [searchCostCents, setSearchCostCents] = useState<number | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    void getBillingAccount()
-      .then((account) => { if (active) setSearchCostCents(account.searchCostCents); })
-      .catch(() => { if (active) setSearchCostCents(null); });
-    return () => { active = false; };
-  }, []);
-
+  useEffect(() => { let active = true; void getBillingAccount().then((data) => { if (active) setSearchCostCents(data.searchCostCents); }).catch(() => { if (active) setSearchCostCents(null); }); return () => { active = false; }; }, []);
   return <div className="py-8 md:py-12"><div className="page-container space-y-8">
-    <header className="border-b border-champagne-border pb-6"><p className="eyebrow">Guia de primeiro uso</p><h1 className="font-editorial text-3xl font-bold text-stone-900 sm:text-4xl">Guia de conexão para advogados</h1><p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-600">Este roteiro explica como usar a pesquisa jurídica do ForgeLex no host de IA que você já utiliza, sem documentação de desenvolvedor.</p></header>
-
-    <section className="surface space-y-3 p-5 sm:p-6" aria-labelledby="what-is"><h2 id="what-is" className="font-editorial text-2xl font-bold text-stone-900">O que é</h2><p className="text-sm leading-relaxed text-stone-600">O ForgeLex fornece ferramentas de pesquisa jurídica, autoridades e proveniência. O ChatGPT ou Claude formula a resposta: o modelo, a conta e a assinatura do host pertencem ao respectivo serviço.</p></section>
-
-    <section className="surface space-y-5 p-5 sm:p-6" aria-labelledby="how-connect"><div><h2 id="how-connect" className="font-editorial text-2xl font-bold text-stone-900">Como conectar</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">As interfaces dos hosts podem mudar. As instruções abaixo evitam depender de um botão ou menu que não esteja disponível na sua conta.</p></div><div className="grid gap-4 lg:grid-cols-2">{hostInstructions.map((host) => <article key={host.name} className="rounded-xl border border-stone-200 bg-[#FDFBF7] p-4"><h3 className="text-lg font-bold text-stone-800">{host.name}</h3><ol className="mt-3 space-y-3 text-sm leading-relaxed text-stone-600">{host.steps.map((step, index) => <li key={step} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cognac-100 text-xs font-bold text-cognac-800">{index + 1}</span><span>{step}</span></li>)}</ol><p className="mt-4 text-xs text-stone-500">Última revisão: {reviewedOn}</p></article>)}</div></section>
-
-    <section className="surface space-y-4 p-5 sm:p-6" aria-labelledby="how-ask"><h2 id="how-ask" className="font-editorial text-2xl font-bold text-stone-900">Como perguntar</h2><p className="text-sm leading-relaxed text-stone-600">Para uma pesquisa rastreável, siga a sequência <strong className="font-semibold text-stone-800">pesquisar → abrir autoridade → verificar</strong>. A primeira etapa localiza resultados; as seguintes ajudam a conferir a origem antes de usar a informação no trabalho jurídico.</p><ol className="grid gap-3 md:grid-cols-3">{examples.map((example, index) => <li key={example} className="rounded-xl border border-stone-100 bg-stone-50 p-4 text-sm leading-relaxed text-stone-600"><span className="mb-2 block text-xs font-bold text-cognac-800">Pergunta {index + 1}</span>{example}</li>)}</ol></section>
-
-    <section className="surface flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between" aria-labelledby="cost"><div className="flex gap-3"><CircleDollarSign className="mt-0.5 h-5 w-5 shrink-0 text-cognac-700" aria-hidden="true" /><div><h2 id="cost" className="font-editorial text-2xl font-bold text-stone-900">Quanto custa</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">{formatSearchCost(searchCostCents)} Abrir uma autoridade e verificar a proveniência são operações gratuitas.</p></div></div><a href="/conta" className="btn-primary shrink-0">Ir para a conta</a></section>
-
-    <section className="surface space-y-3 p-5 sm:p-6" aria-labelledby="privacy"><div className="flex gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-cognac-700" aria-hidden="true" /><div><h2 id="privacy" className="font-editorial text-2xl font-bold text-stone-900">Privacidade</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">O ForgeLex recebe a chamada autenticada e os argumentos da ferramenta. Não recebe o histórico geral da conversa, arquivos ou mensagens que o host não envie como argumento da ferramenta.</p></div></div></section>
-
-    <section className="surface space-y-4 p-5 sm:p-6" aria-labelledby="revoke"><div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-cognac-700" aria-hidden="true" /><div><h2 id="revoke" className="font-editorial text-2xl font-bold text-stone-900">Como revogar</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">Remova ou desative o conector no host. Se você também criou uma chave de API para integração manual, revogue-a na área de chaves; a revogação interrompe novas autenticações dessa chave.</p></div></div><a href="/conta/chaves" className="btn-secondary inline-flex items-center gap-2">Gerenciar chaves de API <ExternalLink className="h-4 w-4" aria-hidden="true" /></a></section>
-
-    <footer className="flex flex-wrap items-center gap-2 text-xs text-stone-500"><CheckCircle2 className="h-4 w-4 text-emerald-700" aria-hidden="true" /><span>Depois da configuração, volte a <a className="font-semibold text-cognac-800 underline" href="/conectar">Conectar IA</a> e execute o teste gratuito de disponibilidade.</span></footer>
+    <header className="border-b border-champagne-border pb-6"><p className="eyebrow">Guia de conexão</p><h1 className="mt-2 font-editorial text-3xl font-bold text-stone-900 sm:text-4xl">Guia de conexão para advogados</h1><p className="mt-3 max-w-3xl text-sm leading-7 text-stone-600">Instale as ferramentas de pesquisa jurídica do ForgeLex no ChatGPT ou Claude. Este roteiro cobre configuração, autorização, primeira consulta e revogação.</p></header>
+    <nav aria-label="Plataforma do guia" className="flex gap-2">{(['chatgpt', 'claude'] as const).map((host) => <button key={host} type="button" aria-pressed={platform === host} className={platform === host ? 'btn-primary' : 'btn-secondary'} onClick={() => setPlatform(host)}>{host === 'chatgpt' ? 'ChatGPT' : 'Claude'}</button>)}</nav>
+    <HostInstallationGuide platform={platform} mcpUrl={resolveMcpUrl()} />
+    <section className="surface p-6 sm:p-8"><h2 className="font-editorial text-2xl font-bold text-stone-900">Confirme o funcionamento</h2><p className="mt-3 max-w-3xl text-sm leading-7 text-stone-600">Na conversa com o ForgeLex habilitado, solicite uma pesquisa, abra um resultado e confira a fonte. A pesquisa consome créditos; as etapas seguintes são gratuitas. Para testar sem gastar créditos, peça: “Execute a ferramenta forgelex.connection_status e mostre o resultado.” Essa verificação gratuita deve ser feita na conversa do aplicativo.</p><ol className="mt-5 space-y-4 border-l border-stone-200 pl-5 text-sm leading-7 text-stone-700"><li><strong>Pesquisar:</strong> “Use o ForgeLex para pesquisar jurisprudência do STJ sobre responsabilidade civil por vazamento de dados. Mostre os identificadores e as fontes dos resultados.”</li><li><strong>Abrir:</strong> “Abra no ForgeLex a autoridade de identificador [identificador retornado]. Mostre o texto e a proveniência disponíveis.”</li><li><strong>Verificar:</strong> “Verifique no ForgeLex a autoridade [identificador retornado] e explique o resultado da verificação.”</li></ol><p className="mt-5 text-sm text-stone-600">O aplicativo deve mostrar uma chamada às ferramentas ForgeLex. Uma resposta de texto do modelo, sem chamada à ferramenta, não comprova uso da integração.</p></section>
+    <section className="surface p-6 sm:p-8"><h2 className="font-editorial text-2xl font-bold text-stone-900">Se a conexão falhar</h2><dl className="mt-5 space-y-5 text-sm leading-7"><div><dt className="font-semibold text-stone-900">“Não foi possível descobrir as configurações do OAuth”</dt><dd className="text-stone-600">A descoberta da autenticação falhou. Confira a URL, incluindo /mcp. Se ela estiver correta, a correção é do servidor ForgeLex; não selecione “Sem autenticação” nem exponha uma chave na URL.</dd></div><div><dt className="font-semibold text-stone-900">Solicitação expirada ou acesso recusado</dt><dd className="text-stone-600">Inicie uma nova conexão pelo aplicativo e autorize novamente. Se você revogou o acesso, a autorização anterior deixa de servir.</dd></div><div><dt className="font-semibold text-stone-900">Ferramentas não aparecem ou não são chamadas</dt><dd className="text-stone-600">Selecione o ForgeLex no menu de ferramentas da conversa. Após uma atualização, atualize a conexão no aplicativo e abra uma nova conversa.</dd></div><div><dt className="font-semibold text-stone-900">Pesquisa informa crédito insuficiente</dt><dd className="text-stone-600">A autenticação pode estar funcionando; a operação foi bloqueada pelo saldo. Confira <a className="font-semibold text-cognac-800 underline" href="/conta">créditos e tarifa na conta</a>. {formatSearchCost(searchCostCents)}</dd></div></dl></section>
+    <section className="surface p-6 sm:p-8"><h2 className="font-editorial text-2xl font-bold text-stone-900">Como revogar</h2><p className="mt-3 text-sm leading-7 text-stone-600">Abra <a className="font-semibold text-cognac-800 underline" href="/conectar">Conectar IA → Aplicativos autorizados</a> e revogue o aplicativo. Remova também a conexão no ChatGPT ou Claude. Chaves de API criadas separadamente são administradas em <a className="font-semibold text-cognac-800 underline" href="/conta/chaves">Chaves de API</a>.</p><p className="mt-4 text-sm leading-7 text-stone-600">O ForgeLex recebe a chamada autenticada e os argumentos enviados à ferramenta. O host fornece o modelo e mantém seus próprios custos; ele pode enviar trechos da pergunta como argumentos da pesquisa.</p></section>
+    <footer className="flex flex-wrap gap-3"><a className="btn-secondary min-h-11" href="/conta">Ir para a conta</a><a className="btn-secondary min-h-11" href="/conta/chaves">Gerenciar chaves de API</a></footer>
   </div></div>;
-};
+}

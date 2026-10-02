@@ -1,14 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { ApiRequestError, getMcpConnectionStatus, type McpConnectionStatusResponse } from '../api-client';
-import { ConnectionChecklist } from './connections/ConnectionChecklist';
+import { HostInstallationGuide } from './connections/HostInstallationGuide';
 import { FirstUseExamples } from './connections/FirstUseExamples';
-import { PlatformConnectionCard } from './connections/PlatformConnectionCard';
-import { connectionStatusErrorMessage, createPlatformConnection, deriveMcpConnectionSignals, isLocalMcpUrl, platformName, resolveMcpUrl, type HostPlatform } from './connections/connection-model';
+import { connectionStatusErrorMessage, createPlatformConnection, deriveMcpConnectionSignals, platformName, resolveMcpUrl, type HostPlatform } from './connections/connection-model';
+import { AuthorizedApplications } from './connections/AuthorizedApplications';
 
 export const ConnectionsScreen: React.FC = () => {
   const [platform, setPlatform] = useState<HostPlatform>('chatgpt');
-  const [copied, setCopied] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<McpConnectionStatusResponse | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [testingAvailability, setTestingAvailability] = useState(false);
@@ -17,17 +16,6 @@ export const ConnectionsScreen: React.FC = () => {
   const connections = useMemo(() => (['chatgpt', 'claude'] as const).map((item) => createPlatformConnection(item, activeMcpUrl)), [activeMcpUrl]);
   const selectedConnection = connections.find((connection) => connection.platform === platform) ?? connections[0];
   const connectionSignals = connectionStatus ? deriveMcpConnectionSignals(connectionStatus) : [];
-
-  const copyUrl = async () => {
-    if (isLocalMcpUrl(selectedConnection.mcpUrl)) return;
-    try {
-      await navigator.clipboard.writeText(selectedConnection.mcpUrl);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2_000);
-    } catch {
-      setCopied(false);
-    }
-  };
 
   const testAvailability = async () => {
     setTestingAvailability(true);
@@ -48,7 +36,7 @@ export const ConnectionsScreen: React.FC = () => {
         <div>
           <p className="eyebrow">Conexão MCP</p>
           <h1 className="font-editorial text-3xl font-bold text-stone-900 sm:text-4xl">Conectar o ForgeLex ao ChatGPT ou Claude</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-stone-600">Escolha o host que você já usa, copie a URL MCP e siga as instruções apresentadas pelo próprio host. Esta tela não confirma uma conexão até haver verificação autenticada.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-stone-600">Configure o aplicativo, autorize sua conta ForgeLex e confira o acesso. As instruções abaixo mostram cada etapa; as autorizações podem ser consultadas e revogadas nesta página.</p>
         </div>
         <span className="inline-flex w-fit items-center gap-2 rounded-full border border-stone-200 bg-stone-100 px-3 py-1.5 text-xs font-semibold text-stone-700"><ShieldCheck className="h-3.5 w-3.5 text-cognac-700" aria-hidden="true" /> Sem chaves de modelo no ForgeLex</span>
       </header>
@@ -59,18 +47,17 @@ export const ConnectionsScreen: React.FC = () => {
         <div className="flex gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-cognac-700" aria-hidden="true" /><div><h2 className="font-editorial text-xl font-bold text-stone-900">Cobrança separada do host</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">A assinatura do host não paga operações ForgeLex. O ForgeLex cobra somente a pesquisa jurídica faturável; comandos de abrir autoridade e verificar proveniência são gratuitos.</p></div></div>
       </section>
 
-      <div className="grid gap-5 md:grid-cols-2">
-        {connections.map((connection) => <PlatformConnectionCard key={connection.platform} connection={connection} selected={connection.platform === platform} onSelect={() => setPlatform(connection.platform)} />)}
-      </div>
+      <nav aria-label="Plataforma para conectar" className="flex flex-wrap gap-3">{connections.map((connection) => <button key={connection.platform} aria-pressed={connection.platform === platform} onClick={() => setPlatform(connection.platform)} className={connection.platform === platform ? 'btn-primary' : 'btn-secondary'}>Mostrar instruções para {platformName(connection.platform)}</button>)}</nav>
 
-      <ConnectionChecklist connection={selectedConnection} copied={copied} onCopyUrl={() => void copyUrl()} />
+      <HostInstallationGuide platform={platform} mcpUrl={selectedConnection.mcpUrl} />
+      <AuthorizedApplications />
 
       <section className="surface space-y-4 p-5" aria-labelledby="availability-heading">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="eyebrow">Teste gratuito</p>
             <h2 id="availability-heading" className="font-editorial text-xl font-bold text-stone-900">Testar disponibilidade</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-stone-600">Verifica a disponibilidade do ForgeLex e a credencial MCP. Nenhuma pesquisa jurídica, saldo ou crédito é consultado neste teste.</p>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-stone-600">Verifica o serviço e a sessão desta página. A autorização do aplicativo aparece na seção Aplicativos autorizados; a execução pelo host deve ser confirmada dentro do ChatGPT ou Claude. Nenhuma pesquisa jurídica é executada.</p>
           </div>
           <button type="button" className="btn-secondary min-h-11 shrink-0" onClick={() => void testAvailability()} disabled={testingAvailability}>{testingAvailability ? 'Testando disponibilidade…' : 'Testar disponibilidade'}</button>
         </div>
@@ -86,7 +73,7 @@ export const ConnectionsScreen: React.FC = () => {
         <p className="mt-2">A telemetria de ativação não inclui consulta, ementa, número processual, token, chave ou header <code>Authorization</code>.</p>
       </details>
 
-      <p className="text-center text-xs text-stone-500">Host selecionado: {platformName(platform)}. O estado exibido permanece “Não configurado” até existir evidência de verificação.</p>
+      <p className="text-center text-xs text-stone-500">Host selecionado: {platformName(platform)}. Consulte as autorizações acima e confirme a execução de uma ferramenta no aplicativo escolhido.</p>
     </div>
   </div>;
 };

@@ -34,7 +34,7 @@ function send(response, status, body) {
   response.writeHead(status, {
     'content-type': 'application/json', 'access-control-allow-origin': '*',
     'access-control-allow-headers': '*',
-    'access-control-allow-methods': 'GET,POST,OPTIONS',
+    'access-control-allow-methods': 'GET,POST,DELETE,OPTIONS',
   });
   response.end(JSON.stringify(body));
 }
@@ -44,6 +44,7 @@ const authServer = http.createServer((request, response) => {
   const url = new URL(request.url ?? '/', authUrl);
   if (request.method === 'POST' && url.pathname === '/auth/v1/token' && url.searchParams.get('grant_type') === 'password') return send(response, 200, session);
   if (request.method === 'GET' && url.pathname === '/auth/v1/user' && request.headers.authorization === `Bearer ${token}`) return send(response, 200, identity);
+  if (request.method === 'GET' && url.pathname === '/auth/v1/user/oauth/grants') return send(response, 200, []);
   if (request.method === 'POST' && url.pathname === '/auth/v1/logout') return send(response, 204, {});
   return send(response, 404, { error: 'not_found' });
 });

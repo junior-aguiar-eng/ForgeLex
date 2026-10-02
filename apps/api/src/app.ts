@@ -54,7 +54,11 @@ import {
   extractBearerToken,
   resolveAllowedOrigins,
   SupabaseIdentityVerifier,
+  readTokenClaims,
 } from './auth/fastify-auth.js';
+import { resolveMcpOAuthConfiguration } from './auth/mcp-oauth-config.js';
+import { OAuthTokenVault } from './auth/oauth-token-vault.js';
+import { registerOAuthGateway } from './auth/oauth-gateway.js';
 import { ApiKeyService } from './auth/api-key-service.js';
 import { buildOpenApiDocument } from './distribution/openapi.js';
 import { createRequestAbortSignal } from './distribution/request-abort-signal.js';
@@ -145,8 +149,18 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     environment.FORGELEX_ACCOUNT_CLOSURE_JOURNAL_REQUIRED !== 'true') {
     throw new Error('ACCOUNT_CLOSURE_JOURNAL_CONFIG_REQUIRED');
   }
-  const normalizePublicUrl = (value: string) => value.trim().replace(/\/$/, '');
-  const mcpResourceUrl = normalizePublicUrl(environment.FORGELEX_MCP_RESOURCE_URL ?? 'https://mcp.forgelex.ai');
+  const mcpOAuth = resolveMcpOAuthConfiguration(environment);
+  const mcpResourceUrl = mcpOAuth.resource;
+  if (mcpOAuth.enabled) {
+    if (!environment.FORGELEX_SUPABASE_URL || !environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY || !environment.FORGELEX_SUPABASE_SECRET_KEY || !environment.FORGELEX_MCP_OAUTH_ENCRYPTION_KEY) throw new Error('MCP_OAUTH_GATEWAY_CONFIG_REQUIRED');
+    registerOAuthGateway(app, {
+      origin: new URL(mcpResourceUrl).origin, resource: mcpResourceUrl,
+      supabaseUrl: environment.FORGELEX_SUPABASE_URL,
+      publishableKey: environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY,
+      secretKey: environment.FORGELEX_SUPABASE_SECRET_KEY,
+      vault: new OAuthTokenVault(environment.FORGELEX_MCP_OAUTH_ENCRYPTION_KEY, mcpResourceUrl),
+    });
+  }
   await app.register(cors, {
     origin: resolveAllowedOrigins(environment),
     allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-Closure-Token'],
@@ -735,7 +749,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
     let identity;
     try {
-      identity = await supabaseIdentityVerifier.verify(extractBearerToken(request.headers.authorization));
+      const token = extractBearerToken(request.headers.authorization);
+      if (readTokenClaims(token)?.client_id !== undefined) return reply.code(403).send({ error: 'SESSION_REQUIRED', message: 'Entre diretamente no ForgeLex para administrar a conta.' });
+      identity = await supabaseIdentityVerifier.verify(token);
     } catch {
       reply.status(401);
       return { error: 'UNAUTHENTICATED', message: 'Não foi possível confirmar seu acesso.' };
@@ -1203,28 +1219,43 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           serviceAvailable = false;
         }
       }
+      let lastMcpUseAt: string | null = null;
+      if (serviceAvailable) {
+        const result = await databaseClient!.execute({
+          sql: "SELECT MAX(created_at) AS last_use FROM audit_logs WHERE tenant_id = ? AND user_id = ? AND tool_name = 'mcp.connection.verified' AND status = 'SUCCESS'",
+          args: [request.principal.tenantId, request.principal.userId],
+        });
+        const value = result.rows[0]?.last_use;
+        if (typeof value === 'string') lastMcpUseAt = value;
+      }
       return {
         serviceAvailable,
         mcpUrl: mcpResourceUrl,
         authenticatedCredential: true,
         scopes: request.principal.scopes,
-        lastMcpUseAt: null,
+        lastMcpUseAt,
         billableOperationExecuted: false,
       };
     },
   );
 
-  // 3. OAuth 2.1 Protected Resource Metadata (RFC 9207 / Benchmark Exordial)
-  app.get('/.well-known/oauth-protected-resource', async () => {
-    const authorizationServers = (environment.FORGELEX_OAUTH_AUTHORIZATION_SERVERS ?? 'https://auth.forgelex.ai')
-      .split(',').map(normalizePublicUrl).filter(Boolean);
+  // RFC 9728: anúncio somente de servidores efetivamente configurados.
+  for (const path of ['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp']) app.get(path, async (_, reply) => {
+    reply.header('Cache-Control', 'no-store');
     return {
       resource: mcpResourceUrl,
-      authorization_servers: authorizationServers.length > 0 ? authorizationServers : ['https://auth.forgelex.ai'],
-      scopes_supported: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write', 'billing:admin'],
+      authorization_servers: mcpOAuth.authorizationServers,
+      scopes_supported: ['email', 'profile'],
       bearer_methods_supported: ['header'],
-      resource_documentation: 'https://forgelex.ai/documentacao-api',
+      resource_documentation: `${new URL(mcpResourceUrl).origin}/guia/mcp`,
     };
+  });
+
+  app.addHook('onSend', async (request, reply, payload) => {
+    if (request.routeOptions.url === '/mcp' && reply.statusCode === 401 && mcpOAuth.enabled) {
+      reply.header('WWW-Authenticate', `Bearer resource_metadata="${mcpOAuth.metadataUrl}", scope="email profile"`);
+    }
+    return payload;
   });
 
   // 4. REST v2: Catálogo de Tribunais Habilitados
@@ -2784,17 +2815,42 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.post(
     '/mcp',
     { preHandler: authAdapter.createPreHandler(['mcp']) },
-    async (req) => {
+    async (req, reply) => {
       const body = req.body as any;
+      if (body?.jsonrpc === '2.0' && typeof body.method === 'string' && body.method.startsWith('notifications/') && body.id === undefined) return reply.code(202).send();
+      if (mcpOAuth.enabled && body?.jsonrpc === '2.0' && body.method === 'tools/call' && body.params?.name === 'forgelex.connection_status') {
+        if ((typeof body.id !== 'string' && typeof body.id !== 'number') || (body.params.arguments && (typeof body.params.arguments !== 'object' || Array.isArray(body.params.arguments) || Object.keys(body.params.arguments).length))) return { jsonrpc: '2.0', id: body.id ?? null, error: { code: -32602, message: 'A verificação exige um identificador de requisição e não aceita argumentos.' } };
+        const status = { authenticated: true, resource: mcpResourceUrl, authMethod: req.principal.authMethod, verifiedAt: new Date().toISOString(), billable: false };
+        if (req.principal.oauthClientId) await recordAudit({
+          sessionId: `mcp_oauth_${req.principal.oauthClientId}`, tenantId: req.principal.tenantId,
+          userId: req.principal.userId, toolName: 'mcp.connection.verified', durationMs: 0, status: 'SUCCESS',
+        });
+        return { jsonrpc: '2.0', id: body.id, result: { content: [{ type: 'text', text: JSON.stringify(status) }], structuredContent: status, isError: false } };
+      }
       const idempotencyKey = readIdempotencyKey(req.headers);
       const requestAbort = createRequestAbortSignal(req.raw);
       try {
-        return await mcpHandler.handleRequest(body, {
+        const response = await mcpHandler.handleRequest(body, {
           idempotencyKey,
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
           abortSignal: requestAbort.signal,
         });
+        if (mcpOAuth.enabled && body?.method === 'tools/list' && response.result?.tools) {
+          for (const tool of response.result.tools) {
+            tool.securitySchemes = [{ type: 'oauth2', scopes: ['email', 'profile'] }];
+            tool.annotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
+          }
+          response.result.tools.push({
+          name: 'forgelex.connection_status', title: 'Verificar conexão ForgeLex',
+          description: 'Confirma a autenticação e o acesso ao ForgeLex sem pesquisar jurisprudência nem consumir créditos.',
+          inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+          annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+          securitySchemes: [{ type: 'oauth2', scopes: ['email', 'profile'] }],
+          });
+        }
+        if (body?.method === 'initialize' && response.result && ['2025-11-25', '2025-06-18', '2025-03-26'].includes(body.params?.protocolVersion)) response.result.protocolVersion = body.params!.protocolVersion;
+        return response;
       } finally {
         requestAbort.dispose();
       }

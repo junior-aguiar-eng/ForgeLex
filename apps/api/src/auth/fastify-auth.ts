@@ -2,6 +2,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AuthenticatedPrincipal, TokenVerifier } from '@forgelex/domain';
 import type { AccountRepository, ApiKeyRepository } from '@forgelex/persistence';
+import { OAuthTokenVault } from './oauth-token-vault.js';
+import { resolveMcpOAuthConfiguration } from './mcp-oauth-config.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -112,17 +114,61 @@ export class SupabaseIdentityVerifier {
       clearTimeout(timeout);
     }
   }
+
+  public async verifyOAuthGrant(token: string, identity: SupabaseIdentity): Promise<string | null> {
+    // Apenas depois de /user autenticar assinatura e identidade. Decodificar
+    // isoladamente um JWT nunca estabelece autenticidade.
+    const claims = readTokenClaims(token);
+    if (!claims || !isNonEmptyString(claims.client_id) || !isNonEmptyString(claims.session_id)
+      || claims.sub !== identity.id || claims.iss !== `${this.baseUrl}/auth/v1`
+      || !(claims.aud === 'authenticated' || (Array.isArray(claims.aud) && claims.aud.includes('authenticated')))
+      || typeof claims.exp !== 'number' || claims.exp <= Date.now() / 1000) return null;
+    try {
+      const response = await this.fetchImpl(`${this.baseUrl}/auth/v1/user/oauth/grants`, {
+        headers: { apikey: this.publishableKey, Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+      if (!response.ok) return null;
+      const grants: unknown = await response.json();
+      return Array.isArray(grants) && grants.some((grant) => isRecord(grant) && isRecord(grant.client)
+        && grant.client.id === claims.client_id) ? claims.client_id : null;
+    } catch { return null; }
+  }
+}
+
+export function readTokenClaims(token: string): Record<string, unknown> | null {
+  try {
+    const segment = token.split('.')[1];
+    const value: unknown = segment && JSON.parse(Buffer.from(segment, 'base64url').toString('utf8'));
+    return isRecord(value) ? value : null;
+  } catch { return null; }
 }
 
 export class SupabaseTokenVerifier implements TokenVerifier {
   public constructor(
     private readonly identityVerifier: SupabaseIdentityVerifier,
     private readonly accountRepository: AccountRepository,
+    private readonly oauthVault?: OAuthTokenVault,
   ) {}
 
   public async verify(token: string): Promise<AuthenticatedPrincipal | null> {
+    const enveloped = token.startsWith('flx_oauth_v1.');
+    if (enveloped) {
+      const native = this.oauthVault?.open(token, 'access');
+      if (!native) return null;
+      token = native;
+    }
+    const unverifiedClaims = readTokenClaims(token);
+    // O JWT nativo permite operações no Auth Supabase. Somente o envelope
+    // restrito ao MCP pode representar uma autorização de aplicativo aqui.
+    if (!enveloped && unverifiedClaims && 'client_id' in unverifiedClaims) return null;
     const identity = await this.identityVerifier.verify(token);
     if (!identity?.emailConfirmed) return null;
+    const claims = readTokenClaims(token);
+    const oauthToken = claims !== null && 'client_id' in claims;
+    if (enveloped && !oauthToken) return null;
+    const oauthClientId = oauthToken ? await this.identityVerifier.verifyOAuthGrant(token, identity) : null;
+    if (oauthToken && !oauthClientId) return null;
 
     const account = await this.accountRepository.findBySupabaseUserId(identity.id);
     if (
@@ -139,8 +185,9 @@ export class SupabaseTokenVerifier implements TokenVerifier {
       tenantId: account.tenant.id,
       userId: account.user.id,
       roles: [account.membership.role.toLowerCase()],
-      scopes: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write'],
-      authMethod: 'session',
+      scopes: oauthToken ? ['mcp', 'research:read'] : ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write'],
+      authMethod: oauthToken ? 'oauth_access_token' : 'session',
+      ...(oauthClientId ? { oauthClientId } : {}),
     };
   }
 }
@@ -386,7 +433,10 @@ export function createDefaultAuthAdapter(
   if (apiKeyRepository) verifiers.push(new DatabaseApiKeyVerifier(apiKeyRepository));
   const supabaseIdentityVerifier = createSupabaseIdentityVerifier(environment);
   if (supabaseIdentityVerifier && accountRepository) {
-    verifiers.push(new SupabaseTokenVerifier(supabaseIdentityVerifier, accountRepository));
+    const configuration = resolveMcpOAuthConfiguration(environment);
+    const vault = configuration.enabled && environment.FORGELEX_MCP_OAUTH_ENCRYPTION_KEY
+      ? new OAuthTokenVault(environment.FORGELEX_MCP_OAUTH_ENCRYPTION_KEY, configuration.resource) : undefined;
+    verifiers.push(new SupabaseTokenVerifier(supabaseIdentityVerifier, accountRepository, vault));
   }
   const verifier = verifiers.length === 1 ? verifiers[0] : new CompositeTokenVerifier(verifiers);
   return new AuthAdapter(blocklist ? new ClosureAwareTokenVerifier(verifier, blocklist) : verifier);
