@@ -542,7 +542,7 @@ Validar `health`, `readyz`, OpenAPI, páginas públicas, auth, REST, MCP, billin
 
 **External operations:** deploy, mudança de tráfego e qualquer cobrança real exigem autorização explícita.
 
-- [ ] **Step 1: promover tráfego em etapas**
+- [x] **Step 1: promover tráfego em etapas**
 
 Usar 5% → 25% → 100%, com janela de observação definida. Se a plataforma escolhida não permitir amostra segura pelo perfil de tráfego, usar tag de revisão e smoke autenticado antes de 100%.
 
@@ -550,19 +550,25 @@ Usar 5% → 25% → 100%, com janela de observação definida. Se a plataforma e
 
 Verificar homepage, rotas diretas, cadastro, login, callback de recuperação, retorno de billing, API/OpenAPI, MCP, páginas legais e encerramento por conta sintética.
 
-- [ ] **Step 3: conferir observabilidade**
+- [x] **Step 3: conferir observabilidade**
 
 Inspecionar 4xx/5xx, latência, instâncias, conexões, billing, webhook, Scheduler, backlog de encerramento, ingestão e idade do backup.
 
-- [ ] **Step 4: comprovar rollback**
+- [x] **Step 4: comprovar rollback**
 
 Retornar temporariamente à revisão anterior ou executar ensaio equivalente sem afetar dados; documentar comando, tempo e resultado.
 
-- [ ] **Step 5: revogar credenciais sintéticas**
+- [x] **Step 5: revogar credenciais sintéticas**
 
 Comprovar 401 após revogação e remover qualquer secret temporário sem apagar evidência saneada.
 
 **Gate de saída:** 100% do tráfego no digest aprovado, rollback demonstrado e nenhum segredo temporário ativo.
+
+Registro de 01/10/2026: publicação e rollback comprovados no SHA runtime
+`0268ffcbb5bd0a3f8f6bfd15cb3bdd2875b477fa`. Step 2 permanece pendente pela
+conexão SMTP e entrega/confirmação de cadastro público; link administrativo
+sintético não substitui essa prova. Evidência e limites em
+`docs/operations/stabilization/2026-10-01-phase6.md`.
 
 ---
 
