@@ -1,5 +1,66 @@
 # Auditoria e status canônico do ForgeLex
 
+## PDF textual e DOCX — entrega local concluída (02/10/2026)
+
+Escopo aprovado por Boni para execução individual e incremental: importação
+de PDF textual com prévia editável e exportação DOCX da versão persistida do
+rascunho. Implementado na branch `codex/document-io`, worktree
+`C:\Users\Boni Jr\.codex\worktrees\document-io\SDK`, a partir de
+`ace7b7a487845e2f7b3098b138037b2641a51952`. Integração à `main`, commit e push
+autorizados em 02/10/2026. A entrega mantém o checkout P2 separado e compõe
+um commit de funcionalidade; publicação do runtime não faz parte desta etapa.
+
+PDF.js extrai no navegador, com limites de tamanho/páginas/texto/tempo,
+tratamento de arquivos sem texto e cancelamento ao trocar de caso. O usuário
+confere e salva pelo endpoint textual existente. Não há retenção do binário,
+OCR, mudança de schema ou âncora PDF nativa. DOCX contém seções, citações e
+identificação da versão salva; exclui edições não salvas e sinaliza revisão
+pendente. O download não exige aprovação e não altera o estado da minuta.
+Rascunhos carrega os casos automaticamente ao abrir.
+
+Validação local em Node 24.19.0/pnpm 11.19.0:
+
+- `pnpm test`: build completo aprovado; 109 arquivos de teste aprovados e
+  um ignorado, 551 testes aprovados e quatro ignorados. Baseline anterior:
+  548 aprovados/quatro ignorados; os três testes adicionais validam o DOCX.
+- `pnpm test:e2e:documents`: 4/4 no Chromium, com API real, SQLite em memória,
+  Auth local e dados sintéticos. Verificados importação/edição/persistência,
+  arquivos inválidos/sem texto, limites e páginas vazias, download DOCX e
+  exclusão de edição não salva. Execução final em 43,2 segundos.
+- `pnpm lint`, `pnpm -r run typecheck` e build do web aprovados.
+  `pnpm audit --prod --audit-level moderate`: sem vulnerabilidades conhecidas.
+- Capturas do importador em 390 px e do controle DOCX inspecionadas.
+  Evidências locais: `document-io-tests.log`, `document-io-e2e.log`,
+  `document-io-lint.log`, `document-io-typecheck.log`, `document-io-audit.log`
+  e capturas em `test-results/` (artefatos ignorados pelo Git).
+
+O comando E2E foi acrescentado ao job existente `e2e-product` do CI, sem
+criar outro serviço. Esse CI atualizado ainda não foi executado remotamente.
+
+Critério de fechamento cumprido com verificações locais executáveis pelo
+próprio autor. Testes com terceiros, Word instalado, Postgres remoto,
+pagamento real e janela temporal não são gates desta entrega. Não se afirma
+fidelidade em todo leitor DOCX, toda diagramação PDF ou operação publicada.
+Limites e reprodução: `docs/product/document-io.md`.
+
+Revisão de integração visual e funcional na mesma data: seletor de PDF
+padronizado com `btn-secondary`, texto em português, alvo de pelo menos
+44 px e indicador de foco. Os quatro E2E passaram novamente (38,7 s),
+incluindo abertura do seletor e download DOCX por teclado. Axe não encontrou
+violações automáticas WCAG 2.1 A/AA em `#documentos` e no conteúdo principal
+do rascunho carregado. Capturas em desktop e 390 px inspecionadas, sem
+overflow horizontal nos cenários testados. Lint e build web passaram após
+o acabamento. O worker PDF do build foi servido pelo servidor estático real
+com HTTP 200 e MIME JavaScript. Evidência: `document-io-integration-review.log`
+e anexos/capturas em `test-results/`. A revisão é local e limitada a estas
+superfícies; não equivale a certificação integral de acessibilidade do site.
+
+Pré-integração Git: build e suíte completa repetidos com 551 testes aprovados,
+quatro ignorados e exit code zero; houve aviso de encerramento de um worker
+do Vitest. Lint, typecheck e os quatro fluxos E2E novamente aprovados.
+Proteção da `main` exige os seis checks existentes, sem revisão de terceiro
+obrigatória; a integração segue por PR e não inclui publicação do runtime.
+
 ## Acompanhamento não bloqueante e continuidade do projeto (02/10/2026)
 
 Boni substituiu o gate temporal da fase 8 por acompanhamento operacional

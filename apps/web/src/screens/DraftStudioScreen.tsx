@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, FileText, History, LockKeyhole, Plus, RefreshCw, Send, ShieldAlert } from 'lucide-react';
 import { requestApiWithToken, resolveApiOrigin } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
@@ -176,6 +176,7 @@ export const DraftStudioScreen: React.FC = () => {
   const [reviewStatus, setReviewStatus] = useState<string | null>(null);
   const [approvalToken, setApprovalToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasApiAccess = Boolean(token.trim()) || authStatus === 'authenticated' || authStatus === 'legacy';
 
@@ -206,6 +207,12 @@ export const DraftStudioScreen: React.FC = () => {
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    void loadMatters();
+    // Recarrega o contexto quando muda a sessão ou a credencial.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, authStatus]);
 
   const loadDrafts = async (matterId: string) => {
     const response = await request<{ items: Draft[] }>(`/api/v2/matters/${matterId}/drafts`, token);
@@ -275,6 +282,19 @@ export const DraftStudioScreen: React.FC = () => {
     } finally {
       setBusy(false);
     }
+  };
+
+  const exportSavedVersion = async () => {
+    if (!details?.currentVersion || exporting) return;
+    const saved = { title: details.draft.title, ...details.currentVersion };
+    setExporting(true);
+    setError(null);
+    try {
+      const { downloadDraftDocx } = await import('../documents/draft-docx');
+      await downloadDraftDocx(saved);
+    } catch (exportError) {
+      setError(exportError instanceof Error ? exportError.message : 'Não foi possível gerar o DOCX. Tente novamente.');
+    } finally { setExporting(false); }
   };
 
   const payload = () => ({
@@ -470,6 +490,10 @@ export const DraftStudioScreen: React.FC = () => {
                 <div className="rounded-xl border border-cognac-100 bg-cognac-50/40 p-4 space-y-3"><div><p className="text-xs font-bold text-stone-800">Âncoras de citação</p><p className="text-[11px] text-stone-500">Registre a fonte usada e marque como verificada somente após a conferência humana.</p></div><div className="grid gap-3 md:grid-cols-5"><select aria-label="Seção da citação" value={citationSectionOrdinal} onChange={(event) => setCitationSectionOrdinal(Number(event.target.value))} className="input-control"><option value={0}>Seção 1</option>{sections.slice(1).map((_, index) => <option key={index + 1} value={index + 1}>Seção {index + 2}</option>)}</select><select aria-label="Tipo de fonte da citação" value={citationTargetType} onChange={(event) => { setCitationTargetType(event.target.value as Citation['targetType']); setCitationTargetId(''); }} className="input-control"><option value="AUTHORITY">Authority</option><option value="FACT">Fato</option><option value="EVIDENCE">Prova</option></select><select aria-label="Fonte da citação" value={citationTargetId} onChange={(event) => setCitationTargetId(event.target.value)} className="input-control md:col-span-2"><option value="">Selecione a fonte</option>{citationTargets.map((target) => <option key={target.id} value={target.id}>{target.label}</option>)}</select><input value={citationText} onChange={(event) => setCitationText(event.target.value)} placeholder="Texto da citação" className="input-control" /></div><div className="flex flex-wrap items-center gap-4"><label className="flex items-center gap-2 text-xs text-stone-700"><input type="checkbox" checked={citationVerified} onChange={(event) => setCitationVerified(event.target.checked)} className="accent-cognac-700" />Conferida por humano</label><button type="button" onClick={addCitation} disabled={!citationTargetId || citationText.trim().length < 3} className="btn-secondary disabled:opacity-50">Adicionar citação</button></div>{citations.length > 0 && <div className="space-y-1">{citations.map((citation, index) => <div key={`${citation.targetId}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-xs text-stone-700"><span>Seção {citation.sectionOrdinal + 1} · {citation.citationText}</span><span className={citation.verified ? 'text-emerald-700' : 'text-amber-700'}>{citation.verified ? 'Verificada' : 'Pendente'}</span></div>)}</div>}</div>
                 <div className="flex flex-wrap gap-3"><button type="submit" disabled={busy || !draftTitle.trim()} className="px-4 py-2.5 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold"><Plus className="w-4 h-4 inline mr-2" />{selectedDraftId ? 'Salvar nova versão' : 'Criar rascunho'}</button>{selectedDraftId && <><button type="button" onClick={() => void runReview()} disabled={busy} className="px-4 py-2.5 rounded-xl border border-cognac-200 text-cognac-800 text-sm font-semibold">Executar revisão</button><button type="button" onClick={() => void requestApproval()} disabled={busy || !details?.currentVersion} className="px-4 py-2.5 rounded-xl border border-amber-300 text-amber-800 text-sm font-semibold"><Send className="w-4 h-4 inline mr-2" />Encaminhar à aprovação</button></>}</div>
                 <p className="text-[11px] text-stone-500">Organize a estrutura e a revisão da peça. A versão atual permanece em rascunho até a conferência humana.</p>
+                {details?.currentVersion && <div className="border-t border-stone-100 pt-4 space-y-2">
+                  <button type="button" onClick={() => void exportSavedVersion()} disabled={busy || exporting} className="btn-secondary disabled:opacity-50">{exporting ? 'Gerando DOCX…' : 'Baixar DOCX da versão salva'}</button>
+                  <p className="text-xs text-stone-500">Exporta a versão {details.currentVersion.version.versionNumber} registrada. Edições ainda não salvas não entram no arquivo. Pendências de revisão são indicadas no DOCX.</p>
+                </div>}
               </form>
 
                 {details && <div className="grid grid-cols-1 gap-6 xl:grid-cols-2"><section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-4"><div className="flex items-center gap-2"><History className="h-5 w-5 text-cognac-700" aria-hidden="true" /><h2 className="font-editorial text-xl font-bold text-stone-900">Histórico de versões</h2></div>{details.versions.map((version) => <div key={version.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><p className="text-sm font-semibold text-stone-800">Versão {version.versionNumber} · {statusLabel[version.status]}</p><p className="text-[11px] text-stone-500">{new Date(version.createdAt).toLocaleString('pt-BR')}</p></div><span className="text-[10px] text-stone-500">Versão registrada</span></div>)}</section><section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-4"><div className="flex items-center justify-between"><div><h2 className="font-editorial text-xl font-bold text-stone-900">Pendências de revisão</h2><p className="text-xs text-stone-500 mt-1">Achados da versão atual</p></div><span className="text-xs text-stone-500">{details.reviewFindings.length}</span></div>{details.reviewFindings.map((finding) => <div key={finding.id} className={`p-3 rounded-xl border ${finding.severity === 'BLOCKING' ? 'border-red-200 bg-red-50' : finding.severity === 'WARNING' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}><p className="text-xs font-bold text-stone-800">{finding.severity === 'BLOCKING' ? 'Bloqueador' : finding.severity === 'WARNING' ? 'Alerta' : 'Informação'}</p><p className="text-xs text-stone-700 mt-1">{finding.message}</p></div>)}{details.reviewFindings.length === 0 && <p className="text-xs text-stone-500">Execute a revisão para registrar citações, suporte factual e achados adversariais.</p>}</section></div>}
