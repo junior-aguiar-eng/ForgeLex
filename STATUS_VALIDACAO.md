@@ -1,6 +1,6 @@
 # Auditoria e status canônico do ForgeLex
 
-## Continuação da fase 7 — guia publicado e retorno do Checkout corrigido (02/10/2026)
+## Fase 7 concluída — conexão real, cobrança e acessibilidade (02/10/2026)
 
 Guia Claude da PR #24 publicado no runtime c722b382 após CI/build e promoção
 5/25/100. Defeito posterior comprovado: a recarga produtiva enviava callbacks
@@ -50,12 +50,15 @@ recarregar; resiliência a esse cenário permanece registrada, sem alegar corre�
 
 Backup automático de 02/10 SUCCESSFUL e dois schedulers ENABLED: fotografia
 operacional preparatória, não sete dias completos nem reconciliação financeira.
-**Fase 7 em fechamento:** cadeia real no ChatGPT comprovada em 02/10,
+**Fase 7 concluída:** cadeia real no ChatGPT comprovada em 02/10,
 search/get/verify, dois replays e um único débito de R$ 0,20; saldo R$ 24,80.
 Revogação bloqueou o acesso e reconexão autorizada voltou a autenticar, gratuita.
 Auditoria ampliada encontrou e corrigiu localmente overflow de espaçamento no
 Hero e no acompanhamento do encerramento; 38/38 + 4/4 regressões aprovadas.
-Falta publicar essas duas correções e validar o foco produtivo antes de fechar.
+Publicação e focal produtivo concluídos: Home de 346 para 320 px e acompanhamento em 320 px
+sob espaçamento ampliado. Revisão a11y-b6c893c4 a 100%, fonte b6c893c,
+build `71836f10` SUCCESS e CI main `37035505975` aprovado;
+457 respostas readyz e oito rotas finais com HTTP 200.
 Cobertura integral WCAG não demonstrada e não alegada; P2 de busca ampla
 e resiliência de aba antiga classificados com responsável/prazo no relatório. **Fase 8 iniciada em paralelo**
 em 02/10 às 13h01min57s (America/Fortaleza), com baseline e janela mínima

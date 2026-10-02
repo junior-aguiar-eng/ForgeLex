@@ -590,7 +590,7 @@ Critério alterado por Boni em 02/10/2026: informou que realizou a validação p
 
 Cobrir site público, autenticação, pesquisa, matter, rascunho, revisão, conta, conexão e encerramento; registrar tecnologia assistiva, navegador, ação e resultado.
 
-- [ ] **Step 4: corrigir somente defeitos demonstrados**
+- [x] **Step 4: corrigir somente defeitos demonstrados**
 
 Cada correção recebe teste de regressão e nova validação focal. Melhorias editoriais sem evidência entram em backlog, não atrasam o gate.
 
@@ -599,7 +599,8 @@ Cada correção recebe teste de regressão e nova validação focal. Melhorias e
 02/10: cadeia/replay/débito único e revogação/restauração comprovados no ChatGPT.
 Auditoria executada com limites por critério, declaração de leitor/zoom aceita.
 Step 4: duas regressões de espaçamento corrigidas localmente (38/38 + 4/4);
-publicação e focal produtivo pendentes. P2 desempenho OR/aba antiga no backlog,
+PR #27/CI branch e main aprovados; runtime b6c893c a 100%, publicação
+e focal produtivo concluídos em 02/10 às 17:03:40Z. Gate da fase 7 fechado. P2 desempenho OR/aba antiga no backlog,
 responsável engenharia ForgeLex/Boni, revisão até 09/10. Não alegar certificado AA.
 
 ---

@@ -25,8 +25,9 @@ com proprietário, prazo e estado. Registrar evidência por período observado.
 
 A cadeia faturável no ChatGPT, get/verify, dois replays, evento único,
 revogação e restauração foram comprovados posteriormente neste dia.
-A fase 7 aguarda apenas publicação e focal produtivo das duas correções
-locais de espaçamento demonstradas pela auditoria; claims permanecem limitados.
+A fase 7 foi fechada após publicar e validar focalmente as duas correções
+de espaçamento: runtime b6c893c a 100% em 02/10 às 17:03:40Z. A troca de
+revisão integra o histórico desta janela; claims de auditoria permanecem limitados.
 A observação operacional pode avançar em paralelo, sem declarar COMPLETED
 do programa. Nenhuma nova recarga é necessária.
 

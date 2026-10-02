@@ -95,7 +95,7 @@ A página inicial em 320 px falhou (largura do Hero 345,83 px); os itens grid/fl
 preservavam min-content de palavras longas. min-w-0 e break-words corrigiram a
 contração e quebra. Nova execução: 38/38 aprovados. O recibo de encerramento
 em 320 px também falhou sob espaçamento; quebra de palavras foi aplicada ao
-conteúdo do acompanhamento. Nova execução de encerramento: 4/4 aprovados, incluindo 320/1366 e bloqueio/retomada. Correções locais aguardam publicação e validação focal produtiva.
+conteúdo do acompanhamento. Nova execução de encerramento: 4/4 aprovados, incluindo 320/1366 e bloqueio/retomada. Correções publicadas e verificadas em produção conforme registro final abaixo.
 
 A verificação automática mede overflow e regras axe; não prova ausência de
 corte vertical, sobreposição e perda de função em todos os estados. A inspeção
@@ -114,3 +114,18 @@ Amostra adicional após correção: 4/4 testes focais em 320 px; capturas de
 Home, rascunho com seções/caso carregados e modal de revisão inspecionadas,
 sem corte ou sobreposição identificados no conteúdo e controles apresentados.
 Não extrapolar essa inspeção para estados/documentos não ensaiados.
+
+## Publicação e conclusão da auditoria
+
+Runtime b6c893c48ed99bca12216db9df1578cd57d344a9, revisão
+forgelex-api-prod-a11y-b6c893c4 a 100% após promoção concluída em 17:03:40Z.
+Origem da correção PR #27; CI branch/main aprovados. Home produtiva em 320 px com
+override: scrollWidth 346 antes, 320 depois, Hero min-w-0/break-words observado.
+Acompanhamento produtivo sem recibo: scrollWidth 320, container break-words;
+nenhum encerramento real executado. Capturas visuais inspecionadas; overrides
+CSS e viewport retirados. Recibo e demais estados permanecem validação local.
+
+Auditoria encerrada no escopo e limites enumerados. Zero defeito crítico
+identificado nesse recorte, regressões focalmente corrigidas e publicadas.
+A declaração de leitor/zoom de Boni é preservada com a precisão disponível.
+Não foi emitida declaração integral de conformidade AA.

@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-10-02T15:24:59.2429901Z",
+  "recordedAt": "2026-10-02T17:03:40.1474377Z",
   "guideSourceSha": "c722b382218f82464b6dd7dd3dec1efd11c8d934",
   "buildId": "ae2a74c5-cd95-4a12-84fb-fd50187b6500",
   "guideDigest": "sha256:6868ee5844f68f355f02e97c5e4da50ddd3232c51a361b096bae171f77057a76",
@@ -99,8 +99,9 @@
     "pullRequest": 25
   },
   "limits": [
-    "Local text-spacing fixes await publication and production focal verification",
     "No full WCAG AA conformity claim",
+    "Closure receipt states exercised only with disposable local fixtures; production focal used empty-receipt state",
+    "Broad unquoted query cold ranking timeout and stale-tab chunk recovery remain P2",
     "Phase8 seven-day observation not completed"
   ],
   "checkoutRelease": {
@@ -322,7 +323,9 @@
       "billable": false,
       "verifiedAt": "2026-10-02T16:27:56.435Z"
     },
-    "privateEvidenceExcludedFromGit": true
+    "privateEvidenceExcludedFromGit": true,
+    "revocationHttp401At": "2026-10-02T16:24:21.111845Z",
+    "finalLedgerReadAt": "2026-10-02T16:37:35.722Z"
   },
   "residualIssues": [
     {
@@ -354,7 +357,116 @@
     },
     "defectsReproduced": ["home hero min-content overflow 320px", "closure receipt text overflow 320px"],
     "localFixes": ["min-w-0 and break-words in Hero", "break-words in closure status content"],
-    "published": false,
+    "published": true,
     "fullAAConformityClaim": false
+  },
+  "accessibilityRelease": {
+    "imageUri": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api",
+    "sourceSha": "b6c893c48ed99bca12216db9df1578cd57d344a9",
+    "buildId": "71836f10-7e4f-4c20-8e30-7d7cd176600a",
+    "digest": "sha256:9196b2c395184dad335cc233c63f1cac1401160da38706d7c42853ff133e89b2",
+    "revision": "forgelex-api-prod-a11y-b6c893c4",
+    "mainCiRun": 37035505975,
+    "pullRequest": 27,
+    "promotion": {
+      "sourceSha": "b6c893c48ed99bca12216db9df1578cd57d344a9",
+      "revision": "forgelex-api-prod-a11y-b6c893c4",
+      "rollbackRevision": "forgelex-api-prod-webhook-0f1ce2fe",
+      "startedAt": "2026-10-02T16:56:12.7775589Z",
+      "stages": [
+        {
+          "percent": 5,
+          "marker": "a11y-5-0ff426d1915a4b7e8f64584b5a324238",
+          "startedAt": "2026-10-02T16:56:44.8300388Z",
+          "requests": 143,
+          "observationWindowSeconds": 120,
+          "observedRevisions": ["forgelex-api-prod-a11y-b6c893c4", "forgelex-api-prod-webhook-0f1ce2fe"],
+          "verified": true,
+          "completedAt": "2026-10-02T16:58:57.3866382Z",
+          "elapsedSeconds": 133.0
+        },
+        {
+          "percent": 25,
+          "marker": "a11y-25-267e4e67eeeb42158046bae56f3f196d",
+          "startedAt": "2026-10-02T16:59:05.9378407Z",
+          "requests": 158,
+          "observationWindowSeconds": 120,
+          "observedRevisions": ["forgelex-api-prod-a11y-b6c893c4", "forgelex-api-prod-webhook-0f1ce2fe"],
+          "verified": true,
+          "completedAt": "2026-10-02T17:01:17.9466475Z",
+          "elapsedSeconds": 132.0
+        },
+        {
+          "percent": 100,
+          "marker": "a11y-100-20d2e74f77d14415958fae84a75613e3",
+          "startedAt": "2026-10-02T17:01:26.1302847Z",
+          "requests": 156,
+          "observationWindowSeconds": 120,
+          "observedRevisions": ["forgelex-api-prod-a11y-b6c893c4"],
+          "verified": true,
+          "completedAt": "2026-10-02T17:03:37.8546508Z",
+          "elapsedSeconds": 132.0
+        }
+      ],
+      "checks": [
+        {
+          "path": "/healthz",
+          "status": 200
+        },
+        {
+          "path": "/.well-known/oauth-protected-resource/mcp",
+          "status": 200
+        },
+        {
+          "path": "/.well-known/oauth-authorization-server",
+          "status": 200
+        },
+        {
+          "path": "/openapi.json",
+          "status": 200
+        },
+        {
+          "path": "/app/conectar",
+          "status": 200
+        },
+        {
+          "path": "/guia/mcp",
+          "status": 200
+        },
+        {
+          "path": "/app/desenvolvedores/api",
+          "status": 200
+        },
+        {
+          "path": "/oauth/consent",
+          "status": 200
+        }
+      ],
+      "failures": [],
+      "completed": true,
+      "completedAt": "2026-10-02T17:03:40.1474377Z"
+    },
+    "productionFocal": {
+      "home": {
+        "viewportWidth": 320,
+        "beforeScrollWidth": 346,
+        "afterScrollWidth": 320,
+        "heroClass": "min-w-0 break-words"
+      },
+      "closureStatus": {
+        "viewportWidth": 320,
+        "scrollWidth": 320,
+        "containerClass": "page-container max-w-3xl break-words space-y-6",
+        "state": "empty receipt; no real closure requested"
+      },
+      "temporaryOverridesRestored": true
+    }
+  },
+  "phase7Gate": {
+    "closed": true,
+    "criticalDefectsIdentifiedInVerifiedScope": 0,
+    "claimsLimitedToVerifiedScope": true,
+    "individualValidationAccepted": true,
+    "readerZoomDeclarationPreserved": true
   }
 }

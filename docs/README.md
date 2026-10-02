@@ -6,12 +6,13 @@ O produto ForgeLex limitado ao STJ está `COMPLETED`. REST, MCP remoto, billing
 pré-pago e operação pública foram validados; as Fases 9 a 13 permanecem
 `FROZEN_STRATEGICALLY` e não representam lacuna do produto aprovado.
 
-O programa posterior de estabilização permanece em andamento. Em 02/10/2026,
-o site público está publicado, ChatGPT e Claude estão conectados por OAuth e
-as chamadas gratuitas foram comprovadas nos dois hosts. O roteiro atualizado
-do Claude também foi publicado. A cadeia jurídica faturável no host, os limites
-da auditoria WCAG e a observação operacional de sete dias estão discriminados
-no estado canônico; o marco anterior do produto não encerra esse programa.
+O programa posterior de estabilização permanece em andamento. A fase 7 foi
+concluída em 02/10/2026: ChatGPT e Claude conectados por OAuth, cadeia jurídica
+real no ChatGPT com cobrança única/replay/revogação, validação individual de
+Boni e auditoria de acessibilidade com limites explícitos. As regressões de
+espaçamento foram publicadas no runtime b6c893c após CI e promoção 5/25/100.
+A observação operacional de sete dias da fase 8 segue aberta; os P2 de busca
+ampla fria e recuperação de aba antiga estão classificados com responsável/prazo.
 
 - [Estado canônico e evidências cumulativas](../STATUS_VALIDACAO.md)
 - [Plano mestre de conclusão progressiva](../Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md)
