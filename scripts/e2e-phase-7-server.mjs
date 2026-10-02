@@ -12,6 +12,8 @@ import { CanonicalFixtureProvider, SourceRouter } from '../packages/source-provi
 
 const databaseUrl = process.env.FORGELEX_DATABASE_URL ?? process.env.DATABASE_URL ?? 'postgres://forgelex:forgelex@127.0.0.1:55432/forgelex';
 const authUrl = process.env.FORGELEX_E2E_AUTH_URL ?? 'http://127.0.0.1:54321';
+const webOrigin = process.env.FORGELEX_E2E_WEB_ORIGIN ?? 'http://127.0.0.1:3000';
+const apiPort = Number(process.env.FORGELEX_E2E_API_PORT ?? 3001);
 const authPort = Number(new URL(authUrl).port);
 if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(authUrl) || !Number.isSafeInteger(authPort) || authPort < 1024) {
   throw new Error('E2E_AUTH_URL_MUST_BE_LOCAL');
@@ -87,7 +89,7 @@ class FakePaymentProvider {
   providerName = 'fixture';
   supportsAutoRecharge = false;
   async createCustomer({ tenantId }) { return { id: `customer_${tenantId}` }; }
-  async createCheckout({ purchaseId }) { return { id: `checkout_${purchaseId}`, url: `http://127.0.0.1:3000/?billing_purchase=${purchaseId}&status=pending` }; }
+  async createCheckout({ purchaseId }) { return { id: `checkout_${purchaseId}`, url: `${webOrigin}/?billing_purchase=${purchaseId}&status=pending` }; }
   async createPaymentMethodSetup() { return { id: 'setup_fixture', clientSecret: 'fixture' }; }
   async listPaymentMethods() { return []; }
   async createOffSessionPayment() { return { id: 'payment_fixture' }; }
@@ -95,14 +97,14 @@ class FakePaymentProvider {
 }
 const paymentProvider = new FakePaymentProvider();
 const billingOperations = new BillingOperationsService(
-  connection.db, connection.client, new BillingService(connection.db, connection.client), paymentProvider, 'http://127.0.0.1:3000',
+  connection.db, connection.client, new BillingService(connection.db, connection.client), paymentProvider, webOrigin,
 );
 const app = await buildApp({
   database: connection.db, databaseClient: connection.client, ledgerService: ledger,
   sourceRouter, billingOperationsService: billingOperations, paymentProvider,
   environment: {
     NODE_ENV: 'test', FORGELEX_SUPABASE_URL: authUrl,
-    FORGELEX_SUPABASE_PUBLISHABLE_KEY: 'phase7-e2e-publishable', FORGELEX_ALLOWED_ORIGINS: 'http://127.0.0.1:3000',
+    FORGELEX_SUPABASE_PUBLISHABLE_KEY: 'phase7-e2e-publishable', FORGELEX_ALLOWED_ORIGINS: webOrigin,
     FORGELEX_WEBHOOK_MASTER_KEY: 'phase7-e2e-master-key',
   },
 });
@@ -117,7 +119,7 @@ app.post('/e2e/confirm-purchase/:purchaseId', async (request, reply) => {
   return { confirmed: true };
 });
 app.get('/e2e/state', async () => ({ tenantId: account.tenant.id, matterId: matter.id, memoId }));
-await app.listen({ host: '127.0.0.1', port: 3001 });
+await app.listen({ host: '127.0.0.1', port: apiPort });
 
 async function shutdown() {
   await app.close().catch(() => undefined);

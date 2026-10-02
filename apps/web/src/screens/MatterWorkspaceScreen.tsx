@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, FileText, FolderOpen, LockKeyhole, Plus, Ref
 import { requestApiWithToken, resolveApiOrigin } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 import { useApp } from '../context/AppContext';
+import { PdfTextImport } from '../components/PdfTextImport';
 
 interface Matter {
   id: string;
@@ -195,6 +196,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const [supportAnchorId, setSupportAnchorId] = useState('');
   const [supportRelation, setSupportRelation] = useState<'SUPPORTS' | 'CONTRADICTS' | 'CONTEXT'>('SUPPORTS');
   const [busy, setBusy] = useState(false);
+  const [importingPdf, setImportingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const hasApiAccess = Boolean(token.trim()) || authStatus === 'authenticated' || authStatus === 'legacy';
@@ -269,6 +271,10 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const selectMatter = async (matterId: string) => {
     setSelectedMatterId(matterId);
+    setDocumentTitle('');
+    setFilename('');
+    setContent('');
+    setNotice(null);
     if (!hasApiAccess) return;
     setBusy(true);
     setError(null);
@@ -477,7 +483,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const ingestDocument = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!hasApiAccess || !selectedMatterId || !documentTitle.trim() || !filename.trim() || !content.trim()) return;
+    if (busy || importingPdf || !hasApiAccess || !selectedMatterId || !documentTitle.trim() || !filename.trim() || !content.trim()) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -620,11 +626,12 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
             {selectedMatter && <section id="documentos" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
               <div className="flex items-center gap-2"><FileText className="w-5 h-5 text-cognac-700" /><h2 className="font-editorial text-xl font-bold text-stone-900">Documentos do caso</h2><span className="text-xs text-stone-500">{documents.length}</span></div>
+              <PdfTextImport key={selectedMatterId} disabled={busy || !hasApiAccess} onLoadingChange={setImportingPdf} onExtract={(result, importedTitle) => { setDocumentTitle(importedTitle); setFilename(result.filename); setContent(result.content); }} />
               <form onSubmit={ingestDocument} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="Título do documento" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                 <input value={filename} onChange={(event) => setFilename(event.target.value)} placeholder="Nome do arquivo (ex.: fatos.txt)" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
-                <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Cole o texto do documento para criar a primeira versão e suas âncoras..." rows={5} className="md:col-span-2 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm resize-y" />
-                <button disabled={!hasApiAccess || busy || !content.trim()} className="md:col-span-2 px-4 py-2.5 rounded-xl bg-cognac-50 hover:bg-cognac-100 border border-cognac-200 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Ingerir documento textual</button>
+                <textarea aria-label="Texto do documento" value={content} onChange={(event) => setContent(event.target.value)} placeholder="Cole o texto do documento para criar a primeira versão e suas âncoras..." rows={5} className="md:col-span-2 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm resize-y" />
+                <button disabled={!hasApiAccess || busy || importingPdf || !documentTitle.trim() || !filename.trim() || !content.trim()} className="md:col-span-2 px-4 py-2.5 rounded-xl bg-cognac-50 hover:bg-cognac-100 border border-cognac-200 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Ingerir documento textual</button>
               </form>
               <div className="space-y-2">
                 {documents.map((document) => <div key={document.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{document.title}</span><span className="text-[11px] text-stone-500">{document.originalFilename} · {document.status === 'INDEXED' ? 'Ancorado' : 'Falhou'}</span></div><span className="text-[10px] text-stone-500 font-mono">SHA-256 {document.contentHash.slice(0, 12)}…</span></div>)}

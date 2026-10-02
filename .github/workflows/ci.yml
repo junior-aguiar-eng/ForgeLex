@@ -103,6 +103,7 @@ jobs:
       - run: pnpm test:e2e:phase7
       - run: pnpm test:e2e:mcp-onboarding
       - run: pnpm test:e2e:accessibility
+      - run: pnpm test:e2e:documents
 
   e2e-public:
     runs-on: ubuntu-latest
