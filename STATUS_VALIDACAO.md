@@ -1,36 +1,49 @@
 # Auditoria e status canônico do ForgeLex
 
-## Correção do onboarding MCP — em validação (02/10/2026)
+## Onboarding MCP — publicado e conectado ao ChatGPT (02/10/2026)
 
-PR #21 integrada após seis checks verdes; branch atual
-`codex/mcp-professional-onboarding`, baseada em main `c7a3d4e`.
-Supabase OAuth habilitado com consentimento em `/oauth/consent` por autorização
-expressa de Boni. Registro dinâmico nativo inicialmente ativado foi desativado
-após revisão: o gateway ForgeLex registra clientes confidenciais, retém seus
-segredos e entrega apenas envelopes vinculados ao recurso MCP. Tokens nativos
-OAuth não são aceitos diretamente pela API ForgeLex.
+PR #22 integrada após seis checks verdes. CI do SHA integrado
+`80ef69a5417431b190bb7320350ed2e44ee8b933` aprovada na tentativa 2.
+Cloud Build `2a7ade8a-7e26-4042-8488-1c0090f9454b` aprovado; digest
+`sha256:5778b9a594b6bab950b77778f088a41f546ac1ef9de7f63494d5f7bd634cda4d`.
+Revisão `forgelex-api-prod-mcp-80ef69a5-r2` atende **100% do tráfego** após
+promoção 5/25/100, com pelo menos 120 segundos por etapa e 433 respostas readyz
+200. O primeiro ensaio restaurou o fallback por um cabeçalho HTML ausente no
+verificador; a segunda execução concluiu as oito verificações HTTP finais.
+Nenhuma migration remota. Ingress, DNS e balanceador preservados.
 
-Smoke real hospedado: 34 verificações aprovadas com conta e dois aplicativos
-sintéticos, incluindo troca, refresh, retorno A/B, adulteração para plain,
-revogação bloqueando acesso e refresh e rejeição do envelope no Auth nativo.
-Nenhuma pesquisa jurídica ou compra real. Roteiro reproduzível em
-`scripts/smoke-mcp-oauth.mjs`; arquitetura, limites e configuração em
-`ops/gcp/production/README.md`.
+Supabase OAuth ativo com consentimento em `/oauth/consent`; DCR nativo
+**desativado**. O gateway registra clientes confidenciais e entrega envelopes
+restritos a `https://nexojuris.ia.br/mcp`; segredos e tokens nativos ficam no
+servidor. Smoke anterior com gateway local/Supabase hospedado: 34 verificações.
+Ensaio **HTTPS público** após promoção: **50 verificações aprovadas**, incluindo
+handshake, ferramentas, conexão gratuita, refresh, revogação, isolamento do
+recurso e recusa de administração da conta pelo OAuth. Saldo sintético zero;
+nenhuma pesquisa jurídica ou compra. Fixtures Auth e aplicativos removidos/404;
+conta SQL sintética encerrada com acesso bloqueado/401.
 
-Guia, Conectar IA, consentimento, autorizações/revogação e referência de API
-foram implementados. Lint, build e typecheck aprovados; 546 testes unitários
-aprovados (quatro ignorados), matriz Chromium/axe e onboarding 63/63 aprovada
-e seis verificações específicas posteriores aprovadas (recusa, login direto
-e retorno indeterminado incluídos). CI ainda pendente. Instalação no host,
-publicação e validação pós-publicação ainda não demonstradas. Produção
-permanece no runtime `0268ffcbb5bd0a3f8f6bfd15cb3bdd2875b477fa`.
+Lint, build e typecheck aprovados; 546 testes unitários aprovados (quatro
+ignorados), matriz Chromium/axe e onboarding 63/63 e seis verificações posteriores
+aprovadas. Nenhum 5xx encontrado nos logs da revisão entre 07:25:39Z e a consulta
+às 07:33:03Z. Página Conectar IA observada no Edge produtivo, com a sessão original.
+ChatGPT Pro/Edge instalado, conta original conectada e grant confirmado na UI
+ForgeLex. Chamada real `forgelex.connection_status` pelo host retornou
+`authenticated=true`, `authMethod=oauth_access_token` e `billable=false` às
+07:36:46.579Z, corroborada por **Uso confirmado** na UI ForgeLex (04:36:46 local).
+Nenhuma pesquisa jurídica faturável. Claude, leitor de tela e zoom manual
+continuam pendentes; fase 7 não declarada integralmente concluída.
+
+Evidências e incidentes:
+`docs/operations/stabilization/2026-10-02-mcp-publication.md` e recibo JSON associado.
+O commit documental posterior não muda a origem declarada do runtime.
 
 ## Fase 7 da estabilização — em andamento (01/10/2026)
 
-Validação no ChatGPT Pro/Edge chegou ao formulário MCP, mas a descoberta OAuth
-falhou. Metadados públicos anunciam `auth.forgelex.ai`, que não resolve DNS,
-e recurso `mcp.forgelex.ai`. Nenhuma instalação ou execução real no host foi
-concluída. Em 02/10/2026, Boni informou que realizou pessoalmente a validação.
+Na primeira tentativa de validação no ChatGPT Pro/Edge, a descoberta OAuth
+falhou: os metadados anunciavam `auth.forgelex.ai`, sem resolução DNS, e o recurso
+`mcp.forgelex.ai`. Esse defeito foi corrigido na publicação de 02/10/2026 descrita
+acima. A instalação no ChatGPT e a chamada gratuita foram comprovadas na mesma
+execução. Em 02/10/2026, Boni informou que realizou pessoalmente a validação.
 O critério foi alterado para validação individual pelo responsável do produto;
 cinco participantes externos deixam de ser requisito desta fase. Não há
 medição independente de tempo ou notas por item.
@@ -39,9 +52,10 @@ Auditoria local em Chromium/axe-core encontrou defeitos de contraste, nomes
 acessíveis, teclado e landmarks; matriz final 38/38 e encerramento 4/4 aprovados.
 Lint/build/typecheck e 534 testes unitários aprovados (quatro ignorados).
 Correções e regressões estão na branch
-`codex/phase7-external-validation`. Leitor de tela, zoom manual e revalidação
+`codex/phase7-external-validation`. Leitor de tela, zoom e auditoria manual
 após publicação permanecem pendentes. Não há declaração de conformidade AA.
-Produção permanece na origem runtime `0268ffcbb5bd0a3f8f6bfd15cb3bdd2875b477fa`.
+Produção agora atende a origem runtime `80ef69a5417431b190bb7320350ed2e44ee8b933`;
+a evidência local anterior permanece registrada com seu escopo e data.
 Evidência e limites: `docs/operations/stabilization/2026-10-01-phase7.md`.
 **Gate da Fase 7 aberto; Fase 8 ainda não iniciada por esta execução.**
 
