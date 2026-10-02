@@ -546,7 +546,7 @@ Validar `health`, `readyz`, OpenAPI, páginas públicas, auth, REST, MCP, billin
 
 Usar 5% → 25% → 100%, com janela de observação definida. Se a plataforma escolhida não permitir amostra segura pelo perfil de tráfego, usar tag de revisão e smoke autenticado antes de 100%.
 
-- [ ] **Step 2: validar cadeia pública**
+- [x] **Step 2: validar cadeia pública**
 
 Verificar homepage, rotas diretas, cadastro, login, callback de recuperação, retorno de billing, API/OpenAPI, MCP, páginas legais e encerramento por conta sintética.
 
@@ -565,9 +565,11 @@ Comprovar 401 após revogação e remover qualquer secret temporário sem apagar
 **Gate de saída:** 100% do tráfego no digest aprovado, rollback demonstrado e nenhum segredo temporário ativo.
 
 Registro de 01/10/2026: publicação e rollback comprovados no SHA runtime
-`0268ffcbb5bd0a3f8f6bfd15cb3bdd2875b477fa`. Step 2 permanece pendente pela
-conexão SMTP e entrega/confirmação de cadastro público; link administrativo
-sintético não substitui essa prova. Evidência e limites em
+`0268ffcbb5bd0a3f8f6bfd15cb3bdd2875b477fa`. Step 2 concluído após conexão
+SMTP produtiva, mensagens Delivered e confirmação real do cadastro sintético
+pelo usuário, seguida de login com a senha original. Fixture removida/404,
+sessão rejeitada/401; credencial SMTP permanente permanece ativa por finalidade.
+Fase 6 concluída. Evidência e limites em
 `docs/operations/stabilization/2026-10-01-phase6.md`.
 
 ---

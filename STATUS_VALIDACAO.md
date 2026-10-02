@@ -1,6 +1,6 @@
 # Auditoria e status canônico do ForgeLex
 
-## Fase 6 da estabilização — publicada; e-mail pendente (01/10/2026)
+## Fase 6 da estabilização — concluída (01/10/2026)
 
 Execução autorizada por Boni. Correção de recuperação integrada na PR #17 após
 seis checks verdes; origem runtime `0268ffcbb5bd0a3f8f6bfd15cb3bdd2875b477fa`.
@@ -21,14 +21,19 @@ na janela consultada. Auth das fixtures removido/404, sessões rejeitadas/401.
 Job temporário removido; subnet pendente da Fase 5 excluída e ausência confirmada.
 
 Supabase Site URL corrigida para `https://nexojuris.ia.br`. Resend Free conectado,
-domínio verificado e três registros DNS autorizados salvos. SMTP próprio ainda
-desativado: integração aguarda confirmação de Auth/Projects READ + WRITE na
-organização nexohub; alias controlado e entrega/confirmação pública pendentes.
-O cadastro sintético por link administrativo não comprova entrega de e-mail.
-**Fase 6 não concluída enquanto esse gate permanecer pendente.**
+domínio verificado e três registros DNS autorizados salvos. SMTP próprio habilitado
+no projeto produtivo, remetente `ForgeLex <acesso@nexojuris.ia.br>`, porta 465 e
+intervalo de 60 segundos. Escopo organizacional Auth/Projects READ + WRITE autorizado.
+Recuperação pela UI e cadastro pelo método público geraram mensagens Delivered.
+Boni clicou na confirmação do alias de teste; Auth confirmou o e-mail, e o login
+com a senha original, bootstrap e sessão passaram. Saldo zero, encerramento 202,
+acesso 401 e remoção Auth/404 comprovados; conta original preservada. Incidentes
+do helper e limites de entrega/reconciliação estão registrados no adendo SMTP.
+**Gate da Fase 6 fechado; validação externa e acessibilidade seguem na Fase 7.**
 
 Evidências: `docs/operations/stabilization/2026-10-01-phase6.md`,
-`docs/operations/stabilization/2026-10-01-phase6-proof.json` e captura da recuperação.
+`docs/operations/stabilization/2026-10-01-phase6-proof.json`,
+`docs/operations/stabilization/2026-10-01-phase6-smtp-proof.json` e capturas.
 Os registros seguintes preservam o estado histórico da Fase 5 e fases anteriores.
 
 ## Fase 5 da estabilização — candidata validada (01/10/2026)

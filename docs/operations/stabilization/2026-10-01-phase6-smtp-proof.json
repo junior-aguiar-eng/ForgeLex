@@ -1,0 +1,163 @@
+{
+  "recordedAt": "2026-10-02T00:55:33.1404187Z",
+  "runtimeSource": "0268ffcbb5bd0a3f8f6bfd15cb3bdd2875b477fa",
+  "projectRef": "mmywgqttfthtwntjkqgh",
+  "smtp": {
+    "provider": "Resend",
+    "plan": "Free",
+    "customSmtpEnabled": true,
+    "sender": "ForgeLex <acesso@nexojuris.ia.br>",
+    "host": "smtp.resend.com",
+    "port": 465,
+    "username": "resend",
+    "minimumIntervalSeconds": 60,
+    "persistedSettingsObserved": true,
+    "keyLabel": "Supabase Integration",
+    "keyPermanent": true,
+    "credentialsExportedToChatFilesOrGit": false,
+    "oauthOrganization": "nexohub",
+    "oauthScope": "Auth/Projects READ+WRITE",
+    "specificUserAuthorization": true
+  },
+  "delivery": [
+    {
+      "providerStatus": "Delivered",
+      "passwordChanged": false,
+      "subject": "Reset your password",
+      "id": "01a0fa0d-d1fc-7a95-b38e-107dde84887c",
+      "trigger": "public UI",
+      "purpose": "recovery",
+      "recipient": "user-controlled original mailbox, redacted"
+    },
+    {
+      "providerStatus": "Delivered",
+      "subject": "Confirm your email address",
+      "id": "01a0fa10-f486-75c6-aedd-b2ac10fd0b8d",
+      "userReportedLinkClicked": true,
+      "trigger": "public signUp method with application arguments",
+      "purpose": "signup",
+      "recipient": "synthetic plus alias of controlled mailbox, redacted"
+    }
+  ],
+  "signup": {
+    "startedAt": "2026-10-02T00:43:27.628Z",
+    "projectRef": "mmywgqttfthtwntjkqgh",
+    "originalAccountModified": false,
+    "publicSignup": true,
+    "credentialsPersisted": false,
+    "signupRequestAccepted": true,
+    "confirmationRequired": true,
+    "emailConfirmationObserved": true,
+    "emailConfirmedAt": "2026-10-02T00:46:34.857096Z",
+    "passwordLoginPassed": true,
+    "checks": [
+      {
+        "method": "POST",
+        "path": "/api/v2/auth/bootstrap",
+        "status": 200,
+        "timestamp": "2026-10-02T00:48:15.14Z"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v2/auth/me",
+        "status": 200,
+        "timestamp": "2026-10-02T00:48:15.524Z"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v2/auth/me",
+        "status": 401,
+        "timestamp": "2026-10-02T00:53:09.685Z"
+      }
+    ],
+    "failures": [
+      {
+        "command": "confirm",
+        "message": "Expected values to be strictly equal:\n\n404 !== 200\n"
+      }
+    ],
+    "cleanup": {
+      "authDeleted": true,
+      "adminStatus": 404,
+      "sessionStatus": 401,
+      "credentialsPersisted": false,
+      "originalAccountModified": false,
+      "completedAt": "2026-10-02T00:53:09.686Z"
+    }
+  },
+  "cleanupFirstAttempt": {
+    "startedAt": "2026-10-02T00:52:02.082Z",
+    "sessionPurpose": "synthetic closure and cleanup only",
+    "sessionMechanism": "admin magiclink without delivery; not signup confirmation evidence",
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/api/v2/billing/account",
+        "status": 200,
+        "timestamp": "2026-10-02T00:52:04.881Z"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v2/account/closure-policy",
+        "status": 200,
+        "timestamp": "2026-10-02T00:52:05.266Z"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v2/account/closure",
+        "status": 409,
+        "timestamp": "2026-10-02T00:52:05.444Z"
+      }
+    ],
+    "zeroBalanceObserved": true,
+    "failure": {
+      "message": "Expected values to be strictly equal:\n\n409 !== 202\n"
+    }
+  },
+  "closure": {
+    "startedAt": "2026-10-02T00:52:57.263Z",
+    "sessionPurpose": "synthetic closure and cleanup only",
+    "sessionMechanism": "synthetic password rotated in memory by admin, then password login; not signup confirmation evidence",
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/api/v2/billing/account",
+        "status": 200,
+        "timestamp": "2026-10-02T00:52:59.003Z"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v2/account/closure-policy",
+        "status": 200,
+        "timestamp": "2026-10-02T00:52:59.333Z"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v2/account/closure",
+        "status": 202,
+        "timestamp": "2026-10-02T00:52:59.997Z"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v2/auth/me",
+        "status": 401,
+        "timestamp": "2026-10-02T00:53:00.127Z"
+      }
+    ],
+    "zeroBalanceObserved": true,
+    "closure": {
+      "accepted": true,
+      "status": "ACCESS_BLOCKED"
+    },
+    "completedAt": "2026-10-02T00:53:00.233Z",
+    "credentialsPersisted": false
+  },
+  "limits": [
+    "Delivered alone is not proof of inbox placement or message reading.",
+    "Genuine signup email confirmation and original-password login preceded administrative cleanup.",
+    "Cleanup used a separate synthetic password rotation and password session after a magiclink closure attempt returned 409.",
+    "Latest closure was ACCESS_BLOCKED; final reconciliation COMPLETED not asserted.",
+    "Original account password unchanged; recipient addresses omitted from published receipt.",
+    "Initial phase6-proof.json preserves pre-SMTP snapshot; runtime image source unchanged."
+  ]
+}
