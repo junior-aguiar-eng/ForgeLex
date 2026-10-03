@@ -1,0 +1,526 @@
+{
+  "scope": "Consulta processual no workspace; autenticação e processo fictícios nos E2E",
+  "featurePr": "https://github.com/junior-aguiar-eng/ForgeLex/pull/43",
+  "sourceSha": "dbaf5cd156b680e564d0b3e7cb974c0456a8fb2b",
+  "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:6353563902d06b5e261b3bee85a60dd2b65a8e6a9762e47fd136f42adb65d430",
+  "revision": "forgelex-api-prod-datajud-dbaf5cd",
+  "traffic": [
+    {
+      "revisionName": "forgelex-api-prod-datajud-dbaf5cd",
+      "percent": 100
+    }
+  ],
+  "rollbackRevision": "forgelex-api-prod-datajud-b639b57",
+  "cloudBuild": {
+    "id": "05626dee-570c-481d-98c3-45848d4b0801",
+    "status": "SUCCESS",
+    "createTime": "2026-10-03T18:34:00.997642014Z",
+    "finishTime": "2026-10-03T18:37:16.659178Z"
+  },
+  "prChecks": [
+    {
+      "link": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37144389016/job/111265235997",
+      "name": "validate",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37144389016/job/111265236111",
+      "name": "postgres",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37144389016/job/111265236132",
+      "name": "e2e-product",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37144389016/job/111265236073",
+      "name": "e2e-public",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37144389016/job/111265236086",
+      "name": "e2e-account-closure",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37144389016/job/111265236105",
+      "name": "security",
+      "state": "SUCCESS"
+    }
+  ],
+  "mainChecks": {
+    "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37144625781",
+    "headSha": "dbaf5cd156b680e564d0b3e7cb974c0456a8fb2b",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "e2e-public",
+        "conclusion": "success"
+      },
+      {
+        "name": "validate",
+        "conclusion": "success"
+      },
+      {
+        "name": "e2e-account-closure",
+        "conclusion": "success"
+      },
+      {
+        "name": "e2e-product",
+        "conclusion": "success"
+      },
+      {
+        "name": "postgres",
+        "conclusion": "success"
+      },
+      {
+        "name": "security",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "validation": {
+    "unitTests": 55,
+    "build": "passed",
+    "lint": "passed",
+    "typecheck": "passed",
+    "e2e": {
+      "local": {
+        "startTime": "2026-10-03T18:26:20.176Z",
+        "duration": 61671.314,
+        "expected": 16,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "candidate": {
+        "startTime": "2026-10-03T18:49:56.666Z",
+        "duration": 48300.073000000004,
+        "expected": 16,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "public": {
+        "startTime": "2026-10-03T18:51:40.467Z",
+        "duration": 50653.445,
+        "expected": 16,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "realProviderQueries": 0
+  },
+  "upload": {
+    "privateFiles": 0,
+    "fileCount": 441,
+    "workingTreeClean": true,
+    "sourceSha": "dbaf5cd156b680e564d0b3e7cb974c0456a8fb2b"
+  },
+  "configPreserved": {
+    "existingEnvironmentPreserved": true,
+    "serviceAccountPreserved": true,
+    "resourcesPreserved": true,
+    "concurrencyPreserved": true,
+    "timeoutPreserved": true,
+    "cloudSqlPreserved": true,
+    "restrictedIngress": true,
+    "revisionReady": true,
+    "previousTrafficPreserved": true,
+    "candidateHasNoTraffic": true
+  },
+  "candidatePropagation": {
+    "firstRun": {
+      "startTime": "2026-10-03T18:45:51.909Z",
+      "duration": 55352.344999999994,
+      "expected": 15,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "routing": [
+      {
+        "httpRequest": {
+          "status": 200
+        },
+        "resource": {
+          "labels": {
+            "revision_name": "forgelex-api-prod-datajud-dbaf5cd"
+          }
+        },
+        "timestamp": "2026-10-03T18:50:05.499043Z"
+      },
+      {
+        "httpRequest": {
+          "status": 200
+        },
+        "resource": {
+          "labels": {
+            "revision_name": "forgelex-api-prod-datajud-dbaf5cd"
+          }
+        },
+        "timestamp": "2026-10-03T18:50:00.675074Z"
+      },
+      {
+        "httpRequest": {
+          "status": 200
+        },
+        "resource": {
+          "labels": {
+            "revision_name": "forgelex-api-prod-datajud-dbaf5cd"
+          }
+        },
+        "timestamp": "2026-10-03T18:49:47.467865Z"
+      },
+      {
+        "httpRequest": {
+          "status": 200
+        },
+        "resource": {
+          "labels": {
+            "revision_name": "forgelex-api-prod-datajud-dbaf5cd"
+          }
+        },
+        "timestamp": "2026-10-03T18:46:09.524754Z"
+      },
+      {
+        "httpRequest": {
+          "status": 404
+        },
+        "resource": {
+          "labels": {
+            "revision_name": "forgelex-api-prod-datajud-b639b57"
+          }
+        },
+        "timestamp": "2026-10-03T18:45:58.221544Z"
+      }
+    ],
+    "assetsAfterPropagation": {
+      "marker": "workspace-assets-25f76cd9-27e8-4f84-9811-acfcafe08133",
+      "recordedAt": "2026-10-03T18:49:50.991Z",
+      "checks": [
+        {
+          "path": "/assets/index-CyGyTfHc.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/LandingScreen-BYz5rGWW.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/ResearchControls-VbHDslfX.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/check-CKjBRNmr.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/copy-B5TWFgJQ.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/arrow-up-right-CtBoaSMD.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/circle-alert-NEeqEs_r.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/ResearchDeskScreen-Dw_JEJhE.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/MatterWorkspaceScreen-6YT2XJtH.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/refresh-cw-C5_p2ifc.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/plus-37hPNkdf.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/DraftStudioScreen-B2Kj6Nl9.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/shield-alert-dTc1EqCM.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/history-BfbyHDIz.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/DashboardScreen-CISQPH_a.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/ConnectionsScreen-5qjEuhPc.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/HostInstallationGuide-CnmLH5_C.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/chevron-down-BovQAYwQ.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/CreditsScreen-BgWhW1Ib.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/AccountActivityScreen-CjdpAt32.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/AccountSecurityScreen-DpT6R-o0.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/account-closure-storage-Bri-4m_Z.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/trash-2-CBIPbPVv.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/AccountClosureStatusScreen-CznRnDsJ.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/ApiKeysScreen-DYpojBK_.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/ForLawyersGuideScreen-CCLL3nfw.js",
+          "status": 200
+        },
+        {
+          "path": "/assets/ApiDocsScreen-BvJVieMD.js",
+          "status": 200
+        }
+      ]
+    }
+  },
+  "http": {
+    "candidate": {
+      "candidate": true,
+      "marker": "datajud-smoke-1921fd9b-f4e1-4a36-9756-ce15b674c925",
+      "recordedAt": "2026-10-03T18:45:51.374Z",
+      "checks": [
+        {
+          "path": "/readyz",
+          "status": 200
+        },
+        {
+          "path": "/api/v2/research/history",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/mcp/connection-status",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/billing/account",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/datajud/tjal/process",
+          "status": 400,
+          "billing": "FREE",
+          "charged": 0,
+          "invalidInput": true
+        },
+        {
+          "path": "/openapi.json",
+          "status": 200,
+          "publicDatajud": true
+        }
+      ]
+    },
+    "public": {
+      "candidate": false,
+      "marker": "datajud-smoke-1823768e-7c02-4d2a-9992-3ef6688c3833",
+      "recordedAt": "2026-10-03T18:51:39.716Z",
+      "checks": [
+        {
+          "path": "/readyz",
+          "status": 200
+        },
+        {
+          "path": "/api/v2/research/history",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/mcp/connection-status",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/billing/account",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/datajud/tjal/process",
+          "status": 400,
+          "billing": "FREE",
+          "charged": 0,
+          "invalidInput": true
+        },
+        {
+          "path": "/openapi.json",
+          "status": 200,
+          "publicDatajud": true
+        }
+      ]
+    }
+  },
+  "revisionRequests": {
+    "candidate": {
+      "stage": "candidate",
+      "statusCounts": [
+        {
+          "Name": "200",
+          "Count": 2
+        },
+        {
+          "Name": "400",
+          "Count": 1
+        },
+        {
+          "Name": "401",
+          "Count": 3
+        }
+      ],
+      "observedRevisions": [
+        "forgelex-api-prod-datajud-dbaf5cd"
+      ],
+      "marker": "datajud-smoke-1921fd9b-f4e1-4a36-9756-ce15b674c925",
+      "loggedRequests": 6
+    },
+    "public": {
+      "statusCounts": [
+        {
+          "Name": "200",
+          "Count": 2
+        },
+        {
+          "Name": "400",
+          "Count": 1
+        },
+        {
+          "Name": "401",
+          "Count": 3
+        }
+      ],
+      "marker": "datajud-smoke-1823768e-7c02-4d2a-9992-3ef6688c3833",
+      "observedRevisions": [
+        "forgelex-api-prod-datajud-dbaf5cd"
+      ],
+      "loggedRequests": 6,
+      "stage": "public"
+    }
+  },
+  "promotion": {
+    "sourceSha": "dbaf5cd156b680e564d0b3e7cb974c0456a8fb2b",
+    "revision": "forgelex-api-prod-datajud-dbaf5cd",
+    "rollbackRevision": "forgelex-api-prod-datajud-b639b57",
+    "startedAt": "2026-10-03T18:51:04.8535012Z",
+    "checks": [
+      {
+        "path": "/",
+        "status": 200
+      },
+      {
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "path": "/readyz",
+        "status": 200
+      },
+      {
+        "path": "/consulta-processual",
+        "status": 200
+      },
+      {
+        "path": "/app/consulta-processual",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "status": 200
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200
+      },
+      {
+        "path": "/app",
+        "status": 200
+      },
+      {
+        "path": "/pesquisa",
+        "status": 200
+      },
+      {
+        "path": "/conectar",
+        "status": 200
+      },
+      {
+        "path": "/guia/mcp",
+        "status": 200
+      },
+      {
+        "path": "/desenvolvedores/api",
+        "status": 200
+      },
+      {
+        "path": "/oauth/consent",
+        "status": 200
+      },
+      {
+        "path": "/casos",
+        "status": 200
+      },
+      {
+        "path": "/rascunhos",
+        "status": 200
+      }
+    ],
+    "completed": true,
+    "observation": {
+      "marker": "datajud-0bb21810-cb94-4d59-bdcd-a64cdb1209f6",
+      "startedAt": "2026-10-03T18:51:15.156Z",
+      "completedAt": "2026-10-03T18:53:15.548Z",
+      "successes": 57,
+      "observedRevisions": [
+        "forgelex-api-prod-datajud-dbaf5cd"
+      ],
+      "loggedRequests": 57
+    },
+    "completedAt": "2026-10-03T18:53:29.0154592Z"
+  },
+  "cleanup": {
+    "fullTraffic": true,
+    "backendRemoved": true,
+    "negRemoved": true,
+    "noNewProbeJob": true,
+    "tagRemoved": true,
+    "candidateRouteRemoved": true
+  },
+  "errorLogEntries": 0
+}

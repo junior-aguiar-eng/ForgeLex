@@ -1,5 +1,22 @@
 # Auditoria e status canônico do ForgeLex
 
+## Consulta processual — navegação interna publicada (03/10/2026)
+
+Menu autenticado agora abre `/app/consulta-processual` dentro do workspace,
+reutilizando o formulário gratuito, com sessão, menu e navegação preservados.
+Página pública `/consulta-processual` continua disponível sem cadastro.
+55 testes unitários e 16 E2E locais aprovados; build/lint/typecheck.
+PR #43/main com seis checks aprovados. Fonte `dbaf5cd156b680e564d0b3e7cb974c0456a8fb2b`.
+Cloud Build `05626dee-570c-481d-98c3-45848d4b0801`: SUCCESS;
+digest `sha256:6353563902d06b5e261b3bee85a60dd2b65a8e6a9762e47fd136f42adb65d430`;
+revisão `forgelex-api-prod-datajud-dbaf5cd` a **100%**.
+16 E2E na candidata e 16 no domínio normal (fixtures), com teclado,
+reload, voltar/avançar, menu mobile e acessibilidade. Inspeção visual
+375/1440 px. 57 readyz 200 em 120 s, com logs da nova revisão.
+Configuração preservada, helpers removidos, sem migration/consulta real.
+Rollback: `forgelex-api-prod-datajud-b639b57`. P2 original preservado.
+Evidência: `docs/operations/stabilization/2026-10-03-datajud-workspace-navigation.md` e prova JSON correspondente.
+
 ## Consulta processual — seletor publicado (03/10/2026)
 
 Página e navegação gerais, seletor `TJAL — Alagoas` e configuração central
