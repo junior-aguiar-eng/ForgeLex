@@ -1,0 +1,260 @@
+{
+  "recordedAt": "2026-10-03T01:29:29.416015+00:00",
+  "pullRequest": "https://github.com/junior-aguiar-eng/ForgeLex/pull/34",
+  "sourceSha": "30c94de67dfc0a4a95420f079bdac46eaa0ee5d4",
+  "ci": {
+    "prRunId": 37084625417,
+    "mainRunId": 37084906720,
+    "checks": [
+      "e2e-product",
+      "validate",
+      "security",
+      "postgres",
+      "e2e-account-closure",
+      "e2e-public"
+    ],
+    "status": "SUCCESS"
+  },
+  "build": {
+    "id": "b51683ea-9a36-4877-a4ad-6ae2ed8955b4",
+    "status": "SUCCESS",
+    "startTime": "2026-10-03T01:08:48.803610148Z",
+    "finishTime": "2026-10-03T01:12:30.451738Z",
+    "results": {
+      "images": [
+        {
+          "artifactRegistryPackage": "projects/project-bbbe1209-c295-4720-867/locations/southamerica-east1/repositories/forgelex-prod/packages/forgelex-api/versions/sha256:a504e57f7b0e783a7276cef2f168b5430b76d969c19ef4eb791b5a437201d485",
+          "digest": "sha256:a504e57f7b0e783a7276cef2f168b5430b76d969c19ef4eb791b5a437201d485",
+          "name": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api:30c94de67dfc0a4a95420f079bdac46eaa0ee5d4",
+          "pushTiming": {
+            "endTime": "2026-10-03T01:12:29.828472065Z",
+            "startTime": "2026-10-03T01:12:08.701674948Z"
+          }
+        }
+      ]
+    }
+  },
+  "upload": {
+    "privateFiles": 0,
+    "sourceSha": "30c94de67dfc0a4a95420f079bdac46eaa0ee5d4",
+    "fileCount": 432,
+    "workingTreeClean": true
+  },
+  "migration": {
+    "column": {
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    "debitCountPreserved": true,
+    "historyCountPreserved": true,
+    "migration": {
+      "applied_at": "2026-10-03T01:13:32.245Z",
+      "id": "billing-ledger-0008-request-fingerprint"
+    },
+    "operationsCountPreserved": true,
+    "pendingBefore": [
+      "billing-ledger-0008-request-fingerprint"
+    ],
+    "sourceSha": "30c94de67dfc0a4a95420f079bdac46eaa0ee5d4",
+    "status": "passed"
+  },
+  "productionReadOnlySearch": {
+    "allJudgmentsIn2025": true,
+    "count": 20,
+    "elapsedMs": 16819,
+    "event": "audit.release.readonly",
+    "noBillableApiCall": true,
+    "readonly": true,
+    "sessionTimeoutRestored": true,
+    "sourceSha": "30c94de67dfc0a4a95420f079bdac46eaa0ee5d4",
+    "sqlTimeoutMs": 40000,
+    "status": "passed",
+    "toolTimeoutMs": 45000
+  },
+  "runtime": {
+    "revision": "forgelex-api-prod-audit-30c94de",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:a504e57f7b0e783a7276cef2f168b5430b76d969c19ef4eb791b5a437201d485",
+    "sourceSha": "30c94de67dfc0a4a95420f079bdac46eaa0ee5d4",
+    "traffic": [
+      {
+        "percent": 100,
+        "revisionName": "forgelex-api-prod-audit-30c94de"
+      }
+    ]
+  },
+  "configurationPreserved": {
+    "env_and_secret_refs": true,
+    "service_account": true,
+    "concurrency": true,
+    "timeout": true,
+    "resources": true,
+    "cloudsql": true,
+    "ingress": true
+  },
+  "candidateRequests": [
+    {
+      "httpRequest": {
+        "status": 200
+      },
+      "resource": {
+        "labels": {
+          "revision_name": "forgelex-api-prod-audit-30c94de"
+        }
+      },
+      "timestamp": "2026-10-03T01:20:20.819551Z"
+    }
+  ],
+  "candidateBrowser": {
+    "expected": 8,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "duration": 35258.379
+  },
+  "publicBrowser": {
+    "expected": 8,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "duration": 33766.387
+  },
+  "promotion": {
+    "sourceSha": "30c94de67dfc0a4a95420f079bdac46eaa0ee5d4",
+    "revision": "forgelex-api-prod-audit-30c94de",
+    "rollbackRevision": "forgelex-api-prod-research-01fedab",
+    "startedAt": "2026-10-03T01:23:44.8063531Z",
+    "stages": [
+      {
+        "percent": 100,
+        "marker": "audit-100-3ff640fab0614c9e8c84060a58add427",
+        "startedAt": "2026-10-03T01:23:54.076Z",
+        "completedAt": "2026-10-03T01:25:55.535Z",
+        "elapsedSeconds": 121.459,
+        "successfulRequests": 162,
+        "observedRevisions": [
+          "forgelex-api-prod-audit-30c94de"
+        ],
+        "loggedRequests": 162
+      }
+    ],
+    "checks": [
+      {
+        "path": "/",
+        "status": 200
+      },
+      {
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "path": "/readyz",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "status": 200
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200
+      },
+      {
+        "path": "/app",
+        "status": 200
+      },
+      {
+        "path": "/pesquisa",
+        "status": 200
+      },
+      {
+        "path": "/conectar",
+        "status": 200
+      },
+      {
+        "path": "/guia/mcp",
+        "status": 200
+      },
+      {
+        "path": "/desenvolvedores/api",
+        "status": 200
+      },
+      {
+        "path": "/oauth/consent",
+        "status": 200
+      },
+      {
+        "path": "/casos",
+        "status": 200
+      },
+      {
+        "path": "/rascunhos",
+        "status": 200
+      }
+    ],
+    "completed": true,
+    "completedAt": "2026-10-03T01:26:06.8357068Z"
+  },
+  "cleanup": {
+    "urlMapRestored": true,
+    "recordedAt": "2026-10-03T01:28:55.1910661Z",
+    "checks": {
+      "backendRemoved": true,
+      "negRemoved": true,
+      "jobRemoved": true,
+      "validationJobRemoved": true,
+      "initialReadOnlyJobRemoved": true,
+      "tagRemoved": true
+    },
+    "errorLogEntries": 0,
+    "revision": "forgelex-api-prod-audit-30c94de",
+    "traffic": [
+      {
+        "percent": 100,
+        "revisionName": "forgelex-api-prod-audit-30c94de"
+      }
+    ]
+  },
+  "localChecks": {
+    "unitTestsPassed": 583,
+    "unitTestsSkipped": 5,
+    "researchE2EPassed": 8,
+    "chunkRecoveryE2EPassed": 3,
+    "postgresSearchScale": 33759,
+    "postgresCompatibilityTestsPassed": 10,
+    "postgresResearchChecksPassed": 9,
+    "postgresGeneralChecksPassed": 12,
+    "build": true,
+    "lint": true,
+    "typecheck": true,
+    "productionDependencyAudit": "no known vulnerabilities"
+  },
+  "browserHarnessInitialFailure": {
+    "rejectedUnauthorizedRequest": [
+      {
+        "httpRequest": {
+          "status": 401
+        },
+        "resource": {
+          "labels": {
+            "revision_name": "forgelex-api-prod-audit-30c94de"
+          }
+        },
+        "timestamp": "2026-10-03T01:20:35.404322Z"
+      }
+    ],
+    "cause": "route.continue bypassed the local bridge; changed to route.fallback before final runs"
+  },
+  "limits": {
+    "finalBrowserAuthApiAndBalanceLocal": true,
+    "productionPaidOperationsExecuted": 0,
+    "infrastructureTierChanged": false,
+    "newPermanentResultStorage": false,
+    "automaticRefunds": false,
+    "historicalApprovalBackfill": false,
+    "immediateSqlCancellationClaimed": false
+  }
+}
