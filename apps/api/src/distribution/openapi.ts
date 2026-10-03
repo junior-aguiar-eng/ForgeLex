@@ -391,7 +391,7 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
       '429': { description: 'Limite temporário de requisições por IP/instância ou na fonte.', headers: { 'Retry-After': { schema: { type: 'string' } } } },
       '502': { description: 'Resposta inconsistente, sigilosa ou parcial da fonte; não apresentada como resultado.' },
       '503': { description: 'DataJud indisponível ou chave pública não configurada.' },
-      '504': { description: 'DataJud excedeu o prazo de 30 segundos.' },
+      '504': { description: 'DataJud excedeu o prazo de 60 segundos.' },
     });
     responses['200']!.headers = {
       'X-ForgeLex-Billing-Mode': { schema: { type: 'string', enum: ['FREE'] } },

@@ -19,7 +19,7 @@ export function DataJudPage() {
     setBusy(true);
     setError('');
     let timedOut = false;
-    const timeout = window.setTimeout(() => { timedOut = true; controller.abort(); }, 45000);
+    const timeout = window.setTimeout(() => { timedOut = true; controller.abort(); }, 75000);
     try { setResult(await lookupTjalProcess(number, controller.signal)); }
     catch (failure) {
       if (controller.signal.aborted && !timedOut) return;
