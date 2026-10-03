@@ -1,0 +1,89 @@
+# Auditoria corretiva do estado atual — 02/10/2026
+
+Base: `origin/main` em `a7bae827b665ef34e2e035f19996c9dc07a4dd34`.
+Branch isolada: `codex/current-state-audit`, no worktree `document-io/SDK`.
+O checkout original `codex/p2-search-chunk-recovery`, HEAD
+`ace7b7a487845e2f7b3098b138037b2641a51952`, permanece preservado.
+Boni autorizou a auditoria e a correção automática de bugs demonstrados.
+
+## Falhas confirmadas e correções
+
+- Erros de execução eram traduzidos para HTTP 402, inclusive nas ferramentas
+  gratuitas de autoridade. Timeout agora retorna 504; indisponibilidade, 503;
+  timeout SQL encapsulado pelo Drizzle é reconhecido na cadeia `cause`,
+  e as mensagens MCP de falha técnica não devolvem SQL nem parâmetros;
+  conflito de chave, 409. Apenas saldo insuficiente retorna 402 e oferece
+  recarga. O retry da pesquisa conserva a chave também depois de navegar.
+- A mesma chave de cobrança podia recuperar resultados de filtros diferentes,
+  e o snapshot de pesquisa tinha formatos incompatíveis entre REST e MCP.
+  Fingerprint vincula usuário, termo, tribunal, ano e limite; divergências
+  retornam 409 antes de executar ou debitar. Ambos os canais usam o mesmo
+  snapshot de dados, reconstruindo o envelope e a proveniência do MCP.
+- Aprovar uma versão anterior marcava a minuta corrente como aprovada.
+  Decisão e estado agora pertencem à versão solicitada; o estado da minuta
+  muda somente se essa ainda for sua versão corrente. O claim da decisão é
+  atômico. Exportação DOCX lê o estado atualizado da versão.
+- A pesquisa PostgreSQL ordenava documentos completos antes do limite.
+  A projeção compacta conserva ranking e filtros, limita os IDs/versões e
+  hidrata somente os resultados finais no mesmo statement. A transação da
+  pesquisa usa `statement_timeout=40000`, local à transação. Ferramenta e
+  contrato anunciam 45 s; a reserva dura 60 s. SQLSTATE 57014 vira timeout
+  recuperável, sem debitá-lo. Cancelamento cooperativo é propagado pelo
+  registro de ferramentas; não se afirma cancelamento imediato do SQL.
+- Falha de download de uma tela lazy agora mostra recuperação explícita.
+  HTML exige revalidação; asset inexistente retorna 404, preservando o shell.
+
+## Evidência do incidente e limite de desempenho
+
+Consulta de logs e SQL somente leitura em produção, em 03/10/2026 UTC
+(02/10 no fuso local): o POST do incidente durou 15,21 s e retornou 402.
+A operação do intervalo tinha estado FAILED e **zero débitos** associados.
+Nenhuma API faturável foi chamada nesta auditoria.
+
+Cloud SQL: PostgreSQL 16, `db-f1-micro`, SSD de 49 GB. Não houve alteração
+de infraestrutura ou custo. No mesmo acervo e filtros, a implementação
+publicada levou 29,84 s; a projeção levou de 15,62 a 18,87 s. A medição
+final com o limite SQL levou 18,06 s e retornou 20 itens; EXPLAIN ANALYZE
+levou 15,08 s. O plano identifica a leitura dos candidatos como dominante.
+O limite de 15 s era insuficiente mesmo após a projeção. Os novos prazos
+comportam as medições, sem prometer que toda busca terá essa duração.
+Empates no ranking/data não têm ordem estável; não se afirma identidade da
+lista limitada entre execuções empatadas.
+
+## Compatibilidade e publicação
+
+Aplicar primeiro a migration aditiva
+`billing-ledger-0008-request-fingerprint` (`request_fingerprint TEXT`
+nullable), depois a aplicação. Rollback pode manter a coluna adicional.
+Operação antiga COMPLETED/PENDING sem fingerprint não é vinculada por
+inferência: um novo pedido com fingerprint recebe conflito, sem outro
+débito. Operação antiga FAILED pode ser vinculada no primeiro retry.
+Não há backfill de aprovações antigas, estorno nem novo armazenamento
+permanente de resultados.
+
+## Validação
+
+Contas, jurisprudência, aprovações e débitos dos testes são fictícios.
+Regressões locais cobrem classificação de erros, falha sem débito, retry
+com a mesma chave, divergência de filtros, replay REST/MCP com proveniência,
+reserva superior ao prazo da ferramenta, aprovação da versão anterior,
+ranking/ano, erro Drizzle real encapsulado e restauração do prazo SQL fora da transação. PostgreSQL local
+18: regressão com 33.759 documentos aprovada; smokes de pesquisa (nove
+checks) e geral (12 checks) aprovados. E2E: oito de pesquisa e três de
+recuperação de chunks aprovados. Build, lint e typecheck aprovados na
+etapa final; 583 testes gerais aprovados e cinco ignorados, incluindo as
+regressões red/green do erro encapsulado. A CI da
+branch será registrada antes da publicação.
+Um worker Vitest encerrou inesperadamente no Windows em execução conjunta;
+os testes PostgreSQL são reexecutados isoladamente, sem aceitar aquele
+processo como evidência de aprovação.
+
+`pnpm audit --prod --audit-level moderate`: nenhuma vulnerabilidade conhecida
+no conjunto de produção. O alerta Dependabot de `braces <=3.0.3` pertence
+à cadeia de desenvolvimento do Tailwind, sem versão corrigida informada;
+não foi feita migração disruptiva de estilos. A revisão de código não
+identificou falha concreta de isolamento/autorização nas superfícies
+examinadas. Esses checks não demonstram ausência de todo bug no projeto.
+
+A publicação e seus recibos de versão, migration, candidata, tráfego e
+rollback serão registrados nesta mesma frente após os gates finais.

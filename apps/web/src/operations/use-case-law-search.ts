@@ -25,5 +25,6 @@ export function useCaseLawSearch(query: string, court: string, year: string) {
     search: (event?: FormEvent) => { event?.preventDefault(); return run(); },
     retry: () => searchFailure?.retryable ? run(searchFailure.intent) : Promise.resolve(),
     canRetry: Boolean(searchFailure?.retryable),
+    canRecharge: !localError && searchFailure?.code === 'PAYMENT_REQUIRED',
   };
 }

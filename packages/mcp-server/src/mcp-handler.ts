@@ -1,9 +1,10 @@
-import { ToolRegistry } from '@forgelex/agent-core';
-import { getLegalToolContract, LegalToolGatewayError } from '@forgelex/legal-tools';
-import { getForgeLexBillingPolicy, LedgerService } from '@forgelex/billing-ledger';
+import { ToolRegistry, type ToolExecutionResult } from '@forgelex/agent-core';
+import { getLegalToolContract, LegalToolGatewayError, type SearchCaseLawOutput } from '@forgelex/legal-tools';
+import { getForgeLexBillingPolicy, LedgerService, searchOperationFingerprint } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { randomUUID } from 'node:crypto';
+import { getErrorCode } from '@forgelex/domain';
 
 export interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -165,11 +166,13 @@ export class McpHandler {
             error: { code: -32602, message: 'Invalid params: a chave de idempotência é obrigatória.' },
           };
         }
+        let requestFingerprint: string | undefined;
         if (name === 'research.search_case_law') {
           const parsed = tool.inputSchema.safeParse(toolArgs ?? {});
           if (!parsed.success) {
             return { jsonrpc: '2.0', id, error: { code: -32602, message: 'Invalid params: filtros de pesquisa inválidos.', data: { code: 'INVALID_INPUT', retryable: false } } };
           }
+          requestFingerprint = searchOperationFingerprint({ ...parsed.data, userId });
         }
         const sessionId = `mcp_${randomUUID()}`;
         const startedAt = Date.now();
@@ -180,6 +183,7 @@ export class McpHandler {
             tenantId,
             userId,
             idempotencyKey,
+            requestFingerprint,
             billing,
             usage: {
               capability: name,
@@ -191,15 +195,20 @@ export class McpHandler {
             operation: async () => {
               const { idempotencyKey: _idempotencyKey, ...withoutIdempotencyKey } = toolArgs ?? {};
               const executionArgs = name === 'workflow.legal_research_memo' ? toolArgs ?? {} : withoutIdempotencyKey;
-              return await this.toolRegistry.executeTool(name, executionArgs, {
+              const result = await this.toolRegistry.executeTool(name, executionArgs, {
                 sessionId,
                 tenantId,
                 userId,
                 abortSignal: context.abortSignal ?? new AbortController().signal,
                 source: 'MCP',
               });
+              return name === 'research.search_case_law' ? result.data : result;
             },
           });
+
+          const toolResult: ToolExecutionResult = name === 'research.search_case_law'
+            ? { success: true, data: execution.data, provenance: (execution.data as SearchCaseLawOutput).items.map(item => item.provenance) }
+            : execution.data as ToolExecutionResult;
 
           await this.recordAudit({
             sessionId,
@@ -208,7 +217,7 @@ export class McpHandler {
             toolName: name,
             durationMs: Date.now() - startedAt,
             status: 'SUCCESS',
-            payload: { arguments: toolArgs, success: execution.data.success, billingMode: execution.billingMode },
+            payload: { arguments: toolArgs, success: toolResult.success, billingMode: execution.billingMode },
           });
 
           return {
@@ -218,7 +227,7 @@ export class McpHandler {
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify(execution.data),
+                  text: JSON.stringify(toolResult),
                 },
               ],
               billing: {
@@ -230,6 +239,7 @@ export class McpHandler {
             },
           };
         } catch (err: any) {
+          const structuredError = this.toStructuredError(err);
           await this.recordAudit({
             sessionId,
             tenantId,
@@ -244,8 +254,8 @@ export class McpHandler {
             id,
             error: {
               code: -32000,
-              message: err.message ?? 'Falha na execução da ferramenta.',
-              data: this.toStructuredError(err),
+              message: structuredError.message as string,
+              data: structuredError,
             },
           };
         }
@@ -276,11 +286,17 @@ export class McpHandler {
   private toStructuredError(error: unknown): Record<string, unknown> {
     if (error instanceof LegalToolGatewayError) return error.toJSON();
     const candidate = error as { code?: unknown; details?: unknown; message?: unknown };
-    const code = typeof candidate?.code === 'string' ? candidate.code : 'TOOL_EXECUTION_FAILED';
+    const errorCode = getErrorCode(error, 'TOOL_EXECUTION_FAILED');
+    const code = errorCode === '57014' ? 'TOOL_TIMEOUT' : errorCode;
+    const message = code === 'TOOL_TIMEOUT'
+      ? 'A operação excedeu o tempo de resposta. Tente novamente.'
+      : code === 'TOOL_EXECUTION_FAILED'
+        ? 'Falha na execução da ferramenta. Tente novamente.'
+        : typeof candidate?.message === 'string' ? candidate.message : 'Falha na execução da ferramenta.';
     return {
       code,
-      message: typeof candidate?.message === 'string' ? candidate.message : 'Falha na execução da ferramenta.',
-      retryable: code === 'SOURCE_PROVIDER_UNAVAILABLE' || code === 'SOURCE_PROVIDER_TIMEOUT',
+      message,
+      retryable: ['SOURCE_PROVIDER_UNAVAILABLE', 'SOURCE_PROVIDER_TIMEOUT', 'TOOL_TIMEOUT', 'TOOL_EXECUTION_FAILED'].includes(code),
       ...(candidate?.details && typeof candidate.details === 'object' ? { details: candidate.details as Record<string, unknown> } : {}),
     };
   }

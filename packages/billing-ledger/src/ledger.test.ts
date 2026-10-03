@@ -33,6 +33,44 @@ describe('LedgerService (Execução Faturável Idempotente e Carteira Dupla)', (
     client.close();
   });
 
+  it('vincula filtros durante reserva e falha, preservando operações antigas sem novo débito', async () => {
+    const tenantId = 'fingerprint-tenant';
+    await ledger.provisionAccount(tenantId, { paidBalanceCents: 100, promotionalBalanceCents: 0 });
+    const input = { tenantId, idempotencyKey: 'failed-bound', costCents: 20, requestFingerprint: 'filters-a' };
+    await expect(ledger.executeBillableOperation({ ...input, operation: async () => { throw new Error('temporary'); } })).rejects.toThrow('temporary');
+    await expect(ledger.executeBillableOperation({ ...input, requestFingerprint: 'filters-b', operation: async () => 'wrong' })).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+    expect(await ledger.getAvailableBalanceCents(tenantId)).toBe(100);
+    expect((await ledger.executeBillableOperation({ ...input, operation: async () => 'recovered' })).data).toBe('recovered');
+    const legacy = { tenantId, idempotencyKey: 'legacy-completed', costCents: 20 };
+    await ledger.executeBillableOperation({ ...legacy, operation: async () => 'old' });
+    await expect(ledger.executeBillableOperation({ ...legacy, requestFingerprint: 'new', operation: async () => 'wrong' })).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+    expect((await ledger.executeBillableOperation({ ...legacy, operation: async () => 'wrong' })).data).toBe('old');
+    const failedLegacy = { tenantId, idempotencyKey: 'legacy-failed', costCents: 20 };
+    await expect(ledger.executeBillableOperation({ ...failedLegacy, operation: async () => { throw new Error('old timeout'); } })).rejects.toThrow();
+    await ledger.executeBillableOperation({ ...failedLegacy, requestFingerprint: 'new', operation: async () => 'first success' });
+    expect(await ledger.getAvailableBalanceCents(tenantId)).toBe(40);
+  });
+
+  it('rejeita filtros diferentes enquanto a mesma chave está em execução', async () => {
+    const tenantId = 'pending-fingerprint-tenant';
+    await ledger.provisionAccount(tenantId, { paidBalanceCents: 100, promotionalBalanceCents: 0 });
+    let start!: () => void;
+    let finish!: () => void;
+    const started = new Promise<void>(resolve => { start = resolve; });
+    const gate = new Promise<void>(resolve => { finish = resolve; });
+    const input = { tenantId, idempotencyKey: 'pending-bound', costCents: 20 };
+    const first = ledger.executeBillableOperation({ ...input, requestFingerprint: 'a', operation: async () => { start(); await gate; return 'first'; } });
+    await started;
+    try {
+      const [pending] = await db.select().from(billingOperations).where(eq(billingOperations.idempotencyKey, input.idempotencyKey));
+      // A reserva precisa sobreviver ao prazo de 45 s da ferramenta de pesquisa.
+      expect(Date.parse(pending.leaseExpiresAt!) - Date.now()).toBeGreaterThan(45_000);
+      await expect(ledger.executeBillableOperation({ ...input, requestFingerprint: 'b', operation: async () => 'wrong' })).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+    } finally { finish(); }
+    await first;
+    expect(await ledger.getAvailableBalanceCents(tenantId)).toBe(80);
+  });
+
   it('bloqueia schema incompleto no modo de verificação sem aplicar migration', async () => {
     const databasePath = join(tmpdir(), `.forgelex-ledger-verify-${randomUUID()}.db`);
     const verification = await createDatabase({ url: pathToFileURL(databasePath).toString() });

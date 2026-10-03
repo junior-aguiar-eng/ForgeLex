@@ -443,10 +443,15 @@ export class DraftRepository {
     await this.db.transaction(async (tx) => {
       await tx.insert(schema.draftApprovalRequests).values({ ...request, decidedAt: null, decidedBy: null, decisionReason: null });
       await tx.insert(schema.draftApprovalTokens).values({ ...token, usedAt: null });
+      await tx.update(schema.draftVersions).set({ status: 'APPROVAL_PENDING' }).where(and(
+        eq(schema.draftVersions.id, input.draftVersionId), eq(schema.draftVersions.tenantId, input.tenantId),
+        eq(schema.draftVersions.draftId, input.draftId), eq(schema.draftVersions.matterId, input.matterId),
+      ));
       await tx.update(schema.drafts).set({ status: 'APPROVAL_PENDING', updatedAt: request.requestedAt }).where(and(
         eq(schema.drafts.id, input.draftId),
         eq(schema.drafts.tenantId, input.tenantId),
         eq(schema.drafts.matterId, input.matterId),
+        eq(schema.drafts.currentVersionId, input.draftVersionId),
       ));
     });
     return { request, token: rawToken };
@@ -496,18 +501,24 @@ export class DraftRepository {
     });
     const status = input.decision === 'APPROVED' ? 'APPROVED' : 'REJECTED';
     await this.db.transaction(async (tx) => {
-      await tx.update(schema.draftApprovalRequests).set({
+      const claimed = await tx.update(schema.draftApprovalRequests).set({
         status,
         decidedAt,
         decidedBy: input.decidedBy,
         decisionReason: input.reason ?? null,
-      }).where(and(eq(schema.draftApprovalRequests.id, requestRow.id), eq(schema.draftApprovalRequests.status, 'PENDING')));
+      }).where(and(eq(schema.draftApprovalRequests.id, requestRow.id), eq(schema.draftApprovalRequests.tenantId, input.tenantId), eq(schema.draftApprovalRequests.status, 'PENDING'))).returning({ id: schema.draftApprovalRequests.id });
+      if (claimed.length !== 1) throw new Error('APPROVAL_NOT_PENDING: solicitação de aprovação já decidida.');
       await tx.insert(schema.draftApprovalDecisions).values({ ...decision });
       await tx.update(schema.draftApprovalTokens).set({ usedAt: decidedAt }).where(eq(schema.draftApprovalTokens.id, tokenRow.id));
+      await tx.update(schema.draftVersions).set({ status }).where(and(
+        eq(schema.draftVersions.id, requestRow.draftVersionId), eq(schema.draftVersions.tenantId, input.tenantId),
+        eq(schema.draftVersions.draftId, requestRow.draftId), eq(schema.draftVersions.matterId, requestRow.matterId),
+      ));
       await tx.update(schema.drafts).set({ status, updatedAt: decidedAt }).where(and(
         eq(schema.drafts.id, requestRow.draftId),
         eq(schema.drafts.tenantId, input.tenantId),
         eq(schema.drafts.matterId, requestRow.matterId),
+        eq(schema.drafts.currentVersionId, requestRow.draftVersionId),
       ));
     });
     const updatedRequest = await this.db.select().from(schema.draftApprovalRequests).where(eq(schema.draftApprovalRequests.id, requestRow.id)).limit(1);

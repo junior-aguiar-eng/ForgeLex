@@ -14,7 +14,7 @@ export const LandingScreen: React.FC = () => {
   const [court, setCourt] = useState<string>(() => searchIntent?.court ?? 'STJ');
   const [year, setYear] = useState(() => searchIntent?.judgmentYear?.toString() ?? '');
   const queryInput = useRef<HTMLInputElement>(null);
-  const { results, execution, error: searchError, busy: isSearching, search: handleSearch, retry, canRetry, hasSearched } = useCaseLawSearch(query, court, year);
+  const { results, execution, error: searchError, busy: isSearching, search: handleSearch, retry, canRetry, canRecharge, hasSearched } = useCaseLawSearch(query, court, year);
   const [selectedDoc, setSelectedDoc] = useState<SearchResultItem | null>(null);
   const searchableCourts = tribunals.data.filter((item) => item.searchable);
 
@@ -162,12 +162,12 @@ export const LandingScreen: React.FC = () => {
             <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
             <span role="alert">{searchError}</span>
             {canRetry && <button type="button" disabled={isSearching} onClick={() => void retry()} className="underline font-semibold">Tentar novamente</button>}
-            <button 
+            {canRecharge && <button
               onClick={() => setActiveTab('credits')}
               className="ml-auto underline font-semibold hover:text-amber-900"
             >
               Recarregar créditos
-            </button>
+            </button>}
           </div>
         )}
 

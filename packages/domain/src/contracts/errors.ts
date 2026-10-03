@@ -6,6 +6,8 @@ export type CanonicalErrorCode =
   | 'UNAUTHORIZED_CAPABILITY'
   | 'TENANT_VIOLATION'
   | 'TOOL_EXECUTION_FAILED'
+  | 'TOOL_TIMEOUT'
+  | 'BILLING_INSUFFICIENT_BALANCE'
   | 'BILLING_ACCOUNT_NOT_PROVISIONED'
   | 'IDEMPOTENCY_CONFLICT'
   | 'IDEMPOTENCY_RESULT_EXPIRED'
@@ -36,4 +38,17 @@ export class DomainError extends Error {
       details: this.details,
     };
   }
+}
+
+/** Obtém o código preservado por wrappers de driver sem expor SQL ou parâmetros. */
+export function getErrorCode(error: unknown, fallback: string): string {
+  const seen = new Set<unknown>();
+  let current = error;
+  while (current && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current);
+    const candidate = current as { code?: unknown; cause?: unknown };
+    if (typeof candidate.code === 'string') return candidate.code;
+    current = candidate.cause;
+  }
+  return fallback;
 }

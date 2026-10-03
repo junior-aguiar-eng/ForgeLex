@@ -56,6 +56,7 @@ export const billingOperations = sqliteTable('billing_operations', {
   tenantId: text('tenant_id').notNull(),
   accountId: text('account_id').notNull().references(() => ledgerAccounts.id),
   idempotencyKey: text('idempotency_key').notNull(),
+  requestFingerprint: text('request_fingerprint'),
   status: text('status').notNull(),
   reservedAmountCents: integer('reserved_amount_cents').notNull(),
   leaseOwner: text('lease_owner'),

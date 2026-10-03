@@ -43,6 +43,7 @@ import {
   getForgeLexBillingPolicy,
   JURISPRUDENCE_SEARCH_COST_CENTS,
   LedgerService,
+  searchOperationFingerprint,
 } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { EXTERNAL_MCP_TOOL_NAMES, McpHandler } from '@forgelex/mcp-server';
@@ -63,6 +64,7 @@ import { registerOAuthGateway } from './auth/oauth-gateway.js';
 import { ApiKeyService } from './auth/api-key-service.js';
 import { buildOpenApiDocument } from './distribution/openapi.js';
 import { createRequestAbortSignal } from './distribution/request-abort-signal.js';
+import { classifyResearchError } from './distribution/research-error.js';
 import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
 import { WebhookRepository } from '@forgelex/persistence';
 import { WebhookService } from './distribution/webhook-service.js';
@@ -917,6 +919,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         userId: input.principal.userId,
         idempotencyKey,
         billing: getForgeLexBillingPolicy('research.search_case_law'),
+        requestFingerprint: searchOperationFingerprint({ userId: input.principal.userId, query: input.query, court, judgmentYear: input.judgmentYear, limit: input.limit }),
         usage: {
           capability: 'research.search_case_law',
           toolName: 'research.search_case_law',
@@ -985,7 +988,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const details = error as { code?: unknown; details?: unknown; message?: unknown };
       const code = typeof details.code === 'string' ? details.code : '';
       const message = typeof details.message === 'string' ? details.message : 'Falha ao pesquisar jurisprudência.';
-      const sourceFailure = code.startsWith('SOURCE_PROVIDER_');
       await recordAudit({
         sessionId,
         tenantId: input.principal.tenantId,
@@ -995,12 +997,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         status: 'FAILED',
         payload: { query: input.query, court, limit: input.limit, error: message },
       });
-      input.reply.status(code === 'UNSUPPORTED_COURT' ? 422 : sourceFailure ? 503 : 402);
-      return {
-        error: code === 'UNSUPPORTED_COURT' ? 'UNSUPPORTED_COURT' : sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
-        message,
-        details: details.details,
-      };
+      const failure = classifyResearchError(error);
+      structuredLog('warn', 'research.search.failed', { code, durationMs: Date.now() - startedAt, requestId: idempotencyKey });
+      const { status, ...body } = failure;
+      return input.reply.status(status).send(body);
     }
   };
 
@@ -2640,9 +2640,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return execution.data;
       } catch (error) {
         const details = error as { code?: unknown; details?: unknown; message?: unknown };
-        const code = typeof details.code === 'string' ? details.code : '';
         const message = typeof details.message === 'string' ? details.message : 'Falha ao obter a autoridade.';
-        const sourceFailure = code.startsWith('SOURCE_PROVIDER_');
         await recordAudit({
           sessionId,
           tenantId: req.principal.tenantId,
@@ -2652,12 +2650,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           status: 'FAILED',
           payload: { court: searchableCourt, processNumber, judgmentDate, error: message },
         });
-        reply.status(code === 'UNSUPPORTED_COURT' ? 422 : sourceFailure ? 503 : 402);
-        return {
-          error: code === 'UNSUPPORTED_COURT' ? 'UNSUPPORTED_COURT' : sourceFailure ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
-          message,
-          details: details.details,
-        };
+        const failure = classifyResearchError(error);
+        const { status, ...body } = failure;
+        return reply.status(status).send(body);
       } finally {
         requestAbort.dispose();
       }
@@ -2737,13 +2732,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           status: 'FAILED',
           payload: { court: searchableCourt, processNumber, judgmentDate: body.judgmentDate, error: err?.message },
         });
-        const unsupportedCourt = err?.code === 'UNSUPPORTED_COURT';
-        reply.status(unsupportedCourt ? 422 : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 503 : 402);
-        return {
-          error: unsupportedCourt ? 'UNSUPPORTED_COURT' : err?.code?.startsWith?.('SOURCE_PROVIDER_') ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'PAYMENT_REQUIRED',
-          message: err.message,
-          details: err.details,
-        };
+        const { status, ...failureBody } = classifyResearchError(err);
+        return reply.status(status).send(failureBody);
       } finally {
         requestAbort.dispose();
       }

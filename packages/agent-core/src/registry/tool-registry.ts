@@ -43,23 +43,27 @@ export class ToolRegistry {
 
     // 2. Execução com timeout e suporte a cancelamento
     const timeoutMs = tool.timeoutMs ?? 30000;
+    const executionController = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let onAbort: (() => void) | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
-        reject(new DomainError('TOOL_EXECUTION_FAILED', `Timeout excedido (${timeoutMs}ms) na ferramenta '${name}'.`));
+        const error = new DomainError('TOOL_TIMEOUT', `Timeout excedido (${timeoutMs}ms) na ferramenta '${name}'.`);
+        reject(error);
+        executionController.abort(error);
       }, timeoutMs);
 
       onAbort = () => {
         if (timer) clearTimeout(timer);
         reject(new DomainError('SESSION_CANCELLED', `Operação cancelada pelo usuário durante '${name}'.`));
+        executionController.abort(context.abortSignal.reason);
       };
       context.abortSignal.addEventListener('abort', onAbort, { once: true });
     });
 
     let result: ToolExecutionResult;
     try {
-      result = await Promise.race([tool.execute(parseResult.data, context), timeoutPromise]);
+      result = await Promise.race([tool.execute(parseResult.data, { ...context, abortSignal: executionController.signal }), timeoutPromise]);
     } finally {
       if (timer) clearTimeout(timer);
       if (onAbort) context.abortSignal.removeEventListener('abort', onAbort);

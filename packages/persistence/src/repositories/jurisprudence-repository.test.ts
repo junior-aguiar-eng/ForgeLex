@@ -283,6 +283,8 @@ describe('JurisprudenceRepository', () => {
       const results = await postgresRepository.search({ query: 'especial', court: 'STJ', limit: 10 });
       expect(results.map((result) => result.id)).toEqual([identityMatch.id, syllabusMatch.id]);
       await expect(postgresRepository.search({ query: 'cobranca', court: 'STJ', limit: 10 })).resolves.toHaveLength(1);
+      // O limite da pesquisa não pode permanecer na conexão e afetar ingestões.
+      expect((await connection.client.execute('SHOW statement_timeout')).rows[0].statement_timeout).toBe('0');
     } finally {
       await connection.client.execute('TRUNCATE TABLE jurisprudence_ingestion_staging, jurisprudence_source_manifests, jurisprudence_document_versions, jurisprudence_documents, jurisprudence_ingestion_runs');
       connection.client.close();

@@ -1,5 +1,17 @@
 # Auditoria e status canônico do ForgeLex
 
+## Auditoria corretiva do estado atual — validação final (02/10/2026)
+
+Branch `codex/current-state-audit`, isolada de main em `a7bae827`, com o
+checkout P2 original preservado. Corrigidos classificação de timeout como
+pagamento, vínculo da chave aos filtros e replay REST/MCP, aprovação por
+versão e recuperação de telas lazy. Projeção compacta da pesquisa e prazos
+SQL/ferramenta/reserva de 40/45/60 s, fundamentados em leitura real do
+acervo. O incidente observado não liquidou débito. Migration aditiva
+`billing-ledger-0008-request-fingerprint` deve preceder a aplicação.
+Evidências e limites: `docs/operations/stabilization/2026-10-02-current-state-audit.md`.
+A versão publicada abaixo ainda permanece vigente nesta etapa.
+
 ## Pesquisa, histórico e ano do julgamento — integrados e publicados (02/10/2026)
 
 PR #32 integrada em `01fedabe1daf366ffb7a2508df73876e731dc8a7`, com os seis

@@ -219,6 +219,10 @@ export const ledgerMigrations: readonly SqlMigration[] = [
       `CREATE INDEX billing_webhook_events_tenant_received_idx ON billing_webhook_events(tenant_id, received_at);`,
     ],
   },
+  {
+    id: 'billing-ledger-0008-request-fingerprint',
+    statements: ['ALTER TABLE billing_operations ADD COLUMN request_fingerprint TEXT;'],
+  },
 ];
 
 export async function runLedgerMigrations(client: Client): Promise<void> {
