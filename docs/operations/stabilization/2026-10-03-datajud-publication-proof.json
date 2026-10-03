@@ -1,0 +1,269 @@
+{
+  "recordedAt": "2026-10-03T04:46:59.5059702Z",
+  "sourceSha": "bd5d224d140ae93b8e83db7d8247149a92f88f3e",
+  "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:6fa2906a8c584d4a12c7f6559224eda7e7e10cb5f977579d55af68154c560eac",
+  "revision": "forgelex-api-prod-datajud-bd5d224",
+  "rollbackRevision": "forgelex-api-prod-audit-30c94de",
+  "cloudBuild": {
+    "createTime": "2026-10-03T04:28:28.244219372Z",
+    "finishTime": "2026-10-03T04:32:03.78869Z",
+    "id": "ddc1855a-af81-4405-932c-4383428b2855",
+    "results": {
+      "images": [
+        {
+          "artifactRegistryPackage": "projects/project-bbbe1209-c295-4720-867/locations/southamerica-east1/repositories/forgelex-prod/packages/forgelex-api/versions/sha256:6fa2906a8c584d4a12c7f6559224eda7e7e10cb5f977579d55af68154c560eac",
+          "digest": "sha256:6fa2906a8c584d4a12c7f6559224eda7e7e10cb5f977579d55af68154c560eac",
+          "name": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api:bd5d224d140ae93b8e83db7d8247149a92f88f3e",
+          "pushTiming": {
+            "endTime": "2026-10-03T04:32:01.536889602Z",
+            "startTime": "2026-10-03T04:31:40.312095687Z"
+          }
+        }
+      ]
+    },
+    "status": "SUCCESS"
+  },
+  "traffic": [
+    {
+      "revisionName": "forgelex-api-prod-datajud-bd5d224",
+      "percent": 100
+    }
+  ],
+  "configPreserved": {
+    "existingEnvironmentPreserved": true,
+    "serviceAccountPreserved": true,
+    "resourcesPreserved": true,
+    "concurrencyPreserved": true,
+    "timeoutPreserved": true,
+    "cloudSqlPreserved": true,
+    "restrictedIngress": true,
+    "revisionReady": true,
+    "previousTrafficPreserved": true,
+    "candidateHasNoTraffic": true
+  },
+  "provider": {
+    "billable": false,
+    "confirmedAt": "2026-10-03T04:41:21.995Z",
+    "event": "datajud.provider.probe",
+    "query": "match_none",
+    "records": 0,
+    "requests": 1,
+    "sourceSha": "bd5d224d140ae93b8e83db7d8247149a92f88f3e",
+    "upstreamStatus": 200
+  },
+  "promotion": {
+    "sourceSha": "bd5d224d140ae93b8e83db7d8247149a92f88f3e",
+    "revision": "forgelex-api-prod-datajud-bd5d224",
+    "rollbackRevision": "forgelex-api-prod-audit-30c94de",
+    "startedAt": "2026-10-03T04:41:52.0911113Z",
+    "checks": [
+      {
+        "path": "/",
+        "status": 200
+      },
+      {
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "path": "/readyz",
+        "status": 200
+      },
+      {
+        "path": "/consulta-processual",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "status": 200
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200
+      },
+      {
+        "path": "/app",
+        "status": 200
+      },
+      {
+        "path": "/pesquisa",
+        "status": 200
+      },
+      {
+        "path": "/conectar",
+        "status": 200
+      },
+      {
+        "path": "/guia/mcp",
+        "status": 200
+      },
+      {
+        "path": "/desenvolvedores/api",
+        "status": 200
+      },
+      {
+        "path": "/oauth/consent",
+        "status": 200
+      },
+      {
+        "path": "/casos",
+        "status": 200
+      },
+      {
+        "path": "/rascunhos",
+        "status": 200
+      }
+    ],
+    "completed": true,
+    "observation": {
+      "marker": "datajud-a3fa5f1d-d7e4-4b3a-8777-949381157b1f",
+      "startedAt": "2026-10-03T04:42:00.772Z",
+      "completedAt": "2026-10-03T04:44:02.718Z",
+      "successes": 58,
+      "observedRevisions": [
+        "forgelex-api-prod-datajud-bd5d224"
+      ],
+      "loggedRequests": 58
+    },
+    "completedAt": "2026-10-03T04:44:12.607082Z"
+  },
+  "cleanup": {
+    "fullTraffic": true,
+    "backendRemoved": true,
+    "negRemoved": true,
+    "jobRemoved": true,
+    "tagRemoved": true,
+    "candidateRouteRemoved": true
+  },
+  "errorLogEntries": 0,
+  "pullRequest": "https://github.com/junior-aguiar-eng/ForgeLex/pull/36",
+  "ci": [
+    {
+      "jobs": [
+        {
+          "name": "e2e-public",
+          "conclusion": "success"
+        },
+        {
+          "name": "postgres",
+          "conclusion": "success"
+        },
+        {
+          "name": "security",
+          "conclusion": "success"
+        },
+        {
+          "name": "validate",
+          "conclusion": "success"
+        },
+        {
+          "name": "e2e-product",
+          "conclusion": "success"
+        },
+        {
+          "name": "e2e-account-closure",
+          "conclusion": "success"
+        }
+      ],
+      "kind": "pull_request",
+      "runId": 37096306019,
+      "conclusion": "success"
+    },
+    {
+      "jobs": [
+        {
+          "name": "postgres",
+          "conclusion": "success"
+        },
+        {
+          "name": "validate",
+          "conclusion": "success"
+        },
+        {
+          "name": "e2e-account-closure",
+          "conclusion": "success"
+        },
+        {
+          "name": "e2e-public",
+          "conclusion": "success"
+        },
+        {
+          "name": "security",
+          "conclusion": "success"
+        },
+        {
+          "name": "e2e-product",
+          "conclusion": "success"
+        }
+      ],
+      "kind": "main",
+      "runId": 37096614061,
+      "conclusion": "success"
+    }
+  ],
+  "browser": [
+    {
+      "stats": {
+        "startTime": "2026-10-03T04:39:49.524Z",
+        "duration": 63146.694,
+        "expected": 13,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "kind": "candidate",
+      "usesFictionalApiResponses": true
+    },
+    {
+      "stats": {
+        "startTime": "2026-10-03T04:42:17.596Z",
+        "duration": 39520.147000000004,
+        "expected": 13,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "kind": "normal_domain",
+      "usesFictionalApiResponses": true
+    }
+  ],
+  "httpSmoke": {
+    "candidate": false,
+    "marker": "datajud-smoke-2f1e65e0-811e-4509-b851-d587ace734a1",
+    "recordedAt": "2026-10-03T04:46:54.641Z",
+    "checks": [
+      {
+        "path": "/readyz",
+        "status": 200
+      },
+      {
+        "path": "/api/v2/research/history",
+        "status": 401
+      },
+      {
+        "path": "/api/v2/mcp/connection-status",
+        "status": 401
+      },
+      {
+        "path": "/api/v2/billing/account",
+        "status": 401
+      },
+      {
+        "path": "/api/v2/datajud/tjal/process",
+        "status": 400,
+        "billing": "FREE",
+        "charged": 0,
+        "invalidInput": true
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200,
+        "publicDatajud": true
+      }
+    ]
+  }
+}

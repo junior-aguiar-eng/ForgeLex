@@ -69,10 +69,55 @@ e typecheck aprovados. Nenhuma consulta paga ou participação externa.
 
 ## Publicação
 
-Aplicação sem migrations novas. Antes de promover: CI, build de clone limpo
-de main, digest, nova revisão sem tráfego, chave pública CNJ somente no
-backend e IP confiável do balanceador. Mantém variáveis/secrets, Cloud SQL,
-service account, recursos e flags operacionais preexistentes. Teste remoto
-do DataJud usa consulta que não retorna processos reais; E2E remoto usa
-respostas fictícias interceptadas no navegador. Promoção somente após
-comprovação da candidata; rollback usa a revisão previamente a 100%.
+PR [#36](https://github.com/junior-aguiar-eng/ForgeLex/pull/36) integrada em
+`bd5d224d140ae93b8e83db7d8247149a92f88f3e`. Seis checks aprovados na
+[PR](https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37096306019)
+e em [main](https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37096614061),
+incluindo PostgreSQL, segurança de dependências de produção e E2E dos fluxos
+existentes. Build de clone limpo de main, envio de 440 arquivos/zero arquivos
+privados; não utilizou o checkout com P2 nem arquivos locais de evidência.
+
+Cloud Build `ddc1855a-af81-4405-932c-4383428b2855`: SUCCESS em 3 min 35 s.
+Imagem `southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api`
+com digest `sha256:6fa2906a8c584d4a12c7f6559224eda7e7e10cb5f977579d55af68154c560eac`.
+Revisão `forgelex-api-prod-datajud-bd5d224` inicialmente sem tráfego,
+promovida a **100%** no domínio https://nexojuris.ia.br.
+Sem migrations novas. Conferência da candidata confirmou preservação de
+variáveis/secrets anteriores, Cloud SQL, service account, recursos,
+concorrência, prazo HTTP e ingress restrito. Acrescentou chave pública CNJ
+no backend e o IP confiável do balanceador; atualizou o SHA do runtime.
+
+Verificação Cloud Run → CNJ com a imagem e chave da candidata, sem conexão
+ao banco, acesso a dados de conta ou operações do ledger: cliente real com
+`query: match_none`, HTTP 200, zero registros, `billable: false`, em
+`2026-10-03T04:41:21.995Z`. Primeiras tentativas tiveram 429 e timeout;
+foram rejeitadas como gate e repetidas após intervalo. Verificação local
+com prazo de diagnóstico ampliado também retornou 200; o sucesso no
+Cloud Run utilizou o prazo original do cliente, 15 s. Não representa
+consulta completa de processo real nem garantia de disponibilidade do CNJ.
+
+Primeira execução remota durante propagação da rota temporária teve três
+falhas e recebeu a revisão antiga; não foi aceita como validação da candidata.
+Após comprovação da revisão pelos logs, **13 E2E** passaram em 63,147 s.
+API e movimentos fictícios interceptados no navegador; HTML e assets reais
+da candidata. Após promoção, **13 E2E** passaram novamente no domínio normal
+em 39,520 s, sem header de seleção da candidata.
+
+Observação em produção de `2026-10-03T04:42:00.772Z` a
+`2026-10-03T04:44:02.718Z`: **58 readyz HTTP 200**, checks verdadeiros,
+58 requisições confirmadas nos logs exclusivamente na nova revisão.
+Quinze rotas públicas/SPA/health/metadados OAuth/OpenAPI responderam 200.
+Smoke sem credencial: histórico, conta financeira e status MCP retornam
+401; entrada inválida no DataJud retorna 400, `FREE`, zero créditos e
+`no-store`. OpenAPI confirma exceção pública com `security: []`.
+Sem chamadas de pesquisa paga em produção.
+
+Rota, backend, NEG, tag da candidata e job de verificação removidos.
+Inventário final confirmou limpeza e nova revisão a 100%, com zero logs
+ERROR na revisão da aplicação. Smoke posterior à limpeza aprovado.
+Rollback disponível: `forgelex-api-prod-audit-30c94de`, revisão previamente
+a 100%. Recibo sanitizado de versão, implantação, observação e limpeza:
+`2026-10-03-datajud-publication-proof.json`. O checkout original permaneceu
+em `codex/p2-search-chunk-recovery`, HEAD `ace7b7a`, com seus arquivos P2
+modificados/não rastreados preservados. Históricos e provas das etapas
+anteriores permanecem como fotografia da data em que foram produzidos.
