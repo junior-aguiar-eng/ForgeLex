@@ -1,6 +1,10 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: 'wait' });
+});
+
 async function tabTo(page: Page, target: Locator, maxTabs = 60): Promise<void> {
   for (let index = 0; index < maxTabs; index += 1) {
     await page.keyboard.press('Tab');
@@ -196,6 +200,7 @@ test('ações principais da conexão têm alvos móveis perceptíveis', async ({
     expect(box?.height, `${name}: altura`).toBeGreaterThanOrEqual(44);
   }
   await page.getByRole('button', { name: 'Abrir menu lateral' }).click();
+  await expect.poll(async () => (await page.locator('#forgelex-sidebar').boundingBox())?.x).toBe(0);
   const closeMenu = await page.locator('#forgelex-sidebar')
     .getByRole('button', { name: 'Fechar menu lateral' }).boundingBox();
   expect(closeMenu?.width, 'Fechar menu lateral: largura').toBeGreaterThanOrEqual(44);

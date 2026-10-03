@@ -3,7 +3,7 @@ import type { ImpactLevel } from '@forgelex/domain';
 import { getForgeLexBillingPolicy } from '@forgelex/billing-ledger';
 import { createGetAuthorityTool } from '../research/get-authority.js';
 import { ResearchService } from '../research/research-service.js';
-import { createSearchCaseLawTool } from '../research/search-case-law.js';
+import { createSearchCaseLawTool, CASE_LAW_SEARCH_TIMEOUT_MS } from '../research/search-case-law.js';
 import { createVerifyAuthorityTool } from '../research/verify-authority.js';
 
 export type LegalOperationKind = 'OBSERVATION' | 'ANALYSIS' | 'INTERNAL_MUTATION' | 'EXTERNAL_EFFECT';
@@ -44,7 +44,7 @@ export class LegalToolGatewayError extends Error {
   }
 }
 
-const COMMON_ERRORS = ['UNSUPPORTED_COURT', 'SOURCE_PROVIDER_UNAVAILABLE', 'SOURCE_PROVIDER_TIMEOUT', 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE', 'INVALID_INPUT', 'TOOL_EXECUTION_FAILED', 'SESSION_CANCELLED'] as const;
+const COMMON_ERRORS = ['UNSUPPORTED_COURT', 'SOURCE_PROVIDER_UNAVAILABLE', 'SOURCE_PROVIDER_TIMEOUT', 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE', 'INVALID_INPUT', 'TOOL_EXECUTION_FAILED', 'TOOL_TIMEOUT', 'BILLING_INSUFFICIENT_BALANCE', 'SESSION_CANCELLED'] as const;
 
 export const LEGAL_TOOL_CONTRACTS: readonly LegalToolContract[] = [
   {
@@ -53,7 +53,7 @@ export const LEGAL_TOOL_CONTRACTS: readonly LegalToolContract[] = [
     requiredScopes: ['research:read'], supportedCourts: ['STJ'], operationKind: 'OBSERVATION', impactLevel: 'L0_OBSERVATION',
     humanApproval: { required: false, reason: 'A tool apenas consulta o índice jurisprudencial persistido.' },
     preconditions: ['Consulta com ao menos dois caracteres.', 'Tribunal STJ habilitado.', 'Idempotency-Key no canal de distribuição.'],
-    limits: { timeoutMs: 15_000, cancellable: true, maxResults: 20 },
+    limits: { timeoutMs: CASE_LAW_SEARCH_TIMEOUT_MS, cancellable: true, maxResults: 20 },
     billing: { mode: 'METERED', unit: 'STJ_CASE_LAW_SEARCH', costCents: 20 },
     errorCodes: COMMON_ERRORS, provenance: { required: true, source: 'forgelex_index', upstreamSource: 'STJ Open Data Oficial' },
   },

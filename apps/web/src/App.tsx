@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
+import { ScreenLoadBoundary } from './components/ScreenLoadBoundary';
 import AuthScreen from './screens/AuthScreen';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { Scale } from 'lucide-react';
@@ -52,20 +53,22 @@ const AppContent: React.FC = () => {
       <div className="relative flex min-w-0 flex-1">
         <Sidebar activeTab={activeTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={setActiveTab} />
         <main className="min-w-0 flex-1">
-          <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
-            {activeTab === 'landing' && <LandingScreen />}
-            {activeTab === 'research' && <ResearchDeskScreen />}
-            {activeTab === 'matter' && <MatterWorkspaceScreen />}
-            {activeTab === 'draft_studio' && <DraftStudioScreen />}
-            {activeTab === 'dashboard' && <DashboardScreen />}
-            {activeTab === 'connections' && <ConnectionsScreen />}
-            {activeTab === 'credits' && <CreditsScreen />}
-            {activeTab === 'account_activity' && <AccountActivityScreen />}
-            {activeTab === 'account_security' && <AccountSecurityScreen />}
-            {activeTab === 'api_keys' && <ApiKeysScreen />}
-            {activeTab === 'for_lawyers_guide' && <ForLawyersGuideScreen />}
-            {activeTab === 'api_docs' && <ApiDocsScreen />}
-          </Suspense>
+          <ScreenLoadBoundary key={activeTab}>
+            <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
+              {activeTab === 'landing' && <LandingScreen />}
+              {activeTab === 'research' && <ResearchDeskScreen />}
+              {activeTab === 'matter' && <MatterWorkspaceScreen />}
+              {activeTab === 'draft_studio' && <DraftStudioScreen />}
+              {activeTab === 'dashboard' && <DashboardScreen />}
+              {activeTab === 'connections' && <ConnectionsScreen />}
+              {activeTab === 'credits' && <CreditsScreen />}
+              {activeTab === 'account_activity' && <AccountActivityScreen />}
+              {activeTab === 'account_security' && <AccountSecurityScreen />}
+              {activeTab === 'api_keys' && <ApiKeysScreen />}
+              {activeTab === 'for_lawyers_guide' && <ForLawyersGuideScreen />}
+              {activeTab === 'api_docs' && <ApiDocsScreen />}
+            </Suspense>
+          </ScreenLoadBoundary>
         </main>
       </div>
 
@@ -107,10 +110,10 @@ const AuthEntry: React.FC<{ route: SiteRoute }> = ({ route }) => {
 
 export const App: React.FC = () => {
   if (typeof window !== 'undefined' && window.location.pathname === '/oauth/consent') {
-    return <AuthProvider><Suspense fallback={<p className="page-container py-16">Carregando autorização…</p>}><OAuthConsentScreen /></Suspense></AuthProvider>;
+    return <AuthProvider><ScreenLoadBoundary><Suspense fallback={<p className="page-container py-16">Carregando autorização…</p>}><OAuthConsentScreen /></Suspense></ScreenLoadBoundary></AuthProvider>;
   }
   if (typeof window !== 'undefined' && window.location.pathname === '/conta/encerramento') {
-    return <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando acompanhamento…</div>}><AccountClosureStatusScreen /></Suspense>;
+    return <ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando acompanhamento…</div>}><AccountClosureStatusScreen /></Suspense></ScreenLoadBoundary>;
   }
   if (typeof window !== 'undefined' && window.location.pathname === '/' && parseBillingReturn(window.location.search)) {
     window.history.replaceState({}, document.title, `/app/conta${window.location.search}${window.location.hash}`);

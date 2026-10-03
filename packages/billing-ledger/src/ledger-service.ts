@@ -62,7 +62,7 @@ export interface LedgerServiceOptions {
 }
 
 export class LedgerService {
-  private static readonly RESERVATION_LEASE_MS = 30_000;
+  private static readonly RESERVATION_LEASE_MS = 60_000;
   private static readonly MAX_SNAPSHOT_BYTES = 8_388_608;
   private readonly db: ForgeLexDatabase;
   private readonly client?: Client;
@@ -96,6 +96,7 @@ export class LedgerService {
   public async executeOperation<T>(params: {
     tenantId: string;
     idempotencyKey: string;
+    requestFingerprint?: string;
     billing: ForgeLexBillingPolicy;
     userId?: string;
     sessionId?: string;
@@ -106,6 +107,7 @@ export class LedgerService {
       const execution = await this.executeBillableOperation({
         tenantId: params.tenantId,
         idempotencyKey: params.idempotencyKey,
+        requestFingerprint: params.requestFingerprint,
         costCents: params.billing.costCents,
         userId: params.userId,
         sessionId: params.sessionId,
@@ -240,6 +242,7 @@ export class LedgerService {
   public async executeBillableOperation<T>(params: {
     tenantId: string;
     idempotencyKey: string;
+    requestFingerprint?: string;
     costCents: number;
     userId?: string;
     sessionId?: string;
@@ -282,6 +285,11 @@ export class LedgerService {
             )
           );
         const existing = existingOperations[0];
+        if (existing && (existing.requestFingerprint ?? undefined) !== params.requestFingerprint) {
+          const failedLegacy = !existing.requestFingerprint && existing.status === 'FAILED';
+          if (!failedLegacy) throw new DomainError('IDEMPOTENCY_CONFLICT',
+            'A chave de idempotência pertence a outra operação ou não possui filtros verificáveis. Nenhuma nova cobrança foi realizada.');
+        }
         if (existing && existing.reservedAmountCents !== costCents) {
           throw new DomainError('IDEMPOTENCY_CONFLICT', 'A chave de idempotência já foi usada com outro custo.');
         }
@@ -310,7 +318,7 @@ export class LedgerService {
 
         if (totalAvailable < costCents) {
           throw new DomainError(
-            'TOOL_EXECUTION_FAILED',
+            'BILLING_INSUFFICIENT_BALANCE',
             `Saldo insuficiente para executar consulta. Necessário R$ ${(costCents / 100).toFixed(2)}, disponível R$ ${(totalAvailable / 100).toFixed(2)}.`,
             { requiredCents: costCents, availableCents: totalAvailable }
           );
@@ -319,6 +327,7 @@ export class LedgerService {
         const leaseExpiresAt = new Date(now.getTime() + LedgerService.RESERVATION_LEASE_MS).toISOString();
         if (existing) {
           await transaction.update(billingOperations).set({
+            requestFingerprint: params.requestFingerprint ?? null,
             status: 'PENDING', leaseOwner, leaseExpiresAt, errorCode: null, updatedAt: nowIso,
           }).where(eq(billingOperations.id, existing.id));
           return { kind: 'execute' as const, id: existing.id, leaseOwner };
@@ -327,6 +336,7 @@ export class LedgerService {
         await transaction.insert(billingOperations).values({
           id, tenantId: params.tenantId, accountId: lockedAccount.id,
           idempotencyKey: params.idempotencyKey, status: 'PENDING', reservedAmountCents: costCents,
+          requestFingerprint: params.requestFingerprint ?? null,
           leaseOwner, leaseExpiresAt, resultSnapshot: null, errorCode: null,
           createdAt: nowIso, updatedAt: nowIso,
         });
@@ -550,7 +560,7 @@ export class LedgerService {
       const promoValid = this.isPromotionValid(lockedAccount.promoExpiresAt);
       const effectivePromo = promoValid ? lockedAccount.promotionalBalanceCents : 0;
       if (lockedAccount.paidBalanceCents + effectivePromo < costCents) {
-        throw new DomainError('TOOL_EXECUTION_FAILED', 'Saldo insuficiente durante a liquidação da reserva.');
+        throw new DomainError('BILLING_INSUFFICIENT_BALANCE', 'Saldo insuficiente durante a liquidação da reserva.');
       }
       const settlement = this.calculateSettlement(lockedAccount, effectivePromo, costCents, promoValid);
       const timestamp = new Date().toISOString();

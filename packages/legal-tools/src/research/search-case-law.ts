@@ -20,6 +20,7 @@ export const SearchCaseLawOutputSchema = z.object({
 });
 
 export type SearchCaseLawOutput = z.infer<typeof SearchCaseLawOutputSchema>;
+export const CASE_LAW_SEARCH_TIMEOUT_MS = 45_000;
 
 export function createSearchCaseLawTool(researchService: ResearchService): AgentTool<SearchCaseLawInput, SearchCaseLawOutput> {
   return {
@@ -29,7 +30,7 @@ export function createSearchCaseLawTool(researchService: ResearchService): Agent
     impactLevel: 'L1_ANALYSIS',
     inputSchema: SearchCaseLawInputSchema,
     outputSchema: SearchCaseLawOutputSchema,
-    timeoutMs: 15000,
+    timeoutMs: CASE_LAW_SEARCH_TIMEOUT_MS,
     execute: async (
       input: SearchCaseLawInput,
       _context: ToolExecutionContext

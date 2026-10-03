@@ -3,6 +3,7 @@ import { buildApp } from './app.js';
 import { FastifyInstance } from 'fastify';
 import { AuthAdapter, hashApiKey, SupabaseIdentityVerifier } from './auth/fastify-auth.js';
 import { AuthenticatedPrincipal, TokenVerifier } from '@forgelex/domain';
+import { ResearchService } from '@forgelex/legal-tools';
 import { createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
 import { runPersistenceMigrations } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
@@ -15,6 +16,7 @@ import { IngestionRunRepository, JurisprudenceRepository, ResearchHistoryReposit
 import type { AccountClosureReconciler } from './account/account-closure-reconciler.js';
 import type { AccountClosureJournal } from './account/account-closure-journal.js';
 import type { AccountClosureRestoreGate } from './account/account-closure-restore.js';
+import { DrizzleQueryError } from 'drizzle-orm';
 
 const testPrincipal: AuthenticatedPrincipal = {
   subjectId: 'subject_test',
@@ -506,6 +508,90 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const get = await app.inject({ method: 'GET', url: '/api/v2/jurisprudencias?q=vazamento&court=STJ&judgmentYear=2022', headers: { ...authHeaders, 'idempotency-key': 'get-year-search-2022' } });
     expect(get.statusCode).toBe(200);
     expect(get.json().results).toEqual([]);
+  });
+
+  it.each([
+    ['TOOL_TIMEOUT', 504, 'TOOL_TIMEOUT'],
+    ['57014', 504, 'TOOL_TIMEOUT'],
+    ['wrapped-57014', 504, 'TOOL_TIMEOUT'],
+    ['TOOL_EXECUTION_FAILED', 503, 'OPERATION_UNAVAILABLE'],
+    ['IDEMPOTENCY_CONFLICT', 409, 'IDEMPOTENCY_CONFLICT'],
+  ])('não trata falha técnica %s como falta de saldo e permite recuperar a operação', async (code, status, expected) => {
+    const key = `technical-failure-${code}`;
+    const headers = { ...authHeaders, 'idempotency-key': key };
+    const payload = { query: 'vazamento', court: 'STJ', judgmentYear: 2023 };
+    const before = await ledgerService.getAvailableBalanceCents('tenant_test');
+    const cause = Object.assign(new Error('technical failure'), { code: code.replace('wrapped-', '') });
+    const failure = code.startsWith('wrapped-') ? new DrizzleQueryError('SELECT private_column', ['private-query'], cause) : cause;
+    const spy = vi.spyOn(ResearchService.prototype, 'searchCaseLaw').mockRejectedValueOnce(failure);
+    try {
+      const failed = await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers, payload });
+      expect(failed.statusCode).toBe(status);
+      expect(failed.json().error).toBe(expected);
+      expect(failed.body).not.toContain('private-query');
+      expect(await ledgerService.getAvailableBalanceCents('tenant_test')).toBe(before);
+      const operations = await client.execute({ sql: 'SELECT status FROM billing_operations WHERE idempotency_key = ?', args: [key] });
+      expect(operations.rows[0]?.status).toBe('FAILED');
+      const recovered = await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers, payload });
+      const replay = await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers, payload });
+      expect(recovered.statusCode).toBe(200);
+      expect(replay.headers['x-idempotent-replay']).toBe('true');
+      expect(await ledgerService.getAvailableBalanceCents('tenant_test')).toBe(before - 20);
+    } finally { spy.mockRestore(); }
+  });
+
+  it('MCP normaliza timeout encapsulado pelo driver sem revelar SQL ou parâmetros', async () => {
+    const cause = Object.assign(new Error('canceling statement due to statement timeout'), { code: '57014' });
+    const spy = vi.spyOn(ResearchService.prototype, 'searchCaseLaw').mockRejectedValueOnce(new DrizzleQueryError('SELECT private_column', ['private-query'], cause));
+    const before = await ledgerService.getAvailableBalanceCents('tenant_test');
+    try {
+      const response = await app.inject({ method: 'POST', url: '/mcp', headers: { ...authHeaders, 'idempotency-key': 'mcp-wrapped-timeout' }, payload: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'research.search_case_law', arguments: { query: 'vazamento', court: 'STJ' } } } });
+      expect(response.json().error.data).toMatchObject({ code: 'TOOL_TIMEOUT', retryable: true });
+      expect(response.body).not.toContain('private-query');
+      expect(response.body).not.toContain('SELECT');
+      expect(await ledgerService.getAvailableBalanceCents('tenant_test')).toBe(before);
+    } finally { spy.mockRestore(); }
+  });
+
+  it.each(['get-authority', 'verify-authority'])('falha técnica em %s gratuito não exige recarga', async (route) => {
+    const spy = vi.spyOn(ResearchService.prototype, 'verifyAuthority').mockRejectedValueOnce(Object.assign(new Error('technical failure'), { code: 'TOOL_TIMEOUT' }));
+    try {
+      const response = await app.inject({ method: 'POST', url: `/api/v2/research/${route}`, headers: { ...authHeaders, 'idempotency-key': 'free-authority-timeout' }, payload: { court: 'STJ', processNumber: 'REsp 1.823.450/SP' } });
+      expect(response.statusCode).toBe(504);
+      expect(response.json().error).toBe('TOOL_TIMEOUT');
+    } finally { spy.mockRestore(); }
+  });
+
+  it('vincula a chave de pesquisa aos filtros e rejeita outro ano sem débito', async () => {
+    const headers = { ...authHeaders, 'idempotency-key': 'bound-search' };
+    const payload = { query: 'vazamento', court: 'STJ', judgmentYear: 2023, limit: 10 };
+    const first = await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers, payload });
+    expect(first.statusCode).toBe(200);
+    const before = await ledgerService.getAvailableBalanceCents('tenant_test');
+    for (const changed of [{ judgmentYear: 2022 }, { query: 'outro termo' }, { limit: 1 }]) {
+      const response = await app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers, payload: { ...payload, ...changed } });
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error).toBe('IDEMPOTENCY_CONFLICT');
+    }
+    expect(await ledgerService.getAvailableBalanceCents('tenant_test')).toBe(before);
+  });
+
+  it.each(['REST', 'MCP'])('preserva replay e formato entre canais começando por %s', async (firstChannel) => {
+    const key = `cross-channel-${firstChannel}`;
+    const headers = { ...authHeaders, 'idempotency-key': key };
+    const payload = { query: 'vazamento', court: 'STJ', judgmentYear: 2023, limit: 10 };
+    const rest = () => app.inject({ method: 'POST', url: '/api/v2/research/search-case-law', headers, payload });
+    const mcp = () => app.inject({ method: 'POST', url: '/mcp', headers, payload: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'research.search_case_law', arguments: payload } } });
+    await (firstChannel === 'REST' ? rest() : mcp());
+    const before = await ledgerService.getAvailableBalanceCents('tenant_test');
+    const restResponse = await rest();
+    const mcpResponse = (await mcp()).json();
+    expect(restResponse.statusCode).toBe(200);
+    expect(restResponse.json().results).toHaveLength(1);
+    expect(restResponse.headers['x-idempotent-replay']).toBe('true');
+    expect(JSON.parse(mcpResponse.result.content[0].text)).toMatchObject({ success: true, data: { total: 1, items: [expect.any(Object)] }, provenance: [restResponse.json().results[0].provenance] });
+    expect(mcpResponse.result.billing.isReplay).toBe(true);
+    expect(await ledgerService.getAvailableBalanceCents('tenant_test')).toBe(before);
   });
 
   it('permite recuperar resultado já debitado quando a gravação do histórico falha', async () => {

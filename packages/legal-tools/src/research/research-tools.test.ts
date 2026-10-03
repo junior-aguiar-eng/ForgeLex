@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ToolRegistry } from '@forgelex/agent-core';
 import { CanonicalFixtureProvider, SourceRouter } from '@forgelex/source-providers';
 import { JurisprudenceSearchService } from '@forgelex/legal-data';
 import { createSearchCaseLawTool, SearchCaseLawInputSchema } from './search-case-law.js';
@@ -96,5 +97,19 @@ describe('Research tools', () => {
 
     expect(result.items).toHaveLength(1);
     expect(liveSearch).not.toHaveBeenCalled();
+  });
+});
+describe('Prazo da pesquisa no índice persistido', () => {
+  it('permite concluir consulta válida que supera o antigo limite de 15 segundos', async () => {
+    const service = createService();
+    const spy = vi.spyOn(service, 'searchCaseLaw').mockImplementationOnce(() => new Promise(resolve => setTimeout(() => resolve({ items: [], total: 0, queryExecuted: 'consulta ampla' }), 16_000)));
+    vi.useFakeTimers();
+    try {
+      const registry = new ToolRegistry();
+      registry.register(createSearchCaseLawTool(service));
+      const completion = registry.executeTool('research.search_case_law', { query: 'consulta ampla', limit: 10 }, context).then(result => ({ result }), error => ({ error }));
+      await vi.advanceTimersByTimeAsync(16_000);
+      expect(await completion).toMatchObject({ result: { success: true, data: { total: 0 } } });
+    } finally { vi.useRealTimers(); spy.mockRestore(); }
   });
 });

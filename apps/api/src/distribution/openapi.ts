@@ -322,6 +322,7 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
       '409': { description: 'Conflito de idempotência ou estado do recurso.' },
       '404': { description: 'Recurso não localizado no tenant autenticado.' },
       '503': { description: 'Infraestrutura jurisprudencial ou provider indisponível.' },
+      ...(route.toolName ? { '504': { description: 'Prazo de execução excedido; repetir com a mesma Idempotency-Key.' } } : {}),
     });
   }
   if (route.path === '/api/v2/account/closure') {
@@ -344,7 +345,7 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
   if (route.path === '/api/v2/account/closure/{closureId}') {
     (operation.responses as Record<string, unknown>)['404'] = { description: 'Acompanhamento desabilitado.' };
   }
-  for (const status of ['400', '401', '402', '403', '404', '409', '422', '503']) {
+  for (const status of ['400', '401', '402', '403', '404', '408', '409', '422', '503', '504']) {
     const responses = operation.responses as Record<string, Record<string, unknown>>;
     if (responses[status]) {
       responses[status] = {

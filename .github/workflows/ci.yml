@@ -59,6 +59,7 @@ jobs:
           --health-retries 12
     env:
       DATABASE_URL: postgres://forgelex:forgelex@127.0.0.1:55432/forgelex
+      FORGELEX_LOCAL_POSTGRES_URL: postgres://forgelex:forgelex@127.0.0.1:55432/forgelex
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -75,6 +76,8 @@ jobs:
         run: node scripts/smoke-research-postgres.mjs
         env:
           FORGELEX_LOCAL_POSTGRES_URL: postgres://forgelex:forgelex@127.0.0.1:55432/forgelex
+      - run: pnpm test:postgres:search
+      - run: pnpm exec vitest run packages/persistence/src/repositories/jurisprudence-repository.test.ts
 
   e2e-product:
     runs-on: ubuntu-latest
@@ -124,6 +127,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e:public
+      - run: pnpm build
+      - run: pnpm test:e2e:chunk-recovery
 
   e2e-account-closure:
     runs-on: ubuntu-latest

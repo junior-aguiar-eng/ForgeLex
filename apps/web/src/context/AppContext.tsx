@@ -28,7 +28,7 @@ interface AppContextType {
   searchCostCents: number | null;
   searchIntent: SearchIntent | null;
   searchExecution: SearchExecution | null;
-  searchFailure: { message: string; intent: SearchIntent; retryable: boolean } | null;
+  searchFailure: { message: string; code: string; intent: SearchIntent; retryable: boolean } | null;
   resolveReview: (item: ReviewQueueItem, decision: 'APPROVED' | 'REJECTED', reason?: string) => Promise<void>;
   verifyAuthority: (court: string, processNumber: string, judgmentDate?: string) => Promise<AuthorityVerification>;
 }
@@ -87,8 +87,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return execution;
     } catch (failure) {
       setSearchFailure({ intent,
+        code: failure instanceof ApiRequestError ? failure.code : 'OPERATION_FAILED',
         message: failure instanceof Error ? failure.message : 'Não foi possível concluir a pesquisa.',
-        retryable: failure instanceof ApiRequestError && (failure.code === 'API_UNAVAILABLE' || failure.status >= 500),
+        retryable: failure instanceof ApiRequestError && (failure.code === 'API_UNAVAILABLE' || failure.status === 408 || failure.status >= 500),
       });
       throw failure;
     }

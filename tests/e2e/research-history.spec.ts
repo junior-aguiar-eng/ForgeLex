@@ -1,6 +1,28 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const searchUrl = '**/api/v2/research/search-case-law';
+test('timeout permite repetir a mesma operação e não oferece recarga de créditos', async ({ page }) => {
+  await login(page);
+  const before = await balance(page);
+  const keys: string[] = [];
+  await page.route(searchUrl, async (route) => {
+    keys.push(route.request().headers()['idempotency-key']);
+    if (keys.length === 1) await route.fulfill({ status: 504, json: { error: 'TOOL_TIMEOUT', message: 'A operação excedeu o tempo de resposta. Tente novamente.' } });
+    else await route.continue();
+  });
+  await page.getByRole('textbox', { name: 'Termo de pesquisa' }).fill('vazamento');
+  await page.getByLabel('Ano do julgamento', { exact: true }).selectOption('2023');
+  await page.getByRole('button', { name: 'Consultar', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('excedeu o tempo');
+  await expect(page.getByRole('button', { name: 'Recarregar créditos', exact: true })).toHaveCount(0);
+  expect(await balance(page)).toBe(before);
+  await page.getByRole('button', { name: 'Pesquisa', exact: true }).click();
+  await page.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
+  await expect(page.getByText('REsp 1.823.450/SP', { exact: true })).toBeVisible();
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).toBe(keys[1]);
+  expect(await balance(page)).toBe(before - 20);
+});
 async function login(page: Page) {
   await page.goto('/entrar');
   await page.getByLabel('E-mail').fill('pesquisa@forgelex.test');
