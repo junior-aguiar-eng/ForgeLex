@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { formatCnjNumber, formatDataJudDate, lookupTjalProcess } from './datajud-client';
+import { formatCnjNumber, formatDataJudDate, lookupDataJudProcess, lookupTjalProcess } from './datajud-client';
 
 vi.mock('./auth/supabase-client', () => ({ supabase: { auth: { getSession: () => { throw new Error('Não consultar sessão'); } } } }));
 const fixture = { court: 'TJAL', billable: false, processNumber: '00000017720258020001', consultedAt: '2026-10-03T12:00:00Z', source: { name: 'CNJ / DataJud', url: 'https://www.cnj.jus.br/sistemas/datajud/api-publica/' }, notice: 'Fonte externa.', truncated: false, records: [] };
@@ -9,12 +9,18 @@ describe('cliente público DataJud', () => {
     vi.stubGlobal('window', { location: { origin: 'https://nexojuris.ia.br' }, localStorage: { getItem: () => { throw new Error('Não consultar token'); } } });
     const upstream = vi.fn<typeof fetch>().mockResolvedValue(Response.json(fixture));
     vi.stubGlobal('fetch', upstream);
-    expect(await lookupTjalProcess('0000001-77.2025.8.02.0001')).toEqual(fixture);
+    expect(await lookupDataJudProcess('tjal', '0000001-77.2025.8.02.0001')).toEqual(fixture);
     const [url, init] = upstream.mock.calls[0]!;
     expect(url).toBe('https://nexojuris.ia.br/api/v2/datajud/tjal/process');
     expect(init).toMatchObject({ method: 'POST', credentials: 'omit', cache: 'no-store', headers: { 'Content-Type': 'application/json' } });
     expect(new Headers(init?.headers).has('authorization')).toBe(false);
     expect(new Headers(init?.headers).has('idempotency-key')).toBe(false);
+  });
+  it('tribunal não integrado não dispara consulta em outro endpoint', async () => {
+    const upstream = vi.fn<typeof fetch>();
+    vi.stubGlobal('fetch', upstream);
+    await expect(lookupDataJudProcess('tjse' as 'tjal', fixture.processNumber)).rejects.toMatchObject({ code: 'DATAJUD_UNSUPPORTED_COURT' });
+    expect(upstream).not.toHaveBeenCalled();
   });
   it.each([{ ...fixture, billable: true }, { ...fixture, records: [{}] }, { ...fixture, court: 'TJSE' }])('rejeita contrato inconsistente antes de exibir os dados', async (body) => {
     vi.stubGlobal('fetch', async () => Response.json(body));

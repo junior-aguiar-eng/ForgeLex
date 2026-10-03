@@ -5,7 +5,7 @@ const navigation = [
   { label: 'Produto', href: '/produto' },
   { label: 'Como funciona', href: '/como-funciona' },
   { label: 'Pesquisa jurídica', href: '/produto#pesquisa' },
-  { label: 'Consulta TJAL', href: '/consulta-processual' },
+  { label: 'Consulta processual', href: '/consulta-processual' },
   { label: 'Integrações', href: '/integracoes' },
   { label: 'Desenvolvedores', href: '/desenvolvedores/api' },
 ] as const;

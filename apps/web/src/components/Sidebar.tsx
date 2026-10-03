@@ -59,8 +59,8 @@ export const Sidebar: React.FC<{
             const active = item.tab === activeTab;
             return <button key={item.tab} type="button" onClick={() => { onSelect(item.tab); onCloseMobile(); if (mobileOpen) document.getElementById('forgelex-menu-toggle')?.focus(); }} aria-current={active ? 'page' : undefined} title={collapsed ? item.label : undefined} className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium transition-colors ${active ? 'bg-cognac-100 text-cognac-900' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'} ${collapsed ? 'lg:justify-center lg:px-2' : ''}`}><Icon className="h-4 w-4 shrink-0" aria-hidden="true" /><span className={collapsed ? 'lg:hidden' : ''}>{item.label}</span></button>;
           })}
-          <a href="/consulta-processual" title={collapsed ? 'Consulta gratuita TJAL' : undefined} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 ${collapsed ? 'lg:justify-center lg:px-2' : ''}`}>
-            <Search className="h-4 w-4 shrink-0" aria-hidden="true" /><span className={collapsed ? 'lg:hidden' : ''}>Consulta gratuita TJAL</span>
+          <a href="/consulta-processual" title={collapsed ? 'Consulta processual gratuita' : undefined} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 ${collapsed ? 'lg:justify-center lg:px-2' : ''}`}>
+            <Search className="h-4 w-4 shrink-0" aria-hidden="true" /><span className={collapsed ? 'lg:hidden' : ''}>Consulta processual gratuita</span>
           </a>
         </nav>
         {!collapsed && <div className="mt-auto border-t border-stone-200/70 p-4 text-xs leading-relaxed text-stone-500">As áreas de conta e integração ficam separadas do trabalho jurídico.</div>}

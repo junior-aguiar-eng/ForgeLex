@@ -23,7 +23,7 @@ export function PublicFooter() {
     {
       title: 'Recursos',
       links: [
-        ['Consulta gratuita TJAL', '/consulta-processual'],
+        ['Consulta processual gratuita', '/consulta-processual'],
         ['Guia para advogados', '/guia'],
         ['Como funciona', '/como-funciona'],
         ['Perguntas frequentes', '/#perguntas'],

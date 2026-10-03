@@ -1,5 +1,15 @@
 # Auditoria e status canônico do ForgeLex
 
+## Consulta processual — seletor de tribunais em validação (03/10/2026)
+
+Tela e navegação gerais com seletor `TJAL — Alagoas`. Configuração central
+para futuros tribunais com endpoints integrados; seleção sem consulta,
+resultado identificado pelo tribunal e preservação da API TJAL atual.
+12 testes unitários e 14 E2E públicos aprovados, incluindo teclado e
+acessibilidade/layout de 375 a 1440 px. Sem mudança de banco/backend,
+cobrança ou prazos. Checkout P2 original preservado.
+Evidência: `docs/operations/stabilization/2026-10-03-datajud-court-selector.md`.
+
 ## DataJud — correção publicada (03/10/2026)
 
 Incidente confirmou formato incompleto legítimo na fonte e lentidão,
