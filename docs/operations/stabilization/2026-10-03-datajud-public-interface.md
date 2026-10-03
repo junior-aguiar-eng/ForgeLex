@@ -12,7 +12,8 @@ Formulário por número CNJ do TJAL, com ou sem máscara. O cliente usa POST
 anônimo, `credentials: omit` e `cache: no-store`, sem Bearer token,
 Idempotency-Key ou chamadas de faturamento. Ref síncrona impede disparos
 concorrentes; botão indica espera e fica desabilitado. Cancelamento ao
-sair da tela e prazo de 20 s no navegador, envolvendo o prazo de 15 s da API.
+sair da tela. Após a correção de 03/10, prazo de 75 s no navegador e 60 s
+na API. [Correção e evidência](./2026-10-03-datajud-response-compatibility.md).
 
 Resultado identifica processo e horário da consulta realizada mesmo após
 alterar o campo do formulário. Exibe registros distintos de grau/classe,

@@ -1,0 +1,378 @@
+{
+  "recordedAt": "2026-10-03T06:19:16.4610777Z",
+  "sourceSha": "8f19255ae16b84f5fa2d256d717b07ad9d6bfc55",
+  "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:9db89ed4a2f27b316e22f16cf78b5e363068e74a0f71aa28748f77bf27e47530",
+  "revision": "forgelex-api-prod-datajud-8f19255",
+  "rollbackRevision": "forgelex-api-prod-datajud-bd5d224",
+  "cloudBuild": {
+    "createTime": "2026-10-03T06:06:18.526781992Z",
+    "finishTime": "2026-10-03T06:09:52.27122Z",
+    "id": "489bdc49-6df4-461f-a7f2-8f36d9d4ee27",
+    "results": {
+      "images": [
+        {
+          "artifactRegistryPackage": "projects/project-bbbe1209-c295-4720-867/locations/southamerica-east1/repositories/forgelex-prod/packages/forgelex-api/versions/sha256:9db89ed4a2f27b316e22f16cf78b5e363068e74a0f71aa28748f77bf27e47530",
+          "digest": "sha256:9db89ed4a2f27b316e22f16cf78b5e363068e74a0f71aa28748f77bf27e47530",
+          "name": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api:8f19255ae16b84f5fa2d256d717b07ad9d6bfc55",
+          "pushTiming": {
+            "endTime": "2026-10-03T06:09:50.775343678Z",
+            "startTime": "2026-10-03T06:09:31.341532149Z"
+          }
+        }
+      ]
+    },
+    "status": "SUCCESS"
+  },
+  "traffic": [
+    {
+      "revisionName": "forgelex-api-prod-datajud-8f19255",
+      "percent": 100
+    }
+  ],
+  "configPreserved": {
+    "existingEnvironmentPreserved": true,
+    "serviceAccountPreserved": true,
+    "resourcesPreserved": true,
+    "concurrencyPreserved": true,
+    "timeoutPreserved": true,
+    "cloudSqlPreserved": true,
+    "restrictedIngress": true,
+    "revisionReady": true,
+    "previousTrafficPreserved": true,
+    "candidateHasNoTraffic": true
+  },
+  "provider": {
+    "event": "datajud.provider.endpoint.probe",
+    "sourceSha": "8f19255ae16b84f5fa2d256d717b07ad9d6bfc55",
+    "revision": "forgelex-api-prod-datajud-8f19255",
+    "apiStatus": 200,
+    "records": 3,
+    "billable": false,
+    "confirmedAt": "2026-10-03T06:11:36.595Z",
+    "requestMarker": "datajud-real-fix-bee0c63f-097b-4f32-a2fe-718b96738e9c",
+    "latencyMs": 18653,
+    "revisionLogConfirmed": true,
+    "separateEmptyJob": {
+      "upstreamStatus": 429,
+      "result": "DATAJUD_RATE_LIMITED",
+      "countsAsSuccess": false
+    }
+  },
+  "promotion": {
+    "sourceSha": "8f19255ae16b84f5fa2d256d717b07ad9d6bfc55",
+    "revision": "forgelex-api-prod-datajud-8f19255",
+    "rollbackRevision": "forgelex-api-prod-datajud-bd5d224",
+    "startedAt": "2026-10-03T06:13:14.1191789Z",
+    "checks": [
+      {
+        "path": "/",
+        "status": 200
+      },
+      {
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "path": "/readyz",
+        "status": 200
+      },
+      {
+        "path": "/consulta-processual",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "status": 200
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200
+      },
+      {
+        "path": "/app",
+        "status": 200
+      },
+      {
+        "path": "/pesquisa",
+        "status": 200
+      },
+      {
+        "path": "/conectar",
+        "status": 200
+      },
+      {
+        "path": "/guia/mcp",
+        "status": 200
+      },
+      {
+        "path": "/desenvolvedores/api",
+        "status": 200
+      },
+      {
+        "path": "/oauth/consent",
+        "status": 200
+      },
+      {
+        "path": "/casos",
+        "status": 200
+      },
+      {
+        "path": "/rascunhos",
+        "status": 200
+      }
+    ],
+    "completed": true,
+    "observation": {
+      "marker": "datajud-d7390e56-6602-48c0-8bff-a68685335660",
+      "startedAt": "2026-10-03T06:13:22.743Z",
+      "completedAt": "2026-10-03T06:15:24.624Z",
+      "successes": 58,
+      "observedRevisions": [
+        "forgelex-api-prod-datajud-8f19255"
+      ],
+      "loggedRequests": 58
+    },
+    "completedAt": "2026-10-03T06:15:35.4697405Z"
+  },
+  "cleanup": {
+    "fullTraffic": true,
+    "backendRemoved": true,
+    "negRemoved": true,
+    "jobRemoved": true,
+    "tagRemoved": true,
+    "candidateRouteRemoved": true
+  },
+  "errorLogEntries": 0,
+  "requestRevisionEvidence": {
+    "candidate": {
+      "httpRequest": {
+        "latency": "18.332149273s",
+        "status": 200
+      },
+      "resource": {
+        "labels": {
+          "revision_name": "forgelex-api-prod-datajud-8f19255"
+        }
+      },
+      "timestamp": "2026-10-03T06:11:17.137498Z"
+    },
+    "public": {
+      "httpRequest": {
+        "latency": "7.363150136s",
+        "status": 200
+      },
+      "resource": {
+        "labels": {
+          "revision_name": "forgelex-api-prod-datajud-8f19255"
+        }
+      },
+      "timestamp": "2026-10-03T06:13:46.267857Z"
+    }
+  },
+  "validation": {
+    "pr": {
+      "databaseId": 37101672441,
+      "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101672441",
+      "headSha": "23e4afab0e26cae494488a80db166f3bbf0cbb51",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "validate",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101672441/job/111142257412"
+        },
+        {
+          "name": "e2e-product",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101672441/job/111142257533"
+        },
+        {
+          "name": "e2e-account-closure",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101672441/job/111142257598"
+        },
+        {
+          "name": "e2e-public",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101672441/job/111142257612"
+        },
+        {
+          "name": "security",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101672441/job/111142257651"
+        },
+        {
+          "name": "postgres",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101672441/job/111142257679"
+        }
+      ]
+    },
+    "main": {
+      "databaseId": 37101931983,
+      "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101931983",
+      "headSha": "8f19255ae16b84f5fa2d256d717b07ad9d6bfc55",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "e2e-account-closure",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101931983/job/111143014015"
+        },
+        {
+          "name": "postgres",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101931983/job/111143014235"
+        },
+        {
+          "name": "validate",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101931983/job/111143014245"
+        },
+        {
+          "name": "e2e-product",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101931983/job/111143014247"
+        },
+        {
+          "name": "security",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101931983/job/111143014259"
+        },
+        {
+          "name": "e2e-public",
+          "conclusion": "success",
+          "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37101931983/job/111143014297"
+        }
+      ]
+    },
+    "candidateBrowser": {
+      "startTime": "2026-10-03T06:11:18.183Z",
+      "duration": 41343.219,
+      "expected": 14,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "publicBrowser": {
+      "startTime": "2026-10-03T06:13:47.421Z",
+      "duration": 39882.061,
+      "expected": 14,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "candidateHttp": {
+      "candidate": true,
+      "marker": "datajud-smoke-c2fc295a-00fd-4c5a-90ca-0583c7e30b95",
+      "recordedAt": "2026-10-03T06:11:17.806Z",
+      "checks": [
+        {
+          "path": "/readyz",
+          "status": 200
+        },
+        {
+          "path": "/api/v2/research/history",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/mcp/connection-status",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/billing/account",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/datajud/tjal/process",
+          "status": 400,
+          "billing": "FREE",
+          "charged": 0,
+          "invalidInput": true
+        },
+        {
+          "path": "/openapi.json",
+          "status": 200,
+          "publicDatajud": true
+        }
+      ]
+    },
+    "publicHttp": {
+      "candidate": false,
+      "marker": "datajud-smoke-174b4dfd-f721-475a-8606-7524fe1c51a2",
+      "recordedAt": "2026-10-03T06:13:46.936Z",
+      "checks": [
+        {
+          "path": "/readyz",
+          "status": 200
+        },
+        {
+          "path": "/api/v2/research/history",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/mcp/connection-status",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/billing/account",
+          "status": 401
+        },
+        {
+          "path": "/api/v2/datajud/tjal/process",
+          "status": 400,
+          "billing": "FREE",
+          "charged": 0,
+          "invalidInput": true
+        },
+        {
+          "path": "/openapi.json",
+          "status": 200,
+          "publicDatajud": true
+        }
+      ]
+    },
+    "candidateProcess": {
+      "candidate": true,
+      "marker": "datajud-real-fix-bee0c63f-097b-4f32-a2fe-718b96738e9c",
+      "recordedAt": "2026-10-03T06:11:36.595Z",
+      "elapsedMs": 18653,
+      "status": 200,
+      "billable": false,
+      "billing": "FREE",
+      "creditsCharged": "0",
+      "cache": "no-store",
+      "records": 3,
+      "movementCounts": [
+        22,
+        38,
+        5
+      ],
+      "missingCodes": 5
+    },
+    "publicProcess": {
+      "candidate": false,
+      "marker": "datajud-real-fix-576edd5c-19fd-4b6a-b666-82e04963ab81",
+      "recordedAt": "2026-10-03T06:13:54.757Z",
+      "elapsedMs": 7681,
+      "status": 200,
+      "billable": false,
+      "billing": "FREE",
+      "creditsCharged": "0",
+      "cache": "no-store",
+      "records": 3,
+      "movementCounts": [
+        22,
+        38,
+        5
+      ],
+      "missingCodes": 5
+    }
+  }
+}
