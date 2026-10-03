@@ -24,6 +24,12 @@ describe('cliente público DataJud', () => {
     vi.stubGlobal('fetch', async () => Response.json({ error: 'DATAJUD_TIMEOUT', message: 'Tente novamente mais tarde.' }, { status: 504 }));
     await expect(lookupTjalProcess('00000017720258020001')).rejects.toMatchObject({ code: 'DATAJUD_TIMEOUT', status: 504 });
   });
+  it('preserva movimentação sem código TPU em vez de rejeitar o processo inteiro', async () => {
+    const body = { ...fixture, records: [{ id: 'fixture', court: 'TJAL', processNumber: fixture.processNumber,
+      subjects: [], movements: [{ name: 'Descrição não informada', occurredAt: '2025-01-01T12:00:00Z' }] }] };
+    vi.stubGlobal('fetch', async () => Response.json(body));
+    expect((await lookupTjalProcess(fixture.processNumber)).records[0].movements).toHaveLength(1);
+  });
   it('formata número CNJ e distingue data compacta de horários com fuso', () => {
     expect(formatCnjNumber('00000017720258020001')).toBe('0000001-77.2025.8.02.0001');
     expect(formatDataJudDate('20250101000000')).toBe('01/01/2025');
