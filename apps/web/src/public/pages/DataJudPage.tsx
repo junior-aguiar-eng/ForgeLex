@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Search, LoaderCircle, ExternalLink } from 'lucide-react';
-import { formatCnjNumber, formatDataJudDate, lookupTjalProcess, type DataJudResult } from '../../datajud-client';
+import { formatCnjNumber, formatDataJudDate, lookupDataJudProcess, type DataJudResult } from '../../datajud-client';
+import { DATAJUD_COURTS, type DataJudCourtId } from '../../datajud-courts';
 import { PageIntro } from './PublicSections';
 
 export function DataJudPage() {
+  const [courtId, setCourtId] = useState<DataJudCourtId>(DATAJUD_COURTS[0].id);
+  const court = DATAJUD_COURTS.find((entry) => entry.id === courtId) ?? DATAJUD_COURTS[0];
   const [number, setNumber] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<DataJudResult | null>(null);
@@ -20,7 +23,7 @@ export function DataJudPage() {
     setError('');
     let timedOut = false;
     const timeout = window.setTimeout(() => { timedOut = true; controller.abort(); }, 75000);
-    try { setResult(await lookupTjalProcess(number, controller.signal)); }
+    try { setResult(await lookupDataJudProcess(courtId, number, controller.signal)); }
     catch (failure) {
       if (controller.signal.aborted && !timedOut) return;
       setError(timedOut ? 'A consulta demorou a responder. Tente novamente mais tarde; este serviço é gratuito.'
@@ -30,27 +33,39 @@ export function DataJudPage() {
 
   return (
     <>
-      <PageIntro eyebrow="Serviço gratuito · CNJ / DataJud" title="Consulta processual do TJAL"
-        text="Consulte os dados públicos e as movimentações de um processo de Alagoas. Acesso gratuito, sem cadastro, assinatura ou compra de créditos." />
+      <PageIntro eyebrow="Serviço gratuito · CNJ / DataJud" title="Consulta processual"
+        text="Consulte os dados públicos e as movimentações de um processo. Selecione o tribunal disponível e informe o número CNJ. Acesso gratuito, sem cadastro, assinatura ou compra de créditos." />
       <section className="page-container space-y-6 pb-16">
         <div className="surface p-5 sm:p-7">
-          <form onSubmit={consult} className="flex flex-col gap-3 sm:flex-row sm:items-end" aria-label="Consultar processo do TJAL">
+          <form onSubmit={consult} className="flex flex-col gap-3 md:flex-row md:items-end" aria-label="Consultar processo">
+            <div className="min-w-0 md:w-52 md:shrink-0">
+              <label htmlFor="datajud-court" className="block text-sm font-semibold text-stone-800">Tribunal</label>
+              <select id="datajud-court" value={courtId} disabled={busy}
+                onChange={(event) => {
+                  const selected = DATAJUD_COURTS.find((entry) => entry.id === event.target.value);
+                  if (selected) setCourtId(selected.id);
+                }}
+                aria-describedby="datajud-court-help" className="mt-2 min-h-12 w-full rounded-xl border border-champagne-border bg-white px-4 text-stone-900 disabled:opacity-70">
+                {DATAJUD_COURTS.map((entry) => <option key={entry.id} value={entry.id}>{entry.label}</option>)}
+              </select>
+              <p id="datajud-court-help" className="mt-2 text-xs text-stone-600">Tribunal do processo.</p>
+            </div>
             <div className="min-w-0 flex-1">
               <label htmlFor="datajud-number" className="block text-sm font-semibold text-stone-800">Número do processo</label>
               <input id="datajud-number" type="text" inputMode="numeric" autoComplete="off" required maxLength={25}
-                pattern="(?:[0-9]{20}|[0-9]{7}-[0-9]{2}\.[0-9]{4}\.8\.02\.[0-9]{4})"
-                title="Informe os 20 dígitos de um número CNJ do TJAL, com ou sem máscara."
-                placeholder="NNNNNNN-DD.AAAA.8.02.OOOO" value={number} onChange={(event) => setNumber(event.target.value)}
+                pattern={`(?:[0-9]{20}|[0-9]{7}-[0-9]{2}\\.[0-9]{4}\\.${court.cnjSegment.replaceAll('.', '\\.')}\\.[0-9]{4})`}
+                title={`Informe os 20 dígitos de um número CNJ do ${court.code}, com ou sem máscara.`}
+                placeholder={`NNNNNNN-DD.AAAA.${court.cnjSegment}.OOOO`} value={number} onChange={(event) => setNumber(event.target.value)}
                 aria-describedby="datajud-number-help" className="mt-2 min-h-12 w-full rounded-xl border border-champagne-border bg-white px-4 text-stone-900" />
-              <p id="datajud-number-help" className="mt-2 text-xs text-stone-600">Use a numeração CNJ do TJAL, com ou sem pontuação.</p>
+              <p id="datajud-number-help" className="mt-2 text-xs text-stone-600">Use a numeração CNJ do {court.code}, com ou sem pontuação.</p>
             </div>
-            <button type="submit" disabled={busy} className="btn-primary min-h-12 sm:mb-6 disabled:opacity-70">
+            <button type="submit" disabled={busy} className="btn-primary min-h-12 md:mb-6 disabled:opacity-70">
               {busy ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Search className="h-4 w-4" aria-hidden="true" />}
               {busy ? 'Consultando…' : 'Consultar'}
             </button>
           </form>
           <p className="mt-5 border-t border-champagne-border pt-4 text-sm leading-6 text-stone-600">
-            Fonte: CNJ / DataJud, com dados remetidos pelo TJAL. As informações podem estar incompletas ou desatualizadas.
+            Fonte: CNJ / DataJud, com dados remetidos pelo {court.code}. As informações podem estar incompletas ou desatualizadas.
             Confirme a situação do processo e os prazos no tribunal. Esta consulta não guarda um histórico dos processos.
           </p>
         </div>
@@ -60,7 +75,7 @@ export function DataJudPage() {
           <section role="region" aria-labelledby="datajud-result-heading" className="space-y-5">
             <div>
               <h2 id="datajud-result-heading" className="font-editorial text-2xl font-bold text-stone-900">Resultado da consulta</h2>
-              <p className="mt-2 break-words text-base font-semibold text-stone-800">Processo {formatCnjNumber(result.processNumber)}</p>
+              <p className="mt-2 break-words text-base font-semibold text-stone-800">{result.court} · Processo {formatCnjNumber(result.processNumber)}</p>
               <p className="mt-1 text-sm text-stone-600">Consultado em {formatDataJudDate(result.consultedAt)} · Horários em Brasília</p>
             </div>
             {result.records.length === 0 && <div className="surface p-6"><h3 className="font-semibold text-stone-900">Nenhum registro retornado</h3>

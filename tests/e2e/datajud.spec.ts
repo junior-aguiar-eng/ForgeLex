@@ -26,11 +26,20 @@ test('visitante consulta por teclado sem conta, credencial ou débito', async ({
     await route.fulfill({ json: result });
   });
   await page.goto('/consulta-processual');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Consulta processual do TJAL');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Consulta processual');
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://nexojuris.ia.br/consulta-processual');
+  const court = page.getByRole('combobox', { name: 'Tribunal', exact: true });
+  await expect(court).toHaveValue('tjal');
+  await expect(court.getByRole('option')).toHaveText(['TJAL — Alagoas']);
+  await court.focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Tab');
+  await expect(page.getByLabel('Número do processo', { exact: true })).toBeFocused();
+  expect(calls).toBe(0);
   await page.getByLabel('Número do processo', { exact: true }).fill(number);
   await page.getByLabel('Número do processo', { exact: true }).press('Enter');
   await expect(page.getByRole('region', { name: 'Resultado da consulta' })).toContainText('Conclusão fictícia');
+  await expect(page.getByRole('region', { name: 'Resultado da consulta' })).toContainText('TJAL');
   await expect(page.getByRole('heading', { level: 3, name: /Procedimento Comum Cível/ })).toBeVisible();
   await expect(page.getByText('Vara fictícia', { exact: true })).toBeVisible();
   await expect(page.getByRole('main')).toContainText('CNJ / DataJud');
@@ -49,6 +58,7 @@ test('cliques e Enter durante a espera executam uma consulta e preservam a ident
   try {
     await field.press('Enter');
     await expect(page.getByRole('button', { name: 'Consultando…' })).toBeDisabled();
+    await expect(page.getByRole('combobox', { name: 'Tribunal', exact: true })).toBeDisabled();
     await field.press('Enter');
     await field.press('Enter');
   } finally { release(); }
@@ -124,7 +134,7 @@ test('resultados extensos e entradas de graus distintos são acessíveis e respo
     movements: [{ code: 3, name: 'Movimentação fictícia de segundo grau', occurredAt: '2025-02-02T12:00:00.000Z' }],
   }] };
   await page.route('**/api/v2/datajud/tjal/process', async (route) => route.fulfill({ json: fixture }));
-  for (const width of [375, 768, 1024, 1440]) {
+  for (const width of [375, 768, 1024, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/consulta-processual');
     await page.getByLabel('Número do processo', { exact: true }).fill(number);

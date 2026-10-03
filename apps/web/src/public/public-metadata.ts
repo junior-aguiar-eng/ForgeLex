@@ -46,8 +46,8 @@ const metadata: Record<PublicPage, { title: string; description: string; path: s
     path: '/desenvolvedores/api',
   },
   datajud: {
-    title: 'Consulta gratuita TJAL · ForgeLex',
-    description: 'Consulte gratuitamente dados públicos e movimentações do TJAL pelo CNJ / DataJud, sem cadastro ou créditos.',
+    title: 'Consulta processual gratuita · ForgeLex',
+    description: 'Consulte gratuitamente dados públicos e movimentações dos tribunais disponíveis pelo CNJ / DataJud, sem cadastro ou créditos.',
     path: '/consulta-processual',
   },
   not_found: {

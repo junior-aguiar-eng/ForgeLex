@@ -26,7 +26,9 @@ afterEach(() => vi.unstubAllGlobals());
 describe('entrada pública de autenticação', () => {
   it('consulta TJAL abre sem provedor de autenticação ou saldo', () => {
     const html = renderRoute('/consulta-processual');
-    expect(html).toContain('Consulta processual do TJAL');
+    expect(html).toContain('Consulta processual');
+    expect(html).toContain('Tribunal');
+    expect(html).toContain('TJAL — Alagoas');
     expect(html).toContain('Número do processo');
     expect(html).not.toContain('Entre no ForgeLex');
   });
