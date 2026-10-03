@@ -1,6 +1,6 @@
 import { isKnownPath, tabForPath, type AppTab } from './routes';
 
-export type PublicPage = 'home' | 'product' | 'how' | 'integrations' | 'credits' | 'guide' | 'api_docs' | 'not_found';
+export type PublicPage = 'home' | 'product' | 'how' | 'integrations' | 'credits' | 'guide' | 'api_docs' | 'datajud' | 'not_found';
 
 export type SiteRoute =
   | { kind: 'public'; page: PublicPage }
@@ -14,6 +14,7 @@ const publicPaths: Record<string, PublicPage> = {
   '/integracoes': 'integrations',
   '/creditos': 'credits',
   '/guia': 'guide',
+  '/consulta-processual': 'datajud',
   '/desenvolvedores/api': 'api_docs',
 };
 

@@ -28,7 +28,7 @@ response = httpx.get('${apiUrl}/api/v2/jurisprudencias',
           {[
             [
               'Autenticação',
-              'Crie uma API key no app autenticado. O segredo é exibido uma vez e deve ser enviado como Bearer token.',
+              'Nas operações protegidas, crie uma API key no app autenticado e envie-a como Bearer token. A consulta pública TJAL dispensa autenticação.',
             ],
             [
               'Fluxo jurídico',
@@ -44,6 +44,11 @@ response = httpx.get('${apiUrl}/api/v2/jurisprudencias',
               <p className="mt-3 text-sm leading-6 text-stone-600">{body}</p>
             </article>
           ))}
+        </div>
+        <div className="surface p-6">
+          <h2 className="font-editorial text-xl font-bold">Consulta pública gratuita TJAL</h2>
+          <p className="mt-3 text-sm leading-6 text-stone-600">Use POST /api/v2/datajud/tjal/process com um objeto contendo processNumber, o número CNJ do TJAL. Não exige conta, saldo, assinatura ou Idempotency-Key e não gera débito. Os dados básicos e as movimentações têm origem no CNJ / DataJud; não são resultados da pesquisa jurisprudencial paga.</p>
+          <a href="/consulta-processual" className="btn-secondary mt-5">Abrir consulta gratuita</a>
         </div>
         <div className="surface p-6">
           <div className="flex items-center gap-2">

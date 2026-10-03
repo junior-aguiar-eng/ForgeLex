@@ -1,9 +1,12 @@
 import type { FastifyInstance } from 'fastify';
+import { isIP } from 'node:net';
 import { createRequestAbortSignal } from '../distribution/request-abort-signal.js';
 import { DataJudError, DataJudProcessRequestSchema, DataJudTjalClient } from './datajud-tjal-client.js';
 
-export function registerDataJudRoutes(app: FastifyInstance, client: DataJudTjalClient): void {
-  // Limites locais por instância. Não confia em cabeçalhos de IP enviados pelo cliente.
+export function registerDataJudRoutes(app: FastifyInstance, client: DataJudTjalClient, trustedLbIps: readonly string[] = []): void {
+  // Somente em ingress restrito ao balanceador: GCP acrescenta cliente e LB
+  // à direita. Prefixos enviados pelo usuário não definem a quota.
+  const trusted = new Set(trustedLbIps.filter((ip) => isIP(ip)));
   const windows = new Map<string, { count: number; until: number }>();
   let globalWindow = { count: 0, until: 0 };
   let active = 0;
@@ -14,15 +17,23 @@ export function registerDataJudRoutes(app: FastifyInstance, client: DataJudTjalC
     const input = DataJudProcessRequestSchema.safeParse(request.body);
     if (!input.success) return reply.code(400).send({ error: 'DATAJUD_INVALID_PROCESS_NUMBER', message: 'Informe somente um número CNJ válido do TJAL, com ou sem máscara.' });
     const now = Date.now();
+    let clientIp = request.ip;
+    const forwarded = request.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string') {
+      const parts = forwarded.split(',').map((part) => part.trim());
+      const last = parts.at(-1);
+      const candidate = parts.at(-2);
+      if (last && trusted.has(last) && candidate && isIP(candidate)) clientIp = candidate;
+    }
     for (const [ip, window] of windows) if (window.until <= now) windows.delete(ip);
     if (globalWindow.until <= now) globalWindow = { count: 0, until: now + 60000 };
-    const window = windows.get(request.ip) ?? { count: 0, until: now + 60000 };
+    const window = windows.get(clientIp) ?? { count: 0, until: now + 60000 };
     if (window.count >= 10 || globalWindow.count >= 60 || active >= 4 || windows.size >= 1000) {
       return reply.header('Retry-After', '60').code(429).send({ error: 'DATAJUD_RATE_LIMITED', message: 'Limite temporário de consultas. Aguarde um minuto e tente novamente.' });
     }
     window.count++;
     globalWindow.count++;
-    windows.set(request.ip, window);
+    windows.set(clientIp, window);
     active++;
     const abort = createRequestAbortSignal(request.raw);
     try {

@@ -24,6 +24,12 @@ function renderRoute(pathname: string, hash = ''): string {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('entrada pública de autenticação', () => {
+  it('consulta TJAL abre sem provedor de autenticação ou saldo', () => {
+    const html = renderRoute('/consulta-processual');
+    expect(html).toContain('Consulta processual do TJAL');
+    expect(html).toContain('Número do processo');
+    expect(html).not.toContain('Entre no ForgeLex');
+  });
   it('mostra nova senha ao receber callback de recuperação na raiz', () => {
     const html = renderRoute('/', '#type=recovery&access_token=synthetic');
     expect(html).toContain('Escolha uma nova senha');

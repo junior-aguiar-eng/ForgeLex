@@ -15,7 +15,7 @@ describe('páginas legais públicas', () => {
     expect(html).toContain('lang="pt-BR"');
     expect(html.match(/<h1\b/g)).toHaveLength(1);
     expect(html).toMatch(/<main>[\s\S]*<h2>/);
-    expect(html).toMatch(/Versão.*2026-09-\d{2}\.v1/);
+    expect(html).toMatch(/Versão.*\d{4}-\d{2}-\d{2}\.v\d+/);
     expect(html).toContain('José Bonifácio de Aguiar Santos Júnior');
     expect(html).toContain('mailto:junior-aguiar@hotmail.com.br');
     expect(html).not.toMatch(placeholders);

@@ -148,7 +148,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   });
   const environment = options.environment ?? process.env;
-  registerDataJudRoutes(app, new DataJudTjalClient({ apiKey: environment.FORGELEX_DATAJUD_API_KEY }));
+  registerDataJudRoutes(app, new DataJudTjalClient({ apiKey: environment.FORGELEX_DATAJUD_API_KEY }),
+    environment.FORGELEX_DATAJUD_TRUSTED_LB_IPS?.split(',').map((ip) => ip.trim()));
   if (environment.NODE_ENV !== 'test' &&
     (environment.FORGELEX_ACCOUNT_CLOSURE_ENABLED === 'true' ||
       environment.FORGELEX_ACCOUNT_CLOSURE_SCHEDULER_ENABLED === 'true') &&

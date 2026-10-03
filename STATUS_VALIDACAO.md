@@ -1,5 +1,17 @@
 # Auditoria e status canônico do ForgeLex
 
+## DataJud TJAL — interface gratuita em validação (03/10/2026)
+
+Tela pública `/consulta-processual` implementada em `codex/datajud-tjal`,
+com menu público/workspace, resultado identificado e cliente anônimo,
+independente de cadastro ou saldo. Limite por IP reconhece somente o
+balanceador explicitamente configurado, com ingress restrito.
+13 E2E públicos aprovados, com fixtures e acessibilidade responsiva.
+Suíte integral: 627 testes aprovados/cinco ignorados, exit 0; build,
+lint e typecheck aprovados. CI e publicação registradas ao concluir
+a implantação.
+Evidências e limites: `docs/operations/stabilization/2026-10-03-datajud-public-interface.md`.
+
 ## DataJud TJAL — endpoint gratuito em branch isolada (02/10/2026)
 
 Primeira etapa de backend em `codex/datajud-tjal`, baseada em main

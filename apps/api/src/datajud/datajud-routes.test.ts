@@ -31,9 +31,9 @@ describe('Consulta gratuita DataJud TJAL', () => {
   let ledger: LedgerService;
   let app: FastifyInstance;
   let upstream = vi.fn<typeof fetch>();
-  const makeApp = (key = 'public-test-key') => buildApp({
+  const makeApp = (key = 'public-test-key', trustedLbIps = '') => buildApp({
     database: connection.db, databaseClient: connection.client, ledgerService: ledger,
-    environment: { NODE_ENV: 'test', FORGELEX_DATAJUD_API_KEY: key },
+    environment: { NODE_ENV: 'test', FORGELEX_DATAJUD_API_KEY: key, FORGELEX_DATAJUD_TRUSTED_LB_IPS: trustedLbIps },
   });
   const consult = (value: unknown = { processNumber }) => app.inject({ method: 'POST', url: path, payload: value });
 
@@ -168,6 +168,20 @@ describe('Consulta gratuita DataJud TJAL', () => {
     expect((await consult()).statusCode).toBe(503);
     expect((await app.inject('/healthz')).statusCode).toBe(200);
     expect(upstream).not.toHaveBeenCalled();
+  });
+  it('usa o IP acrescentado pelo balanceador conhecido e ignora prefixos forjados', async () => {
+    await app.close();
+    app = await makeApp('public-test-key', '192.0.2.200');
+    const forwarded = (prefix: string, client = '198.51.100.7', lb = '192.0.2.200') => app.inject({
+      method: 'POST', url: path, payload: { processNumber },
+      headers: { 'x-forwarded-for': `${prefix}, ${client}, ${lb}` },
+    });
+    for (let i = 0; i < 10; i++) expect((await forwarded(`203.0.113.${i}`)).statusCode).toBe(200);
+    expect((await forwarded('203.0.113.100')).statusCode).toBe(429);
+    expect((await forwarded('203.0.113.100', '198.51.100.8')).statusCode).toBe(200);
+    // Balanceador desconhecido: volta ao IP de transporte, sem confiar no header.
+    for (let i = 0; i < 10; i++) expect((await forwarded('forged', `198.51.100.${i}`, '192.0.2.201')).statusCode).toBe(200);
+    expect((await forwarded('forged', '198.51.100.99', '192.0.2.201')).statusCode).toBe(429);
   });
   it('limita consultas simultâneas e libera vagas quando terminam', async () => {
     let release!: () => void;
