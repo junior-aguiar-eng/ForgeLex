@@ -78,6 +78,32 @@ test('falha e resultado vazio têm mensagens distintas e nenhum pedido para reca
   await expect(page.getByRole('main')).toContainText('não comprova');
 });
 
+test('espera uma fonte que demora mais de 20 segundos e mostra movimento sem código', async ({ page }) => {
+  await page.clock.install();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  let calls = 0;
+  await page.route('**/api/v2/datajud/tjal/process', async (route) => {
+    calls++;
+    await gate;
+    await route.fulfill({ json: { ...result, records: [{ ...result.records[0], movements: [
+      { name: 'Descrição não informada', occurredAt: '2025-02-01T12:00:00Z' },
+    ] }] } });
+  });
+  await page.goto('/consulta-processual');
+  await page.getByLabel('Número do processo', { exact: true }).fill(number);
+  try {
+    await page.getByRole('button', { name: 'Consultar', exact: true }).click();
+    await expect.poll(() => calls).toBe(1);
+    await page.clock.fastForward(21000);
+    await expect(page.getByRole('button', { name: 'Consultando…' })).toBeDisabled();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  } finally { release(); }
+  await expect(page.getByRole('region', { name: 'Resultado da consulta' })).toContainText('Descrição não informada');
+  await expect(page.getByRole('region', { name: 'Resultado da consulta' })).not.toContainText('undefined');
+  expect(calls).toBe(1);
+});
+
 test('entrada incompleta não dispara chamada e a consulta não fica na URL ou no armazenamento local', async ({ page }) => {
   let calls = 0;
   await page.route('**/api/v2/datajud/tjal/process', async (route) => { calls++; await route.fulfill({ json: result }); });

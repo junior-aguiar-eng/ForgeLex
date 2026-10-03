@@ -3,6 +3,15 @@ import { DataJudTjalClient } from './datajud-tjal-client.js';
 
 const input = { processNumber: '00000017720258020001' };
 describe('Limites de execução DataJud', () => {
+  it('mantém prazo de 30 segundos para a fonte, sem chamadas adicionais', async () => {
+    const deadline = vi.spyOn(AbortSignal, 'timeout');
+    const upstream = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ timed_out: false, _shards: { failed: 0 }, hits: { total: { value: 0, relation: 'eq' }, hits: [] } }));
+    try {
+      await new DataJudTjalClient({ apiKey: 'fixture', fetchImpl: upstream }).lookup(input);
+      expect(deadline).toHaveBeenCalledWith(30000);
+      expect(upstream).toHaveBeenCalledOnce();
+    } finally { deadline.mockRestore(); }
+  });
   it('interrompe espera de rede e não transforma timeout em resultado vazio', async () => {
     const client = new DataJudTjalClient({ apiKey: 'fixture', timeoutMs: 10, fetchImpl: async (_, options) => {
       return new Promise<Response>((_, reject) => options!.signal!.addEventListener('abort', () => reject(options!.signal!.reason), { once: true }));

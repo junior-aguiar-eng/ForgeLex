@@ -19,7 +19,7 @@ export function DataJudPage() {
     setBusy(true);
     setError('');
     let timedOut = false;
-    const timeout = window.setTimeout(() => { timedOut = true; controller.abort(); }, 20000);
+    const timeout = window.setTimeout(() => { timedOut = true; controller.abort(); }, 45000);
     try { setResult(await lookupTjalProcess(number, controller.signal)); }
     catch (failure) {
       if (controller.signal.aborted && !timedOut) return;
@@ -81,7 +81,7 @@ export function DataJudPage() {
                   {entry.movements.length === 0 ? <p className="mt-3 text-sm text-stone-600">Movimentações não retornadas pelo DataJud.</p>
                     : <ol className="mt-4 divide-y divide-stone-200">{entry.movements.map((movement, position) => <li key={`${movement.code}:${movement.occurredAt}:${position}`} className="py-3">
                       <p className="break-words text-sm font-medium text-stone-800">{movement.name}</p>
-                      <p className="mt-1 text-xs text-stone-600">{formatDataJudDate(movement.occurredAt)} · Código {movement.code}</p>
+                      <p className="mt-1 text-xs text-stone-600">{formatDataJudDate(movement.occurredAt)}{movement.code !== undefined ? ` · Código ${movement.code}` : ''}</p>
                     </li>)}</ol>}
                 </details>
               </article>

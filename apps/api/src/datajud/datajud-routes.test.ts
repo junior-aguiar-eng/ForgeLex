@@ -89,6 +89,31 @@ describe('Consulta gratuita DataJud TJAL', () => {
   it('aceita número sem máscara', async () => {
     expect((await consult({ processNumber: digits })).statusCode).toBe(200);
   });
+  it('aceita formatos reais: município nulo, órgão com código textual e movimento sem código/descrição', async () => {
+    upstream.mockImplementation(async () => Response.json(envelope([{
+      ...source, orgaoJulgador: { ...source.orgaoJulgador, codigoMunicipioIBGE: null },
+      movimentos: [
+        { codigo: 2, nome: 'Movimento fictício', dataHora: '2025-02-01T12:00:00Z', orgaoJulgador: { codigo: '123', nome: 'Órgão fictício' } },
+        { codigo: null, nome: null, dataHora: '2025-01-01T12:00:00Z' },
+        { dataHora: '2024-12-31T12:00:00Z' },
+      ],
+    }])));
+    const response = await consult();
+    expect(response.statusCode).toBe(200);
+    expect(response.json().records[0].judgingBody).not.toHaveProperty('codigoMunicipioIBGE');
+    expect(response.json().records[0].movements).toEqual([
+      { code: 2, name: 'Movimento fictício', occurredAt: '2025-02-01T12:00:00Z', judgingBody: { codigoOrgao: 123, nomeOrgao: 'Órgão fictício' } },
+      { name: 'Descrição não informada', occurredAt: '2025-01-01T12:00:00Z' },
+      { name: 'Descrição não informada', occurredAt: '2024-12-31T12:00:00Z' },
+    ]);
+    expect(response.headers['x-credits-charged']).toBe('0');
+  });
+  it('não converte código textual malformado em zero ou número inventado', async () => {
+    upstream.mockImplementation(async () => Response.json(envelope([{
+      ...source, movimentos: [{ codigo: '', nome: 'Fictício', dataHora: '2025-01-01T12:00:00Z' }],
+    }])));
+    expect((await consult()).statusCode).toBe(502);
+  });
   it('resposta vazia informa ausência na fonte sem afirmar inexistência do processo', async () => {
     upstream.mockImplementation(async () => Response.json(envelope([])));
     const response = await consult();

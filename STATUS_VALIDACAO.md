@@ -1,5 +1,18 @@
 # Auditoria e status canônico do ForgeLex
 
+## DataJud — correção de formato e prazos em validação (03/10/2026)
+
+Incidente real: fonte respondeu 200 em 16,817/21,960 s, mas a integração
+rejeitou município nulo, códigos de órgão textuais, formato `codigo/nome`
+e movimento sem código/descrição. Sem evidência de restrição por horário.
+Correção isolada em `codex/datajud-response-compatibility`: normalização
+dos metadados, movimento sem código preservado e prazos API/navegador
+30/45 s. Número, sigilo e identidade continuam estritos; sem retries
+automáticos, cobrança ou persistência. 46 testes específicos e 14 E2E
+públicos aprovados; build/lint/typecheck e suíte integral aprovados:
+631 testes/cinco ignorados, exit 0. Publicação será registrada após gates.
+Evidência: `docs/operations/stabilization/2026-10-03-datajud-response-compatibility.md`.
+
 ## DataJud TJAL — consulta gratuita integrada e publicada (03/10/2026)
 
 Tela pública `/consulta-processual` implementada em `codex/datajud-tjal`,

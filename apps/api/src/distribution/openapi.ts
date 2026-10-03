@@ -38,7 +38,7 @@ const OPENAPI_SCHEMAS = {
           judgingBody: { type: 'object', required: ['codigo', 'nome'], properties: { codigo: { type: 'integer' }, nome: { type: 'string' }, codigoMunicipioIBGE: { type: 'integer' } } },
           sourceUpdatedAt: { type: 'string' }, indexedAt: { type: 'string' },
           movements: { type: 'array', items: {
-            type: 'object', additionalProperties: false, required: ['code', 'name', 'occurredAt'],
+            type: 'object', additionalProperties: false, required: ['name', 'occurredAt'],
             properties: { code: { type: 'integer' }, name: { type: 'string' }, occurredAt: { type: 'string' },
               complements: { type: 'array', items: { type: 'object', required: ['codigo'], properties: { codigo: { type: 'integer' }, descricao: { type: 'string' }, valor: { type: ['number', 'string'] }, nome: { type: 'string' } } } },
               judgingBody: { type: 'object', required: ['codigoOrgao', 'nomeOrgao'], properties: { codigoOrgao: { type: 'integer' }, nomeOrgao: { type: 'string' } } },
@@ -391,7 +391,7 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
       '429': { description: 'Limite temporário de requisições por IP/instância ou na fonte.', headers: { 'Retry-After': { schema: { type: 'string' } } } },
       '502': { description: 'Resposta inconsistente, sigilosa ou parcial da fonte; não apresentada como resultado.' },
       '503': { description: 'DataJud indisponível ou chave pública não configurada.' },
-      '504': { description: 'DataJud excedeu o prazo de 15 segundos.' },
+      '504': { description: 'DataJud excedeu o prazo de 30 segundos.' },
     });
     responses['200']!.headers = {
       'X-ForgeLex-Billing-Mode': { schema: { type: 'string', enum: ['FREE'] } },

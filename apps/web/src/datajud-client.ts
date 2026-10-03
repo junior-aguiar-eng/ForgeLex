@@ -6,7 +6,7 @@ export interface DataJudRecord {
   subjects: Array<{ codigo: number; nome: string }>;
   judgingBody?: { codigo: number; nome: string; codigoMunicipioIBGE?: number };
   sourceUpdatedAt?: string; indexedAt?: string;
-  movements: Array<{ code: number; name: string; occurredAt: string }>;
+  movements: Array<{ code?: number; name: string; occurredAt: string }>;
 }
 export interface DataJudResult {
   court: 'TJAL'; processNumber: string; billable: false; consultedAt: string;
@@ -27,7 +27,7 @@ function validResult(value: unknown): value is DataJudResult {
     && (item.caseClass === undefined || namedCode(item.caseClass)) && (item.judgingBody === undefined || namedCode(item.judgingBody))
     && Array.isArray(item.subjects) && item.subjects.every(namedCode)
     && Array.isArray(item.movements) && item.movements.every((movement: unknown) => record(movement)
-      && typeof movement.code === 'number' && typeof movement.name === 'string' && typeof movement.occurredAt === 'string'
+      && (movement.code === undefined || typeof movement.code === 'number') && typeof movement.name === 'string' && typeof movement.occurredAt === 'string'
       && Number.isFinite(Date.parse(movement.occurredAt))));
 }
 

@@ -25,20 +25,32 @@ export const DataJudProcessRequestSchema = z.object({
   }),
 }).strict();
 
-const namedCode = z.object({ codigo: z.number().int(), nome: z.string().max(2000) });
-const movementSchema = namedCode.extend({
+// O DataJud mistura números e códigos numéricos textuais, sem aceitar strings vazias.
+const numericCode = z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).pipe(z.number().int().nonnegative().safe());
+const namedCode = z.object({ codigo: numericCode, nome: z.string().max(2000) });
+const movementOrgan = z.object({
+  codigo: numericCode.nullish(), nome: z.string().max(2000).nullish(),
+  codigoOrgao: numericCode.nullish(), nomeOrgao: z.string().max(2000).nullish(),
+}).transform((organ) => {
+  const code = organ.codigo ?? organ.codigoOrgao;
+  const name = organ.nome ?? organ.nomeOrgao;
+  return code !== undefined && code !== null && name ? { codigoOrgao: code, nomeOrgao: name } : undefined;
+});
+const movementSchema = z.object({
+  codigo: numericCode.nullish().transform((value) => value ?? undefined),
+  nome: z.string().max(2000).nullish().transform((value) => value?.trim() || 'Descrição não informada'),
   dataHora: z.string().max(100).datetime({ offset: true }),
   complementosTabelados: z.array(z.object({
     codigo: z.number().int(), descricao: z.string().max(2000).optional(),
     valor: z.union([z.number(), z.string().max(2000)]).optional(), nome: z.string().max(2000).optional(),
   })).max(100).optional(),
-  orgaoJulgador: z.object({ codigoOrgao: z.number().int(), nomeOrgao: z.string().max(2000) }).optional(),
+  orgaoJulgador: movementOrgan.nullish().transform((value) => value ?? undefined),
 });
 const recordSchema = z.object({
   id: z.string().min(1).max(300), tribunal: z.literal('TJAL'), numeroProcesso: z.string(), nivelSigilo: z.literal(0),
   grau: z.string().max(40).optional(), dataAjuizamento: z.string().max(100).optional(),
   classe: namedCode.optional(), assuntos: z.array(namedCode).max(500).optional(),
-  orgaoJulgador: namedCode.extend({ codigoMunicipioIBGE: z.number().int().optional() }).optional(),
+  orgaoJulgador: namedCode.extend({ codigoMunicipioIBGE: numericCode.nullish().transform((value) => value ?? undefined) }).optional(),
   movimentos: z.array(movementSchema).max(10000).optional(),
   dataHoraUltimaAtualizacao: z.string().max(100).optional(), '@timestamp': z.string().max(100).optional(),
 });
@@ -89,7 +101,7 @@ export class DataJudTjalClient {
     const { processNumber } = DataJudProcessRequestSchema.parse(input);
     const apiKey = this.options.apiKey?.trim();
     if (!apiKey) throw new DataJudError('DATAJUD_UNAVAILABLE');
-    const deadline = AbortSignal.timeout(this.options.timeoutMs ?? 15000);
+    const deadline = AbortSignal.timeout(this.options.timeoutMs ?? 30000);
     const combined = signal ? AbortSignal.any([deadline, signal]) : deadline;
     try {
       const response = await (this.options.fetchImpl ?? fetch)(DATAJUD_TJAL_ENDPOINT, {
