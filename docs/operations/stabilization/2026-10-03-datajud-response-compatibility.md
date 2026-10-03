@@ -50,5 +50,32 @@ em 198,38 s. Uma tentativa após correção recebeu timeout da fonte aos
 504 em 30,608 s. Diagnóstico com prazo de 60 s recebeu e normalizou
 três registros em 31,832 s, comprovando que 30 s ainda era prematuro.
 O ajuste de 60/75 s mantém prazo finito e uma única chamada.
-CI, versão e implantação serão registrados
-após conclusão. Não foi necessário alterar banco ou aplicar migration.
+CI, versão e implantação confirmados abaixo. Não foi necessário alterar banco ou aplicar migration.
+
+## Publicação confirmada
+
+PRs #38 e #39 integradas; fonte final de código `8f19255ae16b84f5fa2d256d717b07ad9d6bfc55`.
+Seis checks aprovados na PR #39 e em main, incluindo PostgreSQL e E2E.
+Cloud Build `489bdc49-6df4-461f-a7f2-8f36d9d4ee27`: SUCCESS.
+Imagem: `southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:9db89ed4a2f27b316e22f16cf78b5e363068e74a0f71aa28748f77bf27e47530`.
+Revisão `forgelex-api-prod-datajud-8f19255` a 100% em https://nexojuris.ia.br.
+Rollback preservado: `forgelex-api-prod-datajud-bd5d224`. Sem migration.
+
+14 E2E no frontend remoto da candidata e 14 no domínio normal aprovados,
+com resposta fictícia no teste de processo. Teste separado do processo
+informado pelo usuário no endpoint produtivo: HTTP 200 em
+7.681 s, 3 registros, cobrança FREE/zero créditos,
+no-store. O recibo guarda somente contagens, status e duração, sem número,
+nomes ou conteúdo processual. O teste preenchido comprova normalização
+real e conectividade Cloud Run → CNJ. Uma tentativa separada com
+`match_none` em job recebeu 429 do provedor e não conta como sucesso.
+
+Observação após promoção: 58 readyz 200 em
+121.881 s, logs confirmando somente a nova revisão.
+Configuração anterior preservada. API gratuita mantém 400 para entrada
+inválida; histórico, conta financeira e status MCP sem credencial mantêm
+401. Helpers de candidata removidos; 0 logs ERROR na conferência
+final desta revisão. Checkout P2 original preservado.
+
+Evidência sanitizada: [recibo](./2026-10-03-datajud-response-compatibility-proof.json).
+Disponibilidade contínua da fonte externa não é garantida por estes testes.

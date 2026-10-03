@@ -1,17 +1,26 @@
 # Auditoria e status canônico do ForgeLex
 
-## DataJud — correção de formato e prazos em validação (03/10/2026)
+## DataJud — correção publicada (03/10/2026)
 
-Incidente real: fonte respondeu 200 em 16,817/21,960 s, mas a integração
-rejeitou município nulo, códigos de órgão textuais, formato `codigo/nome`
-e movimento sem código/descrição. Sem evidência de restrição por horário.
-Correção isolada em `codex/datajud-response-compatibility`: normalização
-dos metadados, movimento sem código preservado e prazos API/navegador
-60/75 s. Número, sigilo e identidade continuam estritos; sem retries
-automáticos, cobrança ou persistência. 46 testes específicos e 14 E2E
-públicos aprovados; build/lint/typecheck e suíte integral aprovados:
-631 testes/cinco ignorados, exit 0. Publicação será registrada após gates.
-Evidência: `docs/operations/stabilization/2026-10-03-datajud-response-compatibility.md`.
+Incidente confirmou formato incompleto legítimo na fonte e lentidão,
+sem evidência de interrupção por horário. Metadados nulos/ausentes e
+códigos textuais normalizados; prazos API/navegador 60/75 s, uma chamada
+gratuita e sem retry automático. Número, sigilo e identidade estritos.
+46 testes específicos e 14 E2E locais aprovados; build/lint/typecheck.
+Suíte integral serial anterior ao último ajuste: 631 aprovados/cinco
+ignorados. PR #39/main com os seis checks aprovados.
+
+Fonte de código `8f19255ae16b84f5fa2d256d717b07ad9d6bfc55`;
+Cloud Build `489bdc49-6df4-461f-a7f2-8f36d9d4ee27`: SUCCESS.
+Digest `sha256:9db89ed4a2f27b316e22f16cf78b5e363068e74a0f71aa28748f77bf27e47530`;
+revisão `forgelex-api-prod-datajud-8f19255` a **100%**.
+14 E2E na candidata e 14 no domínio normal aprovados (fixtures).
+Consulta preenchida real HTTP 200, 3 registros em 7.681 s,
+FREE/zero créditos/no-store, sem conteúdo processual nos recibos.
+Readiness observado por 122 s com logs da nova revisão;
+configuração preservada e helpers temporários removidos. Sem migration.
+Rollback: `forgelex-api-prod-datajud-bd5d224`. P2 original preservado.
+Evidências e limites: `docs/operations/stabilization/2026-10-03-datajud-response-compatibility.md`.
 
 ## DataJud TJAL — consulta gratuita integrada e publicada (03/10/2026)
 
