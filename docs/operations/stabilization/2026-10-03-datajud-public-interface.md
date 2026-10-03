@@ -5,6 +5,8 @@ Continuação do endpoint em `9c00738`, na branch isolada
 visual existente e dispensa AuthProvider, cadastro, assinatura e saldo.
 Links disponíveis no menu/rodapé público e no menu lateral do workspace.
 Recurso apresentado como consulta gratuita, separado do catálogo remunerado.
+A página e os menus agora usam Consulta processual, com seletor de tribunais
+integrados. [Seletor e publicação](./2026-10-03-datajud-court-selector.md).
 
 ## Comportamento
 
