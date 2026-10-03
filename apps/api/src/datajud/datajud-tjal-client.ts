@@ -101,7 +101,7 @@ export class DataJudTjalClient {
     const { processNumber } = DataJudProcessRequestSchema.parse(input);
     const apiKey = this.options.apiKey?.trim();
     if (!apiKey) throw new DataJudError('DATAJUD_UNAVAILABLE');
-    const deadline = AbortSignal.timeout(this.options.timeoutMs ?? 30000);
+    const deadline = AbortSignal.timeout(this.options.timeoutMs ?? 60000);
     const combined = signal ? AbortSignal.any([deadline, signal]) : deadline;
     try {
       const response = await (this.options.fetchImpl ?? fetch)(DATAJUD_TJAL_ENDPOINT, {

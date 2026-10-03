@@ -3,12 +3,12 @@ import { DataJudTjalClient } from './datajud-tjal-client.js';
 
 const input = { processNumber: '00000017720258020001' };
 describe('Limites de execução DataJud', () => {
-  it('mantém prazo de 30 segundos para a fonte, sem chamadas adicionais', async () => {
+  it('mantém prazo de 60 segundos para a fonte, sem chamadas adicionais', async () => {
     const deadline = vi.spyOn(AbortSignal, 'timeout');
     const upstream = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ timed_out: false, _shards: { failed: 0 }, hits: { total: { value: 0, relation: 'eq' }, hits: [] } }));
     try {
       await new DataJudTjalClient({ apiKey: 'fixture', fetchImpl: upstream }).lookup(input);
-      expect(deadline).toHaveBeenCalledWith(30000);
+      expect(deadline).toHaveBeenCalledWith(60000);
       expect(upstream).toHaveBeenCalledOnce();
     } finally { deadline.mockRestore(); }
   });

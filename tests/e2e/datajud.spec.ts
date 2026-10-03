@@ -78,7 +78,7 @@ test('falha e resultado vazio têm mensagens distintas e nenhum pedido para reca
   await expect(page.getByRole('main')).toContainText('não comprova');
 });
 
-test('espera uma fonte que demora mais de 20 segundos e mostra movimento sem código', async ({ page }) => {
+test('espera uma fonte que demora mais de 60 segundos e mostra movimento sem código', async ({ page }) => {
   await page.clock.install();
   let release!: () => void;
   const gate = new Promise<void>((resolve) => { release = resolve; });
@@ -95,7 +95,7 @@ test('espera uma fonte que demora mais de 20 segundos e mostra movimento sem có
   try {
     await page.getByRole('button', { name: 'Consultar', exact: true }).click();
     await expect.poll(() => calls).toBe(1);
-    await page.clock.fastForward(21000);
+    await page.clock.fastForward(61000);
     await expect(page.getByRole('button', { name: 'Consultando…' })).toBeDisabled();
     await expect(page.getByRole('alert')).toHaveCount(0);
   } finally { release(); }

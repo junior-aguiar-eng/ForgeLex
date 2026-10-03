@@ -7,7 +7,7 @@ rejeitou município nulo, códigos de órgão textuais, formato `codigo/nome`
 e movimento sem código/descrição. Sem evidência de restrição por horário.
 Correção isolada em `codex/datajud-response-compatibility`: normalização
 dos metadados, movimento sem código preservado e prazos API/navegador
-30/45 s. Número, sigilo e identidade continuam estritos; sem retries
+60/75 s. Número, sigilo e identidade continuam estritos; sem retries
 automáticos, cobrança ou persistência. 46 testes específicos e 14 E2E
 públicos aprovados; build/lint/typecheck e suíte integral aprovados:
 631 testes/cinco ignorados, exit 0. Publicação será registrada após gates.

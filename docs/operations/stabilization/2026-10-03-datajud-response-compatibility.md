@@ -27,7 +27,7 @@ opcional na resposta OpenAPI e no cliente; tela não exibe código ausente.
 Não relaxa número CNJ, identidade do processo, tribunal, sigilo, validação
 das datas ou rejeição de resposta parcial/excessiva.
 
-Prazo da fonte: 30 s; navegador: 45 s, incluindo margem de transporte/início
+Prazo da fonte: 60 s; navegador: 75 s, incluindo margem de transporte/início
 da instância. Não executa retry automático, chamadas extras, caching de
 resultados, armazenamento permanente ou cobrança. Quotas/concorrência
 permanecem. Indisponibilidade real do CNJ continua possível e distinguida
@@ -38,12 +38,17 @@ de resultado vazio.
 Fixtures independentes dos dados reais. Red/green: resposta válida com
 nulos/códigos textuais/campos ausentes, rejeição de código vazio, limite
 da fonte e contrato do cliente. 46 testes específicos aprovados. Teste
-de navegador reproduz espera de 21 s com relógio simulado e confirma
+de navegador reproduz espera de 61 s com relógio simulado e confirma
 uma chamada, botão desabilitado e movimento sem código. 14 E2E públicos
-aprovados em 50,9 s, incluindo acessibilidade/layout existentes.
+aprovados em 61,5 s após o ajuste de prazo, incluindo acessibilidade/layout existentes.
 
-Build, lint e typecheck aprovados. Suíte integral serial: 114 arquivos
+Build, lint e typecheck aprovados. Suíte integral serial na revisão
+`43ea6e6` anterior ao último ajuste de prazo: 114 arquivos
 aprovados/dois ignorados; 631 testes aprovados/cinco ignorados, exit 0,
 em 198,38 s. Uma tentativa após correção recebeu timeout da fonte aos
-30,012 s; não é prova de sucesso. CI, versão e implantação serão registrados
+30,012 s; não é prova de sucesso. A candidata com 30 s também retornou
+504 em 30,608 s. Diagnóstico com prazo de 60 s recebeu e normalizou
+três registros em 31,832 s, comprovando que 30 s ainda era prematuro.
+O ajuste de 60/75 s mantém prazo finito e uma única chamada.
+CI, versão e implantação serão registrados
 após conclusão. Não foi necessário alterar banco ou aplicar migration.
