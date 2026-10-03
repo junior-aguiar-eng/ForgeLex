@@ -1,13 +1,22 @@
 # Auditoria e status canônico do ForgeLex
 
-## Consulta processual — seletor de tribunais em validação (03/10/2026)
+## Consulta processual — seletor publicado (03/10/2026)
 
-Tela e navegação gerais com seletor `TJAL — Alagoas`. Configuração central
-para futuros tribunais com endpoints integrados; seleção sem consulta,
-resultado identificado pelo tribunal e preservação da API TJAL atual.
-12 testes unitários e 14 E2E públicos aprovados, incluindo teclado e
-acessibilidade/layout de 375 a 1440 px. Sem mudança de banco/backend,
-cobrança ou prazos. Checkout P2 original preservado.
+Página e navegação gerais, seletor `TJAL — Alagoas` e configuração central
+dos tribunais integrados. A seleção não consulta nem cobra; resultado
+identifica seu tribunal. Outros tribunais exigem integrar seu endpoint e
+acrescentar a configuração, preservando a mesma tela. API TJAL, banco,
+faturamento, autenticação e prazos de 60/75 s preservados.
+12 testes unitários e 14 E2E locais aprovados; build/lint/typecheck.
+PR #41/main com seis checks aprovados. Fonte `b639b5755292841a708cb2549eabb979411ee359`.
+Cloud Build `ea830490-b7cc-48c5-aec0-743bc3045547`: SUCCESS;
+digest `sha256:3cfb253cf9706e69cbc6040adf33d48812af12084366837dae30d147ed730448`;
+revisão `forgelex-api-prod-datajud-b639b57` a **100%**.
+14 E2E na candidata e 14 no domínio normal aprovados (fixtures), com
+teclado, acessibilidade/layout e inspeção visual em 375/1440 px.
+57 readyz 200 em 120 s, logs da revisão publicada. Configuração
+preservada e helpers removidos. Sem migration ou novas consultas reais.
+Rollback: `forgelex-api-prod-datajud-8f19255`. P2 original preservado.
 Evidência: `docs/operations/stabilization/2026-10-03-datajud-court-selector.md`.
 
 ## DataJud — correção publicada (03/10/2026)
