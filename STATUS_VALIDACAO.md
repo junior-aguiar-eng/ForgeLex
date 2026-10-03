@@ -1,6 +1,6 @@
 # Auditoria e status canônico do ForgeLex
 
-## DataJud TJAL — interface gratuita em validação (03/10/2026)
+## DataJud TJAL — consulta gratuita integrada e publicada (03/10/2026)
 
 Tela pública `/consulta-processual` implementada em `codex/datajud-tjal`,
 com menu público/workspace, resultado identificado e cliente anônimo,
@@ -8,8 +8,26 @@ independente de cadastro ou saldo. Limite por IP reconhece somente o
 balanceador explicitamente configurado, com ingress restrito.
 13 E2E públicos aprovados, com fixtures e acessibilidade responsiva.
 Suíte integral: 627 testes aprovados/cinco ignorados, exit 0; build,
-lint e typecheck aprovados. CI e publicação registradas ao concluir
-a implantação.
+lint e typecheck aprovados. PR #36 integrada em
+`bd5d224d140ae93b8e83db7d8247149a92f88f3e`, com seis checks aprovados
+na PR e em main. Cloud Build `ddc1855a-af81-4405-932c-4383428b2855`:
+SUCCESS; digest `sha256:6fa2906a8c584d4a12c7f6559224eda7e7e10cb5f977579d55af68154c560eac`.
+Revisão `forgelex-api-prod-datajud-bd5d224` a **100%** em
+https://nexojuris.ia.br/consulta-processual. Sem migration nova.
+Configurações preexistentes preservadas; chave pública CNJ somente no
+backend e balanceador `34.160.73.22` explicitamente confiável.
+
+13 E2E no frontend remoto da candidata e 13 novamente no domínio normal,
+com respostas fictícias, aprovados. Cloud Run → CNJ: `match_none` HTTP 200
+às `2026-10-03T04:41:21.995Z`, zero processos/nenhuma operação faturável.
+Primeiras tentativas da fonte tiveram 429 e timeout; não contam como sucesso.
+Observação a 100%: 58 readyz 200 em 121,946 s, todos confirmados na nova
+revisão. API gratuita rejeita entrada inválida com 400/FREE/zero créditos;
+histórico, conta financeira e status MCP sem credencial continuam 401.
+Rollback: `forgelex-api-prod-audit-30c94de`. Checkout P2 original preservado.
+Rota/backend/NEG/tag temporários e job de verificação removidos; revisão
+mantida a 100%, zero logs ERROR na conferência final. Recibo sanitizado:
+`docs/operations/stabilization/2026-10-03-datajud-publication-proof.json`.
 Evidências e limites: `docs/operations/stabilization/2026-10-03-datajud-public-interface.md`.
 
 ## DataJud TJAL — endpoint gratuito em branch isolada (02/10/2026)
