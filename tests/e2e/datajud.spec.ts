@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 const number = '0000001-77.2025.8.02.0001';
@@ -12,6 +12,96 @@ const result = {
     movements: [{ code: 2, name: 'Conclusão fictícia', occurredAt: '2025-02-01T12:00:00.000Z' }],
   }],
 };
+
+// Autenticação e todas as APIs são fictícias, inclusive ao testar os assets publicados.
+async function mockWorkspace(page: Page) {
+  const user = { id: '00000000-0000-4000-8000-000000000001', email: 'datajud@forgelex.test', aud: 'authenticated', role: 'authenticated',
+    app_metadata: { provider: 'email' }, user_metadata: { full_name: 'Conta fictícia DataJud' }, created_at: '2026-01-01T00:00:00Z' };
+  const now = Math.floor(Date.now() / 1000);
+  const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: user.id, aud: 'authenticated', exp: now + 3600, iat: now })).toString('base64url')}.fixture`;
+  const state = { calls: 0, paid: 0, logout: 0, identity: 0 };
+  await page.route('**/auth/v1/**', async (route) => {
+    if (route.request().url().includes('/token?grant_type=password')) {
+      await route.fulfill({ json: { access_token: token, token_type: 'bearer', expires_in: 3600, expires_at: now + 3600, refresh_token: 'fixture-refresh', user } });
+    } else if (route.request().url().includes('/user')) await route.fulfill({ json: user });
+    else { state.logout++; await route.fulfill({ status: 400, json: { message: 'Unexpected fixture auth request' } }); }
+  });
+  await page.route('**/api/v2/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === '/api/v2/datajud/tjal/process') {
+      state.calls++;
+      expect(request.headers().authorization).toBeUndefined();
+      expect(request.headers()['idempotency-key']).toBeUndefined();
+      await route.fulfill({ json: result });
+    } else if (path === '/api/v2/auth/me') {
+      state.identity++;
+      expect(request.headers().authorization).toBe(`Bearer ${token}`);
+      await route.fulfill({ json: { user: { ...user, displayName: 'Conta fictícia DataJud', status: 'ACTIVE' }, workspace: { id: 'fixture-workspace', name: 'Fictício', status: 'ACTIVE' }, membership: { role: 'OWNER', status: 'ACTIVE' } } });
+    } else if (path === '/api/v2/auth/bootstrap') await route.fulfill({ json: {} });
+    else if (request.method() !== 'GET') { state.paid++; await route.fulfill({ status: 400, json: { error: 'UNEXPECTED_OPERATION' } }); }
+    else await route.fulfill({ json: { tribunals: [], items: [], balanceCents: 1000, searchCostCents: 20 } });
+  });
+  await page.goto('/entrar');
+  await page.getByLabel('E-mail', { exact: true }).fill(user.email);
+  await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-ficticia-controlada');
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(page).toHaveURL(/\/app$/);
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  return state;
+}
+
+test('consulta interna mantém sessão, menu e navegação; acesso direto e recarga conservam o workspace', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const state = await mockWorkspace(page);
+  await page.evaluate(() => Reflect.set(window, '__navigationFixture', 'same-document'));
+  const consultation = page.getByRole('button', { name: 'Consulta processual gratuita', exact: true });
+  await consultation.focus();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/app\/consulta-processual$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Consulta processual');
+  await expect(consultation).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByText('Conta fictícia DataJud', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Criar acesso', exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => Reflect.get(window, '__navigationFixture'))).toBe('same-document');
+  expect(state.calls).toBe(0);
+  await page.getByLabel('Número do processo', { exact: true }).fill(number);
+  await page.getByRole('button', { name: 'Consultar', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Resultado da consulta' })).toContainText('Conclusão fictícia');
+  await page.screenshot({ path: testInfo.outputPath('workspace-desktop.png'), fullPage: true });
+  await page.goBack();
+  await expect(page).toHaveURL(/\/app$/);
+  await page.goForward();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Consulta processual');
+  await page.reload();
+  await expect(consultation).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByText('Conta fictícia DataJud', { exact: true })).toBeVisible();
+  await expect(page).toHaveTitle('ForgeLex · Consulta processual');
+  expect(state.calls).toBe(1);
+  expect(state.paid).toBe(0);
+  expect(state.logout).toBe(0);
+  expect(state.identity).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+});
+
+test('consulta interna mobile fecha o menu e permanece protegida para visitante', async ({ page }, testInfo) => {
+  await page.goto('/app/consulta-processual');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Entre no ForgeLex');
+  await page.setViewportSize({ width: 375, height: 812 });
+  const state = await mockWorkspace(page);
+  await page.getByRole('button', { name: 'Abrir menu lateral', exact: true }).click();
+  await page.getByRole('button', { name: 'Consulta processual gratuita', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/consulta-processual$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Consulta processual');
+  await expect(page.getByRole('button', { name: 'Abrir menu lateral', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Consulta processual gratuita', exact: true })).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(state.calls).toBe(0);
+  expect(state.paid).toBe(0);
+  expect(state.logout).toBe(0);
+  await page.screenshot({ path: testInfo.outputPath('workspace-mobile.png'), fullPage: true });
+});
 
 test('visitante consulta por teclado sem conta, credencial ou débito', async ({ page }) => {
   let calls = 0;

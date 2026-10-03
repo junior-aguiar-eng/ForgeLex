@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext';
 import { Scale } from 'lucide-react';
 import { parseBillingReturn } from './billing-return';
 import { PublicSite } from './public/PublicSite';
+import { DataJudPage } from './public/pages/DataJudPage';
 import { resolveSiteRoute, safeWorkspaceDestination, type SiteRoute } from './navigation/site-routes';
 
 const LandingScreen = lazy(() => import('./screens/LandingScreen').then(({ LandingScreen: screen }) => ({ default: screen })));
@@ -57,6 +58,7 @@ const AppContent: React.FC = () => {
             <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
               {activeTab === 'landing' && <LandingScreen />}
               {activeTab === 'research' && <ResearchDeskScreen />}
+              {activeTab === 'datajud' && <DataJudPage />}
               {activeTab === 'matter' && <MatterWorkspaceScreen />}
               {activeTab === 'draft_studio' && <DraftStudioScreen />}
               {activeTab === 'dashboard' && <DashboardScreen />}

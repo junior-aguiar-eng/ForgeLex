@@ -1,4 +1,4 @@
-export type AppTab = 'landing' | 'research' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'account_activity' | 'account_security' | 'account_closure_status' | 'api_keys' | 'for_lawyers_guide' | 'api_docs';
+export type AppTab = 'landing' | 'research' | 'datajud' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'account_activity' | 'account_security' | 'account_closure_status' | 'api_keys' | 'for_lawyers_guide' | 'api_docs';
 
 export type AppRoute = {
   tab: AppTab;
@@ -9,6 +9,7 @@ export type AppRoute = {
 const routes: readonly AppRoute[] = [
   { tab: 'landing', path: '/app', title: 'Visão geral' },
   { tab: 'research', path: '/app/pesquisa', title: 'Pesquisa' },
+  { tab: 'datajud', path: '/app/consulta-processual', title: 'Consulta processual' },
   { tab: 'matter', path: '/app/casos', title: 'Casos' },
   { tab: 'draft_studio', path: '/app/rascunhos', title: 'Rascunhos' },
   { tab: 'dashboard', path: '/app/revisao', title: 'Revisão' },
