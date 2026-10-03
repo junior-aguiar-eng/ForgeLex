@@ -1,16 +1,35 @@
 # Auditoria e status canônico do ForgeLex
 
-## Auditoria corretiva do estado atual — validação final (02/10/2026)
+## Auditoria corretiva do estado atual — integrada e publicada (02/10/2026)
 
-Branch `codex/current-state-audit`, isolada de main em `a7bae827`, com o
-checkout P2 original preservado. Corrigidos classificação de timeout como
-pagamento, vínculo da chave aos filtros e replay REST/MCP, aprovação por
-versão e recuperação de telas lazy. Projeção compacta da pesquisa e prazos
-SQL/ferramenta/reserva de 40/45/60 s, fundamentados em leitura real do
-acervo. O incidente observado não liquidou débito. Migration aditiva
-`billing-ledger-0008-request-fingerprint` deve preceder a aplicação.
-Evidências e limites: `docs/operations/stabilization/2026-10-02-current-state-audit.md`.
-A versão publicada abaixo ainda permanece vigente nesta etapa.
+PR #34 integrada em `30c94de67dfc0a4a95420f079bdac46eaa0ee5d4`, com os
+seis checks da PR e de main aprovados. Corrigidos classificação de timeout
+como pagamento, vínculo da chave ao usuário/filtros e replay REST/MCP,
+aprovação por versão e recuperação de telas lazy. Checkout P2 original
+preservado. Suíte local: 583 testes aprovados/cinco ignorados; build, lint,
+typecheck e testes PostgreSQL aprovados.
+
+Cloud Build `b51683ea-9a36-4877-a4ad-6ae2ed8955b4`: SUCCESS; digest
+`sha256:a504e57f7b0e783a7276cef2f168b5430b76d969c19ef4eb791b5a437201d485`.
+Revisão `forgelex-api-prod-audit-30c94de` a **100%** em
+https://nexojuris.ia.br. Migration aditiva
+`billing-ledger-0008-request-fingerprint` aplicada antes da aplicação,
+às `2026-10-03T01:13:32.245Z`, preservando contagens de histórico,
+operações e débitos. Rollback: `forgelex-api-prod-research-01fedab`,
+podendo manter a coluna adicional.
+
+Projeção compacta e prazos SQL/ferramenta/reserva de 40/45/60 s.
+Consulta direta somente leitura com a imagem nova: 20 julgados de 2025
+em 16,819 s, sem operação faturável. O incidente anterior tinha zero
+débitos associados. Oito E2E passaram no frontend remoto da candidata
+e oito novamente no domínio normal; Auth/API/saldo eram fictícios e locais.
+Observação a 100%: 162 readyz 200 em 121,459 s, confirmados na nova revisão;
+14 rotas finais retornaram 200. Configuração operacional preservada.
+
+Evidências, limpeza dos recursos temporários e limites:
+`docs/operations/stabilization/2026-10-02-current-state-audit.md` e recibo
+JSON associado. Sem alteração de infraestrutura, estorno ou novo
+armazenamento permanente dos resultados.
 
 ## Pesquisa, histórico e ano do julgamento — integrados e publicados (02/10/2026)
 

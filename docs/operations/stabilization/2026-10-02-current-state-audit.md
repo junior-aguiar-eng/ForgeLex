@@ -85,5 +85,52 @@ não foi feita migração disruptiva de estilos. A revisão de código não
 identificou falha concreta de isolamento/autorização nas superfícies
 examinadas. Esses checks não demonstram ausência de todo bug no projeto.
 
-A publicação e seus recibos de versão, migration, candidata, tráfego e
-rollback serão registrados nesta mesma frente após os gates finais.
+## Integração e implantação concluídas
+
+PR [#34](https://github.com/junior-aguiar-eng/ForgeLex/pull/34), merge
+`30c94de67dfc0a4a95420f079bdac46eaa0ee5d4`. CI da PR
+`37084625417` e de main `37084906720`: seis checks aprovados em cada uma
+(`validate`, `postgres`, `e2e-product`, `e2e-public`,
+`e2e-account-closure`, `security`). Build de clone limpo de main,
+SHA confirmado contra o remoto; upload sem arquivos privados.
+
+Cloud Build `b51683ea-9a36-4877-a4ad-6ae2ed8955b4`: SUCCESS,
+finalizado às `2026-10-03T01:12:30.451738Z`. Imagem por digest
+`sha256:a504e57f7b0e783a7276cef2f168b5430b76d969c19ef4eb791b5a437201d485`.
+Migration `billing-ledger-0008-request-fingerprint` aplicada às
+`2026-10-03T01:13:32.245Z`, antes da candidata, com coluna `text`
+nullable e contagens de histórico, operações e débitos preservadas.
+
+Candidata `forgelex-api-prod-audit-30c94de` validada inicialmente com
+zero tráfego público. Env e referências de secrets, service account,
+recursos, concorrência, timeout do serviço, Cloud SQL e ingress
+preservados. Logs comprovam que a rota de validação serviu essa revisão.
+Oito E2E passaram no frontend remoto. Na primeira execução, um interceptador
+da ponte de teste usou `route.continue`, produzindo um pedido com credencial
+fictícia rejeitado por autenticação (401). A ponte foi corrigida para
+`route.fallback`; os oito testes finais usaram Auth/API/SQLite/saldo locais.
+Nenhuma operação paga em produção foi executada.
+
+Um job somente leitura, com a própria imagem nova e
+`default_transaction_read_only=on`, recuperou 20 julgados de 2025 em
+**16.819 ms**, confirmou timeout SQL de 40 s e ferramenta de 45 s e
+restauração do timeout da sessão fora da transação. Não chamou API
+faturável nem gravou histórico. Sua primeira execução falhou apenas na
+asserção do texto SQL por diferença de espaços; a asserção foi corrigida
+e a repetição passou. O resultado de leitura não é um teste pago de conta
+real nem uma garantia de duração universal.
+
+Promoção direta a 100% evita mistura de assets entre versões. Observação
+de `2026-10-03T01:23:54.076Z` a `01:25:55.535Z`: 162 respostas readyz
+200 em 121,459 s, comprovadas nos logs da nova revisão; 14 rotas finais
+retornaram 200. Oito E2E passaram novamente no domínio normal,
+https://nexojuris.ia.br, sem seletor da candidata e com APIs locais.
+Promoção concluída às `2026-10-03T01:26:06.8357068Z`.
+
+Rollback preservado: `forgelex-api-prod-research-01fedab` a 100%, caso
+necessário, mantendo a coluna aditiva. Rota, backend, NEG, tag e jobs desta
+frente removidos, com recursos anteriores preservados. Inventário e logs
+conferidos às `2026-10-03T01:28:55.1910661Z`: nenhum log ERROR da nova
+revisão e nenhum recurso temporário desta auditoria remanescente.
+O recibo [JSON](2026-10-02-current-state-audit-proof.json) registra o
+inventário final, tráfego, logs, limpeza e os limites das verificações.
