@@ -9,6 +9,7 @@ describe('rotas do espaço de trabalho', () => {
   it.each([
     ['landing', '/app', 'Visão geral'],
     ['research', '/app/pesquisa', 'Pesquisa'],
+    ['datajud', '/app/consulta-processual', 'Consulta processual'],
     ['matter', '/app/casos', 'Casos'],
     ['draft_studio', '/app/rascunhos', 'Rascunhos'],
     ['dashboard', '/app/revisao', 'Revisão'],
@@ -26,6 +27,7 @@ describe('rotas do espaço de trabalho', () => {
 
   it.each([
     ['/app', 'landing'],
+    ['/app/consulta-processual', 'datajud'],
     ['/pesquisa', 'research'],
     ['/casos', 'matter'],
     ['/rascunhos', 'draft_studio'],
