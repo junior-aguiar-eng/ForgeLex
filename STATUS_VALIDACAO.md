@@ -1,5 +1,21 @@
 # Auditoria e status canônico do ForgeLex
 
+## DataJud TJAL — endpoint gratuito em branch isolada (02/10/2026)
+
+Primeira etapa de backend em `codex/datajud-tjal`, baseada em main
+`a1e717a554f3d03be9c3cffcc711b43902ce0536`. Nova consulta pública
+`POST /api/v2/datajud/tjal/process`, sem conta, saldo, assinatura,
+operação financeira ou armazenamento permanente. OpenAPI e configuração
+da chave pública somente no backend. Checkout P2 original preservado.
+
+Build, lint e typecheck aprovados. `pnpm test --maxWorkers=1` passou:
+618 testes aprovados/cinco ignorados, exit 0. A primeira execução geral
+teve erro de worker e foi descartada como gate de aprovação.
+35 testes específicos aprovados com dados fictícios; verificação gratuita
+do endpoint oficial por `match_none` retornou HTTP 200, sem processos.
+Interface e publicação ainda pendentes nesta etapa. Evidências e limites:
+`docs/operations/stabilization/2026-10-02-datajud-tjal-endpoint.md`.
+
 ## Auditoria corretiva do estado atual — integrada e publicada (02/10/2026)
 
 PR #34 integrada em `30c94de67dfc0a4a95420f079bdac46eaa0ee5d4`, com os
