@@ -5,6 +5,7 @@ const navigation = [
   { label: 'Produto', href: '/produto' },
   { label: 'Como funciona', href: '/como-funciona' },
   { label: 'Pesquisa jurídica', href: '/produto#pesquisa' },
+  { label: 'Consulta TJAL', href: '/consulta-processual' },
   { label: 'Integrações', href: '/integracoes' },
   { label: 'Desenvolvedores', href: '/desenvolvedores/api' },
 ] as const;
@@ -54,7 +55,7 @@ export function PublicHeader() {
           </span>
           <span className="font-editorial text-xl font-bold">ForgeLex</span>
         </a>
-        <nav className="ml-auto hidden items-center gap-1 lg:flex" aria-label="Navegação pública">
+        <nav className="ml-auto hidden items-center gap-1 xl:flex" aria-label="Navegação pública">
           {navigation.map((item) => (
             <a
               key={item.href}
@@ -65,7 +66,7 @@ export function PublicHeader() {
             </a>
           ))}
         </nav>
-        <div className="ml-auto hidden items-center gap-2 sm:flex lg:ml-3">
+        <div className="ml-auto hidden items-center gap-2 sm:flex xl:ml-3">
           <a href="/entrar" className="btn-quiet">
             Entrar
           </a>
@@ -80,13 +81,13 @@ export function PublicHeader() {
           aria-label={open ? 'Fechar menu' : 'Abrir menu'}
           aria-expanded={open}
           aria-controls="public-menu"
-          className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-champagne-border lg:hidden sm:ml-0"
+          className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-champagne-border xl:hidden sm:ml-0"
         >
           {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
         </button>
       </div>
       {open && (
-        <div id="public-menu" ref={menu} className="page-container border-t border-champagne-border py-3 lg:hidden">
+        <div id="public-menu" ref={menu} className="page-container border-t border-champagne-border py-3 xl:hidden">
           <nav aria-label="Navegação pública mobile" className="flex flex-col">
             {navigation.map((item) => (
               <a

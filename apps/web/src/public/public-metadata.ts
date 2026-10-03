@@ -45,6 +45,11 @@ const metadata: Record<PublicPage, { title: string; description: string; path: s
       'Integre operações jurídicas por API REST: autenticação, escopos, exemplos de pesquisa, idempotência e OpenAPI.',
     path: '/desenvolvedores/api',
   },
+  datajud: {
+    title: 'Consulta gratuita TJAL · ForgeLex',
+    description: 'Consulte gratuitamente dados públicos e movimentações do TJAL pelo CNJ / DataJud, sem cadastro ou créditos.',
+    path: '/consulta-processual',
+  },
   not_found: {
     title: 'Página não encontrada · ForgeLex',
     description: 'Este endereço não está disponível. Confira a URL ou volte ao início do ForgeLex.',

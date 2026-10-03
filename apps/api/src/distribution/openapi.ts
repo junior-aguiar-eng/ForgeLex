@@ -11,12 +11,44 @@ export interface PublicApiRouteDefinition {
   requiresAuthentication?: boolean;
   scopes?: readonly string[];
   toolName?: string;
-  requestBody?: 'object' | 'search-case-law' | 'verify-authority' | 'api-key' | 'account-bootstrap' | 'account-closure';
+  requestBody?: 'object' | 'search-case-law' | 'verify-authority' | 'api-key' | 'account-bootstrap' | 'account-closure' | 'datajud-process';
   requiresIdempotencyKey?: boolean;
   responseSchema?: keyof typeof OPENAPI_SCHEMAS;
 }
 
 const OPENAPI_SCHEMAS = {
+  DataJudProcessRequest: {
+    type: 'object', additionalProperties: false, required: ['processNumber'],
+    properties: { processNumber: { type: 'string', maxLength: 25, pattern: '^(?:[0-9]{20}|[0-9]{7}-[0-9]{2}\\.[0-9]{4}\\.8\\.02\\.[0-9]{4})$', description: 'Número CNJ do TJAL, com ou sem máscara; valida tribunal 8.02 e dígito verificador.' } },
+  },
+  DataJudProcessResponse: {
+    type: 'object', additionalProperties: false,
+    required: ['court', 'processNumber', 'billable', 'consultedAt', 'source', 'notice', 'truncated', 'records'],
+    properties: {
+      court: { type: 'string', enum: ['TJAL'] }, processNumber: { type: 'string', pattern: '^[0-9]{20}$' },
+      billable: { type: 'boolean', enum: [false] }, consultedAt: { type: 'string', format: 'date-time' },
+      source: { type: 'object', required: ['name', 'url'], properties: { name: { type: 'string' }, url: { type: 'string', format: 'uri' } } },
+      notice: { type: 'string' }, truncated: { type: 'boolean', description: 'Há mais registros na fonte do que o limite de 20 exibidos; não implica ausência de outros graus/classes.' },
+      records: { type: 'array', maxItems: 20, items: {
+        type: 'object', additionalProperties: false, required: ['id', 'court', 'processNumber', 'subjects', 'movements'],
+        properties: {
+          id: { type: 'string' }, court: { type: 'string', enum: ['TJAL'] }, processNumber: { type: 'string' }, degree: { type: 'string' },
+          filedAt: { type: 'string', description: 'Data original do DataJud, inclusive formato compacto AAAAMMDDhhmmss.' },
+          caseClass: { $ref: '#/components/schemas/DataJudNamedCode' }, subjects: { type: 'array', items: { $ref: '#/components/schemas/DataJudNamedCode' } },
+          judgingBody: { type: 'object', required: ['codigo', 'nome'], properties: { codigo: { type: 'integer' }, nome: { type: 'string' }, codigoMunicipioIBGE: { type: 'integer' } } },
+          sourceUpdatedAt: { type: 'string' }, indexedAt: { type: 'string' },
+          movements: { type: 'array', items: {
+            type: 'object', additionalProperties: false, required: ['code', 'name', 'occurredAt'],
+            properties: { code: { type: 'integer' }, name: { type: 'string' }, occurredAt: { type: 'string' },
+              complements: { type: 'array', items: { type: 'object', required: ['codigo'], properties: { codigo: { type: 'integer' }, descricao: { type: 'string' }, valor: { type: ['number', 'string'] }, nome: { type: 'string' } } } },
+              judgingBody: { type: 'object', required: ['codigoOrgao', 'nomeOrgao'], properties: { codigoOrgao: { type: 'integer' }, nomeOrgao: { type: 'string' } } },
+            },
+          } },
+        },
+      } },
+    },
+  },
+  DataJudNamedCode: { type: 'object', additionalProperties: false, required: ['codigo', 'nome'], properties: { codigo: { type: 'integer' }, nome: { type: 'string' } } },
   SearchCaseLawRequest: {
     type: 'object', additionalProperties: false, required: ['query'],
     properties: { query: { type: 'string', minLength: 2 }, court: { type: 'string', enum: ['STJ'] }, judgmentYear: { type: 'integer', minimum: 1989, maximum: new Date().getUTCFullYear(), description: 'Ano da data de julgamento; omitido pesquisa todos os anos.' }, limit: { type: 'integer', minimum: 1, maximum: 20 } },
@@ -115,6 +147,7 @@ const OBJECT_REQUEST_SCHEMA_BY_PATH: Readonly<Record<string, keyof typeof OPENAP
 };
 
 export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
+  { method: 'post', path: '/api/v2/datajud/tjal/process', summary: 'Consultar processo TJAL no DataJud', description: 'Consulta pública gratuita pelo número CNJ do TJAL. Independe de autenticação, assinatura, saldo e Idempotency-Key; não grava histórico ou operação financeira. Retorna somente metadados e movimentações não sigilosos, com fonte e aviso de possível desatualização. Não integra o catálogo de jurisprudência pago.', requestBody: 'datajud-process', responseSchema: 'DataJudProcessResponse' },
   { method: 'get', path: '/health', summary: 'Healthcheck', description: 'Verifica a disponibilidade do serviço.' },
   { method: 'get', path: '/healthz', summary: 'Liveness', description: 'Verifica se o processo do serviço está ativo.' },
   { method: 'get', path: '/.well-known/oauth-protected-resource', summary: 'Metadados do recurso protegido', description: 'Publica os metadados OAuth do recurso MCP.' },
@@ -313,6 +346,8 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
             ? { $ref: '#/components/schemas/AccountBootstrapRequest' }
           : route.requestBody === 'account-closure'
             ? { $ref: '#/components/schemas/AccountClosureRequest' }
+          : route.requestBody === 'datajud-process'
+            ? { $ref: '#/components/schemas/DataJudProcessRequest' }
           : { $ref: `#/components/schemas/${OBJECT_REQUEST_SCHEMA_BY_PATH[route.path]}` };
     operation.requestBody = { required: true, content: { 'application/json': { schema } } };
   }
@@ -345,7 +380,26 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
   if (route.path === '/api/v2/account/closure/{closureId}') {
     (operation.responses as Record<string, unknown>)['404'] = { description: 'Acompanhamento desabilitado.' };
   }
-  for (const status of ['400', '401', '402', '403', '404', '408', '409', '422', '503', '504']) {
+  if (route.path === '/api/v2/datajud/tjal/process') {
+    operation.security = [];
+    operation['x-forgelex-billing-mode'] = 'FREE';
+    const responses = operation.responses as Record<string, Record<string, unknown>>;
+    delete responses['401'];
+    delete responses['403'];
+    Object.assign(responses, {
+      '413': { description: 'Corpo da consulta excede 1 KiB.' },
+      '429': { description: 'Limite temporário de requisições por IP/instância ou na fonte.', headers: { 'Retry-After': { schema: { type: 'string' } } } },
+      '502': { description: 'Resposta inconsistente, sigilosa ou parcial da fonte; não apresentada como resultado.' },
+      '503': { description: 'DataJud indisponível ou chave pública não configurada.' },
+      '504': { description: 'DataJud excedeu o prazo de 15 segundos.' },
+    });
+    responses['200']!.headers = {
+      'X-ForgeLex-Billing-Mode': { schema: { type: 'string', enum: ['FREE'] } },
+      'X-Credits-Charged': { schema: { type: 'string', enum: ['0'] } },
+      'Cache-Control': { schema: { type: 'string', enum: ['no-store'] } },
+    };
+  }
+  for (const status of ['400', '401', '402', '403', '404', '408', '409', '422', '429', '502', '503', '504']) {
     const responses = operation.responses as Record<string, Record<string, unknown>>;
     if (responses[status]) {
       responses[status] = {

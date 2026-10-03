@@ -25,11 +25,11 @@ describe('indexação pública', () => {
       }
     }
   });
-  it('inclui somente as sete páginas públicas canônicas no sitemap', () => {
+  it('inclui somente as páginas públicas canônicas no sitemap', () => {
     const xml = readFileSync('apps/web/public/sitemap.xml', 'utf8');
     const urls = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((match) => match[1]);
     expect(urls).toEqual(
-      ['/', '/produto', '/como-funciona', '/integracoes', '/creditos', '/guia', '/desenvolvedores/api'].map(
+      ['/', '/produto', '/como-funciona', '/integracoes', '/creditos', '/guia', '/consulta-processual', '/desenvolvedores/api'].map(
         (path) => `https://nexojuris.ia.br${path}`,
       ),
     );

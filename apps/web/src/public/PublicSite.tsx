@@ -11,6 +11,7 @@ import { CreditsPage } from './pages/CreditsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { GuidePage } from './pages/GuidePage';
 import { ApiDocsPage } from './pages/ApiDocsPage';
+import { DataJudPage } from './pages/DataJudPage';
 
 const pages = {
   home: HomePage,
@@ -20,6 +21,7 @@ const pages = {
   credits: CreditsPage,
   guide: GuidePage,
   api_docs: ApiDocsPage,
+  datajud: DataJudPage,
   not_found: NotFoundPage,
 } satisfies Record<PublicPage, () => React.JSX.Element>;
 
