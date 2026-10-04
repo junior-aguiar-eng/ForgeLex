@@ -83,7 +83,7 @@ export const ResearchDeskScreen: React.FC = () => {
                 <JudgmentYearSelect value={year} onChange={setYear} />
                 <button disabled={busy || searchBusy || !model.canSearch} className="px-5 py-3 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">{searchBusy ? 'Consultando...' : 'Consultar'}</button>
               </div>
-              <p className="text-[11px] text-stone-500">Cada resultado mantém a fonte e o estado de verificação para conferência.</p>
+              <p className="text-[11px] text-stone-500">A busca exige todos os termos relevantes. Use aspas para uma frase exata ou OR para alternativas; selecione o ano no filtro. Cada resultado mantém a fonte e o estado de verificação para conferência.</p>
             </form>
 
             <ExecutedSearchLabel execution={execution} />
