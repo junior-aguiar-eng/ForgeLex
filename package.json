@@ -14,7 +14,7 @@
     "typecheck": "pnpm build && pnpm -r run typecheck",
     "db:migrate": "pnpm build && node scripts/migrate-postgres.mjs",
     "test:postgres": "pnpm build && node scripts/smoke-postgres.mjs",
-    "test:postgres:search": "vitest run packages/persistence/src/repositories/jurisprudence-search-postgres.test.ts --maxWorkers=1",
+    "test:postgres:search": "vitest run packages/persistence/src/repositories/jurisprudence-search-postgres.test.ts packages/persistence/src/repositories/jurisprudence-search-query.test.ts --maxWorkers=1",
     "test:e2e:phase7": "playwright test tests/e2e/phase-7.spec.ts --project=chromium",
     "test:e2e:documents": "playwright test --config playwright.documents.config.ts",
     "test:e2e:research": "playwright test --config playwright.research.config.ts",

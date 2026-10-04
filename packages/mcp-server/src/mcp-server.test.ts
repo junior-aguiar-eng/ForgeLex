@@ -70,6 +70,16 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     ]);
   });
 
+  it('expõe o filtro de julgamento e orienta a consulta sem colocar o ano no texto', async () => {
+    const response = await handler.handleRequest({ jsonrpc: '2.0', id: 'search-schema', method: 'tools/list' });
+    const search = response.result.tools.find((tool: { name: string }) => tool.name === 'research.search_case_law');
+    expect(search.inputSchema.properties.judgmentYear).toMatchObject({ type: 'integer', minimum: 1989 });
+    expect(search.inputSchema.properties.judgmentYear.description).toContain('julgamento');
+    expect(search.inputSchema.properties.query.description).toContain('todos os termos');
+    expect(search.inputSchema.properties.query.description).toContain('OR');
+    expect(search.description).toContain('judgmentYear');
+  });
+
   it('deve executar tools/call faturando o ledger e devolvendo resultado de jurisprudência', async () => {
     const response = await handler.handleRequest(
       {

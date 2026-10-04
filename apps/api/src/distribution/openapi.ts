@@ -51,7 +51,7 @@ const OPENAPI_SCHEMAS = {
   DataJudNamedCode: { type: 'object', additionalProperties: false, required: ['codigo', 'nome'], properties: { codigo: { type: 'integer' }, nome: { type: 'string' } } },
   SearchCaseLawRequest: {
     type: 'object', additionalProperties: false, required: ['query'],
-    properties: { query: { type: 'string', minLength: 2 }, court: { type: 'string', enum: ['STJ'] }, judgmentYear: { type: 'integer', minimum: 1989, maximum: new Date().getUTCFullYear(), description: 'Ano da data de julgamento; omitido pesquisa todos os anos.' }, limit: { type: 'integer', minimum: 1, maximum: 20 } },
+    properties: { query: { type: 'string', minLength: 2, description: 'Sem aspas exige todos os termos relevantes; preposições comuns são ignoradas. Use aspas para frase exata ou OR explícito para alternativas. Informe o ano do julgamento em judgmentYear.' }, court: { type: 'string', enum: ['STJ'] }, judgmentYear: { type: 'integer', minimum: 1989, maximum: new Date().getUTCFullYear(), description: 'Ano da data de julgamento; omitido pesquisa todos os anos.' }, limit: { type: 'integer', minimum: 1, maximum: 20 } },
   },
   AuthorityLookupRequest: {
     type: 'object', additionalProperties: false, required: ['court', 'processNumber'],

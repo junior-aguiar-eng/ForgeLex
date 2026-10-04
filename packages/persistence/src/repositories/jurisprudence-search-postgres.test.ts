@@ -93,7 +93,7 @@ describe.skipIf(!local)('Busca PostgreSQL com candidatos extensos', () => {
           statements.push({ query, parameters });
         };
         const repository = new JurisprudenceRepository(db);
-        const results = await repository.search({ query: 'juros capitalizados', court, limit: 3 });
+        const results = await repository.search({ query: 'juros OR capitalizados', court, limit: 3 });
         expect(results).toHaveLength(3);
         expect(results.every((document) => document.fullText?.includes('inteiro teor local'))).toBe(true);
         expect(results.every((document) => document.snapshot.contentHash === 'a'.repeat(64))).toBe(true);
@@ -128,12 +128,13 @@ describe.skipIf(!local)('Busca PostgreSQL com candidatos extensos', () => {
         expect(candidateSorts.every((node) => node['Plan Width'] < 256)).toBe(true);
         expect(sorts.every((node) => node['Sort Space Type'] !== 'Disk')).toBe(true);
 
-        // The broad query must still match documents containing either term.
+        // A busca padrão exige ambos; a busca ampla continua disponível com OR explícito.
+        expect(await repository.search({ query: 'juros capitalizados', court, limit: 3 })).toEqual([]);
         expect(await repository.search({ query: 'juros', court, limit: 100 })).toHaveLength(100);
         expect(await repository.search({ query: 'capitalizados', court, limit: 100 })).toHaveLength(100);
         expect(await repository.search({ query: '"juros capitalizados"', court, limit: 3 })).toEqual([]);
         const filtered = await repository.search({
-          query: 'juros capitalizados',
+          query: 'juros OR capitalizados',
           court,
           fromDate: '2026-01-25',
           toDate: '2026-01-28',

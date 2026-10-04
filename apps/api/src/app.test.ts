@@ -1510,12 +1510,13 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     const issue = JSON.parse(issueResponse.body);
 
     const idempotencyKey = 'second-vertical-slice-memo-1';
+    const memoQuery = 'comunicação incidente OR "dano moral"';
     const memoResponse = await app.inject({
       method: 'POST',
       url: `/api/v2/matters/${matter.id}/research-memos`,
       headers: { ...authHeaders, 'idempotency-key': idempotencyKey },
       payload: {
-        query: 'comunicação de incidente e dano moral',
+        query: memoQuery,
         issueIds: [issue.id],
         court: 'STJ',
         limit: 5,
@@ -1543,7 +1544,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       method: 'POST',
       url: `/api/v2/matters/${matter.id}/research-memos`,
       headers: { ...authHeaders, 'idempotency-key': idempotencyKey },
-      payload: { query: 'comunicação de incidente e dano moral', issueIds: [issue.id], court: 'STJ', limit: 5 },
+      payload: { query: memoQuery, issueIds: [issue.id], court: 'STJ', limit: 5 },
     });
     expect(replayResponse.statusCode).toBe(200);
     expect(replayResponse.headers['x-forgelex-billing-mode']).toBe('FREE');
@@ -1565,7 +1566,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       payload: {
         jsonrpc: '2.0', id: 'memo-replay', method: 'tools/call',
         params: { name: 'workflow.legal_research_memo', arguments: {
-          matterId: matter.id, query: 'comunicação de incidente e dano moral', issueIds: [issue.id],
+          matterId: matter.id, query: memoQuery, issueIds: [issue.id],
           court: 'STJ', limit: 5, idempotencyKey, source: 'REST',
         } },
       },

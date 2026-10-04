@@ -80,3 +80,22 @@ A última conclusão de manifesto observada foi em
 zero falhas transitórias, uma lacuna terminal e `alert: false` após a segunda
 execução. Essa data de manifesto não é a data de publicação do STJ nem prova
 ausência de novos recursos no catálogo oficial.
+
+## Sintaxe da pesquisa no índice persistido
+
+A pesquisa sem aspas exige todos os termos relevantes e ignora preposições
+comuns fora de frases. `Maria da Penha` procura `maria` e `penha`; não basta
+encontrar somente `da`. Aspas preservam a sequência completa, incluindo
+palavras curtas: `"Maria da Penha"`. Alternativas devem usar `OR` explícito,
+como `"Maria da Penha" OR "violência doméstica"`.
+
+O ano no texto é um termo textual, não um filtro de data. Para julgamentos de
+2026, envie `query: "Maria da Penha"`, `court: "STJ"`, `judgmentYear: 2026`
+e o limite desejado. O mesmo campo está disponível na API REST e no schema
+gerado por `tools/list` do MCP. Omitir `judgmentYear` consulta todos os anos.
+
+Depois da publicação, hosts que mantêm um schema anterior precisam atualizar
+a lista de ferramentas para disponibilizar `judgmentYear` e as novas
+descrições. Validar o schema no servidor não comprova essa atualização no
+ChatGPT ou em outro host. A alteração de consulta não exige migration nem
+muda a tarifa de pesquisa ou os limites de execução.
