@@ -1,5 +1,51 @@
 # Auditoria e status canônico do ForgeLex
 
+## Conferência de rascunhos — implementação local (03/10/2026)
+
+Primeira frente do plano aprovado: conferência explicável de referências,
+fatos/provas e estrutura, com execuções por versão, histórico recolhido e
+correção contextual no editor. O servidor reconsulta referências cadastradas
+no acervo persistido; localização automática e confirmação humana são distintas.
+Ausência no acervo não demonstra inexistência; indisponibilidade gera execução
+incompleta. Aprovação exige conferência ALL mais recente completa, sem bloqueadores,
+da versão e contexto correspondentes, com revalidação transacional.
+
+Proteção de edição inicial/não salva, respostas antigas e falha de salvamento;
+fontes diretas e por provas, ESC/foco, apresentação em 390/1280 px e histórico
+sem substituir a edição. Vínculo gravado permanece confirmado se sua releitura
+falhar. Decisões simultâneas têm um vencedor e erro de domínio para o perdedor;
+leituras do resultado permanecem na transação para evitar retry após commit.
+
+Worktree: `C:\Users\Boni Jr\.codex\worktrees\draft-review\SDK`;
+branch `codex/conferencia-rascunho`, base
+`ac4af32ba1368d35a413759cda6747b368979aeb`.
+Commit local autorizado por Boni em 05/10/2026; o hash da entrega consta do Git.
+Checkout original com trabalho P2 preservado.
+
+Validação final depois das correções da revisão independente:
+
+- `pnpm test`: build aprovado; 651 testes aprovados e cinco ignorados,
+  118 suítes aprovadas e duas ignoradas.
+- `pnpm lint` e `pnpm -r run typecheck`: aprovados.
+- `pnpm test:e2e:draft-review`: oito aprovados, navegador Chromium local,
+  autenticação/acervo sintéticos e persistência SQLite real.
+- `pnpm test:e2e:documents`: quatro aprovados, regressão PDF/DOCX.
+- Axe sem violações nos recortes testados; capturas mobile/desktop inspecionadas.
+- Revisão independente por inspeção: sem Critical/Important pendentes.
+- `node --check scripts/smoke-postgres.mjs` e `git diff --check`: aprovados.
+
+Migration aditiva `persistence-0025-draft-review-runs` e expurgo de conta
+incluem as execuções. Smoke PostgreSQL ampliado para revisão, reexecução,
+histórico e decisões concorrentes. **PostgreSQL não executado localmente**:
+daemon Docker indisponível e nenhuma URL de banco de teste isolado identificada.
+O check PostgreSQL existente em CI deve passar antes da integração.
+
+Entrega local: sem push, PR, migration remota ou publicação; sem chamadas
+a modelo pago. Frentes de contexto pelo MCP e retorno da produção não implementadas.
+Guia: `docs/product/draft-review.md`; desenho e plano aprovados em
+`docs/superpowers/`. Logs locais em
+`.superpowers/sdd/2026-10-03-conferencia-rascunho/release-local-*.log`.
+
 ## Consulta processual — navegação interna publicada (03/10/2026)
 
 Menu autenticado agora abre `/app/consulta-processual` dentro do workspace,

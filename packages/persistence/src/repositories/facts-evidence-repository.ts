@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
   EvidenceCoverage,
@@ -201,7 +201,10 @@ export class FactsEvidenceRepository {
       note: input.note,
       createdAt: new Date().toISOString(),
     });
-    await this.db.insert(schema.factSourceLinks).values({ ...link });
+    await this.db.transaction(async tx => {
+      await tx.update(schema.matters).set({ updatedAt: sql`${schema.matters.updatedAt}` }).where(and(eq(schema.matters.id, input.matterId), eq(schema.matters.tenantId, input.tenantId)));
+      await tx.insert(schema.factSourceLinks).values({ ...link });
+    });
     return link;
   }
 
@@ -312,7 +315,10 @@ export class FactsEvidenceRepository {
       note: input.note,
       createdAt: new Date().toISOString(),
     });
-    await this.db.insert(schema.evidenceSourceLinks).values({ ...link });
+    await this.db.transaction(async tx => {
+      await tx.update(schema.matters).set({ updatedAt: sql`${schema.matters.updatedAt}` }).where(and(eq(schema.matters.id, input.matterId), eq(schema.matters.tenantId, input.tenantId)));
+      await tx.insert(schema.evidenceSourceLinks).values({ ...link });
+    });
     return link;
   }
 
@@ -359,7 +365,10 @@ export class FactsEvidenceRepository {
       note: input.note,
       createdAt: new Date().toISOString(),
     });
-    await this.db.insert(schema.evidenceLinks).values({ ...link });
+    await this.db.transaction(async tx => {
+      await tx.update(schema.matters).set({ updatedAt: sql`${schema.matters.updatedAt}` }).where(and(eq(schema.matters.id, input.matterId), eq(schema.matters.tenantId, input.tenantId)));
+      await tx.insert(schema.evidenceLinks).values({ ...link });
+    });
     return link;
   }
 

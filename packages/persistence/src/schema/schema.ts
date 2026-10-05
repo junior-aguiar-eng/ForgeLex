@@ -440,10 +440,24 @@ export const citationAnchors = sqliteTable(
   (table) => [index('citation_anchors_version_idx').on(table.draftVersionId, table.sectionId)],
 );
 
+export const draftReviewRuns = sqliteTable('draft_review_runs', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(),
+  matterId: text('matter_id').notNull().references(() => matters.id),
+  draftId: text('draft_id').notNull().references(() => drafts.id),
+  draftVersionId: text('draft_version_id').notNull().references(() => draftVersions.id),
+  contentHash: text('content_hash').notNull(), contextHash: text('context_hash').notNull(),
+  runNumber: integer('run_number').notNull(), mode: text('mode').notNull(),
+  state: text('state').notNull(), status: text('status').notNull(),
+  startedBy: text('started_by').notNull(), startedAt: text('started_at').notNull(),
+  completedAt: text('completed_at'), checksJson: text('checks_json').notNull(),
+  blockingCount: integer('blocking_count').notNull(), warningCount: integer('warning_count').notNull(),
+}, (t) => [uniqueIndex('draft_review_runs_version_number_idx').on(t.draftVersionId, t.runNumber), index('draft_review_runs_context_idx').on(t.tenantId, t.matterId, t.draftId)]);
+
 export const draftReviewFindings = sqliteTable(
   'draft_review_findings',
   {
     id: text('id').primaryKey(),
+    reviewRunId: text('review_run_id').references(() => draftReviewRuns.id),
     tenantId: text('tenant_id').notNull(),
     matterId: text('matter_id').notNull().references(() => matters.id),
     draftId: text('draft_id').notNull().references(() => drafts.id),

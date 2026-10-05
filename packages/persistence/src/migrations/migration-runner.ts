@@ -1079,6 +1079,22 @@ export const persistenceMigrations: readonly SqlMigration[] = [
     id: 'persistence-0024-research-judgment-year',
     statements: ['ALTER TABLE research_search_history ADD COLUMN judgment_year INTEGER;'],
   },
+  {
+    id: 'persistence-0025-draft-review-runs',
+    statements: [
+      `CREATE TABLE draft_review_runs (
+        id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, matter_id TEXT NOT NULL REFERENCES matters(id),
+        draft_id TEXT NOT NULL REFERENCES drafts(id), draft_version_id TEXT NOT NULL REFERENCES draft_versions(id),
+        content_hash TEXT NOT NULL, context_hash TEXT NOT NULL, run_number INTEGER NOT NULL, mode TEXT NOT NULL,
+        state TEXT NOT NULL, status TEXT NOT NULL, started_by TEXT NOT NULL, started_at TEXT NOT NULL,
+        completed_at TEXT, checks_json TEXT NOT NULL, blocking_count INTEGER NOT NULL, warning_count INTEGER NOT NULL
+      );`,
+      `CREATE UNIQUE INDEX draft_review_runs_version_number_idx ON draft_review_runs(draft_version_id, run_number);`,
+      `CREATE INDEX draft_review_runs_context_idx ON draft_review_runs(tenant_id, matter_id, draft_id);`,
+      `ALTER TABLE draft_review_findings ADD COLUMN review_run_id TEXT REFERENCES draft_review_runs(id);`,
+      `CREATE INDEX draft_review_findings_run_idx ON draft_review_findings(review_run_id);`,
+    ],
+  },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

@@ -1,4 +1,5 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { z } from 'zod';
 import Fastify, { FastifyInstance, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import { CourtCatalog } from '@forgelex/source-catalog';
@@ -20,6 +21,7 @@ import {
 import {
   createDatabase,
   DraftRepository,
+  DraftReviewRunRepository,
   FactsEvidenceRepository,
   ForgeLexDatabase,
   MatterRepository,
@@ -427,10 +429,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     ? new FactsEvidenceService(new FactsEvidenceRepository(database))
     : undefined;
   const draftRepository = database ? new DraftRepository(database) : undefined;
-  const draftingService = draftRepository ? new DraftingService(draftRepository) : undefined;
-  const draftReviewService = draftRepository && factsEvidenceService
-    ? new DraftReviewService(draftRepository, factsEvidenceService)
-    : undefined;
+  const draftReviewRuns = database ? new DraftReviewRunRepository(database) : undefined;
+  const draftingService = draftRepository ? new DraftingService(draftRepository, draftReviewRuns) : undefined;
   const strategyService = legalThesisRepository && legalIssueRepository
     ? new StrategyService(legalThesisRepository, legalIssueRepository)
     : undefined;
@@ -450,6 +450,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const researchService = new ResearchService(sourceRouter, jurisprudenceSearchService, {
     requirePersistentDataPlane: true,
   });
+  const draftReviewService = database && draftRepository && draftReviewRuns && factsEvidenceService && matterAuthorityRepository && matterRepository
+    ? new DraftReviewService({ drafts: draftRepository, runs: draftReviewRuns, facts: factsEvidenceService, authorities: matterAuthorityRepository, research: researchService, evidence: new FactsEvidenceRepository(database), matters: matterRepository, sourceMethod: 'PERSISTED_CORPUS' }) : undefined;
   const researchBillingProvider = database ? 'forgelex_index' : 'provider_stj_scon';
   const persistentResearchDataPlaneUnavailable = (reply: FastifyReply) => {
     reply.status(503);
@@ -2382,14 +2384,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.post(
     '/api/v2/matters/:matterId/drafts/:draftId/review',
-    { preHandler: authAdapter.createPreHandler(['matter:read']) },
+    { preHandler: authAdapter.createPreHandler(['matter:read', 'draft:write']) },
     async (req, reply) => {
       if (!draftReviewService) {
         reply.status(503);
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Serviço de revisão não está disponível.' };
       }
       const { matterId, draftId } = req.params as { matterId: string; draftId: string };
-      const body = (req.body ?? {}) as { type?: 'citations' | 'fact_support' | 'adversarial' | 'all'; versionId?: string };
+      const parsed = z.object({ type: z.enum(['citations', 'fact_support', 'adversarial', 'all']).optional(), versionId: z.string().uuid().optional() }).strict().safeParse(req.body ?? {});
+      if (!parsed.success) return reply.status(400).send({ error: 'INVALID_REQUEST', message: 'Informe o tipo de conferência e uma versão válida.' });
+      const body = parsed.data;
       const context = { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId };
       try {
         const result = body.type === 'citations'
@@ -2411,13 +2415,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           userId: req.principal.userId,
           toolName: `review.${body.type ?? 'all'}`,
           durationMs: 0,
-          status: 'SUCCESS',
-          payload: { draftId, draftVersionId: result.draftVersionId, status: result.status, findingCount: result.findings.length },
+          status: result.run.state === 'COMPLETE' ? 'SUCCESS' : 'FAILED',
+          payload: { draftId, draftVersionId: result.draftVersionId, reviewRunId: result.run.id, state: result.run.state, status: result.status, findingCount: result.findings.length },
         });
-        await emitWebhook({
+        if (result.run.state === 'COMPLETE') await emitWebhook({
           tenantId: req.principal.tenantId,
           type: 'draft.review.completed',
-          payload: { matterId, draftId, draftVersionId: result.draftVersionId, status: result.status, findingCount: result.findings.length },
+          payload: { matterId, draftId, draftVersionId: result.draftVersionId, reviewRunId: result.run.id, status: result.status, findingCount: result.findings.length },
         });
         return result;
       } catch (error) {
@@ -2427,6 +2431,26 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       }
     },
   );
+
+  app.get('/api/v2/matters/:matterId/drafts/:draftId/review-runs', { preHandler: authAdapter.createPreHandler(['matter:read']) }, async (req, reply) => {
+    if (!draftRepository || !draftReviewRuns) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+    const { matterId, draftId } = req.params as { matterId: string; draftId: string };
+    const query = z.object({ versionId: z.string().uuid().optional() }).strict().safeParse(req.query);
+    if (!query.success) return reply.status(400).send({ error: 'INVALID_REQUEST', message: 'Informe uma versão válida.' });
+    const { versionId } = query.data;
+    const version = versionId ? await draftRepository.getVersion(req.principal.tenantId, matterId, draftId, versionId) : await draftRepository.getCurrentVersion(req.principal.tenantId, matterId, draftId);
+    if (!version) return reply.status(404).send({ error: 'DRAFT_VERSION_NOT_FOUND', message: 'Versão não localizada neste caso.' });
+    return { items: await draftReviewRuns.list({ tenantId: req.principal.tenantId, matterId, userId: req.principal.userId }, draftId, version.version.id) };
+  });
+  app.get('/api/v2/matters/:matterId/facts/:factId/support', { preHandler: authAdapter.createPreHandler(['matter:read']) }, async (req, reply) => {
+    if (!factsEvidenceService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+    const { matterId, factId } = req.params as { matterId: string; factId: string };
+    try { return await factsEvidenceService.findSupport({ tenantId: req.principal.tenantId, userId: req.principal.userId, matterId }, { factId }); }
+    catch (error) {
+      if (error instanceof Error && error.message.startsWith('FACT_NOT_FOUND')) return reply.status(404).send({ error: 'FACT_NOT_FOUND', message: 'Fato não localizado neste caso.' });
+      throw error;
+    }
+  });
 
   app.post(
     '/api/v2/matters/:matterId/drafts/:draftId/approval',

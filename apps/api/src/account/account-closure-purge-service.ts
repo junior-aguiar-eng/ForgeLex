@@ -27,6 +27,7 @@ const tenantStatements: readonly TenantStatement[] = [
   direct('draft_approval_requests', 'MATTERS'),
   direct('citation_anchors', 'MATTERS'),
   direct('draft_review_findings', 'MATTERS'),
+  direct('draft_review_runs', 'MATTERS'),
   direct('draft_sections', 'MATTERS'),
   direct('draft_versions', 'MATTERS'),
   direct('drafts', 'MATTERS'),

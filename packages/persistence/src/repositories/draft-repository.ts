@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   ApprovalDecision,
@@ -21,6 +21,9 @@ import {
 import { ForgeLexDatabase } from '../db.js';
 import * as schema from '../schema/schema.js';
 import { MatterRepository } from './matter-repository.js';
+import { readDraftReviewContext, reviewContextHash } from './draft-review-context.js';
+import type { ReviewContext } from './draft-review-run-repository.js';
+import { DraftReviewRunRepository } from './draft-review-run-repository.js';
 
 function parseIds(value: string): string[] {
   const parsed: unknown = JSON.parse(value);
@@ -94,6 +97,7 @@ function toCitationAnchor(row: typeof schema.citationAnchors.$inferSelect): Cita
 function toReviewFinding(row: typeof schema.draftReviewFindings.$inferSelect): DraftReviewFinding {
   return DraftReviewFindingSchema.parse({
     id: row.id,
+    reviewRunId: row.reviewRunId ?? undefined,
     tenantId: row.tenantId,
     matterId: row.matterId,
     draftId: row.draftId,
@@ -172,6 +176,22 @@ export class DraftRepository {
 
   public constructor(private readonly db: ForgeLexDatabase) {
     this.matterRepository = new MatterRepository(db);
+  }
+
+  public reviewContext(context: ReviewContext, bundle: DraftVersionBundle) {
+    return readDraftReviewContext(this.db, context, bundle);
+  }
+  public reviewRuns(): DraftReviewRunRepository {
+    return new DraftReviewRunRepository(this.db);
+  }
+
+  private async assertReviewed(db: ForgeLexDatabase, input: { tenantId: string; matterId: string; draftId: string; draftVersionId: string; userId: string }) {
+    const version = await new DraftRepository(db).getVersion(input.tenantId, input.matterId, input.draftId, input.draftVersionId);
+    if (!version) throw new Error('DRAFT_VERSION_NOT_FOUND');
+    const run = await new DraftReviewRunRepository(db).getLatest(input, input.draftId, input.draftVersionId);
+    if (!run || run.state !== 'COMPLETE' || run.contentHash !== version.version.contentHash) throw new Error('DRAFT_REVIEW_REQUIRED: confira esta versão antes de aprovar.');
+    if (run.contextHash !== reviewContextHash(await readDraftReviewContext(db, input, version))) throw new Error('DRAFT_REVIEW_STALE: os vínculos mudaram; confira novamente.');
+    if (run.blockingCount) throw new Error('DRAFT_REVIEW_BLOCKED: corrija os pontos pendentes antes de aprovar.');
   }
 
   public async createDraft(input: {
@@ -441,6 +461,11 @@ export class DraftRepository {
       expiresAt: input.expiresAt,
     });
     await this.db.transaction(async (tx) => {
+      await tx.update(schema.matters).set({ updatedAt: sql`${schema.matters.updatedAt}` }).where(and(eq(schema.matters.id, input.matterId), eq(schema.matters.tenantId, input.tenantId)));
+      await tx.update(schema.draftVersions).set({ contentHash: version.version.contentHash }).where(eq(schema.draftVersions.id, input.draftVersionId));
+      await this.assertReviewed(tx as unknown as ForgeLexDatabase, { ...input, userId: input.requestedBy });
+      const pendingNow = await tx.select({ id: schema.draftApprovalRequests.id }).from(schema.draftApprovalRequests).where(and(eq(schema.draftApprovalRequests.tenantId, input.tenantId), eq(schema.draftApprovalRequests.draftVersionId, input.draftVersionId), eq(schema.draftApprovalRequests.status, 'PENDING'))).limit(1);
+      if (pendingNow.length) throw new Error('APPROVAL_ALREADY_PENDING: já existe aprovação pendente para esta versão.');
       await tx.insert(schema.draftApprovalRequests).values({ ...request, decidedAt: null, decidedBy: null, decisionReason: null });
       await tx.insert(schema.draftApprovalTokens).values({ ...token, usedAt: null });
       await tx.update(schema.draftVersions).set({ status: 'APPROVAL_PENDING' }).where(and(
@@ -471,6 +496,19 @@ export class DraftRepository {
     decidedBy: string;
     reason?: string;
   }): Promise<ApprovalResolution> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try { return await this.resolveApprovalOnce(input); }
+      catch (error) {
+        // SQLite cannot wait on a row lock like PostgreSQL. Retry the whole
+        // operation so a concurrent winner is observed as a domain decision.
+        if (attempt === 4 || !/SQLITE_BUSY|SQLITE_LOCKED|database (?:table )?is locked/i.test(String(error))) throw error;
+        await new Promise(resolve => setTimeout(resolve, 25 * 2 ** attempt));
+      }
+    }
+    throw new Error('APPROVAL_CONFLICT');
+  }
+
+  private async resolveApprovalOnce(input: Parameters<DraftRepository['resolveApproval']>[0]): Promise<ApprovalResolution> {
     const tokenHash = createHash('sha256').update(input.token, 'utf8').digest('hex');
     const tokenRows = await this.db.select().from(schema.draftApprovalTokens).where(and(
       eq(schema.draftApprovalTokens.tenantId, input.tenantId),
@@ -500,7 +538,15 @@ export class DraftRepository {
       decidedAt,
     });
     const status = input.decision === 'APPROVED' ? 'APPROVED' : 'REJECTED';
-    await this.db.transaction(async (tx) => {
+    return this.db.transaction(async (tx) => {
+      // Use the same lock order for either decision and support writes.
+      await tx.update(schema.matters).set({ updatedAt: sql`${schema.matters.updatedAt}` }).where(and(eq(schema.matters.id, requestRow.matterId), eq(schema.matters.tenantId, input.tenantId)));
+      const version = await new DraftRepository(tx as unknown as ForgeLexDatabase).getVersion(input.tenantId, requestRow.matterId, requestRow.draftId, requestRow.draftVersionId);
+      if (!version) throw new Error('DRAFT_VERSION_NOT_FOUND');
+      await tx.update(schema.draftVersions).set({ contentHash: sql`${schema.draftVersions.contentHash}` }).where(eq(schema.draftVersions.id, requestRow.draftVersionId));
+      if (input.decision === 'APPROVED') {
+        await this.assertReviewed(tx as unknown as ForgeLexDatabase, { tenantId: input.tenantId, matterId: requestRow.matterId, draftId: requestRow.draftId, draftVersionId: requestRow.draftVersionId, userId: input.decidedBy });
+      }
       const claimed = await tx.update(schema.draftApprovalRequests).set({
         status,
         decidedAt,
@@ -520,11 +566,13 @@ export class DraftRepository {
         eq(schema.drafts.matterId, requestRow.matterId),
         eq(schema.drafts.currentVersionId, requestRow.draftVersionId),
       ));
+      // Retrieve and validate the response before commit. A read failure must
+      // roll back this attempt rather than retry an already persisted decision.
+      const updatedRequest = await tx.select().from(schema.draftApprovalRequests).where(eq(schema.draftApprovalRequests.id, requestRow.id)).limit(1);
+      const updatedToken = await tx.select().from(schema.draftApprovalTokens).where(eq(schema.draftApprovalTokens.id, tokenRow.id)).limit(1);
+      if (!updatedRequest[0] || !updatedToken[0]) throw new Error('APPROVAL_PERSISTENCE_FAILED: decisão não pôde ser recuperada.');
+      return { request: toApprovalRequest(updatedRequest[0]), decision, token: toApprovalToken(updatedToken[0]) };
     });
-    const updatedRequest = await this.db.select().from(schema.draftApprovalRequests).where(eq(schema.draftApprovalRequests.id, requestRow.id)).limit(1);
-    const updatedToken = await this.db.select().from(schema.draftApprovalTokens).where(eq(schema.draftApprovalTokens.id, tokenRow.id)).limit(1);
-    if (!updatedRequest[0] || !updatedToken[0]) throw new Error('APPROVAL_PERSISTENCE_FAILED: decisão não pôde ser recuperada.');
-    return { request: toApprovalRequest(updatedRequest[0]), decision, token: toApprovalToken(updatedToken[0]) };
   }
 
   private async requireMatter(tenantId: string, matterId: string): Promise<void> {

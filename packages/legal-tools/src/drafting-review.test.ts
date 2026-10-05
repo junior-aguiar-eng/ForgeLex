@@ -1,5 +1,6 @@
+import { createFixtureResearchService } from './research/research-service.js';
 import { describe, expect, it } from 'vitest';
-import { createDatabase, DraftRepository, FactsEvidenceRepository, MatterRepository, runPersistenceMigrations } from '@forgelex/persistence';
+import { createDatabase, DraftRepository, DraftReviewRunRepository, MatterAuthorityRepository, FactsEvidenceRepository, MatterRepository, runPersistenceMigrations } from '@forgelex/persistence';
 import { FactsEvidenceService } from './facts-evidence/facts-evidence-service.js';
 import { DraftingService } from './drafting/draft-service.js';
 import { DraftReviewService } from './review/review-service.js';
@@ -27,7 +28,14 @@ describe('Draft Studio e Review', () => {
         relation: 'SUPPORTS',
       });
 
-      const draftingService = new DraftingService(new DraftRepository(connection.db));
+      const repository = new DraftRepository(connection.db);
+      const runs = new DraftReviewRunRepository(connection.db);
+      const authorities = new MatterAuthorityRepository(connection.db);
+      const research = createFixtureResearchService();
+      const authority = (await research.searchCaseLaw({ query: 'vazamento', court: 'STJ', limit: 1 })).items[0];
+      const saved = (await authorities.saveAuthority({ ...context, savedBy: context.userId, authority })).record;
+      const configuredId = saved.id;
+      const draftingService = new DraftingService(repository, runs);
       const initial = await draftingService.createDraft(context, {
         title: 'Minuta de revisão contratual',
         sections: [{
@@ -48,11 +56,10 @@ describe('Draft Studio e Review', () => {
       });
       expect(initial.version.versionNumber).toBe(1);
 
-      const repository = new DraftRepository(connection.db);
-      const reviewService = new DraftReviewService(repository, factsEvidenceService);
+      const reviewService = new DraftReviewService({ drafts: repository, runs, authorities, research, facts: factsEvidenceService, evidence: new FactsEvidenceRepository(connection.db), matters: matterRepository, sourceMethod: 'PROVIDER' });
       const blocked = await reviewService.runAll(context, initial.draft.id);
       expect(blocked.status).toBe('BLOCKED');
-      expect(blocked.findings.some((finding) => finding.code === 'CITATION_NOT_VERIFIED')).toBe(true);
+      expect(blocked.findings.some((finding) => finding.code === 'AUTHORITY_NOT_IN_MATTER')).toBe(true);
       await expect(draftingService.requestApproval(context, initial.draft.id)).rejects.toThrow('DRAFT_REVIEW_BLOCKED');
 
       const updated = await draftingService.updateDraft(context, initial.draft.id, {
@@ -63,19 +70,19 @@ describe('Draft Studio e Review', () => {
           content: 'O contrato foi assinado pelas partes.',
           linkedFactIds: [fact.id],
           linkedEvidenceIds: [evidence.id],
-          linkedAuthorityIds: [authorityId],
+          linkedAuthorityIds: [configuredId],
         }, {
           ordinal: 1,
           title: 'Fundamentação a revisar',
           content: 'A fundamentação será conferida antes da aprovação.',
           linkedFactIds: [fact.id],
           linkedEvidenceIds: [evidence.id],
-          linkedAuthorityIds: [authorityId],
+          linkedAuthorityIds: [configuredId],
         }],
         citations: [{
           sectionOrdinal: 1,
           targetType: 'AUTHORITY',
-          targetId: authorityId,
+          targetId: configuredId,
           citationText: 'Autoridade conferida',
           verified: true,
         }],
