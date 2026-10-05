@@ -1,5 +1,40 @@
 # Auditoria e status canônico do ForgeLex
 
+## Revisão e contexto do caso — publicação e ensaios reais (05/10/2026)
+
+As frentes 1 e 2 foram integradas pela PR #46 e publicadas no domínio
+`https://nexojuris.ia.br`, SHA `7a216a8b0266a005e2438862140a106eac99ae23`,
+revisão `forgelex-api-prod-case-ai-7a216a8`, com 100% do tráfego.
+As seis verificações da CI da PR e de main passaram. PostgreSQL 16 aprovou
+as migrations 0025/0026 e o smoke de 14 verificações, incluindo review runs
+e concorrência de leitura/revogação. A CI de main aprovou 681 testes unitários
+(17 ignorados) e 113 testes de navegador. Backup e migrations explícitas
+precederam a promoção 5/25/100; AUTO_MIGRATE continua desativado.
+
+ChatGPT e Claude, com suas conexões OAuth existentes e catálogo atualizado,
+leram documento sintético em nove páginas e um fato selecionado, recusaram
+documento excluído e novas leituras/cursores antigos após revogação pelo site.
+A auditoria de produção corroborou 18 leituras documentais, duas permissões
+revogadas na revisão 2 e nenhuma operação financeira desde o início do ensaio.
+Não foram usados documentos reais nem pesquisa faturável. A concessão OAuth
+nativa não foi refeita nesta rodada; sua proteção contra reaproveitamento
+continua coberta pelos testes automatizados, sem alegar ensaio nativo.
+
+**Correção pendente na PR #47:** o Claude ocultou a mensagem das recusas
+JSON-RPC. O delta devolve resultado MCP `isError:true` com orientação,
+sem conteúdo privado e com cobrança zero. Build/lint, 19 testes direcionados,
+três E2E locais e revisão independente passaram. Na CI do código `a60e0f5`,
+quatro jobs passaram; PostgreSQL e produto foram cancelados em três tentativas
+sem conseguir runner, conforme anotações do GitHub. A correção ainda não foi
+integrada/publicada, e sua mensagem ainda não foi retestada nos hosts reais.
+Esse bloqueio não desfaz a publicação e os ensaios comprovados do SHA acima.
+
+Jobs, rota/backends/NEG e tag temporários foram removidos. O caso sintético
+permanece com ambos os acessos revogados. Evidências e limites:
+[registro operacional](docs/operations/stabilization/2026-10-05-case-ai-publication.md)
+e [recibo](docs/operations/stabilization/2026-10-05-case-ai-publication.json).
+As seções locais abaixo descrevem a etapa anterior à publicação.
+
 ## Contexto autorizado do caso na IA — implementação local (05/10/2026)
 
 Segunda frente do plano aprovado: em Casos, **Usar este caso na IA** permite

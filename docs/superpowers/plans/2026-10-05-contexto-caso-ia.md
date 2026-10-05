@@ -153,3 +153,14 @@ Cobertura: seleção/identidade/revogação (Task 1), relações e paginação (
 Fontes oficiais consultadas em 05/10/2026: [Supabase listGrants](https://supabase.com/docs/reference/javascript/oauth-server-listgrants), [changelog](https://supabase.com/changelog), [mudança do status OAuth](https://supabase.com/changelog/45468-breaking-change-oauth-token-endpoint-will-return-http-200-instead-of-201), [conexão e testes no ChatGPT](https://developers.openai.com/plugins/deploy/connect-chatgpt), [conectores remotos do Claude](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp). O SDK instalado e o endpoint existente usam `listGrants`/`granted_at`; o gateway já usa `response.ok`, compatível com o status HTTP 200. Homologação do vínculo `granted_at` após reautorização é parte do ensaio real, sem substituir o bloqueio local por suposição.
 
 Implementação local da segunda frente executada em 05/10/2026. Resultados e limites de validação registrados em `STATUS_VALIDACAO.md` e `docs/product/case-ai-access.md`. Commit, push, CI, integração e publicação são ações distintas.
+
+## Execução remota e limites registrados
+
+- [x] CI PostgreSQL 16 da PR #46 e de main: migrations 0025/0026 e smoke de 14 verificações aprovados, incluindo concorrência de leitura/revogação e review runs.
+- [x] Integrar e publicar as frentes 1 e 2: SHA `7a216a8`, candidata sem tráfego e promoção 5/25/100 concluídas; backup/migrations explícitos e rollback identificados.
+- [x] Ensaiar leitura selecionada de documento longo e fato, exclusão e revogação com cursores antigos, separadamente no ChatGPT e Claude, com material sintético e conexões OAuth existentes. Ambas as permissões ficaram revogadas; nenhuma operação financeira registrada.
+- [ ] Integrar/publicar a correção de mensagem da PR #47 e retestar a apresentação da recusa nos hosts. CI do código `a60e0f5`: quatro jobs aprovados; PostgreSQL/produto cancelados por falta de runner em três tentativas. Build/lint, 19 testes direcionados, três E2E locais e revisão independente passaram.
+- [ ] Ensaio suplementar de reconcessão OAuth nativa, com confirmação pontual antes da concessão. Não foi executado e não é apresentado como coberto pelo ensaio de revogação de seleção; testes automatizados confirmam o vínculo `granted_at`.
+
+Recibo: `docs/operations/stabilization/2026-10-05-case-ai-publication.json`.
+O retorno de produção ao Draft Studio permanece uma frente posterior.
