@@ -51,6 +51,7 @@ export const ConnectionsScreen: React.FC = () => {
 
       <HostInstallationGuide platform={platform} mcpUrl={selectedConnection.mcpUrl} />
       <AuthorizedApplications />
+      <p className="text-sm text-stone-600">Para compartilhar material, abra o caso em <a className="underline" href="/app/casos">Casos</a> e escolha “Usar este caso na IA”. A conexão só poderá consultar os itens que você permitir; a leitura do material salvo é gratuita.</p>
 
       <section className="surface space-y-4 p-5" aria-labelledby="availability-heading">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

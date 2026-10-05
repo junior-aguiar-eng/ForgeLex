@@ -60,7 +60,7 @@ describe('Supabase authentication', () => {
     const identityVerifier = new SupabaseIdentityVerifier({
       baseUrl: 'https://project.supabase.co', publishableKey: 'publishable',
       fetchImpl: async (url) => new Response(JSON.stringify(String(url).endsWith('/user/oauth/grants')
-        ? revoked ? [] : [{ client: { id: 'client-1' }, scopes: ['email'] }]
+        ? revoked ? [] : [{ client: { id: 'client-1' }, scopes: ['email'], granted_at: '2026-10-05T10:00:00.000Z' }]
         : { id: payload.sub, email: 'pessoa@exemplo.com', email_confirmed_at: 'confirmed' }), { status: 200 }),
     });
     const repository = { findBySupabaseUserId: async () => activeAccount } as unknown as AccountRepository;
@@ -68,7 +68,7 @@ describe('Supabase authentication', () => {
     const verifier = new SupabaseTokenVerifier(identityVerifier, repository, vault);
     expect(await verifier.verify(token)).toBeNull();
     const sealed = vault.seal(token, 'access', Date.now() + 300000);
-    expect(await verifier.verify(sealed)).toMatchObject({ authMethod: 'oauth_access_token', scopes: ['mcp', 'research:read'], oauthClientId: 'client-1' });
+    expect(await verifier.verify(sealed)).toMatchObject({ authMethod: 'oauth_access_token', scopes: ['mcp', 'research:read'], oauthClientId: 'client-1', oauthGrantedAt: '2026-10-05T10:00:00.000Z' });
     revoked = true;
     expect(await verifier.verify(sealed)).toBeNull();
   });

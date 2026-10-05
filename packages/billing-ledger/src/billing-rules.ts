@@ -19,6 +19,9 @@ const FORGELEX_BILLING_POLICIES: Readonly<Record<string, ForgeLexBillingPolicy>>
   'research.get_authority': { mode: 'FREE' },
   'research.verify_authority': { mode: 'FREE' },
   'workflow.legal_research_memo': { mode: 'FREE' },
+  'case.list_shared': { mode: 'FREE' },
+  'case.get_context': { mode: 'FREE' },
+  'case.read_item': { mode: 'FREE' },
 };
 
 export function getForgeLexBillingPolicy(capability: string): ForgeLexBillingPolicy {

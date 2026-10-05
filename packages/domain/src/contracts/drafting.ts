@@ -77,6 +77,7 @@ export type DraftReviewSeverity = z.infer<typeof DraftReviewSeveritySchema>;
 
 export const DraftReviewFindingSchema = z.object({
   id: z.string().uuid(),
+  reviewRunId: z.string().uuid().optional(),
   tenantId: z.string().min(1),
   matterId: z.string().uuid(),
   draftId: z.string().uuid(),

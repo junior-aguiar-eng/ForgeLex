@@ -1,155 +1,90 @@
-import {
-  DraftReviewFinding,
-  DraftReviewFindingSchema,
-  DraftReviewSeverity,
-  DraftReviewType,
-} from '@forgelex/domain';
-import { DraftRepository } from '@forgelex/persistence';
-import { FactsEvidenceService } from '../facts-evidence/facts-evidence-service.js';
-import { DraftContext } from '../drafting/draft-service.js';
+import type { DraftReviewCheck, DraftReviewFinding, DraftReviewMode, DraftReviewResult } from '@forgelex/domain';
+import { reviewContextHash, type DraftRepository, type DraftReviewRunRepository, type FactsEvidenceRepository, type MatterRepository, type MatterAuthorityRepository } from '@forgelex/persistence';
+import type { FactsEvidenceService } from '../facts-evidence/facts-evidence-service.js';
+import type { DraftContext } from '../drafting/draft-service.js';
+import type { ResearchService } from '../research/research-service.js';
 
-export interface ReviewResult {
-  draftId: string;
-  draftVersionId: string;
-  findings: DraftReviewFinding[];
-  blockingCount: number;
-  warningCount: number;
-  status: 'PASSED' | 'WARNINGS' | 'BLOCKED';
+export type ReviewResult = DraftReviewResult;
+export interface DraftReviewDependencies {
+  drafts: DraftRepository; runs: DraftReviewRunRepository; facts: FactsEvidenceService;
+  authorities: MatterAuthorityRepository; research: ResearchService; evidence: FactsEvidenceRepository;
+  matters: MatterRepository; sourceMethod: 'PERSISTED_CORPUS' | 'PROVIDER';
 }
-
-type DraftReviewFindingInput = Omit<DraftReviewFinding, 'id' | 'createdAt'>;
-
+type FindingInput = Omit<DraftReviewFinding, 'id' | 'createdAt' | 'reviewRunId'>;
 export class DraftReviewService {
-  public constructor(
-    private readonly repository: DraftRepository,
-    private readonly factsEvidenceService: FactsEvidenceService,
-  ) {}
-
-  public async verifyCitations(context: DraftContext, draftId: string, versionId?: string): Promise<ReviewResult> {
-    const version = await this.requireVersion(context, draftId, versionId);
-    const findings = version.citations.flatMap((citation) => {
-      if (!citation.verified) {
-        return [this.finding(context, draftId, version.version.id, 'CITATION', 'BLOCKING', 'CITATION_NOT_VERIFIED', 'A citação não possui verificação positiva.', citation.sectionId, citation.targetId)];
-      }
-      const section = version.sections.find((item) => item.id === citation.sectionId);
-      const linkedIds = citation.targetType === 'AUTHORITY'
-        ? section?.linkedAuthorityIds ?? []
-        : citation.targetType === 'FACT'
-          ? section?.linkedFactIds ?? []
-          : section?.linkedEvidenceIds ?? [];
-      return linkedIds.includes(citation.targetId)
-        ? []
-        : [this.finding(context, draftId, version.version.id, 'CITATION', 'BLOCKING', 'CITATION_TARGET_NOT_LINKED', 'A citação verificada não está vinculada à seção correspondente.', citation.sectionId, citation.targetId)];
-    });
-    if (version.citations.length === 0) {
-      findings.push(this.finding(context, draftId, version.version.id, 'CITATION', 'WARNING', 'CITATIONS_MISSING', 'A versão não possui âncoras de citação registradas.'));
-    }
-    return this.persistResult(draftId, version.version.id, findings);
-  }
-
-  public async checkFactSupport(context: DraftContext, draftId: string, versionId?: string): Promise<ReviewResult> {
-    const version = await this.requireVersion(context, draftId, versionId);
-    const facts = await this.factsEvidenceService.listFacts({
-      tenantId: context.tenantId,
-      userId: context.userId,
-      matterId: context.matterId,
-    });
-    const factsById = new Map(facts.items.map((fact) => [fact.id, fact]));
-    const coverageByFactId = new Map(facts.coverage.map((item) => [item.factId, item]));
-    const linkedFactIds = [...new Set(version.sections.flatMap((section) => section.linkedFactIds))];
-    const findings = linkedFactIds.flatMap((factId) => {
-      const fact = factsById.get(factId);
-      if (!fact) return [this.finding(context, draftId, version.version.id, 'FACT_SUPPORT', 'BLOCKING', 'FACT_NOT_FOUND', 'A seção referencia um fato que não pertence ao matter autenticado.', undefined, factId)];
-      const coverage = coverageByFactId.get(factId);
-      if (!coverage || coverage.coverage === 'UNSUPPORTED' || coverage.coverage === 'CONFLICTING') {
-        return [this.finding(context, draftId, version.version.id, 'FACT_SUPPORT', 'BLOCKING', 'FACT_SUPPORT_INSUFFICIENT', `O fato "${fact.statement}" não possui cobertura suficiente para uso sem revisão.`, undefined, factId)];
-      }
-      if (coverage.coverage === 'PARTIAL') {
-        return [this.finding(context, draftId, version.version.id, 'FACT_SUPPORT', 'WARNING', 'FACT_SUPPORT_PARTIAL', `O fato "${fact.statement}" possui cobertura parcial.`, undefined, factId)];
-      }
-      return [];
-    });
-    if (linkedFactIds.length === 0) findings.push(this.finding(context, draftId, version.version.id, 'FACT_SUPPORT', 'WARNING', 'FACTS_NOT_LINKED', 'A versão não possui fatos vinculados às seções.'));
-    return this.persistResult(draftId, version.version.id, findings);
-  }
-
-  public async adversarialReview(context: DraftContext, draftId: string, versionId?: string): Promise<ReviewResult> {
-    const version = await this.requireVersion(context, draftId, versionId);
-    const findings: DraftReviewFindingInput[] = [];
-    const emptySections = version.sections.filter((section) => section.content.trim().length === 0);
-    for (const section of emptySections) {
-      findings.push(this.finding(context, draftId, version.version.id, 'ADVERSARIAL', 'BLOCKING', 'SECTION_CONTENT_EMPTY', `A seção "${section.title}" não possui conteúdo.`, section.id));
-    }
-    if (version.sections.every((section) => section.linkedAuthorityIds.length === 0)) {
-      findings.push(this.finding(context, draftId, version.version.id, 'ADVERSARIAL', 'WARNING', 'AUTHORITIES_NOT_LINKED', 'Nenhuma autoridade está vinculada à versão.'));
-    }
-    if (version.sections.every((section) => section.linkedFactIds.length === 0)) {
-      findings.push(this.finding(context, draftId, version.version.id, 'ADVERSARIAL', 'WARNING', 'FACTS_NOT_LINKED', 'Nenhum fato está vinculado à versão.'));
-    }
-    if (version.sections.length < 2) {
-      findings.push(this.finding(context, draftId, version.version.id, 'ADVERSARIAL', 'WARNING', 'OUTLINE_TOO_SMALL', 'A versão possui uma única seção; revisar a estrutura antes da aprovação.'));
-    }
-    return this.persistResult(draftId, version.version.id, findings);
-  }
-
-  public async runAll(context: DraftContext, draftId: string, versionId?: string): Promise<ReviewResult> {
-    const results = await Promise.all([
-      this.verifyCitations(context, draftId, versionId),
-      this.checkFactSupport(context, draftId, versionId),
-      this.adversarialReview(context, draftId, versionId),
-    ]);
-    const findings = results.flatMap((result) => result.findings);
-    return this.summarize(draftId, results[0].draftVersionId, findings);
-  }
-
-  private async requireVersion(context: DraftContext, draftId: string, versionId?: string) {
-    const version = versionId
-      ? await this.repository.getVersion(context.tenantId, context.matterId, draftId, versionId)
-      : await this.repository.getCurrentVersion(context.tenantId, context.matterId, draftId);
-    if (!version) throw new Error('DRAFT_VERSION_NOT_FOUND: versão não localizada no matter do tenant autenticado.');
-    return version;
-  }
-
-  private finding(
-    context: DraftContext,
-    draftId: string,
-    draftVersionId: string,
-    reviewType: DraftReviewType,
-    severity: DraftReviewSeverity,
-    code: string,
-    message: string,
-    sectionId?: string,
-    targetId?: string,
-  ): Omit<DraftReviewFinding, 'id' | 'createdAt'> {
-    return DraftReviewFindingSchema.omit({ id: true, createdAt: true }).parse({
-      tenantId: context.tenantId,
-      matterId: context.matterId,
-      draftId,
-      draftVersionId,
-      reviewType,
-      severity,
-      code,
-      message,
-      sectionId,
-      targetId,
-    });
-  }
-
-  private async persistResult(draftId: string, draftVersionId: string, findings: DraftReviewFindingInput[]): Promise<ReviewResult> {
-    const created = await this.repository.createReviewFindings(findings);
-    return this.summarize(draftId, draftVersionId, created);
-  }
-
-  private summarize(draftId: string, draftVersionId: string, findings: DraftReviewFinding[]): ReviewResult {
-    const blockingCount = findings.filter((finding) => finding.severity === 'BLOCKING').length;
-    const warningCount = findings.filter((finding) => finding.severity === 'WARNING').length;
-    return {
-      draftId,
-      draftVersionId,
-      findings,
-      blockingCount,
-      warningCount,
-      status: blockingCount > 0 ? 'BLOCKED' : warningCount > 0 ? 'WARNINGS' : 'PASSED',
+  constructor(private readonly deps: DraftReviewDependencies) {}
+  verifyCitations(c: DraftContext, id: string, v?: string) { return this.execute(c, id, 'CITATION', v); }
+  checkFactSupport(c: DraftContext, id: string, v?: string) { return this.execute(c, id, 'FACT_SUPPORT', v); }
+  adversarialReview(c: DraftContext, id: string, v?: string) { return this.execute(c, id, 'STRUCTURE', v); }
+  runAll(c: DraftContext, id: string, v?: string) { return this.execute(c, id, 'ALL', v); }
+  private async execute(context: DraftContext, draftId: string, mode: DraftReviewMode, versionId?: string): Promise<ReviewResult> {
+    const { drafts, runs } = this.deps;
+    const bundle = versionId ? await drafts.getVersion(context.tenantId, context.matterId, draftId, versionId) : await drafts.getCurrentVersion(context.tenantId, context.matterId, draftId);
+    if (!bundle) throw new Error('DRAFT_VERSION_NOT_FOUND: versão não localizada neste caso.');
+    const snapshot = await drafts.reviewContext(context, bundle);
+    const run = await runs.start(context, bundle.version, mode, reviewContextHash(snapshot));
+    const checks: DraftReviewCheck[] = [], findings: FindingInput[] = [];
+    const add = (kind: DraftReviewCheck['kind'], state: DraftReviewCheck['state'], code: string, message: string, severity?: DraftReviewFinding['severity'], extra: Partial<DraftReviewCheck> = {}) => {
+      checks.push({ kind, state, code, message, checkedAt: new Date().toISOString(), ...extra });
+      if (severity) findings.push({ tenantId: context.tenantId, matterId: context.matterId, draftId, draftVersionId: bundle.version.id, reviewType: kind === 'STRUCTURE' ? 'ADVERSARIAL' : kind, severity, code, message, sectionId: extra.sectionId, targetId: extra.targetId });
     };
+    try {
+      if (mode === 'ALL' || mode === 'CITATION') {
+        for (const citation of bundle.citations) {
+          const section = bundle.sections.find(s => s.id === citation.sectionId);
+          const links = citation.targetType === 'AUTHORITY' ? section?.linkedAuthorityIds : citation.targetType === 'FACT' ? section?.linkedFactIds : section?.linkedEvidenceIds;
+          if (!links?.includes(citation.targetId)) add('CITATION', 'ATTENTION', 'CITATION_TARGET_NOT_LINKED', 'Vincule a referência à seção em que ela é utilizada.', 'BLOCKING', { sectionId: citation.sectionId, targetType: citation.targetType, targetId: citation.targetId });
+        }
+        const refs = bundle.sections.flatMap(section => section.linkedAuthorityIds.map(targetId => ({ sectionId: section.id, targetId })));
+        for (const c of bundle.citations.filter(c => c.targetType === 'AUTHORITY')) if (!refs.some(r => r.targetId === c.targetId && r.sectionId === c.sectionId)) refs.push({ sectionId: c.sectionId, targetId: c.targetId });
+        const ids = [...new Set(refs.map(r => r.targetId))]; let cursor = 0;
+        await Promise.all(Array.from({ length: Math.min(4, ids.length) }, async () => {
+          while (cursor < ids.length) {
+            const id = ids[cursor++], saved = snapshot.authorities.find(a => a.id === id);
+            const locations = refs.filter(r => r.targetId === id);
+            if (!saved) { for (const ref of locations) add('CITATION', 'ATTENTION', 'AUTHORITY_NOT_IN_MATTER', 'A referência não pertence a este caso. Selecione uma fonte do caso.', 'BLOCKING', { ...ref, targetType: 'AUTHORITY' }); continue; }
+            let timer: ReturnType<typeof setTimeout> | undefined;
+            try {
+              const response = await Promise.race([this.deps.research.verifyAuthority({ court: saved.authority.court, processNumber: saved.authority.processNumber, judgmentDate: saved.authority.judgmentDate }), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('SOURCE_TIMEOUT')), 15000); })]);
+              const confirmed = response.status === 'VERIFIED_OFFICIAL' || response.status === 'VERIFIED_PROVIDER';
+              const message = confirmed ? (this.deps.sourceMethod === 'PERSISTED_CORPUS' ? 'Referência localizada no acervo. Confira se o julgado sustenta o argumento.' : 'Referência localizada na fonte consultada. Confira se o julgado sustenta o argumento.') : response.status === 'NOT_FOUND' ? 'Referência não localizada no acervo consultado. Isso não demonstra que o julgado inexiste.' : response.status === 'CONFLICTING_METADATA' ? 'Os dados cadastrados diferem dos dados da fonte. Confira a referência.' : 'Não foi possível confirmar a referência com os dados disponíveis.';
+              for (const ref of locations) {
+                const citation = bundle.citations.find(c => c.sectionId === ref.sectionId && c.targetId === id && c.targetType === 'AUTHORITY'), source = response.authority?.provenance.source;
+                add('CITATION', confirmed ? 'CONFIRMED' : 'ATTENTION', response.status === 'NOT_FOUND' ? 'AUTHORITY_NOT_FOUND' : response.status, message, confirmed ? undefined : 'WARNING', { ...ref, targetType: 'AUTHORITY', humanConfirmed: citation?.verified ?? false, checkedAt: response.checkedAt, source: { method: this.deps.sourceMethod, providerId: response.providerId, sourceUrl: source?.sourceUrl, contentHash: source?.contentHash, capturedAt: source?.capturedAt } });
+              }
+            } catch (error) {
+              const unsupported = String(error).includes('UNSUPPORTED_COURT');
+              for (const ref of locations) add('CITATION', unsupported ? 'ATTENTION' : 'UNAVAILABLE', unsupported ? 'COURT_NOT_SUPPORTED' : 'SOURCE_UNAVAILABLE', unsupported ? 'Este tribunal não está incluído na conferência automática. Confira a referência na fonte.' : 'A fonte está temporariamente indisponível. Tente conferir novamente.', 'WARNING', { ...ref, targetType: 'AUTHORITY', humanConfirmed: bundle.citations.some(c => c.targetId === id && c.sectionId === ref.sectionId && c.verified) });
+            } finally { if (timer) clearTimeout(timer); }
+          }
+        }));
+        if (!bundle.citations.length) add('CITATION', 'ATTENTION', 'CITATIONS_MISSING', 'Nenhuma referência cadastrada. A conferência não identifica citações no texto livre.', 'WARNING');
+      }
+      if (mode === 'ALL' || mode === 'FACT_SUPPORT' || mode === 'CITATION') {
+        for (const section of bundle.sections) {
+          for (const factId of section.linkedFactIds) {
+            const support = snapshot.supports.find(s => s.fact.id === factId), extra = { sectionId: section.id, targetType: 'FACT' as const, targetId: factId };
+            if (!support) add('FACT_SUPPORT', 'ATTENTION', 'FACT_NOT_FOUND', 'O fato não pertence a este caso. Selecione um fato do caso.', 'BLOCKING', extra);
+            else { const coverage = support.coverage.coverage;
+              add('FACT_SUPPORT', coverage === 'SUPPORTED' ? 'CONFIRMED' : 'ATTENTION', coverage === 'SUPPORTED' ? 'FACT_SUPPORT_REGISTERED' : coverage === 'PARTIAL' ? 'FACT_SUPPORT_PARTIAL' : 'FACT_SUPPORT_INSUFFICIENT', coverage === 'SUPPORTED' ? 'Há provas vinculadas ao fato. O vínculo não comprova a veracidade do conteúdo.' : coverage === 'CONFLICTING' ? 'Há relações de apoio e de contradição. Confira os documentos.' : coverage === 'PARTIAL' ? 'O suporte cadastrado é parcial. Confira ou vincule uma prova.' : 'Este fato não tem prova de apoio vinculada.', coverage === 'SUPPORTED' ? undefined : coverage === 'PARTIAL' ? 'WARNING' : 'BLOCKING', extra);
+            }
+          }
+          for (const id of section.linkedEvidenceIds) if (!snapshot.evidence.some(e => e.id === id)) add('FACT_SUPPORT', 'ATTENTION', 'EVIDENCE_NOT_FOUND', 'A prova não pertence a este caso. Selecione uma prova do caso.', 'BLOCKING', { sectionId: section.id, targetType: 'EVIDENCE', targetId: id });
+        }
+        for (const c of bundle.citations.filter(c => c.targetType !== 'AUTHORITY')) if (!(c.targetType === 'FACT' ? snapshot.facts.some(f => f.id === c.targetId) : snapshot.evidence.some(e => e.id === c.targetId))) add('FACT_SUPPORT', 'ATTENTION', 'CITATION_TARGET_NOT_FOUND', 'A fonte da referência não pertence a este caso.', 'BLOCKING', { sectionId: c.sectionId, targetId: c.targetId, targetType: c.targetType });
+        const anchorIds = snapshot.supports.flatMap(s => s.sourceLinks.map(l => l.documentAnchorId)).concat(snapshot.evidenceSourceLinks.map(l => l.documentAnchorId));
+        if (anchorIds.some(id => !snapshot.anchors.some(a => a.id === id))) add('FACT_SUPPORT', 'ATTENTION', 'SUPPORT_SOURCE_NOT_FOUND', 'Um trecho vinculado não está disponível neste caso. Confira os vínculos.', 'BLOCKING');
+        if (!bundle.sections.some(s => s.linkedFactIds.length)) add('FACT_SUPPORT', 'ATTENTION', 'FACTS_NOT_LINKED', 'Não há fatos vinculados às seções.', 'WARNING');
+      }
+      if (mode === 'ALL' || mode === 'STRUCTURE') {
+        for (const section of bundle.sections) add('STRUCTURE', section.content.trim() ? 'CONFIRMED' : 'ATTENTION', section.content.trim() ? 'SECTION_CONTENT_PRESENT' : 'SECTION_CONTENT_EMPTY', section.content.trim() ? `A seção “${section.title}” possui conteúdo.` : `A seção “${section.title}” está vazia.`, section.content.trim() ? undefined : 'BLOCKING', { sectionId: section.id });
+        if (!bundle.sections.some(s => s.linkedAuthorityIds.length)) add('STRUCTURE', 'ATTENTION', 'AUTHORITIES_NOT_LINKED', 'Nenhuma fonte jurídica está vinculada à minuta.', 'WARNING');
+        if (bundle.sections.length < 2) add('STRUCTURE', 'ATTENTION', 'OUTLINE_TOO_SMALL', 'Confira a estrutura: a minuta possui uma única seção.', 'WARNING');
+      }
+      if (reviewContextHash(await drafts.reviewContext(context, bundle)) !== run.contextHash) add('FACT_SUPPORT', 'UNAVAILABLE', 'CASE_CONTEXT_CHANGED', 'Os vínculos do caso mudaram durante a conferência. Confira novamente.', 'WARNING');
+    } catch { add('STRUCTURE', 'UNAVAILABLE', 'REVIEW_INCOMPLETE', 'Não foi possível concluir a conferência. Tente novamente.', 'WARNING'); }
+    const incomplete = checks.some(c => c.state === 'UNAVAILABLE');
+    const status = incomplete ? 'INCOMPLETE' : findings.some(f => f.severity === 'BLOCKING') ? 'BLOCKED' : findings.some(f => f.severity === 'WARNING') ? 'WARNINGS' : 'PASSED';
+    return runs.finish(context, run.id, { state: incomplete ? 'INCOMPLETE' : 'COMPLETE', status, checks, findings });
   }
 }

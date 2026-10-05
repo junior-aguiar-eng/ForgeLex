@@ -6,12 +6,15 @@ import {
   DraftReviewFinding,
   DraftSection,
   DraftVersion,
+  DraftReviewRun,
 } from '@forgelex/domain';
 import {
   CitationAnchorInput,
   DraftRepository,
+  DraftReviewRunRepository,
   DraftSectionInput,
   DraftVersionBundle,
+  reviewContextHash,
 } from '@forgelex/persistence';
 
 export interface DraftContext {
@@ -33,6 +36,9 @@ export interface DraftDetails {
   versions: DraftVersion[];
   reviewFindings: DraftReviewFinding[];
   approvals: ApprovalRequest[];
+  latestReviewRun?: DraftReviewRun;
+  currentReviewRun?: DraftReviewRun;
+  reviewContextChanged: boolean;
 }
 
 export interface DraftWriteResult {
@@ -49,7 +55,7 @@ function hashDraftContent(input: DraftContentInput): string {
 }
 
 export class DraftingService {
-  public constructor(private readonly repository: DraftRepository) {}
+  public constructor(private readonly repository: DraftRepository, private readonly runs: DraftReviewRunRepository = repository.reviewRuns()) {}
 
   public async createDraft(context: DraftContext, input: DraftContentInput): Promise<DraftWriteResult> {
     const draft = await this.repository.createDraft({
@@ -74,11 +80,17 @@ export class DraftingService {
       this.repository.listReviewFindings(context.tenantId, context.matterId, draftId),
       this.repository.listApprovalRequests(context.tenantId, context.matterId),
     ]);
+    const latestReviewRun = currentVersion && this.runs ? await this.runs.getLatest(context, draftId, currentVersion.version.id) : undefined;
+    const currentReviewRun = currentVersion && this.runs ? await this.runs.getLatest(context, draftId, currentVersion.version.id, true) : undefined;
+    const reviewContextChanged = Boolean(latestReviewRun && currentVersion && latestReviewRun.contextHash !== reviewContextHash(await this.repository.reviewContext(context, currentVersion)));
     return {
       draft,
       currentVersion,
       versions,
-      reviewFindings,
+      reviewFindings: currentReviewRun ? reviewFindings.filter(f => f.reviewRunId === currentReviewRun.id) : [],
+      latestReviewRun,
+      currentReviewRun,
+      reviewContextChanged,
       approvals: approvals.filter((approval) => approval.draftId === draftId),
     };
   }
@@ -89,10 +101,6 @@ export class DraftingService {
       ? await this.repository.getVersion(context.tenantId, context.matterId, draftId, versionId)
       : await this.repository.getCurrentVersion(context.tenantId, context.matterId, draftId);
     if (!version) throw new Error('DRAFT_VERSION_NOT_FOUND: o rascunho não possui a versão solicitada.');
-    const findings = await this.repository.listReviewFindings(context.tenantId, context.matterId, draftId, version.version.id);
-    if (findings.some((finding) => finding.severity === 'BLOCKING')) {
-      throw new Error('DRAFT_REVIEW_BLOCKED: a versão possui apontamentos bloqueadores de revisão.');
-    }
     return this.repository.createApprovalRequest({
       tenantId: context.tenantId,
       matterId: context.matterId,

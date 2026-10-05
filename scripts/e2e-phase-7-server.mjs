@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { buildApp } from '../apps/api/dist/app.js';
+import { OAuthTokenVault } from '../apps/api/dist/auth/oauth-token-vault.js';
 import { BillingOperationsService } from '../apps/api/dist/billing/billing-operations.js';
 import { BillingService, LedgerService } from '../packages/billing-ledger/dist/index.js';
 import { JurisprudenceIngestionService } from '../packages/legal-data/dist/index.js';
@@ -31,6 +32,11 @@ const identity = {
   aud: 'authenticated', role: 'authenticated',
 };
 const session = { access_token: token, refresh_token: 'phase7-e2e-refresh-token', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, token_type: 'bearer', user: identity };
+const caseAi = process.env.FORGELEX_E2E_CASE_AI === 'true';
+const oauthKey=Buffer.alloc(32,7).toString('base64');
+const oauthVault=new OAuthTokenVault(oauthKey,`${webOrigin}/mcp`);
+const oauthGrants=caseAi?['app-one','app-two'].map(id=>({client:{id,name:id==='app-one'?'Minha conexão de teste':'Outra conexão'},scopes:['openid','email'],granted_at:'2026-10-05T10:00:00.000Z'})):[];
+const nativeTokens=new Map(oauthGrants.map(g=>{const jwt=`${Buffer.from('{"alg":"fixture"}').toString('base64url')}.${Buffer.from(JSON.stringify({sub:identity.id,client_id:g.client.id,session_id:executionId,iss:authUrl+'/auth/v1',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.fixture`;return [g.client.id,jwt];}));
 
 function send(response, status, body) {
   response.writeHead(status, {
@@ -45,8 +51,8 @@ const authServer = http.createServer((request, response) => {
   if (request.method === 'OPTIONS') return send(response, 204, {});
   const url = new URL(request.url ?? '/', authUrl);
   if (request.method === 'POST' && url.pathname === '/auth/v1/token' && url.searchParams.get('grant_type') === 'password') return send(response, 200, session);
-  if (request.method === 'GET' && url.pathname === '/auth/v1/user' && request.headers.authorization === `Bearer ${token}`) return send(response, 200, identity);
-  if (request.method === 'GET' && url.pathname === '/auth/v1/user/oauth/grants') return send(response, 200, []);
+  if (request.method === 'GET' && url.pathname === '/auth/v1/user' && [token,...nativeTokens.values()].some(t=>request.headers.authorization===`Bearer ${t}`)) return send(response, 200, identity);
+  if (request.method === 'GET' && url.pathname === '/auth/v1/user/oauth/grants' && [token,...nativeTokens.values()].some(t=>request.headers.authorization===`Bearer ${t}`)) return send(response, 200, oauthGrants);
   if (request.method === 'POST' && url.pathname === '/auth/v1/logout') return send(response, 204, {});
   return send(response, 404, { error: 'not_found' });
 });
@@ -77,6 +83,14 @@ await new JurisprudenceIngestionService(
 const matter = await new MatterRepository(connection.db).createMatter({
   tenantId: account.tenant.id, createdBy: account.user.id, title: 'Caso E2E Fase 7',
 });
+let caseFixture;
+if(caseAi){
+ const repo=new MatterRepository(connection.db);
+ const other=await repo.createMatter({tenantId:account.tenant.id,createdBy:account.user.id,title:'Outro caso E2E'});
+ const document=await repo.ingestTextDocument({tenantId:account.tenant.id,createdBy:account.user.id,matterId:matter.id,title:'Contrato selecionável '+('texto longo '.repeat(15)),originalFilename:'autorizado.txt',mimeType:'text/plain',content:'Conteúdo reservado selecionado. 😀 '.repeat(300)});
+ const hidden=await repo.ingestTextDocument({tenantId:account.tenant.id,createdBy:account.user.id,matterId:matter.id,title:'Documento excluído',originalFilename:'excluido.txt',mimeType:'text/plain',content:'SEGREDO EXCLUÍDO'});
+ caseFixture={otherMatterId:other.id,documentId:document.document.id,hiddenDocumentId:hidden.document.id,oauthTokens:Object.fromEntries([...nativeTokens].map(([id,jwt])=>[id,oauthVault.seal(jwt,'access',Date.now()+3600000)]))};
+}
 const memoId = randomUUID();
 const now = new Date().toISOString();
 await connection.client.execute({
@@ -106,6 +120,7 @@ const app = await buildApp({
     NODE_ENV: 'test', FORGELEX_SUPABASE_URL: authUrl,
     FORGELEX_SUPABASE_PUBLISHABLE_KEY: 'phase7-e2e-publishable', FORGELEX_ALLOWED_ORIGINS: webOrigin,
     FORGELEX_WEBHOOK_MASTER_KEY: 'phase7-e2e-master-key',
+    ...(caseAi?{FORGELEX_MCP_OAUTH_ENABLED:'true',FORGELEX_PUBLIC_URL:webOrigin,FORGELEX_SUPABASE_SECRET_KEY:'fixture-secret-local-only',FORGELEX_MCP_OAUTH_ENCRYPTION_KEY:oauthKey}:{}),
   },
 });
 app.post('/e2e/confirm-purchase/:purchaseId', async (request, reply) => {
@@ -118,7 +133,7 @@ app.post('/e2e/confirm-purchase/:purchaseId', async (request, reply) => {
   });
   return { confirmed: true };
 });
-app.get('/e2e/state', async () => ({ tenantId: account.tenant.id, matterId: matter.id, memoId }));
+app.get('/e2e/state', async () => ({ tenantId: account.tenant.id, matterId: matter.id, memoId,...caseFixture }));
 await app.listen({ host: '127.0.0.1', port: apiPort });
 
 async function shutdown() {

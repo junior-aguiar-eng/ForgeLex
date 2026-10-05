@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AccountClosureRepository, createDatabase, runPersistenceMigrations, type Client } from '@forgelex/persistence';
+import { AccountClosureRepository, createDatabase, DraftRepository, DraftReviewRunRepository, MatterRepository, runPersistenceMigrations, type Client } from '@forgelex/persistence';
 import { runLedgerMigrations } from '@forgelex/billing-ledger';
 import { AccountClosurePurgeService } from './account-closure-purge-service.js';
 
@@ -60,6 +60,25 @@ describe('AccountClosurePurgeService', () => {
         fixture.jurisprudenceDocumentId,
       ]),
     ).toBe(1);
+  });
+  it('expurga execuções e seus achados antes das versões referenciadas', async () => {
+    const connection = await createDatabase({ url: pathToFileURL(databasePath).toString() });
+    try {
+      const matter = await new MatterRepository(connection.db).createMatter({ tenantId: fixture.tenantId, createdBy: fixture.userId, title: 'Caso com conferência' });
+      const context = { tenantId: fixture.tenantId, userId: fixture.userId, matterId: matter.id };
+      const drafts = new DraftRepository(connection.db);
+      const draft = await drafts.createDraft({ ...context, createdBy: fixture.userId, title: 'Minuta' });
+      const version = await drafts.createVersion({ ...context, draftId: draft.id, createdBy: fixture.userId, title: 'Minuta', source: 'HUMAN', contentHash: 'a'.repeat(64), sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto' }] });
+      const runs = new DraftReviewRunRepository(connection.db);
+      const run = await runs.start(context, version.version, 'ALL', 'b'.repeat(64));
+      await runs.finish(context, run.id, { state: 'COMPLETE', status: 'WARNINGS', checks: [], findings: [{ ...context, draftId: draft.id, draftVersionId: version.version.id, reviewType: 'CITATION', severity: 'WARNING', code: 'CITATIONS_MISSING', message: 'Nenhuma referência cadastrada.' }] });
+      expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_runs WHERE tenant_id = ?', [fixture.tenantId])).toBe(1);
+      await client.execute({sql:"INSERT INTO case_ai_access_grants (id,tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,revision,status,selection_json,created_at,updated_at) VALUES (?,?,?,?,?,?,1,'ACTIVE',?,?,?)",args:[randomUUID(),fixture.tenantId,fixture.userId,'app',now,matter.id,JSON.stringify({documents:[],factIds:[],evidenceIds:[],thesisIds:[],authorityIds:[]}),now,now]});
+      await new AccountClosurePurgeService(client).purgePrivateContent({ tenantId: fixture.tenantId, closureId: 'acl_1', now });
+      expect(await count(client, 'SELECT COUNT(*) AS count FROM case_ai_access_grants WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
+      expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_runs WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
+      expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_findings WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
+    } finally { connection.client.close(); }
   });
 
   it('preserva somente a categoria coberta por exceção vigente', async () => {

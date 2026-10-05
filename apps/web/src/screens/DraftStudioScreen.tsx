@@ -1,5 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, FileText, History, LockKeyhole, Plus, RefreshCw, Send, ShieldAlert } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ReviewPanel } from './draft-review/ReviewPanel';
+import { SourcePanel } from './draft-review/SourcePanel';
+import { type DraftReviewRun, type ReviewPoint, type DraftReviewFinding } from './draft-review/review-model';
+import { AlertCircle, CheckCircle2, FileText, LockKeyhole, Plus, RefreshCw, Send, ShieldAlert } from 'lucide-react';
 import { requestApiWithToken, resolveApiOrigin } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 
@@ -69,19 +72,15 @@ interface DraftVersion {
   createdAt: string;
 }
 
-interface ReviewFinding {
-  id: string;
-  reviewType: 'CITATION' | 'FACT_SUPPORT' | 'ADVERSARIAL';
-  severity: 'INFO' | 'WARNING' | 'BLOCKING';
-  code: string;
-  message: string;
-}
 
 interface DraftDetails {
   draft: Draft;
   currentVersion?: { version: DraftVersion; sections: DraftSection[]; citations: Citation[] };
   versions: DraftVersion[];
-  reviewFindings: ReviewFinding[];
+  reviewFindings: DraftReviewFinding[];
+  latestReviewRun?: DraftReviewRun;
+  currentReviewRun?: DraftReviewRun;
+  reviewContextChanged: boolean;
 }
 
 interface DraftWriteResponse {
@@ -178,6 +177,14 @@ export const DraftStudioScreen: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedPayload, setSavedPayload] = useState('');
+  const [contextChanged, setContextChanged] = useState(false);
+  const [point, setPoint] = useState<ReviewPoint>();
+  const [historyVersion, setHistoryVersion] = useState('');
+  const [historyRuns, setHistoryRuns] = useState<DraftReviewRun[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const historyRequest = useRef(0);
+  const selection = useRef(0);
   const hasApiAccess = Boolean(token.trim()) || authStatus === 'authenticated' || authStatus === 'legacy';
 
   const selectedMatter = useMemo(() => matters.find((matter) => matter.id === selectedMatterId), [matters, selectedMatterId]);
@@ -215,11 +222,14 @@ export const DraftStudioScreen: React.FC = () => {
   }, [token, authStatus]);
 
   const loadDrafts = async (matterId: string) => {
+    const sequence = selection.current;
     const response = await request<{ items: Draft[] }>(`/api/v2/matters/${matterId}/drafts`, token);
+    if (sequence !== selection.current) return;
     setDrafts(response.items);
   };
 
   const loadMatterContext = async (matterId: string) => {
+    const sequence = selection.current;
     const [issuesResponse, factsResponse, evidenceResponse, authoritiesResponse, thesisMap] = await Promise.all([
       request<{ items: LegalIssue[] }>(`/api/v2/matters/${matterId}/issues`, token),
       request<{ items: Fact[] }>(`/api/v2/matters/${matterId}/facts`, token),
@@ -227,6 +237,7 @@ export const DraftStudioScreen: React.FC = () => {
       request<{ items: SavedAuthority[] }>(`/api/v2/matters/${matterId}/authorities`, token),
       request<{ theses: LegalThesis[] }>(`/api/v2/matters/${matterId}/thesis-map`, token),
     ]);
+    if (sequence !== selection.current) return;
     setIssues(issuesResponse.items);
     setFacts(factsResponse.items);
     setEvidence(evidenceResponse.items);
@@ -235,9 +246,13 @@ export const DraftStudioScreen: React.FC = () => {
   };
 
   const selectMatter = async (matterId: string) => {
+    if (dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir este caso?')) return;
+    selection.current++;
+    setPoint(undefined); setHistoryVersion(''); setHistoryRuns([]); setReviewStatus(null); setApprovalToken(null); setSavedPayload(''); setContextChanged(false);
     setSelectedMatterId(matterId);
     setSelectedDraftId('');
     setDetails(null);
+    setDraftTitle('Minuta para revisão humana');
     setSections(initialSections());
     setCitations([]);
     setError(null);
@@ -253,13 +268,19 @@ export const DraftStudioScreen: React.FC = () => {
 
   const selectDraft = async (draftId: string) => {
     if (!selectedMatterId) return;
+    if (dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir este rascunho?')) return;
+    const sequence = ++selection.current;
+    setPoint(undefined); setHistoryVersion(''); setHistoryRuns([]); setReviewStatus(null); setApprovalToken(null); setContextChanged(false);
     setSelectedDraftId(draftId);
     setBusy(true);
     setError(null);
     try {
       const response = await request<DraftDetails>(`/api/v2/matters/${selectedMatterId}/drafts/${draftId}`, token);
+      if (sequence !== selection.current) return;
       setDetails(response);
       if (response.currentVersion) {
+        const version = response.currentVersion;
+        setSavedPayload(JSON.stringify({ title: response.draft.title, sections: version.sections.map((s, ordinal) => ({ ordinal, title: s.title, content: s.content, linkedFactIds: s.linkedFactIds, linkedEvidenceIds: s.linkedEvidenceIds, linkedAuthorityIds: s.linkedAuthorityIds, linkedThesisIds: s.linkedThesisIds })), citations: version.citations.map(c => ({ sectionOrdinal: version.sections.find(s => s.id === c.sectionId)?.ordinal ?? 0, targetType: c.targetType, targetId: c.targetId, citationText: c.citationText, verified: c.verified })) }));
         setDraftTitle(response.draft.title);
         setSections(response.currentVersion.sections.map((section) => ({
           title: section.title,
@@ -302,6 +323,24 @@ export const DraftStudioScreen: React.FC = () => {
     sections: sections.map((section, ordinal) => ({ ordinal, ...section })),
     citations,
   });
+  const dirty = Boolean(selectedMatterId && JSON.stringify(payload()) !== (details ? savedPayload : JSON.stringify({ title: 'Minuta para revisão humana', sections: initialSections().map((s, ordinal) => ({ ordinal, ...s })), citations: [] })));
+  const approvalReady = Boolean(details?.latestReviewRun?.state === 'COMPLETE' && details.latestReviewRun.blockingCount === 0 && !dirty && !contextChanged && !details.reviewContextChanged);
+  const refreshDetails = async () => {
+    const sequence = selection.current;
+    const response = await request<DraftDetails>(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}`, token);
+    if (sequence === selection.current) setDetails(response);
+  };
+  const openHistory = async (versionId: string) => {
+    const sequence = selection.current;
+    const requestNumber = ++historyRequest.current;
+    setHistoryLoading(true);
+    setHistoryVersion(versionId); setHistoryRuns([]); setError(null);
+    try {
+      const response = await request<{ items: DraftReviewRun[] }>(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/review-runs?versionId=${versionId}`, token);
+      if (sequence === selection.current && requestNumber === historyRequest.current) setHistoryRuns(response.items);
+    } catch { if (sequence === selection.current && requestNumber === historyRequest.current) setError('Não foi possível carregar as conferências.'); }
+    finally { if (sequence === selection.current && requestNumber === historyRequest.current) setHistoryLoading(false); }
+  };
 
   const toggleLink = (sectionIndex: number, field: 'linkedFactIds' | 'linkedEvidenceIds' | 'linkedAuthorityIds' | 'linkedThesisIds', id: string) => {
     setSections((current) => current.map((section, index) => {
@@ -362,20 +401,29 @@ export const DraftStudioScreen: React.FC = () => {
     }
   };
 
-  const saveDraft = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const saveDraft = async (event?: React.FormEvent) => {
+    event?.preventDefault();
     if (!selectedMatterId || !draftTitle.trim() || sections.some((section) => section.title.trim().length < 3)) return;
     setBusy(true);
     setError(null);
     setApprovalToken(null);
+    const sequence = selection.current;
+    const content = JSON.stringify(payload());
     try {
       const response = selectedDraftId
-        ? await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/versions`, token, { method: 'POST', body: JSON.stringify(payload()) })
-        : await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts`, token, { method: 'POST', body: JSON.stringify(payload()) });
+        ? await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/versions`, token, { method: 'POST', body: content })
+        : await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts`, token, { method: 'POST', body: content });
+      if (sequence !== selection.current) return;
       setSelectedDraftId(response.draft.id);
+      setSavedPayload(content);
+      setContextChanged(false);
       await loadDrafts(selectedMatterId);
-      await selectDraft(response.draft.id);
-      setReviewStatus('Versão salva como rascunho. A revisão ainda precisa ser executada.');
+      if (sequence !== selection.current) return;
+      const updated = await request<DraftDetails>(`/api/v2/matters/${selectedMatterId}/drafts/${response.draft.id}`, token);
+      if (sequence !== selection.current) return;
+      setDetails(updated);
+      setReviewStatus('Versão salva. Confira o rascunho antes de encaminhar à aprovação.');
+      return response;
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Não foi possível salvar a versão.');
     } finally {
@@ -383,27 +431,33 @@ export const DraftStudioScreen: React.FC = () => {
     }
   };
 
-  const runReview = async () => {
-    if (!selectedMatterId || !selectedDraftId) return;
+  const runReview = async (saved?: DraftWriteResponse) => {
+    const versionId = saved?.version.id ?? details?.currentVersion?.version.id;
+    const draftId = saved?.draft.id ?? selectedDraftId;
+    if (!selectedMatterId || !draftId || !versionId || (dirty && !saved)) return;
+    const sequence = selection.current;
     setBusy(true);
     setError(null);
     try {
-      const result = await request<{ status: 'PASSED' | 'WARNINGS' | 'BLOCKED'; blockingCount: number; warningCount: number }>(
-        `/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/review`,
+      await request(
+        `/api/v2/matters/${selectedMatterId}/drafts/${draftId}/review`,
         token,
-        { method: 'POST', body: JSON.stringify({ type: 'all' }) },
+        { method: 'POST', body: JSON.stringify({ type: 'all', versionId }) },
       );
-      setReviewStatus(`${result.status}: ${result.blockingCount} bloqueador(es) e ${result.warningCount} alerta(s).`);
-      await selectDraft(selectedDraftId);
+      if (sequence === selection.current) { setContextChanged(false); await refreshDetails(); }
     } catch (reviewError) {
       setError(reviewError instanceof Error ? reviewError.message : 'Não foi possível executar a revisão.');
     } finally {
       setBusy(false);
     }
   };
+  const saveAndReview = async () => {
+    const saved = await saveDraft();
+    if (saved) await runReview(saved);
+  };
 
   const requestApproval = async () => {
-    if (!selectedMatterId || !selectedDraftId) return;
+    if (!selectedMatterId || !selectedDraftId || !approvalReady) return;
     setBusy(true);
     setError(null);
     try {
@@ -412,7 +466,7 @@ export const DraftStudioScreen: React.FC = () => {
         body: JSON.stringify({ versionId: details?.draft.currentVersionId }),
       });
       setApprovalToken(response.token);
-      await selectDraft(selectedDraftId);
+      await refreshDetails();
     } catch (approvalError) {
       setError(approvalError instanceof Error ? approvalError.message : 'A versão não pode ser encaminhada para aprovação.');
     } finally {
@@ -431,7 +485,7 @@ export const DraftStudioScreen: React.FC = () => {
             </div>
             <h1 className="font-editorial text-4xl font-bold text-stone-950">Rascunho do caso</h1>
             <p className="max-w-2xl text-sm leading-relaxed text-stone-600">
-              Organize o outline, os vínculos do caso e o histórico de versões. O conteúdo permanece minuta até a conferência humana.
+              Organize as seções, as fontes do caso e o histórico de versões. O conteúdo permanece minuta até a conferência humana.
             </p>
           </div>
           <div className="inline-flex items-center gap-2 text-xs text-stone-500"><ShieldAlert className="w-4 h-4 text-amber-600" />Sem efeito externo automático</div>
@@ -458,45 +512,86 @@ export const DraftStudioScreen: React.FC = () => {
           <aside className="champagne-card bg-white rounded-2xl p-5 space-y-5">
             <div className="flex items-center justify-between"><h2 className="font-editorial text-xl font-bold text-stone-900">Casos</h2><span className="text-xs text-stone-500">{matters.length}</span></div>
             <div className="space-y-2">
-              {matters.map((matter) => <button key={matter.id} onClick={() => void selectMatter(matter.id)} className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedMatterId === matter.id ? 'border-cognac-400 bg-cognac-50' : 'border-champagne-border hover:border-cognac-300'}`}><span className="block text-sm font-semibold text-stone-900 truncate">{matter.title}</span><span className="text-[11px] text-stone-500">{matter.practiceArea ?? 'Área não informada'}</span></button>)}
-              {matters.length === 0 && <p className="text-xs text-stone-500 leading-relaxed">Atualize os casos com uma credencial que tenha acesso a matters.</p>}
+              {matters.map((matter) => <button key={matter.id} disabled={busy} onClick={() => void selectMatter(matter.id)} className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedMatterId === matter.id ? 'border-cognac-400 bg-cognac-50' : 'border-champagne-border hover:border-cognac-300'}`}><span className="block text-sm font-semibold text-stone-900 truncate">{matter.title}</span><span className="text-[11px] text-stone-500">{matter.practiceArea ?? 'Área não informada'}</span></button>)}
+              {matters.length === 0 && <p className="text-xs text-stone-500 leading-relaxed">Nenhum caso disponível para sua conta.</p>}
             </div>
-            {selectedMatter && <div className="pt-4 border-t border-stone-100 space-y-2"><p className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Rascunhos do caso</p>{drafts.map((draft) => <button key={draft.id} onClick={() => void selectDraft(draft.id)} className={`w-full text-left p-3 rounded-xl border ${selectedDraftId === draft.id ? 'border-cognac-400 bg-cognac-50' : 'border-champagne-border hover:border-cognac-300'}`}><span className="block text-sm font-semibold text-stone-800 truncate">{draft.title}</span><span className="text-[11px] text-stone-500">{statusLabel[draft.status]}</span></button>)}{drafts.length === 0 && <p className="text-xs text-stone-500">Nenhum rascunho neste caso.</p>}</div>}
+            {selectedMatter && <div className="pt-4 border-t border-stone-100 space-y-2"><p className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Rascunhos do caso</p>{drafts.map((draft) => <button key={draft.id} disabled={busy} onClick={() => void selectDraft(draft.id)} className={`w-full text-left p-3 rounded-xl border ${selectedDraftId === draft.id ? 'border-cognac-400 bg-cognac-50' : 'border-champagne-border hover:border-cognac-300'}`}><span className="block text-sm font-semibold text-stone-800 truncate">{draft.title}</span><span className="text-[11px] text-stone-500">{statusLabel[draft.status]}</span></button>)}{drafts.length === 0 && <p className="text-xs text-stone-500">Nenhum rascunho neste caso.</p>}</div>}
           </aside>
 
           <div className="space-y-6">
-            {!selectedMatter ? <section className="champagne-card bg-white rounded-2xl p-10 text-center"><FileText className="w-10 h-10 mx-auto text-cognac-400" /><h2 className="font-editorial text-xl font-bold text-stone-900 mt-3">Selecione um caso</h2><p className="text-sm text-stone-500 mt-2">O outline e o histórico de versões aparecerão aqui.</p></section> : <>
+            {!selectedMatter ? <section className="champagne-card bg-white rounded-2xl p-10 text-center"><FileText className="w-10 h-10 mx-auto text-cognac-400" /><h2 className="font-editorial text-xl font-bold text-stone-900 mt-3">Selecione um caso</h2><p className="text-sm text-stone-500 mt-2">As seções e o histórico de versões aparecerão aqui.</p></section> : <>
               <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
-                <div className="flex items-start justify-between gap-4"><div><span className="text-[10px] uppercase tracking-wider font-bold text-cognac-700">Estratégia do caso</span><h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">Mapa de teses</h2><p className="text-sm text-stone-500 mt-1">Cada tese pode carregar a questão, o fato, a prova e a authority que justificam sua redação.</p></div><span className="rounded-full bg-cognac-50 px-3 py-1 text-xs font-semibold text-cognac-800">{theses.length} tese(s)</span></div>
+                <div className="flex items-start justify-between gap-4"><div><span className="text-[10px] uppercase tracking-wider font-bold text-cognac-700">Estratégia do caso</span><h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">Mapa de teses</h2><p className="text-sm text-stone-500 mt-1">Cada tese pode carregar a questão, o fato, a prova e o julgado que justificam sua redação.</p></div><span className="rounded-full bg-cognac-50 px-3 py-1 text-xs font-semibold text-cognac-800">{theses.length} tese(s)</span></div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  {theses.map((thesis) => <div key={thesis.id} className="rounded-xl border border-cognac-100 bg-[#FDFBF7] p-4"><p className="text-sm font-semibold text-stone-900">{thesis.title}</p><p className="mt-1 text-xs leading-relaxed text-stone-600">{thesis.statement}</p><p className="mt-3 text-[11px] text-stone-500">{thesis.factIds.length} fato(s) · {thesis.evidenceIds.length} prova(s) · {thesis.authorityIds.length} authority(ies)</p></div>)}
+                  {theses.map((thesis) => <div key={thesis.id} className="rounded-xl border border-cognac-100 bg-[#FDFBF7] p-4"><p className="text-sm font-semibold text-stone-900">{thesis.title}</p><p className="mt-1 text-xs leading-relaxed text-stone-600">{thesis.statement}</p><p className="mt-3 text-[11px] text-stone-500">{thesis.factIds.length} fato(s) · {thesis.evidenceIds.length} prova(s) · {thesis.authorityIds.length} julgado(s)</p></div>)}
                   {theses.length === 0 && <p className="text-xs text-stone-500">Nenhuma tese registrada. Crie a primeira abaixo para vinculá-la à minuta.</p>}
                 </div>
                 <form onSubmit={createThesis} className="grid gap-3 border-t border-stone-100 pt-4">
-                  <div className="grid gap-3 md:grid-cols-2"><input value={thesisTitle} onChange={(event) => setThesisTitle(event.target.value)} placeholder="Título da tese" className="input-control" /><input value={thesisStatement} onChange={(event) => setThesisStatement(event.target.value)} placeholder="Enunciado da tese jurídica" className="input-control" /></div>
+                  <div className="grid gap-3 md:grid-cols-2"><input value={thesisTitle} onChange={(event) => setThesisTitle(event.target.value)} aria-label="Título da tese" placeholder="Título da tese" className="input-control" /><input value={thesisStatement} onChange={(event) => setThesisStatement(event.target.value)} aria-label="Enunciado da tese jurídica" placeholder="Enunciado da tese jurídica" className="input-control" /></div>
                   <div className="grid gap-3 md:grid-cols-4">
                     <select aria-label="Questão jurídica da tese" value={thesisIssueId} onChange={(event) => setThesisIssueId(event.target.value)} className="input-control"><option value="">Questão jurídica</option>{issues.map((issue) => <option key={issue.id} value={issue.id}>{issue.statement}</option>)}</select>
                     <select aria-label="Fato da tese" value={thesisFactId} onChange={(event) => setThesisFactId(event.target.value)} className="input-control"><option value="">Fato</option>{facts.map((fact) => <option key={fact.id} value={fact.id}>{fact.statement}</option>)}</select>
                     <select aria-label="Prova da tese" value={thesisEvidenceId} onChange={(event) => setThesisEvidenceId(event.target.value)} className="input-control"><option value="">Prova</option>{evidence.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
-                    <select aria-label="Autoridade da tese" value={thesisAuthorityId} onChange={(event) => setThesisAuthorityId(event.target.value)} className="input-control"><option value="">Authority</option>{authorities.map((item) => <option key={item.id} value={item.id}>{item.authority.court} · {item.authority.processNumber}</option>)}</select>
+                    <select aria-label="Julgado da tese" value={thesisAuthorityId} onChange={(event) => setThesisAuthorityId(event.target.value)} className="input-control"><option value="">Julgado</option>{authorities.map((item) => <option key={item.id} value={item.id}>{item.authority.court} · {item.authority.processNumber}</option>)}</select>
                   </div>
                   <div><button type="submit" disabled={busy || thesisTitle.trim().length < 3 || thesisStatement.trim().length < 10} className="btn-secondary disabled:opacity-50"><Plus className="h-4 w-4" aria-hidden="true" />Registrar tese</button></div>
                 </form>
               </section>
               <form onSubmit={saveDraft} className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><span className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">{selectedDraftId ? 'Nova versão' : 'Novo rascunho'}</span><h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">{selectedMatter.title}</h2></div><span className="text-xs text-stone-500">{selectedDraftId && details ? `Versão ${details.currentVersion?.version.versionNumber ?? '-'}` : 'Outline inicial'}</span></div>
-                <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Título do rascunho" className="w-full px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm" />
-                <div className="space-y-3">{sections.map((section, index) => <div key={`${section.title}-${index}`} className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-3"><div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-cognac-100 text-cognac-800 text-xs font-bold flex items-center justify-center">{index + 1}</span><input aria-label={`Título da seção ${index + 1}`} value={section.title} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} className="flex-1 bg-transparent text-sm font-semibold text-stone-900 border-b border-transparent focus:border-cognac-300 focus:outline-none" /></div><textarea value={section.content} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, content: event.target.value } : item))} rows={3} placeholder="Conteúdo da seção para conferência..." className="w-full px-3 py-2 rounded-lg border border-champagne-border bg-white text-sm resize-y" /><div className="grid gap-3 border-t border-stone-100 pt-3 md:grid-cols-2"><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Vínculos do mapa</legend><div className="space-y-1">{theses.map((thesis) => <label key={thesis.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedThesisIds.includes(thesis.id)} onChange={() => toggleLink(index, 'linkedThesisIds', thesis.id)} className="mt-0.5 accent-cognac-700" /><span>{thesis.title}</span></label>)}{theses.length === 0 && <p className="text-xs text-stone-500">Sem teses disponíveis.</p>}</div></fieldset><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Fatos, provas e authorities</legend><div className="grid gap-1 sm:grid-cols-2">{facts.map((fact) => <label key={fact.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedFactIds.includes(fact.id)} onChange={() => toggleLink(index, 'linkedFactIds', fact.id)} className="mt-0.5 accent-cognac-700" /><span>Fato: {fact.statement}</span></label>)}{evidence.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedEvidenceIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedEvidenceIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Prova: {item.title}</span></label>)}{authorities.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedAuthorityIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedAuthorityIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Authority: {item.authority.processNumber}</span></label>)}</div></fieldset></div></div>)}</div>
-                <div className="rounded-xl border border-cognac-100 bg-cognac-50/40 p-4 space-y-3"><div><p className="text-xs font-bold text-stone-800">Âncoras de citação</p><p className="text-[11px] text-stone-500">Registre a fonte usada e marque como verificada somente após a conferência humana.</p></div><div className="grid gap-3 md:grid-cols-5"><select aria-label="Seção da citação" value={citationSectionOrdinal} onChange={(event) => setCitationSectionOrdinal(Number(event.target.value))} className="input-control"><option value={0}>Seção 1</option>{sections.slice(1).map((_, index) => <option key={index + 1} value={index + 1}>Seção {index + 2}</option>)}</select><select aria-label="Tipo de fonte da citação" value={citationTargetType} onChange={(event) => { setCitationTargetType(event.target.value as Citation['targetType']); setCitationTargetId(''); }} className="input-control"><option value="AUTHORITY">Authority</option><option value="FACT">Fato</option><option value="EVIDENCE">Prova</option></select><select aria-label="Fonte da citação" value={citationTargetId} onChange={(event) => setCitationTargetId(event.target.value)} className="input-control md:col-span-2"><option value="">Selecione a fonte</option>{citationTargets.map((target) => <option key={target.id} value={target.id}>{target.label}</option>)}</select><input value={citationText} onChange={(event) => setCitationText(event.target.value)} placeholder="Texto da citação" className="input-control" /></div><div className="flex flex-wrap items-center gap-4"><label className="flex items-center gap-2 text-xs text-stone-700"><input type="checkbox" checked={citationVerified} onChange={(event) => setCitationVerified(event.target.checked)} className="accent-cognac-700" />Conferida por humano</label><button type="button" onClick={addCitation} disabled={!citationTargetId || citationText.trim().length < 3} className="btn-secondary disabled:opacity-50">Adicionar citação</button></div>{citations.length > 0 && <div className="space-y-1">{citations.map((citation, index) => <div key={`${citation.targetId}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-xs text-stone-700"><span>Seção {citation.sectionOrdinal + 1} · {citation.citationText}</span><span className={citation.verified ? 'text-emerald-700' : 'text-amber-700'}>{citation.verified ? 'Verificada' : 'Pendente'}</span></div>)}</div>}</div>
-                <div className="flex flex-wrap gap-3"><button type="submit" disabled={busy || !draftTitle.trim()} className="px-4 py-2.5 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold"><Plus className="w-4 h-4 inline mr-2" />{selectedDraftId ? 'Salvar nova versão' : 'Criar rascunho'}</button>{selectedDraftId && <><button type="button" onClick={() => void runReview()} disabled={busy} className="px-4 py-2.5 rounded-xl border border-cognac-200 text-cognac-800 text-sm font-semibold">Executar revisão</button><button type="button" onClick={() => void requestApproval()} disabled={busy || !details?.currentVersion} className="px-4 py-2.5 rounded-xl border border-amber-300 text-amber-800 text-sm font-semibold"><Send className="w-4 h-4 inline mr-2" />Encaminhar à aprovação</button></>}</div>
-                <p className="text-[11px] text-stone-500">Organize a estrutura e a revisão da peça. A versão atual permanece em rascunho até a conferência humana.</p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><span className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">{selectedDraftId ? 'Nova versão' : 'Novo rascunho'}</span><h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">{selectedMatter.title}</h2></div><span className="text-xs text-stone-500">{selectedDraftId && details ? `Versão ${details.currentVersion?.version.versionNumber ?? '-'}` : 'Estrutura inicial'}</span></div>
+                <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} aria-label="Título do rascunho" placeholder="Título do rascunho" className="w-full px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm" />
+                <div className="space-y-3">{sections.map((section, index) => <div key={index} className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-3"><div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-cognac-100 text-cognac-800 text-xs font-bold flex items-center justify-center">{index + 1}</span><input aria-label={`Título da seção ${index + 1}`} value={section.title} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} className="flex-1 bg-transparent text-sm font-semibold text-stone-900 border-b border-transparent focus:border-cognac-300 focus:outline-none" /></div><textarea id={`draft-section-${index}`} aria-label={`Conteúdo da seção ${index + 1}`} value={section.content} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, content: event.target.value } : item))} rows={3} placeholder="Conteúdo da seção para conferência..." className="w-full px-3 py-2 rounded-lg border border-champagne-border bg-white text-sm resize-y" /><div className="grid gap-3 border-t border-stone-100 pt-3 md:grid-cols-2"><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Vínculos do mapa</legend><div className="space-y-1">{theses.map((thesis) => <label key={thesis.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedThesisIds.includes(thesis.id)} onChange={() => toggleLink(index, 'linkedThesisIds', thesis.id)} className="mt-0.5 accent-cognac-700" /><span>{thesis.title}</span></label>)}{theses.length === 0 && <p className="text-xs text-stone-500">Sem teses disponíveis.</p>}</div></fieldset><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Fatos, provas e julgados</legend><div className="grid gap-1 sm:grid-cols-2">{facts.map((fact) => <label key={fact.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedFactIds.includes(fact.id)} onChange={() => toggleLink(index, 'linkedFactIds', fact.id)} className="mt-0.5 accent-cognac-700" /><span>Fato: {fact.statement}</span></label>)}{evidence.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedEvidenceIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedEvidenceIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Prova: {item.title}</span></label>)}{authorities.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedAuthorityIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedAuthorityIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Julgado: {item.authority.processNumber}</span></label>)}</div></fieldset></div></div>)}</div>
+                <div className="rounded-xl border border-cognac-100 bg-cognac-50/40 p-4 space-y-3"><div><p className="text-xs font-bold text-stone-800">Âncoras de citação</p><p className="text-[11px] text-stone-500">Registre a fonte usada e marque como verificada somente após a conferência humana.</p></div><div className="grid gap-3 md:grid-cols-5"><select aria-label="Seção da citação" value={citationSectionOrdinal} onChange={(event) => setCitationSectionOrdinal(Number(event.target.value))} className="input-control"><option value={0}>Seção 1</option>{sections.slice(1).map((_, index) => <option key={index + 1} value={index + 1}>Seção {index + 2}</option>)}</select><select aria-label="Tipo de fonte da citação" value={citationTargetType} onChange={(event) => { setCitationTargetType(event.target.value as Citation['targetType']); setCitationTargetId(''); }} className="input-control"><option value="AUTHORITY">Julgado</option><option value="FACT">Fato</option><option value="EVIDENCE">Prova</option></select><select aria-label="Fonte da citação" value={citationTargetId} onChange={(event) => setCitationTargetId(event.target.value)} className="input-control md:col-span-2"><option value="">Selecione a fonte</option>{citationTargets.map((target) => <option key={target.id} value={target.id}>{target.label}</option>)}</select><input value={citationText} onChange={(event) => setCitationText(event.target.value)} aria-label="Texto da citação" placeholder="Texto da citação" className="input-control" /></div><div className="flex flex-wrap items-center gap-4"><label className="flex items-center gap-2 text-xs text-stone-700"><input type="checkbox" checked={citationVerified} onChange={(event) => setCitationVerified(event.target.checked)} className="accent-cognac-700" />Conferida por mim</label><button type="button" onClick={addCitation} disabled={!citationTargetId || citationText.trim().length < 3} className="btn-secondary disabled:opacity-50">Adicionar citação</button></div>{citations.length > 0 && <div className="space-y-1">{citations.map((citation, index) => <div key={`${citation.targetId}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-xs text-stone-700"><span>Seção {citation.sectionOrdinal + 1} · {citation.citationText}</span><span className={citation.verified ? 'text-emerald-700' : 'text-amber-700'}>{citation.verified ? 'Conferência humana registrada' : 'Conferência humana pendente'}</span></div>)}</div>}</div>
+                <div className="flex flex-wrap gap-3"><button type="submit" disabled={busy || !draftTitle.trim()} className="px-4 py-2.5 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold"><Plus className="w-4 h-4 inline mr-2" />{selectedDraftId ? 'Salvar nova versão' : 'Criar rascunho'}</button>{selectedDraftId && <><button type="button" onClick={() => void runReview()} disabled={busy || dirty} className="px-4 py-2.5 rounded-xl border border-cognac-200 text-cognac-800 text-sm font-semibold">Conferir rascunho</button>{dirty && <button type="button" onClick={() => void saveAndReview()} disabled={busy} className="btn-secondary">Salvar e conferir</button>}<button type="button" onClick={() => void requestApproval()} disabled={busy || !approvalReady} className="px-4 py-2.5 rounded-xl border border-amber-300 text-amber-800 text-sm font-semibold"><Send className="w-4 h-4 inline mr-2" />Encaminhar à aprovação</button></>}</div>
+                <p className="text-[11px] text-stone-500">Salve as alterações antes de conferir. A conferência humana continua necessária para o uso da peça.</p>
+                {dirty && <p role="status" className="text-sm text-amber-800">Há alterações não salvas. Salve a nova versão para conferir este texto.</p>}
                 {details?.currentVersion && <div className="border-t border-stone-100 pt-4 space-y-2">
                   <button type="button" onClick={() => void exportSavedVersion()} disabled={busy || exporting} className="btn-secondary disabled:opacity-50">{exporting ? 'Gerando DOCX…' : 'Baixar DOCX da versão salva'}</button>
                   <p className="text-xs text-stone-500">Exporta a versão {details.currentVersion.version.versionNumber} registrada. Edições ainda não salvas não entram no arquivo. Pendências de revisão são indicadas no DOCX.</p>
                 </div>}
               </form>
 
-                {details && <div className="grid grid-cols-1 gap-6 xl:grid-cols-2"><section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-4"><div className="flex items-center gap-2"><History className="h-5 w-5 text-cognac-700" aria-hidden="true" /><h2 className="font-editorial text-xl font-bold text-stone-900">Histórico de versões</h2></div>{details.versions.map((version) => <div key={version.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><p className="text-sm font-semibold text-stone-800">Versão {version.versionNumber} · {statusLabel[version.status]}</p><p className="text-[11px] text-stone-500">{new Date(version.createdAt).toLocaleString('pt-BR')}</p></div><span className="text-[10px] text-stone-500">Versão registrada</span></div>)}</section><section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-4"><div className="flex items-center justify-between"><div><h2 className="font-editorial text-xl font-bold text-stone-900">Pendências de revisão</h2><p className="text-xs text-stone-500 mt-1">Achados da versão atual</p></div><span className="text-xs text-stone-500">{details.reviewFindings.length}</span></div>{details.reviewFindings.map((finding) => <div key={finding.id} className={`p-3 rounded-xl border ${finding.severity === 'BLOCKING' ? 'border-red-200 bg-red-50' : finding.severity === 'WARNING' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}><p className="text-xs font-bold text-stone-800">{finding.severity === 'BLOCKING' ? 'Bloqueador' : finding.severity === 'WARNING' ? 'Alerta' : 'Informação'}</p><p className="text-xs text-stone-700 mt-1">{finding.message}</p></div>)}{details.reviewFindings.length === 0 && <p className="text-xs text-stone-500">Execute a revisão para registrar citações, suporte factual e achados adversariais.</p>}</section></div>}
+              {details && <>
+                <ReviewPanel latestRun={details.latestReviewRun} currentRun={details.currentReviewRun} findings={details.reviewFindings} stale={dirty || contextChanged || details.reviewContextChanged} onOpenPoint={setPoint} />
+                <details className="champagne-card bg-white rounded-2xl p-5 space-y-4">
+                  <summary className="font-semibold cursor-pointer">Histórico de versões e conferências</summary>
+                  <div className="space-y-3 pt-4">{details.versions.map(version => <div key={version.id} className="rounded-xl border border-stone-200 p-3 space-y-2">
+                    <p className="text-sm">Versão {version.versionNumber} · {statusLabel[version.status]}</p>
+                    <button type="button" onClick={() => void openHistory(version.id)} className="btn-secondary">Ver conferências da versão {version.versionNumber}</button>
+                  </div>)}</div>
+                  {historyVersion && <div aria-live="polite" className="space-y-3 pt-4"><p className="text-xs text-stone-600">Consultar o histórico preserva o texto em edição.</p>
+                    {historyLoading && <p className="text-sm">Carregando conferências…</p>}
+                    {!historyLoading && !historyRuns.length && <p className="text-sm">Nenhuma conferência registrada para esta versão.</p>}
+                    {historyRuns.map(run => <details key={run.id} className="rounded-lg border border-stone-200 p-3"><summary className="cursor-pointer text-sm">Conferência {run.runNumber} · {new Date(run.startedAt).toLocaleString('pt-BR')} · {run.state === 'COMPLETE' ? 'Concluída' : run.state === 'RUNNING' ? 'Em andamento' : 'Incompleta'}</summary>
+                      <div className="mt-3 space-y-2">{run.checks.map((check, index) => <p key={index} className="text-sm">{check.message}</p>)}</div>
+                    </details>)}
+                  </div>}
+                </details>
+              </>}
+              {point && <SourcePanel point={point} matterId={selectedMatterId} token={token} facts={facts} evidence={evidence} authorities={authorities}
+                sectionTitle={details?.currentVersion?.sections.find(s => s.id === point.check.sectionId)?.title}
+                citationText={details?.currentVersion?.citations.find(c => c.sectionId === point.check.sectionId && c.targetId === point.check.targetId)?.citationText}
+                onClose={() => setPoint(undefined)} onLinked={() => { setContextChanged(true); void refreshDetails().catch(() => setError('Vínculo salvo. Atualize a conferência para consultar o resultado.')); }}
+                onEditSection={() => {
+                  const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
+                  setPoint(undefined); requestAnimationFrame(() => document.getElementById('draft-section-' + index)?.focus());
+                }}
+                onLinkReference={() => {
+                  const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
+                  const field = point.check.targetType === 'AUTHORITY' ? 'linkedAuthorityIds' : point.check.targetType === 'FACT' ? 'linkedFactIds' : 'linkedEvidenceIds';
+                  if (index >= 0 && point.check.targetId) setSections(current => current.map((s, i) => i === index ? { ...s, [field]: [...new Set([...s[field], point.check.targetId!])] } : s));
+                  setPoint(undefined);
+                }}
+                onRemoveReference={() => {
+                  const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
+                  const field = point.check.targetType === 'AUTHORITY' ? 'linkedAuthorityIds' : point.check.targetType === 'FACT' ? 'linkedFactIds' : 'linkedEvidenceIds';
+                  if (index >= 0) {
+                    setSections(current => current.map((s, i) => i === index ? { ...s, [field]: s[field].filter(id => id !== point.check.targetId) } : s));
+                    setCitations(current => current.filter(c => c.sectionOrdinal !== index || c.targetId !== point.check.targetId || c.targetType !== point.check.targetType));
+                  }
+                  setPoint(undefined);
+                }} />}
+
             </>}
           </div>
         </div>

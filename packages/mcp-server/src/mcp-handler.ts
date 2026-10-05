@@ -5,6 +5,8 @@ import { AuditRecorder } from '@forgelex/audit';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { randomUUID } from 'node:crypto';
 import { getErrorCode } from '@forgelex/domain';
+import type {VerifiedOAuthConnection} from '@forgelex/domain';
+import {isCaseContextTool,getCaseContextToolContract} from '@forgelex/legal-tools';
 
 export interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -51,7 +53,7 @@ export class McpHandler {
 
   public async handleRequest(
     request: JsonRpcRequest,
-    context: { tenantId?: string; userId?: string; idempotencyKey?: string; abortSignal?: AbortSignal } = {}
+    context: { tenantId?: string; userId?: string; idempotencyKey?: string; abortSignal?: AbortSignal; oauthConnection?:VerifiedOAuthConnection; revalidateConnection?:()=>Promise<void> } = {}
   ): Promise<JsonRpcResponse> {
     const id = request.id;
     const tenantId = context.tenantId ?? 'tenant_default_mcp';
@@ -91,7 +93,7 @@ export class McpHandler {
           .map((tool) => {
             const rawSchema = zodToJsonSchema(tool.inputSchema, { target: 'jsonSchema7' }) as any;
             const { $schema, ...cleanSchema } = rawSchema;
-            cleanSchema.properties = {
+            if(!isCaseContextTool(tool.name)) cleanSchema.properties = {
               ...(cleanSchema.properties ?? {}),
               idempotencyKey: {
                 type: 'string', minLength: 1,
@@ -99,11 +101,13 @@ export class McpHandler {
               },
             };
 
-            const contract = getLegalToolContract(tool.name);
+            const contract = getLegalToolContract(tool.name) ?? getCaseContextToolContract(tool.name);
+            const outputSchema=isCaseContextTool(tool.name)?zodToJsonSchema(tool.outputSchema,{target:'jsonSchema7'}) as any:undefined;
             return {
               name: tool.name,
               description: tool.description,
               inputSchema: cleanSchema,
+              ...(outputSchema?{outputSchema:Object.fromEntries(Object.entries(outputSchema).filter(([key])=>key!=='$schema')),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}}:{}),
               ...(contract ? { 'x-forgelex-contract': contract } : {}),
             };
           });
@@ -155,6 +159,30 @@ export class McpHandler {
             id,
             error: { code: -32601, message: `Method not found: a capability '${name}' não possui política comercial declarada.` },
           };
+        }
+
+        if(isCaseContextTool(name)) {
+          const startedAt=Date.now();const sessionId=`case_mcp_${randomUUID()}`;
+          try {
+            if(billing.mode!=='FREE')throw new Error('CASE_POLICY_INVALID');
+            if((typeof id!=='string'&&typeof id!=='number')||(typeof id==='string'&&id.length>256)||(typeof id==='number'&&!Number.isFinite(id)))return {jsonrpc:'2.0',error:{code:-32600,message:'Identificador de requisição inválido.'}};
+            const parsed=tool.inputSchema.safeParse(toolArgs??{});
+            if(!parsed.success)return {jsonrpc:'2.0',id,error:{code:-32602,message:'Parâmetros inválidos.',data:{code:'INVALID_INPUT',retryable:false}}};
+            if(!context.tenantId||!context.userId||!context.oauthConnection||!context.revalidateConnection)throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+            const executionContext={sessionId,tenantId:context.tenantId,userId:context.userId,source:'MCP' as const,oauthConnection:context.oauthConnection,revalidateConnection:context.revalidateConnection,abortSignal:context.abortSignal??new AbortController().signal};
+            const toolResult=await this.toolRegistry.executeTool(name,parsed.data,executionContext);
+            await this.recordAudit({sessionId,tenantId,userId,toolName:name,durationMs:Date.now()-startedAt,status:'SUCCESS',payload:{matterId:parsed.data.matterId,itemId:parsed.data.itemId,readOnly:true}});
+            const response={jsonrpc:'2.0' as const,id,result:{content:[{type:'text',text:JSON.stringify(toolResult)}],structuredContent:toolResult.data,isError:false,billing:{mode:'FREE',chargedCents:0,isReplay:false}}};
+            if(Buffer.byteLength(JSON.stringify(response))>24576)throw new Error('CASE_ITEM_TOO_LARGE');
+            if(!tool.revalidateResult)throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+            await tool.revalidateResult(toolResult.data,executionContext);
+            return response;
+          }catch(error){
+            const candidate=error instanceof Error?error.message.split(':')[0]:'';
+            const code=['CASE_CONTEXT_NOT_AUTHORIZED','CASE_CURSOR_INVALID','CASE_ITEM_TOO_LARGE','CASE_SELECTION_INVALID'].includes(candidate)?candidate==='CASE_SELECTION_INVALID'?'CASE_ITEM_UNAVAILABLE':candidate:getErrorCode(error,'TOOL_EXECUTION_FAILED');
+            await this.recordAudit({sessionId,tenantId,userId,toolName:name,durationMs:Date.now()-startedAt,status:'FAILED',payload:{code,readOnly:true}});
+            return {jsonrpc:'2.0',id,error:{code:-32000,message:code==='CASE_CONTEXT_NOT_AUTHORIZED'?'Este material não está autorizado para o aplicativo.':'Não foi possível concluir a leitura. Atualize a consulta.',data:{code,retryable:false}}};
+          }
         }
 
         const hostIdempotencyKey = typeof toolArgs?.idempotencyKey === 'string' ? toolArgs.idempotencyKey.trim() : '';

@@ -1,5 +1,108 @@
 # Auditoria e status canônico do ForgeLex
 
+## Contexto autorizado do caso na IA — implementação local (05/10/2026)
+
+Segunda frente do plano aprovado: em Casos, **Usar este caso na IA** permite
+escolher uma conexão autorizada, selecionar documentos/fatos/provas/teses/fontes,
+conferir a prévia e permitir acesso. **Permissões da IA** permite revogar.
+Não há seleção inicial automática. A prévia identifica a versão documental;
+novos documentos e versões não ampliam a autorização automaticamente.
+
+OAuth ativo autentica o aplicativo; o grant de contexto é separado, por
+tenant, usuário, aplicativo, concessão `granted_at`, caso e revisão. Gerenciar
+exige sessão web. As três ferramentas `case.list_shared`, `case.get_context`
+e `case.read_item` só leem a seleção e filtram também vínculos indiretos.
+Leitura usa política FREE, sem carteira, chave idempotente, replay privado ou
+débito. O caso não precisa ter consumido créditos. Pesquisa mantém a política
+existente. Não há recebimento de minutas nesta frente.
+
+Worktree: `C:\Users\Boni Jr\.codex\worktrees\draft-review\SDK`;
+branch `codex/contexto-caso-ia`, base
+`7c075ec6830899a50be3bea7a7a2b9fcb113afe8`. Alterações locais, ainda sem commit.
+Checkout original com trabalho P2 preservado.
+
+Validações locais:
+
+- `pnpm test`: build aprovado; 668 testes aprovados e cinco ignorados,
+  124 suítes aprovadas e duas ignoradas.
+- `pnpm lint` e `pnpm -r run typecheck`: aprovados.
+- E2E contexto: 3 aprovados, com navegador/API/SQLite/Auth sintética;
+  seleção, prévia, chamadas MCP gratuitas, exclusão de novos documentos,
+  outro aplicativo, revogação/cursor antigo e persistência após reload.
+- Conflito real entre abas mantém escolha e exige atualização; escrita
+  duplicada bloqueada. Resposta atrasada não atravessa o caso. ESC/foco,
+  390/1280 px, ausência de overflow e Axe sem violações no painel.
+- Regressões E2E: documentos 4, conferência de rascunhos 8 e onboarding
+  MCP 28 aprovados. Rodada de onboarding com colisão de artefatos descartada;
+  repetição isolada aprovada.
+- Revisão independente: dois Important e um Minor corrigidos e encerrados,
+  sem achados remanescentes nos deltas. Revalidação de concessão/grant após
+  auditoria, envelope MCP inteiro limitado a 24 KiB, número de versão visível.
+  Revisor executou 8 testes focados; coordenador verificou 17 testes focados,
+  inclusive fontes selecionadas, vínculos filtrados e versão anterior fixa.
+- `node --check` dos servidores/smoke modificados: aprovado. Smoke PostgreSQL
+  inclui grants concorrentes, leitura, revogação e cleanup. Execução PG pendente:
+  Docker daemon ausente e nenhuma URL de banco de teste isolado disponível.
+  Job PostgreSQL existente em CI executa `pnpm test:postgres`; precisa passar
+  antes de integrar. SQLite não comprova PostgreSQL.
+
+Evidências locais: `.superpowers/sdd/2026-10-05-contexto-caso-ia/` contém logs,
+ledger e capturas. Contrato/uso/ensaio real: `docs/product/case-ai-access.md`.
+Migration aditiva `persistence-0026-case-ai-access` testada localmente;
+permissões incluídas no purge de encerramento de conta.
+
+Nenhum novo commit, push, migration remota, deploy ou chamada de geração paga.
+ChatGPT e Claude reais não foram homologados com esta branch. O roteiro para
+ensaio gratuito em cada aplicativo está documentado e requer endpoint atualizado
+publicado e confirmação pontual antes da concessão OAuth real. Validação local,
+PostgreSQL, integração, publicação e uso no host são gates distintos.
+
+## Conferência de rascunhos — implementação local (03/10/2026)
+
+Primeira frente do plano aprovado: conferência explicável de referências,
+fatos/provas e estrutura, com execuções por versão, histórico recolhido e
+correção contextual no editor. O servidor reconsulta referências cadastradas
+no acervo persistido; localização automática e confirmação humana são distintas.
+Ausência no acervo não demonstra inexistência; indisponibilidade gera execução
+incompleta. Aprovação exige conferência ALL mais recente completa, sem bloqueadores,
+da versão e contexto correspondentes, com revalidação transacional.
+
+Proteção de edição inicial/não salva, respostas antigas e falha de salvamento;
+fontes diretas e por provas, ESC/foco, apresentação em 390/1280 px e histórico
+sem substituir a edição. Vínculo gravado permanece confirmado se sua releitura
+falhar. Decisões simultâneas têm um vencedor e erro de domínio para o perdedor;
+leituras do resultado permanecem na transação para evitar retry após commit.
+
+Worktree: `C:\Users\Boni Jr\.codex\worktrees\draft-review\SDK`;
+branch `codex/conferencia-rascunho`, base
+`ac4af32ba1368d35a413759cda6747b368979aeb`.
+Commit local autorizado por Boni em 05/10/2026; o hash da entrega consta do Git.
+Checkout original com trabalho P2 preservado.
+
+Validação final depois das correções da revisão independente:
+
+- `pnpm test`: build aprovado; 651 testes aprovados e cinco ignorados,
+  118 suítes aprovadas e duas ignoradas.
+- `pnpm lint` e `pnpm -r run typecheck`: aprovados.
+- `pnpm test:e2e:draft-review`: oito aprovados, navegador Chromium local,
+  autenticação/acervo sintéticos e persistência SQLite real.
+- `pnpm test:e2e:documents`: quatro aprovados, regressão PDF/DOCX.
+- Axe sem violações nos recortes testados; capturas mobile/desktop inspecionadas.
+- Revisão independente por inspeção: sem Critical/Important pendentes.
+- `node --check scripts/smoke-postgres.mjs` e `git diff --check`: aprovados.
+
+Migration aditiva `persistence-0025-draft-review-runs` e expurgo de conta
+incluem as execuções. Smoke PostgreSQL ampliado para revisão, reexecução,
+histórico e decisões concorrentes. **PostgreSQL não executado localmente**:
+daemon Docker indisponível e nenhuma URL de banco de teste isolado identificada.
+O check PostgreSQL existente em CI deve passar antes da integração.
+
+Entrega local: sem push, PR, migration remota ou publicação; sem chamadas
+a modelo pago. Frentes de contexto pelo MCP e retorno da produção não implementadas.
+Guia: `docs/product/draft-review.md`; desenho e plano aprovados em
+`docs/superpowers/`. Logs locais em
+`.superpowers/sdd/2026-10-03-conferencia-rascunho/release-local-*.log`.
+
 ## Consulta processual — navegação interna publicada (03/10/2026)
 
 Menu autenticado agora abre `/app/consulta-processual` dentro do workspace,

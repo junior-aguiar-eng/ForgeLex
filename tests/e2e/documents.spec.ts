@@ -111,5 +111,6 @@ test('DOCX exporta a versão salva, preserva revisão pendente e não inclui edi
   expect(xml).toContain('Versão 1');
   expect(xml).toContain('Questões jurídicas');
   expect(xml).toContain('revisão humana');
+  await page.getByText('Histórico de versões e conferências', { exact: true }).click();
   await expect(page.getByText('Versão 1 · Rascunho')).toBeVisible();
 });

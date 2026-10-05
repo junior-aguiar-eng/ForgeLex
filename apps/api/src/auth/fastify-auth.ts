@@ -116,6 +116,10 @@ export class SupabaseIdentityVerifier {
   }
 
   public async verifyOAuthGrant(token: string, identity: SupabaseIdentity): Promise<string | null> {
+    return (await this.verifyOAuthConnection(token, identity))?.clientId ?? null;
+  }
+
+  public async verifyOAuthConnection(token: string, identity: SupabaseIdentity): Promise<{clientId:string;grantedAt?:string}|null> {
     // Apenas depois de /user autenticar assinatura e identidade. Decodificar
     // isoladamente um JWT nunca estabelece autenticidade.
     const claims = readTokenClaims(token);
@@ -130,8 +134,10 @@ export class SupabaseIdentityVerifier {
       });
       if (!response.ok) return null;
       const grants: unknown = await response.json();
-      return Array.isArray(grants) && grants.some((grant) => isRecord(grant) && isRecord(grant.client)
-        && grant.client.id === claims.client_id) ? claims.client_id : null;
+      const grant = Array.isArray(grants) ? grants.find((grant) => isRecord(grant) && isRecord(grant.client) && grant.client.id === claims.client_id) : undefined;
+      if (!grant) return null;
+      const grantedAt = typeof grant.granted_at === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(grant.granted_at) && Number.isFinite(Date.parse(grant.granted_at)) ? grant.granted_at : undefined;
+      return {clientId:claims.client_id,...(grantedAt?{grantedAt}:{})};
     } catch { return null; }
   }
 }
@@ -167,7 +173,8 @@ export class SupabaseTokenVerifier implements TokenVerifier {
     const claims = readTokenClaims(token);
     const oauthToken = claims !== null && 'client_id' in claims;
     if (enveloped && !oauthToken) return null;
-    const oauthClientId = oauthToken ? await this.identityVerifier.verifyOAuthGrant(token, identity) : null;
+    const oauthConnection = oauthToken ? await this.identityVerifier.verifyOAuthConnection(token, identity) : null;
+    const oauthClientId = oauthConnection?.clientId;
     if (oauthToken && !oauthClientId) return null;
 
     const account = await this.accountRepository.findBySupabaseUserId(identity.id);
@@ -188,6 +195,7 @@ export class SupabaseTokenVerifier implements TokenVerifier {
       scopes: oauthToken ? ['mcp', 'research:read'] : ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write'],
       authMethod: oauthToken ? 'oauth_access_token' : 'session',
       ...(oauthClientId ? { oauthClientId } : {}),
+      ...(oauthConnection?.grantedAt ? {oauthGrantedAt:oauthConnection.grantedAt} : {}),
     };
   }
 }
