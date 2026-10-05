@@ -18,6 +18,7 @@
     "test:e2e:phase7": "playwright test tests/e2e/phase-7.spec.ts --project=chromium",
     "test:e2e:draft-review": "playwright test --config playwright.draft-review.config.ts",
     "test:e2e:documents": "playwright test --config playwright.documents.config.ts",
+    "test:e2e:case-ai": "playwright test --config playwright.case-ai.config.ts",
     "test:e2e:research": "playwright test --config playwright.research.config.ts",
     "test:postgres:research": "pnpm build && node scripts/smoke-research-postgres.mjs",
     "test:e2e:accessibility": "playwright test tests/e2e/accessibility.spec.ts --project=chromium",

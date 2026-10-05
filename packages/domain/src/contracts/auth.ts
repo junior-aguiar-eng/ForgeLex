@@ -8,6 +8,7 @@ export interface AuthenticatedPrincipal {
   scopes: string[];
   authMethod: AuthMethod;
   oauthClientId?: string;
+  oauthGrantedAt?: string;
 }
 
 export interface TokenVerifier {

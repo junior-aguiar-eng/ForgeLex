@@ -111,6 +111,8 @@ jobs:
       - run: pnpm test:e2e:mcp-onboarding
       - run: pnpm test:e2e:accessibility
       - run: pnpm test:e2e:documents
+      - run: pnpm test:e2e:draft-review
+      - run: pnpm test:e2e:case-ai
       - run: pnpm test:e2e:research
 
   e2e-public:

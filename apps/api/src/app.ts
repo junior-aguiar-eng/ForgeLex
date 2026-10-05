@@ -94,8 +94,13 @@ import type { AccountClosureJournal } from './account/account-closure-journal.js
 import { AccountClosureRestoreGate } from './account/account-closure-restore.js';
 import { DataJudTjalClient } from './datajud/datajud-tjal-client.js';
 import { registerDataJudRoutes } from './datajud/datajud-routes.js';
+import {CaseAiAccessRepository} from '@forgelex/persistence';
+import {SessionOAuthClientDirectory,type OAuthClientDirectory} from './case-context/oauth-client-directory.js';
+import {registerCaseAiAccessRoutes} from './case-context/case-ai-access-routes.js';
+import {CaseContextService,createCaseContextTools,isCaseContextTool} from '@forgelex/legal-tools';
 
 export interface BuildAppOptions {
+  oauthClientDirectory?: OAuthClientDirectory;
   authAdapter?: AuthAdapter;
   ledgerService?: LedgerService;
   database?: ForgeLexDatabase;
@@ -497,6 +502,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   }
 
   const auditRecorder = options.auditRecorder ?? (connection ? new AuditRecorder(connection.db) : undefined);
+  const caseAiAccess = database ? new CaseAiAccessRepository(database) : undefined;
+  if(caseAiAccess) for(const tool of createCaseContextTools(new CaseContextService(caseAiAccess)))toolRegistry.register(tool);
+  if(caseAiAccess) registerCaseAiAccessRoutes(app,caseAiAccess,authAdapter,options.oauthClientDirectory ?? (environment.FORGELEX_SUPABASE_URL && environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY ? new SessionOAuthClientDirectory(environment.FORGELEX_SUPABASE_URL,environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY) : {list:async()=>{throw new Error('OAUTH_DIRECTORY_UNAVAILABLE');}}),auditRecorder);
   const mcpHandler = new McpHandler(toolRegistry, ledgerService, auditRecorder, {
     exposedToolNames: EXTERNAL_MCP_TOOL_NAMES,
     beforeToolCall: async (toolName) => {
@@ -2774,6 +2782,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     { preHandler: authAdapter.createPreHandler(['mcp']) },
     async (req, reply) => {
       const body = req.body as any;
+      reply.header('Cache-Control','no-store');
       if (body?.jsonrpc === '2.0' && typeof body.method === 'string' && body.method.startsWith('notifications/') && body.id === undefined) return reply.code(202).send();
       if (mcpOAuth.enabled && body?.jsonrpc === '2.0' && body.method === 'tools/call' && body.params?.name === 'forgelex.connection_status') {
         if ((typeof body.id !== 'string' && typeof body.id !== 'number') || (body.params.arguments && (typeof body.params.arguments !== 'object' || Array.isArray(body.params.arguments) || Object.keys(body.params.arguments).length))) return { jsonrpc: '2.0', id: body.id ?? null, error: { code: -32602, message: 'A verificação exige um identificador de requisição e não aceita argumentos.' } };
@@ -2792,11 +2801,18 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
           abortSignal: requestAbort.signal,
+          ...(req.principal.authMethod==='oauth_access_token' && req.principal.oauthClientId && req.principal.oauthGrantedAt ? {
+            oauthConnection:{clientId:req.principal.oauthClientId,grantedAt:req.principal.oauthGrantedAt},
+            revalidateConnection:async()=>{
+              const current=await authAdapter.authenticate(req.headers.authorization).catch(()=>null);
+              if(!current||current.authMethod!=='oauth_access_token'||!current.scopes.includes('mcp')||current.tenantId!==req.principal.tenantId||current.userId!==req.principal.userId||current.oauthClientId!==req.principal.oauthClientId||current.oauthGrantedAt!==req.principal.oauthGrantedAt)throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+            },
+          }:{}),
         });
         if (mcpOAuth.enabled && body?.method === 'tools/list' && response.result?.tools) {
           for (const tool of response.result.tools) {
             tool.securitySchemes = [{ type: 'oauth2', scopes: ['email', 'profile'] }];
-            tool.annotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
+            tool.annotations = isCaseContextTool(tool.name)?{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}:{ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
           }
           response.result.tools.push({
           name: 'forgelex.connection_status', title: 'Verificar conexão ForgeLex',

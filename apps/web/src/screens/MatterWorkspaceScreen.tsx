@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, FileText, FolderOpen, LockKeyhole, Plus, RefreshCw, ShieldCheck } from 'lucide-react';
 import { requestApiWithToken, resolveApiOrigin } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 import { useApp } from '../context/AppContext';
 import { PdfTextImport } from '../components/PdfTextImport';
+import { CaseAiAccessPanel } from './case-ai/CaseAiAccessPanel';
 
 interface Matter {
   id: string;
@@ -169,6 +170,9 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const [token, setToken] = useState(initialToken);
   const [matters, setMatters] = useState<Matter[]>([]);
   const [selectedMatterId, setSelectedMatterId] = useState<string | null>(null);
+  const [aiAccessOpen, setAiAccessOpen] = useState(false);
+  const aiAccessTrigger=useRef<HTMLButtonElement>(null);
+  const closeAiAccess=()=>{setAiAccessOpen(false);requestAnimationFrame(()=>aiAccessTrigger.current?.focus());};
   const [documents, setDocuments] = useState<LegalDocument[]>([]);
   const [facts, setFacts] = useState<Fact[]>([]);
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
@@ -249,7 +253,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
       setMatters(response.items);
       const nextMatterId = selectedMatterId && response.items.some((matter) => matter.id === selectedMatterId)
         ? selectedMatterId
-        : response.items[0]?.id ?? null;
+        : response.items.find(m=>m.id===new URLSearchParams(window.location.search).get('caso'))?.id ?? response.items[0]?.id ?? null;
       setSelectedMatterId(nextMatterId);
       if (nextMatterId) {
         await loadMatterResources(nextMatterId);
@@ -593,7 +597,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                       <h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">{selectedMatter.title}</h2>
                       <p className="text-xs text-stone-500 mt-1">{selectedMatter.practiceArea || 'Área jurídica não informada'}{selectedMatter.jurisdiction ? ` · ${selectedMatter.jurisdiction}` : ''}</p>
                     </div>
-                    <span className="text-[11px] text-stone-500">Atualizado em {new Date(selectedMatter.updatedAt).toLocaleDateString('pt-BR')}</span>
+                    <div className="space-y-2"><span className="block text-[11px] text-stone-500">Atualizado em {new Date(selectedMatter.updatedAt).toLocaleDateString('pt-BR')}</span><button ref={aiAccessTrigger} type="button" onClick={()=>setAiAccessOpen(true)} className="px-3 py-2 rounded-lg border border-cognac-200 text-cognac-800 text-sm font-semibold">Usar este caso na IA</button></div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
                     {[
@@ -779,6 +783,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
           </div>
         </div>
       </div>
+    {aiAccessOpen && selectedMatter && <CaseAiAccessPanel key={selectedMatter.id} matterId={selectedMatter.id} matterTitle={selectedMatter.title} onClose={closeAiAccess} />}
     </div>
   );
 };

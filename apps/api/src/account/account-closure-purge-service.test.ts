@@ -73,7 +73,9 @@ describe('AccountClosurePurgeService', () => {
       const run = await runs.start(context, version.version, 'ALL', 'b'.repeat(64));
       await runs.finish(context, run.id, { state: 'COMPLETE', status: 'WARNINGS', checks: [], findings: [{ ...context, draftId: draft.id, draftVersionId: version.version.id, reviewType: 'CITATION', severity: 'WARNING', code: 'CITATIONS_MISSING', message: 'Nenhuma referência cadastrada.' }] });
       expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_runs WHERE tenant_id = ?', [fixture.tenantId])).toBe(1);
+      await client.execute({sql:"INSERT INTO case_ai_access_grants (id,tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,revision,status,selection_json,created_at,updated_at) VALUES (?,?,?,?,?,?,1,'ACTIVE',?,?,?)",args:[randomUUID(),fixture.tenantId,fixture.userId,'app',now,matter.id,JSON.stringify({documents:[],factIds:[],evidenceIds:[],thesisIds:[],authorityIds:[]}),now,now]});
       await new AccountClosurePurgeService(client).purgePrivateContent({ tenantId: fixture.tenantId, closureId: 'acl_1', now });
+      expect(await count(client, 'SELECT COUNT(*) AS count FROM case_ai_access_grants WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
       expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_runs WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
       expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_findings WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
     } finally { connection.client.close(); }

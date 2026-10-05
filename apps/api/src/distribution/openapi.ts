@@ -1,5 +1,5 @@
 import { EXTERNAL_MCP_TOOL_NAMES } from '@forgelex/mcp-server';
-import { getLegalToolContract } from '@forgelex/legal-tools';
+import { getLegalToolContract, getCaseContextToolContract } from '@forgelex/legal-tools';
 
 type HttpMethod = 'get' | 'post' | 'put' | 'delete';
 
@@ -17,6 +17,16 @@ export interface PublicApiRouteDefinition {
 }
 
 const OPENAPI_SCHEMAS = {
+  CaseAiSelection: {type:'object',additionalProperties:false,required:['documents','factIds','evidenceIds','thesisIds','authorityIds'],description:'Ao menos um item; até 100 por categoria. Cada documento fixa uma única versão.',properties:{documents:{type:'array',maxItems:100,items:{type:'object',additionalProperties:false,required:['documentId','versionId'],properties:{documentId:{type:'string',format:'uuid'},versionId:{type:'string',format:'uuid'}}}},...Object.fromEntries(['factIds','evidenceIds','thesisIds','authorityIds'].map(k=>[k,{type:'array',maxItems:100,uniqueItems:true,items:{type:'string',format:'uuid'}}]))}},
+  CaseAiGrantRequest: {type:'object',additionalProperties:false,required:['oauthClientId','expectedRevision','selection'],properties:{oauthClientId:{type:'string',minLength:1,maxLength:500},expectedRevision:{type:'integer',minimum:0},selection:{$ref:'#/components/schemas/CaseAiSelection'}}},
+  CaseAiPreviewRequest: {type:'object',additionalProperties:false,required:['selection'],properties:{selection:{$ref:'#/components/schemas/CaseAiSelection'},cursor:{type:'string',maxLength:1024},limit:{type:'integer',minimum:1,maximum:50,default:20}}},
+  CaseAiRevokeRequest: {type:'object',additionalProperties:false,required:['expectedRevision'],properties:{expectedRevision:{type:'integer',minimum:1}}},
+  CaseAiGrant: {type:'object',additionalProperties:false,required:['id','tenantId','userId','oauthClientId','oauthGrantedAt','matterId','revision','status','selection','createdAt','updatedAt'],properties:{...Object.fromEntries(['id','tenantId','userId','oauthClientId','matterId'].map(k=>[k,{type:'string'}])),...Object.fromEntries(['oauthGrantedAt','createdAt','updatedAt','revokedAt'].map(k=>[k,{type:'string',format:'date-time'}])),revision:{type:'integer',minimum:1},status:{type:'string',enum:['ACTIVE','REVOKED']},selection:{$ref:'#/components/schemas/CaseAiSelection'}}},
+  CaseAiGrants: {type:'array',items:{$ref:'#/components/schemas/CaseAiGrant'}},
+  AuthorizedApplications: {type:'array',items:{type:'object',additionalProperties:false,required:['clientId','displayName','grantedAt'],properties:{clientId:{type:'string'},displayName:{type:'string'},grantedAt:{type:'string',format:'date-time'}}}},
+  CaseAiMaterial: {type:'object',additionalProperties:false,required:['kind','id','title'],properties:{kind:{type:'string',enum:['DOCUMENT','FACT','EVIDENCE','THESIS','AUTHORITY']},id:{type:'string',format:'uuid'},title:{type:'string'},versionId:{type:'string',format:'uuid'},versionNumber:{type:'integer',minimum:1},preview:{type:'string'}}},
+  CaseAiMaterials: {type:'object',additionalProperties:false,required:['items'],properties:{items:{type:'array',maxItems:50,items:{$ref:'#/components/schemas/CaseAiMaterial'}},nextCursor:{type:'string',maxLength:1024}}},
+  CaseAiPreview: {type:'object',additionalProperties:false,required:['matter','counts','items'],properties:{matter:{type:'object',additionalProperties:false,required:['id','title'],properties:{id:{type:'string',format:'uuid'},title:{type:'string'}}},counts:{type:'object',additionalProperties:false,required:['DOCUMENT','FACT','EVIDENCE','THESIS','AUTHORITY'],properties:Object.fromEntries(['DOCUMENT','FACT','EVIDENCE','THESIS','AUTHORITY'].map(k=>[k,{type:'integer',minimum:0,maximum:100}]))},items:{type:'array',maxItems:50,items:{$ref:'#/components/schemas/CaseAiMaterial'}},nextCursor:{type:'string',maxLength:1024}}},
   DataJudProcessRequest: {
     type: 'object', additionalProperties: false, required: ['processNumber'],
     properties: { processNumber: { type: 'string', maxLength: 25, pattern: '^(?:[0-9]{20}|[0-9]{7}-[0-9]{2}\\.[0-9]{4}\\.8\\.02\\.[0-9]{4})$', description: 'Número CNJ do TJAL, com ou sem máscara; valida tribunal 8.02 e dígito verificador.' } },
@@ -153,10 +163,17 @@ const OPENAPI_SCHEMAS = {
 } as const;
 
 const OBJECT_REQUEST_SCHEMA_BY_PATH: Readonly<Record<string, keyof typeof OPENAPI_SCHEMAS>> = {
+  '/api/v2/matters/{matterId}/ai-access':'CaseAiGrantRequest','/api/v2/matters/{matterId}/ai-access/preview':'CaseAiPreviewRequest','/api/v2/matters/{matterId}/ai-access/{grantId}/revoke':'CaseAiRevokeRequest',
   '/api/v2/billing/checkout': 'BillingCheckoutRequest', '/api/v2/billing/payment-methods/setup': 'PaymentMethodSetupRequest', '/api/v2/billing/auto-recharge': 'AutoRechargeRequest', '/api/v2/billing/refund-requests': 'RefundRequest', '/api/v2/admin/billing/refund-requests/{requestId}/review': 'RefundReviewRequest', '/api/v2/webhooks/endpoints': 'WebhookEndpointRequest', '/api/v2/matters': 'MatterRequest', '/api/v2/matters/{matterId}/documents': 'MatterDocumentRequest', '/api/v2/matters/{matterId}/authorities': 'AuthoritySaveRequest', '/api/v2/matters/{matterId}/facts': 'FactRequest', '/api/v2/matters/{matterId}/evidence': 'EvidenceRequest', '/api/v2/matters/{matterId}/facts/{factId}/support': 'FactSupportRequest', '/api/v2/matters/{matterId}/timeline': 'TimelineEventRequest', '/api/v2/matters/{matterId}/issues': 'LegalIssueRequest', '/api/v2/matters/{matterId}/theses': 'ThesisRequest', '/api/v2/matters/{matterId}/research-memos': 'ResearchMemoRequest', '/api/v2/matters/{matterId}/research-memos/{memoId}/review': 'ResearchMemoReviewRequest', '/api/v2/matters/{matterId}/drafts': 'DraftRequest', '/api/v2/matters/{matterId}/drafts/{draftId}/versions': 'DraftVersionRequest', '/api/v2/matters/{matterId}/drafts/{draftId}/review': 'DraftReviewRequest', '/api/v2/matters/{matterId}/drafts/{draftId}/approval': 'DraftApprovalRequest', '/api/v2/draft-approvals/resolve': 'DraftApprovalResolutionRequest',
 };
 
 export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
+  {method:'get',path:'/api/v2/mcp/authorized-applications',summary:'Listar conexões autorizadas',description:'Somente sessão web. Rótulos do aplicativo não comprovam identidade comercial.',scopes:['matter:read'],responseSchema:'AuthorizedApplications'},
+  {method:'get',path:'/api/v2/matters/{matterId}/ai-access',summary:'Consultar permissões da IA',description:'Somente sessão web; permissões do usuário e caso, inclusive revogadas.',scopes:['matter:read'],responseSchema:'CaseAiGrants'},
+  {method:'get',path:'/api/v2/matters/{matterId}/ai-access/materials',summary:'Selecionar material do caso',description:'Somente sessão web; catálogo paginado de metadados sem conteúdo documental.',scopes:['matter:read'],responseSchema:'CaseAiMaterials'},
+  {method:'post',path:'/api/v2/matters/{matterId}/ai-access/preview',summary:'Ver prévia da seleção',description:'Somente sessão web; somente itens selecionados, versões fixadas e resumo de até 300 caracteres.',scopes:['matter:read'],requestBody:'object',responseSchema:'CaseAiPreview'},
+  {method:'put',path:'/api/v2/matters/{matterId}/ai-access',summary:'Permitir acesso da IA',description:'Somente sessão web; concessão OAuth ativa confirmada no servidor. Revisão esperada impede sobrescrever alterações concorrentes.',scopes:['matter:write'],requestBody:'object',responseSchema:'CaseAiGrant'},
+  {method:'post',path:'/api/v2/matters/{matterId}/ai-access/{grantId}/revoke',summary:'Revogar acesso da IA',description:'Somente sessão web; bloqueia novas consultas sem recolher conteúdo já enviado.',scopes:['matter:write'],requestBody:'object',responseSchema:'CaseAiGrant'},
   { method: 'post', path: '/api/v2/datajud/tjal/process', summary: 'Consultar processo TJAL no DataJud', description: 'Consulta pública gratuita pelo número CNJ do TJAL. Independe de autenticação, assinatura, saldo e Idempotency-Key; não grava histórico ou operação financeira. Retorna somente metadados e movimentações não sigilosos, com fonte e aviso de possível desatualização. Não integra o catálogo de jurisprudência pago.', requestBody: 'datajud-process', responseSchema: 'DataJudProcessResponse' },
   { method: 'get', path: '/health', summary: 'Healthcheck', description: 'Verifica a disponibilidade do serviço.' },
   { method: 'get', path: '/healthz', summary: 'Liveness', description: 'Verifica se o processo do serviço está ativo.' },
@@ -281,6 +298,12 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
       { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 50, default: 20 } },
     ];
   }
+  if(route.path.endsWith('/ai-access/materials')) operation.parameters=[...parameters,{name:'kind',in:'query',required:true,schema:{type:'string',enum:['DOCUMENT','FACT','EVIDENCE','THESIS','AUTHORITY']}},{name:'cursor',in:'query',schema:{type:'string',maxLength:1024}},{name:'limit',in:'query',schema:{type:'integer',minimum:1,maximum:50,default:20}}];
+  if(route.path.includes('/ai-access')||route.path==='/api/v2/mcp/authorized-applications') {
+    operation['x-forgelex-session-only']=true;
+    const responses=operation.responses as Record<string,Record<string,unknown>>;
+    responses['200'].headers={'Cache-Control':{schema:{type:'string',enum:['no-store']}}};
+  }
   if (route.path === '/api/v2/jurisprudencias') {
     operation.parameters = [
       { name: 'q', in: 'query', required: true, schema: { type: 'string', minLength: 2 } },
@@ -314,7 +337,7 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
   }
   if (route.toolName) operation['x-forgelex-tool'] = route.toolName;
   if (route.toolName) {
-    const contract = getLegalToolContract(route.toolName);
+    const contract = getLegalToolContract(route.toolName)??getCaseContextToolContract(route.toolName);
     if (contract) operation['x-forgelex-tool-contract'] = contract;
   }
   const isBillingRoute = Boolean(route.toolName) || route.path.endsWith('/research-memos');
@@ -411,6 +434,7 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
       'Cache-Control': { schema: { type: 'string', enum: ['no-store'] } },
     };
   }
+  if(route.path.includes('/ai-access')||route.path==='/api/v2/mcp/authorized-applications') delete (operation.responses as Record<string,unknown>)['402'];
   for (const status of ['400', '401', '402', '403', '404', '408', '409', '422', '429', '502', '503', '504']) {
     const responses = operation.responses as Record<string, Record<string, unknown>>;
     if (responses[status]) {
@@ -448,5 +472,6 @@ export function buildOpenApiDocument(serverUrl = 'http://localhost:3001'): Recor
     },
     'x-forgelex-generated-from': 'apps/api/src/distribution/openapi.ts',
     'x-forgelex-external-mcp-tools': [...EXTERNAL_MCP_TOOL_NAMES],
+    'x-forgelex-case-context':{authentication:'OAuth ativo + permissão por usuário, aplicativo, concessão e caso',tools:['case.list_shared','case.get_context','case.read_item'],billing:{mode:'FREE',chargedCents:0,isReplay:false},remainingBalanceCents:'ausente nas leituras de contexto',maxResponseBytes:24576,writeAccess:false},
   };
 }

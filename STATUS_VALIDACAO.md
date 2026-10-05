@@ -1,5 +1,62 @@
 # Auditoria e status canônico do ForgeLex
 
+## Contexto autorizado do caso na IA — implementação local (05/10/2026)
+
+Segunda frente do plano aprovado: em Casos, **Usar este caso na IA** permite
+escolher uma conexão autorizada, selecionar documentos/fatos/provas/teses/fontes,
+conferir a prévia e permitir acesso. **Permissões da IA** permite revogar.
+Não há seleção inicial automática. A prévia identifica a versão documental;
+novos documentos e versões não ampliam a autorização automaticamente.
+
+OAuth ativo autentica o aplicativo; o grant de contexto é separado, por
+tenant, usuário, aplicativo, concessão `granted_at`, caso e revisão. Gerenciar
+exige sessão web. As três ferramentas `case.list_shared`, `case.get_context`
+e `case.read_item` só leem a seleção e filtram também vínculos indiretos.
+Leitura usa política FREE, sem carteira, chave idempotente, replay privado ou
+débito. O caso não precisa ter consumido créditos. Pesquisa mantém a política
+existente. Não há recebimento de minutas nesta frente.
+
+Worktree: `C:\Users\Boni Jr\.codex\worktrees\draft-review\SDK`;
+branch `codex/contexto-caso-ia`, base
+`7c075ec6830899a50be3bea7a7a2b9fcb113afe8`. Alterações locais, ainda sem commit.
+Checkout original com trabalho P2 preservado.
+
+Validações locais:
+
+- `pnpm test`: build aprovado; 668 testes aprovados e cinco ignorados,
+  124 suítes aprovadas e duas ignoradas.
+- `pnpm lint` e `pnpm -r run typecheck`: aprovados.
+- E2E contexto: 3 aprovados, com navegador/API/SQLite/Auth sintética;
+  seleção, prévia, chamadas MCP gratuitas, exclusão de novos documentos,
+  outro aplicativo, revogação/cursor antigo e persistência após reload.
+- Conflito real entre abas mantém escolha e exige atualização; escrita
+  duplicada bloqueada. Resposta atrasada não atravessa o caso. ESC/foco,
+  390/1280 px, ausência de overflow e Axe sem violações no painel.
+- Regressões E2E: documentos 4, conferência de rascunhos 8 e onboarding
+  MCP 28 aprovados. Rodada de onboarding com colisão de artefatos descartada;
+  repetição isolada aprovada.
+- Revisão independente: dois Important e um Minor corrigidos e encerrados,
+  sem achados remanescentes nos deltas. Revalidação de concessão/grant após
+  auditoria, envelope MCP inteiro limitado a 24 KiB, número de versão visível.
+  Revisor executou 8 testes focados; coordenador verificou 17 testes focados,
+  inclusive fontes selecionadas, vínculos filtrados e versão anterior fixa.
+- `node --check` dos servidores/smoke modificados: aprovado. Smoke PostgreSQL
+  inclui grants concorrentes, leitura, revogação e cleanup. Execução PG pendente:
+  Docker daemon ausente e nenhuma URL de banco de teste isolado disponível.
+  Job PostgreSQL existente em CI executa `pnpm test:postgres`; precisa passar
+  antes de integrar. SQLite não comprova PostgreSQL.
+
+Evidências locais: `.superpowers/sdd/2026-10-05-contexto-caso-ia/` contém logs,
+ledger e capturas. Contrato/uso/ensaio real: `docs/product/case-ai-access.md`.
+Migration aditiva `persistence-0026-case-ai-access` testada localmente;
+permissões incluídas no purge de encerramento de conta.
+
+Nenhum novo commit, push, migration remota, deploy ou chamada de geração paga.
+ChatGPT e Claude reais não foram homologados com esta branch. O roteiro para
+ensaio gratuito em cada aplicativo está documentado e requer endpoint atualizado
+publicado e confirmação pontual antes da concessão OAuth real. Validação local,
+PostgreSQL, integração, publicação e uso no host são gates distintos.
+
 ## Conferência de rascunhos — implementação local (03/10/2026)
 
 Primeira frente do plano aprovado: conferência explicável de referências,

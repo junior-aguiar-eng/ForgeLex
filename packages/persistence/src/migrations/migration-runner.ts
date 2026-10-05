@@ -1095,6 +1095,10 @@ export const persistenceMigrations: readonly SqlMigration[] = [
       `CREATE INDEX draft_review_findings_run_idx ON draft_review_findings(review_run_id);`,
     ],
   },
+{ id: 'persistence-0026-case-ai-access', statements: [
+ `CREATE TABLE case_ai_access_grants (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, oauth_client_id TEXT NOT NULL, oauth_granted_at TEXT NOT NULL, matter_id TEXT NOT NULL REFERENCES matters(id), revision INTEGER NOT NULL, status TEXT NOT NULL, selection_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, revoked_at TEXT);`,
+ `CREATE UNIQUE INDEX case_ai_access_owner_client_matter_idx ON case_ai_access_grants(tenant_id,user_id,oauth_client_id,matter_id);`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

@@ -1,5 +1,12 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+export const caseAiAccessGrants = sqliteTable('case_ai_access_grants', {
+ id:text('id').primaryKey(),tenantId:text('tenant_id').notNull(),userId:text('user_id').notNull(),
+ oauthClientId:text('oauth_client_id').notNull(),oauthGrantedAt:text('oauth_granted_at').notNull(),
+ matterId:text('matter_id').notNull().references(()=>matters.id),revision:integer('revision').notNull(),
+ status:text('status').notNull(),selectionJson:text('selection_json').notNull(),createdAt:text('created_at').notNull(),updatedAt:text('updated_at').notNull(),revokedAt:text('revoked_at'),
+},t=>[uniqueIndex('case_ai_access_owner_client_matter_idx').on(t.tenantId,t.userId,t.oauthClientId,t.matterId)]);
+
 export const forgelexUserProfiles = sqliteTable(
   'forgelex_user_profiles',
   {

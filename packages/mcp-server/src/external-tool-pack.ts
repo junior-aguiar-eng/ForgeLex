@@ -9,6 +9,9 @@ export const EXTERNAL_MCP_TOOL_NAMES = [
   'research.get_authority',
   'research.verify_authority',
   'workflow.legal_research_memo',
+  'case.list_shared',
+  'case.get_context',
+  'case.read_item',
 ] as const;
 
 export type ExternalMcpToolName = (typeof EXTERNAL_MCP_TOOL_NAMES)[number];

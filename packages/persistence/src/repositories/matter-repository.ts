@@ -266,4 +266,13 @@ export class MatterRepository {
       .orderBy(schema.documentAnchors.ordinal);
     return { document, version, anchors: anchorRows.map(toAnchor) };
   }
+
+  public async getSpecificDocumentVersion(tenantId:string,matterId:string,documentId:string,versionId:string):Promise<{document:LegalDocument;version:DocumentVersion;anchors:DocumentAnchor[]}|undefined> {
+    const documents=await this.db.select().from(schema.legalDocuments).where(and(eq(schema.legalDocuments.tenantId,tenantId),eq(schema.legalDocuments.matterId,matterId),eq(schema.legalDocuments.id,documentId))).limit(1);
+    if(!documents[0]) return undefined;
+    const versions=await this.db.select().from(schema.documentVersions).where(and(eq(schema.documentVersions.documentId,documentId),eq(schema.documentVersions.id,versionId))).limit(1);
+    if(!versions[0]) return undefined;
+    const anchors=await this.db.select().from(schema.documentAnchors).where(eq(schema.documentAnchors.documentVersionId,versionId)).orderBy(schema.documentAnchors.ordinal);
+    return {document:toDocument(documents[0]),version:toVersion(versions[0]),anchors:anchors.map(toAnchor)};
+  }
 }

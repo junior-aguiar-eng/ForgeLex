@@ -1,8 +1,8 @@
-import { DraftReviewService, FactsEvidenceService, createFixtureResearchService } from '../packages/legal-tools/dist/index.js';
+import { CaseContextService, DraftReviewService, FactsEvidenceService, createFixtureResearchService } from '../packages/legal-tools/dist/index.js';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import {
-  createDatabase, DraftRepository, DraftReviewRunRepository, FactsEvidenceRepository, MatterAuthorityRepository, MatterRepository, ResearchHistoryRepository,
+  createDatabase, CaseAiAccessRepository, DraftRepository, DraftReviewRunRepository, FactsEvidenceRepository, MatterAuthorityRepository, MatterRepository, ResearchHistoryRepository,
   WebhookRepository, runPersistenceMigrations,
 } from '../packages/persistence/dist/index.js';
 import { LedgerService } from '../packages/billing-ledger/dist/index.js';
@@ -13,6 +13,7 @@ const checks = [
   'billing_reservation_concurrency', 'refund_concurrency',
   'matter_workflow', 'research_history', 'review_runs', 'review_queue',
   'outbox_two_workers', 'worker_restart', 'readiness', 'metrics',
+  'case_ai_access_concurrency_read_revoke',
 ];
 const databaseUrl = process.env.FORGELEX_DATABASE_URL ?? process.env.DATABASE_URL;
 if (!databaseUrl || !/^postgres(?:ql)?:\/\//i.test(databaseUrl)) {
@@ -43,6 +44,16 @@ try {
 
   const matters = new MatterRepository(db);
   const matter = await matters.createMatter({ tenantId, createdBy: userId, title: 'Fluxo PostgreSQL Fase 7' });
+  const shared=await matters.ingestTextDocument({tenantId,matterId:matter.id,createdBy:userId,title:'Documento compartilhado PG',originalFilename:'contexto.txt',mimeType:'text/plain',content:'Conteúdo autorizado PG.'});
+  const access=new CaseAiAccessRepository(db);const owner={tenantId,userId};const stamp='2026-10-05T10:00:00.000Z';
+  const permission={oauthClientId:'postgres-fixture',oauthGrantedAt:stamp,expectedRevision:0,selection:{documents:[{documentId:shared.document.id,versionId:shared.version.id}],factIds:[],evidenceIds:[],thesisIds:[],authorityIds:[]}};
+  const permissionResults=await Promise.allSettled([access.replace(owner,matter.id,permission),access.replace(owner,matter.id,permission)]);
+  assert.equal(permissionResults.filter(r=>r.status==='fulfilled').length,1);assert.match(String(permissionResults.find(r=>r.status==='rejected').reason),/CASE_ACCESS_CONFLICT/);
+  const reader={...owner,oauthConnection:{clientId:permission.oauthClientId,grantedAt:stamp}};const caseContext=new CaseContextService(access);
+  const allowed=await caseContext.readItem(reader,{matterId:matter.id,kind:'DOCUMENT',itemId:shared.document.id});assert.ok(allowed.parts.some(p=>p.text==='Conteúdo autorizado PG.'));
+  const active=(await access.listForOwner(owner,matter.id))[0];await access.revoke(owner,matter.id,active.id,active.revision);
+  await assert.rejects(()=>caseContext.readItem(reader,{matterId:matter.id,kind:'DOCUMENT',itemId:shared.document.id}),/CASE_CONTEXT_NOT_AUTHORIZED/);
+  passed.add('case_ai_access_concurrency_read_revoke');
   const document = await matters.ingestTextDocument({ tenantId, matterId: matter.id, createdBy: userId, title: 'Prova', originalFilename: 'prova.txt', mimeType: 'text/plain', content: 'Conteúdo controlado do smoke PostgreSQL.' });
   const draftRepository = new DraftRepository(db);
   const draft = await draftRepository.createDraft({ tenantId, matterId: matter.id, createdBy: userId, title: 'Minuta controlada' });
@@ -132,6 +143,7 @@ try {
   process.exitCode = 1;
 } finally {
   const cleanup = [
+    'DELETE FROM case_ai_access_grants WHERE tenant_id = ?',
     'DELETE FROM webhook_deliveries WHERE tenant_id = ?', 'DELETE FROM webhook_events WHERE tenant_id = ?', 'DELETE FROM webhook_endpoints WHERE tenant_id = ?',
     'DELETE FROM billing_refund_requests WHERE tenant_id = ?', 'DELETE FROM billing_payments WHERE tenant_id = ?', 'DELETE FROM billing_invoices WHERE tenant_id = ?', 'DELETE FROM billing_credit_lots WHERE tenant_id = ?', 'DELETE FROM billing_purchases WHERE tenant_id = ?', 'DELETE FROM billing_accounts WHERE tenant_id = ?',
     'DELETE FROM draft_approval_decisions WHERE tenant_id = ?', 'DELETE FROM draft_approval_tokens WHERE tenant_id = ?', 'DELETE FROM draft_approval_requests WHERE tenant_id = ?', 'DELETE FROM draft_review_findings WHERE tenant_id = ?', 'DELETE FROM draft_review_runs WHERE tenant_id = ?', 'DELETE FROM citation_anchors WHERE tenant_id = ?', 'DELETE FROM draft_sections WHERE tenant_id = ?', 'DELETE FROM draft_versions WHERE tenant_id = ?', 'DELETE FROM drafts WHERE tenant_id = ?',
