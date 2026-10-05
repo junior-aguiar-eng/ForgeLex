@@ -131,29 +131,200 @@
     }
   },
   "hostFix": {
-    "ciRun": 37367070410,
+    "ciRun": 37372822624,
     "commit": "a60e0f5fae4e234ff80f690b49f1be6319214a06",
-    "status": "BLOCKED_RUNNER_ALLOCATION",
+    "status": "INTEGRATED_PUBLISHED_HOSTS_VERIFIED",
     "localCaseMcpTests": 19,
     "previousCiRun": 37365217339,
     "localCaseBrowserTests": 3,
     "independentReview": "NO_FINDINGS",
     "previousCiFailure": "Old E2E error-envelope expectation corrected; other three jobs cancelled before runner assignment",
-    "nativeErrorMessageRetest": false,
-    "integrated": false,
+    "nativeErrorMessageRetest": true,
+    "integrated": true,
     "approvedChecks": [
       "validate",
-      "security",
+      "postgres",
+      "e2e-product",
       "e2e-public",
-      "e2e-account-closure"
+      "e2e-account-closure",
+      "security"
     ],
-    "cancellationReason": "The job was not acquired by Runner of type hosted even after multiple attempts",
-    "ciAttempt": 3,
-    "cancelledChecks": [
+    "ciAttempt": 2,
+    "published": true,
+    "previousBlockedCiRun": 37367070410,
+    "previousCancelledChecks": [
       "postgres",
       "e2e-product"
     ],
-    "published": false
+    "ciMainRun": 37380834265,
+    "branchHead": "3f0f8085ee1cf5344495706d6a2515b64f8e9759",
+    "sourceSha": "def36afd551f57937893634b39eae28731f556ed",
+    "cloudBuild": "aea2107e-98d1-4ce6-a5ef-f4b729fffaab",
+    "candidate": {
+      "noTraffic": true,
+      "configPreserved": true,
+      "recordedAt": "2026-10-05T22:17:13.3907632Z",
+      "rollback": "forgelex-api-prod-case-ai-7a216a8",
+      "sourceSha": "def36afd551f57937893634b39eae28731f556ed",
+      "revision": "forgelex-api-prod-case-ai-def36af",
+      "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:9b66d86ef96315abafe4042fe16b5b3e0839f6b42802c9581db99034b5d5d733"
+    },
+    "smoke": {
+      "observedRevisions": [
+        "forgelex-api-prod-case-ai-def36af"
+      ],
+      "checks": [
+        {
+          "status": 200,
+          "path": "/healthz"
+        },
+        {
+          "status": 200,
+          "path": "/readyz"
+        },
+        {
+          "status": 200,
+          "path": "/"
+        },
+        {
+          "status": 200,
+          "path": "/app/casos"
+        },
+        {
+          "status": 200,
+          "path": "/app/rascunhos"
+        },
+        {
+          "status": 200,
+          "path": "/app/conectar"
+        },
+        {
+          "status": 200,
+          "path": "/guia/mcp"
+        },
+        {
+          "status": 200,
+          "path": "/.well-known/oauth-protected-resource/mcp"
+        },
+        {
+          "status": 200,
+          "path": "/.well-known/oauth-authorization-server"
+        },
+        {
+          "status": 200,
+          "path": "/openapi.json"
+        }
+      ],
+      "checkedAt": "2026-10-05T22:24:20.9119419Z"
+    },
+    "promotion": {
+      "sourceSha": "def36afd551f57937893634b39eae28731f556ed",
+      "revision": "forgelex-api-prod-case-ai-def36af",
+      "rollbackRevision": "forgelex-api-prod-case-ai-7a216a8",
+      "startedAt": "2026-10-05T22:25:57.3551564Z",
+      "stages": [
+        {
+          "percent": 5,
+          "marker": "mcp-5-f69a7dbd4eeb4faf8133aee03f952dae",
+          "startedAt": "2026-10-05T22:26:14.8648139Z",
+          "requests": 155,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-case-ai-7a216a8",
+            "forgelex-api-prod-case-ai-def36af"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-05T22:28:28.7850055Z",
+          "elapsedSeconds": 134.0
+        },
+        {
+          "percent": 25,
+          "marker": "mcp-25-b7f8bcf48a9247daaca61d41259b54d2",
+          "startedAt": "2026-10-05T22:28:37.3653057Z",
+          "requests": 154,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-case-ai-7a216a8",
+            "forgelex-api-prod-case-ai-def36af"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-05T22:30:48.5527406Z",
+          "elapsedSeconds": 131.0
+        },
+        {
+          "percent": 100,
+          "marker": "mcp-100-00b351ce008349b78f9ff9b051b421a8",
+          "startedAt": "2026-10-05T22:30:56.7159579Z",
+          "requests": 154,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-case-ai-def36af"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-05T22:33:08.2282512Z",
+          "elapsedSeconds": 132.0
+        }
+      ],
+      "checks": [
+        {
+          "status": 200,
+          "path": "/healthz"
+        },
+        {
+          "status": 200,
+          "path": "/.well-known/oauth-protected-resource/mcp"
+        },
+        {
+          "status": 200,
+          "path": "/.well-known/oauth-authorization-server"
+        },
+        {
+          "status": 200,
+          "path": "/openapi.json"
+        },
+        {
+          "status": 200,
+          "path": "/app/conectar"
+        },
+        {
+          "status": 200,
+          "path": "/guia/mcp"
+        },
+        {
+          "status": 200,
+          "path": "/app/desenvolvedores/api"
+        },
+        {
+          "status": 200,
+          "path": "/oauth/consent"
+        }
+      ],
+      "failures": [],
+      "completed": true,
+      "completedAt": "2026-10-05T22:33:10.6776149Z"
+    },
+    "finalState": {
+      "temporaryTagRemoved": true,
+      "revision": "forgelex-api-prod-case-ai-def36af",
+      "trafficPercent": 100,
+      "checkedAt": "2026-10-05T22:34:40.4937456Z",
+      "errorsFound": 0,
+      "sourceSha": "def36afd551f57937893634b39eae28731f556ed"
+    },
+    "nativeTests": {
+      "manifestWithOldCursorDenied": true,
+      "recordedAt": "2026-10-05T22:35:34.3397757Z",
+      "code": "CASE_CONTEXT_NOT_AUTHORIZED",
+      "caseListEmpty": true,
+      "documentWithoutCursorDenied": true,
+      "hosts": [
+        "ChatGPT",
+        "Claude"
+      ],
+      "documentWithOldCursorDenied": true,
+      "privateContentReturned": false,
+      "orientationVisible": true
+    }
   },
   "hosts": {
     "claude": {
@@ -165,7 +336,8 @@
       "documentPages": 9,
       "excludedDocumentDenied": true,
       "manifestPages": 2,
-      "documentPageCountAudited": true
+      "documentPageCountAudited": true,
+      "errorReasonVisibleAfterFix": true
     },
     "chatgpt": {
       "excludedDocumentDenied": true,
@@ -174,7 +346,8 @@
       "selectedDocumentAndFactRead": true,
       "manifestPages": 2,
       "documentPages": 9,
-      "documentPageCountAudited": true
+      "documentPageCountAudited": true,
+      "errorReasonVisibleAfterFix": true
     }
   },
   "limits": [
@@ -207,5 +380,5 @@
     "migrationJobRemoved": true,
     "candidateRouteBackendNegRemoved": true
   },
-  "recordedAt": "2026-10-05T20:49:14.4404277Z"
+  "recordedAt": "2026-10-05T22:35:34.3436127Z"
 }

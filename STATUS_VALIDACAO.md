@@ -20,14 +20,20 @@ Não foram usados documentos reais nem pesquisa faturável. A concessão OAuth
 nativa não foi refeita nesta rodada; sua proteção contra reaproveitamento
 continua coberta pelos testes automatizados, sem alegar ensaio nativo.
 
-**Correção pendente na PR #47:** o Claude ocultou a mensagem das recusas
-JSON-RPC. O delta devolve resultado MCP `isError:true` com orientação,
-sem conteúdo privado e com cobrança zero. Build/lint, 19 testes direcionados,
-três E2E locais e revisão independente passaram. Na CI do código `a60e0f5`,
-quatro jobs passaram; PostgreSQL e produto foram cancelados em três tentativas
-sem conseguir runner, conforme anotações do GitHub. A correção ainda não foi
-integrada/publicada, e sua mensagem ainda não foi retestada nos hosts reais.
-Esse bloqueio não desfaz a publicação e os ensaios comprovados do SHA acima.
+**Correção da PR #47 integrada, publicada e ensaiada:** os seis jobs da CI
+da PR (`37372822624`, head `3f0f808`) e de main (`37380834265`, SHA `def36af`)
+passaram, incluindo PostgreSQL e produto. Os cancelamentos anteriores por
+falta de runner foram superados. O Cloud Build `aea2107e-98d1-4ce6-a5ef-f4b729fffaab`
+produziu a imagem validada na candidata sem tráfego e promovida em 5/25/100.
+A revisão atual é `forgelex-api-prod-case-ai-def36af`, com 100% do tráfego.
+O rollback é `forgelex-api-prod-case-ai-7a216a8`; não houve nova migration.
+Nas novas chamadas reais, ChatGPT e Claude receberam `CASE_CONTEXT_NOT_AUTHORIZED`
+e a orientação para conferir "Usar este caso na IA", sem conteúdo do caso.
+Lista vazia e recusas de manifesto/documento, com e sem cursores antigos,
+confirmadas nos dois hosts. A mensagem opaca do Claude foi substituída pelo
+corpo explicativo; seus cartões de ferramentas corroboraram os retornos.
+Nenhum erro de servidor encontrado na janela final consultada; identidade,
+100% do tráfego e remoção da tag temporária confirmados no recibo.
 
 Jobs, rota/backends/NEG e tag temporários foram removidos. O caso sintético
 permanece com ambos os acessos revogados. Evidências e limites:

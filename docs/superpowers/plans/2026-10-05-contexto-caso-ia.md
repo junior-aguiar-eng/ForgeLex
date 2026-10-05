@@ -159,7 +159,7 @@ Implementação local da segunda frente executada em 05/10/2026. Resultados e li
 - [x] CI PostgreSQL 16 da PR #46 e de main: migrations 0025/0026 e smoke de 14 verificações aprovados, incluindo concorrência de leitura/revogação e review runs.
 - [x] Integrar e publicar as frentes 1 e 2: SHA `7a216a8`, candidata sem tráfego e promoção 5/25/100 concluídas; backup/migrations explícitos e rollback identificados.
 - [x] Ensaiar leitura selecionada de documento longo e fato, exclusão e revogação com cursores antigos, separadamente no ChatGPT e Claude, com material sintético e conexões OAuth existentes. Ambas as permissões ficaram revogadas; nenhuma operação financeira registrada.
-- [ ] Integrar/publicar a correção de mensagem da PR #47 e retestar a apresentação da recusa nos hosts. CI do código `a60e0f5`: quatro jobs aprovados; PostgreSQL/produto cancelados por falta de runner em três tentativas. Build/lint, 19 testes direcionados, três E2E locais e revisão independente passaram.
+- [x] Integrar/publicar a correção de mensagem da PR #47 e retestar a apresentação da recusa nos hosts. CI da PR no head `3f0f808` e de main no SHA `def36af`: seis jobs aprovados, incluindo PostgreSQL/produto. Candidata e promoção 5/25/100 concluídas; ChatGPT e Claude receberam a orientação explicativa nas três recusas reais, com acesso revogado e cursores antigos. Os cancelamentos anteriores por falta de runner foram superados.
 - [ ] Ensaio suplementar de reconcessão OAuth nativa, com confirmação pontual antes da concessão. Não foi executado e não é apresentado como coberto pelo ensaio de revogação de seleção; testes automatizados confirmam o vínculo `granted_at`.
 
 Recibo: `docs/operations/stabilization/2026-10-05-case-ai-publication.json`.
