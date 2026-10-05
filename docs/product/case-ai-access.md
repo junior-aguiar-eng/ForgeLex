@@ -26,6 +26,10 @@ A migration aditiva `persistence-0026-case-ai-access` cria as permissões. O enc
 
 ## Ensaio separado em cada aplicativo real
 
-Esta branch precisa ser integrada e publicada por autorização separada antes de ensaio com um endpoint atualizado. Antes de conceder OAuth real, confirmar a concessão com Boni. Repetir independentemente no ChatGPT e no Claude: testar conexão gratuita, listar casos autorizados, ler um documento sintético selecionado em todas as páginas, negar documento excluído, revogar pelo site e negar leitura/cursor anterior. Reautorizar a conexão e confirmar que a permissão antiga não foi reaproveitada automaticamente.
+Em 05/10/2026, a PR #46 foi integrada e publicada no endpoint acima, revisão `forgelex-api-prod-case-ai-7a216a8`. ChatGPT e Claude foram ensaiados separadamente com as conexões OAuth existentes, após atualizar o catálogo de ferramentas: conexão gratuita, lista autorizada, leitura integral de documento sintético (nove páginas) e fato selecionado, negativa de documento excluído e revogação com recusa de nova leitura/cursor antigo. A auditoria corroborou 18 leituras documentais e nenhuma operação financeira no período. [Evidências e revisão publicada](../operations/stabilization/2026-10-05-case-ai-publication.md).
+
+O Claude apresentou um erro genérico ao receber recusas JSON-RPC. A PR #47 devolve essas recusas como resultado MCP `isError:true`, texto com código e orientação, sem `structuredContent` privado e com billing gratuito. Os testes locais passaram; sua integração, publicação e apresentação nos hosts reais permanecem pendentes da CI, afetada pela falta de runners do GitHub.
+
+A rodada não reinstalou conectores nem refez a concessão OAuth nativa. Antes de conceder OAuth real, confirmar a concessão com Boni. O ensaio suplementar de reautorizar a conexão e confirmar que a permissão antiga não é reaproveitada automaticamente continua pendente no host real; os testes automatizados cobrem o bloqueio por mudança de `granted_at`.
 
 Não usar documento pessoal ou pesquisa faturável nesse ensaio. Registrar aplicativo, versão, data, endpoint e revisão publicada. O E2E local usa navegador, API, banco e autenticação sintética; não demonstra instalação, disponibilidade de conectores no plano do cliente ou comportamento do modelo em um aplicativo real.

@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-05",
+  "endpoint": "https://nexojuris.ia.br",
+  "pullRequests": [
+    "https://github.com/junior-aguiar-eng/ForgeLex/pull/46",
+    "https://github.com/junior-aguiar-eng/ForgeLex/pull/47"
+  ],
+  "initialRelease": {
+    "sourceSha": "7a216a8b0266a005e2438862140a106eac99ae23",
+    "candidate": {
+      "rollback": "forgelex-api-prod-datajud-dbaf5cd",
+      "configPreserved": true,
+      "revision": "forgelex-api-prod-case-ai-7a216a8",
+      "sourceSha": "7a216a8b0266a005e2438862140a106eac99ae23",
+      "noTraffic": true,
+      "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:dbd4ee4ec4cae658e1e1f12f5627d272da815a6e2d7401ddab54e3f9855742c6",
+      "recordedAt": "2026-10-05T19:14:45.7785404Z"
+    },
+    "promotion": {
+      "sourceSha": "7a216a8b0266a005e2438862140a106eac99ae23",
+      "revision": "forgelex-api-prod-case-ai-7a216a8",
+      "rollbackRevision": "forgelex-api-prod-datajud-dbaf5cd",
+      "startedAt": "2026-10-05T19:23:58.3366499Z",
+      "stages": [
+        {
+          "percent": 5,
+          "marker": "mcp-5-3222950a28d14de2b3b16273e7e3b436",
+          "startedAt": "2026-10-05T19:24:17.5650355Z",
+          "requests": 154,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-case-ai-7a216a8",
+            "forgelex-api-prod-datajud-dbaf5cd"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-05T19:26:34.6836034Z",
+          "elapsedSeconds": 137.0
+        },
+        {
+          "percent": 25,
+          "marker": "mcp-25-69e2fdd64878466d8896873d34e4dc57",
+          "startedAt": "2026-10-05T19:26:45.360883Z",
+          "requests": 153,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-case-ai-7a216a8",
+            "forgelex-api-prod-datajud-dbaf5cd"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-05T19:28:58.5290506Z",
+          "elapsedSeconds": 133.0
+        },
+        {
+          "percent": 100,
+          "marker": "mcp-100-6c076e0be42b43c1b32d48f79e78889b",
+          "startedAt": "2026-10-05T19:29:08.997628Z",
+          "requests": 154,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-case-ai-7a216a8"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-05T19:31:21.4964724Z",
+          "elapsedSeconds": 132.0
+        }
+      ],
+      "checks": [
+        {
+          "path": "/healthz",
+          "status": 200
+        },
+        {
+          "path": "/.well-known/oauth-protected-resource/mcp",
+          "status": 200
+        },
+        {
+          "path": "/.well-known/oauth-authorization-server",
+          "status": 200
+        },
+        {
+          "path": "/openapi.json",
+          "status": 200
+        },
+        {
+          "path": "/app/conectar",
+          "status": 200
+        },
+        {
+          "path": "/guia/mcp",
+          "status": 200
+        },
+        {
+          "path": "/app/desenvolvedores/api",
+          "status": 200
+        },
+        {
+          "path": "/oauth/consent",
+          "status": 200
+        }
+      ],
+      "failures": [],
+      "completed": true,
+      "completedAt": "2026-10-05T19:31:23.8958287Z"
+    },
+    "migrationExecution": "forgelex-case-ai-migrate-6lhfr",
+    "ciRuns": [
+      37360326565,
+      37361080531
+    ],
+    "migrations": [
+      "persistence-0025-draft-review-runs",
+      "persistence-0026-case-ai-access"
+    ],
+    "backup": "1791227152566",
+    "cloudBuild": "939c7821-3e19-4a98-8130-5bbb298e18eb",
+    "errorWindow": {
+      "errorsFound": 0,
+      "checkedAt": "2026-10-05T20:52:50.2865341Z",
+      "since": "2026-10-05T19:13:00Z",
+      "revision": "forgelex-api-prod-case-ai-7a216a8"
+    },
+    "finalState": {
+      "revision": "forgelex-api-prod-case-ai-7a216a8",
+      "trafficPercent": 100,
+      "sourceSha": "7a216a8b0266a005e2438862140a106eac99ae23",
+      "autoMigrate": "false",
+      "ingress": "internal-and-cloud-load-balancing",
+      "temporaryCandidateTagRemoved": true,
+      "recordedAt": "2026-10-05T20:07:57.8997201Z"
+    }
+  },
+  "hostFix": {
+    "ciRun": 37367070410,
+    "commit": "a60e0f5fae4e234ff80f690b49f1be6319214a06",
+    "status": "BLOCKED_RUNNER_ALLOCATION",
+    "localCaseMcpTests": 19,
+    "previousCiRun": 37365217339,
+    "localCaseBrowserTests": 3,
+    "independentReview": "NO_FINDINGS",
+    "previousCiFailure": "Old E2E error-envelope expectation corrected; other three jobs cancelled before runner assignment",
+    "nativeErrorMessageRetest": false,
+    "integrated": false,
+    "approvedChecks": [
+      "validate",
+      "security",
+      "e2e-public",
+      "e2e-account-closure"
+    ],
+    "cancellationReason": "The job was not acquired by Runner of type hosted even after multiple attempts",
+    "ciAttempt": 3,
+    "cancelledChecks": [
+      "postgres",
+      "e2e-product"
+    ],
+    "published": false
+  },
+  "hosts": {
+    "claude": {
+      "positiveRead": "PASS",
+      "unauthorizedReadDenied": true,
+      "errorReasonMaskedBeforeFix": true,
+      "connectionVerifiedAt": "2026-10-05T19:04:03.848Z",
+      "caseRevocationDeniedFreshReadsAndOldCursors": true,
+      "documentPages": 9,
+      "excludedDocumentDenied": true,
+      "manifestPages": 2,
+      "documentPageCountAudited": true
+    },
+    "chatgpt": {
+      "excludedDocumentDenied": true,
+      "connectionVerifiedAt": "2026-10-05T19:05:28.749Z",
+      "caseRevocationDeniedFreshReadsAndOldCursors": true,
+      "selectedDocumentAndFactRead": true,
+      "manifestPages": 2,
+      "documentPages": 9,
+      "documentPageCountAudited": true
+    }
+  },
+  "limits": [
+    "Synthetic material only",
+    "Existing OAuth connections reused; catalog refreshed",
+    "Native OAuth reconcession not exercised",
+    "No paid research or document generation",
+    "Draft Studio write-back is a separate future front"
+  ],
+  "productionAudit": {
+    "caseGrantStates": [
+      {
+        "status": "REVOKED",
+        "revision": 2
+      },
+      {
+        "status": "REVOKED",
+        "revision": 2
+      }
+    ],
+    "billingOperationsSince": "2026-10-05T19:00:00Z",
+    "billingOperations": 0,
+    "syntheticDocumentSuccessfulReads": 18,
+    "inspectionMode": "PostgreSQL READ ONLY",
+    "recordedAt": "2026-10-05T19:57:15.404Z"
+  },
+  "cleanup": {
+    "candidateTagRemoved": true,
+    "inspectionJobRemoved": true,
+    "migrationJobRemoved": true,
+    "candidateRouteBackendNegRemoved": true
+  },
+  "recordedAt": "2026-10-05T20:49:14.4404277Z"
+}

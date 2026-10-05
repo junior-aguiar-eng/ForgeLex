@@ -31,6 +31,16 @@ async function mcp(request: APIRequestContext, token: string, name: string, args
   expect(r.status()).toBe(200);
   return r.json();
 }
+function expectCaseDenied(reply: any) {
+  expect(reply).not.toHaveProperty('error');
+  expect(reply.result.isError).toBe(true);
+  expect(reply.result).not.toHaveProperty('structuredContent');
+  expect(reply.result.billing).toMatchObject({ mode: 'FREE', chargedCents: 0, isReplay: false });
+  expect(JSON.parse(reply.result.content[0].text).error).toMatchObject({
+    code: 'CASE_CONTEXT_NOT_AUTHORIZED',
+    message: expect.stringContaining('Este material não está autorizado para o aplicativo.'),
+  });
+}
 test('prévia, permissão gratuita, seleção explícita e revogação persistida', async ({ page, request }, info) => {
   const state = await (await request.get(api + '/e2e/state')).json();
   await login(page);
@@ -65,18 +75,14 @@ test('prévia, permissão gratuita, seleção explícita e revogação persistid
   expect(read.result.billing).toMatchObject({ mode: 'FREE', chargedCents: 0, isReplay: false });
   expect(read.result.billing).not.toHaveProperty('remainingBalanceCents');
   expect(JSON.stringify(read)).toContain('Conteúdo reservado selecionado');
-  expect(
-    (await mcp(request, state.oauthTokens['app-two'], 'case.get_context', { matterId: state.matterId })).error,
-  ).toBeTruthy();
-  expect(
-    (
-      await mcp(request, state.oauthTokens['app-one'], 'case.read_item', {
-        matterId: state.matterId,
-        kind: 'DOCUMENT',
-        itemId: state.hiddenDocumentId,
-      })
-    ).error,
-  ).toBeTruthy();
+  expectCaseDenied(await mcp(request, state.oauthTokens['app-two'], 'case.get_context', { matterId: state.matterId }));
+  expectCaseDenied(
+    await mcp(request, state.oauthTokens['app-one'], 'case.read_item', {
+      matterId: state.matterId,
+      kind: 'DOCUMENT',
+      itemId: state.hiddenDocumentId,
+    }),
+  );
   // A document added after permission is not automatically shared.
   const extra = await request.post(api + `/api/v2/matters/${state.matterId}/documents`, {
     headers: { authorization: 'Bearer phase7-e2e-access-token' },
@@ -89,15 +95,13 @@ test('prévia, permissão gratuita, seleção explícita e revogação persistid
   });
   expect(extra.status()).toBe(200);
   const added = await extra.json();
-  expect(
-    (
-      await mcp(request, state.oauthTokens['app-one'], 'case.read_item', {
-        matterId: state.matterId,
-        kind: 'DOCUMENT',
-        itemId: added.document.id,
-      })
-    ).error,
-  ).toBeTruthy();
+  expectCaseDenied(
+    await mcp(request, state.oauthTokens['app-one'], 'case.read_item', {
+      matterId: state.matterId,
+      kind: 'DOCUMENT',
+      itemId: added.document.id,
+    }),
+  );
   await page.getByRole('button', { name: 'Fechar', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Usar este caso na IA' })).toBeFocused();
   await page.reload();
@@ -106,16 +110,14 @@ test('prévia, permissão gratuita, seleção explícita e revogação persistid
   await page.getByRole('button', { name: 'Revogar acesso', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmar revogação' }).click();
   await expect(page.getByRole('status')).toContainText('Impede novas consultas');
-  expect(
-    (
-      await mcp(request, state.oauthTokens['app-one'], 'case.read_item', {
-        matterId: state.matterId,
-        kind: 'DOCUMENT',
-        itemId: state.documentId,
-        cursor: read.result.structuredContent.nextCursor,
-      })
-    ).error,
-  ).toBeTruthy();
+  expectCaseDenied(
+    await mcp(request, state.oauthTokens['app-one'], 'case.read_item', {
+      matterId: state.matterId,
+      kind: 'DOCUMENT',
+      itemId: state.documentId,
+      cursor: read.result.structuredContent.nextCursor,
+    }),
+  );
   await page.reload();
   await openCase(page, state.matterId);
   await expect(page.getByText('Minha conexão de teste — Acesso revogado')).toBeVisible();
