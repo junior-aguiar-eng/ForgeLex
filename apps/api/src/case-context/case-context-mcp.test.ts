@@ -9,6 +9,19 @@ import {
 import { LedgerService } from '@forgelex/billing-ledger';
 import { AuthAdapter } from '../auth/fastify-auth.js';
 import { buildApp } from '../app.js';
+
+function toolFailure(response: { json(): any }) {
+  const envelope = response.json();
+  expect(envelope).not.toHaveProperty('error');
+  expect(envelope.result).toMatchObject({
+    isError: true,
+    billing: { mode: 'FREE', chargedCents: 0, isReplay: false },
+  });
+  expect(envelope.result).not.toHaveProperty('structuredContent');
+  const failure = JSON.parse(envelope.result.content[0].text).error;
+  expect(failure.retryable).toBe(false);
+  return failure;
+}
 describe('Contexto MCP autenticado', () => {
   it('revogação na auditoria descarta o resultado; envelope completo fica abaixo de 24 KiB', async () => {
     const c = await createDatabase();
@@ -107,7 +120,10 @@ describe('Contexto MCP autenticado', () => {
       expect(joined).toBe(text);
       revokeDuringAudit = true;
       const denied = await call();
-      expect(denied.json().error.data.code).toBe('CASE_CONTEXT_NOT_AUTHORIZED');
+      expect(toolFailure(denied)).toMatchObject({
+        code: 'CASE_CONTEXT_NOT_AUTHORIZED',
+        message: expect.stringContaining('Este material não está autorizado para o aplicativo.'),
+      });
       expect(denied.body).not.toContain('Linha');
     } finally {
       await app.close();
@@ -179,7 +195,7 @@ describe('Contexto MCP autenticado', () => {
       const tool = listed.json().result.tools.find((t: any) => t.name === 'case.read_item');
       expect(tool).toMatchObject({ annotations: { readOnlyHint: true, openWorldHint: false } });
       expect(tool.inputSchema.properties).not.toHaveProperty('idempotencyKey');
-      expect((await call('case.get_context', { matterId: matter.id })).json().error.data.code).toBe(
+      expect(toolFailure(await call('case.get_context', { matterId: matter.id })).code).toBe(
         'CASE_CONTEXT_NOT_AUTHORIZED',
       );
       const grant = await access.replace(owner, matter.id, {
@@ -200,10 +216,10 @@ describe('Contexto MCP autenticado', () => {
       expect(ok.json().result).toMatchObject({ billing: { mode: 'FREE', chargedCents: 0, isReplay: false } });
       expect(JSON.stringify(ok.json().result)).toContain('MATERIAL PRIVADO AUTORIZADO');
       expect((await c.client.execute('SELECT * FROM ledger_accounts')).rows).toHaveLength(0);
-      expect((await call('case.read_item', input, 'app-two')).json().error.data.code).toBe(
+      expect(toolFailure(await call('case.read_item', input, 'app-two')).code).toBe(
         'CASE_CONTEXT_NOT_AUTHORIZED',
       );
-      expect((await call('case.read_item', input, 'session')).json().error.data.code).toBe(
+      expect(toolFailure(await call('case.read_item', input, 'session')).code).toBe(
         'CASE_CONTEXT_NOT_AUTHORIZED',
       );
       expect(
@@ -217,7 +233,7 @@ describe('Contexto MCP autenticado', () => {
         ).json().error.data.code,
       ).toBe('INVALID_INPUT');
       await access.revoke(owner, matter.id, grant.id, 1);
-      expect((await call('case.read_item', input)).json().error.data.code).toBe('CASE_CONTEXT_NOT_AUTHORIZED');
+      expect(toolFailure(await call('case.read_item', input)).code).toBe('CASE_CONTEXT_NOT_AUTHORIZED');
       expect(
         (await new MatterRepository(c.db).getDocumentVersion(owner.tenantId, doc.document.id))?.version.content,
       ).toBe('MATERIAL PRIVADO AUTORIZADO');

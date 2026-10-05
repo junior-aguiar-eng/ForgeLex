@@ -181,7 +181,18 @@ export class McpHandler {
             const candidate=error instanceof Error?error.message.split(':')[0]:'';
             const code=['CASE_CONTEXT_NOT_AUTHORIZED','CASE_CURSOR_INVALID','CASE_ITEM_TOO_LARGE','CASE_SELECTION_INVALID'].includes(candidate)?candidate==='CASE_SELECTION_INVALID'?'CASE_ITEM_UNAVAILABLE':candidate:getErrorCode(error,'TOOL_EXECUTION_FAILED');
             await this.recordAudit({sessionId,tenantId,userId,toolName:name,durationMs:Date.now()-startedAt,status:'FAILED',payload:{code,readOnly:true}});
-            return {jsonrpc:'2.0',id,error:{code:-32000,message:code==='CASE_CONTEXT_NOT_AUTHORIZED'?'Este material não está autorizado para o aplicativo.':'Não foi possível concluir a leitura. Atualize a consulta.',data:{code,retryable:false}}};
+            const message = code === 'CASE_CONTEXT_NOT_AUTHORIZED'
+              ? 'Este material não está autorizado para o aplicativo. No ForgeLex, abra o caso e confira "Usar este caso na IA".'
+              : 'Não foi possível concluir a leitura. Atualize a consulta.';
+            return {
+              jsonrpc: '2.0',
+              id,
+              result: {
+                content: [{ type: 'text', text: JSON.stringify({ error: { code, message, retryable: false } }) }],
+                isError: true,
+                billing: { mode: 'FREE', chargedCents: 0, isReplay: false },
+              },
+            };
           }
         }
 
