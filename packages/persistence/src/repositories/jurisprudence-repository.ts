@@ -35,15 +35,33 @@ function normalizeTerm(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-function fullTextQuery(value: string): string {
+const SEARCH_STOP_WORDS = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'no', 'na', 'nos', 'nas', 'ao', 'aos', 'por', 'para', 'com', 'um', 'uma', 'uns', 'umas']);
+
+function fullTextQuery(value: string, dialect: 'sqlite' | 'postgres'): string {
   const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const units: Array<{ value: string; phrase: boolean }> = [];
+  const groups: string[][] = [[]];
   for (const match of normalized.matchAll(/"([^"]+)"|([^\s"]+)/g)) {
-    const phrase = Boolean(match[1]);
+    if (match[2] === 'or') {
+      groups.push([]);
+      continue;
+    }
+    if (match[2] === 'and') continue;
     const term = normalizeTerm(match[1] ?? match[2] ?? '');
-    if (term.split(/\s+/).every((item) => item.length >= 2)) units.push({ value: term, phrase });
+    const group = groups[groups.length - 1]!;
+    if (match[1]) {
+      // A frase conserva preposições e palavras curtas para manter a sequência.
+      if (term) group.push(`"${term}"`);
+    } else {
+      // Literais ficam entre aspas para o PostgreSQL não reinterpretar, por
+      // exemplo, o "or" produzido pela normalização de "maria/or/penha".
+      group.push(...term.split(/\s+/)
+        .filter(word => word.length >= 2 && !SEARCH_STOP_WORDS.has(word))
+        .map(word => `"${word}"`));
+    }
   }
-  return units.map((unit) => unit.phrase ? `"${unit.value}"` : unit.value).join(' OR ');
+  // websearch_to_tsquery usa AND implícito; FTS5 exige o operador explícito.
+  const conjunction = dialect === 'postgres' ? ' ' : ' AND ';
+  return groups.filter(group => group.length > 0).map(group => group.join(conjunction)).join(' OR ');
 }
 
 function normalizedProjection(values: Array<string | undefined>): string {
@@ -164,7 +182,7 @@ export class JurisprudenceRepository {
 
   public async search(options: JurisprudenceSearchOptions): Promise<JurisprudenceDocument[]> {
     const completedRunIds = await this.completedIngestionRunIds();
-    const query = fullTextQuery(options.query);
+    const query = fullTextQuery(options.query, this.db.$forgelexDialect === 'postgres' ? 'postgres' : 'sqlite');
     if (!query) return [];
 
     const postgresVector = sql`${schema.jurisprudenceDocuments.searchVector}::tsvector`;
