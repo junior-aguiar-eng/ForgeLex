@@ -1,20 +1,12 @@
 # Auditoria e status canônico do ForgeLex
 
-## Arquivo, lixeira e exclusão — implementação em validação final (06/10/2026)
+## Arquivo, lixeira e exclusão — publicado e homologado (06/10/2026)
 
-Branch `codex/casos-documentos-ciclo-vida`, PR #51, checkout isolado
-`draft-review/SDK`. Implementados menus discretos de casos/documentos,
-restauração, confirmação de exclusão definitiva, proteção de edição local,
-revogação de acesso IA, transações por caso e journal externo de purge/restore.
-Revisão independente concluída sem achados abertos após as correções.
-CI `37538629226` em `d6a0335`: seis jobs aprovados, 754 testes unitários
-aprovados e oito verificações PostgreSQL, incluindo backup real anterior
-à exclusão e reaplicação antes de servir o restore. Quatro E2E locais
-aprovados após a correção final de buffer; ensaio móvel/Escape adicional
-aprovado. A CI final da branch e os gates remotos permanecem distintos.
+PR #51 integrada em 26c6b8c; PR #52 esclarece apenas mensagens de listas vazias. Código publicado 326a96e2569d17e6462674f684197e02f03cdd98, revisão forgelex-api-prod-lifecycle-ui-326a96e, com 100% do tráfego em https://nexojuris.ia.br. Rollback forgelex-api-prod-lifecycle-26c6b8c. Seis jobs aprovados nas CIs finais de ambas as PRs e de main; PostgreSQL 16 com oito verificações e pg_dump/pg_restore real antes da reaplicação das exclusões. Backup anterior, migration explícita 0028, journal externo/âncora e promoção 5/25/100 comprovados. Recursos temporários removidos.
 
-[Matriz de evidências e limites](docs/product/matter-lifecycle-validation.md).
-Nenhuma publicação desta frente é afirmada por este registro.
+Menus discretos permitem arquivar, enviar à lixeira, restaurar e excluir definitivamente. Revisão independente sem achados abertos; quatro E2E locais e ensaio móvel/Escape aprovados. ChatGPT e Claude recusaram acesso após arquivo/lixeira e permaneceram bloqueados após restauração sem nova autorização. Somente o documento sintético expressamente confirmado foi excluído definitivamente; banco, journal e verificação de resíduos corroboraram a conclusão. Caso e outro documento preservados, permissões IA revogadas, rascunho na versão 4 e zero operações financeiras durante o ensaio.
+
+[Matriz e limites](docs/product/matter-lifecycle-validation.md); [registro operacional](docs/operations/stabilization/2026-10-06-matter-lifecycle-publication.md) e [recibo sem segredos](docs/operations/stabilization/2026-10-06-matter-lifecycle-publication.json). A homologação nativa ocorreu em 26c6b8c; o código posterior altera somente mensagens. As seções antigas abaixo registram publicações anteriores.
 
 ## Recebimento de textos da IA — publicado e homologado (06/10/2026)
 

@@ -170,4 +170,4 @@ Todos os caminhos abaixo são relativos ao checkout acima. Arquivos novos são i
 
 Auto-revisão: contratos/estados/defaults (1–2), autorização/concorrência (2–3/7/9), leitores/IA/fontes/revisão (4/7), journal/purge/restore/retenção (5–6/9), UI/buffers (8), CI/revisão/entrega (9–10). Os cinco riscos do Review Focus têm testes nas tarefas indicadas. Interfaces posteriores usam os nomes definidos acima; não há refatoração geral nem exclusão por tenant como atalho.
 
-Preservar execução nativa sequencial já escolhida nesta conversa: implementação nesta sessão, uma revisão independente da branch ao final. Este documento está pendente de revisão por Boni; não começar código do produto antes da confirmação de que o plano corresponde ao escopo aprovado.
+Preservar execução nativa sequencial já escolhida nesta conversa: implementação nesta sessão, uma revisão independente da branch ao final. O plano foi aprovado e executado nesta conversa; as caixas acima preservam a especificação original. O estado final comprovado está no [registro de publicação e homologação](../../operations/stabilization/2026-10-06-matter-lifecycle-publication.md).
