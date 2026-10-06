@@ -37,17 +37,17 @@ A execução unitária serial adicional no Windows foi interrompida sem
 resumo final; não constitui aprovação. A aprovação integral documentada
 acima vem da CI Linux. Não havia PostgreSQL local disponível nesta rodada.
 
-## Gates remotos
+## Integração, publicação e homologação remota
 
-A CI do SHA final precisa concluir antes da integração. A produção ainda
-usa `forgelex-api-prod-draft-ai-ebad9b2` com 100% do tráfego, confirmado
-por consulta ao Cloud Run nesta rodada; a implementação não foi publicada
-por esse registro.
+PR #51 integrada em 26c6b8c: CI final da branch 37540028655 e CI integrada 37540924228 com seis jobs aprovados. Backup anterior e migration 0028 explícita concluídos; journal/âncora próprios verificados. Candidata identificada pelos logs e promoção 5/25/100 concluída.
 
-Publicação exige backup anterior à migration `persistence-0028-matter-lifecycle`,
-secrets e âncora lifecycle independentes do banco, candidata identificada e
-promoção com evidência de tráfego. Não substituir isso por `readyz=200`.
-Homologação nativa no ChatGPT e Claude desta funcionalidade ainda não ocorreu.
+ChatGPT e Claude foram homologados nas conexões reais, apenas com o caso sintético: ambos recusaram manifesto após arquivo/lixeira e leitura direta após arquivar o documento selecionado; restaurar não reativou o acesso. O navegador preservou edição não salva e o servidor recusou gravação no caso arquivado. A exclusão definitiva do documento fictício foi confirmada por Boni e comprovada no banco, no journal externo e pela verificação canônica de resíduos. Caso e outro documento foram preservados; rascunho continuou na versão 4 e houve zero operações financeiras na janela do teste.
+
+A PR #52 altera apenas mensagens de filtros vazios. CI 37545567596 e CI integrada 37546148375 passaram nos seis jobs. Código publicado 326a96e2569d17e6462674f684197e02f03cdd98, revisão forgelex-api-prod-lifecycle-ui-326a96e, com 100% após nova promoção 5/25/100. Recursos temporários removidos.
+
+Não houve restore de produção nem purge definitivo de caso em produção. Backup/restore e reaplicação passaram na CI PostgreSQL; purge definitivo de caso passou na CI e no E2E local. A atualização por foco da segunda aba foi comprovada pelo E2E automatizado; esta rodada nativa comprovou a recusa de gravação e a preservação do buffer.
+
+[Evidências, horários, digests e limites](../operations/stabilization/2026-10-06-matter-lifecycle-publication.md).
 
 Restaurar não reativa concessões IA. Excluir apenas um documento não apaga
 trechos anteriormente copiados em rascunhos/fatos/notas. Backups antigos

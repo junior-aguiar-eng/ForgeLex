@@ -1,6 +1,6 @@
 # Arquivo, Lixeira e exclusão de casos/documentos
 
-Implementação em andamento na branch `codex/casos-documentos-ciclo-vida`.
+Publicado e homologado em `https://nexojuris.ia.br` em 06/10/2026, pelas PRs #51 e #52. Evidências e limites: [registro operacional](../operations/stabilization/2026-10-06-matter-lifecycle-publication.md).
 Especificação: `docs/superpowers/specs/2026-10-06-casos-documentos-ciclo-vida-design.md`.
 
 ## Organização e acesso

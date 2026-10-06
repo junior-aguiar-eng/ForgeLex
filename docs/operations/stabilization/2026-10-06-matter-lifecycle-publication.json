@@ -1,0 +1,483 @@
+{
+  "recordedAt": "2026-10-06T23:18:07.7975159Z",
+  "sourceSha": "26c6b8c6fb6f68c6f3f3852053dd66d8ad8aeff9",
+  "pullRequest": "https://github.com/junior-aguiar-eng/ForgeLex/pull/51",
+  "ci": {
+    "allSixJobsPassed": true,
+    "branchRun": 37540028655,
+    "mainRun": 37540924228,
+    "postgresChecks": 8,
+    "realPgDumpRestoreBeforeGate": true
+  },
+  "publication": {
+    "promotion": {
+      "sourceSha": "26c6b8c6fb6f68c6f3f3852053dd66d8ad8aeff9",
+      "revision": "forgelex-api-prod-lifecycle-26c6b8c",
+      "rollbackRevision": "forgelex-api-prod-draft-ai-ebad9b2",
+      "startedAt": "2026-10-06T23:00:40.3902068Z",
+      "stages": [
+        {
+          "percent": 5,
+          "marker": "mcp-5-6890c0edd4914ed5a947083dc3aeeeac",
+          "startedAt": "2026-10-06T22:48:02.3241849Z",
+          "requests": 143,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-draft-ai-ebad9b2",
+            "forgelex-api-prod-lifecycle-26c6b8c"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-06T22:50:15.5375499Z",
+          "elapsedSeconds": 133.0
+        },
+        {
+          "percent": 25,
+          "marker": "mcp-25-d2dd26fe099d43448592a5dec488d6e5",
+          "startedAt": "2026-10-06T22:50:27.1904455Z",
+          "requests": 143,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-draft-ai-ebad9b2",
+            "forgelex-api-prod-lifecycle-26c6b8c"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-06T22:52:45.6054207Z",
+          "elapsedSeconds": 138.0
+        },
+        {
+          "percent": 100,
+          "marker": "mcp-100-a8f1aa38f49846edb657780c9be679d5",
+          "startedAt": "2026-10-06T23:01:01.0443644Z",
+          "requests": 153,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-lifecycle-26c6b8c"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-06T23:03:13.9067751Z",
+          "elapsedSeconds": 133.0
+        }
+      ],
+      "checks": [
+        {
+          "status": 200,
+          "path": "/healthz"
+        },
+        {
+          "status": 200,
+          "path": "/.well-known/oauth-protected-resource/mcp"
+        },
+        {
+          "status": 200,
+          "path": "/.well-known/oauth-authorization-server"
+        },
+        {
+          "status": 200,
+          "path": "/openapi.json"
+        },
+        {
+          "status": 200,
+          "path": "/app/conectar"
+        },
+        {
+          "status": 200,
+          "path": "/guia/mcp"
+        },
+        {
+          "status": 200,
+          "path": "/app/desenvolvedores/api"
+        },
+        {
+          "status": 200,
+          "path": "/oauth/consent"
+        }
+      ],
+      "failures": [],
+      "completed": true,
+      "completedAt": "2026-10-06T23:03:16.256472Z",
+      "firstAttempt": {
+        "rollbackAt": "2026-10-06T22:58:07.6125381Z",
+        "failure": "local DNS prevented log read",
+        "recoveredLogs": {
+          "revisions": [
+            "forgelex-api-prod-lifecycle-26c6b8c"
+          ],
+          "requests": 137,
+          "non200": 0,
+          "checkedAt": "2026-10-06T23:00:25.1805447Z"
+        }
+      }
+    },
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:c9b3639c81bd290a692b5d5aaf510b0037bfdc9cebb2820f83705607e5aeee25",
+    "autoMigrate": false,
+    "journalAnchorVerified": true,
+    "migration": {
+      "completedAt": "2026-10-06T22:36:21.322557Z",
+      "execution": "forgelex-lifecycle-migrate-5czbt",
+      "id": "persistence-0028-matter-lifecycle"
+    },
+    "configPreserved": true,
+    "revision": "forgelex-api-prod-lifecycle-26c6b8c",
+    "cloudBuildId": "d3e11b33-f2b9-4b90-9e6c-0670951302d3",
+    "backup": {
+      "completedAt": "2026-10-06T22:25:28.783Z",
+      "id": "1791325407137"
+    },
+    "buildCompletedAt": "2026-10-06T22:33:55.910348Z",
+    "temporaryResourcesRemoved": true,
+    "domain": "https://nexojuris.ia.br"
+  },
+  "homologation": {
+    "nativeHosts": [
+      "ChatGPT",
+      "Claude"
+    ],
+    "browser": [
+      "Escape cancelled",
+      "archived write refused and unsaved buffer retained",
+      "case archive trash restore",
+      "document archive trash restore",
+      "source unavailable in trash then found after fresh review",
+      "explicitly authorized permanent document purge"
+    ],
+    "nativeDenied": [
+      "case archived",
+      "case restored without regrant",
+      "case trashed after regrant",
+      "document archived manifest and direct read"
+    ],
+    "matterRevision": 4,
+    "matterId": "f69bc495-8c48-4cb1-a342-d52a3aea9b8a",
+    "events": [
+      {
+        "tool_name": "mcp.connection.verified",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T22:36:17.718Z"
+      },
+      {
+        "tool_name": "case.list_shared",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T22:36:18.111Z"
+      },
+      {
+        "tool_name": "mcp.connection.verified",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T22:36:35.765Z"
+      },
+      {
+        "tool_name": "case.list_shared",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T22:36:38.075Z"
+      },
+      {
+        "tool_name": "case_ai.access.allowed",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T22:40:52.344Z"
+      },
+      {
+        "tool_name": "case_ai.access.allowed",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T22:41:51.152Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T22:41:59.013Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T22:43:21.009Z"
+      },
+      {
+        "tool_name": "matter.lifecycle.archive",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:03:27.019Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "FAILED",
+        "created_at": "2026-10-06T23:03:55.811Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "FAILED",
+        "created_at": "2026-10-06T23:03:58.3Z"
+      },
+      {
+        "tool_name": "matter.lifecycle.restore",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:04:58.87Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "FAILED",
+        "created_at": "2026-10-06T23:05:23.411Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "FAILED",
+        "created_at": "2026-10-06T23:05:27.756Z"
+      },
+      {
+        "tool_name": "case_ai.access.allowed",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:06:18.181Z"
+      },
+      {
+        "tool_name": "case_ai.access.allowed",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:06:42.316Z"
+      },
+      {
+        "tool_name": "matter.lifecycle.trash",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:06:51.408Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "FAILED",
+        "created_at": "2026-10-06T23:07:06.425Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "FAILED",
+        "created_at": "2026-10-06T23:07:07.935Z"
+      },
+      {
+        "tool_name": "matter.lifecycle.restore",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:07:53.816Z"
+      },
+      {
+        "tool_name": "case_ai.access.allowed",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:08:33.976Z"
+      },
+      {
+        "tool_name": "case_ai.access.allowed",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:08:42.692Z"
+      },
+      {
+        "tool_name": "matter.lifecycle.archive",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:08:51.274Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "FAILED",
+        "created_at": "2026-10-06T23:09:14.195Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "FAILED",
+        "created_at": "2026-10-06T23:09:15.329Z"
+      },
+      {
+        "tool_name": "case.read_item",
+        "status": "FAILED",
+        "created_at": "2026-10-06T23:09:18.573Z"
+      },
+      {
+        "tool_name": "case.read_item",
+        "status": "FAILED",
+        "created_at": "2026-10-06T23:09:20.711Z"
+      },
+      {
+        "tool_name": "matter.lifecycle.trash",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:10:09.316Z"
+      },
+      {
+        "tool_name": "matter.lifecycle.restore",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:10:38.84Z"
+      },
+      {
+        "tool_name": "matter.lifecycle.restore",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:10:58.991Z"
+      },
+      {
+        "tool_name": "matter.lifecycle.trash",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:11:13.368Z"
+      },
+      {
+        "tool_name": "matter.lifecycle.purge",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T23:12:06.182Z"
+      }
+    ],
+    "documents": [
+      {
+        "id": "8d9f6804-6ead-4e91-9ee1-38166eb1bbf9",
+        "lifecycle_revision": 2,
+        "lifecycle_state": "PURGED"
+      },
+      {
+        "id": "9df3b10a-88c5-4c23-95d3-6bee53bfabac",
+        "lifecycle_revision": 4,
+        "lifecycle_state": "ACTIVE"
+      }
+    ],
+    "auditRecordedAt": "2026-10-06T23:14:05.12Z",
+    "billingOperations": 0,
+    "grants": [
+      {
+        "revision": 10,
+        "status": "REVOKED"
+      },
+      {
+        "revision": 10,
+        "status": "REVOKED"
+      }
+    ],
+    "billingWindowStart": "2026-10-06T22:35:00Z",
+    "matterState": "ACTIVE",
+    "purge": {
+      "journalState": "COMPLETED",
+      "residualsVerified": true,
+      "localState": "COMMITTED",
+      "operationId": "386208468081d658f323435023cc41521299dea77e625eeac7a8ad950ec57f87",
+      "documentId": "8d9f6804-6ead-4e91-9ee1-38166eb1bbf9",
+      "journalRecordedAt": "2026-10-06T23:12:06.299Z"
+    },
+    "drafts": [
+      {
+        "current_version_id": "da00e451-1184-481a-ada5-944d8ef061c0",
+        "history_count": "4",
+        "id": "6d5c2bb3-8c16-4d3c-809f-a44ff1356a41",
+        "version_number": 4
+      }
+    ]
+  },
+  "limits": [
+    "No production database restore was performed; real backup restore and deletion reapplication were verified on PostgreSQL 16 CI.",
+    "Permanent case purge was covered by CI/local E2E; native production purge targeted only the confirmed synthetic document.",
+    "Browser background control did not reproduce the focus refresh of the second tab; the rejected archived write and preserved buffer were observed, and focus refresh remains covered by automated E2E.",
+    "Copied excerpts and financial records are preserved according to the documented contract.",
+    "Durable journal and keys must survive recoverable backups."
+  ],
+  "uiCopyRelease": {
+    "configPreserved": true,
+    "ci": {
+      "mainRun": 37546148375,
+      "branchRun": 37545567596,
+      "allSixJobsPassed": true
+    },
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:05111103f1f3152e09068c48479ae5e41253f4edd72d2981f22238cfca66ad6b",
+    "scope": "Only empty-case and empty-document filter messages; no API or persistence change",
+    "revision": "forgelex-api-prod-lifecycle-ui-326a96e",
+    "browser": {
+      "checkedAt": "2026-10-06T23:43:09.269Z",
+      "domain": "https://nexojuris.ia.br",
+      "messagesObserved": [
+        "Nenhum documento arquivado neste caso.",
+        "A lixeira de documentos deste caso está vazia.",
+        "Nenhum caso arquivado.",
+        "A lixeira de casos está vazia."
+      ],
+      "finalState": "Synthetic case selected; active document visible; case menu open",
+      "screenshot": "site-final-published-menu.jpg"
+    },
+    "cloudBuildId": "2363fe46-f0aa-45e4-821b-12353f3c07c8",
+    "pullRequest": "https://github.com/junior-aguiar-eng/ForgeLex/pull/52",
+    "sourceSha": "326a96e2569d17e6462674f684197e02f03cdd98",
+    "cleanup": {
+      "backendRemoved": true,
+      "candidateTagRemoved": true,
+      "checkedAt": "2026-10-06T23:47:06.223354Z",
+      "temporaryRouteRemoved": true,
+      "negRemoved": true
+    },
+    "buildCompletedAt": "2026-10-06T23:26:35.441716Z",
+    "promotion": {
+      "sourceSha": "326a96e2569d17e6462674f684197e02f03cdd98",
+      "revision": "forgelex-api-prod-lifecycle-ui-326a96e",
+      "rollbackRevision": "forgelex-api-prod-lifecycle-26c6b8c",
+      "startedAt": "2026-10-06T23:37:21.015154Z",
+      "stages": [
+        {
+          "percent": 5,
+          "marker": "mcp-5-1646af0a564a4dc5b319b04d5a0450c0",
+          "startedAt": "2026-10-06T23:37:45.6009675Z",
+          "requests": 154,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-lifecycle-26c6b8c",
+            "forgelex-api-prod-lifecycle-ui-326a96e"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-06T23:39:58.0567219Z",
+          "elapsedSeconds": 132.0
+        },
+        {
+          "percent": 25,
+          "marker": "mcp-25-5e87dc5f037c479084df9ed152a94466",
+          "startedAt": "2026-10-06T23:40:06.4643316Z",
+          "requests": 156,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-lifecycle-26c6b8c",
+            "forgelex-api-prod-lifecycle-ui-326a96e"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-06T23:42:17.6228163Z",
+          "elapsedSeconds": 131.0
+        },
+        {
+          "percent": 100,
+          "marker": "mcp-100-2131a26fb3854e50bf29cbb198c4732c",
+          "startedAt": "2026-10-06T23:42:27.6098971Z",
+          "requests": 155,
+          "observationWindowSeconds": 120,
+          "observedRevisions": [
+            "forgelex-api-prod-lifecycle-ui-326a96e"
+          ],
+          "verified": true,
+          "completedAt": "2026-10-06T23:44:38.7642764Z",
+          "elapsedSeconds": 131.0
+        }
+      ],
+      "checks": [
+        {
+          "path": "/healthz",
+          "status": 200
+        },
+        {
+          "path": "/.well-known/oauth-protected-resource/mcp",
+          "status": 200
+        },
+        {
+          "path": "/.well-known/oauth-authorization-server",
+          "status": 200
+        },
+        {
+          "path": "/openapi.json",
+          "status": 200
+        },
+        {
+          "path": "/app/conectar",
+          "status": 200
+        },
+        {
+          "path": "/guia/mcp",
+          "status": 200
+        },
+        {
+          "path": "/app/desenvolvedores/api",
+          "status": 200
+        },
+        {
+          "path": "/oauth/consent",
+          "status": 200
+        }
+      ],
+      "failures": [],
+      "completed": true,
+      "completedAt": "2026-10-06T23:44:41.1490467Z"
+    }
+  }
+}
