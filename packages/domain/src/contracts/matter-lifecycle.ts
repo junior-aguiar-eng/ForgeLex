@@ -33,3 +33,7 @@ export interface LifecycleResult {
   id: string; lifecycleState: LifecycleState; lifecycleRevision: number;
   archivedAt?: string; trashedAt?: string; purgedAt?: string;
 }
+export interface MatterPurgeIntent {
+  operationId: string; target: LifecycleTarget; expectedLifecycleRevision: number;
+  fingerprint: string; preparedAt: string;
+}
