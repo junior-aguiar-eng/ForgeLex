@@ -140,4 +140,4 @@ Boni aprovou a execução nativa sequencial nesta conversa, com revisão indepen
 - [x] Task 6: `7cb239c` — PostgreSQL, regressões e documentação.
 - [x] Revisão independente e correções importantes: `aeeabb1`, com RED→GREEN e regressão completa.
 
-Ponto menor adiado: apresentar no editor o nome específico do aplicativo remetente. O recibo já registra sua identidade, mas a interface mostra a origem genérica IA. Integração e publicação permanecem nos gates posteriores previstos acima.
+Ponto menor adiado: apresentar no editor o nome específico do aplicativo remetente. O recibo já registra sua identidade, mas a interface mostra a origem genérica IA. Os gates posteriores de CI, integração, migration, publicação e homologação real foram concluídos pela PR #49 em 06/10/2026. Evidências e limites em `docs/operations/stabilization/2026-10-06-draft-ai-publication.md`.

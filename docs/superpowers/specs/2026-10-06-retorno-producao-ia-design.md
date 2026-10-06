@@ -171,4 +171,5 @@ Implementação, migration em banco de testes e revisão independente concluída
 na branch `codex/retorno-producao-ia`; registro em
 `docs/product/draft-ai-receiving-validation.md`. O nome específico do aplicativo
 no editor permanece como ponto menor adiado. Integração, migration de produção,
-publicação e homologação real desta escrita continuam pendentes.
+publicação e homologação real desta escrita concluídas pela PR #49 em 06/10/2026;
+evidências em `docs/operations/stabilization/2026-10-06-draft-ai-publication.md`.
