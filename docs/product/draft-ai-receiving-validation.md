@@ -1,5 +1,9 @@
 # Registro local do recebimento de textos da IA
 
+Esta seção registra a validação local anterior à integração. CI, publicação
+e homologação real foram concluídas posteriormente em 06/10/2026;
+[evidências e limites](../operations/stabilization/2026-10-06-draft-ai-publication.md).
+
 Data: 06/10/2026. Checkout: `C:/Users/Boni Jr/.codex/worktrees/draft-review/SDK`.
 Branch: `codex/retorno-producao-ia`; remoto: ForgeLex; base: `9e74b7f29ccc2be04d0a702c541149ea0d789875`.
 Último commit de código validado: `aeeabb14b67c118591cb76bd4ad707bdeb0b8502`.

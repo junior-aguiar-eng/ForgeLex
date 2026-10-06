@@ -1,0 +1,415 @@
+{
+  "recordedAt": "2026-10-06T19:18:00.8956178Z",
+  "sourceSha": "ebad9b22af2c852cfbfb497f17390a3bb4dd02b0",
+  "pullRequest": "https://github.com/junior-aguiar-eng/ForgeLex/pull/49",
+  "ci": [
+    {
+      "runId": 37511883476,
+      "headSha": "73a3d14b33e8eafa656fa031b47aea07a7d31d79",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "validate",
+          "conclusion": "success"
+        },
+        {
+          "name": "e2e-product",
+          "conclusion": "success"
+        },
+        {
+          "name": "e2e-account-closure",
+          "conclusion": "success"
+        },
+        {
+          "name": "e2e-public",
+          "conclusion": "success"
+        },
+        {
+          "name": "postgres",
+          "conclusion": "success"
+        },
+        {
+          "name": "security",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "runId": 37512609603,
+      "headSha": "ebad9b22af2c852cfbfb497f17390a3bb4dd02b0",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "e2e-public",
+          "conclusion": "success"
+        },
+        {
+          "name": "e2e-product",
+          "conclusion": "success"
+        },
+        {
+          "name": "postgres",
+          "conclusion": "success"
+        },
+        {
+          "name": "e2e-account-closure",
+          "conclusion": "success"
+        },
+        {
+          "name": "security",
+          "conclusion": "success"
+        },
+        {
+          "name": "validate",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "security": {
+    "advisory": "GHSA-6qxp-vccf-f47h",
+    "sdkVersion": "1.31.0",
+    "clientVersion": "2.2.0",
+    "coreVersion": "2.2.0",
+    "productionAudit": "passed",
+    "developmentDependenciesNotCovered": true
+  },
+  "buildId": "a31ac9ff-e26f-4726-8709-2df214ec8ede",
+  "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:a10d70613c26f1b16e4d21b7b63f3534b8ea7eb285543513ace50c38c59691cf",
+  "backup": {
+    "id": "1791312170522",
+    "status": "SUCCESSFUL",
+    "endTime": "2026-10-06T18:44:52.191Z"
+  },
+  "migration": {
+    "execution": "forgelex-draft-ai-migrate-5p7l2",
+    "name": "persistence-0027-draft-ai-receipts",
+    "status": "completed",
+    "events": [
+      {
+        "applied": [
+          "persistence-0027-draft-ai-receipts"
+        ],
+        "event": "migration.applied"
+      },
+      {
+        "dialect": "postgres",
+        "event": "migration.preflight",
+        "pending": [
+          "persistence-0027-draft-ai-receipts"
+        ]
+      }
+    ],
+    "automaticMigration": false
+  },
+  "candidate": {
+    "checkedAt": "2026-10-06T18:54:33.7687256Z",
+    "checks": [
+      {
+        "status": 200,
+        "path": "/healthz"
+      },
+      {
+        "status": 200,
+        "path": "/readyz"
+      },
+      {
+        "status": 200,
+        "path": "/"
+      },
+      {
+        "status": 200,
+        "path": "/app/casos"
+      },
+      {
+        "status": 200,
+        "path": "/app/rascunhos"
+      },
+      {
+        "status": 200,
+        "path": "/app/conectar"
+      },
+      {
+        "status": 200,
+        "path": "/guia/mcp"
+      },
+      {
+        "status": 200,
+        "path": "/.well-known/oauth-protected-resource/mcp"
+      },
+      {
+        "status": 200,
+        "path": "/.well-known/oauth-authorization-server"
+      },
+      {
+        "status": 200,
+        "path": "/openapi.json"
+      }
+    ],
+    "observedRevisions": [
+      "forgelex-api-prod-draft-ai-ebad9b2"
+    ]
+  },
+  "promotion": {
+    "sourceSha": "ebad9b22af2c852cfbfb497f17390a3bb4dd02b0",
+    "revision": "forgelex-api-prod-draft-ai-ebad9b2",
+    "rollbackRevision": "forgelex-api-prod-case-ai-def36af",
+    "startedAt": "2026-10-06T18:56:06.9479496Z",
+    "stages": [
+      {
+        "percent": 5,
+        "marker": "mcp-5-e625e2bb990947cbb5b1bd31bf339026",
+        "startedAt": "2026-10-06T18:56:25.0688685Z",
+        "requests": 141,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-case-ai-def36af",
+          "forgelex-api-prod-draft-ai-ebad9b2"
+        ],
+        "verified": true,
+        "completedAt": "2026-10-06T18:58:37.1752013Z",
+        "elapsedSeconds": 132.0
+      },
+      {
+        "percent": 25,
+        "marker": "mcp-25-6016fdd5a8cd4b218b58bbfa4385b03e",
+        "startedAt": "2026-10-06T18:58:47.8672404Z",
+        "requests": 146,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-case-ai-def36af",
+          "forgelex-api-prod-draft-ai-ebad9b2"
+        ],
+        "verified": true,
+        "completedAt": "2026-10-06T19:01:00.5089555Z",
+        "elapsedSeconds": 133.0
+      },
+      {
+        "percent": 100,
+        "marker": "mcp-100-d7614d874c824ada878e923e87273989",
+        "startedAt": "2026-10-06T19:01:09.3031443Z",
+        "requests": 142,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-draft-ai-ebad9b2"
+        ],
+        "verified": true,
+        "completedAt": "2026-10-06T19:03:22.7975546Z",
+        "elapsedSeconds": 133.0
+      }
+    ],
+    "checks": [
+      {
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "status": 200
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200
+      },
+      {
+        "path": "/app/conectar",
+        "status": 200
+      },
+      {
+        "path": "/guia/mcp",
+        "status": 200
+      },
+      {
+        "path": "/app/desenvolvedores/api",
+        "status": 200
+      },
+      {
+        "path": "/oauth/consent",
+        "status": 200
+      }
+    ],
+    "failures": [],
+    "completed": true,
+    "completedAt": "2026-10-06T19:03:25.1820001Z"
+  },
+  "runtime": {
+    "revision": "forgelex-api-prod-draft-ai-ebad9b2",
+    "trafficPercent": 100,
+    "rollbackRevision": "forgelex-api-prod-case-ai-def36af",
+    "serverErrorWindowStart": "2026-10-06T18:40:00Z",
+    "serverErrorCount": 0,
+    "verifiedAfterHomologation": true
+  },
+  "homologation": {
+    "auditRecordedAt": "2026-10-06T19:14:34.825Z",
+    "matterId": "f69bc495-8c48-4cb1-a342-d52a3aea9b8a",
+    "draftId": "6d5c2bb3-8c16-4d3c-809f-a44ff1356a41",
+    "currentVersionId": "df2e80e6-c50e-460d-8456-aea4a581387b",
+    "humanVersionPreservedBeforeAdoption": true,
+    "historyVersions": [
+      1,
+      2,
+      3
+    ],
+    "receipts": [
+      {
+        "host": "ChatGPT",
+        "id": "8cfdfcde-1d4e-49b3-bfe5-684745860c5f",
+        "versionId": "988bc595-6499-4af3-a343-459742b0f179",
+        "versionNumber": 2,
+        "receivedAt": "2026-10-06T19:07:22.565Z",
+        "status": "DRAFT",
+        "grantRevision": 3,
+        "references": [
+          {
+            "sectionOrdinal": 5,
+            "kind": "DOCUMENT",
+            "itemId": "9df3b10a-88c5-4c23-95d3-6bee53bfabac",
+            "documentVersionId": "7ce90bbc-0e09-4feb-807e-0bf406746dfb"
+          }
+        ],
+        "replayObserved": true,
+        "adoptionObserved": true,
+        "documentSourceOpened": true,
+        "denialAfterRevocation": "CASE_CONTEXT_NOT_AUTHORIZED"
+      },
+      {
+        "host": "Claude",
+        "id": "97b20838-f73c-4cff-aadb-8d076ac56110",
+        "versionId": "df2e80e6-c50e-460d-8456-aea4a581387b",
+        "versionNumber": 3,
+        "receivedAt": "2026-10-06T19:07:22.708Z",
+        "status": "DRAFT",
+        "grantRevision": 3,
+        "references": [
+          {
+            "sectionOrdinal": 7,
+            "kind": "DOCUMENT",
+            "itemId": "9df3b10a-88c5-4c23-95d3-6bee53bfabac",
+            "documentVersionId": "7ce90bbc-0e09-4feb-807e-0bf406746dfb"
+          }
+        ],
+        "replayObserved": true,
+        "adoptionObserved": true,
+        "documentSourceOpened": true,
+        "denialAfterRevocation": "CASE_CONTEXT_NOT_AUTHORIZED"
+      }
+    ],
+    "grants": [
+      {
+        "revision": 4,
+        "status": "REVOKED"
+      },
+      {
+        "revision": 4,
+        "status": "REVOKED"
+      }
+    ],
+    "events": [
+      {
+        "tool_name": "case_ai.access.allowed",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:05:15.048Z"
+      },
+      {
+        "tool_name": "case_ai.access.allowed",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:06:03.937Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:06:15.986Z"
+      },
+      {
+        "tool_name": "case.read_item",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:06:19.906Z"
+      },
+      {
+        "tool_name": "case.get_context",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:06:29.811Z"
+      },
+      {
+        "tool_name": "case.read_item",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:06:32.514Z"
+      },
+      {
+        "tool_name": "draft.save_from_ai",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:07:22.582Z"
+      },
+      {
+        "tool_name": "draft.save_from_ai",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:07:22.718Z"
+      },
+      {
+        "tool_name": "draft.save_from_ai",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:07:24.318Z"
+      },
+      {
+        "tool_name": "draft.save_from_ai",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:07:36.7Z"
+      },
+      {
+        "tool_name": "draft.ai.adopt",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:07:46.503Z"
+      },
+      {
+        "tool_name": "draft.ai.adopt",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:12:17.439Z"
+      },
+      {
+        "tool_name": "case_ai.access.revoked",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:13:00.445Z"
+      },
+      {
+        "tool_name": "case_ai.access.revoked",
+        "status": "SUCCESS",
+        "created_at": "2026-10-06T19:13:08.812Z"
+      },
+      {
+        "tool_name": "draft.save_from_ai",
+        "status": "FAILED",
+        "created_at": "2026-10-06T19:13:59.075Z"
+      },
+      {
+        "tool_name": "draft.save_from_ai",
+        "status": "FAILED",
+        "created_at": "2026-10-06T19:13:59.502Z"
+      }
+    ],
+    "billingWindowStart": "2026-10-06T18:20:00Z",
+    "billingOperations": 0
+  },
+  "cleanup": {
+    "temporaryRouteRemoved": true,
+    "backendRemoved": true,
+    "negRemoved": true,
+    "candidateTagRemoved": true,
+    "migrationJobRemoved": true,
+    "inspectionJobRemoved": true,
+    "unrelatedHistoricalTagsPreserved": true,
+    "syntheticEvidenceRetained": true
+  },
+  "limits": [
+    "Existing OAuth connections reused; no native reinstall or new OAuth grant.",
+    "Real document references pin documentVersionId; optional anchorId not supplied.",
+    "Hosts did not display billing fields; zero billing corroborated by PostgreSQL and automated contract tests.",
+    "DOCX source/warning validated in local and CI browser tests; native downloaded file not inspected.",
+    "Specific sender label in editor deferred; receipt retains client identity.",
+    "Documentation publication does not replace the deployed runtime image."
+  ]
+}

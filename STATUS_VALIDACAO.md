@@ -1,5 +1,30 @@
 # Auditoria e status canônico do ForgeLex
 
+## Recebimento de textos da IA — publicado e homologado (06/10/2026)
+
+A terceira frente foi integrada pela PR #49, SHA `ebad9b2`, e publicada em
+`https://nexojuris.ia.br`. Revisão `forgelex-api-prod-draft-ai-ebad9b2`, com
+100% do tráfego; rollback `forgelex-api-prod-case-ai-def36af`. Os seis jobs
+passaram na CI da PR e de main, incluindo as 13 verificações PostgreSQL de
+recebimento/concorrência. Backup concluído antes da migration explícita 0027;
+`FORGELEX_AUTO_MIGRATE=false` preservado. Candidata identificada em logs e
+promoção 5/25/100 concluídas. Recursos temporários desta rodada removidos.
+
+ChatGPT e Claude, em suas conexões existentes, enviaram um texto sintético
+cada e repetiram a chave sem duplicação. A versão humana atual foi preservada
+até a adoção explícita de cada recebimento. Fontes documentais na versão 1,
+conferência pendente de revisão humana e histórico preservado no editor.
+Após revogação, ambos recusaram uma nova chamada real com a chave original.
+A auditoria PostgreSQL corroborou dois recibos, quatro chamadas bem-sucedidas,
+duas adoções, duas recusas, permissões revogadas na revisão 4 e zero operações
+financeiras desde o início do ensaio. Nenhum material real ou pesquisa paga.
+
+Evidências, correção do gate de dependências e limites dos ensaios:
+[registro operacional](docs/operations/stabilization/2026-10-06-draft-ai-publication.md)
+e [recibo](docs/operations/stabilization/2026-10-06-draft-ai-publication.json).
+O ponto menor do nome específico do aplicativo no editor permanece adiado.
+As seções locais abaixo registram etapas anteriores à publicação.
+
 ## Recebimento de textos da IA — implementação local (06/10/2026)
 
 Checkout isolado `C:/Users/Boni Jr/.codex/worktrees/draft-review/SDK`, branch
