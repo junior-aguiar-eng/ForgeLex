@@ -12,6 +12,7 @@ export const EXTERNAL_MCP_TOOL_NAMES = [
   'case.list_shared',
   'case.get_context',
   'case.read_item',
+  'draft.save_from_ai',
 ] as const;
 
 export type ExternalMcpToolName = (typeof EXTERNAL_MCP_TOOL_NAMES)[number];

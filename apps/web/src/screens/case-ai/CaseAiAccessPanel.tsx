@@ -13,6 +13,7 @@ import {
   Selection,
   selectionCount,
   toggleMaterial,
+  type ReceivePermission,
 } from './case-ai-model';
 type Application = { clientId: string; displayName: string; grantedAt: string };
 type Page = { items: Material[]; nextCursor?: string };
@@ -37,6 +38,8 @@ export function CaseAiAccessPanel({
   const [platform, setPlatform] = useState('');
   const [clientId, setClientId] = useState('');
   const [selection, setSelection] = useState<Selection>(emptySelection);
+  const [receivePermission, setReceivePermission] = useState<ReceivePermission>({ enabled: false });
+  const [draftChoices, setDraftChoices] = useState<{ id: string; title: string }[]>([]);
   const [catalog, setCatalog] = useState<Partial<Record<Kind, Page>>>({});
   const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(false);
@@ -53,8 +56,15 @@ export function CaseAiAccessPanel({
   });
   const current = grants.find((g) => g.oauthClientId === clientId);
   const application = apps.find((a) => a.clientId === clientId);
+  const destinationDraftId =
+    receivePermission.enabled && receivePermission.destination.mode === 'EXISTING'
+      ? receivePermission.destination.draftId
+      : undefined;
   const connectedGrant = current?.status === 'ACTIVE' && current.oauthGrantedAt === application?.grantedAt;
-  const selectionSaved = connectedGrant && JSON.stringify(current.selection) === JSON.stringify(selection);
+  const selectionSaved =
+    connectedGrant &&
+    JSON.stringify(current.selection) === JSON.stringify(selection) &&
+    JSON.stringify(current.receivePermission ?? { enabled: false }) === JSON.stringify(receivePermission);
   const changeSelection = (s: Selection) => {
     setSelection(s);
     setPreview(null);
@@ -140,6 +150,14 @@ export function CaseAiAccessPanel({
     setClientId(id);
     const g = grants.find((g) => g.oauthClientId === id);
     changeSelection(g?.status === 'ACTIVE' ? g.selection : emptySelection());
+    setReceivePermission(g?.status === 'ACTIVE' ? (g.receivePermission ?? { enabled: false }) : { enabled: false });
+    void api<{ items: { id: string; title: string }[] }>(`/api/v2/matters/${matterId}/drafts`)
+      .then((r) => {
+        if (live.current) setDraftChoices(r.items);
+      })
+      .catch(() => {
+        if (live.current) setError('Não foi possível listar os rascunhos.');
+      });
     setConflict(false);
     setConfirmRevoke(false);
   }
@@ -147,11 +165,15 @@ export function CaseAiAccessPanel({
     await run(async () => {
       const g = await api<Grant>(
         base,
-        post({ oauthClientId: clientId, expectedRevision: current?.revision ?? 0, selection }, 'PUT'),
+        post(
+          { oauthClientId: clientId, expectedRevision: current?.revision ?? 0, selection, receivePermission },
+          'PUT',
+        ),
       );
       if (live.current) {
         setGrants((old) => [...old.filter((x) => x.oauthClientId !== g.oauthClientId), g]);
         setSelection(g.selection);
+        setReceivePermission(g.receivePermission ?? { enabled: false });
         setNotice('Acesso permitido para esta conexão e estes materiais.');
       }
     }, true);
@@ -346,6 +368,63 @@ export function CaseAiAccessPanel({
             </button>
           </section>
         )}
+        <section className="space-y-3 border-t pt-4">
+          <label className="flex gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={receivePermission.enabled}
+              disabled={busy || !clientId}
+              onChange={(e) => {
+                setReceivePermission(
+                  e.target.checked ? { enabled: true, destination: { mode: 'NEW' } } : { enabled: false },
+                );
+                setNotice('');
+                if (e.target.checked)
+                  void api<{ items: { id: string; title: string }[] }>(`/api/v2/matters/${matterId}/drafts`)
+                    .then((r) => {
+                      if (live.current) setDraftChoices(r.items);
+                    })
+                    .catch(() => {
+                      if (live.current) setError('Não foi possível listar os rascunhos.');
+                    });
+              }}
+            />
+            <span>Permitir que esta IA envie textos ao editor</span>
+          </label>
+          {receivePermission.enabled && (
+            <label className="block text-sm">
+              Onde receber o texto?
+              <select
+                className="input-control w-full mt-1"
+                disabled={busy}
+                value={receivePermission.destination.mode === 'NEW' ? 'NEW' : receivePermission.destination.draftId}
+                onChange={(e) =>
+                  setReceivePermission({
+                    enabled: true,
+                    destination:
+                      e.target.value === 'NEW' ? { mode: 'NEW' } : { mode: 'EXISTING', draftId: e.target.value },
+                  })
+                }
+              >
+                <option value="NEW">Novo rascunho</option>
+                {receivePermission.destination.mode === 'EXISTING' &&
+                  !draftChoices.some((d) => d.id === destinationDraftId) && (
+                    <option value={receivePermission.destination.draftId}>Rascunho escolhido</option>
+                  )}
+                {draftChoices.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {receivePermission.enabled && (
+            <p className="text-xs text-stone-600">
+              Receber textos é gratuito. Eles ficam aguardando revisão; a edição atual será preservada.
+            </p>
+          )}
+        </section>
         {selectionSaved && (
           <button
             type="button"
@@ -357,6 +436,7 @@ export function CaseAiAccessPanel({
                   initialInstruction(
                     matterTitle,
                     `${window.location.origin}/app/casos?caso=${encodeURIComponent(matterId)}`,
+                    current,
                   ),
                 );
                 if (live.current) setNotice('Instrução copiada. Cole na conversa da sua IA.');

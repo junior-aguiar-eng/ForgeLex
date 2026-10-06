@@ -1,6 +1,7 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const caseAiAccessGrants = sqliteTable('case_ai_access_grants', {
+ receivePermissionJson: text('receive_permission_json').notNull().default('{"enabled":false}'),
  id:text('id').primaryKey(),tenantId:text('tenant_id').notNull(),userId:text('user_id').notNull(),
  oauthClientId:text('oauth_client_id').notNull(),oauthGrantedAt:text('oauth_granted_at').notNull(),
  matterId:text('matter_id').notNull().references(()=>matters.id),revision:integer('revision').notNull(),
@@ -401,6 +402,7 @@ export const draftVersions = sqliteTable(
     status: text('status').notNull(),
     createdBy: text('created_by').notNull(),
     notes: text('notes'),
+    derivedFromVersionId: text('derived_from_version_id'),
     createdAt: text('created_at').notNull(),
   },
   (table) => [
@@ -408,6 +410,20 @@ export const draftVersions = sqliteTable(
     index('draft_versions_tenant_matter_idx').on(table.tenantId, table.matterId, table.createdAt),
   ],
 );
+
+export const draftAiReceipts = sqliteTable('draft_ai_receipts', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
+  oauthClientId: text('oauth_client_id').notNull(), oauthGrantedAt: text('oauth_granted_at').notNull(),
+  matterId: text('matter_id').notNull().references(() => matters.id),
+  grantId: text('grant_id').notNull().references(() => caseAiAccessGrants.id), grantRevision: integer('grant_revision').notNull(),
+  draftId: text('draft_id').notNull().references(() => drafts.id), versionId: text('version_id').notNull().references(() => draftVersions.id),
+  versionNumber: integer('version_number').notNull(), destinationJson: text('destination_json').notNull(),
+  keyHash: text('key_hash').notNull(), payloadHash: text('payload_hash').notNull(), referencesJson: text('references_json').notNull(),
+  receivedAt: text('received_at').notNull(),
+}, (t) => [
+  uniqueIndex('draft_ai_receipts_scope_key_idx').on(t.tenantId, t.userId, t.oauthClientId, t.oauthGrantedAt, t.matterId, t.keyHash),
+  uniqueIndex('draft_ai_receipts_version_idx').on(t.versionId),
+]);
 
 export const draftSections = sqliteTable(
   'draft_sections',

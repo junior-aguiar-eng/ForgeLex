@@ -10,7 +10,7 @@ export const DraftReviewCheckSchema = z.object({
   code: z.string().min(1),
   message: z.string().min(1),
   sectionId: z.string().uuid().optional(),
-  targetType: z.enum(['AUTHORITY', 'FACT', 'EVIDENCE']).optional(),
+  targetType: z.enum(['AUTHORITY', 'FACT', 'EVIDENCE', 'DOCUMENT', 'THESIS']).optional(),
   targetId: z.string().uuid().optional(),
   humanConfirmed: z.boolean().optional(),
   checkedAt: z.string().datetime(),
@@ -20,7 +20,9 @@ export const DraftReviewCheckSchema = z.object({
       sourceUrl: z.string().optional(),
       capturedAt: z.string().optional(),
       contentHash: z.string().optional(),
-      method: z.enum(['PERSISTED_CORPUS', 'PROVIDER']),
+      method: z.enum(['PERSISTED_CORPUS', 'PROVIDER', 'CASE_DOCUMENT']),
+      documentVersionId: z.string().uuid().optional(),
+      anchorId: z.string().uuid().optional(),
     })
     .optional(),
 });

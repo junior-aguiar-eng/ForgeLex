@@ -94,7 +94,9 @@ import type { AccountClosureJournal } from './account/account-closure-journal.js
 import { AccountClosureRestoreGate } from './account/account-closure-restore.js';
 import { DataJudTjalClient } from './datajud/datajud-tjal-client.js';
 import { registerDataJudRoutes } from './datajud/datajud-routes.js';
-import {CaseAiAccessRepository} from '@forgelex/persistence';
+import {CaseAiAccessRepository, DraftAiReceiptRepository} from '@forgelex/persistence';
+import {DraftAiService,createDraftAiTool,DRAFT_AI_ANNOTATIONS} from '@forgelex/legal-tools';
+import {registerDraftAiRoutes} from './drafting/draft-ai-routes.js';
 import {SessionOAuthClientDirectory,type OAuthClientDirectory} from './case-context/oauth-client-directory.js';
 import {registerCaseAiAccessRoutes} from './case-context/case-ai-access-routes.js';
 import {CaseContextService,createCaseContextTools,isCaseContextTool} from '@forgelex/legal-tools';
@@ -503,6 +505,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   const auditRecorder = options.auditRecorder ?? (connection ? new AuditRecorder(connection.db) : undefined);
   const caseAiAccess = database ? new CaseAiAccessRepository(database) : undefined;
+  if(database){const receipts=new DraftAiReceiptRepository(database);toolRegistry.register(createDraftAiTool(new DraftAiService(receipts)));registerDraftAiRoutes(app,receipts,new DraftRepository(database),authAdapter,auditRecorder);}
   if(caseAiAccess) for(const tool of createCaseContextTools(new CaseContextService(caseAiAccess)))toolRegistry.register(tool);
   if(caseAiAccess) registerCaseAiAccessRoutes(app,caseAiAccess,authAdapter,options.oauthClientDirectory ?? (environment.FORGELEX_SUPABASE_URL && environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY ? new SessionOAuthClientDirectory(environment.FORGELEX_SUPABASE_URL,environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY) : {list:async()=>{throw new Error('OAUTH_DIRECTORY_UNAVAILABLE');}}),auditRecorder);
   const mcpHandler = new McpHandler(toolRegistry, ledgerService, auditRecorder, {
@@ -1525,6 +1528,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       };
     }
   );
+
+  app.get('/api/v2/matters/:matterId/documents/:documentId/versions/:versionId', { preHandler: authAdapter.createPreHandler(['matter:read']) }, async (req, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    const p = z.object({ matterId:z.string().uuid(),documentId:z.string().uuid(),versionId:z.string().uuid() }).safeParse(req.params);
+    if(!p.success)return reply.code(400).send({error:'INVALID_INPUT'});
+    if(!matterRepository)return reply.code(503).send({error:'PERSISTENCE_UNAVAILABLE'});
+    const result=await matterRepository.getSpecificDocumentVersion(req.principal.tenantId,p.data.matterId,p.data.documentId,p.data.versionId);
+    if(!result)return reply.code(404).send({error:'DOCUMENT_NOT_FOUND',message:'A fonte não está disponível neste caso.'});
+    return result;
+  });
 
   app.get(
     '/api/v2/matters/:matterId/issues',
@@ -2812,7 +2825,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         if (mcpOAuth.enabled && body?.method === 'tools/list' && response.result?.tools) {
           for (const tool of response.result.tools) {
             tool.securitySchemes = [{ type: 'oauth2', scopes: ['email', 'profile'] }];
-            tool.annotations = isCaseContextTool(tool.name)?{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}:{ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
+            tool.annotations = tool.name==='draft.save_from_ai'?DRAFT_AI_ANNOTATIONS:isCaseContextTool(tool.name)?{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}:{ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
           }
           response.result.tools.push({
           name: 'forgelex.connection_status', title: 'Verificar conexão ForgeLex',

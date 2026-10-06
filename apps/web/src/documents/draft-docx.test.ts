@@ -3,6 +3,11 @@ import JSZip from 'jszip';
 import { buildDraftDocx, draftDocxFilename } from './draft-docx';
 
 describe('saved draft DOCX', () => {
+  it('inclui a versão documental fixada sem afirmar conferência humana', async () => {
+    const blob=await buildDraftDocx({title:'Texto recebido',version:{id:'v',versionNumber:1,contentHash:'h',status:'DRAFT',createdAt:'2026-10-06T10:00:00.000Z'},sections:[{id:'s',ordinal:7,title:'Fatos',content:'Texto'}],citations:[],documentReferences:[{reference:{sectionOrdinal:7,citationText:'Cláusula contratual'},documentTitle:'Contrato selecionado',versionNumber:2,available:true,anchor:{text:'Trecho da versão original'}}]});
+    const zip=await JSZip.loadAsync(await blob.arrayBuffer());const xml=await zip.file('word/document.xml')!.async('string');
+    expect(xml).toContain('Contrato selecionado · versão 2');expect(xml).toContain('Cláusula contratual');expect(xml).toContain('Pendente de conferência');
+  });
   it('produces OOXML with ordered sections, escaped text, version identity and citation verification', async () => {
     const blob = await buildDraftDocx({
       title: 'Petição & obrigação',

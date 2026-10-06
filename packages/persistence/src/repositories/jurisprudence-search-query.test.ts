@@ -1,8 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { generateContentHash, generateDedupeKey, type JurisprudenceDocument } from '@forgelex/legal-data';
 import { createDatabase } from '../db.js';
@@ -16,14 +12,13 @@ const localPostgres = Boolean(postgresUrl && /^postgres(?:ql)?:\/\/(?:[^/]+@)?(?
 for (const dialect of ['sqlite', 'postgres'] as const) {
   describe.skipIf(dialect === 'postgres' && !localPostgres)('Consulta jurisprudencial — ' + dialect, () => {
     const court = 'QUERY_' + randomUUID().toUpperCase();
-    const databasePath = join(tmpdir(), 'forgelex-query-' + randomUUID() + '.db');
     let connection: Awaited<ReturnType<typeof createDatabase>>;
     let repository: JurisprudenceRepository;
     let runId: string;
     let documents: JurisprudenceDocument[];
 
     beforeAll(async () => {
-      connection = await createDatabase({ url: dialect === 'postgres' ? postgresUrl! : pathToFileURL(databasePath).toString() });
+      connection = await createDatabase({ url: dialect === 'postgres' ? postgresUrl! : 'file::memory:?cache=shared' });
       await runPersistenceMigrations(connection.client);
       repository = new JurisprudenceRepository(connection.db);
       const runs = new IngestionRunRepository(connection.db);
@@ -64,7 +59,6 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
         await connection.client.execute({ sql: 'DELETE FROM jurisprudence_ingestion_runs WHERE id = ?', args: [runId] });
       }
       connection.client.close();
-      if (dialect === 'sqlite') rmSync(databasePath, { force: true });
     });
 
     const cases: Array<[string, string, number[]]> = [

@@ -5,7 +5,7 @@ import { DraftingService } from './draft-service.js';
 
 const DraftSectionInputSchema = z.object({
   ordinal: z.number().int().nonnegative(),
-  title: z.string().min(3),
+  title: z.string().min(1),
   content: z.string(),
   linkedFactIds: z.array(z.string().uuid()).default([]),
   linkedEvidenceIds: z.array(z.string().uuid()).default([]),
@@ -24,6 +24,7 @@ const DraftContentSchema = z.object({
   sections: z.array(DraftSectionInputSchema).min(1).max(100),
   citations: z.array(CitationInputSchema).max(500).default([]),
   notes: z.string().max(2000).optional(),
+  baseVersionId: z.string().uuid().optional(),
 });
 const DraftUpdateInputSchema = DraftContentSchema.extend({ draftId: z.string().uuid() });
 const DraftGetInputSchema = z.object({ draftId: z.string().uuid() });
