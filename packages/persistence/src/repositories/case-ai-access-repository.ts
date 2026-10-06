@@ -76,17 +76,17 @@ export class CaseAiAccessRepository {
         ),
       )
       .limit(1);
-    if (!rows[0] || !(await new MatterRepository(this.db).getMatter(r.tenantId, matterId)))
+    if (!rows[0] || (await new MatterRepository(this.db).getMatter(r.tenantId, matterId))?.lifecycleState !== 'ACTIVE')
       throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
     return grant(rows[0]);
   }
   async loadSelection(o: CaseAiOwner, matterId: string, selection: CaseAiSelection): Promise<SelectedCaseRecord[]> {
     const matters = new MatterRepository(this.db);
-    if (!(await matters.getMatter(o.tenantId, matterId))) throw new Error('CASE_SELECTION_INVALID');
+    if ((await matters.getMatter(o.tenantId, matterId))?.lifecycleState !== 'ACTIVE') throw new Error('CASE_SELECTION_INVALID');
     const result: SelectedCaseRecord[] = [];
     for (const ref of selection.documents) {
       const d = await matters.getSpecificDocumentVersion(o.tenantId, matterId, ref.documentId, ref.versionId);
-      if (!d) throw new Error('CASE_SELECTION_INVALID');
+      if (!d || d.document.lifecycleState !== 'ACTIVE') throw new Error('CASE_SELECTION_INVALID');
       result.push({
         kind: 'DOCUMENT',
         id: d.document.id,

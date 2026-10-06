@@ -35,7 +35,7 @@ export class MatterWriteGuard {
 export function isMatterWriteTransaction(db: ForgeLexDatabase): boolean { return guardedTransactions.has(db); }
 export async function withMatterWrite<T>(db: ForgeLexDatabase, target: LifecycleTarget, write: (tx: ForgeLexDatabase) => Promise<T>): Promise<T> {
   const guard = new MatterWriteGuard(db);
-  const revision = await guard.captureRevision(target);
+  const revision = target.expectedMatterRevision ?? await guard.captureRevision(target);
   if (isMatterWriteTransaction(db)) return write(db);
   return guard.run(target, revision, write);
 }

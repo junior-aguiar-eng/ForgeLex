@@ -1,3 +1,4 @@
+import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.js';
 import { and, desc, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { CaseLaw, CaseLawSchema, SavedAuthority, SavedAuthoritySchema } from '@forgelex/domain';
@@ -12,6 +13,7 @@ import { MatterRepository } from './matter-repository.js';
 export interface SaveAuthorityInput {
   tenantId: string;
   matterId: string;
+  expectedMatterRevision?: number;
   savedBy: string;
   authority: CaseLaw;
 }
@@ -47,6 +49,8 @@ export class MatterAuthorityRepository {
   }
 
   public async saveAuthority(input: SaveAuthorityInput): Promise<SaveAuthorityResult> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new MatterAuthorityRepository(tx).saveAuthority(input));
+
     await this.requireMatter(input.tenantId, input.matterId);
     const authority = CaseLawSchema.parse(input.authority);
     const existing = await this.findByDedupeKey(input.tenantId, input.matterId, authority.dedupeKey);
@@ -92,8 +96,11 @@ export class MatterAuthorityRepository {
   }
 
   public async recordVerification(input: {
+    expectedMatterRevision?: number;
     tenantId: string; matterId: string; savedAuthorityId: string; createdBy: string; verification: AuthorityVerificationSnapshot;
   }): Promise<void> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new MatterAuthorityRepository(tx).recordVerification(input));
+
     await this.requireMatter(input.tenantId, input.matterId);
     const authority = (await this.listAuthorities(input.tenantId, input.matterId)).find((item) => item.id === input.savedAuthorityId);
     if (!authority) throw new Error('MATTER_AUTHORITY_NOT_FOUND');

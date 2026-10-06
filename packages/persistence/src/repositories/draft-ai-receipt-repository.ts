@@ -1,4 +1,5 @@
 import { and, eq, desc, sql } from 'drizzle-orm';
+import { MatterWriteGuard } from './matter-write-guard.js';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   DraftSaveFromAiInputSchema,
@@ -235,6 +236,7 @@ export class DraftAiReceiptRepository {
         .update(s.matters)
         .set({ updatedAt: sql`${s.matters.updatedAt}` })
         .where(and(eq(s.matters.id, matterId), eq(s.matters.tenantId, owner.tenantId)));
+      await new MatterWriteGuard(db).captureRevision({ tenantId: owner.tenantId, matterId });
       await tx
         .update(s.drafts)
         .set({ updatedAt: sql`${s.drafts.updatedAt}` })

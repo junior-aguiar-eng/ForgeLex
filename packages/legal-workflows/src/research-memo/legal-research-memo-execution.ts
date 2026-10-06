@@ -87,6 +87,7 @@ export class LegalResearchMemoExecutionService {
   public async execute(rawInput: LegalResearchMemoExecutionInput, context: ExecutionContext): Promise<LegalResearchMemoExecutionOutput> {
     const input = LegalResearchMemoExecutionInputSchema.parse(rawInput);
     const source = context.source ?? this.inferSource(context.sessionId);
+    const expectedMatterRevision = await this.dependencies.matterRepository.captureWorkRevision(context.tenantId, input.matterId);
     const existing = await this.dependencies.researchMemoRepository.getByIdempotencyKey(context.tenantId, input.matterId, input.idempotencyKey);
     if (existing) {
       const requestedIssueIds = [...(input.issueIds ?? existing.issueIds)].sort();
@@ -108,7 +109,7 @@ export class LegalResearchMemoExecutionService {
     };
     const save = async (stepId: string, stepIndex: number, status: 'RUNNING' | 'COMPLETED' | 'FAILED' = 'RUNNING') =>
       this.dependencies.checkpointStore.save({ executionId, workflowId: LEGAL_RESEARCH_MEMO_WORKFLOW_ID,
-        workflowVersion: LEGAL_RESEARCH_MEMO_WORKFLOW_VERSION, tenantId: context.tenantId, matterId: input.matterId,
+        workflowVersion: LEGAL_RESEARCH_MEMO_WORKFLOW_VERSION, tenantId: context.tenantId, matterId: input.matterId, expectedMatterRevision,
         source, idempotencyKey: input.idempotencyKey,
         stepId, stepIndex, status, state, createdAt: new Date(Date.now() + stepIndex).toISOString() });
     let stepIndex = 0;
@@ -131,8 +132,10 @@ export class LegalResearchMemoExecutionService {
       }
       for (let index = 0; index < state.authorities.length; index++) {
         const saved = await this.dependencies.matterAuthorityRepository.saveAuthority({ tenantId: context.tenantId,
+          expectedMatterRevision,
           matterId: input.matterId, savedBy: context.userId, authority: state.authorities[index] });
         await this.dependencies.matterAuthorityRepository.recordVerification({ tenantId: context.tenantId,
+          expectedMatterRevision,
           matterId: input.matterId, savedAuthorityId: saved.record.id, createdBy: context.userId,
           verification: state.verification[index] });
       }
@@ -147,6 +150,7 @@ export class LegalResearchMemoExecutionService {
       await save(STEPS[stepIndex], stepIndex++);
       await save(STEPS[stepIndex], stepIndex++);
       const record = await this.dependencies.researchMemoRepository.createMemo({ tenantId: context.tenantId,
+        expectedMatterRevision,
         matterId: input.matterId, query: input.query, issueIds: selectedIssues.map((issue) => issue.id), memo,
         workflowVersion: LEGAL_RESEARCH_MEMO_WORKFLOW_VERSION, idempotencyKey: input.idempotencyKey, createdBy: context.userId });
       await save(STEPS[stepIndex], stepIndex++);

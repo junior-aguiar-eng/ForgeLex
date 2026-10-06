@@ -2,11 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { and, desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import type { ForgeLexDatabase } from '../db.js';
 import { researchSearchHistory } from '../schema/schema.js';
+import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.js';
 
 export interface ResearchHistoryInput {
   tenantId: string;
   userId: string;
   operationId: string;
+  matterId?: string;
   query: string;
   court: string;
   judgmentYear?: number;
@@ -20,6 +22,7 @@ export class ResearchHistoryRepository {
   public constructor(private readonly db: ForgeLexDatabase) {}
 
   public async record(input: ResearchHistoryInput): Promise<typeof researchSearchHistory.$inferSelect> {
+    if (input.matterId && !isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, { tenantId: input.tenantId, matterId: input.matterId }, tx => new ResearchHistoryRepository(tx).record(input));
     const query = input.query.trim();
     if (!query) throw new Error('RESEARCH_HISTORY_QUERY_REQUIRED');
     if (!input.tenantId || !input.userId || !input.operationId || !input.court.trim()) throw new Error('RESEARCH_HISTORY_IDENTITY_REQUIRED');
@@ -27,6 +30,7 @@ export class ResearchHistoryRepository {
     if (!Number.isInteger(input.chargedCents) || input.chargedCents < 0) throw new Error('RESEARCH_HISTORY_CHARGE_INVALID');
     const record = {
       id: randomUUID(), tenantId: input.tenantId, userId: input.userId, operationId: input.operationId,
+      matterId: input.matterId ?? null,
       query, court: input.court.trim().toUpperCase(), judgmentYear: input.judgmentYear ?? null, resultCount: input.resultCount,
       billingMode: input.billingMode, chargedCents: input.chargedCents,
       createdAt: input.createdAt ?? new Date().toISOString(),
@@ -39,6 +43,7 @@ export class ResearchHistoryRepository {
       eq(researchSearchHistory.operationId, input.operationId),
     )).limit(1);
     if (!rows[0]) throw new Error('RESEARCH_HISTORY_PERSISTENCE_FAILED');
+    if (rows[0].matterId !== (input.matterId ?? null)) throw new Error('RESEARCH_HISTORY_CASE_CONFLICT');
     return rows[0];
   }
 

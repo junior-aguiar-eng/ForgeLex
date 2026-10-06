@@ -13,6 +13,7 @@ import {
 import type { ForgeLexDatabase } from '../db.js';
 import * as s from '../schema/schema.js';
 import { DraftRepository } from './draft-repository.js';
+import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.js';
 
 export interface ReviewContext {
   tenantId: string;
@@ -34,6 +35,7 @@ export class DraftReviewRunRepository {
     mode: DraftReviewMode,
     contextHash: string,
   ): Promise<DraftReviewRun> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, context, tx => new DraftReviewRunRepository(tx).start(context, version, mode, contextHash));
     const bundle = await new DraftRepository(this.db).getVersion(
       context.tenantId,
       context.matterId,
@@ -91,6 +93,7 @@ export class DraftReviewRunRepository {
       findings: Omit<DraftReviewFinding, 'id' | 'createdAt' | 'reviewRunId'>[];
     },
   ): Promise<DraftReviewResult> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, context, tx => new DraftReviewRunRepository(tx).finish(context, runId, result));
     return this.db.transaction(async (tx) => {
       const rows = await tx
         .select()

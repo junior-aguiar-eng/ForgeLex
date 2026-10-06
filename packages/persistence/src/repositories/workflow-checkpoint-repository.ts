@@ -1,11 +1,12 @@
 import { and, desc, eq } from 'drizzle-orm';
+import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.js';
 import { randomUUID } from 'node:crypto';
 import type { ForgeLexDatabase } from '../db.js';
 import * as schema from '../schema/schema.js';
 
 export interface PersistedWorkflowCheckpoint {
   executionId: string; workflowId: string; workflowVersion: string; tenantId: string;
-  matterId?: string; stepId: string; stepIndex: number;
+  matterId?: string; expectedMatterRevision?: number; stepId: string; stepIndex: number;
   source?: 'REST' | 'MCP' | 'AGENT_CORE' | 'INTERNAL'; idempotencyKey?: string;
   status: 'RUNNING' | 'COMPLETED' | 'FAILED'; state: unknown; createdAt: string;
 }
@@ -19,6 +20,7 @@ export class PersistentWorkflowCheckpointStore implements PersistentWorkflowChec
   public constructor(private readonly db: ForgeLexDatabase) {}
 
   public async save(checkpoint: PersistedWorkflowCheckpoint): Promise<void> {
+    if (checkpoint.matterId && !isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, { tenantId: checkpoint.tenantId, matterId: checkpoint.matterId, expectedMatterRevision: checkpoint.expectedMatterRevision }, tx => new PersistentWorkflowCheckpointStore(tx).save(checkpoint));
     await this.db.insert(schema.workflowCheckpoints).values({
       id: randomUUID(), executionId: checkpoint.executionId, tenantId: checkpoint.tenantId,
       matterId: checkpoint.matterId ?? null, workflowId: checkpoint.workflowId,

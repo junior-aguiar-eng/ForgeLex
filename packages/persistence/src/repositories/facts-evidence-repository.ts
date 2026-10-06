@@ -1,3 +1,4 @@
+import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.js';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
@@ -131,6 +132,8 @@ export class FactsEvidenceRepository {
     category?: FactCategory;
     status?: FactStatus;
   }): Promise<Fact> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new FactsEvidenceRepository(tx).createFact(input));
+
     await this.requireMatter(input.tenantId, input.matterId);
     const now = new Date().toISOString();
     const fact = FactSchema.parse({
@@ -189,6 +192,8 @@ export class FactsEvidenceRepository {
     relation: FactSourceRelation;
     note?: string;
   }): Promise<FactSourceLink> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new FactsEvidenceRepository(tx).linkFactToAnchor(input));
+
     await this.requireFact(input.tenantId, input.matterId, input.factId);
     await this.requireAnchor(input.tenantId, input.matterId, input.documentAnchorId);
     const link = FactSourceLinkSchema.parse({
@@ -240,6 +245,8 @@ export class FactsEvidenceRepository {
     evidenceType?: EvidenceType;
     status?: 'AVAILABLE' | 'MISSING' | 'CONTESTED';
   }): Promise<EvidenceItem> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new FactsEvidenceRepository(tx).createEvidenceItem(input));
+
     await this.requireMatter(input.tenantId, input.matterId);
     const now = new Date().toISOString();
     const item = EvidenceItemSchema.parse({
@@ -303,6 +310,8 @@ export class FactsEvidenceRepository {
     relation: EvidenceSourceRelation;
     note?: string;
   }): Promise<EvidenceSourceLink> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new FactsEvidenceRepository(tx).linkEvidenceToAnchor(input));
+
     await this.requireEvidenceItem(input.tenantId, input.matterId, input.evidenceItemId);
     await this.requireAnchor(input.tenantId, input.matterId, input.documentAnchorId);
     const link = EvidenceSourceLinkSchema.parse({
@@ -353,6 +362,8 @@ export class FactsEvidenceRepository {
     relation: FactEvidenceRelation;
     note?: string;
   }): Promise<EvidenceLink> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new FactsEvidenceRepository(tx).linkEvidenceToFact(input));
+
     await this.requireFact(input.tenantId, input.matterId, input.factId);
     await this.requireEvidenceItem(input.tenantId, input.matterId, input.evidenceItemId);
     const link = EvidenceLinkSchema.parse({
@@ -469,6 +480,8 @@ export class FactsEvidenceRepository {
     description?: string;
     sourceAnchorId?: string;
   }): Promise<TimelineEvent> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new FactsEvidenceRepository(tx).createTimelineEvent(input));
+
     await this.requireMatter(input.tenantId, input.matterId);
     if (input.sourceAnchorId) {
       await this.requireAnchor(input.tenantId, input.matterId, input.sourceAnchorId);
@@ -536,6 +549,8 @@ export class FactsEvidenceRepository {
           eq(schema.legalDocuments.matterId, matterId),
           eq(schema.matters.tenantId, tenantId),
           eq(schema.matters.id, matterId),
+          eq(schema.matters.lifecycleState, 'ACTIVE'),
+          eq(schema.legalDocuments.lifecycleState, 'ACTIVE'),
         ),
       )
       .limit(1);

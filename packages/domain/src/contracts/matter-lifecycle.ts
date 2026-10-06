@@ -5,7 +5,7 @@ export type LifecycleState = z.infer<typeof LifecycleStateSchema>;
 export const LifecycleViewSchema = z.enum(['active', 'archived', 'trash']);
 export type LifecycleView = z.infer<typeof LifecycleViewSchema>;
 export type LifecycleAction = 'archive' | 'trash' | 'restore';
-export interface LifecycleTarget { tenantId: string; matterId: string; documentId?: string; }
+export interface LifecycleTarget { tenantId: string; matterId: string; documentId?: string; expectedMatterRevision?: number; }
 export interface LifecycleActor {
   userId: string;
   role: 'owner' | 'admin' | 'member';

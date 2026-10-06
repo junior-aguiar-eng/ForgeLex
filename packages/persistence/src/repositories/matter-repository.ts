@@ -1,3 +1,4 @@
+import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.js';
 import { and, desc, eq } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import {
@@ -105,6 +106,13 @@ function toAnchor(row: typeof schema.documentAnchors.$inferSelect): DocumentAnch
 export class MatterRepository {
   public constructor(private readonly db: ForgeLexDatabase) {}
 
+  public async captureWorkRevision(tenantId: string, matterId: string): Promise<number> {
+    const matter = await this.getMatter(tenantId, matterId);
+    if (!matter || matter.lifecycleState === 'PURGED') throw new Error('MATTER_NOT_FOUND');
+    if (matter.lifecycleState !== 'ACTIVE') throw new Error('MATTER_NOT_ACTIVE');
+    return matter.lifecycleRevision;
+  }
+
   public async createMatter(input: {
     tenantId: string;
     createdBy: string;
@@ -164,6 +172,8 @@ export class MatterRepository {
   }
 
   public async ingestTextDocument(input: IngestTextDocumentInput): Promise<IngestedTextDocument> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new MatterRepository(tx).ingestTextDocument(input));
+
     const matter = await this.getMatter(input.tenantId, input.matterId);
     if (!matter) {
       throw new Error('MATTER_NOT_FOUND: matter não pertence ao tenant informado ou não existe.');
