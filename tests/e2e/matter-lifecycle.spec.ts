@@ -29,6 +29,10 @@ test('document menus preserve the case and unsaved case text survives archiving'
   await page.getByRole('dialog').getByRole('button', { name: 'Arquivar', exact: true }).click();
   await expect(page.getByLabel('Texto do documento')).toHaveValue('Meu texto ainda não salvo.');
   await expect(page.getByLabel('Texto do documento')).toBeDisabled();
+  await page.getByRole('button', { name: 'Atualizar casos', exact: true }).click();
+  await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+  await expect(page.getByLabel('Texto do documento')).toHaveValue('Meu texto ainda não salvo.');
+  await expect(page.getByLabel('Texto do documento')).toBeDisabled();
 });
 test('a case archived in another tab keeps the draft buffer and blocks saving', async ({ page, request }) => {
   const matter = await (await request.post(api + '/api/v2/matters', { headers, data: { title: `Caso com edição ${Date.now()}` } })).json();

@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { createDatabase, runPersistenceMigrations, MatterRepository, MatterLifecycleRepository, MatterPurgeRepository, MatterWriteGuard, FactsEvidenceRepository, CaseAiAccessRepository } from '../packages/persistence/dist/index.js';
+import { createDatabase, runPersistenceMigrations, MatterRepository, MatterLifecycleRepository, MatterPurgeRepository, MatterWriteGuard, FactsEvidenceRepository, CaseAiAccessRepository, DraftRepository, DraftAiReceiptRepository, DraftReviewRunRepository, reviewContextHash } from '../packages/persistence/dist/index.js';
 import { matters as matterTable } from '../packages/persistence/dist/schema/schema.js';
 import { CaseContextService } from '../packages/legal-tools/dist/index.js';
 import { DurableMatterPurgeJournal } from '../apps/api/dist/matters/matter-purge-journal.js';
@@ -91,6 +91,50 @@ try {
   assert.equal(race.filter(r => r.status === 'rejected').length, 1);
   passed('concurrent lifecycle compare-and-swap has one winner');
 
+  async function receiptFixture() {
+    const matter = await make('Receipt race');
+    const target = { tenantId: owner.tenantId, matterId: matter.id };
+    const doc = await matters.ingestTextDocument({ ...target, createdBy: actor.userId, title: 'Source', originalFilename: 'source.txt', mimeType: 'text/plain', content: 'Selected source' });
+    const permission = { oauthClientId: randomUUID(), oauthGrantedAt: '2026-10-06T12:00:00.000Z', expectedRevision: 0, selection: { documents: [{ documentId: doc.document.id, versionId: doc.version.id }], factIds: [], evidenceIds: [], thesisIds: [], authorityIds: [] }, receivePermission: { enabled: true, destination: { mode: 'NEW' } } };
+    await new CaseAiAccessRepository(db).replace(owner, matter.id, permission);
+    return { matter, target, reader: { ...owner, oauthConnection: { clientId: permission.oauthClientId, grantedAt: permission.oauthGrantedAt } }, input: { matterId: matter.id, expectedGrantRevision: 1, idempotencyKey: randomUUID(), title: 'External draft', sections: [{ ordinal: 0, title: 'Facts', content: 'External pending review' }], references: [] } };
+  }
+  for (const archiveWins of [true, false]) {
+    const f = await receiptFixture(), holder = lockGate(db, true), waiter = lockGate(db);
+    const first = archiveWins ? new MatterLifecycleRepository(holder.db).transition(f.target, actor, 'archive', { expectedLifecycleRevision: 0 }) : new DraftAiReceiptRepository(holder.db).receive(f.reader, f.input);
+    await bounded(holder.locked);
+    const second = archiveWins ? new DraftAiReceiptRepository(waiter.db).receive(f.reader, f.input) : new MatterLifecycleRepository(waiter.db).transition(f.target, actor, 'archive', { expectedLifecycleRevision: 0 });
+    const result = archiveWins ? assert.rejects(second, /MATTER_NOT_ACTIVE|CASE_CONTEXT_NOT_AUTHORIZED/) : second;
+    await bounded(waiter.attempted); holder.release();
+    const committed = await bounded(first); await bounded(result);
+    const receipts = new DraftAiReceiptRepository(db);
+    await assert.rejects(() => receipts.receive(f.reader, f.input), /MATTER_NOT_ACTIVE|CASE_CONTEXT_NOT_AUTHORIZED/);
+    if (!archiveWins) await assert.rejects(() => receipts.adopt(owner, f.matter.id, committed.draftId, committed.versionId, committed.versionId), /MATTER_NOT_ACTIVE/);
+    assert.equal(Number((await client.execute({ sql: 'SELECT COUNT(*) AS count FROM draft_ai_receipts WHERE matter_id=?', args: [f.matter.id] })).rows[0].count), archiveWins ? 0 : 1);
+  }
+  passed('receipt-before-archive and archive-before-receipt; replay and adoption denied');
+
+  async function approvalFixture() {
+    const matter = await make('Approval race'), target = { tenantId: owner.tenantId, matterId: matter.id }, context = { ...target, userId: actor.userId };
+    const drafts = new DraftRepository(db);
+    const draft = await drafts.createDraft({ ...target, createdBy: actor.userId, title: 'Draft for approval' });
+    const bundle = await drafts.createVersion({ ...target, draftId: draft.id, createdBy: actor.userId, title: draft.title, source: 'HUMAN', contentHash: 'a'.repeat(64), sections: [{ ordinal: 0, title: 'Facts', content: 'Reviewed text' }] });
+    const runs = new DraftReviewRunRepository(db), run = await runs.start(context, bundle.version, 'ALL', reviewContextHash(await drafts.reviewContext(context, bundle)));
+    await runs.finish(context, run.id, { state: 'COMPLETE', status: 'PASSED', checks: [], findings: [] });
+    const approval = await drafts.createApprovalRequest({ ...target, draftId: draft.id, draftVersionId: bundle.version.id, requestedBy: actor.userId, proposedAction: 'Approve synthetic draft' });
+    return { target, approval, resolve: { tenantId: owner.tenantId, token: approval.token, decision: 'APPROVED', decidedBy: actor.userId } };
+  }
+  for (const archiveWins of [true, false]) {
+    const f = await approvalFixture(), holder = lockGate(db, true), waiter = lockGate(db);
+    const first = archiveWins ? new MatterLifecycleRepository(holder.db).transition(f.target, actor, 'archive', { expectedLifecycleRevision: 0 }) : new DraftRepository(holder.db).resolveApproval(f.resolve);
+    await bounded(holder.locked);
+    const second = archiveWins ? new DraftRepository(waiter.db).resolveApproval(f.resolve) : new MatterLifecycleRepository(waiter.db).transition(f.target, actor, 'archive', { expectedLifecycleRevision: 0 });
+    const result = archiveWins ? assert.rejects(second, /MATTER_NOT_ACTIVE/) : second;
+    await bounded(waiter.attempted); holder.release(); await bounded(first); await bounded(result);
+    assert.equal((await client.execute({ sql: 'SELECT status FROM draft_approval_requests WHERE id=?', args: [f.approval.request.id] })).rows[0].status, archiveWins ? 'PENDING' : 'APPROVED');
+  }
+  passed('approval-before-archive and archive-before-approval are serialized');
+
   const sourceCase = await make('Selected documents');
   const sourceTarget = { tenantId: owner.tenantId, matterId: sourceCase.id };
   const doc = await matters.ingestTextDocument({ ...sourceTarget, createdBy: actor.userId, title: 'Source', originalFilename: 'source.txt', mimeType: 'text/plain', content: 'Private source content before purge' });
@@ -100,7 +144,12 @@ try {
   const reader = { ...owner, oauthConnection: { clientId: input.oauthClientId, grantedAt: input.oauthGrantedAt } };
   const service = new CaseContextService(access);
   const response = await service.getContext(reader, { matterId: sourceCase.id });
+  const selected = deferred(), releaseRead = deferred();
+  const inflight = new CaseContextService(new Proxy(access, { get(repository, key) { if (key === 'loadSelection') return async (...args) => { const data = await repository.loadSelection(...args); selected.resolve(); await bounded(releaseRead.promise); return data; }; const value = Reflect.get(repository, key); return typeof value === 'function' ? value.bind(repository) : value; } })).getContext(reader, { matterId: sourceCase.id });
+  const deniedRead = assert.rejects(inflight, /CASE_CONTEXT_NOT_AUTHORIZED/);
+  await bounded(selected.promise);
   await new MatterLifecycleRepository(db).transition({ ...sourceTarget, documentId: doc.document.id }, actor, 'archive', { expectedLifecycleRevision: 0 });
+  releaseRead.resolve(); await bounded(deniedRead);
   await assert.rejects(() => service.revalidateResponse(reader, response), /CASE_CONTEXT_NOT_AUTHORIZED/);
   await new MatterLifecycleRepository(db).transition({ ...sourceTarget, documentId: doc.document.id }, actor, 'restore', { expectedLifecycleRevision: 1 });
   await assert.rejects(() => service.getContext(reader, { matterId: sourceCase.id }), /CASE_CONTEXT_NOT_AUTHORIZED/);

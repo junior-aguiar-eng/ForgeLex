@@ -181,6 +181,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const [token, setToken] = useState(initialToken);
   const [matters, setMatters] = useState<Matter[]>([]);
   const [selectedMatterId, setSelectedMatterId] = useState<string | null>(null);
+  const [retainedMatter, setRetainedMatter] = useState<Matter | null>(null);
   const [aiAccessOpen, setAiAccessOpen] = useState(false);
   const aiAccessTrigger=useRef<HTMLButtonElement>(null);
   const closeAiAccess=()=>{setAiAccessOpen(false);requestAnimationFrame(()=>aiAccessTrigger.current?.focus());};
@@ -217,8 +218,8 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const hasApiAccess = Boolean(token.trim()) || authStatus === 'authenticated' || authStatus === 'legacy';
 
   const selectedMatter = useMemo(
-    () => matters.find((matter) => matter.id === selectedMatterId) ?? null,
-    [matters, selectedMatterId]
+    () => matters.find((matter) => matter.id === selectedMatterId) ?? (retainedMatter?.id === selectedMatterId ? retainedMatter : null),
+    [matters, selectedMatterId, retainedMatter]
   );
   const readOnly = caseBlocked || (!!selectedMatter && (selectedMatter.lifecycleState ?? 'ACTIVE') !== 'ACTIVE');
   const canManage = canManageLifecycle(authStatus, account?.user.id, account?.membership.role, selectedMatter?.createdBy);
@@ -289,6 +290,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
     ));
     if (sequence !== resourceRequest.current) return;
     setCaseBlocked(false);
+    setRetainedMatter(detail.matter);
     setDocuments(detail.documents);
     setMatters(current => current.map(matter => matter.id === detail.matter.id ? detail.matter : matter));
     setFacts(factsResponse.items);
@@ -306,6 +308,13 @@ export const MatterWorkspaceScreen: React.FC = () => {
     setError(null);
     try {
       const response = await request<{ items: Matter[] }>(`/api/v2/matters?view=${matterView}`, token);
+      if (hasUnsaved && selectedMatterId && !response.items.some(matter => matter.id === selectedMatterId)) {
+        setRetainedMatter(selectedMatter); setMatters(response.items);
+        try { await loadMatterResources(selectedMatterId); }
+        catch { setCaseBlocked(true); clearMatterResources(); }
+        setNotice('O caso saiu desta lista. Sua edição continua vinculada a ele e foi mantida.');
+        return;
+      }
       setMatters(response.items);
       const nextMatterId = selectedMatterId && response.items.some((matter) => matter.id === selectedMatterId)
         ? selectedMatterId
@@ -635,7 +644,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
           <aside className="champagne-card bg-white rounded-2xl p-5 space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="font-editorial text-xl font-bold text-stone-900">Seus casos</h2>
-              <span className="text-xs text-stone-500">{matters.length}</span>
+              <div className="flex items-center gap-2"><span className="text-xs text-stone-500">{matters.length}</span><button type="button" aria-label="Atualizar casos" disabled={busy || !hasApiAccess} onClick={() => void loadMatters()} className="p-2 rounded-lg hover:bg-stone-100"><RefreshCw className="w-4 h-4" /></button></div>
             </div>
             {authStatus === 'authenticated' && <LifecycleFilter label="Mostrar casos" value={matterView} onChange={value => { if (!hasUnsaved || window.confirm('Há texto não salvo. Deseja mudar a lista e descartar essa edição?')) { if (hasUnsaved) discardMatterBuffers(); setMatterView(value); } }} />}
             <form onSubmit={createMatter} className="space-y-2">
