@@ -14,6 +14,8 @@ Se as permissões mudarem em outra aba, a escolha permanece na tela. Clique **At
 
 ## Contrato para integração
 
+O retorno do texto produzido pela IA pode ser habilitado separadamente, com destino escolhido pelo cliente. Consulte [Receber textos no editor](draft-ai-receiving.md). Permissões existentes continuam com esse envio desabilitado. Revogar acesso também impede novos envios e repetições, sem apagar versões recebidas anteriormente.
+
 As ferramentas externas são `case.list_shared`, `case.get_context` e `case.read_item`. Elas exigem OAuth verificado, concessão ativa e permissão do usuário para aquele aplicativo/caso. API keys e sessões do site não substituem essa identidade de conexão. Gerenciar permissões exige sessão web; a IA não concede sua própria permissão.
 
 As respostas são de leitura, com `readOnlyHint: true`, `openWorldHint: false`, política `FREE`, `chargedCents: 0` e `isReplay: false`. Não consultam carteira nem usam replay privado do ledger; `remainingBalanceCents` fica ausente. Pesquisa continua no caminho financeiro existente. Identidade não é aceita nos argumentos.

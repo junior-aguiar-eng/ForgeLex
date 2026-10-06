@@ -1,5 +1,43 @@
 # Auditoria e status canônico do ForgeLex
 
+## Recebimento de textos da IA — implementação local (06/10/2026)
+
+Checkout isolado `C:/Users/Boni Jr/.codex/worktrees/draft-review/SDK`, branch
+`codex/retorno-producao-ia`, base `9e74b7f29ccc2be04d0a702c541149ea0d789875`.
+As Tasks 1–5 implementam permissão explícita/destino, recibos transacionais,
+`draft.save_from_ai` gratuito, referências fixadas e adoção consciente no editor.
+Commits: `ce2a021`, `3ffbd78`, `a05a919`, `47619e2` e `d20cbd5`.
+A Task 6 acrescenta o smoke PostgreSQL, restore gate, cobertura do envelope MCP
+e documentação. Especificação e plano aprovados ficam em `docs/superpowers`.
+
+Provas locais: `pnpm lint`, `pnpm build` e `pnpm -r run typecheck` concluídos.
+`pnpm test:e2e:case-ai`: 5 aprovados; `pnpm test:e2e:draft-review`: 8 aprovados;
+`pnpm test:e2e:documents`: 4 aprovados. Esses ensaios cobrem sessão sintética,
+recebimento/replay, texto seguro, edição preservada, conflito/adoção, novo
+rascunho sem revisão automática e DOCX com fonte documental.
+
+`node scripts/smoke-draft-ai-postgres.mjs`: 13 verificações aprovadas no
+PostgreSQL 16 de container exclusivo desta tarefa, porta local 55439, com
+tenant sintético e limpeza escopada. Inclui migrations idempotentes,
+permissão antiga desabilitada, envio simultâneo idempotente, conflito de chave,
+versão documental fixada/derivação humana, versão aprovada preservada,
+numeração concorrente humana/externa, adoção comparada, rollback de insert,
+cancelamento aguardando bloqueio real, ambas as ordens de revogação/commit
+e restauração/exclusão dos recibos. O job `postgres` da CI passa a executar
+esse runner no serviço de testes existente.
+
+`pnpm exec vitest run`: 710 aprovados e 17 ignorados, 131 arquivos aprovados
+e dois ignorados. A primeira rodada apresentou EPERM na exclusão de uma
+fixture SQLite no Windows; a repetição isolada confirmou a falha e o teste
+de consulta passou a usar SQLite em memória, sem mudança no armazenamento
+do produto. A repetição completa passou. Revisão independente registrada
+na conclusão da branch. Este registro não afirma CI remota, integração,
+migration de produção, publicação ou homologação do retorno nos hosts reais.
+Esses gates continuam pendentes para esta frente. As provas anteriores das
+frentes 1/2 abaixo não homologam esta nova escrita.
+
+Uso e limites: [recebimento de textos](docs/product/draft-ai-receiving.md).
+
 ## Revisão e contexto do caso — publicação e ensaios reais (05/10/2026)
 
 As frentes 1 e 2 foram integradas pela PR #46 e publicadas no domínio

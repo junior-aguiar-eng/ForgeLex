@@ -3,6 +3,43 @@ import AxeBuilder from '@axe-core/playwright';
 import JSZip from 'jszip';
 import { readFile } from 'node:fs/promises';
 const api = 'http://127.0.0.1:3301';
+
+test('novo rascunho abre pelo recibo sem referências nem revisão automática', async ({ page, request }) => {
+  const state = await (await request.get(api + '/e2e/state')).json();
+  await login(page);
+  await openCase(page, state.matterId);
+  await select(page);
+  await page.getByLabel('Permitir que esta IA envie textos ao editor').check();
+  await page.getByLabel('Onde receber o texto?').selectOption('NEW');
+  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
+  const allow = page.getByRole('button', { name: /^(Permitir acesso|Salvar permissão)$/ });
+  await allow.click();
+  await expect(page.getByRole('status')).toContainText('Acesso permitido');
+  const manifest = await mcp(request, state.oauthTokens['app-one'], 'case.get_context', { matterId: state.matterId });
+  const input = {
+    matterId: state.matterId,
+    expectedGrantRevision: manifest.result.structuredContent.grantRevision,
+    idempotencyKey: 'new-browser-' + Date.now(),
+    title: 'Novo texto sem fontes',
+    sections: [{ ordinal: 5, title: 'Fatos', content: 'Texto ainda não conferido.' }],
+    references: [],
+  };
+  const saved = await mcp(request, state.oauthTokens['app-one'], 'draft.save_from_ai', input);
+  expect(saved.result.isError).toBe(false);
+  await page.goto(saved.result.structuredContent.openPath);
+  await expect(page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true })).toHaveValue(
+    input.sections[0].content,
+  );
+  await expect(page.getByRole('region', { name: 'Textos recebidos da IA' })).toContainText('Texto recebido da IA');
+  const details = await (
+    await request.get(`${api}/api/v2/matters/${state.matterId}/drafts/${saved.result.structuredContent.draftId}`, {
+      headers: { authorization: 'Bearer phase7-e2e-access-token' },
+    })
+  ).json();
+  expect(details.currentVersion.version.status).toBe('DRAFT');
+  expect(details.currentReviewRun).toBeUndefined();
+  expect(details.documentReferences).toEqual([]);
+});
 test('receber texto preserva edição, permite prévia segura e exige adoção consciente', async ({ page, request }) => {
   const state = await (await request.get(api + '/e2e/state')).json();
   const root = `/api/v2/matters/${state.matterId}`;

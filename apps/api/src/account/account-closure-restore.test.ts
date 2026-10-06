@@ -3,6 +3,8 @@ import type { AccountClosureRecord, AccountClosureRepository } from '@forgelex/p
 import { digestClosureValue } from './account-closure-crypto.js';
 import { sealJournalIds, type AccountClosureJournal, type JournalEvent } from './account-closure-journal.js';
 import { AccountClosureRestoreGate } from './account-closure-restore.js';
+import { AccountClosurePurgeService } from './account-closure-purge-service.js';
+import type { Client } from '@forgelex/persistence';
 
 const secret = 'h'.repeat(64);
 const encryptionKey = Buffer.alloc(32, 7);
@@ -31,6 +33,48 @@ const accepted: JournalEvent = {
 };
 
 describe('AccountClosureRestoreGate', () => {
+  it('bloqueia restauração com recibo residual e reabre somente após sua exclusão', async () => {
+    let restoredReceipt = true;
+    const client = {
+      execute: vi.fn(async (statement: { sql: string } | string) => {
+        const sql = typeof statement === 'string' ? statement : statement.sql;
+        if (sql.includes('SELECT DISTINCT category')) return { rows: [] };
+        return { rows: [{ count: sql.includes('FROM draft_ai_receipts') && restoredReceipt ? 1 : 0 }] };
+      }),
+    } as unknown as Client;
+    const local = {
+      id: prepared.closureId,
+      subjectHash: prepared.subjectHash,
+      userHash: prepared.userHash,
+      tenantHash: prepared.tenantHash,
+      statusTokenHash: prepared.statusTokenHash,
+      idempotencyKeyHash: prepared.idempotencyKeyHash,
+      requestFingerprint: prepared.requestFingerprint,
+      policyVersion: prepared.policyVersion,
+      status: 'COMPLETED',
+      accessBlockedAt: prepared.requestedAt,
+      attemptCount: 0,
+    } as AccountClosureRecord;
+    const gate = new AccountClosureRestoreGate({
+      journal: {
+        assertAnchor: async () => {},
+        list: async () => [prepared, accepted],
+      } as unknown as AccountClosureJournal,
+      repository: {
+        findBySubjectHash: async () => local,
+        listSteps: async () => Array.from({ length: 5 }, () => ({ status: 'COMPLETED' })),
+        assertCompletedIdentityRemoved: async () => {},
+      } as unknown as AccountClosureRepository,
+      residualVerifier: new AccountClosurePurgeService(client),
+      subjectHashSecret: secret,
+      journalEncryptionKeys: { v1: encryptionKey },
+      journalAnchorId: 'synthetic_anchor_1234567890',
+    });
+    expect(await gate.check()).toBe(false);
+    expect(gate.isVerified()).toBe(false);
+    restoredReceipt = false;
+    expect(await gate.check()).toBe(true);
+  });
   it('fecha PREPARED pendente com ACCEPTED a partir de tombstone comprovado, sem depender do login', async () => {
     const events: JournalEvent[] = [prepared];
     const journal: AccountClosureJournal = {
