@@ -668,7 +668,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   <span className="text-[11px] text-stone-500">{matter.practiceArea || 'Área não informada'} · {matter.status === 'OPEN' ? 'Aberto' : matter.status === 'CLOSED' ? 'Encerrado' : 'Arquivado'}</span>
                 </button>
               ))}
-              {matters.length === 0 && <p className="text-xs text-stone-500 leading-relaxed">Nenhum caso carregado. Informe um token com escopo de matters ou crie o primeiro caso.</p>}
+              {matters.length === 0 && <p className="text-xs text-stone-500 leading-relaxed">{matterView === 'archived' ? 'Nenhum caso arquivado.' : matterView === 'trash' ? 'A lixeira de casos está vazia.' : 'Nenhum caso em uso. Crie um caso para começar.'}</p>}
             </div>
           </aside>
 
@@ -725,7 +725,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
               </fieldset></form>
               <div className="space-y-2">
                 {documents.map((document) => <div key={document.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{document.title}</span><span className="text-[11px] text-stone-500">{document.originalFilename} · {document.lifecycleState === 'TRASHED' ? 'Na lixeira' : document.lifecycleState === 'ARCHIVED' ? 'Arquivado' : document.status === 'INDEXED' ? 'Disponível' : 'Falhou'}</span></div>{canManage && !readOnly && <LifecycleMenu record={document} disabled={busy} onAction={action => openLifecycle(document, action, true)} />}</div>)}
-                {documents.length === 0 && <p className="text-xs text-stone-500">Este caso ainda não possui documentos.</p>}
+                {documents.length === 0 && <p className="text-xs text-stone-500">{documentView === 'archived' ? 'Nenhum documento arquivado neste caso.' : documentView === 'trash' ? 'A lixeira de documentos deste caso está vazia.' : 'Este caso ainda não possui documentos em uso.'}</p>}
               </div>
             </section>}
 
