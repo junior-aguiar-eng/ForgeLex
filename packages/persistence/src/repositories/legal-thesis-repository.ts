@@ -1,3 +1,4 @@
+import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.js';
 import { and, desc, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { LegalThesis, LegalThesisSchema, LegalThesisStatus } from '@forgelex/domain';
@@ -64,6 +65,8 @@ export class LegalThesisRepository {
   }
 
   public async createThesis(input: LegalThesisInput): Promise<LegalThesis> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new LegalThesisRepository(tx).createThesis(input));
+
     await this.requireMatter(input.tenantId, input.matterId);
     const issueIds = [...new Set(input.issueIds ?? [])];
     const factIds = [...new Set(input.factIds ?? [])];

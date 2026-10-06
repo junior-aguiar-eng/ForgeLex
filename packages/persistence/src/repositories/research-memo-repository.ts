@@ -1,3 +1,4 @@
+import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.js';
 import { and, desc, eq } from 'drizzle-orm';
 import {
   LegalResearchMemoSchema,
@@ -47,6 +48,7 @@ export class ResearchMemoRepository {
   }
 
   public async createMemo(input: {
+    expectedMatterRevision?: number;
     tenantId: string;
     matterId: string;
     query: string;
@@ -56,6 +58,8 @@ export class ResearchMemoRepository {
     idempotencyKey: string;
     createdBy: string;
   }): Promise<ResearchMemoRecord> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new ResearchMemoRepository(tx).createMemo(input));
+
     if (!(await this.matterRepository.getMatter(input.tenantId, input.matterId))) {
       throw new Error('MATTER_NOT_FOUND: matter não pertence ao tenant informado ou não existe.');
     }
@@ -150,6 +154,8 @@ export class ResearchMemoRepository {
     reviewedBy: string;
     reason?: string;
   }): Promise<ResearchMemoRecord> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new ResearchMemoRepository(tx).reviewMemo(input));
+
     const existing = await this.getMemo(input.tenantId, input.matterId, input.memoId);
     if (!existing) throw new Error('RESEARCH_MEMO_NOT_FOUND: memorando não localizado no matter do tenant autenticado.');
     if (existing.status !== 'PENDING_HUMAN_REVIEW') {

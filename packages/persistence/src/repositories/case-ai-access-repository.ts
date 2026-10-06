@@ -57,6 +57,7 @@ export class CaseAiAccessRepository {
             eq(s.caseAiAccessGrants.oauthClientId, r.oauthConnection.clientId),
             eq(s.caseAiAccessGrants.oauthGrantedAt, r.oauthConnection.grantedAt),
             eq(s.caseAiAccessGrants.status, 'ACTIVE'),
+            sql`EXISTS (SELECT 1 FROM matters WHERE matters.id = ${s.caseAiAccessGrants.matterId} AND matters.tenant_id = ${s.caseAiAccessGrants.tenantId} AND matters.lifecycle_state = 'ACTIVE')`,
           ),
         )
         .orderBy(s.caseAiAccessGrants.id)
@@ -76,17 +77,17 @@ export class CaseAiAccessRepository {
         ),
       )
       .limit(1);
-    if (!rows[0] || !(await new MatterRepository(this.db).getMatter(r.tenantId, matterId)))
+    if (!rows[0] || (await new MatterRepository(this.db).getMatter(r.tenantId, matterId))?.lifecycleState !== 'ACTIVE')
       throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
     return grant(rows[0]);
   }
   async loadSelection(o: CaseAiOwner, matterId: string, selection: CaseAiSelection): Promise<SelectedCaseRecord[]> {
     const matters = new MatterRepository(this.db);
-    if (!(await matters.getMatter(o.tenantId, matterId))) throw new Error('CASE_SELECTION_INVALID');
+    if ((await matters.getMatter(o.tenantId, matterId))?.lifecycleState !== 'ACTIVE') throw new Error('CASE_SELECTION_INVALID');
     const result: SelectedCaseRecord[] = [];
     for (const ref of selection.documents) {
       const d = await matters.getSpecificDocumentVersion(o.tenantId, matterId, ref.documentId, ref.versionId);
-      if (!d) throw new Error('CASE_SELECTION_INVALID');
+      if (!d || d.document.lifecycleState !== 'ACTIVE') throw new Error('CASE_SELECTION_INVALID');
       result.push({
         kind: 'DOCUMENT',
         id: d.document.id,
@@ -195,7 +196,7 @@ export class CaseAiAccessRepository {
     return { ...base, ...boundedItems(items, casePosition(page.cursor, binding), page.limit ?? 20, base, binding) };
   }
   async catalog(o: CaseAiOwner, matterId: string, kind: CaseItemKind, page: { cursor?: string; limit?: number } = {}) {
-    if (!(await new MatterRepository(this.db).getMatter(o.tenantId, matterId))) throw new Error('MATTER_NOT_FOUND');
+    if (!(await new MatterRepository(this.db).getMatterForWork(o.tenantId, matterId))) throw new Error('MATTER_NOT_FOUND');
     let items: { kind: CaseItemKind; id: string; title: string; versionId?: string; versionNumber?: number }[];
     if (kind === 'DOCUMENT') {
       const rows = await this.db
@@ -213,7 +214,7 @@ export class CaseAiAccessRepository {
             sql`${s.documentVersions.versionNumber} = (select max(v.version_number) from document_versions v where v.document_id = ${s.legalDocuments.id})`,
           ),
         )
-        .where(and(eq(s.legalDocuments.tenantId, o.tenantId), eq(s.legalDocuments.matterId, matterId)));
+        .where(and(eq(s.legalDocuments.tenantId, o.tenantId), eq(s.legalDocuments.matterId, matterId), eq(s.legalDocuments.lifecycleState, 'ACTIVE')));
       items = rows.map((r) => ({ ...r, kind, title: shortText(r.title) }));
     } else {
       const table =

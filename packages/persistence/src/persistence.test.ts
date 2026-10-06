@@ -32,10 +32,11 @@ describe('Persistence Layer (Drizzle ORM + LibSQL / SQLite)', () => {
   });
 
   it('deve criar e recuperar uma sessão com metadados corretos', async () => {
+    const matter = await new MatterRepository(db).createMatter({ tenantId: 'escritorio_albuquerque', createdBy: 'adv_roberto', title: 'Caso trabalhista' });
     const session = await repository.createSession({
       tenantId: 'escritorio_albuquerque',
       userId: 'adv_roberto',
-      matterId: 'caso_trabalhista_89',
+      matterId: matter.id,
       model: 'claude-3-5-sonnet',
     });
 

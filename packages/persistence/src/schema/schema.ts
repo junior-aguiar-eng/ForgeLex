@@ -189,7 +189,28 @@ export const auditLogs = sqliteTable('audit_logs', {
   createdAt: text('created_at').notNull(),
 });
 
+const lifecycleColumns = () => ({
+  lifecycleState: text('lifecycle_state').notNull().default('ACTIVE'),
+  lifecycleRevision: integer('lifecycle_revision').notNull().default(0),
+  previousLifecycleState: text('previous_lifecycle_state'),
+  archivedAt: text('archived_at'), archivedBy: text('archived_by'),
+  trashedAt: text('trashed_at'), trashedBy: text('trashed_by'),
+  restoredAt: text('restored_at'), restoredBy: text('restored_by'),
+  purgedAt: text('purged_at'), purgedBy: text('purged_by'),
+});
+
+export const matterLifecyclePurgeOperations = sqliteTable('matter_lifecycle_purge_operations', {
+  operationId: text('operation_id').primaryKey(), tenantId: text('tenant_id').notNull(),
+  matterId: text('matter_id').notNull(), documentId: text('document_id'),
+  expectedLifecycleRevision: integer('expected_lifecycle_revision').notNull(),
+  fingerprint: text('fingerprint').notNull(), localState: text('local_state').notNull(),
+  preparedAt: text('prepared_at').notNull(), completedAt: text('completed_at'),
+  countsJson: text('counts_json').notNull().default('{}'),
+});
+
 export const matters = sqliteTable('matters', {
+  ...lifecycleColumns(),
+  previousBusinessStatus: text('previous_business_status'),
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull(),
   clientId: text('client_id'),
@@ -204,6 +225,7 @@ export const matters = sqliteTable('matters', {
 });
 
 export const legalDocuments = sqliteTable('legal_documents', {
+  ...lifecycleColumns(),
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull(),
   matterId: text('matter_id')
@@ -630,6 +652,7 @@ export const researchSearchHistory = sqliteTable(
     tenantId: text('tenant_id').notNull(),
     userId: text('user_id').notNull(),
     operationId: text('operation_id').notNull(),
+    matterId: text('matter_id').references(() => matters.id),
     query: text('query').notNull(),
     court: text('court').notNull(),
     judgmentYear: integer('judgment_year'),

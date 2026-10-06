@@ -1,9 +1,11 @@
 import { z } from 'zod';
+import { LifecycleFieldsSchema } from './matter-lifecycle.js';
 
 export const MatterStatusSchema = z.enum(['OPEN', 'CLOSED', 'ARCHIVED']);
 export type MatterStatus = z.infer<typeof MatterStatusSchema>;
 
 export const MatterSchema = z.object({
+  ...LifecycleFieldsSchema.shape,
   id: z.string().uuid(),
   tenantId: z.string().min(1),
   clientId: z.string().min(1).optional(),
@@ -23,6 +25,7 @@ export const LegalDocumentStatusSchema = z.enum(['INDEXED', 'FAILED']);
 export type LegalDocumentStatus = z.infer<typeof LegalDocumentStatusSchema>;
 
 export const LegalDocumentSchema = z.object({
+  ...LifecycleFieldsSchema.shape,
   id: z.string().uuid(),
   tenantId: z.string().min(1),
   matterId: z.string().uuid(),

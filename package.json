@@ -15,6 +15,8 @@
     "db:migrate": "pnpm build && node scripts/migrate-postgres.mjs",
     "test:postgres": "pnpm build && node scripts/smoke-postgres.mjs",
     "test:postgres:draft-ai": "pnpm build && node scripts/smoke-draft-ai-postgres.mjs",
+    "test:postgres:matter-lifecycle": "pnpm build && node scripts/smoke-matter-lifecycle-postgres.mjs",
+    "verify:matter-lifecycle-restore": "pnpm build && node scripts/verify-matter-lifecycle-restore.mjs",
     "test:postgres:search": "vitest run packages/persistence/src/repositories/jurisprudence-search-postgres.test.ts packages/persistence/src/repositories/jurisprudence-search-query.test.ts --maxWorkers=1",
     "test:e2e:phase7": "playwright test tests/e2e/phase-7.spec.ts --project=chromium",
     "test:e2e:draft-review": "playwright test --config playwright.draft-review.config.ts",

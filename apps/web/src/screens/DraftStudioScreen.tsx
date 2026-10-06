@@ -341,6 +341,27 @@ export const DraftStudioScreen: React.FC = () => {
   });
   const versionChanged=Boolean(editingVersion.current && details?.currentVersion && editingVersion.current!==details.currentVersion.version.id);
   const dirty = Boolean(selectedMatterId && (versionChanged || JSON.stringify(payload()) !== (details ? savedPayload : JSON.stringify({ title: 'Minuta para revisão humana', sections: initialSections().map((s, ordinal) => ({ ordinal, ...s })), citations: [] }))));
+  const [caseUnavailable, setCaseUnavailable] = useState(false);
+  useEffect(() => {
+    setCaseUnavailable(false);
+    const currentId = selectedMatterId;
+    let disposed = false;
+    const check = async () => {
+      if (!currentId) return;
+      try {
+        const result = await request<{ matter: { lifecycleState: string } }>(`/api/v2/matters/${currentId}`, token);
+        if (!disposed) setCaseUnavailable(result.matter.lifecycleState !== 'ACTIVE');
+      } catch { if (!disposed) setCaseUnavailable(true); }
+    };
+    void check();
+    window.addEventListener('focus', check);
+    return () => { disposed = true; window.removeEventListener('focus', check); };
+  }, [selectedMatterId, token]);
+  useEffect(() => {
+    const protect = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ''; } };
+    window.addEventListener('beforeunload', protect);
+    return () => window.removeEventListener('beforeunload', protect);
+  }, [dirty]);
   const approvalReady = Boolean(details?.latestReviewRun?.state === 'COMPLETE' && details.latestReviewRun.blockingCount === 0 && !dirty && !contextChanged && !details.reviewContextChanged);
   const refreshDetails = async () => {
     const sequence = selection.current;
@@ -422,6 +443,7 @@ export const DraftStudioScreen: React.FC = () => {
 
   const saveDraft = async (event?: React.FormEvent) => {
     event?.preventDefault();
+    if (caseUnavailable) { setError('Este caso está disponível apenas para consulta. Sua edição foi mantida.'); return; }
     if (!selectedMatterId || !draftTitle.trim() || sections.some((section) => section.title.trim().length < 1)) return;
     setBusy(true);
     setError(null);
@@ -583,8 +605,9 @@ export const DraftStudioScreen: React.FC = () => {
                   <div><button type="submit" disabled={busy || thesisTitle.trim().length < 3 || thesisStatement.trim().length < 10} className="btn-secondary disabled:opacity-50"><Plus className="h-4 w-4" aria-hidden="true" />Registrar tese</button></div>
                 </form>
               </section>
-              {selectedDraftId && authStatus==='authenticated' && <ReceivedDraftPanel key={`${selectedMatterId}:${selectedDraftId}`} matterId={selectedMatterId} draftId={selectedDraftId} currentVersionId={details?.draft.currentVersionId} dirty={dirty} onAdopt={useReceived} />}
-              <form onSubmit={saveDraft} className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5"><fieldset disabled={adopting} className="contents">
+              {caseUnavailable && <div role="alert" className="p-4 rounded-xl bg-amber-50 text-amber-900 text-sm">Este caso não está disponível para edição. Seu texto foi mantido.<button type="button" className="btn-secondary ml-3" onClick={() => void navigator.clipboard.writeText([draftTitle, ...sections.map(section => `${section.title}\n${section.content}`)].join('\n\n')).then(() => setReviewStatus('Texto copiado.')).catch(() => setError('Não foi possível copiar o texto.'))}>Copiar meu texto</button></div>}
+              {selectedDraftId && authStatus==='authenticated' && !caseUnavailable && <ReceivedDraftPanel key={`${selectedMatterId}:${selectedDraftId}`} matterId={selectedMatterId} draftId={selectedDraftId} currentVersionId={details?.draft.currentVersionId} dirty={dirty} onAdopt={useReceived} />}
+              <form onSubmit={saveDraft} className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5"><fieldset disabled={adopting || caseUnavailable} className="contents">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><span className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">{selectedDraftId ? 'Nova versão' : 'Novo rascunho'}</span><h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">{selectedMatter.title}</h2></div><span className="text-xs text-stone-500">{selectedDraftId && details ? `Versão ${details.currentVersion?.version.versionNumber ?? '-'}` : 'Estrutura inicial'}</span></div>
                 <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} aria-label="Título do rascunho" placeholder="Título do rascunho" className="w-full px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm" />
                 <div className="space-y-3">{sections.map((section, index) => <div key={index} className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-3"><div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-cognac-100 text-cognac-800 text-xs font-bold flex items-center justify-center">{index + 1}</span><input aria-label={`Título da seção ${index + 1}`} value={section.title} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} className="flex-1 bg-transparent text-sm font-semibold text-stone-900 border-b border-transparent focus:border-cognac-300 focus:outline-none" /></div><textarea id={`draft-section-${index}`} aria-label={`Conteúdo da seção ${index + 1}`} value={section.content} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, content: event.target.value } : item))} rows={3} placeholder="Conteúdo da seção para conferência..." className="w-full px-3 py-2 rounded-lg border border-champagne-border bg-white text-sm resize-y" /><div className="grid gap-3 border-t border-stone-100 pt-3 md:grid-cols-2"><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Vínculos do mapa</legend><div className="space-y-1">{theses.map((thesis) => <label key={thesis.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedThesisIds.includes(thesis.id)} onChange={() => toggleLink(index, 'linkedThesisIds', thesis.id)} className="mt-0.5 accent-cognac-700" /><span>{thesis.title}</span></label>)}{theses.length === 0 && <p className="text-xs text-stone-500">Sem teses disponíveis.</p>}</div></fieldset><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Fatos, provas e julgados</legend><div className="grid gap-1 sm:grid-cols-2">{facts.map((fact) => <label key={fact.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedFactIds.includes(fact.id)} onChange={() => toggleLink(index, 'linkedFactIds', fact.id)} className="mt-0.5 accent-cognac-700" /><span>Fato: {fact.statement}</span></label>)}{evidence.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedEvidenceIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedEvidenceIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Prova: {item.title}</span></label>)}{authorities.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedAuthorityIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedAuthorityIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Julgado: {item.authority.processNumber}</span></label>)}</div></fieldset></div></div>)}</div>

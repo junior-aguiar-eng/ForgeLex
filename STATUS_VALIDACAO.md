@@ -1,5 +1,21 @@
 # Auditoria e status canônico do ForgeLex
 
+## Arquivo, lixeira e exclusão — implementação em validação final (06/10/2026)
+
+Branch `codex/casos-documentos-ciclo-vida`, PR #51, checkout isolado
+`draft-review/SDK`. Implementados menus discretos de casos/documentos,
+restauração, confirmação de exclusão definitiva, proteção de edição local,
+revogação de acesso IA, transações por caso e journal externo de purge/restore.
+Revisão independente concluída sem achados abertos após as correções.
+CI `37538629226` em `d6a0335`: seis jobs aprovados, 754 testes unitários
+aprovados e oito verificações PostgreSQL, incluindo backup real anterior
+à exclusão e reaplicação antes de servir o restore. Quatro E2E locais
+aprovados após a correção final de buffer; ensaio móvel/Escape adicional
+aprovado. A CI final da branch e os gates remotos permanecem distintos.
+
+[Matriz de evidências e limites](docs/product/matter-lifecycle-validation.md).
+Nenhuma publicação desta frente é afirmada por este registro.
+
 ## Recebimento de textos da IA — publicado e homologado (06/10/2026)
 
 A terceira frente foi integrada pela PR #49, SHA `ebad9b2`, e publicada em

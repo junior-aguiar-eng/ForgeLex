@@ -100,8 +100,12 @@ import {registerDraftAiRoutes} from './drafting/draft-ai-routes.js';
 import {SessionOAuthClientDirectory,type OAuthClientDirectory} from './case-context/oauth-client-directory.js';
 import {registerCaseAiAccessRoutes} from './case-context/case-ai-access-routes.js';
 import {CaseContextService,createCaseContextTools,isCaseContextTool} from '@forgelex/legal-tools';
+import { registerMatterLifecycleRoutes, lifecycleViewQuery } from './matters/matter-lifecycle-routes.js';
+import { createMatterLifecycleRuntime } from './matters/matter-lifecycle-runtime.js';
+import type { MatterPurgeJournal } from './matters/matter-purge-journal.js';
 
 export interface BuildAppOptions {
+  matterPurgeJournal?: MatterPurgeJournal;
   oauthClientDirectory?: OAuthClientDirectory;
   authAdapter?: AuthAdapter;
   ledgerService?: LedgerService;
@@ -426,6 +430,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       : undefined
   );
   const matterRepository = database ? new MatterRepository(database) : undefined;
+  const matterLifecycle = createMatterLifecycleRuntime(databaseClient, environment, options.matterPurgeJournal);
+  if (matterLifecycle) {
+    await matterLifecycle.gate.check();
+    app.addHook('onRequest', async (request, reply) => {
+      if ((request.url.startsWith('/api/') || request.url.startsWith('/mcp')) && !matterLifecycle.gate.isVerified()) return reply.code(503).send({ error: 'MATTER_PURGE_RESTORE_BLOCKED', message: 'O serviço está verificando a disponibilidade dos dados.' });
+    });
+  }
+  if (database) registerMatterLifecycleRoutes(app, database, authAdapter, matterLifecycle?.service);
   const matterAuthorityRepository = database ? new MatterAuthorityRepository(database) : undefined;
   const legalIssueRepository = database ? new LegalIssueRepository(database) : undefined;
   const researchMemoRepository = database ? new ResearchMemoRepository(database) : undefined;
@@ -1042,6 +1054,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       }
     }
     if (!persistenceReady) accountClosureRestoreGate?.invalidate();
+    if (!persistenceReady) matterLifecycle?.gate.invalidate();
+    const matterRestoreReady = matterLifecycle ? persistenceReady && (matterLifecycle.gate.isVerified() || await matterLifecycle.gate.check()) : true;
     const closureRestoreReady = accountClosureRestoreGate
       ? persistenceReady && (accountClosureRestoreGate.isVerified() || await accountClosureRestoreGate.check())
       : true;
@@ -1053,6 +1067,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       auth: persistenceReady && Boolean(options.authAdapter || apiKeyRepository || supabaseIdentityVerifier),
       outbox: persistenceReady && Boolean(webhookService && environment.FORGELEX_WEBHOOK_MASTER_KEY),
       ...(accountClosureRestoreGate ? { accountClosureRestore: closureRestoreReady } : {}),
+      ...(matterLifecycle ? { matterPurgeRestore: matterRestoreReady } : {}),
     };
     const ready = Object.values(checks).every(Boolean);
     if (!ready) {
@@ -1344,7 +1359,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         reply.status(503);
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de matters não está disponível.' };
       }
-      const items = await matterRepository.listMatters(req.principal.tenantId);
+      const query = lifecycleViewQuery.safeParse(req.query);
+      if (!query.success) return reply.code(400).send({ error: 'INVALID_REQUEST' });
+      if (query.data.view !== 'active' && req.principal.authMethod !== 'session') return reply.code(403).send({ error: 'LIFECYCLE_FORBIDDEN' });
+      reply.header('Cache-Control', 'no-store');
+      const items = await matterRepository.listMatters(req.principal.tenantId, query.data.view);
       return { items, total: items.length };
     }
   );
@@ -1417,7 +1436,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         reply.status(404);
         return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
       }
-      const documents = await matterRepository.listDocuments(req.principal.tenantId, matterId);
+      const query = lifecycleViewQuery.safeParse(req.query);
+      if (!query.success) return reply.code(400).send({ error: 'INVALID_REQUEST' });
+      if (query.data.view !== 'active' && req.principal.authMethod !== 'session') return reply.code(403).send({ error: 'LIFECYCLE_FORBIDDEN' });
+      const documents = await matterRepository.listDocuments(req.principal.tenantId, matterId, query.data.view);
       return { matter, documents };
     }
   );
@@ -1510,7 +1532,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       }
       const { matterId, documentId } = req.params as { matterId: string; documentId: string };
       const matter = await matterRepository.getMatter(req.principal.tenantId, matterId);
-      const result = await matterRepository.getDocumentVersion(req.principal.tenantId, documentId);
+      const result = await matterRepository.getDocumentVersion(req.principal.tenantId, documentId, req.principal.authMethod === 'session' ? 'web_retained' : 'work');
       if (!matter || !result || result.document.matterId !== matterId) {
         reply.status(404);
         return { error: 'DOCUMENT_NOT_FOUND', message: 'Documento não localizado no matter do tenant autenticado.' };
@@ -1534,7 +1556,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     const p = z.object({ matterId:z.string().uuid(),documentId:z.string().uuid(),versionId:z.string().uuid() }).safeParse(req.params);
     if(!p.success)return reply.code(400).send({error:'INVALID_INPUT'});
     if(!matterRepository)return reply.code(503).send({error:'PERSISTENCE_UNAVAILABLE'});
-    const result=await matterRepository.getSpecificDocumentVersion(req.principal.tenantId,p.data.matterId,p.data.documentId,p.data.versionId);
+    const result=await matterRepository.getSpecificDocumentVersion(req.principal.tenantId,p.data.matterId,p.data.documentId,p.data.versionId,req.principal.authMethod === 'session' ? 'web_retained' : 'work');
     if(!result)return reply.code(404).send({error:'DOCUMENT_NOT_FOUND',message:'A fonte não está disponível neste caso.'});
     return result;
   });
@@ -2351,6 +2373,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return await draftingService.getDraft(
           { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
           draftId,
+          req.principal.authMethod === 'session' ? 'web_history' : 'work',
         );
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Não foi possível consultar o rascunho.';

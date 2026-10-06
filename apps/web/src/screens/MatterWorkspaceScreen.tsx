@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, FileText, FolderOpen, LockKeyhole, Plus, RefreshCw, ShieldCheck } from 'lucide-react';
-import { requestApiWithToken, resolveApiOrigin } from '../api-client';
+import { ApiRequestError, requestApi, requestApiWithToken, resolveApiOrigin } from '../api-client';
+import { LifecycleFilter, LifecycleMenu, LifecycleDialog } from './matter-lifecycle/LifecycleControls';
+import { canManageLifecycle, type LifecycleRecord, type LifecycleAction, type LifecycleView } from './matter-lifecycle/lifecycle-model';
 import { useAuth } from '../auth/AuthContext';
 import { useApp } from '../context/AppContext';
 import { PdfTextImport } from '../components/PdfTextImport';
 import { CaseAiAccessPanel } from './case-ai/CaseAiAccessPanel';
 
-interface Matter {
+interface Matter extends LifecycleRecord {
+  createdBy?: string;
   id: string;
   title: string;
   description?: string;
@@ -16,7 +19,7 @@ interface Matter {
   updatedAt: string;
 }
 
-interface LegalDocument {
+interface LegalDocument extends LifecycleRecord {
   id: string;
   title: string;
   originalFilename: string;
@@ -166,10 +169,20 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
 
 export const MatterWorkspaceScreen: React.FC = () => {
   const { setActiveTab } = useApp();
-  const { status: authStatus } = useAuth();
+  const { status: authStatus, account } = useAuth();
+  const [matterView, setMatterView] = useState<LifecycleView>('active');
+  const [documentView, setDocumentView] = useState<LifecycleView>('active');
+  const [lifecycleDialog, setLifecycleDialog] = useState<{ record: LifecycleRecord; action: LifecycleAction; document: boolean } | null>(null);
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+  const [pendingPurge, setPendingPurge] = useState<string | null>(() => { try { return window.sessionStorage.getItem('forgelex_matter_purge_pending'); } catch { return null; } });
+  const [caseBlocked, setCaseBlocked] = useState(false);
+  const resourceRequest = useRef(0);
+  const matterListRequest = useRef(0);
+  useEffect(() => { try { if (pendingPurge) window.sessionStorage.setItem('forgelex_matter_purge_pending', pendingPurge); else window.sessionStorage.removeItem('forgelex_matter_purge_pending'); } catch { /* The pending state remains visible without storage. */ } }, [pendingPurge]);
   const [token, setToken] = useState(initialToken);
   const [matters, setMatters] = useState<Matter[]>([]);
   const [selectedMatterId, setSelectedMatterId] = useState<string | null>(null);
+  const [retainedMatter, setRetainedMatter] = useState<Matter | null>(null);
   const [aiAccessOpen, setAiAccessOpen] = useState(false);
   const aiAccessTrigger=useRef<HTMLButtonElement>(null);
   const closeAiAccess=()=>{setAiAccessOpen(false);requestAnimationFrame(()=>aiAccessTrigger.current?.focus());};
@@ -206,11 +219,55 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const hasApiAccess = Boolean(token.trim()) || authStatus === 'authenticated' || authStatus === 'legacy';
 
   const selectedMatter = useMemo(
-    () => matters.find((matter) => matter.id === selectedMatterId) ?? null,
-    [matters, selectedMatterId]
+    () => matters.find((matter) => matter.id === selectedMatterId) ?? (retainedMatter?.id === selectedMatterId ? retainedMatter : null),
+    [matters, selectedMatterId, retainedMatter]
   );
+  const readOnly = caseBlocked || (!!selectedMatter && (selectedMatter.lifecycleState ?? 'ACTIVE') !== 'ACTIVE');
+  const canManage = canManageLifecycle(authStatus, account?.user.id, account?.membership.role, selectedMatter?.createdBy);
+  const hasUnsaved = !!(documentTitle || filename || content || factStatement || evidenceTitle || timelineTitle || timelineDescription || issueStatement || memoQuery);
+  const currentSelection = useRef({ hasUnsaved, selectedMatterId, selectedMatter, matterView });
+  currentSelection.current = { hasUnsaved, selectedMatterId, selectedMatter, matterView };
+  const discardMatterBuffers = () => { setDocumentTitle(''); setFilename(''); setContent(''); setFactStatement(''); setEvidenceTitle(''); setTimelineTitle(''); setTimelineDescription(''); setIssueStatement(''); setMemoQuery(''); setSupportFactId(''); setSupportEvidenceId(''); setSupportAnchorId(''); };
+  useEffect(() => {
+    const protect = (event: BeforeUnloadEvent) => { if (hasUnsaved) { event.preventDefault(); event.returnValue = ''; } };
+    window.addEventListener('beforeunload', protect); return () => window.removeEventListener('beforeunload', protect);
+  }, [hasUnsaved]);
+  const openLifecycle = (record: LifecycleRecord, action: LifecycleAction, document = false) => {
+    if (hasUnsaved && !window.confirm('Há texto ainda não salvo. A operação pode impedir que ele seja salvo neste caso. O texto será mantido nesta tela. Deseja continuar?')) return;
+    setLifecycleError(null); setLifecycleDialog({ record, action, document });
+  };
+  const executeLifecycle = async (confirmation?: string) => {
+    if (!lifecycleDialog || !selectedMatterId || busy) return;
+    setBusy(true); setLifecycleError(null);
+    const { record, action, document } = lifecycleDialog;
+    try {
+      const result = await requestApi<LifecycleRecord>(`/api/v2/matters/${selectedMatterId}${document ? `/documents/${record.id}` : ''}/${action}`, { method: 'POST', body: JSON.stringify({ expectedLifecycleRevision: record.lifecycleRevision ?? 0, ...(action === 'purge' ? { confirmation } : {}) }) }, { sessionOnly: true });
+      setLifecycleDialog(null);
+      setNotice(action === 'purge' ? 'Exclusão definitiva concluída.' : action === 'restore' ? 'Conteúdo restaurado. O acesso pela IA precisa de nova autorização.' : action === 'archive' ? 'Conteúdo arquivado para consulta.' : 'Conteúdo movido para a lixeira.');
+      if (!document && currentSelection.current.hasUnsaved) {
+        setMatters(current => current.map(matter => matter.id === record.id ? { ...matter, ...result } : matter));
+        setRetainedMatter(current => current?.id === record.id ? { ...current, ...result } : current);
+        if (action === 'purge') clearMatterResources();
+      } else if (document) await loadMatterResources(selectedMatterId);
+      else await loadMatters();
+    } catch (failure) {
+      if (failure instanceof ApiRequestError && failure.code === 'PURGE_CONFIRMATION_PENDING' && failure.operationId) { setPendingPurge(failure.operationId); setLifecycleDialog(null); }
+      else setLifecycleError(failure instanceof Error ? failure.message : 'Não foi possível concluir a operação.');
+    }
+    finally { setBusy(false); }
+  };
+  const checkPurge = async () => {
+    if (!pendingPurge) return;
+    setBusy(true);
+    try {
+      const result = await requestApi<{ status: 'completed' | 'aborted' | 'pending' }>(`/api/v2/matter-purge-operations/${pendingPurge}`, {}, { sessionOnly: true });
+      if (result.status !== 'pending') { setPendingPurge(null); setNotice(result.status === 'completed' ? 'Exclusão definitiva confirmada.' : 'A exclusão não foi concluída. O conteúdo foi preservado.'); await loadMatters(); }
+    } catch { setError('Ainda não foi possível confirmar a exclusão. Aguarde e consulte novamente.'); }
+    finally { setBusy(false); }
+  };
 
   const clearMatterResources = () => {
+    resourceRequest.current++;
     setDocuments([]);
     setFacts([]);
     setEvidence([]);
@@ -222,8 +279,9 @@ export const MatterWorkspaceScreen: React.FC = () => {
   };
 
   const loadMatterResources = async (matterId: string) => {
+    const sequence = ++resourceRequest.current;
     const [detail, factsResponse, evidenceResponse, coverageResponse, timelineResponse, issuesResponse, memosResponse] = await Promise.all([
-      request<MatterDetailResponse>(`/api/v2/matters/${matterId}`, token),
+      request<MatterDetailResponse>(`/api/v2/matters/${matterId}?view=${documentView}`, token),
       request<{ items: Fact[] }>(`/api/v2/matters/${matterId}/facts`, token),
       request<{ items: EvidenceItem[] }>(`/api/v2/matters/${matterId}/evidence`, token),
       request<{ items: EvidenceCoverage[] }>(`/api/v2/matters/${matterId}/evidence/coverage`, token),
@@ -234,7 +292,11 @@ export const MatterWorkspaceScreen: React.FC = () => {
     const documentDetails = await Promise.all(detail.documents.map((document) =>
       request<{ anchors: DocumentAnchor[] }>(`/api/v2/matters/${matterId}/documents/${document.id}`, token),
     ));
+    if (sequence !== resourceRequest.current) return;
+    setCaseBlocked(false);
+    setRetainedMatter(detail.matter);
     setDocuments(detail.documents);
+    setMatters(current => current.map(matter => matter.id === detail.matter.id ? detail.matter : matter));
     setFacts(factsResponse.items);
     setEvidence(evidenceResponse.items);
     setCoverage(coverageResponse.items);
@@ -246,13 +308,25 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const loadMatters = async () => {
     if (!hasApiAccess) return;
+    const sequence = ++matterListRequest.current;
+    const requestedSelectionId = currentSelection.current.selectedMatterId;
+    const requestedView = currentSelection.current.matterView;
     setBusy(true);
     setError(null);
     try {
-      const response = await request<{ items: Matter[] }>('/api/v2/matters', token);
+      const response = await request<{ items: Matter[] }>(`/api/v2/matters?view=${requestedView}`, token);
+      const current = currentSelection.current;
+      if (sequence !== matterListRequest.current || current.selectedMatterId !== requestedSelectionId) return;
+      if (current.hasUnsaved && current.selectedMatterId && !response.items.some(matter => matter.id === current.selectedMatterId)) {
+        setRetainedMatter(current.selectedMatter); setMatters(response.items);
+        try { await loadMatterResources(current.selectedMatterId); }
+        catch { setCaseBlocked(true); clearMatterResources(); }
+        setNotice('O caso saiu desta lista. Sua edição continua vinculada a ele e foi mantida.');
+        return;
+      }
       setMatters(response.items);
-      const nextMatterId = selectedMatterId && response.items.some((matter) => matter.id === selectedMatterId)
-        ? selectedMatterId
+      const nextMatterId = current.selectedMatterId && response.items.some((matter) => matter.id === current.selectedMatterId)
+        ? current.selectedMatterId
         : response.items.find(m=>m.id===new URLSearchParams(window.location.search).get('caso'))?.id ?? response.items[0]?.id ?? null;
       setSelectedMatterId(nextMatterId);
       if (nextMatterId) {
@@ -263,7 +337,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar os casos.');
     } finally {
-      setBusy(false);
+      if (sequence === matterListRequest.current) setBusy(false);
     }
   };
 
@@ -271,13 +345,19 @@ export const MatterWorkspaceScreen: React.FC = () => {
     void loadMatters();
     // Uma troca de sessão ou credencial deve iniciar uma nova leitura da área de casos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, authStatus]);
+  }, [token, authStatus, matterView]);
+  useEffect(() => { if (selectedMatterId) void loadMatterResources(selectedMatterId).catch(() => setError('Não foi possível atualizar os documentos.')); }, [documentView]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const refresh = () => { if (selectedMatterId && hasApiAccess) void loadMatterResources(selectedMatterId).catch(() => { setCaseBlocked(true); setError('Este caso mudou ou não está mais disponível. Seu texto foi mantido.'); }); };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, [selectedMatterId, token, authStatus, documentView]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectMatter = async (matterId: string) => {
+    if (hasUnsaved && !window.confirm('Há texto não salvo. Deseja descartá-lo e abrir outro caso?')) return;
     setSelectedMatterId(matterId);
-    setDocumentTitle('');
-    setFilename('');
-    setContent('');
+    setCaseBlocked(false);
+    discardMatterBuffers();
     setNotice(null);
     if (!hasApiAccess) return;
     setBusy(true);
@@ -302,6 +382,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const createMatter = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (hasUnsaved && !window.confirm('Há texto não salvo. Deseja descartá-lo e criar outro caso?')) return;
     if (!hasApiAccess || !title.trim()) return;
     setBusy(true);
     setError(null);
@@ -315,6 +396,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
       setPracticeArea('');
       setMatters((current) => [matter, ...current]);
       setSelectedMatterId(matter.id);
+      discardMatterBuffers();
       clearMatterResources();
       setNotice('Caso criado e pronto para receber documentos.');
     } catch (createError) {
@@ -564,13 +646,16 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
         {notice && <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-3 text-sm"><CheckCircle2 className="w-5 h-5" />{notice}</div>}
         {error && <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center gap-3 text-sm"><AlertCircle className="w-5 h-5" />{error}</div>}
+        {pendingPurge && <div role="status" className="p-4 rounded-xl bg-amber-50 text-amber-900 text-sm">A exclusão aguarda confirmação. Seu pedido já foi registrado.<button type="button" disabled={busy} onClick={() => void checkPurge()} className="btn-secondary ml-3">Consultar resultado</button></div>}
+        {readOnly && hasUnsaved && <div role="status" className="p-4 rounded-xl bg-amber-50 text-amber-900 text-sm">Seu texto ainda não salvo foi mantido nesta tela.<button type="button" className="btn-secondary ml-3" onClick={() => void navigator.clipboard.writeText([documentTitle, filename, content, factStatement, evidenceTitle, timelineTitle, timelineDescription, issueStatement, memoQuery].filter(Boolean).join('\n\n')).then(() => setNotice('Texto copiado.')).catch(() => setError('Não foi possível copiar o texto.'))}>Copiar meu texto</button></div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
           <aside className="champagne-card bg-white rounded-2xl p-5 space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="font-editorial text-xl font-bold text-stone-900">Seus casos</h2>
-              <span className="text-xs text-stone-500">{matters.length}</span>
+              <div className="flex items-center gap-2"><span className="text-xs text-stone-500">{matters.length}</span><button type="button" aria-label="Atualizar casos" disabled={busy || !hasApiAccess} onClick={() => void loadMatters()} className="p-2 rounded-lg hover:bg-stone-100"><RefreshCw className="w-4 h-4" /></button></div>
             </div>
+            {authStatus === 'authenticated' && <LifecycleFilter label="Mostrar casos" value={matterView} onChange={value => { if (!hasUnsaved || window.confirm('Há texto não salvo. Deseja mudar a lista e descartar essa edição?')) { if (hasUnsaved) discardMatterBuffers(); setMatterView(value); } }} />}
             <form onSubmit={createMatter} className="space-y-2">
               <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Nome do novo caso" className="w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
               <input value={practiceArea} onChange={(event) => setPracticeArea(event.target.value)} placeholder="Área jurídica (opcional)" className="w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
@@ -593,11 +678,11 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 <>
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 border-b border-stone-100 pb-4">
                     <div>
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">Caso aberto</span>
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">{readOnly ? selectedMatter.lifecycleState === 'TRASHED' ? 'Na lixeira · somente consulta' : selectedMatter.lifecycleState === 'PURGED' ? 'Excluído · edição preservada nesta tela' : 'Arquivado · somente consulta' : 'Caso em uso'}</span>
                       <h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">{selectedMatter.title}</h2>
                       <p className="text-xs text-stone-500 mt-1">{selectedMatter.practiceArea || 'Área jurídica não informada'}{selectedMatter.jurisdiction ? ` · ${selectedMatter.jurisdiction}` : ''}</p>
                     </div>
-                    <div className="space-y-2"><span className="block text-[11px] text-stone-500">Atualizado em {new Date(selectedMatter.updatedAt).toLocaleDateString('pt-BR')}</span><button ref={aiAccessTrigger} type="button" onClick={()=>setAiAccessOpen(true)} className="px-3 py-2 rounded-lg border border-cognac-200 text-cognac-800 text-sm font-semibold">Usar este caso na IA</button></div>
+                    <div className="space-y-2"><span className="block text-[11px] text-stone-500">Atualizado em {new Date(selectedMatter.updatedAt).toLocaleDateString('pt-BR')}</span><div className="flex items-center gap-2">{!readOnly && <button ref={aiAccessTrigger} type="button" onClick={()=>setAiAccessOpen(true)} className="px-3 py-2 rounded-lg border border-cognac-200 text-cognac-800 text-sm font-semibold">Usar este caso na IA</button>}{canManage && <LifecycleMenu record={selectedMatter} disabled={busy} onAction={action => openLifecycle(selectedMatter, action)} />}</div></div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
                     {[
@@ -630,15 +715,16 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
             {selectedMatter && <section id="documentos" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
               <div className="flex items-center gap-2"><FileText className="w-5 h-5 text-cognac-700" /><h2 className="font-editorial text-xl font-bold text-stone-900">Documentos do caso</h2><span className="text-xs text-stone-500">{documents.length}</span></div>
-              <PdfTextImport key={selectedMatterId} disabled={busy || !hasApiAccess} onLoadingChange={setImportingPdf} onExtract={(result, importedTitle) => { setDocumentTitle(importedTitle); setFilename(result.filename); setContent(result.content); }} />
-              <form onSubmit={ingestDocument} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {authStatus === 'authenticated' && <LifecycleFilter label="Mostrar documentos" value={documentView} onChange={setDocumentView} />}
+              <PdfTextImport key={selectedMatterId} disabled={readOnly || busy || !hasApiAccess} onLoadingChange={setImportingPdf} onExtract={(result, importedTitle) => { setDocumentTitle(importedTitle); setFilename(result.filename); setContent(result.content); }} />
+              <form onSubmit={ingestDocument} className="grid grid-cols-1 md:grid-cols-2 gap-3"><fieldset disabled={readOnly} className="contents">
                 <input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="Título do documento" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                 <input value={filename} onChange={(event) => setFilename(event.target.value)} placeholder="Nome do arquivo (ex.: fatos.txt)" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                 <textarea aria-label="Texto do documento" value={content} onChange={(event) => setContent(event.target.value)} placeholder="Cole o texto do documento para criar a primeira versão e suas âncoras..." rows={5} className="md:col-span-2 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm resize-y" />
                 <button disabled={!hasApiAccess || busy || importingPdf || !documentTitle.trim() || !filename.trim() || !content.trim()} className="md:col-span-2 px-4 py-2.5 rounded-xl bg-cognac-50 hover:bg-cognac-100 border border-cognac-200 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Ingerir documento textual</button>
-              </form>
+              </fieldset></form>
               <div className="space-y-2">
-                {documents.map((document) => <div key={document.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{document.title}</span><span className="text-[11px] text-stone-500">{document.originalFilename} · {document.status === 'INDEXED' ? 'Ancorado' : 'Falhou'}</span></div><span className="text-[10px] text-stone-500 font-mono">SHA-256 {document.contentHash.slice(0, 12)}…</span></div>)}
+                {documents.map((document) => <div key={document.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{document.title}</span><span className="text-[11px] text-stone-500">{document.originalFilename} · {document.lifecycleState === 'TRASHED' ? 'Na lixeira' : document.lifecycleState === 'ARCHIVED' ? 'Arquivado' : document.status === 'INDEXED' ? 'Disponível' : 'Falhou'}</span></div>{canManage && !readOnly && <LifecycleMenu record={document} disabled={busy} onAction={action => openLifecycle(document, action, true)} />}</div>)}
                 {documents.length === 0 && <p className="text-xs text-stone-500">Este caso ainda não possui documentos.</p>}
               </div>
             </section>}
@@ -652,13 +738,13 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   </div>
                   <span className="text-xs text-stone-500">{facts.length}</span>
                 </div>
-                <form onSubmit={createFact} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3">
+                <form onSubmit={createFact} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3"><fieldset disabled={readOnly} className="contents">
                   <input value={factStatement} onChange={(event) => setFactStatement(event.target.value)} placeholder="Ex.: o contrato foi assinado em janeiro" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                   <select aria-label="Categoria do fato" value={factCategory} onChange={(event) => setFactCategory(event.target.value as Fact['category'])} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">
                     <option value="FACTUAL">Factual</option><option value="PROCEDURAL">Processual</option><option value="TEMPORAL">Temporal</option><option value="DAMAGE">Dano</option><option value="OTHER">Outro</option>
                   </select>
                   <button disabled={!hasApiAccess || busy || factStatement.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
-                </form>
+                </fieldset></form>
                 <div className="space-y-2">
                   {facts.map((fact) => {
                     const factCoverage = coverage.find((item) => item.factId === fact.id);
@@ -679,14 +765,14 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   </div>
                   <span className="text-xs text-stone-500">{evidence.length}</span>
                 </div>
-              <form onSubmit={createEvidence} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3">
+              <form onSubmit={createEvidence} className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-3"><fieldset disabled={readOnly} className="contents">
                   <input value={evidenceTitle} onChange={(event) => setEvidenceTitle(event.target.value)} placeholder="Título do item de prova" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                   <select aria-label="Tipo de prova" value={evidenceType} onChange={(event) => setEvidenceType(event.target.value as EvidenceItem['evidenceType'])} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">
                     <option value="DOCUMENT">Documento</option><option value="TESTIMONY">Depoimento</option><option value="RECORD">Registro</option><option value="EXPERT_REPORT">Laudo</option><option value="OTHER">Outro</option>
                   </select>
                 <button disabled={!hasApiAccess || busy || evidenceTitle.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar</button>
-              </form>
-              <form onSubmit={mapSupport} className="rounded-xl border border-cognac-100 bg-cognac-50/40 p-4 space-y-3">
+              </fieldset></form>
+              <form onSubmit={mapSupport} className="rounded-xl border border-cognac-100 bg-cognac-50/40 p-4 space-y-3"><fieldset disabled={readOnly} className="contents">
                 <div>
                   <p className="text-xs font-bold text-stone-800">Mapear suporte</p>
                   <p className="text-[11px] text-stone-500 mt-1">Vincule um fato a uma prova ou a uma âncora do documento; o vínculo não conclui autenticidade.</p>
@@ -709,7 +795,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   </select>
                 </div>
                   <button disabled={!hasApiAccess || busy || !supportFactId || (!supportEvidenceId && !supportAnchorId)} className="px-3 py-2 rounded-lg border border-cognac-200 bg-white disabled:bg-stone-100 text-cognac-800 text-xs font-semibold">Salvar vínculo</button>
-              </form>
+              </fieldset></form>
               <div className="space-y-2">
                   {evidence.map((item) => <div key={item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span><span className="text-[11px] text-stone-500">{evidenceTypeLabels[item.evidenceType]} · {evidenceStatusLabels[item.status]}</span></div><span className="text-[10px] text-stone-500">Item registrado</span></div>)}
                   {evidence.length === 0 && <p className="text-xs text-stone-500">Nenhum item de prova registrado neste caso.</p>}
@@ -724,12 +810,12 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   </div>
                   <span className="text-xs text-stone-500">{timeline.length}</span>
                 </div>
-                <form onSubmit={createTimelineEvent} className="grid grid-cols-1 md:grid-cols-[1fr_170px_auto] gap-3">
+                <form onSubmit={createTimelineEvent} className="grid grid-cols-1 md:grid-cols-[1fr_170px_auto] gap-3"><fieldset disabled={readOnly} className="contents">
                   <input value={timelineTitle} onChange={(event) => setTimelineTitle(event.target.value)} placeholder="Descrição do evento" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                   <input aria-label="Data do evento" type="date" value={timelineDate} onChange={(event) => setTimelineDate(event.target.value)} className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                   <button disabled={!hasApiAccess || busy || timelineTitle.trim().length < 3 || !timelineDate} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Adicionar</button>
                   <input value={timelineDescription} onChange={(event) => setTimelineDescription(event.target.value)} placeholder="Observação (opcional)" className="md:col-span-3 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
-                </form>
+                </fieldset></form>
                 <div className="space-y-2">
                   {timeline.map((item) => <div key={item.id} className="flex gap-3 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><span className="text-xs font-semibold text-cognac-700 min-w-24">{new Date(`${item.eventDate}T00:00:00`).toLocaleDateString('pt-BR')}</span><div><span className="block text-sm font-semibold text-stone-900">{item.title}</span>{item.description && <span className="text-xs text-stone-500">{item.description}</span>}</div></div>)}
                   {timeline.length === 0 && <p className="text-xs text-stone-500">Nenhum evento registrado neste caso.</p>}
@@ -745,10 +831,10 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   </div>
                   <span className="text-xs text-stone-500">{issues.length}</span>
                 </div>
-                <form onSubmit={createIssue} className="flex flex-col md:flex-row gap-3">
+                <form onSubmit={createIssue} className="flex flex-col md:flex-row gap-3"><fieldset disabled={readOnly} className="contents">
                   <input value={issueStatement} onChange={(event) => setIssueStatement(event.target.value)} placeholder="Ex.: a violação de dados gera dano indenizável neste caso?" className="flex-1 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                   <button disabled={!hasApiAccess || busy || issueStatement.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">Registrar questão</button>
-                </form>
+                </fieldset></form>
                 <div className="space-y-2">
                   {issues.map((issue) => <div key={issue.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><p className="text-sm text-stone-800">{issue.statement}</p><span className="text-[10px] uppercase tracking-wide text-cognac-700">{issueStatusLabels[issue.status]}</span></div>)}
                   {issues.length === 0 && <p className="text-xs text-stone-500">Nenhuma questão jurídica registrada. O memo ainda pode ser gerado com uma consulta livre.</p>}
@@ -763,10 +849,10 @@ export const MatterWorkspaceScreen: React.FC = () => {
                   </div>
                   <span className="text-[10px] uppercase tracking-wide text-amber-700">Revisão humana obrigatória</span>
                 </div>
-                <form onSubmit={generateMemo} className="flex flex-col md:flex-row gap-3">
+                <form onSubmit={generateMemo} className="flex flex-col md:flex-row gap-3"><fieldset disabled={readOnly} className="contents">
                   <input value={memoQuery} onChange={(event) => setMemoQuery(event.target.value)} placeholder="Recorte de pesquisa jurídica" className="flex-1 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                   <button disabled={!hasApiAccess || busy || memoQuery.trim().length < 3} className="px-4 py-2.5 rounded-lg bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold">{busy ? 'Pesquisando...' : 'Gerar memo'}</button>
-                </form>
+                </fieldset></form>
                 <div className="space-y-4">
                   {memos.map((record) => <article key={record.id} className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2"><div><p className="text-sm font-bold text-stone-900">{record.memo.title}</p><p className="text-[11px] text-stone-500 mt-1">Consulta: {record.query} · {new Date(record.createdAt).toLocaleString('pt-BR')}</p></div><span className={`text-[10px] uppercase tracking-wide ${record.status === 'APPROVED' ? 'text-emerald-700' : record.status === 'REJECTED' ? 'text-red-700' : 'text-amber-700'}`}>{memoStatusLabels[record.status]}</span></div>
@@ -774,7 +860,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                     <div className="space-y-1"><p className="text-[10px] uppercase tracking-wide font-bold text-stone-500">Teses estruturadas</p>{record.memo.keyTheses.map((thesis) => <p key={thesis} className="text-xs text-stone-700">{thesis}</p>)}</div>
                     <div className="space-y-1"><p className="text-[10px] uppercase tracking-wide font-bold text-stone-500">Autoridades localizadas</p>{record.memo.applicableAuthorities.map((authority) => <p key={authority.id} className="text-xs text-stone-700">{authority.citation} · {authority.provenance.verified ? 'proveniência verificada' : 'conferência pendente'}</p>)}{record.memo.applicableAuthorities.length === 0 && <p className="text-xs text-stone-500">Nenhuma autoridade retornada.</p>}</div>
                     <div className="rounded-lg border border-amber-100 bg-amber-50/60 p-3"><p className="text-xs text-amber-900"><span className="font-bold">Risco:</span> {record.memo.riskAnalysis}</p><p className="text-xs text-amber-900 mt-1"><span className="font-bold">Providência:</span> {record.memo.recommendedAction}</p></div>
-                    {record.status === 'PENDING_HUMAN_REVIEW' && <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void reviewMemo(record.id, 'APPROVED')} disabled={busy} className="px-3 py-2 rounded-lg bg-emerald-700 text-white text-xs font-semibold">Aprovar revisão</button><button type="button" onClick={() => void reviewMemo(record.id, 'REJECTED')} disabled={busy} className="px-3 py-2 rounded-lg border border-red-200 text-red-700 text-xs font-semibold">Rejeitar memo</button></div>}
+                    {record.status === 'PENDING_HUMAN_REVIEW' && <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void reviewMemo(record.id, 'APPROVED')} disabled={readOnly || busy} className="px-3 py-2 rounded-lg bg-emerald-700 text-white text-xs font-semibold">Aprovar revisão</button><button type="button" onClick={() => void reviewMemo(record.id, 'REJECTED')} disabled={readOnly || busy} className="px-3 py-2 rounded-lg border border-red-200 text-red-700 text-xs font-semibold">Rejeitar memo</button></div>}
                   </article>)}
                   {memos.length === 0 && <p className="text-xs text-stone-500">Nenhum research memo gerado para este caso.</p>}
                 </div>
@@ -783,7 +869,8 @@ export const MatterWorkspaceScreen: React.FC = () => {
           </div>
         </div>
       </div>
-    {aiAccessOpen && selectedMatter && <CaseAiAccessPanel key={selectedMatter.id} matterId={selectedMatter.id} matterTitle={selectedMatter.title} onClose={closeAiAccess} />}
+    {aiAccessOpen && selectedMatter && !readOnly && <CaseAiAccessPanel key={selectedMatter.id} matterId={selectedMatter.id} matterTitle={selectedMatter.title} onClose={closeAiAccess} />}
+    {lifecycleDialog && <LifecycleDialog {...lifecycleDialog} busy={busy} error={lifecycleError} onCancel={() => setLifecycleDialog(null)} onConfirm={confirmation => void executeLifecycle(confirmation)} />}
     </div>
   );
 };

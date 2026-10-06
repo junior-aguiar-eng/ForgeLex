@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { buildApp } from '../apps/api/dist/app.js';
+import { DurableMatterPurgeJournal } from '../apps/api/dist/matters/matter-purge-journal.js';
 import { OAuthTokenVault } from '../apps/api/dist/auth/oauth-token-vault.js';
 import { BillingOperationsService } from '../apps/api/dist/billing/billing-operations.js';
 import { BillingService, LedgerService } from '../packages/billing-ledger/dist/index.js';
@@ -113,11 +114,19 @@ const paymentProvider = new FakePaymentProvider();
 const billingOperations = new BillingOperationsService(
   connection.db, connection.client, new BillingService(connection.db, connection.client), paymentProvider, webOrigin,
 );
+let matterPurgeJournal;
+if (process.env.FORGELEX_E2E_MATTER_LIFECYCLE === 'true') {
+  const objects = new Map();
+  matterPurgeJournal = new DurableMatterPurgeJournal({ read: async key => objects.get(key), list: async () => [...objects.keys()], writeOnce: async (key, value) => { if (objects.has(key)) return false; objects.set(key, value); return true; } }, { key: Buffer.alloc(32, 11), macSecret: 'synthetic-only-journal-secret-32-bytes', anchorId: 'synthetic-lifecycle-anchor' });
+  await matterPurgeJournal.provisionAnchor();
+}
 const app = await buildApp({
+  matterPurgeJournal,
   database: connection.db, databaseClient: connection.client, ledgerService: ledger,
   sourceRouter, billingOperationsService: billingOperations, paymentProvider,
   environment: {
     NODE_ENV: 'test', FORGELEX_SUPABASE_URL: authUrl,
+    ...(matterPurgeJournal ? { FORGELEX_MATTER_PURGE_KEY_SECRET: 'synthetic-only-operation-secret-32-bytes' } : {}),
     FORGELEX_SUPABASE_PUBLISHABLE_KEY: 'phase7-e2e-publishable', FORGELEX_ALLOWED_ORIGINS: webOrigin,
     FORGELEX_WEBHOOK_MASTER_KEY: 'phase7-e2e-master-key',
     ...(caseAi?{FORGELEX_MCP_OAUTH_ENABLED:'true',FORGELEX_PUBLIC_URL:webOrigin,FORGELEX_SUPABASE_SECRET_KEY:'fixture-secret-local-only',FORGELEX_MCP_OAUTH_ENCRYPTION_KEY:oauthKey}:{}),

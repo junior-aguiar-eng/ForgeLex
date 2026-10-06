@@ -6,9 +6,13 @@ const validEnvironment = {
   DATABASE_URL: 'postgresql://forgelex:secret@localhost:5432/forgelex',
   FORGELEX_WEBHOOK_MASTER_KEY: 'webhook-secret',
   FORGELEX_METRICS_TOKEN: 'metrics-secret',
+  FORGELEX_MATTER_PURGE_JOURNAL_REQUIRED: 'true',
 };
 
 describe('resolveProductionRuntime', () => {
+  it('rejeita produção sem proteção obrigatória de restauração de casos', () => {
+    expect(() => resolveProductionRuntime({ ...validEnvironment, FORGELEX_MATTER_PURGE_JOURNAL_REQUIRED: undefined })).toThrow('PRODUCTION_MATTER_PURGE_JOURNAL_REQUIRED');
+  });
   it('rejeita produção sem PostgreSQL', () => {
     expect(() => resolveProductionRuntime({ NODE_ENV: 'production' }))
       .toThrow('PRODUCTION_DATABASE_URL_REQUIRED');

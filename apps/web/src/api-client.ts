@@ -5,6 +5,7 @@ export class ApiRequestError extends Error {
     message: string,
     public readonly code: string,
     public readonly status: number,
+    public readonly operationId?: string,
   ) {
     super(message);
     this.name = 'ApiRequestError';
@@ -237,6 +238,7 @@ export async function requestApiResponse<T>(path: string, init: RequestInit = {}
       typeof body.message === 'string' ? body.message : 'Não foi possível concluir a operação.',
       typeof body.error === 'string' ? body.error : 'API_ERROR',
       response.status,
+      typeof body.operationId === 'string' ? body.operationId : undefined,
     );
   }
   return { data: body as T, status: response.status, headers: response.headers };

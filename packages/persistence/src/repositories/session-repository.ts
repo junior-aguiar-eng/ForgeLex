@@ -2,6 +2,7 @@ import { eq, desc } from 'drizzle-orm';
 import { ForgeLexDatabase } from '../db.js';
 import * as schema from '../schema/schema.js';
 import { randomUUID } from 'node:crypto';
+import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.js';
 
 export class SessionRepository {
   private readonly db: ForgeLexDatabase;
@@ -17,7 +18,8 @@ export class SessionRepository {
     matterId?: string;
     model: string;
     status?: string;
-  }) {
+  }): Promise<typeof schema.sessions.$inferSelect> {
+    if (data.matterId && !isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, { tenantId: data.tenantId, matterId: data.matterId }, tx => new SessionRepository(tx).createSession(data));
     const sessionId = data.id ?? randomUUID();
     const now = new Date().toISOString();
 
@@ -40,7 +42,9 @@ export class SessionRepository {
     return rows[0];
   }
 
-  public async updateSessionStatus(sessionId: string, status: string) {
+  public async updateSessionStatus(sessionId: string, status: string): Promise<void> {
+    const session = await this.getSession(sessionId);
+    if (session?.matterId && !isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, { tenantId: session.tenantId, matterId: session.matterId }, tx => new SessionRepository(tx).updateSessionStatus(sessionId, status));
     const now = new Date().toISOString();
     const completedAt = ['COMPLETED', 'CANCELLED', 'FAILED'].includes(status) ? now : null;
 
@@ -59,7 +63,9 @@ export class SessionRepository {
     role: string;
     content: string;
     metadata?: Record<string, unknown>;
-  }) {
+  }): Promise<string> {
+    const session = await this.getSession(data.sessionId);
+    if (session?.matterId && !isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, { tenantId: session.tenantId, matterId: session.matterId }, tx => new SessionRepository(tx).addMessage(data));
     const messageId = randomUUID();
     const now = new Date().toISOString();
 
@@ -89,7 +95,9 @@ export class SessionRepository {
     approvalToken: string;
     proposedAction: string;
     parametersSummary: string;
-  }) {
+  }): Promise<string> {
+    const session = await this.getSession(data.sessionId);
+    if (session?.matterId && !isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, { tenantId: session.tenantId, matterId: session.matterId }, tx => new SessionRepository(tx).createApprovalRequest(data));
     const approvalId = randomUUID();
     const now = new Date().toISOString();
 
@@ -113,7 +121,10 @@ export class SessionRepository {
     return rows[0];
   }
 
-  public async resolveApproval(token: string, decision: 'APPROVED' | 'REJECTED', decidedBy: string) {
+  public async resolveApproval(token: string, decision: 'APPROVED' | 'REJECTED', decidedBy: string): Promise<void> {
+    const approval = await this.getApprovalByToken(token);
+    const session = approval ? await this.getSession(approval.sessionId) : undefined;
+    if (session?.matterId && !isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, { tenantId: session.tenantId, matterId: session.matterId }, tx => new SessionRepository(tx).resolveApproval(token, decision, decidedBy));
     const now = new Date().toISOString();
 
     await this.db
@@ -126,7 +137,9 @@ export class SessionRepository {
       .where(eq(schema.approvals.approvalToken, token));
   }
 
-  public async saveCheckpoint(sessionId: string, turnNumber: number, stateSnapshot: Record<string, unknown>) {
+  public async saveCheckpoint(sessionId: string, turnNumber: number, stateSnapshot: Record<string, unknown>): Promise<string> {
+    const session = await this.getSession(sessionId);
+    if (session?.matterId && !isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, { tenantId: session.tenantId, matterId: session.matterId }, tx => new SessionRepository(tx).saveCheckpoint(sessionId, turnNumber, stateSnapshot));
     const checkpointId = randomUUID();
     const now = new Date().toISOString();
 

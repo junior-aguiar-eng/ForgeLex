@@ -1,3 +1,4 @@
+import { isMatterWriteTransaction, withMatterWrite, MatterWriteGuard } from './matter-write-guard.js';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import {
@@ -194,8 +195,8 @@ export class DraftRepository {
     this.matterRepository = new MatterRepository(db);
   }
 
-  public reviewContext(context: ReviewContext, bundle: DraftVersionBundle) {
-    return readDraftReviewContext(this.db, context, bundle);
+  public reviewContext(context: ReviewContext, bundle: DraftVersionBundle, audience: 'web_history' | 'work' = 'web_history') {
+    return readDraftReviewContext(this.db, context, bundle, audience);
   }
   public reviewRuns(): DraftReviewRunRepository {
     return new DraftReviewRunRepository(this.db);
@@ -216,6 +217,8 @@ export class DraftRepository {
     title: string;
     createdBy: string;
   }): Promise<Draft> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new DraftRepository(tx).createDraft(input));
+
     await this.requireMatter(input.tenantId, input.matterId);
     const draft = DraftSchema.parse({
       id: randomUUID(),
@@ -261,6 +264,8 @@ export class DraftRepository {
   }
 
   public async createVersion(input: DraftVersionWriteInput): Promise<DraftVersionBundle> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new DraftRepository(tx).createVersion(input));
+
     return this.db.transaction(async (tx) => {
       const db = tx as unknown as ForgeLexDatabase;
       await tx.update(schema.matters).set({ updatedAt: sql`${schema.matters.updatedAt}` }).where(and(eq(schema.matters.id, input.matterId), eq(schema.matters.tenantId, input.tenantId)));
@@ -270,6 +275,7 @@ export class DraftRepository {
 
   /** Caller owns transaction; serialize all version writers under the draft lock. */
   public async insertVersionInTransaction(input: DraftVersionWriteInput, options: { preserveDraft?: boolean } = {}): Promise<DraftVersionBundle> {
+    await new MatterWriteGuard(this.db).captureRevision(input);
     await this.db.update(schema.drafts).set({ updatedAt: sql`${schema.drafts.updatedAt}` }).where(and(eq(schema.drafts.id, input.draftId), eq(schema.drafts.tenantId, input.tenantId), eq(schema.drafts.matterId, input.matterId)));
     if (input.baseVersionId && !(await this.getVersion(input.tenantId, input.matterId, input.draftId, input.baseVersionId))) throw new Error('DRAFT_PARENT_INVALID');
     const draft = await this.getDraft(input.tenantId, input.matterId, input.draftId);
@@ -417,6 +423,11 @@ export class DraftRepository {
   }
 
   public async createReviewFindings(findings: Omit<DraftReviewFinding, 'id' | 'createdAt'>[]): Promise<DraftReviewFinding[]> {
+    if (findings.length && !isMatterWriteTransaction(this.db)) {
+      const target = findings[0];
+      if (findings.some(f => f.tenantId !== target.tenantId || f.matterId !== target.matterId)) throw new Error('REVIEW_SCOPE_INVALID');
+      return withMatterWrite(this.db, target, tx => new DraftRepository(tx).createReviewFindings(findings));
+    }
     const now = new Date().toISOString();
     const values = findings.map((finding) => DraftReviewFindingSchema.parse({ ...finding, id: randomUUID(), createdAt: now }));
     if (values.length > 0) await this.db.insert(schema.draftReviewFindings).values(values.map((finding) => ({ ...finding })));
@@ -443,6 +454,8 @@ export class DraftRepository {
     proposedAction: string;
     expiresAt?: string;
   }): Promise<{ request: ApprovalRequest; token: string }> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new DraftRepository(tx).createApprovalRequest(input));
+
     const version = await this.getVersion(input.tenantId, input.matterId, input.draftId, input.draftVersionId);
     if (!version) throw new Error('DRAFT_VERSION_NOT_FOUND: versão não localizada no matter do tenant autenticado.');
     const pending = await this.db.select().from(schema.draftApprovalRequests).where(and(
@@ -554,6 +567,7 @@ export class DraftRepository {
     return this.db.transaction(async (tx) => {
       // Use the same lock order for either decision and support writes.
       await tx.update(schema.matters).set({ updatedAt: sql`${schema.matters.updatedAt}` }).where(and(eq(schema.matters.id, requestRow.matterId), eq(schema.matters.tenantId, input.tenantId)));
+      await new MatterWriteGuard(tx as unknown as ForgeLexDatabase).captureRevision({ tenantId: input.tenantId, matterId: requestRow.matterId });
       const version = await new DraftRepository(tx as unknown as ForgeLexDatabase).getVersion(input.tenantId, requestRow.matterId, requestRow.draftId, requestRow.draftVersionId);
       if (!version) throw new Error('DRAFT_VERSION_NOT_FOUND');
       await tx.update(schema.draftVersions).set({ contentHash: sql`${schema.draftVersions.contentHash}` }).where(eq(schema.draftVersions.id, requestRow.draftVersionId));

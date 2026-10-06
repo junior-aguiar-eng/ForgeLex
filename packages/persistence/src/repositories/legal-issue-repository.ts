@@ -1,3 +1,4 @@
+import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.js';
 import { and, desc, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { LegalIssue, LegalIssueSchema, LegalIssueStatus } from '@forgelex/domain';
@@ -32,6 +33,8 @@ export class LegalIssueRepository {
     statement: string;
     status?: LegalIssueStatus;
   }): Promise<LegalIssue> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new LegalIssueRepository(tx).createIssue(input));
+
     if (!(await this.matterRepository.getMatter(input.tenantId, input.matterId))) {
       throw new Error('MATTER_NOT_FOUND: matter não pertence ao tenant informado ou não existe.');
     }
