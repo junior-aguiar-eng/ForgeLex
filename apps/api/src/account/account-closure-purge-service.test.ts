@@ -74,7 +74,10 @@ describe('AccountClosurePurgeService', () => {
       await runs.finish(context, run.id, { state: 'COMPLETE', status: 'WARNINGS', checks: [], findings: [{ ...context, draftId: draft.id, draftVersionId: version.version.id, reviewType: 'CITATION', severity: 'WARNING', code: 'CITATIONS_MISSING', message: 'Nenhuma referência cadastrada.' }] });
       expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_runs WHERE tenant_id = ?', [fixture.tenantId])).toBe(1);
       await client.execute({sql:"INSERT INTO case_ai_access_grants (id,tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,revision,status,selection_json,created_at,updated_at) VALUES (?,?,?,?,?,?,1,'ACTIVE',?,?,?)",args:[randomUUID(),fixture.tenantId,fixture.userId,'app',now,matter.id,JSON.stringify({documents:[],factIds:[],evidenceIds:[],thesisIds:[],authorityIds:[]}),now,now]});
+      const grants = await client.execute({ sql: 'SELECT id FROM case_ai_access_grants WHERE matter_id = ?', args: [matter.id] });
+      await client.execute({ sql: `INSERT INTO draft_ai_receipts (id,tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,grant_id,grant_revision,draft_id,version_id,version_number,destination_json,key_hash,payload_hash,references_json,received_at) VALUES (?,?,?,?,?,?,?,1,?,?,1,?,?,?,'[]',?)`, args: [randomUUID(),fixture.tenantId,fixture.userId,'app',now,matter.id,String(grants.rows[0].id),draft.id,version.version.id,'{"mode":"EXISTING"}','a'.repeat(64),'b'.repeat(64),now] });
       await new AccountClosurePurgeService(client).purgePrivateContent({ tenantId: fixture.tenantId, closureId: 'acl_1', now });
+      expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_ai_receipts WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
       expect(await count(client, 'SELECT COUNT(*) AS count FROM case_ai_access_grants WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
       expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_runs WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
       expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_findings WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);

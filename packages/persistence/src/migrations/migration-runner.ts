@@ -1099,6 +1099,13 @@ export const persistenceMigrations: readonly SqlMigration[] = [
  `CREATE TABLE case_ai_access_grants (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, oauth_client_id TEXT NOT NULL, oauth_granted_at TEXT NOT NULL, matter_id TEXT NOT NULL REFERENCES matters(id), revision INTEGER NOT NULL, status TEXT NOT NULL, selection_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, revoked_at TEXT);`,
  `CREATE UNIQUE INDEX case_ai_access_owner_client_matter_idx ON case_ai_access_grants(tenant_id,user_id,oauth_client_id,matter_id);`,
 ] },
+{ id: 'persistence-0027-draft-ai-receipts', statements: [
+ `ALTER TABLE case_ai_access_grants ADD COLUMN receive_permission_json TEXT NOT NULL DEFAULT '{"enabled":false}';`,
+ `ALTER TABLE draft_versions ADD COLUMN derived_from_version_id TEXT;`,
+ `CREATE TABLE draft_ai_receipts (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, oauth_client_id TEXT NOT NULL, oauth_granted_at TEXT NOT NULL, matter_id TEXT NOT NULL REFERENCES matters(id), grant_id TEXT NOT NULL REFERENCES case_ai_access_grants(id), grant_revision INTEGER NOT NULL, draft_id TEXT NOT NULL REFERENCES drafts(id), version_id TEXT NOT NULL REFERENCES draft_versions(id), version_number INTEGER NOT NULL, destination_json TEXT NOT NULL, key_hash TEXT NOT NULL, payload_hash TEXT NOT NULL, references_json TEXT NOT NULL, received_at TEXT NOT NULL);`,
+ `CREATE UNIQUE INDEX draft_ai_receipts_scope_key_idx ON draft_ai_receipts(tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,key_hash);`,
+ `CREATE UNIQUE INDEX draft_ai_receipts_version_idx ON draft_ai_receipts(version_id);`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

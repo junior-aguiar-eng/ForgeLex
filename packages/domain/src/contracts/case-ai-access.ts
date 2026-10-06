@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DraftReceivePermissionSchema } from './draft-ai-receipt.js';
 export const CaseItemKindSchema = z.enum(['DOCUMENT', 'FACT', 'EVIDENCE', 'THESIS', 'AUTHORITY']);
 export type CaseItemKind = z.infer<typeof CaseItemKindSchema>;
 export interface VerifiedOAuthConnection {
@@ -51,6 +52,7 @@ export const CaseAiGrantSchema = z
     revision: z.number().int().positive(),
     status: z.enum(['ACTIVE', 'REVOKED']),
     selection: CaseAiSelectionSchema,
+    receivePermission: DraftReceivePermissionSchema.default({ enabled: false }),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
     revokedAt: z.string().datetime().optional(),
@@ -96,6 +98,7 @@ export const CaseContextPageSchema = z
     matterId: z.string().uuid(),
     grantRevision: z.number(),
     items: z.array(CaseManifestItemSchema),
+    draftReceiving: DraftReceivePermissionSchema.optional(),
     nextCursor: z.string().optional(),
   })
   .strict();

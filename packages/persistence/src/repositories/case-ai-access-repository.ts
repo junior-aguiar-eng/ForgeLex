@@ -2,6 +2,8 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
   CaseAiSelectionSchema,
+  DraftReceivePermissionSchema,
+  type DraftReceivePermission,
   CaseAiGrantSchema,
   type CaseAiGrant,
   type CaseAiOwner,
@@ -22,10 +24,11 @@ export interface SelectedCaseRecord {
   fields: { field: string; text: string; documentId?: string; versionId?: string; anchorId?: string }[];
 }
 function grant(row: typeof s.caseAiAccessGrants.$inferSelect): CaseAiGrant {
-  const { selectionJson, ...rest } = row;
+  const { selectionJson, receivePermissionJson, ...rest } = row;
   return CaseAiGrantSchema.parse({
     ...rest,
     selection: JSON.parse(selectionJson),
+    receivePermission: JSON.parse(receivePermissionJson),
     revokedAt: row.revokedAt ?? undefined,
   });
 }
@@ -326,9 +329,10 @@ export class CaseAiAccessRepository {
   async replace(
     o: CaseAiOwner,
     matterId: string,
-    input: { oauthClientId: string; oauthGrantedAt: string; expectedRevision: number; selection: CaseAiSelection },
+    input: { oauthClientId: string; oauthGrantedAt: string; expectedRevision: number; selection: CaseAiSelection; receivePermission?: DraftReceivePermission },
   ): Promise<CaseAiGrant> {
     const selection = CaseAiSelectionSchema.parse(input.selection);
+    const receivePermission = DraftReceivePermissionSchema.parse(input.receivePermission ?? { enabled: false });
     return this.db.transaction(async (tx) => {
       const repo = new CaseAiAccessRepository(tx as unknown as ForgeLexDatabase);
       await tx
@@ -336,6 +340,12 @@ export class CaseAiAccessRepository {
         .set({ updatedAt: sql`${s.matters.updatedAt}` })
         .where(and(eq(s.matters.id, matterId), eq(s.matters.tenantId, o.tenantId)));
       await repo.loadSelection(o, matterId, selection);
+      if (receivePermission.enabled && receivePermission.destination.mode === 'EXISTING') {
+        const target = await tx.select({ id: s.drafts.id }).from(s.drafts).where(and(
+          eq(s.drafts.id, receivePermission.destination.draftId), eq(s.drafts.tenantId, o.tenantId), eq(s.drafts.matterId, matterId),
+        )).limit(1);
+        if (!target[0]) throw new Error('DRAFT_DESTINATION_INVALID');
+      }
       const current = (await repo.listForOwner(o, matterId)).find((g) => g.oauthClientId === input.oauthClientId);
       if ((current?.revision ?? 0) !== input.expectedRevision) throw new Error('CASE_ACCESS_CONFLICT');
       const now = new Date().toISOString();
@@ -348,11 +358,12 @@ export class CaseAiAccessRepository {
         revision: input.expectedRevision + 1,
         status: 'ACTIVE',
         selection,
+        receivePermission,
         createdAt: current?.createdAt ?? now,
         updatedAt: now,
       });
-      const { selection: _, ...persisted } = next;
-      const values = { ...persisted, selectionJson: JSON.stringify(selection), revokedAt: null };
+      const { selection: _, receivePermission: _permission, ...persisted } = next;
+      const values = { ...persisted, selectionJson: JSON.stringify(selection), receivePermissionJson: JSON.stringify(receivePermission), revokedAt: null };
       if (current)
         await tx
           .update(s.caseAiAccessGrants)
