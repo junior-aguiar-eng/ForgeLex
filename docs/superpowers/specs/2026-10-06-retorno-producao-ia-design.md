@@ -166,6 +166,6 @@ externa, alteração de faturamento de pesquisa ou aprovação pela IA.
 
 ## Situação desta especificação
 
-Desenho fundamentado no código e no fluxo aprovado em conversa. Pendente de
-revisão desta especificação antes do plano técnico e da implementação.
+Desenho fundamentado no código e no fluxo aprovado em conversa. Especificação
+aprovada por Boni em 06/10/2026; plano técnico preparado para revisão.
 Nenhuma ferramenta de escrita, migration ou alteração de produção aplicada.
