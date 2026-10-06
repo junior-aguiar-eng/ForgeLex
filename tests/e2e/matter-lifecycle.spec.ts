@@ -85,7 +85,17 @@ test('case archive, trash, restore and confirmed deletion use clear controls', a
   await page.getByRole('button', { name: 'Arquivar', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   expect((await new AxeBuilder({ page }).include('dialog').analyze()).violations).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await options().click(); await page.getByRole('button', { name: 'Arquivar', exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const bounds = await page.getByRole('dialog').boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: '.superpowers/sdd/2026-10-06-casos-documentos-ciclo-vida/lifecycle-mobile.png' });
   await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await page.setViewportSize({ width: 1280, height: 720 });
   expect((await (await request.get(`${api}/api/v2/matters/${matter.id}`, { headers })).json()).matter.lifecycleState).toBe('ACTIVE');
   await options().click(); await page.getByRole('button', { name: 'Arquivar', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Arquivar', exact: true }).click();
