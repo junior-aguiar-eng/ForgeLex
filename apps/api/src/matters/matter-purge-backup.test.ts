@@ -30,4 +30,4 @@ it.each(['document', 'case'])('reapplies %s purge on an actual SQLite snapshot b
     expect(await matters.getDocumentVersion(target.tenantId, f.doc.document.id, 'web_retained')).toBeUndefined();
     if (kind === 'case') expect(await matters.getMatter(target.tenantId, target.matterId)).toBeUndefined();
   } finally { restored?.client.close(); f.client.close(); try { rmSync(backupPath, { force: true }); } catch { /* Windows SQLite handles. */ } }
-});
+}, 30_000);

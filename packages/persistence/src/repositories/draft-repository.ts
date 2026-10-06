@@ -195,8 +195,8 @@ export class DraftRepository {
     this.matterRepository = new MatterRepository(db);
   }
 
-  public reviewContext(context: ReviewContext, bundle: DraftVersionBundle) {
-    return readDraftReviewContext(this.db, context, bundle);
+  public reviewContext(context: ReviewContext, bundle: DraftVersionBundle, audience: 'web_history' | 'work' = 'web_history') {
+    return readDraftReviewContext(this.db, context, bundle, audience);
   }
   public reviewRuns(): DraftReviewRunRepository {
     return new DraftReviewRunRepository(this.db);

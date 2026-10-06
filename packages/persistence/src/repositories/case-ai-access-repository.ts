@@ -196,7 +196,7 @@ export class CaseAiAccessRepository {
     return { ...base, ...boundedItems(items, casePosition(page.cursor, binding), page.limit ?? 20, base, binding) };
   }
   async catalog(o: CaseAiOwner, matterId: string, kind: CaseItemKind, page: { cursor?: string; limit?: number } = {}) {
-    if (!(await new MatterRepository(this.db).getMatter(o.tenantId, matterId))) throw new Error('MATTER_NOT_FOUND');
+    if (!(await new MatterRepository(this.db).getMatterForWork(o.tenantId, matterId))) throw new Error('MATTER_NOT_FOUND');
     let items: { kind: CaseItemKind; id: string; title: string; versionId?: string; versionNumber?: number }[];
     if (kind === 'DOCUMENT') {
       const rows = await this.db
@@ -214,7 +214,7 @@ export class CaseAiAccessRepository {
             sql`${s.documentVersions.versionNumber} = (select max(v.version_number) from document_versions v where v.document_id = ${s.legalDocuments.id})`,
           ),
         )
-        .where(and(eq(s.legalDocuments.tenantId, o.tenantId), eq(s.legalDocuments.matterId, matterId)));
+        .where(and(eq(s.legalDocuments.tenantId, o.tenantId), eq(s.legalDocuments.matterId, matterId), eq(s.legalDocuments.lifecycleState, 'ACTIVE')));
       items = rows.map((r) => ({ ...r, kind, title: shortText(r.title) }));
     } else {
       const table =

@@ -75,7 +75,7 @@ export class DraftingService {
     return this.writeVersion(context, draftId, input, 'HUMAN');
   }
 
-  public async getDraft(context: DraftContext, draftId: string): Promise<DraftDetails> {
+  public async getDraft(context: DraftContext, draftId: string, audience: 'web_history' | 'work' = 'work'): Promise<DraftDetails> {
     const draft = await this.requireDraft(context, draftId);
     const [currentVersion, versions, reviewFindings, approvals] = await Promise.all([
       this.repository.getCurrentVersion(context.tenantId, context.matterId, draftId),
@@ -85,7 +85,7 @@ export class DraftingService {
     ]);
     const latestReviewRun = currentVersion && this.runs ? await this.runs.getLatest(context, draftId, currentVersion.version.id) : undefined;
     const currentReviewRun = currentVersion && this.runs ? await this.runs.getLatest(context, draftId, currentVersion.version.id, true) : undefined;
-    const snapshot = currentVersion ? await this.repository.reviewContext(context,currentVersion) : undefined;
+    const snapshot = currentVersion ? await this.repository.reviewContext(context,currentVersion,audience) : undefined;
     const reviewContextChanged = Boolean(latestReviewRun && snapshot && latestReviewRun.contextHash !== reviewContextHash(snapshot));
     return {
       draft,

@@ -5,6 +5,25 @@ import { AuthAdapter } from '../auth/fastify-auth.js';
 import { LedgerService } from '@forgelex/billing-ledger';
 import { journalFixture } from './matter-purge-journal.test.js';
 import type { AuthenticatedPrincipal } from '@forgelex/domain';
+import { DraftAiReceiptRepository, MatterLifecycleRepository } from '@forgelex/persistence';
+it('never exposes an archived original through draft references to API or OAuth readers', async () => {
+  const f = await fixture();
+  try {
+    await f.repo.replace(f.owner, f.matter.id, { ...f.input, receivePermission: { enabled: true, destination: { mode: 'NEW' } } });
+    const saved = await new DraftAiReceiptRepository(f.db).receive(f.reader, { matterId: f.matter.id, expectedGrantRevision: 1, idempotencyKey: 'indirect-source-0001', title: 'Minuta sem texto original', sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto autoral.' }], references: [{ sectionOrdinal: 0, kind: 'DOCUMENT', itemId: f.doc.document.id, documentVersionId: f.doc.version.id, anchorId: f.doc.anchors[0].id }] });
+    await new MatterLifecycleRepository(f.db).transition({ tenantId: f.owner.tenantId, matterId: f.matter.id, documentId: f.doc.document.id }, { userId: f.owner.userId, role: 'member', authType: 'web_session', scopes: ['matter:write'] }, 'archive', { expectedLifecycleRevision: 0 });
+    const url = `/api/v2/matters/${f.matter.id}/drafts/${saved.draftId}`;
+    for (const token of ['api', 'oauth']) {
+      const response = await f.app.inject({ url, headers: { authorization: `Bearer ${token}` } });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().documentReferences[0]).toMatchObject({ available: false });
+      expect(response.body).not.toContain(f.doc.anchors[0].text);
+    }
+    const web = await f.app.inject({ url, headers: { authorization: 'Bearer session' } });
+    expect(web.json().documentReferences[0].anchor.text).toBe(f.doc.anchors[0].text);
+    expect((await f.repo.catalog(f.owner, f.matter.id, 'DOCUMENT')).items).toEqual([]);
+  } finally { await f.app.close(); f.client.close(); }
+});
 
 async function fixture() {
   const f = await caseAccessFixture(); const j = journalFixture(); await j.journal.provisionAnchor();

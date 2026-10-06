@@ -9,7 +9,7 @@ import { DraftAiReceiptRepository } from './draft-ai-receipt-repository.js';
 import { and, eq, inArray } from 'drizzle-orm';
 import { legalTheses, legalDocuments, documentAnchors, documentVersions } from '../schema/schema.js';
 
-export async function readDraftReviewContext(db: ForgeLexDatabase, context: ReviewContext, bundle: DraftVersionBundle) {
+export async function readDraftReviewContext(db: ForgeLexDatabase, context: ReviewContext, bundle: DraftVersionBundle, audience: 'web_history' | 'work' = 'web_history') {
   const ids = (
     kind: 'AUTHORITY' | 'FACT' | 'EVIDENCE',
     field: 'linkedAuthorityIds' | 'linkedFactIds' | 'linkedEvidenceIds',
@@ -45,14 +45,14 @@ export async function readDraftReviewContext(db: ForgeLexDatabase, context: Revi
   const documentLifecycles = await db.select({ id: legalDocuments.id, lifecycleState: legalDocuments.lifecycleState, lifecycleRevision: legalDocuments.lifecycleRevision }).from(legalDocuments).where(and(eq(legalDocuments.tenantId, context.tenantId), eq(legalDocuments.matterId, context.matterId)));
   const details = await Promise.all(
     [...await matters.listDocuments(context.tenantId, context.matterId), ...await matters.listDocuments(context.tenantId, context.matterId, 'archived')].map((d) =>
-      matters.getDocumentVersion(context.tenantId, d.id),
+      matters.getDocumentVersion(context.tenantId, d.id, audience),
     ),
   );
   const anchors = details.flatMap((d) => d?.anchors ?? []).filter((a) => anchorIds.has(a.id));
   const sourceAvailability = anchorIds.size ? (await db.select({ anchorId: documentAnchors.id, documentId: legalDocuments.id, versionId: documentVersions.id, lifecycleState: legalDocuments.lifecycleState, lifecycleRevision: legalDocuments.lifecycleRevision }).from(documentAnchors).innerJoin(documentVersions, eq(documentAnchors.documentVersionId, documentVersions.id)).innerJoin(legalDocuments, eq(documentVersions.documentId, legalDocuments.id)).where(and(eq(legalDocuments.tenantId, context.tenantId), eq(legalDocuments.matterId, context.matterId), inArray(documentAnchors.id, [...anchorIds])))).map(source => ({ ...source, available: anchors.some(anchor => anchor.id === source.anchorId) })) : [];
   const references = await new DraftAiReceiptRepository(db).getReferences(context, context.matterId, bundle.version.draftId, bundle.version.id);
   const documentReferences = await Promise.all(references.filter(r => r.kind === 'DOCUMENT').map(async (reference) => {
-    const source = await matters.getDocumentSource({ ...context, documentId: reference.itemId }, reference.documentVersionId!, 'web_history');
+    const source = await matters.getDocumentSource({ ...context, documentId: reference.itemId }, reference.documentVersionId!, audience);
     const detail = source.source;
     const anchor = reference.anchorId ? detail?.anchors.find(a => a.id === reference.anchorId) : undefined;
     return { reference, available: Boolean(detail && (!reference.anchorId || anchor)), availability: source.availability, lifecycleRevision: source.lifecycleRevision, documentTitle: detail?.document.title, versionNumber: detail?.version.versionNumber, contentHash: detail?.version.contentHash, createdAt: detail?.version.createdAt, anchor };

@@ -2373,6 +2373,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return await draftingService.getDraft(
           { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
           draftId,
+          req.principal.authMethod === 'session' ? 'web_history' : 'work',
         );
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Não foi possível consultar o rascunho.';
