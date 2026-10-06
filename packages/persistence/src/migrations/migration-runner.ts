@@ -1106,6 +1106,20 @@ export const persistenceMigrations: readonly SqlMigration[] = [
  `CREATE UNIQUE INDEX draft_ai_receipts_scope_key_idx ON draft_ai_receipts(tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,key_hash);`,
  `CREATE UNIQUE INDEX draft_ai_receipts_version_idx ON draft_ai_receipts(version_id);`,
 ] },
+{ id: 'persistence-0028-matter-lifecycle', statements: [
+ ...['matters', 'legal_documents'].flatMap(table => [
+   `ALTER TABLE ${table} ADD COLUMN lifecycle_state TEXT NOT NULL DEFAULT 'ACTIVE';`,
+   `ALTER TABLE ${table} ADD COLUMN lifecycle_revision INTEGER NOT NULL DEFAULT 0;`,
+   ...['previous_lifecycle_state', 'archived_at', 'archived_by', 'trashed_at', 'trashed_by', 'restored_at', 'restored_by', 'purged_at', 'purged_by'].map(column => `ALTER TABLE ${table} ADD COLUMN ${column} TEXT;`),
+   `CREATE INDEX ${table}_lifecycle_idx ON ${table}(tenant_id,lifecycle_state);`,
+ ]),
+ `ALTER TABLE matters ADD COLUMN previous_business_status TEXT;`,
+ `UPDATE matters SET lifecycle_state='ARCHIVED', previous_business_status='OPEN' WHERE status='ARCHIVED';`,
+ `ALTER TABLE research_search_history ADD COLUMN matter_id TEXT REFERENCES matters(id);`,
+ `CREATE INDEX research_search_history_matter_idx ON research_search_history(tenant_id,matter_id);`,
+ `CREATE TABLE matter_lifecycle_purge_operations (operation_id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, matter_id TEXT NOT NULL, document_id TEXT, expected_lifecycle_revision INTEGER NOT NULL, fingerprint TEXT NOT NULL, local_state TEXT NOT NULL, prepared_at TEXT NOT NULL, completed_at TEXT, counts_json TEXT NOT NULL DEFAULT '{}');`,
+ `CREATE INDEX matter_lifecycle_purge_target_idx ON matter_lifecycle_purge_operations(tenant_id,matter_id,document_id);`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

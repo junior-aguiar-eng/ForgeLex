@@ -37,8 +37,13 @@ function splitIntoParagraphs(content: string): Array<{ text: string; startOffset
   return paragraphs;
 }
 
+function lifecycleFields(row: typeof schema.matters.$inferSelect | typeof schema.legalDocuments.$inferSelect) {
+  return Object.fromEntries(['lifecycleState', 'lifecycleRevision', 'previousLifecycleState', 'archivedAt', 'archivedBy', 'trashedAt', 'trashedBy', 'restoredAt', 'restoredBy', 'purgedAt', 'purgedBy'].map(key => [key, row[key as keyof typeof row] ?? undefined]));
+}
+
 function toMatter(row: typeof schema.matters.$inferSelect): Matter {
   return MatterSchema.parse({
+    ...lifecycleFields(row),
     id: row.id,
     tenantId: row.tenantId,
     clientId: row.clientId ?? undefined,
@@ -55,6 +60,7 @@ function toMatter(row: typeof schema.matters.$inferSelect): Matter {
 
 function toDocument(row: typeof schema.legalDocuments.$inferSelect): LegalDocument {
   return LegalDocumentSchema.parse({
+    ...lifecycleFields(row),
     id: row.id,
     tenantId: row.tenantId,
     matterId: row.matterId,
