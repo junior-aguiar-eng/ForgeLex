@@ -78,7 +78,7 @@ export class CaseContextService {
           }
         : {}),
     }));
-    const base = { matterId: g.matterId, grantRevision: g.revision };
+    const base = { matterId: g.matterId, grantRevision: g.revision, ...(g.receivePermission.enabled ? { draftReceiving: g.receivePermission } : {}) };
     const result = {
       ...base,
       ...boundedItems(items, casePosition(input.cursor, binding), input.limit ?? 20, base, binding, true),

@@ -7,6 +7,8 @@ import { randomUUID } from 'node:crypto';
 import { getErrorCode } from '@forgelex/domain';
 import type {VerifiedOAuthConnection} from '@forgelex/domain';
 import {isCaseContextTool,getCaseContextToolContract} from '@forgelex/legal-tools';
+import { DRAFT_AI_ANNOTATIONS, getDraftAiToolContract } from '@forgelex/legal-tools';
+import { handleDraftAiCall } from './draft-ai-handler.js';
 
 export interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -93,7 +95,7 @@ export class McpHandler {
           .map((tool) => {
             const rawSchema = zodToJsonSchema(tool.inputSchema, { target: 'jsonSchema7' }) as any;
             const { $schema, ...cleanSchema } = rawSchema;
-            if(!isCaseContextTool(tool.name)) cleanSchema.properties = {
+            if(!isCaseContextTool(tool.name) && tool.name !== 'draft.save_from_ai') cleanSchema.properties = {
               ...(cleanSchema.properties ?? {}),
               idempotencyKey: {
                 type: 'string', minLength: 1,
@@ -101,12 +103,13 @@ export class McpHandler {
               },
             };
 
-            const contract = getLegalToolContract(tool.name) ?? getCaseContextToolContract(tool.name);
+            const contract = getLegalToolContract(tool.name) ?? getCaseContextToolContract(tool.name) ?? getDraftAiToolContract(tool.name);
             const outputSchema=isCaseContextTool(tool.name)?zodToJsonSchema(tool.outputSchema,{target:'jsonSchema7'}) as any:undefined;
             return {
               name: tool.name,
               description: tool.description,
               inputSchema: cleanSchema,
+              ...(tool.name === 'draft.save_from_ai' ? { annotations: DRAFT_AI_ANNOTATIONS } : {}),
               ...(outputSchema?{outputSchema:Object.fromEntries(Object.entries(outputSchema).filter(([key])=>key!=='$schema')),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}}:{}),
               ...(contract ? { 'x-forgelex-contract': contract } : {}),
             };
@@ -161,6 +164,7 @@ export class McpHandler {
           };
         }
 
+        if (name === 'draft.save_from_ai') return handleDraftAiCall(request, this.toolRegistry, { tenantId, userId, abortSignal: context.abortSignal ?? new AbortController().signal, oauthConnection: context.oauthConnection, revalidateConnection: context.revalidateConnection }, this.auditRecorder);
         if(isCaseContextTool(name)) {
           const startedAt=Date.now();const sessionId=`case_mcp_${randomUUID()}`;
           try {
