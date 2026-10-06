@@ -128,4 +128,16 @@ CI PostgreSQL e demais checks devem passar no SHA da PR e no SHA integrado antes
 
 Cobertura conferida: permissão/limites/cleanup (Task 1), transação/replay/concorrência/adoção (Task 2), identidade/envelope/auditoria/API (Task 3), referências/revisão (Task 4), buffer/UX/exportações (Task 5), PostgreSQL/CI/restore/regressões (Task 6). Os cinco riscos de Review Focus possuem testes nas tarefas indicadas. Não há implementação de produto neste commit.
 
-Recomendação: execução nativa nesta conversa, com revisão independente da branch ao final. As tarefas compartilham contratos e transações; execução sequencial reduz retrabalho de integração. A alternativa é execução por subagentes com revisão de cada tarefa, ao custo de mais contextos. Aguardar revisão deste plano e escolha do modo antes de escrever código de produto.
+Boni aprovou a execução nativa sequencial nesta conversa, com revisão independente da branch ao final. Registro da execução, verificações e decisões em `docs/product/draft-ai-receiving-validation.md`.
+
+## Execução local em 06/10/2026
+
+- [x] Task 1: `ce2a021` — contratos, permissão e armazenamento.
+- [x] Task 2: `3ffbd78` — recebimento atômico e adoção.
+- [x] Task 3: `a05a919` — ferramenta MCP gratuita e API do editor.
+- [x] Task 4: `47619e2` — fontes e conferência.
+- [x] Task 5: `d20cbd5` — interface e edição preservada.
+- [x] Task 6: `7cb239c` — PostgreSQL, regressões e documentação.
+- [x] Revisão independente e correções importantes: `aeeabb1`, com RED→GREEN e regressão completa.
+
+Ponto menor adiado: apresentar no editor o nome específico do aplicativo remetente. O recibo já registra sua identidade, mas a interface mostra a origem genérica IA. Integração e publicação permanecem nos gates posteriores previstos acima.

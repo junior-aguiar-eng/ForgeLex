@@ -166,6 +166,9 @@ externa, alteração de faturamento de pesquisa ou aprovação pela IA.
 
 ## Situação desta especificação
 
-Desenho fundamentado no código e no fluxo aprovado em conversa. Especificação
-aprovada por Boni em 06/10/2026; plano técnico preparado para revisão.
-Nenhuma ferramenta de escrita, migration ou alteração de produção aplicada.
+Especificação e execução local aprovadas por Boni em 06/10/2026.
+Implementação, migration em banco de testes e revisão independente concluídas
+na branch `codex/retorno-producao-ia`; registro em
+`docs/product/draft-ai-receiving-validation.md`. O nome específico do aplicativo
+no editor permanece como ponto menor adiado. Integração, migration de produção,
+publicação e homologação real desta escrita continuam pendentes.

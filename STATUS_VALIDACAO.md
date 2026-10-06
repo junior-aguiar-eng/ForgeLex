@@ -26,12 +26,19 @@ cancelamento aguardando bloqueio real, ambas as ordens de revogação/commit
 e restauração/exclusão dos recibos. O job `postgres` da CI passa a executar
 esse runner no serviço de testes existente.
 
-`pnpm exec vitest run`: 710 aprovados e 17 ignorados, 131 arquivos aprovados
+`pnpm exec vitest run`: 711 aprovados e 17 ignorados, 131 arquivos aprovados
 e dois ignorados. A primeira rodada apresentou EPERM na exclusão de uma
 fixture SQLite no Windows; a repetição isolada confirmou a falha e o teste
 de consulta passou a usar SQLite em memória, sem mudança no armazenamento
-do produto. A repetição completa passou. Revisão independente registrada
-na conclusão da branch. Este registro não afirma CI remota, integração,
+do produto. A repetição completa passou. A revisão independente do intervalo
+`9e74b7f..7cb239c` encontrou três pontos importantes: proveniência entre
+usuários, identidade do buffer após conflito e ordinal da citação. Foram
+corrigidos em `aeeabb14b67c118591cb76bd4ad707bdeb0b8502`, com testes RED→GREEN
+e nova regressão completa. O ensaio adicional também corrigiu a abertura
+pelo recibo antes de completar o carregamento das fontes do caso.
+O nome específico do aplicativo no editor permanece como ponto menor adiado.
+Registro completo: [execução e decisões](docs/product/draft-ai-receiving-validation.md).
+Este registro não afirma CI remota, integração,
 migration de produção, publicação ou homologação do retorno nos hosts reais.
 Esses gates continuam pendentes para esta frente. As provas anteriores das
 frentes 1/2 abaixo não homologam esta nova escrita.
