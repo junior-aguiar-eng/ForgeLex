@@ -24,6 +24,7 @@ const DraftContentSchema = z.object({
   sections: z.array(DraftSectionInputSchema).min(1).max(100),
   citations: z.array(CitationInputSchema).max(500).default([]),
   notes: z.string().max(2000).optional(),
+  baseVersionId: z.string().uuid().optional(),
 });
 const DraftUpdateInputSchema = DraftContentSchema.extend({ draftId: z.string().uuid() });
 const DraftGetInputSchema = z.object({ draftId: z.string().uuid() });

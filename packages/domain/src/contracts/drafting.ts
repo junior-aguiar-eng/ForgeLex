@@ -30,6 +30,7 @@ export const DraftVersionSchema = z.object({
   status: DraftStatusSchema,
   createdBy: z.string().min(1),
   notes: z.string().max(2000).optional(),
+  derivedFromVersionId: z.string().uuid().optional(),
   createdAt: z.string().datetime(),
 });
 export type DraftVersion = z.infer<typeof DraftVersionSchema>;
@@ -41,7 +42,7 @@ export const DraftSectionSchema = z.object({
   draftId: z.string().uuid(),
   draftVersionId: z.string().uuid(),
   ordinal: z.number().int().nonnegative(),
-  title: z.string().min(3),
+  title: z.string().min(1),
   content: z.string(),
   linkedFactIds: z.array(z.string().uuid()),
   linkedEvidenceIds: z.array(z.string().uuid()),

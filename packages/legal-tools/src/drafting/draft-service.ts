@@ -28,6 +28,7 @@ export interface DraftContentInput {
   sections: DraftSectionInput[];
   citations?: CitationAnchorInput[];
   notes?: string;
+  baseVersionId?: string;
 }
 
 export interface DraftDetails {
@@ -132,6 +133,7 @@ export class DraftingService {
       status: 'DRAFT',
       contentHash: hashDraftContent(input),
       notes: input.notes,
+      baseVersionId: input.baseVersionId,
       sections: input.sections,
       citations: input.citations,
     });

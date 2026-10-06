@@ -56,6 +56,7 @@ function toDraftVersion(row: typeof schema.draftVersions.$inferSelect): DraftVer
     status: row.status,
     createdBy: row.createdBy,
     notes: row.notes ?? undefined,
+    derivedFromVersionId: row.derivedFromVersionId ?? undefined,
     createdAt: row.createdAt,
   });
 }
@@ -171,6 +172,21 @@ export interface ApprovalResolution {
   token: ApprovalToken;
 }
 
+export interface DraftVersionWriteInput {
+    tenantId: string;
+    matterId: string;
+    draftId: string;
+    title: string;
+    createdBy: string;
+    source: 'HUMAN' | 'WORKFLOW' | 'SYSTEM';
+    status?: 'DRAFT' | 'IN_REVIEW' | 'APPROVAL_PENDING' | 'APPROVED' | 'REJECTED' | 'ARCHIVED';
+    contentHash: string;
+    notes?: string;
+    sections: DraftSectionInput[];
+    citations?: CitationAnchorInput[];
+    baseVersionId?: string;
+}
+
 export class DraftRepository {
   private readonly matterRepository: MatterRepository;
 
@@ -244,19 +260,18 @@ export class DraftRepository {
     return rows.map((row) => toDraft(row.draft));
   }
 
-  public async createVersion(input: {
-    tenantId: string;
-    matterId: string;
-    draftId: string;
-    title: string;
-    createdBy: string;
-    source: 'HUMAN' | 'WORKFLOW' | 'SYSTEM';
-    status?: 'DRAFT' | 'IN_REVIEW' | 'APPROVAL_PENDING' | 'APPROVED' | 'REJECTED' | 'ARCHIVED';
-    contentHash: string;
-    notes?: string;
-    sections: DraftSectionInput[];
-    citations?: CitationAnchorInput[];
-  }): Promise<DraftVersionBundle> {
+  public async createVersion(input: DraftVersionWriteInput): Promise<DraftVersionBundle> {
+    return this.db.transaction(async (tx) => {
+      const db = tx as unknown as ForgeLexDatabase;
+      await tx.update(schema.matters).set({ updatedAt: sql`${schema.matters.updatedAt}` }).where(and(eq(schema.matters.id, input.matterId), eq(schema.matters.tenantId, input.tenantId)));
+      return new DraftRepository(db).insertVersionInTransaction(input);
+    });
+  }
+
+  /** Caller owns transaction; serialize all version writers under the draft lock. */
+  public async insertVersionInTransaction(input: DraftVersionWriteInput, options: { preserveDraft?: boolean } = {}): Promise<DraftVersionBundle> {
+    await this.db.update(schema.drafts).set({ updatedAt: sql`${schema.drafts.updatedAt}` }).where(and(eq(schema.drafts.id, input.draftId), eq(schema.drafts.tenantId, input.tenantId), eq(schema.drafts.matterId, input.matterId)));
+    if (input.baseVersionId && !(await this.getVersion(input.tenantId, input.matterId, input.draftId, input.baseVersionId))) throw new Error('DRAFT_PARENT_INVALID');
     const draft = await this.getDraft(input.tenantId, input.matterId, input.draftId);
     if (!draft) throw new Error('DRAFT_NOT_FOUND: rascunho não localizado no matter do tenant autenticado.');
     if (input.sections.length === 0) throw new Error('DRAFT_SECTIONS_REQUIRED: a versão precisa conter ao menos uma seção.');
@@ -327,17 +342,16 @@ export class DraftRepository {
       });
     });
 
-    await this.db.transaction(async (tx) => {
-      await tx.insert(schema.draftVersions).values({ ...version });
-      await tx.insert(schema.draftSections).values(sections.map((section) => ({
+      await this.db.insert(schema.draftVersions).values({ ...version, derivedFromVersionId: input.baseVersionId ?? null });
+      await this.db.insert(schema.draftSections).values(sections.map((section) => ({
         ...section,
         linkedFactIds: JSON.stringify(section.linkedFactIds),
         linkedEvidenceIds: JSON.stringify(section.linkedEvidenceIds),
         linkedAuthorityIds: JSON.stringify(section.linkedAuthorityIds),
         linkedThesisIds: JSON.stringify(section.linkedThesisIds),
       })));
-      if (citations.length > 0) await tx.insert(schema.citationAnchors).values(citations.map((citation) => ({ ...citation })));
-      await tx.update(schema.drafts).set({
+      if (citations.length > 0) await this.db.insert(schema.citationAnchors).values(citations.map((citation) => ({ ...citation })));
+      if (!options.preserveDraft) await this.db.update(schema.drafts).set({
         title: input.title,
         status: version.status,
         currentVersionId: version.id,
@@ -347,7 +361,6 @@ export class DraftRepository {
         eq(schema.drafts.tenantId, input.tenantId),
         eq(schema.drafts.matterId, input.matterId),
       ));
-    });
     return { version, sections, citations };
   }
 
