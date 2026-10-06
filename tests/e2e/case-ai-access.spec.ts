@@ -26,6 +26,12 @@ test('novo rascunho abre pelo recibo sem referências nem revisão automática',
   };
   const saved = await mcp(request, state.oauthTokens['app-one'], 'draft.save_from_ai', input);
   expect(saved.result.isError).toBe(false);
+  const factResponse = await request.post(`${api}/api/v2/matters/${state.matterId}/facts`, {
+    headers: { authorization: 'Bearer phase7-e2e-access-token' },
+    data: { statement: 'Fato sintético para referência ordinal.' },
+  });
+  expect(factResponse.status()).toBe(200);
+  const fact = await factResponse.json();
   await page.goto(saved.result.structuredContent.openPath);
   await expect(page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true })).toHaveValue(
     input.sections[0].content,
@@ -39,6 +45,14 @@ test('novo rascunho abre pelo recibo sem referências nem revisão automática',
   expect(details.currentVersion.version.status).toBe('DRAFT');
   expect(details.currentReviewRun).toBeUndefined();
   expect(details.documentReferences).toEqual([]);
+  await page.getByLabel('Tipo de fonte da citação').selectOption('FACT');
+  await page.getByLabel('Fonte da citação', { exact: true }).selectOption(fact.id);
+  await page.getByLabel('Texto da citação').fill('Fonte conferida nesta seção.');
+  await page.getByRole('button', { name: 'Adicionar citação', exact: true }).click();
+  const versionResponse = page.waitForResponse((r) => r.url().endsWith('/versions') && r.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Salvar nova versão', exact: true }).click();
+  expect((await versionResponse).status()).toBe(200);
+  await expect(page.getByText('Seção 1 · Fonte conferida nesta seção.', { exact: true })).toBeVisible();
 });
 test('receber texto preserva edição, permite prévia segura e exige adoção consciente', async ({ page, request }) => {
   const state = await (await request.get(api + '/e2e/state')).json();
@@ -65,7 +79,6 @@ test('receber texto preserva edição, permite prévia segura e exige adoção c
   await page.goto(`/app/rascunhos?matterId=${state.matterId}&draftId=${draft.draft.id}`);
   const editor = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
   await expect(editor).toHaveValue('Texto original preservado.');
-  await editor.fill('Minha edição ainda não salva.');
   const input = {
     matterId: state.matterId,
     expectedGrantRevision: manifest.result.structuredContent.grantRevision,
@@ -84,10 +97,23 @@ test('receber texto preserva edição, permite prévia segura e exige adoção c
   await page.getByRole('button', { name: 'Atualizar textos recebidos' }).click();
   const panel = page.getByRole('region', { name: 'Textos recebidos da IA' });
   await expect(panel).toContainText('Texto recebido da IA — Aguardando revisão');
-  await expect(editor).toHaveValue('Minha edição ainda não salva.');
+  await expect(editor).toHaveValue('Texto original preservado.');
   await panel.getByRole('button', { name: 'Ver texto recebido', exact: true }).click();
   await expect(panel).toContainText('<script>window.receiptExecuted=true</script>');
   expect(await page.evaluate(() => Boolean((window as any).receiptExecuted))).toBe(false);
+  const firstConcurrent = await request.post(api + root + '/drafts/' + draft.draft.id + '/versions', {
+    headers: { authorization: 'Bearer phase7-e2e-access-token' },
+    data: {
+      title: 'Rascunho para recebimento',
+      sections: [{ ordinal: 0, title: 'Fatos', content: 'Outra versão salva por uma aba.' }],
+    },
+  });
+  expect(firstConcurrent.status()).toBe(200);
+  await panel.getByRole('button', { name: 'Usar esta versão', exact: true }).click();
+  await expect(panel.getByRole('alert')).toContainText('A edição atual mudou');
+  await expect(editor).toHaveValue('Texto original preservado.');
+  await expect(page.getByRole('button', { name: 'Conferir rascunho', exact: true })).toBeDisabled();
+  await editor.fill('Minha edição ainda não salva.');
   await panel.getByRole('button', { name: 'Usar esta versão', exact: true }).click();
   await expect(panel.getByRole('button', { name: 'Continuar editando' })).toBeVisible();
   await panel.getByRole('button', { name: 'Continuar editando' }).click();
@@ -113,7 +139,7 @@ test('receber texto preserva edição, permite prévia segura e exige adoção c
       })
     ).json()
   ).versions;
-  expect(versions).toHaveLength(4);
+  expect(versions).toHaveLength(5);
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Baixar DOCX da versão salva' }).click();
   const zip = await JSZip.loadAsync(await readFile((await (await downloading).path())!));

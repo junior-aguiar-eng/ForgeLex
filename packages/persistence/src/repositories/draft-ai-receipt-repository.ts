@@ -192,6 +192,8 @@ export class DraftAiReceiptRepository {
     draftId: string,
     versionId: string,
   ): Promise<DraftAiReference[]> {
+    // Provenance belongs to the tenant's draft version, regardless of its current reviewer.
+    // Private receipt listing and adoption keep their separate user scope.
     const versions = new DraftRepository(this.db);
     const seen = new Set<string>();
     let current: string | undefined = versionId;
@@ -201,7 +203,14 @@ export class DraftAiReceiptRepository {
       const rows = await this.db
         .select()
         .from(s.draftAiReceipts)
-        .where(and(this.scope(owner, matterId, draftId), eq(s.draftAiReceipts.versionId, current)))
+        .where(
+          and(
+            eq(s.draftAiReceipts.tenantId, owner.tenantId),
+            eq(s.draftAiReceipts.matterId, matterId),
+            eq(s.draftAiReceipts.draftId, draftId),
+            eq(s.draftAiReceipts.versionId, current),
+          ),
+        )
         .limit(1);
       if (rows[0]) return JSON.parse(rows[0].referencesJson) as DraftAiReference[];
       const parents = await this.db

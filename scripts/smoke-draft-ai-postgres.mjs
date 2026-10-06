@@ -234,6 +234,10 @@ try {
   const snapshot = await drafts.reviewContext({ ...owner, matterId: f.matter.id }, bundle);
   assert.equal(snapshot.documentReferences[0].versionNumber, 1);
   assert.equal(snapshot.documentReferences[0].contentHash, f.doc.version.contentHash);
+  assert.deepEqual(
+    (await drafts.reviewContext({ ...owner, userId: randomUUID(), matterId: f.matter.id }, bundle)).documentReferences,
+    snapshot.documentReferences,
+  );
   const derived = await drafts.createVersion({
     ...owner,
     matterId: f.matter.id,

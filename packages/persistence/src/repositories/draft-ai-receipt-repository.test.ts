@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { caseAccessFixture } from './case-ai-access-repository.test.js';
 import { DraftRepository } from './draft-repository.js';
 import { DraftAiReceiptRepository } from './draft-ai-receipt-repository.js';
+import { reviewContextHash } from './draft-review-context.js';
 
 async function fixture(existing = false) {
   const f = await caseAccessFixture();
@@ -39,6 +40,41 @@ async function fixture(existing = false) {
   return { ...f, grantInput: f.input, drafts, draft, input, receipts: new DraftAiReceiptRepository(f.db) };
 }
 describe('Recebimento atômico', () => {
+  it('preserva proveniência e hash para outro revisor autorizado, sem abrir recibos privados', async () => {
+    const f = await fixture();
+    try {
+      const references = [
+        {
+          sectionOrdinal: 0,
+          kind: 'DOCUMENT' as const,
+          itemId: f.doc.document.id,
+          documentVersionId: f.doc.version.id,
+        },
+      ];
+      const saved = await f.receipts.receive(f.reader, { ...f.input, references });
+      const bundle = (await f.drafts.getVersion(f.owner.tenantId, f.matter.id, saved.draftId, saved.versionId))!;
+      const other = { ...f.owner, userId: 'outro-revisor' };
+      expect(await f.receipts.listForOwner(other, f.matter.id, saved.draftId)).toEqual([]);
+      expect(await f.receipts.getReferences(other, f.matter.id, saved.draftId, saved.versionId)).toEqual(references);
+      const original = await f.drafts.reviewContext({ ...f.owner, matterId: f.matter.id }, bundle);
+      const reviewed = await f.drafts.reviewContext({ ...other, matterId: f.matter.id }, bundle);
+      expect(reviewed.documentReferences).toEqual(original.documentReferences);
+      expect(reviewContextHash(reviewed)).toBe(reviewContextHash(original));
+      await expect(
+        f.receipts.adopt(other, f.matter.id, saved.draftId, saved.versionId, saved.versionId),
+      ).rejects.toThrow('DRAFT_RECEIPT_NOT_FOUND');
+      expect(
+        await f.receipts.getReferences(
+          { ...other, tenantId: 'outro-tenant' },
+          f.matter.id,
+          saved.draftId,
+          saved.versionId,
+        ),
+      ).toEqual([]);
+    } finally {
+      f.client.close();
+    }
+  });
   it('falha ao inserir recibo reverte também versão e rascunho', async () => {
     const f = await fixture();
     try {
