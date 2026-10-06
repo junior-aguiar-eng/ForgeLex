@@ -80,6 +80,20 @@ recria essa identidade quando o caso já não existe.
 
 ## Validação
 
+Produção exige `FORGELEX_MATTER_PURGE_JOURNAL_REQUIRED=true` e as configurações
+`FORGELEX_MATTER_PURGE_JOURNAL_BUCKET`, `FORGELEX_MATTER_PURGE_JOURNAL_MAC_SECRET`,
+`FORGELEX_MATTER_PURGE_JOURNAL_ENCRYPTION_KEY` (32 bytes em base64),
+`FORGELEX_MATTER_PURGE_JOURNAL_ANCHOR_ID` e `FORGELEX_MATTER_PURGE_KEY_SECRET`.
+Os dois secrets devem ter ao menos 32 bytes. Provisionar e verificar a âncora
+antes da candidata; a aplicação nunca a cria automaticamente. Conservar
+chaves e journal durante toda a vida dos backups recuperáveis. Alterar a
+chave sem recriptografar/verificar o journal bloqueia o serviço.
+
+O identificador opaco de uma confirmação pendente fica no sessionStorage
+da aba para consulta posterior, sem título, conteúdo ou confirmação digitada.
+`GET /api/v2/matter-purge-operations/:operationId` verifica a mesma operação,
+com sessão e autorização de gestão; não inicia outra exclusão.
+
 Evidências por SHA e ambiente serão registradas em
 `docs/product/matter-lifecycle-validation.md`. Teste unitário ou build não
 substitui PostgreSQL na CI, restore anterior, navegador e hosts nativos.

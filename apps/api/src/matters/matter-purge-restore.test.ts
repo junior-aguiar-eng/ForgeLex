@@ -1,6 +1,10 @@
 import { it, expect, vi } from 'vitest';
 import { journalFixture } from './matter-purge-journal.test.js';
 import { MatterPurgeRestoreGate, type PurgeRecoveryPort } from './matter-purge-restore.js';
+it('blocks an aborted journal that contradicts a committed database proof', async () => {
+  const f = journalFixture(); await f.journal.provisionAnchor(); await f.journal.prepare(f.intent); await f.journal.abortVerified(f.intent.operationId);
+  expect(await new MatterPurgeRestoreGate(f.journal, { localOutcome: async () => 'committed', reapply: vi.fn(), verifyResiduals: vi.fn() }).check()).toBe(false);
+});
 
 it('blocks unresolved intents in an older snapshot without inferring rollback', async () => {
   const f = journalFixture();

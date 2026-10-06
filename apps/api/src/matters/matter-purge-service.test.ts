@@ -3,6 +3,30 @@ import { caseAccessFixture } from '../../../../packages/persistence/src/reposito
 import { MatterPurgeRepository, MatterLifecycleRepository } from '@forgelex/persistence';
 import { journalFixture } from './matter-purge-journal.test.js';
 import { MatterPurgeService } from './matter-purge-service.js';
+import type { Client } from '@forgelex/persistence';
+it('never aborts when commit succeeded but its acknowledgement failed', async () => {
+  const f = await caseAccessFixture(); const j = journalFixture();
+  try {
+    await j.journal.provisionAnchor();
+    const target = { tenantId: f.owner.tenantId, matterId: f.matter.id };
+    const actor = { userId: f.owner.userId, authType: 'web_session' as const, role: 'member' as const, scopes: ['matter:write'] };
+    await new MatterLifecycleRepository(f.db).transition(target, actor, 'trash', { expectedLifecycleRevision: 0 });
+    const client = new Proxy(f.client, { get(connection, key) {
+      if (key === 'transaction') return async (...args: Parameters<Client['transaction']>) => {
+        const tx = await connection.transaction(...args);
+        return new Proxy(tx, { get(transaction, method) { if (method === 'commit') return async () => { await transaction.commit(); throw new Error('synthetic acknowledgement lost'); }; const value = Reflect.get(transaction, method); return typeof value === 'function' ? value.bind(transaction) : value; } });
+      };
+      const value = Reflect.get(connection, key); return typeof value === 'function' ? value.bind(connection) : value;
+    } });
+    const service = new MatterPurgeService(new MatterPurgeRepository(client), j.journal, 's'.repeat(32));
+    await expect(service.execute(target, actor, { expectedLifecycleRevision: 1, confirmation: f.matter.title })).rejects.toThrow('PURGE_CONFIRMATION_PENDING');
+    const events = await j.journal.list();
+    expect(events.some(event => event.kind === 'ABORTED')).toBe(false);
+    expect(events[0].kind).toBe('PREPARED');
+    if (events[0].kind === 'PREPARED') expect(await service.status(target.tenantId, actor, events[0].intent.operationId)).toEqual({ status: 'completed' });
+    expect(await f.matters.getMatter(target.tenantId, target.matterId)).toBeUndefined();
+  } finally { f.client.close(); }
+});
 it('finalizes the same committed operation after a terminal outage without repeating deletion', async () => {
   const f = await caseAccessFixture();
   const j = journalFixture();

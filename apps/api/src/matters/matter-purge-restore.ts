@@ -19,6 +19,7 @@ export class MatterPurgeRestoreGate {
     let reapplied = 0;
     for (const [operationId, group] of groups) {
       if (!group.prepared) throw new Error('MATTER_PURGE_RESTORE_BLOCKED');
+      if (group.terminal === 'ABORTED' && await this.recovery.localOutcome(operationId) === 'committed') throw new Error('MATTER_PURGE_RESTORE_BLOCKED');
       if (!group.terminal) {
         const outcome = await this.recovery.localOutcome(operationId);
         if (outcome === 'committed') {

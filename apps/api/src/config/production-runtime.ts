@@ -31,6 +31,7 @@ export function resolveProductionRuntime(
 
   const metricsToken = environment.FORGELEX_METRICS_TOKEN;
   if (!metricsToken) throw new Error('PRODUCTION_METRICS_TOKEN_REQUIRED');
+  if (environment.FORGELEX_MATTER_PURGE_JOURNAL_REQUIRED !== 'true') throw new Error('PRODUCTION_MATTER_PURGE_JOURNAL_REQUIRED');
 
   const port = Number(environment.PORT ?? 8080);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
