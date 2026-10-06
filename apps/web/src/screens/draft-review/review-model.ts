@@ -13,6 +13,7 @@ export function reviewSummary(run?: DraftReviewRun): string {
   return 'Conferência concluída';
 }
 export function reviewCheckLabel(check: DraftReviewCheck): string {
+  if (check.source?.method === 'CASE_DOCUMENT' && check.state === 'CONFIRMED') return 'Documento do caso localizado';
   if (check.code === 'AUTHORITY_NOT_FOUND') return 'Não localizada no acervo';
   if (check.kind === 'CITATION' && check.state === 'CONFIRMED')
     return check.source?.method === 'PERSISTED_CORPUS' ? 'Localizada no acervo' : 'Localizada na fonte consultada';

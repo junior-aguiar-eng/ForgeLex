@@ -73,10 +73,23 @@ export function SourcePanel({
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [linkedAnchors, setLinkedAnchors] = useState<Array<Anchor & { title: string }>>([]);
+  const [pinnedDocument, setPinnedDocument] = useState<{title:string;versionNumber:number;text:string}>();
   const { check } = point;
   const fact = facts.find((f) => f.id === check.targetId);
   const proof = evidence.find((e) => e.id === check.targetId);
   const authority = authorities.find((a) => a.id === check.targetId);
+  useEffect(() => {
+    let active = true;
+    setPinnedDocument(undefined);
+    if (check.targetType === 'DOCUMENT' && check.targetId && check.source?.documentVersionId) {
+      setBusy(true);
+      requestApiWithToken<{document:Document;version:{versionNumber:number;content:string};anchors:Anchor[]}>(`/api/v2/matters/${matterId}/documents/${check.targetId}/versions/${check.source.documentVersionId}`,token)
+        .then(bundle => { if(active)setPinnedDocument({title:bundle.document.title,versionNumber:bundle.version.versionNumber,text:check.source?.anchorId ? bundle.anchors.find(a=>a.id===check.source?.anchorId)?.text ?? 'Trecho indisponível.' : bundle.version.content}); })
+        .catch(()=>{if(active)setError('A versão documental não está disponível.');})
+        .finally(()=>{if(active)setBusy(false);});
+    }
+    return()=>{active=false;};
+  },[check,matterId,token]);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const element = dialog.current!;
@@ -183,6 +196,7 @@ export function SourcePanel({
       <div className="space-y-4 mt-4">
         {sectionTitle && <p className="text-sm font-semibold">Seção: {sectionTitle}</p>}
         <p className="text-sm">{check.message}</p>
+        {pinnedDocument && <div className="rounded-lg bg-stone-50 p-3 text-sm"><p className="font-semibold">{pinnedDocument.title} · versão {pinnedDocument.versionNumber}</p><p className="whitespace-pre-wrap">{pinnedDocument.text}</p></div>}
         {citationText && (
           <div className="text-sm rounded-lg bg-stone-50 p-3">
             <p className="font-semibold">Citação registrada</p>

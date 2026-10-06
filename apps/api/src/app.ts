@@ -1529,6 +1529,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   );
 
+  app.get('/api/v2/matters/:matterId/documents/:documentId/versions/:versionId', { preHandler: authAdapter.createPreHandler(['matter:read']) }, async (req, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    const p = z.object({ matterId:z.string().uuid(),documentId:z.string().uuid(),versionId:z.string().uuid() }).safeParse(req.params);
+    if(!p.success)return reply.code(400).send({error:'INVALID_INPUT'});
+    if(!matterRepository)return reply.code(503).send({error:'PERSISTENCE_UNAVAILABLE'});
+    const result=await matterRepository.getSpecificDocumentVersion(req.principal.tenantId,p.data.matterId,p.data.documentId,p.data.versionId);
+    if(!result)return reply.code(404).send({error:'DOCUMENT_NOT_FOUND',message:'A fonte não está disponível neste caso.'});
+    return result;
+  });
+
   app.get(
     '/api/v2/matters/:matterId/issues',
     { preHandler: authAdapter.createPreHandler(['matter:read']) },

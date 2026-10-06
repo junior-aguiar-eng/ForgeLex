@@ -30,6 +30,13 @@ export class DraftReviewService {
     };
     try {
       if (mode === 'ALL' || mode === 'CITATION') {
+        for (const document of snapshot.documentReferences) {
+          const ref = document.reference;
+          const section = bundle.sections.find(s => s.ordinal === ref.sectionOrdinal);
+          const available = document.available && Boolean(section);
+          add('CITATION', available ? 'CONFIRMED' : 'ATTENTION', available ? 'DOCUMENT_REFERENCE_AVAILABLE' : 'DOCUMENT_REFERENCE_NOT_FOUND', available ? `Documento do caso localizado na versão ${document.versionNumber}. O vínculo não confirma a veracidade do conteúdo.` : 'A versão documental ou o trecho referenciado não está disponível. Confira a fonte.', available ? undefined : 'BLOCKING', { sectionId: section?.id, targetType:'DOCUMENT',targetId:ref.itemId,humanConfirmed:false,source:{method:'CASE_DOCUMENT',documentVersionId:ref.documentVersionId,anchorId:ref.anchorId,contentHash:document.contentHash,capturedAt:document.createdAt} });
+        }
+        for (const section of bundle.sections) for (const thesisId of section.linkedThesisIds) if (!snapshot.theses.some(t => t.id === thesisId)) add('CITATION','ATTENTION','THESIS_NOT_FOUND','A tese vinculada não está disponível neste caso.','BLOCKING',{sectionId:section.id,targetType:'THESIS',targetId:thesisId});
         for (const citation of bundle.citations) {
           const section = bundle.sections.find(s => s.id === citation.sectionId);
           const links = citation.targetType === 'AUTHORITY' ? section?.linkedAuthorityIds : citation.targetType === 'FACT' ? section?.linkedFactIds : section?.linkedEvidenceIds;
@@ -58,7 +65,7 @@ export class DraftReviewService {
             } finally { if (timer) clearTimeout(timer); }
           }
         }));
-        if (!bundle.citations.length) add('CITATION', 'ATTENTION', 'CITATIONS_MISSING', 'Nenhuma referência cadastrada. A conferência não identifica citações no texto livre.', 'WARNING');
+        if (!bundle.citations.length && !snapshot.documentReferences.length && !snapshot.theses.length) add('CITATION', 'ATTENTION', 'CITATIONS_MISSING', 'Nenhuma referência cadastrada. A conferência não identifica citações no texto livre.', 'WARNING');
       }
       if (mode === 'ALL' || mode === 'FACT_SUPPORT' || mode === 'CITATION') {
         for (const section of bundle.sections) {

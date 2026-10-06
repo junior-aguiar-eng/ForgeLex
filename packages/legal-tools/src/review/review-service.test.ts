@@ -3,6 +3,8 @@ import { DraftingService } from '../drafting/draft-service.js';
 import {
   createDatabase,
   DraftRepository,
+  DraftAiReceiptRepository,
+  CaseAiAccessRepository,
   DraftReviewRunRepository,
   FactsEvidenceRepository,
   MatterRepository,
@@ -67,6 +69,22 @@ async function fixture(manual = false) {
 }
 
 describe('Conferência explicável', () => {
+  it('confere documento fixado sem alegar confirmação jurídica e bloqueia fonte ausente', async () => {
+    const f = await fixture();
+    try {
+      const doc = await f.deps.matters.ingestTextDocument({ ...f.context, createdBy: f.context.userId, title:'Documento selecionado',originalFilename:'d.txt',mimeType:'text/plain',content:'Versão original' });
+      const connection={clientId:'app',grantedAt:'2026-10-06T10:00:00.000Z'};
+      await new CaseAiAccessRepository(f.db).replace(f.context,f.context.matterId,{oauthClientId:connection.clientId,oauthGrantedAt:connection.grantedAt,expectedRevision:0,selection:{documents:[{documentId:doc.document.id,versionId:doc.version.id}],factIds:[],evidenceIds:[],thesisIds:[],authorityIds:[]},receivePermission:{enabled:true,destination:{mode:'NEW'}}});
+      const receipt=await new DraftAiReceiptRepository(f.db).receive({...f.context,oauthConnection:connection},{matterId:f.context.matterId,expectedGrantRevision:1,idempotencyKey:'documento-fixado-01',title:'Texto recebido',sections:[{ordinal:0,title:'Fatos',content:'Texto com fonte'}],references:[{sectionOrdinal:0,kind:'DOCUMENT',itemId:doc.document.id,documentVersionId:doc.version.id}]});
+      const first=await f.service.runAll(f.context,receipt.draftId);
+      expect(first.run.checks.find(c=>c.targetType==='DOCUMENT')).toMatchObject({state:'CONFIRMED',humanConfirmed:false,source:{method:'CASE_DOCUMENT',documentVersionId:doc.version.id}});
+      await f.client.execute({sql:'DELETE FROM document_anchors WHERE document_version_id = ?',args:[doc.version.id]});
+      await f.client.execute({sql:'DELETE FROM document_versions WHERE id = ?',args:[doc.version.id]});
+      const missing=await f.service.runAll(f.context,receipt.draftId);
+      expect(missing.blockingCount).toBeGreaterThan(0);
+      expect(missing.run.checks.some(c=>c.code==='DOCUMENT_REFERENCE_NOT_FOUND')).toBe(true);
+    } finally { f.client.close(); }
+  });
   it('vínculo alterado exige nova conferência inclusive para decisão de aprovação pendente', async () => {
     const f = await fixture();
     try {
