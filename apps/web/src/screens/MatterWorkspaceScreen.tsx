@@ -177,6 +177,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const [pendingPurge, setPendingPurge] = useState<string | null>(() => { try { return window.sessionStorage.getItem('forgelex_matter_purge_pending'); } catch { return null; } });
   const [caseBlocked, setCaseBlocked] = useState(false);
   const resourceRequest = useRef(0);
+  const matterListRequest = useRef(0);
   useEffect(() => { try { if (pendingPurge) window.sessionStorage.setItem('forgelex_matter_purge_pending', pendingPurge); else window.sessionStorage.removeItem('forgelex_matter_purge_pending'); } catch { /* The pending state remains visible without storage. */ } }, [pendingPurge]);
   const [token, setToken] = useState(initialToken);
   const [matters, setMatters] = useState<Matter[]>([]);
@@ -224,6 +225,8 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const readOnly = caseBlocked || (!!selectedMatter && (selectedMatter.lifecycleState ?? 'ACTIVE') !== 'ACTIVE');
   const canManage = canManageLifecycle(authStatus, account?.user.id, account?.membership.role, selectedMatter?.createdBy);
   const hasUnsaved = !!(documentTitle || filename || content || factStatement || evidenceTitle || timelineTitle || timelineDescription || issueStatement || memoQuery);
+  const currentSelection = useRef({ hasUnsaved, selectedMatterId, selectedMatter, matterView });
+  currentSelection.current = { hasUnsaved, selectedMatterId, selectedMatter, matterView };
   const discardMatterBuffers = () => { setDocumentTitle(''); setFilename(''); setContent(''); setFactStatement(''); setEvidenceTitle(''); setTimelineTitle(''); setTimelineDescription(''); setIssueStatement(''); setMemoQuery(''); setSupportFactId(''); setSupportEvidenceId(''); setSupportAnchorId(''); };
   useEffect(() => {
     const protect = (event: BeforeUnloadEvent) => { if (hasUnsaved) { event.preventDefault(); event.returnValue = ''; } };
@@ -241,8 +244,9 @@ export const MatterWorkspaceScreen: React.FC = () => {
       const result = await requestApi<LifecycleRecord>(`/api/v2/matters/${selectedMatterId}${document ? `/documents/${record.id}` : ''}/${action}`, { method: 'POST', body: JSON.stringify({ expectedLifecycleRevision: record.lifecycleRevision ?? 0, ...(action === 'purge' ? { confirmation } : {}) }) }, { sessionOnly: true });
       setLifecycleDialog(null);
       setNotice(action === 'purge' ? 'Exclusão definitiva concluída.' : action === 'restore' ? 'Conteúdo restaurado. O acesso pela IA precisa de nova autorização.' : action === 'archive' ? 'Conteúdo arquivado para consulta.' : 'Conteúdo movido para a lixeira.');
-      if (!document && hasUnsaved) {
+      if (!document && currentSelection.current.hasUnsaved) {
         setMatters(current => current.map(matter => matter.id === record.id ? { ...matter, ...result } : matter));
+        setRetainedMatter(current => current?.id === record.id ? { ...current, ...result } : current);
         if (action === 'purge') clearMatterResources();
       } else if (document) await loadMatterResources(selectedMatterId);
       else await loadMatters();
@@ -304,20 +308,25 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const loadMatters = async () => {
     if (!hasApiAccess) return;
+    const sequence = ++matterListRequest.current;
+    const requestedSelectionId = currentSelection.current.selectedMatterId;
+    const requestedView = currentSelection.current.matterView;
     setBusy(true);
     setError(null);
     try {
-      const response = await request<{ items: Matter[] }>(`/api/v2/matters?view=${matterView}`, token);
-      if (hasUnsaved && selectedMatterId && !response.items.some(matter => matter.id === selectedMatterId)) {
-        setRetainedMatter(selectedMatter); setMatters(response.items);
-        try { await loadMatterResources(selectedMatterId); }
+      const response = await request<{ items: Matter[] }>(`/api/v2/matters?view=${requestedView}`, token);
+      const current = currentSelection.current;
+      if (sequence !== matterListRequest.current || current.selectedMatterId !== requestedSelectionId) return;
+      if (current.hasUnsaved && current.selectedMatterId && !response.items.some(matter => matter.id === current.selectedMatterId)) {
+        setRetainedMatter(current.selectedMatter); setMatters(response.items);
+        try { await loadMatterResources(current.selectedMatterId); }
         catch { setCaseBlocked(true); clearMatterResources(); }
         setNotice('O caso saiu desta lista. Sua edição continua vinculada a ele e foi mantida.');
         return;
       }
       setMatters(response.items);
-      const nextMatterId = selectedMatterId && response.items.some((matter) => matter.id === selectedMatterId)
-        ? selectedMatterId
+      const nextMatterId = current.selectedMatterId && response.items.some((matter) => matter.id === current.selectedMatterId)
+        ? current.selectedMatterId
         : response.items.find(m=>m.id===new URLSearchParams(window.location.search).get('caso'))?.id ?? response.items[0]?.id ?? null;
       setSelectedMatterId(nextMatterId);
       if (nextMatterId) {
@@ -328,7 +337,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar os casos.');
     } finally {
-      setBusy(false);
+      if (sequence === matterListRequest.current) setBusy(false);
     }
   };
 

@@ -6,6 +6,28 @@ const headers = { authorization: 'Bearer phase7-e2e-access-token' };
 async function login(page: Page) {
   await page.goto('/entrar'); await page.getByLabel('E-mail', { exact: true }).fill('ciclo@forgelex.test'); await page.getByLabel('Senha', { exact: true }).fill('senha-sintetica-123'); await page.getByRole('button', { name: 'Entrar', exact: true }).click(); await page.waitForURL('**/app');
 }
+test('typing during a delayed refresh keeps the buffer attached to the original case', async ({ page, request }) => {
+  const title = `Caso com resposta atrasada ${Date.now()}`;
+  const matter = await (await request.post(api + '/api/v2/matters', { headers, data: { title } })).json();
+  await login(page); await page.goto(`/app/casos?caso=${matter.id}`);
+  await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+  await request.post(`${api}/api/v2/matters/${matter.id}/archive`, { headers, data: { expectedLifecycleRevision: 0 } });
+  let release!: () => void; let entered!: () => void;
+  const waiting = new Promise<void>(resolve => { release = resolve; }), started = new Promise<void>(resolve => { entered = resolve; });
+  await page.route('**/api/v2/matters?view=active', async route => { entered(); await waiting; await route.continue(); });
+  await page.getByRole('button', { name: 'Atualizar casos', exact: true }).click(); await started;
+  await page.getByLabel('Texto do documento').fill('Texto escrito enquanto a lista carrega.');
+  release();
+  await expect(page.getByLabel('Texto do documento')).toBeDisabled();
+  await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+  await expect(page.getByLabel('Texto do documento')).toHaveValue('Texto escrito enquanto a lista carrega.');
+  page.on('dialog', dialog => dialog.accept());
+  await page.getByLabel(`Opções de ${title}`, { exact: true }).click();
+  await page.getByRole('button', { name: 'Restaurar', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Restaurar', exact: true }).click();
+  await expect(page.getByLabel('Texto do documento')).toBeEnabled();
+  await expect(page.getByLabel('Texto do documento')).toHaveValue('Texto escrito enquanto a lista carrega.');
+});
 test('document menus preserve the case and unsaved case text survives archiving', async ({ page, request }) => {
   const title = `Caso com documento ${Date.now()}`;
   const matter = await (await request.post(api + '/api/v2/matters', { headers, data: { title } })).json();
