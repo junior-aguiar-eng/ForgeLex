@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { caseAccessFixture } from './case-ai-access-repository.test.js';
+import { caseAccessFixture } from './matter-lifecycle-fixture.js';
 import { MatterLifecycleRepository } from './matter-lifecycle-repository.js';
 import type { LifecycleActor } from '@forgelex/domain';
 const actor: LifecycleActor = { userId: 'author', role: 'member', authType: 'web_session', scopes: ['matter:write'] };

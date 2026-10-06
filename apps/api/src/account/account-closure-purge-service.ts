@@ -1,4 +1,5 @@
 import type { Client } from '@forgelex/persistence';
+import { createHash } from 'node:crypto';
 
 export interface PurgeSummary {
   deletedRows: number;
@@ -108,6 +109,12 @@ export class AccountClosurePurgeService {
     const transaction = await this.client.transaction();
     let deletedRows = 0;
     try {
+      if (!held.has('MATTERS')) {
+        const closures = await transaction.execute({ sql: 'SELECT tenant_hash FROM account_closures WHERE id=?', args: [input.closureId] });
+        const hash = String(closures.rows[0]?.tenant_hash ?? createHash('sha256').update(input.closureId).digest('hex'));
+        // Operational proof survives account closure, with its tenant association minimized.
+        await transaction.execute({ sql: 'UPDATE matter_lifecycle_purge_operations SET tenant_id=? WHERE tenant_id=?', args: [`tenant_closed_${hash.slice(0, 24)}`, input.tenantId] });
+      }
       for (const statement of tenantStatements) {
         if (held.has(statement.category)) continue;
         const result = await transaction.execute({
@@ -199,6 +206,10 @@ export class AccountClosurePurgeService {
     let privateRows = 0;
     let activeCredentials = 0;
     if (input.tenantId) {
+      if (!held.has('MATTERS')) {
+        const operations = await this.client.execute({ sql: 'SELECT COUNT(*) AS count FROM matter_lifecycle_purge_operations WHERE tenant_id=?', args: [input.tenantId] });
+        privateRows += numberFrom(operations as { rows: Array<Record<string, unknown>> });
+      }
       for (const statement of tenantStatements) {
         if (held.has(statement.category)) continue;
         const rows = await this.client.execute({

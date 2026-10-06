@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { caseAccessFixture } from './case-ai-access-repository.test.js';
+import { caseAccessFixture } from './matter-lifecycle-fixture.js';
 import { MatterLifecycleRepository } from './matter-lifecycle-repository.js';
 import { FactsEvidenceRepository } from './facts-evidence-repository.js';
 import { DraftRepository } from './draft-repository.js';

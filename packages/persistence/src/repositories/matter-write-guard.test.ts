@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { caseAccessFixture } from './case-ai-access-repository.test.js';
+import { caseAccessFixture } from './matter-lifecycle-fixture.js';
 import { MatterWriteGuard } from './matter-write-guard.js';
 import { MatterLifecycleRepository } from './matter-lifecycle-repository.js';
 it('does not execute writes after case revision or state changed', async () => {

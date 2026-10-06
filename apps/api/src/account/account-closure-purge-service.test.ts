@@ -44,6 +44,7 @@ describe('AccountClosurePurgeService', () => {
 
   it('remove todo conteúdo privado sem tocar outro tenant ou corpus global', async () => {
     const service = new AccountClosurePurgeService(client);
+    await client.execute({ sql: 'INSERT INTO matter_lifecycle_purge_operations(operation_id,tenant_id,matter_id,expected_lifecycle_revision,fingerprint,local_state,prepared_at,completed_at) VALUES(?,?,?,1,?,?,?,?)', args: ['a'.repeat(64), fixture.tenantId, fixture.matterId, 'b'.repeat(64), 'COMMITTED', now, now] });
 
     const result = await service.purgePrivateContent({
       tenantId: fixture.tenantId,
@@ -52,6 +53,10 @@ describe('AccountClosurePurgeService', () => {
     });
 
     expect(result.remainingPrivateRows).toBe(0);
+    const proofs = await client.execute({ sql: 'SELECT tenant_id,local_state FROM matter_lifecycle_purge_operations WHERE operation_id=?', args: ['a'.repeat(64)] });
+    expect(proofs.rows).toHaveLength(1);
+    expect(proofs.rows[0].tenant_id).not.toBe(fixture.tenantId);
+    expect(proofs.rows[0].local_state).toBe('COMMITTED');
     expect(
       await count(client, 'SELECT COUNT(*) AS count FROM matters WHERE tenant_id = ?', [fixture.otherTenantId]),
     ).toBeGreaterThan(0);

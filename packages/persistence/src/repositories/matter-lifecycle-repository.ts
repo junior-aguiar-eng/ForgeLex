@@ -2,6 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { LifecycleCommandSchema, type LifecycleAction, type LifecycleActor, type LifecycleCommand, type LifecycleResult, type LifecycleTarget, type LifecycleState } from '@forgelex/domain';
 import type { ForgeLexDatabase } from '../db.js';
 import * as s from '../schema/schema.js';
+import { createHash, randomUUID } from 'node:crypto';
 
 export function assertLifecycleManager(createdBy: string, actor: LifecycleActor): void {
   if (actor.authType !== 'web_session' || !actor.scopes.includes('matter:write') || (actor.userId !== createdBy && actor.role !== 'owner' && actor.role !== 'admin')) throw new Error('LIFECYCLE_FORBIDDEN');
@@ -54,14 +55,18 @@ export class MatterLifecycleRepository {
         ...(action === 'archive' ? { status: 'ARCHIVED', previousBusinessStatus: matter.status } : {}),
         ...(action === 'restore' && state === 'ACTIVE' ? { status: matter.previousBusinessStatus ?? matter.status, previousBusinessStatus: null } : {}),
       }).where(predicate);
+      let grantsRevoked = 0;
       if (action === 'archive' || action === 'trash') {
         const grants = await db.select().from(s.caseAiAccessGrants).where(and(eq(s.caseAiAccessGrants.tenantId, target.tenantId), eq(s.caseAiAccessGrants.matterId, target.matterId), eq(s.caseAiAccessGrants.status, 'ACTIVE')));
         for (const grant of grants) {
           const selection = JSON.parse(grant.selectionJson) as { documents: { documentId: string }[] };
           if (target.documentId && !selection.documents.some(doc => doc.documentId === target.documentId)) continue;
           await db.update(s.caseAiAccessGrants).set({ status: 'REVOKED', revision: grant.revision + 1, updatedAt: now, revokedAt: now }).where(eq(s.caseAiAccessGrants.id, grant.id));
+          grantsRevoked++;
         }
       }
+      const metadata = { matterId: target.matterId, documentId: target.documentId, action, result: state, lifecycleRevision: changes.lifecycleRevision, grantsRevoked };
+      await db.insert(s.auditLogs).values({ id: randomUUID(), tenantId: target.tenantId, userId: actor.userId, sessionId: `matter_${target.matterId}`, toolName: `matter.lifecycle.${action}`, status: 'SUCCESS', durationMs: 0, payloadHash: createHash('sha256').update(JSON.stringify(metadata)).digest('hex'), costMetadata: JSON.stringify(metadata), createdAt: now });
       return { id, lifecycleState: state, lifecycleRevision: changes.lifecycleRevision,
         archivedAt: action === 'archive' ? now : state === 'ACTIVE' ? undefined : row.archivedAt ?? undefined,
         trashedAt: action === 'trash' ? now : undefined,
