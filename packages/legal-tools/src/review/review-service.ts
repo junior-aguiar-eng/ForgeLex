@@ -68,6 +68,9 @@ export class DraftReviewService {
         if (!bundle.citations.length && !snapshot.documentReferences.length && !snapshot.theses.length) add('CITATION', 'ATTENTION', 'CITATIONS_MISSING', 'Nenhuma referência cadastrada. A conferência não identifica citações no texto livre.', 'WARNING');
       }
       if (mode === 'ALL' || mode === 'FACT_SUPPORT' || mode === 'CITATION') {
+        for (const source of snapshot.sourceAvailability.filter(source => !source.available)) {
+          add('FACT_SUPPORT', 'UNAVAILABLE', 'DOCUMENT_SOURCE_UNAVAILABLE', 'O documento vinculado está indisponível. Restaure a fonte e confira novamente.', 'BLOCKING', { targetType: 'DOCUMENT', targetId: source.documentId, humanConfirmed: false, source: { method: 'CASE_DOCUMENT', documentVersionId: source.versionId, anchorId: source.anchorId } });
+        }
         for (const section of bundle.sections) {
           for (const factId of section.linkedFactIds) {
             const support = snapshot.supports.find(s => s.fact.id === factId), extra = { sectionId: section.id, targetType: 'FACT' as const, targetId: factId };

@@ -57,6 +57,7 @@ export class CaseAiAccessRepository {
             eq(s.caseAiAccessGrants.oauthClientId, r.oauthConnection.clientId),
             eq(s.caseAiAccessGrants.oauthGrantedAt, r.oauthConnection.grantedAt),
             eq(s.caseAiAccessGrants.status, 'ACTIVE'),
+            sql`EXISTS (SELECT 1 FROM matters WHERE matters.id = ${s.caseAiAccessGrants.matterId} AND matters.tenant_id = ${s.caseAiAccessGrants.tenantId} AND matters.lifecycle_state = 'ACTIVE')`,
           ),
         )
         .orderBy(s.caseAiAccessGrants.id)

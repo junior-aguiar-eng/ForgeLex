@@ -12,6 +12,8 @@ import {
   LegalDocumentSchema,
   Matter,
   MatterSchema,
+  type LifecycleView,
+  type LifecycleTarget,
 } from '@forgelex/domain';
 import { ForgeLexDatabase } from '../db.js';
 import * as schema from '../schema/schema.js';
@@ -150,23 +152,23 @@ export class MatterRepository {
       .from(schema.matters)
       .where(and(eq(schema.matters.id, matterId), eq(schema.matters.tenantId, tenantId)))
       .limit(1);
-    return rows[0] ? toMatter(rows[0]) : undefined;
+    return rows[0] && rows[0].lifecycleState !== 'PURGED' ? toMatter(rows[0]) : undefined;
   }
 
-  public async listMatters(tenantId: string): Promise<Matter[]> {
+  public async listMatters(tenantId: string, view: LifecycleView = 'active'): Promise<Matter[]> {
     const rows = await this.db
       .select()
       .from(schema.matters)
-      .where(eq(schema.matters.tenantId, tenantId))
+      .where(and(eq(schema.matters.tenantId, tenantId), eq(schema.matters.lifecycleState, view === 'active' ? 'ACTIVE' : view === 'archived' ? 'ARCHIVED' : 'TRASHED')))
       .orderBy(desc(schema.matters.updatedAt));
     return rows.map(toMatter);
   }
 
-  public async listDocuments(tenantId: string, matterId: string): Promise<LegalDocument[]> {
+  public async listDocuments(tenantId: string, matterId: string, view: LifecycleView = 'active'): Promise<LegalDocument[]> {
     const rows = await this.db
       .select()
       .from(schema.legalDocuments)
-      .where(and(eq(schema.legalDocuments.tenantId, tenantId), eq(schema.legalDocuments.matterId, matterId)))
+      .where(and(eq(schema.legalDocuments.tenantId, tenantId), eq(schema.legalDocuments.matterId, matterId), eq(schema.legalDocuments.lifecycleState, view === 'active' ? 'ACTIVE' : view === 'archived' ? 'ARCHIVED' : 'TRASHED')))
       .orderBy(desc(schema.legalDocuments.createdAt));
     return rows.map(toDocument);
   }
@@ -257,14 +259,14 @@ export class MatterRepository {
     };
   }
 
-  public async getDocumentVersion(tenantId: string, documentId: string): Promise<{ document: LegalDocument; version: DocumentVersion; anchors: DocumentAnchor[] } | undefined> {
+  public async getDocumentVersion(tenantId: string, documentId: string, audience: 'web_history' | 'work' | 'web_retained' = 'web_history'): Promise<IngestedTextDocument | undefined> {
     const documentRows = await this.db
       .select()
       .from(schema.legalDocuments)
       .where(and(eq(schema.legalDocuments.id, documentId), eq(schema.legalDocuments.tenantId, tenantId)))
       .limit(1);
-    const document = documentRows[0] ? toDocument(documentRows[0]) : undefined;
-    if (!document) return undefined;
+    const document = documentRows[0] && documentRows[0].lifecycleState !== 'PURGED' ? toDocument(documentRows[0]) : undefined;
+    if (!document || !(await this.canReadDocument(document, audience))) return undefined;
 
     const versionRows = await this.db
       .select()
@@ -283,12 +285,34 @@ export class MatterRepository {
     return { document, version, anchors: anchorRows.map(toAnchor) };
   }
 
-  public async getSpecificDocumentVersion(tenantId:string,matterId:string,documentId:string,versionId:string):Promise<{document:LegalDocument;version:DocumentVersion;anchors:DocumentAnchor[]}|undefined> {
+  public async getSpecificDocumentVersion(tenantId:string,matterId:string,documentId:string,versionId:string,audience: 'web_history' | 'work' | 'web_retained' = 'web_history'):Promise<IngestedTextDocument|undefined> {
     const documents=await this.db.select().from(schema.legalDocuments).where(and(eq(schema.legalDocuments.tenantId,tenantId),eq(schema.legalDocuments.matterId,matterId),eq(schema.legalDocuments.id,documentId))).limit(1);
-    if(!documents[0]) return undefined;
+    if(!documents[0] || documents[0].lifecycleState === 'PURGED' || !(await this.canReadDocument(toDocument(documents[0]), audience))) return undefined;
     const versions=await this.db.select().from(schema.documentVersions).where(and(eq(schema.documentVersions.documentId,documentId),eq(schema.documentVersions.id,versionId))).limit(1);
     if(!versions[0]) return undefined;
     const anchors=await this.db.select().from(schema.documentAnchors).where(eq(schema.documentAnchors.documentVersionId,versionId)).orderBy(schema.documentAnchors.ordinal);
     return {document:toDocument(documents[0]),version:toVersion(versions[0]),anchors:anchors.map(toAnchor)};
+  }
+
+  public async getMatterForWork(tenantId: string, matterId: string): Promise<Matter | undefined> {
+    const matter = await this.getMatter(tenantId, matterId);
+    return matter?.lifecycleState === 'ACTIVE' ? matter : undefined;
+  }
+
+  private async canReadDocument(document: LegalDocument, audience: 'web_history' | 'work' | 'web_retained'): Promise<boolean> {
+    const matter = await this.getMatter(document.tenantId, document.matterId);
+    if (!matter || matter.lifecycleState === 'PURGED' || document.lifecycleState === 'PURGED') return false;
+    if (audience === 'web_retained') return true;
+    if (document.lifecycleState === 'TRASHED' || matter.lifecycleState === 'TRASHED') return false;
+    return audience === 'web_history' || (document.lifecycleState === 'ACTIVE' && matter.lifecycleState === 'ACTIVE');
+  }
+
+  public async getDocumentSource(target: LifecycleTarget, versionId: string, audience: 'web_history' | 'work'): Promise<{ availability: 'AVAILABLE' | 'ARCHIVED' | 'UNAVAILABLE'; lifecycleRevision: number; source?: IngestedTextDocument }> {
+    const rows = await this.db.select().from(schema.legalDocuments).where(and(eq(schema.legalDocuments.id, target.documentId ?? ''), eq(schema.legalDocuments.tenantId, target.tenantId), eq(schema.legalDocuments.matterId, target.matterId))).limit(1);
+    const row = rows[0];
+    if (!row) return { availability: 'UNAVAILABLE', lifecycleRevision: 0 };
+    const source = await this.getSpecificDocumentVersion(target.tenantId, target.matterId, row.id, versionId, audience);
+    const parent = await this.getMatter(target.tenantId, target.matterId);
+    return { availability: source ? row.lifecycleState === 'ARCHIVED' || parent?.lifecycleState === 'ARCHIVED' ? 'ARCHIVED' : 'AVAILABLE' : 'UNAVAILABLE', lifecycleRevision: row.lifecycleRevision, ...(source ? { source } : {}) };
   }
 }
