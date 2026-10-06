@@ -74,6 +74,8 @@ jobs:
       - run: pnpm test:postgres
       - name: AI draft receipts and transaction concurrency (isolated PostgreSQL)
         run: node scripts/smoke-draft-ai-postgres.mjs
+      - name: Matter lifecycle concurrency and real backup restore (isolated PostgreSQL)
+        run: node scripts/smoke-matter-lifecycle-postgres.mjs
       - name: Research history and judgment year (local PostgreSQL)
         run: node scripts/smoke-research-postgres.mjs
         env:
@@ -115,6 +117,7 @@ jobs:
       - run: pnpm test:e2e:documents
       - run: pnpm test:e2e:draft-review
       - run: pnpm test:e2e:case-ai
+      - run: pnpm exec playwright test --config playwright.matter-lifecycle.config.ts
       - run: pnpm test:e2e:research
 
   e2e-public:
