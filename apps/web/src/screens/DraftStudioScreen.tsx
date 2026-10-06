@@ -3,7 +3,10 @@ import { ReviewPanel } from './draft-review/ReviewPanel';
 import { SourcePanel } from './draft-review/SourcePanel';
 import { type DraftReviewRun, type ReviewPoint, type DraftReviewFinding } from './draft-review/review-model';
 import { AlertCircle, CheckCircle2, FileText, LockKeyhole, Plus, RefreshCw, Send, ShieldAlert } from 'lucide-react';
-import { requestApiWithToken, resolveApiOrigin } from '../api-client';
+import { requestApiWithToken, requestApi, resolveApiOrigin } from '../api-client';
+import { ReceivedDraftPanel } from './draft-ai/ReceivedDraftPanel';
+import type { Receipt } from './draft-ai/received-draft-model';
+import type { SavedDraftExport } from '../documents/draft-docx';
 import { useAuth } from '../auth/AuthContext';
 
 interface Matter {
@@ -81,6 +84,7 @@ interface DraftDetails {
   latestReviewRun?: DraftReviewRun;
   currentReviewRun?: DraftReviewRun;
   reviewContextChanged: boolean;
+  documentReferences?: SavedDraftExport['documentReferences'];
 }
 
 interface DraftWriteResponse {
@@ -99,6 +103,7 @@ interface Citation {
 }
 
 interface EditableSection {
+  ordinal?: number;
   title: string;
   content: string;
   linkedFactIds: string[];
@@ -175,6 +180,7 @@ export const DraftStudioScreen: React.FC = () => {
   const [reviewStatus, setReviewStatus] = useState<string | null>(null);
   const [approvalToken, setApprovalToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [adopting,setAdopting]=useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedPayload, setSavedPayload] = useState('');
@@ -185,6 +191,7 @@ export const DraftStudioScreen: React.FC = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const historyRequest = useRef(0);
   const selection = useRef(0);
+  const editingVersion=useRef<string>();
   const hasApiAccess = Boolean(token.trim()) || authStatus === 'authenticated' || authStatus === 'legacy';
 
   const selectedMatter = useMemo(() => matters.find((matter) => matter.id === selectedMatterId), [matters, selectedMatterId]);
@@ -205,8 +212,10 @@ export const DraftStudioScreen: React.FC = () => {
     try {
       const response = await request<{ items: Matter[] }>('/api/v2/matters', token);
       setMatters(response.items);
+      if(selectedMatterId)await loadDrafts(selectedMatterId);
       if (response.items.length > 0 && !selectedMatterId) {
-        await selectMatter(response.items[0].id);
+        const initial = new URLSearchParams(window.location.search).get('matterId');
+        await selectMatter(response.items.some(m=>m.id===initial)?initial!:response.items[0].id);
       }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar os casos.');
@@ -251,6 +260,7 @@ export const DraftStudioScreen: React.FC = () => {
     setPoint(undefined); setHistoryVersion(''); setHistoryRuns([]); setReviewStatus(null); setApprovalToken(null); setSavedPayload(''); setContextChanged(false);
     setSelectedMatterId(matterId);
     setSelectedDraftId('');
+    editingVersion.current=undefined;
     setDetails(null);
     setDraftTitle('Minuta para revisão humana');
     setSections(initialSections());
@@ -266,9 +276,9 @@ export const DraftStudioScreen: React.FC = () => {
     }
   };
 
-  const selectDraft = async (draftId: string) => {
+  const selectDraft = async (draftId: string, adopted = false) => {
     if (!selectedMatterId) return;
-    if (dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir este rascunho?')) return;
+    if (!adopted && dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir este rascunho?')) return;
     const sequence = ++selection.current;
     setPoint(undefined); setHistoryVersion(''); setHistoryRuns([]); setReviewStatus(null); setApprovalToken(null); setContextChanged(false);
     setSelectedDraftId(draftId);
@@ -279,10 +289,12 @@ export const DraftStudioScreen: React.FC = () => {
       if (sequence !== selection.current) return;
       setDetails(response);
       if (response.currentVersion) {
+        editingVersion.current=response.currentVersion.version.id;
         const version = response.currentVersion;
-        setSavedPayload(JSON.stringify({ title: response.draft.title, sections: version.sections.map((s, ordinal) => ({ ordinal, title: s.title, content: s.content, linkedFactIds: s.linkedFactIds, linkedEvidenceIds: s.linkedEvidenceIds, linkedAuthorityIds: s.linkedAuthorityIds, linkedThesisIds: s.linkedThesisIds })), citations: version.citations.map(c => ({ sectionOrdinal: version.sections.find(s => s.id === c.sectionId)?.ordinal ?? 0, targetType: c.targetType, targetId: c.targetId, citationText: c.citationText, verified: c.verified })) }));
+        setSavedPayload(JSON.stringify({ title: response.draft.title, sections: version.sections.map((s) => ({ ordinal:s.ordinal, title: s.title, content: s.content, linkedFactIds: s.linkedFactIds, linkedEvidenceIds: s.linkedEvidenceIds, linkedAuthorityIds: s.linkedAuthorityIds, linkedThesisIds: s.linkedThesisIds })), citations: version.citations.map(c => ({ sectionOrdinal: version.sections.find(s => s.id === c.sectionId)?.ordinal ?? 0, targetType: c.targetType, targetId: c.targetId, citationText: c.citationText, verified: c.verified })) }));
         setDraftTitle(response.draft.title);
         setSections(response.currentVersion.sections.map((section) => ({
+          ordinal:section.ordinal,
           title: section.title,
           content: section.content,
           linkedFactIds: section.linkedFactIds,
@@ -307,7 +319,7 @@ export const DraftStudioScreen: React.FC = () => {
 
   const exportSavedVersion = async () => {
     if (!details?.currentVersion || exporting) return;
-    const saved = { title: details.draft.title, ...details.currentVersion };
+    const saved = { title: details.draft.title, ...details.currentVersion, documentReferences:details.documentReferences };
     setExporting(true);
     setError(null);
     try {
@@ -320,7 +332,7 @@ export const DraftStudioScreen: React.FC = () => {
 
   const payload = () => ({
     title: draftTitle,
-    sections: sections.map((section, ordinal) => ({ ordinal, ...section })),
+    sections: sections.map((section, ordinal) => ({ ordinal:section.ordinal??ordinal, ...section })),
     citations,
   });
   const dirty = Boolean(selectedMatterId && JSON.stringify(payload()) !== (details ? savedPayload : JSON.stringify({ title: 'Minuta para revisão humana', sections: initialSections().map((s, ordinal) => ({ ordinal, ...s })), citations: [] })));
@@ -403,7 +415,7 @@ export const DraftStudioScreen: React.FC = () => {
 
   const saveDraft = async (event?: React.FormEvent) => {
     event?.preventDefault();
-    if (!selectedMatterId || !draftTitle.trim() || sections.some((section) => section.title.trim().length < 3)) return;
+    if (!selectedMatterId || !draftTitle.trim() || sections.some((section) => section.title.trim().length < 1)) return;
     setBusy(true);
     setError(null);
     setApprovalToken(null);
@@ -411,10 +423,11 @@ export const DraftStudioScreen: React.FC = () => {
     const content = JSON.stringify(payload());
     try {
       const response = selectedDraftId
-        ? await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/versions`, token, { method: 'POST', body: content })
+        ? await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/versions`, token, { method: 'POST', body: JSON.stringify({...payload(),baseVersionId:editingVersion.current}) })
         : await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts`, token, { method: 'POST', body: content });
       if (sequence !== selection.current) return;
       setSelectedDraftId(response.draft.id);
+      editingVersion.current=response.version.id;
       setSavedPayload(content);
       setContextChanged(false);
       await loadDrafts(selectedMatterId);
@@ -430,6 +443,32 @@ export const DraftStudioScreen: React.FC = () => {
       setBusy(false);
     }
   };
+
+  const useReceived = async (receipt:Receipt,choice:'SAVE'|'DISCARD'|'ADOPT') => {
+    setAdopting(true);
+    try {
+    const sequence=selection.current;
+    let expected=details?.draft.currentVersionId??null;
+    if(choice==='SAVE'){
+      const saved=await saveDraft();
+      if(!saved)throw new Error('Não foi possível salvar sua edição. O texto foi mantido.');
+      expected=saved.version.id;
+    }
+    if(sequence!==selection.current)throw new Error('O caso aberto mudou.');
+    try{
+      await requestApi(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/ai-receipts/${receipt.id}/adopt`,{method:'POST',body:JSON.stringify({expectedCurrentVersionId:expected})},{sessionOnly:true});
+    }catch(error){await refreshDetails().catch(()=>undefined);throw error;}
+    if(sequence!==selection.current)return;
+    await selectDraft(selectedDraftId,true);
+    setReviewStatus('Texto recebido da IA — Aguardando revisão');
+    } finally {setAdopting(false);}
+  };
+
+  const initialDraftOpened=useRef(false);
+  useEffect(()=>{
+    const target=new URLSearchParams(window.location.search).get('draftId');
+    if(!initialDraftOpened.current&&target&&selectedMatterId&&drafts.some(d=>d.id===target)){initialDraftOpened.current=true;void selectDraft(target);}
+  },[drafts,selectedMatterId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const runReview = async (saved?: DraftWriteResponse) => {
     const versionId = saved?.version.id ?? details?.currentVersion?.version.id;
@@ -512,10 +551,10 @@ export const DraftStudioScreen: React.FC = () => {
           <aside className="champagne-card bg-white rounded-2xl p-5 space-y-5">
             <div className="flex items-center justify-between"><h2 className="font-editorial text-xl font-bold text-stone-900">Casos</h2><span className="text-xs text-stone-500">{matters.length}</span></div>
             <div className="space-y-2">
-              {matters.map((matter) => <button key={matter.id} disabled={busy} onClick={() => void selectMatter(matter.id)} className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedMatterId === matter.id ? 'border-cognac-400 bg-cognac-50' : 'border-champagne-border hover:border-cognac-300'}`}><span className="block text-sm font-semibold text-stone-900 truncate">{matter.title}</span><span className="text-[11px] text-stone-500">{matter.practiceArea ?? 'Área não informada'}</span></button>)}
+              {matters.map((matter) => <button key={matter.id} disabled={busy||adopting} onClick={() => void selectMatter(matter.id)} className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedMatterId === matter.id ? 'border-cognac-400 bg-cognac-50' : 'border-champagne-border hover:border-cognac-300'}`}><span className="block text-sm font-semibold text-stone-900 truncate">{matter.title}</span><span className="text-[11px] text-stone-500">{matter.practiceArea ?? 'Área não informada'}</span></button>)}
               {matters.length === 0 && <p className="text-xs text-stone-500 leading-relaxed">Nenhum caso disponível para sua conta.</p>}
             </div>
-            {selectedMatter && <div className="pt-4 border-t border-stone-100 space-y-2"><p className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Rascunhos do caso</p>{drafts.map((draft) => <button key={draft.id} disabled={busy} onClick={() => void selectDraft(draft.id)} className={`w-full text-left p-3 rounded-xl border ${selectedDraftId === draft.id ? 'border-cognac-400 bg-cognac-50' : 'border-champagne-border hover:border-cognac-300'}`}><span className="block text-sm font-semibold text-stone-800 truncate">{draft.title}</span><span className="text-[11px] text-stone-500">{statusLabel[draft.status]}</span></button>)}{drafts.length === 0 && <p className="text-xs text-stone-500">Nenhum rascunho neste caso.</p>}</div>}
+            {selectedMatter && <div className="pt-4 border-t border-stone-100 space-y-2"><p className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Rascunhos do caso</p>{drafts.map((draft) => <button key={draft.id} disabled={busy||adopting} onClick={() => void selectDraft(draft.id)} className={`w-full text-left p-3 rounded-xl border ${selectedDraftId === draft.id ? 'border-cognac-400 bg-cognac-50' : 'border-champagne-border hover:border-cognac-300'}`}><span className="block text-sm font-semibold text-stone-800 truncate">{draft.title}</span><span className="text-[11px] text-stone-500">{statusLabel[draft.status]}</span></button>)}{drafts.length === 0 && <p className="text-xs text-stone-500">Nenhum rascunho neste caso.</p>}</div>}
           </aside>
 
           <div className="space-y-6">
@@ -537,11 +576,12 @@ export const DraftStudioScreen: React.FC = () => {
                   <div><button type="submit" disabled={busy || thesisTitle.trim().length < 3 || thesisStatement.trim().length < 10} className="btn-secondary disabled:opacity-50"><Plus className="h-4 w-4" aria-hidden="true" />Registrar tese</button></div>
                 </form>
               </section>
-              <form onSubmit={saveDraft} className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
+              {selectedDraftId && authStatus==='authenticated' && <ReceivedDraftPanel key={`${selectedMatterId}:${selectedDraftId}`} matterId={selectedMatterId} draftId={selectedDraftId} currentVersionId={details?.draft.currentVersionId} dirty={dirty} onAdopt={useReceived} />}
+              <form onSubmit={saveDraft} className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5"><fieldset disabled={adopting} className="contents">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><span className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">{selectedDraftId ? 'Nova versão' : 'Novo rascunho'}</span><h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">{selectedMatter.title}</h2></div><span className="text-xs text-stone-500">{selectedDraftId && details ? `Versão ${details.currentVersion?.version.versionNumber ?? '-'}` : 'Estrutura inicial'}</span></div>
                 <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} aria-label="Título do rascunho" placeholder="Título do rascunho" className="w-full px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm" />
                 <div className="space-y-3">{sections.map((section, index) => <div key={index} className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-3"><div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-cognac-100 text-cognac-800 text-xs font-bold flex items-center justify-center">{index + 1}</span><input aria-label={`Título da seção ${index + 1}`} value={section.title} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} className="flex-1 bg-transparent text-sm font-semibold text-stone-900 border-b border-transparent focus:border-cognac-300 focus:outline-none" /></div><textarea id={`draft-section-${index}`} aria-label={`Conteúdo da seção ${index + 1}`} value={section.content} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, content: event.target.value } : item))} rows={3} placeholder="Conteúdo da seção para conferência..." className="w-full px-3 py-2 rounded-lg border border-champagne-border bg-white text-sm resize-y" /><div className="grid gap-3 border-t border-stone-100 pt-3 md:grid-cols-2"><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Vínculos do mapa</legend><div className="space-y-1">{theses.map((thesis) => <label key={thesis.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedThesisIds.includes(thesis.id)} onChange={() => toggleLink(index, 'linkedThesisIds', thesis.id)} className="mt-0.5 accent-cognac-700" /><span>{thesis.title}</span></label>)}{theses.length === 0 && <p className="text-xs text-stone-500">Sem teses disponíveis.</p>}</div></fieldset><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Fatos, provas e julgados</legend><div className="grid gap-1 sm:grid-cols-2">{facts.map((fact) => <label key={fact.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedFactIds.includes(fact.id)} onChange={() => toggleLink(index, 'linkedFactIds', fact.id)} className="mt-0.5 accent-cognac-700" /><span>Fato: {fact.statement}</span></label>)}{evidence.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedEvidenceIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedEvidenceIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Prova: {item.title}</span></label>)}{authorities.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedAuthorityIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedAuthorityIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Julgado: {item.authority.processNumber}</span></label>)}</div></fieldset></div></div>)}</div>
-                <div className="rounded-xl border border-cognac-100 bg-cognac-50/40 p-4 space-y-3"><div><p className="text-xs font-bold text-stone-800">Âncoras de citação</p><p className="text-[11px] text-stone-500">Registre a fonte usada e marque como verificada somente após a conferência humana.</p></div><div className="grid gap-3 md:grid-cols-5"><select aria-label="Seção da citação" value={citationSectionOrdinal} onChange={(event) => setCitationSectionOrdinal(Number(event.target.value))} className="input-control"><option value={0}>Seção 1</option>{sections.slice(1).map((_, index) => <option key={index + 1} value={index + 1}>Seção {index + 2}</option>)}</select><select aria-label="Tipo de fonte da citação" value={citationTargetType} onChange={(event) => { setCitationTargetType(event.target.value as Citation['targetType']); setCitationTargetId(''); }} className="input-control"><option value="AUTHORITY">Julgado</option><option value="FACT">Fato</option><option value="EVIDENCE">Prova</option></select><select aria-label="Fonte da citação" value={citationTargetId} onChange={(event) => setCitationTargetId(event.target.value)} className="input-control md:col-span-2"><option value="">Selecione a fonte</option>{citationTargets.map((target) => <option key={target.id} value={target.id}>{target.label}</option>)}</select><input value={citationText} onChange={(event) => setCitationText(event.target.value)} aria-label="Texto da citação" placeholder="Texto da citação" className="input-control" /></div><div className="flex flex-wrap items-center gap-4"><label className="flex items-center gap-2 text-xs text-stone-700"><input type="checkbox" checked={citationVerified} onChange={(event) => setCitationVerified(event.target.checked)} className="accent-cognac-700" />Conferida por mim</label><button type="button" onClick={addCitation} disabled={!citationTargetId || citationText.trim().length < 3} className="btn-secondary disabled:opacity-50">Adicionar citação</button></div>{citations.length > 0 && <div className="space-y-1">{citations.map((citation, index) => <div key={`${citation.targetId}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-xs text-stone-700"><span>Seção {citation.sectionOrdinal + 1} · {citation.citationText}</span><span className={citation.verified ? 'text-emerald-700' : 'text-amber-700'}>{citation.verified ? 'Conferência humana registrada' : 'Conferência humana pendente'}</span></div>)}</div>}</div>
+                <div className="rounded-xl border border-cognac-100 bg-cognac-50/40 p-4 space-y-3"><div><p className="text-xs font-bold text-stone-800">Âncoras de citação</p><p className="text-[11px] text-stone-500">Registre a fonte usada e marque como verificada somente após a conferência humana.</p></div><div className="grid gap-3 md:grid-cols-5"><select aria-label="Seção da citação" value={citationSectionOrdinal} onChange={(event) => setCitationSectionOrdinal(Number(event.target.value))} className="input-control">{sections.map((section,index)=><option key={section.ordinal??index} value={section.ordinal??index}>Seção {index+1}</option>)}</select><select aria-label="Tipo de fonte da citação" value={citationTargetType} onChange={(event) => { setCitationTargetType(event.target.value as Citation['targetType']); setCitationTargetId(''); }} className="input-control"><option value="AUTHORITY">Julgado</option><option value="FACT">Fato</option><option value="EVIDENCE">Prova</option></select><select aria-label="Fonte da citação" value={citationTargetId} onChange={(event) => setCitationTargetId(event.target.value)} className="input-control md:col-span-2"><option value="">Selecione a fonte</option>{citationTargets.map((target) => <option key={target.id} value={target.id}>{target.label}</option>)}</select><input value={citationText} onChange={(event) => setCitationText(event.target.value)} aria-label="Texto da citação" placeholder="Texto da citação" className="input-control" /></div><div className="flex flex-wrap items-center gap-4"><label className="flex items-center gap-2 text-xs text-stone-700"><input type="checkbox" checked={citationVerified} onChange={(event) => setCitationVerified(event.target.checked)} className="accent-cognac-700" />Conferida por mim</label><button type="button" onClick={addCitation} disabled={!citationTargetId || citationText.trim().length < 3} className="btn-secondary disabled:opacity-50">Adicionar citação</button></div>{citations.length > 0 && <div className="space-y-1">{citations.map((citation, index) => <div key={`${citation.targetId}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-xs text-stone-700"><span>Seção {citation.sectionOrdinal + 1} · {citation.citationText}</span><span className={citation.verified ? 'text-emerald-700' : 'text-amber-700'}>{citation.verified ? 'Conferência humana registrada' : 'Conferência humana pendente'}</span></div>)}</div>}</div>
                 <div className="flex flex-wrap gap-3"><button type="submit" disabled={busy || !draftTitle.trim()} className="px-4 py-2.5 rounded-xl bg-cognac-700 hover:bg-cognac-800 disabled:bg-stone-300 text-white text-sm font-semibold"><Plus className="w-4 h-4 inline mr-2" />{selectedDraftId ? 'Salvar nova versão' : 'Criar rascunho'}</button>{selectedDraftId && <><button type="button" onClick={() => void runReview()} disabled={busy || dirty} className="px-4 py-2.5 rounded-xl border border-cognac-200 text-cognac-800 text-sm font-semibold">Conferir rascunho</button>{dirty && <button type="button" onClick={() => void saveAndReview()} disabled={busy} className="btn-secondary">Salvar e conferir</button>}<button type="button" onClick={() => void requestApproval()} disabled={busy || !approvalReady} className="px-4 py-2.5 rounded-xl border border-amber-300 text-amber-800 text-sm font-semibold"><Send className="w-4 h-4 inline mr-2" />Encaminhar à aprovação</button></>}</div>
                 <p className="text-[11px] text-stone-500">Salve as alterações antes de conferir. A conferência humana continua necessária para o uso da peça.</p>
                 {dirty && <p role="status" className="text-sm text-amber-800">Há alterações não salvas. Salve a nova versão para conferir este texto.</p>}
@@ -549,7 +589,7 @@ export const DraftStudioScreen: React.FC = () => {
                   <button type="button" onClick={() => void exportSavedVersion()} disabled={busy || exporting} className="btn-secondary disabled:opacity-50">{exporting ? 'Gerando DOCX…' : 'Baixar DOCX da versão salva'}</button>
                   <p className="text-xs text-stone-500">Exporta a versão {details.currentVersion.version.versionNumber} registrada. Edições ainda não salvas não entram no arquivo. Pendências de revisão são indicadas no DOCX.</p>
                 </div>}
-              </form>
+              </fieldset></form>
 
               {details && <>
                 <ReviewPanel latestRun={details.latestReviewRun} currentRun={details.currentReviewRun} findings={details.reviewFindings} stale={dirty || contextChanged || details.reviewContextChanged} onOpenPoint={setPoint} />

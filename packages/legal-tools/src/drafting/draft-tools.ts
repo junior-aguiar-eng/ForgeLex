@@ -5,7 +5,7 @@ import { DraftingService } from './draft-service.js';
 
 const DraftSectionInputSchema = z.object({
   ordinal: z.number().int().nonnegative(),
-  title: z.string().min(3),
+  title: z.string().min(1),
   content: z.string(),
   linkedFactIds: z.array(z.string().uuid()).default([]),
   linkedEvidenceIds: z.array(z.string().uuid()).default([]),

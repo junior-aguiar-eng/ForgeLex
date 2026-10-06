@@ -15,6 +15,7 @@ import {
   DraftSectionInput,
   DraftVersionBundle,
   reviewContextHash,
+  type DraftReviewContextSnapshot,
 } from '@forgelex/persistence';
 
 export interface DraftContext {
@@ -40,6 +41,7 @@ export interface DraftDetails {
   latestReviewRun?: DraftReviewRun;
   currentReviewRun?: DraftReviewRun;
   reviewContextChanged: boolean;
+  documentReferences: DraftReviewContextSnapshot['documentReferences'];
 }
 
 export interface DraftWriteResult {
@@ -83,7 +85,8 @@ export class DraftingService {
     ]);
     const latestReviewRun = currentVersion && this.runs ? await this.runs.getLatest(context, draftId, currentVersion.version.id) : undefined;
     const currentReviewRun = currentVersion && this.runs ? await this.runs.getLatest(context, draftId, currentVersion.version.id, true) : undefined;
-    const reviewContextChanged = Boolean(latestReviewRun && currentVersion && latestReviewRun.contextHash !== reviewContextHash(await this.repository.reviewContext(context, currentVersion)));
+    const snapshot = currentVersion ? await this.repository.reviewContext(context,currentVersion) : undefined;
+    const reviewContextChanged = Boolean(latestReviewRun && snapshot && latestReviewRun.contextHash !== reviewContextHash(snapshot));
     return {
       draft,
       currentVersion,
@@ -92,6 +95,7 @@ export class DraftingService {
       latestReviewRun,
       currentReviewRun,
       reviewContextChanged,
+      documentReferences:snapshot?.documentReferences??[],
       approvals: approvals.filter((approval) => approval.draftId === draftId),
     };
   }

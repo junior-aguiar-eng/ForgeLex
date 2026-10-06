@@ -5,6 +5,7 @@ export interface SavedDraftExport {
   version: { id: string; versionNumber: number; contentHash: string; status: string; createdAt: string };
   sections: Array<{ id: string; ordinal: number; title: string; content: string }>;
   citations: Array<{ sectionId: string; citationText: string; verified: boolean }>;
+  documentReferences?: Array<{reference:{sectionOrdinal:number;citationText?:string};documentTitle?:string;versionNumber?:number;available:boolean;anchor?:{text:string}}>;
 }
 
 const statusLabels: Record<string, string> = {
@@ -31,12 +32,19 @@ export async function buildDraftDocx(saved: SavedDraftExport): Promise<Blob> {
     paragraphs.push(new Paragraph({ text: section.title, heading: HeadingLevel.HEADING_1 }));
     for (const line of section.content.split(/\r?\n/)) paragraphs.push(new Paragraph({ text: line }));
   }
-  if (saved.citations.length) {
+  if (saved.citations.length || saved.documentReferences?.length) {
     paragraphs.push(new Paragraph({ text: 'Referências da versão', heading: HeadingLevel.HEADING_1 }));
     for (const citation of saved.citations) {
       const title = saved.sections.find((section) => section.id === citation.sectionId)?.title ?? 'Seção não identificada';
       paragraphs.push(new Paragraph({ text: title, heading: HeadingLevel.HEADING_2 }));
       paragraphs.push(new Paragraph({ text: `${citation.citationText} · ${citation.verified ? 'Verificada' : 'Pendente de conferência'}` }));
+    }
+    for(const document of saved.documentReferences??[]){
+      const section=saved.sections.find(s=>s.ordinal===document.reference.sectionOrdinal);
+      paragraphs.push(new Paragraph({text:section?.title??'Seção não identificada',heading:HeadingLevel.HEADING_2}));
+      paragraphs.push(new Paragraph({text:`${document.documentTitle??'Documento indisponível'} · versão ${document.versionNumber??'indisponível'} · Pendente de conferência`}));
+      if(document.reference.citationText)paragraphs.push(new Paragraph({text:document.reference.citationText}));
+      if(document.anchor?.text)paragraphs.push(new Paragraph({text:document.anchor.text}));
     }
   }
   paragraphs.push(new Paragraph({ text: 'Registro da versão salva', heading: HeadingLevel.HEADING_1 }));

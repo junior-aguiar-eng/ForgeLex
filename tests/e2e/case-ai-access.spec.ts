@@ -1,6 +1,90 @@
 import { expect, test, type Page, type APIRequestContext } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import JSZip from 'jszip';
+import { readFile } from 'node:fs/promises';
 const api = 'http://127.0.0.1:3301';
+test('receber texto preserva edição, permite prévia segura e exige adoção consciente', async ({ page, request }) => {
+  const state = await (await request.get(api + '/e2e/state')).json();
+  const root = `/api/v2/matters/${state.matterId}`;
+  await login(page);
+  const creation = await request.post(api + root + '/drafts', {
+    headers: { authorization: 'Bearer phase7-e2e-access-token' },
+    data: {
+      title: 'Rascunho para recebimento',
+      sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto original preservado.' }],
+    },
+  });
+  expect(creation.status(), await creation.text()).toBe(200);
+  const draft = await creation.json();
+  await openCase(page, state.matterId);
+  await select(page);
+  await page.getByLabel('Permitir que esta IA envie textos ao editor').check();
+  await page.getByLabel('Onde receber o texto?').selectOption(draft.draft.id);
+  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
+  await page.getByRole('button', { name: 'Permitir acesso', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Acesso permitido');
+  const manifest = await mcp(request, state.oauthTokens['app-one'], 'case.get_context', { matterId: state.matterId });
+  expect(manifest.result.structuredContent.draftReceiving.destination.draftId).toBe(draft.draft.id);
+  await page.goto(`/app/rascunhos?matterId=${state.matterId}&draftId=${draft.draft.id}`);
+  const editor = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
+  await expect(editor).toHaveValue('Texto original preservado.');
+  await editor.fill('Minha edição ainda não salva.');
+  const input = {
+    matterId: state.matterId,
+    expectedGrantRevision: manifest.result.structuredContent.grantRevision,
+    idempotencyKey: 'browser-receipt-' + Date.now(),
+    title: 'Texto da IA',
+    sections: [{ ordinal: 0, title: 'Fatos', content: '<script>window.receiptExecuted=true</script> Texto recebido' }],
+    references: manifest.result.structuredContent.items
+      .filter((i: any) => i.kind === 'DOCUMENT')
+      .map((i: any) => ({ sectionOrdinal: 0, kind: 'DOCUMENT', itemId: i.id, documentVersionId: i.versionId })),
+  };
+  const saved = await mcp(request, state.oauthTokens['app-one'], 'draft.save_from_ai', input);
+  expect(saved.result.isError).toBe(false);
+  expect(
+    (await mcp(request, state.oauthTokens['app-one'], 'draft.save_from_ai', input)).result.structuredContent.id,
+  ).toBe(saved.result.structuredContent.id);
+  await page.getByRole('button', { name: 'Atualizar textos recebidos' }).click();
+  const panel = page.getByRole('region', { name: 'Textos recebidos da IA' });
+  await expect(panel).toContainText('Texto recebido da IA — Aguardando revisão');
+  await expect(editor).toHaveValue('Minha edição ainda não salva.');
+  await panel.getByRole('button', { name: 'Ver texto recebido', exact: true }).click();
+  await expect(panel).toContainText('<script>window.receiptExecuted=true</script>');
+  expect(await page.evaluate(() => Boolean((window as any).receiptExecuted))).toBe(false);
+  await panel.getByRole('button', { name: 'Usar esta versão', exact: true }).click();
+  await expect(panel.getByRole('button', { name: 'Continuar editando' })).toBeVisible();
+  await panel.getByRole('button', { name: 'Continuar editando' }).click();
+  await expect(editor).toHaveValue('Minha edição ainda não salva.');
+  const concurrent = await request.post(api + root + '/drafts/' + draft.draft.id + '/versions', {
+    headers: { authorization: 'Bearer phase7-e2e-access-token' },
+    data: {
+      title: 'Rascunho para recebimento',
+      sections: [{ ordinal: 0, title: 'Fatos', content: 'Edição de outra aba.' }],
+    },
+  });
+  expect(concurrent.status()).toBe(200);
+  await panel.getByRole('button', { name: 'Usar esta versão', exact: true }).click();
+  await panel.getByRole('button', { name: 'Descartar minha edição e usar' }).click();
+  await expect(panel.getByRole('alert')).toContainText('A edição atual mudou');
+  await expect(editor).toHaveValue('Minha edição ainda não salva.');
+  await panel.getByRole('button', { name: 'Salvar minha edição e usar' }).click();
+  await expect(editor).toHaveValue(input.sections[0].content);
+  const versions = (
+    await (
+      await request.get(api + root + '/drafts/' + draft.draft.id, {
+        headers: { authorization: 'Bearer phase7-e2e-access-token' },
+      })
+    ).json()
+  ).versions;
+  expect(versions).toHaveLength(4);
+  const downloading = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Baixar DOCX da versão salva' }).click();
+  const zip = await JSZip.loadAsync(await readFile((await (await downloading).path())!));
+  const xml = await zip.file('word/document.xml')!.async('string');
+  expect(xml).toContain('Contrato selecionável');
+  expect(xml).toContain('· versão 1 · Pendente de conferência');
+  expect(xml).toContain('Pendente de conferência');
+});
 async function login(page: Page) {
   const bootstrap = page.waitForResponse(
     (r) => r.url().endsWith('/api/v2/auth/bootstrap') && r.request().method() === 'POST',
@@ -21,7 +105,7 @@ async function select(page: Page) {
   await page.getByLabel('Onde você vai usar?').selectOption('ChatGPT');
   await page.getByLabel('Aplicativo autorizado').selectOption('app-one');
   await page.locator('dialog summary').filter({ hasText: 'Documentos' }).click();
-  await page.getByRole('checkbox').first().check();
+  await page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox').check();
 }
 async function mcp(request: APIRequestContext, token: string, name: string, args: unknown = {}) {
   const r = await request.post(api + '/mcp', {
@@ -49,7 +133,7 @@ test('prévia, permissão gratuita, seleção explícita e revogação persistid
   await select(page);
   // Select by document identity rather than catalogue order.
   const wanted = page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox');
-  await page.getByRole('checkbox').first().uncheck();
+  await page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox').uncheck();
   await wanted.check();
   await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Prévia do material' })).toContainText(
@@ -142,7 +226,9 @@ test('erro mantém seleção; resposta atrasada não atravessa o caso', async ({
   );
   await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Sua escolha foi mantida');
-  await expect(page.getByRole('checkbox').first()).toBeChecked();
+  await expect(
+    page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox'),
+  ).toBeChecked();
   await page.unroute('**/ai-access/preview');
   await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeEnabled();
@@ -206,7 +292,9 @@ test('conflito real exige atualização explícita e impede escrita duplicada', 
   expect(changed.status()).toBe(200);
   await page.getByRole('button', { name: 'Permitir acesso', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Sua escolha foi mantida');
-  await expect(page.getByRole('checkbox').first()).toBeChecked();
+  await expect(
+    page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox'),
+  ).toBeChecked();
   await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Atualizar permissões' }).click();
   await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeEnabled();
