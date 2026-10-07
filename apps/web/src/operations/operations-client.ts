@@ -8,8 +8,9 @@ function cents(value: string | null): number {
   return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
 }
 
-function mapSearchResult(item: any): SearchResultItem {
+export function mapSearchResult(item: any): SearchResultItem {
   return {
+    sourceAuthority: item,
     id: item.id,
     court: item.court,
     processNumber: item.processNumber,

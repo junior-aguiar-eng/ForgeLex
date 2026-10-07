@@ -8,6 +8,7 @@ import { useApp } from '../context/AppContext';
 import { PdfTextImport } from '../components/PdfTextImport';
 import { CaseAiAccessPanel } from './case-ai/CaseAiAccessPanel';
 import { DocumentReaderDialog } from '../components/DocumentReaderDialog';
+import { CaseAuthorities, type SavedCaseAuthority } from '../components/CaseAuthorities';
 import type { DocumentSource } from '../documents/document-reader-model';
 
 interface Matter extends LifecycleRecord {
@@ -197,6 +198,8 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const [anchors, setAnchors] = useState<DocumentAnchor[]>([]);
   const [issues, setIssues] = useState<LegalIssue[]>([]);
   const [memos, setMemos] = useState<ResearchMemo[]>([]);
+  const [authorities, setAuthorities] = useState<SavedCaseAuthority[]>([]);
+  const [authorityScope, setAuthorityScope] = useState('');
   const [title, setTitle] = useState('');
   const [practiceArea, setPracticeArea] = useState('');
   const [documentTitle, setDocumentTitle] = useState('');
@@ -279,11 +282,13 @@ export const MatterWorkspaceScreen: React.FC = () => {
     setAnchors([]);
     setIssues([]);
     setMemos([]);
+    setAuthorities([]);
+    setAuthorityScope('');
   };
 
   const loadMatterResources = async (matterId: string) => {
     const sequence = ++resourceRequest.current;
-    const [detail, factsResponse, evidenceResponse, coverageResponse, timelineResponse, issuesResponse, memosResponse] = await Promise.all([
+    const [detail, factsResponse, evidenceResponse, coverageResponse, timelineResponse, issuesResponse, memosResponse, authoritiesResponse] = await Promise.all([
       request<MatterDetailResponse>(`/api/v2/matters/${matterId}?view=${documentView}`, token),
       request<{ items: Fact[] }>(`/api/v2/matters/${matterId}/facts`, token),
       request<{ items: EvidenceItem[] }>(`/api/v2/matters/${matterId}/evidence`, token),
@@ -291,6 +296,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
       request<{ items: TimelineEvent[] }>(`/api/v2/matters/${matterId}/timeline`, token),
       request<{ items: LegalIssue[] }>(`/api/v2/matters/${matterId}/issues`, token),
       request<{ items: ResearchMemo[] }>(`/api/v2/matters/${matterId}/research-memos`, token),
+      request<{ items: SavedCaseAuthority[] }>(`/api/v2/matters/${matterId}/authorities`, token),
     ]);
     const documentDetails = await Promise.all(detail.documents.map((document) =>
       request<{ anchors: DocumentAnchor[] }>(`/api/v2/matters/${matterId}/documents/${document.id}`, token),
@@ -307,6 +313,8 @@ export const MatterWorkspaceScreen: React.FC = () => {
     setAnchors(documentDetails.flatMap((item) => item.anchors));
     setIssues(issuesResponse.items);
     setMemos(memosResponse.items);
+    setAuthorities(authoritiesResponse.items);
+    setAuthorityScope(`${matterId}:${token}:${authStatus}:${account?.user.id ?? ''}:${account?.workspace.id ?? ''}`);
   };
 
   const loadMatters = async () => {
@@ -706,6 +714,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                       ['linha-do-tempo', 'Linha do tempo'],
                       ['questoes', 'Questões jurídicas'],
                       ['research-memo', 'Research memo'],
+                      ['julgados', 'Julgados'],
                     ].map(([id, label]) => <button key={id} type="button" onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="btn-quiet min-h-9 px-2.5 text-xs">{label}</button>)}
                     <button type="button" onClick={() => setActiveTab('research')} className="btn-quiet min-h-9 px-2.5 text-xs">Fontes</button>
                     <button type="button" onClick={() => setActiveTab('draft_studio')} className="btn-quiet min-h-9 px-2.5 text-xs">Rascunhos</button>
@@ -733,6 +742,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
               </div>
             </section>}
 
+            {selectedMatter && hasApiAccess && authorityScope === `${selectedMatterId}:${token}:${authStatus}:${account?.user.id ?? ''}:${account?.workspace.id ?? ''}` && <CaseAuthorities items={authorities} />}
             {readingDocument && readingDocument.matterId === selectedMatterId && hasApiAccess && <DocumentReaderDialog source={readingDocument} token={token} onClose={() => setReadingDocument(undefined)} />}
 
             {selectedMatter && <>

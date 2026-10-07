@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useApp, SearchResultItem } from '../context/AppContext';
 import { useCaseLawSearch } from '../operations/use-case-law-search';
 import { CopyCitationButton } from '../components/CopyCitationButton';
+import { SaveAuthorityToCase } from '../components/SaveAuthorityToCase';
 import { ExecutedSearchLabel, JudgmentYearSelect, ResearchRetentionNotice, SearchChargeNotice } from '../components/ResearchControls';
 import {
   ArrowUpRight, Search, Scale, Shield, FolderOpen,
@@ -230,7 +231,7 @@ export const LandingScreen: React.FC = () => {
                     <div className="text-[11px] text-stone-400">Proveniência retornada pela API</div>
 
                     <div className="flex items-center space-x-2">
-                      <CopyCitationButton item={item} />
+                      <div className="flex flex-wrap items-center gap-2"><CopyCitationButton item={item} /><SaveAuthorityToCase item={item} /></div>
 
                       <button
                         type="button"

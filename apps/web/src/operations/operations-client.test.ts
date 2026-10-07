@@ -4,6 +4,12 @@ import { createSearchIntent } from './contracts';
 import { OperationsClient } from './operations-client';
 
 describe('OperationsClient', () => {
+  it('preserva o registro completo da fonte para salvar no caso sem reconstruir proveniência', async () => {
+    const authority = { id: 'original', court: 'STJ', processNumber: 'REsp 1/SP', rapporteur: 'Relator', syllabus: 'Ementa da fonte', dedupeKey: 'source-key', provenance: { source: { contentHash: 'original-hash', documentId: 'source-document' }, verified: true } };
+    const client = new OperationsClient(async () => ({ data: { results: [authority], total: 1 }, status: 200, headers: new Headers() }) as ApiResponse<any>);
+    const execution = await client.searchCaseLaw(createSearchIntent('tema', 'STJ'));
+    expect(execution.results[0]).toHaveProperty('sourceAuthority', authority);
+  });
   it('trata resposta incompleta como falha recuperável, para repetir a mesma operação', async () => {
     const client = new OperationsClient(async () => ({ data: { total: 0 }, status: 200, headers: new Headers() }) as ApiResponse<any>);
     await expect(client.searchCaseLaw(createSearchIntent('vazamento', 'STJ'))).rejects.toMatchObject({ code: 'API_UNAVAILABLE', status: 503 });
