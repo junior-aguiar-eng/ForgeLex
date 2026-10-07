@@ -1,13 +1,24 @@
 # Auditoria e status canônico do ForgeLex
 
-## Remediação da auditoria de 07/10 — implementação local
+## Remediação da auditoria de 07/10 — integrada e publicada
 
 Base `8ba33e0`, branch `codex/audit-remediation`. Bloqueio de filtros durante
 lifecycle, preservação de diagnósticos, dois advisories corrigidos, Pesquisa →
 Caso e inspeção segura de retenção implementados. `pnpm test`: 764 aprovados e
 17 ignorados; research 10/10; lifecycle 5/5; complemento mobile/Axe/reutilização
 1/1. Inspeção remota somente leitura: zero elegíveis e reserva histórica sem
-débito correspondente. CI, revisão e publicação final ainda serão registradas.
+débito correspondente. Revisão independente do núcleo sem achados P0–P2.
+PR #58 integrada em `5aca51e52cd315822e80bff7d29eaa7a48960724`. CI da PR
+`37685459561` e de main `37686335218`: seis jobs aprovados; main com 764
+unitários aprovados, 17 condicionais ignorados e 130 E2E. Smoke PostgreSQL
+isolado comprova inspeção somente leitura, cutoff exato, correspondência com
+purge e preservação de saldo. Job diário às 8h com OAuth; duas inspeções reais
+aprovadas, zero elegíveis; apply e worker público desabilitados.
+Runtime `forgelex-api-prod-audit-5aca51e`, 100%, digest/tráfego/readiness
+verificados após promoção 5/25/100; sem migration. O job de inspeção adicionado
+ao final teve parse e execução verificados pelo executor; não integra o recorte
+do parecer independente do núcleo. Os limites humanos permanecem abertos.
+[Publicação e recibo](docs/operations/stabilization/2026-10-07-audit-remediation-publication.md).
 [Registro](docs/operations/stabilization/2026-10-07-audit-remediation.md) ·
 [Backlog vigente](PENDENCIAS.md). Os blocos abaixo preservam evidências históricas.
 

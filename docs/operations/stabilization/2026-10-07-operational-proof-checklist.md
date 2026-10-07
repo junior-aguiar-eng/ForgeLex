@@ -24,6 +24,13 @@ no job. Validar primeiro uma execução de inspeção; registrar execução, pol
 contagens, responsável, alertas e rollback. O agendamento de inspeção é uma
 entrega observacional; não deve ser descrito como expurgo ativo.
 
+Nesta entrega, o job `forgelex-operational-retention-inspect` foi criado com o
+digest aprovado e o Scheduler diário às 8h (America/Fortaleza). Execução manual
+e execução disparada pelo Scheduler autenticado concluíram em modo `inspect`,
+com zero elegíveis nas seis categorias. IAM de execução restrito ao invoker,
+sem acesso público; `FORGELEX_RETENTION_EXECUTION_ENABLED=false`, sem `--apply`.
+[Recibo e limites](2026-10-07-audit-remediation-publication.md).
+
 Antes de habilitar `--apply`, confirmar a destinação das categorias e os
 controles/exceções da [política](../../legal/account-closure-retention-policy.md),
 sem equiparar corpo de webhook a registro financeiro nem eliminar valores do
@@ -54,7 +61,7 @@ revisões independentes.
 | Privacidade | Fornecedores, serviços, regiões, contratos efetivos e mecanismos de transferência; avaliação de legítimo interesse | Infra observável não prova contratos/transferências |
 | Segurança/suporte | Canal seguro, segundo revisor e quatro cenários acima | Roteiro preparado; execução humana pendente |
 | Comércio eletrônico | Prova da confirmação, contrato conservável, arrependimento pelo meio de contratação e comunicação ao provedor | Fluxos técnicos e termos não substituem essa comprovação |
-| Operação | Execução regular de retenção, idade dos backups e revisão de diário/exceções | Inspeção remota realizada; expurgo regular ainda não habilitado |
+| Operação | Execução regular de retenção, idade dos backups e revisão de diário/exceções | Inspeção diária autenticada demonstrada; expurgo regular ainda não habilitado |
 
 Não reabrir como pendência o endereço/CEP/e-mail e a decisão de identificação
 já aceitos. Registrar documentos e resultados com acesso restrito; o relatório

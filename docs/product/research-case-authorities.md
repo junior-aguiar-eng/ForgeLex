@@ -21,4 +21,13 @@ Validação local em 07/10: teste de preservação da fonte RED/GREEN; E2E da a�
 ausente RED, seguido de salvamento/deduplicação/arquivamento GREEN; suíte de
 pesquisa 10/10. Cenário adicional em 390px: zero violações Axe no diálogo,
 sem rolagem horizontal, cópia gratuita e julgado disponível no seletor da tese.
-Esses resultados não constituem prova de publicação.
+Imagem do ensaio sintético: [diálogo mobile](../operations/stabilization/assets/2026-10-07-save-case-mobile.png).
+Dados e selo de verificação dessa imagem pertencem ao fixture; não comprovam
+validação jurídica de um julgado real.
+
+Integrado pela PR #58 e publicado em `forgelex-api-prod-audit-5aca51e`.
+CI de main com seis jobs aprovados, incluindo os dez E2E de pesquisa. Rotas,
+arquivos servidos, revisão/digest e tráfego foram verificados em produção.
+Não houve novo ensaio autenticado de salvamento em produção nem pesquisa paga
+nesta publicação; o comportamento autenticado está comprovado pelos E2E.
+[Registro operacional](../operations/stabilization/2026-10-07-audit-remediation-publication.md).

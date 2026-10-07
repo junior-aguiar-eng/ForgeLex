@@ -1,0 +1,369 @@
+{
+  "pullRequest": "https://github.com/junior-aguiar-eng/ForgeLex/pull/58",
+  "retention": {
+    "workerEnabled": false,
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:39cb2d3e33fbbcea238c63c3c8f9899d75b89bf38963993946b69336671e73fa",
+    "checkedAt": "2026-10-07T21:21:18.4818208Z",
+    "applyEnabled": false,
+    "scheduler": "forgelex-operational-retention-inspect-daily",
+    "job": "forgelex-operational-retention-inspect",
+    "mode": "inspect",
+    "auth": "OAuth",
+    "timeZone": "America/Fortaleza",
+    "schedulerDispatchAt": "2026-10-07T21:19:21.078971382Z",
+    "sourceSha": "5aca51e52cd315822e80bff7d29eaa7a48960724",
+    "successfulExecutions": [
+      {
+        "execution": "forgelex-operational-retention-inspect-l7fz8",
+        "result": {
+          "counts": {
+            "accessLogs": 0,
+            "closureReceipts": 0,
+            "financialWebhookBodies": 0,
+            "history": 0,
+            "snapshots": 0,
+            "webhookBodies": 0
+          },
+          "event": "retention.completed",
+          "measuredAt": "2026-10-07T21:19:29.232Z",
+          "mode": "inspect",
+          "policy": {
+            "accessLogDays": 180,
+            "closureReceiptDays": 1827,
+            "operationalDays": 90
+          }
+        }
+      },
+      {
+        "execution": "forgelex-operational-retention-inspect-mv49f",
+        "result": {
+          "counts": {
+            "accessLogs": 0,
+            "closureReceipts": 0,
+            "financialWebhookBodies": 0,
+            "history": 0,
+            "snapshots": 0,
+            "webhookBodies": 0
+          },
+          "event": "retention.completed",
+          "measuredAt": "2026-10-07T21:18:11.845Z",
+          "mode": "inspect",
+          "policy": {
+            "accessLogDays": 180,
+            "closureReceiptDays": 1827,
+            "operationalDays": 90
+          }
+        }
+      }
+    ],
+    "schedule": "0 8 * * *",
+    "schedulerHttpStatus": 200,
+    "publicAccess": false
+  },
+  "implementationHead": "b96550eafb830fe95bb126aaa6ffc2c7ead62b72",
+  "candidateAssets": {
+    "htmlCacheControl": "no-cache",
+    "checkedAt": "2026-10-07T21:20:02.9921159Z",
+    "status": 200,
+    "matterChunk": "/assets/MatterWorkspaceScreen-DvdlRb7k.js",
+    "caseCollectionText": true,
+    "entry": "/assets/index-C-dOiI-l.js",
+    "saveAuthorityText": true,
+    "researchChunk": "/assets/ResearchControls-D2FspuR7.js"
+  },
+  "schemaMigration": false,
+  "validation": {
+    "e2e": [
+      {
+        "step": "Run pnpm test:e2e:phase7",
+        "passed": 1
+      },
+      {
+        "step": "Run pnpm test:e2e:mcp-onboarding",
+        "passed": 28
+      },
+      {
+        "step": "Run pnpm test:e2e:accessibility",
+        "passed": 38
+      },
+      {
+        "step": "Run pnpm test:e2e:documents",
+        "passed": 4
+      },
+      {
+        "step": "Run pnpm test:e2e:document-reader",
+        "passed": 4
+      },
+      {
+        "step": "Run pnpm test:e2e:draft-review",
+        "passed": 9
+      },
+      {
+        "step": "Run pnpm test:e2e:case-ai",
+        "passed": 8
+      },
+      {
+        "step": "Run pnpm exec playwright test --config playwright.matter-lifecycle.config.ts",
+        "passed": 5
+      },
+      {
+        "step": "Run pnpm test:e2e:research",
+        "passed": 10
+      },
+      {
+        "step": "Run pnpm test:e2e:public",
+        "passed": 16
+      },
+      {
+        "step": "Run pnpm test:e2e:chunk-recovery",
+        "passed": 3
+      },
+      {
+        "step": "Run pnpm test:e2e:account-closure",
+        "passed": 4
+      }
+    ],
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "e2e-product"
+      },
+      {
+        "conclusion": "success",
+        "name": "postgres"
+      },
+      {
+        "conclusion": "success",
+        "name": "e2e-public"
+      },
+      {
+        "conclusion": "success",
+        "name": "validate"
+      },
+      {
+        "conclusion": "success",
+        "name": "e2e-account-closure"
+      },
+      {
+        "conclusion": "success",
+        "name": "security"
+      }
+    ],
+    "operationsScriptReview": "executor parse and live execution",
+    "e2ePassed": 130.0,
+    "newAuthenticatedProductionSaveTest": false,
+    "unitPassed": 764,
+    "localMobileWidth": 390,
+    "prRun": "37685459561",
+    "mainRun": "37686335218",
+    "unitSkipped": 17,
+    "localMobileAxeViolations": 0,
+    "reviewMaterialFindings": 0,
+    "mainRunUrl": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37686335218",
+    "newNativeOAuthHostTest": false,
+    "reviewedRange": "8ba33e0...486d972"
+  },
+  "promotion": {
+    "completed": true,
+    "stages": [
+      {
+        "percent": 5,
+        "completedAt": "2026-10-07T21:23:06.2113152Z",
+        "startedAt": "2026-10-07T21:20:52.031067Z",
+        "elapsedSeconds": 134.0,
+        "requests": 157,
+        "verified": true,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-audit-5aca51e",
+          "forgelex-api-prod-connection-a23cc07"
+        ]
+      },
+      {
+        "percent": 25,
+        "completedAt": "2026-10-07T21:25:30.6876641Z",
+        "startedAt": "2026-10-07T21:23:16.6374903Z",
+        "elapsedSeconds": 134.0,
+        "requests": 158,
+        "verified": true,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-audit-5aca51e",
+          "forgelex-api-prod-connection-a23cc07"
+        ]
+      },
+      {
+        "percent": 100,
+        "completedAt": "2026-10-07T21:27:54.1311129Z",
+        "startedAt": "2026-10-07T21:25:40.1866794Z",
+        "elapsedSeconds": 134.0,
+        "requests": 158,
+        "verified": true,
+        "observationWindowSeconds": 120,
+        "observedRevisions": [
+          "forgelex-api-prod-audit-5aca51e"
+        ]
+      }
+    ],
+    "startedAt": "2026-10-07T21:20:30.275028Z",
+    "completedAt": "2026-10-07T21:27:56.4436595Z",
+    "rollbackRevision": "forgelex-api-prod-connection-a23cc07",
+    "checks": [
+      {
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "status": 200
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200
+      },
+      {
+        "path": "/app/conectar",
+        "status": 200
+      },
+      {
+        "path": "/guia/mcp",
+        "status": 200
+      },
+      {
+        "path": "/app/desenvolvedores/api",
+        "status": 200
+      },
+      {
+        "path": "/oauth/consent",
+        "status": 200
+      }
+    ],
+    "failures": []
+  },
+  "recordedAt": "2026-10-07T21:30:30.9461647Z",
+  "sourceSha": "5aca51e52cd315822e80bff7d29eaa7a48960724",
+  "remoteReadOnlyClassification": {
+    "measuredAt": "2026-10-07T20:42:44.166Z",
+    "mode": "read-only",
+    "finance": {
+      "expiredPending": {
+        "count": 1,
+        "cents": 20,
+        "oldest": "2026-09-21T03:46:10.411Z",
+        "legacy": 1
+      },
+      "activeReservations": {
+        "count": 0,
+        "cents": 0
+      },
+      "debitsForExpiredPending": {
+        "count": 0,
+        "cents": 0
+      }
+    },
+    "retention": {
+      "history": 0,
+      "snapshots": 0,
+      "webhookBodies": 0,
+      "financialWebhookBodies": 0,
+      "accessLogs": 0,
+      "closureReceipts": 0
+    }
+  },
+  "recordedOn": "2026-10-07",
+  "backup": {
+    "id": "1791395897025",
+    "status": "SUCCESSFUL",
+    "completedAt": "2026-10-07T18:00:18.705Z"
+  },
+  "runtime": {
+    "errorObservationStartedAt": "2026-10-07T21:12:27.151822Z",
+    "observedHttp5xx": 0,
+    "ingress": "internal-and-cloud-load-balancing",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:39cb2d3e33fbbcea238c63c3c8f9899d75b89bf38963993946b69336671e73fa",
+    "publicReady": true,
+    "sourceSha": "5aca51e52cd315822e80bff7d29eaa7a48960724",
+    "revision": "forgelex-api-prod-audit-5aca51e",
+    "checkedAt": "2026-10-07T21:30:30.730639Z",
+    "percent": 100
+  },
+  "candidateSmoke": {
+    "checks": [
+      {
+        "status": 200,
+        "path": "/healthz"
+      },
+      {
+        "status": 200,
+        "path": "/readyz"
+      },
+      {
+        "status": 200,
+        "path": "/"
+      },
+      {
+        "status": 200,
+        "path": "/app/casos"
+      },
+      {
+        "status": 200,
+        "path": "/app/rascunhos"
+      },
+      {
+        "status": 200,
+        "path": "/app/conectar"
+      },
+      {
+        "status": 200,
+        "path": "/guia/mcp"
+      },
+      {
+        "status": 200,
+        "path": "/.well-known/oauth-protected-resource/mcp"
+      },
+      {
+        "status": 200,
+        "path": "/.well-known/oauth-authorization-server"
+      },
+      {
+        "status": 200,
+        "path": "/openapi.json"
+      }
+    ],
+    "checkedAt": "2026-10-07T21:20:01.2907022Z",
+    "observedRevisions": [
+      "forgelex-api-prod-audit-5aca51e"
+    ]
+  },
+  "build": {
+    "id": "b5ef6e20-2f39-40f0-8280-342d00e3a383",
+    "status": "SUCCESS",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:39cb2d3e33fbbcea238c63c3c8f9899d75b89bf38963993946b69336671e73fa",
+    "cleanMain": true
+  },
+  "pending": [
+    "braces build advisory without published patch at inspection",
+    "human operational proofs",
+    "explicit ordinary purge decision"
+  ],
+  "cleanup": {
+    "candidateTagRemoved": true,
+    "temporaryRouteRemoved": true,
+    "backendRemoved": true,
+    "negRemoved": true,
+    "checkedAt": "2026-10-07T21:30:13.239066Z"
+  },
+  "candidate": {
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:39cb2d3e33fbbcea238c63c3c8f9899d75b89bf38963993946b69336671e73fa",
+    "sourceSha": "5aca51e52cd315822e80bff7d29eaa7a48960724",
+    "configPreserved": true,
+    "revision": "forgelex-api-prod-audit-5aca51e",
+    "recordedAt": "2026-10-07T21:12:27.151822Z",
+    "rollback": "forgelex-api-prod-connection-a23cc07",
+    "noTraffic": true
+  }
+}

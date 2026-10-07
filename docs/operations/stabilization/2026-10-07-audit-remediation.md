@@ -65,5 +65,17 @@ compatíveis e acompanhar braces; evitar mudanças de ledger sem defeito
 demonstrado. Se a escolha de CLI precisar mudar, o custo é adaptar o disparo
 autenticado, sem mudar a política ou a interface do produto.
 
-Integração, CI final, digest/tráfego e job operacional devem ser comprovados
-antes de atualizar as linhas correspondentes de `PENDENCIAS.md` para publicado.
+Integração, CI final, digest/tráfego e job operacional estão registrados na
+[publicação](2026-10-07-audit-remediation-publication.md). O parecer independente
+abrange `8ba33e0...486d972`, sem achados materiais P0–P2. O script operacional
+adicionado em `b96550e` teve parse e execução real verificados pelo executor,
+fora do recorte daquele parecer. Não houve nova rodada de revisão nem achados
+menores adiados.
+
+Rulings de execução: escopo já autorizado, sem nova confirmação (custo se
+inadequado: rever escopo antes da integração); ledger em PowerShell e pacote de
+revisão em Bash (custo: menor automação das briefs); suíte geral após estabilidade
+das tarefas acopladas, mantendo RED/GREEN focado (custo: detecção transversal
+concentrada no gate final); CLI/job em vez de nova rota HTTP (custo: adaptar o
+disparo se necessário). Os gates finais foram executados; não substituem as
+comprovações humanas enumeradas.
