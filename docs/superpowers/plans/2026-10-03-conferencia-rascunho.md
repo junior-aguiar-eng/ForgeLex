@@ -1,5 +1,11 @@
 # Conferência e correção do rascunho — Implementation Plan
 
+> Estado atualizado em 07/10/2026: plano implementado no commit consolidado
+> `7c075ec`, integrado pela PR #46 e publicado em 05/10. Os itens de commit
+> por Task abaixo registram a estratégia original, substituída pelo commit
+> consolidado autorizado em 05/10; não são commits ainda pendentes. A execução
+> PostgreSQL em CI e a publicação constam de `STATUS_VALIDACAO.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** conferir referências, vínculos e estrutura de uma versão salva, explicar os resultados e permitir corrigir sua origem sem perder o trabalho.
