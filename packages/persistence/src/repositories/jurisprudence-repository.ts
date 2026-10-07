@@ -183,7 +183,45 @@ export class JurisprudenceRepository {
     if (options.fromDate) filters.push(gte(schema.jurisprudenceDocumentVersions.judgmentDate, options.fromDate));
     if (options.toDate) filters.push(lte(schema.jurisprudenceDocumentVersions.judgmentDate, options.toDate));
 
-    const postgresRank = sql<number>`ts_rank(${postgresVector}, websearch_to_tsquery('simple', ${query}))`;
+    const limit = Math.max(1, Math.min(options.limit ?? 20, 100));
+    if (this.db.$forgelexDialect === 'postgres') {
+      // Rank compact rows first. Carrying full texts/search projections through
+      // a broad OR sort spills to disk even when only a few results are wanted.
+      const rank = sql<number>`ts_rank(${postgresVector}, websearch_to_tsquery('simple', ${query}))`;
+      const candidates = this.db.select({
+        documentId: sql<string>`${schema.jurisprudenceDocuments.id}`.as('document_id'),
+        versionId: sql<string>`${schema.jurisprudenceDocumentVersions.id}`.as('version_id'),
+        judgmentDate: schema.jurisprudenceDocumentVersions.judgmentDate,
+        rank: rank.as('rank'),
+      })
+        .from(schema.jurisprudenceDocuments)
+        .innerJoin(schema.jurisprudenceDocumentVersions,
+          eq(schema.jurisprudenceDocuments.currentVersionId, schema.jurisprudenceDocumentVersions.id))
+        .leftJoin(schema.jurisprudenceSourceManifests,
+          eq(schema.jurisprudenceDocumentVersions.sourceManifestId, schema.jurisprudenceSourceManifests.id))
+        .where(and(...filters));
+      // A materialized boundary also prevents PostgreSQL from sorting raw
+      // tsvectors before joining publication/date metadata and ranking again.
+      const matches = this.db.select({
+        documentId: sql<string>`search_candidates.document_id`.as('document_id'),
+        versionId: sql<string>`search_candidates.version_id`.as('version_id'),
+        judgmentDate: sql<string>`search_candidates.judgment_date`.as('judgment_date'),
+        rank: sql<number>`search_candidates.rank`.as('rank'),
+      })
+        .from(sql`(WITH search_candidates AS MATERIALIZED (${candidates}) SELECT * FROM search_candidates) AS search_candidates`)
+        .orderBy(desc(sql`search_candidates.rank`), desc(sql`search_candidates.judgment_date`))
+        .limit(limit)
+        .as('ranked_matches');
+      // Hydrate in the same statement/snapshot and use the selected version ID,
+      // so concurrent ingestion cannot mix rank/date with another version.
+      const rows = await this.db.select({ document: schema.jurisprudenceDocuments, version: schema.jurisprudenceDocumentVersions })
+        .from(matches)
+        .innerJoin(schema.jurisprudenceDocuments, eq(matches.documentId, schema.jurisprudenceDocuments.id))
+        .innerJoin(schema.jurisprudenceDocumentVersions, eq(matches.versionId, schema.jurisprudenceDocumentVersions.id))
+        .orderBy(desc(matches.rank), desc(matches.judgmentDate));
+      return rows.map((row) => toDocument(row.document, row.version));
+    }
+
     const sqliteRank = sql<number>`(
       SELECT bm25(jurisprudence_documents_fts, 10.0, 5.0, 1.0)
       FROM jurisprudence_documents_fts
@@ -202,10 +240,10 @@ export class JurisprudenceRepository {
       )
       .where(and(...filters))
       .orderBy(
-        this.db.$forgelexDialect === 'postgres' ? desc(postgresRank) : asc(sqliteRank),
+        asc(sqliteRank),
         desc(schema.jurisprudenceDocumentVersions.judgmentDate),
       )
-      .limit(Math.max(1, Math.min(options.limit ?? 20, 100)));
+      .limit(limit);
     return rows.map((row) => toDocument(row.document, row.version));
   }
 

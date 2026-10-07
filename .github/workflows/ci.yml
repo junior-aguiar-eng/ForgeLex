@@ -59,6 +59,7 @@ jobs:
           --health-retries 12
     env:
       DATABASE_URL: postgres://forgelex:forgelex@127.0.0.1:55432/forgelex
+      FORGELEX_LOCAL_POSTGRES_URL: postgres://forgelex:forgelex@127.0.0.1:55432/forgelex
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -71,6 +72,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:migrate
       - run: pnpm test:postgres
+      - run: pnpm test:postgres:search
+      - run: pnpm exec vitest run packages/persistence/src/repositories/jurisprudence-repository.test.ts
 
   e2e-product:
     runs-on: ubuntu-latest
