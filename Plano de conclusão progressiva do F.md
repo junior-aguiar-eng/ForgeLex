@@ -1,5 +1,11 @@
 # Plano de conclusão progressiva do ForgeLex
 
+**Referência atual (07/10/2026):** os marcos deste plano são históricos. O site,
+MCP externo, leitor e identificação de conexões estão publicados; a remediação
+da auditoria e Pesquisa → Caso estão em validação de integração. Consulte
+[CONTINUIDADE.md](CONTINUIDADE.md) e [PENDENCIAS.md](PENDENCIAS.md) para o estado
+vigente. As fases congeladas e o Agent Core opcional não são pendências atuais.
+
 **Objetivo:** estabilizar completamente o ForgeLex como infraestrutura jurídica própria, usando o STJ como única fonte jurisprudencial comercial. A expansão para STF, TST, TJSP, TJRJ e TRF3 é opcional, individual e não integra o critério de completude do produto STJ.
 
 **Arquitetura:** o ForgeLex fornecerá ferramentas jurídicas verificáveis, prompts e workflows versionados, API REST e MCP remoto sobre a mesma infraestrutura jurisprudencial própria. A busca pública não consultará diretamente o SCON a cada operação: o SCON será fonte oficial de ingestão, enquanto o ForgeLex manterá documentos, versões, proveniência, hashes, cobertura e índice próprios. No caso agêntico comercial inicial, ChatGPT, Claude ou outro host externo fornecerá o modelo e o raciocínio; o MCP fornecerá as tools, schemas, autenticação, autorização, proveniência, limites e cobrança das operações próprias. O Agent Core e os adapters OpenAI/Anthropic permanecerão camadas opcionais para integrações próprias, fora do runtime comercial e sem qualquer relação com billing de tokens.
