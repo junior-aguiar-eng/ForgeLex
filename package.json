@@ -19,6 +19,7 @@
     "test:e2e:accessibility": "playwright test tests/e2e/accessibility.spec.ts --project=chromium",
     "test:e2e:mcp-onboarding": "playwright test tests/e2e/mcp-onboarding.spec.ts --project=chromium",
     "test:e2e:public": "playwright test --config playwright.public.config.ts",
+    "test:e2e:chunk-recovery": "playwright test --config playwright.chunk-recovery.config.ts",
     "test:e2e:account-closure": "playwright test --config playwright.account-closure.config.ts",
     "test:postgres:account-closure": "pnpm build && node scripts/smoke-account-closure-postgres.mjs",
     "verify:account-closure-restore": "pnpm build && node scripts/verify-account-closure-restore.mjs",

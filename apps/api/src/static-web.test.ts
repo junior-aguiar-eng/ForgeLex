@@ -21,6 +21,33 @@ afterEach(async () => {
 });
 
 describe('registerStaticWeb', () => {
+  it.each(['/', '/index.html', '/app/pesquisa', '/conta/encerramento'])(
+    'revalida o HTML de %s para não restaurar referências a chunks antigos',
+    async (url) => {
+      const app = Fastify();
+      await registerStaticWeb(app, await createWebRoot());
+      try {
+        const response = await app.inject({ url, headers: { accept: 'text/html' } });
+        expect(response.statusCode).toBe(200);
+        expect(response.headers['cache-control']).toBe('no-cache');
+      } finally {
+        await app.close();
+      }
+    },
+  );
+
+  it('não responde com HTML quando um chunk antigo está ausente', async () => {
+    const app = Fastify();
+    await registerStaticWeb(app, await createWebRoot());
+    try {
+      const response = await app.inject({ url: '/assets/old-screen.js', headers: { accept: 'text/html' } });
+      expect(response.statusCode).toBe(404);
+      expect(response.headers['content-type']).not.toContain('text/html');
+    } finally {
+      await app.close();
+    }
+  });
+
   it('serve o build real, SEO, páginas legais e fallback sem capturar rotas técnicas', async () => {
     const app = Fastify();
     await registerStaticWeb(app, resolve('apps/web/dist'));

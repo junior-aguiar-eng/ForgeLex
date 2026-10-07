@@ -121,6 +121,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e:public
+      - run: pnpm build
+      - run: pnpm test:e2e:chunk-recovery
 
   e2e-account-closure:
     runs-on: ubuntu-latest
