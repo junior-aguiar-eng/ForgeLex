@@ -20,20 +20,25 @@ ampla; sua extensão não deve ser usada como uma lista de urgências.
 
 ## Publicado, local e futuro
 
-| Frente | Estado nesta consolidação | Evidência e limite |
-| --- | --- | --- |
-| Contexto autorizado e retorno de texto por MCP | Publicado; homologações anteriores em ChatGPT e Claude registradas | Recebimentos versionados, idempotência e adoção humana; ver STATUS |
-| Arquivo, lixeira, restauração e exclusão | Publicado | Revisão `forgelex-api-prod-lifecycle-ui-326a96e`, 100% do tráfego confirmado em 07/10; homologação anterior somente com dados sintéticos |
-| Leitura integral de documentos e abertura das fontes | Implementação local em fechamento | Branch `codex/document-reader`; publicação e percurso real serão registrados após execução |
-| Mesa do caso e orientação do próximo passo | Proposta futura | Organizar os recursos existentes em torno do caso, com detalhes técnicos sob demanda; não há execução autorizada nesta entrega |
-| Novos agentes internos, modelos hospedados e novos tribunais | Fora do incremento atual | Exigem necessidade demonstrada e decisão própria; não bloqueiam o fluxo MCP externo |
+| Frente                                                       | Estado nesta consolidação                                          | Evidência e limite                                                                                                               |
+| ------------------------------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Contexto autorizado e retorno de texto por MCP               | Publicado; homologações anteriores em ChatGPT e Claude registradas | Recebimentos versionados, idempotência e adoção humana; ver STATUS                                                               |
+| Arquivo, lixeira, restauração e exclusão                     | Publicado                                                          | Homologado em `forgelex-api-prod-lifecycle-ui-326a96e` com dados sintéticos; incluído na revisão atual do leitor                 |
+| Leitura integral de documentos e abertura das fontes         | Publicado; percurso completo homologado em produção                | PR #54, revisão `forgelex-api-prod-reader-0dc9ec5`, 100%; Claude → versão 2 → DOCX inspecionado; permissões sintéticas revogadas |
+| Mesa do caso e orientação do próximo passo                   | Proposta futura                                                    | Organizar os recursos existentes em torno do caso, com detalhes técnicos sob demanda; não há execução autorizada nesta entrega   |
+| Novos agentes internos, modelos hospedados e novos tribunais | Fora do incremento atual                                           | Exigem necessidade demonstrada e decisão própria; não bloqueiam o fluxo MCP externo                                              |
 
-## O trabalho em andamento
+## A entrega encerrada
 
-Fechar o leitor com testes e revisão independente, integrar em main e publicar
-preservando configuração/rollback. Em seguida, percorrer um caso totalmente
-sintético com IA externa, retorno, fonte citada, edição e exportação. Registrar
-os pontos de atrito observados antes de escolher qualquer nova implementação.
+O leitor foi integrado e publicado, com testes, revisão independente e promoção
+gradual aprovados. O caso sintético passou por leitura no Claude, retorno ao
+rascunho, conferência da fonte, edição salva como versão 2 e exportação DOCX.
+O arquivo indicado pelo usuário na área de trabalho foi inspecionado: versão 2,
+edição de teste, seis referências à versão documental 1 e revisão humana pendente.
+As duas permissões sintéticas foram revogadas; nova leitura pelo Claude recebeu
+`CASE_CONTEXT_NOT_AUTHORIZED`. Caso, documento e rascunho foram preservados. O
+[registro da entrega](docs/operations/stabilization/2026-10-07-document-reader-publication.md)
+separa essas evidências.
 
 A investigação da falha de conferência reproduziu um contexto desatualizado:
 a conferência encontrava um fato que o painel ainda não tinha carregado. Abrir
@@ -42,6 +47,23 @@ correção e passou depois. Isso comprova esse defeito; não identifica, sozinho
 a ordem exata das respostas na primeira ocorrência intermitente.
 
 ## Cuidados para a próxima sessão
+
+O percurso real encontrou uma dificuldade concreta: reconectar o Claude criou
+uma nova conexão, enquanto a seleção sintética continuava autorizada na antiga.
+Ambas apareciam como “Claude”. A leitura inicial retornou lista vazia; atualizar
+as conexões, revogar a seleção antiga e selecionar a nova resolveu o ensaio.
+O próximo incremento recomendado é **distinguir a conexão atual no fluxo do
+caso e orientar a reconexão**, com nome/data/estado compreensíveis e detalhes
+sob demanda. Não transferir permissões automaticamente entre conexões.
+
+Manutenção separada: o GitHub informou três alertas abertos no lockfile em
+07/10: `source-map-js` (alta, correção 1.2.2), `postcss-selector-parser`
+(média, correção 7.1.6) e `braces` (alta, sem versão corrigida no alerta).
+`pnpm why` localiza os três nas ferramentas de build do frontend; o Dockerfile
+entrega a API com dependências de produção e o frontend como arquivos estáticos.
+Não foi demonstrado caminho de exploração por entrada de usuário no servidor.
+Avaliar atualização/substituição compatível e revalidar o build em uma frente
+própria; o job de segurança da CI passou, o que não encerra esses alertas.
 
 Usar um checkout alinhado com main e confirmar Git e revisão em produção. O
 checkout antigo `C:/Users/Boni Jr/.antigravity-ide/SDK`, branch

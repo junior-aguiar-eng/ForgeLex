@@ -1,6 +1,6 @@
 # Auditoria e status canônico do ForgeLex
 
-## Leitura de documentos e fontes — implementação local (07/10/2026)
+## Leitura de documentos e fontes — publicado (07/10/2026)
 
 Para retomar o projeto, começar pelo [resumo de continuidade](CONTINUIDADE.md).
 
@@ -39,8 +39,37 @@ Validação local confirmada:
   Cobertura completada para citação não salva e término da resposta tardia.
 
 [Comportamento, contratos e limites](docs/product/document-reader.md).
-Sem commit, push, PR, deploy, migration ou alteração de produção nesta rodada.
-Os ensaios não incluem hosts reais ChatGPT/Claude nem consultas a IA externa.
+
+PR #54 integrada em `0dc9ec5230099b2a28a3f1423a0bf39bf0694950`. Seis jobs
+aprovados na PR e em main. Backup `1791387692996` concluído; Cloud Build
+`b7ebff93-dcae-4687-93e5-b08334e9f16a` aprovado. Revisão
+`forgelex-api-prod-reader-0dc9ec5`, 100% do tráfego após dez verificações
+identificadas e promoção 5/25/100: 157/157/156 sondas, janelas de 133/132/132
+segundos. Na etapa final, somente a revisão nova foi observada. Configuração
+preservada, sem migration. Recursos temporários removidos às `16:13:44Z`.
+Rollback: `forgelex-api-prod-lifecycle-ui-326a96e`.
+
+Percurso real no Claude: documento totalmente sintético autorizado, leitura
+por MCP e novo rascunho com duas seções/seis referências fixadas. Na interface
+publicada, fonte abriu a versão 1/parágrafo 2; busca, Escape e edição preservada
+confirmados. Edição salva como versão 2, mantendo seis referências à versão
+documental original. Conferência registrou documentos localizados e sinalizou
+ausência de fatos/fontes jurídicas; aprovação jurídica não foi concedida.
+Leitura integral também confirmada pela entrada de Casos.
+
+O DOCX real, indicado pelo usuário na área de trabalho, foi inspecionado por
+ZIP/XML: versão 2, edição de teste salva, duas seções, seis fontes fixadas na
+versão documental 1 e revisão humana pendente. O evento de download não foi
+capturado pelo controle do navegador; a confirmação veio do arquivo salvo.
+Não houve avaliação visual de paginação no Word. Ambas as permissões sintéticas
+foram revogadas e uma nova chamada real `case.get_context` recebeu
+`CASE_CONTEXT_NOT_AUTHORIZED`, sem nova leitura. Caso, documento e rascunho
+preservados. O ensaio também identificou duas conexões “Claude” após reconexão:
+selecionar a conexão nova resolveu a leitura inicialmente vazia. Esse é o
+próximo incremento de UX proposto, sem transferir permissões automaticamente.
+
+[Registro operacional](docs/operations/stabilization/2026-10-07-document-reader-publication.md).
+[Recibo sem segredos](docs/operations/stabilization/2026-10-07-document-reader-publication.json).
 
 ## Arquivo, lixeira e exclusão — publicado e homologado (06/10/2026)
 

@@ -1,0 +1,165 @@
+{
+  "recordedOn": "2026-10-07",
+  "pullRequest": "https://github.com/junior-aguiar-eng/ForgeLex/pull/54",
+  "implementationCommit": "588988e29f428ad0ef6c6841802db773e9afcf41",
+  "sourceSha": "0dc9ec5230099b2a28a3f1423a0bf39bf0694950",
+  "validation": {
+    "unitPassed": 761,
+    "unitSkipped": 17,
+    "e2ePassed": 22,
+    "buildLintTypecheckPassed": true,
+    "independentReviewOpenP0P1P2": 0,
+    "featurePrCiRun": "37645707544",
+    "featureMainCiRun": "37646597388",
+    "ciJobs": [
+      {
+        "conclusion": "success",
+        "name": "e2e-public",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "postgres",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "security",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "e2e-product",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "validate",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "e2e-account-closure",
+        "status": "completed"
+      }
+    ]
+  },
+  "build": {
+    "id": "b7ebff93-dcae-4687-93e5-b08334e9f16a",
+    "status": "SUCCESS",
+    "finishTime": "2026-10-07T15:50:07.616627Z"
+  },
+  "imageDigest": "sha256:b035b03fcfb5572510202f8a586dcda4b71cad97b296147e7a7aead7303b548d",
+  "backup": {
+    "status": "SUCCESSFUL",
+    "id": "1791387692996",
+    "instance": "forgelex-hml-pg",
+    "endTime": "2026-10-07T15:43:44.799Z",
+    "description": "document-reader-2026-10-07"
+  },
+  "promotion": {
+    "revision": "forgelex-api-prod-reader-0dc9ec5",
+    "rollbackRevision": "forgelex-api-prod-lifecycle-ui-326a96e",
+    "completed": true,
+    "completedAt": "2026-10-07T16:08:56.4466113Z",
+    "stages": [
+      {
+        "percent": 5,
+        "requests": 157,
+        "elapsedSeconds": 133.0,
+        "observedRevisions": ["forgelex-api-prod-lifecycle-ui-326a96e", "forgelex-api-prod-reader-0dc9ec5"],
+        "verified": true
+      },
+      {
+        "percent": 25,
+        "requests": 157,
+        "elapsedSeconds": 132.0,
+        "observedRevisions": ["forgelex-api-prod-lifecycle-ui-326a96e", "forgelex-api-prod-reader-0dc9ec5"],
+        "verified": true
+      },
+      {
+        "percent": 100,
+        "requests": 156,
+        "elapsedSeconds": 132.0,
+        "observedRevisions": ["forgelex-api-prod-reader-0dc9ec5"],
+        "verified": true
+      }
+    ]
+  },
+  "temporaryResourceCleanup": {
+    "checkedAt": "2026-10-07T16:13:44.3273462Z",
+    "negRemoved": true,
+    "candidateTagRemoved": true,
+    "backendRemoved": true,
+    "temporaryRouteRemoved": true
+  },
+  "runtime": {
+    "sourceSha": "0dc9ec5230099b2a28a3f1423a0bf39bf0694950",
+    "trafficPercent": 100,
+    "candidateTagRemoved": true,
+    "checkedAt": "2026-10-07T16:17:34.2105731Z",
+    "revision": "forgelex-api-prod-reader-0dc9ec5",
+    "ingress": "internal-and-cloud-load-balancing"
+  },
+  "migrationApplied": false,
+  "syntheticHostFlow": {
+    "host": "Claude",
+    "conversationUrl": "https://claude.ai/chat/50038758-a4b2-44db-a1a7-ee404d7cb0d8",
+    "matterId": "a515ee9e-e721-4a80-87cb-8068f346317c",
+    "matterTitle": "Homologação leitor 07-10-2026 — caso sintético",
+    "documentId": "bd5c23a3-8926-401f-8a22-b004d16639c5",
+    "documentVersionId": "bab14227-6d6e-4948-b9ee-56ff75ec0ab1",
+    "documentVersionNumber": 1,
+    "receiptId": "e0424243-7ed2-431c-8679-3903e4842a82",
+    "draftId": "1b86bf87-d29c-41dd-9d26-bd37dff95779",
+    "receivedDraftVersionId": "80e9316d-c152-462f-9d78-087f7727043f",
+    "receivedAt": "2026-10-07T15:46:20.649Z",
+    "draftVersionNumber": 1,
+    "sectionCount": 2,
+    "documentReferenceCount": 6,
+    "reviewPending": true,
+    "syntheticOnly": true,
+    "newDraft": true,
+    "readAndReceiptRevision": "forgelex-api-prod-lifecycle-ui-326a96e",
+    "toolsReportedByHost": ["case.list_shared", "case.get_context", "case.read_item", "draft.save_from_ai"],
+    "receiptConfirmedInSite": true,
+    "readerAfterPublicationValidated": true,
+    "editAndExportValidated": true,
+    "connectionRenewed": true,
+    "renewalFinding": "Conexão expirada renovada; novo aplicativo apareceu com o mesmo nome Claude. Grant inicial permaneceu na conexão antiga, foi revogado e foi criada seleção sintética na conexão nova.",
+    "oldSyntheticGrantRevoked": true,
+    "currentSyntheticGrantRevoked": true,
+    "savedDraftVersionNumber": 2,
+    "editionPreserved": true,
+    "readerRevision": "forgelex-api-prod-reader-0dc9ec5",
+    "export": {
+      "checks": {
+        "title": true,
+        "version2": true,
+        "section1": true,
+        "section2": true,
+        "savedEdit": true,
+        "documentSource": true,
+        "sourceVersion1": true,
+        "pendingReview": true,
+        "deliveryClause": true,
+        "paymentClause": true
+      },
+      "sha256": "ccb0d9ee39cca36fa41f0d7321a07320476781c7e2c09b88d326732f94e28e8b",
+      "bytes": 10666,
+      "filename": "Nota sintética — homologação leitor 07-10-v2.docx",
+      "confirmedBy": "Arquivo indicado pelo usuário na área de trabalho",
+      "inspection": "ZIP íntegro e XML de conteúdo lido",
+      "pinnedReferenceCount": 6
+    },
+    "revocationProbe": {
+      "tool": "case.get_context",
+      "errorCode": "CASE_CONTEXT_NOT_AUTHORIZED",
+      "retryable": false,
+      "requestAndErrorInspectedInHost": true
+    },
+    "caseDocumentDraftPreserved": true,
+    "wordPaginationVisuallyValidated": false,
+    "chatgptTestedThisRound": false
+  }
+}
