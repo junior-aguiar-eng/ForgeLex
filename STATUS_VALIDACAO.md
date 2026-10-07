@@ -1,5 +1,16 @@
 # Auditoria e status canônico do ForgeLex
 
+## Remediação da auditoria de 07/10 — implementação local
+
+Base `8ba33e0`, branch `codex/audit-remediation`. Bloqueio de filtros durante
+lifecycle, preservação de diagnósticos, dois advisories corrigidos, Pesquisa →
+Caso e inspeção segura de retenção implementados. `pnpm test`: 764 aprovados e
+17 ignorados; research 10/10; lifecycle 5/5; complemento mobile/Axe/reutilização
+1/1. Inspeção remota somente leitura: zero elegíveis e reserva histórica sem
+débito correspondente. CI, revisão e publicação final ainda serão registradas.
+[Registro](docs/operations/stabilization/2026-10-07-audit-remediation.md) ·
+[Backlog vigente](PENDENCIAS.md). Os blocos abaixo preservam evidências históricas.
+
 ## Consolidação documental e Git — registro anterior à publicação (07/10/2026)
 
 O checkout de main foi atualizado até `origin/main` (`9439524`). Todo trabalho
