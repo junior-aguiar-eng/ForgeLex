@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiRequestError, requestApi } from '../../api-client';
 import {
   accessError,
+  applicationLabel,
+  caseConnectionState,
+  connectionDate,
   emptySelection,
   Grant,
   initialInstruction,
@@ -14,8 +17,8 @@ import {
   selectionCount,
   toggleMaterial,
   type ReceivePermission,
+  type Application,
 } from './case-ai-model';
-type Application = { clientId: string; displayName: string; grantedAt: string };
 type Page = { items: Material[]; nextCursor?: string };
 type Preview = Page & { counts: Record<Kind, number> };
 const kinds = Object.keys(labels) as Kind[];
@@ -92,6 +95,12 @@ export function CaseAiAccessPanel({
   async function refresh() {
     const [a, g] = await Promise.all([api<Application[]>('/api/v2/mcp/authorized-applications'), api<Grant[]>(base)]);
     if (live.current) {
+      if (clientId && application?.grantedAt !== a.find((app) => app.clientId === clientId)?.grantedAt) {
+        setPreview(null);
+        setNotice(
+          'A conexão escolhida mudou. Sua seleção foi mantida. Confira a conexão e a prévia antes de permitir acesso.',
+        );
+      }
       setApps(a);
       setGrants(g);
       setConflict(false);
@@ -248,16 +257,49 @@ export function CaseAiAccessPanel({
               onChange={(e) => chooseApp(e.target.value)}
             >
               <option value="">Escolha a conexão</option>
-              {apps.map((a) => (
-                <option key={a.clientId} value={a.clientId}>
-                  {a.displayName}
+              {clientId && !application && (
+                <option value={clientId} disabled>
+                  Conexão anterior — indisponível
                 </option>
-              ))}
+              )}
+              {[...apps]
+                .sort((a, b) => b.grantedAt.localeCompare(a.grantedAt) || a.clientId.localeCompare(b.clientId))
+                .map((a) => (
+                  <option key={a.clientId} value={a.clientId}>
+                    {applicationLabel(a, apps)}
+                  </option>
+                ))}
             </select>
           </label>
           <p className="text-xs text-stone-500">
-            O nome acima é informado pelo aplicativo. Confira a conexão que você autorizou na sua conta.
+            A data indica quando você autorizou a conexão. Confira a que está usando na sua IA; o nome é informado pelo
+            aplicativo.
           </p>
+          {clientId && (
+            <section
+              aria-label="Conexão escolhida"
+              className="rounded-lg border border-stone-200 bg-stone-50 p-3 space-y-2"
+            >
+              <p className="text-sm font-semibold">
+                {application?.displayName ?? 'Conexão anterior'} — {caseConnectionState(current, application)}
+              </p>
+              {(application || current) && (
+                <p className="text-xs text-stone-600">
+                  Autorizada em {connectionDate(application?.grantedAt ?? current!.oauthGrantedAt)}
+                </p>
+              )}
+              {current?.status === 'ACTIVE' && !connectedGrant && (
+                <p className="text-sm text-amber-900">
+                  Esta permissão pertence à conexão anterior. Confira a conexão e o material antes de permitir acesso
+                  novamente.
+                </p>
+              )}
+              <details className="text-xs text-stone-600">
+                <summary className="cursor-pointer">Detalhes da conexão</summary>
+                <p className="mt-2 break-all">Identificador: {clientId}</p>
+              </details>
+            </section>
+          )}
           {!apps.length && !busy && (
             <p className="text-sm">
               Nenhuma conexão disponível.{' '}
@@ -270,10 +312,23 @@ export function CaseAiAccessPanel({
           <button type="button" className={button} disabled={busy} onClick={() => void run(refresh)}>
             Atualizar permissões
           </button>
+          <details className="text-sm text-stone-600">
+            <summary className="cursor-pointer">Reconectou sua IA?</summary>
+            <div className="mt-2 space-y-2">
+              <p>
+                Após reconectar, clique em Atualizar permissões, escolha a conexão pela data da autorização e confira o
+                material e a prévia antes de permitir acesso.
+              </p>
+              <p>As permissões do caso não são transferidas entre conexões.</p>
+              <a className="underline" href="/app/conectar" target="_blank" rel="noopener noreferrer">
+                Conferir a conexão em outra aba
+              </a>
+            </div>
+          </details>
         </section>
         <section className="space-y-3">
           <h3 className="font-semibold">2. Selecione o material</h3>
-          <fieldset disabled={busy || !clientId} className="space-y-2">
+          <fieldset disabled={busy || !application} className="space-y-2">
             <legend className="sr-only">Material compartilhado</legend>
             {kinds.map((kind) => (
               <details
@@ -331,7 +386,7 @@ export function CaseAiAccessPanel({
           <button
             type="button"
             className={button}
-            disabled={busy || !clientId || !selectionCount(selection)}
+            disabled={busy || !application || !selectionCount(selection)}
             onClick={() => void viewPreview()}
           >
             Ver prévia
@@ -361,7 +416,7 @@ export function CaseAiAccessPanel({
             <button
               type="button"
               className={primary}
-              disabled={busy || conflict || !!preview.nextCursor || !clientId}
+              disabled={busy || conflict || !!preview.nextCursor || !application}
               onClick={() => void allow()}
             >
               Permitir acesso
@@ -373,7 +428,7 @@ export function CaseAiAccessPanel({
             <input
               type="checkbox"
               checked={receivePermission.enabled}
-              disabled={busy || !clientId}
+              disabled={busy || !application}
               onChange={(e) => {
                 setReceivePermission(
                   e.target.checked ? { enabled: true, destination: { mode: 'NEW' } } : { enabled: false },
@@ -461,6 +516,11 @@ export function CaseAiAccessPanel({
                       ? 'Acesso permitido'
                       : 'Conexão indisponível; autorize novamente para consultar'}
                 </p>
+                <p className="text-xs text-stone-600">Autorizada em {connectionDate(g.oauthGrantedAt)}</p>
+                <details className="text-xs text-stone-600">
+                  <summary className="cursor-pointer">Detalhes da conexão</summary>
+                  <p className="mt-2 break-all">Identificador: {g.oauthClientId}</p>
+                </details>
                 {g.status === 'ACTIVE' && (
                   <button
                     type="button"
@@ -482,6 +542,10 @@ export function CaseAiAccessPanel({
               <p className="text-sm">
                 Bloquear novas consultas desta conexão a este caso? O material já recebido pelo aplicativo permanece com
                 ele.
+              </p>
+              <p className="text-xs text-stone-600">
+                {apps.find((a) => a.clientId === current.oauthClientId)?.displayName ?? 'Conexão anterior'} · autorizada
+                em {connectionDate(current.oauthGrantedAt)}
               </p>
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={button} disabled={busy} onClick={() => void revoke(current)}>
