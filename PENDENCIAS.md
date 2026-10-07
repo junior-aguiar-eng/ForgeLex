@@ -6,10 +6,10 @@ registram o recorte daquela entrega; não devem ser importados como tarefas nova
 
 | Frente | Estado atual | O que falta para encerrar |
 | --- | --- | --- |
-| CI do lifecycle | Filtro bloqueado durante operações; 5 E2E locais aprovados; artefatos preservados em falha | CI da branch/main e publicação; causa exata da falha Linux anterior não demonstrada |
+| CI do lifecycle | Integrado e publicado; 5 E2E locais e CI aprovados; artefatos preservados em falha | Acompanhar novas ocorrências; a causa exata da falha Linux anterior permanece não demonstrada |
 | Dependências | Dois advisories corrigidos, build e CSS equivalentes; audit prod sem alertas | `braces` 3.0.3 mantém alerta alto; aguardar patch publicado e validar atualização |
-| Pesquisa → Caso | Ação de salvar, deduplicação, acervo e reutilização nos seletores implementados; pesquisa 10 E2E locais aprovados | Revisão, CI, integração e publicação |
-| Retenção ordinária | Inspeção somente leitura implementada e executada no PostgreSQL; zero elegíveis na medição | Validar/agendar job de inspeção; expurgo automático exige decisão operacional registrada |
+| Pesquisa → Caso | Publicado na PR #58; salvar/deduplicar, consultar fonte e reutilizar nos seletores; pesquisa 10 E2E aprovados | Incremento técnico encerrado; pertinência jurídica continua sob conferência humana |
+| Retenção ordinária | Job diário às 8h, OAuth; inspeção e disparo pelo Scheduler comprovados, zero elegíveis nas duas execuções | Expurgo automático exige decisão operacional registrada; apply e worker público desabilitados |
 | Comprovações humanas | Roteiro e matriz preparados; aceite documental anterior preservado | Ensaio humano, segundo revisor/canal, qualificação fiscal e provas de privacidade/comércio eletrônico |
 | Acompanhamento | Automação corrigida para main atual e backlog único; frequência diária às 15h preservada | Acompanhar mudanças acionáveis, sem relatório repetido quando nada muda |
 | Reserva histórica | Classificada: 1 PENDING de 20 centavos, lease vencido, sem fingerprint e sem débito correspondente | Preservar evidência; não inferir estorno/backfill. Não bloqueia saldo pela regra atual |
@@ -27,5 +27,6 @@ Responsável pelo acompanhamento: Boni. A classificação da reserva e a inspeç
 de retenção foram realizadas às 20:42:44 UTC, somente leitura. A automação não
 executa operações faturáveis ou mutações. Detalhes e limites:
 [remediação](docs/operations/stabilization/2026-10-07-audit-remediation.md),
+[publicação e recibo](docs/operations/stabilization/2026-10-07-audit-remediation-publication.md),
 [provas humanas](docs/operations/stabilization/2026-10-07-operational-proof-checklist.md),
 [dependências](docs/operations/stabilization/2026-10-07-build-dependencies.md).

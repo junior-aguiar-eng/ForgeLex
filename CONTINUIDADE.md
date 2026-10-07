@@ -3,9 +3,9 @@
 Atualizado em 07/10/2026. Este resumo orienta a próxima sessão; o histórico de
 validações e publicações permanece em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
 
-O backlog atual está em [PENDENCIAS.md](PENDENCIAS.md). A execução da auditoria
-está em `codex/audit-remediation`: correções locais validadas e ponte direta
-Pesquisa → Caso implementada; integração/publicação seguem seus gates.
+O backlog atual está em [PENDENCIAS.md](PENDENCIAS.md). A remediação da auditoria
+foi integrada pela PR #58: correções técnicas e ponte direta Pesquisa → Caso.
+O runtime desta entrega é `forgelex-api-prod-audit-5aca51e`, código `5aca51e`.
 [Evidências e limites](docs/operations/stabilization/2026-10-07-audit-remediation.md).
 
 ## O produto hoje
@@ -25,12 +25,17 @@ ampla; sua extensão não deve ser usada como uma lista de urgências.
 
 ## Publicado, local e futuro
 
+As revisões nas evidências de cada incremento identificam suas publicações
+originais. O runtime atual incorpora essas entregas e está indicado no início.
+
 | Frente                                                       | Estado nesta consolidação                                          | Evidência e limite                                                                                                               |
 | ------------------------------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
 | Contexto autorizado e retorno de texto por MCP               | Publicado; homologações anteriores em ChatGPT e Claude registradas | Recebimentos versionados, idempotência e adoção humana; ver STATUS                                                               |
 | Arquivo, lixeira, restauração e exclusão                     | Publicado                                                          | Homologado em `forgelex-api-prod-lifecycle-ui-326a96e` com dados sintéticos; incluído na revisão atual do leitor                 |
 | Leitura integral de documentos e abertura das fontes         | Publicado; percurso completo homologado em produção                | PR #54, revisão `forgelex-api-prod-reader-0dc9ec5`, 100%; Claude → versão 2 → DOCX inspecionado; permissões sintéticas revogadas |
 | Identificação das conexões de IA no caso                     | Publicado; integração e promoção verificadas | PR #56, revisão `forgelex-api-prod-connection-a23cc07`, 100%; CI da PR e de main aprovada                     |
+| Julgados da Pesquisa no caso                                 | Publicado; salvar, conferir fonte e reutilizar nos rascunhos | PR #58; CI com 130 E2E; runtime `forgelex-api-prod-audit-5aca51e`; sem nova pesquisa para salvar/copiar |
+| Retenção operacional                                        | Inspeção diária às 8h, autenticada por OAuth | Duas execuções somente leitura aprovadas; expurgo e worker público continuam desabilitados |
 | Mesa do caso e orientação do próximo passo                   | Proposta futura                                                    | Organizar os recursos existentes em torno do caso, com detalhes técnicos sob demanda; não há execução autorizada nesta entrega   |
 | Novos agentes internos, modelos hospedados e novos tribunais | Fora do incremento atual                                           | Exigem necessidade demonstrada e decisão própria; não bloqueiam o fluxo MCP externo                                              |
 
@@ -69,8 +74,9 @@ sem concessão de novas permissões.
 
 Casos já conservam julgados para teses, seções, citações e leitura autorizada
 pela IA. A busca dentro do research memo salva as fontes no caso. A tela geral
-Pesquisa em produção ainda não tem **Salvar julgado no caso** no baseline
-`a23cc07`; essa ponte já está implementada e validada localmente na remediação.
+Pesquisa oferece **Salvar julgado no caso** desde a publicação da PR #58.
+O usuário escolhe um caso ativo; o acervo permite conferir a fonte e copiar a
+citação. O vínculo conserva a proveniência e não decide a pertinência jurídica.
 
 Registro anterior à remediação: o GitHub informou três alertas no lockfile em
 07/10: `source-map-js` (alta, correção 1.2.2), `postcss-selector-parser`
@@ -78,8 +84,9 @@ Registro anterior à remediação: o GitHub informou três alertas no lockfile e
 `pnpm why` localiza os três nas ferramentas de build do frontend; o Dockerfile
 entrega a API com dependências de produção e o frontend como arquivos estáticos.
 Não foi demonstrado caminho de exploração por entrada de usuário no servidor.
-Avaliar atualização/substituição compatível e revalidar o build em uma frente
-própria; o job de segurança da CI passou, o que não encerra esses alertas.
+Na remediação, os dois primeiros foram corrigidos com build aprovado e CSS
+idêntico. O alerta alto de `braces` permanece acompanhado, sem patch publicado
+na consulta de 07/10. O audit de produção sem alertas não encerra esse residual.
 
 Usar um checkout alinhado com main e confirmar Git e revisão em produção. O
 checkout antigo `C:/Users/Boni Jr/.antigravity-ide/SDK`, branch
@@ -119,3 +126,16 @@ temporário limpo automaticamente, candidata sem tráfego validada e promoção
 5/25/100 concluída. Configuração preservada, sem migration.
 
 [Registro e limites da publicação](docs/operations/stabilization/2026-10-07-case-ai-connection-publication.md).
+
+## Publicação da remediação da auditoria
+
+PR #58 integrada em `5aca51e`. CI da PR e de main com seis jobs aprovados;
+764 unitários aprovados, 17 condicionais ignorados e 130 E2E em main.
+Promoção 5/25/100 e configuração preservada, sem migration. Inspeção de retenção
+diária às 8h, com duas execuções reais; somente leitura e zero elegíveis nas
+medições. A reserva histórica foi classificada sem alterar saldo ou registros.
+
+O checkout mantido de main é `draft-review/SDK`; o checkout antigo de P2 conserva
+sua branch e não é a referência para a próxima sessão. Comprovações humanas e
+autorização de expurgo permanecem em PENDENCIAS; nenhuma foi encerrada por teste.
+[Recibo, rollback e limites](docs/operations/stabilization/2026-10-07-audit-remediation-publication.md).
