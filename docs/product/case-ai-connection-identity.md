@@ -1,7 +1,8 @@
 # Identificar conexões de IA no caso
 
 Incremento de 07/10/2026, versionado na branch `codex/case-ai-connection-identity`, base
-`94395245b5bb44444c1f081121a106b1665d9124`. Ainda não integrado ou publicado.
+`94395245b5bb44444c1f081121a106b1665d9124`. Integrado pela PR #56 em `a23cc07` e publicado na revisão
+`forgelex-api-prod-connection-a23cc07`, com 100% do tráfego.
 
 ## Comportamento
 
@@ -67,3 +68,12 @@ pertinência jurídica, identidade fática ou aplicabilidade do precedente; o me
 atual compila resultados e questões em um fluxo definido, sem geração por um
 modelo hospedado no site. A ponte direta **Pesquisa → Salvar julgado no caso**
 é uma lacuna de interface separada deste incremento.
+
+## Publicação
+
+CI da PR e de main aprovada; candidata sem tráfego e promoção 5/25/100
+verificadas. A interface foi conferida no caso sintético, sem renovar OAuth
+nem conceder novas permissões. Este ensaio não é nova homologação nativa
+em ChatGPT/Claude.
+
+[Registro operacional](../operations/stabilization/2026-10-07-case-ai-connection-publication.md).

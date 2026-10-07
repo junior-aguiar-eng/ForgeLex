@@ -1,0 +1,238 @@
+{
+  "recordedOn": "2026-10-07",
+  "pullRequest": "https://github.com/junior-aguiar-eng/ForgeLex/pull/56",
+  "sourceSha": "a23cc0705305e327a834008473762490f982618b",
+  "implementationHead": "327004645ff4e4021900dfb98933b0fd140ba259",
+  "validation": {
+    "prRun": "37662764802",
+    "unitPassed": 761,
+    "unitSkipped": 17,
+    "e2e": [
+      {
+        "step": "Run pnpm test:e2e:public",
+        "passed": 16
+      },
+      {
+        "step": "Run pnpm test:e2e:chunk-recovery",
+        "passed": 3
+      },
+      {
+        "step": "Run pnpm test:e2e:phase7",
+        "passed": 1
+      },
+      {
+        "step": "Run pnpm test:e2e:mcp-onboarding",
+        "passed": 28
+      },
+      {
+        "step": "Run pnpm test:e2e:accessibility",
+        "passed": 38
+      },
+      {
+        "step": "Run pnpm test:e2e:documents",
+        "passed": 4
+      },
+      {
+        "step": "Run pnpm test:e2e:document-reader",
+        "passed": 4
+      },
+      {
+        "step": "Run pnpm test:e2e:draft-review",
+        "passed": 9
+      },
+      {
+        "step": "Run pnpm test:e2e:case-ai",
+        "passed": 8
+      },
+      {
+        "step": "Run pnpm exec playwright test --config playwright.matter-lifecycle.config.ts",
+        "passed": 4
+      },
+      {
+        "step": "Run pnpm test:e2e:research",
+        "passed": 8
+      },
+      {
+        "step": "Run pnpm test:e2e:account-closure",
+        "passed": 4
+      }
+    ],
+    "e2ePassed": 127,
+    "localCaseAiPassed": 8,
+    "temporaryCleanupVerified": true,
+    "newNativeOAuthHostTest": false,
+    "mainRun": "37663636560",
+    "mainE2ePassed": 127
+  },
+  "mainCiJobs": [
+    {
+      "name": "e2e-public",
+      "conclusion": "success"
+    },
+    {
+      "name": "e2e-product",
+      "conclusion": "success"
+    },
+    {
+      "name": "security",
+      "conclusion": "success"
+    },
+    {
+      "name": "validate",
+      "conclusion": "success"
+    },
+    {
+      "name": "e2e-account-closure",
+      "conclusion": "success"
+    },
+    {
+      "name": "postgres",
+      "conclusion": "success"
+    }
+  ],
+  "build": {
+    "id": "cfc31c1d-4468-4625-86d0-6e6f7a4a2bf8",
+    "status": "SUCCESS",
+    "finishTime": "2026-10-07T18:05:55.371714Z"
+  },
+  "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:44e9fb77f934f350bda39df5dd1b60813c760659e42a16da6616b63aab4e7c97",
+  "backup": {
+    "id": "1791395897025",
+    "status": "SUCCESSFUL",
+    "endTime": "2026-10-07T18:00:18.705Z",
+    "description": "Pre-publication case-ai connection identity 2026-10-07"
+  },
+  "candidate": {
+    "configPreserved": true,
+    "noTrafficInitially": true,
+    "smoke": {
+      "checkedAt": "2026-10-07T18:21:31.4198581Z",
+      "checks": [
+        {
+          "status": 200,
+          "path": "/healthz"
+        },
+        {
+          "status": 200,
+          "path": "/readyz"
+        },
+        {
+          "status": 200,
+          "path": "/"
+        },
+        {
+          "status": 200,
+          "path": "/app/casos"
+        },
+        {
+          "status": 200,
+          "path": "/app/rascunhos"
+        },
+        {
+          "status": 200,
+          "path": "/app/conectar"
+        },
+        {
+          "status": 200,
+          "path": "/guia/mcp"
+        },
+        {
+          "status": 200,
+          "path": "/.well-known/oauth-protected-resource/mcp"
+        },
+        {
+          "status": 200,
+          "path": "/.well-known/oauth-authorization-server"
+        },
+        {
+          "status": 200,
+          "path": "/openapi.json"
+        }
+      ],
+      "observedRevisions": [
+        "forgelex-api-prod-connection-a23cc07"
+      ]
+    },
+    "webAssets": {
+      "entry": "/assets/index-B9glsD2S.js",
+      "status": 200,
+      "authorizationDateText": true,
+      "checkedAt": "2026-10-07T18:21:32.9629076Z",
+      "matterChunk": "/assets/MatterWorkspaceScreen-D-0RyUND.js",
+      "reconnectionText": true,
+      "htmlCacheControl": "no-cache"
+    }
+  },
+  "promotion": {
+    "revision": "forgelex-api-prod-connection-a23cc07",
+    "rollbackRevision": "forgelex-api-prod-reader-0dc9ec5",
+    "completedAt": "2026-10-07T18:29:57.7434091Z",
+    "stages": [
+      {
+        "percent": 5,
+        "requests": 154,
+        "elapsedSeconds": 134.0,
+        "observedRevisions": [
+          "forgelex-api-prod-connection-a23cc07",
+          "forgelex-api-prod-reader-0dc9ec5"
+        ],
+        "verified": true
+      },
+      {
+        "percent": 25,
+        "requests": 159,
+        "elapsedSeconds": 133.0,
+        "observedRevisions": [
+          "forgelex-api-prod-connection-a23cc07",
+          "forgelex-api-prod-reader-0dc9ec5"
+        ],
+        "verified": true
+      },
+      {
+        "percent": 100,
+        "requests": 158,
+        "elapsedSeconds": 134.0,
+        "observedRevisions": [
+          "forgelex-api-prod-connection-a23cc07"
+        ],
+        "verified": true
+      }
+    ]
+  },
+  "runtime": {
+    "observedHttp5xx": 0,
+    "revision": "forgelex-api-prod-connection-a23cc07",
+    "sourceSha": "a23cc0705305e327a834008473762490f982618b",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:44e9fb77f934f350bda39df5dd1b60813c760659e42a16da6616b63aab4e7c97",
+    "checkedAt": "2026-10-07T18:35:26.9779915Z",
+    "publicReady": true,
+    "errorObservationStartedAt": "2026-10-07T18:13:38.2816077Z",
+    "percent": 100,
+    "ingress": "internal-and-cloud-load-balancing"
+  },
+  "cleanup": {
+    "negRemoved": true,
+    "checkedAt": "2026-10-07T18:33:36.8004072Z",
+    "backendRemoved": true,
+    "temporaryRouteRemoved": true,
+    "candidateTagRemoved": true
+  },
+  "productionUi": {
+    "reconnectionInstructionsVisible": true,
+    "case": "Homologação leitor 07-10-2026 — caso sintético",
+    "selectedConnectionState": "Acesso revogado",
+    "latestConnectionListedFirst": true,
+    "refreshPreservedSelectionAndRevokedState": true,
+    "connectionDatesVisible": true,
+    "newOAuthAuthorization": false,
+    "desktopVisuallyInspected": true,
+    "technicalDetailsCollapsed": true,
+    "nativeHostCall": false,
+    "connectionInitiallyUnselected": true,
+    "existingRevokedPermissions": 2,
+    "newPermissionsGranted": false,
+    "checkedAt": "2026-10-07T18:30:53.5141294Z"
+  },
+  "migrationApplied": false,
+  "newNativeOAuthHostTest": false
+}
