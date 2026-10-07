@@ -1,6 +1,6 @@
 # Auditoria e status canônico do ForgeLex
 
-## Consolidação documental e Git (07/10/2026)
+## Consolidação documental e Git — registro anterior à publicação (07/10/2026)
 
 O checkout de main foi atualizado até `origin/main` (`9439524`). Todo trabalho
 pendente foi versionado e enviado em branches separadas: incremento de conexões,
@@ -10,7 +10,7 @@ das PRs #46/#47/#49, sem tratar implementação concluída como pendência.
 Não houve merge, migration ou deploy nesta consolidação.
 [Branches, estados e limites](CONTINUIDADE.md).
 
-## Identificação das conexões de IA — versionado, integração pendente (07/10/2026)
+## Identificação das conexões de IA — publicado (07/10/2026)
 
 Branch `codex/case-ai-connection-identity`, base `9439524`, checkout isolado
 `C:/Users/Boni Jr/.codex/worktrees/document-reader/SDK`. Nome/data distinguem
@@ -36,7 +36,9 @@ integração: oito E2E reexecutados e nenhum novo diretório remanescente.
 Sem ensaio novo em host externo real;
 o diretório renovado é simulado no navegador, com grants/negativas MCP locais.
 Código commitado em `85d1c22` e enviado ao GitHub na branch indicada.
-Integração e publicação pendentes; sem PR, migration ou deploy deste incremento.
+Integrado pela PR #56 em `a23cc07` e publicado na revisão `forgelex-api-prod-connection-a23cc07`,
+com 100% do tráfego. CI da PR e de main aprovada, sem migration.
+[Registro operacional](docs/operations/stabilization/2026-10-07-case-ai-connection-publication.md).
 
 [Comportamento e limites](docs/product/case-ai-connection-identity.md).
 

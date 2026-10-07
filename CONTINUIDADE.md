@@ -25,7 +25,7 @@ ampla; sua extensão não deve ser usada como uma lista de urgências.
 | Contexto autorizado e retorno de texto por MCP               | Publicado; homologações anteriores em ChatGPT e Claude registradas | Recebimentos versionados, idempotência e adoção humana; ver STATUS                                                               |
 | Arquivo, lixeira, restauração e exclusão                     | Publicado                                                          | Homologado em `forgelex-api-prod-lifecycle-ui-326a96e` com dados sintéticos; incluído na revisão atual do leitor                 |
 | Leitura integral de documentos e abertura das fontes         | Publicado; percurso completo homologado em produção                | PR #54, revisão `forgelex-api-prod-reader-0dc9ec5`, 100%; Claude → versão 2 → DOCX inspecionado; permissões sintéticas revogadas |
-| Identificação das conexões de IA no caso                     | Implementado, commitado e enviado; integração/publicação pendentes | Branch `codex/case-ai-connection-identity`, código `85d1c22`; 155 testes frontend e oito E2E locais aprovados                     |
+| Identificação das conexões de IA no caso                     | Publicado; integração e promoção verificadas | PR #56, revisão `forgelex-api-prod-connection-a23cc07`, 100%; CI da PR e de main aprovada                     |
 | Mesa do caso e orientação do próximo passo                   | Proposta futura                                                    | Organizar os recursos existentes em torno do caso, com detalhes técnicos sob demanda; não há execução autorizada nesta entrega   |
 | Novos agentes internos, modelos hospedados e novos tribunais | Fora do incremento atual                                           | Exigem necessidade demonstrada e decisão própria; não bloqueiam o fluxo MCP externo                                              |
 
@@ -57,7 +57,9 @@ O incremento de **identificar a conexão no fluxo do caso e orientar a reconexã
 foi implementado e enviado ao GitHub na branch `codex/case-ai-connection-identity`, com
 nome/data/estado e detalhes sob demanda. A mudança invalida a prévia quando a
 conexão escolhida muda e conserva o material para conferência, sem escolher ou
-transferir permissões automaticamente. Ainda não foi integrado ou publicado.
+transferir permissões automaticamente. Foi integrado pela PR #56 em `a23cc07`
+e publicado com 100% do tráfego; conferência da interface no caso sintético
+sem concessão de novas permissões.
 [Comportamento e limites da validação](docs/product/case-ai-connection-identity.md).
 
 Casos já conservam julgados para teses, seções, citações e leitura autorizada
@@ -82,7 +84,7 @@ não substituem o estado atual. As principais correções
 de recuperação de tela e busca já existem em main; as diferenças residuais
 precisam de comparação antes de reutilizar ou descartar qualquer arquivo.
 
-## Organização do repositório em 07/10
+## Organização do repositório em 07/10 — registro anterior à publicação
 
 - `main` local atualizado por fast-forward até `origin/main` (`9439524`),
   no checkout `draft-review/SDK`. Não houve integração de novas branches.
@@ -97,8 +99,18 @@ precisam de comparação antes de reutilizar ou descartar qualquer arquivo.
 
 O desenho de revisão/contexto/retorno e o plano de conferência foram reconciliados
 com as publicações já registradas. Esta consolidação faz commit e push; não faz
-PR, merge, migration ou deploy. As novas mudanças continuam em branch.
+PR, merge, migration ou deploy. As novas mudanças continuavam em branch naquele registro. A integração e
+publicação posteriores da PR #56 estão no registro abaixo.
 
 Referências: [plano de execução](Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md),
 [comportamento do leitor](docs/product/document-reader.md) e
 [última publicação anterior](docs/operations/stabilization/2026-10-06-matter-lifecycle-publication.md).
+
+## Publicação do incremento das conexões
+
+PR #56 integrada e publicada em 07/10/2026. CI da PR e de main: seis jobs
+aprovados, 761 testes unitários (17 condicionais ignorados) e 127 E2E. Banco
+temporário limpo automaticamente, candidata sem tráfego validada e promoção
+5/25/100 concluída. Configuração preservada, sem migration.
+
+[Registro e limites da publicação](docs/operations/stabilization/2026-10-07-case-ai-connection-publication.md).
