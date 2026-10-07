@@ -1,8 +1,12 @@
 # Leitura de documentos e fontes dos rascunhos
 
-Implementação local de 07/10/2026, branch `codex/document-reader`, baseada em
+Implementação de 07/10/2026, branch `codex/document-reader`, baseada em
 `a5543239b0fb26c9ce10ac0e82276a2762525fc5` de `main`. Checkout isolado:
 `C:/Users/Boni Jr/.codex/worktrees/document-reader/SDK`.
+
+Integrada pela PR #54 em `0dc9ec5` e publicada na revisão
+`forgelex-api-prod-reader-0dc9ec5`, com 100% do tráfego. Evidências no
+[registro operacional](../operations/stabilization/2026-10-07-document-reader-publication.md).
 
 ## Experiência
 
@@ -66,5 +70,11 @@ com edição do rascunho preservada. As duas entradas de UI foram verificadas
 como ausentes antes da implementação, com testes falhando nesses controles.
 
 O registro consolidado de comandos e regressões está em `STATUS_VALIDACAO.md`.
-A implementação não foi integrada nem publicada; não houve alteração de dados
-ou configuração de produção nem ensaio em hosts ChatGPT/Claude nesta rodada.
+O percurso real no Claude confirmou leitura autorizada e recebimento de texto
+sintético. Na nova interface, leitura da versão citada, busca, Escape, preservação
+da edição e salvamento da versão 2 com referências conservadas foram confirmados.
+O DOCX real indicado pelo usuário foi inspecionado por ZIP/XML: versão 2,
+edição salva, duas seções e seis referências à versão documental 1, com revisão
+humana pendente. Não houve avaliação visual de paginação no Word. Após revogar
+as permissões sintéticas, nova leitura pelo Claude recebeu
+`CASE_CONTEXT_NOT_AUTHORIZED`. Não houve ensaio do leitor no ChatGPT nesta rodada.
