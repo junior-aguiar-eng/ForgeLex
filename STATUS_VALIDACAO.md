@@ -1,5 +1,41 @@
 # Auditoria e status canônico do ForgeLex
 
+## Preservação histórica das pendências locais (07/10/2026)
+
+Este checkout permanece na base de 02/10 (`ace7b7a`), 85 commits atrás de
+`origin/main` na consolidação. O código pendente é preservado na branch
+`codex/p2-search-chunk-recovery`, sem integração em main. Os estados e testes
+de 02/10 abaixo são históricos: não descrevem o runtime atual. Main já contém
+correções posteriores de busca e recuperação; qualquer reaproveitamento exige
+comparar as diferenças residuais. O estado atual está em `CONTINUIDADE.md`
+no checkout `C:/Users/Boni Jr/.codex/worktrees/document-reader/SDK`.
+
+
+Validação da preservação em 07/10/2026: build, lint e typecheck aprovados;
+21 testes direcionados aprovados e dois PostgreSQL ignorados por ausência de
+URL local; recuperação de chunks no navegador: 3/3 aprovados. As medições
+PostgreSQL e as demais suítes de 02/10 abaixo não foram reexecutadas nesta
+consolidação. Sem migration, integração ou publicação desta branch.
+
+## Correções locais dos P2 — busca ampla e abas antigas (02/10/2026)
+
+Branch `codex/p2-search-chunk-recovery`, base `ace7b7a`. A busca PostgreSQL
+ordena uma projeção compacta antes de carregar documentos completos, mantendo
+semântica, filtros, versões e ranking. Regressão aprovada com 4.000 e 33.759
+candidatos sintéticos; o plano não ordenou candidatos extensos em disco.
+A interface ganhou tratamento de falha de importação com atualização explícita
+da mesma URL; HTML é revalidado e assets ausentes retornam 404 sem fallback HTML.
+
+Build/suíte completa: 553 testes aprovados, cinco condicionais ignorados;
+repositório PostgreSQL dez testes e smoke 12 controles aprovados; lint e
+typecheck aprovados. Nenhuma mudança publicada, migration remota ou nova cobrança.
+Regressões finais: onboarding MCP 28/28, recuperação no build 3/3, público 8/8
+e fluxo jurídico local aprovados. Mensagem de recuperação verificada em 320 px
+com axe no recorte A/AA e inspeção visual; sem declaração integral WCAG.
+Os P2 permanecem abertos em produção até integração, publicação e confirmação
+no runtime/corpus produtivos. Evidência e limites:
+`docs/operations/stabilization/2026-10-02-p2-fixes.md`.
+
 ## Acompanhamento não bloqueante e continuidade do projeto (02/10/2026)
 
 Boni substituiu o gate temporal da fase 8 por acompanhamento operacional
