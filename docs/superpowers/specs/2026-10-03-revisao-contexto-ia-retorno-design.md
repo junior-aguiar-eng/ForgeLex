@@ -1,8 +1,11 @@
 # Revisão, contexto na IA e retorno da minuta
 
 Data: 03/10/2026.
-Estado: desenho aprovado por Boni em 03/10/2026. Frente 1 implementada e
-validada localmente; frentes 2 e 3 ainda não implementadas.
+Estado atualizado em 07/10/2026: desenho aprovado por Boni em 03/10. As três
+frentes foram implementadas, integradas e publicadas: revisão/contexto na
+PR #46 (05/10), com correção posterior na PR #47, e recebimento na PR #49
+(06/10). Ensaios reais em ChatGPT e Claude registrados em `STATUS_VALIDACAO.md`.
+As seções abaixo preservam o desenho aprovado; não são pendências de execução.
 Base examinada: worktree `document-io/SDK`, branch
 `codex/datajud-workspace-publication`, HEAD
 `a74eda8ba539eb125a6cc5a950cd745ab09fc384`.

@@ -4,6 +4,225 @@ import JSZip from 'jszip';
 import { readFile } from 'node:fs/promises';
 const api = 'http://127.0.0.1:3301';
 
+test('conexões com o mesmo nome são distinguíveis e não recebem permissão automaticamente', async ({
+  page,
+  request,
+}, info) => {
+  const state = await (await request.get(api + '/e2e/state')).json();
+  const headers = { authorization: 'Bearer phase7-e2e-access-token' };
+  const created = await request.post(api + '/api/v2/matters', {
+    headers,
+    data: { title: 'Conexões homônimas — teste sintético' },
+  });
+  expect(created.status()).toBe(200);
+  const matter = await created.json();
+  let writes = 0;
+  page.on('request', (r) => {
+    if (r.url().endsWith('/ai-access') && r.method() === 'PUT') writes++;
+  });
+  await page.route('**/mcp/authorized-applications', async (route) => {
+    const response = await route.fetch();
+    const apps = await response.json();
+    await route.fulfill({ response, json: apps.map((a: any) => ({ ...a, displayName: 'Claude' })) });
+  });
+  await login(page);
+  await openCase(page, matter.id);
+  await page.getByLabel('Onde você vai usar?').selectOption('Claude');
+  const choices = page.getByLabel('Aplicativo autorizado');
+  await expect(choices).toHaveValue('');
+  const options = await choices.locator('option').allTextContents();
+  expect(options[1]).toContain('05/10/2026');
+  expect(options[2]).toContain('05/10/2026');
+  expect(options[1]).not.toBe(options[2]);
+  await choices.selectOption('app-two');
+  const selected = page.getByRole('region', { name: 'Conexão escolhida' });
+  await expect(selected).toContainText('Sem acesso a este caso');
+  await expect(selected).toContainText('Autorizada em');
+  await selected.getByText('Detalhes da conexão', { exact: true }).click();
+  await expect(selected).toContainText('app-two');
+  await page.getByText('Reconectou sua IA?', { exact: true }).click();
+  await expect(
+    page.getByText('As permissões do caso não são transferidas entre conexões.', { exact: true }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.locator('dialog').evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
+  const axe = await new AxeBuilder({ page })
+    .include('dialog')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(axe.violations).toEqual([]);
+  await page.locator('dialog').screenshot({ path: info.outputPath('connection-identity-mobile.png') });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.locator('dialog').screenshot({ path: info.outputPath('connection-identity-desktop.png') });
+  expect(writes).toBe(0);
+  expect(await (await request.get(api + `/api/v2/matters/${matter.id}/ai-access`, { headers })).json()).toEqual([]);
+  expectCaseDenied(await mcp(request, state.oauthTokens['app-two'], 'case.get_context', { matterId: matter.id }));
+});
+
+test('atualizar conexão renovada invalida a prévia sem descartar material nem autorizar acesso', async ({
+  page,
+  request,
+}) => {
+  const state = await (await request.get(api + '/e2e/state')).json();
+  const headers = { authorization: 'Bearer phase7-e2e-access-token' };
+  const created = await request.post(api + '/api/v2/matters', {
+    headers,
+    data: { title: 'Renovação de conexão — teste sintético' },
+  });
+  expect(created.status()).toBe(200);
+  const matter = await created.json();
+  const document = await request.post(api + `/api/v2/matters/${matter.id}/documents`, {
+    headers,
+    data: {
+      title: 'Material da renovação',
+      originalFilename: 'teste.txt',
+      mimeType: 'text/plain',
+      content: 'Conteúdo inteiramente fictício para seleção.',
+    },
+  });
+  expect(document.status()).toBe(200);
+  let renewed = false;
+  let available = true;
+  let writes = 0;
+  page.on('request', (r) => {
+    if (r.url().endsWith('/ai-access') && r.method() === 'PUT') writes++;
+  });
+  await page.route('**/mcp/authorized-applications', async (route) => {
+    const response = await route.fetch();
+    const apps = await response.json();
+    await route.fulfill({
+      response,
+      json: apps
+        .filter((a: any) => available || a.clientId !== 'app-one')
+        .map((a: any) => (a.clientId === 'app-one' && renewed ? { ...a, grantedAt: '2026-10-07T16:00:00.000Z' } : a)),
+    });
+  });
+  await login(page);
+  await openCase(page, matter.id);
+  await page.getByLabel('Onde você vai usar?').selectOption('Claude');
+  await page.getByLabel('Aplicativo autorizado').selectOption('app-one');
+  await page.locator('dialog summary').filter({ hasText: 'Documentos' }).click();
+  const choice = page.locator('dialog label').filter({ hasText: 'Material da renovação' }).getByRole('checkbox');
+  await choice.check();
+  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeEnabled();
+  renewed = true;
+  await page.getByRole('button', { name: 'Atualizar permissões', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Prévia do material' })).toHaveCount(0);
+  await expect(choice).toBeChecked();
+  await expect(page.getByRole('region', { name: 'Conexão escolhida' })).toContainText('07/10/2026');
+  await expect(page.getByRole('status')).toContainText('Confira a conexão e a prévia');
+  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeEnabled();
+  available = false;
+  await page.getByRole('button', { name: 'Atualizar permissões', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Prévia do material' })).toHaveCount(0);
+  await expect(choice).toBeChecked();
+  await expect(page.getByRole('region', { name: 'Conexão escolhida' })).toContainText('Conexão indisponível');
+  await expect(page.getByRole('button', { name: 'Ver prévia', exact: true })).toBeDisabled();
+  expect(writes).toBe(0);
+  expect(await (await request.get(api + `/api/v2/matters/${matter.id}/ai-access`, { headers })).json()).toEqual([]);
+  expectCaseDenied(await mcp(request, state.oauthTokens['app-one'], 'case.get_context', { matterId: matter.id }));
+});
+
+test('permissão anterior fica identificada após renovação e pode ser revogada sem ser transferida', async ({
+  page,
+  request,
+}) => {
+  const state = await (await request.get(api + '/e2e/state')).json();
+  const headers = { authorization: 'Bearer phase7-e2e-access-token' };
+  const created = await request.post(api + '/api/v2/matters', {
+    headers,
+    data: { title: 'Permissão anterior — teste sintético' },
+  });
+  expect(created.status()).toBe(200);
+  const matter = await created.json();
+  const docResponse = await request.post(api + `/api/v2/matters/${matter.id}/documents`, {
+    headers,
+    data: {
+      title: 'Documento da permissão anterior',
+      originalFilename: 'permissao.txt',
+      mimeType: 'text/plain',
+      content: 'Conteúdo fictício para conferir a permissão anterior.',
+    },
+  });
+  expect(docResponse.status()).toBe(200);
+  const doc = await docResponse.json();
+  const base = api + `/api/v2/matters/${matter.id}/ai-access`;
+  const granted = await request.put(base, {
+    headers,
+    data: {
+      oauthClientId: 'app-one',
+      expectedRevision: 0,
+      selection: {
+        documents: [{ documentId: doc.document.id, versionId: doc.version.id }],
+        factIds: [],
+        evidenceIds: [],
+        thesisIds: [],
+        authorityIds: [],
+      },
+    },
+  });
+  expect(granted.status()).toBe(200);
+  const grant = await granted.json();
+  let renewed = false;
+  let writes = 0;
+  page.on('request', (r) => {
+    if (r.url().endsWith('/ai-access') && r.method() === 'PUT') writes++;
+  });
+  await page.route('**/mcp/authorized-applications', async (route) => {
+    const response = await route.fetch();
+    const apps = await response.json();
+    await route.fulfill({
+      response,
+      json: apps.map((a: any) => ({
+        ...a,
+        displayName: 'Claude',
+        ...(a.clientId === 'app-one' && renewed ? { grantedAt: '2026-10-07T16:00:00.000Z' } : {}),
+      })),
+    });
+  });
+  await login(page);
+  await openCase(page, matter.id);
+  await page.getByLabel('Onde você vai usar?').selectOption('Claude');
+  await page.getByLabel('Aplicativo autorizado').selectOption('app-one');
+  await expect(page.getByRole('button', { name: 'Copiar instrução', exact: true })).toBeVisible();
+  await page.locator('dialog summary').filter({ hasText: 'Documentos' }).click();
+  const selectedDocument = page
+    .locator('dialog label')
+    .filter({ hasText: 'Documento da permissão anterior' })
+    .getByRole('checkbox');
+  await expect(selectedDocument).toBeChecked();
+  renewed = true;
+  await page.getByRole('button', { name: 'Atualizar permissões', exact: true }).click();
+  const chosen = page.getByRole('region', { name: 'Conexão escolhida' });
+  await expect(chosen).toContainText('Conexão renovada; revise a permissão');
+  await expect(chosen).toContainText('07/10/2026');
+  await expect(selectedDocument).toBeChecked();
+  await expect(page.getByRole('button', { name: 'Copiar instrução', exact: true })).toHaveCount(0);
+  const permission = page.getByRole('region', { name: 'Permissões da IA' });
+  await expect(permission).toContainText('05/10/2026');
+  await permission.getByRole('button', { name: 'Revogar acesso', exact: true }).click();
+  const confirmation = page
+    .locator('dialog div')
+    .filter({ hasText: 'Bloquear novas consultas desta conexão a este caso?' })
+    .last();
+  await expect(confirmation).toContainText('05/10/2026');
+  await page.getByRole('button', { name: 'Confirmar revogação', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Impede novas consultas');
+  const grants = await (await request.get(base, { headers })).json();
+  expect(grants).toHaveLength(1);
+  expect(grants[0]).toMatchObject({
+    id: grant.id,
+    oauthClientId: 'app-one',
+    oauthGrantedAt: '2026-10-05T10:00:00.000Z',
+    status: 'REVOKED',
+  });
+  expect(writes).toBe(0);
+  expectCaseDenied(await mcp(request, state.oauthTokens['app-one'], 'case.get_context', { matterId: matter.id }));
+  expectCaseDenied(await mcp(request, state.oauthTokens['app-two'], 'case.get_context', { matterId: matter.id }));
+});
+
 test('novo rascunho abre pelo recibo sem referências nem revisão automática', async ({ page, request }) => {
   const state = await (await request.get(api + '/e2e/state')).json();
   await login(page);

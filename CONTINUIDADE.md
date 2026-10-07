@@ -25,6 +25,7 @@ ampla; sua extensão não deve ser usada como uma lista de urgências.
 | Contexto autorizado e retorno de texto por MCP               | Publicado; homologações anteriores em ChatGPT e Claude registradas | Recebimentos versionados, idempotência e adoção humana; ver STATUS                                                               |
 | Arquivo, lixeira, restauração e exclusão                     | Publicado                                                          | Homologado em `forgelex-api-prod-lifecycle-ui-326a96e` com dados sintéticos; incluído na revisão atual do leitor                 |
 | Leitura integral de documentos e abertura das fontes         | Publicado; percurso completo homologado em produção                | PR #54, revisão `forgelex-api-prod-reader-0dc9ec5`, 100%; Claude → versão 2 → DOCX inspecionado; permissões sintéticas revogadas |
+| Identificação das conexões de IA no caso                     | Implementado, commitado e enviado; integração/publicação pendentes | Branch `codex/case-ai-connection-identity`, código `85d1c22`; 155 testes frontend e oito E2E locais aprovados                     |
 | Mesa do caso e orientação do próximo passo                   | Proposta futura                                                    | Organizar os recursos existentes em torno do caso, com detalhes técnicos sob demanda; não há execução autorizada nesta entrega   |
 | Novos agentes internos, modelos hospedados e novos tribunais | Fora do incremento atual                                           | Exigem necessidade demonstrada e decisão própria; não bloqueiam o fluxo MCP externo                                              |
 
@@ -52,9 +53,17 @@ O percurso real encontrou uma dificuldade concreta: reconectar o Claude criou
 uma nova conexão, enquanto a seleção sintética continuava autorizada na antiga.
 Ambas apareciam como “Claude”. A leitura inicial retornou lista vazia; atualizar
 as conexões, revogar a seleção antiga e selecionar a nova resolveu o ensaio.
-O próximo incremento recomendado é **distinguir a conexão atual no fluxo do
-caso e orientar a reconexão**, com nome/data/estado compreensíveis e detalhes
-sob demanda. Não transferir permissões automaticamente entre conexões.
+O incremento de **identificar a conexão no fluxo do caso e orientar a reconexão**
+foi implementado e enviado ao GitHub na branch `codex/case-ai-connection-identity`, com
+nome/data/estado e detalhes sob demanda. A mudança invalida a prévia quando a
+conexão escolhida muda e conserva o material para conferência, sem escolher ou
+transferir permissões automaticamente. Ainda não foi integrado ou publicado.
+[Comportamento e limites da validação](docs/product/case-ai-connection-identity.md).
+
+Casos já conservam julgados para teses, seções, citações e leitura autorizada
+pela IA. A busca dentro do research memo salva as fontes no caso. A tela geral
+Pesquisa ainda não tem **Salvar julgado no caso**; essa ponte direta é uma
+lacuna de interface para um incremento próprio.
 
 Manutenção separada: o GitHub informou três alertas abertos no lockfile em
 07/10: `source-map-js` (alta, correção 1.2.2), `postcss-selector-parser`
@@ -67,10 +76,28 @@ própria; o job de segurança da CI passou, o que não encerra esses alertas.
 
 Usar um checkout alinhado com main e confirmar Git e revisão em produção. O
 checkout antigo `C:/Users/Boni Jr/.antigravity-ide/SDK`, branch
-`codex/p2-search-chunk-recovery`, contém trabalho antigo preservado. Seus
-registros de outubro 2 não substituem o estado atual. As principais correções
+`codex/p2-search-chunk-recovery`, contém trabalho antigo agora commitado e
+enviado ao GitHub, separado do incremento atual. Seus registros de 02/10
+não substituem o estado atual. As principais correções
 de recuperação de tela e busca já existem em main; as diferenças residuais
 precisam de comparação antes de reutilizar ou descartar qualquer arquivo.
+
+## Organização do repositório em 07/10
+
+- `main` local atualizado por fast-forward até `origin/main` (`9439524`),
+  no checkout `draft-review/SDK`. Não houve integração de novas branches.
+- Incremento de conexões: código `85d1c22`, em
+  `codex/case-ai-connection-identity`, com documentação e validações locais.
+- Pendências antigas dos P2: commits separados para busca, recuperação de
+  páginas e registro histórico, na branch `codex/p2-search-chunk-recovery`.
+  A base antiga não é o checkout para continuar novos incrementos.
+- Duas propostas originais de 03/10 preservadas no commit `e2733f0`, branch
+  `codex/datajud-workspace-publication`, claramente marcadas como históricas.
+  As versões executadas continuam em main; não são tarefas novas.
+
+O desenho de revisão/contexto/retorno e o plano de conferência foram reconciliados
+com as publicações já registradas. Esta consolidação faz commit e push; não faz
+PR, merge, migration ou deploy. As novas mudanças continuam em branch.
 
 Referências: [plano de execução](Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md),
 [comportamento do leitor](docs/product/document-reader.md) e

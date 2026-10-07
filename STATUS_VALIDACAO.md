@@ -1,5 +1,45 @@
 # Auditoria e status canônico do ForgeLex
 
+## Consolidação documental e Git (07/10/2026)
+
+O checkout de main foi atualizado até `origin/main` (`9439524`). Todo trabalho
+pendente foi versionado e enviado em branches separadas: incremento de conexões,
+correções históricas dos P2 e cópias originais dos planos de 03/10. O desenho
+aprovado e o plano de conferência agora apontam para as publicações efetivas
+das PRs #46/#47/#49, sem tratar implementação concluída como pendência.
+Não houve merge, migration ou deploy nesta consolidação.
+[Branches, estados e limites](CONTINUIDADE.md).
+
+## Identificação das conexões de IA — versionado, integração pendente (07/10/2026)
+
+Branch `codex/case-ai-connection-identity`, base `9439524`, checkout isolado
+`C:/Users/Boni Jr/.codex/worktrees/document-reader/SDK`. Nome/data distinguem
+autorizações; identificação técnica sob demanda, situação de acesso por caso
+e instrução de reconexão. Não escolhe conexão automaticamente nem transfere
+permissão. Refresh com renovação/remoção invalida a prévia e conserva material.
+Revogação identifica a autorização antiga pela data.
+
+Build, lint e typecheck aprovados; Vitest frontend **155 aprovados**, 29 arquivos,
+com `pnpm exec vitest run apps/web --exclude 'tmp/**'` para excluir o clone
+temporário da publicação anterior. Dois novos cenários E2E RED antes/GREEN
+depois; três novas E2E com nomes/datas idênticos, renovação/remoção e permissão
+antiga revogável. Revisão independente sem achados P0–P2.
+
+Suíte completa final `pnpm test:e2e:case-ai`: **8 E2E aprovados**, com arquivo
+SQLite exclusivo por execução e sem instrumentação adicional. Experimento
+anterior com arquivo exclusivo também passou nos oito testes. Execuções com
+SQLite em memória apresentaram consultas falhando após conflito de adoção e
+no bootstrap; causa indeterminada, não corrigida no produto. Adoção passou
+isoladamente. Instrumentação removida. Os diretórios sintéticos do ensaio ficam
+na pasta temporária do sistema. A limpeza automática foi concluída antes da
+integração: oito E2E reexecutados e nenhum novo diretório remanescente.
+Sem ensaio novo em host externo real;
+o diretório renovado é simulado no navegador, com grants/negativas MCP locais.
+Código commitado em `85d1c22` e enviado ao GitHub na branch indicada.
+Integração e publicação pendentes; sem PR, migration ou deploy deste incremento.
+
+[Comportamento e limites](docs/product/case-ai-connection-identity.md).
+
 ## Leitura de documentos e fontes — publicado (07/10/2026)
 
 Para retomar o projeto, começar pelo [resumo de continuidade](CONTINUIDADE.md).
