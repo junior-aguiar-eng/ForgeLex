@@ -80,6 +80,8 @@ jobs:
         run: node scripts/smoke-research-postgres.mjs
         env:
           FORGELEX_LOCAL_POSTGRES_URL: postgres://forgelex:forgelex@127.0.0.1:55432/forgelex
+      - name: Operational retention inspection and purge (isolated PostgreSQL)
+        run: node scripts/smoke-operational-retention-postgres.mjs
       - run: pnpm test:postgres:search
       - run: pnpm exec vitest run packages/persistence/src/repositories/jurisprudence-repository.test.ts
 
