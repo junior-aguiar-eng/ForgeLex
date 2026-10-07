@@ -6,6 +6,37 @@ const headers = { authorization: 'Bearer phase7-e2e-access-token' };
 async function login(page: Page) {
   await page.goto('/entrar'); await page.getByLabel('E-mail', { exact: true }).fill('ciclo@forgelex.test'); await page.getByLabel('Senha', { exact: true }).fill('senha-sintetica-123'); await page.getByRole('button', { name: 'Entrar', exact: true }).click(); await page.waitForURL('**/app');
 }
+
+test('case filter cannot race an unfinished lifecycle operation', async ({ page, request }) => {
+  const title = `Caso com operação em curso ${Date.now()}`;
+  const matter = await (await request.post(api + '/api/v2/matters', { headers, data: { title } })).json();
+  await login(page);
+  await page.goto(`/app/casos?caso=${matter.id}`);
+  await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+  let release!: () => void;
+  let entered!: () => void;
+  const waiting = new Promise<void>(resolve => { release = resolve; });
+  const started = new Promise<void>(resolve => { entered = resolve; });
+  await page.route(`**/api/v2/matters/${matter.id}/archive`, async route => {
+    entered();
+    await waiting;
+    await route.continue();
+  });
+  try {
+    await page.getByLabel(`Opções de ${title}`, { exact: true }).click();
+    await page.getByRole('button', { name: 'Arquivar', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Arquivar', exact: true }).click();
+    await started;
+    await expect(page.getByLabel('Mostrar casos')).toBeDisabled();
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByLabel('Mostrar casos')).toBeEnabled();
+  await page.getByLabel('Mostrar casos').selectOption('archived');
+  await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+});
 test('typing during a delayed refresh keeps the buffer attached to the original case', async ({ page, request }) => {
   const title = `Caso com resposta atrasada ${Date.now()}`;
   const matter = await (await request.post(api + '/api/v2/matters', { headers, data: { title } })).json();

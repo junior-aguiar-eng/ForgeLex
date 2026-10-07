@@ -3,6 +3,11 @@
 Atualizado em 07/10/2026. Este resumo orienta a próxima sessão; o histórico de
 validações e publicações permanece em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
 
+O backlog atual está em [PENDENCIAS.md](PENDENCIAS.md). A execução da auditoria
+está em `codex/audit-remediation`: correções locais validadas e ponte direta
+Pesquisa → Caso implementada; integração/publicação seguem seus gates.
+[Evidências e limites](docs/operations/stabilization/2026-10-07-audit-remediation.md).
+
 ## O produto hoje
 
 O percurso é **caso → documentos → análise na IA externa → rascunho no site →
@@ -64,10 +69,10 @@ sem concessão de novas permissões.
 
 Casos já conservam julgados para teses, seções, citações e leitura autorizada
 pela IA. A busca dentro do research memo salva as fontes no caso. A tela geral
-Pesquisa ainda não tem **Salvar julgado no caso**; essa ponte direta é uma
-lacuna de interface para um incremento próprio.
+Pesquisa em produção ainda não tem **Salvar julgado no caso** no baseline
+`a23cc07`; essa ponte já está implementada e validada localmente na remediação.
 
-Manutenção separada: o GitHub informou três alertas abertos no lockfile em
+Registro anterior à remediação: o GitHub informou três alertas no lockfile em
 07/10: `source-map-js` (alta, correção 1.2.2), `postcss-selector-parser`
 (média, correção 7.1.6) e `braces` (alta, sem versão corrigida no alerta).
 `pnpm why` localiza os três nas ferramentas de build do frontend; o Dockerfile

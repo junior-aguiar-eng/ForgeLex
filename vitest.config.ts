@@ -27,7 +27,7 @@ export default defineConfig({
     environment: 'node',
     maxWorkers: 2,
     include: ['**/*.test.ts'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.superpowers/**'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.superpowers/**', '**/tmp/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

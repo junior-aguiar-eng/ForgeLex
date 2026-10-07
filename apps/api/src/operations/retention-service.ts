@@ -38,6 +38,38 @@ export class OperationalRetentionService {
       : policy;
   }
 
+  public async inspect(now = new Date()): Promise<{
+    history: number; snapshots: number; webhookBodies: number;
+    financialWebhookBodies: number; accessLogs: number; closureReceipts: number;
+  }> {
+    const cutoff = (days: number) => new Date(now.getTime() - days * 86_400_000).toISOString();
+    const operational = cutoff(this.policy.operationalDays);
+    const webhook = cutoff(Math.min(this.policy.operationalDays, 90));
+    const instant = now.toISOString();
+    const transaction = await this.client.transaction('read');
+    try {
+      if ((this.client as Client & { forgelexDialect?: string }).forgelexDialect === 'postgres') await transaction.execute('SET TRANSACTION READ ONLY');
+      const count = async (table: string, where: string, args: string[]) => {
+        const result = await transaction.execute({ sql: `SELECT COUNT(*) AS count FROM ${table} WHERE ${where}`, args });
+        return Number(result.rows[0]?.count ?? 0);
+      };
+      const history = await count('research_search_history', 'created_at < ?', [operational]);
+      const operations = await count('billing_operations', "status = 'COMPLETED' AND updated_at < ? AND result_snapshot IS NOT NULL", [operational]);
+      const entries = await count('ledger_entries', 'created_at < ? AND operation_result_snapshot IS NOT NULL', [operational]);
+      const webhookBodies = await count('webhook_deliveries', "status IN ('DELIVERED','FAILED') AND updated_at < ? AND response_body_excerpt IS NOT NULL", [webhook]);
+      const financialWebhookBodies = await count('billing_webhook_events', "received_at < ? AND (payload != '{}' OR error_message IS NOT NULL)", [webhook]);
+      const accessLogs = await count('audit_logs', `created_at < ? AND NOT EXISTS (
+        SELECT 1 FROM account_closures c JOIN retention_exceptions r ON r.closure_id = c.id
+        WHERE audit_logs.session_id = 'closure_' || c.id AND r.status = 'ACTIVE'
+          AND r.starts_at <= ? AND (r.ends_at IS NULL OR r.ends_at > ?))`, [cutoff(this.policy.accessLogDays), instant, instant]);
+      const closureReceipts = await count('account_closures', `status = 'COMPLETED' AND completed_at < ? AND NOT EXISTS (
+        SELECT 1 FROM retention_exceptions r WHERE r.closure_id = account_closures.id AND r.status = 'ACTIVE'
+          AND r.starts_at <= ? AND (r.ends_at IS NULL OR r.ends_at > ?))`, [cutoff(this.policy.closureReceiptDays), instant, instant]);
+      await transaction.commit();
+      return { history, snapshots: operations + entries, webhookBodies, financialWebhookBodies, accessLogs, closureReceipts };
+    } catch (error) { await transaction.rollback(); throw error; }
+  }
+
   public async purge(now = new Date()): Promise<{
     history: number;
     snapshots: number;

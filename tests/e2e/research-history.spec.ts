@@ -1,6 +1,68 @@
 import { expect, test, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 const searchUrl = '**/api/v2/research/search-case-law';
+test('salva no caso sem nova cobrança, deduplica e mantém a fonte para reutilização', async ({ page, request, context }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const headers = { authorization: 'Bearer phase7-e2e-access-token' };
+  const title = `Caso de pesquisa ${Date.now()}`;
+  const matter = await (await request.post('http://127.0.0.1:3341/api/v2/matters', { headers, data: { title } })).json();
+  await login(page);
+  await page.goto('/app/pesquisa');
+  await page.getByPlaceholder('Tema, tese ou número do processo').fill('vazamento');
+  const response = page.waitForResponse(r => r.url().endsWith('/research/search-case-law') && r.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Consultar', exact: true }).click();
+  const source = (await (await response).json()).results[0];
+  const afterSearch = await balance(page);
+  const result = page.getByRole('article').filter({ hasText: source.processNumber }).first();
+  await result.getByRole('button', { name: 'Salvar no caso', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Salvar julgado no caso' });
+  await expect(dialog.getByRole('button', { name: 'Salvar julgado', exact: true })).toBeDisabled();
+  await dialog.getByLabel('Caso de destino').selectOption(matter.id);
+  expect((await new AxeBuilder({ page }).include('dialog').analyze()).violations).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: testInfo.outputPath('save-case-mobile.png') });
+  await dialog.getByRole('button', { name: 'Salvar julgado', exact: true }).click();
+  await expect(dialog.getByRole('status')).toContainText('Julgado salvo');
+  await dialog.getByRole('button', { name: 'Salvar julgado', exact: true }).click();
+  await expect(dialog.getByRole('status')).toContainText('já está salvo');
+  expect(await balance(page)).toBe(afterSearch);
+  const saved = await (await request.get(`http://127.0.0.1:3341/api/v2/matters/${matter.id}/authorities`, { headers })).json();
+  expect(saved.items).toHaveLength(1);
+  expect(saved.items[0].authority).toEqual(source);
+  await dialog.getByRole('button', { name: 'Fechar', exact: true }).click();
+  await expect(page.getByPlaceholder('Tema, tese ou número do processo')).toHaveValue('vazamento');
+  await page.goto(`/app/casos?caso=${matter.id}`);
+  const collection = page.getByRole('region', { name: 'Julgados do caso' });
+  await expect(collection.getByText(source.processNumber, { exact: true })).toBeVisible();
+  await collection.getByRole('button', { name: 'Copiar Citação', exact: true }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(source.syllabus);
+  expect(await balance(page)).toBe(afterSearch);
+  await page.goto('/app/rascunhos');
+  await page.getByRole('button', { name: new RegExp(title) }).click();
+  await expect(page.getByLabel('Julgado da tese').getByRole('option', { name: new RegExp(source.processNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) })).toHaveAttribute('value', saved.items[0].id);
+});
+
+test('falha ao salvar preserva seleção e pesquisa quando o caso é arquivado', async ({ page, request }) => {
+  const headers = { authorization: 'Bearer phase7-e2e-access-token' };
+  const title = `Caso arquivado após seleção ${Date.now()}`;
+  const matter = await (await request.post('http://127.0.0.1:3341/api/v2/matters', { headers, data: { title } })).json();
+  await login(page);
+  await page.getByRole('textbox', { name: 'Termo de pesquisa' }).fill('vazamento');
+  await page.getByRole('button', { name: 'Consultar', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar no caso', exact: true }).first().click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Caso de destino').selectOption(matter.id);
+  await request.post(`http://127.0.0.1:3341/api/v2/matters/${matter.id}/archive`, { headers, data: { expectedLifecycleRevision: 0 } });
+  const before = await balance(page);
+  await dialog.getByRole('button', { name: 'Salvar julgado', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toContainText('Caso indisponível para edição');
+  await expect(dialog.getByLabel('Caso de destino')).toHaveValue(matter.id);
+  await dialog.getByRole('button', { name: 'Fechar', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Termo de pesquisa' })).toHaveValue('vazamento');
+  expect(await balance(page)).toBe(before);
+});
 test('timeout permite repetir a mesma operação e não oferece recarga de créditos', async ({ page }) => {
   await login(page);
   const before = await balance(page);

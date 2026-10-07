@@ -80,6 +80,8 @@ jobs:
         run: node scripts/smoke-research-postgres.mjs
         env:
           FORGELEX_LOCAL_POSTGRES_URL: postgres://forgelex:forgelex@127.0.0.1:55432/forgelex
+      - name: Operational retention inspection and purge (isolated PostgreSQL)
+        run: node scripts/smoke-operational-retention-postgres.mjs
       - run: pnpm test:postgres:search
       - run: pnpm exec vitest run packages/persistence/src/repositories/jurisprudence-repository.test.ts
 
@@ -120,6 +122,13 @@ jobs:
       - run: pnpm test:e2e:case-ai
       - run: pnpm exec playwright test --config playwright.matter-lifecycle.config.ts
       - run: pnpm test:e2e:research
+      - name: Preserve product diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-test-results
+          path: test-results/
+          retention-days: 7
 
   e2e-public:
     runs-on: ubuntu-latest

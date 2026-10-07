@@ -36,6 +36,8 @@ export interface ReviewQueueItem {
 }
 
 export interface SearchResultItem {
+  // Original API record; only the backend validates CaseLaw when saving it.
+  sourceAuthority?: unknown;
   id: string;
   court: string;
   processNumber: string;

@@ -9,6 +9,22 @@ import { billingOperations, ledgerAccounts, ledgerEntries, LedgerService } from 
 import { OperationalRetentionService, resolveRetentionPolicy } from './retention-service.js';
 
 describe('OperationalRetentionService', () => {
+  it('inspeciona elegibilidade sem alterar histórico, snapshots ou valores financeiros', async () => {
+    const connection = await createDatabase();
+    try {
+    await runPersistenceMigrations(connection.client);
+    const ledger = new LedgerService(connection.db, connection.client);
+    await ledger.runMigrations();
+    await new ResearchHistoryRepository(connection.db).record({ tenantId: 'inspect', userId: 'user', operationId: 'old', query: 'texto privado', court: 'STJ', resultCount: 0, billingMode: 'FREE', chargedCents: 0, createdAt: '2020-01-01T00:00:00.000Z' });
+    const service = new OperationalRetentionService(connection.client);
+    const before = await connection.client.execute('SELECT * FROM research_search_history');
+    const inspection = await service.inspect(new Date('2026-10-07T12:00:00.000Z'));
+    expect(inspection).toMatchObject({ history: 1, snapshots: 0, accessLogs: 0, closureReceipts: 0 });
+    expect(await connection.client.execute('SELECT * FROM research_search_history')).toEqual(before);
+    expect(JSON.stringify(inspection)).not.toContain('texto privado');
+    expect(await service.purge(new Date('2026-10-07T12:00:00.000Z'))).toEqual(inspection);
+    } finally { connection.client.close(); }
+  });
   it('expurga somente dados operacionais anteriores ao cutoff exato', async () => {
     const connection = await createDatabase();
     await runPersistenceMigrations(connection.client);
