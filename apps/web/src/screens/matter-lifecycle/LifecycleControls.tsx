@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { actionLabels, lifecycleActions, viewLabels, type LifecycleAction, type LifecycleRecord, type LifecycleView } from './lifecycle-model';
 
-export function LifecycleFilter({ value, onChange, label }: { value: LifecycleView; onChange: (value: LifecycleView) => void; label: string }) {
-  return <select aria-label={label} className="input-control text-sm" value={value} onChange={event => onChange(event.target.value as LifecycleView)}>{Object.entries(viewLabels).map(([key, text]) => <option key={key} value={key}>{text}</option>)}</select>;
+export function LifecycleFilter({ value, onChange, label, disabled = false }: { value: LifecycleView; onChange: (value: LifecycleView) => void; label: string; disabled?: boolean }) {
+  return <select aria-label={label} disabled={disabled} className="input-control text-sm disabled:opacity-50" value={value} onChange={event => onChange(event.target.value as LifecycleView)}>{Object.entries(viewLabels).map(([key, text]) => <option key={key} value={key}>{text}</option>)}</select>;
 }
 export function LifecycleMenu({ record, disabled, onAction }: { record: LifecycleRecord; disabled?: boolean; onAction: (action: LifecycleAction) => void }) {
   return <details className="relative"><summary aria-label={`Opções de ${record.title}`} className="list-none cursor-pointer p-2 rounded-lg hover:bg-stone-100"><MoreHorizontal className="w-5 h-5" /></summary><div className="absolute right-0 z-20 min-w-48 p-1 bg-white border border-stone-200 rounded-xl shadow-lg">{lifecycleActions(record.lifecycleState).map(action => <button key={action} type="button" disabled={disabled} onClick={event => { event.currentTarget.closest('details')?.removeAttribute('open'); onAction(action); }} className={`block w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-stone-50 disabled:opacity-50 ${action === 'purge' ? 'text-red-700' : 'text-stone-800'}`}>{actionLabels[action]}</button>)}</div></details>;

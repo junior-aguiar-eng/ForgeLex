@@ -659,7 +659,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
               <h2 className="font-editorial text-xl font-bold text-stone-900">Seus casos</h2>
               <div className="flex items-center gap-2"><span className="text-xs text-stone-500">{matters.length}</span><button type="button" aria-label="Atualizar casos" disabled={busy || !hasApiAccess} onClick={() => void loadMatters()} className="p-2 rounded-lg hover:bg-stone-100"><RefreshCw className="w-4 h-4" /></button></div>
             </div>
-            {authStatus === 'authenticated' && <LifecycleFilter label="Mostrar casos" value={matterView} onChange={value => { if (!hasUnsaved || window.confirm('Há texto não salvo. Deseja mudar a lista e descartar essa edição?')) { if (hasUnsaved) discardMatterBuffers(); setMatterView(value); } }} />}
+            {authStatus === 'authenticated' && <LifecycleFilter label="Mostrar casos" disabled={busy} value={matterView} onChange={value => { if (!hasUnsaved || window.confirm('Há texto não salvo. Deseja mudar a lista e descartar essa edição?')) { if (hasUnsaved) discardMatterBuffers(); setMatterView(value); } }} />}
             <form onSubmit={createMatter} className="space-y-2">
               <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Nome do novo caso" className="w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
               <input value={practiceArea} onChange={(event) => setPracticeArea(event.target.value)} placeholder="Área jurídica (opcional)" className="w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
@@ -719,7 +719,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
             {selectedMatter && <section id="documentos" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
               <div className="flex items-center gap-2"><FileText className="w-5 h-5 text-cognac-700" /><h2 className="font-editorial text-xl font-bold text-stone-900">Documentos do caso</h2><span className="text-xs text-stone-500">{documents.length}</span></div>
-              {authStatus === 'authenticated' && <LifecycleFilter label="Mostrar documentos" value={documentView} onChange={setDocumentView} />}
+              {authStatus === 'authenticated' && <LifecycleFilter label="Mostrar documentos" disabled={busy} value={documentView} onChange={setDocumentView} />}
               <PdfTextImport key={selectedMatterId} disabled={readOnly || busy || !hasApiAccess} onLoadingChange={setImportingPdf} onExtract={(result, importedTitle) => { setDocumentTitle(importedTitle); setFilename(result.filename); setContent(result.content); }} />
               <form onSubmit={ingestDocument} className="grid grid-cols-1 md:grid-cols-2 gap-3"><fieldset disabled={readOnly} className="contents">
                 <input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="Título do documento" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
