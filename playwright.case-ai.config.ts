@@ -1,10 +1,18 @@
 import { defineConfig } from '@playwright/test';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import documents from './playwright.documents.config';
 // Keep the SQLite state across connections/rollbacks; each run owns a separate file.
-const databaseUrl = `file:${join(mkdtempSync(join(tmpdir(), 'forgelex-case-ai-')), 'case-ai.sqlite').replace(/\\/g, '/')}`;
+const databaseDirectory = mkdtempSync(join(tmpdir(), 'forgelex-case-ai-'));
+const databaseUrl = `file:${join(databaseDirectory, 'case-ai.sqlite').replace(/\\/g, '/')}`;
+// Exit runs after Playwright has stopped its web servers and released SQLite.
+process.once('exit', () => {
+  if (resolve(dirname(databaseDirectory)) !== resolve(tmpdir()) || !basename(databaseDirectory).startsWith('forgelex-case-ai-')) {
+    throw new Error('Unexpected case-ai database directory');
+  }
+  rmSync(databaseDirectory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+});
 export default defineConfig({
   ...documents,
   testMatch: 'case-ai-access.spec.ts',

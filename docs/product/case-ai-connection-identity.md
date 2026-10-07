@@ -49,9 +49,10 @@ A causa dessas falhas não foi determinada nem corrigida no produto. O harness
 agora isola o banco em arquivo; não se extrapola essa evidência para PostgreSQL
 ou renovação OAuth em produção.
 
-Os arquivos sintéticos do banco de ensaio ficam na pasta temporária do sistema.
-A limpeza automática desses diretórios permanece como manutenção menor do
-harness; não há alteração ou exclusão de dados de produção.
+A limpeza do banco sintético ocorre na saída do processo, depois da parada dos
+servidores do Playwright. O caminho exclusivo é conferido contra a pasta
+temporária antes da remoção. Nova execução: oito E2E aprovados e nenhum novo
+diretório de banco remanescente. Não há exclusão de dados de produção.
 
 ## Relação entre casos e jurisprudência hoje
 

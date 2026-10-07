@@ -31,7 +31,8 @@ anterior com arquivo exclusivo também passou nos oito testes. Execuções com
 SQLite em memória apresentaram consultas falhando após conflito de adoção e
 no bootstrap; causa indeterminada, não corrigida no produto. Adoção passou
 isoladamente. Instrumentação removida. Os diretórios sintéticos do ensaio ficam
-na pasta temporária do sistema; limpeza automática é manutenção menor pendente.
+na pasta temporária do sistema. A limpeza automática foi concluída antes da
+integração: oito E2E reexecutados e nenhum novo diretório remanescente.
 Sem ensaio novo em host externo real;
 o diretório renovado é simulado no navegador, com grants/negativas MCP locais.
 Código commitado em `85d1c22` e enviado ao GitHub na branch indicada.
