@@ -1,5 +1,47 @@
 # Auditoria e status canônico do ForgeLex
 
+## Leitura de documentos e fontes — implementação local (07/10/2026)
+
+Para retomar o projeto, começar pelo [resumo de continuidade](CONTINUIDADE.md).
+
+Branch `codex/document-reader`, base `a5543239b0fb26c9ce10ac0e82276a2762525fc5`,
+checkout `C:/Users/Boni Jr/.codex/worktrees/document-reader/SDK`. O checkout
+antigo `codex/p2-search-chunk-recovery` e suas alterações foram preservados.
+
+Casos oferece **Abrir documento**, com texto integral salvo, versão, busca e
+navegação por parágrafos. Rascunhos oferece **Conferir fonte** por referência
+documental da versão salva; **Ver ponto** documental abre o mesmo painel.
+O leitor usa a versão citada, destaca a âncora e preserva título/texto/citações
+em edição. Arquivo/lixeira continuam legíveis pelo acesso web retido;
+exclusão definitiva e ausência de versão recebem indicação de indisponibilidade.
+Reutiliza GETs existentes, sem alterar APIs, banco, MCP ou permissões.
+
+Validação local confirmada:
+
+- `pnpm test` (inclui build): **761 aprovados, 17 ignorados**, 147 arquivos
+  aprovados e dois ignorados. `pnpm lint` e `pnpm -r run typecheck`: sem erros.
+  `git diff --check`: sem problemas.
+- Vitest direcionado: **41 testes aprovados**, em cinco arquivos, incluindo
+  os sete novos testes de texto/busca, DOCX, acesso documental, recebimento
+  de referências e serviço de conferência.
+- `pnpm test:e2e:document-reader`: **4 aprovados**. Inclui API/MCP locais
+  reais com sessão sintética, edição preservada, versão fixada sem consulta
+  à atual, zero escritas ao ler fontes, busca, teclado, estados de ciclo de
+  vida, falhas/repetição e respostas tardias. Axe sem violações no painel;
+  screenshots de celular/desktop e âncora citada inspecionados.
+- Conferência: **9 aprovados**, incluindo reprodução determinística do painel
+  sem fato após contexto desatualizado. RED antes da correção; GREEN após abrir
+  o rascunho com atualização do contexto e guardas de seleção. A ordem exata
+  das respostas na primeira falha intermitente não foi reconstruída.
+- Regressões finais: documentos **4** e case-ai **5** aprovados. Com leitor
+  e conferência, **22 E2E** aprovados nesta rodada.
+- Revisão independente, incluindo correção de contexto: sem achados P0–P2.
+  Cobertura completada para citação não salva e término da resposta tardia.
+
+[Comportamento, contratos e limites](docs/product/document-reader.md).
+Sem commit, push, PR, deploy, migration ou alteração de produção nesta rodada.
+Os ensaios não incluem hosts reais ChatGPT/Claude nem consultas a IA externa.
+
 ## Arquivo, lixeira e exclusão — publicado e homologado (06/10/2026)
 
 PR #51 integrada em 26c6b8c; PR #52 esclarece apenas mensagens de listas vazias. Código publicado 326a96e2569d17e6462674f684197e02f03cdd98, revisão forgelex-api-prod-lifecycle-ui-326a96e, com 100% do tráfego em https://nexojuris.ia.br. Rollback forgelex-api-prod-lifecycle-26c6b8c. Seis jobs aprovados nas CIs finais de ambas as PRs e de main; PostgreSQL 16 com oito verificações e pg_dump/pg_restore real antes da reaplicação das exclusões. Backup anterior, migration explícita 0028, journal externo/âncora e promoção 5/25/100 comprovados. Recursos temporários removidos.

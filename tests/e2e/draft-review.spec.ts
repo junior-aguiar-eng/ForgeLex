@@ -269,6 +269,21 @@ test('composição inicial ainda não salva também protege o texto ao trocar de
     .click();
   await expect(editor).toHaveValue('Primeira composição ainda não salva.');
 });
+test('abrir rascunho atualiza fatos criados após o carregamento do caso', async ({ page }) => {
+  await page.route('**/matters/*/facts', (route) =>
+    route.request().method() === 'GET' ? route.fulfill({ json: { items: [] } }) : route.continue(),
+  );
+  const f = await setup(page);
+  await page.unroute('**/matters/*/facts');
+  await page.getByRole('button', { name: /Minuta para conferência/ }).click();
+  await page.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
+  await page.getByRole('region', { name: 'Conferência do rascunho' }).locator('div').filter({
+    has: page.getByText('Este fato não tem prova de apoio vinculada.', { exact: true }),
+  }).getByRole('button', { name: 'Ver ponto', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText(f.fact.statement);
+  await expect(page.getByLabel('Documento do caso')).toContainText('Contrato do caso');
+});
+
 test('vínculo salvo permanece reconhecido quando a releitura da fonte falha', async ({ page }) => {
   const f = await setup(page);
   await page.request.post(f.root + '/facts/' + f.fact.id + '/support', {

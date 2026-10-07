@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ReviewPanel } from './draft-review/ReviewPanel';
 import { SourcePanel } from './draft-review/SourcePanel';
+import { DocumentReaderDialog } from '../components/DocumentReaderDialog';
+import type { DocumentReference, DocumentSource } from '../documents/document-reader-model';
 import { type DraftReviewRun, type ReviewPoint, type DraftReviewFinding } from './draft-review/review-model';
 import { AlertCircle, CheckCircle2, FileText, LockKeyhole, Plus, RefreshCw, Send, ShieldAlert } from 'lucide-react';
 import { requestApiWithToken, requestApi, resolveApiOrigin } from '../api-client';
 import { ReceivedDraftPanel } from './draft-ai/ReceivedDraftPanel';
 import type { Receipt } from './draft-ai/received-draft-model';
-import type { SavedDraftExport } from '../documents/draft-docx';
 import { useAuth } from '../auth/AuthContext';
 
 interface Matter {
@@ -84,7 +85,7 @@ interface DraftDetails {
   latestReviewRun?: DraftReviewRun;
   currentReviewRun?: DraftReviewRun;
   reviewContextChanged: boolean;
-  documentReferences?: SavedDraftExport['documentReferences'];
+  documentReferences?: DocumentReference[];
 }
 
 interface DraftWriteResponse {
@@ -186,6 +187,7 @@ export const DraftStudioScreen: React.FC = () => {
   const [savedPayload, setSavedPayload] = useState('');
   const [contextChanged, setContextChanged] = useState(false);
   const [point, setPoint] = useState<ReviewPoint>();
+  const [readingDocument, setReadingDocument] = useState<DocumentSource>();
   const [historyVersion, setHistoryVersion] = useState('');
   const [historyRuns, setHistoryRuns] = useState<DraftReviewRun[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -208,6 +210,7 @@ export const DraftStudioScreen: React.FC = () => {
 
   const loadMatters = async () => {
     if (!hasApiAccess) return;
+    const sequence = selection.current;
     setBusy(true);
     setError(null);
     try {
@@ -221,7 +224,7 @@ export const DraftStudioScreen: React.FC = () => {
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar os casos.');
     } finally {
-      setBusy(false);
+      if (sequence === selection.current) setBusy(false);
     }
   };
 
@@ -258,7 +261,8 @@ export const DraftStudioScreen: React.FC = () => {
 
   const selectMatter = async (matterId: string) => {
     if (dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir este caso?')) return;
-    selection.current++;
+    setReadingDocument(undefined);
+    const sequence = ++selection.current;
     setMatterContextReady('');
     setPoint(undefined); setHistoryVersion(''); setHistoryRuns([]); setReviewStatus(null); setApprovalToken(null); setSavedPayload(''); setContextChanged(false);
     setSelectedMatterId(matterId);
@@ -273,22 +277,27 @@ export const DraftStudioScreen: React.FC = () => {
     try {
       await Promise.all([loadDrafts(matterId), loadMatterContext(matterId)]);
     } catch (loadError) {
+      if (sequence !== selection.current) return;
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar os rascunhos.');
     } finally {
-      setBusy(false);
+      if (sequence === selection.current) setBusy(false);
     }
   };
 
   const selectDraft = async (draftId: string, adopted = false) => {
     if (!selectedMatterId) return;
     if (!adopted && dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir este rascunho?')) return;
+    setReadingDocument(undefined);
     const sequence = ++selection.current;
     setPoint(undefined); setHistoryVersion(''); setHistoryRuns([]); setReviewStatus(null); setApprovalToken(null); setContextChanged(false);
     setSelectedDraftId(draftId);
     setBusy(true);
     setError(null);
     try {
-      const response = await request<DraftDetails>(`/api/v2/matters/${selectedMatterId}/drafts/${draftId}`, token);
+      const [response] = await Promise.all([
+        request<DraftDetails>(`/api/v2/matters/${selectedMatterId}/drafts/${draftId}`, token),
+        loadMatterContext(selectedMatterId),
+      ]);
       if (sequence !== selection.current) return;
       setDetails(response);
       if (response.currentVersion) {
@@ -315,9 +324,10 @@ export const DraftStudioScreen: React.FC = () => {
         })));
       }
     } catch (loadError) {
+      if (sequence !== selection.current) return;
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar a minuta.');
     } finally {
-      setBusy(false);
+      if (sequence === selection.current) setBusy(false);
     }
   };
 
@@ -622,7 +632,25 @@ export const DraftStudioScreen: React.FC = () => {
               </fieldset></form>
 
               {details && <>
-                <ReviewPanel latestRun={details.latestReviewRun} currentRun={details.currentReviewRun} findings={details.reviewFindings} stale={dirty || contextChanged || details.reviewContextChanged} onOpenPoint={setPoint} />
+                {!!details.documentReferences?.length && <section aria-label="Fontes documentais da versão salva" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-4">
+                  <h2 className="font-editorial text-xl font-bold text-stone-900">Fontes do rascunho</h2>
+                  <p className="text-xs text-stone-600">Referências da versão {details.currentVersion?.version.versionNumber} salva. A leitura preserva sua edição e abre a versão documental citada.</p>
+                  {details.documentReferences.map((document, index) => <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 p-4">
+                    <div className="min-w-0 space-y-1 break-words">
+                      <p className="text-xs text-stone-600">{details.currentVersion?.sections.find(section => section.ordinal === document.reference.sectionOrdinal)?.title ?? 'Seção não identificada'}</p>
+                      <p className="text-sm font-semibold">{document.documentTitle ?? 'Documento indisponível'}{document.versionNumber ? ` · versão ${document.versionNumber}` : ''}</p>
+                      {document.reference.citationText && <p className="text-sm whitespace-pre-wrap">{document.reference.citationText}</p>}
+                      {!document.available && <p className="text-xs text-stone-600">A disponibilidade da fonte será conferida ao abrir.</p>}
+                    </div>
+                    <button type="button" className="btn-secondary min-h-11 shrink-0" onClick={() => setReadingDocument({ matterId: selectedMatterId, documentId: document.reference.itemId, versionId: document.reference.documentVersionId, anchorId: document.reference.anchorId })}>Conferir fonte</button>
+                  </div>)}
+                </section>}
+                <ReviewPanel latestRun={details.latestReviewRun} currentRun={details.currentReviewRun} findings={details.reviewFindings} stale={dirty || contextChanged || details.reviewContextChanged} onOpenPoint={reviewPoint => {
+                  const { check } = reviewPoint;
+                  if (check.targetType === 'DOCUMENT' && check.targetId && check.source?.documentVersionId) {
+                    setReadingDocument({ matterId: selectedMatterId, documentId: check.targetId, versionId: check.source.documentVersionId, anchorId: check.source.anchorId });
+                  } else setPoint(reviewPoint);
+                }} />
                 <details className="champagne-card bg-white rounded-2xl p-5 space-y-4">
                   <summary className="font-semibold cursor-pointer">Histórico de versões e conferências</summary>
                   <div className="space-y-3 pt-4">{details.versions.map(version => <div key={version.id} className="rounded-xl border border-stone-200 p-3 space-y-2">
@@ -661,6 +689,8 @@ export const DraftStudioScreen: React.FC = () => {
                   }
                   setPoint(undefined);
                 }} />}
+
+              {readingDocument && readingDocument.matterId === selectedMatterId && hasApiAccess && <DocumentReaderDialog source={readingDocument} token={token} onClose={() => setReadingDocument(undefined)} />}
 
             </>}
           </div>

@@ -7,6 +7,8 @@ import { useAuth } from '../auth/AuthContext';
 import { useApp } from '../context/AppContext';
 import { PdfTextImport } from '../components/PdfTextImport';
 import { CaseAiAccessPanel } from './case-ai/CaseAiAccessPanel';
+import { DocumentReaderDialog } from '../components/DocumentReaderDialog';
+import type { DocumentSource } from '../documents/document-reader-model';
 
 interface Matter extends LifecycleRecord {
   createdBy?: string;
@@ -187,6 +189,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const aiAccessTrigger=useRef<HTMLButtonElement>(null);
   const closeAiAccess=()=>{setAiAccessOpen(false);requestAnimationFrame(()=>aiAccessTrigger.current?.focus());};
   const [documents, setDocuments] = useState<LegalDocument[]>([]);
+  const [readingDocument, setReadingDocument] = useState<DocumentSource>();
   const [facts, setFacts] = useState<Fact[]>([]);
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [coverage, setCoverage] = useState<EvidenceCoverage[]>([]);
@@ -355,6 +358,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
   const selectMatter = async (matterId: string) => {
     if (hasUnsaved && !window.confirm('Há texto não salvo. Deseja descartá-lo e abrir outro caso?')) return;
+    setReadingDocument(undefined);
     setSelectedMatterId(matterId);
     setCaseBlocked(false);
     discardMatterBuffers();
@@ -724,10 +728,12 @@ export const MatterWorkspaceScreen: React.FC = () => {
                 <button disabled={!hasApiAccess || busy || importingPdf || !documentTitle.trim() || !filename.trim() || !content.trim()} className="md:col-span-2 px-4 py-2.5 rounded-xl bg-cognac-50 hover:bg-cognac-100 border border-cognac-200 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">Ingerir documento textual</button>
               </fieldset></form>
               <div className="space-y-2">
-                {documents.map((document) => <div key={document.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div><span className="block text-sm font-semibold text-stone-900">{document.title}</span><span className="text-[11px] text-stone-500">{document.originalFilename} · {document.lifecycleState === 'TRASHED' ? 'Na lixeira' : document.lifecycleState === 'ARCHIVED' ? 'Arquivado' : document.status === 'INDEXED' ? 'Disponível' : 'Falhou'}</span></div>{canManage && !readOnly && <LifecycleMenu record={document} disabled={busy} onAction={action => openLifecycle(document, action, true)} />}</div>)}
+                {documents.map((document) => <div key={document.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border border-champagne-border bg-[#FDFBF7]"><div className="min-w-0 break-words"><span className="block text-sm font-semibold text-stone-900">{document.title}</span><span className="text-[11px] text-stone-500">{document.originalFilename} · {document.lifecycleState === 'TRASHED' ? 'Na lixeira' : document.lifecycleState === 'ARCHIVED' ? 'Arquivado' : document.status === 'INDEXED' ? 'Disponível' : 'Falhou'}</span></div><div className="flex shrink-0 items-center gap-2"><button type="button" className="btn-quiet min-h-11 text-xs" aria-label={`Abrir documento: ${document.title}`} onClick={() => setReadingDocument({ matterId: selectedMatterId!, documentId: document.id })}>Abrir documento</button>{canManage && !readOnly && <LifecycleMenu record={document} disabled={busy} onAction={action => openLifecycle(document, action, true)} />}</div></div>)}
                 {documents.length === 0 && <p className="text-xs text-stone-500">{documentView === 'archived' ? 'Nenhum documento arquivado neste caso.' : documentView === 'trash' ? 'A lixeira de documentos deste caso está vazia.' : 'Este caso ainda não possui documentos em uso.'}</p>}
               </div>
             </section>}
+
+            {readingDocument && readingDocument.matterId === selectedMatterId && hasApiAccess && <DocumentReaderDialog source={readingDocument} token={token} onClose={() => setReadingDocument(undefined)} />}
 
             {selectedMatter && <>
               <section id="fatos" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
