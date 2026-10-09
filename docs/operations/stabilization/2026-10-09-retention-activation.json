@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-09",
+  "authorization": {
+    "by": "Boni",
+    "source": "direct_user_reply_in_this_conversation",
+    "text": "Autorizar ativação da política técnica proposta"
+  },
+  "runtime": {
+    "revision": "forgelex-api-prod-audit-5aca51e",
+    "trafficPercent": 100,
+    "digest": "sha256:39cb2d3e33fbbcea238c63c3c8f9899d75b89bf38963993946b69336671e73fa"
+  },
+  "job": {
+    "name": "forgelex-operational-retention-inspect",
+    "args": ["api/dist/operations/retention-main.js", "--apply"],
+    "FORGELEX_RETENTION_EXECUTION_ENABLED": true,
+    "httpServiceRetentionWorkerEnabled": false
+  },
+  "scheduler": {
+    "name": "forgelex-operational-retention-inspect-daily",
+    "state": "ENABLED",
+    "schedule": "0 8 * * *",
+    "timeZone": "America/Fortaleza",
+    "authentication": "OAuth"
+  },
+  "policy": { "operationalDays": 90, "accessLogDays": 180, "closureReceiptDays": 1827 },
+  "executions": [
+    {
+      "name": "forgelex-operational-retention-inspect-ppt8z",
+      "mode": "inspect",
+      "measuredAt": "2026-10-09T20:50:02.015Z",
+      "completedAt": "2026-10-09T20:50:05.629642Z",
+      "completed": true,
+      "counts": {
+        "history": 0,
+        "snapshots": 0,
+        "webhookBodies": 0,
+        "financialWebhookBodies": 0,
+        "accessLogs": 0,
+        "closureReceipts": 0
+      }
+    },
+    {
+      "name": "forgelex-operational-retention-inspect-zqm6b",
+      "mode": "apply",
+      "trigger": "manual",
+      "measuredAt": "2026-10-09T20:52:28.749Z",
+      "completedAt": "2026-10-09T20:52:31.630490Z",
+      "completed": true,
+      "counts": {
+        "history": 0,
+        "snapshots": 0,
+        "webhookBodies": 0,
+        "financialWebhookBodies": 0,
+        "accessLogs": 0,
+        "closureReceipts": 0
+      }
+    },
+    {
+      "name": "forgelex-operational-retention-inspect-fcmjs",
+      "mode": "apply",
+      "trigger": "scheduler_oauth_manual_dispatch",
+      "measuredAt": "2026-10-09T20:54:43.655Z",
+      "completedAt": "2026-10-09T20:54:47.670096Z",
+      "completed": true,
+      "counts": {
+        "history": 0,
+        "snapshots": 0,
+        "webhookBodies": 0,
+        "financialWebhookBodies": 0,
+        "accessLogs": 0,
+        "closureReceipts": 0
+      }
+    }
+  ],
+  "backups": {
+    "instance": "forgelex-hml-pg",
+    "listedCount": 12,
+    "allSuccessful": true,
+    "allWithin35DaysAtInspection": true,
+    "oldestDate": "2026-10-03",
+    "latestAutomatedId": "1791514800000",
+    "latestAutomatedCompletedAt": "2026-10-09T04:31:55.623Z"
+  },
+  "interruption": { "removeArgument": "--apply", "FORGELEX_RETENTION_EXECUTION_ENABLED": false },
+  "limits": [
+    "Zero counts prove no eligible content was removed in these executions.",
+    "Financial values are preserved by the existing service; this activation is not fiscal qualification.",
+    "Human, contractual, privacy and commercial evidence remains open.",
+    "Disabling the job does not recover previously purged content."
+  ]
+}

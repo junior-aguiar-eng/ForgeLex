@@ -1,5 +1,32 @@
 # Auditoria e status canônico do ForgeLex
 
+## Pendências residuais — 09/10/2026
+
+Mitigação local versionada de braces 3.0.3, com prewalk iterativo e limite de
+profundidade antes de compile/expand/stringify; audit completo incluído na CI.
+Alerta upstream não descartado. Revisão independente identificou dois Important
+no filtro de audit, corrigidos com RED/GREEN; 30 testes focados aprovados.
+
+Boni autorizou explicitamente a política de limpeza 90/180/1827 dias. Inspeção
+imediata, configuração e execuções apply manual e pelo Scheduler comprovadas;
+zero conteúdo removido nas duas execuções. Job diário às 8h; worker HTTP
+desabilitado; 12 backups listados dentro da janela de 35 dias. Automação de
+acompanhamento recriada às 15h, somente leitura de recibos e configuração.
+
+Boni opera sozinho e ainda não dispõe das comprovações fiscais/contratuais/
+comerciais. Não declarar esses gates concluídos. Runtime do site permanece
+`forgelex-api-prod-audit-5aca51e`, 100%; esta mitigação altera ferramentas de
+build e CI, sem mudança no comportamento da API ou da interface.
+[Registro e limites](docs/operations/stabilization/2026-10-09-audit-residual-closure.md).
+
+PR #60, CI `37991979881` no código `c0a2d3c`: seis checks aprovados, 794
+unitários e 130 E2E, 17 condicionais ignorados. PostgreSQL isolado comprova
+cortes/exceções, preservação financeira e restauração. Os serviços de CI usam
+o espelho Docker Official Image no ECR Public após duas falhas de download
+por limite anônimo do Docker Hub; não foi mudança de banco em produção.
+
+Os blocos abaixo são históricos; o estado atual está em [PENDENCIAS](PENDENCIAS.md).
+
 ## Remediação da auditoria de 07/10 — integrada e publicada
 
 Base `8ba33e0`, branch `codex/audit-remediation`. Bloqueio de filtros durante

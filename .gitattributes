@@ -1,0 +1,3 @@
+# pnpm hashes patch bytes; preserve them across Windows and Linux checkouts.
+# Diff context markers and pnpm-generated header tabs are part of the patch.
+patches/*.patch text eol=lf -whitespace

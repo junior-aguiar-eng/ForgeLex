@@ -34,3 +34,6 @@ pnpm-debug.log*
 *.orig
 tmp/
 temp/
+
+# Local plan execution artifacts (existing tracked ledgers remain tracked)
+/.superpowers/

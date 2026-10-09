@@ -45,7 +45,8 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        # Docker Official Image mirror avoids Docker Hub anonymous pull limits.
+        image: public.ecr.aws/docker/library/postgres:16
         env:
           POSTGRES_DB: forgelex
           POSTGRES_USER: forgelex
@@ -89,7 +90,8 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        # Docker Official Image mirror avoids Docker Hub anonymous pull limits.
+        image: public.ecr.aws/docker/library/postgres:16
         env:
           POSTGRES_DB: forgelex
           POSTGRES_USER: forgelex
@@ -182,3 +184,16 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --prod --audit-level moderate
+      - name: Verify local build dependency mitigation
+        run: pnpm exec vitest run scripts/security/braces-depth.test.ts scripts/security/build-audit.test.ts --maxWorkers=1
+      - name: Audit all dependencies and reject new actionable alerts
+        shell: bash
+        run: |
+          pnpm audit --json > dependency-audit.json || true
+          node scripts/security/check-build-audit.mjs dependency-audit.json
+      - name: Preserve complete dependency audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit
+          path: dependency-audit.json
