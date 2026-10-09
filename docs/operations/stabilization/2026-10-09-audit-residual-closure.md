@@ -110,3 +110,19 @@ registros próprios. Docker local não executado porque o daemon está indispon�
 - Uma execução completa com dois workers teve um timeout de 5000ms no teste `never exposes an archived original through draft references to API or OAuth readers`; 793 passaram. O cenário isolado passou em 1193ms, arquivo 6/6. Não alterados API, timeout ou configuração de concorrência da CI; a causa pontual não foi demonstrada e a evidência foi preservada.
 
 [Recibo sanitizado da ativação](2026-10-09-retention-activation.json).
+
+## Disponibilidade da imagem de PostgreSQL na CI
+
+A execução da PR #60 `37991241438`, tentativas 1 e 2, teve quatro checks
+aprovados. `postgres` e `e2e-product` falharam em Initialize containers antes
+dos testes: Docker Hub respondeu `toomanyrequests` em três downloads de cada
+job. Não foi falha de migração ou de asserção da aplicação.
+
+Os dois serviços passam a usar `public.ecr.aws/docker/library/postgres:16`,
+[Docker Official Image no registro público da AWS](https://gallery.ecr.aws/docker/).
+Consulta anônima do manifesto de 16 retornou schemaVersion 2 e índice OCI,
+incluindo Linux/amd64, versão 16.15 e origem docker-library/postgres no commit
+`9d15534160ade17f2b6c455a39ee967c49b1937d`. Mantidos major, variáveis, portas,
+healthcheck e comandos de teste. Nenhuma imagem ou banco de produção alterado.
+O download e os testes completos dessa configuração dependem da nova execução
+dos seis checks; disponibilidade do manifesto isoladamente não os comprova.
