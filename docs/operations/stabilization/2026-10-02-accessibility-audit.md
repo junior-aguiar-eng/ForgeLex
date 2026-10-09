@@ -1,5 +1,11 @@
 # Auditoria de acessibilidade — 02/10/2026
 
+Atualização de 09/10: a pendência histórica de tratamento das abas antigas
+recebeu implementação e regressões na entrega P2, hoje incorporada ao runtime
+`forgelex-api-prod-audit-5aca51e`. Ver o
+[adendo P2](2026-10-02-p2-fixes.md). Isso não constitui ensaio de uma aba antiga
+real durante promoção nem altera os limites da auditoria de acessibilidade.
+
 Referência: WCAG 2.1, níveis A/AA, https://www.w3.org/TR/WCAG21/.
 Checkout SDK; matriz automática inicial executada no main c722b382; runtime inicial observado
 forgelex-api-prod-guide-c722b382, digest 6868ee5844f68f355f02e97c5e4da50ddd3232c51a361b096bae171f77057a76.
