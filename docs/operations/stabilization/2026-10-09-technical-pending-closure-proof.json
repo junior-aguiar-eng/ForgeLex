@@ -1,0 +1,194 @@
+{
+  "recordedAt": "2026-10-09T23:12:33.844Z",
+  "code": {
+    "base": "c10016c76ae02d4da30d610fc77b4cdc41086fd0",
+    "validated": "720e23c35df4ee08fc172b4bed667dce89f29ca5",
+    "integrated": "86156a048d3e0dcfcde3ddadb67a347c3236d025",
+    "pr": "https://github.com/junior-aguiar-eng/ForgeLex/pull/61",
+    "ci": 38002383045,
+    "requiredChecks": 6,
+    "unitPassed": 794,
+    "unitSkipped": 17,
+    "e2ePassed": 130,
+    "postgresSearchPassed": 25
+  },
+  "runtime": {
+    "revision": "forgelex-api-prod-audit-5aca51e",
+    "source": "5aca51e52cd315822e80bff7d29eaa7a48960724",
+    "trafficPercent": 100,
+    "httpDeploymentChanged": false
+  },
+  "corpus": {
+    "documents": 874450,
+    "versions": 874516,
+    "manifests": 544
+  },
+  "backup": {
+    "id": "1791514800000",
+    "status": "SUCCESSFUL",
+    "completedAt": "2026-10-09T04:31:55.623Z"
+  },
+  "migration": {
+    "startedAt": "2026-10-09T23:08:49.073Z",
+    "migration": "persistence-0029-jurisprudence-search-metadata-index",
+    "sourceHead": "720e23c35df4ee08fc172b4bed667dce89f29ca5",
+    "applied": true,
+    "pendingMigrations": [
+      "persistence-0029-jurisprudence-search-metadata-index"
+    ],
+    "index": {
+      "indisvalid": true,
+      "indisready": true,
+      "definition": "CREATE INDEX jurisprudence_versions_search_metadata_idx ON public.jurisprudence_document_versions USING btree (id) INCLUDE (judgment_date, publication_status, source_manifest_id)",
+      "size_bytes": "91529216"
+    },
+    "completedAt": "2026-10-09T23:09:04.324Z"
+  },
+  "schemaAfter": {
+    "observedAt": "2026-10-09T23:10:42.529Z",
+    "readOnly": true,
+    "pendingMigrations": [],
+    "relations": [
+      {
+        "relname": "jurisprudence_documents",
+        "relpages": 162688,
+        "relallvisible": 162632,
+        "heap_bytes": "1332740096"
+      },
+      {
+        "relname": "jurisprudence_document_versions",
+        "relpages": 145264,
+        "relallvisible": 145224,
+        "heap_bytes": "1190002688"
+      }
+    ],
+    "settings": [
+      {
+        "version": "16.15",
+        "work_mem": "4MB"
+      }
+    ]
+  },
+  "search": {
+    "query": "juros OR capitalizados",
+    "court": "STJ",
+    "limit": 3,
+    "otherBaselineRepositorySampleMs": 17519.98,
+    "baseline": {
+      "label": "before",
+      "measuredAt": "2026-10-09T23:02:56.989Z",
+      "query": "juros OR capitalizados",
+      "limit": 3,
+      "readOnly": true,
+      "ms": 20268.05,
+      "returned": 3,
+      "resultHash": "f0af8cea93c15169e65661b6a91a760e079bd3878f3271366e9f7f3ad5120de2"
+    },
+    "after": [
+      {
+        "label": "after-1",
+        "measuredAt": "2026-10-09T23:09:41.426Z",
+        "query": "juros OR capitalizados",
+        "limit": 3,
+        "readOnly": true,
+        "ms": 16521.16,
+        "returned": 3,
+        "resultHash": "f0af8cea93c15169e65661b6a91a760e079bd3878f3271366e9f7f3ad5120de2"
+      },
+      {
+        "label": "after-2",
+        "measuredAt": "2026-10-09T23:09:58.114Z",
+        "query": "juros OR capitalizados",
+        "limit": 3,
+        "readOnly": true,
+        "ms": 13281.82,
+        "returned": 3,
+        "resultHash": "f0af8cea93c15169e65661b6a91a760e079bd3878f3271366e9f7f3ad5120de2"
+      },
+      {
+        "label": "after-3",
+        "measuredAt": "2026-10-09T23:10:11.644Z",
+        "query": "juros OR capitalizados",
+        "limit": 3,
+        "readOnly": true,
+        "ms": 13820.25,
+        "returned": 3,
+        "resultHash": "f0af8cea93c15169e65661b6a91a760e079bd3878f3271366e9f7f3ad5120de2"
+      }
+    ],
+    "allResultHashesEqual": true,
+    "explain": {
+      "beforeMs": 16932.532,
+      "afterMs": 13422.751,
+      "beforeSharedReadBlocks": 103446,
+      "afterSharedReadBlocks": 68470,
+      "candidateCount": 33759,
+      "versionMetadataBefore": {
+        "node": "Index Scan",
+        "loops": 33759,
+        "sharedReadBlocks": 46438
+      },
+      "versionMetadataAfter": {
+        "node": "Index Only Scan",
+        "index": "jurisprudence_versions_search_metadata_idx",
+        "heapFetches": 0,
+        "sharedReadBlocks": 11072
+      }
+    }
+  },
+  "narrowSearches": {
+    "observedAt": "2026-10-09T23:11:33.668Z",
+    "readOnly": true,
+    "searches": [
+      {
+        "query": "juros capitalizados",
+        "ms": 1715.99,
+        "returned": 3
+      },
+      {
+        "query": "\"juros capitalizados\"",
+        "ms": 480.42,
+        "returned": 3
+      }
+    ],
+    "limit": "Single sequential repository sample per narrow query; not p95"
+  },
+  "officialSourcePrefix": {
+    "observedAt": "2026-10-09T23:04:35.378Z",
+    "url": "https://dadosabertos.web.stj.jus.br/dataset/7107650a-f26c-4900-bffd-4492af6361cf/resource/5176e318-5de1-4d28-8931-3ee31fd9d7d7/download/20240229.json",
+    "status": 206,
+    "bytesInspected": 599,
+    "prefixHash": "ea2537c36c1e11d5206f7cee7b82178fc455cb8832cd7110a1acc807b7da9b46",
+    "structuralError": {
+      "position": 592,
+      "line": 24,
+      "type": "unmatched_closing_bracket"
+    },
+    "limit": "Only bounded prefix inspected, no download or ingestion of full resource"
+  },
+  "http": {
+    "observedAt": "2026-10-09T23:09:59.541Z",
+    "unauthenticated": true,
+    "responses": [
+      {
+        "path": "/readyz",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8"
+      },
+      {
+        "path": "/app/casos",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "htmlShell": true
+      }
+    ],
+    "limit": "Readiness and SPA shell only; not authenticated product E2E"
+  },
+  "limits": [
+    "Sequential bounded SQL/repository samples, not HTTP/MCP latency, p95, cold-cache or load measurement",
+    "Before also observed a 40-second statement timeout",
+    "No production VACUUM, global memory/tier change, debit, grant or purge",
+    "Independent review covered candidate implementation, not future operational measurements",
+    "Official source check only inspects bounded prefix; no corpus mutation"
+  ]
+}

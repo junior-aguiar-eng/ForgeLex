@@ -14,6 +14,16 @@ elegível. A entrega residual adiciona mitigação local de braces e audit compl
 na CI; o advisory upstream e as comprovações humanas continuam abertos.
 [Registro de 09/10](docs/operations/stabilization/2026-10-09-audit-residual-closure.md).
 
+O encerramento técnico seguinte foi integrado pela PR #61 em `86156a0`.
+A medição do corpus real demonstrou custo de acesso aos metadados de versões;
+a migration 0029 foi aplicada ao banco publicado após seis checks e revisão.
+O plano usa o índice de cobertura, com zero Heap Fetches nessa etapa. Amostras
+da mesma consulta ampla: 20,3 s antes, 13,3–16,5 s depois, resultados idênticos.
+Não houve novo deploy HTTP. As correções executáveis do recorte auditado estão
+encerradas; manutenção, dependências externas e comprovações humanas são
+separadas no backlog.
+[Medições, aplicação e limites](docs/operations/stabilization/2026-10-09-technical-pending-closure.md).
+
 PR #60 reúne a entrega residual; o código `c0a2d3c` passou nos seis checks
 obrigatórios, com 794 unitários e 130 E2E aprovados. Serviços PostgreSQL da CI
 usam o espelho Docker Official Image no ECR Public. Sem novo deploy HTTP,
