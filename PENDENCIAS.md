@@ -31,4 +31,9 @@ executa operações faturáveis ou mutações. Detalhes e limites:
 [provas humanas](docs/operations/stabilization/2026-10-07-operational-proof-checklist.md),
 [dependências](docs/operations/stabilization/2026-10-07-build-dependencies.md).
 
-[Conferência e proposta de ativação de 09/10](docs/operations/stabilization/2026-10-09-audit-residual-closure.md).
+[Conferência e ativação de 09/10](docs/operations/stabilization/2026-10-09-audit-residual-closure.md).
+
+Entrega residual na PR #60: código `c0a2d3c` validado nos seis checks da CI
+`37991979881`, com 794 unitários e 130 E2E aprovados. O bloqueio adicional de
+download do PostgreSQL na CI foi resolvido usando o espelho Docker Official
+Image no ECR Public. Isso não encerra o advisory upstream nem os gates humanos.

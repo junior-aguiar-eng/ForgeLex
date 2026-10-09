@@ -19,6 +19,12 @@ comerciais. Não declarar esses gates concluídos. Runtime do site permanece
 build e CI, sem mudança no comportamento da API ou da interface.
 [Registro e limites](docs/operations/stabilization/2026-10-09-audit-residual-closure.md).
 
+PR #60, CI `37991979881` no código `c0a2d3c`: seis checks aprovados, 794
+unitários e 130 E2E, 17 condicionais ignorados. PostgreSQL isolado comprova
+cortes/exceções, preservação financeira e restauração. Os serviços de CI usam
+o espelho Docker Official Image no ECR Public após duas falhas de download
+por limite anônimo do Docker Hub; não foi mudança de banco em produção.
+
 Os blocos abaixo são históricos; o estado atual está em [PENDENCIAS](PENDENCIAS.md).
 
 ## Remediação da auditoria de 07/10 — integrada e publicada

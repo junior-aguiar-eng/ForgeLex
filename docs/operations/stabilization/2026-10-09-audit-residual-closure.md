@@ -124,5 +124,17 @@ Consulta anônima do manifesto de 16 retornou schemaVersion 2 e índice OCI,
 incluindo Linux/amd64, versão 16.15 e origem docker-library/postgres no commit
 `9d15534160ade17f2b6c455a39ee967c49b1937d`. Mantidos major, variáveis, portas,
 healthcheck e comandos de teste. Nenhuma imagem ou banco de produção alterado.
-O download e os testes completos dessa configuração dependem da nova execução
-dos seis checks; disponibilidade do manifesto isoladamente não os comprova.
+O manifesto isoladamente não comprova execução. A confirmação ocorreu na
+[CI 37991979881](https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/37991979881),
+HEAD `c0a2d3ccfc7feec828a460f2c6d6925f7f13a4d9`: completed/success nos seis
+checks obrigatórios, com os dois serviços PostgreSQL iniciados pelo espelho.
+Linux: 794 testes unitários aprovados, 17 condicionais ignorados; 130 E2E
+aprovados. Smoke PostgreSQL confirmou inspeção somente leitura, corte exato,
+correspondência com expurgo e preservação do saldo; restauração real em banco
+isolado também aprovada. Segurança: 30 testes focados, audit de produção sem
+alertas e relatório completo contendo exclusivamente braces mitigado.
+
+A [PR #60](https://github.com/junior-aguiar-eng/ForgeLex/pull/60) reúne essa
+entrega. Commits posteriores de documentação devem conservar os seis checks
+obrigatórios antes da integração. Não há alteração de runtime que exija novo
+deploy do serviço HTTP; o job de retenção já está ativo no digest aprovado.

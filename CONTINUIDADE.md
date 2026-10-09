@@ -14,6 +14,11 @@ elegível. A entrega residual adiciona mitigação local de braces e audit compl
 na CI; o advisory upstream e as comprovações humanas continuam abertos.
 [Registro de 09/10](docs/operations/stabilization/2026-10-09-audit-residual-closure.md).
 
+PR #60 reúne a entrega residual; o código `c0a2d3c` passou nos seis checks
+obrigatórios, com 794 unitários e 130 E2E aprovados. Serviços PostgreSQL da CI
+usam o espelho Docker Official Image no ECR Public. Sem novo deploy HTTP,
+pois o comportamento de runtime não foi alterado por esse incremento.
+
 ## O produto hoje
 
 O percurso é **caso → documentos → análise na IA externa → rascunho no site →
