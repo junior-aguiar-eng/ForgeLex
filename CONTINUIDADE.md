@@ -1,12 +1,18 @@
 # ForgeLex — onde estamos e como continuar
 
-Atualizado em 07/10/2026. Este resumo orienta a próxima sessão; o histórico de
+Atualizado em 09/10/2026. Este resumo orienta a próxima sessão; o histórico de
 validações e publicações permanece em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
 
 O backlog atual está em [PENDENCIAS.md](PENDENCIAS.md). A remediação da auditoria
 foi integrada pela PR #58: correções técnicas e ponte direta Pesquisa → Caso.
 O runtime desta entrega é `forgelex-api-prod-audit-5aca51e`, código `5aca51e`.
 [Evidências e limites](docs/operations/stabilization/2026-10-07-audit-remediation.md).
+
+A pendência de ativação técnica da retenção foi encerrada em 09/10, após
+autorização explícita de Boni e duas execuções em modo apply, ambas sem conteúdo
+elegível. A entrega residual adiciona mitigação local de braces e audit completo
+na CI; o advisory upstream e as comprovações humanas continuam abertos.
+[Registro de 09/10](docs/operations/stabilization/2026-10-09-audit-residual-closure.md).
 
 ## O produto hoje
 
@@ -35,7 +41,7 @@ originais. O runtime atual incorpora essas entregas e está indicado no início.
 | Leitura integral de documentos e abertura das fontes         | Publicado; percurso completo homologado em produção                | PR #54, revisão `forgelex-api-prod-reader-0dc9ec5`, 100%; Claude → versão 2 → DOCX inspecionado; permissões sintéticas revogadas |
 | Identificação das conexões de IA no caso                     | Publicado; integração e promoção verificadas | PR #56, revisão `forgelex-api-prod-connection-a23cc07`, 100%; CI da PR e de main aprovada                     |
 | Julgados da Pesquisa no caso                                 | Publicado; salvar, conferir fonte e reutilizar nos rascunhos | PR #58; CI com 130 E2E; runtime `forgelex-api-prod-audit-5aca51e`; sem nova pesquisa para salvar/copiar |
-| Retenção operacional                                        | Inspeção diária às 8h, autenticada por OAuth | Duas execuções somente leitura aprovadas; expurgo e worker público continuam desabilitados |
+| Retenção operacional                                        | Limpeza diária às 8h, autenticada por OAuth, ativada em 09/10 | Autorização nominal; apply manual e via Scheduler concluídos com zero removidos; worker HTTP desabilitado; ver registro residual |
 | Mesa do caso e orientação do próximo passo                   | Proposta futura                                                    | Organizar os recursos existentes em torno do caso, com detalhes técnicos sob demanda; não há execução autorizada nesta entrega   |
 | Novos agentes internos, modelos hospedados e novos tribunais | Fora do incremento atual                                           | Exigem necessidade demonstrada e decisão própria; não bloqueiam o fluxo MCP externo                                              |
 

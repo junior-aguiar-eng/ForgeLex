@@ -66,3 +66,15 @@ revisões independentes.
 Não reabrir como pendência o endereço/CEP/e-mail e a decisão de identificação
 já aceitos. Registrar documentos e resultados com acesso restrito; o relatório
 público deve conter somente status, referências não sensíveis e limites.
+
+## Aditivo de 09/10/2026
+
+Boni confirmou que opera sozinho e ainda não possui as comprovações solicitadas.
+O ensaio/revisor, qualificação fiscal, contratos/transferências e provas comerciais
+continuam abertos; manter as restrições do protocolo de suporte.
+
+A ativação técnica da retenção foi autorizada expressamente e executada no job
+existente: apply manual e via Scheduler concluídos, seis contagens zero, backups
+dentro de 35 dias. Rotina diária ativa às 8h; worker HTTP desabilitado. Isso encerra
+o gate de ativação e prova de operação, preservando as qualificações humanas.
+[Decisão, recibos, alcance e interrupção](2026-10-09-audit-residual-closure.md).

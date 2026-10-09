@@ -16,6 +16,7 @@ RUN corepack enable && corepack prepare pnpm@11.19.0 --activate
 WORKDIR /src
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json vitest.config.ts ./
+COPY patches ./patches
 COPY apps ./apps
 COPY packages ./packages
 COPY scripts/validate-production-web-build.mjs ./scripts/validate-production-web-build.mjs
