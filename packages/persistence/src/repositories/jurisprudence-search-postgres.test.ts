@@ -128,6 +128,27 @@ describe.skipIf(!local)('Busca PostgreSQL com candidatos extensos', () => {
         expect(candidateSorts.every((node) => node['Plan Width'] < 256)).toBe(true);
         expect(sorts.every((node) => node['Sort Space Type'] !== 'Disk')).toBe(true);
 
+        // Eligibility/date reads for each candidate must not fetch the wide
+        // version heap. VACUUM is confined to this disposable local database.
+        await client.execute('VACUUM (ANALYZE) jurisprudence_document_versions');
+        const selectedVersion = await client.execute({
+          sql: 'SELECT current_version_id FROM jurisprudence_documents WHERE id = ?',
+          args: [results[0]!.id],
+        });
+        const metadataPlan = await client.execute({
+          sql: `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
+            SELECT id, judgment_date, publication_status, source_manifest_id
+            FROM jurisprudence_document_versions WHERE id = ?`,
+          args: [selectedVersion.rows[0]!.current_version_id],
+        });
+        const rawMetadataPlan = metadataPlan.rows[0]?.['QUERY PLAN'];
+        const metadata = (typeof rawMetadataPlan === 'string' ? JSON.parse(rawMetadataPlan) : rawMetadataPlan) as Array<{
+          Plan: { 'Node Type': string; 'Index Name': string; 'Heap Fetches': number };
+        }>;
+        expect(metadata[0]!.Plan['Node Type']).toBe('Index Only Scan');
+        expect(metadata[0]!.Plan['Index Name']).toBe('jurisprudence_versions_search_metadata_idx');
+        expect(metadata[0]!.Plan['Heap Fetches']).toBe(0);
+
         // A busca padrão exige ambos; a busca ampla continua disponível com OR explícito.
         expect(await repository.search({ query: 'juros capitalizados', court, limit: 3 })).toEqual([]);
         expect(await repository.search({ query: 'juros', court, limit: 100 })).toHaveLength(100);

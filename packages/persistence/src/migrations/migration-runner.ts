@@ -1120,6 +1120,11 @@ export const persistenceMigrations: readonly SqlMigration[] = [
  `CREATE TABLE matter_lifecycle_purge_operations (operation_id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, matter_id TEXT NOT NULL, document_id TEXT, expected_lifecycle_revision INTEGER NOT NULL, fingerprint TEXT NOT NULL, local_state TEXT NOT NULL, prepared_at TEXT NOT NULL, completed_at TEXT, counts_json TEXT NOT NULL DEFAULT '{}');`,
  `CREATE INDEX matter_lifecycle_purge_target_idx ON matter_lifecycle_purge_operations(tenant_id,matter_id,document_id);`,
 ] },
+{ id: 'persistence-0029-jurisprudence-search-metadata-index', statements: [], postgresStatements: [
+  `CREATE INDEX jurisprudence_versions_search_metadata_idx
+   ON jurisprudence_document_versions(id)
+   INCLUDE (judgment_date, publication_status, source_manifest_id);`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {
