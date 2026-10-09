@@ -1,5 +1,23 @@
 # Auditoria e status canônico do ForgeLex
 
+## Encerramento técnico — 09/10/2026
+
+PR #61, código `720e23c`, integrada em `86156a0`; seis checks aprovados na CI
+`38002383045`, 794 unitários, 17 condicionais ignorados, 130 E2E e 25 testes
+específicos PostgreSQL. Validação local adicional com 33.759 candidatos passou.
+Revisão independente sem Critical/Important; assertion nova de metadados
+isolados tem escopo explicitado no registro.
+
+Migration 0029 aplicada às 23:09:04 UTC, backup concluído, mesmo advisory lock
+da ingestão, DDL/journal atômicos, timeouts limitados. Índice válido/pronto;
+zero migrations pendentes após aplicação. O plano produtivo usa Index Only
+Scan nos metadados, zero Heap Fetches; a mesma consulta passou de 20,3 s para
+13,3–16,5 s nas amostras, mantendo os resultados. Não equivale a p95/cache frio.
+Fonte oficial malformada reconferida no prefixo, linha 24; sem alteração do
+corpus. Readiness/shell 200, runtime `forgelex-api-prod-audit-5aca51e`, 100%,
+sem deploy HTTP ou alteração de capacidade/custo da instância.
+[Registro e recibo](docs/operations/stabilization/2026-10-09-technical-pending-closure.md).
+
 ## Pendências residuais — 09/10/2026
 
 Mitigação local versionada de braces 3.0.3, com prewalk iterativo e limite de

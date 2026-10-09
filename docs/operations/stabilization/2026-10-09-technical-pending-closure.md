@@ -74,8 +74,50 @@ A transação de aplicação deve adquirir o mesmo advisory lock `731202604`
 usado pela ingestão STJ em modo single-flight. Se a ingestão estiver ativa,
 a operação aborta; enquanto a DDL estiver ativa, outra ingestão não inicia.
 
-Este registro ainda não declara ganho produtivo ou aplicação concluída.
-Os resultados finais serão acrescentados após a execução dos gates.
+## Resultado publicado
+
+PR [#61](https://github.com/junior-aguiar-eng/ForgeLex/pull/61), código
+`720e23c`, integrada em `86156a0` às 23:08:24 UTC. Os seis checks da CI
+`38002383045` passaram: 794 unitários, 17 condicionais ignorados, 130 E2E e
+25 testes específicos de pesquisa PostgreSQL. Revisão independente sem
+Critical/Important; a observação menor sobre cobertura do teste foi explicitada.
+
+Migration aplicada de 23:08:49 a 23:09:04 UTC, mantendo o bloqueio exclusivo
+da ingestão. DDL e journal concluídos na mesma transação. Índice válido e
+pronto, 91.529.216 bytes; inspeção posterior sem migrations pendentes.
+PostgreSQL 16.15, work_mem 4 MB. Não houve VACUUM produtivo, alteração de
+capacidade, memória global ou deploy HTTP.
+
+Comparação da mesma instrução e parâmetros no corpus real:
+
+| Medida | Antes | Depois |
+| --- | --- | --- |
+| Amostra SQL de referência | 20.268,05 ms | 16.521,16 / 13.281,82 / 13.820,25 ms |
+| EXPLAIN ANALYZE, TIMING OFF | 16.932,532 ms | 13.422,751 ms |
+| Blocos lidos no plano completo | 103.446 | 68.470 |
+| Seleção de metadados de versões | 33.759 Index Scans pela PK | Index Only Scan paralelo pelo índice novo |
+| Acessos ao heap nesse Index Only Scan | Não se aplica ao caminho anterior | 0 |
+
+O hash do conteúdo e da ordem dos três resultados foi idêntico nas quatro
+amostras SQL. A seleção de metadados agora varre o índice em paralelo para
+o hash join; não se afirma que lê somente as 33.759 versões candidatas.
+A hidratação final continua acessando os três documentos/versões completos.
+Consultas pelo repositório após aplicação: termos com AND implícito em
+1.715,99 ms e frase exata em 480,42 ms, três resultados em cada uma.
+
+São fotografias limitadas, sem controle comparativo de cache frio. A consulta
+ampla continua levando segundos; a evidência encerra a correção desse acesso
+ao heap e a medição pendente, sem garantir p95 ou estabilidade sob carga.
+Readiness e shell HTML de `/app/casos` retornaram 200 após aplicação.
+Runtime e tráfego permanecem `forgelex-api-prod-audit-5aca51e`, 100%.
+O checkout canônico de main foi atualizado após integração.
+
+A lacuna da fonte foi reconferida às 23:04:35 UTC: resposta HTTP 206 com
+prefixo de 599 bytes; fechamento não pareado na posição 592, linha 24, do
+recurso oficial `20240229.json`. Não foi modificado o corpus nem incorporado
+conteúdo parcial. A correção desse arquivo depende da fonte externa.
+
+[Recibo agregado, sem dados de conta ou segredos](2026-10-09-technical-pending-closure-proof.json).
 
 ## Limites que permanecem
 
