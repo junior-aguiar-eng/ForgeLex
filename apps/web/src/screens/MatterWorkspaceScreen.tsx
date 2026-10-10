@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useApp } from '../context/AppContext';
 import { PdfTextImport } from '../components/PdfTextImport';
 import { CaseAiAccessPanel } from './case-ai/CaseAiAccessPanel';
+import { CaseAnalysisPanel } from './case-ai/CaseAnalysisPanel';
 import { DocumentReaderDialog } from '../components/DocumentReaderDialog';
 import { CaseAuthorities, type SavedCaseAuthority } from '../components/CaseAuthorities';
 import type { DocumentSource } from '../documents/document-reader-model';
@@ -187,8 +188,10 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const [selectedMatterId, setSelectedMatterId] = useState<string | null>(null);
   const [retainedMatter, setRetainedMatter] = useState<Matter | null>(null);
   const [aiAccessOpen, setAiAccessOpen] = useState(false);
+  const [analysisMode,setAnalysisMode]=useState(false);
   const aiAccessTrigger=useRef<HTMLButtonElement>(null);
-  const closeAiAccess=()=>{setAiAccessOpen(false);requestAnimationFrame(()=>aiAccessTrigger.current?.focus());};
+  const analysisAccessTrigger=useRef<HTMLButtonElement>(null);
+  const closeAiAccess=()=>{setAiAccessOpen(false);requestAnimationFrame(()=>(analysisMode?analysisAccessTrigger:aiAccessTrigger).current?.focus());};
   const [documents, setDocuments] = useState<LegalDocument[]>([]);
   const [readingDocument, setReadingDocument] = useState<DocumentSource>();
   const [facts, setFacts] = useState<Fact[]>([]);
@@ -694,7 +697,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                       <h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">{selectedMatter.title}</h2>
                       <p className="text-xs text-stone-500 mt-1">{selectedMatter.practiceArea || 'Área jurídica não informada'}{selectedMatter.jurisdiction ? ` · ${selectedMatter.jurisdiction}` : ''}</p>
                     </div>
-                    <div className="space-y-2"><span className="block text-[11px] text-stone-500">Atualizado em {new Date(selectedMatter.updatedAt).toLocaleDateString('pt-BR')}</span><div className="flex items-center gap-2">{!readOnly && <button ref={aiAccessTrigger} type="button" onClick={()=>setAiAccessOpen(true)} className="px-3 py-2 rounded-lg border border-cognac-200 text-cognac-800 text-sm font-semibold">Usar este caso na IA</button>}{canManage && <LifecycleMenu record={selectedMatter} disabled={busy} onAction={action => openLifecycle(selectedMatter, action)} />}</div></div>
+                    <div className="space-y-2"><span className="block text-[11px] text-stone-500">Atualizado em {new Date(selectedMatter.updatedAt).toLocaleDateString('pt-BR')}</span><div className="flex flex-wrap items-center gap-2">{!readOnly && <><button ref={analysisAccessTrigger} type="button" onClick={()=>{setAnalysisMode(true);setAiAccessOpen(true);}} className="px-3 py-2 rounded-lg bg-cognac-700 text-white text-sm font-semibold">Analisar documentos do caso</button><button ref={aiAccessTrigger} type="button" onClick={()=>{setAnalysisMode(false);setAiAccessOpen(true);}} className="px-3 py-2 rounded-lg border border-cognac-200 text-cognac-800 text-sm font-semibold">Usar este caso na IA</button></>}{canManage && <LifecycleMenu record={selectedMatter} disabled={busy} onAction={action => openLifecycle(selectedMatter, action)} />}</div></div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
                     {[
@@ -744,6 +747,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
 
             {selectedMatter && hasApiAccess && authorityScope === `${selectedMatterId}:${token}:${authStatus}:${account?.user.id ?? ''}:${account?.workspace.id ?? ''}` && <CaseAuthorities items={authorities} />}
             {readingDocument && readingDocument.matterId === selectedMatterId && hasApiAccess && <DocumentReaderDialog source={readingDocument} token={token} onClose={() => setReadingDocument(undefined)} />}
+            {selectedMatter && hasApiAccess && <CaseAnalysisPanel key={`${selectedMatter.id}:${token}`} matterId={selectedMatter.id} readOnly={readOnly} onChanged={()=>loadMatterResources(selectedMatter.id)} onSource={setReadingDocument} onAnalyze={()=>{setAnalysisMode(true);setAiAccessOpen(true);}} />}
 
             {selectedMatter && <>
               <section id="fatos" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
@@ -885,7 +889,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
           </div>
         </div>
       </div>
-    {aiAccessOpen && selectedMatter && !readOnly && <CaseAiAccessPanel key={selectedMatter.id} matterId={selectedMatter.id} matterTitle={selectedMatter.title} onClose={closeAiAccess} />}
+    {aiAccessOpen && selectedMatter && !readOnly && <CaseAiAccessPanel key={selectedMatter.id} matterId={selectedMatter.id} matterTitle={selectedMatter.title} analysisMode={analysisMode} onClose={closeAiAccess} />}
     {lifecycleDialog && <LifecycleDialog {...lifecycleDialog} busy={busy} error={lifecycleError} onCancel={() => setLifecycleDialog(null)} onConfirm={confirmation => void executeLifecycle(confirmation)} />}
     </div>
   );

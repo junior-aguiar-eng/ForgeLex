@@ -13,6 +13,7 @@ export const EXTERNAL_MCP_TOOL_NAMES = [
   'case.get_context',
   'case.read_item',
   'draft.save_from_ai',
+  'case.save_analysis',
 ] as const;
 
 export type ExternalMcpToolName = (typeof EXTERNAL_MCP_TOOL_NAMES)[number];

@@ -4,6 +4,56 @@ import JSZip from 'jszip';
 import { readFile } from 'node:fs/promises';
 const api = 'http://127.0.0.1:3301';
 
+test('análise documental recebida: conferir fonte, editar e incorporar no caso', async ({page,request},info) => {
+  const state=await (await request.get(api+'/e2e/state')).json();
+  const headers={authorization:'Bearer phase7-e2e-access-token'};
+  const matter=await (await request.post(api+'/api/v2/matters',{headers,data:{title:'Análise documental sintética'}})).json();
+  const document=await (await request.post(api+`/api/v2/matters/${matter.id}/documents`,{headers,data:{title:'Contrato para análise',originalFilename:'contrato.txt',mimeType:'text/plain',content:'A parte afirma que houve pagamento em janeiro.\n\nO contrato não contém recibo de pagamento.'}})).json();
+  await login(page);
+  await page.goto(`/app/casos?caso=${matter.id}`);
+  await page.getByRole('button',{name:'Analisar documentos do caso',exact:true}).click();
+  await page.getByLabel('Onde você vai usar?').selectOption('Claude');
+  await page.getByLabel('Aplicativo autorizado').selectOption('app-one');
+  await page.locator('dialog summary').filter({hasText:'Documentos'}).click();
+  await page.locator('dialog label').filter({hasText:'Contrato para análise'}).getByRole('checkbox').check();
+  await page.getByLabel('Permitir que esta IA envie análises do caso').check();
+  await page.getByLabel('Objetivo da análise').fill('Confrontar alegação de pagamento');
+  await page.getByRole('button',{name:'Ver prévia',exact:true}).click();
+  await page.getByRole('button',{name:'Permitir acesso',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Copiar instrução',exact:true})).toBeVisible();
+  const context=(await mcp(request,state.oauthTokens['app-one'],'case.get_context',{matterId:matter.id})).result.structuredContent;
+  expect(context.analysisReceiving).toEqual({enabled:true,objective:'Confrontar alegação de pagamento'});
+  const anchor=document.anchors[0];
+  const input={matterId:matter.id,expectedGrantRevision:context.grantRevision,idempotencyKey:'synthetic-analysis-key-1',objective:context.analysisReceiving.objective,items:[
+    {id:'fact1',kind:'FACT',text:'Houve pagamento em janeiro',classification:'ALLEGATION',sources:[{documentId:document.document.id,versionId:document.version.id,anchorId:anchor.id,quote:anchor.text,relation:'CONTEXT'}]},
+    {id:'gap1',kind:'GAP',text:'Falta comprovante de pagamento',classification:'GAP',sources:[{documentId:document.document.id,versionId:document.version.id,anchorId:anchor.id,quote:anchor.text,relation:'CONTEXT'}]},
+  ]};
+  const saved=await mcp(request,state.oauthTokens['app-one'],'case.save_analysis',input);
+  expect(saved.result.isError).toBe(false);
+  expect((await mcp(request,state.oauthTokens['app-one'],'case.save_analysis',input)).result.billing.isReplay).toBe(true);
+  await page.locator('dialog').getByRole('button',{name:'Fechar',exact:true}).click();
+  await page.getByRole('button',{name:'Atualizar análises',exact:true}).click();
+  await page.getByRole('button',{name:'Conferir análise',exact:true}).click();
+  const proposal=page.getByRole('article',{name:'Proposta fact1'});
+  await expect(proposal).toContainText('Alegação');
+  await proposal.getByRole('button',{name:'Abrir fonte',exact:true}).click();
+  await expect(page.getByRole('dialog')).toContainText('A parte afirma que houve pagamento');
+  await page.getByRole('dialog').getByRole('button',{name:'Fechar leitura',exact:true}).click();
+  await proposal.getByLabel('Texto da proposta').fill('A parte alega pagamento em janeiro');
+  await proposal.getByRole('checkbox',{name:'Selecionar proposta'}).check();
+  await page.getByRole('button',{name:'Incorporar selecionados',exact:true}).click();
+  await expect(proposal).toContainText('Incorporado');
+  await page.getByRole('article',{name:'Proposta gap1'}).getByRole('button',{name:'Descartar',exact:true}).click();
+  const facts=(await (await request.get(api+`/api/v2/matters/${matter.id}/facts`,{headers})).json()).items;
+  expect(facts).toHaveLength(1);
+  expect(facts[0]).toMatchObject({statement:'A parte alega pagamento em janeiro',status:'ASSERTED'});
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.getByRole('region',{name:'Análises dos documentos'}).evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
+  const axe=await new AxeBuilder({page}).include('[aria-label="Análises dos documentos"]').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+  expect(axe.violations).toEqual([]);
+  await page.getByRole('region',{name:'Análises dos documentos'}).screenshot({path:info.outputPath('analysis-review-mobile.png')});
+});
+
 test('conexões com o mesmo nome são distinguíveis e não recebem permissão automaticamente', async ({
   page,
   request,

@@ -1,12 +1,22 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const caseAiAccessGrants = sqliteTable('case_ai_access_grants', {
+ analysisPermissionJson: text('analysis_permission_json').notNull().default('{"enabled":false}'),
  receivePermissionJson: text('receive_permission_json').notNull().default('{"enabled":false}'),
  id:text('id').primaryKey(),tenantId:text('tenant_id').notNull(),userId:text('user_id').notNull(),
  oauthClientId:text('oauth_client_id').notNull(),oauthGrantedAt:text('oauth_granted_at').notNull(),
  matterId:text('matter_id').notNull().references(()=>matters.id),revision:integer('revision').notNull(),
  status:text('status').notNull(),selectionJson:text('selection_json').notNull(),createdAt:text('created_at').notNull(),updatedAt:text('updated_at').notNull(),revokedAt:text('revoked_at'),
 },t=>[uniqueIndex('case_ai_access_owner_client_matter_idx').on(t.tenantId,t.userId,t.oauthClientId,t.matterId)]);
+
+export const caseAnalysisReceipts = sqliteTable('case_analysis_receipts', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
+  matterId: text('matter_id').notNull().references(() => matters.id),
+  oauthClientId: text('oauth_client_id').notNull(), oauthGrantedAt: text('oauth_granted_at').notNull(),
+  grantRevision: integer('grant_revision').notNull(), keyHash: text('key_hash').notNull(), payloadHash: text('payload_hash').notNull(),
+  objective: text('objective').notNull(), itemsJson: text('items_json').notNull(), decisionsJson: text('decisions_json').notNull().default('{}'),
+  revision: integer('revision').notNull().default(1), receivedAt: text('received_at').notNull(),
+}, t => [uniqueIndex('case_analysis_scope_key_idx').on(t.tenantId,t.userId,t.oauthClientId,t.oauthGrantedAt,t.matterId,t.keyHash), index('case_analysis_matter_idx').on(t.tenantId,t.matterId)]);
 
 export const forgelexUserProfiles = sqliteTable(
   'forgelex_user_profiles',

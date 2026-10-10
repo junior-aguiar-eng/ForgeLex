@@ -1125,6 +1125,12 @@ export const persistenceMigrations: readonly SqlMigration[] = [
    ON jurisprudence_document_versions(id)
    INCLUDE (judgment_date, publication_status, source_manifest_id);`,
 ] },
+{ id: 'persistence-0030-case-document-analysis', statements: [
+  `ALTER TABLE case_ai_access_grants ADD COLUMN analysis_permission_json TEXT NOT NULL DEFAULT '{"enabled":false}';`,
+  `CREATE TABLE case_analysis_receipts (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, matter_id TEXT NOT NULL REFERENCES matters(id), oauth_client_id TEXT NOT NULL, oauth_granted_at TEXT NOT NULL, grant_revision INTEGER NOT NULL, key_hash TEXT NOT NULL, payload_hash TEXT NOT NULL, objective TEXT NOT NULL, items_json TEXT NOT NULL, decisions_json TEXT NOT NULL DEFAULT '{}', revision INTEGER NOT NULL DEFAULT 1, received_at TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX case_analysis_scope_key_idx ON case_analysis_receipts(tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,key_hash);`,
+  `CREATE INDEX case_analysis_matter_idx ON case_analysis_receipts(tenant_id,matter_id);`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

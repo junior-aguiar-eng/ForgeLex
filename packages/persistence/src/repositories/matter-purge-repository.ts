@@ -6,7 +6,7 @@ import { createHash, randomUUID } from 'node:crypto';
 
 interface Executor { execute(statement: { sql: string; args: (string | number | null)[] }): Promise<{ rows: unknown[]; rowsAffected: number }>; }
 interface PurgeOperation { operationId: string; result: LifecycleResult; }
-const directChildren = ['citation_anchors', 'draft_review_findings', 'draft_review_runs', 'draft_ai_receipts', 'case_ai_access_grants', 'draft_sections', 'draft_versions', 'drafts', 'matter_authority_verifications', 'matter_authorities', 'legal_theses', 'research_memos', 'legal_issues', 'evidence_links', 'evidence_source_links', 'evidence_items', 'fact_source_links', 'timeline_events', 'facts', 'workflow_checkpoints', 'research_search_history'] as const;
+const directChildren = ['citation_anchors', 'draft_review_findings', 'draft_review_runs', 'draft_ai_receipts', 'case_analysis_receipts', 'case_ai_access_grants', 'draft_sections', 'draft_versions', 'drafts', 'matter_authority_verifications', 'matter_authorities', 'legal_theses', 'research_memos', 'legal_issues', 'evidence_links', 'evidence_source_links', 'evidence_items', 'fact_source_links', 'timeline_events', 'facts', 'workflow_checkpoints', 'research_search_history'] as const;
 const queries = (target: LifecycleTarget) => [
   ...['draft_approval_tokens', 'draft_approval_decisions'].map(table => ({ table, where: 'tenant_id=? AND request_id IN (SELECT id FROM draft_approval_requests WHERE tenant_id=? AND matter_id=?)', args: [target.tenantId, target.tenantId, target.matterId] })),
   { table: 'draft_approval_requests', where: 'tenant_id=? AND matter_id=?', args: [target.tenantId, target.matterId] },

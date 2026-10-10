@@ -23,6 +23,7 @@ const FORGELEX_BILLING_POLICIES: Readonly<Record<string, ForgeLexBillingPolicy>>
   'case.get_context': { mode: 'FREE' },
   'case.read_item': { mode: 'FREE' },
   'draft.save_from_ai': { mode: 'FREE' },
+  'case.save_analysis': { mode: 'FREE' },
 };
 
 export function getForgeLexBillingPolicy(capability: string): ForgeLexBillingPolicy {

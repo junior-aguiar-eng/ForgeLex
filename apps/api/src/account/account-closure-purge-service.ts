@@ -30,6 +30,7 @@ const tenantStatements: readonly TenantStatement[] = [
   direct('draft_review_findings', 'MATTERS'),
     direct('draft_review_runs', 'MATTERS'),
   direct('draft_ai_receipts', 'MATTERS'),
+  direct('case_analysis_receipts', 'MATTERS'),
   direct('case_ai_access_grants', 'MATTERS'),
   direct('draft_sections', 'MATTERS'),
   direct('draft_versions', 'MATTERS'),

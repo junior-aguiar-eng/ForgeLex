@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { CaseAiSelectionSchema, CaseItemKindSchema, DraftReceivePermissionSchema } from '@forgelex/domain';
+import { CaseAiSelectionSchema, CaseItemKindSchema, DraftReceivePermissionSchema, AnalysisPermissionSchema } from '@forgelex/domain';
 import { CaseAiAccessRepository } from '@forgelex/persistence';
 import { AuthAdapter, extractBearerToken } from '../auth/fastify-auth.js';
 import type { OAuthClientDirectory } from './oauth-client-directory.js';
@@ -146,6 +146,7 @@ export function registerCaseAiAccessRoutes(
           expectedRevision: z.number().int().nonnegative(),
           selection: CaseAiSelectionSchema,
           receivePermission: DraftReceivePermissionSchema.optional(),
+          analysisPermission: AnalysisPermissionSchema.optional(),
         })
         .strict()
         .parse(req.body);

@@ -28,10 +28,12 @@ export function CaseAiAccessPanel({
   matterId,
   matterTitle,
   onClose,
+  analysisMode = false,
 }: {
   matterId: string;
   matterTitle: string;
   onClose: () => void;
+  analysisMode?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const live = useRef(true);
@@ -42,6 +44,9 @@ export function CaseAiAccessPanel({
   const [clientId, setClientId] = useState('');
   const [selection, setSelection] = useState<Selection>(emptySelection);
   const [receivePermission, setReceivePermission] = useState<ReceivePermission>({ enabled: false });
+  const [analysisPermission, setAnalysisPermission] = useState<NonNullable<Grant['analysisPermission']>>({
+    enabled: false,
+  });
   const [draftChoices, setDraftChoices] = useState<{ id: string; title: string }[]>([]);
   const [catalog, setCatalog] = useState<Partial<Record<Kind, Page>>>({});
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -67,7 +72,8 @@ export function CaseAiAccessPanel({
   const selectionSaved =
     connectedGrant &&
     JSON.stringify(current.selection) === JSON.stringify(selection) &&
-    JSON.stringify(current.receivePermission ?? { enabled: false }) === JSON.stringify(receivePermission);
+    JSON.stringify(current.receivePermission ?? { enabled: false }) === JSON.stringify(receivePermission) &&
+    JSON.stringify(current.analysisPermission ?? { enabled: false }) === JSON.stringify(analysisPermission);
   const changeSelection = (s: Selection) => {
     setSelection(s);
     setPreview(null);
@@ -160,6 +166,7 @@ export function CaseAiAccessPanel({
     const g = grants.find((g) => g.oauthClientId === id);
     changeSelection(g?.status === 'ACTIVE' ? g.selection : emptySelection());
     setReceivePermission(g?.status === 'ACTIVE' ? (g.receivePermission ?? { enabled: false }) : { enabled: false });
+    setAnalysisPermission(g?.status === 'ACTIVE' ? (g.analysisPermission ?? { enabled: false }) : { enabled: false });
     void api<{ items: { id: string; title: string }[] }>(`/api/v2/matters/${matterId}/drafts`)
       .then((r) => {
         if (live.current) setDraftChoices(r.items);
@@ -175,7 +182,13 @@ export function CaseAiAccessPanel({
       const g = await api<Grant>(
         base,
         post(
-          { oauthClientId: clientId, expectedRevision: current?.revision ?? 0, selection, receivePermission },
+          {
+            oauthClientId: clientId,
+            expectedRevision: current?.revision ?? 0,
+            selection,
+            receivePermission,
+            analysisPermission,
+          },
           'PUT',
         ),
       );
@@ -183,6 +196,7 @@ export function CaseAiAccessPanel({
         setGrants((old) => [...old.filter((x) => x.oauthClientId !== g.oauthClientId), g]);
         setSelection(g.selection);
         setReceivePermission(g.receivePermission ?? { enabled: false });
+        setAnalysisPermission(g.analysisPermission ?? { enabled: false });
         setNotice('Acesso permitido para esta conexão e estes materiais.');
       }
     }, true);
@@ -211,7 +225,7 @@ export function CaseAiAccessPanel({
         <header className="flex items-start justify-between gap-3">
           <div>
             <h2 id="case-ai-title" className="font-editorial text-xl font-bold">
-              Usar este caso na IA
+              {analysisMode ? 'Analisar documentos do caso' : 'Usar este caso na IA'}
             </h2>
             <p className="text-sm mt-1">{matterTitle}</p>
           </div>
@@ -416,13 +430,51 @@ export function CaseAiAccessPanel({
             <button
               type="button"
               className={primary}
-              disabled={busy || conflict || !!preview.nextCursor || !application}
+              disabled={
+                busy ||
+                conflict ||
+                !!preview.nextCursor ||
+                !application ||
+                (analysisPermission.enabled &&
+                  (analysisPermission.objective.trim().length < 3 || !selection.documents.length))
+              }
               onClick={() => void allow()}
             >
               Permitir acesso
             </button>
           </section>
         )}
+        <section className="space-y-3 border-t pt-4" aria-label="Recebimento de análises">
+          <label className="flex gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={analysisPermission.enabled}
+              disabled={busy || !application}
+              onChange={(e) => {
+                setAnalysisPermission(e.target.checked ? { enabled: true, objective: '' } : { enabled: false });
+                setNotice('');
+              }}
+            />
+            <span>Permitir que esta IA envie análises do caso</span>
+          </label>
+          {analysisPermission.enabled && (
+            <label className="block text-sm">
+              Objetivo da análise
+              <textarea
+                className="input-control w-full mt-1"
+                disabled={busy}
+                maxLength={2000}
+                value={analysisPermission.objective}
+                placeholder="Ex.: confrontar as alegações da inicial com os documentos selecionados"
+                onChange={(e) => setAnalysisPermission({ enabled: true, objective: e.target.value })}
+              />
+            </label>
+          )}
+          <p className="text-xs text-stone-600">
+            Selecione documentos e defina o objetivo. Receber a análise é gratuito; os itens aguardam sua conferência
+            antes de entrar no caso.
+          </p>
+        </section>
         <section className="space-y-3 border-t pt-4">
           <label className="flex gap-3 text-sm">
             <input

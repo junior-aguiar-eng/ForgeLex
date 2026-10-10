@@ -1,5 +1,24 @@
 # Auditoria e status canônico do ForgeLex
 
+## Análise documental do caso — incremento local de 10/10/2026
+
+Escopo autorizado por Boni; implementação na branch
+`codex/case-document-analysis`, working tree sobre `df57c43`, conteúdo-base
+igual ao de main `f5f9316` (PR #65). Permissão específica com objetivo,
+recebimento gratuito `case.save_analysis`, propostas com versão/âncora/citação
+e conferência no site para editar, incorporar ou descartar. Sem confirmação
+automática de fatos; adoção somente em sessão. Migration incremental 0030.
+
+Suíte geral final: 821 testes aprovados e 17 ignorados (exit code zero).
+Verificação focada final: 27 testes aprovados. Nove E2E de contexto/análise/
+rascunhos aprovados, incluindo abertura da fonte, edição e incorporação;
+nove checks de PostgreSQL local aprovados, incluindo concorrência, rollback,
+revogação e exclusão pela conta. Build, tipos e lint aprovados.
+Sem commit, push, migration
+remota ou deploy; não homologado em conversa real de host externo.
+[Entrega, verificações e limites](docs/operations/stabilization/2026-10-10-case-document-analysis.md)
+e [procedimento de uso](docs/product/case-document-analysis.md).
+
 ## Braces/STJ após aprovação fiscal — 10/10/2026
 
 Boni aprovou FISCAL-2026-10-10.v1 expressamente no escopo descrito;

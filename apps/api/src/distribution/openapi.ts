@@ -1,4 +1,4 @@
-import { EXTERNAL_MCP_TOOL_NAMES } from '@forgelex/mcp-server';
+import { EXTERNAL_MCP_TOOL_NAMES, CASE_ANALYSIS_JSON_SCHEMAS } from '@forgelex/mcp-server';
 import { getLegalToolContract, getCaseContextToolContract } from '@forgelex/legal-tools';
 
 type HttpMethod = 'get' | 'post' | 'put' | 'delete';
@@ -17,16 +17,17 @@ export interface PublicApiRouteDefinition {
 }
 
 const OPENAPI_SCHEMAS = {
+  ...CASE_ANALYSIS_JSON_SCHEMAS,
   LifecycleCommand: { type: 'object', additionalProperties: false, required: ['expectedLifecycleRevision'], properties: { expectedLifecycleRevision: { type: 'integer', minimum: 0 } } },
   PurgeCommand: { type: 'object', additionalProperties: false, required: ['expectedLifecycleRevision', 'confirmation'], properties: { expectedLifecycleRevision: { type: 'integer', minimum: 0 }, confirmation: { type: 'string', minLength: 1, description: 'Nome exato do caso ou ID do documento.' } } },
   LifecycleResult: { type: 'object', required: ['id', 'lifecycleState', 'lifecycleRevision'], properties: { id: { type: 'string', format: 'uuid' }, lifecycleState: { type: 'string', enum: ['ACTIVE', 'ARCHIVED', 'TRASHED', 'PURGED'] }, lifecycleRevision: { type: 'integer', minimum: 0 }, archivedAt: { type: 'string', format: 'date-time' }, trashedAt: { type: 'string', format: 'date-time' }, purgedAt: { type: 'string', format: 'date-time' } } },
   DraftAiAdoptRequest: {type:'object',additionalProperties:false,required:['expectedCurrentVersionId'],properties:{expectedCurrentVersionId:{type:['string','null'],format:'uuid'}}},
   DraftReceivePermission: {oneOf:[{type:'object',additionalProperties:false,required:['enabled'],properties:{enabled:{const:false}}},{type:'object',additionalProperties:false,required:['enabled','destination'],properties:{enabled:{const:true},destination:{oneOf:[{type:'object',additionalProperties:false,required:['mode'],properties:{mode:{const:'NEW'}}},{type:'object',additionalProperties:false,required:['mode','draftId'],properties:{mode:{const:'EXISTING'},draftId:{type:'string',format:'uuid'}}}]}}}]},
   CaseAiSelection: {type:'object',additionalProperties:false,required:['documents','factIds','evidenceIds','thesisIds','authorityIds'],description:'Ao menos um item; até 100 por categoria. Cada documento fixa uma única versão.',properties:{documents:{type:'array',maxItems:100,items:{type:'object',additionalProperties:false,required:['documentId','versionId'],properties:{documentId:{type:'string',format:'uuid'},versionId:{type:'string',format:'uuid'}}}},...Object.fromEntries(['factIds','evidenceIds','thesisIds','authorityIds'].map(k=>[k,{type:'array',maxItems:100,uniqueItems:true,items:{type:'string',format:'uuid'}}]))}},
-  CaseAiGrantRequest: {type:'object',additionalProperties:false,required:['oauthClientId','expectedRevision','selection'],properties:{oauthClientId:{type:'string',minLength:1,maxLength:500},expectedRevision:{type:'integer',minimum:0},selection:{$ref:'#/components/schemas/CaseAiSelection'},receivePermission:{$ref:'#/components/schemas/DraftReceivePermission'}}},
+  CaseAiGrantRequest: {type:'object',additionalProperties:false,required:['oauthClientId','expectedRevision','selection'],properties:{oauthClientId:{type:'string',minLength:1,maxLength:500},expectedRevision:{type:'integer',minimum:0},selection:{$ref:'#/components/schemas/CaseAiSelection'},receivePermission:{$ref:'#/components/schemas/DraftReceivePermission'},analysisPermission:{$ref:'#/components/schemas/AnalysisPermission'}}},
   CaseAiPreviewRequest: {type:'object',additionalProperties:false,required:['selection'],properties:{selection:{$ref:'#/components/schemas/CaseAiSelection'},cursor:{type:'string',maxLength:1024},limit:{type:'integer',minimum:1,maximum:50,default:20}}},
   CaseAiRevokeRequest: {type:'object',additionalProperties:false,required:['expectedRevision'],properties:{expectedRevision:{type:'integer',minimum:1}}},
-  CaseAiGrant: {type:'object',additionalProperties:false,required:['id','tenantId','userId','oauthClientId','oauthGrantedAt','matterId','revision','status','selection','createdAt','updatedAt'],properties:{...Object.fromEntries(['id','tenantId','userId','oauthClientId','matterId'].map(k=>[k,{type:'string'}])),...Object.fromEntries(['oauthGrantedAt','createdAt','updatedAt','revokedAt'].map(k=>[k,{type:'string',format:'date-time'}])),revision:{type:'integer',minimum:1},status:{type:'string',enum:['ACTIVE','REVOKED']},selection:{$ref:'#/components/schemas/CaseAiSelection'},receivePermission:{$ref:'#/components/schemas/DraftReceivePermission'}}},
+  CaseAiGrant: {type:'object',additionalProperties:false,required:['id','tenantId','userId','oauthClientId','oauthGrantedAt','matterId','revision','status','selection','createdAt','updatedAt'],properties:{...Object.fromEntries(['id','tenantId','userId','oauthClientId','matterId'].map(k=>[k,{type:'string'}])),...Object.fromEntries(['oauthGrantedAt','createdAt','updatedAt','revokedAt'].map(k=>[k,{type:'string',format:'date-time'}])),revision:{type:'integer',minimum:1},status:{type:'string',enum:['ACTIVE','REVOKED']},selection:{$ref:'#/components/schemas/CaseAiSelection'},receivePermission:{$ref:'#/components/schemas/DraftReceivePermission'},analysisPermission:{$ref:'#/components/schemas/AnalysisPermission'}}},
   CaseAiGrants: {type:'array',items:{$ref:'#/components/schemas/CaseAiGrant'}},
   AuthorizedApplications: {type:'array',items:{type:'object',additionalProperties:false,required:['clientId','displayName','grantedAt'],properties:{clientId:{type:'string'},displayName:{type:'string'},grantedAt:{type:'string',format:'date-time'}}}},
   CaseAiMaterial: {type:'object',additionalProperties:false,required:['kind','id','title'],properties:{kind:{type:'string',enum:['DOCUMENT','FACT','EVIDENCE','THESIS','AUTHORITY']},id:{type:'string',format:'uuid'},title:{type:'string'},versionId:{type:'string',format:'uuid'},versionNumber:{type:'integer',minimum:1},preview:{type:'string'}}},
@@ -168,6 +169,7 @@ const OPENAPI_SCHEMAS = {
 } as const;
 
 const OBJECT_REQUEST_SCHEMA_BY_PATH: Readonly<Record<string, keyof typeof OPENAPI_SCHEMAS>> = {
+  '/api/v2/matters/{matterId}/analyses/{analysisId}/decisions':'AnalysisDecisions',
   ...Object.fromEntries(['/api/v2/matters/{matterId}', '/api/v2/matters/{matterId}/documents/{documentId}'].flatMap(path => ['archive', 'trash', 'restore', 'purge'].map(action => [`${path}/${action}`, action === 'purge' ? 'PurgeCommand' as const : 'LifecycleCommand' as const]))),
   '/api/v2/matters/{matterId}/drafts/{draftId}/ai-receipts/{receiptId}/adopt':'DraftAiAdoptRequest',
   '/api/v2/matters/{matterId}/ai-access':'CaseAiGrantRequest','/api/v2/matters/{matterId}/ai-access/preview':'CaseAiPreviewRequest','/api/v2/matters/{matterId}/ai-access/{grantId}/revoke':'CaseAiRevokeRequest',
@@ -175,6 +177,9 @@ const OBJECT_REQUEST_SCHEMA_BY_PATH: Readonly<Record<string, keyof typeof OPENAP
 };
 
 export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
+  {method:'get',path:'/api/v2/matters/{matterId}/analyses',summary:'Listar análises dos documentos',description:'Somente sessão web do usuário; resumos das 50 análises mais recentes, sem conteúdo dos documentos.',scopes:['matter:read']},
+  {method:'get',path:'/api/v2/matters/{matterId}/analyses/{analysisId}',summary:'Conferir análise recebida',description:'Somente sessão web do usuário; propostas originais com fontes fixadas e decisões registradas.',scopes:['matter:read']},
+  {method:'post',path:'/api/v2/matters/{matterId}/analyses/{analysisId}/decisions',summary:'Incorporar ou descartar propostas',description:'Somente sessão web; lote atômico com comparação de revisão, fontes ativas e itens ainda não decididos. Fatos não são confirmados automaticamente.',scopes:['matter:write'],requestBody:'object'},
   ...['/api/v2/matters/{matterId}', '/api/v2/matters/{matterId}/documents/{documentId}'].flatMap(path => ['archive', 'trash', 'restore', 'purge'].map(action => ({ method: 'post' as const, path: `${path}/${action}`, summary: `${action === 'archive' ? 'Arquivar' : action === 'trash' ? 'Mover para a lixeira' : action === 'restore' ? 'Restaurar' : 'Excluir definitivamente'} caso ou documento`, description: 'Somente sessão web do criador ou administrador. Revisão esperada obrigatória; exclusão definitiva somente na lixeira e com journal durável. Conflitos retornam 409; confirmação pendente retorna 503 e operationId.', scopes: ['matter:write'], requestBody: 'object' as const, responseSchema: 'LifecycleResult' as const }))),
   { method: 'get', path: '/api/v2/matter-purge-operations/{operationId}', summary: 'Consultar confirmação de exclusão', description: 'Somente sessão web autorizada. Retorna apenas completed, aborted ou pending; não repete a exclusão.', scopes: ['matter:write'] },
   {method:'get',path:'/api/v2/matters/{matterId}/drafts/{draftId}/ai-receipts',summary:'Listar textos recebidos',description:'Somente sessão web do usuário que autorizou o recebimento; metadados sem conteúdo.',scopes:['matter:read']},
@@ -311,7 +316,7 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
     ];
   }
   if(route.path.endsWith('/ai-access/materials')) operation.parameters=[...parameters,{name:'kind',in:'query',required:true,schema:{type:'string',enum:['DOCUMENT','FACT','EVIDENCE','THESIS','AUTHORITY']}},{name:'cursor',in:'query',schema:{type:'string',maxLength:1024}},{name:'limit',in:'query',schema:{type:'integer',minimum:1,maximum:50,default:20}}];
-  if(route.path.includes('/ai-access')||route.path.includes('/ai-receipts')||route.path==='/api/v2/mcp/authorized-applications') {
+  if(route.path.includes('/ai-access')||route.path.includes('/ai-receipts')||route.path.includes('/analyses')||route.path==='/api/v2/mcp/authorized-applications') {
     operation['x-forgelex-session-only']=true;
     const responses=operation.responses as Record<string,Record<string,unknown>>;
     responses['200'].headers={'Cache-Control':{schema:{type:'string',enum:['no-store']}}};
@@ -446,6 +451,12 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
       'Cache-Control': { schema: { type: 'string', enum: ['no-store'] } },
     };
   }
+  if(route.path.includes('/analyses')) {
+    const responses=operation.responses as Record<string,unknown>;
+    for(const code of ['402','503','504'])delete responses[code];
+    responses['500']={description:'Falha interna ao conferir a análise.'};
+    operation['x-forgelex-error-codes']=['SESSION_REQUIRED','INVALID_INPUT','ANALYSIS_NOT_FOUND','ANALYSIS_REVIEW_CONFLICT','ANALYSIS_ALREADY_DECIDED','ANALYSIS_SOURCE_UNAVAILABLE','ANALYSIS_FACT_REQUIRED','MATTER_NOT_ACTIVE'];
+  }
   if(route.path.includes('/ai-access')||route.path==='/api/v2/mcp/authorized-applications') delete (operation.responses as Record<string,unknown>)['402'];
   for (const status of ['400', '401', '402', '403', '404', '408', '409', '422', '429', '502', '503', '504']) {
     const responses = operation.responses as Record<string, Record<string, unknown>>;
@@ -484,6 +495,7 @@ export function buildOpenApiDocument(serverUrl = 'http://localhost:3001'): Recor
     },
     'x-forgelex-generated-from': 'apps/api/src/distribution/openapi.ts',
     'x-forgelex-external-mcp-tools': [...EXTERNAL_MCP_TOOL_NAMES],
+    'x-forgelex-case-analysis':{tool:'case.save_analysis',authentication:'OAuth ativo e permissão independente por conexão e caso',inputSchema:{$ref:'#/components/schemas/CaseAnalysisInput'},receiptSchema:{$ref:'#/components/schemas/AnalysisReceipt'},billing:{mode:'FREE',chargedCents:0},maxInputBytes:524288,maxResponseBytes:24576,humanAdoptionRequired:true},
     'x-forgelex-case-context':{authentication:'OAuth ativo + permissão por usuário, aplicativo, concessão e caso',tools:['case.list_shared','case.get_context','case.read_item'],billing:{mode:'FREE',chargedCents:0,isReplay:false},remainingBalanceCents:'ausente nas leituras de contexto',maxResponseBytes:24576,writeAccess:false},
   };
 }

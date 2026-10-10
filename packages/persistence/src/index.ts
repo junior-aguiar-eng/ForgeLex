@@ -27,3 +27,4 @@ export type { Client } from '@libsql/client';
 export * from './repositories/case-ai-access-repository.js';
 export * from './repositories/draft-ai-receipt-repository.js';
 export * from './repositories/case-ai-pagination.js';
+export * from './repositories/case-analysis-repository.js';

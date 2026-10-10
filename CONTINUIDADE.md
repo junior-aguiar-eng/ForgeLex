@@ -7,6 +7,22 @@ Boni é o único avaliador e aprovador humano do projeto, por decisão expressa
 de 10/10/2026. Nenhuma frente depende de segundo revisor ou parecer de terceiro;
 aplica-se [AGENTS.md](AGENTS.md), inclusive sobre exigências de planos antigos.
 
+## Incremento local autorizado — análise de documentos
+
+Em 10/10, Boni autorizou implementar **Analisar documentos do caso**. A branch
+`codex/case-document-analysis` acrescenta permissão específica com objetivo,
+recebimento gratuito pelo MCP (`case.save_analysis`) e conferência no site:
+abrir a fonte fixada, editar texto e incorporar ou descartar propostas.
+Fatos não são confirmados automaticamente. O modelo continua no host externo.
+
+Este incremento está local, com migration `persistence-0030-case-document-analysis`;
+não houve commit, push, migration remota ou deploy nesta tarefa. O runtime
+publicado descrito abaixo não representa esta capacidade nova.
+[Procedimento e limites](docs/product/case-document-analysis.md) e
+[plano de execução](docs/superpowers/plans/2026-10-10-case-document-analysis.md).
+
+## Entregas anteriores
+
 O backlog atual está em [PENDENCIAS.md](PENDENCIAS.md). A remediação da auditoria
 foi integrada pela PR #58: correções técnicas e ponte direta Pesquisa → Caso.
 O runtime desta entrega é `forgelex-api-prod-audit-5aca51e`, código `5aca51e`.

@@ -45,6 +45,7 @@ Comprovações humanas, dependências externas e manutenção estão no backlog 
 
 | Documento | Finalidade | Natureza |
 | --- | --- | --- |
+| [Análise documental do caso](operations/stabilization/2026-10-10-case-document-analysis.md) | Permissão, recebimento MCP e incorporação seletiva | Incremento local; validações sintéticas, sem deploy |
 | [Braces e STJ reavaliados](operations/stabilization/2026-10-10-external-pending-review.md) | Controles locais e consulta às fontes após aprovação fiscal | 51 testes aprovados; correções upstream continuam abertas |
 | [Decisão fiscal aprovada](operations/stabilization/2026-10-10-fiscal-decision.md) | Análise de PF/autoria, IR, ISS, IBS/CBS, registros e destinação | v1 aprovada por Boni no escopo descrito; cadastros e apuração não presumidos |
 | [Comprovações humanas e externas](operations/stabilization/2026-10-10-human-external-pending-priority.md) | Preparação fiscal/contratual em PF, ensaios e critérios de encerramento | Roteiro; consulta externa com recibo, sem comprovação humana fabricada |
@@ -63,6 +64,10 @@ Comprovações humanas, dependências externas e manutenção estão no backlog 
 | [Encerramento de conta](operations/account-closure/validation.md) | Aceite, implantação, ativação e ensaio sintético | Evidência operacional datada; não prova encerramento real |
 
 ## Contratos e arquitetura
+
+- [Analisar documentos do caso](product/case-document-analysis.md): permissão,
+  análise externa por MCP e incorporação seletiva; incremento local de 10/10,
+  sem publicação em produção nesta tarefa.
 
 - [Legal Tool Gateway](legal-tool-gateway.md): ferramentas jurídicas STJ,
   proveniência, erros e regra de cobrança por capability.
