@@ -1,6 +1,7 @@
 # Pendências atuais do ForgeLex
 
-Atualizado em 09/10/2026. Backlog vigente; checkboxes de planos antigos
+Atualizado em 10/10/2026 (reconciliação documental; evidências operacionais de
+09/10 mantidas). Backlog vigente; checkboxes de planos antigos
 registram aquela entrega e não devem ser importados como tarefas novas.
 [Produto e publicações](CONTINUIDADE.md) · [Evidências](STATUS_VALIDACAO.md).
 
@@ -8,6 +9,12 @@ Não há correção necessária executável comprovada ainda aberta no recorte
 revalidado. A PR #61 foi integrada, e a migration de pesquisa foi aplicada
 ao banco publicado. Isso não declara ausência universal de defeitos, cobertura
 integral da fonte, certificação jurídica/fiscal ou desempenho sob qualquer carga.
+
+README, índice e referências de continuidade foram reconciliados em 10/10.
+A revisão documental usa a branch `codex/docs-repository-hygiene`, com commit
+e push autorizados; ainda depende de integração em main. A limpeza local e a
+preservação das branches históricas estão
+no [registro de manutenção](docs/operations/stabilization/2026-10-10-documentation-repository-hygiene.md).
 
 ## Correções encerradas
 

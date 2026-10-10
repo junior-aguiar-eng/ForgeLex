@@ -1,6 +1,6 @@
 # ForgeLex — onde estamos e como continuar
 
-Atualizado em 09/10/2026. Este resumo orienta a próxima sessão; o histórico de
+Atualizado em 10/10/2026. Este resumo orienta a próxima sessão; o histórico de
 validações e publicações permanece em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
 
 O backlog atual está em [PENDENCIAS.md](PENDENCIAS.md). A remediação da auditoria
@@ -109,13 +109,26 @@ Na remediação, os dois primeiros foram corrigidos com build aprovado e CSS
 idêntico. O alerta alto de `braces` permanece acompanhado, sem patch publicado
 na consulta de 07/10. O audit de produção sem alertas não encerra esse residual.
 
-Usar um checkout alinhado com main e confirmar Git e revisão em produção. O
-checkout antigo `C:/Users/Boni Jr/.antigravity-ide/SDK`, branch
-`codex/p2-search-chunk-recovery`, contém trabalho antigo agora commitado e
-enviado ao GitHub, separado do incremento atual. Seus registros de 02/10
-não substituem o estado atual. As principais correções
-de recuperação de tela e busca já existem em main; as diferenças residuais
-precisam de comparação antes de reutilizar ou descartar qualquer arquivo.
+Usar um checkout baseado em main e confirmar Git e revisão em produção.
+Em 10/10, `C:/Users/Boni Jr/.antigravity-ide/SDK` passou à branch local
+`codex/docs-repository-hygiene`, criada sobre `origin/main` (`117b7d0`).
+A branch histórica `codex/p2-search-chunk-recovery` foi preservada com seus
+três commits exclusivos e cópia recuperável. O checkout de main continua em
+`C:/Users/Boni Jr/.codex/worktrees/draft-review/SDK`. Os registros antigos
+não substituem o estado atual nem autorizam integrar diferenças históricas.
+[Inventário, limpeza e recuperação](docs/operations/stabilization/2026-10-10-documentation-repository-hygiene.md).
+
+## Consolidação documental e higiene local — 10/10/2026
+
+README, índice e plano mestre foram reconciliados com as publicações atuais.
+O status distingue as correções técnicas encerradas das comprovações humanas,
+dependências externas e manutenção contínua. Branches locais já integradas e
+fora de uso foram retiradas após inventário e bundle verificado; branches
+vinculadas a worktrees e os dois históricos exclusivos foram preservados.
+Os worktrees do app permanecem disponíveis; a vinculação do worktree
+`document-reader` foi recusada por pertencer a outro chat. Boni autorizou
+commit e push da revisão documental em `codex/docs-repository-hygiene`.
+Integração em main, PR, migration e deploy ficam fora desta manutenção.
 
 ## Organização do repositório em 07/10 — registro anterior à publicação
 
@@ -156,7 +169,8 @@ Promoção 5/25/100 e configuração preservada, sem migration. Inspeção de re
 diária às 8h, com duas execuções reais; somente leitura e zero elegíveis nas
 medições. A reserva histórica foi classificada sem alterar saldo ou registros.
 
-O checkout mantido de main é `draft-review/SDK`; o checkout antigo de P2 conserva
-sua branch e não é a referência para a próxima sessão. Comprovações humanas e
-autorização de expurgo permanecem em PENDENCIAS; nenhuma foi encerrada por teste.
+Este registro de 07/10 antecede a ativação autorizada de retenção em 09/10.
+A autorização técnica de expurgo foi posteriormente registrada e executada;
+as comprovações humanas seguem abertas em PENDENCIAS e não foram encerradas
+por testes. A organização dos checkouts foi atualizada em 10/10 acima.
 [Recibo, rollback e limites](docs/operations/stabilization/2026-10-07-audit-remediation-publication.md).

@@ -1,5 +1,27 @@
 # Auditoria e status canônico do ForgeLex
 
+## Reconciliação documental e higiene local — 10/10/2026
+
+Base `117b7d0` de `origin/main`; revisão documental em
+`codex/docs-repository-hygiene`, no checkout original do SDK. README, índice,
+plano mestre, continuidade e backlog reconciliados com as entregas publicadas
+e o encerramento técnico de 09/10. Evidências antigas conservam suas datas e
+escopos; não foram tratadas como novas homologações.
+
+Conferência somente leitura: CI de main `38004022329`, seis jobs aprovados;
+runtime `forgelex-api-prod-audit-5aca51e`, 100%; readiness e shell DataJud
+autenticado responderam 200. O shell não comprova consulta real ao CNJ.
+Sem execução nova de testes de produto, operação faturável ou mutação remota.
+
+Inventário de 58 branches salvo em bundle com histórico completo verificado.
+54 branches locais integradas e sem worktree associado retiradas; restam cinco,
+incluindo a nova branch documental e os dois históricos exclusivos. Quatro
+worktrees preservados; `document-reader` pertence a outro chat e não pôde ser
+vinculado para arquivamento. Commit e push da documentação autorizados por
+Boni na branch indicada. Sem remoção de branches remotas, arquivos locais,
+PR, merge, migration ou deploy nesta manutenção.
+[Registro e recuperação](docs/operations/stabilization/2026-10-10-documentation-repository-hygiene.md).
+
 ## Encerramento técnico — 09/10/2026
 
 PR #61, código `720e23c`, integrada em `86156a0`; seis checks aprovados na CI
