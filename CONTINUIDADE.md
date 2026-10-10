@@ -3,6 +3,10 @@
 Atualizado em 10/10/2026. Este resumo orienta a próxima sessão; o histórico de
 validações e publicações permanece em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
 
+Boni é o único avaliador e aprovador humano do projeto, por decisão expressa
+de 10/10/2026. Nenhuma frente depende de segundo revisor ou parecer de terceiro;
+aplica-se [AGENTS.md](AGENTS.md), inclusive sobre exigências de planos antigos.
+
 O backlog atual está em [PENDENCIAS.md](PENDENCIAS.md). A remediação da auditoria
 foi integrada pela PR #58: correções técnicas e ponte direta Pesquisa → Caso.
 O runtime desta entrega é `forgelex-api-prod-audit-5aca51e`, código `5aca51e`.

@@ -1,6 +1,6 @@
 # Verificação de identidade no suporte
 
-Versão candidata 2026-09-30.v1. Responsável pela execução e escalonamento: José Bonifácio de Aguiar Santos Júnior (Boni). Canal: junior-aguiar@hotmail.com.br. Liberação vinculada ao registro da Fase 4C; este documento não prova implantação do atendimento.
+Versão documental 2026-10-10.v2, com governança aprovada expressamente por Boni em 10/10. Responsável pela execução, avaliação e aprovação: José Bonifácio de Aguiar Santos Júnior (Boni). Canal: junior-aguiar@hotmail.com.br. Este documento não prova implantação do atendimento. Aplica-se a [autoridade exclusiva do projeto](../../../AGENTS.md).
 
 ## Recepção e classificação
 
@@ -16,11 +16,11 @@ Para conta encerrada, não recriar identidade ou desbloquear acesso. Comparar so
 
 Documento oficial é medida excepcional, justificada por risco e ausência de alternativa. Receber apenas por canal seguro com acesso restrito, permitir ocultação de campos dispensáveis e eliminar a cópia após a verificação, salvo fundamento específico. Enquanto esse canal não estiver implantado e validado, **é bloqueada a coleta de documentos de identidade**, inclusive por e-mail. Oferecer alternativa ou recusar fundamentadamente a divulgação.
 
-## Segregação e execução
+## Avaliação e execução por Boni
 
-Boni pode atender dúvidas gerais e registrar pedidos. Divulgação de dados pessoais, alteração de canal de acesso, estorno manual excepcional ou criação de retenção extraordinária exige executor e revisor humano distintos, autorizados e identificados no ticket. Enquanto não houver segundo revisor independente formalmente habilitado, **essas ações ficam bloqueadas**, preservadas respostas gerais, o fluxo autenticado já existente e o cumprimento de determinações por procedimento formal próprio. Não substituir a segunda revisão por agente automático.
+Boni é o único responsável por avaliar, executar e aprovar dúvidas gerais, divulgação de dados pessoais, alteração de canal de acesso, estorno manual excepcional e criação de retenção extraordinária. Não se exige segundo revisor, pessoa distinta ou parecer externo. Antes da ação, Boni confere identidade, autorização, fundamento e alcance; registra a decisão e depois o resultado. Insuficiência dessas evidências continua motivo para recusa ou suspensão, sem depender de outra pessoa.
 
-Registrar ticket, categoria, finalidade, evidência aceita em descrição sem cópia de segredo, escopo autorizado, executor, revisor, data, decisão, fundamento de eventual negativa e resultado. Restringir a consulta aos responsáveis. Eliminar evidência auxiliar após a verificação; conservar o registro mínimo por até 180 dias após o encerramento do ticket, salvo necessidade específica de defesa ou obrigação registrada com revisão em até 90 dias. A rotina de suporte é manual; não há expurgo automático comprovado desse canal.
+Registrar ticket, categoria, finalidade, evidência aceita em descrição sem cópia de segredo, escopo autorizado, responsável Boni, data, decisão, fundamento de eventual negativa e resultado. Restringir a consulta ao responsável autorizado. Eliminar evidência auxiliar após a verificação; conservar o registro mínimo por até 180 dias após o encerramento do ticket, salvo necessidade específica de defesa ou obrigação registrada com revisão por Boni em até 90 dias. A rotina de suporte é manual; não há expurgo automático comprovado desse canal.
 
 ## Recusa e escalonamento
 
@@ -28,4 +28,4 @@ Se a evidência não bastar, explicar a insuficiência sem divulgar dados da con
 
 ## Ensaio de mesa obrigatório antes da liberação
 
-Registrar executor, data e resultado para quatro casos sintéticos: dúvida com closureId sem identidade (resposta geral); solicitação de dados com closureId isolado (recusa sem confirmação); pedido financeiro corroborado (aguarda segunda revisão); envio espontâneo de statusToken (tratamento restrito sem reproduzir segredo). Usar apenas identificadores fictícios. A aprovação deste roteiro não prova sua execução humana.
+Registrar Boni como executor e avaliador, data e resultado para quatro casos sintéticos: dúvida com closureId sem identidade (resposta geral); solicitação de dados com closureId isolado (recusa sem confirmação); pedido financeiro corroborado (decisão fundamentada por Boni, sem movimentação real no ensaio); envio espontâneo de statusToken (tratamento restrito sem reproduzir segredo). Usar apenas identificadores fictícios. A aprovação deste roteiro não prova sua execução humana.

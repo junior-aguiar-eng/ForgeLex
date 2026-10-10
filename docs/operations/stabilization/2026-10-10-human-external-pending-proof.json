@@ -1,0 +1,29 @@
+{
+  "observedAt": "2026-10-10T13:21:35.3645353Z",
+  "baseCommit": "105cf77a3962a1ff09dfdcfa4528eb235f52bbe6",
+  "readOnly": true,
+  "braces": {
+    "registryUrl": "https://registry.npmjs.org/braces/latest",
+    "latestVersion": "3.0.3",
+    "advisory": "GHSA-vfj7-8cjw-p6xm",
+    "advisoryUrl": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+    "alertNumber": 11,
+    "alertState": "open",
+    "firstPatchedVersion": null,
+    "exceptionExpiresAt": "2026-11-08T00:00:00Z"
+  },
+  "officialSourcePrefix": {
+    "url": "https://dadosabertos.web.stj.jus.br/dataset/7107650a-f26c-4900-bffd-4492af6361cf/resource/5176e318-5de1-4d28-8931-3ee31fd9d7d7/download/20240229.json",
+    "status": 206,
+    "contentRange": "bytes 0-598/599",
+    "bytesInspected": 599,
+    "prefixHash": "ea2537c36c1e11d5206f7cee7b82178fc455cb8832cd7110a1acc807b7da9b46",
+    "equalsPreviousPrefix": true,
+    "previousStructuralError": {
+      "position": 592,
+      "line": 24,
+      "type": "unmatched_closing_bracket"
+    },
+    "limit": "Read bounded to 599 bytes; Content-Range reports resource size 599; no unbounded download or ingestion"
+  }
+}

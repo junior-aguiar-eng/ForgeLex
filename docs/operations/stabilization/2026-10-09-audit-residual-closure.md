@@ -1,5 +1,11 @@
 # Pendências residuais — conferência de 09/10/2026
 
+> Governança vigente desde 10/10/2026: Boni é o único avaliador e aprovador humano.
+> Exigências anteriores de segundo revisor, revisão independente obrigatória ou
+> parecer externo são históricas e foram revogadas por sua decisão expressa.
+> Registros de avaliações já realizadas permanecem evidências do seu período.
+> Ver [AGENTS.md](../../../AGENTS.md).
+
 Escopo: solicitação de Boni para resolver a lista da auditoria de 07/10. Base verificada: main/origin/main `064927391e54ada35c783541b155e172295a4104`, após fetch. A lista original antecede as PRs #58/#59; suas tarefas encerradas não foram reabertas.
 
 ## Conferências atuais

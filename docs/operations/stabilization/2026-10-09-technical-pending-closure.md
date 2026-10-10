@@ -1,5 +1,11 @@
 # Encerramento técnico — 09/10/2026
 
+> Governança vigente desde 10/10/2026: Boni é o único avaliador e aprovador humano.
+> Exigências anteriores de segundo revisor, revisão independente obrigatória ou
+> parecer externo são históricas e foram revogadas por sua decisão expressa.
+> Registros de avaliações já realizadas permanecem evidências do seu período.
+> Ver [AGENTS.md](../../../AGENTS.md).
+
 Pedido: resolver as correções necessárias que possam ser executadas sem nova
 atuação de Boni. Base de revisão `c10016c`, branch
 `codex/technical-pending-closure`. Este registro distingue diagnóstico,

@@ -1,5 +1,11 @@
 # Plano de implementação da estabilização pós-auditoria do ForgeLex
 
+> Governança vigente desde 10/10/2026: Boni é o único avaliador e aprovador humano.
+> Exigências anteriores de segundo revisor, revisão independente obrigatória ou
+> parecer externo são históricas e foram revogadas por sua decisão expressa.
+> Registros de avaliações já realizadas permanecem evidências do seu período.
+> Ver [AGENTS.md](../../../AGENTS.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Consolidar o ForgeLex/STJ em uma linha de release reproduzível, corrigir os riscos encontrados na auditoria de 25/09/2026 e publicar o site público somente depois de estabilizar engenharia, dados, operação e documentação.
