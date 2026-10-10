@@ -16,6 +16,10 @@ O **FORGELEX V2** foi construído para superar as limitações das ferramentas j
 
 ## Estado atual do produto
 
+Referência documental: 10/10/2026. Para retomar o trabalho, consulte
+[CONTINUIDADE.md](CONTINUIDADE.md); o backlog vigente está em
+[PENDENCIAS.md](PENDENCIAS.md).
+
 O ForgeLex está concluído no escopo comercial aprovado: pesquisa jurídica sobre
 índice próprio do **STJ**, distribuída por REST e MCP remoto, com cobrança
 pré-paga em BRL exclusivamente pelas operações jurídicas do ForgeLex. O
@@ -24,21 +28,26 @@ tráfego externo somente pelo balanceador HTTPS.
 
 O marco de estabilização e a fase 7 foram concluídos em 02/10/2026. A fase 8
 é acompanhamento operacional recorrente, sem gate de calendário para a entrega
-validada ou novas frentes. Integrações futuras, como DataJud, pertencem à
-evolução do projeto e não alteram a cobertura comercial STJ já publicada.
+validada ou novas frentes. A consulta processual gratuita via DataJud já está
+publicada nas rotas `/consulta-processual` e `/app/consulta-processual`;
+essa consulta não amplia a cobertura jurisprudencial comercial do STJ.
 O agendamento de acompanhamento não comprova execuções ou estabilidade por
 sete dias; os resultados permanecem documentados por verificação.
 
-**Linha publicada observada em 26/09/2026:** o serviço público
-`forgelex-api-hml` direcionava 100% do tráfego à revisão
-`forgelex-api-hml-00021-max`, imagem `closure-release-f10e13f`. Essa imagem
-inclui o encerramento de conta publicado e habilitado. O site público com a
-headline acima está implementado no checkout desta branch, mas **não integra
-essa revisão publicada**. `origin/main` permanecia em `4f9bdce` e a branch
-de trabalho partia de `6850290`; integração, CI no SHA final e release são
-gates posteriores. O [baseline datado](docs/operations/stabilization/2026-09-25-baseline.md)
-separa essas superfícies e não presume que uma tag, sozinha, prove o SHA da
-imagem.
+**Estado conferido em 10/10/2026:** `origin/main` está em `117b7d0`, com os
+seis jobs da CI aprovados. O serviço `forgelex-api-prod` direciona 100% do
+tráfego à revisão `forgelex-api-prod-audit-5aca51e`. O site público, o workspace,
+DataJud, o leitor de documentos, o retorno de texto por MCP e Pesquisa → Caso
+estão publicados. A migration 0029 de pesquisa foi aplicada em 09/10, sem novo
+deploy HTTP. A rotina de retenção foi autorizada e ativada em 09/10;
+as execuções registradas removeram zero itens. A conferência de 10/10 foi
+somente leitura de Git/CI, revisão/tráfego e readiness/página; não repetiu
+homologações em hosts, operações faturáveis ou consultas ao CNJ.
+[Evidências e limites](STATUS_VALIDACAO.md) ·
+[DataJud publicado](docs/operations/stabilization/2026-10-03-datajud-workspace-navigation.md) ·
+[Encerramento técnico](docs/operations/stabilization/2026-10-09-technical-pending-closure.md).
+O [baseline de 25/09](docs/operations/stabilization/2026-09-25-baseline.md)
+preserva a fotografia anterior à publicação do site e não define o estado atual.
 
 - REST, OpenAPI, MCP remoto, host externo e Agent Core foram exercitados pelo
   domínio canônico; REST e MCP usam a mesma infraestrutura jurídica.
@@ -66,13 +75,15 @@ comandos focados são
 `pnpm verify:account-closure-restore`; os dois últimos exigem PostgreSQL
 descartável local configurado por `FORGELEX_ACCOUNT_CLOSURE_TEST_ADMIN_URL`.
 
-O marco de experiência do produto teve sua implementação técnica local encerrada
-no escopo revisado descrito em
+O marco de experiência do produto foi integrado, publicado e homologado no
+escopo registrado em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md), sucedendo o
+plano de
 [melhorias de experiência e ativação MCP](docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md).
 Ele sucede o produto STJ concluído sem reabrir suas fases nem ampliar os
-tribunais comercialmente habilitados. O fechamento não inclui conexão real ao
-Claude nem substitui homologação no ChatGPT, validação com usuários ou os gates
-de publicação do novo site público.
+tribunais comercialmente habilitados. Há homologações anteriores em ChatGPT e
+Claude e um percurso documental real no Claude, com retorno versionado,
+conferência das fontes e DOCX. Essas evidências têm escopo próprio e não
+encerram as [comprovações humanas e externas](PENDENCIAS.md).
 
 O [prompt mestre do frontend](docs/product/frontend-master-prompt.md) é a
 referência canônica versionada para site público e aplicação autenticada. Ele
@@ -181,7 +192,7 @@ O frontend usa o design system editorial definido no prompt mestre:
 * **Paleta:** Marfim quente (`#FBF9F5`), conhaque imperial (`#8E5D2A`) e bordas champanhe (`rgba(180, 150, 110, 0.22)`).
 * **Tipografia:** Serifada editorial clássica combinada com interface moderna sans-serif.
 * **Telas Implementadas:**
-  1. `Site público`: apresentação do produto, funcionamento, integrações, preço, guias e entrada para cadastro ou login. A implementação da branch ainda não foi publicada.
+  1. `Site público`: apresentação publicada do produto, funcionamento, integrações, preço, guias e entrada para cadastro ou login.
   2. `Painel do Advogado`: 4 cartões de métricas, gráfico de 30 dias e fila de aprovação L4.
   3. `Canais de acesso`: instruções de MCP para ChatGPT/Claude e API REST para desenvolvedores; a interface não comprova conexão com os hosts.
   4. `Créditos & Faturamento`: Estado explícito de conta, sem saldo ou checkout presumidos.
@@ -189,6 +200,7 @@ O frontend usa o design system editorial definido no prompt mestre:
   6. `Matter Workspace`: documentos ancorados, fatos, provas, questões jurídicas e research memo.
   7. `Draft Studio`: outline, versões, revisão e aprovação humana de rascunhos.
   8. `Documentação da API`: referência visual para o contrato público, sem executar chamadas externas por padrão.
+  9. `Consulta processual`: consulta gratuita via DataJud, disponível no site público e no espaço autenticado; não amplia o catálogo jurisprudencial comercial.
 
 ---
 
@@ -362,8 +374,9 @@ Há duas superfícies distintas de uso:
    o software usar OpenAI, Anthropic ou outro modelo, essa integração e esse
    billing pertencem ao desenvolvedor, fora do ForgeLex.
 2. **MCP para advogados.** A interface orienta a configuração no host de IA;
-   a operação real no ChatGPT ainda requer homologação, e a conexão real ao
-   Claude está fora do escopo deste marco. Quando uma chamada MCP autenticada
+   homologações reais em ChatGPT e Claude estão registradas em
+   [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md). A conexão de cada usuário depende
+   de autenticação e autorização verificadas. Quando uma chamada MCP autenticada
    ocorrer, o ForgeLex usa a mesma infraestrutura jurisprudencial da API REST
    e cobra apenas as operações ForgeLex executadas, inicialmente R$ 0,20 por
    busca jurisprudencial.
@@ -371,7 +384,10 @@ Há duas superfícies distintas de uso:
 Assim, a assinatura do ChatGPT ou Claude paga o modelo do host; os créditos
 ForgeLex pagam dados, pesquisa e infraestrutura jurídica. O MCP recebe somente
 a chamada autenticada e os argumentos da ferramenta: não acessa conversas,
-arquivos ou histórico do usuário.
+arquivos ou histórico do host. Para materiais conservados no caso ForgeLex,
+o acesso MCP exige autorização persistida por caso e conexão; o retorno de
+texto exige permissão específica e cria recebimento versionado para adoção
+humana. Consulte o [fluxo atual](CONTINUIDADE.md).
 
 ### Distribuição pública e contratos
 

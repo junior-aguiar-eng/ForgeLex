@@ -1,5 +1,12 @@
 # Comprovações operacionais pendentes
 
+**Adendo de 10/10/2026:** a seção de retenção e a matriz abaixo são a
+fotografia de 07/10. A autorização nominal, configuração e execuções apply
+foram posteriormente registradas em
+[09/10 — pendências residuais](2026-10-09-audit-residual-closure.md), com zero
+remoções nos ensaios. A ativação técnica está encerrada; os gates humanos,
+fiscais, contratuais e comerciais seguem no [backlog vigente](../../../PENDENCIAS.md).
+
 Responsável: Boni. Este roteiro torna os bloqueios verificáveis; não substitui
 as decisões humanas registradas na Fase 4C nem declara conformidade integral.
 Não coletar documentos ou executar ações sensíveis durante o ensaio sintético.

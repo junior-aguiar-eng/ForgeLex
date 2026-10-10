@@ -2,6 +2,9 @@
 
 ## Estado atual
 
+Referência documental: 10/10/2026. Começar por
+[CONTINUIDADE.md](../CONTINUIDADE.md) e [PENDENCIAS.md](../PENDENCIAS.md).
+
 O produto ForgeLex limitado ao STJ está `COMPLETED`. REST, MCP remoto, billing
 pré-pago e operação pública foram validados; as Fases 9 a 13 permanecem
 `FROZEN_STRATEGICALLY` e não representam lacuna do produto aprovado.
@@ -12,9 +15,15 @@ real no ChatGPT com cobrança única/replay/revogação, validação individual 
 Boni e auditoria de acessibilidade com limites explícitos. As regressões de
 espaçamento foram publicadas no runtime b6c893c após CI e promoção 5/25/100.
 A fase 8 segue como acompanhamento diário não bloqueante, conforme decisão
-de Boni em 02/10; sete dias não são condição para continuar o projeto. Os P2
-de busca ampla fria e recuperação de aba antiga mantêm responsável/prazo.
-A integração DataJud está no backlog de evolução, com escopo técnico a definir.
+de Boni em 02/10; sete dias não são condição para continuar o projeto.
+O site, DataJud público/autenticado, contexto e retorno de texto por MCP,
+leitor, identificação das conexões e Pesquisa → Caso estão publicados.
+As correções executáveis do recorte auditado foram encerradas em 09/10:
+retenção diária ativada com autorização, mitigação local de braces e migration
+0029 de pesquisa aplicada. Consultas amplas continuam custosas; a medição
+registrada não constitui p95 nem garantia sob carga. A conferência de aba antiga
+durante promoção permanece prevista para o próximo deploy HTTP.
+Comprovações humanas, dependências externas e manutenção estão no backlog vigente.
 
 - [Estado canônico e evidências cumulativas](../STATUS_VALIDACAO.md)
 - [Plano mestre de conclusão progressiva](../Plano%20de%20conclus%C3%A3o%20progressiva%20do%20F.md)
@@ -33,6 +42,13 @@ A integração DataJud está no backlog de evolução, com escopo técnico a def
 
 | Documento | Finalidade | Natureza |
 | --- | --- | --- |
+| [Consolidação documental e higiene local](operations/stabilization/2026-10-10-documentation-repository-hygiene.md) | Reconciliação das entradas documentais e preservação das branches históricas | Manutenção com commit/push autorizados em branch própria; sem integração em main |
+| [Encerramento técnico de 09/10](operations/stabilization/2026-10-09-technical-pending-closure.md) | Índice de metadados, aplicação da migration 0029 e medições | Evidência técnica e operacional datada |
+| [Pendências residuais de 09/10](operations/stabilization/2026-10-09-audit-residual-closure.md) | Retenção autorizada, mitigação de braces e limites humanos | Evidência operacional datada |
+| [Remediação publicada](operations/stabilization/2026-10-07-audit-remediation-publication.md) | Pesquisa → Caso, CI e revisão atual de produção | Recibo de publicação |
+| [Leitor e percurso documental](operations/stabilization/2026-10-07-document-reader-publication.md) | Claude, retorno versionado, fontes e DOCX | Homologação com caso sintético e revogação |
+| [Identificação das conexões de IA](operations/stabilization/2026-10-07-case-ai-connection-publication.md) | Nome/data/estado e reconexão por caso | Recibo de publicação com limites de ensaio |
+| [DataJud no espaço de trabalho](operations/stabilization/2026-10-03-datajud-workspace-navigation.md) | Rotas pública e autenticada gratuitas | Recibo de publicação e testes com dados fictícios |
 | [Validação final da Fase 8](operations/phase8/final-validation.md) | Domínio, ingress, REST, MCP, Agent Core e host externo | Snapshot histórico técnico |
 | [Corpus STJ](operations/phase8/corpus.md) | Cobertura e promoção do corpus | Evidência histórica do data plane |
 | [Gate A](operations/phase8/gate-a.md) | Validação inicial em Cloud Run | Evidência histórica do provisionamento |

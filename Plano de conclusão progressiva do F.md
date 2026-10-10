@@ -1,8 +1,10 @@
 # Plano de conclusão progressiva do ForgeLex
 
-**Referência atual (07/10/2026):** os marcos deste plano são históricos. O site,
-MCP externo, leitor e identificação de conexões estão publicados; a remediação
-da auditoria e Pesquisa → Caso estão em validação de integração. Consulte
+**Referência atual (10/10/2026):** os marcos deste plano são históricos. O site,
+MCP externo, DataJud, leitor, identificação de conexões, remediação da auditoria
+e Pesquisa → Caso estão publicados. Em 09/10, a retenção foi ativada com
+autorização e a migration 0029 de pesquisa foi aplicada; as correções técnicas
+executáveis do recorte auditado estão encerradas. Consulte
 [CONTINUIDADE.md](CONTINUIDADE.md) e [PENDENCIAS.md](PENDENCIAS.md) para o estado
 vigente. As fases congeladas e o Agent Core opcional não são pendências atuais.
 
@@ -31,13 +33,17 @@ pendência residual deste programa.
 O ciclo concluído passa a ser sucedido pelo plano de melhoria da experiência
 do produto, registrado em
 `docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md`.
-Atualização de 26/09/2026: os incrementos 0–8 desse plano de experiência foram
+Registro histórico de 26/09/2026: os incrementos 0–8 desse plano de experiência foram
 concluídos no escopo técnico local; o encerramento de conta foi posteriormente
 publicado e habilitado. O novo site público está implementado na branch de
 trabalho, mas ainda não compõe a revisão publicada. Esses marcos não modificam
 o estado `COMPLETED` das Fases 0 a 8 e 14 deste plano progressivo nem reabrem
 as Fases 9 a 13 congeladas. O prompt mestre versionado do frontend está em
 `docs/product/frontend-master-prompt.md`.
+
+Atualização de 10/10/2026: o site e as integrações MCP foram posteriormente
+publicados e homologados nos escopos registrados em `STATUS_VALIDACAO.md`.
+O parágrafo de 26/09 conserva o limite daquela etapa; não é uma pendência atual.
 
 O novo marco preserva o STJ como único tribunal comercialmente habilitado,
 o preço e o ledger atuais, a arquitetura REST/MCP compartilhada e a separação
