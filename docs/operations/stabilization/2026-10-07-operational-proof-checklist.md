@@ -1,5 +1,10 @@
 # Comprovações operacionais pendentes
 
+**Decisão de governança de 10/10/2026:** Boni é o único executor, avaliador e
+aprovador humano do projeto. Não se exige segundo revisor ou parecer externo;
+essa decisão substitui restrições anteriores, inclusive o aditivo histórico de
+09/10 abaixo. Ver [AGENTS.md](../../../AGENTS.md).
+
 **Adendo de 10/10/2026:** a seção de retenção e a matriz abaixo são a
 fotografia de 07/10. A autorização nominal, configuração e execuções apply
 foram posteriormente registradas em
@@ -46,19 +51,19 @@ financeiros e regras fiscais não ganham prazo universal com este comando.
 
 ## Ensaio humano de suporte
 
-Executar com identidades fictícias. Registrar data, executor, revisor distinto,
+Executar com identidades fictícias. Registrar data, Boni como executor e avaliador,
 resultado observado e evidência restrita no canal aprovado.
 
 | Situação sintética | Resultado esperado | Critério de encerramento |
 | --- | --- | --- |
-| Pedido de acesso por e-mail desconhecido | Não revelar conta/dados; orientar prova pelo procedimento vigente | Executor e revisor confirmam ausência de divulgação |
-| Suspeita de sessão comprometida | Seguir recuperação segura; ação sensível exige segundo revisor | Canal seguro e responsáveis demonstrados |
+| Pedido de acesso por e-mail desconhecido | Não revelar conta/dados; orientar prova pelo procedimento vigente | Boni confirma ausência de divulgação |
+| Suspeita de sessão comprometida | Seguir recuperação segura; ação sensível exige decisão registrada por Boni | Canal seguro e avaliação por Boni demonstrados |
 | Conta encerrada pede restauração | Não reativar subject/tenant; orientar acompanhamento do recibo | Bloqueio permanece, sem revogação de tombstone |
-| Contestação de cobrança | Conferir operação/ledger e explicar decisão; não ajustar saldo por inferência | Resultado conciliado e revisão registrada |
+| Contestação de cobrança | Conferir operação/ledger e explicar decisão; não ajustar saldo por inferência | Resultado conciliado e decisão de Boni registrada |
 
-O responsável por operação é conhecido; o segundo revisor habilitado e a
-execução humana do ensaio ainda não estão comprovados. Não inventar nomes ou
-revisões independentes.
+Boni é responsável por execução, avaliação e aprovação; a execução humana do
+ensaio ainda não está comprovada. Não se exige outra pessoa para encerrar essa
+etapa. Não atribuir execução ou resultados que ainda não ocorreram.
 
 ## Matriz de documentos e decisões
 
@@ -66,7 +71,7 @@ revisões independentes.
 | --- | --- | --- |
 | Fiscal/contábil | Categoria financeira, regra aplicável, prazo, termo inicial e decisão nominal | Aceite documental anterior; qualificação específica não demonstrada |
 | Privacidade | Fornecedores, serviços, regiões, contratos efetivos e mecanismos de transferência; avaliação de legítimo interesse | Infra observável não prova contratos/transferências |
-| Segurança/suporte | Canal seguro, segundo revisor e quatro cenários acima | Roteiro preparado; execução humana pendente |
+| Segurança/suporte | Canal seguro, decisão de Boni e quatro cenários acima | Roteiro preparado; execução humana pendente |
 | Comércio eletrônico | Prova da confirmação, contrato conservável, arrependimento pelo meio de contratação e comunicação ao provedor | Fluxos técnicos e termos não substituem essa comprovação |
 | Operação | Execução regular de retenção, idade dos backups e revisão de diário/exceções | Inspeção diária autenticada demonstrada; expurgo regular ainda não habilitado |
 

@@ -1,5 +1,28 @@
 # Auditoria e status canônico do ForgeLex
 
+## Priorização humana e consulta externa — 10/10/2026
+
+Base main `105cf77a3962a1ff09dfdcfa4528eb235f52bbe6`, após integração da
+PR #63. Boni declarou operação como pessoa física e ausência de pagamentos
+de clientes. Preparado roteiro fiscal, contratual e de ensaios humanos, sem
+certificar classificação tributária, aceite contratual ou execução de ensaio.
+Boni revogou expressamente a exigência interna de segundo revisor em 10/10:
+é o único avaliador e aprovador humano em todas as frentes, incluindo ações
+sensíveis, decisões jurídicas/fiscais, contratos e segurança. A regra está em
+[AGENTS.md](AGENTS.md) e substitui gates antigos de avaliação por terceiros.
+Protocolos de suporte e retenção foram adequados; evidências continuam
+necessárias e são avaliadas pelo próprio Boni. Busca nos fontes da API, web,
+packages, scripts e CI não identificou gate de executor/revisor distintos.
+A referência a uma Ltda. foi retirada do README; termos aprovados preservados.
+
+Consulta somente leitura às 13:21:35 UTC: braces latest 3.0.3, alerta #11 aberto
+e versão corrigida não indicada; STJ respondeu 206 e informou recurso de
+599 bytes, hash idêntico ao registro de 09/10 com erro na linha 24.
+Sem atualização de dependências, ingestão, operação financeira ou deploy.
+Alterações desta frente são documentais; não houve nova suíte de produto.
+[Roteiro e critérios](docs/operations/stabilization/2026-10-10-human-external-pending-priority.md)
+e [recibo externo](docs/operations/stabilization/2026-10-10-human-external-pending-proof.json).
+
 ## Reconciliação documental e higiene local — 10/10/2026
 
 Base `117b7d0` de `origin/main`; revisão documental em

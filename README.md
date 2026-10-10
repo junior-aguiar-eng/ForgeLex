@@ -493,4 +493,4 @@ registrados em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md) e em
 ---
 
 ## 📄 Licença
-Propriedade de ForgeLex Tecnologia Ltda. Todos os direitos reservados.
+Todos os direitos reservados.

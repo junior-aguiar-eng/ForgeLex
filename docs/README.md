@@ -5,6 +5,9 @@
 Referência documental: 10/10/2026. Começar por
 [CONTINUIDADE.md](../CONTINUIDADE.md) e [PENDENCIAS.md](../PENDENCIAS.md).
 
+Governança: [Boni é o único avaliador e aprovador humano](../AGENTS.md).
+Exigências anteriores de revisão por outra pessoa não são gates vigentes.
+
 O produto ForgeLex limitado ao STJ está `COMPLETED`. REST, MCP remoto, billing
 pré-pago e operação pública foram validados; as Fases 9 a 13 permanecem
 `FROZEN_STRATEGICALLY` e não representam lacuna do produto aprovado.
@@ -42,7 +45,8 @@ Comprovações humanas, dependências externas e manutenção estão no backlog 
 
 | Documento | Finalidade | Natureza |
 | --- | --- | --- |
-| [Consolidação documental e higiene local](operations/stabilization/2026-10-10-documentation-repository-hygiene.md) | Reconciliação das entradas documentais e preservação das branches históricas | Manutenção com commit/push autorizados em branch própria; sem integração em main |
+| [Comprovações humanas e externas](operations/stabilization/2026-10-10-human-external-pending-priority.md) | Preparação fiscal/contratual em PF, ensaios e critérios de encerramento | Roteiro; consulta externa com recibo, sem comprovação humana fabricada |
+| [Consolidação documental e higiene local](operations/stabilization/2026-10-10-documentation-repository-hygiene.md) | Reconciliação das entradas documentais e preservação das branches históricas | Manutenção integrada pela PR #63; registro conserva o escopo histórico |
 | [Encerramento técnico de 09/10](operations/stabilization/2026-10-09-technical-pending-closure.md) | Índice de metadados, aplicação da migration 0029 e medições | Evidência técnica e operacional datada |
 | [Pendências residuais de 09/10](operations/stabilization/2026-10-09-audit-residual-closure.md) | Retenção autorizada, mitigação de braces e limites humanos | Evidência operacional datada |
 | [Remediação publicada](operations/stabilization/2026-10-07-audit-remediation-publication.md) | Pesquisa → Caso, CI e revisão atual de produção | Recibo de publicação |

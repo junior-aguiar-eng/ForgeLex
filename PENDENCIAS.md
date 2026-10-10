@@ -1,7 +1,7 @@
 # Pendências atuais do ForgeLex
 
-Atualizado em 10/10/2026 (reconciliação documental; evidências operacionais de
-09/10 mantidas). Backlog vigente; checkboxes de planos antigos
+Atualizado em 10/10/2026 (priorização humana/fiscal/contratual e nova consulta
+externa; evidências operacionais de 09/10 mantidas). Backlog vigente; checkboxes de planos antigos
 registram aquela entrega e não devem ser importados como tarefas novas.
 [Produto e publicações](CONTINUIDADE.md) · [Evidências](STATUS_VALIDACAO.md).
 
@@ -11,8 +11,8 @@ ao banco publicado. Isso não declara ausência universal de defeitos, cobertura
 integral da fonte, certificação jurídica/fiscal ou desempenho sob qualquer carga.
 
 README, índice e referências de continuidade foram reconciliados em 10/10.
-A revisão documental usa a branch `codex/docs-repository-hygiene`, com commit
-e push autorizados; ainda depende de integração em main. A limpeza local e a
+A revisão documental foi integrada em main pela PR #63, no commit
+`105cf77a3962a1ff09dfdcfa4528eb235f52bbe6`. A limpeza local e a
 preservação das branches históricas estão
 no [registro de manutenção](docs/operations/stabilization/2026-10-10-documentation-repository-hygiene.md).
 
@@ -32,10 +32,20 @@ no [registro de manutenção](docs/operations/stabilization/2026-10-10-documenta
 
 | Pendência | Dependência para encerrar |
 | --- | --- |
-| Comprovações operacionais | Boni informou que opera sozinho: ensaio humano e ações sensíveis que exigem segundo revisor continuam abertos/bloqueados conforme o checklist |
-| Qualificação fiscal, contratos e provas comerciais | Boni informou que ainda não dispõe das comprovações; exigem decisões/documentos efetivos do responsável, sem fabricação de evidências |
-| Braces upstream | Versão 3.0.3 ainda sem release corrigida na consulta de 09/10. Mitigação entregue; reavaliar patch/release antes de 08/11/2026 UTC. Não descartar o advisory |
-| Lacuna oficial STJ | Recurso 20240229.json continua com fechamento inválido na linha 24, reconferido em 09/10. Depende de correção na fonte e posterior reavaliação da lacuna; conteúdo parcial não foi incorporado |
+| Comprovações operacionais | Executar, avaliar e aprovar o ensaio pelo próprio Boni; ausência de segundo revisor não constitui pendência nem bloqueio |
+| Qualificação fiscal, contratos e provas comerciais | Operação declarada como pessoa física, sem pagamentos de clientes em 10/10. Preparar classificação fiscal e contratos efetivos; prova de venda real depende de evento real e não pode ser substituída por homologação |
+| Braces upstream | Registry mantém 3.0.3 e alerta #11 aberto, sem versão corrigida indicada na consulta de 10/10. Mitigação entregue; reavaliar patch/release antes de 08/11/2026 UTC. Não descartar o advisory |
+| Lacuna oficial STJ | Recurso 20240229.json mantém os mesmos 599 bytes e hash da falha na linha 24, reconferido em 10/10. Depende de correção na fonte e posterior reavaliação da lacuna; conteúdo parcial não foi incorporado |
+
+A ordem recomendada e os critérios de encerramento estão no
+[roteiro de comprovações](docs/operations/stabilization/2026-10-10-human-external-pending-priority.md).
+A consulta externa tem [recibo próprio](docs/operations/stabilization/2026-10-10-human-external-pending-proof.json).
+Boni definiu em 10/10 que nenhuma atividade do projeto depende de avaliação
+ou aprovação de outra pessoa. A exigência interna de segundo revisor foi
+revogada; avaliações operacionais, jurídicas, fiscais, contratuais e de
+segurança cabem exclusivamente a ele, conforme [AGENTS.md](AGENTS.md).
+Evidências ainda ausentes continuam pendentes de obtenção/avaliação por Boni,
+sem parecer externo obrigatório.
 
 ## Manutenção contínua
 

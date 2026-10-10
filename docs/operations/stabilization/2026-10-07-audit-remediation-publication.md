@@ -1,5 +1,11 @@
 # Remediação da auditoria — integração e publicação
 
+> Governança vigente desde 10/10/2026: Boni é o único avaliador e aprovador humano.
+> Exigências anteriores de segundo revisor, revisão independente obrigatória ou
+> parecer externo são históricas e foram revogadas por sua decisão expressa.
+> Registros de avaliações já realizadas permanecem evidências do seu período.
+> Ver [AGENTS.md](../../../AGENTS.md).
+
 Entrega integrada pela [PR #58](https://github.com/junior-aguiar-eng/ForgeLex/pull/58).
 Head validado `b96550eafb830fe95bb126aaa6ffc2c7ead62b72`; merge/código publicado
 `5aca51e52cd315822e80bff7d29eaa7a48960724`.

@@ -1,5 +1,10 @@
 # Plano de conclusão progressiva do ForgeLex
 
+**Governança vigente — 10/10/2026:** Boni é o único avaliador e aprovador
+humano de todas as frentes. Nenhuma etapa depende de segundo revisor ou parecer
+de outra pessoa. Esta decisão substitui exigências internas anteriores de
+avaliação externa, conforme [AGENTS.md](AGENTS.md).
+
 **Referência atual (10/10/2026):** os marcos deste plano são históricos. O site,
 MCP externo, DataJud, leitor, identificação de conexões, remediação da auditoria
 e Pesquisa → Caso estão publicados. Em 09/10, a retenção foi ativada com
