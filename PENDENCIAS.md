@@ -33,9 +33,15 @@ no [registro de manutenção](docs/operations/stabilization/2026-10-10-documenta
 | Pendência | Dependência para encerrar |
 | --- | --- |
 | Comprovações operacionais | Executar, avaliar e aprovar o ensaio pelo próprio Boni; ausência de segundo revisor não constitui pendência nem bloqueio |
-| Qualificação fiscal, contratos e provas comerciais | Operação declarada como pessoa física, sem pagamentos de clientes em 10/10. Preparar classificação fiscal e contratos efetivos; prova de venda real depende de evento real e não pode ser substituída por homologação |
+| Execução fiscal, contratos e provas comerciais | Preparação FISCAL-2026-10-10.v1 aprovada por Boni em 10/10. Restam situação/classificação municipal, conciliação dos R$ 25 e contratos efetivos; prova de venda real depende de evento real, ainda inexistente segundo Boni |
 | Braces upstream | Registry mantém 3.0.3 e alerta #11 aberto, sem versão corrigida indicada na consulta de 10/10. Mitigação entregue; reavaliar patch/release antes de 08/11/2026 UTC. Não descartar o advisory |
 | Lacuna oficial STJ | Recurso 20240229.json mantém os mesmos 599 bytes e hash da falha na linha 24, reconferido em 10/10. Depende de correção na fonte e posterior reavaliação da lacuna; conteúdo parcial não foi incorporado |
+
+Braces/STJ foram [reavaliados após a aprovação fiscal](docs/operations/stabilization/2026-10-10-external-pending-review.md):
+51 testes dos controles existentes aprovados, audit de produção sem alertas,
+audit completo com somente braces mitigado e fonte STJ inalterada. Correção
+upstream continua acompanhamento externo; não é avaliação pendente de outra
+pessoa ou nova implementação demonstrada. Vencimento da exceção braces mantido.
 
 A ordem recomendada e os critérios de encerramento estão no
 [roteiro de comprovações](docs/operations/stabilization/2026-10-10-human-external-pending-priority.md).
@@ -46,6 +52,14 @@ revogada; avaliações operacionais, jurídicas, fiscais, contratuais e de
 segurança cabem exclusivamente a ele, conforme [AGENTS.md](AGENTS.md).
 Evidências ainda ausentes continuam pendentes de obtenção/avaliação por Boni,
 sem parecer externo obrigatório.
+
+A análise fiscal e a proposta `FISCAL-2026-10-10.v1` estão
+[aprovadas por Boni no escopo descrito](docs/operations/stabilization/2026-10-10-fiscal-decision.md).
+Autoria, propriedade, exploração direta e ausência de empregados confirmadas;
+sem registro empresarial/MEI declarado. Inscrição municipal de autônomo não
+foi confirmada. Preparação fiscal aprovada em 10/10 não equivale a
+cadastro/apuração concluídos. A cobrança controlada real de R$ 25 será
+conciliada separadamente das receitas de clientes, ainda inexistentes segundo Boni.
 
 ## Manutenção contínua
 

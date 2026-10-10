@@ -45,6 +45,8 @@ Comprovações humanas, dependências externas e manutenção estão no backlog 
 
 | Documento | Finalidade | Natureza |
 | --- | --- | --- |
+| [Braces e STJ reavaliados](operations/stabilization/2026-10-10-external-pending-review.md) | Controles locais e consulta às fontes após aprovação fiscal | 51 testes aprovados; correções upstream continuam abertas |
+| [Decisão fiscal aprovada](operations/stabilization/2026-10-10-fiscal-decision.md) | Análise de PF/autoria, IR, ISS, IBS/CBS, registros e destinação | v1 aprovada por Boni no escopo descrito; cadastros e apuração não presumidos |
 | [Comprovações humanas e externas](operations/stabilization/2026-10-10-human-external-pending-priority.md) | Preparação fiscal/contratual em PF, ensaios e critérios de encerramento | Roteiro; consulta externa com recibo, sem comprovação humana fabricada |
 | [Consolidação documental e higiene local](operations/stabilization/2026-10-10-documentation-repository-hygiene.md) | Reconciliação das entradas documentais e preservação das branches históricas | Manutenção integrada pela PR #63; registro conserva o escopo histórico |
 | [Encerramento técnico de 09/10](operations/stabilization/2026-10-09-technical-pending-closure.md) | Índice de metadados, aplicação da migration 0029 e medições | Evidência técnica e operacional datada |

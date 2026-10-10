@@ -1,0 +1,52 @@
+{
+  "observedAt": "2026-10-10T14:00:17.8090513Z",
+  "baseCommit": "8c1820af9ad598f6fae197699b0068e28d01e3c5",
+  "readOnly": true,
+  "braces": {
+    "latestVersion": "3.0.3",
+    "registryUrl": "https://registry.npmjs.org/braces/latest",
+    "advisoryUrl": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+    "alertNumber": 11,
+    "alertState": "open",
+    "firstPatchedVersion": null,
+    "reviewBefore": "2026-11-08T00:00:00Z"
+  },
+  "stj": {
+    "url": "https://dadosabertos.web.stj.jus.br/dataset/7107650a-f26c-4900-bffd-4492af6361cf/resource/5176e318-5de1-4d28-8931-3ee31fd9d7d7/download/20240229.json",
+    "status": 206,
+    "contentRange": "bytes 0-598/599",
+    "bytesInspected": 599,
+    "sha256": "ea2537c36c1e11d5206f7cee7b82178fc455cb8832cd7110a1acc807b7da9b46",
+    "sameBytesAsPrevious": true,
+    "previousError": {
+      "position": 592,
+      "line": 24,
+      "type": "unmatched_closing_bracket"
+    },
+    "limit": "Read bounded to 599 bytes; no ingestion or manifest mutation"
+  },
+  "validation": {
+    "tests": {
+      "securityAndManifestPassed": 35,
+      "ingestionAndFreshnessPassed": 16,
+      "totalPassed": 51,
+      "filesPassed": 5
+    },
+    "productionAudit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0
+    },
+    "allDependenciesAudit": {
+      "knownMitigated": [
+        "braces:GHSA-vfj7-8cjw-p6xm"
+      ],
+      "otherActionable": [],
+      "evaluatorExitCode": 0
+    },
+    "productionOrManifestMutation": false,
+    "dependencyFilesChanged": false
+  }
+}

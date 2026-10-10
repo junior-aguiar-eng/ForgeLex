@@ -1,5 +1,35 @@
 # Auditoria e status canônico do ForgeLex
 
+## Braces/STJ após aprovação fiscal — 10/10/2026
+
+Boni aprovou FISCAL-2026-10-10.v1 expressamente no escopo descrito;
+aprovação registrada sem presumir execução de cadastro ou apuração.
+Consulta externa às 14:00:17 UTC: braces latest 3.0.3, alerta #11 aberto e
+sem versão corrigida; STJ com os mesmos 599 bytes inválidos. Audit prod:
+zero alertas; audit completo: somente braces na exceção vigente, zero outros
+acionáveis. 51 testes aprovados em cinco arquivos (patch/audit, manifest,
+skip de ingestão e freshness). Sem nova correção executável identificada,
+atualização de dependência, deploy ou ingestão; correção upstream em acompanhamento.
+[Tratamento e limites](docs/operations/stabilization/2026-10-10-external-pending-review.md)
+e [recibo](docs/operations/stabilization/2026-10-10-external-pending-review-proof.json).
+
+## Análise fiscal para decisão de Boni — 10/10/2026
+
+Base main `8c1820a`, após PR #64. Boni confirmou autoria, propriedade,
+exploração direta, ausência de empregados e de registro empresarial/MEI.
+Inscrição municipal de autônomo não foi confirmada por essa declaração.
+Preparada [proposta FISCAL-2026-10-10.v1](docs/operations/stabilization/2026-10-10-fiscal-decision.md)
+com fontes oficiais consultadas, distinção entre regra/exceções de equiparação,
+IR, ISS, transição IBS/CBS e conservação dos comprovantes por categoria.
+O recibo histórico comprova cobrança real de homologação de R$ 25;
+ausência declarada de pagamentos de clientes não equivale a movimento financeiro zero.
+
+Boni aprovou expressamente FISCAL-2026-10-10.v1 no escopo descrito em 10/10;
+decisão de preparação encerrada. Não foram atribuídos enquadramento
+definitivo, cadastro municipal, isenção ou tributo apurado. Sem alteração de
+saldo, cadastro, declaração, retenção técnica ou política publicada. Braces e
+STJ não foram reavaliados nesta frente. Alterações documentais locais.
+
 ## Priorização humana e consulta externa — 10/10/2026
 
 Base main `105cf77a3962a1ff09dfdcfa4528eb235f52bbe6`, após integração da
