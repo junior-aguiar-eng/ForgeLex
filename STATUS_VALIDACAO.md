@@ -1,5 +1,27 @@
 # Auditoria e status canônico do ForgeLex
 
+## Site focado em MCP — publicado (11/10/2026)
+
+Boni autorizou commit, push, PR, integração e deploy. PR #66 integrada em
+`a6672d49eb167bc0b2c43b6da728ae946feb2b03`; seis jobs da CI da PR e desse main
+aprovados. Build canônico `2815de4e-5d39-4f21-b329-745d4ae068f1` SUCCESS;
+digest `sha256:5526af77173638a1dd6e259e02e11b3121837c2f8db7139be209c6e262145b5d`.
+Revisão `forgelex-api-prod-site-a6672d49`, 100% do tráfego. Promoção 5/25/100
+com 470 probes sem erros; readiness final com oito checks verdadeiros.
+
+Navegador em produção: seis aliases redirecionados a Conectar IA, dez telas
+preservadas renderizadas e 376 requisições sem fila/casos ou erros de console,
+com captura completa. Mobile em 390 px sem overflow. Aba anterior ao deploy
+recuperou pelo botão Atualizar página após 404 de chunks antigos.
+Status MCP gratuito/OAuth comprovado no Codex na nova revisão; ChatGPT/Claude
+validados antes da publicação, sem novo ensaio desses hosts após o deploy.
+
+Backend, conexão Cloud SQL, configuração Supabase e grants preservados;
+sem migration, restore, operação financeira ou execução de retenção nesta
+publicação. Os 47 arquivos locais protegidos continuam intactos. Recursos
+temporários próprios removidos; revisão anterior disponível para rollback.
+[Registro, limites e recibo](docs/operations/stabilization/2026-10-11-site-mcp-publication.md).
+
 ## Braces/STJ após aprovação fiscal — 10/10/2026
 
 Boni aprovou FISCAL-2026-10-10.v1 expressamente no escopo descrito;
