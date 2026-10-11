@@ -33,13 +33,13 @@ const accepted: JournalEvent = {
 };
 
 describe('AccountClosureRestoreGate', () => {
-  it('bloqueia restauração com recibo residual e reabre somente após sua exclusão', async () => {
+  it.each(['draft_ai_receipts', 'saved_research', 'saved_research_collections', 'saved_research_permissions'])('bloqueia restauração com conteúdo residual em %s e reabre somente após sua exclusão', async table => {
     let restoredReceipt = true;
     const client = {
       execute: vi.fn(async (statement: { sql: string } | string) => {
         const sql = typeof statement === 'string' ? statement : statement.sql;
         if (sql.includes('SELECT DISTINCT category')) return { rows: [] };
-        return { rows: [{ count: sql.includes('FROM draft_ai_receipts') && restoredReceipt ? 1 : 0 }] };
+        return { rows: [{ count: sql.includes(`FROM ${table} `) && restoredReceipt ? 1 : 0 }] };
       }),
     } as unknown as Client;
     const local = {

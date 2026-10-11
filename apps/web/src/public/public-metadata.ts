@@ -4,21 +4,21 @@ export const CANONICAL_ORIGIN = 'https://nexojuris.ia.br';
 
 const metadata: Record<PublicPage, { title: string; description: string; path: string | null }> = {
   home: {
-    title: 'ForgeLex · Pesquisa do STJ por MCP',
+    title: 'ForgeLex · Jurisprudência e consulta processual',
     description:
-      'Pesquise decisões do STJ com fontes e proveniência pelo ChatGPT ou Claude via MCP. Conta, créditos, API e consulta processual gratuita.',
+      'Pesquise decisões dos tribunais disponíveis com fontes e proveniência pelo ChatGPT ou Claude via MCP. Conta, créditos, API e consulta processual gratuita.',
     path: '/',
   },
   product: {
     title: 'Produto · ForgeLex',
     description:
-      'Conheça a pesquisa do STJ, conexão MCP, conta e créditos, API e consulta processual gratuita.',
+      'Conheça a pesquisa de jurisprudência dos tribunais superiores, conexão MCP, conta e créditos, API e consulta processual gratuita.',
     path: '/produto',
   },
   how: {
     title: 'Como funciona · ForgeLex',
     description:
-      'Crie seu acesso, conecte sua IA, pesquise decisões do STJ e confira autoridades e proveniência.',
+      'Crie seu acesso, conecte sua IA, pesquise decisões dos tribunais disponíveis e confira autoridades e proveniência.',
     path: '/como-funciona',
   },
   integrations: {
@@ -30,13 +30,13 @@ const metadata: Record<PublicPage, { title: string; description: string; path: s
   credits: {
     title: 'Créditos · ForgeLex',
     description:
-      'Entenda os créditos pré-pagos em reais, a pesquisa faturável do STJ e a separação dos custos do host de IA.',
+      'Entenda os créditos pré-pagos em reais, a pesquisa jurisprudencial faturável e a separação dos custos do aplicativo de IA.',
     path: '/creditos',
   },
   guide: {
     title: 'Guia para advogados · ForgeLex',
     description:
-      'Veja como começar no ForgeLex, conferir autoridades e usar um host compatível com MCP, respeitando privacidade e custos.',
+      'Veja como começar no ForgeLex, conferir autoridades e usar um aplicativo compatível com MCP, respeitando privacidade e custos.',
     path: '/guia',
   },
   api_docs: {

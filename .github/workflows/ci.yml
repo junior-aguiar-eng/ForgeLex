@@ -85,6 +85,8 @@ jobs:
         run: node scripts/smoke-operational-retention-postgres.mjs
       - run: pnpm test:postgres:search
       - run: pnpm exec vitest run packages/persistence/src/repositories/jurisprudence-repository.test.ts
+      - name: Saved research capacity and isolation (local PostgreSQL)
+        run: pnpm exec vitest run packages/persistence/src/repositories/saved-research-postgres.test.ts --maxWorkers=1
 
   e2e-product:
     runs-on: ubuntu-latest
@@ -124,6 +126,8 @@ jobs:
       - run: pnpm test:e2e:case-ai
       - run: pnpm exec playwright test --config playwright.matter-lifecycle.config.ts
       - run: pnpm test:e2e:research
+      - name: Saved research and isolated MCP Apps reader
+        run: pnpm exec playwright test --config playwright.saved-research.config.ts
       - name: Preserve product diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4

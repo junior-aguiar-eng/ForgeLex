@@ -6,7 +6,7 @@ import { PublicSite } from './PublicSite';
 describe('site público', () => {
   it('apresenta pesquisa MCP e conserva os destinos públicos', () => {
     const html = renderToStaticMarkup(createElement(PublicSite, { page: 'home' }));
-    expect(html).toContain('Jurisprudência do STJ no seu fluxo com IA.');
+    expect(html).toContain('Jurisprudência dos tribunais superiores e consulta processual.');
     for (const destination of ['/cadastro', '/produto', '/integracoes', '/desenvolvedores/api', '/consulta-processual']) {
       expect(html).toContain(`href="${destination}"`);
     }

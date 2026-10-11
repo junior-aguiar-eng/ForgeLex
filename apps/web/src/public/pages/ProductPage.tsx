@@ -5,7 +5,7 @@ export function ProductPage() {
     <>
       <PageIntro
         eyebrow="Produto"
-        title="Pesquisa do STJ para o seu fluxo com IA."
+        title="Jurisprudência dos tribunais superiores e consulta processual."
         text="Conecte ferramentas de pesquisa ao ChatGPT ou Claude, confira autoridades e gerencie seus créditos. API e consulta processual gratuita também estão disponíveis."
       />
       <Capabilities />

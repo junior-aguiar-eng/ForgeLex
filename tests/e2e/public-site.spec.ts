@@ -5,7 +5,7 @@ test('apresentação pública enxuta e âncoras antigas são acessíveis', async
   const initialHtml = await (await request.get('/')).text();
   expect(initialHtml).not.toContain('Do caso à minuta');
   expect(initialHtml).not.toContain('Organize casos');
-  expect(initialHtml).toContain('Pesquisa do STJ por MCP');
+  expect(initialHtml).toContain('ForgeLex · Jurisprudência e consulta processual');
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   for (const width of [375, 1440]) {
@@ -28,7 +28,7 @@ test('apresentação pública enxuta e âncoras antigas são acessíveis', async
 test('visitante lê o produto e chega ao cadastro sem autenticação', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Jurisprudência do STJ no seu fluxo com IA.',
+    'Jurisprudência dos tribunais superiores e consulta processual.',
   );
   await expect(page.getByText('O acesso ainda não está disponível')).toHaveCount(0);
   await expect(page.locator('main details').first()).toBeVisible();
@@ -154,7 +154,7 @@ test('FAQ e layout permanecem legíveis nas larguras previstas', async ({ page }
   await page.goto('/');
   const question = page.getByText('O que preciso para conectar minha IA?');
   await question.click();
-  await expect(page.getByText('Uma conta ForgeLex e um host com suporte a MCP.')).toBeVisible();
+  await expect(page.getByText(/Uma conta ForgeLex e um aplicativo com suporte a MCP/)).toBeVisible();
 });
 
 test('endereço desconhecido não recebe canonical nem autorização de indexação', async ({ page }) => {

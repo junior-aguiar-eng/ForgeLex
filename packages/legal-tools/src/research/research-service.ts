@@ -14,6 +14,7 @@ export interface SearchCaseLawResponse {
   total: number;
   queryExecuted: string;
   courtFilter?: string;
+  criteria?: SearchCaseLawRequest;
 }
 
 export interface VerifyAuthorityRequest {
@@ -30,9 +31,10 @@ export interface VerifyAuthorityResponse {
   reason?: string;
 }
 
-function toCaseLaw(document: JurisprudenceDocument): CaseLaw {
+export function toCaseLaw(document: JurisprudenceDocument): CaseLaw {
   return CaseLawSchema.parse({
     id: document.id,
+    versionId: document.versionId,
     court: document.court,
     processNumber: document.processNumber,
     rapporteur: document.rapporteur,
@@ -83,6 +85,7 @@ export class ResearchService {
       total: documents.length,
       queryExecuted: request.query,
       courtFilter: request.court,
+      criteria: { ...request, court: effectiveCourt },
     };
   }
 

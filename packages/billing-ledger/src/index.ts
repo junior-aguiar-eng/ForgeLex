@@ -5,3 +5,4 @@ export * from './billing-service.js';
 export * from './billing-rules.js';
 export * from './search-fingerprint.js';
 export * from './migrations/ledger-migrations.js';
+export * from './result-snapshot.js';

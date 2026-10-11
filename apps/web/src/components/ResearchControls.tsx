@@ -1,5 +1,7 @@
 import { useApp } from '../context/AppContext';
 import type { SearchExecution } from '../operations/contracts';
+import { SAVED_RESEARCH_NOTICE } from '../config/research-copy';
+import { SAVED_RESEARCH_ENABLED } from '../config/site-capabilities';
 
 export function JudgmentYearSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const currentYear = new Date().getUTCFullYear();
@@ -12,12 +14,19 @@ export function JudgmentYearSelect({ value, onChange }: { value: string; onChang
 export function SearchChargeNotice() {
   const { searchCostCents } = useApp();
   return <div className="surface-subtle p-3 text-xs leading-relaxed text-stone-600">
-    <p>Cada nova pesquisa desconta saldo, mesmo quando repete uma consulta anterior. Selecionar um item do histórico apenas preenche os filtros.</p>
+    <p>{SAVED_RESEARCH_ENABLED ? SAVED_RESEARCH_NOTICE : 'Cada nova pesquisa desconta saldo, mesmo quando repete uma consulta anterior. A consulta processual continua gratuita.'}</p>
     {searchCostCents !== null && <p className="mt-1 font-semibold">Tarifa por nova pesquisa: {(searchCostCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.</p>}
   </div>;
 }
 
+export function ResearchCoverageNotice() {
+  const { tribunals } = useApp();
+  const courts = tribunals.data.filter(item => item.searchable).map(item => item.code);
+  return <p className="text-xs text-stone-600">{courts.length ? `Cobertura disponível para esta pesquisa: ${courts.join(', ')}.` : 'A cobertura da pesquisa será informada quando o serviço estiver disponível.'}</p>;
+}
+
 export function ResearchRetentionNotice() {
+  if (SAVED_RESEARCH_ENABLED) return null;
   return <p className="text-xs leading-relaxed text-stone-600">Copie a referência e a ementa para conservar o resultado. O histórico guarda os termos e filtros da consulta, não uma cópia dos resultados. Consultar novamente gera uma nova cobrança.</p>;
 }
 

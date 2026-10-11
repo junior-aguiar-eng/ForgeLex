@@ -1,11 +1,13 @@
 import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ExternalLink, FileCheck2, Search, ShieldCheck } from 'lucide-react';
+import { AlertCircle, FileCheck2, Search, ShieldCheck } from 'lucide-react';
 import { AuthorityVerification, useApp } from '../context/AppContext';
 import { useCaseLawSearch } from '../operations/use-case-law-search';
-import { CopyCitationButton } from '../components/CopyCitationButton';
+import { DecisionReader } from '../components/DecisionReader';
+import { SavedResearchPanel } from '../research/SavedResearchPanel';
+import { createSearchIntent } from '../operations/contracts';
 import { SaveAuthorityToCase } from '../components/SaveAuthorityToCase';
-import { ExecutedSearchLabel, JudgmentYearSelect, ResearchRetentionNotice, SearchChargeNotice } from '../components/ResearchControls';
+import { ExecutedSearchLabel, JudgmentYearSelect, ResearchRetentionNotice, SearchChargeNotice, ResearchCoverageNotice } from '../components/ResearchControls';
 import { createResearchDeskModel } from './research-desk-model';
 
 const statusLabel: Record<AuthorityVerification['status'], string> = {
@@ -17,7 +19,7 @@ const statusLabel: Record<AuthorityVerification['status'], string> = {
 };
 
 export const ResearchDeskScreen: React.FC = () => {
-  const { verifyAuthority, tribunals, searchIntent } = useApp();
+  const { verifyAuthority, tribunals, searchIntent, performSearch } = useApp();
   const [query, setQuery] = useState(() => searchIntent?.query ?? '');
   const [court, setCourt] = useState<string>(() => searchIntent?.court ?? 'STJ');
   const [year, setYear] = useState(() => searchIntent?.judgmentYear?.toString() ?? '');
@@ -76,6 +78,7 @@ export const ResearchDeskScreen: React.FC = () => {
               <h2 className="font-editorial text-xl font-bold">Consulta jurisprudencial</h2>
             </div>
             <SearchChargeNotice />
+            <ResearchCoverageNotice />
             <form onSubmit={search} className="space-y-3">
               <div className="flex flex-col md:flex-row gap-3">
                 <input value={query} onChange={(event) => setQuery(event.target.value)} className="flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
@@ -90,27 +93,8 @@ export const ResearchDeskScreen: React.FC = () => {
 
             <ExecutedSearchLabel execution={execution} />
             {execution && <ResearchRetentionNotice />}
-            {results.length > 0 && (
-              <div className="space-y-3 pt-2">
-                {results.map((item) => (
-                  <article key={item.id} className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-3">
-                    <div className="flex flex-wrap justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-1 rounded-md bg-cognac-100 text-cognac-800 text-xs font-bold">{item.court}</span>
-                        <span className="text-sm font-bold text-stone-900">{item.processNumber}</span>
-                      </div>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700"><ShieldCheck className="w-3.5 h-3.5" />{statusLabel[item.verificationStatus]}</span>
-                    </div>
-                    <p className="text-xs text-stone-700 leading-relaxed">{item.ementa}</p>
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-500">
-                      <span>Relatoria: {item.relator} · {item.chamber ? `${item.chamber} · ` : ''}Julgamento: {item.judgmentDate}</span>
-                      {item.sourceUrl ? <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-cognac-700 hover:underline">Ver fonte retornada<ExternalLink className="h-3 w-3" /></a> : <span>Fonte não informada</span>}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2"><CopyCitationButton item={item} />{CASE_WORKSPACE_ENABLED && <SaveAuthorityToCase item={item} />}</div>
-                  </article>
-                ))}
-              </div>
-            )}
+            {results.length > 0 && <DecisionReader entries={results.map(decision => ({ decision }))} actions={item => CASE_WORKSPACE_ENABLED && <SaveAuthorityToCase item={item} />} />}
+            <SavedResearchPanel operationId={execution?.intent.idempotencyKey} onResearchAgain={async criteria => { setQuery(criteria.query); setCourt(criteria.court ?? court); setYear(criteria.judgmentYear?.toString() ?? ''); await performSearch(createSearchIntent(criteria.query, criteria.court ?? court, criteria.limit, criteria.judgmentYear)); }} />
             {model.billingMessage && <div className="surface-subtle p-3 text-xs text-stone-600">{model.billingMessage}</div>}
             {hasSearched && !searchBusy && results.length === 0 && !searchError && <div className="surface-subtle p-6 text-center text-sm text-stone-500">{model.emptyMessage}</div>}
           </section>
@@ -118,7 +102,7 @@ export const ResearchDeskScreen: React.FC = () => {
           <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
             <div className="flex items-center gap-2 text-stone-900">
               <FileCheck2 className="w-5 h-5 text-cognac-700" />
-              <h2 className="font-editorial text-xl font-bold">Verificar autoridade</h2>
+              <h2 className="font-editorial text-xl font-bold">Conferir decisão</h2>
             </div>
             <form onSubmit={verify} className="space-y-3">
               <label className="block text-xs font-semibold text-stone-600">Tribunal

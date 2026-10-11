@@ -1,0 +1,9 @@
+body{margin:0;background:#fbf9f5}.mcp-shell{max-width:800px;margin:0 auto;font:14px/1.6 Inter,system-ui,sans-serif;color:#2d2721;overflow-wrap:anywhere}.mcp-shell .decision-reader{border:0;border-radius:0}
+.mcp-shell > button,.mcp-actions > button,.mcp-shell li button,.mcp-shell dialog button{min-height:44px;border:1px solid #e6ded3;border-radius:7px;background:transparent;color:inherit;padding:8px 12px;font:inherit;cursor:pointer}
+.mcp-shell button:disabled{opacity:.5;cursor:default}.mcp-shell :focus-visible{outline:2px solid #8e5d2a;outline-offset:3px}
+.mcp-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 23px}.mcp-shell > button{margin:0 23px 12px}.mcp-note{font-size:12px;margin:12px 23px;color:#71695f}.mcp-shell > [role=status],.mcp-shell > [role=alert]{margin:12px 23px}
+.mcp-shell ul{list-style:none;padding:0;margin:0 23px}.mcp-shell li{border:1px solid #e6ded3;padding:14px;border-radius:7px;margin-top:12px}.mcp-shell li p{font-size:12px}.mcp-shell li .mcp-actions{margin:8px 0 0}
+.mcp-shell dialog{border:1px solid #e6ded3;border-radius:12px;padding:24px;max-width:440px;width:calc(100% - 32px);font:inherit;box-sizing:border-box;background:#fff;color:#2d2721}.mcp-shell dialog::backdrop{background:#0008}.mcp-shell dialog button{margin:4px}.mcp-shell [role=alert]{color:#9f3010}
+[data-theme=dark] body{background:#191816}[data-theme=light] body{background:#fbf9f5}
+[data-theme=dark] .mcp-shell{color:#eee6dc}[data-theme=dark] .mcp-shell dialog{background:#24211d;color:#eee6dc}[data-theme=dark] .mcp-shell > button,[data-theme=dark] .mcp-actions > button,[data-theme=dark] .mcp-shell li{border-color:#4b4137}[data-theme=dark] .mcp-note{color:#bcb0a0}[data-theme=dark] .mcp-shell [role=alert]{color:#ffc9a6}
+@media(max-width:650px){.mcp-actions,.mcp-note,.mcp-shell ul{margin-left:17px;margin-right:17px}.mcp-shell > button{margin-left:17px;margin-right:17px}}

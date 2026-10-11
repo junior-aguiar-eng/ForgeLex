@@ -15,6 +15,7 @@ overrides:
   source-map-js@1.2.1: 1.2.2
   postcss-selector-parser@6.1.4: 7.1.6
 allowBuilds:
+  '@modelcontextprotocol/ext-apps': false
   esbuild: true
 minimumReleaseAgeExclude:
   - '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.273'

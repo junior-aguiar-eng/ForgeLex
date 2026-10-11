@@ -5,7 +5,7 @@ import { DurableMatterPurgeJournal } from '../apps/api/dist/matters/matter-purge
 import { OAuthTokenVault } from '../apps/api/dist/auth/oauth-token-vault.js';
 import { BillingOperationsService } from '../apps/api/dist/billing/billing-operations.js';
 import { BillingService, LedgerService } from '../packages/billing-ledger/dist/index.js';
-import { JurisprudenceIngestionService } from '../packages/legal-data/dist/index.js';
+import { JurisprudenceIngestionService, generateDedupeKey } from '../packages/legal-data/dist/index.js';
 import {
   AccountRepository, createDatabase, IngestionRunRepository, JurisprudenceRepository,
   MatterRepository, runPersistenceMigrations,
@@ -77,6 +77,10 @@ const fixture = new StjFixtureProvider();
 const sourceRouter = new SourceRouter();
 sourceRouter.registerProvider(fixture);
 const documents = await fixture.search('vazamento', { court: 'STJ', limit: 10 });
+if (process.env.FORGELEX_E2E_SAVED_RESEARCH === 'true') {
+  documents.push({ ...documents[0], id: randomUUID(), judgmentDate: '2023-04-19',
+    dedupeKey: generateDedupeKey('STJ', documents[0].processNumber, '2023-04-19') });
+}
 await new JurisprudenceIngestionService(
   new JurisprudenceRepository(connection.db), new IngestionRunRepository(connection.db),
 ).ingest({ providerId: fixture.id, court: 'STJ', documents });
@@ -126,6 +130,7 @@ const app = await buildApp({
   sourceRouter, billingOperationsService: billingOperations, paymentProvider,
   environment: {
     NODE_ENV: 'test', FORGELEX_SUPABASE_URL: authUrl,
+    ...(process.env.FORGELEX_E2E_SAVED_RESEARCH === 'true' ? { FORGELEX_SAVED_RESEARCH_ENABLED: 'true', FORGELEX_MCP_DECISION_UI_ENABLED: 'true' } : {}),
     ...(matterPurgeJournal ? { FORGELEX_MATTER_PURGE_KEY_SECRET: 'synthetic-only-operation-secret-32-bytes' } : {}),
     FORGELEX_SUPABASE_PUBLISHABLE_KEY: 'phase7-e2e-publishable', FORGELEX_ALLOWED_ORIGINS: webOrigin,
     FORGELEX_WEBHOOK_MASTER_KEY: 'phase7-e2e-master-key',

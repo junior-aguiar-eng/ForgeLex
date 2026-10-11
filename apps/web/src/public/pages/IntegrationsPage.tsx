@@ -6,7 +6,7 @@ export function IntegrationsPage() {
       <PageIntro
         eyebrow="Integrações"
         title="Conecte pesquisa jurídica à sua IA ou ao seu software."
-        text="MCP permite pesquisar decisões pelo ChatGPT ou Claude, conforme a disponibilidade no host. A API REST oferece integração ao seu software."
+        text="MCP permite pesquisar decisões pelo ChatGPT ou Claude, conforme a disponibilidade no aplicativo conectado. A API REST oferece integração ao seu software."
       />
       <WaysToUse />
       <Safeguards />

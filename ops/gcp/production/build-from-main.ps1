@@ -2,7 +2,8 @@ param(
   [Parameter(Mandatory = $true)][string]$ProjectId,
   [Parameter(Mandatory = $true)][string]$ImageUri,
   [Parameter(Mandatory = $true)][string]$SupabaseUrl,
-  [Parameter(Mandatory = $true)][string]$SupabasePublishableKey
+  [Parameter(Mandatory = $true)][string]$SupabasePublishableKey,
+  [ValidateSet('true', 'false')][string]$SavedResearchEnabled = 'false'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,7 +24,7 @@ if ($SupabasePublishableKey -notmatch '^sb_publishable_[A-Za-z0-9_-]{8,}$') {
   throw 'A chave de build deve ser publishable.'
 }
 
-$substitutions = "_IMAGE_URI=$ImageUri,_SOURCE_SHA=$sourceSha,_VITE_SUPABASE_URL=$SupabaseUrl,_VITE_SUPABASE_PUBLISHABLE_KEY=$SupabasePublishableKey,_SUPABASE_PROJECT_REF=$projectRef"
+$substitutions = "_IMAGE_URI=$ImageUri,_SOURCE_SHA=$sourceSha,_VITE_SUPABASE_URL=$SupabaseUrl,_VITE_SUPABASE_PUBLISHABLE_KEY=$SupabasePublishableKey,_SUPABASE_PROJECT_REF=$projectRef,_VITE_FORGELEX_SAVED_RESEARCH_ENABLED=$SavedResearchEnabled"
 gcloud builds submit . --config=ops/gcp/production/cloudbuild.yaml --project=$ProjectId --substitutions=$substitutions --quiet
 if ($LASTEXITCODE -ne 0) { throw 'Cloud Build falhou.' }
 

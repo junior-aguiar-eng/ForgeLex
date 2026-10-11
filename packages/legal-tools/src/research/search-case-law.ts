@@ -19,6 +19,8 @@ export const SearchCaseLawOutputSchema = z.object({
   total: z.number().int().nonnegative(),
   queryExecuted: z.string(),
   courtFilter: z.string().optional(),
+  criteria: SearchCaseLawInputSchema.optional(),
+  operationId: z.string().optional(),
 });
 
 export type SearchCaseLawOutput = z.infer<typeof SearchCaseLawOutputSchema>;

@@ -47,7 +47,7 @@ export function PublicFooter() {
             ForgeLex
           </a>
           <p className="mt-4 text-sm leading-6 text-stone-600">
-            Pesquisa jurisprudencial do STJ por MCP e API, com fontes e proveniência.
+            Jurisprudência dos tribunais superiores e consulta processual por MCP e API, com fontes e proveniência.
           </p>
         </div>
         {groups.map((group) => (
