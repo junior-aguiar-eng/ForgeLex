@@ -1,12 +1,38 @@
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+test('apresentação pública enxuta e âncoras antigas são acessíveis', async ({ page, request }) => {
+  const initialHtml = await (await request.get('/')).text();
+  expect(initialHtml).not.toContain('Do caso à minuta');
+  expect(initialHtml).not.toContain('Organize casos');
+  expect(initialHtml).toContain('Pesquisa do STJ por MCP');
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  for (const width of [375, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const path of ['/', '/produto', '/como-funciona', '/integracoes', '/guia']) {
+      await page.goto(path);
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations, path).toEqual([]);
+      await expect(page.locator('a[href="/produto#casos"], a[href="/produto#rascunhos"], a[href="/produto#revisao"]')).toHaveCount(0);
+    }
+  }
+  for (const anchor of ['casos', 'rascunhos', 'revisao']) {
+    await page.goto(`/produto#${anchor}`);
+    await expect(page.getByText('O fluxo de casos, rascunhos e revisão está suspenso na interface.', { exact: false })).toBeVisible();
+    await expect(page.locator('#integracao')).toBeAttached();
+  }
+  expect(errors).toEqual([]);
+});
 
 test('visitante lê o produto e chega ao cadastro sem autenticação', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Do caso à minuta, conecte fatos, provas e jurisprudência.',
+    'Jurisprudência do STJ no seu fluxo com IA.',
   );
   await expect(page.getByText('O acesso ainda não está disponível')).toHaveCount(0);
-  await expect(page.locator('main details')).toHaveCount(10);
+  await expect(page.locator('main details').first()).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Casos e evidências' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Criar acesso' }).first().click();
   await expect(page).toHaveURL(/\/cadastro$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Crie seu acesso');
@@ -126,9 +152,9 @@ test('FAQ e layout permanecem legíveis nas larguras previstas', async ({ page }
     }
   }
   await page.goto('/');
-  const question = page.getByText('O ForgeLex escreve petições sozinho?');
+  const question = page.getByText('O que preciso para conectar minha IA?');
   await question.click();
-  await expect(page.getByText('A decisão jurídica, a conferência final')).toBeVisible();
+  await expect(page.getByText('Uma conta ForgeLex e um host com suporte a MCP.')).toBeVisible();
 });
 
 test('endereço desconhecido não recebe canonical nem autorização de indexação', async ({ page }) => {

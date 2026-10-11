@@ -1,102 +1,28 @@
-import { ArrowRight, BookOpen, FileCheck2, FolderOpen, Search, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BookOpen, FileCheck2, Search, ShieldCheck } from 'lucide-react';
 
 const movements = [
-  {
-    number: '01',
-    title: 'Estruture o caso',
-    body: 'Reúna documentos, fatos candidatos, provas, eventos e questões jurídicas no mesmo contexto.',
-  },
-  {
-    number: '02',
-    title: 'Pesquise e confira',
-    body: 'Consulte a jurisprudência do STJ, abra a autoridade e confira a proveniência antes de utilizá-la.',
-  },
-  {
-    number: '03',
-    title: 'Construa a linha jurídica',
-    body: 'Organize questões, autoridades e teses com um memorando de pesquisa sujeito à revisão.',
-  },
-  {
-    number: '04',
-    title: 'Redija e revise',
-    body: 'Prepare versões de rascunho, confira citações e suporte factual e registre a decisão humana.',
-  },
+  { number: '01', title: 'Crie seu acesso', body: 'Entre no ForgeLex e confira sua conta e os créditos para pesquisa.' },
+  { number: '02', title: 'Conecte sua IA', body: 'Autorize o ForgeLex no ChatGPT ou Claude, conforme a disponibilidade do MCP no host e na sua conta.' },
+  { number: '03', title: 'Pesquise decisões do STJ', body: 'Peça uma pesquisa no host ou use a pesquisa disponível no site. Cada nova pesquisa válida é faturável.' },
+  { number: '04', title: 'Confira as fontes', body: 'Abra a autoridade e verifique a proveniência antes de utilizar o resultado. Essas operações são gratuitas.' },
 ] as const;
 
 const capabilities = [
-  {
-    icon: FolderOpen,
-    title: 'Casos e evidências',
-    body: 'Documentos com âncoras, fatos candidatos, provas vinculadas, linha do tempo, questões jurídicas e cobertura factual explícita.',
-  },
-  {
-    icon: Search,
-    title: 'Pesquisa e autoridades',
-    body: 'Pesquisa jurisprudencial no STJ, recuperação e verificação de autoridade, proveniência e vínculo com o caso.',
-  },
-  {
-    icon: BookOpen,
-    title: 'Estratégia e documentos',
-    body: 'Memorando de pesquisa, mapa de teses, estrutura da peça e versões de rascunho ligadas ao material do caso.',
-  },
-  {
-    icon: FileCheck2,
-    title: 'Revisão e governança',
-    body: 'Conferência de citações, suporte factual, revisão adversarial, pendências e aprovação humana registrada.',
-  },
+  { icon: Search, title: 'Pesquisa e autoridades', body: 'Consulte o índice próprio do STJ, abra decisões e confira os dados de origem e verificação.' },
+  { icon: BookOpen, title: 'Conexão MCP', body: 'Use ferramentas de pesquisa no ChatGPT ou Claude com autorização da sua conta ForgeLex. O host fornece o modelo de IA.' },
+  { icon: ShieldCheck, title: 'Conta e créditos', body: 'Confira saldo, atividade, segurança, chaves e aplicativos autorizados. Os custos do host são separados dos créditos ForgeLex.' },
+  { icon: FileCheck2, title: 'API e consulta gratuita', body: 'Integre seu software pela API REST ou consulte dados processuais públicos do TJAL pelo DataJud sem créditos.' },
 ] as const;
 
 const faq = [
-  {
-    question: 'O que é o ForgeLex?',
-    answer:
-      'É um espaço de trabalho jurídico para organizar casos, pesquisar jurisprudência do STJ, relacionar fontes e preparar documentos sujeitos à revisão humana.',
-  },
-  {
-    question: 'O ForgeLex escreve petições sozinho?',
-    answer:
-      'Não. O produto ajuda a preparar e revisar rascunhos. A decisão jurídica, a conferência final e qualquer efeito externo continuam sob responsabilidade humana.',
-  },
-  {
-    question: 'Quais tribunais podem ser pesquisados?',
-    answer:
-      'A pesquisa comercial disponível neste momento cobre o índice próprio do STJ. Outros tribunais não são apresentados como pesquisáveis.',
-  },
-  {
-    question: 'Como funciona a cobrança?',
-    answer:
-      'O ForgeLex usa créditos pré-pagos em reais. A pesquisa jurisprudencial válida do STJ é a operação faturável; consultar e verificar uma autoridade não têm cobrança própria no contrato vigente.',
-  },
-  {
-    question: 'Preciso usar ChatGPT ou Claude?',
-    answer:
-      'Não. O espaço de trabalho ForgeLex pode ser usado diretamente. A integração por MCP é um caminho opcional, sujeito à disponibilidade no host escolhido.',
-  },
-  {
-    question: 'O que é MCP?',
-    answer:
-      'É um protocolo pelo qual um host compatível pode chamar ferramentas do ForgeLex com autorização. O host fornece o modelo de IA; o ForgeLex fornece as operações jurídicas.',
-  },
-  {
-    question: 'O ForgeLex acessa minhas conversas e arquivos?',
-    answer:
-      'A chamada MCP entrega ao ForgeLex os argumentos autorizados da ferramenta. Ela não concede acesso automático ao histórico geral da conversa nem a arquivos que o host não envie nessa chamada.',
-  },
-  {
-    question: 'Posso integrar ao meu software?',
-    answer:
-      'Sim. A API REST e a documentação OpenAPI permitem integrar as operações disponíveis mediante autenticação e os escopos necessários.',
-  },
-  {
-    question: 'Como a revisão humana funciona?',
-    answer:
-      'O trabalho registra pendências e decisões de revisão. Autoridades, fatos, provas e rascunhos devem ser conferidos pelo profissional antes do uso.',
-  },
-  {
-    question: 'Uma aprovação no ForgeLex protocola o documento?',
-    answer:
-      'Não. A aprovação registra uma decisão no fluxo interno; ela não protocola nem envia automaticamente uma peça a terceiros.',
-  },
+  { question: 'O que é o ForgeLex?', answer: 'É um serviço de pesquisa jurisprudencial do STJ, com ferramentas MCP para ChatGPT ou Claude, API REST e pesquisa auxiliar no site.' },
+  { question: 'Quais tribunais podem ser pesquisados?', answer: 'A pesquisa jurisprudencial comercial cobre o índice próprio do STJ. A consulta processual gratuita do TJAL pelo DataJud é um recurso separado.' },
+  { question: 'Como funciona a cobrança?', answer: 'Os créditos são pré-pagos em reais. Uma pesquisa válida do STJ é faturável, inclusive sem resultados. Abrir uma autoridade e verificar sua proveniência são gratuitos no contrato vigente.' },
+  { question: 'O que preciso para conectar minha IA?', answer: 'Uma conta ForgeLex e um host com suporte a MCP. A disponibilidade depende do ChatGPT ou Claude e da sua conta; consulte o guia e confirme a execução no próprio host.' },
+  { question: 'O que é MCP?', answer: 'É um protocolo para um host compatível chamar ferramentas autorizadas. O host fornece o modelo e o contexto; o ForgeLex fornece pesquisa e decisões.' },
+  { question: 'O ForgeLex acessa minhas conversas e arquivos?', answer: 'O ForgeLex recebe os argumentos enviados à ferramenta autenticada. A conexão não concede acesso automático ao histórico geral ou aos arquivos do host.' },
+  { question: 'Posso integrar ao meu software?', answer: 'Sim. Consulte a API REST e o OpenAPI, com autenticação e os escopos necessários.' },
+  { question: 'Como começo sem conectar um host?', answer: 'Crie seu acesso e use a pesquisa no site. A consulta processual pública é gratuita e dispensa cadastro. A conferência e o uso jurídico dos resultados continuam sob sua responsabilidade.' },
 ] as const;
 
 export function SectionHeader({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
@@ -113,13 +39,13 @@ export function Hero() {
   return (
     <section className="page-container grid gap-10 py-16 sm:py-24 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
       <div className="min-w-0 break-words">
-        <p className="eyebrow">Pesquisa, estratégia e preparação jurídica</p>
+        <p className="eyebrow">Pesquisa jurídica por MCP</p>
         <h1 className="mt-5 max-w-3xl font-editorial text-4xl font-bold leading-[1.16] tracking-tight text-stone-950 sm:text-5xl xl:text-6xl">
-          Do caso à minuta, conecte fatos, provas e jurisprudência.
+          Jurisprudência do STJ no seu fluxo com IA.
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-8 text-stone-600">
-          Organize o contexto do caso, pesquise a jurisprudência do STJ com fontes rastreáveis e prepare rascunhos
-          sujeitos à revisão humana em um único espaço de trabalho.
+          Conecte o ForgeLex ao ChatGPT ou Claude para pesquisar decisões do STJ e conferir suas fontes.
+          Gerencie sua conta e seus créditos aqui, com API e consulta processual gratuita disponíveis.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a href="/cadastro" className="btn-primary">
@@ -129,10 +55,10 @@ export function Hero() {
             Conhecer o produto
           </a>
         </div>
-        <p className="mt-8 text-sm text-stone-500">Índice próprio do STJ · fontes e proveniência · revisão humana</p>
+        <p className="mt-8 text-sm text-stone-500">Índice próprio do STJ · fontes e proveniência · integração MCP</p>
       </div>
       <div className="surface min-w-0 break-words p-6 sm:p-8" aria-label="Percurso de trabalho">
-        <p className="eyebrow">Um percurso com contexto</p>
+        <p className="eyebrow">Da conexão à fonte</p>
         <ol className="mt-6 space-y-5">
           {movements.map((step) => (
             <li key={step.number} className="flex gap-4 border-b border-stone-100 pb-4 last:border-0 last:pb-0">
@@ -156,7 +82,7 @@ export function Problems() {
         <SectionHeader
           eyebrow="Por que o ForgeLex existe"
           title="O argumento precisa conservar o caminho até sua fonte."
-          text="Pesquisa fragmentada, contexto espalhado e minutas sem vínculos explícitos tornam a conferência mais difícil. O ForgeLex organiza essas etapas no mesmo espaço de trabalho."
+          text="Use pesquisa com dados de origem no seu host de IA e confira as decisões retornadas antes de utilizá-las."
         />
         <div className="mt-9 grid gap-4 md:grid-cols-3">
           {[
@@ -164,10 +90,10 @@ export function Problems() {
               'Pesquisa que dá para conferir',
               'Resultados e autoridades apresentam dados de origem e estado de verificação.',
             ],
-            ['Contexto reunido', 'Documentos, fatos, provas e questões permanecem associados ao caso.'],
+            ['No seu host de IA', 'Pesquise pelo ChatGPT ou Claude com ferramentas MCP autorizadas.'],
             [
-              'Minuta com lastro visível',
-              'Rascunhos podem ligar seções a fatos, provas, autoridades e teses para revisão.',
+              'Custos visíveis',
+              'A conta apresenta créditos e atividade; os custos do modelo pertencem ao host escolhido.',
             ],
           ].map(([title, body]) => (
             <article key={title} className="border-t border-champagne-border pt-5">
@@ -184,7 +110,7 @@ export function Problems() {
 export function Movements() {
   return (
     <section className="page-container py-16 sm:py-20">
-      <SectionHeader eyebrow="Como funciona" title="Quatro movimentos, um contexto jurídico." />
+      <SectionHeader eyebrow="Como funciona" title="Da conta à pesquisa com fontes." />
       <ol className="mt-9 grid gap-4 md:grid-cols-2">
         {movements.map((step, index) => (
           <li key={step.number} className="border-l-2 border-champagne-border py-2 pl-6">
@@ -192,7 +118,7 @@ export function Movements() {
             <h3 className="mt-3 font-editorial text-xl font-bold text-stone-900">{step.title}</h3>
             <p className="mt-2 text-sm leading-6 text-stone-600">{step.body}</p>
             <a
-              href={['/produto#casos', '/produto#pesquisa', '/produto#rascunhos', '/produto#revisao'][index]}
+              href={['/cadastro', '/integracoes', '/produto#pesquisa', '/guia'][index]}
               className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-cognac-800 hover:underline"
             >
               Ver ferramentas <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -208,11 +134,12 @@ export function Capabilities() {
   return (
     <section className="border-y border-champagne-border bg-white/70 py-16 sm:py-20">
       <div className="page-container">
-        <SectionHeader eyebrow="Ferramentas do produto" title="O trabalho jurídico permanece ligado ao caso." />
+        <div className="scroll-mt-24" id="casos"><span id="rascunhos" /><span id="revisao" /><p className="mb-6 text-sm text-stone-600">O fluxo de casos, rascunhos e revisão está suspenso na interface. Veja abaixo os recursos de pesquisa e integração disponíveis.</p></div>
+        <SectionHeader eyebrow="Ferramentas do produto" title="Pesquisa, conexão e conta em um só lugar." />
         <div className="mt-9 grid gap-5 md:grid-cols-2">
           {capabilities.map(({ icon: Icon, title, body }, index) => (
             <article
-              id={['casos', 'pesquisa', 'rascunhos', 'revisao'][index]}
+              id={['pesquisa', 'integracao', 'conta', 'api'][index]}
               key={title}
               className="surface scroll-mt-24 p-6"
             >
@@ -223,7 +150,7 @@ export function Capabilities() {
           ))}
         </div>
         <p className="mt-6 max-w-3xl text-sm leading-6 text-stone-600">
-          O ForgeLex organiza e ajuda a verificar o trabalho. A decisão jurídica e qualquer efeito externo permanecem
+          Confira as autoridades retornadas e sua proveniência. A decisão jurídica e o uso dos resultados permanecem
           sob responsabilidade humana.
         </p>
       </div>
@@ -237,13 +164,13 @@ export function WaysToUse() {
       <SectionHeader
         eyebrow="Use do seu jeito"
         title="Escolha onde o trabalho acontece."
-        text="O espaço de trabalho, o MCP e a API REST são caminhos para as capacidades do ForgeLex. Você não precisa conectar outro serviço para começar."
+        text="Conecte sua IA por MCP, pesquise no site ou integre seu software por API REST."
       />
       <div className="mt-9 grid gap-4 lg:grid-cols-3">
         {[
           [
-            'Espaço de trabalho',
-            'Organize casos, pesquisa, rascunhos e revisão diretamente no ForgeLex.',
+            'Pesquisa no site',
+            'Pesquise decisões do STJ e gerencie sua conta e seus créditos no ForgeLex.',
             '/cadastro',
             'Criar acesso',
           ],
@@ -311,15 +238,15 @@ export function Safeguards() {
         {[
           [
             'Contexto isolado',
-            'Os dados do trabalho pertencem ao espaço autorizado da conta. O corpus jurisprudencial é compartilhado como fonte de pesquisa, sem misturar dados privados de casos.',
+            'As ferramentas recebem chamadas autenticadas e os argumentos enviados pelo host. Consulte e revogue aplicativos autorizados na página de conexão.',
           ],
           [
             'Credenciais e auditoria',
             'A identidade vem da credencial autenticada; chaves são guardadas por hash e segredos são saneados nos registros de auditoria.',
           ],
           [
-            'Revisão antes de agir',
-            'Uma aprovação no fluxo interno não protocola documentos nem produz automaticamente efeitos externos.',
+            'Conferência das fontes',
+            'Abra a autoridade e confira sua proveniência antes do uso jurídico. Resultados de pesquisa não substituem a conferência profissional.',
           ],
         ].map(([title, body]) => (
           <article key={title} className="border-t border-champagne-border pt-5">

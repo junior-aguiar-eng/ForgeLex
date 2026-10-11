@@ -1,7 +1,24 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { navigateToTab, routeForTab, tabForPath } from './routes';
+import { navigateToTab, resolveVisibleTab, routeForTab, tabForPath } from './routes';
 
 describe('rotas do espaço de trabalho', () => {
+  it.each(['matter', 'draft_studio', 'dashboard'] as const)('redireciona tentativa interna de %s sem parâmetros do caso', (tab) => {
+    const replaceState = vi.fn();
+    const pushState = vi.fn();
+    vi.stubGlobal('window', { location: { pathname: '/app/casos', search: '?matterId=private', hash: '#document' }, history: { replaceState, pushState } });
+    vi.stubGlobal('document', { title: '' });
+    expect(resolveVisibleTab(tab, false)).toBe('connections');
+    expect(resolveVisibleTab(tab, true)).toBe(tab);
+    navigateToTab(tab, 'push', false);
+    expect(replaceState).toHaveBeenCalledWith({}, 'ForgeLex · Conectar IA', '/app/conectar');
+    expect(pushState).not.toHaveBeenCalled();
+  });
+  it('preserva abas de conta e pesquisa nos dois modos', () => {
+    for (const tab of ['credits', 'research', 'datajud', 'api_docs', 'account_security', 'api_keys'] as const) {
+      expect(resolveVisibleTab(tab, false)).toBe(tab);
+      expect(resolveVisibleTab(tab, true)).toBe(tab);
+    }
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
   });

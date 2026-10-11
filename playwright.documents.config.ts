@@ -2,8 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 // Real API and browser, disposable SQLite and local Auth fixture. No cloud account.
 export default defineConfig({
+  outputDir: 'test-results/documents',
   testDir: './tests/e2e',
-  testMatch: 'documents.spec.ts',
+  testMatch: ['documents.spec.ts', 'sidebar-short-viewport.spec.ts'],
   workers: 1,
   timeout: 60_000,
   expect: { timeout: 10_000 },
@@ -23,6 +24,7 @@ export default defineConfig({
       reuseExistingServer: false,
       env: {
         VITE_SUPABASE_URL: 'http://127.0.0.1:15531',
+        VITE_FORGELEX_CASE_WORKSPACE_ENABLED: 'true',
         VITE_SUPABASE_PUBLISHABLE_KEY: 'phase7-e2e-publishable',
         VITE_FORGELEX_API_URL: 'http://127.0.0.1:3301',
       },

@@ -1,3 +1,4 @@
+import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp, SearchResultItem } from '../context/AppContext';
 import { useCaseLawSearch } from '../operations/use-case-law-search';
@@ -38,26 +39,26 @@ export const LandingScreen: React.FC = () => {
         <div className="text-center max-w-4xl mx-auto space-y-6">
           <div className="eyebrow inline-flex items-center gap-2 rounded-full bg-cognac-100/70 px-3 py-1">
             <Sparkles className="w-3.5 h-3.5 text-cognac-600" />
-            <span>Pesquisa e preparação jurídica</span>
+            <span>{CASE_WORKSPACE_ENABLED ? 'Pesquisa e preparação jurídica' : 'Pesquisa jurídica por MCP'}</span>
           </div>
 
           <h1 className="font-editorial text-4xl font-bold tracking-tight text-stone-950 leading-[1.15] sm:text-5xl">
-            Do caso à minuta, conecte fatos, provas e jurisprudência.
+            {CASE_WORKSPACE_ENABLED ? 'Do caso à minuta, conecte fatos, provas e jurisprudência.' : 'Jurisprudência do STJ no seu fluxo com IA.'}
           </h1>
 
           <p className="text-base sm:text-lg md:text-xl text-stone-600 max-w-2xl mx-auto font-normal leading-relaxed">
-            Pesquise jurisprudência, organize o contexto do caso e prepare peças com fontes visíveis e revisão humana no momento certo.
+            {CASE_WORKSPACE_ENABLED ? 'Pesquise jurisprudência, organize o contexto do caso e prepare peças com fontes visíveis e revisão humana no momento certo.' : 'Conecte o ForgeLex ao ChatGPT ou Claude, pesquise decisões e confira suas fontes. A pesquisa também está disponível aqui.'}
           </p>
 
           {/* Quick Stats Banner */}
           <div className="pt-2 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs sm:text-sm text-stone-500 font-medium">
             <div className="flex items-center space-x-1.5">
               <Shield className="w-4 h-4 text-emerald-600" />
-              <span>Revisão humana antes de efeitos externos</span>
+              <span>{CASE_WORKSPACE_ENABLED ? 'Revisão humana antes de efeitos externos' : 'Conferência das fontes'}</span>
             </div>
             <div className="flex items-center space-x-1.5">
               <BookmarkCheck className="w-4 h-4 text-cognac-600" />
-              <span>Fontes e fatos rastreáveis</span>
+              <span>{CASE_WORKSPACE_ENABLED ? 'Fontes e fatos rastreáveis' : 'Fontes e proveniência'}</span>
             </div>
             <div className="flex items-center space-x-1.5">
               <Scale className="w-4 h-4 text-amber-600" />
@@ -66,7 +67,7 @@ export const LandingScreen: React.FC = () => {
           </div>
         </div>
 
-        <div className="surface-subtle mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-stone-800">Comece pelo trabalho do caso</p><p className="text-xs text-stone-500">Abra um caso ou pesquise uma fonte jurídica para iniciar.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setActiveTab('matter')} className="btn-secondary inline-flex items-center gap-2"><FolderOpen className="h-4 w-4" aria-hidden="true" />Abrir caso</button><button type="button" onClick={() => setActiveTab('connections')} className="btn-quiet inline-flex items-center gap-2">Usar no ChatGPT ou Claude<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></button><a href="/guia/mcp" className="btn-quiet inline-flex items-center gap-2">Guia de conexão</a></div></div>
+        <div className="surface-subtle mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-stone-800">{CASE_WORKSPACE_ENABLED ? 'Comece pelo trabalho do caso' : 'Comece pela conexão com IA'}</p><p className="text-xs text-stone-500">{CASE_WORKSPACE_ENABLED ? 'Abra um caso ou pesquise uma fonte jurídica para iniciar.' : 'Configure seu aplicativo ou pesquise jurisprudência nesta página.'}</p></div><div className="flex flex-wrap gap-2">{CASE_WORKSPACE_ENABLED && <button type="button" onClick={() => setActiveTab('matter')} className="btn-secondary inline-flex items-center gap-2"><FolderOpen className="h-4 w-4" aria-hidden="true" />Abrir caso</button>}<button type="button" onClick={() => setActiveTab('connections')} className="btn-quiet inline-flex items-center gap-2">Usar no ChatGPT ou Claude<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></button><a href="/guia/mcp" className="btn-quiet inline-flex items-center gap-2">Guia de conexão</a></div></div>
 
         {/* SEARCH BAR (Inspirada em ForgeLex_01_Landing.png) */}
         <div className="champagne-card mx-auto max-w-4xl space-y-4 rounded-xl bg-white p-4 sm:p-5">
@@ -231,7 +232,7 @@ export const LandingScreen: React.FC = () => {
                     <div className="text-[11px] text-stone-400">Proveniência retornada pela API</div>
 
                     <div className="flex items-center space-x-2">
-                      <div className="flex flex-wrap items-center gap-2"><CopyCitationButton item={item} /><SaveAuthorityToCase item={item} /></div>
+                      <div className="flex flex-wrap items-center gap-2"><CopyCitationButton item={item} />{CASE_WORKSPACE_ENABLED && <SaveAuthorityToCase item={item} />}</div>
 
                       <button
                         type="button"
@@ -301,7 +302,7 @@ export const LandingScreen: React.FC = () => {
                 >
                   Fechar
                 </button>
-                <button
+                {CASE_WORKSPACE_ENABLED && <button
                   onClick={() => {
                     setSelectedDoc(null);
                     setActiveTab('matter');
@@ -309,7 +310,7 @@ export const LandingScreen: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-cognac-700 hover:bg-cognac-800 text-white text-sm font-medium shadow-sm"
                 >
                   Abrir caso
-                </button>
+                </button>}
               </div>
             </div>
           </div>
@@ -333,7 +334,7 @@ export const LandingScreen: React.FC = () => {
                 onClick={() => { setQuery(item.query); setCourt(item.court); setYear(item.judgmentYear?.toString() ?? ''); queryInput.current?.focus(); }}
                 className="p-3 text-left rounded-xl bg-white border border-champagne-border hover:border-cognac-400 focus-visible:outline-cognac-600 transition-colors"
               >
-                <span className="flex items-center justify-between gap-2 text-[11px] text-stone-400 mb-1">
+                <span className="flex items-center justify-between gap-2 text-[11px] text-stone-600 mb-1">
                   <span className="font-semibold text-cognac-700">{item.court} · {item.judgmentYear ?? 'Todos os anos'}</span>
                   <span>{new Date(item.createdAt).toLocaleString('pt-BR')}</span>
                 </span>

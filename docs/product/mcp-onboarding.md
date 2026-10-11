@@ -129,3 +129,13 @@ Na mesma rodada, `pnpm format:check`, `pnpm lint`, `pnpm typecheck` (com build),
 `pnpm test` (463 aprovados, 4 pulados) e E2E Chromium (22 aprovados) passaram.
 O E2E usou autenticação e API locais com banco em memória, não PostgreSQL ou
 serviços externos. Houve apenas o aviso `NO_COLOR`/`FORCE_COLOR` do runner.
+
+
+## Escopo do site — 11/10/2026
+
+A apresentação local concentra o produto em pesquisa STJ por MCP, conexão
+com ChatGPT/Claude, conta/créditos, API e consulta gratuita. Casos, rascunhos,
+revisão e atalhos ficam ocultos por configuração reversível. A listagem de
+aplicativos e os fluxos OAuth continuam disponíveis. O catálogo MCP existente
+não foi reduzido, e a pesquisa no site foi preservada como recurso auxiliar.
+[Contrato do congelamento](site-mcp-scope-freeze.md).

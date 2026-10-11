@@ -4,27 +4,27 @@ export const CANONICAL_ORIGIN = 'https://nexojuris.ia.br';
 
 const metadata: Record<PublicPage, { title: string; description: string; path: string | null }> = {
   home: {
-    title: 'ForgeLex · Do caso à minuta',
+    title: 'ForgeLex · Pesquisa do STJ por MCP',
     description:
-      'Organize casos, pesquise jurisprudência do STJ e prepare rascunhos com fontes rastreáveis e revisão humana.',
+      'Pesquise decisões do STJ com fontes e proveniência pelo ChatGPT ou Claude via MCP. Conta, créditos, API e consulta processual gratuita.',
     path: '/',
   },
   product: {
     title: 'Produto · ForgeLex',
     description:
-      'Conheça as ferramentas para casos e evidências, pesquisa do STJ, estratégia, rascunhos e revisão jurídica.',
+      'Conheça a pesquisa do STJ, conexão MCP, conta e créditos, API e consulta processual gratuita.',
     path: '/produto',
   },
   how: {
     title: 'Como funciona · ForgeLex',
     description:
-      'Estruture o caso, pesquise e confira fontes, construa a linha jurídica e revise a minuta em quatro movimentos.',
+      'Crie seu acesso, conecte sua IA, pesquise decisões do STJ e confira autoridades e proveniência.',
     path: '/como-funciona',
   },
   integrations: {
     title: 'Integrações · ForgeLex',
     description:
-      'Use o espaço de trabalho ForgeLex ou conecte ferramentas jurídicas por MCP e API REST, com autorização.',
+      'Conecte pesquisa jurídica ao ChatGPT ou Claude por MCP ou integre seu software pela API REST, com autorização.',
     path: '/integracoes',
   },
   credits: {

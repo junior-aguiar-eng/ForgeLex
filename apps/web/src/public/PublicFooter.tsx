@@ -6,9 +6,9 @@ export function PublicFooter() {
       title: 'Produto',
       links: [
         ['Visão geral', '/'],
-        ['Casos e evidências', '/produto#casos'],
+        ['Conectar IA', '/entrar?next=%2Fapp%2Fconectar'],
         ['Pesquisa jurídica', '/produto#pesquisa'],
-        ['Rascunhos e revisão', '/produto#rascunhos'],
+
         ['Créditos', '/creditos'],
       ],
     },
@@ -47,7 +47,7 @@ export function PublicFooter() {
             ForgeLex
           </a>
           <p className="mt-4 text-sm leading-6 text-stone-600">
-            Pesquisa, estratégia e preparação jurídica com fontes rastreáveis e revisão humana.
+            Pesquisa jurisprudencial do STJ por MCP e API, com fontes e proveniência.
           </p>
         </div>
         {groups.map((group) => (

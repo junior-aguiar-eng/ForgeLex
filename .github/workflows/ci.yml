@@ -116,7 +116,7 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e:phase7
-      - run: pnpm test:e2e:mcp-onboarding
+      - run: pnpm test:e2e:mcp-site
       - run: pnpm test:e2e:accessibility
       - run: pnpm test:e2e:documents
       - run: pnpm test:e2e:document-reader

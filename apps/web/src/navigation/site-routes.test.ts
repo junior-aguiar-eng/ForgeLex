@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { resolveSiteRoute, safeWorkspaceDestination } from './site-routes';
 
 describe('rotas públicas e protegidas', () => {
+  it.each(['/app/casos', '/app/rascunhos', '/app/revisao', '/casos', '/rascunhos', '/revisao'])('oculta %s e seu next inclusive com barra final', (path) => {
+    for (const suffix of ['', '/']) {
+      expect(resolveSiteRoute(path + suffix, false)).toEqual({ kind: 'workspace', tab: 'connections' });
+      expect(safeWorkspaceDestination(path + suffix + '?matterId=private#document', false)).toBe('/app/conectar');
+      expect(safeWorkspaceDestination(path + suffix + '?matterId=private#document', true)).toBe(path + suffix + '?matterId=private#document');
+    }
+  });
+  it('preserva parâmetros e hash de conta no next', () => {
+    expect(safeWorkspaceDestination('/app/conta?billing_purchase=p1&status=approved#receipt', false)).toBe('/app/conta?billing_purchase=p1&status=approved#receipt');
+  });
   it.each([
     ['/', { kind: 'public', page: 'home' }],
     ['/produto', { kind: 'public', page: 'product' }],
@@ -19,7 +29,7 @@ describe('rotas públicas e protegidas', () => {
   });
 
   it('aceita apenas destinos internos conhecidos após o login', () => {
-    expect(safeWorkspaceDestination('/app/casos?secao=provas')).toBe('/app/casos?secao=provas');
+    expect(safeWorkspaceDestination('/app/casos?secao=provas', true)).toBe('/app/casos?secao=provas');
     expect(safeWorkspaceDestination('/pesquisa')).toBe('/pesquisa');
     expect(safeWorkspaceDestination('/app/consulta-processual')).toBe('/app/consulta-processual');
     expect(safeWorkspaceDestination('https://example.com')).toBe('/app');

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { OperationsClient } from '../operations/operations-client';
+import { OperationsClient } from '../operations/operations-client';
 import type { ReviewQueueItem } from '../operations/contracts';
-import { createOperationalActions } from './AppContext';
+import { createOperationalActions, loadVisibleOperationalState } from './AppContext';
 
 describe('AppContext operational actions', () => {
   it('recarrega a fila após decisão concluída', async () => {
@@ -26,5 +26,25 @@ describe('AppContext operational actions', () => {
     await expect(actions.resolveReview(item, 'REJECTED')).rejects.toThrow('CONFLICT');
     expect(applyQueue).toHaveBeenCalledWith({ state: 'error', data: [item], error: 'CONFLICT' });
     expect(client.loadReviewQueue).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('carga operacional visível', () => {
+  it.each([false, true])('preserva recursos reais no modo casesEnabled=%s', async (enabled) => {
+    const paths: string[] = [];
+    const requester = async <T,>(path: string) => {
+      paths.push(path);
+      if (path.includes('review-queue')) throw new Error('review unavailable');
+      return { data: path.includes('tribunals') ? { tribunals: [{ code: 'STJ', searchable: true }] } : { items: [{ id: 'history-real' }] }, headers: new Headers(), status: 200 } as { data: T; headers: Headers; status: number };
+    };
+    const client = new OperationsClient(requester);
+    for (let refresh = 0; refresh < 2; refresh++) {
+      const result = await loadVisibleOperationalState(client, enabled);
+      expect(result.tribunals).toEqual({ state: 'ready', data: [{ code: 'STJ', searchable: true }] });
+      expect(result.history).toEqual({ state: 'ready', data: [{ id: 'history-real' }] });
+      expect(result.reviewQueue).toEqual(enabled ? { state: 'error', data: [], error: 'review unavailable' } : { state: 'unavailable', data: [] });
+    }
+    expect(paths.filter(path => path.includes('review-queue')).length).toBe(enabled ? 2 : 0);
   });
 });

@@ -1,14 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Cable, FileCode2, KeyRound, LayoutDashboard, PanelLeftClose, PanelLeftOpen, Search, ShieldCheck, WalletCards, X } from 'lucide-react';
+import { Activity, Cable, FolderOpen, FileText, FileCode2, KeyRound, LayoutDashboard, PanelLeftClose, PanelLeftOpen, Search, ShieldCheck, WalletCards, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AppTab } from '../navigation/routes';
 
-const secondaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
+import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+
+const secondaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon; mobileOnly?: boolean }> = [
+  ...(CASE_WORKSPACE_ENABLED ? [
+    { tab: 'matter' as const, label: 'Casos', icon: FolderOpen, mobileOnly: true },
+    { tab: 'draft_studio' as const, label: 'Rascunhos', icon: FileText, mobileOnly: true },
+    { tab: 'dashboard' as const, label: 'Revisão', icon: FileCode2, mobileOnly: true },
+  ] : []),
+  { tab: 'research', label: 'Pesquisa', icon: Search, mobileOnly: true },
+  { tab: 'for_lawyers_guide', label: 'Guia de conexão', icon: Cable },
   { tab: 'landing', label: 'Visão geral', icon: LayoutDashboard },
   { tab: 'credits', label: 'Conta e faturamento', icon: WalletCards },
   { tab: 'account_activity', label: 'Atividade da conta', icon: Activity },
   { tab: 'account_security', label: 'Segurança da conta', icon: ShieldCheck },
-  { tab: 'connections', label: 'Conectar IA', icon: Cable },
+  { tab: 'connections', label: 'Conectar IA', icon: Cable, mobileOnly: !CASE_WORKSPACE_ENABLED },
   { tab: 'api_keys', label: 'Chaves de API', icon: KeyRound },
   { tab: 'api_docs', label: 'API para desenvolvedores', icon: FileCode2 },
   { tab: 'datajud', label: 'Consulta processual gratuita', icon: Search },
@@ -49,19 +58,19 @@ export const Sidebar: React.FC<{
           mobileOpen ? 'visible translate-x-0' : 'invisible -translate-x-full'
         } ${collapsed ? 'lg:w-20' : 'lg:w-64'}`}
       >
-        <div className="flex min-h-16 items-center justify-between border-b border-stone-200/70 px-4">
-          {!collapsed && <span className="eyebrow">Espaço de trabalho</span>}
+        <div className="flex min-h-16 shrink-0 items-center justify-between border-b border-stone-200/70 px-4">
+          {!collapsed && <span className="eyebrow">Conta e recursos</span>}
           <button type="button" onClick={onCloseMobile} className="min-h-11 min-w-11 rounded-lg p-2 text-stone-500 hover:bg-stone-100 lg:hidden" aria-label="Fechar menu lateral"><X className="h-5 w-5" aria-hidden="true" /></button>
           <button type="button" onClick={() => setCollapsed((value) => !value)} className="hidden min-h-11 min-w-11 rounded-lg p-2 text-stone-500 hover:bg-stone-100 lg:block" aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'} aria-expanded={!collapsed} aria-controls="forgelex-sidebar">{collapsed ? <PanelLeftOpen className="h-5 w-5" aria-hidden="true" /> : <PanelLeftClose className="h-5 w-5" aria-hidden="true" />}</button>
         </div>
-        <nav className="space-y-1 p-3" aria-label="Conta e recursos técnicos">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3" aria-label="Conta e recursos técnicos">
           {secondaryNavigation.map((item) => {
             const Icon = item.icon;
             const active = item.tab === activeTab;
-            return <button key={item.tab} type="button" onClick={() => { onSelect(item.tab); onCloseMobile(); if (mobileOpen) document.getElementById('forgelex-menu-toggle')?.focus(); }} aria-current={active ? 'page' : undefined} title={collapsed ? item.label : undefined} className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium transition-colors ${active ? 'bg-cognac-100 text-cognac-900' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'} ${collapsed ? 'lg:justify-center lg:px-2' : ''}`}><Icon className="h-4 w-4 shrink-0" aria-hidden="true" /><span className={collapsed ? 'lg:hidden' : ''}>{item.label}</span></button>;
+            return <button key={item.tab} type="button" onClick={() => { onSelect(item.tab); onCloseMobile(); if (mobileOpen) document.getElementById('forgelex-menu-toggle')?.focus(); }} aria-current={active ? 'page' : undefined} title={collapsed ? item.label : undefined} className={`${item.mobileOnly ? 'lg:hidden' : ''} flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium transition-colors ${active ? 'bg-cognac-100 text-cognac-900' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'} ${collapsed ? 'lg:justify-center lg:px-2' : ''}`}><Icon className="h-4 w-4 shrink-0" aria-hidden="true" /><span className={collapsed ? 'lg:hidden' : ''}>{item.label}</span></button>;
           })}
         </nav>
-        {!collapsed && <div className="mt-auto border-t border-stone-200/70 p-4 text-xs leading-relaxed text-stone-500">As áreas de conta e integração ficam separadas do trabalho jurídico.</div>}
+        {!collapsed && <div className="shrink-0 border-t border-stone-200/70 p-4 text-xs leading-relaxed text-stone-500">Gerencie sua conta, conecte sua IA e acesse pesquisa e recursos técnicos.</div>}
       </aside>
     </>
   );

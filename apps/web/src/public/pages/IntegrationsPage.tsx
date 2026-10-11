@@ -5,8 +5,8 @@ export function IntegrationsPage() {
     <>
       <PageIntro
         eyebrow="Integrações"
-        title="Trabalhe no ForgeLex ou conecte suas ferramentas."
-        text="O espaço de trabalho é o caminho direto. MCP e API REST são alternativas para usar as operações jurídicas em outros ambientes."
+        title="Conecte pesquisa jurídica à sua IA ou ao seu software."
+        text="MCP permite pesquisar decisões pelo ChatGPT ou Claude, conforme a disponibilidade no host. A API REST oferece integração ao seu software."
       />
       <WaysToUse />
       <Safeguards />

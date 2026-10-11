@@ -1,5 +1,11 @@
 export type AppTab = 'landing' | 'research' | 'datajud' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'account_activity' | 'account_security' | 'account_closure_status' | 'api_keys' | 'for_lawyers_guide' | 'api_docs';
 
+import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+
+export function resolveVisibleTab(tab: AppTab, casesEnabled: boolean): AppTab {
+  return !casesEnabled && (tab === 'matter' || tab === 'draft_studio' || tab === 'dashboard') ? 'connections' : tab;
+}
+
 export type AppRoute = {
   tab: AppTab;
   path: string;
@@ -55,15 +61,18 @@ export function updateDocumentTitle(tab: AppTab): void {
   if (typeof document !== 'undefined') document.title = `ForgeLex · ${routeForTab(tab).title}`;
 }
 
-export function navigateToTab(tab: AppTab, mode: 'push' | 'replace' = 'push'): void {
+export function navigateToTab(tab: AppTab, mode: 'push' | 'replace' = 'push', casesEnabled = CASE_WORKSPACE_ENABLED): void {
   if (typeof window === 'undefined') return;
 
-  const route = routeForTab(tab);
-  const preserveReturnParameters = mode === 'replace' ? `${window.location.search}${window.location.hash}` : '';
+  const visibleTab = resolveVisibleTab(tab, casesEnabled);
+  const redirected = visibleTab !== tab;
+  if (redirected) mode = 'replace';
+  const route = routeForTab(visibleTab);
+  const preserveReturnParameters = mode === 'replace' && !redirected ? `${window.location.search}${window.location.hash}` : '';
   const destination = `${route.path}${preserveReturnParameters}`;
   const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
-  updateDocumentTitle(tab);
+  updateDocumentTitle(visibleTab);
   if (current === destination) return;
   window.history[mode === 'replace' ? 'replaceState' : 'pushState']({}, document.title, destination);
 }

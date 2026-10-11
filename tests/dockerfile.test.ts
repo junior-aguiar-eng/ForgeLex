@@ -9,6 +9,8 @@ describe('imagem de produção', () => {
     expect(dockerfile).toMatch(/ARG VITE_SUPABASE_URL\s+ARG VITE_SUPABASE_PUBLISHABLE_KEY/);
     expect(dockerfile).toMatch(/ENV VITE_SUPABASE_URL=\$\{VITE_SUPABASE_URL\}\s+\\?\s+VITE_SUPABASE_PUBLISHABLE_KEY=\$\{VITE_SUPABASE_PUBLISHABLE_KEY\}/);
     expect(dockerfile.indexOf('ENV VITE_SUPABASE_URL')).toBeLessThan(dockerfile.indexOf('RUN pnpm build'));
+    expect(dockerfile).toContain('ARG VITE_FORGELEX_CASE_WORKSPACE_ENABLED=false');
+    expect(dockerfile.indexOf('VITE_FORGELEX_CASE_WORKSPACE_ENABLED=${VITE_FORGELEX_CASE_WORKSPACE_ENABLED}')).toBeLessThan(dockerfile.indexOf('RUN pnpm build'));
     expect(cloudBuild).toContain('VITE_SUPABASE_URL=${_VITE_SUPABASE_URL}');
     expect(cloudBuild).toContain('VITE_SUPABASE_PUBLISHABLE_KEY=${_VITE_SUPABASE_PUBLISHABLE_KEY}');
   });
