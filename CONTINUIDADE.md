@@ -9,7 +9,8 @@ aplica-se [AGENTS.md](AGENTS.md), inclusive sobre exigências de planos antigos.
 
 O backlog atual está em [PENDENCIAS.md](PENDENCIAS.md). A remediação da auditoria
 foi integrada pela PR #58: correções técnicas e ponte direta Pesquisa → Caso.
-O runtime desta entrega é `forgelex-api-prod-audit-5aca51e`, código `5aca51e`.
+O runtime daquela entrega é `forgelex-api-prod-audit-5aca51e`, código `5aca51e`,
+preservado como rollback do congelamento publicado em 11/10.
 [Evidências e limites](docs/operations/stabilization/2026-10-07-audit-remediation.md).
 
 A pendência de ativação técnica da retenção foi encerrada em 09/10, após
@@ -33,7 +34,7 @@ obrigatórios, com 794 unitários e 130 E2E aprovados. Serviços PostgreSQL da C
 usam o espelho Docker Official Image no ECR Public. Sem novo deploy HTTP,
 pois o comportamento de runtime não foi alterado por esse incremento.
 
-## Congelamento do site — execução local em 11/10
+## Congelamento do site — publicado em 11/10
 
 Boni autorizou a execução do plano de escopo MCP. A branch isolada
 `codex/site-mcp-scope-freeze`, base main `f5f9316`, oculta casos, análise,
@@ -44,19 +45,28 @@ O checkout original e seus trabalhos anteriores permanecem intactos.
 
 Vistoria complementar de 11/10 confirmou produção já publicada, PostgreSQL
 real somente leitura e conexão OAuth gratuita em ChatGPT/Claude. A regressão
-PostgreSQL descartável aprovou 39 testes e 55 checks. O congelamento continua
-sem commit, push ou deploy; sua interface ainda não foi validada em produção.
+PostgreSQL descartável aprovou 39 testes e 55 checks. Essa vistoria precedeu
+a publicação do novo site.
 [Evidências e limites](docs/operations/stabilization/2026-10-11-site-mcp-external-validation.md).
+
+Boni autorizou commit, push, PR, integração em main e deploy. PR #66 integrada
+em `a6672d4`, seis jobs da CI aprovados e build canônico concluído. A revisão
+`forgelex-api-prod-site-a6672d49` recebe 100% do tráfego. Promoção 5/25/100:
+470 probes sem erros. Interface publicada, seis redirecionamentos, ausência de
+carregamento da fila/casos e recuperação de aba antiga conferidos no navegador.
+OAuth gratuito confirmado no Codex após o deploy. Configuração de backend,
+Cloud SQL, Supabase e grants preservada; sem migration remota nesta publicação.
+[Publicação, recibo e rollback](docs/operations/stabilization/2026-10-11-site-mcp-publication.md).
 
 | Plano/frente | Estado atual |
 | --- | --- |
 | Simplificação do fluxo de casos (10/10, artefatos locais anteriores) | Suspenso; histórico e trabalho local preservados |
 | Mesa/orquestração jurídica V2 e transição agêntica (10/10) | Suspensas como execução; visão histórica preservada |
 | Apresentação visual de decisões MCP (11/10) | Independente, não executada aqui; rever referências a salvar em casos |
-| Ocultação do site (11/10) | Implementação local; validação no registro próprio; aprovação visual/publicação separadas |
+| Ocultação do site (11/10) | Publicada pela PR #66; validação técnica em produção registrada; avaliação humana por Boni |
 
-A descrição do fluxo abaixo registra o produto anteriormente publicado; não
-comprova publicação do congelamento local.
+A descrição do fluxo abaixo registra o produto anteriormente publicado,
+preservado no backend e oculto na interface atual.
 
 ## O produto hoje
 

@@ -1,0 +1,650 @@
+{
+  "recordedAt": "2026-10-11T17:47:55.922027+00:00",
+  "authorization": {
+    "approver": "Boni",
+    "date": "2026-10-11",
+    "requests": [
+      "commit, push e deploy",
+      "Autorizar PR, integração em main e deploy"
+    ]
+  },
+  "implementationCommit": "3f37d7759605beec91736a183b2a734ac44bbef0",
+  "integration": {
+    "mergeCommit": {
+      "oid": "a6672d49eb167bc0b2c43b6da728ae946feb2b03"
+    },
+    "mergedAt": "2026-10-11T17:03:49Z",
+    "state": "MERGED",
+    "url": "https://github.com/junior-aguiar-eng/ForgeLex/pull/66"
+  },
+  "build": {
+    "sourceSha": "a6672d49eb167bc0b2c43b6da728ae946feb2b03",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:5526af77173638a1dd6e259e02e11b3121837c2f8db7139be209c6e262145b5d",
+    "recordedAt": "2026-10-11T17:08:29.4095213Z",
+    "build": {
+      "createTime": "2026-10-11T17:04:17.927970494Z",
+      "finishTime": "2026-10-11T17:08:06.232322Z",
+      "id": "2815de4e-5d39-4f21-b329-745d4ae068f1",
+      "results": {
+        "images": [
+          {
+            "artifactRegistryPackage": "projects/project-bbbe1209-c295-4720-867/locations/southamerica-east1/repositories/forgelex-prod/packages/forgelex-api/versions/sha256:5526af77173638a1dd6e259e02e11b3121837c2f8db7139be209c6e262145b5d",
+            "digest": "sha256:5526af77173638a1dd6e259e02e11b3121837c2f8db7139be209c6e262145b5d",
+            "name": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api:a6672d49eb167bc0b2c43b6da728ae946feb2b03",
+            "pushTiming": {
+              "endTime": "2026-10-11T17:08:05.519909495Z",
+              "startTime": "2026-10-11T17:07:43.034276026Z"
+            }
+          }
+        ]
+      },
+      "sourceProvenance": {
+        "resolvedStorageSource": {
+          "bucket": "project-bbbe1209-c295-4720-867_cloudbuild",
+          "generation": "1791738256503600",
+          "object": "source/1791738254.0185-db924891bc844f8caddfed27c76542e7.tgz"
+        }
+      },
+      "status": "SUCCESS"
+    },
+    "canonicalScript": "ops/gcp/production/build-from-main.ps1"
+  },
+  "ci": {
+    "headSha": "a6672d49eb167bc0b2c43b6da728ae946feb2b03",
+    "conclusion": "success",
+    "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/38158062921",
+    "jobs": [
+      {
+        "name": "security",
+        "conclusion": "success",
+        "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/38158062921/job/114525033474"
+      },
+      {
+        "name": "e2e-product",
+        "conclusion": "success",
+        "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/38158062921/job/114525033724"
+      },
+      {
+        "name": "e2e-account-closure",
+        "conclusion": "success",
+        "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/38158062921/job/114525033726"
+      },
+      {
+        "name": "postgres",
+        "conclusion": "success",
+        "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/38158062921/job/114525033728"
+      },
+      {
+        "name": "validate",
+        "conclusion": "success",
+        "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/38158062921/job/114525033796"
+      },
+      {
+        "name": "e2e-public",
+        "conclusion": "success",
+        "url": "https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/38158062921/job/114525033848"
+      }
+    ]
+  },
+  "candidate": {
+    "recordedAt": "2026-10-11T17:11:46.0353178Z",
+    "environmentPreserved": true,
+    "revision": "forgelex-api-prod-site-a6672d49",
+    "rollback": "forgelex-api-prod-audit-5aca51e",
+    "noTraffic": true,
+    "sourceSha": "a6672d49eb167bc0b2c43b6da728ae946feb2b03",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:5526af77173638a1dd6e259e02e11b3121837c2f8db7139be209c6e262145b5d"
+  },
+  "candidateSmoke": {
+    "entry": "/assets/index-D_WU7kS_.js",
+    "title": "ForgeLex · Pesquisa do STJ por MCP",
+    "assetStatus": 200,
+    "publicCopyMatched": true,
+    "checkedAt": "2026-10-11T17:20:51.7918703Z",
+    "observedRevisions": [
+      "forgelex-api-prod-site-a6672d49"
+    ],
+    "checks": [
+      {
+        "path": "/healthz",
+        "status": 200
+      },
+      {
+        "path": "/readyz",
+        "status": 200
+      },
+      {
+        "path": "/",
+        "status": 200
+      },
+      {
+        "path": "/app/conectar",
+        "status": 200
+      },
+      {
+        "path": "/guia/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "status": 200
+      },
+      {
+        "path": "/openapi.json",
+        "status": 200
+      },
+      {
+        "path": "/app/desenvolvedores/api",
+        "status": 200
+      },
+      {
+        "path": "/consulta-processual",
+        "status": 200
+      }
+    ]
+  },
+  "promotion": {
+    "stages": [
+      {
+        "percent": 5,
+        "startedAt": "2026-10-11T17:21:00.1302661Z",
+        "completedAt": "2026-10-11T17:23:24.1882858Z",
+        "elapsedSeconds": 144.1,
+        "requests": 160,
+        "observedRevisions": [
+          "forgelex-api-prod-audit-5aca51e",
+          "forgelex-api-prod-site-a6672d49"
+        ],
+        "traffic": [
+          {
+            "percent": 95,
+            "revisionName": "forgelex-api-prod-audit-5aca51e"
+          },
+          {
+            "percent": 5,
+            "revisionName": "forgelex-api-prod-site-a6672d49",
+            "tag": "site-freeze-candidate",
+            "url": "https://site-freeze-candidate---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app"
+          }
+        ],
+        "errorCount": 0,
+        "verified": true
+      },
+      {
+        "percent": 25,
+        "startedAt": "2026-10-11T17:23:53.6117240Z",
+        "completedAt": "2026-10-11T17:26:20.9805062Z",
+        "elapsedSeconds": 147.4,
+        "requests": 160,
+        "observedRevisions": [
+          "forgelex-api-prod-audit-5aca51e",
+          "forgelex-api-prod-site-a6672d49"
+        ],
+        "traffic": [
+          {
+            "percent": 75,
+            "revisionName": "forgelex-api-prod-audit-5aca51e"
+          },
+          {
+            "percent": 25,
+            "revisionName": "forgelex-api-prod-site-a6672d49",
+            "tag": "site-freeze-candidate",
+            "url": "https://site-freeze-candidate---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app"
+          }
+        ],
+        "errorCount": 0,
+        "verified": true
+      },
+      {
+        "percent": 100,
+        "startedAt": "2026-10-11T17:26:47.5480150Z",
+        "completedAt": "2026-10-11T17:29:07.8935061Z",
+        "elapsedSeconds": 140.3,
+        "requests": 150,
+        "observedRevisions": [
+          "forgelex-api-prod-site-a6672d49"
+        ],
+        "traffic": [
+          {
+            "percent": 100,
+            "revisionName": "forgelex-api-prod-site-a6672d49",
+            "tag": "site-freeze-candidate",
+            "url": "https://site-freeze-candidate---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app"
+          }
+        ],
+        "errorCount": 0,
+        "verified": true
+      }
+    ],
+    "probeCount": 470
+  },
+  "production": {
+    "runtime": {
+      "ingress": "internal-and-cloud-load-balancing",
+      "serviceAccount": "forgelex-api-prod@project-bbbe1209-c295-4720-867.iam.gserviceaccount.com",
+      "autoMigrate": "false",
+      "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:5526af77173638a1dd6e259e02e11b3121837c2f8db7139be209c6e262145b5d",
+      "sourceSha": "a6672d49eb167bc0b2c43b6da728ae946feb2b03",
+      "traffic": [
+        {
+          "percent": 100,
+          "revisionName": "forgelex-api-prod-site-a6672d49"
+        }
+      ],
+      "checkedAt": "2026-10-11T17:38:18.0303711Z",
+      "latestReady": "forgelex-api-prod-site-a6672d49",
+      "billingEnabled": "true",
+      "cloudSql": "project-bbbe1209-c295-4720-867:southamerica-east1:forgelex-hml-pg"
+    },
+    "readiness": {
+      "result": {
+        "status": "ready",
+        "service": "forgelex-api",
+        "checks": {
+          "persistence": true,
+          "migrations": true,
+          "billing": true,
+          "source": true,
+          "auth": true,
+          "outbox": true,
+          "accountClosureRestore": true,
+          "matterPurgeRestore": true
+        }
+      },
+      "checkedAt": "2026-10-11T17:45:18.5709674Z"
+    },
+    "browser": {
+      "verifiedAt": "2026-10-11T17:35:32.256Z",
+      "aliases": [
+        {
+          "path": "/app/casos",
+          "destination": "https://nexojuris.ia.br/app/conectar",
+          "redirected": true
+        },
+        {
+          "path": "/app/rascunhos",
+          "destination": "https://nexojuris.ia.br/app/conectar",
+          "redirected": true
+        },
+        {
+          "path": "/app/revisao",
+          "destination": "https://nexojuris.ia.br/app/conectar",
+          "redirected": true
+        },
+        {
+          "path": "/casos",
+          "destination": "https://nexojuris.ia.br/app/conectar",
+          "redirected": true
+        },
+        {
+          "path": "/rascunhos",
+          "destination": "https://nexojuris.ia.br/app/conectar",
+          "redirected": true
+        },
+        {
+          "path": "/revisao",
+          "destination": "https://nexojuris.ia.br/app/conectar",
+          "redirected": true
+        }
+      ],
+      "routes": [
+        {
+          "path": "/app",
+          "heading": "Jurisprudência do STJ no seu fluxo com IA.",
+          "caseButtons": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "path": "/app/pesquisa",
+          "heading": "Pesquisa com trilha de proveniência",
+          "caseButtons": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "path": "/app/guia/mcp",
+          "heading": "Guia de conexão para advogados",
+          "caseButtons": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "path": "/app/desenvolvedores/api",
+          "heading": "API para desenvolvedores",
+          "caseButtons": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "path": "/app/conta",
+          "heading": "Recarregar créditos",
+          "caseButtons": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "path": "/app/conta/chaves",
+          "heading": "Chaves de API",
+          "caseButtons": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "path": "/app/conta/atividade",
+          "heading": "Atividade da conta",
+          "caseButtons": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "path": "/app/conta/seguranca",
+          "heading": "Segurança da conta",
+          "caseButtons": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "path": "/app/consulta-processual",
+          "heading": "Consulta processual",
+          "caseButtons": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "path": "/consulta-processual",
+          "heading": "Consulta processual",
+          "caseButtons": 0,
+          "horizontalOverflow": false
+        }
+      ],
+      "forbiddenRequests": [],
+      "consoleErrors": [],
+      "networkRequestCount": 376,
+      "networkEventsTruncated": false,
+      "networkEventsHasMore": false,
+      "initialCaptureTruncated": true,
+      "networkChecks": [
+        {
+          "path": "/app/casos",
+          "requests": 24,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/app/rascunhos",
+          "requests": 24,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/app/revisao",
+          "requests": 24,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/casos",
+          "requests": 26,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/rascunhos",
+          "requests": 24,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/revisao",
+          "requests": 25,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/app",
+          "requests": 27,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/app/pesquisa",
+          "requests": 28,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/app/guia/mcp",
+          "requests": 24,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/app/desenvolvedores/api",
+          "requests": 21,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/app/conta",
+          "requests": 23,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/app/conta/chaves",
+          "requests": 29,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/app/conta/atividade",
+          "requests": 22,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/app/conta/seguranca",
+          "requests": 25,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/app/consulta-processual",
+          "requests": 18,
+          "truncated": false,
+          "hasMore": false
+        },
+        {
+          "path": "/consulta-processual",
+          "requests": 12,
+          "truncated": false,
+          "hasMore": false
+        }
+      ],
+      "mobile": [
+        {
+          "path": "/",
+          "width": 390,
+          "horizontalOverflow": false
+        },
+        {
+          "path": "/app/conectar",
+          "width": 390,
+          "horizontalOverflow": false
+        },
+        {
+          "path": "/app/conta",
+          "width": 390,
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    "hostStatus": {
+      "afterPublication": {
+        "host": "Codex",
+        "authenticated": true,
+        "resource": "https://nexojuris.ia.br/mcp",
+        "authMethod": "oauth_access_token",
+        "verifiedAt": "2026-10-11T17:30:03.067Z",
+        "billable": false
+      },
+      "priorRealHosts": {
+        "hosts": [
+          "ChatGPT",
+          "Claude"
+        ],
+        "proof": "2026-10-11-site-mcp-external-validation-proof.json",
+        "scope": "Validated earlier on 2026-10-11; runtime OAuth configuration preserved during deployment"
+      }
+    },
+    "hostRequests": [
+      {
+        "timestamp": "2026-10-11T17:30:02.972036Z",
+        "revision": "forgelex-api-prod-site-a6672d49",
+        "method": "POST",
+        "status": 200,
+        "userAgent": "openai-mcp/1.0.0 (Codex)"
+      },
+      {
+        "timestamp": "2026-10-11T17:30:02.776384Z",
+        "revision": "forgelex-api-prod-site-a6672d49",
+        "method": "POST",
+        "status": 202,
+        "userAgent": "openai-mcp/1.0.0 (Codex)"
+      },
+      {
+        "timestamp": "2026-10-11T17:30:02.607695Z",
+        "revision": "forgelex-api-prod-site-a6672d49",
+        "method": "POST",
+        "status": 200,
+        "userAgent": "openai-mcp/1.0.0 (Codex)"
+      },
+      {
+        "timestamp": "2026-10-11T17:30:02.006766Z",
+        "revision": "forgelex-api-prod-site-a6672d49",
+        "method": "POST",
+        "status": 200,
+        "userAgent": "openai-mcp/1.0.0 (Codex)"
+      }
+    ],
+    "errorLogs": {
+      "checkedAt": "2026-10-11T17:45:24.5118144Z",
+      "entries": [],
+      "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"forgelex-api-prod\" AND resource.labels.revision_name=\"forgelex-api-prod-site-a6672d49\" AND timestamp>=\"2026-10-11T17:22:00Z\" AND (httpRequest.status>=500 OR severity>=ERROR)",
+      "count": 0
+    }
+  },
+  "staleTab": {
+    "observedAt": "2026-10-11T17:30:58.009Z",
+    "url": "https://nexojuris.ia.br/app/conectar",
+    "heading": "Conectar o ForgeLex ao ChatGPT ou Claude",
+    "caseButtons": 0,
+    "recovery": "Manual Atualizar pagina action in load boundary",
+    "networkResponses": [
+      {
+        "path": "/assets/chevron-down-CJ0ZOjWe.js",
+        "status": 404
+      },
+      {
+        "path": "/assets/ConnectionsScreen-MBAFWufP.js",
+        "status": 404
+      },
+      {
+        "path": "/assets/HostInstallationGuide-UPlsul3b.js",
+        "status": 404
+      },
+      {
+        "path": "/app/conectar",
+        "status": 200
+      },
+      {
+        "path": "/assets/index-Bhc2X3vo.css",
+        "status": 200
+      },
+      {
+        "path": "/assets/index-D_WU7kS_.js",
+        "status": 200
+      },
+      {
+        "path": "/api/v2/tribunals",
+        "status": 200
+      },
+      {
+        "path": "/api/v2/research/history",
+        "status": 200
+      },
+      {
+        "path": "/api/v2/auth/bootstrap",
+        "status": 200
+      },
+      {
+        "path": "/api/v2/auth/me",
+        "status": 200
+      },
+      {
+        "path": "/assets/check-BY0xJM7w.js",
+        "status": 200
+      },
+      {
+        "path": "/assets/HostInstallationGuide-DSTNWqTF.js",
+        "status": 200
+      },
+      {
+        "path": "/assets/copy-BLFwDQb1.js",
+        "status": 200
+      },
+      {
+        "path": "/assets/ConnectionsScreen-DunPlmbm.js",
+        "status": 200
+      },
+      {
+        "path": "/assets/chevron-down-DdXSdBIC.js",
+        "status": 200
+      },
+      {
+        "path": "/api/v2/tribunals",
+        "status": 200
+      },
+      {
+        "path": "/api/v2/research/history",
+        "status": 200
+      }
+    ],
+    "eventsTruncated": false
+  },
+  "cleanup": {
+    "checkedAt": "2026-10-11T17:31:57.1882353Z",
+    "traffic": [
+      {
+        "percent": 100,
+        "revisionName": "forgelex-api-prod-site-a6672d49"
+      }
+    ],
+    "backendRemoved": true,
+    "temporaryRouteRemoved": true,
+    "negRemoved": true,
+    "candidateTagRemoved": true
+  },
+  "preservation": {
+    "checkedAt": "2026-10-11T17:45:24.6140533Z",
+    "protectedFiles": 47,
+    "noBackendSourceDiff": true,
+    "allUnchanged": true
+  },
+  "verificationIncidents": [
+    "Initial candidate probes reached the old revision during URL map propagation",
+    "Cloud Logging ingestion lag required waiting for all candidate request records",
+    "Candidate HTML assertion incorrectly expected Pesquisa juridica; corrected to delivered title ForgeLex Pesquisa do STJ por MCP"
+  ],
+  "limitations": [
+    "No production migration, restore, retention execution, financial operation or new OAuth permission",
+    "No actual paid search or CNJ process lookup",
+    "Short rollout observations do not prove continuous reliability or load performance"
+  ],
+  "screenshots": {
+    "public-desktop.png": {
+      "localPath": "C:\\Users\\Boni Jr\\.codex\\worktrees\\site-mcp-scope-freeze\\SDK\\.superpowers\\sdd\\2026-10-11-site-mcp-publication\\public-desktop.png",
+      "sha256": "a2d0dcba694f4b264d1e687afd03782304dd01d20151c690c535a7c041303021"
+    },
+    "public-mobile.png": {
+      "localPath": "C:\\Users\\Boni Jr\\.codex\\worktrees\\site-mcp-scope-freeze\\SDK\\.superpowers\\sdd\\2026-10-11-site-mcp-publication\\public-mobile.png",
+      "sha256": "de5cf8036024027a47519aebcf20e690b3cefb2bf026a38883f8ef875db17862"
+    }
+  }
+}

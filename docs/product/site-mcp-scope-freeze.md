@@ -63,3 +63,9 @@ restauração do banco ou mudança de grants.
 O registro técnico desta execução fica em
 [registro local](../operations/stabilization/2026-10-11-site-mcp-scope-freeze.md).
 Homologação visual por Boni, commit, integração e deploy não são presumidos.
+
+Commit, push, PR, integração e deploy foram posteriormente autorizados por Boni
+e executados em 11/10/2026. PR #66 integrada em `a6672d4`; revisão
+`forgelex-api-prod-site-a6672d49` com 100% do tráfego. A avaliação humana da
+interface continua distinta das verificações técnicas realizadas.
+[Publicação e rollback](../operations/stabilization/2026-10-11-site-mcp-publication.md).
