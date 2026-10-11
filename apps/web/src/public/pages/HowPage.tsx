@@ -5,8 +5,8 @@ export function HowPage() {
     <>
       <PageIntro
         eyebrow="Como funciona"
-        title="Cada etapa conserva o contexto da anterior."
-        text="O ForgeLex relaciona o material do caso à pesquisa e aos rascunhos, permitindo conferir a origem de informações antes de usar o resultado."
+        title="Conecte, pesquise e confira a fonte."
+        text="Crie seu acesso, autorize um host compatível e pesquise decisões do STJ. Abra as autoridades e confira sua proveniência antes do uso."
       />
       <Movements />
       <Safeguards />

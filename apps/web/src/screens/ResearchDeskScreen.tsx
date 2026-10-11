@@ -1,3 +1,4 @@
+import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ExternalLink, FileCheck2, Search, ShieldCheck } from 'lucide-react';
 import { AuthorityVerification, useApp } from '../context/AppContext';
@@ -105,7 +106,7 @@ export const ResearchDeskScreen: React.FC = () => {
                       <span>Relatoria: {item.relator} · {item.chamber ? `${item.chamber} · ` : ''}Julgamento: {item.judgmentDate}</span>
                       {item.sourceUrl ? <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-cognac-700 hover:underline">Ver fonte retornada<ExternalLink className="h-3 w-3" /></a> : <span>Fonte não informada</span>}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2"><CopyCitationButton item={item} /><SaveAuthorityToCase item={item} /></div>
+                    <div className="flex flex-wrap items-center gap-2"><CopyCitationButton item={item} />{CASE_WORKSPACE_ENABLED && <SaveAuthorityToCase item={item} />}</div>
                   </article>
                 ))}
               </div>

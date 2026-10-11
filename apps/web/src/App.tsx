@@ -11,6 +11,9 @@ import { PublicSite } from './public/PublicSite';
 import { DataJudPage } from './public/pages/DataJudPage';
 import { resolveSiteRoute, safeWorkspaceDestination, type SiteRoute } from './navigation/site-routes';
 
+import { resolveVisibleTab } from './navigation/routes';
+import { CASE_WORKSPACE_ENABLED } from './config/site-capabilities';
+
 const LandingScreen = lazy(() => import('./screens/LandingScreen').then(({ LandingScreen: screen }) => ({ default: screen })));
 const ResearchDeskScreen = lazy(() => import('./screens/ResearchDeskScreen').then(({ ResearchDeskScreen: screen }) => ({ default: screen })));
 const MatterWorkspaceScreen = lazy(() => import('./screens/MatterWorkspaceScreen').then(({ MatterWorkspaceScreen: screen }) => ({ default: screen })));
@@ -28,6 +31,7 @@ const OAuthConsentScreen = lazy(() => import('./screens/OAuthConsentScreen').the
 
 const AppContent: React.FC = () => {
   const { activeTab, setActiveTab } = useApp();
+  const visibleTab = resolveVisibleTab(activeTab, CASE_WORKSPACE_ENABLED);
   const { status, passwordRecovery, passwordRecoveryError } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const billingReturn = React.useMemo(() => parseBillingReturn(window.location.search), []);
@@ -52,23 +56,23 @@ const AppContent: React.FC = () => {
       <Header menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((value) => !value)} />
 
       <div className="relative flex min-w-0 flex-1">
-        <Sidebar activeTab={activeTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={setActiveTab} />
+        <Sidebar activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={setActiveTab} />
         <main className="min-w-0 flex-1">
-          <ScreenLoadBoundary key={activeTab}>
+          <ScreenLoadBoundary key={visibleTab}>
             <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
-              {activeTab === 'landing' && <LandingScreen />}
-              {activeTab === 'research' && <ResearchDeskScreen />}
-              {activeTab === 'datajud' && <DataJudPage />}
-              {activeTab === 'matter' && <MatterWorkspaceScreen />}
-              {activeTab === 'draft_studio' && <DraftStudioScreen />}
-              {activeTab === 'dashboard' && <DashboardScreen />}
-              {activeTab === 'connections' && <ConnectionsScreen />}
-              {activeTab === 'credits' && <CreditsScreen />}
-              {activeTab === 'account_activity' && <AccountActivityScreen />}
-              {activeTab === 'account_security' && <AccountSecurityScreen />}
-              {activeTab === 'api_keys' && <ApiKeysScreen />}
-              {activeTab === 'for_lawyers_guide' && <ForLawyersGuideScreen />}
-              {activeTab === 'api_docs' && <ApiDocsScreen />}
+              {visibleTab === 'landing' && <LandingScreen />}
+              {visibleTab === 'research' && <ResearchDeskScreen />}
+              {visibleTab === 'datajud' && <DataJudPage />}
+              {visibleTab === 'matter' && <MatterWorkspaceScreen />}
+              {visibleTab === 'draft_studio' && <DraftStudioScreen />}
+              {visibleTab === 'dashboard' && <DashboardScreen />}
+              {visibleTab === 'connections' && <ConnectionsScreen />}
+              {visibleTab === 'credits' && <CreditsScreen />}
+              {visibleTab === 'account_activity' && <AccountActivityScreen />}
+              {visibleTab === 'account_security' && <AccountSecurityScreen />}
+              {visibleTab === 'api_keys' && <ApiKeysScreen />}
+              {visibleTab === 'for_lawyers_guide' && <ForLawyersGuideScreen />}
+              {visibleTab === 'api_docs' && <ApiDocsScreen />}
             </Suspense>
           </ScreenLoadBoundary>
         </main>
@@ -79,7 +83,7 @@ const AppContent: React.FC = () => {
           <div className="flex items-center gap-2">
             <Scale className="h-4 w-4 text-cognac-700" aria-hidden="true" />
             <span className="font-editorial font-bold text-stone-800">ForgeLex</span>
-            <span>· espaço de trabalho jurídico</span>
+            <span>· pesquisa jurídica e integração</span>
           </div>
           <nav aria-label="Documentos legais" className="flex flex-wrap gap-x-4 gap-y-1">
             <a className="hover:text-cognac-700 hover:underline" href="/legal/encerramento-de-conta.html">Termos de encerramento</a>

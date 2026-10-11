@@ -19,14 +19,14 @@ test('a navegação de uma aba antiga conserva o shell e permite abrir outra tel
       body: '{"error":"NOT_FOUND"}',
     }),
   );
-  await page.getByRole('button', { name: 'Pesquisa', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: 'Pesquisa', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Atualizar página' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toBeVisible();
-  await page.getByRole('button', { name: 'Conectar IA', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: 'Conectar IA', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Atualizar página' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Conectar o ForgeLex ao ChatGPT ou Claude' })).toBeVisible();
   await page.unroute('**/assets/ResearchDeskScreen-*.js');
-  await page.getByRole('button', { name: 'Pesquisa', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: 'Pesquisa', exact: true }).click();
   // React.lazy caches the rejected import; a fresh document recovers it.
   await page.getByRole('button', { name: 'Atualizar página' }).click();
   await expect(page.getByRole('heading', { name: 'Pesquisa com trilha de proveniência' })).toBeVisible();

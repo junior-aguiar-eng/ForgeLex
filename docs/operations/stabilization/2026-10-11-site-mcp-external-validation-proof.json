@@ -1,0 +1,469 @@
+{
+  "recordedAt": "2026-10-11T16:48:57.612745+00:00",
+  "scope": "Published production read-only checks and local disposable PostgreSQL regression; local site freeze remains unpublished",
+  "checkout": "C:\\Users\\Boni Jr\\.codex\\worktrees\\site-mcp-scope-freeze\\SDK",
+  "branch": "codex/site-mcp-scope-freeze",
+  "baseHead": "f5f9316dd0255e49029972806fb161963ab4d54a",
+  "production": {
+    "cloudRun": {
+      "traffic": [
+        {
+          "revisionName": "forgelex-api-prod-audit-5aca51e",
+          "percent": 100
+        }
+      ],
+      "verifiedAt": "2026-10-11T16:36:54.0802611Z",
+      "latestReady": "forgelex-api-prod-audit-5aca51e"
+    },
+    "revision": {
+      "metadata": {
+        "name": "forgelex-api-prod-audit-5aca51e"
+      },
+      "status": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2026-10-07T21:25:35.450270Z",
+            "message": "Updating revision scaling succeeded.",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2026-10-07T21:12:18.276319Z",
+            "severity": "Info",
+            "status": "True",
+            "type": "Active"
+          },
+          {
+            "lastTransitionTime": "2026-10-07T21:12:18.124365Z",
+            "message": "Containers became healthy in 9.09s.",
+            "status": "True",
+            "type": "ContainerHealthy"
+          },
+          {
+            "lastTransitionTime": "2026-10-07T21:12:05.709432Z",
+            "message": "Container image import completed in 4.69s.",
+            "status": "True",
+            "type": "ContainerReady"
+          },
+          {
+            "lastTransitionTime": "2026-10-07T21:12:07.828498Z",
+            "message": "Provisioning imported containers completed in 2.12s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+            "status": "True",
+            "type": "ResourcesAvailable"
+          }
+        ],
+        "imageDigest": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:39cb2d3e33fbbcea238c63c3c8f9899d75b89bf38963993946b69336671e73fa"
+      }
+    },
+    "readiness": {
+      "status": "ready",
+      "service": "forgelex-api",
+      "checks": {
+        "persistence": true,
+        "migrations": true,
+        "billing": true,
+        "source": true,
+        "auth": true,
+        "outbox": true,
+        "accountClosureRestore": true,
+        "matterPurgeRestore": true
+      }
+    },
+    "http": {
+      "routes": [
+        {
+          "path": "/readyz",
+          "status": 200,
+          "title": null
+        },
+        {
+          "path": "/",
+          "status": 200,
+          "title": "ForgeLex — Do caso à minuta, conecte fatos, provas e jurisprudência."
+        },
+        {
+          "path": "/produto",
+          "status": 200,
+          "title": "ForgeLex — Do caso à minuta, conecte fatos, provas e jurisprudência."
+        },
+        {
+          "path": "/como-funciona",
+          "status": 200,
+          "title": "ForgeLex — Do caso à minuta, conecte fatos, provas e jurisprudência."
+        },
+        {
+          "path": "/integracoes",
+          "status": 200,
+          "title": "ForgeLex — Do caso à minuta, conecte fatos, provas e jurisprudência."
+        },
+        {
+          "path": "/guia",
+          "status": 200,
+          "title": "ForgeLex — Do caso à minuta, conecte fatos, provas e jurisprudência."
+        },
+        {
+          "path": "/guia/mcp",
+          "status": 200,
+          "title": "ForgeLex — Do caso à minuta, conecte fatos, provas e jurisprudência."
+        },
+        {
+          "path": "/app/conectar",
+          "status": 200,
+          "title": "ForgeLex — Do caso à minuta, conecte fatos, provas e jurisprudência."
+        },
+        {
+          "path": "/app/conta",
+          "status": 200,
+          "title": "ForgeLex — Do caso à minuta, conecte fatos, provas e jurisprudência."
+        },
+        {
+          "path": "/consulta-processual",
+          "status": 200,
+          "title": "ForgeLex — Do caso à minuta, conecte fatos, provas e jurisprudência."
+        },
+        {
+          "path": "/desenvolvedores/api",
+          "status": 200,
+          "title": "ForgeLex — Do caso à minuta, conecte fatos, provas e jurisprudência."
+        },
+        {
+          "path": "/.well-known/oauth-protected-resource",
+          "status": 200,
+          "title": null
+        }
+      ],
+      "verifiedAt": "2026-10-11T16:46:00.1552456Z"
+    },
+    "browser": {
+      "verifiedAt": "2026-10-11T16:45:23.906Z",
+      "routes": [
+        {
+          "path": "/app",
+          "heading": "Do caso à minuta, conecte fatos, provas e jurisprudência."
+        },
+        {
+          "path": "/app/pesquisa",
+          "heading": "Pesquisa com trilha de proveniência"
+        },
+        {
+          "path": "/app/guia/mcp",
+          "heading": "Guia de conexão para advogados"
+        },
+        {
+          "path": "/app/desenvolvedores/api",
+          "heading": "API para desenvolvedores"
+        },
+        {
+          "path": "/app/conta",
+          "heading": "Recarregar créditos"
+        },
+        {
+          "path": "/app/conta/chaves",
+          "heading": "Chaves de API"
+        },
+        {
+          "path": "/app/conta/atividade",
+          "heading": "Atividade da conta"
+        },
+        {
+          "path": "/app/conta/seguranca",
+          "heading": "Segurança da conta"
+        },
+        {
+          "path": "/app/consulta-processual",
+          "heading": "Consulta processual"
+        },
+        {
+          "path": "/app/conectar",
+          "heading": "Conectar o ForgeLex ao ChatGPT ou Claude"
+        }
+      ],
+      "consoleErrors": []
+    },
+    "errorLogs": {
+      "entries": [],
+      "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"forgelex-api-prod\" AND timestamp>=\"2026-10-11T15:35:00Z\" AND (httpRequest.status>=500 OR severity>=ERROR)",
+      "queriedAt": "2026-10-11T16:46:07.3151538Z"
+    }
+  },
+  "productionPostgres": {
+    "verifiedAt": "2026-10-11T16:33:54.386Z",
+    "identity": {
+      "database": "forgelex",
+      "version": "PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit",
+      "read_only": "on"
+    },
+    "migrationCount": 37,
+    "missingMigrations": [],
+    "indexes": [
+      {
+        "name": "jurisprudence_versions_search_metadata_idx",
+        "valid": true,
+        "ready": true
+      }
+    ],
+    "mutationStatements": 0
+  },
+  "cloudSql": {
+    "databaseVersion": "POSTGRES_16",
+    "name": "forgelex-hml-pg",
+    "region": "southamerica-east1",
+    "state": "RUNNABLE"
+  },
+  "automatedBackups": [
+    {
+      "endTime": "2026-10-11T04:14:59.123Z",
+      "startTime": "2026-10-11T04:12:47.359Z",
+      "status": "SUCCESSFUL",
+      "type": "AUTOMATED"
+    },
+    {
+      "endTime": "2026-10-10T04:20:27.388Z",
+      "startTime": "2026-10-10T04:18:35.881Z",
+      "status": "SUCCESSFUL",
+      "type": "AUTOMATED"
+    },
+    {
+      "endTime": "2026-10-09T04:31:55.623Z",
+      "startTime": "2026-10-09T04:30:24.378Z",
+      "status": "SUCCESSFUL",
+      "type": "AUTOMATED"
+    }
+  ],
+  "localPostgres": {
+    "image": "postgres:16-alpine",
+    "port": 55439,
+    "migrationCount": 37,
+    "integrationTestsPassed": 39,
+    "integrationTestsSkipped": 0,
+    "testLogs": [
+      "postgres-tests.log",
+      "postgres-migration-tests.log"
+    ],
+    "smokes": [
+      {
+        "log": "smoke-postgres.mjs.log",
+        "status": "passed",
+        "checks": [
+          "migrations_idempotent",
+          "corpus_global",
+          "tenant_isolation",
+          "billing_reservation_concurrency",
+          "refund_concurrency",
+          "matter_workflow",
+          "research_history",
+          "review_runs",
+          "review_queue",
+          "outbox_two_workers",
+          "worker_restart",
+          "readiness",
+          "metrics",
+          "case_ai_access_concurrency_read_revoke"
+        ],
+        "checkCount": 14,
+        "clientTransportAdapted": false
+      },
+      {
+        "log": "smoke-draft-ai-postgres.mjs.log",
+        "status": "passed",
+        "checks": [
+          "migrations",
+          "legacy_receiving_disabled",
+          "same_key_concurrent_one_receipt_one_new_draft",
+          "same_key_changed_payload_conflicts",
+          "pinned_document_version_and_human_derivation",
+          "approved_current_and_history_preserved",
+          "human_external_concurrent_unique_numbering",
+          "adoption_compare_and_update_preserves_history",
+          "failed_receipt_insert_rolls_back_all_rows",
+          "cancel_waiting_for_actual_row_lock",
+          "revocation_before_commit_denies_send",
+          "commit_before_revocation_keeps_history_denies_replay",
+          "receipt_cleanup_restore_residual_detection"
+        ],
+        "checkCount": 13,
+        "clientTransportAdapted": false
+      },
+      {
+        "log": "lifecycle-pg16-client.log",
+        "status": "passed",
+        "checks": [
+          "write-before-archive is serialized",
+          "archive-before-write and archive-restore revision conflict",
+          "concurrent lifecycle compare-and-swap has one winner",
+          "receipt-before-archive and archive-before-receipt; replay and adoption denied",
+          "approval-before-archive and archive-before-approval are serialized",
+          "document archive revokes OAuth page and does not reactivate after restore",
+          "document and case definitive purge",
+          "actual pg_dump/pg_restore reapplies both deletions before gate opens"
+        ],
+        "checkCount": 8,
+        "clientTransportAdapted": true
+      },
+      {
+        "log": "smoke-research-postgres.mjs.log",
+        "status": "passed",
+        "checks": [
+          "migrations_idempotent",
+          "grouping_before_limit",
+          "replay_unique_history",
+          "year_and_identity_isolation",
+          "nullable_legacy_year",
+          "judgment_boundaries_before_limit",
+          "publication_date_independent",
+          "no_year_compatible",
+          "replay_original_charge_and_tenant_isolation"
+        ],
+        "checkCount": 9,
+        "clientTransportAdapted": false
+      },
+      {
+        "log": "smoke-operational-retention-postgres.mjs.log",
+        "status": "passed",
+        "checks": [
+          "postgres_read_only_inspection",
+          "exact_cutoff",
+          "inspection_matches_purge",
+          "financial_balance_preserved"
+        ],
+        "checkCount": 4,
+        "clientTransportAdapted": false
+      },
+      {
+        "log": "smoke-account-closure-postgres.mjs.log",
+        "status": "passed",
+        "checks": [
+          "migrations_twice",
+          "shared_tenant_rejected",
+          "concurrent_single_closure",
+          "replay_and_conflict",
+          "session_api_key_static_key_and_live_jwt_blocked",
+          "failure_resume_without_repeating_completed_step",
+          "private_zero_control_and_global_corpus_intact_financial_minimized"
+        ],
+        "checkCount": 7,
+        "clientTransportAdapted": false
+      }
+    ],
+    "smokeChecksPassed": 55,
+    "nativeClientLimitation": "Windows PostgreSQL 18 pg_restore emitted SET transaction_timeout=0 unsupported by PostgreSQL 16; lifecycle assertions passed with pg_dump/pg_restore 16 inside the exclusive container"
+  },
+  "hosts": [
+    {
+      "host": "Codex connector",
+      "verifiedAt": "2026-10-11T16:26:44.460Z",
+      "authenticated": true,
+      "authMethod": "oauth_access_token",
+      "billable": false,
+      "resource": "https://nexojuris.ia.br/mcp"
+    },
+    {
+      "host": "Claude",
+      "verifiedAt": "2026-10-11T16:28:53.748Z",
+      "authenticated": true,
+      "authMethod": "oauth_access_token",
+      "billable": false,
+      "resource": "https://nexojuris.ia.br/mcp",
+      "conversation": "https://claude.ai/chat/6ca9cef1-75d9-4ad8-aced-73947676eafe"
+    },
+    {
+      "host": "ChatGPT",
+      "verifiedAt": "2026-10-11T16:32:09.838Z",
+      "authenticated": true,
+      "authMethod": "oauth_access_token",
+      "billable": false,
+      "resource": "https://nexojuris.ia.br/mcp",
+      "conversation": "https://chatgpt.com/c/6acbba02-e28c-83ea-9214-ebdf20ebd997"
+    }
+  ],
+  "hostRequests": [
+    {
+      "httpRequest": {
+        "requestMethod": "POST",
+        "status": 200,
+        "userAgent": "openai-mcp/1.0.0"
+      },
+      "timestamp": "2026-10-11T16:32:09.185134Z"
+    },
+    {
+      "httpRequest": {
+        "requestMethod": "POST",
+        "status": 200,
+        "userAgent": "Claude-User"
+      },
+      "timestamp": "2026-10-11T16:28:53.663236Z"
+    },
+    {
+      "httpRequest": {
+        "requestMethod": "POST",
+        "status": 202,
+        "userAgent": "Claude-User"
+      },
+      "timestamp": "2026-10-11T16:28:52.182695Z"
+    },
+    {
+      "httpRequest": {
+        "requestMethod": "GET",
+        "status": 200,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Microsoft Windows 10.0.26300; pt-BR) PowerShell/7.6.5"
+      },
+      "timestamp": "2026-10-11T16:27:32.655388Z"
+    },
+    {
+      "httpRequest": {
+        "requestMethod": "POST",
+        "status": 200,
+        "userAgent": "openai-mcp/1.0.0 (Codex)"
+      },
+      "timestamp": "2026-10-11T16:26:44.385294Z"
+    },
+    {
+      "httpRequest": {
+        "requestMethod": "POST",
+        "status": 202,
+        "userAgent": "openai-mcp/1.0.0 (Codex)"
+      },
+      "timestamp": "2026-10-11T16:26:44.191112Z"
+    },
+    {
+      "httpRequest": {
+        "requestMethod": "POST",
+        "status": 200,
+        "userAgent": "openai-mcp/1.0.0 (Codex)"
+      },
+      "timestamp": "2026-10-11T16:26:44.050202Z"
+    },
+    {
+      "httpRequest": {
+        "requestMethod": "POST",
+        "status": 200,
+        "userAgent": "openai-mcp/1.0.0 (Codex)"
+      },
+      "timestamp": "2026-10-11T16:26:43.942411Z"
+    }
+  ],
+  "cleanup": {
+    "verifiedAt": "2026-10-11T16:47:21.8017921Z",
+    "previewPorts": [
+      3001,
+      3000
+    ],
+    "openAuditPorts": 0,
+    "proxyStopped": true,
+    "removedContainer": "forgelex-scope-audit-pg-20261011"
+  },
+  "limitations": [
+    "No deployment of local scope freeze",
+    "No production restore or destructive lifecycle operation",
+    "No paid research, payment, password change or OAuth reconnection performed",
+    "No full corpus integrity or load/performance measurement"
+  ],
+  "artifactHashes": {
+    "claude-status.png": "8ce7a23a2ad606393f3429ed0f4c9c485dc392766654bb698287176741a10366",
+    "chatgpt-status.png": "17ff7fcea447ec97ac39ab1513dbb663e7cbdc8c7154fb1c9a85cc7177e57076",
+    "production-postgres.log": "735244f031fb78e9f8eb4dac6364423c8dd99d7bd68b86a51dc23250adfa1b23",
+    "postgres-tests.log": "4e30278d994c1ffd2dc15503b30929004809100e4e5fd4e3f6b34246e808f06a",
+    "postgres-migration-tests.log": "78834234e7adda7a712dec3b282ecfdf7ed4dda4255ae8da2548c2358bf008b5",
+    "lifecycle-pg16-client.log": "8861dc90b3a825dd21102d06dd3c870396781d65b4bfdcea01bf683238d74ad1"
+  }
+}

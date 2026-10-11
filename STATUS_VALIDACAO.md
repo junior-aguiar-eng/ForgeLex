@@ -1645,3 +1645,26 @@ providers Anthropic/OpenAI.
 As alterações anteriores de billing estão em `50878e1`, `ba9925d` e
 `6b3c8c5`. A Fase 0 não altera as ferramentas jurídicas nem executa migration
 remota.
+
+
+## 11/10/2026 — ocultação do fluxo de casos: execução local
+
+Implementação autorizada por Boni sobre main `f5f9316`, no worktree
+`C:/Users/Boni Jr/.codex/worktrees/site-mcp-scope-freeze/SDK`.
+[Escopo e reversão](docs/product/site-mcp-scope-freeze.md).
+[Resultados e limites](docs/operations/stabilization/2026-10-11-site-mcp-scope-freeze.md).
+Backend, banco, catálogo MCP e OpenAPI preservados; trabalhos anteriores em
+outro checkout. Aprovação visual de Boni e publicação permanecem separadas.
+
+## 11/10/2026 — vistoria externa antes de commit e push
+
+Produção atual `forgelex-api-prod-audit-5aca51e` confirmada com 100% do tráfego,
+readiness completa, 12 probes HTTP 200 e dez telas autenticadas sem erros de
+console. PostgreSQL real 16.15 inspecionado somente leitura: 37 migrations
+registradas, nenhuma conhecida ausente, índice de busca válido e backups
+automáticos concluídos. Em PostgreSQL descartável, 39 testes e 55 checks
+aprovados; lifecycle usou clientes 16 por incompatibilidade do restore 18 do
+Windows. Status gratuito OAuth confirmado em ChatGPT, Claude e Codex, com
+requisições correlacionadas aos logs. Sem commit, push, deploy ou mutação de
+produção; o novo site enxuto continua sem publicação.
+[Evidências e limites](docs/operations/stabilization/2026-10-11-site-mcp-external-validation.md).

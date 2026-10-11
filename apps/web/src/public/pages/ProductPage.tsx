@@ -5,8 +5,8 @@ export function ProductPage() {
     <>
       <PageIntro
         eyebrow="Produto"
-        title="Um espaço para reunir o caso, as fontes e a minuta."
-        text="Organize documentos, fatos, provas e questões. Pesquise jurisprudência do STJ, confira autoridades e prepare rascunhos com revisão humana."
+        title="Pesquisa do STJ para o seu fluxo com IA."
+        text="Conecte ferramentas de pesquisa ao ChatGPT ou Claude, confira autoridades e gerencie seus créditos. API e consulta processual gratuita também estão disponíveis."
       />
       <Capabilities />
       <Movements />

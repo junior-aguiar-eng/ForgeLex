@@ -3,7 +3,9 @@ import { ApiRequestError, getBillingAccount, requestApi } from '../api-client';
 import { SearchCoordinator } from '../operations/search-coordinator';
 import { OperationsClient } from '../operations/operations-client';
 import type { OperationalResource, ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
-import { isKnownPath, navigateToTab, tabForPath, updateDocumentTitle, type AppTab } from '../navigation/routes';
+import { isKnownPath, navigateToTab, resolveVisibleTab, tabForPath, updateDocumentTitle, type AppTab } from '../navigation/routes';
+
+import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 
 export type { ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
 export type { AppTab } from '../navigation/routes';
@@ -66,8 +68,16 @@ export function createOperationalActions(
   };
 }
 
+export async function loadVisibleOperationalState(client: OperationsClient, casesEnabled: boolean) {
+  const [tribunals, history, reviewQueue] = await Promise.all([
+    client.loadTribunals(), client.loadHistory(),
+    casesEnabled ? client.loadReviewQueue() : Promise.resolve<OperationalResource<ReviewQueueItem[]>>({ state: 'unavailable', data: [] }),
+  ]);
+  return { tribunals, history, reviewQueue };
+}
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeTab, setCurrentTab] = useState<AppTab>(() => typeof window === 'undefined' ? 'landing' : tabForPath(window.location.pathname));
+  const [activeTab, setCurrentTab] = useState<AppTab>(() => typeof window === 'undefined' ? 'landing' : resolveVisibleTab(tabForPath(window.location.pathname), CASE_WORKSPACE_ENABLED));
   const client = useMemo(() => new OperationsClient(), []);
   const [tribunals, setTribunals] = useState<OperationalResource<TribunalCapability[]>>(OperationsClient.loading([]));
   const [recentSearches, setRecentSearches] = useState<OperationalResource<ResearchHistoryItem[]>>(OperationsClient.loading([]));
@@ -96,9 +106,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, setSearchBusy), [client]);
 
   const refreshOperationalState = useCallback(async (): Promise<void> => {
-    const [nextTribunals, nextHistory, nextQueue] = await Promise.all([
-      client.loadTribunals(), client.loadHistory(), client.loadReviewQueue(),
-    ]);
+    const { tribunals: nextTribunals, history: nextHistory, reviewQueue: nextQueue } = await loadVisibleOperationalState(client, CASE_WORKSPACE_ENABLED);
     setTribunals(nextTribunals);
     setRecentSearches(nextHistory);
     setReviewQueue(nextQueue);
@@ -117,8 +125,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     const syncFromLocation = () => {
-      const tab = tabForPath(window.location.pathname);
+      const requestedTab = tabForPath(window.location.pathname);
+      const tab = resolveVisibleTab(requestedTab, CASE_WORKSPACE_ENABLED);
       if (!isKnownPath(window.location.pathname)) navigateToTab('landing', 'replace');
+      else if (tab !== requestedTab) navigateToTab(requestedTab, 'replace');
       else updateDocumentTitle(tab);
       setCurrentTab(tab);
     };
@@ -130,7 +140,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setActiveTab = useCallback((tab: AppTab, mode: 'push' | 'replace' = 'push') => {
     navigateToTab(tab, mode);
-    setCurrentTab(tab);
+    setCurrentTab(resolveVisibleTab(tab, CASE_WORKSPACE_ENABLED));
   }, []);
 
   const performSearch = async (intent: SearchIntent): Promise<SearchExecution> => {

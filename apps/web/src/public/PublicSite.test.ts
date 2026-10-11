@@ -4,17 +4,21 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { PublicSite } from './PublicSite';
 
 describe('site público', () => {
-  it('apresenta o produto completo sem sessão ou dados simulados', () => {
+  it('apresenta pesquisa MCP e conserva os destinos públicos', () => {
     const html = renderToStaticMarkup(createElement(PublicSite, { page: 'home' }));
-    expect(html).toContain('Do caso à minuta, conecte fatos, provas e jurisprudência.');
-    expect(html).toContain('Casos e evidências');
-    expect(html).toContain('Pesquisa e autoridades');
-    expect(html).toContain('Estratégia e documentos');
-    expect(html).toContain('Revisão e governança');
-    expect(html).toContain('href="/cadastro"');
-    expect(html).toContain('href="/produto"');
+    expect(html).toContain('Jurisprudência do STJ no seu fluxo com IA.');
+    for (const destination of ['/cadastro', '/produto', '/integracoes', '/desenvolvedores/api', '/consulta-processual']) {
+      expect(html).toContain(`href="${destination}"`);
+    }
+    expect(html).toContain('ChatGPT ou Claude');
     expect(html).not.toContain('href="#"');
-    expect((html.match(/<details/g) ?? []).length).toBe(10);
+  });
+  it.each(['home', 'product', 'how', 'integrations', 'guide'] as const)('não oferece módulos congelados em %s', page => {
+    const html = renderToStaticMarkup(createElement(PublicSite, { page }));
+    for (const destination of ['/app/casos', '/app/rascunhos', '/app/revisao', '/produto#casos', '/produto#rascunhos', '/produto#revisao']) {
+      expect(html).not.toContain(`href="${destination}"`);
+    }
+    for (const offer of ['Casos e evidências', 'Rascunhos e revisão', 'Estratégia e documentos', 'Do caso à minuta']) expect(html).not.toContain(offer);
   });
 
   it.each(['product', 'how', 'integrations', 'credits', 'guide', 'api_docs'] as const)(

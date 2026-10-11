@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
+  outputDir: 'test-results/account-closure',
   testDir: './tests/e2e',
   testMatch: 'account-closure.spec.ts',
   workers: 1,

@@ -1,6 +1,6 @@
 # ForgeLex — onde estamos e como continuar
 
-Atualizado em 10/10/2026. Este resumo orienta a próxima sessão; o histórico de
+Atualizado em 11/10/2026. Este resumo orienta a próxima sessão; o histórico de
 validações e publicações permanece em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
 
 Boni é o único avaliador e aprovador humano do projeto, por decisão expressa
@@ -33,6 +33,31 @@ obrigatórios, com 794 unitários e 130 E2E aprovados. Serviços PostgreSQL da C
 usam o espelho Docker Official Image no ECR Public. Sem novo deploy HTTP,
 pois o comportamento de runtime não foi alterado por esse incremento.
 
+## Congelamento do site — execução local em 11/10
+
+Boni autorizou a execução do plano de escopo MCP. A branch isolada
+`codex/site-mcp-scope-freeze`, base main `f5f9316`, oculta casos, análise,
+rascunhos, revisão e atalhos no frontend por configuração reversível.
+Backend, banco, catálogo MCP, API, conta e consulta gratuita são preservados.
+O checkout original e seus trabalhos anteriores permanecem intactos.
+[Escopo e reversão](docs/product/site-mcp-scope-freeze.md).
+
+Vistoria complementar de 11/10 confirmou produção já publicada, PostgreSQL
+real somente leitura e conexão OAuth gratuita em ChatGPT/Claude. A regressão
+PostgreSQL descartável aprovou 39 testes e 55 checks. O congelamento continua
+sem commit, push ou deploy; sua interface ainda não foi validada em produção.
+[Evidências e limites](docs/operations/stabilization/2026-10-11-site-mcp-external-validation.md).
+
+| Plano/frente | Estado atual |
+| --- | --- |
+| Simplificação do fluxo de casos (10/10, artefatos locais anteriores) | Suspenso; histórico e trabalho local preservados |
+| Mesa/orquestração jurídica V2 e transição agêntica (10/10) | Suspensas como execução; visão histórica preservada |
+| Apresentação visual de decisões MCP (11/10) | Independente, não executada aqui; rever referências a salvar em casos |
+| Ocultação do site (11/10) | Implementação local; validação no registro próprio; aprovação visual/publicação separadas |
+
+A descrição do fluxo abaixo registra o produto anteriormente publicado; não
+comprova publicação do congelamento local.
+
 ## O produto hoje
 
 O percurso é **caso → documentos → análise na IA externa → rascunho no site →
@@ -61,7 +86,7 @@ originais. O runtime atual incorpora essas entregas e está indicado no início.
 | Identificação das conexões de IA no caso                     | Publicado; integração e promoção verificadas | PR #56, revisão `forgelex-api-prod-connection-a23cc07`, 100%; CI da PR e de main aprovada                     |
 | Julgados da Pesquisa no caso                                 | Publicado; salvar, conferir fonte e reutilizar nos rascunhos | PR #58; CI com 130 E2E; runtime `forgelex-api-prod-audit-5aca51e`; sem nova pesquisa para salvar/copiar |
 | Retenção operacional                                        | Limpeza diária às 8h, autenticada por OAuth, ativada em 09/10 | Autorização nominal; apply manual e via Scheduler concluídos com zero removidos; worker HTTP desabilitado; ver registro residual |
-| Mesa do caso e orientação do próximo passo                   | Proposta futura                                                    | Organizar os recursos existentes em torno do caso, com detalhes técnicos sob demanda; não há execução autorizada nesta entrega   |
+| Mesa do caso e orientação do próximo passo                   | Suspensa como execução                                                    | Organizar os recursos existentes em torno do caso, com detalhes técnicos sob demanda; não há execução autorizada nesta entrega   |
 | Novos agentes internos, modelos hospedados e novos tribunais | Fora do incremento atual                                           | Exigem necessidade demonstrada e decisão própria; não bloqueiam o fluxo MCP externo                                              |
 
 ## A entrega encerrada

@@ -30,7 +30,7 @@ test('rotas do onboarding persistem em recarregamento e nos botões de históric
   await expect(page).toHaveURL(/\/conectar$/);
   await expect(page.getByRole('heading', { name: 'Conectar o ForgeLex ao ChatGPT ou Claude' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Pesquisa', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: 'Pesquisa', exact: true }).click();
   await expect(page).toHaveURL(/\/pesquisa$/);
   await expect(page.getByPlaceholder('Tema, tese ou número do processo')).toBeVisible();
 

@@ -1,15 +1,22 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { FileCode2, FileText, FolderOpen, LogOut, Menu, Scale, Search } from 'lucide-react';
+import { Cable, FileCode2, FileText, FolderOpen, LogOut, Menu, Scale, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import type { AppTab } from '../navigation/routes';
 
-const primaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
+import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+
+const caseNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
   { tab: 'matter', label: 'Casos', icon: FolderOpen },
   { tab: 'research', label: 'Pesquisa', icon: Search },
   { tab: 'draft_studio', label: 'Rascunhos', icon: FileText },
   { tab: 'dashboard', label: 'Revisão', icon: FileCode2 },
+];
+
+const primaryNavigation = CASE_WORKSPACE_ENABLED ? caseNavigation : [
+  { tab: 'research' as const, label: 'Pesquisa', icon: Search },
+  { tab: 'connections' as const, label: 'Conectar IA', icon: Cable },
 ];
 
 const NavigationButton: React.FC<{
