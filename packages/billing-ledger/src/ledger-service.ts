@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { gunzipSync, gzipSync } from 'node:zlib';
+import { decodeResultSnapshot, encodeResultSnapshot } from './result-snapshot.js';
 import type { Client } from '@libsql/client';
 import { and, eq } from 'drizzle-orm';
 import type { UsageEvent } from '@forgelex/domain';
@@ -63,7 +63,6 @@ export interface LedgerServiceOptions {
 
 export class LedgerService {
   private static readonly RESERVATION_LEASE_MS = 60_000;
-  private static readonly MAX_SNAPSHOT_BYTES = 8_388_608;
   private readonly db: ForgeLexDatabase;
   private readonly client?: Client;
   private readonly provisioningPolicy: BillingAccountProvisioningPolicy;
@@ -213,6 +212,18 @@ export class LedgerService {
       .where(and(eq(ledgerAccounts.tenantId, tenantId), eq(ledgerEntries.idempotencyKey, idempotencyKey), eq(ledgerEntries.kind, 'DEBIT'))).limit(1);
     if (!rows[0]) throw new DomainError('IDEMPOTENCY_RESULT_INVALID', 'O débito original desta operação não foi localizado.');
     return rows[0].amountCents;
+  }
+
+  /** Read the settled original without running a tool, debiting, or renewing operational retention. */
+  public async readCompletedSearch(tenantId: string, userId: string, operationId: string): Promise<{ snapshot: string; createdAt: string }> {
+    const rows = await this.db.select({ snapshot: billingOperations.resultSnapshot, createdAt: usageEvents.occurredAt })
+      .from(billingOperations)
+      .innerJoin(ledgerAccounts, and(eq(billingOperations.accountId, ledgerAccounts.id), eq(ledgerAccounts.tenantId, tenantId)))
+      .innerJoin(usageEvents, and(eq(usageEvents.tenantId, billingOperations.tenantId), eq(usageEvents.requestId, billingOperations.idempotencyKey)))
+      .where(and(eq(billingOperations.tenantId, tenantId), eq(billingOperations.idempotencyKey, operationId), eq(billingOperations.status, 'COMPLETED'),
+        eq(usageEvents.userId, userId), eq(usageEvents.capability, 'research.search_case_law'), eq(usageEvents.toolName, 'research.search_case_law'))).limit(1);
+    if (!rows[0]?.snapshot) throw new DomainError('IDEMPOTENCY_RESULT_EXPIRED', 'Os resultados desta pesquisa não estão disponíveis para salvar. Nenhuma nova pesquisa foi executada.');
+    return { snapshot: rows[0].snapshot, createdAt: rows[0].createdAt };
   }
 
   /**
@@ -434,15 +445,7 @@ export class LedgerService {
       ? account.promotionalBalanceCents
       : 0;
 
-    let data: T;
-    try {
-      const serialized = operationResultSnapshot.startsWith('gzip:')
-        ? gunzipSync(Buffer.from(operationResultSnapshot.slice(5), 'base64')).toString('utf8')
-        : operationResultSnapshot;
-      data = JSON.parse(serialized) as T;
-    } catch {
-      throw new DomainError('IDEMPOTENCY_RESULT_INVALID', 'O resultado idempotente persistido está corrompido.');
-    }
+    const data = decodeResultSnapshot<T>(operationResultSnapshot);
 
     return {
       data,
@@ -454,13 +457,7 @@ export class LedgerService {
   }
 
   private serializeSnapshot<T>(result: T): string {
-    const raw = JSON.stringify(result);
-    const compressed = `gzip:${gzipSync(raw).toString('base64')}`;
-    const snapshot = Buffer.byteLength(compressed, 'utf8') < Buffer.byteLength(raw, 'utf8') ? compressed : raw;
-    if (Buffer.byteLength(snapshot, 'utf8') > LedgerService.MAX_SNAPSHOT_BYTES) {
-      throw new DomainError('OPERATION_RESULT_TOO_LARGE', 'Resultado excede o limite de replay.');
-    }
-    return snapshot;
+    return encodeResultSnapshot(result);
   }
 
   private async waitForReservation<T>(operationId: string): Promise<BillableExecutionResult<T>> {

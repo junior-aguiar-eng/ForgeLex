@@ -12,6 +12,8 @@ export function mapSearchResult(item: any): SearchResultItem {
   return {
     sourceAuthority: item,
     id: item.id,
+    versionId: item.versionId,
+    fullTextUrl: item.fullTextUrl,
     court: item.court,
     processNumber: item.processNumber,
     relator: item.rapporteur,

@@ -1,0 +1,30 @@
+/* Reader layout follows forgelex-mcp-decisions-preview.html, approved by Boni.
+   Real data retains explicit completeness/source states; touch targets are 44px. */
+.decision-reader{--reader-bg:#fbf9f5;--reader-paper:#fff;--reader-fg:#2d2721;--reader-muted:#71695f;--reader-border:#e6ded3;--reader-accent:#8e5d2a;color:var(--reader-fg);background:var(--reader-bg);border:1px solid var(--reader-border);border-radius:12px;font:14px/1.6 Inter,system-ui,sans-serif;min-width:0;overflow:hidden;overflow-wrap:anywhere}
+.decision-reader *{box-sizing:border-box}.decision-reader [hidden]{display:none!important}
+.reader-brandbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:21px 23px;border-bottom:1px solid var(--reader-border);font-size:12px;color:var(--reader-muted)}
+.reader-brand{font:500 22px Georgia,serif;color:var(--reader-accent)}
+.reader-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 23px;font-size:12px;color:var(--reader-muted)}
+.reader-toolbar nav{display:flex;align-items:center;gap:2px}
+.decision-reader button{font:inherit;display:inline-flex;align-items:center;justify-content:center;gap:7px;background:transparent;color:var(--reader-fg);border:1px solid var(--reader-border);border-radius:7px;padding:8px 12px;min-height:44px;cursor:pointer}
+.decision-reader button:disabled{opacity:.35;cursor:default}.decision-reader :focus-visible{outline:2px solid var(--reader-accent);outline-offset:3px}
+.decision-reader button.reader-icon{border:0;padding:5px;min-width:44px}.decision-reader .reader-expand{font-size:12px;margin-left:6px}
+.reader-record{padding:5px 23px 16px;min-width:0}.reader-empty{padding:5px 23px 16px}
+.decision-reader h2{font:500 23px/1.3 Georgia,serif;margin:4px 0 12px}
+.reader-eyebrow{font-size:12px;color:var(--reader-muted);letter-spacing:.025em;margin:0 0 4px}
+.reader-relator{font-size:13px;margin:0 0 2px}.reader-chamber{font-size:12px;color:var(--reader-muted);margin:0 0 16px}
+.reader-metadata{display:flex;flex-wrap:wrap;gap:18px;margin:14px 0 18px}.reader-metadata dt{color:var(--reader-muted);font-size:12px}.reader-metadata dd{margin:0;font-size:13px}
+.reader-note{font-size:12px;color:var(--reader-muted)}.reader-completeness{margin:0 0 10px;color:var(--reader-accent)}.reader-saved-date{padding:0 23px;margin:14px 0 0}
+.reader-tabs{display:flex;flex-wrap:wrap;gap:15px;border-bottom:1px solid var(--reader-border);margin-bottom:16px}
+.decision-reader .reader-tabs button{border:0;border-radius:0;padding:7px 0;font-size:12px;color:var(--reader-muted)}
+.decision-reader .reader-tabs button[aria-selected=true]{color:var(--reader-accent);box-shadow:0 2px var(--reader-accent)}
+.reader-text{max-height:365px;overflow-y:auto;overscroll-behavior:contain;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;font-size:14px;line-height:1.8;padding-right:7px;margin:0}
+.reader-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--reader-border)}
+.decision-reader .reader-actions button{border:0;padding:6px 9px;font-size:12px}
+.reader-origin{padding:14px 0 2px;margin-top:12px}.reader-origin p{font-size:12px;margin:0 0 7px}.decision-reader a{color:var(--reader-accent);text-decoration:underline;font-size:13px}
+.decision-reader textarea{width:100%;min-height:120px;white-space:pre-wrap;background:var(--reader-paper);color:var(--reader-fg);border:1px solid var(--reader-border);padding:8px;border-radius:6px;font:inherit;margin-top:7px}
+.reader-footer{padding:14px 23px;border-top:1px solid var(--reader-border);font-size:11px;color:var(--reader-muted)}
+@media(prefers-color-scheme:dark){.decision-reader{--reader-bg:#191816;--reader-paper:#24211d;--reader-fg:#eee6dc;--reader-muted:#bcb0a0;--reader-border:#4b4137;--reader-accent:#e1b681}}
+[data-theme=dark] .decision-reader,.dark .decision-reader{--reader-bg:#191816;--reader-paper:#24211d;--reader-fg:#eee6dc;--reader-muted:#bcb0a0;--reader-border:#4b4137;--reader-accent:#e1b681}
+[data-theme=light] .decision-reader{--reader-bg:#fbf9f5;--reader-paper:#fff;--reader-fg:#2d2721;--reader-muted:#71695f;--reader-border:#e6ded3;--reader-accent:#8e5d2a}
+@media(max-width:650px){.reader-brandbar{flex-wrap:wrap}.reader-brandbar,.reader-toolbar,.reader-record,.reader-footer{padding-left:17px;padding-right:17px}.reader-saved-date{padding-left:17px;padding-right:17px}.decision-reader h2{font-size:21px}.reader-text{max-height:400px}}

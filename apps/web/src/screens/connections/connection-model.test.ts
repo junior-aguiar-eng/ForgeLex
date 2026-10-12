@@ -20,7 +20,7 @@ describe('modelo de conexão MCP', () => {
     expect(connectionStateLabel('authorization_started')).not.toBe('Conectado');
   });
 
-  it('cria uma conexão inicial sem prometer configuração do host', () => {
+  it('cria uma conexão inicial sem prometer configuração do aplicativo conectado', () => {
     expect(createPlatformConnection('chatgpt', 'https://nexojuris.ia.br/mcp')).toMatchObject({
       platform: 'chatgpt',
       state: 'not_configured',
@@ -59,8 +59,8 @@ describe('modelo de conexão MCP', () => {
 
     expect(signals).toEqual([
       { id: 'service', label: 'Serviço disponível', detail: 'O ForgeLex respondeu ao teste gratuito.', tone: 'ready' },
-      { id: 'credential', label: 'Credencial pronta', detail: 'A credencial possui o escopo MCP necessário.', tone: 'ready' },
-      { id: 'use', label: 'Uso confirmado ainda não registrado', detail: 'O host ainda não retornou uma execução auditável.', tone: 'pending' },
+      { id: 'credential', label: 'Credencial pronta', detail: 'O acesso está autorizado para conectar o ForgeLex.', tone: 'ready' },
+      { id: 'use', label: 'Uso confirmado ainda não registrado', detail: 'O aplicativo conectado ainda não retornou uma execução auditável.', tone: 'pending' },
     ]);
     expect(signals.map((signal) => signal.label).join(' ')).not.toContain('Ativo');
   });

@@ -1125,6 +1125,11 @@ export const persistenceMigrations: readonly SqlMigration[] = [
    ON jurisprudence_document_versions(id)
    INCLUDE (judgment_date, publication_status, source_manifest_id);`,
 ] },
+{ id: 'persistence-0030-saved-research', statements: [
+  `CREATE TABLE saved_research_collections (tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, PRIMARY KEY (tenant_id,user_id));`,
+  `CREATE TABLE saved_research (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, slot INTEGER NOT NULL CHECK (slot BETWEEN 1 AND 6), operation_id TEXT NOT NULL, result_snapshot TEXT NOT NULL, criteria_json TEXT NOT NULL, result_count INTEGER NOT NULL CHECK (result_count >= 0), searched_at TEXT NOT NULL, saved_at TEXT NOT NULL, UNIQUE (tenant_id,user_id,slot), UNIQUE (tenant_id,user_id,operation_id), FOREIGN KEY (tenant_id,user_id) REFERENCES saved_research_collections(tenant_id,user_id));`,
+  `CREATE TABLE saved_research_permissions (tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, oauth_client_id TEXT NOT NULL, oauth_granted_at TEXT NOT NULL, enabled INTEGER NOT NULL CHECK (enabled IN (0,1)), updated_at TEXT NOT NULL, PRIMARY KEY (tenant_id,user_id,oauth_client_id,oauth_granted_at));`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

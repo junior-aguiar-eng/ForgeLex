@@ -39,6 +39,8 @@ export interface SearchResultItem {
   // Original API record; only the backend validates CaseLaw when saving it.
   sourceAuthority?: unknown;
   id: string;
+  versionId?: string;
+  fullTextUrl?: string;
   court: string;
   processNumber: string;
   relator: string;
@@ -53,9 +55,9 @@ export interface SearchResultItem {
   verificationStatus: 'VERIFIED_OFFICIAL' | 'VERIFIED_PROVIDER' | 'UNVERIFIED' | 'CONFLICTING_METADATA' | 'NOT_FOUND';
 }
 
-export type SearchIntent = { idempotencyKey: string; query: string; court: 'STJ'; limit: number; judgmentYear?: number };
+export type SearchIntent = { idempotencyKey: string; query: string; court: string; limit: number; judgmentYear?: number };
 
-export const createSearchIntent = (query: string, court: 'STJ', limit = 20, judgmentYear?: number): SearchIntent => Object.freeze({
+export const createSearchIntent = (query: string, court: string, limit = 20, judgmentYear?: number): SearchIntent => Object.freeze({
   idempotencyKey: `web_search_${crypto.randomUUID()}`,
   query: query.trim(),
   court,

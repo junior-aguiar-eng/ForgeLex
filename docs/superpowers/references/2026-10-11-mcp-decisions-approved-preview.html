@@ -1,0 +1,186 @@
+<div id="forgelex-mcp-preview">
+  <div class="viz-carousel" aria-label="Apresentação das decisões no MCP" data-previous-label="Anterior" data-next-label="Próxima">
+    <section data-variant="Painel ao lado da conversa" aria-label="Conversa e leitor lateral">
+      <div class="fm-window fm-side">
+        <header class="fm-hostbar"><span>Pesquisa jurídica</span><span class="fm-secondary">Prévia da experiência</span></header>
+        <div class="fm-layout">
+          <section class="fm-conversation" aria-label="Conversa com o modelo do host">
+            <div class="fm-request">Quero conferir as decisões encontradas.</div>
+            <p class="fm-eyebrow">Resposta ilustrativa do modelo do host</p>
+            <h2>As fontes, junto da análise</h2>
+            <p>Você pode consultar o texto de cada decisão no leitor do ForgeLex, sem sair desta conversa.</p>
+            <p>A explicação do modelo permanece aqui. A ementa e os dados do julgamento aparecem no leitor, com a origem identificada.</p>
+            <button type="button" class="fm-open cursor-interaction" data-action="open">Conferir decisões <i data-lucide="arrow-right" aria-hidden="true"></i></button>
+            <div class="fm-composer" aria-label="Campo de mensagem ilustrativo"><span>Pergunte sobre o resultado…</span><i data-lucide="arrow-up" aria-hidden="true"></i></div>
+          </section>
+          <section class="fm-reader-slot" aria-label="Leitor de decisões ForgeLex"></section>
+        </div>
+      </div>
+    </section>
+    <section data-variant="Leitor na conversa" aria-label="Leitor embutido na resposta" hidden>
+      <div class="fm-window fm-inline">
+        <header class="fm-hostbar"><span>Pesquisa jurídica</span><span class="fm-secondary">Prévia da experiência</span></header>
+        <div class="fm-layout">
+          <section class="fm-conversation" aria-label="Resposta do modelo com fonte embutida">
+            <div class="fm-request">Quero conferir as decisões encontradas.</div>
+            <p class="fm-eyebrow">Resposta ilustrativa do modelo do host</p>
+            <p>Aqui estão os registros selecionados. A análise do modelo e o texto da fonte permanecem identificados separadamente.</p>
+            <section class="fm-reader-slot" aria-label="Leitor de decisões ForgeLex"></section>
+            <div class="fm-composer" aria-label="Campo de mensagem ilustrativo"><span>Pergunte sobre o resultado…</span><i data-lucide="arrow-up" aria-hidden="true"></i></div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </div>
+  <template id="fm-reader-template">
+    <div class="fm-reader">
+      <div class="fm-brandbar"><span class="fm-brand">ForgeLex</span><span class="fm-secondary">Decisões selecionadas</span></div>
+      <div class="fm-pager"><span class="fm-position" aria-live="polite"></span><div><button type="button" data-action="previous" aria-label="Decisão anterior" class="fm-icon cursor-interaction"><i data-lucide="chevron-left" aria-hidden="true"></i></button><button type="button" data-action="next" aria-label="Próxima decisão" class="fm-icon cursor-interaction"><i data-lucide="chevron-right" aria-hidden="true"></i></button></div></div>
+      <div class="fm-record">
+        <p class="fm-eyebrow fm-court"></p><h3 class="fm-process"></h3>
+        <p class="fm-relator"></p><p class="fm-chamber fm-secondary"></p>
+        <dl class="fm-dates"><div><dt>Julgamento</dt><dd class="fm-judgment"></dd></div><div><dt>Publicação</dt><dd class="fm-publication"></dd></div></dl>
+        <p class="fm-completeness"></p>
+        <div class="fm-tabs" role="tablist" aria-label="Conteúdo da decisão"><button type="button" class="cursor-interaction" data-action="syllabus" role="tab" aria-selected="true">Ementa</button><button type="button" class="cursor-interaction" data-action="outcome" role="tab" aria-selected="false">Resultado do julgamento</button></div>
+        <article class="fm-text" role="tabpanel" tabindex="0"></article>
+        <div class="fm-actions"><button type="button" data-action="copy" class="cursor-interaction"><i data-lucide="copy" aria-hidden="true"></i> Copiar citação</button><button type="button" data-action="origin" class="cursor-interaction" aria-expanded="false"><i data-lucide="external-link" aria-hidden="true"></i> Origem e fonte</button></div>
+        <div class="fm-origin" hidden><p class="fm-origin-label"></p><p class="fm-secondary">Metadados de referência; sem conferência ao corpus nesta prévia.</p><a class="fm-official cursor-interaction" target="_blank" rel="noopener noreferrer" hidden>Inteiro teor no STJ <i data-lucide="arrow-up-right" aria-hidden="true"></i></a><p class="fm-unavailable fm-secondary"></p></div>
+        <div class="fm-copy-fallback" hidden><label>Citação para copiar<textarea readonly rows="3" aria-label="Citação da decisão selecionada"></textarea></label></div>
+        <p class="fm-feedback" role="status" aria-live="polite"></p>
+      </div>
+      <footer class="fm-reader-footer">Conteúdo de referência · prévia sem pesquisa real</footer>
+    </div>
+  </template>
+</div>
+<style>
+#forgelex-mcp-preview{color-scheme:light dark}
+#forgelex-mcp-preview .fm-window{--paper:light-dark(#fff,#24211d);--page:light-dark(#fbf9f5,#191816);--ink:light-dark(#2d2721,#eee6dc);--muted:light-dark(#71695f,#bcb0a0);--line:light-dark(#e6ded3,#4b4137);--accent:light-dark(#8e5d2a,#e1b681);--soft:light-dark(#f4ede4,#342c23);font:14px/1.6 Inter,system-ui,sans-serif;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:12px;min-height:950px;overflow:hidden}
+#forgelex-mcp-preview .fm-window *{box-sizing:border-box}
+#forgelex-mcp-preview .fm-window [hidden]{display:none!important}
+#forgelex-mcp-preview .fm-hostbar{display:flex;justify-content:space-between;gap:12px;padding:16px 23px;border-bottom:1px solid var(--line)}
+#forgelex-mcp-preview .fm-layout{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
+#forgelex-mcp-preview .fm-conversation{padding:30px 26px;min-width:0}
+#forgelex-mcp-preview .fm-request{margin:0 0 32px 18px;padding:13px 17px;background:var(--soft);border-radius:12px}
+#forgelex-mcp-preview .fm-window h2{font:500 25px/1.3 Georgia,serif;margin:9px 0 18px}
+#forgelex-mcp-preview .fm-window h3{font:500 23px/1.3 Georgia,serif;margin:4px 0 12px}
+#forgelex-mcp-preview .fm-window p{margin:0 0 16px}
+#forgelex-mcp-preview .fm-secondary{font-size:12px;color:var(--muted)}
+#forgelex-mcp-preview .fm-eyebrow{font-size:12px;color:var(--muted);letter-spacing:.025em}
+#forgelex-mcp-preview .fm-composer{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:35px;color:var(--muted);font-size:13px}
+#forgelex-mcp-preview .fm-window button{font:inherit;display:inline-flex;align-items:center;justify-content:center;gap:7px;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:8px 12px;min-height:38px}
+#forgelex-mcp-preview .fm-window button:focus-visible,#forgelex-mcp-preview .fm-window a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+#forgelex-mcp-preview .fm-window button:disabled{opacity:.35}
+#forgelex-mcp-preview .fm-window button.fm-open{color:var(--accent);border-color:var(--line);margin:6px 0 0}
+#forgelex-mcp-preview .fm-reader-slot{min-width:0;background:var(--page)}
+#forgelex-mcp-preview .fm-side .fm-reader-slot{border-left:1px solid var(--line)}
+#forgelex-mcp-preview .fm-reader{background:var(--page);min-width:0}
+#forgelex-mcp-preview .fm-brandbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:21px 23px;border-bottom:1px solid var(--line)}
+#forgelex-mcp-preview .fm-brand{font:500 22px Georgia,serif;color:var(--accent)}
+#forgelex-mcp-preview .fm-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 23px}
+#forgelex-mcp-preview .fm-position{font-size:12px;color:var(--muted)}
+#forgelex-mcp-preview .fm-window button.fm-icon{border:0;padding:5px;min-width:36px;min-height:36px}
+#forgelex-mcp-preview .fm-record{padding:5px 23px 16px;min-width:0}
+#forgelex-mcp-preview .fm-relator{margin-bottom:2px!important;font-size:13px}
+#forgelex-mcp-preview .fm-dates{display:flex;flex-wrap:wrap;gap:18px;margin:14px 0 18px}
+#forgelex-mcp-preview .fm-dates dt{font-size:12px;color:var(--muted)}
+#forgelex-mcp-preview .fm-dates dd{margin:0;font-size:13px}
+#forgelex-mcp-preview .fm-completeness{font-size:12px;color:var(--accent);margin-bottom:10px!important}
+#forgelex-mcp-preview .fm-tabs{display:flex;flex-wrap:wrap;gap:15px;border-bottom:1px solid var(--line);margin-bottom:16px}
+#forgelex-mcp-preview .fm-window .fm-tabs button{border:0;border-radius:0;padding:7px 0;color:var(--muted);font-size:12px}
+#forgelex-mcp-preview .fm-window .fm-tabs button[aria-selected="true"]{color:var(--accent);box-shadow:0 2px var(--accent)}
+#forgelex-mcp-preview .fm-text{max-height:365px;overflow-y:auto;overscroll-behavior:contain;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.8;padding-right:7px}
+#forgelex-mcp-preview .fm-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+#forgelex-mcp-preview .fm-window .fm-actions button{border:0;padding:6px 9px;font-size:12px}
+#forgelex-mcp-preview .fm-origin{padding:14px 0 2px;margin-top:12px}
+#forgelex-mcp-preview .fm-origin p{font-size:12px;margin-bottom:7px}
+#forgelex-mcp-preview .fm-official{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-size:13px;margin:6px 0 10px}
+#forgelex-mcp-preview .fm-feedback{font-size:12px;color:var(--muted);margin:8px 0 0!important}
+#forgelex-mcp-preview .fm-copy-fallback label{display:block;font-size:12px;margin-top:12px}
+#forgelex-mcp-preview .fm-copy-fallback textarea{width:100%;margin-top:7px;padding:8px;border:1px solid var(--line);border-radius:6px;color:var(--ink);background:var(--paper);font:inherit;resize:vertical}
+#forgelex-mcp-preview .fm-reader-footer{padding:14px 23px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
+#forgelex-mcp-preview .fm-inline .fm-layout{display:block}
+#forgelex-mcp-preview .fm-inline .fm-conversation{max-width:800px;margin:auto;padding-top:22px}
+#forgelex-mcp-preview .fm-inline .fm-reader-slot{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:24px}
+#forgelex-mcp-preview .fm-inline .fm-request{margin-bottom:22px}
+@media(max-width:650px){#forgelex-mcp-preview .fm-window{min-height:1150px}#forgelex-mcp-preview .fm-layout{display:block}#forgelex-mcp-preview .fm-side .fm-reader-slot{border-left:0;border-top:1px solid var(--line)}#forgelex-mcp-preview .fm-conversation{padding:21px 17px}#forgelex-mcp-preview .fm-side .fm-composer{display:none}#forgelex-mcp-preview .fm-brandbar,#forgelex-mcp-preview .fm-pager,#forgelex-mcp-preview .fm-record{padding-left:17px;padding-right:17px}#forgelex-mcp-preview .fm-hostbar{padding:14px 17px}#forgelex-mcp-preview .fm-brandbar{flex-wrap:wrap}#forgelex-mcp-preview .fm-window h2{font-size:23px}#forgelex-mcp-preview .fm-window h3{font-size:21px}#forgelex-mcp-preview .fm-text{max-height:400px}}
+</style>
+<script>
+(function(){
+  const root=document.getElementById('forgelex-mcp-preview');
+  const records=[
+    {id:'reference-aresp',process:'AREsp 2.904.407',court:'STJ',relator:'Ricardo Villas Bôas Cueva',chamber:'Terceira Turma',judgment:'09/12/2025',publication:'18/12/2025',completeness:'Ementa transcrita da referência enviada',origin:'Imagem do Exordial enviada por Boni nesta conversa.',url:null,
+    syllabus:`EMENTA: AGRAVO EM RECURSO ESPECIAL. PROCESSUAL CIVIL. DISSOLUÇÃO IRREGULAR PESSOA JURÍDICA. SUCESSÃO EMPRESARIAL. IMPOSSIBILIDADE. INCIDENTE DE DESCONSIDERAÇÃO DA PERSONALIDADE JURÍDICA. REQUISITOS. AUSÊNCIA. DISSOLUÇÃO IRREGULAR. INSOLVÊNCIA.
+1. Somente a extinção regular da pessoa jurídica permite a aplicação da sucessão processual prevista no art. 110 do CPC.
+2. Para aplicação da teoria da desconsideração da personalidade jurídica (art. 50 do Código Civil), exige-se a comprovação de abuso, caracterizado pelo desvio de finalidade (ato intencional dos sócios com intuito de fraudar terceiros) ou confusão patrimonial, requisitos que não se presumem mesmo em casos de dissolução irregular ou de insolvência da sociedade empresária. Precedentes.
+3. Agravo conhecido para negar provimento ao recurso especial.`,
+    outcome:`ACÓRDÃO:
+Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da TERCEIRA TURMA do Superior Tribunal de Justiça, em Sessão Virtual de 03/12/2025 a 09/12/2025, por unanimidade, negar provimento ao recurso, nos termos do voto do Sr. Ministro Relator.
+Os Srs. Ministros Moura Ribeiro, Daniela Teixeira e Humberto Martins votaram com o Sr. Ministro Relator.
+Presidiu o julgamento o Sr. Ministro Humberto Martins.
+Não participou do julgamento a Sra. Ministra Nancy Andrighi.`},
+    {id:'reference-resp',process:'REsp 2.070.717/MG',court:'STJ',relator:'Joel Ilan Paciornik',chamber:'Terceira Seção',judgment:'13/11/2024',publication:'25/03/2025',completeness:'Trecho de ementa · somente o cabeçalho disponível nesta prévia',origin:'Resposta do ForgeLex na conversa compartilhada por Boni; metadados não conferidos nesta prévia.',url:'https://processo.stj.jus.br/SCON/GetInteiroTeorDoAcordao?num_registro=202301572040',
+    syllabus:`RECURSO ESPECIAL REPRESENTATIVO DE CONTROVÉRSIA. RITO DOS RECURSOS REPETITIVOS. VIOLÊNCIA DOMÉSTICA CONTRA A MULHER. TEMA N. 1249. MEDIDAS PROTETIVAS DE URGÊNCIA. NATUREZA JURÍDICA. TUTELA INIBITÓRIA. CONTEÚDO SATISFATIVO. VIGÊNCIA DA MEDIDA NÃO SE SUBORDINA À EXISTÊNCIA DE BOLETIM DE OCORRÊNCIA, INQUÉRITO POLICIAL, PROCESSO CÍVEL OU CRIMINAL. IMPOSSIBILIDADE DE FIXAÇÃO DE PRAZO PREDETERMINADO. DURAÇÃO SUBORDINADA À PERSISTÊNCIA DA SITUAÇÃO DE RISCO. RECURSO PROVIDO.`,outcome:null}
+  ];
+  const saved=window.openai?.widgetState;
+  const initial=saved?.modelContent?.decisionId||saved?.decisionId;
+  const initialIndex=Math.max(0,records.findIndex(r=>r.id===initial));
+  const readers=[];
+  function persist(state){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{preview:'ForgeLex MCP decisões',decisionId:records[state.index].id,section:state.section},privateContent:null}).catch(()=>{});}
+  root.querySelectorAll('.fm-reader-slot').forEach((slot,readerIndex)=>{
+    slot.appendChild(document.getElementById('fm-reader-template').content.cloneNode(true));
+    const state={index:initialIndex,section:'syllabus',origin:false};
+    const reader=slot.querySelector('.fm-reader');
+    const text=reader.querySelector('.fm-text');
+    text.id=`fm-decision-text-${readerIndex}`;
+    for(const action of ['syllabus','outcome']){
+      const tab=reader.querySelector(`[data-action="${action}"]`);
+      tab.id=`fm-${action}-${readerIndex}`;tab.setAttribute('aria-controls',text.id);
+    }
+    function render(){
+      const item=records[state.index];if(!item.outcome)state.section='syllabus';
+      reader.querySelector('.fm-position').textContent=`${state.index+1} de ${records.length} decisões`;
+      reader.querySelector('[data-action="previous"]').disabled=state.index===0;
+      reader.querySelector('[data-action="next"]').disabled=state.index===records.length-1;
+      for(const [selector,value] of [['.fm-court',item.court],['.fm-process',item.process],['.fm-relator',`Relatoria: ${item.relator}`],['.fm-chamber',item.chamber],['.fm-judgment',item.judgment],['.fm-publication',item.publication],['.fm-completeness',item.completeness],['.fm-origin-label',item.origin]])reader.querySelector(selector).textContent=value;
+      text.textContent=item[state.section];text.scrollTop=0;
+      reader.querySelector('[data-action="outcome"]').hidden=!item.outcome;
+      for(const action of ['syllabus','outcome']){const tab=reader.querySelector(`[data-action="${action}"]`);tab.setAttribute('aria-selected',String(state.section===action));tab.tabIndex=state.section===action?0:-1;}
+      text.setAttribute('aria-labelledby',`fm-${state.section}-${readerIndex}`);
+      reader.querySelector('.fm-origin').hidden=!state.origin;
+      reader.querySelector('[data-action="origin"]').setAttribute('aria-expanded',String(state.origin));
+      const link=reader.querySelector('.fm-official');link.hidden=!item.url;if(item.url)link.href=item.url;else link.removeAttribute('href');
+      reader.querySelector('.fm-unavailable').textContent=item.url?'Inteiro teor: link externo informado na referência. Texto integral não recuperado nesta prévia.':'Endereço oficial não disponível na referência enviada. Relatório e votos não apresentados.';
+      reader.querySelector('.fm-copy-fallback').hidden=true;reader.querySelector('.fm-feedback').textContent='';
+      text.setAttribute('aria-label',`${state.section==='syllabus'?'Ementa':'Resultado do julgamento'} de ${item.process}`);
+    }
+    reader.addEventListener('click',async event=>{
+      const button=event.target.closest('button[data-action]');if(!button||button.disabled)return;
+      const action=button.dataset.action;
+      if(action==='previous'||action==='next'){state.index+=action==='next'?1:-1;state.section='syllabus';state.origin=false;render();persist(state);}
+      else if(action==='syllabus'||action==='outcome'){state.section=action;render();persist(state);}
+      else if(action==='origin'){state.origin=!state.origin;render();persist(state);}
+      else if(action==='copy'){
+        const item=records[state.index],ref=`${item.court}. ${item.process}, Rel. ${item.relator}, ${item.chamber}, julgamento ${item.judgment}, publicação ${item.publication}.`;
+        try{if(!navigator.clipboard?.writeText)throw new Error('clipboard');await navigator.clipboard.writeText(ref);if(records[state.index].id===item.id)reader.querySelector('.fm-feedback').textContent='Citação copiada.';}
+        catch{if(records[state.index].id!==item.id)return;const fallback=reader.querySelector('.fm-copy-fallback');fallback.hidden=false;const area=fallback.querySelector('textarea');area.value=ref;area.focus();area.select();reader.querySelector('.fm-feedback').textContent='Selecione e copie a citação.';}
+      }
+    });
+    reader.querySelector('.fm-tabs').addEventListener('keydown',event=>{
+      if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+      const tabs=Array.from(reader.querySelectorAll('.fm-tabs button')).filter(tab=>!tab.hidden);
+      const current=tabs.indexOf(event.target);if(current<0)return;event.preventDefault();
+      const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(current+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+      tabs[next].click();tabs[next].focus();
+    });
+    if(typeof Tweak!=='undefined'){
+      const design={lineHeight:1.8};
+      const tweak=new Tweak({container:reader,onChange:()=>{text.style.lineHeight=String(design.lineHeight);}});
+      tweak.addSlider(design,'lineHeight',{label:'Espaçamento do texto',min:1.5,max:2,step:.1});
+    }
+    render();readers.push({state,render,reader});
+  });
+  root.querySelector('[data-action="open"]').addEventListener('click',()=>{const reader=readers[0].reader;reader.scrollIntoView({block:'nearest',behavior:'auto'});reader.querySelector('.fm-text').focus({preventScroll:true});});
+  window.addEventListener('openai:set_globals',event=>{const snapshot=event.detail?.globals?.widgetState;const id=snapshot?.modelContent?.decisionId||snapshot?.decisionId;const index=records.findIndex(r=>r.id===id);if(index<0)return;for(const entry of readers){entry.state.index=index;entry.state.section=snapshot?.modelContent?.section==='outcome'?'outcome':'syllabus';entry.render();}});
+  if(typeof lucide!=='undefined')lucide.createIcons({attrs:{width:16,height:16}});
+})();
+</script>

@@ -1,23 +1,25 @@
-import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import { CASE_WORKSPACE_ENABLED, SAVED_RESEARCH_ENABLED } from '../config/site-capabilities';
 import React, { useEffect, useRef, useState } from 'react';
-import { useApp, SearchResultItem } from '../context/AppContext';
+import { useApp } from '../context/AppContext';
 import { useCaseLawSearch } from '../operations/use-case-law-search';
-import { CopyCitationButton } from '../components/CopyCitationButton';
+import { DecisionReader } from '../components/DecisionReader';
+import { SavedResearchPanel } from '../research/SavedResearchPanel';
+import { createSearchIntent } from '../operations/contracts';
 import { SaveAuthorityToCase } from '../components/SaveAuthorityToCase';
-import { ExecutedSearchLabel, JudgmentYearSelect, ResearchRetentionNotice, SearchChargeNotice } from '../components/ResearchControls';
+import { ExecutedSearchLabel, JudgmentYearSelect, ResearchRetentionNotice, SearchChargeNotice, ResearchCoverageNotice } from '../components/ResearchControls';
+import { PRODUCT_DESCRIPTION } from '../config/research-copy';
 import {
   ArrowUpRight, Search, Scale, Shield, FolderOpen,
-  ExternalLink, Sparkles, AlertCircle, BookmarkCheck
+  Sparkles, AlertCircle, BookmarkCheck
 } from 'lucide-react';
 
 export const LandingScreen: React.FC = () => {
-  const { recentSearches, setActiveTab, tribunals, searchIntent } = useApp();
+  const { recentSearches, setActiveTab, tribunals, searchIntent, performSearch } = useApp();
   const [query, setQuery] = useState(() => searchIntent?.query ?? '');
   const [court, setCourt] = useState<string>(() => searchIntent?.court ?? 'STJ');
   const [year, setYear] = useState(() => searchIntent?.judgmentYear?.toString() ?? '');
   const queryInput = useRef<HTMLInputElement>(null);
   const { results, execution, error: searchError, busy: isSearching, search: handleSearch, retry, canRetry, canRecharge, hasSearched } = useCaseLawSearch(query, court, year);
-  const [selectedDoc, setSelectedDoc] = useState<SearchResultItem | null>(null);
   const searchableCourts = tribunals.data.filter((item) => item.searchable);
 
   useEffect(() => {
@@ -43,11 +45,11 @@ export const LandingScreen: React.FC = () => {
           </div>
 
           <h1 className="font-editorial text-4xl font-bold tracking-tight text-stone-950 leading-[1.15] sm:text-5xl">
-            {CASE_WORKSPACE_ENABLED ? 'Do caso à minuta, conecte fatos, provas e jurisprudência.' : 'Jurisprudência do STJ no seu fluxo com IA.'}
+            {CASE_WORKSPACE_ENABLED ? 'Do caso à minuta, conecte fatos, provas e jurisprudência.' : 'Jurisprudência dos tribunais superiores e consulta processual.'}
           </h1>
 
           <p className="text-base sm:text-lg md:text-xl text-stone-600 max-w-2xl mx-auto font-normal leading-relaxed">
-            {CASE_WORKSPACE_ENABLED ? 'Pesquise jurisprudência, organize o contexto do caso e prepare peças com fontes visíveis e revisão humana no momento certo.' : 'Conecte o ForgeLex ao ChatGPT ou Claude, pesquise decisões e confira suas fontes. A pesquisa também está disponível aqui.'}
+            {CASE_WORKSPACE_ENABLED ? 'Pesquise jurisprudência, organize o contexto do caso e prepare peças com fontes visíveis e revisão humana no momento certo.' : PRODUCT_DESCRIPTION}
           </p>
 
           {/* Quick Stats Banner */}
@@ -72,6 +74,7 @@ export const LandingScreen: React.FC = () => {
         {/* SEARCH BAR (Inspirada em ForgeLex_01_Landing.png) */}
         <div className="champagne-card mx-auto max-w-4xl space-y-4 rounded-xl bg-white p-4 sm:p-5">
           <SearchChargeNotice />
+          <ResearchCoverageNotice />
           <form onSubmit={handleSearch} className="flex flex-col lg:flex-row items-stretch md:items-center gap-3">
             
             {/* Input */}
@@ -176,151 +179,14 @@ export const LandingScreen: React.FC = () => {
         {hasSearched && !isSearching && !searchError && execution?.resultCount === 0 && <div className="surface-subtle mx-auto max-w-4xl p-4 text-sm text-stone-600">A operação concluída não localizou resultados para esta consulta.</div>}
         {execution && <div className="mx-auto max-w-4xl space-y-2"><ExecutedSearchLabel execution={execution} /><ResearchRetentionNotice /></div>}
         {/* SEARCH RESULTS FEED */}
-        {results.length > 0 && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="font-editorial text-2xl font-bold text-stone-900">
-                Resultados da pesquisa ({results.length})
-              </h2>
-              <span className="text-xs font-medium text-stone-500">
-                Ordenados por relevância e verificação
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              {results.map((item) => (
-                <div 
-                  key={item.id} 
-                  className="champagne-card p-6 rounded-2xl bg-white shadow-card space-y-4 hover:border-cognac-400 transition-colors"
-                >
-                  {/* Top Row: Badges */}
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
-                        item.court === 'STF' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
-                        item.court === 'STJ' ? 'bg-cognac-100 text-cognac-800 border border-cognac-200' :
-                        'bg-stone-100 text-stone-700 border border-stone-200'
-                      }`}>
-                        {item.court}
-                      </span>
-                      <span className="text-sm font-bold text-stone-900">
-                        {item.processNumber}
-                      </span>
-                      {item.isBinding && (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider">
-                          Precedente Vinculante
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-stone-500 font-medium">
-                      Julgamento: {item.judgmentDate}
-                    </span>
-                  </div>
-
-                  {/* Relator */}
-                  <div className="text-xs font-medium text-stone-600">
-                    <span className="text-stone-400">Relatoria:</span> {item.relator}
-                  </div>
-
-                  {/* Ementa */}
-                  <p className="text-xs sm:text-sm text-stone-700 leading-relaxed font-sans bg-[#FDFBF7] p-4 rounded-xl border border-champagne-border">
-                    {item.ementa}
-                  </p>
-
-                  {/* Bottom Actions */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-xs">
-                    <div className="text-[11px] text-stone-400">Proveniência retornada pela API</div>
-
-                    <div className="flex items-center space-x-2">
-                      <div className="flex flex-wrap items-center gap-2"><CopyCitationButton item={item} />{CASE_WORKSPACE_ENABLED && <SaveAuthorityToCase item={item} />}</div>
-
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDoc(item)}
-                        className="px-3 py-1.5 rounded-lg bg-cognac-50 border border-cognac-200 hover:bg-cognac-100 text-cognac-800 font-medium flex items-center space-x-1.5 transition-colors"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5 text-cognac-600" />
-                        <span>Ver Detalhes</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* MODAL DETALHES JURÍDICOS */}
-        {selectedDoc && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-sm animate-fadeIn">
-            <div className="champagne-card bg-white w-full max-w-2xl rounded-2xl p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="px-2.5 py-0.5 rounded-md bg-cognac-100 text-cognac-800 text-xs font-bold">
-                      {selectedDoc.court}
-                    </span>
-                    <h3 className="font-editorial text-xl font-bold text-stone-900">
-                      {selectedDoc.processNumber}
-                    </h3>
-                  </div>
-                  <p className="text-xs text-stone-500">
-                    Relatoria de {selectedDoc.relator} • Data: {selectedDoc.judgmentDate}
-                  </p>
-                </div>
-                <button
-                  aria-label="Fechar detalhes"
-                  onClick={() => setSelectedDoc(null)}
-                  className="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 font-bold"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="text-xs uppercase font-bold tracking-wider text-stone-500">Ementa completa</h4>
-                <div className="p-4 rounded-xl bg-[#FDFBF7] border border-champagne-border text-xs sm:text-sm text-stone-800 leading-relaxed">
-                  {selectedDoc.ementa}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="p-3 rounded-lg bg-stone-50 border border-stone-200">
-                  <span className="text-stone-400 block mb-0.5">Precedente Vinculante:</span>
-                  <span className="font-bold text-stone-800">{selectedDoc.isBinding ? 'Sim (Súmula / Tema)' : 'Jurisprudência Persuasiva'}</span>
-                </div>
-                <div className="p-3 rounded-lg bg-stone-50 border border-stone-200">
-                  <span className="text-stone-400 block mb-0.5">Proveniência:</span>
-                  {selectedDoc.sourceUrl ? <a href={selectedDoc.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-cognac-700 hover:underline flex items-center">Acessar fonte retornada <ExternalLink className="w-3 h-3 ml-1" /></a> : <span className="font-semibold text-stone-600">Não informada pela API</span>}
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end space-x-3">
-                <button
-                  onClick={() => setSelectedDoc(null)}
-                  className="px-4 py-2 rounded-xl border border-stone-200 text-stone-600 text-sm font-medium hover:bg-stone-50"
-                >
-                  Fechar
-                </button>
-                {CASE_WORKSPACE_ENABLED && <button
-                  onClick={() => {
-                    setSelectedDoc(null);
-                    setActiveTab('matter');
-                  }}
-                  className="px-5 py-2 rounded-xl bg-cognac-700 hover:bg-cognac-800 text-white text-sm font-medium shadow-sm"
-                >
-                  Abrir caso
-                </button>}
-              </div>
-            </div>
-          </div>
-        )}
+        {results.length > 0 && <DecisionReader entries={results.map(decision => ({ decision }))} actions={item => CASE_WORKSPACE_ENABLED && <SaveAuthorityToCase item={item} />} />}
+        <SavedResearchPanel operationId={execution?.intent.idempotencyKey} onResearchAgain={async criteria => { setQuery(criteria.query); setCourt(criteria.court ?? court); setYear(criteria.judgmentYear?.toString() ?? ''); await performSearch(createSearchIntent(criteria.query, criteria.court ?? court, criteria.limit, criteria.judgmentYear)); }} />
 
         {/* RECENT SEARCHES FOOTER */}
-        {recentSearches.data.length === 0 && !results.length && (
+        {!SAVED_RESEARCH_ENABLED && recentSearches.data.length === 0 && !results.length && (
           <div className="surface-subtle mx-auto max-w-4xl p-4 text-center"><h2 className="text-sm font-semibold text-stone-800">Nenhuma consulta persistida</h2><p className="mt-1 text-xs text-stone-500">Pesquisas concluídas aparecerão aqui após confirmação da API.</p></div>
         )}
-        {recentSearches.data.length > 0 && <div className="champagne-card-subtle p-6 rounded-2xl max-w-4xl mx-auto space-y-3">
+        {!SAVED_RESEARCH_ENABLED && recentSearches.data.length > 0 && <div className="champagne-card-subtle p-6 rounded-2xl max-w-4xl mx-auto space-y-3">
           <h4 className="text-xs uppercase font-bold tracking-wider text-stone-500">
             Consultas recentes
           </h4>

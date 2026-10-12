@@ -119,10 +119,9 @@ test('histórico e exemplos não cobram; cliques rápidos geram uma operação; 
   await expect(history).toBeVisible();
   expect(requests).toHaveLength(1);
   expect(await balance(page)).toBe(before - 20);
-  await page.getByRole('button', { name: 'Ver Detalhes' }).first().click();
-  await page.getByRole('button', { name: 'Fechar detalhes' }).click();
-  await page.getByRole('button', { name: 'Copiar Citação' }).first().click();
-  await expect(page.getByRole('button', { name: 'Copiado!' })).toBeVisible();
+  await page.getByText('Origem e fonte', { exact: true }).first().click();
+  await page.getByRole('button', { name: 'Copiar citação' }).first().click();
+  await expect(page.getByRole('button', { name: 'Citação copiada' })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('Ementa:');
   await page.getByLabel('Ano do julgamento', { exact: true }).selectOption('2022');
   await history.click();
@@ -134,9 +133,9 @@ test('histórico e exemplos não cobram; cliques rápidos geram uma operação; 
   expect(requests).toHaveLength(2);
   expect(await balance(page)).toBe(before - 40);
   await page.evaluate(() => { Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async () => { throw new Error('denied'); } }); });
-  await page.getByRole('button', { name: /Copiar Citação|Copiado!/ }).first().click();
+  await page.getByRole('button', { name: /Copiar citação|Citação copiada/ }).first().click();
   await expect(page.getByRole('alert').filter({ hasText: 'Não foi possível copiar' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Copiado!' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Citação copiada' })).toHaveCount(0);
   expect(requests).toHaveLength(2);
 });
 
@@ -150,7 +149,7 @@ test('ano e cópia funcionam também na tela de pesquisa', async ({ page }) => {
   await page.getByLabel('Ano do julgamento', { exact: true }).selectOption('2023');
   await page.getByRole('button', { name: 'Consultar', exact: true }).click();
   await expect(page.getByText('REsp 1.823.450/SP', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Copiar Citação' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copiar citação' })).toBeVisible();
   await expect(page.getByText('Consulta exibida: vazamento · STJ · 2023')).toBeVisible();
 });
 

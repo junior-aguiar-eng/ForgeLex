@@ -102,6 +102,7 @@ function toDocument(
 ): JurisprudenceDocument {
   return JurisprudenceDocumentSchema.parse({
     id: row.id,
+    versionId: currentVersion.id,
     court: row.court,
     processNumber: row.processNumber,
     processClass: currentVersion.processClass ?? undefined,
@@ -140,6 +141,17 @@ function toVersion(row: typeof schema.jurisprudenceDocumentVersions.$inferSelect
 
 export class JurisprudenceRepository {
   public constructor(private readonly db: ForgeLexDatabase) {}
+
+  public async getPublishedDecision(input: { recordId: string; versionId: string }): Promise<JurisprudenceDocument | undefined> {
+    const completedRunIds = await this.completedIngestionRunIds();
+    const rows = await this.db.select({ document: schema.jurisprudenceDocuments, version: schema.jurisprudenceDocumentVersions })
+      .from(schema.jurisprudenceDocuments)
+      .innerJoin(schema.jurisprudenceDocumentVersions, eq(schema.jurisprudenceDocuments.id, schema.jurisprudenceDocumentVersions.documentId))
+      .leftJoin(schema.jurisprudenceSourceManifests, eq(schema.jurisprudenceDocumentVersions.sourceManifestId, schema.jurisprudenceSourceManifests.id))
+      .where(and(eq(schema.jurisprudenceDocuments.id, input.recordId), eq(schema.jurisprudenceDocumentVersions.id, input.versionId), this.publishedVersionCondition(completedRunIds)))
+      .limit(1);
+    return rows[0] ? toDocument(rows[0].document, rows[0].version) : undefined;
+  }
 
   public async upsertDocument(input: UpsertJurisprudenceDocumentInput): Promise<UpsertJurisprudenceDocumentResult> {
     return this.db.transaction((tx) => this.persistDocument(tx, input));

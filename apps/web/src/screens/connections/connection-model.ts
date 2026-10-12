@@ -24,8 +24,8 @@ const stateLabels: Record<ConnectionState, string> = {
 };
 
 const requirementsByPlatform: Record<HostPlatform, string[]> = {
-  chatgpt: ['Use o ChatGPT em um computador.', 'A disponibilidade de conectores ou MCP depende do plano e da versão do host.', 'Confirme no próprio host se a opção de adicionar ferramentas está disponível para sua conta.'],
-  claude: ['Use o Claude em um computador.', 'A disponibilidade de conectores ou MCP depende do plano e da versão do host.', 'Confirme no próprio host se a opção de adicionar ferramentas está disponível para sua conta.'],
+  chatgpt: ['Use o ChatGPT em um computador.', 'A disponibilidade de conectores ou MCP depende do plano e da versão do aplicativo conectado.', 'Confirme no próprio aplicativo conectado se a opção de adicionar ferramentas está disponível para sua conta.'],
+  claude: ['Use o Claude em um computador.', 'A disponibilidade de conectores ou MCP depende do plano e da versão do aplicativo conectado.', 'Confirme no próprio aplicativo conectado se a opção de adicionar ferramentas está disponível para sua conta.'],
 };
 
 export function platformName(platform: HostPlatform): string { return platform === 'chatgpt' ? 'ChatGPT' : 'Claude'; }
@@ -63,16 +63,16 @@ export function deriveMcpConnectionSignals(status: McpConnectionStatusResponse):
       ? { id: 'service', label: 'Serviço disponível', detail: 'O ForgeLex respondeu ao teste gratuito.', tone: 'ready' }
       : { id: 'service', label: 'Serviço temporariamente indisponível', detail: 'Tente novamente em alguns instantes.', tone: 'unavailable' },
     status.authenticatedCredential && status.scopes.includes('mcp')
-      ? { id: 'credential', label: 'Credencial pronta', detail: 'A credencial possui o escopo MCP necessário.', tone: 'ready' }
-      : { id: 'credential', label: 'Credencial MCP indisponível', detail: 'Configure uma credencial com o escopo MCP.', tone: 'unavailable' },
+      ? { id: 'credential', label: 'Credencial pronta', detail: 'O acesso está autorizado para conectar o ForgeLex.', tone: 'ready' }
+      : { id: 'credential', label: 'Credencial MCP indisponível', detail: 'Entre na sua conta e autorize a conexão.', tone: 'unavailable' },
     status.lastMcpUseAt
       ? { id: 'use', label: 'Uso confirmado', detail: `Último uso auditável: ${new Date(status.lastMcpUseAt).toLocaleString('pt-BR')}.`, tone: 'ready' }
-      : { id: 'use', label: 'Uso confirmado ainda não registrado', detail: 'O host ainda não retornou uma execução auditável.', tone: 'pending' },
+      : { id: 'use', label: 'Uso confirmado ainda não registrado', detail: 'O aplicativo conectado ainda não retornou uma execução auditável.', tone: 'pending' },
   ];
 }
 
 export function connectionStatusErrorMessage(code: string): string {
-  if (code === 'INSUFFICIENT_SCOPE') return 'A credencial não possui o escopo MCP necessário.';
+  if (code === 'INSUFFICIENT_SCOPE') return 'Este acesso não permite conectar o ForgeLex.';
   if (code === 'CREDENTIAL_REVOKED' || code === 'UNAUTHENTICATED') return 'A credencial está ausente, expirada ou revogada.';
   return 'O ForgeLex está temporariamente indisponível. Tente novamente em alguns instantes.';
 }

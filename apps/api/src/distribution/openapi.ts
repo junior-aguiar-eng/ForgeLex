@@ -14,9 +14,15 @@ export interface PublicApiRouteDefinition {
   requestBody?: 'object' | 'search-case-law' | 'verify-authority' | 'api-key' | 'account-bootstrap' | 'account-closure' | 'datajud-process';
   requiresIdempotencyKey?: boolean;
   responseSchema?: keyof typeof OPENAPI_SCHEMAS;
+  requestSchema?: keyof typeof OPENAPI_SCHEMAS;
 }
 
 const OPENAPI_SCHEMAS = {
+  SavedResearchRequest: { type: 'object', additionalProperties: false, required: ['operationId'], properties: { operationId: { type: 'string', minLength: 1 } } },
+  SavedResearchPermissionRequest: { type: 'object', additionalProperties: false, required: ['clientId', 'grantedAt', 'enabled'], properties: { clientId: { type: 'string', minLength: 1, maxLength: 200 }, grantedAt: { type: 'string', format: 'date-time' }, enabled: { type: 'boolean' } } },
+  SavedResearchSummary: { type: 'object', required: ['id', 'operationId', 'criteria', 'resultCount', 'searchedAt', 'savedAt'], properties: { id: { type: 'string', format: 'uuid' }, operationId: { type: 'string' }, criteria: { $ref: '#/components/schemas/SearchCaseLawRequest' }, resultCount: { type: 'integer', minimum: 0 }, searchedAt: { type: 'string', format: 'date-time' }, savedAt: { type: 'string', format: 'date-time' } } },
+  SavedResearchList: { type: 'object', required: ['items', 'capacity'], properties: { items: { type: 'array', maxItems: 6, items: { $ref: '#/components/schemas/SavedResearchSummary' } }, capacity: { type: 'integer', const: 6 } } },
+  SavedResearchResult: { allOf: [{ $ref: '#/components/schemas/SavedResearchSummary' }, { type: 'object', required: ['results'], properties: { results: { type: 'object', description: 'Resultado original integral da operação concluída, com critérios, decisões e referências às versões conservadas.' } } }] },
   LifecycleCommand: { type: 'object', additionalProperties: false, required: ['expectedLifecycleRevision'], properties: { expectedLifecycleRevision: { type: 'integer', minimum: 0 } } },
   PurgeCommand: { type: 'object', additionalProperties: false, required: ['expectedLifecycleRevision', 'confirmation'], properties: { expectedLifecycleRevision: { type: 'integer', minimum: 0 }, confirmation: { type: 'string', minLength: 1, description: 'Nome exato do caso ou ID do documento.' } } },
   LifecycleResult: { type: 'object', required: ['id', 'lifecycleState', 'lifecycleRevision'], properties: { id: { type: 'string', format: 'uuid' }, lifecycleState: { type: 'string', enum: ['ACTIVE', 'ARCHIVED', 'TRASHED', 'PURGED'] }, lifecycleRevision: { type: 'integer', minimum: 0 }, archivedAt: { type: 'string', format: 'date-time' }, trashedAt: { type: 'string', format: 'date-time' }, purgedAt: { type: 'string', format: 'date-time' } } },
@@ -383,7 +389,7 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
     };
   }
   if (route.requestBody) {
-    const schema = route.requestBody === 'search-case-law'
+    const schema = route.requestSchema ? { $ref: `#/components/schemas/${route.requestSchema}` } : route.requestBody === 'search-case-law'
       ? { $ref: '#/components/schemas/SearchCaseLawRequest' }
       : route.requestBody === 'verify-authority'
         ? { $ref: '#/components/schemas/AuthorityLookupRequest' }
@@ -446,6 +452,18 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
       'Cache-Control': { schema: { type: 'string', enum: ['no-store'] } },
     };
   }
+  if (route.path.startsWith('/api/v2/research/saved')) {
+    operation['x-forgelex-session-only'] = true;
+    operation['x-forgelex-billing-mode'] = 'FREE';
+    const responses = operation.responses as Record<string, Record<string, unknown>>;
+    delete responses['402'];
+    responses['200'].headers = {
+      'X-ForgeLex-Billing-Mode': { schema: { type: 'string', const: 'FREE' } },
+      'X-Credits-Charged': { schema: { type: 'string', const: '0' } },
+      'Cache-Control': { schema: { type: 'string', const: 'no-store' } },
+    };
+    if (route.method === 'delete') { responses['204'] = { description: 'Somente a pesquisa selecionada foi excluída.', headers: responses['200'].headers }; delete responses['200']; }
+  }
   if(route.path.includes('/ai-access')||route.path==='/api/v2/mcp/authorized-applications') delete (operation.responses as Record<string,unknown>)['402'];
   for (const status of ['400', '401', '402', '403', '404', '408', '409', '422', '429', '502', '503', '504']) {
     const responses = operation.responses as Record<string, Record<string, unknown>>;
@@ -459,9 +477,18 @@ function createOperation(route: PublicApiRouteDefinition): Record<string, unknow
   return operation;
 }
 
-export function buildOpenApiDocument(serverUrl = 'http://localhost:3001'): Record<string, unknown> {
+const SAVED_RESEARCH_API_ROUTES: readonly PublicApiRouteDefinition[] = [
+  { method: 'get', path: '/api/v2/research/saved', summary: 'Listar pesquisas salvas', description: 'Somente sessão web. Gratuito; até seis pesquisas conservadas por usuário.', scopes: ['research:read'], responseSchema: 'SavedResearchList' },
+  { method: 'post', path: '/api/v2/research/saved', summary: 'Salvar pesquisa concluída', description: 'Somente sessão web. Gratuito; recupera a operação original do usuário. Sétima vaga retorna 409. Repetição não duplica nem substitui.', scopes: ['research:read'], requestBody: 'object', requestSchema: 'SavedResearchRequest', responseSchema: 'SavedResearchSummary' },
+  { method: 'get', path: '/api/v2/research/saved/{id}', summary: 'Abrir pesquisa salva', description: 'Somente sessão web. Gratuito; devolve cópia conservada, sem executar pesquisa ou atualizar as versões.', scopes: ['research:read'], responseSchema: 'SavedResearchResult' },
+  { method: 'delete', path: '/api/v2/research/saved/{id}', summary: 'Excluir pesquisa selecionada', description: 'Somente sessão web. Gratuito; não substitui nem exclui outras pesquisas.', scopes: ['research:read'] },
+  { method: 'get', path: '/api/v2/research/saved/permissions', summary: 'Consultar permissões dos aplicativos', description: 'Somente sessão web. Gratuito; consulta conexões OAuth atuais e permissão específica de gerenciamento, inicialmente não concedida.', scopes: ['research:read'] },
+  { method: 'put', path: '/api/v2/research/saved/permissions', summary: 'Autorizar ou revogar gerenciamento', description: 'Somente sessão web. Gratuito; vincula a permissão ao usuário, aplicativo e concessão OAuth atual. Não amplia acesso a casos.', scopes: ['research:read'], requestBody: 'object', requestSchema: 'SavedResearchPermissionRequest' },
+];
+
+export function buildOpenApiDocument(serverUrl = 'http://localhost:3001', options: { savedResearchEnabled?: boolean; decisionUiEnabled?: boolean } = {}): Record<string, unknown> {
   const paths: Record<string, Record<string, unknown>> = {};
-  for (const route of PUBLIC_API_ROUTES) {
+  for (const route of [...PUBLIC_API_ROUTES, ...(options.savedResearchEnabled ? SAVED_RESEARCH_API_ROUTES : [])]) {
     paths[route.path] ??= {};
     paths[route.path][route.method] = createOperation(route);
   }
@@ -483,7 +510,7 @@ export function buildOpenApiDocument(serverUrl = 'http://localhost:3001'): Recor
       },
     },
     'x-forgelex-generated-from': 'apps/api/src/distribution/openapi.ts',
-    'x-forgelex-external-mcp-tools': [...EXTERNAL_MCP_TOOL_NAMES],
+    'x-forgelex-external-mcp-tools': [...EXTERNAL_MCP_TOOL_NAMES, ...(options.savedResearchEnabled || options.decisionUiEnabled ? ['research.present_decisions'] : []), ...(options.savedResearchEnabled ? ['research.list_saved_searches', 'research.get_saved_search', 'research.save_search', 'research.delete_saved_search'] : [])],
     'x-forgelex-case-context':{authentication:'OAuth ativo + permissão por usuário, aplicativo, concessão e caso',tools:['case.list_shared','case.get_context','case.read_item'],billing:{mode:'FREE',chargedCents:0,isReplay:false},remainingBalanceCents:'ausente nas leituras de contexto',maxResponseBytes:24576,writeAccess:false},
   };
 }

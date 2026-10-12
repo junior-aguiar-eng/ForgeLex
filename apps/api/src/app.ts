@@ -103,6 +103,11 @@ import {CaseContextService,createCaseContextTools,isCaseContextTool} from '@forg
 import { registerMatterLifecycleRoutes, lifecycleViewQuery } from './matters/matter-lifecycle-routes.js';
 import { createMatterLifecycleRuntime } from './matters/matter-lifecycle-runtime.js';
 import type { MatterPurgeJournal } from './matters/matter-purge-journal.js';
+import { SavedResearchRepository } from '@forgelex/persistence';
+import { SavedResearchService } from '@forgelex/legal-tools';
+import { registerSavedResearchRoutes } from './research/saved-research-routes.js';
+import { createResearchPresentationTools, DecisionPresentationService, isResearchPresentationTool, researchPresentationMetadata, toCaseLaw } from '@forgelex/legal-tools';
+import { readMcpReaderHtml } from './research/mcp-reader-resource.js';
 
 export interface BuildAppOptions {
   matterPurgeJournal?: MatterPurgeJournal;
@@ -469,6 +474,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const researchService = new ResearchService(sourceRouter, jurisprudenceSearchService, {
     requirePersistentDataPlane: true,
   });
+  const savedResearchEnabled = environment.FORGELEX_SAVED_RESEARCH_ENABLED === 'true';
+  const savedResearchService = databaseClient ? new SavedResearchService(new SavedResearchRepository(databaseClient), ledgerService) : undefined;
+  const savedResearchDirectory = options.oauthClientDirectory ?? (environment.FORGELEX_SUPABASE_URL && environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY ? new SessionOAuthClientDirectory(environment.FORGELEX_SUPABASE_URL, environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY) : { list: async () => { throw new Error('OAUTH_DIRECTORY_UNAVAILABLE'); } });
+  if (savedResearchEnabled && savedResearchService) registerSavedResearchRoutes(app, savedResearchService, authAdapter, savedResearchDirectory);
   const draftReviewService = database && draftRepository && draftReviewRuns && factsEvidenceService && matterAuthorityRepository && matterRepository
     ? new DraftReviewService({ drafts: draftRepository, runs: draftReviewRuns, facts: factsEvidenceService, authorities: matterAuthorityRepository, research: researchService, evidence: new FactsEvidenceRepository(database), matters: matterRepository, sourceMethod: 'PERSISTED_CORPUS' }) : undefined;
   const researchBillingProvider = database ? 'forgelex_index' : 'provider_stj_scon';
@@ -520,10 +529,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   if(database){const receipts=new DraftAiReceiptRepository(database);toolRegistry.register(createDraftAiTool(new DraftAiService(receipts)));registerDraftAiRoutes(app,receipts,new DraftRepository(database),authAdapter,auditRecorder);}
   if(caseAiAccess) for(const tool of createCaseContextTools(new CaseContextService(caseAiAccess)))toolRegistry.register(tool);
   if(caseAiAccess) registerCaseAiAccessRoutes(app,caseAiAccess,authAdapter,options.oauthClientDirectory ?? (environment.FORGELEX_SUPABASE_URL && environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY ? new SessionOAuthClientDirectory(environment.FORGELEX_SUPABASE_URL,environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY) : {list:async()=>{throw new Error('OAUTH_DIRECTORY_UNAVAILABLE');}}),auditRecorder);
+  const mcpReaderEnabled = environment.FORGELEX_MCP_DECISION_UI_ENABLED === 'true';
+  const presentationTools = mcpReaderEnabled || savedResearchEnabled ? createResearchPresentationTools(new DecisionPresentationService(savedResearchService, async reference => {
+    const document = database ? await new JurisprudenceRepository(database).getPublishedDecision(reference) : undefined;
+    return document ? toCaseLaw(document) : undefined;
+  }, savedResearchEnabled), savedResearchEnabled ? savedResearchService : undefined) : [];
+  for (const tool of presentationTools) toolRegistry.register(tool);
   const mcpHandler = new McpHandler(toolRegistry, ledgerService, auditRecorder, {
-    exposedToolNames: EXTERNAL_MCP_TOOL_NAMES,
+    exposedToolNames: [...EXTERNAL_MCP_TOOL_NAMES, ...presentationTools.map(tool => tool.name)],
+    ...(mcpReaderEnabled ? { decisionUi: { readHtml: () => readMcpReaderHtml(environment.FORGELEX_WEB_ROOT) } } : {}),
     beforeToolCall: async (toolName) => {
-      if (!jurisprudenceSearchService && toolName.startsWith('research.')) {
+      if (!jurisprudenceSearchService && toolName.startsWith('research.') && !isResearchPresentationTool(toolName)) {
         throw Object.assign(
           new Error('O índice jurisprudencial persistido não está disponível.'),
           { code: 'JURISPRUDENCE_DATA_PLANE_UNAVAILABLE' },
@@ -1012,6 +1028,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         court: input.court,
         total: execution.data.total,
         results: execution.data.items,
+        criteria: execution.data.criteria,
+        operationId: idempotencyKey,
       };
     } catch (error) {
       const details = error as { code?: unknown; details?: unknown; message?: unknown };
@@ -1093,7 +1111,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     return reply.type('text/plain; version=0.0.4').send(metrics.toPrometheus());
   });
 
-  const openApiDocument = buildOpenApiDocument(environment.FORGELEX_PUBLIC_API_URL ?? 'http://localhost:3001');
+  const openApiDocument = buildOpenApiDocument(environment.FORGELEX_PUBLIC_API_URL ?? 'http://localhost:3001', { savedResearchEnabled: environment.FORGELEX_SAVED_RESEARCH_ENABLED === 'true', decisionUiEnabled: environment.FORGELEX_MCP_DECISION_UI_ENABLED === 'true' });
   app.get('/openapi.json', async () => openApiDocument);
   app.get('/api/v2/openapi.json', async () => openApiDocument);
 
@@ -2848,7 +2866,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         if (mcpOAuth.enabled && body?.method === 'tools/list' && response.result?.tools) {
           for (const tool of response.result.tools) {
             tool.securitySchemes = [{ type: 'oauth2', scopes: ['email', 'profile'] }];
-            tool.annotations = tool.name==='draft.save_from_ai'?DRAFT_AI_ANNOTATIONS:isCaseContextTool(tool.name)?{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}:{ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
+            tool.annotations = isResearchPresentationTool(tool.name) ? researchPresentationMetadata(tool.name).annotations : tool.name==='draft.save_from_ai'?DRAFT_AI_ANNOTATIONS:isCaseContextTool(tool.name)?{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}:{ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
           }
           response.result.tools.push({
           name: 'forgelex.connection_status', title: 'Verificar conexão ForgeLex',

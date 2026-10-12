@@ -21,7 +21,7 @@ export function createResearchDeskModel(input: {
   const completedEmpty = input.search.state === 'ready' && input.search.resultCount === 0;
   const billingMessage = input.search.state === 'ready'
     ? input.search.isReplay
-      ? 'Resultado reapresentado por replay idempotente, sem nova cobrança.'
+      ? 'Resultado recuperado da mesma pesquisa, sem nova cobrança.'
       : input.search.chargedCents > 0
         ? `Operação concluída com cobrança de R$ ${(input.search.chargedCents / 100).toFixed(2).replace('.', ',')}.`
         : 'Operação concluída sem cobrança.'
@@ -29,7 +29,7 @@ export function createResearchDeskModel(input: {
   return {
     courts,
     canSearch: courts.length > 0,
-    verificationActionLabel: 'Verificar gratuitamente',
+    verificationActionLabel: 'Conferir decisão gratuitamente',
     emptyMessage: completedEmpty ? 'A operação concluída não localizou resultados para esta consulta.' : undefined,
     billingMessage,
     verificationStatusLabel: input.verificationStatus ? verificationLabels[input.verificationStatus] : undefined,

@@ -6,6 +6,7 @@ import { HostInstallationGuide } from './connections/HostInstallationGuide';
 import { FirstUseExamples } from './connections/FirstUseExamples';
 import { connectionStatusErrorMessage, createPlatformConnection, deriveMcpConnectionSignals, platformName, resolveMcpUrl, type HostPlatform } from './connections/connection-model';
 import { AuthorizedApplications } from './connections/AuthorizedApplications';
+import { SavedResearchPermissions } from '../research/SavedResearchPermissions';
 
 export const ConnectionsScreen: React.FC = () => {
   const [platform, setPlatform] = useState<HostPlatform>('chatgpt');
@@ -42,10 +43,10 @@ export const ConnectionsScreen: React.FC = () => {
         <span className="inline-flex w-fit items-center gap-2 rounded-full border border-stone-200 bg-stone-100 px-3 py-1.5 text-xs font-semibold text-stone-700"><ShieldCheck className="h-3.5 w-3.5 text-cognac-700" aria-hidden="true" /> Sem chaves de modelo no ForgeLex</span>
       </header>
 
-      <section className="surface-subtle flex flex-col gap-3 p-4 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between"><p>Prefere um roteiro sem termos técnicos? Veja o guia antes de configurar o host.</p><a href="/guia/mcp" className="btn-secondary shrink-0">Ver o guia completo para advogados</a></section>
+      <section className="surface-subtle flex flex-col gap-3 p-4 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between"><p>Prefere um roteiro sem termos técnicos? Veja o guia antes de configurar o aplicativo conectado.</p><a href="/guia/mcp" className="btn-secondary shrink-0">Ver o guia completo para advogados</a></section>
 
       <section className="surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-cognac-700" aria-hidden="true" /><div><h2 className="font-editorial text-xl font-bold text-stone-900">Cobrança separada do host</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">A assinatura do host não paga operações ForgeLex. O ForgeLex cobra somente a pesquisa jurídica faturável; comandos de abrir autoridade e verificar proveniência são gratuitos.</p></div></div>
+        <div className="flex gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-cognac-700" aria-hidden="true" /><div><h2 className="font-editorial text-xl font-bold text-stone-900">Créditos ForgeLex e assinatura da sua IA</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">A assinatura do ChatGPT ou Claude não paga operações ForgeLex. O ForgeLex cobra somente a pesquisa jurídica faturável; comandos de abrir autoridade e verificar proveniência são gratuitos.</p></div></div>
       </section>
 
       <nav aria-label="Plataforma para conectar" className="flex flex-wrap gap-3">{connections.map((connection) => <button key={connection.platform} aria-pressed={connection.platform === platform} onClick={() => setPlatform(connection.platform)} className={connection.platform === platform ? 'btn-primary' : 'btn-secondary'}>Mostrar instruções para {platformName(connection.platform)}</button>)}</nav>
@@ -59,7 +60,7 @@ export const ConnectionsScreen: React.FC = () => {
           <div>
             <p className="eyebrow">Teste gratuito</p>
             <h2 id="availability-heading" className="font-editorial text-xl font-bold text-stone-900">Testar disponibilidade</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-stone-600">Verifica o serviço e a sessão desta página. A autorização do aplicativo aparece na seção Aplicativos autorizados; a execução pelo host deve ser confirmada dentro do ChatGPT ou Claude. Nenhuma pesquisa jurídica é executada.</p>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-stone-600">Verifica o serviço e a sessão desta página. A autorização do aplicativo aparece na seção Aplicativos autorizados; a execução pelo aplicativo conectado deve ser confirmada dentro do ChatGPT ou Claude. Nenhuma pesquisa jurídica é executada.</p>
           </div>
           <button type="button" className="btn-secondary min-h-11 shrink-0" onClick={() => void testAvailability()} disabled={testingAvailability}>{testingAvailability ? 'Testando disponibilidade…' : 'Testar disponibilidade'}</button>
         </div>
@@ -67,6 +68,7 @@ export const ConnectionsScreen: React.FC = () => {
         {connectionSignals.length > 0 ? <dl className="grid gap-3 md:grid-cols-3">{connectionSignals.map((signal) => <div key={signal.id} className="rounded-lg border border-stone-200 bg-stone-50 p-3"><dt className={signal.tone === 'ready' ? 'font-semibold text-emerald-800' : signal.tone === 'unavailable' ? 'font-semibold text-red-800' : 'font-semibold text-stone-700'}>{signal.label}</dt><dd className="mt-1 text-xs leading-relaxed text-stone-600">{signal.detail}</dd></div>)}</dl> : null}
       </section>
 
+      <SavedResearchPermissions />
       <FirstUseExamples />
 
       <details className="surface p-5 text-sm leading-relaxed text-stone-600">
@@ -75,7 +77,7 @@ export const ConnectionsScreen: React.FC = () => {
         <p className="mt-2">A telemetria de ativação não inclui consulta, ementa, número processual, token, chave ou header <code>Authorization</code>.</p>
       </details>
 
-      <p className="text-center text-xs text-stone-500">Host selecionado: {platformName(platform)}. Consulte as autorizações acima e confirme a execução de uma ferramenta no aplicativo escolhido.</p>
+      <p className="text-center text-xs text-stone-500">Aplicativo selecionado: {platformName(platform)}. Consulte as autorizações acima e confirme a execução de uma ferramenta no aplicativo escolhido.</p>
     </div>
   </div>;
 };

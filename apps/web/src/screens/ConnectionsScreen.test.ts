@@ -12,10 +12,10 @@ describe('central de conexão', () => {
     expect(markup).toContain('Claude');
     expect(markup).toContain('Aplicativos autorizados');
     expect(markup).toContain('Verifica o serviço e a sessão desta página');
-    expect(markup).toContain('A assinatura do host não paga operações ForgeLex');
-    expect(markup).toContain('Pesquisar jurisprudência do STJ');
-    expect(markup).toContain('Abrir uma autoridade');
-    expect(markup).toContain('Verificar proveniência');
+    expect(markup).toContain('A assinatura do ChatGPT ou Claude não paga operações ForgeLex');
+    expect(markup).toContain('Pesquisar jurisprudência');
+    expect(markup).toContain('Abrir uma decisão');
+    expect(markup).toContain('Conferir decisão');
     expect(markup).toContain('Ver o guia completo para advogados');
     expect(markup).not.toContain('>Conectado<');
   });

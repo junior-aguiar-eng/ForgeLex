@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import type { SearchResultItem } from '../operations/contracts';
+import { decisionCitation } from './DecisionReader';
 
 export function CopyCitationButton({ item }: { item: SearchResultItem }) {
   const [copied, setCopied] = useState(false);
@@ -14,7 +15,7 @@ export function CopyCitationButton({ item }: { item: SearchResultItem }) {
     setError(null);
     setBusy(true);
     try {
-      await navigator.clipboard.writeText(`${item.court}. ${item.processNumber}, Rel. ${item.relator}, j. ${item.judgmentDate}.\n\nEmenta:\n${item.ementa}`);
+      await navigator.clipboard.writeText(decisionCitation(item));
       setCopied(true);
       timer.current = setTimeout(() => setCopied(false), 2000);
     } catch { setError('Não foi possível copiar. Selecione e copie o texto manualmente.'); }

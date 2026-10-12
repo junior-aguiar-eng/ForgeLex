@@ -9,6 +9,7 @@ import type {VerifiedOAuthConnection} from '@forgelex/domain';
 import {isCaseContextTool,getCaseContextToolContract} from '@forgelex/legal-tools';
 import { DRAFT_AI_ANNOTATIONS, getDraftAiToolContract } from '@forgelex/legal-tools';
 import { handleDraftAiCall } from './draft-ai-handler.js';
+import { DECISION_UI_URI, isResearchPresentationTool, researchPresentationMetadata } from '@forgelex/legal-tools';
 
 export interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -31,6 +32,7 @@ export interface JsonRpcResponse {
 export interface McpHandlerOptions {
   exposedToolNames?: readonly string[];
   beforeToolCall?: (toolName: string) => void | Promise<void>;
+  decisionUi?: { readHtml: () => Promise<string> };
 }
 
 export class McpHandler {
@@ -39,6 +41,7 @@ export class McpHandler {
   private readonly auditRecorder?: AuditRecorder;
   private readonly exposedToolNames?: ReadonlySet<string>;
   private readonly beforeToolCall?: (toolName: string) => void | Promise<void>;
+  private readonly decisionUi?: McpHandlerOptions['decisionUi'];
 
   constructor(
     toolRegistry: ToolRegistry,
@@ -51,6 +54,7 @@ export class McpHandler {
     this.auditRecorder = auditRecorder;
     this.exposedToolNames = options.exposedToolNames ? new Set(options.exposedToolNames) : undefined;
     this.beforeToolCall = options.beforeToolCall;
+    this.decisionUi = options.decisionUi;
   }
 
   public async handleRequest(
@@ -78,6 +82,7 @@ export class McpHandler {
             protocolVersion: '2024-11-05',
             capabilities: {
               tools: {},
+              ...(this.decisionUi ? { resources: {} } : {}),
             },
             serverInfo: {
               name: 'forgelex-mcp-server',
@@ -95,7 +100,7 @@ export class McpHandler {
           .map((tool) => {
             const rawSchema = zodToJsonSchema(tool.inputSchema, { target: 'jsonSchema7' }) as any;
             const { $schema, ...cleanSchema } = rawSchema;
-            if(!isCaseContextTool(tool.name) && tool.name !== 'draft.save_from_ai') cleanSchema.properties = {
+            if(!isCaseContextTool(tool.name) && tool.name !== 'draft.save_from_ai' && !isResearchPresentationTool(tool.name)) cleanSchema.properties = {
               ...(cleanSchema.properties ?? {}),
               idempotencyKey: {
                 type: 'string', minLength: 1,
@@ -112,6 +117,7 @@ export class McpHandler {
               ...(tool.name === 'draft.save_from_ai' ? { annotations: DRAFT_AI_ANNOTATIONS } : {}),
               ...(outputSchema?{outputSchema:Object.fromEntries(Object.entries(outputSchema).filter(([key])=>key!=='$schema')),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}}:{}),
               ...(contract ? { 'x-forgelex-contract': contract } : {}),
+              ...(isResearchPresentationTool(tool.name) ? { ...researchPresentationMetadata(tool.name), ...(!this.decisionUi && ['research.present_decisions', 'research.get_saved_search'].includes(tool.name) ? { _meta: undefined } : {}) } : {}),
             };
           });
 
@@ -122,6 +128,15 @@ export class McpHandler {
         };
       }
 
+      case 'resources/list': {
+        return { jsonrpc: '2.0', id, result: { resources: this.decisionUi ? [{ uri: DECISION_UI_URI, name: 'Leitor de decisões ForgeLex', mimeType: 'text/html;profile=mcp-app' }] : [] } };
+      }
+      case 'resources/read': {
+        if (!this.decisionUi || request.params?.uri !== DECISION_UI_URI) return { jsonrpc: '2.0', id, error: { code: -32602, message: 'Recurso não disponível.' } };
+        try {
+          return { jsonrpc: '2.0', id, result: { contents: [{ uri: DECISION_UI_URI, mimeType: 'text/html;profile=mcp-app', text: await this.decisionUi.readHtml(), _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] } }, 'openai/widgetCSP': { connect_domains: [], resource_domains: [] }, 'openai/widgetDescription': 'Leitor de fontes; explicação atribuída ao ChatGPT ou Claude.' } }] } };
+        } catch { return { jsonrpc: '2.0', id, error: { code: -32000, message: 'O leitor visual não está disponível. Use os resultados em texto.', data: { code: 'DECISION_UI_UNAVAILABLE' } } }; }
+      }
       case 'tools/call': {
         const { name, arguments: toolArgs } = request.params ?? {};
         if (!name) {
@@ -200,6 +215,21 @@ export class McpHandler {
           }
         }
 
+        if (isResearchPresentationTool(name)) {
+          if ((typeof id !== 'string' && typeof id !== 'number') || !context.tenantId || !context.userId) return { jsonrpc: '2.0', id, error: { code: -32602, message: 'Requisição autenticada com identificador é obrigatória.' } };
+          const sessionId = `mcp_reader_${randomUUID()}`;
+          try {
+            const executionContext = { sessionId, tenantId: context.tenantId, userId: context.userId, source: 'MCP' as const, oauthConnection: context.oauthConnection, revalidateConnection: context.revalidateConnection, abortSignal: context.abortSignal ?? new AbortController().signal };
+            await context.revalidateConnection?.();
+            const toolResult = await this.toolRegistry.executeTool(name, toolArgs ?? {}, executionContext);
+            await context.revalidateConnection?.();
+            await this.recordAudit({ sessionId, tenantId, userId, toolName: name, durationMs: 0, status: 'SUCCESS', payload: { free: true, readOnly: researchPresentationMetadata(name).annotations.readOnlyHint } });
+            return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(toolResult) }], structuredContent: toolResult.data, isError: false, billing: { mode: 'FREE', chargedCents: 0, isReplay: false } } };
+          } catch (error) {
+            const details = this.toStructuredError(error);
+            return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify({ error: details }) }], isError: true, billing: { mode: 'FREE', chargedCents: 0, isReplay: false } } };
+          }
+        }
         const hostIdempotencyKey = typeof toolArgs?.idempotencyKey === 'string' ? toolArgs.idempotencyKey.trim() : '';
         const idempotencyKey = context.idempotencyKey?.trim() || hostIdempotencyKey;
         if (!idempotencyKey) {
@@ -250,7 +280,7 @@ export class McpHandler {
           });
 
           const toolResult: ToolExecutionResult = name === 'research.search_case_law'
-            ? { success: true, data: execution.data, provenance: (execution.data as SearchCaseLawOutput).items.map(item => item.provenance) }
+            ? { success: true, data: { ...(execution.data as SearchCaseLawOutput), operationId: idempotencyKey }, provenance: (execution.data as SearchCaseLawOutput).items.map(item => item.provenance) }
             : execution.data as ToolExecutionResult;
 
           await this.recordAudit({
@@ -267,6 +297,7 @@ export class McpHandler {
             jsonrpc: '2.0',
             id,
             result: {
+              ...(name === 'research.search_case_law' ? { structuredContent: toolResult.data } : {}),
               content: [
                 {
                   type: 'text',

@@ -139,6 +139,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@modelcontextprotocol/ext-apps':
+        specifier: 1.1.2
+        version: 1.1.2(@modelcontextprotocol/sdk@1.31.0(supports-color@7.2.0)(zod@4.6.5))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.6.5)
       '@supabase/supabase-js':
         specifier: ^2.116.0
         version: 2.116.0
@@ -1197,6 +1200,19 @@ packages:
     resolution: {integrity: sha512-iLhmprRmWI8EcosOA3wVvww22z02NkgqhV4fBH6f/odQBsi7xnJc0HGmi21yWO+/iKw2yzqVE127Zhna5/+JXw==}
     engines: {node: '>=20'}
 
+  '@modelcontextprotocol/ext-apps@1.1.2':
+    resolution: {integrity: sha512-Gx4TEo3/F8yq1Ix6LdgLwMrKqfZqD7++eakZdbMUewrYtHeeJn3nKpeNhgEfO7nYRwonqWYomOAszWZWJS0IbA==}
+    peerDependencies:
+      '@modelcontextprotocol/sdk': 1.31.0
+      react: ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
   '@modelcontextprotocol/sdk@1.31.0':
     resolution: {integrity: sha512-UvTMgnNlnIBO/22ob2RcVGDlcvOslQs8T59+FTGdA0L27a39fdGF/EDETNtDVK4DZGpwomlsYpRdA8UXcVL/pw==}
     engines: {node: '>=18'}
@@ -1329,6 +1345,67 @@ packages:
     resolution: {integrity: sha512-i0dIeN8PsqLfEgfMLrmpcJPvgltY2fUxr2+CftBCvX6g1GgWdoiCKpbf+labmJJPqwidN7HfXkgBszM2CHg/IA==}
     peerDependencies:
       zod: ^4.0.0
+
+  '@oven/bun-darwin-aarch64@1.4.3':
+    resolution: {integrity: sha512-u2wAM9RzqyF4baO5oFVhcFUVWO1CCMLG6yC5/aPWCYGZPfL5ULMbeHt+0/3I0h3yaPx1m+PKSANO/61jPtDZcQ==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@oven/bun-darwin-x64-baseline@1.4.3':
+    resolution: {integrity: sha512-LNaPWD3+5CEUvwapA0x6pmSZQxIliytv8sJuwf0M/FRn94D87UTxbwBeBDDXEVIuATzldk9qiMc4iG+ge91N4A==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@oven/bun-darwin-x64@1.4.3':
+    resolution: {integrity: sha512-wRGeciWOyKyG/BfTHq4CAyqoOfuzj5UJkKA8FlJETW2yhtDh+Ba3EgPnsVclFyzIw7E0HJxpsonoj17g3HPK/Q==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@oven/bun-linux-aarch64-musl@1.4.3':
+    resolution: {integrity: sha512-5OJIbcVspZxIN/zQtrFYwLuJgaOlciGcynmwCtwKyg0rmXHJoNG0QyspiiLnDUDoVTSGY/nrn0QEbWKhu0QbEQ==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@oven/bun-linux-aarch64@1.4.3':
+    resolution: {integrity: sha512-ylogDFxDD+aRKO0TJauwDzCWM+rULvc85gRNZQ9CnY6rm2BU4GC2XUDi20bh67CIuB4Wt/0PL1xpsJ2hqplMww==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@oven/bun-linux-x64-baseline@1.4.3':
+    resolution: {integrity: sha512-4kW2iuLPQLv3N6o21tLwD1ALhI75LFT9YvlpoHrkM6IalbuS3LNKcHc9ex5kAHifJEFFm0ExGx1Zj75wdDux7w==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@oven/bun-linux-x64-musl-baseline@1.4.3':
+    resolution: {integrity: sha512-3nExxN3RvQpRSTO4TWopzjtYugaKWeUykVuUenVC0GyRuxfozfXQx33jHL6Yppl6Pw6KZdy0ulwSVqbrCREY1g==}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@oven/bun-linux-x64-musl@1.4.3':
+    resolution: {integrity: sha512-L0gTTjTncLqv7VsV/2iLz7Zk4vd969xqRgbtGnskmV3MvL+IJgzTyQr5zm8GGGWSm/SO/ab2vnn4GXgPomoGbg==}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@oven/bun-linux-x64@1.4.3':
+    resolution: {integrity: sha512-RArgnpjeXjaGzjp5h7Rs89cUYJutO8IyqR3itE8OBaBzEt8KNm2jp/YozxBHq4eFovwrQLryeSwTAcmiT+zcoA==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@oven/bun-windows-x64-baseline@1.4.3':
+    resolution: {integrity: sha512-DmgHjPFgRNiGg7DMOz0SEnaE9wCjhoTfHmpDmII/Xxl5IF8pKEG5QzsxuQ2re75oH8Hp1aYyPDQXeIhzRknD3A==}
+    cpu: [x64]
+    os: [win32]
+
+  '@oven/bun-windows-x64@1.4.3':
+    resolution: {integrity: sha512-9pV16qXHTFvZDH61S8hpdpVBbWmvEqekczLF54zTnQHKP28D6yRCNLrD/7jVbXYR61fQYAx4FSBgzCxGCKb3rQ==}
+    cpu: [x64]
+    os: [win32]
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
@@ -4095,6 +4172,31 @@ snapshots:
       zod: 4.6.5
     optional: true
 
+  '@modelcontextprotocol/ext-apps@1.1.2(@modelcontextprotocol/sdk@1.31.0(supports-color@7.2.0)(zod@4.6.5))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.6.5)':
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.31.0(supports-color@7.2.0)(zod@4.6.5)
+      zod: 4.6.5
+    optionalDependencies:
+      '@oven/bun-darwin-aarch64': 1.4.3
+      '@oven/bun-darwin-x64': 1.4.3
+      '@oven/bun-darwin-x64-baseline': 1.4.3
+      '@oven/bun-linux-aarch64': 1.4.3
+      '@oven/bun-linux-aarch64-musl': 1.4.3
+      '@oven/bun-linux-x64': 1.4.3
+      '@oven/bun-linux-x64-baseline': 1.4.3
+      '@oven/bun-linux-x64-musl': 1.4.3
+      '@oven/bun-linux-x64-musl-baseline': 1.4.3
+      '@oven/bun-windows-x64': 1.4.3
+      '@oven/bun-windows-x64-baseline': 1.4.3
+      '@rollup/rollup-darwin-arm64': 4.63.3
+      '@rollup/rollup-darwin-x64': 4.63.3
+      '@rollup/rollup-linux-arm64-gnu': 4.63.3
+      '@rollup/rollup-linux-x64-gnu': 4.63.3
+      '@rollup/rollup-win32-arm64-msvc': 4.63.3
+      '@rollup/rollup-win32-x64-msvc': 4.63.3
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
   '@modelcontextprotocol/sdk@1.31.0(supports-color@7.2.0)(zod@4.6.5)':
     dependencies:
       '@hono/node-server': 2.1.1(hono@4.13.8)
@@ -4247,6 +4349,39 @@ snapshots:
       - undici
       - utf-8-validate
       - ws
+
+  '@oven/bun-darwin-aarch64@1.4.3':
+    optional: true
+
+  '@oven/bun-darwin-x64-baseline@1.4.3':
+    optional: true
+
+  '@oven/bun-darwin-x64@1.4.3':
+    optional: true
+
+  '@oven/bun-linux-aarch64-musl@1.4.3':
+    optional: true
+
+  '@oven/bun-linux-aarch64@1.4.3':
+    optional: true
+
+  '@oven/bun-linux-x64-baseline@1.4.3':
+    optional: true
+
+  '@oven/bun-linux-x64-musl-baseline@1.4.3':
+    optional: true
+
+  '@oven/bun-linux-x64-musl@1.4.3':
+    optional: true
+
+  '@oven/bun-linux-x64@1.4.3':
+    optional: true
+
+  '@oven/bun-windows-x64-baseline@1.4.3':
+    optional: true
+
+  '@oven/bun-windows-x64@1.4.3':
+    optional: true
 
   '@pinojs/redact@0.4.0': {}
 

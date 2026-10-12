@@ -44,6 +44,11 @@ describe('AccountClosurePurgeService', () => {
 
   it('remove todo conteúdo privado sem tocar outro tenant ou corpus global', async () => {
     const service = new AccountClosurePurgeService(client);
+    for (const tenant of [fixture.tenantId, fixture.otherTenantId]) {
+      await client.execute({ sql: 'INSERT INTO saved_research_collections (tenant_id,user_id) VALUES (?,?)', args: [tenant, fixture.userId] });
+      for (let slot = 1; slot <= 6; slot++) await client.execute({ sql: 'INSERT INTO saved_research (id,tenant_id,user_id,slot,operation_id,result_snapshot,criteria_json,result_count,searched_at,saved_at) VALUES (?,?,?,?,?,?,?,0,?,?)', args: [randomUUID(), tenant, fixture.userId, slot, 'saved-' + slot, '{"items":[]}', '{"query":"consulta","limit":10}', now, now] });
+      await client.execute({ sql: 'INSERT INTO saved_research_permissions (tenant_id,user_id,oauth_client_id,oauth_granted_at,enabled,updated_at) VALUES (?,?,?,?,1,?)', args: [tenant, fixture.userId, 'app', now, now] });
+    }
     await client.execute({ sql: 'INSERT INTO matter_lifecycle_purge_operations(operation_id,tenant_id,matter_id,expected_lifecycle_revision,fingerprint,local_state,prepared_at,completed_at) VALUES(?,?,?,1,?,?,?,?)', args: ['a'.repeat(64), fixture.tenantId, fixture.matterId, 'b'.repeat(64), 'COMMITTED', now, now] });
 
     const result = await service.purgePrivateContent({
@@ -53,6 +58,10 @@ describe('AccountClosurePurgeService', () => {
     });
 
     expect(result.remainingPrivateRows).toBe(0);
+    for (const table of ['saved_research', 'saved_research_collections', 'saved_research_permissions']) {
+      expect(await count(client, `SELECT COUNT(*) AS count FROM ${table} WHERE tenant_id = ?`, [fixture.tenantId])).toBe(0);
+      expect(await count(client, `SELECT COUNT(*) AS count FROM ${table} WHERE tenant_id = ?`, [fixture.otherTenantId])).toBeGreaterThan(0);
+    }
     const proofs = await client.execute({ sql: 'SELECT tenant_id,local_state FROM matter_lifecycle_purge_operations WHERE operation_id=?', args: ['a'.repeat(64)] });
     expect(proofs.rows).toHaveLength(1);
     expect(proofs.rows[0].tenant_id).not.toBe(fixture.tenantId);

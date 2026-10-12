@@ -89,6 +89,17 @@ describe('JurisprudenceRepository', () => {
     try { rmSync(databasePath, { force: true }); } catch { /* SQLite pode manter o arquivo bloqueado até o worker terminar. */ }
   });
 
+  it('resolves an exact published version without substituting a newer judgment of the same process', async () => {
+    const original = await repository.upsertDocument({ document: createDocument(), ingestionRunId: runId });
+    await repository.upsertDocument({ document: createDocument({ syllabus: 'EMENTA ALTERADA. OUTRA VERSÃO DO MESMO JULGAMENTO.' }), ingestionRunId: runId });
+    const second = await repository.upsertDocument({ document: createDocument({ id: randomUUID(), judgmentDate: '2024-01-10' }), ingestionRunId: runId });
+    const loaded = await repository.getPublishedDecision({ recordId: original.document.id, versionId: original.version.id });
+    expect(loaded?.syllabus).toBe(createDocument().syllabus);
+    expect(loaded?.versionId).toBe(original.version.id);
+    expect(await repository.getPublishedDecision({ recordId: original.document.id, versionId: second.version.id })).toBeUndefined();
+    expect(await repository.getPublishedDecision({ recordId: original.document.id, versionId: randomUUID() })).toBeUndefined();
+  });
+
   it('persiste o corpus global sem tenant e preserva proveniência completa', async () => {
     const document = createDocument();
     await repository.upsertDocument({ document, ingestionRunId: runId });

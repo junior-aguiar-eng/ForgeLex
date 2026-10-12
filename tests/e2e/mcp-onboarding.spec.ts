@@ -82,12 +82,12 @@ test('cria e revoga uma chave sintética sem reapresentar o segredo', async ({ p
   await page.getByRole('button', { name: 'Revogar', exact: true }).click();
   await expect(page.getByText('Revogada', { exact: true })).toBeVisible();
 
-  const revokedStatus = await page.evaluate(async (token) => {
-    const response = await fetch('http://127.0.0.1:3001/api/v2/api-keys', {
+  const revokedStatus = await page.evaluate(async ({ token, apiPort }) => {
+    const response = await fetch(`http://127.0.0.1:${apiPort}/api/v2/api-keys`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.status;
-  }, secret!);
+  }, { token: secret!, apiPort: process.env.FORGELEX_E2E_API_PORT ?? '3001' });
   expect(revokedStatus).toBe(401);
 
   await page.reload();
@@ -419,7 +419,7 @@ test('teste gratuito de disponibilidade separa serviço, credencial e uso sem co
 for (const scenario of [
   { name: 'credencial ausente', status: 401, code: 'UNAUTHENTICATED', message: 'A credencial está ausente, expirada ou revogada.' },
   { name: 'credencial revogada', status: 401, code: 'CREDENTIAL_REVOKED', message: 'A credencial está ausente, expirada ou revogada.' },
-  { name: 'escopo MCP insuficiente', status: 403, code: 'INSUFFICIENT_SCOPE', message: 'A credencial não possui o escopo MCP necessário.' },
+  { name: 'escopo MCP insuficiente', status: 403, code: 'INSUFFICIENT_SCOPE', message: 'Este acesso não permite conectar o ForgeLex.' },
   { name: 'indisponibilidade temporária', status: 503, code: 'API_UNAVAILABLE', message: 'O ForgeLex está temporariamente indisponível. Tente novamente em alguns instantes.' },
 ]) {
   test(`teste gratuito informa ${scenario.name}`, async ({ page }) => {
