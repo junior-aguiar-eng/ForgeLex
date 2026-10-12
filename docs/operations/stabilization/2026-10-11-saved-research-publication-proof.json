@@ -1,0 +1,398 @@
+{
+  "sourceSha": "5be473d0e1566f1956971247cf26da9cd9224415",
+  "pullRequest": "https://github.com/junior-aguiar-eng/ForgeLex/pull/68",
+  "ci": {
+    "mainRun": 38188297871,
+    "allSixChecks": "success",
+    "pullRequestRun": 38187724133
+  },
+  "build": {
+    "status": "SUCCESS",
+    "digest": "sha256:61a12a3fba72bc726cb15d61455d8db45e43fa0238dafcd8052c212a2a2b13d1",
+    "id": "d51805f1-581b-4d92-a231-8a7d7a94a269"
+  },
+  "backup": {
+    "status": "SUCCESSFUL",
+    "id": "1791765303476"
+  },
+  "migration": {
+    "mode": "migrate",
+    "sourceSha": "5be473d0e1566f1956971247cf26da9cd9224415",
+    "appliedOutput": "applied persistence-0030-saved-research",
+    "before": {
+      "checkedAt": "2026-10-12T00:37:55.549Z",
+      "identity": {
+        "database": "forgelex",
+        "version": "PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit",
+        "read_only": "on"
+      },
+      "migrationCount": 37,
+      "missingMigrations": [
+        "persistence-0030-saved-research"
+      ],
+      "newTables": [],
+      "slots": [],
+      "mutationStatements": 0
+    },
+    "after": {
+      "checkedAt": "2026-10-12T00:38:02.463Z",
+      "identity": {
+        "database": "forgelex",
+        "version": "PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit",
+        "read_only": "on"
+      },
+      "migrationCount": 38,
+      "missingMigrations": [],
+      "newTables": [
+        "saved_research",
+        "saved_research_collections",
+        "saved_research_permissions"
+      ],
+      "slots": [
+        {
+          "total": 0,
+          "maximum_slot": 0
+        }
+      ],
+      "mutationStatements": 0
+    },
+    "secretPrintedOrPersisted": false
+  },
+  "finalDatabase": {
+    "checkedAt": "2026-10-12T00:51:11.369Z",
+    "identity": {
+      "database": "forgelex",
+      "version": "PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit",
+      "read_only": "on"
+    },
+    "migrationCount": 38,
+    "missingMigrations": [],
+    "newTables": [
+      "saved_research",
+      "saved_research_collections",
+      "saved_research_permissions"
+    ],
+    "slots": [
+      {
+        "total": 0,
+        "maximum_slot": 0
+      }
+    ],
+    "permissions": [
+      {
+        "total": 0
+      }
+    ],
+    "mutationStatements": 0
+  },
+  "runtimeConfiguration": {
+    "checkedAt": "2026-10-12T00:46:20.9725148Z",
+    "revision": "forgelex-api-prod-saved-5be473d0",
+    "ready": "True",
+    "digest": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:61a12a3fba72bc726cb15d61455d8db45e43fa0238dafcd8052c212a2a2b13d1",
+    "unchangedConfigMismatches": [],
+    "secretReferences": 15,
+    "serviceAccountPreserved": true,
+    "cloudSQLPreserved": true,
+    "ingress": "internal-and-cloud-load-balancing",
+    "flags": [
+      {
+        "name": "FORGELEX_AUTO_MIGRATE",
+        "value": "false"
+      },
+      {
+        "name": "FORGELEX_BILLING_ENABLED",
+        "value": "true"
+      },
+      {
+        "name": "FORGELEX_SAVED_RESEARCH_ENABLED",
+        "value": "true"
+      },
+      {
+        "name": "FORGELEX_MCP_DECISION_UI_ENABLED",
+        "value": "true"
+      }
+    ],
+    "beforeTraffic": [
+      {
+        "percent": 100,
+        "revisionName": "forgelex-api-prod-site-a6672d49"
+      }
+    ]
+  },
+  "candidate": {
+    "phase": "candidate",
+    "checkedAt": "2026-10-12T00:45:30.658Z",
+    "base": "https://nexojuris.ia.br/_saved_candidate_5be473d0",
+    "ready": {
+      "status": "ready",
+      "service": "forgelex-api",
+      "checks": {
+        "persistence": true,
+        "migrations": true,
+        "billing": true,
+        "source": true,
+        "auth": true,
+        "outbox": true,
+        "accountClosureRestore": true,
+        "matterPurgeRestore": true
+      }
+    },
+    "results": [
+      {
+        "path": "/readyz",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/healthz",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/produto",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/guia",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/app/pesquisa",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/oauth/consent",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/app/conta",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/recuperar-senha",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/api/v2/research/saved",
+        "status": 401,
+        "expected": 401,
+        "passed": true
+      },
+      {
+        "path": "/api/v2/research/saved/permissions",
+        "status": 401,
+        "expected": 401,
+        "passed": true
+      },
+      {
+        "path": "/mcp",
+        "status": 401,
+        "expected": 401,
+        "passed": true
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/mcp-reader/reader.js",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/mcp-reader/reader.css",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      }
+    ],
+    "readerArtifacts": [
+      {
+        "file": "reader.js",
+        "identical": true,
+        "sha256": "cf376a63b0ad893dbdc46ba63f648dbd055dec1d4ef89c7e5a4c09ce3cc2a36b"
+      },
+      {
+        "file": "reader.css",
+        "identical": true,
+        "sha256": "b6429f711cddb55b54216a2ebb594d71bb34a6c5475c9dbdeb490a80789abad6"
+      }
+    ],
+    "oauthResourcePreserved": true,
+    "authenticatedCRUDTested": false,
+    "paidOperationsExecuted": 0
+  },
+  "production": {
+    "phase": "production",
+    "checkedAt": "2026-10-12T00:51:13.552Z",
+    "base": "https://nexojuris.ia.br",
+    "ready": {
+      "status": "ready",
+      "service": "forgelex-api",
+      "checks": {
+        "persistence": true,
+        "migrations": true,
+        "billing": true,
+        "source": true,
+        "auth": true,
+        "outbox": true,
+        "accountClosureRestore": true,
+        "matterPurgeRestore": true
+      }
+    },
+    "results": [
+      {
+        "path": "/readyz",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/healthz",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/produto",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/guia",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/app/pesquisa",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/oauth/consent",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/app/conta",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/recuperar-senha",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/api/v2/research/saved",
+        "status": 401,
+        "expected": 401,
+        "passed": true
+      },
+      {
+        "path": "/api/v2/research/saved/permissions",
+        "status": 401,
+        "expected": 401,
+        "passed": true
+      },
+      {
+        "path": "/mcp",
+        "status": 401,
+        "expected": 401,
+        "passed": true
+      },
+      {
+        "path": "/.well-known/oauth-protected-resource",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/mcp-reader/reader.js",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      },
+      {
+        "path": "/mcp-reader/reader.css",
+        "status": 200,
+        "expected": 200,
+        "passed": true
+      }
+    ],
+    "readerArtifacts": [
+      {
+        "file": "reader.js",
+        "identical": true,
+        "sha256": "cf376a63b0ad893dbdc46ba63f648dbd055dec1d4ef89c7e5a4c09ce3cc2a36b"
+      },
+      {
+        "file": "reader.css",
+        "identical": true,
+        "sha256": "b6429f711cddb55b54216a2ebb594d71bb34a6c5475c9dbdeb490a80789abad6"
+      }
+    ],
+    "oauthResourcePreserved": true,
+    "authenticatedCRUDTested": false,
+    "paidOperationsExecuted": 0
+  },
+  "finalTraffic": [
+    {
+      "percent": 100,
+      "revisionName": "forgelex-api-prod-saved-5be473d0"
+    }
+  ],
+  "addressRulesRestored": true,
+  "candidateTagRemoved": true,
+  "isolatedHml": "STOPPED/NEVER",
+  "protectedLocalFiles": {
+    "checked": 47,
+    "differences": 0
+  },
+  "visualBrowser": {
+    "productRendered": true,
+    "newHeadingVerified": true,
+    "authenticated": false
+  },
+  "connectedApps": {
+    "connectorResult": "reauthentication required",
+    "realChatGPTClaudeTrial": "pending",
+    "automaticCollectionPermissionsGranted": false
+  }
+}

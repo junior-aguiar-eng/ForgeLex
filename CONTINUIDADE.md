@@ -7,6 +7,26 @@ Boni é o único avaliador e aprovador humano do projeto, por decisão expressa
 de 10/10/2026. Nenhuma frente depende de segundo revisor ou parecer de terceiro;
 aplica-se [AGENTS.md](AGENTS.md), inclusive sobre exigências de planos antigos.
 
+## Pesquisas salvas e leitor MCP — publicado em 11/10
+
+PR #68 integrada em `5be473d0e1566f1956971247cf26da9cd9224415`, com seis checks
+aprovados na PR e em main. Migração aditiva 0030 aplicada separadamente ao
+PostgreSQL produtivo após backup; 38 migrações e três novas tabelas conferidas.
+Revisão `forgelex-api-prod-saved-5be473d0` atende 100% do tráfego, com cobrança
+normal, pesquisas salvas e leitor ativos. A apresentação pública usa tribunais
+superiores e consulta processual; a cobertura real continua STJ/TJAL.
+
+Até seis pesquisas completas, escolhidas manualmente, sem substituição
+automática; reabertura gratuita. Permissões de aplicativos não foram ampliadas.
+Prévia visual corrigida e aprovada por Boni; SDK ensaiado localmente. Leitor,
+expansão e salvamento/reabertura dentro do ChatGPT e Claude ainda precisam de
+ensaio real; o conector disponível exigiu nova autenticação.
+
+Reverter por controles mantendo imagem compatível com as novas tabelas de
+encerramento/restauração. Depois de existirem pesquisas salvas, a imagem antiga
+não é rollback completo para tratamento desses dados.
+[Publicação, provas e limites](docs/operations/stabilization/2026-10-11-saved-research-publication.md).
+
 O backlog atual está em [PENDENCIAS.md](PENDENCIAS.md). A remediação da auditoria
 foi integrada pela PR #58: correções técnicas e ponte direta Pesquisa → Caso.
 O runtime daquela entrega é `forgelex-api-prod-audit-5aca51e`, código `5aca51e`,

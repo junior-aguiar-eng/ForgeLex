@@ -248,3 +248,19 @@ aos aplicativos a permissão “Gerenciar pesquisas salvas”.
 A primeira CI da PR passou validate, postgres, e2e-public, e2e-account-closure e security. O fluxo Fase 7 encontrou uma expectativa antiga do botão de conferência. O teste foi alinhado ao nome efetivamente implementado, sem retirar as verificações de pesquisa, cobrança, conferência, pagamento simulado ou revisão. Sua execução local completa passou (`release-phase7-green.log`). As portas desses ensaios passaram a ser configuráveis para preservar os servidores anteriores em 3000/3001; os padrões da CI permanecem os mesmos.
 
 A auditoria ampliada de acessibilidade encontrou um título longo na página Produto que ultrapassava 320 px quando o espaçamento de texto era aumentado. A quebra de palavras do título foi corrigida sem reduzir fonte ou ocultar conteúdo. Os 38 cenários WCAG, em 1366 e 320 px, passaram localmente (`release-accessibility.log`), incluindo navegação das telas preservadas.
+
+## Publicação autorizada concluída
+
+PR #68 integrada em `5be473d0e1566f1956971247cf26da9cd9224415`, seis checks
+aprovados na PR e no main integrado. Backup concluído, migração 0030 aplicada
+separadamente e 38 migrações conferidas no PostgreSQL produtivo. Imagem canônica
+construída e revisão `forgelex-api-prod-saved-5be473d0` promovida a 100%, com
+cobrança normal, pesquisas salvas e leitor ativos. Regras dos endereços,
+configuração de autenticação e os 47 arquivos locais anteriores preservados.
+
+Os testes HTTPS da candidata e da versão promovida passaram. A página pública
+nova foi conferida no navegador. Nenhuma permissão de coleção foi concedida
+automaticamente. Ensaio de CRUD autenticado em produção e apresentação dentro
+do ChatGPT/Claude permanecem sem demonstração: o conector disponível exigiu
+nova autenticação. O ensaio local com SDK não foi registrado como homologação
+nesses aplicativos. [Recibo, reversão e limites](../../operations/stabilization/2026-10-11-saved-research-publication.md).

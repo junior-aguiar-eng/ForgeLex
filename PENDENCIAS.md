@@ -32,6 +32,7 @@ no [registro de manutenção](docs/operations/stabilization/2026-10-10-documenta
 
 | Pendência | Dependência para encerrar |
 | --- | --- |
+| Leitor MCP nos aplicativos reais | PR #68 publicada e SDK ensaiado localmente. Boni deve conferir leitor, expansão e salvamento/reabertura no ChatGPT e Claude; o conector desta sessão exigiu nova autenticação. CRUD autenticado em produção também permanece sem ensaio nesta publicação |
 | Comprovações operacionais | Executar, avaliar e aprovar o ensaio pelo próprio Boni; ausência de segundo revisor não constitui pendência nem bloqueio |
 | Execução fiscal, contratos e provas comerciais | Preparação FISCAL-2026-10-10.v1 aprovada por Boni em 10/10. Restam situação/classificação municipal, conciliação dos R$ 25 e contratos efetivos; prova de venda real depende de evento real, ainda inexistente segundo Boni |
 | Braces upstream | Registry mantém 3.0.3 e alerta #11 aberto, sem versão corrigida indicada na consulta de 10/10. Mitigação entregue; reavaliar patch/release antes de 08/11/2026 UTC. Não descartar o advisory |

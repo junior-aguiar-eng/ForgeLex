@@ -1,5 +1,29 @@
 # Auditoria e status canônico do ForgeLex
 
+## Pesquisas salvas e leitor MCP — publicado (11/10/2026)
+
+Autorização expressa de Boni para vistoria, commit, push, integração, migração
+e deploy desta entrega. PR #68 integrada em `5be473d0e1566f1956971247cf26da9cd9224415`;
+seis checks aprovados na PR e em main. Build `d51805f1-581b-4d92-a231-8a7d7a94a269`
+SUCCESS, digest `sha256:61a12a3fba72bc726cb15d61455d8db45e43fa0238dafcd8052c212a2a2b13d1`.
+Revisão `forgelex-api-prod-saved-5be473d0`, 100% do tráfego e cobrança normal.
+
+Backup manual concluído antes da migração aditiva 0030: PostgreSQL 16.15,
+38 migrações, nenhuma pendente, três novas tabelas. Candidata sem tráfego e
+versão promovida passaram nos 15 probes previstos; readiness com oito checks
+verdadeiros e leitor idêntico ao build aprovado. Navegador mostrou a nova
+apresentação. Nenhum erro grave nos registros da janela observada.
+
+Local: 839 testes aprovados, 18 ignorados, 21 de persistência/concorrência,
+cinco de pesquisas salvas/MCP Apps e 38 de acessibilidade; regressões dos
+fluxos preservados aprovadas. Os 47 arquivos locais anteriores estão intactos.
+Não foram executadas pesquisas pagas nem concedidas permissões a contas reais.
+CRUD autenticado em produção e leitor dentro do ChatGPT/Claude não foram
+ensaiados; o conector disponível pediu nova autenticação. Desativação por
+controles preserva coleções; rollback precisa conservar o tratamento das novas
+tabelas no encerramento e na restauração.
+[Registro e evidências](docs/operations/stabilization/2026-10-11-saved-research-publication.md).
+
 ## Site focado em MCP — publicado (11/10/2026)
 
 Boni autorizou commit, push, PR, integração e deploy. PR #66 integrada em
