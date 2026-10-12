@@ -1,7 +1,7 @@
 # Pendências atuais do ForgeLex
 
-Atualizado em 10/10/2026 (priorização humana/fiscal/contratual e nova consulta
-externa; evidências operacionais de 09/10 mantidas). Backlog vigente; checkboxes de planos antigos
+Atualizado em 12/10/2026 (ensaios reais do leitor e da coleção; priorização
+humana/fiscal/contratual e consulta externa de 10/10 mantidas). Backlog vigente; checkboxes de planos antigos
 registram aquela entrega e não devem ser importados como tarefas novas.
 [Produto e publicações](CONTINUIDADE.md) · [Evidências](STATUS_VALIDACAO.md).
 
@@ -27,12 +27,13 @@ no [registro de manutenção](docs/operations/stabilization/2026-10-10-documenta
 | Reserva histórica | Classificada: uma PENDING de 20 centavos, lease vencido, sem fingerprint e sem débito correspondente. Não bloqueia saldo pela regra atual; nenhum estorno/backfill executado |
 | Busca ampla STJ / P2 | Código anterior já publicado; corpus real medido. PR #61/migration 0029 aplicada: índice de metadados usado, zero Heap Fetches nessa etapa. Mesma amostra ampla: 20,3 s antes, 13,3–16,5 s depois, resultados idênticos. Não é p95 nem garantia sob carga |
 | Referências históricas | Registros P2/acessibilidade de 02/10 receberam adendos para separar entrega já publicada e limites dos ensaios antigos |
+| Leitor MCP e reabertura nos aplicativos web | ChatGPT: leitor, expansão, salvar a mesma operação sem duplicar e reabrir confirmados. Claude Web: leitor, expansão, listagem e reabertura confirmados. Boni comprovou leitor Desktop e aprovou apresentação ChatGPT. [Evidências e limites](docs/operations/stabilization/2026-10-12-mcp-live-validation.md) |
 
 ## Pendências humanas e externas
 
 | Pendência | Dependência para encerrar |
 | --- | --- |
-| Leitor MCP nos aplicativos reais | PR #68 publicada e SDK ensaiado localmente. Boni deve conferir leitor, expansão e salvamento/reabertura no ChatGPT e Claude; o conector desta sessão exigiu nova autenticação. CRUD autenticado em produção também permanece sem ensaio nesta publicação |
+| Ensaios residuais da coleção MCP | Falta testar salvamento pelo Claude e coleção no Claude Desktop. Exclusão confirmada, seis vagas/sétima bloqueada, revogação e expiração do histórico não foram reproduzidas na conta real; testes automatizados permanecem evidência separada. ChatGPT teve cópia manual funcional após falha automática; painel aberto antes da permissão conserva aviso até reabertura. [Recorte confirmado](docs/operations/stabilization/2026-10-12-mcp-live-validation.md) |
 | Comprovações operacionais | Executar, avaliar e aprovar o ensaio pelo próprio Boni; ausência de segundo revisor não constitui pendência nem bloqueio |
 | Execução fiscal, contratos e provas comerciais | Preparação FISCAL-2026-10-10.v1 aprovada por Boni em 10/10. Restam situação/classificação municipal, conciliação dos R$ 25 e contratos efetivos; prova de venda real depende de evento real, ainda inexistente segundo Boni |
 | Braces upstream | Registry mantém 3.0.3 e alerta #11 aberto, sem versão corrigida indicada na consulta de 10/10. Mitigação entregue; reavaliar patch/release antes de 08/11/2026 UTC. Não descartar o advisory |

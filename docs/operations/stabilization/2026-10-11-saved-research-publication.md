@@ -1,5 +1,9 @@
 # Pesquisas salvas e leitor MCP — publicação de 11/10/2026
 
+**Adendo de 12/10:** os limites abaixo registram a publicação original.
+Os ensaios posteriores do site, ChatGPT e Claude e a aprovação visual de Boni
+estão no [recibo dos aplicativos reais](2026-10-12-mcp-live-validation.md).
+
 Boni aprovou a prévia visual corrigida e autorizou expressamente a última
 vistoria, commit, push, integração em main, migração de produção e deploy.
 Execução entre 11/10 e 12/10 UTC, ainda 11/10 em Maceió.

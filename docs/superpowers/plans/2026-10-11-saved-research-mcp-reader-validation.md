@@ -264,3 +264,19 @@ automaticamente. Ensaio de CRUD autenticado em produção e apresentação dentr
 do ChatGPT/Claude permanecem sem demonstração: o conector disponível exigiu
 nova autenticação. O ensaio local com SDK não foi registrado como homologação
 nesses aplicativos. [Recibo, reversão e limites](../../operations/stabilization/2026-10-11-saved-research-publication.md).
+
+## Ensaios reais posteriores — 11 e 12/10/2026
+
+Os limites acima permanecem como registro da publicação. Após reconectar e
+atualizar o catálogo, o ChatGPT exibiu leitor embutido, painel e tela cheia.
+Pesquisa autorizada de R$ 0,20 retornou 20 decisões; o site salvou e reabriu,
+o ChatGPT salvou a mesma operação sem duplicar e reabriu. Cópia manual e
+cancelamento de exclusão conferidos. Boni aprovou a apresentação real.
+
+Boni comprovou o painel no Claude Web e Desktop, neste último mediante pedido
+expresso. Após conceder gerenciamento somente à conexão Claude mais recente,
+listagem e reabertura no Web funcionaram. Falta ensaiar escrita pelo Claude
+e coleção no Desktop; exclusão confirmada e cenários extremos da coleção real
+continuam distintos dos testes automatizados. Não houve nova implementação
+ou publicação de runtime para esses ensaios.
+[Evidência consolidada e limites](../../operations/stabilization/2026-10-12-mcp-live-validation.md).
