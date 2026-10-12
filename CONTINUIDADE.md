@@ -1,6 +1,6 @@
 # ForgeLex — onde estamos e como continuar
 
-Atualizado em 11/10/2026. Este resumo orienta a próxima sessão; o histórico de
+Atualizado em 12/10/2026. Este resumo orienta a próxima sessão; o histórico de
 validações e publicações permanece em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
 
 Boni é o único avaliador e aprovador humano do projeto, por decisão expressa
@@ -17,10 +17,18 @@ normal, pesquisas salvas e leitor ativos. A apresentação pública usa tribunai
 superiores e consulta processual; a cobertura real continua STJ/TJAL.
 
 Até seis pesquisas completas, escolhidas manualmente, sem substituição
-automática; reabertura gratuita. Permissões de aplicativos não foram ampliadas.
-Prévia visual corrigida e aprovada por Boni; SDK ensaiado localmente. Leitor,
-expansão e salvamento/reabertura dentro do ChatGPT e Claude ainda precisam de
-ensaio real; o conector disponível exigiu nova autenticação.
+automática; reabertura gratuita. Na publicação, nenhuma permissão foi ampliada.
+Ensaios posteriores confirmaram o leitor no ChatGPT e Claude Web; Boni
+comprovou também o Claude Desktop por captura, após pedir expressamente o
+painel. Site e ChatGPT salvaram a mesma pesquisa sem duplicar; ambos os
+aplicativos web listaram e reabriram suas 20 decisões. A única pesquisa do
+ensaio autorizado custou R$ 0,20. Gerenciamento autorizado expressamente para
+ChatGPT e, depois, somente a conexão Claude mais recente. As duas conexões
+Claude anteriores continuam sem acesso à coleção.
+Falta testar salvamento pelo Claude e coleção no Desktop; cópia automática no
+ChatGPT exigiu alternativa manual, que funcionou. Leitor aberto antes de
+autorizar conserva o aviso antigo até reabertura.
+[Ensaios reais, aprovação de Boni e limites](docs/operations/stabilization/2026-10-12-mcp-live-validation.md).
 
 Reverter por controles mantendo imagem compatível com as novas tabelas de
 encerramento/restauração. Depois de existirem pesquisas salvas, a imagem antiga
@@ -82,7 +90,7 @@ Cloud SQL, Supabase e grants preservada; sem migration remota nesta publicação
 | --- | --- |
 | Simplificação do fluxo de casos (10/10, artefatos locais anteriores) | Suspenso; histórico e trabalho local preservados |
 | Mesa/orquestração jurídica V2 e transição agêntica (10/10) | Suspensas como execução; visão histórica preservada |
-| Apresentação visual de decisões MCP (11/10) | Independente, não executada aqui; rever referências a salvar em casos |
+| Apresentação visual de decisões MCP (11/10) | Publicada pela PR #68; leitor comprovado no ChatGPT e Claude Web/Desktop; limites da coleção registrados no ensaio de 12/10 |
 | Ocultação do site (11/10) | Publicada pela PR #66; validação técnica em produção registrada; avaliação humana por Boni |
 
 A descrição do fluxo abaixo registra o produto anteriormente publicado,

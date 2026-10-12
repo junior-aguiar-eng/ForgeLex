@@ -1,5 +1,28 @@
 # Auditoria e status canônico do ForgeLex
 
+## Leitor e pesquisas salvas nos aplicativos reais — 12/10/2026
+
+Ensaio ChatGPT encerrado em 12/10 às 01:53:32 UTC (11/10, 22:53:32 em
+Maceió). Boni autorizou uma pesquisa de R$ 0,20 e seu salvamento; 20 decisões,
+uma vaga, reabertura no site/ChatGPT, salvamento repetido pelo MCP sem duplicar,
+resultados completos e ordem conservados. Leitor embutido, painel e tela cheia,
+navegação, fonte e cópia manual confirmados; cópia automática falhou. Cancelar
+exclusão conservou o item, sem executar exclusão. Boni aprovou a apresentação
+real do ChatGPT: “ficou perfeito no chatgpt”.
+
+Em 12/10, Boni comprovou leitor no Claude Web e Desktop; no Desktop, precisou
+pedir expressamente o painel. A investigação no Web confirmou três conexões
+Claude sem permissão de coleção. Após autorização expressa somente para a
+mais recente, listagem e reabertura das 20 decisões funcionaram; permissão
+persistiu após recarregar o site, preservando ChatGPT e mantendo as outras
+duas Claude desligadas. O aviso do painel antigo desapareceu ao reabrir a
+coleção. Escrita no Claude e coleção no Desktop ainda não foram ensaiadas.
+
+Boni autorizou a publicação destes registros em 12/10. Incremento documental,
+sem nova migração, deploy, pesquisa faturável ou concessão de acesso. Os
+registros abaixo conservam os limites históricos da data de cada publicação.
+[Recibo consolidado e limites](docs/operations/stabilization/2026-10-12-mcp-live-validation.md).
+
 ## Pesquisas salvas e leitor MCP — publicado (11/10/2026)
 
 Autorização expressa de Boni para vistoria, commit, push, integração, migração
