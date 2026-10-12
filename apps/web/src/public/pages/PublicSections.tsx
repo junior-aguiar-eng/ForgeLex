@@ -286,7 +286,7 @@ export function PageIntro({ eyebrow, title, text }: { eyebrow: string; title: st
   return (
     <div className="page-container py-14 sm:py-20">
       <p className="eyebrow">{eyebrow}</p>
-      <h1 className="mt-4 max-w-4xl font-editorial text-4xl font-bold leading-tight text-stone-950 sm:text-5xl">
+      <h1 className="mt-4 max-w-4xl break-words font-editorial text-4xl font-bold leading-tight text-stone-950 sm:text-5xl">
         {title}
       </h1>
       <p className="mt-5 max-w-3xl text-lg leading-8 text-stone-600">{text}</p>

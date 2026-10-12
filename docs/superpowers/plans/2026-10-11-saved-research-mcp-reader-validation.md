@@ -246,3 +246,5 @@ criar conteúdo salvo. A aprovação de publicação não concede automaticament
 aos aplicativos a permissão “Gerenciar pesquisas salvas”.
 
 A primeira CI da PR passou validate, postgres, e2e-public, e2e-account-closure e security. O fluxo Fase 7 encontrou uma expectativa antiga do botão de conferência. O teste foi alinhado ao nome efetivamente implementado, sem retirar as verificações de pesquisa, cobrança, conferência, pagamento simulado ou revisão. Sua execução local completa passou (`release-phase7-green.log`). As portas desses ensaios passaram a ser configuráveis para preservar os servidores anteriores em 3000/3001; os padrões da CI permanecem os mesmos.
+
+A auditoria ampliada de acessibilidade encontrou um título longo na página Produto que ultrapassava 320 px quando o espaçamento de texto era aumentado. A quebra de palavras do título foi corrigida sem reduzir fonte ou ocultar conteúdo. Os 38 cenários WCAG, em 1366 e 320 px, passaram localmente (`release-accessibility.log`), incluindo navegação das telas preservadas.
