@@ -244,3 +244,5 @@ as novas tabelas na exclusão e restauração de contas. Desligar as funcionalid
 preserva a coleção; não remover tabelas nem retornar à purga antiga depois de
 criar conteúdo salvo. A aprovação de publicação não concede automaticamente
 aos aplicativos a permissão “Gerenciar pesquisas salvas”.
+
+A primeira CI da PR passou validate, postgres, e2e-public, e2e-account-closure e security. O fluxo Fase 7 encontrou uma expectativa antiga do botão de conferência. O teste foi alinhado ao nome efetivamente implementado, sem retirar as verificações de pesquisa, cobrança, conferência, pagamento simulado ou revisão. Sua execução local completa passou (`release-phase7-green.log`). As portas desses ensaios passaram a ser configuráveis para preservar os servidores anteriores em 3000/3001; os padrões da CI permanecem os mesmos.

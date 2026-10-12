@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+const api = process.env.FORGELEX_E2E_API_URL ?? 'http://127.0.0.1:3001';
 
 test('Fase 7: login, pesquisa, verificação, billing e revisão operam com fixtures locais', async ({ page }) => {
   const bootstrap = page.waitForResponse((response) => response.url().endsWith('/api/v2/auth/bootstrap') && response.request().method() === 'POST');
@@ -33,25 +34,25 @@ test('Fase 7: login, pesquisa, verificação, billing e revisão operam com fixt
   await expect(page.getByText(/não localizou resultados/i)).toBeVisible();
 
   await page.getByLabel('Número do processo').fill('REsp 1.823.450/SP');
-  await page.getByRole('button', { name: /Verificar gratuitamente/i }).click();
+  await page.getByRole('button', { name: 'Conferir decisão gratuitamente', exact: true }).click();
   await expect(page.getByText('Verificado na fonte oficial')).toBeVisible();
 
-  const purchase = await page.evaluate(async () => {
+  const purchase = await page.evaluate(async (api) => {
     const sessionRaw = Object.entries(localStorage).find(([key]) => key.includes('auth-token'))?.[1];
     const accessToken = sessionRaw ? JSON.parse(sessionRaw).access_token : '';
-    const response = await fetch('http://127.0.0.1:3001/api/v2/billing/checkout', {
+    const response = await fetch(`${api}/api/v2/billing/checkout`, {
       method: 'POST', headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json', 'idempotency-key': crypto.randomUUID() },
       body: JSON.stringify({ packageId: 'credits_25' }),
     });
     return response.json();
-  });
+  }, api);
   expect(purchase.status).toBe('PENDING');
-  await page.request.post(`http://127.0.0.1:3001/e2e/confirm-purchase/${purchase.purchaseId}`);
-  const confirmed = await page.evaluate(async (purchaseId) => {
+  await page.request.post(`${api}/e2e/confirm-purchase/${purchase.purchaseId}`);
+  const confirmed = await page.evaluate(async ({ purchaseId, api }) => {
     const sessionRaw = Object.entries(localStorage).find(([key]) => key.includes('auth-token'))?.[1];
     const accessToken = sessionRaw ? JSON.parse(sessionRaw).access_token : '';
-    return fetch(`http://127.0.0.1:3001/api/v2/billing/purchases/${purchaseId}`, { headers: { authorization: `Bearer ${accessToken}` } }).then((response) => response.json());
-  }, purchase.purchaseId);
+    return fetch(`${api}/api/v2/billing/purchases/${purchaseId}`, { headers: { authorization: `Bearer ${accessToken}` } }).then((response) => response.json());
+  }, { purchaseId: purchase.purchaseId, api });
   expect(confirmed.status).toBe('PAID');
 
   await page.getByRole('button', { name: 'Revisão', exact: true }).click();
