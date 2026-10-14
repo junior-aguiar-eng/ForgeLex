@@ -8,6 +8,7 @@ import { EstadoAnalitico } from './estado.js';
 import { JurisprudenciaVerificador, criarBuscadorHttp, criarLeitorHttp, type BuscadorWeb } from './jurisprudencia-verificar.js';
 import { executarMigrationsAnalise } from './migrations.js';
 import { ehToolAnalitica } from './precos.js';
+import { INSTRUCAO_DISCRICAO, ORIENTACAO_ERRO, montarApresentacao } from './apresentacao.js';
 import { criarToolAvaliarProva } from './tools/avaliar-prova.js';
 import { ComboAtivarInputSchema, criarToolComboAtivar } from './tools/combo-ativar.js';
 import type { DepsAnalise } from './tools/comum.js';
@@ -28,11 +29,6 @@ export interface OpcoesModuloAnalise {
   registry: ToolRegistry;
   buscador?: BuscadorWeb;
 }
-
-const CODIGOS_PUBLICOS = new Set([
-  'ANALISE_SESSAO_INDISPONIVEL', 'ANALISE_FASE_AUSENTE', 'ANALISE_ETAPA_PREVIA_AUSENTE', 'ANALISE_APONTAMENTO_INVALIDO',
-  'ANALISE_COMBO_JA_ATIVO', 'ANALISE_RESUMO_GRANDE',
-]);
 
 /**
  * Módulo de agentes jurídicos analíticos. Autônomo: não usa tools, tabelas nem
@@ -59,7 +55,9 @@ export class ModuloAnalise {
       criarToolPecaRedigir(deps),
       criarToolComboAtivar(),
       criarToolJurisprudenciaVerificar(verificador),
-    ]) opcoes.registry.register(tool);
+    ]) opcoes.registry.register(
+      tool.name === NOMES_TOOLS.jurisprudenciaVerificar ? tool : { ...tool, description: `${tool.description} ${INSTRUCAO_DISCRICAO}` },
+    );
     return new ModuloAnalise(opcoes.registry, new CobrancaAnalise(opcoes.client, opcoes.ledger), estado);
   }
 
@@ -76,12 +74,12 @@ export class ModuloAnalise {
     const argumentos = (request.params?.arguments ?? {}) as Record<string, unknown>;
     const falha = (code: number, message: string, data?: unknown): RespostaMcp => ({ jsonrpc: '2.0', id, error: { code, message, ...(data ? { data } : {}) } });
 
-    if (!NOMES_TOOLS_EXPOSTAS.includes(nome)) return falha(-32601, `Method not found: ferramenta '${nome}' não está disponível.`);
-    if (!contexto.tenantId || !contexto.userId) return falha(-32001, 'Autenticação do usuário é obrigatória para as ferramentas de análise.', { code: 'UNAUTHORIZED_CAPABILITY', retryable: false });
+    if (!NOMES_TOOLS_EXPOSTAS.includes(nome)) return falha(-32601, 'Esta função não está disponível.');
+    if (!contexto.tenantId || !contexto.userId) return falha(-32001, ORIENTACAO_ERRO.UNAUTHORIZED_CAPABILITY!, dadosErro('UNAUTHORIZED_CAPABILITY', false));
 
     const chaveArg = typeof argumentos.idempotencyKey === 'string' ? argumentos.idempotencyKey.trim() : '';
     const idempotencyKey = contexto.idempotencyKey?.trim() || chaveArg;
-    if (!idempotencyKey) return falha(-32602, 'Invalid params: a chave de idempotência é obrigatória.');
+    if (!idempotencyKey) return falha(-32602, 'A solicitação precisa de uma chave de idempotência.');
     const { idempotencyKey: _descartada, ...entrada } = argumentos;
 
     const tenantId = contexto.tenantId;
@@ -95,7 +93,7 @@ export class ModuloAnalise {
       let execucao;
       if (nome === NOMES_TOOLS.comboAtivar) {
         const parsed = ComboAtivarInputSchema.safeParse(entrada);
-        if (!parsed.success) return falha(-32602, 'Parâmetros inválidos.', { code: 'INVALID_INPUT', retryable: false, issues: parsed.error.issues });
+        if (!parsed.success) return falha(-32602, ORIENTACAO_ERRO.INVALID_INPUT!, dadosErro('INVALID_INPUT', false, parsed.error.issues));
         await this.estado.exigirDono(parsed.data.sessao_analitica_id, { tenantId, usuarioId: userId });
         const ativado = await this.cobranca.ativarCombo({
           tenantId, userId, idempotencyKey, sessaoId: parsed.data.sessao_analitica_id, argumentos: entrada, combo: parsed.data.combo,
@@ -108,9 +106,9 @@ export class ModuloAnalise {
           operation: () => executarTool(nome, entrada),
         });
       } else {
-        return falha(-32601, `Method not found: ferramenta '${nome}' não está disponível.`);
+        return falha(-32601, 'Esta função não está disponível.');
       }
-      return { jsonrpc: '2.0', id, result: respostaSucesso(execucao.data, execucao.billing) };
+      return { jsonrpc: '2.0', id, result: respostaSucesso(nome, execucao.data, execucao.billing) };
     } catch (erro) {
       return this.erro(id, erro);
     }
@@ -119,31 +117,36 @@ export class ModuloAnalise {
   private erro(id: RequisicaoMcp['id'], erro: unknown): RespostaMcp {
     const codigo = getErrorCode(erro, 'TOOL_EXECUTION_FAILED');
     const detalhes = (erro as { details?: Record<string, unknown> })?.details;
-    const codigoAnalise = typeof detalhes?.code === 'string' && CODIGOS_PUBLICOS.has(detalhes.code) ? detalhes.code : undefined;
     if (codigo === 'INVALID_CANONICAL_STATE' && Array.isArray(detalhes?.issues)) {
-      return { jsonrpc: '2.0', id, error: { code: -32602, message: 'Parâmetros inválidos.', data: { code: 'INVALID_INPUT', retryable: false, issues: detalhes.issues } } };
+      return { jsonrpc: '2.0', id, error: { code: -32602, message: ORIENTACAO_ERRO.INVALID_INPUT!, data: dadosErro('INVALID_INPUT', false, detalhes.issues) } };
     }
-    const mensagemPublica = erro instanceof DomainError && (codigoAnalise || codigo === 'BILLING_INSUFFICIENT_BALANCE' || codigo === 'IDEMPOTENCY_CONFLICT')
-      ? erro.message
-      : 'Falha na execução da ferramenta. Tente novamente.';
+    const interno = typeof detalhes?.code === 'string' && ORIENTACAO_ERRO[detalhes.code] ? detalhes.code : codigo;
+    const conhecido = erro instanceof DomainError && ORIENTACAO_ERRO[interno] !== undefined;
+    const mensagem = conhecido ? ORIENTACAO_ERRO[interno]! : ORIENTACAO_ERRO.GENERICO!;
     return {
       jsonrpc: '2.0',
       id,
       error: {
         code: -32000,
-        message: mensagemPublica,
-        data: {
-          code: codigoAnalise ?? codigo,
-          message: mensagemPublica,
-          retryable: !codigoAnalise && ['TOOL_EXECUTION_FAILED', 'TOOL_TIMEOUT'].includes(codigo),
-          ...(codigoAnalise && detalhes ? { details: detalhes } : {}),
-        },
+        message: mensagem,
+        data: { orientacao: mensagem, retryable: !conhecido && ['TOOL_EXECUTION_FAILED', 'TOOL_TIMEOUT'].includes(codigo) },
       },
     };
   }
 }
 
-function respostaSucesso(dados: object, billing: InfoCobranca) {
+/** Erro ao cliente: orientação em texto e se vale repetir; o motivo interno não sai do servidor. */
+function dadosErro(motivo: string, retryable: boolean, problemas?: readonly unknown[]) {
+  const orientacao = ORIENTACAO_ERRO[motivo] ?? ORIENTACAO_ERRO.GENERICO!;
+  const campos = (problemas ?? []).flatMap((item) => {
+    const par = item as { path?: Array<string | number>; message?: string };
+    return par.message ? [`${(par.path ?? []).join('.') || 'solicitação'}: ${par.message}`] : [];
+  });
+  return { orientacao, retryable, ...(campos.length ? { problemas: campos.slice(0, 10) } : {}) };
+}
+
+function respostaSucesso(tool: string, dadosBase: object, billing: InfoCobranca) {
+  const dados = { ...dadosBase, apresentacao: montarApresentacao(tool, dadosBase as Record<string, unknown>) };
   return {
     content: [{ type: 'text', text: JSON.stringify(dados) }],
     structuredContent: dados,

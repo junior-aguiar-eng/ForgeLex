@@ -169,20 +169,20 @@ describe('módulo de análise jurídica (via McpHandler)', () => {
     expect(modosCombinados.error?.code).toBe(-32602);
 
     const semFase = await chamar(NOMES_TOOLS.pecaAnalisar, analisar({ fase_processual: undefined }));
-    expect(semFase.error?.data.code).toBe('ANALISE_FASE_AUSENTE');
+    expect(semFase.error?.data.orientacao).toContain('fase processual');
 
     const a = await chamar(NOMES_TOOLS.pecaAnalisar, analisar());
     const foraDeOrdem = await chamar(NOMES_TOOLS.avaliarProva, {
       sessao_analitica_id: dados(a).sessao_analitica_id, area_direito: 'civil',
       fatos_controvertidos: [{ fato: 'Existência do contrato', onus: 'indefinido', risco_preclusao: 'baixo' }],
     });
-    expect(foraDeOrdem.error?.data.code).toBe('ANALISE_ETAPA_PREVIA_AUSENTE');
+    expect(foraDeOrdem.error?.data.orientacao).toContain('etapa anterior');
 
     const apontamentoInexistente = await chamar(NOMES_TOOLS.pecaRedigir, {
       sessao_analitica_id: dados(a).sessao_analitica_id, area_direito: 'civil', modo: 'correcao_dirigida', texto_original: TEXTO,
       apontamentos: [{ trecho_original: 'trecho que não existe', substituicao: 'x', motivo: 'Teste' }],
     });
-    expect(apontamentoInexistente.error?.data.code).toBe('ANALISE_APONTAMENTO_INVALIDO');
+    expect(apontamentoInexistente.error?.data.orientacao).toContain('Nada foi alterado');
   });
 
   it('correção dirigida preserva o texto fora dos apontamentos e traz o aviso obrigatório', async () => {
@@ -203,12 +203,35 @@ describe('módulo de análise jurídica (via McpHandler)', () => {
       { sessao_analitica_id: dados(a).sessao_analitica_id, area_direito: 'civil', teses_sustentadas: [{ tese: 'Tese qualquer', viabilidade: 'baixa', justificativa_viabilidade: 'Sem base.' }] },
       { tenantId: 'tenant_b', userId: 'user_b' },
     );
-    expect(invasor.error?.data.code).toBe('ANALISE_SESSAO_INDISPONIVEL');
+    expect(invasor.error?.data.orientacao).toContain('Não localizei');
+  });
+
+  it('não expõe códigos, nomes de ferramentas nem ids ao usuário final', async () => {
+    const lista = await handler.handleRequest({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
+    for (const tool of lista.result.tools) expect(tool.description).toContain('APRESENTAÇÃO AO USUÁRIO');
+
+    const a = await chamar(NOMES_TOOLS.pecaAnalisar, analisar());
+    expect(dados(a).apresentacao).toMatchObject({ etapa: 'Analisando a peça', situacao: 'concluida' });
+    expect(dados(a).apresentacao.resumo).not.toMatch(/analise\.|sa_|ANALISE_|status_/);
+
+    const erro = await chamar(NOMES_TOOLS.mapearTeses, {
+      sessao_analitica_id: dados(a).sessao_analitica_id, area_direito: 'civil',
+      teses_sustentadas: [{ tese: 'Tese qualquer', viabilidade: 'baixa', justificativa_viabilidade: 'Sem base.' }],
+    });
+    expect(erro.result).toBeDefined();
+
+    const falha = await chamar(NOMES_TOOLS.avaliarProva, {
+      sessao_analitica_id: 'nova', area_direito: 'civil', fase_processual: 'postulatoria',
+      fatos_controvertidos: [{ fato: 'Existência do contrato', onus: 'indefinido', risco_preclusao: 'baixo' }],
+    });
+    const texto = JSON.stringify(falha.error);
+    expect(texto).not.toMatch(/ANALISE_|INVALID_|UNAUTHORIZED|BILLING_|IDEMPOTENCY|analise\./);
+    expect(falha.error?.data).not.toHaveProperty('code');
   });
 
   it('exige usuário autenticado', async () => {
     const resposta = await chamar(NOMES_TOOLS.pecaAnalisar, analisar(), {} as typeof ctx);
-    expect(resposta.error?.data.code).toBe('UNAUTHORIZED_CAPABILITY');
+    expect(resposta.error?.data.orientacao).toContain('autenticado');
   });
 
   it('cobra preço da tool + triagem, sem cobrar de novo em repetição', async () => {
@@ -231,7 +254,7 @@ describe('módulo de análise jurídica (via McpHandler)', () => {
     expect(dados(combo).tools_incluidas).toEqual([...COMBOS.decisao.tools]);
 
     const duplicado = await chamar(NOMES_TOOLS.comboAtivar, { sessao_analitica_id: id, combo: 'decisao' });
-    expect(duplicado.error?.data.code).toBe('ANALISE_COMBO_JA_ATIVO');
+    expect(duplicado.error?.data.orientacao).toContain('já está ativo');
 
     const m = await chamar(NOMES_TOOLS.mapearTeses, {
       sessao_analitica_id: id, area_direito: 'civil',
@@ -252,7 +275,7 @@ describe('módulo de análise jurídica (via McpHandler)', () => {
   it('recusa quando o saldo é insuficiente, sem registrar achado', async () => {
     await ledger.provisionAccount('tenant_pobre', { paidBalanceCents: 10, promotionalBalanceCents: 0 });
     const resposta = await chamar(NOMES_TOOLS.pecaAnalisar, analisar(), { tenantId: 'tenant_pobre', userId: 'user_p' });
-    expect(resposta.error?.data.code).toBe('BILLING_INSUFFICIENT_BALANCE');
+    expect(resposta.error?.data.orientacao).toContain('Saldo insuficiente');
     const { rows } = await client.execute('SELECT COUNT(*) AS total FROM analise_achados');
     expect(Number(rows[0]?.total)).toBe(0);
   });
