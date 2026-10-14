@@ -180,6 +180,34 @@ export class JurisprudenciaVerificador {
   }
 
   public async verificar(ref: PrecedenteRef, sinalExterno?: AbortSignal): Promise<PrecedenteVerificado> {
+    const pelaLeitura = await this.verificarPelaLeitura(ref, sinalExterno);
+    if (pelaLeitura.status_verificacao === 'nao_verificado' && pelaLeitura.motivo === 'busca_indisponivel') {
+      return this.verificarPeloTrechoDoCliente(ref) ?? pelaLeitura;
+    }
+    return pelaLeitura;
+  }
+
+  /**
+   * Quando o servidor não consegue ler a página (bloqueio anti-robô, conteúdo em JavaScript), aceita o
+   * trecho literal enviado pelo cliente, mas só como "confirmado_pelo_cliente": URL de domínio oficial
+   * e trecho que contenha o identificador. Nunca equivale a leitura do servidor.
+   */
+  private verificarPeloTrechoDoCliente(ref: PrecedenteRef): PrecedenteVerificado | undefined {
+    const tribunal = tribunalDaReferencia(ref);
+    if (!tribunal || !ref.url_fonte || !ref.trecho_fonte) return undefined;
+    const host = hostOficial(ref.url_fonte, tribunal.dominios);
+    if (!host || !textoConfirmaReferencia(ref, ref.trecho_fonte)) return undefined;
+    return {
+      referencia: ref,
+      tribunal: tribunal.sigla,
+      status_verificacao: 'confirmado_pelo_cliente',
+      fonte: { url: ref.url_fonte, host, consultado_em: this.agora().toISOString() },
+      motivo: null,
+      alerta: 'Fundamentado conforme trecho informado de página oficial; o servidor não conseguiu ler a fonte. Conferir na fonte antes de citar.',
+    };
+  }
+
+  private async verificarPelaLeitura(ref: PrecedenteRef, sinalExterno?: AbortSignal): Promise<PrecedenteVerificado> {
     const tribunal = tribunalDaReferencia(ref);
     if (!tribunal) return naoVerificado(ref, null, 'tribunal_nao_identificavel');
     if (!this.buscador) return naoVerificado(ref, tribunal.sigla, 'busca_indisponivel');

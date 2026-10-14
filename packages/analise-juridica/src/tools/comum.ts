@@ -40,7 +40,7 @@ export const VerificacaoNormativaSchema = z.array(DispositivoVerificadoSchema);
 export const PROTOCOLO_VERIFICACAO =
   'VERIFICAÇÃO OBRIGATÓRIA ANTES DE CITAR: (1) Legislação — use busca web (se o seu cliente tiver) priorizando fontes oficiais (planalto.gov.br, sites dos tribunais, diários oficiais) para confirmar a vigência e o teor atual do dispositivo antes de afirmá-lo vigente; informe cada dispositivo em dispositivos_citados com verificado_em_fonte_oficial=true/false. Quando não conseguir verificar, o resultado traz o alerta "' +
   AVISO_VIGENCIA_NAO_VERIFICADA +
-  '". Nunca trate ausência de verificação como "provavelmente certo". (2) Jurisprudência — a busca é por tema: com base na área do direito (já triada) e nas teses mapeadas (ex.: "cobrança indevida" no direito do consumidor), pesquise com a busca web do seu cliente, em sites oficiais dos tribunais (STF, STJ, TST, TRFs, TRTs, TJs), decisões que sustentem ou contrariem cada tese. Envie cada candidato com tribunal, número e url_fonte (a página oficial onde o encontrou); nunca cite precedente apenas de memória. O servidor abre a url_fonte e só marca confirmado_busca_externa se o precedente constar nessa página oficial; sem url_fonte válida o resultado é nao_verificado. Todo resultado traz status_verificacao em cada citação, e precedente nao_verificado não pode ser apresentado como confirmado. A identificação de qual norma ou instituto se aplica é sua; o servidor só audita a checagem de vigência.';
+  '". Nunca trate ausência de verificação como "provavelmente certo". (2) Jurisprudência — a busca é por tema: com base na área do direito (já triada) e nas teses mapeadas (ex.: "cobrança indevida" no direito do consumidor), pesquise com a busca web do seu cliente, em sites oficiais dos tribunais (STF, STJ, TST, TRFs, TRTs, TJs), decisões que sustentem ou contrariem cada tese. Envie cada candidato com tribunal, número, url_fonte (a página oficial onde o encontrou) e trecho_fonte (cópia literal do trecho da página que traz o número ou a ementa); nunca cite precedente apenas de memória. O servidor tenta abrir a url_fonte: se ler o precedente na página, marca confirmado_busca_externa; se não conseguir abrir (muitos tribunais bloqueiam acesso automático) e o trecho_fonte de página oficial trouxer o precedente, marca confirmado_pelo_cliente (fundamentado, a conferir na fonte); sem url_fonte oficial válida o resultado é nao_verificado. Todo resultado traz status_verificacao em cada citação, e precedente nao_verificado não pode ser apresentado como confirmado. A identificação de qual norma ou instituto se aplica é sua; o servidor só audita a checagem de vigência.';
 
 export const NAO_INFERIR =
   'Não complete nem infira dado ausente do documento: se um elemento não consta, deixe-o vazio/nulo e ele será sinalizado como ausente.';
@@ -102,7 +102,7 @@ export async function verificarPrecedentes(
 }
 
 export function contarNaoVerificados(precedentes: readonly PrecedenteSaida[]): number {
-  return precedentes.filter((item) => item.status_verificacao !== 'confirmado_busca_externa').length;
+  return precedentes.filter((item) => item.status_verificacao === 'nao_verificado').length;
 }
 
 export function truncar(texto: string, max: number): string {

@@ -49,6 +49,23 @@ describe('JurisprudenciaVerificador', () => {
     expect(outraPagina.motivo).toBe('precedente_nao_encontrado');
   });
 
+  it('sem conseguir ler a página, aceita o trecho do cliente só como confirmado_pelo_cliente', async () => {
+    const bloqueado: BuscadorWeb = { obterTexto: async () => { throw new Error('PAGINA_HTTP_403'); } };
+    const verificador = new JurisprudenciaVerificador({ buscador: bloqueado });
+    const trecho = 'SÚMULA 297 - O Código de Defesa do Consumidor é aplicável às instituições financeiras.';
+    const ok = await verificador.verificar({ numero: 'Súmula 297', url_fonte: 'https://scon.stj.jus.br/x', trecho_fonte: trecho });
+    expect(ok).toMatchObject({ status_verificacao: 'confirmado_pelo_cliente', tribunal: 'STJ' });
+    expect(ok.alerta).toContain('Conferir na fonte');
+    // sem trecho, trecho sem o número ou URL não oficial: continua não verificado
+    expect((await verificador.verificar({ numero: 'Súmula 297', url_fonte: 'https://scon.stj.jus.br/x' })).status_verificacao).toBe('nao_verificado');
+    expect((await verificador.verificar({ numero: 'Súmula 297', url_fonte: 'https://scon.stj.jus.br/x', trecho_fonte: 'Texto qualquer sem relação com o tema pesquisado aqui.' })).status_verificacao).toBe('nao_verificado');
+    expect((await verificador.verificar({ tribunal: 'STJ', numero: 'Súmula 297', url_fonte: 'https://blog.com.br/x', trecho_fonte: trecho })).status_verificacao).toBe('nao_verificado');
+    // se o servidor leu a página e o precedente não consta, o trecho do cliente não prevalece
+    const leitor: BuscadorWeb = { obterTexto: async () => 'Página oficial sem o precedente procurado.' };
+    const contradito = await new JurisprudenciaVerificador({ buscador: leitor }).verificar({ numero: 'Súmula 297', url_fonte: 'https://scon.stj.jus.br/x', trecho_fonte: trecho });
+    expect(contradito).toMatchObject({ status_verificacao: 'nao_verificado', motivo: 'precedente_nao_encontrado' });
+  });
+
   it('não identifica tribunal quando a citação não permite', async () => {
     const resultado = await new JurisprudenciaVerificador({ buscador: buscador([]) }).verificar({ numero: 'Súmula 331' });
     expect(resultado.motivo).toBe('tribunal_nao_identificavel');

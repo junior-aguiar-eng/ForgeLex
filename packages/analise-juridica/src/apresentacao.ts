@@ -23,6 +23,11 @@ const ETAPA: Record<string, string> = {
   [NOMES_TOOLS.comboAtivar]: 'Pacote ativado',
 };
 
+function statusDePrecedentes(dados: Record<string, unknown>): string[] {
+  const listas: unknown[] = [dados.precedentes, ...(Array.isArray(dados.opcoes) ? (dados.opcoes as Array<{ precedentes?: unknown }>).map((o) => o.precedentes) : [])];
+  return listas.flatMap((lista) => (Array.isArray(lista) ? (lista as Array<{ status_verificacao?: string }>).map((p) => p.status_verificacao ?? '') : []));
+}
+
 function contar(dados: Record<string, unknown>, campo: string): number {
   const valor = dados[campo];
   return typeof valor === 'number' ? valor : 0;
@@ -31,12 +36,14 @@ function contar(dados: Record<string, unknown>, campo: string): number {
 export function montarApresentacao(tool: string, dados: Record<string, unknown>): Apresentacao {
   const etapa = ETAPA[tool] ?? 'Análise';
   const naoVerificados = contar(dados, 'precedentes_nao_verificados');
+  const aConferir = statusDePrecedentes(dados).filter((status) => status === 'confirmado_pelo_cliente').length;
   const normativas = Array.isArray(dados.verificacao_normativa) ? (dados.verificacao_normativa as Array<{ alerta?: unknown }>) : [];
   const normasPendentes = normativas.filter((item) => item.alerta).length;
   const ausentes = Array.isArray(dados.elementos_ausentes) ? dados.elementos_ausentes.length : 0;
 
   const pendencias: string[] = [];
   if (naoVerificados > 0) pendencias.push(`${naoVerificados} precedente(s) ainda sem confirmação em fonte oficial`);
+  if (aConferir > 0) pendencias.push(`${aConferir} precedente(s) fundamentado(s) por trecho informado, a conferir na fonte`);
   if (normasPendentes > 0) pendencias.push(`${normasPendentes} dispositivo(s) legal(is) com vigência a confirmar`);
   if (ausentes > 0) pendencias.push(`${ausentes} elemento(s) não constam no documento`);
 
