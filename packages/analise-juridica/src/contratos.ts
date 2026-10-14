@@ -57,6 +57,9 @@ export const PrecedenteRefSchema = z.object({
   tribunal: z.string().trim().min(2).max(20).optional(),
   numero: z.string().trim().min(1).max(120).optional(),
   descricao_tese: z.string().trim().min(3).max(600).optional(),
+  trecho_fonte: z.string().trim().min(20).max(1500).optional().describe(
+    'Cópia literal do trecho da página oficial que contém o número do precedente (ou a ementa). Usado quando o servidor não consegue abrir a página sozinho.',
+  ),
   url_fonte: z.string().trim().url().max(600).optional().describe(
     'Página oficial do tribunal onde você encontrou o precedente. O servidor abre essa página e só confirma se o precedente constar nela.',
   ),
@@ -65,7 +68,7 @@ export const PrecedenteRefSchema = z.object({
 });
 export type PrecedenteRef = z.infer<typeof PrecedenteRefSchema>;
 
-export const StatusVerificacaoSchema = z.enum(['confirmado_busca_externa', 'nao_verificado']);
+export const StatusVerificacaoSchema = z.enum(['confirmado_busca_externa', 'confirmado_pelo_cliente', 'nao_verificado']);
 export type StatusVerificacao = z.infer<typeof StatusVerificacaoSchema>;
 
 export const MOTIVOS_NAO_VERIFICADO = ['busca_indisponivel', 'precedente_nao_encontrado', 'tribunal_nao_identificavel'] as const;

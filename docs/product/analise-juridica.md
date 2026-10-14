@@ -19,6 +19,12 @@ a busca web dele, em sites oficiais. Cada candidato vai ao servidor com `url_fon
 abre a página (só domínios oficiais do tribunal, redirecionamentos revalidados) e confirma
 apenas se o número/tese constar nela. Sem `url_fonte` válida: `nao_verificado`.
 
+Muitos portais (STJ/STF/TST) bloqueiam ou renderizam por JavaScript e o servidor não consegue ler a
+página. Nesse caso, o cliente envia também `trecho_fonte` (cópia literal da página oficial) e, se a
+URL for oficial e o trecho trouxer o precedente, o status é `confirmado_pelo_cliente` ("fundamentado,
+conferir na fonte"). `confirmado_busca_externa` fica reservado ao que o servidor leu. Se o servidor leu
+a página e o precedente não consta, o trecho do cliente não prevalece.
+
 ## Tools
 
 `analise.peca_analisar`, `analise.mapear_teses`, `analise.avaliar_prova`,
