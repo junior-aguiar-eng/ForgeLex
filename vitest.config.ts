@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       '@forgelex/domain': resolve(repositoryRoot, 'packages/domain/src/index.ts'),
       '@forgelex/agent-core': resolve(repositoryRoot, 'packages/agent-core/src/index.ts'),
+      '@forgelex/analise-juridica': resolve(repositoryRoot, 'packages/analise-juridica/src/index.ts'),
       '@forgelex/agent-provider-anthropic': resolve(repositoryRoot, 'packages/agent-provider-anthropic/src/index.ts'),
       '@forgelex/agent-provider-openai': resolve(repositoryRoot, 'packages/agent-provider-openai/src/index.ts'),
       '@forgelex/audit': resolve(repositoryRoot, 'packages/audit/src/index.ts'),
