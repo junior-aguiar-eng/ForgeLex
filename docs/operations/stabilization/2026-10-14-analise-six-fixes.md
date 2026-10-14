@@ -1,8 +1,8 @@
-# Análise jurídica — seis correções locais de 14/10/2026
+# Análise jurídica — seis correções e estabilização de 14/10/2026
 
 Boni autorizou a correção dos seis achados nesta conversa. Implementação no
 worktree `C:\Users\Boni Jr\.codex\worktrees\fix-analise-six-issues\SDK`, branch
-`codex/fix-analise-six-issues`, working tree sobre
+`codex/fix-analise-six-issues`, criada sobre
 `a3af1f6c19a3ec1663289123217483c32dab3189` (`main` com PRs #71–#73 integradas).
 O checkout original `codex/case-flow-simplification` foi preservado.
 
@@ -127,7 +127,9 @@ oficial e URL declarada pelo cliente não certificam pertinência jurídica ou v
 
 Após a validação, Boni autorizou expressamente nesta conversa, em 14/10/2026,
 commit, push, abertura de PR e integração em `main` das seis correções e da
-estabilização da suíte. A entrega Git seguirá por essa branch, com checks da PR.
+estabilização da suíte. Commit de implementação `b84fa8f` enviado ao remoto;
+entrega Git na [PR #74](https://github.com/junior-aguiar-eng/ForgeLex/pull/74).
+O estado da integração e os checks remotos ficam registrados na própria PR.
 Não houve migration remota, deploy ou alteração de flag/conta nesta frente.
 Não foram realizadas consultas pagas a modelo ou tribunais nem homologação nos
 hosts reais. A aplicação de migrations foi apenas em bancos temporários de teste.

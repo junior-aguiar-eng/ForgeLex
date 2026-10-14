@@ -7,18 +7,19 @@ Boni é o único avaliador e aprovador humano do projeto, por decisão expressa
 de 10/10/2026. Nenhuma frente depende de segundo revisor ou parecer de terceiro;
 aplica-se [AGENTS.md](AGENTS.md), inclusive sobre exigências de planos antigos.
 
-## Camada analítica — correções locais de 14/10
+## Camada analítica — correções e estabilização de 14/10
 
 As PRs #71–#73 do Claude estão integradas no `main` observado em `a3af1f6`.
 Os seis achados de isolamento, cobrança, fontes, apresentação e exclusão de conta
-foram tratados no working tree de `codex/fix-analise-six-issues`, em worktree próprio.
+foram tratados na branch `codex/fix-analise-six-issues`, em worktree próprio.
 O checkout de simplificação anterior foi preservado. Testes e limites estão no
 [registro local](docs/operations/stabilization/2026-10-14-analise-six-fixes.md).
 Após corrigir o encerramento dos workers e estabilizar o aquecimento das telas,
 `pnpm test` passou com saída zero: 912 aprovados, 18 ignorados. Build, lint e tipos
 aprovados; nenhum teste foi ignorado para obter esse resultado.
-Boni autorizou commit, push, PR e integração em `main` em 14/10; a publicação Git
-segue pela branch das correções. Migration remota e deploy não foram executados.
+Boni autorizou commit, push, PR e integração em `main` em 14/10. Entrega Git na
+[PR #74](https://github.com/junior-aguiar-eng/ForgeLex/pull/74), que registra os
+checks e o estado de integração. Migration remota e deploy não foram executados.
 Operações interrompidas sem resultado continuam exigindo
 reconciliação, sem retomada automática. Os estados produtivos abaixo pertencem
 às datas de seus registros; não foram revalidados nesta rodada.
