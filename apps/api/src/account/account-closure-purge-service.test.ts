@@ -4,8 +4,17 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AccountClosureRepository, createDatabase, DraftRepository, DraftReviewRunRepository, MatterRepository, runPersistenceMigrations, type Client } from '@forgelex/persistence';
+import {
+  AccountClosureRepository,
+  createDatabase,
+  DraftRepository,
+  DraftReviewRunRepository,
+  MatterRepository,
+  runPersistenceMigrations,
+  type Client,
+} from '@forgelex/persistence';
 import { runLedgerMigrations } from '@forgelex/billing-ledger';
+import { executarMigrationsAnalise } from '@forgelex/analise-juridica';
 import { AccountClosurePurgeService } from './account-closure-purge-service.js';
 
 interface ClosurePurgeFixture {
@@ -45,11 +54,34 @@ describe('AccountClosurePurgeService', () => {
   it('remove todo conteúdo privado sem tocar outro tenant ou corpus global', async () => {
     const service = new AccountClosurePurgeService(client);
     for (const tenant of [fixture.tenantId, fixture.otherTenantId]) {
-      await client.execute({ sql: 'INSERT INTO saved_research_collections (tenant_id,user_id) VALUES (?,?)', args: [tenant, fixture.userId] });
-      for (let slot = 1; slot <= 6; slot++) await client.execute({ sql: 'INSERT INTO saved_research (id,tenant_id,user_id,slot,operation_id,result_snapshot,criteria_json,result_count,searched_at,saved_at) VALUES (?,?,?,?,?,?,?,0,?,?)', args: [randomUUID(), tenant, fixture.userId, slot, 'saved-' + slot, '{"items":[]}', '{"query":"consulta","limit":10}', now, now] });
-      await client.execute({ sql: 'INSERT INTO saved_research_permissions (tenant_id,user_id,oauth_client_id,oauth_granted_at,enabled,updated_at) VALUES (?,?,?,?,1,?)', args: [tenant, fixture.userId, 'app', now, now] });
+      await client.execute({
+        sql: 'INSERT INTO saved_research_collections (tenant_id,user_id) VALUES (?,?)',
+        args: [tenant, fixture.userId],
+      });
+      for (let slot = 1; slot <= 6; slot++)
+        await client.execute({
+          sql: 'INSERT INTO saved_research (id,tenant_id,user_id,slot,operation_id,result_snapshot,criteria_json,result_count,searched_at,saved_at) VALUES (?,?,?,?,?,?,?,0,?,?)',
+          args: [
+            randomUUID(),
+            tenant,
+            fixture.userId,
+            slot,
+            'saved-' + slot,
+            '{"items":[]}',
+            '{"query":"consulta","limit":10}',
+            now,
+            now,
+          ],
+        });
+      await client.execute({
+        sql: 'INSERT INTO saved_research_permissions (tenant_id,user_id,oauth_client_id,oauth_granted_at,enabled,updated_at) VALUES (?,?,?,?,1,?)',
+        args: [tenant, fixture.userId, 'app', now, now],
+      });
     }
-    await client.execute({ sql: 'INSERT INTO matter_lifecycle_purge_operations(operation_id,tenant_id,matter_id,expected_lifecycle_revision,fingerprint,local_state,prepared_at,completed_at) VALUES(?,?,?,1,?,?,?,?)', args: ['a'.repeat(64), fixture.tenantId, fixture.matterId, 'b'.repeat(64), 'COMMITTED', now, now] });
+    await client.execute({
+      sql: 'INSERT INTO matter_lifecycle_purge_operations(operation_id,tenant_id,matter_id,expected_lifecycle_revision,fingerprint,local_state,prepared_at,completed_at) VALUES(?,?,?,1,?,?,?,?)',
+      args: ['a'.repeat(64), fixture.tenantId, fixture.matterId, 'b'.repeat(64), 'COMMITTED', now, now],
+    });
 
     const result = await service.purgePrivateContent({
       tenantId: fixture.tenantId,
@@ -59,10 +91,17 @@ describe('AccountClosurePurgeService', () => {
 
     expect(result.remainingPrivateRows).toBe(0);
     for (const table of ['saved_research', 'saved_research_collections', 'saved_research_permissions']) {
-      expect(await count(client, `SELECT COUNT(*) AS count FROM ${table} WHERE tenant_id = ?`, [fixture.tenantId])).toBe(0);
-      expect(await count(client, `SELECT COUNT(*) AS count FROM ${table} WHERE tenant_id = ?`, [fixture.otherTenantId])).toBeGreaterThan(0);
+      expect(
+        await count(client, `SELECT COUNT(*) AS count FROM ${table} WHERE tenant_id = ?`, [fixture.tenantId]),
+      ).toBe(0);
+      expect(
+        await count(client, `SELECT COUNT(*) AS count FROM ${table} WHERE tenant_id = ?`, [fixture.otherTenantId]),
+      ).toBeGreaterThan(0);
     }
-    const proofs = await client.execute({ sql: 'SELECT tenant_id,local_state FROM matter_lifecycle_purge_operations WHERE operation_id=?', args: ['a'.repeat(64)] });
+    const proofs = await client.execute({
+      sql: 'SELECT tenant_id,local_state FROM matter_lifecycle_purge_operations WHERE operation_id=?',
+      args: ['a'.repeat(64)],
+    });
     expect(proofs.rows).toHaveLength(1);
     expect(proofs.rows[0].tenant_id).not.toBe(fixture.tenantId);
     expect(proofs.rows[0].local_state).toBe('COMMITTED');
@@ -75,27 +114,193 @@ describe('AccountClosurePurgeService', () => {
       ]),
     ).toBe(1);
   });
+
+  it('expurga análise opcional por tenant, filhos antes das sessões, mesmo com módulo desligado', async () => {
+    await seedAnalysis(client, fixture.tenantId);
+    await seedAnalysis(client, fixture.otherTenantId);
+    const result = await new AccountClosurePurgeService(client).purgePrivateContent({
+      tenantId: fixture.tenantId,
+      closureId: 'acl_1',
+      now,
+    });
+    expect(result.remainingPrivateRows).toBe(0);
+    for (const table of analysisTables) {
+      expect(await analysisCount(client, table, fixture.tenantId)).toBe(0);
+      expect(await analysisCount(client, table, fixture.otherTenantId)).toBe(1);
+    }
+  });
+
+  it('aceita instalação de análise sem a tabela opcional de operações', async () => {
+    await seedAnalysis(client, fixture.tenantId);
+    await client.execute('DROP TABLE analise_operacoes');
+    const service = new AccountClosurePurgeService(client);
+    await expect(
+      service.purgePrivateContent({ tenantId: fixture.tenantId, closureId: 'acl_1', now }),
+    ).resolves.toMatchObject({ remainingPrivateRows: 0 });
+    for (const table of analysisTables.filter((table) => table !== 'analise_operacoes'))
+      expect(await analysisCount(client, table, fixture.tenantId)).toBe(0);
+    await expect(
+      service.verifyResiduals({ closureId: 'acl_1', tenantId: fixture.tenantId, tenantPseudonym: 'closed', now }),
+    ).resolves.toMatchObject({ privateRows: 0 });
+  });
+
+  it.each(analysisTables)('bloqueia remoção de identidade se %s reaparece após o expurgo', async (table) => {
+    const service = new AccountClosurePurgeService(client);
+    await service.purgePrivateContent({ tenantId: fixture.tenantId, closureId: 'acl_1', now });
+    await seedAnalysis(client, fixture.tenantId);
+    // Keep only the selected residual and, for FK children, its owning session.
+    for (const other of analysisTables.filter((candidate) => candidate !== table && candidate !== 'analise_sessoes')) {
+      await client.execute(`DELETE FROM ${other}`);
+    }
+    if (table !== 'analise_achados' && table !== 'analise_combos' && table !== 'analise_sessoes') {
+      await client.execute('DELETE FROM analise_sessoes');
+    }
+    await expect(
+      service.removeLocalIdentity({
+        closureId: 'acl_1',
+        tenantId: fixture.tenantId,
+        tenantPseudonym: 'closed',
+        userPseudonym: 'closed_user',
+        closurePseudonym: 'closed_closure',
+        now,
+      }),
+    ).rejects.toMatchObject({ code: 'ACCOUNT_CLOSURE_RESIDUAL_DATA' });
+    await service.purgePrivateContent({ tenantId: fixture.tenantId, closureId: 'acl_1', now });
+    await expect(
+      service.verifyResiduals({ closureId: 'acl_1', tenantId: fixture.tenantId, tenantPseudonym: 'closed', now }),
+    ).resolves.toMatchObject({ privateRows: 0 });
+  });
+
+  it('contabiliza resíduo de análise se uma exclusão não remover a linha', async () => {
+    await seedAnalysis(client, fixture.tenantId);
+    await client.execute(
+      `CREATE TRIGGER keep_analysis_consumption BEFORE DELETE ON analise_consumos BEGIN SELECT RAISE(IGNORE); END`,
+    );
+    const result = await new AccountClosurePurgeService(client).purgePrivateContent({
+      tenantId: fixture.tenantId,
+      closureId: 'acl_1',
+      now,
+    });
+    expect(result.remainingPrivateRows).toBe(1);
+  });
+
+  it.each(['SESSIONS', 'MATTERS'])('aplica a retenção %s à categoria correta da análise', async (category) => {
+    const service = new AccountClosurePurgeService(client);
+    await service.purgePrivateContent({ tenantId: fixture.tenantId, closureId: 'acl_1', now });
+    await seedAnalysis(client, fixture.tenantId);
+    await client.execute({
+      sql: `INSERT INTO retention_exceptions (id,closure_id,category,legal_basis_reference,authority_reference,responsible,starts_at,review_at,status) VALUES ('analysis_hold','acl_1',?,'LEGAL_HOLD','case','Boni',?,?,'ACTIVE')`,
+      args: [category, now, now],
+    });
+    const result = await service.purgePrivateContent({ tenantId: fixture.tenantId, closureId: 'acl_1', now });
+    expect(result.heldCategories).toEqual([category]);
+    for (const table of analysisTables)
+      expect(await analysisCount(client, table, fixture.tenantId)).toBe(category === 'SESSIONS' ? 1 : 0);
+    await expect(
+      service.verifyResiduals({ closureId: 'acl_1', tenantId: fixture.tenantId, tenantPseudonym: 'closed', now }),
+    ).resolves.toMatchObject({ privateRows: 0 });
+  });
   it('expurga execuções e seus achados antes das versões referenciadas', async () => {
     const connection = await createDatabase({ url: pathToFileURL(databasePath).toString() });
     try {
-      const matter = await new MatterRepository(connection.db).createMatter({ tenantId: fixture.tenantId, createdBy: fixture.userId, title: 'Caso com conferência' });
+      const matter = await new MatterRepository(connection.db).createMatter({
+        tenantId: fixture.tenantId,
+        createdBy: fixture.userId,
+        title: 'Caso com conferência',
+      });
       const context = { tenantId: fixture.tenantId, userId: fixture.userId, matterId: matter.id };
       const drafts = new DraftRepository(connection.db);
       const draft = await drafts.createDraft({ ...context, createdBy: fixture.userId, title: 'Minuta' });
-      const version = await drafts.createVersion({ ...context, draftId: draft.id, createdBy: fixture.userId, title: 'Minuta', source: 'HUMAN', contentHash: 'a'.repeat(64), sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto' }] });
+      const version = await drafts.createVersion({
+        ...context,
+        draftId: draft.id,
+        createdBy: fixture.userId,
+        title: 'Minuta',
+        source: 'HUMAN',
+        contentHash: 'a'.repeat(64),
+        sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto' }],
+      });
       const runs = new DraftReviewRunRepository(connection.db);
       const run = await runs.start(context, version.version, 'ALL', 'b'.repeat(64));
-      await runs.finish(context, run.id, { state: 'COMPLETE', status: 'WARNINGS', checks: [], findings: [{ ...context, draftId: draft.id, draftVersionId: version.version.id, reviewType: 'CITATION', severity: 'WARNING', code: 'CITATIONS_MISSING', message: 'Nenhuma referência cadastrada.' }] });
-      expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_runs WHERE tenant_id = ?', [fixture.tenantId])).toBe(1);
-      await client.execute({sql:"INSERT INTO case_ai_access_grants (id,tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,revision,status,selection_json,created_at,updated_at) VALUES (?,?,?,?,?,?,1,'ACTIVE',?,?,?)",args:[randomUUID(),fixture.tenantId,fixture.userId,'app',now,matter.id,JSON.stringify({documents:[],factIds:[],evidenceIds:[],thesisIds:[],authorityIds:[]}),now,now]});
-      const grants = await client.execute({ sql: 'SELECT id FROM case_ai_access_grants WHERE matter_id = ?', args: [matter.id] });
-      await client.execute({ sql: `INSERT INTO draft_ai_receipts (id,tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,grant_id,grant_revision,draft_id,version_id,version_number,destination_json,key_hash,payload_hash,references_json,received_at) VALUES (?,?,?,?,?,?,?,1,?,?,1,?,?,?,'[]',?)`, args: [randomUUID(),fixture.tenantId,fixture.userId,'app',now,matter.id,String(grants.rows[0].id),draft.id,version.version.id,'{"mode":"EXISTING"}','a'.repeat(64),'b'.repeat(64),now] });
-      await new AccountClosurePurgeService(client).purgePrivateContent({ tenantId: fixture.tenantId, closureId: 'acl_1', now });
-      expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_ai_receipts WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
-      expect(await count(client, 'SELECT COUNT(*) AS count FROM case_ai_access_grants WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
-      expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_runs WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
-      expect(await count(client, 'SELECT COUNT(*) AS count FROM draft_review_findings WHERE tenant_id = ?', [fixture.tenantId])).toBe(0);
-    } finally { connection.client.close(); }
+      await runs.finish(context, run.id, {
+        state: 'COMPLETE',
+        status: 'WARNINGS',
+        checks: [],
+        findings: [
+          {
+            ...context,
+            draftId: draft.id,
+            draftVersionId: version.version.id,
+            reviewType: 'CITATION',
+            severity: 'WARNING',
+            code: 'CITATIONS_MISSING',
+            message: 'Nenhuma referência cadastrada.',
+          },
+        ],
+      });
+      expect(
+        await count(client, 'SELECT COUNT(*) AS count FROM draft_review_runs WHERE tenant_id = ?', [fixture.tenantId]),
+      ).toBe(1);
+      await client.execute({
+        sql: "INSERT INTO case_ai_access_grants (id,tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,revision,status,selection_json,created_at,updated_at) VALUES (?,?,?,?,?,?,1,'ACTIVE',?,?,?)",
+        args: [
+          randomUUID(),
+          fixture.tenantId,
+          fixture.userId,
+          'app',
+          now,
+          matter.id,
+          JSON.stringify({ documents: [], factIds: [], evidenceIds: [], thesisIds: [], authorityIds: [] }),
+          now,
+          now,
+        ],
+      });
+      const grants = await client.execute({
+        sql: 'SELECT id FROM case_ai_access_grants WHERE matter_id = ?',
+        args: [matter.id],
+      });
+      await client.execute({
+        sql: `INSERT INTO draft_ai_receipts (id,tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,grant_id,grant_revision,draft_id,version_id,version_number,destination_json,key_hash,payload_hash,references_json,received_at) VALUES (?,?,?,?,?,?,?,1,?,?,1,?,?,?,'[]',?)`,
+        args: [
+          randomUUID(),
+          fixture.tenantId,
+          fixture.userId,
+          'app',
+          now,
+          matter.id,
+          String(grants.rows[0].id),
+          draft.id,
+          version.version.id,
+          '{"mode":"EXISTING"}',
+          'a'.repeat(64),
+          'b'.repeat(64),
+          now,
+        ],
+      });
+      await new AccountClosurePurgeService(client).purgePrivateContent({
+        tenantId: fixture.tenantId,
+        closureId: 'acl_1',
+        now,
+      });
+      expect(
+        await count(client, 'SELECT COUNT(*) AS count FROM draft_ai_receipts WHERE tenant_id = ?', [fixture.tenantId]),
+      ).toBe(0);
+      expect(
+        await count(client, 'SELECT COUNT(*) AS count FROM case_ai_access_grants WHERE tenant_id = ?', [
+          fixture.tenantId,
+        ]),
+      ).toBe(0);
+      expect(
+        await count(client, 'SELECT COUNT(*) AS count FROM draft_review_runs WHERE tenant_id = ?', [fixture.tenantId]),
+      ).toBe(0);
+      expect(
+        await count(client, 'SELECT COUNT(*) AS count FROM draft_review_findings WHERE tenant_id = ?', [
+          fixture.tenantId,
+        ]),
+      ).toBe(0);
+    } finally {
+      connection.client.close();
+    }
   });
 
   it('preserva somente a categoria coberta por exceção vigente', async () => {
@@ -239,6 +444,47 @@ describe('AccountClosurePurgeService', () => {
     ).toBe(0);
   });
 });
+
+const analysisTables = [
+  'analise_achados',
+  'analise_combos',
+  'analise_consumos',
+  'analise_operacoes',
+  'analise_sessoes',
+] as const;
+
+async function analysisCount(client: Client, table: string, tenantId: string): Promise<number> {
+  const predicate =
+    table === 'analise_achados'
+      ? 'sessao_analitica_id IN (SELECT sessao_analitica_id FROM analise_sessoes WHERE tenant_id = ?)'
+      : 'tenant_id = ?';
+  return count(client, `SELECT COUNT(*) AS count FROM ${table} WHERE ${predicate}`, [tenantId]);
+}
+
+async function seedAnalysis(client: Client, tenantId: string): Promise<void> {
+  await executarMigrationsAnalise(client);
+  const session = `analysis_${tenantId}`;
+  await client.execute({
+    sql: `INSERT INTO analise_sessoes (sessao_analitica_id,tenant_id,usuario_id,numero_processo,criada_em,atualizada_em) VALUES (?,?,?,'sigiloso',?,?)`,
+    args: [session, tenantId, 'user', now, now],
+  });
+  await client.execute({
+    sql: `INSERT INTO analise_achados (id,sessao_analitica_id,ordem,tipo_analise,resumo,registrado_em) VALUES (?,?,1,'PROVA','privado',?)`,
+    args: [`finding_${tenantId}`, session, now],
+  });
+  await client.execute({
+    sql: `INSERT INTO analise_combos (id,tenant_id,usuario_id,sessao_analitica_id,combo,tools_restantes,preco_cents,ativado_em) VALUES (?,?,?,?,'completo','[]',100,?)`,
+    args: [`combo_${tenantId}`, tenantId, 'user', session, now],
+  });
+  await client.execute({
+    sql: `INSERT INTO analise_consumos (id,tenant_id,idempotency_key,sessao_analitica_id,tool,combo_id,resultado,criado_em) VALUES (?,?,?,?,'prova',?,'privado',?)`,
+    args: [`consumption_${tenantId}`, tenantId, 'key', session, `combo_${tenantId}`, now],
+  });
+  await client.execute({
+    sql: `INSERT INTO analise_operacoes (id,tenant_id,usuario_id,idempotency_key,sessao_analitica_id,tool,fingerprint,status,resultado,criado_em,atualizado_em) VALUES (?,?,?,'key',?,'prova','fingerprint','COMPLETED','privado',?,?)`,
+    args: [`operation_${tenantId}`, tenantId, 'user', session, now, now],
+  });
+}
 
 async function count(client: Client, sql: string, args: Array<string>): Promise<number> {
   const result = await client.execute({ sql, args });

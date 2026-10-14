@@ -1,7 +1,4 @@
-import type {
-  PrecedenteRef,
-  PrecedenteVerificado,
-} from './contratos.js';
+import type { PrecedenteRef, PrecedenteVerificado } from './contratos.js';
 
 /**
  * Verificação ao vivo de precedentes em fontes oficiais. Módulo totalmente
@@ -38,8 +35,33 @@ const TRIBUNAIS_SUPERIORES: Tribunal[] = [
 ];
 
 const UFS = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
-  'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+  'AC',
+  'AL',
+  'AP',
+  'AM',
+  'BA',
+  'CE',
+  'DF',
+  'ES',
+  'GO',
+  'MA',
+  'MT',
+  'MS',
+  'MG',
+  'PA',
+  'PB',
+  'PR',
+  'PE',
+  'PI',
+  'RJ',
+  'RN',
+  'RS',
+  'RO',
+  'RR',
+  'SC',
+  'SP',
+  'SE',
+  'TO',
 ];
 
 export function identificarTribunal(sigla: string | undefined): Tribunal | undefined {
@@ -50,7 +72,8 @@ export function identificarTribunal(sigla: string | undefined): Tribunal | undef
   const trf = /^TRF([1-6])$/.exec(normalizada);
   if (trf) return { sigla: normalizada, dominios: [`trf${trf[1]}.jus.br`, 'cjf.jus.br'] };
   const trt = /^TRT(\d{1,2})$/.exec(normalizada);
-  if (trt && Number(trt[1]) >= 1 && Number(trt[1]) <= 24) return { sigla: normalizada, dominios: [`trt${Number(trt[1])}.jus.br`] };
+  if (trt && Number(trt[1]) >= 1 && Number(trt[1]) <= 24)
+    return { sigla: normalizada, dominios: [`trt${Number(trt[1])}.jus.br`] };
   const tj = /^TJ([A-Z]{2})$/.exec(normalizada);
   if (tj && UFS.includes(tj[1]!)) return { sigla: normalizada, dominios: [`tj${tj[1]!.toLowerCase()}.jus.br`] };
   return undefined;
@@ -99,32 +122,33 @@ function soDigitos(texto: string): string {
   return texto.replace(/\D/g, '');
 }
 
-const STOPWORDS = new Set([
-  'de', 'da', 'do', 'das', 'dos', 'e', 'o', 'a', 'os', 'as', 'em', 'no', 'na', 'nos', 'nas', 'por', 'para', 'com',
-  'que', 'se', 'ao', 'aos', 'um', 'uma', 'ou', 'sobre', 'sua', 'seu',
-]);
-
-function termosDistintivos(texto: string): string[] {
-  return [...new Set(semAcento(texto).split(/[^a-z0-9]+/).filter((termo) => termo.length > 3 && !STOPWORDS.has(termo)))];
+function escaparPadrao(texto: string): string {
+  return texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
 }
 
-/** Critério de confirmação: o identificador do precedente (ou os termos da tese) aparece no texto oficial. */
+/** Localiza a identidade citada; não verifica se o precedente sustenta a tese descrita. */
 export function textoConfirmaReferencia(ref: PrecedenteRef, textoOficial: string): boolean {
-  const digitosTexto = soDigitos(textoOficial);
-  if (ref.numero) {
-    const digitosRef = soDigitos(ref.numero);
-    // Números curtos (ex.: Súmula 331) geram falso positivo em texto de dígitos concatenados.
-    if (digitosRef.length >= 6) return digitosTexto.includes(digitosRef);
-    const alvo = semAcento(ref.numero).replace(/\s+/g, ' ').trim();
-    const texto = semAcento(textoOficial).replace(/\s+/g, ' ');
-    return texto.includes(alvo);
-  }
-  if (!ref.descricao_tese) return false;
-  const termos = termosDistintivos(ref.descricao_tese);
-  if (termos.length < 3) return false;
+  // A descrição pode orientar a busca, mas palavras semelhantes não identificam um precedente.
+  if (!ref.numero) return false;
+  const referencia = semAcento(ref.numero).trim();
+  const identificador = /\d+(?:[.-]\d+)*/.exec(referencia);
+  if (!identificador) return false;
+  const classe = referencia.slice(0, identificador.index).trim();
+  const sufixo = referencia.slice(identificador.index + identificador[0].length).trim();
+  const padraoClasse = classe
+    ? new RegExp(`(?<![\\p{L}\\p{N}])${escaparPadrao(classe)}\\s*(?:(?:n[.º°o]*|numero)\\s*)?$`, 'u')
+    : undefined;
+  const padraoSufixo = sufixo ? new RegExp(`^\\s*${escaparPadrao(sufixo)}(?![\\p{L}\\p{N}])`, 'u') : undefined;
   const texto = semAcento(textoOficial);
-  const presentes = termos.filter((termo) => texto.includes(termo)).length;
-  return presentes / termos.length >= 0.8;
+  // Normaliza somente um token numérico completo, nunca dígitos espalhados pela página.
+  const numeros = texto.matchAll(/(?<![\p{L}\p{N}])(?<!\d[.-])\d+(?:[.-]\d+)*(?![\p{L}\p{N}]|[.-]\d)/gu);
+  for (const numero of numeros) {
+    if (soDigitos(numero[0]) !== soDigitos(identificador[0])) continue;
+    if (padraoClasse && !padraoClasse.test(texto.slice(0, numero.index))) continue;
+    if (padraoSufixo && !padraoSufixo.test(texto.slice(numero.index + numero[0].length))) continue;
+    return true;
+  }
+  return false;
 }
 
 function hostOficial(url: string, dominios: readonly string[]): string | undefined {
@@ -144,9 +168,11 @@ function naoVerificado(
   motivo: 'busca_indisponivel' | 'precedente_nao_encontrado' | 'tribunal_nao_identificavel',
 ): PrecedenteVerificado {
   const alertas = {
-    busca_indisponivel: 'Não foi possível consultar fonte oficial (envie url_fonte de página oficial do tribunal): precedente NÃO verificado. Não cite como confirmado.',
+    busca_indisponivel:
+      'Não foi possível consultar fonte oficial (envie url_fonte de página oficial do tribunal): precedente NÃO verificado. Não cite como confirmado.',
     precedente_nao_encontrado: 'Precedente não localizado em fonte oficial: não cite sem confirmação manual.',
-    tribunal_nao_identificavel: 'Tribunal não identificável a partir da citação: informe a sigla do tribunal para verificar.',
+    tribunal_nao_identificavel:
+      'Tribunal não identificável a partir da citação: informe a sigla do tribunal para verificar.',
   } as const;
   return {
     referencia: ref,
@@ -203,7 +229,8 @@ export class JurisprudenciaVerificador {
       status_verificacao: 'confirmado_pelo_cliente',
       fonte: { url: ref.url_fonte, host, consultado_em: this.agora().toISOString() },
       motivo: null,
-      alerta: 'Fundamentado conforme trecho informado de página oficial; o servidor não conseguiu ler a fonte. Conferir na fonte antes de citar.',
+      alerta:
+        'Identificador localizado no trecho informado pelo cliente; o servidor não conseguiu ler a fonte. Conferir na fonte antes de citar. A correspondência não valida a tese atribuída ao precedente.',
     };
   }
 
@@ -237,7 +264,11 @@ export class JurisprudenciaVerificador {
         .slice(0, this.maxPaginas);
       if (oficiais.length === 0) {
         // Sem URL oficial utilizável e sem busca: não há o que conferir (não é "inexistente").
-        return naoVerificado(ref, tribunal.sigla, buscaFalhou || !this.buscador.buscar || ref.url_fonte ? 'busca_indisponivel' : 'precedente_nao_encontrado');
+        return naoVerificado(
+          ref,
+          tribunal.sigla,
+          buscaFalhou || !this.buscador.buscar || ref.url_fonte ? 'busca_indisponivel' : 'precedente_nao_encontrado',
+        );
       }
 
       let algumaFalhaDeAcesso = false;
@@ -258,11 +289,16 @@ export class JurisprudenciaVerificador {
             status_verificacao: 'confirmado_busca_externa',
             fonte: { url: item.url, host, consultado_em: this.agora().toISOString() },
             motivo: null,
-            alerta: null,
+            alerta:
+              'Identificador localizado em fonte oficial. A correspondência não valida a tese atribuída ao precedente.',
           };
         }
       }
-      return naoVerificado(ref, tribunal.sigla, algumaFalhaDeAcesso ? 'busca_indisponivel' : 'precedente_nao_encontrado');
+      return naoVerificado(
+        ref,
+        tribunal.sigla,
+        algumaFalhaDeAcesso ? 'busca_indisponivel' : 'precedente_nao_encontrado',
+      );
     } finally {
       clearTimeout(timer);
       sinalExterno?.removeEventListener('abort', repassar);
@@ -297,7 +333,10 @@ export function criarBuscadorHttp(config: {
       url.searchParams.set('q', consultaRestrita);
       const resposta = await executar(url, {
         signal: sinal,
-        headers: { accept: 'application/json', ...(config.tokenBusca ? { authorization: `Bearer ${config.tokenBusca}` } : {}) },
+        headers: {
+          accept: 'application/json',
+          ...(config.tokenBusca ? { authorization: `Bearer ${config.tokenBusca}` } : {}),
+        },
       });
       if (!resposta.ok) throw new Error(`BUSCA_HTTP_${resposta.status}`);
       const corpo = (await resposta.json()) as { results?: ResultadoBusca[] };
@@ -306,7 +345,11 @@ export function criarBuscadorHttp(config: {
         : [];
     },
     async obterTexto(url, sinal) {
-      const resposta = await executar(url, { signal: sinal, redirect: 'error', headers: { accept: 'text/html,application/xhtml+xml,text/plain' } });
+      const resposta = await executar(url, {
+        signal: sinal,
+        redirect: 'error',
+        headers: { accept: 'text/html,application/xhtml+xml,text/plain' },
+      });
       if (!resposta.ok) throw new Error(`PAGINA_HTTP_${resposta.status}`);
       const texto = (await resposta.text()).slice(0, maxBytes);
       return texto.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, ' ');
@@ -325,7 +368,10 @@ export function criarLeitorHttp(config: { fetchImpl?: typeof fetch; maxBytesPagi
     async obterTexto(url, sinal) {
       const tribunal = tribunalPorUrl(url);
       if (!tribunal || !hostOficial(url, tribunal.dominios)) throw new Error('DOMINIO_NAO_OFICIAL');
-      const resposta = await executar(url, { signal: sinal, headers: { accept: 'text/html,application/xhtml+xml,text/plain' } });
+      const resposta = await executar(url, {
+        signal: sinal,
+        headers: { accept: 'text/html,application/xhtml+xml,text/plain' },
+      });
       if (!resposta.ok) throw new Error(`PAGINA_HTTP_${resposta.status}`);
       if (resposta.url && !hostOficial(resposta.url, tribunal.dominios)) throw new Error('REDIRECT_NAO_OFICIAL');
       const texto = (await resposta.text()).slice(0, maxBytes);

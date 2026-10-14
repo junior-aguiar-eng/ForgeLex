@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ status: 'authenticated', account: null }) }));
 vi.mock('../context/AppContext', () => ({ useApp: () => ({
   tribunals: { state: 'ready', data: [{ code: 'STJ', searchable: true, name: 'STJ' }] },
@@ -11,12 +11,13 @@ vi.mock('../context/AppContext', () => ({ useApp: () => ({
   },
 }) }));
 afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
+// Compile the dependency graph during module collection, outside hook/test timers.
+// Each case still reloads modules so both flag configurations are independent.
+await Promise.all([
+  import('./LandingScreen'), import('./ResearchDeskScreen'), import('./ConnectionsScreen'),
+  import('../components/Header'), import('../components/Sidebar'),
+]);
 describe('atalhos de casos nas telas preservadas', () => {
-  // Compile the screen dependency graph before timing the flag assertions.
-  // Each case still reloads modules so both configurations are independent.
-  beforeAll(async () => {
-    await Promise.all([import('./LandingScreen'), import('./ResearchDeskScreen'), import('./ConnectionsScreen')]);
-  });
   it.each([false, true])('respeita flag casesEnabled=%s em resultados e conexão', async (enabled) => {
     vi.stubEnv('VITE_FORGELEX_CASE_WORKSPACE_ENABLED', String(enabled));
     vi.resetModules();

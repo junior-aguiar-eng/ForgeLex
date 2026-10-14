@@ -53,6 +53,25 @@ export const analiseMigrations: readonly SqlMigration[] = [
       );`,
     ],
   },
+  {
+    id: 'analise-0002-operation-idempotency',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS analise_operacoes (
+        id TEXT PRIMARY KEY,
+        tenant_id TEXT NOT NULL,
+        usuario_id TEXT NOT NULL,
+        idempotency_key TEXT NOT NULL,
+        sessao_analitica_id TEXT NOT NULL,
+        tool TEXT NOT NULL,
+        fingerprint TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('RUNNING', 'COMPLETED', 'FAILED')),
+        resultado TEXT,
+        criado_em TEXT NOT NULL,
+        atualizado_em TEXT NOT NULL,
+        UNIQUE (tenant_id, idempotency_key)
+      );`,
+    ],
+  },
 ];
 
 export async function executarMigrationsAnalise(client: Client): Promise<void> {

@@ -38,9 +38,9 @@ export const VerificacaoNormativaSchema = z.array(DispositivoVerificadoSchema);
 
 /** Texto de método comum às tools que citam norma ou precedente. */
 export const PROTOCOLO_VERIFICACAO =
-  'VERIFICAÇÃO OBRIGATÓRIA ANTES DE CITAR: (1) Legislação — use busca web (se o seu cliente tiver) priorizando fontes oficiais (planalto.gov.br, sites dos tribunais, diários oficiais) para confirmar a vigência e o teor atual do dispositivo antes de afirmá-lo vigente; informe cada dispositivo em dispositivos_citados com verificado_em_fonte_oficial=true/false. Quando não conseguir verificar, o resultado traz o alerta "' +
+  'VERIFICAÇÃO OBRIGATÓRIA ANTES DE CITAR: (1) Legislação — use busca web (se o seu cliente tiver) priorizando fontes oficiais (planalto.gov.br, sites dos tribunais, diários oficiais) para confirmar a vigência e o teor atual do dispositivo antes de afirmá-lo vigente; informe cada dispositivo em dispositivos_citados com verificado_em_fonte_oficial=true/false e fonte contendo a URL HTTPS oficial consultada. O servidor só valida a URL: com declaração e URL oficial válida, registra declarado_pelo_cliente, sempre com alerta; não verifica teor nem vigência. Sem URL oficial válida, registra nao_verificado. Quando não conseguir verificar, o resultado traz o alerta "' +
   AVISO_VIGENCIA_NAO_VERIFICADA +
-  '". Nunca trate ausência de verificação como "provavelmente certo". (2) Jurisprudência — a busca é por tema: com base na área do direito (já triada) e nas teses mapeadas (ex.: "cobrança indevida" no direito do consumidor), pesquise com a busca web do seu cliente, em sites oficiais dos tribunais (STF, STJ, TST, TRFs, TRTs, TJs), decisões que sustentem ou contrariem cada tese. Envie cada candidato com tribunal, número, url_fonte (a página oficial onde o encontrou) e trecho_fonte (cópia literal do trecho da página que traz o número ou a ementa); nunca cite precedente apenas de memória. O servidor tenta abrir a url_fonte: se ler o precedente na página, marca confirmado_busca_externa; se não conseguir abrir (muitos tribunais bloqueiam acesso automático) e o trecho_fonte de página oficial trouxer o precedente, marca confirmado_pelo_cliente (fundamentado, a conferir na fonte); sem url_fonte oficial válida o resultado é nao_verificado. Todo resultado traz status_verificacao em cada citação, e precedente nao_verificado não pode ser apresentado como confirmado. A identificação de qual norma ou instituto se aplica é sua; o servidor só audita a checagem de vigência.';
+  '". Nunca trate ausência de verificação como "provavelmente certo". (2) Jurisprudência — a busca é por tema: com base na área do direito (já triada) e nas teses mapeadas (ex.: "cobrança indevida" no direito do consumidor), pesquise com a busca web do seu cliente, em sites oficiais dos tribunais (STF, STJ, TST, TRFs, TRTs, TJs), decisões que sustentem ou contrariem cada tese. Envie cada candidato com tribunal, número, url_fonte (a página oficial onde o encontrou) e trecho_fonte (cópia literal do trecho da página que traz o número ou a ementa); nunca cite precedente apenas de memória. O servidor tenta abrir a url_fonte: se ler o precedente na página, marca confirmado_busca_externa; se não conseguir abrir (muitos tribunais bloqueiam acesso automático) e o trecho_fonte de página oficial trouxer o precedente, marca confirmado_pelo_cliente (declaração do cliente, a conferir na fonte); sem url_fonte oficial válida o resultado é nao_verificado. Todo resultado traz status_verificacao em cada citação, e precedente nao_verificado não pode ser apresentado como confirmado. A identificação de qual norma ou instituto se aplica é sua; o servidor distingue a declaração do cliente da confirmação externa e não audita vigência normativa.';
 
 export const NAO_INFERIR =
   'Não complete nem infira dado ausente do documento: se um elemento não consta, deixe-o vazio/nulo e ele será sinalizado como ausente.';
@@ -60,7 +60,12 @@ export interface ChamadaIniciada {
 export async function iniciarChamada(
   deps: DepsAnalise,
   context: ToolExecutionContext,
-  entrada: { sessao_analitica_id: string; numero_processo?: string; area_direito: z.infer<typeof AreaDireitoSchema>; fase_processual?: z.infer<typeof FaseProcessualSchema> },
+  entrada: {
+    sessao_analitica_id: string;
+    numero_processo?: string;
+    area_direito: z.infer<typeof AreaDireitoSchema>;
+    fase_processual?: z.infer<typeof FaseProcessualSchema>;
+  },
 ): Promise<ChamadaIniciada> {
   const dono = dononDoContexto(context);
   const id = await deps.estado.abrirSessao(entrada.sessao_analitica_id, dono, entrada.numero_processo);
@@ -84,11 +89,36 @@ export function exigirEtapaPrevia(
 }
 
 export function verificarDispositivos(dispositivos: readonly DispositivoCitado[]): DispositivoVerificado[] {
-  return dispositivos.map((item) =>
-    item.verificado_em_fonte_oficial
-      ? { dispositivo: item.dispositivo, status_vigencia: 'verificado_fonte_oficial', fonte: item.fonte ?? null, alerta: null }
-      : { dispositivo: item.dispositivo, status_vigencia: 'nao_verificado', fonte: null, alerta: AVISO_VIGENCIA_NAO_VERIFICADA },
-  );
+  return dispositivos.map((item) => {
+    let fonteOficial = false;
+    if (item.fonte) {
+      try {
+        const url = new URL(item.fonte);
+        fonteOficial =
+          url.protocol === 'https:' &&
+          !url.username &&
+          !url.password &&
+          !url.port &&
+          /\.(gov|jus)\.br$/.test(url.hostname);
+      } catch {
+        /* Fonte inválida permanece sem confirmação. */
+      }
+    }
+    return item.verificado_em_fonte_oficial && fonteOficial
+      ? {
+          dispositivo: item.dispositivo,
+          status_vigencia: 'declarado_pelo_cliente',
+          fonte: item.fonte!,
+          alerta:
+            'Consulta em URL oficial declarada pelo cliente; o servidor não auditou o teor nem a vigência. Conferir na fonte antes de citar.',
+        }
+      : {
+          dispositivo: item.dispositivo,
+          status_vigencia: 'nao_verificado',
+          fonte: null,
+          alerta: AVISO_VIGENCIA_NAO_VERIFICADA,
+        };
+  });
 }
 
 export async function verificarPrecedentes(
@@ -130,15 +160,32 @@ export function extrairCitacoes(texto: string): PrecedenteRef[] {
     if (!encontrados.has(chave) && encontrados.size < 20) encontrados.set(chave, ref);
   };
   const porSigla: Record<string, string> = {
-    resp: 'STJ', aresp: 'STJ', eresp: 'STJ', re: 'STF', are: 'STF', adi: 'STF', adpf: 'STF', adc: 'STF', rr: 'TST', airr: 'TST', arr: 'TST',
+    resp: 'STJ',
+    aresp: 'STJ',
+    eresp: 'STJ',
+    re: 'STF',
+    are: 'STF',
+    adi: 'STF',
+    adpf: 'STF',
+    adc: 'STF',
+    rr: 'TST',
+    airr: 'TST',
+    arr: 'TST',
   };
-  for (const m of texto.matchAll(/\b(AgRg no |AgInt no |EDcl no )?(REsp|AREsp|EREsp|RE|ARE|ADI|ADPF|ADC|RR|AIRR|ARR)\s*(?:n[ºo°.]*\s*)?(\d[\d.\-/]{2,})/g)) {
+  for (const m of texto.matchAll(
+    /\b(AgRg no |AgInt no |EDcl no )?(REsp|AREsp|EREsp|RE|ARE|ADI|ADPF|ADC|RR|AIRR|ARR)\s*(?:n[ºo°.]*\s*)?(\d[\d.\-/]{2,})/g,
+  )) {
     const classe = m[2]!;
     adicionar({ tribunal: porSigla[classe.toLowerCase()], numero: `${classe} ${m[3]!.replace(/[.\-/]+$/, '')}` });
   }
-  for (const m of texto.matchAll(/\bS[úu]mula(?:\s+Vinculante)?\s*(?:n[ºo°.]*\s*)?(\d{1,4})(?:\s+(?:do|da)\s+(STF|STJ|TST|TSE|STM))?/gi)) {
+  for (const m of texto.matchAll(
+    /\bS[úu]mula(?:\s+Vinculante)?\s*(?:n[ºo°.]*\s*)?(\d{1,4})(?:\s+(?:do|da)\s+(STF|STJ|TST|TSE|STM))?/gi,
+  )) {
     const vinculante = /vinculante/i.test(m[0]);
-    adicionar({ tribunal: m[2]?.toUpperCase() ?? (vinculante ? 'STF' : undefined), numero: `Súmula${vinculante ? ' Vinculante' : ''} ${m[1]}` });
+    adicionar({
+      tribunal: m[2]?.toUpperCase() ?? (vinculante ? 'STF' : undefined),
+      numero: `Súmula${vinculante ? ' Vinculante' : ''} ${m[1]}`,
+    });
   }
   for (const m of texto.matchAll(/\bTema\s*(?:n[ºo°.]*\s*)?(\d{1,5})(?:\s+(?:do|da)\s+(STF|STJ|TST))?/g)) {
     adicionar({ tribunal: m[2]?.toUpperCase(), numero: `Tema ${m[1]}` });

@@ -5,7 +5,12 @@ import type { Client } from '@forgelex/persistence';
 import { CobrancaAnalise, type InfoCobranca } from './cobranca.js';
 import { NOMES_TOOLS, NOMES_TOOLS_EXPOSTAS, PREFIXO_TOOLS } from './contratos.js';
 import { EstadoAnalitico } from './estado.js';
-import { JurisprudenciaVerificador, criarBuscadorHttp, criarLeitorHttp, type BuscadorWeb } from './jurisprudencia-verificar.js';
+import {
+  JurisprudenciaVerificador,
+  criarBuscadorHttp,
+  criarLeitorHttp,
+  type BuscadorWeb,
+} from './jurisprudencia-verificar.js';
 import { executarMigrationsAnalise } from './migrations.js';
 import { ehToolAnalitica } from './precos.js';
 import { INSTRUCAO_DISCRICAO, ORIENTACAO_ERRO, montarApresentacao } from './apresentacao.js';
@@ -18,9 +23,24 @@ import { criarToolMapearTeses } from './tools/mapear-teses.js';
 import { criarToolPecaAnalisar } from './tools/peca-analisar.js';
 import { criarToolPecaRedigir } from './tools/peca-redigir.js';
 
-interface RequisicaoMcp { jsonrpc: '2.0'; id?: string | number; method: string; params?: Record<string, any> }
-interface RespostaMcp { jsonrpc: '2.0'; id?: string | number; result?: unknown; error?: { code: number; message: string; data?: unknown } }
-interface ContextoChamada { tenantId?: string; userId?: string; idempotencyKey?: string; abortSignal?: AbortSignal }
+interface RequisicaoMcp {
+  jsonrpc: '2.0';
+  id?: string | number;
+  method: string;
+  params?: Record<string, any>;
+}
+interface RespostaMcp {
+  jsonrpc: '2.0';
+  id?: string | number;
+  result?: unknown;
+  error?: { code: number; message: string; data?: unknown };
+}
+interface ContextoChamada {
+  tenantId?: string;
+  userId?: string;
+  idempotencyKey?: string;
+  abortSignal?: AbortSignal;
+}
 
 export interface OpcoesModuloAnalise {
   client: Client;
@@ -55,9 +75,12 @@ export class ModuloAnalise {
       criarToolPecaRedigir(deps),
       criarToolComboAtivar(),
       criarToolJurisprudenciaVerificar(verificador),
-    ]) opcoes.registry.register(
-      tool.name === NOMES_TOOLS.jurisprudenciaVerificar ? tool : { ...tool, description: `${tool.description} ${INSTRUCAO_DISCRICAO}` },
-    );
+    ])
+      opcoes.registry.register(
+        tool.name === NOMES_TOOLS.jurisprudenciaVerificar
+          ? tool
+          : { ...tool, description: `${tool.description} ${INSTRUCAO_DISCRICAO}` },
+      );
     return new ModuloAnalise(opcoes.registry, new CobrancaAnalise(opcoes.client, opcoes.ledger), estado);
   }
 
@@ -72,10 +95,15 @@ export class ModuloAnalise {
     const id = request.id;
     const nome = String(request.params?.name ?? '');
     const argumentos = (request.params?.arguments ?? {}) as Record<string, unknown>;
-    const falha = (code: number, message: string, data?: unknown): RespostaMcp => ({ jsonrpc: '2.0', id, error: { code, message, ...(data ? { data } : {}) } });
+    const falha = (code: number, message: string, data?: unknown): RespostaMcp => ({
+      jsonrpc: '2.0',
+      id,
+      error: { code, message, ...(data ? { data } : {}) },
+    });
 
     if (!NOMES_TOOLS_EXPOSTAS.includes(nome)) return falha(-32601, 'Esta função não está disponível.');
-    if (!contexto.tenantId || !contexto.userId) return falha(-32001, ORIENTACAO_ERRO.UNAUTHORIZED_CAPABILITY!, dadosErro('UNAUTHORIZED_CAPABILITY', false));
+    if (!contexto.tenantId || !contexto.userId)
+      return falha(-32001, ORIENTACAO_ERRO.UNAUTHORIZED_CAPABILITY!, dadosErro('UNAUTHORIZED_CAPABILITY', false));
 
     const chaveArg = typeof argumentos.idempotencyKey === 'string' ? argumentos.idempotencyKey.trim() : '';
     const idempotencyKey = contexto.idempotencyKey?.trim() || chaveArg;
@@ -87,22 +115,37 @@ export class ModuloAnalise {
     const abortSignal = contexto.abortSignal ?? new AbortController().signal;
     const sessionId = `analise_${idempotencyKey}`;
     const executarTool = async (nomeTool: string, dados: unknown) =>
-      (await this.registry.executeTool(nomeTool, dados, { sessionId, tenantId, userId, abortSignal, source: 'MCP' })).data as object;
+      (await this.registry.executeTool(nomeTool, dados, { sessionId, tenantId, userId, abortSignal, source: 'MCP' }))
+        .data as object;
 
     try {
       let execucao;
       if (nome === NOMES_TOOLS.comboAtivar) {
         const parsed = ComboAtivarInputSchema.safeParse(entrada);
-        if (!parsed.success) return falha(-32602, ORIENTACAO_ERRO.INVALID_INPUT!, dadosErro('INVALID_INPUT', false, parsed.error.issues));
+        if (!parsed.success)
+          return falha(-32602, ORIENTACAO_ERRO.INVALID_INPUT!, dadosErro('INVALID_INPUT', false, parsed.error.issues));
         await this.estado.exigirDono(parsed.data.sessao_analitica_id, { tenantId, usuarioId: userId });
         const ativado = await this.cobranca.ativarCombo({
-          tenantId, userId, idempotencyKey, sessaoId: parsed.data.sessao_analitica_id, argumentos: entrada, combo: parsed.data.combo,
+          tenantId,
+          userId,
+          idempotencyKey,
+          sessaoId: parsed.data.sessao_analitica_id,
+          argumentos: entrada,
+          combo: parsed.data.combo,
         });
-        execucao = { data: { sessao_analitica_id: parsed.data.sessao_analitica_id, ...ativado.data }, billing: ativado.billing };
+        execucao = {
+          data: { sessao_analitica_id: parsed.data.sessao_analitica_id, ...ativado.data },
+          billing: ativado.billing,
+        };
       } else if (ehToolAnalitica(nome)) {
         const sessaoId = typeof entrada.sessao_analitica_id === 'string' ? entrada.sessao_analitica_id : '';
         execucao = await this.cobranca.executar({
-          tenantId, userId, idempotencyKey, tool: nome, sessaoId, argumentos: entrada,
+          tenantId,
+          userId,
+          idempotencyKey,
+          tool: nome,
+          sessaoId,
+          argumentos: entrada,
           operation: () => executarTool(nome, entrada),
         });
       } else {
@@ -118,7 +161,15 @@ export class ModuloAnalise {
     const codigo = getErrorCode(erro, 'TOOL_EXECUTION_FAILED');
     const detalhes = (erro as { details?: Record<string, unknown> })?.details;
     if (codigo === 'INVALID_CANONICAL_STATE' && Array.isArray(detalhes?.issues)) {
-      return { jsonrpc: '2.0', id, error: { code: -32602, message: ORIENTACAO_ERRO.INVALID_INPUT!, data: dadosErro('INVALID_INPUT', false, detalhes.issues) } };
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: {
+          code: -32602,
+          message: ORIENTACAO_ERRO.INVALID_INPUT!,
+          data: dadosErro('INVALID_INPUT', false, detalhes.issues),
+        },
+      };
     }
     const interno = typeof detalhes?.code === 'string' && ORIENTACAO_ERRO[detalhes.code] ? detalhes.code : codigo;
     const conhecido = erro instanceof DomainError && ORIENTACAO_ERRO[interno] !== undefined;
@@ -129,7 +180,12 @@ export class ModuloAnalise {
       error: {
         code: -32000,
         message: mensagem,
-        data: { orientacao: mensagem, retryable: !conhecido && ['TOOL_EXECUTION_FAILED', 'TOOL_TIMEOUT'].includes(codigo) },
+        data: {
+          orientacao: mensagem,
+          retryable:
+            interno === 'ANALISE_EM_ANDAMENTO' ||
+            (!conhecido && ['TOOL_EXECUTION_FAILED', 'TOOL_TIMEOUT'].includes(codigo)),
+        },
       },
     };
   }
