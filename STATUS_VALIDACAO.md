@@ -1,5 +1,16 @@
 # Auditoria e status canônico do ForgeLex
 
+## Camada analítica — correções e estabilização (14/10/2026)
+
+Branch `codex/fix-analise-six-issues` sobre `a3af1f6`, em worktree isolado.
+Correções dos seis achados no módulo analítico e encerramento de conta, com testes
+de regressão e PostgreSQL temporário. Sem alteração de produção.
+Entrega Git na [PR #74](https://github.com/junior-aguiar-eng/ForgeLex/pull/74),
+com commit, push e integração autorizados por Boni nesta conversa em 14/10.
+Suíte geral local aprovada após correção dos workers: `pnpm test`, saída zero,
+912 testes aprovados e 18 ignorados; build, lint e tipos aprovados.
+[Evidências, verificações e limites](docs/operations/stabilization/2026-10-14-analise-six-fixes.md).
+
 ## Leitor e pesquisas salvas nos aplicativos reais — 12/10/2026
 
 Ensaio ChatGPT encerrado em 12/10 às 01:53:32 UTC (11/10, 22:53:32 em

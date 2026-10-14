@@ -527,7 +527,9 @@ export class DraftRepository {
       catch (error) {
         // SQLite cannot wait on a row lock like PostgreSQL. Retry the whole
         // operation so a concurrent winner is observed as a domain decision.
-        if (attempt === 4 || !/SQLITE_BUSY|SQLITE_LOCKED|database (?:table )?is locked/i.test(String(error))) throw error;
+        // libsql also reports connection contention before SQLite acquires a lock.
+        const connectionBusy = error instanceof Error && 'code' in error && error.code === 'TRANSACTION_ACTIVE';
+        if (attempt === 4 || (!connectionBusy && !/SQLITE_BUSY|SQLITE_LOCKED|database (?:table )?is locked/i.test(String(error)))) throw error;
         await new Promise(resolve => setTimeout(resolve, 25 * 2 ** attempt));
       }
     }

@@ -53,25 +53,47 @@ export const ResumoAchadoSchema = z.record(z.unknown());
 export type ResumoAchado = z.infer<typeof ResumoAchadoSchema>;
 
 /** Referência de precedente informada pelo cliente; sempre sujeita a verificação. */
-export const PrecedenteRefSchema = z.object({
-  tribunal: z.string().trim().min(2).max(20).optional(),
-  numero: z.string().trim().min(1).max(120).optional(),
-  descricao_tese: z.string().trim().min(3).max(600).optional(),
-  trecho_fonte: z.string().trim().min(20).max(1500).optional().describe(
-    'Cópia literal do trecho da página oficial que contém o número do precedente (ou a ementa). Usado quando o servidor não consegue abrir a página sozinho.',
-  ),
-  url_fonte: z.string().trim().url().max(600).optional().describe(
-    'Página oficial do tribunal onde você encontrou o precedente. O servidor abre essa página e só confirma se o precedente constar nela.',
-  ),
-}).refine((value) => Boolean(value.numero || value.descricao_tese), {
-  message: 'Informe o número do precedente ou a descrição da tese.',
-});
+export const PrecedenteRefSchema = z
+  .object({
+    tribunal: z.string().trim().min(2).max(20).optional(),
+    numero: z.string().trim().min(1).max(120).optional(),
+    descricao_tese: z.string().trim().min(3).max(600).optional(),
+    trecho_fonte: z
+      .string()
+      .trim()
+      .min(20)
+      .max(1500)
+      .optional()
+      .describe(
+        'Cópia literal do trecho da página oficial que contém o número do precedente (ou a ementa). Usado quando o servidor não consegue abrir a página sozinho.',
+      ),
+    url_fonte: z
+      .string()
+      .trim()
+      .url()
+      .max(600)
+      .optional()
+      .describe(
+        'Página oficial do tribunal onde você encontrou o precedente. O servidor abre essa página e só confirma se o precedente constar nela.',
+      ),
+  })
+  .refine((value) => Boolean(value.numero || value.descricao_tese), {
+    message: 'Informe o número do precedente ou a descrição da tese.',
+  });
 export type PrecedenteRef = z.infer<typeof PrecedenteRefSchema>;
 
-export const StatusVerificacaoSchema = z.enum(['confirmado_busca_externa', 'confirmado_pelo_cliente', 'nao_verificado']);
+export const StatusVerificacaoSchema = z.enum([
+  'confirmado_busca_externa',
+  'confirmado_pelo_cliente',
+  'nao_verificado',
+]);
 export type StatusVerificacao = z.infer<typeof StatusVerificacaoSchema>;
 
-export const MOTIVOS_NAO_VERIFICADO = ['busca_indisponivel', 'precedente_nao_encontrado', 'tribunal_nao_identificavel'] as const;
+export const MOTIVOS_NAO_VERIFICADO = [
+  'busca_indisponivel',
+  'precedente_nao_encontrado',
+  'tribunal_nao_identificavel',
+] as const;
 
 export const PrecedenteVerificadoSchema = z.object({
   referencia: PrecedenteRefSchema,
@@ -83,17 +105,25 @@ export const PrecedenteVerificadoSchema = z.object({
 });
 export type PrecedenteVerificado = z.infer<typeof PrecedenteVerificadoSchema>;
 
-/** Dispositivo legal citado, com o resultado da checagem de vigência feita pelo cliente. */
+/** Dispositivo citado com declaração do cliente; não constitui auditoria de vigência pelo servidor. */
 export const DispositivoCitadoSchema = z.object({
   dispositivo: z.string().trim().min(2).max(300),
-  verificado_em_fonte_oficial: z.boolean().default(false),
-  fonte: z.string().trim().max(500).optional(),
+  verificado_em_fonte_oficial: z
+    .boolean()
+    .default(false)
+    .describe('Declaração do cliente, sujeita a conferência; não comprova vigência pelo servidor.'),
+  fonte: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .describe('URL HTTPS oficial consultada pelo cliente; necessária para registrar sua declaração.'),
 });
 export type DispositivoCitado = z.infer<typeof DispositivoCitadoSchema>;
 
 export const DispositivoVerificadoSchema = z.object({
   dispositivo: z.string(),
-  status_vigencia: z.enum(['verificado_fonte_oficial', 'nao_verificado']),
+  status_vigencia: z.enum(['verificado_fonte_oficial', 'declarado_pelo_cliente', 'nao_verificado']),
   fonte: z.string().nullable(),
   alerta: z.string().nullable(),
 });

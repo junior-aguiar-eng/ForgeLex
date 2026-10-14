@@ -28,7 +28,7 @@ const tenantStatements: readonly TenantStatement[] = [
   direct('draft_approval_requests', 'MATTERS'),
   direct('citation_anchors', 'MATTERS'),
   direct('draft_review_findings', 'MATTERS'),
-    direct('draft_review_runs', 'MATTERS'),
+  direct('draft_review_runs', 'MATTERS'),
   direct('draft_ai_receipts', 'MATTERS'),
   direct('case_ai_access_grants', 'MATTERS'),
   direct('draft_sections', 'MATTERS'),
@@ -66,6 +66,21 @@ const tenantStatements: readonly TenantStatement[] = [
   nested('session_messages', 'SESSIONS', 'session_id IN (SELECT id FROM sessions WHERE tenant_id = ?)'),
   direct('sessions', 'SESSIONS'),
   direct('matters', 'MATTERS'),
+];
+
+// Analysis sessions are independent of matters. Their results and operation
+// snapshots follow the existing SESSIONS retention category, including holds.
+// Children must precede sessions because the optional module owns its own FKs.
+const optionalTenantStatements: readonly TenantStatement[] = [
+  direct('analise_consumos', 'SESSIONS'),
+  direct('analise_operacoes', 'SESSIONS'),
+  nested(
+    'analise_achados',
+    'SESSIONS',
+    'sessao_analitica_id IN (SELECT sessao_analitica_id FROM analise_sessoes WHERE tenant_id = ?)',
+  ),
+  direct('analise_combos', 'SESSIONS'),
+  direct('analise_sessoes', 'SESSIONS'),
 ];
 
 const financialOwnerTables = [
@@ -112,13 +127,22 @@ export class AccountClosurePurgeService {
     const transaction = await this.client.transaction();
     let deletedRows = 0;
     try {
+      const statements = await this.availableTenantStatements(transaction);
       if (!held.has('MATTERS')) {
-        const closures = await transaction.execute({ sql: 'SELECT tenant_hash FROM account_closures WHERE id=?', args: [input.closureId] });
-        const hash = String(closures.rows[0]?.tenant_hash ?? createHash('sha256').update(input.closureId).digest('hex'));
+        const closures = await transaction.execute({
+          sql: 'SELECT tenant_hash FROM account_closures WHERE id=?',
+          args: [input.closureId],
+        });
+        const hash = String(
+          closures.rows[0]?.tenant_hash ?? createHash('sha256').update(input.closureId).digest('hex'),
+        );
         // Operational proof survives account closure, with its tenant association minimized.
-        await transaction.execute({ sql: 'UPDATE matter_lifecycle_purge_operations SET tenant_id=? WHERE tenant_id=?', args: [`tenant_closed_${hash.slice(0, 24)}`, input.tenantId] });
+        await transaction.execute({
+          sql: 'UPDATE matter_lifecycle_purge_operations SET tenant_id=? WHERE tenant_id=?',
+          args: [`tenant_closed_${hash.slice(0, 24)}`, input.tenantId],
+        });
       }
-      for (const statement of tenantStatements) {
+      for (const statement of statements) {
         if (held.has(statement.category)) continue;
         const result = await transaction.execute({
           sql: statement.deleteSql,
@@ -128,7 +152,7 @@ export class AccountClosurePurgeService {
       }
 
       let remainingPrivateRows = 0;
-      for (const statement of tenantStatements) {
+      for (const statement of statements) {
         if (held.has(statement.category)) continue;
         remainingPrivateRows += numberFrom(
           (await transaction.execute({
@@ -209,11 +233,15 @@ export class AccountClosurePurgeService {
     let privateRows = 0;
     let activeCredentials = 0;
     if (input.tenantId) {
+      const statements = await this.availableTenantStatements(this.client);
       if (!held.has('MATTERS')) {
-        const operations = await this.client.execute({ sql: 'SELECT COUNT(*) AS count FROM matter_lifecycle_purge_operations WHERE tenant_id=?', args: [input.tenantId] });
+        const operations = await this.client.execute({
+          sql: 'SELECT COUNT(*) AS count FROM matter_lifecycle_purge_operations WHERE tenant_id=?',
+          args: [input.tenantId],
+        });
         privateRows += numberFrom(operations as { rows: Array<Record<string, unknown>> });
       }
-      for (const statement of tenantStatements) {
+      for (const statement of statements) {
         if (held.has(statement.category)) continue;
         const rows = await this.client.execute({
           sql: statement.countSql,
@@ -290,5 +318,21 @@ export class AccountClosurePurgeService {
       args: [closureId, now, now],
     });
     return result.rows.map((row) => String(row.category));
+  }
+
+  private async availableTenantStatements(executor: Pick<Client, 'execute'>): Promise<readonly TenantStatement[]> {
+    const dialect = (this.client as Client & { forgelexDialect?: 'sqlite' | 'postgres' }).forgelexDialect ?? 'sqlite';
+    const placeholders = optionalTenantStatements.map(() => '?').join(', ');
+    // Probe the catalog instead of swallowing missing-table errors: an absent
+    // relation would abort a PostgreSQL transaction and hide other failures.
+    const result = await executor.execute({
+      sql:
+        dialect === 'postgres'
+          ? `SELECT tablename AS name FROM pg_catalog.pg_tables WHERE schemaname = current_schema() AND tablename IN (${placeholders})`
+          : `SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (${placeholders})`,
+      args: optionalTenantStatements.map((statement) => statement.table),
+    });
+    const available = new Set(result.rows.map((row) => String(row.name)));
+    return [...optionalTenantStatements.filter((statement) => available.has(statement.table)), ...tenantStatements];
   }
 }
