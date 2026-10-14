@@ -9,8 +9,15 @@ MCP), saldo/débito (`LedgerService`) e o transporte MCP.
 | Variável | Efeito |
 | --- | --- |
 | `FORGELEX_ANALISE_ENABLED=true` | Registra e expõe as tools `analise.*` (desligado por padrão). |
-| `FORGELEX_ANALISE_BUSCA_ENDPOINT` | Endpoint HTTP de busca web (`GET ?q=` → `{ "results": [{ "url", "titulo", "trecho" }] }`). Sem ele, toda verificação de precedente retorna `nao_verificado / busca_indisponivel`. |
-| `FORGELEX_ANALISE_BUSCA_TOKEN` | Bearer opcional do endpoint de busca. |
+| `FORGELEX_ANALISE_BUSCA_ENDPOINT` | **Opcional.** Serviço de busca web do servidor (`GET ?q=` → `{ "results": [{ "url", "titulo", "trecho" }] }`), usado só quando o cliente não envia `url_fonte`. |
+| `FORGELEX_ANALISE_BUSCA_TOKEN` | Bearer opcional do endpoint acima. |
+
+## Jurisprudência: descoberta no cliente, confirmação no servidor
+
+A busca por tema (ex.: "cobrança indevida" na área já triada) é feita pelo LLM do cliente, com
+a busca web dele, em sites oficiais. Cada candidato vai ao servidor com `url_fonte`. O servidor
+abre a página (só domínios oficiais do tribunal, redirecionamentos revalidados) e confirma
+apenas se o número/tese constar nela. Sem `url_fonte` válida: `nao_verificado`.
 
 ## Tools
 

@@ -57,6 +57,9 @@ export const PrecedenteRefSchema = z.object({
   tribunal: z.string().trim().min(2).max(20).optional(),
   numero: z.string().trim().min(1).max(120).optional(),
   descricao_tese: z.string().trim().min(3).max(600).optional(),
+  url_fonte: z.string().trim().url().max(600).optional().describe(
+    'Página oficial do tribunal onde você encontrou o precedente. O servidor abre essa página e só confirma se o precedente constar nela.',
+  ),
 }).refine((value) => Boolean(value.numero || value.descricao_tese), {
   message: 'Informe o número do precedente ou a descrição da tese.',
 });

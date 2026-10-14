@@ -17,8 +17,8 @@ export interface ResultadoBusca {
 }
 
 export interface BuscadorWeb {
-  /** Busca restrita aos domínios informados (ex.: via `site:`). Lança se indisponível. */
-  buscar(consulta: string, dominios: readonly string[], sinal: AbortSignal): Promise<ResultadoBusca[]>;
+  /** Opcional: busca restrita aos domínios informados (ex.: via `site:`). Lança se indisponível. */
+  buscar?(consulta: string, dominios: readonly string[], sinal: AbortSignal): Promise<ResultadoBusca[]>;
   /** Obtém o texto de uma página já filtrada por domínio. */
   obterTexto(url: string, sinal: AbortSignal): Promise<string>;
 }
@@ -56,10 +56,29 @@ export function identificarTribunal(sigla: string | undefined): Tribunal | undef
   return undefined;
 }
 
+function tribunalPorUrl(url: string | undefined): Tribunal | undefined {
+  if (!url) return undefined;
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return undefined;
+  }
+  const candidatos = [
+    ...TRIBUNAIS_SUPERIORES,
+    ...[1, 2, 3, 4, 5, 6].map((n) => identificarTribunal(`TRF${n}`)!),
+    ...Array.from({ length: 24 }, (_, i) => identificarTribunal(`TRT${i + 1}`)!),
+    ...UFS.map((uf) => identificarTribunal(`TJ${uf}`)!),
+  ];
+  return candidatos.find((t) => t.dominios.some((d) => host === d || host.endsWith(`.${d}`)));
+}
+
 /** Deduz o tribunal a partir de sigla explícita ou do texto do número (ex.: "REsp ...", "RE ...", CNJ J.TR). */
 export function tribunalDaReferencia(ref: PrecedenteRef): Tribunal | undefined {
   const explicito = identificarTribunal(ref.tribunal);
   if (explicito) return explicito;
+  const porUrl = tribunalPorUrl(ref.url_fonte);
+  if (porUrl) return porUrl;
   const texto = `${ref.numero ?? ''} ${ref.descricao_tese ?? ''}`;
   const sigla = /\b(STF|STJ|TST|TSE|STM|TRF[1-6]|TRT\d{1,2}|TJ[A-Z]{2})\b/i.exec(texto);
   if (sigla) return identificarTribunal(sigla[1]);
@@ -125,7 +144,7 @@ function naoVerificado(
   motivo: 'busca_indisponivel' | 'precedente_nao_encontrado' | 'tribunal_nao_identificavel',
 ): PrecedenteVerificado {
   const alertas = {
-    busca_indisponivel: 'Busca em fonte oficial indisponível: precedente NÃO verificado. Não cite como confirmado.',
+    busca_indisponivel: 'Não foi possível consultar fonte oficial (envie url_fonte de página oficial do tribunal): precedente NÃO verificado. Não cite como confirmado.',
     precedente_nao_encontrado: 'Precedente não localizado em fonte oficial: não cite sem confirmação manual.',
     tribunal_nao_identificavel: 'Tribunal não identificável a partir da citação: informe a sigla do tribunal para verificar.',
   } as const;
@@ -170,19 +189,28 @@ export class JurisprudenciaVerificador {
     const repassar = () => controlador.abort();
     sinalExterno?.addEventListener('abort', repassar, { once: true });
     try {
-      const consulta = [tribunal.sigla, ref.numero, ref.descricao_tese].filter(Boolean).join(' ');
-      let achados: ResultadoBusca[];
-      try {
-        achados = await this.buscador.buscar(consulta, tribunal.dominios, controlador.signal);
-      } catch {
-        return naoVerificado(ref, tribunal.sigla, 'busca_indisponivel');
+      // Candidatos: 1) a URL oficial indicada pelo cliente; 2) busca, quando houver.
+      const candidatos: ResultadoBusca[] = [];
+      let buscaFalhou = false;
+      if (ref.url_fonte && hostOficial(ref.url_fonte, tribunal.dominios)) candidatos.push({ url: ref.url_fonte });
+      if (this.buscador.buscar && candidatos.length === 0) {
+        try {
+          const consulta = [tribunal.sigla, ref.numero, ref.descricao_tese].filter(Boolean).join(' ');
+          candidatos.push(...(await this.buscador.buscar(consulta, tribunal.dominios, controlador.signal)));
+        } catch {
+          buscaFalhou = true;
+        }
       }
       // Ordem de prioridade: domínios do tribunal primeiro; agregadores nunca entram.
-      const oficiais = achados
+      const oficiais = candidatos
         .map((item) => ({ item, host: hostOficial(item.url, tribunal.dominios) }))
         .filter((par): par is { item: ResultadoBusca; host: string } => par.host !== undefined)
         .sort((a, b) => prioridade(a.host, tribunal) - prioridade(b.host, tribunal))
         .slice(0, this.maxPaginas);
+      if (oficiais.length === 0) {
+        // Sem URL oficial utilizável e sem busca: não há o que conferir (não é "inexistente").
+        return naoVerificado(ref, tribunal.sigla, buscaFalhou || !this.buscador.buscar || ref.url_fonte ? 'busca_indisponivel' : 'precedente_nao_encontrado');
+      }
 
       let algumaFalhaDeAcesso = false;
       for (const { item, host } of oficiais) {
@@ -206,7 +234,7 @@ export class JurisprudenciaVerificador {
           };
         }
       }
-      return naoVerificado(ref, tribunal.sigla, algumaFalhaDeAcesso && oficiais.length > 0 ? 'busca_indisponivel' : 'precedente_nao_encontrado');
+      return naoVerificado(ref, tribunal.sigla, algumaFalhaDeAcesso ? 'busca_indisponivel' : 'precedente_nao_encontrado');
     } finally {
       clearTimeout(timer);
       sinalExterno?.removeEventListener('abort', repassar);
@@ -252,6 +280,26 @@ export function criarBuscadorHttp(config: {
     async obterTexto(url, sinal) {
       const resposta = await executar(url, { signal: sinal, redirect: 'error', headers: { accept: 'text/html,application/xhtml+xml,text/plain' } });
       if (!resposta.ok) throw new Error(`PAGINA_HTTP_${resposta.status}`);
+      const texto = (await resposta.text()).slice(0, maxBytes);
+      return texto.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, ' ');
+    },
+  };
+}
+
+/**
+ * Leitor padrão (sem serviço de busca): abre apenas páginas de domínio oficial, indicadas
+ * pelo cliente em `url_fonte`. Redirecionamentos são seguidos, mas a URL final é revalidada.
+ */
+export function criarLeitorHttp(config: { fetchImpl?: typeof fetch; maxBytesPagina?: number } = {}): BuscadorWeb {
+  const executar = config.fetchImpl ?? fetch;
+  const maxBytes = config.maxBytesPagina ?? 1_500_000;
+  return {
+    async obterTexto(url, sinal) {
+      const tribunal = tribunalPorUrl(url);
+      if (!tribunal || !hostOficial(url, tribunal.dominios)) throw new Error('DOMINIO_NAO_OFICIAL');
+      const resposta = await executar(url, { signal: sinal, headers: { accept: 'text/html,application/xhtml+xml,text/plain' } });
+      if (!resposta.ok) throw new Error(`PAGINA_HTTP_${resposta.status}`);
+      if (resposta.url && !hostOficial(resposta.url, tribunal.dominios)) throw new Error('REDIRECT_NAO_OFICIAL');
       const texto = (await resposta.text()).slice(0, maxBytes);
       return texto.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, ' ');
     },
