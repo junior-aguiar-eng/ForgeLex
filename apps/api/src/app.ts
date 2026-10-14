@@ -49,6 +49,7 @@ import {
 } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { EXTERNAL_MCP_TOOL_NAMES, McpHandler } from '@forgelex/mcp-server';
+import { ModuloAnalise, criarBuscadorHttp } from '@forgelex/analise-juridica';
 import { CaseLawSchema, type AuthenticatedPrincipal } from '@forgelex/domain';
 import { JurisprudenceSearchService } from '@forgelex/legal-data';
 import {
@@ -535,8 +536,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     return document ? toCaseLaw(document) : undefined;
   }, savedResearchEnabled), savedResearchEnabled ? savedResearchService : undefined) : [];
   for (const tool of presentationTools) toolRegistry.register(tool);
+  const analiseEnabled = environment.FORGELEX_ANALISE_ENABLED === 'true' && Boolean(databaseClient);
+  const analiseBuscaEndpoint = environment.FORGELEX_ANALISE_BUSCA_ENDPOINT;
+  const analiseModule = analiseEnabled
+    ? await ModuloAnalise.criar({
+        client: databaseClient!,
+        ledger: ledgerService,
+        registry: toolRegistry,
+        buscador: analiseBuscaEndpoint
+          ? criarBuscadorHttp({ endpointBusca: analiseBuscaEndpoint, tokenBusca: environment.FORGELEX_ANALISE_BUSCA_TOKEN })
+          : undefined,
+      })
+    : undefined;
   const mcpHandler = new McpHandler(toolRegistry, ledgerService, auditRecorder, {
-    exposedToolNames: [...EXTERNAL_MCP_TOOL_NAMES, ...presentationTools.map(tool => tool.name)],
+    exposedToolNames: [...EXTERNAL_MCP_TOOL_NAMES, ...presentationTools.map(tool => tool.name), ...(analiseModule ? ModuloAnalise.toolsExpostas : [])],
+    ...(analiseModule ? { toolModules: [analiseModule] } : {}),
     ...(mcpReaderEnabled ? { decisionUi: { readHtml: () => readMcpReaderHtml(environment.FORGELEX_WEB_ROOT) } } : {}),
     beforeToolCall: async (toolName) => {
       if (!jurisprudenceSearchService && toolName.startsWith('research.') && !isResearchPresentationTool(toolName)) {

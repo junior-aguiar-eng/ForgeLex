@@ -29,7 +29,20 @@ export interface JsonRpcResponse {
   };
 }
 
+/**
+ * Módulo de tools com roteamento, autenticação e cobrança próprios (ex.: o módulo
+ * analítico). O handler só delega; não conhece a lógica do módulo.
+ */
+export interface McpToolModule {
+  owns(toolName: string): boolean;
+  call(
+    request: JsonRpcRequest,
+    context: { tenantId?: string; userId?: string; idempotencyKey?: string; abortSignal?: AbortSignal },
+  ): Promise<JsonRpcResponse>;
+}
+
 export interface McpHandlerOptions {
+  toolModules?: readonly McpToolModule[];
   exposedToolNames?: readonly string[];
   beforeToolCall?: (toolName: string) => void | Promise<void>;
   decisionUi?: { readHtml: () => Promise<string> };
@@ -42,6 +55,7 @@ export class McpHandler {
   private readonly exposedToolNames?: ReadonlySet<string>;
   private readonly beforeToolCall?: (toolName: string) => void | Promise<void>;
   private readonly decisionUi?: McpHandlerOptions['decisionUi'];
+  private readonly toolModules: readonly McpToolModule[];
 
   constructor(
     toolRegistry: ToolRegistry,
@@ -55,6 +69,7 @@ export class McpHandler {
     this.exposedToolNames = options.exposedToolNames ? new Set(options.exposedToolNames) : undefined;
     this.beforeToolCall = options.beforeToolCall;
     this.decisionUi = options.decisionUi;
+    this.toolModules = options.toolModules ?? [];
   }
 
   public async handleRequest(
@@ -166,6 +181,16 @@ export class McpHandler {
             id,
             error: { code: -32601, message: `Method not found: ferramenta '${name}' não está disponível no pacote externo.` },
           };
+        }
+
+        const toolModule = this.toolModules.find((candidate) => candidate.owns(name));
+        if (toolModule) {
+          return toolModule.call(request, {
+            tenantId: context.tenantId,
+            userId: context.userId,
+            idempotencyKey: context.idempotencyKey,
+            abortSignal: context.abortSignal,
+          });
         }
 
         let billing;

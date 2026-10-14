@@ -78,6 +78,9 @@ importers:
       '@forgelex/agent-core':
         specifier: workspace:*
         version: link:../../packages/agent-core
+      '@forgelex/analise-juridica':
+        specifier: workspace:*
+        version: link:../../packages/analise-juridica
       '@forgelex/audit':
         specifier: workspace:*
         version: link:../../packages/audit
@@ -251,6 +254,31 @@ importers:
       '@forgelex/legal-tools':
         specifier: workspace:*
         version: link:../legal-tools
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/analise-juridica:
+    dependencies:
+      '@forgelex/agent-core':
+        specifier: workspace:*
+        version: link:../agent-core
+      '@forgelex/billing-ledger':
+        specifier: workspace:*
+        version: link:../billing-ledger
+      '@forgelex/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@forgelex/persistence':
+        specifier: workspace:*
+        version: link:../persistence
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      '@libsql/client':
+        specifier: ^0.14.0
+        version: 0.14.0
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
