@@ -36,6 +36,19 @@ describe('JurisprudenciaVerificador', () => {
     expect((await new JurisprudenciaVerificador({ buscador: naoAchou }).verificar({ tribunal: 'TST', numero: 'RR 123456' })).motivo).toBe('precedente_nao_encontrado');
   });
 
+  it('confirma pela url_fonte oficial, sem serviço de busca, e rejeita url de domínio não oficial', async () => {
+    const leitor: BuscadorWeb = {
+      obterTexto: async (url) => (url === 'https://scon.stj.jus.br/ok' ? 'Súmula 297 - O Código de Defesa do Consumidor é aplicável às instituições financeiras.' : ''),
+    };
+    const verificador = new JurisprudenciaVerificador({ buscador: leitor });
+    const ok = await verificador.verificar({ numero: 'Súmula 297', url_fonte: 'https://scon.stj.jus.br/ok' });
+    expect(ok).toMatchObject({ status_verificacao: 'confirmado_busca_externa', tribunal: 'STJ' });
+    const falso = await verificador.verificar({ tribunal: 'STJ', numero: 'Súmula 297', url_fonte: 'https://blog-juridico.com.br/sumula-297' });
+    expect(falso).toMatchObject({ status_verificacao: 'nao_verificado', motivo: 'busca_indisponivel' });
+    const outraPagina = await verificador.verificar({ tribunal: 'STJ', numero: 'Súmula 999', url_fonte: 'https://scon.stj.jus.br/ok' });
+    expect(outraPagina.motivo).toBe('precedente_nao_encontrado');
+  });
+
   it('não identifica tribunal quando a citação não permite', async () => {
     const resultado = await new JurisprudenciaVerificador({ buscador: buscador([]) }).verificar({ numero: 'Súmula 331' });
     expect(resultado.motivo).toBe('tribunal_nao_identificavel');
