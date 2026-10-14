@@ -130,6 +130,12 @@ commit, push, abertura de PR e integração em `main` das seis correções e da
 estabilização da suíte. Commit de implementação `b84fa8f` enviado ao remoto;
 entrega Git na [PR #74](https://github.com/junior-aguiar-eng/ForgeLex/pull/74).
 O estado da integração e os checks remotos ficam registrados na própria PR.
+O CI inicial aprovou validação, segurança e as três suítes E2E. O job PostgreSQL
+falhou duas vezes antes dos testes porque o espelho ECR respondeu
+`toomanyrequests: Data limit exceeded`. Os dois jobs que usam PostgreSQL 16
+passaram a buscar a mesma imagem oficial diretamente no Docker Hub, preservando
+configuração, health checks e todos os testes. A aprovação dessa alteração é
+verificada pela nova execução do workflow na PR.
 Não houve migration remota, deploy ou alteração de flag/conta nesta frente.
 Não foram realizadas consultas pagas a modelo ou tribunais nem homologação nos
 hosts reais. A aplicação de migrations foi apenas em bancos temporários de teste.
