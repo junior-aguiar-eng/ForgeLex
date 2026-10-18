@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import { persistenceMigrations } from '../packages/persistence/dist/index.js';
 import { ledgerMigrations } from '../packages/billing-ledger/dist/index.js';
+import { analiseMigrations } from '../packages/analise-juridica/dist/index.js';
 
 const url = process.env.DATABASE_URL;
 if (!url?.startsWith('postgres://') && !url?.startsWith('postgresql://')) {
@@ -9,7 +10,11 @@ if (!url?.startsWith('postgres://') && !url?.startsWith('postgresql://')) {
 }
 
 const sql = postgres(url, { max: 1, onnotice: () => undefined });
-const migrations = [...persistenceMigrations, ...ledgerMigrations];
+const migrations = [
+  ...persistenceMigrations,
+  ...ledgerMigrations,
+  ...(process.env.FORGELEX_ANALISE_ENABLED === 'true' ? analiseMigrations : []),
+];
 
 try {
   await sql`CREATE TABLE IF NOT EXISTS forgelex_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL)`;
@@ -17,7 +22,8 @@ try {
     const applied = await sql`SELECT id FROM forgelex_migrations WHERE id = ${migration.id}`;
     if (applied.length > 0) continue;
     await sql.begin(async (transaction) => {
-      for (const statement of [...migration.statements, ...(migration.postgresStatements ?? [])]) await transaction.unsafe(statement);
+      for (const statement of [...migration.statements, ...(migration.postgresStatements ?? [])])
+        await transaction.unsafe(statement);
       await transaction`INSERT INTO forgelex_migrations (id, applied_at) VALUES (${migration.id}, ${new Date().toISOString()})`;
     });
     console.log(`applied ${migration.id}`);

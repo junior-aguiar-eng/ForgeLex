@@ -1,7 +1,7 @@
 import { ToolRegistry } from '@forgelex/agent-core';
 import { DomainError, getErrorCode } from '@forgelex/domain';
 import type { LedgerService } from '@forgelex/billing-ledger';
-import type { Client } from '@forgelex/persistence';
+import { assertMigrationsApplied, type Client } from '@forgelex/persistence';
 import { CobrancaAnalise, type InfoCobranca } from './cobranca.js';
 import { NOMES_TOOLS, NOMES_TOOLS_EXPOSTAS, PREFIXO_TOOLS } from './contratos.js';
 import { EstadoAnalitico } from './estado.js';
@@ -11,7 +11,7 @@ import {
   criarLeitorHttp,
   type BuscadorWeb,
 } from './jurisprudencia-verificar.js';
-import { executarMigrationsAnalise } from './migrations.js';
+import { analiseMigrations, executarMigrationsAnalise } from './migrations.js';
 import { ehToolAnalitica } from './precos.js';
 import { INSTRUCAO_DISCRICAO, ORIENTACAO_ERRO, montarApresentacao } from './apresentacao.js';
 import { criarToolAvaliarProva } from './tools/avaliar-prova.js';
@@ -48,6 +48,7 @@ export interface OpcoesModuloAnalise {
   /** Registro compartilhado do servidor: as tools do módulo são registradas nele para listagem. */
   registry: ToolRegistry;
   buscador?: BuscadorWeb;
+  migrationMode?: 'apply' | 'verify';
 }
 
 /**
@@ -63,7 +64,11 @@ export class ModuloAnalise {
   ) {}
 
   public static async criar(opcoes: OpcoesModuloAnalise): Promise<ModuloAnalise> {
-    await executarMigrationsAnalise(opcoes.client);
+    if (opcoes.migrationMode === 'verify') {
+      await assertMigrationsApplied(opcoes.client, analiseMigrations);
+    } else {
+      await executarMigrationsAnalise(opcoes.client);
+    }
     const estado = new EstadoAnalitico(opcoes.client);
     const verificador = new JurisprudenciaVerificador({ buscador: opcoes.buscador ?? criarLeitorHttp() });
     const deps: DepsAnalise = { estado, verificador };

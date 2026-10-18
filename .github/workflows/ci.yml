@@ -87,6 +87,14 @@ jobs:
       - run: pnpm exec vitest run packages/persistence/src/repositories/jurisprudence-repository.test.ts
       - name: Saved research capacity and isolation (local PostgreSQL)
         run: pnpm exec vitest run packages/persistence/src/repositories/saved-research-postgres.test.ts --maxWorkers=1
+      - name: Create isolated analytical test database
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'CREATE DATABASE forgelex_analise_review'
+      - name: Analytical billing, interruptions, migrations and account purge (isolated PostgreSQL)
+        env:
+          FORGELEX_ANALISE_TEST_POSTGRES_URL: postgres://forgelex:forgelex@127.0.0.1:55432/forgelex_analise_review
+        run: |
+          pnpm exec vitest run packages/analise-juridica/src/cobranca.test.ts --maxWorkers=1 --testTimeout=15000
+          node scripts/smoke-analise-postgres.mjs
 
   e2e-product:
     runs-on: ubuntu-latest

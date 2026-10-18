@@ -1,5 +1,22 @@
 # Auditoria e status canônico do ForgeLex
 
+## Camada analítica — preparação local para publicação (18/10/2026)
+
+Base `3657a63`, worktree isolado `analise-publication-readiness/SDK`.
+Controle `apply`/`verify` propagado pela API, migrations analíticas opcionais no
+comando explícito, CI PostgreSQL em banco dedicado e procedimento de
+reconciliação manual. Testes de interrupção conservam a proteção contra nova
+execução/cobrança. Evidências, comandos e limites no
+[registro desta preparação](docs/operations/stabilization/2026-10-18-analise-publication-readiness.md).
+
+`pnpm test`: saída zero, 923 aprovados e 18 ignorados. Build, lint e tipos
+aprovados. PostgreSQL 18.6 temporário: dez testes de cobrança/interrupção e
+smoke de migrations/expurgo aprovados. CI configurada com PostgreSQL 16;
+o novo workflow ainda não foi executado remotamente. Nenhum skip foi adicionado.
+
+Não houve commit, push, integração, migration remota, deploy, ativação ou ensaio
+faturável nesta entrega. Os registros seguintes conservam o escopo de suas datas.
+
 ## Camada analítica — correções e estabilização (14/10/2026)
 
 Branch `codex/fix-analise-six-issues` sobre `a3af1f6`, em worktree isolado.

@@ -43,6 +43,9 @@ Comprovações humanas, dependências externas e manutenção estão no backlog 
 
 ## Operação e evidências
 
+- [Preparação local da camada analítica](operations/stabilization/2026-10-18-analise-publication-readiness.md): controle de migrations, CI PostgreSQL e validações; sem publicação.
+- [Reconciliação de operações analíticas](operations/analise-reconciliation.md): contenção, inspeção somente leitura e decisão de Boni por cenário; sem reparo automático.
+
 | Documento | Finalidade | Natureza |
 | --- | --- | --- |
 | [Braces e STJ reavaliados](operations/stabilization/2026-10-10-external-pending-review.md) | Controles locais e consulta às fontes após aprovação fiscal | 51 testes aprovados; correções upstream continuam abertas |

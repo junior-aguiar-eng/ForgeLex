@@ -543,6 +543,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         client: databaseClient!,
         ledger: ledgerService,
         registry: toolRegistry,
+        migrationMode: autoMigrate ? 'apply' : 'verify',
         buscador: analiseBuscaEndpoint
           ? criarBuscadorHttp({ endpointBusca: analiseBuscaEndpoint, tokenBusca: environment.FORGELEX_ANALISE_BUSCA_TOKEN })
           : undefined,
