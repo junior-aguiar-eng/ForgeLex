@@ -26,10 +26,14 @@ isolado a correção do controle de migrations, a regressão PostgreSQL na CI e 
 O [registro local](docs/operations/stabilization/2026-10-18-analise-publication-readiness.md)
 separa implementação e validações de publicação.
 
-Permanecem para uma etapa autorizada própria: commit/push/integração e CI remota
-dessas mudanças; backup e migrations produtivas; deploy, ativação e homologação
-da candidata antes da promoção. Nenhuma dessas operações remotas foi executada
-nesta preparação. Operações interrompidas permanecem bloqueadas até a decisão
+Commit, push, PR e integração condicionada aos checks foram autorizados por Boni
+em 18/10. Implementação `dd87fc3`, enviada na
+[PR #75](https://github.com/junior-aguiar-eng/ForgeLex/pull/75); a própria PR
+registra os checks e o estado de integração.
+Permanecem para uma etapa autorizada própria: backup e migrations produtivas;
+deploy, ativação e homologação da candidata antes da promoção. Nenhuma dessas
+operações de produção foi executada nesta preparação.
+Operações interrompidas permanecem bloqueadas até a decisão
 de reconciliação; não foi adicionada recuperação automática de saldo ou direitos.
 
 ## Correções encerradas

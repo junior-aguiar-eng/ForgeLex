@@ -20,7 +20,11 @@ A [reconciliação operacional](docs/operations/analise-reconciliation.md) foi
 definida com diagnóstico somente leitura e decisão de Boni por cenário;
 não implementa reparo de saldo/direitos nem retomada automática.
 Ver [validação e limites](docs/operations/stabilization/2026-10-18-analise-publication-readiness.md).
-Entrega local: não houve commit, push, integração, migration remota, deploy ou
+Validação local concluída: 923 testes aprovados e 18 ignorados; build, lint,
+tipos e ensaios PostgreSQL aprovados. Boni autorizou commit, push, PR e
+integração condicionada a todos os checks aprovados em 18/10. Implementação
+`dd87fc3`, enviada na [PR #75](https://github.com/junior-aguiar-eng/ForgeLex/pull/75),
+que registra CI remota e estado de integração. Sem migration remota, deploy ou
 ativação. O estado publicado da seção seguinte permanece evidência histórica.
 
 ## Camada analítica — correções e estabilização de 14/10

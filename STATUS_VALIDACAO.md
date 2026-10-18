@@ -12,10 +12,14 @@ execução/cobrança. Evidências, comandos e limites no
 `pnpm test`: saída zero, 923 aprovados e 18 ignorados. Build, lint e tipos
 aprovados. PostgreSQL 18.6 temporário: dez testes de cobrança/interrupção e
 smoke de migrations/expurgo aprovados. CI configurada com PostgreSQL 16;
-o novo workflow ainda não foi executado remotamente. Nenhum skip foi adicionado.
+o resultado remoto fica registrado na PR abaixo. Nenhum skip foi adicionado.
 
-Não houve commit, push, integração, migration remota, deploy, ativação ou ensaio
-faturável nesta entrega. Os registros seguintes conservam o escopo de suas datas.
+Boni autorizou commit, push, PR e integração em main condicionada à aprovação
+de todos os checks em 18/10. Implementação `dd87fc3`, enviada na
+[PR #75](https://github.com/junior-aguiar-eng/ForgeLex/pull/75), que registra
+o resultado remoto e a integração. Não houve migration remota, deploy,
+ativação ou ensaio faturável nesta entrega. Os registros seguintes conservam
+o escopo de suas datas.
 
 ## Camada analítica — correções e estabilização (14/10/2026)
 

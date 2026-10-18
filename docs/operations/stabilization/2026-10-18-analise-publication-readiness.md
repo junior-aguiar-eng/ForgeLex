@@ -83,3 +83,12 @@ schema produtivo, candidata com `FORGELEX_AUTO_MIGRATE=false`, homologação e
 promoção. Operações interrompidas com resultado incerto continuam bloqueadas
 até decisão de reconciliação; este roteiro não simula recuperação de operação
 real nem qualifica juridicamente resultados ou preços do novo produto.
+
+## Etapa Git autorizada após a preparação
+
+Boni autorizou em 18/10 commit, push, abertura de PR e integração em main
+somente depois de todos os checks aprovados. Implementação `dd87fc3`, enviada
+na [PR #75](https://github.com/junior-aguiar-eng/ForgeLex/pull/75), que conserva
+o resultado da CI remota no último commit e o estado da integração.
+As limitações da preparação local acima são históricas; a etapa Git não
+autoriza nem executa migration remota, deploy, ativação ou operação financeira.
