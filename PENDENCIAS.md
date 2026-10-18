@@ -1,12 +1,14 @@
 # Pendências atuais do ForgeLex
 
-Atualizado em 12/10/2026 (ensaios reais do leitor e da coleção; priorização
-humana/fiscal/contratual e consulta externa de 10/10 mantidas). Backlog vigente; checkboxes de planos antigos
+Atualizado em 18/10/2026 (preparação local da camada analítica; ensaios do leitor
+e da coleção de 12/10, priorização humana/fiscal/contratual e consulta externa
+de 10/10 mantidas). Backlog vigente; checkboxes de planos antigos
 registram aquela entrega e não devem ser importados como tarefas novas.
 [Produto e publicações](CONTINUIDADE.md) · [Evidências](STATUS_VALIDACAO.md).
 
-Não há correção necessária executável comprovada ainda aberta no recorte
-revalidado. A PR #61 foi integrada, e a migration de pesquisa foi aplicada
+O recorte de correções revalidado em 09–10/10 foi encerrado. A preparação
+analítica posterior está discriminada abaixo. A PR #61 foi integrada, e a
+migration de pesquisa foi aplicada
 ao banco publicado. Isso não declara ausência universal de defeitos, cobertura
 integral da fonte, certificação jurídica/fiscal ou desempenho sob qualquer carga.
 
@@ -15,6 +17,24 @@ A revisão documental foi integrada em main pela PR #63, no commit
 `105cf77a3962a1ff09dfdcfa4528eb235f52bbe6`. A limpeza local e a
 preservação das branches históricas estão
 no [registro de manutenção](docs/operations/stabilization/2026-10-10-documentation-repository-hygiene.md).
+
+## Camada analítica — preparação local para publicação
+
+A PR #74 está integrada em main `3657a63`. Em 18/10, foi preparada em worktree
+isolado a correção do controle de migrations, a regressão PostgreSQL na CI e o
+[roteiro de reconciliação](docs/operations/analise-reconciliation.md).
+O [registro local](docs/operations/stabilization/2026-10-18-analise-publication-readiness.md)
+separa implementação e validações de publicação.
+
+Commit, push, PR e integração condicionada aos checks foram autorizados por Boni
+em 18/10. Implementação `dd87fc3`, enviada na
+[PR #75](https://github.com/junior-aguiar-eng/ForgeLex/pull/75); a própria PR
+registra os checks e o estado de integração.
+Permanecem para uma etapa autorizada própria: backup e migrations produtivas;
+deploy, ativação e homologação da candidata antes da promoção. Nenhuma dessas
+operações de produção foi executada nesta preparação.
+Operações interrompidas permanecem bloqueadas até a decisão
+de reconciliação; não foi adicionada recuperação automática de saldo ou direitos.
 
 ## Correções encerradas
 

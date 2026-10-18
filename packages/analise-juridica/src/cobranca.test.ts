@@ -252,3 +252,100 @@ it('replay legado de combo sem fingerprint nunca retorna dados privados', async 
   expect(replay.result).toBeUndefined();
   expect(replay.error).toBeDefined();
 });
+
+function interruptAfterResult(keepRunning: boolean) {
+  return new Proxy(connection.client, {
+    get(target, property) {
+      if (property === 'execute') {
+        return async (statement: Parameters<typeof target.execute>[0]) => {
+          const sql = typeof statement === 'string' ? statement : statement.sql;
+          if (
+            sql.startsWith("UPDATE analise_operacoes SET status = 'COMPLETED'") ||
+            (keepRunning && sql.startsWith("UPDATE analise_operacoes SET status = 'FAILED'"))
+          )
+            throw new Error('simulated interruption after result');
+          return target.execute(statement);
+        };
+      }
+      const value = Reflect.get(target, property);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}
+
+it.each(['RUNNING', 'FAILED'] as const)(
+  'reinício conserva %s bloqueado depois de liquidar no ledger, sem executar ou debitar novamente',
+  async (status) => {
+    let executions = 0;
+    const params = {
+      ...owner,
+      idempotencyKey: 'settled-without-envelope',
+      tool: NOMES_TOOLS.pecaAnalisar,
+      sessaoId: 'nova',
+      argumentos: { documento: 'synthetic' },
+      operation: async () => {
+        executions++;
+        return { original: true };
+      },
+    };
+    const interrupted = new CobrancaAnalise(interruptAfterResult(status === 'RUNNING'), ledger);
+    await expect(interrupted.executar(params)).rejects.toThrow('simulated interruption');
+    await connection.client.execute({
+      sql: "UPDATE analise_operacoes SET atualizado_em = '2000-01-01T00:00:00.000Z' WHERE tenant_id = ? AND idempotency_key = ?",
+      args: [owner.tenantId, params.idempotencyKey],
+    });
+    const balance = await ledger.getAvailableBalanceCents(owner.tenantId);
+    expect(balance).toBe(9913); // 75 pela ferramenta + 12 pela triagem.
+    const successor = new CobrancaAnalise(connection.client, ledger);
+    await expect(successor.executar(params)).rejects.toMatchObject({
+      details: { code: status === 'RUNNING' ? 'ANALISE_EM_ANDAMENTO' : 'ANALISE_RECONCILIACAO' },
+    });
+    expect(executions).toBe(1);
+    expect(await ledger.getAvailableBalanceCents(owner.tenantId)).toBe(balance);
+    expect(await ledger.getUsageEvents(owner.tenantId)).toHaveLength(1);
+    const state = await connection.client.execute({
+      sql: 'SELECT a.status, a.resultado, b.status AS ledger_status, b.result_snapshot FROM analise_operacoes a JOIN billing_operations b ON b.tenant_id = a.tenant_id AND b.idempotency_key = a.idempotency_key WHERE a.tenant_id = ? AND a.idempotency_key = ?',
+      args: [owner.tenantId, params.idempotencyKey],
+    });
+    expect(state.rows[0]).toMatchObject({ status, resultado: null, ledger_status: 'COMPLETED' });
+    expect(state.rows[0]!.result_snapshot).toBeTruthy();
+  },
+);
+
+it('interrupção após consumir combo conserva o direito consumido e bloqueia repetição sem cobrar avulso', async () => {
+  const sessionId = await combo();
+  const balance = await ledger.getAvailableBalanceCents(owner.tenantId);
+  let executions = 0;
+  const params = {
+    ...owner,
+    idempotencyKey: 'combo-without-envelope',
+    tool: NOMES_TOOLS.pecaAnalisar,
+    sessaoId: sessionId,
+    argumentos: { sessionId },
+    operation: async () => {
+      executions++;
+      return { original: true };
+    },
+  };
+  const interrupted = new CobrancaAnalise(interruptAfterResult(false), ledger);
+  await expect(interrupted.executar(params)).rejects.toThrow('simulated interruption');
+  const rights = await connection.client.execute({
+    sql: 'SELECT tools_restantes FROM analise_combos WHERE tenant_id = ? AND sessao_analitica_id = ?',
+    args: [owner.tenantId, sessionId],
+  });
+  expect(JSON.parse(String(rights.rows[0]!.tools_restantes))).toEqual([
+    NOMES_TOOLS.mapearTeses,
+    NOMES_TOOLS.estrategiaDefinir,
+  ]);
+  await expect(new CobrancaAnalise(connection.client, ledger).executar(params)).rejects.toMatchObject({
+    details: { code: 'ANALISE_RECONCILIACAO' },
+  });
+  expect(executions).toBe(1);
+  expect(await ledger.getAvailableBalanceCents(owner.tenantId)).toBe(balance);
+  expect(await ledger.getUsageEvents(owner.tenantId)).toHaveLength(2); // análise inicial e compra do combo.
+  const after = await connection.client.execute({
+    sql: 'SELECT tools_restantes FROM analise_combos WHERE tenant_id = ? AND sessao_analitica_id = ?',
+    args: [owner.tenantId, sessionId],
+  });
+  expect(after.rows).toEqual(rights.rows);
+});

@@ -1,11 +1,31 @@
 # ForgeLex — onde estamos e como continuar
 
-Atualizado em 14/10/2026. Este resumo orienta a próxima sessão; o histórico de
+Atualizado em 18/10/2026. Este resumo orienta a próxima sessão; o histórico de
 validações e publicações permanece em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
 
 Boni é o único avaliador e aprovador humano do projeto, por decisão expressa
 de 10/10/2026. Nenhuma frente depende de segundo revisor ou parecer de terceiro;
 aplica-se [AGENTS.md](AGENTS.md), inclusive sobre exigências de planos antigos.
+
+## Preparação da camada analítica — trabalho local de 18/10
+
+Worktree isolado `analise-publication-readiness/SDK`, base `3657a63` (main após
+PR #74). O checkout original e seus 47 arquivos locais foram preservados.
+O módulo agora respeita `apply`/`verify`; a API produtiva verifica o schema quando
+auto-migrate está desligado. O comando explícito de migration inclui o schema
+analítico somente com `FORGELEX_ANALISE_ENABLED=true`. A CI passa a exercitar
+cobrança/interrupções e migration/expurgo no banco PostgreSQL dedicado.
+
+A [reconciliação operacional](docs/operations/analise-reconciliation.md) foi
+definida com diagnóstico somente leitura e decisão de Boni por cenário;
+não implementa reparo de saldo/direitos nem retomada automática.
+Ver [validação e limites](docs/operations/stabilization/2026-10-18-analise-publication-readiness.md).
+Validação local concluída: 923 testes aprovados e 18 ignorados; build, lint,
+tipos e ensaios PostgreSQL aprovados. Boni autorizou commit, push, PR e
+integração condicionada a todos os checks aprovados em 18/10. Implementação
+`dd87fc3`, enviada na [PR #75](https://github.com/junior-aguiar-eng/ForgeLex/pull/75),
+que registra CI remota e estado de integração. Sem migration remota, deploy ou
+ativação. O estado publicado da seção seguinte permanece evidência histórica.
 
 ## Camada analítica — correções e estabilização de 14/10
 

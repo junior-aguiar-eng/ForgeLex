@@ -12,6 +12,26 @@ MCP), saldo/débito (`LedgerService`) e o transporte MCP.
 | `FORGELEX_ANALISE_BUSCA_ENDPOINT` | **Opcional.** Serviço de busca web do servidor (`GET ?q=` → `{ "results": [{ "url", "titulo", "trecho" }] }`), usado só quando o cliente não envia `url_fonte`. |
 | `FORGELEX_ANALISE_BUSCA_TOKEN`    | Bearer opcional do endpoint acima.                                                                                                                              |
 
+### Preparação do schema
+
+O módulo segue o mesmo controle de migrations da API: em produção, com
+`FORGELEX_AUTO_MIGRATE=false` (ou ausente), apenas verifica as duas migrations
+analíticas e recusa a inicialização com `MIGRATIONS_PENDING` se faltar alguma.
+Desenvolvimento/teste e `FORGELEX_AUTO_MIGRATE=true` permitem aplicação; não
+habilitar essa exceção no runtime produtivo para contornar o gate.
+
+O comando explícito `pnpm db:migrate` inclui `analise-0001-initial` e
+`analise-0002-operation-idempotency` somente quando o processo de migration
+recebe `FORGELEX_ANALISE_ENABLED=true`. Sem essa opção, o produto atual não
+passa a exigir nem instalar o módulo. Repetir o comando conserva o journal.
+
+Para uma publicação futura: aprovar e conferir backup, executar a migration
+separadamente com a opção acima e conferir seu journal; só depois publicar uma
+candidata com análise habilitada e `FORGELEX_AUTO_MIGRATE=false`. Validar na
+candidata o catálogo, isolamento, idempotência, cobrança e encerramento de conta
+antes de promover tráfego. Instalação do schema não autoriza deploy, ativação,
+cobrança ou concessão de acesso. Esta preparação não executa essas ações remotas.
+
 ## Jurisprudência: descoberta no cliente, confirmação no servidor
 
 A busca por tema (ex.: "cobrança indevida" na área já triada) é feita pelo LLM do cliente, com
@@ -76,6 +96,13 @@ automática após reinício. Não mudar a chave automaticamente para contornar e
 estado. Snapshots legados de combo sem fingerprint não são devolvidos, e as
 operações antigas do ledger conservam suas cobranças sem replay não verificável.
 
+O [roteiro de reconciliação](../operations/analise-reconciliation.md) define
+contenção, consultas somente leitura, decisão por cenário e recibo restrito.
+Resultado liquidado no ledger sem envelope analítico não libera nova cobrança;
+interrupção após consumo de combo não libera restauração presumida de direitos.
+A intervenção específica e a avaliação cabem a Boni. Não há comando genérico
+de reparo ou retomada automática nesta entrega.
+
 ## Verificação PostgreSQL local
 
 Após `pnpm build`, os testes de cobrança podem usar
@@ -88,7 +115,12 @@ node scripts/smoke-analise-postgres.mjs
 ```
 
 Esses ensaios criam e removem dados sintéticos no banco de teste. O smoke verifica
-resíduos, expurgo, isolamento do outro tenant e instalação sem o módulo.
+o comando real de migration com e sem opção de análise, idempotência do journal,
+inicialização `verify` em transação somente leitura, resíduos, expurgo, isolamento
+do outro tenant e instalação sem o módulo. Os testes de cobrança incluem
+interrupções após liquidação e consumo de combo. A CI cria o banco dedicado
+`forgelex_analise_review` separado de `forgelex` e executa ambos os comandos
+sequencialmente, sem compartilhar tabelas com as outras regressões PostgreSQL.
 
 ## Preços iniciais (centavos; a calibrar)
 

@@ -17,7 +17,7 @@ function fontes(dir: string): string[] {
 const PERMITIDO: Record<string, readonly string[]> = {
   '@forgelex/agent-core': ['ToolRegistry', 'AgentTool', 'ToolExecutionContext'],
   '@forgelex/domain': ['DomainError', 'getErrorCode'],
-  '@forgelex/persistence': ['runMigrations', 'SqlMigration', 'Client'],
+  '@forgelex/persistence': ['runMigrations', 'assertMigrationsApplied', 'SqlMigration', 'Client'],
   '@forgelex/billing-ledger': ['LedgerService', 'encodeResultSnapshot', 'decodeResultSnapshot'],
 };
 
