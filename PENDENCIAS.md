@@ -1,6 +1,6 @@
 # Pendências atuais do ForgeLex
 
-Atualizado em 18/10/2026 (preparação local da camada analítica; ensaios do leitor
+Atualizado em 20/10/2026 (publicação da camada analítica; ensaios do leitor
 e da coleção de 12/10, priorização humana/fiscal/contratual e consulta externa
 de 10/10 mantidas). Backlog vigente; checkboxes de planos antigos
 registram aquela entrega e não devem ser importados como tarefas novas.
@@ -18,7 +18,7 @@ A revisão documental foi integrada em main pela PR #63, no commit
 preservação das branches históricas estão
 no [registro de manutenção](docs/operations/stabilization/2026-10-10-documentation-repository-hygiene.md).
 
-## Camada analítica — preparação local para publicação
+## Camada analítica — publicação técnica concluída
 
 A PR #74 está integrada em main `3657a63`. Em 18/10, foi preparada em worktree
 isolado a correção do controle de migrations, a regressão PostgreSQL na CI e o
@@ -30,9 +30,12 @@ Commit, push, PR e integração condicionada aos checks foram autorizados por Bo
 em 18/10. Implementação `dd87fc3`, enviada na
 [PR #75](https://github.com/junior-aguiar-eng/ForgeLex/pull/75); a própria PR
 registra os checks e o estado de integração.
-Permanecem para uma etapa autorizada própria: backup e migrations produtivas;
-deploy, ativação e homologação da candidata antes da promoção. Nenhuma dessas
-operações de produção foi executada nesta preparação.
+Após autorização expressa de Boni, backup, migrations produtivas, deploy e
+validação da candidata antes da promoção foram executados em 18/10.
+A revisão `forgelex-api-prod-analise-cabf504` atende 100% do tráfego;
+[evidências e conferência de 20/10](docs/operations/stabilization/2026-10-18-analise-publication.md).
+Permanece a homologação da camada analítica nos hosts reais ChatGPT/Claude
+e a avaliação jurídica por Boni, fora do alcance dos ensaios sintéticos.
 Operações interrompidas permanecem bloqueadas até a decisão
 de reconciliação; não foi adicionada recuperação automática de saldo ou direitos.
 

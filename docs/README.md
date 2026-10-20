@@ -2,7 +2,7 @@
 
 ## Estado atual
 
-Referência documental: 10/10/2026. Começar por
+Referência documental: 20/10/2026. Começar por
 [CONTINUIDADE.md](../CONTINUIDADE.md) e [PENDENCIAS.md](../PENDENCIAS.md).
 
 Governança: [Boni é o único avaliador e aprovador humano](../AGENTS.md).
@@ -43,6 +43,7 @@ Comprovações humanas, dependências externas e manutenção estão no backlog 
 
 ## Operação e evidências
 
+- [Publicação da camada analítica](operations/stabilization/2026-10-18-analise-publication.md): backup, migrations, candidata, promoção e conferência final em 20/10.
 - [Preparação local da camada analítica](operations/stabilization/2026-10-18-analise-publication-readiness.md): controle de migrations, CI PostgreSQL e validações; sem publicação.
 - [Reconciliação de operações analíticas](operations/analise-reconciliation.md): contenção, inspeção somente leitura e decisão de Boni por cenário; sem reparo automático.
 

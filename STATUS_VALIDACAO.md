@@ -1,5 +1,25 @@
 # Auditoria e status canônico do ForgeLex
 
+## Camada analítica — publicação (18/10), conferência final (20/10/2026)
+
+PR #75 integrada em `cabf504040833ffd1af3f134761b0cb9f6eb6e32`; seis jobs
+aprovados na PR e em main. Build `63bd9baf-2c4b-4734-81b6-e4a4f7506572`
+concluído; imagem `sha256:c9d7e344f8db9d326f4348902ce033c9f774d7c2ca58702ede36f63b6c85202c`.
+Backup manual `1792347340554` SUCCESSFUL antes das duas migrations analíticas;
+40 migrations no banco produtivo, sem aplicação automática no startup.
+
+Candidata e revisão comercial passaram por 13 checks autenticados cada,
+incluindo isolamento, cobrança promocional, replay e combo. Conteúdo privado
+sintético expurgado, chaves removidas e perfis desabilitados; recibos financeiros
+sintéticos conservados. Nenhuma compra ou cobrança de dinheiro real realizada.
+Worker privado atualizado para expurgar as tabelas analíticas, com IAM preservado.
+Promoção pública em 18/10 às 18:45:23 UTC; 100% do tráfego confirmado em 20/10.
+Seis probes públicos aprovados novamente, assets idênticos à candidata.
+
+[Recibo, evidência estruturada e limites](docs/operations/stabilization/2026-10-18-analise-publication.md).
+Ensaios técnicos por API key não homologam a camada analítica dentro dos hosts
+ChatGPT/Claude nem a qualidade jurídica dos resultados.
+
 ## Camada analítica — preparação local para publicação (18/10/2026)
 
 Base `3657a63`, worktree isolado `analise-publication-readiness/SDK`.
