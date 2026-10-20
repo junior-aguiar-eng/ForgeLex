@@ -97,3 +97,22 @@ Nenhum rollback foi executado. Uma eventual volta de tráfego não deve reverter
 schema; a imagem anterior conserva a compatibilidade analítica já validada.
 O runbook de [reconciliação analítica](../analise-reconciliation.md) permanece
 vigente, sem retomada ou reparo automático de operações interrompidas.
+
+## Complemento da entrega Git — 20/10/2026
+
+A CI inicial da PR #77 reprovou o audit de dependências por novos alertas
+`GHSA-22jm-h49p-29qw` e `GHSA-6prh-2h8m-c8cw` nos SDKs MCP. Boni autorizou
+corrigir as dependências e revalidar na mesma PR, sem novo deploy.
+O SDK passou de 1.31.0 para 1.32.0 e o client de 2.2.0 para 2.3.0,
+com seu core transitivo correspondente. O audit completo também identificou
+`GHSA-698v-4r3x-3vcv` no Vite: frontend 6.4.3 → 6.4.4 e testes
+7.3.6 → 7.3.7, preservando as versões principais e as demais resoluções.
+
+Instalação com lockfile congelado aprovada. Audit de produção sem alertas
+conhecidos; audit completo sem alertas acionáveis, mantendo a exceção de braces
+e sua mitigação local. Não foram afrouxados os gates ou descartados advisories.
+Build local e 65 testes dos adapters Anthropic/OpenAI, MCP e gate de segurança
+aprovados em sete arquivos. A suíte completa e os E2E são gates da CI da PR.
+Essas atualizações destinam-se aos próximos builds. A imagem publicada e o
+recibo operacional acima permanecem os mesmos; nenhum deploy ou migration
+foi executado nesta entrega Git.
