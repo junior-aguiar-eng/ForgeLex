@@ -141,3 +141,18 @@ Em incidente, conter por controles em imagem compatível com as novas tabelas,
 preservando journal e dados. Reverter para imagem anterior sem o novo expurgo
 pode deixar dados analíticos fora do encerramento; não é rollback completo.
 Não foram revertidas migrations, restaurados backups ou executados reparos.
+
+## Complemento da entrega Git — 20/10/2026
+
+Na CI inicial da PR documental, `pnpm audit --prod --audit-level moderate`
+reprovou o Hono transitivo `4.13.8` por `GHSA-5r4p-p66f-jhc7` (decodificação
+duplicada em `serveStatic`). Boni autorizou atualizar essa dependência na mesma
+PR. O override direcionado e o lockfile passaram a resolver Hono `4.13.11`;
+o audit de produção local passou sem vulnerabilidades conhecidas.
+Instalação com lockfile congelado, build e suíte geral local aprovados:
+923 testes passaram, 18 foram ignorados (sem novos skips); o gate de segurança
+teve 30 testes aprovados. Audit completo sem alertas acionáveis novos,
+conservando somente o alerta de `braces` coberto pela mitigação existente.
+Esse complemento altera a resolução de dependências para builds futuros.
+A imagem produtiva e o recibo operacional anterior não foram substituídos;
+não houve novo deploy ou migration nesta entrega Git.
