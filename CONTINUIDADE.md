@@ -1,13 +1,29 @@
 # ForgeLex — onde estamos e como continuar
 
-Atualizado em 18/10/2026. Este resumo orienta a próxima sessão; o histórico de
+Atualizado em 20/10/2026. Este resumo orienta a próxima sessão; o histórico de
 validações e publicações permanece em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
 
 Boni é o único avaliador e aprovador humano do projeto, por decisão expressa
 de 10/10/2026. Nenhuma frente depende de segundo revisor ou parecer de terceiro;
 aplica-se [AGENTS.md](AGENTS.md), inclusive sobre exigências de planos antigos.
 
-## Preparação da camada analítica — trabalho local de 18/10
+## Camada analítica — publicada em 18/10, conferida em 20/10
+
+PR #75 integrada em `cabf504040833ffd1af3f134761b0cb9f6eb6e32`, com seis
+checks aprovados na PR e em main. Backup manual `1792347340554` concluído
+antes das duas migrations analíticas; o banco produtivo passou de 38 para
+40 migrations. Startup permanece em verificação, com auto-migrate desligado.
+
+Candidata e revisão comercial passaram por ensaios autenticados com dados
+sintéticos antes da promoção. `forgelex-api-prod-analise-cabf504` atende 100%
+do tráfego desde 18/10, com análise e cobrança habilitadas. O worker privado
+de encerramento também foi atualizado para conservar o expurgo das novas
+tabelas. A conferência de 20/10 e a limpeza operacional estão no
+[recibo da publicação](docs/operations/stabilization/2026-10-18-analise-publication.md).
+O ensaio técnico não substitui homologação da camada analítica nos hosts
+ChatGPT/Claude nem avaliação jurídica de resultados por Boni.
+
+## Preparação da camada analítica — registro anterior à publicação
 
 Worktree isolado `analise-publication-readiness/SDK`, base `3657a63` (main após
 PR #74). O checkout original e seus 47 arquivos locais foram preservados.
@@ -24,8 +40,8 @@ Validação local concluída: 923 testes aprovados e 18 ignorados; build, lint,
 tipos e ensaios PostgreSQL aprovados. Boni autorizou commit, push, PR e
 integração condicionada a todos os checks aprovados em 18/10. Implementação
 `dd87fc3`, enviada na [PR #75](https://github.com/junior-aguiar-eng/ForgeLex/pull/75),
-que registra CI remota e estado de integração. Sem migration remota, deploy ou
-ativação. O estado publicado da seção seguinte permanece evidência histórica.
+que registra CI remota e estado de integração. Esta preparação não incluiu
+operações remotas; a publicação posterior está registrada acima.
 
 ## Camada analítica — correções e estabilização de 14/10
 

@@ -1,0 +1,1155 @@
+{
+  "startedAt": "2026-10-18T18:17:51.470Z",
+  "sourceSha": "cabf504040833ffd1af3f134761b0cb9f6eb6e32",
+  "pr": 75,
+  "mainCi": {
+    "run": 39152216618,
+    "conclusion": "success"
+  },
+  "actions": [],
+  "before": {
+    "checkedAt": "2026-10-18T18:18:09.648Z",
+    "revision": "forgelex-api-prod-saved-5be473d0",
+    "digest": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:61a12a3fba72bc726cb15d61455d8db45e43fa0238dafcd8052c212a2a2b13d1",
+    "traffic": [
+      {
+        "percent": 100,
+        "revisionName": "forgelex-api-prod-saved-5be473d0"
+      }
+    ],
+    "ingress": "internal-and-cloud-load-balancing",
+    "secretReferences": 15
+  },
+  "databaseBefore": {
+    "checkedAt": "2026-10-18T18:18:09.649Z",
+    "identity": {
+      "database": "forgelex",
+      "version": "PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit",
+      "read_only": "on"
+    },
+    "migrationCount": 38,
+    "missing": [
+      "analise-0001-initial",
+      "analise-0002-operation-idempotency"
+    ],
+    "tables": [],
+    "activeIngestionConnections": 0,
+    "mutationStatements": 0
+  },
+  "proxy": {
+    "version": "2.26.2",
+    "listenAddress": "127.0.0.1",
+    "port": 55439,
+    "resumeStopConfirmedAt": "2026-10-20T18:06:42.252Z",
+    "resumeStopped": true,
+    "processIdentityVerified": true
+  },
+  "backup": {
+    "id": "1792347340554",
+    "status": "SUCCESSFUL",
+    "startTime": "2026-10-18T18:15:40.557Z",
+    "endTime": "2026-10-18T18:17:52.327Z",
+    "type": "ON_DEMAND"
+  },
+  "build": {
+    "id": "63bd9baf-2c4b-4734-81b6-e4a4f7506572",
+    "status": "SUCCESS",
+    "digest": "sha256:c9d7e344f8db9d326f4348902ce033c9f774d7c2ca58702ede36f63b6c85202c",
+    "finishTime": "2026-10-18T18:20:00.947272Z"
+  },
+  "migration": {
+    "startedAt": "2026-10-18T18:21:46.709Z",
+    "mode": "explicit",
+    "definitions": "canonical exported analiseMigrations",
+    "definitionsSha256": "699f3af61ff720c46881a14070ffdc6c7126f1438ca8ab3de944191f23007dce",
+    "advisoryLock": 731202604,
+    "lockTimeout": "3s",
+    "statementTimeout": "120s",
+    "applied": [
+      "analise-0001-initial",
+      "analise-0002-operation-idempotency"
+    ],
+    "finishedAt": "2026-10-18T18:21:47.922Z"
+  },
+  "databaseAfter": {
+    "checkedAt": "2026-10-18T18:21:47.922Z",
+    "migrationCount": 40,
+    "missing": [],
+    "tables": [
+      "analise_achados",
+      "analise_combos",
+      "analise_consumos",
+      "analise_operacoes",
+      "analise_sessoes"
+    ],
+    "rowCounts": {
+      "analise_achados": 0,
+      "analise_combos": 0,
+      "analise_consumos": 0,
+      "analise_operacoes": 0,
+      "analise_sessoes": 0
+    }
+  },
+  "candidateRevision": {
+    "checkedAt": "2026-10-18T18:23:30.096Z",
+    "revision": "forgelex-api-prod-analise-cabf504-candidate",
+    "digest": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:c9d7e344f8db9d326f4348902ce033c9f774d7c2ca58702ede36f63b6c85202c",
+    "mismatches": [],
+    "secretReferences": 15,
+    "serviceAccountPreserved": true,
+    "cloudSqlPreserved": true,
+    "flags": [
+      {
+        "name": "FORGELEX_ANALISE_ENABLED",
+        "value": "true"
+      },
+      {
+        "name": "FORGELEX_AUTO_MIGRATE",
+        "value": "false"
+      },
+      {
+        "name": "FORGELEX_BILLING_ENABLED",
+        "value": "false"
+      },
+      {
+        "name": "FORGELEX_SOURCE_SHA",
+        "value": "cabf504040833ffd1af3f134761b0cb9f6eb6e32"
+      }
+    ]
+  },
+  "temporaryRouting": {
+    "neg": "forgelex-analise-cabf504-neg",
+    "negCreated": true,
+    "backend": "forgelex-analise-cabf504-backend",
+    "prefix": "/_analise_candidate_cabf504/",
+    "createdAt": "2026-10-18T18:23:57.126Z",
+    "backendCreated": true,
+    "base": "https://nexojuris.ia.br/_analise_candidate_cabf504/",
+    "routeInstalledAt": "2026-10-18T18:26:43.768Z",
+    "cleanedAt": "2026-10-20T18:05:53.830Z"
+  },
+  "candidateValidation": {
+    "phase": "candidate",
+    "startedAt": "2026-10-18T18:31:21.893Z",
+    "base": "https://nexojuris.ia.br/_analise_candidate_cabf504/",
+    "checks": [
+      {
+        "name": "readyz",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 137,
+        "trace": "f12475147c484cfa84e9a6d5c51f313e",
+        "requestId": "req-p"
+      },
+      {
+        "name": "unauthenticated MCP",
+        "status": 401,
+        "expected": 401,
+        "latencyMs": 398,
+        "trace": "2bd85557832a4bf197f6ac3ed119da6e",
+        "requestId": "req-q"
+      },
+      {
+        "name": "openapi.json",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 275,
+        "trace": "8745ea47557a48fe9646659229140b2b",
+        "requestId": "req-r"
+      },
+      {
+        "name": "initialize",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 189,
+        "trace": "8e511d9204194d5f94c301dd400e7f81",
+        "requestId": "req-s"
+      },
+      {
+        "name": "tools/list",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 288,
+        "trace": "e1805dc0098e4f1397dacddabf67cdba",
+        "requestId": "req-t"
+      },
+      {
+        "name": "forgelex.connection_status",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 70,
+        "trace": "b62e27e2e5674eb18cc42cfe7712dfaa",
+        "requestId": "req-u"
+      },
+      {
+        "name": "analise.peca_analisar",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 460,
+        "trace": "152f264cf913476a8baf2a4b01d5a1aa",
+        "requestId": "req-v"
+      },
+      {
+        "name": "analise.peca_analisar",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 113,
+        "trace": "b3e95a0f47bc4e7bb8f9473aff9a39ec",
+        "requestId": "req-w"
+      },
+      {
+        "name": "analise.mapear_teses",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 94,
+        "trace": "66588f696fe0413caedda5f77b634f22",
+        "requestId": "req-x"
+      },
+      {
+        "name": "analise.combo_ativar",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 300,
+        "trace": "dd7a09393abd495b95be84bc47fb3d14",
+        "requestId": "req-y"
+      },
+      {
+        "name": "analise.combo_ativar",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 130,
+        "trace": "20895cd5f5454b92ad3db8a11c151f03",
+        "requestId": "req-z"
+      },
+      {
+        "name": "analise.peca_analisar",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 210,
+        "trace": "812ee41035324850a4a8510f72c9865c",
+        "requestId": "req-10"
+      },
+      {
+        "name": "analise.mapear_teses",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 206,
+        "trace": "1e14170570844d1ba6c0f091bdf4ca79",
+        "requestId": "req-11"
+      }
+    ],
+    "fixtures": [
+      {
+        "tenantId": "tenant_0d142b789dcf8bfbe098af7815fd844a",
+        "userId": "user_0d142b789dcf8bfbe098af7815fd844a",
+        "prefix": "phase8_hml_analise_cabf504_candidate_owner_228309c5-c36a-480b-9542-88de9f632e96",
+        "keyId": "2d2e41eb-df2f-48d6-84ce-903ca3b7778a",
+        "analyticOperationsBeforePurge": 4,
+        "purge": {
+          "deletedRows": 11,
+          "remainingPrivateRows": 0,
+          "heldCategories": []
+        },
+        "disabled": true
+      },
+      {
+        "tenantId": "tenant_454d95a01a07ffda97b97e9f5fd30026",
+        "userId": "user_454d95a01a07ffda97b97e9f5fd30026",
+        "prefix": "phase8_hml_analise_cabf504_candidate_other_1b596564-98d8-4112-83b5-3702493cbe3f",
+        "keyId": "46810003-bf07-4af3-adcb-db50c4c25492",
+        "analyticOperationsBeforePurge": 0,
+        "purge": {
+          "deletedRows": 1,
+          "remainingPrivateRows": 0,
+          "heldCategories": []
+        },
+        "disabled": true
+      }
+    ],
+    "secretPrintedOrPersisted": false,
+    "realMoneyChargedCents": 0,
+    "readiness": {
+      "status": "ready",
+      "service": "forgelex-api",
+      "checks": {
+        "persistence": true,
+        "migrations": true,
+        "billing": true,
+        "source": true,
+        "auth": true,
+        "outbox": true,
+        "accountClosureRestore": true,
+        "matterPurgeRestore": true
+      }
+    },
+    "catalog": {
+      "toolNames": [
+        "analise.avaliar_prova",
+        "analise.combo_ativar",
+        "analise.estrategia_definir",
+        "analise.mapear_teses",
+        "analise.peca_analisar",
+        "analise.peca_redigir"
+      ],
+      "totalTools": 20,
+      "sha256": "fa43e3ec9a5c688e4d4aec15558714a4b7403ea174fd0052b011d7bee100b20e"
+    },
+    "analytic": {
+      "singleChargedCents": 87,
+      "comboChargedCents": 371,
+      "replayChargedCents": 0,
+      "coveredCalls": 2,
+      "syntheticPromotionalSpentCents": 458,
+      "otherTenantPreserved": true,
+      "allOperationsCompleted": true
+    },
+    "status": "passed",
+    "cleanup": {
+      "completedAt": "2026-10-18T18:32:14.251Z",
+      "syntheticOnly": true,
+      "apiKeysRemoved": true,
+      "analyticPrivateRowsRemaining": 0,
+      "financialSyntheticReceiptsRetained": true
+    }
+  },
+  "validationAttempts": [
+    {
+      "phase": "candidate",
+      "startedAt": "2026-10-18T18:27:40.457Z",
+      "base": "https://nexojuris.ia.br/_analise_candidate_cabf504/",
+      "checks": [
+        {
+          "name": "readyz",
+          "status": 200,
+          "expected": 200,
+          "latencyMs": 310,
+          "trace": "ce4ce71f2fdf478a9247eeae8012f02b",
+          "requestId": "req-2"
+        },
+        {
+          "name": "unauthenticated MCP",
+          "status": 401,
+          "expected": 401,
+          "latencyMs": 59,
+          "trace": "2a963c430b4b4d0899a7ac47fbb31e17",
+          "requestId": "req-3"
+        },
+        {
+          "name": "openapi.json",
+          "status": 200,
+          "expected": 200,
+          "latencyMs": 209,
+          "trace": "39bd51dfbd2c4742b32c1f702608056b",
+          "requestId": "req-4"
+        },
+        {
+          "name": "initialize",
+          "status": 200,
+          "expected": 200,
+          "latencyMs": 294,
+          "trace": "8f78b87fdc314bcf83703a720600ec27",
+          "requestId": "req-5"
+        },
+        {
+          "name": "tools/list",
+          "status": 404,
+          "expected": 200,
+          "latencyMs": 502,
+          "trace": "3981a5de3fde4d60ac7a3f5daad48a58",
+          "requestId": "req-b"
+        }
+      ],
+      "fixtures": [
+        {
+          "tenantId": "tenant_bca4347aa08430575f9471b5ec34f5cd",
+          "userId": "user_bca4347aa08430575f9471b5ec34f5cd",
+          "prefix": "phase8_hml_analise_cabf504_candidate_owner_26410247-2d6c-4bbc-9e1b-190d99e125cf",
+          "keyId": "f4147f37-f579-4dba-a0cc-ca8172b894da",
+          "analyticOperationsBeforePurge": 0,
+          "purge": {
+            "deletedRows": 1,
+            "remainingPrivateRows": 0,
+            "heldCategories": []
+          },
+          "disabled": true
+        },
+        {
+          "tenantId": "tenant_2194b846004b87dd209a6450ef58c74f",
+          "userId": "user_2194b846004b87dd209a6450ef58c74f",
+          "prefix": "phase8_hml_analise_cabf504_candidate_other_dda879a6-46e1-46dc-8c6b-e8a9126ade2d",
+          "keyId": "01e01d8a-e877-4043-b44f-19e433867a58",
+          "analyticOperationsBeforePurge": 0,
+          "purge": {
+            "deletedRows": 1,
+            "remainingPrivateRows": 0,
+            "heldCategories": []
+          },
+          "disabled": true
+        }
+      ],
+      "secretPrintedOrPersisted": false,
+      "realMoneyChargedCents": 0,
+      "readiness": {
+        "status": "ready",
+        "service": "forgelex-api",
+        "checks": {
+          "persistence": true,
+          "migrations": true,
+          "billing": true,
+          "source": true,
+          "auth": true,
+          "outbox": true,
+          "accountClosureRestore": true,
+          "matterPurgeRestore": true
+        }
+      },
+      "status": "failed",
+      "error": {
+        "name": "AssertionError",
+        "message": "tools/list\n\n404 !== 200\n"
+      },
+      "cleanup": {
+        "completedAt": "2026-10-18T18:29:09.318Z",
+        "syntheticOnly": true,
+        "apiKeysRemoved": true,
+        "analyticPrivateRowsRemaining": 0,
+        "financialSyntheticReceiptsRetained": true
+      }
+    },
+    {
+      "phase": "candidate",
+      "startedAt": "2026-10-18T18:30:11.695Z",
+      "base": "https://nexojuris.ia.br/_analise_candidate_cabf504/",
+      "checks": [
+        {
+          "name": "readyz",
+          "status": 200,
+          "expected": 200,
+          "latencyMs": 138,
+          "trace": "2076a773b92e469c96d13e84ee08bce7",
+          "requestId": "req-d"
+        },
+        {
+          "name": "unauthenticated MCP",
+          "status": 401,
+          "expected": 401,
+          "latencyMs": 138,
+          "trace": "aa8256505698473b911e85a8ec82ebec",
+          "requestId": "req-e"
+        },
+        {
+          "name": "openapi.json",
+          "status": 200,
+          "expected": 200,
+          "latencyMs": 283,
+          "trace": "30f6414f946b49a984c833bedcd9b155",
+          "requestId": "req-f"
+        },
+        {
+          "name": "initialize",
+          "status": 200,
+          "expected": 200,
+          "latencyMs": 192,
+          "trace": "dc7a0289524b4a7696aef35ec7c80039",
+          "requestId": "req-g"
+        },
+        {
+          "name": "tools/list",
+          "status": 200,
+          "expected": 200,
+          "latencyMs": 295,
+          "trace": "87f760f786c3495f9e40c38cd3720fcd",
+          "requestId": "req-h"
+        },
+        {
+          "name": "forgelex.connection_status",
+          "status": 200,
+          "expected": 200,
+          "latencyMs": 66,
+          "trace": "09a1a4e7d5eb4dfe9d6ac1ffb3034671",
+          "requestId": "req-i"
+        }
+      ],
+      "fixtures": [
+        {
+          "tenantId": "tenant_fa5c53f9104d7380565cb179b337a850",
+          "userId": "user_fa5c53f9104d7380565cb179b337a850",
+          "prefix": "phase8_hml_analise_cabf504_candidate_owner_43941153-dee6-49af-bbdb-0cbf9ccea808",
+          "keyId": "7642c798-63b5-4c77-a147-37197b5d08e9",
+          "analyticOperationsBeforePurge": 0,
+          "purge": {
+            "deletedRows": 1,
+            "remainingPrivateRows": 0,
+            "heldCategories": []
+          },
+          "disabled": true
+        },
+        {
+          "tenantId": "tenant_8170259ad591c05832b5587787cc27e1",
+          "userId": "user_8170259ad591c05832b5587787cc27e1",
+          "prefix": "phase8_hml_analise_cabf504_candidate_other_2b0537c0-bef2-4152-8490-2a89829cae07",
+          "keyId": "91081a55-595a-4342-937e-4c152830bbbf",
+          "analyticOperationsBeforePurge": 0,
+          "purge": {
+            "deletedRows": 1,
+            "remainingPrivateRows": 0,
+            "heldCategories": []
+          },
+          "disabled": true
+        }
+      ],
+      "secretPrintedOrPersisted": false,
+      "realMoneyChargedCents": 0,
+      "readiness": {
+        "status": "ready",
+        "service": "forgelex-api",
+        "checks": {
+          "persistence": true,
+          "migrations": true,
+          "billing": true,
+          "source": true,
+          "auth": true,
+          "outbox": true,
+          "accountClosureRestore": true,
+          "matterPurgeRestore": true
+        }
+      },
+      "catalog": {
+        "toolNames": [
+          "analise.avaliar_prova",
+          "analise.combo_ativar",
+          "analise.estrategia_definir",
+          "analise.mapear_teses",
+          "analise.peca_analisar",
+          "analise.peca_redigir"
+        ],
+        "totalTools": 20,
+        "sha256": "fa43e3ec9a5c688e4d4aec15558714a4b7403ea174fd0052b011d7bee100b20e"
+      },
+      "status": "failed",
+      "error": {
+        "name": "AssertionError",
+        "message": "The expression evaluated to a falsy value:\n\n  assert.ok(status.result)\n"
+      },
+      "cleanup": {
+        "completedAt": "2026-10-18T18:31:01.353Z",
+        "syntheticOnly": true,
+        "apiKeysRemoved": true,
+        "analyticPrivateRowsRemaining": 0,
+        "financialSyntheticReceiptsRetained": true
+      }
+    }
+  ],
+  "candidatePublicProbes": {
+    "phase": "candidate",
+    "base": "https://nexojuris.ia.br/_analise_candidate_cabf504/",
+    "startedAt": "2026-10-18T18:35:05.853Z",
+    "checks": [
+      {
+        "path": "readyz",
+        "status": 200,
+        "expected": 200,
+        "bytes": 201,
+        "sha256": "fa7f2fce3ddc755de50b89d295918fbd17ede2f0e1a03aa8634435fe4b6d2dde",
+        "trace": "bd9711ddb2194a99894a543dc5252d97"
+      },
+      {
+        "path": "",
+        "status": 200,
+        "expected": 200,
+        "bytes": 2451,
+        "sha256": "641210f671e7d2a2d8d77464f2f8aed68861b37b8a14540c9d21c0e180111448",
+        "trace": "56da8e704710431d96997b768595cfc1"
+      },
+      {
+        "path": "assets/index-DpAMTjUp.js",
+        "status": 200,
+        "expected": 200,
+        "bytes": 468263,
+        "sha256": "41903fa7bbfc6ab63504e045de74d038ea429185fb6db392b55570a38d0d6d4c",
+        "trace": "e56f5231304b4f04872b6f1cbf5a634c"
+      },
+      {
+        "path": "assets/index-BcMysa4n.css",
+        "status": 200,
+        "expected": 200,
+        "bytes": 41052,
+        "sha256": "4ab3cb530fbc83f61e765579c3a99635c5d9e599b1af8b0e35fedfed2876dcc2",
+        "trace": "9a544cce6ddf46edae7c4f65f471dccc"
+      },
+      {
+        "path": ".well-known/oauth-protected-resource",
+        "status": 200,
+        "expected": 200,
+        "bytes": 231,
+        "sha256": "153d00c901875984c9e573b7f1d57a868d7b1f973bda93d86f6f475153403b09",
+        "trace": "f26630f45b854623bbadbb34197d2b8a"
+      },
+      {
+        "path": "api/v2/research/saved",
+        "status": 401,
+        "expected": 401,
+        "bytes": 66,
+        "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+        "trace": "74763184507243aa950164af71041ba0"
+      }
+    ],
+    "status": "passed",
+    "finishedAt": "2026-10-18T18:35:06.845Z"
+  },
+  "commercialRevision": {
+    "checkedAt": "2026-10-18T18:33:18.986Z",
+    "revision": "forgelex-api-prod-analise-cabf504",
+    "digest": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:c9d7e344f8db9d326f4348902ce033c9f774d7c2ca58702ede36f63b6c85202c",
+    "mismatches": [],
+    "secretReferences": 15,
+    "serviceAccountPreserved": true,
+    "cloudSqlPreserved": true,
+    "flags": [
+      {
+        "name": "FORGELEX_ANALISE_ENABLED",
+        "value": "true"
+      },
+      {
+        "name": "FORGELEX_AUTO_MIGRATE",
+        "value": "false"
+      },
+      {
+        "name": "FORGELEX_BILLING_ENABLED",
+        "value": "true"
+      },
+      {
+        "name": "FORGELEX_SOURCE_SHA",
+        "value": "cabf504040833ffd1af3f134761b0cb9f6eb6e32"
+      }
+    ]
+  },
+  "commercialValidation": {
+    "phase": "commercial",
+    "startedAt": "2026-10-18T18:34:13.110Z",
+    "base": "https://nexojuris.ia.br/_analise_candidate_cabf504/",
+    "checks": [
+      {
+        "name": "readyz",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 139,
+        "trace": "f8d138417b924bd9afff477183deca5d",
+        "requestId": "req-7"
+      },
+      {
+        "name": "unauthenticated MCP",
+        "status": 401,
+        "expected": 401,
+        "latencyMs": 144,
+        "trace": "1752d4e5420f4de2803a9e8d3114a642",
+        "requestId": "req-8"
+      },
+      {
+        "name": "openapi.json",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 276,
+        "trace": "89bbcd1e68f844ecbe8c6fbacd63941d",
+        "requestId": "req-9"
+      },
+      {
+        "name": "initialize",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 205,
+        "trace": "14116305e27b4fdbaed4ef49ce67f3e2",
+        "requestId": "req-a"
+      },
+      {
+        "name": "tools/list",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 306,
+        "trace": "4f468a3d78614e87ba6c9283928c7a46",
+        "requestId": "req-b"
+      },
+      {
+        "name": "forgelex.connection_status",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 70,
+        "trace": "99b5b19234f34cf89ac64748ed25ddc9",
+        "requestId": "req-c"
+      },
+      {
+        "name": "analise.peca_analisar",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 416,
+        "trace": "c3ce843656f940a1803d961c941bd29c",
+        "requestId": "req-d"
+      },
+      {
+        "name": "analise.peca_analisar",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 128,
+        "trace": "77a57db59d534553b67a5177552d4bbc",
+        "requestId": "req-e"
+      },
+      {
+        "name": "analise.mapear_teses",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 83,
+        "trace": "a8e0e09267c24356a1b8bf40b26914b3",
+        "requestId": "req-f"
+      },
+      {
+        "name": "analise.combo_ativar",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 346,
+        "trace": "ce66a1286d574ece9d56230cfebbbbb4",
+        "requestId": "req-g"
+      },
+      {
+        "name": "analise.combo_ativar",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 134,
+        "trace": "2f62f34cf1b6491984c46d4bd66abe83",
+        "requestId": "req-h"
+      },
+      {
+        "name": "analise.peca_analisar",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 248,
+        "trace": "8c61f992d9134371a77d35a522c7f965",
+        "requestId": "req-i"
+      },
+      {
+        "name": "analise.mapear_teses",
+        "status": 200,
+        "expected": 200,
+        "latencyMs": 220,
+        "trace": "105763aab95d4a7f81b6775f1617e788",
+        "requestId": "req-j"
+      }
+    ],
+    "fixtures": [
+      {
+        "tenantId": "tenant_9c4909fefd236cd2fab9d3bf579d3757",
+        "userId": "user_9c4909fefd236cd2fab9d3bf579d3757",
+        "prefix": "phase8_hml_analise_cabf504_commercial_owner_9a6b3b1c-e8af-4cf3-b145-3421044032f6",
+        "keyId": "175227a5-4207-46c6-b6e9-a7c657743e3d",
+        "analyticOperationsBeforePurge": 4,
+        "purge": {
+          "deletedRows": 11,
+          "remainingPrivateRows": 0,
+          "heldCategories": []
+        },
+        "disabled": true
+      },
+      {
+        "tenantId": "tenant_6746a1d464e8e4199ee25628aa3fa75b",
+        "userId": "user_6746a1d464e8e4199ee25628aa3fa75b",
+        "prefix": "phase8_hml_analise_cabf504_commercial_other_7a6a1154-3875-4cc8-be99-d74be04ad412",
+        "keyId": "4d5d4756-f38c-435c-9726-80c31df6b0cd",
+        "analyticOperationsBeforePurge": 0,
+        "purge": {
+          "deletedRows": 1,
+          "remainingPrivateRows": 0,
+          "heldCategories": []
+        },
+        "disabled": true
+      }
+    ],
+    "secretPrintedOrPersisted": false,
+    "realMoneyChargedCents": 0,
+    "readiness": {
+      "status": "ready",
+      "service": "forgelex-api",
+      "checks": {
+        "persistence": true,
+        "migrations": true,
+        "billing": true,
+        "source": true,
+        "auth": true,
+        "outbox": true,
+        "accountClosureRestore": true,
+        "matterPurgeRestore": true
+      }
+    },
+    "catalog": {
+      "toolNames": [
+        "analise.avaliar_prova",
+        "analise.combo_ativar",
+        "analise.estrategia_definir",
+        "analise.mapear_teses",
+        "analise.peca_analisar",
+        "analise.peca_redigir"
+      ],
+      "totalTools": 20,
+      "sha256": "fa43e3ec9a5c688e4d4aec15558714a4b7403ea174fd0052b011d7bee100b20e"
+    },
+    "analytic": {
+      "singleChargedCents": 87,
+      "comboChargedCents": 371,
+      "replayChargedCents": 0,
+      "coveredCalls": 2,
+      "syntheticPromotionalSpentCents": 458,
+      "otherTenantPreserved": true,
+      "allOperationsCompleted": true
+    },
+    "status": "passed",
+    "cleanup": {
+      "completedAt": "2026-10-18T18:35:05.682Z",
+      "syntheticOnly": true,
+      "apiKeysRemoved": true,
+      "analyticPrivateRowsRemaining": 0,
+      "financialSyntheticReceiptsRetained": true
+    }
+  },
+  "commercialPublicProbes": {
+    "phase": "commercial",
+    "base": "https://nexojuris.ia.br/_analise_candidate_cabf504/",
+    "startedAt": "2026-10-18T18:35:06.997Z",
+    "checks": [
+      {
+        "path": "readyz",
+        "status": 200,
+        "expected": 200,
+        "bytes": 201,
+        "sha256": "fa7f2fce3ddc755de50b89d295918fbd17ede2f0e1a03aa8634435fe4b6d2dde",
+        "trace": "bc854333fc3d483988ac802bfcb49a65"
+      },
+      {
+        "path": "",
+        "status": 200,
+        "expected": 200,
+        "bytes": 2451,
+        "sha256": "641210f671e7d2a2d8d77464f2f8aed68861b37b8a14540c9d21c0e180111448",
+        "trace": "8a52b5f98151468da730c49d8a4b48dc"
+      },
+      {
+        "path": "assets/index-DpAMTjUp.js",
+        "status": 200,
+        "expected": 200,
+        "bytes": 468263,
+        "sha256": "41903fa7bbfc6ab63504e045de74d038ea429185fb6db392b55570a38d0d6d4c",
+        "trace": "0f142692ea3346188bbc3e563c1e48ef"
+      },
+      {
+        "path": "assets/index-BcMysa4n.css",
+        "status": 200,
+        "expected": 200,
+        "bytes": 41052,
+        "sha256": "4ab3cb530fbc83f61e765579c3a99635c5d9e599b1af8b0e35fedfed2876dcc2",
+        "trace": "5cbfd19830de4235a5b815944461fc68"
+      },
+      {
+        "path": ".well-known/oauth-protected-resource",
+        "status": 200,
+        "expected": 200,
+        "bytes": 231,
+        "sha256": "153d00c901875984c9e573b7f1d57a868d7b1f973bda93d86f6f475153403b09",
+        "trace": "6921e91ffe0e4eb8a297bceedb42163e"
+      },
+      {
+        "path": "api/v2/research/saved",
+        "status": 401,
+        "expected": 401,
+        "bytes": 66,
+        "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+        "trace": "6033478f5bbf4c50b539a58d977919a6"
+      }
+    ],
+    "status": "passed",
+    "finishedAt": "2026-10-18T18:35:07.910Z",
+    "candidateAssetsIdentical": true
+  },
+  "privateWorker": {
+    "reason": "Scheduler still targets a pre-analytic image lacking the new private-table purge",
+    "service": "forgelex-closure-hml-private",
+    "beforeRevision": "forgelex-closure-hml-private-00010-q6s",
+    "beforeImage": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-hml/forgelex-api-hml@sha256:959c50ec04fc1ac82cae4db6d3b3ab7acfb1ef39b11530710a2e89f70c7821fd",
+    "beforeServiceAccount": "forgelex-hml-runtime@project-bbbe1209-c295-4720-867.iam.gserviceaccount.com",
+    "newServiceAccount": "forgelex-api-prod@project-bbbe1209-c295-4720-867.iam.gserviceaccount.com",
+    "existingSchedulerPreserved": true,
+    "manualReconcileTriggered": false,
+    "addedJournalConfigurationNames": [
+      "FORGELEX_MATTER_PURGE_JOURNAL_REQUIRED",
+      "FORGELEX_MATTER_PURGE_JOURNAL_BUCKET",
+      "FORGELEX_MATTER_PURGE_JOURNAL_ANCHOR_ID",
+      "FORGELEX_MATTER_PURGE_JOURNAL_ENCRYPTION_KEY",
+      "FORGELEX_MATTER_PURGE_JOURNAL_MAC_SECRET",
+      "FORGELEX_MATTER_PURGE_KEY_SECRET"
+    ],
+    "candidate": {
+      "revision": "forgelex-closure-hml-private-analise-cabf504",
+      "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:c9d7e344f8db9d326f4348902ce033c9f774d7c2ca58702ede36f63b6c85202c",
+      "checkedAt": "2026-10-18T18:43:38.823Z",
+      "readiness": {
+        "status": "ready",
+        "service": "forgelex-api",
+        "checks": {
+          "persistence": true,
+          "migrations": true,
+          "billing": true,
+          "source": true,
+          "auth": true,
+          "outbox": true,
+          "accountClosureRestore": true,
+          "matterPurgeRestore": true
+        }
+      },
+      "iamProtected": true,
+      "noTraffic": true
+    },
+    "invocationProof": {
+      "approach": "existing Scheduler service-account impersonation with canonical service audience",
+      "identity": "forgelex-hml-closure-invoker@project-bbbe1209-c295-4720-867.iam.gserviceaccount.com",
+      "audience": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app",
+      "httpStatus": 200,
+      "priorOperatorTokenRejected": true,
+      "iamPolicyChanged": false
+    },
+    "promotedAt": "2026-10-18T18:44:06.676Z",
+    "traffic": [
+      {
+        "percent": 100,
+        "revisionName": "forgelex-closure-hml-private-analise-cabf504",
+        "tag": "analise",
+        "url": "https://analise---forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app"
+      }
+    ],
+    "iamPolicyPreserved": true,
+    "finalTraffic": [
+      {
+        "revisionName": "forgelex-closure-hml-private-analise-cabf504",
+        "percent": 100
+      }
+    ],
+    "scheduler": {
+      "uri": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+      "audience": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app",
+      "lastAttemptTime": "2026-10-20T18:03:02.862792Z",
+      "state": "ENABLED",
+      "status": {}
+    },
+    "scheduledRequests": [
+      {
+        "timestamp": "2026-10-20T18:03:02.929703Z",
+        "httpStatus": 200,
+        "revision": "forgelex-closure-hml-private-analise-cabf504"
+      },
+      {
+        "timestamp": "2026-10-20T18:02:03.541891Z",
+        "httpStatus": 200,
+        "revision": "forgelex-closure-hml-private-analise-cabf504"
+      },
+      {
+        "timestamp": "2026-10-20T18:01:03.002166Z",
+        "httpStatus": 200,
+        "revision": "forgelex-closure-hml-private-analise-cabf504"
+      }
+    ]
+  },
+  "commercialRequestProof": {
+    "trace": "c3ce843656f940a1803d961c941bd29c",
+    "revision": "forgelex-api-prod-analise-cabf504",
+    "httpStatus": 200,
+    "observedAt": "2026-10-18T18:45:07.568Z"
+  },
+  "promotion": {
+    "at": "2026-10-18T18:45:23.867Z",
+    "mode": "direct-after-candidate-validation",
+    "reason": "Avoid extending a mixed MCP catalog while adding new tool names",
+    "traffic": [
+      {
+        "percent": 100,
+        "revisionName": "forgelex-api-prod-analise-cabf504",
+        "tag": "analise-candidate",
+        "url": "https://analise-candidate---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app"
+      }
+    ]
+  },
+  "publicProbes": {
+    "phase": "public",
+    "base": "https://nexojuris.ia.br/",
+    "startedAt": "2026-10-20T18:06:31.173Z",
+    "checks": [
+      {
+        "path": "readyz",
+        "status": 200,
+        "expected": 200,
+        "bytes": 201,
+        "sha256": "fa7f2fce3ddc755de50b89d295918fbd17ede2f0e1a03aa8634435fe4b6d2dde",
+        "trace": "d3bfbbf41a08466f90ee7cd23a6043f8"
+      },
+      {
+        "path": "",
+        "status": 200,
+        "expected": 200,
+        "bytes": 2451,
+        "sha256": "641210f671e7d2a2d8d77464f2f8aed68861b37b8a14540c9d21c0e180111448",
+        "trace": "8fb879e594764924b7950079c9f0ec5d"
+      },
+      {
+        "path": "assets/index-DpAMTjUp.js",
+        "status": 200,
+        "expected": 200,
+        "bytes": 468263,
+        "sha256": "41903fa7bbfc6ab63504e045de74d038ea429185fb6db392b55570a38d0d6d4c",
+        "trace": "f9e7508559fb444588917bb7c1a2176e"
+      },
+      {
+        "path": "assets/index-BcMysa4n.css",
+        "status": 200,
+        "expected": 200,
+        "bytes": 41052,
+        "sha256": "4ab3cb530fbc83f61e765579c3a99635c5d9e599b1af8b0e35fedfed2876dcc2",
+        "trace": "20d11dfc01fe44bf869554c5bce6dcee"
+      },
+      {
+        "path": ".well-known/oauth-protected-resource",
+        "status": 200,
+        "expected": 200,
+        "bytes": 231,
+        "sha256": "153d00c901875984c9e573b7f1d57a868d7b1f973bda93d86f6f475153403b09",
+        "trace": "8ddb0ce8eba34ebab9534ed367c742af"
+      },
+      {
+        "path": "api/v2/research/saved",
+        "status": 401,
+        "expected": 401,
+        "bytes": 66,
+        "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+        "trace": "7bfbcc2b2d8f420fbc2353defdac945f"
+      }
+    ],
+    "status": "passed",
+    "finishedAt": "2026-10-20T18:06:32.240Z",
+    "candidateAssetsIdentical": true
+  },
+  "finalDatabase": {
+    "checkedAt": "2026-10-20T18:03:23.116Z",
+    "identity": {
+      "database": "forgelex",
+      "version": "PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by Debian clang version 12.0.1, 64-bit",
+      "read_only": "on"
+    },
+    "migrationCount": 40,
+    "analyticMigrations": [
+      {
+        "id": "analise-0001-initial"
+      },
+      {
+        "id": "analise-0002-operation-idempotency"
+      }
+    ],
+    "analyticRowCounts": {
+      "analise_achados": 0,
+      "analise_combos": 0,
+      "analise_consumos": 0,
+      "analise_operacoes": 0,
+      "analise_sessoes": 0
+    },
+    "mutationStatements": 0
+  },
+  "accountClosureStates": [
+    {
+      "status": "COMPLETED",
+      "count": 7
+    }
+  ],
+  "runtimeErrorsObserved": {
+    "checkedAt": "2026-10-20T18:03:56.318Z",
+    "count": 0,
+    "scope": "new public and private revisions since commercial revision validation",
+    "events": []
+  },
+  "finalRuntime": {
+    "checkedAt": "2026-10-20T18:03:02.450Z",
+    "revision": "forgelex-api-prod-analise-cabf504",
+    "digest": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:c9d7e344f8db9d326f4348902ce033c9f774d7c2ca58702ede36f63b6c85202c",
+    "mismatches": [],
+    "secretReferences": 15,
+    "serviceAccountPreserved": true,
+    "cloudSqlPreserved": true,
+    "flags": [
+      {
+        "name": "FORGELEX_ANALISE_ENABLED",
+        "value": "true"
+      },
+      {
+        "name": "FORGELEX_AUTO_MIGRATE",
+        "value": "false"
+      },
+      {
+        "name": "FORGELEX_BILLING_ENABLED",
+        "value": "true"
+      },
+      {
+        "name": "FORGELEX_SOURCE_SHA",
+        "value": "cabf504040833ffd1af3f134761b0cb9f6eb6e32"
+      }
+    ],
+    "traffic": [
+      {
+        "revisionName": "forgelex-api-prod-analise-cabf504",
+        "percent": 100
+      }
+    ],
+    "ingress": "internal-and-cloud-load-balancing"
+  },
+  "completedAt": "2026-10-20T18:06:42.364Z",
+  "cleanupVerification": {
+    "checkedAt": "2026-10-20T18:06:31.035Z",
+    "temporaryRuleAbsent": true,
+    "temporaryBackendAbsent": true,
+    "temporaryNegAbsent": true,
+    "candidateTagAbsent": true,
+    "productionDefaultBackendPreserved": true,
+    "traffic": [
+      {
+        "revisionName": "forgelex-api-prod-00001-kay"
+      },
+      {
+        "revisionName": "forgelex-api-prod-00002-bul"
+      },
+      {
+        "revisionName": "forgelex-api-prod-00003-moc"
+      },
+      {
+        "revisionName": "forgelex-api-prod-analise-cabf504",
+        "percent": 100
+      },
+      {
+        "revisionName": "forgelex-api-prod-checkout-2355ce4d"
+      },
+      {
+        "revisionName": "forgelex-api-prod-guide-c722b382"
+      },
+      {
+        "revisionName": "forgelex-api-prod-mcp-80ef69a5-r2"
+      },
+      {
+        "revisionName": "forgelex-api-prod-phase5-d1e22ed3-r2"
+      },
+      {
+        "revisionName": "forgelex-api-prod-phase6-0268ffcb"
+      },
+      {
+        "revisionName": "forgelex-api-prod-webhook-0f1ce2fe"
+      }
+    ]
+  },
+  "localPreservation": {
+    "checkedAt": "2026-10-20T18:06:42.254Z",
+    "branch": "codex/case-flow-simplification",
+    "head": "101ee331fc621ebf38fd536a549c38b0f9340d12",
+    "files": 47,
+    "sha256Comparison": "47 of 47 match baseline captured on 2026-10-20 before cleanup",
+    "baselineScope": "resume only; no reconstructed comparison across sessions",
+    "filesUnchanged": true
+  }
+}
