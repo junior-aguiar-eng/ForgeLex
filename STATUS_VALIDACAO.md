@@ -1,5 +1,21 @@
 # Auditoria e status canônico do ForgeLex
 
+## Correção do Hono — publicada em 20/10/2026
+
+Main `e93a508`, PR #76 e seis checks pós-merge aprovados. Build
+`1565888e-a88b-43ff-ac50-4124d734dac2` concluído; inventário do artefato
+confirmou 183 manifests de pacotes e Hono ausente no runtime. O lockfile usado
+no build resolve Hono 4.13.11. Candidata pública e revisão comercial passaram
+por oito probes cada antes da promoção, com traces nas revisões corretas.
+Worker privado: readiness autenticada 200 e acesso anônimo 403.
+
+API `forgelex-api-prod-hono-e93a508` e worker
+`forgelex-closure-hml-private-hono-e93a508` atendem 100%. Oito probes públicos
+passaram após a limpeza; IAM e Scheduler preservados, três requisições
+regulares do Scheduler com 200. Nenhuma migration reaplicada, AUTO_MIGRATE=false
+e 47 arquivos locais preservados. Recursos temporários removidos.
+[Recibo, limites e evidências](docs/operations/stabilization/2026-10-20-hono-publication.md).
+
 ## Camada analítica — publicação (18/10), conferência final (20/10/2026)
 
 PR #75 integrada em `cabf504040833ffd1af3f134761b0cb9f6eb6e32`; seis jobs

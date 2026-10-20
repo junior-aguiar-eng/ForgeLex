@@ -7,6 +7,16 @@ Boni é o único avaliador e aprovador humano do projeto, por decisão expressa
 de 10/10/2026. Nenhuma frente depende de segundo revisor ou parecer de terceiro;
 aplica-se [AGENTS.md](AGENTS.md), inclusive sobre exigências de planos antigos.
 
+## Correção do Hono — publicada em 20/10
+
+Main `e93a508`, PR #76 e seis checks pós-merge aprovados. Build canônico,
+verificação do inventário do container e candidatas pública/privada validados
+antes da promoção. API `forgelex-api-prod-hono-e93a508` e worker
+`forgelex-closure-hml-private-hono-e93a508` atendem 100%. Nenhuma migration reaplicada;
+AUTO_MIGRATE=false e 47 arquivos locais preservados. Hono 4.13.11 no lockfile
+do build; pacote ausente no runtime de produção.
+[Publicação, provas e limites](docs/operations/stabilization/2026-10-20-hono-publication.md).
+
 ## Camada analítica — publicada em 18/10, conferida em 20/10
 
 PR #75 integrada em `cabf504040833ffd1af3f134761b0cb9f6eb6e32`, com seis
@@ -15,8 +25,9 @@ antes das duas migrations analíticas; o banco produtivo passou de 38 para
 40 migrations. Startup permanece em verificação, com auto-migrate desligado.
 
 Candidata e revisão comercial passaram por ensaios autenticados com dados
-sintéticos antes da promoção. `forgelex-api-prod-analise-cabf504` atende 100%
-do tráfego desde 18/10, com análise e cobrança habilitadas. O worker privado
+sintéticos antes da promoção. A revisão `forgelex-api-prod-analise-cabf504`
+iniciou o atendimento em 18/10 e foi substituída pela revisão do Hono acima,
+preservando análise e cobrança habilitadas. O worker privado
 de encerramento também foi atualizado para conservar o expurgo das novas
 tabelas. A conferência de 20/10 e a limpeza operacional estão no
 [recibo da publicação](docs/operations/stabilization/2026-10-18-analise-publication.md).

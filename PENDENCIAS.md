@@ -32,12 +32,20 @@ em 18/10. Implementação `dd87fc3`, enviada na
 registra os checks e o estado de integração.
 Após autorização expressa de Boni, backup, migrations produtivas, deploy e
 validação da candidata antes da promoção foram executados em 18/10.
-A revisão `forgelex-api-prod-analise-cabf504` atende 100% do tráfego;
-[evidências e conferência de 20/10](docs/operations/stabilization/2026-10-18-analise-publication.md).
+A publicação do Hono em 20/10 passou a atender 100% do tráfego na revisão
+`forgelex-api-prod-hono-e93a508`, após validação da candidata;
+[evidências da publicação atual](docs/operations/stabilization/2026-10-20-hono-publication.md).
 Permanece a homologação da camada analítica nos hosts reais ChatGPT/Claude
 e a avaliação jurídica por Boni, fora do alcance dos ensaios sintéticos.
 Operações interrompidas permanecem bloqueadas até a decisão
 de reconciliação; não foi adicionada recuperação automática de saldo ou direitos.
+
+## Correção de dependência Hono — publicada
+
+PR #76 integrada e publicada em 20/10, com candidatas validadas e sem reaplicar
+migrations. Lockfile corrigido para Hono 4.13.11; pacote ausente no runtime.
+[Recibo da publicação](docs/operations/stabilization/2026-10-20-hono-publication.md). As limitações de homologação dos hosts
+e o alerta upstream de braces mantêm seus escopos anteriores.
 
 ## Correções encerradas
 
