@@ -1,6 +1,22 @@
 # Auditoria e status canônico do ForgeLex
 
-## Correção do Hono — publicada em 20/10/2026
+## Dependências de segurança — publicadas em 24/10/2026
+
+PR #78 integrada em main `6499eb0`; seis checks aprovados na PR e
+pós-merge. Zod 4.6.7 com conversão nativa e regressões dos contratos, SDKs MCP
+e dependências corrigidas. 948 testes aprovados, 18 ignorados, sem novos skips;
+audits de produção e completo sem alertas conhecidos na consulta desta entrega.
+
+API `forgelex-api-prod-deps-6499eb0` e worker
+`forgelex-closure-hml-private-deps-6499eb0` em 100%, após inventário/testes
+no container, candidata e revisão comercial sem tráfego. Oito probes públicos
+aprovados após a limpeza; IAM, configuração e Scheduler preservados.
+Nenhuma migration reaplicada, AUTO_MIGRATE=false e 47 arquivos locais intactos.
+O advisory de braces foi retirado pelo upstream em 23/10; a mitigação permanece.
+[Recibo, provas e limites](docs/operations/stabilization/2026-10-24-security-dependencies-publication.md). Homologação nos hosts reais e avaliação
+jurídica continuam com seus limites anteriores.
+
+## Correção do Hono — registro da publicação de 20/10/2026
 
 Main `e93a508`, PR #76 e seis checks pós-merge aprovados. Build
 `1565888e-a88b-43ff-ac50-4124d734dac2` concluído; inventário do artefato
@@ -10,7 +26,7 @@ por oito probes cada antes da promoção, com traces nas revisões corretas.
 Worker privado: readiness autenticada 200 e acesso anônimo 403.
 
 API `forgelex-api-prod-hono-e93a508` e worker
-`forgelex-closure-hml-private-hono-e93a508` atendem 100%. Oito probes públicos
+`forgelex-closure-hml-private-hono-e93a508` atenderam 100% até a publicação de 24/10. Oito probes públicos
 passaram após a limpeza; IAM e Scheduler preservados, três requisições
 regulares do Scheduler com 200. Nenhuma migration reaplicada, AUTO_MIGRATE=false
 e 47 arquivos locais preservados. Recursos temporários removidos.

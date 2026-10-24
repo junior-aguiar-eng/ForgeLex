@@ -1,0 +1,757 @@
+{
+  "startedAt": "2026-10-24T05:17:18.944Z",
+  "project": "project-bbbe1209-c295-4720-867",
+  "region": "southamerica-east1",
+  "sourceSha": "6499eb002a2960adf3f807d4c00321f8ed174663",
+  "pr": 78,
+  "ci": {
+    "run": 40065084732,
+    "conclusion": "success",
+    "jobs": 6
+  },
+  "before": {
+    "public": {
+      "checkedAt": "2026-10-24T05:16:26.264Z",
+      "revision": "forgelex-api-prod-hono-e93a508",
+      "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:a5235667db65050349d7c89db422771386a5824d3aee5a98c2a10fd4151d6a97",
+      "environmentPreservedExceptExplicitFlags": true,
+      "sourceSha": "e93a5085b244f80feba5e87a6f78a72297ff690b",
+      "billingEnabled": "true",
+      "serviceAccountPreserved": true,
+      "runtimeSpecPreserved": true,
+      "autoMigrate": false,
+      "secretReferences": 15,
+      "ingress": "internal-and-cloud-load-balancing",
+      "traffic": [
+        {
+          "percent": 100,
+          "revisionName": "forgelex-api-prod-hono-e93a508"
+        }
+      ],
+      "url": "https://forgelex-api-prod-r4m4ltvj3a-rj.a.run.app"
+    },
+    "worker": {
+      "checkedAt": "2026-10-24T05:17:02.629Z",
+      "revision": "forgelex-closure-hml-private-hono-e93a508",
+      "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:a5235667db65050349d7c89db422771386a5824d3aee5a98c2a10fd4151d6a97",
+      "environmentPreservedExceptExplicitFlags": true,
+      "sourceSha": "e93a5085b244f80feba5e87a6f78a72297ff690b",
+      "billingEnabled": "false",
+      "serviceAccountPreserved": true,
+      "runtimeSpecPreserved": true,
+      "autoMigrate": false,
+      "secretReferences": 12,
+      "ingress": "all",
+      "traffic": [
+        {
+          "percent": 100,
+          "revisionName": "forgelex-closure-hml-private-hono-e93a508"
+        }
+      ],
+      "url": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app"
+    }
+  },
+  "iamBefore": {
+    "public": "a6b7331e1aca4b6e533c3e5419a5bd346efde168bbf3c3d5be2e28638752de50",
+    "worker": "1d503a6876b1cb95d5807c3d1c7a779e5f7def73a18ed7f8ad9b376e7dd3d758"
+  },
+  "scheduler": {
+    "uri": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+    "audience": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app",
+    "serviceAccount": "forgelex-hml-closure-invoker@project-bbbe1209-c295-4720-867.iam.gserviceaccount.com",
+    "state": "ENABLED"
+  },
+  "migrations": {
+    "operatorExecuted": false,
+    "databaseConnectionsOpened": 0,
+    "autoMigrate": false
+  },
+  "manualReconcileTriggered": false,
+  "build": {
+    "id": "07eb9987-7483-418c-b15e-21468d14b8cc",
+    "status": "SUCCESS",
+    "finishTime": "2026-10-24T05:23:11.339661Z",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:e3c09f047239c879e8db413aac696362218193b1f0ca2f7e74e6a05f8824f95c",
+    "sourceSha": "6499eb002a2960adf3f807d4c00321f8ed174663"
+  },
+  "mainCi": {
+    "run": 40065568520,
+    "conclusion": "success",
+    "jobs": 6,
+    "sourceSha": "6499eb002a2960adf3f807d4c00321f8ed174663"
+  },
+  "imageVerification": {
+    "id": "5f8a6d0d-57a1-4ec4-aa8c-e3ef5cb99e6f",
+    "status": "SUCCESS",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:e3c09f047239c879e8db413aac696362218193b1f0ca2f7e74e6a05f8824f95c",
+    "approach": "Inventory installed runtime packages and exercise bounded Zod array and legacy GUID",
+    "finishTime": "2026-10-24T05:27:47.452912Z",
+    "inventory": {
+      "runtimePackagesInspected": 182,
+      "affectedPackages": [
+        {
+          "name": "fast-uri",
+          "version": "4.2.3"
+        },
+        {
+          "name": "zod",
+          "version": "4.6.7"
+        },
+        {
+          "name": "fast-uri",
+          "version": "3.1.9"
+        },
+        {
+          "name": "fastify",
+          "version": "5.12.7"
+        }
+      ],
+      "oversizedArrayIssues": 1,
+      "legacyGuidAccepted": true,
+      "mcpCatalogAndDefaultsVerified": true,
+      "databaseConnections": 0,
+      "billableCalls": 0,
+      "imageVerified": true
+    },
+    "probeSha256": "c9142063a31e118db0ecd96c1ec292770e684ac6e8c44c3ed4746e147c1cc671",
+    "probeSource": "const fs = require('node:fs');\nconst path = require('node:path');\nconst assert = require('node:assert/strict');\nconst { createRequire } = require('node:module');\nconst { pathToFileURL } = require('node:url');\n\nasync function main() {\n  const seen = new Set(), packages = [];\n  function walk(dir) {\n    const real = fs.realpathSync(dir);\n    if (seen.has(real)) return;\n    seen.add(real);\n    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {\n      const file = path.join(dir, entry.name);\n      if (entry.isDirectory()) walk(file);\n      else if (entry.isSymbolicLink()) { if (fs.statSync(file).isDirectory()) walk(file); }\n      else if (entry.name === 'package.json') {\n        const p = JSON.parse(fs.readFileSync(file));\n        if (p.name && p.version) packages.push({ name: p.name, version: p.version });\n      }\n    }\n  }\n  walk('/app/api/node_modules');\n  const selected = ['zod', 'fastify', 'fast-uri', 'body-parser', 'ip-address', 'hono', 'vitest', '@vitest/mocker'];\n  const affected = packages.filter(p => selected.includes(p.name));\n  assert(packages.length > 50);\n  assert(affected.some(p => p.name === 'zod' && p.version === '4.6.7'));\n  assert(affected.some(p => p.name === 'fastify' && p.version === '5.12.7'));\n  for (const p of affected) {\n    if (p.name === 'zod') assert.equal(p.version, '4.6.7');\n    if (p.name === 'fast-uri') assert(['3.1.9', '4.2.3'].includes(p.version));\n    if (p.name === 'body-parser') assert.equal(p.version, '2.4.0');\n    if (p.name === 'ip-address') assert.equal(p.version, '10.7.4');\n    assert(!['vitest', '@vitest/mocker'].includes(p.name));\n  }\n  const runtimeRequire = createRequire('/app/api/package.json');\n  const { z } = runtimeRequire('zod');\n  const oversized = z.array(z.object({ value: z.string() })).max(2)\n    .safeParse(Array.from({ length: 10_000 }, () => ({ value: 0 })));\n  assert.equal(oversized.success, false);\n  assert.equal(oversized.error.issues.length, 1);\n  assert(z.string().guid().safeParse('11111111-1111-1111-1111-111111111111').success);\n\n  function esmEntry(name) {\n    const dir = path.join('/app/api/node_modules', name);\n    const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));\n    return pathToFileURL(path.resolve(dir, manifest.exports['.'].import)).href;\n  }\n  const { ToolRegistry } = await import(esmEntry('@forgelex/agent-core'));\n  const { searchCaseLawTool } = await import(esmEntry('@forgelex/legal-tools'));\n  const { McpHandler } = await import(esmEntry('@forgelex/mcp-server'));\n  const registry = new ToolRegistry(); registry.register(searchCaseLawTool);\n  // Catalog/initialize never access the ledger. No database or tool execution.\n  const handler = new McpHandler(registry, null);\n  const init = await handler.handleRequest({ jsonrpc: '2.0', id: 1, method: 'initialize' });\n  assert.equal(init.result.protocolVersion, '2024-11-05');\n  const catalog = await handler.handleRequest({ jsonrpc: '2.0', id: 2, method: 'tools/list' });\n  const search = catalog.result.tools.find(t => t.name === 'research.search_case_law');\n  assert.equal(search.inputSchema.type, 'object');\n  assert.equal(search.inputSchema.properties.limit.default, 10);\n  assert(search.inputSchema.required.includes('query'));\n  assert(!search.inputSchema.required.includes('limit'));\n  assert(!search.inputSchema.required.includes('idempotencyKey'));\n  assert.equal(search.inputSchema.properties.idempotencyKey.type, 'string');\n  assert.equal(search.inputSchema.additionalProperties, false);\n  assert.deepEqual(searchCaseLawTool.inputSchema.parse({ query: 'teste sintético' }), { query: 'teste sintético', limit: 10 });\n  assert.equal(searchCaseLawTool.inputSchema.safeParse({ query: 'teste', limit: 21 }).success, false);\n  console.log(JSON.stringify({ runtimePackagesInspected: packages.length, affectedPackages: affected,\n    oversizedArrayIssues: oversized.error.issues.length, legacyGuidAccepted: true,\n    mcpCatalogAndDefaultsVerified: true, databaseConnections: 0, billableCalls: 0, imageVerified: true }));\n}\nmain().catch(error => { console.error(error); process.exitCode = 1; });\n"
+  },
+  "imageVerificationAttempts": [
+    {
+      "id": "50a9079d-284b-488a-84b4-1f58c7de7f93",
+      "status": "FAILURE",
+      "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:e3c09f047239c879e8db413aac696362218193b1f0ca2f7e74e6a05f8824f95c",
+      "approach": "Inventory installed runtime packages and exercise bounded Zod array and legacy GUID",
+      "finishTime": "2026-10-24T05:24:55.700230Z",
+      "failureCause": "Sonda exigia Fastify 5.12.6; lockfile da fonte resolve 5.12.7 dentro de ^5.12.6. Corrigida expectativa para 5.12.7 sem alterar imagem ou código."
+    },
+    {
+      "id": "a449bf6b-ec49-4f62-8edd-2a4f0fbe9cdd",
+      "status": "FAILURE",
+      "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:e3c09f047239c879e8db413aac696362218193b1f0ca2f7e74e6a05f8824f95c",
+      "approach": "Inventory installed runtime packages and exercise bounded Zod array and legacy GUID",
+      "finishTime": "2026-10-24T05:26:41.203915Z",
+      "failureCause": "Sonda usou require.resolve em pacote com export exclusivo import; corrigida resolução pela entrada ESM declarada no manifest, sem alterar imagem."
+    }
+  ],
+  "publicCandidate": {
+    "checkedAt": "2026-10-24T05:30:21.767Z",
+    "revision": "forgelex-api-prod-deps-6499eb0-candidate",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:e3c09f047239c879e8db413aac696362218193b1f0ca2f7e74e6a05f8824f95c",
+    "environmentPreservedExceptExplicitFlags": true,
+    "sourceSha": "6499eb002a2960adf3f807d4c00321f8ed174663",
+    "billingEnabled": "false",
+    "serviceAccountPreserved": true,
+    "runtimeSpecPreserved": true,
+    "autoMigrate": false,
+    "secretReferences": 15,
+    "url": "https://deps---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app",
+    "noTraffic": true
+  },
+  "workerCandidate": {
+    "checkedAt": "2026-10-24T05:31:32.438Z",
+    "revision": "forgelex-closure-hml-private-deps-6499eb0",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:e3c09f047239c879e8db413aac696362218193b1f0ca2f7e74e6a05f8824f95c",
+    "environmentPreservedExceptExplicitFlags": true,
+    "sourceSha": "6499eb002a2960adf3f807d4c00321f8ed174663",
+    "billingEnabled": "false",
+    "serviceAccountPreserved": true,
+    "runtimeSpecPreserved": true,
+    "autoMigrate": false,
+    "secretReferences": 12,
+    "url": "https://deps---forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app",
+    "noTraffic": true
+  },
+  "workerValidation": {
+    "checkedAt": "2026-10-24T05:32:32.630Z",
+    "status": "passed",
+    "authenticated": 200,
+    "anonymous": 403,
+    "readiness": {
+      "status": "ready",
+      "service": "forgelex-api",
+      "checks": {
+        "persistence": true,
+        "migrations": true,
+        "billing": true,
+        "source": true,
+        "auth": true,
+        "outbox": true,
+        "accountClosureRestore": true,
+        "matterPurgeRestore": true
+      }
+    },
+    "manualReconcileTriggered": false
+  },
+  "temporaryRouting": {
+    "neg": "forgelex-deps-6499eb0-neg",
+    "backend": "forgelex-deps-6499eb0-backend",
+    "prefix": "/_deps_candidate_6499eb0/",
+    "createdAt": "2026-10-24T05:32:46.845Z",
+    "base": "https://nexojuris.ia.br/_deps_candidate_6499eb0/",
+    "installedAt": "2026-10-24T05:36:14.937Z",
+    "repair": {
+      "at": "2026-10-24T05:43:33.115Z",
+      "cause": "Canonical host already points to nexohub-root, while helper assumed prod-root. Moved only owned candidate rule to active matcher pathRules, preserving /hub and defaults.",
+      "hostMatcher": "nexohub-root",
+      "backend": "forgelex-deps-6499eb0-backend"
+    },
+    "preservedMapWithoutOwnedRule": {
+      "creationTimestamp": "2026-09-20T17:16:08.192-07:00",
+      "defaultService": "https://www.googleapis.com/compute/v1/projects/project-bbbe1209-c295-4720-867/global/backendServices/forgelex-api-hml-backend",
+      "fingerprint": "eSnSZVFlnr4=",
+      "hostRules": [
+        {
+          "hosts": [
+            "hml.nexojuris.ia.br"
+          ],
+          "pathMatcher": "hml-isolated"
+        },
+        {
+          "hosts": [
+            "nexojuris.ia.br"
+          ],
+          "pathMatcher": "nexohub-root"
+        }
+      ],
+      "id": "3980559445093370280",
+      "kind": "compute#urlMap",
+      "name": "forgelex-api-hml-map",
+      "pathMatchers": [
+        {
+          "defaultService": "https://www.googleapis.com/compute/v1/projects/project-bbbe1209-c295-4720-867/global/backendServices/forgelex-api-hml-isolated-backend",
+          "name": "hml-isolated"
+        },
+        {
+          "defaultService": "https://www.googleapis.com/compute/v1/projects/project-bbbe1209-c295-4720-867/global/backendServices/forgelex-api-prod-backend",
+          "name": "prod-root"
+        },
+        {
+          "defaultService": "https://www.googleapis.com/compute/v1/projects/project-bbbe1209-c295-4720-867/global/backendServices/forgelex-api-prod-backend",
+          "name": "nexohub-root",
+          "pathRules": [
+            {
+              "paths": [
+                "/hub"
+              ],
+              "urlRedirect": {
+                "pathRedirect": "/hub/",
+                "redirectResponseCode": "MOVED_PERMANENTLY_DEFAULT",
+                "stripQuery": false
+              }
+            },
+            {
+              "paths": [
+                "/hub/*"
+              ],
+              "routeAction": {
+                "urlRewrite": {
+                  "pathPrefixRewrite": "/"
+                }
+              },
+              "service": "https://www.googleapis.com/compute/v1/projects/project-bbbe1209-c295-4720-867/global/backendServices/nexohub-hub-backend"
+            }
+          ]
+        }
+      ],
+      "selfLink": "https://www.googleapis.com/compute/v1/projects/project-bbbe1209-c295-4720-867/global/urlMaps/forgelex-api-hml-map"
+    },
+    "cleanedAt": "2026-10-24T06:00:42.022Z"
+  },
+  "candidateProbesFailure": {
+    "phase": "candidate",
+    "base": "https://nexojuris.ia.br/_deps_candidate_6499eb0/",
+    "startedAt": "2026-10-24T05:40:15.861Z",
+    "checks": [],
+    "operatorDatabaseStatements": 0,
+    "billableCalls": 0,
+    "status": "failed",
+    "error": "Candidate route/readiness did not converge"
+  },
+  "routeDiagnostics": [
+    {
+      "checkedAt": "2026-10-24T05:39:25.483Z",
+      "httpStatus": 404,
+      "trace": "0f8e6f1ad2cd45fd83b039f8bd7a3489",
+      "events": [
+        {
+          "timestamp": "2026-10-24T05:39:18.014699Z",
+          "revision": "forgelex-api-prod-hono-e93a508",
+          "status": 404,
+          "url": "https://nexojuris.ia.br/_deps_candidate_6499eb0/readyz"
+        }
+      ]
+    }
+  ],
+  "candidateProbes": {
+    "phase": "candidate",
+    "base": "https://nexojuris.ia.br/_deps_candidate_6499eb0/",
+    "startedAt": "2026-10-24T05:44:13.056Z",
+    "checks": [
+      {
+        "path": "readyz",
+        "status": 200,
+        "expected": 200,
+        "bytes": 201,
+        "sha256": "fa7f2fce3ddc755de50b89d295918fbd17ede2f0e1a03aa8634435fe4b6d2dde",
+        "trace": "81e398470727423c857a5fd0fde9aa69"
+      },
+      {
+        "path": "",
+        "status": 200,
+        "expected": 200,
+        "bytes": 2451,
+        "sha256": "641210f671e7d2a2d8d77464f2f8aed68861b37b8a14540c9d21c0e180111448",
+        "trace": "c9099e9d6b4f4bc28bd5e8ba66578a7e"
+      },
+      {
+        "path": "assets/index-DpAMTjUp.js",
+        "status": 200,
+        "expected": 200,
+        "bytes": 468263,
+        "sha256": "41903fa7bbfc6ab63504e045de74d038ea429185fb6db392b55570a38d0d6d4c",
+        "trace": "6f0f3b8d17ba44adaed19dd91ca60a3f"
+      },
+      {
+        "path": "assets/index-BcMysa4n.css",
+        "status": 200,
+        "expected": 200,
+        "bytes": 41052,
+        "sha256": "4ab3cb530fbc83f61e765579c3a99635c5d9e599b1af8b0e35fedfed2876dcc2",
+        "trace": "25d262350c26402c9e0a76955b95c1d5"
+      },
+      {
+        "path": ".well-known/oauth-protected-resource",
+        "status": 200,
+        "expected": 200,
+        "bytes": 231,
+        "sha256": "153d00c901875984c9e573b7f1d57a868d7b1f973bda93d86f6f475153403b09",
+        "trace": "5d5d8f64896249d9a424b266a93ea97b"
+      },
+      {
+        "path": "api/v2/research/saved",
+        "status": 401,
+        "expected": 401,
+        "bytes": 66,
+        "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+        "trace": "d79ad3e23b6449ef83c0bfda3d6ee9c3"
+      },
+      {
+        "path": "mcp",
+        "status": 401,
+        "expected": 401,
+        "bytes": 66,
+        "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+        "trace": "225a13e5ffcb40fcb1ac95d1209795ef"
+      },
+      {
+        "path": "openapi.json",
+        "status": 200,
+        "expected": 200,
+        "bytes": 195048,
+        "sha256": "af62df9c9d741dc027fe855610a51ed23345f502617c5e124e93f4b200ba6027",
+        "trace": "840e2d69a3dc43278cc361b670ce3f31"
+      }
+    ],
+    "operatorDatabaseStatements": 0,
+    "billableCalls": 0,
+    "readiness": {
+      "status": "ready",
+      "service": "forgelex-api",
+      "checks": {
+        "persistence": true,
+        "migrations": true,
+        "billing": true,
+        "source": true,
+        "auth": true,
+        "outbox": true,
+        "accountClosureRestore": true,
+        "matterPurgeRestore": true
+      }
+    },
+    "revisionTrace": {
+      "trace": "81e398470727423c857a5fd0fde9aa69",
+      "revision": "forgelex-api-prod-deps-6499eb0-candidate",
+      "httpStatus": 200
+    },
+    "status": "passed",
+    "finishedAt": "2026-10-24T05:46:59.719Z"
+  },
+  "commercialRevision": {
+    "checkedAt": "2026-10-24T05:50:55.513Z",
+    "revision": "forgelex-api-prod-deps-6499eb0",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:e3c09f047239c879e8db413aac696362218193b1f0ca2f7e74e6a05f8824f95c",
+    "environmentPreservedExceptExplicitFlags": true,
+    "sourceSha": "6499eb002a2960adf3f807d4c00321f8ed174663",
+    "billingEnabled": "true",
+    "serviceAccountPreserved": true,
+    "runtimeSpecPreserved": true,
+    "autoMigrate": false,
+    "secretReferences": 15,
+    "url": "https://deps---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app",
+    "noTraffic": true
+  },
+  "commercialProbes": {
+    "phase": "commercial",
+    "base": "https://nexojuris.ia.br/_deps_candidate_6499eb0/",
+    "startedAt": "2026-10-24T05:52:38.888Z",
+    "checks": [
+      {
+        "path": "readyz",
+        "status": 200,
+        "expected": 200,
+        "bytes": 201,
+        "sha256": "fa7f2fce3ddc755de50b89d295918fbd17ede2f0e1a03aa8634435fe4b6d2dde",
+        "trace": "62a756f2431940b0a8131d0082ed5999"
+      },
+      {
+        "path": "",
+        "status": 200,
+        "expected": 200,
+        "bytes": 2451,
+        "sha256": "641210f671e7d2a2d8d77464f2f8aed68861b37b8a14540c9d21c0e180111448",
+        "trace": "b10b433653bb47e2921cc62648a0f4e8"
+      },
+      {
+        "path": "assets/index-DpAMTjUp.js",
+        "status": 200,
+        "expected": 200,
+        "bytes": 468263,
+        "sha256": "41903fa7bbfc6ab63504e045de74d038ea429185fb6db392b55570a38d0d6d4c",
+        "trace": "32ebe8b6735c43049590df4ac9de3ce0"
+      },
+      {
+        "path": "assets/index-BcMysa4n.css",
+        "status": 200,
+        "expected": 200,
+        "bytes": 41052,
+        "sha256": "4ab3cb530fbc83f61e765579c3a99635c5d9e599b1af8b0e35fedfed2876dcc2",
+        "trace": "86b2d9e6ace14bdfaee185beb90c1dc0"
+      },
+      {
+        "path": ".well-known/oauth-protected-resource",
+        "status": 200,
+        "expected": 200,
+        "bytes": 231,
+        "sha256": "153d00c901875984c9e573b7f1d57a868d7b1f973bda93d86f6f475153403b09",
+        "trace": "9cc5805af9af46b3afb30edb631cdbf9"
+      },
+      {
+        "path": "api/v2/research/saved",
+        "status": 401,
+        "expected": 401,
+        "bytes": 66,
+        "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+        "trace": "ce1ca203c52e4f699bfb28499c6f36c0"
+      },
+      {
+        "path": "mcp",
+        "status": 401,
+        "expected": 401,
+        "bytes": 66,
+        "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+        "trace": "195a2c4c0cc548b192ff058ed30986c3"
+      },
+      {
+        "path": "openapi.json",
+        "status": 200,
+        "expected": 200,
+        "bytes": 195048,
+        "sha256": "af62df9c9d741dc027fe855610a51ed23345f502617c5e124e93f4b200ba6027",
+        "trace": "bacd760aafb74fa78124c33e98519d29"
+      }
+    ],
+    "operatorDatabaseStatements": 0,
+    "billableCalls": 0,
+    "readiness": {
+      "status": "ready",
+      "service": "forgelex-api",
+      "checks": {
+        "persistence": true,
+        "migrations": true,
+        "billing": true,
+        "source": true,
+        "auth": true,
+        "outbox": true,
+        "accountClosureRestore": true,
+        "matterPurgeRestore": true
+      }
+    },
+    "revisionTrace": {
+      "trace": "62a756f2431940b0a8131d0082ed5999",
+      "revision": "forgelex-api-prod-deps-6499eb0",
+      "httpStatus": 200
+    },
+    "candidateAssetsIdentical": true,
+    "status": "passed",
+    "finishedAt": "2026-10-24T05:53:18.593Z"
+  },
+  "promotion": {
+    "worker": {
+      "at": "2026-10-24T05:55:01.320Z",
+      "revision": "forgelex-closure-hml-private-deps-6499eb0",
+      "percent": 100
+    },
+    "public": {
+      "at": "2026-10-24T05:56:40.923Z",
+      "revision": "forgelex-api-prod-deps-6499eb0",
+      "percent": 100
+    }
+  },
+  "publicProbes": {
+    "phase": "public",
+    "base": "https://nexojuris.ia.br/",
+    "startedAt": "2026-10-24T06:01:12.761Z",
+    "checks": [
+      {
+        "path": "readyz",
+        "status": 200,
+        "expected": 200,
+        "bytes": 201,
+        "sha256": "fa7f2fce3ddc755de50b89d295918fbd17ede2f0e1a03aa8634435fe4b6d2dde",
+        "trace": "4c81654286464123bdb0bc22cb62952c"
+      },
+      {
+        "path": "",
+        "status": 200,
+        "expected": 200,
+        "bytes": 2451,
+        "sha256": "641210f671e7d2a2d8d77464f2f8aed68861b37b8a14540c9d21c0e180111448",
+        "trace": "de5273e556e64fda839422afda5a826b"
+      },
+      {
+        "path": "assets/index-DpAMTjUp.js",
+        "status": 200,
+        "expected": 200,
+        "bytes": 468263,
+        "sha256": "41903fa7bbfc6ab63504e045de74d038ea429185fb6db392b55570a38d0d6d4c",
+        "trace": "49ad8190eda646289c2f54e5aa7fbee8"
+      },
+      {
+        "path": "assets/index-BcMysa4n.css",
+        "status": 200,
+        "expected": 200,
+        "bytes": 41052,
+        "sha256": "4ab3cb530fbc83f61e765579c3a99635c5d9e599b1af8b0e35fedfed2876dcc2",
+        "trace": "6d7f4b6fafed42a5ab1b7bf1a9a1b6b6"
+      },
+      {
+        "path": ".well-known/oauth-protected-resource",
+        "status": 200,
+        "expected": 200,
+        "bytes": 231,
+        "sha256": "153d00c901875984c9e573b7f1d57a868d7b1f973bda93d86f6f475153403b09",
+        "trace": "6ec7f2211c2b4a0289174c7615179cba"
+      },
+      {
+        "path": "api/v2/research/saved",
+        "status": 401,
+        "expected": 401,
+        "bytes": 66,
+        "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+        "trace": "32411897714949878609eec2691cc75b"
+      },
+      {
+        "path": "mcp",
+        "status": 401,
+        "expected": 401,
+        "bytes": 66,
+        "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+        "trace": "22bc6b9105324e8fa918c403c33164ef"
+      },
+      {
+        "path": "openapi.json",
+        "status": 200,
+        "expected": 200,
+        "bytes": 195048,
+        "sha256": "af62df9c9d741dc027fe855610a51ed23345f502617c5e124e93f4b200ba6027",
+        "trace": "47c5acec772c4602b11576f68390316e"
+      }
+    ],
+    "operatorDatabaseStatements": 0,
+    "billableCalls": 0,
+    "readiness": {
+      "status": "ready",
+      "service": "forgelex-api",
+      "checks": {
+        "persistence": true,
+        "migrations": true,
+        "billing": true,
+        "source": true,
+        "auth": true,
+        "outbox": true,
+        "accountClosureRestore": true,
+        "matterPurgeRestore": true
+      }
+    },
+    "candidateAssetsIdentical": true,
+    "status": "passed",
+    "finishedAt": "2026-10-24T06:01:14.749Z"
+  },
+  "publicProbesBeforeCleanup": {
+    "phase": "public",
+    "base": "https://nexojuris.ia.br/",
+    "startedAt": "2026-10-24T05:57:29.087Z",
+    "checks": [
+      {
+        "path": "readyz",
+        "status": 200,
+        "expected": 200,
+        "bytes": 201,
+        "sha256": "fa7f2fce3ddc755de50b89d295918fbd17ede2f0e1a03aa8634435fe4b6d2dde",
+        "trace": "2bde309e48ed44a19364f2cc1b2da785"
+      },
+      {
+        "path": "",
+        "status": 200,
+        "expected": 200,
+        "bytes": 2451,
+        "sha256": "641210f671e7d2a2d8d77464f2f8aed68861b37b8a14540c9d21c0e180111448",
+        "trace": "bc10c9bf498d410cada763959c5cfd8a"
+      },
+      {
+        "path": "assets/index-DpAMTjUp.js",
+        "status": 200,
+        "expected": 200,
+        "bytes": 468263,
+        "sha256": "41903fa7bbfc6ab63504e045de74d038ea429185fb6db392b55570a38d0d6d4c",
+        "trace": "9971dbc8977f488b94f222b45d62415d"
+      },
+      {
+        "path": "assets/index-BcMysa4n.css",
+        "status": 200,
+        "expected": 200,
+        "bytes": 41052,
+        "sha256": "4ab3cb530fbc83f61e765579c3a99635c5d9e599b1af8b0e35fedfed2876dcc2",
+        "trace": "1dc6297ddc9c4a9a93782b5d8b520fa6"
+      },
+      {
+        "path": ".well-known/oauth-protected-resource",
+        "status": 200,
+        "expected": 200,
+        "bytes": 231,
+        "sha256": "153d00c901875984c9e573b7f1d57a868d7b1f973bda93d86f6f475153403b09",
+        "trace": "b39701c97b4c416a83e4af0cfd090531"
+      },
+      {
+        "path": "api/v2/research/saved",
+        "status": 401,
+        "expected": 401,
+        "bytes": 66,
+        "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+        "trace": "e8a72c3d355c4dd8bd8b2ed1b5b3577e"
+      },
+      {
+        "path": "mcp",
+        "status": 401,
+        "expected": 401,
+        "bytes": 66,
+        "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+        "trace": "40d7fb78fb56436ab258b741965f44a6"
+      },
+      {
+        "path": "openapi.json",
+        "status": 200,
+        "expected": 200,
+        "bytes": 195048,
+        "sha256": "af62df9c9d741dc027fe855610a51ed23345f502617c5e124e93f4b200ba6027",
+        "trace": "1847c315aa254b178b896232d73d608f"
+      }
+    ],
+    "operatorDatabaseStatements": 0,
+    "billableCalls": 0,
+    "readiness": {
+      "status": "ready",
+      "service": "forgelex-api",
+      "checks": {
+        "persistence": true,
+        "migrations": true,
+        "billing": true,
+        "source": true,
+        "auth": true,
+        "outbox": true,
+        "accountClosureRestore": true,
+        "matterPurgeRestore": true
+      }
+    },
+    "candidateAssetsIdentical": true,
+    "status": "passed",
+    "finishedAt": "2026-10-24T05:57:31.020Z"
+  },
+  "final": {
+    "checkedAt": "2026-10-24T06:01:15.404Z",
+    "public": {
+      "checkedAt": "2026-10-24T06:02:58.641Z",
+      "revision": "forgelex-api-prod-deps-6499eb0",
+      "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:e3c09f047239c879e8db413aac696362218193b1f0ca2f7e74e6a05f8824f95c",
+      "environmentPreservedExceptExplicitFlags": true,
+      "sourceSha": "6499eb002a2960adf3f807d4c00321f8ed174663",
+      "billingEnabled": "true",
+      "serviceAccountPreserved": true,
+      "runtimeSpecPreserved": true,
+      "autoMigrate": false,
+      "secretReferences": 15,
+      "trafficPercent": 100,
+      "ingress": "internal-and-cloud-load-balancing",
+      "candidateTagRemoved": true,
+      "iamPolicyPreserved": true
+    },
+    "worker": {
+      "checkedAt": "2026-10-24T06:04:03.805Z",
+      "revision": "forgelex-closure-hml-private-deps-6499eb0",
+      "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:e3c09f047239c879e8db413aac696362218193b1f0ca2f7e74e6a05f8824f95c",
+      "environmentPreservedExceptExplicitFlags": true,
+      "sourceSha": "6499eb002a2960adf3f807d4c00321f8ed174663",
+      "billingEnabled": "false",
+      "serviceAccountPreserved": true,
+      "runtimeSpecPreserved": true,
+      "autoMigrate": false,
+      "secretReferences": 12,
+      "trafficPercent": 100,
+      "ingress": "all",
+      "candidateTagRemoved": true,
+      "iamPolicyPreserved": true
+    },
+    "schedulerPreserved": true,
+    "existingHostAndHubRoutesPreserved": true,
+    "temporaryResourcesRemoved": true,
+    "publicRequestTrace": {
+      "trace": "4c81654286464123bdb0bc22cb62952c",
+      "revision": "forgelex-api-prod-deps-6499eb0",
+      "httpStatus": 200
+    },
+    "errorQuery": {
+      "checkedAt": "2026-10-24T06:05:12.343Z",
+      "count": 0,
+      "limit": 20,
+      "scope": "both new revisions since candidate creation",
+      "events": []
+    },
+    "scheduledRequests": [
+      {
+        "timestamp": "2026-10-24T06:05:02.976015Z",
+        "status": 200,
+        "revision": "forgelex-closure-hml-private-deps-6499eb0"
+      },
+      {
+        "timestamp": "2026-10-24T06:04:03.546622Z",
+        "status": 200,
+        "revision": "forgelex-closure-hml-private-deps-6499eb0"
+      },
+      {
+        "timestamp": "2026-10-24T06:03:02.973799Z",
+        "status": 200,
+        "revision": "forgelex-closure-hml-private-deps-6499eb0"
+      }
+    ]
+  },
+  "completedAt": "2026-10-24T06:05:40.305Z",
+  "localPreservation": {
+    "checkedAt": "2026-10-24T06:05:40.109Z",
+    "files": 47,
+    "sha256Comparison": "all match pre-change baseline",
+    "branch": "codex/case-flow-simplification",
+    "head": "101ee331fc621ebf38fd536a549c38b0f9340d12",
+    "filesUnchanged": true
+  }
+}

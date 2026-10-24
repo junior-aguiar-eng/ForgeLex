@@ -43,6 +43,7 @@ Comprovações humanas, dependências externas e manutenção estão no backlog 
 
 ## Operação e evidências
 
+- [Publicação das dependências de segurança](operations/stabilization/2026-10-24-security-dependencies-publication.md): Zod 4, inventário, candidata, promoção e preservação, sem migrations.
 - [Publicação da correção do Hono](operations/stabilization/2026-10-20-hono-publication.md): imagem, inventário do runtime, candidata, promoção e preservação, sem migrations.
 - [Publicação da camada analítica](operations/stabilization/2026-10-18-analise-publication.md): backup, migrations, candidata, promoção e conferência final em 20/10.
 - [Preparação local da camada analítica](operations/stabilization/2026-10-18-analise-publication-readiness.md): controle de migrations, CI PostgreSQL e validações; sem publicação.
@@ -50,7 +51,7 @@ Comprovações humanas, dependências externas e manutenção estão no backlog 
 
 | Documento | Finalidade | Natureza |
 | --- | --- | --- |
-| [Braces e STJ reavaliados](operations/stabilization/2026-10-10-external-pending-review.md) | Controles locais e consulta às fontes após aprovação fiscal | 51 testes aprovados; correções upstream continuam abertas |
+| [Braces e STJ reavaliados](operations/stabilization/2026-10-10-external-pending-review.md) | Controles locais e consulta às fontes após aprovação fiscal | 51 testes aprovados em 10/10; advisory de braces retirado em 23/10, STJ conserva o limite da consulta histórica |
 | [Decisão fiscal aprovada](operations/stabilization/2026-10-10-fiscal-decision.md) | Análise de PF/autoria, IR, ISS, IBS/CBS, registros e destinação | v1 aprovada por Boni no escopo descrito; cadastros e apuração não presumidos |
 | [Comprovações humanas e externas](operations/stabilization/2026-10-10-human-external-pending-priority.md) | Preparação fiscal/contratual em PF, ensaios e critérios de encerramento | Roteiro; consulta externa com recibo, sem comprovação humana fabricada |
 | [Consolidação documental e higiene local](operations/stabilization/2026-10-10-documentation-repository-hygiene.md) | Reconciliação das entradas documentais e preservação das branches históricas | Manutenção integrada pela PR #63; registro conserva o escopo histórico |

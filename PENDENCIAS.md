@@ -1,6 +1,6 @@
 # Pendências atuais do ForgeLex
 
-Atualizado em 20/10/2026 (publicação da camada analítica; ensaios do leitor
+Atualizado em 24/10/2026 (dependências de segurança publicadas; ensaios do leitor
 e da coleção de 12/10, priorização humana/fiscal/contratual e consulta externa
 de 10/10 mantidas). Backlog vigente; checkboxes de planos antigos
 registram aquela entrega e não devem ser importados como tarefas novas.
@@ -18,6 +18,22 @@ A revisão documental foi integrada em main pela PR #63, no commit
 preservação das branches históricas estão
 no [registro de manutenção](docs/operations/stabilization/2026-10-10-documentation-repository-hygiene.md).
 
+## Dependências de segurança — publicadas em 24/10/2026
+
+PR #78 integrada em main `6499eb0`; seis checks aprovados na PR e
+pós-merge. Zod 4.6.7 com conversão nativa e regressões dos contratos, SDKs MCP
+e dependências corrigidas. 948 testes aprovados, 18 ignorados, sem novos skips;
+audits de produção e completo sem alertas conhecidos na consulta desta entrega.
+
+API `forgelex-api-prod-deps-6499eb0` e worker
+`forgelex-closure-hml-private-deps-6499eb0` em 100%, após inventário/testes
+no container, candidata e revisão comercial sem tráfego. Oito probes públicos
+aprovados após a limpeza; IAM, configuração e Scheduler preservados.
+Nenhuma migration reaplicada, AUTO_MIGRATE=false e 47 arquivos locais intactos.
+O advisory de braces foi retirado pelo upstream em 23/10; a mitigação permanece.
+[Recibo, provas e limites](docs/operations/stabilization/2026-10-24-security-dependencies-publication.md). Homologação nos hosts reais e avaliação
+jurídica continuam com seus limites anteriores.
+
 ## Camada analítica — publicação técnica concluída
 
 A PR #74 está integrada em main `3657a63`. Em 18/10, foi preparada em worktree
@@ -32,9 +48,9 @@ em 18/10. Implementação `dd87fc3`, enviada na
 registra os checks e o estado de integração.
 Após autorização expressa de Boni, backup, migrations produtivas, deploy e
 validação da candidata antes da promoção foram executados em 18/10.
-A publicação do Hono em 20/10 passou a atender 100% do tráfego na revisão
-`forgelex-api-prod-hono-e93a508`, após validação da candidata;
-[evidências da publicação atual](docs/operations/stabilization/2026-10-20-hono-publication.md).
+A publicação de segurança de 24/10 atende 100% do tráfego na revisão
+`forgelex-api-prod-deps-6499eb0`, após validação da candidata;
+[evidências da publicação atual](docs/operations/stabilization/2026-10-24-security-dependencies-publication.md).
 Permanece a homologação da camada analítica nos hosts reais ChatGPT/Claude
 e a avaliação jurídica por Boni, fora do alcance dos ensaios sintéticos.
 Operações interrompidas permanecem bloqueadas até a decisão
@@ -45,7 +61,8 @@ de reconciliação; não foi adicionada recuperação automática de saldo ou di
 PR #76 integrada e publicada em 20/10, com candidatas validadas e sem reaplicar
 migrations. Lockfile corrigido para Hono 4.13.11; pacote ausente no runtime.
 [Recibo da publicação](docs/operations/stabilization/2026-10-20-hono-publication.md). As limitações de homologação dos hosts
-e o alerta upstream de braces mantêm seus escopos anteriores.
+mantêm seus escopos anteriores. O advisory de braces foi retirado pelo upstream
+em 23/10; mitigação local e gate de audit permanecem.
 
 ## Correções encerradas
 
