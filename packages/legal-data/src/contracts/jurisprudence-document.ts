@@ -3,8 +3,8 @@ import { ProvenanceMetadataSchema } from '@forgelex/domain';
 import { createHash } from 'node:crypto';
 
 export const JurisprudenceDocumentSchema = z.object({
-  id: z.string().uuid(),
-  versionId: z.string().uuid().optional(),
+  id: z.string().guid(),
+  versionId: z.string().guid().optional(),
   court: z.string().min(2),
   processNumber: z.string().min(1),
   processClass: z.string().min(1).optional(),

@@ -11,7 +11,7 @@ export const SaveFinalDraftInputSchema = z.object({
 export type SaveFinalDraftInput = z.infer<typeof SaveFinalDraftInputSchema>;
 
 export const SaveFinalDraftOutputSchema = z.object({
-  documentId: z.string().uuid(),
+  documentId: z.string().guid(),
   persisted: z.boolean(),
   savedAt: z.string().datetime(),
 });

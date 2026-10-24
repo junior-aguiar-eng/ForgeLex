@@ -6,7 +6,7 @@ export type MatterStatus = z.infer<typeof MatterStatusSchema>;
 
 export const MatterSchema = z.object({
   ...LifecycleFieldsSchema.shape,
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
   clientId: z.string().min(1).optional(),
   title: z.string().min(3, 'Título do matter deve conter pelo menos 3 caracteres'),
@@ -26,9 +26,9 @@ export type LegalDocumentStatus = z.infer<typeof LegalDocumentStatusSchema>;
 
 export const LegalDocumentSchema = z.object({
   ...LifecycleFieldsSchema.shape,
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
+  matterId: z.string().guid(),
   title: z.string().min(1),
   originalFilename: z.string().min(1),
   mimeType: z.string().min(1),
@@ -43,8 +43,8 @@ export const LegalDocumentSchema = z.object({
 export type LegalDocument = z.infer<typeof LegalDocumentSchema>;
 
 export const DocumentVersionSchema = z.object({
-  id: z.string().uuid(),
-  documentId: z.string().uuid(),
+  id: z.string().guid(),
+  documentId: z.string().guid(),
   versionNumber: z.number().int().positive(),
   contentHash: z.string().length(64),
   content: z.string(),
@@ -55,8 +55,8 @@ export type DocumentVersion = z.infer<typeof DocumentVersionSchema>;
 
 export const DocumentAnchorSchema = z
   .object({
-    id: z.string().uuid(),
-    documentVersionId: z.string().uuid(),
+    id: z.string().guid(),
+    documentVersionId: z.string().guid(),
     anchorKey: z.string().min(1),
     anchorType: z.literal('PARAGRAPH'),
     ordinal: z.number().int().nonnegative(),

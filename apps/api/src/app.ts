@@ -1586,7 +1586,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.get('/api/v2/matters/:matterId/documents/:documentId/versions/:versionId', { preHandler: authAdapter.createPreHandler(['matter:read']) }, async (req, reply) => {
     reply.header('Cache-Control', 'no-store');
-    const p = z.object({ matterId:z.string().uuid(),documentId:z.string().uuid(),versionId:z.string().uuid() }).safeParse(req.params);
+    const p = z.object({ matterId:z.string().guid(),documentId:z.string().guid(),versionId:z.string().guid() }).safeParse(req.params);
     if(!p.success)return reply.code(400).send({error:'INVALID_INPUT'});
     if(!matterRepository)return reply.code(503).send({error:'PERSISTENCE_UNAVAILABLE'});
     const result=await matterRepository.getSpecificDocumentVersion(req.principal.tenantId,p.data.matterId,p.data.documentId,p.data.versionId,req.principal.authMethod === 'session' ? 'web_retained' : 'work');
@@ -2468,7 +2468,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Serviço de revisão não está disponível.' };
       }
       const { matterId, draftId } = req.params as { matterId: string; draftId: string };
-      const parsed = z.object({ type: z.enum(['citations', 'fact_support', 'adversarial', 'all']).optional(), versionId: z.string().uuid().optional() }).strict().safeParse(req.body ?? {});
+      const parsed = z.object({ type: z.enum(['citations', 'fact_support', 'adversarial', 'all']).optional(), versionId: z.string().guid().optional() }).strict().safeParse(req.body ?? {});
       if (!parsed.success) return reply.status(400).send({ error: 'INVALID_REQUEST', message: 'Informe o tipo de conferência e uma versão válida.' });
       const body = parsed.data;
       const context = { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId };
@@ -2512,7 +2512,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.get('/api/v2/matters/:matterId/drafts/:draftId/review-runs', { preHandler: authAdapter.createPreHandler(['matter:read']) }, async (req, reply) => {
     if (!draftRepository || !draftReviewRuns) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const { matterId, draftId } = req.params as { matterId: string; draftId: string };
-    const query = z.object({ versionId: z.string().uuid().optional() }).strict().safeParse(req.query);
+    const query = z.object({ versionId: z.string().guid().optional() }).strict().safeParse(req.query);
     if (!query.success) return reply.status(400).send({ error: 'INVALID_REQUEST', message: 'Informe uma versão válida.' });
     const { versionId } = query.data;
     const version = versionId ? await draftRepository.getVersion(req.principal.tenantId, matterId, draftId, versionId) : await draftRepository.getCurrentVersion(req.principal.tenantId, matterId, draftId);

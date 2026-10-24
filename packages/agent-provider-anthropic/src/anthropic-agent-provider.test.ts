@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { AnthropicAgentProvider } from './anthropic-agent-provider.js';
 import { convertZodToToolJsonSchema } from './schema-converter.js';
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { searchCaseLawTool, saveFinalDraftTool } from '@forgelex/legal-tools';
 import { AgentEvent, AgentTool } from '@forgelex/agent-core';
 

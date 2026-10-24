@@ -33,8 +33,8 @@ const OpcaoSchema = z.object({
 });
 
 export const EstrategiaDefinirInputSchema = SessaoRefSchema.extend({
-  resultado_mapear_teses: z.record(z.unknown()).optional(),
-  resultado_avaliar_prova: z.record(z.unknown()).optional(),
+  resultado_mapear_teses: z.record(z.string(), z.unknown()).optional(),
+  resultado_avaliar_prova: z.record(z.string(), z.unknown()).optional(),
   opcoes: z.array(OpcaoSchema).min(2).max(5),
   recomendacao: MovimentoSchema,
   dispositivos_citados: z.array(DispositivoCitadoSchema).max(60).default([]),

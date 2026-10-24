@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { AgentEvent, AgentTool } from '@forgelex/agent-core';
 import { searchCaseLawTool, saveFinalDraftTool } from '@forgelex/legal-tools';
 import { OpenAIAgentProvider } from './openai-agent-provider.js';

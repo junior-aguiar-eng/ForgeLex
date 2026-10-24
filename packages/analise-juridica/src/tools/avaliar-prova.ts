@@ -33,7 +33,7 @@ const FatoControvertidoSchema = z.object({
 });
 
 export const AvaliarProvaInputSchema = SessaoRefSchema.extend({
-  resultado_mapear_teses: z.record(z.unknown()).optional(),
+  resultado_mapear_teses: z.record(z.string(), z.unknown()).optional(),
   fatos_controvertidos: z.array(FatoControvertidoSchema).min(1).max(40),
   dispositivos_citados: z.array(DispositivoCitadoSchema).max(60).default([]),
 });
@@ -68,7 +68,7 @@ export const AvaliarProvaOutputSchema = z.object({
     pontos_de_atencao: z.array(z.string()),
     alerta: z.string(),
   }),
-  fatos_controvertidos: z.array(FatoControvertidoSchema.innerType()),
+  fatos_controvertidos: z.array(z.object(FatoControvertidoSchema.shape)),
   lacunas_probatorias: z.array(z.object({ fato: z.string(), motivo: z.string() })),
   riscos_preclusao_altos: z.array(z.string()),
   verificacao_normativa: VerificacaoNormativaSchema,

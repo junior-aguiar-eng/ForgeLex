@@ -1,8 +1,7 @@
-import { ToolRegistry, type ToolExecutionResult } from '@forgelex/agent-core';
+import { ToolRegistry, toolJsonSchema, type ToolExecutionResult } from '@forgelex/agent-core';
 import { getLegalToolContract, LegalToolGatewayError, type SearchCaseLawOutput } from '@forgelex/legal-tools';
 import { getForgeLexBillingPolicy, LedgerService, searchOperationFingerprint } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import { randomUUID } from 'node:crypto';
 import { getErrorCode } from '@forgelex/domain';
 import type {VerifiedOAuthConnection} from '@forgelex/domain';
@@ -113,8 +112,7 @@ export class McpHandler {
           .list()
           .filter((tool) => this.isExposed(tool.name))
           .map((tool) => {
-            const rawSchema = zodToJsonSchema(tool.inputSchema, { target: 'jsonSchema7' }) as any;
-            const { $schema, ...cleanSchema } = rawSchema;
+            const cleanSchema = toolJsonSchema(tool.inputSchema);
             if(!isCaseContextTool(tool.name) && tool.name !== 'draft.save_from_ai' && !isResearchPresentationTool(tool.name)) cleanSchema.properties = {
               ...(cleanSchema.properties ?? {}),
               idempotencyKey: {
@@ -124,7 +122,7 @@ export class McpHandler {
             };
 
             const contract = getLegalToolContract(tool.name) ?? getCaseContextToolContract(tool.name) ?? getDraftAiToolContract(tool.name);
-            const outputSchema=isCaseContextTool(tool.name)?zodToJsonSchema(tool.outputSchema,{target:'jsonSchema7'}) as any:undefined;
+            const outputSchema=isCaseContextTool(tool.name)?toolJsonSchema(tool.outputSchema):undefined;
             return {
               name: tool.name,
               description: tool.description,

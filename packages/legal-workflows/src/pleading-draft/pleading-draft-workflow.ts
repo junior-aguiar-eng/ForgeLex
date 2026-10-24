@@ -14,18 +14,18 @@ import { WorkflowCheckpointStore, WorkflowEvent, WorkflowStep } from '../contrac
 import { z } from 'zod';
 
 const DraftOutlineSectionSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   title: z.string().min(3),
-  linkedFactIds: z.array(z.string().uuid()),
-  linkedEvidenceIds: z.array(z.string().uuid()),
-  linkedAuthorityIds: z.array(z.string().uuid()),
+  linkedFactIds: z.array(z.string().guid()),
+  linkedEvidenceIds: z.array(z.string().guid()),
+  linkedAuthorityIds: z.array(z.string().guid()),
 });
 
 export const PleadingDraftResultSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   workflowId: z.literal('pleading-draft'),
   workflowVersion: z.string().min(1),
-  executionId: z.string().uuid(),
+  executionId: z.string().guid(),
   tenantId: z.string().min(1),
   matterId: z.string().min(1),
   title: z.string().min(3),

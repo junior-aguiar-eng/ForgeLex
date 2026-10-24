@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { ProvenanceMetadataSchema } from './provenance.js';
 
 export const CaseLawSchema = z.object({
-  id: z.string().uuid(),
-  versionId: z.string().uuid().optional(),
+  id: z.string().guid(),
+  versionId: z.string().guid().optional(),
   court: z.string().min(2, 'Sigla do tribunal é obrigatória (ex: STJ, STF, TJSP)'),
   processNumber: z.string().min(1, 'Número de processo é obrigatório'),
   rapporteur: z.string().min(1, 'Nome do relator é obrigatório'),
@@ -19,9 +19,9 @@ export const CaseLawSchema = z.object({
 export type CaseLaw = z.infer<typeof CaseLawSchema>;
 
 export const SavedAuthoritySchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
+  matterId: z.string().guid(),
   authority: CaseLawSchema,
   savedBy: z.string().min(1),
   savedAt: z.string().datetime(),
@@ -30,7 +30,7 @@ export const SavedAuthoritySchema = z.object({
 export type SavedAuthority = z.infer<typeof SavedAuthoritySchema>;
 
 export const LegalAuthoritySchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   type: z.enum(['PRECEDENT_BINDING', 'CASE_LAW', 'STATUTE', 'CONSTITUTIONAL_PROVISION', 'LEGAL_DOCTRINE']),
   citation: z.string().min(3, 'Citação jurídica é obrigatória (ex: Súmula 331 do TST)'),
   title: z.string(),
@@ -43,7 +43,7 @@ export const LegalAuthoritySchema = z.object({
 export type LegalAuthority = z.infer<typeof LegalAuthoritySchema>;
 
 export const LegalResearchMemoSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   title: z.string().min(3),
   query: z.string().min(3),
   clientOrMatterId: z.string().optional(),

@@ -12,13 +12,13 @@ export interface CaseAiOwner {
 }
 export type CaseAiReader = CaseAiOwner & { oauthConnection: VerifiedOAuthConnection };
 const ids = z
-  .array(z.string().uuid())
+  .array(z.string().guid())
   .max(100)
   .transform((value) => [...new Set(value)].sort());
 export const CaseAiSelectionSchema = z
   .object({
     documents: z
-      .array(z.object({ documentId: z.string().uuid(), versionId: z.string().uuid() }).strict())
+      .array(z.object({ documentId: z.string().guid(), versionId: z.string().guid() }).strict())
       .max(100)
       .refine(
         (value) => value.every((a) => value.every((b) => a.documentId !== b.documentId || a.versionId === b.versionId)),
@@ -43,12 +43,12 @@ export const CaseAiSelectionSchema = z
 export type CaseAiSelection = z.infer<typeof CaseAiSelectionSchema>;
 export const CaseAiGrantSchema = z
   .object({
-    id: z.string().uuid(),
+    id: z.string().guid(),
     tenantId: z.string(),
     userId: z.string(),
     oauthClientId: z.string().min(1),
     oauthGrantedAt: z.string().datetime(),
-    matterId: z.string().uuid(),
+    matterId: z.string().guid(),
     revision: z.number().int().positive(),
     status: z.enum(['ACTIVE', 'REVOKED']),
     selection: CaseAiSelectionSchema,
@@ -62,16 +62,16 @@ export type CaseAiGrant = z.infer<typeof CaseAiGrantSchema>;
 export const CaseManifestItemSchema = z
   .object({
     kind: CaseItemKindSchema,
-    id: z.string().uuid(),
+    id: z.string().guid(),
     title: z.string(),
     preview: z.string(),
-    versionId: z.string().uuid().optional(),
+    versionId: z.string().guid().optional(),
     versionNumber: z.number().int().positive().optional(),
   })
   .strict();
 export const CaseAiPreviewSchema = z
   .object({
-    matter: z.object({ id: z.string().uuid(), title: z.string() }).strict(),
+    matter: z.object({ id: z.string().guid(), title: z.string() }).strict(),
     items: z.array(CaseManifestItemSchema),
     counts: z
       .object({
@@ -88,14 +88,14 @@ export const CaseAiPreviewSchema = z
 export type CaseAiPreview = z.infer<typeof CaseAiPreviewSchema>;
 export const SharedCasePageSchema = z
   .object({
-    items: z.array(z.object({ matterId: z.string().uuid(), title: z.string(), grantRevision: z.number() }).strict()),
+    items: z.array(z.object({ matterId: z.string().guid(), title: z.string(), grantRevision: z.number() }).strict()),
     nextCursor: z.string().optional(),
   })
   .strict();
 export type SharedCasePage = z.infer<typeof SharedCasePageSchema>;
 export const CaseContextPageSchema = z
   .object({
-    matterId: z.string().uuid(),
+    matterId: z.string().guid(),
     grantRevision: z.number(),
     items: z.array(CaseManifestItemSchema),
     draftReceiving: DraftReceivePermissionSchema.optional(),
@@ -105,9 +105,9 @@ export const CaseContextPageSchema = z
 export type CaseContextPage = z.infer<typeof CaseContextPageSchema>;
 export const CaseItemPageSchema = z
   .object({
-    matterId: z.string().uuid(),
+    matterId: z.string().guid(),
     kind: CaseItemKindSchema,
-    itemId: z.string().uuid(),
+    itemId: z.string().guid(),
     grantRevision: z.number(),
     parts: z.array(
       z
@@ -115,14 +115,14 @@ export const CaseItemPageSchema = z
           field: z.string(),
           text: z.string(),
           offset: z.number().int().nonnegative(),
-          documentId: z.string().uuid().optional(),
-          versionId: z.string().uuid().optional(),
-          anchorId: z.string().uuid().optional(),
+          documentId: z.string().guid().optional(),
+          versionId: z.string().guid().optional(),
+          anchorId: z.string().guid().optional(),
         })
         .strict(),
     ),
     relations: z.array(
-      z.object({ kind: CaseItemKindSchema, itemId: z.string().uuid(), relation: z.string() }).strict(),
+      z.object({ kind: CaseItemKindSchema, itemId: z.string().guid(), relation: z.string() }).strict(),
     ),
     nextCursor: z.string().optional(),
   })

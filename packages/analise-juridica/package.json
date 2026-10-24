@@ -21,7 +21,7 @@
     "@forgelex/billing-ledger": "workspace:*",
     "@forgelex/domain": "workspace:*",
     "@forgelex/persistence": "workspace:*",
-    "zod": "^3.24.2"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@libsql/client": "^0.18.0",

@@ -49,7 +49,7 @@ export const AVISO_VIGENCIA_NAO_VERIFICADA =
 
 export const ID_SESSAO_NOVA = 'nova';
 
-export const ResumoAchadoSchema = z.record(z.unknown());
+export const ResumoAchadoSchema = z.record(z.string(), z.unknown());
 export type ResumoAchado = z.infer<typeof ResumoAchadoSchema>;
 
 /** Referência de precedente informada pelo cliente; sempre sujeita a verificação. */

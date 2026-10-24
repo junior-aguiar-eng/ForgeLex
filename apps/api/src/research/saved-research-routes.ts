@@ -20,7 +20,7 @@ export function registerSavedResearchRoutes(app: FastifyInstance, service: Saved
       return reply.code(status).send({ error: code, message: code === 'INVALID_INPUT' ? 'Confira os dados da solicitação.' : e.code ? e.message : 'Não foi possível recuperar as pesquisas salvas. Nenhuma nova pesquisa foi executada.' });
     }
   };
-  const id = (req: FastifyRequest) => z.object({ id: z.string().uuid() }).parse(req.params).id;
+  const id = (req: FastifyRequest) => z.object({ id: z.string().guid() }).parse(req.params).id;
   app.get('/api/v2/research/saved', options, handle(async req => ({ items: await service.list(owner(req)), capacity: 6 })));
   app.post('/api/v2/research/saved', options, handle(async req => service.save(owner(req), z.object({ operationId: z.string().min(1) }).strict().parse(req.body).operationId)));
   app.get('/api/v2/research/saved/:id', options, handle(async req => service.get(owner(req), id(req))));

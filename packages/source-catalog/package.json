@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@forgelex/domain": "workspace:*",
-    "zod": "^3.24.2"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "typescript": "^5.7.3"

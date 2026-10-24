@@ -1,5 +1,6 @@
 export * from './contracts/agent-events.js';
 export * from './contracts/agent-tools.js';
+export * from './contracts/tool-json-schema.js';
 export * from './contracts/agent-provider.js';
 export * from './registry/tool-registry.js';
 export * from './policy/policy-engine.js';
