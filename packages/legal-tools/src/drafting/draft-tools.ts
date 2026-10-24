@@ -7,15 +7,15 @@ const DraftSectionInputSchema = z.object({
   ordinal: z.number().int().nonnegative(),
   title: z.string().min(1),
   content: z.string(),
-  linkedFactIds: z.array(z.string().uuid()).default([]),
-  linkedEvidenceIds: z.array(z.string().uuid()).default([]),
-  linkedAuthorityIds: z.array(z.string().uuid()).default([]),
-  linkedThesisIds: z.array(z.string().uuid()).default([]),
+  linkedFactIds: z.array(z.string().guid()).default([]),
+  linkedEvidenceIds: z.array(z.string().guid()).default([]),
+  linkedAuthorityIds: z.array(z.string().guid()).default([]),
+  linkedThesisIds: z.array(z.string().guid()).default([]),
 });
 const CitationInputSchema = z.object({
   sectionOrdinal: z.number().int().nonnegative(),
   targetType: z.enum(['AUTHORITY', 'FACT', 'EVIDENCE']),
-  targetId: z.string().uuid(),
+  targetId: z.string().guid(),
   citationText: z.string().min(3),
   verified: z.boolean(),
 });
@@ -24,15 +24,15 @@ const DraftContentSchema = z.object({
   sections: z.array(DraftSectionInputSchema).min(1).max(100),
   citations: z.array(CitationInputSchema).max(500).default([]),
   notes: z.string().max(2000).optional(),
-  baseVersionId: z.string().uuid().optional(),
+  baseVersionId: z.string().guid().optional(),
 });
-const DraftUpdateInputSchema = DraftContentSchema.extend({ draftId: z.string().uuid() });
-const DraftGetInputSchema = z.object({ draftId: z.string().uuid() });
+const DraftUpdateInputSchema = DraftContentSchema.extend({ draftId: z.string().guid() });
+const DraftGetInputSchema = z.object({ draftId: z.string().guid() });
 
 export const DraftCreateInputSchema = DraftContentSchema;
 export const DraftCreateOutputSchema = z.object({
-  draft: z.unknown(),
-  version: z.unknown(),
+  draft: z.unknown().optional(),
+  version: z.unknown().optional(),
   sections: z.array(z.unknown()),
   citations: z.array(z.unknown()),
 });

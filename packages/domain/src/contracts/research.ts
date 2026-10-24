@@ -5,9 +5,9 @@ export const LegalIssueStatusSchema = z.enum(['OPEN', 'ADDRESSED', 'DISMISSED'])
 export type LegalIssueStatus = z.infer<typeof LegalIssueStatusSchema>;
 
 export const LegalIssueSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
+  matterId: z.string().guid(),
   statement: z.string().min(3),
   status: LegalIssueStatusSchema,
   createdBy: z.string().min(1),
@@ -20,11 +20,11 @@ export const ResearchMemoStatusSchema = z.enum(['PENDING_HUMAN_REVIEW', 'APPROVE
 export type ResearchMemoStatus = z.infer<typeof ResearchMemoStatusSchema>;
 
 export const ResearchMemoRecordSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
+  matterId: z.string().guid(),
   query: z.string().min(3),
-  issueIds: z.array(z.string().uuid()),
+  issueIds: z.array(z.string().guid()),
   workflowId: z.literal('legal-research-memo'),
   workflowVersion: z.string().min(1),
   memo: LegalResearchMemoSchema,

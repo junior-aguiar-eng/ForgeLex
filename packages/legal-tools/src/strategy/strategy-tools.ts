@@ -7,10 +7,10 @@ const CreateThesisInputSchema = z.object({
   title: z.string().min(3),
   statement: z.string().min(10),
   rationale: z.string().max(4000).optional(),
-  issueIds: z.array(z.string().uuid()).default([]),
-  factIds: z.array(z.string().uuid()).default([]),
-  evidenceIds: z.array(z.string().uuid()).default([]),
-  authorityIds: z.array(z.string().uuid()).default([]),
+  issueIds: z.array(z.string().guid()).default([]),
+  factIds: z.array(z.string().guid()).default([]),
+  evidenceIds: z.array(z.string().guid()).default([]),
+  authorityIds: z.array(z.string().guid()).default([]),
   status: z.enum(['PROPOSED', 'REVIEWED', 'REJECTED']).default('PROPOSED'),
 });
 type CreateThesisInput = z.infer<typeof CreateThesisInputSchema>;

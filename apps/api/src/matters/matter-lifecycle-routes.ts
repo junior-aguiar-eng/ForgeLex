@@ -43,7 +43,7 @@ export function registerMatterLifecycleRoutes(app: FastifyInstance, database: Fo
       app.post(`${path}/${action}`, { preHandler: auth.createPreHandler(['matter:write']) }, async (request, reply) => {
         reply.header('Cache-Control', 'no-store');
         if (request.principal.authMethod !== 'session') return reply.code(403).send({ error: 'LIFECYCLE_FORBIDDEN' });
-        const params = z.object({ matterId: z.string().uuid(), documentId: z.string().uuid().optional() }).strict().safeParse(request.params);
+        const params = z.object({ matterId: z.string().guid(), documentId: z.string().guid().optional() }).strict().safeParse(request.params);
         const command = (action === 'purge' ? PurgeCommandSchema : LifecycleCommandSchema).safeParse(request.body);
         if (!params.success || !command.success) return reply.code(400).send({ error: 'INVALID_REQUEST' });
         const target = { tenantId: request.principal.tenantId, ...params.data };

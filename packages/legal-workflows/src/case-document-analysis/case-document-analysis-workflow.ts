@@ -17,7 +17,7 @@ import { WorkflowCheckpointStore, WorkflowEvent, WorkflowStep } from '../contrac
 import { z } from 'zod';
 
 const AnalyzedDocumentSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   title: z.string().min(1),
   contentHash: z.string().length(64),
   anchorCount: z.number().int().nonnegative(),
@@ -25,10 +25,10 @@ const AnalyzedDocumentSchema = z.object({
 export type AnalyzedDocument = z.infer<typeof AnalyzedDocumentSchema>;
 
 export const CaseDocumentAnalysisReportSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   workflowId: z.literal('case-document-analysis'),
   workflowVersion: z.string().min(1),
-  executionId: z.string().uuid(),
+  executionId: z.string().guid(),
   tenantId: z.string().min(1),
   matterId: z.string().min(1),
   documents: z.array(AnalyzedDocumentSchema),

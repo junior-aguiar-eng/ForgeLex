@@ -5,12 +5,12 @@ import { savedResearchError, type ResearchOwner, type ResearchConnection } from 
 import { SavedResearchService } from './saved-research-service.js';
 
 export const DECISION_UI_URI = 'ui://forgelex/decisions/v1';
-export const DecisionReferenceSchema = z.object({ recordId: z.string().uuid(), versionId: z.string().uuid() }).strict();
+export const DecisionReferenceSchema = z.object({ recordId: z.string().guid(), versionId: z.string().guid() }).strict();
 export type DecisionReference = z.infer<typeof DecisionReferenceSchema>;
 export const PresentDecisionsInputSchema = z.object({
   items: z.array(DecisionReferenceSchema).min(1).max(20).optional(),
   operationId: z.string().min(1).optional(),
-  savedResearchId: z.string().uuid().optional(),
+  savedResearchId: z.string().guid().optional(),
 }).strict().refine(input => Boolean(input.items || input.operationId || input.savedResearchId), 'Informe uma seleção ou pesquisa.').refine(input => !(input.operationId && input.savedResearchId), 'Escolha uma pesquisa atual ou salva.');
 export const DecisionPresentationSchema = z.object({
   kind: z.literal('forgelex.decisions.v1'),
@@ -66,12 +66,12 @@ export function createResearchPresentationTools(presentation: DecisionPresentati
     inputSchema: PresentDecisionsInputSchema, outputSchema: DecisionPresentationSchema,
     execute: async (input, context) => ({ success: true, data: await presentation.present(input, owner(context), input.savedResearchId ? await connection(context) : context.oauthConnection) }) }];
   if (!saved) return tools;
-  const summary = z.object({ id: z.string().uuid(), operationId: z.string(), criteria: z.object({ query: z.string(), court: z.string().optional(), judgmentYear: z.number().optional(), limit: z.number() }), resultCount: z.number(), searchedAt: z.string(), savedAt: z.string() });
+  const summary = z.object({ id: z.string().guid(), operationId: z.string(), criteria: z.object({ query: z.string(), court: z.string().optional(), judgmentYear: z.number().optional(), limit: z.number() }), resultCount: z.number(), searchedAt: z.string(), savedAt: z.string() });
   tools.push(
     { ...common, name: 'research.list_saved_searches', description: 'Lista gratuitamente as até seis pesquisas salvas pelo usuário, com autorização específica do aplicativo. Não executa pesquisas.', inputSchema: z.object({}).strict(), outputSchema: z.object({ items: z.array(summary), capacity: z.literal(6) }), execute: async (_input, context) => ({ success: true, data: { items: await saved.list(owner(context), await connection(context)), capacity: 6 } }) },
-    { ...common, name: 'research.get_saved_search', description: 'Reabre gratuitamente uma pesquisa salva, conservando os critérios, a ordem e as versões originais. Não atualiza fontes nem pesquisa novamente.', inputSchema: z.object({ id: z.string().uuid() }).strict(), outputSchema: DecisionPresentationSchema, execute: async (input, context) => ({ success: true, data: await presentation.present({ savedResearchId: input.id }, owner(context), await connection(context)) }) },
+    { ...common, name: 'research.get_saved_search', description: 'Reabre gratuitamente uma pesquisa salva, conservando os critérios, a ordem e as versões originais. Não atualiza fontes nem pesquisa novamente.', inputSchema: z.object({ id: z.string().guid() }).strict(), outputSchema: DecisionPresentationSchema, execute: async (input, context) => ({ success: true, data: await presentation.present({ savedResearchId: input.id }, owner(context), await connection(context)) }) },
     { ...common, impactLevel: 'L1_ANALYSIS', name: 'research.save_search', description: 'Somente quando o usuário pedir explicitamente: salva gratuitamente a pesquisa completa da operação indicada. Nunca substitui uma das seis vagas. Não salva a conversa nem a explicação da IA.', inputSchema: z.object({ operationId: z.string().min(1), requestedByUser: z.literal(true) }).strict(), outputSchema: summary, execute: async (input, context) => ({ success: true, data: await saved.save(owner(context), input.operationId, await connection(context)) }) },
-    { ...common, impactLevel: 'L1_ANALYSIS', name: 'research.delete_saved_search', description: 'Ação de administração do leitor: exclui somente a pesquisa que o usuário confirmou. Nunca escolha uma pesquisa para substituir.', inputSchema: z.object({ id: z.string().uuid(), confirmed: z.literal(true) }).strict(), outputSchema: z.object({ deleted: z.literal(true) }), execute: async (input, context) => { await saved.delete(owner(context), input.id, await connection(context)); return { success: true, data: { deleted: true } }; } },
+    { ...common, impactLevel: 'L1_ANALYSIS', name: 'research.delete_saved_search', description: 'Ação de administração do leitor: exclui somente a pesquisa que o usuário confirmou. Nunca escolha uma pesquisa para substituir.', inputSchema: z.object({ id: z.string().guid(), confirmed: z.literal(true) }).strict(), outputSchema: z.object({ deleted: z.literal(true) }), execute: async (input, context) => { await saved.delete(owner(context), input.id, await connection(context)); return { success: true, data: { deleted: true } }; } },
   );
   return tools;
 }

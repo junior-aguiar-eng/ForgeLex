@@ -7,7 +7,7 @@ export const DraftReceivePermissionSchema = z.discriminatedUnion('enabled', [
       enabled: z.literal(true),
       destination: z.discriminatedUnion('mode', [
         z.object({ mode: z.literal('NEW') }).strict(),
-        z.object({ mode: z.literal('EXISTING'), draftId: z.string().uuid() }).strict(),
+        z.object({ mode: z.literal('EXISTING'), draftId: z.string().guid() }).strict(),
       ]),
     })
     .strict(),
@@ -18,9 +18,9 @@ export const DraftAiReferenceSchema = z
   .object({
     sectionOrdinal: z.number().int().nonnegative(),
     kind: z.enum(['DOCUMENT', 'FACT', 'EVIDENCE', 'THESIS', 'AUTHORITY']),
-    itemId: z.string().uuid(),
-    documentVersionId: z.string().uuid().optional(),
-    anchorId: z.string().uuid().optional(),
+    itemId: z.string().guid(),
+    documentVersionId: z.string().guid().optional(),
+    anchorId: z.string().guid().optional(),
     citationText: z.string().optional(),
   })
   .strict()
@@ -33,7 +33,7 @@ export type DraftAiReference = z.infer<typeof DraftAiReferenceSchema>;
 
 export const DraftSaveFromAiInputSchema = z
   .object({
-    matterId: z.string().uuid(),
+    matterId: z.string().guid(),
     expectedGrantRevision: z.number().int().positive(),
     idempotencyKey: z.string().min(16).max(128),
     title: z.string().trim().min(3).max(200),
@@ -66,9 +66,9 @@ export type DraftSaveFromAiInput = z.infer<typeof DraftSaveFromAiInputSchema>;
 
 export const DraftAiReceiptSchema = z
   .object({
-    id: z.string().uuid(),
-    draftId: z.string().uuid(),
-    versionId: z.string().uuid(),
+    id: z.string().guid(),
+    draftId: z.string().guid(),
+    versionId: z.string().guid(),
     versionNumber: z.number().int().positive(),
     receivedAt: z.string().datetime(),
     reviewPending: z.literal(true),

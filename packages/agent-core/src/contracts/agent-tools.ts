@@ -24,8 +24,8 @@ export interface AgentTool<TInput = unknown, TOutput = unknown> {
   name: string;
   description: string;
   impactLevel: ImpactLevel;
-  inputSchema: z.ZodType<TInput, any, any>;
-  outputSchema: z.ZodType<TOutput, any, any>;
+  inputSchema: z.ZodType<TInput, unknown>;
+  outputSchema: z.ZodType<TOutput, unknown>;
   timeoutMs?: number;
   revalidateResult?: (output:TOutput,context:ToolExecutionContext)=>Promise<void>;
   execute: (input: TInput, context: ToolExecutionContext) => Promise<ToolExecutionResult<TOutput>>;

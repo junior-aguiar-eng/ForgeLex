@@ -16,7 +16,7 @@ export const SourceLocatorSchema = z.object({
 export type SourceLocator = z.infer<typeof SourceLocatorSchema>;
 
 export const ProvenanceMetadataSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   source: SourceLocatorSchema,
   verified: z.boolean(),
   verificationMethod: z.enum(['OFFICIAL_SOURCE_HASH', 'CROSS_CHECK', 'MANUAL_VALIDATION', 'SYNTHETIC_CANONICAL']),

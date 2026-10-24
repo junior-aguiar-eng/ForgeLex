@@ -11,7 +11,7 @@ export function registerDraftAiRoutes(
   audit?: AuditRecorder,
 ) {
   const params = z
-    .object({ matterId: z.string().uuid(), draftId: z.string().uuid(), receiptId: z.string().uuid().optional() })
+    .object({ matterId: z.string().guid(), draftId: z.string().guid(), receiptId: z.string().guid().optional() })
     .strict();
   const session = async (req: FastifyRequest, reply: FastifyReply) => {
     reply.header('Cache-Control', 'no-store');
@@ -72,7 +72,7 @@ export function registerDraftAiRoutes(
     opts(true),
     handle(async (req) => {
       const { p, saved } = await find(req);
-      const body = z.object({ expectedCurrentVersionId: z.string().uuid().nullable() }).strict().parse(req.body);
+      const body = z.object({ expectedCurrentVersionId: z.string().guid().nullable() }).strict().parse(req.body);
       const result = await receipts.adopt(
         owner(req),
         p.matterId,

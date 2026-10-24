@@ -21,7 +21,7 @@
     "@forgelex/legal-data": "workspace:*",
     "@forgelex/source-catalog": "workspace:*",
     "fflate": "^0.8.3",
-    "zod": "^3.24.2"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "typescript": "^5.7.3"

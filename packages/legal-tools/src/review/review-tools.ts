@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { AgentTool, ToolExecutionContext } from '@forgelex/agent-core';
 import { DraftReviewService } from './review-service.js';
 
-const ReviewInputSchema = z.object({ draftId: z.string().uuid(), versionId: z.string().uuid().optional() });
+const ReviewInputSchema = z.object({ draftId: z.string().guid(), versionId: z.string().guid().optional() });
 
 function contextOf(context: ToolExecutionContext) {
   if (!context.matterId) throw new Error('MATTER_REQUIRED: a revisão de minuta exige matterId.');

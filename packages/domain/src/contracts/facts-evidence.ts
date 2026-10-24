@@ -7,9 +7,9 @@ export const FactStatusSchema = z.enum(['ASSERTED', 'CONFIRMED', 'DISPUTED', 'RE
 export type FactStatus = z.infer<typeof FactStatusSchema>;
 
 export const FactSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
+  matterId: z.string().guid(),
   statement: z.string().min(3),
   category: FactCategorySchema,
   status: FactStatusSchema,
@@ -23,11 +23,11 @@ export const FactSourceRelationSchema = z.enum(['SUPPORTS', 'CONTRADICTS', 'CONT
 export type FactSourceRelation = z.infer<typeof FactSourceRelationSchema>;
 
 export const FactSourceLinkSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
-  factId: z.string().uuid(),
-  documentAnchorId: z.string().uuid(),
+  matterId: z.string().guid(),
+  factId: z.string().guid(),
+  documentAnchorId: z.string().guid(),
   relation: FactSourceRelationSchema,
   note: z.string().max(2000).optional(),
   createdAt: z.string().datetime(),
@@ -41,9 +41,9 @@ export const EvidenceStatusSchema = z.enum(['AVAILABLE', 'MISSING', 'CONTESTED']
 export type EvidenceStatus = z.infer<typeof EvidenceStatusSchema>;
 
 export const EvidenceItemSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
+  matterId: z.string().guid(),
   title: z.string().min(3),
   description: z.string().max(10000).optional(),
   evidenceType: EvidenceTypeSchema,
@@ -58,11 +58,11 @@ export const EvidenceSourceRelationSchema = z.enum(['PROVES', 'REFUTES', 'CONTEX
 export type EvidenceSourceRelation = z.infer<typeof EvidenceSourceRelationSchema>;
 
 export const EvidenceSourceLinkSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
-  evidenceItemId: z.string().uuid(),
-  documentAnchorId: z.string().uuid(),
+  matterId: z.string().guid(),
+  evidenceItemId: z.string().guid(),
+  documentAnchorId: z.string().guid(),
   relation: EvidenceSourceRelationSchema,
   note: z.string().max(2000).optional(),
   createdAt: z.string().datetime(),
@@ -74,11 +74,11 @@ export type FactEvidenceRelation = z.infer<typeof FactEvidenceRelationSchema>;
 
 /** Relação explícita entre um item de prova e um fato; não representa juízo automático de veracidade. */
 export const EvidenceLinkSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
-  factId: z.string().uuid(),
-  evidenceItemId: z.string().uuid(),
+  matterId: z.string().guid(),
+  factId: z.string().guid(),
+  evidenceItemId: z.string().guid(),
   relation: FactEvidenceRelationSchema,
   note: z.string().max(2000).optional(),
   createdAt: z.string().datetime(),
@@ -89,10 +89,10 @@ export const EvidenceCoverageStatusSchema = z.enum(['SUPPORTED', 'PARTIAL', 'UNS
 export type EvidenceCoverageStatus = z.infer<typeof EvidenceCoverageStatusSchema>;
 
 export const EvidenceCoverageSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
-  factId: z.string().uuid(),
+  matterId: z.string().guid(),
+  factId: z.string().guid(),
   supportingEvidenceCount: z.number().int().nonnegative(),
   contradictingEvidenceCount: z.number().int().nonnegative(),
   contextualEvidenceCount: z.number().int().nonnegative(),
@@ -104,13 +104,13 @@ export const EvidenceCoverageSchema = z.object({
 export type EvidenceCoverage = z.infer<typeof EvidenceCoverageSchema>;
 
 export const TimelineEventSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
+  matterId: z.string().guid(),
   title: z.string().min(3),
   eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'eventDate deve usar o formato YYYY-MM-DD'),
   description: z.string().max(10000).optional(),
-  sourceAnchorId: z.string().uuid().optional(),
+  sourceAnchorId: z.string().guid().optional(),
   createdBy: z.string().min(1),
   createdAt: z.string().datetime(),
 });

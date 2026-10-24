@@ -27,7 +27,7 @@ const TeseSchema = z.object({
 });
 
 export const MapearTesesInputSchema = SessaoRefSchema.extend({
-  resultado_peca_analisar: z.record(z.unknown()).optional().describe(
+  resultado_peca_analisar: z.record(z.string(), z.unknown()).optional().describe(
     'Opcional: resultado de peca_analisar enviado diretamente, quando a sessão não o tem registrado.',
   ),
   teses_sustentadas: z.array(TeseSchema).max(30).default([]),

@@ -9,9 +9,9 @@ export const DraftReviewCheckSchema = z.object({
   state: z.enum(['CONFIRMED', 'ATTENTION', 'UNAVAILABLE', 'NOT_APPLICABLE']),
   code: z.string().min(1),
   message: z.string().min(1),
-  sectionId: z.string().uuid().optional(),
+  sectionId: z.string().guid().optional(),
   targetType: z.enum(['AUTHORITY', 'FACT', 'EVIDENCE', 'DOCUMENT', 'THESIS']).optional(),
-  targetId: z.string().uuid().optional(),
+  targetId: z.string().guid().optional(),
   humanConfirmed: z.boolean().optional(),
   checkedAt: z.string().datetime(),
   source: z
@@ -21,18 +21,18 @@ export const DraftReviewCheckSchema = z.object({
       capturedAt: z.string().optional(),
       contentHash: z.string().optional(),
       method: z.enum(['PERSISTED_CORPUS', 'PROVIDER', 'CASE_DOCUMENT']),
-      documentVersionId: z.string().uuid().optional(),
-      anchorId: z.string().uuid().optional(),
+      documentVersionId: z.string().guid().optional(),
+      anchorId: z.string().guid().optional(),
     })
     .optional(),
 });
 export type DraftReviewCheck = z.infer<typeof DraftReviewCheckSchema>;
 export const DraftReviewRunSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   tenantId: z.string().min(1),
-  matterId: z.string().uuid(),
-  draftId: z.string().uuid(),
-  draftVersionId: z.string().uuid(),
+  matterId: z.string().guid(),
+  draftId: z.string().guid(),
+  draftVersionId: z.string().guid(),
   contentHash: z.string().length(64),
   contextHash: z.string().length(64),
   runNumber: z.number().int().positive(),
@@ -48,8 +48,8 @@ export const DraftReviewRunSchema = z.object({
 });
 export type DraftReviewRun = z.infer<typeof DraftReviewRunSchema>;
 export const DraftReviewResultSchema = z.object({
-  draftId: z.string().uuid(),
-  draftVersionId: z.string().uuid(),
+  draftId: z.string().guid(),
+  draftVersionId: z.string().guid(),
   run: DraftReviewRunSchema,
   findings: z.array(DraftReviewFindingSchema),
   blockingCount: z.number().int().nonnegative(),

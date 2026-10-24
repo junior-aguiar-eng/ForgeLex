@@ -10,12 +10,12 @@ import {
 } from '@forgelex/domain';
 import { FactsEvidenceService } from './facts-evidence-service.js';
 
-const MatterIdInput = z.object({ matterId: z.string().uuid().optional() });
+const MatterIdInput = z.object({ matterId: z.string().guid().optional() });
 
 const CandidateFactSchema = z.object({
   statement: z.string().min(3),
   category: z.enum(['FACTUAL', 'PROCEDURAL', 'TEMPORAL', 'DAMAGE', 'OTHER']).optional(),
-  sourceAnchorId: z.string().uuid().optional(),
+  sourceAnchorId: z.string().guid().optional(),
 });
 
 export const FactsExtractInputSchema = MatterIdInput.extend({
@@ -33,7 +33,7 @@ export const FactsListOutputSchema = z.object({
 });
 export type FactsListOutput = z.infer<typeof FactsListOutputSchema>;
 
-export const FactsFindSupportInputSchema = MatterIdInput.extend({ factId: z.string().uuid() });
+export const FactsFindSupportInputSchema = MatterIdInput.extend({ factId: z.string().guid() });
 export const FactsFindSupportOutputSchema = z.object({
   fact: FactSchema,
   sourceLinks: z.array(FactSourceLinkSchema),
@@ -51,10 +51,10 @@ const EvidenceInputSchema = z.object({
 });
 
 export const EvidenceMapSupportInputSchema = MatterIdInput.extend({
-  factId: z.string().uuid(),
-  evidenceItemId: z.string().uuid().optional(),
+  factId: z.string().guid(),
+  evidenceItemId: z.string().guid().optional(),
   evidence: EvidenceInputSchema.optional(),
-  anchorIds: z.array(z.string().uuid()).max(100).optional(),
+  anchorIds: z.array(z.string().guid()).max(100).optional(),
   relation: z.enum(['SUPPORTS', 'CONTRADICTS', 'CONTEXT']).default('SUPPORTS'),
   note: z.string().max(2000).optional(),
 }).refine((input) => input.evidenceItemId || input.evidence, {

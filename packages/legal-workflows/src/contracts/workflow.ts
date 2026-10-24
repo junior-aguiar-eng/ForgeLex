@@ -5,7 +5,7 @@ export const WorkflowCheckpointStatusSchema = z.enum(['RUNNING', 'COMPLETED', 'F
 export type WorkflowCheckpointStatus = z.infer<typeof WorkflowCheckpointStatusSchema>;
 
 export const WorkflowCheckpointSchema = z.object({
-  executionId: z.string().uuid(),
+  executionId: z.string().guid(),
   workflowId: z.string().min(1),
   workflowVersion: z.string().min(1),
   tenantId: z.string().min(1),
@@ -13,7 +13,7 @@ export const WorkflowCheckpointSchema = z.object({
   stepId: z.string().min(1),
   stepIndex: z.number().int().nonnegative(),
   status: WorkflowCheckpointStatusSchema,
-  state: z.unknown(),
+  state: z.unknown().optional(),
   createdAt: z.string().datetime(),
 });
 export type WorkflowCheckpoint = z.infer<typeof WorkflowCheckpointSchema>;

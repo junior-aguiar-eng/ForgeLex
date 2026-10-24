@@ -40,17 +40,17 @@ export const LEGAL_RESEARCH_MEMO_WORKFLOW_VERSION = '3.0.0' as const;
 const STEPS = ['intake', 'issues', 'search', 'verify', 'synthesize', 'adversarial-check', 'memo', 'human-review'] as const;
 
 export const LegalResearchMemoExecutionInputSchema = z.object({
-  matterId: z.string().uuid(), query: z.string().trim().min(3), court: z.literal('STJ').default('STJ'),
-  limit: z.number().int().min(1).max(20).default(10), issueIds: z.array(z.string().uuid()).optional(),
+  matterId: z.string().guid(), query: z.string().trim().min(3), court: z.literal('STJ').default('STJ'),
+  limit: z.number().int().min(1).max(20).default(10), issueIds: z.array(z.string().guid()).optional(),
   idempotencyKey: z.string().trim().min(1),
 });
 export type LegalResearchMemoExecutionInput = z.infer<typeof LegalResearchMemoExecutionInputSchema>;
 
 export const LegalResearchMemoExecutionOutputSchema = z.object({
   workflowId: z.literal(LEGAL_RESEARCH_MEMO_WORKFLOW_ID),
-  workflowVersion: z.literal(LEGAL_RESEARCH_MEMO_WORKFLOW_VERSION), executionId: z.string().uuid(),
+  workflowVersion: z.literal(LEGAL_RESEARCH_MEMO_WORKFLOW_VERSION), executionId: z.string().guid(),
   source: z.enum(['REST', 'MCP', 'AGENT_CORE']), idempotentReplay: z.boolean(),
-  record: ResearchMemoRecordSchema, issues: z.array(z.object({ id: z.string().uuid(), statement: z.string() })),
+  record: ResearchMemoRecordSchema, issues: z.array(z.object({ id: z.string().guid(), statement: z.string() })),
   research: z.object({ query: z.string(), court: z.literal('STJ'), total: z.number().int().nonnegative() }),
 });
 export type LegalResearchMemoExecutionOutput = z.infer<typeof LegalResearchMemoExecutionOutputSchema>;

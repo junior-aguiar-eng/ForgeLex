@@ -12,7 +12,7 @@ export function registerCaseAiAccessRoutes(
   directory: OAuthClientDirectory,
   audit?: AuditRecorder,
 ) {
-  const params = z.object({ matterId: z.string().uuid() });
+  const params = z.object({ matterId: z.string().guid() });
   const page = { cursor: z.string().max(1024).optional(), limit: z.number().int().min(1).max(50).optional() };
   const session = async (req: FastifyRequest, reply: FastifyReply) => {
     if (req.principal.authMethod !== 'session')
@@ -162,7 +162,7 @@ export function registerCaseAiAccessRoutes(
     '/api/v2/matters/:matterId/ai-access/:grantId/revoke',
     options(true),
     handle(async (req) => {
-      const p = params.extend({ grantId: z.string().uuid() }).parse(req.params);
+      const p = params.extend({ grantId: z.string().guid() }).parse(req.params);
       const body = z.object({ expectedRevision: z.number().int().positive() }).strict().parse(req.body);
       const result = await repo.revoke(owner(req), p.matterId, p.grantId, body.expectedRevision);
       await log(req, p.matterId, result.id, result.revision, 'case_ai.access.revoked');
