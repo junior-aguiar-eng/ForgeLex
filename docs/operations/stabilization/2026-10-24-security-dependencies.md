@@ -51,10 +51,16 @@ não explorável na prática. Isso não constitui uma release corrigida: o regis
 continua em 3.0.3. O patch de profundidade, seus testes e o gate de audit foram
 preservados. A exceção temporária existente não foi renovada ou ampliada.
 
-## Limites de publicação
+## Publicação posterior
 
-Até os gates e o deploy, as novas resoluções e a migração existem somente no
-código desta entrega. Ensaios automáticos não homologam o resultado jurídico
+PR #78 integrada; CI da PR e de main com seis jobs aprovados. A publicação
+foi executada com candidata antes da promoção e sem reaplicar migrations.
+[Recibo e validações operacionais](2026-10-24-security-dependencies-publication.md).
+
+## Limites da etapa de implementação
+
+Antes dos gates e do deploy registrados acima, as novas resoluções e a migração
+existiam somente no código desta entrega. Ensaios automáticos não homologam o resultado jurídico
 nem o uso autenticado nos hosts reais. Deploy exige candidata antes da promoção,
 auto-migrate desligado e provas operacionais próprias; não há autorização para
 reaplicar migrations, reparar saldo ou executar reconciliação manual.
