@@ -198,3 +198,23 @@ com fixtures, claramente diferenciadas de fonte real e competência jurídica.
 Sem implementar agora. A prévia existente demonstra organização e interação,
 não a competência jurídica nem a execução multiagêntica. A aprovação do projeto
 deve considerar ambos: experiência e comportamento técnico/jurídico.
+
+## Acompanhamento de implementação — 24/10/2026
+
+O retrato de 10/10 acima permanece como base histórica. A Tarefa 0 passou a
+ter implementação em packages/legal-agents, com agent-definition.ts,
+agent-catalog.ts, context-packet.ts, instruções por papel, contratos,
+playbooks e avaliações definidas. Os papéis não contemplados no recorte
+continuam identificados como pendentes, conforme a matriz desta arquitetura.
+
+O desvio inicial de manter catálogo e contexto em legal-workflows foi corrigido
+por determinação de Boni. Os consumidores antigos mantêm exports compatíveis.
+O runner existente coordena contratos e registra suas versões sem criar runtime.
+
+Estado e evidências: [registro da Tarefa 0](2026-10-24-agent-contracts-task0.md).
+Código: branch codex/agent-contracts-a0, worktree
+C:/Users/Boni Jr/.codex/worktrees/analise-release/SDK.
+
+Os testes de contratos usam fixtures e handlers determinísticos. A inferência
+jurídica nativa, fontes normativas, orquestração e piloto continuam nas fases
+previstas neste documento. Nenhuma capability nova foi publicada no MCP.

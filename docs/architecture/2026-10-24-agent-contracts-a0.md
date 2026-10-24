@@ -4,6 +4,14 @@ Data: 24/10/2026. Autorização de Boni: “commit e inicie o A0”.
 Base de implementação: main em `a02325b7afb653f80b587b6df21daf7b81cacebb`.
 Branch: `codex/agent-contracts-a0`, worktree `analise-release/SDK`.
 
+## Correção de estrutura na continuação
+
+Por determinação de Boni, a decisão inicial de manter contratos em
+legal-workflows foi substituída pela estrutura prevista no plano e na matriz:
+packages/legal-agents. Este registro preserva o histórico do primeiro recorte;
+o estado atual e os critérios da Tarefa 0 estão em
+[2026-10-24-agent-contracts-task0.md](2026-10-24-agent-contracts-task0.md).
+
 ## Recorte e decisões
 
 O plano, spec e duas referências de arquitetura de 10/10 foram preservados

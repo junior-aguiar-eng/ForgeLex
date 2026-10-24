@@ -81,7 +81,7 @@ describe('A0: contratos de pesquisa STJ', () => {
     expect(ResearchDeliverySchema.safeParse({ ...limited, authorities: [{ ...result, status: 'VERIFIED_PROVIDER' }] }).success).toBe(true);
     expect(ResearchDeliverySchema.safeParse({ ...limited, authorities: [{ ...result, status: 'VERIFIED_PROVIDER', authority }] }).success).toBe(false);
   });
-  it('mantém quatro ações planejadas e não anuncia execução habilitada', () => {
+  it('mantém quatro ações desabilitadas e não anuncia execução habilitada', () => {
     expect(LEGAL_ACTION_CATALOG.map((action) => action.id)).toEqual([
       'analyze_documents', 'research_question', 'create_document', 'review_text',
     ]);

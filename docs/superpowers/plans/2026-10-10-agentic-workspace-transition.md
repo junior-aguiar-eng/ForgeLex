@@ -133,24 +133,41 @@ dependências, fontes obrigatórias e critérios de conclusão.
 playbook versionado, workflows elegíveis e critérios de entrega. O catálogo público
 expõe somente id/label/descrição da capacidade; não as instruções internas.
 
-- [ ] Mapear os papéis da seção 22 do V2 e seus serviços atuais, mantendo distinto
+- [x] Mapear os papéis da seção 22 do V2 e seus serviços atuais, mantendo distinto
   o papel especializado de uma simples função de persistência.
-- [ ] Definir contratos dos workflows de pesquisa, análise de autos, confecção
+- [x] Definir contratos dos workflows de pesquisa, análise de autos, confecção
   de peça e revisão de texto; escolher explicitamente o primeiro recorte de
   homologação com Boni.
-- [ ] Separar system policy, instruções do agente, playbook de tarefa, template
+- [x] Separar system policy, instruções do agente, playbook de tarefa, template
   documental e scripts determinísticos. Registrar versões consumidas no run.
-- [ ] Mapear as quatro ações visíveis a diálogos, playbooks e competências do V2.
+- [x] Mapear as quatro ações visíveis a diálogos, playbooks e competências do V2.
   Ação é objetivo inicial, não peça fixa nem especialista exclusivo; texto livre
   permite ao orquestrador delimitar a capacidade apropriada.
-- [ ] Testar handoff com fonte ausente, contexto excessivo e output incompatível:
+- [x] Testar handoff com fonte ausente, contexto excessivo e output incompatível:
   rejeitar integração inválida; não completar autoridade/fato ausente.
-- [ ] Definir evals jurídicos com casos positivos/negativos/ambíguos para questões,
+- [x] Definir evals jurídicos com casos positivos/negativos/ambíguos para questões,
   suporte, requisitos processuais, argumentos contrários e pedidos.
 
 **Aceitação:** existe projeto executável da competência jurídica e da coordenação,
 além da UI/infraestrutura. Não multiplicar processos/modelos por espécie de peça.
 
+### Acompanhamento da Tarefa 0 — 24/10/2026
+
+Os seis critérios abaixo estão implementados e verificados localmente.
+Tarefa 0 concluída no recorte de contratos: build, typecheck, lint e regressão integral aprovados. Tarefas 1–7 permanecem pendentes.
+
+Implementação: branch codex/agent-contracts-a0, no worktree
+C:/Users/Boni Jr/.codex/worktrees/analise-release/SDK.
+O checkout original preserva as alterações locais do fluxo de casos.
+
+Evidências por critério, estado dos papéis e limites:
+[registro da Tarefa 0](../../architecture/2026-10-24-agent-contracts-task0.md).
+
+Os checkboxes indicam conclusão dos contratos e verificações desta tarefa.
+A execução jurídica por modelos, fontes normativas, conversas persistentes,
+orquestração, interface e piloto pertencem às tarefas seguintes.
+O primeiro recorte contratado é pesquisa/verificação STJ, conforme o A0
+autorizado por Boni. Isso não autoriza o piloto pago da fase E.
 ### Tarefa 1 — contrato e persistência da execução
 
 **Arquivos propostos:** criar `packages/domain/src/contracts/agentic-workspace.ts`,
