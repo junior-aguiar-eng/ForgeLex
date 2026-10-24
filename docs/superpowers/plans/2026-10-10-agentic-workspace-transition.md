@@ -28,6 +28,15 @@ solicitada; não é a entrada da experiência. Aplicar a pesquisa comparativa de
 `docs/architecture/2026-10-10-agentic-platform-reference-research.md` como referência,
 sem adotar automaticamente framework, código externo ou conteúdo jurídico estrangeiro.
 
+## Retomada em 24/10/2026
+
+Boni autorizou commit do plano e início do A0. O recorte inicial implementa
+contratos internos de pesquisa STJ, sem habilitar execução de agentes.
+Registro e pendências da Tarefa 0:
+[`../../architecture/2026-10-24-agent-contracts-a0.md`](../../architecture/2026-10-24-agent-contracts-a0.md).
+A Tarefa 0 completa e os incrementos B–E continuam pendentes; autorização deste
+recorte não estende execução aos demais incrementos.
+
 ## Restrições globais
 
 - Preservar as alterações locais de `codex/case-flow-simplification`; não incorporar
