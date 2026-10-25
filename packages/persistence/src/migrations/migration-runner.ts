@@ -1130,6 +1130,19 @@ export const persistenceMigrations: readonly SqlMigration[] = [
   `CREATE TABLE saved_research (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, slot INTEGER NOT NULL CHECK (slot BETWEEN 1 AND 6), operation_id TEXT NOT NULL, result_snapshot TEXT NOT NULL, criteria_json TEXT NOT NULL, result_count INTEGER NOT NULL CHECK (result_count >= 0), searched_at TEXT NOT NULL, saved_at TEXT NOT NULL, UNIQUE (tenant_id,user_id,slot), UNIQUE (tenant_id,user_id,operation_id), FOREIGN KEY (tenant_id,user_id) REFERENCES saved_research_collections(tenant_id,user_id));`,
   `CREATE TABLE saved_research_permissions (tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, oauth_client_id TEXT NOT NULL, oauth_granted_at TEXT NOT NULL, enabled INTEGER NOT NULL CHECK (enabled IN (0,1)), updated_at TEXT NOT NULL, PRIMARY KEY (tenant_id,user_id,oauth_client_id,oauth_granted_at));`,
 ] },
+{ id: 'persistence-0031-agentic-workspace', statements: [
+  `CREATE TABLE agentic_conversations (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, objective TEXT NOT NULL, matter_id TEXT REFERENCES matters(id), context_revision INTEGER NOT NULL CHECK (context_revision > 0), created_at TEXT NOT NULL);`,
+  `CREATE INDEX agentic_conversations_owner_idx ON agentic_conversations(tenant_id,user_id);`,
+  `CREATE TABLE agentic_contexts (id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL REFERENCES agentic_conversations(id), revision INTEGER NOT NULL CHECK (revision > 0), payload_json TEXT NOT NULL, created_at TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX agentic_contexts_revision_idx ON agentic_contexts(conversation_id,revision);`,
+  `CREATE TABLE agentic_executions (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, conversation_id TEXT NOT NULL REFERENCES agentic_conversations(id), idempotency_key TEXT NOT NULL, input_hash TEXT NOT NULL, payload_json TEXT NOT NULL, event_sequence INTEGER NOT NULL DEFAULT 0 CHECK (event_sequence >= 0));`,
+  `CREATE UNIQUE INDEX agentic_executions_key_idx ON agentic_executions(tenant_id,user_id,idempotency_key);`,
+  `CREATE INDEX agentic_executions_conversation_idx ON agentic_executions(conversation_id);`,
+  `CREATE TABLE agentic_messages (id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL REFERENCES agentic_conversations(id), execution_id TEXT REFERENCES agentic_executions(id), sequence INTEGER NOT NULL CHECK (sequence > 0), payload_json TEXT NOT NULL, created_at TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX agentic_messages_sequence_idx ON agentic_messages(conversation_id,sequence);`,
+  `CREATE TABLE agentic_events (id TEXT PRIMARY KEY, execution_id TEXT NOT NULL REFERENCES agentic_executions(id), sequence INTEGER NOT NULL CHECK (sequence > 0), type TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX agentic_events_sequence_idx ON agentic_events(execution_id,sequence);`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

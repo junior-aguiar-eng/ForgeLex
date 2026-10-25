@@ -34,8 +34,9 @@ Boni autorizou commit do plano e início do A0. O recorte inicial implementa
 contratos internos de pesquisa STJ, sem habilitar execução de agentes.
 Registro e pendências da Tarefa 0:
 [`../../architecture/2026-10-24-agent-contracts-a0.md`](../../architecture/2026-10-24-agent-contracts-a0.md).
-A Tarefa 0 completa e os incrementos B–E continuam pendentes; autorização deste
-recorte não estende execução aos demais incrementos.
+A Tarefa 0 foi concluída no commit `a7d8832`. Em 24/10/2026, Boni autorizou
+a próxima etapa: somente a Tarefa 1. As tarefas seguintes continuam pendentes;
+essa autorização não inclui inferência paga, publicação ou migrations externas.
 
 ## Restrições globais
 
@@ -154,7 +155,8 @@ além da UI/infraestrutura. Não multiplicar processos/modelos por espécie de p
 ### Acompanhamento da Tarefa 0 — 24/10/2026
 
 Os seis critérios abaixo estão implementados e verificados localmente.
-Tarefa 0 concluída no recorte de contratos: build, typecheck, lint e regressão integral aprovados. Tarefas 1–7 permanecem pendentes.
+Tarefa 0 concluída no recorte de contratos: build, typecheck, lint e regressão integral aprovados.
+A implementação posterior da Tarefa 1 está registrada abaixo; Tarefas 2–7 permanecem pendentes.
 
 Implementação: branch codex/agent-contracts-a0, no worktree
 C:/Users/Boni Jr/.codex/worktrees/analise-release/SDK.
@@ -193,19 +195,28 @@ da branch de implementação, sem reservar agora um número sujeito a conflito.
   opcional, com origem das informações e revisão. Objetivo ainda sem contexto
   suficiente pode iniciar o diálogo, mas não a inferência jurídica sobre fatos ausentes.
 
-- [ ] Testar duas contas: tenant B não lê evento/conversa/execução de A.
-- [ ] Testar sequência única e ordenada; chave idempotente repetida não cria execução.
-- [ ] Testar contexto somente escrito sem anexos/caso cadastrado e manter origem;
+- [x] Testar duas contas: tenant B não lê evento/conversa/execução de A.
+- [x] Testar sequência única e ordenada; chave idempotente repetida não cria execução.
+- [x] Testar contexto somente escrito sem anexos/caso cadastrado e manter origem;
   nenhuma tabela de documentos deve ser preenchida com anexo fictício.
-- [ ] Testar perguntas/respostas persistidas, seleção única/múltipla, resposta livre,
+- [x] Testar perguntas/respostas persistidas, seleção única/múltipla, resposta livre,
   unknown e correção de contexto; recuperar o diálogo após reconexão.
-- [ ] Rejeitar resposta a pergunta expirada ou com versão/revisão incompatível;
+- [x] Rejeitar resposta a pergunta expirada ou com versão/revisão incompatível;
   preservar o histórico e reavaliar entregas dependentes de uma correção.
-- [ ] Implementar tabelas aditivas e as interfaces, com snapshots de contexto versionados.
-- [ ] Verificar criação/leitura depois de recriar repositório/processo em PostgreSQL.
-- [ ] Executar build, testes focados de domínio/persistência e smoke PostgreSQL.
+- [x] Implementar tabelas aditivas e as interfaces, com snapshots de contexto versionados.
+- [x] Verificar criação/leitura depois de recriar repositório/processo em PostgreSQL.
+- [x] Executar build, testes focados de domínio/persistência e smoke PostgreSQL.
 
 **Aceitação:** estado recuperável independente do navegador e das Maps do provider.
+
+### Acompanhamento da Tarefa 1 — 24/10/2026
+
+Implementação local nos caminhos propostos, com migration aditiva
+`persistence-0031-agentic-workspace`. Evidências por critério e limites:
+[registro da Tarefa 1](../../architecture/2026-10-24-agentic-workspace-task1.md).
+As tabelas foram migradas somente nos bancos sintéticos de teste; não houve
+aplicação em banco existente ou remoto, commit, push, inferência ou deploy.
+Tarefas 2–7 permanecem pendentes.
 
 ### Tarefa 2 — limite e contabilidade de inferência
 

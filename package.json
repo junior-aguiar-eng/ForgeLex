@@ -24,6 +24,7 @@
     "test:e2e:document-reader": "playwright test --config playwright.document-reader.config.ts",
     "test:e2e:case-ai": "playwright test --config playwright.case-ai.config.ts",
     "test:e2e:research": "playwright test --config playwright.research.config.ts",
+    "test:postgres:agentic": "pnpm build && node scripts/smoke-agentic-workspace-postgres.mjs",
     "test:postgres:research": "pnpm build && node scripts/smoke-research-postgres.mjs",
     "test:e2e:accessibility": "playwright test tests/e2e/accessibility.spec.ts --project=chromium",
     "test:e2e:mcp-site": "playwright test --config playwright.mcp-site.config.ts",

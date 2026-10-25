@@ -1,5 +1,30 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+export const agenticConversations = sqliteTable('agentic_conversations', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
+  objective: text('objective').notNull(), matterId: text('matter_id').references(() => matters.id),
+  contextRevision: integer('context_revision').notNull(), createdAt: text('created_at').notNull(),
+}, t => [index('agentic_conversations_owner_idx').on(t.tenantId, t.userId)]);
+export const agenticContexts = sqliteTable('agentic_contexts', {
+  id: text('id').primaryKey(), conversationId: text('conversation_id').notNull().references(() => agenticConversations.id),
+  revision: integer('revision').notNull(), payloadJson: text('payload_json').notNull(), createdAt: text('created_at').notNull(),
+}, t => [uniqueIndex('agentic_contexts_revision_idx').on(t.conversationId, t.revision)]);
+export const agenticExecutions = sqliteTable('agentic_executions', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
+  conversationId: text('conversation_id').notNull().references(() => agenticConversations.id),
+  idempotencyKey: text('idempotency_key').notNull(), inputHash: text('input_hash').notNull(),
+  payloadJson: text('payload_json').notNull(), eventSequence: integer('event_sequence').notNull().default(0),
+}, t => [uniqueIndex('agentic_executions_key_idx').on(t.tenantId, t.userId, t.idempotencyKey), index('agentic_executions_conversation_idx').on(t.conversationId)]);
+export const agenticMessages = sqliteTable('agentic_messages', {
+  id: text('id').primaryKey(), conversationId: text('conversation_id').notNull().references(() => agenticConversations.id),
+  executionId: text('execution_id').references(() => agenticExecutions.id), sequence: integer('sequence').notNull(),
+  payloadJson: text('payload_json').notNull(), createdAt: text('created_at').notNull(),
+}, t => [uniqueIndex('agentic_messages_sequence_idx').on(t.conversationId, t.sequence)]);
+export const agenticEvents = sqliteTable('agentic_events', {
+  id: text('id').primaryKey(), executionId: text('execution_id').notNull().references(() => agenticExecutions.id),
+  sequence: integer('sequence').notNull(), type: text('type').notNull(), payloadJson: text('payload_json').notNull(), createdAt: text('created_at').notNull(),
+}, t => [uniqueIndex('agentic_events_sequence_idx').on(t.executionId, t.sequence)]);
+
 export const caseAiAccessGrants = sqliteTable('case_ai_access_grants', {
  receivePermissionJson: text('receive_permission_json').notNull().default('{"enabled":false}'),
  id:text('id').primaryKey(),tenantId:text('tenant_id').notNull(),userId:text('user_id').notNull(),
