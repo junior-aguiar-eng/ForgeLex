@@ -2,8 +2,9 @@
 
 > **For agentic workers:** usar `superpowers:executing-plans` após autorização
 > de Boni para o incremento selecionado. Implementar e verificar tarefa por
-> tarefa; não impor outro aprovador humano. Este plano é uma proposta para
-> discussão, não autorização de execução ou publicação.
+> tarefa; não impor outro aprovador humano. Este plano está em execução
+> incremental: autorizações e conclusões constam do estado abaixo. Não autoriza
+> por si só executar tarefas seguintes ou publicar o produto.
 
 **Goal:** evoluir a plataforma agêntica jurídica prevista no V2, completando
 orquestração e especialistas sobre serviços existentes e preservando o MCP.
@@ -28,15 +29,41 @@ solicitada; não é a entrada da experiência. Aplicar a pesquisa comparativa de
 `docs/architecture/2026-10-10-agentic-platform-reference-research.md` como referência,
 sem adotar automaticamente framework, código externo ou conteúdo jurídico estrangeiro.
 
+## Estado de execução — 25/10/2026
+
+O estado abaixo se refere à implementação na branch `codex/agent-contracts-a0`,
+no worktree `C:/Users/Boni Jr/.codex/worktrees/analise-release/SDK`.
+Conclusão local, commit, integração, migration em banco existente e deploy são
+estados distintos. As tarefas concluídas abaixo não significam liberação em produção.
+
+- [x] **Tarefa 0 — concluída no recorte de contratos.** Commit `a7d8832`;
+  build, typecheck, lint e regressão registrados.
+- [x] **Tarefa 1 — concluída e commitada.** Commit `568a66f`;
+  20 testes focados, smoke PostgreSQL e regressão de 1006 testes aprovados.
+- [x] **Tarefa 2 — concluída localmente, ainda sem commit.**
+  36 testes focados, smoke PostgreSQL e regressão de 1022 testes aprovados.
+- [ ] **Tarefa 3 — pendente.** Serviço durável e transporte de eventos; próxima tarefa.
+- [ ] **Tarefa 4A — pendente.** Tools e fontes exigidas pelo workflow.
+- [ ] **Tarefa 4B — pendente.** Orquestrador, especialistas e ferramentas do caso.
+- [ ] **Tarefa 5 — pendente.** Superfície Trabalho, contexto e editor.
+- [ ] **Tarefa 6 — pendente.** Homologação com provider real e teto aprovado.
+- [ ] **Tarefa 7 — pendente.** Liberação controlada e continuidade.
+
+Evidências por critério: [Tarefa 0](../../architecture/2026-10-24-agent-contracts-task0.md),
+[Tarefa 1](../../architecture/2026-10-24-agentic-workspace-task1.md) e
+[Tarefa 2](../../architecture/2026-10-25-inference-budget-task2.md).
+
 ## Retomada em 24/10/2026
 
 Boni autorizou commit do plano e início do A0. O recorte inicial implementa
 contratos internos de pesquisa STJ, sem habilitar execução de agentes.
-Registro e pendências da Tarefa 0:
+Registro histórico do recorte inicial da Tarefa 0:
 [`../../architecture/2026-10-24-agent-contracts-a0.md`](../../architecture/2026-10-24-agent-contracts-a0.md).
 A Tarefa 0 foi concluída no commit `a7d8832`. Em 24/10/2026, Boni autorizou
 a próxima etapa: somente a Tarefa 1. As tarefas seguintes continuam pendentes;
 essa autorização não inclui inferência paga, publicação ou migrations externas.
+Em 25/10/2026, Boni autorizou o commit da Tarefa 1 (`568a66f`) e a execução
+da Tarefa 2. Tarefas 3–7 permanecem pendentes, sem autorização de piloto ou deploy.
 
 ## Restrições globais
 
@@ -74,18 +101,18 @@ da medida adequada; resposta livre fora das opções; opção **Ainda não sei**
 informação indispensável; correção de resposta após entrega. Os testes pertencem
 às tarefas 1, 3, 4B e 5 abaixo. Nenhum desses casos autoriza inventar contexto.
 
-## Sequência proposta
+## Sequência e estado dos incrementos
 
-| Incremento | Entrega verificável | Dependências |
-| --- | --- | --- |
-| Design, agora | V2 → componentes atuais → complementos, experiência e critérios jurídicos | Matriz de reaproveitamento |
-| M — apresentação documental do MCP | Leitor de decisões, seleção por identidade, texto da fonte e fallback textual | [Plano próprio](2026-10-11-mcp-decision-presentation.md); independente do runtime agêntico |
-| A — contratos da plataforma | Catálogo de agentes, workflows, contexto e entregas jurídicas | Tarefa 0 |
-| B — infraestrutura e fontes | Execução durável, controle de consumo, tools e fontes normativas requeridas | Tarefas 1–3 e 4A |
-| C — orquestração jurídica | Especialistas, diagnóstico/pesquisa/redação/revisão e avaliação por workflow | Tarefa 4B |
-| D — experiência utilizável | Trabalho → investigação → entrega → revisão, preservando MCP | Tarefa 5 |
-| E — piloto real | Provider/modelo, escopo e teto autorizados; resultado jurídico medido | Tarefas 6–7 |
-| Evoluções posteriores | Mais workflows/fontes, biblioteca administrável e topologias justificadas | Especificações próprias |
+| Incremento | Entrega verificável | Dependências | Estado |
+| --- | --- | --- | --- |
+| Design, agora | V2 → componentes atuais → complementos, experiência e critérios jurídicos | Matriz de reaproveitamento | Proposta documentada |
+| M — apresentação documental do MCP | Leitor de decisões, seleção por identidade, texto da fonte e fallback textual | [Plano próprio](2026-10-11-mcp-decision-presentation.md); independente do runtime agêntico | Acompanhamento no plano próprio |
+| A — contratos da plataforma | Catálogo de agentes, workflows, contexto e entregas jurídicas | Tarefa 0 | Concluído: Tarefa 0 |
+| B — infraestrutura e fontes | Execução durável, controle de consumo, tools e fontes normativas requeridas | Tarefas 1–3 e 4A | Parcial: Tarefas 1–2 concluídas; 3 e 4A pendentes |
+| C — orquestração jurídica | Especialistas, diagnóstico/pesquisa/redação/revisão e avaliação por workflow | Tarefa 4B | Pendente |
+| D — experiência utilizável | Trabalho → investigação → entrega → revisão, preservando MCP | Tarefa 5 | Pendente |
+| E — piloto real | Provider/modelo, escopo e teto autorizados; resultado jurídico medido | Tarefas 6–7 | Pendente |
+| Evoluções posteriores | Mais workflows/fontes, biblioteca administrável e topologias justificadas | Especificações próprias | Fora deste ciclo |
 
 As tarefas abaixo delimitam interfaces propostas; antes de programar cada
 incremento, conferir assinaturas e migrations do checkout escolhido. Não executar
@@ -117,7 +144,7 @@ São alternativas de apresentação, não implementação ou conexão MCP homolo
 O painel lateral depende da capacidade e decisão do host; leitura embutida é a
 alternativa demonstrada. O texto da fonte não é reescrito pelo modelo.
 
-### Tarefa 0 — contratos jurídicos e catálogo V2
+### Tarefa 0 — contratos jurídicos e catálogo V2 — CONCLUÍDA
 
 **Arquivos propostos:** criar `packages/legal-agents/src/{agent-definition,
 agent-catalog,context-packet}.ts`, instruções versionadas por papel e testes;
@@ -154,9 +181,9 @@ além da UI/infraestrutura. Não multiplicar processos/modelos por espécie de p
 
 ### Acompanhamento da Tarefa 0 — 24/10/2026
 
-Os seis critérios abaixo estão implementados e verificados localmente.
+Os seis critérios acima estão implementados e verificados localmente.
 Tarefa 0 concluída no recorte de contratos: build, typecheck, lint e regressão integral aprovados.
-A implementação posterior da Tarefa 1 está registrada abaixo; Tarefas 2–7 permanecem pendentes.
+As implementações posteriores das Tarefas 1 e 2 estão registradas abaixo; Tarefas 3–7 permanecem pendentes.
 
 Implementação: branch codex/agent-contracts-a0, no worktree
 C:/Users/Boni Jr/.codex/worktrees/analise-release/SDK.
@@ -165,12 +192,12 @@ O checkout original preserva as alterações locais do fluxo de casos.
 Evidências por critério, estado dos papéis e limites:
 [registro da Tarefa 0](../../architecture/2026-10-24-agent-contracts-task0.md).
 
-Os checkboxes indicam conclusão dos contratos e verificações desta tarefa.
-A execução jurídica por modelos, fontes normativas, conversas persistentes,
-orquestração, interface e piloto pertencem às tarefas seguintes.
+Os checkboxes desta tarefa indicam conclusão dos contratos e suas verificações.
+O estado da persistência, orçamento, execução jurídica por modelos, fontes,
+orquestração, interface e piloto está discriminado nas tarefas correspondentes.
 O primeiro recorte contratado é pesquisa/verificação STJ, conforme o A0
 autorizado por Boni. Isso não autoriza o piloto pago da fase E.
-### Tarefa 1 — contrato e persistência da execução
+### Tarefa 1 — contrato e persistência da execução — CONCLUÍDA
 
 **Arquivos propostos:** criar `packages/domain/src/contracts/agentic-workspace.ts`,
 `packages/persistence/src/repositories/agentic-workspace-repository.ts` e seus
@@ -215,10 +242,11 @@ Implementação local nos caminhos propostos, com migration aditiva
 `persistence-0031-agentic-workspace`. Evidências por critério e limites:
 [registro da Tarefa 1](../../architecture/2026-10-24-agentic-workspace-task1.md).
 As tabelas foram migradas somente nos bancos sintéticos de teste; não houve
-aplicação em banco existente ou remoto, commit, push, inferência ou deploy.
-Tarefas 2–7 permanecem pendentes.
+aplicação em banco existente ou remoto, push, inferência ou deploy.
+O commit posterior da Tarefa 1 foi autorizado e realizado como `568a66f`.
+A Tarefa 2 tem acompanhamento abaixo; Tarefas 3–7 permanecem pendentes.
 
-### Tarefa 2 — limite e contabilidade de inferência
+### Tarefa 2 — limite e contabilidade de inferência — CONCLUÍDA
 
 **Arquivos propostos:** criar `packages/billing-ledger/src/inference-budget-service.ts`
 e testes; adaptar schema/ledger com reserva persistida, nunca apenas mutex de processo.
@@ -229,17 +257,27 @@ upperBoundCents})`, `settleProviderCall({executionId, callId, usage,
 actualCostCents})`, `releaseUnusedBudget(executionId)`. Uso normalizado reutiliza
 `NormalizedUsage`; preço/modelo vêm de configuração versionada aprovada por Boni.
 
-- [ ] Testar reservas concorrentes: soma não ultrapassa saldo disponível.
-- [ ] Testar retry do mesmo `callId`: um débito; erro/cancelamento libera só reserva não consumida.
-- [ ] Testar consumo não mensurável: bloquear novas chamadas e marcar reconciliação, sem inventar custo zero.
-- [ ] Implementar reserva/settlement persistidos e teto por chamada/contexto/saída.
-- [ ] Incluir pesquisa STJ no orçamento da tarefa preservando sua cobrança/idempotência própria.
-- [ ] Verificar teto duro com provider fake tentando exceder chamadas ou contexto.
+- [x] Testar reservas concorrentes: soma não ultrapassa saldo disponível.
+- [x] Testar retry do mesmo `callId`: um débito; erro/cancelamento libera só reserva não consumida.
+- [x] Testar consumo não mensurável: bloquear novas chamadas e marcar reconciliação, sem inventar custo zero.
+- [x] Implementar reserva/settlement persistidos e teto por chamada/contexto/saída.
+- [x] Incluir pesquisa STJ no orçamento da tarefa preservando sua cobrança/idempotência própria.
+- [x] Verificar teto duro com provider fake tentando exceder chamadas ou contexto.
 
 **Aceitação:** nenhuma chamada paga inicia sem cobertura autorizada. Detalhar
 política de tarifação real antes do piloto; protótipo não realiza cobrança.
 
-### Tarefa 3 — serviço durável e transporte de eventos
+### Acompanhamento da Tarefa 2 — 25/10/2026
+
+Implementação local dos seis critérios, no serviço proposto, reutilizando a
+liquidação do ledger. Migration aditiva `billing-ledger-0009-inference-budgets`.
+Evidências, decisões de reserva e limites:
+[registro da Tarefa 2](../../architecture/2026-10-25-inference-budget-task2.md).
+Os testes usam somente bancos e políticas sintéticos; não há provider/modelo,
+tarifa comercial ou piloto real selecionado. A integração às rotas/worker e a
+conciliação operacional de consumo incerto continuam nas etapas seguintes.
+
+### Tarefa 3 — serviço durável e transporte de eventos — PENDENTE
 
 **Arquivos propostos:** criar `apps/api/src/agentic-workspace/{execution-service,
 execution-worker,execution-routes,event-stream}.ts` e testes; modificar montagem
@@ -270,7 +308,7 @@ Contratos públicos reutilizam `LegalQuestion` sem dados internos de ferramentas
 **Aceitação:** `RUNNING` não fica indefinidamente sem worker; retomada não promete
 restaurar estado privado de SDK. Continuação usa nova execução sucessora quando necessário.
 
-### Tarefa 4A — tools e fontes exigidas pelo workflow
+### Tarefa 4A — tools e fontes exigidas pelo workflow — PENDENTE
 
 **Arquivos:** reaproveitar `packages/legal-tools`, `packages/legal-data`,
 `packages/source-catalog`, `packages/source-providers` e ingestão/persistência;
@@ -288,7 +326,7 @@ planejar módulo normativo delimitado nessas fronteiras, sem substituir o corpus
 **Aceitação:** fontes necessárias são recuperadas por operações verificáveis;
 fixtures provam integração, não atualidade jurídica nem corpus real homologado.
 
-### Tarefa 4B — orquestrador, especialistas e ferramentas do caso
+### Tarefa 4B — orquestrador, especialistas e ferramentas do caso — PENDENTE
 
 **Arquivos propostos:** criar `packages/legal-workflows/src/agentic-case-task/`
 com política/definição de tarefa e testes; integrar catálogo/instruções da tarefa 0;
@@ -330,7 +368,7 @@ peça quando cabível, findings e entrega preliminar com fontes versionadas.
 com provider real posterior demonstram competência jurídica. Texto gerado não
 adota fatos, aprova versão ou fabrica jurisprudência.
 
-### Tarefa 5 — superfície Trabalho, contexto e editor
+### Tarefa 5 — superfície Trabalho, contexto e editor — PENDENTE
 
 **Arquivos propostos:** criar `apps/web/src/screens/AgenticWorkspaceScreen.tsx`,
 `apps/web/src/agentic-workspace/{client,use-execution-events,execution-model}.ts`
@@ -380,7 +418,7 @@ responde opções/perguntas pertinentes e conclui o percurso sem coordenar agent
 copiar resultados ou enfrentar repetição de perguntas e funcionalidades. A peça é
 uma entrega eventual, criada a partir do contexto, nunca a entrada predefinida.
 
-### Tarefa 6 — homologação com um provider real
+### Tarefa 6 — homologação com um provider real — PENDENTE
 
 **Pré-condições de decisão:** Boni escolhe provider/modelo, escopo de envio e teto
 financeiro. Não usar modelos padrão dos adapters como escolha comercial implícita.
@@ -398,7 +436,7 @@ jurídica, sem credenciais em fixtures/logs.
 
 **Aceitação:** percurso real comprovado. Tests fake não substituem esta evidência.
 
-### Tarefa 7 — liberação controlada e continuidade
+### Tarefa 7 — liberação controlada e continuidade — PENDENTE
 
 - [ ] Concluir preços/margem, reserva, conciliação e comunicação de consumo para o escopo comercial.
 - [ ] Executar regressões pertinentes: unitários, tipos, lint/build, E2E de casos,
@@ -420,7 +458,10 @@ interromper REST/MCP. Publicação não é consequência automática de testes l
 - **Mais agentes/fontes:** adicionar somente quando avaliações demonstrarem ganho
   sobre orquestrador com ferramentas; medir custo/latência e regressões jurídicas.
 
-## Revisão desta proposta
+## Registro histórico da proposta
+
+O texto abaixo descreve a elaboração inicial em 10/10/2026. O estado atual e
+as verificações posteriores constam do resumo de execução e das tarefas acima.
 
 Plano escrito a partir do checkout, sem executar migrations, modelos ou checks
 do produto. Artefatos visuais são simulação local. Avaliar primeiro organização,

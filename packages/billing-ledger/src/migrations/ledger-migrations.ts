@@ -223,6 +223,15 @@ export const ledgerMigrations: readonly SqlMigration[] = [
     id: 'billing-ledger-0008-request-fingerprint',
     statements: ['ALTER TABLE billing_operations ADD COLUMN request_fingerprint TEXT;'],
   },
+  { id: 'billing-ledger-0009-inference-budgets', statements: [
+    `ALTER TABLE billing_operations ADD COLUMN funding_execution_id TEXT;`,
+    `ALTER TABLE billing_operations ADD COLUMN funding_call_id TEXT;`,
+    `CREATE TABLE inference_budgets (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, execution_id TEXT NOT NULL UNIQUE, idempotency_key TEXT NOT NULL, payload_json TEXT NOT NULL);`,
+    `CREATE UNIQUE INDEX inference_budgets_owner_key_idx ON inference_budgets(tenant_id,user_id,idempotency_key);`,
+    `CREATE TABLE inference_calls (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, execution_id TEXT NOT NULL, call_id TEXT NOT NULL, operation_key TEXT NOT NULL, payload_json TEXT NOT NULL);`,
+    `CREATE UNIQUE INDEX inference_calls_execution_call_idx ON inference_calls(execution_id,call_id);`,
+    `CREATE UNIQUE INDEX inference_calls_operation_idx ON inference_calls(tenant_id,operation_key);`,
+  ] },
 ];
 
 export async function runLedgerMigrations(client: Client): Promise<void> {

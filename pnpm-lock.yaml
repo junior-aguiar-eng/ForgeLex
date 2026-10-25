@@ -309,6 +309,9 @@ importers:
 
   packages/billing-ledger:
     dependencies:
+      '@forgelex/agent-core':
+        specifier: workspace:*
+        version: link:../agent-core
       '@forgelex/domain':
         specifier: workspace:*
         version: link:../domain
