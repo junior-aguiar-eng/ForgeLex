@@ -1143,6 +1143,15 @@ export const persistenceMigrations: readonly SqlMigration[] = [
   `CREATE TABLE agentic_events (id TEXT PRIMARY KEY, execution_id TEXT NOT NULL REFERENCES agentic_executions(id), sequence INTEGER NOT NULL CHECK (sequence > 0), type TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL);`,
   `CREATE UNIQUE INDEX agentic_events_sequence_idx ON agentic_events(execution_id,sequence);`,
 ] },
+{ id: 'persistence-0032-agentic-execution-control', statements: [
+  `CREATE TABLE agentic_command_owners (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 0);`,
+  `CREATE TABLE agentic_commands (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, idempotency_key TEXT NOT NULL, input_hash TEXT NOT NULL, execution_id TEXT NOT NULL, created_at TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX agentic_commands_owner_key_idx ON agentic_commands(tenant_id,user_id,idempotency_key);`,
+  `CREATE TABLE agentic_execution_jobs (execution_id TEXT PRIMARY KEY REFERENCES agentic_executions(id), tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, state TEXT NOT NULL, lease_expires_at TEXT, budget_release_pending INTEGER NOT NULL DEFAULT 0, budget_release_next_at TEXT, payload_json TEXT NOT NULL, created_at TEXT NOT NULL);`,
+  `CREATE INDEX agentic_execution_jobs_ready_idx ON agentic_execution_jobs(state,lease_expires_at);`,
+  `CREATE TABLE agentic_execution_calls (id TEXT PRIMARY KEY, execution_id TEXT NOT NULL REFERENCES agentic_executions(id), call_id TEXT NOT NULL, state TEXT NOT NULL, payload_json TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX agentic_execution_calls_key_idx ON agentic_execution_calls(execution_id,call_id);`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

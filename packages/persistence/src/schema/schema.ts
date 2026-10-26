@@ -1,5 +1,21 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+export const agenticCommandOwners = sqliteTable('agentic_command_owners', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(), version: integer('version').notNull().default(0),
+});
+export const agenticCommands = sqliteTable('agentic_commands', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
+  idempotencyKey: text('idempotency_key').notNull(), inputHash: text('input_hash').notNull(), executionId: text('execution_id').notNull(), createdAt: text('created_at').notNull(),
+}, t => [uniqueIndex('agentic_commands_owner_key_idx').on(t.tenantId,t.userId,t.idempotencyKey)]);
+export const agenticExecutionJobs = sqliteTable('agentic_execution_jobs', {
+  executionId: text('execution_id').primaryKey().references(() => agenticExecutions.id), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
+  state: text('state').notNull(), leaseExpiresAt: text('lease_expires_at'), budgetReleasePending: integer('budget_release_pending').notNull().default(0), budgetReleaseNextAt: text('budget_release_next_at'), payloadJson: text('payload_json').notNull(), createdAt: text('created_at').notNull(),
+}, t => [index('agentic_execution_jobs_ready_idx').on(t.state,t.leaseExpiresAt)]);
+export const agenticExecutionCalls = sqliteTable('agentic_execution_calls', {
+  id: text('id').primaryKey(), executionId: text('execution_id').notNull().references(() => agenticExecutions.id), callId: text('call_id').notNull(),
+  state: text('state').notNull(), payloadJson: text('payload_json').notNull(),
+}, t => [uniqueIndex('agentic_execution_calls_key_idx').on(t.executionId,t.callId)]);
+
 export const agenticConversations = sqliteTable('agentic_conversations', {
   id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
   objective: text('objective').notNull(), matterId: text('matter_id').references(() => matters.id),

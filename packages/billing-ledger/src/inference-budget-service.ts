@@ -76,6 +76,17 @@ export class InferenceBudgetService {
       JSON.parse(row.payloadJson),
     );
   }
+  /** Read persisted escrow independently of wallet existence; used by durable cleanup/reconciliation. */
+  async getExecutionBudget(owner: AgenticOwner, executionId: string): Promise<BudgetRecord | undefined> {
+    AgenticOwnerSchema.parse(owner);
+    try {
+      const budget = await readBudget(this.db, owner.tenantId, executionId);
+      return budget.userId === owner.userId ? budget : undefined;
+    } catch (error) {
+      if (error instanceof Error && error.message === 'BUDGET_NOT_FOUND') return undefined;
+      throw error;
+    }
+  }
   async reserveExecutionBudget(
     raw: AgenticOwner & { executionId: string; maxCostCents: number; idempotencyKey: string; policy: BudgetPolicy },
   ): Promise<BudgetRecord> {

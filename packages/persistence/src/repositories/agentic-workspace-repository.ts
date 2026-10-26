@@ -62,6 +62,7 @@ export class AgenticWorkspaceRepository {
     owner: AgenticOwner,
     id: string,
     write: (repo: AgenticWorkspaceRepository, row: ConversationRow) => Promise<T>,
+    validateMatter = true,
   ): Promise<T> {
     return this.db.transaction(async (transaction) => {
       const repo = new AgenticWorkspaceRepository(transaction as unknown as ForgeLexDatabase);
@@ -72,7 +73,7 @@ export class AgenticWorkspaceRepository {
         .where(repo.conversationScope(owner, id))
         .returning();
       if (!row) throw new Error('CONVERSATION_NOT_FOUND');
-      if (row.matterId) {
+      if (validateMatter && row.matterId) {
         await repo.db
           .update(s.matters)
           .set({ updatedAt: sql`${s.matters.updatedAt}` })
@@ -86,14 +87,20 @@ export class AgenticWorkspaceRepository {
     owner: AgenticOwner,
     id: string,
     write: (repo: AgenticWorkspaceRepository, execution: AgenticExecution, row: ConversationRow) => Promise<T>,
+    validateMatter = true,
   ): Promise<T> {
     const execution = await this.getExecution(owner, id);
     if (!execution) throw new Error('EXECUTION_NOT_FOUND');
-    return this.lockConversation(owner, execution.conversationId, async (repo, row) => {
-      const current = await repo.getExecution(owner, id);
-      if (!current) throw new Error('EXECUTION_NOT_FOUND');
-      return write(repo, current, row);
-    });
+    return this.lockConversation(
+      owner,
+      execution.conversationId,
+      async (repo, row) => {
+        const current = await repo.getExecution(owner, id);
+        if (!current) throw new Error('EXECUTION_NOT_FOUND');
+        return write(repo, current, row);
+      },
+      validateMatter,
+    );
   }
   private async validateReferences(owner: AgenticOwner, matterId: string | null, context: AgenticContext) {
     if (context.documents.length && !matterId) throw new Error('CONTEXT_MATTER_REQUIRED');
@@ -265,20 +272,42 @@ export class AgenticWorkspaceRepository {
       .set({ payloadJson: JSON.stringify(value) })
       .where(this.executionScope({ tenantId: value.tenantId, userId: value.userId }, value.id));
   }
+  /** Operational checkpoints only; caller supplies its durable worker fence separately. */
+  async saveProgress(
+    owner: AgenticOwner,
+    executionId: string,
+    checkpoint: Record<string, unknown> | null,
+    deliveryIds?: string[],
+  ): Promise<void> {
+    await this.mutateExecution(owner, executionId, async (repo, execution, row) => {
+      if (
+        !['QUEUED', 'RUNNING'].includes(execution.status) ||
+        execution.contextRevision !== row.contextRevision ||
+        execution.requiresReevaluation
+      )
+        throw new Error('EXECUTION_CONFLICT');
+      await repo.saveExecution({ ...execution, checkpoint, deliveryIds: deliveryIds ?? execution.deliveryIds });
+    });
+  }
   async appendEvent(owner: AgenticOwner, executionId: string, raw: ExecutionEventInput): Promise<ExecutionEvent> {
     const input = ExecutionEventInputSchema.parse(raw);
-    return this.mutateExecution(owner, executionId, async (repo) => {
-      const [row] = await repo.db
-        .update(s.agenticExecutions)
-        .set({ eventSequence: sql`${s.agenticExecutions.eventSequence} + 1` })
-        .where(repo.executionScope(owner, executionId))
-        .returning();
-      const event = { ...input, executionId, sequence: row.eventSequence, createdAt: now() };
-      await repo.db
-        .insert(s.agenticEvents)
-        .values({ id: randomUUID(), ...event, payloadJson: JSON.stringify(input.payload) });
-      return event;
-    });
+    return this.mutateExecution(
+      owner,
+      executionId,
+      async (repo) => {
+        const [row] = await repo.db
+          .update(s.agenticExecutions)
+          .set({ eventSequence: sql`${s.agenticExecutions.eventSequence} + 1` })
+          .where(repo.executionScope(owner, executionId))
+          .returning();
+        const event = { ...input, executionId, sequence: row.eventSequence, createdAt: now() };
+        await repo.db
+          .insert(s.agenticEvents)
+          .values({ id: randomUUID(), ...event, payloadJson: JSON.stringify(input.payload) });
+        return event;
+      },
+      !['STATUS', 'ERROR'].includes(input.type),
+    );
   }
   async listEventsAfter(
     owner: AgenticOwner,
@@ -311,13 +340,18 @@ export class AgenticWorkspaceRepository {
     patch: { checkpoint?: Record<string, unknown> | null; deliveryIds?: string[] } = {},
   ): Promise<boolean> {
     if (!transitions[expected]?.includes(next)) throw new Error('INVALID_TRANSITION');
-    return this.mutateExecution(owner, executionId, async (repo, execution, row) => {
-      if (execution.status !== expected) return false;
-      if ((next === 'RUNNING' || next === 'COMPLETED') && execution.contextRevision !== row.contextRevision)
-        throw new Error('CONTEXT_CONFLICT');
-      await repo.saveExecution({ ...execution, ...patch, status: next });
-      return true;
-    });
+    return this.mutateExecution(
+      owner,
+      executionId,
+      async (repo, execution, row) => {
+        if (execution.status !== expected) return false;
+        if ((next === 'RUNNING' || next === 'COMPLETED') && execution.contextRevision !== row.contextRevision)
+          throw new Error('CONTEXT_CONFLICT');
+        await repo.saveExecution({ ...execution, ...patch, status: next });
+        return true;
+      },
+      !['FAILED', 'CANCELLED'].includes(next),
+    );
   }
   async askQuestion(owner: AgenticOwner, executionId: string, raw: LegalQuestion): Promise<void> {
     const question = LegalQuestionSchema.parse(raw);

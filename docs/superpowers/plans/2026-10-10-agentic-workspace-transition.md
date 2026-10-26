@@ -40,9 +40,10 @@ estados distintos. As tarefas concluídas abaixo não significam liberação em 
   build, typecheck, lint e regressão registrados.
 - [x] **Tarefa 1 — concluída e commitada.** Commit `568a66f`;
   20 testes focados, smoke PostgreSQL e regressão de 1006 testes aprovados.
-- [x] **Tarefa 2 — concluída localmente, ainda sem commit.**
+- [x] **Tarefa 2 — concluída e commitada (`ae3e16c`).**
   36 testes focados, smoke PostgreSQL e regressão de 1022 testes aprovados.
-- [ ] **Tarefa 3 — pendente.** Serviço durável e transporte de eventos; próxima tarefa.
+- [x] **Tarefa 3 — concluída localmente, sem commit.** 8/8 critérios;
+  28 testes focados, smoke PostgreSQL e regressão de 1051 testes aprovados (18 ignorados).
 - [ ] **Tarefa 4A — pendente.** Tools e fontes exigidas pelo workflow.
 - [ ] **Tarefa 4B — pendente.** Orquestrador, especialistas e ferramentas do caso.
 - [ ] **Tarefa 5 — pendente.** Superfície Trabalho, contexto e editor.
@@ -52,6 +53,8 @@ estados distintos. As tarefas concluídas abaixo não significam liberação em 
 Evidências por critério: [Tarefa 0](../../architecture/2026-10-24-agent-contracts-task0.md),
 [Tarefa 1](../../architecture/2026-10-24-agentic-workspace-task1.md) e
 [Tarefa 2](../../architecture/2026-10-25-inference-budget-task2.md).
+
+Registro adicional: [Tarefa 3](../../architecture/2026-10-25-agentic-execution-task3.md).
 
 ## Retomada em 24/10/2026
 
@@ -63,7 +66,8 @@ A Tarefa 0 foi concluída no commit `a7d8832`. Em 24/10/2026, Boni autorizou
 a próxima etapa: somente a Tarefa 1. As tarefas seguintes continuam pendentes;
 essa autorização não inclui inferência paga, publicação ou migrations externas.
 Em 25/10/2026, Boni autorizou o commit da Tarefa 1 (`568a66f`) e a execução
-da Tarefa 2. Tarefas 3–7 permanecem pendentes, sem autorização de piloto ou deploy.
+da Tarefa 2. Posteriormente, autorizou seu commit (`ae3e16c`) e a execução
+da Tarefa 3. Tarefas 4A–7 permanecem pendentes, sem autorização de piloto ou deploy.
 
 ## Restrições globais
 
@@ -108,7 +112,7 @@ informação indispensável; correção de resposta após entrega. Os testes per
 | Design, agora | V2 → componentes atuais → complementos, experiência e critérios jurídicos | Matriz de reaproveitamento | Proposta documentada |
 | M — apresentação documental do MCP | Leitor de decisões, seleção por identidade, texto da fonte e fallback textual | [Plano próprio](2026-10-11-mcp-decision-presentation.md); independente do runtime agêntico | Acompanhamento no plano próprio |
 | A — contratos da plataforma | Catálogo de agentes, workflows, contexto e entregas jurídicas | Tarefa 0 | Concluído: Tarefa 0 |
-| B — infraestrutura e fontes | Execução durável, controle de consumo, tools e fontes normativas requeridas | Tarefas 1–3 e 4A | Parcial: Tarefas 1–2 concluídas; 3 e 4A pendentes |
+| B — infraestrutura e fontes | Execução durável, controle de consumo, tools e fontes normativas requeridas | Tarefas 1–3 e 4A | Parcial: Tarefas 1–3 concluídas; 4A pendente |
 | C — orquestração jurídica | Especialistas, diagnóstico/pesquisa/redação/revisão e avaliação por workflow | Tarefa 4B | Pendente |
 | D — experiência utilizável | Trabalho → investigação → entrega → revisão, preservando MCP | Tarefa 5 | Pendente |
 | E — piloto real | Provider/modelo, escopo e teto autorizados; resultado jurídico medido | Tarefas 6–7 | Pendente |
@@ -183,7 +187,7 @@ além da UI/infraestrutura. Não multiplicar processos/modelos por espécie de p
 
 Os seis critérios acima estão implementados e verificados localmente.
 Tarefa 0 concluída no recorte de contratos: build, typecheck, lint e regressão integral aprovados.
-As implementações posteriores das Tarefas 1 e 2 estão registradas abaixo; Tarefas 3–7 permanecem pendentes.
+As implementações posteriores das Tarefas 1–3 estão registradas abaixo; Tarefas 4A–7 permanecem pendentes.
 
 Implementação: branch codex/agent-contracts-a0, no worktree
 C:/Users/Boni Jr/.codex/worktrees/analise-release/SDK.
@@ -244,7 +248,7 @@ Implementação local nos caminhos propostos, com migration aditiva
 As tabelas foram migradas somente nos bancos sintéticos de teste; não houve
 aplicação em banco existente ou remoto, push, inferência ou deploy.
 O commit posterior da Tarefa 1 foi autorizado e realizado como `568a66f`.
-A Tarefa 2 tem acompanhamento abaixo; Tarefas 3–7 permanecem pendentes.
+As Tarefas 2 e 3 têm acompanhamento abaixo; Tarefas 4A–7 permanecem pendentes.
 
 ### Tarefa 2 — limite e contabilidade de inferência — CONCLUÍDA
 
@@ -277,7 +281,7 @@ Os testes usam somente bancos e políticas sintéticos; não há provider/modelo
 tarifa comercial ou piloto real selecionado. A integração às rotas/worker e a
 conciliação operacional de consumo incerto continuam nas etapas seguintes.
 
-### Tarefa 3 — serviço durável e transporte de eventos — PENDENTE
+### Tarefa 3 — serviço durável e transporte de eventos — CONCLUÍDA LOCALMENTE (8/8)
 
 **Arquivos propostos:** criar `apps/api/src/agentic-workspace/{execution-service,
 execution-worker,execution-routes,event-stream}.ts` e testes; modificar montagem
@@ -293,20 +297,30 @@ cliente autenticado compatível com cabeçalhos, sem credenciais na URL.
 produz somente eventos públicos de status, pergunta, entrega, fonte e erro saneado.
 Contratos públicos reutilizam `LegalQuestion` sem dados internos de ferramentas.
 
-- [ ] Testar flag desligada e regressão das rotas REST/MCP existentes.
-- [ ] Testar reconexão a partir do último evento, sem executar tools novamente.
-- [ ] Testar a projeção pública com eventos internos contendo prompts, argumentos
+- [x] Testar flag desligada e regressão das rotas REST/MCP existentes.
+- [x] Testar reconexão a partir do último evento, sem executar tools novamente.
+- [x] Testar a projeção pública com eventos internos contendo prompts, argumentos
   de tools e contratos: esses dados não aparecem em respostas, streams ou erros.
-- [ ] Testar resposta selecionada e livre pelo mesmo endpoint autenticado, com
+- [x] Testar resposta selecionada e livre pelo mesmo endpoint autenticado, com
   versão da pergunta/contexto e idempotência; retry não retoma duas vezes a tarefa.
-- [ ] Testar lease de worker persistido: duas instâncias não executam a mesma chamada.
-- [ ] Implementar worker retomável; falha do browser não cancela silenciosamente o trabalho.
-- [ ] Testar cancelamento: não iniciar próxima tool; entrega parcial continua identificável.
-- [ ] Testar recuperação após reinício: reconciliar chamada sem resultado confirmado,
+- [x] Testar lease de worker persistido: duas instâncias não executam a mesma chamada.
+- [x] Implementar worker retomável; falha do browser não cancela silenciosamente o trabalho.
+- [x] Testar cancelamento: não iniciar próxima tool; entrega parcial continua identificável.
+- [x] Testar recuperação após reinício: reconciliar chamada sem resultado confirmado,
   sem repetir automaticamente operação cobrada ou gravação incerta.
 
 **Aceitação:** `RUNNING` não fica indefinidamente sem worker; retomada não promete
 restaurar estado privado de SDK. Continuação usa nova execução sucessora quando necessário.
+
+### Acompanhamento da Tarefa 3 — 25/10/2026
+
+Os oito critérios acima foram implementados e verificados no worktree de
+implementação. Serviço, worker e SSE nos arquivos propostos; migration
+aditiva `persistence-0032-agentic-execution-control`. A flag permanece
+desligada por padrão e não há driver jurídico real configurado.
+Evidências por critério e limites: [registro da Tarefa 3](../../architecture/2026-10-25-agentic-execution-task3.md).
+A Tarefa 2 foi commitada como `ae3e16c`; a Tarefa 3 permanece sem commit.
+Nenhum push, deploy, inferência paga ou migration em banco existente.
 
 ### Tarefa 4A — tools e fontes exigidas pelo workflow — PENDENTE
 

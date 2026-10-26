@@ -1,3 +1,4 @@
+import { registerAgenticWorkspace, type AgenticWorkspaceRuntimeOptions } from './agentic-workspace/execution-routes.js';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import Fastify, { FastifyInstance, FastifyReply } from 'fastify';
@@ -111,6 +112,7 @@ import { createResearchPresentationTools, DecisionPresentationService, isResearc
 import { readMcpReaderHtml } from './research/mcp-reader-resource.js';
 
 export interface BuildAppOptions {
+  agenticWorkspace?: AgenticWorkspaceRuntimeOptions;
   matterPurgeJournal?: MatterPurgeJournal;
   oauthClientDirectory?: OAuthClientDirectory;
   authAdapter?: AuthAdapter;
@@ -475,6 +477,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const researchService = new ResearchService(sourceRouter, jurisprudenceSearchService, {
     requirePersistentDataPlane: true,
   });
+  registerAgenticWorkspace(app, { database, client: databaseClient, auth: authAdapter, environment, options: options.agenticWorkspace });
   const savedResearchEnabled = environment.FORGELEX_SAVED_RESEARCH_ENABLED === 'true';
   const savedResearchService = databaseClient ? new SavedResearchService(new SavedResearchRepository(databaseClient), ledgerService) : undefined;
   const savedResearchDirectory = options.oauthClientDirectory ?? (environment.FORGELEX_SUPABASE_URL && environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY ? new SessionOAuthClientDirectory(environment.FORGELEX_SUPABASE_URL, environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY) : { list: async () => { throw new Error('OAUTH_DIRECTORY_UNAVAILABLE'); } });
