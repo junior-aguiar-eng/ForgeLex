@@ -901,3 +901,8 @@ export const jurisprudenceIngestionStaging = sqliteTable(
     index('jurisprudence_ingestion_staging_manifest_idx').on(table.manifestId, table.recordOrdinal),
   ],
 );
+
+export const legislationVersions = sqliteTable('legislation_versions', {
+  id: text('id').primaryKey(), normId: text('norm_id').notNull(), provisionId: text('provision_id').notNull(),
+  versionId: text('version_id').notNull(), payloadJson: text('payload_json').notNull(),
+}, (table) => [uniqueIndex('legislation_versions_identity_idx').on(table.normId, table.provisionId, table.versionId)]);

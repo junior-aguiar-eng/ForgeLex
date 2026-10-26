@@ -20,3 +20,4 @@ export * from './drafting/draft-ai-tools.js';
 export * from './case-context/case-context-contracts.js';
 export * from './research/saved-research-service.js';
 export * from './research/decision-presentation.js';
+export * from './legislation/get-legislation.js';

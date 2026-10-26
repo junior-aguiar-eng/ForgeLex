@@ -27,6 +27,7 @@
     "test:postgres:inference-budget": "pnpm build && node scripts/smoke-inference-budget-postgres.mjs",
     "test:postgres:agentic": "pnpm build && node scripts/smoke-agentic-workspace-postgres.mjs",
     "test:postgres:agentic-runtime": "pnpm build && node scripts/smoke-agentic-execution-postgres.mjs",
+    "test:postgres:legislation": "pnpm build && node scripts/smoke-legislation-postgres.mjs",
     "test:postgres:research": "pnpm build && node scripts/smoke-research-postgres.mjs",
     "test:e2e:accessibility": "playwright test tests/e2e/accessibility.spec.ts --project=chromium",
     "test:e2e:mcp-site": "playwright test --config playwright.mcp-site.config.ts",

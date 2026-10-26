@@ -1152,6 +1152,10 @@ export const persistenceMigrations: readonly SqlMigration[] = [
   `CREATE TABLE agentic_execution_calls (id TEXT PRIMARY KEY, execution_id TEXT NOT NULL REFERENCES agentic_executions(id), call_id TEXT NOT NULL, state TEXT NOT NULL, payload_json TEXT NOT NULL);`,
   `CREATE UNIQUE INDEX agentic_execution_calls_key_idx ON agentic_execution_calls(execution_id,call_id);`,
 ] },
+{ id: 'persistence-0033-legislation-versions', statements: [
+  `CREATE TABLE legislation_versions (id TEXT PRIMARY KEY, norm_id TEXT NOT NULL, provision_id TEXT NOT NULL, version_id TEXT NOT NULL, payload_json TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX legislation_versions_identity_idx ON legislation_versions(norm_id,provision_id,version_id);`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

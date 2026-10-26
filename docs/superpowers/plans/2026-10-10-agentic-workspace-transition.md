@@ -29,7 +29,7 @@ solicitada; não é a entrada da experiência. Aplicar a pesquisa comparativa de
 `docs/architecture/2026-10-10-agentic-platform-reference-research.md` como referência,
 sem adotar automaticamente framework, código externo ou conteúdo jurídico estrangeiro.
 
-## Estado de execução — 25/10/2026
+## Estado de execução — 26/10/2026
 
 O estado abaixo se refere à implementação na branch `codex/agent-contracts-a0`,
 no worktree `C:/Users/Boni Jr/.codex/worktrees/analise-release/SDK`.
@@ -42,9 +42,11 @@ estados distintos. As tarefas concluídas abaixo não significam liberação em 
   20 testes focados, smoke PostgreSQL e regressão de 1006 testes aprovados.
 - [x] **Tarefa 2 — concluída e commitada (`ae3e16c`).**
   36 testes focados, smoke PostgreSQL e regressão de 1022 testes aprovados.
-- [x] **Tarefa 3 — concluída localmente, sem commit.** 8/8 critérios;
+- [x] **Tarefa 3 — concluída e commitada (`f3ead80`).** 8/8 critérios;
   28 testes focados, smoke PostgreSQL e regressão de 1051 testes aprovados (18 ignorados).
-- [ ] **Tarefa 4A — pendente.** Tools e fontes exigidas pelo workflow.
+- [x] **Tarefa 4A — concluída localmente, sem commit (5/5).** Inventário e
+  recuperação normativa interna; 48 testes focados, smoke PostgreSQL e
+  regressão de 1070 testes aprovados (18 ignorados).
 - [ ] **Tarefa 4B — pendente.** Orquestrador, especialistas e ferramentas do caso.
 - [ ] **Tarefa 5 — pendente.** Superfície Trabalho, contexto e editor.
 - [ ] **Tarefa 6 — pendente.** Homologação com provider real e teto aprovado.
@@ -67,7 +69,7 @@ a próxima etapa: somente a Tarefa 1. As tarefas seguintes continuam pendentes;
 essa autorização não inclui inferência paga, publicação ou migrations externas.
 Em 25/10/2026, Boni autorizou o commit da Tarefa 1 (`568a66f`) e a execução
 da Tarefa 2. Posteriormente, autorizou seu commit (`ae3e16c`) e a execução
-da Tarefa 3. Tarefas 4A–7 permanecem pendentes, sem autorização de piloto ou deploy.
+da Tarefa 3. A Tarefa 4A foi concluída localmente; Tarefas 4B–7 permanecem pendentes, sem autorização de piloto ou deploy.
 
 ## Restrições globais
 
@@ -112,7 +114,7 @@ informação indispensável; correção de resposta após entrega. Os testes per
 | Design, agora | V2 → componentes atuais → complementos, experiência e critérios jurídicos | Matriz de reaproveitamento | Proposta documentada |
 | M — apresentação documental do MCP | Leitor de decisões, seleção por identidade, texto da fonte e fallback textual | [Plano próprio](2026-10-11-mcp-decision-presentation.md); independente do runtime agêntico | Acompanhamento no plano próprio |
 | A — contratos da plataforma | Catálogo de agentes, workflows, contexto e entregas jurídicas | Tarefa 0 | Concluído: Tarefa 0 |
-| B — infraestrutura e fontes | Execução durável, controle de consumo, tools e fontes normativas requeridas | Tarefas 1–3 e 4A | Parcial: Tarefas 1–3 concluídas; 4A pendente |
+| B — infraestrutura e fontes | Execução durável, controle de consumo, tools e fontes normativas requeridas | Tarefas 1–3 e 4A | Concluído localmente: Tarefas 1–3 e 4A; corpus real ainda não homologado |
 | C — orquestração jurídica | Especialistas, diagnóstico/pesquisa/redação/revisão e avaliação por workflow | Tarefa 4B | Pendente |
 | D — experiência utilizável | Trabalho → investigação → entrega → revisão, preservando MCP | Tarefa 5 | Pendente |
 | E — piloto real | Provider/modelo, escopo e teto autorizados; resultado jurídico medido | Tarefas 6–7 | Pendente |
@@ -187,7 +189,7 @@ além da UI/infraestrutura. Não multiplicar processos/modelos por espécie de p
 
 Os seis critérios acima estão implementados e verificados localmente.
 Tarefa 0 concluída no recorte de contratos: build, typecheck, lint e regressão integral aprovados.
-As implementações posteriores das Tarefas 1–3 estão registradas abaixo; Tarefas 4A–7 permanecem pendentes.
+As implementações posteriores das Tarefas 1–3 estão registradas abaixo; A Tarefa 4A foi concluída localmente; Tarefas 4B–7 permanecem pendentes.
 
 Implementação: branch codex/agent-contracts-a0, no worktree
 C:/Users/Boni Jr/.codex/worktrees/analise-release/SDK.
@@ -248,7 +250,7 @@ Implementação local nos caminhos propostos, com migration aditiva
 As tabelas foram migradas somente nos bancos sintéticos de teste; não houve
 aplicação em banco existente ou remoto, push, inferência ou deploy.
 O commit posterior da Tarefa 1 foi autorizado e realizado como `568a66f`.
-As Tarefas 2 e 3 têm acompanhamento abaixo; Tarefas 4A–7 permanecem pendentes.
+As Tarefas 2 e 3 têm acompanhamento abaixo; A Tarefa 4A foi concluída localmente; Tarefas 4B–7 permanecem pendentes.
 
 ### Tarefa 2 — limite e contabilidade de inferência — CONCLUÍDA
 
@@ -281,7 +283,7 @@ Os testes usam somente bancos e políticas sintéticos; não há provider/modelo
 tarifa comercial ou piloto real selecionado. A integração às rotas/worker e a
 conciliação operacional de consumo incerto continuam nas etapas seguintes.
 
-### Tarefa 3 — serviço durável e transporte de eventos — CONCLUÍDA LOCALMENTE (8/8)
+### Tarefa 3 — serviço durável e transporte de eventos — CONCLUÍDA E COMMITADA (8/8)
 
 **Arquivos propostos:** criar `apps/api/src/agentic-workspace/{execution-service,
 execution-worker,execution-routes,event-stream}.ts` e testes; modificar montagem
@@ -319,26 +321,41 @@ implementação. Serviço, worker e SSE nos arquivos propostos; migration
 aditiva `persistence-0032-agentic-execution-control`. A flag permanece
 desligada por padrão e não há driver jurídico real configurado.
 Evidências por critério e limites: [registro da Tarefa 3](../../architecture/2026-10-25-agentic-execution-task3.md).
-A Tarefa 2 foi commitada como `ae3e16c`; a Tarefa 3 permanece sem commit.
+A Tarefa 2 foi commitada como `ae3e16c`; a Tarefa 3 foi commitada como `f3ead80`
+em 26/10/2026, por autorização expressa de Boni.
 Nenhum push, deploy, inferência paga ou migration em banco existente.
 
-### Tarefa 4A — tools e fontes exigidas pelo workflow — PENDENTE
+Em 26/10/2026, Boni autorizou o commit da Tarefa 3 (`f3ead80`) e o início
+da Tarefa 4A. Tarefas 4B–7 continuam pendentes.
+
+### Tarefa 4A — tools e fontes exigidas pelo workflow — CONCLUÍDA LOCALMENTE (5/5)
 
 **Arquivos:** reaproveitar `packages/legal-tools`, `packages/legal-data`,
 `packages/source-catalog`, `packages/source-providers` e ingestão/persistência;
 planejar módulo normativo delimitado nessas fronteiras, sem substituir o corpus STJ.
 
-- [ ] Inventariar capabilities realmente disponíveis versus catálogo V2 e requisitos
+- [x] Inventariar capabilities realmente disponíveis versus catálogo V2 e requisitos
   do workflow escolhido. Não usar conhecimento do modelo como tool de legislação.
-- [ ] Para workflow que exige normas, implementar recuperação de dispositivo/versão
+- [x] Para workflow que exige normas, implementar recuperação de dispositivo/versão
   e fonte oficial antes da homologação; distinguir redação atual e aplicável.
-- [ ] Testar norma indisponível, versão ausente, recuperação incorreta e pedido fora
+- [x] Testar norma indisponível, versão ausente, recuperação incorreta e pedido fora
   da cobertura; resultado limitado, sem fingir pesquisa normativa concluída.
-- [ ] Reutilizar pesquisa STJ e explicitar limites de tratamento posterior e suporte.
-- [ ] Testar REST/MCP atuais inalterados; novas tools só são expostas quando prontas.
+- [x] Reutilizar pesquisa STJ e explicitar limites de tratamento posterior e suporte.
+- [x] Testar REST/MCP atuais inalterados; novas tools só são expostas quando prontas.
 
 **Aceitação:** fontes necessárias são recuperadas por operações verificáveis;
 fixtures provam integração, não atualidade jurídica nem corpus real homologado.
+
+### Acompanhamento da Tarefa 4A — 26/10/2026
+
+Os cinco critérios foram verificados no recorte técnico documentado:
+inventário V2/capabilities reais, recuperação por norma/dispositivo/versão,
+negativos de fonte/identidade/versão/cobertura e regressões STJ/REST/MCP.
+Catálogo normativo vazio por padrão; snapshots sintéticos não homologam
+corpus, vigência ou aplicabilidade jurídica. Não há busca normativa geral
+nem tool nova exposta em REST/MCP. Migration aditiva 0033 validada somente
+em bancos temporários. A Tarefa 4A permanece sem commit.
+Evidências e limites: [registro da Tarefa 4A](../../architecture/2026-10-26-agentic-sources-task4a.md).
 
 ### Tarefa 4B — orquestrador, especialistas e ferramentas do caso — PENDENTE
 
