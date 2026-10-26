@@ -9,3 +9,4 @@ export * from './workflow-definition.js';
 export * from './playbooks.js';
 export * from './legal-evaluations.js';
 export * from './instructions/authority-verifier.js';
+export * from './agentic-case-contracts.js';

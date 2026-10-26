@@ -44,10 +44,12 @@ estados distintos. As tarefas concluídas abaixo não significam liberação em 
   36 testes focados, smoke PostgreSQL e regressão de 1022 testes aprovados.
 - [x] **Tarefa 3 — concluída e commitada (`f3ead80`).** 8/8 critérios;
   28 testes focados, smoke PostgreSQL e regressão de 1051 testes aprovados (18 ignorados).
-- [x] **Tarefa 4A — concluída localmente, sem commit (5/5).** Inventário e
+- [x] **Tarefa 4A — concluída e commitada (`1712853`, 5/5).** Inventário e
   recuperação normativa interna; 48 testes focados, smoke PostgreSQL e
   regressão de 1070 testes aprovados (18 ignorados).
-- [ ] **Tarefa 4B — pendente.** Orquestrador, especialistas e ferramentas do caso.
+- [x] **Tarefa 4B — concluída localmente, sem commit (15/15).** Orquestração
+  com provider fake; 68 testes focados, PostgreSQL e regressão de 1110
+  testes aprovados (18 ignorados). Competência jurídica real não homologada.
 - [ ] **Tarefa 5 — pendente.** Superfície Trabalho, contexto e editor.
 - [ ] **Tarefa 6 — pendente.** Homologação com provider real e teto aprovado.
 - [ ] **Tarefa 7 — pendente.** Liberação controlada e continuidade.
@@ -69,7 +71,7 @@ a próxima etapa: somente a Tarefa 1. As tarefas seguintes continuam pendentes;
 essa autorização não inclui inferência paga, publicação ou migrations externas.
 Em 25/10/2026, Boni autorizou o commit da Tarefa 1 (`568a66f`) e a execução
 da Tarefa 2. Posteriormente, autorizou seu commit (`ae3e16c`) e a execução
-da Tarefa 3. A Tarefa 4A foi concluída localmente; Tarefas 4B–7 permanecem pendentes, sem autorização de piloto ou deploy.
+da Tarefa 3. A Tarefa 4A foi concluída localmente; Tarefa 4B concluída localmente; Tarefas 5–7 permanecem pendentes, sem autorização de piloto ou deploy.
 
 ## Restrições globais
 
@@ -115,7 +117,7 @@ informação indispensável; correção de resposta após entrega. Os testes per
 | M — apresentação documental do MCP | Leitor de decisões, seleção por identidade, texto da fonte e fallback textual | [Plano próprio](2026-10-11-mcp-decision-presentation.md); independente do runtime agêntico | Acompanhamento no plano próprio |
 | A — contratos da plataforma | Catálogo de agentes, workflows, contexto e entregas jurídicas | Tarefa 0 | Concluído: Tarefa 0 |
 | B — infraestrutura e fontes | Execução durável, controle de consumo, tools e fontes normativas requeridas | Tarefas 1–3 e 4A | Concluído localmente: Tarefas 1–3 e 4A; corpus real ainda não homologado |
-| C — orquestração jurídica | Especialistas, diagnóstico/pesquisa/redação/revisão e avaliação por workflow | Tarefa 4B | Pendente |
+| C — orquestração jurídica | Especialistas, diagnóstico/pesquisa/redação/revisão e avaliação por workflow | Tarefa 4B | Concluído localmente com fake; sem homologação jurídica real |
 | D — experiência utilizável | Trabalho → investigação → entrega → revisão, preservando MCP | Tarefa 5 | Pendente |
 | E — piloto real | Provider/modelo, escopo e teto autorizados; resultado jurídico medido | Tarefas 6–7 | Pendente |
 | Evoluções posteriores | Mais workflows/fontes, biblioteca administrável e topologias justificadas | Especificações próprias | Fora deste ciclo |
@@ -189,7 +191,7 @@ além da UI/infraestrutura. Não multiplicar processos/modelos por espécie de p
 
 Os seis critérios acima estão implementados e verificados localmente.
 Tarefa 0 concluída no recorte de contratos: build, typecheck, lint e regressão integral aprovados.
-As implementações posteriores das Tarefas 1–3 estão registradas abaixo; A Tarefa 4A foi concluída localmente; Tarefas 4B–7 permanecem pendentes.
+As implementações posteriores das Tarefas 1–3 estão registradas abaixo; A Tarefa 4A foi concluída localmente; Tarefa 4B concluída localmente; Tarefas 5–7 permanecem pendentes.
 
 Implementação: branch codex/agent-contracts-a0, no worktree
 C:/Users/Boni Jr/.codex/worktrees/analise-release/SDK.
@@ -250,7 +252,7 @@ Implementação local nos caminhos propostos, com migration aditiva
 As tabelas foram migradas somente nos bancos sintéticos de teste; não houve
 aplicação em banco existente ou remoto, push, inferência ou deploy.
 O commit posterior da Tarefa 1 foi autorizado e realizado como `568a66f`.
-As Tarefas 2 e 3 têm acompanhamento abaixo; A Tarefa 4A foi concluída localmente; Tarefas 4B–7 permanecem pendentes.
+As Tarefas 2 e 3 têm acompanhamento abaixo; A Tarefa 4A foi concluída localmente; Tarefa 4B concluída localmente; Tarefas 5–7 permanecem pendentes.
 
 ### Tarefa 2 — limite e contabilidade de inferência — CONCLUÍDA
 
@@ -326,7 +328,7 @@ em 26/10/2026, por autorização expressa de Boni.
 Nenhum push, deploy, inferência paga ou migration em banco existente.
 
 Em 26/10/2026, Boni autorizou o commit da Tarefa 3 (`f3ead80`) e o início
-da Tarefa 4A. Tarefas 4B–7 continuam pendentes.
+da Tarefa 4A. Tarefa 4B concluída localmente; Tarefas 5–7 continuam pendentes.
 
 ### Tarefa 4A — tools e fontes exigidas pelo workflow — CONCLUÍDA LOCALMENTE (5/5)
 
@@ -354,10 +356,10 @@ negativos de fonte/identidade/versão/cobertura e regressões STJ/REST/MCP.
 Catálogo normativo vazio por padrão; snapshots sintéticos não homologam
 corpus, vigência ou aplicabilidade jurídica. Não há busca normativa geral
 nem tool nova exposta em REST/MCP. Migration aditiva 0033 validada somente
-em bancos temporários. A Tarefa 4A permanece sem commit.
+em bancos temporários. A Tarefa 4A foi commitada como `1712853`, por autorização de Boni.
 Evidências e limites: [registro da Tarefa 4A](../../architecture/2026-10-26-agentic-sources-task4a.md).
 
-### Tarefa 4B — orquestrador, especialistas e ferramentas do caso — PENDENTE
+### Tarefa 4B — orquestrador, especialistas e ferramentas do caso — CONCLUÍDA LOCALMENTE (15/15)
 
 **Arquivos propostos:** criar `packages/legal-workflows/src/agentic-case-task/`
 com política/definição de tarefa e testes; integrar catálogo/instruções da tarefa 0;
@@ -369,35 +371,48 @@ tarefas 1–3 e fontes/tools da tarefa 4A.
 **Produz:** diagnóstico, matriz de questões/fatos/provas/autoridades, estrutura da
 peça quando cabível, findings e entrega preliminar com fontes versionadas.
 
-- [ ] Testar seleção de tools: apenas capabilities aprovadas da tarefa, sem protocolo ou shell.
-- [ ] Testar revogação/deleção entre duas leituras; validar novamente antes de gravar.
-- [ ] Testar documento que instrui ignorar regras; tool proibida não executa.
-- [ ] Integrar `AgentRuntime` com o Legal Orchestrator, seleção de especialistas e
+- [x] Testar seleção de tools: apenas capabilities aprovadas da tarefa, sem protocolo ou shell.
+- [x] Testar revogação/deleção entre duas leituras; validar novamente antes de gravar.
+- [x] Testar documento que instrui ignorar regras; tool proibida não executa.
+- [x] Integrar `AgentRuntime` com o Legal Orchestrator, seleção de especialistas e
   registro filtrado. O orquestrador delega investigação a papéis pertinentes e
   reconcilia resultados, em vez de fazer toda análise num prompt genérico.
-- [ ] Integrar analista do caso/provas, pesquisador, verificador, especialista
+- [x] Integrar analista do caso/provas, pesquisador, verificador, especialista
   processual, redator e revisores conforme dependências do workflow; não chamar
   todos os papéis automaticamente nem duplicar tools/services.
-- [ ] Testar plano de pesquisa normativa/jurisprudencial, requisitos processuais,
+- [x] Testar plano de pesquisa normativa/jurisprudencial, requisitos processuais,
   questão material omitida e conclusão sem suporte; gerar findings identificáveis.
-- [ ] Testar revisão adversarial substantiva separada da revisão estrutural atual.
-- [ ] Testar lacuna material: `WAITING_USER` ou entrega explicitamente preliminar.
-- [ ] Gerar `LegalQuestion` somente para lacuna material ou escolha necessária:
+- [x] Testar revisão adversarial substantiva separada da revisão estrutural atual.
+- [x] Testar lacuna material: `WAITING_USER` ou entrega explicitamente preliminar.
+- [x] Gerar `LegalQuestion` somente para lacuna material ou escolha necessária:
   opções adaptadas ao objetivo e contexto, sem pressupor cabimento/procedência.
-- [ ] Testar pedido sem espécie de peça definida: esclarecer a necessidade ou
+- [x] Testar pedido sem espécie de peça definida: esclarecer a necessidade ou
   investigar a medida apropriada, em vez de aplicar um template fixo.
-- [ ] Testar contexto escrito e informações já presentes nos documentos/respostas:
+- [x] Testar contexto escrito e informações já presentes nos documentos/respostas:
   reaproveitar a origem sem repetir perguntas; conflito material exige esclarecimento.
-- [ ] Testar resposta livre e **Ainda não sei**: mudar a investigação ou expor limite;
+- [x] Testar resposta livre e **Ainda não sei**: mudar a investigação ou expor limite;
   não tratar desconhecimento como fato, autorização ou aprovação jurídica.
-- [ ] Testar análise seguida de pedido de redação/revisão: reutilizar contexto
+- [x] Testar análise seguida de pedido de redação/revisão: reutilizar contexto
   autorizado, preservar entregas anteriores e selecionar só os papéis necessários.
-- [ ] Testar pesquisa indisponível versus sem resultados; citação existente sem suporte.
-- [ ] Testar nova versão humana durante execução: conflito, sem sobrescrita.
+- [x] Testar pesquisa indisponível versus sem resultados; citação existente sem suporte.
+- [x] Testar nova versão humana durante execução: conflito, sem sobrescrita.
 
 **Aceitação:** provider fake demonstra delegação, ferramentas e adaptação; evals
 com provider real posterior demonstram competência jurídica. Texto gerado não
 adota fatos, aprova versão ou fabrica jurisprudência.
+
+### Acompanhamento da Tarefa 4B — 26/10/2026
+
+Os quinze critérios foram implementados e testados no recorte técnico com
+provider fake: AgentRuntime por papel, registro filtrado, contexto nativo
+autorizado, handoffs e fontes, diálogo material e entrega preliminar.
+Integração com serviço/worker da Tarefa 3 e reserva STJ da Tarefa 2; migration
+aditiva `persistence-0034-agentic-task-deliveries` somente em bancos temporários.
+Revisão corrigida em uma rodada com RED→GREEN, incluindo deadlock PostgreSQL
+`40P01`, identidade das afirmações, leitura histórica e pinagem dos contratos.
+Flag desligada por padrão; não há provider real configurado, fato adotado,
+minuta aprovada, push ou deploy. A Tarefa 4B permanece sem commit.
+Evidências por critério, decisões e limites: [registro da Tarefa 4B](../../architecture/2026-10-26-agentic-case-task4b.md).
 
 ### Tarefa 5 — superfície Trabalho, contexto e editor — PENDENTE
 

@@ -6,9 +6,12 @@ import { AuthAdapter } from '../auth/fastify-auth.js';
 import { ExecutionService, StartExecutionSchema } from './execution-service.js';
 import { ExecutionWorker, type ExecutionDriver } from './execution-worker.js';
 import { encodeExecutionEvent } from './event-stream.js';
+import { createCaseTaskDriver, type NativeCaseTaskOptions } from './case-task-driver.js';
+import type { ResearchService } from '@forgelex/legal-tools';
 
 export interface AgenticWorkspaceRuntimeOptions {
   driver?: ExecutionDriver;
+  caseTask?: NativeCaseTaskOptions;
   scheduler?: boolean;
   pollMs?: number;
   leaseMs?: number;
@@ -21,15 +24,19 @@ export function registerAgenticWorkspace(
     auth: AuthAdapter;
     environment: Record<string, string | undefined>;
     options?: AgenticWorkspaceRuntimeOptions;
+    researchService?: ResearchService;
   },
 ) {
   if (deps.environment.FORGELEX_AGENTIC_WORKSPACE_ENABLED !== 'true') return;
+  if (deps.options?.driver && deps.options.caseTask) throw new Error('CASE_TASK_CONFIGURATION_CONFLICT');
+  const caseTask = deps.database && deps.client && deps.options?.caseTask ? createCaseTaskDriver(deps.database, deps.client, deps.options.caseTask, deps.researchService) : undefined;
+  const driver = deps.options?.driver ?? caseTask?.driver;
   const service =
     deps.database && deps.client
-      ? new ExecutionService(deps.database, deps.client, { executorAvailable: Boolean(deps.options?.driver) })
+      ? new ExecutionService(deps.database, deps.client, { executorAvailable: Boolean(driver) })
       : undefined;
   const worker = service
-    ? new ExecutionWorker(service, deps.options?.driver, { leaseMs: deps.options?.leaseMs })
+    ? new ExecutionWorker(service, driver, { leaseMs: deps.options?.leaseMs })
     : undefined;
   let running = false;
   const tick = async () => {
@@ -251,5 +258,11 @@ export function registerAgenticWorkspace(
       return reply;
     }),
   );
+  if (caseTask) app.get('/api/agentic/deliveries/:id', { preHandler: [deps.auth.createPreHandler(['research:read']), session] }, handle(async (req, reply) => {
+    const id = z.object({ id: z.string().min(1).max(200) }).parse(req.params).id;
+    const scope = await caseTask.native.getDeliveryContext(owner(req), id);
+    if (scope.matterId && !req.principal.scopes.includes('matter:read')) return reply.code(403).send({ error: 'ACCESS_REVOKED', message: 'Seu acesso atual não permite ler este caso.' });
+    return caseTask.native.getDelivery(owner(req), id);
+  }));
   return { service, worker };
 }

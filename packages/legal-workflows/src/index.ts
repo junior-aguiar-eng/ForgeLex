@@ -8,3 +8,4 @@ export * from './research-agent-contracts.js';
 export * from './legal-work-contracts.js';
 export * from './contracts/legal-workflow.js';
 export * from './runtime/legal-contract-workflow.js';
+export * from './agentic-case-task/case-task.js';

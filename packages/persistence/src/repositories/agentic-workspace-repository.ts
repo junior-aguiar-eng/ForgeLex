@@ -103,13 +103,18 @@ export class AgenticWorkspaceRepository {
     );
   }
   private async validateReferences(owner: AgenticOwner, matterId: string | null, context: AgenticContext) {
-    if (context.documents.length && !matterId) throw new Error('CONTEXT_MATTER_REQUIRED');
+    if ((context.documents.length || context.draft) && !matterId) throw new Error('CONTEXT_MATTER_REQUIRED');
     if (matterId) {
       await this.db
         .update(s.matters)
         .set({ updatedAt: sql`${s.matters.updatedAt}` })
         .where(and(eq(s.matters.id, matterId), eq(s.matters.tenantId, owner.tenantId)));
       await new MatterWriteGuard(this.db).captureRevision({ ...owner, matterId });
+      if (context.draft) {
+        const [target] = await this.db.select({ id: s.drafts.id }).from(s.drafts)
+          .where(and(eq(s.drafts.id, context.draft.draftId), eq(s.drafts.tenantId, owner.tenantId), eq(s.drafts.matterId, matterId), eq(s.drafts.currentVersionId, context.draft.versionId))).limit(1);
+        if (!target) throw new Error('DRAFT_VERSION_NOT_FOUND');
+      }
       for (const doc of context.documents) {
         await new MatterWriteGuard(this.db).captureRevision({ ...owner, matterId, documentId: doc.documentId });
         const [version] = await this.db

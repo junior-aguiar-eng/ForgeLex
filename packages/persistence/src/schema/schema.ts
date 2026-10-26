@@ -906,3 +906,10 @@ export const legislationVersions = sqliteTable('legislation_versions', {
   id: text('id').primaryKey(), normId: text('norm_id').notNull(), provisionId: text('provision_id').notNull(),
   versionId: text('version_id').notNull(), payloadJson: text('payload_json').notNull(),
 }, (table) => [uniqueIndex('legislation_versions_identity_idx').on(table.normId, table.provisionId, table.versionId)]);
+
+export const agenticTaskDeliveries = sqliteTable('agentic_task_deliveries', {
+  id: text('id').primaryKey(), executionId: text('execution_id').notNull().references(() => agenticExecutions.id),
+  conversationId: text('conversation_id').notNull().references(() => agenticConversations.id),
+  tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(), contextRevision: integer('context_revision').notNull(),
+  payloadJson: text('payload_json').notNull(), contentHash: text('content_hash').notNull(), draftId: text('draft_id'), versionId: text('version_id'),
+}, (table) => [uniqueIndex('agentic_task_deliveries_execution_idx').on(table.executionId)]);

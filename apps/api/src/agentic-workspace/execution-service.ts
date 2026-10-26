@@ -435,7 +435,7 @@ export class ExecutionService {
       const deliveries = [...new Set([...e.deliveryIds, ...(result.deliveryIds ?? [])])];
       await s.workspace.saveProgress(lease.owner, e.id, result.checkpoint, deliveries);
       for (const event of result.events ?? []) await s.workspace.appendEvent(lease.owner, e.id, event);
-      for (const deliveryId of result.deliveryIds ?? [])
+      for (const deliveryId of (result.deliveryIds ?? []).filter((id) => !e.deliveryIds.includes(id)))
         await s.workspace.appendEvent(lease.owner, e.id, { type: 'DELIVERY', payload: { deliveryId } });
       let state: ExecutionJob['state'] = 'LEASED';
       if (result.kind === 'question') {

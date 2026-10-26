@@ -80,6 +80,7 @@ export const AgenticContextSchema = z
     origin: z.enum(['USER', 'DOCUMENT', 'MIXED']),
     documents: z.array(z.object({ documentId: z.string().guid(), versionId: z.string().guid() }).strict()).max(100),
     answers: z.array(LegalAnswerSchema).max(1000).optional(),
+    draft: z.object({ draftId: z.string().guid(), versionId: z.string().guid() }).strict().optional(),
   })
   .strict()
   .superRefine((c, ctx) => {

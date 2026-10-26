@@ -14,3 +14,4 @@ export * from './contracts/draft-review.js';
 export * from './contracts/research.js';
 export * from './contracts/strategy.js';
 export * from './contracts/agentic-workspace.js';
+export * from './contracts/agentic-case-task.js';

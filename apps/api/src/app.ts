@@ -477,7 +477,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const researchService = new ResearchService(sourceRouter, jurisprudenceSearchService, {
     requirePersistentDataPlane: true,
   });
-  registerAgenticWorkspace(app, { database, client: databaseClient, auth: authAdapter, environment, options: options.agenticWorkspace });
+  registerAgenticWorkspace(app, { database, client: databaseClient, auth: authAdapter, environment, options: options.agenticWorkspace, researchService });
   const savedResearchEnabled = environment.FORGELEX_SAVED_RESEARCH_ENABLED === 'true';
   const savedResearchService = databaseClient ? new SavedResearchService(new SavedResearchRepository(databaseClient), ledgerService) : undefined;
   const savedResearchDirectory = options.oauthClientDirectory ?? (environment.FORGELEX_SUPABASE_URL && environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY ? new SessionOAuthClientDirectory(environment.FORGELEX_SUPABASE_URL, environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY) : { list: async () => { throw new Error('OAUTH_DIRECTORY_UNAVAILABLE'); } });
