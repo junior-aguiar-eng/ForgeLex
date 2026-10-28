@@ -456,7 +456,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
     }
   };
 
-  const saveDraft = async (event?: React.FormEvent) => {
+  const saveDraft = async (event?: React.FormEvent, expectedCurrentVersionId = editingVersion.current) => {
     event?.preventDefault();
     if (caseUnavailable) { setError('Este caso está disponível apenas para consulta. Sua edição foi mantida.'); return; }
     if (!selectedMatterId || !draftTitle.trim() || sections.some((section) => section.title.trim().length < 1)) return;
@@ -467,7 +467,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
     const content = JSON.stringify(payload());
     try {
       const response = selectedDraftId
-        ? await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/versions`, token, { method: 'POST', body: JSON.stringify({...payload(),baseVersionId:editingVersion.current,expectedCurrentVersionId:editingVersion.current}) })
+        ? await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/versions`, token, { method: 'POST', body: JSON.stringify({...payload(),baseVersionId:editingVersion.current,expectedCurrentVersionId}) })
         : await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts`, token, { method: 'POST', body: content });
       if (sequence !== selection.current) return;
       setSelectedDraftId(response.draft.id);
@@ -494,7 +494,9 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
     const sequence=selection.current;
     let expected=details?.draft.currentVersionId??null;
     if(choice==='SAVE'){
-      const saved=await saveDraft();
+      // This explicit choice preserves local text after the user has seen a concurrent-version conflict.
+      // Keep its original ancestry, and still reject any change since the refreshed version was observed.
+      const saved=await saveDraft(undefined, expected ?? undefined);
       if(!saved)throw new Error('Não foi possível salvar sua edição. O texto foi mantido.');
       expected=saved.version.id;
     }

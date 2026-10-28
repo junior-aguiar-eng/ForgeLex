@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "status": "LOCAL_PREPARATION_VALIDATED_WITH_TIMING_LIMITATION",
+  "baseCommit": "ec791e5402f8e2533e74d86aa76aab9440d48e01",
+  "branch": "codex/agent-contracts-a0",
+  "committed": false,
+  "scope": {
+    "approvedBy": "Boni",
+    "approved": "CLOSED_PILOT_BONI_ONLY_SYNTHETIC",
+    "commercialRelease": false,
+    "customerData": false,
+    "newPaidInference": false,
+    "externalPaidResearch": false,
+    "fallback": false
+  },
+  "pilot": {
+    "state": "PILOT_CLOSED",
+    "currency": "USD",
+    "cumulativeCeilingCents": 500,
+    "recordedHttpRequests": 55,
+    "localRoundedSettledCents": 55,
+    "cancellationProvisionCents": 4,
+    "cancellationActualCostCents": null,
+    "invoiceReconciled": false,
+    "availableCents": 441,
+    "task6SourceHashesVerified": 18
+  },
+  "localChecks": {
+    "monorepoBuild": "PASSED_BEFORE_WEB_FIX",
+    "monorepoTypes": "PASSED_BEFORE_WEB_FIX",
+    "monorepoLint": "PASSED_BEFORE_WEB_FIX",
+    "finalWebBuildIncludingTypesAndMcp": "PASSED",
+    "finalEditorLint": "PASSED",
+    "focusedVitest": {
+      "files": 12,
+      "passed": 142,
+      "status": "PASSED_BEFORE_WEB_FIX"
+    },
+    "postgresSmoke": {
+      "passed": 4,
+      "scope": "DISPOSABLE_LOCAL_CONTAINERS"
+    },
+    "browser": {
+      "passed": 81,
+      "work": 17,
+      "documents": 5,
+      "editor": 9,
+      "caseAi": 8,
+      "research": 10,
+      "mcpSite": 32,
+      "paidProvider": false
+    },
+    "unchangedIsolatedClosure": {
+      "passed": 7,
+      "durationSeconds": 9.33
+    },
+    "unchangedIsolatedLifecycle": {
+      "passed": 6,
+      "durationSeconds": 12.93
+    },
+    "general": {
+      "status": "PASSED_CONFIRMATION",
+      "previousSerialPassed": 1144,
+      "previousSerialFailed": 1,
+      "previousSerialSkipped": 17,
+      "previousSerialDurationSeconds": 608.04,
+      "timeoutMs": 5000,
+      "previousFailureFile": "apps/api/src/matters/matter-lifecycle-routes.test.ts",
+      "schedulingOnly": true,
+      "timingStabilityEstablished": false,
+      "passed": 1145,
+      "skippedFiles": 3,
+      "durationSeconds": 591.95,
+      "passedFiles": 191,
+      "skipped": 17,
+      "failed": 0,
+      "finalReceiptTargetedRerun": "PASSED_ALL_SIX_VERSION_IDS"
+    }
+  },
+  "implementation": {
+    "change": "Explicit preserve-and-adopt compares with last observed current version while retaining original ancestry and ordinary-save CAS",
+    "browserEvidence": "RED409_then_GREEN_with_concurrent_writer_and_six_versions_preserved",
+    "sourceSnapshot": {
+      "apps/web/src/screens/DraftStudioScreen.tsx": "61a868866db137c01e5674ba7a1cea84243ecf71a492f01adc64a815238f1774",
+      "tests/e2e/case-ai-access.spec.ts": "ffc7de88573dcd054c6e32f7d91485d4b85c499d92fd527af22d7898c034a18b",
+      "docs/operations/agentic-workspace/runbook.md": "7c1ed9c289c15f66798f00bd98ed53f10bb277415bdf653850f9ec63383c6ff0"
+    }
+  },
+  "externalActions": {
+    "commit": false,
+    "integration": false,
+    "existingDatabaseMigration": false,
+    "deploy": false,
+    "trafficChanged": false
+  },
+  "limitations": [
+    "No commercial price or margin decision applies to the closed synthetic scope.",
+    "Timing instability remains documented; no timeout increase, skipped failure or closure/lifecycle code change.",
+    "Server executor configuration and authorizations are required before published paid activation.",
+    "Personal-data retention integration is outside the closed synthetic scope and required before expanding to such data."
+  ],
+  "humanEvaluation": {
+    "scopeApprovedBy": "Boni",
+    "scopeDecisionOnly": true,
+    "legalOutputs": "NOT_EVALUATED",
+    "publicationApproved": false
+  },
+  "completedLogHashes": {
+    "task7-build.log": "3ecd1999a0cbb81456d91ecdf40e36ad0b5ada301fdd680f4111052cc7fd6a99",
+    "task7-types.log": "495237b1b932f090cb3d929db002ef0ac9bd22c7600a8d6852198afe22bb9dfe",
+    "task7-lint.log": "acd68fcd9ddbba07ba06761b9f1f341f6272463cd9040184d0814941549f10ce",
+    "task7-unit.log": "08c470de443d0a6d829e663fade60eb8f5e5eedef7ed92017bf4757fe1017a88",
+    "task7-postgres.log": "5065aaa886a0710f04a5d826bb5fc92ee1f252bec042351e695ebe596fcb4ccf",
+    "task7-postgres-inference-budget.log": "3853cb0fd5bba6957156c0e6892779f8d0983200039624016bce4f7d3afa20fd",
+    "task7-postgres-agentic-execution.log": "55cc2a61f5597e8a6a4dcfece308d768e2e104fbeaf5562359fc751e261e2792",
+    "task7-postgres-legislation.log": "d69045d7252240feec133807eb9a3412840be97c29e6a2cba9b56fe13ddb1b5c",
+    "task7-final-web-build.log": "864726a28fa526a7137ec3cd3d777ea76adaaf8578efd09dd5ae10a5c94b73b6",
+    "task7-final-web-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "task7-e2e-documents.log": "17b130975d753dd8e4f0428ecb7cc959f8b8d50cd450a7ebe991e5e71e9d10d9",
+    "task7-e2e-research.log": "5cf7753f9516e16e82a4106313d959820e890590fb92e5a4e13e7e7fb0ee63d5",
+    "task7-e2e-mcp-site-isolated.log": "839e3882d1e85b48cff9c607137c542a79ea2c8581ecbd513788d72aecf69611",
+    "task7-final-e2e-case-ai.log": "df5582e8589faf3e1afd446c9e0afaa43ee2e8639c60bc1817acda1b0aab4267",
+    "task7-final-e2e-agentic-workspace.log": "83922d80970430caf62f1ae504ebff40237e4b6e7c8d4f83cf46c16ccf9d31f9",
+    "task7-final-e2e-draft-review.log": "54ae16fec10b7573e0a283836efae690e24f723179f6d60a030343687fe963dd",
+    "task7-receipt-red.log": "cca9c75be2123c4cd4de446d44a38d67a6745c5fc69ff7f5b2ec470f05761486",
+    "task7-receipt-final.log": "1a6afc27854c7bba3569c80db9708fab5722c252ebdd3a8d36a470d05dc9d4de",
+    "task7-final-full.log": "340a51c47912f60b8e9fab1edfcb5172d425aa9c54a495a1c12d65a03ff3ff34",
+    "task7-final-full-serial.log": "d7a6068d1f71ec2c4d968b35a2d89dce44891db5cc01d70d946718634ac0c7e2",
+    "task7-closure-isolated.log": "245a134607e49ca1c44257e7625962d50f51dc958faf3fdda6f93bed29c3ef08",
+    "task7-lifecycle-isolated.log": "eba1c11cffe5e378bf496e8e570047c013c5c717a40fbb944682a2e4dfa914eb",
+    "task7-final-full-confirmation.log": "fe2125e804a8319026897b15c40c3caee5487c363b0faf962fa3318f6e71ad43"
+  },
+  "finishedAt": "2026-10-28T09:06:44.8069682-03:00",
+  "commitAuthorization": {
+    "approvedBy": "Boni",
+    "date": "2026-10-28",
+    "task6Commit": "43ba96d3d0a78147bfadf08b92627526c3d21a3c",
+    "task7AdvancesAuthorized": true,
+    "continueLocal": true,
+    "push": false,
+    "deploy": false,
+    "snapshotRecordedBeforeCommit": true
+  }
+}
