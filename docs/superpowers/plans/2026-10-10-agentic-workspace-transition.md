@@ -58,8 +58,9 @@ estados distintos. As tarefas concluídas abaixo não significam liberação em 
   tokens conhecidos US$ 0,247622 e US$ 0,04 provisionados conservadoramente;
       suíte geral: 1.141 aprovados, 17 ignorados, sem timeout após corrigir a fixture.
 - [ ] **Tarefa 7 — em andamento.** Preparação local da liberação; runbook criado,
-      regressões locais aprovadas na confirmação; Boni escolheu piloto fechado para si,
-      só com sintéticos. Publicação pendente; instabilidade anterior de tempo registrada.
+      regressões e rollback locais validados; preparação anterior commitada em `ece4097`.
+      Recorte local fechado para Boni/sintéticos concluído; publicação não executada.
+      Instabilidade anterior de tempo registrada.
 
 Evidências por critério: [Tarefa 0](../../architecture/2026-10-24-agent-contracts-task0.md),
 [Tarefa 1](../../architecture/2026-10-24-agentic-workspace-task1.md) e
@@ -549,13 +550,24 @@ somente na preparação local descrita abaixo. Sem push, banco existente ou depl
 
 ### Tarefa 7 — liberação controlada e continuidade — EM ANDAMENTO
 
-- [ ] Concluir preços/margem, reserva, conciliação e comunicação de consumo para o escopo comercial.
-      Escopo comercial excluído por Boni em 28/10/2026: piloto fechado somente para
-      ele, com dados sintéticos. Não tratar preços comerciais como gate desse piloto;
-      nova ativação paga não foi autorizada e o runner da Tarefa 6 continua encerrado.
+**Checklist local do piloto fechado autorizado:**
+
+- [x] Registrar escopo, teto cumulativo US$ 5,00, custo conhecido/provisão e
+      limites de consumo do piloto exclusivo de Boni, com dados sintéticos,
+      sem pesquisa paga nem fallback. Evidências da Tarefa 6 preservadas;
+      não repor saldo nem reabrir o runner encerrado nesta preparação.
 - [x] Executar regressões pertinentes: unitários, tipos, lint/build, E2E de casos,
       documentos, revisão, pesquisa, MCP e checks PostgreSQL dos schemas afetados.
-- [x] Criar runbook: migration aditiva, flag, observabilidade, rollback e retenção de sessões.
+- [x] Criar runbook: migration aditiva, flag, observabilidade, rollback e retenção
+      de sessões; ensaiar desligamento/reativação local sem apagar casos/entregas
+      ou interromper REST/MCP.
+
+O critério comercial original de preços/margem fica fora do checklist local
+por decisão expressa de Boni em 28/10/2026; não foi declarado implementado.
+O recorte local está concluído (3/3). A Tarefa 7 completa continua aberta.
+
+**Etapas externas não autorizadas nesta continuidade:**
+
 - [ ] Boni avalia evidências e autoriza separadamente integração, aplicação de migration e deploy.
 - [ ] Após autorização, verificar revisão/tráfego publicado e tarefa real controlada.
 
@@ -564,7 +576,7 @@ interromper REST/MCP. Publicação não é consequência automática de testes l
 
 ### Acompanhamento da Tarefa 7 — 28/10/2026
 
-Pedido de continuidade interpretado como preparação local da próxima etapa;
+Pedido inicial de continuidade interpretado como preparação local da próxima etapa;
 não autoriza commit, integração, migration em banco existente, deploy ou novo
 gasto. [Runbook candidato](../../operations/agentic-workspace/runbook.md) criado
 e conferido contra as migrations, flags, factory, worker e rotinas de retenção.
@@ -597,6 +609,23 @@ somente para Boni e dados sintéticos, teto cumulativo US$ 5,00, sem pesquisa
 paga nem fallback. A autorização exclui push e deploy. A restrição de commit
 do registro histórico anterior fica substituída por essa decisão específica;
 não se presume integração nem migration em banco existente.
+
+Avanços anteriores commitados em `ece4097`. Continuidade posterior: ensaio
+`scripts/smoke-agentic-rollback.mjs` aprovado em 12,65 s, com `T6-GAP`, banco
+descartável em memória, Auth simulado e fake. Três instâncias com flag ligada,
+desligada e religada preservaram hash de 18 tabelas, entrega/edição salva e
+REST/nove tools MCP; tarefa em fila retomada uma vez, outro owner recusado.
+Zero egress HTTP, uso pago, orçamento novo ou toque no banco do piloto real.
+Não substitui rollback PostgreSQL remoto, troca de build frontend ou fechamento
+de chamada real em voo. [Recibo](../../architecture/evidence/2026-10-28-task7-rollback.json).
+O checklist foi reconciliado explicitamente com o escopo fechado autorizado;
+preços/margem comercial não são gate desse recorte nem entrega implementada.
+Em seguida, Boni autorizou expressamente o commit deste ensaio e dos registros
+da Tarefa 7, mantendo o piloto fechado e o teto cumulativo, sem pesquisa paga,
+fallback, push ou deploy. A preparação local concluída não equivale à liberação.
+As pendências de executor real, autorização/reserva/consumo, operação no ambiente
+isolado e autorizações externas estão discriminadas no
+[registro da Tarefa 7](../../architecture/2026-10-28-agentic-workspace-task7.md#o-que-falta-para-liberar-o-piloto-fechado).
 
 ## Evoluções com planos próprios
 

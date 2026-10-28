@@ -2,10 +2,13 @@
 
 Data: 28/10/2026. Estado: EM ANDAMENTO; sem liberação.
 
-Boni pediu continuidade após o fechamento técnico da Tarefa 6. Premissa desta
-etapa: preparar localmente a liberação; não inferir autorização de commit,
+Boni pediu continuidade após o fechamento técnico da Tarefa 6. Premissa na
+abertura deste registro: preparar localmente a liberação; não inferir autorização de commit,
 integração, migration em banco existente, deploy, uso comercial ou novo gasto.
-Branch `codex/agent-contracts-a0`, HEAD `ec791e5`, com alterações locais da Tarefa 6.
+Base inicial: branch `codex/agent-contracts-a0`, HEAD `ec791e5`, então com
+alterações locais da Tarefa 6. Autorizações e commits posteriores estão
+registrados abaixo; o ensaio de rollback usa como base `ece4097` e identifica
+separadamente o script por SHA256.
 
 ## Entrega
 
@@ -141,6 +144,62 @@ paga ou fallback e sem push/deploy. Essa decisão substitui a restrição de
 commit registrada na abertura desta preparação; não autoriza publicação,
 integração ou migration em banco existente.
 
-Tarefa 7 não concluída; nenhuma chamada paga nova, credencial exposta,
-alteração remota ou deploy. O próximo ensaio local verifica desativação e
-recuperação por flag com preservação de casos/entregas e REST/MCP, usando fake.
+Os avanços anteriores foram commitados como
+`ece4097628cf81f632c46e5166196c63b6c523f4`, após nova verificação de recebimento
+no navegador (1 aprovado, 57,8 s), TypeScript web e ESLint do editor.
+
+## Continuidade — ensaio de rollback local
+
+`node scripts/smoke-agentic-rollback.mjs` passou com o script final formatado
+em 12,65 s. Usa somente o exemplo preparado `T6-GAP`, banco SQLite em memória,
+Auth local simulado e provider fake; o script não aceita chave, URL de banco
+ou destino externo e bloqueia `fetch`. Nenhum processo escutou porta de rede.
+
+- Ciclo de três instâncias da aplicação no mesmo banco: flag ligada,
+  desligada e religada. Hash das 18 tabelas observadas permaneceu idêntico
+  durante desligamento, sondagens e reativação anterior ao worker.
+- Entrega preliminar e versão humana salva permaneceram intactas. As rotas
+  novas retornaram 404 com a flag desligada; REST do caso/editor, nove tools
+  MCP e leitura MCP de contexto expressamente autorizado continuaram disponíveis.
+- Uma execução que estava `QUEUED` foi retomada uma vez após religar a flag;
+  duas execuções produziram exatamente duas entregas. Outro owner foi recusado.
+- Dez passos fake, zero tentativas HTTP externas, zero chamadas pagas,
+  zero reservas novas, fatos adotados ou aprovações jurídicas. O banco do
+  piloto pago não foi aberto nem copiado e o teto cumulativo não foi reposto.
+
+[Recibo do rollback](evidence/2026-10-28-task7-rollback.json) identifica o
+commit base, SHA256 do script/fixture, hash do estado observado e limites.
+O JSON de readiness anterior é um snapshot da preparação anterior ao commit
+`ece4097`; o recibo separado registra esta continuação, sem reescrever os
+resultados históricos.
+
+Este ensaio não representa deploy/rollback PostgreSQL remoto, troca do build
+frontend, reinício do sistema operacional ou liquidação de chamada real em voo.
+Não comprova qualidade jurídica. Cancelamento/consumo incertos continuam com
+as regras e evidências da Tarefa 6; a instabilidade histórica de tempo da suíte
+geral permanece registrada, sem alegação de correção definitiva.
+
+O checklist local foi reconciliado com a escolha expressa de piloto fechado:
+registro financeiro/escopo, regressões e runbook/rollback estão concluídos nesse
+recorte. Preço/margem comercial saiu do checklist local por estar fora do escopo,
+sem ser declarado implementado. Integração, migration em banco existente,
+publicação e tarefa publicada continuam não executadas. A Tarefa 7 completa,
+que inclui liberação externa, permanece em andamento.
+
+## O que falta para liberar o piloto fechado
+
+Estas pendências se referem somente a Boni e aos exemplos sintéticos, com o
+teto cumulativo US$ 5,00, sem pesquisa paga ou fallback. O pedido de commit
+deste ensaio não autoriza executar as etapas abaixo.
+
+| Pendência                                                   | Evidência e condição de fechamento                                                                                                                                                                                                                                                                                                       |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Configurar o executor real na entrada efetiva do servidor   | `server.ts` ainda chama `buildApp()` sem `agenticWorkspace.caseTask`. Vincular factory, identidade exclusiva de Boni e seleção sintética autorizada; a flag sozinha não cria o executor. Não usar o fake nem o runner encerrado como configuração de publicação.                                                                         |
+| Ligar autorização interna, reserva e comunicação de consumo | Preparar o percurso operacional para Boni com orçamento cumulativo existente em USD, separado do billing BRL. Mostrar teto, saldo, consumo conhecido e provisão. O piloto da Tarefa 6 continua `PILOT_CLOSED`; não repor US$ 5,00 nem liberar reserva incerta como estorno.                                                              |
+| Validar operação no ambiente isolado escolhido              | Identificar banco/artefato/migrations, backup/rollback e acompanhamento de falhas, leases e reservas. Registrar regressão e ensaio controlado no ambiente escolhido; o ciclo local SQLite/fake não comprova rollout remoto, frontend compilado ou custo de chamada real em voo. A instabilidade histórica de tempo permanece registrada. |
+| Autorizar e executar etapas externas separadamente          | Boni avalia as evidências e autoriza integração, migration e publicação quando quiser avançar. Depois verificar revisão/tráfego e a tarefa controlada realmente publicada. Push e deploy continuam expressamente proibidos nesta execução.                                                                                               |
+
+Preço/margem comercial e integração de retenção para dados pessoais/clientes
+ficam fora desse recorte. Tornam-se trabalho próprio antes de eventual ampliação,
+não condições inventadas para os ensaios sintéticos já autorizados. A avaliação
+jurídica `NOT_EVALUATED` e a ausência de conciliação com fatura continuam explícitas.

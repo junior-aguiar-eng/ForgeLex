@@ -32,14 +32,14 @@ Condições verificadas no código antes de qualquer ativação publicada; as
 exigências para dados pessoais/clientes não são gates adicionais para ensaios
 locais sintéticos:
 
-| Área            | Estado verificado                                                                                                 | Condição de liberação                                                                                            |
-| --------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Executor        | `server.ts` chama `buildApp()` sem `agenticWorkspace.caseTask`; a flag registra rotas, mas não cria executor real | Configurar factory e autorização internas para o escopo aprovado e validar o caminho pelo servidor publicado     |
-| Consentimento   | `ExecutionService.authorizeInference` é interno; não existe rota pública de autorização financeira                | Definir o percurso de consentimento e reserva no servidor; resposta jurídica não vale consentimento de gasto     |
-| Moeda e preço   | Billing existente é BRL; tarifa e teto do piloto são USD em conta sintética isolada                               | Aprovar política comercial versionada; não misturar centavos BRL/USD nem copiar a tarifa do piloto para clientes |
-| Consumo visível | UI explica orçamento insuficiente; rotas agênticas não projetam extrato financeiro por execução                   | Mostrar antes do envio limite/moeda/destino; distinguir consumo conhecido, reserva, provisão e saldo liberado    |
-| Retenção        | Rotinas atuais não enumeram as novas tabelas agênticas e de inferência                                            | Implementar e ensaiar encerramento/expurgo/minimização/restauração para o novo histórico antes de dados pessoais |
-| Operação        | Eventos e leases persistem; o scheduler captura falha de tick sem emitir alerta específico                        | Comprovar monitoramento e recuperação sem conteúdo jurídico em logs                                              |
+| Área            | Estado verificado                                                                                                 | Condição de liberação                                                                                                                  |
+| --------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Executor        | `server.ts` chama `buildApp()` sem `agenticWorkspace.caseTask`; a flag registra rotas, mas não cria executor real | Configurar factory e autorização internas para o escopo aprovado e validar o caminho pelo servidor publicado                           |
+| Consentimento   | `ExecutionService.authorizeInference` é interno; não existe rota pública de autorização financeira                | Definir o percurso de consentimento e reserva no servidor; resposta jurídica não vale consentimento de gasto                           |
+| Moeda e preço   | Billing existente é BRL; tarifa e teto do piloto são USD em conta sintética isolada                               | Preservar isolamento USD/BRL. Preço/margem comercial está fora do piloto fechado; política comercial própria somente antes de clientes |
+| Consumo visível | UI explica orçamento insuficiente; rotas agênticas não projetam extrato financeiro por execução                   | Mostrar antes do envio limite/moeda/destino; distinguir consumo conhecido, reserva, provisão e saldo liberado                          |
+| Retenção        | Rotinas atuais não enumeram as novas tabelas agênticas e de inferência                                            | Dados pessoais/clientes estão fora deste piloto; integrar e testar retenção antes de eventual ampliação para esses dados               |
+| Operação        | Eventos e leases persistem; o scheduler captura falha de tick sem emitir alerta específico                        | Comprovar monitoramento e recuperação sem conteúdo jurídico em logs                                                                    |
 
 ## Migrations aditivas
 
@@ -123,6 +123,17 @@ Desligar o scheduler também interrompe sua tentativa de liberar reservas
 pendentes. Inventariar e reconciliar cada pendência por procedimento autorizado;
 flag desligada não comprova saldo liquidado. Não apagar banco, ledger, eventos
 ou checkpoints como estratégia de rollback.
+
+Ensaio local reproduzível, depois de `pnpm build`:
+`node scripts/smoke-agentic-rollback.mjs`. O script usa o exemplo aprovado
+`T6-GAP`, SQLite em memória e fake, sem chave ou URL de banco, com egress HTTP
+bloqueado. Exercita três instâncias com flag ligada/desligada/religada, preserva
+18 tabelas observadas e edição salva, verifica REST/nove tools MCP, recusa outro
+owner e retoma uma execução em fila uma vez. Não abre o banco do piloto pago.
+Resultado e limites em
+[recibo local](../../architecture/evidence/2026-10-28-task7-rollback.json).
+Não comprova rollback remoto, recompilação frontend ou conciliação de chamada
+real em voo; esses passos exigem seus próprios ensaios/autorização.
 
 ## Retenção e restauração
 
