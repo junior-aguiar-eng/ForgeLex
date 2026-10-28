@@ -9,6 +9,8 @@ import { requestApiWithToken, requestApi, resolveApiOrigin } from '../api-client
 import { ReceivedDraftPanel } from './draft-ai/ReceivedDraftPanel';
 import type { Receipt } from './draft-ai/received-draft-model';
 import { useAuth } from '../auth/AuthContext';
+import { useApp } from '../context/AppContext';
+import type { Delivery } from '../agentic-workspace/execution-model';
 
 interface Matter {
   id: string;
@@ -145,7 +147,10 @@ const statusLabel: Record<Draft['status'], string> = {
   ARCHIVED: 'Arquivado',
 };
 
-export const DraftStudioScreen: React.FC = () => {
+export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ requestedLocation }) => {
+  const { setActiveTab } = useApp();
+  const [importedDelivery, setImportedDelivery] = useState<Delivery>();
+  const [newWorkCase, setNewWorkCase] = useState('');
   const { status: authStatus } = useAuth();
   const [token, setToken] = useState(initialToken);
   const [matters, setMatters] = useState<Matter[]>([]);
@@ -217,7 +222,7 @@ export const DraftStudioScreen: React.FC = () => {
       const response = await request<{ items: Matter[] }>('/api/v2/matters', token);
       setMatters(response.items);
       if(selectedMatterId)await loadDrafts(selectedMatterId);
-      if (response.items.length > 0 && !selectedMatterId) {
+      if (response.items.length > 0 && !selectedMatterId && !new URLSearchParams(window.location.search).has('deliveryId')) {
         const initial = new URLSearchParams(window.location.search).get('matterId');
         await selectMatter(response.items.some(m=>m.id===initial)?initial!:response.items[0].id);
       }
@@ -462,7 +467,7 @@ export const DraftStudioScreen: React.FC = () => {
     const content = JSON.stringify(payload());
     try {
       const response = selectedDraftId
-        ? await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/versions`, token, { method: 'POST', body: JSON.stringify({...payload(),baseVersionId:editingVersion.current}) })
+        ? await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/versions`, token, { method: 'POST', body: JSON.stringify({...payload(),baseVersionId:editingVersion.current,expectedCurrentVersionId:editingVersion.current}) })
         : await request<DraftWriteResponse>(`/api/v2/matters/${selectedMatterId}/drafts`, token, { method: 'POST', body: content });
       if (sequence !== selection.current) return;
       setSelectedDraftId(response.draft.id);
@@ -508,6 +513,34 @@ export const DraftStudioScreen: React.FC = () => {
     const target=new URLSearchParams(window.location.search).get('draftId');
     if(!initialDraftOpened.current&&target&&selectedMatterId&&matterContextReady===selectedMatterId&&drafts.some(d=>d.id===target)){initialDraftOpened.current=true;void selectDraft(target);}
   },[drafts,selectedMatterId,matterContextReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!requestedLocation) return;
+    const query = new URL(requestedLocation, window.location.origin).searchParams;
+    const targetMatter = query.get('matterId'), targetDraft = query.get('draftId');
+    if (!targetMatter || !targetDraft || (targetMatter === selectedMatterId && targetDraft === selectedDraftId)) return;
+    if (dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir esta outra minuta?')) return;
+    initialDraftOpened.current = false;
+    if (targetMatter !== selectedMatterId) void selectMatter(targetMatter);
+    else void selectDraft(targetDraft);
+  }, [requestedLocation]); // eslint-disable-line react-hooks/exhaustive-deps
+  const expectedWorkVersion = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('versionId');
+  const returnExecution = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('returnExecution');
+  const importDeliveryId = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('deliveryId');
+  useEffect(() => {
+    let active = true;
+    if (!importDeliveryId || authStatus !== 'authenticated') return;
+    void requestApi<Delivery>(`/api/agentic/deliveries/${encodeURIComponent(importDeliveryId)}`, {}, { sessionOnly: true }).then(d => {
+      if (!active || !d.delivery.document) return;
+      if (dirty && !window.confirm('Há alterações não salvas. Deseja abrir esta outra entrega?')) return;
+      setSelectedMatterId(''); setSelectedDraftId(''); setDetails(null); setImportedDelivery(d); setSavedPayload('');
+    }).catch(e => { if (active) setError(e instanceof Error ? e.message : 'Entrega indisponível.'); });
+    return () => { active = false; };
+  }, [importDeliveryId, authStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!importedDelivery?.delivery.document || selectedDraftId) return;
+    setDraftTitle(importedDelivery.delivery.document.title);
+    setSections(importedDelivery.delivery.document.sections.map((s, ordinal) => ({ ordinal, title: s.title, content: s.content, linkedFactIds: [], linkedEvidenceIds: [], linkedAuthorityIds: [], linkedThesisIds: [] })));
+  }, [importedDelivery, selectedMatterId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const runReview = async (saved?: DraftWriteResponse) => {
     const versionId = saved?.version.id ?? details?.currentVersion?.version.id;
@@ -555,6 +588,8 @@ export const DraftStudioScreen: React.FC = () => {
   return (
     <div className="py-8 md:py-12">
       <div className="page-container space-y-8">
+        {importedDelivery && !selectedDraftId && <section aria-label="Vincular entrega ao caso" className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4"><p>Minuta preliminar recebida do trabalho. Escolha um caso na lista ou crie um caso antes de salvar. A avaliação jurídica continua pendente.</p><label className="block">Novo caso para esta minuta<input className="ml-2 rounded border p-2" value={newWorkCase} maxLength={200} onChange={e => setNewWorkCase(e.target.value)} /></label><button className="btn-secondary min-h-11" disabled={busy || !newWorkCase.trim()} onClick={async () => { setBusy(true); try { const m = await requestApi<Matter>('/api/v2/matters', { method: 'POST', body: JSON.stringify({ title: newWorkCase.trim() }) }, { sessionOnly: true }); setMatters(old => [...old,m]); await selectMatter(m.id); setNewWorkCase(''); } catch(e) { setError(e instanceof Error ? e.message : 'Não foi possível criar o caso.'); } finally { setBusy(false); } }}>Criar caso e vincular minuta</button></section>}
+        {returnExecution && <div className="space-y-2"><button type="button" className="btn-secondary min-h-11" onClick={() => { setActiveTab('work'); window.history.replaceState({}, '', `/app/trabalho?executionId=${encodeURIComponent(returnExecution)}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Voltar ao trabalho</button>{dirty && <p role="status">Há alterações não salvas. Elas permanecem no editor ao voltar ao trabalho.</p>}{expectedWorkVersion && details?.currentVersion && expectedWorkVersion !== details.currentVersion.version.id && <p role="status">A versão atual da minuta difere da entrega original. O editor mostra a versão atual; confira o histórico antes de salvar.</p>}</div>}
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div className="space-y-3">
             <div className="eyebrow inline-flex items-center gap-2 rounded-full bg-cognac-100 px-3 py-1">

@@ -29,6 +29,7 @@
     "test:postgres:agentic-runtime": "pnpm build && node scripts/smoke-agentic-execution-postgres.mjs",
     "test:postgres:legislation": "pnpm build && node scripts/smoke-legislation-postgres.mjs",
     "test:postgres:agentic-case-task": "pnpm build && node scripts/smoke-agentic-case-task-postgres.mjs",
+    "test:e2e:agentic-workspace": "playwright test --config playwright.agentic-workspace.config.ts",
     "test:postgres:research": "pnpm build && node scripts/smoke-research-postgres.mjs",
     "test:e2e:accessibility": "playwright test tests/e2e/accessibility.spec.ts --project=chromium",
     "test:e2e:mcp-site": "playwright test --config playwright.mcp-site.config.ts",

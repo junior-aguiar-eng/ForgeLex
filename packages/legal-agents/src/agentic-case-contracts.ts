@@ -30,6 +30,7 @@ export const TaskPlanSchema = z.strictObject({
         reason: text,
         sourceIds: z.array(z.string().min(1).max(200)).max(100),
         options: z.array(z.strictObject({ id, label: text })).max(10),
+        selection: z.enum(['single', 'multiple']).optional(),
       }),
     )
     .max(10),

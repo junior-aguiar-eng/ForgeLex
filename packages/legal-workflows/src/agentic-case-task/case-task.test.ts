@@ -34,6 +34,10 @@ const basicPlan = {
   gaps: [],
 };
 const empty = { coveredIssueIds: ['i1'], claims: [], requirements: [], findings: [], supportChecks: [] };
+it('preserva pergunta de seleção múltipla indicada no plano público', async () => {
+  const f = fixture({ ...basicPlan, gaps: [{ key: 'scope', kind: 'MISSING', material: true, prompt: 'Quais aspectos?', reason: 'Delimitar investigação', sourceIds: [], selection: 'multiple', options: [{ id: 'a', label: 'Fatos' }, { id: 'b', label: 'Lacunas' }] }] } as any);
+  expect((await f.finish()).question.selection).toBe('multiple');
+});
 function fixture(
   plan = basicPlan,
   options: {

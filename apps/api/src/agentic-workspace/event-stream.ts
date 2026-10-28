@@ -9,6 +9,7 @@ const codes = z.enum([
   'RECONCILIATION_REQUIRED',
   'ACCESS_REVOKED',
   'CONTEXT_CHANGED',
+  'BUDGET_EXHAUSTED',
 ]);
 export interface AuthorizedEventContext {
   executionId: string;
@@ -72,6 +73,7 @@ export function projectClientExecutionEvent(
     case 'ERROR': {
       const code = codes.safeParse(p.code);
       payload = { code: code.success ? code.data : 'EXECUTION_FAILED' };
+      if (p.reason === 'BUDGET_EXHAUSTED') payload.reason = 'BUDGET_EXHAUSTED';
       break;
     }
     default:

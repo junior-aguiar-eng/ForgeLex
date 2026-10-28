@@ -51,6 +51,54 @@ afterEach(() => {
   for (const c of connections.splice(0)) c.client.close();
 });
 
+it('expõe contexto e histórico públicos para recuperar o trabalho sem checkpoint privado', async () => {
+  const f = await fixture();
+  const run = await f.service.startExecution(owner, 'public-recovery', input);
+  const view = await f.service.getExecution(owner, run.id);
+  expect(view).toMatchObject({ context: input.context, messages: [{ role: 'USER', text: input.objective }] });
+  expect(view).not.toHaveProperty('checkpoint');
+  expect(view).not.toHaveProperty('provider');
+});
+it('preserva acesso às entregas anteriores do mesmo diálogo', async () => {
+  const f = await fixture();
+  const first = await f.service.startExecution(owner, 'history-first', input);
+  const lease = await f.service.claimNext('history-worker');
+  await f.service.finishStep(lease!, null, { kind: 'completed', checkpoint: {}, deliveryIds: ['first-delivery'] });
+  const next = await f.service.startExecution(owner, 'history-next', {
+    objective: 'Redigir a partir da análise',
+    conversationId: first.conversationId,
+  });
+  expect(next.history).toContainEqual(
+    expect.objectContaining({ executionId: first.id, deliveryIds: ['first-delivery'] }),
+  );
+});
+
+it('corrigir resposta preserva histórico e cria sucessora sem herdar orçamento', async () => {
+  const f = await fixture();
+  const run = await f.service.startExecution(owner, 'correction-start', input);
+  const lease = await f.service.claimNext('question-worker');
+  await f.service.finishStep(lease!, null, { kind: 'question', checkpoint: {}, question });
+  const next = await f.service.answerExecution(owner, run.id, 'first-answer', {
+    questionId: 'purpose',
+    questionVersion: 1,
+    contextRevision: 1,
+    selectedOptionIds: ['research'],
+  });
+  const lease2 = await f.service.claimNext('completion-worker');
+  await f.service.finishStep(lease2!, null, { kind: 'completed', checkpoint: {} });
+  const corrected = await f.service.correctAnswer(owner, next.id, 'correction', {
+    questionId: 'purpose',
+    questionVersion: 1,
+    contextRevision: next.contextRevision,
+    selectedOptionIds: [],
+    freeText: 'Preciso revisar o texto',
+  });
+  expect(corrected.id).not.toBe(next.id);
+  expect(corrected.contextRevision).toBeGreaterThan(next.contextRevision);
+  expect((await f.repo.getExecution(owner, corrected.id))?.authorizationId).toBeNull();
+  expect((await f.repo.getConversation(owner, run.conversationId))?.messages.filter((m) => m.answer)).toHaveLength(2);
+});
+
 async function withDocument() {
   const f = await fixture(),
     matters = new MatterRepository(f.db);

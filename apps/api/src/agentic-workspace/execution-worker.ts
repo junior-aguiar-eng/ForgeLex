@@ -58,7 +58,15 @@ export class ExecutionWorker {
       }
       await this.service.failLease(lease, 'EXECUTION_FAILED');
     } catch (error) {
-      const code = error instanceof Error && error.message === 'ACCESS_REVOKED' ? 'ACCESS_REVOKED' : 'EXECUTION_FAILED';
+      const reason = error instanceof Error ? error.message : '';
+      const code =
+        reason === 'ACCESS_REVOKED'
+          ? 'ACCESS_REVOKED'
+          : /^(BUDGET_NOT_FOUND|BUDGET_NOT_ACTIVE|BUDGET_EXCEEDED|BILLING_INSUFFICIENT_BALANCE|EXECUTION_NOT_AUTHORIZED)$/.test(
+                reason,
+              )
+            ? 'BUDGET_EXHAUSTED'
+            : 'EXECUTION_FAILED';
       await this.service.failLease(lease, code).catch(() => undefined);
     } finally {
       clearInterval(timer);

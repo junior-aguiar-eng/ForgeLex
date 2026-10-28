@@ -53,6 +53,7 @@ async function fixture(driver?: ExecutionDriver) {
               : null,
   });
   const app = Fastify();
+  app.addHook('onRequest', async (_req, reply) => { reply.header('Access-Control-Allow-Origin', 'http://127.0.0.1:3300'); });
   const runtime = registerAgenticWorkspace(app, {
     database: c.db,
     client: c.client,
@@ -72,6 +73,12 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
 describe('rotas e transporte do trabalho', () => {
+  it('capacidade de edição acompanha draft:write, não matter:write', async () => {
+    const f = await fixture({ next: () => undefined });
+    const run = (await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })).json();
+    const response = await f.app.inject({ method: 'GET', url: `/api/agentic/executions/${run.id}`, headers });
+    expect(response.json().permissions.editDraft).toBe(false);
+  });
   it('escopo de pesquisa não concede leitura de conversa vinculada a caso', async () => {
     const f = await fixture({ next: () => undefined });
     const matter = await new MatterRepository(f.db).createMatter({
@@ -252,6 +259,7 @@ describe('rotas e transporte do trabalho', () => {
       });
       expect(response.statusCode).toBe(200);
       expect(response.headers['content-type']).toContain('text/event-stream');
+      expect(response.headers['access-control-allow-origin']).toBe('http://127.0.0.1:3300');
       expect(response.body).not.toMatch(/private-prompt|private-arguments|private-contracts|private-checkpoint/);
       if (after === 99) expect(response.body).not.toContain('data:');
     }

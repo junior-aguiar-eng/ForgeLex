@@ -136,6 +136,12 @@ describe('driver jurídico integrado ao serviço durável', () => {
     ).json();
     await f.worker!.runOnce();
     expect((await f.service!.getExecution(owner, run.id)).status).toBe('FAILED');
+    expect((await f.service!.listClientEvents(owner, run.id, 0)).events).toContainEqual(
+      expect.objectContaining({
+        type: 'ERROR',
+        payload: { code: 'RECONCILIATION_REQUIRED', reason: 'BUDGET_EXHAUSTED' },
+      }),
+    );
     expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(100);
     expect((await f.client.execute('SELECT id FROM billing_operations')).rows).toHaveLength(0);
   });

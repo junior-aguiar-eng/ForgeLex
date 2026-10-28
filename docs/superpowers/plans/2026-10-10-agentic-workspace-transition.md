@@ -47,10 +47,12 @@ estados distintos. As tarefas concluídas abaixo não significam liberação em 
 - [x] **Tarefa 4A — concluída e commitada (`1712853`, 5/5).** Inventário e
   recuperação normativa interna; 48 testes focados, smoke PostgreSQL e
   regressão de 1070 testes aprovados (18 ignorados).
-- [x] **Tarefa 4B — concluída localmente, sem commit (15/15).** Orquestração
+- [x] **Tarefa 4B — concluída e commitada (`a31ce6a`, 15/15).** Orquestração
   com provider fake; 68 testes focados, PostgreSQL e regressão de 1110
   testes aprovados (18 ignorados). Competência jurídica real não homologada.
-- [ ] **Tarefa 5 — pendente.** Superfície Trabalho, contexto e editor.
+- [x] **Tarefa 5 — concluída localmente; commit autorizado em 27/10/2026 (17/17).** Trabalho,
+  diálogo, fontes e editor existentes integrados; 17 E2E novos e 9 do editor
+  anterior aprovados. Regressão: 1126 testes aprovados, 18 ignorados.
 - [ ] **Tarefa 6 — pendente.** Homologação com provider real e teto aprovado.
 - [ ] **Tarefa 7 — pendente.** Liberação controlada e continuidade.
 
@@ -71,7 +73,7 @@ a próxima etapa: somente a Tarefa 1. As tarefas seguintes continuam pendentes;
 essa autorização não inclui inferência paga, publicação ou migrations externas.
 Em 25/10/2026, Boni autorizou o commit da Tarefa 1 (`568a66f`) e a execução
 da Tarefa 2. Posteriormente, autorizou seu commit (`ae3e16c`) e a execução
-da Tarefa 3. A Tarefa 4A foi concluída localmente; Tarefa 4B concluída localmente; Tarefas 5–7 permanecem pendentes, sem autorização de piloto ou deploy.
+da Tarefa 3. A Tarefa 4A foi concluída localmente; Tarefa 4B concluída localmente; Tarefa 5 concluída localmente; Tarefas 6–7 permanecem pendentes, sem autorização de piloto ou deploy.
 
 ## Restrições globais
 
@@ -118,7 +120,7 @@ informação indispensável; correção de resposta após entrega. Os testes per
 | A — contratos da plataforma | Catálogo de agentes, workflows, contexto e entregas jurídicas | Tarefa 0 | Concluído: Tarefa 0 |
 | B — infraestrutura e fontes | Execução durável, controle de consumo, tools e fontes normativas requeridas | Tarefas 1–3 e 4A | Concluído localmente: Tarefas 1–3 e 4A; corpus real ainda não homologado |
 | C — orquestração jurídica | Especialistas, diagnóstico/pesquisa/redação/revisão e avaliação por workflow | Tarefa 4B | Concluído localmente com fake; sem homologação jurídica real |
-| D — experiência utilizável | Trabalho → investigação → entrega → revisão, preservando MCP | Tarefa 5 | Pendente |
+| D — experiência utilizável | Trabalho → investigação → entrega → revisão, preservando MCP | Tarefa 5 | Concluído localmente com fake; 17/17 critérios técnicos |
 | E — piloto real | Provider/modelo, escopo e teto autorizados; resultado jurídico medido | Tarefas 6–7 | Pendente |
 | Evoluções posteriores | Mais workflows/fontes, biblioteca administrável e topologias justificadas | Especificações próprias | Fora deste ciclo |
 
@@ -191,7 +193,7 @@ além da UI/infraestrutura. Não multiplicar processos/modelos por espécie de p
 
 Os seis critérios acima estão implementados e verificados localmente.
 Tarefa 0 concluída no recorte de contratos: build, typecheck, lint e regressão integral aprovados.
-As implementações posteriores das Tarefas 1–3 estão registradas abaixo; A Tarefa 4A foi concluída localmente; Tarefa 4B concluída localmente; Tarefas 5–7 permanecem pendentes.
+As implementações posteriores das Tarefas 1–3 estão registradas abaixo; A Tarefa 4A foi concluída localmente; Tarefa 4B concluída localmente; Tarefa 5 concluída localmente; Tarefas 6–7 permanecem pendentes.
 
 Implementação: branch codex/agent-contracts-a0, no worktree
 C:/Users/Boni Jr/.codex/worktrees/analise-release/SDK.
@@ -252,7 +254,7 @@ Implementação local nos caminhos propostos, com migration aditiva
 As tabelas foram migradas somente nos bancos sintéticos de teste; não houve
 aplicação em banco existente ou remoto, push, inferência ou deploy.
 O commit posterior da Tarefa 1 foi autorizado e realizado como `568a66f`.
-As Tarefas 2 e 3 têm acompanhamento abaixo; A Tarefa 4A foi concluída localmente; Tarefa 4B concluída localmente; Tarefas 5–7 permanecem pendentes.
+As Tarefas 2 e 3 têm acompanhamento abaixo; A Tarefa 4A foi concluída localmente; Tarefa 4B concluída localmente; Tarefa 5 concluída localmente; Tarefas 6–7 permanecem pendentes.
 
 ### Tarefa 2 — limite e contabilidade de inferência — CONCLUÍDA
 
@@ -328,7 +330,7 @@ em 26/10/2026, por autorização expressa de Boni.
 Nenhum push, deploy, inferência paga ou migration em banco existente.
 
 Em 26/10/2026, Boni autorizou o commit da Tarefa 3 (`f3ead80`) e o início
-da Tarefa 4A. Tarefa 4B concluída localmente; Tarefas 5–7 continuam pendentes.
+da Tarefa 4A. Tarefa 4B concluída localmente; Tarefa 5 concluída localmente; Tarefas 6–7 continuam pendentes.
 
 ### Tarefa 4A — tools e fontes exigidas pelo workflow — CONCLUÍDA LOCALMENTE (5/5)
 
@@ -359,7 +361,7 @@ nem tool nova exposta em REST/MCP. Migration aditiva 0033 validada somente
 em bancos temporários. A Tarefa 4A foi commitada como `1712853`, por autorização de Boni.
 Evidências e limites: [registro da Tarefa 4A](../../architecture/2026-10-26-agentic-sources-task4a.md).
 
-### Tarefa 4B — orquestrador, especialistas e ferramentas do caso — CONCLUÍDA LOCALMENTE (15/15)
+### Tarefa 4B — orquestrador, especialistas e ferramentas do caso — CONCLUÍDA (15/15)
 
 **Arquivos propostos:** criar `packages/legal-workflows/src/agentic-case-task/`
 com política/definição de tarefa e testes; integrar catálogo/instruções da tarefa 0;
@@ -411,10 +413,10 @@ aditiva `persistence-0034-agentic-task-deliveries` somente em bancos temporário
 Revisão corrigida em uma rodada com RED→GREEN, incluindo deadlock PostgreSQL
 `40P01`, identidade das afirmações, leitura histórica e pinagem dos contratos.
 Flag desligada por padrão; não há provider real configurado, fato adotado,
-minuta aprovada, push ou deploy. A Tarefa 4B permanece sem commit.
+minuta aprovada, push ou deploy. A Tarefa 4B foi commitada como `a31ce6a`, por autorização de Boni.
 Evidências por critério, decisões e limites: [registro da Tarefa 4B](../../architecture/2026-10-26-agentic-case-task4b.md).
 
-### Tarefa 5 — superfície Trabalho, contexto e editor — PENDENTE
+### Tarefa 5 — superfície Trabalho, contexto e editor — CONCLUÍDA LOCALMENTE (17/17)
 
 **Arquivos propostos:** criar `apps/web/src/screens/AgenticWorkspaceScreen.tsx`,
 `apps/web/src/agentic-workspace/{client,use-execution-events,execution-model}.ts`
@@ -428,41 +430,59 @@ ou solicitação livre. `GuidedDialogue` apresenta `LegalQuestion` vigente e his
 mostra referências autorizadas; `DeliveryActions` usa tipo/estado/permissões da
 entrega para disponibilizar ações pertinentes, sem duplicar serviços do editor.
 
-- [ ] E2E: objetivo → escopo → execução → pergunta relevante → entrega → abrir fonte → editar/salvar.
-- [ ] E2E: as quatro ações abrem diálogo orientado à finalidade, não disparam
+- [x] E2E: objetivo → escopo → execução → pergunta relevante → entrega → abrir fonte → editar/salvar.
+- [x] E2E: as quatro ações abrem diálogo orientado à finalidade, não disparam
   entrega pronta. Entrada livre permanece disponível e converge para o mesmo fluxo.
-- [ ] E2E: pergunta de finalidade com opções, complemento livre quando necessário,
+- [x] E2E: pergunta de finalidade com opções, complemento livre quando necessário,
   objetivo/contexto escrito sem anexo e resposta **Ainda não sei**.
-- [ ] Testar seleção única com radio e múltipla com checkbox, rótulos acessíveis,
+- [x] Testar seleção única com radio e múltipla com checkbox, rótulos acessíveis,
   nenhuma resposta jurídica pré-marcada, teclado e envio explícito.
-- [ ] E2E: informação já fornecida não é perguntada novamente; resposta livre fora
+- [x] E2E: informação já fornecida não é perguntada novamente; resposta livre fora
   das opções é preservada. Corrigir resposta reavalia o trabalho dependente.
-- [ ] E2E: análise → pedido contextual de pesquisa/redação/revisão mantém o contexto
+- [x] E2E: análise → pedido contextual de pesquisa/redação/revisão mantém o contexto
   sem copiar resultados ou cadastrar o caso de novo; leitura/escrita seguem autorizadas.
-- [ ] E2E: recarregar durante execução recupera estado e eventos sem duplicação.
-- [ ] E2E: revogar documento ou ficar sem orçamento expõe motivo e preserva texto.
-- [ ] Implementar uma ação principal por estado e detalhes expansíveis.
-- [ ] Traduzir eventos internos em status genéricos aderentes à atividade real;
+- [x] E2E: recarregar durante execução recupera estado e eventos sem duplicação.
+- [x] E2E: revogar documento ou ficar sem orçamento expõe motivo e preserva texto.
+- [x] Implementar uma ação principal por estado e detalhes expansíveis.
+- [x] Traduzir eventos internos em status genéricos aderentes à atividade real;
   manter agentes, prompts, scripts e catálogo de tools fora da UI de trabalho.
-- [ ] Em confecção de peça, apresentar a minuta redigida como entrega principal;
+- [x] Em confecção de peça, apresentar a minuta redigida como entrega principal;
   pesquisa/outline não satisfazem a aceitação. Testar campos e lacunas explícitos
   e a entrega alternativa quando não houver suporte material para o pedido.
-- [ ] Verificar entrada sem peça predefinida; o documento aparece somente quando
+- [x] Verificar entrada sem peça predefinida; o documento aparece somente quando
   produzido pela tarefa solicitada. Medida desconhecida não exige escolher modelo.
-- [ ] Validar descoberta das capacidades e ausência de atalhos/botões duplicados
+- [x] Validar descoberta das capacidades e ausência de atalhos/botões duplicados
   na mesma superfície. Uma ação principal de execução, secundárias em **Mais opções**,
   fontes/contexto sob demanda e retorno que preserve tarefa/caso/versão.
-- [ ] Integrar entrega ao editor existente; manter edição não salva e conflito visíveis.
-- [ ] Verificar teclado, leitura de status, 320px e desktop, sem controles recortados.
-- [ ] Comparar mesma tarefa com fluxo anterior: intervenções, mudanças de tela,
+- [x] Integrar entrega ao editor existente; manter edição não salva e conflito visíveis.
+- [x] Verificar teclado, leitura de status, 320px e desktop, sem controles recortados.
+- [x] Comparar mesma tarefa com fluxo anterior: intervenções, mudanças de tela,
   tempo e fontes disponíveis; não usar só contagem de elementos HTML como prova.
-- [ ] Regressão do pacote MCP externo: nove tools locais atuais, OAuth/seleção de
+- [x] Regressão do pacote MCP externo: nove tools locais atuais, OAuth/seleção de
   caso, erros, idempotência e billing preservados. MCP não depende de modelo nativo.
 
 **Aceitação:** Boni identifica as capacidades, abre diálogo por ação ou texto livre,
 responde opções/perguntas pertinentes e conclui o percurso sem coordenar agentes,
 copiar resultados ou enfrentar repetição de perguntas e funcionalidades. A peça é
 uma entrega eventual, criada a partir do contexto, nunca a entrada predefinida.
+
+### Acompanhamento da Tarefa 5 — 26/10/2026
+
+Os dezessete critérios foram verificados no recorte técnico local, com API
+autenticada, banco temporário e provider fake. A superfície Trabalho preserva
+as rotas, leitor/editor e serviços; não expõe mecanismos internos. Perguntas
+e escopo exigem envio explícito; fontes por item, contexto, respostas e entregas
+históricas mantêm identificação/versionamento. Salvamento web usa revisão
+esperada opcional sob locks e retorna conflito sem apagar edição humana;
+`baseVersionId` e schemas MCP preservados. A única revisão final identificou
+sete problemas importantes, todos tratados com RED→GREEN em uma rodada,
+sem nova revisão ou achados menores adiados. Flags desligadas por padrão.
+Comparação limitada ao subpercurso documental automatizado; não homologa
+qualidade jurídica, tempo humano ou provider real. Sem uso pago, migration
+em banco existente, push ou deploy. Boni autorizou o commit da Tarefa 5 e o início da Tarefa 6 em 27/10/2026.
+A homologação paga exige as decisões expressas descritas na Tarefa 6;
+a Tarefa 7 permanece pendente de autorização própria.
+Evidências por critério, decisões e limites: [registro da Tarefa 5](../../architecture/2026-10-26-agentic-workspace-task5.md).
 
 ### Tarefa 6 — homologação com um provider real — PENDENTE
 

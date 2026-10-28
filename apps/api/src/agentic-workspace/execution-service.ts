@@ -235,7 +235,32 @@ export class ExecutionService {
       const e = await s.workspace.getExecution(owner, id);
       if (!e) throw new Error('EXECUTION_NOT_FOUND');
       const j = await s.getJob(owner, id);
-      await this.activeContext(s, e);
+      const context = await this.activeContext(s, e);
+      const conversation = (await s.workspace.getConversation(owner, e.conversationId))!;
+      const priorIds = await s.db
+        .select({ id: agenticExecutions.id })
+        .from(agenticExecutions)
+        .where(
+          and(
+            eq(agenticExecutions.tenantId, owner.tenantId),
+            eq(agenticExecutions.userId, owner.userId),
+            eq(agenticExecutions.conversationId, e.conversationId),
+          ),
+        )
+        .limit(1000);
+      const prior = await Promise.all(
+        priorIds.filter((p) => p.id !== id).map((p) => s.workspace.getExecution(owner, p.id)),
+      );
+      const current = [...prior, e]
+        .filter((p): p is AgenticExecution =>
+          Boolean(
+            p &&
+            p.contextRevision === conversation.contextRevision &&
+            !p.requiresReevaluation &&
+            p.status !== 'CANCELLED',
+          ),
+        )
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
       return {
         id: e.id,
         objective: j.objective,
@@ -247,10 +272,29 @@ export class ExecutionService {
         deliveryIds: e.deliveryIds,
         question: publicQuestion(e.pendingQuestion),
         requiresReevaluation: e.requiresReevaluation,
+        currentExecutionId: current?.id ?? null,
         predecessorId: j.predecessorId ?? null,
         successorId: j.successorId ?? null,
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
+        context: {
+          text: context.text,
+          origin: context.origin,
+          documents: context.documents,
+          ...(context.draft ? { draft: context.draft } : {}),
+          ...(context.answers ? { answers: context.answers } : {}),
+        },
+        messages: conversation.messages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          createdAt: m.createdAt,
+          ...(m.text ? { text: m.text } : {}),
+          ...(m.question ? { question: publicQuestion(m.question) } : {}),
+          ...(m.answer ? { answer: LegalAnswerSchema.parse(m.answer) } : {}),
+        })),
+        history: prior
+          .filter((p) => p && p.deliveryIds.length)
+          .map((p) => ({ executionId: p!.id, deliveryIds: p!.deliveryIds, createdAt: p!.createdAt })),
       };
     });
   }
@@ -276,6 +320,22 @@ export class ExecutionService {
     await this.createJob(s, owner, next.id, job.objective, job.actionId, old.id);
     await s.saveJob({ ...job, successorId: next.id });
     return next.id;
+  }
+  async correctAnswer(owner: AgenticOwner, id: string, key: string, raw: LegalAnswer) {
+    this.available();
+    const answer = LegalAnswerSchema.parse(raw);
+    const nextId = await this.command(owner, key, { kind: 'correct', id, answer }, async (s) => {
+      const e = await s.workspace.getExecution(owner, id);
+      if (!e) throw new Error('EXECUTION_NOT_FOUND');
+      const job = await s.getJob(owner, id);
+      if (!terminal(e) || job.successorId) throw new Error('EXECUTION_CONFLICT');
+      await this.activeContext(s, e, true);
+      await s.workspace.correctAnswer(owner, e.conversationId, e.contextRevision, answer);
+      const c = (await s.workspace.getConversation(owner, e.conversationId))!;
+      return this.successor(s, owner, e, job, key, c.contextRevision, null);
+    });
+    await this.releaseBudget(owner, id);
+    return this.getExecution(owner, nextId);
   }
   async answerExecution(owner: AgenticOwner, id: string, key: string, raw: LegalAnswer) {
     this.available();
@@ -460,12 +520,18 @@ export class ExecutionService {
     });
     await this.releaseBudget(lease.owner, lease.executionId);
   }
-  private async fail(s: ExecutionStore, j: ExecutionJob, e: AgenticExecution, code: string) {
+  private async fail(
+    s: ExecutionStore,
+    j: ExecutionJob,
+    e: AgenticExecution,
+    code: string,
+    reason?: 'BUDGET_EXHAUSTED',
+  ) {
     if (!terminal(e)) {
       await s.workspace.compareAndSetStatus({ tenantId: j.tenantId, userId: j.userId }, e.id, e.status, 'FAILED');
       await s.workspace.appendEvent({ tenantId: j.tenantId, userId: j.userId }, e.id, {
         type: 'ERROR',
-        payload: { code },
+        payload: { code, ...(reason ? { reason } : {}) },
       });
       await s.workspace.appendEvent({ tenantId: j.tenantId, userId: j.userId }, e.id, {
         type: 'STATUS',
@@ -486,7 +552,13 @@ export class ExecutionService {
       const j = await s.getJob(lease.owner, lease.executionId);
       if (j.leaseToken !== lease.token || j.state !== 'LEASED') return;
       const e = (await s.workspace.getExecution(lease.owner, lease.executionId))!;
-      await this.fail(s, j, e, j.pendingCallId ? 'RECONCILIATION_REQUIRED' : code);
+      await this.fail(
+        s,
+        j,
+        e,
+        j.pendingCallId ? 'RECONCILIATION_REQUIRED' : code,
+        code === 'BUDGET_EXHAUSTED' ? 'BUDGET_EXHAUSTED' : undefined,
+      );
     });
     await this.releaseBudget(lease.owner, lease.executionId);
   }

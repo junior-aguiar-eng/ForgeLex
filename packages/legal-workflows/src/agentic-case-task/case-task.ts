@@ -360,7 +360,7 @@ export class AgenticCaseTask {
         version: 1,
         contextRevision: packet.contextRevision,
         prompt: gap.prompt,
-        selection: gap.options.length ? 'single' : 'free_text',
+        selection: gap.options.length ? gap.selection ?? 'single' : 'free_text',
         options: gap.options,
         allowFreeText: true,
         allowUnknown: true,

@@ -3,9 +3,10 @@ import { Activity, Cable, FolderOpen, FileText, FileCode2, KeyRound, LayoutDashb
 import type { LucideIcon } from 'lucide-react';
 import type { AppTab } from '../navigation/routes';
 
-import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 
 const secondaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon; mobileOnly?: boolean }> = [
+  ...(AGENTIC_WORKSPACE_ENABLED ? [{ tab: 'work' as const, label: 'Trabalho', icon: FileText }] : []),
   ...(CASE_WORKSPACE_ENABLED ? [
     { tab: 'matter' as const, label: 'Casos', icon: FolderOpen, mobileOnly: true },
     { tab: 'draft_studio' as const, label: 'Rascunhos', icon: FileText, mobileOnly: true },

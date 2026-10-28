@@ -2428,7 +2428,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de rascunhos não está disponível.' };
       }
       const { matterId, draftId } = req.params as { matterId: string; draftId: string };
-      const parsed = DraftCreateInputSchema.safeParse(req.body ?? {});
+      const parsed = DraftCreateInputSchema.extend({ expectedCurrentVersionId: z.string().guid().optional() }).safeParse(req.body ?? {});
       if (!parsed.success) {
         reply.status(400);
         return { error: 'INVALID_REQUEST', message: 'Conteúdo da nova versão é inválido.', details: parsed.error.flatten() };
@@ -2456,6 +2456,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return result;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Não foi possível criar a versão.';
+        if (message.startsWith('DRAFT_VERSION_CONFLICT')) return reply.code(409).send({ error: 'DRAFT_VERSION_CONFLICT', message });
         reply.status(message.startsWith('DRAFT_NOT_FOUND') ? 404 : 400);
         return { error: message.startsWith('DRAFT_NOT_FOUND') ? 'DRAFT_NOT_FOUND' : 'INVALID_REQUEST', message };
       }

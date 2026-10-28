@@ -8,6 +8,7 @@ import { ExecutionWorker, type ExecutionDriver } from './execution-worker.js';
 import { encodeExecutionEvent } from './event-stream.js';
 import { createCaseTaskDriver, type NativeCaseTaskOptions } from './case-task-driver.js';
 import type { ResearchService } from '@forgelex/legal-tools';
+import { LEGAL_ACTION_CATALOG } from '@forgelex/legal-workflows';
 
 export interface AgenticWorkspaceRuntimeOptions {
   driver?: ExecutionDriver;
@@ -29,15 +30,16 @@ export function registerAgenticWorkspace(
 ) {
   if (deps.environment.FORGELEX_AGENTIC_WORKSPACE_ENABLED !== 'true') return;
   if (deps.options?.driver && deps.options.caseTask) throw new Error('CASE_TASK_CONFIGURATION_CONFLICT');
-  const caseTask = deps.database && deps.client && deps.options?.caseTask ? createCaseTaskDriver(deps.database, deps.client, deps.options.caseTask, deps.researchService) : undefined;
+  const caseTask =
+    deps.database && deps.client && deps.options?.caseTask
+      ? createCaseTaskDriver(deps.database, deps.client, deps.options.caseTask, deps.researchService)
+      : undefined;
   const driver = deps.options?.driver ?? caseTask?.driver;
   const service =
     deps.database && deps.client
       ? new ExecutionService(deps.database, deps.client, { executorAvailable: Boolean(driver) })
       : undefined;
-  const worker = service
-    ? new ExecutionWorker(service, driver, { leaseMs: deps.options?.leaseMs })
-    : undefined;
+  const worker = service ? new ExecutionWorker(service, driver, { leaseMs: deps.options?.leaseMs }) : undefined;
   let running = false;
   const tick = async () => {
     if (!worker || running) return;
@@ -149,9 +151,35 @@ export function registerAgenticWorkspace(
     ),
   );
   app.get(
+    '/api/agentic/actions',
+    options,
+    handle(async () => ({
+      available: Boolean(driver),
+      actions: LEGAL_ACTION_CATALOG.map((a) => ({
+        id: a.id,
+        label: a.label,
+        dialogue: a.dialogue.map((q) => ({ prompt: q.prompt, options: [...q.options] })),
+      })),
+    })),
+  );
+  app.post(
+    '/api/agentic/executions/:id/corrections',
+    options,
+    handle(async (req, reply) =>
+      reply
+        .code(202)
+        .send(
+          await required().correctAnswer(owner(req), executionId(req), key(req), LegalAnswerSchema.parse(req.body)),
+        ),
+    ),
+  );
+  app.get(
     '/api/agentic/executions/:id',
     options,
-    handle(async (req) => required().getExecution(owner(req), executionId(req))),
+    handle(async (req) => ({
+      ...(await required().getExecution(owner(req), executionId(req))),
+        permissions: { editDraft: req.principal.scopes.includes('draft:write') },
+    })),
   );
   app.post(
     '/api/agentic/executions/:id/answers',
@@ -200,6 +228,8 @@ export function registerAgenticWorkspace(
       // Authorization and validation complete before opening an irreversible streaming response.
       let batch = await s.listClientEvents(identity, id, cursor);
       reply.hijack();
+      for (const [name, value] of Object.entries(reply.getHeaders()))
+        if (value !== undefined) reply.raw.setHeader(name, value);
       reply.raw.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-store',
@@ -258,11 +288,19 @@ export function registerAgenticWorkspace(
       return reply;
     }),
   );
-  if (caseTask) app.get('/api/agentic/deliveries/:id', { preHandler: [deps.auth.createPreHandler(['research:read']), session] }, handle(async (req, reply) => {
-    const id = z.object({ id: z.string().min(1).max(200) }).parse(req.params).id;
-    const scope = await caseTask.native.getDeliveryContext(owner(req), id);
-    if (scope.matterId && !req.principal.scopes.includes('matter:read')) return reply.code(403).send({ error: 'ACCESS_REVOKED', message: 'Seu acesso atual não permite ler este caso.' });
-    return caseTask.native.getDelivery(owner(req), id);
-  }));
+  if (caseTask)
+    app.get(
+      '/api/agentic/deliveries/:id',
+      { preHandler: [deps.auth.createPreHandler(['research:read']), session] },
+      handle(async (req, reply) => {
+        const id = z.object({ id: z.string().min(1).max(200) }).parse(req.params).id;
+        const scope = await caseTask.native.getDeliveryContext(owner(req), id);
+        if (scope.matterId && !req.principal.scopes.includes('matter:read'))
+          return reply
+            .code(403)
+            .send({ error: 'ACCESS_REVOKED', message: 'Seu acesso atual não permite ler este caso.' });
+        return caseTask.native.getDelivery(owner(req), id);
+      }),
+    );
   return { service, worker };
 }

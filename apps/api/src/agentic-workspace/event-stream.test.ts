@@ -9,6 +9,16 @@ const event = (type: string, payload: Record<string, unknown>) => ({
   createdAt: '2026-10-25T00:00:00.000Z',
 });
 describe('projeção pública de eventos', () => {
+  it('codifica separadores reais de linha para consumidores SSE do navegador', () => {
+    const encoded = encodeExecutionEvent({ ...event('STATUS', { status: 'RUNNING' }), type: 'STATUS' });
+    expect(encoded).toContain('\nevent: status\ndata: ');
+    expect(encoded.endsWith('\n\n')).toBe(true);
+  });
+  it('expõe falta de orçamento como motivo público sem mensagem interna', () => {
+    expect(
+      projectClientExecutionEvent(event('ERROR', { code: 'BUDGET_EXHAUSTED', message: 'private' }), context)?.payload,
+    ).toEqual({ code: 'BUDGET_EXHAUSTED' });
+  });
   it('elimina prompts, contratos e argumentos sem depender de esconder componentes', () => {
     expect(
       projectClientExecutionEvent(

@@ -1,8 +1,9 @@
-export type AppTab = 'landing' | 'research' | 'datajud' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'account_activity' | 'account_security' | 'account_closure_status' | 'api_keys' | 'for_lawyers_guide' | 'api_docs';
+export type AppTab = 'work' | 'landing' | 'research' | 'datajud' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'account_activity' | 'account_security' | 'account_closure_status' | 'api_keys' | 'for_lawyers_guide' | 'api_docs';
 
-import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 
-export function resolveVisibleTab(tab: AppTab, casesEnabled: boolean): AppTab {
+export function resolveVisibleTab(tab: AppTab, casesEnabled: boolean, workEnabled = AGENTIC_WORKSPACE_ENABLED): AppTab {
+  if (tab === 'work' && !workEnabled) return 'landing';
   return !casesEnabled && (tab === 'matter' || tab === 'draft_studio' || tab === 'dashboard') ? 'connections' : tab;
 }
 
@@ -13,6 +14,7 @@ export type AppRoute = {
 };
 
 const routes: readonly AppRoute[] = [
+  { tab: 'work', path: '/app/trabalho', title: 'Trabalho' },
   { tab: 'landing', path: '/app', title: 'Visão geral' },
   { tab: 'research', path: '/app/pesquisa', title: 'Pesquisa' },
   { tab: 'datajud', path: '/app/consulta-processual', title: 'Consulta processual' },
