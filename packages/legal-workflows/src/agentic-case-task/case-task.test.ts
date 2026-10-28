@@ -46,6 +46,7 @@ function fixture(
     tools?: AgentTool<any, any>[];
     answers?: any[];
     text?: string;
+    onRegistry?: (role: string, registry: any) => void;
   } = {},
 ) {
   const roles: string[] = [],
@@ -76,6 +77,7 @@ function fixture(
     context,
     tools: options.tools ?? [],
     createProvider: ({ role, registry, packet: p }: any) => {
+      options.onRegistry?.(role, registry);
       roles.push(role);
       packets.push(p);
       return new FakeAgentProvider(registry, undefined, [
@@ -617,3 +619,5 @@ describe('orquestração jurídica interna com especialistas', () => {
     );
   });
 });
+
+it('o contrato entregue ao analista não oferece redação de documento',async()=>{let accepted:boolean|undefined;const f=fixture(basicPlan,{onRegistry:(role,registry)=>{if(role==='matter-analyst')accepted=registry.list().find((t:any)=>t.name==='task.submit').inputSchema.safeParse({...empty,document:{title:'Texto',documentType:'Registro',sections:[{title:'Contexto',content:'Texto preliminar.',sourceIds:['user:1']}]}}).success;}});await f.finish();expect(accepted).toBe(false);});

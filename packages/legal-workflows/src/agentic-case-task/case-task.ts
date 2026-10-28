@@ -64,8 +64,9 @@ const roles: readonly CaseTaskRole[] = [
   'legal-drafter',
   'adversarial-reviewer',
 ];
-const contractHash = () => hash({ policy: CASE_TASK_POLICY, profiles: roles.map(caseTaskProfile) });
+const contractHash = () => hash({ outputContractVersion: 2, policy: CASE_TASK_POLICY, profiles: roles.map(caseTaskProfile) });
 export interface CaseTaskProviderInput {
+  binding: TaskBinding;
   role: CaseTaskRole;
   registry: ToolRegistry;
   packet: NativeTaskPacket & { objective: string; plan?: TaskPlan; priorResults: Record<string, TaskSpecialistResult> };
@@ -74,6 +75,8 @@ export interface CaseTaskOptions {
   context: NativeTaskContextPort;
   tools: readonly AgentTool<any, any>[];
   createProvider: (input: CaseTaskProviderInput) => AgentProvider;
+  /** Trusted server gate; absent in the default/fake-only runtime. */
+  authorizeRealProvider?: (binding: TaskBinding, provider: AgentProvider) => Promise<void>;
 }
 export interface CaseTaskStep {
   state: CaseTaskState;
@@ -186,7 +189,9 @@ export class AgenticCaseTask {
   ) {
     const profile = caseTaskProfile(role),
       registry = new ToolRegistry(),
-      schema = role === 'legal-orchestrator' ? TaskPlanSchema : TaskSpecialistResultSchema;
+      schema = role === 'legal-orchestrator' ? TaskPlanSchema
+        : role === 'legal-drafter' ? TaskSpecialistResultSchema
+        : TaskSpecialistResultSchema.omit({ document: true });
     let submitted: unknown,
       count = 0,
       sourceFailure = false,
@@ -282,8 +287,11 @@ export class AgenticCaseTask {
       priorResults: state.outputs,
     };
     if (Buffer.byteLength(JSON.stringify(minimum)) > CASE_TASK_POLICY.maxBytes) throw new Error('TASK_CONTEXT_LIMIT');
-    const provider = this.options.createProvider({ role, registry, packet: minimum });
-    if (provider.id !== 'fake') throw new Error('REAL_PROVIDER_NOT_ENABLED');
+    const provider = this.options.createProvider({ binding, role, registry, packet: minimum });
+    if (provider.id !== 'fake') {
+      if (!this.options.authorizeRealProvider) throw new Error('REAL_PROVIDER_NOT_ENABLED');
+      await this.options.authorizeRealProvider(binding, provider);
+    }
     const runtime = new AgentRuntime({ provider, toolRegistry: registry });
     const systemPolicy = JSON.stringify({
       policy: CASE_TASK_POLICY,

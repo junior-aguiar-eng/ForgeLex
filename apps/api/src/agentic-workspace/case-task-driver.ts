@@ -26,6 +26,7 @@ import type { ExecutionDriver } from './execution-worker.js';
 export interface NativeCaseTaskOptions {
   authorizeNative: AuthorizeNativeTask;
   createProvider: CaseTaskOptions['createProvider'];
+  authorizeRealProvider?: CaseTaskOptions['authorizeRealProvider'];
   researchService?: ResearchService;
   legislationProvider?: IndexedLegislationProvider;
 }
@@ -80,7 +81,7 @@ export function createCaseTaskDriver(
           );
         }
         if (options.legislationProvider) tools.push(createGetLegislationTool(options.legislationProvider));
-        const task = new AgenticCaseTask({ context: native, tools, createProvider: options.createProvider });
+        const task = new AgenticCaseTask({ context: native, tools, createProvider: options.createProvider, authorizeRealProvider: options.authorizeRealProvider });
         const result = await task.step(binding, execution.checkpoint?.caseTask, signal);
         if (result.kind === 'question')
           return { kind: 'question', checkpoint: { caseTask: result.state }, question: result.question! };

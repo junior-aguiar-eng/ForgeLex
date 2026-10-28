@@ -390,3 +390,76 @@ describe('orçamento durável de inferência', () => {
     ).rejects.toThrow('NOT_FOUND');
   });
 });
+
+describe('conciliação conservadora de cancelamento sem usage inventado', () => {
+  async function uncertain() {
+    const f = await fixture();
+    await f.service.reserveExecutionBudget(f.reserve);
+    await expect(
+      f.service.executeProviderCall(owner, f.execution.id, quote, async () => {
+        throw new Error('cancelled');
+      }),
+    ).rejects.toThrow('cancelled');
+    await f.repo.compareAndSetStatus(owner, f.execution.id, 'QUEUED', 'CANCELLED');
+    await f.service.releaseUnusedBudget(owner, f.execution.id);
+    return f;
+  }
+  const resolution = {
+    callId: 'call-1',
+    approvalReference: 'fixture-only',
+    evidenceReference: 'sha256:synthetic-cancel-evidence',
+  };
+  it('provisiona somente o teto reservado sem criar usage, custo efetivo ou débito fictício', async () => {
+    const f = await uncertain();
+    const result = await f.service.provisionCancelledProviderCall(owner, f.execution.id, resolution);
+    expect(result).toMatchObject({
+      status: 'PROVISIONED',
+      provision: { amountCents: 20, actualCostCents: null, usage: null, basis: 'UPPER_BOUND' },
+    });
+    expect(result.settlement).toBeUndefined();
+    const budget = await f.service.releaseUnusedBudget(owner, f.execution.id);
+    expect(budget).toMatchObject({ status: 'RELEASED', consumedCents: 0, provisionedCents: 20, remainingPaidCents: 0 });
+    expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(80);
+    expect((await f.client.execute('SELECT id FROM usage_events')).rows).toHaveLength(0);
+    expect((await f.client.execute('SELECT id FROM ledger_entries')).rows).toHaveLength(0);
+  });
+  it('é idempotente e vincula a evidência à resolução, sem liberar o teto de novo', async () => {
+    const f = await uncertain();
+    const first = await f.service.provisionCancelledProviderCall(owner, f.execution.id, resolution);
+    expect(await f.service.provisionCancelledProviderCall(owner, f.execution.id, resolution)).toEqual(first);
+    await expect(
+      f.service.provisionCancelledProviderCall(owner, f.execution.id, {
+        ...resolution,
+        evidenceReference: 'different',
+      }),
+    ).rejects.toThrow('IDEMPOTENCY_CONFLICT');
+    expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(80);
+  });
+  it('exige execução encerrada, dono e aprovação financeira correspondentes', async () => {
+    const f = await fixture();
+    await f.service.reserveExecutionBudget(f.reserve);
+    await f.service.authorizeProviderCall(owner, f.execution.id, quote);
+    await f.service.settleProviderCall(owner, f.execution.id, {
+      callId: quote.callId,
+      usage: null,
+      actualCostCents: null,
+    });
+    await expect(f.service.provisionCancelledProviderCall(owner, f.execution.id, resolution)).rejects.toThrow(
+      'EXECUTION_NOT_TERMINAL',
+    );
+    await f.repo.compareAndSetStatus(owner, f.execution.id, 'QUEUED', 'CANCELLED');
+    await expect(
+      f.service.provisionCancelledProviderCall({ ...owner, userId: 'other' }, f.execution.id, resolution),
+    ).rejects.toThrow('BUDGET_NOT_FOUND');
+    await expect(
+      f.service.provisionCancelledProviderCall(owner, f.execution.id, { ...resolution, approvalReference: 'wrong' }),
+    ).rejects.toThrow('APPROVAL_MISMATCH');
+  });
+  it('não converte provisão em liquidação com usage sintético posterior', async () => {
+    const f = await uncertain();
+    await f.service.provisionCancelledProviderCall(owner, f.execution.id, resolution);
+    await expect(
+      f.service.settleProviderCall(owner, f.execution.id, { callId: quote.callId, usage, actualCostCents: 10 }),
+    ).rejects.toThrow('CALL_TERMINAL');
+  });
+});

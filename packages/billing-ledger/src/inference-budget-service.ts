@@ -279,7 +279,7 @@ export class InferenceBudgetService {
       const budget = await this.owned(db, owner, executionId);
       const call = await readCall(db, executionId, callId);
       if (!call) throw new Error('CALL_NOT_FOUND');
-      if (call.status === 'SETTLED' || call.status === 'CANCELLED') throw new Error('CALL_TERMINAL');
+      if (['SETTLED', 'CANCELLED', 'PROVISIONED'].includes(call.status)) throw new Error('CALL_TERMINAL');
       const updated: BudgetCall = { ...call, status: 'RECONCILIATION_REQUIRED', reason };
       await saveCall(db, updated);
       await saveBudget(db, { ...budget, status: 'RECONCILIATION_REQUIRED' });
@@ -298,6 +298,7 @@ export class InferenceBudgetService {
       await this.owned(db, owner, executionId);
       const call = await readCall(db, executionId, callId);
       if (!call || call.kind !== kind) throw new Error('CALL_NOT_FOUND');
+      if (call.status === 'PROVISIONED') throw new Error('CALL_TERMINAL');
       if (call.status === 'CANCELLED' || call.status === 'RECONCILIATION_REQUIRED')
         throw new Error('CALL_REQUIRES_RECONCILIATION');
       if (
@@ -311,6 +312,68 @@ export class InferenceBudgetService {
           ? call
           : { ...call, status: 'SETTLING', settlement: { actualCostCents, fingerprint } };
       await saveCall(db, updated);
+      return updated;
+    });
+  }
+  /**
+   * Internal accounting closure for an authorized, terminal execution with no measurable usage.
+   * Retains the complete preauthorized upper bound as a provision, never as reported usage,
+   * provider actual cost, a customer debit, or a claim that an external invoice was reconciled.
+   */
+  async provisionCancelledProviderCall(
+    owner: AgenticOwner,
+    executionId: string,
+    raw: {
+      callId: string;
+      approvalReference: string;
+      evidenceReference: string;
+    },
+  ): Promise<BudgetCall> {
+    const input = z.object({ callId: id, approvalReference: id, evidenceReference: id }).strict().parse(raw);
+    return this.locked(owner, async (db) => {
+      const budget = await this.owned(db, owner, executionId);
+      if (input.approvalReference !== budget.policy.approvalReference) throw new Error('APPROVAL_MISMATCH');
+      const call = await readCall(db, executionId, input.callId);
+      if (!call || call.kind !== 'PROVIDER' || call.tenantId !== owner.tenantId || call.userId !== owner.userId)
+        throw new Error('CALL_NOT_FOUND');
+      const fingerprint = hash({ ...input, amountCents: call.upperBoundCents, basis: 'UPPER_BOUND' });
+      if (call.status === 'PROVISIONED') {
+        if (call.provision?.fingerprint !== fingerprint) throw new Error('IDEMPOTENCY_CONFLICT');
+        return call;
+      }
+      const execution = await new AgenticWorkspaceRepository(db).getExecution(owner, executionId);
+      if (!execution || !['CANCELLED', 'FAILED'].includes(execution.status)) throw new Error('EXECUTION_NOT_TERMINAL');
+      if (call.status !== 'RECONCILIATION_REQUIRED') throw new Error('CALL_REQUIRES_RECONCILIATION');
+      if (
+        call.settlement ||
+        call.reservedPaidCents + call.reservedPromoCents !== call.upperBoundCents ||
+        call.reservedPaidCents > budget.remainingPaidCents ||
+        call.reservedPromoCents > budget.remainingPromoCents
+      )
+        throw new Error('BUDGET_INVARIANT');
+      const updated: BudgetCall = {
+        ...call,
+        status: 'PROVISIONED',
+        provision: {
+          basis: 'UPPER_BOUND',
+          amountCents: call.upperBoundCents,
+          actualCostCents: null,
+          usage: null,
+          approvalReference: input.approvalReference,
+          evidenceReference: input.evidenceReference,
+          fingerprint,
+          recordedAt: new Date().toISOString(),
+        },
+      };
+      await saveCall(db, updated);
+      const remaining = (await this.calls(db, executionId)).filter(pending);
+      await saveBudget(db, {
+        ...budget,
+        remainingPaidCents: budget.remainingPaidCents - call.reservedPaidCents,
+        remainingPromoCents: budget.remainingPromoCents - call.reservedPromoCents,
+        provisionedCents: (budget.provisionedCents ?? 0) + call.upperBoundCents,
+        status: remaining.length ? 'RECONCILIATION_REQUIRED' : 'CLOSING',
+      });
       return updated;
     });
   }

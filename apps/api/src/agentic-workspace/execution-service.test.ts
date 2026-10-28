@@ -510,3 +510,5 @@ describe('comandos e worker duráveis', () => {
     expect(JSON.stringify(run)).not.toMatch(/authorizationId|checkpoint|provider|policy|allowedTools/);
   });
 });
+
+it('vincula autorização interna ao contexto vigente sem expor consentimento na API pública',async()=>{const f=await fixture();const run=await f.service.startExecution(owner,'internal-approval',input);await f.service.authorizeInference(owner,run.id,{authorizationId:'boni-task6',provider:'openai',model:'gpt-6.1-sol'});expect(await f.repo.getExecution(owner,run.id)).toMatchObject({authorizationId:'boni-task6',provider:'openai',model:'gpt-6.1-sol'});expect(await f.service.getExecution(owner,run.id)).not.toHaveProperty('authorizationId');await expect(f.service.authorizeInference(owner,run.id,{authorizationId:'other',provider:'openai',model:'other'})).rejects.toThrow('EXECUTION_CONFLICT');});

@@ -5,6 +5,7 @@ import {
   tool as defineSdkTool,
   type RunContext,
 } from '@openai/agents';
+import OpenAI from 'openai';
 import {
   AgentEvent,
   AgentProvider,
@@ -157,11 +158,16 @@ function extractOpenAIUsage(stream: OpenAIStreamResult, model: string) {
   const direct = normalizeProviderUsage('openai', model, stream);
   if (direct) return direct;
   const rawResponses = asRecord(stream).rawResponses;
-  if (Array.isArray(rawResponses)) {
-    for (let index = rawResponses.length - 1; index >= 0; index -= 1) {
-      const usage = normalizeProviderUsage('openai', model, rawResponses[index]);
-      if (usage) return usage;
-    }
+  if (Array.isArray(rawResponses) && rawResponses.length) {
+    const usages = rawResponses.map(r => normalizeProviderUsage('openai', model, r));
+    if (usages.some(u => !u)) return undefined;
+    return usages.reduce<NonNullable<ReturnType<typeof normalizeProviderUsage>>>((total, usage) => ({
+      provider: 'openai', model,
+      inputTokens: total.inputTokens + usage!.inputTokens,
+      outputTokens: total.outputTokens + usage!.outputTokens,
+      cachedInputTokens: (total.cachedInputTokens ?? 0) + (usage!.cachedInputTokens ?? 0),
+      reasoningTokens: (total.reasoningTokens ?? 0) + (usage!.reasoningTokens ?? 0),
+    }), { provider: 'openai', model, inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, reasoningTokens: 0 });
   }
   return normalizeProviderUsage('openai', model, stream.finalOutput);
 }
@@ -171,6 +177,8 @@ export interface OpenAIProviderOptions {
   model?: string;
   policyEngine?: PolicyEngine;
   run?: OpenAIRunFactory;
+  /** Trusted server transport; retries are disabled when a budgeted transport is supplied. */
+  fetch?: typeof globalThis.fetch;
 }
 
 export class OpenAIAgentProvider implements AgentProvider {
@@ -198,8 +206,11 @@ export class OpenAIAgentProvider implements AgentProvider {
     }
 
     const modelProvider = new OpenAIProvider({
-      apiKey: this.apiKey,
+      ...(options.fetch
+        ? { openAIClient: new OpenAI({ apiKey: this.apiKey, baseURL: 'https://api.openai.com/v1', maxRetries: 0, fetch: options.fetch }) }
+        : { apiKey: this.apiKey }),
       useResponses: true,
+      useResponsesWebSocket: false,
     });
     const runner = new Runner({
       modelProvider,

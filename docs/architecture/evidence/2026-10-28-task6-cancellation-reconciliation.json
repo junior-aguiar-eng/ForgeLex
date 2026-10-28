@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "reconciliation": "CLOSED_WITH_CONSERVATIVE_PROVISION",
+  "provider": "openai",
+  "model": "gpt-6.1-sol",
+  "executionId": "e5430f85-cacf-481e-80b0-b265bab2ee3e",
+  "callId": "a59df29f-ea67-43a3-b545-0cb7d34225c3",
+  "providerActualCostCents": null,
+  "providerUsage": null,
+  "providerInvoiceReconciled": false,
+  "noNewProviderCalls": true,
+  "noCustomerDebit": true,
+  "evidenceHash": "7e926030db43ab07934ced6c9821493025a8cfa7cf9047d6c12e449543d3ffbf",
+  "approvalReference": "boni-task6",
+  "status": "PROVISIONED",
+  "provision": {
+    "basis": "UPPER_BOUND",
+    "amountCents": 4,
+    "actualCostCents": null,
+    "usage": null,
+    "approvalReference": "boni-task6",
+    "evidenceReference": "sha256:7e926030db43ab07934ced6c9821493025a8cfa7cf9047d6c12e449543d3ffbf",
+    "fingerprint": "97983b50477e5640606b1776951f8ced64582b95aaa3e83df98121c86c6bed8c",
+    "recordedAt": "2026-10-28T03:26:59.130Z"
+  },
+  "budgetStatus": "RELEASED",
+  "remainingEscrowCents": 0,
+  "availableBeforeCents": 441,
+  "availableAfterCents": 441,
+  "totalLocalAccountedCents": 59,
+  "ceilingCents": 500,
+  "recordedAt": "2026-10-28T03:26:59.130Z"
+}

@@ -17,6 +17,8 @@ export interface BudgetRecord {
   remainingPaidCents: number;
   remainingPromoCents: number;
   consumedCents: number;
+  /** Conservative exposure recognized without asserting a provider-reported charge. */
+  provisionedCents?: number;
   releasedCents: number;
   expiredPromoCents: number;
   promoExpiresAt: string | null;
@@ -50,7 +52,17 @@ export interface BudgetCall {
   maxOutputTokens: number;
   reservedPaidCents: number;
   reservedPromoCents: number;
-  status: 'AUTHORIZED' | 'SETTLING' | 'SETTLED' | 'RECONCILIATION_REQUIRED' | 'CANCELLED';
+  status: 'AUTHORIZED' | 'SETTLING' | 'SETTLED' | 'RECONCILIATION_REQUIRED' | 'CANCELLED' | 'PROVISIONED';
+  provision?: {
+    basis: 'UPPER_BOUND';
+    amountCents: number;
+    actualCostCents: null;
+    usage: null;
+    approvalReference: string;
+    evidenceReference: string;
+    fingerprint: string;
+    recordedAt: string;
+  };
   settlement?: { actualCostCents: number; fingerprint: string };
   reason?: string;
 }

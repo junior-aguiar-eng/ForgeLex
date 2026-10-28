@@ -71,6 +71,24 @@ export class ExecutionService {
   private available() {
     if (!this.options.executorAvailable) throw new Error('EXECUTOR_UNAVAILABLE');
   }
+  /** Trusted server entry point only; no client route accepts financial authorization. */
+  async authorizeInference(owner: AgenticOwner, executionId: string, raw: {
+    authorizationId: string; provider: string; model: string;
+  }) {
+    this.available();
+    const approval = z.object({ authorizationId: id, provider: id, model: id }).strict().parse(raw);
+    await this.store.atomic(owner, async (s) => {
+      const execution = await s.workspace.getExecution(owner, executionId);
+      if (!execution) throw new Error('EXECUTION_NOT_FOUND');
+      await this.activeContext(s, execution, true);
+      if (execution.status !== 'QUEUED' || execution.authorizationId) {
+        if (execution.status === 'QUEUED' && execution.authorizationId === approval.authorizationId && execution.provider === approval.provider && execution.model === approval.model) return;
+        throw new Error('EXECUTION_CONFLICT');
+      }
+      await s.db.update(agenticExecutions).set({ payloadJson: JSON.stringify({ ...execution, ...approval }) })
+        .where(and(eq(agenticExecutions.id, executionId),eq(agenticExecutions.tenantId,owner.tenantId),eq(agenticExecutions.userId,owner.userId)));
+    });
+  }
   private async activeContext(s: ExecutionStore, e: AgenticExecution, requireCurrent = false) {
     // Match existing repository order: conversation -> matter -> documents. Locks remain until owner transaction commits.
     const [conversation] = await s.db

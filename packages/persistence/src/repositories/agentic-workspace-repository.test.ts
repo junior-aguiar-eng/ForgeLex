@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabase, runPersistenceMigrations } from '../index.js';
 import { AgenticWorkspaceRepository } from './agentic-workspace-repository.js';
 import { MatterRepository } from './matter-repository.js';
@@ -20,11 +20,41 @@ const question = {
   allowUnknown: true,
   reason: 'Delimitar objetivo',
 };
-const connections: Awaited<ReturnType<typeof createDatabase>>[] = [];
-async function fixture() {
-  const connection = await createDatabase({ url: 'file::memory:' });
-  connections.push(connection);
+let connection: Awaited<ReturnType<typeof createDatabase>>;
+let emptyTableCounts: Awaited<ReturnType<typeof tableCounts>>;
+// Child-to-parent order keeps foreign-key enforcement enabled during cleanup.
+const fixtureTables = [
+  'agentic_events',
+  'agentic_messages',
+  'agentic_executions',
+  'agentic_contexts',
+  'agentic_conversations',
+  'document_anchors',
+  'document_versions',
+  'legal_documents',
+  'matters',
+];
+async function tableCounts() {
+  const tables = await connection.client.execute("SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name");
+  return (
+    await connection.client.execute(
+      tables.rows
+        .map(({ name }) => {
+          const identifier = String(name).replaceAll('"', '""');
+          const label = String(name).replaceAll("'", "''");
+          return `SELECT '${label}' AS table_name, COUNT(*) AS row_count FROM "${identifier}"`;
+        })
+        .join(' UNION ALL '),
+    )
+  ).rows;
+}
+beforeAll(async () => {
+  connection = await createDatabase({ url: 'file::memory:' });
   await runPersistenceMigrations(connection.client);
+  emptyTableCounts = await tableCounts();
+});
+afterAll(() => connection?.client.close());
+async function fixture() {
   const repo = new AgenticWorkspaceRepository(connection.db);
   const conversation = await repo.createConversation(owner, { objective: 'Pesquisar', context });
   const input = {
@@ -39,8 +69,13 @@ async function fixture() {
   const execution = await repo.createExecution(owner, input);
   return { ...connection, repo, conversation, execution, input };
 }
-afterEach(() => {
-  for (const c of connections.splice(0)) c.client.close();
+afterEach(async () => {
+  await connection.client.batch(
+    fixtureTables.map((table) => `DELETE FROM ${table}`),
+    'write',
+  );
+  // Fail if a test starts writing another table instead of silently leaking state.
+  expect(await tableCounts()).toEqual(emptyTableCounts);
 });
 
 describe('persistência do trabalho agêntico', () => {
