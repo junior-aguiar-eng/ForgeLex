@@ -73,3 +73,75 @@ it('rejects purge outside trash and rolls back all children on database failure'
     expect(await repo.localOutcome(failedIntent.operationId)).toBe('rolled_back');
   } finally { f.client.close(); }
 });
+
+it('expurga conversas agênticas do caso e preserva outro caso', async () => {
+  const f = await caseAccessFixture();
+  try {
+    await f.client.execute('PRAGMA foreign_keys=ON');
+    const other = await f.matters.createMatter({ tenantId: f.owner.tenantId, createdBy: f.owner.userId, title: 'Outro caso' });
+    for (const [id, matterId] of [['target', f.matter.id], ['other', other.id]]) {
+      await f.client.execute({ sql: 'INSERT INTO agentic_conversations(id,tenant_id,user_id,objective,matter_id,context_revision,created_at) VALUES(?,?,?,?,?,1,?)', args: [id, f.owner.tenantId, f.owner.userId, 'conteúdo privado', matterId, '2026-10-29'] });
+      await f.client.execute({ sql: 'INSERT INTO agentic_contexts(id,conversation_id,revision,payload_json,created_at) VALUES(?,?,1,?,?)', args: [id, id, '{"texto":"privado"}', '2026-10-29'] });
+      await f.client.execute({ sql: 'INSERT INTO agentic_executions(id,tenant_id,user_id,conversation_id,idempotency_key,input_hash,payload_json,event_sequence) VALUES(?,?,?,?,?,?,?,0)', args: [id, f.owner.tenantId, f.owner.userId, id, id, id, '{}'] });
+      await f.client.execute({ sql: 'INSERT INTO agentic_events(id,execution_id,sequence,type,payload_json,created_at) VALUES(?,?,1,?,?,?)', args: [id,id,'INTERNAL','{}','2026-10-29'] });
+      await f.client.execute({ sql: 'INSERT INTO agentic_commands(id,tenant_id,user_id,idempotency_key,input_hash,execution_id,created_at) VALUES(?,?,?,?,?,?,?)', args: [id,f.owner.tenantId,f.owner.userId,id,id,id,'2026-10-29'] });
+    }
+    const target = { tenantId: f.owner.tenantId, matterId: f.matter.id };
+    const actor = { userId: f.owner.userId, authType: 'web_session' as const, role: 'member' as const, scopes: ['matter:write'] };
+    await new MatterLifecycleRepository(f.db).transition(target, actor, 'trash', { expectedLifecycleRevision: 0 });
+    const intent = { operationId: '1'.repeat(64), target, expectedLifecycleRevision: 1, fingerprint: '2'.repeat(64), preparedAt: new Date().toISOString() };
+    const repo = new MatterPurgeRepository(f.client);
+    await repo.purge(target, actor, { expectedLifecycleRevision: 1, confirmation: f.matter.title }, intent);
+    await repo.verifyResiduals(target);
+    for (const table of ['agentic_conversations', 'agentic_contexts', 'agentic_executions', 'agentic_events', 'agentic_commands']) {
+      expect((await f.client.execute(`SELECT id FROM ${table} ORDER BY id`)).rows.map(row => row.id)).toEqual(['other']);
+    }
+  } finally { f.client.close(); }
+});
+
+it('não exclui uma execução com trabalho agêntico ainda em andamento', async () => {
+  const f = await caseAccessFixture();
+  try {
+    const target = { tenantId: f.owner.tenantId, matterId: f.matter.id };
+    const actor = { userId: f.owner.userId, authType: 'web_session' as const, role: 'member' as const, scopes: ['matter:write'] };
+    await f.client.execute({ sql: 'INSERT INTO agentic_conversations(id,tenant_id,user_id,objective,matter_id,context_revision,created_at) VALUES(?,?,?,?,?,1,?)', args: ['c',f.owner.tenantId,f.owner.userId,'privado',f.matter.id,'2026-10-29'] });
+    await f.client.execute({ sql: 'INSERT INTO agentic_executions(id,tenant_id,user_id,conversation_id,idempotency_key,input_hash,payload_json,event_sequence) VALUES(?,?,?,?,?,?,?,0)', args: ['e',f.owner.tenantId,f.owner.userId,'c','k','h','{}'] });
+    await f.client.execute({ sql: 'INSERT INTO agentic_execution_jobs(execution_id,tenant_id,user_id,state,payload_json,created_at) VALUES(?,?,?,?,?,?)', args: ['e',f.owner.tenantId,f.owner.userId,'LEASED','{}','2026-10-29'] });
+    await new MatterLifecycleRepository(f.db).transition(target, actor, 'trash', { expectedLifecycleRevision: 0 });
+    const intent = { operationId: '3'.repeat(64), target, expectedLifecycleRevision: 1, fingerprint: '4'.repeat(64), preparedAt: new Date().toISOString() };
+    await expect(new MatterPurgeRepository(f.client).purge(target, actor, { expectedLifecycleRevision: 1, confirmation: f.matter.title }, intent)).rejects.toThrow('PURGE_AGENTIC_PENDING');
+    expect((await f.client.execute('SELECT id FROM agentic_executions')).rows).toHaveLength(1);
+  } finally { f.client.close(); }
+});
+
+it('não exclui caso com orçamento de inferência por conciliar', async () => {
+  const f = await caseAccessFixture();
+  try {
+    await runLedgerMigrations(f.client);
+    const target = { tenantId: f.owner.tenantId, matterId: f.matter.id };
+    const actor = { userId: f.owner.userId, authType: 'web_session' as const, role: 'member' as const, scopes: ['matter:write'] };
+    await f.client.execute({ sql: 'INSERT INTO agentic_conversations(id,tenant_id,user_id,objective,matter_id,context_revision,created_at) VALUES(?,?,?,?,?,1,?)', args: ['c',f.owner.tenantId,f.owner.userId,'privado',f.matter.id,'2026-10-29'] });
+    await f.client.execute({ sql: 'INSERT INTO agentic_executions(id,tenant_id,user_id,conversation_id,idempotency_key,input_hash,payload_json,event_sequence) VALUES(?,?,?,?,?,?,?,0)', args: ['e',f.owner.tenantId,f.owner.userId,'c','k','h','{}'] });
+    await f.client.execute({ sql: 'INSERT INTO inference_budgets(id,tenant_id,user_id,execution_id,idempotency_key,payload_json) VALUES(?,?,?,?,?,?)', args: ['b',f.owner.tenantId,f.owner.userId,'e','k','{"status":"ACTIVE"}'] });
+    await new MatterLifecycleRepository(f.db).transition(target, actor, 'trash', { expectedLifecycleRevision: 0 });
+    const intent = { operationId: '5'.repeat(64), target, expectedLifecycleRevision: 1, fingerprint: '6'.repeat(64), preparedAt: new Date().toISOString() };
+    await expect(new MatterPurgeRepository(f.client).purge(target, actor, { expectedLifecycleRevision: 1, confirmation: f.matter.title }, intent)).rejects.toThrow('PURGE_INFERENCE_PENDING');
+  } finally { f.client.close(); }
+});
+
+it('permite excluir caso após liberação integral do orçamento de inferência', async () => {
+  const f = await caseAccessFixture();
+  try {
+    await runLedgerMigrations(f.client);
+    const target = { tenantId: f.owner.tenantId, matterId: f.matter.id };
+    const actor = { userId: f.owner.userId, authType: 'web_session' as const, role: 'member' as const, scopes: ['matter:write'] };
+    await f.client.execute({ sql: 'INSERT INTO agentic_conversations(id,tenant_id,user_id,objective,matter_id,context_revision,created_at) VALUES(?,?,?,?,?,1,?)', args: ['c',f.owner.tenantId,f.owner.userId,'privado',f.matter.id,'2026-10-29'] });
+    await f.client.execute({ sql: 'INSERT INTO agentic_executions(id,tenant_id,user_id,conversation_id,idempotency_key,input_hash,payload_json,event_sequence) VALUES(?,?,?,?,?,?,?,0)', args: ['e',f.owner.tenantId,f.owner.userId,'c','k','h','{}'] });
+    await f.client.execute({ sql: 'INSERT INTO inference_budgets(id,tenant_id,user_id,execution_id,idempotency_key,payload_json) VALUES(?,?,?,?,?,?)', args: ['b',f.owner.tenantId,f.owner.userId,'e','k',JSON.stringify({status:'RELEASED',remainingPaidCents:0,remainingPromoCents:0})] });
+    await new MatterLifecycleRepository(f.db).transition(target, actor, 'trash', { expectedLifecycleRevision: 0 });
+    const intent = { operationId: '7'.repeat(64), target, expectedLifecycleRevision: 1, fingerprint: '8'.repeat(64), preparedAt: new Date().toISOString() };
+    await new MatterPurgeRepository(f.client).purge(target, actor, { expectedLifecycleRevision: 1, confirmation: f.matter.title }, intent);
+    expect((await f.client.execute('SELECT id FROM agentic_executions')).rows).toHaveLength(0);
+    expect((await f.client.execute('SELECT id FROM inference_budgets')).rows).toHaveLength(1);
+  } finally { f.client.close(); }
+});

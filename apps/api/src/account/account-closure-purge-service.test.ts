@@ -570,3 +570,71 @@ async function createFixture(client: Client): Promise<ClosurePurgeFixture> {
   );
   return fixture;
 }
+
+it('remove dados agênticos no encerramento preservando outro tenant', async () => {
+  const connection = await createDatabase({ url: ':memory:' });
+  const client = connection.client;
+  try {
+    await runPersistenceMigrations(client);
+    await runLedgerMigrations(client);
+    for (const tenant of ['encerrado', 'outro']) {
+      await client.execute({ sql: 'INSERT INTO agentic_conversations(id,tenant_id,user_id,objective,matter_id,context_revision,created_at) VALUES(?,?,?,?,NULL,1,?)', args: [tenant, tenant, 'user', 'conteúdo privado', now] });
+      await client.execute({ sql: 'INSERT INTO agentic_contexts(id,conversation_id,revision,payload_json,created_at) VALUES(?,?,1,?,?)', args: [tenant,tenant,'{}',now] });
+      await client.execute({ sql: 'INSERT INTO agentic_executions(id,tenant_id,user_id,conversation_id,idempotency_key,input_hash,payload_json,event_sequence) VALUES(?,?,?,?,?,?,?,0)', args: [tenant,tenant,'user',tenant,tenant,tenant,'{}'] });
+      await client.execute({ sql: 'INSERT INTO agentic_events(id,execution_id,sequence,type,payload_json,created_at) VALUES(?,?,1,?,?,?)', args: [tenant,tenant,'INTERNAL','{}',now] });
+      await client.execute({ sql: 'INSERT INTO agentic_command_owners(id,tenant_id,user_id,version) VALUES(?,?,?,0)', args: [tenant,tenant,'user'] });
+      await client.execute({ sql: 'INSERT INTO agentic_commands(id,tenant_id,user_id,idempotency_key,input_hash,execution_id,created_at) VALUES(?,?,?,?,?,?,?)', args: [tenant,tenant,'user',tenant,tenant,tenant,now] });
+    }
+    const service = new AccountClosurePurgeService(client);
+    await expect(service.verifyResiduals({ closureId: 'closure', tenantId: 'encerrado', tenantPseudonym: 'pseudonimo', now })).rejects.toThrow('ACCOUNT_CLOSURE_RESIDUAL_DATA');
+    await service.purgePrivateContent({ tenantId: 'encerrado', closureId: 'closure', now });
+    for (const table of ['agentic_conversations','agentic_contexts','agentic_executions','agentic_events','agentic_commands','agentic_command_owners']) {
+      expect((await client.execute(`SELECT id FROM ${table}`)).rows.map(row => row.id)).toEqual(['outro']);
+    }
+  } finally { client.close(); }
+});
+
+it('não apaga execução com trabalho agêntico em andamento durante encerramento', async () => {
+  const connection = await createDatabase({ url: ':memory:' });
+  const client = connection.client;
+  try {
+    await runPersistenceMigrations(client);
+    await runLedgerMigrations(client);
+    await client.execute({ sql: 'INSERT INTO agentic_conversations(id,tenant_id,user_id,objective,context_revision,created_at) VALUES(?,?,?,?,1,?)', args: ['c','encerrado','user','privado',now] });
+    await client.execute({ sql: 'INSERT INTO agentic_executions(id,tenant_id,user_id,conversation_id,idempotency_key,input_hash,payload_json,event_sequence) VALUES(?,?,?,?,?,?,?,0)', args: ['e','encerrado','user','c','k','h','{}'] });
+    await client.execute({ sql: 'INSERT INTO agentic_execution_jobs(execution_id,tenant_id,user_id,state,payload_json,created_at) VALUES(?,?,?,?,?,?)', args: ['e','encerrado','user','LEASED','{}',now] });
+    await expect(new AccountClosurePurgeService(client).purgePrivateContent({ tenantId:'encerrado', closureId:'closure', now })).rejects.toThrow('ACCOUNT_CLOSURE_AGENTIC_PENDING');
+    expect((await client.execute('SELECT id FROM agentic_executions')).rows).toHaveLength(1);
+  } finally { client.close(); }
+});
+
+it('preserva conteúdo enquanto a conciliação financeira de inferência está pendente', async () => {
+  const connection = await createDatabase({ url: ':memory:' });
+  const client = connection.client;
+  try {
+    await runPersistenceMigrations(client);
+    await runLedgerMigrations(client);
+    await client.execute({ sql: 'INSERT INTO inference_budgets(id,tenant_id,user_id,execution_id,idempotency_key,payload_json) VALUES(?,?,?,?,?,?)', args: ['b','encerrado','user','e','k',JSON.stringify({ status:'ACTIVE' })] });
+    await expect(new AccountClosurePurgeService(client).purgePrivateContent({ tenantId:'encerrado', closureId:'closure', now })).rejects.toThrow('ACCOUNT_CLOSURE_INFERENCE_PENDING');
+  } finally { client.close(); }
+});
+
+it('detecta orçamento de inferência residual antes de concluir encerramento', async () => {
+  const { client } = await createDatabase({ url: ':memory:' });
+  try {
+    await runPersistenceMigrations(client);
+    await runLedgerMigrations(client);
+    await client.execute({ sql: 'INSERT INTO inference_budgets(id,tenant_id,user_id,execution_id,idempotency_key,payload_json) VALUES(?,?,?,?,?,?)', args: ['b','encerrado','user','e','k','{"status":"RELEASED"}'] });
+    await expect(new AccountClosurePurgeService(client).verifyResiduals({ closureId:'closure', tenantId:'encerrado', tenantPseudonym:'closed', now })).rejects.toThrow('ACCOUNT_CLOSURE_RESIDUAL_DATA');
+  } finally { client.close(); }
+});
+
+it('permite expurgo de conteúdo com orçamento já liberado', async () => {
+  const { client } = await createDatabase({ url: ':memory:' });
+  try {
+    await runPersistenceMigrations(client); await runLedgerMigrations(client);
+    await client.execute({sql:'INSERT INTO inference_budgets(id,tenant_id,user_id,execution_id,idempotency_key,payload_json) VALUES(?,?,?,?,?,?)',args:['b','tenant','user','e','k',JSON.stringify({status:'RELEASED',remainingPaidCents:0,remainingPromoCents:0})]});
+    await expect(new AccountClosurePurgeService(client).purgePrivateContent({tenantId:'tenant',closureId:'closure',now})).resolves.toMatchObject({remainingPrivateRows:0});
+    expect((await client.execute('SELECT id FROM inference_budgets')).rows).toHaveLength(1);
+  } finally { client.close(); }
+});

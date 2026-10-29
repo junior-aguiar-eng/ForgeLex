@@ -37,3 +37,31 @@ Os conflitos explícitos ocorreram em `DraftStudioScreen.tsx`, índices dos paco
 - Navegador MCP/site: 31 de 32 cenários passaram na execução completa; um cenário OAuth falhou por sincronização assíncrona. Após corrigir a espera, os dois cenários OAuth passaram em execução isolada; a suíte completa não foi repetida.
 - Vitest geral após os ajustes de reconciliação: 1.199 aprovados, 17 ignorados, 200 arquivos aprovados e três ignorados. Uma tentativa anterior em paralelo apresentou falhas de fixture, contrato MCP e tempo; as causas foram tratadas e a suíte completa foi repetida.
 - Provider OpenAI e homologação paga foram explicitamente desabilitados nos comandos de validação; nenhum dado de cliente foi usado.
+
+## Continuação de 29/10: retenção agêntica — trabalho incompleto
+
+Foram preparados, sem commit, testes e alterações para expurgar conteúdo agêntico vinculado a casos e tenants, verificar resíduos no encerramento e bloquear provisoriamente exclusões com trabalho ou orçamento de inferência pendente. Os três arquivos de testes pertinentes passaram: 27 testes. O lint dos três arquivos de produção alterados passou; a verificação de tipos do monorepo passou durante o trabalho, antes dos últimos ajustes.
+
+Os bloqueios de orçamento são deliberadamente conservadores: qualquer orçamento encontrado impede o encerramento ou a exclusão do caso, inclusive se já estiver encerrado. Eles não implementam a conciliação ou minimização dos registros financeiros. Ainda é necessário resolver a concorrência com trabalhadores e requisições em andamento, a interação com o ledger separado do piloto, exceções de retenção e a restauração de backups; testar SQLite e PostgreSQL e executar as verificações completas sobre o resultado final. O comportamento de exclusão de documentos e suas cópias derivadas também precisa ser verificado contra a política existente. Não tratar a mudança parcial como pronta para integração.
+
+Nenhuma PR foi criada e nenhum commit, push, deploy, migration remota ou chamada paga foi feito nesta continuação.
+
+## Continuação: orçamento liberado em exclusão de caso
+
+A exclusão de caso passou a permitir orçamento no banco principal somente quando seu estado é RELEASED e ambos os saldos reservados são zero, mantendo o registro financeiro; orçamento aberto ou inválido continua impedindo a exclusão. O teste de regressão reproduziu o bloqueio anterior e os sete testes do repositório de expurgo passaram. Este ajuste não resolve o tratamento do ledger isolado, a minimização financeira no encerramento, a concorrência ou a restauração. A reconciliação continua incompleta e não foi enviada.
+
+## Continuação: minimização financeira parcial
+
+A minimização local agora mantém valores de reservas liberadas e chamadas liquidadas ou provisionadas sob pseudônimos, removendo texto livre do payload; reservas e chamadas em andamento continuam bloqueadas. O expurgo de conteúdo aceita orçamento liberado e conserva os registros para a etapa financeira. As três suítes direcionadas passaram com 32 testes. Lint e tipos da API passaram antes do último ajuste de preservação de provisão.
+
+A implementação permanece incompleta: ainda é necessário revisar identificadores e campos retidos fora do payload, concorrência entre encerramento e trabalhadores, ledger separado do piloto, exceções e reprocessamento/restauração; depois validar em PostgreSQL e executar CI do resultado final. A condição de checks aprovados para integração ainda não foi satisfeita.
+
+## Continuação: validações de retenção
+
+A restauração de snapshot SQLite de caso foi testada com conteúdo agêntico e reaplicou o expurgo; a verificação da restauração de conta recebeu cobertura para conversas e orçamentos residuais. As chaves de idempotência e chamada da inferência foram minimizadas, com teste de preservação do vínculo com operação e lançamento financeiro. Passaram os testes específicos de retenção financeira (7), restauração de conta (8), restauração de caso (5), lint dos arquivos de produção e tipos da API.
+
+Uma execução da suíte geral apresentou falhas nos testes `libera saldo livre no cancelamento mas conserva cobertura de chamada em trânsito` e `mantém os 59 centavos históricos e reserva/retry/cancela sem tocar no billing da aplicação` e foi interrompida por ausência prolongada de progresso; suas duas suítes passaram isoladamente, com 34 testes. Como houve alterações de testes durante essa execução, ela não valida a árvore final. Persistem os testes de concorrência, ledger isolado, restauração de conta com banco real, PostgreSQL e suíte completa/CI do estado final. Não foi criado commit nem enviada integração.
+
+## Suíte completa após os ajustes locais
+
+A execução sequencial com `--maxWorkers=1 --testTimeout=15000` terminou com 1.216 testes aprovados e 17 ignorados em 203 arquivos. Os arquivos de produção de retenção passaram no lint e a API passou na verificação de tipos. O resultado é intermediário: ainda não cobre a sincronização transacional entre pedidos já autenticados e encerramento, a conciliação do ledger isolado e restauração real de conta, e não substitui CI sobre o resultado definitivo. Nenhuma integração foi enviada.

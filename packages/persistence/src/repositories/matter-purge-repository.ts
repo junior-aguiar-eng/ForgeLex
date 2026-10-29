@@ -8,6 +8,10 @@ interface Executor { execute(statement: { sql: string; args: (string | number | 
 interface PurgeOperation { operationId: string; result: LifecycleResult; }
 const directChildren = ['citation_anchors', 'draft_review_findings', 'draft_review_runs', 'draft_ai_receipts', 'case_analysis_receipts', 'case_ai_access_grants', 'draft_sections', 'draft_versions', 'drafts', 'matter_authority_verifications', 'matter_authorities', 'legal_theses', 'research_memos', 'legal_issues', 'evidence_links', 'evidence_source_links', 'evidence_items', 'fact_source_links', 'timeline_events', 'facts', 'workflow_checkpoints', 'research_search_history'] as const;
 const queries = (target: LifecycleTarget) => [
+  ...['agentic_commands', 'agentic_execution_jobs', 'agentic_execution_calls', 'agentic_events', 'agentic_task_deliveries'].map(table => ({ table, where: 'execution_id IN (SELECT e.id FROM agentic_executions e JOIN agentic_conversations c ON c.id=e.conversation_id WHERE c.tenant_id=? AND c.matter_id=?)', args: [target.tenantId, target.matterId] })),
+  ...['agentic_messages', 'agentic_contexts'].map(table => ({ table, where: 'conversation_id IN (SELECT id FROM agentic_conversations WHERE tenant_id=? AND matter_id=?)', args: [target.tenantId, target.matterId] })),
+  { table: 'agentic_executions', where: 'conversation_id IN (SELECT id FROM agentic_conversations WHERE tenant_id=? AND matter_id=?)', args: [target.tenantId, target.matterId] },
+  { table: 'agentic_conversations', where: 'tenant_id=? AND matter_id=?', args: [target.tenantId, target.matterId] },
   ...['draft_approval_tokens', 'draft_approval_decisions'].map(table => ({ table, where: 'tenant_id=? AND request_id IN (SELECT id FROM draft_approval_requests WHERE tenant_id=? AND matter_id=?)', args: [target.tenantId, target.tenantId, target.matterId] })),
   { table: 'draft_approval_requests', where: 'tenant_id=? AND matter_id=?', args: [target.tenantId, target.matterId] },
   ...directChildren.map(table => ({ table, where: 'tenant_id=? AND matter_id=?', args: [target.tenantId, target.matterId] })),
@@ -78,6 +82,18 @@ export class MatterPurgeRepository {
       counts.versions = (await tx.execute({ sql: `UPDATE document_versions SET content='' WHERE document_id IN (${docs})`, args })).rowsAffected;
       counts.documents = (await tx.execute({ sql: "UPDATE legal_documents SET lifecycle_state='PURGED',lifecycle_revision=CASE WHEN lifecycle_revision>? THEN lifecycle_revision ELSE ? END,title='Documento excluído',original_filename='',mime_type='application/octet-stream',byte_size=0,purged_at=COALESCE(purged_at,?),purged_by=COALESCE(purged_by,?),updated_at=? WHERE id=? AND tenant_id=? AND matter_id=?", args: [revision, revision, now, actor, now, ...args] })).rowsAffected;
     } else {
+      const dialect = (this.client as Client & { forgelexDialect?: 'sqlite' | 'postgres' }).forgelexDialect ?? 'sqlite';
+      const tables = await tx.execute({ sql: dialect === 'postgres' ? "SELECT tablename AS name FROM pg_catalog.pg_tables WHERE schemaname=current_schema() AND tablename=?" : "SELECT name FROM sqlite_master WHERE type='table' AND name=?", args: ['inference_budgets'] });
+      if (tables.rows.length) {
+        const budgets = await tx.execute({ sql: 'SELECT b.payload_json FROM inference_budgets b JOIN agentic_executions e ON e.id=b.execution_id JOIN agentic_conversations c ON c.id=e.conversation_id WHERE c.tenant_id=? AND c.matter_id=?', args: [target.tenantId, target.matterId] });
+        for (const row of budgets.rows as Array<{ payload_json: unknown }>) {
+          let budget: { status?: string; remainingPaidCents?: number; remainingPromoCents?: number };
+          try { budget = JSON.parse(String(row.payload_json)); } catch { throw new Error('PURGE_INFERENCE_PENDING'); }
+          if (budget.status !== 'RELEASED' || budget.remainingPaidCents !== 0 || budget.remainingPromoCents !== 0) throw new Error('PURGE_INFERENCE_PENDING');
+        }
+      }
+      const pending = await tx.execute({ sql: "SELECT j.execution_id FROM agentic_execution_jobs j JOIN agentic_executions e ON e.id=j.execution_id JOIN agentic_conversations c ON c.id=e.conversation_id WHERE c.tenant_id=? AND c.matter_id=? AND (j.state NOT IN ('COMPLETED','FAILED','CANCELLED') OR j.budget_release_pending<>0) LIMIT 1", args: [target.tenantId, target.matterId] });
+      if (pending.rows.length) throw new Error('PURGE_AGENTIC_PENDING');
       for (const query of queries(target)) counts[query.table] = (await tx.execute({ sql: `DELETE FROM ${query.table} WHERE ${query.where}`, args: query.args })).rowsAffected;
       counts.matters = (await tx.execute({ sql: "UPDATE matters SET lifecycle_state='PURGED',lifecycle_revision=CASE WHEN lifecycle_revision>? THEN lifecycle_revision ELSE ? END,title='',description=NULL,client_id=NULL,practice_area=NULL,jurisdiction=NULL,status='ARCHIVED',previous_business_status=NULL,purged_at=COALESCE(purged_at,?),purged_by=COALESCE(purged_by,?),updated_at=? WHERE id=? AND tenant_id=?", args: [revision, revision, now, actor, now, target.matterId, target.tenantId] })).rowsAffected;
     }

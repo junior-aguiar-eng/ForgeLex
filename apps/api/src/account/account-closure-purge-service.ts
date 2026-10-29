@@ -23,6 +23,16 @@ interface TenantStatement {
 }
 
 const tenantStatements: readonly TenantStatement[] = [
+  direct('agentic_commands', 'SESSIONS'),
+  direct('agentic_execution_jobs', 'SESSIONS'),
+  nested('agentic_execution_calls', 'SESSIONS', 'execution_id IN (SELECT id FROM agentic_executions WHERE tenant_id = ?)'),
+  nested('agentic_events', 'SESSIONS', 'execution_id IN (SELECT id FROM agentic_executions WHERE tenant_id = ?)'),
+  direct('agentic_task_deliveries', 'SESSIONS'),
+  nested('agentic_messages', 'SESSIONS', 'conversation_id IN (SELECT id FROM agentic_conversations WHERE tenant_id = ?)'),
+  nested('agentic_contexts', 'SESSIONS', 'conversation_id IN (SELECT id FROM agentic_conversations WHERE tenant_id = ?)'),
+  direct('agentic_executions', 'SESSIONS'),
+  direct('agentic_conversations', 'SESSIONS'),
+  direct('agentic_command_owners', 'SESSIONS'),
   direct('draft_approval_tokens', 'MATTERS'),
   direct('draft_approval_decisions', 'MATTERS'),
   direct('draft_approval_requests', 'MATTERS'),
@@ -128,6 +138,25 @@ export class AccountClosurePurgeService {
     const transaction = await this.client.transaction();
     let deletedRows = 0;
     try {
+      await transaction.execute({ sql: 'UPDATE ledger_accounts SET updated_at=updated_at WHERE tenant_id=?', args: [input.tenantId] });
+      const budgets = await transaction.execute({ sql: 'SELECT payload_json FROM inference_budgets WHERE tenant_id=?', args: [input.tenantId] });
+      const calls = await transaction.execute({ sql: 'SELECT payload_json FROM inference_calls WHERE tenant_id=?', args: [input.tenantId] });
+      const parse = (raw: unknown): Record<string, unknown> => {
+        try { const data = JSON.parse(String(raw)); if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error(); return data; }
+        catch { throw new Error('ACCOUNT_CLOSURE_INFERENCE_PENDING'); }
+      };
+      for (const row of budgets.rows) {
+        const budget = parse(row.payload_json);
+        if (budget.status !== 'RELEASED' || budget.remainingPaidCents !== 0 || budget.remainingPromoCents !== 0) throw new Error('ACCOUNT_CLOSURE_INFERENCE_PENDING');
+      }
+      for (const row of calls.rows) {
+        if (!['SETTLED', 'CANCELLED', 'PROVISIONED'].includes(String(parse(row.payload_json).status))) throw new Error('ACCOUNT_CLOSURE_INFERENCE_PENDING');
+      }
+      const pending = await transaction.execute({
+        sql: "SELECT execution_id FROM agentic_execution_jobs WHERE tenant_id=? AND (state NOT IN ('COMPLETED','FAILED','CANCELLED') OR budget_release_pending<>0) LIMIT 1",
+        args: [input.tenantId],
+      });
+      if (!held.has('SESSIONS') && pending.rows.length) throw new Error('ACCOUNT_CLOSURE_AGENTIC_PENDING');
       const statements = await this.availableTenantStatements(transaction);
       if (!held.has('MATTERS')) {
         const closures = await transaction.execute({
@@ -234,6 +263,8 @@ export class AccountClosurePurgeService {
     let privateRows = 0;
     let activeCredentials = 0;
     if (input.tenantId) {
+      const inference = await this.client.execute({ sql: 'SELECT (SELECT COUNT(*) FROM inference_budgets WHERE tenant_id=?) + (SELECT COUNT(*) FROM inference_calls WHERE tenant_id=?) AS count', args: [input.tenantId, input.tenantId] });
+      privateRows += numberFrom(inference as { rows: Array<Record<string, unknown>> });
       const statements = await this.availableTenantStatements(this.client);
       if (!held.has('MATTERS')) {
         const operations = await this.client.execute({
