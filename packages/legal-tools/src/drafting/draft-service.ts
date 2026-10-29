@@ -30,6 +30,7 @@ export interface DraftContentInput {
   citations?: CitationAnchorInput[];
   notes?: string;
   baseVersionId?: string;
+  expectedCurrentVersionId?: string;
 }
 
 export interface DraftDetails {
@@ -143,6 +144,7 @@ export class DraftingService {
       contentHash: hashDraftContent(input),
       notes: input.notes,
       baseVersionId: input.baseVersionId,
+      expectedCurrentVersionId: input.expectedCurrentVersionId,
       sections: input.sections,
       citations: input.citations,
     });

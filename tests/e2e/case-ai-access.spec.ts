@@ -402,7 +402,49 @@ test('receber texto preserva edição, permite prévia segura e exige adoção c
   await panel.getByRole('button', { name: 'Descartar minha edição e usar' }).click();
   await expect(panel.getByRole('alert')).toContainText('A edição atual mudou');
   await expect(editor).toHaveValue('Minha edição ainda não salva.');
+  // A new writer after the conflict was shown must still win the server comparison.
+  let racingVersionId = '';
+  await page.route(
+    `**/drafts/${draft.draft.id}/versions`,
+    async (route) => {
+      const racing = await request.post(api + root + '/drafts/' + draft.draft.id + '/versions', {
+        headers: { authorization: 'Bearer phase7-e2e-access-token' },
+        data: {
+          title: 'Rascunho para recebimento',
+          sections: [{ ordinal: 0, title: 'Fatos', content: 'Alteração durante a escolha.' }],
+        },
+      });
+      expect(racing.status()).toBe(200);
+      racingVersionId = (await racing.json()).version.id;
+      await route.continue();
+    },
+    { times: 1 },
+  );
+  const racedEditResponse = page.waitForResponse(
+    (r) => r.url().endsWith(`/drafts/${draft.draft.id}/versions`) && r.request().method() === 'POST',
+  );
   await panel.getByRole('button', { name: 'Salvar minha edição e usar' }).click();
+  expect((await racedEditResponse).status()).toBe(409);
+  await expect(panel.getByRole('alert')).toContainText('Não foi possível salvar sua edição');
+  await expect(editor).toHaveValue('Minha edição ainda não salva.');
+  const racedDetails = await (
+    await request.get(api + root + '/drafts/' + draft.draft.id, {
+      headers: { authorization: 'Bearer phase7-e2e-access-token' },
+    })
+  ).json();
+  expect(racedDetails.currentVersion.sections[0].content).toBe('Alteração durante a escolha.');
+  // Recheck the changed current version before another explicit preservation attempt.
+  await panel.getByRole('button', { name: 'Descartar minha edição e usar' }).click();
+  await expect(panel.getByRole('alert')).toContainText('A edição atual mudou');
+  await expect(editor).toHaveValue('Minha edição ainda não salva.');
+  const preservedEditResponse = page.waitForResponse(
+    (r) => r.url().endsWith(`/drafts/${draft.draft.id}/versions`) && r.request().method() === 'POST',
+  );
+  await panel.getByRole('button', { name: 'Salvar minha edição e usar' }).click();
+  const preservedEdit = await preservedEditResponse;
+  expect(preservedEdit.status(), await preservedEdit.text()).toBe(200);
+  const preserved = await preservedEdit.json();
+  expect(preserved.sections[0].content).toBe('Minha edição ainda não salva.');
   await expect(editor).toHaveValue(input.sections[0].content);
   const versions = (
     await (
@@ -411,7 +453,17 @@ test('receber texto preserva edição, permite prévia segura e exige adoção c
       })
     ).json()
   ).versions;
-  expect(versions).toHaveLength(5);
+  expect(versions).toHaveLength(6);
+  expect(versions.map((version: { id: string }) => version.id)).toEqual(
+    expect.arrayContaining([
+      draft.version.id,
+      (await firstConcurrent.json()).version.id,
+      (await concurrent.json()).version.id,
+      racingVersionId,
+      preserved.version.id,
+      saved.result.structuredContent.versionId,
+    ]),
+  );
   await page.getByText('Salvar e exportar',{exact:true}).click();
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Baixar DOCX da versão salva' }).click();

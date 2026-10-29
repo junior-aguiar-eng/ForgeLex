@@ -84,6 +84,9 @@ importers:
       '@forgelex/agent-core':
         specifier: workspace:*
         version: link:../../packages/agent-core
+      '@forgelex/agent-provider-openai':
+        specifier: workspace:*
+        version: link:../../packages/agent-provider-openai
       '@forgelex/analise-juridica':
         specifier: workspace:*
         version: link:../../packages/analise-juridica
@@ -136,9 +139,6 @@ importers:
       '@forgelex/agent-provider-anthropic':
         specifier: workspace:*
         version: link:../../packages/agent-provider-anthropic
-      '@forgelex/agent-provider-openai':
-        specifier: workspace:*
-        version: link:../../packages/agent-provider-openai
       '@types/node':
         specifier: ^22.13.9
         version: 22.20.2
@@ -247,6 +247,9 @@ importers:
       '@openai/agents':
         specifier: 0.18.0
         version: 0.18.0(supports-color@7.2.0)(ws@8.21.3)(zod@4.6.7)
+      openai:
+        specifier: 7.15.0
+        version: 7.15.0(ws@8.21.3)(zod@4.6.7)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -310,6 +313,9 @@ importers:
 
   packages/billing-ledger:
     dependencies:
+      '@forgelex/agent-core':
+        specifier: workspace:*
+        version: link:../agent-core
       '@forgelex/domain':
         specifier: workspace:*
         version: link:../domain
@@ -332,6 +338,25 @@ importers:
 
   packages/domain:
     dependencies:
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/legal-agents:
+    dependencies:
+      '@forgelex/agent-core':
+        specifier: workspace:*
+        version: link:../agent-core
+      '@forgelex/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@forgelex/legal-tools':
+        specifier: workspace:*
+        version: link:../legal-tools
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -389,6 +414,9 @@ importers:
       '@forgelex/domain':
         specifier: workspace:*
         version: link:../domain
+      '@forgelex/legal-agents':
+        specifier: workspace:*
+        version: link:../legal-agents
       '@forgelex/legal-tools':
         specifier: workspace:*
         version: link:../legal-tools

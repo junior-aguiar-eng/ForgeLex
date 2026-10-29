@@ -4,3 +4,8 @@ export * from './research-memo/legal-research-memo-execution.js';
 export * from './case-document-analysis/case-document-analysis-workflow.js';
 export * from './pleading-draft/pleading-draft-workflow.js';
 export * from './agentic-contracts.js';
+export * from './research-agent-contracts.js';
+export * from './legal-work-contracts.js';
+export * from './contracts/legal-workflow.js';
+export * from './runtime/legal-contract-workflow.js';
+export * from './agentic-case-task/case-task.js';

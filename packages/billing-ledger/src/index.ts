@@ -6,3 +6,5 @@ export * from './billing-rules.js';
 export * from './search-fingerprint.js';
 export * from './migrations/ledger-migrations.js';
 export * from './result-snapshot.js';
+export * from './inference-budget-service.js';
+export type { BudgetPolicy, BudgetRecord, BudgetCall } from './inference-budget-funding.js';

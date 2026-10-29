@@ -1,5 +1,46 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+export const agenticCommandOwners = sqliteTable('agentic_command_owners', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(), version: integer('version').notNull().default(0),
+});
+export const agenticCommands = sqliteTable('agentic_commands', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
+  idempotencyKey: text('idempotency_key').notNull(), inputHash: text('input_hash').notNull(), executionId: text('execution_id').notNull(), createdAt: text('created_at').notNull(),
+}, t => [uniqueIndex('agentic_commands_owner_key_idx').on(t.tenantId,t.userId,t.idempotencyKey)]);
+export const agenticExecutionJobs = sqliteTable('agentic_execution_jobs', {
+  executionId: text('execution_id').primaryKey().references(() => agenticExecutions.id), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
+  state: text('state').notNull(), leaseExpiresAt: text('lease_expires_at'), budgetReleasePending: integer('budget_release_pending').notNull().default(0), budgetReleaseNextAt: text('budget_release_next_at'), payloadJson: text('payload_json').notNull(), createdAt: text('created_at').notNull(),
+}, t => [index('agentic_execution_jobs_ready_idx').on(t.state,t.leaseExpiresAt)]);
+export const agenticExecutionCalls = sqliteTable('agentic_execution_calls', {
+  id: text('id').primaryKey(), executionId: text('execution_id').notNull().references(() => agenticExecutions.id), callId: text('call_id').notNull(),
+  state: text('state').notNull(), payloadJson: text('payload_json').notNull(),
+}, t => [uniqueIndex('agentic_execution_calls_key_idx').on(t.executionId,t.callId)]);
+
+export const agenticConversations = sqliteTable('agentic_conversations', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
+  objective: text('objective').notNull(), matterId: text('matter_id').references(() => matters.id),
+  contextRevision: integer('context_revision').notNull(), createdAt: text('created_at').notNull(),
+}, t => [index('agentic_conversations_owner_idx').on(t.tenantId, t.userId)]);
+export const agenticContexts = sqliteTable('agentic_contexts', {
+  id: text('id').primaryKey(), conversationId: text('conversation_id').notNull().references(() => agenticConversations.id),
+  revision: integer('revision').notNull(), payloadJson: text('payload_json').notNull(), createdAt: text('created_at').notNull(),
+}, t => [uniqueIndex('agentic_contexts_revision_idx').on(t.conversationId, t.revision)]);
+export const agenticExecutions = sqliteTable('agentic_executions', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
+  conversationId: text('conversation_id').notNull().references(() => agenticConversations.id),
+  idempotencyKey: text('idempotency_key').notNull(), inputHash: text('input_hash').notNull(),
+  payloadJson: text('payload_json').notNull(), eventSequence: integer('event_sequence').notNull().default(0),
+}, t => [uniqueIndex('agentic_executions_key_idx').on(t.tenantId, t.userId, t.idempotencyKey), index('agentic_executions_conversation_idx').on(t.conversationId)]);
+export const agenticMessages = sqliteTable('agentic_messages', {
+  id: text('id').primaryKey(), conversationId: text('conversation_id').notNull().references(() => agenticConversations.id),
+  executionId: text('execution_id').references(() => agenticExecutions.id), sequence: integer('sequence').notNull(),
+  payloadJson: text('payload_json').notNull(), createdAt: text('created_at').notNull(),
+}, t => [uniqueIndex('agentic_messages_sequence_idx').on(t.conversationId, t.sequence)]);
+export const agenticEvents = sqliteTable('agentic_events', {
+  id: text('id').primaryKey(), executionId: text('execution_id').notNull().references(() => agenticExecutions.id),
+  sequence: integer('sequence').notNull(), type: text('type').notNull(), payloadJson: text('payload_json').notNull(), createdAt: text('created_at').notNull(),
+}, t => [uniqueIndex('agentic_events_sequence_idx').on(t.executionId, t.sequence)]);
+
 export const caseAiAccessGrants = sqliteTable('case_ai_access_grants', {
  analysisPermissionJson: text('analysis_permission_json').notNull().default('{"enabled":false}'),
  receivePermissionJson: text('receive_permission_json').notNull().default('{"enabled":false}'),
@@ -870,3 +911,15 @@ export const jurisprudenceIngestionStaging = sqliteTable(
     index('jurisprudence_ingestion_staging_manifest_idx').on(table.manifestId, table.recordOrdinal),
   ],
 );
+
+export const legislationVersions = sqliteTable('legislation_versions', {
+  id: text('id').primaryKey(), normId: text('norm_id').notNull(), provisionId: text('provision_id').notNull(),
+  versionId: text('version_id').notNull(), payloadJson: text('payload_json').notNull(),
+}, (table) => [uniqueIndex('legislation_versions_identity_idx').on(table.normId, table.provisionId, table.versionId)]);
+
+export const agenticTaskDeliveries = sqliteTable('agentic_task_deliveries', {
+  id: text('id').primaryKey(), executionId: text('execution_id').notNull().references(() => agenticExecutions.id),
+  conversationId: text('conversation_id').notNull().references(() => agenticConversations.id),
+  tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(), contextRevision: integer('context_revision').notNull(),
+  payloadJson: text('payload_json').notNull(), contentHash: text('content_hash').notNull(), draftId: text('draft_id'), versionId: text('version_id'),
+}, (table) => [uniqueIndex('agentic_task_deliveries_execution_idx').on(table.executionId)]);

@@ -1,3 +1,5 @@
 # pnpm hashes patch bytes; preserve them across Windows and Linux checkouts.
 # Diff context markers and pnpm-generated header tabs are part of the patch.
 patches/*.patch text eol=lf -whitespace
+# Preserve the byte-exact, hash-pinned synthetic pilot fixture across platforms.
+docs/architecture/fixtures/agentic-task6-synthetic-cases.json text eol=lf

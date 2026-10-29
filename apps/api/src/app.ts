@@ -1,3 +1,5 @@
+import { registerAgenticWorkspace, type AgenticWorkspaceRuntimeOptions } from './agentic-workspace/execution-routes.js';
+import type { ClosedPilotDependencies } from './agentic-workspace/closed-pilot.js';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import Fastify, { FastifyInstance, FastifyReply } from 'fastify';
@@ -114,6 +116,8 @@ import { createResearchPresentationTools, DecisionPresentationService, isResearc
 import { readMcpReaderHtml } from './research/mcp-reader-resource.js';
 
 export interface BuildAppOptions {
+  closedPilotDependencies?: ClosedPilotDependencies;
+  agenticWorkspace?: AgenticWorkspaceRuntimeOptions;
   matterPurgeJournal?: MatterPurgeJournal;
   oauthClientDirectory?: OAuthClientDirectory;
   authAdapter?: AuthAdapter;
@@ -478,6 +482,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const researchService = new ResearchService(sourceRouter, jurisprudenceSearchService, {
     requirePersistentDataPlane: true,
   });
+  let workspaceOptions = options.agenticWorkspace;
+  if (environment.FORGELEX_CLOSED_PILOT_ENABLED === 'true') {
+    if (!database || !databaseClient || workspaceOptions?.driver || workspaceOptions?.caseTask || workspaceOptions?.closedPilot)
+      throw new Error('CLOSED_PILOT_CONFIGURATION_REQUIRED');
+    const { createClosedPilot } = await import('./agentic-workspace/closed-pilot.js');
+    const closedPilot = await createClosedPilot(database, databaseClient, environment, options.closedPilotDependencies);
+    workspaceOptions = { ...workspaceOptions, closedPilot };
+    app.addHook('onClose', () => closedPilot.close());
+  }
+  registerAgenticWorkspace(app, { database, client: databaseClient, auth: authAdapter, environment, options: workspaceOptions, researchService });
   const savedResearchEnabled = environment.FORGELEX_SAVED_RESEARCH_ENABLED === 'true';
   const savedResearchService = databaseClient ? new SavedResearchService(new SavedResearchRepository(databaseClient), ledgerService) : undefined;
   const savedResearchDirectory = options.oauthClientDirectory ?? (environment.FORGELEX_SUPABASE_URL && environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY ? new SessionOAuthClientDirectory(environment.FORGELEX_SUPABASE_URL, environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY) : { list: async () => { throw new Error('OAUTH_DIRECTORY_UNAVAILABLE'); } });
@@ -2429,7 +2443,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de rascunhos não está disponível.' };
       }
       const { matterId, draftId } = req.params as { matterId: string; draftId: string };
-      const parsed = DraftCreateInputSchema.safeParse(req.body ?? {});
+      const parsed = DraftCreateInputSchema.extend({ expectedCurrentVersionId: z.string().guid().optional() }).safeParse(req.body ?? {});
       if (!parsed.success) {
         reply.status(400);
         return { error: 'INVALID_REQUEST', message: 'Conteúdo da nova versão é inválido.', details: parsed.error.flatten() };
@@ -2457,6 +2471,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return result;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Não foi possível criar a versão.';
+        if (message.startsWith('DRAFT_VERSION_CONFLICT')) return reply.code(409).send({ error: 'DRAFT_VERSION_CONFLICT', message });
         reply.status(message.startsWith('DRAFT_NOT_FOUND') ? 404 : 400);
         return { error: message.startsWith('DRAFT_NOT_FOUND') ? 'DRAFT_NOT_FOUND' : 'INVALID_REQUEST', message };
       }

@@ -248,6 +248,16 @@ export async function requestApi<T>(path: string, init: RequestInit = {}, option
   return (await requestApiResponse<T>(path, init, options)).data;
 }
 
+/** SSE autenticado por sessão; credenciais nunca entram na URL. */
+export async function requestApiStream(path: string, signal: AbortSignal): Promise<Response> {
+  const token = await getAccessToken(true);
+  if (!token) throw new ApiRequestError('Entre na sua conta para continuar.', 'UNAUTHENTICATED', 401);
+  const response = await fetch(`${resolveApiOrigin()}${path}`, { signal, cache: 'no-store', headers: { Authorization: `Bearer ${token}`, Accept: 'text/event-stream' } });
+  if (!response.ok) { const body = await response.json().catch(() => ({})); throw new ApiRequestError('Não foi possível acompanhar o trabalho.', body.error ?? 'EXECUTION_UNAVAILABLE', response.status); }
+  if (!response.headers.get('content-type')?.includes('text/event-stream')) throw new ApiRequestError('Resposta de acompanhamento inválida.', 'EXECUTION_UNAVAILABLE', 503);
+  return response;
+}
+
 export function requestApiWithToken<T>(path: string, accessToken: string, init: RequestInit = {}): Promise<T> {
   return requestApi<T>(path, init, { accessToken });
 }

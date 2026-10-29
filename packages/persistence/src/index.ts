@@ -29,3 +29,6 @@ export * from './repositories/draft-ai-receipt-repository.js';
 export * from './repositories/case-ai-pagination.js';
 export * from './repositories/saved-research-repository.js';
 export * from './repositories/case-analysis-repository.js';
+export * from './repositories/agentic-workspace-repository.js';
+export * from './repositories/legislation-repository.js';
+export * from './repositories/native-case-task-repository.js';

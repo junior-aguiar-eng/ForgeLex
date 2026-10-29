@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "status": "LOCAL_IMPLEMENTATION_VALIDATED_WITH_BROWSER_TIMING_LIMITATION",
+  "baseCommit": "ca307157d2875322173de4610745bc3c571b1517",
+  "branch": "codex/agent-contracts-a0",
+  "committed": false,
+  "task7Items": [1, 2],
+  "scope": {
+    "approvedBy": "Boni",
+    "closedPilot": true,
+    "syntheticOnly": true,
+    "provider": "openai",
+    "model": "gpt-6.1-sol",
+    "cumulativeCeilingCents": 500,
+    "currency": "USD",
+    "externalPaidResearch": false,
+    "fallback": false,
+    "newPaidCalls": 0,
+    "flagsActivatedByThisRun": false,
+    "verifiedRealIdentityConfiguredByThisRun": false,
+    "push": false,
+    "deploy": false
+  },
+  "historicalFunding": {
+    "source": "2026-10-27-agentic-task6-real.json and original persistent USD ledger",
+    "httpCalls": 55,
+    "settledCalls": 54,
+    "knownTokenCostUsd": 0.247622,
+    "settledLedgerCents": 55,
+    "provisionedCents": 4,
+    "availableCents": 441,
+    "invoiceReconciled": false,
+    "cancellationActualCost": null,
+    "cancellationUsage": null,
+    "historicalRunner": "PILOT_CLOSED",
+    "originalDatabaseOpenedByTests": false,
+    "newFunding": false,
+    "validation": "Synthetic replica tests; original history was not rewritten"
+  },
+  "validation": {
+    "general": {
+      "command": "pnpm exec vitest run --maxWorkers=1",
+      "passed": 1160,
+      "skipped": 17,
+      "failed": 0,
+      "passedFiles": 192,
+      "skippedFiles": 3,
+      "durationSeconds": 819.38,
+      "approvalFlagPresent": false
+    },
+    "closedRuntime": {
+      "passed": 11,
+      "sdk": "Real worker, driver and OpenAI Agents SDK; injected synthetic SSE; no paid transport",
+      "checks": [
+        "explicit owner configuration",
+        "foreign owner denied",
+        "missing history rejected",
+        "no topup",
+        "strict synthetic consent body",
+        "separate BRL/USD",
+        "idempotent retry and reconstruction",
+        "reserve before HTTP",
+        "source packet boundary",
+        "unknown usage retained and paused",
+        "AUTHORIZED crash retained and paused",
+        "terminal cancellation versus reservation race"
+      ]
+    },
+    "workerQueue": "RED then GREEN: closed job reached after fifty older unmanaged jobs; legacy jobs unchanged",
+    "browser": {
+      "command": "pnpm exec playwright test --config playwright.agentic-workspace.config.ts",
+      "passed": 17,
+      "failed": 1,
+      "total": 18,
+      "duration": "4.2m",
+      "newClosedPilotCasePassed": true,
+      "newClosedPilotCaseDurationSeconds": 35.6,
+      "failedCase": "falha em outra área preserva trabalho e edição não salva",
+      "symptom": "Expected unsaved edit, received empty text",
+      "unchangedIsolatedRerunPassed": true,
+      "isolatedRerunDurationSeconds": 51.0,
+      "originalFailurePreserved": true,
+      "timingInstabilityEliminated": false,
+      "closedPanelEndpoints": "Mocked in browser; actual API endpoints separately validated by buildApp integration tests"
+    },
+    "rollback": {
+      "status": "passed",
+      "kind": "LOCAL_FAKE_ROLLBACK_DRILL",
+      "fixtureId": "T6-GAP",
+      "fixtureSha256": "f28cbc3b4b0c7b6135e36365ddb8b1a8d42419aee0076a96d70d34d64e370b5b",
+      "scriptSha256": "975bfe79582ef76a32b476c1c83e3e21524350265cf91725bb0da2a01d6aac9e",
+      "sourceCommit": "ca307157d2875322173de4610745bc3c571b1517",
+      "flags": [true, false, true],
+      "watchedTableCount": 18,
+      "persistedSnapshotUnchangedWhileOff": "25c6204635edbb9ae87c450fb26119f97c6afdc5dc5cd3395924e45cb834ce06",
+      "savedHumanVersionPreserved": true,
+      "legacyTools": [
+        "case.get_context",
+        "case.list_shared",
+        "case.read_item",
+        "draft.save_from_ai",
+        "research.get_authority",
+        "research.present_decisions",
+        "research.search_case_law",
+        "research.verify_authority",
+        "workflow.legal_research_memo"
+      ],
+      "deliveries": 2,
+      "resumedQueuedExecutions": 1,
+      "provider": "fake",
+      "providerSteps": 10,
+      "externalAttempts": 0,
+      "paidCalls": 0,
+      "originalPilotDatabaseTouched": false,
+      "newBudgetOrTopup": false,
+      "humanLegalApproval": "NOT_EVALUATED",
+      "checks": [
+        "flag_on_off_on",
+        "same_disposable_database",
+        "case_and_delivery_preserved",
+        "human_version_preserved",
+        "rest_and_nine_mcp_tools_preserved",
+        "authorized_mcp_context_read",
+        "queued_work_recovers_once",
+        "foreign_owner_denied",
+        "no_adopted_facts",
+        "no_legal_approval",
+        "no_egress_or_billing"
+      ],
+      "limits": [
+        "Same-process application restart with persisted SQLite; no remote deployment or PostgreSQL rollback rehearsal.",
+        "Queued work only; not proof of financial settlement for an in-flight real provider call.",
+        "Server flag only; frontend flag remains a build-time operation.",
+        "Fake outputs do not establish legal quality."
+      ]
+    },
+    "build": "Monorepo build passed; final API rebuild and final web build including MCP reader passed",
+    "types": "Recursive typecheck and final web typecheck passed",
+    "lint": {
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 2,
+      "rule": "react-hooks/exhaustive-deps",
+      "file": "apps/web/src/agentic-workspace/ClosedPilotPanel.tsx",
+      "detail": "Generation ref accessed in effect cleanup; retained as a lint limitation"
+    }
+  },
+  "review": {
+    "actionableFindings": 2,
+    "fixes": [
+      "Treat AUTHORIZED calls as pending usage across crash/restart; retain escrow",
+      "Filter managed jobs through paginated selection before limit50"
+    ],
+    "additionalRace": "Terminal cancellation before financial reservation commit triggers durable cleanup",
+    "rereview": false
+  },
+  "limits": [
+    "Local implementation only; no actual activation of this composition",
+    "Real Boni tenant/user IDs and durable isolated application target require configuration and operational validation",
+    "Real SDK test uses synthetic SSE; it is not a new external OpenAI homologation",
+    "Cross-store composition exercised with disposable SQLite; no remote PostgreSQL rollout",
+    "Existing browser editor instability observed and retained",
+    "No invoice reconciliation or legal quality approval"
+  ],
+  "sourceHashes": [
+    {
+      "path": "apps/api/src/agentic-workspace/closed-pilot-finance.ts",
+      "sha256": "5fa34f0500a191ec282775f21e994394f0805b41922397b47ec585b0b01885d8"
+    },
+    {
+      "path": "apps/api/src/agentic-workspace/closed-pilot.test.ts",
+      "sha256": "fad6a48ff5e37a7191b89cd4eeda011768a103e092d8228da957963e54bff629"
+    },
+    {
+      "path": "apps/api/src/agentic-workspace/closed-pilot.ts",
+      "sha256": "4c7832b69b84c9cbf287f21847f6a9c74670ae5921fca49f7e9aebefa03359a8"
+    },
+    {
+      "path": "apps/api/src/agentic-workspace/execution-routes.ts",
+      "sha256": "75b72dd64468416cd13e07b9dd8a81ffe9cfa6c65b4f110ad57a032c081f28bd"
+    },
+    {
+      "path": "apps/api/src/agentic-workspace/execution-service.test.ts",
+      "sha256": "5b341817b816e049fb3aab261a45820d33487e79ab17010b4931c4dc26d23cfe"
+    },
+    {
+      "path": "apps/api/src/agentic-workspace/execution-service.ts",
+      "sha256": "4bccefe5f223616e505621d5a18c1b6c7652428250fca2dc5c5a3d85a42fcb3c"
+    },
+    {
+      "path": "apps/api/src/agentic-workspace/execution-store.ts",
+      "sha256": "1015e6c031108eb7451fa1569d3076f331eca5dcbdf3c3df9339edee5e7ef3ff"
+    },
+    {
+      "path": "apps/api/src/agentic-workspace/real-provider.ts",
+      "sha256": "0877f8aef4d2ab1ebcc46d0ce3470892ebdd68416ac60e68d04888c66fa360ff"
+    },
+    {
+      "path": "apps/api/src/app.ts",
+      "sha256": "83f1f571cfe98a94302330f119579202b7022d5d65070b2a3311c23937ceac00"
+    },
+    {
+      "path": "apps/web/src/agentic-workspace/client.ts",
+      "sha256": "4954ebb3e7b72d915208d53427f99d6e8e34c10bd717ed79197c39f6180c3e81"
+    },
+    {
+      "path": "apps/web/src/agentic-workspace/ClosedPilotPanel.tsx",
+      "sha256": "e9bd2dd784806b3876fb84b68a9c32f93e548214b04ba07a5d76dc4838ab7232"
+    },
+    {
+      "path": "apps/web/src/agentic-workspace/DeliveryActions.tsx",
+      "sha256": "b81a0c5f0e3625f07b35640ac0b000b8908c72832c645783d259ee8a49c3a9eb"
+    },
+    {
+      "path": "apps/web/src/screens/AgenticWorkspaceScreen.tsx",
+      "sha256": "4a8668c0cfb8c00546c49861318173aecf175f56b4ec6bf39385019a9a98fb01"
+    },
+    {
+      "path": "packages/billing-ledger/src/inference-budget-service.test.ts",
+      "sha256": "8c3eef8bc1f520675757c565833f62465fc5ae137cc51b3922c09f4d6301f504"
+    },
+    {
+      "path": "packages/billing-ledger/src/inference-budget-service.ts",
+      "sha256": "85c827a8adf6e932b480d0421aa805e6a6a7af02dc1398fa88bd33bbe9e034cd"
+    },
+    {
+      "path": "tests/e2e/agentic-workspace.spec.ts",
+      "sha256": "011c7ca3629ad6b4bcb2f2aecd649ad27849c3988b30ff4847f8007283c296b2"
+    }
+  ],
+  "verificationLogHashes": [
+    {
+      "file": "closed-suite-final.log",
+      "sha256": "5d6182be96ddce475ca36e1ef5610327c3e0e7afdf768519979e0c8ef50b11b8"
+    },
+    {
+      "file": "closed-browser-final.log",
+      "sha256": "414eea22192942dc134f53d8702767f55011cc92e2d6ca0f3374b71d6f20e52f"
+    },
+    {
+      "file": "closed-browser-editor-diagnostic.log",
+      "sha256": "266d8dba8fea245d7887c5e0ccc8634a358ff44b2975e394201a1921a5397b15"
+    },
+    {
+      "file": "closed-rollback-final.log",
+      "sha256": "4781ce28cec7612968042ce735bd39e4f9c965d3c085ca70e1736077a788f384"
+    },
+    {
+      "file": "closed-api-build-verified.log",
+      "sha256": "f56b4be4dcac692bd8a6bc76a64478abe3d3d071238ceec629c933dce080712f"
+    },
+    {
+      "file": "closed-web-build-verified.log",
+      "sha256": "2a7fcf3ac22cee15dee69c0aad9c7c569943bacfa6d0bdc70ba89ddcae99304b"
+    },
+    {
+      "file": "closed-lint-verified.log",
+      "sha256": "f7bc29ea263f38620e27629aed45940b8fffb476557eb93a7fc2ccbb17ce62d3"
+    },
+    {
+      "file": "closed-types-final.log",
+      "sha256": "314f157db8b8f59c635a123a3ce58e49c8e917afed98176fde6dce4e36390940"
+    }
+  ]
+}

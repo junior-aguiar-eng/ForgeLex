@@ -11,10 +11,11 @@ import { PublicSite } from './public/PublicSite';
 import { DataJudPage } from './public/pages/DataJudPage';
 import { resolveSiteRoute, safeWorkspaceDestination, type SiteRoute } from './navigation/site-routes';
 
-import { resolveVisibleTab } from './navigation/routes';
+import { resolveVisibleTab, type AppTab } from './navigation/routes';
 import { CASE_WORKSPACE_ENABLED } from './config/site-capabilities';
 
 const LandingScreen = lazy(() => import('./screens/LandingScreen').then(({ LandingScreen: screen }) => ({ default: screen })));
+const AgenticWorkspaceScreen = lazy(() => import('./screens/AgenticWorkspaceScreen').then(({ AgenticWorkspaceScreen: screen }) => ({ default: screen })));
 const ResearchDeskScreen = lazy(() => import('./screens/ResearchDeskScreen').then(({ ResearchDeskScreen: screen }) => ({ default: screen })));
 const MatterWorkspaceScreen = lazy(() => import('./screens/MatterWorkspaceScreen').then(({ MatterWorkspaceScreen: screen }) => ({ default: screen })));
 const DraftStudioScreen = lazy(() => import('./screens/DraftStudioScreen').then(({ DraftStudioScreen: screen }) => ({ default: screen })));
@@ -34,6 +35,14 @@ const AppContent: React.FC = () => {
   const visibleTab = resolveVisibleTab(activeTab, CASE_WORKSPACE_ENABLED);
   const { status, passwordRecovery, passwordRecoveryError } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [draftVisited, setDraftVisited] = React.useState(visibleTab === 'draft_studio');
+  const [workVisited, setWorkVisited] = React.useState(visibleTab === 'work');
+  const [draftRequest, setDraftRequest] = React.useState('');
+  const workExecution = React.useRef<string | null>(null);
+  const rememberExecution = React.useCallback((id: string | null) => { workExecution.current = id; }, []);
+  const selectTab = (tab: AppTab) => { setActiveTab(tab); if (tab === 'work' && workExecution.current) window.history.replaceState({}, '', `/app/trabalho?executionId=${encodeURIComponent(workExecution.current)}`); };
+  React.useEffect(() => { if (visibleTab === 'draft_studio') setDraftVisited(true); if (visibleTab === 'work') setWorkVisited(true); }, [visibleTab]);
+  const openEditor = (url: string) => { setDraftRequest(url); setActiveTab('draft_studio'); window.history.replaceState({}, '', url); };
   const billingReturn = React.useMemo(() => parseBillingReturn(window.location.search), []);
 
   React.useEffect(() => {
@@ -56,15 +65,16 @@ const AppContent: React.FC = () => {
       <Header menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((value) => !value)} />
 
       <div className="relative flex min-w-0 flex-1">
-        <Sidebar activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={setActiveTab} />
+        <Sidebar activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />
         <main className="min-w-0 flex-1">
-          <ScreenLoadBoundary key={visibleTab}>
+          {(visibleTab === 'draft_studio' || draftVisited) && <div key="retained-draft" hidden={visibleTab !== 'draft_studio'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando editor…</div>}><DraftStudioScreen requestedLocation={draftRequest} /></Suspense></ScreenLoadBoundary></div>}
+          {(visibleTab === 'work' || workVisited) && <div key="retained-work" hidden={visibleTab !== 'work'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando trabalho…</div>}><AgenticWorkspaceScreen active={visibleTab === 'work'} onExecutionChange={rememberExecution} onEditor={openEditor} /></Suspense></ScreenLoadBoundary></div>}
+          <ScreenLoadBoundary key={`page-${visibleTab}`}>
             <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
               {visibleTab === 'landing' && <LandingScreen />}
               {visibleTab === 'research' && <ResearchDeskScreen />}
               {visibleTab === 'datajud' && <DataJudPage />}
               {visibleTab === 'matter' && <MatterWorkspaceScreen />}
-              {visibleTab === 'draft_studio' && <DraftStudioScreen />}
               {visibleTab === 'dashboard' && <DashboardScreen />}
               {visibleTab === 'connections' && <ConnectionsScreen />}
               {visibleTab === 'credits' && <CreditsScreen />}

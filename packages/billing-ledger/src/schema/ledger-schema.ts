@@ -59,6 +59,8 @@ export const billingOperations = sqliteTable('billing_operations', {
   requestFingerprint: text('request_fingerprint'),
   status: text('status').notNull(),
   reservedAmountCents: integer('reserved_amount_cents').notNull(),
+  fundingExecutionId: text('funding_execution_id'),
+  fundingCallId: text('funding_call_id'),
   leaseOwner: text('lease_owner'),
   leaseExpiresAt: text('lease_expires_at'),
   resultSnapshot: text('result_snapshot'),

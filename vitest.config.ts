@@ -7,6 +7,7 @@ const repositoryRoot = dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   resolve: {
     alias: {
+      '@forgelex/legal-agents': resolve(repositoryRoot, 'packages/legal-agents/src/index.ts'),
       '@forgelex/domain': resolve(repositoryRoot, 'packages/domain/src/index.ts'),
       '@forgelex/agent-core': resolve(repositoryRoot, 'packages/agent-core/src/index.ts'),
       '@forgelex/analise-juridica': resolve(repositoryRoot, 'packages/analise-juridica/src/index.ts'),
