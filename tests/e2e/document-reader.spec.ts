@@ -1,7 +1,7 @@
 import { expect, test, type Page, type APIRequestContext } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const api = 'http://127.0.0.1:3301';
+const api = (process.env.FORGELEX_TEST_API_ORIGIN ?? 'http://127.0.0.1:3301');
 const headers = { authorization: 'Bearer phase7-e2e-access-token' };
 const content =
   '  Contrato original: obrigação contratual.\n\nCláusula de pagamento: R$ 250,00.\n\n<script>window.documentExecuted=true</script>\n\nÚltimo parágrafo: obrigação cumprida.  ';
@@ -38,6 +38,7 @@ test('ler documento integral, buscar, navegar por parágrafos e fechar preserva 
   const f = await fixture(request);
   await login(page);
   await page.goto(`/app/casos?caso=${f.matter.id}`);
+  await page.getByText('Adicionar documento',{exact:true}).click();
   const editor = page.getByLabel('Texto do documento');
   await editor.fill('Minha importação ainda não salva.');
   const open = page.getByRole('button', { name: 'Abrir documento: Contrato para leitura', exact: true });
@@ -174,6 +175,7 @@ test('fonte citada abre a versão fixada e destaca âncora sem salvar a edição
   })).json();
   await login(page);
   await page.goto(`/app/casos?caso=${f.matter.id}`);
+  await page.getByText('Acesso da IA',{exact:true}).click();
   await page.getByRole('button', { name: 'Usar este caso na IA', exact: true }).click();
   await page.getByLabel('Onde você vai usar?').selectOption('ChatGPT');
   await page.getByLabel('Aplicativo autorizado').selectOption('app-one');
@@ -181,8 +183,7 @@ test('fonte citada abre a versão fixada e destaca âncora sem salvar a edição
   await page.locator('dialog label').filter({ hasText: 'Contrato para leitura' }).getByRole('checkbox').check();
   await page.getByLabel('Permitir que esta IA envie textos ao editor').check();
   await page.getByLabel('Onde receber o texto?').selectOption('NEW');
-  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
-  await page.getByRole('button', { name: 'Permitir acesso', exact: true }).click();
+  await page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Acesso permitido');
   const mcp = async (name: string, args: unknown) => {
     const response = await request.post(api + '/mcp', {
@@ -218,6 +219,7 @@ test('fonte citada abre a versão fixada e destaca âncora sem salvar a edição
   await page.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
   await editor.fill('Minha alteração ainda não salva.');
   await page.getByLabel('Título do rascunho', { exact: true }).fill('Título em edição');
+  await page.getByText('Citações e conferência de fontes',{exact:true}).click();
   await page.getByLabel('Tipo de fonte da citação').selectOption('FACT');
   await page.getByLabel('Fonte da citação', { exact: true }).selectOption(fact.id);
   await page.getByLabel('Texto da citação').fill('Citação ainda não salva.');
@@ -242,6 +244,7 @@ test('fonte citada abre a versão fixada e destaca âncora sem salvar a edição
       },
     });
   });
+  await page.getByText(/Fontes do rascunho ·/).click();
   const sources = page.getByRole('region', { name: 'Fontes documentais da versão salva' });
   await expect(sources).toContainText('Fundamentos');
   const source = sources.getByRole('button', { name: 'Conferir fonte', exact: true });
@@ -257,12 +260,13 @@ test('fonte citada abre a versão fixada e destaca âncora sem salvar a edição
   await expect(editor).toHaveValue('Minha alteração ainda não salva.');
   await expect(page.getByLabel('Título do rascunho', { exact: true })).toHaveValue('Título em edição');
   await expect(page.getByText('Seção 1 · Citação ainda não salva.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Conferir rascunho', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Encaminhar à aprovação', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Conferir rascunho', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Aprovar esta versão', exact: true })).toHaveCount(0);
+  await page.getByText(/Verificações concluídas ·/).click();
   // A review point offers the same complete reader, independent of the editor buffer.
   await page
     .getByRole('region', { name: 'Conferência do rascunho' })
-    .locator('div')
+    .locator('div.rounded-xl')
     .filter({ has: page.getByText('Documento do caso localizado', { exact: true }) })
     .getByRole('button', { name: 'Ver ponto' })
     .click();

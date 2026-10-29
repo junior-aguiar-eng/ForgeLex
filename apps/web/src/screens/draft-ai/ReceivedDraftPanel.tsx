@@ -1,3 +1,4 @@
+import {useCaseResultRefresh} from '../case-ai/use-case-result-refresh';
 import { useEffect, useRef, useState } from 'react';
 import { requestApi } from '../../api-client';
 import { shouldApplyReceiptResponse, type Receipt } from './received-draft-model';
@@ -43,8 +44,9 @@ export function ReceivedDraftPanel({
     try {
       const rows = await requestApi<Receipt[]>(path, undefined, { sessionOnly: true });
       if (active() && sequence === generation.current) setReceipts(rows);
-    } catch {
+    } catch (e) {
       if (active()) setError('Não foi possível consultar os textos recebidos.');
+      throw e;
     } finally {
       pending.current = false;
       if (active()) setBusy(false);
@@ -55,7 +57,7 @@ export function ReceivedDraftPanel({
     setReceipts([]);
     setPreview(undefined);
     setChoose(undefined);
-    void refresh();
+    void refresh().catch(()=>undefined);
     return () => {
       mounted.current = false;
     };
@@ -94,6 +96,7 @@ export function ReceivedDraftPanel({
       if (active()) setBusy(false);
     }
   }
+  const updates=useCaseResultRefresh({enabled:true,scopeKey:matterId+':'+draftId,refresh});
   const waiting = receipts.filter((r) => r.versionId !== currentVersionId);
   const currentReceipt = receipts.find((r) => r.versionId === currentVersionId);
   return (
@@ -103,9 +106,7 @@ export function ReceivedDraftPanel({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold">Textos recebidos da IA</h3>
-        <button type="button" className="btn-secondary" disabled={busy} onClick={() => void refresh()}>
-          Atualizar textos recebidos
-        </button>
+        {(updates.paused||error) && <button type="button" className="btn-secondary" disabled={busy} onClick={updates.retry}>Tentar novamente</button>}
       </div>
       {error && (
         <p role="alert" className="text-sm text-red-700">

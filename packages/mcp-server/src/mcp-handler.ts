@@ -9,6 +9,8 @@ import {isCaseContextTool,getCaseContextToolContract} from '@forgelex/legal-tool
 import { DRAFT_AI_ANNOTATIONS, getDraftAiToolContract } from '@forgelex/legal-tools';
 import { handleDraftAiCall } from './draft-ai-handler.js';
 import { DECISION_UI_URI, isResearchPresentationTool, researchPresentationMetadata } from '@forgelex/legal-tools';
+import { getAnalysisToolContract } from '@forgelex/legal-tools';
+import { handleCaseAnalysisCall } from './case-analysis-handler.js';
 
 export interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -113,7 +115,7 @@ export class McpHandler {
           .filter((tool) => this.isExposed(tool.name))
           .map((tool) => {
             const cleanSchema = toolJsonSchema(tool.inputSchema);
-            if(!isCaseContextTool(tool.name) && tool.name !== 'draft.save_from_ai' && !isResearchPresentationTool(tool.name)) cleanSchema.properties = {
+            if(!isCaseContextTool(tool.name) && tool.name !== 'draft.save_from_ai' && tool.name !== 'case.save_analysis' && !isResearchPresentationTool(tool.name)) cleanSchema.properties = {
               ...(cleanSchema.properties ?? {}),
               idempotencyKey: {
                 type: 'string', minLength: 1,
@@ -121,13 +123,13 @@ export class McpHandler {
               },
             };
 
-            const contract = getLegalToolContract(tool.name) ?? getCaseContextToolContract(tool.name) ?? getDraftAiToolContract(tool.name);
+            const contract = getLegalToolContract(tool.name) ?? getCaseContextToolContract(tool.name) ?? getDraftAiToolContract(tool.name) ?? getAnalysisToolContract(tool.name);
             const outputSchema=isCaseContextTool(tool.name)?toolJsonSchema(tool.outputSchema):undefined;
             return {
               name: tool.name,
               description: tool.description,
               inputSchema: cleanSchema,
-              ...(tool.name === 'draft.save_from_ai' ? { annotations: DRAFT_AI_ANNOTATIONS } : {}),
+              ...(tool.name === 'draft.save_from_ai' || tool.name === 'case.save_analysis' ? { annotations: DRAFT_AI_ANNOTATIONS } : {}),
               ...(outputSchema?{outputSchema:Object.fromEntries(Object.entries(outputSchema).filter(([key])=>key!=='$schema')),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}}:{}),
               ...(contract ? { 'x-forgelex-contract': contract } : {}),
               ...(isResearchPresentationTool(tool.name) ? { ...researchPresentationMetadata(tool.name), ...(!this.decisionUi && ['research.present_decisions', 'research.get_saved_search'].includes(tool.name) ? { _meta: undefined } : {}) } : {}),
@@ -203,6 +205,7 @@ export class McpHandler {
         }
 
         if (name === 'draft.save_from_ai') return handleDraftAiCall(request, this.toolRegistry, { tenantId, userId, abortSignal: context.abortSignal ?? new AbortController().signal, oauthConnection: context.oauthConnection, revalidateConnection: context.revalidateConnection }, this.auditRecorder);
+        if (name === 'case.save_analysis') return handleCaseAnalysisCall(request, this.toolRegistry, { tenantId, userId, abortSignal: context.abortSignal ?? new AbortController().signal, oauthConnection: context.oauthConnection, revalidateConnection: context.revalidateConnection }, this.auditRecorder);
         if(isCaseContextTool(name)) {
           const startedAt=Date.now();const sessionId=`case_mcp_${randomUUID()}`;
           try {

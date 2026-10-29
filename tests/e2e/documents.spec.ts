@@ -66,6 +66,7 @@ test('PDF limita tamanho e páginas; arquivo misto identifica página sem texto'
 test('PDF sem texto ou inválido não salva documento nem substitui texto já digitado', async ({ page }) => {
   await login(page);
   await page.getByRole('button', { name: 'Casos', exact: true }).click();
+  await page.getByText('Adicionar documento', { exact: true }).click();
   const preview = page.getByRole('textbox', { name: 'Texto do documento' });
   await preview.fill('Texto anterior preservado.');
   let writes = 0;
@@ -87,6 +88,7 @@ test('DOCX exporta a versão salva, preserva revisão pendente e não inclui edi
   const saved = page.waitForResponse((response) => /\/matters\/[^/]+\/drafts$/.test(response.url()) && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Criar rascunho' }).click();
   expect((await saved).status()).toBe(200);
+  await page.getByText('Salvar e exportar', { exact: true }).click();
   const exportButton = page.getByRole('button', { name: 'Baixar DOCX da versão salva' });
   await expect(exportButton).toBeEnabled();
   await page.setViewportSize({ width: 390, height: 844 });

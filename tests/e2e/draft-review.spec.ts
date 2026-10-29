@@ -6,7 +6,7 @@ async function setup(page: Page, linked = true) {
   await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-sintetica');
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await page.waitForURL('**/app');
-  const api = 'http://127.0.0.1:3301';
+  const api = (process.env.FORGELEX_TEST_API_ORIGIN ?? 'http://127.0.0.1:3301');
   const headers = { authorization: 'Bearer phase7-e2e-access-token' };
   const matter = await (
     await page.request.post(api + '/api/v2/matters', { headers, data: { title: 'Caso de conferência ' + Date.now() } })
@@ -46,22 +46,35 @@ async function setup(page: Page, linked = true) {
   );
   return { root, headers, draft, fact, document, matter };
 }
+test('aprova pelo editor e exporta sem token exposto ou API auxiliar', async ({ page }) => {
+  await setup(page, false);
+  await page.getByRole('button',{name:'Conferir rascunho',exact:true}).click();
+  await page.getByRole('button',{name:'Aprovar esta versão',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'Aprovar esta versão'})).toContainText('Versão 1');
+  await page.getByRole('button',{name:'Confirmar aprovação',exact:true}).click();
+  await expect(page.getByRole('button',{name:/Minuta para conferência Aprovado/})).toBeVisible();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button',{name:'Baixar DOCX da versão salva',exact:true}).click();
+  expect((await download).suggestedFilename()).toContain('v1.docx');
+});
+
 test('corrigir fonte no rascunho preserva edição, exige nova conferência e mantém histórico', async ({
   page,
 }, testInfo) => {
   const f = await setup(page);
   const review = page.getByRole('button', { name: 'Conferir rascunho', exact: true });
-  const approval = page.getByRole('button', { name: 'Encaminhar à aprovação', exact: true });
-  await expect(approval).toBeDisabled();
+  const approval = page.getByRole('button', { name: 'Aprovar esta versão', exact: true });
+  await expect(approval).not.toBeVisible();
   await review.click();
   const panel = page.getByRole('region', { name: 'Conferência do rascunho' });
   await expect(panel).toContainText('Há pontos que precisam de correção');
   const textbox = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
   await textbox.fill('Texto que ainda está em edição.');
   const point = panel
-    .locator('div')
+    .locator('div.rounded-xl')
     .filter({ has: page.getByText('Este fato não tem prova de apoio vinculada.', { exact: true }) })
     .getByRole('button', { name: 'Ver ponto', exact: true });
+  if(!(await point.isVisible()))await page.getByText(/Verificações concluídas ·/).click();
   await point.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('O contrato foi assinado.');
@@ -79,7 +92,8 @@ test('corrigir fonte no rascunho preserva edição, exige nova conferência e ma
   await expect(dialog).not.toBeVisible();
   await expect(point).toBeFocused();
   await expect(textbox).toHaveValue('Texto que ainda está em edição.');
-  await expect(review).toBeDisabled();
+  await expect(review).not.toBeVisible();
+  await page.getByText('Salvar e exportar',{exact:true}).click();
   await page.getByRole('button', { name: 'Salvar nova versão', exact: true }).click();
   await expect(review).toBeEnabled();
   await expect(panel).toContainText('Conferência pendente');
@@ -116,7 +130,7 @@ test('resposta demorada da conferência não apaga texto digitado durante a cons
   release();
   await expect(page.getByRole('region', { name: 'Conferência do rascunho' })).toContainText('Há alterações');
   await expect(editor).toHaveValue('Texto digitado durante a conferência.');
-  await expect(page.getByRole('button', { name: 'Encaminhar à aprovação', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Aprovar esta versão', exact: true })).not.toBeVisible();
 });
 test('falha ao salvar não confere nem descarta a edição; trocar caso permite cancelar', async ({ page }) => {
   await setup(page, false);
@@ -154,14 +168,15 @@ test('ESC fecha painel mesmo durante leitura demorada da fonte', async ({ page }
   });
   const point = page
     .getByRole('region', { name: 'Conferência do rascunho' })
-    .locator('div')
+    .locator('div.rounded-xl')
     .filter({ has: page.getByText('Este fato não tem prova de apoio vinculada.', { exact: true }) })
     .getByRole('button', { name: 'Ver ponto', exact: true });
   try {
     const requested = page.waitForRequest((request) => /\/facts\/[^/]+\/support$/.test(request.url()), {
       timeout: 10_000,
     });
-    await point.click();
+    if(!(await point.isVisible()))await page.getByText(/Verificações concluídas ·/).click();
+  await point.click();
     await requested;
     await ready;
     await page.keyboard.press('Escape');
@@ -210,7 +225,7 @@ test('resposta antiga do histórico não substitui a versão escolhida', async (
 });
 test('referência do acervo local é revalidada sem marcar conferência humana', async ({ page }) => {
   const f = await setup(page, false);
-  const search = await page.request.post('http://127.0.0.1:3301/api/v2/research/search-case-law', {
+  const search = await page.request.post((process.env.FORGELEX_TEST_API_ORIGIN ?? 'http://127.0.0.1:3301')+'/api/v2/research/search-case-law', {
     headers: { ...f.headers, 'Idempotency-Key': 'review-e2e-' + Date.now() },
     data: { query: 'vazamento', court: 'STJ', limit: 1 },
   });
@@ -277,7 +292,7 @@ test('abrir rascunho atualiza fatos criados após o carregamento do caso', async
   await page.unroute('**/matters/*/facts');
   await page.getByRole('button', { name: /Minuta para conferência/ }).click();
   await page.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
-  await page.getByRole('region', { name: 'Conferência do rascunho' }).locator('div').filter({
+  await page.getByRole('region', { name: 'Conferência do rascunho' }).locator('div.rounded-xl').filter({
     has: page.getByText('Este fato não tem prova de apoio vinculada.', { exact: true }),
   }).getByRole('button', { name: 'Ver ponto', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText(f.fact.statement);
@@ -291,17 +306,18 @@ test('vínculo salvo permanece reconhecido quando a releitura da fonte falha', a
     data: { anchorId: f.document.anchors[0].id, relation: 'SUPPORTS' },
   });
   await page.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
-  const approval = page.getByRole('button', { name: 'Encaminhar à aprovação', exact: true });
+  const approval = page.getByRole('button', { name: 'Aprovar esta versão', exact: true });
   await expect(approval).toBeEnabled();
   const point = page
     .getByRole('region', { name: 'Conferência do rascunho' })
-    .locator('div')
+    .locator('div.rounded-xl')
     .filter({
       has: page.getByText('Há provas vinculadas ao fato. O vínculo não comprova a veracidade do conteúdo.', {
         exact: true,
       }),
     })
     .getByRole('button', { name: 'Ver ponto', exact: true });
+  if(!(await point.isVisible()))await page.getByText(/Verificações concluídas ·/).click();
   await point.click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('Contrato do caso');
@@ -317,7 +333,7 @@ test('vínculo salvo permanece reconhecido quando a releitura da fonte falha', a
   await expect(dialog.getByRole('status')).toContainText('Vínculo registrado');
   await expect(dialog.getByRole('alert')).toContainText('carregar as fontes');
   await page.getByRole('button', { name: 'Fechar', exact: true }).click();
-  await expect(approval).toBeDisabled();
+  await expect(approval).not.toBeVisible();
   const support = await (
     await page.request.get(f.root + '/facts/' + f.fact.id + '/support', { headers: f.headers })
   ).json();

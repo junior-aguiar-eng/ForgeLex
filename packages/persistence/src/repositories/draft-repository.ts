@@ -1,5 +1,5 @@
 import { isMatterWriteTransaction, withMatterWrite, MatterWriteGuard } from './matter-write-guard.js';
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   ApprovalDecision,
@@ -508,6 +508,29 @@ export class DraftRepository {
     return { request, token: rawToken };
   }
 
+  public async reissueApprovalToken(input: { tenantId: string; matterId: string; draftId: string; draftVersionId: string; requestId: string; userId: string }): Promise<{request: ApprovalRequest; token: string}> {
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new DraftRepository(tx).reissueApprovalToken(input));
+    const draft = await this.getDraft(input.tenantId, input.matterId, input.draftId);
+    if (!draft || draft.currentVersionId !== input.draftVersionId) throw new Error('APPROVAL_VERSION_CHANGED');
+    const rows = await this.db.select().from(schema.draftApprovalRequests).where(and(
+      eq(schema.draftApprovalRequests.id, input.requestId), eq(schema.draftApprovalRequests.tenantId, input.tenantId),
+      eq(schema.draftApprovalRequests.matterId, input.matterId), eq(schema.draftApprovalRequests.draftId, input.draftId),
+      eq(schema.draftApprovalRequests.draftVersionId, input.draftVersionId),
+    )).limit(1);
+    const row = rows[0];
+    if (!row || row.status !== 'PENDING' || row.requestedBy !== input.userId) throw new Error('APPROVAL_NOT_PENDING');
+    const tokens = await this.db.select().from(schema.draftApprovalTokens).where(and(eq(schema.draftApprovalTokens.requestId,input.requestId),eq(schema.draftApprovalTokens.tenantId,input.tenantId),isNull(schema.draftApprovalTokens.usedAt))).limit(1);
+    if (!tokens[0]) throw new Error('APPROVAL_TOKEN_USED');
+    if (tokens[0].expiresAt && Date.parse(tokens[0].expiresAt) <= Date.now()) throw new Error('APPROVAL_EXPIRED');
+    await this.assertReviewed(this.db, input);
+    const token = randomUUID();
+    const updated = await this.db.update(schema.draftApprovalTokens).set({tokenHash:createHash('sha256').update(token,'utf8').digest('hex'),issuedAt:new Date().toISOString()}).where(and(
+      eq(schema.draftApprovalTokens.requestId, input.requestId), eq(schema.draftApprovalTokens.tenantId, input.tenantId), isNull(schema.draftApprovalTokens.usedAt),
+    )).returning({id:schema.draftApprovalTokens.id});
+    if (updated.length !== 1) throw new Error('APPROVAL_TOKEN_USED');
+    return {request:toApprovalRequest(row),token};
+  }
+
   public async listApprovalRequests(tenantId: string, matterId?: string): Promise<ApprovalRequest[]> {
     const conditions = [eq(schema.draftApprovalRequests.tenantId, tenantId)];
     if (matterId) conditions.push(eq(schema.draftApprovalRequests.matterId, matterId));
@@ -570,6 +593,19 @@ export class DraftRepository {
       // Use the same lock order for either decision and support writes.
       await tx.update(schema.matters).set({ updatedAt: sql`${schema.matters.updatedAt}` }).where(and(eq(schema.matters.id, requestRow.matterId), eq(schema.matters.tenantId, input.tenantId)));
       await new MatterWriteGuard(tx as unknown as ForgeLexDatabase).captureRevision({ tenantId: input.tenantId, matterId: requestRow.matterId });
+      const consumed = await tx.update(schema.draftApprovalTokens).set({ usedAt: decidedAt }).where(and(
+        eq(schema.draftApprovalTokens.id, tokenRow.id),
+        eq(schema.draftApprovalTokens.tenantId, input.tenantId),
+        eq(schema.draftApprovalTokens.tokenHash, tokenHash),
+        isNull(schema.draftApprovalTokens.usedAt),
+      )).returning({ expiresAt: schema.draftApprovalTokens.expiresAt });
+      if (consumed.length !== 1) {
+        const current = await tx.select({ tokenHash: schema.draftApprovalTokens.tokenHash, usedAt: schema.draftApprovalTokens.usedAt })
+          .from(schema.draftApprovalTokens).where(and(eq(schema.draftApprovalTokens.id, tokenRow.id), eq(schema.draftApprovalTokens.tenantId, input.tenantId))).limit(1);
+        if (current[0]?.tokenHash === tokenHash && current[0].usedAt) throw new Error('APPROVAL_TOKEN_USED: token de aprovação já utilizado.');
+        throw new Error('APPROVAL_TOKEN_INVALID: token rotacionado ou inválido.');
+      }
+      if (consumed[0].expiresAt && Date.parse(consumed[0].expiresAt) <= Date.now()) throw new Error('APPROVAL_TOKEN_EXPIRED');
       const version = await new DraftRepository(tx as unknown as ForgeLexDatabase).getVersion(input.tenantId, requestRow.matterId, requestRow.draftId, requestRow.draftVersionId);
       if (!version) throw new Error('DRAFT_VERSION_NOT_FOUND');
       await tx.update(schema.draftVersions).set({ contentHash: sql`${schema.draftVersions.contentHash}` }).where(eq(schema.draftVersions.id, requestRow.draftVersionId));
@@ -584,7 +620,6 @@ export class DraftRepository {
       }).where(and(eq(schema.draftApprovalRequests.id, requestRow.id), eq(schema.draftApprovalRequests.tenantId, input.tenantId), eq(schema.draftApprovalRequests.status, 'PENDING'))).returning({ id: schema.draftApprovalRequests.id });
       if (claimed.length !== 1) throw new Error('APPROVAL_NOT_PENDING: solicitação de aprovação já decidida.');
       await tx.insert(schema.draftApprovalDecisions).values({ ...decision });
-      await tx.update(schema.draftApprovalTokens).set({ usedAt: decidedAt }).where(eq(schema.draftApprovalTokens.id, tokenRow.id));
       await tx.update(schema.draftVersions).set({ status }).where(and(
         eq(schema.draftVersions.id, requestRow.draftVersionId), eq(schema.draftVersions.tenantId, input.tenantId),
         eq(schema.draftVersions.draftId, requestRow.draftId), eq(schema.draftVersions.matterId, requestRow.matterId),

@@ -42,6 +42,7 @@ test('typing during a delayed refresh keeps the buffer attached to the original 
   const matter = await (await request.post(api + '/api/v2/matters', { headers, data: { title } })).json();
   await login(page); await page.goto(`/app/casos?caso=${matter.id}`);
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+  await page.getByText('Adicionar documento', { exact: true }).click();
   await request.post(`${api}/api/v2/matters/${matter.id}/archive`, { headers, data: { expectedLifecycleRevision: 0 } });
   let release!: () => void; let entered!: () => void;
   const waiting = new Promise<void>(resolve => { release = resolve; }), started = new Promise<void>(resolve => { entered = resolve; });
@@ -75,6 +76,7 @@ test('document menus preserve the case and unsaved case text survives archiving'
   await expect(page.getByLabel('Opções de Fonte para excluir', { exact: true })).toHaveCount(0);
   expect((await request.get(`${api}/api/v2/matters/${matter.id}/documents/${document.document.id}`, { headers })).status()).toBe(404);
   expect((await request.get(`${api}/api/v2/matters/${matter.id}`, { headers })).status()).toBe(200);
+  await page.getByText('Adicionar documento', { exact: true }).click();
   await page.getByLabel('Texto do documento').fill('Meu texto ainda não salvo.');
   page.once('dialog', dialog => dialog.accept());
   await page.getByLabel(`Opções de ${title}`, { exact: true }).click();
@@ -93,6 +95,7 @@ test('a case archived in another tab keeps the draft buffer and blocks saving', 
   await login(page); await page.goto(`/app/rascunhos?matterId=${matter.id}&draftId=${draft.draft.id}`);
   const editor = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
   await expect(editor).toHaveValue('Texto salvo.'); await editor.fill('Edição ainda não salva.');
+  await page.getByText('Salvar e exportar', { exact: true }).click();
   expect((await request.post(`${api}/api/v2/matters/${matter.id}/archive`, { headers, data: { expectedLifecycleRevision: 0 } })).status()).toBe(200);
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect(page.getByRole('button', { name: 'Salvar nova versão', exact: true })).toBeDisabled();

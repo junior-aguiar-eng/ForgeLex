@@ -61,14 +61,19 @@ export function updateDocumentTitle(tab: AppTab): void {
   if (typeof document !== 'undefined') document.title = `ForgeLex · ${routeForTab(tab).title}`;
 }
 
-export function navigateToTab(tab: AppTab, mode: 'push' | 'replace' = 'push', casesEnabled = CASE_WORKSPACE_ENABLED): void {
+export interface CaseRouteContext { matterId?: string; draftId?: string; analysisId?: string; versionId?: string }
+export function navigateToTab(tab: AppTab, mode: 'push' | 'replace' = 'push', contextOrEnabled?: CaseRouteContext | boolean, enabled = CASE_WORKSPACE_ENABLED): void {
   if (typeof window === 'undefined') return;
-
+  const context = typeof contextOrEnabled === 'boolean' ? undefined : contextOrEnabled;
+  const casesEnabled = typeof contextOrEnabled === 'boolean' ? contextOrEnabled : enabled;
   const visibleTab = resolveVisibleTab(tab, casesEnabled);
   const redirected = visibleTab !== tab;
   if (redirected) mode = 'replace';
   const route = routeForTab(visibleTab);
-  const preserveReturnParameters = mode === 'replace' && !redirected ? `${window.location.search}${window.location.hash}` : '';
+  const params = new URLSearchParams();
+  if (!redirected && context?.matterId) params.set(tab === 'matter' ? 'caso' : 'matterId', context.matterId);
+  if (!redirected) for (const key of ['draftId','analysisId','versionId'] as const) if (context?.[key]) params.set(key, context[key]!);
+  const preserveReturnParameters = redirected ? '' : context ? (params.size ? `?${params}` : '') : mode === 'replace' ? `${window.location.search}${window.location.hash}` : '';
   const destination = `${route.path}${preserveReturnParameters}`;
   const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 

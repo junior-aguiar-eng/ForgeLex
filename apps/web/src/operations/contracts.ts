@@ -23,6 +23,7 @@ export interface ResearchHistoryItem {
 }
 
 export interface ReviewQueueItem {
+  draftVersionId?: string;
   id: string;
   kind: 'DRAFT' | 'RESEARCH_MEMO';
   matterId: string;

@@ -42,7 +42,7 @@ jobs:
         run: pnpm exec vitest run
 
   postgres:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         # Fetch the official image directly; the ECR mirror exhausted its data quota.
@@ -63,6 +63,10 @@ jobs:
       FORGELEX_LOCAL_POSTGRES_URL: postgres://forgelex:forgelex@127.0.0.1:55432/forgelex
     steps:
       - uses: actions/checkout@v4
+      - name: Use PostgreSQL 16 client for backup and restore
+        run: |
+          test -x /usr/lib/postgresql/16/bin/pg_dump
+          echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -75,6 +79,8 @@ jobs:
       - run: pnpm test:postgres
       - name: AI draft receipts and transaction concurrency (isolated PostgreSQL)
         run: node scripts/smoke-draft-ai-postgres.mjs
+      - name: Case analysis and authorization (isolated PostgreSQL)
+        run: node scripts/smoke-case-analysis-postgres.mjs
       - name: Matter lifecycle concurrency and real backup restore (isolated PostgreSQL)
         run: node scripts/smoke-matter-lifecycle-postgres.mjs
       - name: Research history and judgment year (local PostgreSQL)
@@ -132,6 +138,8 @@ jobs:
       - run: pnpm test:e2e:document-reader
       - run: pnpm test:e2e:draft-review
       - run: pnpm test:e2e:case-ai
+      - name: Complete case analysis and draft workflow
+        run: pnpm exec playwright test --config playwright.case-flow.config.ts tests/e2e/case-flow.spec.ts
       - run: pnpm exec playwright test --config playwright.matter-lifecycle.config.ts
       - run: pnpm test:e2e:research
       - name: Saved research and isolated MCP Apps reader
