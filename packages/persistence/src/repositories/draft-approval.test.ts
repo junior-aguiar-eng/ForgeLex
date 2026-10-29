@@ -7,6 +7,46 @@ import { DraftRepository } from './draft-repository.js';
 import { MatterRepository } from './matter-repository.js';
 
 describe('Aprovação vinculada à versão do documento', () => {
+  it('recupera a solicitação pendente sem nova versão e invalida o token anterior', async () => {
+    const { db, client } = await createDatabase();
+    try {
+      await runPersistenceMigrations(client);
+      const context = { tenantId: 'recover', userId: 'author' };
+      const matter = await new MatterRepository(db).createMatter({ ...context, createdBy: context.userId, title: 'Recuperação' });
+      const repository = new DraftRepository(db);
+      const draft = await repository.createDraft({ ...context, matterId: matter.id, createdBy: context.userId, title: 'Minuta' });
+      const bundle = await repository.createVersion({ ...context, matterId: matter.id, draftId: draft.id, createdBy: context.userId, source: 'HUMAN', title: 'Minuta', contentHash: 'e'.repeat(64), sections: [{ordinal:0,title:'Fatos',content:'Texto'}] });
+      const scope = { ...context, matterId: matter.id, draftId: draft.id, draftVersionId: bundle.version.id };
+      const runs = new DraftReviewRunRepository(db);
+      const run = await runs.start(scope, bundle.version, 'ALL', reviewContextHash(await repository.reviewContext(scope, bundle)));
+      await runs.finish(scope, run.id, {state:'COMPLETE',status:'PASSED',checks:[],findings:[]});
+      const original = await repository.createApprovalRequest({...scope,requestedBy:'author',proposedAction:'Aprovar',expiresAt:new Date(Date.now()+3600000).toISOString()});
+      // The old resolver has already read its token when reissue wins the matter lock.
+      const transaction = db.transaction.bind(db);
+      vi.spyOn(db,'transaction').mockImplementationOnce((async (callback: any) => {
+        await repository.reissueApprovalToken({...scope,requestId:original.request.id});
+        return transaction(callback);
+      }) as typeof db.transaction);
+      await expect(repository.resolveApproval({tenantId:scope.tenantId,token:original.token,decision:'APPROVED',decidedBy:'author'})).rejects.toThrow(/INVALID/);
+      vi.restoreAllMocks();
+      const recovered = await repository.reissueApprovalToken({...scope,requestId:original.request.id});
+      expect(recovered.request.id).toBe(original.request.id);
+      expect(recovered.token).not.toBe(original.token);
+      await expect(repository.resolveApproval({tenantId:scope.tenantId,token:original.token,decision:'APPROVED',decidedBy:'author'})).rejects.toThrow(/INVALID/);
+      await expect(repository.reissueApprovalToken({...scope,tenantId:'other',requestId:original.request.id})).rejects.toThrow();
+      await expect(repository.reissueApprovalToken({...scope,userId:'other',requestId:original.request.id})).rejects.toThrow();
+      const now = Date.now();
+      vi.spyOn(Date,'now').mockReturnValue(now+7200000);
+      try {await expect(repository.reissueApprovalToken({...scope,requestId:original.request.id})).rejects.toThrow(/EXPIRED/);} finally {vi.restoreAllMocks();}
+      const rotations = await Promise.allSettled([1,2].map(()=>repository.reissueApprovalToken({...scope,requestId:original.request.id})));
+      const issued = rotations.filter((r):r is PromiseFulfilledResult<typeof recovered>=>r.status==='fulfilled');
+      expect(issued.length).toBeGreaterThan(0);
+      const resolutions = await Promise.allSettled(issued.map(r=>repository.resolveApproval({tenantId:scope.tenantId,token:r.value.token,decision:'APPROVED',decidedBy:'author'})));
+      expect(resolutions.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+      await expect(repository.reissueApprovalToken({...scope,requestId:original.request.id})).rejects.toThrow();
+      expect(await repository.listVersions(scope.tenantId, scope.matterId, scope.draftId)).toHaveLength(1);
+    } finally { client.close(); }
+  });
   it('aprovar uma versão anterior não aprova a versão corrente e conserva o estado da versão decidida', async () => {
     const { db, client } = await createDatabase();
     try {

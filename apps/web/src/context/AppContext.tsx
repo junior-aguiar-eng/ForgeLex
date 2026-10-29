@@ -3,7 +3,7 @@ import { ApiRequestError, getBillingAccount, requestApi } from '../api-client';
 import { SearchCoordinator } from '../operations/search-coordinator';
 import { OperationsClient } from '../operations/operations-client';
 import type { OperationalResource, ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
-import { isKnownPath, navigateToTab, resolveVisibleTab, tabForPath, updateDocumentTitle, type AppTab } from '../navigation/routes';
+import { isKnownPath, navigateToTab, resolveVisibleTab, tabForPath, updateDocumentTitle, type AppTab, type CaseRouteContext } from '../navigation/routes';
 
 import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 
@@ -19,7 +19,7 @@ export interface AuthorityVerification {
 
 interface AppContextType {
   activeTab: AppTab;
-  setActiveTab: (tab: AppTab, mode?: 'push' | 'replace') => void;
+  setActiveTab: (tab: AppTab, mode?: 'push' | 'replace', context?: CaseRouteContext) => void;
   tribunals: OperationalResource<TribunalCapability[]>;
   recentSearches: OperationalResource<ResearchHistoryItem[]>;
   reviewQueue: OperationalResource<ReviewQueueItem[]>;
@@ -124,22 +124,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [activeTab]);
 
   useEffect(() => {
-    const syncFromLocation = () => {
+    let acceptedUrl = window.location.href;
+    let acceptedIndex = Number(window.history.state?.forgelexIndex ?? 0);
+    let restoring = false;
+    window.history.replaceState({...window.history.state,forgelexIndex:acceptedIndex},document.title,acceptedUrl);
+    const rememberLocation = () => { acceptedUrl = window.location.href;acceptedIndex=Number(window.history.state?.forgelexIndex ?? acceptedIndex); };
+    const syncFromLocation = (event?: Event) => {
+      if(restoring){restoring=false;return;}
+      if (event?.type === 'popstate' && !window.dispatchEvent(new Event('forgelex:before-navigate', {cancelable:true}))) {
+        const targetIndex = window.history.state?.forgelexIndex;
+        if(typeof targetIndex==='number' && targetIndex!==acceptedIndex){restoring=true;window.history.go(acceptedIndex-targetIndex);}
+        else window.history.replaceState({...window.history.state,forgelexIndex:acceptedIndex},document.title,acceptedUrl);
+        return;
+      }
       const requestedTab = tabForPath(window.location.pathname);
       const tab = resolveVisibleTab(requestedTab, CASE_WORKSPACE_ENABLED);
       if (!isKnownPath(window.location.pathname)) navigateToTab('landing', 'replace');
       else if (tab !== requestedTab) navigateToTab(requestedTab, 'replace');
       else updateDocumentTitle(tab);
       setCurrentTab(tab);
+      rememberLocation();
     };
 
     syncFromLocation();
     window.addEventListener('popstate', syncFromLocation);
-    return () => window.removeEventListener('popstate', syncFromLocation);
+    window.addEventListener('forgelex:route-updated', rememberLocation);
+    return () => {window.removeEventListener('popstate', syncFromLocation);window.removeEventListener('forgelex:route-updated', rememberLocation);};
   }, []);
 
-  const setActiveTab = useCallback((tab: AppTab, mode: 'push' | 'replace' = 'push') => {
-    navigateToTab(tab, mode);
+  const setActiveTab = useCallback((tab: AppTab, mode: 'push' | 'replace' = 'push', context?: CaseRouteContext) => {
+    if (!window.dispatchEvent(new Event('forgelex:before-navigate',{cancelable:true}))) return;
+    const index=Number(window.history.state?.forgelexIndex??0);
+    const previousUrl=window.location.href;
+    navigateToTab(tab, mode, context);
+    window.history.replaceState({...window.history.state,forgelexIndex:index+(mode==='push'&&window.location.href!==previousUrl?1:0)},document.title,window.location.href);
+    window.dispatchEvent(new Event('forgelex:route-updated'));
     setCurrentTab(resolveVisibleTab(tab, CASE_WORKSPACE_ENABLED));
   }, []);
 

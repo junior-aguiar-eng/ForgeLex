@@ -11,6 +11,7 @@ export interface ReviewQueueItem {
   requestedAt: string;
   decidedAt?: string;
   actionUrl: string;
+  draftVersionId?: string;
 }
 
 export class ReviewQueueService {
@@ -32,6 +33,7 @@ export class ReviewQueueService {
       return {
         id: request.id,
         kind: 'DRAFT',
+        draftVersionId: request.draftVersionId,
         matterId: request.matterId,
         targetId: request.draftId,
         title: draft?.title ?? 'Minuta jurídica',

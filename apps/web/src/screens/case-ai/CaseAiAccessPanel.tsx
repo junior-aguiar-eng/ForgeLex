@@ -28,10 +28,12 @@ export function CaseAiAccessPanel({
   matterId,
   matterTitle,
   onClose,
+  analysisMode = false,
 }: {
   matterId: string;
   matterTitle: string;
   onClose: () => void;
+  analysisMode?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const live = useRef(true);
@@ -42,8 +44,12 @@ export function CaseAiAccessPanel({
   const [clientId, setClientId] = useState('');
   const [selection, setSelection] = useState<Selection>(emptySelection);
   const [receivePermission, setReceivePermission] = useState<ReceivePermission>({ enabled: false });
+  const [analysisPermission, setAnalysisPermission] = useState<NonNullable<Grant['analysisPermission']>>({
+    enabled: false,
+  });
   const [draftChoices, setDraftChoices] = useState<{ id: string; title: string }[]>([]);
   const [catalog, setCatalog] = useState<Partial<Record<Kind, Page>>>({});
+  const [openKinds, setOpenKinds] = useState<Partial<Record<Kind, boolean>>>({});
   const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -67,10 +73,12 @@ export function CaseAiAccessPanel({
   const selectionSaved =
     connectedGrant &&
     JSON.stringify(current.selection) === JSON.stringify(selection) &&
-    JSON.stringify(current.receivePermission ?? { enabled: false }) === JSON.stringify(receivePermission);
+    JSON.stringify(current.receivePermission ?? { enabled: false }) === JSON.stringify(receivePermission) &&
+    JSON.stringify(current.analysisPermission ?? { enabled: false }) === JSON.stringify(analysisPermission);
   const changeSelection = (s: Selection) => {
     setSelection(s);
     setPreview(null);
+    setError('');
     setNotice('');
   };
   async function run(fn: () => Promise<void>, write = false) {
@@ -146,20 +154,39 @@ export function CaseAiAccessPanel({
         }));
     });
   }
-  async function viewPreview(more = false) {
+  const selectionIdentity = useRef('');
+  const selectionKey = JSON.stringify(selection);
+  selectionIdentity.current = clientId + selectionKey;
+  async function viewPreview() {
+    const identity = clientId + selectionKey;
     await run(async () => {
-      const p = await api<Preview>(
-        base + '/preview',
-        post({ selection, limit: 20, ...(more ? { cursor: preview?.nextCursor } : {}) }),
-      );
-      if (live.current) setPreview((old) => ({ ...p, items: more ? [...(old?.items ?? []), ...p.items] : p.items }));
+      const items: Preview['items'] = [];
+      const seen = new Set<string>();
+      let cursor: string | undefined;
+      let value: Preview;
+      do {
+        value = await api<Preview>(base + '/preview', post({selection,limit:20,...(cursor?{cursor}:{})}));
+        if (!live.current || selectionIdentity.current !== identity) return;
+        items.push(...value.items);
+        cursor=value.nextCursor;
+        if(cursor && seen.has(cursor)) throw new Error('A prévia não foi concluída. Altere a seleção e tente novamente.');
+        if(cursor)seen.add(cursor);
+      } while(cursor);
+      setPreview({...value,items,nextCursor:undefined});
     });
   }
+  useEffect(() => {
+    if (!application || busy || error) return;
+    const pendingKind = kinds.find(kind => openKinds[kind] && !catalog[kind]);
+    if (pendingKind) { void loadKind(pendingKind); return; }
+    if (selectionCount(selection) && !preview) void viewPreview();
+  }, [clientId,selectionKey,busy,error,preview,catalog,openKinds]); // eslint-disable-line react-hooks/exhaustive-deps
   function chooseApp(id: string) {
     setClientId(id);
     const g = grants.find((g) => g.oauthClientId === id);
     changeSelection(g?.status === 'ACTIVE' ? g.selection : emptySelection());
     setReceivePermission(g?.status === 'ACTIVE' ? (g.receivePermission ?? { enabled: false }) : { enabled: false });
+    setAnalysisPermission(g?.status === 'ACTIVE' ? (g.analysisPermission ?? { enabled: false }) : { enabled: false });
     void api<{ items: { id: string; title: string }[] }>(`/api/v2/matters/${matterId}/drafts`)
       .then((r) => {
         if (live.current) setDraftChoices(r.items);
@@ -175,7 +202,13 @@ export function CaseAiAccessPanel({
       const g = await api<Grant>(
         base,
         post(
-          { oauthClientId: clientId, expectedRevision: current?.revision ?? 0, selection, receivePermission },
+          {
+            oauthClientId: clientId,
+            expectedRevision: current?.revision ?? 0,
+            selection,
+            receivePermission,
+            analysisPermission,
+          },
           'PUT',
         ),
       );
@@ -183,7 +216,11 @@ export function CaseAiAccessPanel({
         setGrants((old) => [...old.filter((x) => x.oauthClientId !== g.oauthClientId), g]);
         setSelection(g.selection);
         setReceivePermission(g.receivePermission ?? { enabled: false });
-        setNotice('Acesso permitido para esta conexão e estes materiais.');
+        setAnalysisPermission(g.analysisPermission ?? { enabled: false });
+        try {
+          await navigator.clipboard.writeText(initialInstruction(matterTitle,`${window.location.origin}/app/casos?caso=${encodeURIComponent(matterId)}`,g));
+          if(live.current)setNotice('Acesso permitido. Instrução copiada; cole na conversa da sua IA.');
+        } catch { if(live.current)setNotice('Acesso permitido. Não foi possível copiar; use Copiar instrução para tentar novamente.'); }
       }
     }, true);
   }
@@ -192,6 +229,7 @@ export function CaseAiAccessPanel({
       const result = await api<Grant>(`${base}/${g.id}/revoke`, post({ expectedRevision: g.revision }));
       if (live.current) {
         setGrants((old) => old.map((x) => (x.id === g.id ? result : x)));
+        window.dispatchEvent(new Event('forgelex:case-access-revoked'));
         setConfirmRevoke(false);
         setNotice(revocationNotice);
       }
@@ -211,7 +249,7 @@ export function CaseAiAccessPanel({
         <header className="flex items-start justify-between gap-3">
           <div>
             <h2 id="case-ai-title" className="font-editorial text-xl font-bold">
-              Usar este caso na IA
+              {analysisMode ? 'Analisar documentos do caso' : 'Usar este caso na IA'}
             </h2>
             <p className="text-sm mt-1">{matterTitle}</p>
           </div>
@@ -335,7 +373,8 @@ export function CaseAiAccessPanel({
                 key={kind}
                 className="border border-stone-200 rounded-lg p-3"
                 onToggle={(e) => {
-                  if (e.currentTarget.open && !catalog[kind] && !busy) void loadKind(kind);
+                  const open = e.currentTarget.open;
+                  setOpenKinds(current => ({ ...current, [kind]: open }));
                 }}
               >
                 <summary className="cursor-pointer text-sm font-medium">{labels[kind]}</summary>
@@ -383,14 +422,6 @@ export function CaseAiAccessPanel({
             Alterações em fatos, provas, teses e fontes selecionados podem aparecer nas novas consultas. Documentos
             permanecem na versão escolhida.
           </p>
-          <button
-            type="button"
-            className={button}
-            disabled={busy || !application || !selectionCount(selection)}
-            onClick={() => void viewPreview()}
-          >
-            Ver prévia
-          </button>
         </section>
         {preview && (
           <section className="space-y-3 border-t pt-4" aria-label="Prévia do material">
@@ -405,24 +436,63 @@ export function CaseAiAccessPanel({
               <article key={`${m.kind}-${m.id}`} className="text-sm">
                 <h4 className="font-semibold">{m.title}</h4>
                 {m.versionId && <p className="text-xs text-stone-500">Versão selecionada: {m.versionNumber}</p>}
-                <p className="whitespace-pre-wrap">{m.preview}</p>
+                <details><summary className="cursor-pointer text-xs">Ler prévia do material</summary><p className="whitespace-pre-wrap mt-2">{m.preview}</p></details>
               </article>
             ))}
             {preview.nextCursor && (
-              <button type="button" className={button} disabled={busy} onClick={() => void viewPreview(true)}>
+              <button type="button" className={button} disabled={busy} onClick={() => void viewPreview()}>
                 Ver mais da prévia
               </button>
             )}
             <button
               type="button"
               className={primary}
-              disabled={busy || conflict || !!preview.nextCursor || !application}
+              disabled={
+                busy ||
+                selectionSaved ||
+                conflict ||
+                !!preview.nextCursor ||
+                !application ||
+                (analysisPermission.enabled &&
+                  (analysisPermission.objective.trim().length < 3 || !selection.documents.length))
+              }
               onClick={() => void allow()}
             >
-              Permitir acesso
+              Autorizar e copiar instrução
             </button>
           </section>
         )}
+        <section className="space-y-3 border-t pt-4" aria-label="Recebimento de análises">
+          <label className="flex gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={analysisPermission.enabled}
+              disabled={busy || !application}
+              onChange={(e) => {
+                setAnalysisPermission(e.target.checked ? { enabled: true, objective: '' } : { enabled: false });
+                setNotice('');
+              }}
+            />
+            <span>Permitir que esta IA envie análises do caso</span>
+          </label>
+          {analysisPermission.enabled && (
+            <label className="block text-sm">
+              Objetivo da análise
+              <textarea
+                className="input-control w-full mt-1"
+                disabled={busy}
+                maxLength={2000}
+                value={analysisPermission.objective}
+                placeholder="Ex.: confrontar as alegações da inicial com os documentos selecionados"
+                onChange={(e) => setAnalysisPermission({ enabled: true, objective: e.target.value })}
+              />
+            </label>
+          )}
+          <p className="text-xs text-stone-600">
+            Selecione documentos e defina o objetivo. Receber a análise é gratuito; os itens aguardam sua conferência
+            antes de entrar no caso.
+          </p>
+        </section>
         <section className="space-y-3 border-t pt-4">
           <label className="flex gap-3 text-sm">
             <input

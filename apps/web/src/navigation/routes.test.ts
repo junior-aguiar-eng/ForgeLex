@@ -2,6 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { navigateToTab, resolveVisibleTab, routeForTab, tabForPath } from './routes';
 
 describe('rotas do espaço de trabalho', () => {
+  it('não expõe contexto de caso quando o espaço de trabalho está desativado', () => {
+    const replaceState = vi.fn();
+    vi.stubGlobal('window', { location: { pathname: '/app', search: '', hash: '' }, history: { replaceState, pushState: vi.fn() } });
+    vi.stubGlobal('document', { title: '' });
+    navigateToTab('draft_studio', 'push', { matterId: 'privado', draftId: 'minuta' }, false);
+    expect(replaceState).toHaveBeenCalledWith({}, 'ForgeLex · Conectar IA', '/app/conectar');
+  });
   it.each(['matter', 'draft_studio', 'dashboard'] as const)('redireciona tentativa interna de %s sem parâmetros do caso', (tab) => {
     const replaceState = vi.fn();
     const pushState = vi.fn();
@@ -18,6 +25,15 @@ describe('rotas do espaço de trabalho', () => {
       expect(resolveVisibleTab(tab, false)).toBe(tab);
       expect(resolveVisibleTab(tab, true)).toBe(tab);
     }
+  });
+  it('transporta caso e rascunho sem confundir identificadores', () => {
+    const pushState = vi.fn();
+    vi.stubGlobal('window',{location:{pathname:'/app/casos',search:'?caso=A',hash:''},history:{pushState,replaceState:vi.fn()}});
+    vi.stubGlobal('document',{title:''});
+    navigateToTab('draft_studio','push',{matterId:'A',draftId:'D'},true);
+    expect(pushState).toHaveBeenCalledWith({},'ForgeLex · Rascunhos','/app/rascunhos?matterId=A&draftId=D');
+    navigateToTab('matter','push',{matterId:'A',analysisId:'R'},true);
+    expect(pushState).toHaveBeenLastCalledWith({},'ForgeLex · Casos','/app/casos?caso=A&analysisId=R');
   });
   afterEach(() => {
     vi.unstubAllGlobals();

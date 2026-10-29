@@ -2,7 +2,58 @@ import { expect, test, type Page, type APIRequestContext } from '@playwright/tes
 import AxeBuilder from '@axe-core/playwright';
 import JSZip from 'jszip';
 import { readFile } from 'node:fs/promises';
-const api = 'http://127.0.0.1:3301';
+const api = (process.env.FORGELEX_TEST_API_ORIGIN ?? 'http://127.0.0.1:3301');
+
+test('análise documental recebida: conferir fonte, editar e incorporar no caso', async ({page,request},info) => {
+  const state=await (await request.get(api+'/e2e/state')).json();
+  const headers={authorization:'Bearer phase7-e2e-access-token'};
+  const matter=await (await request.post(api+'/api/v2/matters',{headers,data:{title:'Análise documental sintética'}})).json();
+  const document=await (await request.post(api+`/api/v2/matters/${matter.id}/documents`,{headers,data:{title:'Contrato para análise',originalFilename:'contrato.txt',mimeType:'text/plain',content:'A parte afirma que houve pagamento em janeiro.\n\nO contrato não contém recibo de pagamento.'}})).json();
+  await login(page);
+  await page.goto(`/app/casos?caso=${matter.id}`);
+  await page.getByRole('button',{name:'Analisar documentos do caso',exact:true}).click();
+  await page.getByLabel('Onde você vai usar?').selectOption('Claude');
+  await page.getByLabel('Aplicativo autorizado').selectOption('app-one');
+  await page.locator('dialog summary').filter({hasText:'Documentos'}).click();
+  await page.locator('dialog label').filter({hasText:'Contrato para análise'}).getByRole('checkbox').check();
+  await page.getByLabel('Permitir que esta IA envie análises do caso').check();
+  await page.getByLabel('Objetivo da análise').fill('Confrontar alegação de pagamento');
+
+  await page.getByRole('button',{name:'Autorizar e copiar instrução',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Copiar instrução',exact:true})).toBeVisible();
+  const context=(await mcp(request,state.oauthTokens['app-one'],'case.get_context',{matterId:matter.id})).result.structuredContent;
+  expect(context.analysisReceiving).toEqual({enabled:true,objective:'Confrontar alegação de pagamento'});
+  const anchor=document.anchors[0];
+  const input={matterId:matter.id,expectedGrantRevision:context.grantRevision,idempotencyKey:'synthetic-analysis-key-1',objective:context.analysisReceiving.objective,items:[
+    {id:'fact1',kind:'FACT',text:'Houve pagamento em janeiro',classification:'ALLEGATION',sources:[{documentId:document.document.id,versionId:document.version.id,anchorId:anchor.id,quote:anchor.text,relation:'CONTEXT'}]},
+    {id:'gap1',kind:'GAP',text:'Falta comprovante de pagamento',classification:'GAP',sources:[{documentId:document.document.id,versionId:document.version.id,anchorId:anchor.id,quote:anchor.text,relation:'CONTEXT'}]},
+  ]};
+  const saved=await mcp(request,state.oauthTokens['app-one'],'case.save_analysis',input);
+  expect(saved.result.isError).toBe(false);
+  expect((await mcp(request,state.oauthTokens['app-one'],'case.save_analysis',input)).result.billing.isReplay).toBe(true);
+  await page.locator('dialog').getByRole('button',{name:'Fechar',exact:true}).click();
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await page.getByRole('button',{name:'Conferir análise',exact:true}).click();
+  const proposal=page.getByRole('article',{name:'Proposta fact1'});
+  await expect(proposal).toContainText('Alegação');
+  await proposal.getByRole('button',{name:'Abrir fonte',exact:true}).click();
+  await expect(page.getByRole('dialog')).toContainText('A parte afirma que houve pagamento');
+  await page.getByRole('dialog').getByRole('button',{name:'Fechar leitura',exact:true}).click();
+  await proposal.getByRole('button',{name:'Editar',exact:true}).click();
+  await proposal.getByLabel('Texto da proposta').fill('A parte alega pagamento em janeiro');
+  await proposal.getByRole('checkbox',{name:'Selecionar proposta'}).check();
+  await page.getByRole('button',{name:'Incorporar selecionados',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Itens incorporados');
+  await page.getByRole('article',{name:'Proposta gap1'}).getByRole('button',{name:'Descartar',exact:true}).click();
+  const facts=(await (await request.get(api+`/api/v2/matters/${matter.id}/facts`,{headers})).json()).items;
+  expect(facts).toHaveLength(1);
+  expect(facts[0]).toMatchObject({statement:'A parte alega pagamento em janeiro',status:'ASSERTED'});
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.getByRole('region',{name:'Análises dos documentos'}).evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
+  const axe=await new AxeBuilder({page}).include('[aria-label="Análises dos documentos"]').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+  expect(axe.violations).toEqual([]);
+  await page.getByRole('region',{name:'Análises dos documentos'}).screenshot({path:info.outputPath('analysis-review-mobile.png')});
+});
 
 test('conexões com o mesmo nome são distinguíveis e não recebem permissão automaticamente', async ({
   page,
@@ -104,22 +155,22 @@ test('atualizar conexão renovada invalida a prévia sem descartar material nem 
   await page.locator('dialog summary').filter({ hasText: 'Documentos' }).click();
   const choice = page.locator('dialog label').filter({ hasText: 'Material da renovação' }).getByRole('checkbox');
   await choice.check();
-  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeEnabled();
+
+  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
   renewed = true;
   await page.getByRole('button', { name: 'Atualizar permissões', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Prévia do material' })).toHaveCount(0);
   await expect(choice).toBeChecked();
   await expect(page.getByRole('region', { name: 'Conexão escolhida' })).toContainText('07/10/2026');
-  await expect(page.getByRole('status')).toContainText('Confira a conexão e a prévia');
-  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeEnabled();
+  await expect(page.getByRole('region', { name: 'Prévia do material' })).toContainText('Material da renovação');
+
+  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
   available = false;
   await page.getByRole('button', { name: 'Atualizar permissões', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Prévia do material' })).toHaveCount(0);
   await expect(choice).toBeChecked();
   await expect(page.getByRole('region', { name: 'Conexão escolhida' })).toContainText('Conexão indisponível');
-  await expect(page.getByRole('button', { name: 'Ver prévia', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toHaveCount(0);
   expect(writes).toBe(0);
   expect(await (await request.get(api + `/api/v2/matters/${matter.id}/ai-access`, { headers })).json()).toEqual([]);
   expectCaseDenied(await mcp(request, state.oauthTokens['app-one'], 'case.get_context', { matterId: matter.id }));
@@ -230,8 +281,8 @@ test('novo rascunho abre pelo recibo sem referências nem revisão automática',
   await select(page);
   await page.getByLabel('Permitir que esta IA envie textos ao editor').check();
   await page.getByLabel('Onde receber o texto?').selectOption('NEW');
-  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
-  const allow = page.getByRole('button', { name: /^(Permitir acesso|Salvar permissão)$/ });
+
+  const allow = page.getByRole('button', { name: 'Autorizar e copiar instrução' });
   await allow.click();
   await expect(page.getByRole('status')).toContainText('Acesso permitido');
   const manifest = await mcp(request, state.oauthTokens['app-one'], 'case.get_context', { matterId: state.matterId });
@@ -264,11 +315,13 @@ test('novo rascunho abre pelo recibo sem referências nem revisão automática',
   expect(details.currentVersion.version.status).toBe('DRAFT');
   expect(details.currentReviewRun).toBeUndefined();
   expect(details.documentReferences).toEqual([]);
+  await page.getByText('Citações e conferência de fontes',{exact:true}).click();
   await page.getByLabel('Tipo de fonte da citação').selectOption('FACT');
   await page.getByLabel('Fonte da citação', { exact: true }).selectOption(fact.id);
   await page.getByLabel('Texto da citação').fill('Fonte conferida nesta seção.');
   await page.getByRole('button', { name: 'Adicionar citação', exact: true }).click();
   const versionResponse = page.waitForResponse((r) => r.url().endsWith('/versions') && r.request().method() === 'POST');
+  await page.getByText('Salvar e exportar',{exact:true}).click();
   await page.getByRole('button', { name: 'Salvar nova versão', exact: true }).click();
   expect((await versionResponse).status()).toBe(200);
   await expect(page.getByText('Seção 1 · Fonte conferida nesta seção.', { exact: true })).toBeVisible();
@@ -290,8 +343,8 @@ test('receber texto preserva edição, permite prévia segura e exige adoção c
   await select(page);
   await page.getByLabel('Permitir que esta IA envie textos ao editor').check();
   await page.getByLabel('Onde receber o texto?').selectOption(draft.draft.id);
-  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
-  await page.getByRole('button', { name: 'Permitir acesso', exact: true }).click();
+
+  await page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Acesso permitido');
   const manifest = await mcp(request, state.oauthTokens['app-one'], 'case.get_context', { matterId: state.matterId });
   expect(manifest.result.structuredContent.draftReceiving.destination.draftId).toBe(draft.draft.id);
@@ -313,7 +366,7 @@ test('receber texto preserva edição, permite prévia segura e exige adoção c
   expect(
     (await mcp(request, state.oauthTokens['app-one'], 'draft.save_from_ai', input)).result.structuredContent.id,
   ).toBe(saved.result.structuredContent.id);
-  await page.getByRole('button', { name: 'Atualizar textos recebidos' }).click();
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   const panel = page.getByRole('region', { name: 'Textos recebidos da IA' });
   await expect(panel).toContainText('Texto recebido da IA — Aguardando revisão');
   await expect(editor).toHaveValue('Texto original preservado.');
@@ -331,7 +384,7 @@ test('receber texto preserva edição, permite prévia segura e exige adoção c
   await panel.getByRole('button', { name: 'Usar esta versão', exact: true }).click();
   await expect(panel.getByRole('alert')).toContainText('A edição atual mudou');
   await expect(editor).toHaveValue('Texto original preservado.');
-  await expect(page.getByRole('button', { name: 'Conferir rascunho', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Conferir rascunho', exact: true })).toHaveCount(0);
   await editor.fill('Minha edição ainda não salva.');
   await panel.getByRole('button', { name: 'Usar esta versão', exact: true }).click();
   await expect(panel.getByRole('button', { name: 'Continuar editando' })).toBeVisible();
@@ -359,6 +412,7 @@ test('receber texto preserva edição, permite prévia segura e exige adoção c
     ).json()
   ).versions;
   expect(versions).toHaveLength(5);
+  await page.getByText('Salvar e exportar',{exact:true}).click();
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Baixar DOCX da versão salva' }).click();
   const zip = await JSZip.loadAsync(await readFile((await (await downloading).path())!));
@@ -380,6 +434,7 @@ async function login(page: Page) {
 }
 async function openCase(page: Page, id: string) {
   await page.goto(`/app/casos?caso=${id}`);
+  await page.getByText('Acesso da IA',{exact:true}).click();
   await page.getByRole('button', { name: 'Usar este caso na IA' }).click();
   await expect(page.getByRole('button', { name: 'Atualizar permissões' })).toBeEnabled();
 }
@@ -409,6 +464,10 @@ function expectCaseDenied(reply: any) {
 }
 test('prévia, permissão gratuita, seleção explícita e revogação persistida', async ({ page, request }, info) => {
   const state = await (await request.get(api + '/e2e/state')).json();
+  const grantBase = api + `/api/v2/matters/${state.matterId}/ai-access`;
+  const grantHeaders = { authorization: 'Bearer phase7-e2e-access-token' };
+  const prior = (await (await request.get(grantBase, { headers: grantHeaders })).json()).find((g: any) => g.oauthClientId === 'app-one');
+  if (prior?.status === 'ACTIVE') expect((await request.post(grantBase + `/${prior.id}/revoke`, { headers: grantHeaders, data: { expectedRevision: prior.revision } })).status()).toBe(200);
   await login(page);
   await openCase(page, state.matterId);
   await expect(page.getByLabel('Aplicativo autorizado')).toHaveValue('');
@@ -417,7 +476,7 @@ test('prévia, permissão gratuita, seleção explícita e revogação persistid
   const wanted = page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox');
   await page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox').uncheck();
   await wanted.check();
-  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
+
   await expect(page.getByRole('region', { name: 'Prévia do material' })).toContainText(
     'Conteúdo reservado selecionado',
   );
@@ -431,7 +490,7 @@ test('prévia, permissão gratuita, seleção explícita e revogação persistid
   expect(axe.violations).toEqual([]);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.locator('dialog').screenshot({ path: info.outputPath('case-ai-desktop.png') });
-  await page.getByRole('button', { name: 'Permitir acesso', exact: true }).click();
+  await page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Acesso permitido');
   const read = await mcp(request, state.oauthTokens['app-one'], 'case.read_item', {
     matterId: state.matterId,
@@ -498,7 +557,6 @@ test('erro mantém seleção; resposta atrasada não atravessa o caso', async ({
   await page.getByLabel('Aplicativo autorizado').selectOption('app-two');
   await page.getByRole('button', { name: 'Fechar', exact: true }).click();
   await openCase(page, state.matterId);
-  await select(page);
   await page.route('**/ai-access/preview', (route) =>
     route.fulfill({
       status: 503,
@@ -506,14 +564,18 @@ test('erro mantém seleção; resposta atrasada não atravessa o caso', async ({
       body: JSON.stringify({ error: 'CASE_ACCESS_UNAVAILABLE' }),
     }),
   );
-  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
+
+  await select(page);
   await expect(page.getByRole('alert')).toContainText('Sua escolha foi mantida');
   await expect(
     page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox'),
   ).toBeChecked();
   await page.unroute('**/ai-access/preview');
-  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeEnabled();
+  const chosenDocument = page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox');
+  await chosenDocument.uncheck();
+  await chosenDocument.check();
+
+  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
   // Delay a real preview response; close, then open a different case.
   let release!: () => void;
   const held = new Promise<void>((resolve) => {
@@ -529,7 +591,9 @@ test('erro mantém seleção; resposta atrasada não atravessa o caso', async ({
     await held;
     await route.fulfill({ response });
   });
-  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
+
+  await chosenDocument.uncheck();
+  await chosenDocument.check();
   await started;
   await page.getByRole('button', { name: 'Fechar', exact: true }).click();
   await openCase(page, state.otherMatterId);
@@ -544,8 +608,8 @@ test('conflito real exige atualização explícita e impede escrita duplicada', 
   await login(page);
   await openCase(page, state.matterId);
   await select(page);
-  await page.getByRole('button', { name: 'Ver prévia', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeEnabled();
+
+  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
   const base = api + `/api/v2/matters/${state.matterId}/ai-access`;
   const headers = { authorization: 'Bearer phase7-e2e-access-token' };
   const grants = await (await request.get(base, { headers })).json();
@@ -558,9 +622,9 @@ test('conflito real exige atualização explícita e impede escrita duplicada', 
       selection: {
         documents: [
           {
-            documentId: state.documentId,
+            documentId: state.hiddenDocumentId,
             versionId: (await (await request.get(base + '/materials?kind=DOCUMENT', { headers })).json()).items.find(
-              (i: any) => i.id === state.documentId,
+              (i: any) => i.id === state.hiddenDocumentId,
             ).versionId,
           },
         ],
@@ -572,14 +636,14 @@ test('conflito real exige atualização explícita e impede escrita duplicada', 
     },
   });
   expect(changed.status()).toBe(200);
-  await page.getByRole('button', { name: 'Permitir acesso', exact: true }).click();
+  await page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Sua escolha foi mantida');
   await expect(
     page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox'),
   ).toBeChecked();
-  await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Atualizar permissões' }).click();
-  await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
   let release!: () => void;
   const held = new Promise<void>((resolve) => {
     release = resolve;
@@ -597,12 +661,12 @@ test('conflito real exige atualização explícita e impede escrita duplicada', 
     await held;
     await route.fulfill({ response });
   });
-  await page.getByRole('button', { name: 'Permitir acesso', exact: true }).click();
+  await page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true }).click();
   await started;
   await page.keyboard.press('Escape');
   await expect(page.locator('dialog')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Fechar', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Permitir acesso', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeDisabled();
   release();
   await expect(page.getByRole('status')).toContainText('Acesso permitido');
   expect(writes).toBe(1);

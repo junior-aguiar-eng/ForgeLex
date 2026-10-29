@@ -116,6 +116,11 @@ export class DraftingService {
     });
   }
 
+  public async reissueApproval(context: DraftContext, draftId: string, requestId: string, versionId: string) {
+    await this.requireDraft(context, draftId);
+    return this.repository.reissueApprovalToken({...context,draftId,requestId,draftVersionId:versionId});
+  }
+
   public async resolveApproval(context: Omit<DraftContext, 'matterId'> & { matterId?: string }, token: string, decision: 'APPROVED' | 'REJECTED', reason?: string) {
     return this.repository.resolveApproval({
       tenantId: context.tenantId,

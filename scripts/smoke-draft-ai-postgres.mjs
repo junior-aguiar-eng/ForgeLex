@@ -273,12 +273,14 @@ try {
     requestedBy: owner.userId,
     proposedAction: 'Aprovar versão sintética',
   });
-  await drafts.resolveApproval({
-    tenantId: owner.tenantId,
-    token: approval.token,
-    decision: 'APPROVED',
-    decidedBy: owner.userId,
-  });
+  const recoverScope = {...reviewContext,draftId:existing.draft.id,draftVersionId:initial.currentVersionId,requestId:approval.request.id};
+  const rotated=await drafts.reissueApprovalToken(recoverScope);
+  assert.equal(rotated.request.id,approval.request.id);
+  await assert.rejects(()=>drafts.resolveApproval({tenantId:owner.tenantId,token:approval.token,decision:'APPROVED',decidedBy:owner.userId}),/INVALID/);
+  const rotations=await Promise.all([drafts.reissueApprovalToken(recoverScope),drafts.reissueApprovalToken(recoverScope)]);
+  const resolutions=await Promise.allSettled(rotations.map(r=>drafts.resolveApproval({tenantId:owner.tenantId,token:r.token,decision:'APPROVED',decidedBy:owner.userId})));
+  assert.equal(resolutions.filter(r=>r.status==='fulfilled').length,1);
+  await assert.rejects(()=>drafts.reissueApprovalToken(recoverScope),/NOT_PENDING/);
   const approved = await drafts.getDraft(owner.tenantId, existing.matter.id, existing.draft.id);
   assert.equal(approved.status, 'APPROVED');
   const received = await receipts.receive(existing.reader, existing.input);

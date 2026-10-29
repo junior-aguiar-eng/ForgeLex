@@ -21,7 +21,7 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(authUrl) || !Number.isSafeInteger(authPo
   throw new Error('E2E_AUTH_URL_MUST_BE_LOCAL');
 }
 const token = 'phase7-e2e-access-token';
-const executionId = randomUUID();
+const executionId = process.env.FORGELEX_E2E_EXECUTION_ID ?? randomUUID();
 const identity = {
   id: `phase7-e2e-user-${executionId}`, email: `fase7-${executionId}@forgelex.test`,
   email_confirmed_at: '2026-09-20T12:00:00.000Z',

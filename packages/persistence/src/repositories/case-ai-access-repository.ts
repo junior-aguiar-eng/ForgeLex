@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import {
   CaseAiSelectionSchema,
   DraftReceivePermissionSchema,
+  AnalysisPermissionSchema,
+  type AnalysisPermission,
   type DraftReceivePermission,
   CaseAiGrantSchema,
   type CaseAiGrant,
@@ -24,11 +26,12 @@ export interface SelectedCaseRecord {
   fields: { field: string; text: string; documentId?: string; versionId?: string; anchorId?: string }[];
 }
 function grant(row: typeof s.caseAiAccessGrants.$inferSelect): CaseAiGrant {
-  const { selectionJson, receivePermissionJson, ...rest } = row;
+  const { selectionJson, receivePermissionJson, analysisPermissionJson, ...rest } = row;
   return CaseAiGrantSchema.parse({
     ...rest,
     selection: JSON.parse(selectionJson),
     receivePermission: JSON.parse(receivePermissionJson),
+    analysisPermission: JSON.parse(analysisPermissionJson),
     revokedAt: row.revokedAt ?? undefined,
   });
 }
@@ -330,10 +333,12 @@ export class CaseAiAccessRepository {
   async replace(
     o: CaseAiOwner,
     matterId: string,
-    input: { oauthClientId: string; oauthGrantedAt: string; expectedRevision: number; selection: CaseAiSelection; receivePermission?: DraftReceivePermission },
+    input: { oauthClientId: string; oauthGrantedAt: string; expectedRevision: number; selection: CaseAiSelection; receivePermission?: DraftReceivePermission; analysisPermission?: AnalysisPermission },
   ): Promise<CaseAiGrant> {
     const selection = CaseAiSelectionSchema.parse(input.selection);
     const receivePermission = DraftReceivePermissionSchema.parse(input.receivePermission ?? { enabled: false });
+    const analysisPermission = AnalysisPermissionSchema.parse(input.analysisPermission ?? { enabled: false });
+    if (analysisPermission.enabled && !selection.documents.length) throw new Error('CASE_SELECTION_INVALID');
     return this.db.transaction(async (tx) => {
       const repo = new CaseAiAccessRepository(tx as unknown as ForgeLexDatabase);
       await tx
@@ -360,11 +365,12 @@ export class CaseAiAccessRepository {
         status: 'ACTIVE',
         selection,
         receivePermission,
+        analysisPermission,
         createdAt: current?.createdAt ?? now,
         updatedAt: now,
       });
-      const { selection: _, receivePermission: _permission, ...persisted } = next;
-      const values = { ...persisted, selectionJson: JSON.stringify(selection), receivePermissionJson: JSON.stringify(receivePermission), revokedAt: null };
+      const { selection: _, receivePermission: _permission, analysisPermission: _analysis, ...persisted } = next;
+      const values = { ...persisted, selectionJson: JSON.stringify(selection), receivePermissionJson: JSON.stringify(receivePermission), analysisPermissionJson: JSON.stringify(analysisPermission), revokedAt: null };
       if (current)
         await tx
           .update(s.caseAiAccessGrants)
