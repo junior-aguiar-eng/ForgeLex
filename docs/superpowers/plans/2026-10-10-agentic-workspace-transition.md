@@ -634,8 +634,8 @@ isolado e autorizações externas estão discriminadas no
   restrita à identidade configurada de Boni e às fixtures sintéticas aprovadas.
 - [x] Implementar confirmação, limite por execução, reserva antes do worker e
   comunicação de consumo USD, usando o teto **cumulativo** original de US$ 5,00.
-- [ ] Configurar banco/artefato e validar ativação no ambiente
-  isolado escolhido; flags ainda desligadas, sem push ou deploy.
+- [x] Configurar banco e validar autenticação no ambiente local isolado;
+  envios bloqueados, sem push ou deploy. Ativação de inferência permanece separada.
 
 Continuidade após esse snapshot:
 
@@ -645,7 +645,12 @@ Continuidade após esse snapshot:
   durante carga de versão; preservar digitação durante conferência.
 - [x] Finalizar regressões de navegador desta correção: Trabalho 18/18 e editor 9/9.
   Build web/TypeScript e lint geral também aprovados, sem avisos.
-- [ ] Validar aplicação, autenticação e banco duráveis do ambiente local isolado.
+- [x] Validar aplicação, autenticação real de Boni e SQLite durável do ambiente
+  local isolado, inclusive após reinício e leitura independente do backup.
+- [ ] Boni avalia liberação dos envios reais; o ensaio não consome o saldo restante.
+
+Avanços anteriores commitados em `5bc204e`; verificador/recibo desta continuação
+no [registro da Tarefa 7](../../architecture/2026-10-28-agentic-workspace-task7.md).
 
 Detalhes e evidências no [registro da Tarefa 7](../../architecture/2026-10-28-agentic-workspace-task7.md)
 e no [procedimento fechado](../../operations/agentic-workspace/closed-pilot.md).

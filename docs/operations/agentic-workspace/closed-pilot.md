@@ -94,3 +94,46 @@ Desligar a flag agêntica interrompe registro de rotas/scheduler; preserva
 casos, versões, entregas e ledger. Uma chamada em voo exige acompanhamento e
 conciliação; desligar flag não prova estorno. Dados pessoais/clientes,
 ampliação comercial e avaliação jurídica continuam fora deste piloto.
+
+## Ensaio local durável e autenticação real
+
+O ensaio foi executado após o commit `5bc204e`, com login de Boni no navegador
+local e verificação pelo Auth real já usado no ForgeLex. O perfil publicável do
+Auth está em `.env.auth-local.local`, ignorado pelo Git; não contém `service_role`,
+senha ou sessão copiada. A verificação preserva o
+[endpoint de usuário autenticado](https://supabase.com/docs/reference/javascript/auth-getuser)
+do código existente, sem mudar regras no Supabase ou confiar apenas em claims locais.
+
+Com os pacotes compilados e os dois perfis locais preparados:
+
+```text
+node scripts/verify-closed-pilot-local.mjs prepare
+node scripts/verify-closed-pilot-local.mjs serve
+node scripts/verify-closed-pilot-local.mjs check
+```
+
+`prepare` só aceita um destino novo no diretório ignorado `task7-local` da SDD.
+Não repetir contra banco existente: `serve` e `check` apenas verificam migrations
+aplicadas. `check` grava uma única fixture aprovada `T6-GAP` sob o owner esperado,
+confere texto/versão e integridade SQLite e faz leitura independente de um backup
+da aplicação. Não copia o ledger USD, não repõe fundos e exige os 55 registros
+financeiros históricos e a composição 441 + 55 + 4 + 0 = 500 centavos intactos.
+O banco guarda a identidade técnica necessária ao login; contexto jurídico é
+somente o exemplo sintético preparado, sem dados de clientes.
+
+API: `127.0.0.1:3421`; frontend local usado no ensaio: `127.0.0.1:3420`, com
+`VITE_FORGELEX_API_URL` apontando à API local, configuração publicável do mesmo
+Auth e flags web de casos/trabalho. A origem CORS é somente esse frontend.
+`GET /local-validation/status` expõe apenas indicadores não sensíveis do ensaio.
+
+Este helper é **somente validação**: worker parado, writes recusados com 503
+(exceto bootstrap normal do login), transporte de inferência bloqueado e nenhuma
+chave OpenAI carregada. A API só pode consultar `/auth/v1/user` no Auth configurado.
+O painel lê o orçamento original, mas não executa exemplos pagos nesse modo.
+Não usar o helper como runner de piloto pago nem como configuração de deploy.
+
+O login, a retomada após reinício, a fixture persistida, o backup e seis sondagens
+negativas passaram. O recibo fica em
+`docs/architecture/evidence/2026-10-28-task7-local-auth-durable.json`.
+Ainda cabe a Boni avaliar a ativação dos envios; publicação e operações externas
+mantêm suas autorizações separadas. Preservar os bancos e perfis privados após o ensaio.

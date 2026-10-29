@@ -283,8 +283,9 @@ não constitui avaliação jurídica ou ativação do executor.
   (48,9 s), com o bloqueio restrito à seleção/carga de versão.
 - [x] Concluir build web final (TypeScript, aplicação e leitor MCP) e lint geral:
   aprovados, sem erros ou avisos de lint.
-- [ ] Preparar e validar aplicação/banco duráveis e autenticação do ambiente
-  local isolado antes de habilitar o piloto; sem push/deploy.
+- [x] Preparar e validar aplicação/banco duráveis e autenticação do ambiente
+  local isolado, com envios bloqueados; sem push/deploy.
+- [ ] Boni avalia a ativação dos envios reais sob o teto cumulativo existente.
 
 O teste do editor controla a primeira resposta de lista de casos e a devolve
 quando outra área está ativa. Reproduziu o texto apagado antes da correção.
@@ -302,3 +303,47 @@ universal de falhas de tempo. Fonte, hashes, resultados e limites estão na
 [nova evidência](evidence/2026-10-28-task7-ui-stability.json), sem IDs pessoais
 ou credenciais. O perfil de identidade local não foi carregado e o executor
 continua desligado, sem chamada paga, pesquisa paga, fallback, push ou deploy.
+
+## Continuidade — commit, SQLite durável e autenticação local
+
+Avanços anteriores commitados em `5bc204eb372327c5f5bf76cbc379e467164f52b8`
+(`feat(agentic-workspace): preparar executor do piloto fechado`): 26 arquivos,
+com verificação pré-commit de 11 testes do executor e lint sem erros/avisos.
+Perfis privados e a chave não entraram no Git. Não houve push.
+
+`scripts/verify-closed-pilot-local.mjs` prepara somente um banco **novo** em
+`.superpowers/sdd/2026-10-10-agentic-workspace-transition/task7-local/application.sqlite`.
+Se o destino já existe sem seu marcador, recusa inicialização; nos reinícios,
+apenas confere migrations aplicadas. O ledger USD original não é migrado,
+copiado ou provisionado. A chave OpenAI não é carregada pelo verificador.
+
+Boni entrou pela página local em `http://127.0.0.1:3420/entrar`. A API em
+`127.0.0.1:3421` usou o `SupabaseIdentityVerifier` existente, com a configuração
+publicável já distribuída pelo ForgeLex. Não houve Auth fake, importação de
+sessão/tokens de produção, alteração de senha, service role ou configuração
+remota. O usuário/workspace/vínculo local ativo correspondeu aos IDs verificados.
+
+- Conta e documento da fixture aprovada `T6-GAP` preservados após interrupção
+  do processo próprio e reinício da API. O navegador retomou a sessão e voltou
+  a ler o orçamento protegido. Não se apresenta o ensaio como shutdown limpo.
+- `PRAGMA quick_check` aprovado no banco e no backup da aplicação, aberto
+  separadamente; versão e texto recuperados coincidem com a fixture. O backup
+  não contém o ledger de financiamento USD.
+- Seis sondagens aprovadas: 401 para ausência de sessão em perfil/orçamento e
+  sessão inválida; 503 para POST de execução, pesquisa e MCP no modo de ensaio.
+  A recusa de outro owner autenticado continua coberta pelos testes unitários,
+  sem criar ou exigir uma segunda conta humana para o ensaio real.
+- Zero execuções/reservas novas. Histórico consultado manteve 55 chamadas,
+  US$ 0,55 consumidos, US$ 0,04 provisionados, US$ 4,41 disponíveis e escrow zero.
+  Provisão continua sem usage/custo real confirmado; não equivale a fatura.
+
+O processo local habilita as rotas para verificar o caminho efetivo, mas roda
+sem scheduler, bloqueia writes exceto bootstrap normal de autenticação, impede
+o transporte OpenAI e permite outbound da API somente para leitura do usuário
+no Auth. As flags persistentes e o serviço publicado permanecem preservados.
+Isso **não libera inferência paga**. Fonte, hash e limites no
+[recibo do ensaio](evidence/2026-10-28-task7-local-auth-durable.json).
+
+Banco e autenticação locais deixam de ser pendência; a Tarefa 7 permanece aberta
+para avaliação de Boni e ativação operacional dos envios, além de quaisquer
+operações externas que ele venha a autorizar separadamente.
