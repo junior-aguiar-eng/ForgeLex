@@ -65,3 +65,13 @@ Uma execução da suíte geral apresentou falhas nos testes `libera saldo livre 
 ## Suíte completa após os ajustes locais
 
 A execução sequencial com `--maxWorkers=1 --testTimeout=15000` terminou com 1.216 testes aprovados e 17 ignorados em 203 arquivos. Os arquivos de produção de retenção passaram no lint e a API passou na verificação de tipos. O resultado é intermediário: ainda não cobre a sincronização transacional entre pedidos já autenticados e encerramento, a conciliação do ledger isolado e restauração real de conta, e não substitui CI sobre o resultado definitivo. Nenhuma integração foi enviada.
+
+## Commit e verificações posteriores
+
+Estado registrado nos commits `8d5a880` (reconciliação), `5fbcfee` (retenção implementada até aqui) e `e514538` (isolar a porta do teste de conta).
+
+Build completo aprovado. Smoke de encerramento PostgreSQL: sete verificações aprovadas. Restauração de backup posterior ao encerramento: cinco verificações aprovadas; restauração anterior ao encerramento: 12 verificações aprovadas, incluindo tráfego bloqueado, reaplicação, retomada interrompida e idempotência. Esses scripts usam fixtures existentes e não demonstram por si só a resolução das corridas agênticas ainda pendentes.
+
+Navegador: conta 4/4, trabalho agêntico 18/18, funcionalidades combinadas 1/1, casos 24/24 e MCP/site 32/32, totalizando 79 cenários aprovados nesta rodada. O servidor da conta foi movido para 13401 para evitar conflito com Docker existente na porta 3001; MCP/site foi executado com API 13402 e web 13403. A primeira tentativa de restauração encontrou incompatibilidade pg_restore 18/servidor 16; a repetição em PostgreSQL 18 descartável passou. Nenhum serviço existente foi interrompido.
+
+Permanece necessária a correção e cobertura da sincronização entre requisições já autenticadas, encerramento e expurgo agêntico e a validação específica do ledger separado. Não houve push, integração, deploy, migration remota ou chamada paga.
