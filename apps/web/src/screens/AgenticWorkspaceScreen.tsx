@@ -6,6 +6,7 @@ import { ActionEntry } from '../agentic-workspace/ActionEntry';
 import { GuidedDialogue } from '../agentic-workspace/GuidedDialogue';
 import { ContextSummary, SourceReferences } from '../agentic-workspace/ContextSummary';
 import { DeliveryActions } from '../agentic-workspace/DeliveryActions';
+import { ClosedPilotPanel } from '../agentic-workspace/ClosedPilotPanel';
 import { useExecutionEvents } from '../agentic-workspace/use-execution-events';
 import {
   statusText,
@@ -37,6 +38,7 @@ export function AgenticWorkspaceScreen({
   const [available, setAvailable] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const [closedPilot, setClosedPilot] = useState<boolean>();
   const [entry, setEntry] = useState(!id),
     [objective, setObjective] = useState(''),
     [action, setAction] = useState<ActionId>(),
@@ -95,6 +97,7 @@ export function AgenticWorkspaceScreen({
         if (active) {
           setActions(r.actions);
           setAvailable(r.available);
+          setClosedPilot(r.closedPilot ?? false);
         }
       })
       .catch((e) => {
@@ -286,7 +289,22 @@ export function AgenticWorkspaceScreen({
             'O serviço está indisponível. Seu pedido permanece nesta tela.'}
         </p>
       )}
-      {entry && !scope && (
+      {closedPilot && (
+        <ClosedPilotPanel
+          client={client}
+          executionId={run?.id}
+          refreshKey={`${currentStatus}:${events.cursor}`}
+          active={active || currentStatus === 'WAITING_USER'}
+          onStarted={(execution) => {
+            setRun(execution);
+            setDeliveries([]);
+            changeId(execution.id);
+            setEntry(false);
+            setScope(false);
+          }}
+        />
+      )}
+      {closedPilot === false && entry && !scope && (
         <ActionEntry
           key={`${run?.id ?? 'new'}:${action ?? 'free'}`}
           initialAction={action}
@@ -302,7 +320,7 @@ export function AgenticWorkspaceScreen({
           }}
         />
       )}
-      {entry && scope && (
+      {closedPilot === false && entry && scope && (
         <section
           aria-label="Escopo do trabalho"
           className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4 sm:p-6"
@@ -426,12 +444,12 @@ export function AgenticWorkspaceScreen({
           )}
           <h2 className="break-words font-editorial text-xl">{run.objective}</h2>
           <GuidedDialogue
-            question={denied || run.requiresReevaluation ? null : currentQuestion}
+            question={closedPilot || denied || run.requiresReevaluation ? null : currentQuestion}
             messages={run.messages}
             busy={busy}
             onAnswer={onAnswer}
             onCorrect={
-              !active && !run.requiresReevaluation && !run.successorId && currentStatus === 'COMPLETED'
+              !closedPilot && !active && !run.requiresReevaluation && !run.successorId && currentStatus === 'COMPLETED'
                 ? (q) => setCorrection({ ...q, contextRevision: run.contextRevision })
                 : undefined
             }
@@ -550,7 +568,13 @@ export function AgenticWorkspaceScreen({
                   </ul>
                 </details>
                 {!run.requiresReevaluation && (
-                  <DeliveryActions run={run} delivery={d} onFollowUp={followUp} onEditor={onEditor} />
+                  <DeliveryActions
+                    run={run}
+                    delivery={d}
+                    onFollowUp={followUp}
+                    onEditor={onEditor}
+                    allowFollowUp={!closedPilot}
+                  />
                 )}
               </article>
             ))}
@@ -568,7 +592,10 @@ export function AgenticWorkspaceScreen({
             }
             onRead={setReading}
           />
-          {active && (
+          {closedPilot && currentQuestion && (
+            <p>Permanece uma lacuna neste exemplo: {currentQuestion.prompt} Nenhuma resposta foi presumida.</p>
+          )}
+          {(active || (closedPilot && currentStatus === 'WAITING_USER')) && (
             <details>
               <summary className="min-h-11 cursor-pointer">Mais opções</summary>
               <button
@@ -586,7 +613,8 @@ export function AgenticWorkspaceScreen({
               repetido automaticamente.
             </p>
           )}
-          {['FAILED', 'CANCELLED'].includes(currentStatus) &&
+          {!closedPilot &&
+            ['FAILED', 'CANCELLED'].includes(currentStatus) &&
             !run.requiresReevaluation &&
             !denied &&
             !events.reconciliation && (

@@ -586,8 +586,9 @@ continuam explícitas e não foram confundidas com funcionalidades implementadas
 Em resposta à pergunta de escopo, Boni escolheu piloto fechado somente para si,
 com dados sintéticos. Preço/margem comercial e dados de clientes ficam fora desta
 etapa; não constituem bloqueios para os ensaios locais autorizados.
-A factory real ainda depende de configuração interna e autorização financeira;
-o servidor padrão não a configura apenas pela flag. Preço/moeda/margem e
+Na preparação inicial, faltava compor a factory real e a autorização financeira;
+os itens 1 e 2 abaixo implementam esse percurso fechado, ainda sem ativação.
+Preço/moeda/margem e
 comunicação de consumo nativo não estão definidos para clientes. As novas tabelas
 não integram explicitamente os fluxos atuais de encerramento/expurgo/retenção;
 política e implementação verificadas são necessárias antes de dados pessoais.
@@ -626,6 +627,30 @@ fallback, push ou deploy. A preparação local concluída não equivale à liber
 As pendências de executor real, autorização/reserva/consumo, operação no ambiente
 isolado e autorizações externas estão discriminadas no
 [registro da Tarefa 7](../../architecture/2026-10-28-agentic-workspace-task7.md#o-que-falta-para-liberar-o-piloto-fechado).
+
+### Continuação dos itens 1 e 2 da Tarefa 7 — 28/10/2026
+
+- [x] Implementar composição do executor real na entrada normal do servidor,
+  restrita à identidade configurada de Boni e às fixtures sintéticas aprovadas.
+- [x] Implementar confirmação, limite por execução, reserva antes do worker e
+  comunicação de consumo USD, usando o teto **cumulativo** original de US$ 5,00.
+- [ ] Configurar banco/artefato e validar ativação no ambiente
+  isolado escolhido; flags ainda desligadas, sem push ou deploy.
+
+Continuidade após esse snapshot:
+
+- [x] Verificar a identidade técnica da conta existente de Boni e preparar
+  perfil local ignorado pelo Git, sem chave duplicada e com flags desligadas.
+- [x] Corrigir a resposta antiga de casos que apagava edição e o campo editável
+  durante carga de versão; preservar digitação durante conferência.
+- [x] Finalizar regressões de navegador desta correção: Trabalho 18/18 e editor 9/9.
+  Build web/TypeScript e lint geral também aprovados, sem avisos.
+- [ ] Validar aplicação, autenticação e banco duráveis do ambiente local isolado.
+
+Detalhes e evidências no [registro da Tarefa 7](../../architecture/2026-10-28-agentic-workspace-task7.md)
+e no [procedimento fechado](../../operations/agentic-workspace/closed-pilot.md).
+O runner histórico não foi reaberto nem seu saldo reposto. Esta implementação
+não declara liberação externa ou aprovação jurídica. A Tarefa 7 permanece aberta.
 
 ## Evoluções com planos próprios
 

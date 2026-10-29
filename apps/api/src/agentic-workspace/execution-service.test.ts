@@ -51,6 +51,45 @@ afterEach(() => {
   for (const c of connections.splice(0)) c.client.close();
 });
 
+it('alcança job gerido após cinquenta legados sem alterar jobs não geridos', async () => {
+  const f = await fixture();
+  const legacy = [];
+  for (let i = 0; i < 50; i++) legacy.push(await f.service.startExecution(owner, `legacy-${i}`, input));
+  f.advance(1000);
+  const service = new ExecutionService(f.db, f.client, {
+    ...f.options,
+    canManageExecution: (execution) => execution.authorizationId === 'closed-only',
+  });
+  const target = await service.startExecution(owner, 'closed-target', input, {
+    authorizationId: 'closed-only',
+    provider: 'openai',
+    model: 'gpt-6.1-sol',
+  });
+  expect((await service.claimNext('closed-worker'))?.executionId).toBe(target.id);
+  for (const old of legacy) expect((await f.service.getExecution(owner, old.id)).status).toBe('QUEUED');
+});
+
+it('mantém job fechado fora do worker até ativação financeira explícita', async () => {
+  const f = await fixture();
+  let preparations = 0;
+  const service = new ExecutionService(f.db, f.client, {
+    ...f.options,
+    requireInferenceAuthorization: true,
+    prepareStart: async (_store, _owner, requested) => {
+      preparations++;
+      return requested;
+    },
+  });
+  const approval = { authorizationId: 'closed:T6-MIN:50', provider: 'openai', model: 'gpt-6.1-sol' };
+  const run = await service.startExecution(owner, 'closed-gate', input, approval);
+  expect(await service.claimNext('too-early')).toBeUndefined();
+  expect((await service.startExecution(owner, 'closed-gate', input, approval)).id).toBe(run.id);
+  expect(preparations).toBe(1);
+  await expect(service.activateInference(owner, run.id, 'wrong')).rejects.toThrow('EXECUTION_CONFLICT');
+  await service.activateInference(owner, run.id, approval.authorizationId);
+  expect(await service.claimNext('funded')).toMatchObject({ executionId: run.id });
+});
+
 it('expõe contexto e histórico públicos para recuperar o trabalho sem checkpoint privado', async () => {
   const f = await fixture();
   const run = await f.service.startExecution(owner, 'public-recovery', input);
@@ -511,4 +550,21 @@ describe('comandos e worker duráveis', () => {
   });
 });
 
-it('vincula autorização interna ao contexto vigente sem expor consentimento na API pública',async()=>{const f=await fixture();const run=await f.service.startExecution(owner,'internal-approval',input);await f.service.authorizeInference(owner,run.id,{authorizationId:'boni-task6',provider:'openai',model:'gpt-6.1-sol'});expect(await f.repo.getExecution(owner,run.id)).toMatchObject({authorizationId:'boni-task6',provider:'openai',model:'gpt-6.1-sol'});expect(await f.service.getExecution(owner,run.id)).not.toHaveProperty('authorizationId');await expect(f.service.authorizeInference(owner,run.id,{authorizationId:'other',provider:'openai',model:'other'})).rejects.toThrow('EXECUTION_CONFLICT');});
+it('vincula autorização interna ao contexto vigente sem expor consentimento na API pública', async () => {
+  const f = await fixture();
+  const run = await f.service.startExecution(owner, 'internal-approval', input);
+  await f.service.authorizeInference(owner, run.id, {
+    authorizationId: 'boni-task6',
+    provider: 'openai',
+    model: 'gpt-6.1-sol',
+  });
+  expect(await f.repo.getExecution(owner, run.id)).toMatchObject({
+    authorizationId: 'boni-task6',
+    provider: 'openai',
+    model: 'gpt-6.1-sol',
+  });
+  expect(await f.service.getExecution(owner, run.id)).not.toHaveProperty('authorizationId');
+  await expect(
+    f.service.authorizeInference(owner, run.id, { authorizationId: 'other', provider: 'openai', model: 'other' }),
+  ).rejects.toThrow('EXECUTION_CONFLICT');
+});

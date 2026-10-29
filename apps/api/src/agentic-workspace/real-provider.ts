@@ -34,7 +34,7 @@ export interface PilotObservation {
 export interface PilotRuntimeOptions {
   owner: AgenticOwner;
   apiKey: string;
-  budget: InferenceBudgetService;
+  budget: Pick<InferenceBudgetService, 'authorizeProviderCall' | 'settleProviderCall'>;
   approval: { provider: string; model: string; ceilingCents: number; reference: string };
   /** Must verify the execution and exact approved synthetic selection, on every HTTP request. */
   assertContext: (executionId: string, packet?: CaseTaskProviderInput['packet']) => Promise<void>;

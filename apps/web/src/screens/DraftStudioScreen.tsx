@@ -157,6 +157,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [selectedMatterId, setSelectedMatterId] = useState('');
   const [selectedDraftId, setSelectedDraftId] = useState('');
+  const [loadingSelection, setLoadingSelection] = useState(false);
   const [details, setDetails] = useState<DraftDetails | null>(null);
   const [draftTitle, setDraftTitle] = useState('Minuta para revisão humana');
   const [sections, setSections] = useState<EditableSection[]>(initialSections);
@@ -216,14 +217,16 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
   const loadMatters = async () => {
     if (!hasApiAccess) return;
     const sequence = selection.current;
+    const requestedQuery = new URL(requestedLocation ?? window.location.href, window.location.origin).searchParams;
     setBusy(true);
     setError(null);
     try {
       const response = await request<{ items: Matter[] }>('/api/v2/matters', token);
       setMatters(response.items);
+      if (sequence !== selection.current) return;
       if(selectedMatterId)await loadDrafts(selectedMatterId);
-      if (response.items.length > 0 && !selectedMatterId && !new URLSearchParams(window.location.search).has('deliveryId')) {
-        const initial = new URLSearchParams(window.location.search).get('matterId');
+      if (response.items.length > 0 && !selectedMatterId && !requestedQuery.has('deliveryId')) {
+        const initial = requestedQuery.get('matterId');
         await selectMatter(response.items.some(m=>m.id===initial)?initial!:response.items[0].id);
       }
     } catch (loadError) {
@@ -278,6 +281,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
     setSections(initialSections());
     setCitations([]);
     setError(null);
+    setLoadingSelection(true);
     setBusy(true);
     try {
       await Promise.all([loadDrafts(matterId), loadMatterContext(matterId)]);
@@ -285,7 +289,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
       if (sequence !== selection.current) return;
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar os rascunhos.');
     } finally {
-      if (sequence === selection.current) setBusy(false);
+      if (sequence === selection.current) { setBusy(false); setLoadingSelection(false); }
     }
   };
 
@@ -296,6 +300,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
     const sequence = ++selection.current;
     setPoint(undefined); setHistoryVersion(''); setHistoryRuns([]); setReviewStatus(null); setApprovalToken(null); setContextChanged(false);
     setSelectedDraftId(draftId);
+    setLoadingSelection(true);
     setBusy(true);
     setError(null);
     try {
@@ -332,7 +337,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
       if (sequence !== selection.current) return;
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar a minuta.');
     } finally {
-      if (sequence === selection.current) setBusy(false);
+      if (sequence === selection.current) { setBusy(false); setLoadingSelection(false); }
     }
   };
 
@@ -654,7 +659,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
               </section>
               {caseUnavailable && <div role="alert" className="p-4 rounded-xl bg-amber-50 text-amber-900 text-sm">Este caso não está disponível para edição. Seu texto foi mantido.<button type="button" className="btn-secondary ml-3" onClick={() => void navigator.clipboard.writeText([draftTitle, ...sections.map(section => `${section.title}\n${section.content}`)].join('\n\n')).then(() => setReviewStatus('Texto copiado.')).catch(() => setError('Não foi possível copiar o texto.'))}>Copiar meu texto</button></div>}
               {selectedDraftId && authStatus==='authenticated' && !caseUnavailable && <ReceivedDraftPanel key={`${selectedMatterId}:${selectedDraftId}`} matterId={selectedMatterId} draftId={selectedDraftId} currentVersionId={details?.draft.currentVersionId} dirty={dirty} onAdopt={useReceived} />}
-              <form onSubmit={saveDraft} className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5"><fieldset disabled={adopting || caseUnavailable} className="contents">
+              <form onSubmit={saveDraft} className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5"><fieldset disabled={loadingSelection || adopting || caseUnavailable} className="contents">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><span className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">{selectedDraftId ? 'Nova versão' : 'Novo rascunho'}</span><h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">{selectedMatter.title}</h2></div><span className="text-xs text-stone-500">{selectedDraftId && details ? `Versão ${details.currentVersion?.version.versionNumber ?? '-'}` : 'Estrutura inicial'}</span></div>
                 <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} aria-label="Título do rascunho" placeholder="Título do rascunho" className="w-full px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm" />
                 <div className="space-y-3">{sections.map((section, index) => <div key={index} className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-3"><div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-cognac-100 text-cognac-800 text-xs font-bold flex items-center justify-center">{index + 1}</span><input aria-label={`Título da seção ${index + 1}`} value={section.title} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} className="flex-1 bg-transparent text-sm font-semibold text-stone-900 border-b border-transparent focus:border-cognac-300 focus:outline-none" /></div><textarea id={`draft-section-${index}`} aria-label={`Conteúdo da seção ${index + 1}`} value={section.content} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, content: event.target.value } : item))} rows={3} placeholder="Conteúdo da seção para conferência..." className="w-full px-3 py-2 rounded-lg border border-champagne-border bg-white text-sm resize-y" /><div className="grid gap-3 border-t border-stone-100 pt-3 md:grid-cols-2"><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Vínculos do mapa</legend><div className="space-y-1">{theses.map((thesis) => <label key={thesis.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedThesisIds.includes(thesis.id)} onChange={() => toggleLink(index, 'linkedThesisIds', thesis.id)} className="mt-0.5 accent-cognac-700" /><span>{thesis.title}</span></label>)}{theses.length === 0 && <p className="text-xs text-stone-500">Sem teses disponíveis.</p>}</div></fieldset><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Fatos, provas e julgados</legend><div className="grid gap-1 sm:grid-cols-2">{facts.map((fact) => <label key={fact.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedFactIds.includes(fact.id)} onChange={() => toggleLink(index, 'linkedFactIds', fact.id)} className="mt-0.5 accent-cognac-700" /><span>Fato: {fact.statement}</span></label>)}{evidence.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedEvidenceIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedEvidenceIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Prova: {item.title}</span></label>)}{authorities.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedAuthorityIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedAuthorityIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Julgado: {item.authority.processNumber}</span></label>)}</div></fieldset></div></div>)}</div>

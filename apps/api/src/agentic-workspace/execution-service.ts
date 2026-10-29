@@ -49,12 +49,20 @@ export type StepOutcome = z.infer<typeof StepOutcomeSchema>;
 export interface ExecutionServiceOptions {
   now?: () => number;
   executorAvailable?: boolean;
+  requireInferenceAuthorization?: boolean;
+  prepareStart?: (
+    store: ExecutionStore,
+    owner: AgenticOwner,
+    input: z.infer<typeof StartExecutionSchema>,
+  ) => Promise<z.infer<typeof StartExecutionSchema>>;
+  budgetCleanup?: Pick<InferenceBudgetService, 'releaseUnusedBudget' | 'getExecutionBudget'>;
+  canManageExecution?: (execution: AgenticExecution) => boolean;
 }
 const terminal = (e: AgenticExecution) => ['COMPLETED', 'FAILED', 'CANCELLED'].includes(e.status);
 
 export class ExecutionService {
   readonly store: ExecutionStore;
-  private readonly budget: InferenceBudgetService;
+  private readonly budget: Pick<InferenceBudgetService, 'releaseUnusedBudget' | 'getExecutionBudget'>;
   private readonly now: () => number;
   constructor(
     db: ForgeLexDatabase,
@@ -62,7 +70,7 @@ export class ExecutionService {
     private readonly options: ExecutionServiceOptions = {},
   ) {
     this.store = new ExecutionStore(db);
-    this.budget = new InferenceBudgetService(db, client);
+    this.budget = options.budgetCleanup ?? new InferenceBudgetService(db, client);
     this.now = options.now ?? Date.now;
   }
   private at() {
@@ -72,9 +80,15 @@ export class ExecutionService {
     if (!this.options.executorAvailable) throw new Error('EXECUTOR_UNAVAILABLE');
   }
   /** Trusted server entry point only; no client route accepts financial authorization. */
-  async authorizeInference(owner: AgenticOwner, executionId: string, raw: {
-    authorizationId: string; provider: string; model: string;
-  }) {
+  async authorizeInference(
+    owner: AgenticOwner,
+    executionId: string,
+    raw: {
+      authorizationId: string;
+      provider: string;
+      model: string;
+    },
+  ) {
     this.available();
     const approval = z.object({ authorizationId: id, provider: id, model: id }).strict().parse(raw);
     await this.store.atomic(owner, async (s) => {
@@ -82,11 +96,25 @@ export class ExecutionService {
       if (!execution) throw new Error('EXECUTION_NOT_FOUND');
       await this.activeContext(s, execution, true);
       if (execution.status !== 'QUEUED' || execution.authorizationId) {
-        if (execution.status === 'QUEUED' && execution.authorizationId === approval.authorizationId && execution.provider === approval.provider && execution.model === approval.model) return;
+        if (
+          execution.status === 'QUEUED' &&
+          execution.authorizationId === approval.authorizationId &&
+          execution.provider === approval.provider &&
+          execution.model === approval.model
+        )
+          return;
         throw new Error('EXECUTION_CONFLICT');
       }
-      await s.db.update(agenticExecutions).set({ payloadJson: JSON.stringify({ ...execution, ...approval }) })
-        .where(and(eq(agenticExecutions.id, executionId),eq(agenticExecutions.tenantId,owner.tenantId),eq(agenticExecutions.userId,owner.userId)));
+      await s.db
+        .update(agenticExecutions)
+        .set({ payloadJson: JSON.stringify({ ...execution, ...approval }) })
+        .where(
+          and(
+            eq(agenticExecutions.id, executionId),
+            eq(agenticExecutions.tenantId, owner.tenantId),
+            eq(agenticExecutions.userId, owner.userId),
+          ),
+        );
     });
   }
   private async activeContext(s: ExecutionStore, e: AgenticExecution, requireCurrent = false) {
@@ -171,7 +199,7 @@ export class ExecutionService {
       objective,
       actionId,
       predecessorId,
-      state: 'READY',
+      state: this.options.requireInferenceAuthorization ? 'WAITING' : 'READY',
       leaseToken: null,
       leaseExpiresAt: null,
       workerId: null,
@@ -213,10 +241,18 @@ export class ExecutionService {
     }
     return false;
   }
-  async startExecution(owner: AgenticOwner, key: string, raw: z.infer<typeof StartExecutionSchema>) {
+  async startExecution(
+    owner: AgenticOwner,
+    key: string,
+    raw: z.infer<typeof StartExecutionSchema>,
+    approval?: { authorizationId: string; provider: string; model: string },
+  ) {
     this.available();
-    const input = StartExecutionSchema.parse(raw);
-    const executionId = await this.command(owner, key, { kind: 'start', input }, async (s) => {
+    const requested = StartExecutionSchema.parse(raw);
+    const executionId = await this.command(owner, key, { kind: 'start', input: requested, approval }, async (s) => {
+      const input = this.options.prepareStart
+        ? StartExecutionSchema.parse(await this.options.prepareStart(s, owner, requested))
+        : requested;
       let conversation = input.conversationId
         ? await s.workspace.getConversation(owner, input.conversationId)
         : undefined;
@@ -238,15 +274,32 @@ export class ExecutionService {
         conversationId: conversation.id,
         contextRevision: conversation.contextRevision,
         idempotencyKey: `native:${digest(key)}`,
-        authorizationId: null,
+        authorizationId: approval?.authorizationId ?? null,
         budgetReservationId: null,
-        provider: null,
-        model: null,
+        provider: approval?.provider ?? null,
+        model: approval?.model ?? null,
       });
       await this.createJob(s, owner, run.id, input.objective, input.actionId);
       return run.id;
     });
     return this.getExecution(owner, executionId);
+  }
+  /** Internal activation after durable reservation. Not registered as a standalone public command. */
+  async activateInference(owner: AgenticOwner, executionId: string, authorizationId: string) {
+    await this.store.atomic(owner, async (s) => {
+      const execution = await s.workspace.getExecution(owner, executionId);
+      const job = await s.getJob(owner, executionId);
+      if (
+        !this.options.requireInferenceAuthorization ||
+        !execution ||
+        execution.status !== 'QUEUED' ||
+        execution.authorizationId !== authorizationId ||
+        !['WAITING', 'READY'].includes(job.state)
+      )
+        throw new Error('EXECUTION_CONFLICT');
+      await this.activeContext(s, execution, true);
+      await s.saveJob({ ...job, state: 'READY' });
+    });
   }
   async getExecution(owner: AgenticOwner, id: string) {
     return this.store.atomic(owner, async (s) => {
@@ -432,14 +485,31 @@ export class ExecutionService {
     return j;
   }
   async claimNext(workerId: string, leaseMs = 60000): Promise<WorkerLease | undefined> {
-    for (const job of await this.store.pendingReleases(this.at()))
-      await this.releaseBudget({ tenantId: job.tenantId, userId: job.userId }, job.executionId);
-    for (const candidate of await this.store.candidates(this.at())) {
+    const accepts = this.options.canManageExecution
+      ? async (job: ExecutionJob) => {
+          const execution = await this.store.workspace.getExecution(
+            { tenantId: job.tenantId, userId: job.userId },
+            job.executionId,
+          );
+          return Boolean(execution && this.options.canManageExecution!(execution));
+        }
+      : undefined;
+    for (const job of await this.store.pendingReleases(this.at(), accepts)) {
+      const owner = { tenantId: job.tenantId, userId: job.userId };
+      const execution = await this.store.workspace.getExecution(owner, job.executionId);
+      if (execution && (!this.options.canManageExecution || this.options.canManageExecution(execution)))
+        await this.releaseBudget(owner, job.executionId);
+    }
+    for (const candidate of await this.store.candidates(this.at(), accepts)) {
       const owner = { tenantId: candidate.tenantId, userId: candidate.userId };
       const claimed = await this.store.atomic(owner, async (s) => {
         const j = await s.getJob(owner, candidate.executionId),
           e = await s.workspace.getExecution(owner, j.executionId);
-        if (!e || (j.state !== 'READY' && !(j.state === 'LEASED' && j.leaseExpiresAt && j.leaseExpiresAt <= this.at())))
+        if (
+          !e ||
+          (this.options.canManageExecution && !this.options.canManageExecution(e)) ||
+          (j.state !== 'READY' && !(j.state === 'LEASED' && j.leaseExpiresAt && j.leaseExpiresAt <= this.at()))
+        )
           return;
         if (terminal(e)) {
           await s.saveJob({

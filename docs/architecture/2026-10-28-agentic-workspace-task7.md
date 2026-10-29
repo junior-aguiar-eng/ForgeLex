@@ -53,10 +53,11 @@ ledger arredondado de US$ 0,55 mais US$ 0,04 provisionados; saldo local US$ 4,41
 Provisão não equivale a custo faturado; custo/usage do cancelamento permanecem
 desconhecidos. Não converter esse ensaio em estimativa de margem comercial.
 
-As rotas agênticas não expõem extrato por execução, e a UI contém aviso de
+Na preparação inicial, as rotas agênticas não expunham extrato por execução, e a UI continha aviso de
 orçamento insuficiente, sem percurso completo de consentimento comercial.
-Configuração do executor real, consentimento e comunicação de consumo são
-condições antes de ativar uso pago; não registrar como implementados pelo runbook.
+Essas lacunas foram implementadas na continuação dos itens 1 e 2 registrada
+abaixo, com procedimento próprio. Sua configuração/ativação no ambiente real
+continua pendente; o runbook isoladamente não é prova de implementação.
 
 ## Retenção e operação
 
@@ -194,8 +195,8 @@ deste ensaio não autoriza executar as etapas abaixo.
 
 | Pendência                                                   | Evidência e condição de fechamento                                                                                                                                                                                                                                                                                                       |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Configurar o executor real na entrada efetiva do servidor   | `server.ts` ainda chama `buildApp()` sem `agenticWorkspace.caseTask`. Vincular factory, identidade exclusiva de Boni e seleção sintética autorizada; a flag sozinha não cria o executor. Não usar o fake nem o runner encerrado como configuração de publicação.                                                                         |
-| Ligar autorização interna, reserva e comunicação de consumo | Preparar o percurso operacional para Boni com orçamento cumulativo existente em USD, separado do billing BRL. Mostrar teto, saldo, consumo conhecido e provisão. O piloto da Tarefa 6 continua `PILOT_CLOSED`; não repor US$ 5,00 nem liberar reserva incerta como estorno.                                                              |
+| Configurar o executor real na entrada efetiva do servidor   | Implementação local realizada na continuação abaixo. Antes de ativar, configurar os IDs verificados de Boni e o banco durável isolado. `buildApp()` compõe o worker/driver/SDK quando as flags e pré-condições são satisfeitas; flags continuam desligadas. |
+| Ligar autorização interna, reserva e comunicação de consumo | Implementação local realizada na continuação abaixo: consentimento, limite por execução e resumo USD cumulativo separado de BRL. Preservados os 55 centavos consumidos e 4 provisionados; nenhum novo orçamento ou envio real nesta implementação. |
 | Validar operação no ambiente isolado escolhido              | Identificar banco/artefato/migrations, backup/rollback e acompanhamento de falhas, leases e reservas. Registrar regressão e ensaio controlado no ambiente escolhido; o ciclo local SQLite/fake não comprova rollout remoto, frontend compilado ou custo de chamada real em voo. A instabilidade histórica de tempo permanece registrada. |
 | Autorizar e executar etapas externas separadamente          | Boni avalia as evidências e autoriza integração, migration e publicação quando quiser avançar. Depois verificar revisão/tráfego e a tarefa controlada realmente publicada. Push e deploy continuam expressamente proibidos nesta execução.                                                                                               |
 
@@ -203,3 +204,101 @@ Preço/margem comercial e integração de retenção para dados pessoais/cliente
 ficam fora desse recorte. Tornam-se trabalho próprio antes de eventual ampliação,
 não condições inventadas para os ensaios sintéticos já autorizados. A avaliação
 jurídica `NOT_EVALUATED` e a ausência de conciliação com fatura continuam explícitas.
+
+## Continuidade — executor real e controles dos itens 1 e 2
+
+Boni autorizou a implementação dos dois primeiros itens, mantendo exclusividade,
+dados sintéticos, `gpt-6.1-sol` e teto cumulativo US$ 5,00. O pedido não inclui
+ativar flags, identificar por suposição sua conta, push ou deploy.
+
+- [x] Composição do executor na entrada normal `buildApp()`, com identidade
+  obrigatória de Boni, fixture aprovada fixada por hash e o transporte limitado
+  já homologado. Não habilita pesquisa paga, fallback ou comandos livres.
+- [x] Autorização explícita no painel, reserva durável antes de claim do job,
+  idempotência/reconstrução, cancelamento e consumo USD visível. Usa somente
+  o saldo residual do ledger original e recusa história ausente/reposição.
+- [ ] Configuração/ativação no ambiente isolado identificado e avaliação de Boni.
+
+Os detalhes de configuração, endpoints, limites e tratamento de falhas estão no
+[procedimento do executor fechado](../operations/agentic-workspace/closed-pilot.md).
+Os snapshots e custos anteriores da Tarefa 6 não foram reescritos.
+
+### Verificação dos itens 1 e 2
+
+Suíte geral final, sem outro runner/build concorrente:
+`pnpm exec vitest run --maxWorkers=1` — **1.160 aprovados, 17 ignorados,
+192 arquivos aprovados/3 ignorados, nenhuma falha em 819,38 s**. Inclui os
+11 testes do executor fechado, com worker/driver/SDK reais e SSE sintético,
+reserva antes do HTTP, retomada, cancelamento e rejeição de consumo incerto.
+Não houve inferência real adicional nem novo financiamento do piloto.
+
+A revisão encontrou dois defeitos reproduzidos antes da correção: chamada
+`AUTHORIZED` abandonada após queda não suspendia novos envios; 50 jobs antigos
+não geridos impediam alcançar o job fechado. Ambos passaram de RED para GREEN.
+Uma terceira regressão cobriu cancelamento no banco da aplicação antes do
+commit financeiro: o caminho de ativação agora agenda/libera a reserva pelo
+cleanup durável existente, sem liberar fundos de execução em andamento.
+
+Build do monorepo, builds finais de API/web (incluindo leitor MCP) e checagem recursiva de tipos passaram.
+TypeScript web final passou. Lint geral terminou sem erros, com dois avisos de
+`react-hooks/exhaustive-deps` sobre o contador de geração do painel. Eles ficam
+registrados; não significam falha de compilação ou aprovação do navegador.
+
+Navegador: o teste novo do piloto passou (35,6 s), incluindo consentimento
+desmarcado/resetado, corpo estrito, retry com a mesma chave, orçamento USD e
+largura de 320 px. A rodada completa teve **17 aprovados/1 falha** (4,2 min):
+o teste existente de preservação de edição retornou texto vazio após navegação.
+O mesmo teste passou isoladamente, sem mudanças de código/expectativa/timeout
+(18,6 s de teste; 51,0 s totais). Não se declara eliminada essa instabilidade,
+nem se apresenta a rodada completa como integralmente aprovada.
+
+Rollback repetido com o código compilado: 18 tabelas e nove tools MCP
+preservadas, zero egress/chamadas pagas e ledger original não aberto.
+Somente SQLite descartável, Auth simulado e provider fake nesse ensaio;
+isso não demonstra rollout PostgreSQL remoto ou liquidação real em voo.
+
+Fontes, hashes, limites e resultados estão na
+[evidência desta continuação](evidence/2026-10-28-closed-pilot-executor.json).
+A Tarefa 7 continua em andamento; configuração/ativação no destino isolado,
+avaliação de Boni e operações externas permanecem etapas próprias.
+
+## Continuidade — estabilidade do editor e identidade da conta
+
+Boni pediu continuidade e confirmou acesso à sua conta existente. A sessão
+publicada foi localizada e a resposta autenticada de `/api/v2/auth/me`
+confirmou usuário/workspace/vínculo ativos e papel `OWNER`, consistente com
+a conta exibida na interface. Isso verifica a identidade técnica da sessão;
+não constitui avaliação jurídica ou ativação do executor.
+
+- [x] Preparar os IDs verificados em `.env.closed-pilot.local`, ignorado pelo
+  Git, com as duas flags desligadas. Nenhuma chave duplicada, token copiado,
+  configuração remota alterada ou novo orçamento concedido.
+- [x] Reproduzir e corrigir a perda de edição por resposta antiga da lista
+  de casos e por digitação durante a carga da versão. A lista respeita a
+  geração da seleção e a localização própria do editor; os campos aguardam
+  somente a carga de caso/versão. Digitar durante conferência continua permitido.
+- [x] Remover os dois avisos de lint do painel usando invalidação estável do
+  contador de geração, preservando a rejeição de respostas obsoletas.
+- [x] Concluir regressões de navegador: Trabalho 18/18 (1,5 min) e editor 9/9
+  (48,9 s), com o bloqueio restrito à seleção/carga de versão.
+- [x] Concluir build web final (TypeScript, aplicação e leitor MCP) e lint geral:
+  aprovados, sem erros ou avisos de lint.
+- [ ] Preparar e validar aplicação/banco duráveis e autenticação do ambiente
+  local isolado antes de habilitar o piloto; sem push/deploy.
+
+O teste do editor controla a primeira resposta de lista de casos e a devolve
+quando outra área está ativa. Reproduziu o texto apagado antes da correção.
+A primeira proteção ampla com `busy` impedia digitar durante conferência e
+falhou na regressão existente (8/9); foi refinada para `loadingSelection`.
+A suíte do editor passou então com 9/9, em 48,9 s, incluindo digitação durante
+conferência demorada. Nenhum timeout, expectativa de preservação ou validação
+de concorrência foi reduzido. Os registros anteriores permanecem históricos.
+
+A regressão final do Trabalho passou com 18/18 em 1,5 min; a do editor com
+9/9 em 48,9 s. A suíte geral anterior de 1.160 aprovados não foi repetida nesta
+continuidade de frontend; seu snapshot e limitações anteriores permanecem
+preservados. A correção cobre a corrida reproduzida, sem prometer eliminação
+universal de falhas de tempo. Fonte, hashes, resultados e limites estão na
+[nova evidência](evidence/2026-10-28-task7-ui-stability.json), sem IDs pessoais
+ou credenciais. O perfil de identidade local não foi carregado e o executor
+continua desligado, sem chamada paga, pesquisa paga, fallback, push ou deploy.

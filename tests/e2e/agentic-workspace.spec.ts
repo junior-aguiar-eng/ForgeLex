@@ -3,6 +3,67 @@ import AxeBuilder from '@axe-core/playwright';
 const api = 'http://127.0.0.1:3301',
   headers = { authorization: 'Bearer phase7-e2e-access-token' };
 
+test('piloto fechado mostra USD e exige novo consentimento ao mudar caso ou limite; retry mantém chave', async ({
+  page,
+}) => {
+  const posted: { body: any; key?: string }[] = [];
+  await page.route('**/api/agentic/actions', (route) =>
+    route.fulfill({ json: { available: true, closedPilot: true, actions: [] } }),
+  );
+  await page.route('**/api/agentic/pilot/budget*', (route) =>
+    route.fulfill({
+      json: {
+        currency: 'USD',
+        model: 'gpt-6.1-sol',
+        ceilingCents: 500,
+        availableCents: 441,
+        settledCents: 55,
+        provisionedCents: 4,
+        escrowCents: 0,
+        reconciliationRequired: false,
+        invoiceReconciled: false,
+        execution: null,
+        examples: [
+          { id: 'T6-MIN', objective: 'Responda apenas OK.' },
+          { id: 'T6-CONTEXT', objective: 'Compare relatos sintéticos.' },
+        ],
+      },
+    }),
+  );
+  await page.route('**/api/agentic/pilot/executions', async (route) => {
+    posted.push({ body: route.request().postDataJSON(), key: route.request().headers()['idempotency-key'] });
+    await route.fulfill({ status: 503, json: { error: 'CLOSED_PILOT_UNAVAILABLE', message: 'Falha simulada local.' } });
+  });
+  await login(page);
+  await page.setViewportSize({ width: 320, height: 900 });
+  const panel = page.getByRole('region', { name: 'Piloto fechado e consumo' });
+  await expect(panel).toContainText('Teto cumulativo');
+  await expect(panel).toContainText('5,00');
+  await expect(panel).toContainText('4,41');
+  await expect(panel).toContainText('0,04');
+  await expect(panel).toContainText('não são uma fatura');
+  await expect(page.getByLabel('O que você precisa fazer?', { exact: true })).toHaveCount(0);
+  const consent = panel.getByRole('checkbox', { name: /Autorizo o envio/ });
+  const start = panel.getByRole('button', { name: 'Executar exemplo sintético' });
+  await expect(consent).not.toBeChecked();
+  await expect(start).toBeDisabled();
+  await consent.check();
+  await panel.getByLabel('Limite desta execução (centavos de dólar)').fill('60');
+  await expect(consent).not.toBeChecked();
+  await consent.check();
+  await panel.getByLabel('Exemplo sintético aprovado').selectOption('T6-CONTEXT');
+  await expect(consent).not.toBeChecked();
+  await consent.check();
+  await start.click();
+  await expect(panel.getByRole('alert')).toContainText('Não foi possível autorizar o exemplo');
+  await start.click();
+  await expect.poll(() => posted.length).toBe(2);
+  expect(posted[0].body).toEqual({ caseId: 'T6-CONTEXT', maxCostCents: 60, confirmed: true });
+  expect(posted[0].key).toBeTruthy();
+  expect(posted[1]).toEqual(posted[0]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
 test('regressão final: rever pedido preserva texto e finalidade', async ({ page }) => {
   await login(page);
   await page.getByRole('button', { name: 'Analisar documentos', exact: true }).click();
@@ -175,7 +236,30 @@ test('regressão final: falha em outra área preserva trabalho e edição não s
   await prepare(page, 'Preciso de uma minuta para conferir', 'Criar uma peça');
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
   await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  // A late case-list response must use the editor's requested location,
+  // even while that retained editor is hidden behind another surface.
+  let releaseCases!: () => void, casesReached!: () => void, casesFinished!: () => void;
+  const holdCases = new Promise<void>((resolve) => {
+    releaseCases = resolve;
+  });
+  const reachedCases = new Promise<void>((resolve) => {
+    casesReached = resolve;
+  });
+  const finishedCases = new Promise<void>((resolve) => {
+    casesFinished = resolve;
+  });
+  let caseLists = 0;
+  await page.route('**/api/v2/matters', async (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    if (++caseLists > 1) return route.continue();
+    const response = await route.fetch();
+    casesReached();
+    await holdCases;
+    await route.fulfill({ response });
+    casesFinished();
+  });
   await page.getByRole('link', { name: 'Editar minuta', exact: true }).click();
+  await reachedCases;
   const input = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
   await input.fill('Edição preservada durante falha de outra página.');
   await page.route('**/src/screens/ResearchDeskScreen.tsx*', (route) => route.abort('failed'));
@@ -184,6 +268,8 @@ test('regressão final: falha em outra área preserva trabalho e edição não s
     .getByRole('button', { name: 'Pesquisa', exact: true })
     .click();
   await expect(page.getByRole('heading', { name: 'Não foi possível abrir esta página', exact: true })).toBeVisible();
+  releaseCases();
+  await finishedCases;
   await page.getByRole('button', { name: 'Trabalho', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
   await page.getByRole('link', { name: 'Editar minuta', exact: true }).click();

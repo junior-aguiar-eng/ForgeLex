@@ -112,34 +112,56 @@ export class ExecutionStore {
       })
       .where(eq(agenticExecutionJobs.executionId, job.executionId));
   }
-  async pendingReleases(now: string): Promise<ExecutionJob[]> {
-    return (
-      await this.db
-        .select()
-        .from(agenticExecutionJobs)
-        .where(
-          and(
-            eq(agenticExecutionJobs.budgetReleasePending, 1),
-            or(isNull(agenticExecutionJobs.budgetReleaseNextAt), lte(agenticExecutionJobs.budgetReleaseNextAt, now)),
-          ),
-        )
-        .limit(50)
-    ).map((row) => JSON.parse(row.payloadJson));
+  private async managedJobs(
+    page: (offset: number) => Promise<{ payloadJson: string }[]>,
+    accepts?: (job: ExecutionJob) => Promise<boolean>,
+  ): Promise<ExecutionJob[]> {
+    const selected: ExecutionJob[] = [];
+    for (let offset = 0; ; offset += 50) {
+      const rows = await page(offset);
+      for (const row of rows) {
+        const job = JSON.parse(row.payloadJson) as ExecutionJob;
+        if (!accepts || (await accepts(job))) selected.push(job);
+        if (selected.length === 50) return selected;
+      }
+      if (!accepts || rows.length < 50) return selected;
+    }
   }
-  async candidates(now: string): Promise<ExecutionJob[]> {
-    return (
-      await this.db
-        .select()
-        .from(agenticExecutionJobs)
-        .where(
-          or(
-            eq(agenticExecutionJobs.state, 'READY'),
-            and(eq(agenticExecutionJobs.state, 'LEASED'), lte(agenticExecutionJobs.leaseExpiresAt, now)),
-          ),
-        )
-        .orderBy(asc(agenticExecutionJobs.createdAt))
-        .limit(50)
-    ).map((row) => JSON.parse(row.payloadJson));
+  async pendingReleases(now: string, accepts?: (job: ExecutionJob) => Promise<boolean>): Promise<ExecutionJob[]> {
+    return this.managedJobs(
+      async (offset) =>
+        this.db
+          .select()
+          .from(agenticExecutionJobs)
+          .where(
+            and(
+              eq(agenticExecutionJobs.budgetReleasePending, 1),
+              or(isNull(agenticExecutionJobs.budgetReleaseNextAt), lte(agenticExecutionJobs.budgetReleaseNextAt, now)),
+            ),
+          )
+          .orderBy(asc(agenticExecutionJobs.createdAt), asc(agenticExecutionJobs.executionId))
+          .limit(50)
+          .offset(offset),
+      accepts,
+    );
+  }
+  async candidates(now: string, accepts?: (job: ExecutionJob) => Promise<boolean>): Promise<ExecutionJob[]> {
+    return this.managedJobs(
+      async (offset) =>
+        this.db
+          .select()
+          .from(agenticExecutionJobs)
+          .where(
+            or(
+              eq(agenticExecutionJobs.state, 'READY'),
+              and(eq(agenticExecutionJobs.state, 'LEASED'), lte(agenticExecutionJobs.leaseExpiresAt, now)),
+            ),
+          )
+          .orderBy(asc(agenticExecutionJobs.createdAt), asc(agenticExecutionJobs.executionId))
+          .limit(50)
+          .offset(offset),
+      accepts,
+    );
   }
   async call(id: string, callId: string) {
     return (

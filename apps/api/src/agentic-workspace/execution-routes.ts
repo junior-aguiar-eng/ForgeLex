@@ -9,8 +9,10 @@ import { encodeExecutionEvent } from './event-stream.js';
 import { createCaseTaskDriver, type NativeCaseTaskOptions } from './case-task-driver.js';
 import type { ResearchService } from '@forgelex/legal-tools';
 import { LEGAL_ACTION_CATALOG } from '@forgelex/legal-workflows';
+import type { ClosedPilot } from './closed-pilot.js';
 
 export interface AgenticWorkspaceRuntimeOptions {
+  closedPilot?: ClosedPilot;
   driver?: ExecutionDriver;
   caseTask?: NativeCaseTaskOptions;
   scheduler?: boolean;
@@ -29,16 +31,24 @@ export function registerAgenticWorkspace(
   },
 ) {
   if (deps.environment.FORGELEX_AGENTIC_WORKSPACE_ENABLED !== 'true') return;
+  const pilot = deps.options?.closedPilot;
+  if (pilot && (deps.options?.driver || deps.options?.caseTask)) throw new Error('CASE_TASK_CONFIGURATION_CONFLICT');
   if (deps.options?.driver && deps.options.caseTask) throw new Error('CASE_TASK_CONFIGURATION_CONFLICT');
   const caseTask =
-    deps.database && deps.client && deps.options?.caseTask
-      ? createCaseTaskDriver(deps.database, deps.client, deps.options.caseTask, deps.researchService)
+    deps.database && deps.client && (pilot?.caseTask || deps.options?.caseTask)
+      ? createCaseTaskDriver(
+          deps.database,
+          deps.client,
+          (pilot?.caseTask ?? deps.options!.caseTask)!,
+          pilot ? undefined : deps.researchService,
+        )
       : undefined;
   const driver = deps.options?.driver ?? caseTask?.driver;
   const service =
-    deps.database && deps.client
+    pilot?.service ??
+    (deps.database && deps.client
       ? new ExecutionService(deps.database, deps.client, { executorAvailable: Boolean(driver) })
-      : undefined;
+      : undefined);
   const worker = service ? new ExecutionWorker(service, driver, { leaseMs: deps.options?.leaseMs }) : undefined;
   let running = false;
   const tick = async () => {
@@ -65,10 +75,38 @@ export function registerAgenticWorkspace(
   }
   const owner = (req: FastifyRequest) => ({ tenantId: req.principal.tenantId, userId: req.principal.userId });
   const session = async (req: FastifyRequest, reply: FastifyReply) => {
+    if (pilot) {
+      try {
+        pilot.assertOwner(owner(req));
+      } catch {
+        return reply
+          .code(403)
+          .send({ error: 'CLOSED_PILOT_FORBIDDEN', message: 'Este piloto é restrito ao responsável autorizado.' });
+      }
+    }
     if (req.principal.authMethod !== 'session')
       return reply
         .code(403)
         .send({ error: 'SESSION_REQUIRED', message: 'Entre na sua conta para acessar este trabalho.' });
+  };
+  const closedCommands = async (req: FastifyRequest, reply: FastifyReply) => {
+    if (!pilot) return;
+    const routeId = (req.params as { id?: string }).id;
+    if (routeId) {
+      const id = req.url.startsWith('/api/agentic/deliveries/') ? routeId.replace(/^delivery:/, '') : routeId;
+      const execution = await pilot.service.store.workspace.getExecution(owner(req), id);
+      if (!pilot.canManageExecution(execution)) return reply.code(404).send({ error: 'EXECUTION_NOT_FOUND' });
+    }
+    if (req.method !== 'POST' || req.url.startsWith('/api/agentic/pilot/')) return;
+    if (req.url.endsWith('/cancel')) {
+      const id = (req.params as { id?: string }).id;
+      const execution = id ? await pilot.service.store.workspace.getExecution(owner(req), id) : undefined;
+      if (pilot.canManageExecution(execution)) return;
+    }
+    return reply.code(403).send({
+      error: 'CLOSED_PILOT_SYNTHETIC_ONLY',
+      message: 'Use somente os exemplos sintéticos aprovados no painel do piloto.',
+    });
   };
   const caseScope = async (req: FastifyRequest, reply: FastifyReply) => {
     if (req.principal.scopes.includes('matter:read') || !service) return;
@@ -93,7 +131,7 @@ export function registerAgenticWorkspace(
         .send({ error: 'EXECUTION_UNAVAILABLE', message: 'Não foi possível verificar o acesso ao trabalho.' });
     }
   };
-  const options = { preHandler: [deps.auth.createPreHandler(['research:read']), session, caseScope] };
+  const options = { preHandler: [deps.auth.createPreHandler(['research:read']), session, caseScope, closedCommands] };
   const key = (req: FastifyRequest) => z.string().trim().min(1).max(200).parse(req.headers['idempotency-key']);
   const executionId = (req: FastifyRequest) => z.object({ id: z.string().guid() }).parse(req.params).id;
   const required = () => {
@@ -155,6 +193,7 @@ export function registerAgenticWorkspace(
     options,
     handle(async () => ({
       available: Boolean(driver),
+      ...(pilot ? { closedPilot: true } : {}),
       actions: LEGAL_ACTION_CATALOG.map((a) => ({
         id: a.id,
         label: a.label,
@@ -162,6 +201,50 @@ export function registerAgenticWorkspace(
       })),
     })),
   );
+  if (pilot) {
+    const pilotError = (reply: FastifyReply, error: unknown) => {
+      const message = error instanceof Error ? error.message : '';
+      const code =
+        error instanceof z.ZodError
+          ? 'INVALID_INPUT'
+          : /^(CLOSED_PILOT_[A-Z_]+|BILLING_INSUFFICIENT_BALANCE|BUDGET_EXCEEDED|IDEMPOTENCY_CONFLICT|EXECUTION_CONFLICT|EXECUTION_NOT_FOUND)$/.test(
+                message,
+              )
+            ? message
+            : 'CLOSED_PILOT_UNAVAILABLE';
+      return reply
+        .code(
+          code === 'INVALID_INPUT'
+            ? 400
+            : code === 'EXECUTION_NOT_FOUND'
+              ? 404
+              : code === 'CLOSED_PILOT_FORBIDDEN'
+                ? 403
+                : code === 'CLOSED_PILOT_UNAVAILABLE'
+                  ? 503
+                  : 409,
+        )
+        .send({
+          error: code,
+          message: 'Não foi possível autorizar o piloto. Confira o escopo e o orçamento; o teto não foi reposto.',
+        });
+    };
+    app.get('/api/agentic/pilot/budget', options, async (req, reply) => {
+      try {
+        const query = z.strictObject({ executionId: z.string().guid().optional() }).parse(req.query);
+        return await pilot.summary(owner(req), query.executionId);
+      } catch (error) {
+        return pilotError(reply, error);
+      }
+    });
+    app.post('/api/agentic/pilot/executions', options, async (req, reply) => {
+      try {
+        return reply.code(202).send(await pilot.start(owner(req), key(req), req.body));
+      } catch (error) {
+        return pilotError(reply, error);
+      }
+    });
+  }
   app.post(
     '/api/agentic/executions/:id/corrections',
     options,
@@ -178,7 +261,7 @@ export function registerAgenticWorkspace(
     options,
     handle(async (req) => ({
       ...(await required().getExecution(owner(req), executionId(req))),
-        permissions: { editDraft: req.principal.scopes.includes('draft:write') },
+      permissions: { editDraft: req.principal.scopes.includes('draft:write') },
     })),
   );
   app.post(

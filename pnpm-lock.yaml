@@ -83,6 +83,9 @@ importers:
       '@forgelex/agent-core':
         specifier: workspace:*
         version: link:../../packages/agent-core
+      '@forgelex/agent-provider-openai':
+        specifier: workspace:*
+        version: link:../../packages/agent-provider-openai
       '@forgelex/analise-juridica':
         specifier: workspace:*
         version: link:../../packages/analise-juridica
@@ -135,9 +138,6 @@ importers:
       '@forgelex/agent-provider-anthropic':
         specifier: workspace:*
         version: link:../../packages/agent-provider-anthropic
-      '@forgelex/agent-provider-openai':
-        specifier: workspace:*
-        version: link:../../packages/agent-provider-openai
       '@types/node':
         specifier: ^22.13.9
         version: 22.20.2

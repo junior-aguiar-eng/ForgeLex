@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { Client } from '@libsql/client';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { AgenticOwnerSchema, type AgenticOwner } from '@forgelex/domain';
+import { AgenticOwnerSchema, type AgenticOwner, type AgenticExecution } from '@forgelex/domain';
 import { NormalizedUsageSchema, type NormalizedUsage } from '@forgelex/agent-core';
 import { AgenticWorkspaceRepository, type ForgeLexDatabase } from '@forgelex/persistence';
 import { LedgerService } from './ledger-service.js';
@@ -47,8 +47,33 @@ export class InferenceBudgetService {
   constructor(
     private readonly db: ForgeLexDatabase,
     client: Client,
+    private readonly options: {
+      /** Trusted composition only: an isolated currency ledger may validate execution in its application store. */
+      lookupExecution?: (owner: AgenticOwner, executionId: string) => Promise<AgenticExecution | undefined>;
+    } = {},
   ) {
     this.ledger = new LedgerService(db, client, { migrationMode: 'verify' });
+  }
+  private execution(db: ForgeLexDatabase, owner: AgenticOwner, executionId: string) {
+    return this.options.lookupExecution
+      ? this.options.lookupExecution(owner, executionId)
+      : new AgenticWorkspaceRepository(db).getExecution(owner, executionId);
+  }
+  /** Internal inspection under the same account lock as reservations; never provisions funds. */
+  async inspectAccount(owner: AgenticOwner) {
+    return this.locked(owner, async (db, account) => ({
+      paidBalanceCents: account.paidBalanceCents,
+      promotionalBalanceCents: account.promotionalBalanceCents,
+      budgets: (
+        await db
+          .select()
+          .from(inferenceBudgets)
+          .where(and(eq(inferenceBudgets.tenantId, owner.tenantId), eq(inferenceBudgets.userId, owner.userId)))
+      ).map((row) => JSON.parse(row.payloadJson) as BudgetRecord),
+      calls: (await db.select().from(inferenceCalls).where(eq(inferenceCalls.tenantId, owner.tenantId)))
+        .map((row) => JSON.parse(row.payloadJson) as BudgetCall)
+        .filter((call) => call.userId === owner.userId),
+    }));
   }
   private async locked<T>(
     owner: AgenticOwner,
@@ -96,7 +121,7 @@ export class InferenceBudgetService {
       .parse(raw);
     const inputHash = hash(input);
     return this.locked(owner, async (db, account) => {
-      const execution = await new AgenticWorkspaceRepository(db).getExecution(owner, input.executionId);
+      const execution = await this.execution(db, owner, input.executionId);
       if (!execution) throw new Error('EXECUTION_NOT_FOUND');
       const existingRows = await db
         .select()
@@ -207,7 +232,7 @@ export class InferenceBudgetService {
         return { ...existing, shouldExecute: false };
       }
       if (budget.status !== 'ACTIVE') throw new Error('BUDGET_NOT_ACTIVE');
-      const execution = await new AgenticWorkspaceRepository(db).getExecution(owner, executionId);
+      const execution = await this.execution(db, owner, executionId);
       if (
         !execution ||
         ['COMPLETED', 'FAILED', 'CANCELLED'].includes(execution.status) ||
@@ -341,7 +366,7 @@ export class InferenceBudgetService {
         if (call.provision?.fingerprint !== fingerprint) throw new Error('IDEMPOTENCY_CONFLICT');
         return call;
       }
-      const execution = await new AgenticWorkspaceRepository(db).getExecution(owner, executionId);
+      const execution = await this.execution(db, owner, executionId);
       if (!execution || !['CANCELLED', 'FAILED'].includes(execution.status)) throw new Error('EXECUTION_NOT_TERMINAL');
       if (call.status !== 'RECONCILIATION_REQUIRED') throw new Error('CALL_REQUIRES_RECONCILIATION');
       if (

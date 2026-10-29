@@ -34,14 +34,18 @@ locais sintéticos:
 
 | Área            | Estado verificado                                                                                                 | Condição de liberação                                                                                                                  |
 | --------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Executor        | `server.ts` chama `buildApp()` sem `agenticWorkspace.caseTask`; a flag registra rotas, mas não cria executor real | Configurar factory e autorização internas para o escopo aprovado e validar o caminho pelo servidor publicado                           |
-| Consentimento   | `ExecutionService.authorizeInference` é interno; não existe rota pública de autorização financeira                | Definir o percurso de consentimento e reserva no servidor; resposta jurídica não vale consentimento de gasto                           |
+| Executor        | `buildApp()` compõe worker/driver/SDK sob flag fechada, identidade explícita e fixture aprovada | Configurar IDs verificados e banco durável isolado; validar o artefato no ambiente escolhido antes de ativar |
+| Consentimento   | Painel e endpoint fechado exigem exemplo fixo, limite USD, confirmação e chave de idempotência | Reserva persistente antecede ativação do job; verificar configuração real antes de habilitar |
 | Moeda e preço   | Billing existente é BRL; tarifa e teto do piloto são USD em conta sintética isolada                               | Preservar isolamento USD/BRL. Preço/margem comercial está fora do piloto fechado; política comercial própria somente antes de clientes |
-| Consumo visível | UI explica orçamento insuficiente; rotas agênticas não projetam extrato financeiro por execução                   | Mostrar antes do envio limite/moeda/destino; distinguir consumo conhecido, reserva, provisão e saldo liberado                          |
+| Consumo visível | Painel projeta teto, disponível, escrow, consumo arredondado e provisão USD; endpoint inclui resumo da execução | Não apresentar provisão como cobrança ou os valores como fatura; manter o teto histórico de 500 centavos |
 | Retenção        | Rotinas atuais não enumeram as novas tabelas agênticas e de inferência                                            | Dados pessoais/clientes estão fora deste piloto; integrar e testar retenção antes de eventual ampliação para esses dados               |
 | Operação        | Eventos e leases persistem; o scheduler captura falha de tick sem emitir alerta específico                        | Comprovar monitoramento e recuperação sem conteúdo jurídico em logs                                                                    |
 
 ## Migrations aditivas
+
+A implementação dos itens 1 e 2 está descrita no
+[procedimento fechado](closed-pilot.md), incluindo flags, IDs obrigatórios,
+ledger original e retomada após falha. Essa composição ainda não foi ativada.
 
 Inventariar `forgelex_migrations` no banco autorizado e comparar com o artefato.
 O incremento usa `persistence-0031-agentic-workspace`,

@@ -44,6 +44,31 @@ async function fixture(balance = 100) {
 }
 const quote = { callId: 'call-1', upperBoundCents: 20, inputTokens: 1000, maxOutputTokens: 1000 };
 const usage = { provider: 'fake', model: 'fake', inputTokens: 500, outputTokens: 500 };
+
+it('consulta execução no banco autorizado sem criar conta ou saldo no ledger separado', async () => {
+  const financial = await fixture(100);
+  const application = await fixture(0);
+  const lookup = vi.fn(async (identity, executionId) => {
+    expect(identity).toEqual(owner);
+    return application.repo.getExecution(owner, executionId);
+  });
+  const service = new InferenceBudgetService(financial.db, financial.client, { lookupExecution: lookup });
+  await service.reserveExecutionBudget({ ...financial.reserve, executionId: application.execution.id });
+  await service.authorizeProviderCall(owner, application.execution.id, quote);
+  expect(lookup).toHaveBeenCalledTimes(2);
+  expect(await financial.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(40);
+  expect(await application.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(0);
+});
+
+it('inspeciona saldo e escrow persistidos sem repor o orçamento', async () => {
+  const f = await fixture(100);
+  await f.service.reserveExecutionBudget(f.reserve);
+  const before = await f.service.inspectAccount(owner);
+  expect(before).toMatchObject({ paidBalanceCents: 40, promotionalBalanceCents: 0, budgets: [{ maxCostCents: 60 }] });
+  expect(before.calls).toEqual([]);
+  await expect(f.service.inspectAccount({ ...owner, tenantId: 'absent' })).rejects.toThrow('BUDGET_NOT_FOUND');
+  expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(40);
+});
 afterEach(() => {
   for (const c of connections.splice(0)) c.client.close();
 });

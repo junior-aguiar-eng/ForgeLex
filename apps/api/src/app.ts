@@ -1,4 +1,5 @@
 import { registerAgenticWorkspace, type AgenticWorkspaceRuntimeOptions } from './agentic-workspace/execution-routes.js';
+import type { ClosedPilotDependencies } from './agentic-workspace/closed-pilot.js';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import Fastify, { FastifyInstance, FastifyReply } from 'fastify';
@@ -112,6 +113,7 @@ import { createResearchPresentationTools, DecisionPresentationService, isResearc
 import { readMcpReaderHtml } from './research/mcp-reader-resource.js';
 
 export interface BuildAppOptions {
+  closedPilotDependencies?: ClosedPilotDependencies;
   agenticWorkspace?: AgenticWorkspaceRuntimeOptions;
   matterPurgeJournal?: MatterPurgeJournal;
   oauthClientDirectory?: OAuthClientDirectory;
@@ -477,7 +479,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const researchService = new ResearchService(sourceRouter, jurisprudenceSearchService, {
     requirePersistentDataPlane: true,
   });
-  registerAgenticWorkspace(app, { database, client: databaseClient, auth: authAdapter, environment, options: options.agenticWorkspace, researchService });
+  let workspaceOptions = options.agenticWorkspace;
+  if (environment.FORGELEX_CLOSED_PILOT_ENABLED === 'true') {
+    if (!database || !databaseClient || workspaceOptions?.driver || workspaceOptions?.caseTask || workspaceOptions?.closedPilot)
+      throw new Error('CLOSED_PILOT_CONFIGURATION_REQUIRED');
+    const { createClosedPilot } = await import('./agentic-workspace/closed-pilot.js');
+    const closedPilot = await createClosedPilot(database, databaseClient, environment, options.closedPilotDependencies);
+    workspaceOptions = { ...workspaceOptions, closedPilot };
+    app.addHook('onClose', () => closedPilot.close());
+  }
+  registerAgenticWorkspace(app, { database, client: databaseClient, auth: authAdapter, environment, options: workspaceOptions, researchService });
   const savedResearchEnabled = environment.FORGELEX_SAVED_RESEARCH_ENABLED === 'true';
   const savedResearchService = databaseClient ? new SavedResearchService(new SavedResearchRepository(databaseClient), ledgerService) : undefined;
   const savedResearchDirectory = options.oauthClientDirectory ?? (environment.FORGELEX_SUPABASE_URL && environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY ? new SessionOAuthClientDirectory(environment.FORGELEX_SUPABASE_URL, environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY) : { list: async () => { throw new Error('OAUTH_DIRECTORY_UNAVAILABLE'); } });

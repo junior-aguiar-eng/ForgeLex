@@ -8,9 +8,34 @@ export interface StartInput {
   context?: Context;
   contextRevision?: number;
 }
+export interface ClosedPilotBudget {
+  currency: 'USD';
+  model: string;
+  ceilingCents: number;
+  availableCents: number;
+  settledCents: number;
+  provisionedCents: number;
+  escrowCents: number;
+  reconciliationRequired: boolean;
+  invoiceReconciled: false;
+  examples: { id: string; objective: string }[];
+  execution: { maximumCents: number; settledCents: number; escrowCents: number; status: string } | null;
+}
 export class WorkspaceClient {
   actions = () =>
-    requestApi<{ available: boolean; actions: PublicAction[] }>('/api/agentic/actions', {}, { sessionOnly: true });
+    requestApi<{ available: boolean; actions: PublicAction[]; closedPilot?: boolean }>(
+      '/api/agentic/actions',
+      {},
+      { sessionOnly: true },
+    );
+  closedBudget = (id?: string) =>
+    requestApi<ClosedPilotBudget>(
+      '/api/agentic/pilot/budget' + (id ? `?executionId=${encodeURIComponent(id)}` : ''),
+      {},
+      { sessionOnly: true },
+    );
+  closedStart = (body: { caseId: string; maxCostCents: number; confirmed: true }, key: string) =>
+    this.command('/api/agentic/pilot/executions', body, key);
   get = (id: string) =>
     requestApi<Execution>(`/api/agentic/executions/${encodeURIComponent(id)}`, {}, { sessionOnly: true });
   delivery = (id: string) =>

@@ -5,11 +5,13 @@ export function DeliveryActions({
   delivery,
   onFollowUp,
   onEditor,
+  allowFollowUp = true,
 }: {
   run: Execution;
   delivery: Delivery;
   onFollowUp: (action?: ActionId) => void;
   onEditor: (url: string) => void;
+  allowFollowUp?: boolean;
 }) {
   const link = CASE_WORKSPACE_ENABLED ? editorLink(run, delivery) : null;
   return (
@@ -28,31 +30,33 @@ export function DeliveryActions({
           Editar minuta
         </a>
       )}
-      {!link && (
+      {!link && allowFollowUp && (
         <button className="btn-primary min-h-11" onClick={() => onFollowUp()}>
           Continuar com este contexto
         </button>
       )}
-      <details>
-        <summary className="min-h-11 cursor-pointer">Mais opções</summary>
-        <div className="flex flex-col items-start gap-2">
-          {delivery.delivery.action !== 'research_question' && (
-            <button className="min-h-11 underline" onClick={() => onFollowUp('research_question')}>
-              Pesquisar fundamentos deste trabalho
-            </button>
-          )}
-          {!delivery.delivery.document && (
-            <button className="min-h-11 underline" onClick={() => onFollowUp('create_document')}>
-              Criar peça a partir deste trabalho
-            </button>
-          )}
-          {delivery.delivery.document && (
-            <button className="min-h-11 underline" onClick={() => onFollowUp('review_text')}>
-              Revisar este texto
-            </button>
-          )}
-        </div>
-      </details>
+      {allowFollowUp && (
+        <details>
+          <summary className="min-h-11 cursor-pointer">Mais opções</summary>
+          <div className="flex flex-col items-start gap-2">
+            {delivery.delivery.action !== 'research_question' && (
+              <button className="min-h-11 underline" onClick={() => onFollowUp('research_question')}>
+                Pesquisar fundamentos deste trabalho
+              </button>
+            )}
+            {!delivery.delivery.document && (
+              <button className="min-h-11 underline" onClick={() => onFollowUp('create_document')}>
+                Criar peça a partir deste trabalho
+              </button>
+            )}
+            {delivery.delivery.document && (
+              <button className="min-h-11 underline" onClick={() => onFollowUp('review_text')}>
+                Revisar este texto
+              </button>
+            )}
+          </div>
+        </details>
+      )}
     </div>
   );
 }
