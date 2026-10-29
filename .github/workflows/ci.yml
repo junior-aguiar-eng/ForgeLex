@@ -42,7 +42,7 @@ jobs:
         run: pnpm exec vitest run
 
   postgres:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         # Fetch the official image directly; the ECR mirror exhausted its data quota.
@@ -63,6 +63,10 @@ jobs:
       FORGELEX_LOCAL_POSTGRES_URL: postgres://forgelex:forgelex@127.0.0.1:55432/forgelex
     steps:
       - uses: actions/checkout@v4
+      - name: Use PostgreSQL 16 client for backup and restore
+        run: |
+          test -x /usr/lib/postgresql/16/bin/pg_dump
+          echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
