@@ -208,6 +208,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
   const [title, setTitle] = useState('');
   const [practiceArea, setPracticeArea] = useState('');
   const [documentTitle, setDocumentTitle] = useState('');
+  const documentFormRef = useRef<HTMLDetailsElement>(null);
   const [filename, setFilename] = useState('');
   const [content, setContent] = useState('');
   const [factStatement, setFactStatement] = useState('');
@@ -738,8 +739,8 @@ export const MatterWorkspaceScreen: React.FC = () => {
             {selectedMatter && <section id="documentos" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
               <div className="flex items-center gap-2"><FileText className="w-5 h-5 text-cognac-700" /><h2 className="font-editorial text-xl font-bold text-stone-900">Documentos do caso</h2><span className="text-xs text-stone-500">{documents.length}</span></div>
               {authStatus === 'authenticated' && <LifecycleFilter label="Mostrar documentos" disabled={busy} value={documentView} onChange={setDocumentView} />}
-              <PdfTextImport key={selectedMatterId} disabled={readOnly || busy || !hasApiAccess} onLoadingChange={setImportingPdf} onExtract={(result, importedTitle) => { setDocumentTitle(importedTitle); setFilename(result.filename); setContent(result.content); }} />
-              <details className="rounded-xl border border-stone-200 p-3"><summary className="cursor-pointer text-sm font-semibold">Adicionar documento</summary><div className="pt-3"><form onSubmit={ingestDocument} className="grid grid-cols-1 md:grid-cols-2 gap-3"><fieldset disabled={readOnly} className="contents">
+              <PdfTextImport key={selectedMatterId} disabled={readOnly || busy || !hasApiAccess} onLoadingChange={setImportingPdf} onExtract={(result, importedTitle) => { setDocumentTitle(importedTitle); setFilename(result.filename); setContent(result.content); if (documentFormRef.current) documentFormRef.current.open = true; }} />
+              <details ref={documentFormRef} className="rounded-xl border border-stone-200 p-3"><summary className="cursor-pointer text-sm font-semibold">Adicionar documento</summary><div className="pt-3"><form onSubmit={ingestDocument} className="grid grid-cols-1 md:grid-cols-2 gap-3"><fieldset disabled={readOnly} className="contents">
                 <input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="Título do documento" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                 <input value={filename} onChange={(event) => setFilename(event.target.value)} placeholder="Nome do arquivo (ex.: fatos.txt)" className="px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
                 <textarea aria-label="Texto do documento" value={content} onChange={(event) => setContent(event.target.value)} placeholder="Cole o texto do documento para criar a primeira versão e suas âncoras..." rows={5} className="md:col-span-2 px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm resize-y" />

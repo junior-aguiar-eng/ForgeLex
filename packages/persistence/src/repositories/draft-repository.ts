@@ -599,7 +599,12 @@ export class DraftRepository {
         eq(schema.draftApprovalTokens.tokenHash, tokenHash),
         isNull(schema.draftApprovalTokens.usedAt),
       )).returning({ expiresAt: schema.draftApprovalTokens.expiresAt });
-      if (consumed.length !== 1) throw new Error('APPROVAL_TOKEN_INVALID: token rotacionado ou utilizado.');
+      if (consumed.length !== 1) {
+        const current = await tx.select({ tokenHash: schema.draftApprovalTokens.tokenHash, usedAt: schema.draftApprovalTokens.usedAt })
+          .from(schema.draftApprovalTokens).where(and(eq(schema.draftApprovalTokens.id, tokenRow.id), eq(schema.draftApprovalTokens.tenantId, input.tenantId))).limit(1);
+        if (current[0]?.tokenHash === tokenHash && current[0].usedAt) throw new Error('APPROVAL_TOKEN_USED: token de aprovação já utilizado.');
+        throw new Error('APPROVAL_TOKEN_INVALID: token rotacionado ou inválido.');
+      }
       if (consumed[0].expiresAt && Date.parse(consumed[0].expiresAt) <= Date.now()) throw new Error('APPROVAL_TOKEN_EXPIRED');
       const version = await new DraftRepository(tx as unknown as ForgeLexDatabase).getVersion(input.tenantId, requestRow.matterId, requestRow.draftId, requestRow.draftVersionId);
       if (!version) throw new Error('DRAFT_VERSION_NOT_FOUND');

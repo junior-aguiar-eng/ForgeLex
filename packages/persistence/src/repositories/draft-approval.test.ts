@@ -137,7 +137,17 @@ describe('Aprovação vinculada à versão do documento', () => {
       expect((await repository.getVersion(tenantId, matter.id, draft.id, v3.version.id))?.version.status).toBe(winner.value.request.status);
       const v4 = await repository.createVersion({ ...input, contentHash: 'd'.repeat(64) });
       await review(v4);
-      const finalApproval = await repository.createApprovalRequest({ ...context, draftId: draft.id, draftVersionId: v4.version.id, requestedBy: 'author', proposedAction: 'Conferir retorno da decisão' });
+      const raced = await repository.createApprovalRequest({ ...context, draftId: draft.id, draftVersionId: v4.version.id, requestedBy: 'author', proposedAction: 'Conferir corrida' });
+      const originalTransaction = db.transaction.bind(db);
+      vi.spyOn(db, 'transaction').mockImplementationOnce(async callback => {
+        await repository.resolveApproval({ tenantId, token: raced.token, decision: 'APPROVED', decidedBy: 'reviewer' });
+        return originalTransaction(callback);
+      });
+      await expect(repository.resolveApproval({ tenantId, token: raced.token, decision: 'REJECTED', decidedBy: 'reviewer' })).rejects.toThrow('APPROVAL_TOKEN_USED');
+      vi.restoreAllMocks();
+      const v5 = await repository.createVersion({ ...input, contentHash: 'e'.repeat(64) });
+      await review(v5);
+      const finalApproval = await repository.createApprovalRequest({ ...context, draftId: draft.id, draftVersionId: v5.version.id, requestedBy: 'author', proposedAction: 'Conferir retorno da decisão' });
       const transaction = db.transaction.bind(db);
       let readsAfterCommit = 0;
       vi.spyOn(db, 'transaction').mockImplementationOnce(async callback => {
