@@ -303,6 +303,39 @@ describe('AccountClosurePurgeService', () => {
     }
   });
 
+  it('retenção de sessão não fecha gravações enquanto job aguarda; expurgo após a exceção termina', async () => {
+    await client.execute({sql:'INSERT INTO agentic_conversations(id,tenant_id,user_id,objective,context_revision,created_at) VALUES(?,?,?,?,1,?)',args:['held-pending',fixture.tenantId,fixture.userId,'retido',now]});
+    await client.execute({sql:'INSERT INTO agentic_executions(id,tenant_id,user_id,conversation_id,idempotency_key,input_hash,payload_json,event_sequence) VALUES(?,?,?,?,?,?,?,0)',args:['held-run',fixture.tenantId,fixture.userId,'held-pending','key','hash','{}']});
+    await client.execute({sql:'INSERT INTO agentic_execution_jobs(execution_id,tenant_id,user_id,state,payload_json,created_at) VALUES(?,?,?,?,?,?)',args:['held-run',fixture.tenantId,fixture.userId,'WAITING','{}',now]});
+    await client.execute({sql:"INSERT INTO retention_exceptions(id,closure_id,category,legal_basis_reference,authority_reference,responsible,starts_at,review_at,status) VALUES('held-pending-exception','acl_1','SESSIONS','LEGAL_HOLD','case','Boni',?,?,'ACTIVE')",args:[now,now]});
+    const service = new AccountClosurePurgeService(client);
+    await expect(service.purgePrivateContent({tenantId:fixture.tenantId,closureId:'acl_1',now})).rejects.toThrow('ACCOUNT_CLOSURE_AGENTIC_PENDING');
+    expect((await client.execute('SELECT closed FROM agentic_tenant_guards WHERE closed=1')).rows).toHaveLength(0);
+    await client.execute("UPDATE agentic_execution_jobs SET state='CANCELLED' WHERE execution_id='held-run'");
+    await service.purgePrivateContent({tenantId:fixture.tenantId,closureId:'acl_1',now});
+    expect((await client.execute("SELECT id FROM agentic_conversations WHERE id='held-pending'")).rows).toHaveLength(1);
+    await client.execute("UPDATE retention_exceptions SET status='RELEASED' WHERE id='held-pending-exception'");
+    await service.purgePrivateContent({tenantId:fixture.tenantId,closureId:'acl_1',now});
+    expect((await client.execute('SELECT id FROM agentic_conversations')).rows).toHaveLength(0);
+  });
+
+  it('retenção de sessão preserva conversa e apenas um marcador mínimo do caso, sem reter outro caso', async () => {
+    await client.execute({sql:'INSERT INTO agentic_conversations(id,tenant_id,user_id,objective,matter_id,context_revision,created_at) VALUES(?,?,?,?,?,1,?)',args:['held-conversation',fixture.tenantId,fixture.userId,'objetivo sob retenção',fixture.matterId,now]});
+    await client.execute({sql:"INSERT INTO retention_exceptions(id,closure_id,category,legal_basis_reference,authority_reference,responsible,starts_at,review_at,status) VALUES('held-agentic','acl_1','SESSIONS','LEGAL_HOLD','case','Boni',?,?,'ACTIVE')",args:[now,now]});
+    const connection = await createDatabase({url:pathToFileURL(databasePath).toString()});
+    try { await new MatterRepository(connection.db).createMatter({tenantId:fixture.tenantId,createdBy:fixture.userId,title:'Outro caso a excluir'}); } finally {connection.client.close();}
+    const service = new AccountClosurePurgeService(client);
+    await service.purgePrivateContent({tenantId:fixture.tenantId,closureId:'acl_1',now});
+    const matters = (await client.execute({sql:'SELECT * FROM matters WHERE tenant_id=?',args:[fixture.tenantId]})).rows;
+    expect(matters).toHaveLength(1); expect(matters[0]).toMatchObject({id:fixture.matterId,title:'',description:null,lifecycle_state:'PURGED',created_by:'retained_session'});
+    expect((await client.execute('SELECT id FROM agentic_conversations')).rows).toHaveLength(1);
+    const { AccountClosureBillingRetention } = await import('./account-closure-billing-retention.js');
+    await new AccountClosureBillingRetention(client).minimize({tenantId:fixture.tenantId,userId:fixture.userId,tenantPseudonym:'closed',userPseudonym:'closed_user'});
+    await expect(service.verifyResiduals({tenantId:fixture.tenantId,closureId:'acl_1',tenantPseudonym:'closed',now})).resolves.toMatchObject({privateRows:0});
+    await client.execute({sql:"UPDATE matters SET title='resíduo privado' WHERE id=?",args:[fixture.matterId]});
+    await expect(service.verifyResiduals({tenantId:fixture.tenantId,closureId:'acl_1',tenantPseudonym:'closed',now})).rejects.toThrow('ACCOUNT_CLOSURE_RESIDUAL_DATA');
+  });
+
   it('preserva somente a categoria coberta por exceção vigente', async () => {
     await client.execute({
       sql: `INSERT INTO retention_exceptions (

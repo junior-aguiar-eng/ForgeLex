@@ -33,6 +33,7 @@ const fixtureTables = [
   'document_versions',
   'legal_documents',
   'matters',
+  'agentic_tenant_guards',
 ];
 async function tableCounts() {
   const tables = await connection.client.execute("SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name");

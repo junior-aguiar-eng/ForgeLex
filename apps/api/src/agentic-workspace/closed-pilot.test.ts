@@ -543,3 +543,22 @@ it('pausa após crash com chamada autorizada sem liquidação, inclusive após r
     restarted.start(owner, 'after-crash', { caseId: 'T6-MIN', maxCostCents: 10, confirmed: true }),
   ).rejects.toThrow('CLOSED_PILOT_RECONCILIATION_REQUIRED');
 });
+
+it('expurga aplicação somente após liberar reserva do ledger isolado e preserva seu histórico', async () => {
+  const f = await fixture();
+  const { AccountClosurePurgeService } = await import('../account/account-closure-purge-service.js');
+  const pilot = await createClosedPilot(f.app.db, f.app.client, env, {
+    financeDatabase: f.finance.db, financeClient: f.finance.client, apiKey: 'synthetic-test-key',
+  });
+  const run = await pilot.start(owner, 'retention-isolated', { caseId: 'T6-MIN', maxCostCents: 50, confirmed: true });
+  const purge = new AccountClosurePurgeService(f.app.client);
+  await expect(purge.purgePrivateContent({ tenantId: owner.tenantId, closureId: 'isolated' })).rejects.toThrow('ACCOUNT_CLOSURE_AGENTIC_PENDING');
+  await pilot.service.cancelExecution(owner, run.id, 'retention-cancel');
+  expect(await pilot.summary(owner)).toMatchObject({ escrowCents: 0 });
+  const snapshot = async () => JSON.stringify((await f.finance.client.batch(['SELECT * FROM ledger_accounts ORDER BY id', 'SELECT * FROM ledger_entries ORDER BY id', 'SELECT * FROM inference_budgets ORDER BY id', 'SELECT * FROM inference_calls ORDER BY id'], 'read')).map(r => r.rows));
+  const before = await snapshot();
+  await purge.purgePrivateContent({ tenantId: owner.tenantId, closureId: 'isolated' });
+  expect(await snapshot()).toBe(before);
+  expect((await f.app.client.execute('SELECT id FROM agentic_executions')).rows).toHaveLength(0);
+  await expect(pilot.start(owner, 'late-retention', { caseId: 'T6-MIN', maxCostCents: 50, confirmed: true })).rejects.toThrow('AGENTIC_TENANT_CLOSED');
+});

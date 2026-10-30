@@ -1,5 +1,9 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+export const agenticTenantGuards = sqliteTable('agentic_tenant_guards', {
+  tenantKey: text('tenant_key').primaryKey(), closed: integer('closed').notNull().default(0),
+});
+
 export const agenticCommandOwners = sqliteTable('agentic_command_owners', {
   id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(), version: integer('version').notNull().default(0),
 });

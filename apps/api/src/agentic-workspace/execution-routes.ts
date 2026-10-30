@@ -145,7 +145,8 @@ export function registerAgenticWorkspace(
       try {
         return await operation(req, reply);
       } catch (error) {
-        const message = error instanceof Error ? error.message : '';
+        const original = error instanceof Error ? error.message : '';
+        const message = original === 'AGENTIC_TENANT_CLOSED' ? 'ACCESS_REVOKED' : original;
         const code =
           error instanceof z.ZodError
             ? 'INVALID_INPUT'
@@ -203,11 +204,12 @@ export function registerAgenticWorkspace(
   );
   if (pilot) {
     const pilotError = (reply: FastifyReply, error: unknown) => {
-      const message = error instanceof Error ? error.message : '';
+      const original = error instanceof Error ? error.message : '';
+        const message = original === 'AGENTIC_TENANT_CLOSED' ? 'ACCESS_REVOKED' : original;
       const code =
         error instanceof z.ZodError
           ? 'INVALID_INPUT'
-          : /^(CLOSED_PILOT_[A-Z_]+|BILLING_INSUFFICIENT_BALANCE|BUDGET_EXCEEDED|IDEMPOTENCY_CONFLICT|EXECUTION_CONFLICT|EXECUTION_NOT_FOUND)$/.test(
+          : /^(ACCESS_REVOKED|CLOSED_PILOT_[A-Z_]+|BILLING_INSUFFICIENT_BALANCE|BUDGET_EXCEEDED|IDEMPOTENCY_CONFLICT|EXECUTION_CONFLICT|EXECUTION_NOT_FOUND)$/.test(
                 message,
               )
             ? message
@@ -218,7 +220,7 @@ export function registerAgenticWorkspace(
             ? 400
             : code === 'EXECUTION_NOT_FOUND'
               ? 404
-              : code === 'CLOSED_PILOT_FORBIDDEN'
+              : (code === 'CLOSED_PILOT_FORBIDDEN' || code === 'ACCESS_REVOKED')
                 ? 403
                 : code === 'CLOSED_PILOT_UNAVAILABLE'
                   ? 503
@@ -356,7 +358,7 @@ export function registerAgenticWorkspace(
         } catch (error) {
           if (!closed) {
             const code =
-              error instanceof Error && error.message === 'ACCESS_REVOKED' ? 'ACCESS_REVOKED' : 'EXECUTION_UNAVAILABLE';
+              error instanceof Error && ['ACCESS_REVOKED', 'AGENTIC_TENANT_CLOSED'].includes(error.message) ? 'ACCESS_REVOKED' : 'EXECUTION_UNAVAILABLE';
             reply.raw.write(`event: error\ndata: ${JSON.stringify({ code })}\n\n`);
             reply.raw.end();
           }

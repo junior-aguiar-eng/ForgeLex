@@ -1,3 +1,4 @@
+import { seedAgenticRetention, assertAgenticRetention } from './agentic-retention-fixture.mjs';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
@@ -109,6 +110,7 @@ try {
     scopes: ['mcp'],
   });
   const purchaseId = randomUUID();
+  await seedAgenticRetention(source.db,sourceClient,{tenantId:account.tenant.id,userId:account.user.id});
   const now = new Date().toISOString();
   await sourceClient.execute({
     sql: `INSERT INTO billing_purchases (id, tenant_id, user_id, package_id, idempotency_key,
@@ -248,6 +250,7 @@ try {
   );
   assert.deepEqual(await gate.replay(), { reapplied: 0, completed: 1 });
   assert.equal(await gate.check(), true);
+  await assertAgenticRetention(target.db,targetClient,{tenantId:account.tenant.id,userId:account.user.id});
   assert.deepEqual(await gate.replay(), { reapplied: 0, completed: 0 });
   assert.ok(identityDeletes >= 1);
   assert.equal((await targetRepository.findById(accepted.closure.id))?.status, 'COMPLETED');
@@ -301,7 +304,7 @@ try {
         'five_steps_completed',
         'api_key_revoked',
         'private_data_purged',
-        'financial_data_minimized',
+        'financial_data_minimized', 'agentic_content_erased_finance_minimized_late_write_denied',
         'login_denied',
         'receipt_available',
         'idempotent_replay',

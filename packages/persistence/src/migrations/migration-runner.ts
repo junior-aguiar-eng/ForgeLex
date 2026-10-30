@@ -1166,6 +1166,9 @@ export const persistenceMigrations: readonly SqlMigration[] = [
   `CREATE TABLE agentic_task_deliveries (id TEXT PRIMARY KEY, execution_id TEXT NOT NULL REFERENCES agentic_executions(id), conversation_id TEXT NOT NULL REFERENCES agentic_conversations(id), tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, context_revision INTEGER NOT NULL, payload_json TEXT NOT NULL, content_hash TEXT NOT NULL, draft_id TEXT, version_id TEXT);`,
   `CREATE UNIQUE INDEX agentic_task_deliveries_execution_idx ON agentic_task_deliveries(execution_id);`,
 ] },
+{ id: 'persistence-0035-agentic-tenant-guards', statements: [
+  `CREATE TABLE agentic_tenant_guards (tenant_key TEXT PRIMARY KEY, closed INTEGER NOT NULL DEFAULT 0 CHECK (closed IN (0,1)));`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

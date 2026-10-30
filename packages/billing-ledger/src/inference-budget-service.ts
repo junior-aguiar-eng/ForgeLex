@@ -4,7 +4,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { AgenticOwnerSchema, type AgenticOwner, type AgenticExecution } from '@forgelex/domain';
 import { NormalizedUsageSchema, type NormalizedUsage } from '@forgelex/agent-core';
-import { AgenticWorkspaceRepository, type ForgeLexDatabase } from '@forgelex/persistence';
+import { AgenticWorkspaceRepository, lockAgenticTenant, type ForgeLexDatabase } from '@forgelex/persistence';
 import { LedgerService } from './ledger-service.js';
 import { ledgerAccounts, billingOperations } from './schema/ledger-schema.js';
 import { inferenceBudgets, inferenceCalls } from './schema/inference-budget-schema.js';
@@ -82,6 +82,7 @@ export class InferenceBudgetService {
     AgenticOwnerSchema.parse(owner);
     return this.db.transaction(async (transaction) => {
       const db = transaction as unknown as ForgeLexDatabase;
+      await lockAgenticTenant(db, owner.tenantId);
       const [account] = await db
         .update(ledgerAccounts)
         .set({ updatedAt: sql`${ledgerAccounts.updatedAt}` })

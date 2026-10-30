@@ -3,6 +3,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { AgenticOwnerSchema, type AgenticOwner } from '@forgelex/domain';
 import {
   AgenticWorkspaceRepository,
+  lockAgenticTenant,
   agenticCommandOwners,
   agenticCommands,
   agenticExecutionJobs,
@@ -41,6 +42,7 @@ export class ExecutionStore {
     return this.db.transaction(async (tx) => {
       const store = new ExecutionStore(tx as unknown as ForgeLexDatabase),
         id = digest({ tenantId: owner.tenantId, userId: owner.userId });
+      await lockAgenticTenant(store.db, owner.tenantId);
       await store.db
         .insert(agenticCommandOwners)
         .values({ id, ...owner, version: 0 })

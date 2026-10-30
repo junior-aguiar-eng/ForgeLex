@@ -1,3 +1,4 @@
+import { closeAgenticTenant } from '@forgelex/persistence';
 import type { Client } from '@forgelex/persistence';
 import { createHash } from 'node:crypto';
 
@@ -21,6 +22,10 @@ interface TenantStatement {
   deleteSql: string;
   countSql: string;
 }
+
+// A held conversation retains its relationship without retaining the deleted case's private fields.
+const referencedByHeldConversation = 'EXISTS (SELECT 1 FROM agentic_conversations c WHERE c.matter_id=matters.id AND c.tenant_id=matters.tenant_id)';
+const minimalMatterShell = "lifecycle_state='PURGED' AND title='' AND description IS NULL AND client_id IS NULL AND practice_area IS NULL AND jurisdiction IS NULL AND previous_business_status IS NULL AND previous_lifecycle_state IS NULL AND created_by='retained_session' AND archived_by IS NULL AND trashed_by IS NULL AND restored_by IS NULL AND purged_by='account_closure'";
 
 const tenantStatements: readonly TenantStatement[] = [
   direct('agentic_commands', 'SESSIONS'),
@@ -76,7 +81,7 @@ const tenantStatements: readonly TenantStatement[] = [
   nested('checkpoints', 'SESSIONS', 'session_id IN (SELECT id FROM sessions WHERE tenant_id = ?)'),
   nested('session_messages', 'SESSIONS', 'session_id IN (SELECT id FROM sessions WHERE tenant_id = ?)'),
   direct('sessions', 'SESSIONS'),
-  direct('matters', 'MATTERS'),
+  { table: 'matters', category: 'MATTERS', deleteSql: `DELETE FROM matters WHERE tenant_id=? AND NOT (${referencedByHeldConversation})`, countSql: `SELECT COUNT(*) AS count FROM matters WHERE tenant_id=? AND NOT ((${referencedByHeldConversation}) AND (${minimalMatterShell}))` },
 ];
 
 // Analysis sessions are independent of matters. Their results and operation
@@ -138,6 +143,7 @@ export class AccountClosurePurgeService {
     const transaction = await this.client.transaction();
     let deletedRows = 0;
     try {
+      await closeAgenticTenant(transaction, input.tenantId);
       await transaction.execute({ sql: 'UPDATE ledger_accounts SET updated_at=updated_at WHERE tenant_id=?', args: [input.tenantId] });
       const budgets = await transaction.execute({ sql: 'SELECT payload_json FROM inference_budgets WHERE tenant_id=?', args: [input.tenantId] });
       const calls = await transaction.execute({ sql: 'SELECT payload_json FROM inference_calls WHERE tenant_id=?', args: [input.tenantId] });
@@ -156,7 +162,7 @@ export class AccountClosurePurgeService {
         sql: "SELECT execution_id FROM agentic_execution_jobs WHERE tenant_id=? AND (state NOT IN ('COMPLETED','FAILED','CANCELLED') OR budget_release_pending<>0) LIMIT 1",
         args: [input.tenantId],
       });
-      if (!held.has('SESSIONS') && pending.rows.length) throw new Error('ACCOUNT_CLOSURE_AGENTIC_PENDING');
+      if (pending.rows.length) throw new Error('ACCOUNT_CLOSURE_AGENTIC_PENDING');
       const statements = await this.availableTenantStatements(transaction);
       if (!held.has('MATTERS')) {
         const closures = await transaction.execute({
@@ -170,6 +176,12 @@ export class AccountClosurePurgeService {
         await transaction.execute({
           sql: 'UPDATE matter_lifecycle_purge_operations SET tenant_id=? WHERE tenant_id=?',
           args: [`tenant_closed_${hash.slice(0, 24)}`, input.tenantId],
+        });
+      }
+      if (held.has('SESSIONS') && !held.has('MATTERS')) {
+        await transaction.execute({
+          sql: `UPDATE matters SET title='',description=NULL,client_id=NULL,practice_area=NULL,jurisdiction=NULL,previous_business_status=NULL,previous_lifecycle_state=NULL,status='ARCHIVED',created_by='retained_session',lifecycle_state='PURGED',lifecycle_revision=CASE WHEN lifecycle_state='PURGED' THEN lifecycle_revision ELSE lifecycle_revision+1 END,archived_at=NULL,archived_by=NULL,trashed_at=NULL,trashed_by=NULL,restored_at=NULL,restored_by=NULL,purged_at=COALESCE(purged_at,?),purged_by='account_closure',updated_at=? WHERE tenant_id=? AND (${referencedByHeldConversation})`,
+          args: [input.now ?? new Date().toISOString(),input.now ?? new Date().toISOString(),input.tenantId],
         });
       }
       for (const statement of statements) {

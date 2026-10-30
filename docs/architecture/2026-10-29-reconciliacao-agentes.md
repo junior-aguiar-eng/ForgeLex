@@ -1,4 +1,20 @@
-# Reconciliação local do workspace agêntico com a main
+# Reconciliação do workspace agêntico com a main
+
+## Estado técnico após conclusão da retenção
+
+Este estado substitui as pendências de implementação registradas nas etapas históricas abaixo. A publicação e a integração dependem da CI da branch final; deploy, migrations remotas e novas chamadas pagas não fazem parte desta entrega.
+
+- Exclusão de caso e encerramento removem conversas, contextos, mensagens, eventos, comandos, jobs, chamadas de execução e entregas em ordem transacional. Reservas não liquidadas e trabalhos ativos impedem a confirmação e mantêm a possibilidade de cancelamento/conciliação.
+- A migration aditiva `persistence-0035-agentic-tenant-guards` cria marcador mínimo com hash do identificador do tenant e estado de bloqueio. Gravações, comandos e reservas adquirem esse bloqueio antes de conversa/caso/carteira; o expurgo fecha o marcador na mesma transação. Pedidos já autenticados não recriam dados após a exclusão, mesmo depois da remoção da identidade. O marcador não contém nomes, conteúdo, identificador direto ou referência financeira.
+- Exceções SESSIONS preservam o conteúdo retido e somente um marcador PURGED neutralizado do caso requerido pela FK. Outros casos e os filhos sem retenção são eliminados; reintrodução de conteúdo privado no marcador reprova a verificação residual. Trabalhos pendentes impedem o fechamento mesmo sob exceção. Após retirar a exceção, o expurgo repetido elimina conversa e marcador de caso.
+- Registros financeiros liquidados conservam valores e vínculos sob pseudônimos. Texto livre e chaves fornecidas pelo usuário são minimizados; chaves correlacionadas de chamada, operação e lançamento são transformadas juntas.
+- O teste do ledger separado usa somente bancos sintéticos. Demonstra bloqueio enquanto há job/reserva, cancelamento com liberação, expurgo da aplicação e preservação exata do histórico isolado. O ledger original do piloto fechado não foi aberto ou alterado.
+- PostgreSQL real e descartável: espera por escritor admitido, rejeição de escritor atrasado, rejeição de pedido enfileirado atrás do fechamento, idempotência, minimização financeira, retenção de sessão e limpeza após retirada da exceção. Ambos os scripts de pg_dump/pg_restore incluem agora conversas e reservas/chamadas agênticas, verificam eliminação, valores preservados e bloqueio de gravação antiga após restauração.
+- Build, lint e tipos passaram localmente. Regressões de conta, orçamento, trabalhadores e persistência foram exercitadas; a fixture foi adaptada para limpar a nova tabela, mantendo a asserção de ausência de resíduos entre testes. Revisão técnica independente identificou os casos de exceção acima, que foram corrigidos e repetidos; não restaram achados importantes nessa revisão.
+- A CI inclui o novo teste concorrente de PostgreSQL e os cenários de navegador agênticos. Configuração, ativação do produto e avaliação jurídica/comercial do piloto continuam sendo decisões operacionais distintas; nenhuma foi executada por esta reconciliação.
+
+## Histórico das etapas locais
+
 
 Data: 29/10/2026. Preparação local sem commit, push, deploy, migration remota ou chamada paga. A árvore está em merge local não concluído; as duas branches de origem permanecem intactas.
 

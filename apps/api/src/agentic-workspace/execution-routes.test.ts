@@ -334,3 +334,12 @@ describe('rotas e transporte do trabalho', () => {
     expect((await f.service!.getExecution(owner, run.id)).deliveryIds).toEqual(['partial']);
   });
 });
+
+it('requisição com sessão antiga recebe acesso revogado após expurgo sem recriar trabalho', async () => {
+  const f = await fixture({ next: () => undefined });
+  const { AccountClosurePurgeService } = await import('../account/account-closure-purge-service.js');
+  await new AccountClosurePurgeService(f.client).purgePrivateContent({tenantId:owner.tenantId,closureId:'closed-route'});
+  const response = await f.app.inject({method:'POST',url:'/api/agentic/executions',headers,payload:input});
+  expect(response.statusCode).toBe(403);
+  expect(response.json().error).toBe('ACCESS_REVOKED');
+});

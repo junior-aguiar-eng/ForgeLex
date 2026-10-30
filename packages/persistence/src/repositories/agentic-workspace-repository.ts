@@ -1,3 +1,4 @@
+import { lockAgenticTenant } from './agentic-tenant-guard.js';
 import { and, asc, eq, gt, max, sql } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -66,6 +67,7 @@ export class AgenticWorkspaceRepository {
   ): Promise<T> {
     return this.db.transaction(async (transaction) => {
       const repo = new AgenticWorkspaceRepository(transaction as unknown as ForgeLexDatabase);
+      await lockAgenticTenant(repo.db, owner.tenantId);
       // Row lock on PostgreSQL; write transaction on SQLite. Serializes revisions and message ordering.
       const [row] = await repo.db
         .update(s.agenticConversations)
@@ -138,6 +140,7 @@ export class AgenticWorkspaceRepository {
     const id = randomUUID();
     await this.db.transaction(async (transaction) => {
       const repo = new AgenticWorkspaceRepository(transaction as unknown as ForgeLexDatabase);
+      await lockAgenticTenant(repo.db, owner.tenantId);
       await repo.validateReferences(owner, matterId, context);
       await repo.db
         .insert(s.agenticConversations)
@@ -155,6 +158,7 @@ export class AgenticWorkspaceRepository {
   async getConversation(owner: AgenticOwner, id: string): Promise<AgenticConversation | undefined> {
     return this.db.transaction(async (transaction) => {
       const repo = new AgenticWorkspaceRepository(transaction as unknown as ForgeLexDatabase);
+      await lockAgenticTenant(repo.db, owner.tenantId);
       // READ COMMITTED alone permits mixed revisions. Hold the same row lock used by every writer.
       const [row] = await repo.db
         .update(s.agenticConversations)

@@ -1,3 +1,4 @@
+import { holdAgenticTenant, agenticTenantKey } from './agentic-tenant-guard.js';
 import type { Client } from '@libsql/client';
 import type { LifecycleTarget, LifecycleActor, PurgeCommand, LifecycleResult, MatterPurgeIntent } from '@forgelex/domain';
 import { PurgeCommandSchema } from '@forgelex/domain';
@@ -42,6 +43,7 @@ export class MatterPurgeRepository {
     const tx = await this.client.transaction();
     let commitStarted = false;
     try {
+      await holdAgenticTenant(tx, target.tenantId);
       await tx.execute({ sql: 'UPDATE matters SET updated_at=updated_at WHERE id=? AND tenant_id=?', args: [target.matterId, target.tenantId] });
       const cases = await tx.execute({ sql: 'SELECT * FROM matters WHERE id=? AND tenant_id=?', args: [target.matterId, target.tenantId] });
       const matter = cases.rows[0];
@@ -106,6 +108,9 @@ export class MatterPurgeRepository {
   async reapply(intent: MatterPurgeIntent): Promise<void> {
     const tx = await this.client.transaction();
     try {
+      const key = agenticTenantKey(intent.target.tenantId);
+      await tx.execute({ sql: 'INSERT INTO agentic_tenant_guards(tenant_key,closed) VALUES(?,0) ON CONFLICT(tenant_key) DO NOTHING', args: [key] });
+      await tx.execute({ sql: 'UPDATE agentic_tenant_guards SET closed=closed WHERE tenant_key=?', args: [key] });
       await tx.execute({ sql: 'UPDATE matters SET updated_at=updated_at WHERE id=? AND tenant_id=?', args: [intent.target.matterId, intent.target.tenantId] });
       const existingCase = await tx.execute({ sql: 'SELECT id FROM matters WHERE id=? AND tenant_id=?', args: [intent.target.matterId, intent.target.tenantId] });
       await this.apply(tx as unknown as Executor, intent.target, intent.expectedLifecycleRevision + 1, 'restore_journal', intent.preparedAt);

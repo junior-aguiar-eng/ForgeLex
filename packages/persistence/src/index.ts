@@ -32,3 +32,5 @@ export * from './repositories/case-analysis-repository.js';
 export * from './repositories/agentic-workspace-repository.js';
 export * from './repositories/legislation-repository.js';
 export * from './repositories/native-case-task-repository.js';
+
+export * from './repositories/agentic-tenant-guard.js';

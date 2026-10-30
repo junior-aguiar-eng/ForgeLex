@@ -6,3 +6,5 @@
 4. Rodar testes relevantes, suíte, lint, tipos e build; revisar o diff e preparar PR para a main, integrando somente após checks aprovados.
 
 Não executar deploy, migração remota ou chamadas pagas.
+
+Implementação e testes específicos concluídos: bloqueio transacional 0035, testes de concorrência PostgreSQL, minimização, ledger isolado sintético, exceções e restauração real com dados agênticos. Enviar a branch, acompanhar CI e integrar somente o head verificado.
