@@ -64,7 +64,14 @@ const roles: readonly CaseTaskRole[] = [
   'legal-drafter',
   'adversarial-reviewer',
 ];
-const contractHash = () => hash({ outputContractVersion: 2, policy: CASE_TASK_POLICY, profiles: roles.map(caseTaskProfile) });
+const contractHash = () =>
+  hash({ outputContractVersion: 3, policy: CASE_TASK_POLICY, profiles: roles.map(caseTaskProfile) });
+const isFactualRecord = (plan: TaskPlan) =>
+  plan.action === 'create_document' &&
+  plan.documentPurpose === 'FACTUAL_RECORD' &&
+  !plan.requiresProcedure &&
+  !plan.requiresNorms &&
+  !plan.requiresCaseLaw;
 export interface CaseTaskProviderInput {
   binding: TaskBinding;
   role: CaseTaskRole;
@@ -173,7 +180,7 @@ export class AgenticCaseTask {
       return 'legal-researcher';
     if (state.evidence.some((s) => ['AUTHORITY', 'NORM'].includes(s.kind)) && !done['authority-verifier'])
       return 'authority-verifier';
-    if ((p.action === 'create_document' || p.requiresProcedure) && !done['procedural-advisor'])
+    if (((p.action === 'create_document' && !isFactualRecord(p)) || p.requiresProcedure) && !done['procedural-advisor'])
       return 'procedural-advisor';
     if (p.action === 'create_document' && !done['legal-drafter']) return 'legal-drafter';
     if (['create_document', 'review_text'].includes(p.action) && !done['adversarial-reviewer'])
@@ -189,9 +196,12 @@ export class AgenticCaseTask {
   ) {
     const profile = caseTaskProfile(role),
       registry = new ToolRegistry(),
-      schema = role === 'legal-orchestrator' ? TaskPlanSchema
-        : role === 'legal-drafter' ? TaskSpecialistResultSchema
-        : TaskSpecialistResultSchema.omit({ document: true });
+      schema =
+        role === 'legal-orchestrator'
+          ? TaskPlanSchema
+          : role === 'legal-drafter'
+            ? TaskSpecialistResultSchema
+            : TaskSpecialistResultSchema.omit({ document: true });
     let submitted: unknown,
       count = 0,
       sourceFailure = false,
@@ -368,7 +378,7 @@ export class AgenticCaseTask {
         version: 1,
         contextRevision: packet.contextRevision,
         prompt: gap.prompt,
-        selection: gap.options.length ? gap.selection ?? 'single' : 'free_text',
+        selection: gap.options.length ? (gap.selection ?? 'single') : 'free_text',
         options: gap.options,
         allowFreeText: true,
         allowUnknown: true,
@@ -433,13 +443,23 @@ export class AgenticCaseTask {
           );
       }
     }
-    for (const requirement of requirements)
+    for (const requirement of requirements) {
+      if (requirement.kind === 'EDITORIAL') {
+        if (!requirement.verified)
+          findings.push(this.finding('EDITORIAL_REQUIREMENT_UNVERIFIED', requirement.statement, requirement.sourceIds));
+        continue;
+      }
       if (
         !requirement.verified ||
         !requirement.sourceIds.some((id) => sources.some((s) => s.id === id && s.kind === 'NORM'))
       )
         findings.push(this.finding('PROCEDURAL_REQUIREMENT_UNVERIFIED', requirement.statement, requirement.sourceIds));
-    if (plan.action === 'create_document' && requirements.length === 0)
+    }
+    if (
+      plan.action === 'create_document' &&
+      !isFactualRecord(plan) &&
+      !requirements.some((r) => r.kind !== 'EDITORIAL')
+    )
       findings.push(
         this.finding(
           'PROCEDURAL_REQUIREMENTS_NOT_EVALUATED',

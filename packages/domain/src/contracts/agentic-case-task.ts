@@ -36,6 +36,7 @@ export const TaskClaimSchema = z.strictObject({
 });
 export const TaskRequirementSchema = z.strictObject({
   id,
+  kind: z.enum(['EDITORIAL', 'PROCEDURAL']).optional(),
   statement: text,
   sourceIds: z.array(id).max(100),
   verified: z.boolean(),

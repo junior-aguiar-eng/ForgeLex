@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-30",
+  "mode": "LOCAL_REPLAY_FAKE_PROVIDER",
+  "humanDecision": "Boni solicitou corrigir os bloqueios editoriais antes da aprovação",
+  "sourceEvidenceCanonicalSha256": "0a0d3037bbe4fdb7b6d7d201c8da063179cc05ad7996dd501d930558a1a26fe3",
+  "sourceFiles": {
+    "packages/domain/src/contracts/agentic-case-task.ts": "bf2a5903ea250165fb2e5be45de1d99b6f9d5d9ba5473e801cbfca861139e0d7",
+    "packages/legal-agents/src/agentic-case-contracts.ts": "7beb385ead91b177aa3c431e0a7437a0b4eed04cdc9d5403a6e6b9ffb78c97aa",
+    "packages/legal-workflows/src/agentic-case-task/case-task.ts": "7ebb5dff4af77d850f261dabb83d517d63499f39b3587d23b4dcde6b7314d10a"
+  },
+  "networkAttempts": 0,
+  "newPaidCalls": 0,
+  "realModelRetested": false,
+  "humanLegalApproval": false,
+  "legacyControl": {
+    "status": "LIMITED",
+    "proceduralBlockingCount": 4
+  },
+  "corrected": {
+    "status": "CANDIDATE",
+    "blockingCount": 0,
+    "editorialRequirements": 4,
+    "roles": ["legal-orchestrator", "matter-analyst", "legal-drafter", "adversarial-reviewer"],
+    "contractHash": "8847855772466938a857ef45471c4bab12d2b1b46d4660f343377cdd49abc3e3",
+    "profiles": [
+      {
+        "role": "legal-orchestrator",
+        "version": "1.1.0",
+        "instructionId": "legal-orchestrator-instructions",
+        "instructionVersion": "1.0.0",
+        "legacyAgentId": null,
+        "legacyAgentVersion": null,
+        "policyId": "agentic-case-task-policy",
+        "policyVersion": "1.1.0"
+      },
+      {
+        "role": "matter-analyst",
+        "version": "1.1.0",
+        "instructionId": "matter-analyst-instructions",
+        "instructionVersion": "1.0.0",
+        "legacyAgentId": "matter-analyst",
+        "legacyAgentVersion": "1.0.0",
+        "policyId": "agentic-case-task-policy",
+        "policyVersion": "1.1.0"
+      },
+      {
+        "role": "legal-drafter",
+        "version": "1.1.0",
+        "instructionId": "legal-drafter-instructions",
+        "instructionVersion": "1.0.0",
+        "legacyAgentId": "legal-drafter",
+        "legacyAgentVersion": "1.0.0",
+        "policyId": "agentic-case-task-policy",
+        "policyVersion": "1.1.0"
+      },
+      {
+        "role": "adversarial-reviewer",
+        "version": "1.1.0",
+        "instructionId": "text-reviewer-instructions",
+        "instructionVersion": "1.0.0",
+        "legacyAgentId": "adversarial-reviewer",
+        "legacyAgentVersion": "1.0.0",
+        "policyId": "agentic-case-task-policy",
+        "policyVersion": "1.1.0"
+      }
+    ],
+    "documentUnchanged": true,
+    "claimsUnchanged": true,
+    "delivery": {
+      "action": "create_document",
+      "contextId": "editorial-replay-20261030",
+      "contextRevision": 1,
+      "status": "CANDIDATE",
+      "humanReviewRequired": true,
+      "legalAssessment": "NOT_EVALUATED",
+      "issues": [
+        {
+          "id": "registro_limitado",
+          "statement": "Preparar registro preliminar limitado à fonte sintética: «Gamma relata que não recebeu o objeto.» Preservar a atribuição como relato, sem afirmar comprovação do não recebimento.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+        },
+        {
+          "id": "campos_nao_informados",
+          "statement": "Indicar expressamente que data, valor, destinatário e finalidade não foram informados. Não presumir esses dados, identificar o objeto sem suporte, escolher peça ou procedimento jurídico, nem acrescentar pedidos ou conclusões jurídicas. A ausência desses dados não impede o rascunho factual limitado solicitado.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+        }
+      ],
+      "claims": [
+        {
+          "id": "registro_preliminar",
+          "classification": "ALLEGATION",
+          "statement": "Rascunho preliminar de registro factual — exemplo sintético: Gamma relata que não recebeu o objeto. Data, valor, destinatário e finalidade não foram informados. O não recebimento é registrado como relato, sem afirmação de comprovação.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+        },
+        {
+          "id": "registro_factual",
+          "classification": "ALLEGATION",
+          "statement": "Registro preliminar — exemplo sintético: Gamma relata que não recebeu o objeto. Data, valor, destinatário e finalidade não foram informados. Este registro reproduz o relato, sem afirmar comprovação do não recebimento.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+        },
+        {
+          "id": "relato_gamma",
+          "classification": "ALLEGATION",
+          "statement": "Gamma relata que não recebeu o objeto.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+        },
+        {
+          "id": "relato_revisado",
+          "classification": "ALLEGATION",
+          "statement": "Gamma relata que não recebeu o objeto; o texto não comprova o não recebimento.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+        },
+        {
+          "id": "comparacao_textual",
+          "classification": "INFERENCE",
+          "statement": "O rascunho identificado no resultado legal-drafter, intitulado «Rascunho preliminar de registro factual», preserva a atribuição a Gamma, explicita os dados ausentes e não formula pedidos ou conclusões jurídicas. Na comparação com o trecho recuperado, não foi identificado salto do relato para fato comprovado. Não foi fornecido identificador de versão próprio do rascunho; a revisão limita-se ao texto reproduzido neste contexto.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "limites_registro",
+          "kind": "EDITORIAL",
+          "statement": "Manter a atribuição a Gamma e os campos expressamente não informados, sem identificar o objeto, presumir finalidade, escolher procedimento ou acrescentar pedidos ou conclusões jurídicas.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"],
+          "verified": true
+        },
+        {
+          "id": "limite_factual",
+          "kind": "EDITORIAL",
+          "statement": "Preservar a atribuição do relato a Gamma e os campos não informados; não identificar o objeto sem suporte, nem escolher peça, medida, procedimento, pedidos ou finalidade jurídica. A entrega permanece limitada ao registro factual solicitado.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"],
+          "verified": true
+        },
+        {
+          "id": "limites_redacao",
+          "kind": "EDITORIAL",
+          "statement": "Manter o caráter sintético e a atribuição do relato; explicitar os dados não informados, sem presumir finalidade, medida jurídica ou identificação do objeto.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"],
+          "verified": true
+        },
+        {
+          "id": "preservar_limites",
+          "kind": "EDITORIAL",
+          "statement": "Preservar o caráter de exemplo sintético e a atribuição do relato, sem identificar o objeto, presumir finalidade ou acrescentar medida jurídica. Os campos data, valor, destinatário e finalidade permanecem não informados. Esses limites estão observados no texto revisado.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"],
+          "verified": true
+        }
+      ],
+      "findings": [
+        {
+          "id": "lacunas_fonte",
+          "code": "REGISTRO_LIMITADO",
+          "severity": "WARNING",
+          "statement": "A fonte é um exemplo sintético e não informa data, valor, destinatário ou finalidade, nem identifica o objeto. A entrega limita-se ao registro do relato, sem comprovação independente ou cronologia; essas lacunas não impedem o rascunho factual solicitado.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+        },
+        {
+          "id": "lacunas_factuais",
+          "code": "DADOS_NAO_INFORMADOS",
+          "severity": "WARNING",
+          "statement": "A fonte sintética não informa data, valor, destinatário ou finalidade e não identifica o objeto. Essas lacunas não impedem o registro limitado do relato, mas não permitem caracterização adicional do ocorrido.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+        },
+        {
+          "id": "limite_procedimental",
+          "code": "SEM_AVALIACAO_NORMATIVA_OU_PROCEDIMENTAL",
+          "severity": "WARNING",
+          "statement": "Não foram recuperadas normas nem avaliada sua aplicabilidade. Não se definem posição processual, medida, requisitos legais ou prazos; o rascunho não contém orientação procedimental.",
+          "sourceIds": []
+        },
+        {
+          "id": "dados_ausentes",
+          "code": "REGISTRO_LIMITADO",
+          "severity": "WARNING",
+          "statement": "Data, valor, destinatário e finalidade não foram informados, e o objeto não está identificado. As lacunas não impedem este rascunho limitado ao relato.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+        },
+        {
+          "id": "limite_probatorio",
+          "code": "REVISAO_LIMITADA_AO_TRECHO",
+          "severity": "WARNING",
+          "statement": "Fonte conferida: documento 43b8fc03-490c-4e4e-b866-7751fb0ca33e, versão 08737a08-f6c0-4dfa-af82-9c71b4b84010, apenas trecho selecionado. Não há nesse material comprovação independente do não recebimento, identificação do objeto ou dados para caracterização adicional. Não foram verificadas evidências externas nem realizada avaliação jurídica; a revisão estrutural não constitui aprovação jurídica. As lacunas não impedem o registro factual limitado solicitado.",
+          "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+        }
+      ],
+      "sources": [
+        {
+          "id": "08737a08-f6c0-4dfa-af82-9c71b4b84010",
+          "kind": "DOCUMENT",
+          "contentHash": "7ebdb7ccf6bf499e614e2691b1739cdbbd6725c05aad356f54ee3b4cd5e59a05",
+          "documentId": "43b8fc03-490c-4e4e-b866-7751fb0ca33e",
+          "versionId": "08737a08-f6c0-4dfa-af82-9c71b4b84010",
+          "extent": "SELECTED_TEXT"
+        }
+      ],
+      "document": {
+        "title": "Rascunho preliminar de registro factual",
+        "documentType": "Registro factual preliminar, sem finalidade ou medida jurídica presumida",
+        "sections": [
+          {
+            "title": "Registro — exemplo sintético",
+            "content": "Gamma relata que não recebeu o objeto. Data, valor, destinatário e finalidade não foram informados. O objeto não está identificado na fonte.\n\nEste rascunho registra apenas o relato, sem afirmar a comprovação do não recebimento e sem formular pedidos ou conclusões jurídicas.",
+            "sourceIds": ["08737a08-f6c0-4dfa-af82-9c71b4b84010"]
+          }
+        ]
+      }
+    }
+  }
+}
