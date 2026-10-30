@@ -1,0 +1,1035 @@
+{
+  "date": "2026-10-30",
+  "timezone": "America/Fortaleza",
+  "timestamps": "UTC",
+  "project": "project-bbbe1209-c295-4720-867",
+  "region": "southamerica-east1",
+  "sourceSha": "dc68fcb0fb0cf8fc892157842829e5b1a5cd0d00",
+  "pr": 81,
+  "ci": {
+    "run": 40996327012,
+    "conclusion": "success"
+  },
+  "authorization": {
+    "scope": "Concluir as seis pendências na ordem; publicação e migrations autorizadas pelo pedido de 30/10",
+    "newPaidInferenceCalls": false,
+    "notificationChannelOwnerConfirmedByBoni": true
+  },
+  "build": {
+    "id": "bf7e7a9f-c504-4303-8256-8cd142cb4ab1",
+    "status": "SUCCESS",
+    "sourceSha": "dc68fcb0fb0cf8fc892157842829e5b1a5cd0d00",
+    "source": "git archive of exact main SHA",
+    "savedResearchEnabled": true,
+    "agenticWorkspaceEnabled": false,
+    "digest": "sha256:81cb33ed135c1391ae9a257ffc3a93e9326fc2f361d1c08bbca62cfa99406df6",
+    "finishTime": "2026-10-30T15:06:05.117922Z"
+  },
+  "backup": {
+    "id": "1793372457666",
+    "status": "SUCCESSFUL",
+    "startTime": "2026-10-30T15:00:57.675Z",
+    "endTime": "2026-10-30T15:03:19.703Z",
+    "type": "ON_DEMAND"
+  },
+  "migration": {
+    "startedAt": "2026-10-30T15:07:26.090Z",
+    "definitionsSha256": "cad8b22621ef41fd78dcd2e8f15de1ced775d720b53fcb71153d6b779b43822d",
+    "advisoryLock": 731202604,
+    "lockTimeout": "3s",
+    "statementTimeout": "120s",
+    "applied": [
+      "persistence-0031-case-document-analysis",
+      "persistence-0031-agentic-workspace",
+      "persistence-0032-agentic-execution-control",
+      "persistence-0033-legislation-versions",
+      "persistence-0034-agentic-task-deliveries",
+      "persistence-0035-agentic-tenant-guards",
+      "billing-ledger-0009-inference-budgets"
+    ],
+    "finishedAt": "2026-10-30T15:07:31.416Z"
+  },
+  "databaseBefore": {
+    "migrationCount": 40,
+    "pending": [
+      "persistence-0031-case-document-analysis",
+      "persistence-0031-agentic-workspace",
+      "persistence-0032-agentic-execution-control",
+      "persistence-0033-legislation-versions",
+      "persistence-0034-agentic-task-deliveries",
+      "persistence-0035-agentic-tenant-guards",
+      "billing-ledger-0009-inference-budgets"
+    ],
+    "counts": {
+      "matters": 3,
+      "drafts": 2,
+      "ledger_entries": 110
+    }
+  },
+  "databaseAfter": {
+    "migrationCount": 47,
+    "pending": [],
+    "counts": {
+      "matters": 3,
+      "drafts": 2,
+      "ledger_entries": 110
+    },
+    "newCounts": {
+      "agentic_command_owners": 0,
+      "agentic_commands": 0,
+      "agentic_contexts": 0,
+      "agentic_conversations": 0,
+      "agentic_events": 0,
+      "agentic_execution_calls": 0,
+      "agentic_execution_jobs": 0,
+      "agentic_executions": 0,
+      "agentic_messages": 0,
+      "agentic_task_deliveries": 0,
+      "agentic_tenant_guards": 0,
+      "case_analysis_receipts": 0,
+      "inference_budgets": 0,
+      "inference_calls": 0,
+      "legislation_versions": 0
+    }
+  },
+  "candidate": {
+    "revision": "forgelex-api-prod-agents-dc68fcb-candidate",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:81cb33ed135c1391ae9a257ffc3a93e9326fc2f361d1c08bbca62cfa99406df6",
+    "checkedAt": "2026-10-30T15:09:04.000Z",
+    "updates": {
+      "FORGELEX_SOURCE_SHA": "dc68fcb0fb0cf8fc892157842829e5b1a5cd0d00",
+      "FORGELEX_AUTO_MIGRATE": "false",
+      "FORGELEX_AGENTIC_WORKSPACE_ENABLED": "false",
+      "FORGELEX_CLOSED_PILOT_ENABLED": "false",
+      "FORGELEX_BILLING_ENABLED": "false"
+    },
+    "tag": "agents-candidate",
+    "url": "https://agents-candidate---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app",
+    "serviceUrl": "https://forgelex-api-prod-r4m4ltvj3a-rj.a.run.app",
+    "secretReferences": 15,
+    "configPreserved": true,
+    "noTraffic": true
+  },
+  "commercial": {
+    "revision": "forgelex-api-prod-agents-dc68fcb",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:81cb33ed135c1391ae9a257ffc3a93e9326fc2f361d1c08bbca62cfa99406df6",
+    "checkedAt": "2026-10-30T15:18:30.026Z",
+    "updates": {
+      "FORGELEX_SOURCE_SHA": "dc68fcb0fb0cf8fc892157842829e5b1a5cd0d00",
+      "FORGELEX_AUTO_MIGRATE": "false",
+      "FORGELEX_AGENTIC_WORKSPACE_ENABLED": "false",
+      "FORGELEX_CLOSED_PILOT_ENABLED": "false",
+      "FORGELEX_BILLING_ENABLED": "true"
+    },
+    "tag": "agents-candidate",
+    "url": "https://agents-candidate---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app",
+    "serviceUrl": "https://forgelex-api-prod-r4m4ltvj3a-rj.a.run.app",
+    "secretReferences": 15,
+    "configPreserved": true,
+    "noTraffic": true
+  },
+  "worker": {
+    "revision": "forgelex-closure-hml-private-agents-dc68fcb",
+    "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:81cb33ed135c1391ae9a257ffc3a93e9326fc2f361d1c08bbca62cfa99406df6",
+    "checkedAt": "2026-10-30T15:14:31.135Z",
+    "updates": {
+      "FORGELEX_SOURCE_SHA": "dc68fcb0fb0cf8fc892157842829e5b1a5cd0d00",
+      "FORGELEX_AUTO_MIGRATE": "false",
+      "FORGELEX_AGENTIC_WORKSPACE_ENABLED": "false",
+      "FORGELEX_CLOSED_PILOT_ENABLED": "false"
+    },
+    "tag": "agents-worker",
+    "url": "https://agents-worker---forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app",
+    "serviceUrl": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app",
+    "secretReferences": 12,
+    "configPreserved": true,
+    "noTraffic": true
+  },
+  "probes": {
+    "candidate": {
+      "phase": "candidate",
+      "base": "https://nexojuris.ia.br/_agents_dc68fcb/",
+      "startedAt": "2026-10-30T15:16:52.155Z",
+      "checks": [
+        {
+          "path": "readyz",
+          "status": 200,
+          "expected": 200,
+          "bytes": 201,
+          "sha256": "fa7f2fce3ddc755de50b89d295918fbd17ede2f0e1a03aa8634435fe4b6d2dde",
+          "trace": "ca9ff3f86c844f8f9cc7f023d198ca3d"
+        },
+        {
+          "path": "",
+          "status": 200,
+          "expected": 200,
+          "bytes": 2451,
+          "sha256": "4e13d782b5bfff562e74d2bc505174dfcefca2204b9003c7070cee2b4d5d0d97",
+          "trace": "9ef51be82ca94ed7a82bdea30f64513d"
+        },
+        {
+          "path": "assets/index-BmhMoktx.js",
+          "status": 200,
+          "expected": 200,
+          "bytes": 471675,
+          "sha256": "18966c5afd4ca6e0f648b228a54c4ca6ce583ec9e5952ed9fde4c8ab72bf0952",
+          "trace": "d0ef3c710eb44263a8c69e45bca76de1"
+        },
+        {
+          "path": "assets/index-Cz2n5cxV.css",
+          "status": 200,
+          "expected": 200,
+          "bytes": 41368,
+          "sha256": "f202229ed346db0f801243774cd2b1016e41f5be16f70f601a5a5b63579e64ac",
+          "trace": "f10b088333ea4163a5b79a76cad33274"
+        },
+        {
+          "path": ".well-known/oauth-protected-resource",
+          "status": 200,
+          "expected": 200,
+          "bytes": 231,
+          "sha256": "153d00c901875984c9e573b7f1d57a868d7b1f973bda93d86f6f475153403b09",
+          "trace": "3487df72275048549eff187a7b2bf19b"
+        },
+        {
+          "path": "api/v2/research/saved",
+          "status": 401,
+          "expected": 401,
+          "bytes": 66,
+          "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+          "trace": "db80af1618414ee4986641a495dc94cc"
+        },
+        {
+          "path": "api/v2/matters/00000000-0000-0000-0000-000000000001/analyses",
+          "status": 401,
+          "expected": 401,
+          "bytes": 66,
+          "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+          "trace": "04af153752c04c1683fb1d4e81e440ac"
+        },
+        {
+          "path": "mcp",
+          "status": 405,
+          "expected": 405,
+          "bytes": 115,
+          "sha256": "05a8530fc937dc70882d19c3a7fec66823d826ab01567a558a86eefbd6cc02e9",
+          "trace": "31bd3ee821624356a9769fadf9be73a7"
+        },
+        {
+          "path": "openapi.json",
+          "status": 200,
+          "expected": 200,
+          "bytes": 207224,
+          "sha256": "4f42b3b8352f3929513d6408fac90e9b7e60a93cffd3d31e31393e1d9de6c8a3",
+          "trace": "40ee9041063f4ee48cdce785b5ed1074"
+        },
+        {
+          "path": "mcp initialize without credentials",
+          "status": 401,
+          "expected": 401
+        }
+      ],
+      "readiness": {
+        "status": "ready",
+        "service": "forgelex-api",
+        "checks": {
+          "persistence": true,
+          "migrations": true,
+          "billing": true,
+          "source": true,
+          "auth": true,
+          "outbox": true,
+          "accountClosureRestore": true,
+          "matterPurgeRestore": true
+        }
+      },
+      "revisionObserved": true,
+      "expectedRevision": "forgelex-api-prod-agents-dc68fcb-candidate",
+      "status": "passed",
+      "finishedAt": "2026-10-30T15:16:59.392Z"
+    },
+    "commercial": {
+      "phase": "commercial",
+      "base": "https://nexojuris.ia.br/_agents_dc68fcb/",
+      "startedAt": "2026-10-30T15:18:48.402Z",
+      "checks": [
+        {
+          "path": "readyz",
+          "status": 200,
+          "expected": 200,
+          "bytes": 201,
+          "sha256": "fa7f2fce3ddc755de50b89d295918fbd17ede2f0e1a03aa8634435fe4b6d2dde",
+          "trace": "bdf81c9b10874365b2708a7a6ae2fb29"
+        },
+        {
+          "path": "",
+          "status": 200,
+          "expected": 200,
+          "bytes": 2451,
+          "sha256": "4e13d782b5bfff562e74d2bc505174dfcefca2204b9003c7070cee2b4d5d0d97",
+          "trace": "6b4e6f6693d843e983a010da0dd194d8"
+        },
+        {
+          "path": "assets/index-BmhMoktx.js",
+          "status": 200,
+          "expected": 200,
+          "bytes": 471675,
+          "sha256": "18966c5afd4ca6e0f648b228a54c4ca6ce583ec9e5952ed9fde4c8ab72bf0952",
+          "trace": "125c26f9e00349adbfe847d94f5a661c"
+        },
+        {
+          "path": "assets/index-Cz2n5cxV.css",
+          "status": 200,
+          "expected": 200,
+          "bytes": 41368,
+          "sha256": "f202229ed346db0f801243774cd2b1016e41f5be16f70f601a5a5b63579e64ac",
+          "trace": "b0abf75e7fae4fbfaa220c5c3f08c2a8"
+        },
+        {
+          "path": ".well-known/oauth-protected-resource",
+          "status": 200,
+          "expected": 200,
+          "bytes": 231,
+          "sha256": "153d00c901875984c9e573b7f1d57a868d7b1f973bda93d86f6f475153403b09",
+          "trace": "ad26105149214ae2813bbbbcfbb281d8"
+        },
+        {
+          "path": "api/v2/research/saved",
+          "status": 401,
+          "expected": 401,
+          "bytes": 66,
+          "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+          "trace": "c72f44bee3924d5dabc86eff550bf172"
+        },
+        {
+          "path": "api/v2/matters/00000000-0000-0000-0000-000000000001/analyses",
+          "status": 401,
+          "expected": 401,
+          "bytes": 66,
+          "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+          "trace": "62e1275e88694204b415f65aa8b63efd"
+        },
+        {
+          "path": "mcp",
+          "status": 405,
+          "expected": 405,
+          "bytes": 115,
+          "sha256": "05a8530fc937dc70882d19c3a7fec66823d826ab01567a558a86eefbd6cc02e9",
+          "trace": "9f8db18146464568b58e206df14a99c3"
+        },
+        {
+          "path": "openapi.json",
+          "status": 200,
+          "expected": 200,
+          "bytes": 207224,
+          "sha256": "4f42b3b8352f3929513d6408fac90e9b7e60a93cffd3d31e31393e1d9de6c8a3",
+          "trace": "91ab5077dc0743feae336cce4f90cb74"
+        },
+        {
+          "path": "mcp initialize without credentials",
+          "status": 401,
+          "expected": 401
+        }
+      ],
+      "readiness": {
+        "status": "ready",
+        "service": "forgelex-api",
+        "checks": {
+          "persistence": true,
+          "migrations": true,
+          "billing": true,
+          "source": true,
+          "auth": true,
+          "outbox": true,
+          "accountClosureRestore": true,
+          "matterPurgeRestore": true
+        }
+      },
+      "candidateAssetsIdentical": true,
+      "revisionObserved": true,
+      "expectedRevision": "forgelex-api-prod-agents-dc68fcb",
+      "status": "passed",
+      "finishedAt": "2026-10-30T15:18:55.547Z"
+    },
+    "public": {
+      "phase": "public",
+      "base": "https://nexojuris.ia.br/",
+      "startedAt": "2026-10-30T15:24:25.731Z",
+      "checks": [
+        {
+          "path": "readyz",
+          "status": 200,
+          "expected": 200,
+          "bytes": 201,
+          "sha256": "fa7f2fce3ddc755de50b89d295918fbd17ede2f0e1a03aa8634435fe4b6d2dde",
+          "trace": "91d7703b88a4454786b0b989e8102322"
+        },
+        {
+          "path": "",
+          "status": 200,
+          "expected": 200,
+          "bytes": 2451,
+          "sha256": "4e13d782b5bfff562e74d2bc505174dfcefca2204b9003c7070cee2b4d5d0d97",
+          "trace": "6601690176ed45e081d948605a00ecb5"
+        },
+        {
+          "path": "assets/index-BmhMoktx.js",
+          "status": 200,
+          "expected": 200,
+          "bytes": 471675,
+          "sha256": "18966c5afd4ca6e0f648b228a54c4ca6ce583ec9e5952ed9fde4c8ab72bf0952",
+          "trace": "bcbd8b14f71f4117bf757d3de4078b6c"
+        },
+        {
+          "path": "assets/index-Cz2n5cxV.css",
+          "status": 200,
+          "expected": 200,
+          "bytes": 41368,
+          "sha256": "f202229ed346db0f801243774cd2b1016e41f5be16f70f601a5a5b63579e64ac",
+          "trace": "3d6ce9392e764ae8b1072b660802ee2d"
+        },
+        {
+          "path": ".well-known/oauth-protected-resource",
+          "status": 200,
+          "expected": 200,
+          "bytes": 231,
+          "sha256": "153d00c901875984c9e573b7f1d57a868d7b1f973bda93d86f6f475153403b09",
+          "trace": "e73f18f8b4ba4d37a11013c7db8368ea"
+        },
+        {
+          "path": "api/v2/research/saved",
+          "status": 401,
+          "expected": 401,
+          "bytes": 66,
+          "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+          "trace": "70eddce43569436a9b0b41c0ca6086b2"
+        },
+        {
+          "path": "api/v2/matters/00000000-0000-0000-0000-000000000001/analyses",
+          "status": 401,
+          "expected": 401,
+          "bytes": 66,
+          "sha256": "cb013397a26e701a2e85fa3d4e08c380f47bdf669ab73510462fbd037056c2a2",
+          "trace": "13727dec4c00464dbf090c10e986a7c6"
+        },
+        {
+          "path": "mcp",
+          "status": 405,
+          "expected": 405,
+          "bytes": 115,
+          "sha256": "05a8530fc937dc70882d19c3a7fec66823d826ab01567a558a86eefbd6cc02e9",
+          "trace": "5299a041447646fd8726bc6dd96d544f"
+        },
+        {
+          "path": "openapi.json",
+          "status": 200,
+          "expected": 200,
+          "bytes": 207224,
+          "sha256": "4f42b3b8352f3929513d6408fac90e9b7e60a93cffd3d31e31393e1d9de6c8a3",
+          "trace": "12d61797730941eeb305987908d5aa0d"
+        },
+        {
+          "path": "mcp initialize without credentials",
+          "status": 401,
+          "expected": 401
+        }
+      ],
+      "readiness": {
+        "status": "ready",
+        "service": "forgelex-api",
+        "checks": {
+          "persistence": true,
+          "migrations": true,
+          "billing": true,
+          "source": true,
+          "auth": true,
+          "outbox": true,
+          "accountClosureRestore": true,
+          "matterPurgeRestore": true
+        }
+      },
+      "candidateAssetsIdentical": true,
+      "revisionObserved": true,
+      "expectedRevision": "forgelex-api-prod-agents-dc68fcb",
+      "status": "passed",
+      "finishedAt": "2026-10-30T15:24:32.812Z"
+    },
+    "worker": {
+      "status": "passed",
+      "checkedAt": "2026-10-30T15:15:04.179Z",
+      "readiness": {
+        "status": "ready",
+        "service": "forgelex-api",
+        "checks": {
+          "persistence": true,
+          "migrations": true,
+          "billing": true,
+          "source": true,
+          "auth": true,
+          "outbox": true,
+          "accountClosureRestore": true,
+          "matterPurgeRestore": true
+        }
+      },
+      "authenticatedStatus": 200,
+      "anonymousStatus": 403,
+      "iamPreserved": true,
+      "manualReconciliation": false
+    }
+  },
+  "promotions": {
+    "public": {
+      "at": "2026-10-30T15:20:50.676Z",
+      "revision": "forgelex-api-prod-agents-dc68fcb",
+      "traffic": [
+        {
+          "percent": 100,
+          "revisionName": "forgelex-api-prod-agents-dc68fcb",
+          "tag": "agents-candidate",
+          "url": "https://agents-candidate---forgelex-api-prod-r4m4ltvj3a-rj.a.run.app"
+        }
+      ]
+    },
+    "worker": {
+      "at": "2026-10-30T15:19:34.306Z",
+      "revision": "forgelex-closure-hml-private-agents-dc68fcb",
+      "traffic": [
+        {
+          "percent": 100,
+          "revisionName": "forgelex-closure-hml-private-agents-dc68fcb",
+          "tag": "agents-worker",
+          "url": "https://agents-worker---forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app"
+        }
+      ]
+    }
+  },
+  "connection": {
+    "source": "ForgeLex connected tool forgelex.connection_status",
+    "authenticated": true,
+    "authMethod": "oauth_access_token",
+    "billable": false,
+    "resource": "https://nexojuris.ia.br/mcp"
+  },
+  "cleanup": {
+    "neg": "forgelex-agents-dc68fcb-neg",
+    "backend": "forgelex-agents-dc68fcb-backend",
+    "prefix": "/_agents_dc68fcb/",
+    "negCreated": true,
+    "createdAt": "2026-10-30T15:09:25.527Z",
+    "backendCreated": true,
+    "base": "https://nexojuris.ia.br/_agents_dc68fcb/",
+    "routeInstalledAt": "2026-10-30T15:12:48.997Z",
+    "cleanedAt": "2026-10-30T15:23:23.215Z",
+    "existingRoutesPreserved": true
+  },
+  "finalInspection": {
+    "checkedAt": "2026-10-30T16:28:33.787Z",
+    "services": {
+      "forgelex-api-prod": {
+        "revision": "forgelex-api-prod-agents-dc68fcb",
+        "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:81cb33ed135c1391ae9a257ffc3a93e9326fc2f361d1c08bbca62cfa99406df6",
+        "trafficPercent": 100,
+        "sourceSha": "dc68fcb0fb0cf8fc892157842829e5b1a5cd0d00",
+        "autoMigrate": false,
+        "agenticExecutionEnabled": false,
+        "pilotEnabled": false,
+        "billingEnabled": "true",
+        "secretReferences": 15,
+        "iamPreserved": true,
+        "serviceAccountPreserved": true,
+        "cloudSqlPreserved": true,
+        "ingressPreserved": true
+      },
+      "forgelex-closure-hml-private": {
+        "revision": "forgelex-closure-hml-private-agents-dc68fcb",
+        "image": "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@sha256:81cb33ed135c1391ae9a257ffc3a93e9326fc2f361d1c08bbca62cfa99406df6",
+        "trafficPercent": 100,
+        "sourceSha": "dc68fcb0fb0cf8fc892157842829e5b1a5cd0d00",
+        "autoMigrate": false,
+        "agenticExecutionEnabled": false,
+        "pilotEnabled": false,
+        "billingEnabled": "false",
+        "secretReferences": 12,
+        "iamPreserved": true,
+        "serviceAccountPreserved": true,
+        "cloudSqlPreserved": true,
+        "ingressPreserved": true
+      }
+    },
+    "scheduler": [
+      {
+        "name": "forgelex-hml-closure-reconcile",
+        "state": "ENABLED",
+        "schedule": "* * * * *",
+        "uri": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+        "audience": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app",
+        "lastAttemptTime": "2026-10-30T16:29:02.830081Z",
+        "statusCode": 0
+      }
+    ],
+    "errorLogWindow": {
+      "since": "2026-10-30T15:09:04.000Z",
+      "checkedAt": "2026-10-30T16:29:15.813Z",
+      "limit": 30,
+      "returned": 0,
+      "entries": []
+    },
+    "schedulerRequests": [
+      {
+        "timestamp": "2026-10-30T16:29:02.898066Z",
+        "status": 200,
+        "url": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+        "revision": "forgelex-closure-hml-private-agents-dc68fcb"
+      },
+      {
+        "timestamp": "2026-10-30T16:28:02.956376Z",
+        "status": 200,
+        "url": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+        "revision": "forgelex-closure-hml-private-agents-dc68fcb"
+      },
+      {
+        "timestamp": "2026-10-30T16:27:02.977854Z",
+        "status": 200,
+        "url": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+        "revision": "forgelex-closure-hml-private-agents-dc68fcb"
+      },
+      {
+        "timestamp": "2026-10-30T16:26:02.976610Z",
+        "status": 200,
+        "url": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+        "revision": "forgelex-closure-hml-private-agents-dc68fcb"
+      },
+      {
+        "timestamp": "2026-10-30T16:25:03.643239Z",
+        "status": 200,
+        "url": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+        "revision": "forgelex-closure-hml-private-agents-dc68fcb"
+      },
+      {
+        "timestamp": "2026-10-30T16:24:03.772078Z",
+        "status": 200,
+        "url": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+        "revision": "forgelex-closure-hml-private-agents-dc68fcb"
+      },
+      {
+        "timestamp": "2026-10-30T16:23:02.952599Z",
+        "status": 200,
+        "url": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+        "revision": "forgelex-closure-hml-private-agents-dc68fcb"
+      },
+      {
+        "timestamp": "2026-10-30T16:22:03.019881Z",
+        "status": 200,
+        "url": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+        "revision": "forgelex-closure-hml-private-agents-dc68fcb"
+      },
+      {
+        "timestamp": "2026-10-30T16:21:03.639349Z",
+        "status": 200,
+        "url": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+        "revision": "forgelex-closure-hml-private-agents-dc68fcb"
+      },
+      {
+        "timestamp": "2026-10-30T16:20:02.895149Z",
+        "status": 200,
+        "url": "https://forgelex-closure-hml-private-r4m4ltvj3a-rj.a.run.app/api/internal/account-closure/reconcile",
+        "revision": "forgelex-closure-hml-private-agents-dc68fcb"
+      }
+    ],
+    "monitoring": {
+      "httpStatus": 200,
+      "policies": [
+        {
+          "name": "ForgeLex — indisponibilidade pública",
+          "enabled": true,
+          "conditions": [
+            {
+              "name": "Duas sondas públicas com falha",
+              "filter": "resource.type=\"uptime_url\" AND metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND metric.labels.check_id=\"forgelex-disponibilidade-p-blica-EpFyType6lM\"",
+              "threshold": 1,
+              "duration": "0s"
+            }
+          ],
+          "notificationChannelCount": 1
+        },
+        {
+          "name": "ForgeLex HML — falha na ingestão STJ",
+          "enabled": true,
+          "conditions": [
+            {
+              "name": "Cloud Run Job STJ concluiu com falha",
+              "filter": "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"forgelex-stj-ingestion-hml\" AND metric.type=\"run.googleapis.com/job/completed_execution_count\" AND metric.labels.result=\"failed\"",
+              "duration": "0s"
+            }
+          ],
+          "notificationChannelCount": 1
+        },
+        {
+          "name": "ForgeLex — encerramento sem resposta de sucesso",
+          "enabled": true,
+          "conditions": [
+            {
+              "name": "Worker sem sucesso no intervalo",
+              "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"forgelex-closure-hml-private\" AND metric.type=\"run.googleapis.com/request_count\" AND metric.labels.response_code_class=\"2xx\"",
+              "threshold": 1,
+              "duration": "120s"
+            }
+          ],
+          "notificationChannelCount": 1
+        },
+        {
+          "name": "ForgeLex — falhas HTTP em produção",
+          "enabled": true,
+          "conditions": [
+            {
+              "name": "forgelex-api-prod — respostas 5xx",
+              "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"forgelex-api-prod\" AND metric.type=\"run.googleapis.com/request_count\" AND metric.labels.response_code_class=\"5xx\"",
+              "duration": "0s"
+            },
+            {
+              "name": "forgelex-closure-hml-private — respostas 5xx",
+              "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"forgelex-closure-hml-private\" AND metric.type=\"run.googleapis.com/request_count\" AND metric.labels.response_code_class=\"5xx\"",
+              "duration": "0s"
+            }
+          ],
+          "notificationChannelCount": 1
+        }
+      ],
+      "hasMore": false
+    },
+    "migrationCount": 47
+  },
+  "monitoringChange": {
+    "startedAt": "2026-10-30T15:34:39.781Z",
+    "notificationDestinationConfirmedByBoni": true,
+    "channel": "projects/project-bbbe1209-c295-4720-867/notificationChannels/1530732757369604157",
+    "created": [
+      "projects/project-bbbe1209-c295-4720-867/uptimeCheckConfigs/forgelex-disponibilidade-p-blica-EpFyType6lM",
+      "projects/project-bbbe1209-c295-4720-867/alertPolicies/1686930445323135404",
+      "projects/project-bbbe1209-c295-4720-867/alertPolicies/8080191095439103658",
+      "projects/project-bbbe1209-c295-4720-867/alertPolicies/8080191095439102600"
+    ],
+    "uptime": {
+      "name": "projects/project-bbbe1209-c295-4720-867/uptimeCheckConfigs/forgelex-disponibilidade-p-blica-EpFyType6lM",
+      "host": "nexojuris.ia.br",
+      "path": "/readyz",
+      "period": "300s",
+      "selectedRegions": ["USA"],
+      "tlsVerified": true,
+      "bodyMatcher": [
+        {
+          "content": "\"status\"\\s*:\\s*\"ready\"",
+          "matcher": "MATCHES_REGEX"
+        }
+      ]
+    },
+    "policies": [
+      {
+        "name": "projects/project-bbbe1209-c295-4720-867/alertPolicies/1686930445323135404",
+        "displayName": "ForgeLex — indisponibilidade pública",
+        "enabled": true,
+        "conditions": 1,
+        "notificationChannelCount": 1
+      },
+      {
+        "name": "projects/project-bbbe1209-c295-4720-867/alertPolicies/8080191095439103658",
+        "displayName": "ForgeLex — falhas HTTP em produção",
+        "enabled": true,
+        "conditions": 2,
+        "notificationChannelCount": 1
+      },
+      {
+        "name": "projects/project-bbbe1209-c295-4720-867/alertPolicies/8080191095439102600",
+        "displayName": "ForgeLex — encerramento sem resposta de sucesso",
+        "enabled": true,
+        "conditions": 1,
+        "notificationChannelCount": 1
+      }
+    ],
+    "originalPoliciesPreserved": true,
+    "finishedAt": "2026-10-30T15:34:45.928Z"
+  },
+  "monitoringVerification": {
+    "checkedAt": "2026-10-30T15:44:29.672Z",
+    "status": "passed",
+    "policies": [
+      {
+        "name": "ForgeLex — indisponibilidade pública",
+        "enabled": true,
+        "conditions": [
+          {
+            "filter": "resource.type=\"uptime_url\" AND metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND metric.labels.check_id=\"forgelex-disponibilidade-p-blica-EpFyType6lM\"",
+            "comparison": "COMPARISON_GT",
+            "thresholdValue": 1,
+            "duration": "0s",
+            "trigger": {
+              "count": 1
+            },
+            "aggregations": [
+              {
+                "alignmentPeriod": "300s",
+                "perSeriesAligner": "ALIGN_COUNT_FALSE",
+                "crossSeriesReducer": "REDUCE_SUM"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "ForgeLex — falhas HTTP em produção",
+        "enabled": true,
+        "conditions": [
+          {
+            "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"forgelex-api-prod\" AND metric.type=\"run.googleapis.com/request_count\" AND metric.labels.response_code_class=\"5xx\"",
+            "comparison": "COMPARISON_GT",
+            "duration": "0s",
+            "trigger": {
+              "count": 1
+            },
+            "aggregations": [
+              {
+                "alignmentPeriod": "300s",
+                "perSeriesAligner": "ALIGN_SUM",
+                "crossSeriesReducer": "REDUCE_SUM"
+              }
+            ]
+          },
+          {
+            "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"forgelex-closure-hml-private\" AND metric.type=\"run.googleapis.com/request_count\" AND metric.labels.response_code_class=\"5xx\"",
+            "comparison": "COMPARISON_GT",
+            "duration": "0s",
+            "trigger": {
+              "count": 1
+            },
+            "aggregations": [
+              {
+                "alignmentPeriod": "300s",
+                "perSeriesAligner": "ALIGN_SUM",
+                "crossSeriesReducer": "REDUCE_SUM"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "ForgeLex — encerramento sem resposta de sucesso",
+        "enabled": true,
+        "conditions": [
+          {
+            "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"forgelex-closure-hml-private\" AND metric.type=\"run.googleapis.com/request_count\" AND metric.labels.response_code_class=\"2xx\"",
+            "comparison": "COMPARISON_LT",
+            "thresholdValue": 1,
+            "duration": "120s",
+            "trigger": {
+              "count": 1
+            },
+            "aggregations": [
+              {
+                "alignmentPeriod": "600s",
+                "perSeriesAligner": "ALIGN_SUM",
+                "crossSeriesReducer": "REDUCE_SUM"
+              }
+            ],
+            "evaluationMissingData": "EVALUATION_MISSING_DATA_ACTIVE"
+          }
+        ]
+      }
+    ],
+    "measurements": {
+      "worker": [
+        {
+          "metricLabels": {
+            "response_code": "200",
+            "response_code_class": "2xx",
+            "route": ""
+          },
+          "resourceLabels": {
+            "configuration_name": "forgelex-closure-hml-private",
+            "revision_name": "forgelex-closure-hml-private-agents-dc68fcb",
+            "project_id": "project-bbbe1209-c295-4720-867",
+            "service_name": "forgelex-closure-hml-private",
+            "location": "southamerica-east1"
+          },
+          "latest": {
+            "interval": {
+              "startTime": "2026-10-30T15:42:00.001Z",
+              "endTime": "2026-10-30T15:43:00Z"
+            },
+            "value": {
+              "int64Value": "1"
+            }
+          }
+        },
+        {
+          "metricLabels": {
+            "response_code_class": "2xx",
+            "route": "",
+            "response_code": "200"
+          },
+          "resourceLabels": {
+            "configuration_name": "forgelex-closure-hml-private",
+            "revision_name": "forgelex-closure-hml-private-deps-6499eb0",
+            "service_name": "forgelex-closure-hml-private",
+            "location": "southamerica-east1",
+            "project_id": "project-bbbe1209-c295-4720-867"
+          },
+          "latest": {
+            "interval": {
+              "startTime": "2026-10-30T15:25:00.001Z",
+              "endTime": "2026-10-30T15:26:00Z"
+            },
+            "value": {
+              "int64Value": "0"
+            }
+          }
+        }
+      ],
+      "uptime": [
+        {
+          "metricLabels": {
+            "checked_resource_id": "nexojuris.ia.br",
+            "checker_location": "usa-virginia",
+            "check_id": "forgelex-disponibilidade-p-blica-EpFyType6lM"
+          },
+          "resourceLabels": {
+            "project_id": "project-bbbe1209-c295-4720-867",
+            "host": "nexojuris.ia.br"
+          },
+          "latest": {
+            "interval": {
+              "startTime": "2026-10-30T15:40:20Z",
+              "endTime": "2026-10-30T15:40:20Z"
+            },
+            "value": {
+              "boolValue": true
+            }
+          }
+        },
+        {
+          "metricLabels": {
+            "checker_location": "usa-oregon",
+            "check_id": "forgelex-disponibilidade-p-blica-EpFyType6lM",
+            "checked_resource_id": "nexojuris.ia.br"
+          },
+          "resourceLabels": {
+            "project_id": "project-bbbe1209-c295-4720-867",
+            "host": "nexojuris.ia.br"
+          },
+          "latest": {
+            "interval": {
+              "startTime": "2026-10-30T15:40:50Z",
+              "endTime": "2026-10-30T15:40:50Z"
+            },
+            "value": {
+              "boolValue": true
+            }
+          }
+        },
+        {
+          "metricLabels": {
+            "checked_resource_id": "nexojuris.ia.br",
+            "check_id": "forgelex-disponibilidade-p-blica-EpFyType6lM",
+            "checker_location": "usa-iowa"
+          },
+          "resourceLabels": {
+            "host": "nexojuris.ia.br",
+            "project_id": "project-bbbe1209-c295-4720-867"
+          },
+          "latest": {
+            "interval": {
+              "startTime": "2026-10-30T15:44:10Z",
+              "endTime": "2026-10-30T15:44:10Z"
+            },
+            "value": {
+              "boolValue": true
+            }
+          }
+        }
+      ]
+    },
+    "usaCheckerLocations": ["Iowa", "Virginia", "Oregon"],
+    "publicReadyStatus": 200,
+    "notificationDeliveryTested": false
+  },
+  "managedRestore": {
+    "target": "forgelex-restore-dc68fcb-1030",
+    "source": "forgelex-hml-pg",
+    "backupId": "1793372457666",
+    "startedAt": "2026-10-30T15:45:54.218Z",
+    "tier": "db-f1-micro",
+    "diskGb": 49,
+    "region": "southamerica-east1",
+    "productionRestore": false,
+    "temporary": true,
+    "retainedBackups": false,
+    "createOperation": "9fc865ac-6a1e-4a67-a5a2-d31700000030",
+    "createdAt": "2026-10-30T15:57:14.336Z",
+    "network": {
+      "authorizedNetworks": 0,
+      "sslMode": "ENCRYPTED_ONLY"
+    },
+    "restoreOperation": "282ab465-4df7-45dc-95ee-08b400000030",
+    "restoreStartedAt": "2026-10-30T16:02:00.572Z",
+    "restoreFinishedAt": "2026-10-30T16:17:05.015Z",
+    "proxyPort": 57991,
+    "proxyReadyVerified": true,
+    "restoredMigrationCount": 40,
+    "cloneMigrations": [
+      "persistence-0031-case-document-analysis",
+      "persistence-0031-agentic-workspace",
+      "persistence-0032-agentic-execution-control",
+      "persistence-0033-legislation-versions",
+      "persistence-0034-agentic-task-deliveries",
+      "persistence-0035-agentic-tenant-guards",
+      "billing-ledger-0009-inference-budgets"
+    ],
+    "recoveredMigrationCount": 47,
+    "comparisons": {
+      "matters": {
+        "rows": 3,
+        "sha256": "bb22bb1efd336b882d3a60ae8421ef8cca78415e12dd7dbe442df8f4a1e7019b",
+        "matchesProductionReadOnly": true
+      },
+      "drafts": {
+        "rows": 2,
+        "sha256": "c72a72cefeb394c053131a2a87e4d1381a540442c761e4a3b362c2679d994d94",
+        "matchesProductionReadOnly": true
+      },
+      "draft_versions": {
+        "rows": 6,
+        "sha256": "d64b7e7436b76f7b30d81cf36fbd4304c4226180340e7deabdfe604818fce7dd",
+        "matchesProductionReadOnly": true
+      },
+      "ledger_entries": {
+        "rows": 110,
+        "sha256": "d9c5e63621908d9f3da57a1810c358d8efe2fe63662e06a6f131e89d29fea044",
+        "matchesProductionReadOnly": true
+      },
+      "billing_operations": {
+        "rows": 130,
+        "sha256": "41805f4daf5e676da9ed08edbec26fad846d23d87fc19ad8779a327c5279449b",
+        "matchesProductionReadOnly": true
+      }
+    },
+    "productionConnectionReadOnly": true,
+    "verifiedAt": "2026-10-30T16:23:06.744Z",
+    "status": "passed",
+    "noLocalContentFiles": true,
+    "deleteOperation": "7994b267-f2cf-4ae2-81f3-a3e100000030",
+    "deleteStartedAt": "2026-10-30T16:23:36.192Z",
+    "deletedAt": "2026-10-30T16:26:48.042Z",
+    "cleanupVerifiedAt": "2026-10-30T16:27:31.111Z",
+    "productionStillRunning": true
+  },
+  "limits": {
+    "nativeAgenticInterfaceActivated": false,
+    "paidPilotReopened": false,
+    "juridicalResultsApprovedByBoni": false,
+    "providerInvoiceReconciled": false,
+    "managedBackupRestoreExecuted": true,
+    "managedBackupDataComparisonPassed": true,
+    "temporaryRecoveryInstanceDeleted": true,
+    "notificationDeliveryTested": false,
+    "monitoringBeforeAgenticActivation": "O scheduler agêntico permanece desligado; esta cobertura monitora HTTP, disponibilidade e rotina de encerramento, não execução agêntica ativa."
+  }
+}
