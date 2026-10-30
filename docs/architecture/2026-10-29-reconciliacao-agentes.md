@@ -91,3 +91,7 @@ Build completo aprovado. Smoke de encerramento PostgreSQL: sete verificações a
 Navegador: conta 4/4, trabalho agêntico 18/18, funcionalidades combinadas 1/1, casos 24/24 e MCP/site 32/32, totalizando 79 cenários aprovados nesta rodada. O servidor da conta foi movido para 13401 para evitar conflito com Docker existente na porta 3001; MCP/site foi executado com API 13402 e web 13403. A primeira tentativa de restauração encontrou incompatibilidade pg_restore 18/servidor 16; a repetição em PostgreSQL 18 descartável passou. Nenhum serviço existente foi interrompido.
 
 Permanece necessária a correção e cobertura da sincronização entre requisições já autenticadas, encerramento e expurgo agêntico e a validação específica do ledger separado. Não houve push, integração, deploy, migration remota ou chamada paga.
+
+## Correção de segurança detectada na CI da PR #81
+
+A primeira CI aprovou lint/build/tipos e 1.221 testes (17 ignorados), PostgreSQL, conta e publicação, mas reprovou a auditoria de desenvolvimento por GHSA-8g5g-mxqh-grgj em Vite 6.4.4. O aviso oficial identifica 6.4.5 como versão corrigida: https://github.com/advisories/GHSA-8g5g-mxqh-grgj . A dependência e o lockfile foram atualizados; o build web e a auditoria local de todas as dependências passaram sem alertas acionáveis. Os checks serão repetidos sobre esse commit antes da integração.
