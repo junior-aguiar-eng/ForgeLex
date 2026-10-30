@@ -1,26 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { AnthropicAgentProvider } from '@forgelex/agent-provider-anthropic';
-import { OpenAIAgentProvider } from '@forgelex/agent-provider-openai';
-import type { AgentEvent, AgentProvider } from '@forgelex/agent-core';
-
-const prompt = 'Responda apenas com a palavra OK.';
-
-async function runMinimal(provider: AgentProvider, sessionId: string): Promise<AgentEvent[]> {
-  const events: AgentEvent[] = [];
-  for await (const event of provider.run({ sessionId, tenantId: 'integration_test_tenant', userId: 'integration_test_user', prompt, tools: [], abortSignal: AbortSignal.timeout(30_000) })) events.push(event);
-  return events;
-}
-
-describe('providers reais (condicional)', () => {
-  it.skipIf(!process.env.ANTHROPIC_API_KEY)('Anthropic completa o contrato comum sem expor credencial', async () => {
-    const events = await runMinimal(new AnthropicAgentProvider({ apiKey: process.env.ANTHROPIC_API_KEY, model: process.env.FORGELEX_ANTHROPIC_MODEL }), 'real_anthropic_integration');
-    expect(events.some((event) => event.type === 'lifecycle:completed')).toBe(true);
-    expect(JSON.stringify(events)).not.toContain(process.env.ANTHROPIC_API_KEY);
-  }, 45_000);
-
-  it.skipIf(!process.env.OPENAI_API_KEY)('OpenAI completa o contrato comum sem expor credencial', async () => {
-    const events = await runMinimal(new OpenAIAgentProvider({ apiKey: process.env.OPENAI_API_KEY, model: process.env.FORGELEX_OPENAI_MODEL }), 'real_openai_integration');
-    expect(events.some((event) => event.type === 'lifecycle:completed')).toBe(true);
-    expect(JSON.stringify(events)).not.toContain(process.env.OPENAI_API_KEY);
-  }, 45_000);
+import { runTask6Homologation, assertPilotResult } from './agentic-workspace/task6-homologation.js';
+// A credential alone never authorizes inference. Only the approved, persistent USD5 pilot can opt in.
+describe.skipIf(process.env.FORGELEX_TASK6_REAL_APPROVAL !== 'boni-task6')('homologação real sintética aprovada por Boni',()=>{
+ it('executa um único provider/modelo com orçamento durável, sem pesquisa paga nem fallback',async()=>{
+  if(!process.env.OPENAI_API_KEY)throw new Error('PROVIDER_NOT_CONFIGURED');
+  const report=await runTask6Homologation(process.cwd(),process.env.OPENAI_API_KEY,process.env.FORGELEX_TASK6_STAGE==='minimal');
+  expect(report.provider).toBe('openai');expect(report.model).toBe('gpt-6.1-sol');
+  expect(report.attempts.filter((x:any)=>x.caseId==='T6-MIN').at(-1)?.status).toBe('COMPLETED');
+  expect(report.observations.every((x:any)=>x.upperBoundCents<=50)).toBe(true);
+  assertPilotResult(report,process.env.FORGELEX_TASK6_STAGE??'all',process.env.FORGELEX_TASK6_CASE);
+ },600000);
 });

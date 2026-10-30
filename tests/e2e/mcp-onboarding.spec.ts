@@ -515,7 +515,7 @@ for (const action of ['deny', 'uncertain'] as const) {
     await page.goto('/oauth/consent?authorization_id=' + id);
     await expect(page.getByRole('heading', { name: 'Conectar Aplicativo de teste' })).toBeVisible();
     await page.getByRole('button', { name: action === 'deny' ? 'Recusar' : 'Autorizar conexão', exact: true }).click();
-    expect(decision).toBe(action === 'deny' ? 'deny' : 'approve');
+    await expect.poll(() => decision).toBe(action === 'deny' ? 'deny' : 'approve');
     if (action === 'deny') await expect(page.getByRole('heading', { name: 'Acesso recusado' })).toBeVisible();
     else {
       await expect(page.getByRole('alert')).toContainText('Não foi possível confirmar a conclusão');

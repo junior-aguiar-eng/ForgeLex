@@ -170,7 +170,7 @@ app.post('/e2e/resume/:closureId', async (request) => ({
   resumed: await repository.resumeFailedStep({ closureId: request.params.closureId, now: new Date().toISOString() }),
 }));
 app.get('/e2e/state', async () => ({ deleted: fixture.deleted, deletedCount }));
-await app.listen({ host: '127.0.0.1', port: 3001 });
+await app.listen({ host: '127.0.0.1', port: 13401 });
 
 async function shutdown() {
   await app.close().catch(() => undefined);

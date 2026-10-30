@@ -5,3 +5,4 @@ export * from './historical/stj-open-data-catalog.js';
 export * from './historical/stj-open-data-parser.js';
 export * from './providers/stj-open-data-provider.js';
 export * from './router/source-router.js';
+export * from './providers/indexed-legislation-provider.js';

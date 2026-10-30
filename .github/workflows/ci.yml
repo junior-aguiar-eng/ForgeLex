@@ -87,6 +87,10 @@ jobs:
         run: node scripts/smoke-research-postgres.mjs
         env:
           FORGELEX_LOCAL_POSTGRES_URL: postgres://forgelex:forgelex@127.0.0.1:55432/forgelex
+      - name: Agentic retention and concurrent erasure (isolated PostgreSQL)
+        run: node scripts/verify-agentic-retention-postgres.mjs
+        env:
+          FORGELEX_ACCOUNT_CLOSURE_TEST_ADMIN_URL: postgres://forgelex:forgelex@127.0.0.1:55432/postgres
       - name: Operational retention inspection and purge (isolated PostgreSQL)
         run: node scripts/smoke-operational-retention-postgres.mjs
       - run: pnpm test:postgres:search
@@ -131,6 +135,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e:agentic-workspace
+      - run: pnpm exec playwright test --config playwright.agentic-flags.config.ts
       - run: pnpm test:e2e:phase7
       - run: pnpm test:e2e:mcp-site
       - run: pnpm test:e2e:accessibility

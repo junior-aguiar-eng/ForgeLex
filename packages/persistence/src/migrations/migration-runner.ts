@@ -1136,6 +1136,39 @@ export const persistenceMigrations: readonly SqlMigration[] = [
   `CREATE UNIQUE INDEX case_analysis_scope_key_idx ON case_analysis_receipts(tenant_id,user_id,oauth_client_id,oauth_granted_at,matter_id,key_hash);`,
   `CREATE INDEX case_analysis_matter_idx ON case_analysis_receipts(tenant_id,matter_id);`,
 ] },
+{ id: 'persistence-0031-agentic-workspace', statements: [
+  `CREATE TABLE agentic_conversations (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, objective TEXT NOT NULL, matter_id TEXT REFERENCES matters(id), context_revision INTEGER NOT NULL CHECK (context_revision > 0), created_at TEXT NOT NULL);`,
+  `CREATE INDEX agentic_conversations_owner_idx ON agentic_conversations(tenant_id,user_id);`,
+  `CREATE TABLE agentic_contexts (id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL REFERENCES agentic_conversations(id), revision INTEGER NOT NULL CHECK (revision > 0), payload_json TEXT NOT NULL, created_at TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX agentic_contexts_revision_idx ON agentic_contexts(conversation_id,revision);`,
+  `CREATE TABLE agentic_executions (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, conversation_id TEXT NOT NULL REFERENCES agentic_conversations(id), idempotency_key TEXT NOT NULL, input_hash TEXT NOT NULL, payload_json TEXT NOT NULL, event_sequence INTEGER NOT NULL DEFAULT 0 CHECK (event_sequence >= 0));`,
+  `CREATE UNIQUE INDEX agentic_executions_key_idx ON agentic_executions(tenant_id,user_id,idempotency_key);`,
+  `CREATE INDEX agentic_executions_conversation_idx ON agentic_executions(conversation_id);`,
+  `CREATE TABLE agentic_messages (id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL REFERENCES agentic_conversations(id), execution_id TEXT REFERENCES agentic_executions(id), sequence INTEGER NOT NULL CHECK (sequence > 0), payload_json TEXT NOT NULL, created_at TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX agentic_messages_sequence_idx ON agentic_messages(conversation_id,sequence);`,
+  `CREATE TABLE agentic_events (id TEXT PRIMARY KEY, execution_id TEXT NOT NULL REFERENCES agentic_executions(id), sequence INTEGER NOT NULL CHECK (sequence > 0), type TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX agentic_events_sequence_idx ON agentic_events(execution_id,sequence);`,
+] },
+{ id: 'persistence-0032-agentic-execution-control', statements: [
+  `CREATE TABLE agentic_command_owners (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 0);`,
+  `CREATE TABLE agentic_commands (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, idempotency_key TEXT NOT NULL, input_hash TEXT NOT NULL, execution_id TEXT NOT NULL, created_at TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX agentic_commands_owner_key_idx ON agentic_commands(tenant_id,user_id,idempotency_key);`,
+  `CREATE TABLE agentic_execution_jobs (execution_id TEXT PRIMARY KEY REFERENCES agentic_executions(id), tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, state TEXT NOT NULL, lease_expires_at TEXT, budget_release_pending INTEGER NOT NULL DEFAULT 0, budget_release_next_at TEXT, payload_json TEXT NOT NULL, created_at TEXT NOT NULL);`,
+  `CREATE INDEX agentic_execution_jobs_ready_idx ON agentic_execution_jobs(state,lease_expires_at);`,
+  `CREATE TABLE agentic_execution_calls (id TEXT PRIMARY KEY, execution_id TEXT NOT NULL REFERENCES agentic_executions(id), call_id TEXT NOT NULL, state TEXT NOT NULL, payload_json TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX agentic_execution_calls_key_idx ON agentic_execution_calls(execution_id,call_id);`,
+] },
+{ id: 'persistence-0033-legislation-versions', statements: [
+  `CREATE TABLE legislation_versions (id TEXT PRIMARY KEY, norm_id TEXT NOT NULL, provision_id TEXT NOT NULL, version_id TEXT NOT NULL, payload_json TEXT NOT NULL);`,
+  `CREATE UNIQUE INDEX legislation_versions_identity_idx ON legislation_versions(norm_id,provision_id,version_id);`,
+] },
+{ id: 'persistence-0034-agentic-task-deliveries', statements: [
+  `CREATE TABLE agentic_task_deliveries (id TEXT PRIMARY KEY, execution_id TEXT NOT NULL REFERENCES agentic_executions(id), conversation_id TEXT NOT NULL REFERENCES agentic_conversations(id), tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, context_revision INTEGER NOT NULL, payload_json TEXT NOT NULL, content_hash TEXT NOT NULL, draft_id TEXT, version_id TEXT);`,
+  `CREATE UNIQUE INDEX agentic_task_deliveries_execution_idx ON agentic_task_deliveries(execution_id);`,
+] },
+{ id: 'persistence-0035-agentic-tenant-guards', statements: [
+  `CREATE TABLE agentic_tenant_guards (tenant_key TEXT PRIMARY KEY, closed INTEGER NOT NULL DEFAULT 0 CHECK (closed IN (0,1)));`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

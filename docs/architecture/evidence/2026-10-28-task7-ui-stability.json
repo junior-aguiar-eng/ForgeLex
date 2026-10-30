@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "status": "LOCAL_UI_REGRESSION_FIXED_AND_ACCOUNT_IDENTIFIED_NOT_ACTIVATED",
+  "baseCommit": "ca307157d2875322173de4610745bc3c571b1517",
+  "committed": false,
+  "previousEvidence": "2026-10-28-closed-pilot-executor.json",
+  "scope": {
+    "owner": "Boni",
+    "syntheticOnly": true,
+    "model": "gpt-6.1-sol",
+    "currency": "USD",
+    "cumulativeCeilingCents": 500,
+    "newPaidCalls": 0,
+    "paidResearch": false,
+    "fallback": false,
+    "activated": false,
+    "push": false,
+    "deploy": false,
+    "originalPilotDatabaseOpened": false
+  },
+  "identity": {
+    "sourcePage": "https://nexojuris.ia.br/app/conta/seguranca",
+    "authenticatedResponse": "GET /api/v2/auth/me",
+    "status": 200,
+    "userStatus": "ACTIVE",
+    "workspaceStatus": "ACTIVE",
+    "membershipStatus": "ACTIVE",
+    "membershipRole": "OWNER",
+    "emailMatchedVisibleSession": true,
+    "credentialsCopied": false,
+    "profile": ".env.closed-pilot.local",
+    "profileIgnored": true,
+    "profileLoaded": false,
+    "runtimeFlags": false,
+    "profileSha256": "20a9b661806f1a752534fd2b9f7bd4134d50e3f248ec12fc63b0a35f3b9089f1",
+    "identifiersInVersionedEvidence": false
+  },
+  "corrections": [
+    "Reject stale case-list selection work using selection generation",
+    "Capture editor requested location before async response instead of global URL after navigation",
+    "Disable fields only during case/draft-version loading; preserve typing during delayed review",
+    "Stable panel invalidation callback removes two lint warnings while retaining stale-response guards"
+  ],
+  "validation": {
+    "red": "Controlled first case-list GET delayed past navigation reproduced lost unsaved edit",
+    "intermediateFailure": "Broad busy guard blocked typing during review: existing editor suite 8/9; narrowed to loadingSelection without modifying test expectation or timeout",
+    "workBrowser": {
+      "passed": 18,
+      "failed": 0,
+      "duration": "1.5m"
+    },
+    "editorBrowser": {
+      "passed": 9,
+      "failed": 0,
+      "durationSeconds": 48.9
+    },
+    "webBuildIncludingTypesAndMcpReader": "passed",
+    "globalLint": {
+      "errors": 0,
+      "warnings": 0,
+      "exitCode": 0
+    },
+    "priorGeneralSuite": {
+      "passed": 1160,
+      "skipped": 17,
+      "scope": "Previous snapshot; not rerun because this continuation only changes frontend components covered by real-browser regressions"
+    },
+    "timeoutChanged": false,
+    "expectationsWeakened": false
+  },
+  "pending": [
+    "Configure and validate durable isolated local application/database and its authenticated session",
+    "Boni evaluates before activation; external operations remain separately unauthorized",
+    "No proof of global elimination of timing issues; the reproduced editor race is covered deterministically"
+  ],
+  "sourceHashes": [
+    {
+      "file": "apps/web/src/screens/DraftStudioScreen.tsx",
+      "sha256": "5b94089c4fdee64a2351e89d69db601f60d03c74793e069f08d3e61e6001e7cf"
+    },
+    {
+      "file": "apps/web/src/agentic-workspace/ClosedPilotPanel.tsx",
+      "sha256": "f46efb7a3b101cb1106d6e4d2f3fd644604b89603fc26298805808403d3550ed"
+    },
+    {
+      "file": "tests/e2e/agentic-workspace.spec.ts",
+      "sha256": "ac91a5704e344336d5455ff4fcfdb8534a469285066c896808a2c7625aa8c413"
+    }
+  ],
+  "logHashes": [
+    {
+      "file": "task7-editor-late-list-red3.log",
+      "sha256": "f3e9013c87afcef2ddc3767d24def4f811ec08fff31cf07ad9f2dcd5ce07d819"
+    },
+    {
+      "file": "task7-editor-late-list-green.log",
+      "sha256": "c3dd40dd41fd1a13a0be5d8953dbc98590d54bfe054231590ea8462ca8b51fd7"
+    },
+    {
+      "file": "task7-editor-late-list-green2.log",
+      "sha256": "47b16fddc1d6722e3cfa8fccdd018faf670ccaacaa355a3ae238e639e75de9ed"
+    },
+    {
+      "file": "task7-editor-regression.log",
+      "sha256": "a4f9c9c444005b546cbc1d6d3a7081c114103c552a8ad385ff1f23a24b2f21e3"
+    },
+    {
+      "file": "task7-editor-regression-final.log",
+      "sha256": "9101bae97cdb4aba975ed94f5a07aeb82e43ecb30c33171f354af6c452dbedc6"
+    },
+    {
+      "file": "task7-browser-final2.log",
+      "sha256": "40a67c80d4fdf3301d248d17b04e4da0fb2bd5d914db192e70fa25bc7cf1e6f0"
+    },
+    {
+      "file": "task7-web-build-final.log",
+      "sha256": "516cc41312aff51dac622e460d032b80d371317397f0ced0cf7a763779af63ca"
+    },
+    {
+      "file": "task7-lint-final.log",
+      "sha256": "acd68fcd9ddbba07ba06761b9f1f341f6272463cd9040184d0814941549f10ce"
+    }
+  ]
+}

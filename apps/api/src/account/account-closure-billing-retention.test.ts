@@ -143,3 +143,82 @@ async function seedFinancialRows(client: Client): Promise<void> {
     'write',
   );
 }
+
+it('impede a minimização financeira enquanto há reserva de inferência aberta', async () => {
+  const connection = await createDatabase({ url: ':memory:' });
+  const client = connection.client;
+  try {
+    await runPersistenceMigrations(client);
+    await runLedgerMigrations(client);
+    await client.execute({ sql: 'INSERT INTO inference_budgets(id,tenant_id,user_id,execution_id,idempotency_key,payload_json) VALUES(?,?,?,?,?,?)', args: ['b','tenant','user','exec','k',JSON.stringify({ status: 'ACTIVE', tenantId: 'tenant', userId: 'user' })] });
+    await expect(new AccountClosureBillingRetention(client).minimize({ tenantId:'tenant', userId:'user', tenantPseudonym:'tenant_closed', userPseudonym:'user_closed' })).rejects.toThrow('ACCOUNT_CLOSURE_INFERENCE_PENDING');
+    expect((await client.execute('SELECT tenant_id FROM inference_budgets')).rows[0].tenant_id).toBe('tenant');
+  } finally { client.close(); }
+});
+
+it('minimiza orçamento liberado e chamada liquidada sem perder valores', async () => {
+  const { client } = await createDatabase({ url: ':memory:' });
+  try {
+    await runPersistenceMigrations(client); await runLedgerMigrations(client);
+    await client.execute({sql:'INSERT INTO inference_budgets(id,tenant_id,user_id,execution_id,idempotency_key,payload_json) VALUES(?,?,?,?,?,?)',args:['b','tenant','user','exec','k',JSON.stringify({tenantId:'tenant',userId:'user',status:'RELEASED',remainingPaidCents:0,remainingPromoCents:0,consumedCents:10})]});
+    await client.execute({sql:'INSERT INTO inference_calls(id,tenant_id,execution_id,call_id,operation_key,payload_json) VALUES(?,?,?,?,?,?)',args:['c','tenant','exec','call','op',JSON.stringify({tenantId:'tenant',userId:'user',status:'SETTLED',settlement:{actualCostCents:10},reason:'conteúdo privado'})]});
+    await new AccountClosureBillingRetention(client).minimize({tenantId:'tenant',userId:'user',tenantPseudonym:'closed_tenant',userPseudonym:'closed_user'});
+    const budgets = (await client.execute('SELECT * FROM inference_budgets')).rows;
+    const calls = (await client.execute('SELECT * FROM inference_calls')).rows;
+    expect(budgets[0].tenant_id).toBe('closed_tenant');
+    expect(budgets[0].user_id).toBe('closed_user');
+    expect(JSON.parse(String(budgets[0].payload_json))).toMatchObject({tenantId:'closed_tenant',userId:'closed_user',consumedCents:10});
+    expect(calls[0].tenant_id).toBe('closed_tenant');
+    expect(JSON.parse(String(calls[0].payload_json))).toMatchObject({tenantId:'closed_tenant',userId:'closed_user',settlement:{actualCostCents:10}});
+    expect(JSON.stringify(calls)).not.toContain('conteúdo privado');
+  } finally { client.close(); }
+});
+
+it('preserva os valores provisionados ao minimizar chamadas', async () => {
+  const { client } = await createDatabase({ url: ':memory:' });
+  try {
+    await runPersistenceMigrations(client); await runLedgerMigrations(client);
+    await client.execute({sql:'INSERT INTO inference_calls(id,tenant_id,execution_id,call_id,operation_key,payload_json) VALUES(?,?,?,?,?,?)',args:['c','tenant','exec','call','op',JSON.stringify({tenantId:'tenant',userId:'user',status:'PROVISIONED',provision:{basis:'UPPER_BOUND',amountCents:20,actualCostCents:null,recordedAt:'2026-10-29'}})]});
+    await new AccountClosureBillingRetention(client).minimize({tenantId:'tenant',userId:'user',tenantPseudonym:'closed_tenant',userPseudonym:'closed_user'});
+    const row = (await client.execute('SELECT payload_json FROM inference_calls')).rows[0];
+    expect(JSON.parse(String(row.payload_json)).provision).toMatchObject({basis:'UPPER_BOUND',amountCents:20,actualCostCents:null});
+  } finally { client.close(); }
+});
+
+it('remove dados privados de chaves de idempotência e operação ao minimizar inferência', async () => {
+  const { client } = await createDatabase({url:':memory:'});
+  try {
+    await runPersistenceMigrations(client); await runLedgerMigrations(client);
+    await client.execute({sql:'INSERT INTO inference_budgets(id,tenant_id,user_id,execution_id,idempotency_key,payload_json) VALUES(?,?,?,?,?,?)',args:['b','tenant','user','exec','nome-privado',JSON.stringify({status:'RELEASED',remainingPaidCents:0,remainingPromoCents:0})]});
+    await client.execute({sql:'INSERT INTO inference_calls(id,tenant_id,execution_id,call_id,operation_key,payload_json) VALUES(?,?,?,?,?,?)',args:['c','tenant','exec','call','nome-privado',JSON.stringify({status:'SETTLED'})]});
+    await new AccountClosureBillingRetention(client).minimize({tenantId:'tenant',userId:'user',tenantPseudonym:'closed_tenant',userPseudonym:'closed_user'});
+    const retained = [(await client.execute('SELECT * FROM inference_budgets')).rows,(await client.execute('SELECT * FROM inference_calls')).rows];
+    expect(JSON.stringify(retained)).not.toContain('nome-privado');
+  } finally {client.close();}
+});
+
+it('preserva vínculo de cobrança e lançamento ao minimizar chave de inferência', async () => {
+  const {client} = await createDatabase({url:':memory:'});
+  try {
+    await runPersistenceMigrations(client); await runLedgerMigrations(client); await seedFinancialRows(client);
+    await client.execute("UPDATE ledger_entries SET idempotency_key='operation_idem' WHERE id='entry_1'");
+    await client.execute({sql:'INSERT INTO inference_calls(id,tenant_id,execution_id,call_id,operation_key,payload_json) VALUES(?,?,?,?,?,?)',args:['c','tenant_original','exec','call','operation_idem',JSON.stringify({status:'SETTLED'})]});
+    await new AccountClosureBillingRetention(client).minimize({tenantId:'tenant_original',userId:'user_original',tenantPseudonym:'tenant_closed_1',userPseudonym:'user_closed_1'});
+    const call=(await client.execute('SELECT operation_key FROM inference_calls')).rows[0];
+    const operation=(await client.execute('SELECT idempotency_key FROM billing_operations')).rows[0];
+    const entry=(await client.execute('SELECT idempotency_key FROM ledger_entries')).rows[0];
+    expect(call.operation_key).toBe(operation.idempotency_key);
+    expect(call.operation_key).toBe(entry.idempotency_key);
+    expect(call.operation_key).not.toBe('operation_idem');
+  } finally {client.close();}
+});
+
+it('minimiza identificador de chamada fornecido pelo usuário', async () => {
+  const {client}=await createDatabase({url:':memory:'});
+  try {
+    await runPersistenceMigrations(client); await runLedgerMigrations(client);
+    await client.execute({sql:'INSERT INTO inference_calls(id,tenant_id,execution_id,call_id,operation_key,payload_json) VALUES(?,?,?,?,?,?)',args:['c','tenant','exec','nome-privado','op',JSON.stringify({status:'SETTLED',callId:'nome-privado'})]});
+    await new AccountClosureBillingRetention(client).minimize({tenantId:'tenant',userId:'user',tenantPseudonym:'closed_tenant',userPseudonym:'closed_user'});
+    expect(JSON.stringify((await client.execute('SELECT * FROM inference_calls')).rows)).not.toContain('nome-privado');
+  } finally {client.close();}
+});

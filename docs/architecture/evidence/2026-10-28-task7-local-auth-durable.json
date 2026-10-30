@@ -1,0 +1,101 @@
+{
+  "status": "passed",
+  "kind": "DURABLE_LOCAL_DATABASE_AND_REAL_AUTH_ACCOUNT",
+  "ownerMatchesVerifiedProfile": true,
+  "activeOwner": true,
+  "syntheticFixture": "T6-GAP",
+  "syntheticVersionPreserved": true,
+  "syntheticContentMatchesFixture": true,
+  "backupIndependentReadbackPassed": true,
+  "sqliteIntegrityCheck": "ok",
+  "originalFundingDatabaseCopied": false,
+  "syntheticContentHash": "7ebdb7ccf6bf499e614e2691b1739cdbbd6725c05aad356f54ee3b4cd5e59a05",
+  "syntheticVersionIdHash": "7b3872fa74341596ad57c72685e16f29376678a0215b14203003f166465fc139",
+  "model": "gpt-6.1-sol",
+  "cumulativeCeilingCents": 500,
+  "newBudgetOrTopup": false,
+  "newPaidCalls": 0,
+  "inferenceCommandsDisabled": true,
+  "workerEnabled": false,
+  "originalLedgerMigrated": false,
+  "financial": {
+    "availableCents": 441,
+    "settledCents": 55,
+    "provisionedCents": 4,
+    "escrowCents": 0,
+    "historicalCalls": 55,
+    "invoiceReconciled": false
+  },
+  "date": "2026-10-28",
+  "sourceCommit": "5bc204eb372327c5f5bf76cbc379e467164f52b8",
+  "scriptSha256": "ee7c9a0441d19182d990d6021f6af66afd4eb6f33c2d18541bd10a847a047f69",
+  "scriptCommittedAtRun": false,
+  "realAuthFlow": {
+    "userCompletedLocalLogin": true,
+    "verifier": "SupabaseIdentityVerifier",
+    "profileMatchesVerifiedOwner": true,
+    "sessionRestoredAfterApiRestart": true,
+    "credentialsCopiedFromProduction": false,
+    "publishableConfigSource": "Public browser asset of existing ForgeLex",
+    "localOrigin": "http://127.0.0.1:3420",
+    "apiOrigin": "http://127.0.0.1:3421"
+  },
+  "verifiedScriptStarts": 2,
+  "negativeProbes": [
+    {
+      "method": "GET",
+      "path": "/api/v2/auth/me",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/agentic/pilot/budget",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/agentic/pilot/executions",
+      "status": 503,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/research/search-case-law",
+      "status": 503,
+      "passed": true
+    },
+    {
+      "method": "POST",
+      "path": "/mcp",
+      "status": 503,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/agentic/pilot/budget",
+      "credential": "invalid synthetic session",
+      "status": 401,
+      "passed": true
+    }
+  ],
+  "safetyAtVerification": {
+    "mode": "READ_ONLY_LOCAL_VALIDATION",
+    "outboundAuthReads": 82,
+    "blockedOutbound": 0,
+    "workerEnabled": false,
+    "inferenceCommandsDisabled": true,
+    "authVerifier": "SupabaseIdentityVerifier",
+    "host": "127.0.0.1"
+  },
+  "limits": [
+    "Only new isolated local SQLite initialized; existing databases and original USD ledger not migrated",
+    "Backup/readback covers the application database, not the funding ledger",
+    "Restart after interrupting only the owned validation process; not a remote failover or proof of clean graceful shutdown",
+    "Foreign verified-user denial covered by unit tests; live negative probes used absent/invalid sessions",
+    "No new real inference, paid research, fallback, push or deploy; validation helper never loads an OpenAI key",
+    "Production flags and existing private owner profile remain unchanged; validation-only process enables routes with workers/commands blocked",
+    "No invoice reconciliation or legal-quality approval"
+  ]
+}

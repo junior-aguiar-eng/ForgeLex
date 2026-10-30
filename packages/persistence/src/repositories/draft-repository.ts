@@ -186,6 +186,7 @@ export interface DraftVersionWriteInput {
     sections: DraftSectionInput[];
     citations?: CitationAnchorInput[];
     baseVersionId?: string;
+    expectedCurrentVersionId?: string;
 }
 
 export class DraftRepository {
@@ -280,6 +281,7 @@ export class DraftRepository {
     if (input.baseVersionId && !(await this.getVersion(input.tenantId, input.matterId, input.draftId, input.baseVersionId))) throw new Error('DRAFT_PARENT_INVALID');
     const draft = await this.getDraft(input.tenantId, input.matterId, input.draftId);
     if (!draft) throw new Error('DRAFT_NOT_FOUND: rascunho não localizado no matter do tenant autenticado.');
+    if (input.expectedCurrentVersionId && input.expectedCurrentVersionId !== draft.currentVersionId) throw new Error('DRAFT_VERSION_CONFLICT: a minuta possui outra versão salva. Sua edição foi preservada; confira a versão atual antes de tentar novamente.');
     if (input.sections.length === 0) throw new Error('DRAFT_SECTIONS_REQUIRED: a versão precisa conter ao menos uma seção.');
 
     const thesisIds = [...new Set(input.sections.flatMap((section) => section.linkedThesisIds ?? []))];

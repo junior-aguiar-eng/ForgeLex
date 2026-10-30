@@ -1,3 +1,4 @@
+import { closeAgenticTenant } from '@forgelex/persistence';
 import type { Client } from '@forgelex/persistence';
 import { createHash } from 'node:crypto';
 
@@ -22,7 +23,21 @@ interface TenantStatement {
   countSql: string;
 }
 
+// A held conversation retains its relationship without retaining the deleted case's private fields.
+const referencedByHeldConversation = 'EXISTS (SELECT 1 FROM agentic_conversations c WHERE c.matter_id=matters.id AND c.tenant_id=matters.tenant_id)';
+const minimalMatterShell = "lifecycle_state='PURGED' AND title='' AND description IS NULL AND client_id IS NULL AND practice_area IS NULL AND jurisdiction IS NULL AND previous_business_status IS NULL AND previous_lifecycle_state IS NULL AND created_by='retained_session' AND archived_by IS NULL AND trashed_by IS NULL AND restored_by IS NULL AND purged_by='account_closure'";
+
 const tenantStatements: readonly TenantStatement[] = [
+  direct('agentic_commands', 'SESSIONS'),
+  direct('agentic_execution_jobs', 'SESSIONS'),
+  nested('agentic_execution_calls', 'SESSIONS', 'execution_id IN (SELECT id FROM agentic_executions WHERE tenant_id = ?)'),
+  nested('agentic_events', 'SESSIONS', 'execution_id IN (SELECT id FROM agentic_executions WHERE tenant_id = ?)'),
+  direct('agentic_task_deliveries', 'SESSIONS'),
+  nested('agentic_messages', 'SESSIONS', 'conversation_id IN (SELECT id FROM agentic_conversations WHERE tenant_id = ?)'),
+  nested('agentic_contexts', 'SESSIONS', 'conversation_id IN (SELECT id FROM agentic_conversations WHERE tenant_id = ?)'),
+  direct('agentic_executions', 'SESSIONS'),
+  direct('agentic_conversations', 'SESSIONS'),
+  direct('agentic_command_owners', 'SESSIONS'),
   direct('draft_approval_tokens', 'MATTERS'),
   direct('draft_approval_decisions', 'MATTERS'),
   direct('draft_approval_requests', 'MATTERS'),
@@ -66,7 +81,7 @@ const tenantStatements: readonly TenantStatement[] = [
   nested('checkpoints', 'SESSIONS', 'session_id IN (SELECT id FROM sessions WHERE tenant_id = ?)'),
   nested('session_messages', 'SESSIONS', 'session_id IN (SELECT id FROM sessions WHERE tenant_id = ?)'),
   direct('sessions', 'SESSIONS'),
-  direct('matters', 'MATTERS'),
+  { table: 'matters', category: 'MATTERS', deleteSql: `DELETE FROM matters WHERE tenant_id=? AND NOT (${referencedByHeldConversation})`, countSql: `SELECT COUNT(*) AS count FROM matters WHERE tenant_id=? AND NOT ((${referencedByHeldConversation}) AND (${minimalMatterShell}))` },
 ];
 
 // Analysis sessions are independent of matters. Their results and operation
@@ -128,6 +143,26 @@ export class AccountClosurePurgeService {
     const transaction = await this.client.transaction();
     let deletedRows = 0;
     try {
+      await closeAgenticTenant(transaction, input.tenantId);
+      await transaction.execute({ sql: 'UPDATE ledger_accounts SET updated_at=updated_at WHERE tenant_id=?', args: [input.tenantId] });
+      const budgets = await transaction.execute({ sql: 'SELECT payload_json FROM inference_budgets WHERE tenant_id=?', args: [input.tenantId] });
+      const calls = await transaction.execute({ sql: 'SELECT payload_json FROM inference_calls WHERE tenant_id=?', args: [input.tenantId] });
+      const parse = (raw: unknown): Record<string, unknown> => {
+        try { const data = JSON.parse(String(raw)); if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error(); return data; }
+        catch { throw new Error('ACCOUNT_CLOSURE_INFERENCE_PENDING'); }
+      };
+      for (const row of budgets.rows) {
+        const budget = parse(row.payload_json);
+        if (budget.status !== 'RELEASED' || budget.remainingPaidCents !== 0 || budget.remainingPromoCents !== 0) throw new Error('ACCOUNT_CLOSURE_INFERENCE_PENDING');
+      }
+      for (const row of calls.rows) {
+        if (!['SETTLED', 'CANCELLED', 'PROVISIONED'].includes(String(parse(row.payload_json).status))) throw new Error('ACCOUNT_CLOSURE_INFERENCE_PENDING');
+      }
+      const pending = await transaction.execute({
+        sql: "SELECT execution_id FROM agentic_execution_jobs WHERE tenant_id=? AND (state NOT IN ('COMPLETED','FAILED','CANCELLED') OR budget_release_pending<>0) LIMIT 1",
+        args: [input.tenantId],
+      });
+      if (pending.rows.length) throw new Error('ACCOUNT_CLOSURE_AGENTIC_PENDING');
       const statements = await this.availableTenantStatements(transaction);
       if (!held.has('MATTERS')) {
         const closures = await transaction.execute({
@@ -141,6 +176,12 @@ export class AccountClosurePurgeService {
         await transaction.execute({
           sql: 'UPDATE matter_lifecycle_purge_operations SET tenant_id=? WHERE tenant_id=?',
           args: [`tenant_closed_${hash.slice(0, 24)}`, input.tenantId],
+        });
+      }
+      if (held.has('SESSIONS') && !held.has('MATTERS')) {
+        await transaction.execute({
+          sql: `UPDATE matters SET title='',description=NULL,client_id=NULL,practice_area=NULL,jurisdiction=NULL,previous_business_status=NULL,previous_lifecycle_state=NULL,status='ARCHIVED',created_by='retained_session',lifecycle_state='PURGED',lifecycle_revision=CASE WHEN lifecycle_state='PURGED' THEN lifecycle_revision ELSE lifecycle_revision+1 END,archived_at=NULL,archived_by=NULL,trashed_at=NULL,trashed_by=NULL,restored_at=NULL,restored_by=NULL,purged_at=COALESCE(purged_at,?),purged_by='account_closure',updated_at=? WHERE tenant_id=? AND (${referencedByHeldConversation})`,
+          args: [input.now ?? new Date().toISOString(),input.now ?? new Date().toISOString(),input.tenantId],
         });
       }
       for (const statement of statements) {
@@ -234,6 +275,8 @@ export class AccountClosurePurgeService {
     let privateRows = 0;
     let activeCredentials = 0;
     if (input.tenantId) {
+      const inference = await this.client.execute({ sql: 'SELECT (SELECT COUNT(*) FROM inference_budgets WHERE tenant_id=?) + (SELECT COUNT(*) FROM inference_calls WHERE tenant_id=?) AS count', args: [input.tenantId, input.tenantId] });
+      privateRows += numberFrom(inference as { rows: Array<Record<string, unknown>> });
       const statements = await this.availableTenantStatements(this.client);
       if (!held.has('MATTERS')) {
         const operations = await this.client.execute({

@@ -394,3 +394,5 @@ describe('OpenAIAgentProvider (OpenAI Agents SDK)', () => {
     expect(events.some((event) => event.type === 'error' && event.code === 'TOOL_EXECUTION_FAILED')).toBe(true);
   });
 });
+
+it('soma usage de todas as respostas do loop, sem cobrar só a última',async()=>{const run=async()=>Object.assign(fakeStream([],{finalOutput:'OK',currentTurn:2}),{rawResponses:[{usage:{inputTokens:100,outputTokens:10}},{usage:{inputTokens:200,outputTokens:20}}]});const provider=new OpenAIAgentProvider({apiKey:'test-key',run});const events:AgentEvent[]=[];for await(const e of provider.run({sessionId:crypto.randomUUID(),tenantId:'t',userId:'u',prompt:'Exemplo sintético',tools:[],abortSignal:new AbortController().signal}))events.push(e);expect(events.find(e=>e.type==='lifecycle:completed')).toMatchObject({usage:{inputTokens:300,outputTokens:30}});});

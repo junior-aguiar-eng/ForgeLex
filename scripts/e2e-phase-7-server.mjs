@@ -125,11 +125,13 @@ if (process.env.FORGELEX_E2E_MATTER_LIFECYCLE === 'true') {
   await matterPurgeJournal.provisionAnchor();
 }
 const app = await buildApp({
+  ...(process.env.FORGELEX_E2E_AGENTIC === 'true' ? { agenticWorkspace: (await import('./agentic-workspace-e2e-fixture.mjs')).agenticE2EOptions() } : {}),
   matterPurgeJournal,
   database: connection.db, databaseClient: connection.client, ledgerService: ledger,
   sourceRouter, billingOperationsService: billingOperations, paymentProvider,
   environment: {
     NODE_ENV: 'test', FORGELEX_SUPABASE_URL: authUrl,
+    ...(process.env.FORGELEX_E2E_AGENTIC === 'true' ? { FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true' } : {}),
     ...(process.env.FORGELEX_E2E_SAVED_RESEARCH === 'true' ? { FORGELEX_SAVED_RESEARCH_ENABLED: 'true', FORGELEX_MCP_DECISION_UI_ENABLED: 'true' } : {}),
     ...(matterPurgeJournal ? { FORGELEX_MATTER_PURGE_KEY_SECRET: 'synthetic-only-operation-secret-32-bytes' } : {}),
     FORGELEX_SUPABASE_PUBLISHABLE_KEY: 'phase7-e2e-publishable', FORGELEX_ALLOWED_ORIGINS: webOrigin,

@@ -12,7 +12,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'node scripts/e2e-account-closure-server.mjs',
-      url: 'http://127.0.0.1:3001/readyz',
+      url: 'http://127.0.0.1:13401/readyz',
       reuseExistingServer: false,
       timeout: 120_000,
     },
@@ -23,7 +23,7 @@ export default defineConfig({
       env: {
         VITE_SUPABASE_URL: 'http://127.0.0.1:15431',
         VITE_SUPABASE_PUBLISHABLE_KEY: 'closure-e2e-publishable',
-        VITE_FORGELEX_API_URL: 'http://127.0.0.1:3001',
+        VITE_FORGELEX_API_URL: 'http://127.0.0.1:13401',
       },
     },
   ],

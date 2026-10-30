@@ -1,3 +1,4 @@
+import { consumeBudgetFunding, validateBudgetFunding, type BudgetFunding } from './inference-budget-funding.js';
 import { randomUUID } from 'node:crypto';
 import { decodeResultSnapshot, encodeResultSnapshot } from './result-snapshot.js';
 import type { Client } from '@libsql/client';
@@ -251,6 +252,7 @@ export class LedgerService {
   }
 
   public async executeBillableOperation<T>(params: {
+    budgetFunding?: BudgetFunding;
     tenantId: string;
     idempotencyKey: string;
     requestFingerprint?: string;
@@ -261,7 +263,7 @@ export class LedgerService {
     operation: () => Promise<T>;
   }): Promise<BillableExecutionResult<T>> {
     const costCents = params.costCents;
-    this.validateBillableInput(params.idempotencyKey, costCents);
+    this.validateBillableInput(params.idempotencyKey, costCents, Boolean(params.budgetFunding));
     await this.runMigrations();
 
     const reservation = await this.withTenantLock(params.tenantId, async () => {
@@ -296,6 +298,7 @@ export class LedgerService {
             )
           );
         const existing = existingOperations[0];
+        if (existing && ((existing.fundingExecutionId ?? undefined) !== params.budgetFunding?.executionId || (existing.fundingCallId ?? undefined) !== params.budgetFunding?.callId)) throw new DomainError('IDEMPOTENCY_CONFLICT', 'A chave pertence a outra cobertura de orçamento.');
         if (existing && (existing.requestFingerprint ?? undefined) !== params.requestFingerprint) {
           const failedLegacy = !existing.requestFingerprint && existing.status === 'FAILED';
           if (!failedLegacy) throw new DomainError('IDEMPOTENCY_CONFLICT',
@@ -320,14 +323,15 @@ export class LedgerService {
           .from(billingOperations)
           .where(and(eq(billingOperations.accountId, lockedAccount.id), eq(billingOperations.status, 'PENDING')));
         const reservedCents = pending
-          .filter((item) => item.id !== existing?.id && Boolean(item.leaseExpiresAt && item.leaseExpiresAt > nowIso))
+          .filter((item) => !item.fundingExecutionId && item.id !== existing?.id && Boolean(item.leaseExpiresAt && item.leaseExpiresAt > nowIso))
           .reduce((total, item) => total + item.reservedAmountCents, 0);
 
         const promoValid = this.isPromotionValid(lockedAccount.promoExpiresAt);
         const effectivePromo = promoValid ? lockedAccount.promotionalBalanceCents : 0;
         const totalAvailable = lockedAccount.paidBalanceCents + effectivePromo - reservedCents;
 
-        if (totalAvailable < costCents) {
+        if (params.budgetFunding) await validateBudgetFunding(transaction as unknown as ForgeLexDatabase, params.tenantId, params.userId, params.budgetFunding, params.idempotencyKey, costCents);
+        if (!params.budgetFunding && totalAvailable < costCents) {
           throw new DomainError(
             'BILLING_INSUFFICIENT_BALANCE',
             `Saldo insuficiente para executar consulta. Necessário R$ ${(costCents / 100).toFixed(2)}, disponível R$ ${(totalAvailable / 100).toFixed(2)}.`,
@@ -347,6 +351,7 @@ export class LedgerService {
         await transaction.insert(billingOperations).values({
           id, tenantId: params.tenantId, accountId: lockedAccount.id,
           idempotencyKey: params.idempotencyKey, status: 'PENDING', reservedAmountCents: costCents,
+          fundingExecutionId: params.budgetFunding?.executionId ?? null, fundingCallId: params.budgetFunding?.callId ?? null,
           requestFingerprint: params.requestFingerprint ?? null,
           leaseOwner, leaseExpiresAt, resultSnapshot: null, errorCode: null,
           createdAt: nowIso, updatedAt: nowIso,
@@ -395,12 +400,12 @@ export class LedgerService {
     }
   }
 
-  private validateBillableInput(idempotencyKey: string, costCents: number): void {
+  private validateBillableInput(idempotencyKey: string, costCents: number, allowZero = false): void {
     if (!idempotencyKey.trim()) {
       throw new DomainError('INVALID_CANONICAL_STATE', 'A chave de idempotência é obrigatória.');
     }
 
-    if (!Number.isInteger(costCents) || costCents <= 0) {
+    if (!Number.isSafeInteger(costCents) || costCents < 0 || (!allowZero && costCents === 0)) {
       throw new DomainError('INVALID_CANONICAL_STATE', 'O custo da operação deve ser inteiro positivo.');
     }
   }
@@ -510,6 +515,7 @@ export class LedgerService {
       userId?: string;
       sessionId?: string;
       usage?: BillableUsageInput;
+      budgetFunding?: BudgetFunding;
     },
     result: T,
     snapshot: string,
@@ -556,10 +562,13 @@ export class LedgerService {
 
       const promoValid = this.isPromotionValid(lockedAccount.promoExpiresAt);
       const effectivePromo = promoValid ? lockedAccount.promotionalBalanceCents : 0;
-      if (lockedAccount.paidBalanceCents + effectivePromo < costCents) {
+      if (!params.budgetFunding && lockedAccount.paidBalanceCents + effectivePromo < costCents) {
         throw new DomainError('BILLING_INSUFFICIENT_BALANCE', 'Saldo insuficiente durante a liquidação da reserva.');
       }
-      const settlement = this.calculateSettlement(lockedAccount, effectivePromo, costCents, promoValid);
+      const settlement = params.budgetFunding
+        ? { paidBalanceCents: lockedAccount.paidBalanceCents, promotionalBalanceCents: lockedAccount.promotionalBalanceCents,
+            bucket: await consumeBudgetFunding(transaction as unknown as ForgeLexDatabase, params.tenantId, params.userId, params.budgetFunding, params.idempotencyKey, costCents) }
+        : this.calculateSettlement(lockedAccount, effectivePromo, costCents, promoValid);
       const timestamp = new Date().toISOString();
       const usageEvent = this.createUsageEvent(params, costCents, timestamp);
 
