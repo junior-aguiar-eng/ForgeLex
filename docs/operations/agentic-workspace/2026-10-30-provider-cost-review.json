@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-30",
+  "provider": "openai",
+  "source": "Authenticated OpenAI Platform CSV exports",
+  "period": {
+    "start": "2026-09-30T00:00:00Z",
+    "end": "2026-10-31T00:00:00Z",
+    "note": "Daily export includes the October 30 bucket; pilot activity is October 28 UTC"
+  },
+  "files": [
+    {
+      "name": "cost_2026-09-30_2026-10-30.csv",
+      "sha256": "c6489843af4356b8cd5f05ea7f1682290860dc1b1aeb6e2686082204f4e144e1"
+    },
+    {
+      "name": "completions_usage_2026-09-30_2026-10-30.csv",
+      "sha256": "08d9bd1cfa5ff0040f356353c848c333cdbeb09a27c852276d9f729b63a54aef"
+    }
+  ],
+  "matching": {
+    "sameNonemptyApiKey": true,
+    "sameUtcDay": true,
+    "activityRows": 1,
+    "costRowsWithAmount": 1,
+    "requests": 54,
+    "inputTokens": 92441,
+    "outputTokens": 6274,
+    "model": "gpt-6.1-sol",
+    "day": "2026-10-28",
+    "costAmountRaw": "0E-6176",
+    "costUsd": 0
+  },
+  "conclusion": "NO_CHARGE_IDENTIFIED_IN_PROVIDER_REPORT_AS_OF_REVIEW",
+  "canceledCall": {
+    "separatelyReported": false,
+    "actualCostUsd": null,
+    "definitivePerCallInvoiceReconciliation": false,
+    "historicalProvisionCents": 4,
+    "historicalProvisionPreserved": true
+  },
+  "historicalAccounting": {
+    "knownTokenTariffEstimateUsd": 0.247622,
+    "roundedSettledCents": 55,
+    "provisionCents": 4,
+    "totalLocalAccountedCents": 59,
+    "remainingEscrowCents": 0
+  },
+  "rawExportsPublished": false,
+  "pilotDatabaseOpened": false,
+  "pilotDatabaseCopied": false,
+  "pilotDatabaseModified": false,
+  "newInferenceCalls": 0,
+  "customerDebitCreated": false,
+  "limitations": [
+    "Daily provider report is not a per-request invoice.",
+    "Zero reported cost does not establish the reason for the zero value or a definitive separate cost for the canceled request.",
+    "Raw exports remain private; this record omits organization, user and API key identifiers."
+  ]
+}
