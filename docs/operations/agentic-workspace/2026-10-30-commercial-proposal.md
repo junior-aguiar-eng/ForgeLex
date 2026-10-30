@@ -1,9 +1,7 @@
 # Proposta comercial da execução nativa
 
-Estado: base comercial aprovada por Boni em 30/10/2026, sem ativação; nenhum preço novo foi aplicado.
-Data: 30/10/2026. A aprovação comercial não autoriza chamadas pagas, dados de
-clientes ou ativação automática. Essas operações continuam fechadas até decisão
-expressa e implementação/validação dos requisitos abaixo.
+Estado: base comercial aprovada por Boni em 30/10/2026; implementação, publicação e ativação posteriormente autorizadas, condicionadas à validação e checks.
+Data: 30/10/2026. A aprovação inicial foi sem ativação. O pedido posterior de Boni autorizou concluir o fluxo, integrar, publicar e ativar após validação. O piloto histórico permanece encerrado e separado. O estado efetivo e os gates estão no [manual comercial](commercial-execution.md).
 
 ## Oferta inicial
 
@@ -81,7 +79,7 @@ própria do ForgeLex, sem apagar a obrigação externa. Bloquear novos envios da
 execução afetada até conciliação. Não usar provisão do piloto como fatura, não
 liquidar novamente uma chamada PROVISIONED e não criar estorno sem débito.
 
-## O que falta implementar antes da oferta
+## Requisitos de implementação registrados na aprovação inicial
 
 O sistema atual tem saldo comercial BRL e orçamento sintético USD separados.
 Não existe ainda política comercial ativa que conecte essa nova cobrança ao

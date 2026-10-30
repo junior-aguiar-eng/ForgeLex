@@ -43,7 +43,9 @@ export function GuidedDialogue({
                     {onCorrect && (
                       <button
                         className="min-h-11 underline"
+                        disabled={busy}
                         onClick={() => {
+                          if (busy) return;
                           const answer = m.answer!;
                           const q = messages.find(
                             (x) =>

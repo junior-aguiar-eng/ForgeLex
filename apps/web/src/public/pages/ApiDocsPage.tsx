@@ -21,7 +21,7 @@ response = httpx.get('${apiUrl}/api/v2/jurisprudencias',
       <PageIntro
         eyebrow="Desenvolvedores"
         title="Integre as operações jurídicas do ForgeLex."
-        text="A API REST e o MCP expõem a mesma infraestrutura jurídica. A autenticação, os escopos, os erros e a cobrança pertencem a cada operação; o ForgeLex não fornece modelo de IA."
+        text="A API REST e o MCP expõem a mesma infraestrutura jurídica. A autenticação, os escopos, os erros e a cobrança pertencem a cada operação; o modelo da integração MCP é fornecido pelo aplicativo conectado."
       />
       <section className="page-container space-y-8 pb-16">
         <div className="grid gap-4 md:grid-cols-3">
@@ -47,8 +47,14 @@ response = httpx.get('${apiUrl}/api/v2/jurisprudencias',
         </div>
         <div className="surface p-6">
           <h2 className="font-editorial text-xl font-bold">Consulta pública gratuita TJAL</h2>
-          <p className="mt-3 text-sm leading-6 text-stone-600">Use POST /api/v2/datajud/tjal/process com um objeto contendo processNumber, o número CNJ do TJAL. Não exige conta, saldo, assinatura ou Idempotency-Key e não gera débito. Os dados básicos e as movimentações têm origem no CNJ / DataJud; não são resultados da pesquisa jurisprudencial paga.</p>
-          <a href="/consulta-processual" className="btn-secondary mt-5">Abrir consulta gratuita</a>
+          <p className="mt-3 text-sm leading-6 text-stone-600">
+            Use POST /api/v2/datajud/tjal/process com um objeto contendo processNumber, o número CNJ do TJAL. Não exige
+            conta, saldo, assinatura ou Idempotency-Key e não gera débito. Os dados básicos e as movimentações têm
+            origem no CNJ / DataJud; não são resultados da pesquisa jurisprudencial paga.
+          </p>
+          <a href="/consulta-processual" className="btn-secondary mt-5">
+            Abrir consulta gratuita
+          </a>
         </div>
         <div className="surface p-6">
           <div className="flex items-center gap-2">
@@ -66,7 +72,12 @@ response = httpx.get('${apiUrl}/api/v2/jurisprudencias',
             ].map(([label, code]) => (
               <div key={label} className="min-w-0">
                 <h3 className="text-sm font-semibold text-stone-800">{label}</h3>
-                <pre tabIndex={0} role="region" aria-label={`Exemplo de pesquisa em ${label}`} className="mt-2 overflow-x-auto rounded-xl bg-stone-900 p-4 text-xs leading-5 text-stone-100">
+                <pre
+                  tabIndex={0}
+                  role="region"
+                  aria-label={`Exemplo de pesquisa em ${label}`}
+                  className="mt-2 overflow-x-auto rounded-xl bg-stone-900 p-4 text-xs leading-5 text-stone-100"
+                >
                   <code>{code}</code>
                 </pre>
               </div>

@@ -50,6 +50,7 @@ export interface ExecutionServiceOptions {
   now?: () => number;
   executorAvailable?: boolean;
   requireInferenceAuthorization?: boolean;
+  admissionTimeoutMs?: number;
   prepareStart?: (
     store: ExecutionStore,
     owner: AgenticOwner,
@@ -57,6 +58,10 @@ export interface ExecutionServiceOptions {
   ) => Promise<z.infer<typeof StartExecutionSchema>>;
   budgetCleanup?: Pick<InferenceBudgetService, 'releaseUnusedBudget' | 'getExecutionBudget'>;
   canManageExecution?: (execution: AgenticExecution) => boolean;
+  /** Server-only authorization inherited by fresh continuation IDs; jobs still wait for a reservation. */
+  inferenceApproval?: { authorizationId: string; provider: string; model: string };
+  /** Durable commercial settlement, retried using the existing cleanup journal. */
+  finalizeExecution?: (owner: AgenticOwner, executionId: string) => Promise<void>;
 }
 const terminal = (e: AgenticExecution) => ['COMPLETED', 'FAILED', 'CANCELLED'].includes(e.status);
 
@@ -206,6 +211,9 @@ export class ExecutionService {
       pendingCallId: null,
       budgetReleasePending: false,
       createdAt: this.at(),
+      ...(this.options.admissionTimeoutMs
+        ? { admissionExpiresAt: new Date(this.now() + this.options.admissionTimeoutMs).toISOString() }
+        : {}),
     });
     await s.workspace.appendEvent(owner, executionId, { type: 'STATUS', payload: { status: 'QUEUED' } });
   }
@@ -298,8 +306,38 @@ export class ExecutionService {
       )
         throw new Error('EXECUTION_CONFLICT');
       await this.activeContext(s, execution, true);
-      await s.saveJob({ ...job, state: 'READY' });
+      if (job.state === 'WAITING' && job.admissionExpiresAt && job.admissionExpiresAt <= this.at())
+        throw new Error('EXECUTION_CONFLICT');
+      await s.saveJob({
+        ...job,
+        state: 'READY',
+        ...(this.options.admissionTimeoutMs ? { admissionExpiresAt: null } : {}),
+      });
     });
+  }
+  /** Expire only a still-unactivated admission, rechecked under the same tenant lock as activation/reservation. */
+  async expireAdmission(owner: AgenticOwner, executionId: string) {
+    if (!this.options.admissionTimeoutMs) return false;
+    const expired = await this.store.atomic(owner, async (s) => {
+      const execution = await s.workspace.getExecution(owner, executionId),
+        job = await s.getJob(owner, executionId);
+      const deadline =
+        job.admissionExpiresAt ?? new Date(Date.parse(job.createdAt) + this.options.admissionTimeoutMs!).toISOString();
+      if (
+        !execution ||
+        (this.options.canManageExecution && !this.options.canManageExecution(execution)) ||
+        execution.status !== 'QUEUED' ||
+        job.state !== 'WAITING' ||
+        deadline > this.at()
+      )
+        return false;
+      await s.workspace.compareAndSetStatus(owner, executionId, 'QUEUED', 'CANCELLED');
+      await s.workspace.appendEvent(owner, executionId, { type: 'STATUS', payload: { status: 'CANCELLED' } });
+      await s.saveJob({ ...job, state: 'CANCELLED', budgetReleasePending: true, budgetReleaseNextAt: null });
+      return true;
+    });
+    if (expired) await this.releaseBudget(owner, executionId);
+    return expired;
   }
   async getExecution(owner: AgenticOwner, id: string) {
     return this.store.atomic(owner, async (s) => {
@@ -382,10 +420,10 @@ export class ExecutionService {
       conversationId: old.conversationId,
       contextRevision: revision,
       idempotencyKey: `successor:${digest(key)}`,
-      authorizationId: null,
+      authorizationId: this.options.inferenceApproval?.authorizationId ?? null,
       budgetReservationId: null,
-      provider: null,
-      model: null,
+      provider: this.options.inferenceApproval?.provider ?? null,
+      model: this.options.inferenceApproval?.model ?? null,
     });
     if (checkpoint) await s.workspace.saveProgress(owner, next.id, checkpoint);
     await this.createJob(s, owner, next.id, job.objective, job.actionId, old.id);
@@ -603,7 +641,7 @@ export class ExecutionService {
         pendingCallId: null,
         leaseToken: state === 'LEASED' ? j.leaseToken : null,
         leaseExpiresAt: state === 'LEASED' ? j.leaseExpiresAt : null,
-        budgetReleasePending: state === 'COMPLETED',
+        budgetReleasePending: state === 'COMPLETED' || (state === 'WAITING' && Boolean(this.options.finalizeExecution)),
       });
     });
     await this.releaseBudget(lease.owner, lease.executionId);
@@ -655,7 +693,10 @@ export class ExecutionService {
     if (!job.budgetReleasePending) return;
     let released = false;
     try {
-      released = (await this.budget.releaseUnusedBudget(owner, id)).status === 'RELEASED';
+      if (this.options.finalizeExecution) {
+        await this.options.finalizeExecution(owner, id);
+        released = true;
+      } else released = (await this.budget.releaseUnusedBudget(owner, id)).status === 'RELEASED';
     } catch (error) {
       if (error instanceof Error && error.message === 'BUDGET_NOT_FOUND') {
         try {

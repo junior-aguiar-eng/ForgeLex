@@ -3,7 +3,7 @@ import documents from './playwright.documents.config';
 export default defineConfig({
   ...documents,
   outputDir: 'test-results/agentic-workspace',
-  testMatch: 'agentic-workspace.spec.ts',
+  testMatch: ['agentic-workspace.spec.ts', 'agentic-commercial.spec.ts'],
   webServer: (documents.webServer as any[]).map((server, index) => ({
     ...server,
     env: {

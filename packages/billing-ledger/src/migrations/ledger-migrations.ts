@@ -232,6 +232,14 @@ export const ledgerMigrations: readonly SqlMigration[] = [
     `CREATE UNIQUE INDEX inference_calls_execution_call_idx ON inference_calls(execution_id,call_id);`,
     `CREATE UNIQUE INDEX inference_calls_operation_idx ON inference_calls(tenant_id,operation_key);`,
   ] },
+  { id: 'billing-ledger-0010-commercial-inference', statements: [
+    `CREATE TABLE commercial_executions (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, account_id TEXT NOT NULL, execution_id TEXT NOT NULL UNIQUE, idempotency_key TEXT NOT NULL, status TEXT NOT NULL, payload_json TEXT NOT NULL);`,
+    `CREATE UNIQUE INDEX commercial_executions_owner_key_idx ON commercial_executions(tenant_id,user_id,idempotency_key);`,
+    `CREATE INDEX commercial_executions_account_status_idx ON commercial_executions(account_id,status);`,
+    `CREATE TABLE commercial_calls (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, execution_id TEXT NOT NULL, call_id TEXT NOT NULL, status TEXT NOT NULL, payload_json TEXT NOT NULL);`,
+    `CREATE UNIQUE INDEX commercial_calls_execution_call_idx ON commercial_calls(execution_id,call_id);`,
+    `CREATE INDEX commercial_calls_tenant_status_idx ON commercial_calls(tenant_id,status);`,
+  ] },
 ];
 
 export async function runLedgerMigrations(client: Client): Promise<void> {

@@ -67,7 +67,7 @@
     <header><strong>ForgeLex</strong><a href="/">Voltar ao aplicativo</a></header>
     <main>
       <h1>Política de Privacidade do ForgeLex</h1>
-      <p class="meta">Versão 2026-10-03.v1 · atualizada em 3 de outubro de 2026</p>
+      <p class="meta">Versão 2026-10-30.v1 · atualizada em 30 de outubro de 2026</p>
       <h2>Responsável e contato</h2>
       <p>
         José Bonifácio de Aguiar Santos Júnior é o responsável pelo ForgeLex e pelo tratamento de dados de conta,
@@ -93,12 +93,12 @@
       </p>
       <h2>Consulta pública gratuita TJAL / DataJud</h2>
       <p>
-        Ao solicitar a consulta processual gratuita, o número CNJ informado é enviado pelo backend à API pública
-        do CNJ / DataJud. Os metadados e as movimentações retornados são apresentados na tela, sem cadastro,
-        assinatura ou débito de créditos. O ForgeLex não grava o número consultado ou os resultados no banco,
-        no histórico da conta ou no armazenamento local do navegador. Os dados permanecem na memória da tela
-        enquanto ela está aberta. O endereço IP é utilizado temporariamente para limitar requisições e prevenir
-        abuso; logs operacionais registram rota, status e duração, sem o corpo da consulta.
+        Ao solicitar a consulta processual gratuita, o número CNJ informado é enviado pelo backend à API pública do CNJ
+        / DataJud. Os metadados e as movimentações retornados são apresentados na tela, sem cadastro, assinatura ou
+        débito de créditos. O ForgeLex não grava o número consultado ou os resultados no banco, no histórico da conta ou
+        no armazenamento local do navegador. Os dados permanecem na memória da tela enquanto ela está aberta. O endereço
+        IP é utilizado temporariamente para limitar requisições e prevenir abuso; logs operacionais registram rota,
+        status e duração, sem o corpo da consulta.
       </p>
       <h2>Fundamentos do tratamento</h2>
       <p>
@@ -123,6 +123,16 @@
         encaminhar informações sigilosas. Não presuma que o ForgeLex acessa todo o histórico dessa IA ou que controla a
         conservação feita pelo host.
       </p>
+      <p>
+        No trabalho nativo, o ForgeLex envia à OpenAI o pedido, respostas fornecidas e trechos das fontes que o usuário
+        selecionou e pode acessar, para produzir a entrega solicitada. Não envia automaticamente todos os casos ou
+        documentos da conta. O serviço usa a API com armazenamento de resposta desabilitado e sem tracing do conteúdo.
+        Isso não é garantia de retenção zero: registros de monitoramento de abuso da OpenAI podem conter conteúdo e, por
+        padrão, ser conservados por até 30 dias, ressalvadas as exceções descritas pelo fornecedor. Não ativamos
+        compartilhamento voluntário de dados para treinamento. O processamento pode ocorrer fora do Brasil. Consulte os
+        controles de dados da OpenAI e restrinja o material ao necessário para a tarefa.
+      </p>
+      <p><a href="https://developers.openai.com/api/docs/guides/your-data">Controles de dados da OpenAI</a>.</p>
       <h2>Transferências internacionais</h2>
       <p>
         Fornecedores e hosts podem tratar dados fora do Brasil. As transferências realizadas sob responsabilidade do

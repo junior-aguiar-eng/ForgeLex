@@ -19,7 +19,7 @@ export class ExecutionWorker {
   constructor(
     private readonly service: ExecutionService,
     private readonly driver?: ExecutionDriver,
-    private readonly options: { id?: string; leaseMs?: number; maxSteps?: number } = {},
+    private readonly options: { id?: string; leaseMs?: number; maxSteps?: number; maxDurationMs?: number } = {},
   ) {}
   async runOnce() {
     if (this.active || this.stopped) return false;
@@ -27,6 +27,10 @@ export class ExecutionWorker {
     const lease = await this.service.claimNext(this.options.id ?? randomUUID(), leaseMs);
     if (!lease) return false;
     const controller = new AbortController();
+    const deadline = this.options.maxDurationMs
+      ? setTimeout(() => controller.abort(), this.options.maxDurationMs)
+      : undefined;
+    deadline?.unref();
     this.active = { lease, controller };
     const timer = setInterval(
       () => {
@@ -41,7 +45,10 @@ export class ExecutionWorker {
         return true;
       }
       for (let i = 0; i < (this.options.maxSteps ?? 100); i++) {
-        if (controller.signal.aborted || this.stopped) return true;
+        if (controller.signal.aborted || this.stopped) {
+          if (!this.stopped) await this.service.failLease(lease, 'EXECUTION_FAILED');
+          return true;
+        }
         const context = await this.service.driverContext(lease),
           step = this.driver.next(context);
         if (!step) {
@@ -53,6 +60,10 @@ export class ExecutionWorker {
         }
         await this.service.beginStep(lease, step.callId);
         const result = await step.run({ ...context, signal: controller.signal });
+        if (controller.signal.aborted) {
+          await this.service.failLease(lease, 'EXECUTION_FAILED');
+          return true;
+        }
         await this.service.finishStep(lease, step.callId, result);
         if (result.kind !== 'checkpoint') return true;
       }
@@ -70,6 +81,7 @@ export class ExecutionWorker {
       await this.service.failLease(lease, code).catch(() => undefined);
     } finally {
       clearInterval(timer);
+      if (deadline) clearTimeout(deadline);
       this.active = undefined;
     }
     return true;
@@ -80,5 +92,8 @@ export class ExecutionWorker {
       this.active.controller.abort();
       await this.service.failLease(this.active.lease).catch(() => undefined);
     }
+  }
+  cancel(executionId: string) {
+    if (this.active?.lease.executionId === executionId) this.active.controller.abort();
   }
 }

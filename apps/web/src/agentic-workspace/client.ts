@@ -1,5 +1,6 @@
 import { requestApi, requestApiStream } from '../api-client';
 import type { Answer, Delivery, Execution, PublicAction, Context, ActionId } from './execution-model';
+import type { CommercialAuthorization, CommercialQuote, CommercialReceipt } from './commercial-model';
 export interface StartInput {
   objective: string;
   actionId?: ActionId;
@@ -23,7 +24,7 @@ export interface ClosedPilotBudget {
 }
 export class WorkspaceClient {
   actions = () =>
-    requestApi<{ available: boolean; actions: PublicAction[]; closedPilot?: boolean }>(
+    requestApi<{ available: boolean; actions: PublicAction[]; closedPilot?: boolean; commercial?: boolean }>(
       '/api/agentic/actions',
       {},
       { sessionOnly: true },
@@ -36,6 +37,15 @@ export class WorkspaceClient {
     );
   closedStart = (body: { caseId: string; maxCostCents: number; confirmed: true }, key: string) =>
     this.command('/api/agentic/pilot/executions', body, key);
+  commercialQuote = () => requestApi<CommercialQuote>('/api/agentic/commercial/quote', {}, { sessionOnly: true });
+  commercialReceipt = (id: string) =>
+    requestApi<CommercialReceipt>(
+      `/api/agentic/commercial/executions/${encodeURIComponent(id)}/receipt`,
+      {},
+      { sessionOnly: true },
+    );
+  commercialStart = (body: StartInput & CommercialAuthorization, key: string) =>
+    this.command('/api/agentic/commercial/executions', body, key);
   get = (id: string) =>
     requestApi<Execution>(`/api/agentic/executions/${encodeURIComponent(id)}`, {}, { sessionOnly: true });
   delivery = (id: string) =>
@@ -48,14 +58,14 @@ export class WorkspaceClient {
     );
   }
   start = (body: StartInput, key: string) => this.command('/api/agentic/executions', body, key);
-  answer = (id: string, body: Answer, key: string) =>
+  answer = (id: string, body: Answer & Partial<CommercialAuthorization>, key: string) =>
     this.command(`/api/agentic/executions/${encodeURIComponent(id)}/answers`, body, key);
-  correct = (id: string, body: Answer, key: string) =>
+  correct = (id: string, body: Answer & Partial<CommercialAuthorization>, key: string) =>
     this.command(`/api/agentic/executions/${encodeURIComponent(id)}/corrections`, body, key);
   cancel = (id: string, key: string) =>
     this.command(`/api/agentic/executions/${encodeURIComponent(id)}/cancel`, {}, key);
-  continue = (id: string, key: string) =>
-    this.command(`/api/agentic/executions/${encodeURIComponent(id)}/continue`, {}, key);
+  continue = (id: string, key: string, authorization?: CommercialAuthorization) =>
+    this.command(`/api/agentic/executions/${encodeURIComponent(id)}/continue`, authorization ?? {}, key);
   events = (id: string, after: number, signal: AbortSignal) =>
     requestApiStream(`/api/agentic/executions/${encodeURIComponent(id)}/events?after=${after}`, signal);
 }

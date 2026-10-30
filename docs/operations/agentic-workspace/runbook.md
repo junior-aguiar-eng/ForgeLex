@@ -26,6 +26,10 @@ em 30/10, sem ativação. Ela define preço, margem simulada, limites e
 cancelamentos; a cobrança comercial nativa ainda exige implementação e
 validação. Não misturar o ledger sintético USD com o saldo comercial BRL.
 
+## Execução comercial
+
+O pedido posterior de Boni autorizou implementar, validar, integrar, publicar e ativar a oferta após os checks. A base comercial inicial é histórica; seguir o [manual comercial](commercial-execution.md) para preço, configuração, retenção, recuperação e gates de ativação. O piloto permanece fechado e não financia a oferta.
+
 ## Pré-condições para ativação
 
 Registrar antes da mudança: commit e artefato imutável, ambiente e banco exatos,

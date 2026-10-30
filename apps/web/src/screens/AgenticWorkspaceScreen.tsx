@@ -7,6 +7,8 @@ import { GuidedDialogue } from '../agentic-workspace/GuidedDialogue';
 import { ContextSummary, SourceReferences } from '../agentic-workspace/ContextSummary';
 import { DeliveryActions } from '../agentic-workspace/DeliveryActions';
 import { ClosedPilotPanel } from '../agentic-workspace/ClosedPilotPanel';
+import { CommercialAuthorizationPanel, CommercialReceiptPanel } from '../agentic-workspace/CommercialPanel';
+import type { CommercialAuthorization } from '../agentic-workspace/commercial-model';
 import { useExecutionEvents } from '../agentic-workspace/use-execution-events';
 import {
   statusText,
@@ -39,6 +41,12 @@ export function AgenticWorkspaceScreen({
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const [closedPilot, setClosedPilot] = useState<boolean>();
+  const [commercial, setCommercial] = useState(false);
+  const [paidCommand, setPaidCommand] = useState<{
+    kind: string;
+    body: unknown;
+    send: (key: string, authorization: CommercialAuthorization) => Promise<Execution>;
+  }>();
   const [entry, setEntry] = useState(!id),
     [objective, setObjective] = useState(''),
     [action, setAction] = useState<ActionId>(),
@@ -98,6 +106,7 @@ export function AgenticWorkspaceScreen({
           setActions(r.actions);
           setAvailable(r.available);
           setClosedPilot(r.closedPilot ?? false);
+          setCommercial(r.commercial === true && !r.closedPilot);
         }
       })
       .catch((e) => {
@@ -115,6 +124,7 @@ export function AgenticWorkspaceScreen({
           navigationEpoch.current++;
           setId(next);
           setEntry(!next);
+          setPaidCommand(undefined);
         }
       }
     };
@@ -220,6 +230,7 @@ export function AgenticWorkspaceScreen({
       setEntry(false);
       setScope(false);
       setCorrection(undefined);
+      setPaidCommand(undefined);
       changeId(value.id);
     } catch (e) {
       if (mounted.current && epoch === navigationEpoch.current) fail(e);
@@ -227,7 +238,8 @@ export function AgenticWorkspaceScreen({
       if (mounted.current) setBusy(false);
     }
   };
-  const begin = () => {
+  const begin = (authorization?: CommercialAuthorization) => {
+    if (commercial && !authorization) return;
     const context = {
       text,
       origin: selected.length ? (text.trim() ? ('MIXED' as const) : ('DOCUMENT' as const)) : ('USER' as const),
@@ -241,15 +253,31 @@ export function AgenticWorkspaceScreen({
       ...(matter ? { matterId: matter } : {}),
       context,
     };
-    void invoke('start', input, (key) => client.start(input, key));
+    const body = { ...input, ...authorization };
+    void invoke('start', body, (key) =>
+      authorization ? client.commercialStart({ ...input, ...authorization }, key) : client.start(input, key),
+    );
   };
   const onAnswer = (answer: Answer) => {
-    if (run)
+    if (run) {
+      if (commercial) {
+        setPaidCommand({
+          kind: correction ? 'correction' : 'answer',
+          body: answer,
+          send: (key, authorization) =>
+            correction
+              ? client.correct(run.id, { ...answer, ...authorization }, key)
+              : client.answer(run.id, { ...answer, ...authorization }, key),
+        });
+        return;
+      }
       void invoke(correction ? 'correction' : 'answer', answer, (key) =>
         correction ? client.correct(run.id, answer, key) : client.answer(run.id, answer, key),
       );
+    }
   };
   const followUp = (next?: ActionId) => {
+    setPaidCommand(undefined);
     setEntryDraft({ text: '', purpose: '' });
     setAction(next);
     setObjective('');
@@ -285,8 +313,9 @@ export function AgenticWorkspaceScreen({
       {(error || events.error) && (
         <p role="alert" className="break-words rounded-xl border border-amber-300 bg-amber-50 p-4">
           {statusText('FAILED', error || events.error)}{' '}
-          {!(error || events.error).match(/ACCESS|BUDGET|BALANCE|FUNDS|NOT_FOUND/) &&
-            'O serviço está indisponível. Seu pedido permanece nesta tela.'}
+          {!(error || events.error).match(
+            /ACCESS|BUDGET|BALANCE|FUNDS|NOT_FOUND|COMMERCIAL_(DAILY|MONTHLY|EXECUTION_ACTIVE|POLICY)/,
+          ) && 'O serviço está indisponível. Seu pedido permanece nesta tela.'}
         </p>
       )}
       {closedPilot && (
@@ -408,13 +437,17 @@ export function AgenticWorkspaceScreen({
             </fieldset>
           )}
           <p className="text-sm text-stone-600">
-            Serão usados o texto e os documentos selecionados. Novas entregas são preliminares. Uso pago exige
-            autorização e orçamento próprios; esta tela não os concede.
+            Serão usados o texto e os documentos selecionados. Novas entregas são preliminares.
+            {!commercial && ' Uso pago exige autorização e orçamento próprios; esta tela não os concede.'}
           </p>
           {!available && <p>O processamento deste trabalho ainda não está disponível.</p>}
-          <button className="btn-primary min-h-11" disabled={busy || !available} onClick={begin}>
-            Executar trabalho
-          </button>
+          {commercial ? (
+            <CommercialAuthorizationPanel client={client} busy={busy || !available} onConfirm={begin} />
+          ) : (
+            <button className="btn-primary min-h-11" disabled={busy || !available} onClick={() => begin()}>
+              Executar trabalho
+            </button>
+          )}
           <details>
             <summary className="min-h-11 cursor-pointer">Mais opções</summary>
             <button className="min-h-11 underline" onClick={() => setScope(false)}>
@@ -446,14 +479,35 @@ export function AgenticWorkspaceScreen({
           <GuidedDialogue
             question={closedPilot || denied || run.requiresReevaluation ? null : currentQuestion}
             messages={run.messages}
-            busy={busy}
+            busy={busy || Boolean(paidCommand)}
             onAnswer={onAnswer}
             onCorrect={
               !closedPilot && !active && !run.requiresReevaluation && !run.successorId && currentStatus === 'COMPLETED'
-                ? (q) => setCorrection({ ...q, contextRevision: run.contextRevision })
+                ? (q) => {
+                    if (!busy && !paidCommand) setCorrection({ ...q, contextRevision: run.contextRevision });
+                  }
                 : undefined
             }
           />
+          {commercial && paidCommand && !denied && (
+            <CommercialAuthorizationPanel
+              client={client}
+              busy={busy}
+              onBack={() => setPaidCommand(undefined)}
+              onConfirm={(authorization) =>
+                void invoke(paidCommand.kind, { body: paidCommand.body, ...authorization }, (key) =>
+                  paidCommand.send(key, authorization),
+                )
+              }
+            />
+          )}
+          {commercial && !denied && (
+            <CommercialReceiptPanel
+              client={client}
+              executionId={run.id}
+              refreshKey={`${currentStatus}:${events.cursor}`}
+            />
+          )}
           {!denied && !!run.history?.length && (
             <details>
               <summary className="min-h-11 cursor-pointer">Entregas anteriores</summary>
@@ -595,7 +649,16 @@ export function AgenticWorkspaceScreen({
           {closedPilot && currentQuestion && (
             <p>Permanece uma lacuna neste exemplo: {currentQuestion.prompt} Nenhuma resposta foi presumida.</p>
           )}
-          {(active || (closedPilot && currentStatus === 'WAITING_USER')) && (
+          {commercial && active && (
+            <button
+              className="btn-secondary min-h-11"
+              disabled={busy}
+              onClick={() => void invoke('cancel', {}, (key) => client.cancel(run.id, key))}
+            >
+              Cancelar
+            </button>
+          )}
+          {!commercial && (active || (closedPilot && currentStatus === 'WAITING_USER')) && (
             <details>
               <summary className="min-h-11 cursor-pointer">Mais opções</summary>
               <button
@@ -620,8 +683,16 @@ export function AgenticWorkspaceScreen({
             !events.reconciliation && (
               <button
                 className="btn-primary min-h-11"
-                disabled={busy}
-                onClick={() => void invoke('continue', {}, (key) => client.continue(run.id, key))}
+                disabled={busy || Boolean(paidCommand)}
+                onClick={() =>
+                  commercial
+                    ? setPaidCommand({
+                        kind: 'continue',
+                        body: {},
+                        send: (key, authorization) => client.continue(run.id, key, authorization),
+                      })
+                    : void invoke('continue', {}, (key) => client.continue(run.id, key))
+                }
               >
                 Continuar trabalho
               </button>

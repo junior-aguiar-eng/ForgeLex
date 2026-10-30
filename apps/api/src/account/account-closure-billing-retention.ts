@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Client } from '@forgelex/persistence';
+import { minimizeCommercialFinance } from './commercial-financial-retention.js';
 
 export interface BillingRetentionInput {
   tenantId: string;
@@ -15,6 +16,7 @@ export class AccountClosureBillingRetention {
     const transaction = await this.client.transaction();
     try {
       await transaction.execute({ sql: 'UPDATE ledger_accounts SET updated_at=updated_at WHERE tenant_id=?', args: [input.tenantId] });
+      await minimizeCommercialFinance(transaction, input);
       const budgets = await transaction.execute({ sql: 'SELECT id,idempotency_key,payload_json FROM inference_budgets WHERE tenant_id=?', args: [input.tenantId] });
       const calls = await transaction.execute({ sql: 'SELECT id,call_id,operation_key,payload_json FROM inference_calls WHERE tenant_id=?', args: [input.tenantId] });
       const parse = (raw: unknown): Record<string, unknown> => {

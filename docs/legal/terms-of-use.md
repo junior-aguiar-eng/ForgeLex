@@ -1,6 +1,6 @@
 # Termos de uso do ForgeLex
 
-Versão 2026-09-30.v1 · atualizada em 30 de setembro de 2026
+Versão 2026-10-30.v1 · atualizada em 30 de outubro de 2026
 
 ## Serviço e responsável
 
@@ -18,7 +18,13 @@ Use informações corretas, mantenha suas credenciais sob controle e comunique a
 
 O saldo pré-pago é expresso em reais. Uma pesquisa faturável válida custa R$ 0,20, inclusive quando concluída sem resultados. A cobrança remunera a execução da pesquisa; não depende da quantidade de decisões encontradas. Consulta de uma decisão, verificação de fonte e elaboração de memorando não debitam créditos de pesquisa. Uma repetição da mesma operação com a mesma chave de idempotência não gera novo débito; outra operação ou nova consulta pode gerar cobrança.
 
-As condições do pacote e o valor total devem ser apresentados antes da compra. O ForgeLex não vende tokens nem fornece o modelo de IA do usuário. Custos cobrados pelo host ou provedor de IA são separados. Mudanças de preço serão informadas antes de novas operações; não alteram retroativamente débitos já realizados. Conteste cobranças pelo canal de suporte, identificando a operação e ocultando dados de pagamento dispensáveis.
+As condições do pacote e o valor total devem ser apresentados antes da compra. O ForgeLex não vende tokens. Na integração MCP, o modelo e seus custos pertencem ao aplicativo conectado; o trabalho nativo do site tem preço e autorização próprios. Mudanças de preço serão informadas antes de novas operações; não alteram retroativamente débitos já realizados. Conteste cobranças pelo canal de suporte, identificando a operação e ocultando dados de pagamento dispensáveis.
+
+## Trabalho nativo e cancelamento
+
+O trabalho nativo do site usa processamento de IA contratado pelo ForgeLex. Antes de iniciar cada novo trabalho, resposta, correção ou continuação, a interface apresenta autorização de preço em reais. A reserva inicial é de R$ 5,00; havendo entrega utilizável, a cobrança por consumo tem piso de R$ 0,50 e não ultrapassa o teto autorizado. O saldo não utilizado é liberado; crédito promocional expirado é identificado separadamente e não é renovado. Os limites iniciais são uma execução ativa por conta, R$ 20,00 por dia e R$ 100,00 por mês, incluindo reservas. Pesquisa paga não integra esse trabalho nem é acionada implicitamente.
+
+Cancelar impede novas chamadas. Sem entrega utilizável, não há cobrança ao usuário; havendo entrega parcial utilizável, pode haver cobrança do consumo comprovado dentro do teto autorizado. Consumo externo incerto não é convertido em débito estimado do usuário. Repetir a mesma operação com a mesma chave não autoriza nova cobrança. A autorização não modifica direitos legais de contestação ou reembolso.
 
 ## IA e revisão humana
 
