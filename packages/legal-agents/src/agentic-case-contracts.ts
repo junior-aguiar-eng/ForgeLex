@@ -18,6 +18,7 @@ export const TaskPlanSchema = z.strictObject({
   requiresCaseLaw: z.boolean(),
   requiresNorms: z.boolean(),
   requiresProcedure: z.boolean(),
+  documentPurpose: z.enum(['FACTUAL_RECORD', 'LEGAL_DOCUMENT']).optional(),
   documentType: text.optional(),
   issues: z.array(TaskIssueSchema).max(100),
   gaps: z
@@ -64,7 +65,7 @@ export type CaseTaskRole =
   | 'adversarial-reviewer';
 export const CASE_TASK_POLICY = {
   id: 'agentic-case-task-policy',
-  version: '1.0.0',
+  version: '1.1.0',
   maxTurns: 6,
   maxToolsPerStep: 12,
   maxTools: 48,
@@ -75,6 +76,8 @@ export const CASE_TASK_POLICY = {
     'Somente fontes efetivamente recuperadas sustentam referências; identidade de citação não demonstra suporte.',
     'Lacuna material exige pergunta neutra ou entrega limitada; desconhecimento não confirma fatos.',
     'Não há escolha implícita de peça, procedimento, provider, modelo ou autorização financeira.',
+    'Classificar orientações de redação e preservação do texto como requisitos EDITORIAL; obrigações legais ou processuais são PROCEDURAL. Classificação ausente mantém o tratamento processual conservador.',
+    'Usar documentPurpose FACTUAL_RECORD somente para registro factual expressamente solicitado, sem escolher medida jurídica; nos demais documentos usar LEGAL_DOCUMENT. Registro factual não dispensa fontes de afirmações nem revisão humana.',
   ],
 } as const;
 const baseRole = (role: CaseTaskRole) => (role === 'legal-researcher' ? 'legal-researcher' : role);
@@ -87,7 +90,7 @@ export function caseTaskProfile(role: CaseTaskRole) {
   ].find((i) => agent && i.id === agent.instructionId);
   const extra =
     role === 'legal-orchestrator'
-      ? 'Delimitar objetivo a partir do contexto, planejar fontes normativas/jurisprudenciais e questões; delegar somente os papéis necessários. Pedir esclarecimento apenas de lacuna material, usando opções neutras, texto livre e desconhecimento; aproveitar respostas e dados já fornecidos.'
+      ? 'Delimitar objetivo a partir do contexto, planejar fontes normativas/jurisprudenciais e questões; delegar somente os papéis necessários. Pedir esclarecimento apenas de lacuna material, usando opções neutras, texto livre e desconhecimento; aproveitar respostas e dados já fornecidos. Preencher documentPurpose: FACTUAL_RECORD apenas quando o pedido se limita expressamente a registrar relatos sem finalidade ou medida jurídica; nesse caso não presumir necessidade de procedimento ou norma. Usar LEGAL_DOCUMENT nos demais casos e na dúvida.'
       : role === 'procedural-advisor'
         ? 'Investigar medida, posição processual e requisitos com fontes; sem regra ou prazo presumido. Ausência de norma recuperada e aplicabilidade não avaliada devem virar limitações identificáveis.'
         : undefined;
@@ -103,7 +106,7 @@ export function caseTaskProfile(role: CaseTaskRole) {
   if (role === 'procedural-advisor') tools.push('research.get_legislation');
   return {
     role,
-    version: '1.0.0',
+    version: '1.1.0',
     instructionId: agent?.instructionId ?? `${role}-instructions`,
     instructionVersion: agent?.instructionVersion ?? '1.0.0',
     legacyAgentId: agent?.id ?? null,
@@ -111,8 +114,8 @@ export function caseTaskProfile(role: CaseTaskRole) {
     policyId: CASE_TASK_POLICY.id,
     policyVersion: CASE_TASK_POLICY.version,
     instructions:
-      extra ??
-      `${JSON.stringify(instruction)}${role === 'authority-verifier' ? ' Extensão interna da tarefa: conferir também identidade, versão e trecho de snapshots normativos recuperados, sem afirmar vigência online ou aplicabilidade jurídica.' : ''}`,
+      `${extra ?? JSON.stringify(instruction)}${role === 'authority-verifier' ? ' Extensão interna da tarefa: conferir também identidade, versão e trecho de snapshots normativos recuperados, sem afirmar vigência online ou aplicabilidade jurídica.' : ''}` +
+      ' Em cada requisito, preencher kind EDITORIAL para instruções de redação/preservação e PROCEDURAL para obrigações legais/processuais. Não inventar norma para orientação editorial nem reclassificar obrigação jurídica como editorial para dispensar sua verificação. Não inferir medida jurídica de pedido limitado a registro factual.',
     allowedTools: tools,
   };
 }

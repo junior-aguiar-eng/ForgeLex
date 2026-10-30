@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FakeAgentProvider, type AgentTool } from '@forgelex/agent-core';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { AgenticCaseTask } from './case-task.js';
 import { createSearchCaseLawTool, createVerifyAuthorityTool, ResearchService } from '@forgelex/legal-tools';
@@ -8,6 +9,7 @@ import { SourceRouter, CanonicalFixtureProvider } from '@forgelex/source-provide
 import { IndexedLegislationProvider } from '@forgelex/source-providers';
 import { LegislationCatalog } from '@forgelex/source-catalog';
 import { createGetLegislationTool } from '@forgelex/legal-tools';
+import { TaskPlanSchema } from '@forgelex/legal-agents';
 
 const hash = (text: string) => createHash('sha256').update(text).digest('hex');
 const binding = {
@@ -35,7 +37,24 @@ const basicPlan = {
 };
 const empty = { coveredIssueIds: ['i1'], claims: [], requirements: [], findings: [], supportChecks: [] };
 it('preserva pergunta de seleção múltipla indicada no plano público', async () => {
-  const f = fixture({ ...basicPlan, gaps: [{ key: 'scope', kind: 'MISSING', material: true, prompt: 'Quais aspectos?', reason: 'Delimitar investigação', sourceIds: [], selection: 'multiple', options: [{ id: 'a', label: 'Fatos' }, { id: 'b', label: 'Lacunas' }] }] } as any);
+  const f = fixture({
+    ...basicPlan,
+    gaps: [
+      {
+        key: 'scope',
+        kind: 'MISSING',
+        material: true,
+        prompt: 'Quais aspectos?',
+        reason: 'Delimitar investigação',
+        sourceIds: [],
+        selection: 'multiple',
+        options: [
+          { id: 'a', label: 'Fatos' },
+          { id: 'b', label: 'Lacunas' },
+        ],
+      },
+    ],
+  } as any);
   expect((await f.finish()).question.selection).toBe('multiple');
 });
 function fixture(
@@ -118,6 +137,163 @@ function fixture(
   };
 }
 describe('orquestração jurídica interna com especialistas', () => {
+  it('preserva o formato do plano histórico sem inserir finalidade na leitura', () => {
+    expect(TaskPlanSchema.parse(basicPlan)).toEqual(basicPlan);
+  });
+  it('reproduz T6-GAP e retira os quatro bloqueios editoriais sem alterar o rascunho', async () => {
+    const evidence = JSON.parse(
+      readFileSync(
+        new URL('../../../../docs/architecture/evidence/2026-10-27-agentic-task6-real.json', import.meta.url),
+        'utf8',
+      ),
+    );
+    const catalog = JSON.parse(
+      readFileSync(
+        new URL('../../../../docs/architecture/fixtures/agentic-task6-synthetic-cases.json', import.meta.url),
+        'utf8',
+      ),
+    );
+    const approved = catalog.cases.find((c: any) => c.id === 'T6-GAP');
+    const original = evidence.attempts.filter((a: any) => a.caseId === 'T6-GAP').at(-1).delivery[0].delivery;
+    const selected = { ...original.sources[0], text: approved.selectedSources[0].text };
+    expect(hash(selected.text)).toBe(selected.contentHash);
+    expect(original.requirements).toHaveLength(4);
+    const replay = (classified: boolean) => {
+      const f = fixture(
+        {
+          ...basicPlan,
+          action: 'create_document',
+          documentType: original.document.documentType,
+          ...(classified ? { documentPurpose: 'FACTUAL_RECORD' } : {}),
+          issues: [{ id: 'i1', statement: original.issues[0].statement, sourceIds: [selected.id] }],
+        } as any,
+        {
+          outputs: {
+            'legal-drafter': {
+              ...empty,
+              claims: original.claims,
+              document: original.document,
+              requirements: original.requirements.map((r: any) => (classified ? { ...r, kind: 'EDITORIAL' } : r)),
+              findings: original.findings.filter((finding: any) => finding.severity === 'WARNING'),
+            },
+          },
+        },
+      );
+      f.packet.sources.splice(0, 1, selected as any);
+      return f;
+    };
+    const historical = replay(false);
+    await historical.finish({ ...binding, objective: approved.objective, actionId: 'create_document' });
+    expect(
+      historical.deliveries[0].findings.filter((f: any) => f.code === 'PROCEDURAL_REQUIREMENT_UNVERIFIED'),
+    ).toHaveLength(4);
+    const corrected = replay(true);
+    await corrected.finish({ ...binding, objective: approved.objective, actionId: 'create_document' });
+    const delivery = corrected.deliveries[0];
+    expect(delivery.status).toBe('CANDIDATE');
+    expect(delivery.findings.some((f: any) => f.severity === 'BLOCKING')).toBe(false);
+    expect(delivery.document).toEqual(original.document);
+    expect(delivery.claims).toEqual(original.claims);
+    expect(delivery.requirements).toHaveLength(4);
+    expect(corrected.roles).not.toContain('procedural-advisor');
+    expect(delivery.humanReviewRequired).toBe(true);
+    expect(delivery.legalAssessment).toBe('NOT_EVALUATED');
+  });
+
+  it('orientações editoriais não substituem exame processual de documento jurídico', async () => {
+    const f = fixture(
+      {
+        ...basicPlan,
+        action: 'create_document',
+        documentPurpose: 'LEGAL_DOCUMENT',
+        documentType: 'Minuta jurídica',
+      } as any,
+      {
+        outputs: {
+          'legal-drafter': {
+            ...empty,
+            requirements: [
+              { id: 'style', kind: 'EDITORIAL', statement: 'Usar subtítulos.', verified: true, sourceIds: [] },
+            ],
+            document: {
+              title: 'Minuta',
+              documentType: 'Minuta jurídica',
+              sections: [{ title: 'Fatos', content: 'Alegação.', sourceIds: ['user:1'] }],
+            },
+          },
+        },
+      },
+    );
+    await f.finish({ ...binding, actionId: 'create_document' });
+    expect(f.deliveries[0].findings.map((finding: any) => finding.code)).toContain(
+      'PROCEDURAL_REQUIREMENTS_NOT_EVALUATED',
+    );
+    expect(f.deliveries[0].status).toBe('LIMITED');
+    expect(f.roles).toContain('procedural-advisor');
+  });
+
+  it.each([undefined, 'PROCEDURAL'])('requisito processual sem norma continua bloqueado: %s', async (kind) => {
+    const f = fixture(basicPlan, {
+      outputs: {
+        'matter-analyst': {
+          ...empty,
+          requirements: [
+            {
+              id: 'legal',
+              ...(kind ? { kind } : {}),
+              statement: 'Requisito sem fonte normativa.',
+              verified: true,
+              sourceIds: ['user:1'],
+            },
+          ],
+        },
+      },
+    });
+    await f.finish();
+    expect(f.deliveries[0].findings.map((finding: any) => finding.code)).toContain('PROCEDURAL_REQUIREMENT_UNVERIFIED');
+    expect(f.deliveries[0].status).toBe('LIMITED');
+  });
+
+  it.each(['requiresProcedure', 'requiresNorms', 'requiresCaseLaw'])(
+    'registro factual não dispensa exame jurídico exigido pelo plano: %s',
+    async (flag) => {
+      const f = fixture({
+        ...basicPlan,
+        action: 'create_document',
+        documentPurpose: 'FACTUAL_RECORD',
+        [flag]: true,
+        documentType: 'Documento solicitado',
+      } as any);
+      await f.finish({ ...binding, actionId: 'create_document' });
+      expect(f.roles).toContain('procedural-advisor');
+      expect(f.deliveries[0].findings.map((finding: any) => finding.code)).toContain(
+        'PROCEDURAL_REQUIREMENTS_NOT_EVALUATED',
+      );
+      expect(f.deliveries[0].status).toBe('LIMITED');
+    },
+  );
+
+  it('orientação editorial não verificada continua identificada para conferência', async () => {
+    const f = fixture(basicPlan, {
+      outputs: {
+        'matter-analyst': {
+          ...empty,
+          requirements: [
+            {
+              id: 'unmet',
+              kind: 'EDITORIAL',
+              statement: 'Preservar texto solicitado.',
+              verified: false,
+              sourceIds: ['user:1'],
+            },
+          ],
+        },
+      },
+    });
+    await f.finish();
+    expect(f.deliveries[0].findings.map((finding: any) => finding.code)).toContain('EDITORIAL_REQUIREMENT_UNVERIFIED');
+    expect(f.deliveries[0].status).toBe('LIMITED');
+  });
   it('não retoma checkpoint com versões de instrução/política divergentes', async () => {
     const f = fixture();
     const first = await f.task.step(binding, undefined, new AbortController().signal);
@@ -620,4 +796,24 @@ describe('orquestração jurídica interna com especialistas', () => {
   });
 });
 
-it('o contrato entregue ao analista não oferece redação de documento',async()=>{let accepted:boolean|undefined;const f=fixture(basicPlan,{onRegistry:(role,registry)=>{if(role==='matter-analyst')accepted=registry.list().find((t:any)=>t.name==='task.submit').inputSchema.safeParse({...empty,document:{title:'Texto',documentType:'Registro',sections:[{title:'Contexto',content:'Texto preliminar.',sourceIds:['user:1']}]}}).success;}});await f.finish();expect(accepted).toBe(false);});
+it('o contrato entregue ao analista não oferece redação de documento', async () => {
+  let accepted: boolean | undefined;
+  const f = fixture(basicPlan, {
+    onRegistry: (role, registry) => {
+      if (role === 'matter-analyst')
+        accepted = registry
+          .list()
+          .find((t: any) => t.name === 'task.submit')
+          .inputSchema.safeParse({
+            ...empty,
+            document: {
+              title: 'Texto',
+              documentType: 'Registro',
+              sections: [{ title: 'Contexto', content: 'Texto preliminar.', sourceIds: ['user:1'] }],
+            },
+          }).success;
+    },
+  });
+  await f.finish();
+  expect(accepted).toBe(false);
+});
