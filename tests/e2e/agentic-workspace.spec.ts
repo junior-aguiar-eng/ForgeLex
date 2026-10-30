@@ -428,9 +428,10 @@ test('recupera execução, preserva contexto na continuação e reavalia respost
   const beforeCorrection = page.url();
   await page.getByRole('button', { name: 'Enviar resposta' }).click();
   await page.waitForURL((url) => url.href !== beforeCorrection);
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
-  await page.getByText('Mais opções', { exact: true }).click();
-  await page.getByRole('button', { name: 'Criar peça a partir deste trabalho', exact: true }).click();
+  const correctedDelivery = page.getByRole('article', { name: 'Entrega preliminar' });
+  await expect(correctedDelivery).toBeVisible();
+  await correctedDelivery.getByText('Mais opções', { exact: true }).click();
+  await correctedDelivery.getByRole('button', { name: 'Criar peça a partir deste trabalho', exact: true }).click();
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Redigir a partir da análise anterior');
   await page.getByRole('button', { name: 'Definir escopo' }).click();
   await expect(page.getByLabel('Contexto escrito')).toHaveValue('Contexto que deve continuar vinculado.');
