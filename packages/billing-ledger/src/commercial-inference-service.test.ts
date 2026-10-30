@@ -32,9 +32,16 @@ async function fixture(balance = 20000) {
   let index = 0;
   let now = new Date('2026-10-30T12:00:00Z');
   const service = new CommercialInferenceService(c.db, c.client, { now: () => now });
-  const execution = async () => {
-    const e = await repo.createExecution(owner, {
-      conversationId: conversation.id,
+  const execution = async (identity = owner) => {
+    const context =
+      identity.userId === owner.userId
+        ? conversation
+        : await repo.createConversation(identity, {
+            objective: 'Synthetic',
+            context: { text: 'Test', origin: 'USER', documents: [] },
+          });
+    const e = await repo.createExecution(identity, {
+      conversationId: context.id,
       contextRevision: 1,
       idempotencyKey: `execution-${index++}`,
       authorizationId: 'consent',
@@ -62,6 +69,88 @@ async function fixture(balance = 20000) {
 }
 const quote = { callId: 'call', inputTokens: 1000, maxOutputTokens: 1000, upperBoundMicroUsd: 12000 };
 const usage = { inputTokens: 1000, outputTokens: 1000 };
+
+it.each(['settle', 'void'] as const)(
+  'blocks the entire account after restart until %s resolves liability without retrocharge',
+  async (resolution) => {
+    const f = await fixture();
+    const a = await f.execution();
+    await f.service.reserve(owner, a);
+    await f.service.authorizeCall(owner, a.executionId, quote);
+    await f.service.finalize(owner, a.executionId, { usableDelivery: false, outcome: 'CANCELLED' });
+    const other = { ...owner, userId: 'colleague' };
+    const b = await f.execution(other);
+    const restarted = new CommercialInferenceService(f.db, f.client);
+    await expect(restarted.reserve(other, b)).rejects.toThrow('COMMERCIAL_RECONCILIATION_REQUIRED');
+    expect(await restarted.reserve(owner, a)).toMatchObject({ status: 'CANCELLED', chargedCents: 0 });
+    if (resolution === 'settle') await restarted.settleCall(owner, a.executionId, quote.callId, usage);
+    else await restarted.markNotDispatched(owner, a.executionId, quote.callId);
+    await expect(restarted.reserve(other, b)).resolves.toMatchObject({ status: 'ACTIVE' });
+    expect(await restarted.getReceipt(owner, a.executionId)).toMatchObject({
+      chargedCents: 0,
+      uncertainMicroUsd: 0,
+      releasedCents: 500,
+    });
+  },
+);
+
+it('serializes new admission with account uncertainty without reserving a second job', async () => {
+  const f = await fixture();
+  const a = await f.execution(),
+    b = await f.execution();
+  await f.service.reserve(owner, a);
+  await f.service.authorizeCall(owner, a.executionId, quote);
+  const results = await Promise.allSettled([
+    f.service.finalize(owner, a.executionId, { usableDelivery: false, outcome: 'FAILED' }),
+    new CommercialInferenceService(f.db, f.client).reserve(owner, b),
+  ]);
+  expect(results[0].status).toBe('fulfilled');
+  expect(results[1].status).toBe('rejected');
+  expect(await f.service.getReceipt(owner, b.executionId)).toBeUndefined();
+  await expect(f.service.reserve(owner, b)).rejects.toThrow('COMMERCIAL_RECONCILIATION_REQUIRED');
+});
+
+it('refuses dispatch against another user unresolved call even if an older admission exists', async () => {
+  const f = await fixture();
+  const a = await f.execution();
+  await f.service.reserve(owner, a);
+  await f.service.authorizeCall(owner, a.executionId, quote);
+  await f.service.finalize(owner, a.executionId, { usableDelivery: false, outcome: 'FAILED' });
+  const other = { ...owner, userId: 'colleague' };
+  const b = await f.execution(other);
+  // Persist an admission made by the older implementation before the account-wide gate existed.
+  const rows = await f.client.execute('SELECT * FROM commercial_executions');
+  const old = JSON.parse(String(rows.rows[0].payload_json));
+  const admitted = {
+    ...old,
+    firstAuthorizedAt: undefined,
+    id: 'old-admission',
+    ...other,
+    executionId: b.executionId,
+    idempotencyKey: b.idempotencyKey,
+    status: 'ACTIVE',
+    uncertainMicroUsd: 0,
+    measuredMicroUsd: 0,
+    chargedCents: 0,
+    releasedCents: 0,
+  };
+  await f.client.execute({
+    sql: 'INSERT INTO commercial_executions(id,tenant_id,user_id,account_id,execution_id,idempotency_key,status,payload_json) VALUES(?,?,?,?,?,?,?,?)',
+    args: [
+      admitted.id,
+      other.tenantId,
+      other.userId,
+      old.accountId,
+      b.executionId,
+      b.idempotencyKey,
+      'ACTIVE',
+      JSON.stringify(admitted),
+    ],
+  });
+  await expect(
+    new CommercialInferenceService(f.db, f.client).authorizeCall(other, b.executionId, quote),
+  ).rejects.toThrow('COMMERCIAL_RECONCILIATION_REQUIRED');
+});
 
 it('prices in integer cents with approved rounding and floor', () => {
   expect([0, 10000, 100000, 250000].map(commercialPriceCents)).toEqual([50, 50, 205, 475]);

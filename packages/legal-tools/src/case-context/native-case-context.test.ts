@@ -80,6 +80,34 @@ async function fixture(contextText = 'Texto fornecido.') {
   };
 }
 describe('contexto nativo sem credencial OAuth fictícia', () => {
+  it('financial snapshot remains committed and owner-bound after live authorization is revoked', async () => {
+    const f = await fixture();
+    const saved = await f.native.save(f.binding, f.delivery);
+    f.revoke();
+    await expect(f.native.getDelivery(f.owner, saved.id)).rejects.toThrow('ACCESS_REVOKED');
+    expect(await f.native.getCommittedExecutionDelivery(f.owner, f.binding.executionId, saved.id)).toEqual(f.delivery);
+    expect(
+      await f.native.getCommittedExecutionDelivery({ ...f.owner, userId: 'other' }, f.binding.executionId, saved.id),
+    ).toBeUndefined();
+    const next = await f.repo.createExecution(f.owner, {
+      conversationId: f.binding.conversationId,
+      contextRevision: 1,
+      idempotencyKey: 'other',
+      authorizationId: null,
+      budgetReservationId: null,
+      provider: null,
+      model: null,
+    });
+    await f.repo.saveProgress(f.owner, next.id, {}, [saved.id]);
+    expect(await f.native.getCommittedExecutionDelivery(f.owner, next.id, saved.id)).toBeUndefined();
+    await f.client.execute({
+      sql: 'UPDATE agentic_task_deliveries SET content_hash=? WHERE id=?',
+      args: ['0'.repeat(64), saved.id],
+    });
+    await expect(f.native.getCommittedExecutionDelivery(f.owner, f.binding.executionId, saved.id)).rejects.toThrow(
+      'DELIVERY_INTEGRITY_FAILED',
+    );
+  });
   it('a leitura histórica não depende do orçamento agregado de contexto da próxima execução', async () => {
     const f = await fixture('u'.repeat(60000)),
       saved = await f.native.save(f.binding, f.delivery);

@@ -1,8 +1,11 @@
-import { randomUUID } from 'node:crypto';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { defineConfig } from '@playwright/test';
 import documents from './playwright.documents.config';
 
-const databaseUrl = `file:./.superpowers/sdd/2026-10-30-execucao-comercial/browser-${randomUUID()}.sqlite`;
+const databaseUrl = pathToFileURL(join(mkdtempSync(join(tmpdir(), 'forgelex-commercial-e2e-')), 'browser.sqlite')).href;
 export default defineConfig({
   ...documents,
   outputDir: 'test-results/agentic-commercial-flow',

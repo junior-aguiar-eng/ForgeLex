@@ -9,7 +9,13 @@ import {
 } from '@forgelex/persistence';
 import { CommercialInferenceService, COMMERCIAL_POLICY_VERSION } from '@forgelex/billing-ledger';
 import { NativeCaseContextService, type AuthorizeNativeTask } from '@forgelex/legal-tools';
-import { LegalAnswerSchema, type AgenticOwner, type AgenticExecution, type TaskBinding } from '@forgelex/domain';
+import {
+  LegalAnswerSchema,
+  type AgenticOwner,
+  type AgenticExecution,
+  type TaskBinding,
+  type AgenticTaskDelivery,
+} from '@forgelex/domain';
 import { ExecutionService, StartExecutionSchema } from './execution-service.js';
 import { digest, type ExecutionJob } from './execution-store.js';
 import { createCommercialOpenAIRuntime, COMMERCIAL_MODEL } from './commercial-provider.js';
@@ -33,6 +39,49 @@ export interface CommercialRuntimeDependencies {
   authorizeOwner?: AuthorizeNativeTask;
 }
 export type CommercialRuntime = Awaited<ReturnType<typeof createCommercialRuntime>>;
+
+// These records describe a limitation, not a completed analysis or review finding.
+const limitationCodes = new Set([
+  'DOCUMENT_NOT_PRODUCED',
+  'SEARCH_NO_RESULTS',
+  'NORMATIVE_SOURCE_LIMITED',
+  'AUTHORITY_UNCONFIRMED',
+  'SOURCE_UNAVAILABLE',
+  'USER_UNKNOWN',
+  'CONFLICT_UNRESOLVED',
+  'REQUIRED_RESEARCH_NOT_PERFORMED',
+  'NORMATIVE_SOURCE_MISSING',
+  'MATERIAL_ISSUE_OMITTED',
+  'UNSUPPORTED_CLAIM',
+  'AUTHORITY_IDENTITY_UNCONFIRMED',
+  'CITATION_WITHOUT_SUPPORT',
+  'EDITORIAL_REQUIREMENT_UNVERIFIED',
+  'PROCEDURAL_REQUIREMENT_UNVERIFIED',
+  'PROCEDURAL_REQUIREMENTS_NOT_EVALUATED',
+  'LEGAL_APPLICABILITY_NOT_EVALUATED',
+  'AUTHORITY_SCOPE_LIMIT',
+  'DOCUMENT_TYPE_UNCONFIRMED',
+  'UNSUPPORTED_SECTION',
+]);
+function hasUsableResult(delivery: AgenticTaskDelivery, actionId?: string) {
+  if (actionId && delivery.action !== actionId) return false;
+  if (delivery.action === 'create_document') return Boolean(delivery.document?.sections.length);
+  const grounded = (item: { sourceIds: string[] }) =>
+    item.sourceIds.length > 0 && item.sourceIds.every((id) => delivery.sources.some((source) => source.id === id));
+  // Issues are the plan's questions, not proof that the requested examination occurred.
+  // Structural deliverability never changes NOT_EVALUATED or humanReviewRequired.
+  return (
+    delivery.claims.some(grounded) ||
+    delivery.findings.some(
+      (finding) =>
+        !limitationCodes.has(finding.code) &&
+        !/(?:^|_)(?:REFUSED|REFUSAL|IMPOSSIBLE|INSUFFICIENT|MISSING|UNAVAILABLE|UNSUPPORTED|GAP)(?:_|$)/.test(
+          finding.code,
+        ) &&
+        grounded(finding),
+    )
+  );
+}
 
 export async function createCommercialRuntime(
   db: ForgeLexDatabase,
@@ -89,8 +138,12 @@ export async function createCommercialRuntime(
         throw new Error('EXECUTION_CONFLICT');
       const existing = await finance.getReceipt(owner, executionId);
       if (!existing) return; // No reservation was made; nothing can be charged/released.
-      // Only deliveries committed into execution progress are usable. Uncommitted model output is not a delivery.
-      const usableDelivery = execution!.deliveryIds.length > 0;
+      const job = await service.store.getJob(owner, executionId);
+      let usableDelivery = false;
+      for (const id of execution!.deliveryIds) {
+        const delivery = await native.getCommittedExecutionDelivery(owner, executionId, id);
+        if (delivery && hasUsableResult(delivery, job.actionId)) usableDelivery = true;
+      }
       await finance.finalize(owner, executionId, {
         usableDelivery,
         outcome:

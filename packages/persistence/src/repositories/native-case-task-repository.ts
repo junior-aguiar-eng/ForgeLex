@@ -318,6 +318,28 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       true,
     );
   }
+  /** Trusted financial finalization reads only an already committed immutable snapshot.
+   * It must remain possible after live source access is revoked; this is not a client read endpoint.
+   */
+  async getCommittedExecutionDelivery(owner: AgenticOwner, executionId: string, id: string) {
+    const execution = await new AgenticWorkspaceRepository(this.db).getExecution(owner, executionId);
+    if (!execution?.deliveryIds.includes(id)) return undefined;
+    const [row] = await this.db
+      .select()
+      .from(agenticTaskDeliveries)
+      .where(
+        and(
+          eq(agenticTaskDeliveries.id, id),
+          eq(agenticTaskDeliveries.executionId, executionId),
+          eq(agenticTaskDeliveries.tenantId, owner.tenantId),
+          eq(agenticTaskDeliveries.userId, owner.userId),
+          eq(agenticTaskDeliveries.conversationId, execution.conversationId),
+          eq(agenticTaskDeliveries.contextRevision, execution.contextRevision),
+        ),
+      )
+      .limit(1);
+    return row ? this.decode(row) : undefined;
+  }
   async getDeliveryContext(owner: AgenticOwner, id: string): Promise<{ matterId: string | null }> {
     const [row] = await this.db
       .select({ executionId: agenticTaskDeliveries.executionId })

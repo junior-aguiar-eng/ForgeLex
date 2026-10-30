@@ -191,6 +191,7 @@ export function registerAgenticWorkspace(
                   'EXECUTOR_UNAVAILABLE',
                   'ACCESS_REVOKED',
                   'COMMERCIAL_EXECUTION_ACTIVE',
+                  'COMMERCIAL_RECONCILIATION_REQUIRED',
                   'COMMERCIAL_DAILY_LIMIT',
                   'COMMERCIAL_MONTHLY_LIMIT',
                   'BILLING_INSUFFICIENT_BALANCE',

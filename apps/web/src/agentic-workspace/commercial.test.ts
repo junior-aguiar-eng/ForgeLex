@@ -82,6 +82,7 @@ it('limites comerciais mostram uma orientação compreensível e preservam o ped
   expect(statusText('FAILED', 'COMMERCIAL_DAILY_LIMIT')).toContain('limite diário');
   expect(statusText('FAILED', 'COMMERCIAL_MONTHLY_LIMIT')).toContain('limite mensal');
   expect(statusText('FAILED', 'COMMERCIAL_EXECUTION_ACTIVE')).toContain('trabalho em andamento');
+  expect(statusText('FAILED', 'COMMERCIAL_RECONCILIATION_REQUIRED')).toContain('conferência');
   expect(statusText('FAILED', 'COMMERCIAL_POLICY_MISMATCH')).toContain('preço');
 });
 it('comprovante mostra crédito expirado somente quando há valor expirado', () => {

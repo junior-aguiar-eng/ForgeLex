@@ -189,6 +189,8 @@ export function statusText(status: string, code = ''): string {
     return 'O limite mensal de trabalhos foi atingido. Seu pedido foi preservado.';
   if (code === 'COMMERCIAL_EXECUTION_ACTIVE')
     return 'Você já tem um trabalho em andamento. Aguarde a conclusão ou cancele-o.';
+  if (code === 'COMMERCIAL_RECONCILIATION_REQUIRED')
+    return 'Um trabalho anterior aguarda conferência do consumo. Novos trabalhos ficam suspensos até a conclusão dessa conferência; seu pedido foi preservado.';
   if (/COMMERCIAL_POLICY/.test(code)) return 'O preço do trabalho mudou. Reveja o pedido para consultar o preço atual.';
   if (/BUDGET|BALANCE|FUNDS/.test(code))
     return 'O orçamento disponível não permite continuar. Seu texto foi preservado.';

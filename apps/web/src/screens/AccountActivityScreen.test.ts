@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { summarizeActivities, type BillingActivity } from './AccountActivityScreen';
+import { billingActivityLabel, summarizeActivities, type BillingActivity } from './AccountActivityScreen';
 
 const now = new Date('2026-09-22T12:00:00.000Z');
 
 describe('atividade da conta', () => {
+  it('identifica o trabalho comercial em linguagem de usuário no extrato', () => {
+    expect(billingActivityLabel('agentic.commercial_execution')).toBe('Trabalho jurídico');
+    expect(billingActivityLabel(null)).toBe('Uso');
+  });
   it('calcula métricas apenas de operações faturáveis reais dos últimos 30 dias', () => {
     const activities: BillingActivity[] = [
       { id: 'mcp-1', type: 'DEBIT', amountCents: 20, status: 'SETTLED', date: '2026-09-21T12:00:00.000Z', capability: 'research.search_case_law', channel: 'MCP' },

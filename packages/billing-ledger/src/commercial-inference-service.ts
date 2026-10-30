@@ -236,6 +236,16 @@ export class CommercialInferenceService {
         )
     ).map((row) => JSON.parse(row.payloadJson));
   }
+  /** Account-wide admission/dispatch fence, called only while holding the wallet lock. */
+  private async assertReconciled(db: ForgeLexDatabase, account: typeof ledgerAccounts.$inferSelect) {
+    const records = await db.select().from(commercialExecutions).where(eq(commercialExecutions.accountId, account.id));
+    const calls = await db.select().from(commercialCalls).where(eq(commercialCalls.tenantId, account.tenantId));
+    if (
+      records.some((row) => (JSON.parse(row.payloadJson) as CommercialRecord).uncertainMicroUsd > 0) ||
+      calls.some((row) => ['AUTHORIZED', 'UNCERTAIN'].includes(row.status))
+    )
+      throw new Error('COMMERCIAL_RECONCILIATION_REQUIRED');
+  }
   private async saveCall(db: ForgeLexDatabase, call: CommercialCall) {
     await db
       .update(commercialCalls)
@@ -339,6 +349,7 @@ export class CommercialInferenceService {
         await db.select().from(commercialExecutions).where(eq(commercialExecutions.accountId, account.id))
       ).map((row) => JSON.parse(row.payloadJson));
       if (records.some((r) => r.executionId === input.executionId)) throw new Error('IDEMPOTENCY_CONFLICT');
+      await this.assertReconciled(db, account);
       if (records.some((r) => r.status === 'ACTIVE')) throw new Error('COMMERCIAL_EXECUTION_ACTIVE');
       const now = this.now(),
         period = periods(now);
@@ -409,7 +420,7 @@ export class CommercialInferenceService {
   ): Promise<CommercialCall & { shouldExecute: boolean }> {
     const input = callInput.parse(raw),
       inputHash = hash(input);
-    return this.locked(owner, async (db) => {
+    return this.locked(owner, async (db, account) => {
       const record = await this.record(db, owner, executionId),
         calls = await this.calls(db, owner, executionId);
       const existing = calls.find((c) => c.callId === input.callId);
@@ -419,8 +430,7 @@ export class CommercialInferenceService {
       }
       if (record.status !== 'ACTIVE') throw new Error('COMMERCIAL_EXECUTION_NOT_ACTIVE');
       await this.authorized(db, owner, executionId);
-      if (calls.some((c) => c.status === 'AUTHORIZED' || c.status === 'UNCERTAIN'))
-        throw new Error('COMMERCIAL_RECONCILIATION_REQUIRED');
+      await this.assertReconciled(db, account);
       const now = this.now();
       if (
         record.firstAuthorizedAt &&

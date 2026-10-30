@@ -11,6 +11,9 @@ test('percorre cobrança comercial real com transporte sintético e preserva ide
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('Organizar o relato sintético para conferência.');
   await page.getByRole('button', { name: 'Definir escopo', exact: true }).click();
+  await page
+    .getByLabel('Contexto escrito')
+    .fill('Relato sintético: a parte informa que contratou um serviço, mas o serviço não foi entregue.');
   await expect(page.getByText(/Este trabalho custa até/)).toBeVisible();
   await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible({ timeout: 60000 });

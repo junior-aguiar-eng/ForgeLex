@@ -8,6 +8,10 @@ import { createCommercialRuntime } from './commercial-runtime.js';
 import { ExecutionWorker } from './execution-worker.js';
 import { ExecutionService } from './execution-service.js';
 import { ExecutionStore } from './execution-store.js';
+import { NativeCaseContextService } from '@forgelex/legal-tools';
+import { AgenticTaskDeliverySchema } from '@forgelex/domain';
+import { AccountClosurePurgeService } from '../account/account-closure-purge-service.js';
+import { AccountClosureBillingRetention } from '../account/account-closure-billing-retention.js';
 
 const owner = { tenantId: 'commercial', userId: 'boni' };
 const env = {
@@ -64,6 +68,200 @@ async function fixture() {
   await app.ready();
   return { ...c, app, commercial, transport, authorizeOwner, worker: runtime.worker! };
 }
+it.each([
+  ['create_document', false, false, 0],
+  ['create_document', true, false, 50],
+  ['analyze_documents', false, true, 50],
+  ['review_text', false, false, 0],
+  ['review_text', false, 'finding', 50],
+  ['review_text', false, 'refusal', 0],
+  ['analyze_documents', false, 'gap', 0],
+  ['analyze_documents', false, 'issues', 0],
+] as const)(
+  'charges only concrete persisted %s results (document=%s, claims=%s)',
+  async (actionId, document, claims, charge) => {
+    const f = await fixture();
+    const run = await f.commercial.start(owner, 'delivery', {
+      ...input,
+      actionId,
+      context: { text: 'O instrumento prevê duas datas de pagamento incompatíveis.', origin: 'USER', documents: [] },
+    });
+    const lease = (await f.commercial.service.claimNext('delivery-worker'))!;
+    await f.commercial.service.beginStep(lease, 'delivery-step');
+    await f.commercial.finance.authorizeCall(owner, run.id, {
+      callId: 'http',
+      inputTokens: 1000,
+      maxOutputTokens: 1000,
+      upperBoundMicroUsd: 12000,
+    });
+    await f.commercial.finance.settleCall(owner, run.id, 'http', { inputTokens: 1000, outputTokens: 1000 });
+    const native = new NativeCaseContextService(f.db, async () => {});
+    const binding = {
+      ...owner,
+      executionId: run.id,
+      conversationId: run.conversationId,
+      contextRevision: run.contextRevision,
+      objective: input.objective,
+      actionId,
+    };
+    const packet = await native.load(binding);
+    const sourceIds = packet.sources.map((s) => s.id);
+    const delivery = AgenticTaskDeliverySchema.parse({
+      action: actionId,
+      contextId: run.conversationId,
+      contextRevision: run.contextRevision,
+      status: 'LIMITED',
+      humanReviewRequired: true,
+      issues: claims === 'issues' ? [{ id: 'planned', statement: 'Qual a data de pagamento?', sourceIds }] : [],
+      requirements: [],
+      sources: packet.sources.map(({ text: _text, ...s }) => s),
+      claims:
+        claims === true
+          ? [
+              {
+                id: 'claim',
+                classification: 'INFERENCE',
+                statement: 'O texto contém obrigações contraditórias.',
+                sourceIds,
+              },
+            ]
+          : [],
+      findings: [
+        {
+          id: 'gap',
+          code:
+            claims === 'finding'
+              ? 'CONTRADICTORY_DATES'
+              : claims === 'refusal'
+                ? 'TASK_REFUSED'
+                : 'DOCUMENT_NOT_PRODUCED',
+          severity: 'BLOCKING',
+          statement:
+            claims === 'finding'
+              ? 'O instrumento apresenta duas datas incompatíveis para a mesma obrigação.'
+              : 'Faltam elementos para concluir.',
+          sourceIds: typeof claims === 'string' ? sourceIds : [],
+        },
+      ],
+      ...(document
+        ? {
+            document: {
+              title: 'Minuta parcial',
+              documentType: 'Parecer',
+              sections: [{ title: 'Objeto', content: 'Exame preliminar da obrigação descrita.', sourceIds: [] }],
+            },
+          }
+        : {}),
+    });
+    const saved = await native.save(binding, delivery);
+    await f.commercial.service.finishStep(lease, 'delivery-step', {
+      kind: 'completed',
+      checkpoint: {},
+      deliveryIds: [saved.id],
+    });
+    expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({
+      status: 'COMPLETED',
+      measuredMicroUsd: 12000,
+      chargedCents: charge,
+      releasedCents: 500 - charge,
+    });
+    expect((await native.getDelivery(owner, saved.id)).delivery.humanReviewRequired).toBe(true);
+  },
+);
+
+it.each(['question', 'reconciliation', 'held-question'] as const)(
+  'closed commercial %s can drain and purge without identity interaction',
+  async (kind) => {
+    const f = await fixture();
+    const run = await f.commercial.start(owner, 'closure', input);
+    const lease = (await f.commercial.service.claimNext('closure-worker'))!;
+    await f.commercial.service.beginStep(lease, 'step');
+    if (kind !== 'reconciliation') {
+      await f.commercial.service.finishStep(lease, 'step', {
+        kind: 'question',
+        checkpoint: {},
+        question: {
+          id: 'purpose',
+          version: 1,
+          contextRevision: 1,
+          prompt: 'Finalidade?',
+          selection: 'free_text',
+          options: [],
+          allowFreeText: true,
+          allowUnknown: true,
+          reason: 'Delimitar',
+        },
+      });
+    } else {
+      await f.commercial.finance.authorizeCall(owner, run.id, {
+        callId: 'http',
+        inputTokens: 1000,
+        maxOutputTokens: 1000,
+        upperBoundMicroUsd: 12000,
+      });
+      await f.commercial.service.failLease(lease);
+    }
+    const before = await f.commercial.finance.getReceipt(owner, run.id);
+    expect(before).toMatchObject({ chargedCents: 0, releasedCents: 500 });
+    if (kind === 'held-question') {
+      const now = new Date().toISOString();
+      await f.client.execute({
+        sql: 'INSERT INTO account_closures(id,subject_hash,user_hash,tenant_hash,status_token_hash,idempotency_key_hash,request_fingerprint,policy_version,status,requested_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+        args: ['closure', 'subject', 'user', 'tenant', 'token', 'key', 'fingerprint', 'policy', 'PURGING', now, now],
+      });
+      await f.client.execute({
+        sql: "INSERT INTO retention_exceptions(id,closure_id,category,legal_basis_reference,authority_reference,responsible,starts_at,review_at,status) VALUES('hold','closure','SESSIONS','LEGAL_HOLD','case','Boni',?,?,'ACTIVE')",
+        args: [now, now],
+      });
+    }
+    f.authorizeOwner.mockRejectedValue(new Error('ACCESS_REVOKED'));
+    const purge = new AccountClosurePurgeService(f.client);
+    await expect(purge.purgePrivateContent({ tenantId: owner.tenantId, closureId: 'closure' })).resolves.toMatchObject({
+      remainingPrivateRows: 0,
+    });
+    if (kind === 'held-question') {
+      expect((await new AgenticWorkspaceRepository(f.db).getExecution(owner, run.id))?.status).toBe('CANCELLED');
+      expect((await f.commercial.service.store.getJob(owner, run.id)).state).toBe('CANCELLED');
+      expect((await f.client.execute('SELECT id FROM agentic_conversations')).rows).toHaveLength(1);
+      await f.client.execute("UPDATE retention_exceptions SET status='RELEASED' WHERE id='hold'");
+      await purge.purgePrivateContent({ tenantId: owner.tenantId, closureId: 'closure' });
+      expect((await f.client.execute('SELECT id FROM agentic_conversations')).rows).toHaveLength(0);
+    }
+    await new AccountClosureBillingRetention(f.client).minimize({
+      ...owner,
+      tenantPseudonym: 'closed-tenant',
+      userPseudonym: 'closed-user',
+    });
+    const retained = JSON.parse(
+      String((await f.client.execute('SELECT payload_json FROM commercial_executions')).rows[0].payload_json),
+    );
+    expect(retained).toMatchObject({
+      chargedCents: before!.chargedCents,
+      releasedCents: before!.releasedCents,
+      uncertainMicroUsd: before!.uncertainMicroUsd,
+    });
+    expect(f.transport).not.toHaveBeenCalled();
+  },
+);
+
+it('closure leaves a leased commercial job with terminal finance untouched until the worker stops', async () => {
+  const f = await fixture();
+  const run = await f.commercial.start(owner, 'in-flight-closure', input);
+  const lease = (await f.commercial.service.claimNext('active-worker'))!;
+  await f.commercial.service.beginStep(lease, 'http-step');
+  await f.commercial.finance.authorizeCall(owner, run.id, {
+    callId: 'http',
+    inputTokens: 1000,
+    maxOutputTokens: 1000,
+    upperBoundMicroUsd: 12000,
+  });
+  await f.commercial.finance.finalize(owner, run.id, { usableDelivery: false, outcome: 'CANCELLED' });
+  await expect(
+    new AccountClosurePurgeService(f.client).purgePrivateContent({ tenantId: owner.tenantId, closureId: 'closure' }),
+  ).rejects.toThrow('ACCOUNT_CLOSURE_AGENTIC_PENDING');
+  expect((await f.commercial.service.store.getJob(owner, run.id)).state).toBe('LEASED');
+  expect((await new AgenticWorkspaceRepository(f.db).getExecution(owner, run.id))?.status).toBe('RUNNING');
+});
 it('factory is closed without both flags, durable storage and key', async () => {
   const f = await fixture();
   for (const environment of [
@@ -342,6 +540,16 @@ it('restart never replays an uncertain dispatched step and releases a no-deliver
     releasedCents: 500,
     uncertainMicroUsd: 22480,
   });
+  const next = await f.app.inject({
+    method: 'POST',
+    url: '/api/agentic/commercial/executions',
+    headers: { ...headers, 'idempotency-key': 'blocked-after-uncertainty' },
+    payload: input,
+  });
+  expect(next.statusCode).toBe(409);
+  expect(next.json()).toMatchObject({ error: 'COMMERCIAL_RECONCILIATION_REQUIRED' });
+  expect((await f.commercial.start(owner, 'uncertain', input)).id).toBe(run.id);
+  expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({ chargedCents: 0, releasedCents: 500 });
   expect(f.transport).not.toHaveBeenCalled();
 });
 it('current owner revocation blocks provider dispatch and closes zero-charge work', async () => {
