@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-30",
+  "timezone": "America/Fortaleza",
+  "approver": "Boni",
+  "decision": "APPROVED_RESTRICTED_SYNTHETIC_PILOT_WITH_LOCAL_EDITORIAL_CORRECTION",
+  "approvalQuote": "Aprovar o ensaio sintético corrigido e seguir para os custos",
+  "scope": {
+    "boniOnly": true,
+    "syntheticOnly": true,
+    "customerUse": false,
+    "newPaidCalls": false,
+    "nativeActivation": false,
+    "commercialRelease": false,
+    "realModelRetested": false
+  },
+  "evidence": {
+    "historicalCanonicalSha256": "0a0d3037bbe4fdb7b6d7d201c8da063179cc05ad7996dd501d930558a1a26fe3",
+    "replayPath": "docs/operations/agentic-workspace/2026-10-30-editorial-replay.json",
+    "replayCanonicalSha256": "429664f682d8bc1528a18552fdf3538ceb5424313193785f983afa8abe08d401",
+    "correctionCommit": "667badfc1ff2f8bdcc81fced458a96b68c7adf59",
+    "mainMergeCommit": "d657826a09e3f2eed56ea34f2fcccd7fa3462820",
+    "pullRequest": 83,
+    "ciRun": 41097399739,
+    "localTestsPassed": 1234,
+    "localTestsSkipped": 17,
+    "ciChecksPassed": 6
+  },
+  "historicalDeliveriesModified": false,
+  "clientLegalApproval": false,
+  "providerInvoiceReconciled": false
+}

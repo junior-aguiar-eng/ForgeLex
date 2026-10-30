@@ -1,8 +1,11 @@
 # Operação controlada do trabalho agêntico
 
-Preparado em 28/10/2026 na branch `codex/agent-contracts-a0`, com a Tarefa 6
-commitada em `43ba96d`. Este runbook é candidato local; nenhum
-comando de produção foi executado. Boni é o único aprovador humano.
+Preparado em 28/10/2026 e atualizado em 30/10/2026 após a integração das PRs
+#81, #82 e #83. Boni é o único aprovador humano. Publicação, migrations,
+monitoramento e restauração realizados em 30/10 estão no
+[registro operacional](2026-10-30-publication.md) e no
+[recibo](2026-10-30-publication-proof.json). Não confundir código integrado,
+revisão publicada e funcionalidade ativada.
 
 ## Estado e escopo
 
@@ -12,11 +15,16 @@ A Tarefa 6 homologou somente os exemplos sintéticos autorizados, com OpenAI
 registro de consumo. Preservar o banco e as evidências locais até decisão
 expressa sobre retenção.
 
-Os resultados permanecem `NOT_EVALUATED`. O encerramento técnico não aprova
-uso profissional, dados de clientes, expansão de tribunal ou publicação.
-Em 28/10/2026, Boni escolheu para a Tarefa 7 **piloto fechado, só para Boni e
-dados sintéticos**. Preço/margem comercial e dados de clientes ficam fora do
-escopo. A escolha não autoriza novo orçamento nem reabre o piloto encerrado.
+Boni aprovou em 30/10/2026 o ensaio sintético corrigido, após replay local sem
+inferência paga: [avaliação e limites](2026-10-30-pilot-evaluation.md) e
+[decisão expressa](2026-10-30-boni-pilot-approval.json). Os artefatos históricos
+preservam seu estado original. A aprovação não libera uso profissional, dados
+de clientes, novas chamadas pagas ou ativação da interface.
+
+A [base comercial](2026-10-30-commercial-proposal.md) foi aprovada por Boni
+em 30/10, sem ativação. Ela define preço, margem simulada, limites e
+cancelamentos; a cobrança comercial nativa ainda exige implementação e
+validação. Não misturar o ledger sintético USD com o saldo comercial BRL.
 
 ## Pré-condições para ativação
 
@@ -32,14 +40,14 @@ Condições verificadas no código antes de qualquer ativação publicada; as
 exigências para dados pessoais/clientes não são gates adicionais para ensaios
 locais sintéticos:
 
-| Área            | Estado verificado                                                                                                 | Condição de liberação                                                                                                                  |
-| --------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Executor        | `buildApp()` compõe worker/driver/SDK sob flag fechada, identidade explícita e fixture aprovada | Configurar IDs verificados e banco durável isolado; validar o artefato no ambiente escolhido antes de ativar |
-| Consentimento   | Painel e endpoint fechado exigem exemplo fixo, limite USD, confirmação e chave de idempotência | Reserva persistente antecede ativação do job; verificar configuração real antes de habilitar |
-| Moeda e preço   | Billing existente é BRL; tarifa e teto do piloto são USD em conta sintética isolada                               | Preservar isolamento USD/BRL. Preço/margem comercial está fora do piloto fechado; política comercial própria somente antes de clientes |
-| Consumo visível | Painel projeta teto, disponível, escrow, consumo arredondado e provisão USD; endpoint inclui resumo da execução | Não apresentar provisão como cobrança ou os valores como fatura; manter o teto histórico de 500 centavos |
-| Retenção        | Rotinas atuais não enumeram as novas tabelas agênticas e de inferência                                            | Dados pessoais/clientes estão fora deste piloto; integrar e testar retenção antes de eventual ampliação para esses dados               |
-| Operação        | Eventos e leases persistem; o scheduler captura falha de tick sem emitir alerta específico                        | Comprovar monitoramento e recuperação sem conteúdo jurídico em logs                                                                    |
+| Área            | Estado verificado                                                                                                                                 | Condição de liberação                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Executor        | `buildApp()` compõe worker/driver/SDK sob flag fechada, identidade explícita e fixture aprovada                                                   | Configurar IDs verificados e banco durável isolado; validar o artefato no ambiente escolhido antes de ativar                               |
+| Consentimento   | Painel e endpoint fechado exigem exemplo fixo, limite USD, confirmação e chave de idempotência                                                    | Reserva persistente antecede ativação do job; verificar configuração real antes de habilitar                                               |
+| Moeda e preço   | Billing existente é BRL; tarifa e teto do piloto são USD em conta sintética isolada                                                               | Preservar isolamento USD/BRL. Preço/margem comercial está fora do piloto fechado; política comercial própria somente antes de clientes     |
+| Consumo visível | Painel projeta teto, disponível, escrow, consumo arredondado e provisão USD; endpoint inclui resumo da execução                                   | Não apresentar provisão como cobrança ou os valores como fatura; manter o teto histórico de 500 centavos                                   |
+| Retenção        | Expurgo de conta/caso e minimização financeira cobrem os dados agênticos na PR #81                                                                | Preservar holds e pendências financeiras; seguir os procedimentos de restauração e a política vigente                                      |
+| Operação        | Alertas de disponibilidade, 5xx e ausência de resposta do encerramento configurados; backup restaurado em instância isolada e removido após prova | Manter acompanhamento sem conteúdo jurídico nos logs; a prova de restauração não substitui reaplicar bloqueios de expurgo antes de tráfego |
 
 ## Migrations aditivas
 
@@ -51,13 +59,14 @@ Inventariar `forgelex_migrations` no banco autorizado e comparar com o artefato.
 O incremento usa `persistence-0031-agentic-workspace`,
 `persistence-0032-agentic-execution-control`,
 `persistence-0033-legislation-versions`,
-`persistence-0034-agentic-task-deliveries` e
+`persistence-0034-agentic-task-deliveries`,
+`persistence-0035-agentic-tenant-guards` e
 `billing-ledger-0009-inference-budgets`.
 
 O comando existente `pnpm db:migrate` usa `DATABASE_URL` e aplica **todas** as
 migrations pendentes de persistência/ledger, além do módulo Análise quando
 habilitado. Conferir o conjunto inteiro antes de autorizar; não tratá-lo como
-comando limitado às cinco migrations acima. O script não é um dry-run.
+comando limitado às seis migrations acima. O script não é um dry-run.
 
 Manter `FORGELEX_AUTO_MIGRATE` desligado no ambiente de produção. Não iniciar a
 API contra banco existente com `NODE_ENV` de desenvolvimento: `buildApp` permite
@@ -66,6 +75,11 @@ migration automática nesse modo. Ensaios locais usam somente bancos descartáve
 Após autorização de migration: registrar IDs aplicados, versão, instante e
 integridade; conferir que casos, versões e ledger anteriores continuam acessíveis.
 Não executar rollback de schema por exclusão de tabelas.
+
+Em 30/10, sete migrations aditivas foram aplicadas no banco publicado, incluindo
+as seis acima e a migration de análise documental. O journal passou de 40 para
+47 entradas, sem pendências naquela inspeção. Conferir novamente antes de uma
+nova operação; este registro não autoriza repetir migrations ou mudar banco.
 
 ## Flags e rollout
 
@@ -83,6 +97,12 @@ verificar readiness e configurações, conferir REST/MCP existentes e executar a
 tarefa controlada expressamente aprovada. Registrar revisão efetiva, tráfego,
 owner, execução, resultado, fontes versionadas e consumo. `readyz` sozinho não
 comprova o percurso agêntico nem a qualidade jurídica.
+
+Estado publicado em 30/10: fonte dc68fcb, revisões e digest no recibo de
+publicação; flags agêntica, piloto e frontend desligadas. A correção editorial
+da PR #83 está integrada à main d657826, mas não compõe esse artefato publicado.
+A ausência de ativação preserva o escopo aprovado. A implementação real existente
+continua restrita ao piloto; o produto comercial não nasce por alteração de flags.
 
 ## Observabilidade e cancelamento
 
@@ -109,6 +129,13 @@ O script `scripts/reconcile-agentic-task6-cancel.mjs` é exclusivo do banco e da
 chamada sintética da Tarefa 6. Não o apontar para contas reais ou apresentá-lo
 como reconciliador comercial genérico. Recibo do piloto:
 [conciliação local](../../architecture/evidence/2026-10-28-task6-cancellation-reconciliation.json).
+
+Em 30/10, os CSV oficiais da OpenAI coincidiram com os 54 requests e tokens
+conhecidos do piloto e reportaram US$ 0,00 para a mesma chave e dia. A chamada
+cancelada não é discriminada: seu custo individual definitivo continua não
+demonstrado. Manter a provisão histórica de US$ 0,04, sem nova liquidação.
+[Conferência e hashes](2026-10-30-provider-cost-review.md). O relatório diário
+não é uma fatura individual e não fundamenta preço comercial com custo zero.
 
 ## Rollback operacional
 
@@ -148,19 +175,43 @@ Inventário novo: `agentic_conversations`, `agentic_contexts`,
 `inference_calls`. Payloads podem conter objetivo, fontes, respostas, entregas
 e identificadores; tratar como conteúdo privado até classificação explícita.
 
-`AccountClosurePurgeService`, `MatterPurgeRepository` e
-`OperationalRetentionService` não cobrem explicitamente esse inventário.
-Não anunciar expurgo completo, prazo novo ou anonimização dessas tabelas.
-Ensaiar isolamento de tenants, holds, chamadas pendentes e minimização financeira
-com fixtures, incluindo histórico sem caso e documentos já purgados. Referências
-de caso com FK podem impedir encerramento; payloads podem manter cópias de texto.
+A PR #81 integra exclusão agêntica ao encerramento de conta e ao expurgo de
+casos/documentos. O encerramento usa guarda transacional por tenant, bloqueia
+novas escritas admitidas após fechamento e verifica jobs não terminais,
+reservas pendentes e estados financeiros antes de apagar conteúdo privado.
+Holds continuam preservados. Contextos, mensagens, entregas e referências
+atingidos pelo expurgo são tratados no escopo do alvo; não se promete apagar
+provas financeiras necessárias nem dados sob retenção excepcional.
 
-Antes de dados pessoais, Boni decide categorias/prazos e implementação compatível
-com a política vigente. Restauração isolada deve reaplicar bloqueios e comprovar
-resíduos antes do tráfego, preservando evidência financeira necessária sem texto
-jurídico dispensável. Não executar exclusão sobre o piloto durante esta preparação.
+A minimização financeira exige budgets liberados e chamadas terminais
+SETTLED/CANCELLED/PROVISIONED. Remove payloads dispensáveis, pseudonimiza
+associações e chaves e conserva campos financeiros permitidos. Uma provisão
+terminal não equivale a custo externo confirmado. OperationalRetentionService
+mantém sua função de retenção operacional existente; não é um expurgador genérico
+por idade de todo conteúdo agêntico. Os prazos da política vigente não foram
+alterados por esta reconciliação.
 
-## Evidências de preparação
+A CI inclui verify-agentic-retention-postgres.mjs: concorrência de escrita e
+exclusão, minimização financeira, holds, isolamento e restauração controlada.
+Os seis checks da PR #83 e da main d657826 passaram; a regressão teve 1.234
+testes aprovados e 17 ignorados. Isso não demonstra exclusão real sobre dados
+de clientes nem autoriza sua utilização no piloto.
+
+Restauração deve reaplicar os bloqueios e o diário externo de expurgos antes
+de abrir tráfego, além de verificar resíduos. O ensaio remoto de 30/10 restaurou
+o backup em instância isolada, reaplicou migrations e comparou cinco conjuntos
+de registros; não executou replay integral de expurgos nessa cópia. A instância
+foi removida. Não executar exclusão sobre o banco histórico do piloto; ele
+continua preservado e não foi aberto ou copiado nesta conferência.
+
+## Evidências atuais
+
+- [Publicação, alertas e recuperação](2026-10-30-publication.md).
+- [Aprovação do ensaio corrigido](2026-10-30-boni-pilot-approval.json).
+- [Custos externos e limite da comprovação individual](2026-10-30-provider-cost-review.md).
+- [Base comercial aprovada sem ativação](2026-10-30-commercial-proposal.md).
+
+## Evidências históricas de preparação
 
 Validar localmente com build pronto e executar a suíte geral separadamente dos
 navegadores e de outros builds. A Tarefa 7 observou instabilidade de tempo sob
