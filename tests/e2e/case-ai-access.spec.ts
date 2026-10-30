@@ -157,11 +157,24 @@ test('atualizar conexão renovada invalida a prévia sem descartar material nem 
   await choice.check();
 
   await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
+  // Keep the replacement preview pending so invalidation is observable even on fast runners.
+  let releasePreview!: () => void;
+  const heldPreview = new Promise<void>(resolve => { releasePreview = resolve; });
+  let enteredPreview!: () => void;
+  const renewedPreviewStarted = new Promise<void>(resolve => { enteredPreview = resolve; });
+  await page.route('**/ai-access/preview', async route => {
+    const response = await route.fetch();
+    enteredPreview();
+    await heldPreview;
+    await route.fulfill({ response });
+  });
   renewed = true;
   await page.getByRole('button', { name: 'Atualizar permissões', exact: true }).click();
+  await renewedPreviewStarted;
   await expect(page.getByRole('region', { name: 'Prévia do material' })).toHaveCount(0);
   await expect(choice).toBeChecked();
   await expect(page.getByRole('region', { name: 'Conexão escolhida' })).toContainText('07/10/2026');
+  releasePreview();
   await expect(page.getByRole('region', { name: 'Prévia do material' })).toContainText('Material da renovação');
 
   await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();

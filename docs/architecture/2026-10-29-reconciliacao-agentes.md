@@ -95,3 +95,7 @@ Permanece necessária a correção e cobertura da sincronização entre requisi�
 ## Correção de segurança detectada na CI da PR #81
 
 A primeira CI aprovou lint/build/tipos e 1.221 testes (17 ignorados), PostgreSQL, conta e publicação, mas reprovou a auditoria de desenvolvimento por GHSA-8g5g-mxqh-grgj em Vite 6.4.4. O aviso oficial identifica 6.4.5 como versão corrigida: https://github.com/advisories/GHSA-8g5g-mxqh-grgj . A dependência e o lockfile foram atualizados; o build web e a auditoria local de todas as dependências passaram sem alertas acionáveis. Os checks serão repetidos sobre esse commit antes da integração.
+
+## Sincronização da prévia no teste de navegador
+
+A CI seguinte aprovou validação geral, PostgreSQL, segurança, conta e publicação. O cenário de renovação de conexão falhou por tentar observar um estado transitório enquanto a prévia nova já carregava. O teste agora segura a resposta da nova prévia, verifica a ausência da antiga, preservação da seleção e data da nova conexão, libera a resposta e confere o material. Nenhuma asserção de permissão foi removida. O cenário passou isoladamente e em três repetições consecutivas no modo de desenvolvimento usado pela CI.
