@@ -7,4 +7,6 @@ export * from './search-fingerprint.js';
 export * from './migrations/ledger-migrations.js';
 export * from './result-snapshot.js';
 export * from './inference-budget-service.js';
+export * from './commercial-inference-service.js';
+export * from './schema/commercial-inference-schema.js';
 export type { BudgetPolicy, BudgetRecord, BudgetCall } from './inference-budget-funding.js';

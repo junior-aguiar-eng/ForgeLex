@@ -1,6 +1,6 @@
 # Política de Privacidade do ForgeLex
 
-Versão 2026-09-30.v1 · atualizada em 30 de setembro de 2026
+Versão 2026-10-30.v1 · atualizada em 30 de outubro de 2026
 
 ## Responsável e contato
 
@@ -21,6 +21,10 @@ Dados necessários à conta e às operações solicitadas são tratados para exe
 O Supabase presta autenticação; o Google Cloud hospeda a API, o banco e componentes operacionais; o Mercado Pago processa pagamentos. Cada fornecedor recebe os dados necessários à sua função e pode ter obrigações e papéis próprios. O ForgeLex não recebe o número completo do cartão pelos fluxos de pagamento descritos. Dados também podem ser fornecidos em cumprimento de obrigação legal ou determinação válida, com exame do alcance e registro do atendimento.
 
 O host de IA escolhido pelo usuário recebe o conteúdo e os resultados encaminhados na integração, conforme sua configuração e política. Ele não é automaticamente contratado pelo ForgeLex. Examine suas condições antes de encaminhar informações sigilosas. Não presuma que o ForgeLex acessa todo o histórico dessa IA ou que controla a conservação feita pelo host.
+
+No trabalho nativo, o ForgeLex envia à OpenAI o pedido, respostas fornecidas e trechos das fontes que o usuário selecionou e pode acessar, para produzir a entrega solicitada. Não envia automaticamente todos os casos ou documentos da conta. O serviço usa a API com armazenamento de resposta desabilitado e sem tracing do conteúdo. Isso não é garantia de retenção zero: registros de monitoramento de abuso da OpenAI podem conter conteúdo e, por padrão, ser conservados por até 30 dias, ressalvadas as exceções descritas pelo fornecedor. O processamento pode ocorrer fora do Brasil. Consulte os controles de dados da OpenAI e restrinja o material ao necessário para a tarefa.
+
+[Controles de dados da OpenAI](https://developers.openai.com/api/docs/guides/your-data).
 
 ## Transferências internacionais
 

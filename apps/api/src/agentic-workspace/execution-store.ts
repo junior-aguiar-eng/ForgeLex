@@ -26,6 +26,8 @@ export interface ExecutionJob extends AgenticOwner {
   budgetReleasePending: boolean;
   budgetReleaseNextAt?: string | null;
   createdAt: string;
+  /** Persisted admission lease; only authorization-gated commercial jobs use it. */
+  admissionExpiresAt?: string | null;
 }
 export interface WorkerLease {
   executionId: string;

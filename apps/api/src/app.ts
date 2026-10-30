@@ -1,5 +1,6 @@
 import { registerAgenticWorkspace, type AgenticWorkspaceRuntimeOptions } from './agentic-workspace/execution-routes.js';
 import type { ClosedPilotDependencies } from './agentic-workspace/closed-pilot.js';
+import type { CommercialRuntimeDependencies } from './agentic-workspace/commercial-runtime.js';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import Fastify, { FastifyInstance, FastifyReply } from 'fastify';
@@ -117,6 +118,7 @@ import { readMcpReaderHtml } from './research/mcp-reader-resource.js';
 
 export interface BuildAppOptions {
   closedPilotDependencies?: ClosedPilotDependencies;
+  commercialRuntimeDependencies?: CommercialRuntimeDependencies;
   agenticWorkspace?: AgenticWorkspaceRuntimeOptions;
   matterPurgeJournal?: MatterPurgeJournal;
   oauthClientDirectory?: OAuthClientDirectory;
@@ -217,7 +219,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const connection = shouldOpenConnection
     ? await createDatabase({ url: databasePolicy?.url ?? 'file::memory:?cache=shared' })
     : undefined;
-  const autoMigrate = environment.NODE_ENV !== 'production' || environment.FORGELEX_AUTO_MIGRATE === 'true';
+  const autoMigrate = environment.FORGELEX_COMMERCIAL_EXECUTION_ENABLED !== 'true'
+    && (environment.NODE_ENV !== 'production' || environment.FORGELEX_AUTO_MIGRATE === 'true');
   if (connection) {
     if (autoMigrate) await runPersistenceMigrations(connection.client);
     else await assertMigrationsApplied(connection.client, persistenceMigrations);
@@ -483,6 +486,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     requirePersistentDataPlane: true,
   });
   let workspaceOptions = options.agenticWorkspace;
+  if (environment.FORGELEX_COMMERCIAL_EXECUTION_ENABLED === 'true') {
+    if (!database || !databaseClient || workspaceOptions?.driver || workspaceOptions?.caseTask || workspaceOptions?.closedPilot || workspaceOptions?.commercial)
+      throw new Error('COMMERCIAL_CONFIGURATION_REQUIRED');
+    const { createCommercialRuntime } = await import('./agentic-workspace/commercial-runtime.js');
+    const commercial = await createCommercialRuntime(database, databaseClient, environment, options.commercialRuntimeDependencies);
+    await commercial.recover();
+    workspaceOptions = { ...workspaceOptions, commercial };
+  }
   if (environment.FORGELEX_CLOSED_PILOT_ENABLED === 'true') {
     if (!database || !databaseClient || workspaceOptions?.driver || workspaceOptions?.caseTask || workspaceOptions?.closedPilot)
       throw new Error('CLOSED_PILOT_CONFIGURATION_REQUIRED');

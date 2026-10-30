@@ -184,6 +184,12 @@ export function sourceLink(
   }
 }
 export function statusText(status: string, code = ''): string {
+  if (code === 'COMMERCIAL_DAILY_LIMIT') return 'O limite diário de trabalhos foi atingido. Seu pedido foi preservado.';
+  if (code === 'COMMERCIAL_MONTHLY_LIMIT')
+    return 'O limite mensal de trabalhos foi atingido. Seu pedido foi preservado.';
+  if (code === 'COMMERCIAL_EXECUTION_ACTIVE')
+    return 'Você já tem um trabalho em andamento. Aguarde a conclusão ou cancele-o.';
+  if (/COMMERCIAL_POLICY/.test(code)) return 'O preço do trabalho mudou. Reveja o pedido para consultar o preço atual.';
   if (/BUDGET|BALANCE|FUNDS/.test(code))
     return 'O orçamento disponível não permite continuar. Seu texto foi preservado.';
   if (/ACCESS_REVOKED|NOT_FOUND/.test(code))

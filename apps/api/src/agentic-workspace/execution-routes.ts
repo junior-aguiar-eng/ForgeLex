@@ -10,9 +10,11 @@ import { createCaseTaskDriver, type NativeCaseTaskOptions } from './case-task-dr
 import type { ResearchService } from '@forgelex/legal-tools';
 import { LEGAL_ACTION_CATALOG } from '@forgelex/legal-workflows';
 import type { ClosedPilot } from './closed-pilot.js';
+import type { CommercialRuntime } from './commercial-runtime.js';
 
 export interface AgenticWorkspaceRuntimeOptions {
   closedPilot?: ClosedPilot;
+  commercial?: CommercialRuntime;
   driver?: ExecutionDriver;
   caseTask?: NativeCaseTaskOptions;
   scheduler?: boolean;
@@ -32,25 +34,46 @@ export function registerAgenticWorkspace(
 ) {
   if (deps.environment.FORGELEX_AGENTIC_WORKSPACE_ENABLED !== 'true') return;
   const pilot = deps.options?.closedPilot;
+  const commercial = deps.options?.commercial;
+  if (commercial && (pilot || deps.options?.driver || deps.options?.caseTask))
+    throw new Error('CASE_TASK_CONFIGURATION_CONFLICT');
   if (pilot && (deps.options?.driver || deps.options?.caseTask)) throw new Error('CASE_TASK_CONFIGURATION_CONFLICT');
   if (deps.options?.driver && deps.options.caseTask) throw new Error('CASE_TASK_CONFIGURATION_CONFLICT');
   const caseTask =
-    deps.database && deps.client && (pilot?.caseTask || deps.options?.caseTask)
+    deps.database && deps.client && (pilot?.caseTask || commercial?.caseTask || deps.options?.caseTask)
       ? createCaseTaskDriver(
           deps.database,
           deps.client,
-          (pilot?.caseTask ?? deps.options!.caseTask)!,
-          pilot ? undefined : deps.researchService,
+          (pilot?.caseTask ?? commercial?.caseTask ?? deps.options!.caseTask)!,
+          pilot || commercial ? undefined : deps.researchService,
         )
       : undefined;
   const driver = deps.options?.driver ?? caseTask?.driver;
   const service =
     pilot?.service ??
+    commercial?.service ??
     (deps.database && deps.client
       ? new ExecutionService(deps.database, deps.client, { executorAvailable: Boolean(driver) })
       : undefined);
-  const worker = service ? new ExecutionWorker(service, driver, { leaseMs: deps.options?.leaseMs }) : undefined;
+  const worker = service
+    ? new ExecutionWorker(service, driver, {
+        leaseMs: deps.options?.leaseMs,
+        ...(commercial ? { maxDurationMs: 300000 } : {}),
+      })
+    : undefined;
   let running = false;
+  let sweeping = false;
+  const sweep = async () => {
+    if (!commercial || sweeping) return;
+    sweeping = true;
+    try {
+      await commercial.sweepAdmissions();
+    } catch {
+      /* Retry durable admission cleanup on the next poll. */
+    } finally {
+      sweeping = false;
+    }
+  };
   const tick = async () => {
     if (!worker || running) return;
     running = true;
@@ -63,9 +86,13 @@ export function registerAgenticWorkspace(
     }
   };
   if (worker && deps.options?.scheduler !== false) {
-    const timer = setInterval(() => void tick(), deps.options?.pollMs ?? 1000);
+    const timer = setInterval(() => {
+      void sweep();
+      void tick();
+    }, deps.options?.pollMs ?? 1000);
     timer.unref();
     app.addHook('onReady', async () => {
+      await sweep();
       void tick();
     });
     app.addHook('onClose', async () => {
@@ -90,6 +117,11 @@ export function registerAgenticWorkspace(
         .send({ error: 'SESSION_REQUIRED', message: 'Entre na sua conta para acessar este trabalho.' });
   };
   const closedCommands = async (req: FastifyRequest, reply: FastifyReply) => {
+    if (commercial && req.method === 'POST') {
+      const id = (req.params as { id?: string }).id;
+      if (id && !commercial.canManageExecution(await commercial.service.store.workspace.getExecution(owner(req), id)))
+        return reply.code(404).send({ error: 'EXECUTION_NOT_FOUND' });
+    }
     if (!pilot) return;
     const routeId = (req.params as { id?: string }).id;
     if (routeId) {
@@ -158,6 +190,11 @@ export function registerAgenticWorkspace(
                   'RECONCILIATION_REQUIRED',
                   'EXECUTOR_UNAVAILABLE',
                   'ACCESS_REVOKED',
+                  'COMMERCIAL_EXECUTION_ACTIVE',
+                  'COMMERCIAL_DAILY_LIMIT',
+                  'COMMERCIAL_MONTHLY_LIMIT',
+                  'BILLING_INSUFFICIENT_BALANCE',
+                  'COMMERCIAL_POLICY_MISMATCH',
                 ].includes(message)
               ? message
               : /NOT_FOUND$/.test(message)
@@ -186,7 +223,13 @@ export function registerAgenticWorkspace(
     '/api/agentic/executions',
     options,
     handle(async (req, reply) =>
-      reply.code(202).send(await required().startExecution(owner(req), key(req), StartExecutionSchema.parse(req.body))),
+      reply
+        .code(202)
+        .send(
+          commercial
+            ? await commercial.start(owner(req), key(req), req.body)
+            : await required().startExecution(owner(req), key(req), StartExecutionSchema.parse(req.body)),
+        ),
     ),
   );
   app.get(
@@ -195,6 +238,7 @@ export function registerAgenticWorkspace(
     handle(async () => ({
       available: Boolean(driver),
       ...(pilot ? { closedPilot: true } : {}),
+      ...(commercial ? { commercial: true } : {}),
       actions: LEGAL_ACTION_CATALOG.map((a) => ({
         id: a.id,
         label: a.label,
@@ -202,10 +246,40 @@ export function registerAgenticWorkspace(
       })),
     })),
   );
+  if (commercial) {
+    app.get(
+      '/api/agentic/commercial/quote',
+      options,
+      handle(async (req) => commercial.finance.quote(owner(req))),
+    );
+    app.post(
+      '/api/agentic/commercial/executions',
+      options,
+      handle(async (req, reply) => reply.code(202).send(await commercial.start(owner(req), key(req), req.body))),
+    );
+    app.get(
+      '/api/agentic/commercial/executions/:id/receipt',
+      options,
+      handle(async (req) => {
+        const receipt = await commercial.finance.getReceipt(owner(req), executionId(req));
+        if (!receipt) throw new Error('EXECUTION_NOT_FOUND');
+        return {
+          executionId: receipt.executionId,
+          reservedCents: receipt.reservedCents,
+          chargedCents: receipt.chargedCents,
+          releasedCents: receipt.releasedCents,
+          expiredPromoCents: receipt.expiredPromoCents,
+          status: receipt.status,
+          currency: receipt.currency,
+          policyVersion: receipt.policyVersion,
+        };
+      }),
+    );
+  }
   if (pilot) {
     const pilotError = (reply: FastifyReply, error: unknown) => {
       const original = error instanceof Error ? error.message : '';
-        const message = original === 'AGENTIC_TENANT_CLOSED' ? 'ACCESS_REVOKED' : original;
+      const message = original === 'AGENTIC_TENANT_CLOSED' ? 'ACCESS_REVOKED' : original;
       const code =
         error instanceof z.ZodError
           ? 'INVALID_INPUT'
@@ -220,7 +294,7 @@ export function registerAgenticWorkspace(
             ? 400
             : code === 'EXECUTION_NOT_FOUND'
               ? 404
-              : (code === 'CLOSED_PILOT_FORBIDDEN' || code === 'ACCESS_REVOKED')
+              : code === 'CLOSED_PILOT_FORBIDDEN' || code === 'ACCESS_REVOKED'
                 ? 403
                 : code === 'CLOSED_PILOT_UNAVAILABLE'
                   ? 503
@@ -254,7 +328,9 @@ export function registerAgenticWorkspace(
       reply
         .code(202)
         .send(
-          await required().correctAnswer(owner(req), executionId(req), key(req), LegalAnswerSchema.parse(req.body)),
+          commercial
+            ? await commercial.successor(owner(req), executionId(req), key(req), 'correct', req.body)
+            : await required().correctAnswer(owner(req), executionId(req), key(req), LegalAnswerSchema.parse(req.body)),
         ),
     ),
   );
@@ -273,7 +349,14 @@ export function registerAgenticWorkspace(
       reply
         .code(202)
         .send(
-          await required().answerExecution(owner(req), executionId(req), key(req), LegalAnswerSchema.parse(req.body)),
+          commercial
+            ? await commercial.successor(owner(req), executionId(req), key(req), 'answer', req.body)
+            : await required().answerExecution(
+                owner(req),
+                executionId(req),
+                key(req),
+                LegalAnswerSchema.parse(req.body),
+              ),
         ),
     ),
   );
@@ -284,13 +367,20 @@ export function registerAgenticWorkspace(
       z.object({})
         .strict()
         .parse(req.body ?? {});
-      return required().cancelExecution(owner(req), executionId(req), key(req));
+      const id = executionId(req);
+      const result = await required().cancelExecution(owner(req), id, key(req));
+      worker?.cancel(id);
+      return result;
     }),
   );
   app.post(
     '/api/agentic/executions/:id/continue',
     options,
     handle(async (req, reply) => {
+      if (commercial)
+        return reply
+          .code(202)
+          .send(await commercial.successor(owner(req), executionId(req), key(req), 'continue', req.body));
       z.object({})
         .strict()
         .parse(req.body ?? {});
@@ -358,7 +448,9 @@ export function registerAgenticWorkspace(
         } catch (error) {
           if (!closed) {
             const code =
-              error instanceof Error && ['ACCESS_REVOKED', 'AGENTIC_TENANT_CLOSED'].includes(error.message) ? 'ACCESS_REVOKED' : 'EXECUTION_UNAVAILABLE';
+              error instanceof Error && ['ACCESS_REVOKED', 'AGENTIC_TENANT_CLOSED'].includes(error.message)
+                ? 'ACCESS_REVOKED'
+                : 'EXECUTION_UNAVAILABLE';
             reply.raw.write(`event: error\ndata: ${JSON.stringify({ code })}\n\n`);
             reply.raw.end();
           }

@@ -1,6 +1,7 @@
 import { closeAgenticTenant } from '@forgelex/persistence';
 import type { Client } from '@forgelex/persistence';
 import { createHash } from 'node:crypto';
+import { assertCommercialClosureReady } from './commercial-financial-retention.js';
 
 export interface PurgeSummary {
   deletedRows: number;
@@ -100,6 +101,8 @@ const optionalTenantStatements: readonly TenantStatement[] = [
 ];
 
 const financialOwnerTables = [
+  'commercial_executions',
+  'commercial_calls',
   'ledger_accounts',
   'usage_events',
   'billing_accounts',
@@ -145,6 +148,7 @@ export class AccountClosurePurgeService {
     try {
       await closeAgenticTenant(transaction, input.tenantId);
       await transaction.execute({ sql: 'UPDATE ledger_accounts SET updated_at=updated_at WHERE tenant_id=?', args: [input.tenantId] });
+      await assertCommercialClosureReady(transaction, input.tenantId);
       const budgets = await transaction.execute({ sql: 'SELECT payload_json FROM inference_budgets WHERE tenant_id=?', args: [input.tenantId] });
       const calls = await transaction.execute({ sql: 'SELECT payload_json FROM inference_calls WHERE tenant_id=?', args: [input.tenantId] });
       const parse = (raw: unknown): Record<string, unknown> => {

@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import type { Client } from '@libsql/client';
-import { and, asc, eq, gt } from 'drizzle-orm';
+import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import { DomainError } from '@forgelex/domain';
-import type { ForgeLexDatabase } from '@forgelex/persistence';
+import { lockAgenticTenant, type ForgeLexDatabase } from '@forgelex/persistence';
 import { billingCreditLots } from './schema/billing-schema.js';
 import { ledgerAccounts, ledgerEntries } from './schema/ledger-schema.js';
 import { calculateRefundableCents } from './billing-rules.js';
@@ -52,10 +52,9 @@ export class BillingService {
     this.validateAmount(input.amountCents);
     this.validateKey(input.idempotencyKey);
     await this.runMigrations();
-    await this.ledger.provisionAccount(input.tenantId);
 
     return this.withTenantLock(input.tenantId, async () => this.db.transaction(async (transaction) => {
-      const account = await this.findAccount(transaction, input.tenantId);
+      const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, input.tenantId);
       if (!account) throw new DomainError('BILLING_ACCOUNT_NOT_PROVISIONED', 'Carteira de billing não provisionada.');
 
       const existingPurchaseLot = await transaction
@@ -114,10 +113,9 @@ export class BillingService {
     this.validateAmount(input.amountCents);
     this.validateKey(input.idempotencyKey);
     await this.runMigrations();
-    await this.ledger.provisionAccount(input.tenantId);
 
     return this.withTenantLock(input.tenantId, async () => this.db.transaction(async (transaction) => {
-      const account = await this.findAccount(transaction, input.tenantId);
+      const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, input.tenantId);
       if (!account) throw new DomainError('BILLING_ACCOUNT_NOT_PROVISIONED', 'Carteira de billing não provisionada.');
       const existingEntry = await transaction
         .select()
@@ -153,10 +151,9 @@ export class BillingService {
   }): Promise<BillingLedgerResult> {
     this.validateKey(input.idempotencyKey);
     await this.runMigrations();
-    await this.ledger.provisionAccount(input.tenantId);
 
     return this.withTenantLock(input.tenantId, async () => this.db.transaction(async (transaction) => {
-      const account = await this.findAccount(transaction, input.tenantId);
+      const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, input.tenantId);
       if (!account) throw new DomainError('BILLING_ACCOUNT_NOT_PROVISIONED', 'Carteira de billing não provisionada.');
       const existingEntry = await transaction
         .select()
@@ -206,8 +203,18 @@ export class BillingService {
     }
   }
 
-  private async findAccount(transaction: any, tenantId: string): Promise<typeof ledgerAccounts.$inferSelect | undefined> {
-    const rows = await transaction.select().from(ledgerAccounts).where(eq(ledgerAccounts.tenantId, tenantId));
+  private async lockAccount(transaction: ForgeLexDatabase, tenantId: string): Promise<typeof ledgerAccounts.$inferSelect | undefined> {
+    // Match commercial escrow/closure ordering across processes: tenant, wallet, then lots/entries.
+    await lockAgenticTenant(transaction, tenantId);
+    const now = new Date().toISOString();
+    await transaction.insert(ledgerAccounts).values({
+      id: randomUUID(), tenantId, paidBalanceCents: 0, promotionalBalanceCents: 0,
+      promoExpiresAt: null, createdAt: now, updatedAt: now,
+    }).onConflictDoNothing({ target: ledgerAccounts.tenantId });
+    // UPDATE acquires PostgreSQL's row lock and RETURNING observes the balance after waiting.
+    const rows = await transaction.update(ledgerAccounts)
+      .set({ updatedAt: sql`${ledgerAccounts.updatedAt}` })
+      .where(eq(ledgerAccounts.tenantId, tenantId)).returning();
     return rows[0];
   }
 
