@@ -5,7 +5,7 @@ import { WorkspaceClient } from './client';
 import { CommercialPriceReview, CommercialReceiptDetails } from './CommercialPanel';
 import { requestApi } from '../api-client';
 import { statusText } from './execution-model';
-import { GuidedDialogue } from './GuidedDialogue';
+import { Conversation } from './Conversation';
 import { observeCommercialReceipt } from './commercial-receipt-observer';
 import type { CommercialReceipt } from './commercial-model';
 
@@ -215,7 +215,7 @@ it('duas respostas históricas ficam bloqueadas enquanto a correção aguarda au
     },
   ]);
   const html = renderToStaticMarkup(
-    React.createElement(GuidedDialogue, {
+    React.createElement(Conversation, {
       question: null,
       messages,
       busy: true,

@@ -33,7 +33,7 @@ export function CommercialAuthorizationPanel({
     };
   }, [client, attempt]);
   return (
-    <section aria-label="Autorizar trabalho" className="space-y-3">
+    <section aria-label="Autorizar trabalho" className="space-y-3 rounded-xl border border-cognac-400 bg-cognac-50 p-4">
       {quote ? (
         <CommercialPriceReview quote={quote} busy={busy} onConfirm={onConfirm} />
       ) : (
@@ -50,7 +50,7 @@ export function CommercialAuthorizationPanel({
       )}
       {onBack && (
         <button type="button" disabled={busy} className="block min-h-11 underline" onClick={onBack}>
-          Rever pedido
+          Voltar
         </button>
       )}
     </section>
@@ -138,8 +138,8 @@ export function CommercialReceiptDetails({ receipt }: { receipt: CommercialRecei
           Valores em atualização. O comprovante final será exibido após o fechamento.
         </p>
       )}
-      <details className="rounded-xl border border-stone-200 bg-white p-4">
-        <summary className="min-h-11 cursor-pointer font-medium">Comprovante do trabalho</summary>
+      <details className="border-t border-champagne-border-subtle pt-2">
+        <summary className="min-h-11 cursor-pointer text-sm text-stone-600 underline">Custo deste trabalho</summary>
         <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
           {(
             [

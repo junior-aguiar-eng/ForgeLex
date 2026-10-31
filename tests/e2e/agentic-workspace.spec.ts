@@ -64,24 +64,27 @@ test('piloto fechado mostra USD e exige novo consentimento ao mudar caso ou limi
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
-test('regressão final: rever pedido preserva texto e finalidade', async ({ page }) => {
+test('regressão final: o agente decide por padrão e trocar o modo preserva o pedido', async ({ page }) => {
   await login(page);
-  await page.getByRole('button', { name: 'Analisar documentos', exact: true }).click();
-  await page.getByRole('radio', { name: 'Organizar fatos e provas', exact: true }).check();
+  const decide = page.getByRole('button', { name: 'Deixar o agente decidir', exact: true });
+  await expect(decide).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Meu pedido original deve permanecer');
-  await page.getByRole('button', { name: 'Definir escopo' }).click();
-  await page.getByText('Mais opções', { exact: true }).click();
-  await page.getByRole('button', { name: 'Rever pedido', exact: true }).click();
+  await page.getByRole('button', { name: 'Analisar documentos', exact: true }).click();
+  await expect(decide).toHaveAttribute('aria-pressed', 'false');
+  const purpose = page.getByRole('button', { name: 'Organizar fatos e provas', exact: true });
+  await purpose.click();
+  await expect(purpose).toHaveAttribute('aria-pressed', 'true');
+  await decide.click();
+  await expect(purpose).toHaveCount(0);
   await expect(page.getByRole('textbox', { name: 'O que você precisa fazer?', exact: true })).toHaveValue(
     'Meu pedido original deve permanecer',
   );
-  await expect(page.getByRole('radio', { name: 'Organizar fatos e provas', exact: true })).toBeChecked();
 });
 test('regressão final: voltar pela navegação mantém ID e recuperação após recarga', async ({ page }) => {
   await login(page);
   await prepare(page, 'Entender contexto na navegação');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   const original = page.url();
   await page
     .getByRole('navigation', { name: 'Navegação principal', exact: true })
@@ -90,32 +93,31 @@ test('regressão final: voltar pela navegação mantém ID e recuperação após
   await page.getByRole('button', { name: 'Trabalho', exact: true }).click();
   await expect(page).toHaveURL(original);
   await page.reload();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toHaveCount(1);
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toHaveCount(1);
 });
 test('regressão final: entrega corrigida não oculta artefato histórico invalidado', async ({ page }) => {
   await login(page);
   await prepare(page, 'Analisar PERGUNTA_MULTIPLA');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await page.getByLabel('Complemento ou outra resposta').fill('Resposta original');
   await page.getByRole('button', { name: 'Enviar resposta' }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   const original = page.url(),
     originalId = new URL(original).searchParams.get('executionId');
   const before = await (await page.request.get(`${api}/api/agentic/executions/${originalId}`, { headers })).json();
-  await page.getByText('Pedido e respostas anteriores', { exact: true }).click();
   await page.getByRole('button', { name: 'Corrigir esta resposta' }).last().click();
   await page.getByLabel('Complemento ou outra resposta').fill('Resposta corrigida');
   await page.getByRole('button', { name: 'Enviar resposta' }).click();
   await page.waitForURL((url) => url.href !== original);
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   await page.goto(original);
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   await expect(page).toHaveURL(original);
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toHaveAttribute(
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toHaveAttribute(
     'data-delivery-id',
     before.deliveryIds[0],
   );
-  await expect(page.getByRole('status', { name: 'Reavaliação necessária' })).toContainText('revisão anterior');
+  await expect(page.getByRole('status', { name: 'Reavaliação necessária' })).toContainText('versão anterior');
 });
 test('regressão final: resposta tardia não troca URL de outra superfície ou sessão', async ({ page }) => {
   await login(page);
@@ -133,7 +135,7 @@ test('regressão final: resposta tardia não troca URL de outra superfície ou s
     await route.fulfill({ response });
   });
   await prepare(page, 'Meu comando pendente');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await reached;
   await page
     .getByRole('navigation', { name: 'Navegação principal', exact: true })
@@ -146,7 +148,7 @@ test('regressão final: resposta tardia não troca URL de outra superfície ou s
 test('regressão final: EOF em pergunta reconecta e observa perda de acesso', async ({ page }) => {
   await login(page);
   await prepare(page, 'Investigar PERGUNTA_MATERIAL');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Organizar informações', exact: true })).toBeVisible();
   const id = new URL(page.url()).searchParams.get('executionId'),
     snapshot = await (await page.request.get(`${api}/api/agentic/executions/${id}`, { headers })).json();
@@ -172,7 +174,7 @@ test('regressão final: EOF em pergunta reconecta e observa perda de acesso', as
 test('regressão final: erro de acesso no meio do stream reconecta sem declarar acesso revogado', async ({ page }) => {
   await login(page);
   await prepare(page, 'Investigar PERGUNTA_MATERIAL');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Organizar informações', exact: true })).toBeVisible();
   const id = new URL(page.url()).searchParams.get('executionId'),
     snapshot = await (await page.request.get(`${api}/api/agentic/executions/${id}`, { headers })).json();
@@ -211,7 +213,7 @@ test('regressão final: comando de sessão encerrada não publica ID na navegaç
     fulfilled();
   });
   await prepare(page, 'Solicitação da sessão anterior');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await reached;
   await page.getByRole('button', { name: 'Sair da conta', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Entrar', exact: true })).toBeVisible();
@@ -239,14 +241,16 @@ test('regressão final: afirmações mantêm suas fontes e versões disponíveis
     })
   ).json();
   await prepare(page, 'Analisar o documento');
+  await scope(page);
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
   await page.getByLabel('Fonte vinculada', { exact: true }).check();
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
-  await page.getByText('Fontes da afirmação', { exact: true }).click();
-  const refs = page.getByRole('region', { name: 'Fontes da afirmação', exact: true });
-  await expect(refs).toContainText(source.version.id);
-  await refs.getByRole('button', { name: /Abrir documento/ }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
+  await page.getByRole('button', { name: 'Fonte 1', exact: true }).first().click();
+  const refs = page.getByRole('complementary', { name: 'Mesa lateral' });
+  await expect(refs).toContainText('Fonte vinculada');
+  await expect(refs).not.toContainText(source.version.id);
+  await refs.getByRole('button', { name: 'Abrir documento', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('A parte relata que o serviço não foi entregue.');
 });
 test('regressão final: falha em outra área preserva trabalho e edição não salva', async ({ page }) => {
@@ -255,8 +259,9 @@ test('regressão final: falha em outra área preserva trabalho e edição não s
     await page.request.post(api + '/api/v2/matters', { headers, data: { title: 'Preservar durante falha de página' } })
   ).json();
   await prepare(page, 'Preciso de uma minuta para conferir', 'Criar uma peça');
+  await scope(page);
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   // A late case-list response must use the editor's requested location,
   // even while that retained editor is hidden behind another surface.
   let releaseCases!: () => void, casesReached!: () => void, casesFinished!: () => void;
@@ -292,7 +297,7 @@ test('regressão final: falha em outra área preserva trabalho e edição não s
   releaseCases();
   await finishedCases;
   await page.getByRole('button', { name: 'Trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   await page.getByRole('link', { name: 'Editar minuta', exact: true }).click();
   await expect(input).toHaveValue('Edição preservada durante falha de outra página.');
 });
@@ -311,12 +316,13 @@ test('revisão seleciona versão da minuta existente e mantém conflito de ediç
     })
   ).json();
   await prepare(page, 'Revisar a versão humana selecionada', 'Revisar um texto');
+  await scope(page);
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
   await expect(page.getByLabel('Minuta do caso (opcional)')).toBeVisible();
   await page.getByLabel('Minuta do caso (opcional)').selectOption(`${draft.draft.id}:${draft.version.id}`);
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
-  await page.getByText('Contexto do trabalho', { exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
+  await page.getByRole('button', { name: 'Contexto do trabalho', exact: true }).click();
   await page.getByRole('link', { name: 'Abrir minuta selecionada', exact: true }).click();
   const input = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
   await expect(input).toHaveValue('Versão humana para revisão específica.');
@@ -346,31 +352,39 @@ async function login(page: Page) {
   await page.waitForURL('**/app');
   await page.goto('/app/trabalho');
 }
+async function scope(page: Page) {
+  const toggle = page.getByRole('button', { name: /^(Sem caso|Caso:)/ });
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+}
 async function prepare(page: Page, text: string, action?: string) {
   if (action) await page.getByRole('button', { name: action, exact: true }).click();
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill(text);
-  await page.getByRole('button', { name: 'Definir escopo', exact: true }).click();
 }
-test('quatro ações abrem finalidade sem executar; entrada livre e desconhecimento são explícitos', async ({ page }) => {
+test('o agente decide por padrão; as quatro ações manuais abrem a finalidade sem executar', async ({ page }) => {
   await login(page);
   let starts = 0;
   page.on('request', (req) => {
     if (req.url().endsWith('/api/agentic/executions') && req.method() === 'POST') starts++;
   });
+  const decide = page.getByRole('button', { name: 'Deixar o agente decidir', exact: true });
+  await expect(decide).toHaveAttribute('aria-pressed', 'true');
   for (const name of ['Analisar documentos', 'Pesquisar uma questão', 'Criar uma peça', 'Revisar um texto']) {
-    await page.getByRole('button', { name, exact: true }).click();
-    expect(await page.getByRole('radio').count()).toBeGreaterThan(1);
-    expect(await page.getByRole('radio', { checked: true }).count()).toBe(0);
+    const action = page.getByRole('button', { name, exact: true });
+    await action.click();
+    await expect(action).toHaveAttribute('aria-pressed', 'true');
+    await expect(decide).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByText('(opcional)').first()).toBeVisible();
+    expect(await page.locator('[aria-pressed="true"]').count()).toBe(1);
   }
   expect(starts).toBe(0);
-  await page.getByRole('radio', { name: 'Ainda não sei', exact: true }).check();
+  await decide.click();
   await page
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('Investigar a medida apropriada com contexto escrito, sem anexo.');
-  await page.getByRole('button', { name: 'Definir escopo' }).click();
-  await expect(page.getByRole('button', { name: 'Executar trabalho', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Enviar', exact: true })).toBeEnabled();
   expect(starts).toBe(0);
-  await expect(page.getByRole('textbox', { name: 'Contexto escrito' })).toBeVisible();
+  await scope(page);
+  await expect(page.getByRole('textbox', { name: 'Contexto escrito (opcional)' })).toBeVisible();
 });
 test('objetivo, escopo, pergunta, entrega redigida, fonte e edição no editor real', async ({ page }, info) => {
   await login(page);
@@ -389,26 +403,26 @@ test('objetivo, escopo, pergunta, entrega redigida, fonte e edição no editor r
     })
   ).json();
   await prepare(page, 'Preciso de uma minuta. PERGUNTA_MATERIAL', 'Criar uma peça');
+  await scope(page);
   await page.getByLabel('Contexto escrito').fill('Alegação: serviço não entregue. Não confirmar como fato.');
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
   await page.getByLabel('Contrato para leitura').check();
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('group', { name: 'Qual a finalidade concreta?' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Enviar resposta' })).toBeDisabled();
   await page
     .getByLabel('Complemento ou outra resposta')
     .fill('Texto livre fora das opções: preparar requerimento preliminar');
   await page.getByRole('button', { name: 'Enviar resposta' }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toContainText(
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toContainText(
     'Requer-se a apreciação do pedido',
   );
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toContainText('[DESTINATÁRIO A CONFERIR]');
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toContainText('[DESTINATÁRIO A CONFERIR]');
   await page.reload();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toHaveCount(1);
-  await page.getByText('Pedido e respostas anteriores', { exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Diálogo do trabalho' })).toContainText('Texto livre fora das opções');
-  await page.getByText('Fontes e limites', { exact: true }).click();
-  await page.getByRole('button', { name: /Abrir documento/ }).click();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toHaveCount(1);
+  await expect(page.getByRole('region', { name: 'Conversa do trabalho' })).toContainText('Texto livre fora das opções');
+  await page.getByRole('button', { name: /^Fontes \(\d+\)$/ }).click();
+  await page.getByRole('button', { name: 'Abrir documento', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('A parte informa que o serviço não foi entregue.');
   await page.getByRole('dialog').press('Escape');
   await page.setViewportSize({ width: 320, height: 740 });
@@ -420,7 +434,7 @@ test('objetivo, escopo, pergunta, entrega redigida, fonte e edição no editor r
   await expect(content).toHaveValue('[DESTINATÁRIO A CONFERIR]');
   await content.fill('Edição humana ainda não salva');
   await page.getByRole('button', { name: 'Voltar ao trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   await page.getByRole('link', { name: 'Editar minuta', exact: true }).click();
   await expect(content).toHaveValue('Edição humana ainda não salva');
   await page.getByText('Salvar e exportar', { exact: true }).click();
@@ -431,8 +445,9 @@ test('objetivo, escopo, pergunta, entrega redigida, fonte e edição no editor r
 test('recupera execução, preserva contexto na continuação e reavalia resposta corrigida', async ({ page }) => {
   await login(page);
   await prepare(page, 'Analisar o relato PERGUNTA_MULTIPLA', 'Analisar documentos');
+  await scope(page);
   await page.getByLabel('Contexto escrito').fill('Contexto que deve continuar vinculado.');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await page.waitForURL(/executionId=/);
   const firstUrl = page.url();
   await page.reload();
@@ -441,40 +456,40 @@ test('recupera execução, preserva contexto na continuação e reavalia respost
   await expect(page.getByRole('checkbox', { name: 'Organizar informações', exact: true })).toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Identificar lacunas', exact: true })).toBeChecked();
   await page.getByRole('button', { name: 'Enviar resposta' }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   expect(page.url()).not.toBe(firstUrl);
-  await page.getByText('Pedido e respostas anteriores', { exact: true }).click();
   await page.getByRole('button', { name: 'Corrigir esta resposta' }).last().click();
   await page.getByLabel('Complemento ou outra resposta').fill('Resposta corrigida que exige reavaliação');
   const beforeCorrection = page.url();
   await page.getByRole('button', { name: 'Enviar resposta' }).click();
   await page.waitForURL((url) => url.href !== beforeCorrection);
-  const correctedDelivery = page.getByRole('article', { name: 'Entrega preliminar' });
+  const correctedDelivery = page.getByRole('article', { name: 'Resultado do trabalho' });
   await expect(correctedDelivery).toBeVisible();
-  await correctedDelivery.getByText('Mais opções', { exact: true }).click();
-  await correctedDelivery.getByRole('button', { name: 'Criar peça a partir deste trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Criar uma peça', exact: true }).click();
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Redigir a partir da análise anterior');
-  await page.getByRole('button', { name: 'Definir escopo' }).click();
+  await scope(page);
   await expect(page.getByLabel('Contexto escrito')).toHaveValue('Contexto que deve continuar vinculado.');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toContainText(
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toContainText(
     'Requer-se a apreciação do pedido',
   );
 });
 test('falta de orçamento e indisponibilidade preservam o texto e mostram motivo', async ({ page }) => {
   await login(page);
   await prepare(page, 'Pesquisar SEM_ORCAMENTO', 'Pesquisar uma questão');
+  await scope(page);
   await page.getByLabel('Contexto escrito').fill('Texto a preservar');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Andamento' })).toContainText('orçamento');
-  await page.getByText('Contexto do trabalho', { exact: true }).click();
+  await page.getByRole('button', { name: 'Contexto do trabalho', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Contexto do trabalho' })).toContainText('Texto a preservar');
 });
 test('teclado, resposta desconhecida e documento revogado mantêm pedido e limites', async ({ page }) => {
   await login(page);
   await prepare(page, 'Investigar PERGUNTA_MATERIAL', 'Analisar documentos');
+  await scope(page);
   await page.getByLabel('Contexto escrito').fill('Relato próprio a preservar');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   const option = page.getByRole('radio', { name: 'Organizar informações', exact: true });
   await option.focus();
   await page.keyboard.press('Space');
@@ -483,9 +498,8 @@ test('teclado, resposta desconhecida e documento revogado mantêm pedido e limit
   await page.keyboard.press('Space');
   await page.getByRole('button', { name: 'Enviar resposta' }).focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
-  await page.getByText('Pedido e respostas anteriores', { exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Diálogo do trabalho' })).toContainText('Ainda não sei');
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Conversa do trabalho' })).toContainText('Ainda não sei');
   // A second independent task uses the same authenticated local API, with no browser mocks.
   const matter = await (
     await page.request.post(api + '/api/v2/matters', { headers, data: { title: 'Escopo revogável' } })
@@ -503,10 +517,11 @@ test('teclado, resposta desconhecida e documento revogado mantêm pedido e limit
   ).json();
   await page.goto('/app/trabalho');
   await prepare(page, 'Investigar PERGUNTA_MATERIAL');
+  await scope(page);
   await page.getByLabel('Contexto escrito').fill('Meu relato permanece');
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
   await page.getByLabel('Documento revogável', { exact: true }).check();
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Organizar informações', exact: true })).toBeVisible();
   const current = await (
     await page.request.get(`${api}/api/v2/matters/${matter.id}/documents/${source.document.id}`, { headers })
@@ -517,14 +532,15 @@ test('teclado, resposta desconhecida e documento revogado mantêm pedido e limit
   );
   expect(revoked.ok()).toBe(true);
   await expect(page.getByRole('alert')).toContainText('acesso');
-  await page.getByText('Contexto do trabalho', { exact: true }).click();
+  await page.getByRole('button', { name: 'Contexto do trabalho', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Contexto do trabalho' })).toContainText('Meu relato permanece');
 });
 test('texto produzido sem caso entra no editor e só persiste após vinculação explícita', async ({ page }) => {
   await login(page);
   await prepare(page, 'Preciso de uma minuta preliminar sem caso cadastrado', 'Criar uma peça');
+  await scope(page);
   await page.getByLabel('Contexto escrito').fill('Contexto sintético da solicitação');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await page.getByRole('link', { name: 'Editar minuta', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Vincular entrega ao caso' })).toContainText('Escolha um caso');
   await page.getByLabel('Novo caso para esta minuta').fill('Caso escolhido explicitamente');
@@ -539,8 +555,8 @@ test('texto produzido sem caso entra no editor e só persiste após vinculação
 test('suporte insuficiente entrega lacunas sem apresentar outline como minuta', async ({ page }) => {
   await login(page);
   await prepare(page, 'Preciso de uma minuta SEM_SUPORTE', 'Criar uma peça');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toContainText('Análise de lacunas e limites');
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toContainText('Análise de lacunas e limites');
   await expect(page.getByRole('link', { name: 'Editar minuta', exact: true })).toHaveCount(0);
 });
 test('compara conferir fonte e editar a mesma minuta nos dois percursos com fontes reais da fixture', async ({
@@ -562,11 +578,12 @@ test('compara conferir fonte e editar a mesma minuta nos dois percursos com font
     })
   ).json();
   await prepare(page, 'Preciso de uma minuta para comparação', 'Criar uma peça');
+  await scope(page);
   await page.getByLabel('Contexto escrito').fill('Comparar conferência e edição');
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
   await page.getByLabel('Fonte comparável').check();
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   const workUrl = page.url();
   const execution = await (
     await page.request.get(`${api}/api/agentic/executions/${new URL(workUrl).searchParams.get('executionId')}`, {
@@ -614,8 +631,8 @@ test('compara conferir fonte e editar a mesma minuta nos dois percursos com font
       await step(() => page.getByRole('button', { name: new RegExp('^' + matter.title) }).click());
       await step(() => page.getByRole('button', { name: 'Abrir documento: Fonte comparável', exact: true }).click());
     } else {
-      await step(() => page.getByText('Fontes e limites', { exact: true }).click());
-      await step(() => page.getByRole('button', { name: /Abrir documento/ }).click());
+      await step(() => page.getByRole('button', { name: /^Fontes \(\d+\)$/ }).click());
+      await step(() => page.getByRole('button', { name: 'Abrir documento', exact: true }).click());
     }
     await expect(page.getByRole('dialog')).toContainText('Fonte sintética comum aos dois percursos.');
     await step(() => page.getByRole('dialog').press('Escape'));

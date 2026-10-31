@@ -9,10 +9,10 @@ test('trabalho ativo não expõe rota ou identificadores de caso quando casos es
   await page.goto('/app/trabalho');
   await page.getByRole('button', { name: 'Criar uma peça', exact: true }).click();
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Preparar minuta sintética');
-  await page.getByRole('button', { name: 'Definir escopo', exact: true }).click();
+  await page.getByRole('button', { name: /^Sem caso/ }).click();
   await page.getByLabel('Contexto escrito').fill('Contexto sintético para elaborar uma minuta.');
-  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Editar minuta', exact: true })).toHaveCount(0);
   await page.goto('/app/rascunhos?matterId=synthetic');
   await expect(page).toHaveURL(/\/app\/conectar$/);

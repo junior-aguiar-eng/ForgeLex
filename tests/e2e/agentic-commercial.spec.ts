@@ -32,7 +32,7 @@ async function login(page: Page) {
 }
 async function prepare(page: Page, objective: string) {
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill(objective);
-  await page.getByRole('button', { name: 'Definir escopo', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
 }
 
 test('autoriza preço em reais, preserva retry e mostra comprovante no celular', async ({ page }) => {
@@ -61,14 +61,14 @@ test('autoriza preço em reais, preserva retry e mostra comprovante no celular',
   await review.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   await expect(page.getByRole('alert')).toBeVisible();
   await review.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   expect(posted).toHaveLength(2);
   expect(posted[1]).toEqual(posted[0]);
   expect(posted[0].key).toBeTruthy();
   expect(posted[0].body).toMatchObject({ confirmed: true, policyVersion: quote.policyVersion });
-  await page.getByText('Comprovante do trabalho', { exact: true }).click();
+  await page.getByText('Custo deste trabalho', { exact: true }).click();
   await expect(page.getByText('Cobrado', { exact: true })).toBeVisible();
-  await expect(page.getByText(/R\$\s*0,50/, { exact: true })).toBeVisible();
+  await expect(page.locator('dd', { hasText: /R\$\s*0,50/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
@@ -101,8 +101,7 @@ test('resposta e correção exigem autorização nova antes de enviar', async ({
   await expect(page.getByRole('region', { name: 'Autorizar trabalho' })).toBeVisible();
   expect(requests).toHaveLength(0);
   await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
-  await page.getByText('Pedido e respostas anteriores', { exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   await page.getByRole('button', { name: 'Corrigir esta resposta' }).last().click();
   await page.getByLabel('Complemento ou outra resposta').fill('Correção sintética');
   await page.getByRole('button', { name: 'Enviar resposta', exact: true }).click();
@@ -115,7 +114,7 @@ test('resposta e correção exigem autorização nova antes de enviar', async ({
   expect(corrected.ok()).toBe(true);
   const correctedExecution = await corrected.json();
   await page.waitForURL((url) => url.searchParams.get('executionId') === correctedExecution.id);
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   await expect.poll(() => requests.length).toBe(2);
   expect(requests[0].body).toMatchObject({ confirmed: true, policyVersion: quote.policyVersion });
   expect(requests[1].body).toMatchObject({ confirmed: true, policyVersion: quote.policyVersion });
@@ -247,7 +246,6 @@ test('autorização da correção mantém a resposta escolhida e bloqueia outra 
   });
   await login(page);
   await page.goto(`/app/trabalho?executionId=${executionId}`);
-  await page.getByText('Pedido e respostas anteriores', { exact: true }).click();
   const corrections = page.getByRole('button', { name: 'Corrigir esta resposta', exact: true });
   await expect(corrections).toHaveCount(2);
   await corrections.first().click();
