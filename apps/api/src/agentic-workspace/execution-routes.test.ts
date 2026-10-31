@@ -355,7 +355,7 @@ async function streamWithVerifier(verifyStream: (call: number) => boolean) {
     client: c.client,
     auth,
     environment: { FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true' },
-    options: { driver: { next: () => undefined }, scheduler: false, pollMs: 20 },
+    options: { driver: { next: () => undefined }, scheduler: false, pollMs: 20, authRecheckMs: 0 },
   });
   await app.ready();
   cleanups.push(async () => {
@@ -366,6 +366,33 @@ async function streamWithVerifier(verifyStream: (call: number) => boolean) {
   const address = await app.listen({ port: 0, host: '127.0.0.1' });
   return { app, run, address, calls: () => calls };
 }
+describe('custo do stream de eventos', () => {
+  it('um stream sem novidades não toma o snapshot pesado a cada poll e encerra ao terminar', async () => {
+    const f = await fixture({ next: () => undefined });
+    const run = (
+      await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })
+    ).json();
+    const heavy = vi.spyOn(f.service!, 'listClientEvents');
+    const address = await f.app.listen({ port: 0, host: '127.0.0.1' });
+    const response = await fetch(`${address}/api/agentic/executions/${run.id}/events?after=0`, {
+      headers: { authorization: headers.authorization },
+    });
+    const reader = response.body!.getReader();
+    await new Promise((resolve) => setTimeout(resolve, 400)); // ~20 polls at 20 ms
+    expect(heavy).toHaveBeenCalledTimes(1);
+    await f.app.inject({
+      method: 'POST',
+      url: `/api/agentic/executions/${run.id}/cancel`,
+      headers: { ...headers, 'idempotency-key': 'cancel-quiet' },
+      payload: {},
+    });
+    let body = '';
+    for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read())
+      body += new TextDecoder().decode(chunk.value);
+    expect(body).toContain('CANCELLED');
+    expect(heavy.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+});
 describe('autenticação durante o stream de eventos', () => {
   it('uma falha transitória de verificação não encerra o stream como acesso revogado', async () => {
     const f = await streamWithVerifier((call) => call !== 3);
