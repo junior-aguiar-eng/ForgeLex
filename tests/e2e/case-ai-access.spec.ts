@@ -2,57 +2,116 @@ import { expect, test, type Page, type APIRequestContext } from '@playwright/tes
 import AxeBuilder from '@axe-core/playwright';
 import JSZip from 'jszip';
 import { readFile } from 'node:fs/promises';
-const api = (process.env.FORGELEX_TEST_API_ORIGIN ?? 'http://127.0.0.1:3301');
+const api = process.env.FORGELEX_TEST_API_ORIGIN ?? 'http://127.0.0.1:3301';
 
-test('análise documental recebida: conferir fonte, editar e incorporar no caso', async ({page,request},info) => {
-  const state=await (await request.get(api+'/e2e/state')).json();
-  const headers={authorization:'Bearer phase7-e2e-access-token'};
-  const matter=await (await request.post(api+'/api/v2/matters',{headers,data:{title:'Análise documental sintética'}})).json();
-  const document=await (await request.post(api+`/api/v2/matters/${matter.id}/documents`,{headers,data:{title:'Contrato para análise',originalFilename:'contrato.txt',mimeType:'text/plain',content:'A parte afirma que houve pagamento em janeiro.\n\nO contrato não contém recibo de pagamento.'}})).json();
+test('análise documental recebida: conferir fonte, editar e incorporar no caso', async ({ page, request }, info) => {
+  const state = await (await request.get(api + '/e2e/state')).json();
+  const headers = { authorization: 'Bearer phase7-e2e-access-token' };
+  const matter = await (
+    await request.post(api + '/api/v2/matters', { headers, data: { title: 'Análise documental sintética' } })
+  ).json();
+  const document = await (
+    await request.post(api + `/api/v2/matters/${matter.id}/documents`, {
+      headers,
+      data: {
+        title: 'Contrato para análise',
+        originalFilename: 'contrato.txt',
+        mimeType: 'text/plain',
+        content: 'A parte afirma que houve pagamento em janeiro.\n\nO contrato não contém recibo de pagamento.',
+      },
+    })
+  ).json();
   await login(page);
   await page.goto(`/app/casos?caso=${matter.id}`);
-  await page.getByRole('button',{name:'Analisar documentos do caso',exact:true}).click();
+  await page.getByRole('button', { name: 'Analisar documentos do caso', exact: true }).click();
   await page.getByLabel('Onde você vai usar?').selectOption('Claude');
   await page.getByLabel('Aplicativo autorizado').selectOption('app-one');
-  await page.locator('dialog summary').filter({hasText:'Documentos'}).click();
-  await page.locator('dialog label').filter({hasText:'Contrato para análise'}).getByRole('checkbox').check();
+  await page.locator('dialog summary').filter({ hasText: 'Documentos' }).click();
+  await page.locator('dialog label').filter({ hasText: 'Contrato para análise' }).getByRole('checkbox').check();
   await page.getByLabel('Permitir que esta IA envie análises do caso').check();
   await page.getByLabel('Objetivo da análise').fill('Confrontar alegação de pagamento');
 
-  await page.getByRole('button',{name:'Autorizar e copiar instrução',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Copiar instrução',exact:true})).toBeVisible();
-  const context=(await mcp(request,state.oauthTokens['app-one'],'case.get_context',{matterId:matter.id})).result.structuredContent;
-  expect(context.analysisReceiving).toEqual({enabled:true,objective:'Confrontar alegação de pagamento'});
-  const anchor=document.anchors[0];
-  const input={matterId:matter.id,expectedGrantRevision:context.grantRevision,idempotencyKey:'synthetic-analysis-key-1',objective:context.analysisReceiving.objective,items:[
-    {id:'fact1',kind:'FACT',text:'Houve pagamento em janeiro',classification:'ALLEGATION',sources:[{documentId:document.document.id,versionId:document.version.id,anchorId:anchor.id,quote:anchor.text,relation:'CONTEXT'}]},
-    {id:'gap1',kind:'GAP',text:'Falta comprovante de pagamento',classification:'GAP',sources:[{documentId:document.document.id,versionId:document.version.id,anchorId:anchor.id,quote:anchor.text,relation:'CONTEXT'}]},
-  ]};
-  const saved=await mcp(request,state.oauthTokens['app-one'],'case.save_analysis',input);
+  await page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Copiar instrução', exact: true })).toBeVisible();
+  const context = (await mcp(request, state.oauthTokens['app-one'], 'case.get_context', { matterId: matter.id })).result
+    .structuredContent;
+  expect(context.analysisReceiving).toEqual({ enabled: true, objective: 'Confrontar alegação de pagamento' });
+  const anchor = document.anchors[0];
+  const input = {
+    matterId: matter.id,
+    expectedGrantRevision: context.grantRevision,
+    idempotencyKey: 'synthetic-analysis-key-1',
+    objective: context.analysisReceiving.objective,
+    items: [
+      {
+        id: 'fact1',
+        kind: 'FACT',
+        text: 'Houve pagamento em janeiro',
+        classification: 'ALLEGATION',
+        sources: [
+          {
+            documentId: document.document.id,
+            versionId: document.version.id,
+            anchorId: anchor.id,
+            quote: anchor.text,
+            relation: 'CONTEXT',
+          },
+        ],
+      },
+      {
+        id: 'gap1',
+        kind: 'GAP',
+        text: 'Falta comprovante de pagamento',
+        classification: 'GAP',
+        sources: [
+          {
+            documentId: document.document.id,
+            versionId: document.version.id,
+            anchorId: anchor.id,
+            quote: anchor.text,
+            relation: 'CONTEXT',
+          },
+        ],
+      },
+    ],
+  };
+  const saved = await mcp(request, state.oauthTokens['app-one'], 'case.save_analysis', input);
   expect(saved.result.isError).toBe(false);
-  expect((await mcp(request,state.oauthTokens['app-one'],'case.save_analysis',input)).result.billing.isReplay).toBe(true);
-  await page.locator('dialog').getByRole('button',{name:'Fechar',exact:true}).click();
-  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
-  await page.getByRole('button',{name:'Conferir análise',exact:true}).click();
-  const proposal=page.getByRole('article',{name:'Proposta fact1'});
+  expect((await mcp(request, state.oauthTokens['app-one'], 'case.save_analysis', input)).result.billing.isReplay).toBe(
+    true,
+  );
+  await page.locator('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.getByRole('button', { name: 'Conferir análise', exact: true }).click();
+  const proposal = page.getByRole('article', { name: 'Proposta fact1' });
   await expect(proposal).toContainText('Alegação');
-  await proposal.getByRole('button',{name:'Abrir fonte',exact:true}).click();
+  await proposal.getByRole('button', { name: 'Abrir fonte', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('A parte afirma que houve pagamento');
-  await page.getByRole('dialog').getByRole('button',{name:'Fechar leitura',exact:true}).click();
-  await proposal.getByRole('button',{name:'Editar',exact:true}).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar leitura', exact: true }).click();
+  await proposal.getByRole('button', { name: 'Editar', exact: true }).click();
   await proposal.getByLabel('Texto da proposta').fill('A parte alega pagamento em janeiro');
-  await proposal.getByRole('checkbox',{name:'Selecionar proposta'}).check();
-  await page.getByRole('button',{name:'Incorporar selecionados',exact:true}).click();
+  await proposal.getByRole('checkbox', { name: 'Selecionar proposta' }).check();
+  await page.getByRole('button', { name: 'Incorporar selecionados', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Itens incorporados');
-  await page.getByRole('article',{name:'Proposta gap1'}).getByRole('button',{name:'Descartar',exact:true}).click();
-  const facts=(await (await request.get(api+`/api/v2/matters/${matter.id}/facts`,{headers})).json()).items;
+  await page
+    .getByRole('article', { name: 'Proposta gap1' })
+    .getByRole('button', { name: 'Descartar', exact: true })
+    .click();
+  const facts = (await (await request.get(api + `/api/v2/matters/${matter.id}/facts`, { headers })).json()).items;
   expect(facts).toHaveLength(1);
-  expect(facts[0]).toMatchObject({statement:'A parte alega pagamento em janeiro',status:'ASSERTED'});
-  await page.setViewportSize({width:390,height:844});
-  expect(await page.getByRole('region',{name:'Análises dos documentos'}).evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);
-  const axe=await new AxeBuilder({page}).include('[aria-label="Análises dos documentos"]').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+  expect(facts[0]).toMatchObject({ statement: 'A parte alega pagamento em janeiro', status: 'ASSERTED' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.getByRole('region', { name: 'Análises dos documentos' }).evaluate((e) => e.scrollWidth <= e.clientWidth),
+  ).toBe(true);
+  const axe = await new AxeBuilder({ page })
+    .include('[aria-label="Análises dos documentos"]')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
   expect(axe.violations).toEqual([]);
-  await page.getByRole('region',{name:'Análises dos documentos'}).screenshot({path:info.outputPath('analysis-review-mobile.png')});
+  await page
+    .getByRole('region', { name: 'Análises dos documentos' })
+    .screenshot({ path: info.outputPath('analysis-review-mobile.png') });
 });
 
 test('conexões com o mesmo nome são distinguíveis e não recebem permissão automaticamente', async ({
@@ -159,10 +218,14 @@ test('atualizar conexão renovada invalida a prévia sem descartar material nem 
   await expect(page.getByRole('button', { name: 'Autorizar e copiar instrução', exact: true })).toBeEnabled();
   // Keep the replacement preview pending so invalidation is observable even on fast runners.
   let releasePreview!: () => void;
-  const heldPreview = new Promise<void>(resolve => { releasePreview = resolve; });
+  const heldPreview = new Promise<void>((resolve) => {
+    releasePreview = resolve;
+  });
   let enteredPreview!: () => void;
-  const renewedPreviewStarted = new Promise<void>(resolve => { enteredPreview = resolve; });
-  await page.route('**/ai-access/preview', async route => {
+  const renewedPreviewStarted = new Promise<void>((resolve) => {
+    enteredPreview = resolve;
+  });
+  await page.route('**/ai-access/preview', async (route) => {
     const response = await route.fetch();
     enteredPreview();
     await heldPreview;
@@ -328,13 +391,13 @@ test('novo rascunho abre pelo recibo sem referências nem revisão automática',
   expect(details.currentVersion.version.status).toBe('DRAFT');
   expect(details.currentReviewRun).toBeUndefined();
   expect(details.documentReferences).toEqual([]);
-  await page.getByText('Citações e conferência de fontes',{exact:true}).click();
+  await page.getByText('Citações e conferência de fontes', { exact: true }).click();
   await page.getByLabel('Tipo de fonte da citação').selectOption('FACT');
   await page.getByLabel('Fonte da citação', { exact: true }).selectOption(fact.id);
   await page.getByLabel('Texto da citação').fill('Fonte conferida nesta seção.');
   await page.getByRole('button', { name: 'Adicionar citação', exact: true }).click();
   const versionResponse = page.waitForResponse((r) => r.url().endsWith('/versions') && r.request().method() === 'POST');
-  await page.getByText('Salvar e exportar',{exact:true}).click();
+  await page.getByText('Salvar e exportar', { exact: true }).click();
   await page.getByRole('button', { name: 'Salvar nova versão', exact: true }).click();
   expect((await versionResponse).status()).toBe(200);
   await expect(page.getByText('Seção 1 · Fonte conferida nesta seção.', { exact: true })).toBeVisible();
@@ -379,7 +442,7 @@ test('receber texto preserva edição, permite prévia segura e exige adoção c
   expect(
     (await mcp(request, state.oauthTokens['app-one'], 'draft.save_from_ai', input)).result.structuredContent.id,
   ).toBe(saved.result.structuredContent.id);
-  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   const panel = page.getByRole('region', { name: 'Textos recebidos da IA' });
   await expect(panel).toContainText('Texto recebido da IA — Aguardando revisão');
   await expect(editor).toHaveValue('Texto original preservado.');
@@ -477,7 +540,7 @@ test('receber texto preserva edição, permite prévia segura e exige adoção c
       saved.result.structuredContent.versionId,
     ]),
   );
-  await page.getByText('Salvar e exportar',{exact:true}).click();
+  await page.getByText('Salvar e exportar', { exact: true }).click();
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Baixar DOCX da versão salva' }).click();
   const zip = await JSZip.loadAsync(await readFile((await (await downloading).path())!));
@@ -499,7 +562,7 @@ async function login(page: Page) {
 }
 async function openCase(page: Page, id: string) {
   await page.goto(`/app/casos?caso=${id}`);
-  await page.getByText('Acesso da IA',{exact:true}).click();
+  await page.getByText('Acesso da IA', { exact: true }).click();
   await page.getByRole('button', { name: 'Usar este caso na IA' }).click();
   await expect(page.getByRole('button', { name: 'Atualizar permissões' })).toBeEnabled();
 }
@@ -531,8 +594,18 @@ test('prévia, permissão gratuita, seleção explícita e revogação persistid
   const state = await (await request.get(api + '/e2e/state')).json();
   const grantBase = api + `/api/v2/matters/${state.matterId}/ai-access`;
   const grantHeaders = { authorization: 'Bearer phase7-e2e-access-token' };
-  const prior = (await (await request.get(grantBase, { headers: grantHeaders })).json()).find((g: any) => g.oauthClientId === 'app-one');
-  if (prior?.status === 'ACTIVE') expect((await request.post(grantBase + `/${prior.id}/revoke`, { headers: grantHeaders, data: { expectedRevision: prior.revision } })).status()).toBe(200);
+  const prior = (await (await request.get(grantBase, { headers: grantHeaders })).json()).find(
+    (g: any) => g.oauthClientId === 'app-one',
+  );
+  if (prior?.status === 'ACTIVE')
+    expect(
+      (
+        await request.post(grantBase + `/${prior.id}/revoke`, {
+          headers: grantHeaders,
+          data: { expectedRevision: prior.revision },
+        })
+      ).status(),
+    ).toBe(200);
   await login(page);
   await openCase(page, state.matterId);
   await expect(page.getByLabel('Aplicativo autorizado')).toHaveValue('');
@@ -636,7 +709,10 @@ test('erro mantém seleção; resposta atrasada não atravessa o caso', async ({
     page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox'),
   ).toBeChecked();
   await page.unroute('**/ai-access/preview');
-  const chosenDocument = page.locator('dialog label').filter({ hasText: 'Contrato selecionável' }).getByRole('checkbox');
+  const chosenDocument = page
+    .locator('dialog label')
+    .filter({ hasText: 'Contrato selecionável' })
+    .getByRole('checkbox');
   await chosenDocument.uncheck();
   await chosenDocument.check();
 

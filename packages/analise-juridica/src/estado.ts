@@ -58,11 +58,7 @@ export class EstadoAnalitico {
   public constructor(private readonly client: Client) {}
 
   /** Abre sessão nova (id gerado) ou valida que a existente pertence ao usuário. */
-  public async abrirSessao(
-    idInformado: string,
-    dono: DonoSessao,
-    numeroProcesso?: string,
-  ): Promise<string> {
+  public async abrirSessao(idInformado: string, dono: DonoSessao, numeroProcesso?: string): Promise<string> {
     if (idInformado !== ID_SESSAO_NOVA) {
       await this.exigirDono(idInformado, dono);
       if (numeroProcesso) {
@@ -125,9 +121,13 @@ export class EstadoAnalitico {
     await this.exigirDono(id, dono);
     const serializado = JSON.stringify(resumo);
     if (Buffer.byteLength(serializado, 'utf8') > MAX_RESUMO_BYTES) {
-      throw new DomainError('INVALID_CANONICAL_STATE', 'O resumo do achado excede o limite; registre só os campos-chave.', {
-        code: 'ANALISE_RESUMO_GRANDE',
-      });
+      throw new DomainError(
+        'INVALID_CANONICAL_STATE',
+        'O resumo do achado excede o limite; registre só os campos-chave.',
+        {
+          code: 'ANALISE_RESUMO_GRANDE',
+        },
+      );
     }
     const agora = new Date().toISOString();
     // A ordem é calculada e inserida em um único comando; UNIQUE(sessao, ordem) barra corridas.

@@ -2,15 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { resolveSiteRoute, safeWorkspaceDestination } from './site-routes';
 
 describe('rotas públicas e protegidas', () => {
-  it.each(['/app/casos', '/app/rascunhos', '/app/revisao', '/casos', '/rascunhos', '/revisao'])('oculta %s e seu next inclusive com barra final', (path) => {
-    for (const suffix of ['', '/']) {
-      expect(resolveSiteRoute(path + suffix, false)).toEqual({ kind: 'workspace', tab: 'connections' });
-      expect(safeWorkspaceDestination(path + suffix + '?matterId=private#document', false)).toBe('/app/conectar');
-      expect(safeWorkspaceDestination(path + suffix + '?matterId=private#document', true)).toBe(path + suffix + '?matterId=private#document');
-    }
-  });
+  it.each(['/app/casos', '/app/rascunhos', '/app/revisao', '/casos', '/rascunhos', '/revisao'])(
+    'oculta %s e seu next inclusive com barra final',
+    (path) => {
+      for (const suffix of ['', '/']) {
+        expect(resolveSiteRoute(path + suffix, false)).toEqual({ kind: 'workspace', tab: 'connections' });
+        expect(safeWorkspaceDestination(path + suffix + '?matterId=private#document', false)).toBe('/app/conectar');
+        expect(safeWorkspaceDestination(path + suffix + '?matterId=private#document', true)).toBe(
+          path + suffix + '?matterId=private#document',
+        );
+      }
+    },
+  );
   it('preserva parâmetros e hash de conta no next', () => {
-    expect(safeWorkspaceDestination('/app/conta?billing_purchase=p1&status=approved#receipt', false)).toBe('/app/conta?billing_purchase=p1&status=approved#receipt');
+    expect(safeWorkspaceDestination('/app/conta?billing_purchase=p1&status=approved#receipt', false)).toBe(
+      '/app/conta?billing_purchase=p1&status=approved#receipt',
+    );
   });
   it.each([
     ['/', { kind: 'public', page: 'home' }],

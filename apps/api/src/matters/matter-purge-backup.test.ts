@@ -5,37 +5,83 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { rmSync } from 'node:fs';
 import { caseAccessFixture } from '../../../../packages/persistence/src/repositories/matter-lifecycle-fixture.js';
-import { createDatabase, MatterRepository, MatterPurgeRepository, MatterLifecycleRepository } from '@forgelex/persistence';
+import {
+  createDatabase,
+  MatterRepository,
+  MatterPurgeRepository,
+  MatterLifecycleRepository,
+} from '@forgelex/persistence';
 import { journalFixture } from './matter-purge-journal.test.js';
 import { MatterPurgeService } from './matter-purge-service.js';
 import { MatterPurgeRestoreGate } from './matter-purge-restore.js';
 
-it.each(['document', 'case'])('reapplies %s purge on an actual SQLite snapshot before allowing reads', async kind => {
-  const f = await caseAccessFixture(); const j = journalFixture();
-  const backupPath = join(tmpdir(), `forgelex-lifecycle-backup-${randomUUID()}.db`);
-  let restored: Awaited<ReturnType<typeof createDatabase>> | undefined;
-  try {
-    await j.journal.provisionAnchor();
-    const target = { tenantId: f.owner.tenantId, matterId: f.matter.id, ...(kind === 'document' ? { documentId: f.doc.document.id } : {}) };
-    const actor = { userId: f.owner.userId, authType: 'web_session' as const, role: 'member' as const, scopes: ['matter:write'] };
-    if (kind === 'case') {
-      await f.client.execute({ sql: 'INSERT INTO agentic_conversations(id,tenant_id,user_id,objective,matter_id,context_revision,created_at) VALUES(?,?,?,?,?,1,?)', args: ['restored-agentic', target.tenantId, actor.userId, 'conteúdo reservado', target.matterId, '2026-10-29'] });
-      await f.client.execute({ sql: 'INSERT INTO agentic_contexts(id,conversation_id,revision,payload_json,created_at) VALUES(?,?,1,?,?)', args: ['restored-context', 'restored-agentic', '{"texto":"privado"}', '2026-10-29'] });
+it.each(['document', 'case'])(
+  'reapplies %s purge on an actual SQLite snapshot before allowing reads',
+  async (kind) => {
+    const f = await caseAccessFixture();
+    const j = journalFixture();
+    const backupPath = join(tmpdir(), `forgelex-lifecycle-backup-${randomUUID()}.db`);
+    let restored: Awaited<ReturnType<typeof createDatabase>> | undefined;
+    try {
+      await j.journal.provisionAnchor();
+      const target = {
+        tenantId: f.owner.tenantId,
+        matterId: f.matter.id,
+        ...(kind === 'document' ? { documentId: f.doc.document.id } : {}),
+      };
+      const actor = {
+        userId: f.owner.userId,
+        authType: 'web_session' as const,
+        role: 'member' as const,
+        scopes: ['matter:write'],
+      };
+      if (kind === 'case') {
+        await f.client.execute({
+          sql: 'INSERT INTO agentic_conversations(id,tenant_id,user_id,objective,matter_id,context_revision,created_at) VALUES(?,?,?,?,?,1,?)',
+          args: [
+            'restored-agentic',
+            target.tenantId,
+            actor.userId,
+            'conteúdo reservado',
+            target.matterId,
+            '2026-10-29',
+          ],
+        });
+        await f.client.execute({
+          sql: 'INSERT INTO agentic_contexts(id,conversation_id,revision,payload_json,created_at) VALUES(?,?,1,?,?)',
+          args: ['restored-context', 'restored-agentic', '{"texto":"privado"}', '2026-10-29'],
+        });
+      }
+      await new MatterLifecycleRepository(f.db).transition(target, actor, 'trash', { expectedLifecycleRevision: 0 });
+      await f.client.execute({ sql: 'VACUUM INTO ?', args: [backupPath] });
+      await new MatterPurgeService(new MatterPurgeRepository(f.client), j.journal, 's'.repeat(32)).execute(
+        target,
+        actor,
+        { expectedLifecycleRevision: 1, confirmation: target.documentId ?? f.matter.title },
+      );
+      restored = await createDatabase({ url: pathToFileURL(backupPath).toString() });
+      const matters = new MatterRepository(restored.db);
+      expect(
+        (await matters.getDocumentVersion(target.tenantId, f.doc.document.id, 'web_retained'))?.version.content,
+      ).toBe(f.doc.version.content);
+      const gate = new MatterPurgeRestoreGate(j.journal, new MatterPurgeRepository(restored.client));
+      expect(gate.isVerified()).toBe(false);
+      expect(await gate.check()).toBe(true);
+      expect(await matters.getDocumentVersion(target.tenantId, f.doc.document.id, 'web_retained')).toBeUndefined();
+      if (kind === 'case') {
+        expect(await matters.getMatter(target.tenantId, target.matterId)).toBeUndefined();
+        expect((await restored.client.execute('SELECT id FROM agentic_conversations')).rows).toHaveLength(0);
+        expect((await restored.client.execute('SELECT id FROM agentic_contexts')).rows).toHaveLength(0);
+      }
+    } finally {
+      restored?.client.close();
+      f.client.close();
+      try {
+        rmSync(backupPath, { force: true });
+      } catch {
+        /* Windows SQLite handles. */
+      }
     }
-    await new MatterLifecycleRepository(f.db).transition(target, actor, 'trash', { expectedLifecycleRevision: 0 });
-    await f.client.execute({ sql: 'VACUUM INTO ?', args: [backupPath] });
-    await new MatterPurgeService(new MatterPurgeRepository(f.client), j.journal, 's'.repeat(32)).execute(target, actor, { expectedLifecycleRevision: 1, confirmation: target.documentId ?? f.matter.title });
-    restored = await createDatabase({ url: pathToFileURL(backupPath).toString() });
-    const matters = new MatterRepository(restored.db);
-    expect((await matters.getDocumentVersion(target.tenantId, f.doc.document.id, 'web_retained'))?.version.content).toBe(f.doc.version.content);
-    const gate = new MatterPurgeRestoreGate(j.journal, new MatterPurgeRepository(restored.client));
-    expect(gate.isVerified()).toBe(false);
-    expect(await gate.check()).toBe(true);
-    expect(await matters.getDocumentVersion(target.tenantId, f.doc.document.id, 'web_retained')).toBeUndefined();
-    if (kind === 'case') {
-      expect(await matters.getMatter(target.tenantId, target.matterId)).toBeUndefined();
-      expect((await restored.client.execute('SELECT id FROM agentic_conversations')).rows).toHaveLength(0);
-      expect((await restored.client.execute('SELECT id FROM agentic_contexts')).rows).toHaveLength(0);
-    }
-  } finally { restored?.client.close(); f.client.close(); try { rmSync(backupPath, { force: true }); } catch { /* Windows SQLite handles. */ } }
-}, 30_000);
+  },
+  30_000,
+);

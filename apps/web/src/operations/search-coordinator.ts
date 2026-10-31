@@ -10,10 +10,15 @@ export class SearchCoordinator {
   ) {}
 
   public async search(intent: SearchIntent): Promise<SearchExecution> {
-    if (this.pending) throw new ApiRequestError('Já existe uma pesquisa em andamento. Aguarde a conclusão.', 'SEARCH_IN_PROGRESS', 409);
+    if (this.pending)
+      throw new ApiRequestError('Já existe uma pesquisa em andamento. Aguarde a conclusão.', 'SEARCH_IN_PROGRESS', 409);
     this.pending = true;
     this.onBusy(true);
-    try { return await this.execute(intent); }
-    finally { this.pending = false; this.onBusy(false); }
+    try {
+      return await this.execute(intent);
+    } finally {
+      this.pending = false;
+      this.onBusy(false);
+    }
   }
 }

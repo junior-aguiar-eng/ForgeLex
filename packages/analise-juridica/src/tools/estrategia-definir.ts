@@ -40,11 +40,19 @@ export const EstrategiaDefinirInputSchema = SessaoRefSchema.extend({
   dispositivos_citados: z.array(DispositivoCitadoSchema).max(60).default([]),
 }).superRefine((valor, ctx) => {
   if (!valor.opcoes.some((opcao) => opcao.movimento === valor.recomendacao)) {
-    ctx.addIssue({ code: 'custom', path: ['recomendacao'], message: 'A recomendação deve ser um dos movimentos avaliados em opcoes.' });
+    ctx.addIssue({
+      code: 'custom',
+      path: ['recomendacao'],
+      message: 'A recomendação deve ser um dos movimentos avaliados em opcoes.',
+    });
   }
   const movimentos = valor.opcoes.map((opcao) => opcao.movimento);
   if (new Set(movimentos).size !== movimentos.length) {
-    ctx.addIssue({ code: 'custom', path: ['opcoes'], message: 'Cada movimento deve aparecer uma única vez em opcoes.' });
+    ctx.addIssue({
+      code: 'custom',
+      path: ['opcoes'],
+      message: 'Cada movimento deve aparecer uma única vez em opcoes.',
+    });
   }
 });
 export type EstrategiaDefinirInput = z.infer<typeof EstrategiaDefinirInputSchema>;
@@ -61,14 +69,18 @@ export const EstrategiaDefinirOutputSchema = z.object({
 });
 export type EstrategiaDefinirOutput = z.infer<typeof EstrategiaDefinirOutputSchema>;
 
-export function criarToolEstrategiaDefinir(deps: DepsAnalise): AgentTool<EstrategiaDefinirInput, EstrategiaDefinirOutput> {
+export function criarToolEstrategiaDefinir(
+  deps: DepsAnalise,
+): AgentTool<EstrategiaDefinirInput, EstrategiaDefinirOutput> {
   return {
     name: NOMES_TOOLS.estrategiaDefinir,
     description:
       'Recomenda o movimento processual indicado — recorrer, contestar, acordar, aguardar ou produzir prova específica — ponderando custo, tempo e risco além do direito aplicável. ' +
       'MÉTODO: avalie ao menos duas opções com justificativa jurídica, custo, tempo, risco e ponderação; indique a recomendada, que deve estar entre as avaliadas; os precedentes citados são conferidos pelo servidor em fonte oficial. ' +
       'NÃO FAZ: não decompõe documento, não mapeia teses nem avalia prova (etapas anteriores) e não redige a peça (peca_redigir). ' +
-      NAO_INFERIR + ' ' + PROTOCOLO_VERIFICACAO +
+      NAO_INFERIR +
+      ' ' +
+      PROTOCOLO_VERIFICACAO +
       ' SESSÃO: exige sessao_analitica_id existente com mapear_teses executada (ou resultado_mapear_teses direto); a avaliação de prova é considerada quando registrada (ou enviada em resultado_avaliar_prova).',
     impactLevel: 'L1_ANALYSIS',
     inputSchema: EstrategiaDefinirInputSchema,
@@ -85,13 +97,17 @@ export function criarToolEstrategiaDefinir(deps: DepsAnalise): AgentTool<Estrate
         totalNaoVerificados += contarNaoVerificados(precedentes);
         opcoes.push({ ...opcao, precedentes });
       }
-      const proxima = ['recorrer', 'contestar', 'produzir_prova_especifica'].includes(input.recomendacao) ? NOMES_TOOLS.pecaRedigir : null;
+      const proxima = ['recorrer', 'contestar', 'produzir_prova_especifica'].includes(input.recomendacao)
+        ? NOMES_TOOLS.pecaRedigir
+        : null;
       const saida: EstrategiaDefinirOutput = {
         sessao_analitica_id: chamada.id,
         triagem: chamada.triagem,
         recomendacao: input.recomendacao,
         opcoes,
-        avaliacao_prova_considerada: Boolean(ultimoAchado(chamada.sessao, 'avaliar_prova') || input.resultado_avaliar_prova),
+        avaliacao_prova_considerada: Boolean(
+          ultimoAchado(chamada.sessao, 'avaliar_prova') || input.resultado_avaliar_prova,
+        ),
         precedentes_nao_verificados: totalNaoVerificados,
         verificacao_normativa: verificarDispositivos(input.dispositivos_citados),
         proxima_etapa_sugerida: proxima,
@@ -99,7 +115,10 @@ export function criarToolEstrategiaDefinir(deps: DepsAnalise): AgentTool<Estrate
       await deps.estado.estadoRegistrar(chamada.id, chamada.dono, 'estrategia', {
         recomendacao: input.recomendacao,
         opcoes: input.opcoes.map((o) => ({ movimento: o.movimento, custo: o.custo, tempo: o.tempo, risco: o.risco })),
-        justificativa: truncar(input.opcoes.find((o) => o.movimento === input.recomendacao)!.justificativa_juridica, 300),
+        justificativa: truncar(
+          input.opcoes.find((o) => o.movimento === input.recomendacao)!.justificativa_juridica,
+          300,
+        ),
         precedentes: resumirPrecedentes(opcoes.flatMap((o) => o.precedentes)),
         precedentes_nao_verificados: totalNaoVerificados,
       });

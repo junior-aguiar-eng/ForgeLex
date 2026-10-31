@@ -1,4 +1,4 @@
-import {useCaseResultRefresh} from './use-case-result-refresh';
+import { useCaseResultRefresh } from './use-case-result-refresh';
 import { useEffect, useRef, useState } from 'react';
 import { ApiRequestError, requestApi } from '../../api-client';
 import type { DocumentSource } from '../../documents/document-reader-model';
@@ -76,7 +76,7 @@ export function CaseAnalysisPanel({
   onSource: (source: DocumentSource) => void;
   onAnalyze: () => void;
   onGoText?: () => void;
-  onDirtyChange?: (dirty:boolean) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [review, setReview] = useState<Review>();
@@ -85,9 +85,20 @@ export function CaseAnalysisPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [editing,setEditing] = useState<string[]>([]);
-  const [showDecided,setShowDecided] = useState(false);
-  const resultRefresh=useCaseResultRefresh({enabled:!readOnly,scopeKey:matterId,refresh:async()=>{try{await load();}catch(e){setError('Não foi possível atualizar as análises. Sua edição foi mantida.');throw e;}}});
+  const [editing, setEditing] = useState<string[]>([]);
+  const [showDecided, setShowDecided] = useState(false);
+  const resultRefresh = useCaseResultRefresh({
+    enabled: !readOnly,
+    scopeKey: matterId,
+    refresh: async () => {
+      try {
+        await load();
+      } catch (e) {
+        setError('Não foi possível atualizar as análises. Sua edição foi mantida.');
+        throw e;
+      }
+    },
+  });
   const live = useRef(true);
   const running = useRef(false);
   const base = `/api/v2/matters/${matterId}/analyses`;
@@ -130,24 +141,36 @@ export function CaseAnalysisPanel({
       if (live.current) setBusy(false);
     }
   }
-  const dirty = selected.length > 0 || Object.entries(edited).some(([id,text]) => !review?.decisions[id] && review?.items.find(i=>i.id===id)?.text !== text);
-  useEffect(()=>{onDirtyChange?.(dirty);return()=>onDirtyChange?.(false);},[dirty,onDirtyChange]);
-  const initialOpened=useRef(false);
-  useEffect(()=>{
-    const id=new URLSearchParams(window.location.search).get('analysisId');
-    if(!initialOpened.current && id && summaries.some(s=>s.id===id)){initialOpened.current=true;void open(id);}
+  const dirty =
+    selected.length > 0 ||
+    Object.entries(edited).some(
+      ([id, text]) => !review?.decisions[id] && review?.items.find((i) => i.id === id)?.text !== text,
+    );
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+    return () => onDirtyChange?.(false);
+  }, [dirty, onDirtyChange]);
+  const initialOpened = useRef(false);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('analysisId');
+    if (!initialOpened.current && id && summaries.some((s) => s.id === id)) {
+      initialOpened.current = true;
+      void open(id);
+    }
     // A list refresh never replaces the active review buffer.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[summaries]);
+  }, [summaries]);
   async function open(id: string) {
-    if(dirty && !window.confirm('Há propostas em edição. Descartar a edição e abrir outra análise?')) return;
-    initialOpened.current=true;
+    if (dirty && !window.confirm('Há propostas em edição. Descartar a edição e abrir outra análise?')) return;
+    initialOpened.current = true;
     await run(async () => {
       const data = await api<Review>(`${base}/${id}`);
       if (live.current) {
         setReview(data);
-        const route=new URL(window.location.href);route.searchParams.set('analysisId',id);
-        window.history.replaceState({...window.history.state},document.title,route);window.dispatchEvent(new Event('forgelex:route-updated'));
+        const route = new URL(window.location.href);
+        route.searchParams.set('analysisId', id);
+        window.history.replaceState({ ...window.history.state }, document.title, route);
+        window.dispatchEvent(new Event('forgelex:route-updated'));
         setEdited({});
         setSelected([]);
       }
@@ -155,11 +178,22 @@ export function CaseAnalysisPanel({
   }
   async function decide(ids: string[], action: 'ADOPT' | 'DISCARD') {
     if (!review || readOnly) return;
-    if(action==='ADOPT'){
-      const missing = review.items.filter(i=>ids.includes(i.id)&&i.factItemId&&!ids.includes(i.factItemId)&&review.decisions[i.factItemId]?.action!=='ADOPT');
-      if(missing.length){
-        if(missing.some(i=>review.decisions[i.factItemId!]?.action==='DISCARD')){setError('O fato relacionado foi descartado. Esta prova não pode ser incorporada com esse vínculo.');return;}
-        setSelected([...new Set([...ids,...missing.map(i=>i.factItemId!)])]);setNotice('A seleção inclui agora os fatos relacionados. Confira e escolha Incorporar selecionados.');return;
+    if (action === 'ADOPT') {
+      const missing = review.items.filter(
+        (i) =>
+          ids.includes(i.id) &&
+          i.factItemId &&
+          !ids.includes(i.factItemId) &&
+          review.decisions[i.factItemId]?.action !== 'ADOPT',
+      );
+      if (missing.length) {
+        if (missing.some((i) => review.decisions[i.factItemId!]?.action === 'DISCARD')) {
+          setError('O fato relacionado foi descartado. Esta prova não pode ser incorporada com esse vínculo.');
+          return;
+        }
+        setSelected([...new Set([...ids, ...missing.map((i) => i.factItemId!)])]);
+        setNotice('A seleção inclui agora os fatos relacionados. Confira e escolha Incorporar selecionados.');
+        return;
       }
     }
     await run(async () => {
@@ -191,7 +225,11 @@ export function CaseAnalysisPanel({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-editorial text-xl font-bold">Análises dos documentos</h3>
-        {(resultRefresh.paused || error) && <button type="button" className={button} disabled={busy} onClick={resultRefresh.retry}>Tentar novamente</button>}
+        {(resultRefresh.paused || error) && (
+          <button type="button" className={button} disabled={busy} onClick={resultRefresh.retry}>
+            Tentar novamente
+          </button>
+        )}
       </div>
       <p className="text-sm text-stone-600">
         A IA propõe; você confere o trecho e decide o que entra no caso. Suporte documental não confirma a veracidade do
@@ -213,7 +251,6 @@ export function CaseAnalysisPanel({
             Nenhuma análise recebida. Escolha documentos e objetivo, copie a instrução e peça a análise na conversa com
             sua IA.
           </p>
-
         </div>
       )}
       {!!summaries.length && (
@@ -241,124 +278,154 @@ export function CaseAnalysisPanel({
             Para incorporar uma prova vinculada, selecione também o fato relacionado ou incorpore-o primeiro. As
             referências originais permanecem registradas.
           </p>
-          <button type="button" className={button} onClick={()=>setShowDecided(v=>!v)}>{showDecided?'Pendentes':'Conferidos e histórico'}</button>
-          {selected.length>0 && <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={button + ' bg-cognac-700 text-white'}
-              disabled={busy || readOnly || !selected.length}
-              onClick={() => void decide(selected, 'ADOPT')}
-            >
-              Incorporar selecionados
-            </button>
-            <button
-              type="button"
-              className={button}
-              disabled={busy || readOnly || !selected.length}
-              onClick={() => void decide(selected, 'DISCARD')}
-            >
-              Descartar selecionados
-            </button>
-          </div>}
-          {review.items.filter(item=>showDecided?Boolean(review.decisions[item.id]):!review.decisions[item.id]).map((item) => {
-            const decision = review.decisions[item.id];
-            return (
-              <article
-                aria-label={`Proposta ${item.id}`}
-                key={item.id}
-                className="rounded-xl border border-stone-200 bg-[#FDFBF7] p-4 space-y-3"
+          <button type="button" className={button} onClick={() => setShowDecided((v) => !v)}>
+            {showDecided ? 'Pendentes' : 'Conferidos e histórico'}
+          </button>
+          {selected.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={button + ' bg-cognac-700 text-white'}
+                disabled={busy || readOnly || !selected.length}
+                onClick={() => void decide(selected, 'ADOPT')}
               >
-                <div className="flex flex-wrap justify-between gap-2">
-                  <p className="text-xs font-semibold">
-                    {labels[item.kind]} · {labels[item.classification]}
-                    {item.eventDate ? ` · ${item.eventDate}` : ''}
-                  </p>
-                  {decision ? (
-                    <span className="text-xs font-semibold">
-                      {decision.action === 'ADOPT' ? 'Incorporado' : 'Descartado'}
-                    </span>
-                  ) : (
-                    <label className="flex gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        disabled={busy || readOnly}
-                        checked={selected.includes(item.id)}
-                        onChange={(e) =>
-                          setSelected((s) => (e.target.checked ? [...s, item.id] : s.filter((id) => id !== item.id)))
-                        }
-                      />
-                      Selecionar proposta
-                    </label>
-                  )}
-                </div>
-                {decision ? (
-                  <p className="text-sm whitespace-pre-wrap">{decision.text}</p>
-                ) : editing.includes(item.id) ? (
-                  <label className="block text-xs">
-                    Texto da proposta
-                    <textarea
-                      className="input-control w-full mt-1 min-h-20"
-                      maxLength={4000}
-                      disabled={busy || readOnly}
-                      value={edited[item.id] ?? item.text}
-                      onChange={(e) => setEdited({ ...edited, [item.id]: e.target.value })}
-                    />
-                  </label>
-                ) : <p className="text-sm whitespace-pre-wrap">{edited[item.id]??item.text}</p>}
-                {item.factItemId && (
-                  <p className="text-xs">
-                    Relação proposta: {labels[item.relation ?? 'CONTEXT']} com “
-                    {review.items.find((i) => i.id === item.factItemId)?.text}”.
-                  </p>
-                )}
-                {item.sources.map((source, index) => (
-                  <div key={index} className="text-sm border-l-2 border-cognac-200 pl-3 space-y-2">
-                    <p className="text-xs font-semibold">{labels[source.relation]}</p>
-                    <blockquote className="whitespace-pre-wrap">{source.quote}</blockquote>
-                    <button
-                      type="button"
-                      className={button}
-                      onClick={() =>
-                        onSource({
-                          matterId,
-                          documentId: source.documentId,
-                          versionId: source.versionId,
-                          anchorId: source.anchorId,
-                        })
-                      }
-                    >
-                      Abrir fonte
-                    </button>
+                Incorporar selecionados
+              </button>
+              <button
+                type="button"
+                className={button}
+                disabled={busy || readOnly || !selected.length}
+                onClick={() => void decide(selected, 'DISCARD')}
+              >
+                Descartar selecionados
+              </button>
+            </div>
+          )}
+          {review.items
+            .filter((item) => (showDecided ? Boolean(review.decisions[item.id]) : !review.decisions[item.id]))
+            .map((item) => {
+              const decision = review.decisions[item.id];
+              return (
+                <article
+                  aria-label={`Proposta ${item.id}`}
+                  key={item.id}
+                  className="rounded-xl border border-stone-200 bg-[#FDFBF7] p-4 space-y-3"
+                >
+                  <div className="flex flex-wrap justify-between gap-2">
+                    <p className="text-xs font-semibold">
+                      {labels[item.kind]} · {labels[item.classification]}
+                      {item.eventDate ? ` · ${item.eventDate}` : ''}
+                    </p>
+                    {decision ? (
+                      <span className="text-xs font-semibold">
+                        {decision.action === 'ADOPT' ? 'Incorporado' : 'Descartado'}
+                      </span>
+                    ) : (
+                      <label className="flex gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          disabled={busy || readOnly}
+                          checked={selected.includes(item.id)}
+                          onChange={(e) =>
+                            setSelected((s) => (e.target.checked ? [...s, item.id] : s.filter((id) => id !== item.id)))
+                          }
+                        />
+                        Selecionar proposta
+                      </label>
+                    )}
                   </div>
-                ))}
-                <details className="text-xs text-stone-500">
-                  <summary>Proposta original e histórico</summary>
-                  <p className="whitespace-pre-wrap mt-2">{item.text}</p>
-                  {decision && (
-                    <p className="mt-2">
-                      Conferido em {new Date(decision.decidedAt).toLocaleString('pt-BR')}. A incorporação não confirma
-                      suficiência probatória.
+                  {decision ? (
+                    <p className="text-sm whitespace-pre-wrap">{decision.text}</p>
+                  ) : editing.includes(item.id) ? (
+                    <label className="block text-xs">
+                      Texto da proposta
+                      <textarea
+                        className="input-control w-full mt-1 min-h-20"
+                        maxLength={4000}
+                        disabled={busy || readOnly}
+                        value={edited[item.id] ?? item.text}
+                        onChange={(e) => setEdited({ ...edited, [item.id]: e.target.value })}
+                      />
+                    </label>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{edited[item.id] ?? item.text}</p>
+                  )}
+                  {item.factItemId && (
+                    <p className="text-xs">
+                      Relação proposta: {labels[item.relation ?? 'CONTEXT']} com “
+                      {review.items.find((i) => i.id === item.factItemId)?.text}”.
                     </p>
                   )}
-                </details>
-                {!decision && !readOnly && (<div className="flex flex-wrap gap-2">
-                  <button type="button" className={button} disabled={busy} onClick={()=>void decide([item.id],'ADOPT')}>Incorporar</button>
-                  <button type="button" className={button} disabled={busy} onClick={()=>setEditing(e=>e.includes(item.id)?e.filter(id=>id!==item.id):[...e,item.id])}>{editing.includes(item.id)?'Concluir edição':'Editar'}</button>
-                  <button
-                    type="button"
-                    className={button}
-                    disabled={busy}
-                    onClick={() => void decide([item.id], 'DISCARD')}
-                  >
-                    Descartar
-                  </button></div>
-                )}
-              </article>
-            );
-          })}
+                  {item.sources.map((source, index) => (
+                    <div key={index} className="text-sm border-l-2 border-cognac-200 pl-3 space-y-2">
+                      <p className="text-xs font-semibold">{labels[source.relation]}</p>
+                      <blockquote className="whitespace-pre-wrap">{source.quote}</blockquote>
+                      <button
+                        type="button"
+                        className={button}
+                        onClick={() =>
+                          onSource({
+                            matterId,
+                            documentId: source.documentId,
+                            versionId: source.versionId,
+                            anchorId: source.anchorId,
+                          })
+                        }
+                      >
+                        Abrir fonte
+                      </button>
+                    </div>
+                  ))}
+                  <details className="text-xs text-stone-500">
+                    <summary>Proposta original e histórico</summary>
+                    <p className="whitespace-pre-wrap mt-2">{item.text}</p>
+                    {decision && (
+                      <p className="mt-2">
+                        Conferido em {new Date(decision.decidedAt).toLocaleString('pt-BR')}. A incorporação não confirma
+                        suficiência probatória.
+                      </p>
+                    )}
+                  </details>
+                  {!decision && !readOnly && (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className={button}
+                        disabled={busy}
+                        onClick={() => void decide([item.id], 'ADOPT')}
+                      >
+                        Incorporar
+                      </button>
+                      <button
+                        type="button"
+                        className={button}
+                        disabled={busy}
+                        onClick={() =>
+                          setEditing((e) => (e.includes(item.id) ? e.filter((id) => id !== item.id) : [...e, item.id]))
+                        }
+                      >
+                        {editing.includes(item.id) ? 'Concluir edição' : 'Editar'}
+                      </button>
+                      <button
+                        type="button"
+                        className={button}
+                        disabled={busy}
+                        onClick={() => void decide([item.id], 'DISCARD')}
+                      >
+                        Descartar
+                      </button>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
         </div>
       )}
-      {review && onGoText && <button type="button" className={button} onClick={onGoText}>Ir para o texto</button>}
+      {review && onGoText && (
+        <button type="button" className={button} onClick={onGoText}>
+          Ir para o texto
+        </button>
+      )}
     </section>
   );
 }

@@ -32,14 +32,36 @@ describe('independência do produto atual', () => {
         const origem = m[2]!;
         if (origem.startsWith('.') || origem.startsWith('node:') || origem === 'zod') continue;
         expect(Object.keys(PERMITIDO), `${arquivo} importa ${origem}`).toContain(origem);
-        const simbolos = (m[1] ?? '').split(',').map((s) => s.replace(/^\s*type\s+/, '').trim().split(/\s+as\s+/)[0]!).filter(Boolean);
-        for (const simbolo of simbolos) expect(PERMITIDO[origem], `${arquivo}: ${origem} → ${simbolo}`).toContain(simbolo);
+        const simbolos = (m[1] ?? '')
+          .split(',')
+          .map(
+            (s) =>
+              s
+                .replace(/^\s*type\s+/, '')
+                .trim()
+                .split(/\s+as\s+/)[0]!,
+          )
+          .filter(Boolean);
+        for (const simbolo of simbolos)
+          expect(PERMITIDO[origem], `${arquivo}: ${origem} → ${simbolo}`).toContain(simbolo);
       }
     }
   });
 
   it('não referencia tools, bancos ou namespaces do produto atual', () => {
-    const proibidos = [/@forgelex\/legal-tools/, /@forgelex\/legal-data/, /@forgelex\/source-/, /@forgelex\/mcp-server/, /\bresearch[._]\w+/, /\bcase[._](get|list|read)\w*/, /\bdraft[._]\w+/, /\bworkflow[._]\w+/, /jurisprudence/i, /getForgeLexBillingPolicy/, /\bmatters?\b/];
+    const proibidos = [
+      /@forgelex\/legal-tools/,
+      /@forgelex\/legal-data/,
+      /@forgelex\/source-/,
+      /@forgelex\/mcp-server/,
+      /\bresearch[._]\w+/,
+      /\bcase[._](get|list|read)\w*/,
+      /\bdraft[._]\w+/,
+      /\bworkflow[._]\w+/,
+      /jurisprudence/i,
+      /getForgeLexBillingPolicy/,
+      /\bmatters?\b/,
+    ];
     for (const arquivo of arquivos) {
       const codigo = readFileSync(arquivo, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
       for (const padrao of proibidos) expect(codigo, `${arquivo} casa ${padrao}`).not.toMatch(padrao);
@@ -49,7 +71,9 @@ describe('independência do produto atual', () => {
   it('só toca tabelas com prefixo analise_ (e as de infraestrutura de saldo via LedgerService)', () => {
     for (const arquivo of arquivos) {
       const codigo = readFileSync(arquivo, 'utf8');
-      for (const m of codigo.matchAll(/\b(?:FROM|INTO|UPDATE|TABLE(?: IF NOT EXISTS)?|INDEX [\w]+ ON)\s+([a-z_]+)\b/g)) {
+      for (const m of codigo.matchAll(
+        /\b(?:FROM|INTO|UPDATE|TABLE(?: IF NOT EXISTS)?|INDEX [\w]+ ON)\s+([a-z_]+)\b/g,
+      )) {
         expect(m[1], `${arquivo}`).toMatch(/^analise_/);
       }
     }

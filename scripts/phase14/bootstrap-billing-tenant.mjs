@@ -30,11 +30,20 @@ export async function bootstrapBillingTenant(deps, identityPrefix = `phase14_bil
 async function main() {
   const databaseUrl = process.env.FORGELEX_PHASE14_TARGET_DATABASE_URL;
   if (!databaseUrl) throw new Error('FORGELEX_PHASE14_TARGET_DATABASE_URL_REQUIRED');
-  assertRemoteSeed(databaseUrl, process.env.FORGELEX_PHASE14_ALLOW_REMOTE_SEED, process.env.FORGELEX_PHASE14_TARGET_KIND);
+  assertRemoteSeed(
+    databaseUrl,
+    process.env.FORGELEX_PHASE14_ALLOW_REMOTE_SEED,
+    process.env.FORGELEX_PHASE14_TARGET_KIND,
+  );
   const descriptor = Number(process.env.FORGELEX_PHASE14_TOKEN_FD);
   const secretSink = process.env.FORGELEX_PHASE14_TOKEN_SECRET;
-  if (!secretSink && (!Number.isInteger(descriptor) || descriptor < 3)) throw new Error('FORGELEX_PHASE14_TOKEN_SINK_REQUIRED');
-  const [{ createDatabase, AccountRepository, ApiKeyRepository, runPersistenceMigrations }, { LedgerService }, { ApiKeyService }] = await Promise.all([
+  if (!secretSink && (!Number.isInteger(descriptor) || descriptor < 3))
+    throw new Error('FORGELEX_PHASE14_TOKEN_SINK_REQUIRED');
+  const [
+    { createDatabase, AccountRepository, ApiKeyRepository, runPersistenceMigrations },
+    { LedgerService },
+    { ApiKeyService },
+  ] = await Promise.all([
     import('../../packages/persistence/dist/index.js'),
     import('../../packages/billing-ledger/dist/index.js'),
     import('../../apps/api/dist/auth/api-key-service.js'),

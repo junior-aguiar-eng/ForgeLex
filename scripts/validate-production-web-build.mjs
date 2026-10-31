@@ -10,7 +10,16 @@ export function validateBuildConfig(env) {
     throw new Error('VITE_SUPABASE_URL deve identificar um projeto Supabase HTTPS.');
   }
   const match = /^([a-z0-9]{20})\.supabase\.co$/.exec(url.hostname);
-  if (url.protocol !== 'https:' || !match || url.username || url.password || url.port || url.pathname !== '/' || url.search || url.hash) {
+  if (
+    url.protocol !== 'https:' ||
+    !match ||
+    url.username ||
+    url.password ||
+    url.port ||
+    url.pathname !== '/' ||
+    url.search ||
+    url.hash
+  ) {
     throw new Error('VITE_SUPABASE_URL deve identificar um projeto Supabase HTTPS.');
   }
 
@@ -64,10 +73,12 @@ async function main(argv, env) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main(process.argv.slice(2), process.env).then(() => {
-    console.log('Configuração pública Supabase validada.');
-  }).catch((error) => {
-    console.error(error instanceof Error ? error.message : 'Falha na validação do build.');
-    process.exitCode = 1;
-  });
+  main(process.argv.slice(2), process.env)
+    .then(() => {
+      console.log('Configuração pública Supabase validada.');
+    })
+    .catch((error) => {
+      console.error(error instanceof Error ? error.message : 'Falha na validação do build.');
+      process.exitCode = 1;
+    });
 }

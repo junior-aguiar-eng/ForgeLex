@@ -9,7 +9,13 @@ import { StjOpenDataProvider } from '../packages/source-providers/dist/index.js'
 import { pathToFileURL } from 'node:url';
 
 export function parseIngestArgs(argv, env = process.env) {
-  const result = { database: env.DATABASE_URL || undefined, dryRun: false, dataset: undefined, incremental: false, singleFlight: false };
+  const result = {
+    database: env.DATABASE_URL || undefined,
+    dryRun: false,
+    dataset: undefined,
+    incremental: false,
+    singleFlight: false,
+  };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === '--dry-run') {
@@ -89,7 +95,8 @@ export async function runIngestion(argv, dependencies = {}) {
 }
 
 async function runIngestionUnlocked(args, dependencies) {
-  const provider = dependencies.provider ?? new StjOpenDataProvider({ datasetIds: args.dataset ? [args.dataset] : undefined });
+  const provider =
+    dependencies.provider ?? new StjOpenDataProvider({ datasetIds: args.dataset ? [args.dataset] : undefined });
   const plan = await provider.discover();
   const summaries = [];
   let connection;
@@ -107,7 +114,9 @@ async function runIngestionUnlocked(args, dependencies) {
     try {
       if (!args.singleFlight) await runPersistenceMigrations(connection.client);
       if (args.incremental) {
-        const baseline = await connection.client.execute("SELECT COUNT(*) AS count FROM jurisprudence_source_manifests WHERE status = 'COMPLETED' AND ingestion_run_id IN (SELECT id FROM jurisprudence_ingestion_runs WHERE provider_id = 'provider_stj_open_data' AND court = 'STJ')");
+        const baseline = await connection.client.execute(
+          "SELECT COUNT(*) AS count FROM jurisprudence_source_manifests WHERE status = 'COMPLETED' AND ingestion_run_id IN (SELECT id FROM jurisprudence_ingestion_runs WHERE provider_id = 'provider_stj_open_data' AND court = 'STJ')",
+        );
         if (Number(baseline.rows[0]?.count ?? 0) === 0) throw new Error('STJ_INGESTION_BASELINE_REQUIRED');
       }
       ingestionRun = await new IngestionRunRepository(connection.db).start({
@@ -220,18 +229,18 @@ async function runIngestionUnlocked(args, dependencies) {
       try {
         parsed = await provider.processResource(resource, {
           onBatch: async (batch) => {
-          if (args.dryRun) return;
-          await manifestRepository.stageBatch({
-            manifestId: manifest.id,
-            records: batch.map((document, index) => ({
-              recordOrdinal: recordOrdinal + index,
-              sourceRecordId: document.provenance.source.documentId,
-              dedupeKey: document.dedupeKey,
-              contentHash: document.snapshot.contentHash,
-              document,
-            })),
-          });
-          recordOrdinal += batch.length;
+            if (args.dryRun) return;
+            await manifestRepository.stageBatch({
+              manifestId: manifest.id,
+              records: batch.map((document, index) => ({
+                recordOrdinal: recordOrdinal + index,
+                sourceRecordId: document.provenance.source.documentId,
+                dedupeKey: document.dedupeKey,
+                contentHash: document.snapshot.contentHash,
+                document,
+              })),
+            });
+            recordOrdinal += batch.length;
           },
           shouldProcess: async (resourceSha256) => {
             if (args.dryRun) return true;
@@ -274,8 +283,12 @@ async function runIngestionUnlocked(args, dependencies) {
         }
 
         totalSeen += parsed.acceptedRecordCount;
-        coverageStart = !coverageStart || (parsed.coverageStart && parsed.coverageStart < coverageStart) ? parsed.coverageStart : coverageStart;
-        coverageEnd = !coverageEnd || (parsed.coverageEnd && parsed.coverageEnd > coverageEnd) ? parsed.coverageEnd : coverageEnd;
+        coverageStart =
+          !coverageStart || (parsed.coverageStart && parsed.coverageStart < coverageStart)
+            ? parsed.coverageStart
+            : coverageStart;
+        coverageEnd =
+          !coverageEnd || (parsed.coverageEnd && parsed.coverageEnd > coverageEnd) ? parsed.coverageEnd : coverageEnd;
         if (!args.dryRun) {
           const published = await manifestRepository.publishStaged(manifest.id);
           await manifestRepository.complete({
@@ -355,7 +368,9 @@ async function runIngestionUnlocked(args, dependencies) {
     if (!args.dryRun) {
       const runRepository = new IngestionRunRepository(connection.db);
       if (hasFailure) {
-        await runRepository.fail(ingestionRun.id, { error: 'Um ou mais recursos do STJ falharam; os manifestos individuais registram o diagnóstico.' });
+        await runRepository.fail(ingestionRun.id, {
+          error: 'Um ou mais recursos do STJ falharam; os manifestos individuais registram o diagnóstico.',
+        });
       } else {
         await runRepository.complete(ingestionRun.id, {
           documentsSeen: totalSeen,
@@ -372,10 +387,12 @@ async function runIngestionUnlocked(args, dependencies) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  runIngestion(process.argv.slice(2)).then((result) => {
-    if (result.hasFailure) process.exitCode = 1;
-  }).catch((error) => {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-  });
+  runIngestion(process.argv.slice(2))
+    .then((result) => {
+      if (result.hasFailure) process.exitCode = 1;
+    })
+    .catch((error) => {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+    });
 }

@@ -81,11 +81,7 @@ export function createPilotOpenAIRuntime(options: PilotRuntimeOptions) {
         body.context_management ||
         body.prompt_cache_key ||
         JSON.stringify(body).includes('prompt_cache_breakpoint') ||
-        (body.tools ?? []).some(
-          (t: any) =>
-            t.type !== 'function' ||
-            !AGENT_TOOL_NAMES.includes(t.name),
-        )
+        (body.tools ?? []).some((t: any) => t.type !== 'function' || !AGENT_TOOL_NAMES.includes(t.name))
       )
         throw new Error('PILOT_REQUEST_INVALID');
       body.max_output_tokens = 2048;

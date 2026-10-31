@@ -32,14 +32,12 @@ export function registerDraftAiRoutes(
       } catch (error) {
         const conflict = error instanceof Error && error.message === 'DRAFT_ADOPTION_CONFLICT';
         const invalid = error instanceof z.ZodError;
-        return reply
-          .code(conflict ? 409 : invalid ? 400 : 404)
-          .send({
-            error: conflict ? 'DRAFT_ADOPTION_CONFLICT' : invalid ? 'INVALID_INPUT' : 'DRAFT_RECEIPT_NOT_FOUND',
-            message: conflict
-              ? 'A edição atual mudou. Atualize antes de usar esta versão.'
-              : 'Não foi possível usar este texto recebido.',
-          });
+        return reply.code(conflict ? 409 : invalid ? 400 : 404).send({
+          error: conflict ? 'DRAFT_ADOPTION_CONFLICT' : invalid ? 'INVALID_INPUT' : 'DRAFT_RECEIPT_NOT_FOUND',
+          message: conflict
+            ? 'A edição atual mudou. Atualize antes de usar esta versão.'
+            : 'Não foi possível usar este texto recebido.',
+        });
       }
     };
   const find = async (req: FastifyRequest) => {

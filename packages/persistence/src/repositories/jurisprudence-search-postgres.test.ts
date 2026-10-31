@@ -142,7 +142,9 @@ describe.skipIf(!local)('Busca PostgreSQL com candidatos extensos', () => {
           args: [selectedVersion.rows[0]!.current_version_id],
         });
         const rawMetadataPlan = metadataPlan.rows[0]?.['QUERY PLAN'];
-        const metadata = (typeof rawMetadataPlan === 'string' ? JSON.parse(rawMetadataPlan) : rawMetadataPlan) as Array<{
+        const metadata = (
+          typeof rawMetadataPlan === 'string' ? JSON.parse(rawMetadataPlan) : rawMetadataPlan
+        ) as Array<{
           Plan: { 'Node Type': string; 'Index Name': string; 'Heap Fetches': number };
         }>;
         expect(metadata[0]!.Plan['Node Type']).toBe('Index Only Scan');

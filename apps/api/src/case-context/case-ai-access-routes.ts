@@ -1,6 +1,11 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { CaseAiSelectionSchema, CaseItemKindSchema, DraftReceivePermissionSchema, AnalysisPermissionSchema } from '@forgelex/domain';
+import {
+  CaseAiSelectionSchema,
+  CaseItemKindSchema,
+  DraftReceivePermissionSchema,
+  AnalysisPermissionSchema,
+} from '@forgelex/domain';
 import { CaseAiAccessRepository } from '@forgelex/persistence';
 import { AuthAdapter, extractBearerToken } from '../auth/fastify-auth.js';
 import type { OAuthClientDirectory } from './oauth-client-directory.js';
@@ -72,19 +77,17 @@ export function registerCaseAiAccessRoutes(
               payload: { errorCode: code },
             })
             .catch(() => undefined);
-        return reply
-          .code(status)
-          .send({
-            error: code,
-            message:
-              status === 409
-                ? 'As permissões foram alteradas. Atualize antes de salvar.'
-                : status === 503
-                  ? 'Não foi possível consultar os aplicativos autorizados. Tente novamente.'
-                  : status === 403
-                    ? 'Este aplicativo não está autorizado na sua conta.'
-                    : 'Não foi possível usar esta seleção.',
-          });
+        return reply.code(status).send({
+          error: code,
+          message:
+            status === 409
+              ? 'As permissões foram alteradas. Atualize antes de salvar.'
+              : status === 503
+                ? 'Não foi possível consultar os aplicativos autorizados. Tente novamente.'
+                : status === 403
+                  ? 'Este aplicativo não está autorizado na sua conta.'
+                  : 'Não foi possível usar esta seleção.',
+        });
       }
     };
   const log = async (req: FastifyRequest, matterId: string, grantId: string, revision: number, action: string) => {

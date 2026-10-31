@@ -47,19 +47,17 @@ export function registerCaseAnalysisRoutes(
               ? 404
               : 500;
         const code = status === 500 ? 'ANALYSIS_UNAVAILABLE' : candidate;
-        return reply
-          .code(status)
-          .send({
-            error: code,
-            message:
-              code === 'ANALYSIS_SOURCE_UNAVAILABLE'
-                ? 'Uma fonte está indisponível. Confira o documento antes de incorporar.'
-                : code === 'ANALYSIS_FACT_REQUIRED'
-                  ? 'Incorpore também o fato relacionado, antes ou junto com a prova.'
-                  : status === 409
-                    ? 'A análise ou o caso mudou. Atualize antes de decidir.'
-                    : 'Não foi possível concluir a conferência.',
-          });
+        return reply.code(status).send({
+          error: code,
+          message:
+            code === 'ANALYSIS_SOURCE_UNAVAILABLE'
+              ? 'Uma fonte está indisponível. Confira o documento antes de incorporar.'
+              : code === 'ANALYSIS_FACT_REQUIRED'
+                ? 'Incorpore também o fato relacionado, antes ou junto com a prova.'
+                : status === 409
+                  ? 'A análise ou o caso mudou. Atualize antes de decidir.'
+                  : 'Não foi possível concluir a conferência.',
+        });
       }
     };
   const path = '/api/v2/matters/:matterId/analyses';

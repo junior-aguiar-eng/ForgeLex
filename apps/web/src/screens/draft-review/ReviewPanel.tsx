@@ -20,35 +20,36 @@ export function ReviewPanel({
   onOpenPoint: (point: ReviewPoint) => void;
 }) {
   const shown = latestRun ?? currentRun;
-  const groups=groupReviewChecks(shown?.checks??[]);
-  const renderChecks=(checks:typeof groups.confirmed)=>checks.map((check, index) => (
-        <div
-          key={index}
-          className={`rounded-xl border p-3 space-y-2 ${check.state === 'CONFIRMED' ? 'border-stone-200 bg-stone-50' : 'border-amber-200 bg-amber-50'}`}
+  const groups = groupReviewChecks(shown?.checks ?? []);
+  const renderChecks = (checks: typeof groups.confirmed) =>
+    checks.map((check, index) => (
+      <div
+        key={index}
+        className={`rounded-xl border p-3 space-y-2 ${check.state === 'CONFIRMED' ? 'border-stone-200 bg-stone-50' : 'border-amber-200 bg-amber-50'}`}
+      >
+        <p className="text-sm font-semibold text-stone-900">{reviewCheckLabel(check)}</p>
+        <p className="text-sm text-stone-700">{check.message}</p>
+        {check.targetType === 'AUTHORITY' && (
+          <p className="text-xs text-stone-600">
+            {check.humanConfirmed ? 'Conferência humana registrada' : 'Conferência humana ainda não registrada'}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() =>
+            onOpenPoint({
+              check,
+              finding: findings.find(
+                (f) => f.code === check.code && f.sectionId === check.sectionId && f.targetId === check.targetId,
+              ),
+            })
+          }
+          className="btn-secondary"
         >
-          <p className="text-sm font-semibold text-stone-900">{reviewCheckLabel(check)}</p>
-          <p className="text-sm text-stone-700">{check.message}</p>
-          {check.targetType === 'AUTHORITY' && (
-            <p className="text-xs text-stone-600">
-              {check.humanConfirmed ? 'Conferência humana registrada' : 'Conferência humana ainda não registrada'}
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={() =>
-              onOpenPoint({
-                check,
-                finding: findings.find(
-                  (f) => f.code === check.code && f.sectionId === check.sectionId && f.targetId === check.targetId,
-                ),
-              })
-            }
-            className="btn-secondary"
-          >
-            Ver ponto
-          </button>
-        </div>
-      ));
+          Ver ponto
+        </button>
+      </div>
+    ));
   return (
     <section
       id="conferencia"
@@ -73,10 +74,18 @@ export function ReviewPanel({
         Conferimos referências cadastradas, vínculos com fatos e provas e o preenchimento das seções. A pertinência
         jurídica e o teor das citações exigem leitura humana.
       </p>
-      {shown?.state==='COMPLETE' && <p className="text-sm">Conferência automática concluída: {groups.attention.length} pontos de atenção.</p>}
+      {shown?.state === 'COMPLETE' && (
+        <p className="text-sm">Conferência automática concluída: {groups.attention.length} pontos de atenção.</p>
+      )}
       {renderChecks(groups.attention)}
-      {groups.confirmed.length>0 && <details><summary className="cursor-pointer text-sm font-semibold">Verificações concluídas · {groups.confirmed.length}</summary><div className="mt-3 space-y-3">{renderChecks(groups.confirmed)}</div></details>}
-
+      {groups.confirmed.length > 0 && (
+        <details>
+          <summary className="cursor-pointer text-sm font-semibold">
+            Verificações concluídas · {groups.confirmed.length}
+          </summary>
+          <div className="mt-3 space-y-3">{renderChecks(groups.confirmed)}</div>
+        </details>
+      )}
     </section>
   );
 }

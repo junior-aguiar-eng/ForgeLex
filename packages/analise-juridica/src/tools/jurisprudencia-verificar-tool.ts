@@ -10,7 +10,9 @@ const SaidaSchema = z.object({ precedentes: z.array(PrecedenteVerificadoSchema) 
  * Registrada no ToolRegistry para uso interno das demais tools, mas fora da lista de tools
  * expostas ao cliente MCP: não é cobrada nem chamada isoladamente (custo embutido nas tools que a usam).
  */
-export function criarToolJurisprudenciaVerificar(verificador: JurisprudenciaVerificador): AgentTool<z.infer<typeof EntradaSchema>, z.infer<typeof SaidaSchema>> {
+export function criarToolJurisprudenciaVerificar(
+  verificador: JurisprudenciaVerificador,
+): AgentTool<z.infer<typeof EntradaSchema>, z.infer<typeof SaidaSchema>> {
   return {
     name: NOMES_TOOLS.jurisprudenciaVerificar,
     description:

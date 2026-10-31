@@ -165,22 +165,26 @@ export function CaseAiAccessPanel({
       let cursor: string | undefined;
       let value: Preview;
       do {
-        value = await api<Preview>(base + '/preview', post({selection,limit:20,...(cursor?{cursor}:{})}));
+        value = await api<Preview>(base + '/preview', post({ selection, limit: 20, ...(cursor ? { cursor } : {}) }));
         if (!live.current || selectionIdentity.current !== identity) return;
         items.push(...value.items);
-        cursor=value.nextCursor;
-        if(cursor && seen.has(cursor)) throw new Error('A prévia não foi concluída. Altere a seleção e tente novamente.');
-        if(cursor)seen.add(cursor);
-      } while(cursor);
-      setPreview({...value,items,nextCursor:undefined});
+        cursor = value.nextCursor;
+        if (cursor && seen.has(cursor))
+          throw new Error('A prévia não foi concluída. Altere a seleção e tente novamente.');
+        if (cursor) seen.add(cursor);
+      } while (cursor);
+      setPreview({ ...value, items, nextCursor: undefined });
     });
   }
   useEffect(() => {
     if (!application || busy || error) return;
-    const pendingKind = kinds.find(kind => openKinds[kind] && !catalog[kind]);
-    if (pendingKind) { void loadKind(pendingKind); return; }
+    const pendingKind = kinds.find((kind) => openKinds[kind] && !catalog[kind]);
+    if (pendingKind) {
+      void loadKind(pendingKind);
+      return;
+    }
     if (selectionCount(selection) && !preview) void viewPreview();
-  }, [clientId,selectionKey,busy,error,preview,catalog,openKinds]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clientId, selectionKey, busy, error, preview, catalog, openKinds]); // eslint-disable-line react-hooks/exhaustive-deps
   function chooseApp(id: string) {
     setClientId(id);
     const g = grants.find((g) => g.oauthClientId === id);
@@ -218,9 +222,18 @@ export function CaseAiAccessPanel({
         setReceivePermission(g.receivePermission ?? { enabled: false });
         setAnalysisPermission(g.analysisPermission ?? { enabled: false });
         try {
-          await navigator.clipboard.writeText(initialInstruction(matterTitle,`${window.location.origin}/app/casos?caso=${encodeURIComponent(matterId)}`,g));
-          if(live.current)setNotice('Acesso permitido. Instrução copiada; cole na conversa da sua IA.');
-        } catch { if(live.current)setNotice('Acesso permitido. Não foi possível copiar; use Copiar instrução para tentar novamente.'); }
+          await navigator.clipboard.writeText(
+            initialInstruction(
+              matterTitle,
+              `${window.location.origin}/app/casos?caso=${encodeURIComponent(matterId)}`,
+              g,
+            ),
+          );
+          if (live.current) setNotice('Acesso permitido. Instrução copiada; cole na conversa da sua IA.');
+        } catch {
+          if (live.current)
+            setNotice('Acesso permitido. Não foi possível copiar; use Copiar instrução para tentar novamente.');
+        }
       }
     }, true);
   }
@@ -374,7 +387,7 @@ export function CaseAiAccessPanel({
                 className="border border-stone-200 rounded-lg p-3"
                 onToggle={(e) => {
                   const open = e.currentTarget.open;
-                  setOpenKinds(current => ({ ...current, [kind]: open }));
+                  setOpenKinds((current) => ({ ...current, [kind]: open }));
                 }}
               >
                 <summary className="cursor-pointer text-sm font-medium">{labels[kind]}</summary>
@@ -436,7 +449,10 @@ export function CaseAiAccessPanel({
               <article key={`${m.kind}-${m.id}`} className="text-sm">
                 <h4 className="font-semibold">{m.title}</h4>
                 {m.versionId && <p className="text-xs text-stone-500">Versão selecionada: {m.versionNumber}</p>}
-                <details><summary className="cursor-pointer text-xs">Ler prévia do material</summary><p className="whitespace-pre-wrap mt-2">{m.preview}</p></details>
+                <details>
+                  <summary className="cursor-pointer text-xs">Ler prévia do material</summary>
+                  <p className="whitespace-pre-wrap mt-2">{m.preview}</p>
+                </details>
               </article>
             ))}
             {preview.nextCursor && (

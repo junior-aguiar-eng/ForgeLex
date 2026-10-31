@@ -35,17 +35,29 @@ describe('compatibilidade dos contratos de validação existentes', () => {
 
   it('preserva valores heterogêneos nos argumentos e detalhes dos eventos', () => {
     const values = {
-      text: 'exemplo', number: 42, boolean: false, nil: null,
-      nested: { items: ['a', 1, null] }, missing: undefined,
+      text: 'exemplo',
+      number: 42,
+      boolean: false,
+      nil: null,
+      nested: { items: ['a', 1, null] },
+      missing: undefined,
     };
     const invoked = {
-      type: 'tool:invoked', sessionId: firstId, toolName: 'synthetic',
-      callId: 'call-1', input: values, timestamp,
+      type: 'tool:invoked',
+      sessionId: firstId,
+      toolName: 'synthetic',
+      callId: 'call-1',
+      input: values,
+      timestamp,
     };
     expect(AgentEventSchema.parse(invoked)).toEqual(invoked);
     const error = {
-      type: 'error', sessionId: firstId, code: 'SYNTHETIC',
-      message: 'exemplo', details: values, timestamp,
+      type: 'error',
+      sessionId: firstId,
+      code: 'SYNTHETIC',
+      message: 'exemplo',
+      details: values,
+      timestamp,
     };
     expect(AgentEventSchema.parse(error)).toEqual(error);
   });
@@ -74,18 +86,27 @@ describe('compatibilidade dos contratos de validação existentes', () => {
         { documentId: secondId, versionId: firstId },
       ],
     });
-    expect(CaseAiSelectionSchema.safeParse({
-      ...input,
-      documents: [...input.documents, { documentId: firstId, versionId: firstId }],
-    }).success).toBe(false);
+    expect(
+      CaseAiSelectionSchema.safeParse({
+        ...input,
+        documents: [...input.documents, { documentId: firstId, versionId: firstId }],
+      }).success,
+    ).toBe(false);
   });
 
   it('mantém o recebimento desabilitado quando a permissão é omitida', () => {
     const grant = CaseAiGrantSchema.parse({
-      id: firstId, tenantId: 'tenant-synthetic', userId: 'user-synthetic',
-      oauthClientId: 'client-synthetic', oauthGrantedAt: timestamp,
-      matterId: secondId, revision: 1, status: 'ACTIVE',
-      selection: selection([firstId]), createdAt: timestamp, updatedAt: timestamp,
+      id: firstId,
+      tenantId: 'tenant-synthetic',
+      userId: 'user-synthetic',
+      oauthClientId: 'client-synthetic',
+      oauthGrantedAt: timestamp,
+      matterId: secondId,
+      revision: 1,
+      status: 'ACTIVE',
+      selection: selection([firstId]),
+      createdAt: timestamp,
+      updatedAt: timestamp,
     });
     expect(grant.receivePermission).toEqual({ enabled: false });
   });

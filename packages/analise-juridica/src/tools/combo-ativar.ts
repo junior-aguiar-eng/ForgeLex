@@ -4,7 +4,12 @@ import { ID_SESSAO_NOVA, NOMES_TOOLS } from '../contratos.js';
 import { COMBO_IDS, COMBOS, DESCONTO_COMBO_PERCENTUAL, precoComboCents } from '../precos.js';
 
 export const ComboAtivarInputSchema = z.object({
-  sessao_analitica_id: z.string().trim().min(1).max(120).refine((id) => id !== ID_SESSAO_NOVA, 'Abra a sessão antes de ativar um combo.'),
+  sessao_analitica_id: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .refine((id) => id !== ID_SESSAO_NOVA, 'Abra a sessão antes de ativar um combo.'),
   combo: z.enum(COMBO_IDS),
 });
 export type ComboAtivarInput = z.infer<typeof ComboAtivarInputSchema>;
@@ -22,7 +27,9 @@ export type ComboAtivarOutput = z.infer<typeof ComboAtivarOutputSchema>;
  * (`CobrancaAnalise.ativarCombo`); esta definição existe para listagem e validação de entrada.
  */
 export function criarToolComboAtivar(): AgentTool<ComboAtivarInput, ComboAtivarOutput> {
-  const catalogo = COMBO_IDS.map((id) => `"${id}" (${COMBOS[id].descricao}; R$ ${(precoComboCents(id) / 100).toFixed(2)})`).join('; ');
+  const catalogo = COMBO_IDS.map(
+    (id) => `"${id}" (${COMBOS[id].descricao}; R$ ${(precoComboCents(id) / 100).toFixed(2)})`,
+  ).join('; ');
   return {
     name: NOMES_TOOLS.comboAtivar,
     description:

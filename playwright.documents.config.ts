@@ -16,7 +16,13 @@ export default defineConfig({
       url: 'http://127.0.0.1:3301/readyz',
       reuseExistingServer: false,
       stdout: 'pipe',
-      env: { DATABASE_URL: 'file::memory:?cache=shared', FORGELEX_DATABASE_URL: 'file::memory:?cache=shared', FORGELEX_E2E_AUTH_URL: 'http://127.0.0.1:15531', FORGELEX_E2E_API_PORT: '3301', FORGELEX_E2E_WEB_ORIGIN: 'http://127.0.0.1:3300' },
+      env: {
+        DATABASE_URL: 'file::memory:?cache=shared',
+        FORGELEX_DATABASE_URL: 'file::memory:?cache=shared',
+        FORGELEX_E2E_AUTH_URL: 'http://127.0.0.1:15531',
+        FORGELEX_E2E_API_PORT: '3301',
+        FORGELEX_E2E_WEB_ORIGIN: 'http://127.0.0.1:3300',
+      },
     },
     {
       command: 'pnpm --filter @forgelex/web dev --host 127.0.0.1 --port 3300 --strictPort',

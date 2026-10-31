@@ -3,17 +3,25 @@ import { resolve } from 'node:path';
 import postgres from 'postgres';
 
 export const INVARIANT_QUERIES = Object.freeze({
-  duplicateDedupeKeys: 'SELECT COUNT(*)::bigint AS count FROM (SELECT dedupe_key FROM jurisprudence_documents GROUP BY dedupe_key HAVING COUNT(*) > 1) violations',
-  duplicateVersions: 'SELECT COUNT(*)::bigint AS count FROM (SELECT document_id, content_hash FROM jurisprudence_document_versions GROUP BY document_id, content_hash HAVING COUNT(*) > 1) violations',
-  missingCurrentVersions: 'SELECT COUNT(*)::bigint AS count FROM jurisprudence_documents d LEFT JOIN jurisprudence_document_versions v ON v.id = d.current_version_id WHERE v.id IS NULL',
+  duplicateDedupeKeys:
+    'SELECT COUNT(*)::bigint AS count FROM (SELECT dedupe_key FROM jurisprudence_documents GROUP BY dedupe_key HAVING COUNT(*) > 1) violations',
+  duplicateVersions:
+    'SELECT COUNT(*)::bigint AS count FROM (SELECT document_id, content_hash FROM jurisprudence_document_versions GROUP BY document_id, content_hash HAVING COUNT(*) > 1) violations',
+  missingCurrentVersions:
+    'SELECT COUNT(*)::bigint AS count FROM jurisprudence_documents d LEFT JOIN jurisprudence_document_versions v ON v.id = d.current_version_id WHERE v.id IS NULL',
   stagingRows: 'SELECT COUNT(*)::bigint AS count FROM jurisprudence_ingestion_staging',
 });
 
-function sameArray(left, right) { return JSON.stringify([...left].sort()) === JSON.stringify([...right].sort()); }
+function sameArray(left, right) {
+  return JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
+}
 export function compareCorpusSnapshots(source, target) {
-  for (const key of ['duplicateDedupeKeys', 'duplicateVersions', 'missingCurrentVersions', 'stagingRows']) if (Number(source[key]) !== 0 || Number(target[key]) !== 0) throw new Error(`CORPUS_INVARIANT_VIOLATION:${key}`);
-  for (const key of ['documents', 'versions', 'manifests', 'rejected']) if (Number(source[key]) !== Number(target[key])) throw new Error(`CORPUS_COUNT_MISMATCH:${key}`);
-  if (source.coverageStart !== target.coverageStart || source.coverageEnd !== target.coverageEnd) throw new Error('CORPUS_COVERAGE_MISMATCH');
+  for (const key of ['duplicateDedupeKeys', 'duplicateVersions', 'missingCurrentVersions', 'stagingRows'])
+    if (Number(source[key]) !== 0 || Number(target[key]) !== 0) throw new Error(`CORPUS_INVARIANT_VIOLATION:${key}`);
+  for (const key of ['documents', 'versions', 'manifests', 'rejected'])
+    if (Number(source[key]) !== Number(target[key])) throw new Error(`CORPUS_COUNT_MISMATCH:${key}`);
+  if (source.coverageStart !== target.coverageStart || source.coverageEnd !== target.coverageEnd)
+    throw new Error('CORPUS_COVERAGE_MISMATCH');
   if (!sameArray(source.manifestHashes, target.manifestHashes)) throw new Error('CORPUS_MANIFEST_HASH_MISMATCH');
   if (!sameArray(source.terminalGapStates, target.terminalGapStates)) throw new Error('CORPUS_TERMINAL_STATE_MISMATCH');
   return { status: 'passed', ...target };
@@ -29,9 +37,24 @@ export async function collectCorpusSnapshot(databaseUrl) {
       sql`SELECT DISTINCT status FROM jurisprudence_source_manifests ORDER BY status`,
     ]);
     const invariants = {};
-    for (const [name, query] of Object.entries(INVARIANT_QUERIES)) { const [row] = await sql.unsafe(query); invariants[name] = Number(row.count); }
-    return { documents: Number(counts.documents), versions: Number(counts.versions), manifests: Number(counts.manifests), rejected: Number(counts.rejected), coverageStart: coverage.coverage_start, coverageEnd: coverage.coverage_end, manifestHashes: hashes.map((row) => row.resource_sha256), terminalGapStates: terminal.map((row) => row.status), ...invariants };
-  } finally { await sql.end(); }
+    for (const [name, query] of Object.entries(INVARIANT_QUERIES)) {
+      const [row] = await sql.unsafe(query);
+      invariants[name] = Number(row.count);
+    }
+    return {
+      documents: Number(counts.documents),
+      versions: Number(counts.versions),
+      manifests: Number(counts.manifests),
+      rejected: Number(counts.rejected),
+      coverageStart: coverage.coverage_start,
+      coverageEnd: coverage.coverage_end,
+      manifestHashes: hashes.map((row) => row.resource_sha256),
+      terminalGapStates: terminal.map((row) => row.status),
+      ...invariants,
+    };
+  } finally {
+    await sql.end();
+  }
 }
 
 async function main() {
@@ -41,4 +64,8 @@ async function main() {
   const [source, target] = await Promise.all([collectCorpusSnapshot(sourceUrl), collectCorpusSnapshot(targetUrl)]);
   console.log(JSON.stringify(compareCorpusSnapshots(source, target)));
 }
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) main().catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; });
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]))
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });

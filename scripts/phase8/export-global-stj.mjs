@@ -4,20 +4,45 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 
-export const GLOBAL_STJ_TABLES = Object.freeze(['jurisprudence_ingestion_runs', 'jurisprudence_source_manifests', 'jurisprudence_documents', 'jurisprudence_document_versions']);
+export const GLOBAL_STJ_TABLES = Object.freeze([
+  'jurisprudence_ingestion_runs',
+  'jurisprudence_source_manifests',
+  'jurisprudence_documents',
+  'jurisprudence_document_versions',
+]);
 
 export function assertAllowedTables(tables) {
-  if (!Array.isArray(tables) || tables.some((table) => !GLOBAL_STJ_TABLES.includes(table)) || new Set(tables).size !== tables.length) throw new Error('EXPORT_TABLE_NOT_ALLOWED');
+  if (
+    !Array.isArray(tables) ||
+    tables.some((table) => !GLOBAL_STJ_TABLES.includes(table)) ||
+    new Set(tables).size !== tables.length
+  )
+    throw new Error('EXPORT_TABLE_NOT_ALLOWED');
   return tables;
 }
-export function buildDumpArgs(file, tables = GLOBAL_STJ_TABLES) { assertAllowedTables(tables); return ['--data-only', '--format=custom', `--file=${file}`, ...tables.map((table) => `--table=${table}`)]; }
-export function buildRestoreArgs(file) { return ['--single-transaction', '--exit-on-error', '--data-only', file]; }
+export function buildDumpArgs(file, tables = GLOBAL_STJ_TABLES) {
+  assertAllowedTables(tables);
+  return ['--data-only', '--format=custom', `--file=${file}`, ...tables.map((table) => `--table=${table}`)];
+}
+export function buildRestoreArgs(file) {
+  return ['--single-transaction', '--exit-on-error', '--data-only', file];
+}
 export function assertRemoteRestore(sourceUrl, targetUrl, confirmation) {
   if (confirmation !== 'confirmed') throw new Error('REMOTE_RESTORE_NOT_CONFIRMED');
   if (new URL(sourceUrl).hostname === new URL(targetUrl).hostname) throw new Error('RESTORE_TARGET_MUST_DIFFER');
 }
-function run(command, args) { return new Promise((ok, reject) => { const child = spawn(command, args, { stdio: 'inherit', env: process.env }); child.once('error', reject); child.once('exit', (code) => code === 0 ? ok() : reject(new Error(`${command.toUpperCase()}_FAILED:${code}`))); }); }
-async function sha256(file) { const hash = createHash('sha256'); for await (const chunk of createReadStream(file)) hash.update(chunk); return hash.digest('hex'); }
+function run(command, args) {
+  return new Promise((ok, reject) => {
+    const child = spawn(command, args, { stdio: 'inherit', env: process.env });
+    child.once('error', reject);
+    child.once('exit', (code) => (code === 0 ? ok() : reject(new Error(`${command.toUpperCase()}_FAILED:${code}`))));
+  });
+}
+async function sha256(file) {
+  const hash = createHash('sha256');
+  for await (const chunk of createReadStream(file)) hash.update(chunk);
+  return hash.digest('hex');
+}
 
 async function main() {
   const action = process.argv[2] ?? 'export';
@@ -39,4 +64,8 @@ async function main() {
   }
   throw new Error('EXPORT_ACTION_INVALID');
 }
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) main().catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; });
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]))
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });

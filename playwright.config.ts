@@ -20,7 +20,13 @@ export default defineConfig({
       command: 'node scripts/e2e-phase-7-server.mjs',
       url: `${apiUrl}/readyz`,
       reuseExistingServer: false,
-      env: { DATABASE_URL: databaseUrl, FORGELEX_DATABASE_URL: databaseUrl, FORGELEX_E2E_AUTH_URL: authUrl, FORGELEX_E2E_API_PORT: apiPort, FORGELEX_E2E_WEB_ORIGIN: webOrigin },
+      env: {
+        DATABASE_URL: databaseUrl,
+        FORGELEX_DATABASE_URL: databaseUrl,
+        FORGELEX_E2E_AUTH_URL: authUrl,
+        FORGELEX_E2E_API_PORT: apiPort,
+        FORGELEX_E2E_WEB_ORIGIN: webOrigin,
+      },
     },
     {
       command: `pnpm --filter @forgelex/web dev --host 127.0.0.1 --port ${webPort} --strictPort`,

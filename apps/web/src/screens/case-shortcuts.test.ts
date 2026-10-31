@@ -2,20 +2,44 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ status: 'authenticated', account: null }) }));
-vi.mock('../context/AppContext', () => ({ useApp: () => ({
-  tribunals: { state: 'ready', data: [{ code: 'STJ', searchable: true, name: 'STJ' }] },
-  recentSearches: { state: 'empty', data: [] }, searchIntent: null, searchCostCents: 20,
-  searchBusy: false, searchFailure: null, searchExecution: {
-    intent: { query: 'teste', court: 'STJ' }, resultCount: 1, chargedCents: 20,
-    results: [{ id: 'synthetic', court: 'STJ', processNumber: 'REsp 123', ementa: 'Decisão sintética', sourceAuthority: { id: 'synthetic' }, sourceUrl: 'https://stj.jus.br', verificationStatus: 'UNVERIFIED' }],
-  },
-}) }));
-afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
+vi.mock('../context/AppContext', () => ({
+  useApp: () => ({
+    tribunals: { state: 'ready', data: [{ code: 'STJ', searchable: true, name: 'STJ' }] },
+    recentSearches: { state: 'empty', data: [] },
+    searchIntent: null,
+    searchCostCents: 20,
+    searchBusy: false,
+    searchFailure: null,
+    searchExecution: {
+      intent: { query: 'teste', court: 'STJ' },
+      resultCount: 1,
+      chargedCents: 20,
+      results: [
+        {
+          id: 'synthetic',
+          court: 'STJ',
+          processNumber: 'REsp 123',
+          ementa: 'Decisão sintética',
+          sourceAuthority: { id: 'synthetic' },
+          sourceUrl: 'https://stj.jus.br',
+          verificationStatus: 'UNVERIFIED',
+        },
+      ],
+    },
+  }),
+}));
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.resetModules();
+});
 // Compile the dependency graph during module collection, outside hook/test timers.
 // Each case still reloads modules so both flag configurations are independent.
 await Promise.all([
-  import('./LandingScreen'), import('./ResearchDeskScreen'), import('./ConnectionsScreen'),
-  import('../components/Header'), import('../components/Sidebar'),
+  import('./LandingScreen'),
+  import('./ResearchDeskScreen'),
+  import('./ConnectionsScreen'),
+  import('../components/Header'),
+  import('../components/Sidebar'),
 ]);
 describe('atalhos de casos nas telas preservadas', () => {
   it.each([false, true])('respeita flag casesEnabled=%s em resultados e conexão', async (enabled) => {
@@ -27,7 +51,14 @@ describe('atalhos de casos nas telas preservadas', () => {
     const { Header } = await import('../components/Header');
     const { Sidebar } = await import('../components/Sidebar');
     const header = renderToStaticMarkup(React.createElement(Header, { menuOpen: false, onMenuToggle: () => {} }));
-    const sidebar = renderToStaticMarkup(React.createElement(Sidebar, { activeTab: 'connections', mobileOpen: true, onCloseMobile: () => {}, onSelect: () => {} }));
+    const sidebar = renderToStaticMarkup(
+      React.createElement(Sidebar, {
+        activeTab: 'connections',
+        mobileOpen: true,
+        onCloseMobile: () => {},
+        onSelect: () => {},
+      }),
+    );
     for (const html of [header, sidebar]) {
       for (const label of ['>Casos<', '>Rascunhos<', '>Revisão<']) expect(html.includes(label)).toBe(enabled);
       expect(html).toContain('Pesquisa');

@@ -4,8 +4,11 @@ export interface ReviewPoint {
   check: DraftReviewCheck;
   finding?: DraftReviewFinding;
 }
-export function groupReviewChecks(checks:DraftReviewCheck[]) {
-  return {attention:checks.filter(c=>c.state!=='CONFIRMED'&&c.state!=='NOT_APPLICABLE'),confirmed:checks.filter(c=>c.state==='CONFIRMED'||c.state==='NOT_APPLICABLE')};
+export function groupReviewChecks(checks: DraftReviewCheck[]) {
+  return {
+    attention: checks.filter((c) => c.state !== 'CONFIRMED' && c.state !== 'NOT_APPLICABLE'),
+    confirmed: checks.filter((c) => c.state === 'CONFIRMED' || c.state === 'NOT_APPLICABLE'),
+  };
 }
 export function reviewSummary(run?: DraftReviewRun): string {
   if (!run) return 'Conferência pendente';

@@ -29,9 +29,16 @@ describe('indexação pública', () => {
     const xml = readFileSync('apps/web/public/sitemap.xml', 'utf8');
     const urls = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((match) => match[1]);
     expect(urls).toEqual(
-      ['/', '/produto', '/como-funciona', '/integracoes', '/creditos', '/guia', '/consulta-processual', '/desenvolvedores/api'].map(
-        (path) => `https://nexojuris.ia.br${path}`,
-      ),
+      [
+        '/',
+        '/produto',
+        '/como-funciona',
+        '/integracoes',
+        '/creditos',
+        '/guia',
+        '/consulta-processual',
+        '/desenvolvedores/api',
+      ].map((path) => `https://nexojuris.ia.br${path}`),
     );
     expect(xml).not.toMatch(/\/app|\/entrar|\/cadastro|billing_purchase|callback|hml\./);
   });

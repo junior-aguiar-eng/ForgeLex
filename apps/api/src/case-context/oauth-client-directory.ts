@@ -28,13 +28,11 @@ export class SessionOAuthClientDirectory implements OAuthClientDirectory {
         signal: AbortSignal.timeout(5000),
       });
       if (!response.ok) throw new Error();
-      return grants
-        .parse(await response.json())
-        .map((g) => ({
-          clientId: g.client.id,
-          displayName: g.client.name || 'Aplicativo autorizado',
-          grantedAt: g.granted_at,
-        }));
+      return grants.parse(await response.json()).map((g) => ({
+        clientId: g.client.id,
+        displayName: g.client.name || 'Aplicativo autorizado',
+        grantedAt: g.granted_at,
+      }));
     } catch {
       throw new Error('OAUTH_DIRECTORY_UNAVAILABLE: Não foi possível consultar os aplicativos autorizados.');
     }
