@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, lte } from 'drizzle-orm';
 import {
   AccountRepository,
   AgenticWorkspaceRepository,
@@ -18,7 +18,7 @@ import {
   type AgenticTaskDelivery,
 } from '@forgelex/domain';
 import { ExecutionService, StartExecutionSchema } from './execution-service.js';
-import { digest, type ExecutionJob } from './execution-store.js';
+import { digest } from './execution-store.js';
 import { createCommercialOpenAIRuntime, COMMERCIAL_MODEL } from './commercial-provider.js';
 import type { NativeCaseTaskOptions } from './case-task-driver.js';
 
@@ -63,6 +63,7 @@ export function hasUsableResult(delivery: AgenticTaskDelivery, actionId?: string
   );
 }
 
+const finished = ['COMPLETED', 'FAILED', 'CANCELLED', 'WAITING_USER'];
 export async function createCommercialRuntime(
   db: ForgeLexDatabase,
   client: Client,
@@ -209,16 +210,29 @@ export async function createCommercialRuntime(
     }
   };
   const sweepAdmissions = async () => {
-    // The persisted index is only a candidate list; expireAdmission rechecks every field atomically.
-    for (const row of await db.select().from(agenticExecutionJobs).where(eq(agenticExecutionJobs.state, 'WAITING'))) {
-      const job = JSON.parse(row.payloadJson) as ExecutionJob;
-      if (job.admissionExpiresAt === null) continue;
-      const deadline = job.admissionExpiresAt ?? new Date(Date.parse(job.createdAt) + 120000).toISOString();
-      if (deadline > new Date().toISOString()) continue;
-      const owner = { tenantId: row.tenantId, userId: row.userId };
-      const execution = await repo.getExecution(owner, row.executionId);
-      if (!canManageExecution(execution) || execution!.status !== 'QUEUED') continue;
-      await service.expireAdmission(owner, row.executionId);
+    // Only jobs whose admission deadline has passed are fetched: the column is null once admitted and for jobs
+    // waiting on a person. expireAdmission rechecks every field atomically before cancelling anything.
+    for (let page = 0; page < 20; page++) {
+      const due = await db
+        .select()
+        .from(agenticExecutionJobs)
+        .where(
+          and(
+            eq(agenticExecutionJobs.state, 'WAITING'),
+            isNotNull(agenticExecutionJobs.admissionExpiresAt),
+            lte(agenticExecutionJobs.admissionExpiresAt, new Date().toISOString()),
+          ),
+        )
+        .orderBy(asc(agenticExecutionJobs.admissionExpiresAt))
+        .limit(100)
+        .offset(page * 100);
+      for (const row of due) {
+        const owner = { tenantId: row.tenantId, userId: row.userId };
+        const execution = await repo.getExecution(owner, row.executionId);
+        if (!canManageExecution(execution) || execution!.status !== 'QUEUED') continue;
+        await service.expireAdmission(owner, row.executionId);
+      }
+      if (due.length < 100) return;
     }
   };
   return {
@@ -271,27 +285,17 @@ export async function createCommercialRuntime(
     /** Startup recovery respects healthy admission leases; recurring sweeps handle later crashes. */
     async recover() {
       await sweepAdmissions();
-      for (const row of await db.select().from(agenticExecutionJobs)) {
-        const owner = { tenantId: row.tenantId, userId: row.userId },
-          execution = await repo.getExecution(owner, row.executionId);
-        if (!canManageExecution(execution)) continue;
-        const job = JSON.parse(row.payloadJson) as ExecutionJob;
-        if (
-          ['COMPLETED', 'FAILED', 'CANCELLED', 'WAITING_USER'].includes(execution!.status) &&
-          !job.budgetReleasePending &&
-          (await finance.getReceipt(owner, row.executionId))?.status === 'ACTIVE'
-        ) {
-          await service.store.atomic(owner, async (store) => {
-            const current = await store.getJob(owner, row.executionId);
-            const live = await store.workspace.getExecution(owner, row.executionId);
-            if (
-              live &&
-              ['COMPLETED', 'FAILED', 'CANCELLED', 'WAITING_USER'].includes(live.status) &&
-              !current.budgetReleasePending
-            )
-              await store.saveJob({ ...current, budgetReleasePending: true, budgetReleaseNextAt: null });
-          });
-        }
+      // Only a still-open reservation can need a release, so recovery starts from those, not from every job.
+      for (const receipt of await finance.listAllActive()) {
+        const owner = { tenantId: receipt.tenantId, userId: receipt.userId },
+          execution = await repo.getExecution(owner, receipt.executionId);
+        if (!canManageExecution(execution) || !finished.includes(execution!.status)) continue;
+        await service.store.atomic(owner, async (store) => {
+          const current = await store.getJob(owner, receipt.executionId);
+          const live = await store.workspace.getExecution(owner, receipt.executionId);
+          if (live && finished.includes(live.status) && !current.budgetReleasePending)
+            await store.saveJob({ ...current, budgetReleasePending: true, budgetReleaseNextAt: null });
+        });
       }
     },
   };

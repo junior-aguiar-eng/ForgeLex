@@ -600,3 +600,16 @@ it('falha de liquidação do orçamento é registrada sem dados livres e a limpe
     spy.mockRestore();
   }
 });
+
+it('eventsChanged só indica mudança com evento novo ou execução terminal, sem travar o tenant', async () => {
+  const f = await fixture();
+  const run = await f.service.startExecution(owner, 'probe', input);
+  const { cursor } = await f.service.listClientEvents(owner, run.id, 0);
+  expect(await f.service.eventsChanged(owner, run.id, 0)).toBe(true);
+  expect(await f.service.eventsChanged(owner, run.id, cursor)).toBe(false);
+  await f.service.cancelExecution(owner, run.id, 'probe-cancel');
+  expect(await f.service.eventsChanged(owner, run.id, cursor)).toBe(true);
+  await expect(f.service.eventsChanged({ ...owner, userId: 'other' }, run.id, 0)).rejects.toThrow(
+    'EXECUTION_NOT_FOUND',
+  );
+});
