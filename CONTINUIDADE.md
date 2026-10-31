@@ -7,6 +7,18 @@ Boni é o único avaliador e aprovador humano do projeto, por decisão expressa
 de 10/10/2026. Nenhuma frente depende de segundo revisor ou parecer de terceiro;
 aplica-se [AGENTS.md](AGENTS.md), inclusive sobre exigências de planos antigos.
 
+## Plataforma agêntica — estado em 31/10/2026
+
+A transição agêntica, antes suspensa, foi retomada e está **integrada à `main`**:
+a mesa em conversa única, com conversas recentes (PRs #89 e #91), e a execução
+comercial com cobrança por trabalho. A revisão técnica de 30/10 e as correções
+dela (stream de eventos, conciliação de chamada comercial incerta, cobrança,
+logs) estão na PR #87, na #88 e na #90 (dependências). O texto da revisão está em
+[REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md](REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md).
+**Publicação e ativação da execução comercial não foram feitas por este registro**:
+dependem de recibo próprio de Boni (backup, migrations, flags, chave no gerenciador
+de segredos e configuração da instância). Pendências em [PENDENCIAS.md](PENDENCIAS.md).
+
 ## Dependências de segurança — publicadas em 24/10/2026
 
 PR #78 integrada em main `6499eb0`; seis checks aprovados na PR e
@@ -169,7 +181,7 @@ Cloud SQL, Supabase e grants preservada; sem migration remota nesta publicação
 | Plano/frente | Estado atual |
 | --- | --- |
 | Simplificação do fluxo de casos (10/10, artefatos locais anteriores) | Suspenso; histórico e trabalho local preservados |
-| Mesa/orquestração jurídica V2 e transição agêntica (10/10) | Suspensas como execução; visão histórica preservada |
+| Mesa/orquestração jurídica V2 e transição agêntica (10/10) | Retomadas em 30–31/10: mesa única e execução comercial integradas (ver seção acima); a visão V2 original segue como referência histórica |
 | Apresentação visual de decisões MCP (11/10) | Publicada pela PR #68; leitor comprovado no ChatGPT e Claude Web/Desktop; limites da coleção registrados no ensaio de 12/10 |
 | Ocultação do site (11/10) | Publicada pela PR #66; validação técnica em produção registrada; avaliação humana por Boni |
 

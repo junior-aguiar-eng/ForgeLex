@@ -1,4 +1,5 @@
 import { AgenticExecutionSchema } from '@forgelex/domain';
+import { COMMERCIAL_POLICY } from '@forgelex/billing-ledger';
 import type { Client } from '@forgelex/persistence';
 import type { ExecutionJob } from '../agentic-workspace/execution-store.js';
 
@@ -25,7 +26,7 @@ export async function drainCommercialClosureJobs(client: Pick<Client, 'execute'>
       execution.id !== row.execution_id ||
       execution.authorizationId !== `commercial:${finance.policyVersion}` ||
       execution.provider !== 'openai' ||
-      execution.model !== 'gpt-6.1-sol' ||
+      execution.model !== COMMERCIAL_POLICY.model ||
       finance.executionId !== execution.id ||
       finance.tenantId !== tenantId ||
       finance.userId !== execution.userId ||
