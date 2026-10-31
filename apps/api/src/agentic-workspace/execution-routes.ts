@@ -21,6 +21,8 @@ export interface AgenticWorkspaceRuntimeOptions {
   scheduler?: boolean;
   pollMs?: number;
   leaseMs?: number;
+  /** Admission cleanup cadence; defaults to 5 s, or to every tick when `pollMs` is tuned (tests). */
+  sweepMs?: number;
 }
 const STREAM_AUTH_FAILURE_LIMIT = 3;
 export function registerAgenticWorkspace(
@@ -65,10 +67,13 @@ export function registerAgenticWorkspace(
     : undefined;
   const report = throttledReporter();
   let running = false;
-  let sweeping = false;
+  let sweeping = false,
+    lastSweepAt = 0;
+  const sweepMs = deps.options?.sweepMs ?? (deps.options?.pollMs === undefined ? 5000 : 0);
   const sweep = async () => {
-    if (!commercial || sweeping) return;
+    if (!commercial || sweeping || Date.now() - lastSweepAt < sweepMs) return;
     sweeping = true;
+    lastSweepAt = Date.now();
     try {
       await commercial.sweepAdmissions();
     } catch (error) {
