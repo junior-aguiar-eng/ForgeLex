@@ -36,11 +36,10 @@ do código; o único provado por execução está marcado.
   SQL manual.
 - O comportamento é intencional e coberto por teste
   (`commercial-inference-service.test.ts:207-217`), mas "cancelar" é ação comum do cliente.
-- Agrava: `responseUsage` exige `r.model === 'gpt-6.1-sol'` exato (`provider-transport.ts:37`).
-  Se a API devolver o ID datado do modelo, toda chamada paga vira resposta inválida → incerta →
-  conta bloqueada. Não verifiquei contra a API real.
 - Sugestão: ferramenta operacional de conciliação (Boni) e distinguir cancelamento do usuário
   (abortar antes de ler a resposta ≠ custo desconhecido) de falha real.
+- Verificado depois: as 116 respostas da homologação real (`docs/architecture/evidence`) trazem
+  `model` exatamente `gpt-6.1-sol`; a suspeita de ID datado do modelo não se confirmou.
 
 ### MÉDIA
 
@@ -144,3 +143,16 @@ só é exercitado em SQLite em memória no `vitest`.
 Não validei: comportamento real da API OpenAI, deploy/Cloud Run, os quatro smokes com Docker,
 nem a qualidade jurídica das entregas. Achados M2–M9 e A1 são por leitura de código (A1 com apoio
 nos testes existentes); M1 foi reproduzido por teste descartável.
+
+## 6. Correções aplicadas (30–31/10/2026)
+
+| Achado | Correção |
+| --- | --- |
+| M1 | O stream tolera falhas de verificação isoladas e só encerra após 3 consecutivas ou se a identidade mudar (`execution-routes.ts`). Se chegar `ACCESS_REVOKED` no meio do stream, o cliente reconecta, e uma revogação real é recusada pela própria conexão. Testes de API (falham sem a correção) e E2E novo. |
+| M8 | Stream estável (≥ 10 s) zera o contador de reconexão (`streamRetries`). |
+| A1 | Ferramenta de conciliação: `CommercialInferenceService.reconcileCall`/`listUnresolvedCalls` e `scripts/reconcile-commercial-call.mjs` (lista, dry-run e `--apply`), restrita a chamadas UNCERTAIN, com evidência obrigatória, sem cobrança ao cliente. Procedimento em `docs/operations/agentic-workspace/commercial-execution.md`. |
+
+**A1 — o que não mudou, por decisão que cabe a Boni:** cancelar ou reiniciar durante uma chamada
+continua marcando-a UNCERTAIN e bloqueando o tenant até a conciliação. Sem prova do consumo, não há
+base para tratar cancelamento como custo zero. Se quiser reduzir a frequência do bloqueio, a política
+precisa ser definida (por exemplo, conciliação automática por consulta ao registro de uso do provedor).

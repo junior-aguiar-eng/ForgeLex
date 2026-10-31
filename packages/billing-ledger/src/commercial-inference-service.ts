@@ -56,6 +56,17 @@ export interface CommercialCall {
   usage?: { inputTokens: number; outputTokens: number; cachedInputTokens: number };
   authorizedAt: string;
   settledAt?: string;
+  /** Operator evidence that resolved an UNCERTAIN call; never a customer charge. */
+  reconciliation?: { evidenceRef: string; resolvedAt: string };
+}
+export interface UnresolvedCommercialCall {
+  tenantId: string;
+  userId: string;
+  executionId: string;
+  callId: string;
+  status: 'AUTHORIZED' | 'UNCERTAIN';
+  upperBoundMicroUsd: number;
+  authorizedAt: string;
 }
 export interface CommercialReceipt {
   executionId: string;
@@ -488,39 +499,48 @@ export class CommercialInferenceService {
     callId: string,
     raw: z.infer<typeof usageInput>,
   ): Promise<CommercialCall> {
-    const usage = usageInput.parse(raw),
-      usageHash = hash({ ...usage, cachedInputTokens: usage.cachedInputTokens ?? 0 });
-    return this.locked(owner, async (db) => {
-      const record = await this.record(db, owner, executionId),
-        calls = await this.calls(db, owner, executionId),
-        call = calls.find((c) => c.callId === callId);
-      if (!call) throw new Error('COMMERCIAL_CALL_NOT_FOUND');
-      if (call.status === 'VOID') throw new Error('COMMERCIAL_CALL_NOT_DISPATCHED');
-      if (call.status === 'SETTLED') {
-        if (call.usageHash !== usageHash) throw new Error('IDEMPOTENCY_CONFLICT');
-        return call;
-      }
-      const actual = providerPrice(record.policy, usage.inputTokens, usage.outputTokens, usage.cachedInputTokens);
-      if (
-        usage.inputTokens > call.inputTokens ||
-        usage.outputTokens > call.maxOutputTokens ||
-        actual > call.upperBoundMicroUsd
-      )
-        throw new Error('COMMERCIAL_USAGE_INVALID');
-      call.status = 'SETTLED';
-      call.actualMicroUsd = actual;
-      call.usageHash = usageHash;
-      call.usage = { ...usage, cachedInputTokens: usage.cachedInputTokens ?? 0 };
-      call.settledAt = this.now();
-      await this.saveCall(db, call);
-      record.measuredMicroUsd = calls.reduce((sum, c) => sum + (c.actualMicroUsd ?? 0), 0);
-      record.uncertainMicroUsd = calls
-        .filter((c) => c.status === 'UNCERTAIN')
-        .reduce((sum, c) => sum + c.upperBoundMicroUsd, 0);
-      // Late reconciliation resolves only operational liability; it never creates a new customer charge.
-      await this.save(db, record);
+    const usage = usageInput.parse(raw);
+    return this.locked(owner, (db) => this.applySettle(db, owner, executionId, callId, usage));
+  }
+  private async applySettle(
+    db: ForgeLexDatabase,
+    owner: AgenticOwner,
+    executionId: string,
+    callId: string,
+    usage: z.infer<typeof usageInput>,
+    evidenceRef?: string,
+  ): Promise<CommercialCall> {
+    const usageHash = hash({ ...usage, cachedInputTokens: usage.cachedInputTokens ?? 0 });
+    const record = await this.record(db, owner, executionId),
+      calls = await this.calls(db, owner, executionId),
+      call = calls.find((c) => c.callId === callId);
+    if (!call) throw new Error('COMMERCIAL_CALL_NOT_FOUND');
+    if (call.status === 'VOID') throw new Error('COMMERCIAL_CALL_NOT_DISPATCHED');
+    if (call.status === 'SETTLED') {
+      if (call.usageHash !== usageHash) throw new Error('IDEMPOTENCY_CONFLICT');
       return call;
-    });
+    }
+    const actual = providerPrice(record.policy, usage.inputTokens, usage.outputTokens, usage.cachedInputTokens);
+    if (
+      usage.inputTokens > call.inputTokens ||
+      usage.outputTokens > call.maxOutputTokens ||
+      actual > call.upperBoundMicroUsd
+    )
+      throw new Error('COMMERCIAL_USAGE_INVALID');
+    call.status = 'SETTLED';
+    call.actualMicroUsd = actual;
+    call.usageHash = usageHash;
+    call.usage = { ...usage, cachedInputTokens: usage.cachedInputTokens ?? 0 };
+    call.settledAt = this.now();
+    if (evidenceRef) call.reconciliation = { evidenceRef, resolvedAt: call.settledAt };
+    await this.saveCall(db, call);
+    record.measuredMicroUsd = calls.reduce((sum, c) => sum + (c.actualMicroUsd ?? 0), 0);
+    record.uncertainMicroUsd = calls
+      .filter((c) => c.status === 'UNCERTAIN')
+      .reduce((sum, c) => sum + c.upperBoundMicroUsd, 0);
+    // Late reconciliation resolves only operational liability; it never creates a new customer charge.
+    await this.save(db, record);
+    return call;
   }
   async markUncertain(owner: AgenticOwner, executionId: string, callId: string): Promise<CommercialCall> {
     return this.locked(owner, async (db) => {
@@ -540,22 +560,80 @@ export class CommercialInferenceService {
   }
   /** Trusted transport must establish that no HTTP request was sent; never use for a timeout. */
   async markNotDispatched(owner: AgenticOwner, executionId: string, callId: string): Promise<CommercialCall> {
+    return this.locked(owner, (db) => this.applyVoid(db, owner, executionId, callId));
+  }
+  private async applyVoid(
+    db: ForgeLexDatabase,
+    owner: AgenticOwner,
+    executionId: string,
+    callId: string,
+    evidenceRef?: string,
+  ): Promise<CommercialCall> {
+    const record = await this.record(db, owner, executionId),
+      calls = await this.calls(db, owner, executionId),
+      call = calls.find((c) => c.callId === callId);
+    if (!call) throw new Error('COMMERCIAL_CALL_NOT_FOUND');
+    if (call.status === 'VOID') return call;
+    if (call.status !== 'AUTHORIZED' && call.status !== 'UNCERTAIN')
+      throw new Error('COMMERCIAL_CALL_ALREADY_DISPATCHED');
+    call.status = 'VOID';
+    call.actualMicroUsd = 0;
+    if (evidenceRef) call.reconciliation = { evidenceRef, resolvedAt: this.now() };
+    await this.saveCall(db, call);
+    record.uncertainMicroUsd = calls
+      .filter((c) => c.status === 'UNCERTAIN')
+      .reduce((sum, c) => sum + c.upperBoundMicroUsd, 0);
+    await this.save(db, record);
+    return call;
+  }
+  /** Read-only operator diagnosis of what blocks an account. Carries no hashes, usage or legal content. */
+  async listUnresolvedCalls(tenantId: string): Promise<UnresolvedCommercialCall[]> {
+    z.string().trim().min(1).max(200).parse(tenantId);
+    const rows = await this.db.select().from(commercialCalls).where(eq(commercialCalls.tenantId, tenantId));
+    return rows
+      .filter((row) => row.status === 'AUTHORIZED' || row.status === 'UNCERTAIN')
+      .map((row) => {
+        const call: CommercialCall = JSON.parse(row.payloadJson);
+        return {
+          tenantId: call.tenantId,
+          userId: call.userId,
+          executionId: call.executionId,
+          callId: call.callId,
+          status: call.status as 'AUTHORIZED' | 'UNCERTAIN',
+          upperBoundMicroUsd: call.upperBoundMicroUsd,
+          authorizedAt: call.authorizedAt,
+        };
+      });
+  }
+  /**
+   * Operator-only resolution of an UNCERTAIN call, backed by external evidence (provider usage records).
+   * Never reachable from a client route. In-flight AUTHORIZED calls cannot be resolved here.
+   */
+  async reconcileCall(
+    owner: AgenticOwner,
+    executionId: string,
+    callId: string,
+    raw: {
+      evidenceRef: string;
+      resolution: { kind: 'NOT_DISPATCHED' } | { kind: 'USAGE'; usage: z.infer<typeof usageInput> };
+    },
+  ): Promise<CommercialCall> {
+    const input = z
+      .object({
+        evidenceRef: z.string().trim().min(8).max(200),
+        resolution: z.discriminatedUnion('kind', [
+          z.object({ kind: z.literal('NOT_DISPATCHED') }),
+          z.object({ kind: z.literal('USAGE'), usage: usageInput }),
+        ]),
+      })
+      .parse(raw);
     return this.locked(owner, async (db) => {
-      const record = await this.record(db, owner, executionId),
-        calls = await this.calls(db, owner, executionId),
-        call = calls.find((c) => c.callId === callId);
+      const call = (await this.calls(db, owner, executionId)).find((c) => c.callId === callId);
       if (!call) throw new Error('COMMERCIAL_CALL_NOT_FOUND');
-      if (call.status === 'VOID') return call;
-      if (call.status !== 'AUTHORIZED' && call.status !== 'UNCERTAIN')
-        throw new Error('COMMERCIAL_CALL_ALREADY_DISPATCHED');
-      call.status = 'VOID';
-      call.actualMicroUsd = 0;
-      await this.saveCall(db, call);
-      record.uncertainMicroUsd = calls
-        .filter((c) => c.status === 'UNCERTAIN')
-        .reduce((sum, c) => sum + c.upperBoundMicroUsd, 0);
-      await this.save(db, record);
-      return call;
+      if (call.status !== 'UNCERTAIN') throw new Error('COMMERCIAL_CALL_NOT_UNCERTAIN');
+      return input.resolution.kind === 'NOT_DISPATCHED'
+        ? this.applyVoid(db, owner, executionId, callId, input.evidenceRef)
+        : this.applySettle(db, owner, executionId, callId, input.resolution.usage, input.evidenceRef);
     });
   }
   private async entry(

@@ -484,3 +484,57 @@ it('starts time cap at first call, measures cached tokens and preserves promotio
   const expired = await f.client.execute("SELECT amount_cents FROM ledger_entries WHERE kind='EXPIRATION'");
   expect(expired.rows[0]?.amount_cents).toBe(400);
 });
+
+it.each([
+  ['NOT_DISPATCHED', { kind: 'NOT_DISPATCHED' as const }, 0],
+  ['USAGE', { kind: 'USAGE' as const, usage }, 12000],
+])(
+  'operator reconciliation %s unblocks the account, keeps the evidence and never charges',
+  async (_name, resolution, measured) => {
+    const f = await fixture();
+    const a = await f.execution();
+    await f.service.reserve(owner, a);
+    await f.service.authorizeCall(owner, a.executionId, quote);
+    await f.service.markUncertain(owner, a.executionId, quote.callId);
+    await f.service.finalize(owner, a.executionId, { usableDelivery: false, outcome: 'CANCELLED' });
+    expect(await f.service.listUnresolvedCalls(owner.tenantId)).toEqual([
+      expect.objectContaining({ executionId: a.executionId, callId: quote.callId, status: 'UNCERTAIN' }),
+    ]);
+    const b = await f.execution();
+    await expect(f.service.reserve(owner, b)).rejects.toThrow('COMMERCIAL_RECONCILIATION_REQUIRED');
+    const call = await f.service.reconcileCall(owner, a.executionId, quote.callId, {
+      evidenceRef: 'openai-usage-2026-10-30',
+      resolution,
+    });
+    expect(call.reconciliation).toMatchObject({ evidenceRef: 'openai-usage-2026-10-30' });
+    expect(await f.service.listUnresolvedCalls(owner.tenantId)).toEqual([]);
+    expect(await f.service.getReceipt(owner, a.executionId)).toMatchObject({
+      measuredMicroUsd: measured,
+      uncertainMicroUsd: 0,
+      chargedCents: 0,
+      releasedCents: 500,
+    });
+    await expect(f.service.reserve(owner, b)).resolves.toMatchObject({ status: 'ACTIVE' });
+  },
+);
+it('operator reconciliation refuses in-flight, missing-evidence and already-settled calls', async () => {
+  const f = await fixture();
+  const a = await f.execution();
+  await f.service.reserve(owner, a);
+  await f.service.authorizeCall(owner, a.executionId, quote);
+  const resolution = { kind: 'NOT_DISPATCHED' as const };
+  await expect(
+    f.service.reconcileCall(owner, a.executionId, quote.callId, { evidenceRef: 'openai-usage-2026-10-30', resolution }),
+  ).rejects.toThrow('COMMERCIAL_CALL_NOT_UNCERTAIN');
+  await f.service.markUncertain(owner, a.executionId, quote.callId);
+  await expect(
+    f.service.reconcileCall(owner, a.executionId, quote.callId, { evidenceRef: 'x', resolution }),
+  ).rejects.toThrow();
+  await f.service.reconcileCall(owner, a.executionId, quote.callId, {
+    evidenceRef: 'openai-usage-2026-10-30',
+    resolution: { kind: 'USAGE', usage },
+  });
+  await expect(
+    f.service.reconcileCall(owner, a.executionId, quote.callId, { evidenceRef: 'openai-usage-2026-10-30', resolution }),
+  ).rejects.toThrow('COMMERCIAL_CALL_NOT_UNCERTAIN');
+});
