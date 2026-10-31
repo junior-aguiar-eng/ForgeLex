@@ -9,6 +9,7 @@ import {
 } from '@forgelex/persistence';
 import { CommercialInferenceService, COMMERCIAL_POLICY_VERSION } from '@forgelex/billing-ledger';
 import { NativeCaseContextService, type AuthorizeNativeTask } from '@forgelex/legal-tools';
+import { CASE_TASK_LIMITATION_CODES } from '@forgelex/legal-workflows';
 import {
   LegalAnswerSchema,
   type AgenticOwner,
@@ -40,30 +41,9 @@ export interface CommercialRuntimeDependencies {
 }
 export type CommercialRuntime = Awaited<ReturnType<typeof createCommercialRuntime>>;
 
-// These records describe a limitation, not a completed analysis or review finding.
-const limitationCodes = new Set([
-  'DOCUMENT_NOT_PRODUCED',
-  'SEARCH_NO_RESULTS',
-  'NORMATIVE_SOURCE_LIMITED',
-  'AUTHORITY_UNCONFIRMED',
-  'SOURCE_UNAVAILABLE',
-  'USER_UNKNOWN',
-  'CONFLICT_UNRESOLVED',
-  'REQUIRED_RESEARCH_NOT_PERFORMED',
-  'NORMATIVE_SOURCE_MISSING',
-  'MATERIAL_ISSUE_OMITTED',
-  'UNSUPPORTED_CLAIM',
-  'AUTHORITY_IDENTITY_UNCONFIRMED',
-  'CITATION_WITHOUT_SUPPORT',
-  'EDITORIAL_REQUIREMENT_UNVERIFIED',
-  'PROCEDURAL_REQUIREMENT_UNVERIFIED',
-  'PROCEDURAL_REQUIREMENTS_NOT_EVALUATED',
-  'LEGAL_APPLICABILITY_NOT_EVALUATED',
-  'AUTHORITY_SCOPE_LIMIT',
-  'DOCUMENT_TYPE_UNCONFIRMED',
-  'UNSUPPORTED_SECTION',
-]);
-function hasUsableResult(delivery: AgenticTaskDelivery, actionId?: string) {
+// Workflow findings state a limitation, not a completed analysis or review finding.
+const limitationCodes = new Set<string>(CASE_TASK_LIMITATION_CODES);
+export function hasUsableResult(delivery: AgenticTaskDelivery, actionId?: string) {
   if (actionId && delivery.action !== actionId) return false;
   if (delivery.action === 'create_document') return Boolean(delivery.document?.sections.length);
   const grounded = (item: { sourceIds: string[] }) =>
@@ -270,6 +250,9 @@ export async function createCommercialRuntime(
       const execution = await repo.getExecution(owner, id);
       if (!canManageExecution(execution)) throw new Error('EXECUTION_NOT_FOUND');
       await authorizeOwner(owner, execution!.matterId ?? undefined, db);
+      // Answering cancels the waiting execution and consumes its question. Refuse up front what the
+      // reservation would refuse afterwards (balance, limits, reconciliation) so the question survives.
+      if (kind === 'answer') await finance.assertCanAdmit(owner, id);
       let next;
       let parsed: unknown;
       if (kind === 'continue') {

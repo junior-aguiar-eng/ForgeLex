@@ -538,3 +538,39 @@ it('operator reconciliation refuses in-flight, missing-evidence and already-sett
     f.service.reconcileCall(owner, a.executionId, quote.callId, { evidenceRef: 'openai-usage-2026-10-30', resolution }),
   ).rejects.toThrow('COMMERCIAL_CALL_NOT_UNCERTAIN');
 });
+
+it('work with measured provider usage but no charge still counts against the daily limit', async () => {
+  const f = await fixture();
+  const heavy = { callId: 'heavy', inputTokens: 100000, maxOutputTokens: 2048, upperBoundMicroUsd: 250000 };
+  const heavyUsage = { inputTokens: 100000, outputTokens: 2048 };
+  for (let run = 0; run < 4; run++) {
+    const input = await f.execution();
+    await f.service.reserve(owner, input);
+    await f.service.authorizeCall(owner, input.executionId, heavy);
+    await f.service.settleCall(owner, input.executionId, heavy.callId, heavyUsage);
+    expect(
+      await f.service.finalize(owner, input.executionId, { usableDelivery: false, outcome: 'FAILED' }),
+    ).toMatchObject({ chargedCents: 0, releasedCents: 500 });
+  }
+  await expect(f.service.reserve(owner, await f.execution())).rejects.toThrow('COMMERCIAL_DAILY_LIMIT');
+  expect((await f.service.quote(owner)).availableCents).toBe(20000);
+});
+it('work without any provider usage does not count against the limits', async () => {
+  const f = await fixture();
+  for (let run = 0; run < 6; run++) {
+    const input = await f.execution();
+    await f.service.reserve(owner, input);
+    await f.service.finalize(owner, input.executionId, { usableDelivery: false, outcome: 'CANCELLED' });
+  }
+  await expect(f.service.reserve(owner, await f.execution())).resolves.toMatchObject({ status: 'ACTIVE' });
+});
+it('the answer preflight applies the reservation rules without reserving', async () => {
+  const f = await fixture(100);
+  await expect(f.service.assertCanAdmit(owner)).rejects.toThrow('BILLING_INSUFFICIENT_BALANCE');
+  const rich = await fixture();
+  await expect(rich.service.assertCanAdmit(owner)).resolves.toBeUndefined();
+  const a = await rich.execution();
+  await rich.service.reserve(owner, a);
+  await expect(rich.service.assertCanAdmit(owner)).rejects.toThrow('COMMERCIAL_EXECUTION_ACTIVE');
+  await expect(rich.service.assertCanAdmit(owner, a.executionId)).resolves.toBeUndefined();
+});

@@ -156,3 +156,10 @@ nos testes existentes); M1 foi reproduzido por teste descartável.
 continua marcando-a UNCERTAIN e bloqueando o tenant até a conciliação. Sem prova do consumo, não há
 base para tratar cancelamento como custo zero. Se quiser reduzir a frequência do bloqueio, a política
 precisa ser definida (por exemplo, conciliação automática por consulta ao registro de uso do provedor).
+
+| Achado | Correção (31/10/2026) |
+| --- | --- |
+| M4 | A resposta confere saldo, limites, execução ativa e conciliação (`assertCanAdmit`) **antes** de cancelar a execução e consumir a pergunta. Se faltar saldo, a pergunta continua respondível; teste falha sem a correção. Não resolvido: a sucessora ainda reinicia sem checkpoint, porque a resposta muda o contexto e invalida o estado anterior. |
+| M5 | Trabalho sem cobrança, mas com consumo medido, conta nos limites diário/mensal pelo preço que teria. Trabalho sem consumo não conta. **Muda o comportamento visível dos limites; política a confirmar por Boni.** Constantes 500/2000/10000 passaram a ler `COMMERCIAL_POLICY`. |
+| M6 | Lista única `CASE_TASK_LIMITATION_CODES` no workflow; `finding()` só aceita esses códigos (o compilador impede código novo sem classificação) e a cobrança lê a mesma lista. A regex para códigos emitidos pelo modelo foi mantida. |
+| M7 | Falhas engolidas passam a gerar log estruturado com código estável (`failure-log.ts`); ver `commercial-execution.md`. |

@@ -115,6 +115,16 @@ function priceForPolicy(policy: typeof COMMERCIAL_POLICY, microUsd: number): num
     Number((BigInt(microUsd) * BigInt(policy.centsPerUsd) + 999999n) / 1000000n) + policy.fixedCents,
   );
 }
+/**
+ * What an execution counts against the day/month limits. A reservation counts while active; afterwards the
+ * charge does. Work with measured provider usage but no charge still counts what it would have cost, so an
+ * account cannot consume unbounded unbilled inference by never reaching a usable delivery.
+ */
+function limitCents(r: CommercialRecord): number {
+  if (r.status === 'ACTIVE') return r.reservedCents;
+  if (r.chargedCents > 0 || r.measuredMicroUsd <= 0) return r.chargedCents;
+  return Math.min(r.reservedCents, priceForPolicy(r.policy, r.measuredMicroUsd));
+}
 function providerPrice(
   policy: {
     inputMicroUsdPerMillion: number;
@@ -294,11 +304,11 @@ export class CommercialInferenceService {
     return this.locked(owner, async (db, account) => ({
       currency: 'BRL',
       policyVersion: COMMERCIAL_POLICY_VERSION,
-      minCostCents: 50,
-      maxCostCents: 500,
+      minCostCents: COMMERCIAL_POLICY.minimumCents,
+      maxCostCents: COMMERCIAL_POLICY.reserveCents,
       availableCents: Math.max(0, await this.available(db, account)),
-      dailyLimitCents: 2000,
-      monthlyLimitCents: 10000,
+      dailyLimitCents: COMMERCIAL_POLICY.dailyLimitCents,
+      monthlyLimitCents: COMMERCIAL_POLICY.monthlyLimitCents,
     }));
   }
   async getReceipt(owner: AgenticOwner, executionId: string): Promise<CommercialReceipt | undefined> {
@@ -324,6 +334,38 @@ export class CommercialInferenceService {
           ),
         )
     ).map((row) => receipt(JSON.parse(row.payloadJson)));
+  }
+  /** Every condition that must hold before a new reservation; shared by reserve and the answer preflight. */
+  private async assertAdmissible(
+    db: ForgeLexDatabase,
+    account: typeof ledgerAccounts.$inferSelect,
+    records: CommercialRecord[],
+  ) {
+    await this.assertReconciled(db, account);
+    if (records.some((r) => r.status === 'ACTIVE')) throw new Error('COMMERCIAL_EXECUTION_ACTIVE');
+    const period = periods(this.now());
+    const spent = (key: 'day' | 'month') =>
+      records.reduce((sum, r) => sum + (periods(r.createdAt)[key] === period[key] ? limitCents(r) : 0), 0);
+    if (spent('day') + COMMERCIAL_POLICY.reserveCents > COMMERCIAL_POLICY.dailyLimitCents)
+      throw new Error('COMMERCIAL_DAILY_LIMIT');
+    if (spent('month') + COMMERCIAL_POLICY.reserveCents > COMMERCIAL_POLICY.monthlyLimitCents)
+      throw new Error('COMMERCIAL_MONTHLY_LIMIT');
+    if ((await this.available(db, account)) < COMMERCIAL_POLICY.reserveCents)
+      throw new Error('BILLING_INSUFFICIENT_BALANCE');
+  }
+  /**
+   * Read-only preflight for a command that destroys prior state before it can reserve (answering a question
+   * cancels the waiting execution). `answeringExecutionId` is skipped while its own reservation is still being
+   * settled, since that release happens inside the command and cannot be judged beforehand.
+   */
+  async assertCanAdmit(owner: AgenticOwner, answeringExecutionId?: string): Promise<void> {
+    await this.locked(owner, async (db, account) => {
+      const records: CommercialRecord[] = (
+        await db.select().from(commercialExecutions).where(eq(commercialExecutions.accountId, account.id))
+      ).map((row) => JSON.parse(row.payloadJson));
+      if (records.some((r) => r.executionId === answeringExecutionId && r.status === 'ACTIVE')) return;
+      await this.assertAdmissible(db, account, records);
+    });
   }
   async reserve(
     owner: AgenticOwner,
@@ -360,26 +402,10 @@ export class CommercialInferenceService {
         await db.select().from(commercialExecutions).where(eq(commercialExecutions.accountId, account.id))
       ).map((row) => JSON.parse(row.payloadJson));
       if (records.some((r) => r.executionId === input.executionId)) throw new Error('IDEMPOTENCY_CONFLICT');
-      await this.assertReconciled(db, account);
-      if (records.some((r) => r.status === 'ACTIVE')) throw new Error('COMMERCIAL_EXECUTION_ACTIVE');
-      const now = this.now(),
-        period = periods(now);
-      const spent = (key: 'day' | 'month') =>
-        records.reduce(
-          (sum, r) =>
-            sum +
-            (periods(r.createdAt)[key] === period[key]
-              ? r.status === 'ACTIVE'
-                ? r.reservedCents
-                : r.chargedCents
-              : 0),
-          0,
-        );
-      if (spent('day') + 500 > 2000) throw new Error('COMMERCIAL_DAILY_LIMIT');
-      if (spent('month') + 500 > 10000) throw new Error('COMMERCIAL_MONTHLY_LIMIT');
-      if ((await this.available(db, account)) < 500) throw new Error('BILLING_INSUFFICIENT_BALANCE');
-      const reservedPromoCents = Math.min(500, this.promo(account)),
-        reservedPaidCents = 500 - reservedPromoCents;
+      await this.assertAdmissible(db, account, records);
+      const now = this.now();
+      const reservedPromoCents = Math.min(COMMERCIAL_POLICY.reserveCents, this.promo(account)),
+        reservedPaidCents = COMMERCIAL_POLICY.reserveCents - reservedPromoCents;
       const record: CommercialRecord = {
         id: randomUUID(),
         ...owner,
@@ -390,7 +416,7 @@ export class CommercialInferenceService {
         currency: 'BRL',
         policyVersion: COMMERCIAL_POLICY_VERSION,
         policy: COMMERCIAL_POLICY,
-        reservedCents: 500,
+        reservedCents: COMMERCIAL_POLICY.reserveCents,
         chargedCents: 0,
         releasedCents: 0,
         status: 'ACTIVE',

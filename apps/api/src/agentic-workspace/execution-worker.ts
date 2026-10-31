@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { WorkerLease } from './execution-store.js';
 import { ExecutionService, type StepOutcome } from './execution-service.js';
+import { reportAgenticFailure } from './failure-log.js';
 
 export interface ExecutionDriver {
   /** Planning is deterministic; paid/uncertain operations belong in the journaled run callback. */
@@ -78,6 +79,12 @@ export class ExecutionWorker {
               )
             ? 'BUDGET_EXHAUSTED'
             : 'EXECUTION_FAILED';
+      if (reason !== 'SESSION_CANCELLED')
+        reportAgenticFailure('agentic.execution.failed', error, {
+          tenantId: lease.owner.tenantId,
+          executionId: lease.executionId,
+          failureCode: code,
+        });
       await this.service.failLease(lease, code).catch(() => undefined);
     } finally {
       clearInterval(timer);

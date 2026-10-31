@@ -22,6 +22,7 @@ import { type ForgeLexDatabase, MatterWriteGuard } from '@forgelex/persistence';
 import { InferenceBudgetService } from '@forgelex/billing-ledger';
 import { ExecutionStore, digest, type ExecutionJob, type WorkerLease } from './execution-store.js';
 import { projectClientExecutionEvent, publicQuestion } from './event-stream.js';
+import { reportAgenticFailure } from './failure-log.js';
 
 const id = z.string().trim().min(1).max(200);
 export const StartExecutionSchema = z
@@ -702,10 +703,11 @@ export class ExecutionService {
         try {
           const existing = await this.budget.getExecutionBudget(owner, id);
           released = !existing || existing.status === 'RELEASED';
-        } catch {
-          /* Preserve cleanup until absence/release can be confirmed. */
+        } catch (inner) {
+          // Preserve cleanup until absence/release can be confirmed.
+          reportAgenticFailure('agentic.budget_release.failed', inner, { tenantId: owner.tenantId, executionId: id });
         }
-      }
+      } else reportAgenticFailure('agentic.budget_release.failed', error, { tenantId: owner.tenantId, executionId: id });
     }
     await this.store.atomic(owner, async (s) => {
       const current = await s.getJob(owner, id);

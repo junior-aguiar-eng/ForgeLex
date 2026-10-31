@@ -394,6 +394,51 @@ it('a human question releases no-delivery funds and its answer reserves a fresh 
     /^commercial:/,
   );
 });
+it('an answer refused for balance keeps the question so it can be answered after funding', async () => {
+  const f = await fixture();
+  const run = await f.commercial.start(owner, 'ask-funds', input);
+  const lease = (await f.commercial.service.claimNext('question-funds-worker'))!;
+  await f.commercial.service.beginStep(lease, 'question');
+  await f.commercial.service.finishStep(lease, 'question', {
+    kind: 'question',
+    checkpoint: {},
+    question: {
+      id: 'purpose',
+      version: 1,
+      contextRevision: 1,
+      prompt: 'Qual finalidade?',
+      selection: 'single',
+      options: [{ id: 'review', label: 'Revisar' }],
+      allowFreeText: true,
+      allowUnknown: true,
+      reason: 'Delimitar',
+    },
+  });
+  const answer = {
+    questionId: 'purpose',
+    questionVersion: 1,
+    contextRevision: 1,
+    selectedOptionIds: ['review'],
+    unknown: false,
+    confirmed: true,
+    policyVersion: COMMERCIAL_POLICY_VERSION,
+  };
+  const setBalance = (cents: number) =>
+    f.client.execute({
+      sql: 'UPDATE ledger_accounts SET paid_balance_cents=? WHERE tenant_id=?',
+      args: [cents, owner.tenantId],
+    });
+  await setBalance(100);
+  await expect(f.commercial.successor(owner, run.id, 'answer-broke', 'answer', answer)).rejects.toThrow(
+    'BILLING_INSUFFICIENT_BALANCE',
+  );
+  const repo = new AgenticWorkspaceRepository(f.db);
+  expect(await repo.getExecution(owner, run.id)).toMatchObject({ status: 'WAITING_USER' });
+  expect((await f.commercial.service.store.getJob(owner, run.id)).successorId).toBeUndefined();
+  await setBalance(2000);
+  const next = await f.commercial.successor(owner, run.id, 'answer-funded', 'answer', answer);
+  expect(await f.commercial.finance.getReceipt(owner, next.id)).toMatchObject({ reservedCents: 500, status: 'ACTIVE' });
+});
 it('restart cancels a reserved orphan that never reached activation and releases its funds', async () => {
   const f = await fixture();
   const run = await f.commercial.start(owner, 'orphan', input);

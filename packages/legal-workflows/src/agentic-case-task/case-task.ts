@@ -72,6 +72,34 @@ const isFactualRecord = (plan: TaskPlan) =>
   !plan.requiresProcedure &&
   !plan.requiresNorms &&
   !plan.requiresCaseLaw;
+/**
+ * Every finding the workflow itself raises. Each states a limitation (what was not done, found or confirmed),
+ * never a result. Billing reads this list; `finding()` only accepts these codes, so a new one cannot be added
+ * without being classified here.
+ */
+export const CASE_TASK_LIMITATION_CODES = [
+  'SEARCH_NO_RESULTS',
+  'NORMATIVE_SOURCE_LIMITED',
+  'AUTHORITY_UNCONFIRMED',
+  'SOURCE_UNAVAILABLE',
+  'USER_UNKNOWN',
+  'CONFLICT_UNRESOLVED',
+  'REQUIRED_RESEARCH_NOT_PERFORMED',
+  'NORMATIVE_SOURCE_MISSING',
+  'MATERIAL_ISSUE_OMITTED',
+  'UNSUPPORTED_CLAIM',
+  'AUTHORITY_IDENTITY_UNCONFIRMED',
+  'CITATION_WITHOUT_SUPPORT',
+  'EDITORIAL_REQUIREMENT_UNVERIFIED',
+  'PROCEDURAL_REQUIREMENT_UNVERIFIED',
+  'PROCEDURAL_REQUIREMENTS_NOT_EVALUATED',
+  'LEGAL_APPLICABILITY_NOT_EVALUATED',
+  'AUTHORITY_SCOPE_LIMIT',
+  'DOCUMENT_NOT_PRODUCED',
+  'DOCUMENT_TYPE_UNCONFIRMED',
+  'UNSUPPORTED_SECTION',
+] as const;
+export type CaseTaskLimitationCode = (typeof CASE_TASK_LIMITATION_CODES)[number];
 export interface CaseTaskProviderInput {
   binding: TaskBinding;
   role: CaseTaskRole;
@@ -101,7 +129,7 @@ export class AgenticCaseTask {
       seen.set(claim.id, digest);
     }
   }
-  private finding(code: string, statement: string, sourceIds: string[] = []) {
+  private finding(code: CaseTaskLimitationCode, statement: string, sourceIds: string[] = []) {
     return {
       id: `${code}:${hash([statement, sourceIds]).slice(0, 16)}`,
       code,
