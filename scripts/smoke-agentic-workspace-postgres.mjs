@@ -65,9 +65,12 @@ if (process.argv[2] === '--recover') {
     started = true;
     let ready = false;
     for (let i = 0; i < 60; i++) {
-      const check = spawnSync('docker', ['exec', name, 'pg_isready', '-U', 'postgres', '-d', 'forgelex_agentic_test'], {
-        stdio: 'pipe',
-      });
+      // TCP, not the Unix socket: the image's init-time server listens only on the socket and is shut down before the real one starts.
+      const check = spawnSync(
+        'docker',
+        ['exec', name, 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres', '-d', 'forgelex_agentic_test'],
+        { stdio: 'pipe' },
+      );
       if (check.status === 0) {
         ready = true;
         break;
