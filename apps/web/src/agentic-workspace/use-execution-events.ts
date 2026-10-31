@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiRequestError } from '../api-client';
 import type { WorkspaceClient } from './client';
-import { applyEvent, emptyEvents, parseEventFrames, type EventState } from './execution-model';
+import { applyEvent, emptyEvents, parseEventFrames, streamRetries, type EventState } from './execution-model';
 
 export function useExecutionEvents(client: WorkspaceClient, executionId: string | null) {
   const [state, setState] = useState<EventState>(() => emptyEvents(executionId ?? ''));
@@ -20,6 +20,7 @@ export function useExecutionEvents(client: WorkspaceClient, executionId: string 
           const response = await client.events(executionId, current.cursor, controller.signal);
           const reader = response.body?.getReader();
           if (!reader) throw new Error('STREAM_UNAVAILABLE');
+          const connectedAt = Date.now();
           let buffer = '';
           const decoder = new TextDecoder();
           try {
@@ -31,14 +32,19 @@ export function useExecutionEvents(client: WorkspaceClient, executionId: string 
               const frames = parseEventFrames(buffer);
               buffer = frames.rest;
               for (const event of frames.events) current = applyEvent(current, event);
-              if (frames.error) current = { ...current, error: frames.error };
+              // A mid-stream access error may be an expired token or a transient identity failure.
+              // Reconnecting re-authenticates; a real revocation is rejected by the connection itself.
+              const recheck = frames.error === 'ACCESS_REVOKED';
+              if (frames.error && !recheck) current = { ...current, error: frames.error };
               if (!controller.signal.aborted) setState(current);
-              if (frames.error) return;
+              if (frames.error && !recheck) return;
+              if (recheck) break;
             }
           } finally {
             await reader.cancel().catch(() => undefined);
           }
           if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(current.status)) return;
+          retries = streamRetries(retries, Date.now() - connectedAt);
         } catch (error) {
           if (controller.signal.aborted) return;
           if (error instanceof ApiRequestError && [401, 403, 404].includes(error.status)) {

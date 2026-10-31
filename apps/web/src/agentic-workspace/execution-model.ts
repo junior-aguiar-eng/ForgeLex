@@ -129,6 +129,9 @@ export function applyEvent(state: EventState, raw: unknown): EventState {
   }
   return next;
 }
+/** A stream that stayed up this long was healthy; dropping it later is not part of a failing streak. */
+export const STABLE_STREAM_MS = 10000;
+export const streamRetries = (retries: number, livedMs: number) => (livedMs >= STABLE_STREAM_MS ? 0 : retries);
 export function parseEventFrames(input: string): { events: unknown[]; rest: string; error?: string } {
   const normalized = input.replace(/\r\n/g, '\n'),
     frames = normalized.split('\n\n'),

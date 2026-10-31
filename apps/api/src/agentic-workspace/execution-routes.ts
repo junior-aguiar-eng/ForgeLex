@@ -21,6 +21,7 @@ export interface AgenticWorkspaceRuntimeOptions {
   pollMs?: number;
   leaseMs?: number;
 }
+const STREAM_AUTH_FAILURE_LIMIT = 3;
 export function registerAgenticWorkspace(
   app: FastifyInstance,
   deps: {
@@ -431,11 +432,23 @@ export function registerAgenticWorkspace(
         }
         cursor = batch.cursor;
       };
+      // Identity providers fail transiently (timeout, 429, 5xx) and the verifier reports that as a null
+      // principal. Only consecutive failures, or a principal that no longer matches, end the stream.
+      let authFailures = 0;
       const poll = async () => {
         if (closed) return;
         try {
           const current = await deps.auth.authenticate(req.headers.authorization).catch(() => null);
-          if (!current || !sameIdentity(current)) throw new Error('ACCESS_REVOKED');
+          if (current && !sameIdentity(current)) throw new Error('ACCESS_REVOKED');
+          if (!current) {
+            if (++authFailures >= STREAM_AUTH_FAILURE_LIMIT) throw new Error('ACCESS_REVOKED');
+            if (closed) return;
+            reply.raw.write(': keepalive\n\n');
+            timer = setTimeout(() => void poll(), deps.options?.pollMs ?? 1000);
+            timer.unref();
+            return;
+          }
+          authFailures = 0;
           if (closed) return;
           batch = await s.listClientEvents(identity, id, cursor);
           send();
