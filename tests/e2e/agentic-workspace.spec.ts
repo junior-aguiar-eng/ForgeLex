@@ -169,6 +169,27 @@ test('regressão final: EOF em pergunta reconecta e observa perda de acesso', as
   await expect(page.getByRole('alert')).toContainText('acesso');
   expect(connections).toBeGreaterThanOrEqual(2);
 });
+test('regressão final: erro de acesso no meio do stream reconecta sem declarar acesso revogado', async ({ page }) => {
+  await login(page);
+  await prepare(page, 'Investigar PERGUNTA_MATERIAL');
+  await page.getByRole('button', { name: 'Executar trabalho', exact: true }).click();
+  await expect(page.getByRole('radio', { name: 'Organizar informações', exact: true })).toBeVisible();
+  const id = new URL(page.url()).searchParams.get('executionId'),
+    snapshot = await (await page.request.get(`${api}/api/agentic/executions/${id}`, { headers })).json();
+  const frames = `id: 2\nevent: status\ndata: ${JSON.stringify({ executionId: id, sequence: 2, type: 'STATUS', payload: { status: 'WAITING_USER' } })}\n\nid: 3\nevent: question\ndata: ${JSON.stringify({ executionId: id, sequence: 3, type: 'QUESTION', payload: { question: snapshot.question } })}\n\n`;
+  let connections = 0;
+  await page.route('**/api/agentic/executions/*/events?*', async (route) => {
+    connections++;
+    await route.fulfill({
+      contentType: 'text/event-stream',
+      body: connections === 1 ? `${frames}event: error\ndata: {"code":"ACCESS_REVOKED"}\n\n` : frames,
+    });
+  });
+  await page.reload();
+  await expect.poll(() => connections).toBeGreaterThanOrEqual(2);
+  await expect(page.getByRole('radio', { name: 'Organizar informações', exact: true })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
 test('regressão final: comando de sessão encerrada não publica ID na navegação atual', async ({ page }) => {
   await login(page);
   const before = page.url();

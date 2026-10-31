@@ -7,6 +7,8 @@ import {
   sourceLink,
   statusText,
   editorLink,
+  streamRetries,
+  STABLE_STREAM_MS,
 } from './execution-model';
 
 describe('projeção pública do trabalho', () => {
@@ -80,5 +82,10 @@ describe('projeção pública do trabalho', () => {
     expect(sourceLink({ kind: 'AUTHORITY', url: 'https://stj.jus.br/' }, 'm')).toBe('https://stj.jus.br/');
     expect(statusText('RUNNING')).toBe('Processando seu pedido');
     expect(statusText('FAILED', 'BUDGET_EXHAUSTED')).toContain('orçamento');
+  });
+  it('reconexões de um stream estável não acumulam para o limite de falhas', () => {
+    expect(streamRetries(4, 500)).toBe(4);
+    expect(streamRetries(4, STABLE_STREAM_MS - 1)).toBe(4);
+    expect(streamRetries(4, STABLE_STREAM_MS)).toBe(0);
   });
 });

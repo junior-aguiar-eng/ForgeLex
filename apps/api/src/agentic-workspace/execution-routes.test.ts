@@ -335,6 +335,61 @@ describe('rotas e transporte do trabalho', () => {
   });
 });
 
+async function streamWithVerifier(verifyStream: (call: number) => boolean) {
+  const c = await createDatabase({ url: 'file::memory:' });
+  await runPersistenceMigrations(c.client);
+  let calls = 0;
+  const auth = new AuthAdapter({
+    verify: async (token) => {
+      if (token !== 'stream') return token === 'session' ? principal : null;
+      return verifyStream(++calls) ? principal : null;
+    },
+  });
+  const app = Fastify();
+  registerAgenticWorkspace(app, {
+    database: c.db,
+    client: c.client,
+    auth,
+    environment: { FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true' },
+    options: { driver: { next: () => undefined }, scheduler: false, pollMs: 20 },
+  });
+  await app.ready();
+  cleanups.push(async () => {
+    await app.close();
+    c.client.close();
+  });
+  const run = (await app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })).json();
+  const address = await app.listen({ port: 0, host: '127.0.0.1' });
+  return { app, run, address, calls: () => calls };
+}
+describe('autenticação durante o stream de eventos', () => {
+  it('uma falha transitória de verificação não encerra o stream como acesso revogado', async () => {
+    const f = await streamWithVerifier((call) => call !== 3);
+    const response = await fetch(`${f.address}/api/agentic/executions/${f.run.id}/events?after=0`, {
+      headers: { authorization: 'Bearer stream' },
+    });
+    const reader = response.body!.getReader();
+    while (f.calls() < 6 && !(await reader.read()).done);
+    await f.app.inject({
+      method: 'POST',
+      url: `/api/agentic/executions/${f.run.id}/cancel`,
+      headers: { authorization: 'Bearer session', 'idempotency-key': 'cancel-transient' },
+      payload: {},
+    });
+    let body = '';
+    for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read())
+      body += new TextDecoder().decode(chunk.value);
+    expect(body).not.toContain('ACCESS_REVOKED');
+    expect(body).toContain('CANCELLED');
+  });
+  it('falhas consecutivas de verificação encerram o stream como acesso revogado', async () => {
+    const f = await streamWithVerifier((call) => call < 3);
+    const response = await fetch(`${f.address}/api/agentic/executions/${f.run.id}/events?after=0`, {
+      headers: { authorization: 'Bearer stream' },
+    });
+    expect(await response.text()).toContain('"code":"ACCESS_REVOKED"');
+  });
+});
 it('requisição com sessão antiga recebe acesso revogado após expurgo sem recriar trabalho', async () => {
   const f = await fixture({ next: () => undefined });
   const { AccountClosurePurgeService } = await import('../account/account-closure-purge-service.js');

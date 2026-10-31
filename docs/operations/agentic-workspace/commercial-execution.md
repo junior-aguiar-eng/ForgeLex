@@ -20,6 +20,20 @@ Sem entrega utilizável: zero cobrança ao cliente. WAITING_USER fecha a reserva
 
 Uma chamada comprovadamente não enviada é VOID. Após dispatch sem usage válido, fica UNCERTAIN; não há repetição automática nem débito estimado ao usuário. Essa obrigação operacional bloqueia novos trabalhos da conta até conciliação com evidência, sem alterar a cobrança já finalizada. Os métodos internos de conciliação não possuem endpoint de autoaprovação ao cliente.
 
+### Conciliação de chamada incerta
+
+Quem decide e executa é Boni, com evidência externa do uso (registro do provedor). Cancelar durante uma chamada, timeout, queda de rede ou reinício no meio do envio deixam a chamada UNCERTAIN e bloqueiam novos trabalhos de todo o tenant. O comando abaixo lista (somente leitura) e, só com `--apply`, resolve uma chamada UNCERTAIN; nunca chama o provedor nem cobra o cliente, e recusa chamadas AUTHORIZED, que podem estar em voo.
+
+```bash
+node scripts/reconcile-commercial-call.mjs --tenant <tenant>
+node scripts/reconcile-commercial-call.mjs --tenant <tenant> --user <usuario> --execution <id> --call <callId> \
+  --evidence <referencia-da-prova> --resolve usage --input <n> --output <n> [--cached <n>] [--apply]
+node scripts/reconcile-commercial-call.mjs --tenant <tenant> --user <usuario> --execution <id> --call <callId> \
+  --evidence <referencia-da-prova> --resolve not-dispatched [--apply]
+```
+
+`usage` registra o consumo comprovado (custo operacional medido); `not-dispatched` só vale com prova de que nenhuma requisição chegou ao provedor. A referência da prova fica na chamada até o encerramento da conta. Rodar primeiro sem `--apply`, conferir o plano e usar o banco indicado em `DATABASE_URL` após backup e identificação do ambiente.
+
 Admissões têm prazo persistente de 120 segundos. Somente a varredura periódica, com rechecagem transacional do estado/prazo, expira admissão WAITING abandonada; READY/RUNNING e admissões recentes são preservados. Falhas/retries concorrentes não são donos do comando idempotente e não podem cancelá-lo por leitura antiga. Uma falha nessa janela pode manter a reserva por até 120 segundos, sem envio ou cobrança.
 
 Terminal financeiro usa job budgetReleasePending durável; a interface atualiza o recibo até finalizar e oferece consulta manual após falhas repetidas. Reiniciar não autoriza repetir dispatch incerto.
