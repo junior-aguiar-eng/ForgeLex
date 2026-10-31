@@ -10,13 +10,13 @@ Implementação preparada nesta branch. Integração, CI pós-merge, publicaçã
 
 O site mostra preço em reais antes de iniciar cada trabalho, resposta, correção ou continuação paga. Navegação, leitura, edição e exportação não autorizam novos envios. Retry conserva a chave. A política imutável é commercial-brl-2026-10-30-v1: reserva de R$ 5,00, mínimo de R$ 0,50 se houver entrega utilizável, teto de inferência US$ 0,25, preço calculado pela fórmula aprovada. Recibo distingue valor reservado, cobrado, liberado e crédito promocional expirado.
 
-Uma execução ativa por conta; R$ 20/dia e R$ 100/mês incluindo reservas, períodos America/Fortaleza. Até 24 chamadas, 2.048 tokens de saída por chamada, 64.000 bytes por request, 30 segundos por chamada e cinco minutos a partir do primeiro envio autorizado. Não há pesquisa paga, tools hospedadas, fallback ou retries automáticos do SDK.
+Uma execução ativa por conta; R$ 20/dia e R$ 100/mês incluindo reservas, períodos America/Fortaleza. Trabalho encerrado sem cobrança, mas com consumo medido do provedor, conta nos limites pelo preço que teria (mínimo de R$ 0,50, no máximo a reserva); trabalho sem nenhum consumo medido não conta. Assim a conta não consome inferência sem cobrança de forma ilimitada. Até 24 chamadas, 2.048 tokens de saída por chamada, 64.000 bytes por request, 30 segundos por chamada e cinco minutos a partir do primeiro envio autorizado. Não há pesquisa paga, tools hospedadas, fallback ou retries automáticos do SDK.
 
 A reserva BRL é descontada do saldo disponível sob o mesmo lock usado por consultas, créditos e reembolsos. A medição operacional é em micro-USD e não consome o ledger sintético do piloto. Tokens normalizados e tarifa persistida permitem comprovar o cálculo; custo externo desconhecido permanece desconhecido.
 
 ## Cancelamento e recuperação
 
-Sem entrega utilizável: zero cobrança ao cliente. WAITING_USER fecha a reserva anterior sem cobrança quando não houver entrega; a resposta é um novo trabalho com autorização própria. Uma entrega parcial utilizável pode ser cobrada pelo consumo comprovado dentro do teto.
+Sem entrega utilizável: zero cobrança ao cliente. WAITING_USER fecha a reserva anterior sem cobrança quando não houver entrega; a resposta é um novo trabalho com autorização própria. Antes de consumir a pergunta, a resposta confere saldo, limites, execução ativa e conciliação pendente; se a nova reserva seria recusada, a pergunta permanece respondível. Uma entrega parcial utilizável pode ser cobrada pelo consumo comprovado dentro do teto.
 
 Uma chamada comprovadamente não enviada é VOID. Após dispatch sem usage válido, fica UNCERTAIN; não há repetição automática nem débito estimado ao usuário. Essa obrigação operacional bloqueia novos trabalhos da conta até conciliação com evidência, sem alterar a cobrança já finalizada. Os métodos internos de conciliação não possuem endpoint de autoaprovação ao cliente.
 
@@ -60,3 +60,7 @@ A API publicada foi inspecionada com 1 vCPU, 512 MiB, cobrança por requisição
 - pnpm exec playwright test --config playwright.agentic-commercial-flow.config.ts: navegador, API, SDK/transporte sintético, reserva/cobrança/liberação persistentes e reload sem nova cobrança. Não faz HTTP à OpenAI.
 
 A última prova real de publicação deverá vincular commit, digest, revisões, flags, migration, backup, autenticação, uma execução sintética de Boni com teto comercial, recibo e monitoramento. Exemplos sintéticos e CI não comprovam qualidade jurídica geral; revisão humana permanece obrigatória.
+
+## Registros operacionais
+
+Falhas antes silenciosas agora geram JSON estruturado no stdout: `agentic.worker_tick.failed` e `agentic.admission_sweep.failed` (repetições do mesmo código, no máximo uma por minuto), `agentic.budget_release.failed` (liquidação financeira pendente, repetida a cada 30 s até concluir), `agentic.execution.failed`, `agentic.request.failed` e `agentic.stream.failed`. Só códigos estáveis são gravados (`errorCode`); mensagens livres viram `UNEXPECTED_ERROR`. Um alerta em `agentic.budget_release.failed` identifica reserva retida sem depender de reclamação do cliente.
