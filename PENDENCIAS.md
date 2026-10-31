@@ -22,6 +22,7 @@ no [registro de manutenção](docs/operations/stabilization/2026-10-10-documenta
 
 | Pendência | Dependência para encerrar |
 | --- | --- |
+| Ordem de publicação com a migration `persistence-0036` | O código da `main` lê e grava `agentic_execution_jobs.admission_expires_at`. Aplicar a migration (aditiva, com backup) **antes** de publicar uma imagem que contenha esse código; com `AUTO_MIGRATE=false` ela não se aplica sozinha. A imagem antiga continua funcionando com a coluna já criada |
 | Publicar e ativar a execução comercial | Recibo de Boni: backup, migrations pendentes, flags, chave no gerenciador de segredos, instância sempre ativa; ensaio sintético com teto comercial. [Operação](docs/operations/agentic-workspace/commercial-execution.md) |
 | Cancelar durante uma chamada deixa a chamada incerta e bloqueia o tenant | Decisão de Boni sobre a política (hoje a saída é a conciliação manual por `scripts/reconcile-commercial-call.mjs`, com evidência do provedor) |
 | Limites diário e mensal contam consumo sem cobrança | Confirmar a regra com Boni; é visível ao cliente |
