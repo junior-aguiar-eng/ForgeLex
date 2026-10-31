@@ -20,6 +20,11 @@ overrides:
   'fast-uri@>=4.0.0 <4.2.3': 4.2.3
   source-map-js@1.2.1: 1.2.2
   postcss-selector-parser@6.1.4: 7.1.6
+  # @fastify/static 10.x still asks for glob 13, which carries GHSA-3g3m-2fjr-6pw4 and, through minimatch 10,
+  # GHSA-g3hv-75wg-m249. glob 14.0.3 depends on the patched minimatch 11.
+  glob@13.0.6: 14.0.3
+  # ESLint 10 and its helpers still ask for minimatch 10 (GHSA-g3hv-75wg-m249).
+  minimatch@10.2.6: 11.0.3
 allowBuilds:
   '@modelcontextprotocol/ext-apps': false
   esbuild: true
