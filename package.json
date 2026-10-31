@@ -9,6 +9,7 @@
     "lint:fix": "eslint apps packages --ext .ts,.tsx --fix",
     "format": "prettier --write \"**/*.{ts,tsx,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md,yml,yaml}\"",
+    "format:check:code": "prettier --check \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\" \"tests/**/*.ts\" \"scripts/**/*.mjs\" \"playwright*.ts\"",
     "test": "pnpm build && vitest run",
     "test:watch": "vitest",
     "typecheck": "pnpm build && pnpm -r run typecheck",

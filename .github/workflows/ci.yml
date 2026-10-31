@@ -32,6 +32,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Code formatting
+        run: pnpm format:check:code
+
       - name: Build
         run: pnpm build
 
