@@ -102,6 +102,7 @@ export class ExecutionStore {
       budgetReleaseNextAt: job.budgetReleaseNextAt ?? null,
       payloadJson: JSON.stringify(job),
       createdAt: job.createdAt,
+      admissionExpiresAt: job.admissionExpiresAt ?? null,
     });
   }
   async saveJob(job: ExecutionJob) {
@@ -113,6 +114,7 @@ export class ExecutionStore {
         budgetReleasePending: job.budgetReleasePending ? 1 : 0,
         budgetReleaseNextAt: job.budgetReleaseNextAt ?? null,
         payloadJson: JSON.stringify(job),
+        admissionExpiresAt: job.admissionExpiresAt ?? null,
       })
       .where(eq(agenticExecutionJobs.executionId, job.executionId));
   }

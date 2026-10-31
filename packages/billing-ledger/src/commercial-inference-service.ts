@@ -367,6 +367,12 @@ export class CommercialInferenceService {
       await this.assertAdmissible(db, account, records);
     });
   }
+  /** Operator/startup view of every reservation still open, for recovery. Metadata only. */
+  async listAllActive(): Promise<CommercialReceipt[]> {
+    return (await this.db.select().from(commercialExecutions).where(eq(commercialExecutions.status, 'ACTIVE'))).map(
+      (row) => receipt(JSON.parse(row.payloadJson)),
+    );
+  }
   async reserve(
     owner: AgenticOwner,
     raw: { executionId: string; idempotencyKey: string; requestFingerprint: string; policyVersion: string },

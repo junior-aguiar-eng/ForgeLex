@@ -1,16 +1,18 @@
 import {
   agenticConversations,
+  agenticEvents,
   agenticExecutions,
   agenticContexts,
   matters,
   legalDocuments,
 } from '@forgelex/persistence';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, max, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import type { Client } from '@forgelex/persistence';
 import { z } from 'zod';
 import {
   AgenticContextSchema,
+  AgenticExecutionSchema,
   LegalAnswerSchema,
   LegalQuestionSchema,
   ExecutionEventInputSchema,
@@ -347,8 +349,8 @@ export class ExecutionService {
       const j = await s.getJob(owner, id);
       const context = await this.activeContext(s, e);
       const conversation = (await s.workspace.getConversation(owner, e.conversationId))!;
-      const priorIds = await s.db
-        .select({ id: agenticExecutions.id })
+      const rows = await s.db
+        .select({ payloadJson: agenticExecutions.payloadJson })
         .from(agenticExecutions)
         .where(
           and(
@@ -358,9 +360,9 @@ export class ExecutionService {
           ),
         )
         .limit(1000);
-      const prior = await Promise.all(
-        priorIds.filter((p) => p.id !== id).map((p) => s.workspace.getExecution(owner, p.id)),
-      );
+      const prior = rows
+        .map((row) => AgenticExecutionSchema.parse(JSON.parse(row.payloadJson)))
+        .filter((p) => p.id !== id);
       const current = [...prior, e]
         .filter((p): p is AgenticExecution =>
           Boolean(
@@ -707,7 +709,8 @@ export class ExecutionService {
           // Preserve cleanup until absence/release can be confirmed.
           reportAgenticFailure('agentic.budget_release.failed', inner, { tenantId: owner.tenantId, executionId: id });
         }
-      } else reportAgenticFailure('agentic.budget_release.failed', error, { tenantId: owner.tenantId, executionId: id });
+      } else
+        reportAgenticFailure('agentic.budget_release.failed', error, { tenantId: owner.tenantId, executionId: id });
     }
     await this.store.atomic(owner, async (s) => {
       const current = await s.getJob(owner, id);
@@ -717,6 +720,60 @@ export class ExecutionService {
         budgetReleaseNextAt: released ? null : new Date(this.now() + 30000).toISOString(),
       });
     });
+  }
+  /**
+   * Cheap change detector for the event stream: plain reads only, no tenant lock and no writes.
+   * Access to the case and its selected documents is still verified (revocation must surface promptly),
+   * through the same lifecycle reads the locking snapshot uses, minus its row locks.
+   * True when there are events after `after` or the execution is terminal, i.e. when the full
+   * (locking) snapshot of `listClientEvents` is worth taking.
+   */
+  async eventsChanged(owner: AgenticOwner, id: string, after: number): Promise<boolean> {
+    const db = this.store.db;
+    const [row] = await db
+      .select({ payloadJson: agenticExecutions.payloadJson })
+      .from(agenticExecutions)
+      .where(
+        and(
+          eq(agenticExecutions.id, id),
+          eq(agenticExecutions.tenantId, owner.tenantId),
+          eq(agenticExecutions.userId, owner.userId),
+        ),
+      )
+      .limit(1);
+    if (!row) throw new Error('EXECUTION_NOT_FOUND');
+    const execution = AgenticExecutionSchema.parse(JSON.parse(row.payloadJson));
+    await this.assertAccessReadOnly(execution);
+    if (terminal(execution)) return true;
+    const [latest] = await db
+      .select({ sequence: max(agenticEvents.sequence) })
+      .from(agenticEvents)
+      .where(eq(agenticEvents.executionId, id));
+    return (latest?.sequence ?? 0) > after;
+  }
+  private async assertAccessReadOnly(e: AgenticExecution) {
+    if (!e.matterId) return;
+    const db = this.store.db;
+    const guard = new MatterWriteGuard(db);
+    const check = async (documentId?: string) => {
+      try {
+        await guard.captureRevision({ tenantId: e.tenantId, matterId: e.matterId!, documentId });
+      } catch (error) {
+        if (error instanceof Error && /^(MATTER|DOCUMENT)_(NOT_FOUND|NOT_ACTIVE)$/.test(error.message))
+          throw new Error('ACCESS_REVOKED', { cause: error });
+        throw error;
+      }
+    };
+    await check();
+    const [snapshot] = await db
+      .select()
+      .from(agenticContexts)
+      .where(and(eq(agenticContexts.conversationId, e.conversationId), eq(agenticContexts.revision, e.contextRevision)))
+      .limit(1);
+    // A missing snapshot is reported as CONTEXT_CONFLICT by the full snapshot, which a terminal or new event reaches.
+    if (!snapshot) return;
+    for (const doc of AgenticContextSchema.parse(JSON.parse(snapshot.payloadJson)).documents)
+      await check(doc.documentId);
   }
   async listClientEvents(owner: AgenticOwner, id: string, after: number) {
     return this.store.atomic(owner, async (s) => {

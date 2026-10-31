@@ -14,7 +14,9 @@ export const agenticCommands = sqliteTable('agentic_commands', {
 export const agenticExecutionJobs = sqliteTable('agentic_execution_jobs', {
   executionId: text('execution_id').primaryKey().references(() => agenticExecutions.id), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
   state: text('state').notNull(), leaseExpiresAt: text('lease_expires_at'), budgetReleasePending: integer('budget_release_pending').notNull().default(0), budgetReleaseNextAt: text('budget_release_next_at'), payloadJson: text('payload_json').notNull(), createdAt: text('created_at').notNull(),
-}, t => [index('agentic_execution_jobs_ready_idx').on(t.state,t.leaseExpiresAt)]);
+  /** Mirror of the persisted admission deadline; null once admitted or when the job waits for the user. */
+  admissionExpiresAt: text('admission_expires_at'),
+}, t => [index('agentic_execution_jobs_ready_idx').on(t.state,t.leaseExpiresAt), index('agentic_execution_jobs_admission_idx').on(t.admissionExpiresAt)]);
 export const agenticExecutionCalls = sqliteTable('agentic_execution_calls', {
   id: text('id').primaryKey(), executionId: text('execution_id').notNull().references(() => agenticExecutions.id), callId: text('call_id').notNull(),
   state: text('state').notNull(), payloadJson: text('payload_json').notNull(),

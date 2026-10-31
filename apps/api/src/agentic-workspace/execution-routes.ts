@@ -20,7 +20,11 @@ export interface AgenticWorkspaceRuntimeOptions {
   caseTask?: NativeCaseTaskOptions;
   scheduler?: boolean;
   pollMs?: number;
+  /** How often an open event stream re-verifies the session; the stream itself polls at `pollMs`. */
+  authRecheckMs?: number;
   leaseMs?: number;
+  /** Admission cleanup cadence; defaults to 5 s, or to every tick when `pollMs` is tuned (tests). */
+  sweepMs?: number;
 }
 const STREAM_AUTH_FAILURE_LIMIT = 3;
 export function registerAgenticWorkspace(
@@ -65,10 +69,13 @@ export function registerAgenticWorkspace(
     : undefined;
   const report = throttledReporter();
   let running = false;
-  let sweeping = false;
+  let sweeping = false,
+    lastSweepAt = 0;
+  const sweepMs = deps.options?.sweepMs ?? (deps.options?.pollMs === undefined ? 5000 : 0);
   const sweep = async () => {
-    if (!commercial || sweeping) return;
+    if (!commercial || sweeping || Date.now() - lastSweepAt < sweepMs) return;
     sweeping = true;
+    lastSweepAt = Date.now();
     try {
       await commercial.sweepAdmissions();
     } catch (error) {
@@ -461,31 +468,43 @@ export function registerAgenticWorkspace(
       };
       // Identity providers fail transiently (timeout, 429, 5xx) and the verifier reports that as a null
       // principal. Only consecutive failures, or a principal that no longer matches, end the stream.
-      let authFailures = 0;
+      let authFailures = 0,
+        lastAuthAt = Date.now();
+      const recheckMs = deps.options?.authRecheckMs ?? 3000;
+      const again = () => {
+        timer = setTimeout(() => void poll(), deps.options?.pollMs ?? 1000);
+        timer.unref();
+      };
       const poll = async () => {
         if (closed) return;
         try {
-          const current = await deps.auth.authenticate(req.headers.authorization).catch(() => null);
-          if (current && !sameIdentity(current)) throw new Error('ACCESS_REVOKED');
-          if (!current) {
-            if (++authFailures >= STREAM_AUTH_FAILURE_LIMIT) throw new Error('ACCESS_REVOKED');
+          // The session was verified when the stream opened; re-verify on a slower cadence than the event poll.
+          if (Date.now() - lastAuthAt >= recheckMs) {
+            const current = await deps.auth.authenticate(req.headers.authorization).catch(() => null);
+            lastAuthAt = Date.now();
+            if (current && !sameIdentity(current)) throw new Error('ACCESS_REVOKED');
+            if (!current) {
+              if (++authFailures >= STREAM_AUTH_FAILURE_LIMIT) throw new Error('ACCESS_REVOKED');
+              if (closed) return;
+              reply.raw.write(': keepalive\n\n');
+              again();
+              return;
+            }
+            authFailures = 0;
             if (closed) return;
-            reply.raw.write(': keepalive\n\n');
-            timer = setTimeout(() => void poll(), deps.options?.pollMs ?? 1000);
-            timer.unref();
-            return;
           }
-          authFailures = 0;
+          // Two plain reads decide whether the heavy, locking snapshot is worth taking.
+          if (await s.eventsChanged(identity, id, cursor)) {
+            batch = await s.listClientEvents(identity, id, cursor);
+            send();
+            if (batch.terminal) {
+              reply.raw.end();
+              return;
+            }
+          }
           if (closed) return;
-          batch = await s.listClientEvents(identity, id, cursor);
-          send();
-          if (batch.terminal) {
-            reply.raw.end();
-            return;
-          }
           reply.raw.write(': keepalive\n\n');
-          timer = setTimeout(() => void poll(), deps.options?.pollMs ?? 1000);
-          timer.unref();
+          again();
         } catch (error) {
           if (!closed) {
             const code =
@@ -501,10 +520,7 @@ export function registerAgenticWorkspace(
       };
       send();
       if (batch.terminal) reply.raw.end();
-      else {
-        timer = setTimeout(() => void poll(), deps.options?.pollMs ?? 1000);
-        timer.unref();
-      }
+      else again();
       return reply;
     }),
   );
