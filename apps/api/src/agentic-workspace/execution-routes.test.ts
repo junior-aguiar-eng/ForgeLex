@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Fastify from 'fastify';
 import {
   createDatabase,
@@ -397,4 +397,25 @@ it('requisição com sessão antiga recebe acesso revogado após expurgo sem rec
   const response = await f.app.inject({method:'POST',url:'/api/agentic/executions',headers,payload:input});
   expect(response.statusCode).toBe(403);
   expect(response.json().error).toBe('ACCESS_REVOKED');
+});
+
+it('erro inesperado na rota é registrado com rota e código estável, sem a mensagem livre', async () => {
+  const f = await fixture({ next: () => undefined });
+  const run = (await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })).json();
+  const writes: string[] = [];
+  const spy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+    writes.push(String(chunk));
+    return true;
+  });
+  const failing = vi.spyOn(f.service!, 'getExecution').mockRejectedValue(new Error('SELECT * FROM secret_table failed'));
+  try {
+    const response = await f.app.inject({ method: 'GET', url: `/api/agentic/executions/${run.id}`, headers });
+    expect(response.statusCode).toBe(503);
+    const logged = writes.map((line) => JSON.parse(line)).find((l) => l.message === 'agentic.request.failed');
+    expect(logged).toMatchObject({ level: 'error', method: 'GET', route: '/api/agentic/executions/:id', errorCode: 'UNEXPECTED_ERROR' });
+    expect(writes.join('')).not.toContain('secret_table');
+  } finally {
+    failing.mockRestore();
+    spy.mockRestore();
+  }
 });

@@ -11,6 +11,7 @@ import type { ResearchService } from '@forgelex/legal-tools';
 import { LEGAL_ACTION_CATALOG } from '@forgelex/legal-workflows';
 import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
+import { reportAgenticFailure, throttledReporter } from './failure-log.js';
 
 export interface AgenticWorkspaceRuntimeOptions {
   closedPilot?: ClosedPilot;
@@ -62,6 +63,7 @@ export function registerAgenticWorkspace(
         ...(commercial ? { maxDurationMs: 300000 } : {}),
       })
     : undefined;
+  const report = throttledReporter();
   let running = false;
   let sweeping = false;
   const sweep = async () => {
@@ -69,8 +71,9 @@ export function registerAgenticWorkspace(
     sweeping = true;
     try {
       await commercial.sweepAdmissions();
-    } catch {
-      /* Retry durable admission cleanup on the next poll. */
+    } catch (error) {
+      // Durable admission cleanup is retried on the next poll; a persistent failure must still be visible.
+      report('agentic.admission_sweep.failed', error);
     } finally {
       sweeping = false;
     }
@@ -80,8 +83,9 @@ export function registerAgenticWorkspace(
     running = true;
     try {
       await worker.runOnce();
-    } catch {
-      /* Persistent lease permits safe recovery on the next tick. */
+    } catch (error) {
+      // The persistent lease permits safe recovery on the next tick; a persistent failure must still be visible.
+      report('agentic.worker_tick.failed', error);
     } finally {
       running = false;
     }
@@ -202,6 +206,8 @@ export function registerAgenticWorkspace(
               : /NOT_FOUND$/.test(message)
                 ? 'EXECUTION_NOT_FOUND'
                 : 'EXECUTION_UNAVAILABLE';
+        if (code === 'EXECUTION_UNAVAILABLE' && !(error instanceof z.ZodError))
+          reportAgenticFailure('agentic.request.failed', error, { method: req.method, route: req.routeOptions.url });
         const status =
           code === 'INVALID_INPUT'
             ? 400
@@ -465,6 +471,8 @@ export function registerAgenticWorkspace(
               error instanceof Error && ['ACCESS_REVOKED', 'AGENTIC_TENANT_CLOSED'].includes(error.message)
                 ? 'ACCESS_REVOKED'
                 : 'EXECUTION_UNAVAILABLE';
+            if (code === 'EXECUTION_UNAVAILABLE')
+              reportAgenticFailure('agentic.stream.failed', error, { executionId: id });
             reply.raw.write(`event: error\ndata: ${JSON.stringify({ code })}\n\n`);
             reply.raw.end();
           }

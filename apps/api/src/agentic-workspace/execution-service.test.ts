@@ -568,3 +568,35 @@ it('vincula autorização interna ao contexto vigente sem expor consentimento na
     f.service.authorizeInference(owner, run.id, { authorizationId: 'other', provider: 'openai', model: 'other' }),
   ).rejects.toThrow('EXECUTION_CONFLICT');
 });
+
+it('falha de liquidação do orçamento é registrada sem dados livres e a limpeza permanece pendente', async () => {
+  const f = await fixture();
+  const writes: string[] = [];
+  const spy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: string | Uint8Array) => {
+    writes.push(String(chunk));
+    return true;
+  });
+  try {
+    const service = new ExecutionService(f.db, f.client, {
+      ...f.options,
+      finalizeExecution: async () => {
+        throw new Error('connection refused to ledger.internal:5432');
+      },
+    });
+    const run = await service.startExecution(owner, 'finalize-fails', input);
+    await service.cancelExecution(owner, run.id, 'finalize-fails-cancel');
+    const job = await service.store.getJob(owner, run.id);
+    expect(job.budgetReleasePending).toBe(true);
+    expect(job.budgetReleaseNextAt).toBeTruthy();
+    const logged = writes.map((line) => JSON.parse(line)).find((l) => l.message === 'agentic.budget_release.failed');
+    expect(logged).toMatchObject({
+      level: 'error',
+      executionId: run.id,
+      tenantId: owner.tenantId,
+      errorCode: 'UNEXPECTED_ERROR',
+    });
+    expect(writes.join('')).not.toContain('ledger.internal');
+  } finally {
+    spy.mockRestore();
+  }
+});
