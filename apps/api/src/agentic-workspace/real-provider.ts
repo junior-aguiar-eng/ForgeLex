@@ -1,4 +1,4 @@
-import { readBounded, responseUsage, sdkCompatibleSse } from './provider-transport.js';
+import { AGENT_TOOL_NAMES, readBounded, responseUsage, sdkCompatibleSse } from './provider-transport.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { OpenAIAgentProvider } from '@forgelex/agent-provider-openai';
 import { type AgentProvider, type NormalizedUsage } from '@forgelex/agent-core';
@@ -84,7 +84,7 @@ export function createPilotOpenAIRuntime(options: PilotRuntimeOptions) {
         (body.tools ?? []).some(
           (t: any) =>
             t.type !== 'function' ||
-            !['forgelex_case_read_selected', 'forgelex_task_get_sources', 'forgelex_task_submit'].includes(t.name),
+            !AGENT_TOOL_NAMES.includes(t.name),
         )
       )
         throw new Error('PILOT_REQUEST_INVALID');
@@ -137,7 +137,7 @@ export function createPilotOpenAIRuntime(options: PilotRuntimeOptions) {
         }
         if (!response.ok) throw new Error(`PILOT_HTTP_${response.status}`);
         const text = await readBounded(response),
-          usage = responseUsage(text),
+          usage = responseUsage(text, a.model),
           compatible = sdkCompatibleSse(text);
         const costCents = cost(usage.inputTokens, usage.outputTokens, usage.cachedInputTokens);
         const settlement = await options.budget.settleProviderCall(options.owner, executionId, {

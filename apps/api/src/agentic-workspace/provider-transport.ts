@@ -1,5 +1,12 @@
 import { normalizeProviderUsage } from '@forgelex/agent-core';
 
+/** The only tools the case workflow may expose to a provider; both request guards check against this. */
+export const AGENT_TOOL_NAMES: readonly string[] = [
+  'forgelex_case_read_selected',
+  'forgelex_task_get_sources',
+  'forgelex_task_submit',
+];
+
 export async function readBounded(response: Response) {
   if (!response.body) throw new Error('PILOT_RESPONSE_INVALID');
   const reader = response.body.getReader();
@@ -18,7 +25,7 @@ export async function readBounded(response: Response) {
     await reader.cancel().catch(() => undefined);
   }
 }
-export function responseUsage(body: string, model = 'gpt-6.1-sol') {
+export function responseUsage(body: string, model: string) {
   for (const frame of body.split(/\r?\n\r?\n/).reverse()) {
     const data = frame
       .split(/\r?\n/)

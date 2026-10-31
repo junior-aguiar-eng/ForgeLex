@@ -171,8 +171,8 @@ outro efeito externo automático.
 ├── packages/
 │   ├── domain/                # Contratos canônicos, níveis L0-L4, proveniência e DomainErrors
 │   ├── agent-core/            # Microkernel agêntico, SessionStateMachine, PolicyEngine, ToolRegistry
-│   ├── agent-provider-anthropic/ # Adapter opcional para integração/testes locais; não é runtime comercial
-│   ├── agent-provider-openai/    # Adapter opcional para integração/testes locais; não é runtime comercial
+│   ├── agent-provider-anthropic/ # Adapter opcional para integração/testes locais
+│   ├── agent-provider-openai/    # Adapter OpenAI: testes locais e, quando habilitada, a execução comercial
 │   ├── persistence/           # Drizzle ORM Dual-Driver (SQLite local/testes, PostgreSQL prod)
 │   ├── audit/                 # AuditRecorder com sanitização e hashing SHA-256 (OAB/LGPD)
 │   ├── legal-data/            # Contratos de jurisprudência, dedupeKey e contentHash
@@ -213,10 +213,14 @@ local continua sendo necessário para desenvolvimento, testes e reprodução de
 contratos; ele não substitui as evidências operacionais publicadas nem deve ser
 apontado para banco remoto sem autorização operacional explícita.
 
-- Os adapters locais de Anthropic e OpenAI existem apenas para integração/testes
-  opcionais e não são inicializados pelo runtime comercial. O ForgeLex não
-  fornece modelo, não solicita essas chaves e não as inclui na configuração
-  operacional de exemplo.
+- O fluxo principal continua sendo MCP/IA externa: o ForgeLex não fornece modelo
+  por padrão. Existe um modo opcional, **desligado por padrão**, de execução
+  comercial (`FORGELEX_COMMERCIAL_EXECUTION_ENABLED=true`), em que o servidor usa
+  o adaptador OpenAI com a chave `OPENAI_API_KEY` (a ser fornecida pelo gerenciador
+  de segredos da operação, nunca no repositório nem no front-end), com preço em
+  reais, reserva e teto por trabalho. O adaptador da Anthropic segue só para
+  integração/testes locais, e nenhuma chave consta da configuração de exemplo.
+  Ver [execução comercial](docs/operations/agentic-workspace/commercial-execution.md).
 - `AgentRuntime` usa contrato vendor-neutral e suas sessões de SDK são
   efêmeras: não se confundem com sessões comerciais persistidas da API ou com
   conexões MCP. Aprovação, cancelamento, timeout e erro são eventos

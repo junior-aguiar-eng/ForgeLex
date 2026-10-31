@@ -4,7 +4,7 @@
 
 Boni aprovou a base comercial de 30/10/2026 e depois determinou: “Conclua essas três pendências, valide tudo e integre à main. Com os checks aprovados e o fluxo completo funcionando, publique e ative a execução comercial.” Essa autorização substitui a restrição anterior de não ativar a oferta; não reabre o piloto histórico nem seus fundos.
 
-Implementação preparada nesta branch. Integração, CI pós-merge, publicação e ativação ainda precisam de recibo próprio; não inferir que foram executadas deste documento. A governança mantém Boni como único avaliador e aprovador humano.
+Implementação integrada à `main`. Publicação e ativação ainda precisam de recibo próprio; não inferir que foram executadas deste documento. A governança mantém Boni como único avaliador e aprovador humano.
 
 ## Fluxo e preço
 

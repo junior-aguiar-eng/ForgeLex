@@ -2,11 +2,12 @@ import { randomUUID } from 'node:crypto';
 import { OpenAIAgentProvider } from '@forgelex/agent-provider-openai';
 import type { AgentProvider } from '@forgelex/agent-core';
 import type { AgenticOwner, TaskBinding } from '@forgelex/domain';
-import type { CommercialInferenceService } from '@forgelex/billing-ledger';
+import { COMMERCIAL_POLICY, type CommercialInferenceService } from '@forgelex/billing-ledger';
 import type { CaseTaskProviderInput } from '@forgelex/legal-workflows';
-import { readBounded, responseUsage, sdkCompatibleSse } from './provider-transport.js';
+import { AGENT_TOOL_NAMES, readBounded, responseUsage, sdkCompatibleSse } from './provider-transport.js';
 
-export const COMMERCIAL_MODEL = 'gpt-6.1-sol';
+/** The commercial policy is the single source of truth for the model, its rates and its output ceiling. */
+export const COMMERCIAL_MODEL = COMMERCIAL_POLICY.model;
 export interface CommercialProviderOptions {
   apiKey: string;
   finance: Pick<CommercialInferenceService, 'authorizeCall' | 'settleCall' | 'markUncertain' | 'markNotDispatched'>;
@@ -41,15 +42,11 @@ export function createCommercialOpenAIRuntime(options: CommercialProviderOptions
         body.prompt_cache_key ||
         JSON.stringify(body).includes('prompt_cache_breakpoint') ||
         !Array.isArray(body.tools ?? []) ||
-        (body.tools ?? []).some(
-          (t: any) =>
-            t.type !== 'function' ||
-            !['forgelex_case_read_selected', 'forgelex_task_get_sources', 'forgelex_task_submit'].includes(t.name),
-        )
+        (body.tools ?? []).some((t: any) => t.type !== 'function' || !AGENT_TOOL_NAMES.includes(t.name))
       )
         throw new Error('COMMERCIAL_REQUEST_INVALID');
       Object.assign(body, {
-        max_output_tokens: 2048,
+        max_output_tokens: COMMERCIAL_POLICY.maxOutputTokens,
         reasoning: { effort: 'low' },
         service_tier: 'default',
         store: false,
@@ -61,13 +58,17 @@ export function createCommercialOpenAIRuntime(options: CommercialProviderOptions
       if (bytes > 64000) throw new Error('COMMERCIAL_REQUEST_INVALID');
       const owner = await options.assertContext(executionId, packet);
       const inputTokens = bytes * 2 + 8192;
-      // Micro-USD units: USD2/M input, USD10/M output. No cache discount assumed for authorization.
-      const upperBoundMicroUsd = inputTokens * 2 + 2048 * 10;
+      // Micro-USD from the policy rates. No cache discount is assumed for authorization.
+      const upperBoundMicroUsd = Math.ceil(
+        (inputTokens * COMMERCIAL_POLICY.inputMicroUsdPerMillion +
+          COMMERCIAL_POLICY.maxOutputTokens * COMMERCIAL_POLICY.outputMicroUsdPerMillion) /
+          1_000_000,
+      );
       const callId = randomUUID();
       const authorization = await options.finance.authorizeCall(owner, executionId, {
         callId,
         inputTokens,
-        maxOutputTokens: 2048,
+        maxOutputTokens: COMMERCIAL_POLICY.maxOutputTokens,
         upperBoundMicroUsd,
       });
       if (!authorization.shouldExecute) throw new Error('CALL_ALREADY_AUTHORIZED');
@@ -86,7 +87,7 @@ export function createCommercialOpenAIRuntime(options: CommercialProviderOptions
         if (!response.ok) throw new Error('COMMERCIAL_HTTP_FAILED');
         const wire = await readBounded(response),
           usage = responseUsage(wire, COMMERCIAL_MODEL);
-        if (usage.inputTokens > inputTokens || usage.outputTokens > 2048)
+        if (usage.inputTokens > inputTokens || usage.outputTokens > COMMERCIAL_POLICY.maxOutputTokens)
           throw new Error('COMMERCIAL_RESPONSE_INVALID');
         const compatible = sdkCompatibleSse(wire);
         const settled = await options.finance.settleCall(owner, executionId, callId, {
