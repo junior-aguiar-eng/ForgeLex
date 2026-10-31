@@ -51,7 +51,6 @@ export function Composer({
 }) {
   const [objective, setObjective] = useState('');
   const [action, setAction] = useState<ActionId | undefined>(followUp?.action);
-  const [purpose, setPurpose] = useState('');
   const [text, setText] = useState(followUp?.text ?? '');
   const [matter, setMatter] = useState(followUp?.matterId ?? '');
   const [selected, setSelected] = useState<Context['documents']>(followUp?.documents ?? []);
@@ -124,8 +123,7 @@ export function Composer({
     };
   }, [matter, scopeOpen]);
 
-  const manual = actions.find((a) => a.id === action);
-  const goal = [objective.trim(), purpose && `Finalidade informada: ${purpose}`].filter(Boolean).join('\n');
+  const goal = objective.trim();
   const matterTitle = matters.find((m) => m.id === matter)?.title;
   const scopeSummary = [
     matter ? `Caso: ${matterTitle ?? 'selecionado'}` : 'Sem caso',
@@ -180,54 +178,19 @@ export function Composer({
         </div>
       </div>
 
-      <div role="group" aria-label="Como o agente deve trabalhar" className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          aria-pressed={!action}
-          className={chip(!action)}
-          onClick={() => {
-            setAction(undefined);
-            setPurpose('');
-            setSelectedDraft(followUp?.draft);
-          }}
-        >
-          Deixar o agente decidir
-        </button>
-        {actions.map((a) => (
-          <button
-            type="button"
-            key={a.id}
-            aria-pressed={action === a.id}
-            className={chip(action === a.id)}
-            onClick={() => {
-              setAction(a.id);
-              setPurpose('');
-              setSelectedDraft(
-                a.id === 'review_text' && followUp?.draftCandidate ? followUp.draftCandidate : followUp?.draft,
-              );
-            }}
-          >
-            {a.label}
-          </button>
-        ))}
-      </div>
-
-      {manual?.dialogue[0] && (
-        <div role="group" aria-label={manual.dialogue[0].prompt} className="space-y-2">
-          <p className="text-sm font-medium text-stone-800">{manual.dialogue[0].prompt} (opcional)</p>
-          <div className="flex flex-wrap gap-2">
-            {manual.dialogue[0].options.map((option) => (
-              <button
-                type="button"
-                key={option}
-                aria-pressed={purpose === option}
-                className={chip(purpose === option)}
-                onClick={() => setPurpose(purpose === option ? '' : option)}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+      {!followUp && (
+        <div role="group" aria-label="Sugestões para começar" className="flex flex-wrap gap-2">
+          {actions.map((a) => (
+            <button
+              type="button"
+              key={a.id}
+              aria-pressed={action === a.id}
+              className={chip(action === a.id)}
+              onClick={() => setAction(action === a.id ? undefined : a.id)}
+            >
+              {a.label}
+            </button>
+          ))}
         </div>
       )}
 

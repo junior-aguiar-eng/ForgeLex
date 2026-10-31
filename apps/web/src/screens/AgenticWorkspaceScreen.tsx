@@ -229,6 +229,8 @@ export function AgenticWorkspaceScreen({
   );
   const latest = results.at(-1);
   const reevaluate = Boolean(run?.requiresReevaluation);
+  // Without a result there is nothing to open: keep the lawyer's own text in view after a failure or revocation.
+  const showSide = side.open || denied || (!latest && ['FAILED', 'CANCELLED'].includes(currentStatus));
   const canFollowUp = Boolean(
     run && !closedPilot && !denied && !reevaluate && !active && currentStatus === 'COMPLETED' && !correction,
   );
@@ -275,17 +277,8 @@ export function AgenticWorkspaceScreen({
           <>
             <h1 className="font-editorial text-xl text-stone-900">Trabalho</h1>
             <span className="grow" />
-            {run && (
-              <button
-                type="button"
-                className="min-h-11 px-3 text-sm text-cognac-700 underline"
-                onClick={() => setSide({ open: true, tab: 'context', source: null })}
-              >
-                Contexto do trabalho
-              </button>
-            )}
             <button type="button" className="btn-secondary min-h-11" disabled={busy} onClick={newWork}>
-              Novo trabalho
+              Nova conversa
             </button>
           </>
         )}
@@ -334,7 +327,7 @@ export function AgenticWorkspaceScreen({
         </div>
       )}
       {run && (
-        <div className={`grid gap-6 ${side.open ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]' : ''}`}>
+        <div className={`grid gap-6 ${showSide ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]' : ''}`}>
           <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
             {reevaluate && (
               <div
@@ -470,7 +463,7 @@ export function AgenticWorkspaceScreen({
               </div>
             )}
           </div>
-          {side.open && (
+          {showSide && (
             <SideTable
               tab={side.tab}
               onTab={(tab) => setSide((old) => ({ ...old, tab }))}
@@ -482,7 +475,7 @@ export function AgenticWorkspaceScreen({
               titles={denied ? {} : titles}
               onRead={setReading}
               onEditor={onEditor}
-              contextOnly={denied}
+              contextOnly={denied || !latest}
             />
           )}
         </div>

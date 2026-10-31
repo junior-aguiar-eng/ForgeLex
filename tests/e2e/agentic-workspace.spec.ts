@@ -64,21 +64,19 @@ test('piloto fechado mostra USD e exige novo consentimento ao mudar caso ou limi
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
-test('regressão final: o agente decide por padrão e trocar o modo preserva o pedido', async ({ page }) => {
+test('regressão final: a conversa começa só com o pedido e sugestões opcionais preservam o texto', async ({ page }) => {
   await login(page);
-  const decide = page.getByRole('button', { name: 'Deixar o agente decidir', exact: true });
-  await expect(decide).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[aria-pressed="true"]')).toHaveCount(0);
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Meu pedido original deve permanecer');
-  await page.getByRole('button', { name: 'Analisar documentos', exact: true }).click();
-  await expect(decide).toHaveAttribute('aria-pressed', 'false');
-  const purpose = page.getByRole('button', { name: 'Organizar fatos e provas', exact: true });
-  await purpose.click();
-  await expect(purpose).toHaveAttribute('aria-pressed', 'true');
-  await decide.click();
-  await expect(purpose).toHaveCount(0);
+  const suggestion = page.getByRole('button', { name: 'Analisar documentos', exact: true });
+  await suggestion.click();
+  await expect(suggestion).toHaveAttribute('aria-pressed', 'true');
+  await suggestion.click();
+  await expect(suggestion).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByRole('textbox', { name: 'O que você precisa fazer?', exact: true })).toHaveValue(
     'Meu pedido original deve permanecer',
   );
+  await expect(page.getByText('Deixar o agente decidir')).toHaveCount(0);
 });
 test('regressão final: voltar pela navegação mantém ID e recuperação após recarga', async ({ page }) => {
   await login(page);
@@ -322,7 +320,8 @@ test('revisão seleciona versão da minuta existente e mantém conflito de ediç
   await page.getByLabel('Minuta do caso (opcional)').selectOption(`${draft.draft.id}:${draft.version.id}`);
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
-  await page.getByRole('button', { name: 'Contexto do trabalho', exact: true }).click();
+  await page.getByRole('button', { name: /^Fontes \(\d+\)$|pontos? a conferir/ }).first().click();
+  await page.getByRole('button', { name: 'Contexto', exact: true }).click();
   await page.getByRole('link', { name: 'Abrir minuta selecionada', exact: true }).click();
   const input = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
   await expect(input).toHaveValue('Versão humana para revisão específica.');
@@ -360,24 +359,19 @@ async function prepare(page: Page, text: string, action?: string) {
   if (action) await page.getByRole('button', { name: action, exact: true }).click();
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill(text);
 }
-test('o agente decide por padrão; as quatro ações manuais abrem a finalidade sem executar', async ({ page }) => {
+test('as quatro sugestões são opcionais e não executam nada; o agente decide o resto', async ({ page }) => {
   await login(page);
   let starts = 0;
   page.on('request', (req) => {
     if (req.url().endsWith('/api/agentic/executions') && req.method() === 'POST') starts++;
   });
-  const decide = page.getByRole('button', { name: 'Deixar o agente decidir', exact: true });
-  await expect(decide).toHaveAttribute('aria-pressed', 'true');
   for (const name of ['Analisar documentos', 'Pesquisar uma questão', 'Criar uma peça', 'Revisar um texto']) {
-    const action = page.getByRole('button', { name, exact: true });
-    await action.click();
-    await expect(action).toHaveAttribute('aria-pressed', 'true');
-    await expect(decide).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.getByText('(opcional)').first()).toBeVisible();
+    const suggestion = page.getByRole('button', { name, exact: true });
+    await suggestion.click();
+    await expect(suggestion).toHaveAttribute('aria-pressed', 'true');
     expect(await page.locator('[aria-pressed="true"]').count()).toBe(1);
   }
   expect(starts).toBe(0);
-  await decide.click();
   await page
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('Investigar a medida apropriada com contexto escrito, sem anexo.');
@@ -465,7 +459,6 @@ test('recupera execução, preserva contexto na continuação e reavalia respost
   await page.waitForURL((url) => url.href !== beforeCorrection);
   const correctedDelivery = page.getByRole('article', { name: 'Resultado do trabalho' });
   await expect(correctedDelivery).toBeVisible();
-  await page.getByRole('button', { name: 'Criar uma peça', exact: true }).click();
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Redigir a partir da análise anterior');
   await scope(page);
   await expect(page.getByLabel('Contexto escrito')).toHaveValue('Contexto que deve continuar vinculado.');
@@ -481,7 +474,6 @@ test('falta de orçamento e indisponibilidade preservam o texto e mostram motivo
   await page.getByLabel('Contexto escrito').fill('Texto a preservar');
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Andamento' })).toContainText('orçamento');
-  await page.getByRole('button', { name: 'Contexto do trabalho', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Contexto do trabalho' })).toContainText('Texto a preservar');
 });
 test('teclado, resposta desconhecida e documento revogado mantêm pedido e limites', async ({ page }) => {
@@ -532,7 +524,6 @@ test('teclado, resposta desconhecida e documento revogado mantêm pedido e limit
   );
   expect(revoked.ok()).toBe(true);
   await expect(page.getByRole('alert')).toContainText('acesso');
-  await page.getByRole('button', { name: 'Contexto do trabalho', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Contexto do trabalho' })).toContainText('Meu relato permanece');
 });
 test('texto produzido sem caso entra no editor e só persiste após vinculação explícita', async ({ page }) => {
