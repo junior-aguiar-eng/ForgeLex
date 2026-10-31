@@ -97,6 +97,16 @@ jobs:
           FORGELEX_ACCOUNT_CLOSURE_TEST_ADMIN_URL: postgres://forgelex:forgelex@127.0.0.1:55432/postgres
       - name: Operational retention inspection and purge (isolated PostgreSQL)
         run: node scripts/smoke-operational-retention-postgres.mjs
+      # These four start their own throw-away PostgreSQL container (Docker is available on the runner), so they
+      # can restart worker processes against the same database and exercise crash recovery and concurrency.
+      - name: Agentic workspace (isolated PostgreSQL container)
+        run: node scripts/smoke-agentic-workspace-postgres.mjs
+      - name: Agentic execution runtime and crash recovery (isolated PostgreSQL container)
+        run: node scripts/smoke-agentic-execution-postgres.mjs
+      - name: Agentic case task (isolated PostgreSQL container)
+        run: node scripts/smoke-agentic-case-task-postgres.mjs
+      - name: Inference budget and provider call journal (isolated PostgreSQL container)
+        run: node scripts/smoke-inference-budget-postgres.mjs
       - run: pnpm test:postgres:search
       - run: pnpm exec vitest run packages/persistence/src/repositories/jurisprudence-repository.test.ts
       - name: Saved research capacity and isolation (local PostgreSQL)
