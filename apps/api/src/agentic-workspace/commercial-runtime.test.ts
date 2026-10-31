@@ -439,6 +439,43 @@ it('an answer refused for balance keeps the question so it can be answered after
   const next = await f.commercial.successor(owner, run.id, 'answer-funded', 'answer', answer);
   expect(await f.commercial.finance.getReceipt(owner, next.id)).toMatchObject({ reservedCents: 500, status: 'ACTIVE' });
 });
+it('the admission deadline column follows the job: set while admitting, null once admitted or waiting for a person', async () => {
+  const f = await fixture();
+  const deadline = async (id: string) =>
+    (
+      await f.client.execute({
+        sql: 'SELECT admission_expires_at AS d FROM agentic_execution_jobs WHERE execution_id=?',
+        args: [id],
+      })
+    ).rows[0].d;
+  const approval = {
+    authorizationId: `commercial:${COMMERCIAL_POLICY_VERSION}`,
+    provider: 'openai',
+    model: 'gpt-6.1-sol',
+  };
+  const pending = await f.commercial.service.startExecution(owner, 'deadline', { objective: 'x' }, approval);
+  expect(await deadline(pending.id)).toEqual(expect.any(String));
+  const run = await f.commercial.start(owner, 'deadline-activated', input);
+  expect(await deadline(run.id)).toBeNull();
+});
+it('sweep ignores jobs that are admitted or waiting for a person and still expires an overdue admission', async () => {
+  const f = await fixture();
+  const approval = {
+    authorizationId: `commercial:${COMMERCIAL_POLICY_VERSION}`,
+    provider: 'openai',
+    model: 'gpt-6.1-sol',
+  };
+  const overdue = await f.commercial.service.startExecution(owner, 'overdue', { objective: 'x' }, approval);
+  await f.client.execute({
+    sql: "UPDATE agentic_execution_jobs SET admission_expires_at='2020-01-01T00:00:00.000Z', payload_json=json_set(payload_json,'$.admissionExpiresAt','2020-01-01T00:00:00.000Z') WHERE execution_id=?",
+    args: [overdue.id],
+  });
+  const active = await f.commercial.start(owner, 'still-active', input).catch(() => undefined);
+  await f.commercial.sweepAdmissions();
+  expect((await new AgenticWorkspaceRepository(f.db).getExecution(owner, overdue.id))?.status).toBe('CANCELLED');
+  if (active)
+    expect((await new AgenticWorkspaceRepository(f.db).getExecution(owner, active.id))?.status).not.toBe('CANCELLED');
+});
 it('restart cancels a reserved orphan that never reached activation and releases its funds', async () => {
   const f = await fixture();
   const run = await f.commercial.start(owner, 'orphan', input);

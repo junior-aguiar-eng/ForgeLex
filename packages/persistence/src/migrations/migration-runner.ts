@@ -1169,6 +1169,14 @@ export const persistenceMigrations: readonly SqlMigration[] = [
 { id: 'persistence-0035-agentic-tenant-guards', statements: [
   `CREATE TABLE agentic_tenant_guards (tenant_key TEXT PRIMARY KEY, closed INTEGER NOT NULL DEFAULT 0 CHECK (closed IN (0,1)));`,
 ] },
+{ id: 'persistence-0036-agentic-admission-deadline', statements: [
+  `ALTER TABLE agentic_execution_jobs ADD COLUMN admission_expires_at TEXT;`,
+  `CREATE INDEX agentic_execution_jobs_admission_idx ON agentic_execution_jobs(admission_expires_at) WHERE admission_expires_at IS NOT NULL;`,
+], sqliteStatements: [
+  `UPDATE agentic_execution_jobs SET admission_expires_at = json_extract(payload_json, '$.admissionExpiresAt') WHERE state = 'WAITING';`,
+], postgresStatements: [
+  `UPDATE agentic_execution_jobs SET admission_expires_at = (payload_json::json->>'admissionExpiresAt') WHERE state = 'WAITING';`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {
