@@ -53,7 +53,9 @@ async function fixture(driver?: ExecutionDriver) {
               : null,
   });
   const app = Fastify();
-  app.addHook('onRequest', async (_req, reply) => { reply.header('Access-Control-Allow-Origin', 'http://127.0.0.1:3300'); });
+  app.addHook('onRequest', async (_req, reply) => {
+    reply.header('Access-Control-Allow-Origin', 'http://127.0.0.1:3300');
+  });
   const runtime = registerAgenticWorkspace(app, {
     database: c.db,
     client: c.client,
@@ -75,7 +77,9 @@ afterEach(async () => {
 describe('rotas e transporte do trabalho', () => {
   it('capacidade de edição acompanha draft:write, não matter:write', async () => {
     const f = await fixture({ next: () => undefined });
-    const run = (await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })).json();
+    const run = (
+      await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })
+    ).json();
     const response = await f.app.inject({ method: 'GET', url: `/api/agentic/executions/${run.id}`, headers });
     expect(response.json().permissions.editDraft).toBe(false);
   });
@@ -393,8 +397,11 @@ describe('autenticação durante o stream de eventos', () => {
 it('requisição com sessão antiga recebe acesso revogado após expurgo sem recriar trabalho', async () => {
   const f = await fixture({ next: () => undefined });
   const { AccountClosurePurgeService } = await import('../account/account-closure-purge-service.js');
-  await new AccountClosurePurgeService(f.client).purgePrivateContent({tenantId:owner.tenantId,closureId:'closed-route'});
-  const response = await f.app.inject({method:'POST',url:'/api/agentic/executions',headers,payload:input});
+  await new AccountClosurePurgeService(f.client).purgePrivateContent({
+    tenantId: owner.tenantId,
+    closureId: 'closed-route',
+  });
+  const response = await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input });
   expect(response.statusCode).toBe(403);
   expect(response.json().error).toBe('ACCESS_REVOKED');
 });
@@ -407,15 +414,68 @@ it('erro inesperado na rota é registrado com rota e código estável, sem a men
     writes.push(String(chunk));
     return true;
   });
-  const failing = vi.spyOn(f.service!, 'getExecution').mockRejectedValue(new Error('SELECT * FROM secret_table failed'));
+  const failing = vi
+    .spyOn(f.service!, 'getExecution')
+    .mockRejectedValue(new Error('SELECT * FROM secret_table failed'));
   try {
     const response = await f.app.inject({ method: 'GET', url: `/api/agentic/executions/${run.id}`, headers });
     expect(response.statusCode).toBe(503);
     const logged = writes.map((line) => JSON.parse(line)).find((l) => l.message === 'agentic.request.failed');
-    expect(logged).toMatchObject({ level: 'error', method: 'GET', route: '/api/agentic/executions/:id', errorCode: 'UNEXPECTED_ERROR' });
+    expect(logged).toMatchObject({
+      level: 'error',
+      method: 'GET',
+      route: '/api/agentic/executions/:id',
+      errorCode: 'UNEXPECTED_ERROR',
+    });
     expect(writes.join('')).not.toContain('secret_table');
   } finally {
     failing.mockRestore();
     spy.mockRestore();
   }
+});
+
+describe('conversas recentes', () => {
+  it('lista só as conversas do próprio usuário, a mais recente primeiro, e esconde as de caso sem o escopo do caso', async () => {
+    const f = await fixture({ next: () => undefined });
+    const matter = await new MatterRepository(f.db).createMatter({
+      ...owner,
+      title: 'Caso privado',
+      createdBy: owner.userId,
+    });
+    const start = async (key: string, payload: object, as = headers) =>
+      (
+        await f.app.inject({
+          method: 'POST',
+          url: '/api/agentic/executions',
+          headers: { ...as, 'idempotency-key': key },
+          payload,
+        })
+      ).json();
+    const first = await start('recent-1', { ...input, objective: 'Primeiro pedido' });
+    const second = await start('recent-2', { ...input, objective: 'x'.repeat(200) });
+    const withCase = await start('recent-3', { ...input, objective: 'Pedido do caso', matterId: matter.id });
+    await start(
+      'recent-other',
+      { ...input, objective: 'De outra pessoa' },
+      { authorization: 'Bearer other', 'idempotency-key': 'x' },
+    );
+    const list = async (authorization: string) =>
+      (await f.app.inject({ method: 'GET', url: '/api/agentic/conversations', headers: { authorization } })).json();
+    const mine = await list('Bearer session');
+    expect(mine.items.map((i: { executionId: string }) => i.executionId).sort()).toEqual(
+      [first.id, second.id, withCase.id].sort(),
+    );
+    expect(mine.items.find((i: { executionId: string }) => i.executionId === second.id).title).toHaveLength(88);
+    expect(mine.items[0]).toEqual({
+      executionId: expect.any(String),
+      title: expect.any(String),
+      status: 'QUEUED',
+      updatedAt: expect.any(String),
+    });
+    const restricted = await list('Bearer research-only');
+    expect(restricted.items.map((i: { executionId: string }) => i.executionId)).not.toContain(withCase.id);
+    const others = await list('Bearer other');
+    expect(others.items).toHaveLength(1);
+    expect(others.items[0].title).toBe('De outra pessoa');
+  });
 });
