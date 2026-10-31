@@ -12,11 +12,16 @@ async function login(page: Page, path = '/app/conectar') {
 test('URLs congeladas, reload, histórico e next convergem sem montar casos nem carregar fila', async ({ page }) => {
   const forbidden: string[] = [];
   const errors: string[] = [];
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('request', request => {
-    if (/\/api\/v2\/(review-queue|matters)(?:[/?]|$)|\/screens\/(MatterWorkspaceScreen|DraftStudioScreen|DashboardScreen)/.test(request.url())) forbidden.push(request.url());
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('request', (request) => {
+    if (
+      /\/api\/v2\/(review-queue|matters)(?:[/?]|$)|\/screens\/(MatterWorkspaceScreen|DraftStudioScreen|DashboardScreen)/.test(
+        request.url(),
+      )
+    )
+      forbidden.push(request.url());
   });
-  await page.route('**/api/v2/review-queue', route => route.abort());
+  await page.route('**/api/v2/review-queue', (route) => route.abort());
   await login(page, '/entrar?next=%2Fapp%2Fcasos%3FmatterId%3Dprivate%23document');
   await expect(page).toHaveURL(/\/app\/conectar$/);
   for (const path of ['/app/casos', '/app/rascunhos', '/app/revisao', '/casos', '/rascunhos', '/revisao']) {
@@ -29,7 +34,10 @@ test('URLs congeladas, reload, histórico e next convergem sem montar casos nem 
   }
   await page.reload();
   await expect(page).toHaveURL(/\/app\/conectar$/);
-  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: 'Pesquisa', exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Navegação principal' })
+    .getByRole('button', { name: 'Pesquisa', exact: true })
+    .click();
   await expect(page).toHaveURL(/\/app\/pesquisa$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/app\/conectar$/);
@@ -53,7 +61,7 @@ for (const width of [390, 1440]) {
   test(`recursos preservados, teclado, axe e layout em ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     const errors: string[] = [];
-    page.on('pageerror', error => errors.push(error.message));
+    page.on('pageerror', (error) => errors.push(error.message));
     await login(page);
     if (width === 390) {
       const menu = page.getByRole('button', { name: 'Abrir menu lateral' });
@@ -68,12 +76,27 @@ for (const width of [390, 1440]) {
       await page.keyboard.press('Escape');
       await expect(menu).toBeFocused();
     }
-    for (const path of ['/app', '/app/conectar', '/app/pesquisa', '/app/guia/mcp', '/app/desenvolvedores/api', '/app/conta', '/app/conta/chaves', '/app/conta/atividade', '/app/conta/seguranca', '/app/consulta-processual', '/consulta-processual']) {
+    for (const path of [
+      '/app',
+      '/app/conectar',
+      '/app/pesquisa',
+      '/app/guia/mcp',
+      '/app/desenvolvedores/api',
+      '/app/conta',
+      '/app/conta/chaves',
+      '/app/conta/atividade',
+      '/app/conta/seguranca',
+      '/app/consulta-processual',
+      '/consulta-processual',
+    ]) {
       await page.goto(path);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       await page.waitForLoadState('networkidle');
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), path).toBe(true);
-      expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations, path).toEqual([]);
+      expect(
+        (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations,
+        path,
+      ).toEqual([]);
       await expect(page.getByRole('button', { name: /^(Casos|Rascunhos|Revisão|Abrir caso)$/ })).toHaveCount(0);
       if (path === '/app/conectar') {
         await expect(page.getByRole('heading', { name: 'Aplicativos autorizados' })).toBeVisible();

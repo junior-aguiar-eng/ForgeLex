@@ -165,40 +165,77 @@ try {
     const subject = { tenantId: `closure-commercial-${kind}`, userId: `user-${kind}` };
     await ledger.provisionAccount(subject.tenantId, { paidBalanceCents: 2000, promotionalBalanceCents: 0 });
     let providerCalls = 0;
-    const commercial = await createCommercialRuntime(first.db, first.client, {
-      FORGELEX_COMMERCIAL_EXECUTION_ENABLED: 'true', FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true',
-      DATABASE_URL: url,
-    }, {
-      apiKey: 'synthetic-key', authorizeOwner: async () => {},
-      transport: async () => { providerCalls++; throw new Error('PROVIDER_MUST_NOT_BE_CALLED'); },
-    });
+    const commercial = await createCommercialRuntime(
+      first.db,
+      first.client,
+      {
+        FORGELEX_COMMERCIAL_EXECUTION_ENABLED: 'true',
+        FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true',
+        DATABASE_URL: url,
+      },
+      {
+        apiKey: 'synthetic-key',
+        authorizeOwner: async () => {},
+        transport: async () => {
+          providerCalls++;
+          throw new Error('PROVIDER_MUST_NOT_BE_CALLED');
+        },
+      },
+    );
     const run = await commercial.start(subject, `closure-${kind}`, {
-      objective: 'Ensaio de exclusão sintético', confirmed: true, policyVersion: COMMERCIAL_POLICY_VERSION,
+      objective: 'Ensaio de exclusão sintético',
+      confirmed: true,
+      policyVersion: COMMERCIAL_POLICY_VERSION,
     });
     const lease = await commercial.service.claimNext(`closure-worker-${kind}`);
     assert.equal(lease.executionId, run.id);
     await commercial.service.beginStep(lease, 'step');
     if (kind === 'reconciliation') {
       await commercial.finance.authorizeCall(subject, run.id, {
-        callId: 'http', inputTokens: 1000, maxOutputTokens: 1000, upperBoundMicroUsd: 12000,
+        callId: 'http',
+        inputTokens: 1000,
+        maxOutputTokens: 1000,
+        upperBoundMicroUsd: 12000,
       });
       await commercial.service.failLease(lease);
     } else {
       await commercial.service.finishStep(lease, 'step', {
-        kind: 'question', checkpoint: {}, question: {
-          id: 'purpose', version: 1, contextRevision: 1, prompt: 'Finalidade?', selection: 'free_text',
-          options: [], allowFreeText: true, allowUnknown: true, reason: 'Delimitar',
+        kind: 'question',
+        checkpoint: {},
+        question: {
+          id: 'purpose',
+          version: 1,
+          contextRevision: 1,
+          prompt: 'Finalidade?',
+          selection: 'free_text',
+          options: [],
+          allowFreeText: true,
+          allowUnknown: true,
+          reason: 'Delimitar',
         },
       });
     }
     const before = await commercial.finance.getReceipt(subject, run.id);
     assert.equal(before.chargedCents, 0);
     assert.equal(before.releasedCents, 500);
-    const closureId = `closure-${kind}`, now = new Date().toISOString();
+    const closureId = `closure-${kind}`,
+      now = new Date().toISOString();
     if (kind === 'held-question') {
       await first.client.execute({
         sql: 'INSERT INTO account_closures(id,subject_hash,user_hash,tenant_hash,status_token_hash,idempotency_key_hash,request_fingerprint,policy_version,status,requested_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-        args: [closureId, closureId, closureId, closureId, closureId, closureId, 'fingerprint', 'policy', 'PURGING', now, now],
+        args: [
+          closureId,
+          closureId,
+          closureId,
+          closureId,
+          closureId,
+          closureId,
+          'fingerprint',
+          'policy',
+          'PURGING',
+          now,
+          now,
+        ],
       });
       await first.client.execute({
         sql: "INSERT INTO retention_exceptions(id,closure_id,category,legal_basis_reference,authority_reference,responsible,starts_at,review_at,status) VALUES(?,?,'SESSIONS','LEGAL_HOLD','case','Boni',?,?,'ACTIVE')",
@@ -209,17 +246,24 @@ try {
     assert.equal((await purge.purgePrivateContent({ tenantId: subject.tenantId, closureId })).remainingPrivateRows, 0);
     if (kind === 'held-question') {
       assert.equal((await repo.getExecution(subject, run.id)).status, 'CANCELLED');
-      await first.client.execute({sql: "UPDATE retention_exceptions SET status='RELEASED' WHERE id=?", args: [closureId]});
+      await first.client.execute({
+        sql: "UPDATE retention_exceptions SET status='RELEASED' WHERE id=?",
+        args: [closureId],
+      });
       await purge.purgePrivateContent({ tenantId: subject.tenantId, closureId });
     }
-    const [remaining] = await locker`SELECT COUNT(*)::int AS count FROM agentic_conversations WHERE tenant_id=${subject.tenantId}`;
+    const [remaining] =
+      await locker`SELECT COUNT(*)::int AS count FROM agentic_conversations WHERE tenant_id=${subject.tenantId}`;
     assert.equal(remaining.count, 0);
-    await new AccountClosureBillingRetention(first.client).minimize({ ...subject,
-      tenantPseudonym: `closed-${kind}`, userPseudonym: `closed-user-${kind}`,
+    await new AccountClosureBillingRetention(first.client).minimize({
+      ...subject,
+      tenantPseudonym: `closed-${kind}`,
+      userPseudonym: `closed-user-${kind}`,
     });
     const [retainedClosure] = await locker`SELECT payload_json FROM commercial_executions WHERE execution_id=${run.id}`;
     const after = JSON.parse(retainedClosure.payload_json);
-    for (const field of ['chargedCents', 'releasedCents', 'uncertainMicroUsd']) assert.equal(after[field], before[field]);
+    for (const field of ['chargedCents', 'releasedCents', 'uncertainMicroUsd'])
+      assert.equal(after[field], before[field]);
     assert.equal(providerCalls, 0);
     checks.push(`${kind}_drains_purges_and_preserves_finance_on_postgres`);
   }

@@ -11,7 +11,14 @@ import {
 } from './comum.js';
 
 export const TIPOS_DOCUMENTO = [
-  'peticao_inicial', 'contestacao', 'replica', 'recurso', 'sentenca', 'decisao_interlocutoria', 'acordao', 'outro',
+  'peticao_inicial',
+  'contestacao',
+  'replica',
+  'recurso',
+  'sentenca',
+  'decisao_interlocutoria',
+  'acordao',
+  'outro',
 ] as const;
 const TipoDocumentoSchema = z.enum(TIPOS_DOCUMENTO);
 type TipoDocumento = z.infer<typeof TipoDocumentoSchema>;
@@ -25,10 +32,28 @@ const FundamentoSchema = ItemComTrechoSchema.extend({
 });
 
 const EstruturaSchema = z.object({
-  qualificacao: z.string().trim().max(2000).nullable().optional().describe('Juízo/órgão, número, partes e qualificação, como constam.'),
-  fatos: z.array(ItemComTrechoSchema).max(60).default([]).describe('Petições: fatos narrados. Decisões/acórdãos: relatório.'),
-  fundamentos: z.array(FundamentoSchema).max(60).default([]).describe('Petições: fundamentos jurídicos. Decisões/acórdãos: fundamentação.'),
-  pedidos_dispositivo: z.array(ItemComTrechoSchema).max(60).default([]).describe('Petições: pedidos. Decisões/acórdãos: dispositivo.'),
+  qualificacao: z
+    .string()
+    .trim()
+    .max(2000)
+    .nullable()
+    .optional()
+    .describe('Juízo/órgão, número, partes e qualificação, como constam.'),
+  fatos: z
+    .array(ItemComTrechoSchema)
+    .max(60)
+    .default([])
+    .describe('Petições: fatos narrados. Decisões/acórdãos: relatório.'),
+  fundamentos: z
+    .array(FundamentoSchema)
+    .max(60)
+    .default([])
+    .describe('Petições: fundamentos jurídicos. Decisões/acórdãos: fundamentação.'),
+  pedidos_dispositivo: z
+    .array(ItemComTrechoSchema)
+    .max(60)
+    .default([])
+    .describe('Petições: pedidos. Decisões/acórdãos: dispositivo.'),
 });
 
 export const PecaAnalisarInputSchema = SessaoRefSchema.extend({
@@ -69,8 +94,14 @@ export function inferirTipoDocumento(texto: string): TipoDocumento | 'nao_identi
     [/\bdecisao interlocutoria\b|\bdefiro\b.*\btutela\b|\bdecido\b/, 'decisao_interlocutoria'],
     [/\bcontestacao\b|\bcontesta\b/, 'contestacao'],
     [/\breplica\b|\bimpugnacao a contestacao\b/, 'replica'],
-    [/\b(apelacao|agravo|embargos|recurso (especial|extraordinario|ordinario|de revista))\b|\brazoes recursais\b/, 'recurso'],
-    [/\bpeticao inicial\b|\bexcelentissimo\b.*\bajuizar\b|\bvem, respeitosamente, propor\b|\bacao (de|trabalhista|penal)\b/, 'peticao_inicial'],
+    [
+      /\b(apelacao|agravo|embargos|recurso (especial|extraordinario|ordinario|de revista))\b|\brazoes recursais\b/,
+      'recurso',
+    ],
+    [
+      /\bpeticao inicial\b|\bexcelentissimo\b.*\bajuizar\b|\bvem, respeitosamente, propor\b|\bacao (de|trabalhista|penal)\b/,
+      'peticao_inicial',
+    ],
   ];
   return regras.find(([regex]) => regex.test(inicio))?.[1] ?? 'nao_identificado';
 }
@@ -104,15 +135,24 @@ export function criarToolPecaAnalisar(deps: DepsAnalise): AgentTool<PecaAnalisar
       const naoLocalizados: Array<{ campo: string; trecho: string }> = [];
       for (const campo of campos) {
         for (const item of input.estrutura[campo]) {
-          if (!base.includes(semAcentoMinusculo(item.trecho))) naoLocalizados.push({ campo, trecho: truncar(item.trecho, 200) });
+          if (!base.includes(semAcentoMinusculo(item.trecho)))
+            naoLocalizados.push({ campo, trecho: truncar(item.trecho, 200) });
         }
       }
 
       const rot = rotulos(tipo);
       const ausentes: Array<{ elemento: string; descricao: string }> = [];
-      if (!input.estrutura.qualificacao?.trim()) ausentes.push({ elemento: 'qualificacao', descricao: 'Qualificação (juízo, número, partes) não informada ou não consta no documento.' });
+      if (!input.estrutura.qualificacao?.trim())
+        ausentes.push({
+          elemento: 'qualificacao',
+          descricao: 'Qualificação (juízo, número, partes) não informada ou não consta no documento.',
+        });
       for (const campo of campos) {
-        if (input.estrutura[campo].length === 0) ausentes.push({ elemento: rot[campo], descricao: `Nenhum item de ${rot[campo]} informado ou localizado no documento.` });
+        if (input.estrutura[campo].length === 0)
+          ausentes.push({
+            elemento: rot[campo],
+            descricao: `Nenhum item de ${rot[campo]} informado ou localizado no documento.`,
+          });
       }
 
       const saida: PecaAnalisarOutput = {
@@ -135,10 +175,16 @@ export function criarToolPecaAnalisar(deps: DepsAnalise): AgentTool<PecaAnalisar
       await deps.estado.estadoRegistrar(chamada.id, chamada.dono, 'analisar', {
         tipo_documento: tipo,
         area_direito: chamada.triagem.area_direito,
-        contagem: { fatos: input.estrutura.fatos.length, fundamentos: input.estrutura.fundamentos.length, pedidos_dispositivo: input.estrutura.pedidos_dispositivo.length },
+        contagem: {
+          fatos: input.estrutura.fatos.length,
+          fundamentos: input.estrutura.fundamentos.length,
+          pedidos_dispositivo: input.estrutura.pedidos_dispositivo.length,
+        },
         elementos_ausentes: ausentes.map((item) => item.elemento),
         fundamentos: input.estrutura.fundamentos.slice(0, 10).map((item) => truncar(item.descricao, 160)),
-        pedidos_dispositivo: input.estrutura.pedidos_dispositivo.slice(0, 10).map((item) => truncar(item.descricao, 160)),
+        pedidos_dispositivo: input.estrutura.pedidos_dispositivo
+          .slice(0, 10)
+          .map((item) => truncar(item.descricao, 160)),
         trechos_nao_localizados: naoLocalizados.length,
       });
       return { success: true, data: saida };

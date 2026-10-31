@@ -5,7 +5,7 @@ test('saved research documentation follows the reversible flag and declares sess
   const document = buildOpenApiDocument(undefined, { savedResearchEnabled: true }) as any;
   const collection = document.paths['/api/v2/research/saved'];
   expect(collection.post.requestBody.content['application/json'].schema.$ref).toContain('SavedResearchRequest');
-  for (const path of Object.keys(document.paths).filter(path => path.startsWith('/api/v2/research/saved'))) {
+  for (const path of Object.keys(document.paths).filter((path) => path.startsWith('/api/v2/research/saved'))) {
     for (const operation of Object.values(document.paths[path]) as any[]) {
       expect(operation['x-forgelex-session-only']).toBe(true);
       expect(operation['x-forgelex-billing-mode']).toBe('FREE');

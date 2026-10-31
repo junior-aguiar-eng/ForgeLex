@@ -35,7 +35,10 @@ export class DraftReviewRunRepository {
     mode: DraftReviewMode,
     contextHash: string,
   ): Promise<DraftReviewRun> {
-    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, context, tx => new DraftReviewRunRepository(tx).start(context, version, mode, contextHash));
+    if (!isMatterWriteTransaction(this.db))
+      return withMatterWrite(this.db, context, (tx) =>
+        new DraftReviewRunRepository(tx).start(context, version, mode, contextHash),
+      );
     const bundle = await new DraftRepository(this.db).getVersion(
       context.tenantId,
       context.matterId,
@@ -93,7 +96,8 @@ export class DraftReviewRunRepository {
       findings: Omit<DraftReviewFinding, 'id' | 'createdAt' | 'reviewRunId'>[];
     },
   ): Promise<DraftReviewResult> {
-    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, context, tx => new DraftReviewRunRepository(tx).finish(context, runId, result));
+    if (!isMatterWriteTransaction(this.db))
+      return withMatterWrite(this.db, context, (tx) => new DraftReviewRunRepository(tx).finish(context, runId, result));
     return this.db.transaction(async (tx) => {
       const rows = await tx
         .select()

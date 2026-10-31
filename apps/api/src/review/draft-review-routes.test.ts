@@ -25,13 +25,21 @@ async function fixture() {
     environment: { NODE_ENV: 'test' },
     authAdapter: new AuthAdapter({
       verify: async (token) =>
-        token === 'session-other' ? {...principal,tenantId:'other',authMethod:'session'} : token === 'session-read' ? {...principal,scopes:['matter:read'],authMethod:'session'} : token === 'oauth' ? {...principal,authMethod:'oauth_access_token'} : token === 'session' ? {...principal, authMethod:'session'} : token === 'full'
-          ? principal
-          : token === 'read'
-            ? { ...principal, scopes: ['matter:read'] }
-            : token === 'other'
-              ? { ...principal, tenantId: 'other' }
-              : null,
+        token === 'session-other'
+          ? { ...principal, tenantId: 'other', authMethod: 'session' }
+          : token === 'session-read'
+            ? { ...principal, scopes: ['matter:read'], authMethod: 'session' }
+            : token === 'oauth'
+              ? { ...principal, authMethod: 'oauth_access_token' }
+              : token === 'session'
+                ? { ...principal, authMethod: 'session' }
+                : token === 'full'
+                  ? principal
+                  : token === 'read'
+                    ? { ...principal, scopes: ['matter:read'] }
+                    : token === 'other'
+                      ? { ...principal, tenantId: 'other' }
+                      : null,
     }),
   });
   const headers = { authorization: 'Bearer full' };
@@ -64,18 +72,44 @@ describe('Revisão REST', () => {
   it('recuperação exige sessão, isola tenant e conserva a versão revisada', async () => {
     const f = await fixture();
     try {
-      await f.app.inject({method:'POST',url:`${f.url}/review`,headers:f.headers,payload:{}});
-      const approval = (await f.app.inject({method:'POST',url:`${f.url}/approval`,headers:f.headers,payload:{}})).json();
+      await f.app.inject({ method: 'POST', url: `${f.url}/review`, headers: f.headers, payload: {} });
+      const approval = (
+        await f.app.inject({ method: 'POST', url: `${f.url}/approval`, headers: f.headers, payload: {} })
+      ).json();
       const url = `${f.url}/approval/${approval.request.id}/reissue`;
-      const payload = {versionId:f.draft.version.id};
-      expect((await f.app.inject({method:'POST',url,headers:f.headers,payload})).statusCode).toBe(403);
-      for(const token of ['oauth','session-read'])expect((await f.app.inject({method:'POST',url,headers:{authorization:'Bearer '+token},payload})).statusCode).toBe(403);
-      expect((await f.app.inject({method:'POST',url,headers:{authorization:'Bearer session-other'},payload})).statusCode).toBe(404);
-      const recovered = await f.app.inject({method:'POST',url,headers:{authorization:'Bearer session'},payload});
-      expect(recovered.statusCode,recovered.body).toBe(200);
+      const payload = { versionId: f.draft.version.id };
+      expect((await f.app.inject({ method: 'POST', url, headers: f.headers, payload })).statusCode).toBe(403);
+      for (const token of ['oauth', 'session-read'])
+        expect(
+          (await f.app.inject({ method: 'POST', url, headers: { authorization: 'Bearer ' + token }, payload }))
+            .statusCode,
+        ).toBe(403);
+      expect(
+        (await f.app.inject({ method: 'POST', url, headers: { authorization: 'Bearer session-other' }, payload }))
+          .statusCode,
+      ).toBe(404);
+      const recovered = await f.app.inject({
+        method: 'POST',
+        url,
+        headers: { authorization: 'Bearer session' },
+        payload,
+      });
+      expect(recovered.statusCode, recovered.body).toBe(200);
       expect(recovered.json().request.id).toBe(approval.request.id);
-      expect((await f.app.inject({method:'POST',url:'/api/v2/draft-approvals/resolve',headers:f.headers,payload:{token:approval.token,decision:'APPROVED'}})).statusCode).toBe(400);
-    } finally { await f.app.close(); f.client.close(); }
+      expect(
+        (
+          await f.app.inject({
+            method: 'POST',
+            url: '/api/v2/draft-approvals/resolve',
+            headers: f.headers,
+            payload: { token: approval.token, decision: 'APPROVED' },
+          })
+        ).statusCode,
+      ).toBe(400);
+    } finally {
+      await f.app.close();
+      f.client.close();
+    }
   });
   it('exige escrita e revisão completa para aprovar; histórico é isolado', async () => {
     const f = await fixture();

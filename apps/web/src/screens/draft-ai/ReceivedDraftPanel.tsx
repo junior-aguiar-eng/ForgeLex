@@ -1,4 +1,4 @@
-import {useCaseResultRefresh} from '../case-ai/use-case-result-refresh';
+import { useCaseResultRefresh } from '../case-ai/use-case-result-refresh';
 import { useEffect, useRef, useState } from 'react';
 import { requestApi } from '../../api-client';
 import { shouldApplyReceiptResponse, type Receipt } from './received-draft-model';
@@ -57,7 +57,7 @@ export function ReceivedDraftPanel({
     setReceipts([]);
     setPreview(undefined);
     setChoose(undefined);
-    void refresh().catch(()=>undefined);
+    void refresh().catch(() => undefined);
     return () => {
       mounted.current = false;
     };
@@ -96,7 +96,7 @@ export function ReceivedDraftPanel({
       if (active()) setBusy(false);
     }
   }
-  const updates=useCaseResultRefresh({enabled:true,scopeKey:matterId+':'+draftId,refresh});
+  const updates = useCaseResultRefresh({ enabled: true, scopeKey: matterId + ':' + draftId, refresh });
   const waiting = receipts.filter((r) => r.versionId !== currentVersionId);
   const currentReceipt = receipts.find((r) => r.versionId === currentVersionId);
   return (
@@ -106,7 +106,11 @@ export function ReceivedDraftPanel({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold">Textos recebidos da IA</h3>
-        {(updates.paused||error) && <button type="button" className="btn-secondary" disabled={busy} onClick={updates.retry}>Tentar novamente</button>}
+        {(updates.paused || error) && (
+          <button type="button" className="btn-secondary" disabled={busy} onClick={updates.retry}>
+            Tentar novamente
+          </button>
+        )}
       </div>
       {error && (
         <p role="alert" className="text-sm text-red-700">

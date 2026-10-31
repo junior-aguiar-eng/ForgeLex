@@ -44,16 +44,35 @@ describe('Permissão explícita de contexto', () => {
     const f = await caseAccessFixture();
     try {
       expect((await f.repo.replace(f.owner, f.matter.id, f.input)).receivePermission).toEqual({ enabled: false });
-      expect((await f.repo.replace(f.owner, f.matter.id, { ...f.input, expectedRevision: 1, receivePermission: { enabled: true, destination: { mode: 'NEW' } } })).receivePermission.enabled).toBe(true);
-      expect((await f.repo.replace(f.owner, f.matter.id, { ...f.input, expectedRevision: 2 })).receivePermission).toEqual({ enabled: false });
-    } finally { f.client.close(); }
+      expect(
+        (
+          await f.repo.replace(f.owner, f.matter.id, {
+            ...f.input,
+            expectedRevision: 1,
+            receivePermission: { enabled: true, destination: { mode: 'NEW' } },
+          })
+        ).receivePermission.enabled,
+      ).toBe(true);
+      expect(
+        (await f.repo.replace(f.owner, f.matter.id, { ...f.input, expectedRevision: 2 })).receivePermission,
+      ).toEqual({ enabled: false });
+    } finally {
+      f.client.close();
+    }
   });
   it('recusa destino ausente ou de outro caso sem alterar a permissão', async () => {
     const f = await caseAccessFixture();
     try {
-      await expect(f.repo.replace(f.owner, f.matter.id, { ...f.input, receivePermission: { enabled: true, destination: { mode: 'EXISTING', draftId: randomUUID() } } })).rejects.toThrow('DRAFT_DESTINATION_INVALID');
+      await expect(
+        f.repo.replace(f.owner, f.matter.id, {
+          ...f.input,
+          receivePermission: { enabled: true, destination: { mode: 'EXISTING', draftId: randomUUID() } },
+        }),
+      ).rejects.toThrow('DRAFT_DESTINATION_INVALID');
       expect(await f.repo.listForOwner(f.owner, f.matter.id)).toEqual([]);
-    } finally { f.client.close(); }
+    } finally {
+      f.client.close();
+    }
   });
   it('foreign_selection_is_rejected_atomically', async () => {
     const f = await caseAccessFixture();

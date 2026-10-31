@@ -4,7 +4,11 @@ import type { Page } from '@playwright/test';
 const api = 'http://127.0.0.1:3301';
 const headers = { authorization: 'Bearer phase7-e2e-access-token' };
 async function login(page: Page) {
-  await page.goto('/entrar'); await page.getByLabel('E-mail', { exact: true }).fill('ciclo@forgelex.test'); await page.getByLabel('Senha', { exact: true }).fill('senha-sintetica-123'); await page.getByRole('button', { name: 'Entrar', exact: true }).click(); await page.waitForURL('**/app');
+  await page.goto('/entrar');
+  await page.getByLabel('E-mail', { exact: true }).fill('ciclo@forgelex.test');
+  await page.getByLabel('Senha', { exact: true }).fill('senha-sintetica-123');
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await page.waitForURL('**/app');
 }
 
 test('case filter cannot race an unfinished lifecycle operation', async ({ page, request }) => {
@@ -15,9 +19,13 @@ test('case filter cannot race an unfinished lifecycle operation', async ({ page,
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   let release!: () => void;
   let entered!: () => void;
-  const waiting = new Promise<void>(resolve => { release = resolve; });
-  const started = new Promise<void>(resolve => { entered = resolve; });
-  await page.route(`**/api/v2/matters/${matter.id}/archive`, async route => {
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const started = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  await page.route(`**/api/v2/matters/${matter.id}/archive`, async (route) => {
     entered();
     await waiting;
     await route.continue();
@@ -40,20 +48,32 @@ test('case filter cannot race an unfinished lifecycle operation', async ({ page,
 test('typing during a delayed refresh keeps the buffer attached to the original case', async ({ page, request }) => {
   const title = `Caso com resposta atrasada ${Date.now()}`;
   const matter = await (await request.post(api + '/api/v2/matters', { headers, data: { title } })).json();
-  await login(page); await page.goto(`/app/casos?caso=${matter.id}`);
+  await login(page);
+  await page.goto(`/app/casos?caso=${matter.id}`);
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   await page.getByText('Adicionar documento', { exact: true }).click();
   await request.post(`${api}/api/v2/matters/${matter.id}/archive`, { headers, data: { expectedLifecycleRevision: 0 } });
-  let release!: () => void; let entered!: () => void;
-  const waiting = new Promise<void>(resolve => { release = resolve; }), started = new Promise<void>(resolve => { entered = resolve; });
-  await page.route('**/api/v2/matters?view=active', async route => { entered(); await waiting; await route.continue(); });
-  await page.getByRole('button', { name: 'Atualizar casos', exact: true }).click(); await started;
+  let release!: () => void;
+  let entered!: () => void;
+  const waiting = new Promise<void>((resolve) => {
+      release = resolve;
+    }),
+    started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+  await page.route('**/api/v2/matters?view=active', async (route) => {
+    entered();
+    await waiting;
+    await route.continue();
+  });
+  await page.getByRole('button', { name: 'Atualizar casos', exact: true }).click();
+  await started;
   await page.getByLabel('Texto do documento').fill('Texto escrito enquanto a lista carrega.');
   release();
   await expect(page.getByLabel('Texto do documento')).toBeDisabled();
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   await expect(page.getByLabel('Texto do documento')).toHaveValue('Texto escrito enquanto a lista carrega.');
-  page.on('dialog', dialog => dialog.accept());
+  page.on('dialog', (dialog) => dialog.accept());
   await page.getByLabel(`Opções de ${title}`, { exact: true }).click();
   await page.getByRole('button', { name: 'Restaurar', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Restaurar', exact: true }).click();
@@ -63,8 +83,19 @@ test('typing during a delayed refresh keeps the buffer attached to the original 
 test('document menus preserve the case and unsaved case text survives archiving', async ({ page, request }) => {
   const title = `Caso com documento ${Date.now()}`;
   const matter = await (await request.post(api + '/api/v2/matters', { headers, data: { title } })).json();
-  const document = await (await request.post(`${api}/api/v2/matters/${matter.id}/documents`, { headers, data: { title: 'Fonte para excluir', originalFilename: 'fonte.txt', mimeType: 'text/plain', content: 'Fonte privada sintética.' } })).json();
-  await login(page); await page.goto(`/app/casos?caso=${matter.id}`);
+  const document = await (
+    await request.post(`${api}/api/v2/matters/${matter.id}/documents`, {
+      headers,
+      data: {
+        title: 'Fonte para excluir',
+        originalFilename: 'fonte.txt',
+        mimeType: 'text/plain',
+        content: 'Fonte privada sintética.',
+      },
+    })
+  ).json();
+  await login(page);
+  await page.goto(`/app/casos?caso=${matter.id}`);
   await page.getByLabel('Opções de Fonte para excluir', { exact: true }).click();
   await page.getByRole('button', { name: 'Mover para a lixeira', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Mover para a lixeira', exact: true }).click();
@@ -74,11 +105,13 @@ test('document menus preserve the case and unsaved case text survives archiving'
   await page.getByRole('button', { name: 'Excluir definitivamente', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir definitivamente', exact: true }).click();
   await expect(page.getByLabel('Opções de Fonte para excluir', { exact: true })).toHaveCount(0);
-  expect((await request.get(`${api}/api/v2/matters/${matter.id}/documents/${document.document.id}`, { headers })).status()).toBe(404);
+  expect(
+    (await request.get(`${api}/api/v2/matters/${matter.id}/documents/${document.document.id}`, { headers })).status(),
+  ).toBe(404);
   expect((await request.get(`${api}/api/v2/matters/${matter.id}`, { headers })).status()).toBe(200);
   await page.getByText('Adicionar documento', { exact: true }).click();
   await page.getByLabel('Texto do documento').fill('Meu texto ainda não salvo.');
-  page.once('dialog', dialog => dialog.accept());
+  page.once('dialog', (dialog) => dialog.accept());
   await page.getByLabel(`Opções de ${title}`, { exact: true }).click();
   await page.getByRole('button', { name: 'Arquivar', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Arquivar', exact: true }).click();
@@ -90,13 +123,29 @@ test('document menus preserve the case and unsaved case text survives archiving'
   await expect(page.getByLabel('Texto do documento')).toBeDisabled();
 });
 test('a case archived in another tab keeps the draft buffer and blocks saving', async ({ page, request }) => {
-  const matter = await (await request.post(api + '/api/v2/matters', { headers, data: { title: `Caso com edição ${Date.now()}` } })).json();
-  const draft = await (await request.post(`${api}/api/v2/matters/${matter.id}/drafts`, { headers, data: { title: 'Minuta', sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto salvo.' }] } })).json();
-  await login(page); await page.goto(`/app/rascunhos?matterId=${matter.id}&draftId=${draft.draft.id}`);
+  const matter = await (
+    await request.post(api + '/api/v2/matters', { headers, data: { title: `Caso com edição ${Date.now()}` } })
+  ).json();
+  const draft = await (
+    await request.post(`${api}/api/v2/matters/${matter.id}/drafts`, {
+      headers,
+      data: { title: 'Minuta', sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto salvo.' }] },
+    })
+  ).json();
+  await login(page);
+  await page.goto(`/app/rascunhos?matterId=${matter.id}&draftId=${draft.draft.id}`);
   const editor = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
-  await expect(editor).toHaveValue('Texto salvo.'); await editor.fill('Edição ainda não salva.');
+  await expect(editor).toHaveValue('Texto salvo.');
+  await editor.fill('Edição ainda não salva.');
   await page.getByText('Salvar e exportar', { exact: true }).click();
-  expect((await request.post(`${api}/api/v2/matters/${matter.id}/archive`, { headers, data: { expectedLifecycleRevision: 0 } })).status()).toBe(200);
+  expect(
+    (
+      await request.post(`${api}/api/v2/matters/${matter.id}/archive`, {
+        headers,
+        data: { expectedLifecycleRevision: 0 },
+      })
+    ).status(),
+  ).toBe(200);
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect(page.getByRole('button', { name: 'Salvar nova versão', exact: true })).toBeDisabled();
   await expect(editor).toHaveValue('Edição ainda não salva.');
@@ -121,7 +170,8 @@ test('case archive, trash, restore and confirmed deletion use clear controls', a
   expect((await new AxeBuilder({ page }).include('dialog').analyze()).violations).toEqual([]);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await options().click(); await page.getByRole('button', { name: 'Arquivar', exact: true }).click();
+  await options().click();
+  await page.getByRole('button', { name: 'Arquivar', exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   const bounds = await page.getByRole('dialog').boundingBox();
   expect(bounds).not.toBeNull();
@@ -130,25 +180,32 @@ test('case archive, trash, restore and confirmed deletion use clear controls', a
   await page.screenshot({ path: '.superpowers/sdd/2026-10-06-casos-documentos-ciclo-vida/lifecycle-mobile.png' });
   await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
   await page.setViewportSize({ width: 1280, height: 720 });
-  expect((await (await request.get(`${api}/api/v2/matters/${matter.id}`, { headers })).json()).matter.lifecycleState).toBe('ACTIVE');
-  await options().click(); await page.getByRole('button', { name: 'Arquivar', exact: true }).click();
+  expect(
+    (await (await request.get(`${api}/api/v2/matters/${matter.id}`, { headers })).json()).matter.lifecycleState,
+  ).toBe('ACTIVE');
+  await options().click();
+  await page.getByRole('button', { name: 'Arquivar', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Arquivar', exact: true }).click();
   await page.getByLabel('Mostrar casos').selectOption('archived');
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   await expect(page.getByPlaceholder('Título do documento')).toBeDisabled();
-  await options().click(); await page.getByRole('button', { name: 'Mover para a lixeira', exact: true }).click();
+  await options().click();
+  await page.getByRole('button', { name: 'Mover para a lixeira', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Mover para a lixeira', exact: true }).click();
   await page.getByLabel('Mostrar casos').selectOption('trash');
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
-  await options().click(); await page.getByRole('button', { name: 'Restaurar', exact: true }).click();
+  await options().click();
+  await page.getByRole('button', { name: 'Restaurar', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Restaurar', exact: true }).click();
   await page.getByLabel('Mostrar casos').selectOption('archived');
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
-  await options().click(); await page.getByRole('button', { name: 'Mover para a lixeira', exact: true }).click();
+  await options().click();
+  await page.getByRole('button', { name: 'Mover para a lixeira', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Mover para a lixeira', exact: true }).click();
   await page.getByLabel('Mostrar casos').selectOption('trash');
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
-  await options().click(); await page.getByRole('button', { name: 'Excluir definitivamente', exact: true }).click();
+  await options().click();
+  await page.getByRole('button', { name: 'Excluir definitivamente', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('button', { name: 'Excluir definitivamente', exact: true })).toBeDisabled();
   await dialog.getByLabel('Digite o nome do caso para confirmar').fill(title);

@@ -129,7 +129,7 @@ describe('Contexto MCP autenticado', () => {
       await app.close();
       c.client.close();
     }
-  },20000);
+  }, 20000);
   it('leitura gratuita sem carteira, seleção isolada, identidade não falsificável e revogação sem replay', async () => {
     const c = await createDatabase();
     await runPersistenceMigrations(c.client);
@@ -216,12 +216,8 @@ describe('Contexto MCP autenticado', () => {
       expect(ok.json().result).toMatchObject({ billing: { mode: 'FREE', chargedCents: 0, isReplay: false } });
       expect(JSON.stringify(ok.json().result)).toContain('MATERIAL PRIVADO AUTORIZADO');
       expect((await c.client.execute('SELECT * FROM ledger_accounts')).rows).toHaveLength(0);
-      expect(toolFailure(await call('case.read_item', input, 'app-two')).code).toBe(
-        'CASE_CONTEXT_NOT_AUTHORIZED',
-      );
-      expect(toolFailure(await call('case.read_item', input, 'session')).code).toBe(
-        'CASE_CONTEXT_NOT_AUTHORIZED',
-      );
+      expect(toolFailure(await call('case.read_item', input, 'app-two')).code).toBe('CASE_CONTEXT_NOT_AUTHORIZED');
+      expect(toolFailure(await call('case.read_item', input, 'session')).code).toBe('CASE_CONTEXT_NOT_AUTHORIZED');
       expect(
         (
           await call('case.read_item', {

@@ -1,28 +1,91 @@
 import { ArrowRight, BookOpen, FileCheck2, Search, ShieldCheck } from 'lucide-react';
 
 const movements = [
-  { number: '01', title: 'Crie seu acesso', body: 'Entre no ForgeLex e confira sua conta e os créditos para pesquisa.' },
-  { number: '02', title: 'Conecte sua IA', body: 'Autorize o ForgeLex no ChatGPT ou Claude, conforme a disponibilidade do MCP no aplicativo conectado e na sua conta.' },
-  { number: '03', title: 'Pesquise decisões dos tribunais disponíveis', body: 'Peça uma pesquisa no aplicativo conectado ou use a pesquisa disponível no site. Cada nova pesquisa válida é faturável.' },
-  { number: '04', title: 'Confira as fontes', body: 'Abra a autoridade e verifique a proveniência antes de utilizar o resultado. Essas operações são gratuitas.' },
+  {
+    number: '01',
+    title: 'Crie seu acesso',
+    body: 'Entre no ForgeLex e confira sua conta e os créditos para pesquisa.',
+  },
+  {
+    number: '02',
+    title: 'Conecte sua IA',
+    body: 'Autorize o ForgeLex no ChatGPT ou Claude, conforme a disponibilidade do MCP no aplicativo conectado e na sua conta.',
+  },
+  {
+    number: '03',
+    title: 'Pesquise decisões dos tribunais disponíveis',
+    body: 'Peça uma pesquisa no aplicativo conectado ou use a pesquisa disponível no site. Cada nova pesquisa válida é faturável.',
+  },
+  {
+    number: '04',
+    title: 'Confira as fontes',
+    body: 'Abra a autoridade e verifique a proveniência antes de utilizar o resultado. Essas operações são gratuitas.',
+  },
 ] as const;
 
 const capabilities = [
-  { icon: Search, title: 'Pesquisa e autoridades', body: 'Pesquise decisões dos tribunais disponíveis e confira a origem e a fonte.' },
-  { icon: BookOpen, title: 'Conexão MCP', body: 'Use ferramentas de pesquisa no ChatGPT ou Claude com autorização da sua conta ForgeLex. O aplicativo conectado fornece o modelo de IA.' },
-  { icon: ShieldCheck, title: 'Conta e créditos', body: 'Confira saldo, atividade, segurança, chaves e aplicativos autorizados. Os custos do aplicativo conectado são separados dos créditos ForgeLex.' },
-  { icon: FileCheck2, title: 'API e consulta gratuita', body: 'Integre seu software pela API REST ou consulte dados processuais públicos do TJAL pelo DataJud sem créditos.' },
+  {
+    icon: Search,
+    title: 'Pesquisa e autoridades',
+    body: 'Pesquise decisões dos tribunais disponíveis e confira a origem e a fonte.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Conexão MCP',
+    body: 'Use ferramentas de pesquisa no ChatGPT ou Claude com autorização da sua conta ForgeLex. O aplicativo conectado fornece o modelo de IA.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Conta e créditos',
+    body: 'Confira saldo, atividade, segurança, chaves e aplicativos autorizados. Os custos do aplicativo conectado são separados dos créditos ForgeLex.',
+  },
+  {
+    icon: FileCheck2,
+    title: 'API e consulta gratuita',
+    body: 'Integre seu software pela API REST ou consulte dados processuais públicos do TJAL pelo DataJud sem créditos.',
+  },
 ] as const;
 
 const faq = [
-  { question: 'O que é o ForgeLex?', answer: 'É um serviço de pesquisa jurisprudencial dos tribunais superiores, com ferramentas MCP para ChatGPT ou Claude, API REST e pesquisa auxiliar no site.' },
-  { question: 'Quais tribunais podem ser pesquisados?', answer: 'A cobertura disponível atualmente para pesquisa jurisprudencial é o STJ. A consulta processual gratuita do TJAL pelo DataJud é um recurso separado.' },
-  { question: 'Como funciona a cobrança?', answer: 'Os créditos são pré-pagos em reais. Uma nova pesquisa válida é faturável, inclusive sem resultados. Abrir uma autoridade e verificar sua proveniência são gratuitos no contrato vigente.' },
-  { question: 'O que preciso para conectar minha IA?', answer: 'Uma conta ForgeLex e um aplicativo com suporte a MCP. A disponibilidade depende do ChatGPT ou Claude e da sua conta; consulte o guia e confirme a execução no próprio aplicativo conectado.' },
-  { question: 'O que é MCP?', answer: 'É um protocolo para um aplicativo compatível chamar ferramentas autorizadas. O aplicativo conectado fornece o modelo e o contexto; o ForgeLex fornece pesquisa e decisões.' },
-  { question: 'O ForgeLex acessa minhas conversas e arquivos?', answer: 'O ForgeLex recebe os argumentos enviados à ferramenta autenticada. A conexão não concede acesso automático ao histórico geral ou aos arquivos do aplicativo conectado.' },
-  { question: 'Posso integrar ao meu software?', answer: 'Sim. Consulte a API REST e o OpenAPI, com autenticação e os escopos necessários.' },
-  { question: 'Como começo sem conectar um aplicativo?', answer: 'Crie seu acesso e use a pesquisa no site. A consulta processual pública é gratuita e dispensa cadastro. A conferência e o uso jurídico dos resultados continuam sob sua responsabilidade.' },
+  {
+    question: 'O que é o ForgeLex?',
+    answer:
+      'É um serviço de pesquisa jurisprudencial dos tribunais superiores, com ferramentas MCP para ChatGPT ou Claude, API REST e pesquisa auxiliar no site.',
+  },
+  {
+    question: 'Quais tribunais podem ser pesquisados?',
+    answer:
+      'A cobertura disponível atualmente para pesquisa jurisprudencial é o STJ. A consulta processual gratuita do TJAL pelo DataJud é um recurso separado.',
+  },
+  {
+    question: 'Como funciona a cobrança?',
+    answer:
+      'Os créditos são pré-pagos em reais. Uma nova pesquisa válida é faturável, inclusive sem resultados. Abrir uma autoridade e verificar sua proveniência são gratuitos no contrato vigente.',
+  },
+  {
+    question: 'O que preciso para conectar minha IA?',
+    answer:
+      'Uma conta ForgeLex e um aplicativo com suporte a MCP. A disponibilidade depende do ChatGPT ou Claude e da sua conta; consulte o guia e confirme a execução no próprio aplicativo conectado.',
+  },
+  {
+    question: 'O que é MCP?',
+    answer:
+      'É um protocolo para um aplicativo compatível chamar ferramentas autorizadas. O aplicativo conectado fornece o modelo e o contexto; o ForgeLex fornece pesquisa e decisões.',
+  },
+  {
+    question: 'O ForgeLex acessa minhas conversas e arquivos?',
+    answer:
+      'O ForgeLex recebe os argumentos enviados à ferramenta autenticada. A conexão não concede acesso automático ao histórico geral ou aos arquivos do aplicativo conectado.',
+  },
+  {
+    question: 'Posso integrar ao meu software?',
+    answer: 'Sim. Consulte a API REST e o OpenAPI, com autenticação e os escopos necessários.',
+  },
+  {
+    question: 'Como começo sem conectar um aplicativo?',
+    answer:
+      'Crie seu acesso e use a pesquisa no site. A consulta processual pública é gratuita e dispensa cadastro. A conferência e o uso jurídico dos resultados continuam sob sua responsabilidade.',
+  },
 ] as const;
 
 export function SectionHeader({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
@@ -44,7 +107,8 @@ export function Hero() {
           Jurisprudência dos tribunais superiores e consulta processual.
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-8 text-stone-600">
-          Pesquise decisões, confira as fontes e consulte processos. Use o site ou conecte o ForgeLex ao ChatGPT ou Claude.
+          Pesquise decisões, confira as fontes e consulte processos. Use o site ou conecte o ForgeLex ao ChatGPT ou
+          Claude.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a href="/cadastro" className="btn-primary">
@@ -133,7 +197,14 @@ export function Capabilities() {
   return (
     <section className="border-y border-champagne-border bg-white/70 py-16 sm:py-20">
       <div className="page-container">
-        <div className="scroll-mt-24" id="casos"><span id="rascunhos" /><span id="revisao" /><p className="mb-6 text-sm text-stone-600">O fluxo de casos, rascunhos e revisão está suspenso na interface. Veja abaixo os recursos de pesquisa e integração disponíveis.</p></div>
+        <div className="scroll-mt-24" id="casos">
+          <span id="rascunhos" />
+          <span id="revisao" />
+          <p className="mb-6 text-sm text-stone-600">
+            O fluxo de casos, rascunhos e revisão está suspenso na interface. Veja abaixo os recursos de pesquisa e
+            integração disponíveis.
+          </p>
+        </div>
         <SectionHeader eyebrow="Ferramentas do produto" title="Pesquisa, conexão e conta em um só lugar." />
         <div className="mt-9 grid gap-5 md:grid-cols-2">
           {capabilities.map(({ icon: Icon, title, body }, index) => (
@@ -149,8 +220,8 @@ export function Capabilities() {
           ))}
         </div>
         <p className="mt-6 max-w-3xl text-sm leading-6 text-stone-600">
-          Confira as autoridades retornadas e sua proveniência. A decisão jurídica e o uso dos resultados permanecem
-          sob responsabilidade humana.
+          Confira as autoridades retornadas e sua proveniência. A decisão jurídica e o uso dos resultados permanecem sob
+          responsabilidade humana.
         </p>
       </div>
     </section>
@@ -214,8 +285,8 @@ export function CreditsInfo() {
         <div className="surface p-6">
           <p className="text-sm font-semibold text-stone-900">O que a cobrança cobre</p>
           <p className="mt-3 text-sm leading-6 text-stone-600">
-            O ForgeLex cobra suas operações jurídicas. Assinatura, modelo e tokens do ChatGPT, Claude ou outro aplicativo conectado
-            pertencem ao serviço escolhido pelo usuário.
+            O ForgeLex cobra suas operações jurídicas. Assinatura, modelo e tokens do ChatGPT, Claude ou outro
+            aplicativo conectado pertencem ao serviço escolhido pelo usuário.
           </p>
           <a
             href="/creditos"

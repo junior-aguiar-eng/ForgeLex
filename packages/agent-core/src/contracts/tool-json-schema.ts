@@ -14,8 +14,10 @@ export function toolJsonSchema(schema: unknown): JSONSchema.BaseSchema {
       // always excluded them. Keep passthrough and record schemas unchanged.
       if (context.zodSchema instanceof z.ZodObject && !context.zodSchema.def.catchall) {
         context.jsonSchema.additionalProperties = false;
-      } else if (context.zodSchema instanceof z.ZodObject &&
-        (context.zodSchema.def.catchall instanceof z.ZodUnknown || context.zodSchema.def.catchall instanceof z.ZodAny)) {
+      } else if (
+        context.zodSchema instanceof z.ZodObject &&
+        (context.zodSchema.def.catchall instanceof z.ZodUnknown || context.zodSchema.def.catchall instanceof z.ZodAny)
+      ) {
         context.jsonSchema.additionalProperties = true;
       }
     },

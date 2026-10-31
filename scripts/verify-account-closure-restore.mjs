@@ -74,7 +74,7 @@ try {
     createdBy: account.user.id,
     title: 'Conteúdo descartável',
   });
-  await seedAgenticRetention(source.db,sourceClient,{tenantId:account.tenant.id,userId:account.user.id});
+  await seedAgenticRetention(source.db, sourceClient, { tenantId: account.tenant.id, userId: account.user.id });
   const now = new Date().toISOString();
   const purchaseId = randomUUID();
   await sourceClient.execute({
@@ -150,7 +150,7 @@ try {
     }),
     true,
   );
-  await assertAgenticRetention(restored.db,targetClient,{tenantId:account.tenant.id,userId:account.user.id});
+  await assertAgenticRetention(restored.db, targetClient, { tenantId: account.tenant.id, userId: account.user.id });
   const privateRows = await targetClient.execute({
     sql: 'SELECT COUNT(*) AS count FROM matters WHERE tenant_id = ?',
     args: [account.tenant.id],
@@ -199,7 +199,14 @@ try {
       status: 'passed',
       sourceDatabase: sourceName,
       restoredDatabase: targetName,
-      checks: ['tombstone', 'steps', 'private_zero', 'financial_minimized', 'agentic_content_erased_finance_minimized_late_write_denied', 'restored_login_denied'],
+      checks: [
+        'tombstone',
+        'steps',
+        'private_zero',
+        'financial_minimized',
+        'agentic_content_erased_finance_minimized_late_write_denied',
+        'restored_login_denied',
+      ],
     }),
   );
 } catch (error) {

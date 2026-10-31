@@ -11,7 +11,7 @@ test('menu em tela baixa permite alcançar e abrir a consulta gratuita', async (
   const navigation = page.locator('#forgelex-sidebar nav');
   const consultation = navigation.getByRole('button', { name: 'Consulta processual gratuita' });
   await consultation.scrollIntoViewIfNeeded();
-  expect(await navigation.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  expect(await navigation.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
   const bounds = await consultation.boundingBox();
   expect(bounds).not.toBeNull();
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(568);

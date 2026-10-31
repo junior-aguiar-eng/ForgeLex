@@ -2,16 +2,24 @@ import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 const searchUrl = '**/api/v2/research/search-case-law';
-test('salva no caso sem nova cobrança, deduplica e mantém a fonte para reutilização', async ({ page, request, context }, testInfo) => {
+test('salva no caso sem nova cobrança, deduplica e mantém a fonte para reutilização', async ({
+  page,
+  request,
+  context,
+}, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const headers = { authorization: 'Bearer phase7-e2e-access-token' };
   const title = `Caso de pesquisa ${Date.now()}`;
-  const matter = await (await request.post('http://127.0.0.1:3341/api/v2/matters', { headers, data: { title } })).json();
+  const matter = await (
+    await request.post('http://127.0.0.1:3341/api/v2/matters', { headers, data: { title } })
+  ).json();
   await login(page);
   await page.goto('/app/pesquisa');
   await page.getByPlaceholder('Tema, tese ou número do processo').fill('vazamento');
-  const response = page.waitForResponse(r => r.url().endsWith('/research/search-case-law') && r.request().method() === 'POST');
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith('/research/search-case-law') && r.request().method() === 'POST',
+  );
   await page.getByRole('button', { name: 'Consultar', exact: true }).click();
   const source = (await (await response).json()).results[0];
   const afterSearch = await balance(page);
@@ -28,7 +36,9 @@ test('salva no caso sem nova cobrança, deduplica e mantém a fonte para reutili
   await dialog.getByRole('button', { name: 'Salvar julgado', exact: true }).click();
   await expect(dialog.getByRole('status')).toContainText('já está salvo');
   expect(await balance(page)).toBe(afterSearch);
-  const saved = await (await request.get(`http://127.0.0.1:3341/api/v2/matters/${matter.id}/authorities`, { headers })).json();
+  const saved = await (
+    await request.get(`http://127.0.0.1:3341/api/v2/matters/${matter.id}/authorities`, { headers })
+  ).json();
   expect(saved.items).toHaveLength(1);
   expect(saved.items[0].authority).toEqual(source);
   await dialog.getByRole('button', { name: 'Fechar', exact: true }).click();
@@ -41,20 +51,29 @@ test('salva no caso sem nova cobrança, deduplica e mantém a fonte para reutili
   expect(await balance(page)).toBe(afterSearch);
   await page.goto('/app/rascunhos');
   await page.getByRole('button', { name: new RegExp(title) }).click();
-  await expect(page.getByLabel('Julgado da tese').getByRole('option', { name: new RegExp(source.processNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) })).toHaveAttribute('value', saved.items[0].id);
+  await expect(
+    page
+      .getByLabel('Julgado da tese')
+      .getByRole('option', { name: new RegExp(source.processNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }),
+  ).toHaveAttribute('value', saved.items[0].id);
 });
 
 test('falha ao salvar preserva seleção e pesquisa quando o caso é arquivado', async ({ page, request }) => {
   const headers = { authorization: 'Bearer phase7-e2e-access-token' };
   const title = `Caso arquivado após seleção ${Date.now()}`;
-  const matter = await (await request.post('http://127.0.0.1:3341/api/v2/matters', { headers, data: { title } })).json();
+  const matter = await (
+    await request.post('http://127.0.0.1:3341/api/v2/matters', { headers, data: { title } })
+  ).json();
   await login(page);
   await page.getByRole('textbox', { name: 'Termo de pesquisa' }).fill('vazamento');
   await page.getByRole('button', { name: 'Consultar', exact: true }).click();
   await page.getByRole('button', { name: 'Salvar no caso', exact: true }).first().click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Caso de destino').selectOption(matter.id);
-  await request.post(`http://127.0.0.1:3341/api/v2/matters/${matter.id}/archive`, { headers, data: { expectedLifecycleRevision: 0 } });
+  await request.post(`http://127.0.0.1:3341/api/v2/matters/${matter.id}/archive`, {
+    headers,
+    data: { expectedLifecycleRevision: 0 },
+  });
   const before = await balance(page);
   await dialog.getByRole('button', { name: 'Salvar julgado', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('Caso indisponível para edição');
@@ -69,7 +88,11 @@ test('timeout permite repetir a mesma operação e não oferece recarga de créd
   const keys: string[] = [];
   await page.route(searchUrl, async (route) => {
     keys.push(route.request().headers()['idempotency-key']);
-    if (keys.length === 1) await route.fulfill({ status: 504, json: { error: 'TOOL_TIMEOUT', message: 'A operação excedeu o tempo de resposta. Tente novamente.' } });
+    if (keys.length === 1)
+      await route.fulfill({
+        status: 504,
+        json: { error: 'TOOL_TIMEOUT', message: 'A operação excedeu o tempo de resposta. Tente novamente.' },
+      });
     else await route.continue();
   });
   await page.getByRole('textbox', { name: 'Termo de pesquisa' }).fill('vazamento');
@@ -96,24 +119,37 @@ async function balance(page: Page): Promise<number> {
   return page.evaluate(async () => {
     const raw = Object.entries(localStorage).find(([key]) => key.includes('auth-token'))?.[1];
     const token = raw ? JSON.parse(raw).access_token : '';
-    const response = await fetch('http://127.0.0.1:3341/api/v2/billing/account', { headers: { authorization: `Bearer ${token}` } });
+    const response = await fetch('http://127.0.0.1:3341/api/v2/billing/account', {
+      headers: { authorization: `Bearer ${token}` },
+    });
     return (await response.json()).balanceCents;
   });
 }
 
-test('histórico e exemplos não cobram; cliques rápidos geram uma operação; cópia e detalhes são gratuitos', async ({ page, context }) => {
+test('histórico e exemplos não cobram; cliques rápidos geram uma operação; cópia e detalhes são gratuitos', async ({
+  page,
+  context,
+}) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await login(page);
   const requests: string[] = [];
-  page.on('request', (request) => { if (request.url().endsWith('/research/search-case-law')) requests.push(request.headers()['idempotency-key']); });
+  page.on('request', (request) => {
+    if (request.url().endsWith('/research/search-case-law')) requests.push(request.headers()['idempotency-key']);
+  });
   const before = await balance(page);
   await expect(page.getByText(/Tarifa por nova pesquisa: R\$\s*0,20/)).toBeVisible();
   await page.getByRole('button', { name: 'Capitalização CCB' }).click();
   expect(requests).toHaveLength(0);
   await page.getByRole('textbox', { name: 'Termo de pesquisa' }).fill('vazamento');
   await page.getByLabel('Ano do julgamento', { exact: true }).selectOption('2023');
-  const completedSearch = page.waitForResponse(response => response.url().endsWith('/research/search-case-law') && response.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Consultar', exact: true }).evaluate((element) => { element.click(); element.click(); element.click(); });
+  const completedSearch = page.waitForResponse(
+    (response) => response.url().endsWith('/research/search-case-law') && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Consultar', exact: true }).evaluate((element) => {
+    element.click();
+    element.click();
+    element.click();
+  });
   expect((await completedSearch).status()).toBe(200);
   const history = page.getByRole('button', { name: /Recuperar consulta: vazamento.*2023/ }).first();
   await expect(history).toBeVisible();
@@ -132,8 +168,18 @@ test('histórico e exemplos não cobram; cliques rápidos geram uma operação; 
   await expect(history).toContainText('2 consultas');
   expect(requests).toHaveLength(2);
   expect(await balance(page)).toBe(before - 40);
-  await page.evaluate(() => { Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: async () => { throw new Error('denied'); } }); });
-  await page.getByRole('button', { name: /Copiar citação|Citação copiada/ }).first().click();
+  await page.evaluate(() => {
+    Object.defineProperty(navigator.clipboard, 'writeText', {
+      configurable: true,
+      value: async () => {
+        throw new Error('denied');
+      },
+    });
+  });
+  await page
+    .getByRole('button', { name: /Copiar citação|Citação copiada/ })
+    .first()
+    .click();
   await expect(page.getByRole('alert').filter({ hasText: 'Não foi possível copiar' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Citação copiada' })).toHaveCount(0);
   expect(requests).toHaveLength(2);
@@ -158,8 +204,12 @@ test('Enter repetido durante a busca executa uma única operação', async ({ pa
   const before = await balance(page);
   let release!: () => void;
   let dispatched!: () => void;
-  const started = new Promise<void>((resolve) => { dispatched = resolve; });
-  const gate = new Promise<void>((resolve) => { release = resolve; });
+  const started = new Promise<void>((resolve) => {
+    dispatched = resolve;
+  });
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
   let requests = 0;
   await page.route(searchUrl, async (route) => {
     requests++;
@@ -185,14 +235,21 @@ test('navegar durante perda da resposta conserva filtros e chave na outra tela',
   const before = await balance(page);
   let release!: () => void;
   let dispatched!: () => void;
-  const started = new Promise<void>((resolve) => { dispatched = resolve; });
-  const gate = new Promise<void>((resolve) => { release = resolve; });
+  const started = new Promise<void>((resolve) => {
+    dispatched = resolve;
+  });
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
   const keys: string[] = [];
   await page.route(searchUrl, async (route) => {
     keys.push(route.request().headers()['idempotency-key']);
     const response = await route.fetch();
-    if (keys.length === 1) { dispatched(); await gate; await route.abort('failed'); }
-    else await route.fulfill({ response });
+    if (keys.length === 1) {
+      dispatched();
+      await gate;
+      await route.abort('failed');
+    } else await route.fulfill({ response });
   });
   await page.getByRole('textbox', { name: 'Termo de pesquisa' }).fill('vazamento');
   await page.getByLabel('Ano do julgamento', { exact: true }).selectOption('2023');
@@ -239,8 +296,10 @@ test('resposta perdida repete a mesma chave sem novo débito; nova consulta usa 
   await page.route(searchUrl, async (route) => {
     keys.push(route.request().headers()['idempotency-key']);
     const response = await route.fetch();
-    if (loseResponse) { loseResponse = false; await route.abort('failed'); }
-    else await route.fulfill({ response });
+    if (loseResponse) {
+      loseResponse = false;
+      await route.abort('failed');
+    } else await route.fulfill({ response });
   });
   await page.getByRole('textbox', { name: 'Termo de pesquisa' }).fill('vazamento');
   await page.getByRole('button', { name: 'Consultar', exact: true }).click();

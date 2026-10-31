@@ -33,7 +33,14 @@ const accepted: JournalEvent = {
 };
 
 describe('AccountClosureRestoreGate', () => {
-  it.each(['draft_ai_receipts', 'saved_research', 'saved_research_collections', 'saved_research_permissions', 'agentic_conversations', 'inference_budgets'])('bloqueia restauração com conteúdo residual em %s e reabre somente após sua exclusão', async table => {
+  it.each([
+    'draft_ai_receipts',
+    'saved_research',
+    'saved_research_collections',
+    'saved_research_permissions',
+    'agentic_conversations',
+    'inference_budgets',
+  ])('bloqueia restauração com conteúdo residual em %s e reabre somente após sua exclusão', async (table) => {
     let restoredReceipt = true;
     const client = {
       execute: vi.fn(async (statement: { sql: string } | string) => {

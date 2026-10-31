@@ -21,12 +21,32 @@ async function main() {
   const databaseUrl = process.env.FORGELEX_PHASE8_TARGET_DATABASE_URL;
   if (!databaseUrl) throw new Error('FORGELEX_PHASE8_TARGET_DATABASE_URL_REQUIRED');
   assertRemoteSeed(databaseUrl, process.env.FORGELEX_PHASE8_ALLOW_REMOTE_SEED, process.env.FORGELEX_PHASE8_TARGET_KIND);
-  const [{ createDatabase, IngestionRunRepository, JurisprudenceRepository, runPersistenceMigrations }, { JurisprudenceIngestionService }, { CanonicalFixtureProvider }] = await Promise.all([import('../../packages/persistence/dist/index.js'), import('../../packages/legal-data/dist/index.js'), import('../../packages/source-providers/dist/index.js')]);
+  const [
+    { createDatabase, IngestionRunRepository, JurisprudenceRepository, runPersistenceMigrations },
+    { JurisprudenceIngestionService },
+    { CanonicalFixtureProvider },
+  ] = await Promise.all([
+    import('../../packages/persistence/dist/index.js'),
+    import('../../packages/legal-data/dist/index.js'),
+    import('../../packages/source-providers/dist/index.js'),
+  ]);
   const connection = await createDatabase({ url: databaseUrl });
   try {
     await runPersistenceMigrations(connection.client);
-    const result = await seedGateA({ provider: new CanonicalFixtureProvider(), ingestion: new JurisprudenceIngestionService(new JurisprudenceRepository(connection.db), new IngestionRunRepository(connection.db)) });
+    const result = await seedGateA({
+      provider: new CanonicalFixtureProvider(),
+      ingestion: new JurisprudenceIngestionService(
+        new JurisprudenceRepository(connection.db),
+        new IngestionRunRepository(connection.db),
+      ),
+    });
     console.log(JSON.stringify(result));
-  } finally { connection.client.close(); }
+  } finally {
+    connection.client.close();
+  }
 }
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) main().catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; });
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]))
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });

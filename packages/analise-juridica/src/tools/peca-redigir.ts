@@ -25,12 +25,20 @@ import {
   type DepsAnalise,
 } from './comum.js';
 
-const ApontamentoSchema = z.object({
-  trecho_original: z.string().min(1).max(5000).describe('Trecho exato do texto original a substituir.'),
-  substituicao: z.string().max(8000),
-  motivo: z.string().trim().min(3).max(600).describe('Apontamento da análise prévia que justifica a mudança.'),
-  ocorrencia: z.number().int().min(1).max(100).optional().describe('Qual ocorrência (1ª, 2ª…) quando o trecho se repete.'),
-}).strict();
+const ApontamentoSchema = z
+  .object({
+    trecho_original: z.string().min(1).max(5000).describe('Trecho exato do texto original a substituir.'),
+    substituicao: z.string().max(8000),
+    motivo: z.string().trim().min(3).max(600).describe('Apontamento da análise prévia que justifica a mudança.'),
+    ocorrencia: z
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Qual ocorrência (1ª, 2ª…) quando o trecho se repete.'),
+  })
+  .strict();
 
 const comum = {
   dispositivos_citados: z.array(DispositivoCitadoSchema).max(60).default([]),
@@ -62,7 +70,9 @@ export const PecaRedigirOutputSchema = z.object({
   texto_final: z.string(),
   /** Campo estruturado obrigatório: o literal impede qualquer saída sem o aviso. */
   aviso_obrigatorio: z.literal(AVISO_OBRIGATORIO),
-  alteracoes_aplicadas: z.array(z.object({ trecho_original: z.string(), substituicao: z.string(), motivo: z.string() })),
+  alteracoes_aplicadas: z.array(
+    z.object({ trecho_original: z.string(), substituicao: z.string(), motivo: z.string() }),
+  ),
   precedentes: z.array(PrecedenteSaidaSchema),
   precedentes_nao_verificados: z.number(),
   verificacao_normativa: VerificacaoNormativaSchema,
@@ -71,7 +81,10 @@ export const PecaRedigirOutputSchema = z.object({
 export type PecaRedigirOutput = z.infer<typeof PecaRedigirOutputSchema>;
 
 /** Aplica os apontamentos em sequência; falha com a lista completa de problemas, sem alterar o resto do texto. */
-export function aplicarApontamentos(textoOriginal: string, apontamentos: readonly z.infer<typeof ApontamentoSchema>[]): string {
+export function aplicarApontamentos(
+  textoOriginal: string,
+  apontamentos: readonly z.infer<typeof ApontamentoSchema>[],
+): string {
   let texto = textoOriginal;
   const problemas: Array<{ indice: number; problema: string }> = [];
   apontamentos.forEach((apontamento, indice) => {
@@ -81,19 +94,28 @@ export function aplicarApontamentos(textoOriginal: string, apontamentos: readonl
       posicoes.push(busca);
       busca = texto.indexOf(apontamento.trecho_original, busca + apontamento.trecho_original.length);
     }
-    if (posicoes.length === 0) return void problemas.push({ indice, problema: 'trecho_original não localizado no texto' });
+    if (posicoes.length === 0)
+      return void problemas.push({ indice, problema: 'trecho_original não localizado no texto' });
     if (posicoes.length > 1 && apontamento.ocorrencia === undefined) {
-      return void problemas.push({ indice, problema: `trecho_original ambíguo (${posicoes.length} ocorrências); informe "ocorrencia"` });
+      return void problemas.push({
+        indice,
+        problema: `trecho_original ambíguo (${posicoes.length} ocorrências); informe "ocorrencia"`,
+      });
     }
     const posicao = posicoes[(apontamento.ocorrencia ?? 1) - 1];
     if (posicao === undefined) return void problemas.push({ indice, problema: 'ocorrencia inexistente' });
-    texto = texto.slice(0, posicao) + apontamento.substituicao + texto.slice(posicao + apontamento.trecho_original.length);
+    texto =
+      texto.slice(0, posicao) + apontamento.substituicao + texto.slice(posicao + apontamento.trecho_original.length);
   });
   if (problemas.length) {
-    throw new DomainError('INVALID_CANONICAL_STATE', 'Apontamentos não aplicáveis ao texto original; nada foi alterado.', {
-      code: 'ANALISE_APONTAMENTO_INVALIDO',
-      problemas,
-    });
+    throw new DomainError(
+      'INVALID_CANONICAL_STATE',
+      'Apontamentos não aplicáveis ao texto original; nada foi alterado.',
+      {
+        code: 'ANALISE_APONTAMENTO_INVALIDO',
+        problemas,
+      },
+    );
   }
   return texto;
 }
@@ -107,7 +129,9 @@ export function criarToolPecaRedigir(deps: DepsAnalise): AgentTool<PecaRedigirIn
       'modo="redacao_integral": registra e audita peça nova redigida por você a partir das instruções (texto_peca). ' +
       'Em ambos, toda citação de precedente — informada ou detectada no texto final — é conferida pelo servidor, e o resultado sempre traz o aviso obrigatório de revisão por advogado habilitado em campo estruturado. ' +
       'NÃO FAZ: não analisa a peça, não mapeia teses nem recomenda estratégia; não inventa fatos, partes, datas ou precedentes. ' +
-      NAO_INFERIR + ' ' + PROTOCOLO_VERIFICACAO +
+      NAO_INFERIR +
+      ' ' +
+      PROTOCOLO_VERIFICACAO +
       ' SESSÃO: use o sessao_analitica_id da análise anterior (é a etapa final; proxima_etapa_sugerida é sempre nula).',
     impactLevel: 'L2_DRAFT',
     inputSchema: PecaRedigirInputSchema,
@@ -119,7 +143,11 @@ export function criarToolPecaRedigir(deps: DepsAnalise): AgentTool<PecaRedigirIn
       let alteracoes: PecaRedigirOutput['alteracoes_aplicadas'] = [];
       if (input.modo === 'correcao_dirigida') {
         textoFinal = aplicarApontamentos(input.texto_original, input.apontamentos);
-        alteracoes = input.apontamentos.map(({ trecho_original, substituicao, motivo }) => ({ trecho_original, substituicao, motivo }));
+        alteracoes = input.apontamentos.map(({ trecho_original, substituicao, motivo }) => ({
+          trecho_original,
+          substituicao,
+          motivo,
+        }));
       } else {
         textoFinal = input.texto_peca;
       }

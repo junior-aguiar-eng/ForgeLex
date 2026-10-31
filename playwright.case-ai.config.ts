@@ -8,7 +8,10 @@ const databaseDirectory = mkdtempSync(join(tmpdir(), 'forgelex-case-ai-'));
 const databaseUrl = `file:${join(databaseDirectory, 'case-ai.sqlite').replace(/\\/g, '/')}`;
 // Exit runs after Playwright has stopped its web servers and released SQLite.
 process.once('exit', () => {
-  if (resolve(dirname(databaseDirectory)) !== resolve(tmpdir()) || !basename(databaseDirectory).startsWith('forgelex-case-ai-')) {
+  if (
+    resolve(dirname(databaseDirectory)) !== resolve(tmpdir()) ||
+    !basename(databaseDirectory).startsWith('forgelex-case-ai-')
+  ) {
     throw new Error('Unexpected case-ai database directory');
   }
   rmSync(databaseDirectory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });

@@ -10,12 +10,20 @@ function quotePowerShell(value) {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
-export function writeTokenToSecret(token, { command, commandScript, secret, project, platform = process.platform, runner = spawnSync }) {
+export function writeTokenToSecret(
+  token,
+  { command, commandScript, secret, project, platform = process.platform, runner = spawnSync },
+) {
   if (!command || !secret || !project) throw new Error('FORGELEX_PHASE8_TOKEN_SECRET_CONFIG_REQUIRED');
   const gcloudArgs = ['secrets', 'versions', 'add', secret, '--data-file=-', `--project=${project}`, '--quiet'];
   const usePowerShell = platform === 'win32' && command === 'gcloud' && !commandScript;
   const args = usePowerShell
-    ? ['-NoProfile', '-NonInteractive', '-Command', `& gcloud secrets versions add ${quotePowerShell(secret)} --data-file=- --project=${quotePowerShell(project)} --quiet`]
+    ? [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        `& gcloud secrets versions add ${quotePowerShell(secret)} --data-file=- --project=${quotePowerShell(project)} --quiet`,
+      ]
     : [...(commandScript ? [commandScript] : []), ...gcloudArgs];
   const result = runner(usePowerShell ? 'powershell.exe' : command, args, {
     input: `${token}\n`,
@@ -26,10 +34,25 @@ export function writeTokenToSecret(token, { command, commandScript, secret, proj
 }
 export async function bootstrapSyntheticTenant(deps, identityPrefix = `phase8_hml_${randomUUID()}`) {
   if (!identityPrefix.startsWith('phase8_hml_')) throw new Error('SYNTHETIC_ID_PREFIX_REQUIRED');
-  const account = await deps.bootstrapAccount({ supabaseUserId: identityPrefix, email: `${identityPrefix}@nexojuris.ia.br`, displayName: 'Homologação Fase 8' });
+  const account = await deps.bootstrapAccount({
+    supabaseUserId: identityPrefix,
+    email: `${identityPrefix}@nexojuris.ia.br`,
+    displayName: 'Homologação Fase 8',
+  });
   const promoExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000).toISOString();
-  await deps.provisionAccount(account.tenant.id, { paidBalanceCents: 0, promotionalBalanceCents: 2_000, promoExpiresAt });
-  const apiKey = await deps.createApiKey({ tenantId: account.tenant.id, subjectId: account.user.id, userId: account.user.id, name: identityPrefix, roles: ['lawyer'], scopes: SYNTHETIC_SCOPES });
+  await deps.provisionAccount(account.tenant.id, {
+    paidBalanceCents: 0,
+    promotionalBalanceCents: 2_000,
+    promoExpiresAt,
+  });
+  const apiKey = await deps.createApiKey({
+    tenantId: account.tenant.id,
+    subjectId: account.user.id,
+    userId: account.user.id,
+    name: identityPrefix,
+    roles: ['lawyer'],
+    scopes: SYNTHETIC_SCOPES,
+  });
   await deps.writeToken(apiKey.token);
   return { tenantId: account.tenant.id, userId: account.user.id, keyId: apiKey.id, keyPrefix: apiKey.keyPrefix };
 }
@@ -39,18 +62,44 @@ async function main() {
   assertRemoteSeed(databaseUrl, process.env.FORGELEX_PHASE8_ALLOW_REMOTE_SEED, process.env.FORGELEX_PHASE8_TARGET_KIND);
   const descriptor = Number(process.env.FORGELEX_PHASE8_TOKEN_FD);
   const secretSink = process.env.FORGELEX_PHASE8_TOKEN_SECRET;
-  if (!secretSink && (!Number.isInteger(descriptor) || descriptor < 3)) throw new Error('FORGELEX_PHASE8_TOKEN_SINK_REQUIRED');
-  const [{ createDatabase, AccountRepository, ApiKeyRepository, runPersistenceMigrations }, { LedgerService }, { ApiKeyService }] = await Promise.all([import('../../packages/persistence/dist/index.js'), import('../../packages/billing-ledger/dist/index.js'), import('../../apps/api/dist/auth/api-key-service.js')]);
+  if (!secretSink && (!Number.isInteger(descriptor) || descriptor < 3))
+    throw new Error('FORGELEX_PHASE8_TOKEN_SINK_REQUIRED');
+  const [
+    { createDatabase, AccountRepository, ApiKeyRepository, runPersistenceMigrations },
+    { LedgerService },
+    { ApiKeyService },
+  ] = await Promise.all([
+    import('../../packages/persistence/dist/index.js'),
+    import('../../packages/billing-ledger/dist/index.js'),
+    import('../../apps/api/dist/auth/api-key-service.js'),
+  ]);
   const connection = await createDatabase({ url: databaseUrl });
   try {
     await runPersistenceMigrations(connection.client);
     const ledger = new LedgerService(connection.db, connection.client);
     await ledger.runMigrations();
-    const result = await bootstrapSyntheticTenant({ bootstrapAccount: (input) => new AccountRepository(connection.db).bootstrap(input), provisionAccount: (tenantId, provision) => ledger.provisionAccount(tenantId, provision), createApiKey: (input) => new ApiKeyService(new ApiKeyRepository(connection.db)).create(input), writeToken: async (token) => {
-      if (secretSink) writeTokenToSecret(token, { command: process.env.FORGELEX_PHASE8_GCLOUD_COMMAND ?? 'gcloud', commandScript: process.env.FORGELEX_PHASE8_GCLOUD_SCRIPT, secret: secretSink, project: process.env.FORGELEX_PHASE8_GCP_PROJECT });
-      else writeSync(descriptor, `${token}\n`, null, 'utf8');
-    } });
+    const result = await bootstrapSyntheticTenant({
+      bootstrapAccount: (input) => new AccountRepository(connection.db).bootstrap(input),
+      provisionAccount: (tenantId, provision) => ledger.provisionAccount(tenantId, provision),
+      createApiKey: (input) => new ApiKeyService(new ApiKeyRepository(connection.db)).create(input),
+      writeToken: async (token) => {
+        if (secretSink)
+          writeTokenToSecret(token, {
+            command: process.env.FORGELEX_PHASE8_GCLOUD_COMMAND ?? 'gcloud',
+            commandScript: process.env.FORGELEX_PHASE8_GCLOUD_SCRIPT,
+            secret: secretSink,
+            project: process.env.FORGELEX_PHASE8_GCP_PROJECT,
+          });
+        else writeSync(descriptor, `${token}\n`, null, 'utf8');
+      },
+    });
     console.log(JSON.stringify(result));
-  } finally { connection.client.close(); }
+  } finally {
+    connection.client.close();
+  }
 }
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) main().catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; });
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]))
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });

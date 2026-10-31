@@ -33,10 +33,14 @@ describe('Permissões da IA REST', () => {
       }),
     });
     try {
-      const spec=(await app.inject({method:'GET',url:'/openapi.json'})).json();
-      const operation=spec.paths['/api/v2/matters/{matterId}/ai-access'].put;
-      expect(operation['x-forgelex-session-only']).toBe(true);expect(operation.responses).not.toHaveProperty('402');
-      expect(spec.components.schemas.CaseAiMaterial.properties.versionNumber).toMatchObject({type:'integer',minimum:1});
+      const spec = (await app.inject({ method: 'GET', url: '/openapi.json' })).json();
+      const operation = spec.paths['/api/v2/matters/{matterId}/ai-access'].put;
+      expect(operation['x-forgelex-session-only']).toBe(true);
+      expect(operation.responses).not.toHaveProperty('402');
+      expect(spec.components.schemas.CaseAiMaterial.properties.versionNumber).toMatchObject({
+        type: 'integer',
+        minimum: 1,
+      });
       const m = await new MatterRepository(c.db).createMatter({ ...owner, createdBy: 'u', title: 'Caso de teste' });
       const d = await new MatterRepository(c.db).ingestTextDocument({
         ...owner,

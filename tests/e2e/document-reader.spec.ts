@@ -1,7 +1,7 @@
 import { expect, test, type Page, type APIRequestContext } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const api = (process.env.FORGELEX_TEST_API_ORIGIN ?? 'http://127.0.0.1:3301');
+const api = process.env.FORGELEX_TEST_API_ORIGIN ?? 'http://127.0.0.1:3301';
 const headers = { authorization: 'Bearer phase7-e2e-access-token' };
 const content =
   '  Contrato original: obrigação contratual.\n\nCláusula de pagamento: R$ 250,00.\n\n<script>window.documentExecuted=true</script>\n\nÚltimo parágrafo: obrigação cumprida.  ';
@@ -38,7 +38,7 @@ test('ler documento integral, buscar, navegar por parágrafos e fechar preserva 
   const f = await fixture(request);
   await login(page);
   await page.goto(`/app/casos?caso=${f.matter.id}`);
-  await page.getByText('Adicionar documento',{exact:true}).click();
+  await page.getByText('Adicionar documento', { exact: true }).click();
   const editor = page.getByLabel('Texto do documento');
   await editor.fill('Minha importação ainda não salva.');
   const open = page.getByRole('button', { name: 'Abrir documento: Contrato para leitura', exact: true });
@@ -134,7 +134,9 @@ test('resposta atrasada de documento fechado não substitui outra leitura; falha
     entered = resolve;
   });
   let finished!: () => void;
-  const fulfilled = new Promise<void>((resolve) => { finished = resolve; });
+  const fulfilled = new Promise<void>((resolve) => {
+    finished = resolve;
+  });
   await page.route(`**/documents/${f.document.document.id}/versions/*`, async (route) => {
     const response = await route.fetch();
     entered();
@@ -170,12 +172,15 @@ test('fonte citada abre a versão fixada e destaca âncora sem salvar a edição
 }, info) => {
   const f = await fixture(request);
   const state = await (await request.get(api + '/e2e/state')).json();
-  const fact = await (await request.post(f.root + '/facts', {
-    headers, data: { statement: 'Fato sintético para citação em edição.' },
-  })).json();
+  const fact = await (
+    await request.post(f.root + '/facts', {
+      headers,
+      data: { statement: 'Fato sintético para citação em edição.' },
+    })
+  ).json();
   await login(page);
   await page.goto(`/app/casos?caso=${f.matter.id}`);
-  await page.getByText('Acesso da IA',{exact:true}).click();
+  await page.getByText('Acesso da IA', { exact: true }).click();
   await page.getByRole('button', { name: 'Usar este caso na IA', exact: true }).click();
   await page.getByLabel('Onde você vai usar?').selectOption('ChatGPT');
   await page.getByLabel('Aplicativo autorizado').selectOption('app-one');
@@ -219,7 +224,7 @@ test('fonte citada abre a versão fixada e destaca âncora sem salvar a edição
   await page.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
   await editor.fill('Minha alteração ainda não salva.');
   await page.getByLabel('Título do rascunho', { exact: true }).fill('Título em edição');
-  await page.getByText('Citações e conferência de fontes',{exact:true}).click();
+  await page.getByText('Citações e conferência de fontes', { exact: true }).click();
   await page.getByLabel('Tipo de fonte da citação').selectOption('FACT');
   await page.getByLabel('Fonte da citação', { exact: true }).selectOption(fact.id);
   await page.getByLabel('Texto da citação').fill('Citação ainda não salva.');

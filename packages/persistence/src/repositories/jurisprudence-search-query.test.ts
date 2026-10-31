@@ -7,7 +7,9 @@ import { IngestionRunRepository } from './ingestion-run-repository.js';
 import { JurisprudenceRepository } from './jurisprudence-repository.js';
 
 const postgresUrl = process.env.FORGELEX_LOCAL_POSTGRES_URL;
-const localPostgres = Boolean(postgresUrl && /^postgres(?:ql)?:\/\/(?:[^/]+@)?(?:localhost|127\.0\.0\.1)(?::\d+)?\//i.test(postgresUrl));
+const localPostgres = Boolean(
+  postgresUrl && /^postgres(?:ql)?:\/\/(?:[^/]+@)?(?:localhost|127\.0\.0\.1)(?::\d+)?\//i.test(postgresUrl),
+);
 
 for (const dialect of ['sqlite', 'postgres'] as const) {
   describe.skipIf(dialect === 'postgres' && !localPostgres)('Consulta jurisprudencial — ' + dialect, () => {
@@ -36,15 +38,26 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
         const dedupeKey = generateDedupeKey(court, processNumber, judgmentDate!);
         const capturedAt = '2026-10-04T00:00:00.000Z';
         return {
-          id: randomUUID(), court, processNumber, rapporteur: 'Relator local', judgmentDate: judgmentDate!,
-          publicationDate: judgmentDate!, syllabus: syllabus!, fullText: syllabus!, dedupeKey,
-          firstSeenAt: capturedAt, lastSeenAt: capturedAt,
+          id: randomUUID(),
+          court,
+          processNumber,
+          rapporteur: 'Relator local',
+          judgmentDate: judgmentDate!,
+          publicationDate: judgmentDate!,
+          syllabus: syllabus!,
+          fullText: syllabus!,
+          dedupeKey,
+          firstSeenAt: capturedAt,
+          lastSeenAt: capturedAt,
           snapshot: { contentHash, capturedAt, provider: 'query-local' },
           provenance: {
             id: randomUUID(),
             source: { provider: 'query-local', court, documentId: processNumber, dedupeKey, contentHash, capturedAt },
-            verified: true, verificationMethod: 'OFFICIAL_SOURCE_HASH' as const,
-            verifiedAt: capturedAt, snippet: syllabus!, confidence: 1,
+            verified: true,
+            verificationMethod: 'OFFICIAL_SOURCE_HASH' as const,
+            verifiedAt: capturedAt,
+            snippet: syllabus!,
+            confidence: 1,
           },
         };
       });
@@ -54,9 +67,18 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
     afterAll(async () => {
       if (!connection) return;
       if (dialect === 'postgres') {
-        await connection.client.execute({ sql: 'DELETE FROM jurisprudence_document_versions WHERE ingestion_run_id = ?', args: [runId] });
-        await connection.client.execute({ sql: 'DELETE FROM jurisprudence_documents WHERE ingestion_run_id = ?', args: [runId] });
-        await connection.client.execute({ sql: 'DELETE FROM jurisprudence_ingestion_runs WHERE id = ?', args: [runId] });
+        await connection.client.execute({
+          sql: 'DELETE FROM jurisprudence_document_versions WHERE ingestion_run_id = ?',
+          args: [runId],
+        });
+        await connection.client.execute({
+          sql: 'DELETE FROM jurisprudence_documents WHERE ingestion_run_id = ?',
+          args: [runId],
+        });
+        await connection.client.execute({
+          sql: 'DELETE FROM jurisprudence_ingestion_runs WHERE id = ?',
+          args: [runId],
+        });
       }
       connection.client.close();
     });
@@ -77,13 +99,21 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
     for (const [name, query, indexes] of cases) {
       it(name, async () => {
         const result = await repository.search({ query, court, limit: 10 });
-        expect(result.map(document => document.id).sort()).toEqual(indexes.map(index => documents[index]!.id).sort());
+        expect(result.map((document) => document.id).sort()).toEqual(
+          indexes.map((index) => documents[index]!.id).sort(),
+        );
       });
     }
 
     it('aplica o intervalo de julgamento à consulta por todos os termos', async () => {
-      const result = await repository.search({ query: 'Maria da Penha', court, fromDate: '2026-01-01', toDate: '2026-12-31', limit: 10 });
-      expect(result.map(document => document.id)).toEqual([documents[0]!.id]);
+      const result = await repository.search({
+        query: 'Maria da Penha',
+        court,
+        fromDate: '2026-01-01',
+        toDate: '2026-12-31',
+        limit: 10,
+      });
+      expect(result.map((document) => document.id)).toEqual([documents[0]!.id]);
     });
   });
 }

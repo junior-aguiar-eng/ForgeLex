@@ -47,7 +47,8 @@ const metadata: Record<PublicPage, { title: string; description: string; path: s
   },
   datajud: {
     title: 'Consulta processual gratuita · ForgeLex',
-    description: 'Consulte gratuitamente dados públicos e movimentações dos tribunais disponíveis pelo CNJ / DataJud, sem cadastro ou créditos.',
+    description:
+      'Consulte gratuitamente dados públicos e movimentações dos tribunais disponíveis pelo CNJ / DataJud, sem cadastro ou créditos.',
     path: '/consulta-processual',
   },
   not_found: {

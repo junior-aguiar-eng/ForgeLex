@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ImpactLevel, ProvenanceMetadata } from '@forgelex/domain';
-import type {VerifiedOAuthConnection} from '@forgelex/domain';
+import type { VerifiedOAuthConnection } from '@forgelex/domain';
 
 export interface ToolExecutionContext {
   sessionId: string;
@@ -10,7 +10,7 @@ export interface ToolExecutionContext {
   abortSignal: AbortSignal;
   source?: 'REST' | 'MCP' | 'AGENT_CORE';
   oauthConnection?: VerifiedOAuthConnection;
-  revalidateConnection?:()=>Promise<void>;
+  revalidateConnection?: () => Promise<void>;
 }
 
 export interface ToolExecutionResult<TOutput = unknown> {
@@ -27,6 +27,6 @@ export interface AgentTool<TInput = unknown, TOutput = unknown> {
   inputSchema: z.ZodType<TInput, unknown>;
   outputSchema: z.ZodType<TOutput, unknown>;
   timeoutMs?: number;
-  revalidateResult?: (output:TOutput,context:ToolExecutionContext)=>Promise<void>;
+  revalidateResult?: (output: TOutput, context: ToolExecutionContext) => Promise<void>;
   execute: (input: TInput, context: ToolExecutionContext) => Promise<ToolExecutionResult<TOutput>>;
 }

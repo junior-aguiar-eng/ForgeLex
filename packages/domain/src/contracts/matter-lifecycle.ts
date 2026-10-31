@@ -5,7 +5,12 @@ export type LifecycleState = z.infer<typeof LifecycleStateSchema>;
 export const LifecycleViewSchema = z.enum(['active', 'archived', 'trash']);
 export type LifecycleView = z.infer<typeof LifecycleViewSchema>;
 export type LifecycleAction = 'archive' | 'trash' | 'restore';
-export interface LifecycleTarget { tenantId: string; matterId: string; documentId?: string; expectedMatterRevision?: number; }
+export interface LifecycleTarget {
+  tenantId: string;
+  matterId: string;
+  documentId?: string;
+  expectedMatterRevision?: number;
+}
 export interface LifecycleActor {
   userId: string;
   role: 'owner' | 'admin' | 'member';
@@ -30,10 +35,17 @@ export const LifecycleFieldsSchema = z.object({
   purgedBy: z.string().optional(),
 });
 export interface LifecycleResult {
-  id: string; lifecycleState: LifecycleState; lifecycleRevision: number;
-  archivedAt?: string; trashedAt?: string; purgedAt?: string;
+  id: string;
+  lifecycleState: LifecycleState;
+  lifecycleRevision: number;
+  archivedAt?: string;
+  trashedAt?: string;
+  purgedAt?: string;
 }
 export interface MatterPurgeIntent {
-  operationId: string; target: LifecycleTarget; expectedLifecycleRevision: number;
-  fingerprint: string; preparedAt: string;
+  operationId: string;
+  target: LifecycleTarget;
+  expectedLifecycleRevision: number;
+  fingerprint: string;
+  preparedAt: string;
 }

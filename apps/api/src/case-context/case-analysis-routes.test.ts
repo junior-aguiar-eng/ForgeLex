@@ -43,8 +43,14 @@ describe('Análise MCP e conferência em sessão', () => {
       const tool = tools.find((t: any) => t.name === 'case.save_analysis');
       expect(tool, 'ferramenta de recebimento deve estar publicada').toBeDefined();
       expect(tool.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true });
-      expect((await mcp('tools/call',{...f.input,items:[{...f.input.items[0],sources:[]}]})).json().result.isError).toBe(true);
-      expect(JSON.parse((await mcp('tools/call',{...f.input,objective:'x'.repeat(530000)})).json().result.content[0].text).error.code).toBe('ANALYSIS_INPUT_TOO_LARGE');
+      expect(
+        (await mcp('tools/call', { ...f.input, items: [{ ...f.input.items[0], sources: [] }] })).json().result.isError,
+      ).toBe(true);
+      expect(
+        JSON.parse(
+          (await mcp('tools/call', { ...f.input, objective: 'x'.repeat(530000) })).json().result.content[0].text,
+        ).error.code,
+      ).toBe('ANALYSIS_INPUT_TOO_LARGE');
       const reply = (await mcp('tools/call', f.input)).json();
       expect(reply.result).toMatchObject({
         isError: false,
@@ -66,7 +72,16 @@ describe('Análise MCP e conferência em sessão', () => {
       });
       expect(decision.statusCode).toBe(200);
       expect(decision.json().decisions.f1.targetId).toBeDefined();
-      expect((await app.inject({method:'POST',url:path+'/decisions',headers:{authorization:'Bearer session'},payload:{expectedRevision:1,decisions:[{itemId:'q1',action:'ADOPT'}]}})).statusCode).toBe(409);
+      expect(
+        (
+          await app.inject({
+            method: 'POST',
+            url: path + '/decisions',
+            headers: { authorization: 'Bearer session' },
+            payload: { expectedRevision: 1, decisions: [{ itemId: 'q1', action: 'ADOPT' }] },
+          })
+        ).statusCode,
+      ).toBe(409);
       await f.repo.revoke(f.owner, f.matter.id, f.grant.id, 1);
       expect((await mcp('tools/call', f.input)).json().result.isError).toBe(true);
       expect((await f.client.execute('SELECT id FROM ledger_entries')).rows).toEqual([]);

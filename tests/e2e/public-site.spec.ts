@@ -7,19 +7,26 @@ test('apresentação pública enxuta e âncoras antigas são acessíveis', async
   expect(initialHtml).not.toContain('Organize casos');
   expect(initialHtml).toContain('ForgeLex · Jurisprudência e consulta processual');
   const errors: string[] = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', (error) => errors.push(error.message));
   for (const width of [375, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const path of ['/', '/produto', '/como-funciona', '/integracoes', '/guia']) {
       await page.goto(path);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-      expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations, path).toEqual([]);
-      await expect(page.locator('a[href="/produto#casos"], a[href="/produto#rascunhos"], a[href="/produto#revisao"]')).toHaveCount(0);
+      expect(
+        (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations,
+        path,
+      ).toEqual([]);
+      await expect(
+        page.locator('a[href="/produto#casos"], a[href="/produto#rascunhos"], a[href="/produto#revisao"]'),
+      ).toHaveCount(0);
     }
   }
   for (const anchor of ['casos', 'rascunhos', 'revisao']) {
     await page.goto(`/produto#${anchor}`);
-    await expect(page.getByText('O fluxo de casos, rascunhos e revisão está suspenso na interface.', { exact: false })).toBeVisible();
+    await expect(
+      page.getByText('O fluxo de casos, rascunhos e revisão está suspenso na interface.', { exact: false }),
+    ).toBeVisible();
     await expect(page.locator('#integracao')).toBeAttached();
   }
   expect(errors).toEqual([]);

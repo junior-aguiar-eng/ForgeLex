@@ -86,7 +86,8 @@ export class CaseAiAccessRepository {
   }
   async loadSelection(o: CaseAiOwner, matterId: string, selection: CaseAiSelection): Promise<SelectedCaseRecord[]> {
     const matters = new MatterRepository(this.db);
-    if ((await matters.getMatter(o.tenantId, matterId))?.lifecycleState !== 'ACTIVE') throw new Error('CASE_SELECTION_INVALID');
+    if ((await matters.getMatter(o.tenantId, matterId))?.lifecycleState !== 'ACTIVE')
+      throw new Error('CASE_SELECTION_INVALID');
     const result: SelectedCaseRecord[] = [];
     for (const ref of selection.documents) {
       const d = await matters.getSpecificDocumentVersion(o.tenantId, matterId, ref.documentId, ref.versionId);
@@ -199,7 +200,8 @@ export class CaseAiAccessRepository {
     return { ...base, ...boundedItems(items, casePosition(page.cursor, binding), page.limit ?? 20, base, binding) };
   }
   async catalog(o: CaseAiOwner, matterId: string, kind: CaseItemKind, page: { cursor?: string; limit?: number } = {}) {
-    if (!(await new MatterRepository(this.db).getMatterForWork(o.tenantId, matterId))) throw new Error('MATTER_NOT_FOUND');
+    if (!(await new MatterRepository(this.db).getMatterForWork(o.tenantId, matterId)))
+      throw new Error('MATTER_NOT_FOUND');
     let items: { kind: CaseItemKind; id: string; title: string; versionId?: string; versionNumber?: number }[];
     if (kind === 'DOCUMENT') {
       const rows = await this.db
@@ -217,7 +219,13 @@ export class CaseAiAccessRepository {
             sql`${s.documentVersions.versionNumber} = (select max(v.version_number) from document_versions v where v.document_id = ${s.legalDocuments.id})`,
           ),
         )
-        .where(and(eq(s.legalDocuments.tenantId, o.tenantId), eq(s.legalDocuments.matterId, matterId), eq(s.legalDocuments.lifecycleState, 'ACTIVE')));
+        .where(
+          and(
+            eq(s.legalDocuments.tenantId, o.tenantId),
+            eq(s.legalDocuments.matterId, matterId),
+            eq(s.legalDocuments.lifecycleState, 'ACTIVE'),
+          ),
+        );
       items = rows.map((r) => ({ ...r, kind, title: shortText(r.title) }));
     } else {
       const table =
@@ -333,7 +341,14 @@ export class CaseAiAccessRepository {
   async replace(
     o: CaseAiOwner,
     matterId: string,
-    input: { oauthClientId: string; oauthGrantedAt: string; expectedRevision: number; selection: CaseAiSelection; receivePermission?: DraftReceivePermission; analysisPermission?: AnalysisPermission },
+    input: {
+      oauthClientId: string;
+      oauthGrantedAt: string;
+      expectedRevision: number;
+      selection: CaseAiSelection;
+      receivePermission?: DraftReceivePermission;
+      analysisPermission?: AnalysisPermission;
+    },
   ): Promise<CaseAiGrant> {
     const selection = CaseAiSelectionSchema.parse(input.selection);
     const receivePermission = DraftReceivePermissionSchema.parse(input.receivePermission ?? { enabled: false });
@@ -347,9 +362,17 @@ export class CaseAiAccessRepository {
         .where(and(eq(s.matters.id, matterId), eq(s.matters.tenantId, o.tenantId)));
       await repo.loadSelection(o, matterId, selection);
       if (receivePermission.enabled && receivePermission.destination.mode === 'EXISTING') {
-        const target = await tx.select({ id: s.drafts.id }).from(s.drafts).where(and(
-          eq(s.drafts.id, receivePermission.destination.draftId), eq(s.drafts.tenantId, o.tenantId), eq(s.drafts.matterId, matterId),
-        )).limit(1);
+        const target = await tx
+          .select({ id: s.drafts.id })
+          .from(s.drafts)
+          .where(
+            and(
+              eq(s.drafts.id, receivePermission.destination.draftId),
+              eq(s.drafts.tenantId, o.tenantId),
+              eq(s.drafts.matterId, matterId),
+            ),
+          )
+          .limit(1);
         if (!target[0]) throw new Error('DRAFT_DESTINATION_INVALID');
       }
       const current = (await repo.listForOwner(o, matterId)).find((g) => g.oauthClientId === input.oauthClientId);
@@ -370,7 +393,13 @@ export class CaseAiAccessRepository {
         updatedAt: now,
       });
       const { selection: _, receivePermission: _permission, analysisPermission: _analysis, ...persisted } = next;
-      const values = { ...persisted, selectionJson: JSON.stringify(selection), receivePermissionJson: JSON.stringify(receivePermission), analysisPermissionJson: JSON.stringify(analysisPermission), revokedAt: null };
+      const values = {
+        ...persisted,
+        selectionJson: JSON.stringify(selection),
+        receivePermissionJson: JSON.stringify(receivePermission),
+        analysisPermissionJson: JSON.stringify(analysisPermission),
+        revokedAt: null,
+      };
       if (current)
         await tx
           .update(s.caseAiAccessGrants)

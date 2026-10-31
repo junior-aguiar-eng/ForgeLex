@@ -161,9 +161,13 @@ app.post('/e2e/fail-next-delete', async () => {
 app.post('/e2e/reconcile', async (request) => {
   const result = await worker.runOne();
   const closureId = request.body?.closureId;
-  const steps = closureId ? (await repository.listSteps(closureId)).map((step) => ({
-    type: step.stepType, status: step.status, error: step.lastErrorCode,
-  })) : undefined;
+  const steps = closureId
+    ? (await repository.listSteps(closureId)).map((step) => ({
+        type: step.stepType,
+        status: step.status,
+        error: step.lastErrorCode,
+      }))
+    : undefined;
   return { result, deletedCount, steps };
 });
 app.post('/e2e/resume/:closureId', async (request) => ({

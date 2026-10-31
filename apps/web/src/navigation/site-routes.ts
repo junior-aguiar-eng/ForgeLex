@@ -1,7 +1,8 @@
 import { isKnownPath, resolveVisibleTab, routeForTab, tabForPath, type AppTab } from './routes';
 import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 
-export type PublicPage = 'home' | 'product' | 'how' | 'integrations' | 'credits' | 'guide' | 'api_docs' | 'datajud' | 'not_found';
+export type PublicPage =
+  'home' | 'product' | 'how' | 'integrations' | 'credits' | 'guide' | 'api_docs' | 'datajud' | 'not_found';
 
 export type SiteRoute =
   | { kind: 'public'; page: PublicPage }
