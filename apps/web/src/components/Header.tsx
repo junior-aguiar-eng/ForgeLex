@@ -5,7 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import type { AppTab } from '../navigation/routes';
 
-import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 
 const caseNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
   { tab: 'matter', label: 'Casos', icon: FolderOpen },
@@ -14,9 +14,17 @@ const caseNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = 
   { tab: 'dashboard', label: 'Revisão', icon: FileCode2 },
 ];
 
-const primaryNavigation = CASE_WORKSPACE_ENABLED ? caseNavigation : [
-  { tab: 'research' as const, label: 'Pesquisa', icon: Search },
-  { tab: 'connections' as const, label: 'Conectar IA', icon: Cable },
+const workNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = AGENTIC_WORKSPACE_ENABLED
+  ? [{ tab: 'work', label: 'Mesa', icon: FileText }]
+  : [];
+const primaryNavigation = [
+  ...workNavigation,
+  ...(CASE_WORKSPACE_ENABLED
+    ? caseNavigation
+    : [
+        { tab: 'research' as const, label: 'Pesquisa', icon: Search },
+        { tab: 'connections' as const, label: 'Conectar IA', icon: Cable },
+      ]),
 ];
 
 const NavigationButton: React.FC<{

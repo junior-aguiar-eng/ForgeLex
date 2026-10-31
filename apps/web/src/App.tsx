@@ -65,7 +65,7 @@ const AppContent: React.FC = () => {
       <Header menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((value) => !value)} />
 
       <div className="relative flex min-w-0 flex-1">
-        <Sidebar activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />
+        {visibleTab !== 'work' && <Sidebar activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
         <main className="min-w-0 flex-1">
           {(visibleTab === 'draft_studio' || draftVisited) && <div key="retained-draft" hidden={visibleTab !== 'draft_studio'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando editor…</div>}><DraftStudioScreen requestedLocation={draftRequest} /></Suspense></ScreenLoadBoundary></div>}
           {(visibleTab === 'work' || workVisited) && <div key="retained-work" hidden={visibleTab !== 'work'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando trabalho…</div>}><AgenticWorkspaceScreen active={visibleTab === 'work'} onExecutionChange={rememberExecution} onEditor={openEditor} /></Suspense></ScreenLoadBoundary></div>}
@@ -88,7 +88,7 @@ const AppContent: React.FC = () => {
         </main>
       </div>
 
-      <footer className="mt-12 border-t border-stone-200/80 bg-white/55">
+      {visibleTab !== 'work' && <footer className="mt-12 border-t border-stone-200/80 bg-white/55">
         <div className="page-container flex flex-col gap-3 py-5 text-xs text-stone-500 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <Scale className="h-4 w-4 text-cognac-700" aria-hidden="true" />
@@ -101,7 +101,7 @@ const AppContent: React.FC = () => {
           </nav>
           <span>© 2026 · informação institucional</span>
         </div>
-      </footer>
+      </footer>}
     </div>
   );
 };
