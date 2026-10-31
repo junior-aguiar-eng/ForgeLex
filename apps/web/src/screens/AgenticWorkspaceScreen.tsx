@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ApiRequestError, requestApi } from '../api-client';
+import { ApiRequestError } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
-import { WorkspaceClient } from '../agentic-workspace/client';
-import { ActionEntry } from '../agentic-workspace/ActionEntry';
-import { GuidedDialogue } from '../agentic-workspace/GuidedDialogue';
-import { ContextSummary, SourceReferences } from '../agentic-workspace/ContextSummary';
-import { DeliveryActions } from '../agentic-workspace/DeliveryActions';
+import { WorkspaceClient, type StartInput } from '../agentic-workspace/client';
+import { Composer } from '../agentic-workspace/Composer';
+import { Conversation } from '../agentic-workspace/Conversation';
+import { ResultCard } from '../agentic-workspace/ResultCard';
+import { SideTable, type SideTab } from '../agentic-workspace/SideTable';
 import { ClosedPilotPanel } from '../agentic-workspace/ClosedPilotPanel';
 import { CommercialAuthorizationPanel, CommercialReceiptPanel } from '../agentic-workspace/CommercialPanel';
 import type { CommercialAuthorization } from '../agentic-workspace/commercial-model';
 import { useExecutionEvents } from '../agentic-workspace/use-execution-events';
+import { useDocumentTitles } from '../agentic-workspace/use-document-titles';
+import { presentDelivery } from '../agentic-workspace/present-delivery';
 import {
   statusText,
-  type ActionId,
   type Answer,
   type Delivery,
   type Execution,
@@ -47,29 +48,23 @@ export function AgenticWorkspaceScreen({
     body: unknown;
     send: (key: string, authorization: CommercialAuthorization) => Promise<Execution>;
   }>();
-  const [entry, setEntry] = useState(!id),
-    [objective, setObjective] = useState(''),
-    [action, setAction] = useState<ActionId>(),
-    [scope, setScope] = useState(false);
-  const [entryDraft, setEntryDraft] = useState({ text: '', purpose: '' });
-  const surface = useRef(isActiveSurface),
-    navigationEpoch = useRef(0);
-  surface.current = isActiveSurface;
-  const [text, setText] = useState(''),
-    [matter, setMatter] = useState(''),
-    [matters, setMatters] = useState<{ id: string; title: string }[]>([]);
-  const [documents, setDocuments] = useState<{ id: string; title: string; versionId: string }[]>([]),
-    [selected, setSelected] = useState<{ documentId: string; versionId: string }[]>([]);
-  const [drafts, setDrafts] = useState<{ id: string; title: string; currentVersionId: string }[]>([]);
-  const [selectedDraft, setSelectedDraft] = useState<{ draftId: string; versionId: string }>();
   const [deliveries, setDeliveries] = useState<Delivery[]>([]),
     [reading, setReading] = useState<DocumentSource>(),
     [correction, setCorrection] = useState<Question>();
+  const [side, setSide] = useState<{ open: boolean; tab: SideTab; source: number | null }>({
+    open: false,
+    tab: 'sources',
+    source: null,
+  });
+  const surface = useRef(isActiveSurface),
+    navigationEpoch = useRef(0);
+  surface.current = isActiveSurface;
   const generation = useRef(0),
     command = useRef<{ hash: string; key: string }>(),
     mounted = useRef(true);
   const events = useExecutionEvents(client, id);
   const denied = /ACCESS_REVOKED|UNAUTHENTICATED|NOT_FOUND/.test(error || events.error);
+  const titles = useDocumentTitles(run?.matterId ?? null, Boolean(run) && !denied);
   const changeId = useCallback(
     (next: string) => {
       setId(next);
@@ -89,7 +84,10 @@ export function AgenticWorkspaceScreen({
   useEffect(() => {
     if (isActiveSurface && id && window.location.pathname === '/app/trabalho' && !initialId()) changeId(id);
   }, [isActiveSurface, id, changeId]);
-  const fail = (e: unknown) => setError(e instanceof ApiRequestError ? e.code : 'EXECUTION_UNAVAILABLE');
+  const fail = useCallback(
+    (e: unknown) => setError(e instanceof ApiRequestError ? e.code : 'EXECUTION_UNAVAILABLE'),
+    [],
+  );
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -115,7 +113,7 @@ export function AgenticWorkspaceScreen({
     return () => {
       active = false;
     };
-  }, [client, authStatus]);
+  }, [client, authStatus, fail]);
   useEffect(() => {
     const sync = () => {
       if (window.location.pathname === '/app/trabalho') {
@@ -123,7 +121,7 @@ export function AgenticWorkspaceScreen({
         if (next !== id) {
           navigationEpoch.current++;
           setId(next);
-          setEntry(!next);
+          if (!next) setRun(undefined);
           setPaidCommand(undefined);
         }
       }
@@ -144,76 +142,15 @@ export function AgenticWorkspaceScreen({
         return;
       }
       setRun(value);
-      if (!entry) {
-        setText(value.context.text);
-        setMatter(value.matterId ?? '');
-        setSelected(value.context.documents);
-        setSelectedDraft(value.context.draft);
-      }
       const results = await Promise.all(value.deliveryIds.map((d) => client.delivery(d)));
       if (mounted.current && ticket === generation.current) setDeliveries(results);
     } catch (e) {
       if (mounted.current && ticket === generation.current) fail(e);
     }
-  }, [client, id, entry, changeId]);
+  }, [client, id, changeId, fail]);
   useEffect(() => {
     void refresh();
   }, [refresh, events.cursor]);
-  useEffect(() => {
-    let active = true;
-    setDocuments([]);
-    setDrafts([]);
-    if (!scope) return;
-    requestApi<{ items: { id: string; title: string }[] }>('/api/v2/matters', {}, { sessionOnly: true })
-      .then((r) => {
-        if (active) setMatters(r.items);
-      })
-      .catch(() => {
-        /* Case is optional; written context remains available. */
-      });
-    if (!matter)
-      return () => {
-        active = false;
-      };
-    requestApi<{ items: { id: string; title: string; currentVersionId: string }[] }>(
-      `/api/v2/matters/${encodeURIComponent(matter)}/drafts`,
-      {},
-      { sessionOnly: true },
-    )
-      .then((r) => {
-        if (active) setDrafts(r.items.filter((d) => d.currentVersionId));
-      })
-      .catch((e) => {
-        if (active) fail(e);
-      });
-    requestApi<{ documents: { id: string; title: string; lifecycleState?: string }[] }>(
-      `/api/v2/matters/${encodeURIComponent(matter)}`,
-      {},
-      { sessionOnly: true },
-    )
-      .then(async (r) => {
-        const availableDocs = await Promise.all(
-          r.documents
-            .filter((d) => !d.lifecycleState || d.lifecycleState === 'ACTIVE')
-            .slice(0, 100)
-            .map(async (d) => {
-              const bundle = await requestApi<{ version: { id: string } }>(
-                `/api/v2/matters/${encodeURIComponent(matter)}/documents/${encodeURIComponent(d.id)}`,
-                {},
-                { sessionOnly: true },
-              );
-              return { id: d.id, title: d.title, versionId: bundle.version.id };
-            }),
-        );
-        if (active) setDocuments(availableDocs);
-      })
-      .catch((e) => {
-        if (active) fail(e);
-      });
-    return () => {
-      active = false;
-    };
-  }, [matter, scope]);
   const invoke = async (kind: string, body: unknown, fn: (key: string) => Promise<Execution>) => {
     if (busy) return;
     const hash = JSON.stringify({ kind, id, body });
@@ -227,10 +164,9 @@ export function AgenticWorkspaceScreen({
       command.current = undefined;
       setRun(value);
       setDeliveries([]);
-      setEntry(false);
-      setScope(false);
       setCorrection(undefined);
       setPaidCommand(undefined);
+      setSide((old) => ({ ...old, open: false, source: null }));
       changeId(value.id);
     } catch (e) {
       if (mounted.current && epoch === navigationEpoch.current) fail(e);
@@ -238,25 +174,16 @@ export function AgenticWorkspaceScreen({
       if (mounted.current) setBusy(false);
     }
   };
-  const begin = (authorization?: CommercialAuthorization) => {
-    if (commercial && !authorization) return;
-    const context = {
-      text,
-      origin: selected.length ? (text.trim() ? ('MIXED' as const) : ('DOCUMENT' as const)) : ('USER' as const),
-      documents: selected,
-      ...(selectedDraft ? { draft: selectedDraft } : {}),
-    };
-    const input = {
-      objective,
-      ...(action ? { actionId: action } : {}),
-      ...(run ? { conversationId: run.conversationId, contextRevision: run.contextRevision } : {}),
-      ...(matter ? { matterId: matter } : {}),
-      context,
-    };
-    const body = { ...input, ...authorization };
-    void invoke('start', body, (key) =>
-      authorization ? client.commercialStart({ ...input, ...authorization }, key) : client.start(input, key),
-    );
+  const start = (input: StartInput) => {
+    if (commercial) {
+      setPaidCommand({
+        kind: 'start',
+        body: input,
+        send: (key, authorization) => client.commercialStart({ ...input, ...authorization }, key),
+      });
+      return;
+    }
+    void invoke('start', input, (key) => client.start(input, key));
   };
   const onAnswer = (answer: Answer) => {
     if (run) {
@@ -276,23 +203,38 @@ export function AgenticWorkspaceScreen({
       );
     }
   };
-  const followUp = (next?: ActionId) => {
+  const newWork = () => {
+    navigationEpoch.current++;
+    generation.current++;
+    command.current = undefined;
+    setId(null);
+    setRun(undefined);
+    setDeliveries([]);
+    setCorrection(undefined);
     setPaidCommand(undefined);
-    setEntryDraft({ text: '', purpose: '' });
-    setAction(next);
-    setObjective('');
-    setEntry(true);
-    setScope(false);
-    setText(run?.context.text ?? text);
-    setMatter(run?.matterId ?? matter);
-    setSelected(run?.context.documents ?? selected);
-    const candidate = next === 'review_text' ? deliveries.find((d) => d.draftId && d.versionId) : undefined;
-    setSelectedDraft(candidate ? { draftId: candidate.draftId!, versionId: candidate.versionId! } : run?.context.draft);
+    setError('');
+    setSide({ open: false, tab: 'sources', source: null });
+    onExecutionChange(null);
+    if (surface.current && window.location.pathname === '/app/trabalho')
+      window.history.replaceState({}, '', '/app/trabalho');
   };
   const currentStatus = events.executionId === id && events.status ? events.status : (run?.status ?? '');
   const currentQuestion =
     correction ?? (currentStatus === 'WAITING_USER' ? (events.question ?? run?.question ?? null) : null);
   const active = ['QUEUED', 'RUNNING'].includes(currentStatus);
+  const shownError = error || events.error;
+  const results = useMemo(
+    () => deliveries.map((delivery) => ({ delivery, view: presentDelivery(delivery.delivery) })),
+    [deliveries],
+  );
+  const latest = results.at(-1);
+  const reevaluate = Boolean(run?.requiresReevaluation);
+  // Without a result there is nothing to open: keep the lawyer's own text in view after a failure or revocation.
+  const showSide = side.open || denied || (!latest && ['FAILED', 'CANCELLED'].includes(currentStatus));
+  const canFollowUp = Boolean(
+    run && !closedPilot && !denied && !reevaluate && !active && currentStatus === 'COMPLETED' && !correction,
+  );
+  const draftCandidate = deliveries.find((d) => d.draftId && d.versionId);
   if (authStatus !== 'authenticated')
     return (
       <div className="page-container py-10">
@@ -300,20 +242,59 @@ export function AgenticWorkspaceScreen({
         <p>Entre na sua conta para iniciar e recuperar seu trabalho.</p>
       </div>
     );
+  const landing = !run && !id;
+  const paidBar = (kinds: 'start' | 'other') =>
+    commercial &&
+    paidCommand &&
+    !denied &&
+    (kinds === 'start') === (paidCommand.kind === 'start') && (
+      <CommercialAuthorizationPanel
+        client={client}
+        busy={busy}
+        onBack={() => setPaidCommand(undefined)}
+        onConfirm={(authorization) =>
+          void invoke(paidCommand.kind, { body: paidCommand.body, ...authorization }, (key) =>
+            paidCommand.send(key, authorization),
+          )
+        }
+      />
+    );
   return (
-    <div data-agentic-workspace aria-busy={busy} className="page-container max-w-5xl space-y-6 py-8 text-stone-800">
-      <header>
-        <p className="eyebrow">ForgeLex</p>
-        <h1 className="font-editorial text-3xl font-bold">Trabalho</h1>
-        <p className="mt-2 text-stone-600">Da necessidade à entrega, com contexto e fontes para conferir.</p>
+    <div data-agentic-workspace aria-busy={busy} className="page-container space-y-6 py-8 text-stone-800">
+      <header
+        className={
+          landing ? 'mx-auto w-full max-w-3xl pt-8' : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
+        }
+      >
+        {landing ? (
+          <>
+            <h1 className="font-editorial text-4xl font-medium text-stone-900">O que você precisa fazer hoje?</h1>
+            <p className="mt-2 text-stone-600">
+              Descreva em suas palavras. O agente lê o caso, pergunta o que faltar e entrega um texto com as fontes.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="font-editorial text-xl text-stone-900">Trabalho</h1>
+            <span className="grow" />
+            <button type="button" className="btn-secondary min-h-11" disabled={busy} onClick={newWork}>
+              Nova conversa
+            </button>
+          </>
+        )}
       </header>
-      <p role="status" aria-label="Andamento" aria-live="polite">
-        {statusText(currentStatus, error || events.error)}
+      <p
+        role="status"
+        aria-label="Andamento"
+        aria-live="polite"
+        className={active || shownError ? 'text-sm text-stone-600' : 'sr-only'}
+      >
+        {statusText(currentStatus, shownError)}
       </p>
-      {(error || events.error) && (
+      {shownError && (
         <p role="alert" className="break-words rounded-xl border border-amber-300 bg-amber-50 p-4">
-          {statusText('FAILED', error || events.error)}{' '}
-          {!(error || events.error).match(
+          {statusText('FAILED', shownError)}{' '}
+          {!shownError.match(
             /ACCESS|BUDGET|BALANCE|FUNDS|NOT_FOUND|COMMERCIAL_(DAILY|MONTHLY|EXECUTION_ACTIVE|POLICY)/,
           ) && 'O serviço está indisponível. Seu pedido permanece nesta tela.'}
         </p>
@@ -328,376 +309,176 @@ export function AgenticWorkspaceScreen({
             setRun(execution);
             setDeliveries([]);
             changeId(execution.id);
-            setEntry(false);
-            setScope(false);
           }}
         />
       )}
-      {closedPilot === false && entry && !scope && (
-        <ActionEntry
-          key={`${run?.id ?? 'new'}:${action ?? 'free'}`}
-          initialAction={action}
-          initialText={entryDraft.text}
-          initialPurpose={entryDraft.purpose}
-          actions={actions}
-          busy={busy}
-          onPrepare={(goal, next, draft) => {
-            setEntryDraft(draft);
-            setObjective(goal);
-            setAction(next);
-            setScope(true);
-          }}
-        />
-      )}
-      {closedPilot === false && entry && scope && (
-        <section
-          aria-label="Escopo do trabalho"
-          className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4 sm:p-6"
-        >
-          <h2 className="font-editorial text-xl">Conferir escopo</h2>
-          <p className="whitespace-pre-wrap break-words">{objective}</p>
-          <label className="block">
-            Contexto escrito
-            <textarea
-              maxLength={64000}
-              rows={5}
-              className="mt-2 w-full rounded-lg border p-3"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-          </label>
-          <label className="block">
-            Caso (opcional)
-            <select
-              disabled={Boolean(run)}
-              className="mt-2 min-h-11 w-full rounded-lg border p-2"
-              value={matter}
-              onChange={(e) => {
-                setMatter(e.target.value);
-                setSelected([]);
-                setSelectedDraft(undefined);
-              }}
-            >
-              <option value="">Sem caso — somente texto</option>
-              {matters.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          {matter && (
-            <label className="block">
-              Minuta do caso (opcional)
-              <select
-                className="mt-2 min-h-11 w-full rounded-lg border p-2"
-                value={selectedDraft ? `${selectedDraft.draftId}:${selectedDraft.versionId}` : ''}
-                onChange={(e) => {
-                  const d = drafts.find((d) => `${d.id}:${d.currentVersionId}` === e.target.value);
-                  setSelectedDraft(d ? { draftId: d.id, versionId: d.currentVersionId } : undefined);
-                }}
-              >
-                <option value="">Sem minuta selecionada</option>
-                {selectedDraft &&
-                  !drafts.some(
-                    (d) => d.id === selectedDraft.draftId && d.currentVersionId === selectedDraft.versionId,
-                  ) && (
-                    <option value={`${selectedDraft.draftId}:${selectedDraft.versionId}`}>
-                      Versão anterior selecionada — confira a versão atual
-                    </option>
-                  )}
-                {drafts.map((d) => (
-                  <option key={d.id} value={`${d.id}:${d.currentVersionId}`}>
-                    {d.title} · versão {d.currentVersionId.slice(0, 8)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {!!documents.length && (
-            <fieldset>
-              <legend className="font-medium">Documentos autorizados para este trabalho</legend>
-              {documents.map((d) => (
-                <label className="flex min-h-11 items-center gap-3 break-words" key={d.id}>
-                  <input
-                    type="checkbox"
-                    checked={selected.some((s) => s.documentId === d.id)}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setSelected((old) =>
-                        checked
-                          ? [...old.filter((s) => s.documentId !== d.id), { documentId: d.id, versionId: d.versionId }]
-                          : old.filter((s) => s.documentId !== d.id),
-                      );
-                    }}
-                  />
-                  {d.title}
-                </label>
-              ))}
-            </fieldset>
-          )}
-          <p className="text-sm text-stone-600">
-            Serão usados o texto e os documentos selecionados. Novas entregas são preliminares.
-            {!commercial && ' Uso pago exige autorização e orçamento próprios; esta tela não os concede.'}
-          </p>
-          {!available && <p>O processamento deste trabalho ainda não está disponível.</p>}
-          {commercial ? (
-            <CommercialAuthorizationPanel client={client} busy={busy || !available} onConfirm={begin} />
-          ) : (
-            <button className="btn-primary min-h-11" disabled={busy || !available} onClick={() => begin()}>
-              Executar trabalho
-            </button>
-          )}
-          <details>
-            <summary className="min-h-11 cursor-pointer">Mais opções</summary>
-            <button className="min-h-11 underline" onClick={() => setScope(false)}>
-              Rever pedido
-            </button>
-          </details>
-        </section>
-      )}
-      {run && !entry && (
-        <>
-          {run.requiresReevaluation && (
-            <div
-              role="status"
-              aria-label="Reavaliação necessária"
-              className="rounded-xl border border-amber-300 bg-amber-50 p-4"
-            >
-              <p>Esta entrega usa uma revisão anterior do contexto e precisa de reavaliação.</p>
-              {run.currentExecutionId && run.currentExecutionId !== run.id && (
-                <a
-                  className="inline-flex min-h-11 items-center underline"
-                  href={`/app/trabalho?executionId=${encodeURIComponent(run.currentExecutionId)}`}
-                >
-                  Abrir trabalho atual
-                </a>
-              )}
-            </div>
-          )}
-          <h2 className="break-words font-editorial text-xl">{run.objective}</h2>
-          <GuidedDialogue
-            question={closedPilot || denied || run.requiresReevaluation ? null : currentQuestion}
-            messages={run.messages}
+      {closedPilot === false && landing && (
+        <div className="mx-auto w-full max-w-3xl space-y-4">
+          <Composer
+            client={client}
+            actions={actions}
+            commercial={commercial}
             busy={busy || Boolean(paidCommand)}
-            onAnswer={onAnswer}
-            onCorrect={
-              !closedPilot && !active && !run.requiresReevaluation && !run.successorId && currentStatus === 'COMPLETED'
-                ? (q) => {
-                    if (!busy && !paidCommand) setCorrection({ ...q, contextRevision: run.contextRevision });
-                  }
-                : undefined
-            }
+            available={available}
+            onFail={fail}
+            onSubmit={start}
           />
-          {commercial && paidCommand && !denied && (
-            <CommercialAuthorizationPanel
-              client={client}
-              busy={busy}
-              onBack={() => setPaidCommand(undefined)}
-              onConfirm={(authorization) =>
-                void invoke(paidCommand.kind, { body: paidCommand.body, ...authorization }, (key) =>
-                  paidCommand.send(key, authorization),
-                )
+          {paidBar('start')}
+        </div>
+      )}
+      {run && (
+        <div className={`grid gap-6 ${showSide ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]' : ''}`}>
+          <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
+            {reevaluate && (
+              <div
+                role="status"
+                aria-label="Reavaliação necessária"
+                className="rounded-xl border border-amber-300 bg-amber-50 p-4"
+              >
+                <p>Este resultado foi feito com uma versão anterior do contexto e precisa ser refeito.</p>
+                {run.currentExecutionId && run.currentExecutionId !== run.id && (
+                  <a
+                    className="inline-flex min-h-11 items-center underline"
+                    href={`/app/trabalho?executionId=${encodeURIComponent(run.currentExecutionId)}`}
+                  >
+                    Abrir o resultado atual
+                  </a>
+                )}
+              </div>
+            )}
+            <Conversation
+              question={closedPilot || denied || reevaluate ? null : currentQuestion}
+              messages={run.messages}
+              busy={busy || Boolean(paidCommand)}
+              onAnswer={onAnswer}
+              onCorrect={
+                !closedPilot && !active && !reevaluate && !run.successorId && currentStatus === 'COMPLETED'
+                  ? (q) => {
+                      if (!busy && !paidCommand) setCorrection({ ...q, contextRevision: run.contextRevision });
+                    }
+                  : undefined
               }
             />
-          )}
-          {commercial && !denied && (
-            <CommercialReceiptPanel
-              client={client}
-              executionId={run.id}
-              refreshKey={`${currentStatus}:${events.cursor}`}
+            {paidBar('other')}
+            {active && (
+              <div role="status" className="flex items-center gap-3 text-stone-600">
+                <span aria-hidden="true" className="inline-flex gap-1">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:200ms]" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:400ms]" />
+                </span>
+                <span>Trabalhando no seu pedido…</span>
+                <button
+                  type="button"
+                  className="ml-auto min-h-11 px-3 text-sm text-cognac-700 underline"
+                  disabled={busy}
+                  onClick={() => void invoke('cancel', {}, (key) => client.cancel(run.id, key))}
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+            {events.reconciliation && (
+              <p role="status">
+                O trabalho precisa de conferência antes de outra tentativa. O consumo eventualmente ocorrido não é
+                repetido automaticamente.
+              </p>
+            )}
+            {!denied &&
+              !busy &&
+              results.map(({ delivery, view }) => (
+                <ResultCard
+                  key={delivery.id}
+                  run={run}
+                  delivery={delivery}
+                  view={view}
+                  activeSource={side.open && latest?.delivery.id === delivery.id ? side.source : null}
+                  onSource={(n) => setSide({ open: true, tab: 'sources', source: n })}
+                  onPending={() => setSide({ open: true, tab: 'pending', source: null })}
+                  onSources={() => setSide({ open: true, tab: 'sources', source: null })}
+                  onEditor={onEditor}
+                  receipt={
+                    commercial && delivery.id === latest?.delivery.id ? (
+                      <CommercialReceiptPanel
+                        client={client}
+                        executionId={run.id}
+                        refreshKey={`${currentStatus}:${events.cursor}`}
+                      />
+                    ) : undefined
+                  }
+                />
+              ))}
+            {commercial && !denied && !results.length && !active && (
+              <CommercialReceiptPanel
+                client={client}
+                executionId={run.id}
+                refreshKey={`${currentStatus}:${events.cursor}`}
+              />
+            )}
+            {!closedPilot &&
+              ['FAILED', 'CANCELLED'].includes(currentStatus) &&
+              !reevaluate &&
+              !denied &&
+              !events.reconciliation && (
+                <button
+                  className="btn-primary min-h-11"
+                  disabled={busy || Boolean(paidCommand)}
+                  onClick={() =>
+                    commercial
+                      ? setPaidCommand({
+                          kind: 'continue',
+                          body: {},
+                          send: (key, authorization) => client.continue(run.id, key, authorization),
+                        })
+                      : void invoke('continue', {}, (key) => client.continue(run.id, key))
+                  }
+                >
+                  Continuar trabalho
+                </button>
+              )}
+            {canFollowUp && (
+              <div className="space-y-4 pt-2">
+                <Composer
+                  key={`${run.id}:${run.contextRevision}`}
+                  client={client}
+                  actions={actions}
+                  commercial={commercial}
+                  busy={busy || Boolean(paidCommand)}
+                  available={available}
+                  followUp={{
+                    conversationId: run.conversationId,
+                    contextRevision: run.contextRevision,
+                    text: run.context.text,
+                    matterId: run.matterId,
+                    documents: run.context.documents,
+                    draft: run.context.draft,
+                    draftCandidate: draftCandidate
+                      ? { draftId: draftCandidate.draftId!, versionId: draftCandidate.versionId! }
+                      : undefined,
+                  }}
+                  onFail={fail}
+                  onSubmit={start}
+                />
+                {paidBar('start')}
+              </div>
+            )}
+          </div>
+          {showSide && (
+            <SideTable
+              tab={side.tab}
+              onTab={(tab) => setSide((old) => ({ ...old, tab }))}
+              onClose={() => setSide((old) => ({ ...old, open: false, source: null }))}
+              view={denied ? undefined : latest?.view}
+              activeSource={side.source}
+              run={run}
+              context={denied ? { text: run.context.text, origin: 'USER', documents: [] } : run.context}
+              titles={denied ? {} : titles}
+              onRead={setReading}
+              onEditor={onEditor}
+              contextOnly={denied || !latest}
             />
           )}
-          {!denied && !!run.history?.length && (
-            <details>
-              <summary className="min-h-11 cursor-pointer">Entregas anteriores</summary>
-              <ul>
-                {run.history.map((h) => (
-                  <li key={h.executionId}>
-                    <a
-                      className="inline-flex min-h-11 items-center underline"
-                      href={`/app/trabalho?executionId=${encodeURIComponent(h.executionId)}`}
-                    >
-                      Entrega de {new Date(h.createdAt).toLocaleString('pt-BR')}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-          {!denied &&
-            !busy &&
-            deliveries.map((d) => (
-              <article
-                key={d.id}
-                data-delivery-id={d.id}
-                aria-label="Entrega preliminar"
-                className="space-y-5 rounded-2xl border border-stone-200 bg-white p-4 sm:p-6"
-              >
-                <h2 className="font-editorial text-2xl">
-                  {d.delivery.document?.title ??
-                    (d.delivery.status === 'LIMITED' ? 'Análise de lacunas e limites' : 'Entrega preliminar')}
-                </h2>
-                <p className="text-sm text-amber-900">
-                  Avaliação jurídica pendente. Confira fontes e lacunas antes de utilizar.
-                </p>
-                {d.delivery.document ? (
-                  d.delivery.document.sections.map((s, i) => (
-                    <section key={i} className="space-y-2 break-words">
-                      <h3 className="font-semibold">{s.title}</h3>
-                      <p className="whitespace-pre-wrap leading-relaxed">{s.content}</p>
-                      <SourceReferences
-                        label="Fontes da seção"
-                        sourceIds={s.sourceIds}
-                        sources={d.delivery.sources}
-                        matterId={run.matterId}
-                        onRead={setReading}
-                      />
-                    </section>
-                  ))
-                ) : (
-                  <>
-                    <ul className="space-y-2">
-                      {d.delivery.issues.map((i) => (
-                        <li key={i.id}>
-                          {i.statement}
-                          <SourceReferences
-                            label="Fontes da questão"
-                            sourceIds={i.sourceIds}
-                            sources={d.delivery.sources}
-                            matterId={run.matterId}
-                            onRead={setReading}
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                    <ul className="space-y-2">
-                      {d.delivery.claims.map((c) => (
-                        <li key={c.id} className="break-words">
-                          {c.classification === 'ALLEGATION'
-                            ? 'Alegação'
-                            : c.classification === 'CONFLICT'
-                              ? 'Conflito'
-                              : 'Inferência'}
-                          : {c.statement}
-                          <SourceReferences
-                            label="Fontes da afirmação"
-                            sourceIds={c.sourceIds}
-                            sources={d.delivery.sources}
-                            matterId={run.matterId}
-                            onRead={setReading}
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                <details>
-                  <summary className="min-h-11 cursor-pointer">Observações para conferência</summary>
-                  <ul className="space-y-2 break-words">
-                    {d.delivery.findings.map((f) => (
-                      <li key={f.id}>
-                        {f.statement}
-                        <SourceReferences
-                          label="Fontes da observação"
-                          sourceIds={f.sourceIds}
-                          sources={d.delivery.sources}
-                          matterId={run.matterId}
-                          onRead={setReading}
-                        />
-                      </li>
-                    ))}
-                    {d.delivery.requirements.map((r) => (
-                      <li key={r.id}>
-                        {r.verified ? 'Requisito candidato' : 'Requisito não verificado'}: {r.statement}
-                        <SourceReferences
-                          label="Fontes do requisito"
-                          sourceIds={r.sourceIds}
-                          sources={d.delivery.sources}
-                          matterId={run.matterId}
-                          onRead={setReading}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-                {!run.requiresReevaluation && (
-                  <DeliveryActions
-                    run={run}
-                    delivery={d}
-                    onFollowUp={followUp}
-                    onEditor={onEditor}
-                    allowFollowUp={!closedPilot}
-                  />
-                )}
-              </article>
-            ))}
-          <ContextSummary
-            context={denied ? { text: run.context.text, origin: 'USER', documents: [] } : run.context}
-            matterId={run.matterId}
-            executionId={run.id}
-            onEditor={onEditor}
-            sources={
-              denied
-                ? []
-                : deliveries
-                    .flatMap((d) => d.delivery.sources)
-                    .filter((s, i, a) => a.findIndex((x) => x.id === s.id) === i)
-            }
-            onRead={setReading}
-          />
-          {closedPilot && currentQuestion && (
-            <p>Permanece uma lacuna neste exemplo: {currentQuestion.prompt} Nenhuma resposta foi presumida.</p>
-          )}
-          {commercial && active && (
-            <button
-              className="btn-secondary min-h-11"
-              disabled={busy}
-              onClick={() => void invoke('cancel', {}, (key) => client.cancel(run.id, key))}
-            >
-              Cancelar
-            </button>
-          )}
-          {!commercial && (active || (closedPilot && currentStatus === 'WAITING_USER')) && (
-            <details>
-              <summary className="min-h-11 cursor-pointer">Mais opções</summary>
-              <button
-                className="min-h-11 underline"
-                disabled={busy}
-                onClick={() => void invoke('cancel', {}, (key) => client.cancel(run.id, key))}
-              >
-                Interromper processamento
-              </button>
-            </details>
-          )}
-          {events.reconciliation && (
-            <p role="status">
-              A execução precisa de conferência antes de outra tentativa. O consumo eventualmente ocorrido não é
-              repetido automaticamente.
-            </p>
-          )}
-          {!closedPilot &&
-            ['FAILED', 'CANCELLED'].includes(currentStatus) &&
-            !run.requiresReevaluation &&
-            !denied &&
-            !events.reconciliation && (
-              <button
-                className="btn-primary min-h-11"
-                disabled={busy || Boolean(paidCommand)}
-                onClick={() =>
-                  commercial
-                    ? setPaidCommand({
-                        kind: 'continue',
-                        body: {},
-                        send: (key, authorization) => client.continue(run.id, key, authorization),
-                      })
-                    : void invoke('continue', {}, (key) => client.continue(run.id, key))
-                }
-              >
-                Continuar trabalho
-              </button>
-            )}
-        </>
+        </div>
       )}
       {reading && !denied && <DocumentReaderDialog source={reading} token="" onClose={() => setReading(undefined)} />}
     </div>

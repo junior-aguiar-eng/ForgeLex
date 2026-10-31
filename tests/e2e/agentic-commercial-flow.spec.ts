@@ -10,15 +10,17 @@ test('percorre cobrança comercial real com transporte sintético e preserva ide
   await page
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('Organizar o relato sintético para conferência.');
-  await page.getByRole('button', { name: 'Definir escopo', exact: true }).click();
+  await page.getByRole('button', { name: /^Sem caso/ }).click();
   await page
     .getByLabel('Contexto escrito')
     .fill('Relato sintético: a parte informa que contratou um serviço, mas o serviço não foi entregue.');
+  await expect(page.getByText(/Custo de .* por trabalho/)).toBeVisible();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByText(/Este trabalho custa até/)).toBeVisible();
   await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible({ timeout: 60000 });
-  const receipt = page.getByText('Comprovante do trabalho', { exact: true }).locator('..');
-  await page.getByText('Comprovante do trabalho', { exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible({ timeout: 60000 });
+  const receipt = page.getByText('Custo deste trabalho', { exact: true }).locator('..');
+  await page.getByText('Custo deste trabalho', { exact: true }).click();
   await expect(receipt).toContainText('0,50');
   await expect(receipt).toContainText('4,50');
   const id = new URL(page.url()).searchParams.get('executionId');
@@ -38,7 +40,7 @@ test('percorre cobrança comercial real com transporte sintético e preserva ide
   ).json();
   expect(quote.availableCents).toBe(450);
   await page.reload();
-  await expect(page.getByRole('article', { name: 'Entrega preliminar' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   const after = await (
     await page.request.get(`http://127.0.0.1:3301/api/agentic/commercial/executions/${id}/receipt`, { headers })
   ).json();

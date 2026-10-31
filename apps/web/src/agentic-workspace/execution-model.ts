@@ -78,7 +78,7 @@ export interface Delivery {
     issues: { id: string; statement: string; sourceIds: string[] }[];
     claims: { id: string; statement: string; classification: string; sourceIds: string[] }[];
     requirements: { id: string; statement: string; verified: boolean; sourceIds: string[] }[];
-    findings: { id: string; statement: string; severity: string; sourceIds: string[] }[];
+    findings: { id: string; code?: string; statement: string; severity: string; sourceIds: string[] }[];
     sources: Source[];
     document?: {
       title: string;
