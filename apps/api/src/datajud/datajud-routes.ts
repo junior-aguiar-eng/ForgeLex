@@ -20,12 +20,10 @@ export function registerDataJudRoutes(
     reply.header('X-Credits-Charged', '0');
     const input = DataJudProcessRequestSchema.safeParse(request.body);
     if (!input.success)
-      return reply
-        .code(400)
-        .send({
-          error: 'DATAJUD_INVALID_PROCESS_NUMBER',
-          message: 'Informe somente um número CNJ válido do TJAL, com ou sem máscara.',
-        });
+      return reply.code(400).send({
+        error: 'DATAJUD_INVALID_PROCESS_NUMBER',
+        message: 'Informe somente um número CNJ válido do TJAL, com ou sem máscara.',
+      });
     const now = Date.now();
     let clientIp = request.ip;
     const forwarded = request.headers['x-forwarded-for'];
@@ -39,13 +37,10 @@ export function registerDataJudRoutes(
     if (globalWindow.until <= now) globalWindow = { count: 0, until: now + 60000 };
     const window = windows.get(clientIp) ?? { count: 0, until: now + 60000 };
     if (window.count >= 10 || globalWindow.count >= 60 || active >= 4 || windows.size >= 1000) {
-      return reply
-        .header('Retry-After', '60')
-        .code(429)
-        .send({
-          error: 'DATAJUD_RATE_LIMITED',
-          message: 'Limite temporário de consultas. Aguarde um minuto e tente novamente.',
-        });
+      return reply.header('Retry-After', '60').code(429).send({
+        error: 'DATAJUD_RATE_LIMITED',
+        message: 'Limite temporário de consultas. Aguarde um minuto e tente novamente.',
+      });
     }
     window.count++;
     globalWindow.count++;
@@ -65,17 +60,15 @@ export function registerDataJudRoutes(
               ? 429
               : 503;
       if (status === 429) reply.header('Retry-After', '60');
-      return reply
-        .code(status)
-        .send({
-          error: code,
-          message:
-            status === 504
-              ? 'O DataJud demorou a responder. Tente novamente mais tarde; esta consulta é gratuita.'
-              : status === 429
-                ? 'O DataJud limitou temporariamente as consultas. Tente novamente em um minuto.'
-                : 'Não foi possível obter uma resposta válida do DataJud. Tente novamente mais tarde; esta consulta é gratuita.',
-        });
+      return reply.code(status).send({
+        error: code,
+        message:
+          status === 504
+            ? 'O DataJud demorou a responder. Tente novamente mais tarde; esta consulta é gratuita.'
+            : status === 429
+              ? 'O DataJud limitou temporariamente as consultas. Tente novamente em um minuto.'
+              : 'Não foi possível obter uma resposta válida do DataJud. Tente novamente mais tarde; esta consulta é gratuita.',
+      });
     } finally {
       active--;
       abort.dispose();

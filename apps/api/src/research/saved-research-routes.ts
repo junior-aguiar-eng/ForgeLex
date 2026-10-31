@@ -40,17 +40,15 @@ export function registerSavedResearchRoutes(
                 : code === 'INVALID_INPUT'
                   ? 400
                   : 503;
-        return reply
-          .code(status)
-          .send({
-            error: code,
-            message:
-              code === 'INVALID_INPUT'
-                ? 'Confira os dados da solicitação.'
-                : e.code
-                  ? e.message
-                  : 'Não foi possível recuperar as pesquisas salvas. Nenhuma nova pesquisa foi executada.',
-          });
+        return reply.code(status).send({
+          error: code,
+          message:
+            code === 'INVALID_INPUT'
+              ? 'Confira os dados da solicitação.'
+              : e.code
+                ? e.message
+                : 'Não foi possível recuperar as pesquisas salvas. Nenhuma nova pesquisa foi executada.',
+        });
       }
     };
   const id = (req: FastifyRequest) => z.object({ id: z.string().guid() }).parse(req.params).id;

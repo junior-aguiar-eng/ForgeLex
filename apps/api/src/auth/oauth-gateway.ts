@@ -200,20 +200,18 @@ export function registerOAuthGateway(app: FastifyInstance, options: Options): vo
       reply.header('Cache-Control', 'no-store');
       if (!response.ok || typeof data.client_id !== 'string' || typeof data.client_secret !== 'string')
         return reply.code(response.ok ? 503 : response.status).send({ error: 'invalid_client_metadata' });
-      return reply
-        .code(201)
-        .send({
-          client_id: options.vault.seal(
-            JSON.stringify({ id: data.client_id, secret: data.client_secret, redirects: body.redirect_uris }),
-            'client',
-            null,
-          ),
-          client_name: body.client_name,
-          redirect_uris: body.redirect_uris,
-          token_endpoint_auth_method: 'none',
-          grant_types: ['authorization_code', 'refresh_token'],
-          response_types: ['code'],
-        });
+      return reply.code(201).send({
+        client_id: options.vault.seal(
+          JSON.stringify({ id: data.client_id, secret: data.client_secret, redirects: body.redirect_uris }),
+          'client',
+          null,
+        ),
+        client_name: body.client_name,
+        redirect_uris: body.redirect_uris,
+        token_endpoint_auth_method: 'none',
+        grant_types: ['authorization_code', 'refresh_token'],
+        response_types: ['code'],
+      });
     } catch {
       return reply.code(503).send({ error: 'temporarily_unavailable' });
     }

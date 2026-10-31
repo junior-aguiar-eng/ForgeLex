@@ -66,12 +66,10 @@ export function registerMatterLifecycleRoutes(
       const session = request.principal.authMethod === 'session';
       const read = request.method === 'GET' || request.method === 'HEAD';
       if (matter.lifecycleState !== 'ACTIVE' && (!session || !read))
-        return reply
-          .code(session ? 409 : 404)
-          .send({
-            error: session ? 'MATTER_NOT_ACTIVE' : 'MATTER_NOT_FOUND',
-            message: 'Este caso está disponível apenas para consulta.',
-          });
+        return reply.code(session ? 409 : 404).send({
+          error: session ? 'MATTER_NOT_ACTIVE' : 'MATTER_NOT_FOUND',
+          message: 'Este caso está disponível apenas para consulta.',
+        });
       if (params.documentId) {
         const document = await matters.getDocumentVersion(
           request.principal.tenantId,
@@ -111,12 +109,10 @@ export function registerMatterLifecycleRoutes(
         try {
           if (action === 'purge') {
             if (!purge)
-              return reply
-                .code(503)
-                .send({
-                  error: 'MATTER_PURGE_JOURNAL_UNAVAILABLE',
-                  message: 'A exclusão definitiva está temporariamente indisponível.',
-                });
+              return reply.code(503).send({
+                error: 'MATTER_PURGE_JOURNAL_UNAVAILABLE',
+                message: 'A exclusão definitiva está temporariamente indisponível.',
+              });
             return await purge.execute(target, actor, PurgeCommandSchema.parse(command.data));
           }
           return await repository.transition(target, actor, action, command.data);
@@ -131,20 +127,18 @@ export function registerMatterLifecycleRoutes(
                 : /JOURNAL|PURGE_CONFIRMATION_PENDING/.test(code)
                   ? 503
                   : 500;
-          return reply
-            .code(status)
-            .send({
-              error: status === 500 ? 'LIFECYCLE_FAILED' : code,
-              message:
-                status === 409
-                  ? 'O caso ou documento mudou. Atualize a página e confira a operação.'
-                  : status === 503
-                    ? 'A operação aguarda confirmação. Não é necessário excluir novamente.'
-                    : 'Não foi possível concluir esta operação.',
-              ...(code === 'PURGE_CONFIRMATION_PENDING'
-                ? { operationId: (error as { operationId?: string }).operationId }
-                : {}),
-            });
+          return reply.code(status).send({
+            error: status === 500 ? 'LIFECYCLE_FAILED' : code,
+            message:
+              status === 409
+                ? 'O caso ou documento mudou. Atualize a página e confira a operação.'
+                : status === 503
+                  ? 'A operação aguarda confirmação. Não é necessário excluir novamente.'
+                  : 'Não foi possível concluir esta operação.',
+            ...(code === 'PURGE_CONFIRMATION_PENDING'
+              ? { operationId: (error as { operationId?: string }).operationId }
+              : {}),
+          });
         }
       });
     }

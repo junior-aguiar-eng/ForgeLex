@@ -146,20 +146,18 @@ export class MatterLifecycleRepository {
         lifecycleRevision: changes.lifecycleRevision,
         grantsRevoked,
       };
-      await db
-        .insert(s.auditLogs)
-        .values({
-          id: randomUUID(),
-          tenantId: target.tenantId,
-          userId: actor.userId,
-          sessionId: `matter_${target.matterId}`,
-          toolName: `matter.lifecycle.${action}`,
-          status: 'SUCCESS',
-          durationMs: 0,
-          payloadHash: createHash('sha256').update(JSON.stringify(metadata)).digest('hex'),
-          costMetadata: JSON.stringify(metadata),
-          createdAt: now,
-        });
+      await db.insert(s.auditLogs).values({
+        id: randomUUID(),
+        tenantId: target.tenantId,
+        userId: actor.userId,
+        sessionId: `matter_${target.matterId}`,
+        toolName: `matter.lifecycle.${action}`,
+        status: 'SUCCESS',
+        durationMs: 0,
+        payloadHash: createHash('sha256').update(JSON.stringify(metadata)).digest('hex'),
+        costMetadata: JSON.stringify(metadata),
+        createdAt: now,
+      });
       return {
         id,
         lifecycleState: state,
