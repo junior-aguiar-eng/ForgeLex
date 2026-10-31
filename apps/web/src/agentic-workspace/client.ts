@@ -1,6 +1,7 @@
 import { requestApi, requestApiStream } from '../api-client';
 import type { Answer, Delivery, Execution, PublicAction, Context, ActionId } from './execution-model';
 import type { CommercialAuthorization, CommercialQuote, CommercialReceipt } from './commercial-model';
+import type { RecentItem } from './RecentConversations';
 export interface StartInput {
   objective: string;
   actionId?: ActionId;
@@ -46,6 +47,7 @@ export class WorkspaceClient {
     );
   commercialStart = (body: StartInput & CommercialAuthorization, key: string) =>
     this.command('/api/agentic/commercial/executions', body, key);
+  recent = () => requestApi<{ items: RecentItem[] }>('/api/agentic/conversations', {}, { sessionOnly: true });
   get = (id: string) =>
     requestApi<Execution>(`/api/agentic/executions/${encodeURIComponent(id)}`, {}, { sessionOnly: true });
   delivery = (id: string) =>

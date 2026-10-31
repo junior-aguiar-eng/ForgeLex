@@ -1,5 +1,5 @@
 import { lockAgenticTenant } from './agentic-tenant-guard.js';
-import { and, asc, eq, gt, max, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, max, sql } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import {
@@ -113,8 +113,18 @@ export class AgenticWorkspaceRepository {
         .where(and(eq(s.matters.id, matterId), eq(s.matters.tenantId, owner.tenantId)));
       await new MatterWriteGuard(this.db).captureRevision({ ...owner, matterId });
       if (context.draft) {
-        const [target] = await this.db.select({ id: s.drafts.id }).from(s.drafts)
-          .where(and(eq(s.drafts.id, context.draft.draftId), eq(s.drafts.tenantId, owner.tenantId), eq(s.drafts.matterId, matterId), eq(s.drafts.currentVersionId, context.draft.versionId))).limit(1);
+        const [target] = await this.db
+          .select({ id: s.drafts.id })
+          .from(s.drafts)
+          .where(
+            and(
+              eq(s.drafts.id, context.draft.draftId),
+              eq(s.drafts.tenantId, owner.tenantId),
+              eq(s.drafts.matterId, matterId),
+              eq(s.drafts.currentVersionId, context.draft.versionId),
+            ),
+          )
+          .limit(1);
         if (!target) throw new Error('DRAFT_VERSION_NOT_FOUND');
       }
       for (const doc of context.documents) {
@@ -269,6 +279,43 @@ export class AgenticWorkspaceRepository {
       if (stored.inputHash !== hash) throw new Error('IDEMPOTENCY_CONFLICT');
       return AgenticExecutionSchema.parse(JSON.parse(stored.payloadJson));
     });
+  }
+  /**
+   * The owner's most recent conversations with their newest execution, for the "recent" list.
+   * Read-only and bounded: it never takes the write locks that a conversation load takes.
+   */
+  async listRecentConversations(owner: AgenticOwner, limit = 20) {
+    AgenticOwnerSchema.parse(owner);
+    const conversations = await this.db
+      .select()
+      .from(s.agenticConversations)
+      .where(and(eq(s.agenticConversations.tenantId, owner.tenantId), eq(s.agenticConversations.userId, owner.userId)))
+      .orderBy(desc(s.agenticConversations.createdAt))
+      .limit(50);
+    const items = [];
+    for (const conversation of conversations) {
+      const rows = await this.db
+        .select({ payloadJson: s.agenticExecutions.payloadJson })
+        .from(s.agenticExecutions)
+        .where(
+          and(
+            eq(s.agenticExecutions.conversationId, conversation.id),
+            eq(s.agenticExecutions.tenantId, owner.tenantId),
+            eq(s.agenticExecutions.userId, owner.userId),
+          ),
+        );
+      const latest = rows
+        .map((row) => AgenticExecutionSchema.parse(JSON.parse(row.payloadJson)))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      if (latest)
+        items.push({
+          conversationId: conversation.id,
+          objective: conversation.objective,
+          matterId: conversation.matterId,
+          execution: latest,
+        });
+    }
+    return items.sort((a, b) => b.execution.updatedAt.localeCompare(a.execution.updatedAt)).slice(0, limit);
   }
   async getExecution(owner: AgenticOwner, id: string): Promise<AgenticExecution | undefined> {
     const [row] = await this.db.select().from(s.agenticExecutions).where(this.executionScope(owner, id)).limit(1);

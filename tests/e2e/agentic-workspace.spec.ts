@@ -320,7 +320,10 @@ test('revisão seleciona versão da minuta existente e mantém conflito de ediç
   await page.getByLabel('Minuta do caso (opcional)').selectOption(`${draft.draft.id}:${draft.version.id}`);
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
-  await page.getByRole('button', { name: /^Fontes \(\d+\)$|pontos? a conferir/ }).first().click();
+  await page
+    .getByRole('button', { name: /^Fontes \(\d+\)$|pontos? a conferir/ })
+    .first()
+    .click();
   await page.getByRole('button', { name: 'Contexto', exact: true }).click();
   await page.getByRole('link', { name: 'Abrir minuta selecionada', exact: true }).click();
   const input = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
@@ -547,7 +550,9 @@ test('suporte insuficiente entrega lacunas sem apresentar outline como minuta', 
   await login(page);
   await prepare(page, 'Preciso de uma minuta SEM_SUPORTE', 'Criar uma peça');
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toContainText('Análise de lacunas e limites');
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toContainText(
+    'Análise de lacunas e limites',
+  );
   await expect(page.getByRole('link', { name: 'Editar minuta', exact: true })).toHaveCount(0);
 });
 test('compara conferir fonte e editar a mesma minuta nos dois percursos com fontes reais da fixture', async ({
@@ -663,4 +668,19 @@ test('compara conferir fonte e editar a mesma minuta nos dois percursos com font
   });
   const { writeFile } = await import('node:fs/promises');
   await writeFile(info.outputPath('comparacao-documental.json'), JSON.stringify(benchmark, null, 2));
+});
+test('conversas recentes: começa outra conversa e reabre a anterior pela lista', async ({ page }) => {
+  await login(page);
+  await prepare(page, 'Pedido para reabrir pela lista RECENTE');
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
+  const original = page.url();
+  const recent = page.getByRole('navigation', { name: 'Conversas recentes' });
+  await recent.getByRole('button', { name: 'Nova conversa' }).click();
+  await expect(page).not.toHaveURL(/executionId=/);
+  await expect(page.getByLabel('O que você precisa fazer?', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toHaveCount(0);
+  await recent.getByRole('button', { name: /Pedido para reabrir pela lista RECENTE/ }).click();
+  await expect(page).toHaveURL(original);
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
 });

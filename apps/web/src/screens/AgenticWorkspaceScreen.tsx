@@ -6,6 +6,7 @@ import { Composer } from '../agentic-workspace/Composer';
 import { Conversation } from '../agentic-workspace/Conversation';
 import { ResultCard } from '../agentic-workspace/ResultCard';
 import { SideTable, type SideTab } from '../agentic-workspace/SideTable';
+import { RecentConversations, type RecentItem } from '../agentic-workspace/RecentConversations';
 import { ClosedPilotPanel } from '../agentic-workspace/ClosedPilotPanel';
 import { CommercialAuthorizationPanel, CommercialReceiptPanel } from '../agentic-workspace/CommercialPanel';
 import type { CommercialAuthorization } from '../agentic-workspace/commercial-model';
@@ -51,6 +52,7 @@ export function AgenticWorkspaceScreen({
   const [deliveries, setDeliveries] = useState<Delivery[]>([]),
     [reading, setReading] = useState<DocumentSource>(),
     [correction, setCorrection] = useState<Question>();
+  const [recent, setRecent] = useState<RecentItem[]>([]);
   const [side, setSide] = useState<{ open: boolean; tab: SideTab; source: number | null }>({
     open: false,
     tab: 'sources',
@@ -218,10 +220,36 @@ export function AgenticWorkspaceScreen({
     if (surface.current && window.location.pathname === '/app/trabalho')
       window.history.replaceState({}, '', '/app/trabalho');
   };
+  const openExecution = (next: string) => {
+    if (busy || next === id) return;
+    navigationEpoch.current++;
+    generation.current++;
+    command.current = undefined;
+    setRun(undefined);
+    setDeliveries([]);
+    setCorrection(undefined);
+    setPaidCommand(undefined);
+    setError('');
+    setSide({ open: false, tab: 'sources', source: null });
+    changeId(next);
+  };
   const currentStatus = events.executionId === id && events.status ? events.status : (run?.status ?? '');
   const currentQuestion =
     correction ?? (currentStatus === 'WAITING_USER' ? (events.question ?? run?.question ?? null) : null);
   const active = ['QUEUED', 'RUNNING'].includes(currentStatus);
+  const showRail = closedPilot === false;
+  useEffect(() => {
+    if (authStatus !== 'authenticated' || closedPilot !== false) return;
+    let active = true;
+    client
+      .recent()
+      .then((r) => active && setRecent(r.items))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [client, authStatus, closedPilot, id, currentStatus]);
+
   const shownError = error || events.error;
   const results = useMemo(
     () => deliveries.map((delivery) => ({ delivery, view: presentDelivery(delivery.delivery) })),
@@ -260,227 +288,239 @@ export function AgenticWorkspaceScreen({
       />
     );
   return (
-    <div data-agentic-workspace aria-busy={busy} className="page-container space-y-6 py-8 text-stone-800">
-      <header
-        className={
-          landing ? 'mx-auto w-full max-w-3xl pt-8' : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
-        }
-      >
-        {landing ? (
-          <>
-            <h1 className="font-editorial text-4xl font-medium text-stone-900">O que você precisa fazer hoje?</h1>
-            <p className="mt-2 text-stone-600">
-              Descreva em suas palavras. O agente lê o caso, pergunta o que faltar e entrega um texto com as fontes.
-            </p>
-          </>
-        ) : (
-          <>
-            <h1 className="font-editorial text-xl text-stone-900">Trabalho</h1>
-            <span className="grow" />
-            <button type="button" className="btn-secondary min-h-11" disabled={busy} onClick={newWork}>
-              Nova conversa
-            </button>
-          </>
-        )}
-      </header>
-      <p
-        role="status"
-        aria-label="Andamento"
-        aria-live="polite"
-        className={active || shownError ? 'text-sm text-stone-600' : 'sr-only'}
-      >
-        {statusText(currentStatus, shownError)}
-      </p>
-      {shownError && (
-        <p role="alert" className="break-words rounded-xl border border-amber-300 bg-amber-50 p-4">
-          {statusText('FAILED', shownError)}{' '}
-          {!shownError.match(
-            /ACCESS|BUDGET|BALANCE|FUNDS|NOT_FOUND|COMMERCIAL_(DAILY|MONTHLY|EXECUTION_ACTIVE|POLICY)/,
-          ) && 'O serviço está indisponível. Seu pedido permanece nesta tela.'}
-        </p>
-      )}
-      {closedPilot && (
-        <ClosedPilotPanel
-          client={client}
-          executionId={run?.id}
-          refreshKey={`${currentStatus}:${events.cursor}`}
-          active={active || currentStatus === 'WAITING_USER'}
-          onStarted={(execution) => {
-            setRun(execution);
-            setDeliveries([]);
-            changeId(execution.id);
-          }}
-        />
-      )}
-      {closedPilot === false && landing && (
-        <div className="mx-auto w-full max-w-3xl space-y-4">
-          <Composer
-            client={client}
-            actions={actions}
-            commercial={commercial}
-            busy={busy || Boolean(paidCommand)}
-            available={available}
-            onFail={fail}
-            onSubmit={start}
-          />
-          {paidBar('start')}
-        </div>
-      )}
-      {run && (
-        <div className={`grid gap-6 ${showSide ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]' : ''}`}>
-          <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
-            {reevaluate && (
-              <div
-                role="status"
-                aria-label="Reavaliação necessária"
-                className="rounded-xl border border-amber-300 bg-amber-50 p-4"
-              >
-                <p>Este resultado foi feito com uma versão anterior do contexto e precisa ser refeito.</p>
-                {run.currentExecutionId && run.currentExecutionId !== run.id && (
-                  <a
-                    className="inline-flex min-h-11 items-center underline"
-                    href={`/app/trabalho?executionId=${encodeURIComponent(run.currentExecutionId)}`}
-                  >
-                    Abrir o resultado atual
-                  </a>
-                )}
-              </div>
-            )}
-            <Conversation
-              question={closedPilot || denied || reevaluate ? null : currentQuestion}
-              messages={run.messages}
-              busy={busy || Boolean(paidCommand)}
-              onAnswer={onAnswer}
-              onCorrect={
-                !closedPilot && !active && !reevaluate && !run.successorId && currentStatus === 'COMPLETED'
-                  ? (q) => {
-                      if (!busy && !paidCommand) setCorrection({ ...q, contextRevision: run.contextRevision });
-                    }
-                  : undefined
-              }
-            />
-            {paidBar('other')}
-            {active && (
-              <div role="status" className="flex items-center gap-3 text-stone-600">
-                <span aria-hidden="true" className="inline-flex gap-1">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700" />
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:200ms]" />
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:400ms]" />
-                </span>
-                <span>Trabalhando no seu pedido…</span>
+    <div data-agentic-workspace aria-busy={busy} className="page-container py-8 text-stone-800">
+      <div className={showRail ? 'lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8' : ''}>
+        {showRail && <RecentConversations items={recent} currentId={id} onNew={newWork} onOpen={openExecution} />}
+        <div className="min-w-0 space-y-6">
+          <header
+            className={
+              landing ? 'mx-auto w-full max-w-3xl pt-8' : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
+            }
+          >
+            {landing ? (
+              <>
+                <h1 className="font-editorial text-4xl font-medium text-stone-900">O que você precisa fazer hoje?</h1>
+                <p className="mt-2 text-stone-600">
+                  Descreva em suas palavras. O agente lê o caso, pergunta o que faltar e entrega um texto com as fontes.
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="font-editorial text-xl text-stone-900">Trabalho</h1>
+                <span className="grow" />
                 <button
                   type="button"
-                  className="ml-auto min-h-11 px-3 text-sm text-cognac-700 underline"
+                  className={`btn-secondary min-h-11 ${showRail ? 'lg:hidden' : ''}`}
                   disabled={busy}
-                  onClick={() => void invoke('cancel', {}, (key) => client.cancel(run.id, key))}
+                  onClick={newWork}
                 >
-                  Cancelar
+                  Nova conversa
                 </button>
-              </div>
+              </>
             )}
-            {events.reconciliation && (
-              <p role="status">
-                O trabalho precisa de conferência antes de outra tentativa. O consumo eventualmente ocorrido não é
-                repetido automaticamente.
-              </p>
-            )}
-            {!denied &&
-              !busy &&
-              results.map(({ delivery, view }) => (
-                <ResultCard
-                  key={delivery.id}
-                  run={run}
-                  delivery={delivery}
-                  view={view}
-                  activeSource={side.open && latest?.delivery.id === delivery.id ? side.source : null}
-                  onSource={(n) => setSide({ open: true, tab: 'sources', source: n })}
-                  onPending={() => setSide({ open: true, tab: 'pending', source: null })}
-                  onSources={() => setSide({ open: true, tab: 'sources', source: null })}
-                  onEditor={onEditor}
-                  receipt={
-                    commercial && delivery.id === latest?.delivery.id ? (
-                      <CommercialReceiptPanel
-                        client={client}
-                        executionId={run.id}
-                        refreshKey={`${currentStatus}:${events.cursor}`}
-                      />
-                    ) : undefined
-                  }
-                />
-              ))}
-            {commercial && !denied && !results.length && !active && (
-              <CommercialReceiptPanel
-                client={client}
-                executionId={run.id}
-                refreshKey={`${currentStatus}:${events.cursor}`}
-              />
-            )}
-            {!closedPilot &&
-              ['FAILED', 'CANCELLED'].includes(currentStatus) &&
-              !reevaluate &&
-              !denied &&
-              !events.reconciliation && (
-                <button
-                  className="btn-primary min-h-11"
-                  disabled={busy || Boolean(paidCommand)}
-                  onClick={() =>
-                    commercial
-                      ? setPaidCommand({
-                          kind: 'continue',
-                          body: {},
-                          send: (key, authorization) => client.continue(run.id, key, authorization),
-                        })
-                      : void invoke('continue', {}, (key) => client.continue(run.id, key))
-                  }
-                >
-                  Continuar trabalho
-                </button>
-              )}
-            {canFollowUp && (
-              <div className="space-y-4 pt-2">
-                <Composer
-                  key={`${run.id}:${run.contextRevision}`}
-                  client={client}
-                  actions={actions}
-                  commercial={commercial}
-                  busy={busy || Boolean(paidCommand)}
-                  available={available}
-                  followUp={{
-                    conversationId: run.conversationId,
-                    contextRevision: run.contextRevision,
-                    text: run.context.text,
-                    matterId: run.matterId,
-                    documents: run.context.documents,
-                    draft: run.context.draft,
-                    draftCandidate: draftCandidate
-                      ? { draftId: draftCandidate.draftId!, versionId: draftCandidate.versionId! }
-                      : undefined,
-                  }}
-                  onFail={fail}
-                  onSubmit={start}
-                />
-                {paidBar('start')}
-              </div>
-            )}
-          </div>
-          {showSide && (
-            <SideTable
-              tab={side.tab}
-              onTab={(tab) => setSide((old) => ({ ...old, tab }))}
-              onClose={() => setSide((old) => ({ ...old, open: false, source: null }))}
-              view={denied ? undefined : latest?.view}
-              activeSource={side.source}
-              run={run}
-              context={denied ? { text: run.context.text, origin: 'USER', documents: [] } : run.context}
-              titles={denied ? {} : titles}
-              onRead={setReading}
-              onEditor={onEditor}
-              contextOnly={denied || !latest}
+          </header>
+          <p
+            role="status"
+            aria-label="Andamento"
+            aria-live="polite"
+            className={active || shownError ? 'text-sm text-stone-600' : 'sr-only'}
+          >
+            {statusText(currentStatus, shownError)}
+          </p>
+          {shownError && (
+            <p role="alert" className="break-words rounded-xl border border-amber-300 bg-amber-50 p-4">
+              {statusText('FAILED', shownError)}{' '}
+              {!shownError.match(
+                /ACCESS|BUDGET|BALANCE|FUNDS|NOT_FOUND|COMMERCIAL_(DAILY|MONTHLY|EXECUTION_ACTIVE|POLICY)/,
+              ) && 'O serviço está indisponível. Seu pedido permanece nesta tela.'}
+            </p>
+          )}
+          {closedPilot && (
+            <ClosedPilotPanel
+              client={client}
+              executionId={run?.id}
+              refreshKey={`${currentStatus}:${events.cursor}`}
+              active={active || currentStatus === 'WAITING_USER'}
+              onStarted={(execution) => {
+                setRun(execution);
+                setDeliveries([]);
+                changeId(execution.id);
+              }}
             />
           )}
+          {closedPilot === false && landing && (
+            <div className="mx-auto w-full max-w-3xl space-y-4">
+              <Composer
+                client={client}
+                actions={actions}
+                commercial={commercial}
+                busy={busy || Boolean(paidCommand)}
+                available={available}
+                onFail={fail}
+                onSubmit={start}
+              />
+              {paidBar('start')}
+            </div>
+          )}
+          {run && (
+            <div className={`grid gap-6 ${showSide ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]' : ''}`}>
+              <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
+                {reevaluate && (
+                  <div
+                    role="status"
+                    aria-label="Reavaliação necessária"
+                    className="rounded-xl border border-amber-300 bg-amber-50 p-4"
+                  >
+                    <p>Este resultado foi feito com uma versão anterior do contexto e precisa ser refeito.</p>
+                    {run.currentExecutionId && run.currentExecutionId !== run.id && (
+                      <a
+                        className="inline-flex min-h-11 items-center underline"
+                        href={`/app/trabalho?executionId=${encodeURIComponent(run.currentExecutionId)}`}
+                      >
+                        Abrir o resultado atual
+                      </a>
+                    )}
+                  </div>
+                )}
+                <Conversation
+                  question={closedPilot || denied || reevaluate ? null : currentQuestion}
+                  messages={run.messages}
+                  busy={busy || Boolean(paidCommand)}
+                  onAnswer={onAnswer}
+                  onCorrect={
+                    !closedPilot && !active && !reevaluate && !run.successorId && currentStatus === 'COMPLETED'
+                      ? (q) => {
+                          if (!busy && !paidCommand) setCorrection({ ...q, contextRevision: run.contextRevision });
+                        }
+                      : undefined
+                  }
+                />
+                {paidBar('other')}
+                {active && (
+                  <div role="status" className="flex items-center gap-3 text-stone-600">
+                    <span aria-hidden="true" className="inline-flex gap-1">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700" />
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:200ms]" />
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:400ms]" />
+                    </span>
+                    <span>Trabalhando no seu pedido…</span>
+                    <button
+                      type="button"
+                      className="ml-auto min-h-11 px-3 text-sm text-cognac-700 underline"
+                      disabled={busy}
+                      onClick={() => void invoke('cancel', {}, (key) => client.cancel(run.id, key))}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+                {events.reconciliation && (
+                  <p role="status">
+                    O trabalho precisa de conferência antes de outra tentativa. O consumo eventualmente ocorrido não é
+                    repetido automaticamente.
+                  </p>
+                )}
+                {!denied &&
+                  !busy &&
+                  results.map(({ delivery, view }) => (
+                    <ResultCard
+                      key={delivery.id}
+                      run={run}
+                      delivery={delivery}
+                      view={view}
+                      activeSource={side.open && latest?.delivery.id === delivery.id ? side.source : null}
+                      onSource={(n) => setSide({ open: true, tab: 'sources', source: n })}
+                      onPending={() => setSide({ open: true, tab: 'pending', source: null })}
+                      onSources={() => setSide({ open: true, tab: 'sources', source: null })}
+                      onEditor={onEditor}
+                      receipt={
+                        commercial && delivery.id === latest?.delivery.id ? (
+                          <CommercialReceiptPanel
+                            client={client}
+                            executionId={run.id}
+                            refreshKey={`${currentStatus}:${events.cursor}`}
+                          />
+                        ) : undefined
+                      }
+                    />
+                  ))}
+                {commercial && !denied && !results.length && !active && (
+                  <CommercialReceiptPanel
+                    client={client}
+                    executionId={run.id}
+                    refreshKey={`${currentStatus}:${events.cursor}`}
+                  />
+                )}
+                {!closedPilot &&
+                  ['FAILED', 'CANCELLED'].includes(currentStatus) &&
+                  !reevaluate &&
+                  !denied &&
+                  !events.reconciliation && (
+                    <button
+                      className="btn-primary min-h-11"
+                      disabled={busy || Boolean(paidCommand)}
+                      onClick={() =>
+                        commercial
+                          ? setPaidCommand({
+                              kind: 'continue',
+                              body: {},
+                              send: (key, authorization) => client.continue(run.id, key, authorization),
+                            })
+                          : void invoke('continue', {}, (key) => client.continue(run.id, key))
+                      }
+                    >
+                      Continuar trabalho
+                    </button>
+                  )}
+                {canFollowUp && (
+                  <div className="space-y-4 pt-2">
+                    <Composer
+                      key={`${run.id}:${run.contextRevision}`}
+                      client={client}
+                      actions={actions}
+                      commercial={commercial}
+                      busy={busy || Boolean(paidCommand)}
+                      available={available}
+                      followUp={{
+                        conversationId: run.conversationId,
+                        contextRevision: run.contextRevision,
+                        text: run.context.text,
+                        matterId: run.matterId,
+                        documents: run.context.documents,
+                        draft: run.context.draft,
+                        draftCandidate: draftCandidate
+                          ? { draftId: draftCandidate.draftId!, versionId: draftCandidate.versionId! }
+                          : undefined,
+                      }}
+                      onFail={fail}
+                      onSubmit={start}
+                    />
+                    {paidBar('start')}
+                  </div>
+                )}
+              </div>
+              {showSide && (
+                <SideTable
+                  tab={side.tab}
+                  onTab={(tab) => setSide((old) => ({ ...old, tab }))}
+                  onClose={() => setSide((old) => ({ ...old, open: false, source: null }))}
+                  view={denied ? undefined : latest?.view}
+                  activeSource={side.source}
+                  run={run}
+                  context={denied ? { text: run.context.text, origin: 'USER', documents: [] } : run.context}
+                  titles={denied ? {} : titles}
+                  onRead={setReading}
+                  onEditor={onEditor}
+                  contextOnly={denied || !latest}
+                />
+              )}
+            </div>
+          )}
+          {reading && !denied && (
+            <DocumentReaderDialog source={reading} token="" onClose={() => setReading(undefined)} />
+          )}
         </div>
-      )}
-      {reading && !denied && <DocumentReaderDialog source={reading} token="" onClose={() => setReading(undefined)} />}
+      </div>
     </div>
   );
 }
