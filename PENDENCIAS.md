@@ -24,7 +24,7 @@ no [registro de manutenção](docs/operations/stabilization/2026-10-10-documenta
 | --- | --- |
 | Publicar a imagem da `main` | A migration `persistence-0036` foi aplicada em 31/10 ([registro](docs/operations/agentic-workspace/2026-10-31-migration-0036-aplicada.md)). Falta publicar a imagem, por autorização de Boni; a imagem antiga continua funcionando com a coluna criada |
 | Publicar e ativar a execução comercial | Recibo de Boni: backup, migrations pendentes, flags, chave no gerenciador de segredos, instância sempre ativa; ensaio sintético com teto comercial. [Operação](docs/operations/agentic-workspace/commercial-execution.md) |
-| Cancelar durante uma chamada deixa a chamada incerta e bloqueia o tenant | Decisão de Boni sobre a política (hoje a saída é a conciliação manual por `scripts/reconcile-commercial-call.mjs`, com evidência do provedor) |
+| Cancelamento cooperativo da execução comercial | Política decidida em 01/11 e implementada (a chamada em voo termina; ver [operação](docs/operations/agentic-workspace/commercial-execution.md)); entra em produção com a próxima imagem. Timeout ou queda de rede ainda deixam a chamada incerta (saída: conciliação manual por `scripts/reconcile-commercial-call.mjs`, com evidência do provedor) |
 | Limites diário e mensal contam consumo sem cobrança | Confirmar a regra com Boni; é visível ao cliente |
 | Configurações do Playwright e documentos históricos na raiz | Reorganização própria: há referências cruzadas em documentos e scripts |
 

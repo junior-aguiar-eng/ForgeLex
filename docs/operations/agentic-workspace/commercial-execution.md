@@ -20,9 +20,13 @@ Sem entrega utilizável: zero cobrança ao cliente. WAITING_USER fecha a reserva
 
 Uma chamada comprovadamente não enviada é VOID. Após dispatch sem usage válido, fica UNCERTAIN; não há repetição automática nem débito estimado ao usuário. Essa obrigação operacional bloqueia novos trabalhos da conta até conciliação com evidência, sem alterar a cobrança já finalizada. Os métodos internos de conciliação não possuem endpoint de autoaprovação ao cliente.
 
+### Cancelamento cooperativo (decisão de Boni, 01/11/2026)
+
+Cancelar durante uma chamada ao provedor **não a aborta**. O pedido é gravado no job (`cancelRequestedAt`); a chamada em voo termina e é liquidada, a chamada seguinte é recusada antes do envio (fica VOID) e, em seguida, o trabalho vira CANCELLED. Sem entrega utilizável, nada é cobrado e a reserva é liberada; a conta não fica incerta. Enquanto isso, a tela mostra "Cancelando assim que a etapa em andamento terminar…". O teto dessa espera é o timeout de 30 segundos por chamada: se estourar, a chamada fica UNCERTAIN como antes. Se o worker morrer com o pedido gravado, a expiração do lease aplica o cancelamento. Sem chamada em voo, o cancelamento continua imediato.
+
 ### Conciliação de chamada incerta
 
-Quem decide e executa é Boni, com evidência externa do uso (registro do provedor). Cancelar durante uma chamada, timeout, queda de rede ou reinício no meio do envio deixam a chamada UNCERTAIN e bloqueiam novos trabalhos de todo o tenant. O comando abaixo lista (somente leitura) e, só com `--apply`, resolve uma chamada UNCERTAIN; nunca chama o provedor nem cobra o cliente, e recusa chamadas AUTHORIZED, que podem estar em voo.
+Quem decide e executa é Boni, com evidência externa do uso (registro do provedor). Timeout, queda de rede ou reinício no meio do envio, ou cancelamento que estoure o teto da chamada, deixam a chamada UNCERTAIN e bloqueiam novos trabalhos de todo o tenant. O comando abaixo lista (somente leitura) e, só com `--apply`, resolve uma chamada UNCERTAIN; nunca chama o provedor nem cobra o cliente, e recusa chamadas AUTHORIZED, que podem estar em voo.
 
 ```bash
 node scripts/reconcile-commercial-call.mjs --tenant <tenant>

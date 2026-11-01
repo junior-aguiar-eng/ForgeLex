@@ -405,7 +405,8 @@ export function registerAgenticWorkspace(
         .parse(req.body ?? {});
       const id = executionId(req);
       const result = await required().cancelExecution(owner(req), id, key(req));
-      worker?.cancel(id);
+      // A deferred (cooperative) cancel must not abort the call in flight; the worker finishes it first.
+      if (result.status === 'CANCELLED') worker?.cancel(id);
       return result;
     }),
   );
