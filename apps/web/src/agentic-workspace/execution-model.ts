@@ -44,6 +44,8 @@ export interface Execution {
   deliveryIds: string[];
   question: Question | null;
   requiresReevaluation: boolean;
+  /** Cancel recorded while a provider call finishes; the run ends as cancelled right after. */
+  cancelRequested?: boolean;
   currentExecutionId?: string | null;
   successorId: string | null;
   context: Context;

@@ -730,3 +730,104 @@ it('active work deadline aborts an in-flight step and releases its no-delivery r
     releasedCents: 500,
   });
 });
+function inFlightWorker(
+  f: Awaited<ReturnType<typeof fixture>>,
+  runId: string,
+  whileInFlight: (settle: () => Promise<unknown>) => Promise<void>,
+  thenThrow = false,
+) {
+  return new ExecutionWorker(f.commercial.service, {
+    next: () => ({
+      callId: 'step-1',
+      run: async () => {
+        await f.commercial.finance.authorizeCall(owner, runId, {
+          callId: 'http-1',
+          inputTokens: 1000,
+          maxOutputTokens: 2048,
+          upperBoundMicroUsd: 22480,
+        });
+        await whileInFlight(() =>
+          f.commercial.finance.settleCall(owner, runId, 'http-1', {
+            inputTokens: 900,
+            outputTokens: 100,
+            cachedInputTokens: 0,
+          }),
+        );
+        if (thenThrow) throw new Error('EXECUTION_CANCEL_REQUESTED');
+        return { kind: 'checkpoint', checkpoint: {} };
+      },
+    }),
+  });
+}
+it('cancelling during a provider call lets the call settle, then cancels without leaving the account uncertain', async () => {
+  const f = await fixture();
+  const run = await f.commercial.start(owner, 'coop-cancel', input);
+  let during: { status: string; cancelRequested: boolean } | undefined;
+  const worker = inFlightWorker(f, run.id, async (settle) => {
+    await f.commercial.service.cancelExecution(owner, run.id, 'cancel-in-flight');
+    const view = await f.commercial.service.getExecution(owner, run.id);
+    during = { status: view.status, cancelRequested: view.cancelRequested };
+    await settle();
+  });
+  await worker.runOnce();
+  // The request was recorded, not applied: the run stayed RUNNING while the call was in flight.
+  expect(during).toEqual({ status: 'RUNNING', cancelRequested: true });
+  const final = await f.commercial.service.getExecution(owner, run.id);
+  expect(final).toMatchObject({ status: 'CANCELLED', cancelRequested: false });
+  // The call settled (measured, not uncertain): no operator reconciliation, nothing charged without a delivery.
+  expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({
+    status: 'CANCELLED',
+    chargedCents: 0,
+    releasedCents: 500,
+    uncertainMicroUsd: 0,
+  });
+  const next = await f.app.inject({
+    method: 'POST',
+    url: '/api/agentic/commercial/executions',
+    headers: { ...headers, 'idempotency-key': 'after-coop-cancel' },
+    payload: input,
+  });
+  expect(next.statusCode).not.toBe(409);
+});
+it('a refusal to start the next call after a cancel request ends as a cancellation, not a failure', async () => {
+  const f = await fixture();
+  const run = await f.commercial.start(owner, 'coop-refusal', input);
+  const worker = inFlightWorker(
+    f,
+    run.id,
+    async (settle) => {
+      await f.commercial.service.cancelExecution(owner, run.id, 'cancel-then-refuse');
+      await settle();
+    },
+    true,
+  );
+  await worker.runOnce();
+  expect(await f.commercial.service.getExecution(owner, run.id)).toMatchObject({ status: 'CANCELLED' });
+  expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({
+    status: 'CANCELLED',
+    uncertainMicroUsd: 0,
+  });
+});
+it('a cancel requested while the worker dies is applied as a cancellation when the lease expires', async () => {
+  const f = await fixture();
+  const run = await f.commercial.start(owner, 'coop-expiry', input);
+  const lease = (await f.commercial.service.claimNext('dying-worker'))!;
+  await f.commercial.service.beginStep(lease, 'step-x');
+  await f.commercial.service.cancelExecution(owner, run.id, 'cancel-dying');
+  expect(await f.commercial.service.getExecution(owner, run.id)).toMatchObject({
+    status: 'RUNNING',
+    cancelRequested: true,
+  });
+  await f.commercial.service.store.atomic(owner, async (store) => {
+    const job = await store.getJob(owner, run.id);
+    await store.saveJob({ ...job, leaseExpiresAt: '2000-01-01T00:00:00.000Z' });
+  });
+  await f.worker.runOnce();
+  expect(await f.commercial.service.getExecution(owner, run.id)).toMatchObject({ status: 'CANCELLED' });
+});
+it('without a call in flight, cancel stays immediate', async () => {
+  const f = await fixture();
+  const run = await f.commercial.start(owner, 'coop-idle', input);
+  const view = await f.commercial.service.cancelExecution(owner, run.id, 'cancel-idle');
+  expect(view).toMatchObject({ status: 'CANCELLED', cancelRequested: false });
+});

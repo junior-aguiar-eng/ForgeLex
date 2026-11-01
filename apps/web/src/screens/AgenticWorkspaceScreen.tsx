@@ -403,11 +403,15 @@ export function AgenticWorkspaceScreen({
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:200ms]" />
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:400ms]" />
                     </span>
-                    <span>Trabalhando no seu pedido…</span>
+                    <span>
+                      {run.cancelRequested
+                        ? 'Cancelando assim que a etapa em andamento terminar…'
+                        : 'Trabalhando no seu pedido…'}
+                    </span>
                     <button
                       type="button"
                       className="ml-auto min-h-11 px-3 text-sm text-cognac-700 underline"
-                      disabled={busy}
+                      disabled={busy || Boolean(run.cancelRequested)}
                       onClick={() => void invoke('cancel', {}, (key) => client.cancel(run.id, key))}
                     >
                       Cancelar

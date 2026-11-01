@@ -61,6 +61,11 @@ export interface ExecutionServiceOptions {
   ) => Promise<z.infer<typeof StartExecutionSchema>>;
   budgetCleanup?: Pick<InferenceBudgetService, 'releaseUnusedBudget' | 'getExecutionBudget'>;
   canManageExecution?: (execution: AgenticExecution) => boolean;
+  /**
+   * Cancelling during a provider call records the request instead of aborting: the call in flight settles (so it
+   * is charged or voided exactly) and no further call is dispatched. Without it, cancel is immediate.
+   */
+  cooperativeCancel?: boolean;
   /** Server-only authorization inherited by fresh continuation IDs; jobs still wait for a reservation. */
   inferenceApproval?: { authorizationId: string; provider: string; model: string };
   /** Durable commercial settlement, retried using the existing cleanup journal. */
@@ -384,6 +389,7 @@ export class ExecutionService {
         deliveryIds: e.deliveryIds,
         question: publicQuestion(e.pendingQuestion),
         requiresReevaluation: e.requiresReevaluation,
+        cancelRequested: Boolean(j.cancelRequestedAt),
         currentExecutionId: current?.id ?? null,
         predecessorId: j.predecessorId ?? null,
         successorId: j.successorId ?? null,
@@ -474,27 +480,55 @@ export class ExecutionService {
     await this.releaseBudget(owner, id);
     return this.getExecution(owner, nextId);
   }
+  private async applyCancel(s: ExecutionStore, owner: AgenticOwner, id: string, j: ExecutionJob, e: AgenticExecution) {
+    await s.workspace.compareAndSetStatus(owner, id, e.status, 'CANCELLED');
+    await s.workspace.appendEvent(owner, id, { type: 'STATUS', payload: { status: 'CANCELLED' } });
+    if (j.pendingCallId) await s.reconcile(id, j.pendingCallId);
+    await s.saveJob({
+      ...j,
+      state: 'CANCELLED',
+      leaseToken: null,
+      leaseExpiresAt: null,
+      cancelRequestedAt: null,
+      budgetReleasePending: true,
+    });
+  }
   async cancelExecution(owner: AgenticOwner, id: string, key: string) {
     await this.command(owner, key, { kind: 'cancel', id }, async (s) => {
       const e = await s.workspace.getExecution(owner, id);
       if (!e) throw new Error('EXECUTION_NOT_FOUND');
       const j = await s.getJob(owner, id);
-      if (!terminal(e)) {
-        await s.workspace.compareAndSetStatus(owner, id, e.status, 'CANCELLED');
-        await s.workspace.appendEvent(owner, id, { type: 'STATUS', payload: { status: 'CANCELLED' } });
-        if (j.pendingCallId) await s.reconcile(id, j.pendingCallId);
-        await s.saveJob({
-          ...j,
-          state: 'CANCELLED',
-          leaseToken: null,
-          leaseExpiresAt: null,
-          budgetReleasePending: true,
-        });
+      if (terminal(e)) return id;
+      const inFlight =
+        this.options.cooperativeCancel &&
+        j.state === 'LEASED' &&
+        j.pendingCallId &&
+        j.leaseExpiresAt &&
+        j.leaseExpiresAt > this.at();
+      if (inFlight) {
+        if (!j.cancelRequestedAt) await s.saveJob({ ...j, cancelRequestedAt: this.at() });
+        return id;
       }
+      await this.applyCancel(s, owner, id, j, e);
       return id;
     });
     await this.releaseBudget(owner, id);
     return this.getExecution(owner, id);
+  }
+  /** True while a cooperative cancel is waiting for the worker's in-flight call to finish. */
+  async cancelRequested(lease: WorkerLease) {
+    return Boolean((await this.store.getJob(lease.owner, lease.executionId)).cancelRequestedAt);
+  }
+  /** Worker side of a cooperative cancel: the call in flight has settled or voided, so cancel now. */
+  async completeRequestedCancel(lease: WorkerLease) {
+    await this.store.atomic(lease.owner, async (s) => {
+      const j = await s.getJob(lease.owner, lease.executionId);
+      if (j.leaseToken !== lease.token || j.state !== 'LEASED' || !j.cancelRequestedAt) return;
+      const e = (await s.workspace.getExecution(lease.owner, lease.executionId))!;
+      if (terminal(e)) return;
+      await this.applyCancel(s, lease.owner, lease.executionId, j, e);
+    });
+    await this.releaseBudget(lease.owner, lease.executionId);
   }
   async continueFromCheckpoint(owner: AgenticOwner, id: string, key: string) {
     this.available();
@@ -560,6 +594,10 @@ export class ExecutionService {
             leaseExpiresAt: null,
             budgetReleasePending: true,
           });
+          return;
+        }
+        if (j.cancelRequestedAt) {
+          await this.applyCancel(s, owner, e.id, j, e);
           return;
         }
         if (j.pendingCallId) {

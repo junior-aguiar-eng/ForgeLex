@@ -28,6 +28,8 @@ export interface ExecutionJob extends AgenticOwner {
   createdAt: string;
   /** Persisted admission lease; only authorization-gated commercial jobs use it. */
   admissionExpiresAt?: string | null;
+  /** Cooperative cancel: set while a provider call is in flight; the call settles, no new one is dispatched. */
+  cancelRequestedAt?: string | null;
 }
 export interface WorkerLease {
   executionId: string;

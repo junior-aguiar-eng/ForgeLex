@@ -50,6 +50,10 @@ export class ExecutionWorker {
           if (!this.stopped) await this.service.failLease(lease, 'EXECUTION_FAILED');
           return true;
         }
+        if (await this.service.cancelRequested(lease)) {
+          await this.service.completeRequestedCancel(lease);
+          return true;
+        }
         const context = await this.service.driverContext(lease),
           step = this.driver.next(context);
         if (!step) {
@@ -61,6 +65,10 @@ export class ExecutionWorker {
         }
         await this.service.beginStep(lease, step.callId);
         const result = await step.run({ ...context, signal: controller.signal });
+        if (!controller.signal.aborted && (await this.service.cancelRequested(lease))) {
+          await this.service.completeRequestedCancel(lease);
+          return true;
+        }
         if (controller.signal.aborted) {
           await this.service.failLease(lease, 'EXECUTION_FAILED');
           return true;
@@ -70,6 +78,11 @@ export class ExecutionWorker {
       }
       await this.service.failLease(lease, 'EXECUTION_FAILED');
     } catch (error) {
+      // A cancel requested during the call wins over whatever the call raised (including refusal to start another).
+      if (await this.service.cancelRequested(lease).catch(() => false)) {
+        await this.service.completeRequestedCancel(lease).catch(() => undefined);
+        return true;
+      }
       const reason = error instanceof Error ? error.message : '';
       const code =
         reason === 'ACCESS_REVOKED'

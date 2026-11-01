@@ -112,6 +112,7 @@ export async function createCommercialRuntime(
     admissionTimeoutMs: 120000,
     inferenceApproval: approval,
     canManageExecution,
+    cooperativeCancel: true,
     finalizeExecution: async (owner, executionId) => {
       const execution = await repo.getExecution(owner, executionId);
       if (!canManageExecution(execution)) throw new Error('EXECUTION_NOT_FOUND');
@@ -153,6 +154,8 @@ export async function createCommercialRuntime(
       if (!receipt || receipt.status !== 'ACTIVE' || receipt.policyVersion !== COMMERCIAL_POLICY_VERSION)
         throw new Error('EXECUTION_NOT_AUTHORIZED');
       const job = await service.store.getJob(owner, executionId);
+      // Cooperative cancel: refuse before dispatch, so the call is voided (never uncertain) and nothing new is billed.
+      if (job.cancelRequestedAt) throw new Error('EXECUTION_CANCEL_REQUESTED');
       const binding: TaskBinding = {
         ...owner,
         executionId,
