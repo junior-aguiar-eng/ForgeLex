@@ -1,5 +1,232 @@
 # ForgeLex — onde estamos e como continuar
 
+## Consolidação local validada — 02/11/2026
+
+[Registro e evidências](docs/architecture/2026-11-02-forgelex-local-consolidation.md):
+trabalho organizado em commits locais; teste residual do piloto corrigido.
+Build completo e suíte geral aprovados: 1.621 testes, zero falhas, 17 condicionais
+ignorados; 15 testes do executor, tipos da API e lint também aprovados.
+V8 permanece validado apenas localmente. Sem chamadas pagas, push, migration
+remota ou deploy. A falha antiga do piloto nos recibos anteriores é histórica.
+
+## Bloqueio D04 corrigido localmente — 02/11/2026
+
+[Diagnóstico, correção e replay](docs/architecture/2026-11-02-forgelex-d04-verifier-budget-fix.md):
+novas tarefas v8 enviam ao verificador uma projeção com todas as claims, plano,
+fontes e minuta; requisitos/findings anteriores permanecem no estado e na entrega.
+Com as mesmas saídas gravadas de D04, a reserva caiu de US$ 0,182612 para
+US$ 0,137688; com o consumo anterior soma US$ 0,238618, dentro de US$ 0,25.
+181 testes focados, build completo, tipos da API e lint aprovados. A suíte ampla
+identificou teste antigo do piloto que esperava duas chamadas; essa pendência
+foi corrigida e validada na consolidação registrada acima.
+Mesa, limites e checkpoints históricos preservados. Zero chamadas pagas novas.
+A entrega D04 real continua pendente: o replay usa resposta sintética do verificador.
+Nova medição paga exige decisão específica; sem os outros 54 cenários ou deploy.
+
+## Calibração v7 executada — 02/11/2026
+
+[Resultados e evidências](docs/architecture/2026-11-02-forgelex-recalibration-v7-results.md):
+seis execuções, 21 chamadas e US$ 0,275842 calculados, nenhum custo incerto.
+Inicial: três perguntas. V7: D01 e D03 entregues com ressalvas; D04 completou
+minuta e revisão intermediárias, mas a reserva da chamada ao verificador foi
+recusada. Sem `CLAIM_ID_CONFLICT` ou `SUPPORT_CHECK_INVALID` nesta amostra.
+A reserva de D04 foi reproduzida e corrigida localmente no registro v8 acima,
+preservando os limites; ainda sem medição do novo contrato pelo modelo real. As entregas dependem de avaliação por Boni. Acumulado
+das quatro campanhas: US$ 1,126430. Autorização desta rodada encerrada; sem os
+54 lugares restantes, repetição paga ou deploy.
+
+## Três pendências v6 corrigidas localmente — 02/11/2026
+
+[Correção e evidências](docs/architecture/2026-11-02-forgelex-v6-pending-fix.md):
+novos pedidos v7 evitam releitura redundante no corpus fechado, separam IDs por
+papel/tentativa e restringem checks aos pares válidos de afirmação/fonte jurídica.
+Checkpoints anteriores preservados, inclusive retomada do v6 real. Reprodução
+SDK de D01 cabe na mesma reserva; 313 cenários, 15 testes do executor e seis
+simulações validados. Build, tipos e lint aprovados. Mesa e limites intactos.
+Nenhuma chamada paga durante a correção. A medição v7 posterior está no registro
+acima; avaliação por Boni, 54 cenários restantes e publicação continuam separados.
+
+## Calibração v6 executada — 02/11/2026
+
+[Resultados e evidências](docs/architecture/2026-11-02-forgelex-recalibration-v6-results.md):
+seis execuções, 30 chamadas, US$ 0,341614 calculados, nenhum custo incerto.
+Inicial: três perguntas. V6: D03 entregue com ressalvas; D01 bloqueado pela
+reserva financeira e D04 por `CLAIM_ID_CONFLICT`. D03 conserva checks de suporte
+inválidos. Total das três campanhas: US$ 0,850588. Escopo autorizado encerrado.
+As três pendências locais foram tratadas no registro v7 acima. Mesa e limites
+preservados; sem os 54 cenários restantes, repetição de chamadas ou deploy.
+
+## Falhas de entrega corrigidas localmente — 02/11/2026
+
+[Correção e limites do diagnóstico](docs/architecture/2026-11-02-forgelex-delivery-failure-fix.md):
+estado v6 encerra o papel após submissão aceita, classifica respostas incompletas
+com consumo liquidado e conserva diagnóstico saneado. Matriz probatória restrita
+à análise de provas; contratos antigos preservados. 300 testes, 15 testes do
+executor e seis simulações SDK aprovados; build, tipos e lint aprovados.
+Mesa, limites e campanhas anteriores intactos; nenhuma nova chamada paga.
+A validação local não prova a causa exata de todos os erros históricos. A medição
+real subsequente está registrada acima; qualquer nova rodada exige outra decisão.
+Sem commit, push ou deploy.
+
+## Calibração v5 executada — 02/11/2026
+
+[Resultado real e diagnóstico](docs/architecture/2026-11-02-forgelex-recalibration-v5-results.md):
+seis execuções, 33 chamadas, custo calculado US$ 0,373532, nenhum custo incerto.
+Inicial: três perguntas. Candidato v5: lacunas tratadas como ressalvas, avanço
+para especialistas, mas três `OPENAI_AGENT_ERROR` e nenhuma entrega final.
+As duas campanhas somam US$ 0,508974 calculados. Escopo autorizado encerrado.
+Diagnóstico saneado e reprodução local implementados no registro v6 acima;
+não aumentar limites nem alterar a mesa por inferência. Sem deploy.
+
+## Nova calibração v5 preparada — 02/11/2026
+
+[Campanha e orçamento](docs/architecture/2026-11-02-forgelex-recalibration-v5.md):
+`2026-11-02-delivery-gaps-v5`, seis execuções propostas, teto novo de US$ 1,50.
+Manifesto próprio, campanha histórica preservada e ledger pago ainda inexistente.
+76 testes e seis simulações SDK aprovados; nenhuma chamada paga nesta preparação.
+Este registro descreve a preparação; a execução real subsequente está acima.
+Não reutilizar a autorização encerrada nem executar os 54 lugares restantes.
+
+## Lacunas e entrega com ressalvas — correção local de 02/11/2026
+
+[Correção e validação](docs/architecture/2026-11-02-forgelex-delivery-gaps.md):
+novos pedidos distinguem dúvida impeditiva de lacuna que permite entrega
+limitada. Ressalva permanece na entrega e não cria cobrança sozinha. Mesa e
+aprovações preservadas; checkpoints antigos mantêm seus contratos. Estado v5.
+231 testes de regressão, 11 de preparação/orçamento e seis simulações SDK
+aprovados; build, tipos e lint aprovados. Nenhuma nova inferência paga.
+A calibração real subsequente foi executada na campanha v5, registrada no início
+deste documento; confirmou avanço com ressalvas, mas encontrou falhas posteriores.
+
+## Calibração real — 02/11/2026
+
+Seis execuções autorizadas por Boni, teto US$ 1,50: **US$ 0,135442** calculados
+pelos tokens retornados, 18 chamadas, nenhum custo incerto. Todas pararam na
+primeira pergunta, sem entrega final. [Resultado e evidências](docs/architecture/2026-11-02-forgelex-calibration-results.md).
+Na revisão, ambas as versões bloquearam uma correção por lacuna que o próprio
+plano descreve como não impeditiva. A correção foi implementada e validada
+localmente no registro acima, ainda sem nova medição real. Os 54 lugares
+restantes não estão autorizados.
+Mesa preservada; sem alteração de código do produto, commit, push ou deploy.
+
+## Mesa — menu na mensagem (02/11/2026)
+
+As opções existentes agora ficam em um seletor dentro da caixa de mensagem,
+conforme esclarecimento de Boni. A linha de botões externos foi retirada;
+seleção não envia pedido nem cobra. Rascunhos/Revisão e controles existentes
+foram preservados. [Registro local](docs/architecture/2026-11-02-forgelex-mesa-menu.md).
+Sem publicação. O candidato da avaliação foi regenerado com este menu e o
+executor da calibração; alterações posteriores de código exigem nova preparação.
+
+## Avaliação final — preparação de 02/11/2026
+
+[Cenários, comparação e custo](docs/architecture/2026-11-02-forgelex-3-final-evaluation.md)
+preparados offline: 24 cenários pareados, 12 de capacidades novas e 24 controles
+locais. Versão inicial arquivada e candidato congelado com hashes. Nenhuma nota
+jurídica atribuída. Estimativa original da calibração: seis execuções,
+estimativa US$ 0,36–1,08, teto US$ 1,50. Rodada completa: US$ 3,60–10,80,
+teto proposto US$ 15 incluindo calibração. A calibração já foi autorizada e
+executada conforme registro acima; restante depende de nova decisão.
+Executor dos seis lugares e orçamento compartilhado implementados:
+11 testes de preparação/orçamento, 10 regressões do transporte e seis simulações
+dos motores inicial/atual aprovados na preparação offline. Executor dos demais
+lugares e avaliação jurídica por Boni ainda pendentes. Mesa e controles do
+produto preservados; união de edição/revisão fica para depois.
+
+## Incremento 6 local — revisão de itens alterados (02/11/2026)
+
+A [nova aprovação de fatos e provas](docs/architecture/2026-11-02-forgelex-3-evidence-reapproval.md)
+acrescenta a opção **Revisar alterações** na mesa do caso. O diálogo compara a
+última aprovação e o conteúdo atual, com fontes sob demanda e seleção vazia.
+Somente a aprovação humana explícita libera o conteúdo atualizado para novos
+pedidos. Recibos anteriores, histórico, autorização e controles financeiros são
+preservados. A decisão não cria cobrança ou execução; fontes indisponíveis e
+condições inválidas permanecem bloqueadas.
+
+Evidências no [recibo local](docs/architecture/evidence/2026-11-02-evidence-reapproval-validation.json).
+Sem commit, push, deploy ou inferência paga. Não inclui editor novo de registros
+nem homologação com autos reais.
+
+## Incremento 5 local — contexto aprovado na peça e revisão (02/11/2026)
+
+O [reaproveitamento automático](docs/architecture/2026-11-02-forgelex-3-approved-case-context.md)
+recupera fatos/provas aprovados do caso em novos pedidos, sem seletor adicional.
+Preserva texto revisado, fontes e relações contrárias; vincula fatos/provas às
+seções das minutas e entrega esse contexto ao revisor sem aprovar ou sobrescrever
+peças. Referências congeladas em retomadas, verificação de acesso e integridade,
+histórico preservado e estado v4 separado dos contratos anteriores. Fontes
+consultáveis na mesa; arquitetura e controles permanecem internos.
+
+Captura limitada, sem truncamento silencioso. Registros modificados depois da
+aprovação não são reutilizados automaticamente. Build, tipos, lint, E2E e
+PostgreSQL locais aprovados; resultado consolidado no
+[recibo](docs/architecture/evidence/2026-11-02-approved-case-context-validation.json).
+Sem commit/push/deploy/inferência paga; não homologado com conteúdo jurídico real.
+
+## Direção de produto reafirmada por Boni — 01/11/2026
+
+Preservar a mesa ajustada pelo Claude Code: mesa e pedidos, com escolhas
+objetivas sobre o resultado jurídico. Orquestração, agentes, etapas técnicas,
+metadados e controles são internos. Não criar configurações ou painéis de
+engenharia para o cliente. Revisões e aprovações humanas aparecem apenas como
+decisões concretas dentro da mesa.
+
+A apresentação operacional da matriz foi retirada e a incorporação de itens
+passou a abrir somente por “Guardar no caso”, sem painel permanente. A proposta
+de selecionar novamente cada fato/prova em cada pedido foi abandonada. O uso
+automático dos itens já aprovados foi implementado no incremento 5, conforme o [design corrigido](docs/superpowers/specs/2026-11-01-forgelex-3-approved-case-context-design.md).
+
+Validação desta correção: 31 testes pertinentes e 3 cenários de navegador
+aprovados, build web com TypeScript e lint dos arquivos alterados sem erros.
+Acessibilidade da revisão mobile e apresentação desktop conferidas. Sem
+publicação. [Recibo local](docs/architecture/evidence/2026-11-01-mesa-objective-options-validation.json).
+
+## Incremento 4 local — incorporação probatória revisada (01/11/2026)
+
+A [revisão para incorporar ao caso](docs/architecture/2026-11-01-forgelex-3-evidence-adoption.md)
+permite selecionar, editar, aprovar ou descartar os itens da análise probatória.
+A gravação é transacional, vinculada à sessão de quem revisa, com fontes atuais,
+revisão/token e repetição idempotente. Preserva entrega original, controles de
+acesso e cobrança. Fatos entram como alegações ou controvérsias, nunca confirmados
+automaticamente. Migration 0037 aditiva e validações locais; sem publicação,
+inferência paga ou aprovação de itens reais. Avaliação semântica real permanece
+separada da implementação e dos ensaios sintéticos.
+
+## Incremento 3 local — análise probatória (01/11/2026)
+
+A [capacidade probatória](docs/architecture/2026-11-01-forgelex-3-evidence.md)
+adiciona a ação Analisar fatos e provas: matriz questão–alegação–trecho,
+cronologia conservadora e contradições, com conferência literal de fontes e
+revisão adversarial. Estado v3 apenas para a nova ação; v1/v2 preservados.
+Só relatos não tornam a ação utilizável para cobrança. A entrega é candidata;
+fatos/provas não são incorporados automaticamente. Trabalho local sem publicação.
+A ponte de incorporação revisada foi implementada no incremento 4 acima.
+Avaliação semântica real permanece separada.
+
+## Incremento 2 local — grafo adaptativo (01/11/2026)
+
+O [grafo nativo](docs/architecture/2026-11-01-forgelex-3-adaptive-graph.md)
+seleciona capacidades, explicita dependências e admite um ciclo de refinamento,
+arquivando saídas invalidadas antes de produzir a entrega ativa. Novos trabalhos
+usam estado v2; checkpoints v1 do contrato 1.2.0 capturado continuam no fluxo
+sequencial anterior. Limites, journal, controles de acesso e cobrança preservados.
+Desenvolvimento e validação locais, sem commit/push/merge/deploy. A vertical
+probatória foi implementada no incremento 3 acima; avaliação semântica real e
+publicação não foram executadas.
+
+## Incremento local de qualidade — 01/11/2026
+
+Em `codex/forgelex-3-quality`, sobre a main `025f6dd`, foi implementada a
+verificação terminal dos handoffs e a auditoria de suporte por afirmação/fonte.
+O [relatório da auditoria](docs/architecture/2026-11-01-forgelex-3-audit.md)
+registra arquitetura, comparação sintética, limitações e próximos incrementos.
+O [complemento das pendências locais](docs/architecture/2026-11-01-forgelex-3-pending-local.md)
+conecta pesquisa/obtenção/verificação STJ ao runtime comercial, com pesquisa
+incluída no teto por decisão de Boni, e corrige a fixture SQLite isolada.
+Trabalho local, sem commit/push/merge/deploy. Reutiliza o índice persistido e
+não conclui o programa ForgeLex 3.0. Os registros de publicação abaixo mantêm
+suas datas e não comprovam o estado produtivo de 01/11.
+
 Atualizado em 24/10/2026. Este resumo orienta a próxima sessão; o histórico de
 validações e publicações permanece em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
 

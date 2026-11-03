@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "bindingHash": "365ad20dab6a2544bd0b6f7f7c20e7bf8c3d274c8f070bf4b6c830eef78d4be1",
+  "contractHash": "8847855772466938a857ef45471c4bab12d2b1b46d4660f343377cdd49abc3e3",
+  "previousDeliveryIds": [],
+  "outputs": {},
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.1.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.1.0"
+    }
+  ],
+  "toolCount": 2,
+  "researchOperations": [],
+  "findings": [],
+  "plan": {
+    "action": "analyze_documents",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "issues": [
+      {
+        "id": "escopo",
+        "statement": "EDITORIAL: analisar apenas o corpus fechado recuperado, de fatos e documentos fictícios, distinguindo alegações, prova e inferências. Não realizar pesquisa externa nem calcular prazos. A análise é limitada aos excertos; não há jurisprudência ou fontes de direito material no corpus.",
+        "sourceIds": [
+          "context",
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1",
+          "D01/relato@v1#p1",
+          "CPC-373"
+        ]
+      },
+      {
+        "id": "contratacao",
+        "statement": "O excerto contratual registra fornecimento de dez mesas por R$ 10.000,00, com entrega até 10/10/2026. Não informa vencimento ou condições do pagamento, consequências de entrega parcial ou demais cláusulas; não basta para concluir exigibilidade integral do preço.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "entrega",
+        "statement": "O recibo registra recebimento de seis mesas em 10/10/2026. A ausência das quatro restantes nesse recibo não prova sua não entrega, tampouco autoriza afirmar cumprimento integral. Esclarecer se houve outra entrega e respectiva documentação, sem tratar a diferença como contradição entre contrato e recibo.",
+        "sourceIds": [
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1"
+        ]
+      },
+      {
+        "id": "pagamento",
+        "statement": "A falta de pagamento é alegação da autora. Não foram fornecidos extratos ou comprovantes bancários; essa ausência não confirma inadimplemento nem pagamento. Evitar concluir dívida integral ou valorar definitivamente a suficiência da prova.",
+        "sourceIds": [
+          "D01/relato@v1#p1",
+          "D01/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "onus",
+        "statement": "PROCEDURAL: examinar o alcance do art. 373, I e II, do CPC: fatos constitutivos incumbem à autora; fatos impeditivos, modificativos ou extintivos incumbem à ré. Se alegado pagamento como fato extintivo, sua prova incumbe à ré segundo o excerto. A falta de extratos da autora não desloca automaticamente esse ônus. A identificação concreta dos fatos constitutivos depende da pretensão e das condições contratuais ainda desconhecidas. O corpus não permite fundamentar outras regras de distribuição probatória ou consequências materiais do cumprimento parcial.",
+        "sourceIds": [
+          "CPC-373",
+          "D01/relato@v1#p1",
+          "D01/contrato@v1#p1",
+          "context"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "pretensao",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Qual é a pretensão concreta da Aurora e quais fatos a fundamentam? Informe em texto livre ou indique se não sabe.",
+        "reason": "A posição de autora e o procedimento comum não identificam o pedido; não é possível presumir cobrança integral ou outra medida.",
+        "sourceIds": [
+          "context"
+        ],
+        "options": []
+      },
+      {
+        "key": "condicoes_pagamento",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Quais são as condições e o vencimento do pagamento, inclusive eventual relação com a entrega integral? Há outros trechos contratuais disponíveis? Informe o que souber ou indique desconhecimento.",
+        "reason": "O excerto não permite estabelecer exigibilidade, vencimento ou efeitos da entrega parcial sobre o preço.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ],
+        "options": []
+      },
+      {
+        "key": "mesas_restantes",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "O que se sabe sobre as quatro mesas não abrangidas pelo recibo? Há outros recibos, comunicações ou registros? Pode responder em texto livre ou indicar que não sabe.",
+        "reason": "O silêncio do recibo não comprova ausência de entrega; a extensão do cumprimento permanece indeterminada.",
+        "sourceIds": [
+          "D01/recibo@v1#p1"
+        ],
+        "options": []
+      },
+      {
+        "key": "controversia_pagamento",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Brisa apresentou alguma versão sobre pagamento ou sobre a entrega? Que registros de pagamento, cobrança ou comunicações estão disponíveis, se houver? Informe também se isso é desconhecido.",
+        "reason": "Há apenas relato unilateral de não pagamento, sem versão da ré ou documentação financeira; é necessário delimitar fatos controvertidos sem presumir defesa ou inadimplemento.",
+        "sourceIds": [
+          "D01/relato@v1#p1"
+        ],
+        "options": []
+      }
+    ]
+  }
+}

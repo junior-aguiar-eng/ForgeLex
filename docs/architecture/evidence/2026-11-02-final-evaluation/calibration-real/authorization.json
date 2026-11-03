@@ -1,0 +1,17 @@
+{
+  "approvedBy": "Boni",
+  "date": "2026-11-02",
+  "userReply": "sim",
+  "scope": "Six real calibration runs: D01-analyze, D03-review, D04-create, baseline and candidate",
+  "capMicroUsd": 1500000,
+  "perRunCapMicroUsd": 250000,
+  "model": "gpt-6.1-sol",
+  "pricingCheckedAt": "2026-11-02T19:28:53.180Z",
+  "pricingSource": "https://developers.openai.com/api/docs/pricing",
+  "inputUsdPerMillion": 2,
+  "outputUsdPerMillion": 10,
+  "cachedInputUsdPerMillion": 0.1,
+  "remaining54RunsApproved": false,
+  "customerWalletUsed": false,
+  "historicalPilotBudgetUsed": false
+}

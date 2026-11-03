@@ -1,0 +1,33 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ apps/api/src/agentic-workspace/closed-pilot.test.ts (12 tests | 1 failed | 11 skipped) 1510ms
+   × executa worker, driver e OpenAI SDK reais com SSE sintético e pergunta persistida 1507ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/closed-pilot.test.ts > executa worker, driver e OpenAI SDK reais com SSE sintético e pergunta persistida
+AssertionError: expected 1 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ apps/api/src/agentic-workspace/closed-pilot.test.ts:510:20
+    508|   const current = await pilot.service.getExecution(owner, run.id);
+    509|   expect(current.status, String(failure)).toBe('WAITING_USER');
+    510|   expect(requests).toBe(2);
+       |                    ^
+    511|   expect(pilot.providerRuntime.observations).toHaveLength(2);
+    512|   expect(await pilot.summary(owner)).toMatchObject({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 skipped (12)
+   Start at  22:02:46
+   Duration  13.23s (transform 4.84s, setup 0ms, import 11.08s, tests 1.51s, environment 0ms)
+

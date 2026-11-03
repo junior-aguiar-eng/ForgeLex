@@ -1,0 +1,50 @@
+{
+  "runId": "D01-analyze-baseline",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\0e3a73f025f50bd3fac4df984ef6e8e2b28caa7f0c3ff5d3e28a1f32142c1aa4\\baseline",
+  "inputHash": "a9ccc9e7b973b9bef18b324c30bd080ddccf6e27c650709538fe0b9cc4e36ed3",
+  "request": "Analise o caso, as questões, o alcance das provas e o que falta esclarecer. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "question",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 22801.6264,
+  "roles": [
+    "legal-orchestrator"
+  ],
+  "stateVersion": 1,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 24214,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 1666,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2246,
+      "outputTokens": 970,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3235,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": {
+    "id": "case-task:pretensao",
+    "version": 1,
+    "contextRevision": 1,
+    "prompt": "Qual é a pretensão concreta da Aurora e quais fatos a fundamentam? Informe em texto livre ou indique se não sabe.",
+    "selection": "free_text",
+    "options": [],
+    "allowFreeText": true,
+    "allowUnknown": true,
+    "reason": "A posição de autora e o procedimento comum não identificam o pedido; não é possível presumir cobrança integral ou outra medida."
+  },
+  "legalScore": null
+}

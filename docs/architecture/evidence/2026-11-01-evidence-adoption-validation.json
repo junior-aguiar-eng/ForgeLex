@@ -1,0 +1,146 @@
+{
+  "date": "2026-11-01",
+  "recordedAt": "2026-11-02T01:48:43.148977+00:00",
+  "branch": "codex/forgelex-3-quality",
+  "baselineCommit": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "scope": "Incremento 4: incorporação probatória mediante revisão e aprovação explícitas na sessão do proprietário",
+  "migration": {
+    "id": "persistence-0037-native-evidence-review",
+    "change": "Nullable evidence_review_json on agentic_task_deliveries",
+    "applied": "Disposable local SQLite and PostgreSQL only"
+  },
+  "limits": {
+    "maxItems": 1000,
+    "maxReviewBytes": 1000000,
+    "maxDecisionsPerCommand": 50
+  },
+  "checks": {
+    "fullSuite": {
+      "passed": 1552,
+      "failed": 0,
+      "skipped": 17,
+      "total": 1569,
+      "durationSeconds": 694.9,
+      "command": "pnpm exec vitest run --maxWorkers=1 --reporter=default --reporter=json --outputFile=tmp/forgelex-3-validation/adoption-full-serial.json"
+    },
+    "postgres": {
+      "passed": 41,
+      "failed": 0,
+      "skipped": 0,
+      "total": 41,
+      "coversSkippedFromFullSuite": 16,
+      "container": "Temporary local PostgreSQL 16; removed after execution"
+    },
+    "focusedRepositoryAndRoutes": {
+      "passed": 21,
+      "failed": 0,
+      "includedInFullSuite": true
+    },
+    "postgresSmoke": {
+      "status": "passed",
+      "checks": [
+        "migration_idempotent",
+        "concurrent_same_command_one_adoption",
+        "idempotent_recovery_separate_process",
+        "concurrent_distinct_commands_conflict",
+        "concurrent_archive_blocks_stale_approval_without_deadlock",
+        "original_delivery_immutable",
+        "case_purge_removes_review_and_adoptions"
+      ],
+      "command": "node scripts/smoke-evidence-review-postgres.mjs",
+      "container": "Temporary local PostgreSQL 16; removed after execution"
+    },
+    "browser": {
+      "passed": 3,
+      "failed": 0,
+      "durationSeconds": 40.2,
+      "command": "pnpm exec playwright test --config playwright.agentic-commercial-flow.config.ts",
+      "transport": "synthetic",
+      "finalRunAfterPresentationCorrection": true,
+      "scenarios": [
+        "text-only analysis releases reserve",
+        "existing commercial charge stays idempotent",
+        "selected edited items, source dependency, discard, response-loss replay, reload and case navigation; original delivery and billing unchanged; axe at 375px"
+      ]
+    },
+    "build": {
+      "command": "pnpm build",
+      "status": "passed",
+      "finalWebBuild": "passed after presentation correction"
+    },
+    "types": {
+      "command": "pnpm -r run typecheck",
+      "status": "passed"
+    },
+    "lint": {
+      "command": "pnpm lint",
+      "status": "passed",
+      "finalTouchedFiles": "passed"
+    },
+    "formatting": {
+      "prettierTouchedCode": "passed",
+      "gitDiffCheck": "passed"
+    },
+    "presentationAfterFullSuite": {
+      "reason": "Replace stale claim that no facts were incorporated with statement that analysis does not incorporate facts automatically",
+      "passed": 8,
+      "failed": 0,
+      "webBuild": "passed",
+      "browser": "3 passed"
+    },
+    "review": {
+      "builder": "completed; runtime boundary, paragraph gaps and native/OAuth distinction addressed",
+      "code": "completed; per-reference source identity and uncertain retry handling corrected",
+      "visual": "stale non-adoption message corrected"
+    }
+  },
+  "validationSetupCorrections": [
+    "PostgreSQL readiness check now uses TCP, avoiding temporary initialization server",
+    "Commercial E2E fixture has 1000 synthetic cents for two jobs reserving 500 each; actual reserve/charge rules unchanged"
+  ],
+  "sourceCategoriesForAdoption": ["DOCUMENT", "USER_TEXT", "ANSWER"],
+  "billing": "No inference or research call during review; no new charge or reservation",
+  "notExecuted": [
+    "Paid real-provider conditional test",
+    "Approval of real case items",
+    "Commit, push, merge, deployment or remote migration"
+  ],
+  "limitations": [
+    "Synthetic validation establishes structure and controls, not semantic legal quality",
+    "Other source categories block adoption of affected items",
+    "New image requires migration 0037 before use"
+  ],
+  "hashes": {
+    "packages/domain/src/contracts/evidence-review.ts": "62b4fb63546726a85943cb85f8c4151cc41fa9a84f4e2caaa82648dce9d981fa",
+    "packages/persistence/src/migrations/migration-runner.ts": "d0f063e413a0be0b423221e7b5bbfea9bc43a0a0160fd279b68a614b9be615eb",
+    "packages/persistence/src/schema/schema.ts": "aebeabee92064b6f14b59013e21d69168737251748a74714a22def803da6262a",
+    "packages/persistence/src/repositories/native-evidence-review-repository.ts": "8e6c85b281ae8dbb647a1a768d6d28ac7b3fa6352b2b73cd18be913f84ab3c2b",
+    "packages/persistence/src/repositories/evidence-review-items.ts": "2974ecae6e2a9724ff9254b4d7de9dc7d5393bf8f013d3a77ca9da0345bbe52d",
+    "packages/persistence/src/repositories/adopt-analysis-item.ts": "3a27fae04f251c8dac86a01b2a0ee4b3c99f77a9e27c17490407558a96716099",
+    "packages/persistence/src/repositories/case-analysis-repository.ts": "dde1b5fcae2fd41cb0a9852408db9802ed6ffbcf1907ab8922069e9c394276de",
+    "packages/persistence/src/repositories/native-evidence-review.test.ts": "58b5ea4527438d19d01be8169d959091f859c917f3b8e8e5dc36bb5696a0b7b5",
+    "packages/persistence/src/migrations/evidence-review-upgrade.test.ts": "570f62b6fd585df812f22ad1c6a369eeac07521be4ac468789d60e7292fbe852",
+    "packages/persistence/src/testing/native-evidence-review-fixture.ts": "323fea20a85b390f68f540626cec1cca484e2e10b8be6a8deee4b1b17e79a2e5",
+    "apps/api/src/agentic-workspace/execution-routes.ts": "df73d609c15cc18f1fe295c1e6f9f14aaf8ebfced3a813bd9a8fc15db830df21",
+    "apps/api/src/agentic-workspace/evidence-review-routes.test.ts": "3d4ed4f3510b2d466c3054f5cc8a506dfdeb66811fbb2e7c954d463beb7e54e5",
+    "apps/web/src/agentic-workspace/EvidenceReviewPanel.tsx": "0458e4f4056e1c9b702345b362f91ec6aa0500aea4ab35d91589365fea32d555",
+    "apps/web/src/agentic-workspace/ResultCard.tsx": "4e86594b2d4385e03172c7653d809f8364a5be2bf877f8a4a270f0382c91d6f2",
+    "apps/web/src/agentic-workspace/present-delivery.ts": "4c22397997e5c22739384bbb16e1da616fc022e20785ed0b53df9a75bdf66c39",
+    "apps/web/src/agentic-workspace/evidence-delivery.test.ts": "7cbd2e1870892e0f39b169627bc7fb9f3db7c9204f5fee24521eb39a49e36e11",
+    "tests/e2e/agentic-commercial-flow.spec.ts": "872c6ec21f73d72b4b1b9011c9edae5cb2b55700b05db89133b926ff8f4fc36b",
+    "scripts/smoke-evidence-review-postgres.mjs": "cedc6ebbdefaaad2ce36a9e2aa890991e47bf4878e4ec8e593a5396a489f5385",
+    "scripts/e2e-phase-7-server.mjs": "4655710b13fe8a71a3a767cfa5c03153d0932161c21646483cafdf5af63db00c",
+    "docs/architecture/evidence/2026-11-01-evidence-adoption-mobile.png": "99e59bf27144bc408d2bccaefb69ae430e9128598222f44738aaa32533d4296f"
+  },
+  "logHashes": {
+    "adoption-full-serial.json": "998ab7fe30987bf53ddd682aec625c50ed234a8f52e7a971f384cdf5e7681c17",
+    "adoption-postgres-tests.json": "1154d092071b07201f057a4d5b850438c9d997ae88e86f039cc2be7af636fe0c",
+    "adoption-postgres.log": "656d7f4da628b6d0d6684011b45e2412050c23b7490e0638d2135b5cc1b9879d",
+    "adoption-e2e-final.log": "dec7b8cb359aa480ec54c9366f6ee034bf2b67d702accd249b87604250a07faf",
+    "adoption-build.log": "88311d8605419a8c2797ebf225d52b26a3aa8b26f097ae1e746fb9acf737efaa",
+    "adoption-types.log": "62cd0e39a61c0d2bdbcbc28deca102b4b31c9d0e03f1b9399698388cf8742d2a",
+    "adoption-lint.log": "acd68fcd9ddbba07ba06761b9f1f341f6272463cd9040184d0814941549f10ce",
+    "adoption-web-final.log": "f89ba9d53a9d480e35ed36cec9afb52abf5058f5579ec51bcce3dff6848eee4f",
+    "adoption-presentation-final.log": "f69861c6f156edbd29777cfe9bcbc48a9132b65f15c8a8bb4fec7ff1d99cb6f8"
+  }
+}

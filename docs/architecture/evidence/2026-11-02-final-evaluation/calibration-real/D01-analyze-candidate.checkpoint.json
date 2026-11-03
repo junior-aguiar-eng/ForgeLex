@@ -1,0 +1,173 @@
+{
+  "version": 2,
+  "bindingHash": "365ad20dab6a2544bd0b6f7f7c20e7bf8c3d274c8f070bf4b6c830eef78d4be1",
+  "contractHash": "be6575c4850189f940e206101d9148cc33430bf023e833549c06d4d9ec7ea482",
+  "previousDeliveryIds": [],
+  "outputs": {},
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.3.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.3.0"
+    }
+  ],
+  "toolCount": 2,
+  "researchOperations": [],
+  "findings": [],
+  "plan": {
+    "action": "analyze_documents",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "issues": [
+      {
+        "id": "escopo-editorial",
+        "statement": "EDITORIAL: produzir análise limitada ao corpus fechado efetivamente recuperado, de natureza fictícia, distinguindo texto documental, alegação, inferência e ausência de prova. Não pesquisar fontes externas, escolher peça ou calcular prazo. Explicitar que só há trechos selecionados e uma fonte normativa; não há jurisprudência no corpus.",
+        "sourceIds": [
+          "context",
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1",
+          "D01/relato@v1#p1",
+          "CPC-373"
+        ]
+      },
+      {
+        "id": "objeto-contratual",
+        "statement": "Examinar o alcance do trecho contratual sobre dez mesas, preço global de R$ 10.000,00 e entrega até 10/10/2026. Não presumir vencimento do pagamento, condições de exigibilidade ou cláusulas não fornecidas.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "alcance-recibo",
+        "statement": "Examinar o recibo de seis mesas em 10/10/2026 e sua relação com a quantidade contratada. Distinguir ausência de registro das quatro restantes de prova de sua não entrega; não concluir inadimplemento integral ou parcial definitivo apenas desse silêncio.",
+        "sourceIds": [
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1"
+        ]
+      },
+      {
+        "id": "alegacao-pagamento",
+        "statement": "Tratar a ausência de pagamento como alegação da autora, sem confirmação bancária no corpus. Analisar limites da prova disponível sem considerar a falta de extrato prova positiva de pagamento ou de não pagamento, nem pressupor que prova bancária seja o único meio admissível.",
+        "sourceIds": [
+          "D01/relato@v1#p1"
+        ]
+      },
+      {
+        "id": "onus-probatorio",
+        "statement": "PROCEDURAL: examinar a distribuição do ônus probatório exclusivamente à luz dos incisos I e II do art. 373 fornecido, distinguindo fatos constitutivos de eventuais fatos impeditivos, modificativos ou extintivos. Não confundir insuficiência documental atual com conclusão de mérito, presumir defesa de Brisa ou extrair regras não contidas no excerto.",
+        "sourceIds": [
+          "CPC-373",
+          "context",
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1",
+          "D01/relato@v1#p1"
+        ]
+      },
+      {
+        "id": "limites-conclusoes",
+        "statement": "EDITORIAL: entregar análise limitada das questões e lacunas, sem resolver procedência, exigibilidade do preço integral ou consequências materiais do eventual cumprimento parcial: o corpus não contém condições completas de pagamento, versão da ré ou normas materiais que sustentem tais conclusões. Não tratar essas ausências como conflito entre fontes.",
+        "sourceIds": [
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1",
+          "D01/relato@v1#p1",
+          "CPC-373"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "destino-quatro-mesas",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Há informação ou documento sobre a entrega das quatro mesas não registradas no recibo, inclusive eventual data? É possível responder livremente ou indicar que não se sabe.",
+        "reason": "O recibo tem alcance limitado a seis mesas e não esclarece o cumprimento do restante; a análise deve permanecer condicionada quanto a isso.",
+        "sourceIds": [
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1"
+        ],
+        "options": []
+      },
+      {
+        "key": "condicoes-pagamento",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Quais eram as condições e o vencimento do pagamento, e há texto contratual adicional a respeito? É possível informar que esses dados não estão disponíveis.",
+        "reason": "O preço global e o prazo de entrega não estabelecem, no trecho fornecido, quando ou sob quais condições seria devido o pagamento.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ],
+        "options": []
+      },
+      {
+        "key": "elementos-pagamento-defesa",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Existem outros elementos sobre pagamento ou não pagamento e alguma manifestação de Brisa? Descreva-os, se conhecidos, ou indique que não estão disponíveis.",
+        "reason": "Só há alegação da autora, sem documentação bancária ou versão da ré; não é possível confirmar pagamento, sua ausência ou fatos defensivos. Manter a entrega limitada ao corpus atual, sem presumir novos elementos.",
+        "sourceIds": [
+          "D01/relato@v1#p1",
+          "CPC-373"
+        ],
+        "options": []
+      }
+    ]
+  },
+  "graph": {
+    "version": 1,
+    "revision": 0,
+    "tools": [],
+    "failedTools": [],
+    "planHashes": [
+      "8c95f75b792cf3f2ce8bee18f5e04e1fb3877281dcdd9adc4f9a851be5cd170c"
+    ],
+    "reviewRequired": false,
+    "nodes": [
+      {
+        "id": "matter-analyst:0",
+        "role": "matter-analyst",
+        "generation": 0,
+        "dependsOn": [],
+        "status": "PENDING"
+      },
+      {
+        "id": "legal-researcher:0",
+        "role": "legal-researcher",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0"
+        ],
+        "status": "PENDING"
+      },
+      {
+        "id": "procedural-advisor:0",
+        "role": "procedural-advisor",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0"
+        ],
+        "status": "PENDING"
+      },
+      {
+        "id": "authority-verifier:0",
+        "role": "authority-verifier",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0",
+          "procedural-advisor:0"
+        ],
+        "status": "PENDING"
+      }
+    ],
+    "archivedOutputs": {},
+    "decisions": []
+  }
+}

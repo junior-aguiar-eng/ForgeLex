@@ -1,0 +1,157 @@
+{
+  "date": "2026-11-01",
+  "branch": "codex/forgelex-3-quality",
+  "baselineCommit": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "scope": "Incremento 3 local: ação probatória com matriz, cronologia, contradições e conferência literal",
+  "action": "analyze_evidence",
+  "versions": {
+    "state": 3,
+    "outputContract": 6,
+    "policy": "1.4.0",
+    "legacyV2ContractHash": "be6575c4850189f940e206101d9148cc33430bf023e833549c06d4d9ec7ea482",
+    "otherActionsState": 2,
+    "graph": 1
+  },
+  "limits": {
+    "maxRoleRuns": 10,
+    "maxStateBytes": 192000,
+    "maxToolsPerStep": 12,
+    "maxReplans": 1,
+    "maxTools": 48
+  },
+  "checks": {
+    "fullSuite": {
+      "total": 1547,
+      "command": "pnpm exec vitest run --maxWorkers=1 --reporter=default --reporter=json --outputFile=tmp/forgelex-3-validation/evidence-full-serial.json",
+      "failed": 0,
+      "passed": 1530,
+      "skipped": 17
+    },
+    "postgres": {
+      "failed": 0,
+      "coversSkippedFromFullSuite": 16,
+      "passed": 41
+    },
+    "finalFocused": {
+      "failed": 0,
+      "passed": 65
+    },
+    "presentationAfterFinalReview": {
+      "scope": "Keep uncovered claims/issues visible in the delivery and copied text; covered again by the final serial full suite.",
+      "failed": 0,
+      "passed": 9
+    },
+    "postgresSmoke": {
+      "checks": [
+        "migration_twice",
+        "specialist_checkpoint_separate_process",
+        "planner_not_replayed",
+        "adaptive_checkpoint_after_invalidation_separate_process",
+        "completed_graph_nodes_not_replayed",
+        "evidence_matrix_recovery_separate_process",
+        "evidence_analyst_not_replayed",
+        "evidence_matrix_no_fact_or_evidence_adoption",
+        "preliminary_workflow_draft",
+        "no_fact_adoption",
+        "public_projection",
+        "one_delivery_event",
+        "concurrent_save_one_delivery",
+        "atomic_partial_delivery_id",
+        "owner_isolation",
+        "human_edit_lock_order_without_deadlock"
+      ],
+      "command": "node scripts/smoke-agentic-case-task-postgres.mjs",
+      "status": "passed",
+      "container": "Temporary local PostgreSQL 16; removed after execution"
+    },
+    "browser": {
+      "transport": "synthetic",
+      "command": "pnpm exec playwright test --config playwright.agentic-commercial-flow.config.ts",
+      "durationSeconds": 41.3,
+      "passed": 2,
+      "scenarios": ["probatory matrix without document releases full reserve", "existing commercial flow charges once"]
+    },
+    "build": {
+      "command": "pnpm build",
+      "afterPresentationFix": "web build passed",
+      "status": "passed"
+    },
+    "types": {
+      "status": "passed",
+      "command": "pnpm -r run typecheck"
+    },
+    "lint": {
+      "command": "pnpm lint",
+      "afterPresentationFix": "focal ESLint passed",
+      "status": "passed"
+    },
+    "formatting": "Prettier and git diff --check passed",
+    "review": {
+      "initialIndependentTestsPassed": 52,
+      "resolution": "Show only uncovered items before matrix; covered items remain in rows; regression tests passed",
+      "finalPresentationFinding": "P2: uncovered claims/issues hidden by blanket matrix deduplication"
+    }
+  },
+  "billing": "One existing commercial reserve; at least one matched DOCUMENT reference bound to a claim is required for usable probatory result. USER_TEXT/ANSWER alone do not qualify.",
+  "notExecuted": [
+    "homologação real sintética aprovada por Boni executa um único provider/modelo com orçamento durável, sem pesquisa paga nem fallback"
+  ],
+  "limitations": [
+    "Synthetic tests establish structure and controls, not semantic legal quality.",
+    "No automatic adoption of facts/evidence/timeline; human case operations remain separate.",
+    "No automatic admissibility or burden-of-proof decisions.",
+    "Counts overlap between full and focused suites.",
+    "Earlier full runs observed the action-contract regression before its fix, then three default-timeout failures; the same 56 tests passed isolated without changing timeouts. Final full suite uses one worker.",
+    "Future deployment and rollback must account for v3 checkpoints."
+  ],
+  "operations": {
+    "realProviderCalls": 0,
+    "push": false,
+    "deploy": false,
+    "remoteMigrations": 0,
+    "realFinancialOperations": 0,
+    "merge": false,
+    "commit": false
+  },
+  "sourceSha256": {
+    "packages/domain/src/contracts/task-evidence.ts": "59b67d019f9f7a39616a48efa14227c8b42bcf412edd819077df7bcd0761186a",
+    "packages/domain/src/contracts/agentic-case-task.ts": "9a10dfd29b9effdfe9edbb50217466a5dae2f9ec37f6cb82697e45e9ddc16d8a",
+    "packages/domain/src/index.ts": "e2fc3951cbab8de441872a8d0d3c5a781232b78b45b15973013ef7b121ca00e2",
+    "packages/legal-agents/src/agentic-case-contracts.ts": "a3ee4b1b389b18804d09fa02bfdc50983bad25509ca3bd24c5e886fe171c1e79",
+    "packages/legal-agents/src/agentic-evidence.ts": "1a267a464dfc1e162159cc47ec9c7829706234422dfd27b5baf8b94f64df5dcd",
+    "packages/legal-agents/src/index.ts": "a8d99f2200954cbead7f2f699f77863e1a9243aa27d1056350a97aa7e5422679",
+    "packages/legal-workflows/src/agentic-case-task/evidence-audit.ts": "6e665ffc9af6e6b8ba2f32691704758f6e41c38a88cdb8c43cdc6b36507feafb",
+    "packages/legal-workflows/src/agentic-case-task/evidence-analysis.test.ts": "d384081fb8b4e8fd289593b624d0d56ac9a79f9440f74d3e42c4fadb2622c090",
+    "packages/legal-workflows/src/agentic-case-task/orchestration-graph.ts": "b837324adf8b7a8aa93503345ebd0302524b070796c0dbd52d768ee81e731000",
+    "packages/legal-workflows/src/agentic-case-task/case-task.ts": "3c364b9bd1ff72bc27ab2242a9802b57e606836467f1f8ffa8f0f3a2e5473b3d",
+    "apps/api/src/agentic-workspace/execution-service.ts": "fa531a5413d3b71a8bf59750265d9de9c221821955e162909dacb0454c98e3c1",
+    "apps/api/src/agentic-workspace/execution-routes.ts": "df02a6ba61254a5e57088c3c4e86d3cd3bfab030756eb5be1f10463aecca26ce",
+    "apps/api/src/agentic-workspace/commercial-runtime.ts": "c6c663f693cc58b2c9946e3a4c8fb8c594f8da1bdbb9149f8c04c3cd9bddc1e9",
+    "apps/api/src/agentic-workspace/commercial-research.test.ts": "c02136b7811aa5487434b994ca3cb4a20500eb059ef7e831b2ebe27a54d008ea",
+    "apps/api/src/agentic-workspace/commercial-usable-result.test.ts": "01c0a73f16ed1d7006d45c5298a1a904adac7ce782c8c41ab68afd8f8f856597",
+    "apps/web/src/agentic-workspace/execution-model.ts": "9dcbe04ad6b02d3ccff2627ab1318c5c0973ec8eb0afb38f55cfb61a45d93be2",
+    "apps/web/src/agentic-workspace/present-delivery.ts": "81e9acb2e3d6223d688a44f4d2dd937af878db91a787c46ee6d4d84c0b1f9517",
+    "apps/web/src/agentic-workspace/evidence-delivery.test.ts": "04a46c0d0a6e09f8d10a790a294599272615cad798c9b328a14aae17dd977eee",
+    "apps/web/src/agentic-workspace/ResultCard.tsx": "c132e62b0cddecd177f54ee29e60881d21d4e3821b5b0126b38d947339505964",
+    "scripts/agentic-workspace-e2e-fixture.mjs": "a62139f46133e23090553475d0a9a5c06eabd8dec4c26c58499afc5e5a67eb96",
+    "scripts/smoke-agentic-case-task-postgres.mjs": "bf11b82a1e0bd99ca725b39377cb852e20e3d974f28cf486c0d693aa1abfac70",
+    "tests/e2e/agentic-commercial-flow.spec.ts": "0545605843549362d5140176ee3f31a4c5b66fe7a2c3446c15fecbb10505d08a",
+    "packages/legal-workflows/src/index.ts": "0abf0fbfaa067259f739edd130830743f13dd8fafb853369b40120134954e69e",
+    "packages/legal-workflows/src/agentic-case-task/fixtures/pre-evidence-v2.json": "32d8d7807a5299713c42a0150c6b6babb3ba06be559259b2f68b62b1c379ad06"
+  },
+  "localEvidenceSha256": {
+    "tmp/forgelex-3-validation/evidence-full-serial.json": "e83d319886ebb0ebbb27b6a6676e849624d6a51acf0e909b10ae885f14c81d15",
+    "tmp/forgelex-3-validation/evidence-postgres-tests.json": "37ac4b389d60ad9e49275550f34127951ce42bd4215a561bbf862dbdf4b3502c",
+    "tmp/forgelex-3-validation/evidence-final-focused.json": "63a58ab5bb0b958b38a58ef502e81c50a56f342a9ea03df45a0b2b2539b016eb",
+    "tmp/forgelex-3-validation/evidence-presentation-green.json": "8b784905492c2fd2485236a96f82bcb8407bbe73b00d366080a51e32c4b67ee5",
+    "tmp/forgelex-3-validation/evidence-postgres.log": "9544cae0d1f70a0e9ccd38ad2995770eb1d7e2f532b68cad56b3a971bcac4eb3",
+    "tmp/forgelex-3-validation/evidence-playwright.log": "6a786a24a9d2680aa2449bde5d15491d0ce34d554a52a183216211ec5a67fc81",
+    "tmp/forgelex-3-validation/evidence-build-final.log": "647bd4edb5f2d12e0c12093a99baf8848db454937664431820c18654eb7f12ac",
+    "tmp/forgelex-3-validation/evidence-typecheck.log": "877a5386551db3daefd4b721b49fef965a6518664de7dfb4b8db21ce994f7d3d",
+    "tmp/forgelex-3-validation/evidence-lint.log": "acd68fcd9ddbba07ba06761b9f1f341f6272463cd9040184d0814941549f10ce",
+    "tmp/forgelex-3-validation/evidence-format.log": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283",
+    "tmp/forgelex-3-validation/evidence-presentation-build.log": "8a372c35a5d012dbaf3faa3bf9509d40230f535e917a5364d9cb1973766c9c3a",
+    "tmp/forgelex-3-validation/evidence-isolated.json": "738eeb2f66dc5559ac9c7b9a295a5714ee39e1a884d3f6ad91d34995da55edc0",
+    "tmp/forgelex-3-validation/evidence-isolated.log": "5c49809f091ea4072d38806909d4cc92f418fe78a843f9fece6030dfb3c80f10"
+  }
+}

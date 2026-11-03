@@ -1,0 +1,211 @@
+{
+  "bindingHash": "365ad20dab6a2544bd0b6f7f7c20e7bf8c3d274c8f070bf4b6c830eef78d4be1",
+  "contractHash": "08c442cbecc20d11b8f0ea9b7d7f61e88de61284d6c7b04d62e42ca5413a37ae",
+  "previousDeliveryIds": [],
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.6.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.6.0"
+    },
+    {
+      "role": "matter-analyst",
+      "version": "1.6.0",
+      "instructionId": "matter-analyst-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "matter-analyst",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.6.0"
+    },
+    {
+      "role": "authority-verifier",
+      "version": "1.6.0",
+      "instructionId": "authority-verifier-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "authority-verifier",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.6.0"
+    }
+  ],
+  "toolCount": 3,
+  "researchOperations": [],
+  "findings": [],
+  "outputs": {
+    "matter-analyst": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [
+        {
+          "id": "claim",
+          "classification": "ALLEGATION",
+          "statement": "Aurora fornecerá dez mesas à Brisa por R$ 10.000,00, com entrega até 10/10/2026.",
+          "sourceIds": [
+            "D01/contrato@v1#p1"
+          ]
+        }
+      ],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": []
+    },
+    "authority-verifier": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": [
+        {
+          "claimId": "claim",
+          "sourceId": "D01/contrato@v1#p1",
+          "quote": "Aurora fornecerá dez mesas à Brisa por R$ 10.000,00, com entrega até 10/10/2026.",
+          "assessment": "SUPPORTED"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "version": 1,
+    "revision": 0,
+    "tools": [],
+    "failedTools": [],
+    "planHashes": [
+      "1b72d9a6aae20825f6dd7d48781d0432c625492ef67c318c860ffdf829fee0e0"
+    ],
+    "reviewRequired": false,
+    "nodes": [
+      {
+        "id": "matter-analyst:0",
+        "role": "matter-analyst",
+        "generation": 0,
+        "dependsOn": [],
+        "status": "COMPLETED",
+        "inputHash": "9facfbf7fa64b0c64ef9d626746cb37513682281f75c0be2753276faab772341",
+        "input": {
+          "bindingHash": "365ad20dab6a2544bd0b6f7f7c20e7bf8c3d274c8f070bf4b6c830eef78d4be1",
+          "contractHash": "08c442cbecc20d11b8f0ea9b7d7f61e88de61284d6c7b04d62e42ca5413a37ae",
+          "planHash": "1b72d9a6aae20825f6dd7d48781d0432c625492ef67c318c860ffdf829fee0e0",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "44b2c9011e7821275fe3ffb19bbfbf0ea1a1eaec844560076ffd14375fabd4eb"
+            },
+            {
+              "id": "D01/contrato@v1#p1",
+              "contentHash": "cec9db6088356783fd3b8eb57f12b5eb95309a434fa6fcf536c25ea8e6b854ba"
+            },
+            {
+              "id": "D01/recibo@v1#p1",
+              "contentHash": "bec8bfa963cc44e57f8300f19a70a79adf4e08e29448fda144b9f474ddff4b7f"
+            },
+            {
+              "id": "D01/relato@v1#p1",
+              "contentHash": "c0d5391434d4cb2d86c0015e0698392260d123ba1e166ec1f430dd3a2b83f83e"
+            },
+            {
+              "id": "CPC-373",
+              "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f"
+            }
+          ],
+          "dependencies": [],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "af6f696e21ecf2d9a06dce1c5d675c6378454b95cfaf8729b19b5d54be435974",
+        "runIndex": 2
+      },
+      {
+        "id": "authority-verifier:0",
+        "role": "authority-verifier",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "424b10f7c145b418bd26633be2ddcf791d00079a29adf5dd9dc15606fb3240f9",
+        "input": {
+          "bindingHash": "365ad20dab6a2544bd0b6f7f7c20e7bf8c3d274c8f070bf4b6c830eef78d4be1",
+          "contractHash": "08c442cbecc20d11b8f0ea9b7d7f61e88de61284d6c7b04d62e42ca5413a37ae",
+          "planHash": "1b72d9a6aae20825f6dd7d48781d0432c625492ef67c318c860ffdf829fee0e0",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "44b2c9011e7821275fe3ffb19bbfbf0ea1a1eaec844560076ffd14375fabd4eb"
+            },
+            {
+              "id": "D01/contrato@v1#p1",
+              "contentHash": "cec9db6088356783fd3b8eb57f12b5eb95309a434fa6fcf536c25ea8e6b854ba"
+            },
+            {
+              "id": "D01/recibo@v1#p1",
+              "contentHash": "bec8bfa963cc44e57f8300f19a70a79adf4e08e29448fda144b9f474ddff4b7f"
+            },
+            {
+              "id": "D01/relato@v1#p1",
+              "contentHash": "c0d5391434d4cb2d86c0015e0698392260d123ba1e166ec1f430dd3a2b83f83e"
+            },
+            {
+              "id": "CPC-373",
+              "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "af6f696e21ecf2d9a06dce1c5d675c6378454b95cfaf8729b19b5d54be435974"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "b73b8c5a0049d5e5394d469ace14e008e247e03ac641be89e6abe05f4da0199d",
+        "runIndex": 3
+      }
+    ],
+    "archivedOutputs": {},
+    "decisions": [],
+    "stopReason": "COMPLETED"
+  },
+  "version": 5,
+  "plan": {
+    "action": "analyze_documents",
+    "requiresCaseLaw": false,
+    "requiresNorms": false,
+    "requiresProcedure": false,
+    "issues": [
+      {
+        "id": "issue",
+        "statement": "Examinar o material sintético",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "synthetic-limitation",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Informação não fornecida na simulação.",
+        "reason": "A simulação contém informação não fornecida; não concluir fatos adicionais.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      }
+    ]
+  }
+}

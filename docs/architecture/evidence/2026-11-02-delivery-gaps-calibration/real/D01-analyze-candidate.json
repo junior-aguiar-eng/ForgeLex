@@ -1,0 +1,50 @@
+{
+  "runId": "D01-analyze-candidate",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\348b6546848d6222cd6c9ada25f103bfff852b36b7d5df8096a40c6ce5926227\\candidate",
+  "inputHash": "a9ccc9e7b973b9bef18b324c30bd080ddccf6e27c650709538fe0b9cc4e36ed3",
+  "request": "Analise o caso, as questões, o alcance das provas e o que falta esclarecer. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "failed",
+  "error": "OPENAI_AGENT_ERROR",
+  "durationMs": 46537.3233,
+  "roles": [
+    "legal-orchestrator",
+    "matter-analyst"
+  ],
+  "stateVersion": 5,
+  "paidModelCalls": 5,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 65702,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 2238,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2818,
+      "outputTokens": 994,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3831,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3987,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 4567,
+      "outputTokens": 2048,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": null,
+  "legalScore": null
+}

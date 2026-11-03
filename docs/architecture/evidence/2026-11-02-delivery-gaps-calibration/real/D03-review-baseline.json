@@ -1,0 +1,49 @@
+{
+  "runId": "D03-review-baseline",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\348b6546848d6222cd6c9ada25f103bfff852b36b7d5df8096a40c6ce5926227\\baseline",
+  "inputHash": "7eb08d631b9ebd8e6f0022f137194e7b289c389a3fdc4de04f845c5833b389f6",
+  "request": "Revise o rascunho fornecido, indicando problemas concretos, fontes e correções necessárias. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "question",
+  "error": null,
+  "durationMs": 15610.512600000002,
+  "roles": [
+    "legal-orchestrator"
+  ],
+  "stateVersion": 1,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 20598,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 1658,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2228,
+      "outputTokens": 676,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2923,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": {
+    "id": "case-task:prova_pagamento_credito",
+    "version": 1,
+    "contextRevision": 1,
+    "prompt": "O corpus selecionado não informa o estado do pagamento nem demonstra suficientemente o saldo exigível; a revisão fica limitada a apontar essa ausência, sem afirmar quitação ou inadimplemento.",
+    "selection": "free_text",
+    "options": [],
+    "allowFreeText": true,
+    "allowUnknown": true,
+    "reason": "Não há comprovante de pagamento ou outros elementos suficientes para apurar saldo e exigibilidade. Como o pedido restringe a revisão ao corpus fechado, a entrega não condiciona sua conclusão à obtenção de novas fontes."
+  },
+  "legalScore": null
+}

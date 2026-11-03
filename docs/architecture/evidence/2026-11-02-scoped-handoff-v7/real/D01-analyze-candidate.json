@@ -1,0 +1,310 @@
+{
+  "runId": "D01-analyze-candidate",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\519f1bda815967a1cfa40766d7bd01949b325065f6515b101a9710c9bee0662a\\candidate",
+  "inputHash": "a9ccc9e7b973b9bef18b324c30bd080ddccf6e27c650709538fe0b9cc4e36ed3",
+  "request": "Analise o caso, as questões, o alcance das provas e o que falta esclarecer. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "completed",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 30882.8128,
+  "roles": [
+    "legal-orchestrator",
+    "matter-analyst",
+    "authority-verifier"
+  ],
+  "stateVersion": 7,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 42632,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 2534,
+      "outputTokens": 669,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3491,
+      "outputTokens": 980,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 4496,
+      "outputTokens": 510,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": {
+    "action": "analyze_documents",
+    "contextId": "D01-analyze",
+    "contextRevision": 1,
+    "status": "LIMITED",
+    "humanReviewRequired": true,
+    "legalAssessment": "NOT_EVALUATED",
+    "issues": [
+      {
+        "id": "q1",
+        "statement": "Delimitar a controvérsia civil de fornecimento entre Aurora, autora, e Brisa, ré, sem escolher medida jurídica ou calcular prazo. Usar exclusivamente o corpus selecionado e explicitar limites de fontes.",
+        "sourceIds": [
+          "context"
+        ]
+      },
+      {
+        "id": "q2",
+        "statement": "Examinar o alcance dos trechos: contrato prevê dez mesas por R$ 10.000,00 até 10/10/2026; recibo registra recebimento de seis nessa data. Distinguir ausência de registro das quatro restantes de prova de sua não entrega; não concluir cumprimento integral nem inadimplemento definitivo.",
+        "sourceIds": [
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1"
+        ]
+      },
+      {
+        "id": "q3",
+        "statement": "Preservar como alegação da autora o não recebimento de pagamento. Examinar os limites da ausência de extrato ou comprovante, sem convertê-la em prova de pagamento ou de falta de pagamento, nem presumir saldo exigível.",
+        "sourceIds": [
+          "D01/relato@v1#p1",
+          "D01/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "q4",
+        "statement": "Analisar separadamente as questões de ônus da prova à luz apenas do excerto do art. 373 do CPC, sem confundir distribuição do ônus com comprovação dos fatos. Explicitar que o corpus não contém outras normas ou jurisprudência para conclusões sobre exigibilidade, efeitos da entrega parcial ou remédios contratuais.",
+        "sourceIds": [
+          "CPC-373",
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1",
+          "D01/relato@v1#p1"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "id": "0623a0beb6:c1",
+        "classification": "ALLEGATION",
+        "statement": "O contexto identifica Aurora como autora e Brisa como ré em controvérsia civil fictícia de fornecimento, sob procedimento comum.",
+        "sourceIds": [
+          "context"
+        ]
+      },
+      {
+        "id": "0623a0beb6:c2",
+        "classification": "INFERENCE",
+        "statement": "O trecho contratual prevê fornecimento de dez mesas por R$ 10.000,00 e entrega até 10/10/2026. Não informa vencimento ou condições do pagamento; o preço pactuado não equivale, por si, a saldo exigível.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "0623a0beb6:c3",
+        "classification": "INFERENCE",
+        "statement": "O recibo registra recebimento de seis mesas em 10/10/2026. Seu alcance não abrange as quatro restantes: a ausência de registro não demonstra sua não entrega. Os trechos não permitem concluir cumprimento integral ou inadimplemento definitivo.",
+        "sourceIds": [
+          "D01/recibo@v1#p1",
+          "D01/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "0623a0beb6:c4",
+        "classification": "ALLEGATION",
+        "statement": "A autora afirma não ter recebido pagamento; o relato informa que não foram fornecidos extrato ou comprovante bancário.",
+        "sourceIds": [
+          "D01/relato@v1#p1"
+        ]
+      },
+      {
+        "id": "0623a0beb6:c5",
+        "classification": "INFERENCE",
+        "statement": "A falta de documentação bancária no corpus não comprova pagamento nem falta de pagamento. Também não permite quantificar saldo devido ou presumir sua exigibilidade.",
+        "sourceIds": [
+          "D01/relato@v1#p1",
+          "D01/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "0623a0beb6:c6",
+        "classification": "INFERENCE",
+        "statement": "O excerto do art. 373 atribui ao autor o ônus quanto ao fato constitutivo de seu direito e ao réu quanto a fato impeditivo, modificativo ou extintivo. Essa regra de distribuição não comprova entrega ou pagamento nem resolve, isoladamente, a controvérsia. A definição dos fatos constitutivos relevantes depende da pretensão, não delimitada nos trechos.",
+        "sourceIds": [
+          "CPC-373"
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "id": "0623a0beb6:r1",
+        "kind": "EDITORIAL",
+        "statement": "Limitar a análise ao corpus fechado, explicitar lacunas e não escolher medida jurídica nem calcular prazo.",
+        "sourceIds": [
+          "context"
+        ],
+        "verified": true
+      }
+    ],
+    "findings": [
+      {
+        "id": "CAPABILITY_UNAVAILABLE:c627c859a95a69d3",
+        "code": "CAPABILITY_UNAVAILABLE",
+        "severity": "BLOCKING",
+        "statement": "A capacidade de pesquisa solicitada não dispõe das ferramentas necessárias neste trabalho.",
+        "sourceIds": []
+      },
+      {
+        "id": "0623a0beb6:f1",
+        "code": "ENTREGA_RESTANTE_INDETERMINADA",
+        "severity": "WARNING",
+        "statement": "Não há registro selecionado sobre o destino das quatro mesas restantes. Falta esclarecer se houve entrega, recusa ou ajuste a respeito delas. Trata-se de limitação da conclusão sobre cumprimento, não de impedimento à análise dos trechos.",
+        "sourceIds": [
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1"
+        ]
+      },
+      {
+        "id": "0623a0beb6:f2",
+        "code": "PAGAMENTO_E_EXIGIBILIDADE_INDETERMINADOS",
+        "severity": "WARNING",
+        "statement": "Faltam informações sobre vencimento e condições do preço, eventual pagamento total ou parcial e posição da Brisa. A alegação da autora permanece sem documentação bancária fornecida; não é possível concluir pela existência ou valor de crédito exigível.",
+        "sourceIds": [
+          "D01/contrato@v1#p1",
+          "D01/relato@v1#p1"
+        ]
+      },
+      {
+        "id": "0623a0beb6:f3",
+        "code": "LIMITES_DO_CORPUS",
+        "severity": "WARNING",
+        "statement": "A análise alcança apenas os trechos selecionados, sem confirmação de autenticidade, integralidade ou verdade dos fatos. O contrato descreve prestação prevista; o recibo registra recebimento parcial. Não há incompatibilidade necessária entre esses textos, nem versão da ré que permita identificar controvérsia factual específica.",
+        "sourceIds": [
+          "context",
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1",
+          "D01/relato@v1#p1"
+        ]
+      },
+      {
+        "id": "0623a0beb6:f4",
+        "code": "BASE_JURIDICA_RESTRITA",
+        "severity": "WARNING",
+        "statement": "O único texto normativo fornecido é o excerto do art. 373 do CPC. Não há outras normas ou jurisprudência no corpus para fundamentar conclusões sobre exigibilidade, efeitos da entrega parcial ou remédios contratuais. A distribuição do ônus deve permanecer separada da avaliação do que os trechos demonstram; não se decide aqui sua incidência concreta.",
+        "sourceIds": [
+          "CPC-373"
+        ]
+      },
+      {
+        "id": "a217b8e26f:f1",
+        "code": "IDENTIDADE_E_LIMITES_NORMATIVOS",
+        "severity": "WARNING",
+        "statement": "O snapshot CPC-373 identifica excerto oficial do art. 373, versão informada 2026-11-02, com URL do Senado. A conferência limita-se ao texto e aos metadados fornecidos: não houve verificação online de vigência, integralidade ou aplicabilidade ao caso. Não há autoridade jurisprudencial no corpus.",
+        "sourceIds": [
+          "CPC-373"
+        ]
+      },
+      {
+        "id": "a217b8e26f:f2",
+        "code": "SUPORTE_TEXTUAL_PARCIAL",
+        "severity": "WARNING",
+        "statement": "O excerto sustenta a distribuição geral do ônus descrita em 0623a0beb6:c6. Não enuncia as demais conclusões da proposição sobre comprovação de entrega ou pagamento, resolução da controvérsia e delimitação da pretensão; essas ressalvas não devem ser apresentadas como texto expresso do artigo. Identidade da fonte não equivale a suporte integral ou incidência concreta.",
+        "sourceIds": [
+          "CPC-373"
+        ]
+      },
+      {
+        "id": "a217b8e26f:f3",
+        "code": "LIMITACOES_MATERIAIS_PRESERVADAS",
+        "severity": "WARNING",
+        "statement": "Permanece desconhecido o destino das quatro mesas não abrangidas pelo recibo, sem conclusão de não entrega ou inadimplemento definitivo. Também faltam condições e vencimento do preço, informação sobre eventual pagamento e posição da ré; o não recebimento permanece alegação da autora. Não se confirma saldo exigível. O corpus não contém outras normas ou jurisprudência para conclusões sobre exigibilidade, efeitos da entrega parcial ou remédios contratuais.",
+        "sourceIds": [
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1",
+          "D01/relato@v1#p1",
+          "CPC-373"
+        ]
+      },
+      {
+        "id": "DELIVERY_INFORMATION_LIMITED:f4713f1bec3a6148",
+        "code": "DELIVERY_INFORMATION_LIMITED",
+        "severity": "BLOCKING",
+        "statement": "O recibo abrange somente seis mesas; o destino das quatro restantes não está demonstrado, limitando conclusões sobre extensão do cumprimento. A análise dos trechos pode ser entregue com essa ressalva.",
+        "sourceIds": [
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1"
+        ]
+      },
+      {
+        "id": "DELIVERY_INFORMATION_LIMITED:5066563c232f0ae5",
+        "code": "DELIVERY_INFORMATION_LIMITED",
+        "severity": "BLOCKING",
+        "statement": "Os trechos não informam condições ou vencimento do preço, nem trazem posição da ré ou documentação bancária. Isso limita conclusões sobre pagamento e exigibilidade, mas não impede a análise solicitada.",
+        "sourceIds": [
+          "D01/contrato@v1#p1",
+          "D01/relato@v1#p1"
+        ]
+      },
+      {
+        "id": "CITATION_WITHOUT_SUPPORT:7493c86080e18240",
+        "code": "CITATION_WITHOUT_SUPPORT",
+        "severity": "BLOCKING",
+        "statement": "Identificação da fonte não demonstra suporte à proposição citada.",
+        "sourceIds": [
+          "CPC-373"
+        ]
+      },
+      {
+        "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+        "code": "LEGAL_APPLICABILITY_NOT_EVALUATED",
+        "severity": "BLOCKING",
+        "statement": "Snapshots normativos não determinam vigência online nem aplicabilidade ao caso.",
+        "sourceIds": []
+      }
+    ],
+    "sources": [
+      {
+        "id": "context",
+        "kind": "USER_TEXT",
+        "contentHash": "44b2c9011e7821275fe3ffb19bbfbf0ea1a1eaec844560076ffd14375fabd4eb"
+      },
+      {
+        "id": "D01/contrato@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "cec9db6088356783fd3b8eb57f12b5eb95309a434fa6fcf536c25ea8e6b854ba",
+        "documentId": "D01/contrato",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "D01/recibo@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "bec8bfa963cc44e57f8300f19a70a79adf4e08e29448fda144b9f474ddff4b7f",
+        "documentId": "D01/recibo",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "D01/relato@v1#p1",
+        "kind": "USER_TEXT",
+        "contentHash": "c0d5391434d4cb2d86c0015e0698392260d123ba1e166ec1f430dd3a2b83f83e"
+      },
+      {
+        "id": "CPC-373",
+        "kind": "NORM",
+        "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f",
+        "versionId": "2026-11-02",
+        "url": "https://legis.senado.gov.br/norma/584917/publicacao/15633703",
+        "extent": "EXCERPT",
+        "identityStatus": "OFFICIAL_EXCERPT"
+      }
+    ],
+    "supportAudit": [
+      {
+        "claimId": "0623a0beb6:c6",
+        "sourceId": "CPC-373",
+        "sourceContentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f",
+        "quote": "Art. 373. O ônus da prova incumbe: I - ao autor, quanto ao fato constitutivo de seu direito; II - ao réu, quanto à existência de fato impeditivo, modificativo ou extintivo do direito do autor.",
+        "quoteStatus": "MATCHED",
+        "modelAssessment": "PARTIAL"
+      }
+    ]
+  },
+  "question": null,
+  "legalScore": null
+}

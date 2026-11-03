@@ -1,0 +1,196 @@
+{
+  "date": "2026-11-02",
+  "completedAtUtc": "2026-11-03T00:21:35.366Z",
+  "campaignId": "2026-11-02-delivery-failures-v6-validated",
+  "scopeCompleted": true,
+  "authorization": "authorization.json",
+  "packetSha256": "8d71728bd1908e64219b14f2a2027dae4c4a1870026c4cd75e313d246ddafbb8",
+  "candidateSourceSha256": "0e3a73f025f50bd3fac4df984ef6e8e2b28caa7f0c3ff5d3e28a1f32142c1aa4",
+  "baseline": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "approvedCapMicroUsd": 1500000,
+  "perRunCapMicroUsd": 250000,
+  "paidModelCalls": 30,
+  "measuredMicroUsd": 341614,
+  "calculatedUsd": 0.341614,
+  "historicalCalibrationUsd": 0.508974,
+  "combinedCalibrationUsd": 0.850588,
+  "costBasis": "Provider-reported usage at verified Standard rates, including rounding per call; not invoice reconciliation",
+  "pricingSource": "https://developers.openai.com/api/docs/pricing",
+  "tokens": {
+    "input": 104742,
+    "output": 13213,
+    "cached": 0
+  },
+  "executions": 6,
+  "questions": 3,
+  "failed": 2,
+  "deliveries": 1,
+  "uncertainMicroUsd": 0,
+  "ledgerChainVerified": true,
+  "ledgerSha256": "203bbbbaafe8be3d8200c176f0891b4f6235ba836c76e9d60febbfa90f38af85",
+  "sourceFilesVerified": 770,
+  "historicalAndProtectedFilesVerifiedUnchanged": 244,
+  "historicalLedgersVerifiedUnchanged": 2,
+  "legalScore": null,
+  "runs": [
+    {
+      "id": "D01-analyze-baseline",
+      "outcome": "question",
+      "error": null,
+      "diagnostic": null,
+      "calls": 3,
+      "costUsd": 0.024214,
+      "durationMs": 22801.6264,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "hasQuestion": true,
+      "lastCallUsage": {
+        "inputTokens": 3235,
+        "outputTokens": 4,
+        "cachedInputTokens": 0
+      }
+    },
+    {
+      "id": "D01-analyze-candidate",
+      "outcome": "failed",
+      "error": "OPENAI_AGENT_ERROR",
+      "diagnostic": {
+        "errorType": "Error",
+        "failureCode": "BUDGET_EXCEEDED",
+        "role": "authority-verifier"
+      },
+      "calls": 7,
+      "costUsd": 0.098414,
+      "durationMs": 58867.240300000005,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "procedural-advisor",
+        "authority-verifier"
+      ],
+      "stateVersion": 6,
+      "hasDelivery": false,
+      "hasQuestion": false,
+      "lastCallUsage": {
+        "inputTokens": 6364,
+        "outputTokens": 18,
+        "cachedInputTokens": 0
+      }
+    },
+    {
+      "id": "D03-review-baseline",
+      "outcome": "question",
+      "error": null,
+      "diagnostic": null,
+      "calls": 3,
+      "costUsd": 0.01965,
+      "durationMs": 14318.408399999998,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "hasQuestion": true,
+      "lastCallUsage": {
+        "inputTokens": 2844,
+        "outputTokens": 4,
+        "cachedInputTokens": 0
+      }
+    },
+    {
+      "id": "D03-review-candidate",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "calls": 8,
+      "costUsd": 0.098402,
+      "durationMs": 54349.4116,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 6,
+      "hasDelivery": true,
+      "hasQuestion": false,
+      "lastCallUsage": {
+        "inputTokens": 5707,
+        "outputTokens": 762,
+        "cachedInputTokens": 0
+      }
+    },
+    {
+      "id": "D04-create-baseline",
+      "outcome": "question",
+      "error": null,
+      "diagnostic": null,
+      "calls": 3,
+      "costUsd": 0.022018,
+      "durationMs": 18580.8404,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "hasQuestion": true,
+      "lastCallUsage": {
+        "inputTokens": 2967,
+        "outputTokens": 4,
+        "cachedInputTokens": 0
+      }
+    },
+    {
+      "id": "D04-create-candidate",
+      "outcome": "failed",
+      "error": "CLAIM_ID_CONFLICT",
+      "diagnostic": null,
+      "calls": 6,
+      "costUsd": 0.078916,
+      "durationMs": 52108.3113,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "procedural-advisor"
+      ],
+      "stateVersion": 6,
+      "hasDelivery": false,
+      "hasQuestion": false,
+      "lastCallUsage": {
+        "inputTokens": 4977,
+        "outputTokens": 1386,
+        "cachedInputTokens": 0
+      }
+    }
+  ],
+  "remaining54RunsExecuted": false,
+  "paidRetries": false,
+  "customerWalletUsed": false,
+  "historicalPilotBudgetUsed": false,
+  "liveResearchEnabled": false,
+  "codeModified": false,
+  "commitPushMigrationDeployPerformed": false,
+  "outputHashes": {
+    "budget.jsonl": "203bbbbaafe8be3d8200c176f0891b4f6235ba836c76e9d60febbfa90f38af85",
+    "comparison.json": "171f34ecf1cb4aa0268202cf81cc447e8567bc52f82d34eace2415c36b37e0e9",
+    "D01-analyze-baseline.checkpoint.json": "d524bb9dbdefe69579814d1582e52a28b38e626b2b39ebec5876c7aa4a37a6f7",
+    "D01-analyze-baseline.json": "514695d9ed67642b27e29377494a4202ae66f6ece52ee071e60014c5c14b94b2",
+    "D01-analyze-candidate.checkpoint.json": "1d29cd5265919ac77ad514b9de51d6bb044fac9a8653087285d77a820b7f51d7",
+    "D01-analyze-candidate.json": "8d28bcef17063dd9859e2cab9ac97e6e274832d84123548837d4824a380fcbbb",
+    "D03-review-baseline.checkpoint.json": "8ca241e485fcff04a823fbb2d820e415786e911c3fc946fc44f26d4ca512666a",
+    "D03-review-baseline.json": "3800a88a1b4e877c0cfa606c815113e417b0b4b6e7b0da817a93a5aec01c7575",
+    "D03-review-candidate.checkpoint.json": "e9dd19f4db951f8723a800f8ec9e9c147187f8330260a3283eb7b9ac133085fe",
+    "D03-review-candidate.json": "7346a5a383657e9d78af789acb9d4a30c729710f43962a70f4f2a5976719ba63",
+    "D04-create-baseline.checkpoint.json": "b211e989af4e00f21aaa74eac4fd951450996dd908b35e9c8c2743510ed20204",
+    "D04-create-baseline.json": "ee07e0ca6101857d285b023c5265bbb104bc8059cf62700fa3ab3fe648823673",
+    "D04-create-candidate.checkpoint.json": "a24f5b5580c7e1b592a7fe56469b7ec0d382d9dc8f3c2d103038a374c15d35ca",
+    "D04-create-candidate.json": "32b3a3b3a7c24c695d1b2293cc17137ed3cc27a4478e02f4bd37347a728ab12d",
+    "invocation.json": "e67544213ee997b2a65bda524c1a611f96745049da2807d053328129525b01d1",
+    "review.md": "2789770abdfa013258034df0d8ebb534aba6e5348b42d38e228da3c8f4a462ea",
+    "packet.json": "8d71728bd1908e64219b14f2a2027dae4c4a1870026c4cd75e313d246ddafbb8",
+    "authorization.json": "71f578ed14a65f93ffd16844e4c3a2593cd1fba2b5470cecc30e8dd0e211f376"
+  }
+}

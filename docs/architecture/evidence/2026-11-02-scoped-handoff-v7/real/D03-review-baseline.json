@@ -1,0 +1,50 @@
+{
+  "runId": "D03-review-baseline",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\519f1bda815967a1cfa40766d7bd01949b325065f6515b101a9710c9bee0662a\\baseline",
+  "inputHash": "7eb08d631b9ebd8e6f0022f137194e7b289c389a3fdc4de04f845c5833b389f6",
+  "request": "Revise o rascunho fornecido, indicando problemas concretos, fontes e correções necessárias. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "question",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 15295.5296,
+  "roles": [
+    "legal-orchestrator"
+  ],
+  "stateVersion": 1,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 20790,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 1658,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2228,
+      "outputTokens": 692,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2939,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": {
+    "id": "case-task:estado_pagamento",
+    "version": 1,
+    "contextRevision": 1,
+    "prompt": "Entrega limitada ao corpus: não é possível determinar se houve pagamento total, parcial ou nenhum pagamento, nem apurar saldo definitivo.",
+    "selection": "free_text",
+    "options": [],
+    "allowFreeText": true,
+    "allowUnknown": true,
+    "reason": "A fatura declara o estado do pagamento não informado; não há comprovante de quitação ou outros elementos de conciliação no corpus. A lacuna impede confirmar pagamento, inadimplemento ou encerramento, mas não impede apontar e corrigir os problemas do rascunho."
+  },
+  "legalScore": null
+}

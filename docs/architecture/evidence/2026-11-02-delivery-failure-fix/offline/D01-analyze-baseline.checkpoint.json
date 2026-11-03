@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "bindingHash": "365ad20dab6a2544bd0b6f7f7c20e7bf8c3d274c8f070bf4b6c830eef78d4be1",
+  "contractHash": "8847855772466938a857ef45471c4bab12d2b1b46d4660f343377cdd49abc3e3",
+  "previousDeliveryIds": [],
+  "plan": {
+    "action": "analyze_documents",
+    "requiresCaseLaw": false,
+    "requiresNorms": false,
+    "requiresProcedure": false,
+    "issues": [
+      {
+        "id": "issue",
+        "statement": "Examinar o material sintético",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ]
+      }
+    ],
+    "gaps": []
+  },
+  "outputs": {
+    "matter-analyst": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [
+        {
+          "id": "claim",
+          "classification": "ALLEGATION",
+          "statement": "Aurora fornecerá dez mesas à Brisa por R$ 10.000,00, com entrega até 10/10/2026.",
+          "sourceIds": [
+            "D01/contrato@v1#p1"
+          ]
+        }
+      ],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": []
+    }
+  },
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.1.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.1.0"
+    },
+    {
+      "role": "matter-analyst",
+      "version": "1.1.0",
+      "instructionId": "matter-analyst-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "matter-analyst",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.1.0"
+    }
+  ],
+  "toolCount": 2,
+  "researchOperations": [],
+  "findings": []
+}

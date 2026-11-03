@@ -1,0 +1,35 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ✓ packages/agent-provider-openai/src/openai-agent-provider.test.ts (10 tests) 57ms
+ ✓ packages/agent-core/src/registry/tool-registry.test.ts (2 tests) 27ms
+ ✓ packages/agent-core/src/contracts/validation-compatibility.test.ts (14 tests) 46ms
+ ✓ packages/agent-core/src/runtime/agent-runtime.test.ts (4 tests) 24ms
+ ✓ packages/agent-core/src/contracts/collection-validation.test.ts (1 test) 20ms
+ ✓ packages/agent-provider-openai/src/schema-converter.test.ts (5 tests) 18ms
+ ✓ packages/agent-core/src/contracts/agent-events.test.ts (2 tests) 12ms
+ ✓ packages/agent-core/src/runtime/agent-failure.test.ts (1 test) 6ms
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"75cecf77-cbb5-4838-a574-e4c3c356cacd","tenantId":"real-boni-tenant","method":"GET","route":"/api/agentic/pilot/budget","statusCode":403,"latencyMs":1,"timestamp":"2026-11-03T01:17:07.106Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3","traceId":"99cf927c-1d2b-410a-a7ee-82d1ef279fe2","tenantId":"real-boni-tenant","method":"POST","route":"/api/agentic/executions","statusCode":403,"latencyMs":14,"timestamp":"2026-11-03T01:17:07.121Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-4","traceId":"9b925104-7525-46c5-ad5b-7564c6172962","tenantId":"real-boni-tenant","method":"POST","route":"/api/agentic/pilot/executions","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T01:17:07.123Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-8","traceId":"0bcd7307-f8f8-4526-a529-cf1585fddc06","tenantId":"real-boni-tenant","method":"POST","route":"/api/agentic/executions/:id/continue","statusCode":403,"latencyMs":1,"timestamp":"2026-11-03T01:17:07.182Z"}
+ ✓ apps/api/src/agentic-workspace/closed-pilot.test.ts (12 tests) 10603ms
+   ✓ libera reserva se o cancelamento vencer a ativação entre os dois bancos  956ms
+   ✓ não habilita executor sem identidade de Boni explicitamente configurada  1014ms
+   ✓ recusa ledger novo e não concede outros US$ 5,00  755ms
+   ✓ mantém os 59 centavos históricos e reserva/retry/cancela sem tocar no billing da aplicação  1023ms
+   ✓ exige confirmação e casos fixos; rejeita instruções, modelo e tarifas do cliente  767ms
+   ✓ liga o executor pelo buildApp e protege os endpoints de autorização e consumo  1129ms
+   ✓ o transporte real limitado reserva antes do HTTP, liquida usage e bloqueia contexto fora da seleção  824ms
+   ✓ não gasta além do saldo remanescente e detecta reposição indevida  767ms
+   ✓ preserva reserva incerta no cancelamento e suspende novos envios sem usage  829ms
+   ✓ executa worker, driver e OpenAI SDK reais com SSE sintético e pergunta persistida  998ms
+   ✓ pausa após crash com chamada autorizada sem liquidação, inclusive após reconstrução  788ms
+   ✓ expurga aplicação somente após liberar reserva do ledger isolado e preserva seu histórico  752ms
+
+ Test Files  9 passed (9)
+      Tests  51 passed (51)
+   Start at  22:16:53
+   Duration  19.05s (transform 4.34s, setup 0ms, import 16.84s, tests 10.81s, environment 1ms)
+
+JSON report written to C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/tmp/consolidation-focused-tests.json

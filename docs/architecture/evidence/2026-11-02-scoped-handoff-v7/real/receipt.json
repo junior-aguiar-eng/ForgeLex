@@ -1,0 +1,245 @@
+{
+  "date": "2026-11-02",
+  "completedAtUtc": "2026-11-03T00:46:05.257Z",
+  "campaignId": "2026-11-02-scoped-handoff-v7-validated",
+  "scopeCompleted": true,
+  "authorization": "authorization.json",
+  "packetSha256": "e87237287fd2a1baa52ce11c37390f6e34278d300e3e4a8539ab0e5ee2fcc747",
+  "candidateSourceSha256": "519f1bda815967a1cfa40766d7bd01949b325065f6515b101a9710c9bee0662a",
+  "baseline": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "approvedCapMicroUsd": 1500000,
+  "perRunCapMicroUsd": 250000,
+  "paidModelCalls": 21,
+  "measuredMicroUsd": 275842,
+  "calculatedUsd": 0.275842,
+  "historicalCalibrationUsd": 0.850588,
+  "combinedCalibrationUsd": 1.12643,
+  "costBasis": "Provider-reported usage at verified Standard rates, including rounding per call; not invoice reconciliation",
+  "pricingSource": "https://developers.openai.com/api/docs/pricing",
+  "tokens": {
+    "input": 70661,
+    "output": 13452,
+    "cached": 0
+  },
+  "executions": 6,
+  "questions": 3,
+  "failed": 1,
+  "deliveries": 2,
+  "uncertainMicroUsd": 0,
+  "ledgerChainVerified": true,
+  "ledgerSha256": "2d17ab859a43482ef115535d8e5fa93cbc880f9a876f8a34f8f8361d4e29b46d",
+  "sourceFilesVerified": 773,
+  "historicalAndProtectedFilesVerifiedUnchanged": 283,
+  "historicalLedgersVerifiedUnchanged": 3,
+  "legalScore": null,
+  "runs": [
+    {
+      "id": "D01-analyze-baseline",
+      "outcome": "question",
+      "error": null,
+      "diagnostic": null,
+      "calls": 3,
+      "costUsd": 0.026914,
+      "durationMs": 25570.7443,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "deliveryStatus": null,
+      "hasQuestion": true,
+      "lastCallUsage": {
+        "inputTokens": 3460,
+        "outputTokens": 4,
+        "cachedInputTokens": 0
+      },
+      "findingCodes": []
+    },
+    {
+      "id": "D01-analyze-candidate",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "calls": 3,
+      "costUsd": 0.042632,
+      "durationMs": 30882.8128,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "authority-verifier"
+      ],
+      "stateVersion": 7,
+      "hasDelivery": true,
+      "deliveryStatus": "LIMITED",
+      "hasQuestion": false,
+      "lastCallUsage": {
+        "inputTokens": 4496,
+        "outputTokens": 510,
+        "cachedInputTokens": 0
+      },
+      "findingCodes": [
+        "CAPABILITY_UNAVAILABLE",
+        "ENTREGA_RESTANTE_INDETERMINADA",
+        "PAGAMENTO_E_EXIGIBILIDADE_INDETERMINADOS",
+        "LIMITES_DO_CORPUS",
+        "BASE_JURIDICA_RESTRITA",
+        "IDENTIDADE_E_LIMITES_NORMATIVOS",
+        "SUPORTE_TEXTUAL_PARCIAL",
+        "LIMITACOES_MATERIAIS_PRESERVADAS",
+        "DELIVERY_INFORMATION_LIMITED",
+        "DELIVERY_INFORMATION_LIMITED",
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "D03-review-baseline",
+      "outcome": "question",
+      "error": null,
+      "diagnostic": null,
+      "calls": 3,
+      "costUsd": 0.02079,
+      "durationMs": 15295.5296,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "deliveryStatus": null,
+      "hasQuestion": true,
+      "lastCallUsage": {
+        "inputTokens": 2939,
+        "outputTokens": 4,
+        "cachedInputTokens": 0
+      },
+      "findingCodes": []
+    },
+    {
+      "id": "D03-review-candidate",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "calls": 4,
+      "costUsd": 0.062414,
+      "durationMs": 43647.982099999994,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 7,
+      "hasDelivery": true,
+      "deliveryStatus": "LIMITED",
+      "hasQuestion": false,
+      "lastCallUsage": {
+        "inputTokens": 5356,
+        "outputTokens": 666,
+        "cachedInputTokens": 0
+      },
+      "findingCodes": [
+        "CAPABILITY_UNAVAILABLE",
+        "PAGAMENTO_SEM_SUPORTE",
+        "COMANDO_DOCUMENTAL_INDEVIDO",
+        "ENCERRAMENTO_NAO_DEMONSTRADO",
+        "LIMITE_DA_FONTE_NORMATIVA",
+        "QUITACAO_SEM_SUPORTE",
+        "FUNDAMENTO_DOCUMENTAL_INDEVIDO",
+        "SALTO_PARA_ENCERRAMENTO",
+        "ALCANCE_NORMATIVO_LIMITADO",
+        "IDENTIDADE_E_LIMITE_NORMATIVO",
+        "SUPORTE_NORMATIVO_PARCIAL",
+        "LACUNA_MATERIAL_PRESERVADA",
+        "DELIVERY_INFORMATION_LIMITED",
+        "CITATION_WITHOUT_SUPPORT",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "D04-create-baseline",
+      "outcome": "question",
+      "error": null,
+      "diagnostic": null,
+      "calls": 3,
+      "costUsd": 0.022162,
+      "durationMs": 19602.1045,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "deliveryStatus": null,
+      "hasQuestion": true,
+      "lastCallUsage": {
+        "inputTokens": 2979,
+        "outputTokens": 4,
+        "cachedInputTokens": 0
+      },
+      "findingCodes": []
+    },
+    {
+      "id": "D04-create-candidate",
+      "outcome": "failed",
+      "error": "OPENAI_AGENT_ERROR",
+      "diagnostic": {
+        "errorType": "Error",
+        "failureCode": "BUDGET_EXCEEDED",
+        "role": "authority-verifier"
+      },
+      "calls": 5,
+      "costUsd": 0.10093,
+      "durationMs": 71657.1774,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "procedural-advisor",
+        "legal-drafter",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 7,
+      "hasDelivery": false,
+      "deliveryStatus": null,
+      "hasQuestion": false,
+      "lastCallUsage": {
+        "inputTokens": 7298,
+        "outputTokens": 1034,
+        "cachedInputTokens": 0
+      },
+      "findingCodes": []
+    }
+  ],
+  "remaining54RunsExecuted": false,
+  "paidRetries": false,
+  "customerWalletUsed": false,
+  "historicalPilotBudgetUsed": false,
+  "liveResearchEnabled": false,
+  "codeModified": false,
+  "commitPushMigrationDeployPerformed": false,
+  "outputHashes": {
+    "budget.jsonl": "2d17ab859a43482ef115535d8e5fa93cbc880f9a876f8a34f8f8361d4e29b46d",
+    "comparison.json": "92ad560b4e29bf84f3aaa9730e8a50a6fc296d93b139c69f23569fc884c28c87",
+    "D01-analyze-baseline.checkpoint.json": "27fa7c931f86e00e36e8ce6ed0259f398337d4914b9468ed790676ef316d6f16",
+    "D01-analyze-baseline.json": "67623e5e2942e429801c9cb8beed77e744148a47c36c2886a1ce7fc7a5886fa6",
+    "D01-analyze-candidate.checkpoint.json": "dcf89291044c3ec35b0e727a47db82e7a72de0be73e3d98ed251b8caebce80ee",
+    "D01-analyze-candidate.json": "8040f8e0a67d9ff4266f2290c78fbe5bd62a034f1523c1065d98d62b1f532efa",
+    "D03-review-baseline.checkpoint.json": "22cf77fae9dad07cbea605ae9b839dec305344a99af636108deb04a3f4e3bea1",
+    "D03-review-baseline.json": "28c5abea95fd165f649182fd49e3359a85e5f8e3f88d577d5e580590cf7d4f8d",
+    "D03-review-candidate.checkpoint.json": "8b4a6f59cc77ac46d37e9c22d30491c07c0ebe31a34049126439f48f432113f1",
+    "D03-review-candidate.json": "e1ec4897e336748cd909585efc97b996b358c5451c6fb35b3730beacc45a1809",
+    "D04-create-baseline.checkpoint.json": "cdedd9c4ab983accefafff26077b7f4e8a3b83dddabcb4996c5741066a392e09",
+    "D04-create-baseline.json": "3b4f0c4f308865dfe88cf1f0d5e20ca8eab7f3e6b794133d3150610c977cd485",
+    "D04-create-candidate.checkpoint.json": "a8daaf91ab05acd6932b12b78f4cbddee7da35991134d922aa1225773dc204b6",
+    "D04-create-candidate.json": "27a04c47f3dfaff9510b1f51827626c94648c06ff00c0ad6dd6722c682ed8a9a",
+    "invocation.json": "d34898fb46fb124351b9717770c8cc689c71b6a8b92f4b5b1887e3f8bb7b2b68",
+    "review.md": "3d504aafce551a24effa46f051c6b5bf87aea55763d3cc21397f2d9304102506",
+    "packet.json": "e87237287fd2a1baa52ce11c37390f6e34278d300e3e4a8539ab0e5ee2fcc747",
+    "authorization.json": "26112e9c35864f0fc3f9087ccb1d752650627e8a0bf1ecf2962239ab5a001fce"
+  }
+}

@@ -1,5 +1,133 @@
 # Pendências atuais do ForgeLex
 
+## Consolidação local validada — 02/11/2026
+
+[Registro e evidências](docs/architecture/2026-11-02-forgelex-local-consolidation.md):
+trabalho organizado em commits locais; teste residual do piloto corrigido.
+Build completo e suíte geral aprovados: 1.621 testes, zero falhas, 17 condicionais
+ignorados; 15 testes do executor, tipos da API e lint também aprovados.
+V8 permanece validado apenas localmente. Sem chamadas pagas, push, migration
+remota ou deploy. A falha antiga do piloto nos recibos anteriores é histórica.
+
+## D04 corrigido localmente; medição real e avaliação pendentes — 02/11/2026
+
+[Rodada real v7](docs/architecture/2026-11-02-forgelex-recalibration-v7-results.md):
+seis execuções, 21 chamadas, US$ 0,275842 calculados, nenhum custo incerto.
+D01 e D03 entregaram com ressalvas; D04 ficou sem entrega final por
+`BUDGET_EXCEEDED` antes do envio ao verificador, após minuta e revisão intermediárias.
+Não ocorreram conflito de IDs ou checks inválidos nesta amostra.
+
+[Correção local v8](docs/architecture/2026-11-02-forgelex-d04-verifier-budget-fix.md)
+validada por replay: reserva US$ 0,137688, soma com consumo anterior US$ 0,238618
+sob o mesmo teto de US$ 0,25. Claims/fontes/minuta completas no verificador;
+requisitos/ressalvas anteriores conservados integralmente no estado e na entrega.
+Pendente: medir comportamento/qualidade do modelo real com essa projeção, somente
+após nova decisão de Boni. O replay sintético não conclui a entrega D04 histórica.
+A expectativa antiga de duas chamadas no teste do piloto foi corrigida na
+consolidação; suíte geral agora sem falhas. Recibos anteriores não foram reescritos.
+Pendente humano: avaliação das duas entregas por Boni, incluindo suporte parcial
+e requisitos não verificados. Os outros 54 cenários não foram executados.
+Autorização da rodada encerrada; sem repetição paga, integração ou deploy.
+
+## Histórico da correção local v7 — 02/11/2026
+
+[Três pendências v6 tratadas localmente](docs/architecture/2026-11-02-forgelex-v6-pending-fix.md):
+leitura redundante, identidade entre especialistas e vínculos de suporte.
+313 cenários de regressão, 15 testes do executor e seis simulações validados;
+reprodução SDK de D01 dentro da mesma reserva. Build, tipos e lint aprovados.
+Mesa, limites e campanhas anteriores intactos; zero chamadas pagas novas.
+A medição real subsequente está no registro acima; avaliação dos resultados por
+Boni permanece pendente. Os 54 cenários restantes e publicação não foram
+autorizados por esta correção. A aprovação jurídica não decorre dos testes.
+
+## Pendências observadas na calibração v6 — histórico de 02/11/2026
+
+[Medição real v6](docs/architecture/2026-11-02-forgelex-recalibration-v6-results.md)
+executada: seis cenários, 30 chamadas, US$ 0,341614 calculados e zero custo
+incerto. D03 entregou revisão com ressalvas; D01 e D04 falharam. As pendências
+abaixo originaram a correção local v7 registrada acima:
+
+- Contexto/reserva por etapa: D01 encontrou `BUDGET_EXCEEDED` no verificador;
+  avaliar redução de redundância sem ampliar teto ou afrouxar a reserva.
+- Identidade das afirmações: reproduzir e corrigir `CLAIM_ID_CONFLICT` entre
+  especialistas em D04, preservando vínculos e detecção de conflitos reais.
+- Checks de suporte: corrigir emissão de checks para fontes fora do contrato
+  e referências a requisitos em lugar de afirmações, observadas em D03.
+
+A entrega de D03 ainda depende de avaliação jurídica por Boni. Os 54 cenários
+restantes não foram executados. Autorização desta rodada encerrada; novas
+chamadas exigem outra decisão. Mesa e limites preservados, sem deploy.
+
+## Histórico da correção local v6 — 02/11/2026
+
+[Preparação isolada](docs/architecture/2026-11-02-forgelex-recalibration-v5.md)
+concluída: 76 testes e seis simulações SDK aprovados, sem chamadas pagas.
+A execução real foi autorizada e encerrada: US$ 0,373532, 33 chamadas, três
+perguntas na versão inicial e três falhas no candidato, nenhuma entrega final.
+O v5 avançou com ressalvas, mas o erro genérico não revela a causa terminal.
+[Resultados e evidências](docs/architecture/2026-11-02-forgelex-recalibration-v5-results.md).
+[Correção local concluída](docs/architecture/2026-11-02-forgelex-delivery-failure-fix.md):
+encerramento após entrega aceita, tratamento de saída incompleta, diagnóstico
+saneado e matriz probatória restrita ao pedido pertinente. 300 testes, 15 testes
+do executor e seis simulações SDK aprovados; build, tipos e lint aprovados.
+Mesa, limites e campanhas anteriores preservados; nenhuma nova chamada paga.
+Medição do candidato v6 executada no registro acima; avaliação jurídica por Boni
+permanece pendente. Causas exatas dos três erros v5 não são recuperáveis
+dos metadados disponíveis. Não ampliar limites ou escopo automaticamente.
+
+## Avaliação final do conjunto — 02/11/2026
+
+Preparação offline concluída no [plano e corpus](docs/architecture/2026-11-02-forgelex-3-final-evaluation.md).
+Calibração real autorizada e executada: seis lugares, 18 chamadas, custo calculado
+US$ 0,135442 dentro do teto US$ 1,50; todos pararam na primeira pergunta e não
+produziram entrega. [Resultado](docs/architecture/2026-11-02-forgelex-calibration-results.md).
+[Correção local das lacunas](docs/architecture/2026-11-02-forgelex-delivery-gaps.md)
+implementada e validada; a classificação foi medida na rodada v5 acima, com
+avanço para especialistas e falhas posteriores sem entrega. Não sobrescrever
+a campanha anterior. Faltam
+executor dos demais lugares e avaliação jurídica por Boni. Estimativa original
+do conjunto completo: US$ 3,60–10,80, teto proposto US$ 15; não recalibrar para
+baixo a partir de execuções interrompidas no orquestrador. Os 54 lugares restantes
+não foram autorizados. Integração/publicação continuam separadas. Não adicionar
+etapas ou metadados técnicos à mesa.
+
+## Direção vigente da mesa — 01/11/2026
+
+Cliente escolhe opções objetivas; agentes e engenharia permanecem nos bastidores.
+Preservar a mesa ajustada pelo Claude Code. A proposta de selecionar fatos e provas
+novamente a cada pedido foi retirada. A reutilização automática dos itens já
+aprovados na elaboração/revisão foi implementada localmente em 02/11/2026.
+Validação real e publicação não foram realizadas; itens alterados fora da
+aprovação não são revalidados automaticamente.
+O incremento 6 acrescenta revisão e nova aprovação humana por **Revisar alterações**,
+com histórico preservado e sem cobrança pela decisão. Ver
+[escopo e validação local](docs/architecture/2026-11-02-forgelex-3-evidence-reapproval.md).
+[Design corrigido](docs/superpowers/specs/2026-11-01-forgelex-3-approved-case-context-design.md).
+
+
+## Evolução ForgeLex 3 — diagnóstico local de 01/11/2026
+
+O [primeiro incremento de qualidade](docs/architecture/2026-11-01-forgelex-3-audit.md)
+está em worktree isolado, sem integração/publicação. O complemento local
+integra as ferramentas STJ ao runtime comercial, separa a seleção autorizada das
+fontes recuperadas e inclui a pesquisa no teto do trabalho, sem débito separado,
+conforme decisão de Boni nesta conversa. A fixture SQLite da migration 0036 foi
+isolada em memória privada, preservando as asserções. Ver
+[validação das pendências locais](docs/architecture/2026-11-01-forgelex-3-pending-local.md).
+Disponibilidade publicada depende de integração e publicação autorizadas.
+O benchmark determinístico não comprova qualidade semântica de modelo.
+O [incremento 2](docs/architecture/2026-11-01-forgelex-3-adaptive-graph.md)
+implementa localmente o grafo de capacidades com um refinamento limitado e
+retomada do contrato v1 do incremento anterior. O
+[incremento 3](docs/architecture/2026-11-01-forgelex-3-evidence.md) implementa
+a ação probatória local, com matriz, cronologia e contradições. O
+[incremento 4](docs/architecture/2026-11-01-forgelex-3-evidence-adoption.md)
+implementa a incorporação ao caso mediante seleção, edição e aprovação humana,
+com migration 0037 aditiva. Avaliação semântica jurídica por Boni e publicação
+seguem pendentes; a permissão para implementar não aprova itens reais.
+Checkpoints anteriores requerem tratamento
+por versão antes de uma futura publicação; ver compatibilidade no relatório.
+
 Atualizado em 24/10/2026 (dependências de segurança publicadas; ensaios do leitor
 e da coleção de 12/10, priorização humana/fiscal/contratual e consulta externa
 de 10/10 mantidas). Backlog vigente; checkboxes de planos antigos

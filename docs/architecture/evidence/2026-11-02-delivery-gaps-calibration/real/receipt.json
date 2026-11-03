@@ -1,0 +1,295 @@
+{
+  "date": "2026-11-02",
+  "campaignId": "2026-11-02-delivery-gaps-v5",
+  "scopeCompleted": true,
+  "authorization": "authorization.json",
+  "packetSha256": "4aeb33e998b977471966644414e44f1750f0d4fcafc53016f2859dbd91710b10",
+  "candidateSourceSha256": "348b6546848d6222cd6c9ada25f103bfff852b36b7d5df8096a40c6ce5926227",
+  "baseline": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "approvedCapMicroUsd": 1500000,
+  "paidModelCalls": 33,
+  "measuredMicroUsd": 373532,
+  "calculatedUsd": 0.373532,
+  "historicalCalibrationUsd": 0.135442,
+  "combinedCalibrationUsd": 0.508974,
+  "costBasis": "Provider-reported usage at verified standard rates, including rounding per call; not an invoice reconciliation",
+  "pricingSource": "https://developers.openai.com/api/docs/pricing",
+  "tokens": {
+    "input": 118136,
+    "output": 13726,
+    "cached": 0
+  },
+  "executions": 6,
+  "questions": 3,
+  "failed": 3,
+  "deliveries": 0,
+  "uncertainMicroUsd": 0,
+  "ledgerChainVerified": true,
+  "ledgerSha256": "326824626e39cf627bd756b8e3591d684cbc51c26f3ab6888bd5a25e6585e645",
+  "sourceFilesVerified": 764,
+  "historicalFilesVerifiedUnchanged": 34,
+  "legalScore": null,
+  "runs": [
+    {
+      "id": "D01-analyze-baseline",
+      "outcome": "question",
+      "error": null,
+      "calls": 3,
+      "costUsd": 0.024514,
+      "durationMs": 25159.232800000005,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "hasQuestion": true,
+      "completedRoleOutputs": [],
+      "lastCallUsage": {
+        "inputTokens": 3260,
+        "outputTokens": 4,
+        "cachedInputTokens": 0
+      },
+      "planGaps": [
+        {
+          "key": "payment_terms",
+          "reason": "O preço global não demonstra, por si só, vencimento ou exigibilidade integral. Sem esclarecimento, limitar a análise a essa ausência."
+        },
+        {
+          "key": "remaining_delivery",
+          "reason": "O recibo comprova apenas o recebimento nele registrado e não resolve a situação das demais mesas."
+        },
+        {
+          "key": "claims_defense_evidence",
+          "reason": "Faltam delimitação da pretensão, controvérsia efetivamente instaurada e suporte adicional para aplicação concreta do ônus da prova. Sem novos elementos, a análise permanece limitada, sem presumir pagamento, inadimplemento ou defesa."
+        }
+      ],
+      "findings": []
+    },
+    {
+      "id": "D01-analyze-candidate",
+      "outcome": "failed",
+      "error": "OPENAI_AGENT_ERROR",
+      "calls": 5,
+      "costUsd": 0.065702,
+      "durationMs": 46537.3233,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst"
+      ],
+      "stateVersion": 5,
+      "hasDelivery": false,
+      "hasQuestion": false,
+      "completedRoleOutputs": [],
+      "lastCallUsage": {
+        "inputTokens": 4567,
+        "outputTokens": 2048,
+        "cachedInputTokens": 0
+      },
+      "planGaps": [
+        {
+          "key": "entrega-restante",
+          "deliveryImpact": "LIMITATION",
+          "reason": "O recibo registra seis mesas, mas não esclarece o destino das quatro restantes. Isso limita conclusões sobre extensão e duração de eventual falta de entrega, sem impedir a análise do material existente."
+        },
+        {
+          "key": "condicoes-pagamento",
+          "deliveryImpact": "LIMITATION",
+          "reason": "O trecho informa preço e prazo de entrega, mas não vencimento ou condições de pagamento. A exigibilidade e eventual mora não podem ser concluídas com esse conteúdo."
+        },
+        {
+          "key": "elementos-pagamento",
+          "deliveryImpact": "LIMITATION",
+          "reason": "Há apenas relato da autora e ausência declarada de documentos bancários; não há versão da ré. Isso limita a avaliação probatória do pagamento sem impedir a apresentação da alegação e de seus limites."
+        },
+        {
+          "key": "fontes-materiais",
+          "deliveryImpact": "LIMITATION",
+          "reason": "O corpus fechado não contém normas materiais ou jurisprudência sobre esses temas. A restrição de fontes deve ser preservada; a ausência limita conclusões jurídicas, mas não impede a análise solicitada."
+        }
+      ],
+      "findings": []
+    },
+    {
+      "id": "D03-review-baseline",
+      "outcome": "question",
+      "error": null,
+      "calls": 3,
+      "costUsd": 0.020598,
+      "durationMs": 15610.512600000002,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "hasQuestion": true,
+      "completedRoleOutputs": [],
+      "lastCallUsage": {
+        "inputTokens": 2923,
+        "outputTokens": 4,
+        "cachedInputTokens": 0
+      },
+      "planGaps": [
+        {
+          "key": "prova_pagamento_credito",
+          "reason": "Não há comprovante de pagamento ou outros elementos suficientes para apurar saldo e exigibilidade. Como o pedido restringe a revisão ao corpus fechado, a entrega não condiciona sua conclusão à obtenção de novas fontes."
+        }
+      ],
+      "findings": []
+    },
+    {
+      "id": "D03-review-candidate",
+      "outcome": "failed",
+      "error": "OPENAI_AGENT_ERROR",
+      "calls": 11,
+      "costUsd": 0.131608,
+      "durationMs": 64337.8188,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 5,
+      "hasDelivery": false,
+      "hasQuestion": false,
+      "completedRoleOutputs": [
+        "matter-analyst",
+        "adversarial-reviewer"
+      ],
+      "lastCallUsage": {
+        "inputTokens": 5738,
+        "outputTokens": 947,
+        "cachedInputTokens": 0
+      },
+      "planGaps": [
+        {
+          "key": "estado-pagamento",
+          "deliveryImpact": "LIMITATION",
+          "reason": "A falta de informação sobre pagamento limita qualquer conclusão sobre saldo, quitação ou encerramento, mas não impede corrigir o rascunho com ressalva expressa. Não solicitar novas fontes fora do corpus fechado."
+        }
+      ],
+      "findings": [
+        {
+          "id": "CAPABILITY_UNAVAILABLE:c627c859a95a69d3",
+          "code": "CAPABILITY_UNAVAILABLE",
+          "severity": "BLOCKING",
+          "statement": "A capacidade de pesquisa solicitada não dispõe das ferramentas necessárias neste trabalho.",
+          "sourceIds": []
+        }
+      ]
+    },
+    {
+      "id": "D04-create-baseline",
+      "outcome": "question",
+      "error": null,
+      "calls": 3,
+      "costUsd": 0.022126,
+      "durationMs": 18432.185200000004,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "hasQuestion": true,
+      "completedRoleOutputs": [],
+      "lastCallUsage": {
+        "inputTokens": 2976,
+        "outputTokens": 4,
+        "cachedInputTokens": 0
+      },
+      "planGaps": [
+        {
+          "key": "risco-concreto",
+          "reason": "O corpus não documenta paralisação ou risco concreto; a solicitação imediata e a data contratual não bastam, isoladamente, para demonstrar o requisito do art. 300. Entrega limitada sem suprir a lacuna."
+        },
+        {
+          "key": "reversibilidade",
+          "reason": "O silêncio da narrativa não demonstra ausência de perigo de irreversibilidade; é necessário preservar a limitação na análise do § 3º."
+        },
+        {
+          "key": "situacao-entrega",
+          "reason": "O trecho contratual e a solicitação posterior não comprovam, por si, que a obrigação permanece descumprida."
+        },
+        {
+          "key": "dados-processuais",
+          "reason": "Esses dados não foram fornecidos; a minuta pode ser entregue apenas de forma limitada, sem presumir endereçamento, fase ou tempestividade."
+        }
+      ],
+      "findings": []
+    },
+    {
+      "id": "D04-create-candidate",
+      "outcome": "failed",
+      "error": "OPENAI_AGENT_ERROR",
+      "calls": 8,
+      "costUsd": 0.108984,
+      "durationMs": 63587.2058,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "procedural-advisor"
+      ],
+      "stateVersion": 5,
+      "hasDelivery": false,
+      "hasQuestion": false,
+      "completedRoleOutputs": [
+        "matter-analyst"
+      ],
+      "lastCallUsage": {
+        "inputTokens": 5460,
+        "outputTokens": 1500,
+        "cachedInputTokens": 0
+      },
+      "planGaps": [
+        {
+          "key": "perigo-concreto",
+          "deliveryImpact": "LIMITATION",
+          "reason": "O material não descreve consequência concreta da demora nem contém documentos sobre paralisação ou risco. Isso limita a fundamentação do perigo exigido pelo art. 300, mas permite minuta preliminar com a lacuna expressa."
+        },
+        {
+          "key": "reversibilidade",
+          "deliveryImpact": "LIMITATION",
+          "reason": "Não há elementos sobre reversibilidade dos efeitos da medida, limitando o exame do art. 300, § 3º, sem impedir a elaboração limitada solicitada."
+        },
+        {
+          "key": "situacao-entrega",
+          "deliveryImpact": "LIMITATION",
+          "reason": "O contrato e a solicitação não demonstram por si a situação efetiva de cumprimento. A narrativa pode ser exposta, mas o inadimplemento não deve ser afirmado como comprovado."
+        },
+        {
+          "key": "identificacao-processual",
+          "deliveryImpact": "LIMITATION",
+          "reason": "O corpus não contém esses dados; a minuta preliminar pode ser entregue com campos expressamente pendentes, sem inventar informações ou prazos."
+        }
+      ],
+      "findings": []
+    }
+  ],
+  "outputHashes": {
+    "comparison.json": "9a4544241eb59c9ed5c216b91c62ffd85921cbb8c5252f0da1dc38d42408e213",
+    "review.md": "e3cdb24ad0424509096d633fcf1eaadb39f2e87ff622ad0c7a105fe74493b6cd",
+    "budget.jsonl": "326824626e39cf627bd756b8e3591d684cbc51c26f3ab6888bd5a25e6585e645",
+    "D01-analyze-baseline.json": "7b818476fe52aca772eee831d9ab77a582068f5ae057af5aa3ec17d88ac2dd9f",
+    "D01-analyze-baseline.checkpoint.json": "83c0e05e3d6135392791aac0f2eb5c8ea3edafdf0d8914367b488cbc43178b1d",
+    "D01-analyze-candidate.json": "71b39dd4efe1bd766e862188c05519ac45a1335bd8f115be8adc8c2ae8454874",
+    "D01-analyze-candidate.checkpoint.json": "4da0f4a5a94b2607c0087d885a12372ca110b5f555d39c4372ec6dc29004904f",
+    "D03-review-baseline.json": "b822cbd89731dfb024c43e9e93c7d1b24f4ff0e96db4f3df34224bc2dcd93bae",
+    "D03-review-baseline.checkpoint.json": "5b6a9305c73a5285933e21000e151d923566c2608118be7349c530551f00259d",
+    "D03-review-candidate.json": "7ca6875d15d0c7abe75f6d6e69279661ae67f10c05b887e570bfe11ad74be5ca",
+    "D03-review-candidate.checkpoint.json": "e7ae43e44df9a9d2ef0db8acff3b21c9fe669552b35416a6be82db0548019704",
+    "D04-create-baseline.json": "b29d160a441d087903c756f2cfce8f0c388cc0d17262ee07b229fb4933a189c2",
+    "D04-create-baseline.checkpoint.json": "2a11c75ee49c2201f774428f245d44441c0b960b9b3e14409e30a33657700fd0",
+    "D04-create-candidate.json": "ec9b6cf050ade51858421e56c988743e888f9e500d4dbb9bb285ab0d3c22012f",
+    "D04-create-candidate.checkpoint.json": "49dcfa8bfecc912442373ca9d3c782f6d4b1c6e3bff59c5e08a25689ab8b7009",
+    "authorization.json": "1d581a65d39ad776f6e42d0a76d226d4f39a95f99d78a47fe395e7788f7b1f6c",
+    "packet.json": "4aeb33e998b977471966644414e44f1750f0d4fcafc53016f2859dbd91710b10"
+  },
+  "limitations": [
+    "All candidate runs advanced beyond planning but failed before final delivery",
+    "Generic OPENAI_AGENT_ERROR lacks preserved provider message/name in workflow error",
+    "D01 last call reached 2048 output tokens; truncation is a hypothesis, not confirmed cause",
+    "D03 also recorded unavailable research capability in this intentionally tool-free corpus",
+    "No paid retry, customer wallet, historical pilot budget, live research, commit, push or deploy",
+    "No assessment of final legal quality is possible without final delivery"
+  ]
+}

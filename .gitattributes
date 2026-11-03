@@ -5,7 +5,7 @@ patches/*.patch text eol=lf -whitespace
 docs/architecture/fixtures/agentic-task6-synthetic-cases.json text eol=lf
 
 # Preserve the bytes of the November calibration receipts and regression evidence.
-docs/architecture/evidence/2026-11-0[12]-* -text
-docs/architecture/evidence/2026-11-0[12]-*/** -text
+docs/architecture/evidence/2026-11-0[12]-* -text whitespace=cr-at-eol
+docs/architecture/evidence/2026-11-0[12]-*/** -text whitespace=cr-at-eol
 # Raw test output is evidence; keep its original whitespace.
 docs/architecture/evidence/2026-11-0[12]-*/**/*.log -whitespace

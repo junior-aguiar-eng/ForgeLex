@@ -1,0 +1,11 @@
+{
+  "legacyReservationMicroUsd": 182612,
+  "candidateReservationsMicroUsd": [
+    137688
+  ],
+  "initialSpentMicroUsd": 100930,
+  "capMicroUsd": 250000,
+  "paidModelCalls": 0,
+  "syntheticVerifierCalls": 1,
+  "requestBytes": 25206
+}

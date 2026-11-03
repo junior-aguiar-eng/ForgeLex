@@ -1,0 +1,66 @@
+{
+  "runId": "D04-create-candidate",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\348b6546848d6222cd6c9ada25f103bfff852b36b7d5df8096a40c6ce5926227\\candidate",
+  "inputHash": "b3d29f8ee13cb9e27c38a2e644c5c83e0ea8b27a172ac5aa89b691b0cc2c0813",
+  "request": "Prepare uma minuta de manifestação civil limitada ao material selecionado. Marque lacunas essenciais; não invente dados de qualificação, juízo ou prazo. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "failed",
+  "error": "OPENAI_AGENT_ERROR",
+  "durationMs": 63587.2058,
+  "roles": [
+    "legal-orchestrator",
+    "matter-analyst",
+    "procedural-advisor"
+  ],
+  "stateVersion": 5,
+  "paidModelCalls": 8,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 108984,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 2172,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2674,
+      "outputTokens": 879,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3572,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3806,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 4308,
+      "outputTokens": 1835,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 6162,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 4958,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 5460,
+      "outputTokens": 1500,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": null,
+  "legalScore": null
+}

@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "bindingHash": "365ad20dab6a2544bd0b6f7f7c20e7bf8c3d274c8f070bf4b6c830eef78d4be1",
+  "contractHash": "8847855772466938a857ef45471c4bab12d2b1b46d4660f343377cdd49abc3e3",
+  "previousDeliveryIds": [],
+  "outputs": {},
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.1.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.1.0"
+    }
+  ],
+  "toolCount": 2,
+  "researchOperations": [],
+  "findings": [],
+  "plan": {
+    "action": "analyze_documents",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "issues": [
+      {
+        "id": "scope",
+        "statement": "Analisar exclusivamente o corpus selecionado, relativo ao caso fictício Aurora (autora) versus Brisa (ré), sobre fornecimento civil em procedimento comum. Não escolher peça ou medida jurídica nem calcular prazos. Requisito EDITORIAL: preservar alegações, limites dos excertos e ausência de fontes; não pesquisar fora do corpus.",
+        "sourceIds": [
+          "context"
+        ]
+      },
+      {
+        "id": "contract",
+        "statement": "O excerto contratual descreve dez mesas, preço global de R$ 10.000,00 e entrega até 10/10/2026. Não informa vencimento do pagamento, condições de exigibilidade ou consequências de entrega parcial. Não concluir, com esse excerto, que o preço integral esteja vencido ou seja exigível.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "delivery",
+        "statement": "O recibo registra recebimento de seis mesas em 10/10/2026. Seu alcance não abrange as quatro restantes: ausência de menção não prova entrega nem falta de entrega dessas unidades. Confrontar obrigação descrita e recebimento documentado sem converter silêncio em inadimplemento comprovado.",
+        "sourceIds": [
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1"
+        ]
+      },
+      {
+        "id": "payment",
+        "statement": "O não recebimento de pagamento é alegação da autora, sem extrato ou comprovante bancário fornecido. A ausência desses documentos não confirma nem refuta pagamento e não permite concluir, isoladamente, pela procedência ou improcedência da pretensão.",
+        "sourceIds": [
+          "D01/relato@v1#p1"
+        ]
+      },
+      {
+        "id": "burden",
+        "statement": "Requisito PROCEDURAL: examinar a distribuição do ônus probatório segundo o único excerto normativo disponível, CPC art. 373: fatos constitutivos ao autor e fatos impeditivos, modificativos ou extintivos ao réu. Distinguir demonstração da obrigação e de sua exigibilidade de eventual alegação de pagamento como fato extintivo. Não atribuir automaticamente à autora a prova bancária negativa nem presumir defesa não apresentada.",
+        "sourceIds": [
+          "CPC-373",
+          "D01/contrato@v1#p1",
+          "D01/relato@v1#p1"
+        ]
+      },
+      {
+        "id": "limits",
+        "statement": "Entrega limitada ao alcance dos excertos: não há petição com pedidos, contestação, outras provas, jurisprudência ou fontes de direito material no corpus. Não firmar conclusão sobre cobrança integral, efeitos jurídicos da entrega parcial, defesas efetivamente deduzidas ou resultado do litígio. O art. 373 disponível trata de ônus probatório, não supre essas lacunas.",
+        "sourceIds": [
+          "context",
+          "CPC-373",
+          "D01/contrato@v1#p1",
+          "D01/recibo@v1#p1",
+          "D01/relato@v1#p1"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "payment_terms",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "O que foi ajustado sobre vencimento e condições de pagamento? Se houver informação adicional, descreva-a e identifique seu suporte; pode indicar que não sabe ou que não há outros elementos no corpus.",
+        "reason": "O preço global não demonstra, por si só, vencimento ou exigibilidade integral. Sem esclarecimento, limitar a análise a essa ausência.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ],
+        "options": []
+      },
+      {
+        "key": "remaining_delivery",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Há informação sobre a entrega das quatro mesas restantes? Descreva eventual relato ou documento, ou indique desconhecimento ou ausência de outros elementos.",
+        "reason": "O recibo comprova apenas o recebimento nele registrado e não resolve a situação das demais mesas.",
+        "sourceIds": [
+          "D01/recibo@v1#p1"
+        ],
+        "options": []
+      },
+      {
+        "key": "claims_defense_evidence",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Quais pedidos e fundamentos foram formulados e qual é, se conhecida, a posição de Brisa sobre entrega e pagamento? Há outros elementos probatórios autorizados? É possível responder em texto livre ou indicar que são desconhecidos ou inexistentes no corpus.",
+        "reason": "Faltam delimitação da pretensão, controvérsia efetivamente instaurada e suporte adicional para aplicação concreta do ônus da prova. Sem novos elementos, a análise permanece limitada, sem presumir pagamento, inadimplemento ou defesa.",
+        "sourceIds": [
+          "context",
+          "D01/relato@v1#p1",
+          "CPC-373"
+        ],
+        "options": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-02",
+  "branch": "codex/forgelex-3-quality",
+  "baseHead": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "productCommits": [
+    "4c5522e",
+    "94b658d"
+  ],
+  "validation": {
+    "fullSuite": {
+      "passed": 1621,
+      "failed": 0,
+      "skipped": 17,
+      "passedFiles": 231,
+      "skippedFiles": 3
+    },
+    "focusedSuite": {
+      "passed": 51,
+      "failed": 0
+    },
+    "runnerNodeTests": {
+      "passed": 15,
+      "failed": 0
+    },
+    "build": "passed",
+    "apiTypecheck": "passed",
+    "changedTestLint": "passed",
+    "changedTestFormat": "passed"
+  },
+  "scope": {
+    "paidModelCalls": 0,
+    "push": false,
+    "deploy": false,
+    "remoteMigrations": false,
+    "newRuntimeRole": false
+  },
+  "correction": "closed-pilot expects one accepted terminal call, persisted question and matching balance",
+  "skips": "PostgreSQL conditional tests and paid real-provider integration; not enabled in this run",
+  "limits": "Existing commercial/pilot limits unchanged; no v8 real-model measurement",
+  "artifactHashes": {
+    "api-typecheck.log": "4f658209920a5218841e9843c51a440cb63d41dbd1aa31b97bf63bc1fc38bf9f",
+    "focused-tests.log": "f3418ba1ded77ad507f75c9bd60fae34de49cf321df2c923ffdb000de26debc5",
+    "full-suite.log": "e3f177d2611709e904288ce92756c3bc25f7193b2a2e6fbeb0c1f9fd5ec440e4",
+    "runner-tests.log": "8e9e0e22e486f85f045dde518044e66d6af21e03e47fcfd54fd30c2ecfe1d249"
+  }
+}
