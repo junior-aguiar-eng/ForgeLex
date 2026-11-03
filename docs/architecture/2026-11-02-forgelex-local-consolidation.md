@@ -12,8 +12,9 @@ branch `codex/forgelex-3-quality`, base `025f6dd438ecfd78079b4688fd076e476da74ce
   aprovado e mesa; handoffs limitados e verificação terminal v8. Testes e dez
   fixtures históricas necessárias acompanham o código para evitar dependência
   de arquivos não versionados.
-- Executor de calibração, corpus, recibos, resultados e documentação formam a
-  unidade seguinte. O contrato do editor final será registrado separadamente.
+- `d4dd210`: executor de calibração, corpus, recibos, resultados e documentação.
+- [Contrato proposto do editor final](../superpowers/specs/2026-11-02-forgelex-final-editor-contract.md):
+  registrado separadamente; delimita o próximo incremento local sem ativar o papel.
 
 As mudanças acumuladas em domínio, persistência, workflow, API e mesa dependem
 umas das outras e foram mantidas juntas. Não foi reconstruída uma sequência

@@ -1,5 +1,14 @@
 # Pendências atuais do ForgeLex
 
+## Próximo incremento delimitado: editor final — 02/11/2026
+
+[Contrato proposto](docs/superpowers/specs/2026-11-02-forgelex-final-editor-contract.md):
+propostas editoriais ancoradas na versão/hash da minuta, com mudanças substantivas
+separadas e aplicação apenas por decisão explícita de Boni. Próximo incremento
+local: schemas, validador e fixtures em `legal-agents`, sem ativar um oitavo papel,
+chamar modelo, mudar a mesa ou aplicar alterações automaticamente. O contrato
+está documentado; sua implementação e integração ainda não foram executadas.
+
 ## Consolidação local validada — 02/11/2026
 
 [Registro e evidências](docs/architecture/2026-11-02-forgelex-local-consolidation.md):
