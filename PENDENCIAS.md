@@ -1,8 +1,10 @@
 # Pendências atuais do ForgeLex
 
-Atualizado em 24/10/2026 (dependências de segurança publicadas; ensaios do leitor
-e da coleção de 12/10, priorização humana/fiscal/contratual e consulta externa
-de 10/10 mantidas). Backlog vigente; checkboxes de planos antigos
+Atualizado em 03/11/2026 (publicação do `025f6dd` registrada; a seção agêntica
+abaixo foi reconciliada com a produção. As demais seções mantêm a data de seus
+registros: ensaios do leitor e da coleção de 12/10, priorização
+humana/fiscal/contratual e consulta externa de 10/10, dependências de
+segurança de 24/10). Backlog vigente; checkboxes de planos antigos
 registram aquela entrega e não devem ser importados como tarefas novas.
 [Produto e publicações](CONTINUIDADE.md) · [Evidências](STATUS_VALIDACAO.md).
 
@@ -18,15 +20,24 @@ A revisão documental foi integrada em main pela PR #63, no commit
 preservação das branches históricas estão
 no [registro de manutenção](docs/operations/stabilization/2026-10-10-documentation-repository-hygiene.md).
 
-## Plataforma agêntica — pendências (31/10/2026)
+## Plataforma agêntica — pendências (03/11/2026)
+
+**Publicada em 01–02/11/2026:** a imagem da `main` (`025f6dd`, PR #101) está a
+100% nos dois serviços (`forgelex-api-prod-025f6dd-r2` e
+`forgelex-closure-hml-private-025f6dd-r2`), sem migration nova; a `persistence-0036`
+foi aplicada em 31/10 ([registro](docs/operations/agentic-workspace/2026-10-31-migration-0036-aplicada.md)).
+[Recibo da publicação](docs/operations/agentic-workspace/2026-11-02-publication.md),
+com build, digest, verificações, a promoção, o rollback feito por Boni por
+engano e a repromoção. A imagem anterior (`commercial-7abf606`) segue
+disponível para retorno de tráfego.
 
 | Pendência | Dependência para encerrar |
 | --- | --- |
-| Publicar a imagem da `main` | A migration `persistence-0036` foi aplicada em 31/10 ([registro](docs/operations/agentic-workspace/2026-10-31-migration-0036-aplicada.md)). Falta publicar a imagem, por autorização de Boni; a imagem antiga continua funcionando com a coluna criada |
-| Publicar e ativar a execução comercial | Recibo de Boni: backup, migrations pendentes, flags, chave no gerenciador de segredos, instância sempre ativa; ensaio sintético com teto comercial. [Operação](docs/operations/agentic-workspace/commercial-execution.md) |
-| Cancelamento cooperativo da execução comercial | Política decidida em 01/11 e implementada (a chamada em voo termina; ver [operação](docs/operations/agentic-workspace/commercial-execution.md)); entra em produção com a próxima imagem. Timeout ou queda de rede ainda deixam a chamada incerta (saída: conciliação manual por `scripts/reconcile-commercial-call.mjs`, com evidência do provedor) |
+| Recibo da publicação e ativação da execução comercial | Boni autorizou publicar e ativar ([commercial-execution.md](docs/operations/agentic-workspace/commercial-execution.md)), e em 01/11 a API de produção estava assim: `FORGELEX_AGENTIC_WORKSPACE_ENABLED=true` e `FORGELEX_COMMERCIAL_EXECUTION_ENABLED=true`, interface agêntica no build, mínimo de uma instância, CPU sempre alocada e `OPENAI_API_KEY` no Secret Manager. Essa configuração vem da revisão `commercial-7abf606` (30/10), que não tem recibo no repositório; o registro de 30/10 descreve a `dc68fcb` com as flags desligadas. Falta registrar o recibo exigido (backup, flags, segredo, instância e ensaio sintético com teto comercial). A migration `billing-ledger-0010-commercial-inference` consta no journal desde 30/10 |
+| Cancelamento cooperativo em produção | Política de 01/11 implementada e presente na imagem publicada em 02/11; não houve cancelamento real em produção para comprovar. Timeout ou queda de rede ainda deixam a chamada incerta (saída: conciliação manual por `scripts/reconcile-commercial-call.mjs`, com evidência do provedor) |
 | Limites diário e mensal contam consumo sem cobrança | Confirmar a regra com Boni; é visível ao cliente |
-| Configurações do Playwright e documentos históricos na raiz | Reorganização própria: há referências cruzadas em documentos e scripts |
+| Chave do DataJud como variável simples | `FORGELEX_DATAJUD_API_KEY` está como variável de ambiente, não como segredo. Em 02/11 Boni decidiu não alterá-la; fica registrado como decisão, não como defeito. Pelo que se sabe é a chave pública do CNJ (confirmar na documentação oficial) |
+| Configurações do Playwright e documentos históricos na raiz | Reorganização própria: há referências cruzadas em documentos e scripts. A raiz concentra prompts, adendos e planos históricos (`PROMPT_*.md`, `ADENDO_*.md`, imagens `ForgeLex_0*.png`) |
 
 ## Dependências de segurança — publicadas em 24/10/2026
 
