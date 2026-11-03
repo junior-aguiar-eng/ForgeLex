@@ -7,3 +7,4 @@ export * from './policy/policy-engine.js';
 export * from './runtime/session-state-machine.js';
 export * from './runtime/agent-runtime.js';
 export * from './providers/fake-agent-provider.js';
+export { safeAgentFailure, safeAgentFailureDetails, type AgentFailureDiagnostic } from './runtime/agent-failure.js';
