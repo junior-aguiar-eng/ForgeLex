@@ -66,6 +66,81 @@ const upload = (page: Page, proposal: unknown) =>
     buffer: Buffer.from(JSON.stringify(proposal)),
   });
 
+async function acceptForApplication(page: Page) {
+  const f = await setup(page);
+  await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+  await upload(page, f.proposal);
+  const dialog = page.getByRole('dialog', { name: 'Revisão editorial' });
+  await dialog.getByRole('combobox', { name: 'Decisão 1', exact: true }).selectOption('ACCEPT');
+  await dialog.getByRole('textbox', { name: 'Fundamento 1', exact: true }).fill('Conferi este ajuste.');
+  await dialog.getByRole('button', { name: 'Salvar decisão 1', exact: true }).click();
+  await expect(dialog.getByRole('status')).toContainText('Decisão salva');
+  return { ...f, dialog };
+}
+
+test('aplicação editorial exige seleção e confirmação e abre nova versão preservando original', async ({ page }) => {
+  const f = await acceptForApplication(page);
+  const writes: string[] = [];
+  page.on('request', (req) => {
+    if (req.method() === 'POST') writes.push(req.url());
+  });
+  const select = f.dialog.getByRole('checkbox', { name: 'Aplicar ajuste editorial 1', exact: true });
+  await expect(select).not.toBeChecked();
+  const apply = f.dialog.getByRole('button', { name: 'Criar nova versão com selecionadas', exact: true });
+  await expect(apply).toBeDisabled();
+  await select.check();
+  await f.dialog.getByLabel('Fundamento da aplicação', { exact: true }).fill('Aplicação conferida por mim.');
+  await expect(apply).toBeDisabled();
+  await f.dialog.getByRole('checkbox', { name: 'Confirmo criar uma nova versão com os ajustes selecionados.' }).check();
+  expect(writes).toEqual([]);
+  await apply.click();
+  await expect(f.dialog).toContainText('Nova versão criada');
+  await expect(f.dialog.getByRole('link', { name: 'Abrir versão criada' })).toBeVisible();
+  const saved = await (
+    await page.request.get(`${f.path}/editorial-review?${new URLSearchParams(f.target)}`, { headers })
+  ).json();
+  expect(saved.application.versionId).not.toBe(f.target.versionId);
+  await page.reload();
+  await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+  await expect(f.dialog).toContainText('Aplicação conferida por mim.');
+  await expect(f.dialog.getByRole('button', { name: 'Criar nova versão com selecionadas' })).toHaveCount(0);
+  await page.screenshot({ path: 'tmp/editorial-application-desktop.png' });
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(await f.dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  expect((await new AxeBuilder({ page }).include('dialog[open]').analyze()).violations).toEqual([]);
+  await page.screenshot({ path: 'tmp/editorial-application-mobile.png' });
+  await f.dialog.getByRole('link', { name: 'Abrir versão criada' }).click();
+  await expect(page).toHaveURL(new RegExp(saved.application.versionId));
+  await expect(page.getByText('[DESTINATÁRIO A CONFERIR ANTES DO USO]', { exact: false }).first()).toBeVisible();
+  expect(writes.filter((url) => /editorial-review\/applications$/.test(url))).toHaveLength(1);
+  expect(writes.some((url) => /editorial-proposals\/generate|\/executions$/.test(url))).toBe(false);
+});
+
+test('aplicação editorial recupera resposta perdida sem duplicar versão', async ({ page }) => {
+  const f = await acceptForApplication(page);
+  await f.dialog.getByRole('checkbox', { name: 'Aplicar ajuste editorial 1', exact: true }).check();
+  await f.dialog.getByLabel('Fundamento da aplicação', { exact: true }).fill('Aplicação explícita.');
+  await f.dialog.getByRole('checkbox', { name: 'Confirmo criar uma nova versão com os ajustes selecionados.' }).check();
+  const bodies: string[] = [];
+  await page.route('**/editorial-review/applications', async (route) => {
+    bodies.push(route.request().postData()!);
+    if (bodies.length === 1) {
+      await route.fetch();
+      await route.abort('failed');
+    } else await route.continue();
+  });
+  await f.dialog.getByRole('button', { name: 'Criar nova versão com selecionadas' }).click();
+  await expect(f.dialog.getByRole('button', { name: 'Verificar aplicação' })).toBeVisible();
+  await expect(f.dialog.getByLabel('Arquivo da proposta editorial')).toBeDisabled();
+  await f.dialog.getByRole('button', { name: 'Fechar', exact: true }).click();
+  await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+  await f.dialog.getByRole('button', { name: 'Verificar aplicação' }).click();
+  await expect(f.dialog).toContainText('Nova versão criada');
+  expect(bodies).toHaveLength(2);
+  expect(bodies[1]).toBe(bodies[0]);
+});
+
 test('revisão editorial persiste decisão, preserva minuta, permite recarga e funciona em tela móvel', async ({
   page,
 }) => {

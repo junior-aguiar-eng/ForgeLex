@@ -1,0 +1,203 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts (47 tests | 10 failed | 37 skipped) 3777ms
+   × aplicação humana cria versão derivada sem alterar original, entrega ou decisões 714ms
+   × aplicação humana repete exatamente uma vez e reconcilia o recibo após nova versão 341ms
+   × aplicação humana recusa última decisão REJECT 329ms
+   × aplicação humana recusa última decisão DEFER 332ms
+   × aplicação humana exige seleção única, confirmação, revisão e proposta persistida 415ms
+   × aplicação humana preserva sessão, escrita, proprietário e revogação 331ms
+   × aplicação humana recusa decisão mais recente e edição manual concorrente 337ms
+   × aplicação humana reverte versão se falhar antes de salvar recibo 338ms
+   × aplicação humana serializa concorrência com comando igual=true 321ms
+   × aplicação humana serializa concorrência com comando igual=false 316ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana cria versão derivada sem alterar original, entrega ou decisões
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:47:31
+     45|   const before = await f.snapshot();
+     46|   const response = await f.post('applications', f.command);
+     47|   expect(response.statusCode).toBe(200);
+       |                               ^
+     48|   const receipt = response.json().application;
+     49|   expect(receipt).toMatchObject({ commandId: f.command.commandId, base…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana repete exatamente uma vez e reconcilia o recibo após nova versão
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:68:30
+     66|   const f = await applicationFixture();
+     67|   const applied = await f.post('applications', f.command);
+     68|   expect(applied.statusCode).toBe(200);
+       |                              ^
+     69|   expect((await f.post('applications', f.command)).json()).toEqual(app…
+     70|   expect((await f.post('applications', { ...f.command, reason: 'Outro …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana recusa última decisão REJECT
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana recusa última decisão DEFER
+AssertionError: expected 404 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:84:64
+     82| it.each(['REJECT', 'DEFER'])('aplicação humana recusa última decisão %…
+     83|   const f = await applicationFixture(action), before = await f.snapsho…
+     84|   expect((await f.post('applications', f.command)).statusCode).toBe(40…
+       |                                                                ^
+     85|   expect(await f.snapshot()).toEqual(before);
+     86| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana exige seleção única, confirmação, revisão e proposta persistida
+AssertionError: expected 404 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:92:83
+     90|   for (const patch of [{ itemIds: [] }, { itemIds: ['edit', 'edit'] },…
+     91|     { reason: '' }, { proposal: f.proposal }, { after: 'texto arbitrár…
+     92|     expect((await f.post('applications', { ...f.command, ...patch })).…
+       |                                                                                   ^
+     93|   for (const patch of [{ itemIds: ['inventado'] }, { proposalHash: 'a'…
+     94|     { contextHash: 'a'.repeat(64) }, { expectedRevision: 0 }, { comman…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana preserva sessão, escrita, proprietário e revogação
+AssertionError: expected 404 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:102:73
+    100|   const f = await applicationFixture(), before = await f.snapshot();
+    101|   for (const [token, status] of [['other', 404], ['tenant', 404], ['re…
+    102|     expect((await f.post('applications', f.command, token)).statusCode…
+       |                                                                         ^
+    103|   f.revoke();
+    104|   expect((await f.post('applications', f.command)).statusCode).toBe(40…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana recusa decisão mais recente e edição manual concorrente
+AssertionError: expected 404 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:113:92
+    111|     decision: { ...f.decision.decision, action: 'REJECT' } })).statusC…
+    112|   const before = await f.snapshot();
+    113|   expect((await f.post('applications', { ...f.command, expectedRevisio…
+       |                                                                                            ^
+    114|   expect(await f.snapshot()).toEqual(before);
+    115|   const other = await applicationFixture();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana reverte versão se falhar antes de salvar recibo
+AssertionError: expected 404 to be 500 // Object.is equality
+
+- Expected
++ Received
+
+- 500
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:132:70
+    130|     throw new Error('SIMULATED_WRITE_FAILURE');
+    131|   });
+    132|   try { expect((await f.post('applications', f.command)).statusCode).t…
+       |                                                                      ^
+    133|   finally { fault.mockRestore(); }
+    134|   expect(await f.snapshot()).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana serializa concorrência com comando igual=true
+AssertionError: expected [ 404, 404 ] to deeply equal [ 200, 200 ]
+
+- Expected
++ Received
+
+  [
+-   200,
+-   200,
++   404,
++   404,
+  ]
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:141:49
+    139|   const results = await Promise.all([f.post('applications', f.command),
+    140|     f.post('applications', { ...f.command, commandId: same ? f.command…
+    141|   expect(results.map(r => r.statusCode).sort()).toEqual(same ? [200, 2…
+       |                                                 ^
+    142|   expect((await new DraftRepository(f.db).listVersions(f.owner.tenantI…
+    143| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana serializa concorrência com comando igual=false
+AssertionError: expected [ 404, 404 ] to deeply equal [ 200, 409 ]
+
+- Expected
++ Received
+
+  [
+-   200,
+-   409,
++   404,
++   404,
+  ]
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:141:49
+    139|   const results = await Promise.all([f.post('applications', f.command),
+    140|     f.post('applications', { ...f.command, commandId: same ? f.command…
+    141|   expect(results.map(r => r.statusCode).sort()).toEqual(same ? [200, 2…
+       |                                                 ^
+    142|   expect((await new DraftRepository(f.db).listVersions(f.owner.tenantI…
+    143| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  10 failed | 37 skipped (47)
+   Start at  17:33:32
+   Duration  9.24s (transform 2.53s, setup 0ms, import 4.99s, tests 3.78s, environment 0ms)
+

@@ -1,0 +1,30 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+{"level":"error","message":"agentic.execution.failed","tenantId":"native-task","executionId":"a486920c-5944-4f73-b328-b3beeda9b151","failureCode":"BUDGET_EXHAUSTED","errorCode":"BUDGET_NOT_FOUND","errorName":"Error","timestamp":"2026-11-03T20:44:45.731Z"}
+ ❯ apps/api/src/agentic-workspace/case-task-driver.test.ts (4 tests | 1 failed) 10577ms
+     × resposta desconhecida cria sucessora e entrega limitada sem presumir cabimento 7570ms
+{"level":"error","message":"agentic.request.failed","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/applications","errorCode":"SIMULATED_WRITE_FAILURE","errorName":"Error","timestamp":"2026-11-03T20:44:59.190Z"}
+{"level":"error","message":"agentic.request.failed","method":"GET","route":"/api/agentic/deliveries/:id/editorial-context","errorCode":"DELIVERY_INTEGRITY_FAILED","errorName":"Error","timestamp":"2026-11-03T20:45:15.967Z"}
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/case-task-driver.test.ts > driver jurídico integrado ao serviço durável > resposta desconhecida cria sucessora e entrega limitada sem presumir cabimento
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/case-task-driver.test.ts:210:3
+    208|     ).toBe(404);
+    209|   });
+    210|   it('resposta desconhecida cria sucessora e entrega limitada sem pres…
+       |   ^
+    211|     const f = await fixture(false, true);
+    212|     const matter = await new MatterRepository(f.db).createMatter({ ...…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 6 passed (7)
+      Tests  1 failed | 134 passed (135)
+   Start at  17:44:25
+   Duration  65.90s (transform 7.79s, setup 0ms, import 28.60s, tests 71.80s, environment 2ms)
+

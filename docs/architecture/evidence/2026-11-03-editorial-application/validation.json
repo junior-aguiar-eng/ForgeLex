@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-03",
+  "timezone": "America/Fortaleza",
+  "recordedAt": "2026-11-03T21:03:08.946Z",
+  "checkout": "C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK",
+  "branch": "codex/forgelex-3-quality",
+  "baseline": "cb5c16a71919c776e04b9f9da843b4d913f754f4",
+  "consolidationCommit": {
+    "hash": "cb5c16a71919c776e04b9f9da843b4d913f754f4",
+    "subject": "feat(agentic): integrar propostas editoriais e revisão humana",
+    "newImplementationCommitted": false
+  },
+  "checks": {
+    "full": {
+      "command": "pnpm test",
+      "exitCode": 0,
+      "passed": 1729,
+      "skipped": 17,
+      "failed": 0,
+      "filesPassed": 235,
+      "filesSkipped": 3
+    },
+    "build": {
+      "command": "pnpm build",
+      "exitCode": 0
+    },
+    "focused": {
+      "passed": 135,
+      "filesPassed": 7,
+      "failed": 0,
+      "exitCode": 0,
+      "earlierTimeout": "case-task-driver 5sec under concurrent validation; unchanged timeout/assertions, identical standalone rerun passed"
+    },
+    "editorialApi": {
+      "passed": 55
+    },
+    "browser": {
+      "passed": 9,
+      "failed": 0,
+      "exitCode": 0
+    },
+    "mesaRegression": {
+      "passed": 3,
+      "exitCode": 0
+    },
+    "apiTypes": {
+      "exitCode": 0,
+      "excludesTestsByRepositoryConfig": true
+    },
+    "lint": {
+      "exitCode": 0
+    },
+    "format": {
+      "exitCode": 0
+    },
+    "mobile": {
+      "width": 320,
+      "axeViolations": 0,
+      "capturesInspected": true
+    }
+  },
+  "review": {
+    "model": "gpt-6-astra",
+    "readOnly": true,
+    "critical": 0,
+    "important": 0,
+    "minor": 0,
+    "reround": false,
+    "testsExecutedByReviewer": false,
+    "coverageLimit": "Simultaneous race tested between applications; decision/manual edit cases tested sequentially, not simultaneous",
+    "declinedToJudge": [
+      "PostgreSQL concurrency",
+      "Legal equivalence",
+      "Production/paid calls/publication",
+      "Final verification outcome"
+    ],
+    "rulings": [
+      "Local SQLite only; no remote concurrency claim",
+      "Boni evaluates legal merits",
+      "Remain local, generation disabled",
+      "Executor records own final runs; review is not test execution"
+    ]
+  },
+  "limits": {
+    "paidCalls": 0,
+    "automaticApplication": false,
+    "push": false,
+    "deploy": false,
+    "newMigration": false,
+    "operationalMigration": false,
+    "other54Scenarios": false,
+    "maxCommandsIncludingApplication": 100,
+    "maxProposals": 10,
+    "maxProposalBytes": 2048,
+    "selectedItems": [
+      1,
+      30
+    ],
+    "reasonCharacters": [
+      3,
+      1000
+    ],
+    "humanConfirmationRequired": true,
+    "applicationPerDelivery": 1,
+    "versionSource": "HUMAN",
+    "versionStatus": "DRAFT",
+    "originalVersionPreserved": true,
+    "deliveryPayloadPreserved": true,
+    "citationVerificationReset": true,
+    "productiveGenerationEnabled": false,
+    "postgresValidated": false
+  },
+  "preservation": {
+    "protectedAreas": [
+      "packages/domain",
+      "packages/agent-core",
+      "packages/billing-ledger",
+      "packages/legal-workflows/src/agentic-case-task",
+      "packages/legal-agents/src/agent-catalog.ts",
+      "packages/legal-agents/src/agentic-focused-verifier.ts",
+      "scripts"
+    ],
+    "protectedAreasUnchanged": true,
+    "previousEvidenceHashesMatch": true,
+    "contractAndGeneratorHashesMatch": true,
+    "previousReceipts": {
+      "2026-11-02-final-editor-contract": "22e10cf25f76d6f6ff01a1bf119fb3dc3c12cc5183ee73995fa803bbb52ff5c0",
+      "2026-11-03-editorial-binding": "4baf79a0b8a5876bcc574b8f9fff595a83142d998609e6e3463f20db6e6b01b8",
+      "2026-11-03-editorial-generation": "37b8f428bcffea640bd7208b3f8cb16d21203dea2d2cb5f640072494266ea33a",
+      "2026-11-03-editorial-human-review": "612fde01f7301874c7a6a2c877f5b4fa19d7024680eafc8454c40431970e8c0b"
+    },
+    "headUnchangedAfterConsolidation": true,
+    "stagedDiffEmpty": true
+  },
+  "sourceHashes": {
+    "apps/api/src/agentic-workspace/execution-routes.ts": "c08b689584b32c57f1bbb23144a71cde0ebd75ddb45c1f0bc61d92030c4aa9f1",
+    "apps/api/src/agentic-workspace/final-editor-routes.test.ts": "7300d8bd3c30e826a3115d0bcf4a17bffe95e0e00278327f821c2b15eb56255b",
+    "apps/web/src/agentic-workspace/EditorialApplicationControls.tsx": "fff0ba1cdcb7ea9c267be109ce15cb3be00f42fb7f7f0a76e65ee14abf1749e0",
+    "apps/web/src/agentic-workspace/EditorialReviewPanel.tsx": "33d67f2eaf9226da170a3632abd6ab3b1b9459ac84ba7b94a9fc1359a2560a69",
+    "apps/web/src/agentic-workspace/ResultCard.tsx": "06a9fceb2ed261838b3d590c8abb37951014d69992641805ae7960c1baa3a50e",
+    "apps/web/src/agentic-workspace/editorial-review-model.ts": "b9b716b3f3f6eb3ce6d30a6ed20cac0e58a116cbc7eff4779b20af19f7409e52",
+    "packages/legal-workflows/src/final-editor/editorial-application-service.ts": "7c18275736dbda9687e17072e24295e1b382a0ae2855e24fb2434f188c0074b7",
+    "packages/legal-workflows/src/final-editor/editorial-review-record.ts": "66829567607b1b1cca3af45d52f56659478b67c256787a4a0dee73989793004e",
+    "packages/legal-workflows/src/final-editor/editorial-review-service.ts": "8cb5d7b43f2c08e352b46947561da4e1d65c6f67546ba4fdd0630ea3617949c2",
+    "packages/legal-workflows/src/index.ts": "12d4c4b0db86e473bf1d13aae7dab65c6f6df2bf6cbfbf53e47a53c9fd97af9b",
+    "packages/persistence/src/repositories/native-case-task-repository.ts": "31c0a9051576adeff80c2343b4438665121316170ccfab7d01080222df7c6c35",
+    "tests/e2e/editorial-review.spec.ts": "d2a4ce8f332e369a2a076ff4cd3c371b0dba17b51a87d9ec0ef6fe7adce3b9c7"
+  },
+  "evidenceHashes": {
+    "full-suite.txt": "8e078a2cf9b477f762ca5c63e5267ab877884be621f4eac26a249e794c904e10",
+    "build.txt": "fac5c16a4a12f8a10bd110cdf90aab89746ae76ffb1b6a4aed9e895c1727826e",
+    "focus.txt": "2ce9ccafd613a22aea8dce8436e9feeae63ca5e6760e8882d56f65a3ffcc88dd",
+    "focus-timeout.txt": "3cb563bf79aa6909aab82a0ffa9fe0cf5a31b517a4105c9811faa60e10f1ae1c",
+    "browser.txt": "f730a0bde99d564d3aa1c8c2a0465b9349eef112aa307a92eb144667abaa4ed0",
+    "mesa-regression.txt": "71825a48474628f101b085681c2c501380af99b4ae130abd7deaa93efd4a86ec",
+    "api-red.txt": "303ce7d63f46dda0e6b72607f60f2dbec083be62a478f15a536806a52a33fbe8",
+    "browser-red.txt": "b5e556b20cd1033190a3f5d29c5030c566284c77ebaa526874ae922409ae004d",
+    "cap-red.txt": "2c4bef166b79f1a0e448c6dec7b4db264545d2756d2b80d4d6cbfd16abfc5acb",
+    "cap-green.txt": "13890447460975ac103f846685d370beba960a3a2a1f8ce14a409b39310971df",
+    "document-boundaries.txt": "e18909f72788072003d7667aa191b9cd72e9dc338c31d61dbcd2c3ec907de88b",
+    "api-types.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lint.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "panel-lint.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "format.txt": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283",
+    "desktop.png": "6959266d2a27dcbcc8e6eabb76895ad370b178c3882fa1bb12ec056297db5dc8",
+    "mobile.png": "15f11445b1e8e5d431b2458e4cb9859af302b2bb6a10ed8b2ebbd778b6874dcc"
+  }
+}

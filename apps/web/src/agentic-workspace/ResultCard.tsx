@@ -125,6 +125,7 @@ export function ResultCard({
             deliveryId={delivery.id}
             draftId={delivery.draftId}
             versionId={delivery.versionId}
+            matterId={run.matterId}
           />
         )}
       {CASE_WORKSPACE_ENABLED &&

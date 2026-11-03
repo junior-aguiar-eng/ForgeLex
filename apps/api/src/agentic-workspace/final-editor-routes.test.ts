@@ -20,6 +20,367 @@ import { FakeAgentProvider } from '@forgelex/agent-core';
 
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const cleanup: (() => Promise<void>)[] = [];
+
+it.each(['length', 'trim'])('aplicação humana recusa resultado fora do contrato %s', async (boundary) => {
+  const f = await applicationFixture(
+    'ACCEPT',
+    boundary === 'length' ? 'O pedido esta condicionado. 😀' + 'x'.repeat(15970) : undefined,
+  );
+  const proposal = {
+    ...f.proposal,
+    changes: [
+      {
+        ...f.proposal.changes[0],
+        ...(boundary === 'length'
+          ? { after: 'está sujeito a conferência' }
+          : { start: 0, end: 1, before: 'O', after: ' O' }),
+      },
+    ],
+  };
+  const decision = await f.post('decisions', { ...f.decision, proposal, commandId: randomUUID(), expectedRevision: 1 });
+  expect(decision.statusCode, decision.body).toBe(200);
+  const before = await f.snapshot();
+  const result = await f.post('applications', {
+    ...f.command,
+    proposalHash: decision.json().history.at(-1).proposalHash,
+    expectedRevision: 2,
+  });
+  expect(result.statusCode).toBe(boundary === 'length' ? 400 : 409);
+  expect(await f.snapshot()).toEqual(before);
+});
+
+it('aplicação humana conta no teto existente de cem comandos sem truncar histórico', async () => {
+  const f = await applicationFixture();
+  const [row] = (await f.client.execute('SELECT editorial_review_json FROM agentic_task_deliveries')).rows;
+  const record = JSON.parse(String(row.editorial_review_json));
+  record.history = Array.from({ length: 100 }, () => ({ ...record.history[0], commandId: randomUUID() }));
+  record.revision = 100;
+  await f.client.execute({
+    sql: 'UPDATE agentic_task_deliveries SET editorial_review_json=? WHERE id=?',
+    args: [JSON.stringify(record), f.saved.id],
+  });
+  const before = await f.snapshot();
+  const response = await f.post('applications', { ...f.command, expectedRevision: 100 });
+  expect(response.statusCode).toBe(409);
+  expect(response.json().error).toBe('EDITORIAL_REVIEW_LIMIT');
+  expect(await f.snapshot()).toEqual(before);
+});
+
+it('aplicação humana bloqueia contexto alterado e mantém recibo vazio', async () => {
+  const f = await applicationFixture();
+  await f.workspace.reviseContext(f.owner, f.conversation.id, 1, { ...f.context, text: 'Contexto humano atualizado.' });
+  const before = await f.snapshot();
+  expect((await f.post('applications', f.command)).statusCode).toBe(409);
+  expect(await f.snapshot()).toEqual(before);
+});
+
+async function applicationFixture(action = 'ACCEPT', documentContent?: string) {
+  const f = await fixture(undefined, undefined, documentContent);
+  const post = (suffix: string, body: unknown, token = 'owner') =>
+    f.app.inject({
+      method: 'POST',
+      url: `${f.path}/editorial-review/${suffix}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: body as any,
+    });
+  const preview = (await post('preview', { ...f.target, proposal: f.proposal })).json();
+  const decision = {
+    ...f.target,
+    proposal: f.proposal,
+    contextHash: preview.contextHash,
+    expectedRevision: 0,
+    commandId: randomUUID(),
+    decision: { itemId: 'edit', action, reason: 'Trecho conferido.' },
+  };
+  const saved = await post('decisions', decision);
+  expect(saved.statusCode).toBe(200);
+  const command = {
+    ...f.target,
+    proposalHash: saved.json().history[0].proposalHash,
+    contextHash: preview.contextHash,
+    expectedRevision: 1,
+    commandId: randomUUID(),
+    itemIds: ['edit'],
+    reason: 'Aplicar a acentuação conferida.',
+    confirmed: true,
+  };
+  return { ...f, post, command, decision };
+}
+
+it('aplicação humana cria versão derivada sem alterar original, entrega ou decisões', async () => {
+  const f = await applicationFixture();
+  const repo = new DraftRepository(f.db);
+  const original = await repo.getVersion(f.owner.tenantId, f.matter.id, f.target.draftId, f.target.versionId);
+  const before = await f.snapshot();
+  const response = await f.post('applications', f.command);
+  expect(response.statusCode).toBe(200);
+  const receipt = response.json().application;
+  expect(receipt).toMatchObject({
+    commandId: f.command.commandId,
+    baseVersionId: f.target.versionId,
+    itemIds: ['edit'],
+    appliedBy: f.owner.userId,
+    reason: f.command.reason,
+    reviewRevision: 1,
+  });
+  const current = await repo.getCurrentVersion(f.owner.tenantId, f.matter.id, f.target.draftId);
+  expect(current?.version).toMatchObject({
+    id: receipt.versionId,
+    versionNumber: 2,
+    source: 'HUMAN',
+    status: 'DRAFT',
+    derivedFromVersionId: f.target.versionId,
+    createdBy: f.owner.userId,
+  });
+  expect(current?.sections[0].content).toBe('O pedido está condicionado. 😀');
+  expect(await repo.getVersion(f.owner.tenantId, f.matter.id, f.target.draftId, f.target.versionId)).toEqual(original);
+  const after = await f.snapshot();
+  expect(after.slice(4)).toEqual(before.slice(4));
+  expect(after[3][0].payload_json).toEqual(before[3][0].payload_json);
+  expect(after[3][0].content_hash).toEqual(before[3][0].content_hash);
+  expect(response.json().history).toHaveLength(1);
+  expect(response.json().stale).toBe(true);
+  expect(f.provider).not.toHaveBeenCalled();
+});
+
+it('aplicação humana repete exatamente uma vez e reconcilia o recibo após nova versão', async () => {
+  const f = await applicationFixture();
+  const applied = await f.post('applications', f.command);
+  expect(applied.statusCode).toBe(200);
+  expect((await f.post('applications', f.command)).json()).toEqual(applied.json());
+  expect((await f.post('applications', { ...f.command, reason: 'Outro motivo.' })).statusCode).toBe(409);
+  expect((await f.post('applications', { ...f.command, commandId: randomUUID() })).statusCode).toBe(409);
+  const history = await f.app.inject({
+    method: 'GET',
+    url: `${f.path}/editorial-review?${new URLSearchParams({ ...f.target, commandId: f.command.commandId })}`,
+    headers: { authorization: 'Bearer owner' },
+  });
+  expect(history.json().reconciliation.status).toBe('RECORDED');
+  expect(history.json().application).toEqual(applied.json().application);
+  expect(await new DraftRepository(f.db).listVersions(f.owner.tenantId, f.matter.id, f.target.draftId)).toHaveLength(2);
+  f.revoke();
+  expect((await f.post('applications', f.command)).statusCode).toBe(403);
+});
+
+it.each(['REJECT', 'DEFER'])('aplicação humana recusa última decisão %s', async (action) => {
+  const f = await applicationFixture(action),
+    before = await f.snapshot();
+  expect((await f.post('applications', f.command)).statusCode).toBe(409);
+  expect(await f.snapshot()).toEqual(before);
+});
+
+it('aplicação humana exige seleção única, confirmação, revisão e proposta persistida', async () => {
+  const f = await applicationFixture(),
+    before = await f.snapshot();
+  for (const patch of [
+    { itemIds: [] },
+    { itemIds: ['edit', 'edit'] },
+    { confirmed: false },
+    { reason: '' },
+    { proposal: f.proposal },
+    { after: 'texto arbitrário' },
+  ])
+    expect((await f.post('applications', { ...f.command, ...patch })).statusCode).toBe(400);
+  for (const patch of [
+    { itemIds: ['inventado'] },
+    { proposalHash: 'a'.repeat(64) },
+    { contextHash: 'a'.repeat(64) },
+    { expectedRevision: 0 },
+    { commandId: f.decision.commandId },
+  ])
+    expect((await f.post('applications', { ...f.command, ...patch })).statusCode).toBe(409);
+  expect(await f.snapshot()).toEqual(before);
+});
+
+it('aplicação humana preserva sessão, escrita, proprietário e revogação', async () => {
+  const f = await applicationFixture(),
+    before = await f.snapshot();
+  for (const [token, status] of [
+    ['other', 404],
+    ['tenant', 404],
+    ['readOnly', 403],
+    ['oauth', 403],
+  ] as const)
+    expect((await f.post('applications', f.command, token)).statusCode).toBe(status);
+  f.revoke();
+  expect((await f.post('applications', f.command)).statusCode).toBe(403);
+  expect(await f.snapshot()).toEqual(before);
+});
+
+it('aplicação humana recusa decisão mais recente e edição manual concorrente', async () => {
+  const f = await applicationFixture();
+  expect(
+    (
+      await f.post('decisions', {
+        ...f.decision,
+        commandId: randomUUID(),
+        expectedRevision: 1,
+        decision: { ...f.decision.decision, action: 'REJECT' },
+      })
+    ).statusCode,
+  ).toBe(200);
+  const before = await f.snapshot();
+  expect((await f.post('applications', { ...f.command, expectedRevision: 2 })).statusCode).toBe(409);
+  expect(await f.snapshot()).toEqual(before);
+  const other = await applicationFixture();
+  await new DraftRepository(other.db).createVersion({
+    tenantId: other.owner.tenantId,
+    matterId: other.matter.id,
+    draftId: other.target.draftId,
+    title: 'Minuta',
+    createdBy: other.owner.userId,
+    source: 'HUMAN',
+    contentHash: hash('Edição humana'),
+    sections: [{ ordinal: 1, title: 'Pedido', content: 'Edição humana' }],
+    baseVersionId: other.target.versionId,
+    expectedCurrentVersionId: other.target.versionId,
+  });
+  const edited = await other.snapshot();
+  expect((await other.post('applications', other.command)).statusCode).toBe(409);
+  expect(await other.snapshot()).toEqual(edited);
+});
+
+it('aplicação humana reverte versão se falhar antes de salvar recibo', async () => {
+  const f = await applicationFixture(),
+    before = await f.snapshot();
+  const insert = DraftRepository.prototype.insertVersionInTransaction;
+  const fault = vi
+    .spyOn(DraftRepository.prototype, 'insertVersionInTransaction')
+    .mockImplementationOnce(async function (...args) {
+      await insert.apply(this, args);
+      throw new Error('SIMULATED_WRITE_FAILURE');
+    });
+  try {
+    expect((await f.post('applications', f.command)).statusCode).toBe(503);
+  } finally {
+    fault.mockRestore();
+  }
+  expect(await f.snapshot()).toEqual(before);
+});
+
+it.each([true, false])('aplicação humana serializa concorrência com comando igual=%s', async (same) => {
+  const f = await applicationFixture();
+  const results = await Promise.all([
+    f.post('applications', f.command),
+    f.post('applications', { ...f.command, commandId: same ? f.command.commandId : randomUUID() }),
+  ]);
+  expect(results.map((r) => r.statusCode).sort()).toEqual(same ? [200, 200] : [200, 409]);
+  expect(await new DraftRepository(f.db).listVersions(f.owner.tenantId, f.matter.id, f.target.draftId)).toHaveLength(2);
+});
+
+it('aplicação humana respeita subset, offsets e Unicode sem aplicar sugestão substantiva', async () => {
+  const f = await applicationFixture();
+  const first = f.proposal.changes[0];
+  const proposal = {
+    ...f.proposal,
+    changes: [
+      first,
+      { ...first, id: 'constructor', start: 2, end: 8, before: 'pedido', after: 'requerimento' },
+      { ...first, id: 'emoji', start: 28, end: 30, before: '😀', after: '🙂' },
+    ],
+    substantiveSuggestions: [
+      {
+        id: 'substantive',
+        sectionIndex: 0,
+        sectionHash: first.sectionHash,
+        start: 9,
+        end: 13,
+        before: 'esta',
+        reason: 'Reavaliar fundamento.',
+        sourceIds: ['norm'],
+      },
+    ],
+  };
+  let revision = 1;
+  let proposalHash = '';
+  for (const itemId of ['edit', 'constructor', 'emoji', 'substantive']) {
+    const saved = await f.post('decisions', {
+      ...f.decision,
+      proposal,
+      expectedRevision: revision++,
+      commandId: randomUUID(),
+      decision: { itemId, action: 'ACCEPT', reason: 'Conferido individualmente.' },
+    });
+    expect(saved.statusCode).toBe(200);
+    proposalHash = saved.json().history.at(-1).proposalHash;
+  }
+  const command = { ...f.command, proposalHash, expectedRevision: revision, itemIds: ['constructor', 'emoji'] };
+  expect((await f.post('applications', { ...command, itemIds: ['substantive'] })).statusCode).toBe(409);
+  expect((await f.post('applications', command)).statusCode).toBe(200);
+  const current = await new DraftRepository(f.db).getCurrentVersion(f.owner.tenantId, f.matter.id, f.target.draftId);
+  expect(current?.sections[0].content).toBe('O requerimento esta condicionado. 🙂');
+});
+
+it('aplicação humana preserva vínculos e citações sem copiar aprovação ou verificação', async () => {
+  const f = await applicationFixture();
+  const repo = new DraftRepository(f.db);
+  const original = (await repo.getVersion(f.owner.tenantId, f.matter.id, f.target.draftId, f.target.versionId))!;
+  const factId = randomUUID(),
+    evidenceId = randomUUID(),
+    authorityId = randomUUID();
+  // Seed metadata on the synthetic original to exercise preservation independent of workflow defaults.
+  await f.client.execute({
+    sql: 'UPDATE draft_sections SET linked_fact_ids=?, linked_evidence_ids=?, linked_authority_ids=? WHERE id=?',
+    args: [
+      JSON.stringify([factId]),
+      JSON.stringify([evidenceId]),
+      JSON.stringify([authorityId]),
+      original.sections[0].id,
+    ],
+  });
+  await f.client.execute({ sql: 'UPDATE drafts SET status=? WHERE id=?', args: ['APPROVED', f.target.draftId] });
+  await f.client.execute({
+    sql: 'UPDATE draft_versions SET status=? WHERE id=?',
+    args: ['APPROVED', f.target.versionId],
+  });
+  await f.client.execute({
+    sql: 'INSERT INTO citation_anchors (id,tenant_id,matter_id,draft_id,draft_version_id,section_id,target_type,target_id,citation_text,verified,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+    args: [
+      randomUUID(),
+      f.owner.tenantId,
+      f.matter.id,
+      f.target.draftId,
+      f.target.versionId,
+      original.sections[0].id,
+      'AUTHORITY',
+      authorityId,
+      'Referência sintética',
+      1,
+      new Date().toISOString(),
+    ],
+  });
+  expect((await f.post('applications', f.command)).statusCode).toBe(200);
+  const current = (await repo.getCurrentVersion(f.owner.tenantId, f.matter.id, f.target.draftId))!;
+  expect(current.sections[0]).toMatchObject({
+    linkedFactIds: [factId],
+    linkedEvidenceIds: [evidenceId],
+    linkedAuthorityIds: [authorityId],
+  });
+  expect(current.citations[0]).toMatchObject({
+    targetId: authorityId,
+    citationText: 'Referência sintética',
+    verified: false,
+    sectionId: current.sections[0].id,
+  });
+  expect(current.version.status).toBe('DRAFT');
+  expect(
+    (await repo.getVersion(f.owner.tenantId, f.matter.id, f.target.draftId, f.target.versionId))?.version.status,
+  ).toBe('APPROVED');
+});
+
+it.each(['closedPilot', 'commercial'] as const)('aplicação humana preserva fronteira %s', async (boundary) => {
+  const f = await fixture(boundary);
+  expect(
+    (
+      await f.app.inject({
+        method: 'POST',
+        url: `${f.path}/editorial-review/applications`,
+        headers: { authorization: 'Bearer owner' },
+        payload: {},
+      })
+    ).statusCode,
+  ).toBe(404);
+});
 function simulatedGeneration(afterLoad = () => {}) {
   const createProvider = vi.fn<FinalEditorGenerationOptions['createProvider']>(
     ({ registry, context, sectionAnchors }) => {
@@ -142,7 +503,11 @@ it.each(['during-query', 'already-aborted'])('não inicia geração após descon
     read.mockRestore();
   }
 });
-async function fixture(boundary?: 'closedPilot' | 'commercial', generation?: FinalEditorGenerationOptions) {
+async function fixture(
+  boundary?: 'closedPilot' | 'commercial',
+  generation?: FinalEditorGenerationOptions,
+  documentContent = 'O pedido esta condicionado. 😀',
+) {
   const c = await createDatabase({ url: 'file::memory:' });
   await runPersistenceMigrations(c.client);
   const owner = { tenantId: 'editorial', userId: 'boni' };
@@ -206,7 +571,7 @@ async function fixture(boundary?: 'closedPilot' | 'commercial', generation?: Fin
     document: {
       title: 'Minuta',
       documentType: 'Manifestação',
-      sections: [{ title: 'Pedido', content: 'O pedido esta condicionado. 😀', sourceIds: ['norm'] }],
+      sections: [{ title: 'Pedido', content: documentContent, sourceIds: ['norm'] }],
     },
   };
   const saved = await native.save(binding, delivery);

@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { AgenticOwner } from '@forgelex/domain';
 import type { NativeCaseTaskRepository } from '@forgelex/persistence';
@@ -8,13 +7,14 @@ import {
   FINAL_EDITOR_GENERATION_PROFILE,
 } from '@forgelex/legal-agents';
 import { editorialContextFromSnapshot } from './final-editor-service.js';
+import {
+  editorialHash as hash,
+  editorialDigest as digest,
+  editorialDecision as decision,
+  readEditorialRecord as readRecord,
+  historicalEditorialReview,
+} from './editorial-review-record.js';
 
-const digest = z.string().regex(/^[a-f0-9]{64}$/);
-const decision = z.strictObject({
-  itemId: z.string().min(1).max(200),
-  action: z.enum(['ACCEPT', 'REJECT', 'DEFER']),
-  reason: z.string().trim().min(3).max(1000),
-});
 export const EditorialReviewTargetSchema = z.strictObject({
   draftId: z.string().min(1).max(200),
   versionId: z.string().min(1).max(200),
@@ -28,34 +28,6 @@ export const EditorialReviewCommandSchema = EditorialReviewPreviewSchema.extend(
   commandId: z.string().uuid(),
   decision,
 });
-const event = z.strictObject({
-  commandId: z.string().uuid(),
-  inputHash: digest,
-  contextHash: digest,
-  proposalHash: digest,
-  proposal: FinalEditorialProposalSchema,
-  decision,
-  decidedBy: z.string().min(1),
-  decidedAt: z.string().datetime(),
-});
-const recordSchema = z
-  .strictObject({ version: z.literal(1), revision: z.number().int().min(0).max(100), history: z.array(event).max(100) })
-  .superRefine((record, ctx) => {
-    if (
-      record.revision !== record.history.length ||
-      new Set(record.history.map((e) => e.commandId)).size !== record.history.length ||
-      record.history.some((e) => hash(e.proposal) !== e.proposalHash)
-    )
-      ctx.addIssue({ code: 'custom', message: 'Histórico editorial inconsistente.' });
-  });
-const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-const readRecord = (saved: string | null): z.infer<typeof recordSchema> => {
-  try {
-    return saved ? recordSchema.parse(JSON.parse(saved)) : { version: 1, revision: 0, history: [] };
-  } catch {
-    throw new Error('EDITORIAL_REVIEW_INTEGRITY');
-  }
-};
 
 /** Human decisions are an append-only record; never an instruction to apply a patch. */
 export class EditorialReviewService {
@@ -83,7 +55,7 @@ export class EditorialReviewService {
         // Never turn an access failure into historical access. This operation reauthorizes
         // the owner, case and original sources under the existing historical read policy.
         const record = readRecord(await this.native.readEditorialHistory(owner, id, target));
-        return { context: null, contextHash: null, revision: record.revision, history: record.history, stale: true };
+        return historicalEditorialReview(record);
       }
     };
     const result = await current();
@@ -93,7 +65,10 @@ export class EditorialReviewService {
         ? {
             reconciliation: {
               commandId,
-              status: result.history.some((e) => e.commandId === commandId) ? 'RECORDED' : 'NOT_RECORDED',
+              status:
+                result.history.some((e) => e.commandId === commandId) || result.application?.commandId === commandId
+                  ? 'RECORDED'
+                  : 'NOT_RECORDED',
             },
           }
         : {}),
@@ -110,6 +85,7 @@ export class EditorialReviewService {
       const context = editorialContextFromSnapshot(snapshot),
         contextHash = hash(context);
       const record = readRecord(saved);
+      if (record.application) throw new Error('EDITORIAL_VERSION_CONFLICT');
       const proposal = preview ? validateFinalEditorialProposal(context, preview.proposal) : undefined;
       if (
         proposal &&
@@ -154,6 +130,7 @@ export class EditorialReviewService {
           contextHash,
           revision: record.revision,
           history: record.history,
+          ...(record.application ? { application: record.application } : {}),
           ...(mode === 'preview' ? { proposal } : {}),
         },
         ...(changed ? { record: JSON.stringify(record) } : {}),

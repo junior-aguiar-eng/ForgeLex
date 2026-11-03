@@ -1,0 +1,33 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts (53 tests | 1 failed | 51 skipped) 2238ms
+   × aplicação humana conta no teto existente de cem comandos sem truncar histórico 1551ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana conta no teto existente de cem comandos sem truncar histórico
+AssertionError: expected 200 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 200
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:34:31
+     32|   const before = await f.snapshot();
+     33|   const response = await f.post('applications', { ...f.command, expect…
+     34|   expect(response.statusCode).toBe(409);
+       |                               ^
+     35|   expect(response.json().error).toBe('EDITORIAL_REVIEW_LIMIT');
+     36|   expect(await f.snapshot()).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed | 51 skipped (53)
+   Start at  17:42:14
+   Duration  16.45s (transform 7.15s, setup 0ms, import 13.10s, tests 2.24s, environment 0ms)
+

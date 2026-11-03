@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { ApiRequestError, requestApi } from '../api-client';
+import { EditorialApplicationControls } from './EditorialApplicationControls';
 import {
   editorialActionLabels,
   type EditorialAction,
@@ -7,15 +8,17 @@ import {
   type EditorialReview,
 } from './editorial-review-model';
 
-/** Explicit human decisions only. This panel never calls generation or draft-writing endpoints. */
+/** Human decisions and separately confirmed version creation; never starts an agent or generation. */
 export function EditorialReviewPanel({
   deliveryId,
   draftId,
   versionId,
+  matterId,
 }: {
   deliveryId: string;
   draftId: string;
   versionId: string;
+  matterId: string;
 }) {
   const dialog = useRef<HTMLDialogElement>(null),
     title = useId();
@@ -29,6 +32,7 @@ export function EditorialReviewPanel({
     [blocked, setBlocked] = useState(false);
   const [uncertain, setUncertain] = useState(false);
   const pending = useRef<string | null>(null),
+    pendingKind = useRef<'decision' | 'application'>('decision'),
     sequence = useRef(0),
     active = useRef<AbortController | null>(null);
   const base = `/api/agentic/deliveries/${encodeURIComponent(deliveryId)}/editorial-review`;
@@ -104,10 +108,11 @@ export function EditorialReviewPanel({
     }
   };
   const send = async (body: string) => {
+    const application = pendingKind.current === 'application';
     const { ticket, signal } = begin();
     try {
       const result = await requestApi<EditorialReview>(
-        `${base}/decisions`,
+        `${base}/${application ? 'applications' : 'decisions'}`,
         { method: 'POST', signal, body },
         { sessionOnly: true },
       );
@@ -116,7 +121,15 @@ export function EditorialReviewPanel({
       setForms({});
       pending.current = null;
       setUncertain(false);
-      setNotice('Decisão salva no histórico. O texto da minuta permanece intacto.');
+      if (application) {
+        setProposal(null);
+        setBlocked(true);
+      }
+      setNotice(
+        application
+          ? 'Nova versão criada. A versão original foi preservada.'
+          : 'Decisão salva no histórico. O texto da minuta permanece intacto.',
+      );
     } catch (failure) {
       if (ticket !== sequence.current) return;
       if (uncertain && failure instanceof ApiRequestError && failure.status >= 400 && failure.status < 500) {
@@ -141,13 +154,17 @@ export function EditorialReviewPanel({
               : null,
           );
           setNotice(
-            result.reconciliation.status === 'RECORDED'
-              ? 'Decisão localizada no histórico. Confira o registro; a minuta permanece intacta.'
-              : 'Comando não consta do histórico. Confira a revisão atual antes de uma nova decisão.',
+            application
+              ? result.reconciliation.status === 'RECORDED'
+                ? 'Aplicação localizada no histórico. Confira a versão criada.'
+                : 'Comando não consta do histórico. Confira a versão atual antes de uma nova aplicação.'
+              : result.reconciliation.status === 'RECORDED'
+                ? 'Decisão localizada no histórico. Confira o registro; a minuta permanece intacta.'
+                : 'Comando não consta do histórico. Confira a revisão atual antes de uma nova decisão.',
           );
         } catch {
           if (ticket !== sequence.current) return;
-          setError('Não foi possível consultar o histórico. Restabeleça o acesso e use Verificar decisão novamente.');
+          setError('Não foi possível consultar o histórico. Restabeleça o acesso e verifique novamente.');
         }
       } else if (failure instanceof ApiRequestError && failure.status >= 400 && failure.status < 500) {
         pending.current = null;
@@ -157,7 +174,11 @@ export function EditorialReviewPanel({
         );
       } else {
         setUncertain(true);
-        setError('Não foi possível confirmar se a decisão foi salva. Use Verificar decisão; não envie outra decisão.');
+        setError(
+          application
+            ? 'Não foi possível confirmar a criação da versão. Use Verificar aplicação; não envie outro comando.'
+            : 'Não foi possível confirmar se a decisão foi salva. Use Verificar decisão; não envie outra decisão.',
+        );
       }
     } finally {
       if (ticket === sequence.current) setBusy(false);
@@ -186,6 +207,20 @@ export function EditorialReviewPanel({
       decision: { itemId: id, action: form.action, reason: form.reason },
     });
     pending.current = body;
+    pendingKind.current = 'decision';
+    void send(body);
+  };
+  const apply = (selection: { proposalHash: string; itemIds: string[]; reason: string; confirmed: true }) => {
+    if (!review?.context || review.stale || busy || blocked || pending.current) return;
+    const body = JSON.stringify({
+      ...target,
+      ...selection,
+      contextHash: review.contextHash,
+      expectedRevision: review.revision,
+      commandId: crypto.randomUUID(),
+    });
+    pendingKind.current = 'application';
+    pending.current = body;
     void send(body);
   };
   const known = [
@@ -200,7 +235,11 @@ export function EditorialReviewPanel({
     setOpen(false);
     if (pending.current) {
       setUncertain(true);
-      setError('Não foi possível confirmar se a decisão foi salva. Use Verificar decisão; não envie outra decisão.');
+      setError(
+        pendingKind.current === 'application'
+          ? 'Não foi possível confirmar a criação da versão. Use Verificar aplicação; não envie outro comando.'
+          : 'Não foi possível confirmar se a decisão foi salva. Use Verificar decisão; não envie outra decisão.',
+      );
     }
   };
   const items = proposal
@@ -280,7 +319,7 @@ export function EditorialReviewPanel({
             className="btn-secondary min-h-11"
             onClick={() => pending.current && void send(pending.current)}
           >
-            Verificar decisão
+            {pendingKind.current === 'application' ? 'Verificar aplicação' : 'Verificar decisão'}
           </button>
         ) : (
           <button disabled={busy} className="min-h-11 text-sm underline" onClick={() => void read()}>
@@ -311,6 +350,24 @@ export function EditorialReviewPanel({
         )}
         {review && (
           <>
+            {review.application && (
+              <div className="my-4 space-y-2 break-words rounded-xl border border-champagne-border p-4 text-sm">
+                <p className="font-semibold">Nova versão criada: {review.application.versionNumber}</p>
+                <p className="break-words">{review.application.reason}</p>
+                <p>
+                  {review.application.itemIds.length} ajuste(s) aplicado(s). A versão original permanece no histórico.
+                </p>
+                <p className="text-xs text-stone-600">
+                  {review.application.appliedBy} · {new Date(review.application.appliedAt).toLocaleString('pt-BR')}
+                </p>
+                <a
+                  className="inline-block min-h-11 py-2 underline"
+                  href={`/app/rascunhos?${new URLSearchParams({ matterId, draftId, versionId: review.application.versionId })}`}
+                >
+                  Abrir versão criada
+                </a>
+              </div>
+            )}
             {review.stale && (
               <p role="status" className="my-3 text-sm">
                 Esta entrega está desatualizada. O histórico continua disponível; novas decisões estão bloqueadas.
@@ -433,6 +490,15 @@ export function EditorialReviewPanel({
                 );
               })}
             </div>
+            {proposal && (
+              <EditorialApplicationControls
+                key={`${review.revision}:${JSON.stringify(proposal)}`}
+                review={review}
+                proposal={proposal}
+                disabled={busy || blocked || uncertain}
+                apply={apply}
+              />
+            )}
             <details className="mt-4 text-sm" open={!proposal}>
               <summary className="min-h-11 cursor-pointer py-2 underline">
                 Histórico de decisões ({review.history.length})

@@ -1,0 +1,17 @@
+[WebServer] (node:8696) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:12308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite "--host" "127.0.0.1" "--port" "3300" "--strictPort"
+[WebServer] (node:5716) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:21808) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 [chromium] › tests\e2e\agentic-workspace.spec.ts:67:5 › regressão final: opções na mensagem preservam o texto e permitem voltar ao pedido livre (4.5s)
+  ok 2 [chromium] › tests\e2e\agentic-workspace.spec.ts:367:5 › as quatro sugestões são opcionais e não executam nada; o agente decide o resto (1.9s)
+  ok 3 [chromium] › tests\e2e\agentic-workspace.spec.ts:387:5 › objetivo, escopo, pergunta, entrega redigida, fonte e edição no editor real (7.8s)
+
+  3 passed (25.3s)

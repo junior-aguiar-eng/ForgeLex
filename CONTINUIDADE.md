@@ -1,5 +1,17 @@
 # ForgeLex — onde estamos e como continuar
 
+## Aplicação humana versionada — 03/11/2026
+
+[Implementação e validação](docs/architecture/2026-11-03-forgelex-editorial-application.md):
+trabalho editorial anterior consolidado no commit `cb5c16a`. Nova etapa local
+permite selecionar ajustes aceitos, fundamentar e confirmar a criação de versão
+HUMAN/DRAFT derivada, com recibo atômico no histórico. Original e entrega intactos;
+sem aprovação jurídica implícita ou aplicação ao clicar em Concordar.
+135 testes focados, 12 de navegador (nove editoriais e três da mesa), build e
+suíte geral aprovados: 1.729 testes, 17 ignorados, zero falhas. Revisão sem achados
+críticos ou importantes. Mesa, v8 e limites preservados;
+sem chamadas pagas, push ou deploy. Geração real e publicação permanecem posteriores.
+
 ## Revisão humana editorial na mesa — 03/11/2026
 
 [Implementação e validação](docs/architecture/2026-11-03-forgelex-editorial-human-review.md):

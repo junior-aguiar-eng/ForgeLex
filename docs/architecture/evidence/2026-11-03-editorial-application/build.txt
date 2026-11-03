@@ -1,0 +1,88 @@
+$ pnpm -r --sort run build
+Scope: 17 of 18 workspace projects
+apps/web build$ tsc && vite build && vite build --config vite.mcp.config.ts
+packages/domain build$ tsc
+packages/domain build: Done
+apps/web build: vite v6.4.5 building for production...
+apps/web build: transforming...
+apps/web build: ✓ 1741 modules transformed.
+apps/web build: rendering chunks...
+apps/web build: computing gzip size...
+apps/web build: dist/index.html                                         2.45 kB │ gzip:   0.92 kB
+apps/web build: dist/assets/pdf.worker.min-Dswkl-cV.mjs             1,265.41 kB
+apps/web build: dist/assets/DecisionReader-BoYs9ZWQ.css                 4.31 kB │ gzip:   1.25 kB
+apps/web build: dist/assets/index-DSQsSGRU.css                         43.96 kB │ gzip:   8.57 kB
+apps/web build: dist/assets/check-DJAZePg7.js                           0.29 kB │ gzip:   0.24 kB
+apps/web build: dist/assets/chevron-down-y_WKMzhy.js                    0.30 kB │ gzip:   0.25 kB
+apps/web build: dist/assets/plus-Bs9W69sU.js                            0.33 kB │ gzip:   0.25 kB
+apps/web build: dist/assets/arrow-up-right-CqEeAE_7.js                  0.34 kB │ gzip:   0.26 kB
+apps/web build: dist/assets/copy-DwPA4S_K.js                            0.40 kB │ gzip:   0.31 kB
+apps/web build: dist/assets/circle-alert-D-pPYn8A.js                    0.42 kB │ gzip:   0.30 kB
+apps/web build: dist/assets/refresh-cw-DlWjgq73.js                      0.49 kB │ gzip:   0.33 kB
+apps/web build: dist/assets/file-text-DaDtKiBG.js                       0.51 kB │ gzip:   0.32 kB
+apps/web build: dist/assets/shield-alert-CBhQREs_.js                    0.53 kB │ gzip:   0.37 kB
+apps/web build: dist/assets/trash-2-CupetkUo.js                         0.53 kB │ gzip:   0.36 kB
+apps/web build: dist/assets/use-case-result-refresh-C5nuPJUC.js         1.45 kB │ gzip:   0.83 kB
+apps/web build: dist/assets/account-closure-storage-Bri-4m_Z.js         1.95 kB │ gzip:   0.65 kB
+apps/web build: dist/assets/ResearchControls-Cc86cGZl.js                2.98 kB │ gzip:   1.56 kB
+apps/web build: dist/assets/AccountClosureStatusScreen-Cgo-M3-G.js      3.85 kB │ gzip:   1.74 kB
+apps/web build: dist/assets/OAuthConsentScreen-tTaNttAD.js              3.88 kB │ gzip:   1.68 kB
+apps/web build: dist/assets/ForLawyersGuideScreen-nIj_xc8s.js           5.93 kB │ gzip:   2.18 kB
+apps/web build: dist/assets/DecisionReader-617ZhklK.js                  6.43 kB │ gzip:   2.48 kB
+apps/web build: dist/assets/ApiKeysScreen-FisLdEFa.js                   7.24 kB │ gzip:   2.66 kB
+apps/web build: dist/assets/ResearchDeskScreen-D5P4PL2P.js              7.99 kB │ gzip:   2.87 kB
+apps/web build: dist/assets/DocumentReaderDialog-C18vNpIN.js            8.49 kB │ gzip:   3.32 kB
+apps/web build: dist/assets/DashboardScreen-DLuMgRVW.js                 8.60 kB │ gzip:   2.94 kB
+apps/web build: dist/assets/AccountActivityScreen-DZLBbiTW.js           8.82 kB │ gzip:   2.67 kB
+apps/web build: dist/assets/HostInstallationGuide-yILpRxgt.js           9.62 kB │ gzip:   3.70 kB
+apps/web build: dist/assets/ConnectionsScreen-iDOL1B5I.js              10.06 kB │ gzip:   3.44 kB
+apps/web build: dist/assets/LandingScreen-CJT-Vyu1.js                  10.23 kB │ gzip:   3.63 kB
+apps/web build: dist/assets/AccountSecurityScreen-BF1SV01w.js          11.26 kB │ gzip:   3.68 kB
+apps/web build: dist/assets/ApiDocsScreen-DoZY362d.js                  16.08 kB │ gzip:   5.30 kB
+apps/web build: dist/assets/CreditsScreen-DTU65ECk.js                  16.10 kB │ gzip:   4.77 kB
+apps/web build: dist/assets/AgenticWorkspaceScreen-BtmRJSh8.js         53.26 kB │ gzip:  17.02 kB
+apps/web build: dist/assets/DraftStudioScreen-DCZjc5d4.js              56.25 kB │ gzip:  14.78 kB
+apps/web build: dist/assets/MatterWorkspaceScreen-BO2GShM4.js          78.46 kB │ gzip:  20.84 kB
+apps/web build: dist/assets/index-DOlVcE55.js                         239.89 kB │ gzip:  73.09 kB
+apps/web build: dist/assets/draft-docx-B6LdiT0G.js                    362.87 kB │ gzip: 106.38 kB
+apps/web build: dist/assets/pdf-text-DL_Hj_a_.js                      484.33 kB │ gzip: 144.95 kB
+apps/web build: ✓ built in 15.82s
+apps/web build: vite v6.4.5 building for production...
+apps/web build: transforming...
+apps/web build: ✓ 29 modules transformed.
+apps/web build: rendering chunks...
+apps/web build: computing gzip size...
+apps/web build: dist/mcp-reader/reader.css    6.19 kB │ gzip:   1.64 kB
+apps/web build: dist/mcp-reader/reader.js   472.82 kB │ gzip: 125.53 kB
+apps/web build: ✓ built in 5.03s
+apps/web build: Done
+packages/agent-core build$ tsc
+packages/legal-data build$ tsc
+packages/source-catalog build$ tsc
+packages/source-catalog build: Done
+packages/legal-data build: Done
+packages/agent-core build: Done
+packages/persistence build$ tsc
+packages/source-providers build$ tsc
+packages/source-providers build: Done
+packages/persistence build: Done
+packages/audit build$ tsc
+packages/billing-ledger build$ tsc
+packages/audit build: Done
+packages/billing-ledger build: Done
+packages/legal-tools build$ tsc
+packages/analise-juridica build$ tsc
+packages/analise-juridica build: Done
+packages/legal-tools build: Done
+packages/agent-provider-anthropic build$ tsc
+packages/agent-provider-openai build$ tsc
+packages/legal-agents build$ tsc
+packages/mcp-server build$ tsc
+packages/agent-provider-anthropic build: Done
+packages/mcp-server build: Done
+packages/agent-provider-openai build: Done
+packages/legal-agents build: Done
+packages/legal-workflows build$ tsc
+packages/legal-workflows build: Done
+apps/api build$ tsc
+apps/api build: Done

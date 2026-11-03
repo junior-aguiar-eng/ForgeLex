@@ -13,3 +13,4 @@ export { EVIDENCE_TASK_ACTION } from '@forgelex/legal-agents';
 export * from './final-editor/final-editor-service.js';
 export * from './final-editor/final-editor-generator.js';
 export * from './final-editor/editorial-review-service.js';
+export * from './final-editor/editorial-application-service.js';

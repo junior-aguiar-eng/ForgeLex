@@ -418,6 +418,98 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       return outcome.result;
     });
   }
+  /** Only explicit human application uses this writer; the immutable delivery stays untouched. */
+  async applyEditorialChanges<T>(
+    owner: AgenticOwner,
+    id: string,
+    expected: { draftId: string; versionId: string },
+    prepare: (
+      snapshot: EditorialSnapshot,
+      saved: string | null,
+    ) => {
+      document: z.infer<typeof TaskDocumentSchema>;
+      complete: (version: { id: string; versionNumber: number; contentHash: string }) => { result: T; record: string };
+    },
+    replay: (saved: string | null) => T | undefined,
+  ): Promise<T> {
+    try {
+      return await this.editorialOperation(owner, id, expected, async (db, snapshot, row) => {
+        const prepared = prepare(snapshot, row.editorialReviewJson);
+        const repo = new DraftRepository(db);
+        const execution = await new AgenticWorkspaceRepository(db).getExecution(owner, row.executionId);
+        if (!execution?.matterId) throw new Error('DELIVERY_NOT_FOUND');
+        const original = await repo.getVersion(
+          owner.tenantId,
+          execution.matterId,
+          expected.draftId,
+          expected.versionId,
+        );
+        if (!original) throw new Error('EDITORIAL_VERSION_CONFLICT');
+        const sections = original.sections.map((section, index) => ({
+          ordinal: section.ordinal,
+          title: section.title,
+          content: prepared.document.sections[index].content,
+          linkedFactIds: section.linkedFactIds,
+          linkedEvidenceIds: section.linkedEvidenceIds,
+          linkedAuthorityIds: section.linkedAuthorityIds,
+          linkedThesisIds: section.linkedThesisIds,
+        }));
+        const citations = original.citations.map((citation) => ({
+          sectionOrdinal: original.sections.find((section) => section.id === citation.sectionId)!.ordinal,
+          targetType: citation.targetType,
+          targetId: citation.targetId,
+          citationText: citation.citationText,
+          verified: false,
+        }));
+        const title = prepared.document.title;
+        const bundle = await repo.insertVersionInTransaction({
+          tenantId: owner.tenantId,
+          matterId: execution.matterId,
+          draftId: expected.draftId,
+          title,
+          sections,
+          citations,
+          source: 'HUMAN',
+          status: 'DRAFT',
+          createdBy: owner.userId,
+          contentHash: hash({ title, sections, citations }),
+          baseVersionId: expected.versionId,
+          expectedCurrentVersionId: expected.versionId,
+          notes: 'Aplicação editorial humana; conferir esta versão antes do uso.',
+        });
+        const outcome = prepared.complete(bundle.version);
+        await db
+          .update(agenticTaskDeliveries)
+          .set({ editorialReviewJson: outcome.record })
+          .where(
+            and(
+              eq(agenticTaskDeliveries.id, id),
+              eq(agenticTaskDeliveries.tenantId, owner.tenantId),
+              eq(agenticTaskDeliveries.userId, owner.userId),
+            ),
+          );
+        return outcome.result;
+      });
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        ![
+          'EDITORIAL_VERSION_CONFLICT',
+          'CONTEXT_CONFLICT',
+          'SOURCE_VERSION_CONFLICT',
+          'APPROVED_CONTEXT_CHANGED',
+          'EDITORIAL_SOURCE_UNAVAILABLE',
+          'EDITORIAL_AUDIT_UNAVAILABLE',
+        ].includes(error.message)
+      )
+        throw error;
+      // A recorded command may have caused the stale version itself. Reauthorize historical
+      // access and return only the exact saved result; never write through this path.
+      const result = replay(await this.readEditorialHistory(owner, id, expected));
+      if (result === undefined) throw error;
+      return result;
+    }
+  }
   private async editorialOperation<T>(
     owner: AgenticOwner,
     id: string,

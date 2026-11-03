@@ -32,6 +32,18 @@ export interface EditorialDecision {
   reason: string;
 }
 export interface EditorialReview {
+  application?: {
+    commandId: string;
+    proposalHash: string;
+    itemIds: string[];
+    baseVersionId: string;
+    versionId: string;
+    versionNumber: number;
+    contentHash: string;
+    appliedBy: string;
+    appliedAt: string;
+    reason: string;
+  };
   contextHash: string | null;
   stale?: boolean;
   reconciliation?: { commandId: string; status: 'RECORDED' | 'NOT_RECORDED' };

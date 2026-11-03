@@ -25,6 +25,7 @@ import {
   FinalEditorService,
   FinalEditorGenerator,
   EditorialReviewService,
+  EditorialApplicationService,
   type FinalEditorGenerationOptions,
 } from '@forgelex/legal-workflows';
 import type { ClosedPilot } from './closed-pilot.js';
@@ -640,6 +641,7 @@ export function registerAgenticWorkspace(
     const editor = new FinalEditorService(caseTask.native);
     const generator = new FinalEditorGenerator(editor, deps.options?.editorialGeneration);
     const editorialReview = new EditorialReviewService(caseTask.native);
+    const editorialApplication = new EditorialApplicationService(caseTask.native);
     const editorialTarget = z.strictObject({
       draftId: z.string().min(1).max(200),
       versionId: z.string().min(1).max(200),
@@ -675,6 +677,11 @@ export function registerAgenticWorkspace(
         preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session],
       },
       handle(async (req) => editorialReview.review(owner(req), await reviewId(req), req.body, 'decide')),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-review/applications',
+      { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session] },
+      handle(async (req) => editorialApplication.apply(owner(req), await reviewId(req), req.body)),
     );
     app.post(
       '/api/agentic/deliveries/:id/editorial-proposals/generate',
