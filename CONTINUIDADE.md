@@ -1,13 +1,15 @@
 # ForgeLex — onde estamos e como continuar
 
-Atualizado em 24/10/2026. Este resumo orienta a próxima sessão; o histórico de
-validações e publicações permanece em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
+Atualizado em 03/11/2026 (a seção agêntica reflete a produção de 02/11; as
+seções seguintes mantêm a data dos seus registros). Este resumo orienta a
+próxima sessão; o histórico de validações e publicações permanece em
+[STATUS_VALIDACAO.md](STATUS_VALIDACAO.md).
 
 Boni é o único avaliador e aprovador humano do projeto, por decisão expressa
 de 10/10/2026. Nenhuma frente depende de segundo revisor ou parecer de terceiro;
 aplica-se [AGENTS.md](AGENTS.md), inclusive sobre exigências de planos antigos.
 
-## Plataforma agêntica — estado em 31/10/2026
+## Plataforma agêntica — estado em 02/11/2026
 
 A transição agêntica, antes suspensa, foi retomada e está **integrada à `main`**:
 a mesa em conversa única, com conversas recentes (PRs #89 e #91), e a execução
@@ -15,9 +17,29 @@ comercial com cobrança por trabalho. A revisão técnica de 30/10 e as correç�
 dela (stream de eventos, conciliação de chamada comercial incerta, cobrança,
 logs) estão na PR #87, na #88 e na #90 (dependências). O texto da revisão está em
 [REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md](REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md).
-**Publicação e ativação da execução comercial não foram feitas por este registro**:
-dependem de recibo próprio de Boni (backup, migrations, flags, chave no gerenciador
-de segredos e configuração da instância). Pendências em [PENDENCIAS.md](PENDENCIAS.md).
+Entraram depois, em 31/10: stream de eventos sem snapshot pesado e leitura de
+execução sem N+1, e varredura de admissões indexada (#92, #93); os smokes
+PostgreSQL do núcleo agêntico na CI (#94, com a correção do #99); constantes do
+caminho comercial numa fonte só e harness fora da imagem (#95); formatação com
+Prettier, agora verificada na CI (#96, #97); a migration `persistence-0036`, com
+plano e registro (#98, #100); e o cancelamento cooperativo (#101).
+
+**Produção em 02/11/2026:** o commit `025f6dd` (PR #101) foi publicado e está a
+100% na API (`forgelex-api-prod-025f6dd-r2`) e no serviço privado de encerramento
+(`forgelex-closure-hml-private-025f6dd-r2`), sem migration nova. Primeira promoção
+em 02/11 às 01:21Z; Boni devolveu o tráfego às revisões anteriores por
+interpretação equivocada, sem problema técnico; repromoção às 16:34Z. As
+revisões `commercial-7abf606` seguem como rollback. Build, digest, verificações
+e limites no [recibo](docs/operations/agentic-workspace/2026-11-02-publication.md).
+
+**Atenção:** a API de produção tem a execução agêntica e a comercial ligadas
+(`FORGELEX_AGENTIC_WORKSPACE_ENABLED` e `FORGELEX_COMMERCIAL_EXECUTION_ENABLED`
+em `true`, interface habilitada no build), em linha com a autorização de Boni
+para publicar e ativar. Isso vem da revisão `commercial-7abf606` de 30/10, que
+não tem recibo no repositório, e difere do registro de 30/10 (`dc68fcb`, flags
+desligadas). O recibo que falta está em [PENDENCIAS.md](PENDENCIAS.md). O
+serviço privado de encerramento permanece com as flags agêntica e comercial
+desligadas.
 
 ## Dependências de segurança — publicadas em 24/10/2026
 

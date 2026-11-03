@@ -1,5 +1,63 @@
 # Auditoria e status canônico do ForgeLex
 
+## Publicação do `025f6dd` — 01 e 02/11/2026
+
+Fonte `025f6dd438ecfd78079b4688fd076e476da74ce9` (PR #101), seis checks da CI
+aprovados. Build `8bac55c3-c246-4bff-9e31-9174836cd9a9` (`git archive` do SHA),
+imagem `sha256:4a5cec7d55e248e01ccca52f6da64ae0f895c068c9a93b3464c1cb0393fdf3c9`.
+API `forgelex-api-prod-025f6dd-r2` e serviço privado
+`forgelex-closure-hml-private-025f6dd-r2` a 100% desde 02/11 às 16:34–16:35Z
+(primeira promoção às 01:21Z, desfeita por Boni por interpretação equivocada,
+sem problema técnico). Só `FORGELEX_SOURCE_SHA` mudou na configuração; nenhuma
+flag, nenhuma migration, `FORGELEX_AUTO_MIGRATE=false`.
+
+Verificado: na API candidata, por rota temporária aditiva removida ao final e
+confirmada nos logs da própria revisão, `/readyz` `status=ready`, `GET /mcp` 405
+e `POST` de `initialize` sem credencial 401; `/hub`, `/ratione` e o domínio
+iguais antes/durante/depois; URL map final idêntico à cópia de restauração;
+rotina de encerramento com HTTP 200 na revisão nova; sem `ERROR` na janela
+consultada. **Não verificado:** o 200 autenticado do serviço privado na revisão
+promovida (aceita a evidência da revisão anterior com a mesma imagem). Sem
+chamada paga, sem execução agêntica ou comercial de ponta a ponta.
+[Recibo, linha do tempo e limites](docs/operations/agentic-workspace/2026-11-02-publication.md).
+
+## Migration `persistence-0036` — 31/10/2026
+
+`persistence-0036-agentic-admission-deadline` aplicada ao banco publicado após o
+backup manual `1793470643209` (`SUCCESSFUL`), em uma transação com `lock_timeout`
+de 3 s e auto-migration desligada; journal de 48 para 49 entradas, contagens de
+tabelas iguais antes e depois. A `billing-ledger-0010-commercial-inference` já
+estava registrada desde 30/10. O backfill dos prazos e o índice parcial não
+foram demonstrados no banco publicado, só no ensaio local.
+[Registro](docs/operations/agentic-workspace/2026-10-31-migration-0036-aplicada.md) ·
+[plano e ensaio](docs/operations/agentic-workspace/2026-10-31-migration-0036-plano.md).
+
+## Revisão `commercial-7abf606` — 30/10/2026 (sem recibo próprio)
+
+Build `4dda49b5-a366-461d-90a5-82d7d535ad2a` (fonte
+`7abf60625e3ee81d21b685ecd4fcceb74f3c5a6a`, imagem
+`sha256:f7650ba610f007b6381bf3d5f2f3f2481dc7f589b23da15876aa0581ef9c0945`);
+revisões `commercial-7abf606` da API e do serviço privado criadas em 30/10 às
+20:54Z e 20:52Z. Esta entrada vem de inspeção em 01/11, não de recibo: o
+repositório não traz backup, verificações nem ensaio dessa publicação. A API
+tinha as flags agêntica e comercial ligadas, interface agêntica no build e
+instância sempre ativa; o serviço privado, tudo desligado. Ver o recibo
+pendente em [PENDENCIAS.md](PENDENCIAS.md) e o
+[manual da execução comercial](docs/operations/agentic-workspace/commercial-execution.md).
+
+## Publicação da reconciliação — 30/10/2026
+
+Fonte `dc68fcb0fb0cf8fc892157842829e5b1a5cd0d00` (PR #81), CI pós-merge
+aprovada. Build `bf7e7a9f-c504-4303-8256-8cd142cb4ab1`; backup manual
+`1793372457666` antes de sete migrations aditivas (journal de 40 para 47);
+revisões `forgelex-api-prod-agents-dc68fcb` e
+`forgelex-closure-hml-private-agents-dc68fcb`, flags agêntica e de piloto
+desligadas; alertas de disponibilidade e 5xx; backup restaurado em instância
+isolada e removida. Aprovação do ensaio sintético e da base comercial por Boni
+no mesmo dia, sem ativação de interface.
+[Registro](docs/operations/agentic-workspace/2026-10-30-publication.md) ·
+[recibo verificável](docs/operations/agentic-workspace/2026-10-30-publication-proof.json).
+
 ## Dependências de segurança — publicadas em 24/10/2026
 
 PR #78 integrada em main `6499eb0`; seis checks aprovados na PR e

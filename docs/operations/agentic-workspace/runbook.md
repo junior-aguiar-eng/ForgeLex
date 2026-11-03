@@ -1,11 +1,12 @@
 # Operação controlada do trabalho agêntico
 
 Preparado em 28/10/2026 e atualizado em 30/10/2026 após a integração das PRs
-#81, #82 e #83. Boni é o único aprovador humano. Publicação, migrations,
-monitoramento e restauração realizados em 30/10 estão no
-[registro operacional](2026-10-30-publication.md) e no
-[recibo](2026-10-30-publication-proof.json). Não confundir código integrado,
-revisão publicada e funcionalidade ativada.
+#81, #82 e #83; o estado publicado foi reconciliado em 03/11/2026. Boni é o
+único aprovador humano. Publicação, migrations, monitoramento e restauração
+realizados em 30/10 estão no [registro operacional](2026-10-30-publication.md)
+e no [recibo](2026-10-30-publication-proof.json); a publicação de 01–02/11 está
+no [registro de 02/11](2026-11-02-publication.md). Não confundir código
+integrado, revisão publicada e funcionalidade ativada.
 
 ## Estado e escopo
 
@@ -102,11 +103,22 @@ tarefa controlada expressamente aprovada. Registrar revisão efetiva, tráfego,
 owner, execução, resultado, fontes versionadas e consumo. `readyz` sozinho não
 comprova o percurso agêntico nem a qualidade jurídica.
 
-Estado publicado em 30/10: fonte dc68fcb, revisões e digest no recibo de
-publicação; flags agêntica, piloto e frontend desligadas. A correção editorial
+Estado publicado em 30/10 (histórico): fonte dc68fcb, revisões e digest no recibo
+de publicação; flags agêntica, piloto e frontend desligadas. A correção editorial
 da PR #83 está integrada à main d657826, mas não compõe esse artefato publicado.
 A ausência de ativação preserva o escopo aprovado. A implementação real existente
 continua restrita ao piloto; o produto comercial não nasce por alteração de flags.
+
+Estado observado em 01–02/11, **posterior e diferente do acima**: a publicação
+`commercial-7abf606` (30/10 à noite, sem recibo no repositório) já tinha na API
+`FORGELEX_AGENTIC_WORKSPACE_ENABLED=true` e `FORGELEX_COMMERCIAL_EXECUTION_ENABLED=true`,
+`FORGELEX_CLOSED_PILOT_ENABLED=false`, frontend compilado com a interface agêntica
+ligada, mínimo de uma instância, CPU sempre alocada e `OPENAI_API_KEY` no Secret
+Manager; o serviço privado de encerramento seguia com tudo isso desligado. A
+publicação de 02/11 (`025f6dd`, revisões `-025f6dd-r2` a 100%) preservou essas
+configurações sem alterá-las. A ativação foi autorizada por Boni
+([execução comercial](commercial-execution.md)); o que falta é o recibo
+descrito em [PENDENCIAS.md](../../../PENDENCIAS.md).
 
 ## Observabilidade e cancelamento
 

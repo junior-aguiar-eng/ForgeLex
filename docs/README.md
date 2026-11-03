@@ -2,7 +2,7 @@
 
 ## Estado atual
 
-Referência documental: 20/10/2026. Começar por
+Referência documental: 03/11/2026. Começar por
 [CONTINUIDADE.md](../CONTINUIDADE.md) e [PENDENCIAS.md](../PENDENCIAS.md).
 
 Governança: [Boni é o único avaliador e aprovador humano](../AGENTS.md).
@@ -41,6 +41,24 @@ Comprovações humanas, dependências externas e manutenção estão no backlog 
 - [Reconciliação documental da Fase 2](operations/stabilization/2026-09-26-phase2.md)
 - [Plano de estabilização pós-auditoria](superpowers/plans/2026-09-25-forgelex-estabilizacao-pos-auditoria.md)
 
+## Plataforma agêntica
+
+Operação (`operations/agentic-workspace/`), em ordem cronológica inversa:
+
+- [Publicação do `025f6dd` (01–02/11)](operations/agentic-workspace/2026-11-02-publication.md): build, digest, candidatas, rota temporária, promoção, rollback por engano e repromoção.
+- [Migration `persistence-0036` aplicada (31/10)](operations/agentic-workspace/2026-10-31-migration-0036-aplicada.md) e o [plano e ensaio](operations/agentic-workspace/2026-10-31-migration-0036-plano.md).
+- [Publicação da reconciliação (30/10)](operations/agentic-workspace/2026-10-30-publication.md), com o [recibo verificável](operations/agentic-workspace/2026-10-30-publication-proof.json): fonte `dc68fcb`, sete migrations, monitoramento e restauração em instância isolada.
+- [Execução comercial](operations/agentic-workspace/commercial-execution.md): preço, limites, cancelamento, conciliação, retenção e configuração; [base comercial](operations/agentic-workspace/2026-10-30-commercial-proposal.md) aprovada em 30/10.
+- [Runbook da operação agêntica](operations/agentic-workspace/runbook.md) e o [procedimento do piloto fechado](operations/agentic-workspace/closed-pilot.md).
+- [Avaliação do piloto](operations/agentic-workspace/2026-10-30-pilot-evaluation.md) e [conferência de custos do provedor](operations/agentic-workspace/2026-10-30-provider-cost-review.md), ambas de 30/10.
+
+Arquitetura e revisão: tarefas e contratos em `architecture/` (de
+[contratos A0](architecture/2026-10-24-agent-contracts-a0.md) à
+[reconciliação dos agentes](architecture/2026-10-29-reconciliacao-agentes.md)),
+os planos de [bloqueios editoriais](superpowers/plans/2026-10-30-bloqueios-editoriais.md)
+e de [execução comercial](superpowers/plans/2026-10-30-execucao-comercial.md), e a
+[revisão da plataforma de 30/10](../REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md).
+
 ## Operação e evidências
 
 - [Publicação das dependências de segurança](operations/stabilization/2026-10-24-security-dependencies-publication.md): Zod 4, inventário, candidata, promoção e preservação, sem migrations.
@@ -53,7 +71,6 @@ Comprovações humanas, dependências externas e manutenção estão no backlog 
 | --- | --- | --- |
 | [Braces e STJ reavaliados](operations/stabilization/2026-10-10-external-pending-review.md) | Controles locais e consulta às fontes após aprovação fiscal | 51 testes aprovados em 10/10; advisory de braces retirado em 23/10, STJ conserva o limite da consulta histórica |
 | [Análise documental do caso](operations/stabilization/2026-10-10-case-document-analysis.md) | Permissão, recebimento MCP e incorporação seletiva | Incremento local; validações sintéticas, sem deploy |
-| [Braces e STJ reavaliados](operations/stabilization/2026-10-10-external-pending-review.md) | Controles locais e consulta às fontes após aprovação fiscal | 51 testes aprovados; correções upstream continuam abertas |
 | [Decisão fiscal aprovada](operations/stabilization/2026-10-10-fiscal-decision.md) | Análise de PF/autoria, IR, ISS, IBS/CBS, registros e destinação | v1 aprovada por Boni no escopo descrito; cadastros e apuração não presumidos |
 | [Comprovações humanas e externas](operations/stabilization/2026-10-10-human-external-pending-priority.md) | Preparação fiscal/contratual em PF, ensaios e critérios de encerramento | Roteiro; consulta externa com recibo, sem comprovação humana fabricada |
 | [Consolidação documental e higiene local](operations/stabilization/2026-10-10-documentation-repository-hygiene.md) | Reconciliação das entradas documentais e preservação das branches históricas | Manutenção integrada pela PR #63; registro conserva o escopo histórico |
