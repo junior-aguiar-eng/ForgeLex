@@ -61,6 +61,8 @@ it('revalidates context and reserves a durable call before sending; settles exac
 });
 it.each([
   { ...body, tools: [{ type: 'web_search' }] },
+  { ...body, tools: [{ type: 'function', name: 'forgelex_drafting_save_final_draft' }] },
+  { ...body, tools: [{ type: 'function', name: 'forgelex_research_get_legislation' }] },
   { ...body, model: 'other' },
   { ...body, input: 'x'.repeat(64001) },
 ])('invalid transport input never reserves or sends', async (invalid) => {

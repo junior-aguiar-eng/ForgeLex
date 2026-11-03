@@ -34,3 +34,6 @@ export * from './repositories/legislation-repository.js';
 export * from './repositories/native-case-task-repository.js';
 
 export * from './repositories/agentic-tenant-guard.js';
+export * from './repositories/native-evidence-review-repository.js';
+export * from './repositories/approved-case-context-repository.js';
+export * from './repositories/evidence-reapproval-repository.js';

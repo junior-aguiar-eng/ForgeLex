@@ -1,7 +1,3 @@
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { expect, it } from 'vitest';
 import { createDatabase } from '../db.js';
 import { persistenceMigrations, runMigrations, runPersistenceMigrations } from './migration-runner.js';
@@ -9,7 +5,7 @@ import { persistenceMigrations, runMigrations, runPersistenceMigrations } from '
 it.each([
   [
     'main com análise documental',
-    (id: string) => !id.startsWith('persistence-0031-agentic') && !/^persistence-003[2346]-/.test(id),
+    (id: string) => !id.startsWith('persistence-0031-agentic') && !/^persistence-003[23467]-/.test(id),
   ],
   ['branch agêntica sem análise documental', (id: string) => id !== 'persistence-0031-case-document-analysis'],
 ])('reconcilia migrations a partir de %s sem reaplicação', async (_description, keep) => {
@@ -36,9 +32,9 @@ it.each([
 });
 
 it('0036 copia o prazo de admissão dos jobs que aguardam e deixa nulo o que aguarda pessoa', async () => {
-  // Own database: the default shared in-memory one keeps earlier tests' migrations applied.
-  const directory = await mkdtemp(join(tmpdir(), 'm0036-'));
-  const { client } = await createDatabase({ url: pathToFileURL(join(directory, 'db.sqlite')).toString() });
+  // A private in-memory database isolates migration state without depending on
+  // native file finalizers. File-handle lifetime is covered by db-native-lifecycle.test.ts.
+  const { client } = await createDatabase({ url: 'file::memory:' });
   try {
     await runMigrations(
       client,
@@ -74,6 +70,5 @@ it('0036 copia o prazo de admissão dos jobs que aguardam e deixa nulo o que agu
     ]);
   } finally {
     client.close();
-    await rm(directory, { recursive: true, force: true });
   }
 });

@@ -1,4 +1,34 @@
-export type ActionId = 'analyze_documents' | 'research_question' | 'create_document' | 'review_text';
+interface EvidenceReference {
+  sourceId: string;
+  quote: string;
+  start: number;
+  relation: 'SUPPORTS' | 'CONTRADICTS' | 'CONTEXT';
+  sourceContentHash: string;
+  quoteStatus: 'MATCHED' | 'MISMATCH';
+}
+interface TaskEvidenceMatrix {
+  assessment: 'MODEL_PROPOSAL_NOT_FACT_CONFIRMATION';
+  rows: {
+    id: string;
+    claimId: string;
+    issueIds: string[];
+    references: EvidenceReference[];
+    gaps: string[];
+    coverage: string;
+  }[];
+  chronology: {
+    id: string;
+    claimIds: string[];
+    description: string;
+    dateText: string | null;
+    reference: EvidenceReference;
+    sortDate: string | null;
+    dateStatus: 'LITERAL_ISO' | 'UNCERTAIN';
+  }[];
+  contradictions: { id: string; claimIds: string[]; explanation: string }[];
+}
+export type ActionId =
+  'analyze_documents' | 'research_question' | 'create_document' | 'review_text' | 'analyze_evidence';
 export interface Question {
   id: string;
   version: number;
@@ -50,7 +80,7 @@ export interface Execution {
   successorId: string | null;
   context: Context;
   messages: Message[];
-  permissions?: { editDraft: boolean };
+  permissions?: { editDraft: boolean; reviewEvidence?: boolean };
   history?: { executionId: string; deliveryIds: string[]; createdAt: string }[];
 }
 export interface PublicAction {
@@ -67,6 +97,11 @@ export interface Source {
   contentHash?: string;
   extent?: string;
   identityStatus?: string;
+  approvedItem?: {
+    text: string;
+    status: string;
+    sources: { documentId: string; versionId: string; anchorId: string; quote: string; relation: string }[];
+  };
 }
 export interface Delivery {
   id: string;
@@ -82,6 +117,7 @@ export interface Delivery {
     requirements: { id: string; statement: string; verified: boolean; sourceIds: string[] }[];
     findings: { id: string; code?: string; statement: string; severity: string; sourceIds: string[] }[];
     sources: Source[];
+    evidenceMatrix?: TaskEvidenceMatrix;
     document?: {
       title: string;
       documentType: string;
@@ -189,6 +225,10 @@ export function sourceLink(
   }
 }
 export function statusText(status: string, code = ''): string {
+  if (/APPROVED_CONTEXT_CHANGED|APPROVED_FACT_REQUIRED/.test(code))
+    return 'Um fato ou uma prova do caso mudou. Use Revisar alterações antes de enviar outro pedido.';
+  if (code === 'TASK_CONTEXT_LIMIT')
+    return 'O material do caso excede o limite deste trabalho. Seu pedido foi preservado.';
   if (code === 'COMMERCIAL_DAILY_LIMIT') return 'O limite diário de trabalhos foi atingido. Seu pedido foi preservado.';
   if (code === 'COMMERCIAL_MONTHLY_LIMIT')
     return 'O limite mensal de trabalhos foi atingido. Seu pedido foi preservado.';

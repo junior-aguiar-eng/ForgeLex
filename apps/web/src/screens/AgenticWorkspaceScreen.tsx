@@ -3,6 +3,7 @@ import { ApiRequestError } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 import { WorkspaceClient, type StartInput } from '../agentic-workspace/client';
 import { Composer } from '../agentic-workspace/Composer';
+import { EvidenceChangesPanel } from '../agentic-workspace/EvidenceChangesPanel';
 import { Conversation } from '../agentic-workspace/Conversation';
 import { ResultCard } from '../agentic-workspace/ResultCard';
 import { SideTable, type SideTab } from '../agentic-workspace/SideTable';
@@ -331,7 +332,7 @@ export function AgenticWorkspaceScreen({
             <p role="alert" className="break-words rounded-xl border border-amber-300 bg-amber-50 p-4">
               {statusText('FAILED', shownError)}{' '}
               {!shownError.match(
-                /ACCESS|BUDGET|BALANCE|FUNDS|NOT_FOUND|COMMERCIAL_(DAILY|MONTHLY|EXECUTION_ACTIVE|POLICY)/,
+                /ACCESS|BUDGET|BALANCE|FUNDS|NOT_FOUND|APPROVED_|COMMERCIAL_(DAILY|MONTHLY|EXECUTION_ACTIVE|POLICY)/,
               ) && 'O serviço está indisponível. Seu pedido permanece nesta tela.'}
             </p>
           )}
@@ -476,6 +477,9 @@ export function AgenticWorkspaceScreen({
                       Continuar trabalho
                     </button>
                   )}
+                {run.matterId && !denied && !closedPilot && !active && !canFollowUp && (
+                  <EvidenceChangesPanel key={run.matterId} matterId={run.matterId} disabled={busy} />
+                )}
                 {canFollowUp && (
                   <div className="space-y-4 pt-2">
                     <Composer

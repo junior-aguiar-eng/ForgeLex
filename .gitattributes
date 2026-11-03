@@ -3,3 +3,9 @@
 patches/*.patch text eol=lf -whitespace
 # Preserve the byte-exact, hash-pinned synthetic pilot fixture across platforms.
 docs/architecture/fixtures/agentic-task6-synthetic-cases.json text eol=lf
+
+# Preserve the bytes of the November calibration receipts and regression evidence.
+docs/architecture/evidence/2026-11-0[12]-* -text
+docs/architecture/evidence/2026-11-0[12]-*/** -text
+# Raw test output is evidence; keep its original whitespace.
+docs/architecture/evidence/2026-11-0[12]-*/**/*.log -whitespace

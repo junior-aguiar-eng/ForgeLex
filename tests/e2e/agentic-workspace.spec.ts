@@ -64,15 +64,17 @@ test('piloto fechado mostra USD e exige novo consentimento ao mudar caso ou limi
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
-test('regressão final: a conversa começa só com o pedido e sugestões opcionais preservam o texto', async ({ page }) => {
+test('regressão final: opções na mensagem preservam o texto e permitem voltar ao pedido livre', async ({ page }) => {
   await login(page);
   await expect(page.locator('[aria-pressed="true"]')).toHaveCount(0);
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Meu pedido original deve permanecer');
-  const suggestion = page.getByRole('button', { name: 'Analisar documentos', exact: true });
-  await suggestion.click();
-  await expect(suggestion).toHaveAttribute('aria-pressed', 'true');
-  await suggestion.click();
-  await expect(suggestion).toHaveAttribute('aria-pressed', 'false');
+  const suggestion = page
+    .getByRole('group', { name: 'Mensagem', exact: true })
+    .getByRole('combobox', { name: 'Opção do pedido' });
+  await suggestion.selectOption('analyze_documents');
+  await expect(suggestion).toHaveValue('analyze_documents');
+  await suggestion.selectOption('');
+  await expect(suggestion).toHaveValue('');
   await expect(page.getByRole('textbox', { name: 'O que você precisa fazer?', exact: true })).toHaveValue(
     'Meu pedido original deve permanecer',
   );
@@ -359,7 +361,7 @@ async function scope(page: Page) {
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
 }
 async function prepare(page: Page, text: string, action?: string) {
-  if (action) await page.getByRole('button', { name: action, exact: true }).click();
+  if (action) await page.getByRole('combobox', { name: 'Opção do pedido' }).selectOption({ label: action });
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill(text);
 }
 test('as quatro sugestões são opcionais e não executam nada; o agente decide o resto', async ({ page }) => {
@@ -369,10 +371,9 @@ test('as quatro sugestões são opcionais e não executam nada; o agente decide 
     if (req.url().endsWith('/api/agentic/executions') && req.method() === 'POST') starts++;
   });
   for (const name of ['Analisar documentos', 'Pesquisar uma questão', 'Criar uma peça', 'Revisar um texto']) {
-    const suggestion = page.getByRole('button', { name, exact: true });
-    await suggestion.click();
-    await expect(suggestion).toHaveAttribute('aria-pressed', 'true');
-    expect(await page.locator('[aria-pressed="true"]').count()).toBe(1);
+    const suggestion = page.getByRole('combobox', { name: 'Opção do pedido' });
+    await suggestion.selectOption({ label: name });
+    await expect(suggestion.locator('option:checked')).toHaveText(name);
   }
   expect(starts).toBe(0);
   await page

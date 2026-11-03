@@ -3,6 +3,7 @@ import { requestApi } from '../api-client';
 import type { WorkspaceClient, StartInput } from './client';
 import { reais, type CommercialQuote } from './commercial-model';
 import type { ActionId, Context, PublicAction } from './execution-model';
+import { EvidenceChangesPanel } from './EvidenceChangesPanel';
 
 export interface ComposerFollowUp {
   conversationId: string;
@@ -25,9 +26,6 @@ interface MatterDraft {
   title: string;
   currentVersionId: string;
 }
-
-const chip = (on: boolean) =>
-  `min-h-11 rounded-full border px-4 text-sm font-medium ${on ? 'border-cognac-600 bg-cognac-100 text-cognac-900' : 'border-champagne-border bg-white text-stone-800 hover:bg-ivory-100'}`;
 
 /** One request box. Everything beyond the request itself is optional and stays folded away. */
 export function Composer({
@@ -148,7 +146,11 @@ export function Composer({
   };
   return (
     <section aria-label="Novo pedido" className="space-y-4">
-      <div className="space-y-3 rounded-2xl border border-champagne-border bg-white p-4 shadow-card">
+      <div
+        role="group"
+        aria-label="Mensagem"
+        className="space-y-3 rounded-2xl border border-champagne-border bg-white p-4 shadow-card"
+      >
         <textarea
           aria-label="O que você precisa fazer?"
           className="w-full resize-none border-0 bg-transparent p-0 text-base focus:outline-none focus-visible:ring-0"
@@ -163,6 +165,22 @@ export function Composer({
           }
         />
         <div className="flex flex-wrap items-center gap-2">
+          {!followUp && (
+            <select
+              aria-label="Opção do pedido"
+              className="min-h-11 max-w-full rounded-full border border-champagne-border bg-white px-3 text-sm font-medium text-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
+              value={action ?? ''}
+              disabled={busy}
+              onChange={(event) => setAction(actions.find((item) => item.id === event.target.value)?.id)}
+            >
+              <option value="">Opções</option>
+              {actions.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             type="button"
             aria-expanded={scopeOpen}
@@ -177,22 +195,6 @@ export function Composer({
           </button>
         </div>
       </div>
-
-      {!followUp && (
-        <div role="group" aria-label="Sugestões para começar" className="flex flex-wrap gap-2">
-          {actions.map((a) => (
-            <button
-              type="button"
-              key={a.id}
-              aria-pressed={action === a.id}
-              className={chip(action === a.id)}
-              onClick={() => setAction(action === a.id ? undefined : a.id)}
-            >
-              {a.label}
-            </button>
-          ))}
-        </div>
-      )}
 
       {scopeOpen && (
         <section
@@ -282,6 +284,7 @@ export function Composer({
         </section>
       )}
 
+      {matter && <EvidenceChangesPanel key={matter} matterId={matter} disabled={busy} />}
       {!available && (
         <p className="text-sm text-stone-600">O processamento deste trabalho ainda não está disponível.</p>
       )}

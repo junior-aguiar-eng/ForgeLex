@@ -20,6 +20,25 @@ const finding = (code: string, sourceIds = ['s1']) => ({
 });
 
 describe('entrega utilizável para cobrança', () => {
+  it('exige matriz probatória com vínculo documental conferido, não só alegação ou limitação', () => {
+    const base = delivery({
+      action: 'analyze_evidence',
+      claims: [{ id: 'c', statement: 'x', sourceIds: ['s1'] }] as never,
+    });
+    expect(hasUsableResult(base)).toBe(false);
+    const matrix: any = {
+      rows: [{ claimId: 'c', references: [{ sourceId: 's1', quoteStatus: 'MATCHED', sourceContentHash: 'hash' }] }],
+    };
+    expect(hasUsableResult({ ...base, evidenceMatrix: matrix })).toBe(false);
+    const document = {
+      ...base,
+      evidenceMatrix: matrix,
+      sources: [{ id: 's1', kind: 'DOCUMENT', contentHash: 'hash' }],
+    } as any;
+    expect(hasUsableResult(document)).toBe(true);
+    matrix.rows[0].references[0].quoteStatus = 'MISMATCH';
+    expect(hasUsableResult(document)).toBe(false);
+  });
   it.each(CASE_TASK_LIMITATION_CODES)('o código de limitação %s fundamentado não torna a entrega cobrável', (code) => {
     expect(hasUsableResult(delivery({ findings: [finding(code)] as never }))).toBe(false);
   });

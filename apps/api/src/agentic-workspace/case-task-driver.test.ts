@@ -19,6 +19,10 @@ afterEach(async () => {
   for (const run of cleanup.splice(0)) await run();
 });
 async function fixture(research = false, ask = false) {
+  const researchService = createFixtureResearchService();
+  const authority = research
+    ? (await researchService.searchCaseLaw({ query: 'vazamento', court: 'STJ', limit: 1 })).items[0]
+    : undefined;
   const c = await createDatabase({ url: 'file::memory:' });
   await runPersistenceMigrations(c.client);
   const ledger = new LedgerService(c.db, c.client);
@@ -48,7 +52,7 @@ async function fixture(research = false, ask = false) {
       scheduler: false,
       caseTask: {
         authorizeNative: async () => {},
-        researchService: createFixtureResearchService(),
+        researchService,
         createProvider: ({ role, registry, packet }: any) => {
           roles.push(role);
           seenAnswers.push(packet.answers);
@@ -76,10 +80,30 @@ async function fixture(research = false, ask = false) {
           };
           const result = {
             coveredIssueIds: ['goal'],
-            claims: [],
+            claims:
+              role === 'legal-researcher' && authority
+                ? [
+                    {
+                      id: 'claim',
+                      classification: 'INFERENCE',
+                      statement: 'Proposição sintética para conferência.',
+                      sourceIds: [authority.id],
+                    },
+                  ]
+                : [],
             requirements: [],
             findings: [],
-            supportChecks: [],
+            supportChecks:
+              role === 'authority-verifier' && authority
+                ? [
+                    {
+                      claimId: packet.priorResults['legal-researcher'].claims[0].id,
+                      sourceId: authority.id,
+                      quote: authority.syllabus.slice(0, 100),
+                      assessment: 'SUPPORTED',
+                    },
+                  ]
+                : [],
             ...(role === 'legal-drafter'
               ? {
                   document: {
@@ -171,6 +195,7 @@ describe('driver jurídico integrado ao serviço durável', () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.json().delivery.humanReviewRequired).toBe(true);
+    expect(response.json().delivery.supportAudit).toEqual([]);
     expect(response.body).not.toMatch(/private|instructions|allowedTools|bindingHash|profiles/);
     expect(
       (
@@ -280,6 +305,14 @@ describe('driver jurídico integrado ao serviço durável', () => {
       })
     ).json();
     expect(record.delivery.sources.some((s: any) => s.kind === 'AUTHORITY')).toBe(true);
+    expect(record.delivery.supportAudit).toEqual([
+      expect.objectContaining({
+        claimId: record.delivery.claims[0].id,
+        quoteStatus: 'MATCHED',
+        modelAssessment: 'SUPPORTED',
+        sourceContentHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      }),
+    ]);
     expect(record.delivery.findings.map((f: any) => f.code)).not.toContain('SOURCE_UNAVAILABLE');
     const before = f.roles.length;
     await f.service!.listClientEvents(owner, run.id, 0);

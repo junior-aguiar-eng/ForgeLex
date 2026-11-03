@@ -17,7 +17,7 @@ import {
   caseTaskPreviousDeliveryIds,
   type CaseTaskOptions,
 } from '@forgelex/legal-workflows';
-import { AgenticTaskActionSchema } from '@forgelex/domain';
+import { AgenticTaskActionSchema, type TaskBinding } from '@forgelex/domain';
 import type { AgentTool, ToolExecutionContext } from '@forgelex/agent-core';
 import type { SearchCaseLawInput } from '@forgelex/legal-tools';
 import type { IndexedLegislationProvider } from '@forgelex/source-providers';
@@ -28,6 +28,8 @@ export interface NativeCaseTaskOptions {
   createProvider: CaseTaskOptions['createProvider'];
   authorizeRealProvider?: CaseTaskOptions['authorizeRealProvider'];
   researchService?: ResearchService;
+  /** Trusted commercial gate: indexed research is included in its existing reservation. */
+  executeIncludedResearch?: <T>(binding: TaskBinding, operation: () => Promise<T>) => Promise<T>;
   legislationProvider?: IndexedLegislationProvider;
 }
 export function createCaseTaskDriver(
@@ -58,27 +60,43 @@ export function createCaseTaskDriver(
         if (research) {
           let ordinal = 0;
           const search = createSearchCaseLawTool(research);
-          tools.push(
-            {
-              ...search,
-              execute: async (input: SearchCaseLawInput, context: ToolExecutionContext) => {
-                const policy = getForgeLexBillingPolicy(search.name);
-                if (policy.mode !== 'METERED') throw new Error('RESEARCH_BILLING_POLICY_INVALID');
-                const index = caseTaskStepIndex(execution.checkpoint?.caseTask);
-                const callId = `stj:${index}:${++ordinal}`;
-                const billed = await budget.executeResearchCall(owner, execution.id, {
-                  callId,
-                  idempotencyKey: `${search.name}:${execution.id}:${callId}`,
-                  costCents: policy.costCents,
-                  requestFingerprint: createHash('sha256').update(JSON.stringify(input)).digest('hex'),
-                  operation: () => search.execute(input, context),
-                });
-                return billed.data;
-              },
+          const included = (tool: AgentTool<any, any>): AgentTool<any, any> => ({
+            ...tool,
+            execute: async (input, context) => {
+              if (signal.aborted) throw new Error('SESSION_CANCELLED');
+              return options.executeIncludedResearch!(binding, async () => {
+                if (signal.aborted) throw new Error('SESSION_CANCELLED');
+                return tool.execute(input, context);
+              });
             },
-            createGetAuthorityTool(research),
-            createVerifyAuthorityTool(research),
-          );
+          });
+          if (options.executeIncludedResearch) {
+            tools.push(
+              ...[search, createGetAuthorityTool(research), createVerifyAuthorityTool(research)].map(included),
+            );
+          } else {
+            tools.push(
+              {
+                ...search,
+                execute: async (input: SearchCaseLawInput, context: ToolExecutionContext) => {
+                  const policy = getForgeLexBillingPolicy(search.name);
+                  if (policy.mode !== 'METERED') throw new Error('RESEARCH_BILLING_POLICY_INVALID');
+                  const index = caseTaskStepIndex(execution.checkpoint?.caseTask);
+                  const callId = `stj:${index}:${++ordinal}`;
+                  const billed = await budget.executeResearchCall(owner, execution.id, {
+                    callId,
+                    idempotencyKey: `${search.name}:${execution.id}:${callId}`,
+                    costCents: policy.costCents,
+                    requestFingerprint: createHash('sha256').update(JSON.stringify(input)).digest('hex'),
+                    operation: () => search.execute(input, context),
+                  });
+                  return billed.data;
+                },
+              },
+              createGetAuthorityTool(research),
+              createVerifyAuthorityTool(research),
+            );
+          }
         }
         if (options.legislationProvider) tools.push(createGetLegislationTool(options.legislationProvider));
         const task = new AgenticCaseTask({

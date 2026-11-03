@@ -4,7 +4,7 @@ import type { AgentProvider } from '@forgelex/agent-core';
 import type { AgenticOwner, TaskBinding } from '@forgelex/domain';
 import { COMMERCIAL_POLICY, type CommercialInferenceService } from '@forgelex/billing-ledger';
 import type { CaseTaskProviderInput } from '@forgelex/legal-workflows';
-import { AGENT_TOOL_NAMES, readBounded, responseUsage, sdkCompatibleSse } from './provider-transport.js';
+import { COMMERCIAL_AGENT_TOOL_NAMES, readBounded, responseUsage, sdkCompatibleSse } from './provider-transport.js';
 
 /** The commercial policy is the single source of truth for the model, its rates and its output ceiling. */
 export const COMMERCIAL_MODEL = COMMERCIAL_POLICY.model;
@@ -12,14 +12,14 @@ export interface CommercialProviderOptions {
   apiKey: string;
   finance: Pick<CommercialInferenceService, 'authorizeCall' | 'settleCall' | 'markUncertain' | 'markNotDispatched'>;
   /** Rechecks live account, execution, reservation and selected-source snapshot before each HTTP. */
-  assertContext: (executionId: string, packet?: CaseTaskProviderInput['packet']) => Promise<AgenticOwner>;
+  assertContext: (executionId: string, packet?: CaseTaskProviderInput['selectedPacket']) => Promise<AgenticOwner>;
   transport?: typeof globalThis.fetch;
 }
 export function createCommercialOpenAIRuntime(options: CommercialProviderOptions) {
   if (!options.apiKey.trim()) throw new Error('COMMERCIAL_KEY_REQUIRED');
   const providers = new WeakSet<AgentProvider>();
   const fetchFor =
-    (executionId: string, packet?: CaseTaskProviderInput['packet']): typeof globalThis.fetch =>
+    (executionId: string, packet?: CaseTaskProviderInput['selectedPacket']): typeof globalThis.fetch =>
     async (url, init) => {
       if (String(url) !== 'https://api.openai.com/v1/responses') throw new Error('COMMERCIAL_DESTINATION_INVALID');
       if (init?.signal?.aborted) throw new Error('SESSION_CANCELLED');
@@ -42,7 +42,7 @@ export function createCommercialOpenAIRuntime(options: CommercialProviderOptions
         body.prompt_cache_key ||
         JSON.stringify(body).includes('prompt_cache_breakpoint') ||
         !Array.isArray(body.tools ?? []) ||
-        (body.tools ?? []).some((t: any) => t.type !== 'function' || !AGENT_TOOL_NAMES.includes(t.name))
+        (body.tools ?? []).some((t: any) => t.type !== 'function' || !COMMERCIAL_AGENT_TOOL_NAMES.includes(t.name))
       )
         throw new Error('COMMERCIAL_REQUEST_INVALID');
       Object.assign(body, {
@@ -73,6 +73,7 @@ export function createCommercialOpenAIRuntime(options: CommercialProviderOptions
       });
       if (!authorization.shouldExecute) throw new Error('CALL_ALREADY_AUTHORIZED');
       let dispatched = false;
+      let usageSettled = false;
       try {
         if (init?.signal?.aborted) throw new Error('SESSION_CANCELLED');
         await options.assertContext(executionId, packet);
@@ -96,10 +97,12 @@ export function createCommercialOpenAIRuntime(options: CommercialProviderOptions
           cachedInputTokens: usage.cachedInputTokens,
         });
         if (settled.status !== 'SETTLED') throw new Error('COMMERCIAL_RESPONSE_INVALID');
+        usageSettled = true;
+        if (usage.failureCode) throw new Error(usage.failureCode);
         return new Response(compatible, { status: response.status, headers: { 'content-type': 'text/event-stream' } });
       } catch (error) {
-        if (dispatched) await options.finance.markUncertain(owner, executionId, callId);
-        else await options.finance.markNotDispatched(owner, executionId, callId);
+        if (dispatched && !usageSettled) await options.finance.markUncertain(owner, executionId, callId);
+        else if (!dispatched) await options.finance.markNotDispatched(owner, executionId, callId);
         throw error;
       }
     };
@@ -109,7 +112,7 @@ export function createCommercialOpenAIRuntime(options: CommercialProviderOptions
       const provider = new OpenAIAgentProvider({
         apiKey: options.apiKey,
         model: COMMERCIAL_MODEL,
-        fetch: fetchFor(input.binding.executionId, input.packet),
+        fetch: fetchFor(input.binding.executionId, input.selectedPacket),
       });
       providers.add(provider);
       return provider;

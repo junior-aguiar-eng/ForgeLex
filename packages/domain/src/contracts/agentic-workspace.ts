@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApprovedItemsSchema } from './approved-case-context.js';
 
 const id = z.string().min(1).max(200);
 const revision = z.number().int().positive();
@@ -81,6 +82,7 @@ export const AgenticContextSchema = z
     documents: z.array(z.object({ documentId: z.string().guid(), versionId: z.string().guid() }).strict()).max(100),
     answers: z.array(LegalAnswerSchema).max(1000).optional(),
     draft: z.object({ draftId: z.string().guid(), versionId: z.string().guid() }).strict().optional(),
+    approvedItems: ApprovedItemsSchema.optional(),
   })
   .strict()
   .superRefine((c, ctx) => {

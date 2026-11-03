@@ -15,8 +15,7 @@ import type { ForgeLexDatabase } from '../db.js';
 import * as s from '../schema/schema.js';
 import { CaseAiAccessRepository } from './case-ai-access-repository.js';
 import { MatterRepository } from './matter-repository.js';
-import { FactsEvidenceRepository } from './facts-evidence-repository.js';
-import { LegalIssueRepository } from './legal-issue-repository.js';
+import { adoptAnalysisItem } from './adopt-analysis-item.js';
 import { withMatterWrite } from './matter-write-guard.js';
 
 type Row = typeof s.caseAnalysisReceipts.$inferSelect;
@@ -160,9 +159,6 @@ export class CaseAnalysisRepository {
           Number(saved.items.find((i) => i.id === a.itemId)?.kind !== 'FACT') -
           Number(saved.items.find((i) => i.id === b.itemId)?.kind !== 'FACT'),
       );
-      const facts = new FactsEvidenceRepository(db);
-      const issues = new LegalIssueRepository(db);
-      const ctx = { tenantId: o.tenantId, matterId, createdBy: o.userId };
       for (const decision of ordered) {
         const item = saved.items.find((i) => i.id === decision.itemId);
         if (!item) throw new Error('ANALYSIS_ITEM_INVALID');
@@ -171,48 +167,15 @@ export class CaseAnalysisRepository {
         let targetId: string | undefined;
         if (decision.action === 'ADOPT') {
           await repo.validateSources(o, matterId, item);
-          if (item.kind === 'FACT') {
-            targetId = (
-              await facts.createFact({
-                ...ctx,
-                statement: text,
-                status: item.classification === 'DISPUTED' ? 'DISPUTED' : 'ASSERTED',
-              })
-            ).id;
-            for (const ref of item.sources)
-              await facts.linkFactToAnchor({
-                ...ctx,
-                factId: targetId,
-                documentAnchorId: ref.anchorId,
-                relation: ref.relation,
-                note: `Análise ${id}: ${item.classification}`,
-              });
-          } else if (item.kind === 'EVIDENCE') {
-            const factId = item.factItemId ? saved.decisions[item.factItemId]?.targetId : undefined;
-            if (item.factItemId && !factId) throw new Error('ANALYSIS_FACT_REQUIRED');
-            targetId = (await facts.createEvidenceItem({ ...ctx, title: text, evidenceType: 'DOCUMENT' })).id;
-            for (const ref of item.sources)
-              await facts.linkEvidenceToAnchor({
-                ...ctx,
-                evidenceItemId: targetId,
-                documentAnchorId: ref.anchorId,
-                relation:
-                  ref.relation === 'SUPPORTS' ? 'PROVES' : ref.relation === 'CONTRADICTS' ? 'REFUTES' : 'CONTEXT',
-              });
-            if (factId)
-              await facts.linkEvidenceToFact({ ...ctx, factId, evidenceItemId: targetId, relation: item.relation! });
-          } else if (item.kind === 'TIMELINE')
-            targetId = (
-              await facts.createTimelineEvent({
-                ...ctx,
-                title: text,
-                eventDate: item.eventDate!,
-                sourceAnchorId: item.sources[0].anchorId,
-              })
-            ).id;
-          else
-            targetId = (await issues.createIssue({ ...ctx, statement: item.kind === 'GAP' ? `Lacuna: ${text}` : text }))
-              .id;
+          targetId = await adoptAnalysisItem(
+            db,
+            o,
+            matterId,
+            id,
+            item,
+            text,
+            item.factItemId ? saved.decisions[item.factItemId]?.targetId : undefined,
+          );
         }
         saved.decisions[item.id] = {
           action: decision.action,

@@ -108,11 +108,15 @@ export function CommercialPriceReview({
     <div className="space-y-3" aria-label="Preço do trabalho">
       <p>Este trabalho custa até {reais(quote.maxCostCents)}. O saldo não utilizado será liberado.</p>
       <p className="text-sm text-stone-600">
+        A pesquisa STJ realizada neste trabalho está incluída no limite, sem cobrança separada.
+      </p>
+      <p className="text-sm text-stone-600">
         Sem entrega utilizável, não há cobrança. Ao cancelar, uma entrega parcial utilizável pode ser cobrada dentro
         deste limite.
       </p>
       <p className="text-sm text-stone-600">
-        Ao iniciar, o pedido e as fontes selecionadas serão enviados à OpenAI para processamento.{' '}
+        Ao iniciar, o pedido, as fontes selecionadas e os fatos e provas já aprovados do caso serão enviados à OpenAI
+        para processamento.{' '}
         <a href="/legal/privacidade.html" target="_blank" rel="noreferrer" className="underline">
           Privacidade
         </a>

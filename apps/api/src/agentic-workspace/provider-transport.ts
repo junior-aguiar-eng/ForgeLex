@@ -1,10 +1,18 @@
 import { normalizeProviderUsage } from '@forgelex/agent-core';
 
-/** The only tools the case workflow may expose to a provider; both request guards check against this. */
+/** Native tools shared by the closed-pilot and commercial request guards. */
 export const AGENT_TOOL_NAMES: readonly string[] = [
   'forgelex_case_read_selected',
   'forgelex_task_get_sources',
   'forgelex_task_submit',
+];
+
+/** Indexed STJ research is included only in the commercial runtime; the closed pilot remains unchanged. */
+export const COMMERCIAL_AGENT_TOOL_NAMES: readonly string[] = [
+  ...AGENT_TOOL_NAMES,
+  'forgelex_research_search_case_law',
+  'forgelex_research_get_authority',
+  'forgelex_research_verify_authority',
 ];
 
 export async function readBounded(response: Response) {
@@ -48,7 +56,15 @@ export function responseUsage(body: string, model: string) {
     const cached = r.usage?.input_tokens_details?.cached_tokens ?? 0;
     if (!Number.isSafeInteger(cached) || cached < 0 || cached > usage.inputTokens)
       throw new Error('PILOT_RESPONSE_INVALID');
-    return { ...usage, cachedInputTokens: cached };
+    const failureCode =
+      event.type === 'response.incomplete'
+        ? r.incomplete_details?.reason === 'max_output_tokens'
+          ? 'COMMERCIAL_OUTPUT_LIMIT'
+          : 'COMMERCIAL_RESPONSE_INCOMPLETE'
+        : event.type === 'response.failed'
+          ? 'COMMERCIAL_RESPONSE_FAILED'
+          : undefined;
+    return { ...usage, cachedInputTokens: cached, failureCode };
   }
   throw new Error('PILOT_RESPONSE_INVALID');
 }

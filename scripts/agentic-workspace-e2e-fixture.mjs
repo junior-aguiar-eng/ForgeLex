@@ -3,15 +3,22 @@ import { FakeAgentProvider } from '../packages/agent-core/dist/index.js';
 export function agenticE2EPlan({ role, packet }) {
   const action =
     packet.plan?.action ??
-    (/redigir|Redigir|minuta/.test(packet.objective)
-      ? 'create_document'
-      : /Pesquisar|SEM_ORCAMENTO/.test(packet.objective)
-        ? 'research_question'
-        : /Revisar/.test(packet.objective)
-          ? 'review_text'
-          : 'analyze_documents');
+    (/PROBATORIA/.test(packet.objective)
+      ? 'analyze_evidence'
+      : /redigir|Redigir|minuta/.test(packet.objective)
+        ? 'create_document'
+        : /Pesquisar|SEM_ORCAMENTO/.test(packet.objective)
+          ? 'research_question'
+          : /Revisar/.test(packet.objective)
+            ? 'review_text'
+            : 'analyze_documents');
+  const approved = action === 'analyze_evidence' ? [] : packet.sources.filter((s) => s.approvedItem);
+  const approvedText = approved
+    .filter((s) => s.kind === 'CASE_FACT')
+    .map((s) => s.approvedItem.text)
+    .join('\n');
   const src = packet.sources.find((s) => s.kind === 'DOCUMENT')?.id ?? packet.sources[0]?.id,
-    refs = src ? [src] : [];
+    refs = approved.length ? approved.map((s) => s.id) : src ? [src] : [];
   const multiple = packet.objective.includes('PERGUNTA_MULTIPLA');
   const needsQuestion = /PERGUNTA_/.test(packet.objective) && !packet.answers.length;
   const plan = {
@@ -45,7 +52,7 @@ export function agenticE2EPlan({ role, packet }) {
       {
         id: 'allegation',
         classification: 'ALLEGATION',
-        statement: 'A parte relata que o serviço não foi entregue; alegação a conferir.',
+        statement: approvedText || 'A parte relata que o serviço não foi entregue; alegação a conferir.',
         sourceIds: refs,
       },
     ],
@@ -63,6 +70,30 @@ export function agenticE2EPlan({ role, packet }) {
           ]
         : [],
     supportChecks: [],
+    ...(action === 'analyze_evidence' && role === 'matter-analyst'
+      ? {
+          evidenceAnalysis: {
+            rows: [
+              {
+                id: 'row',
+                claimId: 'allegation',
+                issueIds: ['goal'],
+                references: [
+                  {
+                    sourceId: src,
+                    quote: packet.sources.find((s) => s.id === src).text,
+                    start: 0,
+                    relation: 'CONTEXT',
+                  },
+                ],
+                gaps: ['Falta documento para conferir o relato.'],
+              },
+            ],
+            chronology: [],
+            contradictions: [],
+          },
+        }
+      : {}),
     ...(role === 'legal-drafter' && !packet.objective.includes('SEM_SUPORTE')
       ? {
           document: {
@@ -72,7 +103,8 @@ export function agenticE2EPlan({ role, packet }) {
               { title: 'Endereçamento', content: '[DESTINATÁRIO A CONFERIR]', sourceIds: [] },
               {
                 title: 'Fatos',
-                content: 'A parte relata que o serviço não foi entregue. [IDENTIFICAÇÃO E DATAS A CONFERIR]',
+                content:
+                  approvedText || 'A parte relata que o serviço não foi entregue. [IDENTIFICAÇÃO E DATAS A CONFERIR]',
                 sourceIds: refs,
               },
               {

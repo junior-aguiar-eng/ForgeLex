@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { LegalAnswerSchema } from './agentic-workspace.js';
+import { TaskEvidenceMatrixSchema } from './task-evidence.js';
+import { ApprovedItemSnapshotSchema } from './approved-case-context.js';
 const id = z.string().trim().min(1).max(200);
 const text = z.string().trim().min(1).max(16000);
 export const AgenticTaskActionSchema = z.enum([
@@ -7,10 +9,21 @@ export const AgenticTaskActionSchema = z.enum([
   'research_question',
   'create_document',
   'review_text',
+  'analyze_evidence',
 ]);
 export const TaskSourceSchema = z.strictObject({
   id,
-  kind: z.enum(['USER_TEXT', 'DOCUMENT', 'DRAFT', 'ANSWER', 'AUTHORITY', 'NORM', 'PREVIOUS_DELIVERY']),
+  kind: z.enum([
+    'USER_TEXT',
+    'DOCUMENT',
+    'DRAFT',
+    'ANSWER',
+    'AUTHORITY',
+    'NORM',
+    'PREVIOUS_DELIVERY',
+    'CASE_FACT',
+    'CASE_EVIDENCE',
+  ]),
   text: z.string().min(1).max(64000),
   contentHash: z.string().regex(/^[a-f0-9]{64}$/),
   documentId: id.optional(),
@@ -18,6 +31,7 @@ export const TaskSourceSchema = z.strictObject({
   url: z.url().optional(),
   extent: z.enum(['SELECTED_TEXT', 'SYLLABUS', 'PROVISION', 'EXCERPT']).optional(),
   identityStatus: z.string().max(100).optional(),
+  approvedItem: ApprovedItemSnapshotSchema.optional(),
 });
 export type TaskSource = z.infer<typeof TaskSourceSchema>;
 export const TaskFindingSchema = z.strictObject({
@@ -49,6 +63,16 @@ export const TaskDocumentSchema = z.strictObject({
     .min(1)
     .max(30),
 });
+/** Server-produced record: literal matching and a model assessment are not legal validation. */
+export const TaskSupportAuditSchema = z.strictObject({
+  claimId: id,
+  sourceId: id,
+  sourceContentHash: z.string().regex(/^[a-f0-9]{64}$/),
+  quote: z.string().min(1).max(4000).optional(),
+  quoteStatus: z.enum(['MATCHED', 'MISMATCH', 'MISSING', 'CONFLICTING']),
+  modelAssessment: z.enum(['SUPPORTED', 'PARTIAL', 'NONE', 'UNDETERMINED', 'NOT_ASSESSED']),
+});
+export type TaskSupportAudit = z.infer<typeof TaskSupportAuditSchema>;
 export const AgenticTaskDeliverySchema = z.strictObject({
   action: AgenticTaskActionSchema,
   contextId: id,
@@ -61,6 +85,9 @@ export const AgenticTaskDeliverySchema = z.strictObject({
   requirements: z.array(TaskRequirementSchema).max(100),
   findings: z.array(TaskFindingSchema).max(200),
   sources: z.array(TaskSourceSchema.omit({ text: true })).max(100),
+  // Optional for reading historical deliveries without rewriting their content/hash.
+  supportAudit: z.array(TaskSupportAuditSchema).max(10000).optional(),
+  evidenceMatrix: TaskEvidenceMatrixSchema.optional(),
   document: TaskDocumentSchema.optional(),
 });
 export type AgenticTaskDelivery = z.infer<typeof AgenticTaskDeliverySchema>;

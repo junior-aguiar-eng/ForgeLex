@@ -1,0 +1,112 @@
+{
+  "description": "Captured with frozen pre-fix candidate 90317c82, using synthetic context and no network",
+  "binding": {
+    "tenantId": "graph",
+    "userId": "boni",
+    "executionId": "legacy",
+    "conversationId": "graph-conversation",
+    "contextRevision": 1,
+    "objective": "Analisar contexto sintético",
+    "actionId": "analyze_documents"
+  },
+  "packet": {
+    "contextId": "graph-conversation",
+    "contextRevision": 1,
+    "sources": [
+      {
+        "id": "user:graph",
+        "kind": "USER_TEXT",
+        "text": "Contexto sintético para compatibilidade do grafo.",
+        "contentHash": "8b291da6efdf3836645eb760b06af85611b53f28c19d4be21696741e4e0bc0d1"
+      },
+      {
+        "id": "approved:fact",
+        "kind": "CASE_FACT",
+        "text": "{\"deliveryId\":\"delivery:origin\",\"itemId\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"targetId\":\"e06c58d9-0664-4bcb-a0c1-76fc9c54a439\",\"kind\":\"FACT\",\"text\":\"Alegação revisada.\",\"status\":\"ASSERTED\",\"decidedBy\":\"boni\",\"decidedAt\":\"2026-11-01T00:00:00.000Z\",\"receiptHash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"sources\":[]}",
+        "contentHash": "cb79a9421ca19568b1901689dfabb7601067060abb49cfec085838376a1397d6",
+        "approvedItem": {
+          "deliveryId": "delivery:origin",
+          "itemId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "targetId": "e06c58d9-0664-4bcb-a0c1-76fc9c54a439",
+          "kind": "FACT",
+          "text": "Alegação revisada.",
+          "status": "ASSERTED",
+          "decidedBy": "boni",
+          "decidedAt": "2026-11-01T00:00:00.000Z",
+          "receiptHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "sources": []
+        }
+      }
+    ],
+    "answers": []
+  },
+  "state": {
+    "version": 4,
+    "bindingHash": "daa28f2e65951b1873c578f858a160183e284a703a27dfc6a6a1550d21d3046b",
+    "contractHash": "4fa1703ae118de111a38aa4c33528533ff3bc81cb88c75cb1c5010451e909b2f",
+    "previousDeliveryIds": [],
+    "outputs": {},
+    "evidence": [],
+    "profiles": [
+      {
+        "role": "legal-orchestrator",
+        "version": "1.5.0",
+        "instructionId": "legal-orchestrator-instructions",
+        "instructionVersion": "1.0.0",
+        "legacyAgentId": null,
+        "legacyAgentVersion": null,
+        "policyId": "agentic-case-task-policy",
+        "policyVersion": "1.5.0"
+      }
+    ],
+    "toolCount": 1,
+    "researchOperations": [],
+    "findings": [],
+    "plan": {
+      "action": "analyze_documents",
+      "requiresCaseLaw": false,
+      "requiresNorms": false,
+      "requiresProcedure": false,
+      "issues": [
+        {
+          "id": "issue",
+          "statement": "Analisar o relato",
+          "sourceIds": [
+            "user:graph"
+          ]
+        }
+      ],
+      "gaps": []
+    },
+    "graph": {
+      "version": 1,
+      "revision": 0,
+      "tools": [],
+      "failedTools": [],
+      "planHashes": [
+        "561f9bff6eed2f1412bc3e06174fc8d610b6b3bedf3842de786c28bb19504872"
+      ],
+      "reviewRequired": false,
+      "nodes": [
+        {
+          "id": "matter-analyst:0",
+          "role": "matter-analyst",
+          "generation": 0,
+          "dependsOn": [],
+          "status": "PENDING"
+        },
+        {
+          "id": "authority-verifier:0",
+          "role": "authority-verifier",
+          "generation": 0,
+          "dependsOn": [
+            "matter-analyst:0"
+          ],
+          "status": "PENDING"
+        }
+      ],
+      "archivedOutputs": {},
+      "decisions": []
+    }
+  }
+}

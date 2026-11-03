@@ -1,0 +1,397 @@
+{
+  "bindingHash": "5b357471db86a8ffce59d291dc310964e8c87b59a615597b1496621557c6948e",
+  "contractHash": "cf68b4627fb1598fddca9b0e2e7e3bc0272b0dd352388c263d042b580a58e970",
+  "previousDeliveryIds": [],
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.7.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.7.0"
+    },
+    {
+      "role": "matter-analyst",
+      "version": "1.7.0",
+      "instructionId": "matter-analyst-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "matter-analyst",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.7.0"
+    }
+  ],
+  "toolCount": 4,
+  "researchOperations": [],
+  "findings": [],
+  "outputs": {
+    "matter-analyst": {
+      "coveredIssueIds": [
+        "editorial",
+        "obrigacao",
+        "urgencia",
+        "limites"
+      ],
+      "claims": [
+        {
+          "id": "c1",
+          "classification": "ALLEGATION",
+          "statement": "O contexto identifica Aurora como solicitante de fornecimento imediato em ação civil contra Brisa; não fornece qualificação, juízo ou identificação processual.",
+          "sourceIds": [
+            "context"
+          ]
+        },
+        {
+          "id": "c2",
+          "classification": "ALLEGATION",
+          "statement": "O trecho contratual prevê entrega de dois equipamentos por Brisa à Aurora em 15/10/2026. Trata-se da data prevista para cumprimento, não de comprovação de entrega ou inadimplemento.",
+          "sourceIds": [
+            "D04/contrato@v1#p1"
+          ]
+        },
+        {
+          "id": "c3",
+          "classification": "ALLEGATION",
+          "statement": "O pedido situa em 18/10/2026 a solicitação de entrega imediata por Aurora; essa data é a atribuída à solicitação na narrativa, não data demonstrada de emissão do documento.",
+          "sourceIds": [
+            "D04/pedido@v1#p1"
+          ]
+        },
+        {
+          "id": "c4",
+          "classification": "INFERENCE",
+          "statement": "A solicitação posterior à data contratual não comprova, por si só, ausência de entrega. O corpus não esclarece cumprimento total, parcial ou inexistente, nem contém contradição expressa entre as versões disponíveis.",
+          "sourceIds": [
+            "D04/contrato@v1#p1",
+            "D04/pedido@v1#p1"
+          ]
+        },
+        {
+          "id": "c5",
+          "classification": "INFERENCE",
+          "statement": "O material não descreve consequência concreta da demora nem esclarece reversibilidade. A ausência de documentação sobre risco não demonstra inexistência de risco; impede afirmar sua demonstração neste corpus.",
+          "sourceIds": [
+            "context",
+            "D04/pedido@v1#p1"
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "r1",
+          "kind": "EDITORIAL",
+          "statement": "Limitar a minuta ao corpus fictício selecionado; manter campos de qualificação, juízo e identificação processual sem preenchimento. Não criar fatos, prazos, fontes ou justificativas de urgência; exigir revisão humana antes do uso.",
+          "sourceIds": [
+            "context"
+          ],
+          "verified": false
+        },
+        {
+          "id": "r2",
+          "kind": "PROCEDURAL",
+          "statement": "O art. 300 fornecido exige elementos de probabilidade do direito e perigo de dano ou risco ao resultado útil; o § 3º impede tutela antecipada quando houver perigo de irreversibilidade dos efeitos. A previsão contratual não demonstra isoladamente todos esses requisitos; não afirmar seu preenchimento no caso.",
+          "sourceIds": [
+            "CPC-300"
+          ],
+          "verified": true
+        },
+        {
+          "id": "r3",
+          "kind": "EDITORIAL",
+          "statement": "Preservar o pedido de entrega imediata como solicitação de Aurora e assinalar, separadamente, pendências quanto ao cumprimento contratual, consequência concreta da demora e reversibilidade. Explicitar que não foram disponibilizadas outras normas, jurisprudência ou provas de risco concreto.",
+          "sourceIds": [
+            "context",
+            "D04/pedido@v1#p1",
+            "D04/contrato@v1#p1",
+            "CPC-300"
+          ],
+          "verified": false
+        }
+      ],
+      "findings": [
+        {
+          "id": "f1",
+          "code": "CUMPRIMENTO_NAO_ESCLARECIDO",
+          "severity": "WARNING",
+          "statement": "Não há demonstração do estado de cumprimento. A minuta pode relatar obrigação e solicitação, mas deve marcar a falta de informação sobre entrega total, parcial ou ausente, sem afirmar inadimplemento comprovado.",
+          "sourceIds": [
+            "D04/contrato@v1#p1",
+            "D04/pedido@v1#p1"
+          ]
+        },
+        {
+          "id": "f2",
+          "code": "RISCO_NAO_DEMONSTRADO",
+          "severity": "WARNING",
+          "statement": "Faltam descrição e documentação da consequência concreta da demora, paralisação ou risco ao resultado útil. Preservar essa limitação na fundamentação e no pedido, sem transformar o vencimento contratual em prova de urgência.",
+          "sourceIds": [
+            "context",
+            "D04/pedido@v1#p1",
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "f3",
+          "code": "REVERSIBILIDADE_DESCONHECIDA",
+          "severity": "WARNING",
+          "statement": "Não há informação que permita avaliar o perigo de irreversibilidade dos efeitos da entrega imediata. Registrar pendência, sem presumir reversibilidade ou irreversibilidade.",
+          "sourceIds": [
+            "D04/pedido@v1#p1",
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "f4",
+          "code": "ALCANCE_DOCUMENTAL_LIMITADO",
+          "severity": "WARNING",
+          "statement": "Os trechos selecionados não permitem confirmar autenticidade, integralidade documental ou verdade das alegações. A análise permite minuta preliminar com ressalvas, não conclusão de que a tutela deva ser concedida.",
+          "sourceIds": [
+            "D04/contrato@v1#p1",
+            "D04/pedido@v1#p1",
+            "CPC-300"
+          ]
+        }
+      ],
+      "supportChecks": [
+        {
+          "claimId": "c1",
+          "sourceId": "context",
+          "quote": "Aurora solicita fornecimento imediato de equipamentos em ação civil contra Brisa.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "c2",
+          "sourceId": "D04/contrato@v1#p1",
+          "quote": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "c3",
+          "sourceId": "D04/pedido@v1#p1",
+          "quote": "Em 18/10/2026, Aurora solicita entrega imediata",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "c4",
+          "sourceId": "D04/contrato@v1#p1",
+          "quote": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "c4",
+          "sourceId": "D04/pedido@v1#p1",
+          "quote": "Em 18/10/2026, Aurora solicita entrega imediata",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "c5",
+          "sourceId": "D04/pedido@v1#p1",
+          "quote": "a narrativa não informa consequência concreta da demora nem reversibilidade da medida.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "c5",
+          "sourceId": "context",
+          "quote": "Não há documentos sobre paralisação ou risco concreto.",
+          "assessment": "SUPPORTED"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "version": 1,
+    "revision": 0,
+    "tools": [],
+    "failedTools": [],
+    "planHashes": [
+      "fb255e4c352adf383f32aa5a3abe0179cc311f6937cb400612c95bf1c2bb72b8"
+    ],
+    "reviewRequired": false,
+    "nodes": [
+      {
+        "id": "matter-analyst:0",
+        "role": "matter-analyst",
+        "generation": 0,
+        "dependsOn": [],
+        "status": "COMPLETED",
+        "input": {
+          "bindingHash": "5b357471db86a8ffce59d291dc310964e8c87b59a615597b1496621557c6948e",
+          "contractHash": "cf68b4627fb1598fddca9b0e2e7e3bc0272b0dd352388c263d042b580a58e970",
+          "planHash": "fb255e4c352adf383f32aa5a3abe0179cc311f6937cb400612c95bf1c2bb72b8",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+            },
+            {
+              "id": "D04/contrato@v1#p1",
+              "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb"
+            },
+            {
+              "id": "D04/pedido@v1#p1",
+              "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            }
+          ],
+          "dependencies": [],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "inputHash": "f5a895e9320c893856431b68b1bdcb8e0d3a5a90c1136bfdb9d0ec99a6fb2c3c",
+        "outputHash": "c47409cac49e9d201e86e5ab16e467cebf2f6cb4f239de07f9c7fe047d6e009a",
+        "runIndex": 2
+      },
+      {
+        "id": "legal-researcher:0",
+        "role": "legal-researcher",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0"
+        ],
+        "status": "PENDING"
+      },
+      {
+        "id": "procedural-advisor:0",
+        "role": "procedural-advisor",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0"
+        ],
+        "status": "PENDING"
+      },
+      {
+        "id": "legal-drafter:0",
+        "role": "legal-drafter",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0",
+          "procedural-advisor:0"
+        ],
+        "status": "PENDING"
+      },
+      {
+        "id": "adversarial-reviewer:0",
+        "role": "adversarial-reviewer",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0",
+          "procedural-advisor:0",
+          "legal-drafter:0"
+        ],
+        "status": "PENDING"
+      },
+      {
+        "id": "authority-verifier:0",
+        "role": "authority-verifier",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0",
+          "procedural-advisor:0",
+          "legal-drafter:0",
+          "adversarial-reviewer:0"
+        ],
+        "status": "PENDING"
+      }
+    ],
+    "archivedOutputs": {},
+    "decisions": []
+  },
+  "plan": {
+    "action": "create_document",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "documentPurpose": "LEGAL_DOCUMENT",
+    "documentType": "Minuta preliminar de manifestação civil de Aurora sobre entrega imediata de equipamentos, limitada ao corpus selecionado.",
+    "issues": [
+      {
+        "id": "editorial",
+        "statement": "EDITORIAL: Redigir minuta limitada ao corpus fechado, com campos não preenchidos para qualificação, juízo e identificação processual; não inventar fatos, prazos ou fontes. Explicitar caráter fictício do material e limitações documentais, sem pesquisa externa.",
+        "sourceIds": [
+          "context"
+        ]
+      },
+      {
+        "id": "obrigacao",
+        "statement": "Examinar a obrigação contratual de entrega de dois equipamentos em 15/10/2026 e o pedido de 18/10/2026, distinguindo previsão contratual, alegação de necessidade de entrega e efetiva demonstração de inadimplemento; não presumir que o pedido posterior comprova ausência de entrega.",
+        "sourceIds": [
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1"
+        ]
+      },
+      {
+        "id": "urgencia",
+        "statement": "PROCEDURAL: Estruturar a manifestação sobre entrega imediata à luz exclusivamente do art. 300 e § 3º fornecidos, distinguindo probabilidade do direito, perigo de dano ou risco ao resultado útil e perigo de irreversibilidade. Não tratar a data contratual, isoladamente, como demonstração de urgência nem afirmar preenchimento dos requisitos ou prometer concessão.",
+        "sourceIds": [
+          "CPC-300",
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1",
+          "context"
+        ]
+      },
+      {
+        "id": "limites",
+        "statement": "EDITORIAL: Marcar expressamente requisitos pendentes de demonstração na minuta, preservando a solicitação de entrega imediata sem criar justificativas fáticas. Indicar que não foram disponibilizadas outras normas, jurisprudência ou provas de risco concreto; submeter a minuta à revisão humana antes de uso.",
+        "sourceIds": [
+          "context",
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "risco",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Há informação e documentação sobre consequência concreta da demora na entrega? Se desconhecidas, manter essa ausência expressa na minuta.",
+        "reason": "Não há descrição de dano concreto, paralisação ou risco ao resultado útil. Isso limita a fundamentação da urgência, mas permite minuta com ressalva de requisito não demonstrado.",
+        "sourceIds": [
+          "context",
+          "D04/pedido@v1#p1"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      },
+      {
+        "key": "reversibilidade",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Há informação sobre a possibilidade de reverter os efeitos da entrega imediata? Se desconhecida, assinalar a pendência.",
+        "reason": "O material não esclarece a reversibilidade, limitando a avaliação do art. 300, § 3º, sem impedir redação preliminar limitada.",
+        "sourceIds": [
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      },
+      {
+        "key": "cumprimento",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Há informação sobre entrega total, parcial ou ausência de entrega dos equipamentos? Se não houver, preservar a ausência de comprovação.",
+        "reason": "Os trechos informam obrigação e solicitação, mas não comprovam o estado do cumprimento; não se pode afirmar inadimplemento demonstrado.",
+        "sourceIds": [
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      }
+    ]
+  },
+  "version": 6
+}

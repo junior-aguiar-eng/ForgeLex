@@ -17,6 +17,7 @@ import { DraftRepository } from './draft-repository.js';
 import { agenticTaskDeliveries, legalDocuments, drafts, matters } from '../schema/schema.js';
 import { MatterWriteGuard } from './matter-write-guard.js';
 import type { ForgeLexDatabase } from '../db.js';
+import { ApprovedCaseContextRepository } from './approved-case-context-repository.js';
 
 const hash = (v: unknown) =>
   createHash('sha256')
@@ -93,6 +94,15 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       };
       if (!historical) add(`user:${hash(context.text)}`, 'USER_TEXT', context.text);
       if (binding.matterId) {
+        if (context.approvedItems?.length)
+          sources.push(
+            ...(await new ApprovedCaseContextRepository(db).load(
+              owner,
+              binding.matterId,
+              context.approvedItems,
+              historical,
+            )),
+          );
         for (const d of [...context.documents].sort((a, b) => a.documentId.localeCompare(b.documentId))) {
           await db
             .update(legalDocuments)
@@ -152,7 +162,8 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
               identityStatus: version.version.source,
             });
         }
-      } else if (context.documents.length || context.draft) throw new Error('CONTEXT_MATTER_REQUIRED');
+      } else if (context.documents.length || context.draft || context.approvedItems?.length)
+        throw new Error('CONTEXT_MATTER_REQUIRED');
       if (historical) {
         await this.authorize(owner, binding.matterId, db);
         return action(db, {
@@ -218,6 +229,21 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       for (const s of delivery.sources.filter((s) => !['AUTHORITY', 'NORM'].includes(s.kind)))
         if (!packet.sources.some((p) => p.id === s.id && p.contentHash === s.contentHash))
           throw new Error('SOURCE_REFERENCE_INVALID');
+      for (const s of delivery.sources) {
+        const trusted = packet.sources.find((p) => p.id === s.id);
+        if (
+          (trusted?.approvedItem || s.approvedItem || s.kind.startsWith('CASE_')) &&
+          (!trusted?.approvedItem ||
+            trusted.kind !== s.kind ||
+            trusted.contentHash !== s.contentHash ||
+            hash(trusted.approvedItem) !== hash(s.approvedItem ?? null))
+        )
+          throw new Error('SOURCE_REFERENCE_INVALID');
+      }
+      for (const section of delivery.document?.sections ?? [])
+        for (const id of section.sourceIds)
+          if (packet.sources.some((p) => p.id === id && p.approvedItem) && !delivery.sources.some((s) => s.id === id))
+            throw new Error('SOURCE_REFERENCE_INVALID');
       const id = `delivery:${binding.executionId}`,
         payloadJson = JSON.stringify(delivery),
         contentHash = hash(payloadJson);
@@ -256,7 +282,28 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
             title: s.title,
             content: s.content,
             ordinal: i + 1,
-            linkedFactIds: [],
+            linkedFactIds: [
+              ...new Set(
+                s.sourceIds.flatMap((id) => {
+                  const source = packet.sources.find((p) => p.id === id);
+                  return source?.approvedItem
+                    ? source.kind === 'CASE_FACT'
+                      ? [source.approvedItem.targetId]
+                      : source.approvedItem.relatedFactId
+                        ? [source.approvedItem.relatedFactId]
+                        : []
+                    : [];
+                }),
+              ),
+            ],
+            linkedEvidenceIds: [
+              ...new Set(
+                s.sourceIds.flatMap((id) => {
+                  const source = packet.sources.find((p) => p.id === id);
+                  return source?.kind === 'CASE_EVIDENCE' && source.approvedItem ? [source.approvedItem.targetId] : [];
+                }),
+              ),
+            ],
             linkedThesisIds: [],
           })),
         });

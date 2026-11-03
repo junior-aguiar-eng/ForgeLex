@@ -11,10 +11,11 @@ import { LEGAL_AGENT_CATALOG } from './agent-catalog.js';
 import { LEGAL_WORK_INSTRUCTIONS, LEGAL_WORK_POLICY } from './instructions/legal-work.js';
 import { RESEARCH_AUTHORITY_INSTRUCTIONS } from './instructions/research-authority.js';
 import { AUTHORITY_VERIFIER_INSTRUCTIONS } from './instructions/authority-verifier.js';
+import { CASE_TASK_INSTRUCTIONS } from './instructions/case-task.js';
 const id = z.string().trim().min(1).max(80),
   text = z.string().trim().min(1).max(4000);
 export const TaskPlanSchema = z.strictObject({
-  action: AgenticTaskActionSchema,
+  action: AgenticTaskActionSchema.exclude(['analyze_evidence']),
   requiresCaseLaw: z.boolean(),
   requiresNorms: z.boolean(),
   requiresProcedure: z.boolean(),
@@ -65,7 +66,7 @@ export type CaseTaskRole =
   | 'adversarial-reviewer';
 export const CASE_TASK_POLICY = {
   id: 'agentic-case-task-policy',
-  version: '1.1.0',
+  version: '1.2.0',
   maxTurns: 6,
   maxToolsPerStep: 12,
   maxTools: 48,
@@ -106,7 +107,7 @@ export function caseTaskProfile(role: CaseTaskRole) {
   if (role === 'procedural-advisor') tools.push('research.get_legislation');
   return {
     role,
-    version: '1.1.0',
+    version: '1.2.0',
     instructionId: agent?.instructionId ?? `${role}-instructions`,
     instructionVersion: agent?.instructionVersion ?? '1.0.0',
     legacyAgentId: agent?.id ?? null,
@@ -115,7 +116,8 @@ export function caseTaskProfile(role: CaseTaskRole) {
     policyVersion: CASE_TASK_POLICY.version,
     instructions:
       `${extra ?? JSON.stringify(instruction)}${role === 'authority-verifier' ? ' Extensão interna da tarefa: conferir também identidade, versão e trecho de snapshots normativos recuperados, sem afirmar vigência online ou aplicabilidade jurídica.' : ''}` +
-      ' Em cada requisito, preencher kind EDITORIAL para instruções de redação/preservação e PROCEDURAL para obrigações legais/processuais. Não inventar norma para orientação editorial nem reclassificar obrigação jurídica como editorial para dispensar sua verificação. Não inferir medida jurídica de pedido limitado a registro factual.',
+      ' Em cada requisito, preencher kind EDITORIAL para instruções de redação/preservação e PROCEDURAL para obrigações legais/processuais. Não inventar norma para orientação editorial nem reclassificar obrigação jurídica como editorial para dispensar sua verificação. Não inferir medida jurídica de pedido limitado a registro factual. ' +
+      CASE_TASK_INSTRUCTIONS[role].join(' '),
     allowedTools: tools,
   };
 }

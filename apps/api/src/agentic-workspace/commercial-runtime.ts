@@ -8,7 +8,7 @@ import {
   type Client,
 } from '@forgelex/persistence';
 import { CommercialInferenceService, COMMERCIAL_POLICY_VERSION } from '@forgelex/billing-ledger';
-import { NativeCaseContextService, type AuthorizeNativeTask } from '@forgelex/legal-tools';
+import { NativeCaseContextService, type AuthorizeNativeTask, type ResearchService } from '@forgelex/legal-tools';
 import { CASE_TASK_LIMITATION_CODES } from '@forgelex/legal-workflows';
 import {
   LegalAnswerSchema,
@@ -16,6 +16,7 @@ import {
   type AgenticExecution,
   type TaskBinding,
   type AgenticTaskDelivery,
+  type NativeTaskPacket,
 } from '@forgelex/domain';
 import { ExecutionService, StartExecutionSchema } from './execution-service.js';
 import { digest } from './execution-store.js';
@@ -38,6 +39,8 @@ export interface CommercialRuntimeDependencies {
   transport?: typeof globalThis.fetch;
   /** Trusted test/host authorization boundary; production checks the live account below. */
   authorizeOwner?: AuthorizeNativeTask;
+  /** Production injects the existing persisted STJ index, with no provider fallback. */
+  researchService?: ResearchService;
 }
 export type CommercialRuntime = Awaited<ReturnType<typeof createCommercialRuntime>>;
 
@@ -46,6 +49,26 @@ const limitationCodes = new Set<string>(CASE_TASK_LIMITATION_CODES);
 export function hasUsableResult(delivery: AgenticTaskDelivery, actionId?: string) {
   if (actionId && delivery.action !== actionId) return false;
   if (delivery.action === 'create_document') return Boolean(delivery.document?.sections.length);
+  if (delivery.action === 'analyze_evidence')
+    return Boolean(
+      delivery.evidenceMatrix?.rows.some((row) =>
+        delivery.claims.some(
+          (claim) =>
+            claim.id === row.claimId &&
+            row.references.some(
+              (ref) =>
+                claim.sourceIds.includes(ref.sourceId) &&
+                ref.quoteStatus === 'MATCHED' &&
+                delivery.sources.some(
+                  (source) =>
+                    source.id === ref.sourceId &&
+                    source.kind === 'DOCUMENT' &&
+                    source.contentHash === ref.sourceContentHash,
+                ),
+            ),
+        ),
+      ),
+    );
   const grounded = (item: { sourceIds: string[] }) =>
     item.sourceIds.length > 0 && item.sourceIds.every((id) => delivery.sources.some((source) => source.id === id));
   // Issues are the plan's questions, not proof that the requested examination occurred.
@@ -135,52 +158,60 @@ export async function createCommercialRuntime(
       });
     },
   });
+  const assertContext = async (executionId: string, packet?: NativeTaskPacket) => {
+    // Owner is recovered from the server's job, never from model/client fields.
+    const [row] = await db.select().from(agenticExecutionJobs).where(eq(agenticExecutionJobs.executionId, executionId));
+    if (!row) throw new Error('EXECUTION_NOT_FOUND');
+    const owner = { tenantId: row.tenantId, userId: row.userId };
+    const execution = await repo.getExecution(owner, executionId);
+    if (!canManageExecution(execution) || execution!.status !== 'RUNNING' || execution!.requiresReevaluation)
+      throw new Error('ACCESS_REVOKED');
+    const receipt = await finance.getReceipt(owner, executionId);
+    if (!receipt || receipt.status !== 'ACTIVE' || receipt.policyVersion !== COMMERCIAL_POLICY_VERSION)
+      throw new Error('EXECUTION_NOT_AUTHORIZED');
+    const job = await service.store.getJob(owner, executionId);
+    // Cooperative cancel: refuse before dispatch, so the call is voided (never uncertain) and nothing new is billed.
+    if (job.cancelRequestedAt) throw new Error('EXECUTION_CANCEL_REQUESTED');
+    const binding: TaskBinding = {
+      ...owner,
+      executionId,
+      conversationId: execution!.conversationId,
+      contextRevision: execution!.contextRevision,
+      matterId: execution!.matterId ?? undefined,
+      objective: job.objective,
+      previousDeliveryIds: packet?.sources.filter((s) => s.kind === 'PREVIOUS_DELIVERY').map((s) => s.id),
+    };
+    const live = await native.load(binding);
+    if (
+      packet &&
+      (live.contextId !== packet.contextId ||
+        live.contextRevision !== packet.contextRevision ||
+        JSON.stringify(live.sources) !== JSON.stringify(packet.sources) ||
+        JSON.stringify(live.answers) !== JSON.stringify(packet.answers))
+    )
+      throw new Error('CONTEXT_CONFLICT');
+    return owner;
+  };
   const providerRuntime = createCommercialOpenAIRuntime({
     apiKey,
     finance,
     transport: dependencies.transport,
-    assertContext: async (executionId, packet) => {
-      // Owner is recovered from the server's job, never from model/client fields.
-      const [row] = await db
-        .select()
-        .from(agenticExecutionJobs)
-        .where(eq(agenticExecutionJobs.executionId, executionId));
-      if (!row) throw new Error('EXECUTION_NOT_FOUND');
-      const owner = { tenantId: row.tenantId, userId: row.userId };
-      const execution = await repo.getExecution(owner, executionId);
-      if (!canManageExecution(execution) || execution!.status !== 'RUNNING' || execution!.requiresReevaluation)
-        throw new Error('ACCESS_REVOKED');
-      const receipt = await finance.getReceipt(owner, executionId);
-      if (!receipt || receipt.status !== 'ACTIVE' || receipt.policyVersion !== COMMERCIAL_POLICY_VERSION)
-        throw new Error('EXECUTION_NOT_AUTHORIZED');
-      const job = await service.store.getJob(owner, executionId);
-      // Cooperative cancel: refuse before dispatch, so the call is voided (never uncertain) and nothing new is billed.
-      if (job.cancelRequestedAt) throw new Error('EXECUTION_CANCEL_REQUESTED');
-      const binding: TaskBinding = {
-        ...owner,
-        executionId,
-        conversationId: execution!.conversationId,
-        contextRevision: execution!.contextRevision,
-        matterId: execution!.matterId ?? undefined,
-        objective: job.objective,
-        previousDeliveryIds: packet?.sources.filter((s) => s.kind === 'PREVIOUS_DELIVERY').map((s) => s.id),
-      };
-      const live = await native.load(binding);
-      if (
-        packet &&
-        (live.contextId !== packet.contextId ||
-          live.contextRevision !== packet.contextRevision ||
-          JSON.stringify(live.sources) !== JSON.stringify(packet.sources) ||
-          JSON.stringify(live.answers) !== JSON.stringify(packet.answers))
-      )
-        throw new Error('CONTEXT_CONFLICT');
-      return owner;
-    },
+    assertContext,
   });
   const caseTask: NativeCaseTaskOptions = {
     authorizeNative: authorizeOwner,
     createProvider: providerRuntime.createProvider,
     authorizeRealProvider: providerRuntime.authorizeRealProvider,
+    researchService: dependencies.researchService,
+    executeIncludedResearch: async (binding, operation) => {
+      const owner = await assertContext(binding.executionId);
+      if (owner.tenantId !== binding.tenantId || owner.userId !== binding.userId) throw new Error('ACCESS_REVOKED');
+      // This is a local index read, not another metered provider request. The workflow
+      // enforces its 12/step and 48/task tool limits; inference keeps the commercial cap.
+      const result = await operation();
+      await assertContext(binding.executionId);
+      return result;
+    },
   };
   const activate = async (
     owner: AgenticOwner,

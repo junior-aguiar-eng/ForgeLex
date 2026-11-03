@@ -1,14 +1,25 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import type { ForgeLexDatabase, Client } from '@forgelex/persistence';
-import { LegalAnswerSchema, type AuthenticatedPrincipal } from '@forgelex/domain';
+import {
+  NativeEvidenceReviewRepository,
+  EvidenceReapprovalRepository,
+  AgenticWorkspaceRepository,
+  type ForgeLexDatabase,
+  type Client,
+} from '@forgelex/persistence';
+import {
+  EvidenceReviewCommandSchema,
+  EvidenceReapprovalCommandSchema,
+  LegalAnswerSchema,
+  type AuthenticatedPrincipal,
+} from '@forgelex/domain';
 import { AuthAdapter } from '../auth/fastify-auth.js';
 import { ExecutionService, StartExecutionSchema } from './execution-service.js';
 import { ExecutionWorker, type ExecutionDriver } from './execution-worker.js';
 import { encodeExecutionEvent } from './event-stream.js';
 import { createCaseTaskDriver, type NativeCaseTaskOptions } from './case-task-driver.js';
 import type { ResearchService } from '@forgelex/legal-tools';
-import { LEGAL_ACTION_CATALOG } from '@forgelex/legal-workflows';
+import { LEGAL_ACTION_CATALOG, EVIDENCE_TASK_ACTION } from '@forgelex/legal-workflows';
 import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
@@ -195,8 +206,23 @@ export function registerAgenticWorkspace(
           error instanceof z.ZodError
             ? 'INVALID_INPUT'
             : [
+                  'EVIDENCE_REVIEW_CONFLICT',
+                  'EVIDENCE_COMMAND_CONFLICT',
+                  'EVIDENCE_ALREADY_DECIDED',
+                  'EVIDENCE_ITEM_INVALID',
+                  'EVIDENCE_SOURCE_UNAVAILABLE',
+                  'EVIDENCE_DATE_REQUIRED',
+                  'EVIDENCE_DATE_INVALID',
+                  'EVIDENCE_REVIEW_LIMIT',
+                  'EVIDENCE_REVIEW_NOT_AVAILABLE',
+                  'ANALYSIS_FACT_REQUIRED',
+                  'MATTER_NOT_ACTIVE',
+                  'LIFECYCLE_CONFLICT',
                   'IDEMPOTENCY_CONFLICT',
                   'CONTEXT_CONFLICT',
+                  'APPROVED_CONTEXT_CHANGED',
+                  'APPROVED_FACT_REQUIRED',
+                  'TASK_CONTEXT_LIMIT',
                   'EXECUTION_CONFLICT',
                   'QUESTION_EXPIRED',
                   'RECONCILIATION_REQUIRED',
@@ -222,7 +248,7 @@ export function registerAgenticWorkspace(
               ? 404
               : code === 'ACCESS_REVOKED'
                 ? 403
-                : code.endsWith('UNAVAILABLE')
+                : code === 'EXECUTION_UNAVAILABLE' || code === 'EXECUTOR_UNAVAILABLE'
                   ? 503
                   : 409;
         return reply.code(status).send({
@@ -254,7 +280,7 @@ export function registerAgenticWorkspace(
       available: Boolean(driver),
       ...(pilot ? { closedPilot: true } : {}),
       ...(commercial ? { commercial: true } : {}),
-      actions: LEGAL_ACTION_CATALOG.map((a) => ({
+      actions: [...LEGAL_ACTION_CATALOG, EVIDENCE_TASK_ACTION].map((a) => ({
         id: a.id,
         label: a.label,
         dialogue: a.dialogue.map((q) => ({ prompt: q.prompt, options: [...q.options] })),
@@ -375,7 +401,10 @@ export function registerAgenticWorkspace(
     options,
     handle(async (req) => ({
       ...(await required().getExecution(owner(req), executionId(req))),
-      permissions: { editDraft: req.principal.scopes.includes('draft:write') },
+      permissions: {
+        editDraft: req.principal.scopes.includes('draft:write'),
+        reviewEvidence: req.principal.scopes.includes('matter:write') && req.principal.scopes.includes('matter:read'),
+      },
     })),
   );
   app.post(
@@ -539,5 +568,68 @@ export function registerAgenticWorkspace(
         return caseTask.native.getDelivery(owner(req), id);
       }),
     );
+  if (caseTask && deps.database) {
+    const nativeOptions = (pilot?.caseTask ?? commercial?.caseTask ?? deps.options!.caseTask)!;
+    const reviews = new NativeEvidenceReviewRepository(deps.database, nativeOptions.authorizeNative);
+    const changes = new EvidenceReapprovalRepository(
+      deps.database,
+      nativeOptions.authorizeNative,
+      async (owner, id, db) => {
+        const execution = await new AgenticWorkspaceRepository(db).getExecution(owner, id);
+        if (
+          !execution ||
+          (pilot && !pilot.canManageExecution(execution)) ||
+          (commercial && !commercial.canManageExecution(execution))
+        )
+          throw new Error('DELIVERY_NOT_FOUND');
+      },
+    );
+    const reviewMatter = (req: FastifyRequest) => z.object({ matterId: z.string().uuid() }).parse(req.params).matterId;
+    app.get(
+      '/api/agentic/matters/:matterId/evidence-changes',
+      {
+        preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read']), session],
+      },
+      handle(async (req) => changes.preview(owner(req), reviewMatter(req))),
+    );
+    app.post(
+      '/api/agentic/matters/:matterId/evidence-changes/decisions',
+      {
+        preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session],
+      },
+      handle(async (req) =>
+        changes.approve(owner(req), reviewMatter(req), EvidenceReapprovalCommandSchema.parse(req.body)),
+      ),
+    );
+    const reviewId = async (req: FastifyRequest) => {
+      const id = z.object({ id: z.string().min(1).max(200) }).parse(req.params).id;
+      // Preserve the execution boundary of each runtime, including human review commands.
+      await caseTask.native.getDeliveryContext(owner(req), id);
+      const execution = await required().store.workspace.getExecution(owner(req), id.replace(/^delivery:/, ''));
+      if (
+        !execution ||
+        (pilot && !pilot.canManageExecution(execution)) ||
+        (commercial && !commercial.canManageExecution(execution))
+      )
+        throw new Error('DELIVERY_NOT_FOUND');
+      return id;
+    };
+    app.get(
+      '/api/agentic/deliveries/:id/evidence-review',
+      {
+        preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read']), session],
+      },
+      handle(async (req) => reviews.preview(owner(req), await reviewId(req))),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/evidence-review/decisions',
+      {
+        preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session],
+      },
+      handle(async (req) =>
+        reviews.decide(owner(req), await reviewId(req), EvidenceReviewCommandSchema.parse(req.body)),
+      ),
+    );
+  }
   return { service, worker };
 }
