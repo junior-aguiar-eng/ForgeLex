@@ -1,9 +1,10 @@
 # Editor final — delimitação do próximo contrato
 
-Estado: contrato proposto para o próximo incremento. Não implementa nem habilita
-um oitavo papel no fluxo v8. Preparado ao executar a sequência de consolidação
-solicitada por Boni em 02/11/2026. As escolhas abaixo são propostas técnicas,
-não uma aprovação de nova execução paga, UI, infraestrutura ou publicação.
+Estado: primeiro incremento local implementado em 02/11/2026: schemas, validador
+puro e fixtures. Não habilita um oitavo papel no fluxo v8. A integração e a
+aplicação das propostas continuam futuras; não há aprovação de nova execução
+paga, UI, infraestrutura ou publicação. Evidências e limites no
+[registro de implementação](../../architecture/2026-11-02-forgelex-final-editor-contract.md).
 
 ## Finalidade e abordagem
 
@@ -107,9 +108,15 @@ O desenho dessa aplicação/novo exame do texto será uma etapa própria.
 4. Confirmar que o catálogo/runtime não passa a executar o papel e que não há
    dependência de chave, rede, pesquisa paga, migration ou alteração visual.
 
-Arquivos previstos para esse primeiro incremento: `packages/legal-agents/src/final-editor-contracts.ts`,
+Arquivos implementados nesse primeiro incremento: `packages/legal-agents/src/final-editor-contracts.ts`,
 `packages/legal-agents/src/final-editor-contracts.test.ts` e export em `index.ts`.
-São arquivos propostos; ainda não existem como implementação deste contrato.
+O contrato preserva o conteúdo bruto das seções, ao contrário do trim feito
+pelo schema de domínio; o hash do documento continua canônico como definido acima.
+Textos usados nos hashes de seção/fonte e substituições rejeitam substitutos
+Unicode isolados para evitar identidade perdida na conversão UTF-8. Auditoria
+de suporte admite apenas um registro por par de claim/fonte. A coerência do
+espelho `approvedItem` e a origem autorizada permanecem responsabilidade da
+futura integração com o servidor, não deste validador.
 
 ## Limites que continuam vigentes
 

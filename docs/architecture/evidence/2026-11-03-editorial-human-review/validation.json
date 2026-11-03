@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-03",
+  "timezone": "America/Fortaleza",
+  "recordedAt": "2026-11-03T19:30:17.278Z",
+  "checkout": "C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK",
+  "branch": "codex/forgelex-3-quality",
+  "head": "5ba4ca87f3d4602db878ce8935552354c2743ee2",
+  "scope": "Human editorial review in existing mesa with durable case history; no proposal application or paid generation",
+  "checks": {
+    "full": {
+      "command": "pnpm exec vitest run",
+      "exitCode": 0,
+      "buildPassed": true,
+      "buildCommand": "pnpm test (build passed before test-fixture-only correction)",
+      "passed": 1711,
+      "skipped": 17,
+      "failed": 0,
+      "filesPassed": 235,
+      "filesSkipped": 3
+    },
+    "focused": {
+      "passed": 117,
+      "failed": 0,
+      "filesPassed": 7,
+      "exitCode": 0
+    },
+    "editorialApi": {
+      "passed": 37
+    },
+    "migration": {
+      "passed": 1
+    },
+    "migrationReconciliation": {
+      "passed": 4,
+      "exitCode": 0,
+      "includesEditorialUpgrade": true,
+      "correction": "Historical main fixture excludes migration 0038 until agentic base tables exist; final reconciliation asserts the migration and column exactly once"
+    },
+    "browser": {
+      "passed": 7,
+      "failed": 0,
+      "exitCode": 0,
+      "realLocalApi": true,
+      "disposableSqlite": true,
+      "simulatedProvider": true,
+      "axeViolations": 0,
+      "mobileWidth": 320,
+      "capturesInspected": true
+    },
+    "mesaRegression": {
+      "passed": 3,
+      "exitCode": 0
+    },
+    "lint": {
+      "exitCode": 0
+    },
+    "format": {
+      "exitCode": 0,
+      "scope": "Changed code except existing schema/migration-runner formatting preserved; new E2E/config included"
+    },
+    "apiTypes": {
+      "exitCode": 0,
+      "toolSession": 46364,
+      "excludesTestsByRepositoryConfig": true
+    },
+    "postBrowserChanges": [
+      "Attach caught cause to an internal diagnostic",
+      "Narrow empty action to literal type; no runtime change"
+    ]
+  },
+  "review": {
+    "model": "gpt-6-astra",
+    "readOnly": true,
+    "independent": true,
+    "findings": [
+      {
+        "severity": "P2",
+        "finding": "Inherited Object IDs broke form on action-first selection",
+        "resolution": "Object.hasOwn guards form lookups",
+        "redGreen": true
+      },
+      {
+        "severity": "P2",
+        "finding": "History became unreadable after normal draft/context edits",
+        "resolution": "Authorized historical metadata reader; stale context blocks new decisions",
+        "redGreen": true
+      },
+      {
+        "severity": "P2",
+        "finding": "Lost response followed by definitive conflict trapped recovery",
+        "resolution": "Authorized commandId lookup reconciles recorded/absent status without creating a command",
+        "redGreen": true
+      }
+    ],
+    "deferredMinorFindings": [],
+    "reReview": false,
+    "declinedToJudge": [
+      "Legal equivalence/semantic quality",
+      "Authenticity of imported file model origin",
+      "PostgreSQL and production concurrency",
+      "Absent productive generation factory"
+    ],
+    "rulings": [
+      "No semantic quality claimed",
+      "File origin not attested and UI discloses this",
+      "Remote behavior unverified",
+      "Paid generation remains disabled"
+    ],
+    "laterValidationFix": "Full suite found an outdated migration fixture; isolated RED reproduced missing table, fixture and final-column assertion corrected, four migration checks GREEN, whole suite rerun. No application code changed."
+  },
+  "preservation": {
+    "priorEvidenceHashesMatch": true,
+    "priorContractAndGeneratorHashesMatch": true,
+    "protectedAreas": [
+      "packages/domain",
+      "packages/agent-core",
+      "packages/billing-ledger",
+      "packages/legal-workflows/src/agentic-case-task",
+      "packages/legal-agents/src/agent-catalog.ts",
+      "packages/legal-agents/src/agentic-focused-verifier.ts",
+      "scripts"
+    ],
+    "protectedAreasDiffEmpty": true,
+    "stagedDiffEmpty": true,
+    "priorEvidence": {
+      "docs/architecture/evidence/2026-11-02-final-editor-contract/full-suite.txt": "a0868fd8db0affb4fdcf7ba7aa1c5bc29db71620e0ebcbde0bf30f58075ba8ec",
+      "docs/architecture/evidence/2026-11-02-final-editor-contract/focused-tests.txt": "3cb0c641658dd220c67d39136c46e4c86fd1ecc39368e44b96f6b1f305aa5b01",
+      "docs/architecture/evidence/2026-11-02-final-editor-contract/red-missing-contract.txt": "3173d9cb39e9c5733c138edc204776069be2a97a3678bbb397b0cdb1b06ba302",
+      "docs/architecture/evidence/2026-11-02-final-editor-contract/red-invalid-document.txt": "23bf6d1dad8988f3dc09572c0c7e3200f29dd24b56b2a0bb3c80809e52d27d1b",
+      "docs/architecture/evidence/2026-11-02-final-editor-contract/red-review-findings.txt": "97f5499f2e2ec025dfb0d3251cf9d18d2c6ebfc19b4c628e34b622589142166a",
+      "docs/architecture/evidence/2026-11-02-final-editor-contract/green-contract.txt": "f1eebcc24b5bfc0ff290c0cd6fade5c8c00d881eea87c45baadfa352f112303b",
+      "docs/architecture/evidence/2026-11-02-final-editor-contract/typecheck.txt": "56ca856c5bad396bb298ed7353fcbb386f10f8d365d74d499c4c8c42f5609cb9",
+      "docs/architecture/evidence/2026-11-02-final-editor-contract/format.txt": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283",
+      "docs/architecture/evidence/2026-11-02-final-editor-contract/validation.json": "22e10cf25f76d6f6ff01a1bf119fb3dc3c12cc5183ee73995fa803bbb52ff5c0",
+      "docs/architecture/evidence/2026-11-03-editorial-binding/full-suite.txt": "45d521c8575980c9e9629f85743cfd3b50d1e41f679105867203a83c8fc8b433",
+      "docs/architecture/evidence/2026-11-03-editorial-binding/focused-tests.txt": "f0a3279eae52e8cfe97f8affea3467659d3e587a1c5f9ec46df54b156cdc4343",
+      "docs/architecture/evidence/2026-11-03-editorial-binding/initial-red.txt": "2b4633429d6440858175e5ace91d983b71eb2f19c270436bda315678205d6de1",
+      "docs/architecture/evidence/2026-11-03-editorial-binding/timeout-recheck.txt": "69fc68e0b742746a49ee054ed8205d6c6ab5e7fc5329a7d44601846921a00cd7",
+      "docs/architecture/evidence/2026-11-03-editorial-binding/typecheck.txt": "206fe67965a82983839c5de8ab4858ae76a71bb162b473deb3cd8f8450950a65",
+      "docs/architecture/evidence/2026-11-03-editorial-binding/lint.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "docs/architecture/evidence/2026-11-03-editorial-binding/format.txt": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283",
+      "docs/architecture/evidence/2026-11-03-editorial-binding/validation.json": "4baf79a0b8a5876bcc574b8f9fff595a83142d998609e6e3463f20db6e6b01b8",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/full-suite.txt": "732053aa14934c1b2532e493014db55788a0d49d1edfa5fd75f8cb6300248679",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/focused-tests.txt": "51ab83e47e96320ffc10be71a0dfb8f9b5f3ebe729b5d09da11890345cbc953f",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/initial-red.txt": "cebf97c8d64db05475ac263c6f2676d16638231794ae175724753a74a7e5ea83",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/api-red.txt": "11e78b84c3b51278fa4aae870150738e68983c1306fdaddb885333d8d351573f",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/boundary-red.txt": "afda8d815015f8e99c72604f44ca96c00f0085d3d4649afd594a42b3f81a9d74",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/review-red.txt": "4b4ee2745d2689144bc31169cb7fd91c25b0df4a5c442c09425072fda31c13c2",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/disconnect-red.txt": "390d31738651f61daf5e7491c6425c5b48241f7d0b42a8e9848a6f0ef7ce50ea",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/initial-typecheck.txt": "206fe67965a82983839c5de8ab4858ae76a71bb162b473deb3cd8f8450950a65",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/api-typecheck.txt": "4f658209920a5218841e9843c51a440cb63d41dbd1aa31b97bf63bc1fc38bf9f",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/lint.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/format.txt": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283",
+      "docs/architecture/evidence/2026-11-03-editorial-generation/validation.json": "37b8f428bcffea640bd7208b3f8cb16d21203dea2d2cb5f640072494266ea33a"
+    },
+    "preservedSources": {
+      "packages/legal-agents/src/final-editor-contracts.ts": "16bc7d0c787159700f4a3aea61515ddf1e61919e914e0cc5f4404e1d76548fe6",
+      "packages/legal-agents/src/final-editor-contracts.test.ts": "1b1fd132afb6d59ea44d330425f157caf814705f69b644de6166cbc569167aad",
+      "packages/legal-agents/src/final-editor-generation.ts": "9b2d8dbf8dd51a44c4bbfe7981cd923f8255318c5765d3b45f44446496e5e842",
+      "packages/legal-workflows/src/final-editor/final-editor-generator.ts": "a8c7409999fc12abb445b31cda20974ad65551470a3a1f3c4ca1d4645abf95ab",
+      "packages/legal-workflows/src/final-editor/final-editor-generator.test.ts": "5e030e69f512f07a4d97a2f8253cf022005ac70b86114c28b932b0340ef77c66"
+    }
+  },
+  "limits": {
+    "paidCalls": 0,
+    "maxProposalBytes": 2048,
+    "maxImportedFileBytes": 8192,
+    "maxProposalsPerDelivery": 10,
+    "maxCommandsPerDelivery": 100,
+    "decisionsPerCommand": 1,
+    "reasonMinCharacters": 3,
+    "reasonMaxCharacters": 1000,
+    "historyPersistence": true,
+    "migration": "persistence-0038-editorial-human-review",
+    "migrationExecutedOnlyInDisposableTests": true,
+    "proposalApplication": false,
+    "draftWritesByEditorialReview": false,
+    "automaticLegalApproval": false,
+    "taskGraphVersionChanged": false,
+    "productiveFactoryConfigured": false,
+    "commit": false,
+    "push": false,
+    "deploy": false,
+    "other54Scenarios": false,
+    "operationalDatabaseMigration": false,
+    "postgresConcurrencyTested": false
+  },
+  "sourceHashes": {
+    "packages/persistence/src/schema/schema.ts": "c04279dbd81078dc4781653e6b7eefef482f97e523c8b6e6ff116b8abf883848",
+    "packages/persistence/src/migrations/migration-runner.ts": "a6eaab4849cd87b3a122ad3f658ad6991bfc712e9067408cc0e862651ed06cde",
+    "packages/persistence/src/repositories/native-case-task-repository.ts": "564157d678b6807c35fd82a01b7bb7e542eebd3e19ba1554e75aac5dbf51d51d",
+    "packages/persistence/src/migrations/editorial-review-upgrade.test.ts": "bbf86cbb6bc6dc1f739228212b744eebb93ce5a1c4640d86f3f250540825a158",
+    "packages/persistence/src/migrations/agentic-case-reconciliation.test.ts": "dd2d1a2ba9e8d9c9242518d636f6f6cc2a863463a6f484417fa88e8a6daa853b",
+    "packages/legal-workflows/src/final-editor/final-editor-service.ts": "1082ec0a0c58c7991bf75e148054f9b0b5ef41acf519d6060763a01ad9e09612",
+    "packages/legal-workflows/src/final-editor/editorial-review-service.ts": "d33d95254a575fc1f3c1121582d8f1cdd076443713047c7fc2f45ef653f9da93",
+    "packages/legal-workflows/src/index.ts": "5c2708fb59b5a6fb093a4e50a02a5977c8070bda5f8bf81629be0f92bde3f815",
+    "apps/api/src/agentic-workspace/execution-routes.ts": "3477c27dbecc2a6238735de84af406db564a334d0c60b1d31f1ec405bf9baa51",
+    "apps/api/src/agentic-workspace/final-editor-routes.test.ts": "dfd55a504c1b1c70db5dfb6d6ea3bdc56e26325b6b232fc0e5b9786291ac9353",
+    "apps/web/src/agentic-workspace/ResultCard.tsx": "3e7b776da953d891d416dfc068b32a0ed020df52cc764ee045942cd24b11954b",
+    "apps/web/src/agentic-workspace/EditorialReviewPanel.tsx": "0789d15f4841e54f1917b40940898f1ac4335078f1178d1aad80488039a0eac0",
+    "apps/web/src/agentic-workspace/editorial-review-model.ts": "a67eccb011b694620ac0bfad486bc9c9899e47cb4842b265cac2646f8cbc88c4",
+    "tests/e2e/editorial-review.spec.ts": "d7241d86ebc6232dfc3879be2494ab25a37309dfdc79eac4af1ff61928f4de3d",
+    "playwright.editorial-review.config.ts": "656e0b6a94c255f6e71f3b1c00805c8a4b1dab3d85e2f7cbec93490b3ed74f74"
+  },
+  "evidenceHashes": {
+    "full-suite.txt": "44ffa28e4d7ba8998438725263360b86a2c0b10658220446f87270ea73ecfacb",
+    "full-suite-reconciliation-red.txt": "b1583fd8a387e67c93e1d4d6367e889406113d42705265f4c014d62c4eedc3b7",
+    "reconciliation-red.txt": "bbb7a00c6529efe09b9eafa65c68b3ea12295af10e41778962505961677ed75c",
+    "reconciliation-green.txt": "a5b1f00477836f59313c0d0a2ede859481e7636a8f49333a1f16cad88423ea48",
+    "reconciliation-lint.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reconciliation-format.txt": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283",
+    "focused-tests.txt": "dcc7014d04f9aba4c968ab41ddcb3e524d1fa790d3962da6d5c5c37aa1e3d9fa",
+    "browser.txt": "548ea497cb4caa7a971d58b815a241b497b23503188d52dd2fe6c15ea508019d",
+    "mesa-regression.txt": "5975e535937f320f2d2ed3c702b6fb8f8f817baa50229b3e49b99d5e296c158b",
+    "api-migration-red.txt": "24272b4c641d06073d90b304caeff9b70938c072142ff2bd240fa68a05811747",
+    "browser-initial-red.txt": "8c470857a84b9fb430dda055bb82b96be2fed2e05343a3f17a7863cd808374a2",
+    "browser-boundary-red.txt": "ff339976d1b5071d5e79f09e56a050cca07692ee9ec519d7a05e67fde28ab5a0",
+    "pending-close-red.txt": "6ff6ca885ddecf8f715c416c1f1e89ddce9e272bce4b9ac4555057cfb7c0609c",
+    "review-findings-red.txt": "aa8de8cb9e8bfe18021b02181b72815adc34e345ceec0adacdc6ac8f129cdab7",
+    "history-red.txt": "9a7128c12d0053f72d124ed1dddf165b73f7b5c4fd13383ef471e61eaf9605a1",
+    "build-type-red.txt": "5f3718f438e70fce1947e0a357521d2fa8c0ec59900a6d70b0964e17dd8720c6",
+    "api-typecheck-verification.txt": "6f1c70ca8d0eee741b331251495d2578325eaa285441a440debadd9d5bbed5ff",
+    "lint.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "final-panel-lint.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "format.txt": "d2fdcf2ae18059bb8a38c8346983311bc6799544ed66001629faabc7ca822a0f",
+    "desktop.png": "7f575edc2c292eefa0b2e123a9190ec590aaf031662455cd7c7a7835d9881638",
+    "mobile.png": "138dc78907be01f4fb1cb911ad5b2b2b4036310824d56a4ff207fb09efc52d29"
+  }
+}

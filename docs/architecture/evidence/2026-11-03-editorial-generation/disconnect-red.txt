@@ -1,0 +1,35 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts (26 tests | 2 failed | 24 skipped) 1156ms
+   × não inicia geração após desconexão during-query 773ms
+   × não inicia geração após desconexão already-aborted 381ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > não inicia geração após desconexão during-query
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > não inicia geração após desconexão already-aborted
+AssertionError: expected undefined to be 'EDITORIAL_GENERATION_CANCELLED' // Object.is equality
+
+- Expected:
+"EDITORIAL_GENERATION_CANCELLED"
+
++ Received:
+undefined
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:139:42
+    137|     if (when === 'during-query') await expect(f.generate()).rejects.to…
+    138|     else await f.generate();
+    139|     expect(JSON.parse(await sent).error).toBe('EDITORIAL_GENERATION_CA…
+       |                                          ^
+    140|     expect(generation.createProvider).not.toHaveBeenCalled();
+    141|   } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 24 skipped (26)
+   Start at  11:07:43
+   Duration  6.62s (transform 2.55s, setup 0ms, import 4.97s, tests 1.16s, environment 0ms)
+

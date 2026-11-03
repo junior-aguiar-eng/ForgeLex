@@ -1,0 +1,28 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts (36 tests | 1 failed | 35 skipped) 720ms
+   × histórico editorial continua consultável após nova versão e reconcilia comando sem permitir decisão obsoleta 718ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > histórico editorial continua consultável após nova versão e reconcilia comando sem permitir decisão obsoleta
+AssertionError: expected 409 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 409
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:778:139
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 35 skipped (36)
+   Start at  15:42:39
+   Duration  7.82s (transform 3.18s, setup 0ms, import 6.47s, tests 720ms, environment 0ms)
+

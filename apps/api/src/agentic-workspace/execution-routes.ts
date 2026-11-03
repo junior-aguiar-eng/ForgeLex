@@ -19,12 +19,21 @@ import { ExecutionWorker, type ExecutionDriver } from './execution-worker.js';
 import { encodeExecutionEvent } from './event-stream.js';
 import { createCaseTaskDriver, type NativeCaseTaskOptions } from './case-task-driver.js';
 import type { ResearchService } from '@forgelex/legal-tools';
-import { LEGAL_ACTION_CATALOG, EVIDENCE_TASK_ACTION } from '@forgelex/legal-workflows';
+import {
+  LEGAL_ACTION_CATALOG,
+  EVIDENCE_TASK_ACTION,
+  FinalEditorService,
+  FinalEditorGenerator,
+  EditorialReviewService,
+  type FinalEditorGenerationOptions,
+} from '@forgelex/legal-workflows';
 import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
 
 export interface AgenticWorkspaceRuntimeOptions {
+  /** Local simulation injection only; production bootstrap leaves this absent. */
+  editorialGeneration?: FinalEditorGenerationOptions;
   closedPilot?: ClosedPilot;
   commercial?: CommercialRuntime;
   driver?: ExecutionDriver;
@@ -207,6 +216,20 @@ export function registerAgenticWorkspace(
             ? 'INVALID_INPUT'
             : [
                   'EVIDENCE_REVIEW_CONFLICT',
+                  'EDITORIAL_VERSION_CONFLICT',
+                  'EDITORIAL_GENERATION_DISABLED',
+                  'EDITORIAL_PROVIDER_NOT_ALLOWED',
+                  'EDITORIAL_GENERATION_CANCELLED',
+                  'EDITORIAL_GENERATION_TIMEOUT',
+                  'EDITORIAL_GENERATION_FAILED',
+                  'EDITORIAL_CONTEXT_CHANGED',
+                  'EDITORIAL_CONTEXT_LIMIT',
+                  'EDITORIAL_REVIEW_CONFLICT',
+                  'EDITORIAL_REVIEW_LIMIT',
+                  'EDITORIAL_REVIEW_INTEGRITY',
+                  'EDITORIAL_SOURCE_UNAVAILABLE',
+                  'EDITORIAL_AUDIT_UNAVAILABLE',
+                  'SOURCE_VERSION_CONFLICT',
                   'EVIDENCE_COMMAND_CONFLICT',
                   'EVIDENCE_ALREADY_DECIDED',
                   'EVIDENCE_ITEM_INVALID',
@@ -614,6 +637,66 @@ export function registerAgenticWorkspace(
         throw new Error('DELIVERY_NOT_FOUND');
       return id;
     };
+    const editor = new FinalEditorService(caseTask.native);
+    const generator = new FinalEditorGenerator(editor, deps.options?.editorialGeneration);
+    const editorialReview = new EditorialReviewService(caseTask.native);
+    const editorialTarget = z.strictObject({
+      draftId: z.string().min(1).max(200),
+      versionId: z.string().min(1).max(200),
+    });
+    const editorialOptions = { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read']), session] };
+    app.get(
+      '/api/agentic/deliveries/:id/editorial-context',
+      editorialOptions,
+      handle(async (req) => editor.load(owner(req), await reviewId(req), editorialTarget.parse(req.query))),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-proposals/validate',
+      editorialOptions,
+      handle(async (req) => {
+        const id = await reviewId(req);
+        const body = editorialTarget.extend({ proposal: z.unknown() }).parse(req.body);
+        return editor.validate(owner(req), id, body, body.proposal);
+      }),
+    );
+    app.get(
+      '/api/agentic/deliveries/:id/editorial-review',
+      editorialOptions,
+      handle(async (req) => editorialReview.history(owner(req), await reviewId(req), req.query)),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-review/preview',
+      editorialOptions,
+      handle(async (req) => editorialReview.review(owner(req), await reviewId(req), req.body, 'preview')),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-review/decisions',
+      {
+        preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session],
+      },
+      handle(async (req) => editorialReview.review(owner(req), await reviewId(req), req.body, 'decide')),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-proposals/generate',
+      editorialOptions,
+      handle(async (req, reply) => {
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        req.raw.once('aborted', abort);
+        reply.raw.once('close', abort);
+        try {
+          if (req.raw.aborted || reply.raw.destroyed) abort();
+          if (controller.signal.aborted) throw new Error('EDITORIAL_GENERATION_CANCELLED');
+          const id = await reviewId(req),
+            target = editorialTarget.parse(req.body);
+          if (req.raw.aborted || reply.raw.destroyed) abort();
+          return await generator.generate(owner(req), id, target, controller.signal);
+        } finally {
+          req.raw.removeListener('aborted', abort);
+          reply.raw.removeListener('close', abort);
+        }
+      }),
+    );
     app.get(
       '/api/agentic/deliveries/:id/evidence-review',
       {

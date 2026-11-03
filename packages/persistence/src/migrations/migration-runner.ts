@@ -1180,6 +1180,9 @@ export const persistenceMigrations: readonly SqlMigration[] = [
 { id: 'persistence-0037-native-evidence-review', statements: [
   `ALTER TABLE agentic_task_deliveries ADD COLUMN evidence_review_json TEXT;`,
 ] },
+{ id: 'persistence-0038-editorial-human-review', statements: [
+  `ALTER TABLE agentic_task_deliveries ADD COLUMN editorial_review_json TEXT;`,
+] },
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

@@ -1,0 +1,43 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ packages/legal-agents/src/final-editor-contracts.test.ts (29 tests | 1 failed) 158ms
+     × retorna falha de schema sem lançar em safeParse para documento inválido 32ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/legal-agents/src/final-editor-contracts.test.ts > contrato editorial local sem aplicação de alterações > retorna falha de schema sem lançar em safeParse para documento inválido
+ZodError: [
+  {
+    "origin": "array",
+    "code": "too_small",
+    "minimum": 1,
+    "inclusive": true,
+    "path": [
+      "sections"
+    ],
+    "message": "Too small: expected array to have >=1 items"
+  }
+]
+ ❯ packages/legal-agents/src/final-editor-contracts.ts:59:48
+     57|   .superRefine((context, ctx) => {
+     58|     const issue = (path: (string | number)[], message: string) => ctx.…
+     59|     if (hash(JSON.stringify(TaskDocumentSchema.parse(context.document)…
+       |                                                ^
+     60|       issue(['documentHash'], 'Hash do documento divergente.');
+     61|
+ ❯ Internals.check ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/zod@4.6.7/node_modules/zod/v4/core/api.js:998:16
+ ❯ runChecks ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/zod@4.6.7/node_modules/zod/v4/core/schemas.js:51:35
+ ❯ Internals.inst._zod.run ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/zod@4.6.7/node_modules/zod/v4/core/schemas.js:118:20
+ ❯ Module.<anonymous> ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/zod@4.6.7/node_modules/zod/v4/core/parse.js:43:32
+ ❯ _.safeParse ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/zod@4.6.7/node_modules/zod/v4/classic/schemas.js:141:22
+ ❯ packages/legal-agents/src/final-editor-contracts.test.ts:83:42
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 28 passed (29)
+   Start at  22:49:22
+   Duration  2.39s (transform 623ms, setup 0ms, import 1.19s, tests 158ms, environment 0ms)
+

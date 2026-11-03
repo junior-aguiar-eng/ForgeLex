@@ -1,0 +1,53 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ packages/legal-agents/src/final-editor-contracts.test.ts (31 tests | 2 failed) 264ms
+     × rejeita substitutos isolados sem confundir hashes UTF-8 de textos distintos 65ms
+     × rejeita auditoria duplicada por par sem impedir fontes ou claims distintos 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/legal-agents/src/final-editor-contracts.test.ts > contrato editorial local sem aplicação de alterações > rejeita substitutos isolados sem confundir hashes UTF-8 de textos distintos
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ packages/legal-agents/src/final-editor-contracts.test.ts:89:19
+     87|       expect(FinalEditorialContextSchema.safeParse({ ...context, docum…
+     88|         documentHash: hash(JSON.stringify(TaskDocumentSchema.parse(doc…
+     89|       }).success).toBe(false);
+       |                   ^
+     90|       expect(FinalEditorialContextSchema.safeParse({ ...context,
+     91|         sources: [{ ...context.sources[0], text: invalid, contentHash:…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  packages/legal-agents/src/final-editor-contracts.test.ts > contrato editorial local sem aplicação de alterações > rejeita auditoria duplicada por par sem impedir fontes ou claims distintos
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ packages/legal-agents/src/final-editor-contracts.test.ts:109:19
+    107|       expect(FinalEditorialContextSchema.safeParse({ ...context,
+    108|         supportAudit: [...context.supportAudit, { ...context.supportAu…
+    109|       }).success).toBe(false);
+       |                   ^
+    110|     }
+    111|     const source = { ...context.sources[0], id: 's2' };
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 29 passed (31)
+   Start at  22:52:09
+   Duration  3.44s (transform 1.13s, setup 0ms, import 1.80s, tests 264ms, environment 0ms)
+

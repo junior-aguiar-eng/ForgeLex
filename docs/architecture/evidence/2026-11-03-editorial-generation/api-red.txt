@@ -1,0 +1,90 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts (24 tests | 4 failed | 20 skipped) 1708ms
+   × geração simulada conecta minuta autorizada, sem alterações ou execução v8 636ms
+   × geração fica desabilitada sem factory e não aceita contexto/provider do cliente 323ms
+   × geração preserva sessão, proprietário, scopes e fronteiras dos runtimes 438ms
+   × geração descarta proposta se acesso for revogado durante o provider 308ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > geração simulada conecta minuta autorizada, sem alterações ou execução v8
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:43:31
+     41|   const before = await f.snapshot();
+     42|   const response = await f.generate();
+     43|   expect(response.statusCode).toBe(200);
+       |                               ^
+     44|   expect(response.json()).toEqual({ mode: 'SIMULATED', profileVersion:…
+     45|   expect(response.headers['cache-control']).toBe('no-store');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > geração fica desabilitada sem factory e não aceita contexto/provider do cliente
+AssertionError: expected 'Not Found' to be 'EDITORIAL_GENERATION_DISABLED' // Object.is equality
+
+Expected: "EDITORIAL_GENERATION_DISABLED"
+Received: "Not Found"
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:51:45
+     49| it('geração fica desabilitada sem factory e não aceita contexto/provid…
+     50|   const f = await fixture();
+     51|   expect((await f.generate()).json().error).toBe('EDITORIAL_GENERATION…
+       |                                             ^
+     52|   for (const extra of [{ provider: 'openai' }, { context: f.delivery }…
+     53|     expect((await f.generate({ ...f.target, ...extra })).statusCode).t…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > geração preserva sessão, proprietário, scopes e fronteiras dos runtimes
+AssertionError: expected 404 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:58:61
+     56|   const generation = simulatedGeneration(), f = await fixture(undefine…
+     57|   for (const [token, status] of [['other',404], ['tenant',404], ['scop…
+     58|     expect((await f.generate(undefined, token)).statusCode).toBe(statu…
+       |                                                             ^
+     59|   for (const boundary of ['closedPilot','commercial'] as const) {
+     60|     const restricted = await fixture(boundary, generation);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > geração descarta proposta se acesso for revogado durante o provider
+AssertionError: expected 404 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:69:43
+     67|   const generation = simulatedGeneration(() => revoke()), f = await fi…
+     68|   revoke = f.revoke;
+     69|   expect((await f.generate()).statusCode).toBe(403);
+       |                                           ^
+     70|   expect(generation.createProvider).toHaveBeenCalledTimes(1);
+     71| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 20 skipped (24)
+   Start at  10:55:11
+   Duration  8.46s (transform 3.17s, setup 0ms, import 6.19s, tests 1.71s, environment 0ms)
+

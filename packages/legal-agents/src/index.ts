@@ -3,6 +3,8 @@ export * from './agent-catalog.js';
 export * from './context-packet.js';
 export * from './research-agent-contracts.js';
 export * from './legal-work-contracts.js';
+export * from './final-editor-contracts.js';
+export * from './final-editor-generation.js';
 export * from './instructions/legal-work.js';
 export * from './instructions/research-authority.js';
 export * from './workflow-definition.js';

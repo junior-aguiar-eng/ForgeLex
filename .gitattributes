@@ -9,3 +9,10 @@ docs/architecture/evidence/2026-11-0[12]-* -text whitespace=cr-at-eol
 docs/architecture/evidence/2026-11-0[12]-*/** -text whitespace=cr-at-eol
 # Raw test output is evidence; keep its original whitespace.
 docs/architecture/evidence/2026-11-0[12]-*/**/*.log -whitespace
+# Preserve raw evidence of the local editorial binding validation.
+docs/architecture/evidence/2026-11-02-final-editor-contract/** -text -whitespace
+docs/architecture/evidence/2026-11-03-editorial-binding/** -text -whitespace
+# Preserve raw evidence of simulated editorial proposal generation.
+docs/architecture/evidence/2026-11-03-editorial-generation/** -text -whitespace
+# Preserve raw local human editorial review evidence.
+docs/architecture/evidence/2026-11-03-editorial-human-review/** -text -whitespace

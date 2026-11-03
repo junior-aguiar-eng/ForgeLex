@@ -929,4 +929,5 @@ export const agenticTaskDeliveries = sqliteTable('agentic_task_deliveries', {
   tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(), contextRevision: integer('context_revision').notNull(),
   payloadJson: text('payload_json').notNull(), contentHash: text('content_hash').notNull(), draftId: text('draft_id'), versionId: text('version_id'),
   evidenceReviewJson: text('evidence_review_json'),
+  editorialReviewJson: text('editorial_review_json'),
 }, (table) => [uniqueIndex('agentic_task_deliveries_execution_idx').on(table.executionId)]);

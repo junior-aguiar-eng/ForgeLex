@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-03T02:03:50.532Z",
+  "checkout": "C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK",
+  "branch": "codex/forgelex-3-quality",
+  "head": "5ba4ca87f3d4602db878ce8935552354c2743ee2",
+  "scope": "Local final-editor schemas, pure validation and fixtures; no runtime activation",
+  "checks": {
+    "fullSuite": {
+      "command": "pnpm test",
+      "exitCode": 0,
+      "buildPassed": true,
+      "passed": 1652,
+      "skipped": 17,
+      "failed": 0,
+      "filesPassed": 232,
+      "filesSkipped": 3
+    },
+    "focused": {
+      "command": "pnpm exec vitest run packages/legal-agents/src packages/legal-workflows/src/agentic-case-task apps/api/src/agentic-workspace/verifier-budget.test.ts",
+      "exitCode": 0,
+      "passed": 228,
+      "failed": 0
+    },
+    "contract": {
+      "passed": 31,
+      "failed": 0,
+      "regressionsObservedRedBeforeFix": true
+    },
+    "lint": {
+      "command": "pnpm exec eslint packages/legal-agents/src/final-editor-contracts.ts packages/legal-agents/src/final-editor-contracts.test.ts packages/legal-agents/src/index.ts",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "packages": [
+        "@forgelex/legal-agents",
+        "@forgelex/api"
+      ],
+      "exitCode": 0
+    },
+    "format": {
+      "command": "pnpm exec prettier --check packages/legal-agents/src/final-editor-contracts.ts packages/legal-agents/src/final-editor-contracts.test.ts packages/legal-agents/src/index.ts",
+      "exitCode": 0
+    }
+  },
+  "review": {
+    "readOnly": true,
+    "effectiveReviewer": "gpt-6.1-sol",
+    "unavailableModel": "gpt-6-astra",
+    "unavailableAttempts": 2,
+    "findingsFixed": [
+      "Malformed Unicode identity",
+      "Duplicate claim/source audit pair"
+    ],
+    "deferredFindings": []
+  },
+  "preservation": {
+    "protectedTrackedAreas": [
+      "apps",
+      "packages/domain",
+      "packages/legal-workflows",
+      "packages/agent-core",
+      "packages/billing-ledger",
+      "packages/legal-agents/src/agent-catalog.ts",
+      "packages/legal-agents/src/agentic-focused-verifier.ts",
+      "scripts",
+      "docs/architecture/evidence"
+    ],
+    "diffExitCode": 0,
+    "proof": "Tracked contents compare equal to initial HEAD in the protected areas"
+  },
+  "limits": {
+    "paidCalls": 0,
+    "runtimeActivated": false,
+    "draftChangesApplied": false,
+    "other54ScenariosExecuted": false,
+    "newCommit": false,
+    "push": false,
+    "deploy": false,
+    "postgresAndPaidTestsEnabled": false,
+    "e2eExecuted": false
+  },
+  "sourceHashes": {
+    "packages/legal-agents/src/final-editor-contracts.ts": "16bc7d0c787159700f4a3aea61515ddf1e61919e914e0cc5f4404e1d76548fe6",
+    "packages/legal-agents/src/final-editor-contracts.test.ts": "1b1fd132afb6d59ea44d330425f157caf814705f69b644de6166cbc569167aad",
+    "packages/legal-agents/src/index.ts": "d9338f21903260911022ab513decbfe429e848e3c94dbd8357d539b7e90a04a9"
+  },
+  "evidenceHashes": {
+    "full-suite.txt": "a0868fd8db0affb4fdcf7ba7aa1c5bc29db71620e0ebcbde0bf30f58075ba8ec",
+    "focused-tests.txt": "3cb0c641658dd220c67d39136c46e4c86fd1ecc39368e44b96f6b1f305aa5b01",
+    "red-missing-contract.txt": "3173d9cb39e9c5733c138edc204776069be2a97a3678bbb397b0cdb1b06ba302",
+    "red-invalid-document.txt": "23bf6d1dad8988f3dc09572c0c7e3200f29dd24b56b2a0bb3c80809e52d27d1b",
+    "red-review-findings.txt": "97f5499f2e2ec025dfb0d3251cf9d18d2c6ebfc19b4c628e34b622589142166a",
+    "green-contract.txt": "f1eebcc24b5bfc0ff290c0cd6fade5c8c00d881eea87c45baadfa352f112303b",
+    "typecheck.txt": "56ca856c5bad396bb298ed7353fcbb386f10f8d365d74d499c4c8c42f5609cb9",
+    "format.txt": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283"
+  }
+}

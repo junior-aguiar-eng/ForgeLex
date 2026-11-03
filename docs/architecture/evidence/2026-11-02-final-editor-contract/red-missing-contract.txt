@@ -1,0 +1,25 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ packages/legal-agents/src/final-editor-contracts.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/legal-agents/src/final-editor-contracts.test.ts [ packages/legal-agents/src/final-editor-contracts.test.ts ]
+Error: Cannot find module './final-editor-contracts.js' imported from C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/packages/legal-agents/src/final-editor-contracts.test.ts
+ ❯ packages/legal-agents/src/final-editor-contracts.test.ts:4:1
+      2| import { describe, expect, it } from 'vitest';
+      3| import { TaskDocumentSchema } from '@forgelex/domain';
+      4| import {
+       | ^
+      5|   FinalEditorialContextSchema,
+      6|   FinalEditorialProposalSchema,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  22:44:02
+   Duration  1.86s (transform 628ms, setup 0ms, import 0ms, tests 0ms, environment 0ms)
+

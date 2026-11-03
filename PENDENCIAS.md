@@ -1,13 +1,55 @@
 # Pendências atuais do ForgeLex
 
-## Próximo incremento delimitado: editor final — 02/11/2026
+## Revisão humana editorial na mesa — 03/11/2026
 
-[Contrato proposto](docs/superpowers/specs/2026-11-02-forgelex-final-editor-contract.md):
-propostas editoriais ancoradas na versão/hash da minuta, com mudanças substantivas
-separadas e aplicação apenas por decisão explícita de Boni. Próximo incremento
-local: schemas, validador e fixtures em `legal-agents`, sem ativar um oitavo papel,
-chamar modelo, mudar a mesa ou aplicar alterações automaticamente. O contrato
-está documentado; sua implementação e integração ainda não foram executadas.
+[Implementação e validação](docs/architecture/2026-11-03-forgelex-editorial-human-review.md):
+diálogo na entrega compara trechos e ressalvas, valida proposta importada e salva
+Concordar/Rejeitar/Adiar com fundamento, autor e data no histórico do caso.
+Nenhuma decisão aplica texto ou aprova conteúdo jurídico. Histórico permanece
+consultável após nova versão/contexto, com novas decisões bloqueadas se obsoleto.
+Replay idempotente e reconciliação por comando cobrem resposta perdida/conflito.
+117 testes focados e 10 Playwright aprovados; três achados de revisão corrigidos.
+Build completo aprovado; suíte geral: 1.711 aprovados, 17 ignorados, zero falhas.
+Migração 0038 e reconciliação testadas só em bancos descartáveis.
+Mesa, v8 e limites preservados; sem IA paga, commit, push ou deploy. Geração real
+e aplicação humana versionada continuam como etapas posteriores.
+
+## Geração simulada do editor final — 03/11/2026
+
+[Implementação e validação](docs/architecture/2026-11-03-forgelex-editorial-generation.md):
+gerador separado do v8 recebe minuta autorizada e versionada, aceita uma única
+proposta estruturada e revalida acesso/contexto antes da resposta. API local
+opt-in; factory ausente no bootstrap, somente provedor simulado nesta etapa.
+105 testes focados aprovados. Revisão independente encontrou duas bordas de
+submissão/desconexão, reproduzidas e corrigidas. Build completo e suíte geral:
+1.699 aprovados, zero falhas e 17 condicionais ignorados.
+Nenhuma proposta é aplicada ou persistida. Mesa, v8 e limites preservados; sem
+chamadas pagas, commit novo, push ou deploy. Geração real, interface de revisão
+e aplicação humana versionada continuam como etapas posteriores.
+
+## Editor final ligado à minuta autorizada — 03/11/2026
+
+[Implementação e validação](docs/architecture/2026-11-03-forgelex-editorial-binding.md):
+API local prepara contexto editorial da entrega persistida e valida propostas
+recarregando autorização, versão, texto e fontes. Exige sessão, escopos e dono;
+recusa versão/contexto obsoleto, fonte incompleta e fato aprovado alterado.
+Validação: 20 testes editoriais, 78 focados, build completo e 1.672 testes gerais
+aprovados; zero falhas e 17 condicionais ignorados. Lint, tipos e formatação passam.
+Nenhuma proposta é gerada por modelo, aplicada ou persistida nesta etapa.
+Mesa, v8 e limites preservados; sem chamadas pagas, commit novo, push ou deploy.
+Próximas etapas separadas: geração de propostas e aplicação humana versionada.
+
+## Contrato do editor final implementado localmente — 02/11/2026
+
+[Implementação e evidências](docs/architecture/2026-11-02-forgelex-final-editor-contract.md):
+schemas, validador puro e fixtures em `legal-agents`. Propostas vinculadas a
+versão/hash, trechos UTF-16 exatos, fontes existentes e revisão humana; nenhum
+patch é aplicado. 31 testes próprios e 228 focados aprovados; lint e tipos
+aprovados. Build completo e suíte geral: 1.652 aprovados, zero falhas e 17
+condicionais ignorados. Unicode malformado e auditoria duplicada rejeitados.
+O papel ainda não foi ativado: integração com minuta persistida/autorizada,
+runtime e aplicação das propostas permanecem futuras. V8, mesa e limites
+preservados; sem chamadas pagas, commit novo, push ou deploy.
 
 ## Consolidação local validada — 02/11/2026
 

@@ -1,0 +1,317 @@
+$ pnpm build && vitest run
+$ pnpm -r --sort run build
+Scope: 17 of 18 workspace projects
+apps/web build$ tsc && vite build && vite build --config vite.mcp.config.ts
+packages/domain build$ tsc
+packages/domain build: Done
+apps/web build: vite v6.4.5 building for production...
+apps/web build: transforming...
+apps/web build: ✓ 1738 modules transformed.
+apps/web build: rendering chunks...
+apps/web build: computing gzip size...
+apps/web build: dist/index.html                                         2.45 kB │ gzip:   0.92 kB
+apps/web build: dist/assets/pdf.worker.min-Dswkl-cV.mjs             1,265.41 kB
+apps/web build: dist/assets/DecisionReader-BoYs9ZWQ.css                 4.31 kB │ gzip:   1.25 kB
+apps/web build: dist/assets/index-DBInjmri.css                         43.83 kB │ gzip:   8.55 kB
+apps/web build: dist/assets/check-DBSOWb2h.js                           0.29 kB │ gzip:   0.24 kB
+apps/web build: dist/assets/chevron-down-CoNYp8uh.js                    0.30 kB │ gzip:   0.24 kB
+apps/web build: dist/assets/plus-Bhlo1wYm.js                            0.33 kB │ gzip:   0.25 kB
+apps/web build: dist/assets/arrow-up-right-BDFhyLWM.js                  0.34 kB │ gzip:   0.26 kB
+apps/web build: dist/assets/copy-2QU9ofV3.js                            0.40 kB │ gzip:   0.31 kB
+apps/web build: dist/assets/circle-alert-BsQTITo_.js                    0.42 kB │ gzip:   0.30 kB
+apps/web build: dist/assets/refresh-cw-BYbJC6hp.js                      0.49 kB │ gzip:   0.33 kB
+apps/web build: dist/assets/file-text-CENFA0oO.js                       0.51 kB │ gzip:   0.32 kB
+apps/web build: dist/assets/shield-alert-8a4gSRDR.js                    0.53 kB │ gzip:   0.37 kB
+apps/web build: dist/assets/trash-2-CraU0stJ.js                         0.53 kB │ gzip:   0.36 kB
+apps/web build: dist/assets/use-case-result-refresh-BUqk3Ry1.js         1.45 kB │ gzip:   0.83 kB
+apps/web build: dist/assets/account-closure-storage-Bri-4m_Z.js         1.95 kB │ gzip:   0.65 kB
+apps/web build: dist/assets/ResearchControls-CJ-5ltID.js                2.98 kB │ gzip:   1.56 kB
+apps/web build: dist/assets/AccountClosureStatusScreen-BFvteUbh.js      3.85 kB │ gzip:   1.74 kB
+apps/web build: dist/assets/OAuthConsentScreen-4VFOP8KK.js              3.88 kB │ gzip:   1.68 kB
+apps/web build: dist/assets/ForLawyersGuideScreen-CBRcMBIR.js           5.93 kB │ gzip:   2.18 kB
+apps/web build: dist/assets/DecisionReader-DomCUm8z.js                  6.43 kB │ gzip:   2.48 kB
+apps/web build: dist/assets/ApiKeysScreen-DwWIuTIk.js                   7.24 kB │ gzip:   2.66 kB
+apps/web build: dist/assets/ResearchDeskScreen-0-9NnHzx.js              7.99 kB │ gzip:   2.87 kB
+apps/web build: dist/assets/DocumentReaderDialog-DZsoGj8i.js            8.49 kB │ gzip:   3.32 kB
+apps/web build: dist/assets/DashboardScreen-CgAlRbIb.js                 8.60 kB │ gzip:   2.94 kB
+apps/web build: dist/assets/AccountActivityScreen-CdHUobsd.js           8.82 kB │ gzip:   2.67 kB
+apps/web build: dist/assets/HostInstallationGuide-opj0C9b3.js           9.62 kB │ gzip:   3.70 kB
+apps/web build: dist/assets/ConnectionsScreen-DD1eQi6a.js              10.06 kB │ gzip:   3.44 kB
+apps/web build: dist/assets/LandingScreen-Cvi_Yvk6.js                  10.23 kB │ gzip:   3.63 kB
+apps/web build: dist/assets/AccountSecurityScreen-DHtvD-0W.js          11.26 kB │ gzip:   3.68 kB
+apps/web build: dist/assets/ApiDocsScreen-CEgA0_Ui.js                  16.08 kB │ gzip:   5.31 kB
+apps/web build: dist/assets/CreditsScreen-CWDKJ7N-.js                  16.10 kB │ gzip:   4.77 kB
+apps/web build: dist/assets/AgenticWorkspaceScreen-rlfnWRz9.js         53.25 kB │ gzip:  17.02 kB
+apps/web build: dist/assets/DraftStudioScreen-Cmiojuh6.js              56.25 kB │ gzip:  14.78 kB
+apps/web build: dist/assets/MatterWorkspaceScreen-CwE9lCsK.js          78.46 kB │ gzip:  20.84 kB
+apps/web build: dist/assets/index-m6JQPSqS.js                         239.89 kB │ gzip:  73.08 kB
+apps/web build: dist/assets/draft-docx-B6LdiT0G.js                    362.87 kB │ gzip: 106.38 kB
+apps/web build: dist/assets/pdf-text-DL_Hj_a_.js                      484.33 kB │ gzip: 144.95 kB
+apps/web build: ✓ built in 12.02s
+apps/web build: vite v6.4.5 building for production...
+apps/web build: transforming...
+apps/web build: ✓ 29 modules transformed.
+apps/web build: rendering chunks...
+apps/web build: computing gzip size...
+apps/web build: dist/mcp-reader/reader.css    6.19 kB │ gzip:   1.64 kB
+apps/web build: dist/mcp-reader/reader.js   472.82 kB │ gzip: 125.53 kB
+apps/web build: ✓ built in 4.12s
+apps/web build: Done
+packages/agent-core build$ tsc
+packages/legal-data build$ tsc
+packages/source-catalog build$ tsc
+packages/source-catalog build: Done
+packages/legal-data build: Done
+packages/agent-core build: Done
+packages/persistence build$ tsc
+packages/source-providers build$ tsc
+packages/source-providers build: Done
+packages/persistence build: Done
+packages/audit build$ tsc
+packages/billing-ledger build$ tsc
+packages/audit build: Done
+packages/billing-ledger build: Done
+packages/analise-juridica build$ tsc
+packages/legal-tools build$ tsc
+packages/analise-juridica build: Done
+packages/legal-tools build: Done
+packages/agent-provider-anthropic build$ tsc
+packages/agent-provider-openai build$ tsc
+packages/legal-agents build$ tsc
+packages/mcp-server build$ tsc
+packages/agent-provider-anthropic build: Done
+packages/mcp-server build: Done
+packages/agent-provider-openai build: Done
+packages/legal-agents build: Done
+packages/legal-workflows build$ tsc
+packages/legal-workflows build: Done
+apps/api build$ tsc
+apps/api build: Done
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+{"level":"error","message":"agentic.execution.failed","tenantId":"commercial","executionId":"c4e9eabe-5ab5-4712-994d-b44f4a276fe9","failureCode":"ACCESS_REVOKED","errorCode":"ACCESS_REVOKED","errorName":"Error","timestamp":"2026-11-03T14:10:18.926Z"}
+{"level":"error","message":"agentic.execution.failed","tenantId":"commercial","executionId":"3fc77a4e-794f-4392-94ba-5cd969144e56","failureCode":"EXECUTION_FAILED","errorCode":"DEADLINE_EXCEEDED","errorName":"Error","timestamp":"2026-11-03T14:10:20.814Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"0005dbaf-1b32-4d60-b6d3-720454524d30","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.173Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"0ce93670-2f3c-4110-a31f-1696c7759b30","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.179Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"10299493-8f50-4270-b917-e5859a822fbc","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.184Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"1b8b5ce2-e62e-4825-962a-f6a4123b12a2","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.189Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"1c5fab45-2170-4835-ba6c-1bea87f912a4","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.194Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"24f44948-e5fb-4b8f-afb7-9d7f3023db8b","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.199Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"36498969-e305-4aba-a9fc-d6b41563b91c","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.210Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"3c7f25a5-a2df-4920-bbc0-791edc27b918","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.215Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"4009d99d-9776-4e99-b255-8866efd34c70","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.220Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"4423ac9b-b991-40f8-ab38-b526e1a0642f","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.225Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"4a6652c1-5d55-4293-89da-76e76a846806","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.230Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"4c8116bf-24b3-421c-af7f-42ffe95ac4f3","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.234Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"4c91bca9-85ce-4f8b-bbc5-9ff50e804c44","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.239Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"4dbd1f94-b05e-4a55-bcb5-32b652b03006","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.244Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"4f2418fa-f46d-428b-ab10-3981d7185a02","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.248Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"4f8e1f6d-2fba-4ea5-bd8a-ecab00606c3f","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.253Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"5324803a-3ec2-4978-aa47-87397074db81","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.259Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"53b9db94-04d5-4009-8635-092eaefbed96","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.263Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"5a30be3a-dd89-4c07-869e-10a09d31cf54","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.267Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"5cbd0eb9-ab43-468e-897b-3d1c2f0e5ccc","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.270Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"5d0a83c8-2b39-4dd9-84c7-cf2bf4551772","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.274Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"5d6e3149-c783-4abd-8cda-3a42e00775df","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.277Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"5fbb944a-f2a0-4261-a125-1a61c17acc09","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.281Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"69df53b5-ec2c-4d87-8b16-b6a544a06064","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.284Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"6ce778c2-2285-4455-b730-cd0f7b1587c0","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.287Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"78e567f5-73ea-4ef1-b761-a643d02b609c","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.290Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"7b67ec02-fd14-4535-b5c3-0083f7b79e53","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.293Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"846dcba2-5d86-486b-93f1-a4e042da7993","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.297Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"8a84add5-f16f-4bee-9cb9-c68c62b2eb7f","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.300Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"8a86ea85-739a-4b83-bcb7-e046e88daeae","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.303Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"9482fb51-dc03-4e86-8a85-bd508630f918","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.306Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"96b6e1bc-9e15-4951-98e1-567d6afa0dcb","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.310Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"99aa8753-41a2-4372-9106-80643fbe0580","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.312Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"a02f3bcf-0dfa-40c3-89ef-a8d1b8e26035","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.315Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"a1b0fa57-9196-4ec2-bc16-16e3703388f2","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.318Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"a270fd36-387b-4a85-8941-61958d6decbe","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.325Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"a485562a-6717-402a-91f5-e9ee881f0d93","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.328Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"ad92ae88-0d90-4144-892b-258c9638f8ae","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.331Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"b041f23d-5e54-47c9-8b18-33ab5736f3f5","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.334Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"b0fb5c61-1de9-42e6-8c09-95d006847351","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.338Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"b5ffdbc2-8930-47d2-ad8b-c3be6356e5ba","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.342Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"b7a6fe81-2cde-4411-844d-afbe07121b63","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.345Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"b975d4c5-3d38-4509-8d14-5e67438a99d0","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.349Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"e6f6351d-0196-49ba-8543-6f62122b0f66","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.352Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"ec1d2f54-fc6b-475f-a536-f90016d76fd8","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.355Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"ed90168b-6515-4228-86a9-4db4e735f47f","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.358Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"f52d6a05-9cf7-4a4d-b9f1-ca30e456cb55","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.361Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"fa8de4d4-d520-48e5-8cd5-5095dff37ecd","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.364Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"fb226180-3e7a-478e-9591-e85c6f39f66b","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.367Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"fb9fb0ff-fbd5-43cf-b292-4a90292430c6","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:33.371Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"durable","executionId":"1a37df48-45d3-4e28-b725-f6ad493e4913","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:10:34.353Z"}
+{"level":"error","message":"agentic.execution.failed","tenantId":"durable","executionId":"d3b73487-3af1-422b-a437-8182e36c0354","failureCode":"EXECUTION_FAILED","errorCode":"STEP_EVENT_INVALID","errorName":"Error","timestamp":"2026-11-03T14:10:35.325Z"}
+{"level":"error","message":"agentic.execution.failed","tenantId":"durable","executionId":"8bc1f7c0-e242-4416-9eed-c3e79376d2f6","failureCode":"EXECUTION_FAILED","errorCode":"LEASE_LOST","errorName":"Error","timestamp":"2026-11-03T14:10:37.369Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"5fc3804c-767e-48f3-897a-2fac51c8d14b","tenantId":"real-boni-tenant","method":"GET","route":"/api/agentic/pilot/budget","statusCode":403,"latencyMs":2,"timestamp":"2026-11-03T14:10:53.358Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3","traceId":"9a41c178-4334-48b4-be75-3060212adf2c","tenantId":"real-boni-tenant","method":"POST","route":"/api/agentic/executions","statusCode":403,"latencyMs":3,"timestamp":"2026-11-03T14:10:53.362Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-4","traceId":"7d14c3f4-cc51-4530-983c-f30b56ad7e63","tenantId":"real-boni-tenant","method":"POST","route":"/api/agentic/pilot/executions","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:10:53.365Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-8","traceId":"3fdfcfcf-e501-4349-ba2f-0cfb36c1730a","tenantId":"real-boni-tenant","method":"POST","route":"/api/agentic/executions/:id/continue","statusCode":403,"latencyMs":1,"timestamp":"2026-11-03T14:10:53.435Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"0ab72ac7-eaea-4637-8d48-19cd14e0512e","method":"POST","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:11:07.487Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"7630dd05-b491-475d-8672-9cc1aa9dd2c1","method":"POST","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:11:08.162Z"}
+{"level":"error","message":"agentic.request.failed","method":"GET","route":"/api/agentic/deliveries/:id/editorial-context","errorCode":"DELIVERY_INTEGRITY_FAILED","errorName":"Error","timestamp":"2026-11-03T14:11:08.933Z"}
+{"level":"error","message":"agentic.budget_release.failed","tenantId":"routes","executionId":"f9921bd9-3c29-4940-ae43-c228fd45b074","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T14:11:13.400Z"}
+{"level":"error","message":"agentic.execution.failed","tenantId":"included-research","executionId":"935cc3c2-0ae5-4adc-b2a3-3a6c24f9e62f","failureCode":"EXECUTION_FAILED","errorCode":"TOOL_EXECUTION_FAILED","errorName":"CaseTaskExecutionError","timestamp":"2026-11-03T14:11:31.061Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-8","traceId":"82b1e78f-f24e-4fb3-b786-e123252ea6e3","method":"POST","route":"/mcp","statusCode":401,"latencyMs":1,"timestamp":"2026-11-03T14:11:55.047Z"}
+{"level":"info","message":"account_closure.step.completed","closureId":"acl_1","stepType":"DELETE_SUPABASE_IDENTITY","attemptCount":1,"timestamp":"2026-11-03T14:12:13.134Z"}
+{"level":"warn","message":"account_closure.step.failed","closureId":"acl_1","stepType":"DELETE_SUPABASE_IDENTITY","attemptCount":1,"errorCode":"SUPABASE_ACCOUNT_DELETE_FAILED","terminal":false,"timestamp":"2026-11-03T14:12:13.727Z"}
+{"level":"info","message":"account_closure.step.completed","closureId":"acl_1","stepType":"DELETE_SUPABASE_IDENTITY","attemptCount":2,"timestamp":"2026-11-03T14:12:14.453Z"}
+{"level":"error","message":"account_closure.step.failed","closureId":"acl_1","stepType":"DELETE_SUPABASE_IDENTITY","attemptCount":12,"errorCode":"ACCOUNT_CLOSURE_STEP_FAILED","terminal":true,"timestamp":"2026-11-03T14:12:15.123Z"}
+{"level":"info","message":"account_closure.step.completed","closureId":"acl_1","stepType":"DELETE_SUPABASE_IDENTITY","attemptCount":1,"timestamp":"2026-11-03T14:12:16.434Z"}
+{"level":"info","message":"account_closure.step.completed","closureId":"acl_1","stepType":"PURGE_PRIVATE_CONTENT","attemptCount":1,"timestamp":"2026-11-03T14:12:16.450Z"}
+{"level":"info","message":"account_closure.step.completed","closureId":"acl_1","stepType":"MINIMIZE_RETAINED_RECORDS","attemptCount":1,"timestamp":"2026-11-03T14:12:16.465Z"}
+{"level":"info","message":"account_closure.step.completed","closureId":"acl_1","stepType":"REMOVE_LOCAL_IDENTITY","attemptCount":1,"timestamp":"2026-11-03T14:12:16.482Z"}
+{"level":"info","message":"account_closure.step.completed","closureId":"acl_1","stepType":"VERIFY_RESIDUALS","attemptCount":1,"timestamp":"2026-11-03T14:12:16.497Z"}
+{"level":"info","message":"account_closure.step.completed","closureId":"acl_1","stepType":"REMOVE_LOCAL_IDENTITY","attemptCount":2,"timestamp":"2026-11-03T14:12:17.208Z"}
+{"level":"error","message":"agentic.execution.failed","tenantId":"native-task","executionId":"6d81ad06-9a41-4d61-8523-092a237a0485","failureCode":"BUDGET_EXHAUSTED","errorCode":"BUDGET_NOT_FOUND","errorName":"Error","timestamp":"2026-11-03T14:12:28.716Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"ad659fac-26e2-46f8-b4bc-a8628a061abc","tenantId":"case-owner","method":"POST","route":"/api/v2/matters/:matterId/archive","statusCode":403,"latencyMs":9,"timestamp":"2026-11-03T14:12:35.077Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"761a5f5b-cba1-496d-b262-9eb009e403df","tenantId":"case-owner","method":"POST","route":"/api/v2/matters/:matterId/archive","statusCode":403,"latencyMs":2,"timestamp":"2026-11-03T14:12:35.080Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3","traceId":"1f904429-deed-44f2-9edf-0403c57b7f99","tenantId":"case-owner","method":"POST","route":"/api/v2/matters/:matterId/archive","statusCode":403,"latencyMs":7,"timestamp":"2026-11-03T14:12:35.088Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-4","traceId":"6943eb86-cdd9-490f-bc49-9bb02096264f","tenantId":"unrelated","method":"POST","route":"/api/v2/matters/:matterId/archive","statusCode":404,"latencyMs":3,"timestamp":"2026-11-03T14:12:35.092Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-7","traceId":"fa9d41ea-382d-4488-8de5-42f700e5ecf8","tenantId":"case-owner","method":"GET","route":"/api/v2/matters","statusCode":403,"latencyMs":0,"timestamp":"2026-11-03T14:12:35.111Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-8","traceId":"57c22e7b-2426-400a-a87b-43abe891acc7","tenantId":"case-owner","method":"GET","route":"/api/v2/matters/:matterId","statusCode":404,"latencyMs":2,"timestamp":"2026-11-03T14:12:35.113Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-a","traceId":"fb1c0d02-2a7f-46fd-b695-58f73725f014","tenantId":"case-owner","method":"POST","route":"/api/v2/matters/:matterId/facts","statusCode":409,"latencyMs":2,"timestamp":"2026-11-03T14:12:35.122Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"51fd5bf7-0e40-4f0d-a05a-b5507a54c09e","tenantId":"case-owner","method":"POST","route":"/api/v2/matters/:matterId/archive","statusCode":400,"latencyMs":2,"timestamp":"2026-11-03T14:12:36.044Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"6172aaa2-12fb-4929-a8e7-f9a75441b71c","tenantId":"case-owner","method":"POST","route":"/api/v2/matters/:matterId/purge","statusCode":409,"latencyMs":18,"timestamp":"2026-11-03T14:12:36.063Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-4","traceId":"977cd47c-c72a-446f-abfb-834a3d13712b","tenantId":"case-owner","method":"POST","route":"/api/v2/matters/:matterId/purge","statusCode":409,"latencyMs":16,"timestamp":"2026-11-03T14:12:36.090Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-6","traceId":"bf6d0735-2ef5-4d6f-b85d-d6e24bcd2124","tenantId":"case-owner","method":"GET","route":"/api/v2/matters/:matterId","statusCode":404,"latencyMs":2,"timestamp":"2026-11-03T14:12:36.154Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-9","traceId":"54e1188b-25aa-4abe-9f4e-db795cb54bcf","tenantId":"unrelated","method":"GET","route":"/api/v2/matter-purge-operations/:operationId","statusCode":404,"latencyMs":3,"timestamp":"2026-11-03T14:12:36.176Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-a","traceId":"cd925b0b-1a9c-4776-aa77-549805f34557","tenantId":"case-owner","method":"GET","route":"/api/v2/matter-purge-operations/:operationId","statusCode":403,"latencyMs":0,"timestamp":"2026-11-03T14:12:36.177Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"24c356b9-00ac-4849-900e-b8d44547a695","method":"GET","route":"/readyz","statusCode":503,"latencyMs":1,"timestamp":"2026-11-03T14:12:37.466Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-4","traceId":"e9729c74-4851-401a-a78d-08f3473ae92e","method":"POST","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:12:37.553Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"160c6d75-77b4-4111-8ee3-b8d023081e4e","method":"GET","route":"/readyz","statusCode":503,"latencyMs":1,"timestamp":"2026-11-03T14:12:37.619Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"a71225cf-3d26-4a80-bbdb-c0af63070f81","method":"GET","route":"/api/v2/tribunals","statusCode":503,"latencyMs":0,"timestamp":"2026-11-03T14:12:37.620Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3","traceId":"1dcaf399-39e7-400a-967e-41f2004f3209","method":"GET","route":"/api/v2/tribunals","statusCode":401,"latencyMs":1,"timestamp":"2026-11-03T14:12:37.622Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-6","traceId":"02791cd4-b9c4-4982-8c27-4fed9f86efea","method":"GET","route":"/api/v2/mcp/connection-status","statusCode":403,"latencyMs":1,"timestamp":"2026-11-03T14:12:37.637Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-7","traceId":"43c79d3c-6c10-4021-a6b6-ecad8837a8cf","method":"GET","route":"/api/v2/mcp/connection-status","statusCode":401,"latencyMs":0,"timestamp":"2026-11-03T14:12:37.639Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"5079915d-d43e-4313-b7a2-ea69c098a592","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":503,"latencyMs":8,"timestamp":"2026-11-03T14:12:37.691Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-9","traceId":"2d283ced-dc73-453c-8c97-c9a87f9c6189","method":"GET","route":"/metrics/prometheus","statusCode":401,"latencyMs":0,"timestamp":"2026-11-03T14:12:37.702Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-a","traceId":"c1f8bc87-6ec3-4cb4-9cdd-70766dc30c07","method":"GET","route":"/metrics/prometheus","statusCode":401,"latencyMs":0,"timestamp":"2026-11-03T14:12:37.704Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"2c3de75f-71fb-4875-ba7f-d2ac8a4a5cd5","method":"POST","route":"/mcp","statusCode":401,"latencyMs":1,"timestamp":"2026-11-03T14:12:37.774Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-d","traceId":"010eef3a-3f3c-4e59-a3e8-d42df66b063e","method":"GET","route":"/api/v2/tribunals","statusCode":401,"latencyMs":1,"timestamp":"2026-11-03T14:12:37.779Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"fd8e19aa-7676-4daf-8d46-06f79faee6dd","method":"POST","route":"/mcp","statusCode":401,"latencyMs":2,"timestamp":"2026-11-03T14:12:37.806Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-e","traceId":"f8fe93da-bdc3-400d-9c10-db7b20230621","method":"GET","route":"/api/v2/tribunals","statusCode":403,"latencyMs":0,"timestamp":"2026-11-03T14:12:37.807Z"}
+{"level":"warn","message":"research.search.failed","code":"TOOL_TIMEOUT","durationMs":8,"requestId":"technical-failure-TOOL_TIMEOUT","timestamp":"2026-11-03T14:12:37.923Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-k","traceId":"a22951d9-920f-4c7d-a8ee-278ce12f6f6a","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":504,"latencyMs":9,"timestamp":"2026-11-03T14:12:37.923Z"}
+{"level":"warn","message":"research.search.failed","code":"57014","durationMs":6,"requestId":"technical-failure-57014","timestamp":"2026-11-03T14:12:37.967Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-n","traceId":"edd9584b-d04f-4145-92ab-673b9dc4289c","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":504,"latencyMs":7,"timestamp":"2026-11-03T14:12:37.968Z"}
+{"level":"warn","message":"research.search.failed","code":"","durationMs":5,"requestId":"technical-failure-wrapped-57014","timestamp":"2026-11-03T14:12:38.015Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-q","traceId":"ce80384e-0620-4f2a-9c8d-969bdbf9031f","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":504,"latencyMs":19,"timestamp":"2026-11-03T14:12:38.016Z"}
+{"level":"warn","message":"research.search.failed","code":"TOOL_EXECUTION_FAILED","durationMs":9,"requestId":"technical-failure-TOOL_EXECUTION_FAILED","timestamp":"2026-11-03T14:12:38.055Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-t","traceId":"e8483940-121b-4746-919d-c29e068160b3","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":503,"latencyMs":10,"timestamp":"2026-11-03T14:12:38.056Z"}
+{"level":"warn","message":"research.search.failed","code":"IDEMPOTENCY_CONFLICT","durationMs":4,"requestId":"technical-failure-IDEMPOTENCY_CONFLICT","timestamp":"2026-11-03T14:12:38.093Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-w","traceId":"a57f4f2e-bea1-4d53-a8b6-1f5e779ee644","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":409,"latencyMs":6,"timestamp":"2026-11-03T14:12:38.094Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-10","traceId":"c2eb41da-0be1-44b3-8e85-cabe127d79a0","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/get-authority","statusCode":504,"latencyMs":4,"timestamp":"2026-11-03T14:12:38.134Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-11","traceId":"29f574b6-544d-44d0-a4ff-af525904fade","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/verify-authority","statusCode":504,"latencyMs":3,"timestamp":"2026-11-03T14:12:38.138Z"}
+{"level":"warn","message":"research.search.failed","code":"IDEMPOTENCY_CONFLICT","durationMs":4,"requestId":"bound-search","timestamp":"2026-11-03T14:12:38.158Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-13","traceId":"4f52b14a-bcfb-4255-b636-1cd884a32d29","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":409,"latencyMs":4,"timestamp":"2026-11-03T14:12:38.159Z"}
+{"level":"warn","message":"research.search.failed","code":"IDEMPOTENCY_CONFLICT","durationMs":4,"requestId":"bound-search","timestamp":"2026-11-03T14:12:38.163Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-14","traceId":"a7143f63-4434-4f3a-98b0-bb532d00ed45","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":409,"latencyMs":4,"timestamp":"2026-11-03T14:12:38.163Z"}
+{"level":"warn","message":"research.search.failed","code":"IDEMPOTENCY_CONFLICT","durationMs":3,"requestId":"bound-search","timestamp":"2026-11-03T14:12:38.167Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-15","traceId":"10cf4704-1eee-4f01-a29b-58f52ba0cd80","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":409,"latencyMs":4,"timestamp":"2026-11-03T14:12:38.168Z"}
+{"level":"warn","message":"research.history.failed","tenantId":"tenant_test","requestId":"history-save-failure-recovery","timestamp":"2026-11-03T14:12:38.232Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1c","traceId":"585d1444-c6bd-4daf-9c3f-92e630e34a81","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":503,"latencyMs":12,"timestamp":"2026-11-03T14:12:38.232Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1h","traceId":"dfd5408f-af25-40d4-b0ea-d1571d1720ed","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:12:38.267Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1i","traceId":"921972b1-96dc-4093-a0c1-91f590902a65","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:12:38.268Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1j","traceId":"8c3054e9-2dff-4f09-bf10-49b1b47f3955","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:12:38.269Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1k","traceId":"0d75045d-ae76-42a8-b3f6-fa5e32a8758d","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:12:38.270Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1l","traceId":"fe914e45-3537-46a2-ada7-7316b62c59d5","tenantId":"tenant_test","method":"GET","route":"/api/v2/jurisprudencias","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:12:38.271Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1n","traceId":"13538553-9026-44f7-8f8d-376163a6ec11","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":422,"latencyMs":0,"timestamp":"2026-11-03T14:12:38.275Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1o","traceId":"3cd825b1-0c6e-4423-8f62-b0e039ebfd02","tenantId":"tenant_test","method":"GET","route":"/api/v2/jurisprudencias","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:12:38.279Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1p","traceId":"2a959942-95b5-454e-b2b2-e1110bfc8b88","tenantId":"tenant_test","method":"POST","route":"/api/v2/research/search-case-law","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:12:38.283Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1x","traceId":"33fe0181-2968-4f27-b5cd-a7c298beff86","method":"GET","route":"/api/v2/research/history","statusCode":403,"latencyMs":0,"timestamp":"2026-11-03T14:12:38.342Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-20","traceId":"587633da-06dd-4891-b15b-b2bc2be99960","method":"GET","route":"/api/v2/review-queue","statusCode":403,"latencyMs":1,"timestamp":"2026-11-03T14:12:38.347Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2a","traceId":"48452c1f-37bc-44a6-997c-5e59b10acd8e","tenantId":"tenant_b","method":"GET","route":"/api/v2/matters/:matterId/authorities","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:12:38.576Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-4","traceId":"776a7bfe-c8cd-4201-917d-e44deafb47b0","method":"GET","route":"/api/v2/api-keys","statusCode":401,"latencyMs":2,"timestamp":"2026-11-03T14:12:38.614Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2e","traceId":"e24ca6c3-1d0e-4bed-a8a2-31776e2c239e","tenantId":"tenant_b","method":"GET","route":"/api/v2/matters/:matterId","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:12:38.629Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-34","traceId":"08fe6dd6-ce10-4dbe-8f5f-687cd4140b99","tenantId":"tenant_b","method":"GET","route":"/api/v2/matters/:matterId/facts","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:12:38.954Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3a","traceId":"e64a8e99-8121-45da-b4a8-9d420ba4f314","tenantId":"tenant_b","method":"GET","route":"/api/v2/matters/:matterId/drafts/:draftId","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:12:39.075Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3j","traceId":"39bb34f4-e976-47cf-8f0e-c158bf8a4d9b","tenantId":"tenant_test","method":"POST","route":"/api/v2/matters/:matterId/research-memos","statusCode":409,"latencyMs":6,"timestamp":"2026-11-03T14:12:39.246Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3m","traceId":"969691b9-9d74-4214-8244-e02a00e6475e","tenantId":"tenant_b","method":"GET","route":"/api/v2/matters/:matterId/research-memos","statusCode":404,"latencyMs":2,"timestamp":"2026-11-03T14:12:39.271Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-43","traceId":"ca1e1406-6adb-4a83-8259-f1b706034186","tenantId":"tenant_b","method":"GET","route":"/api/v2/matters/:matterId/thesis-map","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:12:39.652Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-4c","traceId":"31538992-0675-4473-aa34-f09a3b01e0e4","method":"GET","route":"/mcp","statusCode":405,"latencyMs":1,"timestamp":"2026-11-03T14:12:39.704Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-e","traceId":"c1d30831-0741-4ef5-9bb0-b06708899ae4","tenantId":"collection-api","method":"POST","route":"/api/v2/research/saved","statusCode":409,"latencyMs":15,"timestamp":"2026-11-03T14:13:01.468Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-h","traceId":"be5ee917-12cd-4589-a7a0-c1df1633a370","tenantId":"collection-api","method":"GET","route":"/api/v2/research/saved/:id","statusCode":404,"latencyMs":10,"timestamp":"2026-11-03T14:13:01.508Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-i","traceId":"2e78cd5a-113a-410f-a0c5-db235e57ea04","tenantId":"collection-api","method":"POST","route":"/api/v2/research/saved","statusCode":403,"latencyMs":1,"timestamp":"2026-11-03T14:13:01.509Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-j","traceId":"70cf8330-2b63-4f2a-b471-525bda625ebf","tenantId":"collection-api","method":"POST","route":"/api/v2/research/saved","statusCode":400,"latencyMs":2,"timestamp":"2026-11-03T14:13:01.512Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-l","traceId":"81391ae1-f975-4be5-ba57-89c0c6b7ec34","tenantId":"collection-api","method":"PUT","route":"/api/v2/research/saved/permissions","statusCode":403,"latencyMs":1,"timestamp":"2026-11-03T14:13:01.523Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-t","traceId":"5f2867a1-3d7d-4c85-ad17-667f84034e50","method":"POST","route":"/mcp","statusCode":401,"latencyMs":1,"timestamp":"2026-11-03T14:13:01.623Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"07c64849-767d-47f3-b866-c698cdeca812","method":"GET","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:13:01.683Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"2ce7319a-1bac-4483-92ba-3050d644bf78","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":400,"latencyMs":30,"timestamp":"2026-11-03T14:13:07.069Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"6e7c32a8-c59f-4f0a-a9b3-c3ca0d5fb05e","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:13:07.101Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"8770ed47-a9c5-403e-8ed0-c5bf3af2da54","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":400,"latencyMs":2,"timestamp":"2026-11-03T14:13:07.129Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"3cf1ca15-b775-405c-8e1d-54fc2a48c516","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:13:07.160Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"aa916b02-ba5e-47c7-a22c-a399d76dd91f","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:13:07.180Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"d26fe8e1-fdb9-4578-a0c3-201a752fc080","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":400,"latencyMs":0,"timestamp":"2026-11-03T14:13:07.207Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"507900d4-8619-4e91-9ccf-3927afe622b5","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:13:07.208Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"11496445-b5d4-404c-b8e0-583c2f41b8ad","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":502,"latencyMs":16,"timestamp":"2026-11-03T14:13:07.287Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"62231bf6-a6e8-4940-bfa8-9a724271a774","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":502,"latencyMs":2,"timestamp":"2026-11-03T14:13:07.352Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"b15d0c32-9c6c-48c5-ab00-c2b536d3f9fc","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":502,"latencyMs":2,"timestamp":"2026-11-03T14:13:07.373Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"d18ba4ef-a6a4-40ac-9e65-ebd920337027","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":502,"latencyMs":3,"timestamp":"2026-11-03T14:13:07.395Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"26909763-4d05-4962-ad13-06dd733fb57b","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":502,"latencyMs":2,"timestamp":"2026-11-03T14:13:07.418Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"da8d81c1-4ea1-46e2-aa7d-52e88750301e","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":502,"latencyMs":2,"timestamp":"2026-11-03T14:13:07.441Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"192e2b02-2f56-43fc-a45b-91fe971ff03f","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":502,"latencyMs":1,"timestamp":"2026-11-03T14:13:07.462Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"935820b5-92ce-4fe2-a11d-756c02d57110","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":503,"latencyMs":19,"timestamp":"2026-11-03T14:13:07.500Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"ac481bef-f419-47c5-a960-212b28280fe8","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":503,"latencyMs":2,"timestamp":"2026-11-03T14:13:07.524Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"37ef70bc-bf7d-447b-a709-aee03a9ba27c","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":503,"latencyMs":17,"timestamp":"2026-11-03T14:13:07.587Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"742d2496-b89e-459b-bffe-b3092cf7d5c4","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":429,"latencyMs":2,"timestamp":"2026-11-03T14:13:07.640Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"83464035-bd0c-4447-8787-043cc0494d13","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":503,"latencyMs":1,"timestamp":"2026-11-03T14:13:07.666Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"5b47a66e-81fa-4fbe-b52a-fbcf2effa261","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":504,"latencyMs":1,"timestamp":"2026-11-03T14:13:07.688Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"a8ebc10b-6dad-455f-8e19-9d59ffa31c73","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":502,"latencyMs":2,"timestamp":"2026-11-03T14:13:07.735Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-b","traceId":"cd1c8a30-ba41-4784-ab73-b4cb1bc305e6","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":429,"latencyMs":1,"timestamp":"2026-11-03T14:13:07.769Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"abc2c50c-9bfd-44dc-a09b-733f0f29fd33","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":503,"latencyMs":1,"timestamp":"2026-11-03T14:13:07.801Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-b","traceId":"fa98f9a7-398b-4a1b-9f0b-6c8c14625416","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":429,"latencyMs":0,"timestamp":"2026-11-03T14:13:07.847Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-n","traceId":"d1669727-eeb8-4918-8278-706fedddcb05","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":429,"latencyMs":0,"timestamp":"2026-11-03T14:13:07.863Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-5","traceId":"0b3a4926-3361-453b-b6b1-db2aeccf623b","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":429,"latencyMs":1,"timestamp":"2026-11-03T14:13:07.939Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1p","traceId":"d12e7aa3-0f81-4e93-bf3d-0577f894e49b","method":"POST","route":"/api/v2/datajud/tjal/process","statusCode":429,"latencyMs":0,"timestamp":"2026-11-03T14:13:08.055Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-5","traceId":"84cfeb0c-859f-4546-a9cd-24f9d8a95db3","tenantId":"case-owner","method":"GET","route":"/api/v2/matters/:matterId/analyses/:analysisId","statusCode":403,"latencyMs":1,"timestamp":"2026-11-03T14:13:08.776Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-8","traceId":"d0e021b7-8869-4848-a886-5d37fd9a3058","tenantId":"case-owner","method":"POST","route":"/api/v2/matters/:matterId/analyses/:analysisId/decisions","statusCode":409,"latencyMs":10,"timestamp":"2026-11-03T14:13:08.822Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-5","traceId":"c0cc40d8-ea75-4f06-8437-98adab6c61bf","tenantId":"review-route","method":"POST","route":"/api/v2/matters/:matterId/drafts/:draftId/approval/:requestId/reissue","statusCode":403,"latencyMs":3,"timestamp":"2026-11-03T14:13:17.987Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-6","traceId":"79a76dd5-d134-49a5-8ad5-223abb4f028e","tenantId":"review-route","method":"POST","route":"/api/v2/matters/:matterId/drafts/:draftId/approval/:requestId/reissue","statusCode":403,"latencyMs":2,"timestamp":"2026-11-03T14:13:17.989Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-7","traceId":"0a858ea4-c21c-4ba7-bfa0-96d14094fede","method":"POST","route":"/api/v2/matters/:matterId/drafts/:draftId/approval/:requestId/reissue","statusCode":403,"latencyMs":1,"timestamp":"2026-11-03T14:13:17.991Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-8","traceId":"96cfa066-be24-494f-bd36-927fac78a0fe","tenantId":"other","method":"POST","route":"/api/v2/matters/:matterId/drafts/:draftId/approval/:requestId/reissue","statusCode":404,"latencyMs":2,"timestamp":"2026-11-03T14:13:17.993Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-a","traceId":"632c7a17-4f0a-4e0e-9c5d-ee31eddec26f","tenantId":"review-route","method":"POST","route":"/api/v2/draft-approvals/resolve","statusCode":400,"latencyMs":2,"timestamp":"2026-11-03T14:13:18.019Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3","traceId":"ec7e08c5-ff25-4eec-8232-8ef367c45419","method":"POST","route":"/api/v2/matters/:matterId/drafts/:draftId/review","statusCode":403,"latencyMs":0,"timestamp":"2026-11-03T14:13:18.082Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-4","traceId":"f1995c26-760e-4edc-a0fe-802f499b3d37","tenantId":"review-route","method":"POST","route":"/api/v2/matters/:matterId/drafts/:draftId/approval","statusCode":409,"latencyMs":14,"timestamp":"2026-11-03T14:13:18.097Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-7","traceId":"0736f78c-6ca3-4000-bd42-f2f958a7f1b4","tenantId":"other","method":"GET","route":"/api/v2/matters/:matterId/drafts/:draftId/review-runs","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:13:18.142Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-8","traceId":"24cbd390-103d-4039-bce2-6f226aa859e3","tenantId":"review-route","method":"POST","route":"/api/v2/matters/:matterId/drafts/:draftId/review","statusCode":400,"latencyMs":2,"timestamp":"2026-11-03T14:13:18.145Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-6","traceId":"53a7b3ad-891f-4e35-af0f-bfc1a2c2591c","tenantId":"review-route","method":"POST","route":"/api/v2/matters/:matterId/drafts/:draftId/approval","statusCode":409,"latencyMs":18,"timestamp":"2026-11-03T14:13:18.321Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"9adf1897-f99f-4bb5-97a0-d30226289cff","method":"POST","route":"/api/v2/research/search-case-law","statusCode":403,"latencyMs":10,"timestamp":"2026-11-03T14:13:20.070Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"eef52cb3-b67e-41ef-bb88-b1e191e400a2","tenantId":"tenant_billing_routes","method":"POST","route":"/api/v2/billing/checkout","statusCode":400,"latencyMs":2,"timestamp":"2026-11-03T14:13:20.595Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-6","traceId":"aa23e4f6-ac0f-4614-9b39-8e4717cdf6cd","tenantId":"tenant_billing_routes","method":"POST","route":"/api/v2/billing/refund-requests","statusCode":400,"latencyMs":1,"timestamp":"2026-11-03T14:13:20.664Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"af2df26f-c04e-49ca-9476-3af5630d21ed","method":"POST","route":"/api/v2/webhooks/mercadopago","statusCode":401,"latencyMs":1,"timestamp":"2026-11-03T14:13:20.832Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-1","traceId":"ba8174fa-6ec5-46f2-8249-faf33628ec3a","method":"POST","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:13:20.858Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3","traceId":"c3d8a3c7-ddaf-4eb4-a796-6bb1a17ab547","tenantId":"t","method":"PUT","route":"/api/v2/matters/:matterId/ai-access","statusCode":403,"latencyMs":3,"timestamp":"2026-11-03T14:13:34.998Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-5","traceId":"86b1bb3e-cdff-41cc-b4e4-6c90348c18f2","tenantId":"t","method":"PUT","route":"/api/v2/matters/:matterId/ai-access","statusCode":403,"latencyMs":6,"timestamp":"2026-11-03T14:13:35.044Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-7","traceId":"8f07f1d3-15a9-43cc-aa8c-a5e4de565902","tenantId":"t","method":"PUT","route":"/api/v2/matters/:matterId/ai-access","statusCode":409,"latencyMs":15,"timestamp":"2026-11-03T14:13:35.082Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-8","traceId":"4808b13f-3629-42ee-8148-665a0d207be3","tenantId":"t","method":"PUT","route":"/api/v2/matters/:matterId/ai-access","statusCode":503,"latencyMs":3,"timestamp":"2026-11-03T14:13:35.086Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3","traceId":"8ad0a3b4-ed83-4bc5-8232-22d3b3b94d6f","method":"POST","route":"/api/v2/account/closure","statusCode":404,"latencyMs":20,"timestamp":"2026-11-03T14:13:38.783Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"6333acea-6be1-41e5-9297-1cb5746faaf6","method":"POST","route":"/api/v2/account/closure","statusCode":401,"latencyMs":2,"timestamp":"2026-11-03T14:13:38.862Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3","traceId":"8f287cad-30cf-4932-985b-68ea8a9ada53","method":"POST","route":"/api/v2/account/closure","statusCode":401,"latencyMs":1,"timestamp":"2026-11-03T14:13:38.864Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-4","traceId":"10e10290-e77f-4ef3-9a52-ee53b4c2554f","method":"POST","route":"/api/v2/account/closure","statusCode":401,"latencyMs":2,"timestamp":"2026-11-03T14:13:38.867Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-5","traceId":"d8364a69-196d-49ce-95c4-1077cda71f10","method":"POST","route":"/api/v2/account/closure","statusCode":403,"latencyMs":2,"timestamp":"2026-11-03T14:13:38.870Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-6","traceId":"bbbd58a2-483e-4fbf-8b9e-d459db3754c0","method":"POST","route":"/api/v2/account/closure","statusCode":409,"latencyMs":4,"timestamp":"2026-11-03T14:13:38.876Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-7","traceId":"450bf640-7e85-4d59-bafc-6600913f3cc2","method":"POST","route":"/api/v2/account/closure","statusCode":409,"latencyMs":16,"timestamp":"2026-11-03T14:13:38.894Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-8","traceId":"5f91084b-5b30-4001-8ae7-58ea1e789671","method":"POST","route":"/api/v2/account/closure","statusCode":400,"latencyMs":3,"timestamp":"2026-11-03T14:13:38.898Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-9","traceId":"9be3589a-09be-497f-bf23-527f7f0b02f9","method":"POST","route":"/api/v2/account/closure","statusCode":409,"latencyMs":2,"timestamp":"2026-11-03T14:13:38.901Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"0e103c27-fdc7-40c7-a331-ba68249952a2","method":"POST","route":"/api/v2/account/closure","statusCode":409,"latencyMs":7,"timestamp":"2026-11-03T14:13:38.968Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"45320758-1eb6-41c3-a38f-cb5b52eb34e6","method":"POST","route":"/api/v2/account/closure","statusCode":409,"latencyMs":2,"timestamp":"2026-11-03T14:13:39.018Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-2","traceId":"7b78eccf-9252-4bab-882d-451f42051f6c","method":"POST","route":"/api/v2/account/closure","statusCode":409,"latencyMs":6,"timestamp":"2026-11-03T14:13:39.080Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-3","traceId":"104acc5c-96aa-44e6-8a01-25f11b28750c","method":"POST","route":"/api/v2/auth/bootstrap","statusCode":403,"latencyMs":2,"timestamp":"2026-11-03T14:13:39.157Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-5","traceId":"00bd6db4-be66-457b-8de8-4693057ad3dc","method":"GET","route":"/api/v2/auth/me","statusCode":401,"latencyMs":1,"timestamp":"2026-11-03T14:13:39.164Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-6","traceId":"85bc5ab7-6232-4e66-a9d8-b7ee6430a0f8","method":"GET","route":"/api/v2/matters","statusCode":401,"latencyMs":1,"timestamp":"2026-11-03T14:13:39.165Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-7","traceId":"d703ad0b-8950-4af6-82cb-1d711eefbaf2","method":"POST","route":"/api/v2/account/closure","statusCode":409,"latencyMs":4,"timestamp":"2026-11-03T14:13:39.169Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-9","traceId":"77a63883-fcc0-41fa-9d11-382f8af413a6","method":"GET","route":"/api/v2/account/closure/:closureId","statusCode":401,"latencyMs":0,"timestamp":"2026-11-03T14:13:39.172Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-a","traceId":"0f1f8d2c-8060-4334-bbc0-55be0ba14282","method":"DELETE","statusCode":404,"latencyMs":1,"timestamp":"2026-11-03T14:13:39.174Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-6","traceId":"24527e90-9e3d-4762-a314-7bb2a4ba1409","tenantId":"draft-wire-1793715224181","method":"GET","route":"/api/v2/matters/:matterId/drafts/:draftId/ai-receipts","statusCode":403,"latencyMs":1,"timestamp":"2026-11-03T14:13:44.865Z"}
+{"level":"warn","message":"http.request.completed","requestId":"req-4","traceId":"8a280447-c51b-49c8-8c50-4b0efbc45ba9","method":"DELETE","statusCode":404,"latencyMs":2,"timestamp":"2026-11-03T14:13:55.671Z"}
+{"level":"error","message":"account_closure.journal.pending","closureId":"3559a745-8d49-48b6-9d57-dd2f865ffe39","timestamp":"2026-11-03T14:16:12.164Z"}
+{"level":"error","message":"account_closure.journal.unresolved","closureId":"9f5db042-ce55-4dc1-87e7-f06debba3f0e","timestamp":"2026-11-03T14:16:12.173Z"}
+
+ Test Files  234 passed | 3 skipped (237)
+      Tests  1699 passed | 17 skipped (1716)
+   Start at  11:09:54
+   Duration  461.83s (transform 16.99s, setup 0ms, import 457.03s, tests 302.66s, environment 62ms)
+

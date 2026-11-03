@@ -10,3 +10,6 @@ export * from './contracts/legal-workflow.js';
 export * from './runtime/legal-contract-workflow.js';
 export * from './agentic-case-task/case-task.js';
 export { EVIDENCE_TASK_ACTION } from '@forgelex/legal-agents';
+export * from './final-editor/final-editor-service.js';
+export * from './final-editor/final-editor-generator.js';
+export * from './final-editor/editorial-review-service.js';

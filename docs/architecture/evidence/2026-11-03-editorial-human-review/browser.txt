@@ -1,0 +1,22 @@
+[WebServer] (node:24700) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:3260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite "--host" "127.0.0.1" "--port" "3300" "--strictPort"
+[WebServer] (node:19828) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 7 tests using 1 worker
+
+(node:308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 [chromium] › tests\e2e\editorial-review.spec.ts:69:5 › revisão editorial persiste decisão, preserva minuta, permite recarga e funciona em tela móvel (13.8s)
+[WebServer] {"level":"warn","message":"http.request.completed","requestId":"req-5j","traceId":"bbfbbd24-c944-4093-8d00-c7ac06c9b442","tenantId":"tenant_4ef1d46c94f6ad6332789e54ab2ee9ac","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/preview","statusCode":400,"latencyMs":15,"timestamp":"2026-11-03T18:46:46.582Z"}
+  ok 2 [chromium] › tests\e2e\editorial-review.spec.ts:111:5 › revisão editorial conserva comando após resposta perdida e bloqueia proposta inválida (6.9s)
+  ok 3 [chromium] › tests\e2e\editorial-review.spec.ts:141:5 › revisão editorial recusa JSON nulo e bloqueia decisão obsoleta até atualizar (3.9s)
+  ok 4 [chromium] › tests\e2e\editorial-review.spec.ts:164:5 › revisão editorial permite fechar consulta pendente e ignora resposta tardia (3.6s)
+  ok 5 [chromium] › tests\e2e\editorial-review.spec.ts:193:5 › revisão editorial trata IDs herdados como dados e reconcilia conflito após resposta perdida (4.7s)
+  ok 6 [chromium] › tests\e2e\editorial-review.spec.ts:228:5 › revisão editorial recupera conflito sem registro após resposta perdida (4.0s)
+  ok 7 [chromium] › tests\e2e\editorial-review.spec.ts:250:5 › histórico editorial permanece na mesa depois de edição humana da minuta (5.7s)
+
+  7 passed (58.7s)
