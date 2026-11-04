@@ -66,6 +66,146 @@ const upload = (page: Page, proposal: unknown) =>
     buffer: Buffer.from(JSON.stringify(proposal)),
   });
 
+test('entrega revisada separa correções e lacunas sem expor IDs ou auditoria técnica na mesa', async ({ page }) => {
+  const f = await setup(page);
+  const sourceId = 'source-internal-v9';
+  await page.route(f.path, (route) =>
+    route.fulfill({
+      json: {
+        ...f.delivery,
+        delivery: {
+          ...f.delivery.delivery,
+          action: 'review_text',
+          document: undefined,
+          issues: [{ id: 'issue-private', statement: 'O documento identifica o crédito?', sourceIds: [sourceId] }],
+          claims: [
+            {
+              id: 'claim-private',
+              classification: 'DOCUMENT_RECORD',
+              statement: 'Pagamento: não informado.',
+              sourceIds: [sourceId],
+            },
+          ],
+          requirements: [
+            {
+              id: 'requirement-private',
+              kind: 'EDITORIAL',
+              statement: 'Retirar afirmação de quitação.',
+              verified: false,
+              sourceIds: [sourceId],
+            },
+          ],
+          findings: [],
+          sources: [{ id: sourceId, kind: 'DOCUMENT' }],
+          review: {
+            version: 1,
+            questions: [
+              {
+                prompt: 'Qual é a pretensão material?',
+                reason: 'A finalidade não foi informada.',
+                sourceIds: [sourceId],
+              },
+            ],
+            documentAssessments: [
+              {
+                sourceId,
+                aspects: [{ aspect: 'PARTIES', status: 'NOT_PROVIDED' }],
+                conclusion: 'Não basta para vincular crédito a devedor identificado.',
+              },
+            ],
+            integrityAlerts: [
+              {
+                kind: 'EMBEDDED_INSTRUCTION',
+                statement: 'Conferir a origem do documento e do rascunho.',
+                sourceIds: [sourceId],
+              },
+            ],
+            technicalFindings: [{ statement: 'TECHNICAL_PRIVATE' }],
+          },
+        },
+      },
+    }),
+  );
+  await page.reload();
+  const article = page.getByRole('article', { name: 'Resultado do trabalho' });
+  for (const text of [
+    'Questões',
+    'Registro documental',
+    'Correções propostas',
+    'Perguntas e lacunas',
+    'Aptidão dos documentos',
+    'Integridade dos documentos',
+  ])
+    await expect(article).toContainText(text);
+  await expect(article).not.toContainText(/claim-private|source-internal-v9|TECHNICAL_PRIVATE/);
+  await expect(article.locator('p').filter({ hasText: 'Retirar afirmação de quitação.' })).toHaveCount(1);
+  await page.setViewportSize({ width: 320, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  expect((await new AxeBuilder({ page }).include('main').analyze()).violations).toEqual([]);
+});
+
+test('geração exige confirmação de custo e apenas apresenta proposta para revisão', async ({ page }) => {
+  const f = await setup(page);
+  let calls = 0;
+  await page.route('**/editorial-proposals/generation?*', (route) =>
+    route.fulfill({
+      json: {
+        enabled: true,
+        mode: 'REAL',
+        maxCostUsd: 0.25,
+      },
+    }),
+  );
+  await page.route('**/editorial-proposals/generate', (route) => {
+    calls++;
+    expect(route.request().postDataJSON()).toEqual({ ...f.target, confirmed: true });
+    return route.fulfill({ json: { mode: 'REAL', profileVersion: '1.0.0', proposal: f.proposal } });
+  });
+  await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Revisão editorial' });
+  const generate = dialog.getByRole('button', { name: 'Gerar proposta editorial', exact: true });
+  await expect(generate).toBeDisabled();
+  expect(calls).toBe(0);
+  await dialog.getByRole('checkbox', { name: /Autorizo gerar uma proposta/ }).check();
+  await generate.click();
+  await expect(dialog.getByRole('combobox', { name: 'Decisão 1', exact: true })).toBeVisible();
+  expect(calls).toBe(1);
+  const review = await (
+    await page.request.get(`${f.path}/editorial-review?${new URLSearchParams(f.target)}`, { headers })
+  ).json();
+  expect(review.history).toEqual([]);
+  expect(review.application).toBeUndefined();
+  await expect(generate).toBeDisabled();
+  expect((await new AxeBuilder({ page }).include('dialog').analyze()).violations).toEqual([]);
+});
+
+test('resposta perdida na geração não dispara repetição ao reabrir o diálogo', async ({ page }) => {
+  await setup(page);
+  let calls = 0;
+  await page.route('**/editorial-proposals/generation?*', (route) =>
+    route.fulfill({
+      json: {
+        enabled: true,
+        mode: 'REAL',
+        maxCostUsd: 0.25,
+      },
+    }),
+  );
+  await page.route('**/editorial-proposals/generate', (route) => {
+    calls++;
+    return route.abort();
+  });
+  await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Revisão editorial' });
+  await dialog.getByRole('checkbox', { name: /Autorizo gerar uma proposta/ }).check();
+  await dialog.getByRole('button', { name: 'Gerar proposta editorial', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toContainText('registro financeiro');
+  await dialog.getByRole('button', { name: 'Fechar', exact: true }).click();
+  await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Gerar proposta editorial', exact: true })).toBeDisabled();
+  expect(calls).toBe(1);
+});
+
 async function acceptForApplication(page: Page) {
   const f = await setup(page);
   await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();

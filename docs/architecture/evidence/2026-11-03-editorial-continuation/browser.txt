@@ -1,0 +1,26 @@
+[WebServer] (node:28224) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:18736) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite "--host" "127.0.0.1" "--port" "3300" "--strictPort"
+[WebServer] (node:20760) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 1 worker
+
+(node:26412) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [chromium] › tests\e2e\editorial-review.spec.ts:69:5 › geração exige confirmação de custo e apenas apresenta proposta para revisão (22.6s)
+  ok  2 [chromium] › tests\e2e\editorial-review.spec.ts:104:5 › resposta perdida na geração não dispara repetição ao reabrir o diálogo (6.0s)
+  ok  3 [chromium] › tests\e2e\editorial-review.spec.ts:143:5 › aplicação editorial exige seleção e confirmação e abre nova versão preservando original (12.3s)
+  ok  4 [chromium] › tests\e2e\editorial-review.spec.ts:182:5 › aplicação editorial recupera resposta perdida sem duplicar versão (13.4s)
+  ok  5 [chromium] › tests\e2e\editorial-review.spec.ts:206:5 › revisão editorial persiste decisão, preserva minuta, permite recarga e funciona em tela móvel (9.7s)
+[WebServer] {"level":"warn","message":"http.request.completed","requestId":"req-ge","traceId":"991304e8-c609-4590-9e23-7755bc5d0bf4","tenantId":"tenant_345a320d4d99eb5b7230c844be9a257b","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/preview","statusCode":400,"latencyMs":17,"timestamp":"2026-11-03T21:23:56.036Z"}
+  ok  6 [chromium] › tests\e2e\editorial-review.spec.ts:248:5 › revisão editorial conserva comando após resposta perdida e bloqueia proposta inválida (5.0s)
+  ok  7 [chromium] › tests\e2e\editorial-review.spec.ts:278:5 › revisão editorial recusa JSON nulo e bloqueia decisão obsoleta até atualizar (5.0s)
+  ok  8 [chromium] › tests\e2e\editorial-review.spec.ts:301:5 › revisão editorial permite fechar consulta pendente e ignora resposta tardia (3.9s)
+  ok  9 [chromium] › tests\e2e\editorial-review.spec.ts:330:5 › revisão editorial trata IDs herdados como dados e reconcilia conflito após resposta perdida (4.6s)
+  ok 10 [chromium] › tests\e2e\editorial-review.spec.ts:365:5 › revisão editorial recupera conflito sem registro após resposta perdida (4.9s)
+  ok 11 [chromium] › tests\e2e\editorial-review.spec.ts:387:5 › histórico editorial permanece na mesa depois de edição humana da minuta (4.4s)
+
+  11 passed (2.3m)

@@ -1,0 +1,98 @@
+Evaluating D01-analyze-baseline (fake); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:45:10
+   Duration  5.90s (transform 2.17s, setup 0ms, import 5.11s, tests 139ms, environment 0ms)
+
+Evaluating D01-analyze-candidate (fake); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:45:17
+   Duration  6.18s (transform 2.47s, setup 0ms, import 5.61s, tests 149ms, environment 0ms)
+
+Evaluating D03-review-baseline (fake); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:45:24
+   Duration  5.89s (transform 2.01s, setup 0ms, import 5.26s, tests 175ms, environment 0ms)
+
+Evaluating D03-review-candidate (fake); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:45:31
+   Duration  6.02s (transform 2.40s, setup 0ms, import 5.43s, tests 173ms, environment 0ms)
+
+Evaluating D04-create-baseline (fake); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:45:38
+   Duration  5.88s (transform 2.27s, setup 0ms, import 5.27s, tests 180ms, environment 0ms)
+
+Evaluating D04-create-candidate (fake); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:45:45
+   Duration  6.55s (transform 2.48s, setup 0ms, import 5.90s, tests 233ms, environment 0ms)
+
+{
+  "campaign": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\.superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE",
+  "paidModelCalls": 0,
+  "measuredMicroUsd": null,
+  "results": [
+    {
+      "id": "D01-analyze-baseline",
+      "outcome": "completed",
+      "stateVersion": 1
+    },
+    {
+      "id": "D01-analyze-candidate",
+      "outcome": "completed",
+      "stateVersion": 8
+    },
+    {
+      "id": "D03-review-baseline",
+      "outcome": "completed",
+      "stateVersion": 1
+    },
+    {
+      "id": "D03-review-candidate",
+      "outcome": "completed",
+      "stateVersion": 8
+    },
+    {
+      "id": "D04-create-baseline",
+      "outcome": "completed",
+      "stateVersion": 1
+    },
+    {
+      "id": "D04-create-candidate",
+      "outcome": "completed",
+      "stateVersion": 8
+    }
+  ]
+}
+

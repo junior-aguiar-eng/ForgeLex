@@ -17,9 +17,30 @@ import { createEvidenceFixture } from '../../../../packages/persistence/src/test
 import { ApprovedCaseContextRepository } from '../../../../packages/persistence/src/repositories/approved-case-context-repository.js';
 import { FinalEditorService, type FinalEditorGenerationOptions } from '@forgelex/legal-workflows';
 import { FakeAgentProvider } from '@forgelex/agent-core';
+import postgres from 'postgres';
 
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const cleanup: (() => Promise<void>)[] = [];
+
+// Only the disposable Docker runner sets this URL; never use DATABASE_URL.
+async function editorialDatabase() {
+  const value = process.env.FORGELEX_EDITORIAL_TEST_ADMIN_URL;
+  if (!value) return createDatabase({ url: 'file::memory:' });
+  const url = new URL(value);
+  if (url.protocol !== 'postgres:' || url.hostname !== '127.0.0.1' || url.pathname !== '/editorial_test')
+    throw new Error('EDITORIAL_TEST_DATABASE_NOT_DISPOSABLE');
+  const name = `editorial_${randomUUID().replaceAll('-', '')}`;
+  const admin = postgres(value, { max: 1, onnotice: () => {} });
+  await admin.unsafe(`CREATE DATABASE "${name}"`);
+  url.pathname = `/${name}`;
+  const connection = await createDatabase({ url: url.toString() });
+  cleanup.push(async () => {
+    connection.client.close();
+    await admin.unsafe(`DROP DATABASE "${name}" WITH (FORCE)`);
+    await admin.end();
+  });
+  return connection;
+}
 
 it.each(['length', 'trim'])('aplicação humana recusa resultado fora do contrato %s', async (boundary) => {
   const f = await applicationFixture(
@@ -268,6 +289,66 @@ it.each([true, false])('aplicação humana serializa concorrência com comando i
   expect(await new DraftRepository(f.db).listVersions(f.owner.tenantId, f.matter.id, f.target.draftId)).toHaveLength(2);
 });
 
+it('aplicação humana disputa simultaneamente com edição manual sem perder versão', async () => {
+  const f = await applicationFixture();
+  const repo = new DraftRepository(f.db);
+  const [application, manual] = await Promise.allSettled([
+    f.post('applications', f.command),
+    repo.createVersion({
+      tenantId: f.owner.tenantId,
+      matterId: f.matter.id,
+      draftId: f.target.draftId,
+      title: 'Minuta',
+      createdBy: f.owner.userId,
+      source: 'HUMAN',
+      contentHash: hash('Edição humana'),
+      sections: [{ ordinal: 1, title: 'Pedido', content: 'Edição humana' }],
+      baseVersionId: f.target.versionId,
+      expectedCurrentVersionId: f.target.versionId,
+    }),
+  ]);
+  expect(application.status).toBe('fulfilled');
+  if (application.status !== 'fulfilled') throw application.reason;
+  const applied = application.value.statusCode === 200;
+  expect(application.value.statusCode).toBe(applied ? 200 : 409);
+  expect(manual.status).toBe(applied ? 'rejected' : 'fulfilled');
+  if (manual.status === 'rejected') expect(String(manual.reason)).toContain('DRAFT_VERSION_CONFLICT');
+  const versions = await repo.listVersions(f.owner.tenantId, f.matter.id, f.target.draftId);
+  expect(versions).toHaveLength(2);
+  const current = await repo.getCurrentVersion(f.owner.tenantId, f.matter.id, f.target.draftId);
+  expect(current?.sections[0].content).toBe(applied ? 'O pedido está condicionado. 😀' : 'Edição humana');
+  const [row] = (await f.client.execute('SELECT editorial_review_json FROM agentic_task_deliveries')).rows;
+  const record = JSON.parse(String(row.editorial_review_json));
+  expect(record.history).toHaveLength(1);
+  expect(Boolean(record.application)).toBe(applied);
+  if (applied) expect(record.application.versionId).toBe(current?.version.id);
+  expect(f.provider).not.toHaveBeenCalled();
+});
+
+it('aplicação humana disputa simultaneamente com rejeição mantendo a decisão vencedora', async () => {
+  const f = await applicationFixture();
+  const [application, decision] = await Promise.all([
+    f.post('applications', f.command),
+    f.post('decisions', {
+      ...f.decision,
+      commandId: randomUUID(),
+      expectedRevision: 1,
+      decision: { ...f.decision.decision, action: 'REJECT' },
+    }),
+  ]);
+  expect([application.statusCode, decision.statusCode].sort()).toEqual([200, 409]);
+  const applied = application.statusCode === 200;
+  const [row] = (await f.client.execute('SELECT editorial_review_json FROM agentic_task_deliveries')).rows;
+  const record = JSON.parse(String(row.editorial_review_json));
+  expect(record.revision).toBe(applied ? 1 : 2);
+  expect(record.history.at(-1).decision.action).toBe(applied ? 'ACCEPT' : 'REJECT');
+  expect(Boolean(record.application)).toBe(applied);
+  expect(await new DraftRepository(f.db).listVersions(f.owner.tenantId, f.matter.id, f.target.draftId)).toHaveLength(
+    applied ? 2 : 1,
+  );
+  expect(f.provider).not.toHaveBeenCalled();
+});
+
 it('aplicação humana respeita subset, offsets e Unicode sem aplicar sugestão substantiva', async () => {
   const f = await applicationFixture();
   const first = f.proposal.changes[0];
@@ -429,7 +510,7 @@ function simulatedGeneration(afterLoad = () => {}) {
   return { createProvider };
 }
 afterEach(async () => {
-  for (const close of cleanup.splice(0)) await close();
+  for (const close of cleanup.splice(0).reverse()) await close();
 });
 it('geração simulada conecta minuta autorizada, sem alterações ou execução v8', async () => {
   const generation = simulatedGeneration(),
@@ -442,6 +523,26 @@ it('geração simulada conecta minuta autorizada, sem alterações ou execução
   expect(generation.createProvider).toHaveBeenCalledTimes(1);
   expect(f.provider).not.toHaveBeenCalled();
   expect(await f.snapshot()).toEqual(before);
+});
+
+it('informa disponibilidade somente após autorizar contexto e exige confirmação para geração real', async () => {
+  const disabled = await fixture();
+  const availability = (f: Awaited<ReturnType<typeof fixture>>) =>
+    f.app.inject({
+      method: 'GET',
+      url: `${f.path}/editorial-proposals/generation?${new URLSearchParams(f.target)}`,
+      headers: { authorization: 'Bearer owner' },
+    });
+  expect((await availability(disabled)).json()).toMatchObject({ enabled: false });
+  const generation = { ...simulatedGeneration(), authorizeRealProvider: vi.fn(async () => {}) };
+  const f = await fixture(undefined, generation);
+  expect((await availability(f)).json()).toEqual({ enabled: true, mode: 'REAL', maxCostUsd: 0.25 });
+  expect((await f.generate()).statusCode).toBe(409);
+  expect((await f.generate({ ...f.target, confirmed: true }, 'readOnly')).statusCode).toBe(403);
+  expect(generation.createProvider).not.toHaveBeenCalled();
+  expect((await f.generate({ ...f.target, confirmed: true })).statusCode).toBe(200);
+  f.revoke();
+  expect((await availability(f)).statusCode).toBe(403);
 });
 it('geração fica desabilitada sem factory e não aceita contexto/provider do cliente', async () => {
   const f = await fixture();
@@ -508,7 +609,7 @@ async function fixture(
   generation?: FinalEditorGenerationOptions,
   documentContent = 'O pedido esta condicionado. 😀',
 ) {
-  const c = await createDatabase({ url: 'file::memory:' });
+  const c = await editorialDatabase();
   await runPersistenceMigrations(c.client);
   const owner = { tenantId: 'editorial', userId: 'boni' };
   const matter = await new MatterRepository(c.db).createMatter({

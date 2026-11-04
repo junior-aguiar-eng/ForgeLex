@@ -1,0 +1,42 @@
+✔ real execution requires a named campaign, explicit cap and credential; offline remains the default (8.914ms)
+✔ rejects ambiguous arguments, path traversal and approval in offline mode (0.7777ms)
+✖ pins a new reviewed HEAD explicitly without weakening the default baseline guard (1.5819ms)
+✔ freezes a separate campaign packet and refuses replacing it with changed inputs (138.6295ms)
+✔ real mode cannot create an unprepared campaign or repair an incomplete one (82.135ms)
+file:///C:/Users/Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/scripts/forgelex-final-evaluation/prepare.test.mjs:7
+import { buildRunPlan, validateCorpus, assertPreparationHead, baseline } from './prepare.mjs';
+                                       ^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: The requested module './prepare.mjs' does not provide an export named 'assertPreparationHead'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:327:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:431:5)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.19.0
+✖ scripts\forgelex-final-evaluation\prepare.test.mjs (330.2676ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 4
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 686.3209
+
+✖ failing tests:
+
+test at scripts\forgelex-final-evaluation\campaign.test.mjs:49:1
+✖ pins a new reviewed HEAD explicitly without weakening the default baseline guard (1.5819ms)
+  Error: Unknown or duplicate option
+      at parseCalibrationArgs (file:///C:/Users/Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/scripts/forgelex-final-evaluation/campaign.mjs:16:18)
+      at TestContext.<anonymous> (file:///C:/Users/Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/scripts/forgelex-final-evaluation/campaign.test.mjs:51:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at scripts\forgelex-final-evaluation\prepare.test.mjs:1:1
+✖ scripts\forgelex-final-evaluation\prepare.test.mjs (330.2676ms)
+  'test failed'

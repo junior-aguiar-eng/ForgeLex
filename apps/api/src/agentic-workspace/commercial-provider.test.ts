@@ -1,8 +1,10 @@
 import { expect, it, vi } from 'vitest';
 import { createCommercialOpenAIRuntime } from './commercial-provider.js';
+import { safeAgentFailure } from '@forgelex/agent-core';
 
 const owner = { tenantId: 'commercial', userId: 'boni' };
 function fixture() {
+  const recordCall = vi.fn(async (_event: any) => {});
   const finance = {
     authorizeCall: vi.fn(async () => ({ shouldExecute: true })),
     settleCall: vi.fn(async () => ({ status: 'SETTLED' })),
@@ -33,14 +35,36 @@ function fixture() {
   );
   const runtime = createCommercialOpenAIRuntime({
     apiKey: 'synthetic-key',
+    recordCall,
     finance: finance as any,
     assertContext,
     transport,
   });
-  return { finance, assertContext, transport, runtime };
+  return { finance, assertContext, transport, runtime, recordCall };
 }
 const body = { model: 'gpt-6.1-sol', stream: true, input: 'synthetic', tools: [] };
 const request = (input: unknown = body) => ({ method: 'POST', body: JSON.stringify(input) });
+it('records safe HTTP diagnostics while retaining uncertain cost and refusing implicit retries', async () => {
+  const f = fixture();
+  f.transport.mockResolvedValueOnce(
+    new Response('private provider response', { status: 503, headers: { 'x-request-id': 'req_synthetic503' } }),
+  );
+  let caught: unknown;
+  try {
+    await f.runtime.fetchFor('execution')('https://api.openai.com/v1/responses', request());
+  } catch (error) {
+    caught = error;
+  }
+  expect(safeAgentFailure(caught)).toMatchObject({
+    failureClass: 'TRANSIENT_TRANSPORT',
+    httpStatus: 503,
+    requestId: 'req_synthetic503',
+  });
+  expect(f.finance.markUncertain).toHaveBeenCalledOnce();
+  expect(f.finance.settleCall).not.toHaveBeenCalled();
+  expect(f.transport).toHaveBeenCalledOnce();
+  expect(JSON.stringify(safeAgentFailure(caught))).not.toContain('private');
+});
 it('revalidates context and reserves a durable call before sending; settles exact wire usage', async () => {
   const f = fixture();
   await f.runtime.fetchFor('execution')('https://api.openai.com/v1/responses', request());
@@ -116,4 +140,136 @@ it('cancellation during source revalidation prevents a new HTTP request', async 
   ).rejects.toThrow('SESSION_CANCELLED');
   expect(f.transport).not.toHaveBeenCalled();
   expect(f.finance.markNotDispatched).toHaveBeenCalledOnce();
+});
+
+it('correlates durable reservation, HTTP and settlement without logging prompts or credentials', async () => {
+  const f = fixture();
+  await f.runtime.fetchFor('execution')('https://api.openai.com/v1/responses', {
+    ...request(),
+    headers: { authorization: 'Bearer private-key', 'X-Client-Request-Id': 'untrusted' },
+  });
+  const headers = new Headers(f.transport.mock.calls[0]?.[1]?.headers);
+  const callId = (f.finance.authorizeCall.mock.calls as any)[0][2].callId;
+  expect(headers.get('X-Client-Request-Id')).toBe(callId);
+  expect(headers.get('authorization')).toBe('Bearer private-key');
+  expect(f.recordCall.mock.calls.map(([e]) => e.phase)).toEqual(['RESERVED', 'RESPONSE', 'USAGE', 'SETTLED']);
+  expect(f.recordCall.mock.invocationCallOrder[0]).toBeLessThan(f.transport.mock.invocationCallOrder[0]!);
+  expect(JSON.stringify(f.recordCall.mock.calls)).not.toMatch(/private-key|synthetic-key|"input"/);
+});
+it('preserves request ID and read stage when a successful HTTP stream breaks', async () => {
+  const f = fixture();
+  f.transport.mockResolvedValueOnce(
+    new Response(
+      new ReadableStream({
+        pull(controller) {
+          controller.error(Object.assign(new Error('private stream'), { code: 'ECONNRESET' }));
+        },
+      }),
+      { headers: { 'x-request-id': 'req_stream' } },
+    ),
+  );
+  let caught;
+  try {
+    await f.runtime.fetchFor('execution')('https://api.openai.com/v1/responses', request());
+  } catch (e) {
+    caught = e;
+  }
+  expect(safeAgentFailure(caught)).toMatchObject({
+    requestId: 'req_stream',
+    httpStatus: 200,
+    failureStage: 'READ_RESPONSE',
+    failureClass: 'TRANSIENT_TRANSPORT',
+  });
+  expect(f.recordCall.mock.calls.at(-1)![0]).toMatchObject({ phase: 'FAILED', costState: 'UNCERTAIN' });
+  expect(f.finance.markUncertain).toHaveBeenCalledOnce();
+  expect(f.transport).toHaveBeenCalledOnce();
+});
+it('refuses dispatch when the reservation diagnostic cannot be persisted', async () => {
+  const f = fixture();
+  f.recordCall.mockRejectedValueOnce(new Error('disk unavailable'));
+  await expect(f.runtime.fetchFor('execution')('https://api.openai.com/v1/responses', request())).rejects.toThrow();
+  expect(f.transport).not.toHaveBeenCalled();
+  expect(f.finance.markNotDispatched).toHaveBeenCalledOnce();
+});
+it('retains measured usage before a settlement failure without inventing a settled cost', async () => {
+  const f = fixture();
+  f.finance.settleCall.mockRejectedValueOnce(new Error('database unavailable'));
+  await expect(f.runtime.fetchFor('execution')('https://api.openai.com/v1/responses', request())).rejects.toThrow();
+  expect(f.recordCall.mock.calls.map(([e]) => e.phase)).toEqual(['RESERVED', 'RESPONSE', 'USAGE', 'FAILED']);
+  expect(f.recordCall.mock.calls[2]![0]).toMatchObject({ usage: { inputTokens: 100, outputTokens: 10 } });
+  expect(f.recordCall.mock.calls.at(-1)![0]).toMatchObject({
+    diagnostic: { failureStage: 'SETTLE_USAGE' },
+    costState: 'UNCERTAIN',
+  });
+});
+
+it('does not settle unpriced cache writes merely because token counts are present', async () => {
+  const f = fixture();
+  f.transport.mockResolvedValueOnce(
+    new Response(
+      'data: ' +
+        JSON.stringify({
+          type: 'response.completed',
+          response: {
+            model: 'gpt-6.1-sol',
+            usage: {
+              input_tokens: 100,
+              output_tokens: 10,
+              input_tokens_details: { cached_tokens: 0, cache_write_tokens_details: { ephemeral: 20 } },
+            },
+          },
+        }) +
+        '\n\n',
+    ),
+  );
+  await expect(f.runtime.fetchFor('execution')('https://api.openai.com/v1/responses', request())).rejects.toThrow();
+  expect(f.finance.settleCall).not.toHaveBeenCalled();
+  expect(f.finance.markUncertain).toHaveBeenCalledOnce();
+});
+it('preserves transport diagnosis even when persisting uncertainty also fails', async () => {
+  const f = fixture();
+  f.transport.mockRejectedValueOnce(Object.assign(new Error('private connection'), { code: 'ECONNRESET' }));
+  f.finance.markUncertain.mockRejectedValueOnce(new Error('private database'));
+  let caught;
+  try {
+    await f.runtime.fetchFor('execution')('https://api.openai.com/v1/responses', request());
+  } catch (e) {
+    caught = e;
+  }
+  expect(safeAgentFailure(caught)).toMatchObject({ transportCode: 'ECONNRESET', failureStage: 'DISPATCH' });
+  expect(f.recordCall.mock.calls.at(-1)![0]).toMatchObject({ accountingUpdateFailed: true, costState: 'UNCERTAIN' });
+  expect(JSON.stringify(f.recordCall.mock.calls)).not.toContain('private');
+});
+it('does not mark already settled usage uncertain when the final trace write fails', async () => {
+  const f = fixture();
+  f.recordCall.mockImplementation(async (event) => {
+    if (event.phase === 'SETTLED') throw new Error('disk');
+  });
+  await expect(f.runtime.fetchFor('execution')('https://api.openai.com/v1/responses', request())).rejects.toThrow();
+  expect(f.finance.settleCall).toHaveBeenCalledOnce();
+  expect(f.finance.markUncertain).not.toHaveBeenCalled();
+  expect(f.recordCall.mock.calls.at(-1)![0]).toMatchObject({ costState: 'SETTLED' });
+});
+
+it('retains HTTP correlation on malformed successful responses and rejects unsafe header contents', async () => {
+  for (const requestId of ['req_malformed', 'Bearer private']) {
+    const f = fixture();
+    f.transport.mockResolvedValueOnce(
+      new Response('private invalid response', { headers: { 'x-request-id': requestId } }),
+    );
+    let caught;
+    try {
+      await f.runtime.fetchFor('execution')('https://api.openai.com/v1/responses', request());
+    } catch (e) {
+      caught = e;
+    }
+    expect(safeAgentFailure(caught)).toMatchObject({
+      failureStage: 'PARSE_USAGE',
+      httpStatus: 200,
+      failureClass: 'CONTRACT',
+    });
+    expect(safeAgentFailure(caught).requestId).toBe(requestId.startsWith('req_') ? requestId : undefined);
+    expect(JSON.stringify(f.recordCall.mock.calls)).not.toContain('private');
+    expect(f.finance.markUncertain).toHaveBeenCalledOnce();
+  }
 });

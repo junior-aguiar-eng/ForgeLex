@@ -12,13 +12,18 @@ import {
 import type { FinalEditorService } from './final-editor-service.js';
 
 export interface FinalEditorGenerationOptions {
-  /** Trusted server injection, never request data. Only simulated providers may run. */
+  /** Trusted server injection, never request data. Real providers also require authorization below. */
   createProvider: (input: {
     registry: ToolRegistry;
     context: FinalEditorialContext;
     sectionAnchors: { sectionIndex: number; sectionHash: string; utf16Length: number }[];
     profile: typeof FINAL_EDITOR_GENERATION_PROFILE;
   }) => AgentProvider;
+  authorizeRealProvider?: (
+    owner: AgenticOwner,
+    context: FinalEditorialContext,
+    provider: AgentProvider,
+  ) => Promise<void>;
 }
 
 export class FinalEditorGenerator {
@@ -39,7 +44,8 @@ export class FinalEditorGenerator {
     const controller = new AbortController(),
       sessionId = randomUUID();
     let closed = false,
-      provider: AgentProvider | undefined;
+      provider: AgentProvider | undefined,
+      authorizedProvider = false;
     let rejectStop!: (reason: Error) => void;
     const stopped = new Promise<never>((_resolve, reject) => {
       rejectStop = reject;
@@ -108,7 +114,12 @@ export class FinalEditorGenerator {
       } catch {
         throw new Error('EDITORIAL_GENERATION_FAILED');
       }
-      if (provider.id !== 'fake') throw new Error('EDITORIAL_PROVIDER_NOT_ALLOWED');
+      if (provider.id !== 'fake') {
+        if (provider.id !== 'openai' || !this.options?.authorizeRealProvider)
+          throw new Error('EDITORIAL_PROVIDER_NOT_ALLOWED');
+        await this.options.authorizeRealProvider(owner, structuredClone(context), provider);
+      }
+      authorizedProvider = true;
       if (registry.list().length !== 1) throw new Error('EDITORIAL_GENERATION_FAILED');
       assertOpen();
       let events = 0,
@@ -119,7 +130,11 @@ export class FinalEditorGenerator {
           sessionId,
           prompt,
           systemPolicy: profile.instructions,
-          tools: registry.list(),
+          // Real SDKs own another registry. Route execution back through our attempt counter.
+          tools: registry.list().map((tool) => ({
+            ...tool,
+            execute: (input, toolContext) => registry.executeTool(tool.name, input, toolContext),
+          })),
           maxTurns: profile.maxTurns,
           finishOnTools: ['editorial.submit'],
           abortSignal: controller.signal,
@@ -147,7 +162,7 @@ export class FinalEditorGenerator {
       if (submissions !== 1 || attempts !== 1 || submissionRejected) throw new Error('EDITORIAL_GENERATION_FAILED');
       if (JSON.stringify(current) !== original) throw new Error('EDITORIAL_CONTEXT_CHANGED');
       return {
-        mode: 'SIMULATED' as const,
+        mode: provider.id === 'fake' ? ('SIMULATED' as const) : ('REAL' as const),
         profileVersion: profile.version,
         proposal: validateFinalEditorialProposal(current, proposal),
       };
@@ -159,8 +174,8 @@ export class FinalEditorGenerator {
       controller.abort();
       clearTimeout(timer);
       signal?.removeEventListener('abort', onAbort);
-      // A non-cooperative cancel must not extend the request deadline; never call a real provider.
-      if (provider?.id === 'fake')
+      // A non-cooperative cancel must not extend the request deadline.
+      if (provider && authorizedProvider)
         void Promise.resolve()
           .then(() => provider!.cancel(sessionId))
           .catch(() => {});

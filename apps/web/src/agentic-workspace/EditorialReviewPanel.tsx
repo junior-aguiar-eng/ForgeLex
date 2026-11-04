@@ -8,7 +8,7 @@ import {
   type EditorialReview,
 } from './editorial-review-model';
 
-/** Human decisions and separately confirmed version creation; never starts an agent or generation. */
+/** Human decisions, explicitly requested generation and separately confirmed version creation. */
 export function EditorialReviewPanel({
   deliveryId,
   draftId,
@@ -31,12 +31,20 @@ export function EditorialReviewPanel({
     [notice, setNotice] = useState(''),
     [blocked, setBlocked] = useState(false);
   const [uncertain, setUncertain] = useState(false);
+  const [generation, setGeneration] = useState<{
+      enabled: boolean;
+      mode: 'REAL' | 'SIMULATED';
+      maxCostUsd: number;
+    } | null>(null),
+    [generationConfirmed, setGenerationConfirmed] = useState(false),
+    [generationAttempted, setGenerationAttempted] = useState(false);
   const pending = useRef<string | null>(null),
     pendingKind = useRef<'decision' | 'application'>('decision'),
     sequence = useRef(0),
     active = useRef<AbortController | null>(null);
   const base = `/api/agentic/deliveries/${encodeURIComponent(deliveryId)}/editorial-review`;
   const target = { draftId, versionId };
+  const generationBase = `/api/agentic/deliveries/${encodeURIComponent(deliveryId)}/editorial-proposals`;
   useEffect(() => {
     if (open) dialog.current?.showModal();
     else dialog.current?.close();
@@ -79,11 +87,49 @@ export function EditorialReviewPanel({
       setBlocked(!!result.stale);
       setUncertain(false);
       pending.current = null;
+      if (!input && !result.stale) {
+        const availability = await requestApi<typeof generation>(
+          `${generationBase}/generation?${new URLSearchParams(target)}`,
+          { signal },
+          { sessionOnly: true },
+        ).catch(() => null);
+        if (ticket === sequence.current) setGeneration(availability);
+      }
     } catch {
       if (ticket !== sequence.current) return;
       setReview(null);
       setError(
         'Não foi possível validar a revisão. Confira a proposta, a versão da minuta e seu acesso; depois atualize.',
+      );
+    } finally {
+      if (ticket === sequence.current) setBusy(false);
+    }
+  };
+  const generate = async () => {
+    if (
+      busy ||
+      blocked ||
+      pending.current ||
+      generationAttempted ||
+      !generation?.enabled ||
+      (generation.mode === 'REAL' && !generationConfirmed)
+    )
+      return;
+    const { ticket, signal } = begin();
+    setGenerationAttempted(true);
+    setGenerationConfirmed(false);
+    try {
+      const result = await requestApi<{ proposal: EditorialProposal }>(
+        `${generationBase}/generate`,
+        { method: 'POST', signal, body: JSON.stringify({ ...target, confirmed: true }) },
+        { sessionOnly: true },
+      );
+      if (ticket !== sequence.current) return;
+      await read(result.proposal);
+    } catch {
+      if (ticket !== sequence.current) return;
+      setError(
+        'A geração não foi confirmada. Confira o registro financeiro antes de autorizar outra tentativa; a minuta permanece intacta.',
       );
     } finally {
       if (ticket === sequence.current) setBusy(false);
@@ -281,6 +327,39 @@ export function EditorialReviewPanel({
           Decida sobre cada sugestão. Concordar registra sua avaliação editorial; não altera a minuta nem aprova seu
           conteúdo jurídico.
         </p>
+        {generation?.enabled && !review?.stale && (
+          <span className="my-3 block">
+            {generation.mode === 'REAL' && (
+              <label className="mb-2 flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={generationConfirmed}
+                  disabled={busy || uncertain || generationAttempted}
+                  onChange={(event) => setGenerationConfirmed(event.target.checked)}
+                />
+                {`Autorizo gerar uma proposta, com custo máximo de US$ ${generation.maxCostUsd.toFixed(2).replace('.', ',')}.`}
+              </label>
+            )}
+            <button
+              type="button"
+              className="min-h-11 text-sm underline"
+              disabled={
+                busy ||
+                blocked ||
+                uncertain ||
+                generationAttempted ||
+                (generation.mode === 'REAL' && !generationConfirmed)
+              }
+              onClick={() => void generate()}
+            >
+              {generation.mode === 'REAL' ? 'Gerar proposta editorial' : 'Gerar proposta de teste'}
+            </button>
+            <span className="block text-xs text-stone-600">
+              A proposta será apresentada para revisão; gerar não aplica alterações.
+            </span>
+          </span>
+        )}
         <label className="block text-sm">
           Arquivo da proposta editorial
           <input

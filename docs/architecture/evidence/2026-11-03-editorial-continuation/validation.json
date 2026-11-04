@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-03T21:47:39.507Z",
+  "checkout": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK",
+  "branch": "codex/forgelex-3-quality",
+  "consolidationCommit": "adc823b518934e8b1bbdb0aaef8fb27ccd599698",
+  "newChangesCommitted": false,
+  "candidateSourceSha256": "02211bf5a180a4ce80f6fb383d850da117df20ca90ceaabdc65995e6814bb498",
+  "checks": {
+    "full": {
+      "passed": 1737,
+      "skipped": 17,
+      "failed": 0,
+      "filesPassed": 236,
+      "filesSkipped": 3,
+      "buildPassed": true
+    },
+    "focused": {
+      "passed": 94
+    },
+    "browser": {
+      "passed": 11
+    },
+    "mesa": {
+      "passed": 3
+    },
+    "node": {
+      "passed": 22
+    },
+    "postgres": {
+      "passed": 58,
+      "caveat": "Earlier final run and selected recheck exceeded the existing 15s deadline for 100 decisions. Duplicate per-fixture migration removed; separate PostgreSQL upgrade/idempotence probe passed; same assertions and deadline retained."
+    },
+    "postgresUpgrade": "0038 preserves previous payload/hash/evidence review, starts editorial null, repeats idempotently",
+    "apiTypes": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "offlineCalibration": {
+      "runs": 6,
+      "paidCalls": 0
+    }
+  },
+  "review": {
+    "reviewer": "review_editorial_continuation",
+    "critical": 0,
+    "important": 1,
+    "importantDisposition": "Missing local host implemented and validated with five durable-ledger/CLI tests; added after independent review",
+    "minorDisposition": [
+      "Preparation now refuses an existing campaign before rewriting files",
+      "Concurrency covers consistent outcomes, not every deterministic lock ordering"
+    ]
+  },
+  "limits": {
+    "automaticApplication": false,
+    "push": false,
+    "deploy": false,
+    "operationalMigrations": false,
+    "paidEditorialCalls": 0
+  },
+  "sourceFiles": [
+    {
+      "file": "apps/api/src/agentic-workspace/commercial-provider.ts",
+      "sha256": "aa5ed78e595e722e2957bcf2d90f94f7e2a1f7fffc3f04d921d80330a5f4781e"
+    },
+    {
+      "file": "apps/api/src/agentic-workspace/execution-routes.ts",
+      "sha256": "2f50052df872f2f6ffd1b9aac4bf0934df12c7d4592df185ec641a79bd519bea"
+    },
+    {
+      "file": "apps/api/src/agentic-workspace/final-editor-provider.test.ts",
+      "sha256": "d259f15373d59186429dc36d778d12529aaa942af6175e19fff537cb81123683"
+    },
+    {
+      "file": "apps/api/src/agentic-workspace/final-editor-provider.ts",
+      "sha256": "f4e793017c93e6149136a3808e868971b88186b6f518c7aa521db2c8b8c53ae7"
+    },
+    {
+      "file": "apps/api/src/agentic-workspace/final-editor-routes.test.ts",
+      "sha256": "d975a7a617422b503da52e41c6065c9ff5ad6f936ea68ce4a5ac1d06de59384f"
+    },
+    {
+      "file": "apps/web/src/agentic-workspace/EditorialReviewPanel.tsx",
+      "sha256": "6d75ed8c8b991ddbf04e9dbebe8e1102ee95b5edd2e2ef2cc9955e258587973c"
+    },
+    {
+      "file": "packages/legal-workflows/src/final-editor/final-editor-generator.ts",
+      "sha256": "20cde400075188d4c1c3b9aa3ab83ba6670718b06ca0a1893d0ef585d62b62d9"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/calibrate.mjs",
+      "sha256": "ba2723cc2531ee199b9548d7fdd841f949d1ff10e1274f2317c3e7fd60cabb69"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/calibration-harness.fixture.ts",
+      "sha256": "113918a17c4bf8bc81103577739e2736952b3d48f39f31b7086eb578be4a4511"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/campaign.mjs",
+      "sha256": "f58e88cc3e0ed3aaf99761c5ca37629e4f9b0c3e15dccc673181be9dcf77f3cb"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/campaign.test.mjs",
+      "sha256": "aebfe53ade095d55a4676ddcc70b9ff80d2c8bc94530e2cdd3f5ccab8e850939"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/prepare.mjs",
+      "sha256": "bac20964f3fc8dd9d5df98e08f5e8265416b0a113167077f55d18c9bd6e860f3"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/prepare.test.mjs",
+      "sha256": "72caace03bddc712db8aa8cdf1e127174cb1376f23df2386c184a82d84731e1c"
+    },
+    {
+      "file": "scripts/generate-editorial-proposal.mjs",
+      "sha256": "fd3e836814b44b843dd038853d8905a3041911b9c8a340d82b3ea499650a99fc"
+    },
+    {
+      "file": "scripts/generate-editorial-proposal.test.mjs",
+      "sha256": "a5ca8a5c380016be751c7cd5d39a8d46d6f879359c05d3b6e88b92ae359bf7d9"
+    },
+    {
+      "file": "scripts/smoke-editorial-postgres.mjs",
+      "sha256": "72a1ad23a0ef8760de72a195d5f45bc807b962bc9bf7bb3a2acdb0fa7663a84d"
+    },
+    {
+      "file": "tests/e2e/editorial-review.spec.ts",
+      "sha256": "395cd96e2c65a22c6fec73f13f3a5210b4654782dd24df3a78a479fa5e24e6e6"
+    }
+  ],
+  "evidence": [
+    {
+      "file": "api-types.txt",
+      "sha256": "4f658209920a5218841e9843c51a440cb63d41dbd1aa31b97bf63bc1fc38bf9f"
+    },
+    {
+      "file": "browser.txt",
+      "sha256": "da42f715cc790db30f2573345a50b6d486084ae44b252b3383700a51cb25b7e2"
+    },
+    {
+      "file": "calibration-initial-offline-failure.txt",
+      "sha256": "428c5b39912336b318e810865ec418445d08a30e73b787c812943e489a33d047"
+    },
+    {
+      "file": "calibration-offline.txt",
+      "sha256": "397393be0f09c4451c4b76f1922128437926468d5eea0a25010b2d5406cb0159"
+    },
+    {
+      "file": "focused.txt",
+      "sha256": "036a5761c240fd76b3a9f79fde7b48a2d5e44ea96cf782c51bafc4302ff983a5"
+    },
+    {
+      "file": "format.txt",
+      "sha256": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283"
+    },
+    {
+      "file": "full-suite.txt",
+      "sha256": "a3194465bebdb03662b0897aab9929a6beb869b65b2aa08dae2002a064d01b82"
+    },
+    {
+      "file": "host-green.txt",
+      "sha256": "5fad130b2baa926b86dafdeb200ccb9c0749d4c858ac221bfd745f24154691f0"
+    },
+    {
+      "file": "host-red.txt",
+      "sha256": "76e609deef713226bd7c147a5fa97b5b789801d6a0e41291388011b402fb99df"
+    },
+    {
+      "file": "host-runner.txt",
+      "sha256": "01b4f34e9b947f5b15f4de57e4dd87afa2508d330dfa4fa3f117b161d3449a5b"
+    },
+    {
+      "file": "lint.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "mesa.txt",
+      "sha256": "e490e43d62316b25df2b8d4b830e230cbdc9fff7f94788a2ced70480223a9536"
+    },
+    {
+      "file": "postgres-final.txt",
+      "sha256": "e9e40e8ddac1c0a91cefbe382b1ec123f97b70749f7f1851d63f74c1cd6e347a"
+    },
+    {
+      "file": "postgres-initial.txt",
+      "sha256": "fa32654ad9a12e820cc0cd569a4d9f9b7bedf10dddd4081409fa472769fc3f05"
+    },
+    {
+      "file": "postgres-timeout-recheck.txt",
+      "sha256": "6eb6fa6e738534b368476d7a53b85d29385c52b41c2b036f47322d9655613cd1"
+    },
+    {
+      "file": "postgres-timeout.txt",
+      "sha256": "956ab6604a2b1ae9bf3de5a0aeaf502ba1b65587908f927e41ce71b8b7af59c4"
+    },
+    {
+      "file": "provider-green.txt",
+      "sha256": "6bf0bbc826aeb2c0598b31d7cacca480c0defd64ba8bea0674f0e5597646ffc8"
+    },
+    {
+      "file": "provider-red.txt",
+      "sha256": "ef53a968ed4ceb0a20bede8dc2bb418aba7ba46254dd50f006ac30c3e804a7eb"
+    },
+    {
+      "file": "runner-green.txt",
+      "sha256": "86d8bc3c3abcf844384c3e2c517c79c3b1614d5fc03399dc4dc3a63261572ee5"
+    },
+    {
+      "file": "runner-red.txt",
+      "sha256": "6a5d8b2aedc7bd9ba4c6b31f1cfd26f832a150516c5959c29bfecec7f922e41f"
+    }
+  ]
+}

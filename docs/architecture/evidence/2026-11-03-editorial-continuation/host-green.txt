@@ -1,0 +1,13 @@
+✔ host provisions persistent isolated budget and replays without another SDK request (178.8087ms)
+✔ lost response stays uncertain across a fresh host invocation (26.7053ms)
+✔ host refuses changed context, missing approval, and switching simulation to paid mode (30.2167ms)
+✔ CLI defaults to simulation and requires explicit paid cap and a local command (0.7269ms)
+✔ CLI prepares and generates from an authorized local draft, preserves DB, then refuses revoked access (14746.2318ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18622.2384

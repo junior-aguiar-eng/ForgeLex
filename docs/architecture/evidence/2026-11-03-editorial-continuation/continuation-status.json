@@ -1,0 +1,30 @@
+{
+  "recordedAtUtc": "2026-11-03T21:57:05.230Z",
+  "head": "adc823b518934e8b1bbdb0aaef8fb27ccd599698",
+  "candidateSourceSha256": "02211bf5a180a4ce80f6fb383d850da117df20ca90ceaabdc65995e6814bb498",
+  "sourceFilesChecked": 797,
+  "evidenceChecked": 37,
+  "linksChecked": 22,
+  "historicalLedgersUnchanged": 4,
+  "localReceiptSha256": "6518e9d77fd84b45d41909c84e7984d64cedbb69f8c6bd42d723d767324e7a57",
+  "realReceiptSha256": "9b1fedc897bcab103d2c78d73e9a0f6c277e568105f38962ba3f823f1fb7900c",
+  "stages": {
+    "consolidation": "COMMITTED",
+    "concurrency": "LOCALLY_VALIDATED",
+    "editorialConnection": "LOCALLY_VALIDATED_WITH_SIMULATED_TRANSPORT",
+    "calibration": "INTERRUPTED_UNCERTAIN_COST",
+    "humanReview": "AWAITING_BONI",
+    "integration": "PREPARED_NOT_PUBLISHED"
+  },
+  "pending": [
+    "Reconcile uncertain D04 call without repeating it",
+    "Investigate insufficient diagnostics locally",
+    "Boni assessment of D01/D03",
+    "Consolidate remaining changes when authorized"
+  ],
+  "paidRetries": 0,
+  "paidEditorialCalls": 0,
+  "push": false,
+  "deploy": false,
+  "operationalMigrations": false
+}

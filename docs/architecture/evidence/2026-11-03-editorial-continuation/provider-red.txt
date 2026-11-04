@@ -1,0 +1,25 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ apps/api/src/agentic-workspace/final-editor-provider.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-provider.test.ts [ apps/api/src/agentic-workspace/final-editor-provider.test.ts ]
+Error: Cannot find module './final-editor-provider.js' imported from C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/apps/api/src/agentic-workspace/final-editor-provider.test.ts
+ ❯ apps/api/src/agentic-workspace/final-editor-provider.test.ts:5:1
+      3| import { FinalEditorGenerator } from '@forgelex/legal-workflows';
+      4| import { FinalEditorialContextSchema } from '@forgelex/legal-agents';
+      5| import { createFinalEditorOpenAIRuntime } from './final-editor-provide…
+       | ^
+      6|
+      7| const hash = (value: unknown) => createHash('sha256').update(JSON.stri…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  18:15:06
+   Duration  6.09s (transform 2.81s, setup 0ms, import 0ms, tests 0ms, environment 0ms)
+

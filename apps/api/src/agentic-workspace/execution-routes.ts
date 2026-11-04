@@ -33,7 +33,7 @@ import type { CommercialRuntime } from './commercial-runtime.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
 
 export interface AgenticWorkspaceRuntimeOptions {
-  /** Local simulation injection only; production bootstrap leaves this absent. */
+  /** Trusted opt-in. Real generation requires a separately provisioned financial command. */
   editorialGeneration?: FinalEditorGenerationOptions;
   closedPilot?: ClosedPilot;
   commercial?: CommercialRuntime;
@@ -219,6 +219,7 @@ export function registerAgenticWorkspace(
                   'EVIDENCE_REVIEW_CONFLICT',
                   'EDITORIAL_VERSION_CONFLICT',
                   'EDITORIAL_GENERATION_DISABLED',
+                  'EDITORIAL_AUTHORIZATION_REQUIRED',
                   'EDITORIAL_PROVIDER_NOT_ALLOWED',
                   'EDITORIAL_GENERATION_CANCELLED',
                   'EDITORIAL_GENERATION_TIMEOUT',
@@ -662,6 +663,19 @@ export function registerAgenticWorkspace(
       }),
     );
     app.get(
+      '/api/agentic/deliveries/:id/editorial-proposals/generation',
+      editorialOptions,
+      handle(async (req) => {
+        await editor.load(owner(req), await reviewId(req), editorialTarget.parse(req.query));
+        const configured = deps.options?.editorialGeneration;
+        return {
+          enabled: !!configured,
+          mode: configured?.authorizeRealProvider ? 'REAL' : 'SIMULATED',
+          maxCostUsd: configured?.authorizeRealProvider ? 0.25 : 0,
+        };
+      }),
+    );
+    app.get(
       '/api/agentic/deliveries/:id/editorial-review',
       editorialOptions,
       handle(async (req) => editorialReview.history(owner(req), await reviewId(req), req.query)),
@@ -685,7 +699,7 @@ export function registerAgenticWorkspace(
     );
     app.post(
       '/api/agentic/deliveries/:id/editorial-proposals/generate',
-      editorialOptions,
+      { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session] },
       handle(async (req, reply) => {
         const controller = new AbortController();
         const abort = () => controller.abort();
@@ -695,7 +709,10 @@ export function registerAgenticWorkspace(
           if (req.raw.aborted || reply.raw.destroyed) abort();
           if (controller.signal.aborted) throw new Error('EDITORIAL_GENERATION_CANCELLED');
           const id = await reviewId(req),
-            target = editorialTarget.parse(req.body);
+            command = editorialTarget.extend({ confirmed: z.literal(true).optional() }).parse(req.body);
+          if (deps.options?.editorialGeneration?.authorizeRealProvider && command.confirmed !== true)
+            throw new Error('EDITORIAL_AUTHORIZATION_REQUIRED');
+          const target = { draftId: command.draftId, versionId: command.versionId };
           if (req.raw.aborted || reply.raw.destroyed) abort();
           return await generator.generate(owner(req), id, target, controller.signal);
         } finally {
