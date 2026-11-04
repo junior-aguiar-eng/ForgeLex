@@ -1,0 +1,61 @@
+✔ keeps unknown cost separate from settled cost and never clears it (8.0579ms)
+✔ rejects corrupt and truncated ledgers (1.8326ms)
+✔ reports an artifact that incorrectly claims zero uncertainty or is missing (1.7241ms)
+✔ runner lock excludes competing preparation and releases only its own lock (15.1094ms)
+✔ cancelled deadline returns the same terminal outcome persisted across reopen (18.782ms)
+✔ reserves both arms durably before dispatch, counts uncertainty and never replays a reservation (24.3582ms)
+✔ blocks another writer, changed corpus and unknown runs (15.1416ms)
+✔ crashed active run cannot replay; pending cost blocks later work (17.991ms)
+✔ void releases proven non-dispatch, overrun blocks and cancellation prevents later calls (14.4089ms)
+✔ per-run cap, call count and execution deadline cannot be expanded (60.4665ms)
+✔ continuation limits subtract previous spend, calls and active time without expanding total cap (56.428ms)
+✔ real execution requires a named campaign, explicit cap and credential; offline remains the default (5.2782ms)
+✔ rejects ambiguous arguments, path traversal and approval in offline mode (1.2004ms)
+✔ pins a new reviewed HEAD explicitly without weakening the default baseline guard (0.7149ms)
+✔ freezes a separate campaign packet and refuses replacing it with changed inputs (56.7813ms)
+✔ real mode cannot create an unprepared campaign or repair an incomplete one (23.4877ms)
+PASS: actual V2-MULTI consolidation, provenance, differences, support, zero calls, no overwrite, hash and source mismatch guards
+✔ scripts\forgelex-final-evaluation\consolidate-recorded-v9.test.mjs (2040.0528ms)
+✔ new corpus isolates six scenarios and source references without changing previous criteria (3.4965ms)
+✔ campaign remains a proposal bounded by existing financial and call limits (0.4409ms)
+✔ preparation requires the exact reviewed HEAD and preserves the original baseline (4.1161ms)
+✔ every offline scenario points to an existing exact test and legal sources are closed (12.5611ms)
+✔ paired comparison charges both versions and calibration is included in the full envelope (3.3351ms)
+✔ fails closed for duplicate scenarios, absent test and unknown source (1.777ms)
+✔ each pair has the same dossier and two distinct blinded labels; new capability is not a baseline failure (2.0909ms)
+✔ pins candidate-only order, action mapping and reserve-inclusive cap (6.936ms)
+✔ refuses altered financial envelope or reordered cases (1.6003ms)
+✔ stops on any failure or new uncertain cost, allows limited delivery and questions (0.476ms)
+{"level":"info","message":"commercial_call_trace","executionId":"3eb22cc8-ec18-4362-96b0-ac96808e8ba2","callId":"editorial:c668c400e45276c71fc7d3689a732b8e8b5d144c6e73fda089a5ecd5ce1bf749","timestamp":"2026-11-04T18:42:04.627Z","requestSha256":"8c3f56ffdbca0ecd59733995914e071e0f92f222daf593a0fe6e758b7aca6d9a","upperBoundMicroUsd":57656,"phase":"RESERVED"}
+{"level":"info","message":"commercial_call_trace","executionId":"3eb22cc8-ec18-4362-96b0-ac96808e8ba2","callId":"editorial:c668c400e45276c71fc7d3689a732b8e8b5d144c6e73fda089a5ecd5ce1bf749","timestamp":"2026-11-04T18:42:04.631Z","requestSha256":"8c3f56ffdbca0ecd59733995914e071e0f92f222daf593a0fe6e758b7aca6d9a","upperBoundMicroUsd":57656,"httpStatus":200,"phase":"RESPONSE"}
+{"level":"info","message":"commercial_call_trace","executionId":"3eb22cc8-ec18-4362-96b0-ac96808e8ba2","callId":"editorial:c668c400e45276c71fc7d3689a732b8e8b5d144c6e73fda089a5ecd5ce1bf749","timestamp":"2026-11-04T18:42:04.636Z","requestSha256":"8c3f56ffdbca0ecd59733995914e071e0f92f222daf593a0fe6e758b7aca6d9a","upperBoundMicroUsd":57656,"httpStatus":200,"usage":{"input":100,"output":20,"cachedInput":0},"responseId":"resp_editorial","phase":"USAGE"}
+{"level":"info","message":"commercial_call_trace","executionId":"3eb22cc8-ec18-4362-96b0-ac96808e8ba2","callId":"editorial:c668c400e45276c71fc7d3689a732b8e8b5d144c6e73fda089a5ecd5ce1bf749","timestamp":"2026-11-04T18:42:04.637Z","requestSha256":"8c3f56ffdbca0ecd59733995914e071e0f92f222daf593a0fe6e758b7aca6d9a","upperBoundMicroUsd":57656,"httpStatus":200,"usage":{"input":100,"output":20,"cachedInput":0},"costState":"SETTLED","phase":"SETTLED"}
+{"level":"info","message":"commercial_call_trace","executionId":"0f3f1713-9c6f-40f5-b8d0-16195bdc9d5c","callId":"editorial:86f57fbeb3fce547f47e00b8047df2c665eaff7521ae188b729239ad317ddcb7","timestamp":"2026-11-04T18:42:04.706Z","requestSha256":"8c3f56ffdbca0ecd59733995914e071e0f92f222daf593a0fe6e758b7aca6d9a","upperBoundMicroUsd":57656,"phase":"RESERVED"}
+{"level":"info","message":"commercial_call_trace","executionId":"0f3f1713-9c6f-40f5-b8d0-16195bdc9d5c","callId":"editorial:86f57fbeb3fce547f47e00b8047df2c665eaff7521ae188b729239ad317ddcb7","timestamp":"2026-11-04T18:42:04.708Z","requestSha256":"8c3f56ffdbca0ecd59733995914e071e0f92f222daf593a0fe6e758b7aca6d9a","upperBoundMicroUsd":57656,"diagnostic":{"errorType":"Error","clientRequestId":"editorial:86f57fbeb3fce547f47e00b8047df2c665eaff7521ae188b729239ad317ddcb7","failureStage":"DISPATCH"},"accountingUpdateFailed":false,"costState":"UNCERTAIN","phase":"FAILED"}
+{"level":"info","message":"commercial_call_trace","executionId":"4ec62a87-afd3-433f-a0e2-dbe70bf8b7c9","callId":"editorial:d1c6905c1488a09537b1b0bbcceac792a3650e77e2e57a568cd82b6e621ad53d","timestamp":"2026-11-04T18:42:04.731Z","requestSha256":"8c3f56ffdbca0ecd59733995914e071e0f92f222daf593a0fe6e758b7aca6d9a","upperBoundMicroUsd":57656,"phase":"RESERVED"}
+{"level":"info","message":"commercial_call_trace","executionId":"4ec62a87-afd3-433f-a0e2-dbe70bf8b7c9","callId":"editorial:d1c6905c1488a09537b1b0bbcceac792a3650e77e2e57a568cd82b6e621ad53d","timestamp":"2026-11-04T18:42:04.732Z","requestSha256":"8c3f56ffdbca0ecd59733995914e071e0f92f222daf593a0fe6e758b7aca6d9a","upperBoundMicroUsd":57656,"httpStatus":200,"phase":"RESPONSE"}
+{"level":"info","message":"commercial_call_trace","executionId":"4ec62a87-afd3-433f-a0e2-dbe70bf8b7c9","callId":"editorial:d1c6905c1488a09537b1b0bbcceac792a3650e77e2e57a568cd82b6e621ad53d","timestamp":"2026-11-04T18:42:04.732Z","requestSha256":"8c3f56ffdbca0ecd59733995914e071e0f92f222daf593a0fe6e758b7aca6d9a","upperBoundMicroUsd":57656,"httpStatus":200,"usage":{"input":100,"output":20,"cachedInput":0},"responseId":"resp_editorial","phase":"USAGE"}
+{"level":"info","message":"commercial_call_trace","executionId":"4ec62a87-afd3-433f-a0e2-dbe70bf8b7c9","callId":"editorial:d1c6905c1488a09537b1b0bbcceac792a3650e77e2e57a568cd82b6e621ad53d","timestamp":"2026-11-04T18:42:04.734Z","requestSha256":"8c3f56ffdbca0ecd59733995914e071e0f92f222daf593a0fe6e758b7aca6d9a","upperBoundMicroUsd":57656,"httpStatus":200,"usage":{"input":100,"output":20,"cachedInput":0},"costState":"SETTLED","phase":"SETTLED"}
+✔ host provisions persistent isolated budget and replays without another SDK request (115.0078ms)
+✔ lost response stays uncertain across a fresh host invocation (25.3421ms)
+✔ host refuses changed context, missing approval, and switching simulation to paid mode (29.1215ms)
+✔ CLI defaults to simulation and requires explicit paid cap and a local command (0.5767ms)
+✖ CLI prepares and generates from an authorized local draft, preserves DB, then refuses revoked access (8101.4098ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 31
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12003.9174
+
+✖ failing tests:
+
+test at scripts\generate-editorial-proposal.test.mjs:116:1
+✖ CLI prepares and generates from an authorized local draft, preserves DB, then refuses revoked access (8101.4098ms)
+  SyntaxError: Unexpected non-whitespace character after JSON at position 358 (line 2 column 1)
+      at JSON.parse (<anonymous>)
+      at TestContext.<anonymous> (file:///C:/Users/Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/scripts/generate-editorial-proposal.test.mjs:204:25)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)

@@ -1,5 +1,119 @@
 # Pendências atuais do ForgeLex
 
+## Estado vigente — campanha v9 e consolidação local de 04/11/2026
+
+Esta seção prevalece sobre os estados históricos abaixo. A campanha v9 foi
+autorizada e concluída: D04-V2, D01-V2, D03-V2, V2-FIT, V2-INTEGRITY e V2-MULTI
+produziram entregas `LIMITED`, ainda sem aprovação jurídica de Boni. Foram
+28 chamadas e US$ 0,572246 calculados pelo uso retornado. A reserva histórica
+**US$ 0,083620 permanece integralmente retida**; exposição acumulada
+US$ 0,655866, abaixo do teto autorizado de US$ 1,50. Não há nova incerteza de
+custo nesta campanha. O saldo de US$ 0,844134 não autoriza outra campanha.
+[Resultados e recibos](docs/architecture/2026-11-04-v9-final-results.md).
+
+O bloqueio `INTERNAL_IDENTIFIER_IN_OUTPUT` foi corrigido e V2-FIT retomou
+somente o verificador pendente. A repetição residual de V2-MULTI recebeu
+[consolidação local derivada e rastreável](docs/architecture/2026-11-04-v9-multi-consolidation.md),
+sem reescrever a entrega, o checkpoint ou o ledger originais. Diferenças de
+escopo, fontes, condições e ressalvas permanecem separadas; essa correção não
+comprova que futuras gerações sempre declararão equivalências corretamente.
+
+[Validação final](docs/architecture/2026-11-04-suite-timeouts.md): build e suíte
+completa aprovados, **1.772 testes aprovados, 17 ignorados, zero falhas**.
+Os dois arquivos de integração usam limite de 15 segundos por teste; o limite
+geral, os deadlines do produto e a concorrência permanecem iguais, sem retries.
+Lint focado e formatação aprovados. Na consolidação, a checagem adicional dos
+scripts identificou mistura de logs no JSON do CLI editorial; a trilha passou
+a arquivo próprio, preservando a saída JSON. Essa correção posterior foi
+validada por build da API e testes focados, sem repetir a suíte integral.
+Os ensaios de navegador e PostgreSQL
+registrados em etapas anteriores mantêm seu escopo histórico; não foram
+reexecutados integralmente nesta última correção.
+
+As alterações foram consolidadas em commits locais, por autorização de Boni
+em 04/11; ver [recibo da consolidação](docs/architecture/2026-11-04-local-consolidation.md).
+Esta consolidação não autoriza chamadas pagas adicionais, push, integração remota,
+ativação automática, migrations operacionais ou publicação. O padrão permanece
+v8; v9 e geração editorial real continuam opt-in.
+
+### Pendências efetivas, em ordem recomendada
+
+1. **Avaliação de Boni:** revisar as seis entregas e a cópia derivada de
+   V2-MULTI, registrando aceitação, ressalvas e exemplos insuficientes. Os
+   resultados da campanha constituem uma medição real restrita, não aprovação
+   jurídica nem comprovação de qualidade geral. As fichas históricas v8
+   continuam pendentes e não devem ser preenchidas com resultados v9.
+2. **Reconciliação histórica de D04-v8:** obter evidência independente do
+   provedor para os US$ 0,083620 incertos. Sua causa histórica continua
+   indeterminada; os diagnósticos novos não recuperam dados que não foram
+   registrados. Não liberar, reduzir ou converter a reserva em gasto certo
+   sem evidência. A auditoria local não substitui a fatura do provedor.
+3. **Ampliação da avaliação:** selecionar a próxima amostra a partir da revisão
+   de Boni. Os outros 54 lugares do plano original não foram executados;
+   corpus, prioridades, critérios e orçamento exigem decisão específica antes
+   de novas chamadas. Não repetir automaticamente cenários já concluídos.
+4. **Editor final real:** a conexão local autorizável, os controles financeiros
+   e a importação existem; falta medir uma geração editorial paga, mediante
+   autorização própria. A campanha v9 não foi avaliação desse gerador.
+5. **Integração/publicação:** após a consolidação local, revisar o diff contra
+   a base e a CI do SHA escolhido; atualizar a preparação operacional e
+   conferir migrations/backup no alvo quando autorizados. Não presumir estado
+   do banco remoto nem disponibilidade publicada a partir de testes locais.
+6. **Ativação comercial multiusuário:** definir admissão financeira por comando
+   e confirmar a regra dos limites diário/mensal para consumo sem cobrança.
+   A execução opt-in local não constitui ativação do serviço comercial.
+7. **Backlog humano/operacional histórico:** atualizar a situação das
+   homologações residuais nos hosts ChatGPT/Claude, comprovações fiscais,
+   contratos efetivos e conciliação dos R$ 25. Os registros de outubro abaixo
+   não foram revalidados em produção nesta etapa; não são fatos atuais
+   confirmados. Boni permanece o único avaliador e aprovador humano.
+
+## Histórico: correções locais da avaliação v8 — 03/11/2026
+
+O [relatório por achado](docs/architecture/2026-11-03-forgelex-v9-review-remediation.md)
+registra as correções opt-in v9: diagnóstico e checkpoint antes do despacho,
+consolidação com proveniência, registro documental literal, aptidão documental,
+alertas de integridade e separação das seções na mesa. O padrão continua v8.
+A ficha humana, o corpus e os registros v8 permanecem intactos. A análise de
+Claude é apoio técnico; não preenche a avaliação jurídica pendente de Boni.
+
+Permanecem: causa histórica indeterminada de D04, reconciliação dos US$ 0,083620
+reservados com evidência independente do provedor, avaliação humana, medição
+semântica real da v9 e consolidação em commit quando autorizada. Foi preparada
+proposta de seis execuções com teto US$ 1,50, sem autorização ou execução paga.
+Não houve aplicação automática, push ou deploy nesta correção. O recibo
+vinculado ao relatório registra os testes locais desta etapa; números abaixo
+continuam sendo evidência histórica das etapas anteriores.
+
+## Continuação editorial e calibração v8 — 03/11/2026
+
+Este registro histórico prevalecia sobre as etapas anteriores; o estado vigente
+de 04/11/2026 acima o atualiza para esta frente.
+A aplicação humana foi consolidada em `adc823b`; concorrência e PostgreSQL
+foram validados; a [conexão editorial local](docs/architecture/2026-11-03-forgelex-editorial-real-connection.md)
+tem comando executável, ledger próprio e importação na mesa. API/interface são
+opt-in, sem ativação automática no bootstrap. Nenhuma geração editorial paga.
+
+Build e suíte geral: 1.737 aprovados, 17 ignorados, zero falhas. PostgreSQL:
+58 aprovados; navegador: 11 editoriais e três da mesa; Node: 22. Tipos, lint e
+formatação passaram. O [recibo local](docs/architecture/evidence/2026-11-03-editorial-continuation/validation.json)
+registra os ensaios e o timeout anterior, resolvido sem ampliar o limite.
+
+[Calibração real v8](docs/architecture/2026-11-03-forgelex-recalibration-v8-results.md):
+seis execuções tentadas, 18 chamadas enviadas, 17 liquidadas e US$ 0,189408
+calculados. D01/D03 entregaram com ressalvas. D04 falhou na primeira chamada do
+orquestrador; custo incerto reservado de até US$ 0,083620. Exposição máxima da
+campanha: US$ 0,273028. Sem entrega D04 nem medição do verificador nesta rodada.
+
+Pendências atuais: reconciliar o custo incerto e investigar o diagnóstico
+localmente; avaliação de D01/D03 por Boni na [ficha preparada](docs/architecture/2026-11-03-forgelex-v8-human-review.md);
+consolidar as mudanças posteriores ao primeiro commit quando autorizado.
+A [integração/publicação está preparada](docs/operations/agentic-workspace/2026-11-03-editorial-integration-preparation.md),
+com compatibilidade e migrations identificadas, mas não executada.
+Uma nova medição paga exige decisão própria após conferência financeira.
+Os outros 54 cenários, ativação comercial multiusuário, push e deploy não foram
+executados. Nenhuma alteração de minuta foi aplicada automaticamente.
+
 ## Aplicação humana versionada — 03/11/2026
 
 [Implementação e validação](docs/architecture/2026-11-03-forgelex-editorial-application.md):
