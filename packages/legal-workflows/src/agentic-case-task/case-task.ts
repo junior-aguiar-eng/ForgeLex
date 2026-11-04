@@ -1,6 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { auditClaimSupport } from './support-audit.js';
+import {
+  assertPublicTaskText,
+  consolidateReviewedDelivery,
+  validateReviewedResult,
+  resolvePublicAnalyticalReferences,
+} from './reviewed-delivery.js';
 import { verifierPriorResults, type VerifierPriorResult } from './verifier-context.js';
 import { eligibleSupportTargets, scopeTaskResult } from './scoped-handoff.js';
 import { auditTaskEvidence, EVIDENCE_LIMITATIONS } from './evidence-audit.js';
@@ -70,6 +76,9 @@ import {
   scopedDeliveryTaskProfile,
   FOCUSED_VERIFIER_TASK_POLICY,
   focusedVerifierTaskProfile,
+  REVIEWED_DELIVERY_TASK_POLICY,
+  ReviewedTaskResultSchema,
+  reviewedDeliveryTaskProfile,
 } from '@forgelex/legal-agents';
 type TaskPlan = EvidenceTaskPlan | DeliveryTaskPlan;
 const hash = (v: unknown) =>
@@ -120,6 +129,13 @@ const DeliveryStateSchema = ApprovedCaseStateSchema.omit({ version: true, plan: 
 const BoundedDeliveryStateSchema = DeliveryStateSchema.omit({ version: true }).extend({ version: z.literal(6) });
 const ScopedDeliveryStateSchema = BoundedDeliveryStateSchema.omit({ version: true }).extend({ version: z.literal(7) });
 const FocusedVerifierStateSchema = ScopedDeliveryStateSchema.omit({ version: true }).extend({ version: z.literal(8) });
+const ReviewedStateSchema = FocusedVerifierStateSchema.omit({ version: true, outputs: true, graph: true }).extend({
+  version: z.literal(9),
+  outputs: z.record(z.string(), ReviewedTaskResultSchema),
+  graph: OrchestrationGraphSchema.extend({
+    archivedOutputs: z.record(z.string(), ReviewedTaskResultSchema),
+  }).optional(),
+});
 const StateSchema = z.discriminatedUnion('version', [
   LegacyStateSchema,
   AdaptiveStateSchema,
@@ -129,6 +145,7 @@ const StateSchema = z.discriminatedUnion('version', [
   BoundedDeliveryStateSchema,
   ScopedDeliveryStateSchema,
   FocusedVerifierStateSchema,
+  ReviewedStateSchema,
 ]);
 export type CaseTaskState = z.infer<typeof StateSchema>;
 export function caseTaskStepIndex(raw: unknown): number {
@@ -162,7 +179,9 @@ const profileFor = (version: StateVersion, role: CaseTaskRole) =>
               ? boundedDeliveryTaskProfile(role)
               : version === 7
                 ? scopedDeliveryTaskProfile(role)
-                : focusedVerifierTaskProfile(role);
+                : version === 8
+                  ? focusedVerifierTaskProfile(role)
+                  : reviewedDeliveryTaskProfile(role);
 const policyFor = (version: StateVersion) =>
   version === 1
     ? CASE_TASK_POLICY
@@ -178,13 +197,19 @@ const policyFor = (version: StateVersion) =>
               ? BOUNDED_DELIVERY_TASK_POLICY
               : version === 7
                 ? SCOPED_DELIVERY_TASK_POLICY
-                : FOCUSED_VERIFIER_TASK_POLICY;
+                : version === 8
+                  ? FOCUSED_VERIFIER_TASK_POLICY
+                  : REVIEWED_DELIVERY_TASK_POLICY;
+const legacyClaimsSchema = TaskSpecialistResultSchema.shape.claims.element.extend({
+  classification: z.enum(['ALLEGATION', 'INFERENCE', 'CONFLICT']),
+});
 const resultFor = (version: StateVersion) =>
-  version === 1
+  (version === 1
     ? TaskSpecialistResultSchema
     : version === 2
       ? AdaptiveTaskSpecialistResultSchema
-      : EvidenceTaskResultSchema;
+      : EvidenceTaskResultSchema
+  ).extend({ claims: z.array(legacyClaimsSchema).max(100) });
 const contractHash = (version: StateVersion) =>
   version === 1
     ? hash({ outputContractVersion: 4, policy: CASE_TASK_POLICY, profiles: roles.map(caseTaskProfile) })
@@ -249,11 +274,15 @@ export interface CaseTaskProviderInput {
   };
 }
 export interface CaseTaskOptions {
+  /** New contract is opt-in until its calibration is explicitly authorized. Restored versions win. */
+  workflowVersion?: 8 | 9;
   context: NativeTaskContextPort;
   tools: readonly AgentTool<any, any>[];
   createProvider: (input: CaseTaskProviderInput) => AgentProvider;
   /** Trusted server gate; absent in the default/fake-only runtime. */
   authorizeRealProvider?: (binding: TaskBinding, provider: AgentProvider) => Promise<void>;
+  /** Trusted host persistence, awaited before provider dispatch; never stores private SDK state. */
+  persistCheckpoint?: (binding: TaskBinding, state: CaseTaskState) => Promise<void>;
 }
 export interface CaseTaskStep {
   state: CaseTaskState;
@@ -380,8 +409,20 @@ export class AgenticCaseTask {
     signal: AbortSignal,
     node?: GraphNode,
   ) {
-    const supportTargets = eligibleSupportTargets(state.outputs, this.merge(packet.sources, state.evidence));
-    const baseResultSchema = state.version >= 6 ? boundedTaskResultSchema(state.plan?.action, role) : undefined;
+    const supportTargets = eligibleSupportTargets(
+      state.outputs,
+      this.merge(packet.sources, state.evidence),
+      state.version === 9,
+    );
+    const legacyClaims = legacyClaimsSchema;
+    const baseResultSchema =
+      state.version === 9
+        ? state.plan?.action === 'analyze_evidence' && role === 'matter-analyst'
+          ? ReviewedTaskResultSchema
+          : ReviewedTaskResultSchema.omit({ evidenceAnalysis: true })
+        : state.version >= 6
+          ? boundedTaskResultSchema(state.plan?.action, role).extend({ claims: z.array(legacyClaims).max(100) })
+          : undefined;
     const checkSchema = TaskSpecialistResultSchema.shape.supportChecks.element;
     const scopedChecks =
       role === 'authority-verifier' && supportTargets.length
@@ -402,7 +443,9 @@ export class AgenticCaseTask {
             ? baseResultSchema!.extend({ supportChecks: scopedChecks })
             : baseResultSchema!
           : state.version >= 3 && role !== 'matter-analyst'
-            ? EvidenceTaskResultSchema.omit({ evidenceAnalysis: true })
+            ? EvidenceTaskResultSchema.omit({ evidenceAnalysis: true }).extend({
+                claims: z.array(legacyClaimsSchema).max(100),
+              })
             : resultFor(state.version),
       schema =
         role === 'legal-orchestrator'
@@ -420,7 +463,10 @@ export class AgenticCaseTask {
                   .strictObject(resultSchema.shape)
                   .omit({ document: true })
                   .extend({
-                    claims: TaskSpecialistResultSchema.shape.claims.max(0),
+                    claims:
+                      state.version === 9
+                        ? TaskSpecialistResultSchema.shape.claims.max(0)
+                        : z.array(legacyClaimsSchema).max(0),
                     requirements: TaskSpecialistResultSchema.shape.requirements.max(0),
                     ...(state.version !== 1
                       ? { capabilityRequests: z.array(TaskCapabilityRequestSchema).max(0).optional() }
@@ -512,17 +558,43 @@ export class AgenticCaseTask {
         execute: async (input) => {
           if (submitted) throw new Error('DUPLICATE_HANDOFF');
           const parsed = schema.parse(input);
-          const accepted =
+          if (state.version === 9)
+            assertPublicTaskText(parsed, [
+              binding.tenantId,
+              binding.userId,
+              binding.executionId,
+              binding.conversationId,
+              ...(binding.matterId ? [binding.matterId] : []),
+            ]);
+          let accepted =
             state.version >= 7 && role !== 'legal-orchestrator'
-              ? scopeTaskResult(EvidenceTaskResultSchema.parse(parsed), node?.id ?? role, state.outputs)
+              ? scopeTaskResult(
+                  (state.version === 9 ? ReviewedTaskResultSchema : EvidenceTaskResultSchema).parse(parsed),
+                  node?.id ?? role,
+                  state.outputs,
+                  state.version === 9 ? state.bindingHash : undefined,
+                )
               : parsed;
+          if (state.version === 9 && role !== 'legal-orchestrator')
+            accepted = resolvePublicAnalyticalReferences(ReviewedTaskResultSchema.parse(accepted), state.outputs);
           this.refs(
             accepted,
             getSources(),
             state.plan?.issues.map((i) => i.id),
           );
           if (state.version >= 7 && role !== 'legal-orchestrator') {
-            const result = EvidenceTaskResultSchema.parse(accepted);
+            const result = (state.version === 9 ? ReviewedTaskResultSchema : EvidenceTaskResultSchema).parse(accepted);
+            if (state.version === 9)
+              validateReviewedResult(result, getSources(), [
+                binding.tenantId,
+                binding.userId,
+                binding.executionId,
+                binding.conversationId,
+                ...(binding.matterId ? [binding.matterId] : []),
+                ...Object.values(state.outputs).flatMap((r) =>
+                  [...r.claims, ...r.requirements, ...r.findings].map((x) => x.id),
+                ),
+              ]);
             this.checkClaims([...Object.values(state.outputs).flatMap((x) => x.claims), ...result.claims]);
             if (
               role === 'authority-verifier' &&
@@ -530,6 +602,7 @@ export class AgenticCaseTask {
                 Object.values(state.outputs).flatMap((x) => x.claims),
                 getSources(),
                 result.supportChecks,
+                state.version === 9,
               ).invalidChecks
             )
               throw new Error('SUPPORT_CHECK_INVALID');
@@ -701,7 +774,12 @@ export class AgenticCaseTask {
       EVIDENCE_GAP: 'Há lacunas probatórias expressas nas linhas da matriz.',
     };
     for (const code of probatory?.limitations ?? []) findings.push(this.finding(code, evidenceMessages[code]));
-    const supportAudit = auditClaimSupport(claims, sources, state.outputs['authority-verifier']?.supportChecks ?? []);
+    const supportAudit = auditClaimSupport(
+      claims,
+      sources,
+      state.outputs['authority-verifier']?.supportChecks ?? [],
+      state.version === 9,
+    );
     if (supportAudit.invalidChecks)
       findings.push(
         this.finding(
@@ -807,7 +885,7 @@ export class AgenticCaseTask {
       for (const section of document.sections)
         if (!section.sourceIds.length) findings.push(this.finding('UNSUPPORTED_SECTION', section.title));
     const unique = [...new Map(findings.map((f) => [f.id, f])).values()];
-    return AgenticTaskDeliverySchema.parse({
+    const delivery = AgenticTaskDeliverySchema.parse({
       action: plan.action,
       contextId: packet.contextId,
       contextRevision: packet.contextRevision,
@@ -822,11 +900,12 @@ export class AgenticCaseTask {
       ...(probatory ? { evidenceMatrix: probatory.matrix } : {}),
       ...(document ? { document } : {}),
     });
+    return state.version === 9 ? consolidateReviewedDelivery(delivery, all, sources, plan) : delivery;
   }
   async step(binding: TaskBinding, rawState: unknown, signal: AbortSignal): Promise<CaseTaskStep> {
     if (signal.aborted) throw new Error('SESSION_CANCELLED');
     const restored = rawState ? StateSchema.parse(rawState) : undefined;
-    const version = restored?.version ?? 8;
+    const version = restored?.version ?? this.options.workflowVersion ?? 8;
     const currentContract = contractHash(version);
     if (
       restored &&
@@ -923,7 +1002,12 @@ export class AgenticCaseTask {
           );
         } else if (
           node.role === 'authority-verifier' &&
-          !this.merge(packet.sources, state.evidence).some((s) => ['AUTHORITY', 'NORM'].includes(s.kind))
+          !this.merge(packet.sources, state.evidence).some((s) =>
+            (state.version === 9
+              ? ['AUTHORITY', 'NORM', 'DOCUMENT', 'USER_TEXT', 'ANSWER']
+              : ['AUTHORITY', 'NORM']
+            ).includes(s.kind),
+          )
         ) {
           node.status = 'SKIPPED';
         } else break;
@@ -936,6 +1020,8 @@ export class AgenticCaseTask {
         throw new Error('TASK_GRAPH_NODE_LIMIT');
       const nodeInput =
         state.version !== 1 && node ? captureGraphInput(state.graph!, node, state.plan!, graphContext()) : undefined;
+      await this.options.context.assert(binding);
+      await this.options.persistCheckpoint?.(binding, structuredClone(state));
       const output = await this.run(role, binding, state, packet, signal, node);
       if (role === 'legal-orchestrator') {
         const plan = (
@@ -959,7 +1045,11 @@ export class AgenticCaseTask {
         }
       } else {
         const result = (
-          state.version >= 6 ? boundedTaskResultSchema(state.plan?.action, role) : resultFor(state.version)
+          state.version === 9
+            ? ReviewedTaskResultSchema
+            : state.version >= 6
+              ? boundedTaskResultSchema(state.plan?.action, role)
+              : resultFor(state.version)
         ).parse(output);
         this.checkClaims([...Object.values(state.outputs).flatMap((x) => x.claims), ...result.claims]);
         if (

@@ -19,3 +19,8 @@ export * from './agentic-delivery.js';
 export * from './agentic-bounded-delivery.js';
 export { SCOPED_DELIVERY_TASK_POLICY, scopedDeliveryTaskProfile } from './agentic-scoped-delivery.js';
 export { FOCUSED_VERIFIER_TASK_POLICY, focusedVerifierTaskProfile } from './agentic-focused-verifier.js';
+export {
+  REVIEWED_DELIVERY_TASK_POLICY,
+  ReviewedTaskResultSchema,
+  reviewedDeliveryTaskProfile,
+} from './agentic-reviewed-delivery.js';

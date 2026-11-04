@@ -24,6 +24,7 @@ import type { IndexedLegislationProvider } from '@forgelex/source-providers';
 import type { ExecutionDriver } from './execution-worker.js';
 
 export interface NativeCaseTaskOptions {
+  workflowVersion?: CaseTaskOptions['workflowVersion'];
   authorizeNative: AuthorizeNativeTask;
   createProvider: CaseTaskOptions['createProvider'];
   authorizeRealProvider?: CaseTaskOptions['authorizeRealProvider'];
@@ -100,6 +101,7 @@ export function createCaseTaskDriver(
         }
         if (options.legislationProvider) tools.push(createGetLegislationTool(options.legislationProvider));
         const task = new AgenticCaseTask({
+          workflowVersion: options.workflowVersion,
           context: native,
           tools,
           createProvider: options.createProvider,

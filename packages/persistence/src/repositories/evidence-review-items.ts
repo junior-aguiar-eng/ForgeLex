@@ -96,7 +96,11 @@ export function deriveEvidenceReviewItems(
         kind: 'FACT',
         text: claim.statement,
         classification:
-          claim.classification === 'CONFLICT' || row.coverage === 'CONFLICTING' ? 'DISPUTED' : claim.classification,
+          claim.classification === 'CONFLICT' || row.coverage === 'CONFLICTING'
+            ? 'DISPUTED'
+            : claim.classification === 'DOCUMENT_RECORD'
+              ? 'EXTRACTED'
+              : claim.classification,
         references: row.references,
         originIds: [row.id, claim.id],
       },

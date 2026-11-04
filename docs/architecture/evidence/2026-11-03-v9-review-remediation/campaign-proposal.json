@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "status": "PROPOSED_NOT_AUTHORIZED",
+  "sourceCorpus": "corpus-v2.mjs",
+  "workflowVersion": 9,
+  "campaignType": "Six candidate-only executions; not an A/B comparison",
+  "scenarios": [
+    "D04-V2",
+    "D01-V2",
+    "D03-V2",
+    "V2-FIT",
+    "V2-INTEGRITY",
+    "V2-MULTI"
+  ],
+  "executions": 6,
+  "estimatedModelCalls": {
+    "min": 24,
+    "max": 32,
+    "basis": "Planning range only; routing and refinements vary"
+  },
+  "maxCallsPerExecution": 24,
+  "maxCallsTotal": 144,
+  "maxOutputTokens": 2048,
+  "maxDurationMsPerExecution": 300000,
+  "capMicroUsd": 1500000,
+  "perExecutionCapMicroUsd": 250000,
+  "model": "gpt-6.1-sol",
+  "reasoning": "low",
+  "serviceTier": "default",
+  "paidCallsAuthorized": false,
+  "retriesAuthorized": false,
+  "other54Authorized": false,
+  "push": false,
+  "deploy": false,
+  "prerequisites": [
+    "Reconcile previous D04 uncertain cost using independent provider evidence",
+    "Boni explicitly authorizes this new corpus and campaign",
+    "Recheck pricing and freeze exact source/packet hashes"
+  ],
+  "firstScenario": "D04-V2",
+  "stopOn": [
+    "uncertain cost",
+    "per-execution budget refusal",
+    "transport/contract failure"
+  ]
+}

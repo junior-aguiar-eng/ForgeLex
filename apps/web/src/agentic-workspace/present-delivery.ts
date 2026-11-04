@@ -40,7 +40,12 @@ const TITLE: Record<string, string> = {
   research_question: 'Pesquisa',
   review_text: 'Revisão do texto',
 };
-const CLAIM_TAG: Record<string, string> = { ALLEGATION: 'Alegação', CONFLICT: 'Conflito', INFERENCE: 'Inferência' };
+const CLAIM_TAG: Record<string, string> = {
+  ALLEGATION: 'Alegação',
+  CONFLICT: 'Conflito',
+  INFERENCE: 'Inferência',
+  DOCUMENT_RECORD: 'Registro documental',
+};
 
 /** Fixed wording for the limitations the workflow itself raises. Others keep the statement they carry. */
 const LIMITATION_TEXT: Record<string, string> = {
@@ -162,6 +167,56 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
         citations: cite(conflict.claimIds.flatMap((id) => delivery.claims.find((c) => c.id === id)?.sourceIds ?? [])),
       });
   }
+  if (delivery.review) {
+    const section = (title: string, items: { text: string; sourceIds: string[] }[]) => {
+      if (!items.length) return;
+      blocks.push({ kind: 'heading', text: title, citations: [] });
+      for (const item of items) blocks.push({ kind: 'item', text: item.text, citations: cite(item.sourceIds) });
+    };
+    section(
+      'Correções propostas',
+      delivery.requirements
+        .filter((r) => r.kind === 'EDITORIAL')
+        .map((r) => ({ text: r.statement, sourceIds: r.sourceIds })),
+    );
+    section(
+      'Requisitos a conferir',
+      delivery.requirements
+        .filter((r) => r.kind !== 'EDITORIAL')
+        .map((r) => ({ text: r.statement, sourceIds: r.sourceIds })),
+    );
+    section(
+      'Perguntas e lacunas',
+      delivery.review.questions.map((q) => ({ text: `${q.prompt} ${q.reason}`, sourceIds: q.sourceIds })),
+    );
+    const aspects: Record<string, string> = {
+      PARTIES: 'Partes',
+      CAUSE: 'Causa',
+      DUE_DATE: 'Vencimento',
+      CREDIT_LINK: 'Vínculo com o crédito',
+    };
+    const statuses: Record<string, string> = {
+      PRESENT: 'identificado no recorte',
+      NOT_PROVIDED: 'não informado no recorte',
+      AMBIGUOUS: 'a conferir',
+      NOT_APPLICABLE: 'não aplicável ao recorte',
+    };
+    section(
+      'Aptidão dos documentos',
+      delivery.review.documentAssessments.map((d) => ({
+        text: `${d.aspects.map((a) => `${aspects[a.aspect] ?? 'Elemento'}: ${statuses[a.status] ?? 'a conferir'}${a.quote ? ` — “${a.quote}”` : ''}`).join('; ')}. ${d.conclusion}`,
+        sourceIds: [d.sourceId],
+      })),
+    );
+    section(
+      'Integridade dos documentos',
+      delivery.review.integrityAlerts.map((a) => ({ text: a.statement, sourceIds: a.sourceIds })),
+    );
+    section(
+      'Limites e pontos a conferir',
+      delivery.findings.map((f) => ({ text: f.statement, sourceIds: f.sourceIds })),
+    );
+  }
   for (const source of delivery.sources) if (source.id) cite([source.id]);
   const sources = order.map((id, i) => {
     const source = known.get(id)!;
@@ -173,7 +228,7 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
     if (text && !pending.includes(text)) pending.push(text);
   };
   const unsupportedSections: string[] = [];
-  for (const finding of delivery.findings) {
+  for (const finding of delivery.review ? [] : delivery.findings) {
     const code = codeOf(finding);
     if (code === 'UNSUPPORTED_SECTION') unsupportedSections.push(finding.statement);
     else if (LIMITATION_TEXT[code]) add(LIMITATION_TEXT[code]);
@@ -185,7 +240,7 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
         ? `A seção “${unsupportedSections[0]}” não tem fonte indicada.`
         : `As seções ${unsupportedSections.map((s) => `“${s}”`).join(', ')} não têm fonte indicada.`,
     );
-  for (const requirement of delivery.requirements)
+  for (const requirement of delivery.review ? [] : delivery.requirements)
     if (!requirement.verified) add(`Requisito não verificado: ${requirement.statement}`);
   return {
     // A deliverable promised as a draft but produced without a document is a gap analysis, never a "minuta".

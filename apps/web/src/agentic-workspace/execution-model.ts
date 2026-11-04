@@ -114,9 +114,25 @@ export interface Delivery {
     legalAssessment: string;
     issues: { id: string; statement: string; sourceIds: string[] }[];
     claims: { id: string; statement: string; classification: string; sourceIds: string[] }[];
-    requirements: { id: string; statement: string; verified: boolean; sourceIds: string[] }[];
+    requirements: {
+      id: string;
+      kind?: 'EDITORIAL' | 'PROCEDURAL';
+      statement: string;
+      verified: boolean;
+      sourceIds: string[];
+    }[];
     findings: { id: string; code?: string; statement: string; severity: string; sourceIds: string[] }[];
     sources: Source[];
+    review?: {
+      version: 1;
+      questions: { prompt: string; reason: string; sourceIds: string[] }[];
+      documentAssessments: {
+        sourceId: string;
+        aspects: { aspect: string; status: string; quote?: string }[];
+        conclusion: string;
+      }[];
+      integrityAlerts: { kind: string; statement: string; sourceIds: string[] }[];
+    };
     evidenceMatrix?: TaskEvidenceMatrix;
     document?: {
       title: string;

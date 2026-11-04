@@ -31,6 +31,14 @@ const plan = {
 };
 const result = { coveredIssueIds: ['i'], claims: [], requirements: [], findings: [], supportChecks: [] };
 const claim = { id: 'c1', classification: 'INFERENCE', statement: 'Afirmação', sourceIds: ['s'] };
+it('v9 separates different case namespaces while retaining legacy role-only identities for old checkpoints', () => {
+  const a = scopeTaskResult({ ...result, claims: [claim as any] }, 'matter-analyst:0', {}, 'case-binding-a');
+  const b = scopeTaskResult({ ...result, claims: [claim as any] }, 'matter-analyst:0', {}, 'case-binding-b');
+  expect(a.claims[0].id).not.toBe(b.claims[0].id);
+  expect(scopeTaskResult({ ...result, claims: [claim as any] }, 'matter-analyst:0', {}).claims[0].id).toBe(
+    '0623a0beb6:c1',
+  );
+});
 const historical = (id: string) =>
   JSON.parse(
     readFileSync(`docs/architecture/evidence/2026-11-02-delivery-failure-fix/real/${id}.checkpoint.json`, 'utf8'),

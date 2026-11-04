@@ -1,0 +1,122 @@
+[
+  {
+    "file": "packages/agent-core/src/runtime/agent-failure.ts",
+    "sha256": "3b4ce74e6f7af26042860e3cc3da6878fedee409459c41f29afe6d56de71623a"
+  },
+  {
+    "file": "packages/agent-core/src/runtime/agent-failure.test.ts",
+    "sha256": "426ce990d4d74e52a8e3a7c4c1803b40f6c68c9c2aa1964906a1ed3f86b73872"
+  },
+  {
+    "file": "apps/api/src/agentic-workspace/commercial-provider.ts",
+    "sha256": "53e9028c0e51a7711e2bd0daa3c8c8f64b7355d8ebbd6ce39c280e35730a5b93"
+  },
+  {
+    "file": "apps/api/src/agentic-workspace/commercial-provider.test.ts",
+    "sha256": "f312dd46ef96adc6fdb8115f2a1265e996752d29e2672403ca626643b93ccd2f"
+  },
+  {
+    "file": "apps/api/src/agentic-workspace/failure-log.ts",
+    "sha256": "41e9dba71dd9fbffcf65b87d9d9f84fb610f83f53363428ad0bd17a351b9a31a"
+  },
+  {
+    "file": "apps/api/src/agentic-workspace/failure-log.test.ts",
+    "sha256": "282750648d13f50fa62321dde4dad8136c20b48ba0c7861ef33d1cc8c2bb2c98"
+  },
+  {
+    "file": "apps/api/src/agentic-workspace/case-task-driver.ts",
+    "sha256": "7db8fd806bb8e3d361d9b735cf66f1740cb764980733d969a75d851aa170c610"
+  },
+  {
+    "file": "packages/domain/src/contracts/agentic-case-task.ts",
+    "sha256": "fc91aa886dfd2f1371320cdfa939792e926547ecb34e56749185a0cf03b88e01"
+  },
+  {
+    "file": "packages/legal-agents/src/index.ts",
+    "sha256": "c528394c35cfcd1ae1feab69cbe4ef49b6abd67e1ce5aa47a43387bba84122ea"
+  },
+  {
+    "file": "packages/legal-agents/src/agentic-reviewed-delivery.ts",
+    "sha256": "5bb85533d586589e41ab5cae39c333c06a1b519d3d9c657651d47430229dc360"
+  },
+  {
+    "file": "packages/legal-workflows/src/agentic-case-task/case-task.ts",
+    "sha256": "5bc4f713fdadbd20deef50216056ea89e00b2df73604e0dc107e263d23922c66"
+  },
+  {
+    "file": "packages/legal-workflows/src/agentic-case-task/failure-checkpoint.test.ts",
+    "sha256": "0a85c9ca5ab587d41d8b17d779bf4c99ef10254d7ffa00a124e55773e6e905d3"
+  },
+  {
+    "file": "packages/legal-workflows/src/agentic-case-task/reviewed-delivery.ts",
+    "sha256": "8adbc0f4d58ff14ff0616c12e6bbd36f95ad73b64c767a06edcdd33d45b60969"
+  },
+  {
+    "file": "packages/legal-workflows/src/agentic-case-task/reviewed-delivery.test.ts",
+    "sha256": "c5534563de59619f2545e2f3e705df4a91472fb6d09e9fc23e6352b22ab1e5f7"
+  },
+  {
+    "file": "packages/legal-workflows/src/agentic-case-task/reviewed-flow.test.ts",
+    "sha256": "3d50e863178ee66f43f93732ce592c0e9bc69975bdef769bd6dd1cea6723e618"
+  },
+  {
+    "file": "packages/legal-workflows/src/agentic-case-task/scoped-handoff.ts",
+    "sha256": "36c6b8646ed39846a8edcf41d5b6f36fc2bf4ffb2519a6ac474b97b1c4d0fe67"
+  },
+  {
+    "file": "packages/legal-workflows/src/agentic-case-task/scoped-handoff.test.ts",
+    "sha256": "5cd0018b8e3b5adf09f6b62194cf8b98749a4cffba66ef5fa3cd9c6d8a4c3c08"
+  },
+  {
+    "file": "packages/legal-workflows/src/agentic-case-task/support-audit.ts",
+    "sha256": "06daadfc1693dd63a5d2311364b579a58c39dcf2432fec89d27794967a5432ee"
+  },
+  {
+    "file": "packages/persistence/src/repositories/evidence-review-items.ts",
+    "sha256": "09c4b10d91e2aed99a6a6dc0fc2f4d158f3011073346e3992035c1f36a132739"
+  },
+  {
+    "file": "packages/persistence/src/repositories/evidence-review-items.test.ts",
+    "sha256": "0e572fb7ab7f43555e33f6d57430a2951501e92ed905d7a5bd0e209e5b3a3f50"
+  },
+  {
+    "file": "apps/web/src/agentic-workspace/execution-model.ts",
+    "sha256": "c03befe86bf2aba6c7fb360eaa069f69b5dcc216be0b78e339ca4dfd0fd469ab"
+  },
+  {
+    "file": "apps/web/src/agentic-workspace/present-delivery.ts",
+    "sha256": "f0f3ecdadebc5eebfe3b45d60578c2179d172adc93aba4303d3730c755091691"
+  },
+  {
+    "file": "apps/web/src/agentic-workspace/present-delivery.test.ts",
+    "sha256": "fdbd037ca80e5cecc0afdf761c872b91acbeeaf901ba780608f15cf01a7f918a"
+  },
+  {
+    "file": "tests/e2e/editorial-review.spec.ts",
+    "sha256": "543d8cfb6efd3350087c9c8f2a7610bc3b4ec1573b57f58f8c00a602b7e29df4"
+  },
+  {
+    "file": "scripts/forgelex-final-evaluation/calibration-harness.fixture.ts",
+    "sha256": "6875186793c435d5fa860f4d350a44cdb7693ebd76dce4d6d382404ef2584676"
+  },
+  {
+    "file": "scripts/forgelex-final-evaluation/corpus-v2.mjs",
+    "sha256": "39cabe8775324c6decbc486cec3cd28e3a9c9d7666d96ed9af51c695ec44c8bb"
+  },
+  {
+    "file": "scripts/forgelex-final-evaluation/corpus-v2.test.mjs",
+    "sha256": "4a343dfb33061313a1adc215e12e23f95e95ae2bd3d9a919c022501b274125de"
+  },
+  {
+    "file": "PENDENCIAS.md",
+    "sha256": "efa8624b731abf041dcd56c828476c31d64db7774c8ec712250e30b12d55f76b"
+  },
+  {
+    "file": "docs/architecture/2026-11-03-forgelex-v9-review-remediation.md",
+    "sha256": "61db5fef18b6418a61c066d4158b11114d413c0707f825e2fa0bd11261c8daa6"
+  },
+  {
+    "file": "docs/superpowers/plans/2026-11-03-forgelex-v9-review-remediation.md",
+    "sha256": "4b2121054a1a8b627571904627f8e383387e993f9e3220af2b9e6fb2e4ad874a"
+  }
+]

@@ -6,19 +6,17 @@ export function auditClaimSupport(
   claims: TaskSpecialistResult['claims'],
   sources: TaskSource[],
   checks: TaskSpecialistResult['supportChecks'],
+  includeDocuments = false,
 ): { entries: TaskSupportAudit[]; invalidChecks: boolean } {
   const sourceById = new Map(sources.map((source) => [source.id, source]));
+  const kinds = includeDocuments ? ['AUTHORITY', 'NORM', 'DOCUMENT', 'USER_TEXT', 'ANSWER'] : ['AUTHORITY', 'NORM'];
   const claimById = new Map(claims.map((claim) => [claim.id, claim]));
   const checksByPair = new Map<string, TaskSpecialistResult['supportChecks']>();
   const key = (claimId: string, sourceId: string) => JSON.stringify([claimId, sourceId]);
   let invalidChecks = false;
   for (const check of checks) {
     const source = sourceById.get(check.sourceId);
-    if (
-      !source ||
-      !['AUTHORITY', 'NORM'].includes(source.kind) ||
-      !claimById.get(check.claimId)?.sourceIds.includes(check.sourceId)
-    ) {
+    if (!source || !kinds.includes(source.kind) || !claimById.get(check.claimId)?.sourceIds.includes(check.sourceId)) {
       invalidChecks = true;
       continue;
     }
@@ -29,7 +27,7 @@ export function auditClaimSupport(
   for (const claim of claims)
     for (const sourceId of new Set(claim.sourceIds)) {
       const source = sourceById.get(sourceId);
-      if (!source || !['AUTHORITY', 'NORM'].includes(source.kind)) continue;
+      if (!source || !kinds.includes(source.kind)) continue;
       const pairChecks = checksByPair.get(key(claim.id, sourceId)) ?? [];
       const unique = pairChecks.length === 1 ? pairChecks[0] : undefined;
       if (pairChecks.length > 1) invalidChecks = true;
