@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-04",
+  "by": "Boni",
+  "source": "Current chat",
+  "decision": "Execute v9 starting with D04-V2 while retaining USD 0.083620 historical reserve and USD 1.50 ceiling",
+  "historicalReconciliation": "UNRESOLVED_RESERVE_RETAINED",
+  "retries": false,
+  "commit": false,
+  "push": false,
+  "publish": false,
+  "mode": "real",
+  "packetSha256": "b6488b1da1bdf2698a2ad346dd2dfd1d6d31de0818ac3c6ce528916d7d5eb99e",
+  "historicalReserveMicroUsd": 83620,
+  "newCallsCapMicroUsd": 1416380,
+  "totalCapMicroUsd": 1500000
+}

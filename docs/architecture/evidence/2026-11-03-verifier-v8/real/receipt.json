@@ -1,0 +1,274 @@
+{
+  "date": "2026-11-03",
+  "recordedAtUtc": "2026-11-03T21:54:31.962Z",
+  "campaignId": "2026-11-03-verifier-v8-local-validated",
+  "scopeAttempted": true,
+  "scopeCompleted": false,
+  "completionState": "INTERRUPTED_UNCERTAIN_COST",
+  "runnerExitCode": 1,
+  "packetSha256": "0a5d2e082b0cd53e2d07f8a72d87771aa1f381e1f390832938c8ba5c3083d152",
+  "candidateSourceSha256": "02211bf5a180a4ce80f6fb383d850da117df20ca90ceaabdc65995e6814bb498",
+  "candidateHead": "adc823b518934e8b1bbdb0aaef8fb27ccd599698",
+  "baseline": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "approvedCapMicroUsd": 1500000,
+  "perRunCapMicroUsd": 250000,
+  "paidModelCalls": 18,
+  "settledCalls": 17,
+  "measuredMicroUsd": 189408,
+  "calculatedUsd": 0.189408,
+  "historicalCalibrationUsd": 1.12643,
+  "combinedCalibrationUsd": 1.315838,
+  "costBasis": "Provider-reported usage at verified Standard rates, rounded per call; not invoice reconciliation",
+  "pricingSource": "https://developers.openai.com/api/docs/pricing",
+  "tokens": {
+    "input": 50109,
+    "output": 8919,
+    "cached": 0
+  },
+  "executions": 6,
+  "questions": 3,
+  "failed": 1,
+  "deliveries": 2,
+  "uncertainMicroUsd": 83620,
+  "exposureUpperUsd": 0.273028,
+  "uncertainCostIsNotZero": true,
+  "ledgerChainVerified": true,
+  "ledgerSha256": "5263bf583c77f1ec2ecbc5743996c24ea128b18586cdb32a68ede8bc8e135b8e",
+  "sourceFilesVerified": 797,
+  "historicalLedgersVerifiedUnchanged": 4,
+  "legalAssessment": "NOT_EVALUATED",
+  "legalScore": null,
+  "paidEditorialCalls": 0,
+  "push": false,
+  "deploy": false,
+  "operationalMigrations": false,
+  "runs": [
+    {
+      "id": "D01-analyze-baseline",
+      "outcome": "question",
+      "error": null,
+      "diagnostic": null,
+      "calls": 3,
+      "measuredCostUsd": 0.023386,
+      "uncertainUpperUsd": 0,
+      "durationMs": 21535.0224,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "deliveryStatus": null,
+      "hasQuestion": true,
+      "findingCodes": []
+    },
+    {
+      "id": "D01-analyze-candidate",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "calls": 4,
+      "measuredCostUsd": 0.068458,
+      "uncertainUpperUsd": 0,
+      "durationMs": 59061.27820000001,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "procedural-advisor",
+        "authority-verifier"
+      ],
+      "stateVersion": 8,
+      "hasDelivery": true,
+      "deliveryStatus": "LIMITED",
+      "hasQuestion": false,
+      "findingCodes": [
+        "CAPABILITY_UNAVAILABLE",
+        "ENTREGA_RESTANTE_INDETERMINADA",
+        "EXIGIBILIDADE_E_PAGAMENTO",
+        "LIMITES_DO_CORPUS",
+        "ENTREGA_RESTANTE",
+        "EXIGIBILIDADE_PAGAMENTO",
+        "BASE_NORMATIVA_LIMITADA",
+        "SEM_ANALISE_DE_PRAZO",
+        "NORM_IDENTITY_LIMIT",
+        "PARTIAL_TEXTUAL_SUPPORT",
+        "DELIVERY_LIMITATIONS",
+        "DELIVERY_INFORMATION_LIMITED",
+        "DELIVERY_INFORMATION_LIMITED",
+        "CITATION_WITHOUT_SUPPORT",
+        "PROCEDURAL_REQUIREMENT_UNVERIFIED",
+        "PROCEDURAL_REQUIREMENT_UNVERIFIED",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "D03-review-baseline",
+      "outcome": "question",
+      "error": null,
+      "diagnostic": null,
+      "calls": 3,
+      "measuredCostUsd": 0.020586,
+      "uncertainUpperUsd": 0,
+      "durationMs": 16733.554900000003,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "deliveryStatus": null,
+      "hasQuestion": true,
+      "findingCodes": []
+    },
+    {
+      "id": "D03-review-candidate",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "calls": 4,
+      "measuredCostUsd": 0.05526,
+      "uncertainUpperUsd": 0,
+      "durationMs": 42345.1208,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 8,
+      "hasDelivery": true,
+      "deliveryStatus": "LIMITED",
+      "hasQuestion": false,
+      "findingCodes": [
+        "CAPABILITY_UNAVAILABLE",
+        "QUITACAO_SEM_SUPORTE",
+        "INSTRUCAO_DOCUMENTAL_ADOTADA",
+        "ENCERRAMENTO_SEM_BASE",
+        "ALCANCE_NORMATIVO_LIMITADO",
+        "PAGAMENTO_SEM_PROVA",
+        "COMANDO_DOCUMENTAL_COMO_FUNDAMENTO",
+        "CONCLUSAO_SEM_PREMISSA",
+        "LIMITE_DA_REFERENCIA_NORMATIVA",
+        "NORM_SCOPE",
+        "SUPPORT_LIMIT",
+        "UNSUPPORTED_DRAFT",
+        "DELIVERY_INFORMATION_LIMITED",
+        "CITATION_WITHOUT_SUPPORT",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "EDITORIAL_REQUIREMENT_UNVERIFIED",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "D04-create-baseline",
+      "outcome": "question",
+      "error": null,
+      "diagnostic": null,
+      "calls": 3,
+      "measuredCostUsd": 0.021718,
+      "uncertainUpperUsd": 0,
+      "durationMs": 23436.5366,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": 1,
+      "hasDelivery": false,
+      "deliveryStatus": null,
+      "hasQuestion": true,
+      "findingCodes": []
+    },
+    {
+      "id": "D04-create-candidate",
+      "outcome": "failed",
+      "error": "OPENAI_AGENT_ERROR",
+      "diagnostic": {
+        "errorType": "Error",
+        "role": "legal-orchestrator"
+      },
+      "calls": 1,
+      "measuredCostUsd": 0,
+      "uncertainUpperUsd": 0.08362,
+      "durationMs": 10680.3047,
+      "roles": [
+        "legal-orchestrator"
+      ],
+      "stateVersion": null,
+      "hasDelivery": false,
+      "deliveryStatus": null,
+      "hasQuestion": false,
+      "findingCodes": []
+    }
+  ],
+  "artifacts": [
+    {
+      "file": "authorization.json",
+      "sha256": "67cfacd0645ec43da4eacb47a82a89f4772e14ed981aa651f770e26b43336465"
+    },
+    {
+      "file": "budget.jsonl",
+      "sha256": "5263bf583c77f1ec2ecbc5743996c24ea128b18586cdb32a68ede8bc8e135b8e"
+    },
+    {
+      "file": "comparison-derived.json",
+      "sha256": "5f5caadcbd97808081327ca05457608ee320b20131c8db67da40ba92f2dd2632"
+    },
+    {
+      "file": "D01-analyze-baseline.checkpoint.json",
+      "sha256": "a950934a73366a9602e5fd99a5d138307e975545219a55ed1ddf01d78aa48116"
+    },
+    {
+      "file": "D01-analyze-baseline.json",
+      "sha256": "ef2ccd7335105e0d8042301ea46a548c6e8bdc0573f6d8f73c0bc2344b53e664"
+    },
+    {
+      "file": "D01-analyze-candidate.checkpoint.json",
+      "sha256": "737adc27845f09ba901d033a8bb4a3b102d979ff1a61adc4ae5e5789d34f4fa4"
+    },
+    {
+      "file": "D01-analyze-candidate.json",
+      "sha256": "1b7768f390ecdb76a02b83ae1231d685865cd8ee511cb5ae17eaa1b62489477f"
+    },
+    {
+      "file": "D03-review-baseline.checkpoint.json",
+      "sha256": "3dc0536936e70566ea394d6521df948086fdf738c06aefa311c6a1c222fdf86e"
+    },
+    {
+      "file": "D03-review-baseline.json",
+      "sha256": "6a5511aeb768b638c7a5f5c09dc6648334c012406a6e32bb4b0895fa68f6bce1"
+    },
+    {
+      "file": "D03-review-candidate.checkpoint.json",
+      "sha256": "a5e6f4040b7f320e4f3ffa0a2443c865aecab7c4688f8a48ec985ab0811ec2f6"
+    },
+    {
+      "file": "D03-review-candidate.json",
+      "sha256": "dc48f1413556be90d435fa17461ecfbe03e53edf4d2ff0d6864b4fb5a6420aaf"
+    },
+    {
+      "file": "D04-create-baseline.checkpoint.json",
+      "sha256": "2d8b4c26b8843d1145b25441ce16c080c693547870919abede5c45c1f6a6f7e0"
+    },
+    {
+      "file": "D04-create-baseline.json",
+      "sha256": "733bbf758f089da86c4ef1be22f93a47b08366e27f8b30d9f72a353ca24cd3e3"
+    },
+    {
+      "file": "D04-create-candidate.json",
+      "sha256": "481bd15e6c84595bfe12f7439fbed49da43e5fa2cdf350b06e0c916402f476d3"
+    },
+    {
+      "file": "execution.txt",
+      "sha256": "9084674895df98f2d7df6b19c2d685a2fc2e220923d897dc7d8b3b184ac9db07"
+    },
+    {
+      "file": "packet.json",
+      "sha256": "0a5d2e082b0cd53e2d07f8a72d87771aa1f381e1f390832938c8ba5c3083d152"
+    },
+    {
+      "file": "previous-ledger-hashes.json",
+      "sha256": "bd8347e92055a1e650198a63c213730b747b0e367979eb39627bb6d5234f2235"
+    }
+  ]
+}

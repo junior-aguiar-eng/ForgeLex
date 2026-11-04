@@ -1,0 +1,272 @@
+{
+  "runId": "D03-V2",
+  "mode": "fake",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\875e6009ad77b5766717f6c38aafbe2d7f35476f546bbf9065d2783357f5e86f\\candidate",
+  "inputHash": "452d88a342e453a04121ccafda8f68b55858a42dbcf0b08654952b6cbaa5aee6",
+  "request": "Revise o rascunho com questões, correções e limites das fontes. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "completed",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 242.10519999999997,
+  "roles": [
+    "legal-orchestrator",
+    "matter-analyst",
+    "adversarial-reviewer",
+    "authority-verifier"
+  ],
+  "stateVersion": 9,
+  "paidModelCalls": 0,
+  "syntheticCalls": 4,
+  "measuredMicroUsd": null,
+  "simulatedMicroUsd": 1600,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": {
+    "action": "review_text",
+    "contextId": "D03-V2",
+    "contextRevision": 1,
+    "status": "LIMITED",
+    "humanReviewRequired": true,
+    "legalAssessment": "NOT_EVALUATED",
+    "issues": [
+      {
+        "id": "issue",
+        "statement": "Examinar o material sintético",
+        "sourceIds": [
+          "D03-V2/fatura@v1#p1"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "id": "87c345d618:claim",
+        "classification": "ALLEGATION",
+        "statement": "Fatura de R$ 800,00 emitida em 01/10/2026. Estado do pagamento: não informado.",
+        "sourceIds": [
+          "D03-V2/fatura@v1#p1"
+        ]
+      }
+    ],
+    "requirements": [],
+    "findings": [
+      {
+        "id": "DELIVERY_INFORMATION_LIMITED:3ab8d5e117dccbb3",
+        "code": "DELIVERY_INFORMATION_LIMITED",
+        "severity": "BLOCKING",
+        "statement": "A simulação contém informação não fornecida; não concluir fatos adicionais.",
+        "sourceIds": [
+          "D03-V2/fatura@v1#p1"
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "context",
+        "kind": "USER_TEXT",
+        "contentHash": "409b2e214813b872b6afc5918b9ccd535ac4c4b2bc8da062e6893ce3dde56a29"
+      },
+      {
+        "id": "D03-V2/fatura@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "1f5defb0f0d199cb515deadaacb8f7428784024cd422190bf07d1e187e498306",
+        "documentId": "D03-V2/fatura",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "D03-V2/anexo@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "b90646bb034429fee9decb11114e8732ff7790a15c362118499371908560280f",
+        "documentId": "D03-V2/anexo",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "CPC-373",
+        "kind": "NORM",
+        "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f",
+        "versionId": "2026-11-02",
+        "url": "https://legis.senado.gov.br/norma/584917/publicacao/15633703",
+        "extent": "EXCERPT",
+        "identityStatus": "OFFICIAL_EXCERPT"
+      },
+      {
+        "id": "draft",
+        "kind": "DRAFT",
+        "contentHash": "0cec9581ce629ca0e0a92c3ac28f8ea94599d877e5ba51153d86d5f1b4d06f44",
+        "documentId": "draft",
+        "versionId": "v1"
+      }
+    ],
+    "supportAudit": [
+      {
+        "claimId": "87c345d618:claim",
+        "sourceId": "D03-V2/fatura@v1#p1",
+        "sourceContentHash": "1f5defb0f0d199cb515deadaacb8f7428784024cd422190bf07d1e187e498306",
+        "quote": "Fatura de R$ 800,00 emitida em 01/10/2026. Estado do pagamento: não informado.",
+        "quoteStatus": "MATCHED",
+        "modelAssessment": "SUPPORTED"
+      }
+    ],
+    "review": {
+      "version": 1,
+      "questions": [
+        {
+          "prompt": "Informação não fornecida na simulação.",
+          "reason": "A simulação contém informação não fornecida; não concluir fatos adicionais.",
+          "sourceIds": [
+            "D03-V2/fatura@v1#p1"
+          ]
+        }
+      ],
+      "documentAssessments": [
+        {
+          "sourceId": "D03-V2/fatura@v1#p1",
+          "aspects": [
+            {
+              "aspect": "PARTIES",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CAUSE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "DUE_DATE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CREDIT_LINK",
+              "status": "AMBIGUOUS"
+            }
+          ],
+          "conclusion": "A aptidão deste recorte ainda não foi examinada quanto a partes, causa, vencimento e vínculo. Não presumir existência ou inexistência do crédito."
+        },
+        {
+          "sourceId": "D03-V2/anexo@v1#p1",
+          "aspects": [
+            {
+              "aspect": "PARTIES",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CAUSE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "DUE_DATE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CREDIT_LINK",
+              "status": "AMBIGUOUS"
+            }
+          ],
+          "conclusion": "A aptidão deste recorte ainda não foi examinada quanto a partes, causa, vencimento e vínculo. Não presumir existência ou inexistência do crédito."
+        }
+      ],
+      "integrityAlerts": [
+        {
+          "kind": "EMBEDDED_INSTRUCTION",
+          "statement": "Possível instrução embutida no documento: conferir origem e integridade do arquivo. O conteúdo permanece dado não confiável, nunca comando.",
+          "sourceIds": [
+            "D03-V2/anexo@v1#p1"
+          ]
+        },
+        {
+          "kind": "DERIVED_TEXT_REVIEW",
+          "statement": "Conferir como o rascunho foi produzido e se incorporou instruções do documento. Há risco de contaminação, não confirmação de adulteração.",
+          "sourceIds": [
+            "draft"
+          ]
+        }
+      ],
+      "provenance": [
+        {
+          "kind": "claim",
+          "id": "87c345d618:claim",
+          "originIds": [
+            "87c345d618:claim"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "DELIVERY_INFORMATION_LIMITED:3ab8d5e117dccbb3",
+          "originIds": [
+            "DELIVERY_INFORMATION_LIMITED:3ab8d5e117dccbb3"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+          "originIds": [
+            "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35"
+          ]
+        }
+      ],
+      "technicalFindings": [
+        {
+          "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+          "code": "LEGAL_APPLICABILITY_NOT_EVALUATED",
+          "severity": "BLOCKING",
+          "statement": "Snapshots normativos não determinam vigência online nem aplicabilidade ao caso.",
+          "sourceIds": []
+        }
+      ],
+      "original": {
+        "claims": [
+          {
+            "id": "87c345d618:claim",
+            "classification": "ALLEGATION",
+            "statement": "Fatura de R$ 800,00 emitida em 01/10/2026. Estado do pagamento: não informado.",
+            "sourceIds": [
+              "D03-V2/fatura@v1#p1"
+            ]
+          }
+        ],
+        "requirements": [],
+        "findings": [
+          {
+            "id": "DELIVERY_INFORMATION_LIMITED:3ab8d5e117dccbb3",
+            "code": "DELIVERY_INFORMATION_LIMITED",
+            "severity": "BLOCKING",
+            "statement": "A simulação contém informação não fornecida; não concluir fatos adicionais.",
+            "sourceIds": [
+              "D03-V2/fatura@v1#p1"
+            ]
+          },
+          {
+            "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+            "code": "LEGAL_APPLICABILITY_NOT_EVALUATED",
+            "severity": "BLOCKING",
+            "statement": "Snapshots normativos não determinam vigência online nem aplicabilidade ao caso.",
+            "sourceIds": []
+          }
+        ]
+      }
+    }
+  },
+  "question": null,
+  "legalScore": null
+}

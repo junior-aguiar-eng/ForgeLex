@@ -101,3 +101,35 @@ test('per-run cap, call count and execution deadline cannot be expanded', () => 
   assert.throws(() => budget.reserve('after', 'late', 1), /DEADLINE/);
   budget.close();
 });
+
+test('continuation limits subtract previous spend, calls and active time without expanding total cap', () => {
+  let now = 100;
+  const config = fixture({
+    cap: 1324484,
+    runCap: 500000,
+    runLimits: { before: { runCap: 408104, maxCalls: 20, maxDurationMs: 230294 } },
+    now: () => now,
+  });
+  const budget = new EvaluationBudget(config);
+  budget.begin('before');
+  assert.equal(budget.reserve('before', 'next', 195188), true);
+  budget.settle('before', 'next', 100000, {});
+  assert.throws(() => budget.reserve('before', 'too-large', 308105), /BUDGET/);
+  for (let i = 1; i < 20; i++) {
+    budget.reserve('before', 'n' + i, 1);
+    budget.void('before', 'n' + i);
+  }
+  assert.throws(() => budget.reserve('before', 'over-count', 1), /CALL_LIMIT/);
+  budget.finish('before', 'completed');
+  budget.begin('after');
+  budget.reserve('after', 'a', 400000);
+  budget.settle('after', 'a', 400000, {});
+  assert.throws(() => budget.reserve('after', 'b', 100001), /BUDGET/);
+  budget.close();
+  assert.throws(() => new EvaluationBudget({ ...config, runCap: 600000 }), /FINGERPRINT/);
+  const timed = new EvaluationBudget(fixture({ runLimits: { before: { maxDurationMs: 10 } }, now: () => now }));
+  timed.begin('before');
+  now += 10;
+  assert.throws(() => timed.reserve('before', 'late', 1), /DEADLINE/);
+  timed.close();
+});

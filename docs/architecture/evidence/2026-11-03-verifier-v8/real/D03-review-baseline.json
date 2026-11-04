@@ -1,0 +1,50 @@
+{
+  "runId": "D03-review-baseline",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\02211bf5a180a4ce80f6fb383d850da117df20ca90ceaabdc65995e6814bb498\\baseline",
+  "inputHash": "7eb08d631b9ebd8e6f0022f137194e7b289c389a3fdc4de04f845c5833b389f6",
+  "request": "Revise o rascunho fornecido, indicando problemas concretos, fontes e correções necessárias. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "question",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 16733.554900000003,
+  "roles": [
+    "legal-orchestrator"
+  ],
+  "stateVersion": 1,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 20586,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 1658,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2228,
+      "outputTokens": 675,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2922,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": {
+    "id": "case-task:prova-pagamento-credito",
+    "version": 1,
+    "contextRevision": 1,
+    "prompt": "O corpus selecionado não contém comprovação de pagamento nem elementos suficientes para concluir pela exigibilidade do crédito. Entrega limitada à identificação desses limites e à correção do rascunho, sem afirmar quitação, inadimplemento ou encerramento.",
+    "selection": "free_text",
+    "options": [],
+    "allowFreeText": true,
+    "allowUnknown": true,
+    "reason": "A situação do pagamento está expressamente não informada. A ausência de prova no corpus fechado não confirma nenhum desses resultados; não se requer ampliação das fontes para realizar a revisão limitada solicitada."
+  },
+  "legalScore": null
+}

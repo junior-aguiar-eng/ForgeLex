@@ -1,0 +1,119 @@
+{
+  "date": "2026-11-04",
+  "historicalPreservation": {
+    "protected-v8-files.json": 58,
+    "previous-ledgers.json": 4
+  },
+  "previousV9ArtifactsPreserved": 17,
+  "frozenFilesVerified": 815,
+  "newPaidCalls": 10,
+  "allV9PaidCalls": 28,
+  "settledCalls": 10,
+  "providerRequestIds": 10,
+  "newMeasuredMicroUsd": 199248,
+  "totalMeasuredMicroUsd": 572246,
+  "newUncertainMicroUsd": 0,
+  "historicalReserveMicroUsd": 83620,
+  "exposureIncludingHistoricalReserveMicroUsd": 655866,
+  "fitResumedRoles": [
+    "authority-verifier"
+  ],
+  "offlineScenariosPassed": 3,
+  "nodeTestsPassed": 19,
+  "finalizationGuardsPassed": 9,
+  "focusedProductTestsPassed": 75,
+  "build": "passed",
+  "typecheck": "passed",
+  "focusedLint": "passed",
+  "files": [
+    {
+      "file": "real\\authorization.json",
+      "sha256": "7dcccd8ef379207fdf9064257f45d18a33421f60088a1b447b875e428df0d6c8"
+    },
+    {
+      "file": "real\\budget.jsonl",
+      "sha256": "bcc1be1eb34b995008e6690ca79bc00a118b08f156ad96fde44596abcc82f9e6"
+    },
+    {
+      "file": "real\\call-trace.jsonl",
+      "sha256": "1246611d6adaa610ca868ed860153ebb5f538985de2a7340c649a8bf7e5a7515"
+    },
+    {
+      "file": "real\\execution.txt",
+      "sha256": "5798a7fe5d755d4ff558c608ad5d8407b47f96eb8c54d72a5ca7450dd419ae4e"
+    },
+    {
+      "file": "real\\invocation.json",
+      "sha256": "73d33fcfeb03d41a6b48e87f45abcb7b583d04c93d0d397b1da8968b0d7666f5"
+    },
+    {
+      "file": "real\\ledger-audit.json",
+      "sha256": "5f9a92f4a7351ba3bacbfef70bcc4af1d0207b22c4022ff7cb767708382cf13d"
+    },
+    {
+      "file": "real\\receipt.json",
+      "sha256": "8db86b4a985357c3ec6c756e7373eb892af4758fab0afb02ec23e7f26efd520e"
+    },
+    {
+      "file": "real\\V2-FIT.checkpoint.json",
+      "sha256": "3c750049764be324b7c600f3a7184708d207732fe8bfd22572db9db2d748020d"
+    },
+    {
+      "file": "real\\V2-FIT.json",
+      "sha256": "c311a79835992b9be21f94e4e9cd799cf93ab344c978cfaf78901a48320cced2"
+    },
+    {
+      "file": "real\\V2-INTEGRITY.checkpoint.json",
+      "sha256": "6df568e4db420ae7ad6839d901c011d54194b9158ca8a30c3f2dc9ac7dd24c25"
+    },
+    {
+      "file": "real\\V2-INTEGRITY.json",
+      "sha256": "ae8cab5d083d1115037cfc790fe5b2175fd5c6a5b5a341fc2939fac392c7c1cf"
+    },
+    {
+      "file": "real\\V2-MULTI.checkpoint.json",
+      "sha256": "6e81886f137cda49b11a585f423fd4fe5babde3c561f754749cf3e0c549fa4d3"
+    },
+    {
+      "file": "real\\V2-MULTI.json",
+      "sha256": "7770746ae502e894f4147dcfcfa9a047dddd78b4762655dcb49a271cc5102ab7"
+    },
+    {
+      "file": "real\\vitest.config.mjs",
+      "sha256": "b2cb68b6cf3c5bfec16eb5fcfd757b74b1b73f932e14d6899f10285d490c1fd3"
+    }
+  ],
+  "checkFiles": [
+    {
+      "file": "checks\\v9-final-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "checks\\v9-final-node.log",
+      "sha256": "50cbd58d993e7dea3675cce433e53d933f585a0789c3ca3db085792d80f59f48"
+    },
+    {
+      "file": "checks\\v9-final-types.log",
+      "sha256": "82b80fcce2fd526f2ef30a5b314e22a136be5a6a2db683a2c77af0b6a16d679b"
+    },
+    {
+      "file": "checks\\v9-id-build.log",
+      "sha256": "c8705e463cc4fcd6174edf6c997d202de5f54c864f920f82fc5a6624e04d70cb"
+    },
+    {
+      "file": "checks\\v9-id-focused.log",
+      "sha256": "3106bb806c75557cf1b5f2dfa6d5f44dfc124c0282f93262370bc977de2d14b4"
+    },
+    {
+      "file": "checks\\v9-id-red.log",
+      "sha256": "7a173d9f1355de44b4f5c71e4bc539e7f39465c6e2735ff91dd1ca430c895b9f"
+    }
+  ],
+  "formatting": "passed",
+  "remainingSemanticLimitations": [
+    "LIMITED deliveries; legal assessment pending Boni",
+    "Residual paraphrase duplication in V2-MULTI",
+    "Unverified editorial requirements and support warnings",
+    "Historical D04-v8 reserve unresolved"
+  ]
+}

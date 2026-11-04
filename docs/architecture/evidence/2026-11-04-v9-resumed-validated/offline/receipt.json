@@ -1,0 +1,293 @@
+{
+  "mode": "fake",
+  "packetSha256": "865cebcfdf849521329f92e13d616c74cdf2d75accf33745c0e2249b94a38962",
+  "status": "COMPLETED",
+  "stopReason": null,
+  "historicalReserveMicroUsd": 83620,
+  "paidModelCalls": 0,
+  "measuredMicroUsd": 0,
+  "uncertainMicroUsd": 0,
+  "runs": [
+    {
+      "runId": "D04-V2",
+      "mode": "fake",
+      "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2\\candidate",
+      "inputHash": "804302f719b1c0385568b2d7c8bf5ea3c58811314da9f5f416e38e27f0fe5ec0",
+      "request": "Prepare minuta limitada às fontes selecionadas, sem inventar qualificação, juízo ou prazo. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "durationMs": 191.05220000000008,
+      "roles": [
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 9,
+      "paidModelCalls": 0,
+      "syntheticCalls": 2,
+      "measuredMicroUsd": null,
+      "simulatedMicroUsd": 800,
+      "uncertainUpperMicroUsd": 0,
+      "usage": [
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        }
+      ],
+      "legalScore": null,
+      "hasDelivery": true,
+      "hasQuestion": false
+    },
+    {
+      "runId": "D01-V2",
+      "mode": "fake",
+      "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2\\candidate",
+      "inputHash": "f066234c48793c8ab606e7ede146bbb35ec5932d5be3d8ea04e153e800f66914",
+      "request": "Analise questões, documentos e lacunas do caso. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "durationMs": 200.13760000000002,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "authority-verifier"
+      ],
+      "stateVersion": 9,
+      "paidModelCalls": 0,
+      "syntheticCalls": 3,
+      "measuredMicroUsd": null,
+      "simulatedMicroUsd": 1200,
+      "uncertainUpperMicroUsd": 0,
+      "usage": [
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        }
+      ],
+      "legalScore": null,
+      "hasDelivery": true,
+      "hasQuestion": false
+    },
+    {
+      "runId": "D03-V2",
+      "mode": "fake",
+      "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2\\candidate",
+      "inputHash": "452d88a342e453a04121ccafda8f68b55858a42dbcf0b08654952b6cbaa5aee6",
+      "request": "Revise o rascunho com questões, correções e limites das fontes. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "durationMs": 385.197000000001,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 9,
+      "paidModelCalls": 0,
+      "syntheticCalls": 4,
+      "measuredMicroUsd": null,
+      "simulatedMicroUsd": 1600,
+      "uncertainUpperMicroUsd": 0,
+      "usage": [
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        }
+      ],
+      "legalScore": null,
+      "hasDelivery": true,
+      "hasQuestion": false
+    },
+    {
+      "runId": "V2-FIT",
+      "mode": "fake",
+      "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2\\candidate",
+      "inputHash": "a5da974497af863b976dc555512a2fd1387f6d6e02a2fb065b1e3363d31cceab",
+      "request": "Revise o rascunho com questões, correções e limites das fontes. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "durationMs": 217.28850000000057,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 9,
+      "paidModelCalls": 0,
+      "syntheticCalls": 4,
+      "measuredMicroUsd": null,
+      "simulatedMicroUsd": 1600,
+      "uncertainUpperMicroUsd": 0,
+      "usage": [
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        }
+      ],
+      "legalScore": null,
+      "hasDelivery": true,
+      "hasQuestion": false
+    },
+    {
+      "runId": "V2-INTEGRITY",
+      "mode": "fake",
+      "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2\\candidate",
+      "inputHash": "73df05b6b3cbafb3ad0ae818d9ed37f50740d8b6ae79971384a68fa088842e8c",
+      "request": "Revise o rascunho com questões, correções e limites das fontes. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "durationMs": 192.52840000000106,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 9,
+      "paidModelCalls": 0,
+      "syntheticCalls": 4,
+      "measuredMicroUsd": null,
+      "simulatedMicroUsd": 1600,
+      "uncertainUpperMicroUsd": 0,
+      "usage": [
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        }
+      ],
+      "legalScore": null,
+      "hasDelivery": true,
+      "hasQuestion": false
+    },
+    {
+      "runId": "V2-MULTI",
+      "mode": "fake",
+      "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2\\candidate",
+      "inputHash": "165cea54f1e9c18a0d47e9bf87a9b87cfa7eb4afc544a4956bc86e9134b73508",
+      "request": "Revise o rascunho com questões, correções e limites das fontes. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "durationMs": 226.77070000000003,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 9,
+      "paidModelCalls": 0,
+      "syntheticCalls": 4,
+      "measuredMicroUsd": null,
+      "simulatedMicroUsd": 1600,
+      "uncertainUpperMicroUsd": 0,
+      "usage": [
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        }
+      ],
+      "legalScore": null,
+      "hasDelivery": true,
+      "hasQuestion": false
+    }
+  ],
+  "notRun": [],
+  "legalAssessment": "PENDING_BONI",
+  "historicalLedgerUnchanged": true,
+  "commit": false,
+  "push": false,
+  "publish": false,
+  "priorMeasuredMicroUsd": 91896,
+  "priorPaidCalls": 4,
+  "totalMeasuredMicroUsd": 91896,
+  "totalPaidCalls": 4,
+  "exposureIncludingHistoricalReserveMicroUsd": 175516
+}

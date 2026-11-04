@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-04",
+  "authorization": {
+    "source": "Current chat: Pode executar",
+    "scope": "Six candidate-only v9 executions in proposed order, existing limits, USD 1.50 cap",
+    "commit": false,
+    "push": false,
+    "publish": false
+  },
+  "status": "BLOCKED_PENDING_PROVIDER_RECONCILIATION",
+  "paidCallsThisAttempt": 0,
+  "measuredMicroUsd": 189408,
+  "uncertainMicroUsd": 83620,
+  "exposureMicroUsd": 273028,
+  "ledger": {
+    "path": "docs/architecture/evidence/2026-11-03-verifier-v8/real/budget.jsonl",
+    "sha256": "5263bf583c77f1ec2ecbc5743996c24ea128b18586cdb32a68ede8bc8e135b8e",
+    "chainValid": true
+  },
+  "protectedFilesUnchanged": 58,
+  "tests": {
+    "command": "node --test scripts/forgelex-final-evaluation/budget.test.mjs scripts/forgelex-final-evaluation/corpus-v2.test.mjs",
+    "passed": 9,
+    "failed": 0
+  },
+  "missingEvidence": "Independent provider evidence linked unambiguously to call 2f498194-2bd6-41d7-9ce4-db6dd8bfe83f at 2026-11-03T21:51:17.081Z; aggregate usage is insufficient. No reconciliation evidence found in inspected project records. Available Platform connector does not expose usage/billing retrieval.",
+  "humanLegalReview": "PENDING",
+  "reservationReleased": false
+}

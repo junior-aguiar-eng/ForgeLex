@@ -1,0 +1,18 @@
+{
+  "scenario": "V2-FIT",
+  "stage": "authority-verifier submission validation",
+  "error": "INTERNAL_IDENTIFIER_IN_OUTPUT",
+  "paidCalls": 4,
+  "measuredMicroUsd": 70016,
+  "uncertainMicroUsd": 0,
+  "deliverySaved": false,
+  "confirmed": "Public-text guard rejected an internal identifier in a public text field before accepting the verifier result.",
+  "limitation": "Rejected structured output and exact offending field/identifier were not persisted. Do not infer an external data leak or claim the historical D04 cause was found.",
+  "checkpoint": "Matter analyst and adversarial reviewer outputs preserved; verifier pending.",
+  "notRun": [
+    "V2-INTEGRITY",
+    "V2-MULTI"
+  ],
+  "retries": 0,
+  "automaticApplication": false
+}

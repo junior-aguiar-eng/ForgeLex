@@ -1,0 +1,675 @@
+{
+  "bindingHash": "cf6ed35bc7fc6f60fbe6caee134639203696eecd0aa3f2eaad7c12b1f2667bf1",
+  "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+  "previousDeliveryIds": [],
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.10.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "matter-analyst",
+      "version": "1.10.0",
+      "instructionId": "matter-analyst-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "matter-analyst",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "adversarial-reviewer",
+      "version": "1.10.0",
+      "instructionId": "text-reviewer-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "adversarial-reviewer",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "authority-verifier",
+      "version": "1.10.0",
+      "instructionId": "authority-verifier-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "authority-verifier",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    }
+  ],
+  "toolCount": 4,
+  "researchOperations": [],
+  "findings": [
+    {
+      "id": "CAPABILITY_UNAVAILABLE:c627c859a95a69d3",
+      "code": "CAPABILITY_UNAVAILABLE",
+      "severity": "BLOCKING",
+      "statement": "A capacidade de pesquisa solicitada não dispõe das ferramentas necessárias neste trabalho.",
+      "sourceIds": []
+    }
+  ],
+  "plan": {
+    "action": "review_text",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": false,
+    "issues": [
+      {
+        "id": "i1",
+        "statement": "Revisar a conclusão de que coincidência de nome confirma a dívida: o cadastro não relaciona Sul à fatura nem ao negócio. Avaliar a insuficiência desse vínculo sem afirmar identidade ou responsabilidade.",
+        "sourceIds": [
+          "draft",
+          "V2-FIT/cadastro@v1#p1",
+          "V2-FIT/fatura@v1#p1"
+        ]
+      },
+      {
+        "id": "i2",
+        "statement": "Propor correção EDITORIAL concreta: substituir a conclusão categórica por redação limitada, indicando que a fatura registra R$ 610,00 e pagamento não informado, enquanto os trechos selecionados não demonstram vínculo com Sul, vencimento ou saldo exigível. Não converter pagamento não informado em inadimplemento ou quitação. Submeter a proposta à revisão humana.",
+        "sourceIds": [
+          "draft",
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1"
+        ]
+      },
+      {
+        "id": "i3",
+        "statement": "Examinar o alcance do trecho do art. 373 como regra de ônus da prova, sem tratá-lo como prova da dívida ou decidir distribuição concreta sem pretensão definida. Separar essa questão jurídica da correção editorial; restringir referências ao corpus fechado e explicitar ausência de outras fontes.",
+        "sourceIds": [
+          "CPC-373",
+          "context",
+          "draft"
+        ]
+      },
+      {
+        "id": "i4",
+        "statement": "Delimitar a revisão aos trechos selecionados e fictícios: distinguir conteúdo documental, alegação do rascunho e inferências; não confirmar autenticidade, verdade, vencimento, identidade do devedor ou exigibilidade.",
+        "sourceIds": [
+          "context",
+          "draft",
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "objetivo",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Qual finalidade jurídica Norte pretende dar à avaliação do crédito? Pode informar em texto livre ou indicar que ainda não foi definida.",
+        "reason": "A medida pretendida não foi informada; isso limita a análise jurídica específica, mas não impede corrigir o rascunho e explicitar seus limites.",
+        "sourceIds": [
+          "context"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      },
+      {
+        "key": "lastro",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "O corpus selecionado contém algum elemento que relacione Sul à fatura 71 e informe vencimento e situação do pagamento? Se não contiver, esses pontos permanecerão não demonstrados nesta revisão.",
+        "reason": "Os trechos não estabelecem a ligação entre cadastro e fatura, nem vencimento ou pagamento. A revisão pode prosseguir, mas não sustenta conclusão de dívida vencida de Sul; não buscar fontes fora do corpus autorizado.",
+        "sourceIds": [
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1",
+          "draft"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      }
+    ]
+  },
+  "version": 9,
+  "outputs": {
+    "matter-analyst": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4"
+      ],
+      "claims": [
+        {
+          "id": "80a0fa7575:c1",
+          "classification": "DOCUMENT_RECORD",
+          "statement": "Fatura 71: R$ 610,00. Pagamento: não informado.",
+          "sourceIds": [
+            "V2-FIT/fatura@v1#p1"
+          ]
+        },
+        {
+          "id": "80a0fa7575:c2",
+          "classification": "DOCUMENT_RECORD",
+          "statement": "Empresa Sul Serviços consta em um cadastro; não consta número da fatura nem negócio relacionado.",
+          "sourceIds": [
+            "V2-FIT/cadastro@v1#p1"
+          ]
+        },
+        {
+          "id": "80a0fa7575:c3",
+          "classification": "ALLEGATION",
+          "statement": "O rascunho afirma que a coincidência do nome confirma que Sul deve R$ 610,00 vencidos.",
+          "sourceIds": [
+            "draft"
+          ]
+        },
+        {
+          "id": "80a0fa7575:c4",
+          "classification": "INFERENCE",
+          "statement": "Os recortes não demonstram a ligação de Sul com a fatura 71 ou com o negócio, nem vencimento ou saldo exigível. Pagamento não informado não demonstra inadimplemento nem quitação. Essas lacunas não provam inexistência do crédito.",
+          "sourceIds": [
+            "V2-FIT/fatura@v1#p1",
+            "V2-FIT/cadastro@v1#p1"
+          ]
+        },
+        {
+          "id": "80a0fa7575:c5",
+          "classification": "INFERENCE",
+          "statement": "O art. 373 fornecido enuncia regra de ônus da prova, não prova da dívida; sem pretensão definida, não cabe aqui decidir sua aplicação concreta.",
+          "sourceIds": [
+            "CPC-373",
+            "context"
+          ]
+        },
+        {
+          "id": "80a0fa7575:c6",
+          "classification": "ALLEGATION",
+          "statement": "Segundo o contexto, Norte pretende avaliar crédito atribuído a Sul, a medida pretendida não foi informada e os dados são fictícios.",
+          "sourceIds": [
+            "context"
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "80a0fa7575:r1",
+          "kind": "EDITORIAL",
+          "statement": "Substituir a frase do rascunho por proposta sujeita à revisão humana: “A fatura 71 registra R$ 610,00 e pagamento não informado. O cadastro menciona Sul Serviços, mas os trechos selecionados não demonstram seu vínculo com a fatura ou com o negócio, nem vencimento ou saldo exigível. Não é possível concluir, com esses elementos, que Sul deva a quantia ou esteja inadimplente.”",
+          "sourceIds": [
+            "draft",
+            "V2-FIT/fatura@v1#p1",
+            "V2-FIT/cadastro@v1#p1"
+          ],
+          "verified": false
+        },
+        {
+          "id": "80a0fa7575:r2",
+          "kind": "EDITORIAL",
+          "statement": "Preservar na revisão a limitação aos recortes fictícios selecionados, sem confirmação de autenticidade ou verdade. Informar que não foram utilizadas outras fontes e que o único trecho normativo disponível é o art. 373; separar a observação jurídica da correção textual.",
+          "sourceIds": [
+            "context",
+            "CPC-373",
+            "V2-FIT/fatura@v1#p1",
+            "V2-FIT/cadastro@v1#p1"
+          ],
+          "verified": false
+        }
+      ],
+      "findings": [
+        {
+          "id": "80a0fa7575:f1",
+          "code": "VINCULO_E_VENCIMENTO_NAO_DEMONSTRADOS",
+          "severity": "WARNING",
+          "statement": "A conclusão categórica do rascunho excede os recortes: o cadastro não identifica fatura ou negócio e a fatura não identifica partes nem vencimento. Não há suporte para confirmar identidade do devedor, responsabilidade ou exigibilidade.",
+          "sourceIds": [
+            "draft",
+            "V2-FIT/fatura@v1#p1",
+            "V2-FIT/cadastro@v1#p1"
+          ]
+        },
+        {
+          "id": "80a0fa7575:f2",
+          "code": "FINALIDADE_NAO_DEFINIDA",
+          "severity": "WARNING",
+          "statement": "A falta de medida pretendida limita a análise jurídica específica, sem impedir a correção editorial. Questão pendente: qual finalidade jurídica Norte pretende dar à avaliação do crédito, ou ela ainda não foi definida? Não se escolhe medida nesta revisão.",
+          "sourceIds": [
+            "context"
+          ]
+        }
+      ],
+      "supportChecks": [],
+      "review": {
+        "documentAssessments": [
+          {
+            "sourceId": "V2-FIT/fatura@v1#p1",
+            "aspects": [
+              {
+                "aspect": "PARTIES",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "CAUSE",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "DUE_DATE",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "CREDIT_LINK",
+                "status": "AMBIGUOUS",
+                "quote": "Fatura 71: R$ 610,00."
+              }
+            ],
+            "conclusion": "Identifica número e valor, mas não permite atribuir o crédito a Sul ou aferir vencimento e saldo; pagamento consta como não informado."
+          },
+          {
+            "sourceId": "V2-FIT/cadastro@v1#p1",
+            "aspects": [
+              {
+                "aspect": "PARTIES",
+                "status": "PRESENT",
+                "quote": "Empresa Sul Serviços consta em um cadastro"
+              },
+              {
+                "aspect": "CAUSE",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "DUE_DATE",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "CREDIT_LINK",
+                "status": "NOT_PROVIDED"
+              }
+            ],
+            "conclusion": "Há identificação nominal de empresa, não de partes de uma relação creditícia. O recorte não relaciona a empresa à fatura nem ao negócio; não confirma identidade com a Sul referida no contexto ou responsabilidade pela quantia."
+          }
+        ]
+      }
+    },
+    "adversarial-reviewer": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4"
+      ],
+      "claims": [
+        {
+          "id": "80a0fa7575:c5",
+          "classification": "INFERENCE",
+          "statement": "O art. 373 fornecido enuncia regra de ônus da prova, não prova da dívida; sem pretensão definida, não cabe aqui decidir sua aplicação concreta.",
+          "sourceIds": [
+            "CPC-373",
+            "context"
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "2c796fbf3e:r1",
+          "kind": "EDITORIAL",
+          "statement": "Propor, sem alterar automaticamente a minuta, a substituição da frase por: “A fatura 71 registra R$ 610,00 e pagamento não informado. O cadastro menciona Sul Serviços, mas os trechos selecionados não demonstram vínculo com a fatura ou com o negócio, nem vencimento ou saldo exigível.” A proposta permanece sujeita à revisão humana.",
+          "sourceIds": [
+            "draft",
+            "V2-FIT/fatura@v1#p1",
+            "V2-FIT/cadastro@v1#p1"
+          ],
+          "verified": false
+        }
+      ],
+      "findings": [
+        {
+          "id": "2c796fbf3e:f1",
+          "code": "SALTO_DE_IDENTIDADE_E_RESPONSABILIDADE",
+          "severity": "WARNING",
+          "statement": "No rascunho v1, a coincidência nominal é tomada como confirmação de dívida. O cadastro não relaciona Sul Serviços à fatura ou ao negócio; a fatura não identifica devedor. Falta a premissa documental que permitiria atribuir a quantia a Sul. Isso limita a conclusão, mas não demonstra inexistência do crédito.",
+          "sourceIds": [
+            "draft",
+            "V2-FIT/cadastro@v1#p1",
+            "V2-FIT/fatura@v1#p1"
+          ]
+        },
+        {
+          "id": "2c796fbf3e:f2",
+          "code": "VENCIMENTO_E_PAGAMENTO_SEM_LASTRO",
+          "severity": "WARNING",
+          "statement": "A expressão “R$ 610,00 vencidos” excede o recorte da fatura: não há data de vencimento e consta “Pagamento: não informado.” Esse registro não permite concluir inadimplemento, quitação ou saldo exigível.",
+          "sourceIds": [
+            "draft",
+            "V2-FIT/fatura@v1#p1"
+          ]
+        },
+        {
+          "id": "2c796fbf3e:f3",
+          "code": "LIMITE_DA_ANALISE_JURIDICA",
+          "severity": "WARNING",
+          "statement": "Não há medida pretendida informada. O art. 373 é o único trecho normativo disponível e não supre o vínculo documental faltante; não se decide distribuição concreta do ônus da prova. Questão pendente: qual finalidade jurídica Norte pretende dar à avaliação, ou ela ainda não foi definida? A lacuna não impede a correção editorial.",
+          "sourceIds": [
+            "context",
+            "CPC-373"
+          ]
+        },
+        {
+          "id": "2c796fbf3e:f4",
+          "code": "ESCOPO_E_VERIFICACOES_NAO_REALIZADAS",
+          "severity": "WARNING",
+          "statement": "Revisão limitada ao rascunho v1 e aos recortes fictícios selecionados, sem outras fontes. Não foram confirmados autenticidade, verdade, identidade do devedor ou exigibilidade. A ausência de vínculo, vencimento e situação do pagamento permanece como limitação, não como prova negativa. As observações não aprovam juridicamente a minuta.",
+          "sourceIds": [
+            "context",
+            "draft",
+            "V2-FIT/fatura@v1#p1",
+            "V2-FIT/cadastro@v1#p1"
+          ]
+        }
+      ],
+      "supportChecks": [],
+      "review": {
+        "documentAssessments": [
+          {
+            "sourceId": "V2-FIT/fatura@v1#p1",
+            "aspects": [
+              {
+                "aspect": "PARTIES",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "CAUSE",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "DUE_DATE",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "CREDIT_LINK",
+                "status": "AMBIGUOUS",
+                "quote": "Fatura 71: R$ 610,00."
+              }
+            ],
+            "conclusion": "Número e valor não vinculam a fatura a Sul. O recorte não permite aferir vencimento ou saldo; pagamento está expressamente não informado."
+          },
+          {
+            "sourceId": "V2-FIT/cadastro@v1#p1",
+            "aspects": [
+              {
+                "aspect": "PARTIES",
+                "status": "AMBIGUOUS",
+                "quote": "Empresa Sul Serviços consta em um cadastro"
+              },
+              {
+                "aspect": "CAUSE",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "DUE_DATE",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "CREDIT_LINK",
+                "status": "NOT_PROVIDED"
+              }
+            ],
+            "conclusion": "A identificação nominal no cadastro não identifica as partes de uma relação creditícia nem demonstra correspondência com Sul do contexto. Não há referência à fatura ou ao negócio."
+          }
+        ]
+      }
+    },
+    "authority-verifier": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [
+        {
+          "id": "ee3fad04fe:f1",
+          "code": "NORM_SCOPE",
+          "severity": "WARNING",
+          "statement": "O snapshot CPC-373 é identificado como excerto oficial, versão 2026-11-02, com URL do Senado. Seu texto enuncia ônus da prova; não comprova dívida nem determina aplicação concreta neste caso. Não houve conferência online de vigência, íntegra ou alterações; identidade e proveniência informadas não equivalem a aplicabilidade ou força vinculante de uma interpretação.",
+          "sourceIds": [
+            "CPC-373",
+            "context"
+          ]
+        },
+        {
+          "id": "ee3fad04fe:f2",
+          "code": "LIMITED_RECORD",
+          "severity": "WARNING",
+          "statement": "A revisão permanece limitada ao corpus fictício selecionado: não demonstra vínculo de Sul com a fatura, vencimento ou saldo exigível, sem que isso prove inexistência do crédito. A finalidade jurídica não informada impede análise específica da medida. Não foram recuperadas outras fontes; não se confirmam autenticidade ou verdade dos registros.",
+          "sourceIds": [
+            "context",
+            "V2-FIT/fatura@v1#p1",
+            "V2-FIT/cadastro@v1#p1",
+            "draft"
+          ]
+        }
+      ],
+      "supportChecks": [
+        {
+          "claimId": "80a0fa7575:c1",
+          "sourceId": "V2-FIT/fatura@v1#p1",
+          "quote": "Fatura 71: R$ 610,00. Pagamento: não informado.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "80a0fa7575:c2",
+          "sourceId": "V2-FIT/cadastro@v1#p1",
+          "quote": "Empresa Sul Serviços consta em um cadastro; não consta número da fatura nem negócio relacionado.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "80a0fa7575:c4",
+          "sourceId": "V2-FIT/fatura@v1#p1",
+          "quote": "Fatura 71: R$ 610,00. Pagamento: não informado.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "80a0fa7575:c4",
+          "sourceId": "V2-FIT/cadastro@v1#p1",
+          "quote": "Empresa Sul Serviços consta em um cadastro; não consta número da fatura nem negócio relacionado.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "80a0fa7575:c5",
+          "sourceId": "CPC-373",
+          "quote": "Art. 373. O ônus da prova incumbe: I - ao autor, quanto ao fato constitutivo de seu direito; II - ao réu, quanto à existência de fato impeditivo, modificativo ou extintivo do direito do autor.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "80a0fa7575:c5",
+          "sourceId": "context",
+          "quote": "Norte pretende avaliar um crédito atribuído a Sul. Não foi informada a medida pretendida. Os dados são fictícios.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "80a0fa7575:c6",
+          "sourceId": "context",
+          "quote": "Norte pretende avaliar um crédito atribuído a Sul. Não foi informada a medida pretendida. Os dados são fictícios.",
+          "assessment": "SUPPORTED"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "version": 1,
+    "revision": 0,
+    "tools": [],
+    "failedTools": [],
+    "planHashes": [
+      "887fc197cbde944bb00952bc98814bfd5dcc03ed5411b3e04a41d183ead8b3c0"
+    ],
+    "reviewRequired": false,
+    "nodes": [
+      {
+        "id": "matter-analyst:0",
+        "role": "matter-analyst",
+        "generation": 0,
+        "dependsOn": [],
+        "status": "COMPLETED",
+        "inputHash": "1688d19cafda84979556e7639cc35a20e80071f6e59e0f800b567dd7bca1c3d4",
+        "input": {
+          "bindingHash": "cf6ed35bc7fc6f60fbe6caee134639203696eecd0aa3f2eaad7c12b1f2667bf1",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "887fc197cbde944bb00952bc98814bfd5dcc03ed5411b3e04a41d183ead8b3c0",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "2461f50469bf39e2d9a9e0a49cffdfcf28c0780ac127fbcb462bca561215499b"
+            },
+            {
+              "id": "V2-FIT/fatura@v1#p1",
+              "contentHash": "3803bced1e1162c004a83195e3d0f9ef96d8e47d32123a72a6ac12ce0ea04569"
+            },
+            {
+              "id": "V2-FIT/cadastro@v1#p1",
+              "contentHash": "c07906a6ff01c3de36a2eb9512b05c133a3a9a9f52039b4a090d39f3768454f0"
+            },
+            {
+              "id": "CPC-373",
+              "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f"
+            },
+            {
+              "id": "draft",
+              "contentHash": "63567f318989b9e1a5aea6519995f47798815d9ccba9e653ea72d6a31ac2cb34"
+            }
+          ],
+          "dependencies": [],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "98ecb21364991919a73d78b34095ac6d3ff61d89af8840a650d7d5a440e51fc1",
+        "runIndex": 2
+      },
+      {
+        "id": "legal-researcher:0",
+        "role": "legal-researcher",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0"
+        ],
+        "status": "UNAVAILABLE"
+      },
+      {
+        "id": "adversarial-reviewer:0",
+        "role": "adversarial-reviewer",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "33f3d66a8f2388581cf4feb38cc25f0bb37e6b698239fa3d810814b95eeb9ee0",
+        "input": {
+          "bindingHash": "cf6ed35bc7fc6f60fbe6caee134639203696eecd0aa3f2eaad7c12b1f2667bf1",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "887fc197cbde944bb00952bc98814bfd5dcc03ed5411b3e04a41d183ead8b3c0",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "2461f50469bf39e2d9a9e0a49cffdfcf28c0780ac127fbcb462bca561215499b"
+            },
+            {
+              "id": "V2-FIT/fatura@v1#p1",
+              "contentHash": "3803bced1e1162c004a83195e3d0f9ef96d8e47d32123a72a6ac12ce0ea04569"
+            },
+            {
+              "id": "V2-FIT/cadastro@v1#p1",
+              "contentHash": "c07906a6ff01c3de36a2eb9512b05c133a3a9a9f52039b4a090d39f3768454f0"
+            },
+            {
+              "id": "CPC-373",
+              "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f"
+            },
+            {
+              "id": "draft",
+              "contentHash": "63567f318989b9e1a5aea6519995f47798815d9ccba9e653ea72d6a31ac2cb34"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "98ecb21364991919a73d78b34095ac6d3ff61d89af8840a650d7d5a440e51fc1"
+            },
+            {
+              "id": "legal-researcher:0",
+              "outputHash": null
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "0487999d268691461b73b3bb14c77490f2fce429a06f3849394f6a08c3a05731",
+        "runIndex": 3
+      },
+      {
+        "id": "authority-verifier:0",
+        "role": "authority-verifier",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0",
+          "adversarial-reviewer:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "a4b28eab1a9e0053d56c661208725cd868d39d42d7b2a5d7ea7a748a6d4d1f82",
+        "input": {
+          "bindingHash": "cf6ed35bc7fc6f60fbe6caee134639203696eecd0aa3f2eaad7c12b1f2667bf1",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "887fc197cbde944bb00952bc98814bfd5dcc03ed5411b3e04a41d183ead8b3c0",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "2461f50469bf39e2d9a9e0a49cffdfcf28c0780ac127fbcb462bca561215499b"
+            },
+            {
+              "id": "V2-FIT/fatura@v1#p1",
+              "contentHash": "3803bced1e1162c004a83195e3d0f9ef96d8e47d32123a72a6ac12ce0ea04569"
+            },
+            {
+              "id": "V2-FIT/cadastro@v1#p1",
+              "contentHash": "c07906a6ff01c3de36a2eb9512b05c133a3a9a9f52039b4a090d39f3768454f0"
+            },
+            {
+              "id": "CPC-373",
+              "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f"
+            },
+            {
+              "id": "draft",
+              "contentHash": "63567f318989b9e1a5aea6519995f47798815d9ccba9e653ea72d6a31ac2cb34"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "98ecb21364991919a73d78b34095ac6d3ff61d89af8840a650d7d5a440e51fc1"
+            },
+            {
+              "id": "legal-researcher:0",
+              "outputHash": null
+            },
+            {
+              "id": "adversarial-reviewer:0",
+              "outputHash": "0487999d268691461b73b3bb14c77490f2fce429a06f3849394f6a08c3a05731"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "0197cfaa1167e8ad5c8ac307b2a30f88dab724a47a152ef23addae42743e12cd",
+        "runIndex": 4
+      }
+    ],
+    "archivedOutputs": {},
+    "decisions": [],
+    "stopReason": "COMPLETED"
+  }
+}

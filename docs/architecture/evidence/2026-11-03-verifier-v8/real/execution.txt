@@ -1,0 +1,99 @@
+Evaluating D01-analyze-baseline (real); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:47:47
+   Duration  27.88s (transform 2.40s, setup 0ms, import 5.79s, tests 21.56s, environment 0ms)
+
+Evaluating D01-analyze-candidate (real); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:48:16
+   Duration  65.86s (transform 2.80s, setup 0ms, import 6.32s, tests 59.09s, environment 0ms)
+
+Evaluating D03-review-baseline (real); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:49:23
+   Duration  23.04s (transform 2.65s, setup 0ms, import 5.87s, tests 16.76s, environment 0ms)
+
+Evaluating D03-review-candidate (real); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:49:47
+   Duration  49.51s (transform 2.92s, setup 0ms, import 6.61s, tests 42.37s, environment 0ms)
+
+Evaluating D04-create-baseline (real); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:50:38
+   Duration  30.26s (transform 2.78s, setup 0ms, import 6.08s, tests 23.46s, environment 0ms)
+
+Evaluating D04-create-candidate (real); no customer wallet
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ scripts/forgelex-final-evaluation/calibration-harness.fixture.ts (1 test | 1 failed) 10710ms
+   × executes the three calibration inputs on the pinned engine with shared durable budget 10708ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  scripts/forgelex-final-evaluation/calibration-harness.fixture.ts > executes the three calibration inputs on the pinned engine with shared durable budget
+Error: EVALUATION_RECONCILIATION_REQUIRED
+ ❯ scripts/forgelex-final-evaluation/calibration-harness.fixture.ts:377:48
+    375|           }
+    376|         }
+    377|         if (budget.summary().unresolved) throw new Error('EVALUATION_R…
+       |                                                ^
+    378|       }
+    379|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  18:51:10
+   Duration  17.57s (transform 2.79s, setup 0ms, import 6.37s, tests 10.71s, environment 0ms)
+
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: C:\Program Files\nodejs\node.exe C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\node_modules\vitest\vitest.mjs run --config C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\.superpowers\sdd\2026-11-02-forgelex-calibration-runner\campaigns\2026-11-03-verifier-v8-local-validated\real\vitest.config.mjs
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at file:///C:/Users/Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/scripts/forgelex-final-evaluation/calibrate.mjs:115:5
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 16516,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v24.19.0

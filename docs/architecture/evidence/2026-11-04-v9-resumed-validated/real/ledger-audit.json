@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "status": "CONSISTENT_LOCAL_RECORDS",
+  "ledgerSha256": "ca0afcaf3d29468eb4910af5d15c73355bf38ff0c2fae2e5b69d218df5e1ddd7",
+  "measuredMicroUsd": 281102,
+  "uncertainMicroUsd": 0,
+  "exposureMicroUsd": 281102,
+  "unresolved": [],
+  "artifactMismatches": [],
+  "providerBillingVerified": false
+}

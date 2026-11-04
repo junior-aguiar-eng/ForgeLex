@@ -1,0 +1,307 @@
+{
+  "bindingHash": "673188c8bece1638cae7313f41c7f017795b8068ce437f1185d07d4d29d28532",
+  "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+  "previousDeliveryIds": [],
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.10.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "matter-analyst",
+      "version": "1.10.0",
+      "instructionId": "matter-analyst-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "matter-analyst",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "adversarial-reviewer",
+      "version": "1.10.0",
+      "instructionId": "text-reviewer-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "adversarial-reviewer",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "authority-verifier",
+      "version": "1.10.0",
+      "instructionId": "authority-verifier-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "authority-verifier",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    }
+  ],
+  "toolCount": 4,
+  "researchOperations": [],
+  "findings": [],
+  "plan": {
+    "action": "review_text",
+    "requiresCaseLaw": false,
+    "requiresNorms": false,
+    "requiresProcedure": false,
+    "issues": [
+      {
+        "id": "issue",
+        "statement": "Examinar o material sintético",
+        "sourceIds": [
+          "V2-MULTI/contrato@v1#p1"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "synthetic-limitation",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Informação não fornecida na simulação.",
+        "reason": "A simulação contém informação não fornecida; não concluir fatos adicionais.",
+        "sourceIds": [
+          "V2-MULTI/contrato@v1#p1"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      }
+    ]
+  },
+  "version": 9,
+  "outputs": {
+    "matter-analyst": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [
+        {
+          "id": "3dedd4e1b8:claim",
+          "classification": "ALLEGATION",
+          "statement": "Fornecimento de dois equipamentos por gênero e quantidade; não consta cláusula de escolha.",
+          "sourceIds": [
+            "V2-MULTI/contrato@v1#p1"
+          ]
+        }
+      ],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": []
+    },
+    "adversarial-reviewer": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": []
+    },
+    "authority-verifier": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": [
+        {
+          "claimId": "3dedd4e1b8:claim",
+          "sourceId": "V2-MULTI/contrato@v1#p1",
+          "quote": "Fornecimento de dois equipamentos por gênero e quantidade; não consta cláusula de escolha.",
+          "assessment": "SUPPORTED"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "version": 1,
+    "revision": 0,
+    "tools": [],
+    "failedTools": [],
+    "planHashes": [
+      "3c684718147a2f63524b8b8e800ac85ef95684ff804ccfbc7195396fb263b271"
+    ],
+    "reviewRequired": false,
+    "nodes": [
+      {
+        "id": "matter-analyst:0",
+        "role": "matter-analyst",
+        "generation": 0,
+        "dependsOn": [],
+        "status": "COMPLETED",
+        "inputHash": "848a74605074e140db1b6867d2de3b22b9035f6d8da719e606cfee732ecf6a97",
+        "input": {
+          "bindingHash": "673188c8bece1638cae7313f41c7f017795b8068ce437f1185d07d4d29d28532",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "3c684718147a2f63524b8b8e800ac85ef95684ff804ccfbc7195396fb263b271",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "134fcf64b70dd062fe39545de7be0d209d9d4cfc674e95c595d7568a088a5062"
+            },
+            {
+              "id": "V2-MULTI/contrato@v1#p1",
+              "contentHash": "bf5ce030fa5bd832985c61f925a2ed4f69e59eb7a04c8b73589426a52d9bcd45"
+            },
+            {
+              "id": "V2-MULTI/mensagem@v1#p1",
+              "contentHash": "4cac6fd74ebc78779648722876c62e3854066145004f50a931e6a8a79d8b95d6"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            },
+            {
+              "id": "draft",
+              "contentHash": "1a2392ede18e3802a5ec0e712929c070de8123cabdec1b87d015bf63834c93ed"
+            }
+          ],
+          "dependencies": [],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "126563890a93c87e52d565d941b5e82baee32816da00424b72cf4fad2e7a19d0",
+        "runIndex": 2
+      },
+      {
+        "id": "adversarial-reviewer:0",
+        "role": "adversarial-reviewer",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "1b1e4bcabf6c29c1c78353687fdf07ef25e55a85682111fb41b25ae0f1601254",
+        "input": {
+          "bindingHash": "673188c8bece1638cae7313f41c7f017795b8068ce437f1185d07d4d29d28532",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "3c684718147a2f63524b8b8e800ac85ef95684ff804ccfbc7195396fb263b271",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "134fcf64b70dd062fe39545de7be0d209d9d4cfc674e95c595d7568a088a5062"
+            },
+            {
+              "id": "V2-MULTI/contrato@v1#p1",
+              "contentHash": "bf5ce030fa5bd832985c61f925a2ed4f69e59eb7a04c8b73589426a52d9bcd45"
+            },
+            {
+              "id": "V2-MULTI/mensagem@v1#p1",
+              "contentHash": "4cac6fd74ebc78779648722876c62e3854066145004f50a931e6a8a79d8b95d6"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            },
+            {
+              "id": "draft",
+              "contentHash": "1a2392ede18e3802a5ec0e712929c070de8123cabdec1b87d015bf63834c93ed"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "126563890a93c87e52d565d941b5e82baee32816da00424b72cf4fad2e7a19d0"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "2d8b9b4fdb6dacadb511e0fb4dbd4feaae55e9e01f70d450fc5980016323d2aa",
+        "runIndex": 3
+      },
+      {
+        "id": "authority-verifier:0",
+        "role": "authority-verifier",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "adversarial-reviewer:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "6f3da6a8877404c9da109ec07d3b7be23298bed5d4908881bcfcf56351e645c6",
+        "input": {
+          "bindingHash": "673188c8bece1638cae7313f41c7f017795b8068ce437f1185d07d4d29d28532",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "3c684718147a2f63524b8b8e800ac85ef95684ff804ccfbc7195396fb263b271",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "134fcf64b70dd062fe39545de7be0d209d9d4cfc674e95c595d7568a088a5062"
+            },
+            {
+              "id": "V2-MULTI/contrato@v1#p1",
+              "contentHash": "bf5ce030fa5bd832985c61f925a2ed4f69e59eb7a04c8b73589426a52d9bcd45"
+            },
+            {
+              "id": "V2-MULTI/mensagem@v1#p1",
+              "contentHash": "4cac6fd74ebc78779648722876c62e3854066145004f50a931e6a8a79d8b95d6"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            },
+            {
+              "id": "draft",
+              "contentHash": "1a2392ede18e3802a5ec0e712929c070de8123cabdec1b87d015bf63834c93ed"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "126563890a93c87e52d565d941b5e82baee32816da00424b72cf4fad2e7a19d0"
+            },
+            {
+              "id": "adversarial-reviewer:0",
+              "outputHash": "2d8b9b4fdb6dacadb511e0fb4dbd4feaae55e9e01f70d450fc5980016323d2aa"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "7c722b79f80226f8e59961713295eed2c26c57f1bc441f9e1af2b3ab9feed03c",
+        "runIndex": 4
+      }
+    ],
+    "archivedOutputs": {},
+    "decisions": [],
+    "stopReason": "COMPLETED"
+  }
+}

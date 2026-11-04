@@ -1,0 +1,95 @@
+{
+  "date": "2026-11-04",
+  "historicalPreservation": {
+    "protected-v8-files.json": 58,
+    "previous-ledgers.json": 4
+  },
+  "previousV9ArtifactsPreserved": 12,
+  "frozenFilesVerified": 813,
+  "newPaidCalls": 14,
+  "allV9PaidCalls": 18,
+  "settledCalls": 14,
+  "providerRequestIds": 14,
+  "newMeasuredMicroUsd": 281102,
+  "totalMeasuredMicroUsd": 372998,
+  "newUncertainMicroUsd": 0,
+  "historicalReserveMicroUsd": 83620,
+  "exposureIncludingHistoricalReserveMicroUsd": 456618,
+  "d04ResumedRoles": [
+    "adversarial-reviewer",
+    "authority-verifier"
+  ],
+  "offlineScenariosPassed": 6,
+  "nodeTestsPassed": 21,
+  "continuationGuardsPassed": 8,
+  "files": [
+    {
+      "file": "real\\authorization.json",
+      "sha256": "20214e4f30d1fbe041fcd4337f09dbfd5867fa45a50e45b9f1d28599469ccbd8"
+    },
+    {
+      "file": "real\\budget.jsonl",
+      "sha256": "ca0afcaf3d29468eb4910af5d15c73355bf38ff0c2fae2e5b69d218df5e1ddd7"
+    },
+    {
+      "file": "real\\call-trace.jsonl",
+      "sha256": "8c30c9556a48802b5ed13f433f51460c3f207d34e86dbeceaf0ab4f579079c9f"
+    },
+    {
+      "file": "real\\D01-V2.checkpoint.json",
+      "sha256": "dd8da950a8da5a36ef2a8df731deedbf05bb0e5f34d734f85059e684122ddd97"
+    },
+    {
+      "file": "real\\D01-V2.json",
+      "sha256": "3141b6726f3db8765c652941bdf380b721fa0a67e2f7311d9d2b6309bbe3e541"
+    },
+    {
+      "file": "real\\D03-V2.checkpoint.json",
+      "sha256": "162761c847cde8f1719352c3af449771133df2dc14e0d8e3f5e1f83ab4c36963"
+    },
+    {
+      "file": "real\\D03-V2.json",
+      "sha256": "4512ba279a821a72d876f82cbd5ef8cbd84eee2c256b631692a27050fb705563"
+    },
+    {
+      "file": "real\\D04-V2.checkpoint.json",
+      "sha256": "93be3f4a68fda8b6febe6ea32aa3adafc00c5f355b2fe6425bca08774ecf6c90"
+    },
+    {
+      "file": "real\\D04-V2.json",
+      "sha256": "10109b7a6550e0774f9a4c7d3a10187de9a5e79962646fc5f880f5ff169ef8cc"
+    },
+    {
+      "file": "real\\execution.txt",
+      "sha256": "4e3c2376215f354edee3b54b5653957d331deeaadbfbf943dfac1d7839462347"
+    },
+    {
+      "file": "real\\invocation.json",
+      "sha256": "f247487db741ee751ad4278d6a210e378ea9d681f87e36c410673d4c5e8216b8"
+    },
+    {
+      "file": "real\\ledger-audit.json",
+      "sha256": "af5cff947023d5f9bb385debb04f6ee32b7183985a495043d980e119ae6d2f89"
+    },
+    {
+      "file": "real\\receipt.json",
+      "sha256": "15df850424f12efa8506d84d4b3659a360fe8c91bab9146f9a79d41036a9131c"
+    },
+    {
+      "file": "real\\V2-FIT-diagnosis.json",
+      "sha256": "47c3028cce69af6aaa9ec478eb3171041270cab958f418013b9322c12d33f125"
+    },
+    {
+      "file": "real\\V2-FIT.checkpoint.json",
+      "sha256": "dd5d5c22f3aae5e11b59e1d8608149e638ad63c96e7afd92c14256f10df450bc"
+    },
+    {
+      "file": "real\\V2-FIT.json",
+      "sha256": "d100092763016fa8f1cf248c51389dbdb535ffd8294a1a82e7054e08ab9c7c12"
+    },
+    {
+      "file": "real\\vitest.config.mjs",
+      "sha256": "082732ad958cc0c3a1eb7f8465bb6f2c8cb34ebf904bc199a0b04a315a2e5b98"
+    }
+  ]
+}

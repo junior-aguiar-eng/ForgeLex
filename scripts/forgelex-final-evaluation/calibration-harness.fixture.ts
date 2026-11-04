@@ -1,6 +1,6 @@
 // Invoked only by calibrate.mjs with snapshot-specific aliases and isolated synthetic inputs.
 import { createHash, randomUUID } from 'node:crypto';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, openSync, writeSync, fsyncSync, closeSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, it, vi } from 'vitest';
 import { AgenticCaseTask } from '@forgelex/legal-workflows';
@@ -11,6 +11,9 @@ import { safeAgentFailureDetails } from '../../packages/agent-core/src/runtime/a
 // @ts-expect-error Alias supplied by the isolated evaluation config, never a product import.
 import { createCommercialOpenAIRuntime } from '@evaluation/provider';
 import { EvaluationBudget } from './budget.mjs';
+import { assertV9Packet } from './v9-campaign.mjs';
+import { assertContinuationPacket } from './v9-continuation.mjs';
+import { assertFinalizationPacket } from './v9-finalization.mjs';
 
 const sha = (value: unknown) =>
   createHash('sha256')
@@ -35,10 +38,19 @@ it.skipIf(!configPath)(
       maxDurationMs: 300000,
     });
     const real = config.mode === 'real';
-    if (
-      !['fake', 'real'].includes(config.mode) ||
-      (real && process.env.FORGELEX_EVALUATION_APPROVAL !== 'boni-calibration-usd-1.50')
-    )
+    const v9 = config.workflowVersion === 9;
+    const continuation = v9 && Boolean(packet.continuation);
+    if (packet.finalization) assertFinalizationPacket(packet);
+    else if (continuation) assertContinuationPacket(packet);
+    else if (v9) assertV9Packet(packet);
+    const approval = packet.finalization
+      ? 'boni-v9-finalize-usd-1.50'
+      : continuation
+        ? 'boni-v9-resume-usd-1.50'
+        : v9
+          ? 'boni-v9-usd-1.50-reserve-0.083620'
+          : 'boni-calibration-usd-1.50';
+    if (!['fake', 'real'].includes(config.mode) || (real && process.env.FORGELEX_EVALUATION_APPROVAL !== approval))
       throw new Error('EVALUATION_NOT_APPROVED');
     const wireFetch = globalThis.fetch;
     vi.stubGlobal('fetch', () => {
@@ -48,7 +60,10 @@ it.skipIf(!configPath)(
       directory: config.campaign,
       fingerprint: config.fingerprint,
       runIds: config.runIds,
-      cap: 1500000,
+      cap: v9 ? packet.newCallsCapMicroUsd : 1500000,
+      ...(continuation
+        ? { runCap: packet.limits.perExecutionCapMicroUsd, runLimits: packet.continuation.runLimits }
+        : {}),
     });
     try {
       for (const entry of packet.runs.filter(
@@ -108,14 +123,22 @@ it.skipIf(!configPath)(
           conversationId: scenario.id,
           contextRevision: 1,
           objective: `${scenario.request} Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.`,
-          actionId: ({ analyze: 'analyze_documents', create: 'create_document', review: 'review_text' } as const)[
-            scenario.action as 'analyze' | 'create' | 'review'
-          ],
+          actionId: v9
+            ? scenario.action
+            : ({ analyze: 'analyze_documents', create: 'create_document', review: 'review_text' } as const)[
+                scenario.action as 'analyze' | 'create' | 'review'
+              ],
         };
         const owner = { tenantId: binding.tenantId, userId: binding.userId };
         const controller = new AbortController();
         const roles: string[] = [];
         let delivery: any, state: any, result: any;
+        const resuming = continuation && entry.id === (packet.continuation.resumeRunId ?? 'D04-V2');
+        if (resuming) {
+          const checkpointBytes = readFileSync(packet.continuation.checkpointPath, 'utf8');
+          expect(sha(checkpointBytes)).toBe(packet.continuation.checkpointSha256);
+          state = JSON.parse(checkpointBytes);
+        }
         let diagnostic: unknown = null;
         let outcome = 'failed',
           error: string | null = null,
@@ -145,6 +168,17 @@ it.skipIf(!configPath)(
         };
         const runtime = createCommercialOpenAIRuntime({
           apiKey: real ? process.env.OPENAI_API_KEY : 'synthetic-evaluation-no-network',
+          recordCall: async (event: unknown) => {
+            const fd = openSync(join(config.campaign, 'call-trace.jsonl'), 'a');
+            try {
+              const bytes = Buffer.from(JSON.stringify(event) + '\n');
+              let offset = 0;
+              while (offset < bytes.length) offset += writeSync(fd, bytes, offset, bytes.length - offset);
+              fsyncSync(fd);
+            } finally {
+              closeSync(fd);
+            }
+          },
           finance,
           assertContext: async (id: string, snapshot?: unknown) => {
             if (id !== entry.id || controller.signal.aborted) throw new Error('SESSION_CANCELLED');
@@ -207,7 +241,7 @@ it.skipIf(!configPath)(
                   : [],
             };
             const output: any = {
-              coveredIssueIds: ['issue'],
+              coveredIssueIds: resuming ? state.plan.issues.map((issue: any) => issue.id) : ['issue'],
               claims: [],
               findings: [],
               requirements: [],
@@ -297,10 +331,17 @@ it.skipIf(!configPath)(
           },
         });
         budget.begin(entry.id);
-        const timer = setTimeout(() => controller.abort(), 300000);
+        const timer = setTimeout(
+          () => controller.abort(),
+          continuation ? (packet.continuation.runLimits[entry.id]?.maxDurationMs ?? 300000) : 300000,
+        );
         const started = performance.now();
         try {
           const task = new AgenticCaseTask({
+            ...(v9 ? { workflowVersion: 9 as const } : {}),
+            persistCheckpoint: async (_binding: unknown, checkpoint: unknown) => {
+              writeFileSync(join(config.campaign, `${entry.id}.checkpoint.json`), JSON.stringify(checkpoint, null, 2));
+            },
             context: {
               load: async () => structuredClone(selected),
               assert: async () => {
@@ -368,7 +409,14 @@ it.skipIf(!configPath)(
           expect(outcome, entry.id).toBe('completed');
           expect(dispatched).toBeGreaterThan(0);
           expect(delivery).toBeTruthy();
-          expect(state.version).toBe(config.variant === 'baseline' ? 1 : 7);
+          if (resuming) {
+            if (packet.finalization) expect(roles).toEqual(['authority-verifier']);
+            expect(roles).not.toContain('legal-orchestrator');
+            expect(roles).not.toContain('matter-analyst');
+            expect(roles).not.toContain('procedural-advisor');
+            expect(roles).not.toContain('legal-drafter');
+          }
+          expect(state.version).toBe(v9 ? 9 : config.variant === 'baseline' ? 1 : 8);
           if (config.variant === 'candidate') {
             expect(delivery.status).toBe('LIMITED');
             expect(delivery.findings).toContainEqual(expect.objectContaining({ code: 'DELIVERY_INFORMATION_LIMITED' }));

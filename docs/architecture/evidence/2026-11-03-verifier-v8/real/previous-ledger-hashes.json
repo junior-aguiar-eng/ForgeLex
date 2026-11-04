@@ -1,0 +1,18 @@
+[
+  {
+    "file": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\.superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-02-delivery-failures-v6-validated\\real\\budget.jsonl",
+    "sha256": "203bbbbaafe8be3d8200c176f0891b4f6235ba836c76e9d60febbfa90f38af85"
+  },
+  {
+    "file": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\.superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-02-delivery-gaps-v5\\real\\budget.jsonl",
+    "sha256": "326824626e39cf627bd756b8e3591d684cbc51c26f3ab6888bd5a25e6585e645"
+  },
+  {
+    "file": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\.superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-02-scoped-handoff-v7-validated\\real\\budget.jsonl",
+    "sha256": "2d17ab859a43482ef115535d8e5fa93cbc880f9a876f8a34f8f8361d4e29b46d"
+  },
+  {
+    "file": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\.superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\real-calibration\\budget.jsonl",
+    "sha256": "6a2e6595e8ff014708f85b1b1f0f00ec92d0c16bd2c983cf614fbcca69f9ebdd"
+  }
+]

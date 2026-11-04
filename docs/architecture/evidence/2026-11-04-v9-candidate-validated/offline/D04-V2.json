@@ -1,0 +1,287 @@
+{
+  "runId": "D04-V2",
+  "mode": "fake",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\875e6009ad77b5766717f6c38aafbe2d7f35476f546bbf9065d2783357f5e86f\\candidate",
+  "inputHash": "804302f719b1c0385568b2d7c8bf5ea3c58811314da9f5f416e38e27f0fe5ec0",
+  "request": "Prepare minuta limitada às fontes selecionadas, sem inventar qualificação, juízo ou prazo. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "completed",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 216.01130000000012,
+  "roles": [
+    "legal-orchestrator",
+    "matter-analyst",
+    "legal-drafter",
+    "adversarial-reviewer",
+    "authority-verifier"
+  ],
+  "stateVersion": 9,
+  "paidModelCalls": 0,
+  "syntheticCalls": 5,
+  "measuredMicroUsd": null,
+  "simulatedMicroUsd": 2000,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": {
+    "action": "create_document",
+    "contextId": "D04-V2",
+    "contextRevision": 1,
+    "status": "LIMITED",
+    "humanReviewRequired": true,
+    "legalAssessment": "NOT_EVALUATED",
+    "issues": [
+      {
+        "id": "issue",
+        "statement": "Examinar o material sintético",
+        "sourceIds": [
+          "D04-V2/contrato@v1#p1"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "id": "9e4f3535c6:claim",
+        "classification": "ALLEGATION",
+        "statement": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+        "sourceIds": [
+          "D04-V2/contrato@v1#p1"
+        ]
+      }
+    ],
+    "requirements": [],
+    "findings": [
+      {
+        "id": "DELIVERY_INFORMATION_LIMITED:8b005e53b8535b13",
+        "code": "DELIVERY_INFORMATION_LIMITED",
+        "severity": "BLOCKING",
+        "statement": "A simulação contém informação não fornecida; não concluir fatos adicionais.",
+        "sourceIds": [
+          "D04-V2/contrato@v1#p1"
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "context",
+        "kind": "USER_TEXT",
+        "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+      },
+      {
+        "id": "D04-V2/contrato@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb",
+        "documentId": "D04-V2/contrato",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "D04-V2/pedido@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f",
+        "documentId": "D04-V2/pedido",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "CPC-300",
+        "kind": "NORM",
+        "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951",
+        "versionId": "2026-11-02",
+        "url": "https://legis.senado.gov.br/norma/584917/publicacao/15633703",
+        "extent": "EXCERPT",
+        "identityStatus": "OFFICIAL_EXCERPT"
+      },
+      {
+        "id": "CPC-300-P1",
+        "kind": "NORM",
+        "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d",
+        "versionId": "2026-11-03",
+        "url": "https://legis.senado.gov.br/norma/584917/publicacao/15633703",
+        "extent": "EXCERPT",
+        "identityStatus": "OFFICIAL_EXCERPT"
+      },
+      {
+        "id": "CPC-498",
+        "kind": "NORM",
+        "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524",
+        "versionId": "2026-11-03",
+        "url": "https://legis.senado.gov.br/norma/584917/publicacao/15633703",
+        "extent": "EXCERPT",
+        "identityStatus": "OFFICIAL_EXCERPT"
+      }
+    ],
+    "supportAudit": [
+      {
+        "claimId": "9e4f3535c6:claim",
+        "sourceId": "D04-V2/contrato@v1#p1",
+        "sourceContentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb",
+        "quote": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+        "quoteStatus": "MATCHED",
+        "modelAssessment": "SUPPORTED"
+      }
+    ],
+    "document": {
+      "title": "Transporte sintético",
+      "documentType": "Registro sintético",
+      "sections": [
+        {
+          "title": "Material",
+          "content": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1"
+          ]
+        }
+      ]
+    },
+    "review": {
+      "version": 1,
+      "questions": [
+        {
+          "prompt": "Informação não fornecida na simulação.",
+          "reason": "A simulação contém informação não fornecida; não concluir fatos adicionais.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1"
+          ]
+        }
+      ],
+      "documentAssessments": [
+        {
+          "sourceId": "D04-V2/contrato@v1#p1",
+          "aspects": [
+            {
+              "aspect": "PARTIES",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CAUSE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "DUE_DATE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CREDIT_LINK",
+              "status": "AMBIGUOUS"
+            }
+          ],
+          "conclusion": "A aptidão deste recorte ainda não foi examinada quanto a partes, causa, vencimento e vínculo. Não presumir existência ou inexistência do crédito."
+        },
+        {
+          "sourceId": "D04-V2/pedido@v1#p1",
+          "aspects": [
+            {
+              "aspect": "PARTIES",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CAUSE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "DUE_DATE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CREDIT_LINK",
+              "status": "AMBIGUOUS"
+            }
+          ],
+          "conclusion": "A aptidão deste recorte ainda não foi examinada quanto a partes, causa, vencimento e vínculo. Não presumir existência ou inexistência do crédito."
+        }
+      ],
+      "integrityAlerts": [],
+      "provenance": [
+        {
+          "kind": "claim",
+          "id": "9e4f3535c6:claim",
+          "originIds": [
+            "9e4f3535c6:claim"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "DELIVERY_INFORMATION_LIMITED:8b005e53b8535b13",
+          "originIds": [
+            "DELIVERY_INFORMATION_LIMITED:8b005e53b8535b13"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+          "originIds": [
+            "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35"
+          ]
+        }
+      ],
+      "technicalFindings": [
+        {
+          "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+          "code": "LEGAL_APPLICABILITY_NOT_EVALUATED",
+          "severity": "BLOCKING",
+          "statement": "Snapshots normativos não determinam vigência online nem aplicabilidade ao caso.",
+          "sourceIds": []
+        }
+      ],
+      "original": {
+        "claims": [
+          {
+            "id": "9e4f3535c6:claim",
+            "classification": "ALLEGATION",
+            "statement": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+            "sourceIds": [
+              "D04-V2/contrato@v1#p1"
+            ]
+          }
+        ],
+        "requirements": [],
+        "findings": [
+          {
+            "id": "DELIVERY_INFORMATION_LIMITED:8b005e53b8535b13",
+            "code": "DELIVERY_INFORMATION_LIMITED",
+            "severity": "BLOCKING",
+            "statement": "A simulação contém informação não fornecida; não concluir fatos adicionais.",
+            "sourceIds": [
+              "D04-V2/contrato@v1#p1"
+            ]
+          },
+          {
+            "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+            "code": "LEGAL_APPLICABILITY_NOT_EVALUATED",
+            "severity": "BLOCKING",
+            "statement": "Snapshots normativos não determinam vigência online nem aplicabilidade ao caso.",
+            "sourceIds": []
+          }
+        ]
+      }
+    }
+  },
+  "question": null,
+  "legalScore": null
+}

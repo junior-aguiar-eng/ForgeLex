@@ -1,0 +1,59 @@
+{
+  "mode": "fake",
+  "packetSha256": "f09b690dd3809bd6d94288c664bacb9bc0466af2288687ff16136b352569e368",
+  "status": "STOPPED",
+  "stopReason": "EXECUTION_STOP_CONDITION",
+  "historicalReserveMicroUsd": 83620,
+  "paidModelCalls": 0,
+  "measuredMicroUsd": 0,
+  "uncertainMicroUsd": 0,
+  "runs": [
+    {
+      "runId": "D04-V2",
+      "mode": "fake",
+      "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\3ff9fa1df1273cb99eef588af6f426c12e374586f45b33fa13876216584495e1\\candidate",
+      "inputHash": "804302f719b1c0385568b2d7c8bf5ea3c58811314da9f5f416e38e27f0fe5ec0",
+      "request": "Prepare minuta limitada às fontes selecionadas, sem inventar qualificação, juízo ou prazo. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+      "outcome": "failed",
+      "error": "ISSUE_REFERENCE_INVALID",
+      "diagnostic": null,
+      "durationMs": 125.63430000000153,
+      "roles": [
+        "adversarial-reviewer"
+      ],
+      "stateVersion": 9,
+      "paidModelCalls": 0,
+      "syntheticCalls": 1,
+      "measuredMicroUsd": null,
+      "simulatedMicroUsd": 400,
+      "uncertainUpperMicroUsd": 0,
+      "usage": [
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        }
+      ],
+      "legalScore": null,
+      "hasDelivery": false,
+      "hasQuestion": false
+    }
+  ],
+  "notRun": [
+    "D01-V2",
+    "D03-V2",
+    "V2-FIT",
+    "V2-INTEGRITY",
+    "V2-MULTI"
+  ],
+  "legalAssessment": "PENDING_BONI",
+  "historicalLedgerUnchanged": true,
+  "commit": false,
+  "push": false,
+  "publish": false,
+  "priorMeasuredMicroUsd": 91896,
+  "priorPaidCalls": 4,
+  "totalMeasuredMicroUsd": 91896,
+  "totalPaidCalls": 4,
+  "exposureIncludingHistoricalReserveMicroUsd": 175516
+}

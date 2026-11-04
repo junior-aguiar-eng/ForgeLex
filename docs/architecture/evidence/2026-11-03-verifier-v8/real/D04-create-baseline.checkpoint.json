@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "bindingHash": "5b357471db86a8ffce59d291dc310964e8c87b59a615597b1496621557c6948e",
+  "contractHash": "8847855772466938a857ef45471c4bab12d2b1b46d4660f343377cdd49abc3e3",
+  "previousDeliveryIds": [],
+  "outputs": {},
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.1.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.1.0"
+    }
+  ],
+  "toolCount": 2,
+  "researchOperations": [],
+  "findings": [],
+  "plan": {
+    "action": "create_document",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "documentPurpose": "LEGAL_DOCUMENT",
+    "documentType": "Minuta de manifestação civil limitada ao corpus selecionado, com lacunas expressas",
+    "issues": [
+      {
+        "id": "editorial-escopo",
+        "statement": "kind: EDITORIAL. Redigir minuta de manifestação civil exclusivamente com o corpus fechado recuperado. Tratar fatos e documentos como fictícios; explicitar limitações das fontes. Não pesquisar externamente, inventar qualificação, juízo, número processual ou prazo; usar campos de preenchimento e submeter à revisão humana.",
+        "sourceIds": [
+          "context"
+        ]
+      },
+      {
+        "id": "base-factual",
+        "statement": "kind: EDITORIAL. Preservar a distinção entre conteúdo documental e alegações: o trecho contratual prevê entrega de dois equipamentos em 15/10/2026; o pedido registra solicitação de entrega imediata em 18/10/2026. Esses trechos não confirmam, por si, a persistência da não entrega nem consequências concretas da demora. Não afirmar paralisação, risco concreto ou reversibilidade como fatos demonstrados.",
+        "sourceIds": [
+          "context",
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1"
+        ]
+      },
+      {
+        "id": "urgencia",
+        "statement": "kind: PROCEDURAL. Examinar eventual pretensão de entrega imediata à luz exclusivamente do art. 300 e § 3º recuperados, distinguindo probabilidade do direito, perigo de dano ou risco ao resultado útil e perigo de irreversibilidade. O vencimento contratual isolado não demonstra urgência; o silêncio sobre reversibilidade não demonstra ausência de perigo de irreversibilidade. Não apresentar requisitos como preenchidos nem escolher outra medida ou procedimento sem informação.",
+        "sourceIds": [
+          "CPC-300",
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1"
+        ]
+      },
+      {
+        "id": "entrega-limitada",
+        "statement": "kind: EDITORIAL. Entregar minuta limitada com marcações das lacunas essenciais, sem suprir a falta de suporte por conclusões categóricas. Não há jurisprudência recuperada; não inserir precedentes. Identificação processual e qualificação devem permanecer em campos não preenchidos; não calcular prazo.",
+        "sourceIds": [
+          "context"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "dano-concreto",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Quais consequências concretas da demora são alegadas e que elementos do corpus as sustentam? É possível informar que não há dados ou que isso é desconhecido.",
+        "reason": "Não há descrição nem documentação de perigo de dano ou risco ao resultado útil; na minuta limitada, marcar essa insuficiência sem presumir urgência.",
+        "sourceIds": [
+          "context",
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ],
+        "options": []
+      },
+      {
+        "key": "reversibilidade",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Há informações sobre a possibilidade de desfazer os efeitos da entrega imediata e seus riscos? Se não houver ou forem desconhecidas, registrar essa condição.",
+        "reason": "A narrativa é omissa sobre questão relevante ao art. 300, § 3º; a omissão não permite concluir pela reversibilidade.",
+        "sourceIds": [
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ],
+        "options": []
+      },
+      {
+        "key": "situacao-entrega",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "A entrega permanece pendente, total ou parcialmente, e há elemento selecionado que documente essa situação? Pode-se responder em texto livre ou indicar desconhecimento.",
+        "reason": "O prazo contratual e a solicitação de entrega não comprovam isoladamente o estado atual do cumprimento; preservar a alegação e marcar falta de comprovação.",
+        "sourceIds": [
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1"
+        ],
+        "options": []
+      }
+    ]
+  }
+}

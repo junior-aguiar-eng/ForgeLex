@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-04",
+  "preservation": {
+    "protected-v8-files.json": 58,
+    "previous-ledgers.json": 4
+  },
+  "frozenSourceFilesVerified": 811,
+  "realCalls": 4,
+  "settledCalls": 4,
+  "httpRequestIdsRecorded": 4,
+  "historicalReserveMicroUsd": 83620,
+  "measuredMicroUsd": 91896,
+  "newUncertainMicroUsd": 0,
+  "exposureIncludingHistoricalReserveMicroUsd": 175516,
+  "nodeTests": 15,
+  "offlineScenarios": 6,
+  "offlineBudgetProbePassed": true,
+  "notRun": [
+    "D01-V2",
+    "D03-V2",
+    "V2-FIT",
+    "V2-INTEGRITY",
+    "V2-MULTI"
+  ],
+  "files": [
+    {
+      "file": "real\\authorization.json",
+      "sha256": "c146a6878f0127c4b12edcaab04ac789d58757a44fa90df06a202f75ea1d895d"
+    },
+    {
+      "file": "real\\budget-refusal-diagnosis.json",
+      "sha256": "c0572f14e24c10a3e75f73bdd3069855fe23e53135b9bc91ee68052c9152e08b"
+    },
+    {
+      "file": "real\\budget.jsonl",
+      "sha256": "c7afc013b6a5aa01aaf9c3a10be7d48f818fb7420ac8273cf7357d813d54f886"
+    },
+    {
+      "file": "real\\call-trace.jsonl",
+      "sha256": "e0e524f2bf5e8c148421a8fda66107a40b53a62ee16afb24e1fd86647405d51b"
+    },
+    {
+      "file": "real\\D04-V2-intermediate-draft.md",
+      "sha256": "1da50c2a302ebd0712ab6971527d3fa384ca9d3ac4749c08e79c0198ee6a32a5"
+    },
+    {
+      "file": "real\\D04-V2.checkpoint.json",
+      "sha256": "4a03be6024740e052bb07719e5d9eeb37c14370cf71733f452d99dcecf19c445"
+    },
+    {
+      "file": "real\\D04-V2.json",
+      "sha256": "f4880129a29a08d74e90e4fb613af0655878f339b59347f02188a2b47833e3b2"
+    },
+    {
+      "file": "real\\execution.txt",
+      "sha256": "d0182bfdb88dd69cb33d8fc0e9a10d7cc4ad09c1024722fa3671b3adb8ec670a"
+    },
+    {
+      "file": "real\\invocation.json",
+      "sha256": "1c28c921adbd37194840e74db474cee0c7f99613e97123e2533d99418cfb6942"
+    },
+    {
+      "file": "real\\ledger-audit.json",
+      "sha256": "f5c5d89761d6a3b185e58822e1a8f5c7c01a026956c4f3ad1f4fff8911b71a70"
+    },
+    {
+      "file": "real\\receipt.json",
+      "sha256": "a72ccfb36348a754ef8d4bc13623313307083fd8458c1ebcfbfb431cbc67e60d"
+    },
+    {
+      "file": "real\\vitest.config.mjs",
+      "sha256": "0ace5015457820d66badd64ea77b452a7e425d77f7c494c4330f57735bb26998"
+    }
+  ]
+}

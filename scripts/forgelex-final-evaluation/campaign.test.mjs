@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseCalibrationArgs, campaignPacket } from './campaign.mjs';
+import { parseCalibrationArgs, campaignPacket, assertNewPreparation } from './campaign.mjs';
 
 test('real execution requires a named campaign, explicit cap and credential; offline remains the default', () => {
   assert.deepEqual(parseCalibrationArgs([], {}), { real: false, campaignId: null });
@@ -46,10 +46,18 @@ test('rejects ambiguous arguments, path traversal and approval in offline mode',
     assert.throws(() => parseCalibrationArgs(args, {}));
 });
 
+test('pins a new reviewed HEAD explicitly without weakening the default baseline guard', () => {
+  const head = 'a'.repeat(40);
+  assert.equal(parseCalibrationArgs(['--campaign=v8', `--expected-head=${head}`], {}).expectedHead, head);
+  assert.throws(() => parseCalibrationArgs(['--expected-head=main'], {}));
+  assert.throws(() => parseCalibrationArgs([`--expected-head=${head}`, `--expected-head=${head}`], {}));
+});
+
 test('freezes a separate campaign packet and refuses replacing it with changed inputs', () => {
   const directory = mkdtempSync(join(tmpdir(), 'forgelex-campaign-'));
   const bytes = Buffer.from('{"candidate":"v5"}\n');
   const path = campaignPacket(directory, bytes);
+  assert.throws(() => assertNewPreparation(directory), /CAMPAIGN_PREPARATION_EXISTS/);
   assert.deepEqual(readFileSync(path), bytes);
   assert.equal(campaignPacket(directory, bytes), path);
   assert.throws(() => campaignPacket(directory, Buffer.from('{}')), /CAMPAIGN_PACKET_CHANGED/);

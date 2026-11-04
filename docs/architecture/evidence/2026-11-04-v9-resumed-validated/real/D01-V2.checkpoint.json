@@ -1,0 +1,727 @@
+{
+  "bindingHash": "aac8c82d7709ac78009147b05891804694024ccb6c2e6fecdd04bb5ae38876e1",
+  "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+  "previousDeliveryIds": [],
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.10.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "matter-analyst",
+      "version": "1.10.0",
+      "instructionId": "matter-analyst-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "matter-analyst",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "procedural-advisor",
+      "version": "1.10.0",
+      "instructionId": "procedural-advisor-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "authority-verifier",
+      "version": "1.10.0",
+      "instructionId": "authority-verifier-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "authority-verifier",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    }
+  ],
+  "toolCount": 4,
+  "researchOperations": [],
+  "findings": [
+    {
+      "id": "CAPABILITY_UNAVAILABLE:c627c859a95a69d3",
+      "code": "CAPABILITY_UNAVAILABLE",
+      "severity": "BLOCKING",
+      "statement": "A capacidade de pesquisa solicitada não dispõe das ferramentas necessárias neste trabalho.",
+      "sourceIds": []
+    }
+  ],
+  "plan": {
+    "action": "analyze_documents",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "issues": [
+      {
+        "id": "i1",
+        "statement": "Delimitar a controvérsia civil de fornecimento entre Aurora, autora, e Brisa, ré, no procedimento comum informado, sem escolher pretensão material nem calcular prazo. Restringir a análise ao corpus selecionado e explicitar a ausência de outras fontes.",
+        "sourceIds": [
+          "context"
+        ]
+      },
+      {
+        "id": "i2",
+        "statement": "Examinar o compromisso documentado de fornecimento de dez mesas por R$ 10.000,00 até 10/10/2026 e o alcance do recibo de seis mesas naquela data. Separar registro documental de inferência: a ausência das quatro restantes no recibo não demonstra, por si, que não foram entregues.",
+        "sourceIds": [
+          "D01-V2/contrato@v1#p1",
+          "D01-V2/recibo@v1#p1"
+        ]
+      },
+      {
+        "id": "i3",
+        "statement": "Examinar a alegação de ausência de pagamento, preservando seu caráter alegado e a ausência informada de extrato ou comprovante bancário; não concluir inadimplemento ou quitação nem inferir valor exigível apenas do preço contratual.",
+        "sourceIds": [
+          "D01-V2/relato@v1#p1",
+          "D01-V2/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "i4",
+        "statement": "Analisar, de modo condicionado à pretensão ainda não informada, as questões probatórias relativas ao fornecimento e pagamento à luz exclusivamente do trecho selecionado do art. 373 do CPC. Distinguir a distribuição normativa do ônus da suficiência concreta da prova; explicitar que não há jurisprudência ou outras normas no corpus para ampliar conclusões.",
+        "sourceIds": [
+          "CPC-373",
+          "D01-V2/contrato@v1#p1",
+          "D01-V2/recibo@v1#p1",
+          "D01-V2/relato@v1#p1"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "pretensao",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Qual pretensão material Aurora pretende discutir? Pode descrevê-la livremente ou informar que ainda não foi definida.",
+        "reason": "O objetivo de analisar o caso está definido, mas a pretensão material não foi informada; isso limita a identificação dos fatos constitutivos e das consequências jurídicas, sem impedir análise preliminar dos documentos.",
+        "sourceIds": [
+          "context"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      },
+      {
+        "key": "entrega",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Há informação ou documento, dentro do corpus selecionado, sobre a entrega das quatro mesas não incluídas no recibo, ou isso não está informado?",
+        "reason": "O recibo registra seis mesas e nada comprova sobre as outras quatro; a conclusão sobre cumprimento integral fica limitada. No corpus fechado, a ausência deve ser expressamente preservada.",
+        "sourceIds": [
+          "D01-V2/contrato@v1#p1",
+          "D01-V2/recibo@v1#p1"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      },
+      {
+        "key": "pagamento",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "O corpus selecionado contém informação sobre vencimento e condições de pagamento ou versão de Brisa a respeito, ou esses dados não estão informados?",
+        "reason": "Há somente a alegação de Aurora de não recebimento, sem extrato ou comprovante fornecido, e não há condições de pagamento ou posição da ré nos trechos. Isso limita conclusões sobre exigibilidade e controvérsia, mas não impede analisar a alegação com ressalvas.",
+        "sourceIds": [
+          "D01-V2/contrato@v1#p1",
+          "D01-V2/relato@v1#p1"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      }
+    ]
+  },
+  "version": 9,
+  "outputs": {
+    "matter-analyst": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4"
+      ],
+      "claims": [
+        {
+          "id": "0c2ee7c43e:c1",
+          "classification": "ALLEGATION",
+          "statement": "O contexto informa Aurora como autora e Brisa como ré em discussão civil de fornecimento, no procedimento comum.",
+          "sourceIds": [
+            "context"
+          ]
+        },
+        {
+          "id": "0c2ee7c43e:c2",
+          "classification": "DOCUMENT_RECORD",
+          "statement": "Aurora fornecerá dez mesas à Brisa por R$ 10.000,00, com entrega até 10/10/2026.",
+          "sourceIds": [
+            "D01-V2/contrato@v1#p1"
+          ]
+        },
+        {
+          "id": "0c2ee7c43e:c3",
+          "classification": "DOCUMENT_RECORD",
+          "statement": "Em 10/10/2026, Brisa recebeu seis mesas. As quatro restantes não constam deste recibo.",
+          "sourceIds": [
+            "D01-V2/recibo@v1#p1"
+          ]
+        },
+        {
+          "id": "0c2ee7c43e:c4",
+          "classification": "ALLEGATION",
+          "statement": "A autora afirma não ter recebido pagamento; o relato informa que não foram fornecidos extrato ou comprovante bancário.",
+          "sourceIds": [
+            "D01-V2/relato@v1#p1"
+          ]
+        },
+        {
+          "id": "0c2ee7c43e:c5",
+          "classification": "INFERENCE",
+          "statement": "O recibo registra seis mesas em 10/10/2026, data coincidente com o limite de entrega indicado no contrato; a ausência de registro das outras quatro não demonstra sua não entrega nem permite concluir cumprimento integral.",
+          "sourceIds": [
+            "D01-V2/contrato@v1#p1",
+            "D01-V2/recibo@v1#p1"
+          ]
+        },
+        {
+          "id": "0c2ee7c43e:c6",
+          "classification": "INFERENCE",
+          "statement": "No trecho do art. 373 selecionado, cabe ao autor provar o fato constitutivo de seu direito e ao réu o fato impeditivo, modificativo ou extintivo. A identificação concreta desses fatos depende da pretensão ainda não informada; essa distribuição não determina, por si, suficiência da prova disponível.",
+          "sourceIds": [
+            "CPC-373",
+            "context"
+          ]
+        },
+        {
+          "id": "0c2ee7c43e:c7",
+          "classification": "INFERENCE",
+          "statement": "O preço contratual e a alegação de não recebimento não permitem, isoladamente, estabelecer saldo exigível, inadimplemento ou quitação: os trechos não informam vencimento de pagamento nem suas condições.",
+          "sourceIds": [
+            "D01-V2/contrato@v1#p1",
+            "D01-V2/relato@v1#p1"
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "0c2ee7c43e:r1",
+          "kind": "EDITORIAL",
+          "statement": "Manter a análise preliminar restrita ao corpus fechado, sem escolher pretensão, calcular prazo ou preencher lacunas; preservar as ressalvas sobre entrega, pagamento e pretensão.",
+          "sourceIds": [
+            "context",
+            "D01-V2/contrato@v1#p1",
+            "D01-V2/recibo@v1#p1",
+            "D01-V2/relato@v1#p1"
+          ],
+          "verified": false
+        },
+        {
+          "id": "0c2ee7c43e:r2",
+          "kind": "PROCEDURAL",
+          "statement": "Na análise probatória, considerar a distribuição do art. 373 apenas nos limites do trecho fornecido e de modo condicionado à pretensão, sem declarar atendido o ônus por qualquer parte.",
+          "sourceIds": [
+            "CPC-373"
+          ],
+          "verified": false
+        }
+      ],
+      "findings": [
+        {
+          "id": "0c2ee7c43e:f1",
+          "code": "PRETENSAO_NAO_INFORMADA",
+          "severity": "WARNING",
+          "statement": "A pretensão material não foi informada. A análise documental é possível, mas a identificação dos fatos constitutivos e das consequências jurídicas permanece limitada.",
+          "sourceIds": [
+            "context"
+          ]
+        },
+        {
+          "id": "0c2ee7c43e:f2",
+          "code": "ENTREGA_PARCIALMENTE_REGISTRADA",
+          "severity": "WARNING",
+          "statement": "Não há no corpus registro sobre a entrega das quatro mesas restantes. Não se estabelece, com isso, descumprimento contratual; faltam elementos para avaliar o fornecimento integral.",
+          "sourceIds": [
+            "D01-V2/contrato@v1#p1",
+            "D01-V2/recibo@v1#p1"
+          ]
+        },
+        {
+          "id": "0c2ee7c43e:f3",
+          "code": "PAGAMENTO_SEM_CORROBORACAO",
+          "severity": "WARNING",
+          "statement": "A ausência de pagamento é alegada por Aurora, sem extrato ou comprovante fornecido. Não há versão de Brisa ou condições de pagamento nos trechos; o prazo de entrega não deve ser tratado como vencimento do preço.",
+          "sourceIds": [
+            "D01-V2/relato@v1#p1",
+            "D01-V2/contrato@v1#p1"
+          ]
+        },
+        {
+          "id": "0c2ee7c43e:f4",
+          "code": "CORPUS_LIMITADO",
+          "severity": "WARNING",
+          "statement": "O corpus contém somente dois recortes documentais, contexto, relato e trecho do art. 373. Não há jurisprudência ou outras normas disponíveis para ampliar conclusões; a análise não certifica autenticidade dos documentos nem verdade dos relatos.",
+          "sourceIds": [
+            "context",
+            "D01-V2/contrato@v1#p1",
+            "D01-V2/recibo@v1#p1",
+            "D01-V2/relato@v1#p1",
+            "CPC-373"
+          ]
+        }
+      ],
+      "supportChecks": [],
+      "review": {
+        "documentAssessments": [
+          {
+            "sourceId": "D01-V2/contrato@v1#p1",
+            "aspects": [
+              {
+                "aspect": "PARTIES",
+                "status": "PRESENT",
+                "quote": "Aurora fornecerá dez mesas à Brisa"
+              },
+              {
+                "aspect": "CAUSE",
+                "status": "PRESENT",
+                "quote": "Aurora fornecerá dez mesas à Brisa por R$ 10.000,00"
+              },
+              {
+                "aspect": "DUE_DATE",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "CREDIT_LINK",
+                "status": "PRESENT",
+                "quote": "Aurora fornecerá dez mesas à Brisa por R$ 10.000,00"
+              }
+            ],
+            "conclusion": "O trecho vincula partes, fornecimento e preço, mas não informa vencimento de pagamento. A data de 10/10/2026 refere-se à entrega. Não estabelece saldo ou exigibilidade."
+          },
+          {
+            "sourceId": "D01-V2/recibo@v1#p1",
+            "aspects": [
+              {
+                "aspect": "PARTIES",
+                "status": "AMBIGUOUS"
+              },
+              {
+                "aspect": "CAUSE",
+                "status": "PRESENT",
+                "quote": "Em 10/10/2026, Brisa recebeu seis mesas."
+              },
+              {
+                "aspect": "DUE_DATE",
+                "status": "NOT_PROVIDED"
+              },
+              {
+                "aspect": "CREDIT_LINK",
+                "status": "AMBIGUOUS"
+              }
+            ],
+            "conclusion": "Identifica Brisa e seis mesas, mas não nomeia Aurora, contrato ou preço. A correspondência com o fornecimento é proposta contextual, não vínculo expresso com crédito. Não é recibo de pagamento e nada estabelece sobre as quatro mesas restantes."
+          }
+        ]
+      }
+    },
+    "procedural-advisor": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4"
+      ],
+      "claims": [
+        {
+          "id": "58a66cc157:p1",
+          "classification": "INFERENCE",
+          "statement": "O trecho do art. 373 do CPC atribui ao autor o ônus quanto ao fato constitutivo e ao réu quanto ao fato impeditivo, modificativo ou extintivo do direito do autor. Essa distribuição abstrata não estabelece suficiência da prova nem permite identificar todos os fatos relevantes sem conhecer a pretensão.",
+          "sourceIds": [
+            "CPC-373",
+            "context"
+          ]
+        },
+        {
+          "id": "58a66cc157:p2",
+          "classification": "INFERENCE",
+          "statement": "Se a pretensão envolver pagamento do fornecimento, a análise deverá distinguir os fatos que fundamentariam o direito invocado de eventual alegação defensiva de pagamento. O corpus não contém versão de Brisa; não se presume que tenha alegado quitação nem se decide o ônus concreto relativo à negativa de recebimento.",
+          "sourceIds": [
+            "CPC-373",
+            "context",
+            "D01-V2/relato@v1#p1"
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "58a66cc157:r1",
+          "kind": "PROCEDURAL",
+          "statement": "Considerar a distribuição prevista no art. 373, incisos I e II, apenas nos limites do excerto identificado pela versão 2026-11-02, condicionando sua aplicação concreta à pretensão e às alegações das partes. Vigência e aplicabilidade não foram verificadas independentemente.",
+          "sourceIds": [
+            "CPC-373"
+          ],
+          "verified": false
+        },
+        {
+          "id": "58a66cc157:r2",
+          "kind": "EDITORIAL",
+          "statement": "Apresentar análise preliminar no procedimento comum informado, sem escolher pretensão ou medida, calcular prazo, declarar inadimplemento ou quitação, nem equiparar preço contratual a saldo exigível.",
+          "sourceIds": [
+            "context",
+            "D01-V2/contrato@v1#p1",
+            "D01-V2/relato@v1#p1"
+          ],
+          "verified": false
+        }
+      ],
+      "findings": [
+        {
+          "id": "58a66cc157:f1",
+          "code": "PRETENSAO_INDEFINIDA",
+          "severity": "WARNING",
+          "statement": "A pretensão material de Aurora não foi informada. Isso impede delimitar os fatos constitutivos e requisitos específicos de uma medida; não impede a análise documental limitada. Não se escolhe entre cobrança, cumprimento ou outra pretensão.",
+          "sourceIds": [
+            "context"
+          ]
+        },
+        {
+          "id": "58a66cc157:f2",
+          "code": "ENTREGA_NAO_ESCLARECIDA",
+          "severity": "WARNING",
+          "statement": "Contrato e recibo permitem comparar dez mesas previstas com seis registradas, mas não esclarecem a entrega das outras quatro. A ausência delas no recibo não demonstra não entrega nem autoriza conclusão sobre cumprimento integral.",
+          "sourceIds": [
+            "D01-V2/contrato@v1#p1",
+            "D01-V2/recibo@v1#p1"
+          ]
+        },
+        {
+          "id": "58a66cc157:f3",
+          "code": "EXIGIBILIDADE_NAO_DETERMINADA",
+          "severity": "WARNING",
+          "statement": "O relato contém alegação de ausência de pagamento e informa falta de extrato ou comprovante. Os trechos não fornecem condições ou vencimento do pagamento nem versão da ré. O prazo de entrega não supre esses dados; não é possível determinar saldo exigível ou resolver a controvérsia.",
+          "sourceIds": [
+            "D01-V2/contrato@v1#p1",
+            "D01-V2/relato@v1#p1"
+          ]
+        },
+        {
+          "id": "58a66cc157:f4",
+          "code": "BASE_NORMATIVA_RESTRITA",
+          "severity": "WARNING",
+          "statement": "A única fonte normativa disponível é o excerto do art. 373 do CPC; não há jurisprudência ou outras normas no corpus. A identificação de versão não confirma vigência ou aplicabilidade. A entrega fica limitada à leitura condicionada desse dispositivo, sem conclusões sobre requisitos de medidas específicas, admissibilidade ou satisfação do ônus probatório.",
+          "sourceIds": [
+            "CPC-373",
+            "context"
+          ]
+        }
+      ],
+      "supportChecks": []
+    },
+    "authority-verifier": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [
+        {
+          "id": "db9c803999:f1",
+          "code": "NORM_SNAPSHOT_LIMIT",
+          "severity": "WARNING",
+          "statement": "CPC-373 foi fornecido como excerto oficial, versão 2026-11-02, com URL do Senado. Confere-se somente o texto recuperado do art. 373, I e II; não houve consulta online, verificação independente de versão, vigência, aplicabilidade ou força vinculante. Não há jurisprudência ou outras normas no corpus.",
+          "sourceIds": [
+            "CPC-373"
+          ]
+        },
+        {
+          "id": "db9c803999:f2",
+          "code": "PARTIAL_SUPPORT",
+          "severity": "WARNING",
+          "statement": "Os pares relativos a c5–c7 e p1–p2 têm suporte parcial: nenhuma fonte isolada sustenta integralmente as inferências e ressalvas. O art. 373 sustenta a distribuição abstrata, não decide suficiência probatória ou ônus concreto. A ausência de pretensão, de informação sobre as quatro mesas e de condições de pagamento ou versão de Brisa permanece limitação; não se concluem não entrega, inadimplemento, quitação ou saldo exigível.",
+          "sourceIds": [
+            "context",
+            "CPC-373",
+            "D01-V2/contrato@v1#p1",
+            "D01-V2/recibo@v1#p1",
+            "D01-V2/relato@v1#p1"
+          ]
+        }
+      ],
+      "supportChecks": [
+        {
+          "claimId": "0c2ee7c43e:c1",
+          "sourceId": "context",
+          "quote": "A empresa fictícia Aurora é autora; Brisa é ré. Discussão civil de fornecimento, procedimento comum.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "0c2ee7c43e:c2",
+          "sourceId": "D01-V2/contrato@v1#p1",
+          "quote": "Aurora fornecerá dez mesas à Brisa por R$ 10.000,00, com entrega até 10/10/2026.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "0c2ee7c43e:c3",
+          "sourceId": "D01-V2/recibo@v1#p1",
+          "quote": "Em 10/10/2026, Brisa recebeu seis mesas. As quatro restantes não constam deste recibo.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "0c2ee7c43e:c4",
+          "sourceId": "D01-V2/relato@v1#p1",
+          "quote": "A autora afirma que não recebeu pagamento. Não foram fornecidos extrato ou comprovante bancário.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "0c2ee7c43e:c5",
+          "sourceId": "D01-V2/contrato@v1#p1",
+          "quote": "Aurora fornecerá dez mesas à Brisa por R$ 10.000,00, com entrega até 10/10/2026.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "0c2ee7c43e:c5",
+          "sourceId": "D01-V2/recibo@v1#p1",
+          "quote": "Em 10/10/2026, Brisa recebeu seis mesas. As quatro restantes não constam deste recibo.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "0c2ee7c43e:c6",
+          "sourceId": "CPC-373",
+          "quote": "Art. 373. O ônus da prova incumbe: I - ao autor, quanto ao fato constitutivo de seu direito; II - ao réu, quanto à existência de fato impeditivo, modificativo ou extintivo do direito do autor.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "0c2ee7c43e:c6",
+          "sourceId": "context",
+          "quote": "A empresa fictícia Aurora é autora; Brisa é ré. Discussão civil de fornecimento, procedimento comum. Não há pedido de cálculo de prazo.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "0c2ee7c43e:c7",
+          "sourceId": "D01-V2/contrato@v1#p1",
+          "quote": "Aurora fornecerá dez mesas à Brisa por R$ 10.000,00, com entrega até 10/10/2026.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "0c2ee7c43e:c7",
+          "sourceId": "D01-V2/relato@v1#p1",
+          "quote": "A autora afirma que não recebeu pagamento. Não foram fornecidos extrato ou comprovante bancário.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "58a66cc157:p1",
+          "sourceId": "CPC-373",
+          "quote": "Art. 373. O ônus da prova incumbe: I - ao autor, quanto ao fato constitutivo de seu direito; II - ao réu, quanto à existência de fato impeditivo, modificativo ou extintivo do direito do autor.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "58a66cc157:p1",
+          "sourceId": "context",
+          "quote": "A empresa fictícia Aurora é autora; Brisa é ré. Discussão civil de fornecimento, procedimento comum. Não há pedido de cálculo de prazo.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "58a66cc157:p2",
+          "sourceId": "CPC-373",
+          "quote": "Art. 373. O ônus da prova incumbe: I - ao autor, quanto ao fato constitutivo de seu direito; II - ao réu, quanto à existência de fato impeditivo, modificativo ou extintivo do direito do autor.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "58a66cc157:p2",
+          "sourceId": "context",
+          "quote": "A empresa fictícia Aurora é autora; Brisa é ré. Discussão civil de fornecimento, procedimento comum. Não há pedido de cálculo de prazo.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "58a66cc157:p2",
+          "sourceId": "D01-V2/relato@v1#p1",
+          "quote": "A autora afirma que não recebeu pagamento. Não foram fornecidos extrato ou comprovante bancário.",
+          "assessment": "PARTIAL"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "version": 1,
+    "revision": 0,
+    "tools": [],
+    "failedTools": [],
+    "planHashes": [
+      "48e122aed02ad69760ae96ec21bacbbb9ebe6ec7189e5e42b086b79b329aa082"
+    ],
+    "reviewRequired": false,
+    "nodes": [
+      {
+        "id": "matter-analyst:0",
+        "role": "matter-analyst",
+        "generation": 0,
+        "dependsOn": [],
+        "status": "COMPLETED",
+        "inputHash": "715b99367309e7442a1ff42df5b9294a051aacba94f656636ab52993e69b1d5d",
+        "input": {
+          "bindingHash": "aac8c82d7709ac78009147b05891804694024ccb6c2e6fecdd04bb5ae38876e1",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "48e122aed02ad69760ae96ec21bacbbb9ebe6ec7189e5e42b086b79b329aa082",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "44b2c9011e7821275fe3ffb19bbfbf0ea1a1eaec844560076ffd14375fabd4eb"
+            },
+            {
+              "id": "D01-V2/contrato@v1#p1",
+              "contentHash": "cec9db6088356783fd3b8eb57f12b5eb95309a434fa6fcf536c25ea8e6b854ba"
+            },
+            {
+              "id": "D01-V2/recibo@v1#p1",
+              "contentHash": "bec8bfa963cc44e57f8300f19a70a79adf4e08e29448fda144b9f474ddff4b7f"
+            },
+            {
+              "id": "D01-V2/relato@v1#p1",
+              "contentHash": "c0d5391434d4cb2d86c0015e0698392260d123ba1e166ec1f430dd3a2b83f83e"
+            },
+            {
+              "id": "CPC-373",
+              "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f"
+            }
+          ],
+          "dependencies": [],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "7fd2d05a900ee3d4bbb2f5fd91e98ead70f0b6c816dca0e5e50b6c005f083833",
+        "runIndex": 2
+      },
+      {
+        "id": "legal-researcher:0",
+        "role": "legal-researcher",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0"
+        ],
+        "status": "UNAVAILABLE"
+      },
+      {
+        "id": "procedural-advisor:0",
+        "role": "procedural-advisor",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "5dceee7d1e881cb13e69072ab50dfb2487597a90dd163917067b8b6a3b62748b",
+        "input": {
+          "bindingHash": "aac8c82d7709ac78009147b05891804694024ccb6c2e6fecdd04bb5ae38876e1",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "48e122aed02ad69760ae96ec21bacbbb9ebe6ec7189e5e42b086b79b329aa082",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "44b2c9011e7821275fe3ffb19bbfbf0ea1a1eaec844560076ffd14375fabd4eb"
+            },
+            {
+              "id": "D01-V2/contrato@v1#p1",
+              "contentHash": "cec9db6088356783fd3b8eb57f12b5eb95309a434fa6fcf536c25ea8e6b854ba"
+            },
+            {
+              "id": "D01-V2/recibo@v1#p1",
+              "contentHash": "bec8bfa963cc44e57f8300f19a70a79adf4e08e29448fda144b9f474ddff4b7f"
+            },
+            {
+              "id": "D01-V2/relato@v1#p1",
+              "contentHash": "c0d5391434d4cb2d86c0015e0698392260d123ba1e166ec1f430dd3a2b83f83e"
+            },
+            {
+              "id": "CPC-373",
+              "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "7fd2d05a900ee3d4bbb2f5fd91e98ead70f0b6c816dca0e5e50b6c005f083833"
+            },
+            {
+              "id": "legal-researcher:0",
+              "outputHash": null
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "2c58adb643b988bcc0dffe3b03d24dba354e48b1e264955ac1da53e0ba798c57",
+        "runIndex": 3
+      },
+      {
+        "id": "authority-verifier:0",
+        "role": "authority-verifier",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0",
+          "procedural-advisor:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "e38f23b30c249d6f10d5ed9c2b79c74a0b885b4056b8a696c19d6806f5200530",
+        "input": {
+          "bindingHash": "aac8c82d7709ac78009147b05891804694024ccb6c2e6fecdd04bb5ae38876e1",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "48e122aed02ad69760ae96ec21bacbbb9ebe6ec7189e5e42b086b79b329aa082",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "44b2c9011e7821275fe3ffb19bbfbf0ea1a1eaec844560076ffd14375fabd4eb"
+            },
+            {
+              "id": "D01-V2/contrato@v1#p1",
+              "contentHash": "cec9db6088356783fd3b8eb57f12b5eb95309a434fa6fcf536c25ea8e6b854ba"
+            },
+            {
+              "id": "D01-V2/recibo@v1#p1",
+              "contentHash": "bec8bfa963cc44e57f8300f19a70a79adf4e08e29448fda144b9f474ddff4b7f"
+            },
+            {
+              "id": "D01-V2/relato@v1#p1",
+              "contentHash": "c0d5391434d4cb2d86c0015e0698392260d123ba1e166ec1f430dd3a2b83f83e"
+            },
+            {
+              "id": "CPC-373",
+              "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "7fd2d05a900ee3d4bbb2f5fd91e98ead70f0b6c816dca0e5e50b6c005f083833"
+            },
+            {
+              "id": "legal-researcher:0",
+              "outputHash": null
+            },
+            {
+              "id": "procedural-advisor:0",
+              "outputHash": "2c58adb643b988bcc0dffe3b03d24dba354e48b1e264955ac1da53e0ba798c57"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "9979f281549ddef82bbeb16bbe488d95c900cd79498e9e2a66681e56f13b4223",
+        "runIndex": 4
+      }
+    ],
+    "archivedOutputs": {},
+    "decisions": [],
+    "stopReason": "COMPLETED"
+  }
+}

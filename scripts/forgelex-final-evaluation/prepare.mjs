@@ -96,14 +96,19 @@ export function buildRunPlan(value) {
   };
 }
 
-export function prepare(root) {
+export function assertPreparationHead(head, expectedHead = baseline) {
+  if (!/^[a-f0-9]{40}$/.test(expectedHead) || head !== expectedHead)
+    throw new Error('HEAD mudou: revisar a comparação antes de preparar outro pacote.');
+}
+
+export function prepare(root, options = {}) {
   const git = (...args) =>
     execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
   const read = (file) => readFileSync(resolve(root, file), 'utf8');
   validateCorpus(corpus, read);
   const plan = buildRunPlan(corpus);
   const head = git('rev-parse', 'HEAD');
-  if (head !== baseline) throw new Error('HEAD mudou: revisar a comparação antes de preparar outro pacote.');
+  assertPreparationHead(head, options.expectedHead);
   const rootPrefix = /^(apps\/|packages\/|scripts\/|tests\/|[^/]+\.(?:json|yaml|yml|ts|mjs)$|AGENTS\.md$)/;
   const files = git('ls-files', '-z', '--cached', '--others', '--exclude-standard')
     .split('\0')
@@ -127,7 +132,7 @@ export function prepare(root) {
   execFileSync('git', ['archive', '--format=tar', `--output=${baselineArchive}`, baseline], { cwd: root });
   const packet = {
     schemaVersion: 1,
-    preparedAt: '2026-11-02',
+    preparedAt: options.preparedAt ?? '2026-11-02',
     mode: 'offline-preparation',
     baseline: {
       commit: baseline,
@@ -165,7 +170,7 @@ export function prepare(root) {
       ],
     },
   };
-  const output = resolve(root, 'docs/architecture/evidence/2026-11-02-final-evaluation');
+  const output = options.outputDirectory ?? resolve(root, 'docs/architecture/evidence/2026-11-02-final-evaluation');
   mkdirSync(output, { recursive: true });
   writeFileSync(resolve(output, 'packet.json'), json(packet));
   const rows = [

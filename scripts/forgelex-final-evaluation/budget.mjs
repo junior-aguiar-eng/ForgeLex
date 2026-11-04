@@ -24,8 +24,16 @@ export function acquireRunnerLock(directory) {
 
 /** Append-only local evaluation ledger. Caller supplies an isolated directory, never a customer wallet. */
 export class EvaluationBudget {
-  constructor({ directory, fingerprint, runIds, cap, now = Date.now }) {
+  constructor({ directory, fingerprint, runIds, cap, runCap = 250000, runLimits = {}, now = Date.now }) {
     integer(cap);
+    if (!integer(runCap)) throw new Error('INVALID_RUN_CAP');
+    for (const [id, limits] of Object.entries(runLimits)) {
+      if (!runIds.includes(id) || !limits || typeof limits !== 'object') throw new Error('INVALID_RUN_LIMITS');
+      for (const [key, value] of Object.entries(limits)) {
+        const ceiling = { runCap, maxCalls: 24, maxDurationMs: 300000 }[key];
+        if (!ceiling || !integer(value) || value > ceiling) throw new Error('INVALID_RUN_LIMITS');
+      }
+    }
     if (!fingerprint || !runIds.length || new Set(runIds).size !== runIds.length) throw new Error('INVALID_CAMPAIGN');
     this.now = now;
     mkdirSync(directory, { recursive: true });
@@ -33,7 +41,15 @@ export class EvaluationBudget {
     this.lockFd = openSync(this.lock, 'wx'); // No stale-lock bypass: a crashed writer needs operator reconciliation.
     try {
       this.path = join(directory, 'budget.jsonl');
-      const identity = { fingerprint, runIds, cap, runCap: 250000, maxCalls: 24, maxDurationMs: 300000 };
+      const identity = {
+        fingerprint,
+        runIds,
+        cap,
+        runCap,
+        maxCalls: 24,
+        maxDurationMs: 300000,
+        ...(Object.keys(runLimits).length ? { runLimits } : {}),
+      };
       this.state = { identity, runs: {} };
       this.previous = null;
       if (existsSync(this.path)) {
@@ -90,7 +106,11 @@ export class EvaluationBudget {
   assertActive(id) {
     const run = this.state.runs[id];
     if (!run || run.status !== 'active') throw new Error('RUN_NOT_ACTIVE');
-    if (this.now() - run.startedAt >= this.state.identity.maxDurationMs) throw new Error('RUN_DEADLINE');
+    if (
+      this.now() - run.startedAt >=
+      (this.state.identity.runLimits?.[id]?.maxDurationMs ?? this.state.identity.maxDurationMs)
+    )
+      throw new Error('RUN_DEADLINE');
     return run;
   }
   reserve(id, callId, upper) {
@@ -102,10 +122,14 @@ export class EvaluationBudget {
       return false;
     }
     if (this.summary().unresolved) throw new Error('UNCERTAIN_COST');
-    if (Object.keys(run.calls).length >= this.state.identity.maxCalls) throw new Error('CALL_LIMIT');
+    if (
+      Object.keys(run.calls).length >= (this.state.identity.runLimits?.[id]?.maxCalls ?? this.state.identity.maxCalls)
+    )
+      throw new Error('CALL_LIMIT');
     if (
       this.summary().exposure + upper > this.state.identity.cap ||
-      Object.values(run.calls).reduce((sum, call) => sum + this.cost(call), 0) + upper > this.state.identity.runCap
+      Object.values(run.calls).reduce((sum, call) => sum + this.cost(call), 0) + upper >
+        (this.state.identity.runLimits?.[id]?.runCap ?? this.state.identity.runCap)
     )
       throw new Error('BUDGET_EXCEEDED');
     run.calls[callId] = { status: 'RESERVED', upper, actual: null };

@@ -4,10 +4,18 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { corpus } from './corpus.mjs';
-import { buildRunPlan, validateCorpus } from './prepare.mjs';
+import { buildRunPlan, validateCorpus, assertPreparationHead, baseline } from './prepare.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const readTest = (file) => readFileSync(resolve(root, file), 'utf8');
+
+test('preparation requires the exact reviewed HEAD and preserves the original baseline', () => {
+  assert.doesNotThrow(() => assertPreparationHead(baseline));
+  assert.throws(() => assertPreparationHead('a'.repeat(40)), /HEAD/);
+  assert.doesNotThrow(() => assertPreparationHead('a'.repeat(40), 'a'.repeat(40)));
+  assert.throws(() => assertPreparationHead('a'.repeat(40), 'b'.repeat(40)), /HEAD/);
+  assert.throws(() => assertPreparationHead('main', 'main'), /HEAD/);
+});
 
 test('every offline scenario points to an existing exact test and legal sources are closed', () => {
   validateCorpus(corpus, readTest);

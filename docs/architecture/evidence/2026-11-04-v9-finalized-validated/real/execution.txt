@@ -1,0 +1,27 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/tmp/forgelex-final-evaluation/77ad4f7372af86fa71e0f04de57823084b7c4064605bc1efbb634150361ac6c2/candidate
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  15:03:54
+   Duration  17.18s (transform 2.99s, setup 0ms, import 6.96s, tests 9.46s, environment 0ms)
+
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/tmp/forgelex-final-evaluation/77ad4f7372af86fa71e0f04de57823084b7c4064605bc1efbb634150361ac6c2/candidate
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  15:04:14
+   Duration  54.61s (transform 3.96s, setup 0ms, import 8.95s, tests 44.97s, environment 0ms)
+
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/tmp/forgelex-final-evaluation/77ad4f7372af86fa71e0f04de57823084b7c4064605bc1efbb634150361ac6c2/candidate
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  15:05:12
+   Duration  90.04s (transform 6.62s, setup 0ms, import 13.12s, tests 76.14s, environment 0ms)
+

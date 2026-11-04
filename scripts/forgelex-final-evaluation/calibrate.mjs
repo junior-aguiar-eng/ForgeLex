@@ -3,25 +3,32 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { prepare } from './prepare.mjs';
+import { prepare, assertPreparationHead } from './prepare.mjs';
 import { acquireRunnerLock } from './budget.mjs';
-import { parseCalibrationArgs, campaignPacket } from './campaign.mjs';
+import { parseCalibrationArgs, campaignPacket, assertNewPreparation } from './campaign.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const json = (value) => JSON.stringify(value, null, 2) + '\n';
-const { real, campaignId } = parseCalibrationArgs(process.argv.slice(2), process.env);
+const { real, campaignId, expectedHead } = parseCalibrationArgs(process.argv.slice(2), process.env);
 const parent = join(root, '.superpowers/sdd/2026-11-02-forgelex-calibration-runner');
 const campaignDirectory = campaignId ? join(parent, 'campaigns', campaignId) : null;
 const releaseRunner = acquireRunnerLock(parent);
 try {
-  if (!real) prepare(root);
-  const currentPacket = join(root, 'docs/architecture/evidence/2026-11-02-final-evaluation/packet.json');
+  if (!real && campaignDirectory) assertNewPreparation(campaignDirectory);
+  const outputDirectory = campaignDirectory
+    ? join(campaignDirectory, 'preparation')
+    : join(root, 'docs/architecture/evidence/2026-11-02-final-evaluation');
+  if (!real) prepare(root, { expectedHead, outputDirectory, preparedAt: new Date().toISOString().slice(0, 10) });
+  const currentPacket = join(outputDirectory, 'packet.json');
   const packetPath = campaignDirectory
     ? campaignPacket(campaignDirectory, real ? undefined : readFileSync(currentPacket))
     : currentPacket;
   const packetBytes = readFileSync(packetPath);
   const packet = JSON.parse(packetBytes);
+  const currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  assertPreparationHead(currentHead, packet.candidate.head);
+  if (expectedHead) assertPreparationHead(currentHead, expectedHead);
   for (const entry of packet.candidate.files) {
     for (const base of [root, resolve(root, packet.candidate.snapshot)]) {
       if (hash(readFileSync(resolve(base, entry.file))) !== entry.sha256)

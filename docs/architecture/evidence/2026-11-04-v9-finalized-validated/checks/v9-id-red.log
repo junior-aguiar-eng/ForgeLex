@@ -1,0 +1,64 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ packages/legal-workflows/src/agentic-case-task/reviewed-delivery.test.ts (11 tests | 3 failed) 50ms
+   × renders a known analytical reference as its statement without changing structured support or original input 6ms
+   × keeps private IDs, literal quotations and ambiguous/prefix references subject to rejection 2ms
+   × identifier failures expose only a field name and digest, never rejected prose or the identifier 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/legal-workflows/src/agentic-case-task/reviewed-delivery.test.ts > renders a known analytical reference as its statement without changing structured support or original input
+TypeError: resolvePublicAnalyticalReferences is not a function
+ ❯ packages/legal-workflows/src/agentic-case-task/reviewed-delivery.test.ts:230:19
+    228|  const value={...result,findings:[{id:'f',code:'LIMITED',severity:'BLO…
+    229|  supportChecks:[{claimId:id,sourceId:'invoice',quote:'Fatura: 420 reai…
+    230|  const normalized=resolvePublicAnalyticalReferences(value,prior);
+       |                   ^
+    231|  expect(normalized.findings[0].statement).toBe('A proposição “O víncul…
+    232|  expect(normalized.supportChecks).toEqual(value.supportChecks);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  packages/legal-workflows/src/agentic-case-task/reviewed-delivery.test.ts > keeps private IDs, literal quotations and ambiguous/prefix references subject to rejection
+TypeError: resolvePublicAnalyticalReferences is not a function
+ ❯ packages/legal-workflows/src/agentic-case-task/reviewed-delivery.test.ts:241:19
+    239|  const value={...result,findings:[{id:'f',statement:`${privateId} ${id…
+    240|  supportChecks:[{claimId:id,sourceId:'invoice',quote:id,assessment:'NO…
+    241|  const normalized=resolvePublicAnalyticalReferences(value,prior);
+       |                   ^
+    242|  expect(normalized.findings[0].statement).toBe(value.findings[0].state…
+    243|  expect(normalized.supportChecks[0].quote).toBe(id);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  packages/legal-workflows/src/agentic-case-task/reviewed-delivery.test.ts > identifier failures expose only a field name and digest, never rejected prose or the identifier
+AssertionError: expected undefined to match object { …(4) }
+
+- Expected:
+{
+  "failureClass": "CONTRACT",
+  "failureCode": "INTERNAL_IDENTIFIER_IN_OUTPUT",
+  "identifierHash": "cf4c4732fd3b8f8a55b60871950a2f22c893ea7afd75d2146826534e3f67cc49",
+  "publicField": "statement",
+}
+
++ Received:
+undefined
+
+ ❯ packages/legal-workflows/src/agentic-case-task/reviewed-delivery.test.ts:249:29
+    247|  const id='11111111-2222-4333-8444-555555555555';let failure:any;
+    248|  try{validateReviewedResult({...result,claims:[claim('local','private …
+    249|  expect(failure.diagnostic).toMatchObject({failureCode:'INTERNAL_IDENT…
+       |                             ^
+    250|  expect(JSON.stringify(failure.diagnostic)).not.toContain(id);
+    251|  expect(JSON.stringify(failure.diagnostic)).not.toContain('private pro…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 8 passed (11)
+   Start at  14:56:31
+   Duration  1.30s (transform 395ms, setup 0ms, import 764ms, tests 50ms, environment 0ms)
+

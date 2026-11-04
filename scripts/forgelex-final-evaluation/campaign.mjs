@@ -6,6 +6,7 @@ export function parseCalibrationArgs(args, environment) {
   let real = false;
   let approved = false;
   let campaignId = null;
+  let expectedHead;
   for (const arg of args) {
     if (arg === '--real' && !real) real = true;
     else if (arg === '--approve-calibration-usd=1.50' && !approved) approved = true;
@@ -13,17 +14,25 @@ export function parseCalibrationArgs(args, environment) {
       campaignId = arg.slice('--campaign='.length);
       if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(campaignId) || campaignId === 'real-calibration')
         throw new Error('Invalid campaign identifier');
+    } else if (arg.startsWith('--expected-head=') && expectedHead === undefined) {
+      expectedHead = arg.slice('--expected-head='.length);
+      if (!/^[a-f0-9]{40}$/.test(expectedHead)) throw new Error('Invalid expected HEAD');
     } else throw new Error('Unknown or duplicate option');
   }
   if (real && !campaignId) throw new Error('Real execution requires a named campaign; historical campaign is closed');
   if (real && (!approved || !environment.OPENAI_API_KEY?.trim()))
     throw new Error('Explicit calibration approval and OPENAI_API_KEY required; no request sent');
   if (!real && approved) throw new Error('Approval flag requires --real');
-  return { real, campaignId };
+  return { real, campaignId, ...(expectedHead ? { expectedHead } : {}) };
 }
 
 // Caller holds the global runner lock. A campaign is immutable after first preparation.
 // Missing/inconsistent sidecars are never repaired automatically.
+export function assertNewPreparation(directory) {
+  if (['packet.json', 'packet.sha256', 'preparation'].some((name) => existsSync(join(directory, name))))
+    throw new Error('CAMPAIGN_PREPARATION_EXISTS: use a new campaign identifier');
+}
+
 export function campaignPacket(directory, preparedBytes) {
   const packetPath = join(directory, 'packet.json');
   const digestPath = join(directory, 'packet.sha256');

@@ -1,0 +1,33 @@
+Scope: 17 of 18 workspace projects
+packages/domain typecheck$ tsc --noEmit
+packages/domain typecheck: Done
+packages/legal-data typecheck$ tsc --noEmit
+packages/agent-core typecheck$ tsc --noEmit
+packages/source-catalog typecheck$ tsc --noEmit
+packages/source-catalog typecheck: Done
+packages/legal-data typecheck: Done
+packages/agent-core typecheck: Done
+packages/source-providers typecheck$ tsc --noEmit
+packages/persistence typecheck$ tsc --noEmit
+packages/source-providers typecheck: Done
+packages/persistence typecheck: Done
+packages/audit typecheck$ tsc --noEmit
+packages/billing-ledger typecheck$ tsc --noEmit
+packages/audit typecheck: Done
+packages/billing-ledger typecheck: Done
+packages/analise-juridica typecheck$ tsc --noEmit
+packages/legal-tools typecheck$ tsc --noEmit
+packages/analise-juridica typecheck: Done
+packages/legal-tools typecheck: Done
+packages/agent-provider-anthropic typecheck$ tsc --noEmit
+packages/legal-agents typecheck$ tsc --noEmit
+packages/mcp-server typecheck$ tsc --noEmit
+packages/agent-provider-openai typecheck$ tsc --noEmit
+packages/agent-provider-anthropic typecheck: Done
+packages/mcp-server typecheck: Done
+packages/agent-provider-openai typecheck: Done
+packages/legal-agents typecheck: Done
+packages/legal-workflows typecheck$ tsc --noEmit
+packages/legal-workflows typecheck: Done
+apps/api typecheck$ tsc --noEmit -p tsconfig.typecheck.json
+apps/api typecheck: Done

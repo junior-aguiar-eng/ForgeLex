@@ -1,0 +1,71 @@
+{
+  "mode": "real",
+  "packetSha256": "96b1775f351bc3cfb68054df9c151d931fd835180f86ac1f4bccb7b88a451cac",
+  "status": "COMPLETED",
+  "stopReason": null,
+  "historicalReserveMicroUsd": 83620,
+  "paidModelCalls": 10,
+  "measuredMicroUsd": 199248,
+  "uncertainMicroUsd": 0,
+  "runs": [
+    {
+      "runId": "D04-V2",
+      "outcome": "completed",
+      "status": "LIMITED",
+      "paidCalls": 6,
+      "measuredMicroUsd": 154328,
+      "resultPath": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D04-V2.json"
+    },
+    {
+      "runId": "D01-V2",
+      "outcome": "completed",
+      "status": "LIMITED",
+      "paidCalls": 4,
+      "measuredMicroUsd": 79892,
+      "resultPath": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D01-V2.json"
+    },
+    {
+      "runId": "D03-V2",
+      "outcome": "completed",
+      "status": "LIMITED",
+      "paidCalls": 4,
+      "measuredMicroUsd": 68762,
+      "resultPath": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D03-V2.json"
+    },
+    {
+      "runId": "V2-FIT",
+      "outcome": "completed",
+      "status": "LIMITED",
+      "paidCalls": 5,
+      "measuredMicroUsd": 87352,
+      "resultPath": "docs/architecture/evidence/2026-11-04-v9-finalized-validated/real/V2-FIT.json"
+    },
+    {
+      "runId": "V2-INTEGRITY",
+      "outcome": "completed",
+      "status": "LIMITED",
+      "paidCalls": 4,
+      "measuredMicroUsd": 72246,
+      "resultPath": "docs/architecture/evidence/2026-11-04-v9-finalized-validated/real/V2-INTEGRITY.json"
+    },
+    {
+      "runId": "V2-MULTI",
+      "outcome": "completed",
+      "status": "LIMITED",
+      "paidCalls": 5,
+      "measuredMicroUsd": 109666,
+      "resultPath": "docs/architecture/evidence/2026-11-04-v9-finalized-validated/real/V2-MULTI.json"
+    }
+  ],
+  "notRun": [],
+  "legalAssessment": "PENDING_BONI",
+  "historicalLedgerUnchanged": true,
+  "commit": false,
+  "push": false,
+  "publish": false,
+  "priorMeasuredMicroUsd": 372998,
+  "priorPaidCalls": 18,
+  "totalMeasuredMicroUsd": 572246,
+  "totalPaidCalls": 28,
+  "exposureIncludingHistoricalReserveMicroUsd": 655866
+}

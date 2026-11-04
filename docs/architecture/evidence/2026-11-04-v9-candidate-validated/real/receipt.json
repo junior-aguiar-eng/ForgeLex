@@ -1,0 +1,79 @@
+{
+  "mode": "real",
+  "packetSha256": "b6488b1da1bdf2698a2ad346dd2dfd1d6d31de0818ac3c6ce528916d7d5eb99e",
+  "status": "STOPPED",
+  "stopReason": "EXECUTION_STOP_CONDITION",
+  "historicalReserveMicroUsd": 83620,
+  "paidModelCalls": 4,
+  "measuredMicroUsd": 91896,
+  "uncertainMicroUsd": 0,
+  "runs": [
+    {
+      "runId": "D04-V2",
+      "mode": "real",
+      "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\875e6009ad77b5766717f6c38aafbe2d7f35476f546bbf9065d2783357f5e86f\\candidate",
+      "inputHash": "804302f719b1c0385568b2d7c8bf5ea3c58811314da9f5f416e38e27f0fe5ec0",
+      "request": "Prepare minuta limitada às fontes selecionadas, sem inventar qualificação, juízo ou prazo. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+      "outcome": "failed",
+      "error": "OPENAI_AGENT_ERROR",
+      "diagnostic": {
+        "errorType": "Error",
+        "failureCode": "BUDGET_EXCEEDED",
+        "failureClass": "RESOURCE_LIMIT",
+        "role": "adversarial-reviewer"
+      },
+      "durationMs": 69705.1753,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "procedural-advisor",
+        "legal-drafter",
+        "adversarial-reviewer"
+      ],
+      "stateVersion": 9,
+      "paidModelCalls": 4,
+      "syntheticCalls": 0,
+      "measuredMicroUsd": 91896,
+      "simulatedMicroUsd": null,
+      "uncertainUpperMicroUsd": 0,
+      "usage": [
+        {
+          "inputTokens": 3140,
+          "outputTokens": 715,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 4528,
+          "outputTokens": 1237,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 5609,
+          "outputTokens": 1428,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 7436,
+          "outputTokens": 1667,
+          "cachedInputTokens": 0
+        }
+      ],
+      "legalScore": null,
+      "hasDelivery": false,
+      "hasQuestion": false
+    }
+  ],
+  "notRun": [
+    "D01-V2",
+    "D03-V2",
+    "V2-FIT",
+    "V2-INTEGRITY",
+    "V2-MULTI"
+  ],
+  "legalAssessment": "PENDING_BONI",
+  "historicalLedgerUnchanged": true,
+  "commit": false,
+  "push": false,
+  "publish": false,
+  "exposureIncludingHistoricalReserveMicroUsd": 175516
+}
