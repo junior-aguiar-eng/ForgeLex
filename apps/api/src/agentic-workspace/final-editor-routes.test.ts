@@ -19,6 +19,11 @@ import { FinalEditorService, type FinalEditorGenerationOptions } from '@forgelex
 import { FakeAgentProvider } from '@forgelex/agent-core';
 import postgres from 'postgres';
 
+// Integration cases include fresh database migrations and complete route/ledger flows.
+// Full-suite contention exceeded the 5s default; keep a bounded 15s budget here only.
+// Unit-test defaults, production deadlines and retry policy remain unchanged.
+vi.setConfig({ testTimeout: 15_000 });
+
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const cleanup: (() => Promise<void>)[] = [];
 

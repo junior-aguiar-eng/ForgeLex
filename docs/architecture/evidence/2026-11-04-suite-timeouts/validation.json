@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-04",
+  "fullSuite": {
+    "command": "pnpm test",
+    "passed": 1772,
+    "failed": 0,
+    "skipped": 17,
+    "filesPassed": 241,
+    "filesSkipped": 3,
+    "durationSeconds": 460.66
+  },
+  "build": "passed",
+  "focusedLint": "passed",
+  "formatting": "passed",
+  "historicalEvidenceFilesPreserved": 464,
+  "frozenCampaignFilesPreserved": 815,
+  "baselinePairedTestsPassed": 93,
+  "newTimeoutMs": 15000,
+  "scope": [
+    "apps/api/src/agentic-workspace/commercial-runtime.test.ts",
+    "apps/api/src/agentic-workspace/final-editor-routes.test.ts"
+  ],
+  "globalTimeoutChanged": false,
+  "retriesAdded": false,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false,
+  "files": [
+    {
+      "file": "changes.json",
+      "sha256": "683cbe91ef102cedda2a8fbc6d21c4be01b0b49e813c4e5aaa7ce2132abae4ff"
+    },
+    {
+      "file": "commercial-runtime.test.ts.patch",
+      "sha256": "98495d57a0791e746fa5eda0c01b36189cd018bf353b29ce13c2f0ba9a384997"
+    },
+    {
+      "file": "diagnosis.json",
+      "sha256": "172a54ecb498a36daf0511066a86e0ff1788bf9f4c8e57822a31e2b9acf1cedb"
+    },
+    {
+      "file": "final-editor-routes.test.ts.patch",
+      "sha256": "c7343b2ab862dd5b360c2e4f54a73aabae6d0c3104f854e2d0e4733025d471a5"
+    },
+    {
+      "file": "preservation-before.json",
+      "sha256": "3ba4c5d23da7904f40ef760e6ca3f5838e2ee394b801de53cc243657ef9f8310"
+    },
+    {
+      "file": "checks/timeout-baseline.json",
+      "sha256": "95bd9e6a7a81d97ae4b6bdabf143542911e27b0217c0bbf47201fa8d8030a39a"
+    },
+    {
+      "file": "checks/timeout-baseline.log",
+      "sha256": "b1d1286c98ad4e9ae63ecc2aab4acd2109fcd90d5637cf1a9c700113710705a1"
+    },
+    {
+      "file": "checks/timeout-full-suite.log",
+      "sha256": "c0c1080ba18b94f7e58be158d3cb84e68c08a1c04fc431044c8775d11646c33b"
+    },
+    {
+      "file": "checks/timeout-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "checks/timeout-phase-values.jsonl",
+      "sha256": "28da1029205054c1dc5b152ece22ada3207553d7f8d6a95795866aa30c872f52"
+    },
+    {
+      "file": "checks/timeout-phases-recorded.log",
+      "sha256": "f591125e525e823c96de7bb05bc271e0dbf6bd6c3ca8658fd5aecf59431a5b0c"
+    }
+  ]
+}

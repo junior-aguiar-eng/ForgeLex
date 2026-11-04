@@ -1,0 +1,32 @@
+{
+  "originalLimitMs": 5000,
+  "newFileScopedLimitMs": 15000,
+  "globalConfigChanged": false,
+  "productionDeadlinesChanged": false,
+  "retriesAdded": false,
+  "maxWorkers": 2,
+  "baseline": {
+    "passed": 93,
+    "failed": 0
+  },
+  "phases": [
+    {
+      "file": "final-editor-routes.test.ts",
+      "fixtureMs": 1531.5459,
+      "totalMs": 1693.0421999999999,
+      "fixturePercent": 90.5
+    },
+    {
+      "file": "commercial-runtime.test.ts",
+      "fixtureMs": 759.090400000001,
+      "totalMs": 962.9282999999996,
+      "fixturePercent": 78.8
+    }
+  ],
+  "conclusion": "Fresh migrations and integration flows are included in each test budget. Prior full-suite runs exceeded 5s; isolated and paired runs pass. Exact host-level cause of duration variability was not isolated.",
+  "scope": [
+    "commercial-runtime.test.ts",
+    "final-editor-routes.test.ts"
+  ],
+  "providerCalls": "NONE; test transports are simulated; API keys removed from full-suite child environment"
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "file": "apps/api/src/agentic-workspace/commercial-runtime.test.ts",
+    "beforeSha256": "958a213925fd267f8f3a26b88268b33559ced15417b65edd548dea7fe0746908",
+    "afterSha256": "abf2b1843b5e27ba7178b52e71033d8827de41ac82d9ba37dc0bdce3b87a2d0e"
+  },
+  {
+    "file": "apps/api/src/agentic-workspace/final-editor-routes.test.ts",
+    "beforeSha256": "d975a7a617422b503da52e41c6065c9ff5ad6f936ea68ce4a5ac1d06de59384f",
+    "afterSha256": "960d5fcd336696b7ec63f8da0a43182b2931f86ba827a1351d2ea09871767963"
+  }
+]

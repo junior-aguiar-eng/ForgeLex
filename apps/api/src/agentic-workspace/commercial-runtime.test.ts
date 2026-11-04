@@ -13,6 +13,11 @@ import { AgenticTaskDeliverySchema } from '@forgelex/domain';
 import { AccountClosurePurgeService } from '../account/account-closure-purge-service.js';
 import { AccountClosureBillingRetention } from '../account/account-closure-billing-retention.js';
 
+// Integration cases include fresh database migrations and complete route/ledger flows.
+// Full-suite contention exceeded the 5s default; keep a bounded 15s budget here only.
+// Unit-test defaults, production deadlines and retry policy remain unchanged.
+vi.setConfig({ testTimeout: 15_000 });
+
 const owner = { tenantId: 'commercial', userId: 'boni' };
 const env = {
   FORGELEX_COMMERCIAL_EXECUTION_ENABLED: 'true',
