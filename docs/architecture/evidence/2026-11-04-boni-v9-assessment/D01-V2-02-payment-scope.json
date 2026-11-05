@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D01-V2",
+  "block": "PAYMENT_AND_ANALYSIS_SCOPE",
+  "decision": "ACCEPTED_IN_PRESENTED_FORMULATION",
+  "evaluator": "Boni",
+  "userStatement": "Trecho aceito.",
+  "recordedAt": "2026-11-04T21:28:55.862501+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D01-V2.json",
+  "sourceSha256": "3141b6726f3db8765c652941bdf380b721fa0a67e2f7311d9d2b6309bbe3e541",
+  "acceptedExcerpt": "O preço contratual de R$ 10.000,00 não pode ser tratado automaticamente como saldo exigível. Os recortes não informam o vencimento nem as condições de pagamento; a alegação de não recebimento, isoladamente, não permite concluir por inadimplemento ou quitação.\n\nO contexto informa uma discussão civil de fornecimento, no procedimento comum, mas não esclarece a pretensão específica de Aurora. A análise deve permanecer preliminar, sem escolher pedido ou medida processual, calcular prazo ou preencher essas lacunas.",
+  "relatedOriginalClaims": [
+    {
+      "id": "0c2ee7c43e:c1",
+      "classification": "ALLEGATION",
+      "statement": "O contexto informa Aurora como autora e Brisa como ré em discussão civil de fornecimento, no procedimento comum.",
+      "sourceIds": [
+        "context"
+      ]
+    },
+    {
+      "id": "0c2ee7c43e:c7",
+      "classification": "INFERENCE",
+      "statement": "O preço contratual e a alegação de não recebimento não permitem, isoladamente, estabelecer saldo exigível, inadimplemento ou quitação: os trechos não informam vencimento de pagamento nem suas condições.",
+      "sourceIds": [
+        "D01-V2/contrato@v1#p1",
+        "D01-V2/relato@v1#p1"
+      ]
+    }
+  ],
+  "relatedOriginalRequirements": [
+    {
+      "id": "0c2ee7c43e:r1",
+      "kind": "EDITORIAL",
+      "statement": "Manter a análise preliminar restrita ao corpus fechado, sem escolher pretensão, calcular prazo ou preencher lacunas; preservar as ressalvas sobre entrega, pagamento e pretensão.",
+      "sourceIds": [
+        "context",
+        "D01-V2/contrato@v1#p1",
+        "D01-V2/recibo@v1#p1",
+        "D01-V2/relato@v1#p1"
+      ],
+      "verified": false
+    },
+    {
+      "id": "58a66cc157:r2",
+      "kind": "EDITORIAL",
+      "statement": "Apresentar análise preliminar no procedimento comum informado, sem escolher pretensão ou medida, calcular prazo, declarar inadimplemento ou quitação, nem equiparar preço contratual a saldo exigível.",
+      "sourceIds": [
+        "context",
+        "D01-V2/contrato@v1#p1",
+        "D01-V2/relato@v1#p1"
+      ],
+      "verified": false
+    }
+  ],
+  "scope": "Only the presented payment and analysis-scope passage; no whole-delivery approval or clearance of historical support alerts.",
+  "wholeDeliveryAssessment": "PENDING",
+  "appliedToOriginal": false,
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

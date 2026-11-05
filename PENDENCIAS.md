@@ -4,8 +4,12 @@
 
 Esta seção prevalece sobre os estados históricos abaixo. A campanha v9 foi
 autorizada e concluída: D04-V2, D01-V2, D03-V2, V2-FIT, V2-INTEGRITY e V2-MULTI
-produziram entregas `LIMITED`, ainda sem aprovação jurídica de Boni. Foram
-28 chamadas e US$ 0,572246 calculados pelo uso retornado. A reserva histórica
+produziram entregas originais `LIMITED`, preservadas como evidência histórica.
+Boni aprovou as seis versões derivadas: V2-MULTI, D04-V2, D01-V2, D03-V2,
+V2-FIT e V2-INTEGRITY, no escopo dos excertos e ressalvas nelas registrados.
+A avaliação final dessas versões está concluída; as saídas originais e seus
+alertas não foram reclassificados. Foram 28 chamadas e US$ 0,572246 calculados
+pelo uso retornado. A reserva histórica
 **US$ 0,083620 permanece integralmente retida**; exposição acumulada
 US$ 0,655866, abaixo do teto autorizado de US$ 1,50. Não há nova incerteza de
 custo nesta campanha. O saldo de US$ 0,844134 não autoriza outra campanha.
@@ -38,23 +42,52 @@ v8; v9 e geração editorial real continuam opt-in.
 
 ### Pendências efetivas, em ordem recomendada
 
-1. **Avaliação de Boni:** revisar as seis entregas e a cópia derivada de
-   V2-MULTI, registrando aceitação, ressalvas e exemplos insuficientes. Os
-   resultados da campanha constituem uma medição real restrita, não aprovação
-   jurídica nem comprovação de qualidade geral. As fichas históricas v8
-   continuam pendentes e não devem ser preenchidas com resultados v9.
-2. **Reconciliação histórica de D04-v8:** obter evidência independente do
-   provedor para os US$ 0,083620 incertos. Sua causa histórica continua
-   indeterminada; os diagnósticos novos não recuperam dados que não foram
-   registrados. Não liberar, reduzir ou converter a reserva em gasto certo
-   sem evidência. A auditoria local não substitui a fatura do provedor.
+1. **Avaliação de Boni — concluída para as seis versões derivadas:**
+   V2-MULTI, D04-V2 e D01-V2 tiveram suas versões consolidadas aprovadas;
+   D03-V2, V2-FIT e V2-INTEGRITY tiveram suas versões ajustadas aprovadas.
+   Decisões vinculadas ao hash de cada texto:
+   [V2-MULTI](docs/architecture/evidence/2026-11-04-boni-v9-assessment/V2-MULTI-13-final-assessment.json),
+   [D04-V2](docs/architecture/evidence/2026-11-04-boni-v9-assessment/D04-V2-07-final-assessment.json),
+   [D01-V2](docs/architecture/evidence/2026-11-04-boni-v9-assessment/D01-V2-06-final-assessment.json),
+   [D03-V2](docs/architecture/evidence/2026-11-04-boni-v9-assessment/D03-V2-adjusted-final-assessment.json),
+   [V2-FIT](docs/architecture/evidence/2026-11-04-boni-v9-assessment/V2-FIT-adjusted-final-assessment.json) e
+   [V2-INTEGRITY](docs/architecture/evidence/2026-11-04-boni-v9-assessment/V2-INTEGRITY-adjusted-final-assessment.json).
+   O [caderno ajustado](docs/architecture/evidence/2026-11-04-boni-v9-assessment/remaining-phases-adjusted-review.md)
+   contém as três últimas versões. Não há nova rodada de aprovação por trecho
+   pendente para esses textos. As limitações do corpus, divergências documentais,
+   lacunas factuais e ressalvas de integridade permanecem; em D04-V2, a aptidão
+   para protocolo não foi demonstrada. A aprovação não altera alertas, statuses,
+   checkpoints ou ledgers originais e não comprova qualidade geral das gerações
+   futuras. Não equivale a aplicação no ForgeLex ou publicação. As fichas
+   históricas v8 continuam pendentes e não recebem resultados v9.
+   Os registros de revisão e conciliação agregada permanecem locais, ainda sem
+   commit nesta etapa; commit, push e publicação dependem de autorização própria.
+2. **Reconciliação histórica de D04-v8 — pendência residual não bloqueante:**
+   os CSVs fornecidos por Boni para 03/11/2026 UTC coincidem exatamente com
+   68 chamadas reais conhecidas das campanhas v6/v7/v8: 225.512 tokens de
+   entrada e 35.584 de saída. O custo exportado de US$ 0,035196 coincide
+   aritmeticamente com os tokens das quatro requisições `default`; as outras
+   64 aparecem como `incentivized-tier`, sem valor adicional aparente nesse
+   CSV. Não é necessário consumo extra para explicar os totais exportados.
+   Ver [conciliação agregada e limites](docs/architecture/2026-11-04-d04-aggregate-reconciliation.md).
+   Isso não identifica individualmente a tentativa incerta nem confirma sua
+   não cobrança. **Manter US$ 0,083620 reservados e o status original UNCERTAIN.**
+   Por decisão expressa de Boni, a identificação individual e a causa histórica
+   permanecem residuais, sem bloquear o trabalho e sem liberar a reserva.
+   A conferência adicional do uso de 04/11 coincidiu com as 28 chamadas da v9
+   (140.938 tokens de entrada e 29.037 de saída), sem diferença; ver
+   [registro e autorização de prosseguimento](docs/architecture/evidence/2026-11-04-editorial-release-preflight/nov04-usage-and-proceed-decision.json). Nenhum ledger, custo histórico ou limite foi reescrito; não
+   inferir gratuidade geral do tier ou liberar a reserva a partir do agregado.
 3. **Ampliação da avaliação:** selecionar a próxima amostra a partir da revisão
    de Boni. Os outros 54 lugares do plano original não foram executados;
    corpus, prioridades, critérios e orçamento exigem decisão específica antes
    de novas chamadas. Não repetir automaticamente cenários já concluídos.
-4. **Editor final real:** a conexão local autorizável, os controles financeiros
-   e a importação existem; falta medir uma geração editorial paga, mediante
-   autorização própria. A campanha v9 não foi avaliação desse gerador.
+4. **Editor final real — primeiro ensaio concluído:** uma chamada, custo
+   calculado de US$ 0,011562, sem custo novo incerto e sem aplicação à minuta.
+   [Resultado e limites](docs/architecture/2026-11-04-editorial-real-pilot.md).
+   A proposta não contém alterações; ainda não mede a qualidade de patches
+   não vazios nem homologa a apresentação comercial das limitações retornadas.
+   A autorização de uma execução foi consumida; não repetir automaticamente.
 5. **Integração/publicação:** após a consolidação local, revisar o diff contra
    a base e a CI do SHA escolhido; atualizar a preparação operacional e
    conferir migrations/backup no alvo quando autorizados. Não presumir estado

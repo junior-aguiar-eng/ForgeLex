@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "scenario": "V2-MULTI",
+  "block": "DRAFT_CONTENT_FINDINGS",
+  "decision": "ACCEPTED_IN_GROUPED_FORMULATION",
+  "evaluator": "Boni",
+  "userStatement": "sim",
+  "approvalContext": "Acceptance of the three presented findings on automatic urgency, mandatory caution and unresolved individualization, grouping repetitions in the presented terms.",
+  "recordedAt": "2026-11-04T19:34:13.109268+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-multi-consolidation/V2-MULTI.derived.json",
+  "sourceSha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5",
+  "acceptedOriginalFindings": [
+    {
+      "id": "3dedd4e1b8:f1",
+      "code": "AUTOMATISMO_INDEVIDO",
+      "severity": "WARNING",
+      "statement": "A primeira frase do rascunho atribui ao art. 498 concessão automática de urgência por atraso, confundindo a disciplina da entrega com os requisitos do art. 300. O relato de indisponibilidade não supre a lacuna sobre perigo concreto e reversibilidade.",
+      "sourceIds": [
+        "draft",
+        "CPC-498",
+        "CPC-300",
+        "V2-MULTI/mensagem@v1#p1",
+        "context"
+      ]
+    },
+    {
+      "id": "3dedd4e1b8:f2",
+      "code": "CAUCAO_GENERALIZADA",
+      "severity": "WARNING",
+      "statement": "A segunda frase do rascunho transforma a faculdade de exigir caução em obrigação absoluta e omite a possibilidade de dispensa prevista no excerto. Não há dados sobre hipossuficiência ou decisão judicial no caso.",
+      "sourceIds": [
+        "draft",
+        "CPC-300-P1",
+        "context"
+      ]
+    },
+    {
+      "id": "3dedd4e1b8:f3",
+      "code": "ESCOLHA_NAO_DEFINIDA",
+      "severity": "WARNING",
+      "statement": "A ausência de cláusula no recorte contratual limita a indicação de quem individualizará os equipamentos. A aplicação concreta das alternativas do art. 498 permanece em aberto; não se presume regra supletiva ausente do corpus.",
+      "sourceIds": [
+        "V2-MULTI/contrato@v1#p1",
+        "CPC-498",
+        "context"
+      ]
+    },
+    {
+      "id": "36d893ac97:f1",
+      "code": "LIMITES_URGENCIA",
+      "severity": "WARNING",
+      "statement": "A afirmação de urgência automática no rascunho não encontra respaldo nos excertos. Faltam consequências concretas da demora e elementos sobre reversibilidade; a indisponibilidade relatada não resolve essas lacunas.",
+      "sourceIds": [
+        "draft",
+        "CPC-498",
+        "CPC-300",
+        "context",
+        "V2-MULTI/mensagem@v1#p1"
+      ]
+    },
+    {
+      "id": "156f284522:f1",
+      "code": "SALTO_ENTRE_ENTREGA_E_URGENCIA",
+      "severity": "WARNING",
+      "statement": "Na primeira frase do rascunho v1, a disciplina da entrega do art. 498 é tomada como fundamento suficiente para urgência automática. A objeção é que o art. 300 exige requisitos próprios: a indisponibilidade relatada não demonstra, por si, perigo concreto. Faltam consequências concretas da demora e elementos sobre reversibilidade; tampouco se confirma a probabilidade do direito apenas com esta revisão.",
+      "sourceIds": [
+        "draft",
+        "CPC-498",
+        "CPC-300",
+        "V2-MULTI/mensagem@v1#p1",
+        "context"
+      ]
+    },
+    {
+      "id": "156f284522:f2",
+      "code": "CAUCAO_ABSOLUTIZADA",
+      "severity": "WARNING",
+      "statement": "A segunda frase, “A caução é sempre obrigatória”, conflita com a faculdade judicial e a possibilidade de dispensa do § 1º selecionado. A correção não autoriza afirmar que haverá dispensa: o corpus não informa incapacidade de oferecê-la nem decisão judicial.",
+      "sourceIds": [
+        "draft",
+        "CPC-300-P1"
+      ]
+    },
+    {
+      "id": "156f284522:f3",
+      "code": "INDIVIDUALIZACAO_NAO_RESOLVIDA",
+      "severity": "WARNING",
+      "statement": "O rascunho não enfrenta a individualização dos dois equipamentos por gênero e quantidade. O art. 498 oferece alternativas dependentes da titularidade da escolha, mas o recorte contratual não a atribui. Essa lacuna impede indicar quem deve individualizar, não impede corrigir as duas afirmações existentes.",
+      "sourceIds": [
+        "draft",
+        "CPC-498",
+        "V2-MULTI/contrato@v1#p1",
+        "context"
+      ]
+    },
+    {
+      "id": "DELIVERY_INFORMATION_LIMITED:ea6f8ddadcffd2ee",
+      "code": "DELIVERY_INFORMATION_LIMITED",
+      "severity": "BLOCKING",
+      "statement": "O corpus relata indisponibilidade, mas não demonstra perigo concreto nem esclarece a reversibilidade; isso limita a avaliação da urgência, sem impedir a correção do rascunho.",
+      "sourceIds": [
+        "context",
+        "V2-MULTI/mensagem@v1#p1",
+        "CPC-300"
+      ]
+    },
+    {
+      "id": "DELIVERY_INFORMATION_LIMITED:ffd493c86a3fecd3",
+      "code": "DELIVERY_INFORMATION_LIMITED",
+      "severity": "BLOCKING",
+      "statement": "O contrato selecionado não atribui a escolha e o corpus normativo não resolve sua titularidade na ausência de cláusula; fica limitada a indicação de quem deve individualizar, não a revisão das afirmações existentes.",
+      "sourceIds": [
+        "V2-MULTI/contrato@v1#p1",
+        "CPC-498"
+      ]
+    }
+  ],
+  "acceptedDerivedGroups": [
+    {
+      "topic": "URGENCY",
+      "originIds": [
+        "3dedd4e1b8:f1",
+        "36d893ac97:f1",
+        "156f284522:f1",
+        "DELIVERY_INFORMATION_LIMITED:ea6f8ddadcffd2ee"
+      ],
+      "statement": "O rascunho trata o atraso como suficiente para a medida. Os recortes não demonstram perigo concreto, reversibilidade ou preenchimento dos demais requisitos. Isso limita a conclusão sobre a urgência, mas permite corrigir o texto."
+    },
+    {
+      "topic": "CAUTION",
+      "originIds": [
+        "3dedd4e1b8:f2",
+        "156f284522:f2"
+      ],
+      "statement": "O rascunho transforma uma faculdade judicial em obrigação absoluta. A correção deve preservar a possibilidade de dispensa, sem afirmar que ela ocorrerá neste caso."
+    },
+    {
+      "topic": "INDIVIDUALIZATION",
+      "originIds": [
+        "3dedd4e1b8:f3",
+        "156f284522:f3",
+        "DELIVERY_INFORMATION_LIMITED:ffd493c86a3fecd3"
+      ],
+      "statement": "O rascunho omite a questão dos equipamentos descritos por gênero e quantidade. O recorte não esclarece quem escolhe; essa lacuna impede atribuir a individualização a uma parte, mas não impede corrigir as afirmações existentes."
+    }
+  ],
+  "scope": "Only the three presented groups. Acceptance of findings is not resolution of factual gaps, clearance of blocking severities, or approval of source-support warnings. Mixed findings not listed remain pending.",
+  "appliedToOriginal": false,
+  "wholeDeliveryAssessment": "PENDING",
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

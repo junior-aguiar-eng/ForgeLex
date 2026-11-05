@@ -1,0 +1,58 @@
+{
+  "recordedAt": "2026-11-04T22:28:48.625553+00:00",
+  "scope": {
+    "reconciliation": "D04-v8 (user wrote B04 v8; interpreted from context)",
+    "editorialPilot": {
+      "authorized": true,
+      "maxExecutions": 1,
+      "capMicroUsd": 250000,
+      "executed": false
+    },
+    "commercialActivationRequested": true,
+    "deploymentExecuted": false
+  },
+  "reconciliation": {
+    "status": "INDIVIDUAL_PENDING",
+    "reservedMicroUsd": 83620,
+    "providerDashboardObserved": true,
+    "observation": "Authenticated Usage page accessible. Responses Logs showed zero results in selected Default project. This does not establish absence of billing or completeness across projects/API sources.",
+    "priorEvidence": "docs/architecture/2026-11-04-d04-aggregate-reconciliation.md",
+    "ledgerMutated": false
+  },
+  "editorial": {
+    "command": "scripts/generate-editorial-proposal.mjs",
+    "tests": {
+      "command": "node --test scripts/generate-editorial-proposal.test.mjs",
+      "passed": 5,
+      "failed": 0,
+      "paidCalls": 0
+    },
+    "credentialPresence": {
+      "process": false,
+      "user": false,
+      "machine": false
+    },
+    "remaining": "Identify existing credential location and select/prepare isolated authorized draft context before the single real call."
+  },
+  "commercial": {
+    "current": "Local host with dedicated ledger; API accepts injected editorialGeneration; bootstrap does not activate it.",
+    "proposed": "Reuse established commercial admission, reservation, idempotency, settlement, tenant checks and daily/monthly limits; expose existing human review/application flow without automatic application.",
+    "pendingDecision": "Whether to reuse commercial-brl-2026-10-30-v1 for editorial commands.",
+    "deploymentPrerequisites": [
+      "Validated commercial integration and tests",
+      "Review real editorial output",
+      "Identify exact source SHA and CI",
+      "Read target migration journal and verify backup before any required DDL",
+      "Isolated revision checks and rollback-compatible reader before traffic promotion"
+    ]
+  },
+  "pendingQuestions": [
+    "Proceed with pilot while D04 reserve remains unresolved?",
+    "Reuse existing commercial pricing and limits?",
+    "Location/name of existing OpenAI credential, without secret value."
+  ],
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

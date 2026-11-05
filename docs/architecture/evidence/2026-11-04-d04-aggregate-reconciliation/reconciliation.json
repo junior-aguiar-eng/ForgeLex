@@ -1,0 +1,712 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-04",
+  "status": "AGGREGATE_MATCH_INDIVIDUAL_RECONCILIATION_PENDING",
+  "authorization": "Boni authorized an additional aggregate record while retaining the reserve and original ledgers",
+  "period": {
+    "startUtc": "2026-11-03T00:00:00Z",
+    "endUtcExclusive": "2026-11-04T00:00:00Z"
+  },
+  "sourceFiles": [
+    {
+      "originalPath": "C:\\Users\\Boni Jr\\Desktop\\cost_2026-11-03_2026-11-03.csv",
+      "sha256": "f210a6b4d472114698b7e7ee1d2ae3328a160c50d8b3d45c1b179901770f35dc",
+      "rowCount": 5,
+      "rawCopiedIntoRepository": false
+    },
+    {
+      "originalPath": "C:\\Users\\Boni Jr\\Desktop\\completions_usage_2026-11-03_2026-11-03.csv",
+      "sha256": "837202d1d6dae90d236b6db7e25891fa52acb532c3eac7d10ba0975fcb664d3f",
+      "rowCount": 2,
+      "rawCopiedIntoRepository": false
+    }
+  ],
+  "sourceScope": {
+    "userSuppliedExports": true,
+    "independentlyRetrievedFromProvider": false,
+    "usageDistinctProjects": 1,
+    "perRequestIdsAvailable": false,
+    "costProjectAndKeyDimensionsPresent": false
+  },
+  "providerTotals": {
+    "requests": 68,
+    "inputTokens": 225512,
+    "outputTokens": 35584
+  },
+  "knownRealCallTotals": {
+    "requests": 68,
+    "inputTokens": 225512,
+    "outputTokens": 35584
+  },
+  "difference": {
+    "requests": 0,
+    "inputTokens": 0,
+    "outputTokens": 0
+  },
+  "usageByTier": [
+    {
+      "model": "gpt-6.1-sol",
+      "serviceTier": "default",
+      "requests": 4,
+      "inputTokens": 10483,
+      "outputTokens": 1423,
+      "cachedInputTokens": 0
+    },
+    {
+      "model": "gpt-6.1-sol",
+      "serviceTier": "incentivized-tier",
+      "requests": 64,
+      "inputTokens": 215029,
+      "outputTokens": 34161,
+      "cachedInputTokens": 0
+    }
+  ],
+  "costRows": [
+    {
+      "lineItem": "gpt-6.1-sol, cache writes - 12hr",
+      "currency": "usd",
+      "tokens": "0.0",
+      "amountUsd": "0"
+    },
+    {
+      "lineItem": "gpt-6.1-sol, cache writes",
+      "currency": "usd",
+      "tokens": "0.0",
+      "amountUsd": "0"
+    },
+    {
+      "lineItem": "gpt-6.1-sol, cached input",
+      "currency": "usd",
+      "tokens": "0.0",
+      "amountUsd": "0"
+    },
+    {
+      "lineItem": "gpt-6.1-sol, input",
+      "currency": "usd",
+      "tokens": "225512.0",
+      "amountUsd": "0.02096600000000000000000000000000000"
+    },
+    {
+      "lineItem": "gpt-6.1-sol, output",
+      "currency": "usd",
+      "tokens": "35584.0",
+      "amountUsd": "0.01423000000000000000000000000000000"
+    }
+  ],
+  "exportedCostUsd": "0.035196",
+  "defaultTierArithmetic": {
+    "inputUsd": "0.020966",
+    "outputUsd": "0.014230",
+    "historicalCalculationRatesUsdPerMillion": {
+      "input": 2,
+      "output": 10
+    },
+    "sameTotalsAsKnownCalls": [
+      "d996f7a9-d700-4587-8a51-14ec1cd72286",
+      "5c4d4a66-4f5e-49e5-9ea2-d42b1ae934e3",
+      "87a29fe2-d40f-42d6-b2c8-6156d5e24bab",
+      "e47dc125-6df9-43d9-807a-2df0cbf97b6c"
+    ],
+    "individualTierAttributionConfirmed": false
+  },
+  "campaigns": [
+    {
+      "campaign": "v6",
+      "ledger": "docs/architecture/evidence/2026-11-02-delivery-failure-fix/real/budget.jsonl",
+      "ledgerSha256": "203bbbbaafe8be3d8200c176f0891b4f6235ba836c76e9d60febbfa90f38af85",
+      "requests": 30,
+      "inputTokens": 104742,
+      "outputTokens": 13213,
+      "localCalculatedMicroUsd": 341614,
+      "calls": [
+        {
+          "runId": "D01-analyze-baseline",
+          "localCallId": "7d6328eb-3e9a-41e2-abdb-fd4666afa668",
+          "inputTokens": 1666,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 3512
+        },
+        {
+          "runId": "D01-analyze-baseline",
+          "localCallId": "621c00d4-5389-4815-9f29-c422252a72c3",
+          "inputTokens": 2246,
+          "outputTokens": 970,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 14192
+        },
+        {
+          "runId": "D01-analyze-baseline",
+          "localCallId": "ab9c2e59-5db2-4710-89cd-98309345b602",
+          "inputTokens": 3235,
+          "outputTokens": 4,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 6510
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "36a01cc3-9d5a-4130-b8a5-ee153f92e3df",
+          "inputTokens": 2401,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 4982
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "31da129c-30eb-42cc-b692-3ddfada86d3c",
+          "inputTokens": 2981,
+          "outputTokens": 885,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 14812
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "00f585c7-f194-49e9-bd03-edd9bbaf0a27",
+          "inputTokens": 3574,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 7328
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "a920a721-c723-4bb1-aca3-723d29ab9d98",
+          "inputTokens": 4154,
+          "outputTokens": 1609,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 24398
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "0555c3ef-27e6-428c-8d49-98260f015ce5",
+          "inputTokens": 4969,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 10118
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "5d659853-ed0a-4cdf-b7d9-c280fbcfa768",
+          "inputTokens": 5549,
+          "outputTokens": 1277,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 23868
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "895f2ddf-1803-49e3-8b53-3b054c79447d",
+          "inputTokens": 6364,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 12908
+        },
+        {
+          "runId": "D03-review-baseline",
+          "localCallId": "e32225c2-4d4f-40db-a212-e6c249319d47",
+          "inputTokens": 1658,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 3496
+        },
+        {
+          "runId": "D03-review-baseline",
+          "localCallId": "c68e2d39-bc27-42cd-acf2-1224c433a5a8",
+          "inputTokens": 2228,
+          "outputTokens": 597,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 10426
+        },
+        {
+          "runId": "D03-review-baseline",
+          "localCallId": "dc1834a8-1adb-4c47-b475-9b2422429072",
+          "inputTokens": 2844,
+          "outputTokens": 4,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 5728
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "d2c687b3-fc89-4eb8-8421-96c122400fd2",
+          "inputTokens": 2393,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 4966
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "79bd5570-1187-4bf3-ac2e-765fe97eb418",
+          "inputTokens": 2963,
+          "outputTokens": 519,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 11116
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "8279b8fe-61bf-438d-9014-4abd41a2b42c",
+          "inputTokens": 3200,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 6580
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "e339fd84-e656-49e5-9ea5-49da364b1ae4",
+          "inputTokens": 3770,
+          "outputTokens": 1053,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 18070
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "423fb9fa-9233-4794-bfdc-dbdab0f296be",
+          "inputTokens": 4268,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 8716
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "0cd54909-b2a2-4688-9e4c-bfd74482ff6d",
+          "inputTokens": 4838,
+          "outputTokens": 979,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 19466
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "90bb788b-b102-43da-968d-814b1d1f6602",
+          "inputTokens": 5137,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 10454
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "2d08406c-19c8-498f-af84-4af513a4d248",
+          "inputTokens": 5707,
+          "outputTokens": 762,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 19034
+        },
+        {
+          "runId": "D04-create-baseline",
+          "localCallId": "27a5c2c7-0c9c-480d-8423-98d485e3d09b",
+          "inputTokens": 1600,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 3380
+        },
+        {
+          "runId": "D04-create-baseline",
+          "localCallId": "ad6a53a2-3eb2-4617-bbd1-6bdf61123579",
+          "inputTokens": 2102,
+          "outputTokens": 846,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 12664
+        },
+        {
+          "runId": "D04-create-baseline",
+          "localCallId": "6debe112-635e-4387-a525-dde854ecc667",
+          "inputTokens": 2967,
+          "outputTokens": 4,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 5974
+        },
+        {
+          "runId": "D04-create-candidate",
+          "localCallId": "96901d72-9fbe-48e8-b630-c6fb9eeb4f29",
+          "inputTokens": 2335,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 4850
+        },
+        {
+          "runId": "D04-create-candidate",
+          "localCallId": "d99ebca9-6467-4f9c-963d-88b3607a9947",
+          "inputTokens": 2837,
+          "outputTokens": 778,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 13454
+        },
+        {
+          "runId": "D04-create-candidate",
+          "localCallId": "d7c97b51-31b8-41dc-a682-e07396d3bbef",
+          "inputTokens": 3401,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 6982
+        },
+        {
+          "runId": "D04-create-candidate",
+          "localCallId": "13e732ab-e5eb-4cdb-b9e1-4a7c51f7d6d5",
+          "inputTokens": 3903,
+          "outputTokens": 1288,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 20686
+        },
+        {
+          "runId": "D04-create-candidate",
+          "localCallId": "f542d6ee-7145-412d-985c-7feea1587ec3",
+          "inputTokens": 4475,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 9130
+        },
+        {
+          "runId": "D04-create-candidate",
+          "localCallId": "64ddc673-f9db-4b01-98eb-b299655917b6",
+          "inputTokens": 4977,
+          "outputTokens": 1386,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 23814
+        }
+      ]
+    },
+    {
+      "campaign": "v7",
+      "ledger": "docs/architecture/evidence/2026-11-02-scoped-handoff-v7/real/budget.jsonl",
+      "ledgerSha256": "2d17ab859a43482ef115535d8e5fa93cbc880f9a876f8a34f8f8361d4e29b46d",
+      "requests": 21,
+      "inputTokens": 70661,
+      "outputTokens": 13452,
+      "localCalculatedMicroUsd": 275842,
+      "calls": [
+        {
+          "runId": "D01-analyze-baseline",
+          "localCallId": "62a66f40-6f71-47b8-82d6-1c53bd666516",
+          "inputTokens": 1666,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 3512
+        },
+        {
+          "runId": "D01-analyze-baseline",
+          "localCallId": "eb3be019-b6f4-461b-a5d0-dbe71615ebde",
+          "inputTokens": 2246,
+          "outputTokens": 1195,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 16442
+        },
+        {
+          "runId": "D01-analyze-baseline",
+          "localCallId": "6dd4aa24-2035-4a52-9180-e6a100f8bb77",
+          "inputTokens": 3460,
+          "outputTokens": 4,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 6960
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "6ffd40c5-cf1d-429c-83f5-345fd175f37c",
+          "inputTokens": 2534,
+          "outputTokens": 669,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 11758
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "d0df0aea-c915-4da3-b5e9-243353027549",
+          "inputTokens": 3491,
+          "outputTokens": 980,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 16782
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "671149ec-1ce2-438f-baa0-64e4f2d94b87",
+          "inputTokens": 4496,
+          "outputTokens": 510,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 14092
+        },
+        {
+          "runId": "D03-review-baseline",
+          "localCallId": "9bad0a1c-d9c0-40ed-948f-f5382c0e1206",
+          "inputTokens": 1658,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 3496
+        },
+        {
+          "runId": "D03-review-baseline",
+          "localCallId": "9ad8886b-8bce-4830-af92-733f9f6e6f32",
+          "inputTokens": 2228,
+          "outputTokens": 692,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 11376
+        },
+        {
+          "runId": "D03-review-baseline",
+          "localCallId": "6e932529-a332-4ad3-83ec-8002c0830ff1",
+          "inputTokens": 2939,
+          "outputTokens": 4,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 5918
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "788bb904-4d29-4738-bfc9-d2d92e44972a",
+          "inputTokens": 2526,
+          "outputTokens": 534,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 10392
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "eab57ae8-f7f2-4839-ae37-51b60bf9ff62",
+          "inputTokens": 3348,
+          "outputTokens": 1033,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 17026
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "103878a1-55b5-4dc6-a9e8-c5e6f66278c0",
+          "inputTokens": 4467,
+          "outputTokens": 869,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 17624
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "acd15c59-077b-4275-a83a-a4ba97fdfcad",
+          "inputTokens": 5356,
+          "outputTokens": 666,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 17372
+        },
+        {
+          "runId": "D04-create-baseline",
+          "localCallId": "f8e395bd-388b-4257-ae0b-0c540a6fe562",
+          "inputTokens": 1600,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 3380
+        },
+        {
+          "runId": "D04-create-baseline",
+          "localCallId": "9593342d-2518-4416-82b3-3a1d2981148b",
+          "inputTokens": 2102,
+          "outputTokens": 858,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 12784
+        },
+        {
+          "runId": "D04-create-baseline",
+          "localCallId": "43d0cb75-ceb7-4f8b-a231-edba7b14775b",
+          "inputTokens": 2979,
+          "outputTokens": 4,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 5998
+        },
+        {
+          "runId": "D04-create-candidate",
+          "localCallId": "3c311ac3-dd11-4a14-8dca-30dac95e0176",
+          "inputTokens": 2468,
+          "outputTokens": 763,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 12566
+        },
+        {
+          "runId": "D04-create-candidate",
+          "localCallId": "b1508e4e-f394-4319-954a-1ecf52e5b686",
+          "inputTokens": 3519,
+          "outputTokens": 1072,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 17758
+        },
+        {
+          "runId": "D04-create-candidate",
+          "localCallId": "931544c9-744c-40b6-9d6e-b6ee61db835b",
+          "inputTokens": 4454,
+          "outputTokens": 1023,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 19138
+        },
+        {
+          "runId": "D04-create-candidate",
+          "localCallId": "32e7cbb5-5421-42c7-874b-c36129b2ca0d",
+          "inputTokens": 5826,
+          "outputTokens": 1488,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 26532
+        },
+        {
+          "runId": "D04-create-candidate",
+          "localCallId": "f224c262-d516-4919-ae39-414beee8d2b2",
+          "inputTokens": 7298,
+          "outputTokens": 1034,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 24936
+        }
+      ]
+    },
+    {
+      "campaign": "v8",
+      "ledger": "docs/architecture/evidence/2026-11-03-verifier-v8/real/budget.jsonl",
+      "ledgerSha256": "5263bf583c77f1ec2ecbc5743996c24ea128b18586cdb32a68ede8bc8e135b8e",
+      "requests": 17,
+      "inputTokens": 50109,
+      "outputTokens": 8919,
+      "localCalculatedMicroUsd": 189408,
+      "calls": [
+        {
+          "runId": "D01-analyze-baseline",
+          "localCallId": "7c6caeda-08f2-447b-853d-376f67455fd4",
+          "inputTokens": 1666,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 3512
+        },
+        {
+          "runId": "D01-analyze-baseline",
+          "localCallId": "a968e754-5cb5-427a-ad0c-7c612ab919bf",
+          "inputTokens": 2246,
+          "outputTokens": 901,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 13502
+        },
+        {
+          "runId": "D01-analyze-baseline",
+          "localCallId": "974716fe-0ea6-4b9c-93ea-60b48eee1f46",
+          "inputTokens": 3166,
+          "outputTokens": 4,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 6372
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "ebbfb416-b499-4251-ab63-73820d5fc373",
+          "inputTokens": 2534,
+          "outputTokens": 722,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 12288
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "9ffbddec-88d7-416f-af97-f84d500ee529",
+          "inputTokens": 3544,
+          "outputTokens": 1184,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 18928
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "1a07618b-4cf4-4223-9ce7-c21301be2bc2",
+          "inputTokens": 4585,
+          "outputTokens": 1035,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 19520
+        },
+        {
+          "runId": "D01-analyze-candidate",
+          "localCallId": "0648ea87-9061-4404-97d1-f28ee5ca2bd9",
+          "inputTokens": 4931,
+          "outputTokens": 786,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 17722
+        },
+        {
+          "runId": "D03-review-baseline",
+          "localCallId": "4c126c25-c347-40f3-bde2-2e851ae04751",
+          "inputTokens": 1658,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 3496
+        },
+        {
+          "runId": "D03-review-baseline",
+          "localCallId": "f2c7a12a-7297-4f1b-893e-026d31a43ecc",
+          "inputTokens": 2228,
+          "outputTokens": 675,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 11206
+        },
+        {
+          "runId": "D03-review-baseline",
+          "localCallId": "25fb70a2-ec78-421a-a7af-14884a139570",
+          "inputTokens": 2922,
+          "outputTokens": 4,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 5884
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "99350079-94a5-4e21-b8f9-9808a7fc824b",
+          "inputTokens": 2526,
+          "outputTokens": 522,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 10272
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "44fa662e-50ec-4f88-847c-a867935a82e8",
+          "inputTokens": 3336,
+          "outputTokens": 868,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 15352
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "446c612b-a6ed-4c14-9b4f-d35c72d2a106",
+          "inputTokens": 4284,
+          "outputTokens": 759,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 16158
+        },
+        {
+          "runId": "D03-review-candidate",
+          "localCallId": "d996f7a9-d700-4587-8a51-14ec1cd72286",
+          "inputTokens": 3839,
+          "outputTokens": 580,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 13478
+        },
+        {
+          "runId": "D04-create-baseline",
+          "localCallId": "5c4d4a66-4f5e-49e5-9ea2-d42b1ae934e3",
+          "inputTokens": 1600,
+          "outputTokens": 18,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 3380
+        },
+        {
+          "runId": "D04-create-baseline",
+          "localCallId": "87a29fe2-d40f-42d6-b2c8-6156d5e24bab",
+          "inputTokens": 2102,
+          "outputTokens": 821,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 12414
+        },
+        {
+          "runId": "D04-create-baseline",
+          "localCallId": "e47dc125-6df9-43d9-807a-2df0cbf97b6c",
+          "inputTokens": 2942,
+          "outputTokens": 4,
+          "cachedInputTokens": 0,
+          "localCalculatedMicroUsd": 5924
+        }
+      ]
+    }
+  ],
+  "d04": {
+    "runId": "D04-create-candidate",
+    "localCallId": "2f498194-2bd6-41d7-9ce4-db6dd8bfe83f",
+    "originalStatus": "UNCERTAIN",
+    "reserveBeforeMicroUsd": 83620,
+    "reserveAfterMicroUsd": 83620,
+    "individualProviderBillingVerified": false,
+    "releasedMicroUsd": 0,
+    "additionalUsageRequiredToExplainExports": false
+  },
+  "limitations": [
+    "Daily aggregates, not per-request provider evidence.",
+    "Exact matching supports no additional usage visible in these exports; it does not prove individual non-billing or the cause of the failed attempt.",
+    "No independent assurance that these exports are final or complete beyond their supplied scope.",
+    "The incentivized tier has no apparent additional amount in the supplied cost export; no general free-pricing rule or credit entitlement is inferred.",
+    "Local calculated costs and settled statuses are historical bookkeeping, not a confirmed invoice; original values remain unchanged."
+  ],
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

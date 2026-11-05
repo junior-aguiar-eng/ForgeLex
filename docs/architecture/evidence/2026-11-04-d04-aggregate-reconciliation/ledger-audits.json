@@ -1,0 +1,46 @@
+[
+  {
+    "campaign": "v6",
+    "schemaVersion": 1,
+    "status": "CONSISTENT_LOCAL_RECORDS",
+    "ledgerSha256": "203bbbbaafe8be3d8200c176f0891b4f6235ba836c76e9d60febbfa90f38af85",
+    "measuredMicroUsd": 341614,
+    "uncertainMicroUsd": 0,
+    "exposureMicroUsd": 341614,
+    "unresolved": [],
+    "artifactMismatches": [],
+    "providerBillingVerified": false
+  },
+  {
+    "campaign": "v7",
+    "schemaVersion": 1,
+    "status": "CONSISTENT_LOCAL_RECORDS",
+    "ledgerSha256": "2d17ab859a43482ef115535d8e5fa93cbc880f9a876f8a34f8f8361d4e29b46d",
+    "measuredMicroUsd": 275842,
+    "uncertainMicroUsd": 0,
+    "exposureMicroUsd": 275842,
+    "unresolved": [],
+    "artifactMismatches": [],
+    "providerBillingVerified": false
+  },
+  {
+    "campaign": "v8",
+    "schemaVersion": 1,
+    "status": "RECONCILIATION_REQUIRED",
+    "ledgerSha256": "5263bf583c77f1ec2ecbc5743996c24ea128b18586cdb32a68ede8bc8e135b8e",
+    "measuredMicroUsd": 189408,
+    "uncertainMicroUsd": 83620,
+    "exposureMicroUsd": 273028,
+    "unresolved": [
+      {
+        "runId": "D04-create-candidate",
+        "callId": "2f498194-2bd6-41d7-9ce4-db6dd8bfe83f",
+        "status": "UNCERTAIN",
+        "upperMicroUsd": 83620,
+        "executionStartedAt": "2026-11-03T21:51:17.081Z"
+      }
+    ],
+    "artifactMismatches": [],
+    "providerBillingVerified": false
+  }
+]

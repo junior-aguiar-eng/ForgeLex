@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D04-V2",
+  "block": "URGENCY",
+  "decision": "ACCEPTED_IN_PRESENTED_FORMULATION",
+  "evaluator": "Boni",
+  "userStatement": "sim",
+  "approvalContext": "Acceptance of the presented urgency passage, preserving evidentiary gaps and distinguishing the requested immediate delivery from a conclusion of entitlement.",
+  "recordedAt": "2026-11-04T20:50:38.372216+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D04-V2.json",
+  "sourceSha256": "10109b7a6550e0774f9a4c7d3a10187de9a5e79962646fc5f880f5ff169ef8cc",
+  "acceptedExcerpt": "O art. 300 exige elementos que evidenciem a probabilidade do direito e o perigo de dano ou risco ao resultado útil do processo. Para a tutela antecipada, seu § 3º veda a concessão quando houver perigo de irreversibilidade dos efeitos.\n\nO recorte contratual pode contribuir para a análise da probabilidade do direito à entrega, mas não demonstra, isoladamente, descumprimento ou preenchimento dos demais requisitos. As lacunas já identificadas impedem concluir pelo cabimento da urgência; também não permitem afirmar que seu indeferimento seja necessário.\n\nA entrega imediata permanece como pretensão de Aurora. Registrar ressalvas na minuta não substitui os elementos necessários à fundamentação desse pedido.",
+  "relatedOriginalClaims": [
+    {
+      "id": "9e4f3535c6:c6",
+      "classification": "INFERENCE",
+      "statement": "O art. 300 exige elementos de probabilidade do direito e de perigo de dano ou risco ao resultado útil; o § 3º impede tutela antecipada quando houver perigo de irreversibilidade dos efeitos.",
+      "sourceIds": [
+        "CPC-300"
+      ]
+    },
+    {
+      "id": "30a5f7f32d:p1",
+      "classification": "INFERENCE",
+      "statement": "Para eventual tutela de urgência, o contrato pode contribuir para a análise da probabilidade do direito à entrega, mas não demonstra, isoladamente, descumprimento atual nem o preenchimento conjunto dos requisitos do art. 300.",
+      "sourceIds": [
+        "D04-V2/contrato@v1#p1",
+        "D04-V2/pedido@v1#p1",
+        "CPC-300"
+      ]
+    },
+    {
+      "id": "30a5f7f32d:p2",
+      "classification": "INFERENCE",
+      "statement": "No corpus, o pedido de entrega imediata não vem acompanhado de elementos sobre perigo de dano ou risco ao resultado útil; também não há informação suficiente para avaliar perigo de irreversibilidade. A falta desses elementos não equivale à demonstração de irreversibilidade.",
+      "sourceIds": [
+        "context",
+        "D04-V2/pedido@v1#p1",
+        "CPC-300"
+      ]
+    },
+    {
+      "id": "ab69725fdd:c1",
+      "classification": "INFERENCE",
+      "statement": "O art. 300 exige probabilidade do direito e perigo de dano ou risco ao resultado útil; seu § 3º veda tutela antecipada quando houver perigo de irreversibilidade dos efeitos.",
+      "sourceIds": [
+        "CPC-300"
+      ]
+    }
+  ],
+  "relatedOriginalFinding": {
+    "id": "e69cf316b3:f3",
+    "code": "RESSALVAS_NAO_SUPREM_URGENCIA",
+    "severity": "WARNING",
+    "statement": "A seção 2 separa os requisitos, mas a seção 4 ainda submete a entrega imediata à apreciação sem elementos concretos sobre consequências da demora ou reversibilidade. Ressalvar a insuficiência não fornece esses elementos. O contrato pode indicar a obrigação, mas não substitui demonstração do perigo; desconhecer a reversibilidade tampouco demonstra perigo de irreversibilidade. Não se conclui pelo cabimento nem pelo indeferimento necessário.",
+    "sourceIds": [
+      "context",
+      "D04-V2/contrato@v1#p1",
+      "D04-V2/pedido@v1#p1",
+      "CPC-300"
+    ]
+  },
+  "scope": "Only the presented urgency passage. Does not clear source-support alerts or approve the whole delivery.",
+  "wholeDeliveryAssessment": "PENDING",
+  "appliedToOriginal": false,
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

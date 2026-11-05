@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "scenario": "V2-MULTI",
+  "block": "URGENCY",
+  "decision": "ACCEPTED",
+  "evaluator": "Boni",
+  "source": "Explicit decision in this chat",
+  "userStatement": "Aceito este trecho. Vamos passar à caução e à individualização dos equipamentos.",
+  "recordedAt": "2026-11-04T19:11:20.293439+00:00",
+  "scope": "Only the quoted urgency excerpt; not the whole requirement, delivery or v9 workflow",
+  "acceptedExcerpt": "O art. 498 disciplina a tutela específica de entrega de coisa, não tornando automática a tutela de urgência pelo atraso. Esta depende dos requisitos do art. 300, observada a vedação do § 3º quanto ao perigo de irreversibilidade da tutela antecipada. O relato de indisponibilidade não demonstra, por si, perigo concreto; o material não esclarece a reversibilidade nem permite concluir pelo preenchimento dos requisitos ou pela concessão.",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-multi-consolidation/V2-MULTI.derived.json",
+  "sourceSha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5",
+  "requirementId": "3dedd4e1b8:r1",
+  "wholeDeliveryAssessment": "PENDING",
+  "remainingBlocks": [
+    "CAUTION",
+    "INDIVIDUALIZATION",
+    "REMAINING_DELIVERY"
+  ],
+  "reservedMicroUsd": 83620,
+  "originalDeliveryModified": false,
+  "paidCalls": 0
+}

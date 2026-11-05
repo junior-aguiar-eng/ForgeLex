@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "scenario": "V2-MULTI",
+  "block": "SOURCE_AND_DEADLINE_LIMITATIONS",
+  "decision": "ACCEPTED_IN_PRESENTED_FORMAT",
+  "evaluator": "Boni",
+  "userStatement": "Aceito ambos nesse formato. Vamos para os dois alertas de suporte das citações.",
+  "recordedAt": "2026-11-04T19:51:13.876554+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-multi-consolidation/V2-MULTI.derived.json",
+  "sourceSha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5",
+  "acceptedOriginalFindings": [
+    {
+      "id": "36d893ac97:f4",
+      "code": "LIMITES_NORMATIVOS_E_PRAZO",
+      "severity": "WARNING",
+      "statement": "A análise confronta apenas os excertos normativos fornecidos, cujas versões estão identificadas como 2026-11-02 e 2026-11-03; não houve verificação independente de vigência nem avaliação completa da aplicabilidade. O art. 498 remete a prazo fixado pelo juiz: não há decisão, marco inicial ou calendário verificados para calcular termo final.",
+      "sourceIds": [
+        "CPC-300",
+        "CPC-300-P1",
+        "CPC-498"
+      ]
+    },
+    {
+      "id": "156f284522:f4",
+      "code": "LIMITE_DA_REVISAO",
+      "severity": "WARNING",
+      "statement": "A revisão é limitada ao rascunho identificado como v1 e às fontes selecionadas. Não há base para afirmar exame integral do contrato ou verdade dos relatos. Os excertos normativos permitem o confronto textual indicado, não uma conclusão completa sobre a concessão da medida no caso; não foi realizada pesquisa jurisprudencial nem verificação independente de vigência.",
+      "sourceIds": [
+        "draft",
+        "context",
+        "V2-MULTI/contrato@v1#p1",
+        "V2-MULTI/mensagem@v1#p1",
+        "CPC-300",
+        "CPC-300-P1",
+        "CPC-498"
+      ]
+    },
+    {
+      "id": "13e659946d:f1",
+      "code": "SNAPSHOT_LIMIT",
+      "severity": "WARNING",
+      "statement": "Conferência limitada aos excertos identificados como OFFICIAL_EXCERPT, com URL do Senado: CPC-300 versão 2026-11-02; CPC-300-P1 e CPC-498 versões 2026-11-03. Esses metadados não demonstram vigência online, integralidade, aplicabilidade ao caso ou força vinculante. Não houve pesquisa jurisprudencial nem investigação de tratamento posterior.",
+      "sourceIds": [
+        "CPC-300",
+        "CPC-300-P1",
+        "CPC-498"
+      ]
+    }
+  ],
+  "acceptedDerivedGroups": [
+    {
+      "topic": "SOURCE_LIMITATIONS",
+      "statement": "A análise utiliza apenas os excertos e relatos fictícios selecionados. Não comprova autenticidade ou veracidade dos relatos, exame integral do contrato, vigência ou aplicabilidade completa das normas. As datas e os links das fontes não substituem essas verificações. Não houve pesquisa jurisprudencial.",
+      "editorialDisposition": "Integrate into previously accepted limitation passage without repetitive standalone notice."
+    },
+    {
+      "topic": "DEADLINE",
+      "statement": "O material menciona prazo fixado pelo juiz, mas não fornece decisão, marco inicial ou calendário verificados. Portanto, não permite calcular uma data final para cumprimento.",
+      "editorialDisposition": "Retain as specific deadline limitation."
+    }
+  ],
+  "appliedToOriginal": false,
+  "wholeDeliveryAssessment": "PENDING",
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D04-V2",
+  "block": "CITATION_SUPPORT_TREATMENT",
+  "decision": "ACCEPTED_EDITORIAL_TREATMENT",
+  "evaluator": "Boni",
+  "userStatement": "Aceito esse tratamento dos três grupos, preservando os alertas históricos. Vamos para o próximo bloco.",
+  "recordedAt": "2026-11-04T21:10:37.492225+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D04-V2.json",
+  "sourceSha256": "10109b7a6550e0774f9a4c7d3a10187de9a5e79962646fc5f880f5ff169ef8cc",
+  "acceptedGroups": [
+    {
+      "topic": "OBLIGATION_AND_PERFORMANCE",
+      "statement": "Atribuir ao contrato apenas a obrigação e a data nele registradas; ao pedido, a solicitação posterior de entrega. Apresentar separadamente a conclusão de que esses recortes não comprovam inadimplemento.",
+      "claimIds": [
+        "9e4f3535c6:c4"
+      ]
+    },
+    {
+      "topic": "URGENCY_AND_REVERSIBILITY",
+      "statement": "Vincular os requisitos jurídicos ao art. 300 e as lacunas factuais ao contexto e ao pedido. Identificar como conclusão da análise — não como transcrição de uma fonte — que ausência de informação não demonstra irreversibilidade nem preenchimento dos requisitos.",
+      "claimIds": [
+        "9e4f3535c6:c5",
+        "30a5f7f32d:p1",
+        "30a5f7f32d:p2"
+      ]
+    },
+    {
+      "topic": "DELIVERY_AND_INDIVIDUALIZATION",
+      "statement": "Vincular ao art. 498 a disciplina da entrega e da escolha; ao art. 300, os requisitos da urgência; e ao recorte contratual, a descrição disponível dos equipamentos. Manter explícito que as especificações e a titularidade da escolha permanecem sem esclarecimento.",
+      "claimIds": [
+        "30a5f7f32d:p5"
+      ]
+    }
+  ],
+  "originalAlerts": [
+    {
+      "id": "support:87d39c5f61fb6437879a2468a1efd0b296a632e1ff5585aec3bc2b25cc6097e2",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O trecho contratual oferece indicação da obrigação narrada, mas o pedido posterior à data de entrega não demonstra, por si só, que houve inadimplemento.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "D04-V2/contrato@v1#p1"
+      ]
+    },
+    {
+      "id": "support:1d1bf0681b2beecb91dd6707761bfe1ebe2d559952b2fcd1cc722021baf97a36",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O trecho contratual oferece indicação da obrigação narrada, mas o pedido posterior à data de entrega não demonstra, por si só, que houve inadimplemento.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "D04-V2/pedido@v1#p1"
+      ]
+    },
+    {
+      "id": "support:98d81666834aa37e7c86c6394f930ec0fb9349ee0d740602fdce71bf25597218",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “Os trechos selecionados não demonstram consequências concretas da demora nem permitem concluir sobre reversibilidade da entrega; a ausência dessas informações não prova irreversibilidade.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "context"
+      ]
+    },
+    {
+      "id": "support:c13a254e333be1505a7eba20e16199df3ced2920159ea4f2d0f4a7a37f215295",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “Para eventual tutela de urgência, o contrato pode contribuir para a análise da probabilidade do direito à entrega, mas não demonstra, isoladamente, descumprimento atual nem o preenchimento conjunto dos requisitos do art. 300.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "D04-V2/contrato@v1#p1"
+      ]
+    },
+    {
+      "id": "support:a7fa6e5d236a69c8a03a180c42a4851339a3c1f57a69b97d3724d352cbd960ad",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “Para eventual tutela de urgência, o contrato pode contribuir para a análise da probabilidade do direito à entrega, mas não demonstra, isoladamente, descumprimento atual nem o preenchimento conjunto dos requisitos do art. 300.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "D04-V2/pedido@v1#p1"
+      ]
+    },
+    {
+      "id": "support:701fd62537443c3aca056c98d496b14ceeca24d0d1feec4758ae1ae799a74c8b",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “Para eventual tutela de urgência, o contrato pode contribuir para a análise da probabilidade do direito à entrega, mas não demonstra, isoladamente, descumprimento atual nem o preenchimento conjunto dos requisitos do art. 300.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "CPC-300"
+      ]
+    },
+    {
+      "id": "support:4c8bce056d574dc1c1db71439cfde214cbd6e84a66257b4a4307d5efe4d9db31",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “No corpus, o pedido de entrega imediata não vem acompanhado de elementos sobre perigo de dano ou risco ao resultado útil; também não há informação suficiente para avaliar perigo de irreversibilidade. A falta desses elementos não equivale à demonstração de irreversibilidade.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "context"
+      ]
+    },
+    {
+      "id": "support:334fada5781d1b7bea54d6e23066c645dd36e3f04bd62c79cc49766040e66de8",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “No corpus, o pedido de entrega imediata não vem acompanhado de elementos sobre perigo de dano ou risco ao resultado útil; também não há informação suficiente para avaliar perigo de irreversibilidade. A falta desses elementos não equivale à demonstração de irreversibilidade.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "CPC-300"
+      ]
+    },
+    {
+      "id": "support:0f13cc70c849e107d9a84847c8bb1af1e09f1bc0abee942a40e57e8c0fe36931",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O art. 498 oferece referência para a entrega específica, mas não supre os requisitos de urgência do art. 300. A aplicação da regra de individualização depende de esclarecer a determinação dos equipamentos e a titularidade da escolha, ausentes nos recortes.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "CPC-498"
+      ]
+    },
+    {
+      "id": "support:279e2e7acec991c400313340ca7feaff7ddf3d0374b0cf5264f6bbe91babfe14",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O art. 498 oferece referência para a entrega específica, mas não supre os requisitos de urgência do art. 300. A aplicação da regra de individualização depende de esclarecer a determinação dos equipamentos e a titularidade da escolha, ausentes nos recortes.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "CPC-300"
+      ]
+    },
+    {
+      "id": "support:5b4653edf3f2fdee081dd89a5bcc2a060765fa62907e4bc6045538b19a85f683",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O art. 498 oferece referência para a entrega específica, mas não supre os requisitos de urgência do art. 300. A aplicação da regra de individualização depende de esclarecer a determinação dos equipamentos e a titularidade da escolha, ausentes nos recortes.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "D04-V2/contrato@v1#p1"
+      ]
+    }
+  ],
+  "scope": "Acceptance of editorial treatment only; corrected consolidated wording and its verification remain to be recorded separately. Historical alerts are not cleared.",
+  "wholeDeliveryAssessment": "PENDING",
+  "appliedToOriginal": false,
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

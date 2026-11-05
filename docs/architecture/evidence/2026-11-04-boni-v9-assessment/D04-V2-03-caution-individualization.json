@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D04-V2",
+  "block": "CAUTION_INDIVIDUALIZATION_AND_DEADLINE",
+  "decision": "ACCEPTED_IN_PRESENTED_FORMULATION",
+  "evaluator": "Boni",
+  "userStatement": "sim",
+  "approvalContext": "Acceptance of both presented passages on caution and individualization/deadline for D04-V2.",
+  "recordedAt": "2026-11-04T20:51:21.629594+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D04-V2.json",
+  "sourceSha256": "10109b7a6550e0774f9a4c7d3a10187de9a5e79962646fc5f880f5ff169ef8cc",
+  "acceptedPassages": [
+    {
+      "topic": "CAUTION",
+      "statement": "O art. 300, § 1º, permite ao juiz exigi-la conforme o caso e dispensá-la quando a parte economicamente hipossuficiente não puder oferecê-la. Não há dados que permitam afirmar disponibilidade de garantia ou condições de dispensa de Aurora; a minuta não deve presumir nenhuma delas.",
+      "originIds": [
+        "30a5f7f32d:p3"
+      ]
+    },
+    {
+      "topic": "INDIVIDUALIZATION_AND_DEADLINE",
+      "statement": "O art. 498 prevê prazo fixado pelo juiz. Para coisa determinada por gênero e quantidade, o autor individualiza na inicial se lhe couber a escolha; se couber ao réu, este entrega a coisa individualizada no prazo judicial. Neste caso, os recortes informam apenas dois equipamentos, sem esclarecer especificações, natureza da determinação ou titularidade da escolha. A minuta deve conservar essas lacunas, sem inventar características ou prazo numérico.",
+      "originIds": [
+        "30a5f7f32d:p4",
+        "30a5f7f32d:p5"
+      ]
+    }
+  ],
+  "relatedOriginalClaims": [
+    {
+      "id": "30a5f7f32d:p3",
+      "classification": "INFERENCE",
+      "statement": "O art. 300, § 1º, permite ao juiz exigir caução conforme o caso; a dispensa prevista no trecho depende de hipossuficiência econômica e impossibilidade de oferecê-la. O trecho não torna a caução obrigatória em todo pedido.",
+      "sourceIds": [
+        "CPC-300-P1"
+      ]
+    },
+    {
+      "id": "30a5f7f32d:p4",
+      "classification": "INFERENCE",
+      "statement": "O art. 498 atribui ao juiz a fixação do prazo de cumprimento ao conceder tutela específica de entrega de coisa. Para coisa determinada por gênero e quantidade, a individualização depende de a quem caiba a escolha: pelo autor na inicial, se dele a escolha, ou pelo réu na entrega, no prazo judicial, se dele a escolha.",
+      "sourceIds": [
+        "CPC-498"
+      ]
+    },
+    {
+      "id": "30a5f7f32d:p5",
+      "classification": "INFERENCE",
+      "statement": "O art. 498 oferece referência para a entrega específica, mas não supre os requisitos de urgência do art. 300. A aplicação da regra de individualização depende de esclarecer a determinação dos equipamentos e a titularidade da escolha, ausentes nos recortes.",
+      "sourceIds": [
+        "CPC-498",
+        "CPC-300",
+        "D04-V2/contrato@v1#p1"
+      ]
+    }
+  ],
+  "scope": "Presented passages only; not approval of the whole delivery or clearance of historical support alerts.",
+  "wholeDeliveryAssessment": "PENDING",
+  "appliedToOriginal": false,
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

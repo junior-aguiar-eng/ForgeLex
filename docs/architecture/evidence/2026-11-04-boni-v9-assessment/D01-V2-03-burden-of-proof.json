@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D01-V2",
+  "block": "BURDEN_OF_PROOF",
+  "decision": "ACCEPTED_IN_PRESENTED_FORMULATION",
+  "evaluator": "Boni",
+  "userStatement": "Aceito esse bloco sobre o ônus da prova. Vamos para o próximo.",
+  "recordedAt": "2026-11-04T21:40:12.468907+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D01-V2.json",
+  "sourceSha256": "3141b6726f3db8765c652941bdf380b721fa0a67e2f7311d9d2b6309bbe3e541",
+  "acceptedExcerpt": "O art. 373, incisos I e II, atribui ao autor o ônus quanto ao fato constitutivo de seu direito e ao réu quanto ao fato impeditivo, modificativo ou extintivo.\n\nEssa distribuição não demonstra, por si só, que a prova disponível seja suficiente ou que alguma parte tenha cumprido seu ônus. Sua aplicação concreta depende da pretensão e das alegações, ainda incompletas no material.\n\nSe a pretensão envolver pagamento pelo fornecimento, será necessário distinguir os fatos que fundamentam o direito invocado de eventual alegação defensiva de pagamento. O corpus não contém a versão de Brisa; não se presume que tenha alegado quitação nem se define, neste estágio, o ônus concreto relativo à negativa de recebimento.",
+  "relatedOriginalClaims": [
+    {
+      "id": "0c2ee7c43e:c6",
+      "classification": "INFERENCE",
+      "statement": "No trecho do art. 373 selecionado, cabe ao autor provar o fato constitutivo de seu direito e ao réu o fato impeditivo, modificativo ou extintivo. A identificação concreta desses fatos depende da pretensão ainda não informada; essa distribuição não determina, por si, suficiência da prova disponível.",
+      "sourceIds": [
+        "CPC-373",
+        "context"
+      ]
+    },
+    {
+      "id": "58a66cc157:p1",
+      "classification": "INFERENCE",
+      "statement": "O trecho do art. 373 do CPC atribui ao autor o ônus quanto ao fato constitutivo e ao réu quanto ao fato impeditivo, modificativo ou extintivo do direito do autor. Essa distribuição abstrata não estabelece suficiência da prova nem permite identificar todos os fatos relevantes sem conhecer a pretensão.",
+      "sourceIds": [
+        "CPC-373",
+        "context"
+      ]
+    },
+    {
+      "id": "58a66cc157:p2",
+      "classification": "INFERENCE",
+      "statement": "Se a pretensão envolver pagamento do fornecimento, a análise deverá distinguir os fatos que fundamentariam o direito invocado de eventual alegação defensiva de pagamento. O corpus não contém versão de Brisa; não se presume que tenha alegado quitação nem se decide o ônus concreto relativo à negativa de recebimento.",
+      "sourceIds": [
+        "CPC-373",
+        "context",
+        "D01-V2/relato@v1#p1"
+      ]
+    }
+  ],
+  "scope": "Only the presented burden-of-proof passage; historical citation alerts are not cleared and whole-delivery approval remains pending.",
+  "wholeDeliveryAssessment": "PENDING",
+  "appliedToOriginal": false,
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

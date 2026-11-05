@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "scenario": "V2-MULTI",
+  "block": "PROCEDURAL_GUIDANCE",
+  "decision": "ACCEPTED_WITH_EDITORIAL_INTEGRATION",
+  "evaluator": "Boni",
+  "userStatement": "sim",
+  "approvalContext": "Acceptance of both procedural propositions and incorporation into the previously accepted urgency and individualization passages, without separate repetitive recommendations.",
+  "recordedAt": "2026-11-04T19:24:55.782829+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-multi-consolidation/V2-MULTI.derived.json",
+  "sourceSha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5",
+  "acceptedOriginalRequirements": [
+    {
+      "id": "36d893ac97:r2",
+      "kind": "PROCEDURAL",
+      "statement": "Para eventual pedido de urgência, avaliar separadamente probabilidade do direito, perigo de dano ou risco ao resultado útil e, para tutela antecipada, perigo de irreversibilidade, conforme o art. 300 e § 3º, versão identificada como 2026-11-02. O corpus não permite verificar seu atendimento no caso.",
+      "sourceIds": [
+        "CPC-300",
+        "context",
+        "V2-MULTI/mensagem@v1#p1"
+      ],
+      "verified": false
+    },
+    {
+      "id": "36d893ac97:r3",
+      "kind": "PROCEDURAL",
+      "statement": "Na individualização dos dois equipamentos, manter condicionadas as alternativas do art. 498, parágrafo único, versão identificada como 2026-11-03: autor na inicial se a escolha lhe couber; réu na entrega, no prazo judicial, se lhe couber. Não definir o responsável sem esclarecimento da titularidade da escolha.",
+      "sourceIds": [
+        "CPC-498",
+        "V2-MULTI/contrato@v1#p1"
+      ],
+      "verified": false
+    }
+  ],
+  "derivedEditorialIntegration": [
+    {
+      "originId": "36d893ac97:r2",
+      "targetId": "3dedd4e1b8:r1",
+      "statement": "O art. 498 disciplina a tutela específica de entrega de coisa, não tornando automática a tutela de urgência pelo atraso. Para eventual pedido de urgência, devem ser avaliados separadamente a probabilidade do direito e o perigo de dano ou risco ao resultado útil, observada, na tutela antecipada, a vedação do art. 300, § 3º, quanto ao perigo de irreversibilidade. O relato de indisponibilidade não demonstra, por si, perigo concreto; o material não esclarece a reversibilidade nem permite concluir pelo preenchimento dos requisitos ou pela concessão.",
+      "scope": "Urgency portion only; previously accepted caution passage is preserved."
+    },
+    {
+      "originId": "36d893ac97:r3",
+      "targetId": "3dedd4e1b8:r2",
+      "statement": "Quanto aos dois equipamentos descritos por gênero e quantidade, se a escolha couber ao autor, caberá a ele individualizá-los na inicial; se couber ao réu, este os entregará individualizados no prazo judicial. O recorte contratual não contém cláusula de escolha e as fontes selecionadas não resolvem sua titularidade; nenhuma das alternativas pode ser adotada como fato do caso."
+    }
+  ],
+  "appliedToOriginal": false,
+  "wholeDeliveryAssessment": "PENDING",
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

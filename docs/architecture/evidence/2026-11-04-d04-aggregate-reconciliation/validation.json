@@ -1,0 +1,48 @@
+{
+  "date": "2026-11-04",
+  "validationType": "READ_ONLY_AGGREGATE_AND_PRESERVATION_CHECKS",
+  "historicalEvidenceFilesUnchanged": 483,
+  "inputCsvsUnchanged": 2,
+  "ledgerAuditsWithoutArtifactMismatch": 3,
+  "reserveMicroUsd": 83620,
+  "originalD04Status": "UNCERTAIN",
+  "aggregateMatches": true,
+  "individualProviderBillingVerified": false,
+  "headUnchanged": "a1eb0c1e96e9594ea2a5b073cbba36e9c704caf9",
+  "stagingUnchanged": true,
+  "newPaidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false,
+  "checks": [
+    "CSV period and USD currency",
+    "Counts and tokens exact across 68 real calls",
+    "No repeated local call IDs; offline excluded",
+    "Default-tier arithmetic agrees with cost rows using Decimal",
+    "Ledger hash chains and per-scenario artifacts",
+    "Original CSV/evidence hashes preserved",
+    "Original D04 reserve and uncertainty preserved"
+  ],
+  "files": [
+    {
+      "file": "docs/architecture/evidence/2026-11-04-d04-aggregate-reconciliation/reconciliation.json",
+      "sha256": "e729a42f90cf4d84e88d43212c278735fcd5dd0c55fa709e812b9eebefac7f55"
+    },
+    {
+      "file": "docs/architecture/evidence/2026-11-04-d04-aggregate-reconciliation/ledger-audits.json",
+      "sha256": "57185529b2899d4ac2596f626e7c2b8657828493618ac662f4a7abdf1da1e784"
+    },
+    {
+      "file": "docs/architecture/evidence/2026-11-04-d04-aggregate-reconciliation/preservation-before.json",
+      "sha256": "b25cc33e01e7ab50faa2e421394458dba47f63ba3bd06708cfb7ee1c04ae9233"
+    },
+    {
+      "file": "docs/architecture/2026-11-04-d04-aggregate-reconciliation.md",
+      "sha256": "f7aee372d72eac3851ac62b660f0c4248ce89e4724a8835e7b47d56277f4f83a"
+    },
+    {
+      "file": "PENDENCIAS.md",
+      "sha256": "ac88fa4b41311f65a78d955f9399aa00d1bb5667b3410ed3feaffa986b4195b1"
+    }
+  ]
+}

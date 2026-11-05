@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D01-V2",
+  "block": "CITATION_SUPPORT_TREATMENT",
+  "decision": "ACCEPTED_EDITORIAL_TREATMENT",
+  "evaluator": "Boni",
+  "userStatement": "acerca desse tratamento dos seis grupos, reservando os alertas históricos.",
+  "interpretation": "Interpreted in immediate conversational context as acceptance of the three groups actually presented (delivery, payment, burden of proof). The user wording mentions six; no additional groups or scenarios are approved by this record.",
+  "recordedAt": "2026-11-04T21:55:58.415886+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D01-V2.json",
+  "sourceSha256": "3141b6726f3db8765c652941bdf380b721fa0a67e2f7311d9d2b6309bbe3e541",
+  "acceptedGroups": [
+    {
+      "topic": "DELIVERY",
+      "statement": "Vincular ao contrato as dez mesas previstas e ao recibo as seis registradas. Apresentar separadamente a conclusão de que o silêncio sobre as outras quatro não comprova não entrega nem cumprimento integral.",
+      "claimIds": [
+        "0c2ee7c43e:c5"
+      ]
+    },
+    {
+      "topic": "PAYMENT",
+      "statement": "Atribuir ao contrato o preço e ao relato a alegação de não recebimento. Identificar como conclusão da análise a impossibilidade de determinar saldo exigível com esses elementos.",
+      "claimIds": [
+        "0c2ee7c43e:c7"
+      ]
+    },
+    {
+      "topic": "BURDEN_OF_PROOF",
+      "statement": "Vincular ao art. 373 a distribuição abstrata. Separar dela as limitações do caso: pretensão não esclarecida, ausência da versão de Brisa e impossibilidade de declarar cumprido o ônus probatório.",
+      "claimIds": [
+        "0c2ee7c43e:c6",
+        "58a66cc157:p1",
+        "58a66cc157:p2"
+      ]
+    }
+  ],
+  "originalAlerts": [
+    {
+      "id": "support:48863ced00d271bfe2f1e598874b80da94bf8ec9b4e275239c8df81bceb62402",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O recibo registra seis mesas em 10/10/2026, data coincidente com o limite de entrega indicado no contrato; a ausência de registro das outras quatro não demonstra sua não entrega nem permite concluir cumprimento integral.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "D01-V2/contrato@v1#p1"
+      ]
+    },
+    {
+      "id": "support:55a39d947538ff5af25eeb683d9fc872f8649c95bb16d4d062cb32e2ee496f10",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O recibo registra seis mesas em 10/10/2026, data coincidente com o limite de entrega indicado no contrato; a ausência de registro das outras quatro não demonstra sua não entrega nem permite concluir cumprimento integral.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "D01-V2/recibo@v1#p1"
+      ]
+    },
+    {
+      "id": "support:ab667385665fe522b455afd3f880d22984b52b10938abc605e4050637b8e6f80",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “No trecho do art. 373 selecionado, cabe ao autor provar o fato constitutivo de seu direito e ao réu o fato impeditivo, modificativo ou extintivo. A identificação concreta desses fatos depende da pretensão ainda não informada; essa distribuição não determina, por si, suficiência da prova disponível.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "CPC-373"
+      ]
+    },
+    {
+      "id": "support:57099bb6404191d56f599730dcbd689c29e44be056b3c55aef0133a71022e311",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “No trecho do art. 373 selecionado, cabe ao autor provar o fato constitutivo de seu direito e ao réu o fato impeditivo, modificativo ou extintivo. A identificação concreta desses fatos depende da pretensão ainda não informada; essa distribuição não determina, por si, suficiência da prova disponível.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "context"
+      ]
+    },
+    {
+      "id": "support:d97681758d1aba36fd610b178ae90d679cfdfdde2fe57312bdee636db99083d2",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O preço contratual e a alegação de não recebimento não permitem, isoladamente, estabelecer saldo exigível, inadimplemento ou quitação: os trechos não informam vencimento de pagamento nem suas condições.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "D01-V2/contrato@v1#p1"
+      ]
+    },
+    {
+      "id": "support:576aefe20a8cd1fa3e267d6fc9ac1bed0cf60b95d2363c089518e377da9510f7",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O preço contratual e a alegação de não recebimento não permitem, isoladamente, estabelecer saldo exigível, inadimplemento ou quitação: os trechos não informam vencimento de pagamento nem suas condições.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "D01-V2/relato@v1#p1"
+      ]
+    },
+    {
+      "id": "support:c248aeebe35217ad90ef863ff5ebd8ea8383f32825927186f5c590b365481944",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O trecho do art. 373 do CPC atribui ao autor o ônus quanto ao fato constitutivo e ao réu quanto ao fato impeditivo, modificativo ou extintivo do direito do autor. Essa distribuição abstrata não estabelece suficiência da prova nem permite identificar todos os fatos relevantes sem conhecer a pretensão.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "CPC-373"
+      ]
+    },
+    {
+      "id": "support:f5342ae5b7f4d6d2f25be6fefa869a77646a8bdf9eedd707f323a37c6e883009",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O trecho do art. 373 do CPC atribui ao autor o ônus quanto ao fato constitutivo e ao réu quanto ao fato impeditivo, modificativo ou extintivo do direito do autor. Essa distribuição abstrata não estabelece suficiência da prova nem permite identificar todos os fatos relevantes sem conhecer a pretensão.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "context"
+      ]
+    },
+    {
+      "id": "support:195c05661f64d510474ce49caf86fabbd9f1ff0624ad52075bdd446cab906feb",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “Se a pretensão envolver pagamento do fornecimento, a análise deverá distinguir os fatos que fundamentariam o direito invocado de eventual alegação defensiva de pagamento. O corpus não contém versão de Brisa; não se presume que tenha alegado quitação nem se decide o ônus concreto relativo à negativa de recebimento.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "CPC-373"
+      ]
+    },
+    {
+      "id": "support:75aa75f2fb0b5c2bbc65e2f590276600ca5a5dd5324510d6cd66546296efc5be",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “Se a pretensão envolver pagamento do fornecimento, a análise deverá distinguir os fatos que fundamentariam o direito invocado de eventual alegação defensiva de pagamento. O corpus não contém versão de Brisa; não se presume que tenha alegado quitação nem se decide o ônus concreto relativo à negativa de recebimento.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "context"
+      ]
+    },
+    {
+      "id": "support:59eeff14158beb60d9204de622ac0a53d9228fda28d776d72e521ca1b6b5ca17",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “Se a pretensão envolver pagamento do fornecimento, a análise deverá distinguir os fatos que fundamentariam o direito invocado de eventual alegação defensiva de pagamento. O corpus não contém versão de Brisa; não se presume que tenha alegado quitação nem se decide o ônus concreto relativo à negativa de recebimento.”: o trecho citado não demonstra integralmente essa proposição.",
+      "sourceIds": [
+        "D01-V2/relato@v1#p1"
+      ]
+    }
+  ],
+  "scope": "Editorial treatment only. Historical alerts remain intact. Corrected wording and separate verification remain pending; whole delivery is not approved.",
+  "wholeDeliveryAssessment": "PENDING",
+  "appliedToOriginal": false,
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D03-V2",
+  "decision": "ACCEPTED_IN_PRESENTED_FORMULATION",
+  "evaluator": "Boni",
+  "userStatement": "Aprove e tenha uma ideia melhor pra gente se adiantar. Traga todos os textos disponíveis em cada fase, porque aí eu já reviso tudo de cada fase de uma vez só.",
+  "recordedAt": "2026-11-04T22:17:34.870059+00:00",
+  "acceptedExcerpt": "O material selecionado contém fatura de R$ 800,00, emitida em 01/10/2026, com estado do pagamento “não informado”. As fontes fornecidas não demonstram pagamento integral nem permitem determinar o saldo devido. Não há suporte no corpus para concluir pelo encerramento do caso.",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D03-V2.json",
+  "sourceSha256": "4512ba279a821a72d876f82cbd5ef8cbd84eee2c256b631692a27050fb705563",
+  "scope": "Only the replacement just presented. Remaining content and whole delivery await review.",
+  "wholeDeliveryAssessment": "PENDING",
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

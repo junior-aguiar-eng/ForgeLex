@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "scenario": "V2-MULTI",
+  "block": "CAUTION",
+  "decision": "ACCEPTED",
+  "evaluator": "Boni",
+  "source": "Explicit decision in this chat, corresponding to the two excerpts in presentation order",
+  "userStatement": "aceito, aceito",
+  "recordedAt": "2026-11-04T19:13:36.508850+00:00",
+  "scope": "Only the quoted excerpt; not the whole delivery or v9 workflow",
+  "acceptedExcerpt": "A caução pode ser exigida pelo juiz, conforme o caso, e pode ser dispensada nas condições do art. 300, § 1º, sem que o corpus permita presumir hipossuficiência ou decisão judicial a respeito.",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-multi-consolidation/V2-MULTI.derived.json",
+  "sourceSha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5",
+  "requirementId": "3dedd4e1b8:r1",
+  "wholeDeliveryAssessment": "PENDING",
+  "remainingBlocks": [
+    "REMAINING_DELIVERY"
+  ],
+  "reservedMicroUsd": 83620,
+  "originalDeliveryModified": false,
+  "paidCalls": 0
+}
