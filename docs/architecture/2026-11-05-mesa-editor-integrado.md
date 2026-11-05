@@ -1,6 +1,8 @@
 # Mesa e edição da peça — 05/11/2026
 
-Implementação local, ainda não publicada. Direção de Boni: fundir elaboração e
+Publicada pela PR #105, fonte `98f6c3d`, em 05/11/2026.
+[Recibo e verificações](../operations/agentic-workspace/2026-11-05-mesa-publication.md).
+Direção de Boni: fundir elaboração e
 revisão numa mesa limpa, com conversa e documento lado a lado e agentes nos
 bastidores. Este desenho substitui a separação de navegação descrita em
 `2026-11-02-forgelex-mesa-menu.md`.
@@ -44,8 +46,9 @@ exportar este conteúdo, e nenhum conversor externo foi adicionado.
 ## Operação
 
 Sem migration, mudança de preço, habilitação editorial comercial ou chamada
-paga. O estado de produção continua sendo o descrito no recibo de publicação
-de 05/11/2026; esta mudança de interface depende de publicação própria.
+paga. API e serviço de encerramento publicados com o mesmo digest, mantendo
+o editor comercial desativado. A navegação integrada e o recolhimento da peça
+foram conferidos em sessão autenticada de produção, sem salvar ou enviar pedidos.
 
 Os testes usam API local, SQLite descartável e inferência sintética. Não
 constituem avaliação jurídica nem ensaio pago do editor comercial.
