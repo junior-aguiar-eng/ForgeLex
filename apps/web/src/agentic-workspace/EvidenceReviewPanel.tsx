@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ApiRequestError, requestApi } from '../api-client';
 
 interface Item {
@@ -191,149 +192,154 @@ export function EvidenceReviewPanel({
         Guardar no caso
       </button>
       {!open && messages}
-      <dialog
-        ref={dialog}
-        aria-labelledby={titleId}
-        onCancel={() => setOpen(false)}
-        onClose={() => setOpen(false)}
-        className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-2xl border border-champagne-border bg-white p-5 text-stone-900 shadow-xl backdrop:bg-stone-900/30 sm:p-6"
-      >
-        <div className="flex items-center justify-between gap-4">
-          <h3 id={titleId} className="font-editorial text-xl">
-            Guardar no caso
-          </h3>
-          <button autoFocus className="min-h-11 px-2 text-sm underline" onClick={() => setOpen(false)}>
-            Fechar
-          </button>
-        </div>
-        <p className="mb-4 text-sm text-stone-600">
-          Escolha o que deseja guardar. Você pode editar os textos antes de aprovar.
-        </p>
-        <div className="divide-y divide-champagne-border">
-          {review?.items.map((item, index) => {
-            const decision = review.decisions[item.id];
-            return (
-              <fieldset key={item.id} disabled={busy || uncertain} className="min-w-0 space-y-2 py-4">
-                <legend className="sr-only">
-                  {labels[item.kind]} {index + 1}
-                </legend>
-                {decision ? (
-                  <p className="text-sm">
-                    <span className="text-stone-500">
-                      {decision.action === 'ADOPT' ? 'Guardado no caso' : 'Descartado'}:{' '}
-                    </span>
-                    {decision.text}
-                  </p>
-                ) : (
-                  <>
-                    <label className="flex min-h-11 items-start gap-3 text-sm">
-                      <input
-                        type="checkbox"
-                        className="mt-1"
-                        aria-label={`Selecionar item ${index + 1}`}
-                        checked={selected.includes(item.id)}
-                        onChange={(e) =>
-                          setSelected((previous) =>
-                            e.target.checked ? [...previous, item.id] : previous.filter((id) => id !== item.id),
-                          )
-                        }
-                      />
-                      <span>
-                        <span className="mb-1 block text-xs text-stone-500">
-                          {labels[item.kind]}
-                          {item.classification === 'DISPUTED' ? ' · controvertido' : ''}
-                        </span>
-                        {edits[item.id] ?? item.text}
+      {createPortal(
+        <dialog
+          ref={dialog}
+          aria-labelledby={titleId}
+          onCancel={() => setOpen(false)}
+          onClose={() => setOpen(false)}
+          className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-2xl border border-champagne-border bg-white p-5 text-stone-900 shadow-xl backdrop:bg-stone-900/30 sm:p-6"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <h3 id={titleId} className="font-editorial text-xl">
+              Guardar no caso
+            </h3>
+            <button autoFocus className="min-h-11 px-2 text-sm underline" onClick={() => setOpen(false)}>
+              Fechar
+            </button>
+          </div>
+          <p className="mb-4 text-sm text-stone-600">
+            Escolha o que deseja guardar. Você pode editar os textos antes de aprovar.
+          </p>
+          <div className="divide-y divide-champagne-border">
+            {review?.items.map((item, index) => {
+              const decision = review.decisions[item.id];
+              return (
+                <fieldset key={item.id} disabled={busy || uncertain} className="min-w-0 space-y-2 py-4">
+                  <legend className="sr-only">
+                    {labels[item.kind]} {index + 1}
+                  </legend>
+                  {decision ? (
+                    <p className="text-sm">
+                      <span className="text-stone-500">
+                        {decision.action === 'ADOPT' ? 'Guardado no caso' : 'Descartado'}:{' '}
                       </span>
-                    </label>
-                    <details className="ml-6 text-sm">
-                      <summary className="min-h-11 cursor-pointer py-2 underline">Editar texto</summary>
-                      <textarea
-                        aria-label={`Texto do item ${index + 1}`}
-                        rows={3}
-                        className="w-full rounded border border-stone-300 p-2"
-                        value={edits[item.id] ?? item.text}
-                        onChange={(e) => setEdits((previous) => ({ ...previous, [item.id]: e.target.value }))}
-                      />
-                    </details>
-                    {item.kind === 'TIMELINE' && (
-                      <label className="ml-6 block text-sm">
-                        Data do evento
+                      {decision.text}
+                    </p>
+                  ) : (
+                    <>
+                      <label className="flex min-h-11 items-start gap-3 text-sm">
                         <input
-                          aria-label={`Data do item ${index + 1}`}
-                          type="date"
-                          className="ml-2 rounded border p-2"
-                          value={dates[item.id] ?? item.eventDate ?? ''}
-                          onChange={(e) => setDates((previous) => ({ ...previous, [item.id]: e.target.value }))}
+                          type="checkbox"
+                          className="mt-1"
+                          aria-label={`Selecionar item ${index + 1}`}
+                          checked={selected.includes(item.id)}
+                          onChange={(e) =>
+                            setSelected((previous) =>
+                              e.target.checked ? [...previous, item.id] : previous.filter((id) => id !== item.id),
+                            )
+                          }
                         />
-                        {item.dateText && <span className="block text-stone-500">No relato: {item.dateText}</span>}
+                        <span>
+                          <span className="mb-1 block text-xs text-stone-500">
+                            {labels[item.kind]}
+                            {item.classification === 'DISPUTED' ? ' · controvertido' : ''}
+                          </span>
+                          {edits[item.id] ?? item.text}
+                        </span>
                       </label>
-                    )}
-                  </>
-                )}
-                {item.blockedReasons.length > 0 && !decision && (
-                  <p className="ml-6 text-sm text-red-800">A fonte precisa ser conferida antes de guardar este item.</p>
-                )}
-                {item.references.length > 0 && (
-                  <details className="ml-6 text-sm">
-                    <summary className="min-h-11 cursor-pointer py-2 underline">Conferir fontes</summary>
-                    {item.references.map((ref, i) => {
-                      const source = sources.find((source) => source.id === ref.sourceId);
-                      return (
-                        <blockquote key={i} className="mb-3 border-l-2 border-cognac-300 pl-3 text-stone-700">
-                          {relations[ref.relation]}: “{ref.quote}”
-                          {source && (
-                            <button
-                              className="block min-h-11 underline"
-                              onClick={() => {
-                                setOpen(false);
-                                onSource(source.n);
-                              }}
-                            >
-                              Abrir {source.label}
-                            </button>
-                          )}
-                        </blockquote>
-                      );
-                    })}
-                  </details>
-                )}
-              </fieldset>
-            );
-          })}
-        </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button
-            className="btn-primary min-h-11"
-            disabled={busy || uncertain || !selected.length}
-            onClick={() => void decide('ADOPT')}
-          >
-            Aprovar e guardar
-          </button>
-          <button
-            className="btn-secondary min-h-11"
-            disabled={busy || uncertain || !selected.length}
-            onClick={() => void decide('DISCARD')}
-          >
-            Descartar selecionados
-          </button>
-          {uncertain && (
+                      <details className="ml-6 text-sm">
+                        <summary className="min-h-11 cursor-pointer py-2 underline">Editar texto</summary>
+                        <textarea
+                          aria-label={`Texto do item ${index + 1}`}
+                          rows={3}
+                          className="w-full rounded border border-stone-300 p-2"
+                          value={edits[item.id] ?? item.text}
+                          onChange={(e) => setEdits((previous) => ({ ...previous, [item.id]: e.target.value }))}
+                        />
+                      </details>
+                      {item.kind === 'TIMELINE' && (
+                        <label className="ml-6 block text-sm">
+                          Data do evento
+                          <input
+                            aria-label={`Data do item ${index + 1}`}
+                            type="date"
+                            className="ml-2 rounded border p-2"
+                            value={dates[item.id] ?? item.eventDate ?? ''}
+                            onChange={(e) => setDates((previous) => ({ ...previous, [item.id]: e.target.value }))}
+                          />
+                          {item.dateText && <span className="block text-stone-500">No relato: {item.dateText}</span>}
+                        </label>
+                      )}
+                    </>
+                  )}
+                  {item.blockedReasons.length > 0 && !decision && (
+                    <p className="ml-6 text-sm text-red-800">
+                      A fonte precisa ser conferida antes de guardar este item.
+                    </p>
+                  )}
+                  {item.references.length > 0 && (
+                    <details className="ml-6 text-sm">
+                      <summary className="min-h-11 cursor-pointer py-2 underline">Conferir fontes</summary>
+                      {item.references.map((ref, i) => {
+                        const source = sources.find((source) => source.id === ref.sourceId);
+                        return (
+                          <blockquote key={i} className="mb-3 border-l-2 border-cognac-300 pl-3 text-stone-700">
+                            {relations[ref.relation]}: “{ref.quote}”
+                            {source && (
+                              <button
+                                className="block min-h-11 underline"
+                                onClick={() => {
+                                  setOpen(false);
+                                  onSource(source.n);
+                                }}
+                              >
+                                Abrir {source.label}
+                              </button>
+                            )}
+                          </blockquote>
+                        );
+                      })}
+                    </details>
+                  )}
+                </fieldset>
+              );
+            })}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
             <button
-              disabled={busy}
-              className="btn-secondary min-h-11"
-              onClick={() => pending.current && void send(pending.current)}
+              className="btn-primary min-h-11"
+              disabled={busy || uncertain || !selected.length}
+              onClick={() => void decide('ADOPT')}
             >
-              Verificar decisão
+              Aprovar e guardar
             </button>
-          )}
-          {error && !uncertain && (
-            <button className="min-h-11 text-sm underline" disabled={busy} onClick={() => void refresh()}>
-              Atualizar itens
+            <button
+              className="btn-secondary min-h-11"
+              disabled={busy || uncertain || !selected.length}
+              onClick={() => void decide('DISCARD')}
+            >
+              Descartar selecionados
             </button>
-          )}
-        </div>
-        {open && <div className="mt-3">{messages}</div>}
-      </dialog>
+            {uncertain && (
+              <button
+                disabled={busy}
+                className="btn-secondary min-h-11"
+                onClick={() => pending.current && void send(pending.current)}
+              >
+                Verificar decisão
+              </button>
+            )}
+            {error && !uncertain && (
+              <button className="min-h-11 text-sm underline" disabled={busy} onClick={() => void refresh()}>
+                Atualizar itens
+              </button>
+            )}
+          </div>
+          {open && <div className="mt-3">{messages}</div>}
+        </dialog>,
+        document.body,
+      )}
     </div>
   );
 }

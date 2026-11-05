@@ -207,6 +207,7 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
   await expect(result.getByRole('status')).toContainText('Itens descartados.');
   await result.getByRole('button', { name: 'Guardar no caso', exact: true }).click();
   await page.setViewportSize({ width: 375, height: 850 });
+  await expect(panel).toBeVisible();
   expect((await new AxeBuilder({ page }).include('dialog[open]').analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: info.outputPath('revisao-probatoria.png'), fullPage: true });
@@ -232,8 +233,12 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   const draftResult = page.getByRole('article', { name: 'Resultado do trabalho' }).last();
-  await expect(draftResult.getByRole('link', { name: 'Editar minuta' })).toBeVisible({ timeout: 60000 });
-  await expect(draftResult).toContainText('Alegação conferida e editada por Boni.');
+  const desk = page.getByRole('region', { name: 'Mesa da peça', exact: true });
+  await expect(desk.getByRole('textbox', { name: 'Texto da seção 2', exact: true })).toHaveValue(
+    'Alegação conferida e editada por Boni.',
+    { timeout: 60000 },
+  );
+  await expect(draftResult).toContainText('A peça está aberta ao lado.');
   const drafted = await (
     await page.request.get(
       `${api}/api/agentic/deliveries/${encodeURIComponent((await draftResult.getAttribute('data-delivery-id'))!)}`,
@@ -249,8 +254,9 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
   await page
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('Revisar o texto com os fatos aprovados do caso.');
-  await page.getByRole('button', { name: /^Caso:/ }).click();
-  await page.getByLabel('Minuta do caso (opcional)').selectOption(`${drafted.draftId}:${drafted.versionId}`);
+  await expect(page.getByRole('region', { name: 'Novo pedido' })).toContainText(
+    `Sobre a peça: ${drafted.delivery.document.title}`,
+  );
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   const revised = page.getByRole('article', { name: 'Resultado do trabalho' }).last();
@@ -292,6 +298,7 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
   const costBefore = await (
     await page.request.get(`${api}/api/agentic/commercial/executions/${revisedExecutionId}/receipt`, { headers })
   ).json();
+  await page.getByRole('button', { name: /^Caso:/ }).click();
   await page.getByRole('button', { name: 'Revisar alterações', exact: true }).click();
   const changes = page.getByRole('dialog', { name: 'Revisar alterações', exact: true });
   await expect(changes.getByText('Alegação corrigida e aprovada novamente.', { exact: true }).first()).toBeVisible();
@@ -338,6 +345,7 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
     else await route.fulfill({ response });
   });
   await page.setViewportSize({ width: 375, height: 850 });
+  await expect(changes).toBeVisible();
   expect((await new AxeBuilder({ page }).include('dialog[open]').analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(await changes.innerText()).not.toMatch(/hash|snapshot|checkpoint|orquestração|revision|tenant/i);
@@ -370,8 +378,11 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   const freshResult = page.getByRole('article', { name: 'Resultado do trabalho' }).last();
-  await expect(freshResult.getByRole('link', { name: 'Editar minuta' })).toBeVisible({ timeout: 60000 });
-  await expect(freshResult).toContainText('Alegação corrigida e aprovada novamente.');
+  await expect(desk.getByRole('textbox', { name: 'Texto da seção 2', exact: true })).toHaveValue(
+    'Alegação corrigida e aprovada novamente.',
+    { timeout: 60000 },
+  );
+  await expect(freshResult).toContainText('A peça está aberta ao lado.');
   await page.screenshot({ path: info.outputPath('mesa-apos-nova-aprovacao.png'), fullPage: true });
   await page.goto(`/app/casos?caso=${encodeURIComponent(matter.id)}`);
   await expect(page.getByText('Alegação corrigida e aprovada novamente.', { exact: true }).first()).toBeVisible();

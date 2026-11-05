@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ApiRequestError, requestApi } from '../api-client';
 import { DocumentReaderDialog } from '../components/DocumentReaderDialog';
 import type { DocumentSource } from '../documents/document-reader-model';
@@ -174,89 +175,94 @@ export function EvidenceChangesPanel({ matterId, disabled = false }: { matterId:
         Revisar alterações
       </button>
       {!open && messages}
-      <dialog
-        ref={dialog}
-        aria-labelledby={title}
-        onCancel={() => setOpen(false)}
-        onClose={() => setOpen(false)}
-        className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-2xl border border-champagne-border bg-white p-5 text-stone-900 shadow-xl backdrop:bg-stone-900/30 sm:p-6"
-      >
-        <div className="flex items-center justify-between gap-4">
-          <h3 id={title} className="font-editorial text-xl">
-            Revisar alterações
-          </h3>
-          <button type="button" autoFocus className="min-h-11 px-2 underline" onClick={() => setOpen(false)}>
-            Fechar
-          </button>
-        </div>
-        <p className="mb-4 text-sm text-stone-600">
-          Confira o que mudou. Aprove apenas os itens que deseja voltar a usar nos pedidos.
-        </p>
-        {review?.items.length === 0 && <p>Não há alterações pendentes de aprovação.</p>}
-        {review?.items.map((item, index) => (
-          <fieldset
-            key={key(item)}
-            disabled={busy || uncertain}
-            className="min-w-0 space-y-3 border-b border-champagne-border py-4"
-          >
-            <legend className="sr-only">Alteração {index + 1}</legend>
-            <div>
-              <h4 className="font-medium">Última aprovação</h4>
-              {content(item.previous, item.previousRelatedFactText)}
-              {item.previousSourcesUnavailable && (
-                <p className="text-sm text-stone-600">
-                  A fonte anterior está indisponível. Confira as fontes atuais antes de aprovar.
-                </p>
-              )}
-            </div>
-            {item.current && (
+      {createPortal(
+        <dialog
+          ref={dialog}
+          aria-labelledby={title}
+          onCancel={() => setOpen(false)}
+          onClose={() => setOpen(false)}
+          className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-2xl border border-champagne-border bg-white p-5 text-stone-900 shadow-xl backdrop:bg-stone-900/30 sm:p-6"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <h3 id={title} className="font-editorial text-xl">
+              Revisar alterações
+            </h3>
+            <button type="button" autoFocus className="min-h-11 px-2 underline" onClick={() => setOpen(false)}>
+              Fechar
+            </button>
+          </div>
+          <p className="mb-4 text-sm text-stone-600">
+            Confira o que mudou. Aprove apenas os itens que deseja voltar a usar nos pedidos.
+          </p>
+          {review?.items.length === 0 && <p>Não há alterações pendentes de aprovação.</p>}
+          {review?.items.map((item, index) => (
+            <fieldset
+              key={key(item)}
+              disabled={busy || uncertain}
+              className="min-w-0 space-y-3 border-b border-champagne-border py-4"
+            >
+              <legend className="sr-only">Alteração {index + 1}</legend>
               <div>
-                <h4 className="font-medium">Como está agora</h4>
-                {content(item.current, item.relatedFactText)}
+                <h4 className="font-medium">Última aprovação</h4>
+                {content(item.previous, item.previousRelatedFactText)}
+                {item.previousSourcesUnavailable && (
+                  <p className="text-sm text-stone-600">
+                    A fonte anterior está indisponível. Confira as fontes atuais antes de aprovar.
+                  </p>
+                )}
               </div>
-            )}
-            {item.blocked ? (
-              <p className="text-sm text-red-800">{item.blocked}</p>
-            ) : (
-              <label className="flex min-h-11 items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={selected.includes(key(item))}
-                  onChange={(e) =>
-                    setSelected((old) => (e.target.checked ? [...old, key(item)] : old.filter((k) => k !== key(item))))
-                  }
-                />
-                Aprovar alteração {index + 1}
-              </label>
-            )}
-          </fieldset>
-        ))}
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button
-            type="button"
-            className="btn-primary min-h-11"
-            disabled={busy || uncertain || !selected.length}
-            onClick={approve}
-          >
-            Aprovar alterações
-          </button>
-          {uncertain ? (
+              {item.current && (
+                <div>
+                  <h4 className="font-medium">Como está agora</h4>
+                  {content(item.current, item.relatedFactText)}
+                </div>
+              )}
+              {item.blocked ? (
+                <p className="text-sm text-red-800">{item.blocked}</p>
+              ) : (
+                <label className="flex min-h-11 items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(key(item))}
+                    onChange={(e) =>
+                      setSelected((old) =>
+                        e.target.checked ? [...old, key(item)] : old.filter((k) => k !== key(item)),
+                      )
+                    }
+                  />
+                  Aprovar alteração {index + 1}
+                </label>
+              )}
+            </fieldset>
+          ))}
+          <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
-              className="btn-secondary min-h-11"
-              disabled={busy}
-              onClick={() => pending.current && void send(pending.current)}
+              className="btn-primary min-h-11"
+              disabled={busy || uncertain || !selected.length}
+              onClick={approve}
             >
-              Verificar decisão
+              Aprovar alterações
             </button>
-          ) : (
-            <button type="button" className="btn-secondary min-h-11" disabled={busy} onClick={() => void refresh()}>
-              Atualizar itens
-            </button>
-          )}
-        </div>
-        {messages}
-      </dialog>
+            {uncertain ? (
+              <button
+                type="button"
+                className="btn-secondary min-h-11"
+                disabled={busy}
+                onClick={() => pending.current && void send(pending.current)}
+              >
+                Verificar decisão
+              </button>
+            ) : (
+              <button type="button" className="btn-secondary min-h-11" disabled={busy} onClick={() => void refresh()}>
+                Atualizar itens
+              </button>
+            )}
+          </div>
+          {messages}
+        </dialog>,
+        document.body,
+      )}
       {reading && (
         <DocumentReaderDialog
           source={reading}
