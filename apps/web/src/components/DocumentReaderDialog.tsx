@@ -300,6 +300,7 @@ function Reader({ source, token, onClose }: { source: DocumentSource; token: str
           </>
         )}
       </div>
-    </dialog>, document.body
+    </dialog>,
+    document.body,
   );
 }
