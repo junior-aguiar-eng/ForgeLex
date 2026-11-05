@@ -1,12 +1,25 @@
 # Pendências atuais do ForgeLex
 
-## Preparação da PR — 05/11/2026
+## Estado publicado — 05/11/2026
 
-Integração comercial editorial consolidada em commits nesta branch, com envio
-e abertura de PR autorizados por Boni. A CI inclui os testes editoriais em
-PostgreSQL e navegador. Deploy, migrations e ativação continuam separados.
-[Procedimento e inspeção remota](docs/operations/agentic-workspace/2026-11-05-editorial-release-preparation.md).
-Os estados sem commit/push abaixo são históricos das respectivas etapas.
+PR #103 integrada e SHA `a5d97628f0a63e26f3c6eb72ba5cd4444a332ee9` publicado
+após os seis checks da CI. API e serviço de encerramento recebem 100% do tráfego
+nas revisões `forgelex-api-prod-a5d9762` e
+`forgelex-closure-hml-private-a5d9762`, com o mesmo digest.
+Backup manual `1793909132283` concluído; migrations 0037 e 0038 aplicadas;
+journal remoto conferido com 51 entradas, sem pendências ou IDs inesperados.
+
+**Editor comercial desativado nos dois serviços**, conforme decisão de Boni:
+`FORGELEX_EDITORIAL_COMMERCIAL_ENABLED=false`. Auto-migration permanece
+`false`. As flags comerciais preexistentes foram preservadas.
+Readiness e rotina de encerramento responderam 200 nas novas revisões.
+[Recibo, digest, verificações e limites](docs/operations/agentic-workspace/2026-11-05-publication.md).
+
+A ativação editorial, novos ensaios pagos e a avaliação de patches não vazios
+continuam separados. Não houve teste autenticado completo da interface nem de
+aba previamente aberta neste deploy. Avisos de listeners na inicialização
+estão registrados no recibo, sem diagnóstico de vazamento de memória.
+Os estados locais e sem publicação abaixo são históricos das respectivas etapas.
 
 ## Incremento local de 05/11/2026 — editor e política comercial
 
@@ -114,16 +127,16 @@ v8; v9 e geração editorial real continuam opt-in.
    A proposta não contém alterações; ainda não mede a qualidade de patches
    não vazios nem homologa a apresentação comercial das limitações retornadas.
    A autorização de uma execução foi consumida; não repetir automaticamente.
-5. **Integração/publicação:** após a consolidação local, revisar o diff contra
-   a base e a CI do SHA escolhido; atualizar a preparação operacional e
-   conferir migrations/backup no alvo quando autorizados. Não presumir estado
-   do banco remoto nem disponibilidade publicada a partir de testes locais.
-6. **Ativação comercial editorial:** a admissão por comando foi implementada
-   localmente em 05/11, reutilizando os limites diário/mensal existentes,
-   inclusive sua contabilização de consumo medido sem cobrança. A confirmação
-   de Boni inclui revisão concluída sem sugestões. Ativação operacional,
-   escolha do SHA, CI e publicação permanecem separadas; o opt-in local não
-   constitui abertura do serviço comercial.
+5. **Integração/publicação — concluída em 05/11:** PR #103 integrada,
+   CI do merge aprovada, backup e migrations aplicados e os dois serviços
+   publicados. Ver o [recibo](docs/operations/agentic-workspace/2026-11-05-publication.md).
+   Teste autenticado completo da interface e de aba previamente aberta não
+   foram realizados nesta publicação; não inferir essa homologação do readiness.
+6. **Ativação comercial editorial — desativada por decisão de Boni:**
+   a admissão por comando e a cobrança da revisão concluída mesmo sem sugestões
+   estão implementadas e publicadas. A flag permanece `false` nos dois serviços.
+   Ativação e novo ensaio pago exigem autorização própria; a publicação não
+   abre essa oferta. O ensaio anterior vazio não valida patches não vazios.
 7. **Backlog humano/operacional histórico:** atualizar a situação das
    homologações residuais nos hosts ChatGPT/Claude, comprovações fiscais,
    contratos efetivos e conciliação dos R$ 25. Os registros de outubro abaixo

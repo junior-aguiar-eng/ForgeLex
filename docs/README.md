@@ -2,7 +2,12 @@
 
 ## Estado atual
 
-Referência documental: 03/11/2026. Começar por
+Publicado o SHA `a5d9762` após a CI do merge: API e encerramento a 100%,
+backup manual concluído e migrations 0037/0038 aplicadas (51 no journal).
+**Editor comercial desativado nos dois serviços.**
+[Recibo de 05/11, verificações e limites](operations/agentic-workspace/2026-11-05-publication.md).
+
+Referência documental: 05/11/2026. Começar por
 [CONTINUIDADE.md](../CONTINUIDADE.md) e [PENDENCIAS.md](../PENDENCIAS.md).
 
 Governança: [Boni é o único avaliador e aprovador humano](../AGENTS.md).
