@@ -153,7 +153,7 @@ if (process.argv[2] === '--recover-evidence') {
     const run = await service.store.workspace.getExecution(owner, process.env.FORGELEX_CASE_TASK_TEST_ID);
     assert.equal(run.status, 'COMPLETED');
     assert.equal(run.deliveryIds.length, 1);
-    assert.equal(run.checkpoint.caseTask.version, 3);
+    assert.equal(run.checkpoint.caseTask.version, 8);
     const delivery = (await native.getDelivery(owner, run.deliveryIds[0])).delivery;
     assert.equal(delivery.evidenceMatrix.rows[0].coverage, 'DOCUMENT_LINKED');
     assert.equal(delivery.evidenceMatrix.rows[0].references[0].quoteStatus, 'MATCHED');
@@ -177,7 +177,7 @@ if (process.argv[2] === '--recover-evidence') {
     assert.equal(execution.status, 'COMPLETED');
     assert.equal(execution.deliveryIds.length, 1);
     const state = execution.checkpoint.caseTask;
-    assert.equal(state.version, 2);
+    assert.equal(state.version, 8);
     assert.equal(state.graph.revision, 1);
     assert.ok(state.graph.archivedOutputs['adversarial-reviewer:0']);
     assert.deepEqual(
