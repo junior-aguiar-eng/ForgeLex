@@ -1,5 +1,13 @@
 # ForgeLex — onde estamos e como continuar
 
+## Preparação da PR — 05/11/2026
+
+Integração comercial editorial consolidada em commits nesta branch, com envio
+e abertura de PR autorizados por Boni. A CI inclui os testes editoriais em
+PostgreSQL e navegador. Deploy, migrations e ativação continuam separados.
+[Procedimento e inspeção remota](docs/operations/agentic-workspace/2026-11-05-editorial-release-preparation.md).
+Os estados sem commit/push abaixo são históricos das respectivas etapas.
+
 ## Aplicação humana versionada — 03/11/2026
 
 [Implementação e validação](docs/architecture/2026-11-03-forgelex-editorial-application.md):
