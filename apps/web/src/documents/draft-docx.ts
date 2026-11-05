@@ -1,6 +1,7 @@
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from 'docx';
 
 export interface SavedDraftExport {
+  local?: boolean;
   title: string;
   version: { id: string; versionNumber: number; contentHash: string; status: string; createdAt: string };
   sections: Array<{ id: string; ordinal: number; title: string; content: string }>;
@@ -40,7 +41,11 @@ export async function buildDraftDocx(saved: SavedDraftExport): Promise<Blob> {
   const version = saved.version;
   const paragraphs: Paragraph[] = [
     new Paragraph({ text: saved.title, heading: HeadingLevel.TITLE }),
-    new Paragraph({ text: `Versão ${version.versionNumber} · ${statusLabels[version.status] ?? version.status}` }),
+    new Paragraph({
+      text: saved.local
+        ? 'Edição local · não salva no caso'
+        : `Versão ${version.versionNumber} · ${statusLabels[version.status] ?? version.status}`,
+    }),
   ];
   if (version.status !== 'APPROVED') {
     paragraphs.push(
@@ -81,18 +86,20 @@ export async function buildDraftDocx(saved: SavedDraftExport): Promise<Blob> {
       if (document.anchor?.text) paragraphs.push(new Paragraph({ text: document.anchor.text }));
     }
   }
-  paragraphs.push(new Paragraph({ text: 'Registro da versão salva', heading: HeadingLevel.HEADING_1 }));
-  for (const line of [
-    `Versão: ${version.id}`,
-    `Registrada em: ${version.createdAt}`,
-    `Hash do conteúdo: ${version.contentHash}`,
-  ])
-    paragraphs.push(new Paragraph({ text: line }));
+  if (!saved.local) {
+    paragraphs.push(new Paragraph({ text: 'Registro da versão salva', heading: HeadingLevel.HEADING_1 }));
+    for (const line of [
+      `Versão: ${version.id}`,
+      `Registrada em: ${version.createdAt}`,
+      `Hash do conteúdo: ${version.contentHash}`,
+    ])
+      paragraphs.push(new Paragraph({ text: line }));
+  }
   return Packer.toBlob(
     new Document({
       title: saved.title,
       creator: 'ForgeLex',
-      description: `Versão salva ${version.versionNumber}`,
+      description: saved.local ? 'Edição local' : `Versão salva ${version.versionNumber}`,
       styles: { default: { document: { run: { font: 'Arial', size: 24 }, paragraph: { spacing: { after: 160 } } } } },
       sections: [{ children: paragraphs }],
     }),

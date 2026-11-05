@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { ApiRequestError, requestApiWithToken } from '../api-client';
@@ -125,7 +126,7 @@ function Reader({ source, token, onClose }: { source: DocumentSource; token: str
     return nodes;
   };
 
-  return (
+  return createPortal(
     <dialog
       ref={dialog}
       aria-labelledby="document-reader-title"
@@ -299,6 +300,7 @@ function Reader({ source, token, onClose }: { source: DocumentSource; token: str
           </>
         )}
       </div>
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }

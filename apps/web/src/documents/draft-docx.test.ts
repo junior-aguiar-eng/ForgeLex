@@ -3,6 +3,21 @@ import JSZip from 'jszip';
 import { buildDraftDocx, draftDocxFilename } from './draft-docx';
 
 describe('saved draft DOCX', () => {
+  it('exporta edição local sem atribuir registro ou aprovação a texto não salvo', async () => {
+    const blob = await buildDraftDocx({
+      local: true,
+      title: 'Peça local',
+      version: { id: 'local', versionNumber: 1, contentHash: '', status: 'DRAFT', createdAt: '' },
+      sections: [{ id: 's', ordinal: 0, title: 'Texto', content: 'Conteúdo editado no navegador.' }],
+      citations: [],
+    });
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file('word/document.xml')!.async('string');
+    expect(xml).toContain('Conteúdo editado no navegador.');
+    expect(xml).toContain('Edição local · não salva no caso');
+    expect(xml).not.toContain('Registro da versão salva');
+    expect(xml).toContain('Documento pendente de revisão humana');
+  });
   it('inclui a versão documental fixada sem afirmar conferência humana', async () => {
     const blob = await buildDraftDocx({
       title: 'Texto recebido',

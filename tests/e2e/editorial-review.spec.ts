@@ -374,7 +374,9 @@ test('aplicação editorial exige seleção e confirmação e abre nova versão 
   await page.screenshot({ path: 'tmp/editorial-application-mobile.png' });
   await f.dialog.getByRole('link', { name: 'Abrir versão criada' }).click();
   await expect(page).toHaveURL(new RegExp(saved.application.versionId));
-  await expect(page.getByText('[DESTINATÁRIO A CONFERIR ANTES DO USO]', { exact: false }).first()).toBeVisible();
+  await expect(page.getByLabel('Texto da seção 1', { exact: true })).toHaveValue(
+    '[DESTINATÁRIO A CONFERIR ANTES DO USO]',
+  );
   expect(writes.filter((url) => /editorial-review\/applications$/.test(url))).toHaveLength(1);
   expect(writes.some((url) => /editorial-proposals\/generate|\/executions$/.test(url))).toBe(false);
 });
@@ -594,14 +596,13 @@ test('histórico editorial permanece na mesa depois de edição humana da minuta
   await dialog.getByRole('button', { name: 'Salvar decisão 1', exact: true }).click();
   await expect(dialog.getByRole('status')).toContainText('Decisão salva');
   await dialog.getByRole('button', { name: 'Fechar', exact: true }).click();
-  await page.getByRole('link', { name: 'Editar minuta', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Mesa da peça' })).toBeVisible();
   await page
-    .getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true })
+    .getByRole('textbox', { name: 'Texto da seção 1', exact: true })
     .fill('Texto alterado manualmente na fixture.');
-  await page.getByText('Salvar e exportar', { exact: true }).click();
-  await page.getByRole('button', { name: 'Salvar nova versão', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page.getByText('Há alterações não salvas.', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Voltar ao trabalho', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Pedir ajuste' })).toBeEnabled();
   await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
   await expect(dialog.getByRole('status')).toContainText('desatualizada');
   await expect(dialog).toContainText('Registro anterior à edição humana.');

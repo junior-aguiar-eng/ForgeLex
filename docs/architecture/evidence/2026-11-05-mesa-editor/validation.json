@@ -1,0 +1,55 @@
+{
+  "date": "2026-11-05",
+  "branch": "codex/mesa-editor-integrado",
+  "baseCommit": "3f56a68b8cf48715117dbbf5fac41f72e02a6cc8",
+  "state": "local-uncommitted",
+  "checks": [
+    {
+      "command": "pnpm exec playwright test --config playwright.writing-desk.config.ts --max-failures=4",
+      "passed": 42,
+      "failed": 0
+    },
+    {
+      "command": "pnpm exec playwright test --config playwright.writing-desk.config.ts writing-desk.spec.ts",
+      "passed": 2,
+      "failed": 0,
+      "note": "Repetição após compactar a linha do compositor; capturas finais inspecionadas."
+    },
+    {
+      "command": "pnpm exec vitest run apps/web/src",
+      "passed": 226,
+      "files": 40,
+      "failed": 0
+    },
+    {
+      "command": "pnpm --filter @forgelex/web build",
+      "result": "passed"
+    },
+    {
+      "command": "ESLint dos componentes alterados",
+      "result": "passed",
+      "warnings": 0
+    },
+    {
+      "command": "Prettier dos arquivos cobertos e git diff --check",
+      "result": "passed"
+    }
+  ],
+  "screenshots": [
+    "desktop.png",
+    "mobile.png"
+  ],
+  "limitations": [
+    "API local, SQLite descartável e inferência sintética; sem avaliação jurídica.",
+    "PDF verificado até a folha de impressão. Salvar como PDF exige a escolha do usuário no diálogo nativo.",
+    "Edição não salva permanece em memória da aba; não há persistência offline."
+  ],
+  "release": {
+    "commit": false,
+    "push": false,
+    "deploy": false,
+    "paidInference": false,
+    "cloudDocling": false,
+    "commercialEditorActivation": false
+  }
+}

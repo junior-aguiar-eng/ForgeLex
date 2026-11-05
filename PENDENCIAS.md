@@ -1,5 +1,14 @@
 # Pendências atuais do ForgeLex
 
+## Incremento local atual — mesa de edição integrada
+
+Elaboração e revisão reunidas na mesa, com conversa ao lado da peça, edição
+básica no navegador e exportação Word/PDF. A implementação está na branch
+`codex/mesa-editor-integrado`, sem commit, push ou deploy desta alteração.
+Conferência visual de Boni e publicação permanecem pendentes. O editor comercial
+continua desativado; não houve chamada paga ou uso de Docling na nuvem.
+[Escopo e limites](docs/architecture/2026-11-05-mesa-editor-integrado.md).
+
 ## Estado publicado — 05/11/2026
 
 PR #103 integrada e SHA `a5d97628f0a63e26f3c6eb72ba5cd4444a332ee9` publicado

@@ -16,7 +16,7 @@ function sourceNote(s: PresentedSource): string {
   return (
     (
       {
-        ANSWER: 'Resposta que você deu ao agente.',
+        ANSWER: 'Resposta que você deu na conversa.',
         USER_TEXT: 'Contexto que você escreveu.',
         DRAFT: 'Minuta do caso que você selecionou.',
         PREVIOUS_DELIVERY: 'Resultado de um trabalho anterior.',

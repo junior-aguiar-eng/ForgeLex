@@ -10,8 +10,7 @@ import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/sit
 const caseNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
   { tab: 'matter', label: 'Casos', icon: FolderOpen },
   { tab: 'research', label: 'Pesquisa', icon: Search },
-  { tab: 'draft_studio', label: 'Rascunhos', icon: FileText },
-  { tab: 'dashboard', label: 'Revisão', icon: FileCode2 },
+  ...(!AGENTIC_WORKSPACE_ENABLED ? [{ tab: 'draft_studio' as const, label: 'Rascunhos', icon: FileText }, { tab: 'dashboard' as const, label: 'Revisão', icon: FileCode2 }] : []),
 ];
 
 const workNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = AGENTIC_WORKSPACE_ENABLED
@@ -82,7 +81,7 @@ export const Header: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }> =
 
           <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex" aria-label="Navegação principal">
             {primaryNavigation.map((item) => (
-              <NavigationButton key={item.tab} item={item} active={item.tab === activeTab} onSelect={selectTab} />
+              <NavigationButton key={item.tab} item={item} active={item.tab === (AGENTIC_WORKSPACE_ENABLED && (activeTab === 'draft_studio' || activeTab === 'dashboard') ? 'work' : activeTab)} onSelect={selectTab} />
             ))}
           </nav>
 

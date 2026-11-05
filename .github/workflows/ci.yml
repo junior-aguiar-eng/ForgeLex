@@ -155,6 +155,8 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e:agentic-workspace
+      - name: Integrated writing desk, local editing and exports
+        run: pnpm exec playwright test --config playwright.writing-desk.config.ts writing-desk.spec.ts
       - name: Editorial review, confirmation and receipt recovery
         run: pnpm exec playwright test --config playwright.editorial-review.config.ts
       - name: Metered commercial workflow (synthetic provider transport)
