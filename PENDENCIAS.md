@@ -1,18 +1,23 @@
 # Pendências atuais do ForgeLex
 
-## Incremento local atual — mesa de edição integrada
+## Estado publicado atual — mesa de edição integrada
 
 Elaboração e revisão reunidas na mesa, com conversa ao lado da peça, edição
-básica no navegador e exportação Word/PDF. A implementação está na branch
-`codex/mesa-editor-integrado`, sem commit, push ou deploy desta alteração.
-Conferência visual de Boni e publicação permanecem pendentes. O editor comercial
-continua desativado; não houve chamada paga ou uso de Docling na nuvem.
+básica no navegador e exportação Word/PDF. PR #105 integrada e fonte
+`98f6c3d36e10cfed3b4482c52075d02a8f77af8b` publicada após os seis checks
+da PR e do merge. API e encerramento recebem 100% do tráfego nas revisões
+`forgelex-api-prod-98f6c3d` e `forgelex-closure-hml-private-98f6c3d-r2`.
+Navegação e recolhimento da peça conferidos em sessão autenticada publicada.
+O editor comercial continua desativado; não houve migration, chamada paga
+ou uso de Docling na nuvem. Avaliação visual de Boni permanece distinta dos
+testes automatizados e do smoke técnico.
+[Recibo desta publicação](docs/operations/agentic-workspace/2026-11-05-mesa-publication.md).
 [Escopo e limites](docs/architecture/2026-11-05-mesa-editor-integrado.md).
 
-## Estado publicado — 05/11/2026
+## Publicação anterior — 05/11/2026, editor e política comercial
 
 PR #103 integrada e SHA `a5d97628f0a63e26f3c6eb72ba5cd4444a332ee9` publicado
-após os seis checks da CI. API e serviço de encerramento recebem 100% do tráfego
+após os seis checks da CI. Naquela publicação, API e encerramento receberam 100% do tráfego
 nas revisões `forgelex-api-prod-a5d9762` e
 `forgelex-closure-hml-private-a5d9762`, com o mesmo digest.
 Backup manual `1793909132283` concluído; migrations 0037 e 0038 aplicadas;
