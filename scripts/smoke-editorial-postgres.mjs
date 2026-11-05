@@ -46,6 +46,7 @@ try {
       'node_modules/vitest/vitest.mjs',
       'run',
       'apps/api/src/agentic-workspace/final-editor-routes.test.ts',
+      'apps/api/src/agentic-workspace/editorial-commercial-runtime.test.ts',
       '--maxWorkers=1',
       '--testTimeout=20000',
     ],

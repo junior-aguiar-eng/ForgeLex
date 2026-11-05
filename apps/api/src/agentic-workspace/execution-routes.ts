@@ -30,6 +30,7 @@ import {
 } from '@forgelex/legal-workflows';
 import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
+import { EditorialCommercialCommand } from './editorial-commercial-runtime.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
 
 export interface AgenticWorkspaceRuntimeOptions {
@@ -99,6 +100,7 @@ export function registerAgenticWorkspace(
     lastSweepAt = Date.now();
     try {
       await commercial.sweepAdmissions();
+      await commercial.editorial?.sweepAdmissions();
     } catch (error) {
       // Durable admission cleanup is retried on the next poll; a persistent failure must still be visible.
       report('agentic.admission_sweep.failed', error);
@@ -111,6 +113,7 @@ export function registerAgenticWorkspace(
     running = true;
     try {
       await worker.runOnce();
+      await commercial?.editorial?.worker.runOnce();
     } catch (error) {
       // The persistent lease permits safe recovery on the next tick; a persistent failure must still be visible.
       report('agentic.worker_tick.failed', error);
@@ -131,6 +134,7 @@ export function registerAgenticWorkspace(
     app.addHook('onClose', async () => {
       clearInterval(timer);
       await worker.stop();
+      await commercial?.editorial?.worker.stop();
     });
   }
   const owner = (req: FastifyRequest) => ({ tenantId: req.principal.tenantId, userId: req.principal.userId });
@@ -666,7 +670,10 @@ export function registerAgenticWorkspace(
       '/api/agentic/deliveries/:id/editorial-proposals/generation',
       editorialOptions,
       handle(async (req) => {
-        await editor.load(owner(req), await reviewId(req), editorialTarget.parse(req.query));
+        const id = await reviewId(req);
+        const target = editorialTarget.parse(req.query);
+        if (commercial?.editorial) return commercial.editorial.quote(owner(req), { deliveryId: id, ...target });
+        await editor.load(owner(req), id, target);
         const configured = deps.options?.editorialGeneration;
         return {
           enabled: !!configured,
@@ -698,9 +705,64 @@ export function registerAgenticWorkspace(
       handle(async (req) => editorialApplication.apply(owner(req), await reviewId(req), req.body)),
     );
     app.post(
+      '/api/agentic/deliveries/:id/editorial-proposals/commands',
+      { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session] },
+      handle(async (req) => {
+        if (!commercial?.editorial) throw new Error('EDITORIAL_GENERATION_DISABLED');
+        const id = await reviewId(req);
+        const input = EditorialCommercialCommand.omit({ deliveryId: true }).parse(req.body);
+        return commercial.editorial.start(owner(req), key(req), { ...input, deliveryId: id });
+      }),
+    );
+    app.get(
+      '/api/agentic/deliveries/:id/editorial-proposals/commands',
+      editorialOptions,
+      handle(async (req) => {
+        if (!commercial?.editorial) throw new Error('EDITORIAL_GENERATION_DISABLED');
+        const id = await reviewId(req);
+        const { requestId, ...target } = editorialTarget
+          .extend({ requestId: z.string().min(1).max(200).optional() })
+          .parse(req.query);
+        return {
+          command: requestId
+            ? await commercial.editorial.recover(owner(req), requestId, { deliveryId: id, ...target })
+            : await commercial.editorial.latest(owner(req), { deliveryId: id, ...target }),
+        };
+      }),
+    );
+    app.get(
+      '/api/agentic/deliveries/:id/editorial-proposals/commands/:commandId',
+      editorialOptions,
+      handle(async (req) => {
+        if (!commercial?.editorial) throw new Error('EDITORIAL_GENERATION_DISABLED');
+        const id = await reviewId(req);
+        const { commandId } = z.object({ commandId: z.string().guid() }).parse(req.params);
+        return commercial.editorial.read(owner(req), commandId, {
+          deliveryId: id,
+          ...editorialTarget.parse(req.query),
+        });
+      }),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-proposals/commands/:commandId/cancel',
+      { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session] },
+      handle(async (req) => {
+        if (!commercial?.editorial) throw new Error('EDITORIAL_GENERATION_DISABLED');
+        const id = await reviewId(req);
+        const { commandId } = z.object({ commandId: z.string().guid() }).parse(req.params);
+        return commercial.editorial.cancel(
+          owner(req),
+          commandId,
+          { deliveryId: id, ...editorialTarget.parse(req.body) },
+          key(req),
+        );
+      }),
+    );
+    app.post(
       '/api/agentic/deliveries/:id/editorial-proposals/generate',
       { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session] },
       handle(async (req, reply) => {
+        if (commercial?.editorial) throw new Error('EDITORIAL_AUTHORIZATION_REQUIRED');
         const controller = new AbortController();
         const abort = () => controller.abort();
         req.raw.once('aborted', abort);

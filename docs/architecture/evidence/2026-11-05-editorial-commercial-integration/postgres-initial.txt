@@ -1,0 +1,331 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+{"level":"error","message":"agentic.request.failed","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/preview","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-05T17:55:13.736Z"}
+{"level":"error","message":"agentic.request.failed","method":"GET","route":"/api/agentic/deliveries/:id/editorial-context","errorCode":"DELIVERY_INTEGRITY_FAILED","errorName":"Error","timestamp":"2026-11-05T18:00:09.827Z"}
+{"level":"error","message":"agentic.request.failed","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/decisions","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-05T18:01:21.797Z"}
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts (59 tests | 12 failed) 486330ms
+   × aplicação humana recusa decisão mais recente e edição manual concorrente 15264ms
+   × aplicação humana reverte versão se falhar antes de salvar recibo 15450ms
+   × aplicação humana preserva fronteira commercial 16313ms
+   × geração simulada conecta minuta autorizada, sem alterações ou execução v8 15219ms
+   × informa disponibilidade somente após autorizar contexto e exige confirmação para geração real 16899ms
+   × geração preserva sessão, proprietário, scopes e fronteiras dos runtimes 15923ms
+   × geração descarta proposta se acesso for revogado durante o provider 15784ms
+   × admite revisão comercial somente com sessão, escrita e política confirmada e recupera a reserva 15377ms
+   × carrega somente entrega/minuta persistida e valida sem escrever nem chamar IA 16006ms
+   × isola sessão/escopo/proprietário other 15704ms
+   × rejeita IDs divergentes e contexto/fontes fornecidos pelo cliente 15210ms
+   × revisão humana respeita limite de 100 sem truncar histórico 15162ms
+{"level":"info","message":"commercial_call_trace","executionId":"14bed20d-f37b-49ee-b72c-44340b3711df","callId":"editorial:d831910b96bbb503c5d4a15d10441a58fab70e26c2e177987faf538855eb5aa8","timestamp":"2026-11-05T18:01:45.657Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"phase":"RESERVED"}
+{"level":"info","message":"commercial_call_trace","executionId":"14bed20d-f37b-49ee-b72c-44340b3711df","callId":"editorial:d831910b96bbb503c5d4a15d10441a58fab70e26c2e177987faf538855eb5aa8","timestamp":"2026-11-05T18:01:45.687Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"httpStatus":200,"phase":"RESPONSE"}
+{"level":"info","message":"commercial_call_trace","executionId":"14bed20d-f37b-49ee-b72c-44340b3711df","callId":"editorial:d831910b96bbb503c5d4a15d10441a58fab70e26c2e177987faf538855eb5aa8","timestamp":"2026-11-05T18:01:45.695Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"httpStatus":200,"usage":{"input":100,"output":20,"cachedInput":0},"responseId":"resp_editorial","phase":"USAGE"}
+{"level":"info","message":"commercial_call_trace","executionId":"14bed20d-f37b-49ee-b72c-44340b3711df","callId":"editorial:d831910b96bbb503c5d4a15d10441a58fab70e26c2e177987faf538855eb5aa8","timestamp":"2026-11-05T18:01:45.887Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"httpStatus":200,"usage":{"input":100,"output":20,"cachedInput":0},"costState":"SETTLED","phase":"SETTLED"}
+{"level":"info","message":"commercial_call_trace","executionId":"0c40949f-d5b6-4106-bcb0-0297d1ecf3c4","callId":"editorial:1bb680e092129e8e8ca7e971563871f4b42ae5019d696bae14562410fdbd21ab","timestamp":"2026-11-05T18:01:52.232Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"phase":"RESERVED"}
+{"level":"info","message":"commercial_call_trace","executionId":"0c40949f-d5b6-4106-bcb0-0297d1ecf3c4","callId":"editorial:1bb680e092129e8e8ca7e971563871f4b42ae5019d696bae14562410fdbd21ab","timestamp":"2026-11-05T18:01:52.283Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"diagnostic":{"errorType":"Error","clientRequestId":"editorial:1bb680e092129e8e8ca7e971563871f4b42ae5019d696bae14562410fdbd21ab","failureStage":"DISPATCH"},"accountingUpdateFailed":false,"costState":"UNCERTAIN","phase":"FAILED"}
+{"level":"error","message":"agentic.execution.failed","tenantId":"editorial-commercial","executionId":"0c40949f-d5b6-4106-bcb0-0297d1ecf3c4","failureCode":"EXECUTION_FAILED","errorCode":"EDITORIAL_GENERATION_FAILED","errorName":"Error","timestamp":"2026-11-05T18:01:52.297Z"}
+{"level":"error","message":"agentic.execution.failed","tenantId":"editorial-commercial","executionId":"f1a77d47-c614-4f6e-a5b2-2e29bd1760bd","failureCode":"EXECUTION_FAILED","errorCode":"EDITORIAL_CONTEXT_CHANGED","errorName":"Error","timestamp":"2026-11-05T18:01:58.008Z"}
+{"level":"info","message":"commercial_call_trace","executionId":"1907ca7f-6159-48bf-b4e3-4cf5949726d2","callId":"editorial:671b9568f8200b46de438553ca9427cc28a5a7dcf4119fd6a854b43a1b41c5d3","timestamp":"2026-11-05T18:02:07.082Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"phase":"RESERVED"}
+{"level":"info","message":"commercial_call_trace","executionId":"1907ca7f-6159-48bf-b4e3-4cf5949726d2","callId":"editorial:671b9568f8200b46de438553ca9427cc28a5a7dcf4119fd6a854b43a1b41c5d3","timestamp":"2026-11-05T18:02:07.091Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"httpStatus":200,"phase":"RESPONSE"}
+{"level":"info","message":"commercial_call_trace","executionId":"1907ca7f-6159-48bf-b4e3-4cf5949726d2","callId":"editorial:671b9568f8200b46de438553ca9427cc28a5a7dcf4119fd6a854b43a1b41c5d3","timestamp":"2026-11-05T18:02:07.092Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"httpStatus":200,"usage":{"input":100,"output":20,"cachedInput":0},"responseId":"resp_editorial","phase":"USAGE"}
+{"level":"info","message":"commercial_call_trace","executionId":"1907ca7f-6159-48bf-b4e3-4cf5949726d2","callId":"editorial:671b9568f8200b46de438553ca9427cc28a5a7dcf4119fd6a854b43a1b41c5d3","timestamp":"2026-11-05T18:02:07.128Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"httpStatus":200,"usage":{"input":100,"output":20,"cachedInput":0},"costState":"SETTLED","phase":"SETTLED"}
+{"level":"error","message":"agentic.execution.failed","tenantId":"editorial-commercial","executionId":"88578b76-6b5a-4bb5-bab3-39c62675d88f","failureCode":"ACCESS_REVOKED","errorCode":"ACCESS_REVOKED","errorName":"Error","timestamp":"2026-11-05T18:02:10.927Z"}
+{"level":"info","message":"commercial_call_trace","executionId":"ec84099e-3576-4406-9c6e-162b45a35e8f","callId":"editorial:b049f51a987508ace2c4056d2bfdd7014e31467a996cefdcd7911f182ebbdde6","timestamp":"2026-11-05T18:02:14.752Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"phase":"RESERVED"}
+{"level":"info","message":"commercial_call_trace","executionId":"ec84099e-3576-4406-9c6e-162b45a35e8f","callId":"editorial:b049f51a987508ace2c4056d2bfdd7014e31467a996cefdcd7911f182ebbdde6","timestamp":"2026-11-05T18:02:14.762Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"httpStatus":200,"phase":"RESPONSE"}
+{"level":"info","message":"commercial_call_trace","executionId":"ec84099e-3576-4406-9c6e-162b45a35e8f","callId":"editorial:b049f51a987508ace2c4056d2bfdd7014e31467a996cefdcd7911f182ebbdde6","timestamp":"2026-11-05T18:02:14.763Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"httpStatus":200,"usage":{"input":100,"output":20,"cachedInput":0},"responseId":"resp_editorial","phase":"USAGE"}
+{"level":"info","message":"commercial_call_trace","executionId":"ec84099e-3576-4406-9c6e-162b45a35e8f","callId":"editorial:b049f51a987508ace2c4056d2bfdd7014e31467a996cefdcd7911f182ebbdde6","timestamp":"2026-11-05T18:02:14.800Z","requestSha256":"39e923062f8286cd93eb07818ce19ae0e254a3938e91a2db3ee607014b12e71b","upperBoundMicroUsd":57656,"httpStatus":200,"usage":{"input":100,"output":20,"cachedInput":0},"costState":"SETTLED","phase":"SETTLED"}
+ ❯ apps/api/src/agentic-workspace/editorial-commercial-runtime.test.ts (7 tests | 1 failed) 34161ms
+   × discovers a paid review without its request key and keeps the receipt after a newer draft version 3904ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/editorial-commercial-runtime.test.ts > discovers a paid review without its request key and keeps the receipt after a newer draft version
+Error: EDITORIAL_VERSION_CONFLICT
+ ❯ apps/api/src/agentic-workspace/editorial-commercial-runtime.test.ts:247:28
+    245|   const started = await f.runtime.start(owner, 'history', f.input);
+    246|   await f.runtime.worker.runOnce();
+    247|   f.load.mockRejectedValue(new Error('EDITORIAL_VERSION_CONFLICT'));
+       |                            ^
+    248|   const historical = await f.runtime.read(owner, started.commandId, ta…
+    249|   expect(historical.receipt?.chargedCents).toBe(50);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana recusa decisão mais recente e edição manual concorrente
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:238:1
+    236| });
+    237|
+    238| it('aplicação humana recusa decisão mais recente e edição manual conco…
+       | ^
+    239|   const f = await applicationFixture();
+    240|   expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana reverte versão se falhar antes de salvar recibo
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:271:1
+    269| });
+    270|
+    271| it('aplicação humana reverte versão se falhar antes de salvar recibo',…
+       | ^
+    272|   const f = await applicationFixture(),
+    273|     before = await f.snapshot();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > aplicação humana preserva fronteira commercial
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:459:47
+    457| });
+    458|
+    459| it.each(['closedPilot', 'commercial'] as const)('aplicação humana pres…
+       |                                               ^
+    460|   const f = await fixture(boundary);
+    461|   expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > geração simulada conecta minuta autorizada, sem alterações ou execução v8
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:522:1
+    520|   for (const close of cleanup.splice(0).reverse()) await close();
+    521| });
+    522| it('geração simulada conecta minuta autorizada, sem alterações ou exec…
+       | ^
+    523|   const generation = simulatedGeneration(),
+    524|     f = await fixture(undefined, generation);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > informa disponibilidade somente após autorizar contexto e exige confirmação para geração real
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:535:1
+    533| });
+    534|
+    535| it('informa disponibilidade somente após autorizar contexto e exige co…
+       | ^
+    536|   const disabled = await fixture();
+    537|   const availability = (f: Awaited<ReturnType<typeof fixture>>) =>
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > geração preserva sessão, proprietário, scopes e fronteiras dos runtimes
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:560:1
+    558|     expect((await f.generate({ ...f.target, ...extra })).statusCode).t…
+    559| });
+    560| it('geração preserva sessão, proprietário, scopes e fronteiras dos run…
+       | ^
+    561|   const generation = simulatedGeneration(),
+    562|     f = await fixture(undefined, generation);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > geração descarta proposta se acesso for revogado durante o provider
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:576:1
+    574|   expect(generation.createProvider).not.toHaveBeenCalled();
+    575| });
+    576| it('geração descarta proposta se acesso for revogado durante o provide…
+       | ^
+    577|   let revoke = () => {};
+    578|   const generation = simulatedGeneration(() => revoke()),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > admite revisão comercial somente com sessão, escrita e política confirmada e recupera a reserva
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:838:1
+    836|     snapshot,
+    837|     revoke: () => {
+    838|       allowed = false;
+       | ^
+    839|     },
+    840|   };
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > carrega somente entrega/minuta persistida e valida sem escrever nem chamar IA
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:862:1
+    860|     url: `${f.path}/editorial-proposals/generation?${new URLSearchPara…
+    861|     headers: { authorization: 'Bearer owner' },
+    862|   });
+       | ^
+    863|   expect(quote.json()).toMatchObject({ enabled: true, mode: 'COMMERCIA…
+    864|   expect(quote.json()).not.toHaveProperty('maxCostUsd');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > isola sessão/escopo/proprietário other
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:892:2
+    890|   const historical = await f.app.inject({ method: 'GET', url: `${url}?…
+    891|   expect(historical.statusCode, historical.body).toBe(200);
+    892|   expect(historical.json().command.commandId).toBe(started.json().comm…
+       |  ^
+    893|   expect(historical.json().command.receipt.releasedCents).toBe(500);
+    894|   const staleQuote = await f.app.inject({ method: 'GET', url: `${f.pat…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > rejeita IDs divergentes e contexto/fontes fornecidos pelo cliente
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:913:1
+    911|     supportAudit: f.delivery.supportAudit,
+    912|   });
+    913|   expect(loaded.json().sources).toEqual(
+       | ^
+    914|     expect.arrayContaining([expect.objectContaining({ id: 'norm', text…
+    915|   );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > revisão humana respeita limite de 100 sem truncar histórico
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:1202:18
+    1200|       payload: body as any,
+    1201|     });
+    1202|   const preview = (await post('preview', { ...f.target, proposal: f.pr…
+       |                  ^
+    1203|   const body = {
+    1204|     ...f.target,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/13]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 9 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'write')
+ ❯ Immediate.nextWrite ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:255:22
+ ❯ processImmediate node:internal/timers:534:21
+
+This error originated in "apps/api/src/agentic-workspace/final-editor-routes.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "aplicação humana recusa decisão mais recente e edição manual concorrente". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'write')
+ ❯ Immediate.nextWrite ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:255:22
+ ❯ processImmediate node:internal/timers:534:21
+
+This error originated in "apps/api/src/agentic-workspace/final-editor-routes.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "aplicação humana reverte versão se falhar antes de salvar recibo". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'write')
+ ❯ Immediate.nextWrite ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:255:22
+ ❯ processImmediate node:internal/timers:534:21
+
+This error originated in "apps/api/src/agentic-workspace/final-editor-routes.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "aplicação humana preserva fronteira commercial". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'write')
+ ❯ Immediate.nextWrite ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:255:22
+ ❯ processImmediate node:internal/timers:534:21
+
+This error originated in "apps/api/src/agentic-workspace/final-editor-routes.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "geração simulada conecta minuta autorizada, sem alterações ou execução v8". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'write')
+ ❯ Immediate.nextWrite ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:255:22
+ ❯ processImmediate node:internal/timers:534:21
+
+This error originated in "apps/api/src/agentic-workspace/final-editor-routes.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "informa disponibilidade somente após autorizar contexto e exige confirmação para geração real". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'write')
+ ❯ Immediate.nextWrite ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:255:22
+ ❯ processImmediate node:internal/timers:534:21
+
+This error originated in "apps/api/src/agentic-workspace/final-editor-routes.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "geração preserva sessão, proprietário, scopes e fronteiras dos runtimes". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'write')
+ ❯ Immediate.nextWrite ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:255:22
+ ❯ processImmediate node:internal/timers:534:21
+
+This error originated in "apps/api/src/agentic-workspace/final-editor-routes.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "isola sessão/escopo/proprietário other". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'write')
+ ❯ Immediate.nextWrite ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:255:22
+ ❯ processImmediate node:internal/timers:534:21
+
+This error originated in "apps/api/src/agentic-workspace/final-editor-routes.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "rejeita IDs divergentes e contexto/fontes fornecidos pelo cliente". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'write')
+ ❯ Immediate.nextWrite ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:255:22
+ ❯ processImmediate node:internal/timers:534:21
+
+This error originated in "apps/api/src/agentic-workspace/final-editor-routes.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "revisão humana respeita limite de 100 sem truncar histórico". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  2 failed (2)
+      Tests  13 failed | 53 passed (66)
+     Errors  9 errors
+   Start at  14:53:18
+   Duration  537.10s (transform 4.60s, setup 0ms, import 15.38s, tests 520.49s, environment 0ms)
+
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: C:\Program Files\nodejs\node.exe node_modules/vitest/vitest.mjs run apps/api/src/agentic-workspace/final-editor-routes.test.ts apps/api/src/agentic-workspace/editorial-commercial-runtime.test.ts --maxWorkers=1 --testTimeout=20000
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at file:///C:/Users/Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/scripts/smoke-editorial-postgres.mjs:43:3 {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 4564,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v24.19.0

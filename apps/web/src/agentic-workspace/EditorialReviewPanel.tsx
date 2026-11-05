@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { ApiRequestError, requestApi } from '../api-client';
 import { EditorialApplicationControls } from './EditorialApplicationControls';
+import { EditorialCommercialControls } from './EditorialCommercialControls';
 import {
   editorialActionLabels,
   type EditorialAction,
@@ -33,8 +34,10 @@ export function EditorialReviewPanel({
   const [uncertain, setUncertain] = useState(false);
   const [generation, setGeneration] = useState<{
       enabled: boolean;
-      mode: 'REAL' | 'SIMULATED';
+      mode: 'REAL' | 'SIMULATED' | 'COMMERCIAL';
       maxCostUsd: number;
+      policyVersion?: string;
+      maxCostCents?: number;
     } | null>(null),
     [generationConfirmed, setGenerationConfirmed] = useState(false),
     [generationAttempted, setGenerationAttempted] = useState(false);
@@ -87,7 +90,7 @@ export function EditorialReviewPanel({
       setBlocked(!!result.stale);
       setUncertain(false);
       pending.current = null;
-      if (!input && !result.stale) {
+      if (!input) {
         const availability = await requestApi<typeof generation>(
           `${generationBase}/generation?${new URLSearchParams(target)}`,
           { signal },
@@ -327,7 +330,19 @@ export function EditorialReviewPanel({
           Decida sobre cada sugestão. Concordar registra sua avaliação editorial; não altera a minuta nem aprova seu
           conteúdo jurídico.
         </p>
-        {generation?.enabled && !review?.stale && (
+        {generation?.mode === 'COMMERCIAL' && generation.policyVersion && generation.maxCostCents !== undefined && (
+          <EditorialCommercialControls
+            key={`${deliveryId}:${draftId}:${versionId}`}
+            base={generationBase}
+            draftId={draftId}
+            versionId={versionId}
+            policyVersion={generation.policyVersion}
+            maxCostCents={generation.maxCostCents}
+            disabled={busy || blocked || uncertain || !generation.enabled}
+            onProposal={read}
+          />
+        )}
+        {generation?.enabled && generation.mode !== 'COMMERCIAL' && !review?.stale && (
           <span className="my-3 block">
             {generation.mode === 'REAL' && (
               <label className="mb-2 flex items-start gap-2">
@@ -447,7 +462,7 @@ export function EditorialReviewPanel({
                 </a>
               </div>
             )}
-            {review.stale && (
+            {review.stale && !busy && (
               <p role="status" className="my-3 text-sm">
                 Esta entrega está desatualizada. O histórico continua disponível; novas decisões estão bloqueadas.
               </p>

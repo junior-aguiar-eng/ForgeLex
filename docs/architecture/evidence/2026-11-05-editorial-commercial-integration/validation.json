@@ -1,0 +1,77 @@
+{
+  "date": "2026-11-05",
+  "recordedAt": "2026-11-05T18:22:49.494800+00:00",
+  "head": "a1eb0c1e96e9594ea2a5b073cbba36e9c704caf9",
+  "workingTreeChanges": true,
+  "decision": {
+    "evaluator": "Boni",
+    "statement": "Cobrar a revisão concluída, mesmo sem alterações",
+    "policyVersion": "commercial-brl-2026-10-30-v1"
+  },
+  "validation": {
+    "focused": {
+      "passed": 66,
+      "failed": 0,
+      "database": "SQLite"
+    },
+    "postgres": {
+      "passed": 66,
+      "failed": 0,
+      "disposableContainer": true,
+      "initialRun": "12 timeouts under concurrent build/tests and one regression added during the run; isolated final run passed with unchanged timeouts"
+    },
+    "browser": {
+      "passed": 15,
+      "failed": 0
+    },
+    "apiBuild": "passed",
+    "webBuild": "passed",
+    "apiTypecheck": "passed",
+    "webTypecheck": "passed",
+    "focusedLint": "passed",
+    "focusedFormat": "passed",
+    "fullSuite": {
+      "passed": 1780,
+      "failed": 0,
+      "skipped": 17,
+      "total": 1797,
+      "report": "full-suite.json",
+      "initialAttempt": "Ended without final report; not counted as passed"
+    }
+  },
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "deploy": false,
+  "operationalMigration": false,
+  "activation": false,
+  "historicalD04ReservedMicroUsd": 83620,
+  "limitations": [
+    "No new real-model semantic evaluation",
+    "No CI or remote database/publication validation",
+    "Large-history query performance not measured"
+  ],
+  "sourceSha256": {
+    "apps/api/src/agentic-workspace/editorial-commercial-runtime.ts": "57c7696bd4dd6b0c0b43ef5308e0037fd8f34c6037ab95274718bda639019013",
+    "apps/api/src/agentic-workspace/editorial-commercial-runtime.test.ts": "e40274e79ad027e6a0270f6ebf207ab0901a21c60d8cc3fe519f420e3d0a6f03",
+    "apps/api/src/agentic-workspace/commercial-runtime.ts": "c9636537174f7f9435d7cf9c5716bef7f8a5257e03ecf20088035624ff730f1a",
+    "apps/api/src/agentic-workspace/execution-service.ts": "3739ea9eb2caebee3768722189a6ee7f372c3e3e090b9a5a7b80bbba47e514ca",
+    "apps/api/src/agentic-workspace/execution-routes.ts": "a455d0800e25aba7607c1ccce249e15c7c8cbd5fec8de1dc5cd0aedd726809f3",
+    "apps/api/src/agentic-workspace/final-editor-routes.test.ts": "9de59e0557edc549801f16170491ea9a47e41676a99cac017f123dfa6ef0497e",
+    "apps/api/src/account/commercial-execution-drain.ts": "22993bce1843d59c6c2b294b155033dc423899027de91b089a05cf93a4a20ff4",
+    "apps/web/src/agentic-workspace/EditorialCommercialControls.tsx": "4f0f50e011b060561d0961427ceba9031a81f1f7b5c4394cdef21d756e16a3f1",
+    "apps/web/src/agentic-workspace/EditorialReviewPanel.tsx": "a36134aba39bfbd77cb239d8c5aef49ff10ca0f2dbbe88e92c5fc3a858a1da6b",
+    "packages/legal-workflows/src/index.ts": "06d992a52307bafdec7dc571676dd6a06dc32e2d3e6394fb9ee9a8c96e017938",
+    "tests/e2e/editorial-review.spec.ts": "3b5d65ada69624dc6384494f541654b39835008eb0eb31c42c7321c78fa60f49",
+    "scripts/smoke-editorial-postgres.mjs": "50b6a02482bac48f24b87da902f22d6c8340c2260424323f4932b466679b545a"
+  },
+  "artifactSha256": {
+    "api-build.txt": "f56b4be4dcac692bd8a6bc76a64478abe3d3d071238ceec629c933dce080712f",
+    "browser.txt": "d266e3c306763542b68f2a89349193831c8f4ebbc87202d5cfba453e741cdb90",
+    "focused.txt": "6b50cc6ccba7a4260d5b30874c0f07b52bc16084d96db3bc115cbdc215bfb3ae",
+    "full-suite.json": "4303493d4eab06154addf034be96ca9ec3ea69edb5fd4b8bfda6cda901ce80df",
+    "postgres-initial.txt": "cd1ccb955a95b81572f279ff0581824fbe961f0e8422bc2085c4b7c927913a4d",
+    "postgres-serial.txt": "361a453b4123692821f9a9122c2fb8fb97906ef141c4f4819cc340d12a2108ec",
+    "web-build.txt": "160aab6d69c2fdeb02052a9205aa94fedf8a7d0153dcea553c69342309d35ae9"
+  }
+}

@@ -1,5 +1,23 @@
 # Pendências atuais do ForgeLex
 
+## Incremento local de 05/11/2026 — editor e política comercial
+
+Boni decidiu cobrar a revisão concluída mesmo sem sugestões de alteração.
+A integração local reutiliza a política comercial e o executor durável:
+reserva BRL, teto USD, comando independente, recuperação de proposta/recibo,
+confirmação no painel e cancelamento. O histórico financeiro continua
+consultável após nova versão da minuta e sem depender dos dados da aba.
+
+Validação local: 1.780 testes aprovados e 17 condicionais ignorados;
+66 testes PostgreSQL e 15 E2E aprovados. Build, tipos, lint e formatação
+aprovados no escopo registrado.
+
+A composição permanece opt-in, desativada por padrão. Nenhuma chamada paga,
+commit, push, migration operacional ou publicação ocorreu nesta etapa.
+D04-v8 permanece residual não bloqueante, com US$ 0,083620 reservados.
+[Implementação, validação e limites](docs/architecture/2026-11-05-editorial-commercial-integration.md).
+
+
 ## Estado vigente — campanha v9 e consolidação local de 04/11/2026
 
 Esta seção prevalece sobre os estados históricos abaixo. A campanha v9 foi
@@ -92,9 +110,12 @@ v8; v9 e geração editorial real continuam opt-in.
    a base e a CI do SHA escolhido; atualizar a preparação operacional e
    conferir migrations/backup no alvo quando autorizados. Não presumir estado
    do banco remoto nem disponibilidade publicada a partir de testes locais.
-6. **Ativação comercial multiusuário:** definir admissão financeira por comando
-   e confirmar a regra dos limites diário/mensal para consumo sem cobrança.
-   A execução opt-in local não constitui ativação do serviço comercial.
+6. **Ativação comercial editorial:** a admissão por comando foi implementada
+   localmente em 05/11, reutilizando os limites diário/mensal existentes,
+   inclusive sua contabilização de consumo medido sem cobrança. A confirmação
+   de Boni inclui revisão concluída sem sugestões. Ativação operacional,
+   escolha do SHA, CI e publicação permanecem separadas; o opt-in local não
+   constitui abertura do serviço comercial.
 7. **Backlog humano/operacional histórico:** atualizar a situação das
    homologações residuais nos hosts ChatGPT/Claude, comprovações fiscais,
    contratos efetivos e conciliação dos R$ 25. Os registros de outubro abaixo

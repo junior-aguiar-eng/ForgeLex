@@ -1,0 +1,32 @@
+[WebServer] (node:21424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:28112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite "--host" "127.0.0.1" "--port" "3300" "--strictPort"
+[WebServer] (node:28168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 15 tests using 1 worker
+
+(node:4368) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [chromium] › tests\e2e\editorial-review.spec.ts:69:5 › revisão comercial cobra conclusão sem mudanças e recupera recibo sem novo envio (8.4s)
+  ok  2 [chromium] › tests\e2e\editorial-review.spec.ts:122:5 › nova revisão após falha exige confirmação e uma nova chave, sem repetição automática (3.7s)
+  ok  3 [chromium] › tests\e2e\editorial-review.spec.ts:156:5 › pedido ainda não localizado preserva a chave mesmo com revisão antiga cancelada (3.6s)
+  ok  4 [chromium] › tests\e2e\editorial-review.spec.ts:191:5 › entrega revisada separa correções e lacunas sem expor IDs ou auditoria técnica na mesa (5.5s)
+  ok  5 [chromium] › tests\e2e\editorial-review.spec.ts:269:5 › geração exige confirmação de custo e apenas apresenta proposta para revisão (4.6s)
+  ok  6 [chromium] › tests\e2e\editorial-review.spec.ts:304:5 › resposta perdida na geração não dispara repetição ao reabrir o diálogo (3.5s)
+[WebServer] {"level":"warn","message":"http.request.completed","requestId":"req-h0","traceId":"9d1886dc-0ff3-45cf-aa21-473908453d4b","tenantId":"tenant_c55d5fbe88eaa77e481180daadbec411","method":"GET","route":"/api/agentic/deliveries/:id/editorial-proposals/generation","statusCode":409,"latencyMs":27,"timestamp":"2026-11-05T18:17:02.072Z"}
+  ok  7 [chromium] › tests\e2e\editorial-review.spec.ts:343:5 › aplicação editorial exige seleção e confirmação e abre nova versão preservando original (7.6s)
+  ok  8 [chromium] › tests\e2e\editorial-review.spec.ts:382:5 › aplicação editorial recupera resposta perdida sem duplicar versão (4.3s)
+  ok  9 [chromium] › tests\e2e\editorial-review.spec.ts:406:5 › revisão editorial persiste decisão, preserva minuta, permite recarga e funciona em tela móvel (6.5s)
+[WebServer] {"level":"warn","message":"http.request.completed","requestId":"req-q2","traceId":"81e0bae5-5a54-4f9c-8c15-046c46f5fe22","tenantId":"tenant_c55d5fbe88eaa77e481180daadbec411","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/preview","statusCode":400,"latencyMs":8,"timestamp":"2026-11-05T18:17:19.310Z"}
+  ok 10 [chromium] › tests\e2e\editorial-review.spec.ts:448:5 › revisão editorial conserva comando após resposta perdida e bloqueia proposta inválida (3.8s)
+  ok 11 [chromium] › tests\e2e\editorial-review.spec.ts:478:5 › revisão editorial recusa JSON nulo e bloqueia decisão obsoleta até atualizar (3.7s)
+  ok 12 [chromium] › tests\e2e\editorial-review.spec.ts:501:5 › revisão editorial permite fechar consulta pendente e ignora resposta tardia (3.4s)
+  ok 13 [chromium] › tests\e2e\editorial-review.spec.ts:530:5 › revisão editorial trata IDs herdados como dados e reconcilia conflito após resposta perdida (4.2s)
+  ok 14 [chromium] › tests\e2e\editorial-review.spec.ts:565:5 › revisão editorial recupera conflito sem registro após resposta perdida (3.7s)
+[WebServer] {"level":"warn","message":"http.request.completed","requestId":"req-124","traceId":"3d7ebf88-42c7-4f78-b866-52f6472260ff","tenantId":"tenant_c55d5fbe88eaa77e481180daadbec411","method":"GET","route":"/api/agentic/deliveries/:id/editorial-proposals/generation","statusCode":409,"latencyMs":24,"timestamp":"2026-11-05T18:17:39.337Z"}
+  ok 15 [chromium] › tests\e2e\editorial-review.spec.ts:587:5 › histórico editorial permanece na mesa depois de edição humana da minuta (4.6s)
+
+  15 passed (1.4m)

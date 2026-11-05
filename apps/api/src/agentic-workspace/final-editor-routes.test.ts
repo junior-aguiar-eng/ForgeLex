@@ -18,6 +18,8 @@ import { ApprovedCaseContextRepository } from '../../../../packages/persistence/
 import { FinalEditorService, type FinalEditorGenerationOptions } from '@forgelex/legal-workflows';
 import { FakeAgentProvider } from '@forgelex/agent-core';
 import postgres from 'postgres';
+import { LedgerService, COMMERCIAL_POLICY_VERSION } from '@forgelex/billing-ledger';
+import { createEditorialCommercialRuntime } from './editorial-commercial-runtime.js';
 
 // Integration cases include fresh database migrations and complete route/ledger flows.
 // Full-suite contention exceeded the 5s default; keep a bounded 15s budget here only.
@@ -613,6 +615,7 @@ async function fixture(
   boundary?: 'closedPilot' | 'commercial',
   generation?: FinalEditorGenerationOptions,
   documentContent = 'O pedido esta condicionado. 😀',
+  editorialEnabled = false,
 ) {
   const c = await editorialDatabase();
   await runPersistenceMigrations(c.client);
@@ -707,7 +710,25 @@ async function fixture(
   });
   const app = Fastify();
   const caseTask = { authorizeNative: authorize, createProvider: provider };
-  const canManageExecution = vi.fn(() => false);
+  const canManageExecution = vi.fn(() => editorialEnabled);
+  let editorial;
+  if (editorialEnabled) {
+    const ledger = new LedgerService(c.db, c.client);
+    await ledger.runMigrations();
+    await ledger.provisionAccount(owner.tenantId, { paidBalanceCents: 2000, promotionalBalanceCents: 0 });
+    editorial = await createEditorialCommercialRuntime(c.db, c.client, {
+      apiKey: 'synthetic',
+      editor: new FinalEditorService(native),
+      authorizeOwner: async () => {},
+      resolveMatter: async () => matter.id,
+      authorizeHistory: async (received, target) => {
+        await native.readEditorialHistory(received, target.deliveryId, target);
+      },
+      transport: async () => {
+        throw new Error('NO_REAL_NETWORK');
+      },
+    });
+  }
   // Boundary fixture: real execution store, only the runtime's admission decision is controlled.
   const options = boundary
     ? ({
@@ -717,6 +738,7 @@ async function fixture(
           service: new ExecutionService(c.db, c.client),
           assertOwner: () => {},
           canManageExecution,
+          editorial,
         },
       } as AgenticWorkspaceRuntimeOptions)
     : { scheduler: false, caseTask };
@@ -812,12 +834,92 @@ async function fixture(
     proposal,
     provider,
     canManageExecution,
+    editorial,
     snapshot,
     revoke: () => {
       allowed = false;
     },
   };
 }
+
+it('admite revisão comercial somente com sessão, escrita e política confirmada e recupera a reserva', async () => {
+  const f = await fixture('commercial', undefined, undefined, true);
+  const url = `${f.path}/editorial-proposals/commands`;
+  const input = { ...f.target, confirmed: true, policyVersion: COMMERCIAL_POLICY_VERSION };
+  const send = (token: string, payload = input) =>
+    f.app.inject({
+      method: 'POST',
+      url,
+      headers: { authorization: `Bearer ${token}`, 'idempotency-key': 'editorial-route' },
+      payload,
+    });
+  const before = (await f.client.execute('SELECT * FROM draft_versions')).rows;
+  for (const token of ['other', 'tenant', 'oauth', 'readOnly'])
+    expect((await send(token)).statusCode).toBeGreaterThanOrEqual(400);
+  expect((await send('owner', { ...input, policyVersion: 'obsolete' })).statusCode).toBe(400);
+  const quote = await f.app.inject({
+    method: 'GET',
+    url: `${f.path}/editorial-proposals/generation?${new URLSearchParams(f.target)}`,
+    headers: { authorization: 'Bearer owner' },
+  });
+  expect(quote.json()).toMatchObject({ enabled: true, mode: 'COMMERCIAL', currency: 'BRL', maxCostCents: 500 });
+  expect(quote.json()).not.toHaveProperty('maxCostUsd');
+  const started = await send('owner');
+  expect(started.statusCode, started.body).toBe(200);
+  expect(started.json().receipt).toMatchObject({ reservedCents: 500, chargedCents: 0 });
+  const recovery = await f.app.inject({
+    method: 'GET',
+    url: `${url}?${new URLSearchParams({ ...f.target, requestId: 'editorial-route' })}`,
+    headers: { authorization: 'Bearer owner' },
+  });
+  expect(recovery.json().command.commandId).toBe(started.json().commandId);
+  expect(recovery.headers['cache-control']).toBe('no-store');
+  expect((await f.generate({ ...f.target, confirmed: true })).statusCode).toBeGreaterThanOrEqual(400);
+  const cancelled = await f.app.inject({
+    method: 'POST',
+    url: `${url}/${started.json().commandId}/cancel`,
+    headers: { authorization: 'Bearer owner', 'idempotency-key': 'cancel-route' },
+    payload: f.target,
+  });
+  expect(cancelled.statusCode, cancelled.body).toBe(200);
+  expect(cancelled.json().receipt).toMatchObject({ chargedCents: 0, releasedCents: 500 });
+  expect((await f.client.execute('SELECT * FROM draft_versions')).rows).toEqual(before);
+  await new DraftRepository(f.db).createVersion({
+    ...f.owner,
+    matterId: f.matter.id,
+    draftId: f.target.draftId,
+    createdBy: f.owner.userId,
+    title: 'Nova versão humana',
+    source: 'HUMAN',
+    status: 'DRAFT',
+    contentHash: hash('Nova'),
+    expectedCurrentVersionId: f.target.versionId,
+    sections: [
+      {
+        title: 'Nova',
+        content: 'Edição humana.',
+        ordinal: 1,
+        linkedFactIds: [],
+        linkedEvidenceIds: [],
+        linkedThesisIds: [],
+      },
+    ],
+  });
+  const historical = await f.app.inject({
+    method: 'GET',
+    url: `${url}?${new URLSearchParams(f.target)}`,
+    headers: { authorization: 'Bearer owner' },
+  });
+  expect(historical.statusCode, historical.body).toBe(200);
+  expect(historical.json().command.commandId).toBe(started.json().commandId);
+  expect(historical.json().command.receipt.releasedCents).toBe(500);
+  const staleQuote = await f.app.inject({
+    method: 'GET',
+    url: `${f.path}/editorial-proposals/generation?${new URLSearchParams(f.target)}`,
+    headers: { authorization: 'Bearer owner' },
+  });
+  expect(staleQuote.json()).toMatchObject({ enabled: false, mode: 'COMMERCIAL' });
+});
 
 it('carrega somente entrega/minuta persistida e valida sem escrever nem chamar IA', async () => {
   const f = await fixture();

@@ -66,6 +66,128 @@ const upload = (page: Page, proposal: unknown) =>
     buffer: Buffer.from(JSON.stringify(proposal)),
   });
 
+test('revisão comercial cobra conclusão sem mudanças e recupera recibo sem novo envio', async ({ page }) => {
+  const f = await setup(page);
+  let starts = 0;
+  const result = {
+    commandId: 'synthetic-command',
+    status: 'COMPLETED',
+    receipt: { reservedCents: 500, chargedCents: 50, releasedCents: 450, status: 'COMPLETED' },
+    result: { proposal: { ...f.proposal, changes: [] } },
+  };
+  await page.route(`${f.path}/editorial-proposals/generation?*`, (route) =>
+    route.fulfill({
+      json: {
+        enabled: true,
+        mode: 'COMMERCIAL',
+        currency: 'BRL',
+        policyVersion: 'commercial-brl-2026-10-30-v1',
+        maxCostCents: 500,
+        minCostCents: 50,
+      },
+    }),
+  );
+  await page.route(`${f.path}/editorial-proposals/commands*`, async (route) => {
+    if (route.request().method() === 'POST') {
+      starts++;
+      expect(route.request().postDataJSON()).toMatchObject({
+        confirmed: true,
+        policyVersion: 'commercial-brl-2026-10-30-v1',
+      });
+      expect(route.request().headers()['idempotency-key']).toBeTruthy();
+      await route.abort(); // Server accepted; its response was lost.
+    } else await route.fulfill({ json: { command: starts ? result : null } });
+  });
+  await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Revisão editorial' });
+  await expect(dialog.getByText(/até R\$\s*5,00/)).toBeVisible();
+  const start = dialog.getByRole('button', { name: 'Iniciar revisão', exact: true });
+  await expect(start).toBeDisabled();
+  await dialog.getByRole('checkbox', { name: /Autorizo a revisão/ }).check();
+  await start.click();
+  await expect(dialog.getByRole('button', { name: 'Conferir andamento e recibo', exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Conferir andamento e recibo', exact: true }).click();
+  await expect(dialog.getByText(/Cobrado: R\$\s*0,50/)).toBeVisible();
+  await expect(dialog.getByText('Revisão concluída sem sugestões de alteração.')).toBeVisible();
+  expect(starts).toBe(1);
+  await expect(dialog.getByText(/US\$/)).toHaveCount(0);
+  await page.evaluate(() => sessionStorage.clear());
+  await page.reload();
+  await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+  await expect(dialog.getByText(/Cobrado: R\$\s*0,50/)).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Iniciar revisão', exact: true })).toHaveCount(0);
+  expect(starts).toBe(1);
+});
+
+test('nova revisão após falha exige confirmação e uma nova chave, sem repetição automática', async ({ page }) => {
+  const f = await setup(page);
+  const keys: string[] = [];
+  await page.route(`${f.path}/editorial-proposals/generation?*`, (route) =>
+    route.fulfill({
+      json: { enabled: true, mode: 'COMMERCIAL', policyVersion: 'commercial-brl-2026-10-30-v1', maxCostCents: 500 },
+    }),
+  );
+  await page.route(`${f.path}/editorial-proposals/commands*`, async (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { command: null } });
+    keys.push(route.request().headers()['idempotency-key']);
+    await route.fulfill({
+      json: {
+        commandId: `attempt-${keys.length}`,
+        status: 'FAILED',
+        receipt: { reservedCents: 500, chargedCents: 0, releasedCents: 500, status: 'FAILED' },
+      },
+    });
+  });
+  await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Revisão editorial' });
+  await dialog.getByRole('checkbox', { name: /Autorizo a revisão/ }).check();
+  await dialog.getByRole('button', { name: 'Iniciar revisão', exact: true }).click();
+  await expect(dialog.getByText('Não foi possível concluir a revisão.')).toBeVisible();
+  expect(keys).toHaveLength(1);
+  await dialog.getByRole('button', { name: 'Solicitar nova revisão', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Iniciar revisão', exact: true })).toBeDisabled();
+  await dialog.getByRole('checkbox', { name: /Autorizo a revisão/ }).check();
+  await dialog.getByRole('button', { name: 'Iniciar revisão', exact: true }).click();
+  await expect(dialog.getByText('Não foi possível concluir a revisão.')).toBeVisible();
+  expect(keys).toHaveLength(2);
+  expect(keys[0]).not.toBe(keys[1]);
+});
+
+test('pedido ainda não localizado preserva a chave mesmo com revisão antiga cancelada', async ({ page }) => {
+  const f = await setup(page);
+  const storageKey = `forgelex:editorial:${new URL(f.path).pathname}/editorial-proposals:${f.target.draftId}:${f.target.versionId}`;
+  await page.evaluate((key) => sessionStorage.setItem(key, 'pending-request'), storageKey);
+  let submitted: string | undefined;
+  await page.route(`${f.path}/editorial-proposals/generation?*`, (route) =>
+    route.fulfill({
+      json: { enabled: true, mode: 'COMMERCIAL', policyVersion: 'commercial-brl-2026-10-30-v1', maxCostCents: 500 },
+    }),
+  );
+  await page.route(`${f.path}/editorial-proposals/commands*`, async (route) => {
+    if (route.request().method() === 'POST') {
+      submitted = route.request().headers()['idempotency-key'];
+      return route.fulfill({ json: { commandId: 'new', status: 'QUEUED' } });
+    }
+    return route.fulfill({
+      json: {
+        command: new URL(route.request().url()).searchParams.has('requestId')
+          ? null
+          : {
+              commandId: 'old',
+              status: 'CANCELLED',
+              receipt: { status: 'CANCELLED', reservedCents: 500, chargedCents: 0, releasedCents: 500 },
+            },
+      },
+    });
+  });
+  await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Revisão editorial' });
+  await dialog.getByRole('checkbox', { name: /Autorizo a revisão/ }).check();
+  await dialog.getByRole('button', { name: 'Iniciar revisão', exact: true }).click();
+  await expect(dialog.getByText('Revisão ainda não iniciada. Nenhum saldo foi reservado.')).toBeVisible();
+  expect(submitted).toBe('pending-request');
+});
+
 test('entrega revisada separa correções e lacunas sem expor IDs ou auditoria técnica na mesa', async ({ page }) => {
   const f = await setup(page);
   const sourceId = 'source-internal-v9';

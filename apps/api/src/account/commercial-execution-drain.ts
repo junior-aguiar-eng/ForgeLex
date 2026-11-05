@@ -24,7 +24,9 @@ export async function drainCommercialClosureJobs(client: Pick<Client, 'execute'>
       execution.tenantId !== tenantId ||
       execution.userId !== row.user_id ||
       execution.id !== row.execution_id ||
-      execution.authorizationId !== `commercial:${finance.policyVersion}` ||
+      ![`commercial:${finance.policyVersion}`, `editorial:${finance.policyVersion}`].includes(
+        execution.authorizationId ?? '',
+      ) ||
       execution.provider !== 'openai' ||
       execution.model !== COMMERCIAL_POLICY.model ||
       finance.executionId !== execution.id ||

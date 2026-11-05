@@ -9,7 +9,8 @@ import {
 } from '@forgelex/persistence';
 import { CommercialInferenceService, COMMERCIAL_POLICY_VERSION } from '@forgelex/billing-ledger';
 import { NativeCaseContextService, type AuthorizeNativeTask, type ResearchService } from '@forgelex/legal-tools';
-import { CASE_TASK_LIMITATION_CODES } from '@forgelex/legal-workflows';
+import { CASE_TASK_LIMITATION_CODES, FinalEditorService } from '@forgelex/legal-workflows';
+import { createEditorialCommercialRuntime } from './editorial-commercial-runtime.js';
 import {
   LegalAnswerSchema,
   type AgenticOwner,
@@ -269,7 +270,21 @@ export async function createCommercialRuntime(
       if (due.length < 100) return;
     }
   };
+  const editorial =
+    environment.FORGELEX_EDITORIAL_COMMERCIAL_ENABLED === 'true'
+      ? await createEditorialCommercialRuntime(db, client, {
+          apiKey,
+          editor: new FinalEditorService(native),
+          resolveMatter: async (owner, deliveryId) => (await native.getDeliveryContext(owner, deliveryId)).matterId,
+          authorizeHistory: async (owner, target) => {
+            await native.readEditorialHistory(owner, target.deliveryId, target);
+          },
+          authorizeOwner: (owner) => authorizeOwner(owner, undefined, db),
+          transport: dependencies.transport,
+        })
+      : undefined;
   return {
+    editorial,
     service,
     finance,
     caseTask,
