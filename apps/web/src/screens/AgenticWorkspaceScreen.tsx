@@ -1,3 +1,6 @@
+import { CanvasDialog } from './draft-review/DraftCanvas';
+import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
+import { editorLink } from '../agentic-workspace/execution-model';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiRequestError } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
@@ -25,13 +28,36 @@ import {
 import { DocumentReaderDialog } from '../components/DocumentReaderDialog';
 import type { DocumentSource } from '../documents/document-reader-model';
 
+function SupportingSurface({
+  modal,
+  onClose,
+  children,
+}: {
+  modal: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return modal ? (
+    <CanvasDialog title="Fontes e conferência" onClose={onClose}>
+      {children}
+    </CanvasDialog>
+  ) : (
+    <>{children}</>
+  );
+}
 const initialId = () => new URLSearchParams(window.location.search).get('executionId');
 export function AgenticWorkspaceScreen({
   onEditor,
   active: isActiveSurface,
   onExecutionChange,
+  integrated = false,
+  piece,
+  request,
 }: {
   onEditor: (url: string) => void;
+  integrated?: boolean;
+  piece?: DeskPiece | null;
+  request?: DeskRequest;
   active: boolean;
   onExecutionChange: (id: string | null) => void;
 }) {
@@ -50,9 +76,16 @@ export function AgenticWorkspaceScreen({
     body: unknown;
     send: (key: string, authorization: CommercialAuthorization) => Promise<Execution>;
   }>();
+  useEffect(() => {
+    if (paidCommand?.kind !== 'start' || !piece) return;
+    const input = paidCommand.body as StartInput;
+    if (piece.dirty || input.matterId !== piece.matterId || input.context?.draft?.versionId !== piece.versionId)
+      setPaidCommand(undefined);
+  }, [piece, paidCommand]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]),
     [reading, setReading] = useState<DocumentSource>(),
     [correction, setCorrection] = useState<Question>();
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [recent, setRecent] = useState<RecentItem[]>([]);
   const [side, setSide] = useState<{ open: boolean; tab: SideTab; source: number | null }>({
     open: false,
@@ -75,11 +108,11 @@ export function AgenticWorkspaceScreen({
       if (!surface.current || window.location.pathname !== '/app/trabalho') return;
       const url = new URL(window.location.href);
       url.pathname = '/app/trabalho';
-      url.search = '';
+      if (!integrated) url.search = '';
       url.searchParams.set('executionId', next);
       window.history.replaceState({}, '', url);
     },
-    [onExecutionChange],
+    [onExecutionChange, integrated],
   );
   useEffect(() => {
     onExecutionChange(id);
@@ -238,7 +271,7 @@ export function AgenticWorkspaceScreen({
   const currentQuestion =
     correction ?? (currentStatus === 'WAITING_USER' ? (events.question ?? run?.question ?? null) : null);
   const active = ['QUEUED', 'RUNNING'].includes(currentStatus);
-  const showRail = closedPilot === false;
+  const showRail = closedPilot === false && !integrated;
   useEffect(() => {
     if (authStatus !== 'authenticated' || closedPilot !== false) return;
     let active = true;
@@ -257,6 +290,15 @@ export function AgenticWorkspaceScreen({
     [deliveries],
   );
   const latest = results.at(-1);
+  const openedPiece = useRef<string>();
+  useEffect(() => {
+    if (!integrated || !isActiveSurface || denied || !run || !latest || run.status !== 'COMPLETED') return;
+    const url = editorLink(run, latest.delivery);
+    if (url && openedPiece.current !== latest.delivery.id) {
+      openedPiece.current = latest.delivery.id;
+      onEditor(url);
+    }
+  }, [integrated, isActiveSurface, denied, run, latest, onEditor]);
   const reevaluate = Boolean(run?.requiresReevaluation);
   // Without a result there is nothing to open: keep the lawyer's own text in view after a failure or revocation.
   const showSide = side.open || denied || (!latest && ['FAILED', 'CANCELLED'].includes(currentStatus));
@@ -289,10 +331,35 @@ export function AgenticWorkspaceScreen({
       />
     );
   return (
-    <div data-agentic-workspace aria-busy={busy} className="page-container py-8 text-stone-800">
+    <div
+      data-agentic-workspace
+      aria-busy={busy}
+      className={integrated ? 'min-w-0 px-4 py-5 text-stone-800' : 'page-container py-8 text-stone-800'}
+    >
       <div className={showRail ? 'lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8' : ''}>
         {showRail && <RecentConversations items={recent} currentId={id} onNew={newWork} onOpen={openExecution} />}
         <div className="min-w-0 space-y-6">
+          {integrated && closedPilot === false && (
+            <button type="button" onClick={() => setHistoryOpen(true)} className="text-xs text-stone-500 underline">
+              Conversas anteriores
+            </button>
+          )}
+          {historyOpen && (
+            <CanvasDialog title="Conversas" onClose={() => setHistoryOpen(false)}>
+              <RecentConversations
+                items={recent}
+                currentId={id}
+                onNew={() => {
+                  newWork();
+                  setHistoryOpen(false);
+                }}
+                onOpen={(next) => {
+                  openExecution(next);
+                  setHistoryOpen(false);
+                }}
+              />
+            </CanvasDialog>
+          )}
           <header
             className={
               landing ? 'mx-auto w-full max-w-3xl pt-8' : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
@@ -300,9 +367,9 @@ export function AgenticWorkspaceScreen({
           >
             {landing ? (
               <>
-                <h1 className="font-editorial text-4xl font-medium text-stone-900">O que você precisa fazer hoje?</h1>
+                <h1 className="font-editorial text-3xl font-medium text-stone-900">O que você precisa fazer hoje?</h1>
                 <p className="mt-2 text-stone-600">
-                  Descreva em suas palavras. O agente lê o caso, pergunta o que faltar e entrega um texto com as fontes.
+                  Descreva o que precisa preparar ou mudar. A peça fica aberta ao lado da conversa.
                 </p>
               </>
             ) : (
@@ -328,6 +395,15 @@ export function AgenticWorkspaceScreen({
           >
             {statusText(currentStatus, shownError)}
           </p>
+          {integrated && showSide && !side.open && (
+            <button
+              className="text-sm underline"
+              type="button"
+              onClick={() => setSide((old) => ({ ...old, open: true }))}
+            >
+              Ver contexto preservado
+            </button>
+          )}
           {shownError && (
             <p role="alert" className="break-words rounded-xl border border-amber-300 bg-amber-50 p-4">
               {statusText('FAILED', shownError)}{' '}
@@ -353,6 +429,8 @@ export function AgenticWorkspaceScreen({
             <div className="mx-auto w-full max-w-3xl space-y-4">
               <Composer
                 client={client}
+                piece={piece}
+                request={request}
                 actions={actions}
                 commercial={commercial}
                 busy={busy || Boolean(paidCommand)}
@@ -364,7 +442,9 @@ export function AgenticWorkspaceScreen({
             </div>
           )}
           {run && (
-            <div className={`grid gap-6 ${showSide ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]' : ''}`}>
+            <div
+              className={`grid gap-6 ${showSide && !integrated ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]' : ''}`}
+            >
               <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
                 {reevaluate && (
                   <div
@@ -430,6 +510,7 @@ export function AgenticWorkspaceScreen({
                   results.map(({ delivery, view }) => (
                     <ResultCard
                       key={delivery.id}
+                      compact={integrated}
                       run={run}
                       delivery={delivery}
                       view={view}
@@ -485,6 +566,8 @@ export function AgenticWorkspaceScreen({
                     <Composer
                       key={`${run.id}:${run.contextRevision}`}
                       client={client}
+                      piece={piece}
+                      request={request}
                       actions={actions}
                       commercial={commercial}
                       busy={busy || Boolean(paidCommand)}
@@ -507,20 +590,31 @@ export function AgenticWorkspaceScreen({
                   </div>
                 )}
               </div>
-              {showSide && (
-                <SideTable
-                  tab={side.tab}
-                  onTab={(tab) => setSide((old) => ({ ...old, tab }))}
+              {showSide && (!integrated || side.open) && (
+                <SupportingSurface
+                  modal={integrated}
                   onClose={() => setSide((old) => ({ ...old, open: false, source: null }))}
-                  view={denied ? undefined : latest?.view}
-                  activeSource={side.source}
-                  run={run}
-                  context={denied ? { text: run.context.text, origin: 'USER', documents: [] } : run.context}
-                  titles={denied ? {} : titles}
-                  onRead={setReading}
-                  onEditor={onEditor}
-                  contextOnly={denied || !latest}
-                />
+                >
+                  <SideTable
+                    tab={side.tab}
+                    onTab={(tab) => setSide((old) => ({ ...old, tab }))}
+                    onClose={() => setSide((old) => ({ ...old, open: false, source: null }))}
+                    view={denied ? undefined : latest?.view}
+                    activeSource={side.source}
+                    run={run}
+                    context={denied ? { text: run.context.text, origin: 'USER', documents: [] } : run.context}
+                    titles={denied ? {} : titles}
+                    onRead={(source) => {
+                      setSide((old) => ({ ...old, open: false, source: null }));
+                      setReading(source);
+                    }}
+                    onEditor={(url) => {
+                      setSide((old) => ({ ...old, open: false, source: null }));
+                      onEditor(url);
+                    }}
+                    contextOnly={denied || !latest}
+                  />
+                </SupportingSurface>
               )}
             </div>
           )}

@@ -19,6 +19,7 @@ export function ResultCard({
   onSources,
   onEditor,
   receipt,
+  compact = false,
 }: {
   run: Execution;
   delivery: Delivery;
@@ -29,6 +30,7 @@ export function ResultCard({
   onSources: () => void;
   onEditor: (url: string) => void;
   receipt?: React.ReactNode;
+  compact?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const link = CASE_WORKSPACE_ENABLED ? editorLink(run, delivery) : null;
@@ -40,6 +42,51 @@ export function ResultCard({
       setCopied(false);
     }
   };
+  if (compact && delivery.delivery.document && link)
+    return (
+      <article
+        data-delivery-id={delivery.id}
+        aria-label="Resultado do trabalho"
+        className="rounded-xl border border-stone-200 bg-white p-4"
+      >
+        <p className="mb-2 text-sm text-stone-600">
+          A peça está aberta ao lado. Você pode editar o texto ou pedir ajustes aqui.
+        </p>
+        <button
+          type="button"
+          onClick={() => onEditor(link)}
+          className="text-left font-editorial text-lg text-cognac-900"
+        >
+          {delivery.delivery.document.title}
+        </button>
+        <div className="mt-3 flex flex-wrap gap-3 text-sm text-cognac-800">
+          {view.sources.length > 0 && (
+            <button type="button" onClick={onSources}>
+              Fontes ({view.sources.length})
+            </button>
+          )}
+          {view.pending.length > 0 && (
+            <button type="button" onClick={onPending}>
+              {view.pending.length} pontos a conferir
+            </button>
+          )}
+          {run.matterId && delivery.draftId && delivery.versionId && run.status === 'COMPLETED' && (
+            <EditorialReviewPanel
+              deliveryId={delivery.id}
+              draftId={delivery.draftId}
+              versionId={delivery.versionId}
+              matterId={run.matterId}
+            />
+          )}
+        </div>
+        {receipt && (
+          <details className="mt-3 text-xs text-stone-500">
+            <summary className="cursor-pointer">Recibo</summary>
+            {receipt}
+          </details>
+        )}
+      </article>
+    );
   const cites = (numbers: number[]) =>
     numbers.map((n) => (
       <button

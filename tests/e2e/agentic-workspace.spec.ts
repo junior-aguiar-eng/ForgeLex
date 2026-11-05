@@ -88,9 +88,9 @@ test('regressão final: voltar pela navegação mantém ID e recuperação após
   const original = page.url();
   await page
     .getByRole('navigation', { name: 'Navegação principal', exact: true })
-    .getByRole('button', { name: 'Rascunhos', exact: true })
+    .getByRole('button', { name: 'Casos', exact: true })
     .click();
-  await page.getByRole('button', { name: 'Trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Mesa', exact: true }).click();
   await expect(page).toHaveURL(original);
   await page.reload();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toHaveCount(1);
@@ -139,11 +139,11 @@ test('regressão final: resposta tardia não troca URL de outra superfície ou s
   await reached;
   await page
     .getByRole('navigation', { name: 'Navegação principal', exact: true })
-    .getByRole('button', { name: 'Rascunhos', exact: true })
+    .getByRole('button', { name: 'Casos', exact: true })
     .click();
   release();
   await expect(page.locator('[data-agentic-workspace] article')).toHaveCount(1);
-  await expect(page).toHaveURL(/\/app\/rascunhos$/);
+  await expect(page).toHaveURL(/\/app\/casos(?:\?|$)/);
 });
 test('regressão final: EOF em pergunta reconecta e observa perda de acesso', async ({ page }) => {
   await login(page);
@@ -251,7 +251,9 @@ test('regressão final: afirmações mantêm suas fontes e versões disponíveis
   await expect(refs).toContainText('Fonte vinculada');
   await expect(refs).not.toContainText(source.version.id);
   await refs.getByRole('button', { name: 'Abrir documento', exact: true }).click();
-  await expect(page.getByRole('dialog')).toContainText('A parte relata que o serviço não foi entregue.');
+  await expect(page.getByRole('dialog', { name: 'Leitura do documento' })).toContainText(
+    'A parte relata que o serviço não foi entregue.',
+  );
 });
 test('regressão final: falha em outra área preserva trabalho e edição não salva', async ({ page }) => {
   await login(page);
@@ -261,7 +263,6 @@ test('regressão final: falha em outra área preserva trabalho e edição não s
   await prepare(page, 'Preciso de uma minuta para conferir', 'Criar uma peça');
   await scope(page);
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
-  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   // A late case-list response must use the editor's requested location,
   // even while that retained editor is hidden behind another surface.
   let releaseCases!: () => void, casesReached!: () => void, casesFinished!: () => void;
@@ -284,10 +285,9 @@ test('regressão final: falha em outra área preserva trabalho e edição não s
     await route.fulfill({ response });
     casesFinished();
   });
-  await page.getByRole('link', { name: 'Editar minuta', exact: true }).click();
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await reachedCases;
-  const input = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
-  await input.fill('Edição preservada durante falha de outra página.');
+  const input = page.getByRole('textbox', { name: 'Texto da seção 1', exact: true });
   await page.route('**/src/screens/ResearchDeskScreen.tsx*', (route) => route.abort('failed'));
   await page
     .getByRole('navigation', { name: 'Navegação principal', exact: true })
@@ -296,9 +296,18 @@ test('regressão final: falha em outra área preserva trabalho e edição não s
   await expect(page.getByRole('heading', { name: 'Não foi possível abrir esta página', exact: true })).toBeVisible();
   releaseCases();
   await finishedCases;
-  await page.getByRole('button', { name: 'Trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Mesa', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
-  await page.getByRole('link', { name: 'Editar minuta', exact: true }).click();
+  await openPiece(page);
+  await input.fill('Edição preservada durante falha de outra página.');
+  await page
+    .getByRole('navigation', { name: 'Navegação principal' })
+    .getByRole('button', { name: 'Casos', exact: true })
+    .click();
+  await page
+    .getByRole('navigation', { name: 'Navegação principal' })
+    .getByRole('button', { name: 'Mesa', exact: true })
+    .click();
   await expect(input).toHaveValue('Edição preservada durante falha de outra página.');
 });
 test('revisão seleciona versão da minuta existente e mantém conflito de edição visível', async ({ page }) => {
@@ -328,7 +337,7 @@ test('revisão seleciona versão da minuta existente e mantém conflito de ediç
     .click();
   await page.getByRole('button', { name: 'Contexto', exact: true }).click();
   await page.getByRole('link', { name: 'Abrir minuta selecionada', exact: true }).click();
-  const input = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
+  const input = page.getByRole('textbox', { name: 'Texto da seção 1', exact: true });
   await expect(input).toHaveValue('Versão humana para revisão específica.');
   await input.fill('Minha edição ainda não salva.');
   const concurrent = await page.request.post(`${api}/api/v2/matters/${matter.id}/drafts/${draft.draft.id}/versions`, {
@@ -343,11 +352,27 @@ test('revisão seleciona versão da minuta existente e mantém conflito de ediç
   const denied = page.waitForResponse(
     (r) => r.url().endsWith(`/drafts/${draft.draft.id}/versions`) && r.request().method() === 'POST',
   );
-  await page.getByText('Salvar e exportar', { exact: true }).click();
-  await page.getByRole('button', { name: 'Salvar nova versão', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   expect((await denied).status()).toBe(409);
   await expect(input).toHaveValue('Minha edição ainda não salva.');
 });
+async function openPiece(page: Page) {
+  const supporting = page.getByRole('dialog', { name: 'Fontes e conferência' });
+  if (await supporting.isVisible()) await supporting.press('Escape');
+  const desk = page.getByRole('region', { name: 'Mesa da peça' });
+  if (!(await desk.isVisible())) await page.getByRole('button', { name: 'Abrir peça', exact: true }).click();
+  await expect(desk).toBeVisible();
+}
+async function expectPieceText(page: Page, text: string) {
+  await expect
+    .poll(() =>
+      page
+        .getByRole('article', { name: 'Documento em edição' })
+        .locator('textarea')
+        .evaluateAll((nodes) => nodes.map((n) => (n as HTMLTextAreaElement).value).join('\n')),
+    )
+    .toContain(text);
+}
 async function login(page: Page) {
   await page.goto('/entrar');
   await page.getByLabel('E-mail').fill('trabalho@forgelex.test');
@@ -412,31 +437,30 @@ test('objetivo, escopo, pergunta, entrega redigida, fonte e edição no editor r
     .getByLabel('Complemento ou outra resposta')
     .fill('Texto livre fora das opções: preparar requerimento preliminar');
   await page.getByRole('button', { name: 'Enviar resposta' }).click();
-  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toContainText(
-    'Requer-se a apreciação do pedido',
-  );
-  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toContainText('[DESTINATÁRIO A CONFERIR]');
+  await expectPieceText(page, 'Requer-se a apreciação do pedido');
+  await expectPieceText(page, '[DESTINATÁRIO A CONFERIR]');
   await page.reload();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toHaveCount(1);
   await expect(page.getByRole('region', { name: 'Conversa do trabalho' })).toContainText('Texto livre fora das opções');
   await page.getByRole('button', { name: /^Fontes \(\d+\)$/ }).click();
   await page.getByRole('button', { name: 'Abrir documento', exact: true }).click();
-  await expect(page.getByRole('dialog')).toContainText('A parte informa que o serviço não foi entregue.');
-  await page.getByRole('dialog').press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Leitura do documento' })).toContainText(
+    'A parte informa que o serviço não foi entregue.',
+  );
+  await page.getByRole('dialog', { name: 'Leitura do documento' }).press('Escape');
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect((await new AxeBuilder({ page }).include('[data-agentic-workspace]').analyze()).violations).toEqual([]);
   await page.screenshot({ path: info.outputPath('trabalho-320.png'), fullPage: true });
-  await page.getByRole('link', { name: 'Editar minuta', exact: true }).click();
-  const content = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
+  await openPiece(page);
+  const content = page.getByRole('textbox', { name: 'Texto da seção 1', exact: true });
   await expect(content).toHaveValue('[DESTINATÁRIO A CONFERIR]');
   await content.fill('Edição humana ainda não salva');
-  await page.getByRole('button', { name: 'Voltar ao trabalho', exact: true }).click();
+  await page.getByRole('button', { name: 'Recolher peça', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
-  await page.getByRole('link', { name: 'Editar minuta', exact: true }).click();
+  await openPiece(page);
   await expect(content).toHaveValue('Edição humana ainda não salva');
-  await page.getByText('Salvar e exportar', { exact: true }).click();
-  await page.getByRole('button', { name: 'Salvar nova versão', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page.getByText('Há alterações não salvas.', { exact: true })).toHaveCount(0);
   expect(doc.document.id).toBeTruthy();
 });
@@ -467,9 +491,7 @@ test('recupera execução, preserva contexto na continuação e reavalia respost
   await scope(page);
   await expect(page.getByLabel('Contexto escrito')).toHaveValue('Contexto que deve continuar vinculado.');
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toContainText(
-    'Requer-se a apreciação do pedido',
-  );
+  await expectPieceText(page, 'Requer-se a apreciação do pedido');
 });
 test('falta de orçamento e indisponibilidade preservam o texto e mostram motivo', async ({ page }) => {
   await login(page);
@@ -478,6 +500,7 @@ test('falta de orçamento e indisponibilidade preservam o texto e mostram motivo
   await page.getByLabel('Contexto escrito').fill('Texto a preservar');
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('status', { name: 'Andamento' })).toContainText('orçamento');
+  await page.getByRole('button', { name: 'Ver contexto preservado' }).click();
   await expect(page.getByRole('region', { name: 'Contexto do trabalho' })).toContainText('Texto a preservar');
 });
 test('teclado, resposta desconhecida e documento revogado mantêm pedido e limites', async ({ page }) => {
@@ -528,6 +551,7 @@ test('teclado, resposta desconhecida e documento revogado mantêm pedido e limit
   );
   expect(revoked.ok()).toBe(true);
   await expect(page.getByRole('alert')).toContainText('acesso');
+  await page.getByRole('button', { name: 'Ver contexto preservado' }).click();
   await expect(page.getByRole('region', { name: 'Contexto do trabalho' })).toContainText('Meu relato permanece');
 });
 test('texto produzido sem caso entra no editor e só persiste após vinculação explícita', async ({ page }) => {
@@ -536,16 +560,16 @@ test('texto produzido sem caso entra no editor e só persiste após vinculação
   await scope(page);
   await page.getByLabel('Contexto escrito').fill('Contexto sintético da solicitação');
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-  await page.getByRole('link', { name: 'Editar minuta', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Vincular entrega ao caso' })).toContainText('Escolha um caso');
-  await page.getByLabel('Novo caso para esta minuta').fill('Caso escolhido explicitamente');
-  await page.getByRole('button', { name: 'Criar caso e vincular minuta' }).click();
-  await expect(page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true })).toHaveValue(
+  await openPiece(page);
+  await page.getByRole('region', { name: 'Mesa da peça' }).getByText('Abrir peça', { exact: true }).click();
+  await page.getByText('Criar caso', { exact: true }).click();
+  await page.getByLabel('Nome do caso').fill('Caso escolhido explicitamente');
+  await page.getByRole('button', { name: 'Criar caso e usar na peça' }).click();
+  await expect(page.getByRole('textbox', { name: 'Texto da seção 1', exact: true })).toHaveValue(
     '[DESTINATÁRIO A CONFERIR]',
   );
-  await page.getByRole('button', { name: 'Criar rascunho', exact: true }).click();
-  await page.getByText('Salvar e exportar', { exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Salvar nova versão', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Salvar', exact: true })).toBeVisible();
 });
 test('suporte insuficiente entrega lacunas sem apresentar outline como minuta', async ({ page }) => {
   await login(page);
@@ -631,29 +655,23 @@ test('compara conferir fonte e editar a mesma minuta nos dois percursos com font
       await step(() => page.getByRole('button', { name: /^Fontes \(\d+\)$/ }).click());
       await step(() => page.getByRole('button', { name: 'Abrir documento', exact: true }).click());
     }
-    await expect(page.getByRole('dialog')).toContainText('Fonte sintética comum aos dois percursos.');
-    await step(() => page.getByRole('dialog').press('Escape'));
-    if (mode === 'anterior') {
-      await step(() =>
-        page
-          .getByRole('navigation', { name: 'Navegação principal', exact: true })
-          .getByRole('button', { name: 'Rascunhos', exact: true })
-          .click(),
-      );
-      await step(() => page.getByRole('button', { name: new RegExp('^' + matter.title) }).click());
-      await step(() => page.getByRole('button', { name: /Minuta comparável anterior/ }).click());
-    } else await step(() => page.getByRole('link', { name: 'Editar minuta', exact: true }).click());
-    await expect(page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true })).toHaveValue(
+    await expect(page.getByRole('dialog', { name: 'Leitura do documento' })).toContainText(
+      'Fonte sintética comum aos dois percursos.',
+    );
+    await step(() => page.getByRole('dialog', { name: 'Leitura do documento' }).press('Escape'));
+    if (mode === 'anterior')
+      await step(() => page.goto('/app/rascunhos?matterId=' + matter.id + '&draftId=' + clone.draft.id));
+    else await step(() => openPiece(page));
+    await expect(page.getByRole('textbox', { name: 'Texto da seção 1', exact: true })).toHaveValue(
       '[DESTINATÁRIO A CONFERIR]',
     );
     await step(() =>
       page
-        .getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true })
+        .getByRole('textbox', { name: 'Texto da seção 1', exact: true })
         .fill('Revisão humana idêntica nos dois percursos.'),
     );
-    await step(() => page.getByText('Salvar e exportar', { exact: true }).click());
     const saved = page.waitForResponse((r) => /\/versions$/.test(r.url()) && r.request().method() === 'POST');
-    await step(() => page.getByRole('button', { name: 'Salvar nova versão', exact: true }).click());
+    await step(() => page.getByRole('button', { name: 'Salvar', exact: true }).click());
     expect((await saved).ok()).toBe(true);
     benchmark[mode] = {
       interventions,
@@ -676,11 +694,13 @@ test('conversas recentes: começa outra conversa e reabre a anterior pela lista'
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   const original = page.url();
+  await page.getByRole('button', { name: 'Conversas anteriores' }).click();
   const recent = page.getByRole('navigation', { name: 'Conversas recentes' });
   await recent.getByRole('button', { name: 'Nova conversa' }).click();
   await expect(page).not.toHaveURL(/executionId=/);
   await expect(page.getByLabel('O que você precisa fazer?', { exact: true })).toBeVisible();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Conversas anteriores' }).click();
   await recent.getByRole('button', { name: /Pedido para reabrir pela lista RECENTE/ }).click();
   await expect(page).toHaveURL(original);
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();

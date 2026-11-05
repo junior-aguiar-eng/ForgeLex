@@ -279,6 +279,7 @@ export function editorLink(run: Execution, delivery: Delivery): string | null {
   const query = new URLSearchParams({
     matterId: run.matterId,
     draftId: delivery.draftId,
+    deliveryId: delivery.id,
     versionId: delivery.versionId,
     returnExecution: run.id,
   });

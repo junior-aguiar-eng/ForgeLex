@@ -1,3 +1,4 @@
+import type { DeskPiece, DeskRequest } from './desk-model';
 import { useEffect, useRef, useState } from 'react';
 import { requestApi } from '../api-client';
 import type { WorkspaceClient, StartInput } from './client';
@@ -35,6 +36,8 @@ export function Composer({
   busy,
   available,
   followUp,
+  piece,
+  request,
   onFail,
   onSubmit,
 }: {
@@ -44,10 +47,19 @@ export function Composer({
   busy: boolean;
   available: boolean;
   followUp?: ComposerFollowUp;
+  piece?: DeskPiece | null;
+  request?: DeskRequest;
   onFail: (error: unknown) => void;
   onSubmit: (input: StartInput) => void;
 }) {
   const [objective, setObjective] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (request) {
+      setObjective(request.text);
+      inputRef.current?.focus();
+    }
+  }, [request]);
   const [action, setAction] = useState<ActionId | undefined>(followUp?.action);
   const [text, setText] = useState(followUp?.text ?? '');
   const [matter, setMatter] = useState(followUp?.matterId ?? '');
@@ -56,6 +68,13 @@ export function Composer({
   const [matters, setMatters] = useState<{ id: string; title: string }[]>([]);
   const [documents, setDocuments] = useState<MatterDocument[]>([]);
   const [drafts, setDrafts] = useState<MatterDraft[]>([]);
+  useEffect(() => {
+    if (!piece || piece.matterId === matter) return;
+    setMatter(piece.matterId);
+    setText('');
+    setSelected([]);
+    setSelectedDraft(undefined);
+  }, [piece, matter]);
   const [scopeOpen, setScopeOpen] = useState(false);
   const [quote, setQuote] = useState<CommercialQuote>();
   const fail = useRef(onFail);
@@ -131,27 +150,41 @@ export function Composer({
     .join(' · ');
   const send = () => {
     if (!goal || busy || !available) return;
+    if (piece?.dirty) return;
     onSubmit({
       objective: goal,
       ...(action ? { actionId: action } : {}),
-      ...(followUp ? { conversationId: followUp.conversationId, contextRevision: followUp.contextRevision } : {}),
-      ...(matter ? { matterId: matter } : {}),
+      ...(followUp && (!piece || piece.matterId === followUp.matterId)
+        ? { conversationId: followUp.conversationId, contextRevision: followUp.contextRevision }
+        : {}),
+      ...(piece?.matterId || matter ? { matterId: piece?.matterId || matter } : {}),
       context: {
-        text,
-        origin: selected.length ? (text.trim() ? 'MIXED' : 'DOCUMENT') : 'USER',
-        documents: selected,
-        ...(selectedDraft ? { draft: selectedDraft } : {}),
+        text: piece && piece.matterId !== matter ? '' : text,
+        origin:
+          piece && piece.matterId !== matter ? 'USER' : selected.length ? (text.trim() ? 'MIXED' : 'DOCUMENT') : 'USER',
+        documents: piece && piece.matterId !== matter ? [] : selected,
+        ...(piece
+          ? { draft: { draftId: piece.draftId, versionId: piece.versionId } }
+          : selectedDraft
+            ? { draft: selectedDraft }
+            : {}),
       },
     });
   };
   return (
     <section aria-label="Novo pedido" className="space-y-4">
+      {piece && (
+        <p className="text-xs text-stone-500">
+          {piece.dirty ? 'Salve a edição para pedir mudanças nesta versão.' : `Sobre a peça: ${piece.title}`}
+        </p>
+      )}
       <div
         role="group"
         aria-label="Mensagem"
         className="space-y-3 rounded-2xl border border-champagne-border bg-white p-4 shadow-card"
       >
         <textarea
+          ref={inputRef}
           aria-label="O que você precisa fazer?"
           className="w-full resize-none border-0 bg-transparent p-0 text-base focus:outline-none focus-visible:ring-0"
           maxLength={15000}
@@ -168,7 +201,7 @@ export function Composer({
           {!followUp && (
             <select
               aria-label="Opção do pedido"
-              className="min-h-11 max-w-full rounded-full border border-champagne-border bg-white px-3 text-sm font-medium text-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
+              className="min-h-11 w-28 min-w-0 rounded-full border border-champagne-border bg-white px-3 text-sm font-medium text-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
               value={action ?? ''}
               disabled={busy}
               onChange={(event) => setAction(actions.find((item) => item.id === event.target.value)?.id)}
@@ -184,13 +217,18 @@ export function Composer({
           <button
             type="button"
             aria-expanded={scopeOpen}
-            className="inline-flex min-h-11 items-center rounded-full bg-champagne-light px-3 text-sm text-cognac-900"
+            className="inline-flex min-h-11 min-w-0 flex-1 items-center rounded-full bg-champagne-light px-3 text-sm text-cognac-900"
+            title={scopeSummary}
             onClick={() => setScopeOpen((open) => !open)}
           >
-            {scopeSummary}
+            <span className="truncate">{scopeSummary}</span>
           </button>
-          <span className="grow" />
-          <button type="button" className="btn-primary min-h-11" disabled={busy || !available || !goal} onClick={send}>
+          <button
+            type="button"
+            className="btn-primary min-h-11"
+            disabled={busy || !available || !goal || Boolean(piece?.dirty)}
+            onClick={send}
+          >
             Enviar
           </button>
         </div>
@@ -214,7 +252,7 @@ export function Composer({
           <label className="block text-sm font-medium">
             Caso (opcional)
             <select
-              disabled={Boolean(followUp)}
+              disabled={Boolean(followUp || piece)}
               className="mt-2 min-h-11 w-full rounded-lg border border-stone-300 p-2 font-normal"
               value={matter}
               onChange={(e) => {
@@ -231,7 +269,7 @@ export function Composer({
               ))}
             </select>
           </label>
-          {matter && (
+          {matter && !piece && (
             <label className="block text-sm font-medium">
               Minuta do caso (opcional)
               <select
@@ -261,7 +299,7 @@ export function Composer({
           )}
           {!!documents.length && (
             <fieldset>
-              <legend className="text-sm font-medium">Documentos que o agente pode ler</legend>
+              <legend className="text-sm font-medium">Documentos para este pedido</legend>
               {documents.map((d) => (
                 <label className="flex min-h-11 items-center gap-3 break-words text-sm" key={d.id}>
                   <input
@@ -284,7 +322,7 @@ export function Composer({
         </section>
       )}
 
-      {matter && <EvidenceChangesPanel key={matter} matterId={matter} disabled={busy} />}
+      {matter && scopeOpen && <EvidenceChangesPanel key={matter} matterId={matter} disabled={busy} />}
       {!available && (
         <p className="text-sm text-stone-600">O processamento deste trabalho ainda não está disponível.</p>
       )}

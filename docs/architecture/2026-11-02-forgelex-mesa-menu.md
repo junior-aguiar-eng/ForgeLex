@@ -1,5 +1,9 @@
 # Mesa: opções dentro da mensagem
 
+Registro histórico. A decisão posterior de Boni de fundir elaboração e revisão
+está implementada localmente em [Mesa e edição da peça](2026-11-05-mesa-editor-integrado.md),
+ainda sem publicação. A separação de menus descrita abaixo foi substituída nesse incremento.
+
 Em 02/11/2026, Boni esclareceu a referência desejada: manter as opções de pedido
 e apresentá-las em menu selecionável na própria caixa de mensagem.
 

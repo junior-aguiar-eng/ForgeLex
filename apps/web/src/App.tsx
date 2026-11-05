@@ -12,9 +12,10 @@ import { DataJudPage } from './public/pages/DataJudPage';
 import { resolveSiteRoute, safeWorkspaceDestination, type SiteRoute } from './navigation/site-routes';
 
 import { resolveVisibleTab, type AppTab } from './navigation/routes';
-import { CASE_WORKSPACE_ENABLED } from './config/site-capabilities';
+import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from './config/site-capabilities';
 
 const LandingScreen = lazy(() => import('./screens/LandingScreen').then(({ LandingScreen: screen }) => ({ default: screen })));
+const WritingDeskScreen = lazy(() => import('./screens/WritingDeskScreen').then(({ WritingDeskScreen: screen }) => ({ default: screen })));
 const AgenticWorkspaceScreen = lazy(() => import('./screens/AgenticWorkspaceScreen').then(({ AgenticWorkspaceScreen: screen }) => ({ default: screen })));
 const ResearchDeskScreen = lazy(() => import('./screens/ResearchDeskScreen').then(({ ResearchDeskScreen: screen }) => ({ default: screen })));
 const MatterWorkspaceScreen = lazy(() => import('./screens/MatterWorkspaceScreen').then(({ MatterWorkspaceScreen: screen }) => ({ default: screen })));
@@ -32,7 +33,9 @@ const OAuthConsentScreen = lazy(() => import('./screens/OAuthConsentScreen').the
 
 const AppContent: React.FC = () => {
   const { activeTab, setActiveTab } = useApp();
-  const visibleTab = resolveVisibleTab(activeTab, CASE_WORKSPACE_ENABLED);
+  const integrated = AGENTIC_WORKSPACE_ENABLED && CASE_WORKSPACE_ENABLED;
+  const resolvedTab = resolveVisibleTab(activeTab, CASE_WORKSPACE_ENABLED);
+  const visibleTab = integrated && (resolvedTab === 'draft_studio' || resolvedTab === 'dashboard') ? 'work' : resolvedTab;
   const { status, passwordRecovery, passwordRecoveryError } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [draftVisited, setDraftVisited] = React.useState(visibleTab === 'draft_studio');
@@ -65,10 +68,10 @@ const AppContent: React.FC = () => {
       <Header menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((value) => !value)} />
 
       <div className="relative flex min-w-0 flex-1">
-        {visibleTab !== 'work' && <Sidebar activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
+        {<Sidebar mobileOnly={visibleTab === 'work'} activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
         <main className="min-w-0 flex-1">
-          {(visibleTab === 'draft_studio' || draftVisited) && <div key="retained-draft" hidden={visibleTab !== 'draft_studio'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando editor…</div>}><DraftStudioScreen requestedLocation={draftRequest} /></Suspense></ScreenLoadBoundary></div>}
-          {(visibleTab === 'work' || workVisited) && <div key="retained-work" hidden={visibleTab !== 'work'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando trabalho…</div>}><AgenticWorkspaceScreen active={visibleTab === 'work'} onExecutionChange={rememberExecution} onEditor={openEditor} /></Suspense></ScreenLoadBoundary></div>}
+          {!integrated && (visibleTab === 'draft_studio' || draftVisited) && <div key="retained-draft" hidden={visibleTab !== 'draft_studio'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando editor…</div>}><DraftStudioScreen requestedLocation={draftRequest} /></Suspense></ScreenLoadBoundary></div>}
+          {(visibleTab === 'work' || workVisited) && <div key="retained-work" hidden={visibleTab !== 'work'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando trabalho…</div>}>{integrated ? <WritingDeskScreen active={visibleTab === 'work'} requestedLocation={window.location.href} onExecutionChange={rememberExecution} /> : <AgenticWorkspaceScreen active={visibleTab === 'work'} onExecutionChange={rememberExecution} onEditor={openEditor} />}</Suspense></ScreenLoadBoundary></div>}
           <ScreenLoadBoundary key={`page-${visibleTab}`}>
             <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
               {visibleTab === 'landing' && <LandingScreen />}

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ApiRequestError, requestApi } from '../api-client';
 import { EditorialApplicationControls } from './EditorialApplicationControls';
@@ -46,6 +47,14 @@ export function EditorialReviewPanel({
     sequence = useRef(0),
     active = useRef<AbortController | null>(null);
   const base = `/api/agentic/deliveries/${encodeURIComponent(deliveryId)}/editorial-review`;
+  useEffect(() => {
+    if (review?.application)
+      window.dispatchEvent(
+        new CustomEvent('forgelex:draft-version-created', {
+          detail: { matterId, draftId, versionId: review.application.versionId },
+        }),
+      );
+  }, [matterId, draftId, review?.application]);
   const target = { draftId, versionId };
   const generationBase = `/api/agentic/deliveries/${encodeURIComponent(deliveryId)}/editorial-proposals`;
   useEffect(() => {
@@ -308,319 +317,324 @@ export function EditorialReviewPanel({
       >
         Revisar proposta editorial
       </button>
-      <dialog
-        ref={dialog}
-        aria-labelledby={title}
-        onCancel={(e) => {
-          e.preventDefault();
-          close();
-        }}
-        onClose={() => setOpen(false)}
-        className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-2xl border border-champagne-border bg-white p-5 text-stone-900 shadow-xl backdrop:bg-stone-900/30 sm:p-6"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <h3 id={title} className="font-editorial text-xl">
-            Revisão editorial
-          </h3>
-          <button autoFocus className="min-h-11 px-2 text-sm underline" onClick={close}>
-            Fechar
-          </button>
-        </div>
-        <p className="my-3 text-sm text-stone-600">
-          Decida sobre cada sugestão. Concordar registra sua avaliação editorial; não altera a minuta nem aprova seu
-          conteúdo jurídico.
-        </p>
-        {generation?.mode === 'COMMERCIAL' && generation.policyVersion && generation.maxCostCents !== undefined && (
-          <EditorialCommercialControls
-            key={`${deliveryId}:${draftId}:${versionId}`}
-            base={generationBase}
-            draftId={draftId}
-            versionId={versionId}
-            policyVersion={generation.policyVersion}
-            maxCostCents={generation.maxCostCents}
-            disabled={busy || blocked || uncertain || !generation.enabled}
-            onProposal={read}
-          />
-        )}
-        {generation?.enabled && generation.mode !== 'COMMERCIAL' && !review?.stale && (
-          <span className="my-3 block">
-            {generation.mode === 'REAL' && (
-              <label className="mb-2 flex items-start gap-2">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={generationConfirmed}
-                  disabled={busy || uncertain || generationAttempted}
-                  onChange={(event) => setGenerationConfirmed(event.target.checked)}
-                />
-                {`Autorizo gerar uma proposta, com custo máximo de US$ ${generation.maxCostUsd.toFixed(2).replace('.', ',')}.`}
-              </label>
-            )}
-            <button
-              type="button"
-              className="min-h-11 text-sm underline"
-              disabled={
-                busy ||
-                blocked ||
-                uncertain ||
-                generationAttempted ||
-                (generation.mode === 'REAL' && !generationConfirmed)
-              }
-              onClick={() => void generate()}
-            >
-              {generation.mode === 'REAL' ? 'Gerar proposta editorial' : 'Gerar proposta de teste'}
+      {createPortal(
+        <dialog
+          ref={dialog}
+          aria-labelledby={title}
+          onCancel={(e) => {
+            e.preventDefault();
+            close();
+          }}
+          onClose={() => setOpen(false)}
+          className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-2xl border border-champagne-border bg-white p-5 text-stone-900 shadow-xl backdrop:bg-stone-900/30 sm:p-6"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h3 id={title} className="font-editorial text-xl">
+              Revisão editorial
+            </h3>
+            <button autoFocus className="min-h-11 px-2 text-sm underline" onClick={close}>
+              Fechar
             </button>
-            <span className="block text-xs text-stone-600">
-              A proposta será apresentada para revisão; gerar não aplica alterações.
+          </div>
+          <p className="my-3 text-sm text-stone-600">
+            Decida sobre cada sugestão. Concordar registra sua avaliação editorial; não altera a minuta nem aprova seu
+            conteúdo jurídico.
+          </p>
+          {generation?.mode === 'COMMERCIAL' && generation.policyVersion && generation.maxCostCents !== undefined && (
+            <EditorialCommercialControls
+              key={`${deliveryId}:${draftId}:${versionId}`}
+              base={generationBase}
+              draftId={draftId}
+              versionId={versionId}
+              policyVersion={generation.policyVersion}
+              maxCostCents={generation.maxCostCents}
+              disabled={busy || blocked || uncertain || !generation.enabled}
+              onProposal={read}
+            />
+          )}
+          {generation?.enabled && generation.mode !== 'COMMERCIAL' && !review?.stale && (
+            <span className="my-3 block">
+              {generation.mode === 'REAL' && (
+                <label className="mb-2 flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={generationConfirmed}
+                    disabled={busy || uncertain || generationAttempted}
+                    onChange={(event) => setGenerationConfirmed(event.target.checked)}
+                  />
+                  {`Autorizo gerar uma proposta, com custo máximo de US$ ${generation.maxCostUsd.toFixed(2).replace('.', ',')}.`}
+                </label>
+              )}
+              <button
+                type="button"
+                className="min-h-11 text-sm underline"
+                disabled={
+                  busy ||
+                  blocked ||
+                  uncertain ||
+                  generationAttempted ||
+                  (generation.mode === 'REAL' && !generationConfirmed)
+                }
+                onClick={() => void generate()}
+              >
+                {generation.mode === 'REAL' ? 'Gerar proposta editorial' : 'Gerar proposta de teste'}
+              </button>
+              <span className="block text-xs text-stone-600">
+                A proposta será apresentada para revisão; gerar não aplica alterações.
+              </span>
             </span>
-          </span>
-        )}
-        <label className="block text-sm">
-          Arquivo da proposta editorial
-          <input
-            type="file"
-            accept=".json,application/json"
-            className="my-2 block w-full min-w-0 text-sm"
-            disabled={busy || uncertain || review?.stale}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = '';
-              void importFile(file);
-            }}
-          />
-        </label>
-        <p className="text-xs text-stone-600">
-          Carregue uma proposta para conferência. A origem de um arquivo importado não é autenticada.
-        </p>
-        {busy && (
-          <p role="status" className="my-3 text-sm">
-            Conferindo revisão…
-          </p>
-        )}
-        {error && (
-          <p role="alert" className="my-3 text-sm text-red-800">
-            {error}
-          </p>
-        )}
-        {notice && (
-          <p role="status" className="my-3 text-sm">
-            {notice}
-          </p>
-        )}
-        {uncertain ? (
-          <button
-            disabled={busy}
-            className="btn-secondary min-h-11"
-            onClick={() => pending.current && void send(pending.current)}
-          >
-            {pendingKind.current === 'application' ? 'Verificar aplicação' : 'Verificar decisão'}
-          </button>
-        ) : (
-          <button disabled={busy} className="min-h-11 text-sm underline" onClick={() => void read()}>
-            Atualizar revisão
-          </button>
-        )}
-        {known.length > 1 && (
+          )}
           <label className="block text-sm">
-            Proposta salva
-            <select
-              aria-label="Proposta salva"
-              className="my-2 w-full rounded border p-2"
-              value={known.find((e) => JSON.stringify(e.proposal) === JSON.stringify(proposal))?.proposalHash ?? ''}
-              disabled={busy || uncertain}
+            Arquivo da proposta editorial
+            <input
+              type="file"
+              accept=".json,application/json"
+              className="my-2 block w-full min-w-0 text-sm"
+              disabled={busy || uncertain || review?.stale}
               onChange={(e) => {
-                const item = known.find((item) => item.proposalHash === e.target.value);
-                if (item) void read(item.proposal);
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                void importFile(file);
               }}
-            >
-              <option value="">Selecione uma proposta</option>
-              {known.map((e, i) => (
-                <option key={e.proposalHash} value={e.proposalHash}>
-                  Proposta {i + 1}
-                </option>
-              ))}
-            </select>
+            />
           </label>
-        )}
-        {review && (
-          <>
-            {review.application && (
-              <div className="my-4 space-y-2 break-words rounded-xl border border-champagne-border p-4 text-sm">
-                <p className="font-semibold">Nova versão criada: {review.application.versionNumber}</p>
-                <p className="break-words">{review.application.reason}</p>
-                <p>
-                  {review.application.itemIds.length} ajuste(s) aplicado(s). A versão original permanece no histórico.
-                </p>
-                <p className="text-xs text-stone-600">
-                  {review.application.appliedBy} · {new Date(review.application.appliedAt).toLocaleString('pt-BR')}
-                </p>
-                <a
-                  className="inline-block min-h-11 py-2 underline"
-                  href={`/app/rascunhos?${new URLSearchParams({ matterId, draftId, versionId: review.application.versionId })}`}
-                >
-                  Abrir versão criada
-                </a>
-              </div>
-            )}
-            {review.stale && !busy && (
-              <p role="status" className="my-3 text-sm">
-                Esta entrega está desatualizada. O histórico continua disponível; novas decisões estão bloqueadas.
-              </p>
-            )}
-            <h4 className="mt-4 font-semibold">{review.context?.document.title ?? 'Histórico editorial'}</h4>
-            <div className="my-3 space-y-1 text-sm text-stone-700">
-              <p>Ressalvas e pontos a conferir</p>
-              {review.context?.requirements
-                .filter((r) => !r.verified)
-                .map((r) => (
-                  <p key={r.id}>{r.statement}</p>
+          <p className="text-xs text-stone-600">
+            Carregue uma proposta para conferência. A origem de um arquivo importado não é autenticada.
+          </p>
+          {busy && (
+            <p role="status" className="my-3 text-sm">
+              Conferindo revisão…
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="my-3 text-sm text-red-800">
+              {error}
+            </p>
+          )}
+          {notice && (
+            <p role="status" className="my-3 text-sm">
+              {notice}
+            </p>
+          )}
+          {uncertain ? (
+            <button
+              disabled={busy}
+              className="btn-secondary min-h-11"
+              onClick={() => pending.current && void send(pending.current)}
+            >
+              {pendingKind.current === 'application' ? 'Verificar aplicação' : 'Verificar decisão'}
+            </button>
+          ) : (
+            <button disabled={busy} className="min-h-11 text-sm underline" onClick={() => void read()}>
+              Atualizar revisão
+            </button>
+          )}
+          {known.length > 1 && (
+            <label className="block text-sm">
+              Proposta salva
+              <select
+                aria-label="Proposta salva"
+                className="my-2 w-full rounded border p-2"
+                value={known.find((e) => JSON.stringify(e.proposal) === JSON.stringify(proposal))?.proposalHash ?? ''}
+                disabled={busy || uncertain}
+                onChange={(e) => {
+                  const item = known.find((item) => item.proposalHash === e.target.value);
+                  if (item) void read(item.proposal);
+                }}
+              >
+                <option value="">Selecione uma proposta</option>
+                {known.map((e, i) => (
+                  <option key={e.proposalHash} value={e.proposalHash}>
+                    Proposta {i + 1}
+                  </option>
                 ))}
-              {review.context?.findings.map((f) => (
-                <p key={f.id}>{f.statement}</p>
-              ))}
-              {proposal?.limitations.map((text, i) => (
-                <p key={i}>{text}</p>
-              ))}
-            </div>
-            {proposal && !items.length && (
-              <p className="my-3 text-sm">Esta proposta não contém mudanças. Isso não significa aprovação da minuta.</p>
-            )}
-            <div className="divide-y divide-champagne-border">
-              {items.map((item, i) => {
-                const form = Object.hasOwn(forms, item.id) ? forms[item.id] : { action: '' as const, reason: '' };
-                const previous = review.history
-                  .filter(
-                    (e) =>
-                      e.contextHash === review.contextHash &&
-                      JSON.stringify(e.proposal) === JSON.stringify(proposal) &&
-                      e.decision.itemId === item.id,
-                  )
-                  .at(-1);
-                return (
-                  <fieldset key={item.id} disabled={busy || uncertain || blocked} className="min-w-0 space-y-2 py-4">
-                    <legend className="font-medium">
-                      {item.substantive ? 'Sugestão substantiva' : 'Ajuste editorial'} {i + 1}
-                    </legend>
-                    <p className="text-xs text-stone-600">
-                      Seção: {review.context?.document.sections[item.sectionIndex]?.title}
-                    </p>
-                    <p className="text-sm font-medium">Original</p>
-                    <blockquote className="break-words whitespace-pre-wrap border-l-2 border-stone-300 pl-3 text-sm">
-                      {item.before}
-                    </blockquote>
-                    {!item.substantive && (
-                      <>
-                        <p className="text-sm font-medium">Sugestão</p>
-                        <blockquote className="break-words whitespace-pre-wrap border-l-2 border-cognac-300 pl-3 text-sm">
-                          {item.after}
-                        </blockquote>
-                      </>
-                    )}
-                    <p className="break-words text-sm">{item.reason}</p>
-                    {item.substantive && (
-                      <p className="text-sm text-stone-600">
-                        Exige análise própria; não contém alteração pronta para aplicar.
-                      </p>
-                    )}
-                    <details className="text-sm">
-                      <summary className="min-h-11 cursor-pointer py-2 underline">Conferir seção e fontes</summary>
-                      <p className="break-words whitespace-pre-wrap">
-                        {review.context?.document.sections[item.sectionIndex]?.content}
-                      </p>
-                      {item.sourceIds.map((id) => (
-                        <blockquote
-                          key={id}
-                          className="my-2 break-words whitespace-pre-wrap border-l-2 border-stone-300 pl-3"
-                        >
-                          {review.context?.sources.find((s) => s.id === id)?.text}
-                        </blockquote>
-                      ))}
-                    </details>
-                    {previous && (
-                      <p className="text-sm">
-                        Última decisão: {editorialActionLabels[previous.decision.action]} — {previous.decision.reason}
-                      </p>
-                    )}
-                    <label className="block text-sm">
-                      Decisão {i + 1}
-                      <select
-                        className="mt-1 w-full rounded border border-stone-300 p-2"
-                        value={form.action}
-                        onChange={(e) =>
-                          setForms((old) => ({
-                            ...old,
-                            [item.id]: { ...form, action: e.target.value as EditorialAction },
-                          }))
-                        }
-                      >
-                        <option value="">Selecione após conferir</option>
-                        {Object.entries(editorialActionLabels).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="block text-sm">
-                      Fundamento {i + 1}
-                      <textarea
-                        className="mt-1 w-full rounded border border-stone-300 p-2"
-                        rows={2}
-                        maxLength={1000}
-                        value={form.reason}
-                        onChange={(e) =>
-                          setForms((old) => ({ ...old, [item.id]: { ...form, reason: e.target.value } }))
-                        }
-                      />
-                    </label>
-                    <button
-                      className="btn-secondary min-h-11"
-                      disabled={!form.action || form.reason.trim().length < 3}
-                      onClick={() => decide(item.id)}
-                    >
-                      Salvar decisão {i + 1}
-                    </button>
-                  </fieldset>
-                );
-              })}
-            </div>
-            {proposal && (
-              <EditorialApplicationControls
-                key={`${review.revision}:${JSON.stringify(proposal)}`}
-                review={review}
-                proposal={proposal}
-                disabled={busy || blocked || uncertain}
-                apply={apply}
-              />
-            )}
-            <details className="mt-4 text-sm" open={!proposal}>
-              <summary className="min-h-11 cursor-pointer py-2 underline">
-                Histórico de decisões ({review.history.length})
-              </summary>
-              {!review.history.length && <p>Nenhuma decisão editorial salva.</p>}
-              {review.history.map((e) => (
-                <div key={e.commandId} className="my-3 space-y-1 break-words border-b border-champagne-border pb-3">
+              </select>
+            </label>
+          )}
+          {review && (
+            <>
+              {review.application && (
+                <div className="my-4 space-y-2 break-words rounded-xl border border-champagne-border p-4 text-sm">
+                  <p className="font-semibold">Nova versão criada: {review.application.versionNumber}</p>
+                  <p className="break-words">{review.application.reason}</p>
                   <p>
-                    {editorialActionLabels[e.decision.action]} — {e.decision.reason}
-                  </p>
-                  <p className="whitespace-pre-wrap">
-                    Trecho:{' '}
-                    {
-                      [...e.proposal.changes, ...e.proposal.substantiveSuggestions].find(
-                        (item) => item.id === e.decision.itemId,
-                      )?.before
-                    }
+                    {review.application.itemIds.length} ajuste(s) aplicado(s). A versão original permanece no histórico.
                   </p>
                   <p className="text-xs text-stone-600">
-                    {e.decidedBy} · {new Date(e.decidedAt).toLocaleString('pt-BR')}
-                    {e.contextHash !== review.contextHash ? ' · Contexto anterior' : ''}
+                    {review.application.appliedBy} · {new Date(review.application.appliedAt).toLocaleString('pt-BR')}
                   </p>
+                  <a
+                    className="inline-block min-h-11 py-2 underline"
+                    href={`/app/rascunhos?${new URLSearchParams({ matterId, draftId, versionId: review.application.versionId })}`}
+                  >
+                    Abrir versão criada
+                  </a>
                 </div>
-              ))}
-            </details>
-          </>
-        )}
-      </dialog>
+              )}
+              {review.stale && !busy && (
+                <p role="status" className="my-3 text-sm">
+                  Esta entrega está desatualizada. O histórico continua disponível; novas decisões estão bloqueadas.
+                </p>
+              )}
+              <h4 className="mt-4 font-semibold">{review.context?.document.title ?? 'Histórico editorial'}</h4>
+              <div className="my-3 space-y-1 text-sm text-stone-700">
+                <p>Ressalvas e pontos a conferir</p>
+                {review.context?.requirements
+                  .filter((r) => !r.verified)
+                  .map((r) => (
+                    <p key={r.id}>{r.statement}</p>
+                  ))}
+                {review.context?.findings.map((f) => (
+                  <p key={f.id}>{f.statement}</p>
+                ))}
+                {proposal?.limitations.map((text, i) => (
+                  <p key={i}>{text}</p>
+                ))}
+              </div>
+              {proposal && !items.length && (
+                <p className="my-3 text-sm">
+                  Esta proposta não contém mudanças. Isso não significa aprovação da minuta.
+                </p>
+              )}
+              <div className="divide-y divide-champagne-border">
+                {items.map((item, i) => {
+                  const form = Object.hasOwn(forms, item.id) ? forms[item.id] : { action: '' as const, reason: '' };
+                  const previous = review.history
+                    .filter(
+                      (e) =>
+                        e.contextHash === review.contextHash &&
+                        JSON.stringify(e.proposal) === JSON.stringify(proposal) &&
+                        e.decision.itemId === item.id,
+                    )
+                    .at(-1);
+                  return (
+                    <fieldset key={item.id} disabled={busy || uncertain || blocked} className="min-w-0 space-y-2 py-4">
+                      <legend className="font-medium">
+                        {item.substantive ? 'Sugestão substantiva' : 'Ajuste editorial'} {i + 1}
+                      </legend>
+                      <p className="text-xs text-stone-600">
+                        Seção: {review.context?.document.sections[item.sectionIndex]?.title}
+                      </p>
+                      <p className="text-sm font-medium">Original</p>
+                      <blockquote className="break-words whitespace-pre-wrap border-l-2 border-stone-300 pl-3 text-sm">
+                        {item.before}
+                      </blockquote>
+                      {!item.substantive && (
+                        <>
+                          <p className="text-sm font-medium">Sugestão</p>
+                          <blockquote className="break-words whitespace-pre-wrap border-l-2 border-cognac-300 pl-3 text-sm">
+                            {item.after}
+                          </blockquote>
+                        </>
+                      )}
+                      <p className="break-words text-sm">{item.reason}</p>
+                      {item.substantive && (
+                        <p className="text-sm text-stone-600">
+                          Exige análise própria; não contém alteração pronta para aplicar.
+                        </p>
+                      )}
+                      <details className="text-sm">
+                        <summary className="min-h-11 cursor-pointer py-2 underline">Conferir seção e fontes</summary>
+                        <p className="break-words whitespace-pre-wrap">
+                          {review.context?.document.sections[item.sectionIndex]?.content}
+                        </p>
+                        {item.sourceIds.map((id) => (
+                          <blockquote
+                            key={id}
+                            className="my-2 break-words whitespace-pre-wrap border-l-2 border-stone-300 pl-3"
+                          >
+                            {review.context?.sources.find((s) => s.id === id)?.text}
+                          </blockquote>
+                        ))}
+                      </details>
+                      {previous && (
+                        <p className="text-sm">
+                          Última decisão: {editorialActionLabels[previous.decision.action]} — {previous.decision.reason}
+                        </p>
+                      )}
+                      <label className="block text-sm">
+                        Decisão {i + 1}
+                        <select
+                          className="mt-1 w-full rounded border border-stone-300 p-2"
+                          value={form.action}
+                          onChange={(e) =>
+                            setForms((old) => ({
+                              ...old,
+                              [item.id]: { ...form, action: e.target.value as EditorialAction },
+                            }))
+                          }
+                        >
+                          <option value="">Selecione após conferir</option>
+                          {Object.entries(editorialActionLabels).map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="block text-sm">
+                        Fundamento {i + 1}
+                        <textarea
+                          className="mt-1 w-full rounded border border-stone-300 p-2"
+                          rows={2}
+                          maxLength={1000}
+                          value={form.reason}
+                          onChange={(e) =>
+                            setForms((old) => ({ ...old, [item.id]: { ...form, reason: e.target.value } }))
+                          }
+                        />
+                      </label>
+                      <button
+                        className="btn-secondary min-h-11"
+                        disabled={!form.action || form.reason.trim().length < 3}
+                        onClick={() => decide(item.id)}
+                      >
+                        Salvar decisão {i + 1}
+                      </button>
+                    </fieldset>
+                  );
+                })}
+              </div>
+              {proposal && (
+                <EditorialApplicationControls
+                  key={`${review.revision}:${JSON.stringify(proposal)}`}
+                  review={review}
+                  proposal={proposal}
+                  disabled={busy || blocked || uncertain}
+                  apply={apply}
+                />
+              )}
+              <details className="mt-4 text-sm" open={!proposal}>
+                <summary className="min-h-11 cursor-pointer py-2 underline">
+                  Histórico de decisões ({review.history.length})
+                </summary>
+                {!review.history.length && <p>Nenhuma decisão editorial salva.</p>}
+                {review.history.map((e) => (
+                  <div key={e.commandId} className="my-3 space-y-1 break-words border-b border-champagne-border pb-3">
+                    <p>
+                      {editorialActionLabels[e.decision.action]} — {e.decision.reason}
+                    </p>
+                    <p className="whitespace-pre-wrap">
+                      Trecho:{' '}
+                      {
+                        [...e.proposal.changes, ...e.proposal.substantiveSuggestions].find(
+                          (item) => item.id === e.decision.itemId,
+                        )?.before
+                      }
+                    </p>
+                    <p className="text-xs text-stone-600">
+                      {e.decidedBy} · {new Date(e.decidedAt).toLocaleString('pt-BR')}
+                      {e.contextHash !== review.contextHash ? ' · Contexto anterior' : ''}
+                    </p>
+                  </div>
+                ))}
+              </details>
+            </>
+          )}
+        </dialog>,
+        document.body,
+      )}
     </div>
   );
 }

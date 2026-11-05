@@ -6,11 +6,10 @@ import type { AppTab } from '../navigation/routes';
 import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 
 const secondaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon; mobileOnly?: boolean }> = [
-  ...(AGENTIC_WORKSPACE_ENABLED ? [{ tab: 'work' as const, label: 'Trabalho', icon: FileText }] : []),
+  ...(AGENTIC_WORKSPACE_ENABLED ? [{ tab: 'work' as const, label: 'Mesa', icon: FileText, mobileOnly: true }] : []),
   ...(CASE_WORKSPACE_ENABLED ? [
     { tab: 'matter' as const, label: 'Casos', icon: FolderOpen, mobileOnly: true },
-    { tab: 'draft_studio' as const, label: 'Rascunhos', icon: FileText, mobileOnly: true },
-    { tab: 'dashboard' as const, label: 'Revisão', icon: FileCode2, mobileOnly: true },
+    ...(!AGENTIC_WORKSPACE_ENABLED ? [{ tab: 'draft_studio' as const, label: 'Rascunhos', icon: FileText, mobileOnly: true }, { tab: 'dashboard' as const, label: 'Revisão', icon: FileCode2, mobileOnly: true }] : []),
   ] : []),
   { tab: 'research', label: 'Pesquisa', icon: Search, mobileOnly: true },
   { tab: 'for_lawyers_guide', label: 'Guia de conexão', icon: Cable },
@@ -26,10 +25,11 @@ const secondaryNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon;
 
 export const Sidebar: React.FC<{
   activeTab: AppTab;
+  mobileOnly?: boolean;
   mobileOpen: boolean;
   onCloseMobile: () => void;
   onSelect: (tab: AppTab) => void;
-}> = ({ activeTab, mobileOpen, onCloseMobile, onSelect }) => {
+}> = ({ activeTab, mobileOpen, onCloseMobile, onSelect, mobileOnly = false }) => {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export const Sidebar: React.FC<{
       <aside
         id="forgelex-sidebar"
         aria-label="Navegação secundária"
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-champagne-border bg-[#FBF9F5] pt-16 shadow-xl transition-transform duration-200 lg:sticky lg:top-16 lg:z-30 lg:h-[calc(100vh-4rem)] lg:visible lg:translate-x-0 lg:pt-0 lg:shadow-none ${
+        className={`${mobileOnly ? "lg:!hidden" : ""} fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-champagne-border bg-[#FBF9F5] pt-16 shadow-xl transition-transform duration-200 lg:sticky lg:top-16 lg:z-30 lg:h-[calc(100vh-4rem)] lg:visible lg:translate-x-0 lg:pt-0 lg:shadow-none ${
           mobileOpen ? 'visible translate-x-0' : 'invisible -translate-x-full'
         } ${collapsed ? 'lg:w-20' : 'lg:w-64'}`}
       >

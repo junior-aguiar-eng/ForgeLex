@@ -1,3 +1,6 @@
+import { DraftCanvas, CanvasDialog } from './draft-review/DraftCanvas';
+import type { DeskPiece } from '../agentic-workspace/desk-model';
+import { printDraftPdf } from '../documents/draft-print';
 import {getDraftPrimaryAction} from './draft-review/draft-action-model';
 import { CaseFlowHeader } from '../components/CaseFlowHeader';
 import { useApp } from '../context/AppContext';
@@ -151,9 +154,11 @@ const statusLabel: Record<Draft['status'], string> = {
   ARCHIVED: 'Arquivado',
 };
 
-export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ requestedLocation }) => {
+export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrated?: boolean; onPieceChange?: (piece: DeskPiece | null) => void; onAsk?: (text: string) => void }> = ({ requestedLocation, integrated = false, onPieceChange, onAsk }) => {
+  const emptySections = () => integrated ? [{title:'Texto da peça',content:'',linkedFactIds:[],linkedEvidenceIds:[],linkedAuthorityIds:[],linkedThesisIds:[]}] : initialSections();
   const { setActiveTab } = useApp();
   const [importedDelivery, setImportedDelivery] = useState<Delivery>();
+  const [editingSection, setEditingSection] = useState<{index:number}>();
   const [newWorkCase, setNewWorkCase] = useState('');
   const { status: authStatus } = useAuth();
   const [token, setToken] = useState(initialToken);
@@ -164,7 +169,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
   const [loadingSelection, setLoadingSelection] = useState(false);
   const [details, setDetails] = useState<DraftDetails | null>(null);
   const [draftTitle, setDraftTitle] = useState('Minuta para revisão humana');
-  const [sections, setSections] = useState<EditableSection[]>(initialSections);
+  const [sections, setSections] = useState<EditableSection[]>(emptySections);
   const [issues, setIssues] = useState<LegalIssue[]>([]);
   const [facts, setFacts] = useState<Fact[]>([]);
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
@@ -238,7 +243,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
       if (sequence !== selection.current) return;
       setMatters(response.items);
       if(selectedMatterId)await loadDrafts(selectedMatterId);
-      if (response.items.length > 0 && !selectedMatterId && !requestedQuery.has('deliveryId')) {
+      if (response.items.length > 0 && !selectedMatterId && (!integrated || requestedQuery.has('matterId')) && (!requestedQuery.has('deliveryId') || requestedQuery.has('draftId'))) {
         const initial = requestedQuery.get('matterId');
         if (initial && !response.items.some(m => m.id === initial)) { setError('Este caso não está disponível para sua conta.'); return; }
         await selectMatter(initial ?? response.items[0].id);
@@ -282,7 +287,8 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
   };
 
   const selectMatter = async (matterId: string) => {
-    if (dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir este caso?')) return;
+    const keepLocal = integrated && !selectedMatterId && !selectedDraftId;
+    if (!keepLocal && dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir este caso?')) return;
     setReadingDocument(undefined);
     const sequence = ++selection.current;
     setMatterContextReady('');
@@ -291,14 +297,12 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
     setSelectedDraftId('');
     editingVersion.current=undefined;
     setDetails(null);
-    setDraftTitle('Minuta para revisão humana');
-    setSections(initialSections());
-    setCitations([]);
+    if (!keepLocal) { setDraftTitle('Minuta para revisão humana'); setSections(emptySections()); setCitations([]); }
     setError(null);
     setLoadingSelection(true);
     setBusy(true);
     try {
-      await Promise.all([loadDrafts(matterId), loadMatterContext(matterId)]);
+      if (matterId) await Promise.all([loadDrafts(matterId), loadMatterContext(matterId)]); else setDrafts([]);
     } catch (loadError) {
       if (sequence !== selection.current) return;
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar os rascunhos.');
@@ -327,7 +331,9 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
       setDetails(response);
       const route = new URL(window.location.href);
       route.searchParams.set('matterId',selectedMatterId);route.searchParams.set('draftId',draftId);
-      window.history.replaceState({...window.history.state},document.title,route);window.dispatchEvent(new Event('forgelex:route-updated'));
+      const requested = new URL(requestedLocation || window.location.href, window.location.origin);
+      if (requested.searchParams.get('draftId') === draftId && requested.searchParams.has('deliveryId')) route.searchParams.set('deliveryId',requested.searchParams.get('deliveryId')!);
+      if (!integrated || window.location.pathname === '/app/trabalho') { window.history.replaceState({...window.history.state},document.title,route);window.dispatchEvent(new Event('forgelex:route-updated')); }
       if (response.currentVersion) {
         editingVersion.current=response.currentVersion.version.id;
         const version = response.currentVersion;
@@ -378,7 +384,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
     citations,
   });
   const versionChanged=Boolean(editingVersion.current && details?.currentVersion && editingVersion.current!==details.currentVersion.version.id);
-  const dirty = Boolean(selectedMatterId && (versionChanged || JSON.stringify(payload()) !== (details ? savedPayload : JSON.stringify({ title: 'Minuta para revisão humana', sections: initialSections().map((s, ordinal) => ({ ordinal, ...s })), citations: [] }))));
+  const dirty = Boolean((selectedMatterId || integrated) && (versionChanged || JSON.stringify(payload()) !== (details ? savedPayload : JSON.stringify({ title: 'Minuta para revisão humana', sections: emptySections().map((s, ordinal) => ({ ordinal, ...s })), citations: [] }))));
   const [caseUnavailable, setCaseUnavailable] = useState(false);
   useEffect(() => {
     setCaseUnavailable(false);
@@ -409,6 +415,17 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
     const response = await request<DraftDetails>(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}`, token);
     if (sequence === selection.current) setDetails(response);
   };
+  useEffect(() => {
+    if (!integrated) return;
+    const changed = (event: Event) => {
+      const target = (event as CustomEvent<{matterId:string;draftId:string;versionId:string}>).detail;
+      if (target.matterId !== selectedMatterId || target.draftId !== selectedDraftId || target.versionId === editingVersion.current) return;
+      if (dirty) { void refreshDetails().catch(()=>setError('Atualize a peça para consultar a nova versão.')); setReviewStatus('Uma nova versão foi criada. Sua edição local foi preservada.'); }
+      else void selectDraft(selectedDraftId, true);
+    };
+    window.addEventListener('forgelex:draft-version-created', changed);
+    return ()=>window.removeEventListener('forgelex:draft-version-created', changed);
+  }, [integrated, selectedMatterId, selectedDraftId, dirty]); // eslint-disable-line react-hooks/exhaustive-deps
   const openHistory = async (versionId: string) => {
     const sequence = selection.current;
     const requestNumber = ++historyRequest.current;
@@ -505,7 +522,8 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
       const updated = await request<DraftDetails>(`/api/v2/matters/${selectedMatterId}/drafts/${response.draft.id}`, token);
       if (sequence !== selection.current) return;
       setDetails(updated);
-      setReviewStatus('Versão salva. Confira o rascunho antes de encaminhar à aprovação.');
+      if (integrated) { const route = new URL(window.location.href); route.searchParams.set('matterId',selectedMatterId); route.searchParams.set('draftId',response.draft.id); route.searchParams.set('versionId',response.version.id); window.history.replaceState({},'',route); }
+      setReviewStatus(integrated ? 'Versão salva.' : 'Versão salva. Confira o rascunho antes de encaminhar à aprovação.');
       return response;
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Não foi possível salvar a versão.');
@@ -538,30 +556,40 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
 
   const initialDraftOpened=useRef(false);
   useEffect(()=>{
-    const target=new URLSearchParams(window.location.search).get('draftId');
+    const target=new URL(requestedLocation || window.location.href, window.location.origin).searchParams.get('draftId');
     if(!initialDraftOpened.current&&target&&selectedMatterId&&matterContextReady===selectedMatterId&&drafts.some(d=>d.id===target)){initialDraftOpened.current=true;void selectDraft(target);}
   },[drafts,selectedMatterId,matterContextReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  const handledLocation = useRef<string>();
   useEffect(() => {
-    if (!requestedLocation || !matters.length) return;
+    if (!requestedLocation || !matters.length || handledLocation.current === requestedLocation) return;
+    handledLocation.current = requestedLocation;
     const query = new URL(requestedLocation, window.location.origin).searchParams;
     const targetMatter = query.get('matterId'), targetDraft = query.get('draftId');
-    if (!targetMatter || !targetDraft || (targetMatter === selectedMatterId && targetDraft === selectedDraftId)) return;
+    if (!targetMatter || (targetMatter === selectedMatterId && (!targetDraft || targetDraft === selectedDraftId))) return;
     if (!matters.some(matter => matter.id === targetMatter)) { setError('Este caso não está disponível para sua conta.'); return; }
-    if (dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir esta outra minuta?')) return;
     initialDraftOpened.current = false;
     if (targetMatter !== selectedMatterId) void selectMatter(targetMatter);
-    else void selectDraft(targetDraft);
+    else if (targetDraft) void selectDraft(targetDraft);
   }, [requestedLocation, matters]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!onPieceChange) return;
+    const versionId = details?.currentVersion?.version.id;
+    onPieceChange(selectedMatterId && selectedDraftId && versionId ? {
+      matterId: selectedMatterId, draftId: selectedDraftId, versionId,
+      title: draftTitle, dirty: dirty || loadingSelection || caseUnavailable || contextChanged,
+    } : integrated ? {matterId:selectedMatterId,draftId:selectedDraftId,versionId:'',title:draftTitle,dirty:true} : null);
+  }, [integrated, onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, draftTitle, dirty, loadingSelection, caseUnavailable, contextChanged]);
   const expectedWorkVersion = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('versionId');
   const returnExecution = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('returnExecution');
   const importDeliveryId = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('deliveryId');
   useEffect(() => {
     let active = true;
-    if (!importDeliveryId || authStatus !== 'authenticated') return;
+    if (!importDeliveryId || new URL(requestedLocation || window.location.href, window.location.origin).searchParams.has('draftId') || authStatus !== 'authenticated') return;
     void requestApi<Delivery>(`/api/agentic/deliveries/${encodeURIComponent(importDeliveryId)}`, {}, { sessionOnly: true }).then(d => {
       if (!active || !d.delivery.document) return;
       if (dirty && !window.confirm('Há alterações não salvas. Deseja abrir esta outra entrega?')) return;
       setSelectedMatterId(''); setSelectedDraftId(''); setDetails(null); setImportedDelivery(d); setSavedPayload('');
+      if (integrated && window.location.pathname === '/app/trabalho') { const route=new URL(window.location.href); route.searchParams.delete('matterId');route.searchParams.delete('draftId');route.searchParams.delete('versionId');route.searchParams.set('deliveryId',importDeliveryId);window.history.replaceState({},'',route); }
     }).catch(e => { if (active) setError(e instanceof Error ? e.message : 'Entrega indisponível.'); });
     return () => { active = false; };
   }, [importDeliveryId, authStatus]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -569,7 +597,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
     if (!importedDelivery?.delivery.document || selectedDraftId) return;
     setDraftTitle(importedDelivery.delivery.document.title);
     setSections(importedDelivery.delivery.document.sections.map((s, ordinal) => ({ ordinal, title: s.title, content: s.content, linkedFactIds: [], linkedEvidenceIds: [], linkedAuthorityIds: [], linkedThesisIds: [] })));
-  }, [importedDelivery, selectedMatterId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [importedDelivery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const runReview = async (saved?: DraftWriteResponse) => {
     const versionId = saved?.version.id ?? details?.currentVersion?.version.id;
@@ -626,6 +654,66 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string }> = ({ re
     }
   };
 
+  const exportOpenPiece = async (format: 'docx' | 'pdf') => {
+    const current = details?.currentVersion;
+    const saved = {
+      local: dirty || !current,
+      title: draftTitle,
+      version: { id: current?.version.id ?? 'local', versionNumber: (current?.version.versionNumber ?? 0) + (dirty || !current ? 1 : 0), contentHash: dirty ? '' : current?.version.contentHash ?? '', status: dirty || !current ? 'DRAFT' : current.version.status, createdAt: dirty || !current ? new Date().toISOString() : current.version.createdAt },
+      sections: sections.map((section, index) => ({ id: current?.sections[index]?.id ?? String(index), ordinal: section.ordinal ?? index, title: section.title, content: section.content })),
+      citations: citations.map(c => ({ sectionId: current?.sections.find(s => s.ordinal === c.sectionOrdinal)?.id ?? String(c.sectionOrdinal), citationText: c.citationText, verified: c.verified })),
+      documentReferences: details?.documentReferences,
+    };
+    try {
+      if (format === 'pdf') printDraftPdf(saved);
+      else { const { downloadDraftDocx } = await import('../documents/draft-docx'); await downloadDraftDocx(saved); }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível exportar a peça.'); }
+  };
+  if (integrated) return <>
+    {readingDocument && readingDocument.matterId === selectedMatterId && hasApiAccess && <DocumentReaderDialog source={readingDocument} token={token} onClose={() => setReadingDocument(undefined)} />}
+    <DraftCanvas editSection={editingSection} title={draftTitle} sections={sections} matters={matters} drafts={drafts} matterId={selectedMatterId} draftId={selectedDraftId}
+      busy={busy || adopting || loadingSelection || caseUnavailable} dirty={dirty} error={error} status={reviewStatus}
+      onTitle={setDraftTitle} onSection={(i,field,value)=>setSections(old=>old.map((s,index)=>index===i?{...s,[field]:value}:s))}
+      onMatter={id=>void selectMatter(id)} onDraft={id=>id ? void selectDraft(id) : void selectMatter(selectedMatterId)}
+      onSave={()=>void saveDraft()} onAsk={text=>onAsk?.(text)} onExport={format=>void exportOpenPiece(format)}
+      caseControls={<details><summary className="cursor-pointer text-xs text-stone-600">Criar caso</summary><label className="mt-2 block text-xs">Nome do caso<input className="mt-1 w-full rounded border p-2" value={newWorkCase} maxLength={200} onChange={e=>setNewWorkCase(e.target.value)}/></label><button type="button" className="mt-2 text-sm text-cognac-800" disabled={busy || !newWorkCase.trim()} onClick={async()=>{setBusy(true);try{const m=await requestApi<Matter>('/api/v2/matters',{method:'POST',body:JSON.stringify({title:newWorkCase.trim()})},{sessionOnly:true});setMatters(old=>[...old,m]);await selectMatter(m.id);setNewWorkCase('');}catch(e){setError(e instanceof Error?e.message:'Não foi possível criar o caso.');}finally{setBusy(false);}}}>Criar caso e usar na peça</button></details>}
+      extras={importedDelivery && !selectedMatterId ? <p className="px-5 pt-3 text-sm text-stone-600">Escolha um caso em “Abrir peça” para guardar esta entrega. Você já pode editar e exportar localmente.</p> : undefined}
+      review={<div className="space-y-4">
+        {selectedDraftId && authStatus==='authenticated' && !caseUnavailable && <ReceivedDraftPanel key={`${selectedMatterId}:${selectedDraftId}`} matterId={selectedMatterId} draftId={selectedDraftId} currentVersionId={details?.draft.currentVersionId} dirty={dirty} onAdopt={useReceived} />}
+        <div className="flex flex-wrap gap-2"><button type="button" className="btn-secondary" disabled={busy || caseUnavailable} onClick={()=>void (dirty ? saveAndReview() : runReview())}>{dirty ? 'Salvar e conferir' : 'Conferir versão'}</button>
+        <button type="button" className="btn-primary" disabled={busy || !approvalReady || caseUnavailable} onClick={()=>details?.currentVersion && setApprovalConfirmation({versionId:details.currentVersion.version.id,versionNumber:details.currentVersion.version.versionNumber})}>Aprovar versão</button></div>
+        {!!details?.documentReferences?.length && <details><summary className="cursor-pointer text-sm">Fontes da peça</summary>{details.documentReferences.map((d,i)=><button key={i} type="button" className="block py-2 text-sm underline" onClick={()=>setReadingDocument({matterId:selectedMatterId,documentId:d.reference.itemId,versionId:d.reference.documentVersionId,anchorId:d.reference.anchorId})}>{d.documentTitle ?? 'Documento'}</button>)}</details>}
+        {details && <ReviewPanel latestRun={details.latestReviewRun} currentRun={details.currentReviewRun} findings={details.reviewFindings} stale={dirty || contextChanged || details.reviewContextChanged} onOpenPoint={p => { const c=p.check; if(c.targetType==='DOCUMENT' && c.targetId && c.source?.documentVersionId) setReadingDocument({matterId:selectedMatterId,documentId:c.targetId,versionId:c.source.documentVersionId,anchorId:c.source.anchorId}); else setPoint(p); }}/>}
+              {point && <SourcePanel point={point} matterId={selectedMatterId} token={token} facts={facts} evidence={evidence} authorities={authorities}
+                sectionTitle={details?.currentVersion?.sections.find(s => s.id === point.check.sectionId)?.title}
+                citationText={details?.currentVersion?.citations.find(c => c.sectionId === point.check.sectionId && c.targetId === point.check.targetId)?.citationText}
+                onClose={() => setPoint(undefined)} onLinked={() => { setContextChanged(true); void refreshDetails().catch(() => setError('Vínculo salvo. Atualize a conferência para consultar o resultado.')); }}
+                onEditSection={() => {
+                  const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
+                  setPoint(undefined); setEditingSection({index});
+                }}
+                onLinkReference={() => {
+                  const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
+                  const field = point.check.targetType === 'AUTHORITY' ? 'linkedAuthorityIds' : point.check.targetType === 'FACT' ? 'linkedFactIds' : 'linkedEvidenceIds';
+                  if (index >= 0 && point.check.targetId) setSections(current => current.map((s, i) => i === index ? { ...s, [field]: [...new Set([...s[field], point.check.targetId!])] } : s));
+                  setPoint(undefined);
+                }}
+                onRemoveReference={() => {
+                  const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
+                  const field = point.check.targetType === 'AUTHORITY' ? 'linkedAuthorityIds' : point.check.targetType === 'FACT' ? 'linkedFactIds' : 'linkedEvidenceIds';
+                  if (index >= 0) {
+                    setSections(current => current.map((s, i) => i === index ? { ...s, [field]: s[field].filter(id => id !== point.check.targetId) } : s));
+                    setCitations(current => current.filter(c => c.sectionOrdinal !== index || c.targetId !== point.check.targetId || c.targetType !== point.check.targetType));
+                  }
+                  setPoint(undefined);
+                }} />}
+
+
+      </div>}
+      history={<div className="space-y-3">{details?.versions.map(v=><button type="button" key={v.id} onClick={()=>void openHistory(v.id)} className="block w-full rounded-lg border border-stone-200 p-3 text-left">Versão {v.versionNumber} · {statusLabel[v.status]}</button>)}{historyLoading && <p>Carregando…</p>}{historyRuns.map(r=><div key={r.id}>{r.checks.map((c,i)=><p key={i} className="py-2 text-sm">{c.message}</p>)}</div>)}</div>}
+      approval={approvalConfirmation && <CanvasDialog title="Aprovar esta versão" onClose={()=>{if(!busy)setApprovalConfirmation(null);}}><p className="mb-3 text-sm">{draftTitle} · versão {approvalConfirmation.versionNumber}. Confirme após conferir o texto e suas fontes. Esta ação não publica nem envia a peça.</p><ul className="mb-4 space-y-2 text-sm text-amber-900">{details?.latestReviewRun?.checks.filter(c=>c.state!=='CONFIRMED'&&c.state!=='NOT_APPLICABLE').map((c,i)=><li key={i}>{c.message}</li>)}</ul>{error && <p role="alert" className="mb-3 text-sm text-red-700">{error}</p>}<button type="button" disabled={busy} onClick={()=>void requestApproval()} className="btn-primary">Confirmar aprovação</button></CanvasDialog>}
+    />
+  </>;
   return (
     <div className="py-8 md:py-12">
       <div className="page-container space-y-8">
