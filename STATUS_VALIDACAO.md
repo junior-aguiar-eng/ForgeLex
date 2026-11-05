@@ -1,5 +1,27 @@
 # Auditoria e status canônico do ForgeLex
 
+## Estado publicado — 05/11/2026
+
+PR #103 integrada e SHA `a5d97628f0a63e26f3c6eb72ba5cd4444a332ee9` publicado
+após os seis checks da CI. API e serviço de encerramento recebem 100% do tráfego
+nas revisões `forgelex-api-prod-a5d9762` e
+`forgelex-closure-hml-private-a5d9762`, com o mesmo digest.
+Backup manual `1793909132283` concluído; migrations 0037 e 0038 aplicadas;
+journal remoto conferido com 51 entradas, sem pendências ou IDs inesperados.
+
+**Editor comercial desativado nos dois serviços**, conforme decisão de Boni:
+`FORGELEX_EDITORIAL_COMMERCIAL_ENABLED=false`. Auto-migration permanece
+`false`. As flags comerciais preexistentes foram preservadas.
+Readiness e rotina de encerramento responderam 200 nas novas revisões.
+[Recibo, digest, verificações e limites](docs/operations/agentic-workspace/2026-11-05-publication.md).
+
+A ativação editorial, novos ensaios pagos e a avaliação de patches não vazios
+continuam separados. Não houve teste autenticado completo da interface nem de
+aba previamente aberta neste deploy. Avisos de listeners na inicialização
+estão registrados no recibo, sem diagnóstico de vazamento de memória.
+Os estados locais e sem publicação abaixo são históricos das respectivas etapas.
+
+
 ## Publicação do `025f6dd` — 01 e 02/11/2026
 
 Fonte `025f6dd438ecfd78079b4688fd076e476da74ce9` (PR #101), seis checks da CI
