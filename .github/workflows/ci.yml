@@ -110,6 +110,8 @@ jobs:
         run: node scripts/smoke-agentic-case-task-postgres.mjs
       - name: Inference budget and provider call journal (isolated PostgreSQL container)
         run: node scripts/smoke-inference-budget-postgres.mjs
+      - name: Editorial commands, review and commercial receipts (isolated PostgreSQL)
+        run: node scripts/smoke-editorial-postgres.mjs
       - run: pnpm test:postgres:search
       - run: pnpm exec vitest run packages/persistence/src/repositories/jurisprudence-repository.test.ts
       - name: Saved research capacity and isolation (local PostgreSQL)
@@ -153,6 +155,8 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e:agentic-workspace
+      - name: Editorial review, confirmation and receipt recovery
+        run: pnpm exec playwright test --config playwright.editorial-review.config.ts
       - name: Metered commercial workflow (synthetic provider transport)
         run: pnpm exec playwright test --config playwright.agentic-commercial-flow.config.ts
       - run: pnpm exec playwright test --config playwright.agentic-flags.config.ts
