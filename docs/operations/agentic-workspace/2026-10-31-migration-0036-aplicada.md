@@ -43,3 +43,8 @@ porta liberada. Nenhuma imagem publicada; flags, serviços e outros bancos intac
 ## Pendente
 
 Publicar a imagem da `main` (item 5 do plano), por autorização própria de Boni.
+
+**Atualização de 03/11/2026:** concluído. A imagem `025f6dd` foi publicada em
+01–02/11 e está a 100% nos dois serviços, sem migration nova; ver o
+[recibo da publicação](2026-11-02-publication.md). O texto acima fica como
+registro de 31/10.

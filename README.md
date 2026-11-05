@@ -16,8 +16,9 @@ O **FORGELEX V2** foi construído para superar as limitações das ferramentas j
 
 ## Estado atual do produto
 
-Referência documental: 10/10/2026. Para retomar o trabalho, consulte
-[CONTINUIDADE.md](CONTINUIDADE.md); o backlog vigente está em
+Estado de produção atualizado em 03/11/2026; as descrições de contratos e
+fluxos mais abaixo seguem a revisão de 10/10/2026. Para retomar o trabalho,
+consulte [CONTINUIDADE.md](CONTINUIDADE.md); o backlog vigente está em
 [PENDENCIAS.md](PENDENCIAS.md).
 
 O ForgeLex está concluído no escopo comercial aprovado: pesquisa jurídica sobre
@@ -34,15 +35,20 @@ essa consulta não amplia a cobertura jurisprudencial comercial do STJ.
 O agendamento de acompanhamento não comprova execuções ou estabilidade por
 sete dias; os resultados permanecem documentados por verificação.
 
-**Estado conferido em 10/10/2026:** `origin/main` está em `117b7d0`, com os
-seis jobs da CI aprovados. O serviço `forgelex-api-prod` direciona 100% do
-tráfego à revisão `forgelex-api-prod-audit-5aca51e`. O site público, o workspace,
-DataJud, o leitor de documentos, o retorno de texto por MCP e Pesquisa → Caso
-estão publicados. A migration 0029 de pesquisa foi aplicada em 09/10, sem novo
-deploy HTTP. A rotina de retenção foi autorizada e ativada em 09/10;
-as execuções registradas removeram zero itens. A conferência de 10/10 foi
-somente leitura de Git/CI, revisão/tráfego e readiness/página; não repetiu
-homologações em hosts, operações faturáveis ou consultas ao CNJ.
+**Estado conferido em 02/11/2026:** `origin/main` está em `025f6dd` (PR #101),
+com os seis jobs da CI aprovados. `forgelex-api-prod` e
+`forgelex-closure-hml-private` direcionam 100% do tráfego às revisões
+`forgelex-api-prod-025f6dd-r2` e `forgelex-closure-hml-private-025f6dd-r2`,
+publicadas sem migration nova ([recibo](docs/operations/agentic-workspace/2026-11-02-publication.md)).
+O site público, o workspace, DataJud, o leitor de documentos, o retorno de texto
+por MCP, Pesquisa → Caso, a camada analítica e a mesa agêntica estão na imagem
+publicada. A execução agêntica e a comercial estão **ligadas por flag** na API
+de produção, conforme a autorização de Boni, a partir de uma revisão de 30/10
+cujo recibo ainda não está no repositório ([PENDENCIAS.md](PENDENCIAS.md)). A
+conferência de 02/11 cobriu readiness, MCP, rotas existentes, rotina de
+encerramento e logs; não repetiu homologações em hosts, operações faturáveis ou
+consultas ao CNJ. A rotina de retenção foi ativada em 09/10 e a migration 0029
+de pesquisa foi aplicada em 09/10.
 [Evidências e limites](STATUS_VALIDACAO.md) ·
 [DataJud publicado](docs/operations/stabilization/2026-10-03-datajud-workspace-navigation.md) ·
 [Encerramento técnico](docs/operations/stabilization/2026-10-09-technical-pending-closure.md).
