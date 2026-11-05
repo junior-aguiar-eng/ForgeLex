@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "scenario": "V2-MULTI",
+  "block": "CITATION_SUPPORT_TREATMENT",
+  "decision": "ACCEPTED_EDITORIAL_TREATMENT",
+  "evaluator": "Boni",
+  "userStatement": "SIM",
+  "approvalContext": "Separate the two composite propositions into statements linked to their respective normative or documentary sources; preserve historical alerts and record a separate check of corrected wording.",
+  "recordedAt": "2026-11-04T20:09:19.307476+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-multi-consolidation/V2-MULTI.derived.json",
+  "sourceSha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5",
+  "originalAlerts": [
+    {
+      "id": "support:374691a0171b0b552b6f117a26048fe9917fd26c286d1c217dbef435b7686f6a",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “O art. 498 disciplina a tutela específica de entrega, o prazo judicial de cumprimento e a individualização; não estabelece concessão automática de urgência por atraso. O art. 300 exige probabilidade do direito e perigo de dano ou risco ao resultado útil, e seu § 3º impede tutela antecipada quando houver perigo de irreversibilidade dos efeitos.”: há fontes citadas cujo trecho, individualmente, não demonstra integralmente essa proposição. Conferir as avaliações por fonte.",
+      "sourceIds": [
+        "CPC-498",
+        "CPC-300"
+      ]
+    },
+    {
+      "id": "support:65f24f1b0146ce8c236a5251ade579ec056511bf9c92ca0c28199e4710b97535",
+      "code": "CITATION_WITHOUT_SUPPORT",
+      "severity": "BLOCKING",
+      "statement": "Suporte a conferir para “Pelo art. 498, parágrafo único, o autor individualiza a coisa na inicial se lhe couber a escolha; se a escolha couber ao réu, este a entrega individualizada no prazo judicial. O excerto contratual não permite definir a titularidade da escolha dos dois equipamentos.”: há fontes citadas cujo trecho, individualmente, não demonstra integralmente essa proposição. Conferir as avaliações por fonte.",
+      "sourceIds": [
+        "CPC-498",
+        "V2-MULTI/contrato@v1#p1"
+      ]
+    }
+  ],
+  "relatedFinding": {
+    "id": "13e659946d:f2",
+    "code": "COMPOSITE_SUPPORT",
+    "severity": "WARNING",
+    "statement": "As proposições c3 e c5 têm suporte dividido entre fontes: nenhum dos respectivos pares isolados sustenta a proposição inteira. A leitura conjunta não supre fatos ausentes nem determina a titularidade da escolha.",
+    "sourceIds": [
+      "CPC-498",
+      "CPC-300",
+      "V2-MULTI/contrato@v1#p1"
+    ]
+  },
+  "derivedArtifact": "V2-MULTI-12-citation-adjustment.json",
+  "appliedToOriginal": false,
+  "wholeDeliveryAssessment": "PENDING",
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

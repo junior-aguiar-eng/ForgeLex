@@ -1,0 +1,183 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts (16 tests | 13 failed) 5862ms
+   × carrega somente entrega/minuta persistida e valida sem escrever nem chamar IA 973ms
+   × isola sessão/escopo/proprietário oauth 311ms
+   × isola sessão/escopo/proprietário scope 305ms
+   × isola sessão/escopo/proprietário missing 313ms
+   × revalida autorização entre leitura e validação 313ms
+   × rejeita IDs divergentes e contexto/fontes fornecidos pelo cliente 310ms
+   × recusa versão corrente alterada mesmo preservando a versão entregue 341ms
+   × recusa revisão de contexto posterior 319ms
+   × falha fechado para unfinished 304ms
+   × falha fechado para draft-text 297ms
+   × falha fechado para draft-hash 356ms
+   × falha fechado para source-missing 365ms
+   × falha fechado para source-text 390ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > carrega somente entrega/minuta persistida e valida sem escrever nem chamar IA
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:78:59
+     76| it('carrega somente entrega/minuta persistida e valida sem escrever ne…
+     77|   const f = await fixture(); const before = await f.snapshot();
+     78|   const loaded = await f.get(); expect(loaded.statusCode).toBe(200);
+       |                                                           ^
+     79|   expect(loaded.headers['cache-control']).toBe('no-store');
+     80|   expect(loaded.json()).toMatchObject({ ...f.target, deliveryId: f.sav…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > isola sessão/escopo/proprietário oauth
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > isola sessão/escopo/proprietário scope
+AssertionError: expected 404 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:90:80
+     88| it.each([['other', 404], ['tenant', 404], ['oauth', 403], ['scope', 40…
+     89|   'isola sessão/escopo/proprietário %s', async (token, status) => {
+     90|     const f = await fixture(); expect((await f.get(String(token))).sta…
+       |                                                                                ^
+     91|     expect((await f.validate(undefined, String(token))).statusCode).to…
+     92|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > isola sessão/escopo/proprietário missing
+AssertionError: expected 404 to be 401 // Object.is equality
+
+- Expected
++ Received
+
+- 401
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:90:80
+     88| it.each([['other', 404], ['tenant', 404], ['oauth', 403], ['scope', 40…
+     89|   'isola sessão/escopo/proprietário %s', async (token, status) => {
+     90|     const f = await fixture(); expect((await f.get(String(token))).sta…
+       |                                                                                ^
+     91|     expect((await f.validate(undefined, String(token))).statusCode).to…
+     92|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > revalida autorização entre leitura e validação
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:94:65
+     92|   });
+     93| it('revalida autorização entre leitura e validação', async () => {
+     94|   const f = await fixture(); expect((await f.get()).statusCode).toBe(2…
+       |                                                                 ^
+     95|   expect((await f.validate()).statusCode).toBe(403); expect(f.provider…
+     96| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > rejeita IDs divergentes e contexto/fontes fornecidos pelo cliente
+AssertionError: expected 404 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:99:82
+     97| it('rejeita IDs divergentes e contexto/fontes fornecidos pelo cliente'…
+     98|   const f = await fixture();
+     99|   expect((await f.get('owner', { ...f.target, versionId: 'outro' })).s…
+       |                                                                                  ^
+    100|   expect((await f.validate({ ...f.target, proposal: f.proposal, contex…
+    101|   expect((await f.validate({ ...f.target, proposal: { ...f.proposal, c…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > recusa versão corrente alterada mesmo preservando a versão entregue
+AssertionError: expected 404 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:109:38
+    107|     expectedCurrentVersionId: f.target.versionId, sections: [{ title: …
+    108|       linkedFactIds: [], linkedEvidenceIds: [], linkedThesisIds: [] }]…
+    109|   expect((await f.get()).statusCode).toBe(409); expect((await f.valida…
+       |                                      ^
+    110| });
+    111| it('recusa revisão de contexto posterior', async () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > recusa revisão de contexto posterior
+AssertionError: expected 404 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:114:38
+    112|   const f = await fixture();
+    113|   await f.workspace.reviseContext(f.owner, f.conversation.id, 1, { ...…
+    114|   expect((await f.get()).statusCode).toBe(409);
+       |                                      ^
+    115| });
+    116| it.each(['checkpoint', 'unfinished', 'draft-text', 'draft-hash', 'sour…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > falha fechado para unfinished
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > falha fechado para draft-text
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > falha fechado para draft-hash
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > falha fechado para source-missing
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > falha fechado para source-text
+AssertionError: expected 404 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:129:40
+    127|       await f.client.execute({ sql: 'UPDATE agentic_executions SET pay…
+    128|     }
+    129|     expect((await f.get()).statusCode).toBe(mode === 'checkpoint' ? 40…
+       |                                        ^
+    130|     expect(f.provider).not.toHaveBeenCalled();
+    131|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  13 failed | 3 passed (16)
+   Start at  10:01:05
+   Duration  13.28s (transform 2.81s, setup 0ms, import 6.68s, tests 5.86s, environment 0ms)
+

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "scenario": "V2-MULTI",
+  "block": "RESIDUAL_EDITORIAL_REQUIREMENT",
+  "decision": "ACCEPTED_AS_COVERED_BY_PREVIOUS_PASSAGES",
+  "evaluator": "Boni",
+  "userStatement": "concordo",
+  "approvalContext": "Consider the residual editorial requirement satisfied by previously accepted individualization and limitation passages, retain its reference in the assessment record, and add no repetitive paragraph.",
+  "recordedAt": "2026-11-04T19:25:52.812681+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-multi-consolidation/V2-MULTI.derived.json",
+  "sourceSha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5",
+  "acceptedOriginalRequirement": {
+    "id": "36d893ac97:r4",
+    "kind": "EDITORIAL",
+    "statement": "Acrescentar à revisão: “O recorte contratual descreve dois equipamentos por gênero e quantidade, mas não atribui a escolha. As alternativas de individualização permanecem condicionais. A análise utiliza apenas excertos e relatos fictícios selecionados, sem exame integral do contrato, comprovação dos fatos ou pesquisa jurisprudencial.”",
+    "sourceIds": [
+      "context",
+      "V2-MULTI/contrato@v1#p1",
+      "CPC-498"
+    ],
+    "verified": false
+  },
+  "coveredBy": {
+    "requirementIds": [
+      "3dedd4e1b8:r2",
+      "3dedd4e1b8:r3",
+      "156f284522:r3"
+    ],
+    "assessmentRecords": [
+      "V2-MULTI-03-individualization.json",
+      "V2-MULTI-04-limitations.json"
+    ]
+  },
+  "additionalParagraph": false,
+  "appliedToOriginal": false,
+  "wholeDeliveryAssessment": "PENDING",
+  "remainingScope": "Claims and findings remain to be assessed; this decision does not approve the whole delivery.",
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

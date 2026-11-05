@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "bindingHash": "5b357471db86a8ffce59d291dc310964e8c87b59a615597b1496621557c6948e",
+  "contractHash": "8847855772466938a857ef45471c4bab12d2b1b46d4660f343377cdd49abc3e3",
+  "previousDeliveryIds": [],
+  "outputs": {},
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.1.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.1.0"
+    }
+  ],
+  "toolCount": 2,
+  "researchOperations": [],
+  "findings": [],
+  "plan": {
+    "action": "create_document",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "documentPurpose": "LEGAL_DOCUMENT",
+    "documentType": "Minuta de manifestação civil sobre solicitação de entrega imediata de equipamentos, limitada ao corpus selecionado, com lacunas expressas e sem presumir modalidade processual não informada.",
+    "issues": [
+      {
+        "id": "escopo-editorial",
+        "statement": "kind: EDITORIAL. Redigir minuta limitada às fontes recuperadas; preservar natureza fictícia dos dados, explicitar ausência de fontes e marcar campos não informados, sem inventar qualificação, juízo, número processual ou prazo. Não pesquisar fontes externas nem acrescentar jurisprudência. Entrega limitada, sujeita a revisão humana, sem aprovação da pretensão.",
+        "sourceIds": [
+          "context",
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ]
+      },
+      {
+        "id": "base-factual",
+        "statement": "kind: EDITORIAL. Atribuir ao trecho contratual a obrigação de Brisa entregar dois equipamentos à Aurora em 15/10/2026 e ao pedido a solicitação de entrega imediata em 18/10/2026. Não tratar a solicitação, isoladamente, como prova de não entrega ou inadimplemento; não afirmar paralisação ou prejuízo concreto.",
+        "sourceIds": [
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1",
+          "context"
+        ]
+      },
+      {
+        "id": "requisitos-urgencia",
+        "statement": "kind: PROCEDURAL. Examinar eventual entrega imediata sob o art. 300 exclusivamente conforme o excerto disponível: distinguir probabilidade do direito, perigo de dano ou risco ao resultado útil e perigo de irreversibilidade dos efeitos. O contrato fornece elemento sobre a obrigação, mas não demonstra por si todos os pressupostos. Não deduzir urgência do simples decurso da data de entrega, nem reversibilidade do silêncio documental; explicitar insuficiência do corpus para afirmar preenchimento integral dos requisitos.",
+        "sourceIds": [
+          "CPC-300",
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1",
+          "context"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "perigo-concreto",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Marcar na minuta: [não informadas nem documentadas as consequências concretas da demora e o perigo de dano ou risco ao resultado útil].",
+        "reason": "Entrega limitada: não há suporte para afirmar urgência; ausência de prova não equivale à inexistência de risco.",
+        "sourceIds": [
+          "context",
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ],
+        "options": []
+      },
+      {
+        "key": "reversibilidade",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Marcar na minuta: [não informadas as condições de reversibilidade dos efeitos da entrega imediata].",
+        "reason": "Não é possível avaliar o obstáculo previsto no § 3º do art. 300 apenas com o material selecionado.",
+        "sourceIds": [
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ],
+        "options": []
+      },
+      {
+        "key": "situacao-entrega",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Marcar na minuta: [não consta confirmação documental da não entrega, da situação atual de cumprimento ou de eventual entrega parcial].",
+        "reason": "A obrigação contratual e a solicitação posterior não autorizam confirmar inadimplemento ou situação atual.",
+        "sourceIds": [
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1"
+        ],
+        "options": []
+      },
+      {
+        "key": "dados-processuais",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Usar campos [não informado] para juízo, número do processo, qualificação completa, fase processual e eventual prazo aplicável; não escolher modalidade específica de manifestação sem suporte.",
+        "reason": "O corpus menciona ação civil, mas não fornece os dados necessários à individualização e adequação processual definitiva da peça.",
+        "sourceIds": [
+          "context"
+        ],
+        "options": []
+      }
+    ]
+  }
+}

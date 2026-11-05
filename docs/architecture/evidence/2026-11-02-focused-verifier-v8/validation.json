@@ -1,0 +1,79 @@
+{
+  "timestamp": "2026-11-03T01:09:27.204Z",
+  "branch": "codex/forgelex-3-quality",
+  "head": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "paidModelCalls": 0,
+  "deploy": false,
+  "commit": false,
+  "push": false,
+  "replay": {
+    "legacyReservationMicroUsd": 182612,
+    "candidateReservationsMicroUsd": [
+      137688
+    ],
+    "initialSpentMicroUsd": 100930,
+    "capMicroUsd": 250000,
+    "paidModelCalls": 0,
+    "syntheticVerifierCalls": 1,
+    "requestBytes": 25206
+  },
+  "focusedTests": {
+    "passed": 181,
+    "files": 11
+  },
+  "fullSuite": {
+    "passed": 1610,
+    "failed": 11,
+    "skipped": 17,
+    "files": 234
+  },
+  "followup": {
+    "billingTestsPassed": 10,
+    "reason": "Empty test-process database URL removed; no product change",
+    "remainingFailure": "closed-pilot.test.ts:510; expected 2 calls, received 1; reproduced against pre-change v7 snapshot"
+  },
+  "checks": {
+    "build": "passed",
+    "apiTypecheck": "passed",
+    "changedCodeLint": "passed",
+    "diffCheck": "passed"
+  },
+  "preserved": {
+    "previousFilesUnchanged": 1207,
+    "protectedFilesUnchanged": 353,
+    "financialLimits": true,
+    "otherRoleInstructions": true,
+    "previousPaidEvidence": true
+  },
+  "changedExistingFiles": [
+    "CONTINUIDADE.md",
+    "PENDENCIAS.md",
+    "packages/legal-workflows/src/agentic-case-task/evidence-analysis.test.ts",
+    "packages/legal-workflows/src/agentic-case-task/case-task.ts",
+    "packages/legal-workflows/src/agentic-case-task/bounded-handoff.test.ts",
+    "packages/legal-workflows/src/agentic-case-task/approved-case-context.test.ts",
+    "packages/legal-workflows/src/agentic-case-task/adaptive-graph.test.ts",
+    "packages/legal-agents/src/index.ts"
+  ],
+  "codeHashes": {
+    "packages/legal-workflows/src/agentic-case-task/evidence-analysis.test.ts": "74037d35709d946d9bd1713aced0a55318166e77e1f625eec49a13d796047365",
+    "packages/legal-workflows/src/agentic-case-task/case-task.ts": "66ce83beb2c2bc8ea3ca4e6547daf01e5586b7353faeb263e53aa899506361f0",
+    "packages/legal-workflows/src/agentic-case-task/bounded-handoff.test.ts": "a5dbbdf638dd3fd7fb134822dce8a63ae9f0f9011e1cc107a5dc22f233887e5a",
+    "packages/legal-workflows/src/agentic-case-task/approved-case-context.test.ts": "3f9c9dc2e03085cc0a559bdf80350b754026781890850192225566ce9f8ab611",
+    "packages/legal-workflows/src/agentic-case-task/adaptive-graph.test.ts": "3187f09aaeb98f3715e770a7367c11441927728621a80747e29dd235fffcabcd",
+    "packages/legal-agents/src/index.ts": "7f62ce887d56c295c9f2ec14a5d7777924f3eb2e21657b95347ed0f70dbef3b5",
+    "packages/legal-agents/src/agentic-focused-verifier.ts": "59de0de978800c62801dd18a14f8b51894f758a1bf9bcb976008b9600c4787c0",
+    "packages/legal-workflows/src/agentic-case-task/verifier-context.ts": "925a34a2e528e94e53f76cced67b2cdafff268d66af5b0eab2abd7c97685042f",
+    "apps/api/src/agentic-workspace/verifier-budget.test.ts": "35f914bd99fe673ff4d825636b15c00521928d6b92340335fd631fb08288c163"
+  },
+  "artifactHashes": {
+    "billing-tests.log": "1f7805969a645190c83d50005cfcf23ea3295c17a3831c17a3a3e7fb09f6c874",
+    "budget-replay.json": "a4f9eb807a0b9881a7d3e3557b806ed8c7067be2ee633265b65a12f3a9887f86",
+    "full-suite.log": "d18164050928c88a1bdc338c0aa8e32d13e76af4cb04bbfeef28b8cb3b98da16",
+    "v7-existing-test-failure.log": "54649a73f56e01c68eba7c295c90e3e0661e353afc7efa85881d4778674d85c7"
+  },
+  "limitations": [
+    "Only replayed outputs and synthetic verifier response; no real-model measurement",
+    "Historical v7 checkpoint unchanged and still subject to its original reserve"
+  ]
+}

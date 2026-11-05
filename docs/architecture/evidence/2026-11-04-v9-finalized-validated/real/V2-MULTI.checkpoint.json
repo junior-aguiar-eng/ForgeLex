@@ -1,0 +1,951 @@
+{
+  "bindingHash": "673188c8bece1638cae7313f41c7f017795b8068ce437f1185d07d4d29d28532",
+  "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+  "previousDeliveryIds": [],
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.10.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "matter-analyst",
+      "version": "1.10.0",
+      "instructionId": "matter-analyst-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "matter-analyst",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "procedural-advisor",
+      "version": "1.10.0",
+      "instructionId": "procedural-advisor-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "adversarial-reviewer",
+      "version": "1.10.0",
+      "instructionId": "text-reviewer-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "adversarial-reviewer",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "authority-verifier",
+      "version": "1.10.0",
+      "instructionId": "authority-verifier-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "authority-verifier",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    }
+  ],
+  "toolCount": 5,
+  "researchOperations": [],
+  "findings": [
+    {
+      "id": "CAPABILITY_UNAVAILABLE:c627c859a95a69d3",
+      "code": "CAPABILITY_UNAVAILABLE",
+      "severity": "BLOCKING",
+      "statement": "A capacidade de pesquisa solicitada não dispõe das ferramentas necessárias neste trabalho.",
+      "sourceIds": []
+    }
+  ],
+  "plan": {
+    "action": "review_text",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "issues": [
+      {
+        "id": "i1",
+        "statement": "EDITORIAL: revisar as duas afirmações do rascunho, propondo redação substitutiva e mantendo expressas as limitações; usar exclusivamente o corpus fechado, sem presumir fatos ou suprir fontes ausentes.",
+        "sourceIds": [
+          "draft",
+          "context"
+        ]
+      },
+      {
+        "id": "i2",
+        "statement": "PROCEDURAL: confrontar a afirmação de concessão automática pelo art. 498 com o objeto desse dispositivo e os requisitos do art. 300, inclusive reversibilidade. Separar atraso relatado de demonstração de perigo concreto; não concluir pela concessão de urgência nem pela comprovação de seus requisitos.",
+        "sourceIds": [
+          "draft",
+          "CPC-498",
+          "CPC-300",
+          "V2-MULTI/mensagem@v1#p1"
+        ]
+      },
+      {
+        "id": "i3",
+        "statement": "PROCEDURAL: revisar a afirmação de caução sempre obrigatória à luz da faculdade judicial e da possibilidade de dispensa previstas no art. 300, § 1º, sem presumir hipossuficiência ou decisão judicial no caso.",
+        "sourceIds": [
+          "draft",
+          "CPC-300-P1"
+        ]
+      },
+      {
+        "id": "i4",
+        "statement": "PROCEDURAL: examinar separadamente a individualização dos dois equipamentos por gênero e quantidade e as alternativas do art. 498 conforme a titularidade da escolha. Não atribuir a escolha a qualquer parte: o corpus não contém cláusula nem fonte adicional que resolva a questão.",
+        "sourceIds": [
+          "CPC-498",
+          "V2-MULTI/contrato@v1#p1",
+          "context"
+        ]
+      },
+      {
+        "id": "i5",
+        "statement": "EDITORIAL: explicitar que a revisão se limita aos excertos selecionados e a relatos fictícios; não afirmar exame integral do contrato, comprovação dos fatos ou pesquisa de jurisprudência. Distinguir correções sustentadas pelos excertos de questões não resolvidas pelo corpus.",
+        "sourceIds": [
+          "context",
+          "draft",
+          "CPC-300",
+          "CPC-300-P1",
+          "CPC-498",
+          "V2-MULTI/contrato@v1#p1",
+          "V2-MULTI/mensagem@v1#p1"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "perigo",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "A revisão deve registrar que não foram apresentados elementos sobre consequências concretas da demora ou reversibilidade da medida.",
+        "reason": "O corpus relata indisponibilidade, mas não demonstra perigo concreto nem esclarece a reversibilidade; isso limita a avaliação da urgência, sem impedir a correção do rascunho.",
+        "sourceIds": [
+          "context",
+          "V2-MULTI/mensagem@v1#p1",
+          "CPC-300"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      },
+      {
+        "key": "escolha",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "A revisão deve apresentar as alternativas de individualização sem definir quem tem o direito de escolher os equipamentos.",
+        "reason": "O contrato selecionado não atribui a escolha e o corpus normativo não resolve sua titularidade na ausência de cláusula; fica limitada a indicação de quem deve individualizar, não a revisão das afirmações existentes.",
+        "sourceIds": [
+          "V2-MULTI/contrato@v1#p1",
+          "CPC-498"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      }
+    ]
+  },
+  "version": 9,
+  "outputs": {
+    "matter-analyst": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4",
+        "i5"
+      ],
+      "claims": [
+        {
+          "id": "3dedd4e1b8:c1",
+          "classification": "DOCUMENT_RECORD",
+          "statement": "Fornecimento de dois equipamentos por gênero e quantidade; não consta cláusula de escolha.",
+          "sourceIds": [
+            "V2-MULTI/contrato@v1#p1"
+          ]
+        },
+        {
+          "id": "3dedd4e1b8:c2",
+          "classification": "DOCUMENT_RECORD",
+          "statement": "O equipamento ainda não foi disponibilizado; não há descrição de consequência concreta da demora.",
+          "sourceIds": [
+            "V2-MULTI/mensagem@v1#p1"
+          ]
+        },
+        {
+          "id": "3dedd4e1b8:c3",
+          "classification": "INFERENCE",
+          "statement": "O art. 498 disciplina a tutela específica de entrega, o prazo judicial de cumprimento e a individualização; não estabelece concessão automática de urgência por atraso. O art. 300 exige probabilidade do direito e perigo de dano ou risco ao resultado útil, e seu § 3º impede tutela antecipada quando houver perigo de irreversibilidade dos efeitos.",
+          "sourceIds": [
+            "CPC-498",
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "3dedd4e1b8:c4",
+          "classification": "INFERENCE",
+          "statement": "O art. 300, § 1º, prevê faculdade judicial de exigir caução e possibilidade de dispensa quando a parte economicamente hipossuficiente não puder oferecê-la, não uma obrigação invariável.",
+          "sourceIds": [
+            "CPC-300-P1"
+          ]
+        },
+        {
+          "id": "3dedd4e1b8:c5",
+          "classification": "INFERENCE",
+          "statement": "Pelo art. 498, parágrafo único, o autor individualiza a coisa na inicial se lhe couber a escolha; se a escolha couber ao réu, este a entrega individualizada no prazo judicial. O excerto contratual não permite definir a titularidade da escolha dos dois equipamentos.",
+          "sourceIds": [
+            "CPC-498",
+            "V2-MULTI/contrato@v1#p1"
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "3dedd4e1b8:r1",
+          "kind": "EDITORIAL",
+          "statement": "Propor substituir as duas frases por: “O art. 498 disciplina a tutela específica de entrega de coisa, não tornando automática a tutela de urgência pelo atraso. Esta depende dos requisitos do art. 300, observada a vedação do § 3º quanto ao perigo de irreversibilidade da tutela antecipada. O relato de indisponibilidade não demonstra, por si, perigo concreto; o material não esclarece a reversibilidade nem permite concluir pelo preenchimento dos requisitos ou pela concessão. A caução pode ser exigida pelo juiz, conforme o caso, e pode ser dispensada nas condições do art. 300, § 1º, sem que o corpus permita presumir hipossuficiência ou decisão judicial a respeito.” Submeter a redação à revisão humana.",
+          "sourceIds": [
+            "draft",
+            "CPC-498",
+            "CPC-300",
+            "CPC-300-P1",
+            "context",
+            "V2-MULTI/mensagem@v1#p1"
+          ],
+          "verified": false
+        },
+        {
+          "id": "3dedd4e1b8:r2",
+          "kind": "EDITORIAL",
+          "statement": "Acrescentar: “Quanto aos dois equipamentos descritos por gênero e quantidade, se a escolha couber ao autor, caberá a ele individualizá-los na inicial; se couber ao réu, este os entregará individualizados no prazo judicial. O recorte contratual não contém cláusula de escolha e as fontes selecionadas não resolvem sua titularidade; nenhuma das alternativas pode ser adotada como fato do caso.”",
+          "sourceIds": [
+            "CPC-498",
+            "V2-MULTI/contrato@v1#p1",
+            "context"
+          ],
+          "verified": false
+        },
+        {
+          "id": "3dedd4e1b8:r3",
+          "kind": "EDITORIAL",
+          "statement": "Registrar que a revisão utiliza exclusivamente o corpus fechado de excertos e relatos fictícios, sem exame integral do contrato, autenticação documental, comprovação dos fatos ou pesquisa de jurisprudência. Permanecem sem solução a titularidade da escolha, as consequências concretas da demora e a reversibilidade.",
+          "sourceIds": [
+            "context",
+            "V2-MULTI/contrato@v1#p1",
+            "V2-MULTI/mensagem@v1#p1"
+          ],
+          "verified": false
+        }
+      ],
+      "findings": [
+        {
+          "id": "3dedd4e1b8:f1",
+          "code": "AUTOMATISMO_INDEVIDO",
+          "severity": "WARNING",
+          "statement": "A primeira frase do rascunho atribui ao art. 498 concessão automática de urgência por atraso, confundindo a disciplina da entrega com os requisitos do art. 300. O relato de indisponibilidade não supre a lacuna sobre perigo concreto e reversibilidade.",
+          "sourceIds": [
+            "draft",
+            "CPC-498",
+            "CPC-300",
+            "V2-MULTI/mensagem@v1#p1",
+            "context"
+          ]
+        },
+        {
+          "id": "3dedd4e1b8:f2",
+          "code": "CAUCAO_GENERALIZADA",
+          "severity": "WARNING",
+          "statement": "A segunda frase do rascunho transforma a faculdade de exigir caução em obrigação absoluta e omite a possibilidade de dispensa prevista no excerto. Não há dados sobre hipossuficiência ou decisão judicial no caso.",
+          "sourceIds": [
+            "draft",
+            "CPC-300-P1",
+            "context"
+          ]
+        },
+        {
+          "id": "3dedd4e1b8:f3",
+          "code": "ESCOLHA_NAO_DEFINIDA",
+          "severity": "WARNING",
+          "statement": "A ausência de cláusula no recorte contratual limita a indicação de quem individualizará os equipamentos. A aplicação concreta das alternativas do art. 498 permanece em aberto; não se presume regra supletiva ausente do corpus.",
+          "sourceIds": [
+            "V2-MULTI/contrato@v1#p1",
+            "CPC-498",
+            "context"
+          ]
+        }
+      ],
+      "supportChecks": []
+    },
+    "procedural-advisor": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4",
+        "i5"
+      ],
+      "claims": [
+        {
+          "id": "36d893ac97:p1",
+          "classification": "INFERENCE",
+          "statement": "No excerto, o art. 498 disciplina tutela específica de entrega e prazo judicial de cumprimento, sem prever concessão automática de urgência pelo atraso.",
+          "sourceIds": [
+            "CPC-498"
+          ]
+        },
+        {
+          "id": "36d893ac97:p2",
+          "classification": "INFERENCE",
+          "statement": "O art. 300 fornecido exige elementos de probabilidade do direito e perigo de dano ou risco ao resultado útil; seu § 3º veda tutela antecipada quando houver perigo de irreversibilidade dos efeitos.",
+          "sourceIds": [
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "36d893ac97:p3",
+          "classification": "INFERENCE",
+          "statement": "Segundo o § 1º fornecido, a exigência de caução é faculdade judicial conforme o caso; há possibilidade de dispensa se a parte economicamente hipossuficiente não puder oferecê-la.",
+          "sourceIds": [
+            "CPC-300-P1"
+          ]
+        },
+        {
+          "id": "36d893ac97:p4",
+          "classification": "INFERENCE",
+          "statement": "Pelo parágrafo único do art. 498 fornecido, se a escolha couber ao autor, ele individualizará a coisa na inicial; se couber ao réu, este a entregará individualizada no prazo judicial.",
+          "sourceIds": [
+            "CPC-498"
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "36d893ac97:r1",
+          "kind": "EDITORIAL",
+          "statement": "Substituição proposta, sujeita à revisão humana: “O art. 498 disciplina a tutela específica de entrega de coisa e não torna automática a tutela de urgência pelo atraso. A urgência depende dos requisitos do art. 300, observada a vedação à tutela antecipada quando houver perigo de irreversibilidade dos efeitos. O relato de indisponibilidade não demonstra, por si, perigo concreto; faltam elementos sobre consequências da demora e reversibilidade. Não se conclui pelo preenchimento dos requisitos nem pela concessão. A caução pode ser exigida conforme o caso e dispensada nas condições do § 1º, sem presumir hipossuficiência ou decisão judicial neste caso.”",
+          "sourceIds": [
+            "draft",
+            "CPC-498",
+            "CPC-300",
+            "CPC-300-P1",
+            "V2-MULTI/mensagem@v1#p1",
+            "context"
+          ],
+          "verified": false
+        },
+        {
+          "id": "36d893ac97:r2",
+          "kind": "PROCEDURAL",
+          "statement": "Para eventual pedido de urgência, avaliar separadamente probabilidade do direito, perigo de dano ou risco ao resultado útil e, para tutela antecipada, perigo de irreversibilidade, conforme o art. 300 e § 3º, versão identificada como 2026-11-02. O corpus não permite verificar seu atendimento no caso.",
+          "sourceIds": [
+            "CPC-300",
+            "context",
+            "V2-MULTI/mensagem@v1#p1"
+          ],
+          "verified": false
+        },
+        {
+          "id": "36d893ac97:r3",
+          "kind": "PROCEDURAL",
+          "statement": "Na individualização dos dois equipamentos, manter condicionadas as alternativas do art. 498, parágrafo único, versão identificada como 2026-11-03: autor na inicial se a escolha lhe couber; réu na entrega, no prazo judicial, se lhe couber. Não definir o responsável sem esclarecimento da titularidade da escolha.",
+          "sourceIds": [
+            "CPC-498",
+            "V2-MULTI/contrato@v1#p1"
+          ],
+          "verified": false
+        },
+        {
+          "id": "36d893ac97:r4",
+          "kind": "EDITORIAL",
+          "statement": "Acrescentar à revisão: “O recorte contratual descreve dois equipamentos por gênero e quantidade, mas não atribui a escolha. As alternativas de individualização permanecem condicionais. A análise utiliza apenas excertos e relatos fictícios selecionados, sem exame integral do contrato, comprovação dos fatos ou pesquisa jurisprudencial.”",
+          "sourceIds": [
+            "context",
+            "V2-MULTI/contrato@v1#p1",
+            "CPC-498"
+          ],
+          "verified": false
+        }
+      ],
+      "findings": [
+        {
+          "id": "36d893ac97:f1",
+          "code": "LIMITES_URGENCIA",
+          "severity": "WARNING",
+          "statement": "A afirmação de urgência automática no rascunho não encontra respaldo nos excertos. Faltam consequências concretas da demora e elementos sobre reversibilidade; a indisponibilidade relatada não resolve essas lacunas.",
+          "sourceIds": [
+            "draft",
+            "CPC-498",
+            "CPC-300",
+            "context",
+            "V2-MULTI/mensagem@v1#p1"
+          ]
+        },
+        {
+          "id": "36d893ac97:f2",
+          "code": "CAUCAO_NAO_ABSOLUTA",
+          "severity": "WARNING",
+          "statement": "“A caução é sempre obrigatória” contraria a faculdade e a possibilidade de dispensa descritas no § 1º fornecido. Não há base no corpus para afirmar hipossuficiência ou decisão judicial sobre caução.",
+          "sourceIds": [
+            "draft",
+            "CPC-300-P1",
+            "context"
+          ]
+        },
+        {
+          "id": "36d893ac97:f3",
+          "code": "ESCOLHA_EM_ABERTO",
+          "severity": "WARNING",
+          "statement": "O recorte contratual não atribui a escolha e as fontes selecionadas não resolvem sua titularidade; não é possível selecionar uma das alternativas de individualização nem presumir regra supletiva.",
+          "sourceIds": [
+            "V2-MULTI/contrato@v1#p1",
+            "CPC-498",
+            "context"
+          ]
+        },
+        {
+          "id": "36d893ac97:f4",
+          "code": "LIMITES_NORMATIVOS_E_PRAZO",
+          "severity": "WARNING",
+          "statement": "A análise confronta apenas os excertos normativos fornecidos, cujas versões estão identificadas como 2026-11-02 e 2026-11-03; não houve verificação independente de vigência nem avaliação completa da aplicabilidade. O art. 498 remete a prazo fixado pelo juiz: não há decisão, marco inicial ou calendário verificados para calcular termo final.",
+          "sourceIds": [
+            "CPC-300",
+            "CPC-300-P1",
+            "CPC-498"
+          ]
+        }
+      ],
+      "supportChecks": []
+    },
+    "adversarial-reviewer": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4",
+        "i5"
+      ],
+      "claims": [
+        {
+          "id": "36d893ac97:p1",
+          "classification": "INFERENCE",
+          "statement": "No excerto, o art. 498 disciplina tutela específica de entrega e prazo judicial de cumprimento, sem prever concessão automática de urgência pelo atraso.",
+          "sourceIds": [
+            "CPC-498"
+          ]
+        },
+        {
+          "id": "36d893ac97:p2",
+          "classification": "INFERENCE",
+          "statement": "O art. 300 fornecido exige elementos de probabilidade do direito e perigo de dano ou risco ao resultado útil; seu § 3º veda tutela antecipada quando houver perigo de irreversibilidade dos efeitos.",
+          "sourceIds": [
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "36d893ac97:p3",
+          "classification": "INFERENCE",
+          "statement": "Segundo o § 1º fornecido, a exigência de caução é faculdade judicial conforme o caso; há possibilidade de dispensa se a parte economicamente hipossuficiente não puder oferecê-la.",
+          "sourceIds": [
+            "CPC-300-P1"
+          ]
+        },
+        {
+          "id": "36d893ac97:p4",
+          "classification": "INFERENCE",
+          "statement": "Pelo parágrafo único do art. 498 fornecido, se a escolha couber ao autor, ele individualizará a coisa na inicial; se couber ao réu, este a entregará individualizada no prazo judicial.",
+          "sourceIds": [
+            "CPC-498"
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "156f284522:r1",
+          "kind": "EDITORIAL",
+          "statement": "Proposta de substituição das duas frases, pendente de revisão humana: “O art. 498 disciplina a tutela específica de entrega de coisa, sem tornar automática a tutela de urgência pelo atraso. Esta depende dos requisitos do art. 300, observada, na tutela antecipada, a vedação quando houver perigo de irreversibilidade dos efeitos. O relato de indisponibilidade não demonstra, por si, perigo concreto, e o material não esclarece a reversibilidade; não se conclui pelo preenchimento dos requisitos nem pela concessão. A caução pode ser exigida pelo juiz conforme o caso e dispensada nas condições do art. 300, § 1º, sem presumir hipossuficiência ou decisão judicial neste caso.”",
+          "sourceIds": [
+            "draft",
+            "CPC-498",
+            "CPC-300",
+            "CPC-300-P1",
+            "V2-MULTI/mensagem@v1#p1",
+            "context"
+          ],
+          "verified": false
+        },
+        {
+          "id": "156f284522:r2",
+          "kind": "EDITORIAL",
+          "statement": "Propor complemento: “Para os dois equipamentos descritos por gênero e quantidade, o autor os individualizará na inicial se lhe couber a escolha; se couber ao réu, este os entregará individualizados no prazo judicial. O recorte contratual não contém cláusula de escolha, e o corpus não resolve sua titularidade: ambas as alternativas permanecem condicionais.”",
+          "sourceIds": [
+            "CPC-498",
+            "V2-MULTI/contrato@v1#p1",
+            "context"
+          ],
+          "verified": false
+        },
+        {
+          "id": "156f284522:r3",
+          "kind": "EDITORIAL",
+          "statement": "Incluir ressalva de que a revisão do rascunho v1 abrange exclusivamente os excertos selecionados e relatos fictícios, sem exame integral do contrato, comprovação dos fatos, pesquisa jurisprudencial ou verificação independente de vigência. Não apresentar estas observações como aprovação jurídica da minuta.",
+          "sourceIds": [
+            "draft",
+            "context",
+            "V2-MULTI/contrato@v1#p1",
+            "V2-MULTI/mensagem@v1#p1",
+            "CPC-300",
+            "CPC-300-P1",
+            "CPC-498"
+          ],
+          "verified": false
+        }
+      ],
+      "findings": [
+        {
+          "id": "156f284522:f1",
+          "code": "SALTO_ENTRE_ENTREGA_E_URGENCIA",
+          "severity": "WARNING",
+          "statement": "Na primeira frase do rascunho v1, a disciplina da entrega do art. 498 é tomada como fundamento suficiente para urgência automática. A objeção é que o art. 300 exige requisitos próprios: a indisponibilidade relatada não demonstra, por si, perigo concreto. Faltam consequências concretas da demora e elementos sobre reversibilidade; tampouco se confirma a probabilidade do direito apenas com esta revisão.",
+          "sourceIds": [
+            "draft",
+            "CPC-498",
+            "CPC-300",
+            "V2-MULTI/mensagem@v1#p1",
+            "context"
+          ]
+        },
+        {
+          "id": "156f284522:f2",
+          "code": "CAUCAO_ABSOLUTIZADA",
+          "severity": "WARNING",
+          "statement": "A segunda frase, “A caução é sempre obrigatória”, conflita com a faculdade judicial e a possibilidade de dispensa do § 1º selecionado. A correção não autoriza afirmar que haverá dispensa: o corpus não informa incapacidade de oferecê-la nem decisão judicial.",
+          "sourceIds": [
+            "draft",
+            "CPC-300-P1"
+          ]
+        },
+        {
+          "id": "156f284522:f3",
+          "code": "INDIVIDUALIZACAO_NAO_RESOLVIDA",
+          "severity": "WARNING",
+          "statement": "O rascunho não enfrenta a individualização dos dois equipamentos por gênero e quantidade. O art. 498 oferece alternativas dependentes da titularidade da escolha, mas o recorte contratual não a atribui. Essa lacuna impede indicar quem deve individualizar, não impede corrigir as duas afirmações existentes.",
+          "sourceIds": [
+            "draft",
+            "CPC-498",
+            "V2-MULTI/contrato@v1#p1",
+            "context"
+          ]
+        },
+        {
+          "id": "156f284522:f4",
+          "code": "LIMITE_DA_REVISAO",
+          "severity": "WARNING",
+          "statement": "A revisão é limitada ao rascunho identificado como v1 e às fontes selecionadas. Não há base para afirmar exame integral do contrato ou verdade dos relatos. Os excertos normativos permitem o confronto textual indicado, não uma conclusão completa sobre a concessão da medida no caso; não foi realizada pesquisa jurisprudencial nem verificação independente de vigência.",
+          "sourceIds": [
+            "draft",
+            "context",
+            "V2-MULTI/contrato@v1#p1",
+            "V2-MULTI/mensagem@v1#p1",
+            "CPC-300",
+            "CPC-300-P1",
+            "CPC-498"
+          ]
+        }
+      ],
+      "supportChecks": []
+    },
+    "authority-verifier": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4",
+        "i5"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [
+        {
+          "id": "13e659946d:f1",
+          "code": "SNAPSHOT_LIMIT",
+          "severity": "WARNING",
+          "statement": "Conferência limitada aos excertos identificados como OFFICIAL_EXCERPT, com URL do Senado: CPC-300 versão 2026-11-02; CPC-300-P1 e CPC-498 versões 2026-11-03. Esses metadados não demonstram vigência online, integralidade, aplicabilidade ao caso ou força vinculante. Não houve pesquisa jurisprudencial nem investigação de tratamento posterior.",
+          "sourceIds": [
+            "CPC-300",
+            "CPC-300-P1",
+            "CPC-498"
+          ]
+        },
+        {
+          "id": "13e659946d:f2",
+          "code": "COMPOSITE_SUPPORT",
+          "severity": "WARNING",
+          "statement": "As proposições c3 e c5 têm suporte dividido entre fontes: nenhum dos respectivos pares isolados sustenta a proposição inteira. A leitura conjunta não supre fatos ausentes nem determina a titularidade da escolha.",
+          "sourceIds": [
+            "CPC-498",
+            "CPC-300",
+            "V2-MULTI/contrato@v1#p1"
+          ]
+        },
+        {
+          "id": "13e659946d:f3",
+          "code": "CASE_LIMITATIONS",
+          "severity": "WARNING",
+          "statement": "O relato de indisponibilidade não demonstra perigo concreto; faltam elementos sobre consequências da demora e reversibilidade. O excerto contratual não resolve quem escolhe os equipamentos. Preservam-se essas limitações, sem concluir pela urgência, atribuir a escolha ou presumir hipossuficiência e decisão sobre caução. Os registros literais não comprovam autenticidade ou verdade dos fatos fictícios.",
+          "sourceIds": [
+            "V2-MULTI/mensagem@v1#p1",
+            "V2-MULTI/contrato@v1#p1",
+            "CPC-300",
+            "CPC-300-P1",
+            "CPC-498"
+          ]
+        }
+      ],
+      "supportChecks": [
+        {
+          "claimId": "3dedd4e1b8:c1",
+          "sourceId": "V2-MULTI/contrato@v1#p1",
+          "quote": "Fornecimento de dois equipamentos por gênero e quantidade; não consta cláusula de escolha.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "3dedd4e1b8:c2",
+          "sourceId": "V2-MULTI/mensagem@v1#p1",
+          "quote": "O equipamento ainda não foi disponibilizado; não há descrição de consequência concreta da demora.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "3dedd4e1b8:c3",
+          "sourceId": "CPC-498",
+          "quote": "Art. 498. Na ação que tenha por objeto a entrega de coisa, o juiz, ao conceder a tutela específica, fixará o prazo para o cumprimento da obrigação.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "3dedd4e1b8:c3",
+          "sourceId": "CPC-300",
+          "quote": "Art. 300. A tutela de urgência será concedida quando houver elementos que evidenciem a probabilidade do direito e o perigo de dano ou o risco ao resultado útil do processo. § 3º A tutela de urgência de natureza antecipada não será concedida quando houver perigo de irreversibilidade dos efeitos da decisão.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "3dedd4e1b8:c4",
+          "sourceId": "CPC-300-P1",
+          "quote": "§ 1º Para a concessão da tutela de urgência, o juiz pode, conforme o caso, exigir caução real ou fidejussória idônea para ressarcir os danos que a outra parte possa vir a sofrer, podendo a caução ser dispensada se a parte economicamente hipossuficiente não puder oferecê-la.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "3dedd4e1b8:c5",
+          "sourceId": "CPC-498",
+          "quote": "Parágrafo único. Tratando-se de entrega de coisa determinada pelo gênero e pela quantidade, o autor individualizá-la-á na petição inicial, se lhe couber a escolha, ou, se a escolha couber ao réu, este a entregará individualizada, no prazo fixado pelo juiz.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "3dedd4e1b8:c5",
+          "sourceId": "V2-MULTI/contrato@v1#p1",
+          "quote": "Fornecimento de dois equipamentos por gênero e quantidade; não consta cláusula de escolha.",
+          "assessment": "PARTIAL"
+        },
+        {
+          "claimId": "36d893ac97:p1",
+          "sourceId": "CPC-498",
+          "quote": "Art. 498. Na ação que tenha por objeto a entrega de coisa, o juiz, ao conceder a tutela específica, fixará o prazo para o cumprimento da obrigação.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "36d893ac97:p2",
+          "sourceId": "CPC-300",
+          "quote": "Art. 300. A tutela de urgência será concedida quando houver elementos que evidenciem a probabilidade do direito e o perigo de dano ou o risco ao resultado útil do processo. § 3º A tutela de urgência de natureza antecipada não será concedida quando houver perigo de irreversibilidade dos efeitos da decisão.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "36d893ac97:p3",
+          "sourceId": "CPC-300-P1",
+          "quote": "§ 1º Para a concessão da tutela de urgência, o juiz pode, conforme o caso, exigir caução real ou fidejussória idônea para ressarcir os danos que a outra parte possa vir a sofrer, podendo a caução ser dispensada se a parte economicamente hipossuficiente não puder oferecê-la.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "36d893ac97:p4",
+          "sourceId": "CPC-498",
+          "quote": "Parágrafo único. Tratando-se de entrega de coisa determinada pelo gênero e pela quantidade, o autor individualizá-la-á na petição inicial, se lhe couber a escolha, ou, se a escolha couber ao réu, este a entregará individualizada, no prazo fixado pelo juiz.",
+          "assessment": "SUPPORTED"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "version": 1,
+    "revision": 0,
+    "tools": [],
+    "failedTools": [],
+    "planHashes": [
+      "7d59e90d7c21c0b9a97971ada37c9456341013da4228a2751baf10ba178de755"
+    ],
+    "reviewRequired": false,
+    "nodes": [
+      {
+        "id": "matter-analyst:0",
+        "role": "matter-analyst",
+        "generation": 0,
+        "dependsOn": [],
+        "status": "COMPLETED",
+        "inputHash": "fcf3d7282da1fcece8294bfb61d90b123aee31fb567af8bc496842c0c21395e7",
+        "input": {
+          "bindingHash": "673188c8bece1638cae7313f41c7f017795b8068ce437f1185d07d4d29d28532",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "7d59e90d7c21c0b9a97971ada37c9456341013da4228a2751baf10ba178de755",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "134fcf64b70dd062fe39545de7be0d209d9d4cfc674e95c595d7568a088a5062"
+            },
+            {
+              "id": "V2-MULTI/contrato@v1#p1",
+              "contentHash": "bf5ce030fa5bd832985c61f925a2ed4f69e59eb7a04c8b73589426a52d9bcd45"
+            },
+            {
+              "id": "V2-MULTI/mensagem@v1#p1",
+              "contentHash": "4cac6fd74ebc78779648722876c62e3854066145004f50a931e6a8a79d8b95d6"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            },
+            {
+              "id": "draft",
+              "contentHash": "1a2392ede18e3802a5ec0e712929c070de8123cabdec1b87d015bf63834c93ed"
+            }
+          ],
+          "dependencies": [],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "fb280a94dc25c7719a6b30a7002e1efc6980b2bb242284010309e485327aa3d7",
+        "runIndex": 2
+      },
+      {
+        "id": "legal-researcher:0",
+        "role": "legal-researcher",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0"
+        ],
+        "status": "UNAVAILABLE"
+      },
+      {
+        "id": "procedural-advisor:0",
+        "role": "procedural-advisor",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "1a098a4ff201623096682fc1263ddc902df7f58ded941744813bdbb772cfc7c5",
+        "input": {
+          "bindingHash": "673188c8bece1638cae7313f41c7f017795b8068ce437f1185d07d4d29d28532",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "7d59e90d7c21c0b9a97971ada37c9456341013da4228a2751baf10ba178de755",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "134fcf64b70dd062fe39545de7be0d209d9d4cfc674e95c595d7568a088a5062"
+            },
+            {
+              "id": "V2-MULTI/contrato@v1#p1",
+              "contentHash": "bf5ce030fa5bd832985c61f925a2ed4f69e59eb7a04c8b73589426a52d9bcd45"
+            },
+            {
+              "id": "V2-MULTI/mensagem@v1#p1",
+              "contentHash": "4cac6fd74ebc78779648722876c62e3854066145004f50a931e6a8a79d8b95d6"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            },
+            {
+              "id": "draft",
+              "contentHash": "1a2392ede18e3802a5ec0e712929c070de8123cabdec1b87d015bf63834c93ed"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "fb280a94dc25c7719a6b30a7002e1efc6980b2bb242284010309e485327aa3d7"
+            },
+            {
+              "id": "legal-researcher:0",
+              "outputHash": null
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "6d630cccbaad9c17a8e1c49d31634150880be4b36031f0fdb4237eeea09ec35c",
+        "runIndex": 3
+      },
+      {
+        "id": "adversarial-reviewer:0",
+        "role": "adversarial-reviewer",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0",
+          "procedural-advisor:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "a9800e2a8fc28fdd090f76e68b0928796eae12115d2bf6183c70ddaed49645b5",
+        "input": {
+          "bindingHash": "673188c8bece1638cae7313f41c7f017795b8068ce437f1185d07d4d29d28532",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "7d59e90d7c21c0b9a97971ada37c9456341013da4228a2751baf10ba178de755",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "134fcf64b70dd062fe39545de7be0d209d9d4cfc674e95c595d7568a088a5062"
+            },
+            {
+              "id": "V2-MULTI/contrato@v1#p1",
+              "contentHash": "bf5ce030fa5bd832985c61f925a2ed4f69e59eb7a04c8b73589426a52d9bcd45"
+            },
+            {
+              "id": "V2-MULTI/mensagem@v1#p1",
+              "contentHash": "4cac6fd74ebc78779648722876c62e3854066145004f50a931e6a8a79d8b95d6"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            },
+            {
+              "id": "draft",
+              "contentHash": "1a2392ede18e3802a5ec0e712929c070de8123cabdec1b87d015bf63834c93ed"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "fb280a94dc25c7719a6b30a7002e1efc6980b2bb242284010309e485327aa3d7"
+            },
+            {
+              "id": "legal-researcher:0",
+              "outputHash": null
+            },
+            {
+              "id": "procedural-advisor:0",
+              "outputHash": "6d630cccbaad9c17a8e1c49d31634150880be4b36031f0fdb4237eeea09ec35c"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "5db48f820adbcbd1758f0d2c3b56e069758331d59b4048b3a581c53d49b4d965",
+        "runIndex": 4
+      },
+      {
+        "id": "authority-verifier:0",
+        "role": "authority-verifier",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0",
+          "procedural-advisor:0",
+          "adversarial-reviewer:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "09dda914832c2a7913a1d837cfa24b1a1b44288791307609e6b4636368d6a40b",
+        "input": {
+          "bindingHash": "673188c8bece1638cae7313f41c7f017795b8068ce437f1185d07d4d29d28532",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "7d59e90d7c21c0b9a97971ada37c9456341013da4228a2751baf10ba178de755",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "134fcf64b70dd062fe39545de7be0d209d9d4cfc674e95c595d7568a088a5062"
+            },
+            {
+              "id": "V2-MULTI/contrato@v1#p1",
+              "contentHash": "bf5ce030fa5bd832985c61f925a2ed4f69e59eb7a04c8b73589426a52d9bcd45"
+            },
+            {
+              "id": "V2-MULTI/mensagem@v1#p1",
+              "contentHash": "4cac6fd74ebc78779648722876c62e3854066145004f50a931e6a8a79d8b95d6"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            },
+            {
+              "id": "draft",
+              "contentHash": "1a2392ede18e3802a5ec0e712929c070de8123cabdec1b87d015bf63834c93ed"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "fb280a94dc25c7719a6b30a7002e1efc6980b2bb242284010309e485327aa3d7"
+            },
+            {
+              "id": "legal-researcher:0",
+              "outputHash": null
+            },
+            {
+              "id": "procedural-advisor:0",
+              "outputHash": "6d630cccbaad9c17a8e1c49d31634150880be4b36031f0fdb4237eeea09ec35c"
+            },
+            {
+              "id": "adversarial-reviewer:0",
+              "outputHash": "5db48f820adbcbd1758f0d2c3b56e069758331d59b4048b3a581c53d49b4d965"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "4777c3ddc143351ed1eda49881a0d940511d99d769098bf051ab66c65c89d029",
+        "runIndex": 5
+      }
+    ],
+    "archivedOutputs": {},
+    "decisions": [],
+    "stopReason": "COMPLETED"
+  }
+}

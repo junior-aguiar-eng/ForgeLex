@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-02",
+  "scope": "Preparação offline da avaliação final; sem alteração de código do produto",
+  "baseline": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "candidateSourceSha256": "534ee035d6b676d7c554970a85fd061fe0627149427a282f8f79b6100b2002b2",
+  "candidateFilesVerified": 754,
+  "baselineArchiveVerified": true,
+  "packetSha256": "cd04b54ee3a7224b02d6382f9a1967171c93260ad14d43f7050aaf024ed5dcff",
+  "scenarios": 60,
+  "exactControlsVerifiedPassed": 24,
+  "regression": {
+    "files": 8,
+    "passed": 86,
+    "failed": 0,
+    "command": "pnpm exec vitest run <8 arquivos listados em controlFiles> --maxWorkers=1 --reporter=default --reporter=json --outputFile=tmp/forgelex-final-evaluation-controls.json",
+    "skipped": 0,
+    "report": "tmp/forgelex-final-evaluation-controls.json"
+  },
+  "controlFiles": [
+    "apps/api/src/agentic-workspace/approved-case-context.test.ts",
+    "apps/api/src/agentic-workspace/commercial-provider.test.ts",
+    "apps/api/src/agentic-workspace/evidence-reapproval-routes.test.ts",
+    "apps/web/src/agentic-workspace/clean-presentation.test.ts",
+    "packages/legal-workflows/src/agentic-case-task/adaptive-graph.test.ts",
+    "packages/legal-workflows/src/agentic-case-task/evidence-analysis.test.ts",
+    "packages/persistence/src/repositories/evidence-reapproval.test.ts",
+    "packages/persistence/src/repositories/native-evidence-review.test.ts"
+  ],
+  "preparationTests": {
+    "exitCode": 0,
+    "failed": 0,
+    "passed": 4,
+    "command": "node --test scripts/forgelex-final-evaluation/prepare.test.mjs"
+  },
+  "lint": {
+    "command": "pnpm exec eslint scripts/forgelex-final-evaluation/*.mjs",
+    "exitCode": 0
+  },
+  "diffCheck": {
+    "command": "git diff --check",
+    "exitCode": 0
+  },
+  "paidModelCalls": 0,
+  "legalScores": null,
+  "approval": "pending",
+  "limits": [
+    "Estimativa baseada em hipóteses; consumo ainda não medido",
+    "Executor real e orçamento global ainda não implementados por esta preparação",
+    "Build completo e suíte completa não repetidos: alteração restrita a scripts offline e documentação",
+    "Sem commit, push ou deploy"
+  ]
+}

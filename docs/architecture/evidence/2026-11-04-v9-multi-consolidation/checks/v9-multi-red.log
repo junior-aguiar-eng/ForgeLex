@@ -1,0 +1,11 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ packages/legal-workflows/src/agentic-case-task/reviewed-delivery.test.ts (14 tests | 1 failed) 46ms
+   × shows one support warning per proposition with every failing source, preserving per-source assessments 10ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 passed (14)
+   Start at  15:10:18
+   Duration  1.26s (transform 368ms, setup 0ms, import 717ms, tests 46ms, environment 0ms)
+

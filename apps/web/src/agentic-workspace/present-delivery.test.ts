@@ -1,6 +1,63 @@
 import { describe, expect, it } from 'vitest';
 import type { Delivery } from './execution-model';
-import { presentDelivery } from './present-delivery';
+import { presentDelivery, deliveryPlainText } from './present-delivery';
+import { readFileSync } from 'node:fs';
+
+it('historical D01 already presents five issues without exposing scoped identifiers', () => {
+  const run = JSON.parse(
+    readFileSync('docs/architecture/evidence/2026-11-03-verifier-v8/real/D01-analyze-candidate.json', 'utf8'),
+  );
+  const view = presentDelivery(run.delivery),
+    text = deliveryPlainText(view);
+  expect(run.delivery.issues).toHaveLength(5);
+  for (const issue of run.delivery.issues) expect(text).toContain(issue.statement);
+  expect(text).not.toMatch(/0623a0beb6|fe5a1143d1/);
+});
+it('reviewed output separates corrections, questions, document fitness and integrity from technical audit', () => {
+  const d = base({
+    action: 'review_text',
+    claims: [
+      { id: 'opaque:c1', classification: 'DOCUMENT_RECORD', statement: 'Pagamento: não informado.', sourceIds: ['a'] },
+    ],
+    requirements: [
+      {
+        id: 'opaque:r1',
+        kind: 'EDITORIAL',
+        statement: 'Retirar conclusão de quitação.',
+        verified: false,
+        sourceIds: ['a'],
+      },
+    ] as any,
+    review: {
+      version: 1,
+      questions: [{ prompt: 'Qual é a pretensão?', reason: 'A finalidade não foi informada.', sourceIds: ['a'] }],
+      documentAssessments: [
+        {
+          sourceId: 'a',
+          aspects: [{ aspect: 'PARTIES', status: 'NOT_PROVIDED' }],
+          conclusion: 'O recorte não vincula o crédito ao devedor.',
+        },
+      ],
+      integrityAlerts: [
+        { kind: 'EMBEDDED_INSTRUCTION', statement: 'Conferir a origem do documento.', sourceIds: ['a'] },
+      ],
+      technicalFindings: [{ statement: 'CAPABILITY_UNAVAILABLE secret technical' }],
+    } as any,
+  });
+  const view = presentDelivery(d),
+    text = deliveryPlainText(view);
+  for (const title of [
+    'Correções propostas',
+    'Perguntas e lacunas',
+    'Aptidão dos documentos',
+    'Integridade dos documentos',
+  ])
+    expect(text).toContain(title);
+  expect(text).toContain('Registro documental');
+  expect(text).not.toMatch(/opaque:|CAPABILITY_UNAVAILABLE|Requisito de forma não verificado/);
+  expect(text.split('Retirar conclusão de quitação.')).toHaveLength(2);
+  expect(view.pending).not.toContain('Requisito não verificado: Retirar conclusão de quitação.');
+});
 
 const source = (id: string, kind = 'DOCUMENT') => ({ id, kind, contentHash: 'hash-' + id, versionId: 'v-' + id });
 const base = (parts: Partial<Delivery['delivery']>): Delivery['delivery'] => ({

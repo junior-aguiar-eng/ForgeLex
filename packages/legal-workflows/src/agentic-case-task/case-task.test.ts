@@ -65,6 +65,7 @@ function fixture(
     tools?: AgentTool<any, any>[];
     answers?: any[];
     text?: string;
+    sources?: any[];
     onRegistry?: (role: string, registry: any) => void;
   } = {},
 ) {
@@ -75,7 +76,9 @@ function fixture(
   const packet = {
     contextId: 'c',
     contextRevision: 1,
-    sources: [{ ...source, ...(options.text ? { text: options.text, contentHash: hash(options.text) } : {}) }],
+    sources: options.sources ?? [
+      { ...source, ...(options.text ? { text: options.text, contentHash: hash(options.text) } : {}) },
+    ],
     answers: options.answers ?? [],
   };
   const context = {
@@ -105,10 +108,11 @@ function fixture(
           thought: 'private-reasoning-not-stored',
           toolCall: {
             name: 'task.submit',
-            input: (role === 'legal-orchestrator' ? plan : (options.outputs?.[role] ?? empty)) as Record<
-              string,
-              unknown
-            >,
+            input: (role === 'legal-orchestrator'
+              ? plan
+              : typeof options.outputs?.[role] === 'function'
+                ? (options.outputs[role] as (packet: any) => unknown)(p)
+                : (options.outputs?.[role] ?? empty)) as Record<string, unknown>,
           },
         },
       ]);
@@ -137,8 +141,206 @@ function fixture(
   };
 }
 describe('orquestração jurídica interna com especialistas', () => {
+  it('entrega revisão com ressalva para a lacuna não impeditiva observada na calibração real', async () => {
+    const historical = JSON.parse(
+      readFileSync(
+        new URL(
+          '../../../../docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D03-review-candidate.checkpoint.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    );
+    const plan = {
+      ...historical.plan,
+      gaps: historical.plan.gaps.map((gap: any) => ({ ...gap, deliveryImpact: 'LIMITATION' })),
+    };
+    const ids = [...new Set<string>([...plan.issues, ...plan.gaps].flatMap((item: any) => item.sourceIds))];
+    const corpus = JSON.parse(
+      readFileSync(
+        new URL('../../../../docs/architecture/evidence/2026-11-02-final-evaluation/packet.json', import.meta.url),
+        'utf8',
+      ),
+    ).corpus;
+    const dossier = corpus.dossiers.find((d: any) => d.id === 'D03');
+    const textById = new Map<string, string>(
+      dossier.documents.map(([id, text]: string[]) => [`D03/${id}@v1#p1`, text]),
+    );
+    textById.set('draft', dossier.draft);
+    textById.set('context', dossier.context);
+    for (const s of corpus.sources) textById.set(s.id, s.text);
+    const sources = ids.map((id) => {
+      const text = textById.get(id)!;
+      expect(text).toBeTruthy();
+      return { ...source, id, text, contentHash: hash(text) };
+    });
+    const f = fixture(plan, {
+      sources,
+      outputs: {
+        'matter-analyst': { ...empty, coveredIssueIds: plan.issues.map((i: any) => i.id) },
+        'adversarial-reviewer': {
+          ...empty,
+          coveredIssueIds: plan.issues.map((i: any) => i.id),
+          findings: [
+            {
+              id: 'correction',
+              code: 'TEXT_CORRECTION',
+              severity: 'WARNING',
+              statement: 'Retirar a afirmação de pagamento: o anexo contém uma instrução, não comprovante de quitação.',
+              sourceIds: ids,
+            },
+          ],
+        },
+      },
+    });
+    const result = await f.finish({ ...binding, actionId: 'review_text' });
+    expect(result.kind).toBe('completed');
+    expect(f.roles).toContain('adversarial-reviewer');
+    expect(f.deliveries[0]).toMatchObject({ status: 'LIMITED', humanReviewRequired: true });
+    expect(f.deliveries[0].findings).toContainEqual(
+      expect.objectContaining({
+        code: 'DELIVERY_INFORMATION_LIMITED',
+        statement: plan.gaps[0].reason,
+        sourceIds: plan.gaps[0].sourceIds,
+      }),
+    );
+    expect(f.deliveries[0].findings).toContainEqual(expect.objectContaining({ code: 'TEXT_CORRECTION' }));
+    expect(f.packets.at(-1).plan.gaps[0].deliveryImpact).toBe('LIMITATION');
+  });
+  it.each(['BLOCKING', undefined])(
+    'preserva pergunta indispensável e padrão conservador: %s',
+    async (deliveryImpact) => {
+      const f = fixture({
+        ...basicPlan,
+        gaps: [
+          {
+            key: 'purpose',
+            kind: 'MISSING',
+            material: true,
+            ...(deliveryImpact ? { deliveryImpact } : {}),
+            prompt: 'Qual resultado você procura?',
+            reason: 'Sem o objetivo não é possível escolher o conteúdo do pedido.',
+            sourceIds: [],
+            options: [],
+          },
+        ],
+      } as any);
+      expect((await f.finish()).kind).toBe('question');
+      expect(f.roles).toEqual(['legal-orchestrator']);
+      expect(f.deliveries).toHaveLength(0);
+    },
+  );
+  it('não deixa uma ressalva esconder outra dúvida impeditiva', async () => {
+    const gap = {
+      key: 'proof',
+      kind: 'MISSING',
+      material: true,
+      deliveryImpact: 'LIMITATION',
+      prompt: 'Pagamento não informado.',
+      reason: 'O pagamento não está demonstrado.',
+      sourceIds: ['user:1'],
+      options: [],
+    };
+    const f = fixture({
+      ...basicPlan,
+      gaps: [gap, { ...gap, key: 'purpose', deliveryImpact: 'BLOCKING', prompt: 'Qual resultado você procura?' }],
+    } as any);
+    const result = await f.finish();
+    expect(result.kind).toBe('question');
+    expect(result.question.id).toBe('case-task:purpose');
+    expect(f.deliveries).toHaveLength(0);
+  });
+  it('a indicação explícita de impedimento prevalece sobre material false', async () => {
+    const f = fixture({
+      ...basicPlan,
+      gaps: [
+        {
+          key: 'purpose',
+          kind: 'MISSING',
+          material: false,
+          deliveryImpact: 'BLOCKING',
+          prompt: 'Qual resultado você procura?',
+          reason: 'Objetivo não definido.',
+          sourceIds: [],
+          options: [],
+        },
+      ],
+    } as any);
+    expect((await f.finish()).kind).toBe('question');
+    expect(f.deliveries).toHaveLength(0);
+  });
   it('preserva o formato do plano histórico sem inserir finalidade na leitura', () => {
     expect(TaskPlanSchema.parse(basicPlan)).toEqual(basicPlan);
+  });
+  it.each(['analyze_documents', 'review_text', 'create_document'])(
+    'produz %s com ressalva persistida, sem inventar resposta',
+    async (action) => {
+      const gap = {
+        key: 'payment',
+        kind: 'MISSING',
+        material: true,
+        deliveryImpact: 'LIMITATION',
+        prompt: 'Pagamento não informado.',
+        reason: 'O pagamento não foi demonstrado; não concluir quitação.',
+        sourceIds: ['user:1'],
+        options: [],
+      };
+      const f = fixture({ ...basicPlan, action, documentType: 'Manifestação preliminar', gaps: [gap] } as any, {
+        outputs: {
+          'legal-drafter': {
+            ...empty,
+            document: {
+              title: 'Manifestação preliminar',
+              documentType: 'Manifestação preliminar',
+              sections: [{ title: 'Limites', content: gap.reason, sourceIds: gap.sourceIds }],
+            },
+          },
+        },
+      });
+      let result = await f.task.step({ ...binding, actionId: action } as any, undefined, new AbortController().signal);
+      expect(result.kind).toBe('checkpoint');
+      for (let i = 0; i < 10 && result.kind === 'checkpoint'; i++)
+        result = await f.task.step(
+          { ...binding, actionId: action } as any,
+          JSON.parse(JSON.stringify(result.state)),
+          new AbortController().signal,
+        );
+      expect(result.kind).toBe('completed');
+      expect(f.packet.answers).toEqual([]);
+      expect(f.deliveries).toHaveLength(1);
+      expect(f.deliveries[0].findings.filter((x: any) => x.code === 'DELIVERY_INFORMATION_LIMITED')).toEqual([
+        expect.objectContaining({ statement: gap.reason, sourceIds: gap.sourceIds }),
+      ]);
+      expect(f.deliveries[0].status).toBe('LIMITED');
+      if (action === 'create_document') expect(f.deliveries[0].document.sections[0].content).toBe(gap.reason);
+    },
+  );
+  it.each([false, true])('conflito não impeditivo preserva as duas fontes; vínculo completo=%s', async (complete) => {
+    const f = fixture(
+      {
+        ...basicPlan,
+        gaps: [
+          {
+            key: 'conflict',
+            kind: 'CONFLICT',
+            material: true,
+            deliveryImpact: 'LIMITATION',
+            prompt: 'Relatos divergentes.',
+            reason: 'As versões permanecem conflitantes, sem escolha de uma.',
+            sourceIds: complete ? ['user:1', 'user:2'] : ['user:1'],
+            options: [],
+          },
+        ],
+      } as any,
+      { sources: [source, { ...source, id: 'user:2' }] },
+    );
+    if (!complete) await expect(f.finish()).rejects.toThrow('CONFLICT_SOURCES_REQUIRED');
+    else {
+      expect((await f.finish()).kind).toBe('completed');
+      expect(f.deliveries[0].findings).toContainEqual(
+        expect.objectContaining({ code: 'DELIVERY_INFORMATION_LIMITED', sourceIds: ['user:1', 'user:2'] }),
+      );
+    }
   });
   it('reproduz T6-GAP e retira os quatro bloqueios editoriais sem alterar o rascunho', async () => {
     const evidence = JSON.parse(
@@ -193,7 +395,9 @@ describe('orquestração jurídica interna com especialistas', () => {
     expect(delivery.status).toBe('CANDIDATE');
     expect(delivery.findings.some((f: any) => f.severity === 'BLOCKING')).toBe(false);
     expect(delivery.document).toEqual(original.document);
-    expect(delivery.claims).toEqual(original.claims);
+    const content = (claims: any[]) => claims.map(({ id: _id, ...claim }) => claim);
+    expect(content(delivery.claims)).toEqual(content(original.claims));
+    expect(new Set(delivery.claims.map((c: any) => c.id)).size).toBe(original.claims.length);
     expect(delivery.requirements).toHaveLength(4);
     expect(corrected.roles).not.toContain('procedural-advisor');
     expect(delivery.humanReviewRequired).toBe(true);
@@ -345,15 +549,21 @@ describe('orquestração jurídica interna com especialistas', () => {
               },
             ],
           },
-          'legal-drafter': {
+          'legal-drafter': (p: any) => ({
             ...empty,
-            claims: [{ ...claim, statement: 'Outra proposição materialmente diferente, ainda não examinada.' }],
+            claims: [
+              {
+                ...claim,
+                id: p.priorResults['legal-researcher'].claims[0].id,
+                statement: 'Outra proposição materialmente diferente, ainda não examinada.',
+              },
+            ],
             document: {
               title: 'Candidato',
               documentType: 'Proposta',
               sections: [{ title: 'Contexto', content: 'Texto preliminar.', sourceIds: ['user:1'] }],
             },
-          },
+          }),
         },
       },
     );
@@ -382,17 +592,17 @@ describe('orquestração jurídica interna com especialistas', () => {
         },
         outputs: {
           'legal-researcher': { ...empty, claims: [claim] },
-          'authority-verifier': {
+          'authority-verifier': (p: any) => ({
             ...empty,
             supportChecks: [
               {
-                claimId: 'claim',
+                claimId: p.priorResults['legal-researcher'].claims[0].id,
                 sourceId: authority.id,
                 quote: authority.syllabus.slice(0, 100),
                 assessment: 'SUPPORTED',
               },
             ],
-          },
+          }),
         },
       },
     );
@@ -566,12 +776,17 @@ describe('orquestração jurídica interna com especialistas', () => {
         },
         outputs: {
           'legal-researcher': { ...empty, claims: [claim] },
-          'authority-verifier': {
+          'authority-verifier': (p: any) => ({
             ...empty,
             supportChecks: [
-              { claimId: claim.id, sourceId: authority.id, quote: authority.syllabus.slice(0, 100), assessment },
+              {
+                claimId: p.priorResults['legal-researcher'].claims[0].id,
+                sourceId: authority.id,
+                quote: authority.syllabus.slice(0, 100),
+                assessment,
+              },
             ],
-          },
+          }),
         },
       },
     );
@@ -816,4 +1031,62 @@ it('o contrato entregue ao analista não oferece redação de documento', async 
   });
   await f.finish();
   expect(accepted).toBe(false);
+});
+
+it('verificador terminal não pode criar afirmações ou requisitos após a revisão', async () => {
+  const router = new SourceRouter();
+  router.registerProvider(new CanonicalFixtureProvider());
+  const service = new ResearchService(router);
+  const accepted: boolean[] = [];
+  const f = fixture(
+    { ...basicPlan, requiresCaseLaw: true },
+    {
+      tools: [createSearchCaseLawTool(service)],
+      steps: {
+        'legal-researcher': [
+          { name: 'research.search_case_law', input: { query: 'vazamento', court: 'STJ', limit: 1 } },
+        ],
+      },
+      onRegistry: (role, registry) => {
+        if (role !== 'authority-verifier') return;
+        const schema = registry.list().find((tool: any) => tool.name === 'task.submit').inputSchema;
+        accepted.push(
+          schema.safeParse({
+            ...empty,
+            claims: [{ id: 'new', classification: 'INFERENCE', statement: 'Tese posterior.', sourceIds: [] }],
+          }).success,
+        );
+        accepted.push(
+          schema.safeParse({
+            ...empty,
+            requirements: [{ id: 'new', statement: 'Obrigação posterior.', sourceIds: [], verified: true }],
+          }).success,
+        );
+      },
+    },
+  );
+  await f.finish();
+  expect(accepted).toEqual([false, false]);
+});
+
+it('não persiste entrega cuja matriz de suporte excede o limite de bytes', async () => {
+  const ids = Array.from({ length: 99 }, (_, i) => `authority-${i}`);
+  const f = fixture(basicPlan, {
+    outputs: {
+      'matter-analyst': {
+        ...empty,
+        claims: Array.from({ length: 100 }, (_, i) => ({
+          id: `claim-${i}`,
+          classification: 'INFERENCE',
+          statement: `Proposição ${i}`,
+          sourceIds: ids,
+        })),
+      },
+    },
+  });
+  f.packet.sources.push(
+    ...(ids.map((id) => ({ ...source, id, kind: 'AUTHORITY', identityStatus: 'VERIFIED_OFFICIAL' })) as any),
+  );
+  await expect(f.finish()).rejects.toThrow('TASK_CONTEXT_LIMIT');
+  expect(f.deliveries).toHaveLength(0);
 });

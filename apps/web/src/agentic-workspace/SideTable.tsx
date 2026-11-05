@@ -51,6 +51,33 @@ function SourceCard({
       </p>
       {title && <p className="break-words font-semibold text-stone-900">{title}</p>}
       {note && <p className="text-sm text-stone-700">{note}</p>}
+      {source.source.approvedItem && (
+        <div className="space-y-3 text-sm text-stone-700">
+          <p>{source.source.approvedItem.text}</p>
+          <p>
+            {source.source.approvedItem.status === 'DISPUTED'
+              ? 'Alegação controvertida.'
+              : source.kind === 'CASE_FACT'
+                ? 'Alegação registrada no caso.'
+                : 'Prova registrada no caso.'}
+          </p>
+          {source.source.approvedItem.sources.map((ref, i) => (
+            <blockquote key={i} className="border-l-2 border-cognac-300 pl-3">
+              {ref.relation === 'CONTRADICTS' && <span>Trecho contrário ao relato: </span>}“{ref.quote}”
+              {matterId && (
+                <button
+                  className="block min-h-11 underline"
+                  onClick={() =>
+                    onRead({ matterId, documentId: ref.documentId, versionId: ref.versionId, anchorId: ref.anchorId })
+                  }
+                >
+                  Abrir documento
+                </button>
+              )}
+            </blockquote>
+          ))}
+        </div>
+      )}
       {typeof link === 'string' ? (
         <a
           className="inline-flex min-h-11 items-center text-cognac-700 underline"

@@ -1,0 +1,64 @@
+{
+  "description": "Captured from the working increment 1 before adaptive graph implementation; no real model or personal data.",
+  "binding": {
+    "tenantId": "graph",
+    "userId": "boni",
+    "executionId": "legacy",
+    "conversationId": "graph-conversation",
+    "contextRevision": 1,
+    "objective": "Analisar contexto sintético",
+    "actionId": "analyze_documents"
+  },
+  "packet": {
+    "contextId": "graph-conversation",
+    "contextRevision": 1,
+    "sources": [
+      {
+        "id": "user:graph",
+        "kind": "USER_TEXT",
+        "text": "Contexto sintético para compatibilidade do grafo.",
+        "contentHash": "8b291da6efdf3836645eb760b06af85611b53f28c19d4be21696741e4e0bc0d1"
+      }
+    ],
+    "answers": []
+  },
+  "state": {
+    "version": 1,
+    "bindingHash": "0a79a798982cfb0a00113af2b80becec35a5f7e45750d0f0918e0f46c82fc1c1",
+    "contractHash": "d097ba9f837fd4a6b89c97baf3e2baa632949482e505f21e6ba42f0b25860888",
+    "previousDeliveryIds": [],
+    "outputs": {},
+    "evidence": [],
+    "profiles": [
+      {
+        "role": "legal-orchestrator",
+        "version": "1.2.0",
+        "instructionId": "legal-orchestrator-instructions",
+        "instructionVersion": "1.0.0",
+        "legacyAgentId": null,
+        "legacyAgentVersion": null,
+        "policyId": "agentic-case-task-policy",
+        "policyVersion": "1.2.0"
+      }
+    ],
+    "toolCount": 1,
+    "researchOperations": [],
+    "findings": [],
+    "plan": {
+      "action": "analyze_documents",
+      "requiresCaseLaw": false,
+      "requiresNorms": false,
+      "requiresProcedure": false,
+      "issues": [
+        {
+          "id": "issue",
+          "statement": "Analisar o relato",
+          "sourceIds": [
+            "user:graph"
+          ]
+        }
+      ],
+      "gaps": []
+    }
+  }
+}

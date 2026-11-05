@@ -1,0 +1,77 @@
+[WebServer] (node:29112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:19400) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite "--host" "127.0.0.1" "--port" "3300" "--strictPort"
+[WebServer] (node:16876) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:8180) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 [chromium] › tests\e2e\editorial-review.spec.ts:32:5 › revisão editorial persiste decisão, preserva minuta, permite recarga e funciona em tela móvel (1.0m)
+(node:14768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  2 [chromium] › tests\e2e\editorial-review.spec.ts:61:5 › revisão editorial conserva comando após resposta perdida e bloqueia proposta inválida (1.0m)
+
+
+  1) [chromium] › tests\e2e\editorial-review.spec.ts:32:5 › revisão editorial persiste decisão, preserva minuta, permite recarga e funciona em tela móvel 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Revisar proposta editorial', exact: true })
+
+
+      34 |   const requests: string[] = [];
+      35 |   page.on('request', req => { if (req.method() !== 'GET') requests.push(req.url()); });
+    > 36 |   await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+         |                                                                                       ^
+      37 |   const dialog = page.getByRole('dialog', { name: 'Revisão editorial' });
+      38 |   await expect(dialog).toContainText('Nenhuma decisão editorial salva');
+      39 |   await upload(page, f.proposal);
+        at C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\tests\e2e\editorial-review.spec.ts:36:87
+
+    Error Context: test-results\editorial-review\editorial-review-revisão-e-09b40-ga-e-funciona-em-tela-móvel-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\editorial-review\editorial-review-revisão-e-09b40-ga-e-funciona-em-tela-móvel-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\editorial-review\editorial-review-revisão-e-09b40-ga-e-funciona-em-tela-móvel-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests\e2e\editorial-review.spec.ts:61:5 › revisão editorial conserva comando após resposta perdida e bloqueia proposta inválida 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Revisar proposta editorial', exact: true })
+
+
+      61 | test('revisão editorial conserva comando após resposta perdida e bloqueia proposta inválida', async ({ page }) => {
+      62 |   const f = await setup(page);
+    > 63 |   await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+         |                                                                                       ^
+      64 |   const dialog = page.getByRole('dialog', { name: 'Revisão editorial' });
+      65 |   await upload(page, { ...f.proposal, humanReviewRequired: false });
+      66 |   await expect(dialog.getByRole('alert')).toBeVisible();
+        at C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\tests\e2e\editorial-review.spec.ts:63:87
+
+    Error Context: test-results\editorial-review\editorial-review-revisão-e-614c1--bloqueia-proposta-inválida-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\editorial-review\editorial-review-revisão-e-614c1--bloqueia-proposta-inválida-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\editorial-review\editorial-review-revisão-e-614c1--bloqueia-proposta-inválida-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests\e2e\editorial-review.spec.ts:32:5 › revisão editorial persiste decisão, preserva minuta, permite recarga e funciona em tela móvel 
+    [chromium] › tests\e2e\editorial-review.spec.ts:61:5 › revisão editorial conserva comando após resposta perdida e bloqueia proposta inválida 

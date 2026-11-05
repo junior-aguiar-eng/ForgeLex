@@ -1,0 +1,90 @@
+[
+  {
+    "file": "campaign-proposal.json",
+    "sha256": "fc87595292ce8b21426b7ae7d82fcf95352ea0b490d08d50389ed1efbc7f15aa"
+  },
+  {
+    "file": "changed-files.json",
+    "sha256": "27aa6a299e6be5e6c63c5c1925aa5889470365a8a1b9c68a1148f6105fac526f"
+  },
+  {
+    "file": "corpus-v2.json",
+    "sha256": "2c4c72bd2141e2a79325f7247f8463f68208da314c931cb3c0c08bd7d09ec875"
+  },
+  {
+    "file": "previous-ledgers.json",
+    "sha256": "23775b78c706fb4beb7c9a98975fac04b39396bb0bddadf8cdd79b37a0b7b1a5"
+  },
+  {
+    "file": "protected-v8-files.json",
+    "sha256": "126a1a4e7c8331239ea329a223f6d079d531b779495552283cb3b8707d025e88"
+  },
+  {
+    "file": "v9-api-types.log",
+    "sha256": "4f658209920a5218841e9843c51a440cb63d41dbd1aa31b97bf63bc1fc38bf9f"
+  },
+  {
+    "file": "v9-browser-recheck.log",
+    "sha256": "75c3ed253edf0fffe0cf7c2f2a2ab664395439b1ecc1f62771b1273e1263995e"
+  },
+  {
+    "file": "v9-browser.log",
+    "sha256": "09399da61b9602ae0a911a2b3d51ddf1e986e43e4fba454af6de0baa43c10977"
+  },
+  {
+    "file": "v9-build-verified.log",
+    "sha256": "51ae0a97ee9ff056e62e32bf3385ae6f8a13a54ea4973b9dff6974cf8b6e582d"
+  },
+  {
+    "file": "v9-build.log",
+    "sha256": "f61325a1cc258b8ca802e77244105e3a6edcea28299087cf841fffe29c80705f"
+  },
+  {
+    "file": "v9-final-recheck.log",
+    "sha256": "9eaf6300b4426368e71251c04cefc0aa1503b2246b2011c8fb5f4661f655c4f2"
+  },
+  {
+    "file": "v9-focused.log",
+    "sha256": "16a074a1a433859823f24d3ffdc0cce1ba519bdb9b0e83120e2acd02d11eaf5b"
+  },
+  {
+    "file": "v9-format-check.log",
+    "sha256": "c2277a99661412517aa54dc0a66b4e722962a090d39a5482d13390a72953f0e6"
+  },
+  {
+    "file": "v9-format-final.log",
+    "sha256": "7487f9afa405dbf68ea026a307b3002395321c34b312185a54fffef68308c447"
+  },
+  {
+    "file": "v9-full-suite.log",
+    "sha256": "59eef8e5c2b34463785ed91ef03536aa6c9285d6a870a92759733889a32f133d"
+  },
+  {
+    "file": "v9-identifier-green.log",
+    "sha256": "cb75fec35bf2c7bec5cb130d7b497745d1edd5c7bca57b0d06dc954d97b3b7da"
+  },
+  {
+    "file": "v9-lint-final.log",
+    "sha256": "acd68fcd9ddbba07ba06761b9f1f341f6272463cd9040184d0814941549f10ce"
+  },
+  {
+    "file": "v9-mesa.log",
+    "sha256": "3ac1d9356684aa0361f3352d020282031a3c9313b05e0cfb9c3975b98edf6a3b"
+  },
+  {
+    "file": "v9-node-regression.log",
+    "sha256": "5507e5148aef6a57a7980d0f1be658458ae148a68a6e5cb983e3842eeead8224"
+  },
+  {
+    "file": "v9-status-green.log",
+    "sha256": "cc996ca229c7dfeeced8627ecf8391dfa62988940d8ebf56207ec30c7b67e2b5"
+  },
+  {
+    "file": "v9-status-red.log",
+    "sha256": "ae55c260be6bb139fcddf4c84a85a63a67201ad48d74dbbb7a2a0a3f7f25326e"
+  },
+  {
+    "file": "validation.json",
+    "sha256": "d609c197d1ed27f35967cc7487ffdd03a3321f888004b2933de011c713cd36a1"
+  }
+]

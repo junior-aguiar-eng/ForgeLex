@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-01",
+  "scenario": "Explicit conflict discovered after planning in a simple analysis",
+  "legacyContractHash": "d097ba9f837fd4a6b89c97baf3e2baa632949482e505f21e6ba42f0b25860888",
+  "sameContextAndSpecialistOutputs": true,
+  "baselinePlannerAlreadyCommittedInFixture": true,
+  "before": {
+    "roleRuns": 2,
+    "syntheticToolCalls": 2,
+    "deliveryStatus": "CANDIDATE",
+    "findings": [],
+    "checkpointBytes": 1196
+  },
+  "after": {
+    "roleRuns": 3,
+    "syntheticToolCalls": 3,
+    "deliveryStatus": "LIMITED",
+    "findings": [
+      "CONFLICT_UNRESOLVED"
+    ],
+    "checkpointBytes": 4266
+  },
+  "realModelCalls": 0,
+  "measuredModelTokens": null,
+  "measuredModelCost": null,
+  "limitation": "Deterministic routing/control comparison only; no measured legal-semantic quality improvement."
+}

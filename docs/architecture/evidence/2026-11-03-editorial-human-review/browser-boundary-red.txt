@@ -1,0 +1,115 @@
+[WebServer] (node:21512) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:7864) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite "--host" "127.0.0.1" "--port" "3300" "--strictPort"
+[WebServer] (node:28960) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:20588) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 [chromium] › tests\e2e\editorial-review.spec.ts:71:5 › revisão editorial persiste decisão, preserva minuta, permite recarga e funciona em tela móvel (1.0m)
+(node:19688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] {"level":"warn","message":"http.request.completed","requestId":"req-4r","traceId":"e2f2be15-56eb-4378-99c7-e7b45572a78d","tenantId":"tenant_1b4e4aee904a8262279a65707188c497","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/preview","statusCode":400,"latencyMs":12,"timestamp":"2026-11-03T18:30:15.662Z"}
+  x  2 [chromium] › tests\e2e\editorial-review.spec.ts:106:5 › revisão editorial conserva comando após resposta perdida e bloqueia proposta inválida (1.0m)
+(node:16604) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  3 [chromium] › tests\e2e\editorial-review.spec.ts:136:5 › revisão editorial recusa JSON nulo e bloqueia decisão obsoleta até atualizar (14.7s)
+
+
+  1) [chromium] › tests\e2e\editorial-review.spec.ts:71:5 › revisão editorial persiste decisão, preserva minuta, permite recarga e funciona em tela móvel 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog', { name: 'Revisão editorial' }).getByLabel('Decisão 1', { exact: true })
+
+
+      83 |   await expect(dialog).toContainText('Proposta sintética; conferir cabimento.');
+      84 |   await expect(dialog.getByRole('button', { name: 'Salvar decisão 1', exact: true })).toBeDisabled();
+    > 85 |   await dialog.getByLabel('Decisão 1', { exact: true }).selectOption('ACCEPT');
+         |                                                         ^
+      86 |   await dialog.getByLabel('Fundamento 1', { exact: true }).fill('Conferi o trecho; manter ressalva.');
+      87 |   await dialog.getByRole('button', { name: 'Salvar decisão 1', exact: true }).click();
+      88 |   await expect(dialog.getByRole('status')).toContainText('Decisão salva');
+        at C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\tests\e2e\editorial-review.spec.ts:85:57
+
+    Error Context: test-results\editorial-review\editorial-review-revisão-e-09b40-ga-e-funciona-em-tela-móvel-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\editorial-review\editorial-review-revisão-e-09b40-ga-e-funciona-em-tela-móvel-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\editorial-review\editorial-review-revisão-e-09b40-ga-e-funciona-em-tela-móvel-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests\e2e\editorial-review.spec.ts:106:5 › revisão editorial conserva comando após resposta perdida e bloqueia proposta inválida 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.selectOption: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog', { name: 'Revisão editorial' }).getByLabel('Decisão 1', { exact: true })
+
+
+      119 |     else await route.fulfill({ response });
+      120 |   });
+    > 121 |   await dialog.getByLabel('Decisão 1', { exact: true }).selectOption('REJECT');
+          |                                                         ^
+      122 |   await dialog.getByLabel('Fundamento 1', { exact: true }).fill('Prefiro manter o trecho original.');
+      123 |   await dialog.getByRole('button', { name: 'Salvar decisão 1', exact: true }).click();
+      124 |   await expect(dialog.getByRole('alert')).toContainText('Não foi possível confirmar');
+        at C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\tests\e2e\editorial-review.spec.ts:121:57
+
+    Error Context: test-results\editorial-review\editorial-review-revisão-e-614c1--bloqueia-proposta-inválida-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\editorial-review\editorial-review-revisão-e-614c1--bloqueia-proposta-inválida-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\editorial-review\editorial-review-revisão-e-614c1--bloqueia-proposta-inválida-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests\e2e\editorial-review.spec.ts:136:5 › revisão editorial recusa JSON nulo e bloqueia decisão obsoleta até atualizar 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('dialog', { name: 'Revisão editorial' }).getByRole('alert')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('dialog', { name: 'Revisão editorial' }).getByRole('alert') with timeout 10000ms
+      - waiting for getByRole('dialog', { name: 'Revisão editorial' }).getByRole('alert')
+
+
+      139 |   const dialog = page.getByRole('dialog', { name: 'Revisão editorial' });
+      140 |   await upload(page, null);
+    > 141 |   await expect(dialog.getByRole('alert')).toBeVisible();
+          |                                           ^
+      142 |   await upload(page, f.proposal);
+      143 |   let attempts = 0;
+      144 |   await page.route('**/editorial-review/decisions', route => { attempts++; return route.fulfill({ status: 409, json: { error: 'EDITORIAL_REVIEW_CONFLICT' } }); });
+        at C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\tests\e2e\editorial-review.spec.ts:141:43
+
+    Error Context: test-results\editorial-review\editorial-review-revisão-e-6a9c3-isão-obsoleta-até-atualizar-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\editorial-review\editorial-review-revisão-e-6a9c3-isão-obsoleta-até-atualizar-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\editorial-review\editorial-review-revisão-e-6a9c3-isão-obsoleta-até-atualizar-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [chromium] › tests\e2e\editorial-review.spec.ts:71:5 › revisão editorial persiste decisão, preserva minuta, permite recarga e funciona em tela móvel 
+    [chromium] › tests\e2e\editorial-review.spec.ts:106:5 › revisão editorial conserva comando após resposta perdida e bloqueia proposta inválida 
+    [chromium] › tests\e2e\editorial-review.spec.ts:136:5 › revisão editorial recusa JSON nulo e bloqueia decisão obsoleta até atualizar 

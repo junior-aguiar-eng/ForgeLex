@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "scenario": "V2-MULTI",
+  "kind": "LOCAL_DERIVED_CITATION_ADJUSTMENT",
+  "recordedAt": "2026-11-04T20:09:19.307476+00:00",
+  "authorizationRecord": "V2-MULTI-11-citation-treatment.json",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-multi-consolidation/V2-MULTI.derived.json",
+  "sourceSha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5",
+  "statements": [
+    {
+      "id": "delivery",
+      "originClaimId": "3dedd4e1b8:c3",
+      "statement": "O excerto do art. 498 disciplina a tutela específica de entrega de coisa e a fixação judicial do prazo de cumprimento; não prevê concessão automática de urgência pelo atraso.",
+      "sourceId": "CPC-498",
+      "quote": "Art. 498. Na ação que tenha por objeto a entrega de coisa, o juiz, ao conceder a tutela específica, fixará o prazo para o cumprimento da obrigação.",
+      "sourceContentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524",
+      "historicalReferenceClaimId": "36d893ac97:p1",
+      "historicalQuoteStatus": "MATCHED",
+      "historicalModelAssessment": "SUPPORTED",
+      "localReview": "Statement compared with the recorded excerpt; scope restricted to supplied material. No new model assessment or external validity verification."
+    },
+    {
+      "id": "urgency",
+      "originClaimId": "3dedd4e1b8:c3",
+      "statement": "O excerto do art. 300 exige elementos que evidenciem a probabilidade do direito e o perigo de dano ou risco ao resultado útil do processo. Seu § 3º veda a tutela antecipada quando houver perigo de irreversibilidade dos efeitos da decisão.",
+      "sourceId": "CPC-300",
+      "quote": "Art. 300. A tutela de urgência será concedida quando houver elementos que evidenciem a probabilidade do direito e o perigo de dano ou o risco ao resultado útil do processo. § 3º A tutela de urgência de natureza antecipada não será concedida quando houver perigo de irreversibilidade dos efeitos da decisão.",
+      "sourceContentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951",
+      "historicalReferenceClaimId": "36d893ac97:p2",
+      "historicalQuoteStatus": "MATCHED",
+      "historicalModelAssessment": "SUPPORTED",
+      "localReview": "Statement compared with the recorded excerpt; scope restricted to supplied material. No new model assessment or external validity verification."
+    },
+    {
+      "id": "individualization",
+      "originClaimId": "3dedd4e1b8:c5",
+      "statement": "Pelo parágrafo único do art. 498 fornecido, se a escolha couber ao autor, ele individualizará a coisa na inicial; se couber ao réu, este a entregará individualizada no prazo fixado pelo juiz.",
+      "sourceId": "CPC-498",
+      "quote": "Parágrafo único. Tratando-se de entrega de coisa determinada pelo gênero e pela quantidade, o autor individualizá-la-á na petição inicial, se lhe couber a escolha, ou, se a escolha couber ao réu, este a entregará individualizada, no prazo fixado pelo juiz.",
+      "sourceContentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524",
+      "historicalReferenceClaimId": "36d893ac97:p4",
+      "historicalQuoteStatus": "MATCHED",
+      "historicalModelAssessment": "SUPPORTED",
+      "localReview": "Statement compared with the recorded excerpt; scope restricted to supplied material. No new model assessment or external validity verification."
+    },
+    {
+      "id": "contract",
+      "originClaimId": "3dedd4e1b8:c5",
+      "statement": "O recorte contratual fornecido descreve dois equipamentos por gênero e quantidade e nele não consta cláusula de escolha. Essa observação limita-se ao recorte, sem estabelecer ausência de cláusula no contrato integral.",
+      "sourceId": "V2-MULTI/contrato@v1#p1",
+      "quote": "Fornecimento de dois equipamentos por gênero e quantidade; não consta cláusula de escolha.",
+      "sourceContentHash": "bf5ce030fa5bd832985c61f925a2ed4f69e59eb7a04c8b73589426a52d9bcd45",
+      "historicalReferenceClaimId": "3dedd4e1b8:c1",
+      "historicalQuoteStatus": "MATCHED",
+      "historicalModelAssessment": "SUPPORTED",
+      "localReview": "Statement compared with the recorded excerpt; scope restricted to supplied material. No new model assessment or external validity verification."
+    }
+  ],
+  "remainingLimitations": [
+    "The excerpts do not establish fulfillment of urgency requirements.",
+    "The choice holder remains unresolved.",
+    "Historical source-support alerts and severities are unchanged."
+  ],
+  "validation": {
+    "method": "Local comparison of derived statements against recorded supportAudit excerpts; no paid call and no verifier rerun.",
+    "allSourcesPresent": true,
+    "historicalQuotesMatched": true,
+    "newAutomatedSupportAssessment": false,
+    "wholeDeliveryApproved": false
+  }
+}

@@ -3,3 +3,26 @@
 patches/*.patch text eol=lf -whitespace
 # Preserve the byte-exact, hash-pinned synthetic pilot fixture across platforms.
 docs/architecture/fixtures/agentic-task6-synthetic-cases.json text eol=lf
+
+# Preserve the bytes of the November calibration receipts and regression evidence.
+docs/architecture/evidence/2026-11-0[12]-* -text whitespace=cr-at-eol
+docs/architecture/evidence/2026-11-0[12]-*/** -text whitespace=cr-at-eol
+# Raw test output is evidence; keep its original whitespace.
+docs/architecture/evidence/2026-11-0[12]-*/**/*.log -whitespace
+# Preserve raw evidence of the local editorial binding validation.
+docs/architecture/evidence/2026-11-02-final-editor-contract/** -text -whitespace
+docs/architecture/evidence/2026-11-03-editorial-binding/** -text -whitespace
+# Preserve raw evidence of simulated editorial proposal generation.
+docs/architecture/evidence/2026-11-03-editorial-generation/** -text -whitespace
+# Preserve raw local human editorial review evidence.
+docs/architecture/evidence/2026-11-03-editorial-human-review/** -text -whitespace
+# Preserve raw local versioned editorial application evidence.
+docs/architecture/evidence/2026-11-03-editorial-application/** -text -whitespace
+
+# Preserve hash-pinned editorial continuation and v8/v9 campaign records byte for byte.
+docs/architecture/evidence/2026-11-03-editorial-continuation/** -text -whitespace
+docs/architecture/evidence/2026-11-03-verifier-v8/** -text -whitespace
+docs/architecture/evidence/2026-11-03-v9-review-remediation/** -text -whitespace
+docs/architecture/evidence/2026-11-04-* -text -whitespace
+docs/architecture/evidence/2026-11-04-*/** -text -whitespace
+docs/architecture/evidence/2026-11-05-editorial-commercial-integration/** -text -whitespace

@@ -1,0 +1,11 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+{"level":"error","message":"agentic.request.failed","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/applications","errorCode":"SIMULATED_WRITE_FAILURE","errorName":"Error","timestamp":"2026-11-03T21:42:01.384Z"}
+{"level":"error","message":"agentic.request.failed","method":"GET","route":"/api/agentic/deliveries/:id/editorial-context","errorCode":"DELIVERY_INTEGRITY_FAILED","errorName":"Error","timestamp":"2026-11-03T21:43:24.499Z"}
+
+ Test Files  1 passed (1)
+      Tests  58 passed (58)
+   Start at  18:41:11
+   Duration  193.23s (transform 3.37s, setup 0ms, import 6.20s, tests 186.47s, environment 0ms)
+

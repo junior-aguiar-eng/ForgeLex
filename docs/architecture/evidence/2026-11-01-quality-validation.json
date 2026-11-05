@@ -1,0 +1,118 @@
+{
+  "date": "2026-11-01",
+  "baselineCommit": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "branch": "codex/forgelex-3-quality",
+  "scope": "Incremento 1 local; integridade de handoffs, não avaliação semântica de LLM",
+  "benchmark": {
+    "patterns": 12,
+    "sourceContexts": 5,
+    "scenarios": 60,
+    "baselinePassed": 30,
+    "afterPassed": 60,
+    "syntheticToolCallsBefore": 315,
+    "syntheticToolCallsAfter": 315,
+    "realModelCalls": 0,
+    "tokens": null,
+    "cost": null
+  },
+  "checks": {
+    "baselineFocused": "62 passed",
+    "targetedFinal": "108 passed",
+    "integrationIntermediate": "143 passed",
+    "build": "passed; workflow rebuilt after final fixes",
+    "typecheck": "passed; API rechecked after final test changes",
+    "lint": "passed; changed workflow/API rechecked after final fixes",
+    "prettierChanged": "passed",
+    "diffCheck": "passed",
+    "playwrightCommercialSynthetic": "1 passed; 35.4s",
+    "sqliteBaseline": "2 passed, 1 EBUSY cleanup failure on untouched main",
+    "fullFinal": "1452 passed, 17 skipped, 1 pre-existing Windows SQLite cleanup failure (EBUSY), reproduced on untouched main 025f6dd",
+    "postgres": {
+      "case-task": {
+        "status": "passed",
+        "checks": [
+          "migration_twice",
+          "specialist_checkpoint_separate_process",
+          "planner_not_replayed",
+          "preliminary_workflow_draft",
+          "no_fact_adoption",
+          "public_projection",
+          "one_delivery_event",
+          "concurrent_save_one_delivery",
+          "atomic_partial_delivery_id",
+          "owner_isolation",
+          "human_edit_lock_order_without_deadlock"
+        ]
+      },
+      "execution": {
+        "status": "passed",
+        "checks": [
+          "migration_twice",
+          "concurrent_start_one_conversation",
+          "canonical_owner_lock",
+          "concurrent_workers_one_call",
+          "concurrent_answer_one_successor",
+          "fresh_checkpoint_after_answer",
+          "owner_isolation",
+          "separate_process_recovery",
+          "safe_checkpoint_resume",
+          "uncertain_dispatch_not_repeated",
+          "partial_delivery_preserved",
+          "internal_events_not_projected"
+        ]
+      },
+      "budget": {
+        "status": "passed",
+        "checks": [
+          "concurrent_budgets_no_overspend",
+          "concurrent_call_once",
+          "concurrent_settlement_one_debit",
+          "research_original_key_and_debit",
+          "expired_research_lease_no_redispatch",
+          "unknown_usage_keeps_coverage",
+          "owner_isolation",
+          "separate_process_recovery"
+        ]
+      },
+      "workspace": {
+        "status": "passed",
+        "checks": [
+          "additive_migration_twice",
+          "concurrent_execution_idempotency",
+          "concurrent_status_compare_and_set",
+          "concurrent_event_sequence",
+          "tenant_and_user_isolation",
+          "concurrent_answer_once",
+          "consistent_concurrent_conversation_reads",
+          "no_fictitious_documents",
+          "separate_process_recovery",
+          "successor_from_revised_context"
+        ]
+      }
+    }
+  },
+  "notExecuted": [
+    "Paid model inference",
+    "Real legal quality evaluation",
+    "Production operations",
+    "17 conditional Vitest cases (16 PostgreSQL and 1 real-provider); four PostgreSQL smoke scripts ran separately"
+  ],
+  "limits": [
+    "No new legal task category implemented",
+    "No fully adaptive graph implemented",
+    "Old checkpoint contracts fail explicitly; old deliveries remain readable",
+    "Commercial runtime research tools remain disabled"
+  ],
+  "codeFileHashes": {
+    "apps/api/src/agentic-workspace/case-task-driver.test.ts": "55bfcdc140535daf3bc7436de66b0788d62a292c6f9a0bc2d573ac9234834a42",
+    "packages/domain/src/contracts/agentic-case-task.ts": "1909fba60c4a5e2f4413f7c639451165324634eb486eb3f12312e34be3566ee8",
+    "packages/legal-agents/src/agentic-case-contracts.ts": "13f08b82efa5c2c03cccbb6ca79ef79122c5acc82380d3fc67405752d965f2bf",
+    "packages/legal-agents/src/instructions/case-task.ts": "e7de27db59714764da38d560dbbc00762d2de517210d13716434af51dbc89bc1",
+    "packages/legal-tools/src/case-context/native-case-context.test.ts": "6bb4d531a67ddf4f1243e3f9317a840aa9e204ccbb5e4f3ebeb10e42293c8b93",
+    "packages/legal-workflows/src/agentic-case-task/case-task.test.ts": "96152c4fa38de315266b0de0ff0c051d7731e2be427eee3aa30b75cdd7d048fb",
+    "packages/legal-workflows/src/agentic-case-task/case-task.ts": "ff625d994e415be19e31a5e282998914505cb50b4145c714c4ba765cc89b6590",
+    "packages/legal-workflows/src/agentic-case-task/support-audit.test.ts": "70524401af9d2c4a824da0860876b1a845157974ad84b95ce9c8aba03aeb6ddd",
+    "packages/legal-workflows/src/agentic-case-task/support-audit.ts": "4adc63746f48888add85bb854b05d8eb9eb03c934946463681d82d6db79551b3",
+    "packages/legal-workflows/src/agentic-case-task/support-benchmark.test.ts": "03e3e62b15bf4dcdb93e8614a2072cc7b65dfadf69d721b5fbc2803bfa6c7099"
+  }
+}

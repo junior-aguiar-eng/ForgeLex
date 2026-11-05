@@ -1,0 +1,49 @@
+{
+  "runId": "D01-analyze-baseline",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\348b6546848d6222cd6c9ada25f103bfff852b36b7d5df8096a40c6ce5926227\\baseline",
+  "inputHash": "a9ccc9e7b973b9bef18b324c30bd080ddccf6e27c650709538fe0b9cc4e36ed3",
+  "request": "Analise o caso, as questões, o alcance das provas e o que falta esclarecer. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "question",
+  "error": null,
+  "durationMs": 25159.232800000005,
+  "roles": [
+    "legal-orchestrator"
+  ],
+  "stateVersion": 1,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 24514,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 1666,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2246,
+      "outputTokens": 995,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3260,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": {
+    "id": "case-task:payment_terms",
+    "version": 1,
+    "contextRevision": 1,
+    "prompt": "O que foi ajustado sobre vencimento e condições de pagamento? Se houver informação adicional, descreva-a e identifique seu suporte; pode indicar que não sabe ou que não há outros elementos no corpus.",
+    "selection": "free_text",
+    "options": [],
+    "allowFreeText": true,
+    "allowUnknown": true,
+    "reason": "O preço global não demonstra, por si só, vencimento ou exigibilidade integral. Sem esclarecimento, limitar a análise a essa ausência."
+  },
+  "legalScore": null
+}

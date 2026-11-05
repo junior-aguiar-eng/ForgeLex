@@ -5,6 +5,7 @@ import {
   agenticContexts,
   matters,
   legalDocuments,
+  ApprovedCaseContextRepository,
 } from '@forgelex/persistence';
 import { and, eq, max, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -12,6 +13,7 @@ import type { Client } from '@forgelex/persistence';
 import { z } from 'zod';
 import {
   AgenticContextSchema,
+  AgenticTaskActionSchema,
   AgenticExecutionSchema,
   LegalAnswerSchema,
   LegalQuestionSchema,
@@ -30,10 +32,10 @@ const id = z.string().trim().min(1).max(200);
 export const StartExecutionSchema = z
   .object({
     objective: z.string().trim().min(1).max(16000),
-    actionId: z.enum(['analyze_documents', 'research_question', 'create_document', 'review_text']).optional(),
+    actionId: AgenticTaskActionSchema.optional(),
     conversationId: z.string().guid().optional(),
     matterId: z.string().guid().optional(),
-    context: AgenticContextSchema.optional(),
+    context: AgenticContextSchema.refine((c) => c.approvedItems === undefined, 'SERVER_OWNED_CONTEXT').optional(),
     contextRevision: z.number().int().positive().optional(),
   })
   .strict()
@@ -170,6 +172,10 @@ export class ExecutionService {
       .limit(1);
     if (!snapshot) throw new Error('CONTEXT_CONFLICT');
     const context = AgenticContextSchema.parse(JSON.parse(snapshot.payloadJson));
+    if (context.approvedItems?.length) {
+      if (!e.matterId) throw new Error('CONTEXT_MATTER_REQUIRED');
+      await new ApprovedCaseContextRepository(s.db).load(e, e.matterId, context.approvedItems, !requireCurrent);
+    }
     for (const doc of [...context.documents].sort((a, b) => a.documentId.localeCompare(b.documentId))) {
       await s.db
         .update(legalDocuments)
@@ -262,42 +268,70 @@ export class ExecutionService {
     key: string,
     raw: z.infer<typeof StartExecutionSchema>,
     approval?: { authorizationId: string; provider: string; model: string },
+    initialCheckpoint?: Record<string, unknown>,
   ) {
     this.available();
     const requested = StartExecutionSchema.parse(raw);
-    const executionId = await this.command(owner, key, { kind: 'start', input: requested, approval }, async (s) => {
-      const input = this.options.prepareStart
-        ? StartExecutionSchema.parse(await this.options.prepareStart(s, owner, requested))
-        : requested;
-      let conversation = input.conversationId
-        ? await s.workspace.getConversation(owner, input.conversationId)
-        : undefined;
-      if (input.conversationId && !conversation) throw new Error('CONVERSATION_NOT_FOUND');
-      if (conversation && input.matterId && conversation.matterId !== input.matterId)
-        throw new Error('CONTEXT_CONFLICT');
-      if (conversation && input.context) {
-        await s.workspace.reviseContext(owner, conversation.id, input.contextRevision!, input.context);
-        conversation = (await s.workspace.getConversation(owner, conversation.id))!;
-      }
-      if (!conversation)
-        conversation = await s.workspace.createConversation(owner, {
-          objective: input.objective,
-          matterId: input.matterId,
-          context: input.context ?? { text: '', origin: 'USER', documents: [] },
+    const executionId = await this.command(
+      owner,
+      key,
+      { kind: 'start', input: requested, approval, ...(initialCheckpoint ? { initialCheckpoint } : {}) },
+      async (s) => {
+        const input = this.options.prepareStart
+          ? StartExecutionSchema.parse(await this.options.prepareStart(s, owner, requested))
+          : requested;
+        let conversation = input.conversationId
+          ? await s.workspace.getConversation(owner, input.conversationId)
+          : undefined;
+        if (input.conversationId && !conversation) throw new Error('CONVERSATION_NOT_FOUND');
+        if (conversation && input.matterId && conversation.matterId !== input.matterId)
+          throw new Error('CONTEXT_CONFLICT');
+        const matterId = conversation?.matterId ?? input.matterId;
+        const inherited = conversation?.contexts.at(-1);
+        const { revision: _revision, ...previousContext } = inherited ?? {
+          revision: 0,
+          text: '',
+          origin: 'USER' as const,
+          documents: [],
+        };
+        const approvedItems = matterId ? await new ApprovedCaseContextRepository(s.db).capture(owner, matterId) : [];
+        const context = {
+          ...(input.context ?? previousContext),
+          ...(approvedItems.length || inherited?.approvedItems ? { approvedItems } : {}),
+        };
+        if (
+          conversation &&
+          (input.context || JSON.stringify(inherited?.approvedItems ?? []) !== JSON.stringify(approvedItems))
+        ) {
+          await s.workspace.reviseContext(
+            owner,
+            conversation.id,
+            input.contextRevision ?? conversation.contextRevision,
+            input.context ? context : { ...context, answers: undefined },
+          );
+          conversation = (await s.workspace.getConversation(owner, conversation.id))!;
+        }
+        if (!conversation)
+          conversation = await s.workspace.createConversation(owner, {
+            objective: input.objective,
+            matterId: input.matterId,
+            context,
+          });
+        await s.workspace.appendMessage(owner, conversation.id, { role: 'USER', text: input.objective });
+        const run = await s.workspace.createExecution(owner, {
+          conversationId: conversation.id,
+          contextRevision: conversation.contextRevision,
+          idempotencyKey: `native:${digest(key)}`,
+          authorizationId: approval?.authorizationId ?? null,
+          budgetReservationId: null,
+          provider: approval?.provider ?? null,
+          model: approval?.model ?? null,
         });
-      await s.workspace.appendMessage(owner, conversation.id, { role: 'USER', text: input.objective });
-      const run = await s.workspace.createExecution(owner, {
-        conversationId: conversation.id,
-        contextRevision: conversation.contextRevision,
-        idempotencyKey: `native:${digest(key)}`,
-        authorizationId: approval?.authorizationId ?? null,
-        budgetReservationId: null,
-        provider: approval?.provider ?? null,
-        model: approval?.model ?? null,
-      });
-      await this.createJob(s, owner, run.id, input.objective, input.actionId);
-      return run.id;
-    });
+        await this.createJob(s, owner, run.id, input.objective, input.actionId);
+        if (initialCheckpoint) await s.workspace.saveProgress(owner, run.id, initialCheckpoint);
+        return run.id;
+      },
+    );
     return this.getExecution(owner, executionId);
   }
   /** Internal activation after durable reservation. Not registered as a standalone public command. */
@@ -611,7 +645,13 @@ export class ExecutionService {
         try {
           await this.activeContext(s, e, true);
         } catch (error) {
-          if (!(error instanceof Error) || !['ACCESS_REVOKED', 'CONTEXT_CONFLICT'].includes(error.message)) throw error;
+          if (
+            !(error instanceof Error) ||
+            !['ACCESS_REVOKED', 'CONTEXT_CONFLICT', 'APPROVED_CONTEXT_CHANGED', 'APPROVED_FACT_REQUIRED'].includes(
+              error.message,
+            )
+          )
+            throw error;
           await this.fail(s, j, e, error.message === 'ACCESS_REVOKED' ? 'ACCESS_REVOKED' : 'CONTEXT_CHANGED');
           return;
         }

@@ -1,0 +1,125 @@
+{
+  "runId": "D01-analyze-candidate",
+  "mode": "fake",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\519f1bda815967a1cfa40766d7bd01949b325065f6515b101a9710c9bee0662a\\candidate",
+  "inputHash": "a9ccc9e7b973b9bef18b324c30bd080ddccf6e27c650709538fe0b9cc4e36ed3",
+  "request": "Analise o caso, as questões, o alcance das provas e o que falta esclarecer. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "completed",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 133.8137999999999,
+  "roles": [
+    "legal-orchestrator",
+    "matter-analyst",
+    "authority-verifier"
+  ],
+  "stateVersion": 7,
+  "paidModelCalls": 0,
+  "syntheticCalls": 3,
+  "measuredMicroUsd": null,
+  "simulatedMicroUsd": 1200,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": {
+    "action": "analyze_documents",
+    "contextId": "D01-analyze",
+    "contextRevision": 1,
+    "status": "LIMITED",
+    "humanReviewRequired": true,
+    "legalAssessment": "NOT_EVALUATED",
+    "issues": [
+      {
+        "id": "issue",
+        "statement": "Examinar o material sintético",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "id": "0623a0beb6:claim",
+        "classification": "ALLEGATION",
+        "statement": "Aurora fornecerá dez mesas à Brisa por R$ 10.000,00, com entrega até 10/10/2026.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ]
+      }
+    ],
+    "requirements": [],
+    "findings": [
+      {
+        "id": "DELIVERY_INFORMATION_LIMITED:b6ce752b6f6f3adc",
+        "code": "DELIVERY_INFORMATION_LIMITED",
+        "severity": "BLOCKING",
+        "statement": "A simulação contém informação não fornecida; não concluir fatos adicionais.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+        "code": "LEGAL_APPLICABILITY_NOT_EVALUATED",
+        "severity": "BLOCKING",
+        "statement": "Snapshots normativos não determinam vigência online nem aplicabilidade ao caso.",
+        "sourceIds": []
+      }
+    ],
+    "sources": [
+      {
+        "id": "context",
+        "kind": "USER_TEXT",
+        "contentHash": "44b2c9011e7821275fe3ffb19bbfbf0ea1a1eaec844560076ffd14375fabd4eb"
+      },
+      {
+        "id": "D01/contrato@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "cec9db6088356783fd3b8eb57f12b5eb95309a434fa6fcf536c25ea8e6b854ba",
+        "documentId": "D01/contrato",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "D01/recibo@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "bec8bfa963cc44e57f8300f19a70a79adf4e08e29448fda144b9f474ddff4b7f",
+        "documentId": "D01/recibo",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "D01/relato@v1#p1",
+        "kind": "USER_TEXT",
+        "contentHash": "c0d5391434d4cb2d86c0015e0698392260d123ba1e166ec1f430dd3a2b83f83e"
+      },
+      {
+        "id": "CPC-373",
+        "kind": "NORM",
+        "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f",
+        "versionId": "2026-11-02",
+        "url": "https://legis.senado.gov.br/norma/584917/publicacao/15633703",
+        "extent": "EXCERPT",
+        "identityStatus": "OFFICIAL_EXCERPT"
+      }
+    ],
+    "supportAudit": []
+  },
+  "question": null,
+  "legalScore": null
+}

@@ -1,0 +1,5 @@
+{"level":"error","message":"agentic.request.failed","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/applications","errorCode":"SIMULATED_WRITE_FAILURE","errorName":"Error","timestamp":"2026-11-04T18:26:17.410Z"}
+{"level":"error","message":"agentic.execution.failed","tenantId":"commercial","executionId":"6dbd8786-4857-4494-a6dd-3a1d5bbecb76","failureCode":"ACCESS_REVOKED","errorCode":"ACCESS_REVOKED","errorName":"Error","timestamp":"2026-11-04T18:26:30.046Z"}
+{"level":"error","message":"agentic.execution.failed","tenantId":"commercial","executionId":"31e41a86-c474-4d27-92d1-8f0f470e3519","failureCode":"EXECUTION_FAILED","errorCode":"DEADLINE_EXCEEDED","errorName":"Error","timestamp":"2026-11-04T18:26:31.442Z"}
+{"level":"error","message":"agentic.request.failed","method":"GET","route":"/api/agentic/deliveries/:id/editorial-context","errorCode":"DELIVERY_INTEGRITY_FAILED","errorName":"Error","timestamp":"2026-11-04T18:26:32.448Z"}
+JSON report written to C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/tmp/timeout-baseline.json

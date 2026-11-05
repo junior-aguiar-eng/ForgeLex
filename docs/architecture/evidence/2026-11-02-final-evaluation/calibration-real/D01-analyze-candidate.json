@@ -1,0 +1,49 @@
+{
+  "runId": "D01-analyze-candidate",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\90317c82bb2ee2839c9807b91af63e4b534aaf1244d31974a4fb5237d9b59863\\candidate",
+  "inputHash": "a9ccc9e7b973b9bef18b324c30bd080ddccf6e27c650709538fe0b9cc4e36ed3",
+  "request": "Analise o caso, as questões, o alcance das provas e o que falta esclarecer. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "question",
+  "error": null,
+  "durationMs": 23984.8402,
+  "roles": [
+    "legal-orchestrator"
+  ],
+  "stateVersion": 2,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 25312,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 1767,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2347,
+      "outputTokens": 1011,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3377,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": {
+    "id": "case-task:destino-quatro-mesas",
+    "version": 1,
+    "contextRevision": 1,
+    "prompt": "Há informação ou documento sobre a entrega das quatro mesas não registradas no recibo, inclusive eventual data? É possível responder livremente ou indicar que não se sabe.",
+    "selection": "free_text",
+    "options": [],
+    "allowFreeText": true,
+    "allowUnknown": true,
+    "reason": "O recibo tem alcance limitado a seis mesas e não esclarece o cumprimento do restante; a análise deve permanecer condicionada quanto a isso."
+  },
+  "legalScore": null
+}

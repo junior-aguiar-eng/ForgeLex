@@ -1,0 +1,82 @@
+{
+  "runId": "D03-review-candidate",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\348b6546848d6222cd6c9ada25f103bfff852b36b7d5df8096a40c6ce5926227\\candidate",
+  "inputHash": "7eb08d631b9ebd8e6f0022f137194e7b289c389a3fdc4de04f845c5833b389f6",
+  "request": "Revise o rascunho fornecido, indicando problemas concretos, fontes e correções necessárias. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "failed",
+  "error": "OPENAI_AGENT_ERROR",
+  "durationMs": 64337.8188,
+  "roles": [
+    "legal-orchestrator",
+    "matter-analyst",
+    "adversarial-reviewer",
+    "authority-verifier"
+  ],
+  "stateVersion": 5,
+  "paidModelCalls": 11,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 131608,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 2230,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2800,
+      "outputTokens": 618,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3437,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3603,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 4173,
+      "outputTokens": 948,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 5140,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 4099,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 4669,
+      "outputTokens": 1179,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 5867,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 5168,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 5738,
+      "outputTokens": 947,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": null,
+  "legalScore": null
+}

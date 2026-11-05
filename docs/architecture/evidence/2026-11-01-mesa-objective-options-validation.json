@@ -1,0 +1,42 @@
+{
+  "scope": "Correção da exposição de controles internos na mesa, conforme direção de Boni",
+  "localOnly": true,
+  "checks": {
+    "presentation": {
+      "command": "pnpm exec vitest run apps/web/src/agentic-workspace/evidence-delivery.test.ts apps/web/src/agentic-workspace/clean-presentation.test.ts apps/web/src/agentic-workspace/present-delivery.test.ts --maxWorkers=1",
+      "passed": 10
+    },
+    "approval": {
+      "command": "pnpm exec vitest run packages/persistence/src/repositories/native-evidence-review.test.ts apps/api/src/agentic-workspace/evidence-review-routes.test.ts --maxWorkers=1",
+      "passed": 21
+    },
+    "browser": {
+      "command": "pnpm exec playwright test --config playwright.agentic-commercial-flow.config.ts",
+      "passed": 3,
+      "includes": [
+        "aprovação explícita",
+        "resposta perdida/idempotência",
+        "cobrança sintética preservada",
+        "Axe na revisão mobile",
+        "ausência de overflow horizontal"
+      ]
+    },
+    "webBuild": "pnpm --filter @forgelex/web build: exit 0 (TypeScript e Vite)",
+    "lint": "ESLint nos cinco arquivos de código/testes pertinentes: exit 0",
+    "diffCheck": "git diff --check: exit 0",
+    "visual": "Capturas desktop e janela de revisão mobile inspecionadas"
+  },
+  "notRunThisCorrection": [
+    "suíte integral",
+    "PostgreSQL",
+    "provedor pago",
+    "operações de produção"
+  ],
+  "pending": [
+    "reutilização automática dos fatos e provas já aprovados na elaboração/revisão"
+  ],
+  "limitations": [
+    "ensaios sintéticos não homologam conteúdo jurídico real",
+    "origem da tela anexada pelo usuário não identificada; wizard não encontrado no frontend local atual"
+  ]
+}

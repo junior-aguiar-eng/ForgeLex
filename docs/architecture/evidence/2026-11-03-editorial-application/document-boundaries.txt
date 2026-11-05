@@ -1,0 +1,9 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed | 52 skipped (55)
+   Start at  17:43:29
+   Duration  7.71s (transform 3.15s, setup 0ms, import 5.70s, tests 1.54s, environment 0ms)
+

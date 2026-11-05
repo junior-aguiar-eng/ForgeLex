@@ -1,0 +1,809 @@
+{
+  "runId": "V2-FIT",
+  "mode": "fake",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\77ad4f7372af86fa71e0f04de57823084b7c4064605bc1efbb634150361ac6c2\\candidate",
+  "inputHash": "a5da974497af863b976dc555512a2fd1387f6d6e02a2fb065b1e3363d31cceab",
+  "request": "Revise o rascunho com questões, correções e limites das fontes. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "completed",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 215.59399999999914,
+  "roles": [
+    "authority-verifier"
+  ],
+  "stateVersion": 9,
+  "paidModelCalls": 0,
+  "syntheticCalls": 1,
+  "measuredMicroUsd": null,
+  "simulatedMicroUsd": 400,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": {
+    "action": "review_text",
+    "contextId": "V2-FIT",
+    "contextRevision": 1,
+    "status": "LIMITED",
+    "humanReviewRequired": true,
+    "legalAssessment": "NOT_EVALUATED",
+    "issues": [
+      {
+        "id": "i1",
+        "statement": "Revisar a conclusão de que coincidência de nome confirma a dívida: o cadastro não relaciona Sul à fatura nem ao negócio. Avaliar a insuficiência desse vínculo sem afirmar identidade ou responsabilidade.",
+        "sourceIds": [
+          "draft",
+          "V2-FIT/cadastro@v1#p1",
+          "V2-FIT/fatura@v1#p1"
+        ]
+      },
+      {
+        "id": "i2",
+        "statement": "Propor correção EDITORIAL concreta: substituir a conclusão categórica por redação limitada, indicando que a fatura registra R$ 610,00 e pagamento não informado, enquanto os trechos selecionados não demonstram vínculo com Sul, vencimento ou saldo exigível. Não converter pagamento não informado em inadimplemento ou quitação. Submeter a proposta à revisão humana.",
+        "sourceIds": [
+          "draft",
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1"
+        ]
+      },
+      {
+        "id": "i3",
+        "statement": "Examinar o alcance do trecho do art. 373 como regra de ônus da prova, sem tratá-lo como prova da dívida ou decidir distribuição concreta sem pretensão definida. Separar essa questão jurídica da correção editorial; restringir referências ao corpus fechado e explicitar ausência de outras fontes.",
+        "sourceIds": [
+          "CPC-373",
+          "context",
+          "draft"
+        ]
+      },
+      {
+        "id": "i4",
+        "statement": "Delimitar a revisão aos trechos selecionados e fictícios: distinguir conteúdo documental, alegação do rascunho e inferências; não confirmar autenticidade, verdade, vencimento, identidade do devedor ou exigibilidade.",
+        "sourceIds": [
+          "context",
+          "draft",
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "id": "80a0fa7575:c1",
+        "classification": "DOCUMENT_RECORD",
+        "statement": "Fatura 71: R$ 610,00. Pagamento: não informado.",
+        "sourceIds": [
+          "V2-FIT/fatura@v1#p1"
+        ]
+      },
+      {
+        "id": "80a0fa7575:c2",
+        "classification": "DOCUMENT_RECORD",
+        "statement": "Empresa Sul Serviços consta em um cadastro; não consta número da fatura nem negócio relacionado.",
+        "sourceIds": [
+          "V2-FIT/cadastro@v1#p1"
+        ]
+      },
+      {
+        "id": "80a0fa7575:c3",
+        "classification": "ALLEGATION",
+        "statement": "O rascunho afirma que a coincidência do nome confirma que Sul deve R$ 610,00 vencidos.",
+        "sourceIds": [
+          "draft"
+        ]
+      },
+      {
+        "id": "80a0fa7575:c4",
+        "classification": "INFERENCE",
+        "statement": "Os recortes não demonstram a ligação de Sul com a fatura 71 ou com o negócio, nem vencimento ou saldo exigível. Pagamento não informado não demonstra inadimplemento nem quitação. Essas lacunas não provam inexistência do crédito.",
+        "sourceIds": [
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1"
+        ]
+      },
+      {
+        "id": "80a0fa7575:c5",
+        "classification": "INFERENCE",
+        "statement": "O art. 373 fornecido enuncia regra de ônus da prova, não prova da dívida; sem pretensão definida, não cabe aqui decidir sua aplicação concreta.",
+        "sourceIds": [
+          "CPC-373",
+          "context"
+        ]
+      },
+      {
+        "id": "80a0fa7575:c6",
+        "classification": "ALLEGATION",
+        "statement": "Segundo o contexto, Norte pretende avaliar crédito atribuído a Sul, a medida pretendida não foi informada e os dados são fictícios.",
+        "sourceIds": [
+          "context"
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "id": "80a0fa7575:r1",
+        "kind": "EDITORIAL",
+        "statement": "Substituir a frase do rascunho por proposta sujeita à revisão humana: “A fatura 71 registra R$ 610,00 e pagamento não informado. O cadastro menciona Sul Serviços, mas os trechos selecionados não demonstram seu vínculo com a fatura ou com o negócio, nem vencimento ou saldo exigível. Não é possível concluir, com esses elementos, que Sul deva a quantia ou esteja inadimplente.”",
+        "sourceIds": [
+          "draft",
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1"
+        ],
+        "verified": false
+      },
+      {
+        "id": "80a0fa7575:r2",
+        "kind": "EDITORIAL",
+        "statement": "Preservar na revisão a limitação aos recortes fictícios selecionados, sem confirmação de autenticidade ou verdade. Informar que não foram utilizadas outras fontes e que o único trecho normativo disponível é o art. 373; separar a observação jurídica da correção textual.",
+        "sourceIds": [
+          "context",
+          "CPC-373",
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1"
+        ],
+        "verified": false
+      },
+      {
+        "id": "2c796fbf3e:r1",
+        "kind": "EDITORIAL",
+        "statement": "Propor, sem alterar automaticamente a minuta, a substituição da frase por: “A fatura 71 registra R$ 610,00 e pagamento não informado. O cadastro menciona Sul Serviços, mas os trechos selecionados não demonstram vínculo com a fatura ou com o negócio, nem vencimento ou saldo exigível.” A proposta permanece sujeita à revisão humana.",
+        "sourceIds": [
+          "draft",
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1"
+        ],
+        "verified": false
+      }
+    ],
+    "findings": [
+      {
+        "id": "80a0fa7575:f1",
+        "code": "VINCULO_E_VENCIMENTO_NAO_DEMONSTRADOS",
+        "severity": "WARNING",
+        "statement": "A conclusão categórica do rascunho excede os recortes: o cadastro não identifica fatura ou negócio e a fatura não identifica partes nem vencimento. Não há suporte para confirmar identidade do devedor, responsabilidade ou exigibilidade.",
+        "sourceIds": [
+          "draft",
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1"
+        ]
+      },
+      {
+        "id": "80a0fa7575:f2",
+        "code": "FINALIDADE_NAO_DEFINIDA",
+        "severity": "WARNING",
+        "statement": "A falta de medida pretendida limita a análise jurídica específica, sem impedir a correção editorial. Questão pendente: qual finalidade jurídica Norte pretende dar à avaliação do crédito, ou ela ainda não foi definida? Não se escolhe medida nesta revisão.",
+        "sourceIds": [
+          "context"
+        ]
+      },
+      {
+        "id": "2c796fbf3e:f1",
+        "code": "SALTO_DE_IDENTIDADE_E_RESPONSABILIDADE",
+        "severity": "WARNING",
+        "statement": "No rascunho v1, a coincidência nominal é tomada como confirmação de dívida. O cadastro não relaciona Sul Serviços à fatura ou ao negócio; a fatura não identifica devedor. Falta a premissa documental que permitiria atribuir a quantia a Sul. Isso limita a conclusão, mas não demonstra inexistência do crédito.",
+        "sourceIds": [
+          "draft",
+          "V2-FIT/cadastro@v1#p1",
+          "V2-FIT/fatura@v1#p1"
+        ]
+      },
+      {
+        "id": "2c796fbf3e:f2",
+        "code": "VENCIMENTO_E_PAGAMENTO_SEM_LASTRO",
+        "severity": "WARNING",
+        "statement": "A expressão “R$ 610,00 vencidos” excede o recorte da fatura: não há data de vencimento e consta “Pagamento: não informado.” Esse registro não permite concluir inadimplemento, quitação ou saldo exigível.",
+        "sourceIds": [
+          "draft",
+          "V2-FIT/fatura@v1#p1"
+        ]
+      },
+      {
+        "id": "2c796fbf3e:f3",
+        "code": "LIMITE_DA_ANALISE_JURIDICA",
+        "severity": "WARNING",
+        "statement": "Não há medida pretendida informada. O art. 373 é o único trecho normativo disponível e não supre o vínculo documental faltante; não se decide distribuição concreta do ônus da prova. Questão pendente: qual finalidade jurídica Norte pretende dar à avaliação, ou ela ainda não foi definida? A lacuna não impede a correção editorial.",
+        "sourceIds": [
+          "context",
+          "CPC-373"
+        ]
+      },
+      {
+        "id": "2c796fbf3e:f4",
+        "code": "ESCOPO_E_VERIFICACOES_NAO_REALIZADAS",
+        "severity": "WARNING",
+        "statement": "Revisão limitada ao rascunho v1 e aos recortes fictícios selecionados, sem outras fontes. Não foram confirmados autenticidade, verdade, identidade do devedor ou exigibilidade. A ausência de vínculo, vencimento e situação do pagamento permanece como limitação, não como prova negativa. As observações não aprovam juridicamente a minuta.",
+        "sourceIds": [
+          "context",
+          "draft",
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1"
+        ]
+      },
+      {
+        "id": "DELIVERY_INFORMATION_LIMITED:8c5b3e55c6edcf46",
+        "code": "DELIVERY_INFORMATION_LIMITED",
+        "severity": "BLOCKING",
+        "statement": "A medida pretendida não foi informada; isso limita a análise jurídica específica, mas não impede corrigir o rascunho e explicitar seus limites.",
+        "sourceIds": [
+          "context"
+        ]
+      },
+      {
+        "id": "DELIVERY_INFORMATION_LIMITED:373f489ded56d0a6",
+        "code": "DELIVERY_INFORMATION_LIMITED",
+        "severity": "BLOCKING",
+        "statement": "Os trechos não estabelecem a ligação entre cadastro e fatura, nem vencimento ou pagamento. A revisão pode prosseguir, mas não sustenta conclusão de dívida vencida de Sul; não buscar fontes fora do corpus autorizado.",
+        "sourceIds": [
+          "V2-FIT/fatura@v1#p1",
+          "V2-FIT/cadastro@v1#p1",
+          "draft"
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "context",
+        "kind": "USER_TEXT",
+        "contentHash": "2461f50469bf39e2d9a9e0a49cffdfcf28c0780ac127fbcb462bca561215499b"
+      },
+      {
+        "id": "V2-FIT/fatura@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "3803bced1e1162c004a83195e3d0f9ef96d8e47d32123a72a6ac12ce0ea04569",
+        "documentId": "V2-FIT/fatura",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "V2-FIT/cadastro@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "c07906a6ff01c3de36a2eb9512b05c133a3a9a9f52039b4a090d39f3768454f0",
+        "documentId": "V2-FIT/cadastro",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "CPC-373",
+        "kind": "NORM",
+        "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f",
+        "versionId": "2026-11-02",
+        "url": "https://legis.senado.gov.br/norma/584917/publicacao/15633703",
+        "extent": "EXCERPT",
+        "identityStatus": "OFFICIAL_EXCERPT"
+      },
+      {
+        "id": "draft",
+        "kind": "DRAFT",
+        "contentHash": "63567f318989b9e1a5aea6519995f47798815d9ccba9e653ea72d6a31ac2cb34",
+        "documentId": "draft",
+        "versionId": "v1"
+      }
+    ],
+    "supportAudit": [
+      {
+        "claimId": "80a0fa7575:c1",
+        "sourceId": "V2-FIT/fatura@v1#p1",
+        "sourceContentHash": "3803bced1e1162c004a83195e3d0f9ef96d8e47d32123a72a6ac12ce0ea04569",
+        "quote": "Fatura 71: R$ 610,00. Pagamento: não informado.",
+        "quoteStatus": "MATCHED",
+        "modelAssessment": "SUPPORTED"
+      },
+      {
+        "claimId": "80a0fa7575:c2",
+        "sourceId": "V2-FIT/cadastro@v1#p1",
+        "sourceContentHash": "c07906a6ff01c3de36a2eb9512b05c133a3a9a9f52039b4a090d39f3768454f0",
+        "quote": "Empresa Sul Serviços consta em um cadastro; não consta número da fatura nem negócio relacionado.",
+        "quoteStatus": "MATCHED",
+        "modelAssessment": "SUPPORTED"
+      },
+      {
+        "claimId": "80a0fa7575:c4",
+        "sourceId": "V2-FIT/fatura@v1#p1",
+        "sourceContentHash": "3803bced1e1162c004a83195e3d0f9ef96d8e47d32123a72a6ac12ce0ea04569",
+        "quote": "Fatura 71: R$ 610,00. Pagamento: não informado.",
+        "quoteStatus": "MATCHED",
+        "modelAssessment": "SUPPORTED"
+      },
+      {
+        "claimId": "80a0fa7575:c4",
+        "sourceId": "V2-FIT/cadastro@v1#p1",
+        "sourceContentHash": "c07906a6ff01c3de36a2eb9512b05c133a3a9a9f52039b4a090d39f3768454f0",
+        "quote": "Empresa Sul Serviços consta em um cadastro; não consta número da fatura nem negócio relacionado.",
+        "quoteStatus": "MATCHED",
+        "modelAssessment": "SUPPORTED"
+      },
+      {
+        "claimId": "80a0fa7575:c5",
+        "sourceId": "CPC-373",
+        "sourceContentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f",
+        "quote": "Art. 373. O ônus da prova incumbe: I - ao autor, quanto ao fato constitutivo de seu direito; II - ao réu, quanto à existência de fato impeditivo, modificativo ou extintivo do direito do autor.",
+        "quoteStatus": "MATCHED",
+        "modelAssessment": "SUPPORTED"
+      },
+      {
+        "claimId": "80a0fa7575:c5",
+        "sourceId": "context",
+        "sourceContentHash": "2461f50469bf39e2d9a9e0a49cffdfcf28c0780ac127fbcb462bca561215499b",
+        "quote": "Norte pretende avaliar um crédito atribuído a Sul. Não foi informada a medida pretendida. Os dados são fictícios.",
+        "quoteStatus": "MATCHED",
+        "modelAssessment": "SUPPORTED"
+      },
+      {
+        "claimId": "80a0fa7575:c6",
+        "sourceId": "context",
+        "sourceContentHash": "2461f50469bf39e2d9a9e0a49cffdfcf28c0780ac127fbcb462bca561215499b",
+        "quote": "Norte pretende avaliar um crédito atribuído a Sul. Não foi informada a medida pretendida. Os dados são fictícios.",
+        "quoteStatus": "MATCHED",
+        "modelAssessment": "SUPPORTED"
+      }
+    ],
+    "review": {
+      "version": 1,
+      "questions": [
+        {
+          "prompt": "Qual finalidade jurídica Norte pretende dar à avaliação do crédito? Pode informar em texto livre ou indicar que ainda não foi definida.",
+          "reason": "A medida pretendida não foi informada; isso limita a análise jurídica específica, mas não impede corrigir o rascunho e explicitar seus limites.",
+          "sourceIds": [
+            "context"
+          ]
+        },
+        {
+          "prompt": "O corpus selecionado contém algum elemento que relacione Sul à fatura 71 e informe vencimento e situação do pagamento? Se não contiver, esses pontos permanecerão não demonstrados nesta revisão.",
+          "reason": "Os trechos não estabelecem a ligação entre cadastro e fatura, nem vencimento ou pagamento. A revisão pode prosseguir, mas não sustenta conclusão de dívida vencida de Sul; não buscar fontes fora do corpus autorizado.",
+          "sourceIds": [
+            "V2-FIT/fatura@v1#p1",
+            "V2-FIT/cadastro@v1#p1",
+            "draft"
+          ]
+        }
+      ],
+      "documentAssessments": [
+        {
+          "sourceId": "V2-FIT/fatura@v1#p1",
+          "aspects": [
+            {
+              "aspect": "PARTIES",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CAUSE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "DUE_DATE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CREDIT_LINK",
+              "status": "AMBIGUOUS"
+            }
+          ],
+          "conclusion": "Há avaliações documentais divergentes entre as etapas; conferir o recorte antes de concluir vínculo ou exigibilidade."
+        },
+        {
+          "sourceId": "V2-FIT/cadastro@v1#p1",
+          "aspects": [
+            {
+              "aspect": "PARTIES",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CAUSE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "DUE_DATE",
+              "status": "AMBIGUOUS"
+            },
+            {
+              "aspect": "CREDIT_LINK",
+              "status": "AMBIGUOUS"
+            }
+          ],
+          "conclusion": "Há avaliações documentais divergentes entre as etapas; conferir o recorte antes de concluir vínculo ou exigibilidade."
+        }
+      ],
+      "integrityAlerts": [],
+      "provenance": [
+        {
+          "kind": "claim",
+          "id": "80a0fa7575:c1",
+          "originIds": [
+            "80a0fa7575:c1"
+          ]
+        },
+        {
+          "kind": "claim",
+          "id": "80a0fa7575:c2",
+          "originIds": [
+            "80a0fa7575:c2"
+          ]
+        },
+        {
+          "kind": "claim",
+          "id": "80a0fa7575:c3",
+          "originIds": [
+            "80a0fa7575:c3"
+          ]
+        },
+        {
+          "kind": "claim",
+          "id": "80a0fa7575:c4",
+          "originIds": [
+            "80a0fa7575:c4"
+          ]
+        },
+        {
+          "kind": "claim",
+          "id": "80a0fa7575:c5",
+          "originIds": [
+            "80a0fa7575:c5"
+          ]
+        },
+        {
+          "kind": "claim",
+          "id": "80a0fa7575:c6",
+          "originIds": [
+            "80a0fa7575:c6"
+          ]
+        },
+        {
+          "kind": "requirement",
+          "id": "80a0fa7575:r1",
+          "originIds": [
+            "80a0fa7575:r1"
+          ]
+        },
+        {
+          "kind": "requirement",
+          "id": "80a0fa7575:r2",
+          "originIds": [
+            "80a0fa7575:r2"
+          ]
+        },
+        {
+          "kind": "requirement",
+          "id": "2c796fbf3e:r1",
+          "originIds": [
+            "2c796fbf3e:r1"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "CAPABILITY_UNAVAILABLE:c627c859a95a69d3",
+          "originIds": [
+            "CAPABILITY_UNAVAILABLE:c627c859a95a69d3"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "80a0fa7575:f1",
+          "originIds": [
+            "80a0fa7575:f1"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "80a0fa7575:f2",
+          "originIds": [
+            "80a0fa7575:f2"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "2c796fbf3e:f1",
+          "originIds": [
+            "2c796fbf3e:f1"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "2c796fbf3e:f2",
+          "originIds": [
+            "2c796fbf3e:f2"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "2c796fbf3e:f3",
+          "originIds": [
+            "2c796fbf3e:f3"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "2c796fbf3e:f4",
+          "originIds": [
+            "2c796fbf3e:f4"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "DELIVERY_INFORMATION_LIMITED:8c5b3e55c6edcf46",
+          "originIds": [
+            "DELIVERY_INFORMATION_LIMITED:8c5b3e55c6edcf46"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "DELIVERY_INFORMATION_LIMITED:373f489ded56d0a6",
+          "originIds": [
+            "DELIVERY_INFORMATION_LIMITED:373f489ded56d0a6"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "EDITORIAL_REQUIREMENT_UNVERIFIED:e3b56dc379c6e9c3",
+          "originIds": [
+            "EDITORIAL_REQUIREMENT_UNVERIFIED:e3b56dc379c6e9c3"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "EDITORIAL_REQUIREMENT_UNVERIFIED:73b62238b730ee7d",
+          "originIds": [
+            "EDITORIAL_REQUIREMENT_UNVERIFIED:73b62238b730ee7d"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "EDITORIAL_REQUIREMENT_UNVERIFIED:b78ef36aae23009a",
+          "originIds": [
+            "EDITORIAL_REQUIREMENT_UNVERIFIED:b78ef36aae23009a"
+          ]
+        },
+        {
+          "kind": "finding",
+          "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+          "originIds": [
+            "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35"
+          ]
+        }
+      ],
+      "technicalFindings": [
+        {
+          "id": "CAPABILITY_UNAVAILABLE:c627c859a95a69d3",
+          "code": "CAPABILITY_UNAVAILABLE",
+          "severity": "BLOCKING",
+          "statement": "A capacidade de pesquisa solicitada não dispõe das ferramentas necessárias neste trabalho.",
+          "sourceIds": []
+        },
+        {
+          "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+          "code": "LEGAL_APPLICABILITY_NOT_EVALUATED",
+          "severity": "BLOCKING",
+          "statement": "Snapshots normativos não determinam vigência online nem aplicabilidade ao caso.",
+          "sourceIds": []
+        }
+      ],
+      "original": {
+        "claims": [
+          {
+            "id": "80a0fa7575:c1",
+            "classification": "DOCUMENT_RECORD",
+            "statement": "Fatura 71: R$ 610,00. Pagamento: não informado.",
+            "sourceIds": [
+              "V2-FIT/fatura@v1#p1"
+            ]
+          },
+          {
+            "id": "80a0fa7575:c2",
+            "classification": "DOCUMENT_RECORD",
+            "statement": "Empresa Sul Serviços consta em um cadastro; não consta número da fatura nem negócio relacionado.",
+            "sourceIds": [
+              "V2-FIT/cadastro@v1#p1"
+            ]
+          },
+          {
+            "id": "80a0fa7575:c3",
+            "classification": "ALLEGATION",
+            "statement": "O rascunho afirma que a coincidência do nome confirma que Sul deve R$ 610,00 vencidos.",
+            "sourceIds": [
+              "draft"
+            ]
+          },
+          {
+            "id": "80a0fa7575:c4",
+            "classification": "INFERENCE",
+            "statement": "Os recortes não demonstram a ligação de Sul com a fatura 71 ou com o negócio, nem vencimento ou saldo exigível. Pagamento não informado não demonstra inadimplemento nem quitação. Essas lacunas não provam inexistência do crédito.",
+            "sourceIds": [
+              "V2-FIT/fatura@v1#p1",
+              "V2-FIT/cadastro@v1#p1"
+            ]
+          },
+          {
+            "id": "80a0fa7575:c5",
+            "classification": "INFERENCE",
+            "statement": "O art. 373 fornecido enuncia regra de ônus da prova, não prova da dívida; sem pretensão definida, não cabe aqui decidir sua aplicação concreta.",
+            "sourceIds": [
+              "CPC-373",
+              "context"
+            ]
+          },
+          {
+            "id": "80a0fa7575:c6",
+            "classification": "ALLEGATION",
+            "statement": "Segundo o contexto, Norte pretende avaliar crédito atribuído a Sul, a medida pretendida não foi informada e os dados são fictícios.",
+            "sourceIds": [
+              "context"
+            ]
+          }
+        ],
+        "requirements": [
+          {
+            "id": "80a0fa7575:r1",
+            "kind": "EDITORIAL",
+            "statement": "Substituir a frase do rascunho por proposta sujeita à revisão humana: “A fatura 71 registra R$ 610,00 e pagamento não informado. O cadastro menciona Sul Serviços, mas os trechos selecionados não demonstram seu vínculo com a fatura ou com o negócio, nem vencimento ou saldo exigível. Não é possível concluir, com esses elementos, que Sul deva a quantia ou esteja inadimplente.”",
+            "sourceIds": [
+              "draft",
+              "V2-FIT/fatura@v1#p1",
+              "V2-FIT/cadastro@v1#p1"
+            ],
+            "verified": false
+          },
+          {
+            "id": "80a0fa7575:r2",
+            "kind": "EDITORIAL",
+            "statement": "Preservar na revisão a limitação aos recortes fictícios selecionados, sem confirmação de autenticidade ou verdade. Informar que não foram utilizadas outras fontes e que o único trecho normativo disponível é o art. 373; separar a observação jurídica da correção textual.",
+            "sourceIds": [
+              "context",
+              "CPC-373",
+              "V2-FIT/fatura@v1#p1",
+              "V2-FIT/cadastro@v1#p1"
+            ],
+            "verified": false
+          },
+          {
+            "id": "2c796fbf3e:r1",
+            "kind": "EDITORIAL",
+            "statement": "Propor, sem alterar automaticamente a minuta, a substituição da frase por: “A fatura 71 registra R$ 610,00 e pagamento não informado. O cadastro menciona Sul Serviços, mas os trechos selecionados não demonstram vínculo com a fatura ou com o negócio, nem vencimento ou saldo exigível.” A proposta permanece sujeita à revisão humana.",
+            "sourceIds": [
+              "draft",
+              "V2-FIT/fatura@v1#p1",
+              "V2-FIT/cadastro@v1#p1"
+            ],
+            "verified": false
+          }
+        ],
+        "findings": [
+          {
+            "id": "CAPABILITY_UNAVAILABLE:c627c859a95a69d3",
+            "code": "CAPABILITY_UNAVAILABLE",
+            "severity": "BLOCKING",
+            "statement": "A capacidade de pesquisa solicitada não dispõe das ferramentas necessárias neste trabalho.",
+            "sourceIds": []
+          },
+          {
+            "id": "80a0fa7575:f1",
+            "code": "VINCULO_E_VENCIMENTO_NAO_DEMONSTRADOS",
+            "severity": "WARNING",
+            "statement": "A conclusão categórica do rascunho excede os recortes: o cadastro não identifica fatura ou negócio e a fatura não identifica partes nem vencimento. Não há suporte para confirmar identidade do devedor, responsabilidade ou exigibilidade.",
+            "sourceIds": [
+              "draft",
+              "V2-FIT/fatura@v1#p1",
+              "V2-FIT/cadastro@v1#p1"
+            ]
+          },
+          {
+            "id": "80a0fa7575:f2",
+            "code": "FINALIDADE_NAO_DEFINIDA",
+            "severity": "WARNING",
+            "statement": "A falta de medida pretendida limita a análise jurídica específica, sem impedir a correção editorial. Questão pendente: qual finalidade jurídica Norte pretende dar à avaliação do crédito, ou ela ainda não foi definida? Não se escolhe medida nesta revisão.",
+            "sourceIds": [
+              "context"
+            ]
+          },
+          {
+            "id": "2c796fbf3e:f1",
+            "code": "SALTO_DE_IDENTIDADE_E_RESPONSABILIDADE",
+            "severity": "WARNING",
+            "statement": "No rascunho v1, a coincidência nominal é tomada como confirmação de dívida. O cadastro não relaciona Sul Serviços à fatura ou ao negócio; a fatura não identifica devedor. Falta a premissa documental que permitiria atribuir a quantia a Sul. Isso limita a conclusão, mas não demonstra inexistência do crédito.",
+            "sourceIds": [
+              "draft",
+              "V2-FIT/cadastro@v1#p1",
+              "V2-FIT/fatura@v1#p1"
+            ]
+          },
+          {
+            "id": "2c796fbf3e:f2",
+            "code": "VENCIMENTO_E_PAGAMENTO_SEM_LASTRO",
+            "severity": "WARNING",
+            "statement": "A expressão “R$ 610,00 vencidos” excede o recorte da fatura: não há data de vencimento e consta “Pagamento: não informado.” Esse registro não permite concluir inadimplemento, quitação ou saldo exigível.",
+            "sourceIds": [
+              "draft",
+              "V2-FIT/fatura@v1#p1"
+            ]
+          },
+          {
+            "id": "2c796fbf3e:f3",
+            "code": "LIMITE_DA_ANALISE_JURIDICA",
+            "severity": "WARNING",
+            "statement": "Não há medida pretendida informada. O art. 373 é o único trecho normativo disponível e não supre o vínculo documental faltante; não se decide distribuição concreta do ônus da prova. Questão pendente: qual finalidade jurídica Norte pretende dar à avaliação, ou ela ainda não foi definida? A lacuna não impede a correção editorial.",
+            "sourceIds": [
+              "context",
+              "CPC-373"
+            ]
+          },
+          {
+            "id": "2c796fbf3e:f4",
+            "code": "ESCOPO_E_VERIFICACOES_NAO_REALIZADAS",
+            "severity": "WARNING",
+            "statement": "Revisão limitada ao rascunho v1 e aos recortes fictícios selecionados, sem outras fontes. Não foram confirmados autenticidade, verdade, identidade do devedor ou exigibilidade. A ausência de vínculo, vencimento e situação do pagamento permanece como limitação, não como prova negativa. As observações não aprovam juridicamente a minuta.",
+            "sourceIds": [
+              "context",
+              "draft",
+              "V2-FIT/fatura@v1#p1",
+              "V2-FIT/cadastro@v1#p1"
+            ]
+          },
+          {
+            "id": "DELIVERY_INFORMATION_LIMITED:8c5b3e55c6edcf46",
+            "code": "DELIVERY_INFORMATION_LIMITED",
+            "severity": "BLOCKING",
+            "statement": "A medida pretendida não foi informada; isso limita a análise jurídica específica, mas não impede corrigir o rascunho e explicitar seus limites.",
+            "sourceIds": [
+              "context"
+            ]
+          },
+          {
+            "id": "DELIVERY_INFORMATION_LIMITED:373f489ded56d0a6",
+            "code": "DELIVERY_INFORMATION_LIMITED",
+            "severity": "BLOCKING",
+            "statement": "Os trechos não estabelecem a ligação entre cadastro e fatura, nem vencimento ou pagamento. A revisão pode prosseguir, mas não sustenta conclusão de dívida vencida de Sul; não buscar fontes fora do corpus autorizado.",
+            "sourceIds": [
+              "V2-FIT/fatura@v1#p1",
+              "V2-FIT/cadastro@v1#p1",
+              "draft"
+            ]
+          },
+          {
+            "id": "EDITORIAL_REQUIREMENT_UNVERIFIED:e3b56dc379c6e9c3",
+            "code": "EDITORIAL_REQUIREMENT_UNVERIFIED",
+            "severity": "BLOCKING",
+            "statement": "Substituir a frase do rascunho por proposta sujeita à revisão humana: “A fatura 71 registra R$ 610,00 e pagamento não informado. O cadastro menciona Sul Serviços, mas os trechos selecionados não demonstram seu vínculo com a fatura ou com o negócio, nem vencimento ou saldo exigível. Não é possível concluir, com esses elementos, que Sul deva a quantia ou esteja inadimplente.”",
+            "sourceIds": [
+              "draft",
+              "V2-FIT/fatura@v1#p1",
+              "V2-FIT/cadastro@v1#p1"
+            ]
+          },
+          {
+            "id": "EDITORIAL_REQUIREMENT_UNVERIFIED:73b62238b730ee7d",
+            "code": "EDITORIAL_REQUIREMENT_UNVERIFIED",
+            "severity": "BLOCKING",
+            "statement": "Preservar na revisão a limitação aos recortes fictícios selecionados, sem confirmação de autenticidade ou verdade. Informar que não foram utilizadas outras fontes e que o único trecho normativo disponível é o art. 373; separar a observação jurídica da correção textual.",
+            "sourceIds": [
+              "context",
+              "CPC-373",
+              "V2-FIT/fatura@v1#p1",
+              "V2-FIT/cadastro@v1#p1"
+            ]
+          },
+          {
+            "id": "EDITORIAL_REQUIREMENT_UNVERIFIED:b78ef36aae23009a",
+            "code": "EDITORIAL_REQUIREMENT_UNVERIFIED",
+            "severity": "BLOCKING",
+            "statement": "Propor, sem alterar automaticamente a minuta, a substituição da frase por: “A fatura 71 registra R$ 610,00 e pagamento não informado. O cadastro menciona Sul Serviços, mas os trechos selecionados não demonstram vínculo com a fatura ou com o negócio, nem vencimento ou saldo exigível.” A proposta permanece sujeita à revisão humana.",
+            "sourceIds": [
+              "draft",
+              "V2-FIT/fatura@v1#p1",
+              "V2-FIT/cadastro@v1#p1"
+            ]
+          },
+          {
+            "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+            "code": "LEGAL_APPLICABILITY_NOT_EVALUATED",
+            "severity": "BLOCKING",
+            "statement": "Snapshots normativos não determinam vigência online nem aplicabilidade ao caso.",
+            "sourceIds": []
+          }
+        ]
+      }
+    }
+  },
+  "question": null,
+  "legalScore": null
+}

@@ -1,0 +1,283 @@
+{
+  "bindingHash": "fddaa2e2ce6a2bdaacd0df88b608299aad293f69970e01325fa3f5aed77cfc4d",
+  "contractHash": "08c442cbecc20d11b8f0ea9b7d7f61e88de61284d6c7b04d62e42ca5413a37ae",
+  "previousDeliveryIds": [],
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.6.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.6.0"
+    },
+    {
+      "role": "matter-analyst",
+      "version": "1.6.0",
+      "instructionId": "matter-analyst-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "matter-analyst",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.6.0"
+    },
+    {
+      "role": "adversarial-reviewer",
+      "version": "1.6.0",
+      "instructionId": "text-reviewer-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "adversarial-reviewer",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.6.0"
+    },
+    {
+      "role": "authority-verifier",
+      "version": "1.6.0",
+      "instructionId": "authority-verifier-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "authority-verifier",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.6.0"
+    }
+  ],
+  "toolCount": 4,
+  "researchOperations": [],
+  "findings": [],
+  "outputs": {
+    "matter-analyst": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [
+        {
+          "id": "claim",
+          "classification": "ALLEGATION",
+          "statement": "Fatura de R$ 800,00 emitida em 01/10/2026. Estado do pagamento: não informado.",
+          "sourceIds": [
+            "D03/fatura@v1#p1"
+          ]
+        }
+      ],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": []
+    },
+    "adversarial-reviewer": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": []
+    },
+    "authority-verifier": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": [
+        {
+          "claimId": "claim",
+          "sourceId": "D03/fatura@v1#p1",
+          "quote": "Fatura de R$ 800,00 emitida em 01/10/2026. Estado do pagamento: não informado.",
+          "assessment": "SUPPORTED"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "version": 1,
+    "revision": 0,
+    "tools": [],
+    "failedTools": [],
+    "planHashes": [
+      "8f92b76b887a1219d8a10fe38d2b32d1489042578a9871b91d9b9067c91f60b1"
+    ],
+    "reviewRequired": false,
+    "nodes": [
+      {
+        "id": "matter-analyst:0",
+        "role": "matter-analyst",
+        "generation": 0,
+        "dependsOn": [],
+        "status": "COMPLETED",
+        "inputHash": "228201e0d21c890af0257b51212a30f2df41aba26223dcef4fea2dcffa8d4605",
+        "input": {
+          "bindingHash": "fddaa2e2ce6a2bdaacd0df88b608299aad293f69970e01325fa3f5aed77cfc4d",
+          "contractHash": "08c442cbecc20d11b8f0ea9b7d7f61e88de61284d6c7b04d62e42ca5413a37ae",
+          "planHash": "8f92b76b887a1219d8a10fe38d2b32d1489042578a9871b91d9b9067c91f60b1",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "409b2e214813b872b6afc5918b9ccd535ac4c4b2bc8da062e6893ce3dde56a29"
+            },
+            {
+              "id": "D03/fatura@v1#p1",
+              "contentHash": "1f5defb0f0d199cb515deadaacb8f7428784024cd422190bf07d1e187e498306"
+            },
+            {
+              "id": "D03/anexo@v1#p1",
+              "contentHash": "b90646bb034429fee9decb11114e8732ff7790a15c362118499371908560280f"
+            },
+            {
+              "id": "CPC-373",
+              "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f"
+            },
+            {
+              "id": "draft",
+              "contentHash": "0cec9581ce629ca0e0a92c3ac28f8ea94599d877e5ba51153d86d5f1b4d06f44"
+            }
+          ],
+          "dependencies": [],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "c898db0a8d66ffdc8defd00813864b7d01f5c32364ac11f0ab8d57ff871400ab",
+        "runIndex": 2
+      },
+      {
+        "id": "adversarial-reviewer:0",
+        "role": "adversarial-reviewer",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "cc1a4a76f1fcd14516e5f90cde64861e8c50b7d2f9387fd221e39e0d825ca700",
+        "input": {
+          "bindingHash": "fddaa2e2ce6a2bdaacd0df88b608299aad293f69970e01325fa3f5aed77cfc4d",
+          "contractHash": "08c442cbecc20d11b8f0ea9b7d7f61e88de61284d6c7b04d62e42ca5413a37ae",
+          "planHash": "8f92b76b887a1219d8a10fe38d2b32d1489042578a9871b91d9b9067c91f60b1",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "409b2e214813b872b6afc5918b9ccd535ac4c4b2bc8da062e6893ce3dde56a29"
+            },
+            {
+              "id": "D03/fatura@v1#p1",
+              "contentHash": "1f5defb0f0d199cb515deadaacb8f7428784024cd422190bf07d1e187e498306"
+            },
+            {
+              "id": "D03/anexo@v1#p1",
+              "contentHash": "b90646bb034429fee9decb11114e8732ff7790a15c362118499371908560280f"
+            },
+            {
+              "id": "CPC-373",
+              "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f"
+            },
+            {
+              "id": "draft",
+              "contentHash": "0cec9581ce629ca0e0a92c3ac28f8ea94599d877e5ba51153d86d5f1b4d06f44"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "c898db0a8d66ffdc8defd00813864b7d01f5c32364ac11f0ab8d57ff871400ab"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "2d8b9b4fdb6dacadb511e0fb4dbd4feaae55e9e01f70d450fc5980016323d2aa",
+        "runIndex": 3
+      },
+      {
+        "id": "authority-verifier:0",
+        "role": "authority-verifier",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "adversarial-reviewer:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "f8f005d6f7ee6acd5acebefcf8eda32024a81aa53aec400b6746c16513137618",
+        "input": {
+          "bindingHash": "fddaa2e2ce6a2bdaacd0df88b608299aad293f69970e01325fa3f5aed77cfc4d",
+          "contractHash": "08c442cbecc20d11b8f0ea9b7d7f61e88de61284d6c7b04d62e42ca5413a37ae",
+          "planHash": "8f92b76b887a1219d8a10fe38d2b32d1489042578a9871b91d9b9067c91f60b1",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "409b2e214813b872b6afc5918b9ccd535ac4c4b2bc8da062e6893ce3dde56a29"
+            },
+            {
+              "id": "D03/fatura@v1#p1",
+              "contentHash": "1f5defb0f0d199cb515deadaacb8f7428784024cd422190bf07d1e187e498306"
+            },
+            {
+              "id": "D03/anexo@v1#p1",
+              "contentHash": "b90646bb034429fee9decb11114e8732ff7790a15c362118499371908560280f"
+            },
+            {
+              "id": "CPC-373",
+              "contentHash": "8aa2d3adeec63b6e4a85e845f24e3977a9360e07ab25a697ec6dad1bf6271c8f"
+            },
+            {
+              "id": "draft",
+              "contentHash": "0cec9581ce629ca0e0a92c3ac28f8ea94599d877e5ba51153d86d5f1b4d06f44"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "c898db0a8d66ffdc8defd00813864b7d01f5c32364ac11f0ab8d57ff871400ab"
+            },
+            {
+              "id": "adversarial-reviewer:0",
+              "outputHash": "2d8b9b4fdb6dacadb511e0fb4dbd4feaae55e9e01f70d450fc5980016323d2aa"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "401fbfe7964d9a6778cf0b9d1f38cb5dc2f60a523bcc91f72791063470ee8217",
+        "runIndex": 4
+      }
+    ],
+    "archivedOutputs": {},
+    "decisions": [],
+    "stopReason": "COMPLETED"
+  },
+  "version": 5,
+  "plan": {
+    "action": "review_text",
+    "requiresCaseLaw": false,
+    "requiresNorms": false,
+    "requiresProcedure": false,
+    "issues": [
+      {
+        "id": "issue",
+        "statement": "Examinar o material sintético",
+        "sourceIds": [
+          "D03/fatura@v1#p1"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "synthetic-limitation",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Informação não fornecida na simulação.",
+        "reason": "A simulação contém informação não fornecida; não concluir fatos adicionais.",
+        "sourceIds": [
+          "D03/fatura@v1#p1"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      }
+    ]
+  }
+}

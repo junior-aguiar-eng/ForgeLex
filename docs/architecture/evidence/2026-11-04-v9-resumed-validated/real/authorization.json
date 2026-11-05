@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-04",
+  "by": "Boni",
+  "source": "Current chat",
+  "decision": "Boni authorizes higher per-execution limit and resumption of D04-V2 checkpoint to finish six scenarios, total USD 1.50 including prior costs and USD 0.083620 historical reserve",
+  "historicalReconciliation": "UNRESOLVED_RESERVE_RETAINED",
+  "retries": false,
+  "commit": false,
+  "push": false,
+  "publish": false,
+  "checkpointResume": true,
+  "mode": "real",
+  "packetSha256": "865cebcfdf849521329f92e13d616c74cdf2d75accf33745c0e2249b94a38962",
+  "historicalReserveMicroUsd": 83620,
+  "newCallsCapMicroUsd": 1324484,
+  "priorMeasuredMicroUsd": 91896,
+  "perExecutionCapMicroUsd": 500000,
+  "totalCapMicroUsd": 1500000
+}

@@ -5,7 +5,10 @@ import { pathToFileURL } from 'node:url';
 import { defineConfig } from '@playwright/test';
 import documents from './playwright.documents.config';
 
-const databaseUrl = pathToFileURL(join(mkdtempSync(join(tmpdir(), 'forgelex-commercial-e2e-')), 'browser.sqlite')).href;
+const databaseUrl =
+  process.env.FORGELEX_COMMERCIAL_TEST_DATABASE_URL ??
+  pathToFileURL(join(mkdtempSync(join(tmpdir(), 'forgelex-commercial-e2e-')), 'browser.sqlite')).href;
+process.env.FORGELEX_COMMERCIAL_TEST_DATABASE_URL = databaseUrl;
 export default defineConfig({
   ...documents,
   outputDir: 'test-results/agentic-commercial-flow',

@@ -1,0 +1,19 @@
+{
+  "contractVersion": "1.0.0",
+  "contextId": "c0949b20-d0bf-41d8-87d2-258a4b02f5a0",
+  "contextRevision": 1,
+  "deliveryId": "delivery:b48af7c8-3dc9-407b-9990-292a7fb8b35d",
+  "draftId": "d50b3c8d-d65b-4747-a721-d899a3bfca3b",
+  "versionId": "dddb6cfc-a7ca-4330-96e2-debb477957d2",
+  "documentHash": "c50f020b6be5846112cc58eb1b08e7efdb723cb9fe2599ada32a3350b2f1809c",
+  "status": "LIMITED",
+  "humanReviewRequired": true,
+  "legalAssessment": "NOT_EVALUATED",
+  "changes": [],
+  "substantiveSuggestions": [],
+  "limitations": [
+    "Revisão exclusivamente editorial de material sintético fornecido pelo usuário, sem autenticação documental, pesquisa ou verificação jurídica independente. Não foram identificados ajustes formais necessários; a ausência de mudanças não significa aprovação.",
+    "Permanecem todas as ressalvas da minuta e o finding LIMITED_SYNTHETIC_EDITORIAL_PILOT: fontes sem nova verificação jurídica e aptidão para protocolo não demonstrada. O requisito preserve-approved-content permanece não verificado.",
+    "Preservados o suporte parcial dos recortes e os requisitos não demonstrados, inclusive quanto a descumprimento, dano, reversibilidade, caução e individualização. Não se presumem fatos, prazos, condições processuais, vigência ou aplicabilidade temporal das normas."
+  ]
+}

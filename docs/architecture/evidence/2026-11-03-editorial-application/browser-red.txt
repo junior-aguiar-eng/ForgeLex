@@ -1,0 +1,82 @@
+[WebServer] (node:31456) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:22072) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite "--host" "127.0.0.1" "--port" "3300" "--strictPort"
+[WebServer] (node:29868) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:33968) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 [chromium] › tests\e2e\editorial-review.spec.ts:81:5 › aplicação editorial exige seleção e confirmação e abre nova versão preservando original (22.3s)
+(node:5936) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  2 [chromium] › tests\e2e\editorial-review.spec.ts:114:5 › aplicação editorial recupera resposta perdida sem duplicar versão (1.0m)
+
+
+  1) [chromium] › tests\e2e\editorial-review.spec.ts:81:5 › aplicação editorial exige seleção e confirmação e abre nova versão preservando original 
+
+    Error: expect(locator).not.toBeChecked() failed
+
+    Locator: getByRole('dialog', { name: 'Revisão editorial' }).getByRole('checkbox', { name: 'Aplicar ajuste editorial 1', exact: true })
+    Expected: not checked
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "not toBeChecked" getByRole('dialog', { name: 'Revisão editorial' }).getByRole('checkbox', { name: 'Aplicar ajuste editorial 1', exact: true }) with timeout 10000ms
+      - waiting for getByRole('dialog', { name: 'Revisão editorial' }).getByRole('checkbox', { name: 'Aplicar ajuste editorial 1', exact: true })
+
+
+      84 |   page.on('request', req => { if (req.method() === 'POST') writes.push(req.url()); });
+      85 |   const select = f.dialog.getByRole('checkbox', { name: 'Aplicar ajuste editorial 1', exact: true });
+    > 86 |   await expect(select).not.toBeChecked();
+         |                            ^
+      87 |   const apply = f.dialog.getByRole('button', { name: 'Criar nova versão com selecionadas', exact: true });
+      88 |   await expect(apply).toBeDisabled();
+      89 |   await select.check();
+        at C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\tests\e2e\editorial-review.spec.ts:86:28
+
+    Error Context: test-results\editorial-review\editorial-review-aplicação-9b5ae-versão-preservando-original-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\editorial-review\editorial-review-aplicação-9b5ae-versão-preservando-original-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\editorial-review\editorial-review-aplicação-9b5ae-versão-preservando-original-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests\e2e\editorial-review.spec.ts:114:5 › aplicação editorial recupera resposta perdida sem duplicar versão 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.check: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog', { name: 'Revisão editorial' }).getByRole('checkbox', { name: 'Aplicar ajuste editorial 1', exact: true })
+
+
+      114 | test('aplicação editorial recupera resposta perdida sem duplicar versão', async ({ page }) => {
+      115 |   const f = await acceptForApplication(page);
+    > 116 |   await f.dialog.getByRole('checkbox', { name: 'Aplicar ajuste editorial 1', exact: true }).check();
+          |                                                                                             ^
+      117 |   await f.dialog.getByLabel('Fundamento da aplicação', { exact: true }).fill('Aplicação explícita.');
+      118 |   await f.dialog.getByRole('checkbox', { name: 'Confirmo criar uma nova versão com os ajustes selecionados.' }).check();
+      119 |   const bodies: string[] = [];
+        at C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\tests\e2e\editorial-review.spec.ts:116:93
+
+    Error Context: test-results\editorial-review\editorial-review-aplicação-20ef3-perdida-sem-duplicar-versão-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\editorial-review\editorial-review-aplicação-20ef3-perdida-sem-duplicar-versão-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\editorial-review\editorial-review-aplicação-20ef3-perdida-sem-duplicar-versão-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests\e2e\editorial-review.spec.ts:81:5 › aplicação editorial exige seleção e confirmação e abre nova versão preservando original 
+    [chromium] › tests\e2e\editorial-review.spec.ts:114:5 › aplicação editorial recupera resposta perdida sem duplicar versão 

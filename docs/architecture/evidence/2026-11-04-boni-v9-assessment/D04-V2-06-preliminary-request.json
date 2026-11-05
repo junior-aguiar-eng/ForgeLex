@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D04-V2",
+  "block": "PRELIMINARY_REQUEST",
+  "decision": "ACCEPTED_AS_PRELIMINARY",
+  "evaluator": "Boni",
+  "userStatement": "Aceito essa formulação como pedido preliminar, mantendo a ressalva sobre a aptidão para protocolo. Consolide os trechos aceitos de D04-V2 para minha avaliação final.",
+  "recordedAt": "2026-11-04T21:16:03.722610+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D04-V2.json",
+  "sourceSha256": "10109b7a6550e0774f9a4c7d3a10187de9a5e79962646fc5f880f5ff169ef8cc",
+  "acceptedExcerpt": "Aurora requer a apreciação de sua pretensão de entrega dos dois equipamentos indicados no recorte contratual, inclusive quanto à entrega imediata solicitada, observadas as limitações já expostas sobre cumprimento da obrigação e requisitos da urgência.\n\nCaso concedida a tutela específica de entrega, requer a fixação judicial do prazo de cumprimento, conforme o art. 498, sem indicação de prazo numérico.\n\nA formulação do objeto permanece dependente do esclarecimento das especificações dos equipamentos e, quando aplicável, da titularidade da escolha. Não se afirma que as exigências de individualização estejam atendidas.",
+  "reservation": "Aptidão para protocolo não demonstrada.",
+  "wholeDeliveryAssessment": "PENDING",
+  "appliedToOriginal": false,
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

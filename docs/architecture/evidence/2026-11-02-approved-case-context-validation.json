@@ -1,0 +1,157 @@
+{
+  "date": "2026-11-02",
+  "timezone": "America/Fortaleza",
+  "scope": "Uso automático dos fatos e provas aprovados do caso na elaboração/revisão, preservando mesa e pedidos",
+  "localOnly": true,
+  "paidInference": false,
+  "published": false,
+  "fullSuite": {
+    "command": "pnpm exec vitest run --maxWorkers=1",
+    "passed": 1569,
+    "failed": 0,
+    "skipped": 17,
+    "success": true
+  },
+  "postgresRegression": {
+    "passed": 41,
+    "failed": 0,
+    "success": true,
+    "note": "Banco PostgreSQL 16 efêmero local; cobre os 16 cenários PostgreSQL pulados na suíte padrão"
+  },
+  "postgresSmoke": {
+    "status": "passed",
+    "checks": [
+      "migration_idempotent",
+      "concurrent_same_command_one_adoption",
+      "approved_context_cross_connection_owner_and_provenance",
+      "approved_context_native_draft_links",
+      "idempotent_recovery_separate_process",
+      "approved_context_recovery_separate_process",
+      "concurrent_distinct_commands_conflict",
+      "concurrent_archive_blocks_approved_context_use",
+      "concurrent_archive_blocks_stale_approval_without_deadlock",
+      "original_delivery_immutable",
+      "case_purge_removes_review_and_adoptions"
+    ]
+  },
+  "browser": {
+    "command": "pnpm exec playwright test --config playwright.agentic-commercial-flow.config.ts",
+    "passed": 3,
+    "flow": "análise → edição/aprovação → elaboração com texto aprovado → revisão com minuta e fontes aprovadas; sem novo seletor",
+    "synthetic": true
+  },
+  "build": {
+    "command": "pnpm build",
+    "exitCode": 0,
+    "afterFinalFixes": "build de persistence e api repetidos: exit 0"
+  },
+  "types": {
+    "command": "pnpm -r run typecheck",
+    "exitCode": 0,
+    "afterFinalFixes": "typecheck de api repetido: exit 0"
+  },
+  "lint": {
+    "command": "pnpm lint",
+    "exitCode": 0,
+    "afterFinalFixes": "ESLint dos arquivos corrigidos repetido: exit 0"
+  },
+  "diffCheck": {
+    "command": "git diff --check",
+    "exitCode": 0
+  },
+  "review": {
+    "findingsFixed": [
+      "reclassificação de fonte aprovada",
+      "consulta histórica indevidamente invalidada por mudanças legítimas",
+      "candidato com contexto alterado bloqueando a fila"
+    ],
+    "final": "sem novos achados nas correções examinadas"
+  },
+  "visual": {
+    "inspected": true,
+    "artifact": "2026-11-02-approved-case-context-mesa.png"
+  },
+  "limits": {
+    "approvedItems": 50,
+    "sourceBytes": 128000,
+    "reviewedReceipts": 1000,
+    "silentTruncation": false,
+    "manualRecordsWithoutNativeApprovalIncluded": false,
+    "changedRecordsAutomaticallyReapproved": false
+  },
+  "skippedInDefaultSuite": [
+    {
+      "file": "provider-real.integration.test.ts",
+      "test": "homologação real sintética aprovada por Boni executa um único provider/modelo com orçamento durável, sem pesquisa paga nem fallback"
+    },
+    {
+      "file": "migration-idempotency.test.ts",
+      "test": "persistence migrations exerce idempotência em PostgreSQL local quando explicitamente habilitado"
+    },
+    {
+      "file": "jurisprudence-repository.test.ts",
+      "test": "JurisprudenceRepository usa ranking full-text e índice GIN no PostgreSQL local"
+    },
+    {
+      "file": "jurisprudence-search-postgres.test.ts",
+      "test": "Busca PostgreSQL com candidatos extensos ordena apenas a projeção compacta antes de carregar o conteúdo jurídico"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres exige os termos relevantes e ignora preposições fora de aspas"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres normaliza acentos sem ampliar a busca por OR"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres preserva preposições na frase exata"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres preserva palavras de uma letra na frase exata"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres permite alternativas somente com OR explícito"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres combina frase exata com OR explícito"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres não pesquisa apenas preposições"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres preserva busca por um único termo"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres trata o ano no texto como termo e não como filtro de julgamento"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres não transforma pontuação dentro de um termo em operador OR"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres não transforma OR com pontuação em alternativa implícita"
+    },
+    {
+      "file": "jurisprudence-search-query.test.ts",
+      "test": "Consulta jurisprudencial — postgres aplica o intervalo de julgamento à consulta por todos os termos"
+    },
+    {
+      "file": "saved-research-postgres.test.ts",
+      "test": "saved research PostgreSQL concurrency serializes separate connections and never creates a seventh slot"
+    }
+  ],
+  "limitations": [
+    "sem teste com provedor real pago",
+    "ensaios sintéticos não homologam qualidade jurídica nem aprovam peças reais",
+    "validação/publicação em produção não executadas"
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "runId": "D01-analyze-baseline",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\519f1bda815967a1cfa40766d7bd01949b325065f6515b101a9710c9bee0662a\\baseline",
+  "inputHash": "a9ccc9e7b973b9bef18b324c30bd080ddccf6e27c650709538fe0b9cc4e36ed3",
+  "request": "Analise o caso, as questões, o alcance das provas e o que falta esclarecer. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "question",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 25570.7443,
+  "roles": [
+    "legal-orchestrator"
+  ],
+  "stateVersion": 1,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 26914,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 1666,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2246,
+      "outputTokens": 1195,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3460,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": {
+    "id": "case-task:pedido-fundamentos",
+    "version": 1,
+    "contextRevision": 1,
+    "prompt": "Qual é o pedido da autora e quais fatos o fundamentam? Informe em texto livre ou indique que isso não consta do corpus/não é conhecido.",
+    "selection": "single",
+    "options": [
+      {
+        "id": "informar",
+        "label": "Informar em texto livre, com indicação da fonte disponível"
+      },
+      {
+        "id": "nao-consta",
+        "label": "Não consta do corpus selecionado"
+      },
+      {
+        "id": "desconhecido",
+        "label": "Não sei"
+      }
+    ],
+    "allowFreeText": true,
+    "allowUnknown": true,
+    "reason": "Sem delimitação da pretensão, não é possível identificar integralmente os fatos constitutivos nem concluir sobre procedência; cabe análise probatória limitada."
+  },
+  "legalScore": null
+}

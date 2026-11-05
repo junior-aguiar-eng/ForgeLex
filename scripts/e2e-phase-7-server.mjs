@@ -114,7 +114,11 @@ const account = await new AccountRepository(connection.db).bootstrap({
   email: identity.email,
   displayName: identity.user_metadata.full_name,
 });
-await ledger.provisionAccount(account.tenant.id, { paidBalanceCents: 500, promotionalBalanceCents: 0 });
+// The commercial suite runs sequential synthetic jobs, each reserving 500 cents; unused balances are released.
+await ledger.provisionAccount(account.tenant.id, {
+  paidBalanceCents: process.env.FORGELEX_E2E_COMMERCIAL === 'true' ? 1000 : 500,
+  promotionalBalanceCents: 0,
+});
 await connection.client.execute({ sql: 'DELETE FROM research_memos WHERE tenant_id = ?', args: [account.tenant.id] });
 
 class StjFixtureProvider extends CanonicalFixtureProvider {

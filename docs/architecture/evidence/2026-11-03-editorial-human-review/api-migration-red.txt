@@ -1,0 +1,64 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ packages/persistence/src/migrations/editorial-review-upgrade.test.ts (1 test | 1 failed) 394ms
+   × 0038 preserva entrega e revisão probatória, inicia histórico editorial nulo e é idempotente 391ms
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts (30 tests | 2 failed | 26 skipped) 3707ms
+   × revisão humana salva histórico sem aplicar, recarrega e mantém replay idempotente 1979ms
+   × revisão humana recusa adulteração, falta de escrita, sessão externa e fonte/contexto obsoleto 575ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > revisão humana salva histórico sem aplicar, recarrega e mantém replay idempotente
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:550:30
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > revisão humana recusa adulteração, falta de escrita, sessão externa e fonte/contexto obsoleto
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:573:30
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  packages/persistence/src/migrations/editorial-review-upgrade.test.ts > 0038 preserva entrega e revisão probatória, inicia histórico editorial nulo e é idempotente
+LibsqlError: SQLITE_ERROR: no such column: editorial_review_json
+ ❯ mapSqliteError ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/@libsql+client@0.18.0/node_modules/@libsql/client/lib-esm/sqlite3.js:653:16
+ ❯ executeStmt ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/@libsql+client@0.18.0/node_modules/@libsql/client/lib-esm/sqlite3.js:556:15
+ ❯ Sqlite3Client.execute ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/@libsql+client@0.18.0/node_modules/@libsql/client/lib-esm/sqlite3.js:245:20
+ ❯ packages/persistence/src/migrations/editorial-review-upgrade.test.ts:14:13
+
+
+Caused by: SqliteError: no such column: editorial_review_json
+ ❯ convertError node_modules/.pnpm/libsql@0.5.29/node_modules/libsql/index.js:59:12
+ ❯ Database.prepare node_modules/.pnpm/libsql@0.5.29/node_modules/libsql/index.js:131:13
+ ❯ executeStmt ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/@libsql+client@0.18.0/node_modules/@libsql/client/lib-esm/sqlite3.js:527:28
+ ❯ Sqlite3Client.execute ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/@libsql+client@0.18.0/node_modules/@libsql/client/lib-esm/sqlite3.js:245:20
+ ❯ packages/persistence/src/migrations/editorial-review-upgrade.test.ts:14:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'SQLITE_ERROR', rawCode: 1 }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 2 passed | 26 skipped (31)
+   Start at  15:21:22
+   Duration  11.10s (transform 3.72s, setup 0ms, import 8.80s, tests 4.10s, environment 0ms)
+

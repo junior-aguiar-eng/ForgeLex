@@ -1,0 +1,54 @@
+{
+  "recordedAt": "2026-11-04T22:37:48.342490+00:00",
+  "sourceCsv": "C:\\Users\\Boni Jr\\Desktop\\completions_usage_2026-11-04_2026-11-04.csv",
+  "sourceSha256": "bbb9e27ebaa2c726e370f2fe590e401efaea8eb4a17fd0a024490ccfad82b6a8",
+  "periodUtc": [
+    "2026-11-04T00:00:00Z",
+    "2026-11-05T00:00:00Z"
+  ],
+  "local": {
+    "requests": 28,
+    "inputTokens": 140938,
+    "outputTokens": 29037,
+    "cachedInputTokens": 0
+  },
+  "providerExport": {
+    "requests": 28,
+    "inputTokens": 140938,
+    "outputTokens": 29037,
+    "cachedInputTokens": 0
+  },
+  "difference": {
+    "requests": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cachedInputTokens": 0
+  },
+  "ledgers": [
+    {
+      "path": "docs/architecture/evidence/2026-11-04-v9-candidate-validated/real/budget.jsonl",
+      "sha256": "c7afc013b6a5aa01aaf9c3a10be7d48f818fb7420ac8273cf7357d813d54f886"
+    },
+    {
+      "path": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/budget.jsonl",
+      "sha256": "ca0afcaf3d29468eb4910af5d15c73355bf38ff0c2fae2e5b69d218df5e1ddd7"
+    },
+    {
+      "path": "docs/architecture/evidence/2026-11-04-v9-finalized-validated/real/budget.jsonl",
+      "sha256": "bcc1be1eb34b995008e6690ca79bc00a118b08f156ad96fde44596abcc82f9e6"
+    }
+  ],
+  "limitations": [
+    "Usage export only, not confirmation of billed cost.",
+    "Does not individually reconcile D04-v8 of 2026-11-03."
+  ],
+  "userDecision": "Registre essa conferência e vamos avançar com o editor final real, até US$ 0,25, mantendo os US$ 0,083620 reservados e a conciliação individual de D04-v8 como pendência residual, sem bloquear o trabalho.",
+  "supersedes": "ordering-and-policy-decisions.json: reconciliation-first ordering only",
+  "d04Status": "RESIDUAL_PENDING_NONBLOCKING",
+  "reservedMicroUsd": 83620,
+  "editorialAuthorization": {
+    "executions": 1,
+    "capMicroUsd": 250000
+  },
+  "paidCallsAtRecord": 0
+}

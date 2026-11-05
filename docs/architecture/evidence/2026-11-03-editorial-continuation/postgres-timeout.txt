@@ -1,0 +1,66 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+{"level":"error","message":"agentic.request.failed","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/applications","errorCode":"SIMULATED_WRITE_FAILURE","errorName":"Error","timestamp":"2026-11-03T21:30:29.242Z"}
+{"level":"error","message":"agentic.request.failed","method":"GET","route":"/api/agentic/deliveries/:id/editorial-context","errorCode":"DELIVERY_INTEGRITY_FAILED","errorName":"Error","timestamp":"2026-11-03T21:32:46.821Z"}
+{"level":"error","message":"agentic.request.failed","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/decisions","errorCode":"UNEXPECTED_ERROR","errorName":"Error","timestamp":"2026-11-03T21:33:55.525Z"}
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts (58 tests | 1 failed) 290386ms
+   × revisão humana respeita limite de 100 sem truncar histórico 15192ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > revisão humana respeita limite de 100 sem truncar histórico
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:1158:18
+    1156|   expect(await f.snapshot()).toEqual(before);
+    1157| });
+    1158| it.each([10, 100])(
+       |                  ^
+    1159|   'revisão humana respeita limite de %i sem truncar histórico',
+    1160|   async (limit) => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯ Uncaught Exception ⎯⎯⎯⎯⎯
+TypeError: Cannot read properties of null (reading 'write')
+ ❯ Immediate.nextWrite ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/connection.js:255:22
+ ❯ processImmediate node:internal/timers:534:21
+
+This error originated in "apps/api/src/agentic-workspace/final-editor-routes.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "revisão humana respeita limite de 100 sem truncar histórico". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 57 passed (58)
+     Errors  1 error
+   Start at  18:29:10
+   Duration  297.92s (transform 3.71s, setup 0ms, import 6.94s, tests 290.39s, environment 0ms)
+
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: C:\Program Files\nodejs\node.exe node_modules/vitest/vitest.mjs run apps/api/src/agentic-workspace/final-editor-routes.test.ts --maxWorkers=1 --testTimeout=20000
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at file:///C:/Users/Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/scripts/smoke-editorial-postgres.mjs:43:3 {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 27372,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v24.19.0

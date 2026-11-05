@@ -1,0 +1,125 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ packages/legal-workflows/src/final-editor/final-editor-generator.test.ts (20 tests | 2 failed) 187ms
+   × submissão duplicada não pode ser escondida por um provider simulado 38ms
+   × inclui instruções no limite de entrada 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/legal-workflows/src/final-editor/final-editor-generator.test.ts > submissão duplicada não pode ser escondida por um provider simulado
+AssertionError: promise resolved "{ mode: 'SIMULATED', …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "mode": "SIMULATED",
++   "profileVersion": "1.0.0",
++   "proposal": {
++     "changes": [
++       {
++         "after": "está",
++         "before": "esta",
++         "category": "GRAMMAR",
++         "end": 13,
++         "id": "edit",
++         "reason": "Acentuação.",
++         "sectionHash": "784f1f9340b8eb0c3a7d2df1bedc06e8b72b1da8c480a5d3ff9e3b95950b92b4",
++         "sectionIndex": 0,
++         "sourceIds": [
++           "s",
++         ],
++         "start": 9,
++       },
++     ],
++     "contextId": "ctx",
++     "contextRevision": 1,
++     "contractVersion": "1.0.0",
++     "deliveryId": "delivery:e",
++     "documentHash": "b7265202aedb106ede0c17d1ab0871dfe75476e1e7c36583d85db025a5d9e2ce",
++     "draftId": "draft",
++     "humanReviewRequired": true,
++     "legalAssessment": "NOT_EVALUATED",
++     "limitations": [
++       "Conferir suporte.",
++     ],
++     "status": "LIMITED",
++     "substantiveSuggestions": [],
++     "versionId": "v1",
++   },
+  }
+
+ ❯ packages/legal-workflows/src/final-editor/final-editor-generator.test.ts:270:63
+    268|     },
+    269|   }) });
+    270|   await expect(generator.generate(owner, 'delivery:e', target)).reject…
+       |                                                               ^
+    271| });
+    272| it('inclui instruções no limite de entrada', async () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  packages/legal-workflows/src/final-editor/final-editor-generator.test.ts > inclui instruções no limite de entrada
+AssertionError: promise resolved "{ mode: 'SIMULATED', …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "mode": "SIMULATED",
++   "profileVersion": "1.0.0",
++   "proposal": {
++     "changes": [
++       {
++         "after": "está",
++         "before": "esta",
++         "category": "GRAMMAR",
++         "end": 13,
++         "id": "edit",
++         "reason": "Acentuação.",
++         "sectionHash": "784f1f9340b8eb0c3a7d2df1bedc06e8b72b1da8c480a5d3ff9e3b95950b92b4",
++         "sectionIndex": 0,
++         "sourceIds": [
++           "s",
++         ],
++         "start": 9,
++       },
++     ],
++     "contextId": "ctx",
++     "contextRevision": 1,
++     "contractVersion": "1.0.0",
++     "deliveryId": "delivery:e",
++     "documentHash": "b7265202aedb106ede0c17d1ab0871dfe75476e1e7c36583d85db025a5d9e2ce",
++     "draftId": "draft",
++     "humanReviewRequired": true,
++     "legalAssessment": "NOT_EVALUATED",
++     "limitations": [
++       "Conferir suporte.",
++     ],
++     "status": "LIMITED",
++     "substantiveSuggestions": [],
++     "versionId": "v1",
++   },
+  }
+
+ ❯ packages/legal-workflows/src/final-editor/final-editor-generator.test.ts:283:28
+    281|   context.sources[1].text = 'x'.repeat(extra); context.sources[1].cont…
+    282|   f.load.mockResolvedValue(context);
+    283|   await expect(f.generate()).rejects.toThrow('EDITORIAL_CONTEXT_LIMIT'…
+       |                            ^
+    284| });
+    285| it('aceita exatamente 2048 bytes de proposta e rejeita um byte adicion…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 18 passed (20)
+   Start at  10:58:35
+   Duration  5.40s (transform 2.32s, setup 0ms, import 4.56s, tests 187ms, environment 0ms)
+

@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "bindingHash": "5b357471db86a8ffce59d291dc310964e8c87b59a615597b1496621557c6948e",
+  "contractHash": "8847855772466938a857ef45471c4bab12d2b1b46d4660f343377cdd49abc3e3",
+  "previousDeliveryIds": [],
+  "outputs": {},
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.1.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.1.0"
+    }
+  ],
+  "toolCount": 2,
+  "researchOperations": [],
+  "findings": [],
+  "plan": {
+    "action": "create_document",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "documentPurpose": "LEGAL_DOCUMENT",
+    "documentType": "Minuta de manifestação civil limitada ao corpus selecionado, sem presumir modalidade processual específica e com lacunas expressas.",
+    "issues": [
+      {
+        "id": "escopo-editorial",
+        "statement": "kind: EDITORIAL. Redigir minuta apenas com o corpus fechado recuperado; identificar fatos fictícios, preservar o caráter de alegação e explicitar ausência de fontes adicionais. Não pesquisar jurisprudência ou outras normas. Não inventar qualificação, juízo, número processual ou prazo; usar campos não preenchidos. Entrega limitada, sujeita a revisão humana, sem afirmar suficiência para protocolo.",
+        "sourceIds": [
+          "context",
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ]
+      },
+      {
+        "id": "base-factual",
+        "statement": "kind: EDITORIAL. Registrar que o trecho contratual prevê entrega de dois equipamentos por Brisa à Aurora em 15/10/2026 e que o trecho do pedido registra solicitação de entrega imediata em 18/10/2026. Não converter a solicitação em prova de inadimplemento atual ou de urgência; não afirmar paralisação, prejuízo concreto ou reversibilidade.",
+        "sourceIds": [
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1",
+          "context"
+        ]
+      },
+      {
+        "id": "urgencia",
+        "statement": "kind: PROCEDURAL. Examinar eventual pretensão de entrega imediata à luz exclusivamente do art. 300 e § 3º recuperados: distinguir probabilidade do direito, perigo de dano ou risco ao resultado útil e perigo de irreversibilidade. O trecho contratual oferece suporte limitado à obrigação narrada, mas o corpus não informa consequências concretas da demora nem reversibilidade. Não tratar vencimento contratual como demonstração automática de urgência nem ausência de informação como prova de inexistência de risco. Não apresentar os requisitos como preenchidos.",
+        "sourceIds": [
+          "CPC-300",
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1",
+          "context"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "perigo-concreto",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Marcar na minuta: [não informados consequências concretas da demora, perigo de dano ou risco ao resultado útil e respectivos elementos de suporte].",
+        "reason": "A entrega limitada não pode afirmar requisito de urgência sem suporte; o corpus declara ausência de documentos sobre risco concreto.",
+        "sourceIds": [
+          "context",
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ],
+        "options": []
+      },
+      {
+        "key": "reversibilidade",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Marcar na minuta: [não informadas as condições de reversibilidade dos efeitos da entrega imediata].",
+        "reason": "O § 3º do art. 300 exige considerar perigo de irreversibilidade na tutela antecipada; silêncio não demonstra reversibilidade.",
+        "sourceIds": [
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ],
+        "options": []
+      },
+      {
+        "key": "situacao-entrega",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Marcar na minuta: [não informados cumprimento, entrega parcial ou situação atual da obrigação].",
+        "reason": "Os excertos registram obrigação e solicitação, mas não comprovam estado atual do cumprimento.",
+        "sourceIds": [
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1"
+        ],
+        "options": []
+      },
+      {
+        "key": "identificacao-contexto-processual",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Manter campos expressos para juízo, processo, qualificação e posição processual, fase e finalidade específica da manifestação, sem escolher incidente ou prazo.",
+        "reason": "O corpus apenas menciona ação civil e pedido de entrega imediata; a minuta deve permanecer limitada, sem presumir dados processuais ausentes.",
+        "sourceIds": [
+          "context",
+          "D04/pedido@v1#p1"
+        ],
+        "options": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ packages/legal-workflows/src/final-editor/final-editor-generator.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/legal-workflows/src/final-editor/final-editor-generator.test.ts [ packages/legal-workflows/src/final-editor/final-editor-generator.test.ts ]
+Error: Cannot find module './final-editor-generator.js' imported from C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/packages/legal-workflows/src/final-editor/final-editor-generator.test.ts
+ ❯ packages/legal-workflows/src/final-editor/final-editor-generator.test.ts:5:1
+      3| import { FakeAgentProvider, type AgentProvider } from '@forgelex/agent…
+      4| import { FinalEditorialContextSchema } from '@forgelex/legal-agents';
+      5| import { FinalEditorGenerator } from './final-editor-generator.js';
+       | ^
+      6|
+      7| const hash = (s: string) => createHash('sha256').update(s).digest('hex…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  10:54:11
+   Duration  5.53s (transform 2.52s, setup 0ms, import 0ms, tests 0ms, environment 0ms)
+

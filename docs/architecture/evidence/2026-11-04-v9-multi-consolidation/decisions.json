@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "status": "LOCAL_TEXTUAL_REVIEW_NOT_LEGAL_APPROVAL",
+  "sourceFiles": [
+    {
+      "file": "docs/architecture/evidence/2026-11-04-v9-finalized-validated/real/V2-MULTI.json",
+      "sha256": "7770746ae502e894f4147dcfcfa9a047dddd78b4762655dcb49a271cc5102ab7"
+    },
+    {
+      "file": "docs/architecture/evidence/2026-11-04-v9-finalized-validated/real/V2-MULTI.checkpoint.json",
+      "sha256": "6e81886f137cda49b11a585f423fd4fe5babde3c561f754749cf3e0c549fa4d3"
+    },
+    {
+      "file": "docs/architecture/evidence/2026-11-04-v9-finalized-validated/packet.json",
+      "sha256": "96b1775f351bc3cfb68054df9c151d931fd835180f86ac1f4bccb7b88a451cac"
+    }
+  ],
+  "groups": [
+    {
+      "kind": "claim",
+      "retainedId": "3dedd4e1b8:c4",
+      "memberIds": [
+        "3dedd4e1b8:c4",
+        "36d893ac97:p3"
+      ],
+      "reason": "Mesma faculdade de caução e dispensa condicionada à impossibilidade de oferecê-la; mesma fonte e classificação."
+    },
+    {
+      "kind": "requirement",
+      "retainedId": "3dedd4e1b8:r1",
+      "memberIds": [
+        "3dedd4e1b8:r1",
+        "36d893ac97:r1",
+        "156f284522:r1"
+      ],
+      "reason": "Mesma substituição editorial: não automatismo, requisitos, lacunas, reversibilidade, caução condicional e ausência de presunção. Retida redação com revisão humana explícita."
+    },
+    {
+      "kind": "requirement",
+      "retainedId": "3dedd4e1b8:r2",
+      "memberIds": [
+        "3dedd4e1b8:r2",
+        "156f284522:r2"
+      ],
+      "reason": "Mesmas duas alternativas condicionais, momento de individualização e ausência de atribuição da escolha; mesmas fontes."
+    },
+    {
+      "kind": "finding",
+      "retainedId": "3dedd4e1b8:f2",
+      "memberIds": [
+        "3dedd4e1b8:f2",
+        "36d893ac97:f2"
+      ],
+      "reason": "Mesma objeção à caução absoluta, dispensa condicional e ausência de dados de hipossuficiência ou decisão; mesmas fontes e gravidade."
+    },
+    {
+      "kind": "finding",
+      "retainedId": "3dedd4e1b8:f3",
+      "memberIds": [
+        "3dedd4e1b8:f3",
+        "36d893ac97:f3"
+      ],
+      "reason": "Mesma ausência de titularidade da escolha e proibição de presumir regra supletiva; mesmas fontes e gravidade."
+    }
+  ],
+  "preservedDifferences": [
+    "Composta c3 versus p1/p2: escopo e fontes distintos; não tratar cobertura parcial como equivalência.",
+    "c5 versus p4: aplicação ao contrato e titularidade não resolvida só em c5.",
+    "Requisitos PROCEDURAL separados das propostas EDITORIAL.",
+    "r3, r4 e ressalvas do revisor: autenticação, vigência, extensão da revisão e lacunas não coincidem integralmente.",
+    "Alertas de suporte individuais por fonte preservados no supportAudit.",
+    "Ressalvas de urgência/probabilidade e de incapacidade de prestar caução mantidas quando acrescentam conteúdo ou usam fontes diferentes."
+  ]
+}

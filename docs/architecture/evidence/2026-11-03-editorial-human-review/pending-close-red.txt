@@ -1,0 +1,52 @@
+[WebServer] (node:12636) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:2708) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite "--host" "127.0.0.1" "--port" "3300" "--strictPort"
+[WebServer] (node:10288) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:12604) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 [chromium] › tests\e2e\editorial-review.spec.ts:157:5 › revisão editorial permite fechar consulta pendente e ignora resposta tardia (16.0s)
+
+
+  1) [chromium] › tests\e2e\editorial-review.spec.ts:157:5 › revisão editorial permite fechar consulta pendente e ignora resposta tardia 
+
+    Error: expect(locator).not.toBeVisible() failed
+
+    Locator:  getByRole('dialog', { name: 'Revisão editorial' })
+    Expected: not visible
+    Received: visible
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "not toBeVisible" getByRole('dialog', { name: 'Revisão editorial' }) with timeout 10000ms
+      - waiting for getByRole('dialog', { name: 'Revisão editorial' })
+        23 × locator resolved to <dialog open="" aria-labelledby=":r5:" class="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-2xl border border-champagne-border bg-white p-5 text-stone-900 shadow-xl backdrop:bg-stone-900/30 sm:p-6">…</dialog>
+           - unexpected value "visible"
+
+
+      171 |   await started;
+      172 |   await dialog.press('Escape');
+    > 173 |   await expect(dialog).not.toBeVisible();
+          |                            ^
+      174 |   release();
+      175 |   await page.getByRole('button', { name: 'Revisar proposta editorial', exact: true }).click();
+      176 |   await expect(dialog).toContainText('Nenhuma decisão editorial salva');
+        at C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\tests\e2e\editorial-review.spec.ts:173:28
+
+    Error Context: test-results\editorial-review\editorial-review-revisão-e-34361-te-e-ignora-resposta-tardia-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\editorial-review\editorial-review-revisão-e-34361-te-e-ignora-resposta-tardia-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\editorial-review\editorial-review-revisão-e-34361-te-e-ignora-resposta-tardia-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests\e2e\editorial-review.spec.ts:157:5 › revisão editorial permite fechar consulta pendente e ignora resposta tardia 

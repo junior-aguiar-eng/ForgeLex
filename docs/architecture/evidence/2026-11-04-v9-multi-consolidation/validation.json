@@ -1,0 +1,82 @@
+{
+  "historicalEvidenceFilesPreserved": 453,
+  "frozenCampaignFilesPreserved": 815,
+  "focusedTestsPassed": 16,
+  "recordedReplay": "passed",
+  "build": "passed",
+  "focusedLint": "passed",
+  "formatting": "passed",
+  "fullSuite": {
+    "passed": 1770,
+    "failed": 2,
+    "skipped": 17,
+    "failures": [
+      {
+        "file": "apps/api/src/agentic-workspace/commercial-runtime.test.ts",
+        "test": "charges only concrete persisted review_text results (document=false, claims=refusal)",
+        "failure": "5000ms timeout",
+        "isolated": "passed"
+      },
+      {
+        "file": "apps/api/src/agentic-workspace/final-editor-routes.test.ts",
+        "test": "aplicação humana exige seleção única, confirmação, revisão e proposta persistida",
+        "failure": "5000ms timeout",
+        "isolated": "passed"
+      }
+    ]
+  },
+  "isolatedRerun": {
+    "passed": 2,
+    "skipped": 91,
+    "timeoutsUnchanged": true
+  },
+  "paidCalls": 0,
+  "v9MeasuredMicroUsd": 572246,
+  "reservedMicroUsd": 83620,
+  "totalExposureMicroUsd": 655866,
+  "commit": false,
+  "push": false,
+  "publish": false,
+  "files": [
+    {
+      "file": "decisions.json",
+      "sha256": "ae88a32c032d642020928ce17fabbc963763880bae9d052ad0345adcc6fe34d7"
+    },
+    {
+      "file": "implementation.json",
+      "sha256": "b3e516685bed0bb8bff22245e714bf96aa89348aa67ce7b87554c732df450214"
+    },
+    {
+      "file": "preservation-before.json",
+      "sha256": "a10e3005d569793a90bc7c3ebe5156950897828f55afcaf40de18765cda6faed"
+    },
+    {
+      "file": "V2-MULTI.derived.json",
+      "sha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5"
+    },
+    {
+      "file": "checks/v9-multi-focused.log",
+      "sha256": "c08bb0352e71409b92e8cbe5dd89fc3a029666e69e6fa596755f2f263da94b0d"
+    },
+    {
+      "file": "checks/v9-multi-isolated.log",
+      "sha256": "a038d9a000270b5e9761fc1c94e9bbcabf0047dc81685b4c1da5199d0af843d1"
+    },
+    {
+      "file": "checks/v9-multi-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "checks/v9-multi-red.log",
+      "sha256": "ccb7ea8debb2543fa0fa19ec2e9721d418e4db73a5acc6eda091c959f466b3aa"
+    },
+    {
+      "file": "checks/v9-multi-replay.log",
+      "sha256": "c04eec195bd509f61cf852e29ca7dc57bd1cbab85485f9d2656af722b2cff965"
+    },
+    {
+      "file": "checks/v9-multi-suite.log",
+      "sha256": "2bded5647391b0ff04b19bb37d778519d9f1d539b349cfddb25a19747f6627b0"
+    }
+  ]
+}

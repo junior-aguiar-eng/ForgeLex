@@ -1,0 +1,122 @@
+{
+  "date": "2026-11-02",
+  "campaignId": "2026-11-02-delivery-gaps-v5",
+  "status": "PREPARED_OFFLINE_AWAITING_SPECIFIC_PAID_APPROVAL",
+  "checkout": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK",
+  "branch": "codex/forgelex-3-quality",
+  "head": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "packetSha256": "4aeb33e998b977471966644414e44f1750f0d4fcafc53016f2859dbd91710b10",
+  "candidateSourceSha256": "348b6546848d6222cd6c9ada25f103bfff852b36b7d5df8096a40c6ce5926227",
+  "candidateFilesVerifiedInWorktreeAndSnapshot": 764,
+  "baselineArchiveVerified": true,
+  "corpusIdenticalToHistoricalPaidCampaign": true,
+  "approval": {
+    "status": "pending",
+    "scope": "six runs, D01-analyze/D03-review/D04-create baseline and candidate",
+    "proposedNewCapMicroUsd": 1500000,
+    "perRunCapMicroUsd": 250000,
+    "pricingRecheckBeforePaidDispatch": true,
+    "remaining54RunsApproved": false
+  },
+  "tests": [
+    {
+      "command": "node --test scripts/forgelex-final-evaluation/campaign.test.mjs scripts/forgelex-final-evaluation/budget.test.mjs scripts/forgelex-final-evaluation/prepare.test.mjs",
+      "passed": 15
+    },
+    {
+      "files": [
+        "packages/legal-workflows/src/agentic-case-task/case-task.test.ts",
+        "packages/legal-workflows/src/agentic-case-task/delivery-compatibility.test.ts"
+      ],
+      "passed": 51
+    },
+    {
+      "command": "pnpm exec vitest run apps/api/src/agentic-workspace/commercial-provider.test.ts --maxWorkers=1",
+      "passed": 10
+    }
+  ],
+  "offline": {
+    "command": "node scripts/forgelex-final-evaluation/calibrate.mjs --campaign=2026-11-02-delivery-gaps-v5",
+    "directory": ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/campaigns/2026-11-02-delivery-gaps-v5/offline-qmbDzg",
+    "runs": 6,
+    "passed": 6,
+    "candidateLimitedDeliveries": 3,
+    "paidModelCalls": 0,
+    "measuredMicroUsd": null
+  },
+  "guards": {
+    "realWithoutApprovalRejected": true,
+    "realDirectoryAbsent": true,
+    "runnerAndBudgetLocksAbsentAfterCompletion": true
+  },
+  "lint": "passed for campaign.mjs, campaign.test.mjs, calibrate.mjs",
+  "format": "passed for changed scripts and new report",
+  "diffCheck": "passed",
+  "historicalFilesVerifiedUnchanged": {
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/budget.jsonl": "6a2e6595e8ff014708f85b1b1f0f00ec92d0c16bd2c983cf614fbcca69f9ebdd",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/comparison.json": "791d00f86a8348e4b893f159ed8d8136e240628b84d69b15c875b74bd74fbaba",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D01-analyze-baseline.checkpoint.json": "c6627f58baf8a700b1ea80a80077225ce1139f7e84138ecf4c0921d58beffd61",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D01-analyze-baseline.json": "6ea524b2c3cad81742f35452fa48635f537d9ef797099927bb2feb649660cca2",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D01-analyze-candidate.checkpoint.json": "d5545cbf24970ffac9f67d21d90e5c89d0bd7f35bf7dc391e16877156c423089",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D01-analyze-candidate.json": "d8f93b320b1e8d2d9d38fd9159b27997b2f44e00798654a626ec3b45d97ad05c",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D03-review-baseline.checkpoint.json": "5b08fcc8e525d5d4a04b6b04dc917a0008855565612857fe6c32cf8136f64ebb",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D03-review-baseline.json": "e8a09d4021e74f39bb8fc79c932e07ae073aff9b82e924dce1bbdf12839e9974",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D03-review-candidate.checkpoint.json": "3db3483369775c8f4eed5d2aaf00d6c5f4f4bb75eeea047fa6701cf371fcd565",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D03-review-candidate.json": "116ffa68fefd02258bdc27887667797da2b80a4910bbc2b0d174e812271ca6be",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D04-create-baseline.checkpoint.json": "b2741a1a64f117d2f77980521582fcfcacd32d1052beaa8a60de01fce0b9c82d",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D04-create-baseline.json": "61a8472c658747cf5687a6b60dff948d35faa9fe7aafa73e9efe70cfae3807cd",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D04-create-candidate.checkpoint.json": "3433aeb3897eabfef6d9bed23a78c3df314386f83b565c0cb5d1d0d73153818e",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/D04-create-candidate.json": "1504d17e9e7c67a7142d83433ebcd42c5ce1f21ba3776989aaa2a226981a8232",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/invocation.json": "f376bbd36bd99bfdbe98739f83e37491b903fbc0f4945d0d801a376107bae70b",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/review.md": "787ebbd781ece0af4002222d6b3d9af69ecf3b6d41b6aa33025074b67de17b24",
+    ".superpowers/sdd/2026-11-02-forgelex-calibration-runner/real-calibration/vitest.config.mjs": "338240f6b153fe10aa57360e3b577daf4057d3b281bdea2fdc3e2747eae9e0f2",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/authorization.json": "15815c37b88ec5dad64b41b91ecaf1213b952fef2b7d845ba461ebf6f8ab5da8",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/comparison.json": "791d00f86a8348e4b893f159ed8d8136e240628b84d69b15c875b74bd74fbaba",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D01-analyze-baseline.checkpoint.json": "c6627f58baf8a700b1ea80a80077225ce1139f7e84138ecf4c0921d58beffd61",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D01-analyze-baseline.json": "6ea524b2c3cad81742f35452fa48635f537d9ef797099927bb2feb649660cca2",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D01-analyze-candidate.checkpoint.json": "d5545cbf24970ffac9f67d21d90e5c89d0bd7f35bf7dc391e16877156c423089",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D01-analyze-candidate.json": "d8f93b320b1e8d2d9d38fd9159b27997b2f44e00798654a626ec3b45d97ad05c",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D03-review-baseline.checkpoint.json": "5b08fcc8e525d5d4a04b6b04dc917a0008855565612857fe6c32cf8136f64ebb",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D03-review-baseline.json": "e8a09d4021e74f39bb8fc79c932e07ae073aff9b82e924dce1bbdf12839e9974",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D03-review-candidate.checkpoint.json": "3db3483369775c8f4eed5d2aaf00d6c5f4f4bb75eeea047fa6701cf371fcd565",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D03-review-candidate.json": "116ffa68fefd02258bdc27887667797da2b80a4910bbc2b0d174e812271ca6be",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D04-create-baseline.checkpoint.json": "b2741a1a64f117d2f77980521582fcfcacd32d1052beaa8a60de01fce0b9c82d",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D04-create-baseline.json": "61a8472c658747cf5687a6b60dff948d35faa9fe7aafa73e9efe70cfae3807cd",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D04-create-candidate.checkpoint.json": "3433aeb3897eabfef6d9bed23a78c3df314386f83b565c0cb5d1d0d73153818e",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/D04-create-candidate.json": "1504d17e9e7c67a7142d83433ebcd42c5ce1f21ba3776989aaa2a226981a8232",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/packet.json": "085a116bd76263bdd052f07b2e37041c656750dd8eca07ad2236fa59295eb581",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/receipt.json": "e6369cf6597df043f362b6f89a9b82cf8d8f555eb53eed935923093eb23f506b",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/calibration-real/review.md": "787ebbd781ece0af4002222d6b3d9af69ecf3b6d41b6aa33025074b67de17b24"
+  },
+  "preexistingFilesChangedThisTurn": [
+    "CONTINUIDADE.md",
+    "docs/architecture/evidence/2026-11-02-final-evaluation/packet.json",
+    "scripts/forgelex-final-evaluation/calibrate.mjs",
+    "PENDENCIAS.md"
+  ],
+  "evidenceHashes": {
+    "packet.json": "4aeb33e998b977471966644414e44f1750f0d4fcafc53016f2859dbd91710b10",
+    "packet.sha256": "d9d548ec76824be3ebe6c2e5ec3fb51448d60dccd844fa2948a462da45c8c57f",
+    "offline/budget.jsonl": "67314494728eb3a7227932f6e1e4c31da74e7537a86419ebf4b5b04bcddb7c08",
+    "offline/comparison.json": "cd2f27b20ba5f4ad43884ee4bfe8fe22db212c75ef6a5a308eac4dbd97a220a1",
+    "offline/D01-analyze-baseline.checkpoint.json": "945b01b7f5856c3d679a5811fe120e9baae3cd1235838f189dd887a8bdbc8090",
+    "offline/D01-analyze-baseline.json": "66265c45fd5964ccbf8e8d00ba2b4b511b39efaebd9b3920cb93a533c6d86066",
+    "offline/D01-analyze-candidate.checkpoint.json": "c95d007485d87e3c73f9b4a32758c55d5b2da47d9d626014cae7cb9d2bfb69d0",
+    "offline/D01-analyze-candidate.json": "64c5f13dd90f8f35d78609eb0f21f6aebe855c1596cf3f63f5d5c9d00e9ef351",
+    "offline/D03-review-baseline.checkpoint.json": "edd23412b17abf6efa3b78384b1732503c9695fd4f4e843e27cedf9677079b2d",
+    "offline/D03-review-baseline.json": "4ecb37434b8a87ffeee69eb3df0772965e3452673162f5cf7b5bfb23fa86c112",
+    "offline/D03-review-candidate.checkpoint.json": "0af3dc29332ab33a4d9a7c46c89106b4ef6205a535195dfe2d59362ab48a8986",
+    "offline/D03-review-candidate.json": "d4fecc6261053dbf0e4b69bffef49b2c3a203f052f75c016fb2fd6a257f9fe66",
+    "offline/D04-create-baseline.checkpoint.json": "75b069ef7c7c28e0b26236ab883ef761ed2c72da0b0b78d3fe46d5fd055f016c",
+    "offline/D04-create-baseline.json": "46b8d9670129d16de758adaedb54c18f222cd5fb056294037b1579932a4565d7",
+    "offline/D04-create-candidate.checkpoint.json": "f273353d856fbae87c5278ab45fe96025314a5db7262d6e7c67ecbb26a622a0c",
+    "offline/D04-create-candidate.json": "cbb6c179d7907bc7db73030de878613cf17d9fbc548cfba6d5e2b6299f94ca0a",
+    "offline/review.md": "38122b1e4d41712397724487bc55d97084a909710b253dc4c1ff838917856bad"
+  },
+  "limits": [
+    "No paid execution or real-model classification measurement",
+    "Synthetic SDK responses do not demonstrate legal quality or actual cost",
+    "Full build, browser E2E and PostgreSQL not repeated for evaluation scripts only",
+    "No credentials read, product code change, schema change, commit, push or deploy"
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "runId": "D04-create-baseline",
+  "mode": "fake",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\519f1bda815967a1cfa40766d7bd01949b325065f6515b101a9710c9bee0662a\\baseline",
+  "inputHash": "b3d29f8ee13cb9e27c38a2e644c5c83e0ea8b27a172ac5aa89b691b0cc2c0813",
+  "request": "Prepare uma minuta de manifestação civil limitada ao material selecionado. Marque lacunas essenciais; não invente dados de qualificação, juízo ou prazo. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "completed",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 168.0050999999994,
+  "roles": [
+    "legal-orchestrator",
+    "matter-analyst",
+    "legal-drafter",
+    "adversarial-reviewer"
+  ],
+  "stateVersion": 1,
+  "paidModelCalls": 0,
+  "syntheticCalls": 8,
+  "measuredMicroUsd": null,
+  "simulatedMicroUsd": 3200,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 100,
+      "outputTokens": 20,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": {
+    "action": "create_document",
+    "contextId": "D04-create",
+    "contextRevision": 1,
+    "status": "LIMITED",
+    "humanReviewRequired": true,
+    "legalAssessment": "NOT_EVALUATED",
+    "issues": [
+      {
+        "id": "issue",
+        "statement": "Examinar o material sintético",
+        "sourceIds": [
+          "D04/contrato@v1#p1"
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "id": "claim",
+        "classification": "ALLEGATION",
+        "statement": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+        "sourceIds": [
+          "D04/contrato@v1#p1"
+        ]
+      }
+    ],
+    "requirements": [],
+    "findings": [
+      {
+        "id": "LEGAL_APPLICABILITY_NOT_EVALUATED:f37408d5427d3b35",
+        "code": "LEGAL_APPLICABILITY_NOT_EVALUATED",
+        "severity": "BLOCKING",
+        "statement": "Snapshots normativos não determinam vigência online nem aplicabilidade ao caso.",
+        "sourceIds": []
+      }
+    ],
+    "sources": [
+      {
+        "id": "context",
+        "kind": "USER_TEXT",
+        "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+      },
+      {
+        "id": "D04/contrato@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb",
+        "documentId": "D04/contrato",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "D04/pedido@v1#p1",
+        "kind": "DOCUMENT",
+        "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f",
+        "documentId": "D04/pedido",
+        "versionId": "v1",
+        "extent": "SELECTED_TEXT"
+      },
+      {
+        "id": "CPC-300",
+        "kind": "NORM",
+        "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951",
+        "versionId": "2026-11-02",
+        "url": "https://legis.senado.gov.br/norma/584917/publicacao/15633703",
+        "extent": "EXCERPT",
+        "identityStatus": "OFFICIAL_EXCERPT"
+      }
+    ],
+    "document": {
+      "title": "Transporte sintético",
+      "documentType": "Registro sintético",
+      "sections": [
+        {
+          "title": "Material",
+          "content": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "sourceIds": [
+            "D04/contrato@v1#p1"
+          ]
+        }
+      ]
+    }
+  },
+  "question": null,
+  "legalScore": null
+}

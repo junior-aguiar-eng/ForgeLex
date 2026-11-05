@@ -1,0 +1,1297 @@
+{
+  "methodology": "Deterministic synthetic handoffs; no model inference or semantic legal quality measurement.",
+  "scenarios": [
+    {
+      "id": "verified-syllabus/literal-supported",
+      "kind": "POSITIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 53.41850000000022,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "verified-syllabus/partial",
+      "kind": "AMBIGUOUS",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 11.92639999999983,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "verified-syllabus/none",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 12.435899999999947,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "verified-syllabus/undetermined",
+      "kind": "AMBIGUOUS",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 10.584800000000087,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "verified-syllabus/missing-check",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.001099999999951,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "verified-syllabus/invented-quote",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 10.347299999999905,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "verified-syllabus/conflicting-checks",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 8.52579999999989,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "verified-syllabus/duplicate-checks",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 9.082100000000082,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "verified-syllabus/unknown-source",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 10.068099999999959,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "verified-syllabus/unknown-claim",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.88130000000001,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "verified-syllabus/uncited-source",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.649600000000191,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "verified-syllabus/late-drafter-claim",
+      "kind": "MULTISTEP",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "procedural-advisor",
+        "legal-drafter",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "toolCount": 8,
+      "durationMs": 14.322999999999865,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "PROCEDURAL_REQUIREMENTS_NOT_EVALUATED",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/literal-supported",
+      "kind": "POSITIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.840699999999742,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/partial",
+      "kind": "AMBIGUOUS",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 8.821899999999914,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/none",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 5.826300000000174,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/undetermined",
+      "kind": "AMBIGUOUS",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 8.317000000000007,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/missing-check",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.608899999999721,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/invented-quote",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 8.191299999999956,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/conflicting-checks",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 6.398799999999937,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/duplicate-checks",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 10.407700000000204,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/unknown-source",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.378200000000106,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/unknown-claim",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 8.761900000000423,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/uncited-source",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 5.738199999999779,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "unverified-index/late-drafter-claim",
+      "kind": "MULTISTEP",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "procedural-advisor",
+        "legal-drafter",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "toolCount": 8,
+      "durationMs": 11.19170000000031,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "AUTHORITY_IDENTITY_UNCONFIRMED",
+        "PROCEDURAL_REQUIREMENTS_NOT_EVALUATED",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/literal-supported",
+      "kind": "POSITIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 5.750799999999799,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/partial",
+      "kind": "AMBIGUOUS",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 8.647100000000137,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/none",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 6.598399999999856,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/undetermined",
+      "kind": "AMBIGUOUS",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.427300000000287,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/missing-check",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 6.2695999999996275,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/invented-quote",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 11.63300000000072,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/conflicting-checks",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 5.784200000000055,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/duplicate-checks",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 6.456699999999728,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "CITATION_WITHOUT_SUPPORT",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/unknown-source",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 5.541400000000067,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/unknown-claim",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 5.807999999999993,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/uncited-source",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 5.746200000000499,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "truncated-excerpt/late-drafter-claim",
+      "kind": "MULTISTEP",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "procedural-advisor",
+        "legal-drafter",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "toolCount": 8,
+      "durationMs": 8.41190000000006,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "PROCEDURAL_REQUIREMENTS_NOT_EVALUATED",
+        "AUTHORITY_SCOPE_LIMIT"
+      ]
+    },
+    {
+      "id": "norm-version-1/literal-supported",
+      "kind": "POSITIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 8.551000000000386,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-1/partial",
+      "kind": "AMBIGUOUS",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 6.013899999999921,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-1/none",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 6.452800000000025,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-1/undetermined",
+      "kind": "AMBIGUOUS",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 4.7861000000002605,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-1/missing-check",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 8.873999999999796,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-1/invented-quote",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.309900000000198,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-1/conflicting-checks",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 11.882599999999911,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-1/duplicate-checks",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 8.57589999999982,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-1/unknown-source",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.425100000000384,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-1/unknown-claim",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.226699999999255,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-1/uncited-source",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.968700000000354,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-1/late-drafter-claim",
+      "kind": "MULTISTEP",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "procedural-advisor",
+        "legal-drafter",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "toolCount": 8,
+      "durationMs": 11.252599999999802,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "PROCEDURAL_REQUIREMENTS_NOT_EVALUATED",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/literal-supported",
+      "kind": "POSITIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 7.029000000000451,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/partial",
+      "kind": "AMBIGUOUS",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 6.640800000000127,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/none",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 8.659700000000157,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/undetermined",
+      "kind": "AMBIGUOUS",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 5.8870999999999185,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/missing-check",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 9.478100000000268,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/invented-quote",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 4.071200000000317,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/conflicting-checks",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 5.42450000000008,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/duplicate-checks",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 5.299699999999575,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "CITATION_WITHOUT_SUPPORT",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/unknown-source",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 3.7322000000003754,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/unknown-claim",
+      "kind": "ADVERSARIAL",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 5.9372999999995955,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/uncited-source",
+      "kind": "NEGATIVE",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "authority-verifier"
+      ],
+      "toolCount": 5,
+      "durationMs": 4.694800000000214,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "SUPPORT_CHECK_INVALID",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    },
+    {
+      "id": "norm-version-2/late-drafter-claim",
+      "kind": "MULTISTEP",
+      "passed": true,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "legal-researcher",
+        "procedural-advisor",
+        "legal-drafter",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "toolCount": 8,
+      "durationMs": 9.304000000000087,
+      "provider": "fake",
+      "modelCalls": 0,
+      "tokens": null,
+      "cost": null,
+      "codes": [
+        "PROCEDURAL_REQUIREMENTS_NOT_EVALUATED",
+        "LEGAL_APPLICABILITY_NOT_EVALUATED"
+      ]
+    }
+  ]
+}

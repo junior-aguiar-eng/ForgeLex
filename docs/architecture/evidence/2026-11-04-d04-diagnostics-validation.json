@@ -1,0 +1,55 @@
+{
+  "date": "2026-11-04",
+  "paidCalls": 0,
+  "reserveMicroUsd": 83620,
+  "historicalRootCause": "UNDETERMINED",
+  "preserved": {
+    "protected-v8-files.json": 58,
+    "previous-ledgers.json": 4
+  },
+  "validation": {
+    "focusedVitest": {
+      "passed": 38,
+      "files": 5
+    },
+    "nodeTests": {
+      "passed": 12
+    },
+    "build": "passed",
+    "apiTypecheck": "passed",
+    "scopedLint": "passed",
+    "format": "passed",
+    "diffCheck": "passed",
+    "fullTestSuite": "not run"
+  },
+  "files": [
+    {
+      "file": "apps/api/src/agentic-workspace/commercial-provider.ts",
+      "sha256": "12f46dbc7a9a04911f27f4bdb672309ed311cc11bce5f0ca761c372bd8035d15"
+    },
+    {
+      "file": "apps/api/src/agentic-workspace/commercial-provider.test.ts",
+      "sha256": "73314845874169ca48953709e45eb074400c2e74f193f38653ea19abb3dbea4b"
+    },
+    {
+      "file": "packages/agent-core/src/runtime/agent-failure.ts",
+      "sha256": "aa661a5a82b5c47b4a72ba5023cd4466bf39a04e62cbd4ac232e9758f5fdf60c"
+    },
+    {
+      "file": "packages/agent-core/src/runtime/agent-failure.test.ts",
+      "sha256": "659aaae8e028ea1fdabcc68370e3daec6bddc21c6d92cc14c7c0b9c4b585ace9"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/calibration-harness.fixture.ts",
+      "sha256": "9644a194c20562b046d85cd314c0598c0918d104e5e867bc2e42ee0beb1f1184"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/audit-ledger.mjs",
+      "sha256": "a65a154c03262dd938a978a75234848e9487a60ee31b9c0301ab1d4a86f3d33a"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/audit-ledger.test.mjs",
+      "sha256": "2d133fe589c935a29832dfe490ef86a937a2ec1ac99cd1fd8a52ae252f3970f2"
+    }
+  ]
+}

@@ -16,6 +16,8 @@ export interface AgentRunInput {
   systemPolicy?: string;
   tools: AgentTool<any, any>[];
   maxTurns?: number;
+  /** Trusted workflow opt-in: stop only after one of these tools succeeds. */
+  finishOnTools?: readonly string[];
   abortSignal: AbortSignal;
 }
 

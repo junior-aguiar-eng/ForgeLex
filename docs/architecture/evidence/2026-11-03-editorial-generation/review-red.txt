@@ -1,0 +1,109 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ packages/legal-workflows/src/final-editor/final-editor-generator.test.ts (21 tests | 1 failed | 19 skipped) 67ms
+   × submissão duplicada invalid não pode ser escondida por um provider simulado 26ms
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts (26 tests | 2 failed | 24 skipped) 1201ms
+   × não inicia geração após desconexão during-query 783ms
+   × não inicia geração após desconexão already-aborted 416ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > não inicia geração após desconexão during-query
+Error: response destroyed before completion
+ ❯ Response.onEndFailure node_modules/.pnpm/light-my-request@6.6.0/node_modules/light-my-request/lib/response.js:56:13
+ ❯ NativeCaseContextService.<anonymous> apps/api/src/agentic-workspace/final-editor-routes.test.ts:127:47
+    125|     ...args
+    126|   ) {
+    127|     if (when === 'during-query') response.raw.emit('close');
+       |                                               ^
+    128|     return original.apply(this, args);
+    129|   });
+ ❯ reviewId apps/api/src/agentic-workspace/execution-routes.ts:626:29
+ ❯ apps/api/src/agentic-workspace/execution-routes.ts:661:26
+ ❯ Object.<anonymous> apps/api/src/agentic-workspace/execution-routes.ts:209:22
+ ❯ preHandlerCallbackInner node_modules/.pnpm/fastify@5.12.7/node_modules/fastify/lib/handle-request.js:190:24
+ ❯ preHandlerCallback node_modules/.pnpm/fastify@5.12.7/node_modules/fastify/lib/handle-request.js:155:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  apps/api/src/agentic-workspace/final-editor-routes.test.ts > não inicia geração após desconexão already-aborted
+AssertionError: expected undefined to be 'EDITORIAL_GENERATION_CANCELLED' // Object.is equality
+
+- Expected:
+"EDITORIAL_GENERATION_CANCELLED"
+
++ Received:
+undefined
+
+ ❯ apps/api/src/agentic-workspace/final-editor-routes.test.ts:131:47
+    129|   });
+    130|   try {
+    131|     expect((await f.generate()).json().error).toBe('EDITORIAL_GENERATI…
+       |                                               ^
+    132|     expect(generation.createProvider).not.toHaveBeenCalled();
+    133|   } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  packages/legal-workflows/src/final-editor/final-editor-generator.test.ts > submissão duplicada invalid não pode ser escondida por um provider simulado
+AssertionError: promise resolved "{ mode: 'SIMULATED', …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "mode": "SIMULATED",
++   "profileVersion": "1.0.0",
++   "proposal": {
++     "changes": [
++       {
++         "after": "está",
++         "before": "esta",
++         "category": "GRAMMAR",
++         "end": 13,
++         "id": "edit",
++         "reason": "Acentuação.",
++         "sectionHash": "784f1f9340b8eb0c3a7d2df1bedc06e8b72b1da8c480a5d3ff9e3b95950b92b4",
++         "sectionIndex": 0,
++         "sourceIds": [
++           "s",
++         ],
++         "start": 9,
++       },
++     ],
++     "contextId": "ctx",
++     "contextRevision": 1,
++     "contractVersion": "1.0.0",
++     "deliveryId": "delivery:e",
++     "documentHash": "b7265202aedb106ede0c17d1ab0871dfe75476e1e7c36583d85db025a5d9e2ce",
++     "draftId": "draft",
++     "humanReviewRequired": true,
++     "legalAssessment": "NOT_EVALUATED",
++     "limitations": [
++       "Conferir suporte.",
++     ],
++     "status": "LIMITED",
++     "substantiveSuggestions": [],
++     "versionId": "v1",
++   },
+  }
+
+ ❯ packages/legal-workflows/src/final-editor/final-editor-generator.test.ts:288:63
+    286|     },
+    287|   );
+    288|   await expect(generator.generate(owner, 'delivery:e', target)).reject…
+       |                                                               ^
+    289| });
+    290| it('inclui instruções no limite de entrada', async () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 1 passed | 43 skipped (47)
+   Start at  11:05:58
+   Duration  6.86s (transform 3.82s, setup 0ms, import 9.83s, tests 1.27s, environment 1ms)
+

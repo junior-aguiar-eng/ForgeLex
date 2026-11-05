@@ -1,0 +1,67 @@
+[WebServer] (node:11004) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:29440) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite "--host" "127.0.0.1" "--port" "3300" "--strictPort"
+[WebServer] (node:10664) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:20924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x   1 [chromium] › tests\e2e\editorial-review.spec.ts:69:5 › entrega revisada separa correções e lacunas sem expor IDs ou auditoria técnica na mesa (24.3s)
+(node:34064) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  2 [chromium] › tests\e2e\editorial-review.spec.ts:88:5 › geração exige confirmação de custo e apenas apresenta proposta para revisão (6.2s)
+  ok  3 [chromium] › tests\e2e\editorial-review.spec.ts:123:5 › resposta perdida na geração não dispara repetição ao reabrir o diálogo (3.9s)
+  ok  4 [chromium] › tests\e2e\editorial-review.spec.ts:162:5 › aplicação editorial exige seleção e confirmação e abre nova versão preservando original (8.2s)
+  ok  5 [chromium] › tests\e2e\editorial-review.spec.ts:201:5 › aplicação editorial recupera resposta perdida sem duplicar versão (4.3s)
+  ok  6 [chromium] › tests\e2e\editorial-review.spec.ts:225:5 › revisão editorial persiste decisão, preserva minuta, permite recarga e funciona em tela móvel (6.2s)
+[WebServer] {"level":"warn","message":"http.request.completed","requestId":"req-j5","traceId":"5c5294d8-0e75-46ba-9a83-7eb8f5318e74","tenantId":"tenant_23fd1c94c97e5e6b164630e6e4c3e977","method":"POST","route":"/api/agentic/deliveries/:id/editorial-review/preview","statusCode":400,"latencyMs":20,"timestamp":"2026-11-03T22:28:12.259Z"}
+  ok  7 [chromium] › tests\e2e\editorial-review.spec.ts:267:5 › revisão editorial conserva comando após resposta perdida e bloqueia proposta inválida (5.5s)
+  ok  8 [chromium] › tests\e2e\editorial-review.spec.ts:297:5 › revisão editorial recusa JSON nulo e bloqueia decisão obsoleta até atualizar (4.3s)
+  ok  9 [chromium] › tests\e2e\editorial-review.spec.ts:320:5 › revisão editorial permite fechar consulta pendente e ignora resposta tardia (4.7s)
+  ok 10 [chromium] › tests\e2e\editorial-review.spec.ts:349:5 › revisão editorial trata IDs herdados como dados e reconcilia conflito após resposta perdida (6.5s)
+  ok 11 [chromium] › tests\e2e\editorial-review.spec.ts:384:5 › revisão editorial recupera conflito sem registro após resposta perdida (4.8s)
+  ok 12 [chromium] › tests\e2e\editorial-review.spec.ts:406:5 › histórico editorial permanece na mesa depois de edição humana da minuta (5.1s)
+
+
+  1) [chromium] › tests\e2e\editorial-review.spec.ts:69:5 › entrega revisada separa correções e lacunas sem expor IDs ou auditoria técnica na mesa 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('article', { name: 'Resultado do trabalho' }).getByText('Retirar afirmação de quitação.', { exact: true })
+    Expected: 1
+    Received: 0
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('article', { name: 'Resultado do trabalho' }).getByText('Retirar afirmação de quitação.', { exact: true }) with timeout 10000ms
+      - waiting for getByRole('article', { name: 'Resultado do trabalho' }).getByText('Retirar afirmação de quitação.', { exact: true })
+        23 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      80 |   for(const text of ['Questões','Registro documental','Correções propostas','Perguntas e lacunas','Aptidão dos documentos','Integridade dos documentos'])await expect(article).toContainText(text);
+      81 |   await expect(article).not.toContainText(/claim-private|source-internal-v9|TECHNICAL_PRIVATE/);
+    > 82 |   await expect(article.getByText('Retirar afirmação de quitação.',{exact:true})).toHaveCount(1);
+         |                                                                                  ^
+      83 |   await page.setViewportSize({width:320,height:900});
+      84 |   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+      85 |   expect((await new AxeBuilder({page}).include('main').analyze()).violations).toEqual([]);
+        at C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\tests\e2e\editorial-review.spec.ts:82:82
+
+    Error Context: test-results\editorial-review\editorial-review-entrega-r-49825-u-auditoria-técnica-na-mesa-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\editorial-review\editorial-review-entrega-r-49825-u-auditoria-técnica-na-mesa-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\editorial-review\editorial-review-entrega-r-49825-u-auditoria-técnica-na-mesa-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests\e2e\editorial-review.spec.ts:69:5 › entrega revisada separa correções e lacunas sem expor IDs ou auditoria técnica na mesa 
+  11 passed (1.7m)

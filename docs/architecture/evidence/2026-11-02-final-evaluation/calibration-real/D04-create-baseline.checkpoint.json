@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "bindingHash": "5b357471db86a8ffce59d291dc310964e8c87b59a615597b1496621557c6948e",
+  "contractHash": "8847855772466938a857ef45471c4bab12d2b1b46d4660f343377cdd49abc3e3",
+  "previousDeliveryIds": [],
+  "outputs": {},
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.1.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.1.0"
+    }
+  ],
+  "toolCount": 2,
+  "researchOperations": [],
+  "findings": [],
+  "plan": {
+    "action": "create_document",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "documentPurpose": "LEGAL_DOCUMENT",
+    "documentType": "Minuta de manifestação civil sobre solicitação de entrega imediata de equipamentos, limitada ao corpus selecionado",
+    "issues": [
+      {
+        "id": "editorial-escopo",
+        "statement": "kind: EDITORIAL. Redigir minuta limitada às fontes recuperadas, com campos expressamente não informados para qualificação, juízo, número do processo e demais dados ausentes. Não inventar prazos, fatos ou fontes; explicitar caráter fictício e limitações do corpus. Não pesquisar fontes externas nem pressupor aprovação ou protocolo.",
+        "sourceIds": [
+          "context",
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ]
+      },
+      {
+        "id": "base-factual",
+        "statement": "kind: EDITORIAL. Atribuir ao contrato a previsão de entrega de dois equipamentos em 15/10/2026 e ao pedido a solicitação de entrega imediata em 18/10/2026. Não converter a solicitação posterior à data contratual em prova suficiente de inadimplemento ou de urgência.",
+        "sourceIds": [
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1"
+        ]
+      },
+      {
+        "id": "requisitos-urgencia",
+        "statement": "kind: PROCEDURAL. Examinar o pedido de entrega imediata à luz exclusivamente do art. 300 e § 3º recuperados: distinguir probabilidade do direito, perigo de dano ou risco ao resultado útil e perigo de irreversibilidade. O trecho contratual oferece suporte limitado à obrigação narrada, mas não supre prova de descumprimento, perigo concreto ou avaliação de reversibilidade. Não afirmar preenchimento dos requisitos nem que ausência de prova demonstra inexistência de risco.",
+        "sourceIds": [
+          "CPC-300",
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1",
+          "context"
+        ]
+      },
+      {
+        "id": "entrega-limitada",
+        "statement": "kind: EDITORIAL. Entregar minuta com lacunas essenciais visíveis e fundamentação condicional, sem completar com suposições a demonstração da urgência ou escolher medida jurídica adicional. Explicitar inexistência de jurisprudência no corpus e impossibilidade de verificar outros requisitos processuais com as fontes selecionadas. Submeter a revisão humana antes de eventual uso.",
+        "sourceIds": [
+          "context",
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "perigo-concreto",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Lacuna a marcar na minuta: quais consequências concretas da demora e respectivos elementos de suporte existem? Não informado no corpus fechado.",
+        "reason": "A solicitação de entrega imediata não demonstra por si só perigo de dano ou risco ao resultado útil; faltam documentos sobre paralisação ou risco concreto.",
+        "sourceIds": [
+          "context",
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ],
+        "options": []
+      },
+      {
+        "key": "reversibilidade",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Lacuna a marcar na minuta: quais dados permitem avaliar a reversibilidade dos efeitos da entrega imediata? Não informado no corpus.",
+        "reason": "O § 3º exige considerar o perigo de irreversibilidade na tutela antecipada; silêncio da narrativa não permite presumir reversibilidade.",
+        "sourceIds": [
+          "D04/pedido@v1#p1",
+          "CPC-300"
+        ],
+        "options": []
+      },
+      {
+        "key": "cumprimento-obrigacao",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Lacuna a marcar na minuta: qual é o estado de cumprimento da entrega e quais elementos o demonstram? O corpus não esclarece.",
+        "reason": "Data contratual e pedido de entrega não bastam para confirmar inadimplemento, entrega parcial ou circunstâncias da execução.",
+        "sourceIds": [
+          "D04/contrato@v1#p1",
+          "D04/pedido@v1#p1"
+        ],
+        "options": []
+      },
+      {
+        "key": "dados-processuais",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Manter campos não informados para juízo, número do processo, qualificação, representação e fase processual; não há dados suficientes no corpus.",
+        "reason": "A minuta pode ser entregue de modo limitado, mas não finalizada para uso processual nem ter prazo ou adequação à fase verificados.",
+        "sourceIds": [
+          "context"
+        ],
+        "options": []
+      }
+    ]
+  }
+}

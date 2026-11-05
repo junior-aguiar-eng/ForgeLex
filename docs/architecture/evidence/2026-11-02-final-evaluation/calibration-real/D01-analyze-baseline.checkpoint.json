@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "bindingHash": "365ad20dab6a2544bd0b6f7f7c20e7bf8c3d274c8f070bf4b6c830eef78d4be1",
+  "contractHash": "8847855772466938a857ef45471c4bab12d2b1b46d4660f343377cdd49abc3e3",
+  "previousDeliveryIds": [],
+  "outputs": {},
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.1.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.1.0"
+    }
+  ],
+  "toolCount": 2,
+  "researchOperations": [],
+  "findings": [],
+  "plan": {
+    "action": "analyze_documents",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "issues": [
+      {
+        "id": "scope",
+        "statement": "EDITORIAL: analisar exclusivamente o corpus fechado recuperado, de caráter fictício, distinguindo conteúdo documental, alegações e inferências. Não pesquisar fontes externas, escolher peça ou calcular prazos. Entrega limitada ao alcance dos trechos selecionados.",
+        "sourceIds": [
+          "context"
+        ]
+      },
+      {
+        "id": "contract",
+        "statement": "O trecho contratual prevê fornecimento de dez mesas por R$ 10.000,00 e entrega até 10/10/2026. Não informa vencimento do pagamento, condições de exigibilidade ou consequências de entrega parcial; não permite concluir que o preço integral esteja vencido e exigível.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "delivery",
+        "statement": "O recibo registra recebimento de seis mesas em 10/10/2026. Seu silêncio sobre as outras quatro não prova que jamais foram entregues, tampouco comprova cumprimento integral. Distinguir entrega parcial documentada de eventual inadimplemento, ainda não esclarecido.",
+        "sourceIds": [
+          "D01/recibo@v1#p1",
+          "D01/contrato@v1#p1"
+        ]
+      },
+      {
+        "id": "payment",
+        "statement": "O não recebimento de pagamento é alegação da autora, sem extrato ou comprovante bancário fornecido. A ausência desses documentos não comprova pagamento nem resolve a alegação de não pagamento. Não há versão da ré no corpus.",
+        "sourceIds": [
+          "D01/relato@v1#p1"
+        ]
+      },
+      {
+        "id": "burden",
+        "statement": "PROCEDURAL: aplicar somente a distribuição geral contida no excerto do art. 373 do CPC: cabe à autora provar fatos constitutivos e à ré fatos impeditivos, modificativos ou extintivos. Examinar formação da obrigação e exigibilidade alegada, sem tratar a ausência de extrato da autora como prova de pagamento; eventual alegação de pagamento pela ré deve ser examinada como fato extintivo. O excerto não sustenta conclusões sobre exceções à regra ou outras obrigações processuais.",
+        "sourceIds": [
+          "CPC-373",
+          "D01/contrato@v1#p1",
+          "D01/relato@v1#p1"
+        ]
+      },
+      {
+        "id": "limits",
+        "statement": "Não há jurisprudência nem normas materiais sobre fornecimento, entrega parcial, exigibilidade ou remédios contratuais no corpus. Assim, não concluir procedência, valor recuperável ou consequência jurídica da entrega parcial. O procedimento comum é informado pelo contexto, mas não há fontes suficientes para detalhar etapas, requisitos ou prazos.",
+        "sourceIds": [
+          "context",
+          "CPC-373"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "remaining_delivery",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "O que se sabe sobre as quatro mesas não abrangidas pelo recibo? Indique datas e documentos, se existentes, ou informe que desconhece.",
+        "reason": "A ausência de registro no recibo não resolve se houve cumprimento posterior ou inadimplemento. Na falta de resposta, limitar a conclusão às seis mesas documentadas.",
+        "sourceIds": [
+          "D01/recibo@v1#p1"
+        ],
+        "options": []
+      },
+      {
+        "key": "payment_terms",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Quais condições e vencimentos de pagamento foram pactuados, inclusive em relação à entrega parcial? Informe o texto disponível ou que desconhece.",
+        "reason": "O trecho selecionado não permite determinar exigibilidade do preço integral ou parcial. Sem esclarecimento, não concluir que haja dívida vencida.",
+        "sourceIds": [
+          "D01/contrato@v1#p1"
+        ],
+        "options": []
+      },
+      {
+        "key": "payment_evidence",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Há outros elementos sobre pagamentos ou posição da ré, como recibos, extratos ou comunicações? Descreva-os, ou informe que não estão disponíveis ou que desconhece.",
+        "reason": "O corpus contém apenas a alegação da autora sobre ausência de pagamento. A conclusão deve permanecer limitada, sem presumir pagamento ou inadimplemento demonstrado.",
+        "sourceIds": [
+          "D01/relato@v1#p1"
+        ],
+        "options": []
+      }
+    ]
+  }
+}

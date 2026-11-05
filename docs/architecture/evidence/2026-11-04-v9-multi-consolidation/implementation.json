@@ -1,0 +1,23 @@
+{
+  "files": [
+    {
+      "file": "packages/legal-workflows/src/agentic-case-task/reviewed-delivery.ts",
+      "sha256": "6c4f8f6a0019c7b18dda6305fc4fe8bd52caaca17f11d582b8a2da5655aa7d90"
+    },
+    {
+      "file": "packages/legal-workflows/src/agentic-case-task/reviewed-delivery.test.ts",
+      "sha256": "ab1f99c7d298f9c558e47f256bda64fb1af0993a42c565e0a07e8b58790a3dc8"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/consolidate-recorded-v9.mjs",
+      "sha256": "e469d7db39bd5522cd32de6f0d690f38aca7e758893ec6b39b753c3a5b52bb82"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/consolidate-recorded-v9.test.mjs",
+      "sha256": "74c5165bb14255f52925867b13a83cba4385ddf476e2e9552de1b135d46c7d2f"
+    }
+  ],
+  "paidCalls": 0,
+  "historicalEvidenceFiles": 453,
+  "futureModelBehavior": "NOT_REEVALUATED"
+}

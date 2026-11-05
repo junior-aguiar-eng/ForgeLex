@@ -1,0 +1,5 @@
+{
+  "exitCode": 0,
+  "stdout": "{\n  \"directory\": \"C:\\\\Users\\\\Boni Jr\\\\.codex\\\\worktrees\\\\forgelex-3-audit\\\\SDK\\\\.superpowers\\\\sdd\\\\editorial-generation\\\\68ef1708-2e52-4ba8-b67a-a983522cff8c\",\n  \"mode\": \"REAL\",\n  \"paidModelCalls\": 1,\n  \"budget\": {\n    \"measured\": 11562,\n    \"exposure\": 11562,\n    \"unresolved\": 0,\n    \"calls\": 1\n  }\n}\n\n",
+  "stderr": ""
+}

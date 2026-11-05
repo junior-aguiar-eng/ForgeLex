@@ -12,6 +12,7 @@ import {
   AgentRunInput,
   AgentTool,
   normalizeProviderUsage,
+  safeAgentFailure,
   PolicyEngine,
   SessionStateMachine,
   ToolRegistry,
@@ -238,6 +239,7 @@ export class OpenAIAgentProvider implements AgentProvider {
     const invokedCallIds = new Set<string>();
     const toolRegistry = new ToolRegistry();
     const usedWireNames = new Set<string>();
+    let acceptedTerminalOutput: string | undefined;
 
     for (const forgeLexTool of input.tools) {
       toolRegistry.register(forgeLexTool);
@@ -351,7 +353,12 @@ export class OpenAIAgentProvider implements AgentProvider {
               timestamp: new Date().toISOString(),
             });
 
-            return stringifyToolOutput(result.data);
+            const output = stringifyToolOutput(result.data);
+            if (result.success && input.finishOnTools?.includes(forgeLexTool.name) &&
+                ['L0_OBSERVATION', 'L1_ANALYSIS'].includes(forgeLexTool.impactLevel)) {
+              acceptedTerminalOutput = output;
+            }
+            return output;
           } catch (error) {
             const message = redactSecret(
               errorMessage(error, `Falha na ferramenta '${forgeLexTool.name}'.`),
@@ -390,6 +397,11 @@ export class OpenAIAgentProvider implements AgentProvider {
       instructions,
       model: this.model,
       tools: sdkTools,
+      ...(input.finishOnTools?.length ? {
+        toolUseBehavior: () => acceptedTerminalOutput !== undefined
+          ? { isFinalOutput: true as const, isInterrupted: undefined, finalOutput: acceptedTerminalOutput }
+          : { isFinalOutput: false as const, isInterrupted: undefined },
+      } : {}),
     });
 
     const abortForwarder = (): void => {
@@ -599,7 +611,7 @@ export class OpenAIAgentProvider implements AgentProvider {
           sessionId: input.sessionId,
           code,
           message,
-          details: { errorName: name || undefined },
+          details: { errorName: name || undefined, ...safeAgentFailure(error) },
           timestamp: new Date().toISOString(),
         };
       }

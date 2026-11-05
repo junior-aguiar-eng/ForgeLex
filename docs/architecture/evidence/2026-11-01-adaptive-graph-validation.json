@@ -1,0 +1,132 @@
+{
+  "date": "2026-11-01",
+  "baselineCommit": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "branch": "codex/forgelex-3-quality",
+  "scope": "Incremento 2 local: grafo adaptativo nativo, refinamento limitado, invalidação e retomada durável",
+  "versions": {
+    "legacyContractHash": "d097ba9f837fd4a6b89c97baf3e2baa632949482e505f21e6ba42f0b25860888",
+    "outputContract": 5,
+    "policy": "1.3.0",
+    "state": 2,
+    "graph": 1
+  },
+  "limits": {
+    "maxToolsPerStep": 12,
+    "maxReplans": 1,
+    "maxTools": 48,
+    "maxStateBytes": 192000,
+    "maxRoleRuns": 10,
+    "execution": "serial"
+  },
+  "checks": {
+    "fullSuite": {
+      "success": true,
+      "command": "pnpm exec vitest run --reporter=json --outputFile=tmp/forgelex-3-validation/graph-full.json",
+      "total": 1508,
+      "failed": 0,
+      "passed": 1491,
+      "skipped": 17,
+      "benchmarkEnabled": true
+    },
+    "postgresFocused": {
+      "success": true,
+      "passed": 41,
+      "coversSkippedFromFullSuite": 16,
+      "failed": 0,
+      "total": 41
+    },
+    "adaptiveAndCommercialFocused": {
+      "passed": 28,
+      "failed": 0
+    },
+    "postgresSmoke": {
+      "checks": [
+        "migration_twice",
+        "specialist_checkpoint_separate_process",
+        "planner_not_replayed",
+        "adaptive_checkpoint_after_invalidation_separate_process",
+        "completed_graph_nodes_not_replayed",
+        "preliminary_workflow_draft",
+        "no_fact_adoption",
+        "public_projection",
+        "one_delivery_event",
+        "concurrent_save_one_delivery",
+        "atomic_partial_delivery_id",
+        "owner_isolation",
+        "human_edit_lock_order_without_deadlock"
+      ],
+      "container": "temporary local PostgreSQL 16; removed after execution",
+      "status": "passed",
+      "command": "node scripts/smoke-agentic-case-task-postgres.mjs"
+    },
+    "browser": {
+      "durationSeconds": 29.6,
+      "passed": 1,
+      "browser": "chromium",
+      "scenario": "tests/e2e/agentic-commercial-flow.spec.ts",
+      "transport": "synthetic"
+    },
+    "build": {
+      "afterReview": "legal-workflows and api rebuilt successfully",
+      "status": "passed",
+      "command": "pnpm build"
+    },
+    "types": {
+      "afterReview": "legal-workflows and api typecheck passed",
+      "status": "passed",
+      "command": "pnpm -r run typecheck"
+    },
+    "lint": {
+      "afterReview": "ESLint passed on changed graph TypeScript files",
+      "status": "passed",
+      "command": "pnpm lint"
+    },
+    "format": "Prettier passed on graph TypeScript and smoke script",
+    "review": {
+      "concreteFindingsFixed": 4,
+      "finalFocusedPassed": 28,
+      "remainingActionableFindings": 0
+    },
+    "regressions": "Failing tests reproduced before fixes for graph integrity, missing plan, partial tool availability, question size and empty requested procedure"
+  },
+  "comparison": "2026-11-01-adaptive-graph-comparison.json",
+  "limitations": [
+    "Synthetic results establish routing and control behavior, not legal-semantic quality or real model cost.",
+    "One paid real-provider homologation remains unexecuted.",
+    "Suite counts overlap; do not sum as distinct tests.",
+    "Compatibility applies to captured increment-1 v1 contract; older incompatible contracts remain rejected.",
+    "Future deployment or rollback must account for v2 checkpoints."
+  ],
+  "operations": {
+    "remoteMigrations": 0,
+    "realProviderCalls": 0,
+    "merge": false,
+    "commit": false,
+    "realFinancialOperations": 0,
+    "push": false,
+    "deploy": false
+  },
+  "sourceSha256": {
+    "packages/legal-agents/src/agentic-case-graph.ts": "4f464d9d184a30fd0ed46f9d558f69736bfc304a5b608e908407588fef05e8d2",
+    "packages/legal-agents/src/index.ts": "5807e2d215fbf3129118986df1c604f0537d22431830b7baf592ad7dd5b3987b",
+    "packages/legal-workflows/src/agentic-case-task/orchestration-graph.ts": "decad9ab32e943cd3ebf3be663853374abc854c9f2a07623a94466da9aa451a7",
+    "packages/legal-workflows/src/agentic-case-task/case-task.ts": "40736978c7e71e6017339d0de2f207566002341ec5adcc8359004ff0f6bf13f8",
+    "packages/legal-workflows/src/agentic-case-task/adaptive-graph.test.ts": "41d92b425e84987f196ebd8553cd4d2b3c7edcbbad239e8a9fc348d52bc0b833",
+    "packages/legal-workflows/src/agentic-case-task/fixtures/pre-graph-v1.json": "553a35ac630700526cb15a4465aee9c27bc6c58f5f4ef30914ad3548e4ef4345",
+    "apps/api/src/agentic-workspace/commercial-research.test.ts": "d5a2b4ec821c6b0422b1f13760725c4ea7b2309d0dd0079461be22c43df8cb37",
+    "scripts/smoke-agentic-case-task-postgres.mjs": "85ec81d22abb3595a04d3a3095a1162f81ba53c65415ad581c8c346f3aa83ae0"
+  },
+  "localEvidenceSha256": {
+    "tmp/forgelex-3-validation/graph-full.json": "2a6ebd89990194436f453a8270ce13eb1935e74e1ef9a73b9648174509b2bc56",
+    "tmp/forgelex-3-validation/graph-postgres-tests.json": "7ff2ce5691826ecd09e8327cd2a15d6922c143c43cca009e5410c4ccff95b7f4",
+    "tmp/forgelex-3-validation/graph-review-green.json": "f1a85649e1cba9262977685f93e6ae78ad79f0151580d489c919b53b79377b98",
+    "tmp/forgelex-3-validation/graph-postgres-final.log": "e3afd04758dfc4b7161e511d500a83b09eb5fd73cbfd48752efbee78920d2eb1",
+    "tmp/forgelex-3-validation/graph-playwright.log": "c5d5807588af9e0b32c01c765b549974cf6ed85c84d784f79f1490b081f4feb4",
+    "tmp/forgelex-3-validation/graph-build.log": "59716e9c33cac0f6834c80782c4032b1d832acb1e9098e75fb1722fa07731757",
+    "tmp/forgelex-3-validation/graph-typecheck.log": "dcf3a52da6064746c323ee86cad8227207257e31d86bc4f0523c0781cd0dc53e",
+    "tmp/forgelex-3-validation/graph-lint.log": "acd68fcd9ddbba07ba06761b9f1f341f6272463cd9040184d0814941549f10ce",
+    "tmp/forgelex-3-validation/graph-final-build.log": "482588810891ee9a45cefcd2f41a406f68d916f6b6e857b8e9102b40ea51af26",
+    "tmp/forgelex-3-validation/graph-final-api-types.log": "4f658209920a5218841e9843c51a440cb63d41dbd1aa31b97bf63bc1fc38bf9f",
+    "tmp/forgelex-3-validation/graph-final-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

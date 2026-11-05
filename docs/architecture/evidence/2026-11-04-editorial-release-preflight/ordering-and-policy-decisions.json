@@ -1,0 +1,31 @@
+{
+  "recordedAt": "2026-11-04T22:30:38.240093+00:00",
+  "evaluator": "Boni",
+  "decisions": {
+    "reconciliationFirst": {
+      "userStatement": "Encerrar a conciliação primeiro",
+      "effect": "Do not execute the paid editorial pilot or deploy before D04-v8 individual reconciliation is closed."
+    },
+    "commercialPolicy": {
+      "userStatement": "Reutilizar essa política",
+      "policy": "commercial-brl-2026-10-30-v1",
+      "reservationBrl": 5,
+      "minimumBrlForUsableDelivery": 0.5,
+      "inferenceCapUsd": 0.25,
+      "dailyLimitBrl": 20,
+      "monthlyLimitBrl": 100,
+      "implementationStatus": "PENDING"
+    }
+  },
+  "pilotAuthorization": {
+    "maxExecutions": 1,
+    "capUsd": 0.25,
+    "condition": "D04-v8 reconciliation closed first",
+    "executed": false
+  },
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

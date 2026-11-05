@@ -16,3 +16,6 @@ export * from './contracts/strategy.js';
 export * from './contracts/case-analysis.js';
 export * from './contracts/agentic-workspace.js';
 export * from './contracts/agentic-case-task.js';
+export * from './contracts/task-evidence.js';
+export * from './contracts/evidence-review.js';
+export * from './contracts/approved-case-context.js';

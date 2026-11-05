@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "scenario": "V2-MULTI",
+  "block": "LEGAL_CONCLUSIONS",
+  "decision": "ACCEPTED_IN_PRESENTED_FORMULATION",
+  "evaluator": "Boni",
+  "userStatement": "Aceito as três conclusões nessa formulação. Vamos para os achados da entrega.",
+  "recordedAt": "2026-11-04T19:31:03.584174+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-multi-consolidation/V2-MULTI.derived.json",
+  "sourceSha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5",
+  "acceptedOriginalClaims": [
+    {
+      "id": "3dedd4e1b8:c3",
+      "classification": "INFERENCE",
+      "statement": "O art. 498 disciplina a tutela específica de entrega, o prazo judicial de cumprimento e a individualização; não estabelece concessão automática de urgência por atraso. O art. 300 exige probabilidade do direito e perigo de dano ou risco ao resultado útil, e seu § 3º impede tutela antecipada quando houver perigo de irreversibilidade dos efeitos.",
+      "sourceIds": [
+        "CPC-498",
+        "CPC-300"
+      ]
+    },
+    {
+      "id": "3dedd4e1b8:c4",
+      "classification": "INFERENCE",
+      "statement": "O art. 300, § 1º, prevê faculdade judicial de exigir caução e possibilidade de dispensa quando a parte economicamente hipossuficiente não puder oferecê-la, não uma obrigação invariável.",
+      "sourceIds": [
+        "CPC-300-P1"
+      ]
+    },
+    {
+      "id": "3dedd4e1b8:c5",
+      "classification": "INFERENCE",
+      "statement": "Pelo art. 498, parágrafo único, o autor individualiza a coisa na inicial se lhe couber a escolha; se a escolha couber ao réu, este a entrega individualizada no prazo judicial. O excerto contratual não permite definir a titularidade da escolha dos dois equipamentos.",
+      "sourceIds": [
+        "CPC-498",
+        "V2-MULTI/contrato@v1#p1"
+      ]
+    },
+    {
+      "id": "36d893ac97:p1",
+      "classification": "INFERENCE",
+      "statement": "No excerto, o art. 498 disciplina tutela específica de entrega e prazo judicial de cumprimento, sem prever concessão automática de urgência pelo atraso.",
+      "sourceIds": [
+        "CPC-498"
+      ]
+    },
+    {
+      "id": "36d893ac97:p2",
+      "classification": "INFERENCE",
+      "statement": "O art. 300 fornecido exige elementos de probabilidade do direito e perigo de dano ou risco ao resultado útil; seu § 3º veda tutela antecipada quando houver perigo de irreversibilidade dos efeitos.",
+      "sourceIds": [
+        "CPC-300"
+      ]
+    },
+    {
+      "id": "36d893ac97:p4",
+      "classification": "INFERENCE",
+      "statement": "Pelo parágrafo único do art. 498 fornecido, se a escolha couber ao autor, ele individualizará a coisa na inicial; se couber ao réu, este a entregará individualizada no prazo judicial.",
+      "sourceIds": [
+        "CPC-498"
+      ]
+    }
+  ],
+  "acceptedDerivedGroups": [
+    {
+      "topic": "URGENCY",
+      "originIds": [
+        "3dedd4e1b8:c3",
+        "36d893ac97:p1",
+        "36d893ac97:p2"
+      ],
+      "statement": "O art. 498 não torna automática a concessão pelo atraso. A análise exige os requisitos do art. 300 e a consideração do perigo de irreversibilidade na tutela antecipada. O material não permite concluir pelo atendimento desses requisitos."
+    },
+    {
+      "topic": "CAUTION",
+      "originIds": [
+        "3dedd4e1b8:c4"
+      ],
+      "statement": "O art. 300, § 1º, permite sua exigência pelo juiz e sua dispensa quando a parte economicamente hipossuficiente não puder oferecê-la. Não cabe afirmar que seja sempre obrigatória nem presumir dispensa neste caso."
+    },
+    {
+      "topic": "INDIVIDUALIZATION",
+      "originIds": [
+        "3dedd4e1b8:c5",
+        "36d893ac97:p4"
+      ],
+      "statement": "Se a escolha couber ao autor, ele individualiza os equipamentos na inicial; se couber ao réu, este os entrega individualizados no prazo judicial. O recorte contratual não permite determinar a quem pertence a escolha."
+    }
+  ],
+  "scope": "Acceptance limited to the three presented conclusions based on supplied corpus excerpts; findings and per-source support warnings remain pending.",
+  "appliedToOriginal": false,
+  "wholeDeliveryAssessment": "PENDING",
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

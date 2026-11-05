@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "scenario": "V2-MULTI",
+  "block": "DOCUMENT_RECORDS",
+  "decision": "ACCEPTED_WITH_SCOPE_LIMITATION",
+  "evaluator": "Boni",
+  "userStatement": "Aceito ambas com essa delimitação. Vamos para as conclusões jurídicas.",
+  "recordedAt": "2026-11-04T19:28:21.516800+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-multi-consolidation/V2-MULTI.derived.json",
+  "sourceSha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5",
+  "acceptedOriginalClaims": [
+    {
+      "id": "3dedd4e1b8:c1",
+      "classification": "DOCUMENT_RECORD",
+      "statement": "Fornecimento de dois equipamentos por gênero e quantidade; não consta cláusula de escolha.",
+      "sourceIds": [
+        "V2-MULTI/contrato@v1#p1"
+      ]
+    },
+    {
+      "id": "3dedd4e1b8:c2",
+      "classification": "DOCUMENT_RECORD",
+      "statement": "O equipamento ainda não foi disponibilizado; não há descrição de consequência concreta da demora.",
+      "sourceIds": [
+        "V2-MULTI/mensagem@v1#p1"
+      ]
+    }
+  ],
+  "scopeLimitation": "Observations apply only to supplied excerpts; they do not establish absence of a choice clause in the full contract or absence of actual harm.",
+  "derivedStatements": [
+    {
+      "originId": "3dedd4e1b8:c1",
+      "statement": "O recorte contratual fornecido descreve dois equipamentos por gênero e quantidade e não contém cláusula atribuindo a escolha."
+    },
+    {
+      "originId": "3dedd4e1b8:c2",
+      "statement": "A mensagem fornecida relata que o equipamento ainda não foi disponibilizado, mas não descreve consequência concreta da demora."
+    }
+  ],
+  "appliedToOriginal": false,
+  "wholeDeliveryAssessment": "PENDING",
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

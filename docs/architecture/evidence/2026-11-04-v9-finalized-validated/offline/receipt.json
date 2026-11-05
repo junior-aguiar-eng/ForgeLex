@@ -1,0 +1,149 @@
+{
+  "mode": "fake",
+  "packetSha256": "96b1775f351bc3cfb68054df9c151d931fd835180f86ac1f4bccb7b88a451cac",
+  "status": "COMPLETED",
+  "stopReason": null,
+  "historicalReserveMicroUsd": 83620,
+  "paidModelCalls": 0,
+  "measuredMicroUsd": 0,
+  "uncertainMicroUsd": 0,
+  "runs": [
+    {
+      "runId": "V2-FIT",
+      "mode": "fake",
+      "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\77ad4f7372af86fa71e0f04de57823084b7c4064605bc1efbb634150361ac6c2\\candidate",
+      "inputHash": "a5da974497af863b976dc555512a2fd1387f6d6e02a2fb065b1e3363d31cceab",
+      "request": "Revise o rascunho com questões, correções e limites das fontes. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "durationMs": 215.59399999999914,
+      "roles": [
+        "authority-verifier"
+      ],
+      "stateVersion": 9,
+      "paidModelCalls": 0,
+      "syntheticCalls": 1,
+      "measuredMicroUsd": null,
+      "simulatedMicroUsd": 400,
+      "uncertainUpperMicroUsd": 0,
+      "usage": [
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        }
+      ],
+      "legalScore": null,
+      "hasDelivery": true,
+      "hasQuestion": false
+    },
+    {
+      "runId": "V2-INTEGRITY",
+      "mode": "fake",
+      "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\77ad4f7372af86fa71e0f04de57823084b7c4064605bc1efbb634150361ac6c2\\candidate",
+      "inputHash": "73df05b6b3cbafb3ad0ae818d9ed37f50740d8b6ae79971384a68fa088842e8c",
+      "request": "Revise o rascunho com questões, correções e limites das fontes. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "durationMs": 220.29340000000047,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 9,
+      "paidModelCalls": 0,
+      "syntheticCalls": 4,
+      "measuredMicroUsd": null,
+      "simulatedMicroUsd": 1600,
+      "uncertainUpperMicroUsd": 0,
+      "usage": [
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        }
+      ],
+      "legalScore": null,
+      "hasDelivery": true,
+      "hasQuestion": false
+    },
+    {
+      "runId": "V2-MULTI",
+      "mode": "fake",
+      "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\77ad4f7372af86fa71e0f04de57823084b7c4064605bc1efbb634150361ac6c2\\candidate",
+      "inputHash": "165cea54f1e9c18a0d47e9bf87a9b87cfa7eb4afc544a4956bc86e9134b73508",
+      "request": "Revise o rascunho com questões, correções e limites das fontes. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+      "outcome": "completed",
+      "error": null,
+      "diagnostic": null,
+      "durationMs": 219.4460999999992,
+      "roles": [
+        "legal-orchestrator",
+        "matter-analyst",
+        "adversarial-reviewer",
+        "authority-verifier"
+      ],
+      "stateVersion": 9,
+      "paidModelCalls": 0,
+      "syntheticCalls": 4,
+      "measuredMicroUsd": null,
+      "simulatedMicroUsd": 1600,
+      "uncertainUpperMicroUsd": 0,
+      "usage": [
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        },
+        {
+          "inputTokens": 100,
+          "outputTokens": 20,
+          "cachedInputTokens": 0
+        }
+      ],
+      "legalScore": null,
+      "hasDelivery": true,
+      "hasQuestion": false
+    }
+  ],
+  "notRun": [],
+  "legalAssessment": "PENDING_BONI",
+  "historicalLedgerUnchanged": true,
+  "commit": false,
+  "push": false,
+  "publish": false,
+  "priorMeasuredMicroUsd": 372998,
+  "priorPaidCalls": 18,
+  "totalMeasuredMicroUsd": 372998,
+  "totalPaidCalls": 18,
+  "exposureIncludingHistoricalReserveMicroUsd": 456618
+}

@@ -1,0 +1,12 @@
+{
+  "mode": "offline-reconstruction",
+  "paidCalls": 0,
+  "spentMicroUsd": 91896,
+  "remainingPerExecutionMicroUsd": 158104,
+  "requestedUpperBoundMicroUsd": 195188,
+  "combinedMicroUsd": 287084,
+  "perExecutionCapMicroUsd": 250000,
+  "inputTokenBound": 87354,
+  "maxOutputTokens": 2048,
+  "explanation": "Conservative next-call reservation exceeds remaining per-execution cap; no fifth HTTP request"
+}

@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-04",
+  "by": "Boni",
+  "source": "Current chat",
+  "decision": "Boni authorizes correction of INTERNAL_IDENTIFIER_IN_OUTPUT, resumption of pending V2-FIT verifier and completion of remaining scenarios within USD 1.50 including all previous v9 costs and USD 0.083620 reserve",
+  "historicalReconciliation": "UNRESOLVED_RESERVE_RETAINED",
+  "retries": false,
+  "commit": false,
+  "push": false,
+  "publish": false,
+  "checkpointResume": true,
+  "mode": "real",
+  "packetSha256": "96b1775f351bc3cfb68054df9c151d931fd835180f86ac1f4bccb7b88a451cac",
+  "historicalReserveMicroUsd": 83620,
+  "newCallsCapMicroUsd": 1043382,
+  "priorMeasuredMicroUsd": 372998,
+  "perExecutionCapMicroUsd": 500000,
+  "totalCapMicroUsd": 1500000
+}

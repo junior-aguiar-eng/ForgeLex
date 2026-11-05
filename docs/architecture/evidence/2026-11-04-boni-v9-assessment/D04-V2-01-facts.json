@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D04-V2",
+  "block": "FACTS_AND_EVIDENTIARY_LIMITS",
+  "decision": "ACCEPTED_IN_PRESENTED_FORMULATION",
+  "evaluator": "Boni",
+  "userStatement": "sim",
+  "approvalContext": "Acceptance of the factual block distinguishing the contents of supplied excerpts from facts not demonstrated.",
+  "recordedAt": "2026-11-04T20:49:50.703209+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D04-V2.json",
+  "sourceSha256": "10109b7a6550e0774f9a4c7d3a10187de9a5e79962646fc5f880f5ff169ef8cc",
+  "acceptedExcerpt": "O recorte contratual informa que Brisa deve entregar dois equipamentos à Aurora em 15/10/2026. A narrativa registra que, em 18/10/2026, Aurora solicita entrega imediata, mas não descreve consequência concreta da demora nem esclarece a reversibilidade da medida.\n\nA data contratual anterior ao pedido não comprova, por si só, que a entrega deixou de ocorrer. Os recortes também não permitem afirmar paralisação ou risco concreto. A falta dessas informações não demonstra inexistência de dano nem irreversibilidade.",
+  "relatedOriginalClaims": [
+    {
+      "id": "9e4f3535c6:c1",
+      "classification": "DOCUMENT_RECORD",
+      "statement": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+      "sourceIds": [
+        "D04-V2/contrato@v1#p1"
+      ]
+    },
+    {
+      "id": "9e4f3535c6:c2",
+      "classification": "DOCUMENT_RECORD",
+      "statement": "Em 18/10/2026, Aurora solicita entrega imediata; a narrativa não informa consequência concreta da demora nem reversibilidade da medida.",
+      "sourceIds": [
+        "D04-V2/pedido@v1#p1"
+      ]
+    },
+    {
+      "id": "9e4f3535c6:c3",
+      "classification": "ALLEGATION",
+      "statement": "Segundo o contexto fornecido, Aurora solicita fornecimento imediato de equipamentos em ação civil contra Brisa, sem documentos sobre paralisação ou risco concreto.",
+      "sourceIds": [
+        "context"
+      ]
+    },
+    {
+      "id": "9e4f3535c6:c4",
+      "classification": "INFERENCE",
+      "statement": "O trecho contratual oferece indicação da obrigação narrada, mas o pedido posterior à data de entrega não demonstra, por si só, que houve inadimplemento.",
+      "sourceIds": [
+        "D04-V2/contrato@v1#p1",
+        "D04-V2/pedido@v1#p1"
+      ]
+    },
+    {
+      "id": "9e4f3535c6:c5",
+      "classification": "INFERENCE",
+      "statement": "Os trechos selecionados não demonstram consequências concretas da demora nem permitem concluir sobre reversibilidade da entrega; a ausência dessas informações não prova irreversibilidade.",
+      "sourceIds": [
+        "context",
+        "D04-V2/pedido@v1#p1"
+      ]
+    }
+  ],
+  "scope": "Only the presented factual block. No clearance of citation-support alerts, no whole-delivery approval, and no transfer of V2-MULTI approval.",
+  "wholeDeliveryAssessment": "PENDING",
+  "appliedToOriginal": false,
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

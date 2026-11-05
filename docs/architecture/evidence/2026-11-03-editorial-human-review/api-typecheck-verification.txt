@@ -1,0 +1,6 @@
+Command: pnpm --filter @forgelex/api typecheck
+Tool execution session: 46364
+Observed stdout: $ tsc --noEmit -p tsconfig.typecheck.json
+Observed explicit process marker: TYPECHECK_EXIT=0
+Tool process exit code: 0
+This is a verification receipt transcribed from the tool result, not a raw redirected log.

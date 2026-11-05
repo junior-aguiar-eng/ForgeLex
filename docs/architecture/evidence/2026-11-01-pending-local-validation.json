@@ -1,0 +1,102 @@
+{
+  "date": "2026-11-01",
+  "baselineCommit": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "branch": "codex/forgelex-3-quality",
+  "scope": "Pendências locais do incremento 1: fixture SQLite isolada e pesquisa STJ incluída na reserva comercial",
+  "decision": "Boni: Incluir a pesquisa no teto do trabalho, sem cobrança separada",
+  "checks": {
+    "sqliteReproduction": "2 passed, 1 EBUSY failure before fixture correction",
+    "sqliteMigrationAndNativeLifecycle": {
+      "passed": 4,
+      "failed": 0
+    },
+    "commercialRuntimeProviderPilot": {
+      "passed": 62,
+      "failed": 0
+    },
+    "fullSuite": {
+      "total": 1477,
+      "passed": 1460,
+      "failed": 0,
+      "skipped": 17
+    },
+    "postgresFocused": {
+      "total": 41,
+      "passed": 41,
+      "failed": 0,
+      "skipped": 0,
+      "coversSkippedFromFullSuite": 16
+    },
+    "postgresCommercial": {
+      "status": "passed",
+      "checks": [
+        "credit_waits_and_reads_committed_escrow_balance",
+        "debit_waits_and_reads_committed_escrow_balance",
+        "refund_waits_and_reads_committed_escrow_balance",
+        "two_connections_admit_one_active_execution",
+        "measured_settlement_releases_once_without_duplicate_charge",
+        "terminal_commercial_finance_minimized_on_postgres",
+        "question_drains_purges_and_preserves_finance_on_postgres",
+        "reconciliation_drains_purges_and_preserves_finance_on_postgres",
+        "held-question_drains_purges_and_preserves_finance_on_postgres"
+      ],
+      "providerCalls": 0
+    },
+    "build": "passed",
+    "typecheck": "passed",
+    "lint": "passed after prefer-const correction in test",
+    "prettierChanged": "passed",
+    "diffCheck": "passed",
+    "playwrightCommercialSynthetic": "1 passed, 29.8s",
+    "review": "Additional AI code review: no actionable findings"
+  },
+  "notExecuted": [
+    "homologação real sintética aprovada por Boni executa um único provider/modelo com orçamento durável, sem pesquisa paga nem fallback"
+  ],
+  "realProviderCalls": 0,
+  "realFinancialOperations": 0,
+  "remoteMigrations": 0,
+  "commitPushMergeDeploy": false,
+  "docker": "New disposable PostgreSQL 16 container created and removed; existing containers untouched",
+  "cleanupLimitation": "Automatic approval review rejected deletion of the temporary SQLite reproduction file with blocked by policy; no retry or bypass",
+  "remainingProgramScope": [
+    "Adaptive orchestration graph",
+    "Probatory vertical capability",
+    "Real semantic comparative evaluation",
+    "Version-aware rollout and authorized publication"
+  ],
+  "sourceHashes": {
+    "apps/api/src/agentic-workspace/case-task-driver.test.ts": "55bfcdc140535daf3bc7436de66b0788d62a292c6f9a0bc2d573ac9234834a42",
+    "apps/api/src/agentic-workspace/case-task-driver.ts": "5558c936eea0d18c753779edf83af4a05b45b2a926441acf65c5a478cf157cc3",
+    "apps/api/src/agentic-workspace/commercial-provider.test.ts": "a86d8e519b3c1d1c0c0a592b56a27bd13eac26ca89e683522c6f2133a1f96f80",
+    "apps/api/src/agentic-workspace/commercial-provider.ts": "1eadf72b1edceaaa96e8ec34554c5e56b1e37e81921857231dff50bafdb604f9",
+    "apps/api/src/agentic-workspace/commercial-research.test.ts": "d73fa47141577caea20a9a58078b827aa5ea55bc4c75c35df713436fc138c622",
+    "apps/api/src/agentic-workspace/commercial-runtime.ts": "747ff8fa9aca16067d99b77b2537f4b353a2bc0a4a960718c95912d1e73dba12",
+    "apps/api/src/agentic-workspace/provider-transport.ts": "fc53546148951ada8d75b3ab621d77e1f32e6517775072a62ea4ebdeb18892ba",
+    "apps/api/src/app.ts": "e2e253fe0fa44a3b5163ca82c1c213072d27bbd1ba4d28e9d564d68c6e8b2de2",
+    "apps/web/src/agentic-workspace/CommercialPanel.tsx": "145cd34ed60bab6eaec8ea0dab4525630e2766a7f17ba91c60bf592371ffdc53",
+    "packages/domain/src/contracts/agentic-case-task.ts": "1909fba60c4a5e2f4413f7c639451165324634eb486eb3f12312e34be3566ee8",
+    "packages/legal-agents/src/agentic-case-contracts.ts": "13f08b82efa5c2c03cccbb6ca79ef79122c5acc82380d3fc67405752d965f2bf",
+    "packages/legal-agents/src/instructions/case-task.ts": "e7de27db59714764da38d560dbbc00762d2de517210d13716434af51dbc89bc1",
+    "packages/legal-tools/src/case-context/native-case-context.test.ts": "6bb4d531a67ddf4f1243e3f9317a840aa9e204ccbb5e4f3ebeb10e42293c8b93",
+    "packages/legal-workflows/src/agentic-case-task/case-task.test.ts": "96152c4fa38de315266b0de0ff0c051d7731e2be427eee3aa30b75cdd7d048fb",
+    "packages/legal-workflows/src/agentic-case-task/case-task.ts": "af7f054c7c1eeca0bf47b229b769d8b2d28b19b071afcb86397dd0cf51ecbfaf",
+    "packages/legal-workflows/src/agentic-case-task/support-audit.test.ts": "70524401af9d2c4a824da0860876b1a845157974ad84b95ce9c8aba03aeb6ddd",
+    "packages/legal-workflows/src/agentic-case-task/support-audit.ts": "4adc63746f48888add85bb854b05d8eb9eb03c934946463681d82d6db79551b3",
+    "packages/legal-workflows/src/agentic-case-task/support-benchmark.test.ts": "03e3e62b15bf4dcdb93e8614a2072cc7b65dfadf69d721b5fbc2803bfa6c7099",
+    "packages/persistence/src/migrations/agentic-case-reconciliation.test.ts": "635f8ef3b1f1e7ef3a67865532a94c539996f71271283708729de060a2f5f9d9"
+  },
+  "localEvidenceDirectory": "tmp/forgelex-3-validation",
+  "localEvidenceHashes": {
+    "pending-full.json": "e901994697de5202c48c7ff3f4319317025be1d7ad74aa9d95e7862ff51d038f",
+    "pending-postgres-tests.json": "b7bc940ab843c95556efcd788c40b5ec90501df0de8e5a7c7be34cc7982b64d2",
+    "commercial-research-green.json": "8f2b1cc2a657c25c524de5dbb18dd3198d1eea62fdd5ea4cfe4ccfa2ee8d5731",
+    "pending-sqlite-red.json": "71c02a5c89aee0348c596997580d7e1e367e2259c81ff8bcd6ff55b8b4ffc401",
+    "pending-sqlite-green.json": "e55d0d40b0d2c79cfbf25e878deafc7e1594839580e3e040503256833b347f21",
+    "pending-build.log": "b2f5e3a621b2787bb144181203efed42357edfbd10f813d6a7faa45ca9dc4c7b",
+    "pending-typecheck.log": "265fff6d003e63b7792fdc2767a9a64483545bdc40280f470585854e4b171415",
+    "pending-lint.log": "acd68fcd9ddbba07ba06761b9f1f341f6272463cd9040184d0814941549f10ce",
+    "pending-playwright.log": "b7a7705db557b0e4fe8124595a89ecf332f92d02d63e5c395582c5aa403c8c90",
+    "pending-commercial-postgres.log": "bce7107e544e60709c6b62ddcc20b428da56e0df13dedade0e7f9aaef81127f9"
+  }
+}

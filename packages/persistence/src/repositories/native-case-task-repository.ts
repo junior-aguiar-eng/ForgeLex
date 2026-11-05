@@ -1,8 +1,11 @@
 import { createHash } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
+import { z } from 'zod';
 import {
   AgenticTaskDeliverySchema,
   NativeTaskPacketSchema,
+  TaskSourceSchema,
+  TaskDocumentSchema,
   type AgenticOwner,
   type TaskBinding,
   type NativeTaskContextPort,
@@ -14,9 +17,10 @@ import { AgenticWorkspaceRepository } from './agentic-workspace-repository.js';
 import { CaseAiAccessRepository } from './case-ai-access-repository.js';
 import { MatterRepository } from './matter-repository.js';
 import { DraftRepository } from './draft-repository.js';
-import { agenticTaskDeliveries, legalDocuments, drafts, matters } from '../schema/schema.js';
+import { agenticTaskDeliveries, agenticConversations, legalDocuments, drafts, matters } from '../schema/schema.js';
 import { MatterWriteGuard } from './matter-write-guard.js';
 import type { ForgeLexDatabase } from '../db.js';
+import { ApprovedCaseContextRepository } from './approved-case-context-repository.js';
 
 const hash = (v: unknown) =>
   createHash('sha256')
@@ -27,6 +31,13 @@ export type AuthorizeNativeTask = (
   matterId: string | undefined,
   db: ForgeLexDatabase,
 ) => Promise<void>;
+interface EditorialSnapshot {
+  id: string;
+  draftId: string;
+  versionId: string;
+  delivery: AgenticTaskDelivery;
+  sources: TaskSource[];
+}
 /** Owner-bound native adapter. OAuth grant checks in the external MCP service remain unchanged. */
 export class NativeCaseTaskRepository implements NativeTaskContextPort {
   constructor(
@@ -54,12 +65,24 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
     binding: TaskBinding,
     action: (db: ForgeLexDatabase, packet: NativeTaskPacket) => Promise<T>,
     historical = false,
+    completedRead = false,
   ): Promise<T> {
     await this.authorize({ tenantId: binding.tenantId, userId: binding.userId }, binding.matterId, this.db);
     return this.db.transaction(async (transaction) => {
       const db = transaction as unknown as ForgeLexDatabase,
         workspace = new AgenticWorkspaceRepository(db);
       const owner = { tenantId: binding.tenantId, userId: binding.userId };
+      if (completedRead)
+        await db
+          .update(agenticConversations)
+          .set({ contextRevision: sql`${agenticConversations.contextRevision}` })
+          .where(
+            and(
+              eq(agenticConversations.id, binding.conversationId),
+              eq(agenticConversations.tenantId, owner.tenantId),
+              eq(agenticConversations.userId, owner.userId),
+            ),
+          );
       const conversation = await workspace.getConversation(owner, binding.conversationId);
       const execution = await workspace.getExecution(owner, binding.executionId);
       if (
@@ -74,7 +97,7 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
         !historical &&
         (conversation.contextRevision !== binding.contextRevision ||
           execution.requiresReevaluation ||
-          execution.status !== 'RUNNING')
+          execution.status !== (completedRead ? 'COMPLETED' : 'RUNNING'))
       )
         throw new Error('CONTEXT_CONFLICT');
       const context = conversation.contexts.find((c) => c.revision === binding.contextRevision);
@@ -93,6 +116,15 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       };
       if (!historical) add(`user:${hash(context.text)}`, 'USER_TEXT', context.text);
       if (binding.matterId) {
+        if (context.approvedItems?.length)
+          sources.push(
+            ...(await new ApprovedCaseContextRepository(db).load(
+              owner,
+              binding.matterId,
+              context.approvedItems,
+              historical,
+            )),
+          );
         for (const d of [...context.documents].sort((a, b) => a.documentId.localeCompare(b.documentId))) {
           await db
             .update(legalDocuments)
@@ -152,7 +184,8 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
               identityStatus: version.version.source,
             });
         }
-      } else if (context.documents.length || context.draft) throw new Error('CONTEXT_MATTER_REQUIRED');
+      } else if (context.documents.length || context.draft || context.approvedItems?.length)
+        throw new Error('CONTEXT_MATTER_REQUIRED');
       if (historical) {
         await this.authorize(owner, binding.matterId, db);
         return action(db, {
@@ -218,6 +251,21 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       for (const s of delivery.sources.filter((s) => !['AUTHORITY', 'NORM'].includes(s.kind)))
         if (!packet.sources.some((p) => p.id === s.id && p.contentHash === s.contentHash))
           throw new Error('SOURCE_REFERENCE_INVALID');
+      for (const s of delivery.sources) {
+        const trusted = packet.sources.find((p) => p.id === s.id);
+        if (
+          (trusted?.approvedItem || s.approvedItem || s.kind.startsWith('CASE_')) &&
+          (!trusted?.approvedItem ||
+            trusted.kind !== s.kind ||
+            trusted.contentHash !== s.contentHash ||
+            hash(trusted.approvedItem) !== hash(s.approvedItem ?? null))
+        )
+          throw new Error('SOURCE_REFERENCE_INVALID');
+      }
+      for (const section of delivery.document?.sections ?? [])
+        for (const id of section.sourceIds)
+          if (packet.sources.some((p) => p.id === id && p.approvedItem) && !delivery.sources.some((s) => s.id === id))
+            throw new Error('SOURCE_REFERENCE_INVALID');
       const id = `delivery:${binding.executionId}`,
         payloadJson = JSON.stringify(delivery),
         contentHash = hash(payloadJson);
@@ -256,7 +304,28 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
             title: s.title,
             content: s.content,
             ordinal: i + 1,
-            linkedFactIds: [],
+            linkedFactIds: [
+              ...new Set(
+                s.sourceIds.flatMap((id) => {
+                  const source = packet.sources.find((p) => p.id === id);
+                  return source?.approvedItem
+                    ? source.kind === 'CASE_FACT'
+                      ? [source.approvedItem.targetId]
+                      : source.approvedItem.relatedFactId
+                        ? [source.approvedItem.relatedFactId]
+                        : []
+                    : [];
+                }),
+              ),
+            ],
+            linkedEvidenceIds: [
+              ...new Set(
+                s.sourceIds.flatMap((id) => {
+                  const source = packet.sources.find((p) => p.id === id);
+                  return source?.kind === 'CASE_EVIDENCE' && source.approvedItem ? [source.approvedItem.targetId] : [];
+                }),
+              ),
+            ],
             linkedThesisIds: [],
           })),
         });
@@ -315,6 +384,243 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
         delivery: this.decode(row),
         ...(row.draftId ? { draftId: row.draftId, versionId: row.versionId! } : {}),
       }),
+      true,
+    );
+  }
+  /** Read-only business operation: reuse native authorization/locks, never resume a task. */
+  async loadEditorialSnapshot(owner: AgenticOwner, id: string, expected: { draftId: string; versionId: string }) {
+    return this.editorialOperation(owner, id, expected, async (_db, snapshot) => snapshot);
+  }
+  /** Authorized historical metadata remains readable when the editable snapshot is stale. */
+  async readEditorialHistory(owner: AgenticOwner, id: string, expected: { draftId: string; versionId: string }) {
+    return this.editorialOperation(owner, id, expected, async (_db, _snapshot, row) => row.editorialReviewJson, true);
+  }
+  /** Human review metadata only. Callback validation and saving share all snapshot locks. */
+  async editorialReview<T>(
+    owner: AgenticOwner,
+    id: string,
+    expected: { draftId: string; versionId: string },
+    action: (snapshot: EditorialSnapshot, saved: string | null) => { result: T; record?: string },
+  ) {
+    return this.editorialOperation(owner, id, expected, async (db, snapshot, row) => {
+      const outcome = action(snapshot, row.editorialReviewJson);
+      if (outcome.record !== undefined)
+        await db
+          .update(agenticTaskDeliveries)
+          .set({ editorialReviewJson: outcome.record })
+          .where(
+            and(
+              eq(agenticTaskDeliveries.id, id),
+              eq(agenticTaskDeliveries.tenantId, owner.tenantId),
+              eq(agenticTaskDeliveries.userId, owner.userId),
+            ),
+          );
+      return outcome.result;
+    });
+  }
+  /** Only explicit human application uses this writer; the immutable delivery stays untouched. */
+  async applyEditorialChanges<T>(
+    owner: AgenticOwner,
+    id: string,
+    expected: { draftId: string; versionId: string },
+    prepare: (
+      snapshot: EditorialSnapshot,
+      saved: string | null,
+    ) => {
+      document: z.infer<typeof TaskDocumentSchema>;
+      complete: (version: { id: string; versionNumber: number; contentHash: string }) => { result: T; record: string };
+    },
+    replay: (saved: string | null) => T | undefined,
+  ): Promise<T> {
+    try {
+      return await this.editorialOperation(owner, id, expected, async (db, snapshot, row) => {
+        const prepared = prepare(snapshot, row.editorialReviewJson);
+        const repo = new DraftRepository(db);
+        const execution = await new AgenticWorkspaceRepository(db).getExecution(owner, row.executionId);
+        if (!execution?.matterId) throw new Error('DELIVERY_NOT_FOUND');
+        const original = await repo.getVersion(
+          owner.tenantId,
+          execution.matterId,
+          expected.draftId,
+          expected.versionId,
+        );
+        if (!original) throw new Error('EDITORIAL_VERSION_CONFLICT');
+        const sections = original.sections.map((section, index) => ({
+          ordinal: section.ordinal,
+          title: section.title,
+          content: prepared.document.sections[index].content,
+          linkedFactIds: section.linkedFactIds,
+          linkedEvidenceIds: section.linkedEvidenceIds,
+          linkedAuthorityIds: section.linkedAuthorityIds,
+          linkedThesisIds: section.linkedThesisIds,
+        }));
+        const citations = original.citations.map((citation) => ({
+          sectionOrdinal: original.sections.find((section) => section.id === citation.sectionId)!.ordinal,
+          targetType: citation.targetType,
+          targetId: citation.targetId,
+          citationText: citation.citationText,
+          verified: false,
+        }));
+        const title = prepared.document.title;
+        const bundle = await repo.insertVersionInTransaction({
+          tenantId: owner.tenantId,
+          matterId: execution.matterId,
+          draftId: expected.draftId,
+          title,
+          sections,
+          citations,
+          source: 'HUMAN',
+          status: 'DRAFT',
+          createdBy: owner.userId,
+          contentHash: hash({ title, sections, citations }),
+          baseVersionId: expected.versionId,
+          expectedCurrentVersionId: expected.versionId,
+          notes: 'Aplicação editorial humana; conferir esta versão antes do uso.',
+        });
+        const outcome = prepared.complete(bundle.version);
+        await db
+          .update(agenticTaskDeliveries)
+          .set({ editorialReviewJson: outcome.record })
+          .where(
+            and(
+              eq(agenticTaskDeliveries.id, id),
+              eq(agenticTaskDeliveries.tenantId, owner.tenantId),
+              eq(agenticTaskDeliveries.userId, owner.userId),
+            ),
+          );
+        return outcome.result;
+      });
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        ![
+          'EDITORIAL_VERSION_CONFLICT',
+          'CONTEXT_CONFLICT',
+          'SOURCE_VERSION_CONFLICT',
+          'APPROVED_CONTEXT_CHANGED',
+          'EDITORIAL_SOURCE_UNAVAILABLE',
+          'EDITORIAL_AUDIT_UNAVAILABLE',
+        ].includes(error.message)
+      )
+        throw error;
+      // A recorded command may have caused the stale version itself. Reauthorize historical
+      // access and return only the exact saved result; never write through this path.
+      const result = replay(await this.readEditorialHistory(owner, id, expected));
+      if (result === undefined) throw error;
+      return result;
+    }
+  }
+  private async editorialOperation<T>(
+    owner: AgenticOwner,
+    id: string,
+    expected: { draftId: string; versionId: string },
+    action: (
+      db: ForgeLexDatabase,
+      snapshot: EditorialSnapshot,
+      row: typeof agenticTaskDeliveries.$inferSelect,
+    ) => Promise<T>,
+    historyOnly = false,
+  ) {
+    const find = async (db: ForgeLexDatabase) =>
+      (
+        await db
+          .select()
+          .from(agenticTaskDeliveries)
+          .where(
+            and(
+              eq(agenticTaskDeliveries.id, id),
+              eq(agenticTaskDeliveries.tenantId, owner.tenantId),
+              eq(agenticTaskDeliveries.userId, owner.userId),
+            ),
+          )
+          .limit(1)
+      )[0];
+    const initial = await find(this.db);
+    if (!initial) throw new Error('DELIVERY_NOT_FOUND');
+    const run = await new AgenticWorkspaceRepository(this.db).getExecution(owner, initial.executionId);
+    if (!run?.matterId || !run.deliveryIds.includes(id)) throw new Error('DELIVERY_NOT_FOUND');
+    const initialDelivery = this.decode(initial);
+    return this.guarded(
+      {
+        ...owner,
+        executionId: run.id,
+        conversationId: initial.conversationId,
+        contextRevision: initial.contextRevision,
+        matterId: run.matterId,
+        objective: '',
+        previousDeliveryIds: initialDelivery.sources.filter((s) => s.kind === 'PREVIOUS_DELIVERY').map((s) => s.id),
+      },
+      async (db, packet) => {
+        const row = await find(db);
+        if (!row || row.executionId !== run.id) throw new Error('DELIVERY_NOT_FOUND');
+        const delivery = this.decode(row);
+        if (
+          !delivery.document ||
+          !row.draftId ||
+          !row.versionId ||
+          row.draftId !== expected.draftId ||
+          row.versionId !== expected.versionId
+        )
+          throw new Error('EDITORIAL_VERSION_CONFLICT');
+        await db
+          .update(drafts)
+          .set({ updatedAt: sql`${drafts.updatedAt}` })
+          .where(
+            and(eq(drafts.id, row.draftId), eq(drafts.tenantId, owner.tenantId), eq(drafts.matterId, run.matterId!)),
+          );
+        const repo = new DraftRepository(db);
+        const draft = await repo.getDraft(owner.tenantId, run.matterId!, row.draftId);
+        const bundle = await repo.getVersion(owner.tenantId, run.matterId!, row.draftId, row.versionId);
+        const document = TaskDocumentSchema.parse(delivery.document);
+        if (
+          !draft ||
+          (!historyOnly && draft.currentVersionId !== row.versionId) ||
+          !bundle ||
+          bundle.version.contentHash !== hash(document) ||
+          (!historyOnly && draft.title !== document.title) ||
+          bundle.sections.length !== document.sections.length ||
+          bundle.sections.some(
+            (s, index) =>
+              s.ordinal !== index + 1 ||
+              s.title !== document.sections[index].title ||
+              s.content !== document.sections[index].content,
+          )
+        )
+          throw new Error('EDITORIAL_VERSION_CONFLICT');
+
+        if (historyOnly)
+          return action(db, { id: row.id, draftId: row.draftId, versionId: row.versionId, delivery, sources: [] }, row);
+
+        // Only legal source text needs the completed checkpoint. The delivery is mandatory,
+        // and every recovered byte/metadata field must match its persisted source reference.
+        const execution = await new AgenticWorkspaceRepository(db).getExecution(owner, run.id);
+        let evidence: TaskSource[] = [];
+        if (delivery.sources.some((s) => ['AUTHORITY', 'NORM'].includes(s.kind))) {
+          const parsed = z
+            .object({
+              caseTask: z.object({
+                version: z.number().int().min(1).max(8),
+                evidence: z.array(TaskSourceSchema).max(100),
+              }),
+            })
+            .safeParse(execution?.checkpoint);
+          if (!parsed.success) throw new Error('EDITORIAL_SOURCE_UNAVAILABLE');
+          evidence = parsed.data.caseTask.evidence;
+        }
+        const sources = delivery.sources.map((ref) => {
+          const candidates = (['AUTHORITY', 'NORM'].includes(ref.kind) ? evidence : packet.sources).filter(
+            (s) => s.id === ref.id,
+          );
+          if (candidates.length !== 1) throw new Error('EDITORIAL_SOURCE_UNAVAILABLE');
+          const source = TaskSourceSchema.parse(candidates[0]);
+          const { text, ...metadata } = source;
+          if (hash(text) !== ref.contentHash || hash(metadata) !== hash(ref))
+            throw new Error('EDITORIAL_SOURCE_UNAVAILABLE');
+          return source;
+        });
+        return action(db, { id: row.id, draftId: row.draftId, versionId: row.versionId, delivery, sources }, row);
+      },
+      historyOnly,
       true,
     );
   }

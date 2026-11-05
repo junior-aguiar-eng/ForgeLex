@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D04-V2",
+  "block": "DRAFT_AND_SOURCE_LIMITATIONS",
+  "decision": "ACCEPTED_WITH_CONSOLIDATION",
+  "evaluator": "Boni",
+  "userStatement": "Aceito os dois pontos com essa consolidação. Vamos para o próximo bloco.",
+  "recordedAt": "2026-11-04T21:06:13.964588+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D04-V2.json",
+  "sourceSha256": "10109b7a6550e0774f9a4c7d3a10187de9a5e79962646fc5f880f5ff169ef8cc",
+  "acceptedPassages": [
+    {
+      "topic": "DRAFT_SCOPE",
+      "statement": "O texto é preliminar, baseado em dados fictícios. O contexto não identifica juízo, qualificação completa, fase processual ou atos já praticados. A redação não deve preencher essas lacunas nem pressupor petição inicial, pedido incidental específico ou prazo em curso. A revisão não demonstra aptidão para protocolo."
+    },
+    {
+      "topic": "SOURCE_SCOPE",
+      "statement": "A análise utiliza somente os excertos selecionados, sem autenticação documental, pesquisa jurisprudencial ou verificação independente da vigência e da aplicabilidade temporal. As versões dos recortes estão identificadas com datas de novembro de 2026, enquanto os fatos narrados são de outubro. Essas datas de versão, por si sós, não demonstram alteração legislativa ou incompatibilidade temporal."
+    }
+  ],
+  "editorialDisposition": "Combine both limitations in a single notice without repetitions throughout the draft.",
+  "relatedOriginalFindings": [
+    {
+      "id": "30a5f7f32d:f3",
+      "code": "ALCANCE_TEMPORAL_NORMAS",
+      "severity": "WARNING",
+      "statement": "Foram fornecidos apenas excertos normativos, com versões identificadas em novembro de 2026, posteriores às datas documentais de outubro. Não há verificação independente de vigência histórica ou de integralidade do regime aplicável; a análise é condicional ao corpus e não confirma sua aplicabilidade temporal.",
+      "sourceIds": [
+        "CPC-300",
+        "CPC-300-P1",
+        "CPC-498",
+        "D04-V2/pedido@v1#p1"
+      ]
+    },
+    {
+      "id": "30a5f7f32d:f4",
+      "code": "POSICAO_PROCESSUAL_INCOMPLETA",
+      "severity": "WARNING",
+      "statement": "O contexto indica ação civil, mas não identifica fase processual ou atos já praticados. A minuta não pode pressupor petição inicial, requerimento incidental específico ou prazo processual em curso.",
+      "sourceIds": [
+        "context"
+      ]
+    },
+    {
+      "id": "ab69725fdd:f3",
+      "code": "LIMITE_TEMPORAL",
+      "severity": "WARNING",
+      "statement": "Os excertos normativos têm versões identificadas em novembro de 2026, posteriores às datas documentais de outubro; sua aplicabilidade temporal não foi confirmada no corpus.",
+      "sourceIds": [
+        "CPC-300",
+        "CPC-300-P1",
+        "CPC-498",
+        "D04-V2/pedido@v1#p1"
+      ]
+    },
+    {
+      "id": "e69cf316b3:f1",
+      "code": "REVISAO_LIMITADA_DO_CANDIDATO",
+      "severity": "WARNING",
+      "statement": "Objeto da revisão: texto candidato “Minuta preliminar — pedido de entrega de equipamentos”, nas seis seções fornecidas no resultado de redação, sem identificador próprio de versão. A revisão é estrutural e restrita ao corpus fictício; não confirma autenticidade documental, vigência histórica das normas ou aptidão jurídica para protocolo. O candidato explicita essas limitações e não preenche juízo, qualificação ou fase processual.",
+      "sourceIds": [
+        "context",
+        "D04-V2/contrato@v1#p1",
+        "D04-V2/pedido@v1#p1",
+        "CPC-300",
+        "CPC-300-P1",
+        "CPC-498"
+      ]
+    },
+    {
+      "id": "7b762b974c:f1",
+      "code": "SNAPSHOT_LIMITS",
+      "severity": "WARNING",
+      "statement": "CPC-300 consta como OFFICIAL_EXCERPT, versão 2026-11-02; CPC-300-P1 e CPC-498, como OFFICIAL_EXCERPT, versão 2026-11-03, todos com URL do Senado. A conferência é textual dos snapshots fornecidos, não verificação online de vigência, histórico ou aplicabilidade às datas de outubro de 2026. Não há autoridade STJ selecionada nem pesquisa de tratamento posterior.",
+      "sourceIds": [
+        "CPC-300",
+        "CPC-300-P1",
+        "CPC-498"
+      ]
+    }
+  ],
+  "scope": "Presented limitations only; source-support alerts and whole-delivery assessment remain pending.",
+  "wholeDeliveryAssessment": "PENDING",
+  "appliedToOriginal": false,
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

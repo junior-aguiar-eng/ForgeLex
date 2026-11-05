@@ -27,6 +27,7 @@ import {
 import type { ForgeLexDatabase } from '../db.js';
 import * as s from '../schema/schema.js';
 import { MatterWriteGuard } from './matter-write-guard.js';
+import { ApprovedCaseContextRepository } from './approved-case-context-repository.js';
 
 type ConversationRow = typeof s.agenticConversations.$inferSelect;
 const now = () => new Date().toISOString();
@@ -105,13 +106,16 @@ export class AgenticWorkspaceRepository {
     );
   }
   private async validateReferences(owner: AgenticOwner, matterId: string | null, context: AgenticContext) {
-    if ((context.documents.length || context.draft) && !matterId) throw new Error('CONTEXT_MATTER_REQUIRED');
+    if ((context.documents.length || context.draft || context.approvedItems?.length) && !matterId)
+      throw new Error('CONTEXT_MATTER_REQUIRED');
     if (matterId) {
       await this.db
         .update(s.matters)
         .set({ updatedAt: sql`${s.matters.updatedAt}` })
         .where(and(eq(s.matters.id, matterId), eq(s.matters.tenantId, owner.tenantId)));
       await new MatterWriteGuard(this.db).captureRevision({ ...owner, matterId });
+      if (context.approvedItems?.length)
+        await new ApprovedCaseContextRepository(this.db).load(owner, matterId, context.approvedItems);
       if (context.draft) {
         const [target] = await this.db
           .select({ id: s.drafts.id })

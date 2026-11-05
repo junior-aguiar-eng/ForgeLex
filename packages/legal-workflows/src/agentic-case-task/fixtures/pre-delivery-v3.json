@@ -1,0 +1,104 @@
+{
+  "description": "Captured with frozen pre-fix candidate 90317c82, using synthetic context and no network",
+  "binding": {
+    "tenantId": "graph",
+    "userId": "boni",
+    "executionId": "legacy",
+    "conversationId": "graph-conversation",
+    "contextRevision": 1,
+    "objective": "Analisar contexto sintético",
+    "actionId": "analyze_evidence"
+  },
+  "packet": {
+    "contextId": "graph-conversation",
+    "contextRevision": 1,
+    "sources": [
+      {
+        "id": "user:graph",
+        "kind": "USER_TEXT",
+        "text": "Contexto sintético para compatibilidade do grafo.",
+        "contentHash": "8b291da6efdf3836645eb760b06af85611b53f28c19d4be21696741e4e0bc0d1"
+      }
+    ],
+    "answers": []
+  },
+  "state": {
+    "version": 3,
+    "bindingHash": "866cf5d8a23c77e3ac4fc4d353436a4d2fece470490e9b423d7377fd086ebe47",
+    "contractHash": "6ee7e6a0847f63875f3e463cf978239496ec1a48b563107a9231512a6d96a50d",
+    "previousDeliveryIds": [],
+    "outputs": {},
+    "evidence": [],
+    "profiles": [
+      {
+        "role": "legal-orchestrator",
+        "version": "1.4.0",
+        "instructionId": "legal-orchestrator-instructions",
+        "instructionVersion": "1.0.0",
+        "legacyAgentId": null,
+        "legacyAgentVersion": null,
+        "policyId": "agentic-case-task-policy",
+        "policyVersion": "1.4.0"
+      }
+    ],
+    "toolCount": 1,
+    "researchOperations": [],
+    "findings": [],
+    "plan": {
+      "action": "analyze_evidence",
+      "requiresCaseLaw": false,
+      "requiresNorms": false,
+      "requiresProcedure": false,
+      "issues": [
+        {
+          "id": "issue",
+          "statement": "Analisar o relato",
+          "sourceIds": [
+            "user:graph"
+          ]
+        }
+      ],
+      "gaps": []
+    },
+    "graph": {
+      "version": 1,
+      "revision": 0,
+      "tools": [],
+      "failedTools": [],
+      "planHashes": [
+        "1cca6163303b2d7befee95b746cbccb3ad3b13e4dc2ef577f2e55f33929a249a"
+      ],
+      "reviewRequired": false,
+      "nodes": [
+        {
+          "id": "matter-analyst:0",
+          "role": "matter-analyst",
+          "generation": 0,
+          "dependsOn": [],
+          "status": "PENDING"
+        },
+        {
+          "id": "adversarial-reviewer:0",
+          "role": "adversarial-reviewer",
+          "generation": 0,
+          "dependsOn": [
+            "matter-analyst:0"
+          ],
+          "status": "PENDING"
+        },
+        {
+          "id": "authority-verifier:0",
+          "role": "authority-verifier",
+          "generation": 0,
+          "dependsOn": [
+            "matter-analyst:0",
+            "adversarial-reviewer:0"
+          ],
+          "status": "PENDING"
+        }
+      ],
+      "archivedOutputs": {},
+      "decisions": []
+    }
+  }
+}

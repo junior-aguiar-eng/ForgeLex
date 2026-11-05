@@ -7,7 +7,7 @@ test('trabalho ativo não expõe rota ou identificadores de caso quando casos es
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await page.waitForURL('**/app');
   await page.goto('/app/trabalho');
-  await page.getByRole('button', { name: 'Criar uma peça', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Opção do pedido' }).selectOption('create_document');
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Preparar minuta sintética');
   await page.getByRole('button', { name: /^Sem caso/ }).click();
   await page.getByLabel('Contexto escrito').fill('Contexto sintético para elaborar uma minuta.');

@@ -1,19 +1,41 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import type { ForgeLexDatabase, Client } from '@forgelex/persistence';
-import { LegalAnswerSchema, type AuthenticatedPrincipal } from '@forgelex/domain';
+import {
+  NativeEvidenceReviewRepository,
+  EvidenceReapprovalRepository,
+  AgenticWorkspaceRepository,
+  type ForgeLexDatabase,
+  type Client,
+} from '@forgelex/persistence';
+import {
+  EvidenceReviewCommandSchema,
+  EvidenceReapprovalCommandSchema,
+  LegalAnswerSchema,
+  type AuthenticatedPrincipal,
+} from '@forgelex/domain';
 import { AuthAdapter } from '../auth/fastify-auth.js';
 import { ExecutionService, StartExecutionSchema } from './execution-service.js';
 import { ExecutionWorker, type ExecutionDriver } from './execution-worker.js';
 import { encodeExecutionEvent } from './event-stream.js';
 import { createCaseTaskDriver, type NativeCaseTaskOptions } from './case-task-driver.js';
 import type { ResearchService } from '@forgelex/legal-tools';
-import { LEGAL_ACTION_CATALOG } from '@forgelex/legal-workflows';
+import {
+  LEGAL_ACTION_CATALOG,
+  EVIDENCE_TASK_ACTION,
+  FinalEditorService,
+  FinalEditorGenerator,
+  EditorialReviewService,
+  EditorialApplicationService,
+  type FinalEditorGenerationOptions,
+} from '@forgelex/legal-workflows';
 import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
+import { EditorialCommercialCommand } from './editorial-commercial-runtime.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
 
 export interface AgenticWorkspaceRuntimeOptions {
+  /** Trusted opt-in. Real generation requires a separately provisioned financial command. */
+  editorialGeneration?: FinalEditorGenerationOptions;
   closedPilot?: ClosedPilot;
   commercial?: CommercialRuntime;
   driver?: ExecutionDriver;
@@ -78,6 +100,7 @@ export function registerAgenticWorkspace(
     lastSweepAt = Date.now();
     try {
       await commercial.sweepAdmissions();
+      await commercial.editorial?.sweepAdmissions();
     } catch (error) {
       // Durable admission cleanup is retried on the next poll; a persistent failure must still be visible.
       report('agentic.admission_sweep.failed', error);
@@ -90,6 +113,7 @@ export function registerAgenticWorkspace(
     running = true;
     try {
       await worker.runOnce();
+      await commercial?.editorial?.worker.runOnce();
     } catch (error) {
       // The persistent lease permits safe recovery on the next tick; a persistent failure must still be visible.
       report('agentic.worker_tick.failed', error);
@@ -110,6 +134,7 @@ export function registerAgenticWorkspace(
     app.addHook('onClose', async () => {
       clearInterval(timer);
       await worker.stop();
+      await commercial?.editorial?.worker.stop();
     });
   }
   const owner = (req: FastifyRequest) => ({ tenantId: req.principal.tenantId, userId: req.principal.userId });
@@ -195,8 +220,38 @@ export function registerAgenticWorkspace(
           error instanceof z.ZodError
             ? 'INVALID_INPUT'
             : [
+                  'EVIDENCE_REVIEW_CONFLICT',
+                  'EDITORIAL_VERSION_CONFLICT',
+                  'EDITORIAL_GENERATION_DISABLED',
+                  'EDITORIAL_AUTHORIZATION_REQUIRED',
+                  'EDITORIAL_PROVIDER_NOT_ALLOWED',
+                  'EDITORIAL_GENERATION_CANCELLED',
+                  'EDITORIAL_GENERATION_TIMEOUT',
+                  'EDITORIAL_GENERATION_FAILED',
+                  'EDITORIAL_CONTEXT_CHANGED',
+                  'EDITORIAL_CONTEXT_LIMIT',
+                  'EDITORIAL_REVIEW_CONFLICT',
+                  'EDITORIAL_REVIEW_LIMIT',
+                  'EDITORIAL_REVIEW_INTEGRITY',
+                  'EDITORIAL_SOURCE_UNAVAILABLE',
+                  'EDITORIAL_AUDIT_UNAVAILABLE',
+                  'SOURCE_VERSION_CONFLICT',
+                  'EVIDENCE_COMMAND_CONFLICT',
+                  'EVIDENCE_ALREADY_DECIDED',
+                  'EVIDENCE_ITEM_INVALID',
+                  'EVIDENCE_SOURCE_UNAVAILABLE',
+                  'EVIDENCE_DATE_REQUIRED',
+                  'EVIDENCE_DATE_INVALID',
+                  'EVIDENCE_REVIEW_LIMIT',
+                  'EVIDENCE_REVIEW_NOT_AVAILABLE',
+                  'ANALYSIS_FACT_REQUIRED',
+                  'MATTER_NOT_ACTIVE',
+                  'LIFECYCLE_CONFLICT',
                   'IDEMPOTENCY_CONFLICT',
                   'CONTEXT_CONFLICT',
+                  'APPROVED_CONTEXT_CHANGED',
+                  'APPROVED_FACT_REQUIRED',
+                  'TASK_CONTEXT_LIMIT',
                   'EXECUTION_CONFLICT',
                   'QUESTION_EXPIRED',
                   'RECONCILIATION_REQUIRED',
@@ -222,7 +277,7 @@ export function registerAgenticWorkspace(
               ? 404
               : code === 'ACCESS_REVOKED'
                 ? 403
-                : code.endsWith('UNAVAILABLE')
+                : code === 'EXECUTION_UNAVAILABLE' || code === 'EXECUTOR_UNAVAILABLE'
                   ? 503
                   : 409;
         return reply.code(status).send({
@@ -254,7 +309,7 @@ export function registerAgenticWorkspace(
       available: Boolean(driver),
       ...(pilot ? { closedPilot: true } : {}),
       ...(commercial ? { commercial: true } : {}),
-      actions: LEGAL_ACTION_CATALOG.map((a) => ({
+      actions: [...LEGAL_ACTION_CATALOG, EVIDENCE_TASK_ACTION].map((a) => ({
         id: a.id,
         label: a.label,
         dialogue: a.dialogue.map((q) => ({ prompt: q.prompt, options: [...q.options] })),
@@ -375,7 +430,10 @@ export function registerAgenticWorkspace(
     options,
     handle(async (req) => ({
       ...(await required().getExecution(owner(req), executionId(req))),
-      permissions: { editDraft: req.principal.scopes.includes('draft:write') },
+      permissions: {
+        editDraft: req.principal.scopes.includes('draft:write'),
+        reviewEvidence: req.principal.scopes.includes('matter:write') && req.principal.scopes.includes('matter:read'),
+      },
     })),
   );
   app.post(
@@ -539,5 +597,208 @@ export function registerAgenticWorkspace(
         return caseTask.native.getDelivery(owner(req), id);
       }),
     );
+  if (caseTask && deps.database) {
+    const nativeOptions = (pilot?.caseTask ?? commercial?.caseTask ?? deps.options!.caseTask)!;
+    const reviews = new NativeEvidenceReviewRepository(deps.database, nativeOptions.authorizeNative);
+    const changes = new EvidenceReapprovalRepository(
+      deps.database,
+      nativeOptions.authorizeNative,
+      async (owner, id, db) => {
+        const execution = await new AgenticWorkspaceRepository(db).getExecution(owner, id);
+        if (
+          !execution ||
+          (pilot && !pilot.canManageExecution(execution)) ||
+          (commercial && !commercial.canManageExecution(execution))
+        )
+          throw new Error('DELIVERY_NOT_FOUND');
+      },
+    );
+    const reviewMatter = (req: FastifyRequest) => z.object({ matterId: z.string().uuid() }).parse(req.params).matterId;
+    app.get(
+      '/api/agentic/matters/:matterId/evidence-changes',
+      {
+        preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read']), session],
+      },
+      handle(async (req) => changes.preview(owner(req), reviewMatter(req))),
+    );
+    app.post(
+      '/api/agentic/matters/:matterId/evidence-changes/decisions',
+      {
+        preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session],
+      },
+      handle(async (req) =>
+        changes.approve(owner(req), reviewMatter(req), EvidenceReapprovalCommandSchema.parse(req.body)),
+      ),
+    );
+    const reviewId = async (req: FastifyRequest) => {
+      const id = z.object({ id: z.string().min(1).max(200) }).parse(req.params).id;
+      // Preserve the execution boundary of each runtime, including human review commands.
+      await caseTask.native.getDeliveryContext(owner(req), id);
+      const execution = await required().store.workspace.getExecution(owner(req), id.replace(/^delivery:/, ''));
+      if (
+        !execution ||
+        (pilot && !pilot.canManageExecution(execution)) ||
+        (commercial && !commercial.canManageExecution(execution))
+      )
+        throw new Error('DELIVERY_NOT_FOUND');
+      return id;
+    };
+    const editor = new FinalEditorService(caseTask.native);
+    const generator = new FinalEditorGenerator(editor, deps.options?.editorialGeneration);
+    const editorialReview = new EditorialReviewService(caseTask.native);
+    const editorialApplication = new EditorialApplicationService(caseTask.native);
+    const editorialTarget = z.strictObject({
+      draftId: z.string().min(1).max(200),
+      versionId: z.string().min(1).max(200),
+    });
+    const editorialOptions = { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read']), session] };
+    app.get(
+      '/api/agentic/deliveries/:id/editorial-context',
+      editorialOptions,
+      handle(async (req) => editor.load(owner(req), await reviewId(req), editorialTarget.parse(req.query))),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-proposals/validate',
+      editorialOptions,
+      handle(async (req) => {
+        const id = await reviewId(req);
+        const body = editorialTarget.extend({ proposal: z.unknown() }).parse(req.body);
+        return editor.validate(owner(req), id, body, body.proposal);
+      }),
+    );
+    app.get(
+      '/api/agentic/deliveries/:id/editorial-proposals/generation',
+      editorialOptions,
+      handle(async (req) => {
+        const id = await reviewId(req);
+        const target = editorialTarget.parse(req.query);
+        if (commercial?.editorial) return commercial.editorial.quote(owner(req), { deliveryId: id, ...target });
+        await editor.load(owner(req), id, target);
+        const configured = deps.options?.editorialGeneration;
+        return {
+          enabled: !!configured,
+          mode: configured?.authorizeRealProvider ? 'REAL' : 'SIMULATED',
+          maxCostUsd: configured?.authorizeRealProvider ? 0.25 : 0,
+        };
+      }),
+    );
+    app.get(
+      '/api/agentic/deliveries/:id/editorial-review',
+      editorialOptions,
+      handle(async (req) => editorialReview.history(owner(req), await reviewId(req), req.query)),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-review/preview',
+      editorialOptions,
+      handle(async (req) => editorialReview.review(owner(req), await reviewId(req), req.body, 'preview')),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-review/decisions',
+      {
+        preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session],
+      },
+      handle(async (req) => editorialReview.review(owner(req), await reviewId(req), req.body, 'decide')),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-review/applications',
+      { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session] },
+      handle(async (req) => editorialApplication.apply(owner(req), await reviewId(req), req.body)),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-proposals/commands',
+      { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session] },
+      handle(async (req) => {
+        if (!commercial?.editorial) throw new Error('EDITORIAL_GENERATION_DISABLED');
+        const id = await reviewId(req);
+        const input = EditorialCommercialCommand.omit({ deliveryId: true }).parse(req.body);
+        return commercial.editorial.start(owner(req), key(req), { ...input, deliveryId: id });
+      }),
+    );
+    app.get(
+      '/api/agentic/deliveries/:id/editorial-proposals/commands',
+      editorialOptions,
+      handle(async (req) => {
+        if (!commercial?.editorial) throw new Error('EDITORIAL_GENERATION_DISABLED');
+        const id = await reviewId(req);
+        const { requestId, ...target } = editorialTarget
+          .extend({ requestId: z.string().min(1).max(200).optional() })
+          .parse(req.query);
+        return {
+          command: requestId
+            ? await commercial.editorial.recover(owner(req), requestId, { deliveryId: id, ...target })
+            : await commercial.editorial.latest(owner(req), { deliveryId: id, ...target }),
+        };
+      }),
+    );
+    app.get(
+      '/api/agentic/deliveries/:id/editorial-proposals/commands/:commandId',
+      editorialOptions,
+      handle(async (req) => {
+        if (!commercial?.editorial) throw new Error('EDITORIAL_GENERATION_DISABLED');
+        const id = await reviewId(req);
+        const { commandId } = z.object({ commandId: z.string().guid() }).parse(req.params);
+        return commercial.editorial.read(owner(req), commandId, {
+          deliveryId: id,
+          ...editorialTarget.parse(req.query),
+        });
+      }),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-proposals/commands/:commandId/cancel',
+      { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session] },
+      handle(async (req) => {
+        if (!commercial?.editorial) throw new Error('EDITORIAL_GENERATION_DISABLED');
+        const id = await reviewId(req);
+        const { commandId } = z.object({ commandId: z.string().guid() }).parse(req.params);
+        return commercial.editorial.cancel(
+          owner(req),
+          commandId,
+          { deliveryId: id, ...editorialTarget.parse(req.body) },
+          key(req),
+        );
+      }),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/editorial-proposals/generate',
+      { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session] },
+      handle(async (req, reply) => {
+        if (commercial?.editorial) throw new Error('EDITORIAL_AUTHORIZATION_REQUIRED');
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        req.raw.once('aborted', abort);
+        reply.raw.once('close', abort);
+        try {
+          if (req.raw.aborted || reply.raw.destroyed) abort();
+          if (controller.signal.aborted) throw new Error('EDITORIAL_GENERATION_CANCELLED');
+          const id = await reviewId(req),
+            command = editorialTarget.extend({ confirmed: z.literal(true).optional() }).parse(req.body);
+          if (deps.options?.editorialGeneration?.authorizeRealProvider && command.confirmed !== true)
+            throw new Error('EDITORIAL_AUTHORIZATION_REQUIRED');
+          const target = { draftId: command.draftId, versionId: command.versionId };
+          if (req.raw.aborted || reply.raw.destroyed) abort();
+          return await generator.generate(owner(req), id, target, controller.signal);
+        } finally {
+          req.raw.removeListener('aborted', abort);
+          reply.raw.removeListener('close', abort);
+        }
+      }),
+    );
+    app.get(
+      '/api/agentic/deliveries/:id/evidence-review',
+      {
+        preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read']), session],
+      },
+      handle(async (req) => reviews.preview(owner(req), await reviewId(req))),
+    );
+    app.post(
+      '/api/agentic/deliveries/:id/evidence-review/decisions',
+      {
+        preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read', 'matter:write']), session],
+      },
+      handle(async (req) =>
+        reviews.decide(owner(req), await reviewId(req), EvidenceReviewCommandSchema.parse(req.body)),
+      ),
+    );
+  }
   return { service, worker };
 }

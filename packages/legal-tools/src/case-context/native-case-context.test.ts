@@ -80,6 +80,37 @@ async function fixture(contextText = 'Texto fornecido.') {
   };
 }
 describe('contexto nativo sem credencial OAuth fictícia', () => {
+  it('persiste auditoria de suporte e mantém isolamento e integridade do payload', async () => {
+    const f = await fixture();
+    const contentHash = createHash('sha256').update('Trecho sintético.').digest('hex');
+    const delivery = {
+      ...f.delivery,
+      claims: [
+        { id: 'c', classification: 'INFERENCE' as const, statement: 'Proposição candidata.', sourceIds: ['authority'] },
+      ],
+      sources: [{ id: 'authority', kind: 'AUTHORITY' as const, contentHash }],
+      supportAudit: [
+        {
+          claimId: 'c',
+          sourceId: 'authority',
+          sourceContentHash: contentHash,
+          quote: 'Trecho sintético.',
+          quoteStatus: 'MATCHED' as const,
+          modelAssessment: 'SUPPORTED' as const,
+        },
+      ],
+    };
+    const saved = await f.native.save(f.binding, delivery);
+    expect((await f.native.getDelivery(f.owner, saved.id)).delivery).toEqual(delivery);
+    expect(
+      await f.native.getCommittedExecutionDelivery({ ...f.owner, tenantId: 'other' }, f.binding.executionId, saved.id),
+    ).toBeUndefined();
+    await f.client.execute({
+      sql: 'UPDATE agentic_task_deliveries SET payload_json=? WHERE id=?',
+      args: [JSON.stringify({ ...delivery, supportAudit: [] }), saved.id],
+    });
+    await expect(f.native.getDelivery(f.owner, saved.id)).rejects.toThrow('DELIVERY_INTEGRITY_FAILED');
+  });
   it('financial snapshot remains committed and owner-bound after live authorization is revoked', async () => {
     const f = await fixture();
     const saved = await f.native.save(f.binding, f.delivery);

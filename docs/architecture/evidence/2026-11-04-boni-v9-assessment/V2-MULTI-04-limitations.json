@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "scenario": "V2-MULTI",
+  "block": "ANALYSIS_LIMITATIONS",
+  "decision": "ACCEPTED_WITH_RESERVATION",
+  "evaluator": "Boni",
+  "userStatement": "Aceito ambas, com a ressalva de que o texto deve ser ajustado para evitar redundância. Vamos para o próximo bloco.",
+  "recordedAt": "2026-11-04T19:15:48.149775+00:00",
+  "scope": "The two presented limitation excerpts only; whole-delivery assessment remains pending",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-multi-consolidation/V2-MULTI.derived.json",
+  "sourceSha256": "264fa8e25e3b52bcbf28e23fc8a94e2c6e6fc56ac0c8c79ea23c83e2ac0e8bf5",
+  "acceptedOriginalRequirements": [
+    {
+      "id": "3dedd4e1b8:r3",
+      "kind": "EDITORIAL",
+      "statement": "Registrar que a revisão utiliza exclusivamente o corpus fechado de excertos e relatos fictícios, sem exame integral do contrato, autenticação documental, comprovação dos fatos ou pesquisa de jurisprudência. Permanecem sem solução a titularidade da escolha, as consequências concretas da demora e a reversibilidade.",
+      "sourceIds": [
+        "context",
+        "V2-MULTI/contrato@v1#p1",
+        "V2-MULTI/mensagem@v1#p1"
+      ],
+      "verified": false
+    },
+    {
+      "id": "156f284522:r3",
+      "kind": "EDITORIAL",
+      "statement": "Incluir ressalva de que a revisão do rascunho v1 abrange exclusivamente os excertos selecionados e relatos fictícios, sem exame integral do contrato, comprovação dos fatos, pesquisa jurisprudencial ou verificação independente de vigência. Não apresentar estas observações como aprovação jurídica da minuta.",
+      "sourceIds": [
+        "draft",
+        "context",
+        "V2-MULTI/contrato@v1#p1",
+        "V2-MULTI/mensagem@v1#p1",
+        "CPC-300",
+        "CPC-300-P1",
+        "CPC-498"
+      ],
+      "verified": false
+    }
+  ],
+  "reservation": "Avoid redundancy while retaining all material limitations",
+  "derivedEditorialAdjustment": {
+    "statement": "A revisão do rascunho v1 limita-se aos excertos selecionados e aos relatos fictícios fornecidos, sem exame integral do contrato, autenticação documental, comprovação dos fatos, pesquisa jurisprudencial ou verificação independente de vigência. Permanecem sem solução a titularidade da escolha dos equipamentos, as consequências concretas da demora e a reversibilidade. Essas observações não constituem aprovação jurídica da minuta.",
+    "originIds": [
+      "3dedd4e1b8:r3",
+      "156f284522:r3"
+    ],
+    "sourceIds": [
+      "context",
+      "V2-MULTI/contrato@v1#p1",
+      "V2-MULTI/mensagem@v1#p1",
+      "draft",
+      "CPC-300",
+      "CPC-300-P1",
+      "CPC-498"
+    ],
+    "status": "LOCAL_DERIVED_WORDING_FROM_EXPLICIT_INSTRUCTION",
+    "appliedToOriginal": false,
+    "exactWordingSeparatelyApproved": false
+  },
+  "wholeDeliveryAssessment": "PENDING",
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

@@ -31,13 +31,21 @@ const KIND_LABEL: Record<string, string> = {
   AUTHORITY: 'Jurisprudência',
   NORM: 'Norma',
   PREVIOUS_DELIVERY: 'Trabalho anterior',
+  CASE_FACT: 'Fato do caso',
+  CASE_EVIDENCE: 'Prova do caso',
 };
 const TITLE: Record<string, string> = {
   analyze_documents: 'Análise dos documentos',
+  analyze_evidence: 'Análise de fatos e provas',
   research_question: 'Pesquisa',
   review_text: 'Revisão do texto',
 };
-const CLAIM_TAG: Record<string, string> = { ALLEGATION: 'Alegação', CONFLICT: 'Conflito', INFERENCE: 'Inferência' };
+const CLAIM_TAG: Record<string, string> = {
+  ALLEGATION: 'Alegação',
+  CONFLICT: 'Conflito',
+  INFERENCE: 'Inferência',
+  DOCUMENT_RECORD: 'Registro documental',
+};
 
 /** Fixed wording for the limitations the workflow itself raises. Others keep the statement they carry. */
 const LIMITATION_TEXT: Record<string, string> = {
@@ -84,14 +92,26 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
       blocks.push({ kind: 'paragraph', text: section.content, citations: cite(section.sourceIds) });
     }
   } else {
-    if (delivery.issues.length) {
-      blocks.push({ kind: 'heading', text: 'Questões', citations: [] });
-      for (const issue of delivery.issues)
+    const coveredIssues = new Set(delivery.evidenceMatrix?.rows.flatMap((row) => row.issueIds) ?? []);
+    const coveredClaims = new Set(delivery.evidenceMatrix?.rows.map((row) => row.claimId) ?? []);
+    const issues = delivery.issues.filter((issue) => !coveredIssues.has(issue.id));
+    const claims = delivery.claims.filter((claim) => !coveredClaims.has(claim.id));
+    if (issues.length) {
+      blocks.push({
+        kind: 'heading',
+        text: 'Questões',
+        citations: [],
+      });
+      for (const issue of issues)
         blocks.push({ kind: 'item', text: issue.statement, citations: cite(issue.sourceIds) });
     }
-    if (delivery.claims.length) {
-      blocks.push({ kind: 'heading', text: 'Afirmações', citations: [] });
-      for (const claim of delivery.claims)
+    if (claims.length) {
+      blocks.push({
+        kind: 'heading',
+        text: 'Afirmações',
+        citations: [],
+      });
+      for (const claim of claims)
         blocks.push({
           kind: 'item',
           text: claim.statement,
@@ -99,6 +119,103 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
           citations: cite(claim.sourceIds),
         });
     }
+  }
+  const matrix = delivery.evidenceMatrix;
+  if (matrix) {
+    const relations: Record<string, string> = {
+      SUPPORTS: 'Trecho relacionado',
+      CONTRADICTS: 'Trecho contrário ao relato',
+      CONTEXT: 'Contexto do relato',
+    };
+    for (const row of matrix.rows) {
+      const claim = delivery.claims.find((c) => c.id === row.claimId);
+      const questions = row.issueIds
+        .map((id) => delivery.issues.find((i) => i.id === id)?.statement)
+        .filter(Boolean)
+        .join(' · ');
+      blocks.push({ kind: 'heading', text: questions || 'Fatos e provas', citations: [] });
+      blocks.push({
+        kind: 'item',
+        text: claim?.statement ?? 'Afirmação indisponível',
+        tag: claim ? (CLAIM_TAG[claim.classification] ?? 'Inferência') : undefined,
+        citations: cite(claim?.sourceIds ?? []),
+      });
+      if (row.coverage === 'CONTEXT_ONLY')
+        blocks.push({ kind: 'paragraph', text: 'O relato ainda não tem apoio documental.', citations: [] });
+      if (row.coverage === 'UNSUPPORTED')
+        blocks.push({ kind: 'paragraph', text: 'Não há fonte indicada para esta afirmação.', citations: [] });
+      for (const ref of row.references)
+        blocks.push({
+          kind: 'item',
+          text: `${relations[ref.relation]}: “${ref.quote}”${ref.quoteStatus === 'MATCHED' ? '' : ' — Não foi possível conferir este trecho na fonte.'}`,
+          citations: cite([ref.sourceId]),
+        });
+      for (const gap of row.gaps) blocks.push({ kind: 'item', text: `Lacuna: ${gap}`, citations: [] });
+    }
+    if (matrix.chronology.length) blocks.push({ kind: 'heading', text: 'Cronologia', citations: [] });
+    for (const event of matrix.chronology)
+      blocks.push({
+        kind: 'item',
+        text: `${event.sortDate ?? `Data a confirmar: ${event.dateText ?? 'não informada'}`} — ${event.description}. Trecho: “${event.reference.quote}”${event.reference.quoteStatus === 'MISMATCH' ? ' (não conferido)' : ''}`,
+        citations: cite([event.reference.sourceId]),
+      });
+    if (matrix.contradictions.length) blocks.push({ kind: 'heading', text: 'Contradições', citations: [] });
+    for (const conflict of matrix.contradictions)
+      blocks.push({
+        kind: 'item',
+        text: `${conflict.explanation} — ${conflict.claimIds.map((id) => delivery.claims.find((c) => c.id === id)?.statement ?? 'Afirmação indisponível').join(' / ')}`,
+        citations: cite(conflict.claimIds.flatMap((id) => delivery.claims.find((c) => c.id === id)?.sourceIds ?? [])),
+      });
+  }
+  if (delivery.review) {
+    const section = (title: string, items: { text: string; sourceIds: string[] }[]) => {
+      if (!items.length) return;
+      blocks.push({ kind: 'heading', text: title, citations: [] });
+      for (const item of items) blocks.push({ kind: 'item', text: item.text, citations: cite(item.sourceIds) });
+    };
+    section(
+      'Correções propostas',
+      delivery.requirements
+        .filter((r) => r.kind === 'EDITORIAL')
+        .map((r) => ({ text: r.statement, sourceIds: r.sourceIds })),
+    );
+    section(
+      'Requisitos a conferir',
+      delivery.requirements
+        .filter((r) => r.kind !== 'EDITORIAL')
+        .map((r) => ({ text: r.statement, sourceIds: r.sourceIds })),
+    );
+    section(
+      'Perguntas e lacunas',
+      delivery.review.questions.map((q) => ({ text: `${q.prompt} ${q.reason}`, sourceIds: q.sourceIds })),
+    );
+    const aspects: Record<string, string> = {
+      PARTIES: 'Partes',
+      CAUSE: 'Causa',
+      DUE_DATE: 'Vencimento',
+      CREDIT_LINK: 'Vínculo com o crédito',
+    };
+    const statuses: Record<string, string> = {
+      PRESENT: 'identificado no recorte',
+      NOT_PROVIDED: 'não informado no recorte',
+      AMBIGUOUS: 'a conferir',
+      NOT_APPLICABLE: 'não aplicável ao recorte',
+    };
+    section(
+      'Aptidão dos documentos',
+      delivery.review.documentAssessments.map((d) => ({
+        text: `${d.aspects.map((a) => `${aspects[a.aspect] ?? 'Elemento'}: ${statuses[a.status] ?? 'a conferir'}${a.quote ? ` — “${a.quote}”` : ''}`).join('; ')}. ${d.conclusion}`,
+        sourceIds: [d.sourceId],
+      })),
+    );
+    section(
+      'Integridade dos documentos',
+      delivery.review.integrityAlerts.map((a) => ({ text: a.statement, sourceIds: a.sourceIds })),
+    );
+    section(
+      'Limites e pontos a conferir',
+      delivery.findings.map((f) => ({ text: f.statement, sourceIds: f.sourceIds })),
+    );
   }
   for (const source of delivery.sources) if (source.id) cite([source.id]);
   const sources = order.map((id, i) => {
@@ -111,7 +228,7 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
     if (text && !pending.includes(text)) pending.push(text);
   };
   const unsupportedSections: string[] = [];
-  for (const finding of delivery.findings) {
+  for (const finding of delivery.review ? [] : delivery.findings) {
     const code = codeOf(finding);
     if (code === 'UNSUPPORTED_SECTION') unsupportedSections.push(finding.statement);
     else if (LIMITATION_TEXT[code]) add(LIMITATION_TEXT[code]);
@@ -123,7 +240,7 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
         ? `A seção “${unsupportedSections[0]}” não tem fonte indicada.`
         : `As seções ${unsupportedSections.map((s) => `“${s}”`).join(', ')} não têm fonte indicada.`,
     );
-  for (const requirement of delivery.requirements)
+  for (const requirement of delivery.review ? [] : delivery.requirements)
     if (!requirement.verified) add(`Requisito não verificado: ${requirement.statement}`);
   return {
     // A deliverable promised as a draft but produced without a document is a gap analysis, never a "minuta".

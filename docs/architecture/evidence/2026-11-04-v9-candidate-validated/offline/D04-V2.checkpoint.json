@@ -1,0 +1,391 @@
+{
+  "bindingHash": "0aab7b390563e6fcff4d603ece18b6fbf9e135d2eaa048da1e91fee1dd36caa4",
+  "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+  "previousDeliveryIds": [],
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.10.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "matter-analyst",
+      "version": "1.10.0",
+      "instructionId": "matter-analyst-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "matter-analyst",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "legal-drafter",
+      "version": "1.10.0",
+      "instructionId": "legal-drafter-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "legal-drafter",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "adversarial-reviewer",
+      "version": "1.10.0",
+      "instructionId": "text-reviewer-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "adversarial-reviewer",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "authority-verifier",
+      "version": "1.10.0",
+      "instructionId": "authority-verifier-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "authority-verifier",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    }
+  ],
+  "toolCount": 5,
+  "researchOperations": [],
+  "findings": [],
+  "plan": {
+    "action": "create_document",
+    "requiresCaseLaw": false,
+    "requiresNorms": false,
+    "requiresProcedure": false,
+    "documentPurpose": "FACTUAL_RECORD",
+    "documentType": "Registro sintético",
+    "issues": [
+      {
+        "id": "issue",
+        "statement": "Examinar o material sintético",
+        "sourceIds": [
+          "D04-V2/contrato@v1#p1"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "synthetic-limitation",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Informação não fornecida na simulação.",
+        "reason": "A simulação contém informação não fornecida; não concluir fatos adicionais.",
+        "sourceIds": [
+          "D04-V2/contrato@v1#p1"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      }
+    ]
+  },
+  "version": 9,
+  "outputs": {
+    "matter-analyst": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [
+        {
+          "id": "9e4f3535c6:claim",
+          "classification": "ALLEGATION",
+          "statement": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1"
+          ]
+        }
+      ],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": []
+    },
+    "legal-drafter": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": [],
+      "document": {
+        "title": "Transporte sintético",
+        "documentType": "Registro sintético",
+        "sections": [
+          {
+            "title": "Material",
+            "content": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+            "sourceIds": [
+              "D04-V2/contrato@v1#p1"
+            ]
+          }
+        ]
+      }
+    },
+    "adversarial-reviewer": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": []
+    },
+    "authority-verifier": {
+      "coveredIssueIds": [
+        "issue"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": [
+        {
+          "claimId": "9e4f3535c6:claim",
+          "sourceId": "D04-V2/contrato@v1#p1",
+          "quote": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "assessment": "SUPPORTED"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "version": 1,
+    "revision": 0,
+    "tools": [],
+    "failedTools": [],
+    "planHashes": [
+      "8ceb320bd91a48333c8b36f8ec1cfb81e5fda3d5a41b9300cab57876325225b9"
+    ],
+    "reviewRequired": false,
+    "nodes": [
+      {
+        "id": "matter-analyst:0",
+        "role": "matter-analyst",
+        "generation": 0,
+        "dependsOn": [],
+        "status": "COMPLETED",
+        "inputHash": "176b7cd112ff2074b5e41c5ad1887a62ea93c4e972157fb9084856fa0354d84f",
+        "input": {
+          "bindingHash": "0aab7b390563e6fcff4d603ece18b6fbf9e135d2eaa048da1e91fee1dd36caa4",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "8ceb320bd91a48333c8b36f8ec1cfb81e5fda3d5a41b9300cab57876325225b9",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+            },
+            {
+              "id": "D04-V2/contrato@v1#p1",
+              "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb"
+            },
+            {
+              "id": "D04-V2/pedido@v1#p1",
+              "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            }
+          ],
+          "dependencies": [],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "acd97050129359c78a932150ee9f580f368d8ee4c583db4a05164616198d3a98",
+        "runIndex": 2
+      },
+      {
+        "id": "legal-drafter:0",
+        "role": "legal-drafter",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "e81b75de0009ec686cd9cc25e295c48d292343961c2a2d7af429cd2d6479710e",
+        "input": {
+          "bindingHash": "0aab7b390563e6fcff4d603ece18b6fbf9e135d2eaa048da1e91fee1dd36caa4",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "8ceb320bd91a48333c8b36f8ec1cfb81e5fda3d5a41b9300cab57876325225b9",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+            },
+            {
+              "id": "D04-V2/contrato@v1#p1",
+              "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb"
+            },
+            {
+              "id": "D04-V2/pedido@v1#p1",
+              "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "acd97050129359c78a932150ee9f580f368d8ee4c583db4a05164616198d3a98"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "5ad73e3b07475993ccfac17e4e8d2226126fb17f94e52a7a2cd260dcf0c98d40",
+        "runIndex": 3
+      },
+      {
+        "id": "adversarial-reviewer:0",
+        "role": "adversarial-reviewer",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-drafter:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "c34f540a398f6c32b83a5279f5faa1752a8f6cbb49360d357ed99a3ea6a6bfda",
+        "input": {
+          "bindingHash": "0aab7b390563e6fcff4d603ece18b6fbf9e135d2eaa048da1e91fee1dd36caa4",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "8ceb320bd91a48333c8b36f8ec1cfb81e5fda3d5a41b9300cab57876325225b9",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+            },
+            {
+              "id": "D04-V2/contrato@v1#p1",
+              "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb"
+            },
+            {
+              "id": "D04-V2/pedido@v1#p1",
+              "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "acd97050129359c78a932150ee9f580f368d8ee4c583db4a05164616198d3a98"
+            },
+            {
+              "id": "legal-drafter:0",
+              "outputHash": "5ad73e3b07475993ccfac17e4e8d2226126fb17f94e52a7a2cd260dcf0c98d40"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "2d8b9b4fdb6dacadb511e0fb4dbd4feaae55e9e01f70d450fc5980016323d2aa",
+        "runIndex": 4
+      },
+      {
+        "id": "authority-verifier:0",
+        "role": "authority-verifier",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-drafter:0",
+          "adversarial-reviewer:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "09a517fc22ebd5c617ab68e0ff6a755c1502c544df0d69bea7657dfee4a2f12f",
+        "input": {
+          "bindingHash": "0aab7b390563e6fcff4d603ece18b6fbf9e135d2eaa048da1e91fee1dd36caa4",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "8ceb320bd91a48333c8b36f8ec1cfb81e5fda3d5a41b9300cab57876325225b9",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+            },
+            {
+              "id": "D04-V2/contrato@v1#p1",
+              "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb"
+            },
+            {
+              "id": "D04-V2/pedido@v1#p1",
+              "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "acd97050129359c78a932150ee9f580f368d8ee4c583db4a05164616198d3a98"
+            },
+            {
+              "id": "legal-drafter:0",
+              "outputHash": "5ad73e3b07475993ccfac17e4e8d2226126fb17f94e52a7a2cd260dcf0c98d40"
+            },
+            {
+              "id": "adversarial-reviewer:0",
+              "outputHash": "2d8b9b4fdb6dacadb511e0fb4dbd4feaae55e9e01f70d450fc5980016323d2aa"
+            }
+          ],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "882cc8f8a6caabde8464e468c9db0dd4fbd8efcfa8854bd2bf8b417317365aff",
+        "runIndex": 5
+      }
+    ],
+    "archivedOutputs": {},
+    "decisions": [],
+    "stopReason": "COMPLETED"
+  }
+}

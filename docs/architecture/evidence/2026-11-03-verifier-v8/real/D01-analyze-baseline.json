@@ -1,0 +1,50 @@
+{
+  "runId": "D01-analyze-baseline",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\02211bf5a180a4ce80f6fb383d850da117df20ca90ceaabdc65995e6814bb498\\baseline",
+  "inputHash": "a9ccc9e7b973b9bef18b324c30bd080ddccf6e27c650709538fe0b9cc4e36ed3",
+  "request": "Analise o caso, as questões, o alcance das provas e o que falta esclarecer. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "question",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 21535.0224,
+  "roles": [
+    "legal-orchestrator"
+  ],
+  "stateVersion": 1,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 23386,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 1666,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2246,
+      "outputTokens": 901,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3166,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": {
+    "id": "case-task:entrega-restante",
+    "version": 1,
+    "contextRevision": 1,
+    "prompt": "O que se sabe sobre a entrega das quatro mesas restantes e quais elementos a documentam? Pode informar livremente ou indicar que desconhece.",
+    "selection": "free_text",
+    "options": [],
+    "allowFreeText": true,
+    "allowUnknown": true,
+    "reason": "O recibo cobre somente seis mesas; não resolve o cumprimento da obrigação restante."
+  },
+  "legalScore": null
+}

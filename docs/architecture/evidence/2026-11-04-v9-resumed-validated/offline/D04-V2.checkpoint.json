@@ -1,0 +1,1280 @@
+{
+  "bindingHash": "0aab7b390563e6fcff4d603ece18b6fbf9e135d2eaa048da1e91fee1dd36caa4",
+  "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+  "previousDeliveryIds": [],
+  "evidence": [],
+  "profiles": [
+    {
+      "role": "legal-orchestrator",
+      "version": "1.10.0",
+      "instructionId": "legal-orchestrator-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "matter-analyst",
+      "version": "1.10.0",
+      "instructionId": "matter-analyst-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "matter-analyst",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "procedural-advisor",
+      "version": "1.10.0",
+      "instructionId": "procedural-advisor-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": null,
+      "legacyAgentVersion": null,
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "legal-drafter",
+      "version": "1.10.0",
+      "instructionId": "legal-drafter-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "legal-drafter",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "adversarial-reviewer",
+      "version": "1.10.0",
+      "instructionId": "text-reviewer-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "adversarial-reviewer",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    },
+    {
+      "role": "authority-verifier",
+      "version": "1.10.0",
+      "instructionId": "authority-verifier-instructions",
+      "instructionVersion": "1.0.0",
+      "legacyAgentId": "authority-verifier",
+      "legacyAgentVersion": "1.0.0",
+      "policyId": "agentic-case-task-policy",
+      "policyVersion": "1.10.0"
+    }
+  ],
+  "toolCount": 6,
+  "researchOperations": [],
+  "findings": [
+    {
+      "id": "CAPABILITY_UNAVAILABLE:c627c859a95a69d3",
+      "code": "CAPABILITY_UNAVAILABLE",
+      "severity": "BLOCKING",
+      "statement": "A capacidade de pesquisa solicitada não dispõe das ferramentas necessárias neste trabalho.",
+      "sourceIds": []
+    }
+  ],
+  "plan": {
+    "action": "create_document",
+    "requiresCaseLaw": false,
+    "requiresNorms": true,
+    "requiresProcedure": true,
+    "documentPurpose": "LEGAL_DOCUMENT",
+    "documentType": "Minuta preliminar de pedido de entrega imediata de equipamentos em ação civil, limitada ao corpus selecionado",
+    "issues": [
+      {
+        "id": "i1",
+        "statement": "EDITORIAL: Preparar minuta limitada às fontes selecionadas, sem inventar qualificação, juízo ou prazo; explicitar caráter fictício dos dados, ausência de fontes adicionais e necessidade de revisão humana. Não presumir estágio processual nem preencher dados ausentes.",
+        "sourceIds": [
+          "context"
+        ]
+      },
+      {
+        "id": "i2",
+        "statement": "Distinguir a obrigação de entrega de dois equipamentos em 15/10/2026 constante do contrato do pedido de entrega imediata narrado em 18/10/2026. Não tratar o mero pedido como prova de inadimplemento ou de urgência.",
+        "sourceIds": [
+          "D04-V2/contrato@v1#p1",
+          "D04-V2/pedido@v1#p1"
+        ]
+      },
+      {
+        "id": "i3",
+        "statement": "PROCEDURAL: Examinar separadamente probabilidade do direito, perigo de dano ou risco ao resultado útil e perigo de irreversibilidade conforme o art. 300. Minutar com ressalvas explícitas sobre requisitos não demonstrados, sem afirmar paralisação, risco concreto ou reversibilidade.",
+        "sourceIds": [
+          "context",
+          "D04-V2/contrato@v1#p1",
+          "D04-V2/pedido@v1#p1",
+          "CPC-300"
+        ]
+      },
+      {
+        "id": "i4",
+        "statement": "PROCEDURAL: Examinar a previsão de caução do art. 300, § 1º, sem presumir sua exigência, disponibilidade ou hipossuficiência para dispensa.",
+        "sourceIds": [
+          "CPC-300-P1"
+        ]
+      },
+      {
+        "id": "i5",
+        "statement": "PROCEDURAL: Examinar entrega de coisa e individualização dos equipamentos conforme art. 498, sem inventar especificações, titularidade da escolha ou prazo judicial de cumprimento.",
+        "sourceIds": [
+          "D04-V2/contrato@v1#p1",
+          "CPC-498"
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "key": "urgencia",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Quais consequências concretas da demora e elementos sobre a reversibilidade da entrega estão disponíveis? No corpus selecionado, esses pontos não estão demonstrados.",
+        "reason": "Faltam elementos sobre perigo concreto e reversibilidade; isso limita a fundamentação da tutela de urgência, mas permite minuta preliminar com ressalvas, sem afirmar preenchimento dos requisitos.",
+        "sourceIds": [
+          "context",
+          "D04-V2/pedido@v1#p1"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      },
+      {
+        "key": "cumprimento_objeto",
+        "kind": "MISSING",
+        "material": true,
+        "prompt": "Há informação sobre entrega já realizada, individualização dos equipamentos e a quem cabe a escolha? Esses dados não constam dos trechos selecionados.",
+        "reason": "O contrato informa quantidade e data, mas não demonstra o estado do cumprimento nem especificações ou titularidade da escolha. A minuta deve preservar essas limitações, sem inventar inadimplemento ou objeto detalhado.",
+        "sourceIds": [
+          "D04-V2/contrato@v1#p1",
+          "D04-V2/pedido@v1#p1",
+          "CPC-498"
+        ],
+        "options": [],
+        "deliveryImpact": "LIMITATION"
+      }
+    ]
+  },
+  "version": 9,
+  "outputs": {
+    "matter-analyst": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4",
+        "i5"
+      ],
+      "claims": [
+        {
+          "id": "9e4f3535c6:c1",
+          "classification": "DOCUMENT_RECORD",
+          "statement": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1"
+          ]
+        },
+        {
+          "id": "9e4f3535c6:c2",
+          "classification": "DOCUMENT_RECORD",
+          "statement": "Em 18/10/2026, Aurora solicita entrega imediata; a narrativa não informa consequência concreta da demora nem reversibilidade da medida.",
+          "sourceIds": [
+            "D04-V2/pedido@v1#p1"
+          ]
+        },
+        {
+          "id": "9e4f3535c6:c3",
+          "classification": "ALLEGATION",
+          "statement": "Segundo o contexto fornecido, Aurora solicita fornecimento imediato de equipamentos em ação civil contra Brisa, sem documentos sobre paralisação ou risco concreto.",
+          "sourceIds": [
+            "context"
+          ]
+        },
+        {
+          "id": "9e4f3535c6:c4",
+          "classification": "INFERENCE",
+          "statement": "O trecho contratual oferece indicação da obrigação narrada, mas o pedido posterior à data de entrega não demonstra, por si só, que houve inadimplemento.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1",
+            "D04-V2/pedido@v1#p1"
+          ]
+        },
+        {
+          "id": "9e4f3535c6:c5",
+          "classification": "INFERENCE",
+          "statement": "Os trechos selecionados não demonstram consequências concretas da demora nem permitem concluir sobre reversibilidade da entrega; a ausência dessas informações não prova irreversibilidade.",
+          "sourceIds": [
+            "context",
+            "D04-V2/pedido@v1#p1"
+          ]
+        },
+        {
+          "id": "9e4f3535c6:c6",
+          "classification": "INFERENCE",
+          "statement": "O art. 300 exige elementos de probabilidade do direito e de perigo de dano ou risco ao resultado útil; o § 3º impede tutela antecipada quando houver perigo de irreversibilidade dos efeitos.",
+          "sourceIds": [
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "9e4f3535c6:c7",
+          "classification": "INFERENCE",
+          "statement": "O art. 300, § 1º, prevê possibilidade de exigência de caução conforme o caso e de dispensa para parte economicamente hipossuficiente que não possa oferecê-la.",
+          "sourceIds": [
+            "CPC-300-P1"
+          ]
+        },
+        {
+          "id": "9e4f3535c6:c8",
+          "classification": "INFERENCE",
+          "statement": "O art. 498 prevê fixação judicial de prazo para entrega e, para coisa determinada pelo gênero e quantidade, individualização conforme a titularidade da escolha.",
+          "sourceIds": [
+            "CPC-498"
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "9e4f3535c6:r1",
+          "kind": "EDITORIAL",
+          "statement": "Preparar minuta preliminar restrita ao corpus fictício selecionado, explicitando ausência de fontes adicionais e necessidade de revisão humana; não preencher qualificação, juízo, estágio processual ou prazo ausentes.",
+          "sourceIds": [
+            "context"
+          ],
+          "verified": false
+        },
+        {
+          "id": "9e4f3535c6:r2",
+          "kind": "EDITORIAL",
+          "statement": "Distinguir a data de entrega contratual de 15/10/2026 do pedido narrado em 18/10/2026; não converter este pedido em prova de descumprimento ou urgência.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1",
+            "D04-V2/pedido@v1#p1"
+          ],
+          "verified": false
+        },
+        {
+          "id": "9e4f3535c6:r3",
+          "kind": "PROCEDURAL",
+          "statement": "Examinar separadamente os requisitos do art. 300 e a vedação do § 3º, preservando a insuficiência de elementos sobre perigo concreto e reversibilidade, sem afirmar preenchimento dos requisitos.",
+          "sourceIds": [
+            "CPC-300",
+            "context",
+            "D04-V2/pedido@v1#p1"
+          ],
+          "verified": false
+        },
+        {
+          "id": "9e4f3535c6:r4",
+          "kind": "PROCEDURAL",
+          "statement": "Considerar a possibilidade de caução sem presumir exigência, capacidade de oferecê-la ou condição para dispensa.",
+          "sourceIds": [
+            "CPC-300-P1"
+          ],
+          "verified": false
+        },
+        {
+          "id": "9e4f3535c6:r5",
+          "kind": "PROCEDURAL",
+          "statement": "Considerar o art. 498 sem inventar especificações dos equipamentos, titularidade da escolha ou prazo judicial de cumprimento.",
+          "sourceIds": [
+            "CPC-498",
+            "D04-V2/contrato@v1#p1"
+          ],
+          "verified": false
+        }
+      ],
+      "findings": [
+        {
+          "id": "9e4f3535c6:f1",
+          "code": "URGENCIA_NAO_DEMONSTRADA",
+          "severity": "WARNING",
+          "statement": "A fundamentação da entrega urgente fica limitada pela falta de elementos sobre consequências da demora e reversibilidade. A minuta pode ser preliminar, mas não pode afirmar paralisação, risco concreto ou reversibilidade demonstrada.",
+          "sourceIds": [
+            "context",
+            "D04-V2/pedido@v1#p1",
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "9e4f3535c6:f2",
+          "code": "CUMPRIMENTO_E_OBJETO_INCOMPLETOS",
+          "severity": "WARNING",
+          "statement": "Os recortes não informam se houve entrega, nem individualizam os equipamentos ou indicam a quem cabe escolhê-los. Quantidade e data contratual não bastam para concluir descumprimento ou detalhar o objeto do pedido.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1",
+            "D04-V2/pedido@v1#p1",
+            "CPC-498"
+          ]
+        },
+        {
+          "id": "9e4f3535c6:f3",
+          "code": "CAUCAO_SEM_DADOS",
+          "severity": "WARNING",
+          "statement": "Não há dados selecionados sobre disponibilidade de caução ou hipossuficiência de Aurora; não é possível fundamentar sua oferta ou dispensa como fato estabelecido.",
+          "sourceIds": [
+            "context",
+            "CPC-300-P1"
+          ]
+        }
+      ],
+      "supportChecks": [],
+      "capabilityRequests": [
+        {
+          "capability": "PROCEDURAL_ANALYSIS",
+          "reason": "PROCEDURAL_DEPENDENCY",
+          "issueIds": [
+            "i3",
+            "i4",
+            "i5"
+          ],
+          "sourceIds": [
+            "CPC-300",
+            "CPC-300-P1",
+            "CPC-498",
+            "D04-V2/contrato@v1#p1",
+            "D04-V2/pedido@v1#p1"
+          ]
+        }
+      ]
+    },
+    "procedural-advisor": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4",
+        "i5"
+      ],
+      "claims": [
+        {
+          "id": "30a5f7f32d:p1",
+          "classification": "INFERENCE",
+          "statement": "Para eventual tutela de urgência, o contrato pode contribuir para a análise da probabilidade do direito à entrega, mas não demonstra, isoladamente, descumprimento atual nem o preenchimento conjunto dos requisitos do art. 300.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1",
+            "D04-V2/pedido@v1#p1",
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "30a5f7f32d:p2",
+          "classification": "INFERENCE",
+          "statement": "No corpus, o pedido de entrega imediata não vem acompanhado de elementos sobre perigo de dano ou risco ao resultado útil; também não há informação suficiente para avaliar perigo de irreversibilidade. A falta desses elementos não equivale à demonstração de irreversibilidade.",
+          "sourceIds": [
+            "context",
+            "D04-V2/pedido@v1#p1",
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "30a5f7f32d:p3",
+          "classification": "INFERENCE",
+          "statement": "O art. 300, § 1º, permite ao juiz exigir caução conforme o caso; a dispensa prevista no trecho depende de hipossuficiência econômica e impossibilidade de oferecê-la. O trecho não torna a caução obrigatória em todo pedido.",
+          "sourceIds": [
+            "CPC-300-P1"
+          ]
+        },
+        {
+          "id": "30a5f7f32d:p4",
+          "classification": "INFERENCE",
+          "statement": "O art. 498 atribui ao juiz a fixação do prazo de cumprimento ao conceder tutela específica de entrega de coisa. Para coisa determinada por gênero e quantidade, a individualização depende de a quem caiba a escolha: pelo autor na inicial, se dele a escolha, ou pelo réu na entrega, no prazo judicial, se dele a escolha.",
+          "sourceIds": [
+            "CPC-498"
+          ]
+        },
+        {
+          "id": "30a5f7f32d:p5",
+          "classification": "INFERENCE",
+          "statement": "O art. 498 oferece referência para a entrega específica, mas não supre os requisitos de urgência do art. 300. A aplicação da regra de individualização depende de esclarecer a determinação dos equipamentos e a titularidade da escolha, ausentes nos recortes.",
+          "sourceIds": [
+            "CPC-498",
+            "CPC-300",
+            "D04-V2/contrato@v1#p1"
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "30a5f7f32d:r1",
+          "kind": "EDITORIAL",
+          "statement": "Redigir minuta preliminar com dados fictícios, restrita ao corpus e sujeita a revisão humana, sem preencher qualificação, juízo, estágio processual ou prazo ausentes; indicar que não houve pesquisa de fontes adicionais.",
+          "sourceIds": [
+            "context"
+          ],
+          "verified": false
+        },
+        {
+          "id": "30a5f7f32d:r2",
+          "kind": "EDITORIAL",
+          "statement": "Apresentar 15/10/2026 como data contratual e 18/10/2026 como data do pedido narrado, sem afirmar inadimplemento, paralisação ou urgência comprovada.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1",
+            "D04-V2/pedido@v1#p1",
+            "context"
+          ],
+          "verified": false
+        },
+        {
+          "id": "30a5f7f32d:r3",
+          "kind": "PROCEDURAL",
+          "statement": "Na fundamentação de eventual tutela urgente, examinar separadamente probabilidade do direito, perigo de dano ou risco ao resultado útil e perigo de irreversibilidade, conforme art. 300 e § 3º, versão fornecida 2026-11-02. Não apresentar o pedido como apto à concessão com os elementos atuais.",
+          "sourceIds": [
+            "CPC-300",
+            "D04-V2/contrato@v1#p1",
+            "D04-V2/pedido@v1#p1"
+          ],
+          "verified": false
+        },
+        {
+          "id": "30a5f7f32d:r4",
+          "kind": "PROCEDURAL",
+          "statement": "Tratar a caução como possibilidade sujeita à apreciação judicial, conforme art. 300, § 1º, versão fornecida 2026-11-03; não afirmar disponibilidade, exigência ou condições de dispensa de Aurora.",
+          "sourceIds": [
+            "CPC-300-P1",
+            "context"
+          ],
+          "verified": false
+        },
+        {
+          "id": "30a5f7f32d:r5",
+          "kind": "PROCEDURAL",
+          "statement": "Para a entrega específica, observar o art. 498, versão fornecida 2026-11-03, com prazo a ser fixado judicialmente e individualização condicionada à natureza da coisa e à titularidade da escolha; não criar especificações nem prazo numérico.",
+          "sourceIds": [
+            "CPC-498",
+            "D04-V2/contrato@v1#p1"
+          ],
+          "verified": false
+        },
+        {
+          "id": "30a5f7f32d:r6",
+          "kind": "EDITORIAL",
+          "statement": "Organizar a minuta em obrigação narrada, limites da urgência e pedido de entrega específica com prazo judicial, sem escolher nova ação ou presumir fase processual; manter a entrega imediata como pretensão de Aurora, não como conclusão de cabimento.",
+          "sourceIds": [
+            "context",
+            "D04-V2/pedido@v1#p1",
+            "CPC-300",
+            "CPC-498"
+          ],
+          "verified": false
+        }
+      ],
+      "findings": [
+        {
+          "id": "30a5f7f32d:f1",
+          "code": "LIMITACAO_URGENCIA",
+          "severity": "WARNING",
+          "statement": "Faltam consequências concretas da demora e elementos sobre reversibilidade. A minuta limitada é possível, mas a fundamentação urgente permanece incompleta, sem conclusão favorável sobre os requisitos.",
+          "sourceIds": [
+            "context",
+            "D04-V2/pedido@v1#p1",
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "30a5f7f32d:f2",
+          "code": "LIMITACAO_CUMPRIMENTO_OBJETO",
+          "severity": "WARNING",
+          "statement": "Não se informa se a entrega ocorreu, quais equipamentos individualizados são devidos ou quem detém a escolha. Não é possível afirmar descumprimento atual ou completar a descrição do objeto com esses recortes.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1",
+            "D04-V2/pedido@v1#p1",
+            "CPC-498"
+          ]
+        },
+        {
+          "id": "30a5f7f32d:f3",
+          "code": "ALCANCE_TEMPORAL_NORMAS",
+          "severity": "WARNING",
+          "statement": "Foram fornecidos apenas excertos normativos, com versões identificadas em novembro de 2026, posteriores às datas documentais de outubro. Não há verificação independente de vigência histórica ou de integralidade do regime aplicável; a análise é condicional ao corpus e não confirma sua aplicabilidade temporal.",
+          "sourceIds": [
+            "CPC-300",
+            "CPC-300-P1",
+            "CPC-498",
+            "D04-V2/pedido@v1#p1"
+          ]
+        },
+        {
+          "id": "30a5f7f32d:f4",
+          "code": "POSICAO_PROCESSUAL_INCOMPLETA",
+          "severity": "WARNING",
+          "statement": "O contexto indica ação civil, mas não identifica fase processual ou atos já praticados. A minuta não pode pressupor petição inicial, requerimento incidental específico ou prazo processual em curso.",
+          "sourceIds": [
+            "context"
+          ]
+        }
+      ],
+      "supportChecks": []
+    },
+    "legal-drafter": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4",
+        "i5"
+      ],
+      "claims": [
+        {
+          "id": "ab69725fdd:c1",
+          "classification": "INFERENCE",
+          "statement": "O art. 300 exige probabilidade do direito e perigo de dano ou risco ao resultado útil; seu § 3º veda tutela antecipada quando houver perigo de irreversibilidade dos efeitos.",
+          "sourceIds": [
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "ab69725fdd:c2",
+          "classification": "INFERENCE",
+          "statement": "O art. 300, § 1º, permite exigir caução conforme o caso e prevê dispensa para parte economicamente hipossuficiente que não possa oferecê-la.",
+          "sourceIds": [
+            "CPC-300-P1"
+          ]
+        },
+        {
+          "id": "ab69725fdd:c3",
+          "classification": "INFERENCE",
+          "statement": "O art. 498 prevê prazo judicial para cumprimento da entrega específica e, para coisa determinada por gênero e quantidade, individualização pelo autor na inicial se lhe couber a escolha, ou pelo réu na entrega no prazo judicial se a escolha lhe couber.",
+          "sourceIds": [
+            "CPC-498"
+          ]
+        },
+        {
+          "id": "9e4f3535c6:c1",
+          "classification": "DOCUMENT_RECORD",
+          "statement": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1"
+          ]
+        },
+        {
+          "id": "9e4f3535c6:c2",
+          "classification": "DOCUMENT_RECORD",
+          "statement": "Em 18/10/2026, Aurora solicita entrega imediata; a narrativa não informa consequência concreta da demora nem reversibilidade da medida.",
+          "sourceIds": [
+            "D04-V2/pedido@v1#p1"
+          ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "ab69725fdd:r1",
+          "kind": "EDITORIAL",
+          "statement": "Submeter a minuta fictícia e limitada ao corpus à revisão humana, sem completar juízo, qualificação, fase processual ou dados ausentes.",
+          "sourceIds": [
+            "context"
+          ],
+          "verified": false
+        },
+        {
+          "id": "ab69725fdd:r2",
+          "kind": "PROCEDURAL",
+          "statement": "Examinar separadamente os requisitos do art. 300 e o perigo de irreversibilidade, sem presumir sua satisfação.",
+          "sourceIds": [
+            "CPC-300"
+          ],
+          "verified": false
+        },
+        {
+          "id": "ab69725fdd:r3",
+          "kind": "PROCEDURAL",
+          "statement": "Considerar caução conforme apreciação judicial, sem presumir oferta ou condições de dispensa.",
+          "sourceIds": [
+            "CPC-300-P1"
+          ],
+          "verified": false
+        },
+        {
+          "id": "ab69725fdd:r4",
+          "kind": "PROCEDURAL",
+          "statement": "Observar prazo judicial e individualização conforme o art. 498, sem inventar objeto ou titularidade da escolha.",
+          "sourceIds": [
+            "CPC-498"
+          ],
+          "verified": false
+        }
+      ],
+      "findings": [
+        {
+          "id": "ab69725fdd:f1",
+          "code": "URGENCIA_INCOMPLETA",
+          "severity": "WARNING",
+          "statement": "O pedido de entrega imediata carece de elementos sobre consequências concretas da demora e reversibilidade; o texto candidato não conclui pelo cabimento da urgência.",
+          "sourceIds": [
+            "context",
+            "D04-V2/pedido@v1#p1",
+            "CPC-300"
+          ]
+        },
+        {
+          "id": "ab69725fdd:f2",
+          "code": "OBJETO_E_CUMPRIMENTO",
+          "severity": "WARNING",
+          "statement": "Os recortes não esclarecem entrega já realizada, individualização dos equipamentos ou titularidade da escolha; não sustentam afirmação de inadimplemento atual.",
+          "sourceIds": [
+            "D04-V2/contrato@v1#p1",
+            "D04-V2/pedido@v1#p1"
+          ]
+        },
+        {
+          "id": "ab69725fdd:f3",
+          "code": "LIMITE_TEMPORAL",
+          "severity": "WARNING",
+          "statement": "Os excertos normativos têm versões identificadas em novembro de 2026, posteriores às datas documentais de outubro; sua aplicabilidade temporal não foi confirmada no corpus.",
+          "sourceIds": [
+            "CPC-300",
+            "CPC-300-P1",
+            "CPC-498",
+            "D04-V2/pedido@v1#p1"
+          ]
+        }
+      ],
+      "supportChecks": [],
+      "document": {
+        "title": "Minuta preliminar — pedido de entrega de equipamentos",
+        "documentType": "LEGAL_DOCUMENT",
+        "sections": [
+          {
+            "title": "Delimitação da minuta",
+            "content": "Texto candidato baseado exclusivamente no corpus fictício selecionado, sujeito a revisão humana. Não foram consultadas fontes adicionais. Juízo, qualificação e fase processual não foram fornecidos e não são preenchidos. A aplicabilidade temporal dos excertos normativos, identificados em versões de novembro de 2026, não está confirmada para as datas documentais de outubro de 2026.",
+            "sourceIds": [
+              "context",
+              "CPC-300",
+              "CPC-300-P1",
+              "CPC-498",
+              "D04-V2/pedido@v1#p1"
+            ]
+          },
+          {
+            "title": "1. Obrigação narrada e pretensão",
+            "content": "Aurora apresenta pretensão de entrega imediata de equipamentos em face de Brisa. O trecho contratual dispõe: “Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.” O pedido selecionado registra solicitação de entrega imediata em 18/10/2026.\nEsses registros distinguem a data contratual da data do pedido, mas não esclarecem se houve entrega. Não se afirma, portanto, inadimplemento atual. Tampouco constam especificações suficientes dos equipamentos ou informação sobre a quem cabe a escolha.",
+            "sourceIds": [
+              "context",
+              "D04-V2/contrato@v1#p1",
+              "D04-V2/pedido@v1#p1"
+            ]
+          },
+          {
+            "title": "2. Limites do pedido urgente",
+            "content": "À luz do excerto do art. 300 do CPC, a análise da urgência compreende:\n(a) Probabilidade do direito: o trecho contratual indica obrigação de entrega, mas não demonstra isoladamente descumprimento atual.\n(b) Perigo de dano ou risco ao resultado útil: não há elementos selecionados sobre consequências concretas da demora. Não se afirma paralisação ou risco concreto.\n(c) Irreversibilidade: o § 3º impede tutela antecipada quando houver perigo de irreversibilidade dos efeitos. O material não permite avaliar esse perigo; a ausência de informação não demonstra reversibilidade nem irreversibilidade.\nAssim, a entrega imediata permanece como pretensão de Aurora, sem afirmação de preenchimento dos requisitos da tutela urgente.",
+            "sourceIds": [
+              "CPC-300",
+              "context",
+              "D04-V2/contrato@v1#p1",
+              "D04-V2/pedido@v1#p1"
+            ]
+          },
+          {
+            "title": "3. Caução",
+            "content": "O art. 300, § 1º, admite exigência judicial de caução conforme o caso e dispensa para parte economicamente hipossuficiente que não possa oferecê-la. Não há dados para afirmar disponibilidade de garantia ou condições para dispensa. Esta minuta não formula oferta nem pedido fundamentado de dispensa.",
+            "sourceIds": [
+              "CPC-300-P1",
+              "context"
+            ]
+          },
+          {
+            "title": "4. Entrega específica e formulação limitada do pedido",
+            "content": "Aurora requer a apreciação de sua pretensão de entrega dos dois equipamentos previstos no trecho contratual, inclusive quanto à entrega imediata solicitada, observadas as insuficiências expressamente apontadas na fundamentação da urgência.\nCaso concedida a tutela específica de entrega, requer que o prazo de cumprimento seja fixado judicialmente, nos termos do art. 498, sem indicação de prazo numérico nesta minuta.\nO parágrafo único do art. 498 prevê, para coisa determinada pelo gênero e quantidade, individualização pelo autor na inicial, se dele a escolha, ou pelo réu na entrega, no prazo judicial, se dele a escolha. Os recortes não permitem determinar essa titularidade ou completar a descrição dos equipamentos. A formulação do objeto permanece limitada e depende desses esclarecimentos; não se presume fase processual nem se afirma cumprimento das exigências de individualização.",
+            "sourceIds": [
+              "context",
+              "D04-V2/contrato@v1#p1",
+              "D04-V2/pedido@v1#p1",
+              "CPC-300",
+              "CPC-498"
+            ]
+          }
+        ]
+      }
+    },
+    "adversarial-reviewer": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4",
+        "i5"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": []
+    },
+    "authority-verifier": {
+      "coveredIssueIds": [
+        "i1",
+        "i2",
+        "i3",
+        "i4",
+        "i5"
+      ],
+      "claims": [],
+      "requirements": [],
+      "findings": [],
+      "supportChecks": [
+        {
+          "claimId": "9e4f3535c6:c1",
+          "sourceId": "D04-V2/contrato@v1#p1",
+          "quote": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "9e4f3535c6:c2",
+          "sourceId": "D04-V2/pedido@v1#p1",
+          "quote": "Em 18/10/2026, Aurora solicita entrega imediata; a narrativa não informa consequência concreta da demora nem reversibilidade da medida.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "9e4f3535c6:c3",
+          "sourceId": "context",
+          "quote": "Aurora solicita fornecimento imediato de equipamentos em ação civil contra Brisa. Não há documentos sobre paralisação ou risco concreto.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "9e4f3535c6:c4",
+          "sourceId": "D04-V2/contrato@v1#p1",
+          "quote": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "9e4f3535c6:c4",
+          "sourceId": "D04-V2/pedido@v1#p1",
+          "quote": "Em 18/10/2026, Aurora solicita entrega imediata; a narrativa não informa consequência concreta da demora nem reversibilidade da medida.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "9e4f3535c6:c5",
+          "sourceId": "context",
+          "quote": "Aurora solicita fornecimento imediato de equipamentos em ação civil contra Brisa. Não há documentos sobre paralisação ou risco concreto.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "9e4f3535c6:c5",
+          "sourceId": "D04-V2/pedido@v1#p1",
+          "quote": "Em 18/10/2026, Aurora solicita entrega imediata; a narrativa não informa consequência concreta da demora nem reversibilidade da medida.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "9e4f3535c6:c6",
+          "sourceId": "CPC-300",
+          "quote": "Art. 300. A tutela de urgência será concedida quando houver elementos que evidenciem a probabilidade do direito e o perigo de dano ou o risco ao resultado útil do processo. § 3º A tutela de urgência de natureza antecipada não será concedida quando houver perigo de irreversibilidade dos efeitos da decisão.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "9e4f3535c6:c7",
+          "sourceId": "CPC-300-P1",
+          "quote": "§ 1º Para a concessão da tutela de urgência, o juiz pode, conforme o caso, exigir caução real ou fidejussória idônea para ressarcir os danos que a outra parte possa vir a sofrer, podendo a caução ser dispensada se a parte economicamente hipossuficiente não puder oferecê-la.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "9e4f3535c6:c8",
+          "sourceId": "CPC-498",
+          "quote": "Art. 498. Na ação que tenha por objeto a entrega de coisa, o juiz, ao conceder a tutela específica, fixará o prazo para o cumprimento da obrigação. Parágrafo único. Tratando-se de entrega de coisa determinada pelo gênero e pela quantidade, o autor individualizá-la-á na petição inicial, se lhe couber a escolha, ou, se a escolha couber ao réu, este a entregará individualizada, no prazo fixado pelo juiz.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "30a5f7f32d:p1",
+          "sourceId": "D04-V2/contrato@v1#p1",
+          "quote": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "30a5f7f32d:p1",
+          "sourceId": "D04-V2/pedido@v1#p1",
+          "quote": "Em 18/10/2026, Aurora solicita entrega imediata; a narrativa não informa consequência concreta da demora nem reversibilidade da medida.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "30a5f7f32d:p1",
+          "sourceId": "CPC-300",
+          "quote": "Art. 300. A tutela de urgência será concedida quando houver elementos que evidenciem a probabilidade do direito e o perigo de dano ou o risco ao resultado útil do processo. § 3º A tutela de urgência de natureza antecipada não será concedida quando houver perigo de irreversibilidade dos efeitos da decisão.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "30a5f7f32d:p2",
+          "sourceId": "context",
+          "quote": "Aurora solicita fornecimento imediato de equipamentos em ação civil contra Brisa. Não há documentos sobre paralisação ou risco concreto.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "30a5f7f32d:p2",
+          "sourceId": "D04-V2/pedido@v1#p1",
+          "quote": "Em 18/10/2026, Aurora solicita entrega imediata; a narrativa não informa consequência concreta da demora nem reversibilidade da medida.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "30a5f7f32d:p2",
+          "sourceId": "CPC-300",
+          "quote": "Art. 300. A tutela de urgência será concedida quando houver elementos que evidenciem a probabilidade do direito e o perigo de dano ou o risco ao resultado útil do processo. § 3º A tutela de urgência de natureza antecipada não será concedida quando houver perigo de irreversibilidade dos efeitos da decisão.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "30a5f7f32d:p3",
+          "sourceId": "CPC-300-P1",
+          "quote": "§ 1º Para a concessão da tutela de urgência, o juiz pode, conforme o caso, exigir caução real ou fidejussória idônea para ressarcir os danos que a outra parte possa vir a sofrer, podendo a caução ser dispensada se a parte economicamente hipossuficiente não puder oferecê-la.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "30a5f7f32d:p4",
+          "sourceId": "CPC-498",
+          "quote": "Art. 498. Na ação que tenha por objeto a entrega de coisa, o juiz, ao conceder a tutela específica, fixará o prazo para o cumprimento da obrigação. Parágrafo único. Tratando-se de entrega de coisa determinada pelo gênero e pela quantidade, o autor individualizá-la-á na petição inicial, se lhe couber a escolha, ou, se a escolha couber ao réu, este a entregará individualizada, no prazo fixado pelo juiz.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "30a5f7f32d:p5",
+          "sourceId": "CPC-498",
+          "quote": "Art. 498. Na ação que tenha por objeto a entrega de coisa, o juiz, ao conceder a tutela específica, fixará o prazo para o cumprimento da obrigação. Parágrafo único. Tratando-se de entrega de coisa determinada pelo gênero e pela quantidade, o autor individualizá-la-á na petição inicial, se lhe couber a escolha, ou, se a escolha couber ao réu, este a entregará individualizada, no prazo fixado pelo juiz.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "30a5f7f32d:p5",
+          "sourceId": "CPC-300",
+          "quote": "Art. 300. A tutela de urgência será concedida quando houver elementos que evidenciem a probabilidade do direito e o perigo de dano ou o risco ao resultado útil do processo. § 3º A tutela de urgência de natureza antecipada não será concedida quando houver perigo de irreversibilidade dos efeitos da decisão.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "30a5f7f32d:p5",
+          "sourceId": "D04-V2/contrato@v1#p1",
+          "quote": "Brisa deve entregar dois equipamentos à Aurora em 15/10/2026.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "ab69725fdd:c1",
+          "sourceId": "CPC-300",
+          "quote": "Art. 300. A tutela de urgência será concedida quando houver elementos que evidenciem a probabilidade do direito e o perigo de dano ou o risco ao resultado útil do processo. § 3º A tutela de urgência de natureza antecipada não será concedida quando houver perigo de irreversibilidade dos efeitos da decisão.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "ab69725fdd:c2",
+          "sourceId": "CPC-300-P1",
+          "quote": "§ 1º Para a concessão da tutela de urgência, o juiz pode, conforme o caso, exigir caução real ou fidejussória idônea para ressarcir os danos que a outra parte possa vir a sofrer, podendo a caução ser dispensada se a parte economicamente hipossuficiente não puder oferecê-la.",
+          "assessment": "SUPPORTED"
+        },
+        {
+          "claimId": "ab69725fdd:c3",
+          "sourceId": "CPC-498",
+          "quote": "Art. 498. Na ação que tenha por objeto a entrega de coisa, o juiz, ao conceder a tutela específica, fixará o prazo para o cumprimento da obrigação. Parágrafo único. Tratando-se de entrega de coisa determinada pelo gênero e pela quantidade, o autor individualizá-la-á na petição inicial, se lhe couber a escolha, ou, se a escolha couber ao réu, este a entregará individualizada, no prazo fixado pelo juiz.",
+          "assessment": "SUPPORTED"
+        }
+      ]
+    }
+  },
+  "graph": {
+    "version": 1,
+    "revision": 0,
+    "tools": [],
+    "failedTools": [],
+    "planHashes": [
+      "a46c6da4beac935823be023472a80de39b6b7344618931c30686a0d00b51e814"
+    ],
+    "reviewRequired": false,
+    "nodes": [
+      {
+        "id": "matter-analyst:0",
+        "role": "matter-analyst",
+        "generation": 0,
+        "dependsOn": [],
+        "status": "COMPLETED",
+        "inputHash": "c6640d3dfc0c51cfb1fd41a4879f3169efbf48dd2a8324139734bf0c46206a28",
+        "input": {
+          "bindingHash": "0aab7b390563e6fcff4d603ece18b6fbf9e135d2eaa048da1e91fee1dd36caa4",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "a46c6da4beac935823be023472a80de39b6b7344618931c30686a0d00b51e814",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+            },
+            {
+              "id": "D04-V2/contrato@v1#p1",
+              "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb"
+            },
+            {
+              "id": "D04-V2/pedido@v1#p1",
+              "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            }
+          ],
+          "dependencies": [],
+          "requests": [],
+          "previousAttemptHash": null
+        },
+        "outputHash": "fbf048952d9b0bf35208fafa15f7abe5fc844695e1e65cb6fad562e8f7c9438a",
+        "runIndex": 2
+      },
+      {
+        "id": "legal-researcher:0",
+        "role": "legal-researcher",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0"
+        ],
+        "status": "UNAVAILABLE"
+      },
+      {
+        "id": "procedural-advisor:0",
+        "role": "procedural-advisor",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "5b5d12e93ff129e2a1d01ecf05a3d0129dab1c656e6f0de2b65dbfdad264aee2",
+        "input": {
+          "bindingHash": "0aab7b390563e6fcff4d603ece18b6fbf9e135d2eaa048da1e91fee1dd36caa4",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "a46c6da4beac935823be023472a80de39b6b7344618931c30686a0d00b51e814",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+            },
+            {
+              "id": "D04-V2/contrato@v1#p1",
+              "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb"
+            },
+            {
+              "id": "D04-V2/pedido@v1#p1",
+              "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "fbf048952d9b0bf35208fafa15f7abe5fc844695e1e65cb6fad562e8f7c9438a"
+            },
+            {
+              "id": "legal-researcher:0",
+              "outputHash": null
+            }
+          ],
+          "requests": [
+            {
+              "capability": "PROCEDURAL_ANALYSIS",
+              "reason": "PROCEDURAL_DEPENDENCY",
+              "issueIds": [
+                "i3",
+                "i4",
+                "i5"
+              ],
+              "sourceIds": [
+                "CPC-300",
+                "CPC-300-P1",
+                "CPC-498",
+                "D04-V2/contrato@v1#p1",
+                "D04-V2/pedido@v1#p1"
+              ]
+            }
+          ],
+          "previousAttemptHash": null
+        },
+        "outputHash": "5c0ded925e39a2dce7792033f9ab5ca4824b5006ae2ee5562c70a9d9f125c67f",
+        "runIndex": 3
+      },
+      {
+        "id": "legal-drafter:0",
+        "role": "legal-drafter",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0",
+          "procedural-advisor:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "0bfb7212a8cbb8e12d1530a89a455bf2bd4c381db2e1d126ecbc3eb1a1c7a39c",
+        "input": {
+          "bindingHash": "0aab7b390563e6fcff4d603ece18b6fbf9e135d2eaa048da1e91fee1dd36caa4",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "a46c6da4beac935823be023472a80de39b6b7344618931c30686a0d00b51e814",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+            },
+            {
+              "id": "D04-V2/contrato@v1#p1",
+              "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb"
+            },
+            {
+              "id": "D04-V2/pedido@v1#p1",
+              "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "fbf048952d9b0bf35208fafa15f7abe5fc844695e1e65cb6fad562e8f7c9438a"
+            },
+            {
+              "id": "legal-researcher:0",
+              "outputHash": null
+            },
+            {
+              "id": "procedural-advisor:0",
+              "outputHash": "5c0ded925e39a2dce7792033f9ab5ca4824b5006ae2ee5562c70a9d9f125c67f"
+            }
+          ],
+          "requests": [
+            {
+              "capability": "PROCEDURAL_ANALYSIS",
+              "reason": "PROCEDURAL_DEPENDENCY",
+              "issueIds": [
+                "i3",
+                "i4",
+                "i5"
+              ],
+              "sourceIds": [
+                "CPC-300",
+                "CPC-300-P1",
+                "CPC-498",
+                "D04-V2/contrato@v1#p1",
+                "D04-V2/pedido@v1#p1"
+              ]
+            }
+          ],
+          "previousAttemptHash": null
+        },
+        "outputHash": "cc1ee4ea348b04937a189e5af6b060f553ddb5b6cd1c061d42569a07ed354f6d",
+        "runIndex": 4
+      },
+      {
+        "id": "adversarial-reviewer:0",
+        "role": "adversarial-reviewer",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0",
+          "procedural-advisor:0",
+          "legal-drafter:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "5b8bd590cf12a2e5d745a87698b4406a2833769576c68fb3c36421b7ada7bd38",
+        "input": {
+          "bindingHash": "0aab7b390563e6fcff4d603ece18b6fbf9e135d2eaa048da1e91fee1dd36caa4",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "a46c6da4beac935823be023472a80de39b6b7344618931c30686a0d00b51e814",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+            },
+            {
+              "id": "D04-V2/contrato@v1#p1",
+              "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb"
+            },
+            {
+              "id": "D04-V2/pedido@v1#p1",
+              "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "fbf048952d9b0bf35208fafa15f7abe5fc844695e1e65cb6fad562e8f7c9438a"
+            },
+            {
+              "id": "legal-researcher:0",
+              "outputHash": null
+            },
+            {
+              "id": "procedural-advisor:0",
+              "outputHash": "5c0ded925e39a2dce7792033f9ab5ca4824b5006ae2ee5562c70a9d9f125c67f"
+            },
+            {
+              "id": "legal-drafter:0",
+              "outputHash": "cc1ee4ea348b04937a189e5af6b060f553ddb5b6cd1c061d42569a07ed354f6d"
+            }
+          ],
+          "requests": [
+            {
+              "capability": "PROCEDURAL_ANALYSIS",
+              "reason": "PROCEDURAL_DEPENDENCY",
+              "issueIds": [
+                "i3",
+                "i4",
+                "i5"
+              ],
+              "sourceIds": [
+                "CPC-300",
+                "CPC-300-P1",
+                "CPC-498",
+                "D04-V2/contrato@v1#p1",
+                "D04-V2/pedido@v1#p1"
+              ]
+            }
+          ],
+          "previousAttemptHash": null
+        },
+        "outputHash": "a53a432f25bb4d3fa1792573c40fb8ec4c467822c4bdede7e83f5aa42288b29e",
+        "runIndex": 5
+      },
+      {
+        "id": "authority-verifier:0",
+        "role": "authority-verifier",
+        "generation": 0,
+        "dependsOn": [
+          "matter-analyst:0",
+          "legal-researcher:0",
+          "procedural-advisor:0",
+          "legal-drafter:0",
+          "adversarial-reviewer:0"
+        ],
+        "status": "COMPLETED",
+        "inputHash": "00af15f59c7b9c0eb4ae0cb94f21a9e59d9febf46fe32e51e436dec921b3f489",
+        "input": {
+          "bindingHash": "0aab7b390563e6fcff4d603ece18b6fbf9e135d2eaa048da1e91fee1dd36caa4",
+          "contractHash": "8111c1f414417b2a5714b938b4b10988139104c647ffc4cd98e29ee2a57ae013",
+          "planHash": "a46c6da4beac935823be023472a80de39b6b7344618931c30686a0d00b51e814",
+          "toolsHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "sources": [
+            {
+              "id": "context",
+              "contentHash": "3569d6f7268e322adcbc4c8ded9dbd16a0b86af43a875667f7811029d56017c5"
+            },
+            {
+              "id": "D04-V2/contrato@v1#p1",
+              "contentHash": "f6412615ad719d0c478aa2f55310471ed2c011bc1aecdb5e13a6435bd56ccbcb"
+            },
+            {
+              "id": "D04-V2/pedido@v1#p1",
+              "contentHash": "5a0f3669f3f438aea3e422ef86fb7a07e2e2eec00b97f035b9b9ce3d0cd7837f"
+            },
+            {
+              "id": "CPC-300",
+              "contentHash": "5bf54d068ad5860d359993a0c52c5f5f24a47b139c8e0956e4c1b6a2ff4b3951"
+            },
+            {
+              "id": "CPC-300-P1",
+              "contentHash": "d63b265eb2d1b7dc1a5e151fd7cfd13a93db43c224fe5dbc4e2be377a45ccc6d"
+            },
+            {
+              "id": "CPC-498",
+              "contentHash": "3a9244d6b244d151b27c61ec94f49737571151b74ab32e6facbf68ebc08f2524"
+            }
+          ],
+          "dependencies": [
+            {
+              "id": "matter-analyst:0",
+              "outputHash": "fbf048952d9b0bf35208fafa15f7abe5fc844695e1e65cb6fad562e8f7c9438a"
+            },
+            {
+              "id": "legal-researcher:0",
+              "outputHash": null
+            },
+            {
+              "id": "procedural-advisor:0",
+              "outputHash": "5c0ded925e39a2dce7792033f9ab5ca4824b5006ae2ee5562c70a9d9f125c67f"
+            },
+            {
+              "id": "legal-drafter:0",
+              "outputHash": "cc1ee4ea348b04937a189e5af6b060f553ddb5b6cd1c061d42569a07ed354f6d"
+            },
+            {
+              "id": "adversarial-reviewer:0",
+              "outputHash": "a53a432f25bb4d3fa1792573c40fb8ec4c467822c4bdede7e83f5aa42288b29e"
+            }
+          ],
+          "requests": [
+            {
+              "capability": "PROCEDURAL_ANALYSIS",
+              "reason": "PROCEDURAL_DEPENDENCY",
+              "issueIds": [
+                "i3",
+                "i4",
+                "i5"
+              ],
+              "sourceIds": [
+                "CPC-300",
+                "CPC-300-P1",
+                "CPC-498",
+                "D04-V2/contrato@v1#p1",
+                "D04-V2/pedido@v1#p1"
+              ]
+            }
+          ],
+          "previousAttemptHash": null
+        },
+        "outputHash": "c0e732fe1c116c2f8a87e53c442e2b98d7f1f5ae0d760576e68c8f9446c3491c",
+        "runIndex": 6
+      }
+    ],
+    "archivedOutputs": {},
+    "decisions": [
+      {
+        "afterNode": "matter-analyst:0",
+        "requests": [
+          {
+            "capability": "PROCEDURAL_ANALYSIS",
+            "reason": "PROCEDURAL_DEPENDENCY",
+            "issueIds": [
+              "i3",
+              "i4",
+              "i5"
+            ],
+            "sourceIds": [
+              "CPC-300",
+              "CPC-300-P1",
+              "CPC-498",
+              "D04-V2/contrato@v1#p1",
+              "D04-V2/pedido@v1#p1"
+            ]
+          }
+        ],
+        "unavailableRequests": [],
+        "outcome": "INCORPORATED"
+      }
+    ],
+    "stopReason": "COMPLETED"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "legacy": {
+    "reservations": [
+      147844,
+      155348
+    ],
+    "dispatched": 1,
+    "initialSpentMicroUsd": 85506,
+    "capMicroUsd": 250000
+  },
+  "current": {
+    "reservations": [
+      141532
+    ],
+    "dispatched": 1,
+    "initialSpentMicroUsd": 85506,
+    "capMicroUsd": 250000
+  },
+  "paidModelCalls": 0
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D03-V2",
+  "kind": "FINAL_HUMAN_ASSESSMENT",
+  "decision": "APPROVED",
+  "evaluator": "Boni",
+  "recordedAt": "2026-11-04T22:24:53.713769+00:00",
+  "userStatement": "Aprovo as três versões ajustadas. Registre as avaliações finais e atualize o PENDENCIAS.md, preservando os registros e os US$ 0,083620 reservados, sem chamadas pagas, commit, push ou publicação. Informe o que ainda falta.",
+  "approvedArtifact": "docs/architecture/evidence/2026-11-04-boni-v9-assessment/D03-V2-adjusted-final-review.md",
+  "approvedArtifactSha256": "c6dc836a001b8ce6038727f59e6003f36f542c838ab1ec42d730dadae827c0a0",
+  "adjustmentManifest": "docs/architecture/evidence/2026-11-04-boni-v9-assessment/remaining-phases-adjusted-review.manifest.json",
+  "adjustmentManifestSha256": "daca76fc29ad764ead4378ebe9dd3177ea7f5063eb6ef9e0f7676b5742196af0",
+  "scope": "Approval of this exact adjusted derivative including its reservations. Does not approve the raw model output, clear historical alerts, resolve documentary gaps, authorize application to the case or publication, or establish general v9 quality.",
+  "historicalRecordsPreserved": true,
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

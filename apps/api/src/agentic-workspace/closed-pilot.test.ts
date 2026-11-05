@@ -507,15 +507,17 @@ it('executa worker, driver e OpenAI SDK reais com SSE sintético e pergunta pers
   }).runOnce();
   const current = await pilot.service.getExecution(owner, run.id);
   expect(current.status, String(failure)).toBe('WAITING_USER');
-  expect(requests).toBe(2);
-  expect(pilot.providerRuntime.observations).toHaveLength(2);
+  expect(current.question).toMatchObject({ prompt: 'Qual finalidade sintética?' });
+  // Accepted task.submit persists the question and ends the role without a confirmation call.
+  expect(requests).toBe(1);
+  expect(pilot.providerRuntime.observations).toHaveLength(1);
   expect(await pilot.summary(owner)).toMatchObject({
-    settledCents: 57,
+    settledCents: 56,
     provisionedCents: 4,
     reconciliationRequired: false,
   });
   await pilot.service.cancelExecution(owner, run.id, 'sdk-cancel');
-  expect(await pilot.summary(owner)).toMatchObject({ availableCents: 439, escrowCents: 0 });
+  expect(await pilot.summary(owner)).toMatchObject({ availableCents: 440, escrowCents: 0 });
 });
 
 it('pausa após crash com chamada autorizada sem liquidação, inclusive após reconstrução', async () => {

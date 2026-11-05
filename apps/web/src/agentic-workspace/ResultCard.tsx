@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { deliveryPlainText, type PresentedDelivery } from './present-delivery';
 import { editorLink, type Delivery, type Execution } from './execution-model';
 import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import { EvidenceReviewPanel } from './EvidenceReviewPanel';
+import { EditorialReviewPanel } from './EditorialReviewPanel';
 
 const marker =
   'mx-0.5 inline-flex min-h-7 min-w-7 items-center justify-center rounded-full border border-cognac-400 bg-cognac-50 px-1.5 align-super text-xs font-semibold leading-none text-cognac-900 hover:bg-cognac-100';
@@ -112,6 +114,28 @@ export function ResultCard({
         )}
       </div>
       {receipt}
+      {CASE_WORKSPACE_ENABLED &&
+        run.matterId &&
+        delivery.draftId &&
+        delivery.versionId &&
+        delivery.delivery.document &&
+        run.status === 'COMPLETED' && (
+          <EditorialReviewPanel
+            key={`${delivery.id}:${delivery.draftId}:${delivery.versionId}`}
+            deliveryId={delivery.id}
+            draftId={delivery.draftId}
+            versionId={delivery.versionId}
+            matterId={run.matterId}
+          />
+        )}
+      {CASE_WORKSPACE_ENABLED &&
+        run.matterId &&
+        delivery.delivery.evidenceMatrix &&
+        run.permissions?.reviewEvidence &&
+        run.status === 'COMPLETED' &&
+        !run.requiresReevaluation && (
+          <EvidenceReviewPanel key={delivery.id} deliveryId={delivery.id} sources={view.sources} onSource={onSource} />
+        )}
     </article>
   );
 }

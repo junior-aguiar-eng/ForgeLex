@@ -1,0 +1,54 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/tmp/forgelex-final-evaluation/9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2/candidate
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  14:47:43
+   Duration  7.60s (transform 3.07s, setup 0ms, import 6.84s, tests 240ms, environment 0ms)
+
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/tmp/forgelex-final-evaluation/9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2/candidate
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  14:47:52
+   Duration  7.82s (transform 3.11s, setup 0ms, import 7.02s, tests 243ms, environment 0ms)
+
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/tmp/forgelex-final-evaluation/9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2/candidate
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  14:48:02
+   Duration  8.53s (transform 3.30s, setup 0ms, import 7.41s, tests 424ms, environment 0ms)
+
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/tmp/forgelex-final-evaluation/9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2/candidate
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  14:48:12
+   Duration  7.43s (transform 2.85s, setup 0ms, import 6.63s, tests 254ms, environment 0ms)
+
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/tmp/forgelex-final-evaluation/9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2/candidate
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  14:48:22
+   Duration  8.91s (transform 3.64s, setup 0ms, import 8.17s, tests 230ms, environment 0ms)
+
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK/tmp/forgelex-final-evaluation/9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2/candidate
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  14:48:32
+   Duration  7.52s (transform 2.97s, setup 0ms, import 6.69s, tests 263ms, environment 0ms)
+

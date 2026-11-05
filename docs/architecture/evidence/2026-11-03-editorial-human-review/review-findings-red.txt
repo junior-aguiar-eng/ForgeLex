@@ -1,0 +1,87 @@
+[WebServer] (node:14424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:13808) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite "--host" "127.0.0.1" "--port" "3300" "--strictPort"
+[WebServer] (node:29468) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:8648) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 [chromium] › tests\e2e\editorial-review.spec.ts:193:5 › revisão editorial trata IDs herdados como dados e reconcilia conflito após resposta perdida (16.5s)
+(node:30600) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  2 [chromium] › tests\e2e\editorial-review.spec.ts:224:5 › revisão editorial recupera conflito sem registro após resposta perdida (14.1s)
+
+
+  1) [chromium] › tests\e2e\editorial-review.spec.ts:193:5 › revisão editorial trata IDs herdados como dados e reconcilia conflito após resposta perdida 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('dialog', { name: 'Revisão editorial' }).getByRole('textbox', { name: 'Fundamento 1', exact: true })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('dialog', { name: 'Revisão editorial' }).getByRole('textbox', { name: 'Fundamento 1', exact: true }) with timeout 10000ms
+      - waiting for getByRole('dialog', { name: 'Revisão editorial' }).getByRole('textbox', { name: 'Fundamento 1', exact: true })
+
+
+      200 |     await upload(page, { ...f.proposal, changes: [{ ...f.proposal.changes[0], id }] });
+      201 |     await dialog.getByRole('combobox', { name: 'Decisão 1', exact: true }).selectOption('ACCEPT');
+    > 202 |     await expect(dialog.getByRole('textbox', { name: 'Fundamento 1', exact: true })).toBeVisible();
+          |                                                                                      ^
+      203 |   }
+      204 |   expect(errors).toEqual([]);
+      205 |   await upload(page, f.proposal);
+        at C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\tests\e2e\editorial-review.spec.ts:202:86
+
+    Error Context: test-results\editorial-review\editorial-review-revisão-e-21c1c-flito-após-resposta-perdida-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\editorial-review\editorial-review-revisão-e-21c1c-flito-após-resposta-perdida-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\editorial-review\editorial-review-revisão-e-21c1c-flito-após-resposta-perdida-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests\e2e\editorial-review.spec.ts:224:5 › revisão editorial recupera conflito sem registro após resposta perdida 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('dialog', { name: 'Revisão editorial' }).getByRole('status')
+    Expected substring: "Comando não consta do histórico"
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" getByRole('dialog', { name: 'Revisão editorial' }).getByRole('status') with timeout 10000ms
+      - waiting for getByRole('dialog', { name: 'Revisão editorial' }).getByRole('status')
+
+
+      238 |   await expect(dialog.getByRole('alert')).toContainText('Não foi possível confirmar');
+      239 |   await dialog.getByRole('button', { name: 'Verificar decisão' }).click();
+    > 240 |   await expect(dialog.getByRole('status')).toContainText('Comando não consta do histórico');
+          |                                            ^
+      241 |   await expect(dialog.getByRole('button', { name: 'Verificar decisão' })).toHaveCount(0);
+      242 |   await expect(dialog.getByRole('button', { name: 'Atualizar revisão' })).toBeEnabled();
+      243 |   expect(attempts).toBe(2);
+        at C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\tests\e2e\editorial-review.spec.ts:240:44
+
+    Error Context: test-results\editorial-review\editorial-review-revisão-e-97128-istro-após-resposta-perdida-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\editorial-review\editorial-review-revisão-e-97128-istro-após-resposta-perdida-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\editorial-review\editorial-review-revisão-e-97128-istro-após-resposta-perdida-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › tests\e2e\editorial-review.spec.ts:193:5 › revisão editorial trata IDs herdados como dados e reconcilia conflito após resposta perdida 
+    [chromium] › tests\e2e\editorial-review.spec.ts:224:5 › revisão editorial recupera conflito sem registro após resposta perdida 

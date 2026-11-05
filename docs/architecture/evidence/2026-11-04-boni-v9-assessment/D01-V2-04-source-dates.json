@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "scenario": "D01-V2",
+  "block": "SOURCE_LIMITATIONS_AND_DATES",
+  "decision": "ACCEPTED_WITH_EDITORIAL_INTEGRATION",
+  "evaluator": "Boni",
+  "userStatement": "Aceita esse tratamento.",
+  "recordedAt": "2026-11-04T21:49:45.122583+00:00",
+  "sourceArtifact": "docs/architecture/evidence/2026-11-04-v9-resumed-validated/real/D01-V2.json",
+  "sourceSha256": "3141b6726f3db8765c652941bdf380b721fa0a67e2f7311d9d2b6309bbe3e541",
+  "acceptedPassages": [
+    {
+      "topic": "SOURCE_LIMITATIONS",
+      "statement": "A análise está restrita aos recortes do contrato e do recibo, ao contexto, ao relato e ao excerto do art. 373. Não certifica autenticidade documental ou veracidade dos relatos. Não houve pesquisa jurisprudencial nem verificação independente da vigência e da aplicabilidade da norma; a identificação de versão e o link da fonte não substituem essas verificações.",
+      "editorialDisposition": "Single limitation notice."
+    },
+    {
+      "topic": "DATES",
+      "statement": "A data de 10/10/2026 refere-se à entrega das mesas. Ela não deve ser tratada como vencimento do pagamento, cujas condições não constam dos trechos fornecidos.",
+      "editorialDisposition": "Integrate into previously accepted payment passage."
+    }
+  ],
+  "scope": "Presented limitations and date distinction only; historical citation alerts remain pending.",
+  "wholeDeliveryAssessment": "PENDING",
+  "appliedToOriginal": false,
+  "reservedMicroUsd": 83620,
+  "paidCalls": 0,
+  "commit": false,
+  "push": false,
+  "publish": false
+}

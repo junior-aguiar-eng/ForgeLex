@@ -1,0 +1,3 @@
+$ tsc
+$ tsc
+$ tsc --noEmit -p tsconfig.typecheck.json

@@ -1,0 +1,28 @@
+{
+  "historicalEvidenceFiles": 476,
+  "worktreeBytesPreserved": true,
+  "previouslyTrackedBlobsUnchanged": 238,
+  "newlyTrackedEvidenceByteExact": 238,
+  "v8ProtectedManifestsVerified": true,
+  "reservedMicroUsd": 83620,
+  "priorV9MeasuredMicroUsd": 572246,
+  "newPaidCalls": 0,
+  "baseCommit": "adc823b518934e8b1bbdb0aaef8fb27ccd599698",
+  "implementationCommits": [
+    "33aeac62592c7b1caa62418c27ab3cb2674d7d7c test(agentic): adequar prazo dos testes de integraÃ§Ã£o",
+    "d299bca75fa6af2cc07349c20722a09a25a2f23f test(agentic): registrar campanha v9 e retomadas auditÃ¡veis",
+    "d589f2f09df2ac3de3960fb78868084844ebe1ea feat(agentic): consolidar entregas revisadas no fluxo v9",
+    "9c2757893f666f567d236ba242a3530113639a13 feat(agentic): conectar geraÃ§Ã£o editorial com controle de custo"
+  ],
+  "validation": {
+    "priorFullSuitePassed": 1772,
+    "priorFullSuiteSkipped": 17,
+    "nodeScriptsPassedAfterCliFix": 32,
+    "providerTestsPassedAfterCliFix": 24,
+    "apiBuildAfterCliFix": "passed",
+    "focusedLintAfterCliFix": "passed",
+    "fullSuiteRerunAfterCliFix": false
+  },
+  "push": false,
+  "publish": false
+}

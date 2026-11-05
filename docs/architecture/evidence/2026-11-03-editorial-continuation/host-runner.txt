@@ -1,0 +1,30 @@
+✔ runner lock excludes competing preparation and releases only its own lock (27.8037ms)
+✔ cancelled deadline returns the same terminal outcome persisted across reopen (27.4549ms)
+✔ reserves both arms durably before dispatch, counts uncertainty and never replays a reservation (32.396ms)
+✔ blocks another writer, changed corpus and unknown runs (20.9511ms)
+✔ crashed active run cannot replay; pending cost blocks later work (20.289ms)
+✔ void releases proven non-dispatch, overrun blocks and cancellation prevents later calls (14.183ms)
+✔ per-run cap, call count and execution deadline cannot be expanded (79.9671ms)
+✔ real execution requires a named campaign, explicit cap and credential; offline remains the default (5.5955ms)
+✔ rejects ambiguous arguments, path traversal and approval in offline mode (0.8332ms)
+✔ pins a new reviewed HEAD explicitly without weakening the default baseline guard (0.8921ms)
+✔ freezes a separate campaign packet and refuses replacing it with changed inputs (110.0041ms)
+✔ real mode cannot create an unprepared campaign or repair an incomplete one (57.0734ms)
+✔ preparation requires the exact reviewed HEAD and preserves the original baseline (3.8623ms)
+✔ every offline scenario points to an existing exact test and legal sources are closed (32.4949ms)
+✔ paired comparison charges both versions and calibration is included in the full envelope (10.8216ms)
+✔ fails closed for duplicate scenarios, absent test and unknown source (8.3892ms)
+✔ each pair has the same dossier and two distinct blinded labels; new capability is not a baseline failure (9.8337ms)
+✔ host provisions persistent isolated budget and replays without another SDK request (191.5436ms)
+✔ lost response stays uncertain across a fresh host invocation (37.6025ms)
+✔ host refuses changed context, missing approval, and switching simulation to paid mode (40.8721ms)
+✔ CLI defaults to simulation and requires explicit paid cap and a local command (1.3409ms)
+✔ CLI prepares and generates from an authorized local draft, preserves DB, then refuses revoked access (24304.6205ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 31417.472

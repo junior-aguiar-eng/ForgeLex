@@ -1,0 +1,40 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+ ❯ packages/persistence/src/migrations/agentic-case-reconciliation.test.ts (3 tests | 1 failed) 1111ms
+   × reconcilia migrations a partir de main com análise documental sem reaplicação 509ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/persistence/src/migrations/agentic-case-reconciliation.test.ts > reconcilia migrations a partir de main com análise documental sem reaplicação
+LibsqlError: SQLITE_ERROR: no such table: agentic_task_deliveries
+ ❯ mapSqliteError ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/@libsql+client@0.18.0/node_modules/@libsql/client/lib-esm/sqlite3.js:653:16
+ ❯ executeStmt ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/@libsql+client@0.18.0/node_modules/@libsql/client/lib-esm/sqlite3.js:556:15
+ ❯ Sqlite3Transaction.execute ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/@libsql+client@0.18.0/node_modules/@libsql/client/lib-esm/sqlite3.js:425:16
+ ❯ runMigrations packages/persistence/src/migrations/migration-runner.ts:35:27
+     33|       const dialectStatements = dialect === 'postgres' ? migration.pos…
+     34|       for (const statement of [...migration.statements, ...(dialectSta…
+     35|         await transaction.execute(statement);
+       |                           ^
+     36|       }
+     37|
+ ❯ packages/persistence/src/migrations/agentic-case-reconciliation.test.ts:14:5
+
+Caused by: SqliteError: no such table: agentic_task_deliveries
+ ❯ convertError node_modules/.pnpm/libsql@0.5.29/node_modules/libsql/index.js:59:12
+ ❯ Database.prepare node_modules/.pnpm/libsql@0.5.29/node_modules/libsql/index.js:131:13
+ ❯ executeStmt ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/@libsql+client@0.18.0/node_modules/@libsql/client/lib-esm/sqlite3.js:527:28
+ ❯ Sqlite3Transaction.execute ../../../../../Boni%20Jr/.codex/worktrees/forgelex-3-audit/SDK/node_modules/.pnpm/@libsql+client@0.18.0/node_modules/@libsql/client/lib-esm/sqlite3.js:425:16
+ ❯ runMigrations packages/persistence/src/migrations/migration-runner.ts:35:27
+ ❯ packages/persistence/src/migrations/agentic-case-reconciliation.test.ts:14:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'SQLITE_ERROR', rawCode: 1 }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  16:19:49
+   Duration  4.23s (transform 310ms, setup 0ms, import 2.41s, tests 1.11s, environment 0ms)
+

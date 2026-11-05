@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-03T22:42:57.722Z",
+  "head": "adc823b518934e8b1bbdb0aaef8fb27ccd599698",
+  "branch": "codex/forgelex-3-quality",
+  "defaultWorkflowVersion": 8,
+  "optInWorkflowVersion": 9,
+  "paidInferenceCalls": 0,
+  "automaticDraftApplications": 0,
+  "commits": 0,
+  "push": false,
+  "deploy": false,
+  "protectedV8FilesUnchanged": 58,
+  "previousLedgersUnchanged": 4,
+  "tests": {
+    "focused": {
+      "passed": 204,
+      "files": 17,
+      "log": "v9-focused.log"
+    },
+    "fullSuiteBeforeFinalFix": {
+      "passed": 1755,
+      "skipped": 17,
+      "failed": 1,
+      "exitCode": 1,
+      "log": "v9-full-suite.log",
+      "failure": "New v9 limitations did not change CANDIDATE to LIMITED"
+    },
+    "afterFixAffectedSuite": {
+      "passed": 17,
+      "failed": 0,
+      "files": 3,
+      "exitCode": 0,
+      "log": "v9-final-recheck.log"
+    },
+    "fullSuiteRepeatedAfterFix": false,
+    "node": {
+      "passed": 24,
+      "failed": 0,
+      "exitCode": 0,
+      "log": "v9-node-regression.log"
+    },
+    "editorialBrowser": {
+      "firstRunPassed": 11,
+      "firstRunFailed": 1,
+      "correctedSelectorRerunPassed": 1,
+      "logs": [
+        "v9-browser.log",
+        "v9-browser-recheck.log"
+      ]
+    },
+    "mesaBrowser": {
+      "passed": 3,
+      "failed": 0,
+      "exitCode": 0,
+      "log": "v9-mesa.log"
+    },
+    "finalBuild": {
+      "exitCode": 0,
+      "log": "v9-build-verified.log"
+    },
+    "apiTypecheck": {
+      "exitCode": 0,
+      "log": "v9-api-types.log"
+    },
+    "lint": {
+      "exitCode": 0,
+      "log": "v9-lint-final.log"
+    },
+    "formatting": {
+      "passed": 27,
+      "failed": 0,
+      "log": "v9-format-final.log"
+    },
+    "postgres": {
+      "runInThisStage": false,
+      "reason": "No schema change; pure classification mapping covered locally"
+    }
+  },
+  "limitations": [
+    "Historical D04 provider failure cause remains unknown",
+    "83620 microUSD remain reserved as uncertain; no financial reconciliation was fabricated",
+    "Semantic equivalence, model coverage and legal quality require future assessment",
+    "Boni human evaluations remain pending and unchanged",
+    "Next paid campaign is a proposal, not authorization or execution",
+    "Test sets overlap and must not be summed"
+  ]
+}

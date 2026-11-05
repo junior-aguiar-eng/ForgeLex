@@ -490,7 +490,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (!database || !databaseClient || workspaceOptions?.driver || workspaceOptions?.caseTask || workspaceOptions?.closedPilot || workspaceOptions?.commercial)
       throw new Error('COMMERCIAL_CONFIGURATION_REQUIRED');
     const { createCommercialRuntime } = await import('./agentic-workspace/commercial-runtime.js');
-    const commercial = await createCommercialRuntime(database, databaseClient, environment, options.commercialRuntimeDependencies);
+    const commercial = await createCommercialRuntime(database, databaseClient, environment, {
+      ...options.commercialRuntimeDependencies,
+      researchService,
+    });
     await commercial.recover();
     workspaceOptions = { ...workspaceOptions, commercial };
   }

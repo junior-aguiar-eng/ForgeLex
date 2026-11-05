@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-02",
+  "scope": "Authorized six-run real calibration; stopped at first question without automatic answer",
+  "model": "gpt-6.1-sol",
+  "baseline": "025f6dd438ecfd78079b4688fd076e476da74ce9",
+  "candidateSourceSha256": "90317c82bb2ee2839c9807b91af63e4b534aaf1244d31974a4fb5237d9b59863",
+  "packetSha256": "085a116bd76263bdd052f07b2e37041c656750dd8eca07ad2236fa59295eb581",
+  "approvedCapMicroUsd": 1500000,
+  "paidModelCalls": 18,
+  "measuredMicroUsd": 135442,
+  "calculatedUsd": 0.135442,
+  "costBasis": "Provider-reported tokens multiplied by verified standard rates; not an invoice reconciliation",
+  "tokens": {
+    "input": 42156,
+    "output": 5113,
+    "cached": 0
+  },
+  "executions": 6,
+  "questions": 6,
+  "deliveries": 0,
+  "errors": 0,
+  "uncertainMicroUsd": 0,
+  "runDurationMs": {
+    "median": 23180.1409,
+    "max": 24832.2701
+  },
+  "ledgerSha256": "6a2e6595e8ff014708f85b1b1f0f00ec92d0c16bd2c983cf614fbcca69f9ebdd",
+  "ledgerChainVerified": true,
+  "sourceFilesVerified": 758,
+  "outputHashes": {
+    "comparison.json": "791d00f86a8348e4b893f159ed8d8136e240628b84d69b15c875b74bd74fbaba",
+    "review.md": "787ebbd781ece0af4002222d6b3d9af69ecf3b6d41b6aa33025074b67de17b24",
+    "D01-analyze-baseline.json": "6ea524b2c3cad81742f35452fa48635f537d9ef797099927bb2feb649660cca2",
+    "D01-analyze-baseline.checkpoint.json": "c6627f58baf8a700b1ea80a80077225ce1139f7e84138ecf4c0921d58beffd61",
+    "D01-analyze-candidate.json": "d8f93b320b1e8d2d9d38fd9159b27997b2f44e00798654a626ec3b45d97ad05c",
+    "D01-analyze-candidate.checkpoint.json": "d5545cbf24970ffac9f67d21d90e5c89d0bd7f35bf7dc391e16877156c423089",
+    "D03-review-baseline.json": "e8a09d4021e74f39bb8fc79c932e07ae073aff9b82e924dce1bbdf12839e9974",
+    "D03-review-baseline.checkpoint.json": "5b08fcc8e525d5d4a04b6b04dc917a0008855565612857fe6c32cf8136f64ebb",
+    "D03-review-candidate.json": "116ffa68fefd02258bdc27887667797da2b80a4910bbc2b0d174e812271ca6be",
+    "D03-review-candidate.checkpoint.json": "3db3483369775c8f4eed5d2aaf00d6c5f4f4bb75eeea047fa6701cf371fcd565",
+    "D04-create-baseline.json": "61a8472c658747cf5687a6b60dff948d35faa9fe7aafa73e9efe70cfae3807cd",
+    "D04-create-baseline.checkpoint.json": "b2741a1a64f117d2f77980521582fcfcacd32d1052beaa8a60de01fce0b9c82d",
+    "D04-create-candidate.json": "1504d17e9e7c67a7142d83433ebcd42c5ce1f21ba3776989aaa2a226981a8232",
+    "D04-create-candidate.checkpoint.json": "3433aeb3897eabfef6d9bed23a78c3df314386f83b565c0cb5d1d0d73153818e"
+  },
+  "legalScore": null,
+  "remaining54RunsExecuted": false,
+  "scopeCompleted": true,
+  "limitations": [
+    "All runs stopped at first clarification in the orchestrator; specialists and deliveries not exercised",
+    "No claim about full task cost or legal improvement",
+    "No customer wallet, live STJ research, commit, push or deploy"
+  ],
+  "finding": {
+    "scenario": "D03-review",
+    "observation": "Both versions emit a gap as material even while describing the correction as possible without payment information; the workflow converts any unanswered material gap into a question.",
+    "code": "packages/legal-workflows/src/agentic-case-task/case-task.ts:518",
+    "candidateEvidence": "D03-review-candidate.checkpoint.json",
+    "recommendation": "Distinguish missing facts that block the requested result from facts that only limit a conclusion; preserve questions for truly blocking gaps before expanding paid evaluation."
+  }
+}

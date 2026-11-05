@@ -1,0 +1,18 @@
+{
+  "mode": "fake",
+  "variant": "candidate",
+  "runId": "D04-create-candidate",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\0e3a73f025f50bd3fac4df984ef6e8e2b28caa7f0c3ff5d3e28a1f32142c1aa4\\candidate",
+  "campaign": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\.superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-02-delivery-failures-v6-validated\\offline-Ta2jgM",
+  "fingerprint": "4bd2b79dc0057de406a8bd1cf89c1830abad6347ee1c54998aaaa357dbf2de0e",
+  "packetPath": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\.superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-02-delivery-failures-v6-validated\\packet.json",
+  "packetSha256": "8d71728bd1908e64219b14f2a2027dae4c4a1870026c4cd75e313d246ddafbb8",
+  "runIds": [
+    "D01-analyze-baseline",
+    "D01-analyze-candidate",
+    "D03-review-baseline",
+    "D03-review-candidate",
+    "D04-create-baseline",
+    "D04-create-candidate"
+  ]
+}

@@ -1,0 +1,20 @@
+$ pnpm build && vitest run
+$ pnpm -r --sort run build
+Scope: 17 of 18 workspace projects
+apps/web build$ tsc && vite build && vite build --config vite.mcp.config.ts
+packages/domain build$ tsc
+packages/domain build: Done
+apps/web build: src/agentic-workspace/EditorialReviewPanel.tsx(421,36): error TS2345: Argument of type '(old: Record<string, { action: "" | EditorialAction; reason: string; }>) => { [x: string]: { action: "" | EditorialAction; reason: string; } | { ...; }; }' is not assignable to parameter of type 'SetStateAction<Record<string, { action: "" | EditorialAction; reason: string; }>>'.
+apps/web build:   Type '(old: Record<string, { action: "" | EditorialAction; reason: string; }>) => { [x: string]: { action: "" | EditorialAction; reason: string; } | { ...; }; }' is not assignable to type '(prevState: Record<string, { action: "" | EditorialAction; reason: string; }>) => Record<string, { action: "" | EditorialAction; reason: string; }>'.
+apps/web build:     Type '{ [x: string]: { action: EditorialAction | ""; reason: string; } | { reason: string; action: string; }; }' is not assignable to type 'Record<string, { action: "" | EditorialAction; reason: string; }>'.
+apps/web build:       'string' index signatures are incompatible.
+apps/web build:         Type '{ action: "" | EditorialAction; reason: string; } | { reason: string; action: string; }' is not assignable to type '{ action: "" | EditorialAction; reason: string; }'.
+apps/web build:           Type '{ reason: string; action: string; }' is not assignable to type '{ action: "" | EditorialAction; reason: string; }'.
+apps/web build:             Types of property 'action' are incompatible.
+apps/web build:               Type 'string' is not assignable to type '"" | EditorialAction'.
+apps/web build: Failed
+C:\Users\Boni Jr\.codex\worktrees\forgelex-3-audit\SDK\apps\web:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @forgelex/web@0.1.0 build: `tsc && vite build && vite build --config vite.mcp.config.ts`
+Exit status 2
+[ELIFECYCLE] Command failed with exit code 2.
+[ELIFECYCLE] Test failed. See above for more details.

@@ -1,0 +1,50 @@
+{
+  "runId": "D03-review-baseline",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\0e3a73f025f50bd3fac4df984ef6e8e2b28caa7f0c3ff5d3e28a1f32142c1aa4\\baseline",
+  "inputHash": "7eb08d631b9ebd8e6f0022f137194e7b289c389a3fdc4de04f845c5833b389f6",
+  "request": "Revise o rascunho fornecido, indicando problemas concretos, fontes e correções necessárias. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "question",
+  "error": null,
+  "diagnostic": null,
+  "durationMs": 14318.408399999998,
+  "roles": [
+    "legal-orchestrator"
+  ],
+  "stateVersion": 1,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 19650,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 1658,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2228,
+      "outputTokens": 597,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2844,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": {
+    "id": "case-task:comprovacao-pagamento",
+    "version": 1,
+    "contextRevision": 1,
+    "prompt": "O corpus selecionado não esclarece se houve pagamento; a revisão limita-se a registrar essa ausência, sem afirmar quitação ou inadimplemento.",
+    "selection": "free_text",
+    "options": [],
+    "allowFreeText": true,
+    "allowUnknown": true,
+    "reason": "A conclusão sobre pagamento e encerramento depende de elementos não disponíveis no corpus fechado. A entrega é limitada, sem pesquisa externa ou presunção factual."
+  },
+  "legalScore": null
+}

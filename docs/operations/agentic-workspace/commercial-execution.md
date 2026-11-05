@@ -16,6 +16,37 @@ A reserva BRL é descontada do saldo disponível sob o mesmo lock usado por cons
 
 ## Cancelamento e recuperação
 
+### Complemento local: pesquisa STJ incluída (01/11/2026)
+
+Boni decidiu nesta conversa incluir a pesquisa STJ no teto do trabalho, sem
+cobrança separada. O worktree `codex/forgelex-3-quality` injeta o índice
+jurisprudencial persistido existente no runtime comercial e permite somente
+`research.search_case_law`, `research.get_authority` e `research.verify_authority`
+além das ferramentas nativas já permitidas. A composição produtiva continua
+restrita ao STJ e exige o data plane persistido; não consulta outro provedor
+quando esse índice está indisponível. O piloto mantém sua allowlist anterior.
+
+Essas leituras não passam pela cobrança avulsa de pesquisa. A reserva, a fórmula
+de preço e os limites financeiros comerciais permanecem os mesmos; cada chamada
+OpenAI continua medida. As ferramentas respeitam 12 chamadas por etapa e 48 por
+trabalho, além do prazo do worker. Acesso, execução, cancelamento e reserva são
+conferidos antes e depois de cada consulta. A seleção original é revalidada
+separadamente das autoridades recuperadas antes de cada envio ao modelo.
+
+Este parágrafo descreve implementação local, não ativação em produção.
+[Resultados e limites da validação](../../architecture/2026-11-01-forgelex-3-pending-local.md).
+
+### Fechamento da reserva
+
+O [grafo adaptativo local](../../architecture/2026-11-01-forgelex-3-adaptive-graph.md)
+mantém a mesma reserva e as mesmas chamadas comerciais medidas. Um refinamento
+gera nós novos no journal; não repete nós já confirmados nem chamadas incertas.
+Há no máximo um ciclo de refinamento e dez execuções de papéis, incluindo o
+planejamento, subordinados aos limites de ferramentas, inferência e duração.
+Contratos v1 do incremento 1 retomam pelo caminho legado; novos trabalhos usam
+v2. Antes de publicar ou voltar a uma imagem só v1, drenar/separar os trabalhos
+v2. Esta implementação local não comprova ativação em produção.
+
 Sem entrega utilizável: zero cobrança ao cliente. WAITING_USER fecha a reserva anterior sem cobrança quando não houver entrega; a resposta é um novo trabalho com autorização própria. Antes de consumir a pergunta, a resposta confere saldo, limites, execução ativa e conciliação pendente; se a nova reserva seria recusada, a pergunta permanece respondível. Uma entrega parcial utilizável pode ser cobrada pelo consumo comprovado dentro do teto.
 
 Uma chamada comprovadamente não enviada é VOID. Após dispatch sem usage válido, fica UNCERTAIN; não há repetição automática nem débito estimado ao usuário. Essa obrigação operacional bloqueia novos trabalhos da conta até conciliação com evidência, sem alterar a cobrança já finalizada. Os métodos internos de conciliação não possuem endpoint de autoaprovação ao cliente.
@@ -68,3 +99,12 @@ A última prova real de publicação deverá vincular commit, digest, revisões,
 ## Registros operacionais
 
 Falhas antes silenciosas agora geram JSON estruturado no stdout: `agentic.worker_tick.failed` e `agentic.admission_sweep.failed` (repetições do mesmo código, no máximo uma por minuto), `agentic.budget_release.failed` (liquidação financeira pendente, repetida a cada 30 s até concluir), `agentic.execution.failed`, `agentic.request.failed` e `agentic.stream.failed`. Só códigos estáveis são gravados (`errorCode`); mensagens livres viram `UNEXPECTED_ERROR`. Um alerta em `agentic.budget_release.failed` identifica reserva retida sem depender de reclamação do cliente.
+## Análise probatória local — incremento de 01/11/2026
+
+A ação `analyze_evidence` usa estado v3 e entrega matriz/cronologia candidatas,
+sem adotar fatos no caso. Só é utilizável para cobrança quando contém uma
+afirmação vinculada a trecho documental conferido; matriz só com relatos libera
+a reserva. Preço, teto e pesquisa incluída seguem a política existente.
+Ver [implementação e validação](../../architecture/2026-11-01-forgelex-3-evidence.md).
+Não implica habilitação em produção. Checkpoints v3 exigem imagem compatível;
+as tarefas anteriores continuam usando os contratos v1/v2.

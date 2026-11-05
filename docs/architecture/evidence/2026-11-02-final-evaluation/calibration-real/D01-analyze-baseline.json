@@ -1,0 +1,49 @@
+{
+  "runId": "D01-analyze-baseline",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\90317c82bb2ee2839c9807b91af63e4b534aaf1244d31974a4fb5237d9b59863\\baseline",
+  "inputHash": "a9ccc9e7b973b9bef18b324c30bd080ddccf6e27c650709538fe0b9cc4e36ed3",
+  "request": "Analise o caso, as questões, o alcance das provas e o que falta esclarecer. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "question",
+  "error": null,
+  "durationMs": 24310.6723,
+  "roles": [
+    "legal-orchestrator"
+  ],
+  "stateVersion": 1,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 23158,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 1666,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2246,
+      "outputTokens": 882,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 3147,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": {
+    "id": "case-task:remaining_delivery",
+    "version": 1,
+    "contextRevision": 1,
+    "prompt": "O que se sabe sobre as quatro mesas não abrangidas pelo recibo? Indique datas e documentos, se existentes, ou informe que desconhece.",
+    "selection": "free_text",
+    "options": [],
+    "allowFreeText": true,
+    "allowUnknown": true,
+    "reason": "A ausência de registro no recibo não resolve se houve cumprimento posterior ou inadimplemento. Na falta de resposta, limitar a conclusão às seis mesas documentadas."
+  },
+  "legalScore": null
+}

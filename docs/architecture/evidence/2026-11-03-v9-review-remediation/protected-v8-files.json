@@ -1,0 +1,238 @@
+{
+  "checkedAt": "2026-11-03T22:42:57.447Z",
+  "unchanged": 58,
+  "files": [
+    {
+      "file": "docs/architecture/2026-11-03-forgelex-v8-human-review.md",
+      "sha256": "a438e93d61da064642d35697d025854c1b976463f2f818aceada4da23577ccf4"
+    },
+    {
+      "file": "scripts/forgelex-final-evaluation/corpus.mjs",
+      "sha256": "ca8613e1a012c8e16c45a679131f4d84fa8acb62073c411ccd2e5b1a0b1a667f"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\authorization.json",
+      "sha256": "67cfacd0645ec43da4eacb47a82a89f4772e14ed981aa651f770e26b43336465"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\budget.jsonl",
+      "sha256": "5263bf583c77f1ec2ecbc5743996c24ea128b18586cdb32a68ede8bc8e135b8e"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\comparison-derived.json",
+      "sha256": "5f5caadcbd97808081327ca05457608ee320b20131c8db67da40ba92f2dd2632"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\D01-analyze-baseline.checkpoint.json",
+      "sha256": "a950934a73366a9602e5fd99a5d138307e975545219a55ed1ddf01d78aa48116"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\D01-analyze-baseline.json",
+      "sha256": "ef2ccd7335105e0d8042301ea46a548c6e8bdc0573f6d8f73c0bc2344b53e664"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\D01-analyze-candidate.checkpoint.json",
+      "sha256": "737adc27845f09ba901d033a8bb4a3b102d979ff1a61adc4ae5e5789d34f4fa4"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\D01-analyze-candidate.json",
+      "sha256": "1b7768f390ecdb76a02b83ae1231d685865cd8ee511cb5ae17eaa1b62489477f"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\D03-review-baseline.checkpoint.json",
+      "sha256": "3dc0536936e70566ea394d6521df948086fdf738c06aefa311c6a1c222fdf86e"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\D03-review-baseline.json",
+      "sha256": "6a5511aeb768b638c7a5f5c09dc6648334c012406a6e32bb4b0895fa68f6bce1"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\D03-review-candidate.checkpoint.json",
+      "sha256": "a5e6f4040b7f320e4f3ffa0a2443c865aecab7c4688f8a48ec985ab0811ec2f6"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\D03-review-candidate.json",
+      "sha256": "dc48f1413556be90d435fa17461ecfbe03e53edf4d2ff0d6864b4fb5a6420aaf"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\D04-create-baseline.checkpoint.json",
+      "sha256": "2d8b4c26b8843d1145b25441ce16c080c693547870919abede5c45c1f6a6f7e0"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\D04-create-baseline.json",
+      "sha256": "733bbf758f089da86c4ef1be22f93a47b08366e27f8b30d9f72a353ca24cd3e3"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\D04-create-candidate.json",
+      "sha256": "481bd15e6c84595bfe12f7439fbed49da43e5fa2cdf350b06e0c916402f476d3"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\execution.txt",
+      "sha256": "9084674895df98f2d7df6b19c2d685a2fc2e220923d897dc7d8b3b184ac9db07"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\packet.json",
+      "sha256": "0a5d2e082b0cd53e2d07f8a72d87771aa1f381e1f390832938c8ba5c3083d152"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\previous-ledger-hashes.json",
+      "sha256": "bd8347e92055a1e650198a63c213730b747b0e367979eb39627bb6d5234f2235"
+    },
+    {
+      "file": "docs\\architecture\\evidence\\2026-11-03-verifier-v8\\real\\receipt.json",
+      "sha256": "9b1fedc897bcab103d2c78d73e9a0f6c277e568105f38962ba3f823f1fb7900c"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\authorization.json",
+      "sha256": "67cfacd0645ec43da4eacb47a82a89f4772e14ed981aa651f770e26b43336465"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\budget.jsonl",
+      "sha256": "16ba8f0fae010e718cf2500abb6fc9a3071336586d296bebdbce6b93ffd97ac6"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\comparison.json",
+      "sha256": "36141a70cf3ad096dbd0270873809ec610a77425f7ece1342b4ee6b9259210a6"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D01-analyze-baseline.checkpoint.json",
+      "sha256": "945b01b7f5856c3d679a5811fe120e9baae3cd1235838f189dd887a8bdbc8090"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D01-analyze-baseline.json",
+      "sha256": "abc99cd8168cf38d8be0572287e1356b58accf7897a60a3aa191e26db5896541"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D01-analyze-candidate.checkpoint.json",
+      "sha256": "17d5289c7771748aa6fdcef74aad07a4af3b6daea2d6a87609d68b65f742d8bd"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D01-analyze-candidate.json",
+      "sha256": "1e366e9233bae940e6c5d96707c215945102334da3c87ac6b85c750b545886eb"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D03-review-baseline.checkpoint.json",
+      "sha256": "edd23412b17abf6efa3b78384b1732503c9695fd4f4e843e27cedf9677079b2d"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D03-review-baseline.json",
+      "sha256": "318d81b910dc8d39e7932d02dddddd0fccf338f67e493563a6e47716096e2012"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D03-review-candidate.checkpoint.json",
+      "sha256": "e9d05f2d373156633fde957efb50fd1ca997c29b5a2bdaa3e30cf6a41e6bc537"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D03-review-candidate.json",
+      "sha256": "d6fe9dea5000c065f49f5d49c1b1981ea87a763dc2cbaee266756352d44e13e0"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D04-create-baseline.checkpoint.json",
+      "sha256": "75b069ef7c7c28e0b26236ab883ef761ed2c72da0b0b78d3fe46d5fd055f016c"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D04-create-baseline.json",
+      "sha256": "8ae676261ace7379a6101aef5b04ca7d283f57a6aec16520426b3d7853dfb5f8"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D04-create-candidate.checkpoint.json",
+      "sha256": "95b61030ac9bc9fb93ab6c95dfc0cc4765cec58daa7d136ca09c0e3aa57894bb"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\D04-create-candidate.json",
+      "sha256": "6a7efce8f05f0c4b91d91445c5732686931d34ec03d3740547f61aca8dc2a782"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\invocation.json",
+      "sha256": "a04125c5e632d57217c93d15781ff3c6b6bde0915f5bf31d0be16e2c34ac2aa9"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\review.md",
+      "sha256": "c65bdcd42ad7d63f98635eb2f350486cecaf922b38a4cd6ac0f5d3aaf0b8181c"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\offline-fJRnuE\\vitest.config.mjs",
+      "sha256": "dbf1a9339f0dc48cc01df1967dba48b1080aac78d8d90f9ac59d96dcddb04fcc"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\packet.json",
+      "sha256": "0a5d2e082b0cd53e2d07f8a72d87771aa1f381e1f390832938c8ba5c3083d152"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\packet.sha256",
+      "sha256": "5d68304f70340c176f64494e026e4c98d149866255a994a8a41bcec387a21453"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\preparation\\packet.json",
+      "sha256": "0a5d2e082b0cd53e2d07f8a72d87771aa1f381e1f390832938c8ba5c3083d152"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\preparation\\scenarios.md",
+      "sha256": "0a0b3070cc9510800569ab95042264d493a1e3598389e96d4ff83c5d9000fe0e"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\preparation\\scores-template.csv",
+      "sha256": "9c79ed4bdf0c181bc9024a348755f64405601af44edebc9b210f7290cb46eba7"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\previous-ledger-hashes.json",
+      "sha256": "bd8347e92055a1e650198a63c213730b747b0e367979eb39627bb6d5234f2235"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\budget.jsonl",
+      "sha256": "5263bf583c77f1ec2ecbc5743996c24ea128b18586cdb32a68ede8bc8e135b8e"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\D01-analyze-baseline.checkpoint.json",
+      "sha256": "a950934a73366a9602e5fd99a5d138307e975545219a55ed1ddf01d78aa48116"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\D01-analyze-baseline.json",
+      "sha256": "ef2ccd7335105e0d8042301ea46a548c6e8bdc0573f6d8f73c0bc2344b53e664"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\D01-analyze-candidate.checkpoint.json",
+      "sha256": "737adc27845f09ba901d033a8bb4a3b102d979ff1a61adc4ae5e5789d34f4fa4"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\D01-analyze-candidate.json",
+      "sha256": "1b7768f390ecdb76a02b83ae1231d685865cd8ee511cb5ae17eaa1b62489477f"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\D03-review-baseline.checkpoint.json",
+      "sha256": "3dc0536936e70566ea394d6521df948086fdf738c06aefa311c6a1c222fdf86e"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\D03-review-baseline.json",
+      "sha256": "6a5511aeb768b638c7a5f5c09dc6648334c012406a6e32bb4b0895fa68f6bce1"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\D03-review-candidate.checkpoint.json",
+      "sha256": "a5e6f4040b7f320e4f3ffa0a2443c865aecab7c4688f8a48ec985ab0811ec2f6"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\D03-review-candidate.json",
+      "sha256": "dc48f1413556be90d435fa17461ecfbe03e53edf4d2ff0d6864b4fb5a6420aaf"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\D04-create-baseline.checkpoint.json",
+      "sha256": "2d8b4c26b8843d1145b25441ce16c080c693547870919abede5c45c1f6a6f7e0"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\D04-create-baseline.json",
+      "sha256": "733bbf758f089da86c4ef1be22f93a47b08366e27f8b30d9f72a353ca24cd3e3"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\D04-create-candidate.json",
+      "sha256": "481bd15e6c84595bfe12f7439fbed49da43e5fa2cdf350b06e0c916402f476d3"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\invocation.json",
+      "sha256": "3c2b79f911cc43afb693e32eb00088b0c8be6725a7a74fa548d8ceda226afa2c"
+    },
+    {
+      "file": ".superpowers\\sdd\\2026-11-02-forgelex-calibration-runner\\campaigns\\2026-11-03-verifier-v8-local-validated\\real\\vitest.config.mjs",
+      "sha256": "dbf1a9339f0dc48cc01df1967dba48b1080aac78d8d90f9ac59d96dcddb04fcc"
+    }
+  ]
+}

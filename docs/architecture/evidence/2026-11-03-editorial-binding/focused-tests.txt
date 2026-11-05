@@ -1,0 +1,11 @@
+
+ RUN  v4.1.12 C:/Users/Boni Jr/.codex/worktrees/forgelex-3-audit/SDK
+
+{"level":"error","message":"agentic.request.failed","method":"GET","route":"/api/agentic/deliveries/:id/editorial-context","errorCode":"DELIVERY_INTEGRITY_FAILED","errorName":"Error","timestamp":"2026-11-03T13:19:04.013Z"}
+{"level":"error","message":"agentic.execution.failed","tenantId":"native-task","executionId":"8a10e6fb-a38b-4a93-b5f2-a2ba00d42913","failureCode":"BUDGET_EXHAUSTED","errorCode":"BUDGET_NOT_FOUND","errorName":"Error","timestamp":"2026-11-03T13:19:11.359Z"}
+
+ Test Files  5 passed (5)
+      Tests  78 passed (78)
+   Start at  10:18:50
+   Duration  22.65s (transform 3.76s, setup 0ms, import 14.86s, tests 24.14s, environment 1ms)
+

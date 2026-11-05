@@ -1,0 +1,19 @@
+{
+  "mode": "fake",
+  "variant": "candidate",
+  "workflowVersion": 9,
+  "runId": "V2-MULTI",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\9132530fa7b4f5e273adf1068a702beb63dd4444d89eadc9426799cd60d91de2\\candidate",
+  "campaign": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\docs\\architecture\\evidence\\2026-11-04-v9-resumed-validated\\offline",
+  "fingerprint": "8a176635c588641c3bb90ff179ccf6ad5f84cec3bb72b55b69ee3068dc71e8e0",
+  "packetPath": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\docs\\architecture\\evidence\\2026-11-04-v9-resumed-validated\\packet.json",
+  "packetSha256": "865cebcfdf849521329f92e13d616c74cdf2d75accf33745c0e2249b94a38962",
+  "runIds": [
+    "D04-V2",
+    "D01-V2",
+    "D03-V2",
+    "V2-FIT",
+    "V2-INTEGRITY",
+    "V2-MULTI"
+  ]
+}

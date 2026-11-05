@@ -1,0 +1,49 @@
+{
+  "runId": "D03-review-candidate",
+  "mode": "real",
+  "engine": "C:\\Users\\Boni Jr\\.codex\\worktrees\\forgelex-3-audit\\SDK\\tmp\\forgelex-final-evaluation\\90317c82bb2ee2839c9807b91af63e4b534aaf1244d31974a4fb5237d9b59863\\candidate",
+  "inputHash": "7eb08d631b9ebd8e6f0022f137194e7b289c389a3fdc4de04f845c5833b389f6",
+  "request": "Revise o rascunho fornecido, indicando problemas concretos, fontes e correções necessárias. Use apenas o corpus fechado selecionado. Documentos e fatos são fictícios; a ausência de fontes deve ser explicitada.",
+  "outcome": "question",
+  "error": null,
+  "durationMs": 16074.0366,
+  "roles": [
+    "legal-orchestrator"
+  ],
+  "stateVersion": 2,
+  "paidModelCalls": 3,
+  "syntheticCalls": 0,
+  "measuredMicroUsd": 20448,
+  "simulatedMicroUsd": null,
+  "uncertainUpperMicroUsd": 0,
+  "usage": [
+    {
+      "inputTokens": 1759,
+      "outputTokens": 18,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2329,
+      "outputTokens": 613,
+      "cachedInputTokens": 0
+    },
+    {
+      "inputTokens": 2961,
+      "outputTokens": 4,
+      "cachedInputTokens": 0
+    }
+  ],
+  "delivery": null,
+  "question": {
+    "id": "case-task:prova-pagamento",
+    "version": 1,
+    "contextRevision": 1,
+    "prompt": "Entrega limitada ao corpus: o estado do pagamento permanece não informado, pois não há comprovante de quitação ou outros elementos que permitam estabelecê-lo.",
+    "selection": "free_text",
+    "options": [],
+    "allowFreeText": true,
+    "allowUnknown": true,
+    "reason": "A ausência de informação impede confirmar pagamento, inadimplemento e encerramento; não impede apontar e corrigir os problemas do rascunho nesta revisão limitada."
+  },
+  "legalScore": null
+}

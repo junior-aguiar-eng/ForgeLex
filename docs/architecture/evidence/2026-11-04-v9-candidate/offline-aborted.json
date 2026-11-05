@@ -1,0 +1,8 @@
+{
+  "status": "OFFLINE_ABORTED",
+  "reason": "Windows absolute include glob caused slow Vitest discovery; corrected to relative include in new immutable packet",
+  "paidCalls": 0,
+  "budgetCreated": false,
+  "sourceGuard": "Detected changed runner during aborted attempt; did not continue",
+  "replacement": "2026-11-04-v9-candidate-validated"
+}

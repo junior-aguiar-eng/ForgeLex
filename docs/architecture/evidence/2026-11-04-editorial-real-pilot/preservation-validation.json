@@ -1,0 +1,13 @@
+{
+  "verifiedAt": "2026-11-04T22:39:30.736Z",
+  "databaseTablesUnchanged": [
+    "drafts",
+    "draft_versions",
+    "draft_sections",
+    "agentic_task_deliveries",
+    "agentic_executions"
+  ],
+  "approvedSourceUnchanged": true,
+  "originalCampaignNotModified": true,
+  "paidCallsDuringVerification": 0
+}

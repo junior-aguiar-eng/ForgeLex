@@ -1,0 +1,88 @@
+{
+  "description": "Captured from increment 2 before evidence analysis implementation; no real model or personal data.",
+  "binding": {
+    "tenantId": "graph",
+    "userId": "boni",
+    "executionId": "legacy",
+    "conversationId": "graph-conversation",
+    "contextRevision": 1,
+    "objective": "Analisar contexto sintético",
+    "actionId": "analyze_documents"
+  },
+  "packet": {
+    "contextId": "graph-conversation",
+    "contextRevision": 1,
+    "sources": [
+      {
+        "id": "user:graph",
+        "kind": "USER_TEXT",
+        "text": "Contexto sintético para compatibilidade do grafo.",
+        "contentHash": "8b291da6efdf3836645eb760b06af85611b53f28c19d4be21696741e4e0bc0d1"
+      }
+    ],
+    "answers": []
+  },
+  "state": {
+    "version": 2,
+    "bindingHash": "0a79a798982cfb0a00113af2b80becec35a5f7e45750d0f0918e0f46c82fc1c1",
+    "contractHash": "be6575c4850189f940e206101d9148cc33430bf023e833549c06d4d9ec7ea482",
+    "previousDeliveryIds": [],
+    "outputs": {},
+    "evidence": [],
+    "profiles": [
+      {
+        "role": "legal-orchestrator",
+        "version": "1.3.0",
+        "instructionId": "legal-orchestrator-instructions",
+        "instructionVersion": "1.0.0",
+        "legacyAgentId": null,
+        "legacyAgentVersion": null,
+        "policyId": "agentic-case-task-policy",
+        "policyVersion": "1.3.0"
+      }
+    ],
+    "toolCount": 1,
+    "researchOperations": [],
+    "findings": [],
+    "plan": {
+      "action": "analyze_documents",
+      "requiresCaseLaw": false,
+      "requiresNorms": false,
+      "requiresProcedure": false,
+      "issues": [
+        {
+          "id": "issue",
+          "statement": "Analisar o relato",
+          "sourceIds": ["user:graph"]
+        }
+      ],
+      "gaps": []
+    },
+    "graph": {
+      "version": 1,
+      "revision": 0,
+      "tools": [],
+      "failedTools": [],
+      "planHashes": ["561f9bff6eed2f1412bc3e06174fc8d610b6b3bedf3842de786c28bb19504872"],
+      "reviewRequired": false,
+      "nodes": [
+        {
+          "id": "matter-analyst:0",
+          "role": "matter-analyst",
+          "generation": 0,
+          "dependsOn": [],
+          "status": "PENDING"
+        },
+        {
+          "id": "authority-verifier:0",
+          "role": "authority-verifier",
+          "generation": 0,
+          "dependsOn": ["matter-analyst:0"],
+          "status": "PENDING"
+        }
+      ],
+      "archivedOutputs": {},
+      "decisions": []
+    }
+  }
+}
