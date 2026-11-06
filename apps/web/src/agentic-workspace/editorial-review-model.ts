@@ -52,7 +52,7 @@ export interface EditorialReview {
   context: {
     document: { title: string; sections: { title: string; content: string }[] };
     requirements: { id: string; verified: boolean; statement: string }[];
-    findings: { id: string; code?: string; statement: string }[];
+    findings: { id: string; statement: string }[];
     sources: { id: string; kind: string; text: string }[];
   } | null;
   history: {

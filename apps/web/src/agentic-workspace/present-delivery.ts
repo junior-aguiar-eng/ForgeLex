@@ -167,6 +167,12 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
         citations: cite(conflict.claimIds.flatMap((id) => delivery.claims.find((c) => c.id === id)?.sourceIds ?? [])),
       });
   }
+  if (delivery.action === 'review_text' && !delivery.review) {
+    for (const finding of delivery.findings)
+      blocks.push({ kind: 'paragraph', text: finding.statement, citations: cite(finding.sourceIds) });
+    for (const requirement of delivery.requirements)
+      blocks.push({ kind: 'paragraph', text: requirement.statement, citations: cite(requirement.sourceIds) });
+  }
   if (delivery.review) {
     const section = (title: string, items: { text: string; sourceIds: string[] }[]) => {
       if (!items.length) return;
@@ -228,7 +234,7 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
     if (text && !pending.includes(text)) pending.push(text);
   };
   const unsupportedSections: string[] = [];
-  for (const finding of delivery.review ? [] : delivery.findings) {
+  for (const finding of delivery.review || delivery.action === 'review_text' ? [] : delivery.findings) {
     const code = codeOf(finding);
     if (code === 'UNSUPPORTED_SECTION') unsupportedSections.push(finding.statement);
     else if (LIMITATION_TEXT[code]) add(LIMITATION_TEXT[code]);
@@ -240,7 +246,7 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
         ? `A seção “${unsupportedSections[0]}” não tem fonte indicada.`
         : `As seções ${unsupportedSections.map((s) => `“${s}”`).join(', ')} não têm fonte indicada.`,
     );
-  for (const requirement of delivery.review ? [] : delivery.requirements)
+  for (const requirement of delivery.review || delivery.action === 'review_text' ? [] : delivery.requirements)
     if (!requirement.verified) add(`Requisito não verificado: ${requirement.statement}`);
   return {
     // A deliverable promised as a draft but produced without a document is a gap analysis, never a "minuta".

@@ -105,6 +105,7 @@ export interface Source {
 }
 export interface Delivery {
   id: string;
+  createdAt?: string;
   draftId?: string;
   versionId?: string;
   delivery: {

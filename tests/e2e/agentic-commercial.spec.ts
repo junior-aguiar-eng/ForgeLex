@@ -50,17 +50,16 @@ test('autoriza preço em reais, preserva retry e mostra comprovante no celular',
   });
   await page.setViewportSize({ width: 320, height: 900 });
   await login(page);
-  await prepare(page, 'Organizar os fatos sintéticos apresentados');
-  const review = page.getByRole('region', { name: 'Autorizar trabalho' });
-  await expect(review).toContainText(/Este trabalho custa até R\$\s*5,00/);
-  await expect(review).toContainText('O saldo não utilizado será liberado');
-  await expect(review).not.toContainText(/USD|gpt-|tokens|framework/i);
+  const composer = page.getByRole('region', { name: 'Novo pedido', exact: true });
+  await expect(composer).toContainText(/Enviar autoriza até R\$\s*5,00/);
+  await expect(composer).toContainText('o restante é liberado');
   expect(posted).toHaveLength(0);
   const accessibility = await new AxeBuilder({ page }).include('[data-agentic-workspace]').analyze();
   expect(accessibility.violations).toEqual([]);
-  await review.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
+  await prepare(page, 'Organizar os fatos sintéticos apresentados');
   await expect(page.getByRole('alert')).toBeVisible();
-  await review.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Autorizar trabalho' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   expect(posted).toHaveLength(2);
   expect(posted[1]).toEqual(posted[0]);
@@ -95,7 +94,6 @@ test('resposta e correção exigem autorização nova antes de enviar', async ({
   });
   await login(page);
   await prepare(page, 'Analisar PERGUNTA_MULTIPLA');
-  await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   await page.getByLabel('Complemento ou outra resposta').fill('Resposta original sintética');
   await page.getByRole('button', { name: 'Enviar resposta', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Autorizar trabalho' })).toBeVisible();
@@ -178,17 +176,16 @@ test('saldo insuficiente e preço indisponível impedem novo trabalho', async ({
     route.fulfill({ json: { ...quote, availableCents: 499 } }),
   );
   await login(page);
-  await prepare(page, 'Conferir contexto sintético');
-  await expect(page.getByRole('button', { name: 'Iniciar trabalho', exact: true })).toBeDisabled();
-  await expect(page.getByRole('alert')).toContainText('Saldo insuficiente');
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Conferir contexto sintético');
+  await expect(page.getByRole('button', { name: 'Enviar', exact: true })).toBeDisabled();
+  await expect(page.getByRole('region', { name: 'Novo pedido', exact: true })).toContainText('Saldo insuficiente');
   await page.route('**/api/agentic/commercial/quote', (route) =>
     route.fulfill({ status: 503, json: { error: 'COMMERCIAL_UNAVAILABLE' } }),
   );
   await page.reload();
-  await prepare(page, 'Conferir novamente contexto sintético');
-  await expect(page.getByRole('region', { name: 'Autorizar trabalho' })).toContainText(
-    'Não foi possível consultar o preço',
-  );
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Conferir novamente contexto sintético');
+  await expect(page.getByRole('button', { name: 'Enviar', exact: true })).toBeDisabled();
+  await expect(page.getByRole('region', { name: 'Novo pedido', exact: true })).toContainText('Preço indisponível');
   await expect(page.getByRole('button', { name: 'Iniciar trabalho', exact: true })).toHaveCount(0);
 });
 

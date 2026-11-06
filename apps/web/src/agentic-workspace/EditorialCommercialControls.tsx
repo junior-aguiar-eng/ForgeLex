@@ -17,9 +17,7 @@ export function EditorialCommercialControls({
   maxCostCents,
   disabled,
   onProposal,
-  compact = false,
 }: {
-  compact?: boolean;
   base: string;
   draftId: string;
   versionId: string;
@@ -96,9 +94,7 @@ export function EditorialCommercialControls({
   }, [storageKey, base, draftId, versionId]);
   const active = !!command && ['QUEUED', 'RUNNING'].includes(command.status);
   const canRequestAgain =
-    !!command &&
-    (['FAILED', 'CANCELLED'].includes(command.status) || (compact && command.status === 'COMPLETED')) &&
-    command.receipt?.status !== 'ACTIVE';
+    !!command && ['FAILED', 'CANCELLED'].includes(command.status) && command.receipt?.status !== 'ACTIVE';
   const accept = async (value: Command | null) => {
     if (!mounted.current) return;
     setCommand(value);
@@ -131,21 +127,13 @@ export function EditorialCommercialControls({
       if (mounted.current) setBusy(false);
     }
   };
-  const start = async (explicitClick = false) => {
-    const freshReview = newReview || (explicitClick && canRequestAgain);
-    if (
-      (!confirmed && !explicitClick) ||
-      busy ||
-      (command && !freshReview) ||
-      (requestId && !notFound && !freshReview) ||
-      disabled ||
-      !ready
-    )
+  const start = async () => {
+    if (!confirmed || busy || (command && !newReview) || (requestId && !notFound && !newReview) || disabled || !ready)
       return;
     setBusy(true);
     setError('');
     try {
-      const id = freshReview ? crypto.randomUUID() : (requestId ?? crypto.randomUUID());
+      const id = newReview ? crypto.randomUUID() : (requestId ?? crypto.randomUUID());
       // Persist only the request identifier, never proposal text or credentials.
       try {
         sessionStorage.setItem(storageKey, id);
@@ -199,68 +187,6 @@ export function EditorialCommercialControls({
       if (mounted.current) setBusy(false);
     }
   };
-  useEffect(() => {
-    if (!compact || !active || busy || error) return;
-    // Poll status only. Never repeat the paid POST while waiting for its result.
-    const timer = window.setTimeout(() => void refresh(), 1500);
-    return () => window.clearTimeout(timer);
-  }, [compact, active, busy, error, command?.commandId]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (compact)
-    return (
-      <section aria-label="Revisão com saldo" className="text-sm">
-        {((!command && (!requestId || notFound)) || canRequestAgain) && (
-          <>
-            <button
-              type="button"
-              disabled={busy || disabled || !ready}
-              onClick={() => void start(true)}
-              className="min-h-10 rounded-lg bg-cognac-800 px-3 py-2 text-white disabled:opacity-40"
-            >
-              {command ? 'Revisar novamente' : 'Revisar com IA'} · até {money(maxCostCents)}
-            </button>
-            <p className="mt-1 text-xs text-stone-500">
-              Ao clicar, você autoriza a cobrança da revisão concluída, mesmo sem sugestões. O saldo restante é
-              liberado.
-            </p>
-          </>
-        )}
-        {(active || !ready) && <p role="status">{!ready ? 'Conferindo revisão anterior…' : 'Revisando a peça…'}</p>}
-        {error && (
-          <p role="alert" className="mt-2 text-red-800">
-            {error}
-          </p>
-        )}
-        {(active || error || (requestId && !command)) && (
-          <button type="button" disabled={busy} onClick={() => void refresh()} className="min-h-10 underline">
-            Conferir andamento
-          </button>
-        )}
-        {active && (
-          <button
-            type="button"
-            disabled={busy || disabled}
-            onClick={() => void cancel()}
-            className="ml-3 min-h-10 underline"
-          >
-            Cancelar revisão
-          </button>
-        )}
-        {command?.status === 'COMPLETED' && (
-          <p role="status" className="mt-2 text-stone-600">
-            Revisão concluída{command.receipt ? ` · ${money(command.receipt.chargedCents)}` : ''}.
-          </p>
-        )}
-        {command?.receipt && (
-          <details className="mt-1 text-xs text-stone-500">
-            <summary className="cursor-pointer">Recibo</summary>
-            <p className="mt-1">
-              Reservado: {money(command.receipt.reservedCents)} · Cobrado: {money(command.receipt.chargedCents)} ·
-              Liberado: {money(command.receipt.releasedCents)}
-            </p>
-          </details>
-        )}
-      </section>
-    );
   return (
     <section aria-label="Revisão com saldo" className="my-3 space-y-2 text-sm">
       {((!command && (!requestId || notFound)) || newReview) && (

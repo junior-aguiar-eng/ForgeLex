@@ -101,7 +101,7 @@ export function createCaseTaskDriver(
         }
         if (options.legislationProvider) tools.push(createGetLegislationTool(options.legislationProvider));
         const task = new AgenticCaseTask({
-          workflowVersion: options.workflowVersion,
+          workflowVersion: options.workflowVersion ?? 10,
           context: native,
           tools,
           createProvider: options.createProvider,

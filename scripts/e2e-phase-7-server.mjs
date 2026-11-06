@@ -291,7 +291,6 @@ const app = await buildApp({
       ? {
           FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true',
           FORGELEX_COMMERCIAL_EXECUTION_ENABLED: 'true',
-          ...(process.env.FORGELEX_E2E_EDITORIAL === 'true' ? { FORGELEX_EDITORIAL_COMMERCIAL_ENABLED: 'true' } : {}),
           FORGELEX_DATABASE_URL: databaseUrl,
         }
       : {}),

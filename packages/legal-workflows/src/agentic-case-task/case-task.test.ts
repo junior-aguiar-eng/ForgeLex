@@ -60,6 +60,7 @@ it('preserva pergunta de seleção múltipla indicada no plano público', async 
 function fixture(
   plan = basicPlan,
   options: {
+    workflowVersion?: 8 | 9 | 10;
     outputs?: Record<string, unknown>;
     steps?: Record<string, { name: string; input: Record<string, unknown> }[]>;
     tools?: AgentTool<any, any>[];
@@ -96,6 +97,7 @@ function fixture(
     },
   };
   const task = new AgenticCaseTask({
+    workflowVersion: options.workflowVersion,
     context,
     tools: options.tools ?? [],
     createProvider: ({ role, registry, packet: p }: any) => {
@@ -1089,4 +1091,44 @@ it('não persiste entrega cuja matriz de suporte excede o limite de bytes', asyn
   );
   await expect(f.finish()).rejects.toThrow('TASK_CONTEXT_LIMIT');
   expect(f.deliveries).toHaveLength(0);
+});
+
+it('mesa v10 revisa a soma sem produzir documento e vincula edição à versão aberta', async () => {
+  const text = 'Três parcelas de R$ 100,00 cada. O total é R$ 200,00.';
+  const draft = { id: 'v1', kind: 'DRAFT', versionId: 'v1', text, contentHash: hash(text) };
+  const review = fixture(
+    { ...basicPlan, action: 'review_text', issues: [{ id: 'i1', statement: 'Revisar texto', sourceIds: ['v1'] }] },
+    { workflowVersion: 10, sources: [draft] },
+  );
+  await review.finish({ ...binding, actionId: undefined });
+  expect(review.deliveries[0].document).toBeUndefined();
+  expect(review.deliveries[0].findings).toEqual(
+    expect.arrayContaining([expect.objectContaining({ code: 'EDITORIAL_ARITHMETIC_MISMATCH', sourceIds: ['v1'] })]),
+  );
+  const edit = fixture(
+    {
+      ...basicPlan,
+      action: 'create_document',
+      documentMode: 'EDIT',
+      documentType: 'Relato',
+      issues: [{ id: 'i1', statement: 'Alterar texto', sourceIds: ['v1'] }],
+    } as any,
+    {
+      workflowVersion: 10,
+      sources: [draft],
+      outputs: {
+        'legal-drafter': {
+          ...empty,
+          coveredIssueIds: [],
+          document: {
+            title: 'Peça',
+            documentType: 'Relato',
+            sections: [{ title: 'Texto', content: 'Total corrigido a pedido: R$ 300,00.', sourceIds: ['v1'] }],
+          },
+        },
+      },
+    },
+  );
+  await edit.finish({ ...binding, actionId: undefined });
+  expect(edit.deliveries[0].replacesVersionId).toBe('v1');
 });

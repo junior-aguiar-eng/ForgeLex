@@ -1,11 +1,7 @@
 import { defineConfig } from '@playwright/test';
-import commercial from './playwright.agentic-commercial-flow.config';
+import workspace from './playwright.agentic-workspace.config';
 export default defineConfig({
-  ...commercial,
+  ...workspace,
   outputDir: 'test-results/editorial-review',
   testMatch: ['editorial-review.spec.ts'],
-  webServer: (commercial.webServer as any[]).map((server, index) => ({
-    ...server,
-    env: { ...server.env, ...(index === 0 ? { FORGELEX_E2E_EDITORIAL: 'true' } : {}) },
-  })),
 });

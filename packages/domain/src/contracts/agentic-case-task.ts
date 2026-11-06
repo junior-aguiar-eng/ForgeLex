@@ -144,6 +144,8 @@ export const AgenticTaskDeliverySchema = z.strictObject({
   supportAudit: z.array(TaskSupportAuditSchema).max(10000).optional(),
   evidenceMatrix: TaskEvidenceMatrixSchema.optional(),
   document: TaskDocumentSchema.optional(),
+  // Server-bound edit target; omitted for new pieces and read-only reviews.
+  replacesVersionId: id.optional(),
   review: TaskReviewedDeliverySchema.optional(),
 });
 export type AgenticTaskDelivery = z.infer<typeof AgenticTaskDeliverySchema>;

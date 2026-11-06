@@ -57,3 +57,22 @@ describe('entrega utilizável para cobrança', () => {
     expect(hasUsableResult(delivery({ claims }), 'research_question')).toBe(false);
   });
 });
+
+it('revisão concluída sem sugestões cobra pela conclusão fundamentada, sem exigir mudanças', () => {
+  expect(
+    hasUsableResult(
+      delivery({
+        claims: [
+          {
+            id: 'review',
+            classification: 'INFERENCE',
+            statement: 'No texto examinado, não identifiquei alterações editoriais a propor.',
+            sourceIds: ['s1'],
+          },
+        ],
+        document: undefined,
+      }),
+    ),
+  ).toBe(true);
+  expect(hasUsableResult(delivery({ claims: [], findings: [] }))).toBe(false);
+});

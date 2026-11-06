@@ -19,6 +19,12 @@ export const TaskPlanSchema = z.strictObject({
   requiresCaseLaw: z.boolean(),
   requiresNorms: z.boolean(),
   requiresProcedure: z.boolean(),
+  documentMode: z
+    .enum(['CREATE', 'EDIT'])
+    .optional()
+    .describe(
+      'CREATE para outra peça; EDIT somente quando o usuário pede alterar a peça aberta. Revisar sem alterar usa review_text.',
+    ),
   documentPurpose: z.enum(['FACTUAL_RECORD', 'LEGAL_DOCUMENT']).optional(),
   documentType: text.optional(),
   issues: z.array(TaskIssueSchema).max(100),

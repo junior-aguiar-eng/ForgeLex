@@ -1,4 +1,3 @@
-import { DeskReviewNotes } from './DeskReviewNotes';
 import { createPortal } from 'react-dom';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ApiRequestError, requestApi } from '../api-client';
@@ -18,18 +17,12 @@ export function EditorialReviewPanel({
   versionId,
   matterId,
   disabled = false,
-  inline = false,
-  onAsk,
-  onLocate,
 }: {
   deliveryId: string;
   draftId: string;
   versionId: string;
   matterId: string;
   disabled?: boolean;
-  inline?: boolean;
-  onAsk?: (text: string) => void;
-  onLocate?: (index: number) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null),
     title = useId();
@@ -67,9 +60,9 @@ export function EditorialReviewPanel({
   const target = { draftId, versionId };
   const generationBase = `/api/agentic/deliveries/${encodeURIComponent(deliveryId)}/editorial-proposals`;
   useEffect(() => {
-    if (open && !inline) dialog.current?.showModal();
+    if (open) dialog.current?.showModal();
     else dialog.current?.close();
-  }, [open, inline]);
+  }, [open]);
   useEffect(
     () => () => {
       sequence.current++;
@@ -126,9 +119,6 @@ export function EditorialReviewPanel({
       if (ticket === sequence.current) setBusy(false);
     }
   };
-  useEffect(() => {
-    if (inline) void read();
-  }, [inline, deliveryId, draftId, versionId]); // eslint-disable-line react-hooks/exhaustive-deps
   const generate = async () => {
     if (
       busy ||
@@ -200,7 +190,6 @@ export function EditorialReviewPanel({
           ? 'Nova versão criada. A versão original foi preservada.'
           : 'Decisão salva no histórico. O texto da minuta permanece intacto.',
       );
-      return result;
     } catch (failure) {
       if (ticket !== sequence.current) return;
       if (uncertain && failure instanceof ApiRequestError && failure.status >= 400 && failure.status < 500) {
@@ -319,105 +308,6 @@ export function EditorialReviewPanel({
         ...proposal.substantiveSuggestions.map((item) => ({ ...item, substantive: true })),
       ]
     : [];
-  const applyFromDesk = async (item: { id: string }) => {
-    if (!review?.context || !proposal || disabled || busy || blocked || uncertain || pending.current) return;
-    // One explicit user click authorizes this suggestion only. Retain the server's
-    // decision/application contracts, revision checks and idempotent recovery.
-    const reason = 'Aplicação desta sugestão solicitada pelo usuário na mesa.';
-    pendingKind.current = 'decision';
-    pending.current = JSON.stringify({
-      ...target,
-      proposal,
-      contextHash: review.contextHash,
-      expectedRevision: review.revision,
-      commandId: crypto.randomUUID(),
-      decision: { itemId: item.id, action: 'ACCEPT', reason },
-    });
-    const accepted = await send(pending.current);
-    if (!accepted || accepted.stale || !accepted.context || pending.current) return;
-    const event = accepted.history
-      .filter(
-        (e) =>
-          e.contextHash === accepted.contextHash &&
-          e.decision.itemId === item.id &&
-          JSON.stringify(e.proposal) === JSON.stringify(proposal),
-      )
-      .at(-1);
-    if (!event || event.decision.action !== 'ACCEPT') return;
-    pendingKind.current = 'application';
-    pending.current = JSON.stringify({
-      ...target,
-      contextHash: accepted.contextHash,
-      expectedRevision: accepted.revision,
-      commandId: crypto.randomUUID(),
-      proposalHash: event.proposalHash,
-      itemIds: [item.id],
-      reason,
-      confirmed: true,
-    });
-    await send(pending.current);
-  };
-  if (inline)
-    return (
-      <>
-        {busy && (
-          <p role="status" className="text-sm text-stone-500">
-            Conferindo…
-          </p>
-        )}
-        {error && (
-          <p role="alert" className="text-sm text-red-800">
-            {error}
-          </p>
-        )}
-        {notice && (
-          <p role="status" className="text-sm">
-            {notice}
-          </p>
-        )}
-        {(error || uncertain || review?.stale) && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => (uncertain && pending.current ? void send(pending.current) : void read())}
-            className="min-h-10 text-sm underline"
-          >
-            {uncertain ? 'Conferir resultado' : 'Atualizar apontamentos'}
-          </button>
-        )}
-        <DeskReviewNotes
-          review={review}
-          proposal={proposal}
-          disabled={disabled || busy || blocked || uncertain}
-          onAsk={onAsk}
-          onLocate={onLocate}
-          onApply={(item) => void applyFromDesk(item)}
-          controls={
-            generation?.mode === 'COMMERCIAL' && generation.policyVersion && generation.maxCostCents !== undefined ? (
-              <EditorialCommercialControls
-                compact
-                base={generationBase}
-                draftId={draftId}
-                versionId={versionId}
-                policyVersion={generation.policyVersion}
-                maxCostCents={generation.maxCostCents}
-                disabled={disabled || busy || blocked || uncertain || !generation.enabled}
-                onProposal={read}
-              />
-            ) : generation?.enabled && generation.mode === 'SIMULATED' ? (
-              <button
-                type="button"
-                disabled={disabled || busy || blocked || generationAttempted}
-                onClick={() => void generate()}
-                className="min-h-10 text-cognac-800"
-              >
-                Revisar texto (teste)
-              </button>
-            ) : null
-          }
-        />
-      </>
-    );
   return (
     <div>
       <button

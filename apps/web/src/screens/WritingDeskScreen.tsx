@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { FileText, MessageSquare, PanelLeftClose, PanelLeftOpen, PanelRightClose, Plus } from 'lucide-react';
 import { AgenticWorkspaceScreen } from './AgenticWorkspaceScreen';
 import { DraftStudioScreen } from './DraftStudioScreen';
-import { useApp, type ReviewQueueItem } from '../context/AppContext';
-import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
+import type { DeskPiece } from '../agentic-workspace/desk-model';
 
 export function WritingDeskScreen({
   active,
@@ -25,15 +24,8 @@ export function WritingDeskScreen({
   const [open, setOpen] = useState(Boolean(location));
   const [mobile, setMobile] = useState<'chat' | 'piece'>(location ? 'piece' : 'chat');
   const [piece, setPiece] = useState<DeskPiece | null>(null);
-  const [request, setRequest] = useState<DeskRequest>();
-  const [inbox, setInbox] = useState(initial.pathname.includes('revisao'));
-  const [selected, setSelected] = useState<ReviewQueueItem>();
-  const [error, setError] = useState('');
-  const [deciding, setDeciding] = useState(false);
   const [historyContainer, setHistoryContainer] = useState<HTMLElement | null>(null);
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
-  const { reviewQueue, resolveReview } = useApp();
-  const pending = reviewQueue.data.filter((item) => item.status === 'PENDING');
   const openPiece = useCallback((url: string) => {
     setLocation(url);
     setOpen(true);
@@ -48,25 +40,7 @@ export function WritingDeskScreen({
   useEffect(() => {
     const url = new URL(requestedLocation, window.location.origin);
     if (url.pathname.includes('rascunhos')) openPiece(requestedLocation);
-    if (url.pathname.includes('revisao')) setInbox(true);
   }, [requestedLocation, openPiece]);
-  const ask = useCallback((text: string) => {
-    setRequest({ id: Date.now(), text });
-    setMobile('chat');
-  }, []);
-  const decide = async (action: 'APPROVED' | 'REJECTED') => {
-    if (!selected || deciding) return;
-    setDeciding(true);
-    setError('');
-    try {
-      await resolveReview(selected, action);
-      setSelected(undefined);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Não foi possível registrar a decisão.');
-    } finally {
-      setDeciding(false);
-    }
-  };
   return (
     <div className="min-w-0" data-writing-desk>
       <header className="flex min-h-12 items-center gap-3 border-b border-stone-200 px-5 text-sm">
@@ -81,15 +55,6 @@ export function WritingDeskScreen({
           {historyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
         </button>
         <span className="mr-auto" />
-        {pending.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setInbox(true)}
-            className="rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100"
-          >
-            Conferir ({pending.length})
-          </button>
-        )}
         <button
           type="button"
           onClick={() => {
@@ -151,7 +116,7 @@ export function WritingDeskScreen({
           }
         >
           <div
-            className={`${open && mobile === 'piece' ? 'hidden lg:block' : ''} min-w-0 ${open ? 'lg:h-[calc(100dvh-8rem)] lg:overflow-y-auto' : ''}`}
+            className={`${open && mobile === 'piece' ? 'hidden lg:block' : ''} min-w-0 lg:h-[calc(100dvh-8rem)] lg:overflow-hidden`}
           >
             <AgenticWorkspaceScreen
               active={active}
@@ -160,7 +125,6 @@ export function WritingDeskScreen({
               onEditor={openPiece}
               onExecutionChange={onExecutionChange}
               piece={piece}
-              request={request}
             />
           </div>
           {location && (
@@ -168,72 +132,11 @@ export function WritingDeskScreen({
               style={!open ? { display: 'none' } : undefined}
               className={`${mobile === 'chat' ? 'hidden lg:block' : ''} min-w-0 border-l border-stone-200`}
             >
-              <DraftStudioScreen integrated requestedLocation={location} onPieceChange={setPiece} onAsk={ask} />
+              <DraftStudioScreen integrated requestedLocation={location} onPieceChange={setPiece} />
             </div>
           )}
         </div>
       </div>
-      {inbox && (
-        <section aria-label="Conferências do caso" className="mx-5 my-3 rounded-xl border border-stone-200 p-4">
-          <button
-            type="button"
-            disabled={deciding}
-            onClick={() => {
-              setInbox(false);
-              setSelected(undefined);
-            }}
-            className="mb-2 text-sm underline"
-          >
-            Recolher conferências
-          </button>
-          {error && <p role="alert">{error}</p>}
-          {selected ? (
-            <div className="space-y-4">
-              <h3 className="font-editorial text-lg">{selected.title}</h3>
-              <p className="whitespace-pre-wrap text-sm leading-7">{selected.summary}</p>
-              <div className="flex gap-3">
-                <button
-                  disabled={deciding}
-                  type="button"
-                  onClick={() => void decide('APPROVED')}
-                  className="btn-primary"
-                >
-                  Aprovar
-                </button>
-                <button
-                  disabled={deciding}
-                  type="button"
-                  onClick={() => void decide('REJECTED')}
-                  className="btn-secondary"
-                >
-                  Devolver
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {!pending.length && <p className="text-sm text-stone-500">Nenhuma conferência pendente.</p>}
-              {pending.map((item) => (
-                <button
-                  type="button"
-                  key={item.id}
-                  className="block w-full rounded-lg border border-stone-200 p-3 text-left text-sm hover:bg-stone-50"
-                  onClick={() => {
-                    if (item.kind === 'DRAFT') {
-                      openPiece(
-                        `/app/trabalho?${new URLSearchParams({ matterId: item.matterId, draftId: item.targetId, ...(item.draftVersionId ? { versionId: item.draftVersionId } : {}) })}`,
-                      );
-                      setInbox(false);
-                    } else setSelected(item);
-                  }}
-                >
-                  {item.title}
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
     </div>
   );
 }
