@@ -1,21 +1,29 @@
 # Pendências atuais do ForgeLex
 
-## Ajustes locais — conversas laterais e seletor
+## Estado publicado atual — mesa corrigida e editor comercial ativo
 
-Histórico visível na lateral da mesa em desktop, com recolhimento opcional;
-seletor dimensionado para mostrar a opção inteira. Exclusão do histórico
-recuperável em “Conversas excluídas”, preservando peças e registros financeiros.
-Salvamento automático mantido, sem novo botão de salvar conversa.
-O campo separado “Contexto escrito” foi removido: pedido e fatos são escritos
-na mesma caixa. O seletor inicia em “Automático”, sem ação imposta ao agente;
-as opções explícitas continuam facultativas. O contexto anterior permanece
-disponível nas continuações da conversa.
+As correções da PR #107 estão publicadas no código
+`ef818d6079999cf1cccc116afda6048aaaf4c7e2`: conversa única, seletor opcional
+em Automático, histórico lateral e exclusão recuperável. Salvamento automático
+mantido. Backup concluído e migration 0039 aplicada; journal com 52 entradas,
+sem pendências na conferência posterior.
 
-A migration aditiva `persistence-0039-conversation-history` está preparada
-localmente. Estes ajustes ainda não foram publicados nem aplicados ao banco
-de produção; o estado publicado abaixo permanece o da PR #105.
+Em 06/11/2026, Boni autorizou ativar o editor comercial. API e encerramento
+recebem 100% do tráfego nas revisões `forgelex-api-prod-ef818d6-ed1` e
+`forgelex-closure-hml-private-ef818d6-ed1`, com a mesma imagem validada.
+`FORGELEX_EDITORIAL_COMMERCIAL_ENABLED=true` nos dois serviços;
+`FORGELEX_AUTO_MIGRATE=false` preservado. A confirmação de cobrança por trabalho
+continua obrigatória, inclusive para revisão concluída sem sugestões.
 
-## Estado publicado atual — mesa de edição integrada
+Conferência visual autenticada realizada em desktop e celular, sem chamada paga
+ou gravação de documento. O ensaio comercial completo em produção e a avaliação
+jurídica de novas entregas não são resultados desta conferência.
+
+[Recibo das correções, backup e migration](docs/operations/agentic-workspace/2026-11-05-conversation-publication.md).
+[Ativação editorial, conferência visual e limites](docs/operations/agentic-workspace/2026-11-06-editorial-activation.md).
+Os estados abaixo são históricos e não substituem esta configuração atual.
+
+## Publicação anterior — mesa de edição integrada
 
 Elaboração e revisão reunidas na mesa, com conversa ao lado da peça, edição
 básica no navegador e exportação Word/PDF. PR #105 integrada e fonte
