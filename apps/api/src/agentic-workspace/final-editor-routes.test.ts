@@ -525,7 +525,7 @@ it('geração simulada conecta minuta autorizada, sem alterações ou execução
   const before = await f.snapshot();
   const response = await f.generate();
   expect(response.statusCode).toBe(200);
-  expect(response.json()).toEqual({ mode: 'SIMULATED', profileVersion: '1.0.0', proposal: f.proposal });
+  expect(response.json()).toEqual({ mode: 'SIMULATED', profileVersion: '1.1.0', proposal: f.proposal });
   expect(response.headers['cache-control']).toBe('no-store');
   expect(generation.createProvider).toHaveBeenCalledTimes(1);
   expect(f.provider).not.toHaveBeenCalled();

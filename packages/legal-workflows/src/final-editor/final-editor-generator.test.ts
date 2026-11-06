@@ -69,7 +69,7 @@ it('gera via FakeAgentProvider, entrega única, hashes de seção e revalidaçã
   const f = fixture(),
     before = structuredClone(f.context);
   const result = await f.generate();
-  expect(result).toEqual({ mode: 'SIMULATED', profileVersion: '1.0.0', proposal: f.proposal });
+  expect(result).toEqual({ mode: 'SIMULATED', profileVersion: '1.1.0', proposal: f.proposal });
   expect(f.factory).toHaveBeenCalledTimes(1);
   expect(f.load).toHaveBeenCalledTimes(2);
   const input = f.factory.mock.calls[0][0];
