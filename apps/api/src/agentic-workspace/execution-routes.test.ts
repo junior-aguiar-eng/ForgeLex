@@ -462,6 +462,59 @@ it('erro inesperado na rota é registrado com rota e código estável, sem a men
 });
 
 describe('conversas recentes', () => {
+  it('exclui e restaura somente o histórico do titular sem alterar execução ou mensagens', async () => {
+    const f = await fixture({ next: () => undefined });
+    const run = (
+      await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })
+    ).json();
+    const before = await f.client.execute('SELECT payload_json FROM agentic_executions');
+    const messages = await f.client.execute('SELECT payload_json FROM agentic_messages');
+    const update = (hidden: boolean, authorization = 'Bearer session') =>
+      f.app.inject({
+        method: 'POST',
+        url: `/api/agentic/executions/${run.id}/history`,
+        headers: { authorization },
+        payload: { hidden },
+      });
+    expect((await update(true, 'Bearer other')).statusCode).toBe(404);
+    expect((await update(true, 'Bearer key')).statusCode).toBe(403);
+    expect((await update(true)).statusCode).toBe(200);
+    expect((await update(true)).statusCode).toBe(200);
+    const list = async (view = '') =>
+      (await f.app.inject({ method: 'GET', url: '/api/agentic/conversations' + view, headers })).json();
+    expect((await list()).items).toEqual([]);
+    expect((await list('?view=trash')).items.map((item: { executionId: string }) => item.executionId)).toEqual([
+      run.id,
+    ]);
+    expect((await f.client.execute('SELECT payload_json FROM agentic_executions')).rows).toEqual(before.rows);
+    expect((await f.client.execute('SELECT payload_json FROM agentic_messages')).rows).toEqual(messages.rows);
+    expect((await update(false)).statusCode).toBe(200);
+    expect((await list()).items).toHaveLength(1);
+    expect((await list('?view=trash')).items).toEqual([]);
+    const matter = await new MatterRepository(f.db).createMatter({
+      ...owner,
+      title: 'Caso privado',
+      createdBy: owner.userId,
+    });
+    const caseRun = (
+      await f.app.inject({
+        method: 'POST',
+        url: '/api/agentic/executions',
+        headers: { ...headers, 'idempotency-key': 'case-history' },
+        payload: { ...input, matterId: matter.id },
+      })
+    ).json();
+    expect(
+      (
+        await f.app.inject({
+          method: 'POST',
+          url: `/api/agentic/executions/${caseRun.id}/history`,
+          headers: { authorization: 'Bearer research-only' },
+          payload: { hidden: true },
+        })
+      ).statusCode,
+    ).toBe(403);
+  });
   it('lista só as conversas do próprio usuário, a mais recente primeiro, e esconde as de caso sem o escopo do caso', async () => {
     const f = await fixture({ next: () => undefined });
     const matter = await new MatterRepository(f.db).createMatter({

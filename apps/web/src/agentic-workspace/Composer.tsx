@@ -61,7 +61,7 @@ export function Composer({
     }
   }, [request]);
   const [action, setAction] = useState<ActionId | undefined>(followUp?.action);
-  const [text, setText] = useState(followUp?.text ?? '');
+  const [inheritedText, setInheritedText] = useState(followUp?.text ?? '');
   const [matter, setMatter] = useState(followUp?.matterId ?? '');
   const [selected, setSelected] = useState<Context['documents']>(followUp?.documents ?? []);
   const [selectedDraft, setSelectedDraft] = useState<Context['draft']>(followUp?.draft);
@@ -71,7 +71,7 @@ export function Composer({
   useEffect(() => {
     if (!piece || piece.matterId === matter) return;
     setMatter(piece.matterId);
-    setText('');
+    setInheritedText('');
     setSelected([]);
     setSelectedDraft(undefined);
   }, [piece, matter]);
@@ -141,6 +141,8 @@ export function Composer({
   }, [matter, scopeOpen]);
 
   const goal = objective.trim();
+  // One visible message supplies the written context; existing conversations retain theirs.
+  const text = inheritedText || goal;
   const matterTitle = matters.find((m) => m.id === matter)?.title;
   const scopeSummary = [
     matter ? `Caso: ${matterTitle ?? 'selecionado'}` : 'Sem caso',
@@ -201,12 +203,12 @@ export function Composer({
           {!followUp && (
             <select
               aria-label="Opção do pedido"
-              className="min-h-11 w-28 min-w-0 rounded-full border border-champagne-border bg-white px-3 text-sm font-medium text-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
+              className="min-h-11 w-auto max-w-full shrink-0 rounded-full border border-champagne-border bg-white py-2 pl-3 pr-8 text-sm font-medium text-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
               value={action ?? ''}
               disabled={busy}
               onChange={(event) => setAction(actions.find((item) => item.id === event.target.value)?.id)}
             >
-              <option value="">Opções</option>
+              <option value="">Automático</option>
               {actions.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.label}
@@ -217,7 +219,7 @@ export function Composer({
           <button
             type="button"
             aria-expanded={scopeOpen}
-            className="inline-flex min-h-11 min-w-0 flex-1 items-center rounded-full bg-champagne-light px-3 text-sm text-cognac-900"
+            className="inline-flex min-h-11 min-w-0 max-w-full items-center rounded-full bg-champagne-light px-3 text-sm text-cognac-900"
             title={scopeSummary}
             onClick={() => setScopeOpen((open) => !open)}
           >
@@ -225,7 +227,7 @@ export function Composer({
           </button>
           <button
             type="button"
-            className="btn-primary min-h-11"
+            className="btn-primary ml-auto min-h-11"
             disabled={busy || !available || !goal || Boolean(piece?.dirty)}
             onClick={send}
           >
@@ -239,16 +241,6 @@ export function Composer({
           aria-label="Caso e documentos"
           className="space-y-4 rounded-2xl border border-champagne-border bg-white p-4"
         >
-          <label className="block text-sm font-medium">
-            Contexto escrito (opcional)
-            <textarea
-              maxLength={64000}
-              rows={4}
-              className="mt-2 w-full rounded-lg border border-stone-300 p-3 font-normal"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-          </label>
           <label className="block text-sm font-medium">
             Caso (opcional)
             <select

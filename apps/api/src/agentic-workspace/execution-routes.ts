@@ -408,13 +408,16 @@ export function registerAgenticWorkspace(
     '/api/agentic/conversations',
     options,
     handle(async (req) => {
-      z.object({}).strict().parse(req.query);
+      const query = z
+        .object({ view: z.enum(['recent', 'trash']).optional() })
+        .strict()
+        .parse(req.query);
       const s = required(),
         canCase = req.principal.scopes.includes('matter:read');
       // Same visibility as the single execution: case work needs the case scope, and the commercial
       // and pilot modes list only what they themselves manage.
       const manages = commercial?.canManageExecution ?? pilot?.canManageExecution;
-      const items = (await s.store.workspace.listRecentConversations(owner(req)))
+      const items = (await s.store.workspace.listRecentConversations(owner(req), 20, query.view === 'trash'))
         .filter((c) => (canCase || !c.matterId) && (!manages || manages(c.execution)))
         .map((c) => ({
           executionId: c.execution.id,
@@ -435,6 +438,15 @@ export function registerAgenticWorkspace(
         reviewEvidence: req.principal.scopes.includes('matter:write') && req.principal.scopes.includes('matter:read'),
       },
     })),
+  );
+  app.post(
+    '/api/agentic/executions/:id/history',
+    options,
+    handle(async (req) => {
+      const { hidden } = z.object({ hidden: z.boolean() }).strict().parse(req.body);
+      await required().store.workspace.setConversationHidden(owner(req), executionId(req), hidden);
+      return { hidden };
+    }),
   );
   app.post(
     '/api/agentic/executions/:id/answers',

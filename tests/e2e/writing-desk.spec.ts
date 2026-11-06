@@ -12,6 +12,101 @@ async function login(page: Page) {
   await page.goto('/app/trabalho');
 }
 
+test('uma caixa envia pedido e contexto com a opção selecionada', async ({ page }) => {
+  await login(page);
+  await page.getByRole('button', { name: /^Sem caso/ }).click();
+  const composer = page.getByRole('region', { name: 'Novo pedido', exact: true });
+  await expect(composer.getByRole('textbox')).toHaveCount(1);
+  await expect(page.getByLabel('Contexto escrito')).toHaveCount(0);
+  const message = 'Pesquisar: o serviço contratado não foi entregue. Quais fundamentos considerar?';
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill(message);
+  await page.getByLabel('Opção do pedido').selectOption('research_question');
+  let sent: any;
+  await page.route('**/api/agentic/executions', async (route) => {
+    sent = route.request().postDataJSON();
+    await route.fulfill({ status: 503, json: { error: 'SYNTHETIC_STOP' } });
+  });
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect.poll(() => sent).toBeTruthy();
+  expect(sent.actionId).toBe('research_question');
+  expect(sent.objective).toBe(message);
+  expect(sent.context.text).toBe(message);
+  await expect(page.getByLabel('O que você precisa fazer?', { exact: true })).toHaveValue(message);
+  await page.getByLabel('Opção do pedido').selectOption('');
+  await expect(page.getByLabel('Opção do pedido').locator('option:checked')).toHaveText('Automático');
+  sent = undefined;
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect.poll(() => sent).toBeTruthy();
+  expect(sent.actionId).toBeUndefined();
+  expect(sent.objective).toBe(message);
+  expect(sent.context.text).toBe(message);
+});
+
+test('histórico lateral visível, exclusão recuperável e seletor legível', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page);
+  const created = await page.request.post(api + '/api/agentic/executions', {
+    headers: { ...headers, 'Idempotency-Key': 'history-sidebar' },
+    data: {
+      objective: 'Conversa para conferir a lateral',
+      context: { text: 'Contexto sintético local', origin: 'USER', documents: [] },
+    },
+  });
+  expect(created.ok()).toBe(true);
+  const run = await created.json();
+  await page.reload();
+  const sidebar = page.getByRole('complementary', { name: 'Histórico de conversas' });
+  const open = sidebar.getByRole('button', { name: /^Conversa para conferir a lateral/ });
+  await expect(open).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Conversas', exact: true })).toHaveCount(0);
+  const selector = page.getByLabel('Opção do pedido');
+  await selector.selectOption('research_question');
+  expect(
+    await selector.evaluate((element) => {
+      const select = element as HTMLSelectElement;
+      const style = getComputedStyle(select);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      ctx.font = style.font;
+      return (
+        select.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) >=
+        ctx.measureText(select.selectedOptions[0].text).width
+      );
+    }),
+  ).toBe(true);
+  await page.getByRole('button', { name: 'Nova peça', exact: true }).click();
+  await expect(sidebar).toBeVisible();
+  const sidebarBox = (await sidebar.boundingBox())!;
+  const chatBox = (await page.locator('[data-agentic-workspace]').boundingBox())!;
+  const pieceBox = (await page.getByRole('region', { name: 'Mesa da peça' }).boundingBox())!;
+  expect(sidebarBox.x + sidebarBox.width).toBeLessThanOrEqual(chatBox.x + 1);
+  expect(chatBox.x + chatBox.width).toBeLessThanOrEqual(pieceBox.x + 1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await page.screenshot({ path: 'test-results/writing-desk/history-desktop.png', fullPage: true });
+  await page.getByRole('button', { name: 'Recolher conversas' }).click();
+  await expect(sidebar).not.toBeVisible();
+  await page.getByRole('button', { name: 'Mostrar conversas' }).click();
+  await open.click();
+  await expect(page).toHaveURL(new RegExp(`executionId=${run.id}`));
+  await sidebar.getByRole('button', { name: /^Excluir do histórico: Conversa para conferir/ }).click();
+  const confirmation = page.getByRole('dialog', { name: 'Excluir conversa do histórico?' });
+  await confirmation.getByRole('button', { name: 'Excluir do histórico', exact: true }).click();
+  await expect(open).toHaveCount(0);
+  await page.reload();
+  await expect(open).toHaveCount(0);
+  await sidebar.getByRole('button', { name: 'Conversas excluídas', exact: true }).click();
+  await sidebar.getByRole('button', { name: /^Restaurar: Conversa para conferir/ }).click();
+  await sidebar.getByRole('button', { name: 'Voltar às conversas' }).click();
+  await expect(open).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(sidebar).not.toBeVisible();
+  await page.getByRole('button', { name: 'Conversas', exact: true }).click();
+  const mobileHistory = page.getByRole('dialog', { name: 'Conversas', exact: true });
+  await expect(mobileHistory.getByRole('button', { name: /^Conversa para conferir/ })).toBeVisible();
+  await expect(mobileHistory.getByRole('button', { name: 'Nova conversa' })).toBeVisible();
+  expect((await new AxeBuilder({ page }).include('dialog[open]').analyze()).violations).toEqual([]);
+});
+
 test('edição local, exportação, versão salva e pedido contextual na mesma mesa', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page);
@@ -96,7 +191,13 @@ test('entrega abre ao lado, mantém edição ao navegar e aceita links antigos',
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Redigir minuta para revisão editorial');
   await page.getByRole('button', { name: /^(Sem caso|Caso:)/ }).click();
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
-  await page.getByLabel('Contexto escrito').fill('Relato sintético sujeito a conferência.');
+  await page
+    .getByLabel('O que você precisa fazer?', { exact: true })
+    .fill(
+      (await page.getByLabel('O que você precisa fazer?', { exact: true }).inputValue()) +
+        '\n\n' +
+        'Relato sintético sujeito a conferência.',
+    );
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   const desk = page.getByRole('region', { name: 'Mesa da peça' });
   await expect(desk.getByLabel('Texto da seção 1', { exact: true })).not.toHaveValue('');

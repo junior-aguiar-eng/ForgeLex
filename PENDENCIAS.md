@@ -1,5 +1,20 @@
 # Pendências atuais do ForgeLex
 
+## Ajustes locais — conversas laterais e seletor
+
+Histórico visível na lateral da mesa em desktop, com recolhimento opcional;
+seletor dimensionado para mostrar a opção inteira. Exclusão do histórico
+recuperável em “Conversas excluídas”, preservando peças e registros financeiros.
+Salvamento automático mantido, sem novo botão de salvar conversa.
+O campo separado “Contexto escrito” foi removido: pedido e fatos são escritos
+na mesma caixa. O seletor inicia em “Automático”, sem ação imposta ao agente;
+as opções explícitas continuam facultativas. O contexto anterior permanece
+disponível nas continuações da conversa.
+
+A migration aditiva `persistence-0039-conversation-history` está preparada
+localmente. Estes ajustes ainda não foram publicados nem aplicados ao banco
+de produção; o estado publicado abaixo permanece o da PR #105.
+
 ## Estado publicado atual — mesa de edição integrada
 
 Elaboração e revisão reunidas na mesa, com conversa ao lado da peça, edição

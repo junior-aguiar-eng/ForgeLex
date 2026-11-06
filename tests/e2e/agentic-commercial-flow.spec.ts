@@ -53,7 +53,13 @@ test('entrega análise na mesa sem etapas ou metadados e libera reserva sem docu
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('PROBATORIA: organizar fatos do relato sintético.');
   await page.getByRole('button', { name: /^Sem caso/ }).click();
-  await page.getByLabel('Contexto escrito').fill('Relato sintético sobre serviço não entregue.');
+  await page
+    .getByLabel('O que você precisa fazer?', { exact: true })
+    .fill(
+      (await page.getByLabel('O que você precisa fazer?', { exact: true }).inputValue()) +
+        '\n\n' +
+        'Relato sintético sobre serviço não entregue.',
+    );
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   const result = page.getByRole('article', { name: 'Resultado do trabalho' });
@@ -85,8 +91,12 @@ test('percorre cobrança comercial real com transporte sintético e preserva ide
     .fill('Organizar o relato sintético para conferência.');
   await page.getByRole('button', { name: /^Sem caso/ }).click();
   await page
-    .getByLabel('Contexto escrito')
-    .fill('Relato sintético: a parte informa que contratou um serviço, mas o serviço não foi entregue.');
+    .getByLabel('O que você precisa fazer?', { exact: true })
+    .fill(
+      (await page.getByLabel('O que você precisa fazer?', { exact: true }).inputValue()) +
+        '\n\n' +
+        'Relato sintético: a parte informa que contratou um serviço, mas o serviço não foi entregue.',
+    );
   await expect(page.getByText(/Custo de .* por trabalho/)).toBeVisible();
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByText(/Este trabalho custa até/)).toBeVisible();
@@ -153,7 +163,13 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('PROBATORIA: conferir relato e documento sintéticos.');
   await page.getByRole('button', { name: /^Sem caso/ }).click();
-  await page.getByLabel('Contexto escrito').fill('Relato sintético a revisar.');
+  await page
+    .getByLabel('O que você precisa fazer?', { exact: true })
+    .fill(
+      (await page.getByLabel('O que você precisa fazer?', { exact: true }).inputValue()) +
+        '\n\n' +
+        'Relato sintético a revisar.',
+    );
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
   await page.getByLabel('Relato para conferência', { exact: true }).check();
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();

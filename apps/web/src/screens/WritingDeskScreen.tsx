@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FileText, MessageSquare, PanelRightClose, Plus } from 'lucide-react';
+import { FileText, MessageSquare, PanelLeftClose, PanelLeftOpen, PanelRightClose, Plus } from 'lucide-react';
 import { AgenticWorkspaceScreen } from './AgenticWorkspaceScreen';
 import { DraftStudioScreen } from './DraftStudioScreen';
 import { CanvasDialog } from './draft-review/DraftCanvas';
@@ -31,6 +31,8 @@ export function WritingDeskScreen({
   const [selected, setSelected] = useState<ReviewQueueItem>();
   const [error, setError] = useState('');
   const [deciding, setDeciding] = useState(false);
+  const [historyContainer, setHistoryContainer] = useState<HTMLElement | null>(null);
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const { reviewQueue, resolveReview } = useApp();
   const pending = reviewQueue.data.filter((item) => item.status === 'PENDING');
   const openPiece = useCallback((url: string) => {
@@ -69,7 +71,17 @@ export function WritingDeskScreen({
   return (
     <div className="min-w-0" data-writing-desk>
       <header className="flex min-h-12 items-center gap-3 border-b border-stone-200 px-5 text-sm">
-        <span className="mr-auto font-medium text-stone-700">Mesa</span>
+        <button
+          type="button"
+          aria-label={historyCollapsed ? 'Mostrar conversas' : 'Recolher conversas'}
+          aria-expanded={!historyCollapsed}
+          aria-controls="desk-conversations"
+          onClick={() => setHistoryCollapsed((value) => !value)}
+          className="hidden rounded-lg p-2 text-stone-600 hover:bg-stone-100 lg:block"
+        >
+          {historyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+        </button>
+        <span className="mr-auto" />
         {pending.length > 0 && (
           <button
             type="button"
@@ -127,27 +139,40 @@ export function WritingDeskScreen({
           </button>
         </nav>
       )}
-      <div className={open ? 'grid min-w-0 lg:grid-cols-[minmax(340px,0.8fr)_minmax(0,1.4fr)]' : 'mx-auto max-w-4xl'}>
+      <div className={`min-w-0 ${historyCollapsed ? '' : 'lg:grid lg:grid-cols-[224px_minmax(0,1fr)]'}`}>
+        <aside
+          id="desk-conversations"
+          aria-label="Histórico de conversas"
+          ref={setHistoryContainer}
+          className={`${historyCollapsed ? 'hidden' : 'hidden lg:block'} min-w-0 border-r border-stone-200 bg-stone-50/60 px-3 py-5 lg:h-[calc(100dvh-8rem)] lg:overflow-y-auto`}
+        />
         <div
-          className={`${open && mobile === 'piece' ? 'hidden lg:block' : ''} min-w-0 ${open ? 'lg:h-[calc(100dvh-8rem)] lg:overflow-y-auto' : ''}`}
+          className={
+            open ? 'grid min-w-0 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.4fr)]' : 'mx-auto w-full max-w-4xl'
+          }
         >
-          <AgenticWorkspaceScreen
-            active={active}
-            integrated
-            onEditor={openPiece}
-            onExecutionChange={onExecutionChange}
-            piece={piece}
-            request={request}
-          />
-        </div>
-        {location && (
           <div
-            style={!open ? { display: 'none' } : undefined}
-            className={`${mobile === 'chat' ? 'hidden lg:block' : ''} min-w-0 border-l border-stone-200`}
+            className={`${open && mobile === 'piece' ? 'hidden lg:block' : ''} min-w-0 ${open ? 'lg:h-[calc(100dvh-8rem)] lg:overflow-y-auto' : ''}`}
           >
-            <DraftStudioScreen integrated requestedLocation={location} onPieceChange={setPiece} onAsk={ask} />
+            <AgenticWorkspaceScreen
+              active={active}
+              integrated
+              historyContainer={historyContainer}
+              onEditor={openPiece}
+              onExecutionChange={onExecutionChange}
+              piece={piece}
+              request={request}
+            />
           </div>
-        )}
+          {location && (
+            <div
+              style={!open ? { display: 'none' } : undefined}
+              className={`${mobile === 'chat' ? 'hidden lg:block' : ''} min-w-0 border-l border-stone-200`}
+            >
+              <DraftStudioScreen integrated requestedLocation={location} onPieceChange={setPiece} onAsk={ask} />
+            </div>
+          )}
+        </div>
       </div>
       {inbox && (
         <CanvasDialog
