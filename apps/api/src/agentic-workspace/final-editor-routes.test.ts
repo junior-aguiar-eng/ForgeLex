@@ -1452,3 +1452,92 @@ it('histórico editorial sobrevive à revisão do contexto mantendo novas decis�
       .statusCode,
   ).toBe(409);
 });
+
+it('revisa versão humana da mesa sem entrega vinculada, recupera reserva e bloqueia versão editada', async () => {
+  const f = await fixture('commercial', undefined, undefined, true);
+  const repo = new DraftRepository(f.db);
+  const draft = await repo.createDraft({
+    tenantId: f.owner.tenantId,
+    matterId: f.matter.id,
+    title: 'Peça manual',
+    createdBy: f.owner.userId,
+  });
+  const input = {
+    tenantId: f.owner.tenantId,
+    matterId: f.matter.id,
+    draftId: draft.id,
+    title: 'Peça manual',
+    createdBy: f.owner.userId,
+    source: 'HUMAN' as const,
+    contentHash: hash('Manual'),
+    sections: [
+      {
+        ordinal: 1,
+        title: 'Fatos',
+        content: 'As parte apresenta o pedido.',
+        linkedFactIds: [],
+        linkedEvidenceIds: [],
+        linkedAuthorityIds: [],
+        linkedThesisIds: [],
+      },
+    ],
+  };
+  const version = await repo.createVersion(input);
+  const target = { draftId: draft.id, versionId: version.version.id };
+  const base = `/api/agentic/deliveries/${encodeURIComponent(`desk:${f.matter.id}`)}`;
+  const headers = { authorization: 'Bearer owner', 'idempotency-key': 'manual-review' };
+  const context = await f.app.inject({
+    method: 'GET',
+    url: `${base}/editorial-context?${new URLSearchParams(target)}`,
+    headers,
+  });
+  expect(context.statusCode, context.body).toBe(200);
+  expect(context.json().origin).toBe('DESK_VERSION');
+  expect(context.json().document.sections[0].content).toBe(input.sections[0].content);
+  const quote = await f.app.inject({
+    method: 'GET',
+    url: `${base}/editorial-proposals/generation?${new URLSearchParams(target)}`,
+    headers,
+  });
+  expect(quote.statusCode, quote.body).toBe(200);
+  expect(quote.json()).toMatchObject({ enabled: true, maxCostCents: 500 });
+  const post = () =>
+    f.app.inject({
+      method: 'POST',
+      url: `${base}/editorial-proposals/commands`,
+      headers,
+      payload: { ...target, confirmed: true, policyVersion: COMMERCIAL_POLICY_VERSION },
+    });
+  const started = await post();
+  expect(started.statusCode, started.body).toBe(200);
+  expect((await post()).json().commandId).toBe(started.json().commandId);
+  await repo.createVersion({
+    ...input,
+    expectedCurrentVersionId: target.versionId,
+    baseVersionId: target.versionId,
+    sections: [{ ...input.sections[0], content: 'As partes apresentam o pedido.' }],
+  });
+  expect(
+    (await f.app.inject({ method: 'GET', url: `${base}/editorial-context?${new URLSearchParams(target)}`, headers }))
+      .statusCode,
+  ).toBe(409);
+  const recovered = await f.app.inject({
+    method: 'GET',
+    url: `${base}/editorial-proposals/commands?${new URLSearchParams({ ...target, requestId: 'manual-review' })}`,
+    headers,
+  });
+  expect(recovered.json().command.commandId).toBe(started.json().commandId);
+  const cancelled = await f.app.inject({
+    method: 'POST',
+    url: `${base}/editorial-proposals/commands/${started.json().commandId}/cancel`,
+    headers: { ...headers, 'idempotency-key': 'manual-cancel' },
+    payload: target,
+  });
+  expect(cancelled.statusCode, cancelled.body).toBe(200);
+  expect(cancelled.json().receipt).toMatchObject({ chargedCents: 0, releasedCents: 500 });
+  f.revoke();
+  expect(
+    (await f.app.inject({ method: 'GET', url: `${base}/editorial-context?${new URLSearchParams(target)}`, headers }))
+      .statusCode,
+  ).toBe(403);
+});

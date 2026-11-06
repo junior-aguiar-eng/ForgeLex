@@ -50,6 +50,7 @@ const documentSchema = TaskDocumentSchema.extend({
 export const FinalEditorialContextSchema = z
   .strictObject({
     ...envelope,
+    origin: z.literal('DESK_VERSION').optional(),
     document: documentSchema,
     claims: z.array(TaskClaimSchema).max(100),
     requirements: z.array(TaskRequirementSchema).max(100),
@@ -162,6 +163,8 @@ export function validateFinalEditorialProposal(inputContext: unknown, inputPropo
   const issue = (path: (string | number)[], message: string) => issues.push({ code: 'custom', path, message });
   for (const key of Object.keys(envelope) as (keyof typeof envelope)[])
     if (proposal[key] !== context[key]) issue([key], 'Identidade ou versão divergente do contexto.');
+  if (context.origin === 'DESK_VERSION' && (proposal.status !== 'LIMITED' || proposal.limitations.length === 0))
+    issue(['limitations'], 'Revisão de texto da mesa exige ressalva sobre suporte jurídico não auditado.');
   const sourceIds = new Set(context.sources.map((source) => source.id));
   const ids = new Set<string>();
   for (const collection of ['changes', 'substantiveSuggestions'] as const) {

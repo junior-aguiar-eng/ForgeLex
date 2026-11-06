@@ -229,3 +229,48 @@ test('entrega abre ao lado, mantém edição ao navegar e aceita links antigos',
   await page.goto('/app/revisao');
   await expect(page.getByRole('dialog', { name: 'Conferências do caso' })).toBeVisible();
 });
+
+test('revisão da mesa usa a versão salva e exige salvar edições antes de revisar', async ({ page }) => {
+  await login(page);
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers, data: { title: 'Revisão manual sintética' } })
+  ).json();
+  await page.getByRole('button', { name: 'Nova peça', exact: true }).click();
+  const desk = page.getByRole('region', { name: 'Mesa da peça' });
+  await desk.getByLabel('Título da peça').fill('Peça manual sintética');
+  await desk.getByLabel('Texto da seção 1', { exact: true }).fill('As parte apresenta o pedido.');
+  await desk.getByText('Abrir peça', { exact: true }).click();
+  await desk.getByLabel('Caso da peça').selectOption(matter.id);
+  await desk.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(desk.getByRole('button', { name: 'Pedir ajuste' })).toBeEnabled();
+  await desk.getByText('Peça aberta', { exact: true }).click();
+  const listing = await (await page.request.get(`${api}/api/v2/matters/${matter.id}/drafts`, { headers })).json();
+  const draftId = listing.items[0].id;
+  const details = await (
+    await page.request.get(`${api}/api/v2/matters/${matter.id}/drafts/${draftId}`, { headers })
+  ).json();
+  let requested: URL | undefined;
+  let paidStarts = 0;
+  page.on('request', (r) => {
+    if (r.method() === 'POST' && r.url().includes('/editorial-proposals/commands')) paidStarts++;
+  });
+  await page.route('**/editorial-review?*', async (route) => {
+    requested = new URL(route.request().url());
+    await route.fulfill({ status: 503, json: { error: 'SYNTHETIC_NO_INFERENCE' } });
+  });
+  await desk.getByRole('button', { name: 'Conferir esta peça' }).click();
+  await page.getByRole('button', { name: 'Revisar texto com IA', exact: true }).click();
+  await expect.poll(() => requested?.searchParams.get('versionId')).toBe(details.currentVersion.version.id);
+  expect(requested?.searchParams.get('draftId')).toBe(draftId);
+  expect(decodeURIComponent(requested!.pathname)).toContain(`desk:${matter.id}`);
+  await page
+    .getByRole('dialog', { name: 'Revisão editorial', exact: true })
+    .getByRole('button', { name: 'Fechar', exact: true })
+    .click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+  await desk.getByLabel('Texto da seção 1', { exact: true }).fill('As partes apresentam o pedido.');
+  await desk.getByRole('button', { name: 'Conferir esta peça' }).click();
+  await expect(page.getByRole('button', { name: 'Revisar texto com IA', exact: true })).toBeDisabled();
+  await expect(page.getByText('Salve a peça para revisar o texto atual com IA.')).toBeVisible();
+  expect(paidStarts).toBe(0);
+});

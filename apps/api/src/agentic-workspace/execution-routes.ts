@@ -646,6 +646,10 @@ export function registerAgenticWorkspace(
       const id = z.object({ id: z.string().min(1).max(200) }).parse(req.params).id;
       // Preserve the execution boundary of each runtime, including human review commands.
       await caseTask.native.getDeliveryContext(owner(req), id);
+      if (id.startsWith('desk:')) {
+        if (!commercial?.editorial) throw new Error('EDITORIAL_GENERATION_DISABLED');
+        return id;
+      }
       const execution = await required().store.workspace.getExecution(owner(req), id.replace(/^delivery:/, ''));
       if (
         !execution ||
