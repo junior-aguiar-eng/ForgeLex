@@ -17,7 +17,13 @@ async function setup(page: Page) {
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Redigir minuta para revisão editorial');
   await page.getByRole('button', { name: /^(Sem caso|Caso:)/ }).click();
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
-  await page.getByLabel('Contexto escrito').fill('Relato sintético sujeito a conferência.');
+  await page
+    .getByLabel('O que você precisa fazer?', { exact: true })
+    .fill(
+      (await page.getByLabel('O que você precisa fazer?', { exact: true }).inputValue()) +
+        '\n\n' +
+        'Relato sintético sujeito a conferência.',
+    );
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   const run = await (

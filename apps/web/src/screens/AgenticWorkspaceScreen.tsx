@@ -1,4 +1,5 @@
 import { CanvasDialog } from './draft-review/DraftCanvas';
+import { createPortal } from 'react-dom';
 import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
 import { editorLink } from '../agentic-workspace/execution-model';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -53,11 +54,13 @@ export function AgenticWorkspaceScreen({
   integrated = false,
   piece,
   request,
+  historyContainer,
 }: {
   onEditor: (url: string) => void;
   integrated?: boolean;
   piece?: DeskPiece | null;
   request?: DeskRequest;
+  historyContainer?: HTMLElement | null;
   active: boolean;
   onExecutionChange: (id: string | null) => void;
 }) {
@@ -87,6 +90,10 @@ export function AgenticWorkspaceScreen({
     [correction, setCorrection] = useState<Question>();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [recent, setRecent] = useState<RecentItem[]>([]);
+  const [trash, setTrash] = useState(false);
+  const [historyPending, setHistoryPending] = useState<RecentItem>();
+  const [historyBusy, setHistoryBusy] = useState(false);
+  const [historyError, setHistoryError] = useState('');
   const [side, setSide] = useState<{ open: boolean; tab: SideTab; source: number | null }>({
     open: false,
     tab: 'sources',
@@ -276,13 +283,47 @@ export function AgenticWorkspaceScreen({
     if (authStatus !== 'authenticated' || closedPilot !== false) return;
     let active = true;
     client
-      .recent()
+      .recent(trash)
       .then((r) => active && setRecent(r.items))
       .catch(() => undefined);
     return () => {
       active = false;
     };
-  }, [client, authStatus, closedPilot, id, currentStatus]);
+  }, [client, authStatus, closedPilot, id, currentStatus, trash, historyBusy]);
+  const updateHistory = async (item: RecentItem, hidden: boolean) => {
+    if (historyBusy) return;
+    setHistoryBusy(true);
+    setHistoryError('');
+    try {
+      await client.setConversationHidden(item.executionId, hidden);
+      setRecent((items) => items.filter((row) => row.executionId !== item.executionId));
+      if (hidden && item.executionId === id) newWork();
+      setHistoryPending(undefined);
+    } catch {
+      setHistoryError('Não foi possível atualizar o histórico. Tente novamente.');
+    } finally {
+      setHistoryBusy(false);
+    }
+  };
+  const historyProps = {
+    items: recent,
+    currentId: id,
+    onNew: newWork,
+    onOpen: openExecution,
+    trash,
+    busy: busy || historyBusy,
+    onTrashToggle: () => {
+      setRecent([]);
+      setTrash((value) => !value);
+      setHistoryError('');
+    },
+    onHistory: (item: RecentItem, hidden: boolean) => {
+      if (hidden) {
+        setHistoryPending(item);
+        setHistoryError('');
+      } else void updateHistory(item, false);
+    },
+  };
 
   const shownError = error || events.error;
   const results = useMemo(
@@ -336,17 +377,23 @@ export function AgenticWorkspaceScreen({
       aria-busy={busy}
       className={integrated ? 'min-w-0 px-4 py-5 text-stone-800' : 'page-container py-8 text-stone-800'}
     >
+      {integrated &&
+        closedPilot === false &&
+        historyContainer &&
+        createPortal(<RecentConversations {...historyProps} expanded />, historyContainer)}
       <div className={showRail ? 'lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8' : ''}>
-        {showRail && <RecentConversations items={recent} currentId={id} onNew={newWork} onOpen={openExecution} />}
+        {showRail && <RecentConversations {...historyProps} />}
         <div className="min-w-0 space-y-6">
           {integrated && closedPilot === false && (
-            <button type="button" onClick={() => setHistoryOpen(true)} className="text-xs text-stone-500 underline">
-              Conversas anteriores
+            <button type="button" onClick={() => setHistoryOpen(true)} className="text-sm text-stone-600 lg:hidden">
+              Conversas
             </button>
           )}
           {historyOpen && (
             <CanvasDialog title="Conversas" onClose={() => setHistoryOpen(false)}>
               <RecentConversations
+                {...historyProps}
+                expanded
                 items={recent}
                 currentId={id}
                 onNew={() => {
@@ -358,6 +405,40 @@ export function AgenticWorkspaceScreen({
                   setHistoryOpen(false);
                 }}
               />
+            </CanvasDialog>
+          )}
+          {historyError && !historyPending && <p role="alert">{historyError}</p>}
+          {historyPending && (
+            <CanvasDialog
+              title="Excluir conversa do histórico?"
+              onClose={() => {
+                if (!historyBusy) setHistoryPending(undefined);
+              }}
+            >
+              <p className="text-sm text-stone-600">
+                Você poderá restaurá-la em Conversas excluídas. As peças e os recibos serão preservados. Isso não
+                cancela um trabalho em andamento.
+              </p>
+              <p className="my-4 font-medium">{historyPending.title}</p>
+              {historyError && <p role="alert">{historyError}</p>}
+              <div className="mt-4 flex gap-3">
+                <button
+                  type="button"
+                  disabled={historyBusy}
+                  className="btn-secondary"
+                  onClick={() => setHistoryPending(undefined)}
+                >
+                  Manter conversa
+                </button>
+                <button
+                  type="button"
+                  disabled={historyBusy}
+                  className="btn-primary"
+                  onClick={() => void updateHistory(historyPending, true)}
+                >
+                  Excluir do histórico
+                </button>
+              </div>
             </CanvasDialog>
           )}
           <header
@@ -378,7 +459,7 @@ export function AgenticWorkspaceScreen({
                 <span className="grow" />
                 <button
                   type="button"
-                  className={`btn-secondary min-h-11 ${showRail ? 'lg:hidden' : ''}`}
+                  className={`btn-secondary min-h-11 ${showRail || integrated ? 'lg:hidden' : ''}`}
                   disabled={busy}
                   onClick={newWork}
                 >

@@ -47,7 +47,18 @@ export class WorkspaceClient {
     );
   commercialStart = (body: StartInput & CommercialAuthorization, key: string) =>
     this.command('/api/agentic/commercial/executions', body, key);
-  recent = () => requestApi<{ items: RecentItem[] }>('/api/agentic/conversations', {}, { sessionOnly: true });
+  recent = (trash = false) =>
+    requestApi<{ items: RecentItem[] }>(
+      '/api/agentic/conversations' + (trash ? '?view=trash' : ''),
+      {},
+      { sessionOnly: true },
+    );
+  setConversationHidden = (id: string, hidden: boolean) =>
+    requestApi<{ hidden: boolean }>(
+      `/api/agentic/executions/${encodeURIComponent(id)}/history`,
+      { method: 'POST', body: JSON.stringify({ hidden }) },
+      { sessionOnly: true },
+    );
   get = (id: string) =>
     requestApi<Execution>(`/api/agentic/executions/${encodeURIComponent(id)}`, {}, { sessionOnly: true });
   delivery = (id: string) =>

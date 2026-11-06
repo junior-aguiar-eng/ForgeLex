@@ -1,5 +1,5 @@
 import { lockAgenticTenant } from './agentic-tenant-guard.js';
-import { and, asc, desc, eq, gt, max, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, isNull, isNotNull, max, sql } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import {
@@ -288,12 +288,18 @@ export class AgenticWorkspaceRepository {
    * The owner's most recent conversations with their newest execution, for the "recent" list.
    * Read-only and bounded: it never takes the write locks that a conversation load takes.
    */
-  async listRecentConversations(owner: AgenticOwner, limit = 20) {
+  async listRecentConversations(owner: AgenticOwner, limit = 20, hidden = false) {
     AgenticOwnerSchema.parse(owner);
     const conversations = await this.db
       .select()
       .from(s.agenticConversations)
-      .where(and(eq(s.agenticConversations.tenantId, owner.tenantId), eq(s.agenticConversations.userId, owner.userId)))
+      .where(
+        and(
+          eq(s.agenticConversations.tenantId, owner.tenantId),
+          eq(s.agenticConversations.userId, owner.userId),
+          hidden ? isNotNull(s.agenticConversations.historyHiddenAt) : isNull(s.agenticConversations.historyHiddenAt),
+        ),
+      )
       .orderBy(desc(s.agenticConversations.createdAt))
       .limit(50);
     const items = [];
@@ -324,6 +330,21 @@ export class AgenticWorkspaceRepository {
   async getExecution(owner: AgenticOwner, id: string): Promise<AgenticExecution | undefined> {
     const [row] = await this.db.select().from(s.agenticExecutions).where(this.executionScope(owner, id)).limit(1);
     return row ? AgenticExecutionSchema.parse(JSON.parse(row.payloadJson)) : undefined;
+  }
+  /** Removes only the history entry; execution, documents and financial records remain intact. */
+  async setConversationHidden(owner: AgenticOwner, executionId: string, hidden: boolean) {
+    AgenticOwnerSchema.parse(owner);
+    await this.mutateExecution(
+      owner,
+      executionId,
+      async (repo, execution) => {
+        await repo.db
+          .update(s.agenticConversations)
+          .set({ historyHiddenAt: hidden ? now() : null })
+          .where(repo.conversationScope(owner, execution.conversationId));
+      },
+      false,
+    );
   }
   private async saveExecution(execution: AgenticExecution) {
     const value = AgenticExecutionSchema.parse({ ...execution, updatedAt: now() });

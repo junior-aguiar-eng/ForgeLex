@@ -26,6 +26,7 @@ export const agenticConversations = sqliteTable('agentic_conversations', {
   id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),
   objective: text('objective').notNull(), matterId: text('matter_id').references(() => matters.id),
   contextRevision: integer('context_revision').notNull(), createdAt: text('created_at').notNull(),
+  historyHiddenAt: text('history_hidden_at'),
 }, t => [index('agentic_conversations_owner_idx').on(t.tenantId, t.userId)]);
 export const agenticContexts = sqliteTable('agentic_contexts', {
   id: text('id').primaryKey(), conversationId: text('conversation_id').notNull().references(() => agenticConversations.id),
