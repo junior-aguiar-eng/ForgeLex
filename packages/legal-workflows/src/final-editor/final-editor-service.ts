@@ -1,3 +1,4 @@
+import { editorialArithmeticFindings } from './editorial-arithmetic.js';
 import { createHash } from 'node:crypto';
 import type { AgenticOwner } from '@forgelex/domain';
 import { TaskDocumentSchema } from '@forgelex/domain';
@@ -25,6 +26,11 @@ export function editorialContextFromSnapshot(
   const delivery = saved.delivery;
   // Missing historic audits are not silently reconstructed or treated as a clean review.
   if (!delivery.supportAudit) throw new Error('EDITORIAL_AUDIT_UNAVAILABLE');
+  // Desk snapshots contain user text, not an inherited legal audit. Local checks are
+  // recomputed from the saved version and remain visible even if the model omits them.
+  const arithmetic =
+    saved.origin === 'DESK_VERSION' && delivery.document ? editorialArithmeticFindings(delivery.document) : [];
+  if (delivery.findings.length + arithmetic.length > 200) throw new Error('EDITORIAL_CONTEXT_LIMIT');
   return FinalEditorialContextSchema.parse({
     contractVersion: '1.0.0',
     ...(saved.origin ? { origin: saved.origin } : {}),
@@ -39,7 +45,7 @@ export function editorialContextFromSnapshot(
     document: delivery.document,
     claims: delivery.claims,
     requirements: delivery.requirements,
-    findings: delivery.findings,
+    findings: [...delivery.findings, ...arithmetic],
     supportAudit: delivery.supportAudit,
     sources: saved.sources,
   });
