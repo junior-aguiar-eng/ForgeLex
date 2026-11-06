@@ -61,7 +61,6 @@ test('entrega análise na mesa sem etapas ou metadados e libera reserva sem docu
         'Relato sintético sobre serviço não entregue.',
     );
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-  await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   const result = page.getByRole('article', { name: 'Resultado do trabalho' });
   await expect(result).toBeVisible({ timeout: 60000 });
   await expect(result.getByText('Análise de fatos e provas', { exact: true })).toBeVisible();
@@ -99,8 +98,7 @@ test('percorre cobrança comercial real com transporte sintético e preserva ide
     );
   await expect(page.getByText(/Custo de .* por trabalho/)).toBeVisible();
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-  await expect(page.getByText(/Este trabalho custa até/)).toBeVisible();
-  await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Autorizar trabalho' })).toHaveCount(0);
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible({ timeout: 60000 });
   const receipt = page.getByText('Custo deste trabalho', { exact: true }).locator('..');
   await page.getByText('Custo deste trabalho', { exact: true }).click();
@@ -173,7 +171,6 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
   await page.getByLabel('Caso (opcional)').selectOption(matter.id);
   await page.getByLabel('Relato para conferência', { exact: true }).check();
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-  await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   const result = page.getByRole('article', { name: 'Resultado do trabalho' });
   await expect(result).toBeVisible({ timeout: 60000 });
   const executionId = new URL(page.url()).searchParams.get('executionId');
@@ -247,7 +244,6 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('Redigir peça com os fatos aprovados do caso.');
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-  await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   const draftResult = page.getByRole('article', { name: 'Resultado do trabalho' }).last();
   const desk = page.getByRole('region', { name: 'Mesa da peça', exact: true });
   await expect(desk.getByRole('textbox', { name: 'Texto da seção 2', exact: true })).toHaveValue(
@@ -274,7 +270,6 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
     `Sobre a peça: ${drafted.delivery.document.title}`,
   );
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-  await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   const revised = page.getByRole('article', { name: 'Resultado do trabalho' }).last();
   await expect(revised.getByRole('heading', { name: 'Revisão do texto', exact: true })).toBeVisible({ timeout: 60000 });
   await expect(revised).toContainText('Alegação conferida e editada por Boni.');
@@ -392,7 +387,6 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('Redigir peça com os fatos aprovados novamente.');
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-  await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   const freshResult = page.getByRole('article', { name: 'Resultado do trabalho' }).last();
   await expect(desk.getByRole('textbox', { name: 'Texto da seção 2', exact: true })).toHaveValue(
     'Alegação corrigida e aprovada novamente.',

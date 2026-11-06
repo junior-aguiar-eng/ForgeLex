@@ -24,3 +24,5 @@ export {
   ReviewedTaskResultSchema,
   reviewedDeliveryTaskProfile,
 } from './agentic-reviewed-delivery.js';
+
+export * from './agentic-desk.js';

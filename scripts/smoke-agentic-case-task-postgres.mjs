@@ -153,7 +153,7 @@ if (process.argv[2] === '--recover-evidence') {
     const run = await service.store.workspace.getExecution(owner, process.env.FORGELEX_CASE_TASK_TEST_ID);
     assert.equal(run.status, 'COMPLETED');
     assert.equal(run.deliveryIds.length, 1);
-    assert.equal(run.checkpoint.caseTask.version, 8);
+    assert.equal(run.checkpoint.caseTask.version, 10);
     const delivery = (await native.getDelivery(owner, run.deliveryIds[0])).delivery;
     assert.equal(delivery.evidenceMatrix.rows[0].coverage, 'DOCUMENT_LINKED');
     assert.equal(delivery.evidenceMatrix.rows[0].references[0].quoteStatus, 'MATCHED');
@@ -177,7 +177,7 @@ if (process.argv[2] === '--recover-evidence') {
     assert.equal(execution.status, 'COMPLETED');
     assert.equal(execution.deliveryIds.length, 1);
     const state = execution.checkpoint.caseTask;
-    assert.equal(state.version, 8);
+    assert.equal(state.version, 10);
     assert.equal(state.graph.revision, 1);
     assert.ok(state.graph.archivedOutputs['adversarial-reviewer:0']);
     assert.deepEqual(
@@ -204,6 +204,11 @@ if (process.argv[2] === '--recover-evidence') {
     const record = await native.getDelivery(owner, execution.deliveryIds[0]);
     assert.equal(record.delivery.humanReviewRequired, true);
     assert.ok(record.draftId);
+    assert.equal(
+      (await service.store.workspace.getExecution(owner, id)).checkpoint.caseTask.version,
+      8,
+      'HISTORICAL_CHECKPOINT_MUST_KEEP_ITS_PROTOCOL',
+    );
     assert.ok(!JSON.stringify(record).includes('private-reasoning'));
     const version = await new DraftRepository(c.db).getCurrentVersion(
       owner.tenantId,
@@ -286,7 +291,9 @@ if (process.argv[2] === '--recover-evidence') {
       matterId: matter.id,
       context: { origin: 'USER', text: 'Contexto sintético', documents: [] },
     });
+    // Create a historical v8 checkpoint; the recovery process uses the new v10 default.
     const { driver } = createCaseTaskDriver(a.db, a.client, {
+      workflowVersion: 8,
       authorizeNative: async () => {},
       createProvider: makeProvider(),
     });
@@ -519,6 +526,8 @@ if (process.argv[2] === '--recover-evidence') {
           'migration_twice',
           'specialist_checkpoint_separate_process',
           'planner_not_replayed',
+          'v8_checkpoint_preserved_by_v10_driver',
+          'new_adaptive_and_evidence_tasks_use_v10',
           'adaptive_checkpoint_after_invalidation_separate_process',
           'completed_graph_nodes_not_replayed',
           'evidence_matrix_recovery_separate_process',

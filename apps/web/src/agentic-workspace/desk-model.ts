@@ -4,6 +4,8 @@ export interface DeskPiece {
   versionId: string;
   title: string;
   dirty: boolean;
+  localText?: string;
+  prepare?: () => Promise<DeskPiece>;
 }
 
 export interface DeskRequest {

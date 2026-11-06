@@ -5,7 +5,7 @@ export function agenticE2EPlan({ role, packet }) {
     packet.plan?.action ??
     (/PROBATORIA/.test(packet.objective)
       ? 'analyze_evidence'
-      : /redigir|Redigir|minuta/.test(packet.objective)
+      : /redigir|Redigir|minuta|Corrigir|Outra peça/.test(packet.objective)
         ? 'create_document'
         : /Pesquisar|SEM_ORCAMENTO/.test(packet.objective)
           ? 'research_question'
@@ -17,12 +17,16 @@ export function agenticE2EPlan({ role, packet }) {
     .filter((s) => s.kind === 'CASE_FACT')
     .map((s) => s.approvedItem.text)
     .join('\n');
-  const src = packet.sources.find((s) => s.kind === 'DOCUMENT')?.id ?? packet.sources[0]?.id,
+  const src =
+      packet.sources.find((s) => s.kind === 'DRAFT')?.id ??
+      packet.sources.find((s) => s.kind === 'DOCUMENT')?.id ??
+      packet.sources[0]?.id,
     refs = approved.length ? approved.map((s) => s.id) : src ? [src] : [];
   const multiple = packet.objective.includes('PERGUNTA_MULTIPLA');
   const needsQuestion = /PERGUNTA_/.test(packet.objective) && !packet.answers.length;
   const plan = {
     action,
+    documentMode: /Corrigir/.test(packet.objective) ? 'EDIT' : 'CREATE',
     requiresCaseLaw: packet.objective.includes('SEM_ORCAMENTO'),
     requiresNorms: false,
     requiresProcedure: action === 'create_document',
@@ -123,6 +127,21 @@ export function agenticE2EPlan({ role, packet }) {
         }
       : {}),
   };
+  if (role === 'legal-drafter' && /FLUXO_MESA|Corrigir/.test(packet.objective)) {
+    result.document = {
+      title: 'Manifestação sintética da mesa',
+      documentType: 'Relato sintético',
+      sections: [
+        {
+          title: 'Texto da peça',
+          content: /Corrigir/.test(packet.objective)
+            ? 'Três parcelas de R$ 100,00 cada. O total indicado no relato é R$ 300,00.'
+            : 'Três parcelas de R$ 100,00 cada. O total indicado no relato é R$ 200,00.',
+          sourceIds: refs,
+        },
+      ],
+    };
+  }
   return [
     ...(role === 'legal-researcher' && plan.requiresCaseLaw
       ? [

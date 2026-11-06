@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Check, ChevronDown, Download, History, MessageSquare, X } from 'lucide-react';
+import { ChevronDown, Download, History, X } from 'lucide-react';
 
 interface Section {
   title: string;
@@ -96,7 +96,6 @@ function PaperText({
 
 export function DraftCanvas({
   title,
-  editSection,
   sections,
   matters,
   drafts,
@@ -111,16 +110,12 @@ export function DraftCanvas({
   onMatter,
   onDraft,
   onSave,
-  onAsk,
   onExport,
-  review,
   history,
   extras,
   caseControls,
-  approval,
 }: {
   title: string;
-  editSection?: { index: number };
   sections: Section[];
   matters: { id: string; title: string }[];
   drafts: { id: string; title: string }[];
@@ -135,23 +130,12 @@ export function DraftCanvas({
   onMatter: (id: string) => void;
   onDraft: (id: string) => void;
   onSave: () => void;
-  onAsk: (text: string) => void;
   onExport: (format: 'docx' | 'pdf') => void;
-  review: ReactNode;
   history: ReactNode;
   extras?: ReactNode;
   caseControls?: ReactNode;
-  approval?: ReactNode;
 }) {
-  const [panel, setPanel] = useState<'review' | 'history' | null>(null);
-  useEffect(() => {
-    if (editSection) {
-      setPanel(null);
-      requestAnimationFrame(() => document.getElementById('draft-section-' + editSection.index)?.focus());
-    }
-  }, [editSection]);
-  const [selectedText, setSelectedText] = useState('');
-  const paper = useRef<HTMLElement>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   return (
     <section
       aria-label="Mesa da peça"
@@ -216,17 +200,7 @@ export function DraftCanvas({
         </button>
         <button
           type="button"
-          onClick={() => setPanel('review')}
-          disabled={busy || !draftId}
-          className="rounded-lg p-2 text-stone-600 hover:bg-stone-100 disabled:opacity-40"
-          aria-label="Conferir esta peça"
-          title="Conferir esta peça"
-        >
-          <Check size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => setPanel('history')}
+          onClick={() => setHistoryOpen(!historyOpen)}
           disabled={!draftId}
           className="rounded-lg p-2 text-stone-600 hover:bg-stone-100 disabled:opacity-40"
           aria-label="Histórico da peça"
@@ -280,11 +254,6 @@ export function DraftCanvas({
       {extras}
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-6 sm:px-6">
         <article
-          ref={paper}
-          onSelect={(e) => {
-            const t = e.target;
-            if (t instanceof HTMLTextAreaElement) setSelectedText(t.value.slice(t.selectionStart, t.selectionEnd));
-          }}
           aria-label="Documento em edição"
           className="mx-auto min-h-[60dvh] max-w-[760px] space-y-7 bg-white px-6 py-10 shadow-sm sm:px-12"
         >
@@ -315,35 +284,27 @@ export function DraftCanvas({
               />
             </section>
           ))}
+          {historyOpen && (
+            <section aria-label="Histórico da peça" className="border-t border-stone-200 pt-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-medium">Histórico</span>
+                <button
+                  type="button"
+                  aria-label="Recolher apontamentos"
+                  onClick={() => setHistoryOpen(false)}
+                  className="p-2"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              {history}
+            </section>
+          )}
         </article>
       </div>
       <footer className="flex items-center justify-between gap-3 border-t border-stone-200 px-5 py-3 text-xs text-stone-600">
         <span>Revise o texto antes de usar.</span>
-        <button
-          type="button"
-          disabled={busy || dirty || !draftId}
-          onClick={() =>
-            onAsk(
-              selectedText
-                ? `Ajuste este trecho da peça: “${selectedText}”\n\n`
-                : 'Na peça aberta, gostaria de alterar: ',
-            )
-          }
-          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-cognac-800 hover:bg-white disabled:opacity-40"
-        >
-          <MessageSquare size={16} />
-          Pedir ajuste
-        </button>
       </footer>
-      {panel && (
-        <CanvasDialog
-          title={panel === 'review' ? 'Conferência da peça' : 'Histórico da peça'}
-          onClose={() => setPanel(null)}
-        >
-          {panel === 'review' ? review : history}
-        </CanvasDialog>
-      )}
-      {approval}
     </section>
   );
 }

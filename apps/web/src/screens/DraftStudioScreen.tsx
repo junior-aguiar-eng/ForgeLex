@@ -1,5 +1,4 @@
-import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
-import { DraftCanvas, CanvasDialog } from './draft-review/DraftCanvas';
+import { DraftCanvas } from './draft-review/DraftCanvas';
 import type { DeskPiece } from '../agentic-workspace/desk-model';
 import { printDraftPdf } from '../documents/draft-print';
 import {getDraftPrimaryAction} from './draft-review/draft-action-model';
@@ -155,11 +154,12 @@ const statusLabel: Record<Draft['status'], string> = {
   ARCHIVED: 'Arquivado',
 };
 
-export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrated?: boolean; onPieceChange?: (piece: DeskPiece | null) => void; onAsk?: (text: string) => void }> = ({ requestedLocation, integrated = false, onPieceChange, onAsk }) => {
+export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrated?: boolean; onPieceChange?: (piece: DeskPiece | null) => void }> = ({ requestedLocation, integrated = false, onPieceChange }) => {
   const emptySections = () => integrated ? [{title:'Texto da peça',content:'',linkedFactIds:[],linkedEvidenceIds:[],linkedAuthorityIds:[],linkedThesisIds:[]}] : initialSections();
   const { setActiveTab } = useApp();
   const [importedDelivery, setImportedDelivery] = useState<Delivery>();
-  const [editingSection, setEditingSection] = useState<{index:number}>();
+  const submittedLocalSnapshot = useRef<string>();
+  const localSnapshot = useRef('');
   const [newWorkCase, setNewWorkCase] = useState('');
   const { status: authStatus } = useAuth();
   const [token, setToken] = useState(initialToken);
@@ -385,6 +385,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     citations,
   });
   const versionChanged=Boolean(editingVersion.current && details?.currentVersion && editingVersion.current!==details.currentVersion.version.id);
+  localSnapshot.current = JSON.stringify({ title: draftTitle, sections: sections.map(({title, content}) => ({title, content})) });
   const dirty = Boolean((selectedMatterId || integrated) && (versionChanged || JSON.stringify(payload()) !== (details ? savedPayload : JSON.stringify({ title: 'Minuta para revisão humana', sections: emptySections().map((s, ordinal) => ({ ordinal, ...s })), citations: [] }))));
   const [caseUnavailable, setCaseUnavailable] = useState(false);
   useEffect(() => {
@@ -565,8 +566,15 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     if (!requestedLocation || !matters.length || handledLocation.current === requestedLocation) return;
     handledLocation.current = requestedLocation;
     const query = new URL(requestedLocation, window.location.origin).searchParams;
-    const targetMatter = query.get('matterId'), targetDraft = query.get('draftId');
-    if (!targetMatter || (targetMatter === selectedMatterId && (!targetDraft || targetDraft === selectedDraftId))) return;
+    const targetMatter = query.get('matterId'), targetDraft = query.get('draftId'), targetVersion = query.get('versionId');
+    if (!targetMatter) return;
+    if (targetMatter === selectedMatterId && targetDraft === selectedDraftId) {
+      if (targetVersion && targetVersion !== details?.currentVersion?.version.id) {
+        if (dirty) { setError('A IA concluiu uma nova versão. Sua edição local foi preservada.'); return; }
+        void selectDraft(targetDraft);
+      }
+      return;
+    }
     if (!matters.some(matter => matter.id === targetMatter)) { setError('Este caso não está disponível para sua conta.'); return; }
     initialDraftOpened.current = false;
     if (targetMatter !== selectedMatterId) void selectMatter(targetMatter);
@@ -575,11 +583,20 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
   useEffect(() => {
     if (!onPieceChange) return;
     const versionId = details?.currentVersion?.version.id;
-    onPieceChange(selectedMatterId && selectedDraftId && versionId ? {
-      matterId: selectedMatterId, draftId: selectedDraftId, versionId,
-      title: draftTitle, dirty: dirty || loadingSelection || caseUnavailable || contextChanged,
-    } : integrated ? {matterId:selectedMatterId,draftId:selectedDraftId,versionId:'',title:draftTitle,dirty:true} : null);
-  }, [integrated, onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, draftTitle, dirty, loadingSelection, caseUnavailable, contextChanged]);
+    const snapshot: DeskPiece = {
+      matterId: selectedMatterId, draftId: selectedDraftId, versionId: versionId ?? '', title: draftTitle,
+      dirty: dirty || loadingSelection || caseUnavailable || contextChanged,
+    };
+    snapshot.prepare = async () => {
+      if (busy || loadingSelection || caseUnavailable) throw new Error('A peça ainda está sendo atualizada.');
+      if (!selectedMatterId) { submittedLocalSnapshot.current = localSnapshot.current; return { ...snapshot, dirty: false, localText: localSnapshot.current }; }
+      if (!dirty && selectedDraftId && versionId) return snapshot;
+      const saved = await saveDraft();
+      if (!saved) throw new Error('Não foi possível guardar a edição. Seu texto foi preservado.');
+      return { matterId: selectedMatterId, draftId: saved.draft.id, versionId: saved.version.id, title: draftTitle, dirty: false };
+    };
+    onPieceChange(snapshot);
+  }, [integrated, onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, draftTitle, sections, dirty, busy, loadingSelection, caseUnavailable, contextChanged]); // eslint-disable-line react-hooks/exhaustive-deps
   const expectedWorkVersion = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('versionId');
   const returnExecution = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('returnExecution');
   const importDeliveryId = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('deliveryId');
@@ -588,7 +605,8 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     if (!importDeliveryId || new URL(requestedLocation || window.location.href, window.location.origin).searchParams.has('draftId') || authStatus !== 'authenticated') return;
     void requestApi<Delivery>(`/api/agentic/deliveries/${encodeURIComponent(importDeliveryId)}`, {}, { sessionOnly: true }).then(d => {
       if (!active || !d.delivery.document) return;
-      if (dirty && !window.confirm('Há alterações não salvas. Deseja abrir esta outra entrega?')) return;
+      if (dirty && submittedLocalSnapshot.current !== localSnapshot.current) { setError('Sua edição local foi preservada. A resposta está disponível na conversa.'); return; }
+      submittedLocalSnapshot.current = undefined;
       setSelectedMatterId(''); setSelectedDraftId(''); setDetails(null); setImportedDelivery(d); setSavedPayload('');
       if (integrated && window.location.pathname === '/app/trabalho') { const route=new URL(window.location.href); route.searchParams.delete('matterId');route.searchParams.delete('draftId');route.searchParams.delete('versionId');route.searchParams.set('deliveryId',importDeliveryId);window.history.replaceState({},'',route); }
     }).catch(e => { if (active) setError(e instanceof Error ? e.message : 'Entrega indisponível.'); });
@@ -672,49 +690,15 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
   };
   if (integrated) return <>
     {readingDocument && readingDocument.matterId === selectedMatterId && hasApiAccess && <DocumentReaderDialog source={readingDocument} token={token} onClose={() => setReadingDocument(undefined)} />}
-    <DraftCanvas editSection={editingSection} title={draftTitle} sections={sections} matters={matters} drafts={drafts} matterId={selectedMatterId} draftId={selectedDraftId}
+    <DraftCanvas title={draftTitle} sections={sections} matters={matters} drafts={drafts} matterId={selectedMatterId} draftId={selectedDraftId}
       busy={busy || adopting || loadingSelection || caseUnavailable} dirty={dirty} error={error} status={reviewStatus}
       onTitle={setDraftTitle} onSection={(i,field,value)=>setSections(old=>old.map((s,index)=>index===i?{...s,[field]:value}:s))}
       onMatter={id=>void selectMatter(id)} onDraft={id=>id ? void selectDraft(id) : void selectMatter(selectedMatterId)}
-      onSave={()=>void saveDraft()} onAsk={text=>onAsk?.(text)} onExport={format=>void exportOpenPiece(format)}
+      onSave={()=>void saveDraft()} onExport={format=>void exportOpenPiece(format)}
       caseControls={<details><summary className="cursor-pointer text-xs text-stone-600">Criar caso</summary><label className="mt-2 block text-xs">Nome do caso<input className="mt-1 w-full rounded border p-2" value={newWorkCase} maxLength={200} onChange={e=>setNewWorkCase(e.target.value)}/></label><button type="button" className="mt-2 text-sm text-cognac-800" disabled={busy || !newWorkCase.trim()} onClick={async()=>{setBusy(true);try{const m=await requestApi<Matter>('/api/v2/matters',{method:'POST',body:JSON.stringify({title:newWorkCase.trim()})},{sessionOnly:true});setMatters(old=>[...old,m]);await selectMatter(m.id);setNewWorkCase('');}catch(e){setError(e instanceof Error?e.message:'Não foi possível criar o caso.');}finally{setBusy(false);}}}>Criar caso e usar na peça</button></details>}
       extras={importedDelivery && !selectedMatterId ? <p className="px-5 pt-3 text-sm text-stone-600">Escolha um caso em “Abrir peça” para guardar esta entrega. Você já pode editar e exportar localmente.</p> : undefined}
-      review={<div className="space-y-4">
-        {selectedMatterId && selectedDraftId && details?.currentVersion && <EditorialReviewPanel key={`${selectedDraftId}:${details.currentVersion.version.id}`} matterId={selectedMatterId} draftId={selectedDraftId} versionId={details.currentVersion.version.id} deliveryId={`desk:${selectedMatterId}`} disabled={dirty || busy || caseUnavailable} />}
-        {dirty && <p className="text-sm text-stone-600">Salve a peça para revisar o texto atual com IA.</p>}
-        {selectedDraftId && authStatus==='authenticated' && !caseUnavailable && <ReceivedDraftPanel key={`${selectedMatterId}:${selectedDraftId}`} matterId={selectedMatterId} draftId={selectedDraftId} currentVersionId={details?.draft.currentVersionId} dirty={dirty} onAdopt={useReceived} />}
-        <div className="flex flex-wrap gap-2"><button type="button" className="btn-secondary" disabled={busy || caseUnavailable} onClick={()=>void (dirty ? saveAndReview() : runReview())}>{dirty ? 'Salvar e conferir' : 'Conferir versão'}</button>
-        <button type="button" className="btn-primary" disabled={busy || !approvalReady || caseUnavailable} onClick={()=>details?.currentVersion && setApprovalConfirmation({versionId:details.currentVersion.version.id,versionNumber:details.currentVersion.version.versionNumber})}>Aprovar versão</button></div>
-        {!!details?.documentReferences?.length && <details><summary className="cursor-pointer text-sm">Fontes da peça</summary>{details.documentReferences.map((d,i)=><button key={i} type="button" className="block py-2 text-sm underline" onClick={()=>setReadingDocument({matterId:selectedMatterId,documentId:d.reference.itemId,versionId:d.reference.documentVersionId,anchorId:d.reference.anchorId})}>{d.documentTitle ?? 'Documento'}</button>)}</details>}
-        {details && <ReviewPanel latestRun={details.latestReviewRun} currentRun={details.currentReviewRun} findings={details.reviewFindings} stale={dirty || contextChanged || details.reviewContextChanged} onOpenPoint={p => { const c=p.check; if(c.targetType==='DOCUMENT' && c.targetId && c.source?.documentVersionId) setReadingDocument({matterId:selectedMatterId,documentId:c.targetId,versionId:c.source.documentVersionId,anchorId:c.source.anchorId}); else setPoint(p); }}/>}
-              {point && <SourcePanel point={point} matterId={selectedMatterId} token={token} facts={facts} evidence={evidence} authorities={authorities}
-                sectionTitle={details?.currentVersion?.sections.find(s => s.id === point.check.sectionId)?.title}
-                citationText={details?.currentVersion?.citations.find(c => c.sectionId === point.check.sectionId && c.targetId === point.check.targetId)?.citationText}
-                onClose={() => setPoint(undefined)} onLinked={() => { setContextChanged(true); void refreshDetails().catch(() => setError('Vínculo salvo. Atualize a conferência para consultar o resultado.')); }}
-                onEditSection={() => {
-                  const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
-                  setPoint(undefined); setEditingSection({index});
-                }}
-                onLinkReference={() => {
-                  const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
-                  const field = point.check.targetType === 'AUTHORITY' ? 'linkedAuthorityIds' : point.check.targetType === 'FACT' ? 'linkedFactIds' : 'linkedEvidenceIds';
-                  if (index >= 0 && point.check.targetId) setSections(current => current.map((s, i) => i === index ? { ...s, [field]: [...new Set([...s[field], point.check.targetId!])] } : s));
-                  setPoint(undefined);
-                }}
-                onRemoveReference={() => {
-                  const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
-                  const field = point.check.targetType === 'AUTHORITY' ? 'linkedAuthorityIds' : point.check.targetType === 'FACT' ? 'linkedFactIds' : 'linkedEvidenceIds';
-                  if (index >= 0) {
-                    setSections(current => current.map((s, i) => i === index ? { ...s, [field]: s[field].filter(id => id !== point.check.targetId) } : s));
-                    setCitations(current => current.filter(c => c.sectionOrdinal !== index || c.targetId !== point.check.targetId || c.targetType !== point.check.targetType));
-                  }
-                  setPoint(undefined);
-                }} />}
-
-
-      </div>}
       history={<div className="space-y-3">{details?.versions.map(v=><button type="button" key={v.id} onClick={()=>void openHistory(v.id)} className="block w-full rounded-lg border border-stone-200 p-3 text-left">Versão {v.versionNumber} · {statusLabel[v.status]}</button>)}{historyLoading && <p>Carregando…</p>}{historyRuns.map(r=><div key={r.id}>{r.checks.map((c,i)=><p key={i} className="py-2 text-sm">{c.message}</p>)}</div>)}</div>}
-      approval={approvalConfirmation && <CanvasDialog title="Aprovar esta versão" onClose={()=>{if(!busy)setApprovalConfirmation(null);}}><p className="mb-3 text-sm">{draftTitle} · versão {approvalConfirmation.versionNumber}. Confirme após conferir o texto e suas fontes. Esta ação não publica nem envia a peça.</p><ul className="mb-4 space-y-2 text-sm text-amber-900">{details?.latestReviewRun?.checks.filter(c=>c.state!=='CONFIRMED'&&c.state!=='NOT_APPLICABLE').map((c,i)=><li key={i}>{c.message}</li>)}</ul>{error && <p role="alert" className="mb-3 text-sm text-red-700">{error}</p>}<button type="button" disabled={busy} onClick={()=>void requestApproval()} className="btn-primary">Confirmar aprovação</button></CanvasDialog>}
+
     />
   </>;
   return (

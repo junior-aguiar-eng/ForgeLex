@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import { editorialArithmeticFindings } from '../final-editor/editorial-arithmetic.js';
 import { auditClaimSupport } from './support-audit.js';
 import {
   assertPublicTaskText,
@@ -44,6 +45,8 @@ import {
   type AgenticTaskDelivery,
 } from '@forgelex/domain';
 import {
+  DESK_TASK_POLICY,
+  deskTaskProfile,
   CASE_TASK_POLICY,
   caseTaskProfile,
   TaskPlanSchema,
@@ -136,6 +139,7 @@ const ReviewedStateSchema = FocusedVerifierStateSchema.omit({ version: true, out
     archivedOutputs: z.record(z.string(), ReviewedTaskResultSchema),
   }).optional(),
 });
+const DeskStateSchema = FocusedVerifierStateSchema.omit({ version: true }).extend({ version: z.literal(10) });
 const StateSchema = z.discriminatedUnion('version', [
   LegacyStateSchema,
   AdaptiveStateSchema,
@@ -146,6 +150,7 @@ const StateSchema = z.discriminatedUnion('version', [
   ScopedDeliveryStateSchema,
   FocusedVerifierStateSchema,
   ReviewedStateSchema,
+  DeskStateSchema,
 ]);
 export type CaseTaskState = z.infer<typeof StateSchema>;
 export function caseTaskStepIndex(raw: unknown): number {
@@ -181,7 +186,9 @@ const profileFor = (version: StateVersion, role: CaseTaskRole) =>
                 ? scopedDeliveryTaskProfile(role)
                 : version === 8
                   ? focusedVerifierTaskProfile(role)
-                  : reviewedDeliveryTaskProfile(role);
+                  : version === 9
+                    ? reviewedDeliveryTaskProfile(role)
+                    : deskTaskProfile(role);
 const policyFor = (version: StateVersion) =>
   version === 1
     ? CASE_TASK_POLICY
@@ -199,7 +206,9 @@ const policyFor = (version: StateVersion) =>
                 ? SCOPED_DELIVERY_TASK_POLICY
                 : version === 8
                   ? FOCUSED_VERIFIER_TASK_POLICY
-                  : REVIEWED_DELIVERY_TASK_POLICY;
+                  : version === 9
+                    ? REVIEWED_DELIVERY_TASK_POLICY
+                    : DESK_TASK_POLICY;
 const legacyClaimsSchema = TaskSpecialistResultSchema.shape.claims.element.extend({
   classification: z.enum(['ALLEGATION', 'INFERENCE', 'CONFLICT']),
 });
@@ -275,7 +284,7 @@ export interface CaseTaskProviderInput {
 }
 export interface CaseTaskOptions {
   /** New contract is opt-in until its calibration is explicitly authorized. Restored versions win. */
-  workflowVersion?: 8 | 9;
+  workflowVersion?: 8 | 9 | 10;
   context: NativeTaskContextPort;
   tools: readonly AgentTool<any, any>[];
   createProvider: (input: CaseTaskProviderInput) => AgentProvider;
@@ -558,6 +567,15 @@ export class AgenticCaseTask {
         execute: async (input) => {
           if (submitted) throw new Error('DUPLICATE_HANDOFF');
           const parsed = schema.parse(input);
+          if (
+            state.version === 10 &&
+            role === 'legal-orchestrator' &&
+            'action' in parsed &&
+            parsed.action === 'create_document' &&
+            packet.sources.some((source) => source.kind === 'DRAFT') &&
+            !('documentMode' in parsed && parsed.documentMode)
+          )
+            throw new Error('DOCUMENT_MODE_REQUIRED');
           if (state.version === 9)
             assertPublicTaskText(parsed, [
               binding.tenantId,
@@ -871,7 +889,21 @@ export class AgenticCaseTask {
         ),
         severity: 'WARNING',
       });
-    const document = state.outputs['legal-drafter']?.document;
+    const document = plan.action === 'create_document' ? state.outputs['legal-drafter']?.document : undefined;
+    const draftSource = packet.sources.find((source) => source.kind === 'DRAFT');
+    if (state.version === 10 && plan.action === 'review_text') {
+      const reviewedSources = draftSource
+        ? [draftSource]
+        : packet.sources.filter((source) => source.kind === 'USER_TEXT');
+      for (const source of reviewedSources)
+        findings.push(
+          ...editorialArithmeticFindings({
+            title: 'Peça aberta',
+            documentType: 'Texto para revisão',
+            sections: [{ title: 'Texto da peça', content: source.text, sourceIds: [source.id] }],
+          }).map((finding) => ({ ...finding, id: `${finding.id}:${source.id}`, sourceIds: [source.id] })),
+        );
+    }
     if (plan.action === 'create_document' && !document)
       findings.push(this.finding('DOCUMENT_NOT_PRODUCED', 'Não foi produzida minuta candidata.'));
     if (document && !plan.documentType)
@@ -899,6 +931,9 @@ export class AgenticCaseTask {
       supportAudit: supportAudit.entries,
       ...(probatory ? { evidenceMatrix: probatory.matrix } : {}),
       ...(document ? { document } : {}),
+      ...(state.version === 10 && document && plan.documentMode === 'EDIT' && draftSource?.versionId
+        ? { replacesVersionId: draftSource.versionId }
+        : {}),
     });
     return state.version === 9 ? consolidateReviewedDelivery(delivery, all, sources, plan) : delivery;
   }
@@ -1033,6 +1068,13 @@ export class AgenticCaseTask {
                 ? EvidenceTaskPlanSchema
                 : TaskPlanSchema
         ).parse(output);
+        if (
+          state.version === 10 &&
+          plan.action === 'create_document' &&
+          packet.sources.some((source) => source.kind === 'DRAFT') &&
+          !plan.documentMode
+        )
+          throw new Error('DOCUMENT_MODE_REQUIRED');
         state.plan = plan;
         if (binding.actionId && plan.action !== binding.actionId) throw new Error('ACTION_CONFLICT');
         this.refs(plan, this.merge(packet.sources, state.evidence));

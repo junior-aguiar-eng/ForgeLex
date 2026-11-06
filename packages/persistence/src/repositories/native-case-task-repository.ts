@@ -18,7 +18,14 @@ import { AgenticWorkspaceRepository } from './agentic-workspace-repository.js';
 import { CaseAiAccessRepository } from './case-ai-access-repository.js';
 import { MatterRepository } from './matter-repository.js';
 import { DraftRepository } from './draft-repository.js';
-import { agenticTaskDeliveries, agenticConversations, legalDocuments, drafts, matters } from '../schema/schema.js';
+import {
+  agenticEvents,
+  agenticTaskDeliveries,
+  agenticConversations,
+  legalDocuments,
+  drafts,
+  matters,
+} from '../schema/schema.js';
 import { MatterWriteGuard } from './matter-write-guard.js';
 import type { ForgeLexDatabase } from '../db.js';
 import { ApprovedCaseContextRepository } from './approved-case-context-repository.js';
@@ -68,7 +75,11 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
   }
   private async guarded<T>(
     binding: TaskBinding,
-    action: (db: ForgeLexDatabase, packet: NativeTaskPacket) => Promise<T>,
+    action: (
+      db: ForgeLexDatabase,
+      packet: NativeTaskPacket,
+      draft?: { draftId: string; versionId: string },
+    ) => Promise<T>,
     historical = false,
     completedRead = false,
   ): Promise<T> {
@@ -178,8 +189,21 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
           const repo = new DraftRepository(db),
             draft = await repo.getDraft(binding.tenantId, binding.matterId, context.draft.draftId);
           if (!draft) throw new Error('ACCESS_REVOKED');
-          if (!historical && draft.currentVersionId !== context.draft.versionId)
-            throw new Error('SOURCE_VERSION_CONFLICT');
+          if (!historical && draft.currentVersionId !== context.draft.versionId) {
+            // A completed save can be replayed after a worker restart; a later human edit cannot.
+            const [ownResult] = await db
+              .select()
+              .from(agenticTaskDeliveries)
+              .where(eq(agenticTaskDeliveries.executionId, binding.executionId))
+              .limit(1);
+            if (
+              !ownResult ||
+              ownResult.draftId !== draft.id ||
+              ownResult.versionId !== draft.currentVersionId ||
+              this.decode(ownResult).replacesVersionId !== context.draft.versionId
+            )
+              throw new Error('SOURCE_VERSION_CONFLICT');
+          }
           const version = await repo.getVersion(binding.tenantId, binding.matterId, draft.id, context.draft.versionId);
           if (!version) throw new Error('ACCESS_REVOKED');
           if (!historical)
@@ -236,7 +260,7 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
         sources,
         answers: context.answers ?? [],
       });
-      return action(db, packet);
+      return action(db, packet, context.draft);
     });
   }
   load(binding: TaskBinding): Promise<NativeTaskPacket> {
@@ -252,7 +276,7 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
     const delivery = AgenticTaskDeliverySchema.parse(raw);
     if (delivery.contextId !== binding.conversationId || delivery.contextRevision !== binding.contextRevision)
       throw new Error('CONTEXT_CONFLICT');
-    return this.guarded(binding, async (db, packet) => {
+    return this.guarded(binding, async (db, packet, target) => {
       for (const s of delivery.sources.filter((s) => !['AUTHORITY', 'NORM'].includes(s.kind)))
         if (!packet.sources.some((p) => p.id === s.id && p.contentHash === s.contentHash))
           throw new Error('SOURCE_REFERENCE_INVALID');
@@ -286,20 +310,32 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
           ...(existing.draftId ? { draftId: existing.draftId, versionId: existing.versionId! } : {}),
         };
       }
+      if (delivery.document && delivery.action !== 'create_document') throw new Error('DOCUMENT_ACTION_INVALID');
+      if (
+        delivery.replacesVersionId &&
+        (!delivery.document || !target || target.versionId !== delivery.replacesVersionId)
+      )
+        throw new Error('DRAFT_EDIT_TARGET_INVALID');
       let draftId: string | undefined, versionId: string | undefined;
       if (delivery.document && binding.matterId) {
         const repo = new DraftRepository(db);
-        const draft = await repo.createDraft({
-          tenantId: binding.tenantId,
-          matterId: binding.matterId,
-          title: delivery.document.title,
-          createdBy: binding.userId,
-        });
+        const draft =
+          delivery.replacesVersionId && target
+            ? (await repo.getDraft(binding.tenantId, binding.matterId, target.draftId))!
+            : await repo.createDraft({
+                tenantId: binding.tenantId,
+                matterId: binding.matterId,
+                title: delivery.document.title,
+                createdBy: binding.userId,
+              });
         const bundle = await repo.createVersion({
           tenantId: binding.tenantId,
           matterId: binding.matterId,
           draftId: draft.id,
-          title: draft.title,
+          title: delivery.document.title,
+          ...(delivery.replacesVersionId
+            ? { baseVersionId: delivery.replacesVersionId, expectedCurrentVersionId: delivery.replacesVersionId }
+            : {}),
           createdBy: binding.userId,
           source: 'WORKFLOW',
           status: 'DRAFT',
@@ -384,11 +420,19 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
         objective: '',
         matterId: execution.matterId ?? undefined,
       },
-      async () => ({
-        id: row.id,
-        delivery: this.decode(row),
-        ...(row.draftId ? { draftId: row.draftId, versionId: row.versionId! } : {}),
-      }),
+      async (db) => {
+        const [event] = await db
+          .select({ createdAt: agenticEvents.createdAt })
+          .from(agenticEvents)
+          .where(and(eq(agenticEvents.executionId, row.executionId), eq(agenticEvents.type, 'DELIVERY')))
+          .limit(1);
+        return {
+          id: row.id,
+          createdAt: event?.createdAt ?? execution.createdAt,
+          delivery: this.decode(row),
+          ...(row.draftId ? { draftId: row.draftId, versionId: row.versionId! } : {}),
+        };
+      },
       true,
     );
   }

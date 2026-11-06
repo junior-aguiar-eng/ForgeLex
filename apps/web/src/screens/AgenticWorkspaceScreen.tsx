@@ -172,6 +172,14 @@ export function AgenticWorkspaceScreen({
     window.addEventListener('popstate', sync);
     return () => window.removeEventListener('popstate', sync);
   }, [id]);
+  const [pastDeliveries, setPastDeliveries] = useState<{ delivery: Delivery; createdAt: string }[]>([]);
+  const transcript = useRef<HTMLDivElement>(null);
+  const historyLoaded = useRef('');
+  const [historyUnavailable, setHistoryUnavailable] = useState(false);
+  useEffect(() => {
+    const element = transcript.current;
+    if (element && integrated) element.scrollTop = element.scrollHeight;
+  }, [integrated, run?.id, run?.status, deliveries.length, pastDeliveries.length]);
   const refresh = useCallback(async () => {
     if (!id) return;
     const ticket = ++generation.current;
@@ -186,11 +194,28 @@ export function AgenticWorkspaceScreen({
       }
       setRun(value);
       const results = await Promise.all(value.deliveryIds.map((d) => client.delivery(d)));
+      const prior = integrated ? (value.history ?? []).filter((entry) => entry.executionId !== value.id) : [];
+      const historyKey = JSON.stringify([value.id, prior.map((entry) => entry.deliveryIds)]);
+      if (historyKey !== historyLoaded.current) {
+        const past = await Promise.allSettled(
+          prior.flatMap((entry) =>
+            entry.deliveryIds.map(async (deliveryId) => {
+              const delivery = await client.delivery(deliveryId);
+              return { delivery, createdAt: delivery.createdAt ?? entry.createdAt };
+            }),
+          ),
+        );
+        if (mounted.current && ticket === generation.current) {
+          setPastDeliveries(past.flatMap((item) => (item.status === 'fulfilled' ? [item.value] : [])));
+          setHistoryUnavailable(past.some((item) => item.status === 'rejected'));
+          historyLoaded.current = historyKey;
+        }
+      }
       if (mounted.current && ticket === generation.current) setDeliveries(results);
     } catch (e) {
       if (mounted.current && ticket === generation.current) fail(e);
     }
-  }, [client, id, changeId, fail]);
+  }, [client, id, changeId, fail, integrated]);
   useEffect(() => {
     void refresh();
   }, [refresh, events.cursor]);
@@ -217,7 +242,13 @@ export function AgenticWorkspaceScreen({
       if (mounted.current) setBusy(false);
     }
   };
-  const start = (input: StartInput) => {
+  const start = (input: StartInput, authorization?: CommercialAuthorization) => {
+    if (commercial && integrated && authorization) {
+      void invoke('start', { ...input, ...authorization }, (key) =>
+        client.commercialStart({ ...input, ...authorization }, key),
+      );
+      return;
+    }
     if (commercial) {
       setPaidCommand({
         kind: 'start',
@@ -375,15 +406,27 @@ export function AgenticWorkspaceScreen({
     <div
       data-agentic-workspace
       aria-busy={busy}
-      className={integrated ? 'min-w-0 px-4 py-5 text-stone-800' : 'page-container py-8 text-stone-800'}
+      className={
+        integrated
+          ? 'flex h-full min-h-0 min-w-0 flex-col px-4 py-5 text-stone-800'
+          : 'page-container py-8 text-stone-800'
+      }
     >
       {integrated &&
         closedPilot === false &&
         historyContainer &&
         createPortal(<RecentConversations {...historyProps} expanded />, historyContainer)}
-      <div className={showRail ? 'lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8' : ''}>
+      <div
+        className={
+          showRail
+            ? 'lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8'
+            : integrated
+              ? 'flex min-h-0 flex-1 flex-col'
+              : ''
+        }
+      >
         {showRail && <RecentConversations {...historyProps} />}
-        <div className="min-w-0 space-y-6">
+        <div className={`min-w-0 space-y-4 ${integrated ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
           {integrated && closedPilot === false && (
             <button type="button" onClick={() => setHistoryOpen(true)} className="text-sm text-stone-600 lg:hidden">
               Conversas
@@ -514,6 +557,7 @@ export function AgenticWorkspaceScreen({
                 request={request}
                 actions={actions}
                 commercial={commercial}
+                authorizeOnSend={integrated}
                 busy={busy || Boolean(paidCommand)}
                 available={available}
                 onFail={fail}
@@ -524,126 +568,159 @@ export function AgenticWorkspaceScreen({
           )}
           {run && (
             <div
-              className={`grid gap-6 ${showSide && !integrated ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]' : ''}`}
+              className={`${integrated ? 'min-h-0 flex-1' : ''} grid gap-6 ${showSide && !integrated ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]' : ''}`}
             >
-              <div className="mx-auto w-full min-w-0 max-w-3xl space-y-5">
-                {reevaluate && (
-                  <div
-                    role="status"
-                    aria-label="Reavaliação necessária"
-                    className="rounded-xl border border-amber-300 bg-amber-50 p-4"
-                  >
-                    <p>Este resultado foi feito com uma versão anterior do contexto e precisa ser refeito.</p>
-                    {run.currentExecutionId && run.currentExecutionId !== run.id && (
-                      <a
-                        className="inline-flex min-h-11 items-center underline"
-                        href={`/app/trabalho?executionId=${encodeURIComponent(run.currentExecutionId)}`}
-                      >
-                        Abrir o resultado atual
-                      </a>
-                    )}
-                  </div>
-                )}
-                <Conversation
-                  question={closedPilot || denied || reevaluate ? null : currentQuestion}
-                  messages={run.messages}
-                  busy={busy || Boolean(paidCommand)}
-                  onAnswer={onAnswer}
-                  onCorrect={
-                    !closedPilot && !active && !reevaluate && !run.successorId && currentStatus === 'COMPLETED'
-                      ? (q) => {
-                          if (!busy && !paidCommand) setCorrection({ ...q, contextRevision: run.contextRevision });
-                        }
-                      : undefined
-                  }
-                />
-                {paidBar('other')}
-                {active && (
-                  <div role="status" className="flex items-center gap-3 text-stone-600">
-                    <span aria-hidden="true" className="inline-flex gap-1">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700" />
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:200ms]" />
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:400ms]" />
-                    </span>
-                    <span>
-                      {run.cancelRequested
-                        ? 'Cancelando assim que a etapa em andamento terminar…'
-                        : 'Trabalhando no seu pedido…'}
-                    </span>
-                    <button
-                      type="button"
-                      className="ml-auto min-h-11 px-3 text-sm text-cognac-700 underline"
-                      disabled={busy || Boolean(run.cancelRequested)}
-                      onClick={() => void invoke('cancel', {}, (key) => client.cancel(run.id, key))}
+              <div className={`mx-auto w-full min-w-0 max-w-3xl ${integrated ? 'flex min-h-0 flex-col' : 'space-y-5'}`}>
+                <div
+                  ref={transcript}
+                  data-chat-transcript
+                  className={`space-y-5 ${integrated ? 'min-h-0 flex-1 overflow-y-auto pr-1' : ''}`}
+                >
+                  {reevaluate && (
+                    <div
+                      role="status"
+                      aria-label="Reavaliação necessária"
+                      className="rounded-xl border border-amber-300 bg-amber-50 p-4"
                     >
-                      Cancelar
-                    </button>
-                  </div>
-                )}
-                {events.reconciliation && (
-                  <p role="status">
-                    O trabalho precisa de conferência antes de outra tentativa. O consumo eventualmente ocorrido não é
-                    repetido automaticamente.
-                  </p>
-                )}
-                {!denied &&
-                  !busy &&
-                  results.map(({ delivery, view }) => (
-                    <ResultCard
-                      key={delivery.id}
-                      compact={integrated}
-                      run={run}
-                      delivery={delivery}
-                      view={view}
-                      activeSource={side.open && latest?.delivery.id === delivery.id ? side.source : null}
-                      onSource={(n) => setSide({ open: true, tab: 'sources', source: n })}
-                      onPending={() => setSide({ open: true, tab: 'pending', source: null })}
-                      onSources={() => setSide({ open: true, tab: 'sources', source: null })}
-                      onEditor={onEditor}
-                      receipt={
-                        commercial && delivery.id === latest?.delivery.id ? (
-                          <CommercialReceiptPanel
-                            client={client}
-                            executionId={run.id}
-                            refreshKey={`${currentStatus}:${events.cursor}`}
-                          />
-                        ) : undefined
-                      }
-                    />
-                  ))}
-                {commercial && !denied && !results.length && !active && (
-                  <CommercialReceiptPanel
-                    client={client}
-                    executionId={run.id}
-                    refreshKey={`${currentStatus}:${events.cursor}`}
-                  />
-                )}
-                {!closedPilot &&
-                  ['FAILED', 'CANCELLED'].includes(currentStatus) &&
-                  !reevaluate &&
-                  !denied &&
-                  !events.reconciliation && (
-                    <button
-                      className="btn-primary min-h-11"
-                      disabled={busy || Boolean(paidCommand)}
-                      onClick={() =>
-                        commercial
-                          ? setPaidCommand({
-                              kind: 'continue',
-                              body: {},
-                              send: (key, authorization) => client.continue(run.id, key, authorization),
-                            })
-                          : void invoke('continue', {}, (key) => client.continue(run.id, key))
-                      }
-                    >
-                      Continuar trabalho
-                    </button>
+                      <p>Este resultado foi feito com uma versão anterior do contexto e precisa ser refeito.</p>
+                      {run.currentExecutionId && run.currentExecutionId !== run.id && (
+                        <a
+                          className="inline-flex min-h-11 items-center underline"
+                          href={`/app/trabalho?executionId=${encodeURIComponent(run.currentExecutionId)}`}
+                        >
+                          Abrir o resultado atual
+                        </a>
+                      )}
+                    </div>
                   )}
-                {run.matterId && !denied && !closedPilot && !active && !canFollowUp && (
-                  <EvidenceChangesPanel key={run.matterId} matterId={run.matterId} disabled={busy} />
-                )}
+                  {integrated && !denied && historyUnavailable && (
+                    <p className="text-xs text-stone-600">Algumas respostas anteriores estão indisponíveis.</p>
+                  )}
+                  <Conversation
+                    deliveries={
+                      integrated && !denied
+                        ? pastDeliveries.map(({ delivery, createdAt }) => ({
+                            id: delivery.id,
+                            createdAt,
+                            content: (
+                              <article
+                                className="rounded-xl border border-stone-200 bg-white p-4"
+                                aria-label="Resposta anterior"
+                              >
+                                {delivery.delivery.document ? (
+                                  <p>A peça “{delivery.delivery.document.title}” foi preparada nesta conversa.</p>
+                                ) : (
+                                  presentDelivery(delivery.delivery).blocks.map((block, index) => (
+                                    <p key={index} className="mb-2 whitespace-pre-wrap text-sm leading-7">
+                                      {block.text}
+                                    </p>
+                                  ))
+                                )}
+                              </article>
+                            ),
+                          }))
+                        : []
+                    }
+                    question={closedPilot || denied || reevaluate ? null : currentQuestion}
+                    messages={run.messages}
+                    busy={busy || Boolean(paidCommand)}
+                    onAnswer={onAnswer}
+                    onCorrect={
+                      !closedPilot && !active && !reevaluate && !run.successorId && currentStatus === 'COMPLETED'
+                        ? (q) => {
+                            if (!busy && !paidCommand) setCorrection({ ...q, contextRevision: run.contextRevision });
+                          }
+                        : undefined
+                    }
+                  />
+                  {paidBar('other')}
+                  {active && (
+                    <div role="status" className="flex items-center gap-3 text-stone-600">
+                      <span aria-hidden="true" className="inline-flex gap-1">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700" />
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:200ms]" />
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:400ms]" />
+                      </span>
+                      <span>
+                        {run.cancelRequested
+                          ? 'Cancelando assim que a etapa em andamento terminar…'
+                          : 'Trabalhando no seu pedido…'}
+                      </span>
+                      <button
+                        type="button"
+                        className="ml-auto min-h-11 px-3 text-sm text-cognac-700 underline"
+                        disabled={busy || Boolean(run.cancelRequested)}
+                        onClick={() => void invoke('cancel', {}, (key) => client.cancel(run.id, key))}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+                  {events.reconciliation && (
+                    <p role="status">
+                      O trabalho precisa de conferência antes de outra tentativa. O consumo eventualmente ocorrido não é
+                      repetido automaticamente.
+                    </p>
+                  )}
+                  {!denied &&
+                    !busy &&
+                    results.map(({ delivery, view }) => (
+                      <ResultCard
+                        key={delivery.id}
+                        compact={integrated}
+                        run={run}
+                        delivery={delivery}
+                        view={view}
+                        activeSource={side.open && latest?.delivery.id === delivery.id ? side.source : null}
+                        onSource={(n) => setSide({ open: true, tab: 'sources', source: n })}
+                        onPending={() => setSide({ open: true, tab: 'pending', source: null })}
+                        onSources={() => setSide({ open: true, tab: 'sources', source: null })}
+                        onEditor={onEditor}
+                        receipt={
+                          commercial && delivery.id === latest?.delivery.id ? (
+                            <CommercialReceiptPanel
+                              client={client}
+                              executionId={run.id}
+                              refreshKey={`${currentStatus}:${events.cursor}`}
+                            />
+                          ) : undefined
+                        }
+                      />
+                    ))}
+                  {commercial && !denied && !results.length && !active && (
+                    <CommercialReceiptPanel
+                      client={client}
+                      executionId={run.id}
+                      refreshKey={`${currentStatus}:${events.cursor}`}
+                    />
+                  )}
+                  {!closedPilot &&
+                    ['FAILED', 'CANCELLED'].includes(currentStatus) &&
+                    !reevaluate &&
+                    !denied &&
+                    !events.reconciliation && (
+                      <button
+                        className="btn-primary min-h-11"
+                        disabled={busy || Boolean(paidCommand)}
+                        onClick={() =>
+                          commercial
+                            ? setPaidCommand({
+                                kind: 'continue',
+                                body: {},
+                                send: (key, authorization) => client.continue(run.id, key, authorization),
+                              })
+                            : void invoke('continue', {}, (key) => client.continue(run.id, key))
+                        }
+                      >
+                        Continuar trabalho
+                      </button>
+                    )}
+                  {run.matterId && !denied && !closedPilot && !active && !canFollowUp && (
+                    <EvidenceChangesPanel key={run.matterId} matterId={run.matterId} disabled={busy} />
+                  )}
+                </div>
                 {canFollowUp && (
-                  <div className="space-y-4 pt-2">
+                  <div className="shrink-0 space-y-4 pt-3">
                     <Composer
                       key={`${run.id}:${run.contextRevision}`}
                       client={client}
@@ -651,6 +728,7 @@ export function AgenticWorkspaceScreen({
                       request={request}
                       actions={actions}
                       commercial={commercial}
+                      authorizeOnSend={integrated}
                       busy={busy || Boolean(paidCommand)}
                       available={available}
                       followUp={{

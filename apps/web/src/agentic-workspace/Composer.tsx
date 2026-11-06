@@ -2,7 +2,7 @@ import type { DeskPiece, DeskRequest } from './desk-model';
 import { useEffect, useRef, useState } from 'react';
 import { requestApi } from '../api-client';
 import type { WorkspaceClient, StartInput } from './client';
-import { reais, type CommercialQuote } from './commercial-model';
+import { reais, type CommercialAuthorization, type CommercialQuote } from './commercial-model';
 import type { ActionId, Context, PublicAction } from './execution-model';
 import { EvidenceChangesPanel } from './EvidenceChangesPanel';
 
@@ -33,6 +33,7 @@ export function Composer({
   client,
   actions,
   commercial,
+  authorizeOnSend = false,
   busy,
   available,
   followUp,
@@ -44,13 +45,14 @@ export function Composer({
   client: WorkspaceClient;
   actions: PublicAction[];
   commercial: boolean;
+  authorizeOnSend?: boolean;
   busy: boolean;
   available: boolean;
   followUp?: ComposerFollowUp;
   piece?: DeskPiece | null;
   request?: DeskRequest;
   onFail: (error: unknown) => void;
-  onSubmit: (input: StartInput) => void;
+  onSubmit: (input: StartInput, authorization?: CommercialAuthorization) => void;
 }) {
   const [objective, setObjective] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -76,6 +78,7 @@ export function Composer({
     setSelectedDraft(undefined);
   }, [piece, matter]);
   const [scopeOpen, setScopeOpen] = useState(false);
+  const [quoteFailed, setQuoteFailed] = useState(false);
   const [quote, setQuote] = useState<CommercialQuote>();
   const fail = useRef(onFail);
   fail.current = onFail;
@@ -86,7 +89,7 @@ export function Composer({
     client
       .commercialQuote()
       .then((value) => active && setQuote(value))
-      .catch(() => undefined);
+      .catch(() => active && setQuoteFailed(true));
     return () => {
       active = false;
     };
@@ -150,35 +153,56 @@ export function Composer({
   ]
     .filter(Boolean)
     .join(' · ');
-  const send = () => {
-    if (!goal || busy || !available) return;
-    if (piece?.dirty) return;
-    onSubmit({
-      objective: goal,
-      ...(action ? { actionId: action } : {}),
-      ...(followUp && (!piece || piece.matterId === followUp.matterId)
-        ? { conversationId: followUp.conversationId, contextRevision: followUp.contextRevision }
-        : {}),
-      ...(piece?.matterId || matter ? { matterId: piece?.matterId || matter } : {}),
-      context: {
-        text: piece && piece.matterId !== matter ? '' : text,
-        origin:
-          piece && piece.matterId !== matter ? 'USER' : selected.length ? (text.trim() ? 'MIXED' : 'DOCUMENT') : 'USER',
-        documents: piece && piece.matterId !== matter ? [] : selected,
-        ...(piece
-          ? { draft: { draftId: piece.draftId, versionId: piece.versionId } }
-          : selectedDraft
-            ? { draft: selectedDraft }
+  const [preparing, setPreparing] = useState(false);
+  const send = async () => {
+    if (!goal || busy || preparing || !available) return;
+    if (commercial && authorizeOnSend && (!quote || quote.availableCents < quote.maxCostCents)) return;
+    setPreparing(true);
+    try {
+      const currentPiece = piece?.prepare ? await piece.prepare() : piece;
+      if (currentPiece?.dirty) throw new Error('A peça ainda está sendo atualizada.');
+      onSubmit(
+        {
+          objective: goal,
+          ...(action ? { actionId: action } : {}),
+          ...(followUp && (!currentPiece || (currentPiece.matterId || null) === followUp.matterId)
+            ? { conversationId: followUp.conversationId, contextRevision: followUp.contextRevision }
             : {}),
-      },
-    });
+          ...(currentPiece?.matterId || matter ? { matterId: currentPiece?.matterId || matter } : {}),
+          context: {
+            text: currentPiece?.localText
+              ? `Peça aberta (conteúdo do usuário):\n${currentPiece.localText}`
+              : currentPiece && currentPiece.matterId !== matter
+                ? goal
+                : text,
+            origin:
+              currentPiece && currentPiece.matterId !== matter
+                ? 'USER'
+                : selected.length
+                  ? text.trim()
+                    ? 'MIXED'
+                    : 'DOCUMENT'
+                  : 'USER',
+            documents: currentPiece && currentPiece.matterId !== matter ? [] : selected,
+            ...(currentPiece?.draftId && currentPiece.versionId
+              ? { draft: { draftId: currentPiece.draftId, versionId: currentPiece.versionId } }
+              : selectedDraft
+                ? { draft: selectedDraft }
+                : {}),
+          },
+        },
+        commercial && authorizeOnSend && quote ? { confirmed: true, policyVersion: quote.policyVersion } : undefined,
+      );
+    } catch (error) {
+      onFail(error);
+    } finally {
+      setPreparing(false);
+    }
   };
   return (
     <section aria-label="Novo pedido" className="space-y-4">
       {piece && (
-        <p className="text-xs text-stone-500">
-          {piece.dirty ? 'Salve a edição para pedir mudanças nesta versão.' : `Sobre a peça: ${piece.title}`}
-        </p>
+        <p className="text-xs text-stone-500">{`Sobre a peça: ${piece.title}`} · Ao enviar, uso o texto aberto.</p>
       )}
       <div
         role="group"
@@ -228,8 +252,14 @@ export function Composer({
           <button
             type="button"
             className="btn-primary ml-auto min-h-11"
-            disabled={busy || !available || !goal || Boolean(piece?.dirty)}
-            onClick={send}
+            disabled={
+              busy ||
+              preparing ||
+              !available ||
+              !goal ||
+              (commercial && authorizeOnSend && (!quote || quote.availableCents < quote.maxCostCents))
+            }
+            onClick={() => void send()}
           >
             Enviar
           </button>
@@ -318,10 +348,20 @@ export function Composer({
       {!available && (
         <p className="text-sm text-stone-600">O processamento deste trabalho ainda não está disponível.</p>
       )}
+      {commercial && !quote && (
+        <p role="status" className="text-xs text-stone-600">
+          {quoteFailed ? 'Preço indisponível. Recarregue a página para consultar novamente.' : 'Consultando preço…'}
+        </p>
+      )}
       {commercial && quote && (
         <p className="text-sm text-stone-600">
-          Custo de {reais(quote.minCostCents)} a {reais(quote.maxCostCents)} por trabalho; você confirma ao enviar.
-          Saldo disponível: {reais(quote.availableCents)}.
+          Custo de {reais(quote.minCostCents)} a {reais(quote.maxCostCents)} por trabalho. Enviar autoriza até{' '}
+          {reais(quote.maxCostCents)}; o restante é liberado. Saldo: {reais(quote.availableCents)}.{' '}
+          {quote.availableCents < quote.maxCostCents && 'Saldo insuficiente.'} O texto e as fontes são processados pela
+          OpenAI.{' '}
+          <a href="/legal/privacidade.html" target="_blank" rel="noreferrer" className="underline">
+            Privacidade
+          </a>
         </p>
       )}
     </section>
