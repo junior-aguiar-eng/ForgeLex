@@ -36,7 +36,7 @@ async function database() {
 }
 const owner = { tenantId: 'editorial-commercial', userId: 'boni' };
 const hash = (x: unknown) => createHash('sha256').update(JSON.stringify(x)).digest('hex');
-async function fixture(fail = false) {
+async function fixture(fail = false, desk = false) {
   const c = await database();
   await runPersistenceMigrations(c.client);
   const ledger = new LedgerService(c.db, c.client);
@@ -58,6 +58,7 @@ async function fixture(fail = false) {
   };
   const context = FinalEditorialContextSchema.parse({
     ...identity,
+    ...(desk ? { origin: 'DESK_VERSION' } : {}),
     document,
     sources: [],
     claims: [],
@@ -133,8 +134,8 @@ async function fixture(fail = false) {
   };
   return { ...c, runtime, input, transport, load, authorizeOwner, context };
 }
-it('reserves BRL and charges a completed empty review once, recovering its proposal', async () => {
-  const f = await fixture();
+it.each([false, true])('charges a completed empty review once and recovers it (desk=%s)', async (desk) => {
+  const f = await fixture(false, desk);
   const started = await f.runtime.start(owner, 'one', f.input);
   expect(started.receipt?.reservedCents).toBe(500);
   expect(f.transport).not.toHaveBeenCalled();

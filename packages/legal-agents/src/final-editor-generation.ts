@@ -18,6 +18,7 @@ export const FINAL_EDITOR_GENERATION_PROFILE = Object.freeze({
     'Fatos, valores, datas, prazos, partes, pedidos, fundamentos, obrigações, certeza e ressalvas ' +
     'só podem ser discutidos em substantiveSuggestions sem after/patch. Na dúvida, mantenha o original. ' +
     'Preserve limitações, findings, suporte parcial e requisitos não verificados. ' +
+    'Se origin for DESK_VERSION, use LIMITED e explicite que fatos, fontes e mérito jurídico não foram auditados. ' +
     'humanReviewRequired é true e legalAssessment é NOT_EVALUATED. LIMITED exige limitação explícita. ' +
     'Entregue uma única proposta concisa em editorial.submit, respeitando o schema e 2048 tokens de saída; ' +
     'a simulação exige também JSON de até 2048 bytes UTF-8. Não trunque nem omita ressalvas para caber: ' +

@@ -16,11 +16,13 @@ export function EditorialReviewPanel({
   draftId,
   versionId,
   matterId,
+  disabled = false,
 }: {
   deliveryId: string;
   draftId: string;
   versionId: string;
   matterId: string;
+  disabled?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null),
     title = useId();
@@ -309,13 +311,14 @@ export function EditorialReviewPanel({
   return (
     <div>
       <button
-        className="min-h-11 text-sm underline"
+        disabled={disabled}
+        className="min-h-11 text-sm underline disabled:opacity-50"
         onClick={() => {
           setOpen(true);
           if (!pending.current) void read();
         }}
       >
-        Revisar proposta editorial
+        {deliveryId.startsWith('desk:') ? 'Revisar texto com IA' : 'Revisar proposta editorial'}
       </button>
       {createPortal(
         <dialog

@@ -483,6 +483,7 @@ export const draftVersions = sqliteTable(
     createdBy: text('created_by').notNull(),
     notes: text('notes'),
     derivedFromVersionId: text('derived_from_version_id'),
+    editorialReviewsJson: text('editorial_reviews_json'),
     createdAt: text('created_at').notNull(),
   },
   (table) => [

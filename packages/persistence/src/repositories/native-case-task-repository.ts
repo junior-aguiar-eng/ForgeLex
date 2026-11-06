@@ -1,3 +1,4 @@
+import { DeskEditorialRepository } from './desk-editorial-repository.js';
 import { createHash } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -31,11 +32,15 @@ export type AuthorizeNativeTask = (
   matterId: string | undefined,
   db: ForgeLexDatabase,
 ) => Promise<void>;
-interface EditorialSnapshot {
+export interface EditorialSnapshot {
+  origin?: 'DESK_VERSION';
   id: string;
   draftId: string;
   versionId: string;
-  delivery: AgenticTaskDelivery;
+  delivery: Pick<
+    AgenticTaskDelivery,
+    'contextId' | 'contextRevision' | 'document' | 'claims' | 'requirements' | 'findings' | 'supportAudit'
+  >;
   sources: TaskSource[];
 }
 /** Owner-bound native adapter. OAuth grant checks in the external MCP service remain unchanged. */
@@ -387,12 +392,15 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       true,
     );
   }
-  /** Read-only business operation: reuse native authorization/locks, never resume a task. */
+  /** Load an authorized snapshot; desk metadata may be initialized, but the piece is never changed. */
   async loadEditorialSnapshot(owner: AgenticOwner, id: string, expected: { draftId: string; versionId: string }) {
+    if (id.startsWith('desk:')) return new DeskEditorialRepository(this.db, this.authorize).load(owner, id, expected);
     return this.editorialOperation(owner, id, expected, async (_db, snapshot) => snapshot);
   }
   /** Authorized historical metadata remains readable when the editable snapshot is stale. */
   async readEditorialHistory(owner: AgenticOwner, id: string, expected: { draftId: string; versionId: string }) {
+    if (id.startsWith('desk:'))
+      return new DeskEditorialRepository(this.db, this.authorize).history(owner, id, expected);
     return this.editorialOperation(owner, id, expected, async (_db, _snapshot, row) => row.editorialReviewJson, true);
   }
   /** Human review metadata only. Callback validation and saving share all snapshot locks. */
@@ -402,6 +410,8 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
     expected: { draftId: string; versionId: string },
     action: (snapshot: EditorialSnapshot, saved: string | null) => { result: T; record?: string },
   ) {
+    if (id.startsWith('desk:'))
+      return new DeskEditorialRepository(this.db, this.authorize).review(owner, id, expected, action);
     return this.editorialOperation(owner, id, expected, async (db, snapshot, row) => {
       const outcome = action(snapshot, row.editorialReviewJson);
       if (outcome.record !== undefined)
@@ -432,6 +442,8 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
     },
     replay: (saved: string | null) => T | undefined,
   ): Promise<T> {
+    if (id.startsWith('desk:'))
+      return new DeskEditorialRepository(this.db, this.authorize).apply(owner, id, expected, prepare, replay);
     try {
       return await this.editorialOperation(owner, id, expected, async (db, snapshot, row) => {
         const prepared = prepare(snapshot, row.editorialReviewJson);
@@ -647,6 +659,7 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
     return row ? this.decode(row) : undefined;
   }
   async getDeliveryContext(owner: AgenticOwner, id: string): Promise<{ matterId: string | null }> {
+    if (id.startsWith('desk:')) return new DeskEditorialRepository(this.db, this.authorize).authorizeTarget(owner, id);
     const [row] = await this.db
       .select({ executionId: agenticTaskDeliveries.executionId })
       .from(agenticTaskDeliveries)

@@ -27,6 +27,7 @@ export function editorialContextFromSnapshot(
   if (!delivery.supportAudit) throw new Error('EDITORIAL_AUDIT_UNAVAILABLE');
   return FinalEditorialContextSchema.parse({
     contractVersion: '1.0.0',
+    ...(saved.origin ? { origin: saved.origin } : {}),
     contextId: delivery.contextId,
     contextRevision: delivery.contextRevision,
     deliveryId: saved.id,

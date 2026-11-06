@@ -1,3 +1,4 @@
+import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
 import { DraftCanvas, CanvasDialog } from './draft-review/DraftCanvas';
 import type { DeskPiece } from '../agentic-workspace/desk-model';
 import { printDraftPdf } from '../documents/draft-print';
@@ -679,6 +680,8 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
       caseControls={<details><summary className="cursor-pointer text-xs text-stone-600">Criar caso</summary><label className="mt-2 block text-xs">Nome do caso<input className="mt-1 w-full rounded border p-2" value={newWorkCase} maxLength={200} onChange={e=>setNewWorkCase(e.target.value)}/></label><button type="button" className="mt-2 text-sm text-cognac-800" disabled={busy || !newWorkCase.trim()} onClick={async()=>{setBusy(true);try{const m=await requestApi<Matter>('/api/v2/matters',{method:'POST',body:JSON.stringify({title:newWorkCase.trim()})},{sessionOnly:true});setMatters(old=>[...old,m]);await selectMatter(m.id);setNewWorkCase('');}catch(e){setError(e instanceof Error?e.message:'Não foi possível criar o caso.');}finally{setBusy(false);}}}>Criar caso e usar na peça</button></details>}
       extras={importedDelivery && !selectedMatterId ? <p className="px-5 pt-3 text-sm text-stone-600">Escolha um caso em “Abrir peça” para guardar esta entrega. Você já pode editar e exportar localmente.</p> : undefined}
       review={<div className="space-y-4">
+        {selectedMatterId && selectedDraftId && details?.currentVersion && <EditorialReviewPanel key={`${selectedDraftId}:${details.currentVersion.version.id}`} matterId={selectedMatterId} draftId={selectedDraftId} versionId={details.currentVersion.version.id} deliveryId={`desk:${selectedMatterId}`} disabled={dirty || busy || caseUnavailable} />}
+        {dirty && <p className="text-sm text-stone-600">Salve a peça para revisar o texto atual com IA.</p>}
         {selectedDraftId && authStatus==='authenticated' && !caseUnavailable && <ReceivedDraftPanel key={`${selectedMatterId}:${selectedDraftId}`} matterId={selectedMatterId} draftId={selectedDraftId} currentVersionId={details?.draft.currentVersionId} dirty={dirty} onAdopt={useReceived} />}
         <div className="flex flex-wrap gap-2"><button type="button" className="btn-secondary" disabled={busy || caseUnavailable} onClick={()=>void (dirty ? saveAndReview() : runReview())}>{dirty ? 'Salvar e conferir' : 'Conferir versão'}</button>
         <button type="button" className="btn-primary" disabled={busy || !approvalReady || caseUnavailable} onClick={()=>details?.currentVersion && setApprovalConfirmation({versionId:details.currentVersion.version.id,versionNumber:details.currentVersion.version.versionNumber})}>Aprovar versão</button></div>
