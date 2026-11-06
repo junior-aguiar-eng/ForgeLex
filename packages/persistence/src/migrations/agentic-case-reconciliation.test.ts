@@ -5,7 +5,7 @@ import { persistenceMigrations, runMigrations, runPersistenceMigrations } from '
 it.each([
   [
     'main com análise documental',
-    (id: string) => !id.startsWith('persistence-0031-agentic') && !/^persistence-003[234678]-/.test(id),
+    (id: string) => !id.startsWith('persistence-0031-agentic') && !/^persistence-003[2346789]-/.test(id),
   ],
   ['branch agêntica sem análise documental', (id: string) => id !== 'persistence-0031-case-document-analysis'],
 ])('reconcilia migrations a partir de %s sem reaplicação', async (_description, keep) => {
@@ -21,6 +21,9 @@ it.each([
     expect(ids.filter((id) => id === 'persistence-0031-case-document-analysis')).toHaveLength(1);
     expect(ids.filter((id) => id === 'persistence-0031-agentic-workspace')).toHaveLength(1);
     expect(ids.filter((id) => id === 'persistence-0038-editorial-human-review')).toHaveLength(1);
+    expect(ids.filter((id) => id === 'persistence-0039-conversation-history')).toHaveLength(1);
+    const conversationColumns = (await client.execute('PRAGMA table_info(agentic_conversations)')).rows;
+    expect(conversationColumns.filter((column) => column.name === 'history_hidden_at')).toHaveLength(1);
     const deliveryColumns = (await client.execute('PRAGMA table_info(agentic_task_deliveries)')).rows;
     expect(deliveryColumns.filter((column) => column.name === 'editorial_review_json')).toHaveLength(1);
     const tables = (
