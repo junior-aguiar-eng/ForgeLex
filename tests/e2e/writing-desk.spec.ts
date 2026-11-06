@@ -227,7 +227,7 @@ test('entrega abre ao lado, mantém edição ao navegar e aceita links antigos',
   await expect(desk.getByLabel('Texto da seção 1', { exact: true })).toHaveValue('Alteração local preservada.');
   await expect(page).toHaveURL(/\/app\/trabalho/);
   await page.goto('/app/revisao');
-  await expect(page.getByRole('dialog', { name: 'Conferências do caso' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Conferências do caso' })).toBeVisible();
 });
 
 test('revisão da mesa usa a versão salva e exige salvar edições antes de revisar', async ({ page }) => {
@@ -258,19 +258,17 @@ test('revisão da mesa usa a versão salva e exige salvar edições antes de rev
     requested = new URL(route.request().url());
     await route.fulfill({ status: 503, json: { error: 'SYNTHETIC_NO_INFERENCE' } });
   });
-  await desk.getByRole('button', { name: 'Conferir esta peça' }).click();
-  await page.getByRole('button', { name: 'Revisar texto com IA', exact: true }).click();
+  await desk.getByRole('button', { name: 'Revisar peça', exact: true }).click();
+  await expect(desk.getByRole('region', { name: 'Revisão na mesa' })).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByLabel('Arquivo da proposta editorial')).toHaveCount(0);
   await expect.poll(() => requested?.searchParams.get('versionId')).toBe(details.currentVersion.version.id);
   expect(requested?.searchParams.get('draftId')).toBe(draftId);
   expect(decodeURIComponent(requested!.pathname)).toContain(`desk:${matter.id}`);
-  await page
-    .getByRole('dialog', { name: 'Revisão editorial', exact: true })
-    .getByRole('button', { name: 'Fechar', exact: true })
-    .click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+  await desk.getByRole('button', { name: 'Recolher apontamentos' }).click();
   await desk.getByLabel('Texto da seção 1', { exact: true }).fill('As partes apresentam o pedido.');
-  await desk.getByRole('button', { name: 'Conferir esta peça' }).click();
-  await expect(page.getByRole('button', { name: 'Revisar texto com IA', exact: true })).toBeDisabled();
+  await desk.getByRole('button', { name: 'Revisar peça', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Aplicar esta sugestão' })).toHaveCount(0);
   await expect(page.getByText('Salve a peça para revisar o texto atual com IA.')).toBeVisible();
   expect(paidStarts).toBe(0);
 });

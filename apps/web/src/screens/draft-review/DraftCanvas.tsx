@@ -96,6 +96,7 @@ function PaperText({
 
 export function DraftCanvas({
   title,
+  reviewRequested,
   editSection,
   sections,
   matters,
@@ -120,6 +121,7 @@ export function DraftCanvas({
   approval,
 }: {
   title: string;
+  reviewRequested?: boolean;
   editSection?: { index: number };
   sections: Section[];
   matters: { id: string; title: string }[];
@@ -143,7 +145,10 @@ export function DraftCanvas({
   caseControls?: ReactNode;
   approval?: ReactNode;
 }) {
-  const [panel, setPanel] = useState<'review' | 'history' | null>(null);
+  const [panel, setPanel] = useState<'review' | 'history' | null>(reviewRequested ? 'review' : null);
+  useEffect(() => {
+    if (reviewRequested) setPanel('review');
+  }, [reviewRequested]);
   useEffect(() => {
     if (editSection) {
       setPanel(null);
@@ -216,11 +221,12 @@ export function DraftCanvas({
         </button>
         <button
           type="button"
-          onClick={() => setPanel('review')}
+          onClick={() => setPanel(panel === 'review' ? null : 'review')}
           disabled={busy || !draftId}
           className="rounded-lg p-2 text-stone-600 hover:bg-stone-100 disabled:opacity-40"
-          aria-label="Conferir esta peça"
-          title="Conferir esta peça"
+          aria-expanded={panel === 'review'}
+          aria-label="Revisar peça"
+          title="Revisar peça"
         >
           <Check size={18} />
         </button>
@@ -315,6 +321,20 @@ export function DraftCanvas({
               />
             </section>
           ))}
+          {panel && (
+            <section
+              aria-label={panel === 'review' ? 'Revisão na mesa' : 'Histórico da peça'}
+              className="border-t border-stone-200 pt-4"
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-medium">{panel === 'review' ? 'Revisão' : 'Histórico'}</span>
+                <button type="button" aria-label="Recolher apontamentos" onClick={() => setPanel(null)} className="p-2">
+                  <X size={16} />
+                </button>
+              </div>
+              {panel === 'review' ? review : history}
+            </section>
+          )}
         </article>
       </div>
       <footer className="flex items-center justify-between gap-3 border-t border-stone-200 px-5 py-3 text-xs text-stone-600">
@@ -335,14 +355,6 @@ export function DraftCanvas({
           Pedir ajuste
         </button>
       </footer>
-      {panel && (
-        <CanvasDialog
-          title={panel === 'review' ? 'Conferência da peça' : 'Histórico da peça'}
-          onClose={() => setPanel(null)}
-        >
-          {panel === 'review' ? review : history}
-        </CanvasDialog>
-      )}
       {approval}
     </section>
   );

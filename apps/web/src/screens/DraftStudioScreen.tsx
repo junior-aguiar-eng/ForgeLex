@@ -1,5 +1,5 @@
 import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
-import { DraftCanvas, CanvasDialog } from './draft-review/DraftCanvas';
+import { DraftCanvas } from './draft-review/DraftCanvas';
 import type { DeskPiece } from '../agentic-workspace/desk-model';
 import { printDraftPdf } from '../documents/draft-print';
 import {getDraftPrimaryAction} from './draft-review/draft-action-model';
@@ -672,7 +672,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
   };
   if (integrated) return <>
     {readingDocument && readingDocument.matterId === selectedMatterId && hasApiAccess && <DocumentReaderDialog source={readingDocument} token={token} onClose={() => setReadingDocument(undefined)} />}
-    <DraftCanvas editSection={editingSection} title={draftTitle} sections={sections} matters={matters} drafts={drafts} matterId={selectedMatterId} draftId={selectedDraftId}
+    <DraftCanvas reviewRequested={new URL(requestedLocation ?? window.location.href, window.location.origin).searchParams.get('review') === '1'} editSection={editingSection} title={draftTitle} sections={sections} matters={matters} drafts={drafts} matterId={selectedMatterId} draftId={selectedDraftId}
       busy={busy || adopting || loadingSelection || caseUnavailable} dirty={dirty} error={error} status={reviewStatus}
       onTitle={setDraftTitle} onSection={(i,field,value)=>setSections(old=>old.map((s,index)=>index===i?{...s,[field]:value}:s))}
       onMatter={id=>void selectMatter(id)} onDraft={id=>id ? void selectDraft(id) : void selectMatter(selectedMatterId)}
@@ -680,9 +680,9 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
       caseControls={<details><summary className="cursor-pointer text-xs text-stone-600">Criar caso</summary><label className="mt-2 block text-xs">Nome do caso<input className="mt-1 w-full rounded border p-2" value={newWorkCase} maxLength={200} onChange={e=>setNewWorkCase(e.target.value)}/></label><button type="button" className="mt-2 text-sm text-cognac-800" disabled={busy || !newWorkCase.trim()} onClick={async()=>{setBusy(true);try{const m=await requestApi<Matter>('/api/v2/matters',{method:'POST',body:JSON.stringify({title:newWorkCase.trim()})},{sessionOnly:true});setMatters(old=>[...old,m]);await selectMatter(m.id);setNewWorkCase('');}catch(e){setError(e instanceof Error?e.message:'Não foi possível criar o caso.');}finally{setBusy(false);}}}>Criar caso e usar na peça</button></details>}
       extras={importedDelivery && !selectedMatterId ? <p className="px-5 pt-3 text-sm text-stone-600">Escolha um caso em “Abrir peça” para guardar esta entrega. Você já pode editar e exportar localmente.</p> : undefined}
       review={<div className="space-y-4">
-        {selectedMatterId && selectedDraftId && details?.currentVersion && <EditorialReviewPanel key={`${selectedDraftId}:${details.currentVersion.version.id}`} matterId={selectedMatterId} draftId={selectedDraftId} versionId={details.currentVersion.version.id} deliveryId={`desk:${selectedMatterId}`} disabled={dirty || busy || caseUnavailable} />}
+        {selectedMatterId && selectedDraftId && details?.currentVersion && <EditorialReviewPanel inline onAsk={text=>onAsk?.(text)} onLocate={index=>{setEditingSection({index});}} key={`${selectedDraftId}:${details.currentVersion.version.id}`} matterId={selectedMatterId} draftId={selectedDraftId} versionId={details.currentVersion.version.id} deliveryId={`desk:${selectedMatterId}`} disabled={dirty || busy || caseUnavailable} />}
         {dirty && <p className="text-sm text-stone-600">Salve a peça para revisar o texto atual com IA.</p>}
-        {selectedDraftId && authStatus==='authenticated' && !caseUnavailable && <ReceivedDraftPanel key={`${selectedMatterId}:${selectedDraftId}`} matterId={selectedMatterId} draftId={selectedDraftId} currentVersionId={details?.draft.currentVersionId} dirty={dirty} onAdopt={useReceived} />}
+        <details><summary className="cursor-pointer text-xs text-stone-500">Fontes e verificações do caso</summary>{selectedDraftId && authStatus==='authenticated' && !caseUnavailable && <ReceivedDraftPanel key={`${selectedMatterId}:${selectedDraftId}`} matterId={selectedMatterId} draftId={selectedDraftId} currentVersionId={details?.draft.currentVersionId} dirty={dirty} onAdopt={useReceived} />}
         <div className="flex flex-wrap gap-2"><button type="button" className="btn-secondary" disabled={busy || caseUnavailable} onClick={()=>void (dirty ? saveAndReview() : runReview())}>{dirty ? 'Salvar e conferir' : 'Conferir versão'}</button>
         <button type="button" className="btn-primary" disabled={busy || !approvalReady || caseUnavailable} onClick={()=>details?.currentVersion && setApprovalConfirmation({versionId:details.currentVersion.version.id,versionNumber:details.currentVersion.version.versionNumber})}>Aprovar versão</button></div>
         {!!details?.documentReferences?.length && <details><summary className="cursor-pointer text-sm">Fontes da peça</summary>{details.documentReferences.map((d,i)=><button key={i} type="button" className="block py-2 text-sm underline" onClick={()=>setReadingDocument({matterId:selectedMatterId,documentId:d.reference.itemId,versionId:d.reference.documentVersionId,anchorId:d.reference.anchorId})}>{d.documentTitle ?? 'Documento'}</button>)}</details>}
@@ -712,9 +712,9 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
                 }} />}
 
 
-      </div>}
+      </details></div>}
       history={<div className="space-y-3">{details?.versions.map(v=><button type="button" key={v.id} onClick={()=>void openHistory(v.id)} className="block w-full rounded-lg border border-stone-200 p-3 text-left">Versão {v.versionNumber} · {statusLabel[v.status]}</button>)}{historyLoading && <p>Carregando…</p>}{historyRuns.map(r=><div key={r.id}>{r.checks.map((c,i)=><p key={i} className="py-2 text-sm">{c.message}</p>)}</div>)}</div>}
-      approval={approvalConfirmation && <CanvasDialog title="Aprovar esta versão" onClose={()=>{if(!busy)setApprovalConfirmation(null);}}><p className="mb-3 text-sm">{draftTitle} · versão {approvalConfirmation.versionNumber}. Confirme após conferir o texto e suas fontes. Esta ação não publica nem envia a peça.</p><ul className="mb-4 space-y-2 text-sm text-amber-900">{details?.latestReviewRun?.checks.filter(c=>c.state!=='CONFIRMED'&&c.state!=='NOT_APPLICABLE').map((c,i)=><li key={i}>{c.message}</li>)}</ul>{error && <p role="alert" className="mb-3 text-sm text-red-700">{error}</p>}<button type="button" disabled={busy} onClick={()=>void requestApproval()} className="btn-primary">Confirmar aprovação</button></CanvasDialog>}
+      approval={approvalConfirmation && <section aria-label="Aprovar esta versão" className="border-t border-stone-200 p-4"><button type="button" disabled={busy} onClick={()=>setApprovalConfirmation(null)} className="mb-2 text-sm underline">Cancelar</button><p className="mb-3 text-sm">{draftTitle} · versão {approvalConfirmation.versionNumber}. Confirme após conferir o texto e suas fontes. Esta ação não publica nem envia a peça.</p><ul className="mb-4 space-y-2 text-sm text-amber-900">{details?.latestReviewRun?.checks.filter(c=>c.state!=='CONFIRMED'&&c.state!=='NOT_APPLICABLE').map((c,i)=><li key={i}>{c.message}</li>)}</ul>{error && <p role="alert" className="mb-3 text-sm text-red-700">{error}</p>}<button type="button" disabled={busy} onClick={()=>void requestApproval()} className="btn-primary">Confirmar aprovação</button></section>}
     />
   </>;
   return (

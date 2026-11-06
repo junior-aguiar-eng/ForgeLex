@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { FileText, MessageSquare, PanelLeftClose, PanelLeftOpen, PanelRightClose, Plus } from 'lucide-react';
 import { AgenticWorkspaceScreen } from './AgenticWorkspaceScreen';
 import { DraftStudioScreen } from './DraftStudioScreen';
-import { CanvasDialog } from './draft-review/DraftCanvas';
 import { useApp, type ReviewQueueItem } from '../context/AppContext';
 import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
 
@@ -175,15 +174,18 @@ export function WritingDeskScreen({
         </div>
       </div>
       {inbox && (
-        <CanvasDialog
-          title="Conferências do caso"
-          onClose={() => {
-            if (!deciding) {
+        <section aria-label="Conferências do caso" className="mx-5 my-3 rounded-xl border border-stone-200 p-4">
+          <button
+            type="button"
+            disabled={deciding}
+            onClick={() => {
               setInbox(false);
               setSelected(undefined);
-            }
-          }}
-        >
+            }}
+            className="mb-2 text-sm underline"
+          >
+            Recolher conferências
+          </button>
           {error && <p role="alert">{error}</p>}
           {selected ? (
             <div className="space-y-4">
@@ -230,7 +232,7 @@ export function WritingDeskScreen({
               ))}
             </div>
           )}
-        </CanvasDialog>
+        </section>
       )}
     </div>
   );

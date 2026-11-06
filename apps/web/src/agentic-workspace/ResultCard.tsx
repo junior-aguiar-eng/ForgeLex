@@ -71,12 +71,9 @@ export function ResultCard({
             </button>
           )}
           {run.matterId && delivery.draftId && delivery.versionId && run.status === 'COMPLETED' && (
-            <EditorialReviewPanel
-              deliveryId={delivery.id}
-              draftId={delivery.draftId}
-              versionId={delivery.versionId}
-              matterId={run.matterId}
-            />
+            <button type="button" onClick={() => onEditor(`${link}&review=1`)}>
+              Revisar na mesa
+            </button>
           )}
         </div>
         {receipt && (
