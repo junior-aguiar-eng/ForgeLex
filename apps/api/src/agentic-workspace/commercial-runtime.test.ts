@@ -78,7 +78,9 @@ it.each([
   ['create_document', true, false, 50],
   ['analyze_documents', false, true, 50],
   ['review_text', false, false, 0],
-  ['review_text', false, 'finding', 50],
+  // Decisão de cobrança (M6): apontamento nunca cobra sozinho, nem fundamentado e com código de resultado. O valor
+  // cobrável é afirmação fundamentada, minuta ou matriz probatória verificada; sem isso, a execução não cobra.
+  ['review_text', false, 'finding', 0],
   ['review_text', false, 'refusal', 0],
   ['analyze_documents', false, 'gap', 0],
   ['analyze_documents', false, 'issues', 0],

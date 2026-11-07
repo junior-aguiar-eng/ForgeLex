@@ -64,6 +64,8 @@ v2. Esta implementação local não comprova ativação em produção.
 
 Sem entrega utilizável: zero cobrança ao cliente. WAITING_USER fecha a reserva anterior sem cobrança quando não houver entrega; a resposta é um novo trabalho com autorização própria. Antes de consumir a pergunta, a resposta confere saldo, limites, execução ativa e conciliação pendente; se a nova reserva seria recusada, a pergunta permanece respondível. Uma entrega parcial utilizável pode ser cobrada pelo consumo comprovado dentro do teto.
 
+**O que é entrega utilizável (decisão de Boni, M6).** O critério é positivo e estrutural: afirmação fundamentada em fonte da própria entrega, minuta com seções (`create_document`) ou matriz probatória com vínculo documental conferido (`analyze_evidence`). Apontamentos (`findings`) nunca tornam uma entrega cobrável sozinhos, qualquer que seja o código: o modelo os escreve livremente e, nas evidências gravadas, quase todos declaram limitações (por exemplo `DADOS_NAO_INFORMADOS`, `LIMITES_DO_CORPUS`), o que nenhuma lista de códigos classifica de forma estável. Consequência conhecida: uma revisão cujo único resultado seja um apontamento, sem afirmação fundamentada, não é cobrada. A revisão editorial tem critério próprio (resultado validado pelo contrato), em `editorial-commercial-runtime.ts`.
+
 Uma chamada comprovadamente não enviada é VOID. Após dispatch sem usage válido, fica UNCERTAIN; não há repetição automática nem débito estimado ao usuário. Essa obrigação operacional bloqueia novos trabalhos da conta até conciliação com evidência, sem alterar a cobrança já finalizada. Os métodos internos de conciliação não possuem endpoint de autoaprovação ao cliente.
 
 ### Cancelamento cooperativo (decisão de Boni, 01/11/2026)

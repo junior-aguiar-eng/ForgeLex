@@ -9,7 +9,7 @@ import {
 } from '@forgelex/persistence';
 import { CommercialInferenceService, COMMERCIAL_POLICY_VERSION } from '@forgelex/billing-ledger';
 import { NativeCaseContextService, type AuthorizeNativeTask, type ResearchService } from '@forgelex/legal-tools';
-import { CASE_TASK_LIMITATION_CODES, FinalEditorService } from '@forgelex/legal-workflows';
+import { FinalEditorService } from '@forgelex/legal-workflows';
 import { createEditorialCommercialRuntime } from './editorial-commercial-runtime.js';
 import {
   LegalAnswerSchema,
@@ -45,8 +45,6 @@ export interface CommercialRuntimeDependencies {
 }
 export type CommercialRuntime = Awaited<ReturnType<typeof createCommercialRuntime>>;
 
-// Workflow findings state a limitation, not a completed analysis or review finding.
-const limitationCodes = new Set<string>(CASE_TASK_LIMITATION_CODES);
 export function hasUsableResult(delivery: AgenticTaskDelivery, actionId?: string) {
   if (actionId && delivery.action !== actionId) return false;
   if (delivery.action === 'create_document') return Boolean(delivery.document?.sections.length);
@@ -74,17 +72,10 @@ export function hasUsableResult(delivery: AgenticTaskDelivery, actionId?: string
     item.sourceIds.length > 0 && item.sourceIds.every((id) => delivery.sources.some((source) => source.id === id));
   // Issues are the plan's questions, not proof that the requested examination occurred.
   // Structural deliverability never changes NOT_EVALUATED or humanReviewRequired.
-  return (
-    delivery.claims.some(grounded) ||
-    delivery.findings.some(
-      (finding) =>
-        !limitationCodes.has(finding.code) &&
-        !/(?:^|_)(?:REFUSED|REFUSAL|IMPOSSIBLE|INSUFFICIENT|MISSING|UNAVAILABLE|UNSUPPORTED|GAP)(?:_|$)/.test(
-          finding.code,
-        ) &&
-        grounded(finding),
-    )
-  );
+  // Findings never make a delivery billable on their own: the model writes their codes freely and they are
+  // overwhelmingly limitations (e.g. DADOS_NAO_INFORMADOS, LIMITES_DO_CORPUS), so no code list can classify them.
+  // Billable value is positive and structural: a grounded claim (above), a document, or a verified evidence matrix.
+  return delivery.claims.some(grounded);
 }
 
 const finished = ['COMPLETED', 'FAILED', 'CANCELLED', 'WAITING_USER'];

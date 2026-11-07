@@ -42,14 +42,33 @@ describe('entrega utilizável para cobrança', () => {
   it.each(CASE_TASK_LIMITATION_CODES)('o código de limitação %s fundamentado não torna a entrega cobrável', (code) => {
     expect(hasUsableResult(delivery({ findings: [finding(code)] as never }))).toBe(false);
   });
-  it('apontamento de revisão fundamentado em fonte da entrega é cobrável', () => {
-    expect(hasUsableResult(delivery({ findings: [finding('DEADLINE_MISSED_BY_FILING')] as never }))).toBe(true);
+  // Códigos reais gravados em docs/architecture/evidence: o modelo os escreve livremente, quase sempre como limitação.
+  // Nenhuma lista, em inglês ou português, consegue classificá-los; por isso apontamento nunca cobra sozinho.
+  it.each([
+    'REGISTRO_LIMITADO',
+    'DADOS_NAO_INFORMADOS',
+    'LIMITES_DO_CORPUS',
+    'REVISAO_LIMITADA_AO_TRECHO',
+    'ENTREGA_RESTANTE_INDETERMINADA',
+    'QUITACAO_SEM_SUPORTE',
+    'VINCULO_E_VENCIMENTO_NAO_DEMONSTRADOS',
+    'FINALIDADE_NAO_DEFINIDA',
+    'SNAPSHOT_LIMIT',
+    'UNSUPPORTED_PAYMENT',
+    'DEADLINE_MISSED_BY_FILING',
+    'CODIGO_INVENTADO_PELO_MODELO',
+  ])('apontamento %s, mesmo fundamentado em fonte da entrega, não torna a entrega cobrável', (code) => {
+    expect(hasUsableResult(delivery({ findings: [finding(code)] as never }))).toBe(false);
   });
-  it('apontamento sem fonte, ou com fonte fora da entrega, não é cobrável', () => {
+  it('apontamento sem fonte, ou com fonte fora da entrega, também não é cobrável', () => {
     expect(hasUsableResult(delivery({ findings: [finding('DEADLINE_MISSED_BY_FILING', [])] as never }))).toBe(false);
     expect(hasUsableResult(delivery({ findings: [finding('DEADLINE_MISSED_BY_FILING', ['other'])] as never }))).toBe(
       false,
     );
+  });
+  it('apontamentos de limitação ao lado de afirmação fundamentada não retiram a cobrança do resultado real', () => {
+    const claims = [{ id: 'c', statement: 'x', sourceIds: ['s1'] }] as never;
+    expect(hasUsableResult(delivery({ claims, findings: [finding('REGISTRO_LIMITADO')] as never }))).toBe(true);
   });
   it('afirmação fundamentada é cobrável e a ação precisa coincidir com a pedida', () => {
     const claims = [{ id: 'c', statement: 'x', sourceIds: ['s1'] }] as never;
