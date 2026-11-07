@@ -540,6 +540,25 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     } finally { spy.mockRestore(); }
   });
 
+  it('MCP negocia a versão do protocolo no initialize e responde ping pela rota autenticada', async () => {
+    for (const [requested, expected] of [
+      ['2025-11-25', '2025-11-25'],
+      ['2025-06-18', '2025-06-18'],
+      ['2025-03-26', '2025-03-26'],
+      ['2024-11-05', '2024-11-05'],
+      ['2099-01-01', '2024-11-05'],
+    ]) {
+      const response = await app.inject({
+        method: 'POST', url: '/mcp', headers: authHeaders,
+        payload: { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: requested } },
+      });
+      expect(response.json().result.protocolVersion).toBe(expected);
+    }
+    const ping = await app.inject({ method: 'POST', url: '/mcp', headers: authHeaders, payload: { jsonrpc: '2.0', id: 7, method: 'ping' } });
+    expect(ping.statusCode).toBe(200);
+    expect(ping.json()).toEqual({ jsonrpc: '2.0', id: 7, result: {} });
+  });
+
   it('MCP limita tools/call por tenant e usuário e responde 429 com Retry-After', async () => {
     const limitedApp = await buildApp({
       authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
