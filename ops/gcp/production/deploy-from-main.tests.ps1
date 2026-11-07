@@ -174,13 +174,19 @@ Test-Case 'monta o argumento do gcloud e mascara a chave na exibição' {
 
 Write-Host 'Compare-RevisionConfig'
 Test-Case 'revisões iguais, exceto FORGELEX_SOURCE_SHA e a imagem, não têm diferenças' {
-  $result = Compare-RevisionConfig -Old (New-Revision -Sha 'old') -New (New-Revision -Sha 'new')
+  # @(...) é como o deploy-from-main.ps1 chama; sem ele este teste escondeu um array embrulhado (Count sempre 1).
+  $result = @(Compare-RevisionConfig -Old (New-Revision -Sha 'old') -New (New-Revision -Sha 'new'))
   Assert-Equal $result.Count 0
+}
+Test-Case 'uma única diferença chega como texto, não como array embrulhado' {
+  $result = @(Compare-RevisionConfig -Old (New-Revision -Env @{ A = '1' }) -New (New-Revision -Env @{ A = '2' }))
+  Assert-Equal $result.Count 1
+  Assert-Equal ($result -join '; ') 'variável alterada: A'
 }
 Test-Case 'detecta variável alterada, nova e removida' {
   $old = New-Revision -Env @{ A = '1'; B = '2' }
   $new = New-Revision -Env @{ A = 'X'; C = '3' }
-  $result = Compare-RevisionConfig -Old $old -New $new
+  $result = @(Compare-RevisionConfig -Old $old -New $new)
   Assert-True ($result -contains 'variável alterada: A') 'não viu A alterada'
   Assert-True ($result -contains 'variável removida: B') 'não viu B removida'
   Assert-True ($result -contains 'variável nova: C') 'não viu C nova'
@@ -188,7 +194,7 @@ Test-Case 'detecta variável alterada, nova e removida' {
 Test-Case 'detecta segredo trocado, recursos, conta de serviço, timeout e escala' {
   $old = New-Revision
   $new = New-Revision -Secrets @{ S = 'projects/p/secrets/outro' } -Cpu '2' -Account 'outra@p.iam' -Timeout 60 -MaxScale '5'
-  $result = Compare-RevisionConfig -Old $old -New $new
+  $result = @(Compare-RevisionConfig -Old $old -New $new)
   Assert-True ($result -contains 'variável alterada: S') 'segredo'
   Assert-True ($result -contains 'contêiner.resources') 'recursos'
   Assert-True ($result -contains 'spec.serviceAccountName') 'conta de serviço'
@@ -198,7 +204,7 @@ Test-Case 'detecta segredo trocado, recursos, conta de serviço, timeout e escal
 Test-Case 'anotações de cliente do gcloud não contam como diferença' {
   $old = New-Revision -Sha 'um'
   $new = New-Revision -Sha 'dois'
-  Assert-Equal (Compare-RevisionConfig -Old $old -New $new).Count 0 'client-name muda a cada deploy'
+  Assert-Equal @(Compare-RevisionConfig -Old $old -New $new).Count 0 'client-name muda a cada deploy'
 }
 
 Write-Host 'Test-PublicHealth'
