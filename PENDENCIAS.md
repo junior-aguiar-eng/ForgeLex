@@ -1,5 +1,28 @@
 # Pendências atuais do ForgeLex
 
+## Melhorias de código após 06/11/2026 (em `main`)
+
+Cinco PRs de revisão técnica, todos mergeados em 07/11/2026, sem migration:
+
+| PR | Mudança |
+| --- | --- |
+| #112 | MCP falha fechado sem tenant/usuário autenticado (`MCP_IDENTITY_REQUIRED`); limite de 120 `tools/call` por minuto por tenant e usuário em `/mcp` (`FORGELEX_MCP_RATE_LIMIT_PER_MINUTE`, `0` desliga, vale por instância); remoção de `PolicyEngine.sanitizeDocumentContent`, sem uso |
+| #113 | MCP responde `ping`; negociação de `protocolVersion` dentro do handler, sem mudar o resultado |
+| #114 | `getExecution` e `listClientEvents` leem em snapshot somente leitura (sem lock de tenant, sem bump de versão, sem `UPDATE`) |
+| #115 | Apontamento (`finding`) nunca torna a entrega cobrável sozinho; só afirmação fundamentada, minuta ou matriz probatória verificada. Uma revisão cujo único resultado seja um apontamento deixa de ser cobrada |
+| #116 | `tools/call` do handler MCP dividido por família de ferramenta; modelo do piloto unificado em `PILOT_POLICY.model` |
+
+Publicação: Boni informou ter feito o deploy após o merge do #115. SHA e recibo desse deploy
+**não estão registrados aqui**, e não há registro de deploy do #116. Os checks da CI de cada PR
+passaram antes do merge. Pendências abertas desta frente:
+
+- Conferir recibos de execuções pagas reais depois do #115 (a regra de cobrança mudou).
+- Ensaio comercial completo pago em produção (decisão e execução de Boni).
+- Fallback de versão do MCP: hoje 2024-11-05 para versões desconhecidas; a especificação sugere a mais
+  recente. Só trocar depois de testar em host MCP real.
+- `getExecution` ainda lê até 1000 execuções da conversa e faz o parse de cada uma (custo de CPU).
+- Os `playwright.*.config.ts` seguem na raiz (usados por nome no `package.json` e na CI).
+
 ## Estado publicado atual — mesa corrigida e editor comercial ativo
 
 As correções da PR #107 estão publicadas no código
@@ -454,7 +477,7 @@ disponível para retorno de tráfego.
 | Cancelamento cooperativo em produção | Política de 01/11 implementada e presente na imagem publicada em 02/11; não houve cancelamento real em produção para comprovar. Timeout ou queda de rede ainda deixam a chamada incerta (saída: conciliação manual por `scripts/reconcile-commercial-call.mjs`, com evidência do provedor) |
 | Limites diário e mensal contam consumo sem cobrança | Confirmar a regra com Boni; é visível ao cliente |
 | Chave do DataJud como variável simples | `FORGELEX_DATAJUD_API_KEY` está como variável de ambiente, não como segredo. Em 02/11 Boni decidiu não alterá-la; fica registrado como decisão, não como defeito. Pelo que se sabe é a chave pública do CNJ (confirmar na documentação oficial) |
-| Configurações do Playwright e documentos históricos na raiz | Reorganização própria: há referências cruzadas em documentos e scripts. A raiz concentra prompts, adendos e planos históricos (`PROMPT_*.md`, `ADENDO_*.md`, imagens `ForgeLex_0*.png`) |
+| Configurações do Playwright na raiz | Os 17 `playwright.*.config.ts` seguem na raiz: o `package.json` e a CI os chamam por nome. Prompts, adendos e relatórios históricos foram para `docs/historico/` e as imagens `ForgeLex_0*.png` para `docs/product/referencias-visuais/` |
 
 ## Dependências de segurança — publicadas em 24/10/2026
 

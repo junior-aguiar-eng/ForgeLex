@@ -1,5 +1,9 @@
 # ForgeLex — onde estamos e como continuar
 
+> **O estado publicado vigente está em [PENDENCIAS.md](PENDENCIAS.md)** (seção “Estado publicado atual”).
+> As seções abaixo são histórico por data e não foram reescritas: a de 05/11, por exemplo, descreve o
+> editor comercial como desativado, o que deixou de valer com a ativação de 06/11.
+
 ## Estado publicado — 05/11/2026
 
 PR #103 integrada e SHA `a5d97628f0a63e26f3c6eb72ba5cd4444a332ee9` publicado
@@ -327,7 +331,7 @@ a mesa em conversa única, com conversas recentes (PRs #89 e #91), e a execuçã
 comercial com cobrança por trabalho. A revisão técnica de 30/10 e as correções
 dela (stream de eventos, conciliação de chamada comercial incerta, cobrança,
 logs) estão na PR #87, na #88 e na #90 (dependências). O texto da revisão está em
-[REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md](REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md).
+[REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md](docs/historico/REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md).
 Entraram depois, em 31/10: stream de eventos sem snapshot pesado e leitura de
 execução sem N+1, e varredura de admissões indexada (#92, #93); os smokes
 PostgreSQL do núcleo agêntico na CI (#94, com a correção do #99); constantes do

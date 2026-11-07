@@ -1,7 +1,7 @@
 # ForgeLex — evolução da plataforma V2 com reaproveitamento
 
 Proposta revisada em 10/10/2026 após esclarecimento de Boni. Fonte arquitetural:
-`PROJETO_FORGELEX_PLATAFORMA_AGENTICA_JURIDICA_AGNOSTICA_V2_COMPLETO.md`.
+`docs/historico/PROJETO_FORGELEX_PLATAFORMA_AGENTICA_JURIDICA_AGNOSTICA_V2_COMPLETO.md`.
 Este documento complementa o desenho da experiência e o plano de transição;
 não inicia implementação, substitui contratos publicados ou reabre fases concluídas.
 

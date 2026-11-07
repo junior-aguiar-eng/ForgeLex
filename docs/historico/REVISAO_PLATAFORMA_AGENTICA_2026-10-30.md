@@ -5,6 +5,27 @@ Escopo: commits `41a1fd0..7abf606` (plano agêntico → execução comercial), c
 `packages/legal-workflows`, retenção de conta e UI `apps/web/src/agentic-workspace`.
 Nenhum arquivo do projeto foi alterado nesta revisão.
 
+## Situação dos achados em 07/11/2026
+
+O texto abaixo (seções 1 a 4) é o da revisão original e não foi reescrito. Esta tabela registra o que
+foi reverificado **por leitura do código** em 07/11/2026; “não reverificado” significa que não foi relido.
+
+| Achado | Situação |
+| --- | --- |
+| A1 conciliação | Existem `scripts/reconcile-commercial-call.mjs` e o cancelamento cooperativo (`cancelRequestedAt`, PR #101), descritos em `commercial-execution.md`. Fluxo de ponta a ponta não reverificado |
+| M1 falha de autenticação no stream | Não reverificado |
+| M2 leituras como escrita | Parcial. `getExecution` e `listClientEvents` passaram a snapshot somente leitura (#114); `eventsChanged` já aliviava o SSE. Segue a leitura de até 1000 execuções por conversa |
+| M3 varreduras globais | Corrigido: `sweepAdmissions` filtra por expiração, ordena e limita; a recuperação parte das reservas abertas |
+| M4 resposta destrutiva | Corrigido: `assertCanAdmit` roda antes de consumir a pergunta |
+| M5 execuções sem cobrança fora dos limites | Corrigido: `limitCents` conta o uso medido mesmo sem cobrança |
+| M6 lista negra de códigos | Resolvido no #115: apontamento nunca torna a entrega cobrável sozinho |
+| M7 falhas engolidas | Não há `catch {}` vazio em `apps/api/src` nem `packages/*/src`; log e métricas não reverificados |
+| M8 contador de reconexão do SSE | O contador passa por `streamRetries` em `use-execution-events.ts`; comportamento não reverificado |
+| M9 smokes fora da CI | Corrigido: os quatro smokes do núcleo agêntico estão no job `postgres` do `ci.yml` |
+| Constantes duplicadas | O caminho comercial já tinha fonte única (`COMMERCIAL_POLICY.model`); as duplicações do piloto foram unificadas no #116 |
+| Formatação fora do Prettier | A CI roda `format:check:code` |
+| Documentos e imagens na raiz | Movidos para `docs/historico/` e `docs/product/referencias-visuais/`; os `playwright.*.config.ts` seguem na raiz |
+
 ## 1. O que foi executado e o resultado
 
 | Verificação | Resultado |

@@ -2,13 +2,16 @@
 
 ## Estado atual
 
-Publicado o SHA `a5d9762` após a CI do merge: API e encerramento a 100%,
-backup manual concluído e migrations 0037/0038 aplicadas (51 no journal).
-**Editor comercial desativado nos dois serviços.**
-[Recibo de 05/11, verificações e limites](operations/agentic-workspace/2026-11-05-publication.md).
+**O estado publicado vigente (SHA em produção, flags e migrations) está só em
+[PENDENCIAS.md](../PENDENCIAS.md), na seção “Estado publicado atual”.** Este índice não
+repete SHAs nem flags, para não divergir: em 07/11/2026 ele ainda descrevia o editor
+comercial como desativado, quando o `PENDENCIAS.md` já registrava a ativação de 06/11.
+Recibos por publicação ficam em [operations/agentic-workspace/](operations/agentic-workspace/).
 
-Referência documental: 05/11/2026. Começar por
-[CONTINUIDADE.md](../CONTINUIDADE.md) e [PENDENCIAS.md](../PENDENCIAS.md).
+Para retomar o trabalho, começar por [PENDENCIAS.md](../PENDENCIAS.md) e
+[CONTINUIDADE.md](../CONTINUIDADE.md). Prompts, adendos e relatórios de fases anteriores
+estão em [historico/](historico/README.md); imagens de referência de interface em
+[product/referencias-visuais/](product/referencias-visuais/).
 
 Governança: [Boni é o único avaliador e aprovador humano](../AGENTS.md).
 Exigências anteriores de revisão por outra pessoa não são gates vigentes.
@@ -62,7 +65,7 @@ Arquitetura e revisão: tarefas e contratos em `architecture/` (de
 [reconciliação dos agentes](architecture/2026-10-29-reconciliacao-agentes.md)),
 os planos de [bloqueios editoriais](superpowers/plans/2026-10-30-bloqueios-editoriais.md)
 e de [execução comercial](superpowers/plans/2026-10-30-execucao-comercial.md), e a
-[revisão da plataforma de 30/10](../REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md).
+[revisão da plataforma de 30/10](historico/REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md).
 
 ## Operação e evidências
 

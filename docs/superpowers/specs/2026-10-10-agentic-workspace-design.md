@@ -6,7 +6,7 @@ chamadas pagas, migration, commit, push, integração ou publicação.
 ## Direção arquitetural corrigida
 
 O produto é a plataforma agêntica do
-`PROJETO_FORGELEX_PLATAFORMA_AGENTICA_JURIDICA_AGNOSTICA_V2_COMPLETO.md`, não apenas
+`docs/historico/PROJETO_FORGELEX_PLATAFORMA_AGENTICA_JURIDICA_AGNOSTICA_V2_COMPLETO.md`, não apenas
 um agente generalista com ferramentas nem um catálogo isolado de petições.
 Este documento define sua experiência; o núcleo jurídico e a matriz de
 reaproveitamento estão em
