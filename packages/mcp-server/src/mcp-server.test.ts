@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { McpHandler } from './mcp-handler.js';
+import {
+  MCP_FALLBACK_PROTOCOL_VERSION,
+  MCP_SUPPORTED_PROTOCOL_VERSIONS,
+  McpHandler,
+  negotiateProtocolVersion,
+} from './mcp-handler.js';
 import { ToolRegistry } from '@forgelex/agent-core';
 import { searchCaseLawTool, verifyAuthorityTool, createFixtureResearchService, createLegalToolGateway } from '@forgelex/legal-tools';
 import { createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
@@ -45,6 +50,26 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(response.id).toBe(1);
     expect(response.result.protocolVersion).toBe('2024-11-05');
     expect(response.result.serverInfo.name).toBe('forgelex-mcp-server');
+  });
+
+  it('negocia a versão do protocolo: ecoa a suportada e usa o fallback histórico nas demais', async () => {
+    for (const version of MCP_SUPPORTED_PROTOCOL_VERSIONS) {
+      const response = await handler.handleRequest({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: version } });
+      expect(response.result.protocolVersion).toBe(version);
+    }
+    for (const requested of ['2099-01-01', '', 20241105, null, undefined]) {
+      const response = await handler.handleRequest({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: requested } });
+      expect(response.result.protocolVersion).toBe(MCP_FALLBACK_PROTOCOL_VERSION);
+    }
+    expect(negotiateProtocolVersion('2025-06-18')).toBe('2025-06-18');
+    expect(negotiateProtocolVersion({})).toBe(MCP_FALLBACK_PROTOCOL_VERSION);
+  });
+
+  it('responde ping com resultado vazio, sem exigir identidade nem tocar o ledger', async () => {
+    const before = await new LedgerService(db).getUsageEvents('tenant_mcp_test');
+    const response = await handler.handleRequest({ jsonrpc: '2.0', id: 'p1', method: 'ping' });
+    expect(response).toEqual({ jsonrpc: '2.0', id: 'p1', result: {} });
+    expect(await new LedgerService(db).getUsageEvents('tenant_mcp_test')).toHaveLength(before.length);
   });
 
   it('deve listar as ferramentas autorizadas em tools/list com schema JSON', async () => {

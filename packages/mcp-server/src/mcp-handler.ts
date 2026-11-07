@@ -12,6 +12,23 @@ import { DECISION_UI_URI, isResearchPresentationTool, researchPresentationMetada
 import { getAnalysisToolContract } from '@forgelex/legal-tools';
 import { handleCaseAnalysisCall } from './case-analysis-handler.js';
 
+/** Versões do protocolo MCP que este servidor aceita negociar, da mais recente para a mais antiga. */
+export const MCP_SUPPORTED_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'] as const;
+
+/** Versão devolvida quando o cliente não pede uma versão suportada (comportamento histórico do servidor). */
+export const MCP_FALLBACK_PROTOCOL_VERSION = '2024-11-05';
+
+/**
+ * Negociação do `initialize`: devolve a versão pedida quando é suportada; caso contrário, a versão de
+ * fallback. A especificação sugere responder com a mais recente nesse caso. Isso não foi adotado aqui
+ * para não mudar o comportamento já publicado sem testar contra os hosts reais.
+ */
+export function negotiateProtocolVersion(requested: unknown): string {
+  return typeof requested === 'string' && (MCP_SUPPORTED_PROTOCOL_VERSIONS as readonly string[]).includes(requested)
+    ? requested
+    : MCP_FALLBACK_PROTOCOL_VERSION;
+}
+
 export interface JsonRpcRequest {
   jsonrpc: '2.0';
   id?: string | number;
@@ -93,7 +110,7 @@ export class McpHandler {
           jsonrpc: '2.0',
           id,
           result: {
-            protocolVersion: '2024-11-05',
+            protocolVersion: negotiateProtocolVersion(request.params?.protocolVersion),
             capabilities: {
               tools: {},
               ...(this.decisionUi ? { resources: {} } : {}),
@@ -105,6 +122,11 @@ export class McpHandler {
             },
           },
         };
+      }
+
+      case 'ping': {
+        // A especificação MCP exige resposta imediata e vazia, de qualquer lado, em qualquer etapa.
+        return { jsonrpc: '2.0', id, result: {} };
       }
 
       case 'tools/list': {

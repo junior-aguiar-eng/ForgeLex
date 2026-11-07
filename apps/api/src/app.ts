@@ -2955,7 +2955,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           securitySchemes: [{ type: 'oauth2', scopes: ['email', 'profile'] }],
           });
         }
-        if (body?.method === 'initialize' && response.result && ['2025-11-25', '2025-06-18', '2025-03-26'].includes(body.params?.protocolVersion)) response.result.protocolVersion = body.params!.protocolVersion;
         return response;
       } finally {
         requestAbort.dispose();
