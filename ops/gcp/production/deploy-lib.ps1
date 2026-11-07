@@ -193,7 +193,7 @@ function Compare-RevisionConfig {
   $newContainers = @(Get-Prop $New 'spec.containers')
   if ($oldContainers.Count -ne $newContainers.Count) {
     $differences.Add("número de contêineres: $($oldContainers.Count) -> $($newContainers.Count)")
-    return , $differences.ToArray()
+    return $differences.ToArray()
   }
   $oldC = $oldContainers[0]
   $newC = $newContainers[0]
@@ -230,7 +230,9 @@ function Compare-RevisionConfig {
   }
   if ((& $pick $Old) -ne (& $pick $New)) { $differences.Add('anotações de escala, rede ou CPU') }
 
-  return , $differences.ToArray()
+  # Sem vírgula à frente: um array embrulhado chega ao chamador como UM elemento, e @(...) nunca ficaria vazio.
+  # Quem chama deve usar @(Compare-RevisionConfig ...).
+  return $differences.ToArray()
 }
 
 function Test-PublicHealth {
