@@ -44,9 +44,38 @@ essa indisponibilidade esperada para inferir falha de produção. Como não há
 backup automático, o ambiente HML só pode conter fixtures e corpus
 reconstituíveis. O SSD continua cobrado mesmo com a instância parada.
 
+## Publicação em um comando
+
+Com o `gcloud` autenticado no projeto do ForgeLex, o `gh` autenticado e um checkout limpo no SHA de
+`origin/main` (PowerShell 7):
+
+```powershell
+./ops/gcp/production/deploy-from-main.ps1 -DryRun      # só lê e mostra o plano; não altera nada
+./ops/gcp/production/deploy-from-main.ps1              # publica
+./ops/gcp/production/deploy-from-main.ps1 -NoTraffic   # gera a imagem e as revisões, sem trocar o tráfego
+```
+
+O script confere o checkout e a CI do SHA, lê o estado de produção, reaproveita as substituições do último
+build bem-sucedido (trocando só o SHA, inclusive as flags de interface `AGENTIC_WORKSPACE` e `CASE_WORKSPACE`),
+gera a imagem, cria as revisões da API e do encerramento **sem tráfego**, confere que só a imagem e
+`FORGELEX_SOURCE_SHA` mudaram, troca o tráfego (encerramento, depois API), verifica `/health`, `/readyz`,
+`/mcp` sem token (deve dar 401) e a ausência de 5xx nos logs, e **reverte sozinho** se qualquer passo falhar.
+Ao terminar, imprime os comandos de reversão e o que registrar no `PENDENCIAS.md`.
+
+- **Não aplica migrations.** `FORGELEX_AUTO_MIGRATE` continua como está nos serviços. Se o SHA traz migration,
+  faça backup e aplique-a pelo procedimento próprio antes de publicar.
+- **Trocar uma flag de interface de propósito:** `-AgenticWorkspaceEnabled`, `-CaseWorkspaceEnabled` ou
+  `-SavedResearchEnabled` (`true`/`false`). Sem elas, valem as do último build.
+- **Repetir é seguro:** se a imagem e as revisões do SHA já existem, são reaproveitadas, e um serviço que já
+  recebe 100% na revisão nova não é tocado.
+- **Testes** (sem gcloud, sem rede): `pwsh -NoProfile -File ops/gcp/production/deploy-from-main.tests.ps1`.
+  Rodam na CI.
+
 ## Build por SHA e inspeção do frontend
 
-No Windows, em checkout limpo de `main`:
+O `build-from-main.ps1` abaixo só gera a imagem. Ele exige `-AgenticWorkspaceEnabled` e `-CaseWorkspaceEnabled`
+porque o `cloudbuild.yaml` assume `false` para as duas e o front sairia sem a mesa agêntica. No Windows, em
+checkout limpo de `main`:
 
 ```powershell
 ./ops/gcp/production/build-from-main.ps1 -ProjectId 'project-bbbe1209-c295-4720-867' -ImageUri 'southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api' -SupabaseUrl 'https://mmywgqttfthtwntjkqgh.supabase.co' -SupabasePublishableKey '<chave publishable do projeto produtivo>'
