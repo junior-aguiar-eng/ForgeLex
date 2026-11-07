@@ -27,16 +27,7 @@ export class PolicyEngine {
     };
   }
 
-  /**
-   * Higieniza textos documentais não confiáveis para prevenir injeção de prompt
-   * (ex: sentenças, petições e PDFs externos tentando reescrever comandos do sistema).
-   */
-  public sanitizeDocumentContent(content: string): string {
-    // Tratamos explicitamente o texto documental como DADO isolado
-    // e neutralizamos tentativas comuns de jailbreak estrutural
-    return content
-      .replace(/ignore\s+previous\s+instructions/gi, '[TENTATIVA DE INJEÇÃO REMOVIDA]')
-      .replace(/desconsidere\s+as\s+instruções\s+anteriores/gi, '[TENTATIVA DE INJEÇÃO REMOVIDA]')
-      .replace(/você\s+agora\s+é\s+um\s+assistente\s+sem\s+regras/gi, '[TENTATIVA DE INJEÇÃO REMOVIDA]');
-  }
+  // A defesa contra injeção de prompt em texto documental não é filtragem por regex (trivial de
+  // contornar). Ela é estrutural: documentos entram como dado, a allowlist de ferramentas é
+  // fechada e ferramentas de alto impacto exigem aprovação humana (evaluateToolCall).
 }

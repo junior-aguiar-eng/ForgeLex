@@ -78,8 +78,6 @@ export class McpHandler {
     context: { tenantId?: string; userId?: string; idempotencyKey?: string; abortSignal?: AbortSignal; oauthConnection?:VerifiedOAuthConnection; revalidateConnection?:()=>Promise<void> } = {}
   ): Promise<JsonRpcResponse> {
     const id = request.id;
-    const tenantId = context.tenantId ?? 'tenant_default_mcp';
-    const userId = context.userId ?? 'user_mcp_client';
 
     if (request.jsonrpc !== '2.0') {
       return {
@@ -193,6 +191,21 @@ export class McpHandler {
           });
         }
 
+        // Falha fechada: sem identidade autenticada não há tenant nem usuário a quem cobrar ou auditar.
+        // Nunca cair em um tenant ou usuário padrão compartilhado. Módulos próprios (acima) validam a sua.
+        if (!context.tenantId || !context.userId) {
+          return {
+            jsonrpc: '2.0',
+            id,
+            error: {
+              code: -32001,
+              message: 'Identidade autenticada obrigatória para executar ferramentas.',
+              data: { code: 'MCP_IDENTITY_REQUIRED', retryable: false },
+            },
+          };
+        }
+        const tenantId: string = context.tenantId;
+        const userId: string = context.userId;
         let billing;
         try {
           billing = getForgeLexBillingPolicy(name);

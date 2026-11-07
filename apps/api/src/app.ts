@@ -115,6 +115,7 @@ import { SavedResearchService } from '@forgelex/legal-tools';
 import { registerSavedResearchRoutes } from './research/saved-research-routes.js';
 import { createResearchPresentationTools, DecisionPresentationService, isResearchPresentationTool, researchPresentationMetadata, toCaseLaw } from '@forgelex/legal-tools';
 import { readMcpReaderHtml } from './research/mcp-reader-resource.js';
+import { createMcpRateLimiter, readMcpRateLimitPerMinute } from './mcp-rate-limit.js';
 
 export interface BuildAppOptions {
   closedPilotDependencies?: ClosedPilotDependencies;
@@ -2893,6 +2894,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   );
 
   // 6. Remote MCP Endpoint (POST /mcp)
+  const mcpRateLimiter = createMcpRateLimiter(readMcpRateLimitPerMinute(environment.FORGELEX_MCP_RATE_LIMIT_PER_MINUTE));
   app.post(
     '/mcp',
     { preHandler: authAdapter.createPreHandler(['mcp']) },
@@ -2900,6 +2902,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const body = req.body as any;
       reply.header('Cache-Control','no-store');
       if (body?.jsonrpc === '2.0' && typeof body.method === 'string' && body.method.startsWith('notifications/') && body.id === undefined) return reply.code(202).send();
+      if (body?.jsonrpc === '2.0' && body.method === 'tools/call') {
+        const rate = mcpRateLimiter.consume(req.principal.tenantId, req.principal.userId);
+        if (!rate.allowed) {
+          reply.header('Retry-After', String(rate.retryAfterSeconds));
+          return reply.code(429).send({
+            jsonrpc: '2.0',
+            id: typeof body.id === 'string' || typeof body.id === 'number' ? body.id : null,
+            error: {
+              code: -32000,
+              message: 'Muitas chamadas em pouco tempo. Aguarde e tente novamente.',
+              data: { code: 'MCP_RATE_LIMITED', retryable: true, retryAfterSeconds: rate.retryAfterSeconds },
+            },
+          });
+        }
+      }
       if (mcpOAuth.enabled && body?.jsonrpc === '2.0' && body.method === 'tools/call' && body.params?.name === 'forgelex.connection_status') {
         if ((typeof body.id !== 'string' && typeof body.id !== 'number') || (body.params.arguments && (typeof body.params.arguments !== 'object' || Array.isArray(body.params.arguments) || Object.keys(body.params.arguments).length))) return { jsonrpc: '2.0', id: body.id ?? null, error: { code: -32602, message: 'A verificação exige um identificador de requisição e não aceita argumentos.' } };
         const status = { authenticated: true, resource: mcpResourceUrl, authMethod: req.principal.authMethod, verifiedAt: new Date().toISOString(), billable: false };

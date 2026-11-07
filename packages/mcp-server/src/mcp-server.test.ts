@@ -91,7 +91,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
           arguments: { query: 'vazamento de dados' },
         },
       },
-      { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_call_001' }
+      { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test', idempotencyKey: 'mcp_call_001' }
     );
 
     expect(response.result).toBeDefined();
@@ -122,7 +122,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
           },
         },
       },
-      { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_privacy_001' }
+      { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test', idempotencyKey: 'mcp_privacy_001' }
     );
 
     expect(response.error).toMatchObject({ code: -32602, data: { code: 'PRIVATE_CONTEXT_FORBIDDEN' } });
@@ -141,7 +141,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
           arguments: { court: 'STJ', processNumber: 'REsp 1.823.450/SP' },
         },
       },
-      { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_free_verify_001' },
+      { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test', idempotencyKey: 'mcp_free_verify_001' },
     );
 
     expect(response.result.billing).toMatchObject({ mode: 'FREE', chargedCents: 0, isReplay: false });
@@ -157,7 +157,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
         name: 'research.search_case_law',
         arguments: { query: 'vazamento de dados' },
       },
-    }, { tenantId: 'tenant_mcp_test' });
+    }, { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test' });
 
     expect(response.error?.code).toBe(-32602);
     expect(response.error?.message).toContain('idempotência');
@@ -168,7 +168,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     const response = await handler.handleRequest({
       jsonrpc: '2.0', id: 7, method: 'tools/call',
       params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados', court: 'STF' } },
-    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_unsupported_court_001' });
+    }, { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test', idempotencyKey: 'mcp_unsupported_court_001' });
 
     expect(response.error).toMatchObject({ code: -32000, data: { code: 'UNSUPPORTED_COURT', retryable: false } });
     expect(await new LedgerService(db).getUsageEvents('tenant_mcp_test')).toHaveLength(before.length);
@@ -185,7 +185,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     const response = await unavailableHandler.handleRequest({
       jsonrpc: '2.0', id: 8, method: 'tools/call',
       params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados' } },
-    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_provider_unavailable_001' });
+    }, { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test', idempotencyKey: 'mcp_provider_unavailable_001' });
 
     expect(response.error).toMatchObject({ data: { code: 'SOURCE_PROVIDER_UNAVAILABLE', retryable: true } });
   });
@@ -205,7 +205,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     const response = await handler.handleRequest({
       jsonrpc: '2.0', id: 'host-key', method: 'tools/call',
       params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados', idempotencyKey: 'mcp-host-key-001' } },
-    }, { tenantId: 'tenant_mcp_test' });
+    }, { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test' });
 
     expect(response.result?.billing).toMatchObject({ chargedCents: 20, isReplay: false });
   });
@@ -214,17 +214,17 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     const search = await handler.handleRequest({
       jsonrpc: '2.0', id: 'chain-search', method: 'tools/call',
       params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados', court: 'STJ' } },
-    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'chain-search-001' });
+    }, { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test', idempotencyKey: 'chain-search-001' });
     const candidate = JSON.parse(search.result.content[0].text).data.items[0];
     const authorityInput = { court: candidate.court, processNumber: candidate.processNumber, judgmentDate: candidate.judgmentDate };
     const get = await handler.handleRequest({
       jsonrpc: '2.0', id: 'chain-get', method: 'tools/call',
       params: { name: 'research.get_authority', arguments: authorityInput },
-    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'chain-get-001' });
+    }, { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test', idempotencyKey: 'chain-get-001' });
     const verify = await handler.handleRequest({
       jsonrpc: '2.0', id: 'chain-verify', method: 'tools/call',
       params: { name: 'research.verify_authority', arguments: authorityInput },
-    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'chain-verify-001' });
+    }, { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test', idempotencyKey: 'chain-verify-001' });
 
     expect(search.result.billing).toMatchObject({ mode: 'METERED', chargedCents: 20 });
     expect(get.result.billing).toMatchObject({ mode: 'FREE', chargedCents: 0 });
@@ -239,7 +239,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     const response = await handler.handleRequest({
       jsonrpc: '2.0', id: 12, method: 'tools/call',
       params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados' } },
-    }, { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_cancelled_001', abortSignal: controller.signal });
+    }, { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test', idempotencyKey: 'mcp_cancelled_001', abortSignal: controller.signal });
 
     expect(response.error).toMatchObject({ data: { code: 'SESSION_CANCELLED', retryable: false } });
     expect(await new LedgerService(db).getUsageEvents('tenant_mcp_test')).toHaveLength(before.length);
@@ -260,7 +260,27 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
       id: 11,
       method: 'tools/call',
       params: { name: 'research.verify_authority', arguments: { court: 'STJ', processNumber: 'REsp 1.823.450/SP' } },
-    });
+    }, { tenantId: 'tenant_mcp_test', userId: 'user_mcp_test' });
     expect(hiddenCall.error?.code).toBe(-32601);
+  });
+
+  it('rejeita tools/call sem tenant ou usuário autenticado, sem tocar o ledger', async () => {
+    const before = await new LedgerService(db).getUsageEvents('tenant_mcp_test');
+    const request = {
+      jsonrpc: '2.0' as const,
+      id: 13,
+      method: 'tools/call',
+      params: { name: 'research.search_case_law', arguments: { query: 'vazamento de dados' } },
+    };
+    for (const context of [
+      undefined,
+      { idempotencyKey: 'mcp_no_identity_001' },
+      { tenantId: 'tenant_mcp_test', idempotencyKey: 'mcp_no_user_001' },
+      { userId: 'user_mcp_test', idempotencyKey: 'mcp_no_tenant_001' },
+    ]) {
+      const response = await handler.handleRequest(request, context);
+      expect(response.error).toMatchObject({ code: -32001, data: { code: 'MCP_IDENTITY_REQUIRED', retryable: false } });
+    }
+    expect(await new LedgerService(db).getUsageEvents('tenant_mcp_test')).toHaveLength(before.length);
   });
 });
