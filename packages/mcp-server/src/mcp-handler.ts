@@ -66,6 +66,30 @@ export interface McpHandlerOptions {
   decisionUi?: { readHtml: () => Promise<string> };
 }
 
+/** Identidade e sinais da requisição HTTP já autenticada, repassados ao handler. */
+export interface McpRequestContext {
+  tenantId?: string;
+  userId?: string;
+  idempotencyKey?: string;
+  abortSignal?: AbortSignal;
+  oauthConnection?: VerifiedOAuthConnection;
+  revalidateConnection?: () => Promise<void>;
+}
+
+type RegisteredTool = NonNullable<ReturnType<ToolRegistry['get']>>;
+
+/** Tudo o que cada família de ferramenta precisa para executar uma chamada já validada pelo despachante. */
+interface ToolCall {
+  id: JsonRpcRequest['id'];
+  name: string;
+  args: any;
+  tool: RegisteredTool;
+  billing: ReturnType<typeof getForgeLexBillingPolicy>;
+  tenantId: string;
+  userId: string;
+  context: McpRequestContext;
+}
+
 export class McpHandler {
   private readonly toolRegistry: ToolRegistry;
   private readonly ledgerService: LedgerService;
@@ -92,7 +116,7 @@ export class McpHandler {
 
   public async handleRequest(
     request: JsonRpcRequest,
-    context: { tenantId?: string; userId?: string; idempotencyKey?: string; abortSignal?: AbortSignal; oauthConnection?:VerifiedOAuthConnection; revalidateConnection?:()=>Promise<void> } = {}
+    context: McpRequestContext = {},
   ): Promise<JsonRpcResponse> {
     const id = request.id;
 
@@ -241,159 +265,10 @@ export class McpHandler {
 
         if (name === 'draft.save_from_ai') return handleDraftAiCall(request, this.toolRegistry, { tenantId, userId, abortSignal: context.abortSignal ?? new AbortController().signal, oauthConnection: context.oauthConnection, revalidateConnection: context.revalidateConnection }, this.auditRecorder);
         if (name === 'case.save_analysis') return handleCaseAnalysisCall(request, this.toolRegistry, { tenantId, userId, abortSignal: context.abortSignal ?? new AbortController().signal, oauthConnection: context.oauthConnection, revalidateConnection: context.revalidateConnection }, this.auditRecorder);
-        if(isCaseContextTool(name)) {
-          const startedAt=Date.now();const sessionId=`case_mcp_${randomUUID()}`;
-          try {
-            if(billing.mode!=='FREE')throw new Error('CASE_POLICY_INVALID');
-            if((typeof id!=='string'&&typeof id!=='number')||(typeof id==='string'&&id.length>256)||(typeof id==='number'&&!Number.isFinite(id)))return {jsonrpc:'2.0',error:{code:-32600,message:'Identificador de requisição inválido.'}};
-            const parsed=tool.inputSchema.safeParse(toolArgs??{});
-            if(!parsed.success)return {jsonrpc:'2.0',id,error:{code:-32602,message:'Parâmetros inválidos.',data:{code:'INVALID_INPUT',retryable:false}}};
-            if(!context.tenantId||!context.userId||!context.oauthConnection||!context.revalidateConnection)throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
-            const executionContext={sessionId,tenantId:context.tenantId,userId:context.userId,source:'MCP' as const,oauthConnection:context.oauthConnection,revalidateConnection:context.revalidateConnection,abortSignal:context.abortSignal??new AbortController().signal};
-            const toolResult=await this.toolRegistry.executeTool(name,parsed.data,executionContext);
-            await this.recordAudit({sessionId,tenantId,userId,toolName:name,durationMs:Date.now()-startedAt,status:'SUCCESS',payload:{matterId:parsed.data.matterId,itemId:parsed.data.itemId,readOnly:true}});
-            const response={jsonrpc:'2.0' as const,id,result:{content:[{type:'text',text:JSON.stringify(toolResult)}],structuredContent:toolResult.data,isError:false,billing:{mode:'FREE',chargedCents:0,isReplay:false}}};
-            if(Buffer.byteLength(JSON.stringify(response))>24576)throw new Error('CASE_ITEM_TOO_LARGE');
-            if(!tool.revalidateResult)throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
-            await tool.revalidateResult(toolResult.data,executionContext);
-            return response;
-          }catch(error){
-            const candidate=error instanceof Error?error.message.split(':')[0]:'';
-            const code=['CASE_CONTEXT_NOT_AUTHORIZED','CASE_CURSOR_INVALID','CASE_ITEM_TOO_LARGE','CASE_SELECTION_INVALID'].includes(candidate)?candidate==='CASE_SELECTION_INVALID'?'CASE_ITEM_UNAVAILABLE':candidate:getErrorCode(error,'TOOL_EXECUTION_FAILED');
-            await this.recordAudit({sessionId,tenantId,userId,toolName:name,durationMs:Date.now()-startedAt,status:'FAILED',payload:{code,readOnly:true}});
-            const message = code === 'CASE_CONTEXT_NOT_AUTHORIZED'
-              ? 'Este material não está autorizado para o aplicativo. No ForgeLex, abra o caso e confira "Usar este caso na IA".'
-              : 'Não foi possível concluir a leitura. Atualize a consulta.';
-            return {
-              jsonrpc: '2.0',
-              id,
-              result: {
-                content: [{ type: 'text', text: JSON.stringify({ error: { code, message, retryable: false } }) }],
-                isError: true,
-                billing: { mode: 'FREE', chargedCents: 0, isReplay: false },
-              },
-            };
-          }
-        }
-
-        if (isResearchPresentationTool(name)) {
-          if ((typeof id !== 'string' && typeof id !== 'number') || !context.tenantId || !context.userId) return { jsonrpc: '2.0', id, error: { code: -32602, message: 'Requisição autenticada com identificador é obrigatória.' } };
-          const sessionId = `mcp_reader_${randomUUID()}`;
-          try {
-            const executionContext = { sessionId, tenantId: context.tenantId, userId: context.userId, source: 'MCP' as const, oauthConnection: context.oauthConnection, revalidateConnection: context.revalidateConnection, abortSignal: context.abortSignal ?? new AbortController().signal };
-            await context.revalidateConnection?.();
-            const toolResult = await this.toolRegistry.executeTool(name, toolArgs ?? {}, executionContext);
-            await context.revalidateConnection?.();
-            await this.recordAudit({ sessionId, tenantId, userId, toolName: name, durationMs: 0, status: 'SUCCESS', payload: { free: true, readOnly: researchPresentationMetadata(name).annotations.readOnlyHint } });
-            return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(toolResult) }], structuredContent: toolResult.data, isError: false, billing: { mode: 'FREE', chargedCents: 0, isReplay: false } } };
-          } catch (error) {
-            const details = this.toStructuredError(error);
-            return { jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify({ error: details }) }], isError: true, billing: { mode: 'FREE', chargedCents: 0, isReplay: false } } };
-          }
-        }
-        const hostIdempotencyKey = typeof toolArgs?.idempotencyKey === 'string' ? toolArgs.idempotencyKey.trim() : '';
-        const idempotencyKey = context.idempotencyKey?.trim() || hostIdempotencyKey;
-        if (!idempotencyKey) {
-          return {
-            jsonrpc: '2.0',
-            id,
-            error: { code: -32602, message: 'Invalid params: a chave de idempotência é obrigatória.' },
-          };
-        }
-        let requestFingerprint: string | undefined;
-        if (name === 'research.search_case_law') {
-          const parsed = tool.inputSchema.safeParse(toolArgs ?? {});
-          if (!parsed.success) {
-            return { jsonrpc: '2.0', id, error: { code: -32602, message: 'Invalid params: filtros de pesquisa inválidos.', data: { code: 'INVALID_INPUT', retryable: false } } };
-          }
-          requestFingerprint = searchOperationFingerprint({ ...parsed.data, userId });
-        }
-        const sessionId = `mcp_${randomUUID()}`;
-        const startedAt = Date.now();
-
-        try {
-          await this.beforeToolCall?.(name);
-          const execution = await this.ledgerService.executeOperation({
-            tenantId,
-            userId,
-            idempotencyKey,
-            requestFingerprint,
-            billing,
-            usage: {
-              capability: name,
-              toolName: name,
-              requestId: idempotencyKey,
-              sessionId,
-              userId,
-            },
-            operation: async () => {
-              const { idempotencyKey: _idempotencyKey, ...withoutIdempotencyKey } = toolArgs ?? {};
-              const executionArgs = name === 'workflow.legal_research_memo' ? toolArgs ?? {} : withoutIdempotencyKey;
-              const result = await this.toolRegistry.executeTool(name, executionArgs, {
-                sessionId,
-                tenantId,
-                userId,
-                abortSignal: context.abortSignal ?? new AbortController().signal,
-                source: 'MCP',
-              });
-              return name === 'research.search_case_law' ? result.data : result;
-            },
-          });
-
-          const toolResult: ToolExecutionResult = name === 'research.search_case_law'
-            ? { success: true, data: { ...(execution.data as SearchCaseLawOutput), operationId: idempotencyKey }, provenance: (execution.data as SearchCaseLawOutput).items.map(item => item.provenance) }
-            : execution.data as ToolExecutionResult;
-
-          await this.recordAudit({
-            sessionId,
-            tenantId,
-            userId,
-            toolName: name,
-            durationMs: Date.now() - startedAt,
-            status: 'SUCCESS',
-            payload: { arguments: toolArgs, success: toolResult.success, billingMode: execution.billingMode },
-          });
-
-          return {
-            jsonrpc: '2.0',
-            id,
-            result: {
-              ...(name === 'research.search_case_law' ? { structuredContent: toolResult.data } : {}),
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify(toolResult),
-                },
-              ],
-              billing: {
-                mode: execution.billingMode,
-                isReplay: execution.isReplay,
-                chargedCents: execution.chargedCents,
-                remainingBalanceCents: execution.remainingBalanceCents,
-              },
-            },
-          };
-        } catch (err: any) {
-          const structuredError = this.toStructuredError(err);
-          await this.recordAudit({
-            sessionId,
-            tenantId,
-            userId,
-            toolName: name,
-            durationMs: Date.now() - startedAt,
-            status: 'FAILED',
-            payload: { arguments: toolArgs, error: err?.message },
-          });
-          return {
-            jsonrpc: '2.0',
-            id,
-            error: {
-              code: -32000,
-              message: structuredError.message as string,
-              data: structuredError,
-            },
-          };
-        }
+        const call: ToolCall = { id, name, args: toolArgs, tool, billing, tenantId, userId, context };
+        if (isCaseContextTool(name)) return this.callCaseContextTool(call);
+        if (isResearchPresentationTool(name)) return this.callResearchPresentationTool(call);
+        return this.callMeteredTool(call);
       }
 
       default:
@@ -402,6 +277,275 @@ export class McpHandler {
           id,
           error: { code: -32601, message: `Method not found: ${request.method}` },
         };
+    }
+  }
+
+  /**
+   * Leitura gratuita de material do caso já aprovado para o aplicativo. Só funciona com conexão OAuth verificada,
+   * revalida a autorização depois da leitura e recusa respostas acima de 24 KiB.
+   */
+  private async callCaseContextTool(call: ToolCall): Promise<JsonRpcResponse> {
+    const { id, name, args, tool, billing, tenantId, userId, context } = call;
+    const startedAt = Date.now();
+    const sessionId = `case_mcp_${randomUUID()}`;
+    try {
+      if (billing.mode !== 'FREE') throw new Error('CASE_POLICY_INVALID');
+      if (
+        (typeof id !== 'string' && typeof id !== 'number') ||
+        (typeof id === 'string' && id.length > 256) ||
+        (typeof id === 'number' && !Number.isFinite(id))
+      )
+        return { jsonrpc: '2.0', error: { code: -32600, message: 'Identificador de requisição inválido.' } };
+      const parsed = tool.inputSchema.safeParse(args ?? {});
+      if (!parsed.success)
+        return {
+          jsonrpc: '2.0',
+          id,
+          error: { code: -32602, message: 'Parâmetros inválidos.', data: { code: 'INVALID_INPUT', retryable: false } },
+        };
+      if (!context.tenantId || !context.userId || !context.oauthConnection || !context.revalidateConnection)
+        throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+      const executionContext = {
+        sessionId,
+        tenantId: context.tenantId,
+        userId: context.userId,
+        source: 'MCP' as const,
+        oauthConnection: context.oauthConnection,
+        revalidateConnection: context.revalidateConnection,
+        abortSignal: context.abortSignal ?? new AbortController().signal,
+      };
+      const toolResult = await this.toolRegistry.executeTool(name, parsed.data, executionContext);
+      await this.recordAudit({
+        sessionId,
+        tenantId,
+        userId,
+        toolName: name,
+        durationMs: Date.now() - startedAt,
+        status: 'SUCCESS',
+        payload: { matterId: parsed.data.matterId, itemId: parsed.data.itemId, readOnly: true },
+      });
+      const response = {
+        jsonrpc: '2.0' as const,
+        id,
+        result: {
+          content: [{ type: 'text', text: JSON.stringify(toolResult) }],
+          structuredContent: toolResult.data,
+          isError: false,
+          billing: { mode: 'FREE', chargedCents: 0, isReplay: false },
+        },
+      };
+      if (Buffer.byteLength(JSON.stringify(response)) > 24576) throw new Error('CASE_ITEM_TOO_LARGE');
+      if (!tool.revalidateResult) throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+      await tool.revalidateResult(toolResult.data, executionContext);
+      return response;
+    } catch (error) {
+      const candidate = error instanceof Error ? error.message.split(':')[0] : '';
+      const code = ['CASE_CONTEXT_NOT_AUTHORIZED', 'CASE_CURSOR_INVALID', 'CASE_ITEM_TOO_LARGE', 'CASE_SELECTION_INVALID'].includes(
+        candidate,
+      )
+        ? candidate === 'CASE_SELECTION_INVALID'
+          ? 'CASE_ITEM_UNAVAILABLE'
+          : candidate
+        : getErrorCode(error, 'TOOL_EXECUTION_FAILED');
+      await this.recordAudit({
+        sessionId,
+        tenantId,
+        userId,
+        toolName: name,
+        durationMs: Date.now() - startedAt,
+        status: 'FAILED',
+        payload: { code, readOnly: true },
+      });
+      const message =
+        code === 'CASE_CONTEXT_NOT_AUTHORIZED'
+          ? 'Este material não está autorizado para o aplicativo. No ForgeLex, abra o caso e confira "Usar este caso na IA".'
+          : 'Não foi possível concluir a leitura. Atualize a consulta.';
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          content: [{ type: 'text', text: JSON.stringify({ error: { code, message, retryable: false } }) }],
+          isError: true,
+          billing: { mode: 'FREE', chargedCents: 0, isReplay: false },
+        },
+      };
+    }
+  }
+
+  /** Leitor de decisões e pesquisa salva: gratuito, somente leitura, revalida a conexão antes e depois. */
+  private async callResearchPresentationTool(call: ToolCall): Promise<JsonRpcResponse> {
+    const { id, name, args, tenantId, userId, context } = call;
+    if ((typeof id !== 'string' && typeof id !== 'number') || !context.tenantId || !context.userId)
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32602, message: 'Requisição autenticada com identificador é obrigatória.' },
+      };
+    const sessionId = `mcp_reader_${randomUUID()}`;
+    try {
+      const executionContext = {
+        sessionId,
+        tenantId: context.tenantId,
+        userId: context.userId,
+        source: 'MCP' as const,
+        oauthConnection: context.oauthConnection,
+        revalidateConnection: context.revalidateConnection,
+        abortSignal: context.abortSignal ?? new AbortController().signal,
+      };
+      await context.revalidateConnection?.();
+      const toolResult = await this.toolRegistry.executeTool(name, args ?? {}, executionContext);
+      await context.revalidateConnection?.();
+      await this.recordAudit({
+        sessionId,
+        tenantId,
+        userId,
+        toolName: name,
+        durationMs: 0,
+        status: 'SUCCESS',
+        payload: { free: true, readOnly: researchPresentationMetadata(name).annotations.readOnlyHint },
+      });
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          content: [{ type: 'text', text: JSON.stringify(toolResult) }],
+          structuredContent: toolResult.data,
+          isError: false,
+          billing: { mode: 'FREE', chargedCents: 0, isReplay: false },
+        },
+      };
+    } catch (error) {
+      const details = this.toStructuredError(error);
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          content: [{ type: 'text', text: JSON.stringify({ error: details }) }],
+          isError: true,
+          billing: { mode: 'FREE', chargedCents: 0, isReplay: false },
+        },
+      };
+    }
+  }
+
+  /** Ferramentas de jurisprudência, verificação e workflows: idempotentes e cobradas pelo ledger conforme a política. */
+  private async callMeteredTool(call: ToolCall): Promise<JsonRpcResponse> {
+    const { id, name, args: toolArgs, tool, billing, tenantId, userId, context } = call;
+    const hostIdempotencyKey = typeof toolArgs?.idempotencyKey === 'string' ? toolArgs.idempotencyKey.trim() : '';
+    const idempotencyKey = context.idempotencyKey?.trim() || hostIdempotencyKey;
+    if (!idempotencyKey) {
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32602, message: 'Invalid params: a chave de idempotência é obrigatória.' },
+      };
+    }
+    let requestFingerprint: string | undefined;
+    if (name === 'research.search_case_law') {
+      const parsed = tool.inputSchema.safeParse(toolArgs ?? {});
+      if (!parsed.success) {
+        return {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: -32602,
+            message: 'Invalid params: filtros de pesquisa inválidos.',
+            data: { code: 'INVALID_INPUT', retryable: false },
+          },
+        };
+      }
+      requestFingerprint = searchOperationFingerprint({ ...parsed.data, userId });
+    }
+    const sessionId = `mcp_${randomUUID()}`;
+    const startedAt = Date.now();
+
+    try {
+      await this.beforeToolCall?.(name);
+      const execution = await this.ledgerService.executeOperation({
+        tenantId,
+        userId,
+        idempotencyKey,
+        requestFingerprint,
+        billing,
+        usage: {
+          capability: name,
+          toolName: name,
+          requestId: idempotencyKey,
+          sessionId,
+          userId,
+        },
+        operation: async () => {
+          const { idempotencyKey: _idempotencyKey, ...withoutIdempotencyKey } = toolArgs ?? {};
+          const executionArgs = name === 'workflow.legal_research_memo' ? (toolArgs ?? {}) : withoutIdempotencyKey;
+          const result = await this.toolRegistry.executeTool(name, executionArgs, {
+            sessionId,
+            tenantId,
+            userId,
+            abortSignal: context.abortSignal ?? new AbortController().signal,
+            source: 'MCP',
+          });
+          return name === 'research.search_case_law' ? result.data : result;
+        },
+      });
+
+      const toolResult: ToolExecutionResult =
+        name === 'research.search_case_law'
+          ? {
+              success: true,
+              data: { ...(execution.data as SearchCaseLawOutput), operationId: idempotencyKey },
+              provenance: (execution.data as SearchCaseLawOutput).items.map((item) => item.provenance),
+            }
+          : (execution.data as ToolExecutionResult);
+
+      await this.recordAudit({
+        sessionId,
+        tenantId,
+        userId,
+        toolName: name,
+        durationMs: Date.now() - startedAt,
+        status: 'SUCCESS',
+        payload: { arguments: toolArgs, success: toolResult.success, billingMode: execution.billingMode },
+      });
+
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          ...(name === 'research.search_case_law' ? { structuredContent: toolResult.data } : {}),
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(toolResult),
+            },
+          ],
+          billing: {
+            mode: execution.billingMode,
+            isReplay: execution.isReplay,
+            chargedCents: execution.chargedCents,
+            remainingBalanceCents: execution.remainingBalanceCents,
+          },
+        },
+      };
+    } catch (err: any) {
+      const structuredError = this.toStructuredError(err);
+      await this.recordAudit({
+        sessionId,
+        tenantId,
+        userId,
+        toolName: name,
+        durationMs: Date.now() - startedAt,
+        status: 'FAILED',
+        payload: { arguments: toolArgs, error: err?.message },
+      });
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: {
+          code: -32000,
+          message: structuredError.message as string,
+          data: structuredError,
+        },
+      };
     }
   }
 

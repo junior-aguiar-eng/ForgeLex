@@ -50,7 +50,7 @@ export function createPilotOpenAIRuntime(options: PilotRuntimeOptions) {
   const a = options.approval;
   if (
     a.provider !== 'openai' ||
-    a.model !== 'gpt-6.1-sol' ||
+    a.model !== PILOT_POLICY.model ||
     a.ceilingCents !== 500 ||
     a.reference !== PILOT_POLICY.approvalReference ||
     !options.apiKey.trim()
