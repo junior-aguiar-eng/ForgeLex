@@ -235,8 +235,8 @@ const isFactualRecord = (plan: TaskPlan) =>
   !plan.requiresCaseLaw;
 /**
  * Every finding the workflow itself raises. Each states a limitation (what was not done, found or confirmed),
- * never a result. Billing reads this list; `finding()` only accepts these codes, so a new one cannot be added
- * without being classified here.
+ * never a result. `finding()` only accepts these codes, so a new one cannot be added without being classified here.
+ * Billing does not read this list: findings, workflow-raised or written by the model, never make a delivery billable.
  */
 export const CASE_TASK_LIMITATION_CODES = [
   ...EVIDENCE_LIMITATIONS,
