@@ -1,6 +1,32 @@
 # Pendências atuais do ForgeLex
 
-## Estado publicado atual — 07/11/2026: SHA `173f4c3` em produção
+## Estado publicado atual — 07/11/2026: SHA `430229b` em produção
+
+Publicado em 07/11/2026, entre 21:09 e 21:17 UTC, a pedido de Boni, pela primeira vez com
+`ops/gcp/production/deploy-from-main.ps1`. Código `430229b632067a18469128d67d6712090e0b1a0e`
+(`main`, CI verde). Imagem
+`forgelex-api@sha256:66956dd004ff77d81341c98d6a443810a04d391c52f250ffe5aebe68f24beedf`,
+gerada pelo Cloud Build `1d2d276c-23ac-45ed-95d2-38f3267a9de5` (5m01s).
+
+- **O que mudou em produção:** nada de runtime. Do `173f4c3` ao `430229b` entraram só a documentação (#118)
+  e os scripts de deploy (#119 e #120). O objetivo foi exercitar o script de ponta a ponta.
+- **Revisões:** `forgelex-api-prod-430229b` e `forgelex-closure-hml-private-430229b`, criadas sem tráfego;
+  o script comparou cada uma com a anterior e só a imagem e `FORGELEX_SOURCE_SHA` mudaram. Depois receberam
+  100% (encerramento primeiro, API depois). Substituições de build reaproveitadas do build `22cd01ef`, com as
+  flags de interface `AGENTIC_WORKSPACE`, `CASE_WORKSPACE` e `SAVED_RESEARCH` em `true`.
+- **Sem migration e sem backup novo:** o script não aplica migrations e este SHA não altera o schema.
+- **Verificação:** feita pelo script (`/health` e `/readyz` 200, `/mcp` sem token 401, sem 5xx nos logs) e
+  conferida depois à mão: tráfego 100% nas revisões novas e as três sondas públicas com o mesmo resultado.
+- **Reversão:** `gcloud run services update-traffic forgelex-api-prod --project=project-bbbe1209-c295-4720-867 --region=southamerica-east1 --to-revisions=forgelex-api-prod-173f4c3=100`
+  e o mesmo para `forgelex-closure-hml-private-173f4c3`.
+- **Como se publica:** `./ops/gcp/production/deploy-from-main.ps1` (`-DryRun` antes). Detalhes no
+  [README de produção](ops/gcp/production/README.md).
+- **Primeira tentativa (SHA `782a275`) parou sem efeito:** a comparação de revisões tinha um bug
+  (`Compare-RevisionConfig` devolvia array embrulhado e recusava qualquer deploy), corrigido no #120.
+  Produção não foi alterada; sobrou a revisão `forgelex-closure-hml-private-782a275`, sem tráfego, e a imagem
+  `:782a275`, que podem ser apagadas.
+
+## Publicação anterior — 07/11/2026: SHA `173f4c3`
 
 Publicado em 07/11/2026, entre 17:35 e 17:43 UTC, a pedido de Boni. Código
 `173f4c3e87e3fb51015bb4832f79a1a2846e7126` (`main`, CI verde). Imagem
@@ -17,7 +43,7 @@ gerada pelo Cloud Build `6004a5cc-758d-427f-9d4e-a79313a9a054` (4m35s).
   (os 6 avisos vistos eram as sondagens `/mcp` sem token, com 401 esperado).
 - **Reversão:** `gcloud run services update-traffic forgelex-api-prod --project=project-bbbe1209-c295-4720-867 --region=southamerica-east1 --to-revisions=forgelex-api-prod-d2a329d=100`
   e o mesmo para `forgelex-closure-hml-private-d2a329d`.
-- **Como se publica:** o repositório não tem deploy automático (o `ci.yml` só valida e não há gatilho de
+- **Como se publicou (manual, antes do script):** o repositório não tem deploy automático (o `ci.yml` só valida e não há gatilho de
   Cloud Build). O `build-from-main.ps1` **não passa** `_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED` nem
   `_VITE_FORGELEX_CASE_WORKSPACE_ENABLED`, e o `cloudbuild.yaml` assume `false`. O build de 07/11 reaproveitou
   as substituições do build anterior (`gcloud builds describe`), trocando só `_SOURCE_SHA`; repetir esse
