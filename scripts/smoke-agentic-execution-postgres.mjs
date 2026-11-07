@@ -6,6 +6,7 @@ import {
   createDatabase,
   runPersistenceMigrations,
   AgenticWorkspaceRepository,
+  lockAgenticTenant,
 } from '../packages/persistence/dist/index.js';
 import { LedgerService } from '../packages/billing-ledger/dist/index.js';
 import { ExecutionService } from '../apps/api/dist/agentic-workspace/execution-service.js';
@@ -131,6 +132,22 @@ if (process.argv[2] === '--recover') {
     await Promise.all([new ExecutionWorker(left, driver).runOnce(), new ExecutionWorker(right, driver).runOnce()]);
     assert.equal(calls, 1);
     assert.equal((await left.getExecution(owner, runs[0].id)).status, 'COMPLETED');
+    // Leituras puras não podem ficar presas atrás do lock do tenant: com uma transação de escrita segurando
+    // o lock, o estado e os eventos precisam responder enquanto ela segue aberta.
+    const versionRows = async () =>
+      (await a.client.execute('SELECT version FROM agentic_command_owners ORDER BY id')).rows.map((r) => r.version);
+    const versionsBefore = await versionRows();
+    const within = (promise, label) =>
+      Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`READ_BLOCKED_BY_TENANT_LOCK:${label}`)), 4000)),
+      ]);
+    await a.db.transaction(async (tx) => {
+      await lockAgenticTenant(tx, owner.tenantId);
+      assert.equal((await within(right.getExecution(owner, runs[0].id), 'state')).status, 'COMPLETED');
+      assert.ok(Array.isArray((await within(right.listClientEvents(owner, runs[0].id, 0), 'events')).events));
+    });
+    assert.deepEqual(await versionRows(), versionsBefore, 'READS_MUST_NOT_BUMP_OWNER_VERSION');
     const questionRun = await left.startExecution(owner, 'question', {
       objective: 'Esclarecer',
       conversationId: runs[0].conversationId,
@@ -209,6 +226,8 @@ if (process.argv[2] === '--recover') {
           'concurrent_start_one_conversation',
           'canonical_owner_lock',
           'concurrent_workers_one_call',
+          'reads_not_blocked_by_tenant_lock',
+          'reads_do_not_bump_owner_version',
           'concurrent_answer_one_successor',
           'fresh_checkpoint_after_answer',
           'owner_isolation',

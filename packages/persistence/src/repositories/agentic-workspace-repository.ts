@@ -182,6 +182,14 @@ export class AgenticWorkspaceRepository {
       return row ? repo.readConversation(row) : undefined;
     });
   }
+  /**
+   * Conversation load without the tenant lock or the row-lock UPDATE. Only for a read-only snapshot transaction
+   * (REPEATABLE READ on PostgreSQL), which already gives the consistent single-revision view the lock was for.
+   */
+  async getConversationReadOnly(owner: AgenticOwner, id: string): Promise<AgenticConversation | undefined> {
+    const [row] = await this.db.select().from(s.agenticConversations).where(this.conversationScope(owner, id)).limit(1);
+    return row ? this.readConversation(row) : undefined;
+  }
   /** Called only while the conversation row is locked in the current transaction. */
   private async readConversation(row: ConversationRow): Promise<AgenticConversation> {
     const id = row.id;
