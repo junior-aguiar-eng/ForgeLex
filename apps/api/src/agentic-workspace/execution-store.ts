@@ -3,7 +3,9 @@ import { createHash, randomUUID } from 'node:crypto';
 import { AgenticOwnerSchema, type AgenticOwner } from '@forgelex/domain';
 import {
   AgenticWorkspaceRepository,
+  agenticTenantKey,
   lockAgenticTenant,
+  agenticTenantGuards,
   agenticCommandOwners,
   agenticCommands,
   agenticExecutionJobs,
@@ -57,6 +59,29 @@ export class ExecutionStore {
         .where(eq(agenticCommandOwners.id, id));
       return run(store);
     });
+  }
+  /**
+   * Consistent read without writes or locks. On PostgreSQL it is a READ ONLY, REPEATABLE READ transaction, so every
+   * statement sees one committed state and nothing is held that could stall a writer or the worker. It does not
+   * take the tenant lock and does not bump the owner version, so it must never write: use `atomic` for that.
+   * A tenant already closed by account erasure is still refused, as `atomic` would.
+   */
+  async snapshot<T>(owner: AgenticOwner, run: (store: ExecutionStore) => Promise<T>): Promise<T> {
+    AgenticOwnerSchema.parse(owner);
+    const body = async (tx: unknown) => {
+      const store = new ExecutionStore(tx as ForgeLexDatabase);
+      // First statement: it also fixes the snapshot.
+      const [guard] = await store.db
+        .select({ closed: agenticTenantGuards.closed })
+        .from(agenticTenantGuards)
+        .where(eq(agenticTenantGuards.tenantKey, agenticTenantKey(owner.tenantId)))
+        .limit(1);
+      if (guard && guard.closed !== 0) throw new Error('AGENTIC_TENANT_CLOSED');
+      return run(store);
+    };
+    return this.db.$forgelexDialect === 'postgres'
+      ? this.db.transaction(body, { isolationLevel: 'repeatable read', accessMode: 'read only' } as never)
+      : this.db.transaction(body);
   }
   async command(owner: AgenticOwner, key: string) {
     return (

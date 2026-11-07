@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { agenticExecutions, agenticExecutionJobs } from '@forgelex/persistence';
+import { eq } from 'drizzle-orm';
+import {
+  agenticCommandOwners,
+  agenticExecutions,
+  agenticExecutionJobs,
+  closeAgenticTenant,
+} from '@forgelex/persistence';
 import { InferenceBudgetService as BudgetService } from '@forgelex/billing-ledger';
 import {
   createDatabase,
@@ -97,6 +103,33 @@ it('expõe contexto e histórico públicos para recuperar o trabalho sem checkpo
   expect(view).toMatchObject({ context: input.context, messages: [{ role: 'USER', text: input.objective }] });
   expect(view).not.toHaveProperty('checkpoint');
   expect(view).not.toHaveProperty('provider');
+});
+it('lê o estado e os eventos sem escrever: nem a versão do dono nem o job mudam', async () => {
+  const f = await fixture();
+  const run = await f.service.startExecution(owner, 'read-only-reads', input);
+  const versions = async () =>
+    (await f.db.select().from(agenticCommandOwners).where(eq(agenticCommandOwners.tenantId, owner.tenantId))).map(
+      (row) => row.version,
+    );
+  const jobBefore = JSON.stringify((await f.db.select().from(agenticExecutionJobs))[0]);
+  const before = await versions();
+  expect(before.length).toBeGreaterThan(0);
+  for (let i = 0; i < 5; i++) {
+    expect(await f.service.getExecution(owner, run.id)).toMatchObject({ id: run.id, status: 'QUEUED' });
+    expect(await f.service.listClientEvents(owner, run.id, 0)).toMatchObject({ terminal: false });
+  }
+  expect(await versions()).toEqual(before);
+  expect(JSON.stringify((await f.db.select().from(agenticExecutionJobs))[0])).toBe(jobBefore);
+});
+it('as leituras continuam recusando tenant encerrado e execução alheia', async () => {
+  const f = await fixture();
+  const run = await f.service.startExecution(owner, 'read-closed-tenant', input);
+  await expect(f.service.getExecution({ tenantId: owner.tenantId, userId: 'outro-usuario' }, run.id)).rejects.toThrow(
+    'EXECUTION_NOT_FOUND',
+  );
+  await closeAgenticTenant(f.client as never, owner.tenantId);
+  await expect(f.service.getExecution(owner, run.id)).rejects.toThrow('AGENTIC_TENANT_CLOSED');
+  await expect(f.service.listClientEvents(owner, run.id, 0)).rejects.toThrow('AGENTIC_TENANT_CLOSED');
 });
 it('preserva acesso às entregas anteriores do mesmo diálogo', async () => {
   const f = await fixture();

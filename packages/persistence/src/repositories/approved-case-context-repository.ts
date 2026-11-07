@@ -23,11 +23,13 @@ const same = (a: unknown[], b: unknown[]) => JSON.stringify(sorted(a)) === JSON.
 /** Internal only. Caller holds tenant/conversation locks; matter lock serializes human writers. */
 export class ApprovedCaseContextRepository {
   constructor(private readonly db: ForgeLexDatabase) {}
-  private async lock(owner: AgenticOwner, matterId: string) {
-    await this.db
-      .update(s.matters)
-      .set({ updatedAt: sql`${s.matters.updatedAt}` })
-      .where(and(eq(s.matters.tenantId, owner.tenantId), eq(s.matters.id, matterId)));
+  /** `readOnly` só confere o ciclo de vida do caso, sem o UPDATE de bloqueio (transação somente leitura). */
+  private async lock(owner: AgenticOwner, matterId: string, readOnly = false) {
+    if (!readOnly)
+      await this.db
+        .update(s.matters)
+        .set({ updatedAt: sql`${s.matters.updatedAt}` })
+        .where(and(eq(s.matters.tenantId, owner.tenantId), eq(s.matters.id, matterId)));
     await new MatterWriteGuard(this.db).captureRevision({ ...owner, matterId });
   }
   receipt(row: Row): Receipt {
@@ -94,9 +96,15 @@ export class ApprovedCaseContextRepository {
     await this.load(owner, matterId, refs);
     return refs;
   }
-  async load(owner: AgenticOwner, matterId: string, raw: ApprovedItems, historical = false): Promise<TaskSource[]> {
+  async load(
+    owner: AgenticOwner,
+    matterId: string,
+    raw: ApprovedItems,
+    historical = false,
+    readOnly = false,
+  ): Promise<TaskSource[]> {
     const refs = ApprovedItemsSchema.parse(raw);
-    await this.lock(owner, matterId);
+    await this.lock(owner, matterId, readOnly);
     const sources: TaskSource[] = [];
     for (const ref of refs) {
       const [found] = await this.rows(owner, matterId, ref.deliveryId);

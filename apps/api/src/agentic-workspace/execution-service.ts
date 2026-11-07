@@ -132,19 +132,28 @@ export class ExecutionService {
         );
     });
   }
-  private async activeContext(s: ExecutionStore, e: AgenticExecution, requireCurrent = false) {
+  /**
+   * `readOnly` is for `ExecutionStore.snapshot`: same checks and errors, but plain SELECTs instead of the no-op
+   * UPDATEs that take row locks (those would also be rejected by a READ ONLY transaction).
+   */
+  private async activeContext(s: ExecutionStore, e: AgenticExecution, requireCurrent = false, readOnly = false) {
     // Match existing repository order: conversation -> matter -> documents. Locks remain until owner transaction commits.
-    const [conversation] = await s.db
-      .update(agenticConversations)
-      .set({ contextRevision: sql`${agenticConversations.contextRevision}` })
-      .where(
-        and(
-          eq(agenticConversations.id, e.conversationId),
-          eq(agenticConversations.tenantId, e.tenantId),
-          eq(agenticConversations.userId, e.userId),
-        ),
-      )
-      .returning({ id: agenticConversations.id, revision: agenticConversations.contextRevision });
+    const conversationScope = and(
+      eq(agenticConversations.id, e.conversationId),
+      eq(agenticConversations.tenantId, e.tenantId),
+      eq(agenticConversations.userId, e.userId),
+    );
+    const [conversation] = readOnly
+      ? await s.db
+          .select({ id: agenticConversations.id, revision: agenticConversations.contextRevision })
+          .from(agenticConversations)
+          .where(conversationScope)
+          .limit(1)
+      : await s.db
+          .update(agenticConversations)
+          .set({ contextRevision: sql`${agenticConversations.contextRevision}` })
+          .where(conversationScope)
+          .returning({ id: agenticConversations.id, revision: agenticConversations.contextRevision });
     if (!conversation || (requireCurrent && (conversation.revision !== e.contextRevision || e.requiresReevaluation)))
       throw new Error('CONTEXT_CONFLICT');
     const guard = new MatterWriteGuard(s.db);
@@ -159,10 +168,11 @@ export class ExecutionService {
       }
     };
     if (e.matterId) {
-      await s.db
-        .update(matters)
-        .set({ updatedAt: sql`${matters.updatedAt}` })
-        .where(and(eq(matters.id, e.matterId), eq(matters.tenantId, e.tenantId)));
+      if (!readOnly)
+        await s.db
+          .update(matters)
+          .set({ updatedAt: sql`${matters.updatedAt}` })
+          .where(and(eq(matters.id, e.matterId), eq(matters.tenantId, e.tenantId)));
       await check();
     }
     const [snapshot] = await s.db
@@ -174,13 +184,20 @@ export class ExecutionService {
     const context = AgenticContextSchema.parse(JSON.parse(snapshot.payloadJson));
     if (context.approvedItems?.length) {
       if (!e.matterId) throw new Error('CONTEXT_MATTER_REQUIRED');
-      await new ApprovedCaseContextRepository(s.db).load(e, e.matterId, context.approvedItems, !requireCurrent);
+      await new ApprovedCaseContextRepository(s.db).load(
+        e,
+        e.matterId,
+        context.approvedItems,
+        !requireCurrent,
+        readOnly,
+      );
     }
     for (const doc of [...context.documents].sort((a, b) => a.documentId.localeCompare(b.documentId))) {
-      await s.db
-        .update(legalDocuments)
-        .set({ updatedAt: sql`${legalDocuments.updatedAt}` })
-        .where(and(eq(legalDocuments.id, doc.documentId), eq(legalDocuments.tenantId, e.tenantId)));
+      if (!readOnly)
+        await s.db
+          .update(legalDocuments)
+          .set({ updatedAt: sql`${legalDocuments.updatedAt}` })
+          .where(and(eq(legalDocuments.id, doc.documentId), eq(legalDocuments.tenantId, e.tenantId)));
       await check(doc.documentId);
     }
     return { ...context, revision: e.contextRevision };
@@ -382,12 +399,14 @@ export class ExecutionService {
     return expired;
   }
   async getExecution(owner: AgenticOwner, id: string) {
-    return this.store.atomic(owner, async (s) => {
+    // Pure read: a snapshot, not `atomic`. The tenant lock, the version bump and the no-op UPDATEs would serialize
+    // every poll of the screen against the worker and against other readers of the same tenant.
+    return this.store.snapshot(owner, async (s) => {
       const e = await s.workspace.getExecution(owner, id);
       if (!e) throw new Error('EXECUTION_NOT_FOUND');
       const j = await s.getJob(owner, id);
-      const context = await this.activeContext(s, e);
-      const conversation = (await s.workspace.getConversation(owner, e.conversationId))!;
+      const context = await this.activeContext(s, e, false, true);
+      const conversation = (await s.workspace.getConversationReadOnly(owner, e.conversationId))!;
       const rows = await s.db
         .select({ payloadJson: agenticExecutions.payloadJson })
         .from(agenticExecutions)
@@ -800,11 +819,11 @@ export class ExecutionService {
     });
   }
   /**
-   * Cheap change detector for the event stream: plain reads only, no tenant lock and no writes.
-   * Access to the case and its selected documents is still verified (revocation must surface promptly),
-   * through the same lifecycle reads the locking snapshot uses, minus its row locks.
-   * True when there are events after `after` or the execution is terminal, i.e. when the full
-   * (locking) snapshot of `listClientEvents` is worth taking.
+   * Cheap change detector for the event stream: plain reads only, no tenant lock and no writes, in a single
+   * statement per table (no transaction). Access to the case and its selected documents is still verified
+   * (revocation must surface promptly), through the same lifecycle reads `activeContext` uses.
+   * True when there are events after `after` or the execution is terminal, i.e. when the full read-only
+   * snapshot of `listClientEvents` (which also projects the events) is worth taking.
    */
   async eventsChanged(owner: AgenticOwner, id: string, after: number): Promise<boolean> {
     const db = this.store.db;
@@ -854,11 +873,11 @@ export class ExecutionService {
       await check(doc.documentId);
   }
   async listClientEvents(owner: AgenticOwner, id: string, after: number) {
-    return this.store.atomic(owner, async (s) => {
+    return this.store.snapshot(owner, async (s) => {
       const e = await s.workspace.getExecution(owner, id);
       if (!e) throw new Error('EXECUTION_NOT_FOUND');
       await s.getJob(owner, id);
-      const context = await this.activeContext(s, e),
+      const context = await this.activeContext(s, e, false, true),
         documents = context.documents;
       const raw = await s.workspace.listEventsAfter(owner, id, after);
       return {
