@@ -81,7 +81,7 @@ export async function runTask6Homologation(root: string, apiKey: string, minimal
         approval: 'boni-task6',
         baseCommit: 'ec791e5402f8e2533e74d86aa76aab9440d48e01',
         provider: 'openai',
-        model: 'gpt-6.1-sol',
+        model: PILOT_POLICY.model,
         currency: 'USD',
         ceilingCents: 500,
         fixtureHash: digest(source),
@@ -147,7 +147,7 @@ export async function runTask6Homologation(root: string, apiKey: string, minimal
       owner,
       apiKey,
       budget,
-      approval: { provider: 'openai', model: 'gpt-6.1-sol', ceilingCents: 500, reference: 'boni-task6' },
+      approval: { provider: 'openai', model: PILOT_POLICY.model, ceilingCents: 500, reference: 'boni-task6' },
       assertContext,
       onProviderError: (code, message) => {
         report.runtimeErrors ??= [];
@@ -209,7 +209,7 @@ export async function runTask6Homologation(root: string, apiKey: string, minimal
       await service.authorizeInference(owner, run.id, {
         authorizationId: 'boni-task6',
         provider: 'openai',
-        model: 'gpt-6.1-sol',
+        model: PILOT_POLICY.model,
       });
       await budget.reserveExecutionBudget({
         ...owner,
@@ -224,7 +224,7 @@ export async function runTask6Homologation(root: string, apiKey: string, minimal
       const example = fixture.cases[0],
         { run, binding } = await prepare(example, 10);
       await repo.compareAndSetStatus(owner, run.id, 'QUEUED', 'RUNNING');
-      const provider = new OpenAIAgentProvider({ apiKey, model: 'gpt-6.1-sol', fetch: runtime.fetchFor(run.id) });
+      const provider = new OpenAIAgentProvider({ apiKey, model: PILOT_POLICY.model, fetch: runtime.fetchFor(run.id) });
       const events: any[] = [];
       const started = Date.now();
       for await (const event of provider.run({
@@ -268,7 +268,7 @@ export async function runTask6Homologation(root: string, apiKey: string, minimal
         owner,
         apiKey,
         budget,
-        approval: { provider: 'openai', model: 'gpt-6.1-sol', ceilingCents: 500, reference: 'boni-task6' },
+        approval: { provider: 'openai', model: PILOT_POLICY.model, ceilingCents: 500, reference: 'boni-task6' },
         assertContext,
         transport: async (url, init) => {
           dispatched = true;
@@ -276,7 +276,11 @@ export async function runTask6Homologation(root: string, apiKey: string, minimal
           return globalThis.fetch(url, init);
         },
       });
-      const provider = new OpenAIAgentProvider({ apiKey, model: 'gpt-6.1-sol', fetch: cancelled.fetchFor(run.id) });
+      const provider = new OpenAIAgentProvider({
+        apiKey,
+        model: PILOT_POLICY.model,
+        fetch: cancelled.fetchFor(run.id),
+      });
       const events: any[] = [];
       const start = Date.now();
       try {
