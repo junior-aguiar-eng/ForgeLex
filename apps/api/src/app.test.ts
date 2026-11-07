@@ -540,6 +540,43 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     } finally { spy.mockRestore(); }
   });
 
+  it('MCP limita tools/call por tenant e usuário e responde 429 com Retry-After', async () => {
+    const limitedApp = await buildApp({
+      authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
+      ledgerService,
+      database,
+      databaseClient: client,
+      auditRecorder,
+      environment: {
+        NODE_ENV: 'test',
+        FORGELEX_ALLOWED_ORIGINS: 'http://localhost:3000',
+        FORGELEX_WEBHOOK_MASTER_KEY: 'test-webhook-master-key',
+        FORGELEX_METRICS_TOKEN: 'test-metrics-token',
+        FORGELEX_MCP_RATE_LIMIT_PER_MINUTE: '2',
+      },
+    });
+    try {
+      const call = (id: number) => limitedApp.inject({
+        method: 'POST', url: '/mcp', headers: authHeaders,
+        payload: { jsonrpc: '2.0', id, method: 'tools/call', params: { name: 'ferramenta.inexistente', arguments: {} } },
+      });
+      // As duas primeiras passam pelo limitador (a ferramenta não existe, então não há cobrança).
+      expect((await call(1)).statusCode).toBe(200);
+      expect((await call(2)).statusCode).toBe(200);
+      const limited = await call(3);
+      expect(limited.statusCode).toBe(429);
+      expect(Number(limited.headers['retry-after'])).toBeGreaterThanOrEqual(1);
+      expect(limited.json()).toMatchObject({ id: 3, error: { data: { code: 'MCP_RATE_LIMITED', retryable: true } } });
+      // Listar ferramentas não consome o limite.
+      const list = await limitedApp.inject({
+        method: 'POST', url: '/mcp', headers: authHeaders, payload: { jsonrpc: '2.0', id: 4, method: 'tools/list' },
+      });
+      expect(list.statusCode).toBe(200);
+    } finally {
+      await limitedApp.close();
+    }
+  });
+
   it('MCP normaliza timeout encapsulado pelo driver sem revelar SQL ou parâmetros', async () => {
     const cause = Object.assign(new Error('canceling statement due to statement timeout'), { code: '57014' });
     const spy = vi.spyOn(ResearchService.prototype, 'searchCaseLaw').mockRejectedValueOnce(new DrizzleQueryError('SELECT private_column', ['private-query'], cause));
