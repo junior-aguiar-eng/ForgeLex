@@ -19,7 +19,7 @@ monorepo, Vitest e Playwright; adapters de modelos existentes.
 
 **Spec:** `docs/superpowers/specs/2026-10-10-agentic-workspace-design.md`.
 
-**Fonte e matriz:** `PROJETO_FORGELEX_PLATAFORMA_AGENTICA_JURIDICA_AGNOSTICA_V2_COMPLETO.md`
+**Fonte e matriz:** `docs/historico/PROJETO_FORGELEX_PLATAFORMA_AGENTICA_JURIDICA_AGNOSTICA_V2_COMPLETO.md`
 e `docs/architecture/2026-10-10-v2-agentic-platform-reuse.md`.
 
 **Premissas consolidadas:** ações jurídicas descobríveis abrem diálogos guiados

@@ -103,8 +103,8 @@
 **Files:**
 - Modify: `README.md`
 - Modify: `STATUS_VALIDACAO.md`
-- Modify: `PLANO_CONTINUIDADE_CODEX_FORGELEX.md` only where current commercial status is stated
-- Modify: `RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md` only to mark provider adapters as non-commercial/local and remove billing-model claims
+- Modify: `docs/historico/PLANO_CONTINUIDADE_CODEX_FORGELEX.md` only where current commercial status is stated
+- Modify: `docs/historico/RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md` only to mark provider adapters as non-commercial/local and remove billing-model claims
 
 **Interfaces:**
 - Consumes: contratos finais do billing, API, MCP, autenticação e documentação de paridade local.

@@ -71,7 +71,7 @@ export const LandingScreen: React.FC = () => {
 
         <div className="surface-subtle mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-stone-800">{CASE_WORKSPACE_ENABLED ? 'Comece pelo trabalho do caso' : 'Comece pela conexão com IA'}</p><p className="text-xs text-stone-500">{CASE_WORKSPACE_ENABLED ? 'Abra um caso ou pesquise uma fonte jurídica para iniciar.' : 'Configure seu aplicativo ou pesquise jurisprudência nesta página.'}</p></div><div className="flex flex-wrap gap-2">{CASE_WORKSPACE_ENABLED && <button type="button" onClick={() => setActiveTab('matter')} className="btn-secondary inline-flex items-center gap-2"><FolderOpen className="h-4 w-4" aria-hidden="true" />Abrir caso</button>}<button type="button" onClick={() => setActiveTab('connections')} className="btn-quiet inline-flex items-center gap-2">Usar no ChatGPT ou Claude<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></button><a href="/guia/mcp" className="btn-quiet inline-flex items-center gap-2">Guia de conexão</a></div></div>
 
-        {/* SEARCH BAR (Inspirada em ForgeLex_01_Landing.png) */}
+        {/* SEARCH BAR (Inspirada em docs/product/referencias-visuais/ForgeLex_01_Landing.png) */}
         <div className="champagne-card mx-auto max-w-4xl space-y-4 rounded-xl bg-white p-4 sm:p-5">
           <SearchChargeNotice />
           <ResearchCoverageNotice />

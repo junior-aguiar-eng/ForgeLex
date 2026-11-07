@@ -424,7 +424,7 @@ e recuperá-la por `GET /api/v2/matters/{matterId}/authorities`. O salvamento
 preserva a proveniência e é idempotente por `dedupeKey` dentro do matter.
 
 A paridade técnica dos adapters opcionais Anthropic e OpenAI está documentada
-em [RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md](RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md).
+em [RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md](docs/historico/RELATORIO_PARIDADE_PROVIDERS_FORGELEX.md).
 Ela não representa modelo fornecido pelo ForgeLex nem cria relação de billing
 com a API ou o MCP comerciais.
 
