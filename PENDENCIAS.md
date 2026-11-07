@@ -1,6 +1,31 @@
 # Pendências atuais do ForgeLex
 
-## Melhorias de código após 06/11/2026 (em `main`)
+## Estado publicado atual — 07/11/2026: SHA `173f4c3` em produção
+
+Publicado em 07/11/2026, entre 17:35 e 17:43 UTC, a pedido de Boni. Código
+`173f4c3e87e3fb51015bb4832f79a1a2846e7126` (`main`, CI verde). Imagem
+`forgelex-api@sha256:d083524659b829e363ac2fb6672519e189b8afed5c5489001d3719056897360f`,
+gerada pelo Cloud Build `6004a5cc-758d-427f-9d4e-a79313a9a054` (4m35s).
+
+- **Revisões:** `forgelex-api-prod-173f4c3` e `forgelex-closure-hml-private-173f4c3`, criadas sem tráfego
+  e comparadas com as anteriores: só mudaram a imagem e `FORGELEX_SOURCE_SHA` (47 e 34 variáveis
+  idênticas; mesmos recursos, conta de serviço, escala e timeout). Depois receberam 100% do tráfego.
+  Flags preservadas: `FORGELEX_AUTO_MIGRATE=false` e `FORGELEX_EDITORIAL_COMMERCIAL_ENABLED=true`.
+- **Sem migration e sem backup novo:** nenhum dos PRs #112 a #117 altera o schema.
+- **Verificação:** `/health` e `/readyz` 200 e `/mcp` sem token 401, em 6 tentativas seguidas;
+  `forgelex_connection_status` autenticado; nenhum 5xx nem erro de aplicação nos logs da revisão nova
+  (os 6 avisos vistos eram as sondagens `/mcp` sem token, com 401 esperado).
+- **Reversão:** `gcloud run services update-traffic forgelex-api-prod --project=project-bbbe1209-c295-4720-867 --region=southamerica-east1 --to-revisions=forgelex-api-prod-d2a329d=100`
+  e o mesmo para `forgelex-closure-hml-private-d2a329d`.
+- **Como se publica:** o repositório não tem deploy automático (o `ci.yml` só valida e não há gatilho de
+  Cloud Build). O `build-from-main.ps1` **não passa** `_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED` nem
+  `_VITE_FORGELEX_CASE_WORKSPACE_ENABLED`, e o `cloudbuild.yaml` assume `false`. O build de 07/11 reaproveitou
+  as substituições do build anterior (`gcloud builds describe`), trocando só `_SOURCE_SHA`; repetir esse
+  caminho evita publicar o front sem a mesa agêntica. Depois: `gcloud run deploy ... --no-traffic
+  --revision-suffix=<sha7> --update-env-vars=FORGELEX_SOURCE_SHA=<sha>` nos dois serviços e
+  `update-traffic --to-revisions=<revisão>=100`.
+
+## Melhorias de código após 06/11/2026 (em `main` e publicadas em 07/11)
 
 Cinco PRs de revisão técnica, todos mergeados em 07/11/2026, sem migration:
 
@@ -12,18 +37,19 @@ Cinco PRs de revisão técnica, todos mergeados em 07/11/2026, sem migration:
 | #115 | Apontamento (`finding`) nunca torna a entrega cobrável sozinho; só afirmação fundamentada, minuta ou matriz probatória verificada. Uma revisão cujo único resultado seja um apontamento deixa de ser cobrada |
 | #116 | `tools/call` do handler MCP dividido por família de ferramenta; modelo do piloto unificado em `PILOT_POLICY.model` |
 
-Publicação: Boni informou ter feito o deploy após o merge do #115. SHA e recibo desse deploy
-**não estão registrados aqui**, e não há registro de deploy do #116. Os checks da CI de cada PR
-passaram antes do merge. Pendências abertas desta frente:
+Os checks da CI de cada PR passaram antes do merge. Antes de 07/11 às 17:35 UTC nenhum deles estava em
+produção (a revisão em uso era `forgelex-api-prod-d2a329d`, do PR #111); a publicação acima os levou
+juntos, com o #117 (somente documentação). Pendências abertas desta frente:
 
-- Conferir recibos de execuções pagas reais depois do #115 (a regra de cobrança mudou).
+- Conferir recibos de execuções pagas reais depois da publicação (a regra de cobrança do #115 mudou e
+  ainda não houve execução paga registrada com ela).
 - Ensaio comercial completo pago em produção (decisão e execução de Boni).
 - Fallback de versão do MCP: hoje 2024-11-05 para versões desconhecidas; a especificação sugere a mais
   recente. Só trocar depois de testar em host MCP real.
 - `getExecution` ainda lê até 1000 execuções da conversa e faz o parse de cada uma (custo de CPU).
 - Os `playwright.*.config.ts` seguem na raiz (usados por nome no `package.json` e na CI).
 
-## Estado publicado atual — mesa corrigida e editor comercial ativo
+## Estado publicado anterior (06/11/2026) — mesa corrigida e editor comercial ativo
 
 As correções da PR #107 estão publicadas no código
 `ef818d6079999cf1cccc116afda6048aaaf4c7e2`: conversa única, seletor opcional
