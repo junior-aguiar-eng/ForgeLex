@@ -3,7 +3,11 @@ param(
   [Parameter(Mandatory = $true)][string]$ImageUri,
   [Parameter(Mandatory = $true)][string]$SupabaseUrl,
   [Parameter(Mandatory = $true)][string]$SupabasePublishableKey,
-  [ValidateSet('true', 'false')][string]$SavedResearchEnabled = 'false'
+  [ValidateSet('true', 'false')][string]$SavedResearchEnabled = 'false',
+  # Obrigatórias de propósito: o cloudbuild.yaml assume 'false' para as duas, e publicar o front sem elas remove a
+  # mesa agêntica e o caso da interface. Para publicar em um comando, prefira deploy-from-main.ps1.
+  [Parameter(Mandatory = $true)][ValidateSet('true', 'false')][string]$AgenticWorkspaceEnabled,
+  [Parameter(Mandatory = $true)][ValidateSet('true', 'false')][string]$CaseWorkspaceEnabled
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,7 +28,7 @@ if ($SupabasePublishableKey -notmatch '^sb_publishable_[A-Za-z0-9_-]{8,}$') {
   throw 'A chave de build deve ser publishable.'
 }
 
-$substitutions = "_IMAGE_URI=$ImageUri,_SOURCE_SHA=$sourceSha,_VITE_SUPABASE_URL=$SupabaseUrl,_VITE_SUPABASE_PUBLISHABLE_KEY=$SupabasePublishableKey,_SUPABASE_PROJECT_REF=$projectRef,_VITE_FORGELEX_SAVED_RESEARCH_ENABLED=$SavedResearchEnabled"
+$substitutions = "_IMAGE_URI=$ImageUri,_SOURCE_SHA=$sourceSha,_VITE_SUPABASE_URL=$SupabaseUrl,_VITE_SUPABASE_PUBLISHABLE_KEY=$SupabasePublishableKey,_SUPABASE_PROJECT_REF=$projectRef,_VITE_FORGELEX_SAVED_RESEARCH_ENABLED=$SavedResearchEnabled,_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED=$AgenticWorkspaceEnabled,_VITE_FORGELEX_CASE_WORKSPACE_ENABLED=$CaseWorkspaceEnabled"
 gcloud builds submit . --config=ops/gcp/production/cloudbuild.yaml --project=$ProjectId --substitutions=$substitutions --quiet
 if ($LASTEXITCODE -ne 0) { throw 'Cloud Build falhou.' }
 

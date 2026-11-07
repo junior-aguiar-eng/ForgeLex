@@ -44,6 +44,10 @@ jobs:
       - name: Unit tests
         run: pnpm exec vitest run
 
+      - name: Deploy scripts (PowerShell, sem gcloud nem rede)
+        shell: pwsh
+        run: ./ops/gcp/production/deploy-from-main.tests.ps1
+
   postgres:
     runs-on: ubuntu-24.04
     services:
