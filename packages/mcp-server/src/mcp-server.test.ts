@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   MCP_FALLBACK_PROTOCOL_VERSION,
+  MCP_SERVER_INSTRUCTIONS,
   MCP_SUPPORTED_PROTOCOL_VERSIONS,
   McpHandler,
   negotiateProtocolVersion,
@@ -50,6 +51,20 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(response.id).toBe(1);
     expect(response.result.protocolVersion).toBe('2024-11-05');
     expect(response.result.serverInfo.name).toBe('forgelex-mcp-server');
+  });
+
+  it('entrega instruções de uso ao modelo no initialize, só com o que as ferramentas fazem hoje', async () => {
+    const response = await handler.handleRequest({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } });
+    const instructions: string = response.result.instructions;
+    expect(instructions).toBe(MCP_SERVER_INSTRUCTIONS);
+    for (const name of ['research.search_case_law', 'research.get_authority', 'research.verify_authority', 'STJ']) {
+      expect(instructions).toContain(name);
+    }
+    expect(instructions.length).toBeLessThan(1500);
+    // Toda ferramenta nomeada nas instruções precisa existir de fato no registro.
+    const listed = await handler.handleRequest({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
+    const exposed = new Set((listed.result.tools as { name: string }[]).map((tool) => tool.name));
+    for (const name of instructions.match(/research\.[a-z_]+/g) ?? []) expect(exposed.has(name)).toBe(true);
   });
 
   it('negocia a versão do protocolo: ecoa a suportada e usa o fallback histórico nas demais', async () => {
