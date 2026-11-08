@@ -11,6 +11,7 @@ import { handleDraftAiCall } from './draft-ai-handler.js';
 import { DECISION_UI_URI, isResearchPresentationTool, researchPresentationMetadata } from '@forgelex/legal-tools';
 import { getAnalysisToolContract } from '@forgelex/legal-tools';
 import { handleCaseAnalysisCall } from './case-analysis-handler.js';
+import { withDiscoveryHint } from './tool-discovery.js';
 
 /** Versões do protocolo MCP que este servidor aceita negociar, da mais recente para a mais antiga. */
 export const MCP_SUPPORTED_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'] as const;
@@ -189,7 +190,7 @@ export class McpHandler {
             const outputSchema=isCaseContextTool(tool.name)?toolJsonSchema(tool.outputSchema):undefined;
             return {
               name: tool.name,
-              description: tool.description,
+              description: withDiscoveryHint(tool.name, tool.description),
               inputSchema: cleanSchema,
               ...(tool.name === 'draft.save_from_ai' || tool.name === 'case.save_analysis' ? { annotations: DRAFT_AI_ANNOTATIONS } : {}),
               ...(outputSchema?{outputSchema:Object.fromEntries(Object.entries(outputSchema).filter(([key])=>key!=='$schema')),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}}:{}),
