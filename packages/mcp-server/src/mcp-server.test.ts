@@ -120,6 +120,35 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(search.description).toContain('judgmentYear');
   });
 
+  it('uma ferramenta com schema de entrada que não vira objeto é omitida e registrada, sem derrubar as outras', async () => {
+    const z = (await import('zod')).z;
+    const registry = new ToolRegistry();
+    createLegalToolGateway(createFixtureResearchService()).registerInto(registry);
+    registry.register({
+      name: 'teste.uniao_invalida',
+      description: 'Ferramenta com união de tipos primitivos, que não pode ser anunciada como objeto.',
+      inputSchema: z.union([z.string(), z.number()]),
+      outputSchema: z.object({}),
+      impactLevel: 'L1_ANALYSIS',
+      timeoutMs: 1000,
+      execute: async () => ({ success: true, data: {} }),
+    } as never);
+    const local = new McpHandler(registry, new LedgerService(db), undefined, {
+      exposedToolNames: ['research.search_case_law', 'teste.uniao_invalida'],
+    });
+    const errors: string[] = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => errors.push(args.join(' '));
+    try {
+      const response = await local.handleRequest({ jsonrpc: '2.0', id: 'inv', method: 'tools/list' });
+      expect(response.result.tools.map((tool: { name: string }) => tool.name)).toEqual(['research.search_case_law']);
+    } finally {
+      console.error = original;
+    }
+    expect(errors.join('\n')).toContain('mcp.tool_schema_invalid');
+    expect(errors.join('\n')).toContain('teste.uniao_invalida');
+  });
+
   it('prefixa a descrição das ferramentas com ForgeLex e o vocabulário em português, sem renomear nem perder o texto original', async () => {
     const response = await handler.handleRequest({ jsonrpc: '2.0', id: 'discovery', method: 'tools/list' });
     const tools = response.result.tools as { name: string; description: string }[];

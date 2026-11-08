@@ -1,4 +1,4 @@
-import { ToolRegistry, toolJsonSchema, type ToolExecutionResult } from '@forgelex/agent-core';
+import { ToolRegistry, toolJsonSchema, toolSchemaVariantsNote, type ToolExecutionResult } from '@forgelex/agent-core';
 import { getLegalToolContract, LegalToolGatewayError, type SearchCaseLawOutput } from '@forgelex/legal-tools';
 import { getForgeLexBillingPolicy, LedgerService, searchOperationFingerprint } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
@@ -176,8 +176,15 @@ export class McpHandler {
         const tools = this.toolRegistry
           .list()
           .filter((tool) => this.isExposed(tool.name))
-          .map((tool) => {
+          .flatMap((tool) => {
             const cleanSchema = toolJsonSchema(tool.inputSchema);
+            // Um cliente rigoroso valida a lista inteira de uma vez: uma ferramenta cujo schema de entrada não seja
+            // um objeto no topo faria TODAS sumirem (produção, 18/10/2026). Melhor omitir só a defeituosa e gritar nos
+            // logs; o teste de conformidade com o cliente oficial impede que isso chegue à produção.
+            if (cleanSchema.type !== 'object') {
+              console.error(JSON.stringify({ level: 'error', message: 'mcp.tool_schema_invalid', tool: tool.name }));
+              return [];
+            }
             if(!isCaseContextTool(tool.name) && tool.name !== 'draft.save_from_ai' && tool.name !== 'case.save_analysis' && !isResearchPresentationTool(tool.name)) cleanSchema.properties = {
               ...(cleanSchema.properties ?? {}),
               idempotencyKey: {
@@ -188,15 +195,16 @@ export class McpHandler {
 
             const contract = getLegalToolContract(tool.name) ?? getCaseContextToolContract(tool.name) ?? getDraftAiToolContract(tool.name) ?? getAnalysisToolContract(tool.name);
             const outputSchema=isCaseContextTool(tool.name)?toolJsonSchema(tool.outputSchema):undefined;
-            return {
+            const variantsNote = toolSchemaVariantsNote(tool.inputSchema);
+            return [{
               name: tool.name,
-              description: withDiscoveryHint(tool.name, tool.description),
+              description: `${withDiscoveryHint(tool.name, tool.description)}${variantsNote ? ` ${variantsNote}` : ''}`,
               inputSchema: cleanSchema,
               ...(tool.name === 'draft.save_from_ai' || tool.name === 'case.save_analysis' ? { annotations: DRAFT_AI_ANNOTATIONS } : {}),
               ...(outputSchema?{outputSchema:Object.fromEntries(Object.entries(outputSchema).filter(([key])=>key!=='$schema')),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}}:{}),
               ...(contract ? { 'x-forgelex-contract': contract } : {}),
               ...(isResearchPresentationTool(tool.name) ? { ...researchPresentationMetadata(tool.name), ...(!this.decisionUi && ['research.present_decisions', 'research.get_saved_search'].includes(tool.name) ? { _meta: undefined } : {}) } : {}),
-            };
+            }];
           });
 
         return {

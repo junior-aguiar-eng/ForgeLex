@@ -1,5 +1,51 @@
 # Pendências atuais do ForgeLex
 
+## Conector MCP no Claude: causa raiz e correção (08/11/2026)
+
+**Sintoma:** no chat do Claude, `@forgelex` não achava ferramenta nenhuma ("nenhuma ferramenta correspondente
+encontrada"), embora o servidor respondesse 200 a todo o handshake e à lista de ferramentas.
+
+**Causa raiz (provada):** o cliente OFICIAL do MCP (`@modelcontextprotocol/sdk` 1.32) rejeitava a lista de
+ferramentas inteira (`listTools()` falhava com `inputSchema.type: expected "object"`). Uma única ferramenta,
+`analise.peca_redigir`, anunciava `{ "oneOf": [...] }` sem `type: "object"` (união de dois modos, `z.discriminatedUnion`).
+Um cliente rigoroso valida a lista de uma vez e, se uma ferramenta falha, descarta todas: o host fica com zero
+ferramentas. O Claude Code "funcionava" porque ele mesmo achata esse schema (foi o texto "Input constraint: Provide
+parameters for exactly one of…" que apareceu na descrição); o chat não.
+
+**Linha do tempo nos logs de produção (30 dias):**
+
+- Até 17/10/2026 03:30 UTC: o `Claude-User` fazia chamadas reais (respostas de 10 KB a 490 KB).
+- 18/10/2026 18:32 UTC: revisão `analise-cabf504` publica o módulo de análise (a lista passa de 19 KB para 52 KB,
+  com `peca_redigir` inválida). Dali em diante o Claude buscava a lista centenas de vezes por dia e não fazia
+  nenhuma chamada de ferramenta com resultado próprio, até 07/11.
+- As mudanças desta semana (#112 a #125) NÃO causaram isso: o formato do handshake em 02/11 (antes de todas elas)
+  era idêntico ao de hoje. A percepção de que "quebrou depois das alterações" coincidiu com uma segunda falha, de
+  autenticação, abaixo.
+
+**Segunda falha, independente, de autenticação:** o Claude deixou de renovar o token em 03/11 02:00 UTC e recebeu 401
+em `/mcp` de 03/11 12:38 a 07/11 15:37 UTC; só voltou quando Boni reautenticou em 07/11 17:14 (registro,
+consentimento, callback, token). Às 12:38 de 03/11 o cliente do Claude chamou `POST /token` (raiz do domínio) e
+recebeu 404; o ForgeLex só serve `/oauth/token`. Houve falhas parecidas de renovação (400 em `/oauth/token`) em 11/10
+e 18/10. A causa disso NÃO foi provada (ver pendências abaixo). O ChatGPT renovou o token sem falha de 02/11 a 07/11.
+
+**Correção (este bloco):** `toolJsonSchema` (agent-core) passa a achatar união de objetos em um objeto só
+(`type: "object"`, propriedades unidas, `required` pela interseção, discriminador `const` vira `enum`); o texto da
+ferramenta ganha "Informe os parâmetros de exatamente um destes conjuntos: …"; a validação real da chamada continua
+sendo a do schema Zod original. O handler omite e registra (`mcp.tool_schema_invalid`) qualquer ferramenta cujo schema
+ainda assim não seja objeto, em vez de derrubar a lista. Trava na CI: `apps/api/src/mcp-client-conformance.test.ts`
+sobe o servidor com a configuração completa e conversa com o cliente oficial do MCP (lista, instruções, chamadas).
+Com o achatamento desligado, o teste falha; com ele, `listTools()` devolve as 21 ferramentas.
+
+**Pendências abertas deste tema:**
+
+- Confirmar no chat do Claude, depois da publicação, que `@forgelex` passa a achar e chamar as ferramentas.
+- Investigar por que a renovação do token do Claude falhou em 11/10, 18/10 e 03/11 (400 em `/oauth/token` e 404 em
+  `/token`). Hipóteses não testadas: cliente em modo de endpoints padrão (aliases na raiz `/token`, `/authorize`,
+  `/register` seriam o remédio previsto na especificação), rotação de refresh token do Supabase. Ligar o log do
+  balanceador (hoje desligado) e registrar o motivo de cada 401/400 no endpoint de token ajudaria.
+- Ferramentas cobradas exigem `idempotencyKey` (ou o cabeçalho `Idempotency-Key`); sem ela o servidor devolve `-32602`.
+  Se o modelo não a enviar, a pesquisa falha. Verificar nas conversas reais.
+
 ## Estado publicado atual — 08/11/2026 (UTC): SHA `68810ae` em produção
 
 Publicado em 08/11/2026, entre 01:53 e cerca de 02:00 UTC (07/11, à noite, em Brasília), a pedido de Boni,
