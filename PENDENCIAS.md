@@ -44,7 +44,8 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
 
 **Pendências abertas deste tema:**
 
-- Confirmar no chat do Claude, depois da publicação, que `@forgelex` passa a achar e chamar as ferramentas.
+- ~~Confirmar no chat do Claude que `@forgelex` passa a achar e chamar as ferramentas.~~ Confirmado por Boni em
+  08/11/2026 (captura do painel `research.present_decisions`; ver a publicação do `e7cf3b7`, abaixo).
 - Investigar por que a renovação do token do Claude falhou em 11/10, 18/10 e 03/11 (400 em `/oauth/token` e 404 em
   `/token`). Hipóteses não testadas: cliente em modo de endpoints padrão (aliases na raiz `/token`, `/authorize`,
   `/register` seriam o remédio previsto na especificação), rotação de refresh token do Supabase. Ligar o log do
@@ -75,10 +76,14 @@ constam nos dados lidos; o que se afirma abaixo é o estado, não o procedimento
   (conferido pelas PRs #124 a #126, só código do MCP e documentação).
 - **Reversão, se precisar:** `gcloud run services update-traffic forgelex-api-prod --project=project-bbbe1209-c295-4720-867 --region=southamerica-east1 --to-revisions=forgelex-api-prod-68810ae=100`
   e o mesmo para `forgelex-closure-hml-private-68810ae`.
-- **Não verificado:** `initialize` autenticado devolvendo a versão com o SHA, `tools/list` com as 21 ferramentas no
-  host real e, sobretudo, que `@forgelex` ache e chame as ferramentas no chat do Claude. Para fechar: abrir uma
-  conversa nova no Claude, pedir uma pesquisa com `@forgelex` e conferir nos logs o tamanho do `tools/list` e as
-  ferramentas chamadas. A renovação do token do Claude (400/404 em 11/10, 18/10 e 03/11) segue sem causa provada.
+- **Confirmado por Boni em 08/11/2026, no chat do Claude:** numa conversa sobre jurisprudência de Maria da Penha, o
+  ForgeLex foi achado e chamado, e `research.present_decisions` abriu o painel "Decisões selecionadas" (1 de 5; STJ
+  2015598, Terceira Seção, Tema Repetitivo 1186). A evidência é uma captura de tela enviada por Boni; os logs
+  desse horário não foram conferidos. Isso comprova o efeito da correção do #126 no chat; a lista antes
+  descartada por inteiro agora chega ao modelo.
+- **Ainda não verificado:** `initialize` autenticado devolvendo a versão com o SHA, o tamanho do `tools/list` nos
+  logs e se a pesquisa cobrada enviou `idempotencyKey` (a captura mostra o painel, não a chamada). A renovação do
+  token do Claude (400/404 em 11/10, 18/10 e 03/11) segue sem causa provada.
 
 ## Publicação anterior — 08/11/2026 (UTC): SHA `68810ae`
 
