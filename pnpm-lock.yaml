@@ -141,6 +141,9 @@ importers:
       '@forgelex/agent-provider-anthropic':
         specifier: workspace:*
         version: link:../../packages/agent-provider-anthropic
+      '@modelcontextprotocol/sdk':
+        specifier: 1.32.0
+        version: 1.32.0(supports-color@7.2.0)(zod@4.6.7)
       '@types/node':
         specifier: ^22.13.9
         version: 22.20.2
