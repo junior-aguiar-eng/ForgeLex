@@ -49,7 +49,17 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
 - Investigar por que a renovação do token do Claude falhou em 11/10, 18/10 e 03/11 (400 em `/oauth/token` e 404 em
   `/token`). Hipóteses não testadas: cliente em modo de endpoints padrão (aliases na raiz `/token`, `/authorize`,
   `/register` seriam o remédio previsto na especificação), rotação de refresh token do Supabase. Ligar o log do
-  balanceador (hoje desligado) e registrar o motivo de cada 401/400 no endpoint de token ajudaria.
+  balanceador (hoje desligado) segue como decisão de Boni.
+  **Log do motivo implementado em código (08/11/2026, ainda não publicado):** cada recusa de `POST /oauth/token`
+  grava `oauth.token_rejected` com `reason` estável (`RESOURCE_MISMATCH`, `RESOURCE_REQUIRED`,
+  `GRANT_TYPE_UNSUPPORTED`, `BODY_MISSING`, `CLIENT_ENVELOPE_INVALID`, `REFRESH_ENVELOPE_INVALID`,
+  `REFRESH_CLIENT_MISMATCH`, `CODE_ENVELOPE_INVALID`, `PKCE_MISMATCH`, `REDIRECT_URI_MISMATCH`, `UPSTREAM_REJECTED`
+  com `upstreamStatus` e `upstreamError`, `UPSTREAM_UNREACHABLE` e outros), mais `grant`, `clientId` nativo, `status`
+  e `agent` (User-Agent cortado em 80 caracteres). Cada emissão grava `oauth.token_issued`. Nada de tokens, código,
+  verificador, corpo, texto livre do Supabase nem o recurso enviado. No Cloud Logging:
+  `jsonPayload.message="oauth.token_rejected"`. Não cobre 4xx gerados antes do handler (JSON sem corpo ou tipo de
+  conteúdo não aceito, respondidos pelo Fastify) nem o 404 de `/token` na raiz. Depois de publicado, o próximo 400
+  de renovação diz qual das causas foi; só então decidir sobre aliases na raiz.
 - Ferramentas cobradas exigem `idempotencyKey` (ou o cabeçalho `Idempotency-Key`); sem ela o servidor devolve `-32602`.
   Se o modelo não a enviar, a pesquisa falha. Verificar nas conversas reais.
 
