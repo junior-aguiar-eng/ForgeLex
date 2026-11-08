@@ -1,6 +1,32 @@
 # Pendências atuais do ForgeLex
 
-## Estado publicado atual — 07/11/2026: SHA `430229b` em produção
+## Estado publicado atual — 08/11/2026 (UTC): SHA `731b326` em produção
+
+Publicado em 08/11/2026, entre 00:29 e 00:36 UTC (07/11, à noite, em Brasília), a pedido de Boni, com
+`deploy-from-main.ps1`. Código `731b326c542dfbb713d41fea67f17e5c5cc19d5f` (`main`, CI verde). Imagem
+`forgelex-api@sha256:6ed7728fe63b1f0e8c6a333b1427b3c778e0aaa6b0d6ffbddde423beb5547fda`,
+gerada pelo Cloud Build `89edc938-877d-41bb-8358-a9c5b28969fb` (5m06s).
+
+- **O que mudou em produção:** o `initialize` do MCP passa a devolver `instructions` (#122,
+  `MCP_SERVER_INSTRUCTIONS`): pesquisa de jurisprudência no índice persistido do STJ, ordem
+  `search_case_law` → `get_authority` → `verify_authority`, citar só o que veio verificado. Motivo: às 20:03
+  (BRT) de 07/11 o Claude fez a pesquisa pelo `enam-estudo` e ignorou o conector; o servidor respondeu 200 a
+  todo o handshake e não houve 5xx em 6 horas, e o `enam-estudo` entrega instruções ao modelo e o ForgeLex não.
+- **Revisões:** `forgelex-api-prod-731b326` e `forgelex-closure-hml-private-731b326`, comparadas com as
+  `-430229b` pelo script (só imagem e `FORGELEX_SOURCE_SHA` mudaram) e depois com 100% do tráfego.
+- **Sem migration e sem backup novo.**
+- **Verificação:** feita pelo script e conferida à mão: tráfego 100% nas revisões novas, `/health` e `/readyz`
+  200, `/mcp` sem token 401, `forgelex_connection_status` autenticado.
+- **Reversão:** `gcloud run services update-traffic forgelex-api-prod --project=project-bbbe1209-c295-4720-867 --region=southamerica-east1 --to-revisions=forgelex-api-prod-430229b=100`
+  e o mesmo para `forgelex-closure-hml-private-430229b`.
+- **Não verificado:** que o `initialize` saia com as instruções (o tamanho da resposta deve passar de 657
+  bytes para cerca de 1,6 KB; só se vê num handshake novo) e, principalmente, que o Claude e o ChatGPT
+  passem a escolher o ForgeLex. Teste: conversa nova com `@forgelex` e conferir os logs. Se continuar
+  ignorando, reforçar nomes e descrições das ferramentas de pesquisa.
+- **Log do balanceador desligado** nos backends (`forgelex-api-prod-backend` e demais): um 502 gerado no
+  balanceador, ou antes dele, não deixa rastro. Ligar exige decisão de Boni.
+
+## Publicação anterior — 07/11/2026: SHA `430229b`
 
 Publicado em 07/11/2026, entre 21:09 e 21:17 UTC, a pedido de Boni, pela primeira vez com
 `ops/gcp/production/deploy-from-main.ps1`. Código `430229b632067a18469128d67d6712090e0b1a0e`
