@@ -77,7 +77,22 @@ export interface McpToolModule {
   ): Promise<JsonRpcResponse>;
 }
 
+/** Versão da interface MCP do servidor. O SHA do build, quando conhecido, entra como metadado: `2.0.0+68810ae`. */
+export const MCP_SERVER_VERSION = '2.0.0';
+
+/**
+ * Versão anunciada no `initialize`. O SHA do build identifica, de dentro do cliente, qual revisão atende (antes só
+ * se deduzia pelo tamanho das respostas nos logs). Só hexadecimal de 7 a 40 caracteres é aceito, para a variável
+ * de ambiente nunca poder injetar texto arbitrário na resposta.
+ */
+export function mcpServerVersion(buildSha?: string): string {
+  const sha = buildSha?.trim();
+  return sha && /^[0-9a-f]{7,40}$/i.test(sha) ? `${MCP_SERVER_VERSION}+${sha.slice(0, 7).toLowerCase()}` : MCP_SERVER_VERSION;
+}
+
 export interface McpHandlerOptions {
+  /** SHA do commit publicado (FORGELEX_SOURCE_SHA), exposto em `serverInfo.version`. */
+  buildSha?: string;
   toolModules?: readonly McpToolModule[];
   exposedToolNames?: readonly string[];
   beforeToolCall?: (toolName: string) => void | Promise<void>;
@@ -115,6 +130,7 @@ export class McpHandler {
   private readonly exposedToolNames?: ReadonlySet<string>;
   private readonly beforeToolCall?: (toolName: string) => void | Promise<void>;
   private readonly decisionUi?: McpHandlerOptions['decisionUi'];
+  private readonly serverVersion: string;
   private readonly toolModules: readonly McpToolModule[];
 
   constructor(
@@ -129,6 +145,7 @@ export class McpHandler {
     this.exposedToolNames = options.exposedToolNames ? new Set(options.exposedToolNames) : undefined;
     this.beforeToolCall = options.beforeToolCall;
     this.decisionUi = options.decisionUi;
+    this.serverVersion = mcpServerVersion(options.buildSha);
     this.toolModules = options.toolModules ?? [];
   }
 
@@ -159,7 +176,7 @@ export class McpHandler {
             },
             serverInfo: {
               name: 'forgelex-mcp-server',
-              version: '2.0.0',
+              version: this.serverVersion,
               description: 'FORGELEX Remote MCP Server — Infraestrutura Jurídica Verificável',
             },
             instructions: MCP_SERVER_INSTRUCTIONS,

@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   MCP_FALLBACK_PROTOCOL_VERSION,
   MCP_SERVER_INSTRUCTIONS,
+  MCP_SERVER_VERSION,
   MCP_SUPPORTED_PROTOCOL_VERSIONS,
   McpHandler,
+  mcpServerVersion,
   negotiateProtocolVersion,
 } from './mcp-handler.js';
 import { ToolRegistry } from '@forgelex/agent-core';
@@ -118,6 +120,22 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(search.inputSchema.properties.query.description).toContain('todos os termos');
     expect(search.inputSchema.properties.query.description).toContain('OR');
     expect(search.description).toContain('judgmentYear');
+  });
+
+  it('anuncia o SHA do build em serverInfo.version, aceitando só hexadecimal', async () => {
+    expect(mcpServerVersion()).toBe(MCP_SERVER_VERSION);
+    expect(mcpServerVersion('68810ae4955c6dbb95ca9b3b185aeba28270db05')).toBe('2.0.0+68810ae');
+    expect(mcpServerVersion('  ABCDEF1  ')).toBe('2.0.0+abcdef1');
+    for (const invalid of ['', '12345', 'não-é-sha', 'abc<script>def', 'g'.repeat(40), `${'a'.repeat(41)}`]) {
+      expect(mcpServerVersion(invalid), invalid).toBe(MCP_SERVER_VERSION);
+    }
+    const registry = new ToolRegistry();
+    createLegalToolGateway(createFixtureResearchService()).registerInto(registry);
+    const withSha = new McpHandler(registry, new LedgerService(db), undefined, { buildSha: '68810ae4955c6dbb95ca9b3b185aeba28270db05' });
+    const response = await withSha.handleRequest({ jsonrpc: '2.0', id: 1, method: 'initialize' });
+    expect(response.result.serverInfo.version).toBe('2.0.0+68810ae');
+    const semSha = await handler.handleRequest({ jsonrpc: '2.0', id: 2, method: 'initialize' });
+    expect(semSha.result.serverInfo.version).toBe(MCP_SERVER_VERSION);
   });
 
   it('uma ferramenta com schema de entrada que não vira objeto é omitida e registrada, sem derrubar as outras', async () => {

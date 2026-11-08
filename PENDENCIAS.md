@@ -36,6 +36,12 @@ ainda assim não seja objeto, em vez de derrubar a lista. Trava na CI: `apps/api
 sobe o servidor com a configuração completa e conversa com o cliente oficial do MCP (lista, instruções, chamadas).
 Com o achatamento desligado, o teste falha; com ele, `listTools()` devolve as 21 ferramentas.
 
+**Versão do servidor identifica o build:** `serverInfo.version` era `2.0.0` fixo, sem relação com as publicações, e
+`FORGELEX_SOURCE_SHA` (gravada em cada revisão do Cloud Run) não era lida por nenhum código. Agora o `app.ts` passa a
+variável ao handler e o `initialize` anuncia `2.0.0+<sha7>` (só hexadecimal de 7 a 40 caracteres é aceito). De dentro do
+host passa a dar para saber qual revisão atende, em vez de deduzir pelo tamanho das respostas nos logs. A versão do
+protocolo já estava atual (`2025-11-25`) e não mudou.
+
 **Pendências abertas deste tema:**
 
 - Confirmar no chat do Claude, depois da publicação, que `@forgelex` passa a achar e chamar as ferramentas.

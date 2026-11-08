@@ -50,6 +50,7 @@ describe('conformidade com o cliente oficial do MCP (configuração completa)', 
       databaseClient: connection.client,
       environment: {
         NODE_ENV: 'test',
+        FORGELEX_SOURCE_SHA: '0123456789abcdef0123456789abcdef01234567',
         FORGELEX_ANALISE_ENABLED: 'true',
         FORGELEX_SAVED_RESEARCH_ENABLED: 'true',
         FORGELEX_MCP_DECISION_UI_ENABLED: 'true',
@@ -79,6 +80,8 @@ describe('conformidade com o cliente oficial do MCP (configuração completa)', 
 
   it('entrega as instruções de uso no initialize', () => {
     expect(client.getServerVersion()?.name).toBe('forgelex-mcp-server');
+    // O SHA do build chega ao cliente: de dentro do host dá para saber qual revisão atende.
+    expect(client.getServerVersion()?.version).toBe('2.0.0+0123456');
     expect(client.getInstructions()).toContain('research.search_case_law');
   });
 

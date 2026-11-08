@@ -583,6 +583,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       })
     : undefined;
   const mcpHandler = new McpHandler(toolRegistry, ledgerService, auditRecorder, {
+    buildSha: environment.FORGELEX_SOURCE_SHA,
     exposedToolNames: [...EXTERNAL_MCP_TOOL_NAMES, ...presentationTools.map(tool => tool.name), ...(analiseModule ? ModuloAnalise.toolsExpostas : [])],
     ...(analiseModule ? { toolModules: [analiseModule] } : {}),
     ...(mcpReaderEnabled ? { decisionUi: { readHtml: () => readMcpReaderHtml(environment.FORGELEX_WEB_ROOT) } } : {}),
