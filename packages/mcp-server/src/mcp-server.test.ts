@@ -120,6 +120,16 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     expect(search.description).toContain('judgmentYear');
   });
 
+  it('prefixa a descrição das ferramentas com ForgeLex e o vocabulário em português, sem renomear nem perder o texto original', async () => {
+    const response = await handler.handleRequest({ jsonrpc: '2.0', id: 'discovery', method: 'tools/list' });
+    const tools = response.result.tools as { name: string; description: string }[];
+    expect(tools.map((tool) => tool.name)).toContain('research.search_case_law');
+    for (const tool of tools) expect(tool.description.toLowerCase(), tool.name).toContain('forgelex');
+    const search = tools.find((tool) => tool.name === 'research.search_case_law')!;
+    expect(search.description.startsWith('ForgeLex: buscar e pesquisar jurisprudência (jurisprudencia)')).toBe(true);
+    expect(search.description).toContain('Pesquisa jurisprudência oficial e precedentes qualificados');
+  });
+
   it('deve executar tools/call faturando o ledger e devolvendo resultado de jurisprudência', async () => {
     const response = await handler.handleRequest(
       {
