@@ -1,6 +1,39 @@
 # Pendências atuais do ForgeLex
 
-## Estado publicado atual — 08/11/2026 (UTC): SHA `731b326` em produção
+## Estado publicado atual — 08/11/2026 (UTC): SHA `68810ae` em produção
+
+Publicado em 08/11/2026, entre 01:53 e cerca de 02:00 UTC (07/11, à noite, em Brasília), a pedido de Boni,
+com `deploy-from-main.ps1`. Código `68810ae4955c6dbb95ca9b3b185aeba28270db05` (`main`, CI verde). Imagem
+`forgelex-api@sha256:3b22d5267da290b75aded92b6593e49c641b5b366bc8e13361c8d23127eb6da0`,
+gerada pelo Cloud Build `1684e28a-74e7-4dcd-a1b9-f8b941ce69c3` (4m34s).
+
+- **O que mudou em produção:** o `tools/list` do MCP prefixa a descrição de cada ferramenta (#124,
+  `packages/mcp-server/src/tool-discovery.ts`). As de pesquisa (`research.*`, `workflow.legal_research_memo`)
+  dizem "ForgeLex: buscar e pesquisar jurisprudência (jurisprudencia)…", com e sem acento; as demais ganham só
+  "ForgeLex:". Nenhum nome mudou. Motivo, medido na busca de ferramentas do Claude: não diferencia maiúscula
+  de minúscula, mas diferencia acento, e só olha nome e descrição. "buscar jurisprudencia furto" achava só o
+  `enam-estudo` (`buscar_jurisprudencia`); os nomes do ForgeLex são em inglês. Maiúscula, minúscula e acento
+  não afetam a conexão, só a descoberta.
+- **Revisões:** `forgelex-api-prod-68810ae` e `forgelex-closure-hml-private-68810ae`, comparadas com as
+  `-731b326` pelo script (só imagem e `FORGELEX_SOURCE_SHA` mudaram) e depois com 100% do tráfego.
+- **Sem migration e sem backup novo.**
+- **Verificação:** feita pelo script e conferida à mão: `/health` e `/readyz` 200, `/mcp` sem token 401,
+  `forgelex_connection_status` autenticado.
+- **Reversão acidental e correção:** depois da publicação, o `forgelex-closure-hml-private` foi devolvido por
+  engano para `-731b326`, enquanto a API ficou em `-68810ae`. O encerramento foi reposto em `-68810ae`
+  (`update-traffic ... --to-revisions=forgelex-closure-hml-private-68810ae=100`) e os dois serviços foram
+  conferidos a 100% em `-68810ae`, com as sondas públicas iguais. Os serviços diferem só em código e não
+  há migration neste SHA, então não houve efeito em dados.
+- **Reversão, se precisar:** `gcloud run services update-traffic forgelex-api-prod --project=project-bbbe1209-c295-4720-867 --region=southamerica-east1 --to-revisions=forgelex-api-prod-731b326=100`
+  e o mesmo para `forgelex-closure-hml-private-731b326`.
+- **Não verificado:** que as descrições novas cheguem ao Claude e ao ChatGPT e que "buscar jurisprudencia
+  furto" já traga a ferramenta do ForgeLex. A lista só é lida de novo numa conversa nova: abrir uma, pedir uma
+  busca com `@forgelex` e conferir nos logs o tamanho do `tools/list` (era 61 KB) e as ferramentas chamadas.
+  Se continuar atrás do `enam-estudo`, o passo seguinte é o campo `title` das ferramentas.
+- **Log do balanceador continua desligado** nos backends (ver a publicação anterior); ligar exige decisão de
+  Boni.
+
+## Publicação anterior — 08/11/2026 (UTC): SHA `731b326`
 
 Publicado em 08/11/2026, entre 00:29 e 00:36 UTC (07/11, à noite, em Brasília), a pedido de Boni, com
 `deploy-from-main.ps1`. Código `731b326c542dfbb713d41fea67f17e5c5cc19d5f` (`main`, CI verde). Imagem
@@ -19,10 +52,11 @@ gerada pelo Cloud Build `89edc938-877d-41bb-8358-a9c5b28969fb` (5m06s).
   200, `/mcp` sem token 401, `forgelex_connection_status` autenticado.
 - **Reversão:** `gcloud run services update-traffic forgelex-api-prod --project=project-bbbe1209-c295-4720-867 --region=southamerica-east1 --to-revisions=forgelex-api-prod-430229b=100`
   e o mesmo para `forgelex-closure-hml-private-430229b`.
-- **Não verificado:** que o `initialize` saia com as instruções (o tamanho da resposta deve passar de 657
-  bytes para cerca de 1,6 KB; só se vê num handshake novo) e, principalmente, que o Claude e o ChatGPT
-  passem a escolher o ForgeLex. Teste: conversa nova com `@forgelex` e conferir os logs. Se continuar
-  ignorando, reforçar nomes e descrições das ferramentas de pesquisa.
+- **Verificado depois:** às 00:57:01 UTC o `initialize` do `Claude-User` respondeu com 1635 bytes (antes, 657),
+  então as instruções são entregues. Os logs não mostraram 5xx depois da publicação.
+- **Continuou sem efeito:** o Claude seguiu tratando o ForgeLex como indisponível, porque a busca de
+  ferramentas dele não achava as do ForgeLex (nomes em inglês, acento diferenciado). Resolvido na publicação
+  seguinte (`68810ae`), ainda não confirmada no Claude.
 - **Log do balanceador desligado** nos backends (`forgelex-api-prod-backend` e demais): um 502 gerado no
   balanceador, ou antes dele, não deixa rastro. Ligar exige decisão de Boni.
 
