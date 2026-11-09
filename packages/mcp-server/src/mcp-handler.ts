@@ -11,7 +11,7 @@ import { handleDraftAiCall } from './draft-ai-handler.js';
 import { DECISION_UI_URI, isResearchPresentationTool, researchPresentationMetadata } from '@forgelex/legal-tools';
 import { getAnalysisToolContract } from '@forgelex/legal-tools';
 import { handleCaseAnalysisCall } from './case-analysis-handler.js';
-import { withDiscoveryHint } from './tool-discovery.js';
+import { IDEMPOTENCY_KEY_DESCRIPTION, PRESENT_AFTER_SEARCH_HINT, withDiscoveryHint } from './tool-discovery.js';
 
 /** Versões do protocolo MCP que este servidor aceita negociar, da mais recente para a mais antiga. */
 export const MCP_SUPPORTED_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'] as const;
@@ -43,6 +43,7 @@ export const MCP_SERVER_INSTRUCTIONS = [
   'research.verify_authority confere uma citação contra o índice, expondo divergências.',
   'Cite como autoridade apenas o que o ForgeLex devolveu com status de verificação; ausência de resultado não confirma nem nega um precedente, e metadados ausentes não devem ser completados.',
   'As ferramentas de pesquisa não sintetizam conclusão jurídica: a análise é sua, com base no que foi devolvido.',
+  'As ferramentas de pesquisa e verificação exigem o argumento idempotencyKey: envie um identificador novo e único (por exemplo, um UUID) a cada operação nova, ou a chamada falha.',
   'forgelex.connection_status confere gratuitamente se a conexão está autenticada, sem consumir saldo.',
   'As ferramentas de casos e minutas (case.*, draft.*, analise.*) exigem autorização do usuário no ForgeLex.',
 ].join(' ');
@@ -190,8 +191,10 @@ export class McpHandler {
       }
 
       case 'tools/list': {
-        const tools = this.toolRegistry
-          .list()
+        const registered = this.toolRegistry.list();
+        // A dica de abrir o painel só vale se o painel existe de fato neste servidor.
+        const panelAvailable = registered.some((tool) => tool.name === 'research.present_decisions' && this.isExposed(tool.name));
+        const tools = registered
           .filter((tool) => this.isExposed(tool.name))
           .flatMap((tool) => {
             const cleanSchema = toolJsonSchema(tool.inputSchema);
@@ -206,7 +209,7 @@ export class McpHandler {
               ...(cleanSchema.properties ?? {}),
               idempotencyKey: {
                 type: 'string', minLength: 1,
-                description: 'Chave de idempotência da operação. Use quando o host MCP não permitir enviar o header Idempotency-Key.',
+                description: IDEMPOTENCY_KEY_DESCRIPTION,
               },
             };
 
@@ -215,7 +218,7 @@ export class McpHandler {
             const variantsNote = toolSchemaVariantsNote(tool.inputSchema);
             return [{
               name: tool.name,
-              description: `${withDiscoveryHint(tool.name, tool.description)}${variantsNote ? ` ${variantsNote}` : ''}`,
+              description: `${withDiscoveryHint(tool.name, tool.description)}${variantsNote ? ` ${variantsNote}` : ''}${tool.name === 'research.search_case_law' && panelAvailable ? ` ${PRESENT_AFTER_SEARCH_HINT}` : ''}`,
               inputSchema: cleanSchema,
               ...(tool.name === 'draft.save_from_ai' || tool.name === 'case.save_analysis' ? { annotations: DRAFT_AI_ANNOTATIONS } : {}),
               ...(outputSchema?{outputSchema:Object.fromEntries(Object.entries(outputSchema).filter(([key])=>key!=='$schema')),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}}:{}),

@@ -74,6 +74,17 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   argumentos, resultados, consultas ou identificadores. Serve para fechar as duas verificações abertas (versão
   `2.0.0+<sha7>` e envio do `idempotencyKey`). No Cloud Logging: `jsonPayload.message="mcp.call"`. Não cobre o 202 de
   notificações nem a ferramenta `forgelex.connection_status` (respondida antes do handler) nem o 429 do limitador.
+- **Achado de 09/11/2026 pelo `mcp.call` (publicado no `a44035e`):** o `initialize` devolve `2.0.0+a44035e` e o
+  `tools/list` traz 21 ferramentas. A primeira `research.search_case_law` do Claude veio sem chave de idempotência
+  (`idempotency=none`, `ok=false`); a segunda, 20 s depois, com a chave como argumento, funcionou. O painel
+  (`research.present_decisions`) só abriu depois, e nada orienta o modelo a abri-lo após a pesquisa. **Correção em
+  código (ainda não publicada):** o `tools/list` e o `initialize` passam a dizer que a chave é obrigatória (um
+  identificador novo e único por operação) e que, concluída a pesquisa, o modelo chama o painel com o `operationId`
+  devolvido. O texto é único para Claude, ChatGPT e qualquer cliente (o `tools/list` não depende de quem pergunta; um
+  teste trava isso). Só descrições: nenhuma regra de cobrança, autorização ou schema muda. Alternativa mais forte,
+  não adotada por risco de quebrar clientes que mandam o header: declarar `idempotencyKey` em `required`. Depois de
+  publicado, conferir no `mcp.call` se a primeira chamada de pesquisa já vem com `idempotency=argument` e se o
+  painel passa a abrir sem pedido. O ChatGPT ainda não foi observado neste ponto.
 - Ferramentas cobradas exigem `idempotencyKey` (ou o cabeçalho `Idempotency-Key`); sem ela o servidor devolve `-32602`.
   Se o modelo não a enviar, a pesquisa falha. Verificar nas conversas reais.
 
