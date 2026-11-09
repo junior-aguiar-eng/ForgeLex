@@ -407,30 +407,14 @@ export class ExecutionService {
       const j = await s.getJob(owner, id);
       const context = await this.activeContext(s, e, false, true);
       const conversation = (await s.workspace.getConversationReadOnly(owner, e.conversationId))!;
-      const rows = await s.db
-        .select({ payloadJson: agenticExecutions.payloadJson })
-        .from(agenticExecutions)
-        .where(
-          and(
-            eq(agenticExecutions.tenantId, owner.tenantId),
-            eq(agenticExecutions.userId, owner.userId),
-            eq(agenticExecutions.conversationId, e.conversationId),
-          ),
-        )
-        .limit(1000);
-      const prior = rows
-        .map((row) => AgenticExecutionSchema.parse(JSON.parse(row.payloadJson)))
-        .filter((p) => p.id !== id);
-      const current = [...prior, e]
-        .filter((p): p is AgenticExecution =>
-          Boolean(
-            p &&
-            p.contextRevision === conversation.contextRevision &&
-            !p.requiresReevaluation &&
-            p.status !== 'CANCELLED',
-          ),
-        )
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      // A vigente é a mais recente que ainda vale: o banco entrega a melhor das OUTRAS execuções (uma linha, sem ler a
+      // conversa inteira) e só falta comparar com esta. Em empate de `createdAt` a outra prevalece, como na ordenação
+      // estável anterior.
+      const other = await s.newestCurrentExecution(owner, e.conversationId, id, conversation.contextRevision);
+      const thisStillValid =
+        e.contextRevision === conversation.contextRevision && !e.requiresReevaluation && e.status !== 'CANCELLED';
+      const current = thisStillValid && (!other || e.createdAt > other.createdAt) ? e : other;
+      const history = await s.priorDeliveries(owner, e.conversationId, id);
       return {
         id: e.id,
         objective: j.objective,
@@ -463,9 +447,7 @@ export class ExecutionService {
           ...(m.question ? { question: publicQuestion(m.question) } : {}),
           ...(m.answer ? { answer: LegalAnswerSchema.parse(m.answer) } : {}),
         })),
-        history: prior
-          .filter((p) => p && p.deliveryIds.length)
-          .map((p) => ({ executionId: p!.id, deliveryIds: p!.deliveryIds, createdAt: p!.createdAt })),
+        history: history.map((p) => ({ executionId: p.id, deliveryIds: p.deliveryIds, createdAt: p.createdAt })),
       };
     });
   }

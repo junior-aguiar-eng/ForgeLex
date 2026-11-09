@@ -111,10 +111,18 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   servidor eleva qualquer `limit` abaixo de 5 para 5 (`MIN_SEARCH_RESULTS`); o padrão continua 10 e o máximo 20. O piso
   vale só no MCP: os fluxos internos (workflows agênticos, API de pesquisa) mantêm o `limit` que pedirem. Piso e padrão
   são ajustáveis. Conferir no ChatGPT depois do deploy se passam a vir de 5 a 10 decisões.
-- **M2 (resto):** `getExecution` ainda lê até 1000 execuções da conversa para achar a vigente (filtra e ordena em
-  memória). Resolver de vez exige colunas indexadas (`status`, `createdAt`, `contextRevision`) na tabela
-  `agentic_executions`, portanto uma migration, que o `deploy-from-main.ps1` não aplica e pede backup. Fica para um
-  bloco próprio, não é ajuste pequeno.
+- **M2 resolvido em código (09/11/2026, ainda não publicado):** `getExecution` lia até 1000 execuções da conversa e as
+  filtrava e ordenava em memória. Agora o banco devolve a execução vigente entre as outras (uma linha) e só as
+  anteriores que entregaram algo (três campos), em duas consultas novas do `ExecutionStore`
+  (`newestCurrentExecution`, `priorDeliveries`). **Sem migration:** o filtro lê os campos do `payload_json`
+  (`json_extract` no SQLite, `::json->>` no PostgreSQL). Engano meu registrado antes: eu havia dito que exigiria colunas
+  indexadas e migration; não exige. Efeito colateral corrigido: o `ExecutionStore` criado dentro de uma transação não
+  conhecia o dialeto (`$forgelexDialect` só existe no banco raiz) e gerou SQL de SQLite no PostgreSQL; o dialeto agora
+  é repassado às lojas de `atomic` e `snapshot`. Verificado: teste que compara o resultado com o algoritmo antigo em 80
+  execuções de estados variados, teste com 1100 execuções na conversa, e o smoke `test:postgres:agentic-runtime`
+  (PostgreSQL 16 em Docker) com a checagem nova `current_execution_and_history_in_database`. O histórico agora sai
+  ordenado por `createdAt` (antes, sem ordem definida). Fica de fora, por não haver necessidade medida: índice sobre
+  expressão do JSON; só vale se a consulta aparecer lenta com conversas muito longas.
 
 ## Estado publicado atual — 09/11/2026 (UTC): SHA `5757733` em produção
 
