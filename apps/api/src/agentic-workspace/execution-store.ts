@@ -1,6 +1,7 @@
-import { and, asc, eq, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
-import { AgenticOwnerSchema, type AgenticOwner } from '@forgelex/domain';
+import { z } from 'zod';
+import { AgenticExecutionSchema, AgenticOwnerSchema, type AgenticExecution, type AgenticOwner } from '@forgelex/domain';
 import {
   AgenticWorkspaceRepository,
   agenticTenantKey,
@@ -8,6 +9,7 @@ import {
   agenticTenantGuards,
   agenticCommandOwners,
   agenticCommands,
+  agenticExecutions,
   agenticExecutionJobs,
   agenticExecutionCalls,
   type ForgeLexDatabase,
@@ -40,13 +42,22 @@ export interface WorkerLease {
 }
 export class ExecutionStore {
   readonly workspace: AgenticWorkspaceRepository;
-  constructor(readonly db: ForgeLexDatabase) {
+  /**
+   * O dialeto vem do banco raiz: o objeto de uma transação não o carrega (`$forgelexDialect` só existe em `db`), então
+   * as lojas criadas dentro de `atomic` e `snapshot` o recebem daqui. Sem isso, SQL específico do dialeto sairia errado.
+   */
+  readonly dialect: 'sqlite' | 'postgres';
+  constructor(
+    readonly db: ForgeLexDatabase,
+    dialect?: 'sqlite' | 'postgres',
+  ) {
+    this.dialect = dialect ?? db.$forgelexDialect ?? 'sqlite';
     this.workspace = new AgenticWorkspaceRepository(db);
   }
   async atomic<T>(owner: AgenticOwner, run: (store: ExecutionStore) => Promise<T>): Promise<T> {
     AgenticOwnerSchema.parse(owner);
     return this.db.transaction(async (tx) => {
-      const store = new ExecutionStore(tx as unknown as ForgeLexDatabase),
+      const store = new ExecutionStore(tx as unknown as ForgeLexDatabase, this.dialect),
         id = digest({ tenantId: owner.tenantId, userId: owner.userId });
       await lockAgenticTenant(store.db, owner.tenantId);
       await store.db
@@ -69,7 +80,7 @@ export class ExecutionStore {
   async snapshot<T>(owner: AgenticOwner, run: (store: ExecutionStore) => Promise<T>): Promise<T> {
     AgenticOwnerSchema.parse(owner);
     const body = async (tx: unknown) => {
-      const store = new ExecutionStore(tx as ForgeLexDatabase);
+      const store = new ExecutionStore(tx as ForgeLexDatabase, this.dialect);
       // First statement: it also fixes the snapshot.
       const [guard] = await store.db
         .select({ closed: agenticTenantGuards.closed })
@@ -79,9 +90,92 @@ export class ExecutionStore {
       if (guard && guard.closed !== 0) throw new Error('AGENTIC_TENANT_CLOSED');
       return run(store);
     };
-    return this.db.$forgelexDialect === 'postgres'
+    return this.dialect === 'postgres'
       ? this.db.transaction(body, { isolationLevel: 'repeatable read', accessMode: 'read only' } as never)
       : this.db.transaction(body);
+  }
+  /**
+   * A execução vigente da conversa entre as OUTRAS (sem `excludeId`): mesma `contextRevision`, sem reavaliação pendente
+   * e não cancelada, a mais recente primeiro. Antes `getExecution` lia até 1000 execuções da conversa e as filtrava em
+   * memória; aqui o banco filtra e ordena e devolve no máximo uma linha. Os campos saem do `payload_json`, então não
+   * há coluna nova nem migration. Empate em `createdAt`: a de menor `id`, de forma determinística.
+   */
+  async newestCurrentExecution(
+    owner: AgenticOwner,
+    conversationId: string,
+    excludeId: string,
+    contextRevision: number,
+  ): Promise<AgenticExecution | undefined> {
+    const postgres = this.dialect === 'postgres';
+    // Nome do campo vem só de constantes deste método, nunca de entrada externa, por isso entra como literal.
+    const field = (name: string) =>
+      postgres
+        ? sql`(${agenticExecutions.payloadJson}::json->>${sql.raw(`'${name}'`)})`
+        : sql`json_extract(${agenticExecutions.payloadJson}, ${sql.raw(`'$.${name}'`)})`;
+    const sameRevision = postgres
+      ? sql`${field('contextRevision')}::int = ${contextRevision}`
+      : sql`${field('contextRevision')} = ${contextRevision}`;
+    const settled = postgres
+      ? sql`COALESCE(${field('requiresReevaluation')}, 'false') <> 'true'`
+      : sql`COALESCE(${field('requiresReevaluation')}, 0) = 0`;
+    const rows = await this.db
+      .select({ payloadJson: agenticExecutions.payloadJson })
+      .from(agenticExecutions)
+      .where(
+        and(
+          eq(agenticExecutions.tenantId, owner.tenantId),
+          eq(agenticExecutions.userId, owner.userId),
+          eq(agenticExecutions.conversationId, conversationId),
+          ne(agenticExecutions.id, excludeId),
+          sameRevision,
+          settled,
+          sql`COALESCE(${field('status')}, '') <> 'CANCELLED'`,
+        ),
+      )
+      .orderBy(desc(field('createdAt')), asc(agenticExecutions.id))
+      .limit(1);
+    return rows[0] ? AgenticExecutionSchema.parse(JSON.parse(rows[0].payloadJson)) : undefined;
+  }
+  /**
+   * Execuções anteriores da conversa que entregaram algo, só com o que o histórico mostra (`id`, `deliveryIds`,
+   * `createdAt`), da mais antiga para a mais nova. O banco filtra as que têm entrega e devolve três campos, em vez de
+   * `getExecution` ler e interpretar o payload de todas as execuções da conversa. Mantém o teto de 1000 de antes.
+   */
+  async priorDeliveries(
+    owner: AgenticOwner,
+    conversationId: string,
+    excludeId: string,
+  ): Promise<{ id: string; deliveryIds: string[]; createdAt: string }[]> {
+    const postgres = this.dialect === 'postgres';
+    const payload = agenticExecutions.payloadJson;
+    const deliveries = postgres
+      ? sql`(${payload}::json->'deliveryIds')`
+      : sql`json_extract(${payload}, '$.deliveryIds')`;
+    const createdAt = postgres ? sql`(${payload}::json->>'createdAt')` : sql`json_extract(${payload}, '$.createdAt')`;
+    const hasDeliveries = sql`COALESCE(json_array_length(${deliveries}), 0) > 0`;
+    const rows = await this.db
+      .select({
+        id: agenticExecutions.id,
+        deliveries: sql<string>`${postgres ? sql`(${payload}::json->>'deliveryIds')` : deliveries}`,
+        createdAt: sql<string>`${createdAt}`,
+      })
+      .from(agenticExecutions)
+      .where(
+        and(
+          eq(agenticExecutions.tenantId, owner.tenantId),
+          eq(agenticExecutions.userId, owner.userId),
+          eq(agenticExecutions.conversationId, conversationId),
+          ne(agenticExecutions.id, excludeId),
+          hasDeliveries,
+        ),
+      )
+      .orderBy(asc(createdAt), asc(agenticExecutions.id))
+      .limit(1000);
+    return rows.map((row) => ({
+      id: row.id,
+      deliveryIds: z.array(z.string()).max(1000).parse(JSON.parse(row.deliveries)),
+      createdAt: row.createdAt,
+    }));
   }
   async command(owner: AgenticOwner, key: string) {
     return (

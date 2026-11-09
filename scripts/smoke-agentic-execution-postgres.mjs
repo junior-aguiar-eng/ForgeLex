@@ -203,6 +203,48 @@ if (process.argv[2] === '--recover') {
     assert.equal(safeLease.executionId, safe.id);
     await right.beginStep(safeLease, 'confirmed');
     await right.finishStep(safeLease, 'confirmed', { kind: 'checkpoint', checkpoint: { step: 1 } });
+    // Execução vigente e histórico saem do banco (filtro e ordenação no PostgreSQL), não de uma leitura da conversa inteira:
+    // o resultado tem de coincidir com o cálculo em memória sobre as mesmas linhas.
+    {
+      const conversationId = runs[0].conversationId;
+      const payloads = (
+        await a.client.execute({
+          sql: 'SELECT payload_json FROM agentic_executions WHERE conversation_id = ?',
+          args: [conversationId],
+        })
+      ).rows.map((row) => JSON.parse(row.payload_json));
+      const revision = Number(
+        (
+          await a.client.execute({
+            sql: 'SELECT context_revision FROM agentic_conversations WHERE id = ?',
+            args: [conversationId],
+          })
+        ).rows[0].context_revision,
+      );
+      assert.ok(payloads.length >= 3, 'CURRENT_EXECUTION_FIXTURE_TOO_SMALL');
+      for (const self of payloads) {
+        const snapshot = await right.getExecution(owner, self.id);
+        const others = payloads.filter((p) => p.id !== self.id);
+        const expected = [...others, self]
+          .filter((p) => p.contextRevision === revision && !p.requiresReevaluation && p.status !== 'CANCELLED')
+          .sort((x, y) => y.createdAt.localeCompare(x.createdAt))[0];
+        const chosen = payloads.find((p) => p.id === snapshot.currentExecutionId);
+        assert.equal(chosen?.createdAt ?? null, expected?.createdAt ?? null, 'CURRENT_EXECUTION_MISMATCH');
+        if (chosen) {
+          assert.equal(chosen.contextRevision, revision);
+          assert.equal(chosen.requiresReevaluation, false);
+          assert.notEqual(chosen.status, 'CANCELLED');
+        }
+        assert.deepEqual(
+          snapshot.history.map((h) => h.executionId).sort(),
+          others
+            .filter((p) => p.deliveryIds.length)
+            .map((p) => p.id)
+            .sort(),
+          'EXECUTION_HISTORY_MISMATCH',
+        );
+      }
+    }
     a.client.close();
     a = undefined;
     b.client.close();
@@ -236,6 +278,7 @@ if (process.argv[2] === '--recover') {
           'uncertain_dispatch_not_repeated',
           'partial_delivery_preserved',
           'internal_events_not_projected',
+          'current_execution_and_history_in_database',
         ],
       }),
     );
