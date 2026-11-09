@@ -77,6 +77,7 @@ import { WebhookService } from './distribution/webhook-service.js';
 import type { Client } from '@forgelex/persistence';
 import { createLegalResearchMemoTool, LegalResearchMemoExecutionService } from '@forgelex/legal-workflows';
 import { RequestMetrics, structuredLog } from './observability.js';
+import { logMcpCall } from './mcp-call-log.js';
 import { BillingOperationsService, type PaymentProvider } from './billing/billing-operations.js';
 import { MercadoPagoPaymentProvider } from './billing/mercado-pago-payment-provider.js';
 import { resolveDatabasePolicy } from './config/database-policy.js';
@@ -2929,6 +2930,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       }
       const idempotencyKey = readIdempotencyKey(req.headers);
       const requestAbort = createRequestAbortSignal(req.raw);
+      const callStartedAt = Date.now();
+      const callLog = { body, idempotencyHeader: Boolean(idempotencyKey), agent: String(req.headers['user-agent'] ?? '') };
       try {
         const response = await mcpHandler.handleRequest(body, {
           idempotencyKey,
@@ -2956,7 +2959,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           securitySchemes: [{ type: 'oauth2', scopes: ['email', 'profile'] }],
           });
         }
+        logMcpCall({ ...callLog, response, durationMs: Date.now() - callStartedAt });
         return response;
+      } catch (error) {
+        logMcpCall({ ...callLog, threw: true, durationMs: Date.now() - callStartedAt });
+        throw error;
       } finally {
         requestAbort.dispose();
       }

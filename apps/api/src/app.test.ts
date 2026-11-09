@@ -559,6 +559,30 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(ping.json()).toEqual({ jsonrpc: '2.0', id: 7, result: {} });
   });
 
+  it('MCP registra mcp.call com método, ferramenta e origem da chave, sem conteúdo', async () => {
+    let output = '';
+    const spy = vi.spyOn(process.stdout, 'write').mockImplementation(((chunk: string | Uint8Array) => {
+      output += String(chunk);
+      return true;
+    }) as typeof process.stdout.write);
+    try {
+      await app.inject({ method: 'POST', url: '/mcp', headers: authHeaders, payload: { jsonrpc: '2.0', id: 1, method: 'initialize' } });
+      await app.inject({
+        method: 'POST', url: '/mcp', headers: authHeaders,
+        payload: { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'ferramenta.inexistente', arguments: { idempotencyKey: 'chave-secreta-9', query: 'consulta sigilosa' } } },
+      });
+    } finally {
+      spy.mockRestore();
+    }
+    const calls = output.split(String.fromCharCode(10)).filter(Boolean).flatMap((line) => { try { return [JSON.parse(line)]; } catch { return []; } }).filter((line) => line.message === 'mcp.call');
+    expect(calls).toEqual([
+      expect.objectContaining({ method: 'initialize', ok: true, serverVersion: expect.any(String) }),
+      expect.objectContaining({ method: 'tools/call', tool: 'ferramenta.inexistente', idempotency: 'argument' }),
+    ]);
+    expect(output).not.toContain('chave-secreta-9');
+    expect(output).not.toContain('consulta sigilosa');
+  });
+
   it('MCP limita tools/call por tenant e usuário e responde 429 com Retry-After', async () => {
     const limitedApp = await buildApp({
       authAdapter: new AuthAdapter(new FixtureTokenVerifier()),
