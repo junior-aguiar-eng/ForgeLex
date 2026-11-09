@@ -44,15 +44,58 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
 
 **Pendências abertas deste tema:**
 
-- Confirmar no chat do Claude, depois da publicação, que `@forgelex` passa a achar e chamar as ferramentas.
+- ~~Confirmar no chat do Claude que `@forgelex` passa a achar e chamar as ferramentas.~~ Confirmado por Boni em
+  08/11/2026 (captura do painel `research.present_decisions`; ver a publicação do `e7cf3b7`, abaixo).
 - Investigar por que a renovação do token do Claude falhou em 11/10, 18/10 e 03/11 (400 em `/oauth/token` e 404 em
   `/token`). Hipóteses não testadas: cliente em modo de endpoints padrão (aliases na raiz `/token`, `/authorize`,
   `/register` seriam o remédio previsto na especificação), rotação de refresh token do Supabase. Ligar o log do
-  balanceador (hoje desligado) e registrar o motivo de cada 401/400 no endpoint de token ajudaria.
+  balanceador (hoje desligado) segue como decisão de Boni.
+  **Log do motivo implementado em código (08/11/2026, ainda não publicado):** cada recusa de `POST /oauth/token`
+  grava `oauth.token_rejected` com `reason` estável (`RESOURCE_MISMATCH`, `RESOURCE_REQUIRED`,
+  `GRANT_TYPE_UNSUPPORTED`, `BODY_MISSING`, `CLIENT_ENVELOPE_INVALID`, `REFRESH_ENVELOPE_INVALID`,
+  `REFRESH_CLIENT_MISMATCH`, `CODE_ENVELOPE_INVALID`, `PKCE_MISMATCH`, `REDIRECT_URI_MISMATCH`, `UPSTREAM_REJECTED`
+  com `upstreamStatus` e `upstreamError`, `UPSTREAM_UNREACHABLE` e outros), mais `grant`, `clientId` nativo, `status`
+  e `agent` (User-Agent cortado em 80 caracteres). Cada emissão grava `oauth.token_issued`. Nada de tokens, código,
+  verificador, corpo, texto livre do Supabase nem o recurso enviado. No Cloud Logging:
+  `jsonPayload.message="oauth.token_rejected"`. Não cobre 4xx gerados antes do handler (JSON sem corpo ou tipo de
+  conteúdo não aceito, respondidos pelo Fastify) nem o 404 de `/token` na raiz. Depois de publicado, o próximo 400
+  de renovação diz qual das causas foi; só então decidir sobre aliases na raiz.
 - Ferramentas cobradas exigem `idempotencyKey` (ou o cabeçalho `Idempotency-Key`); sem ela o servidor devolve `-32602`.
   Se o modelo não a enviar, a pesquisa falha. Verificar nas conversas reais.
 
-## Estado publicado atual — 08/11/2026 (UTC): SHA `68810ae` em produção
+## Estado publicado atual — 08/11/2026 (UTC): SHA `e7cf3b7` em produção
+
+Registro feito depois da publicação, a partir do que se lê hoje em produção (somente leitura). Código
+`e7cf3b7e6f3dc31e2380b91bf5bed1e630763597` (`main`, PR #126; CI verde para este SHA). Imagem
+`forgelex-api@sha256:efdc5ad5e2d149932b1312c2b32116896458eceed491a4eaaf0bc9989441b23d`, gerada pelo
+Cloud Build `384c726b-68c8-4b01-865f-ec63aafacb03` (SUCCESS, 05:57:48 a 06:02:24 UTC, 4m36s). Revisões criadas às
+06:02:46 UTC (encerramento) e 06:03:19 UTC (API). Quem executou a publicação e o horário da troca de tráfego não
+constam nos dados lidos; o que se afirma abaixo é o estado, não o procedimento.
+
+- **O que mudou em produção:** a correção da conexão MCP no Claude (#126): `toolJsonSchema` achata união de objetos
+  em `type: "object"`, o handler omite e registra `mcp.tool_schema_invalid` qualquer ferramenta cujo schema ainda
+  não seja objeto, e `serverInfo.version` passa a ser `2.0.0+<sha7>`. Causa raiz e testes na seção
+  "Conector MCP no Claude", acima.
+- **Estado conferido em 08/11/2026:** `forgelex-api-prod` e `forgelex-closure-hml-private` com 100% do tráfego em
+  `-e7cf3b7`, a mesma imagem (digest acima) nos dois, `FORGELEX_SOURCE_SHA` igual ao SHA. `FORGELEX_AUTO_MIGRATE=false`
+  nos dois. Flags: API com execução agêntica, execução comercial e editor comercial `true`; encerramento com
+  agêntica e comercial `false` e editor comercial `true`, como antes.
+- **Sondas públicas** (`https://nexojuris.ia.br`, por esta conferência): `/health` 200, `/readyz` 200 e `POST /mcp`
+  sem token 401.
+- **Sem migration e sem backup novo** neste SHA: não há migration entre `68810ae` e `e7cf3b7` neste registro
+  (conferido pelas PRs #124 a #126, só código do MCP e documentação).
+- **Reversão, se precisar:** `gcloud run services update-traffic forgelex-api-prod --project=project-bbbe1209-c295-4720-867 --region=southamerica-east1 --to-revisions=forgelex-api-prod-68810ae=100`
+  e o mesmo para `forgelex-closure-hml-private-68810ae`.
+- **Confirmado por Boni em 08/11/2026, no chat do Claude:** numa conversa sobre jurisprudência de Maria da Penha, o
+  ForgeLex foi achado e chamado, e `research.present_decisions` abriu o painel "Decisões selecionadas" (1 de 5; STJ
+  2015598, Terceira Seção, Tema Repetitivo 1186). A evidência é uma captura de tela enviada por Boni; os logs
+  desse horário não foram conferidos. Isso comprova o efeito da correção do #126 no chat; a lista antes
+  descartada por inteiro agora chega ao modelo.
+- **Ainda não verificado:** `initialize` autenticado devolvendo a versão com o SHA, o tamanho do `tools/list` nos
+  logs e se a pesquisa cobrada enviou `idempotencyKey` (a captura mostra o painel, não a chamada). A renovação do
+  token do Claude (400/404 em 11/10, 18/10 e 03/11) segue sem causa provada.
+
+## Publicação anterior — 08/11/2026 (UTC): SHA `68810ae`
 
 Publicado em 08/11/2026, entre 01:53 e cerca de 02:00 UTC (07/11, à noite, em Brasília), a pedido de Boni,
 com `deploy-from-main.ps1`. Código `68810ae4955c6dbb95ca9b3b185aeba28270db05` (`main`, CI verde). Imagem

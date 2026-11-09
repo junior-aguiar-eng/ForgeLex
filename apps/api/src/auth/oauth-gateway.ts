@@ -1,5 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
+import { structuredLog } from '../observability.js';
 import type { OAuthTokenVault } from './oauth-token-vault.js';
 
 interface Options {
@@ -12,6 +13,9 @@ interface Options {
   fetchImpl?: typeof fetch;
 }
 const allowedScopes = new Set(['email', 'profile', 'offline_access']);
+const GRANT_TYPES = ['authorization_code', 'refresh_token'];
+const UPSTREAM_ERROR = /^[a-z][a-z0-9_]{2,63}$/;
+const REASON = /^[A-Z][A-Z0-9_]{2,63}$/;
 function secureRedirect(value: unknown): boolean {
   try {
     const url = new URL(String(value));
@@ -219,15 +223,38 @@ export function registerOAuthGateway(app: FastifyInstance, options: Options): vo
   app.post('/oauth/token', async (request, reply) => {
     reply.header('Cache-Control', 'no-store').header('Pragma', 'no-cache');
     const body = request.body as Record<string, string> | null;
+    const grant =
+      typeof body?.grant_type === 'string' && GRANT_TYPES.includes(body.grant_type) ? body.grant_type : 'other';
+    const agent = String(request.headers['user-agent'] ?? '').slice(0, 80);
+    const seen: { clientId?: string } = {};
+    /** Registra só códigos estáveis e metadados sem segredo: nunca o corpo, tokens, código, verificador ou recurso. */
+    const record = (level: 'info' | 'warn', event: string, fields: Record<string, unknown>) =>
+      structuredLog(level, event, { grant, clientId: seen.clientId, agent, ...fields });
+    const deny = (status: number, error: string, reason: string, fields: Record<string, unknown> = {}) => {
+      record('warn', 'oauth.token_rejected', { status, error, reason, ...fields });
+      return reply.code(status).send({ error });
+    };
     if (
       !body ||
-      !['authorization_code', 'refresh_token'].includes(body.grant_type) ||
+      !GRANT_TYPES.includes(body.grant_type) ||
       (body.resource !== undefined && body.resource !== options.resource) ||
       (body.grant_type === 'authorization_code' && body.resource !== options.resource)
     )
-      return reply.code(400).send({ error: 'invalid_target' });
+      return deny(
+        400,
+        'invalid_target',
+        !body
+          ? 'BODY_MISSING'
+          : !GRANT_TYPES.includes(body.grant_type)
+            ? 'GRANT_TYPE_UNSUPPORTED'
+            : body.resource === undefined
+              ? 'RESOURCE_REQUIRED'
+              : 'RESOURCE_MISMATCH',
+        { resourceSent: body?.resource !== undefined },
+      );
     const client = readClient(body.client_id);
-    if (!client) return reply.code(401).send({ error: 'invalid_client' });
+    if (!client) return deny(401, 'invalid_client', 'CLIENT_ENVELOPE_INVALID');
+    seen.clientId = client.id;
     const forwarded = new URLSearchParams();
     for (const field of [
       'grant_type',
@@ -244,58 +271,75 @@ export function registerOAuthGateway(app: FastifyInstance, options: Options): vo
     forwarded.set('client_secret', client.secret);
     if (body.grant_type === 'authorization_code') {
       const raw = typeof body.code === 'string' && options.vault.open(body.code, 'code');
-      if (!raw || !/^[A-Za-z0-9._~-]{43,128}$/.test(body.code_verifier ?? ''))
-        return reply.code(400).send({ error: 'invalid_grant' });
+      if (!raw) return deny(400, 'invalid_grant', 'CODE_ENVELOPE_INVALID');
+      if (!/^[A-Za-z0-9._~-]{43,128}$/.test(body.code_verifier ?? ''))
+        return deny(400, 'invalid_grant', 'CODE_VERIFIER_FORMAT_INVALID');
       try {
         const receipt = JSON.parse(raw);
         const expected = Buffer.from(receipt.challenge ?? '');
         const actual = Buffer.from(createHash('sha256').update(body.code_verifier).digest('base64url'));
-        if (
-          receipt.clientId !== client.id ||
-          typeof receipt.code !== 'string' ||
-          expected.length !== actual.length ||
-          !timingSafeEqual(expected, actual) ||
-          body.redirect_uri !== receipt.redirect ||
-          typeof receipt.nativeVerifier !== 'string'
-        )
-          throw new Error('invalid grant');
+        if (receipt.clientId !== client.id || typeof receipt.code !== 'string') throw new Error('CODE_CLIENT_MISMATCH');
+        if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) throw new Error('PKCE_MISMATCH');
+        if (body.redirect_uri !== receipt.redirect) throw new Error('REDIRECT_URI_MISMATCH');
+        if (typeof receipt.nativeVerifier !== 'string') throw new Error('CODE_RECEIPT_INCOMPLETE');
         forwarded.set('code', receipt.code);
         forwarded.set('code_verifier', receipt.nativeVerifier);
         forwarded.set('redirect_uri', `${options.origin}/oauth/callback`);
-      } catch {
-        return reply.code(400).send({ error: 'invalid_grant' });
+      } catch (error) {
+        return deny(
+          400,
+          'invalid_grant',
+          error instanceof Error && REASON.test(error.message) ? error.message : 'CODE_RECEIPT_INVALID',
+        );
       }
     }
     if (body.grant_type === 'refresh_token') {
       const refresh = typeof body.refresh_token === 'string' && options.vault.open(body.refresh_token, 'refresh');
-      if (!refresh) return reply.code(400).send({ error: 'invalid_grant' });
+      if (!refresh) return deny(400, 'invalid_grant', 'REFRESH_ENVELOPE_INVALID');
       try {
         const receipt = JSON.parse(refresh);
-        if (receipt.clientId !== client.id || typeof receipt.token !== 'string') throw new Error('invalid refresh');
+        if (receipt.clientId !== client.id) throw new Error('REFRESH_CLIENT_MISMATCH');
+        if (typeof receipt.token !== 'string') throw new Error('REFRESH_RECEIPT_INCOMPLETE');
         forwarded.set('refresh_token', receipt.token);
-      } catch {
-        return reply.code(400).send({ error: 'invalid_grant' });
+      } catch (error) {
+        return deny(
+          400,
+          'invalid_grant',
+          error instanceof Error && REASON.test(error.message) ? error.message : 'REFRESH_RECEIPT_INVALID',
+        );
       }
     }
+    let response: Response;
     try {
-      const response = await fetchImpl(`${upstream}/token`, {
+      response = await fetchImpl(`${upstream}/token`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded' },
         body: forwarded.toString(),
         signal: AbortSignal.timeout(10000),
       });
+    } catch {
+      return deny(503, 'temporarily_unavailable', 'UPSTREAM_UNREACHABLE');
+    }
+    try {
       const data = (await response.json()) as Record<string, unknown>;
-      if (!response.ok)
-        return reply
-          .code(response.status)
-          .send({ error: typeof data.error === 'string' ? data.error : 'invalid_grant' });
+      if (!response.ok) {
+        const upstreamError =
+          typeof data.error === 'string' && UPSTREAM_ERROR.test(data.error) ? data.error : undefined;
+        return deny(
+          response.status,
+          typeof data.error === 'string' ? data.error : 'invalid_grant',
+          'UPSTREAM_REJECTED',
+          { upstreamStatus: response.status, upstreamError },
+        );
+      }
       if (
         typeof data.access_token !== 'string' ||
         typeof data.expires_in !== 'number' ||
         !Number.isFinite(data.expires_in) ||
         data.expires_in <= 0
       )
-        return reply.code(503).send({ error: 'temporarily_unavailable' });
+        return deny(503, 'temporarily_unavailable', 'UPSTREAM_RESPONSE_INVALID', { upstreamStatus: response.status });
+      record('info', 'oauth.token_issued', { status: 200, expiresIn: data.expires_in });
       return {
         access_token: options.vault.seal(data.access_token, 'access', Date.now() + data.expires_in * 1000),
         token_type: 'Bearer',
@@ -312,7 +356,7 @@ export function registerOAuthGateway(app: FastifyInstance, options: Options): vo
         ...(typeof data.scope === 'string' ? { scope: data.scope } : {}),
       };
     } catch {
-      return reply.code(503).send({ error: 'temporarily_unavailable' });
+      return deny(503, 'temporarily_unavailable', 'UPSTREAM_RESPONSE_UNREADABLE', { upstreamStatus: response.status });
     }
   });
 }
