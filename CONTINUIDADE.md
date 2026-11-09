@@ -515,12 +515,12 @@ OAuth gratuito confirmado no Codex após o deploy. Configuração de backend,
 Cloud SQL, Supabase e grants preservada; sem migration remota nesta publicação.
 [Publicação, recibo e rollback](docs/operations/stabilization/2026-10-11-site-mcp-publication.md).
 
-| Plano/frente | Estado atual |
-| --- | --- |
-| Simplificação do fluxo de casos (10/10, artefatos locais anteriores) | Suspenso; histórico e trabalho local preservados |
-| Mesa/orquestração jurídica V2 e transição agêntica (10/10) | Retomadas em 30–31/10: mesa única e execução comercial integradas (ver seção acima); a visão V2 original segue como referência histórica |
-| Apresentação visual de decisões MCP (11/10) | Publicada pela PR #68; leitor comprovado no ChatGPT e Claude Web/Desktop; limites da coleção registrados no ensaio de 12/10 |
-| Ocultação do site (11/10) | Publicada pela PR #66; validação técnica em produção registrada; avaliação humana por Boni |
+| Plano/frente                                                         | Estado atual                                                                                                                             |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Simplificação do fluxo de casos (10/10, artefatos locais anteriores) | Suspenso; histórico e trabalho local preservados                                                                                         |
+| Mesa/orquestração jurídica V2 e transição agêntica (10/10)           | Retomadas em 30–31/10: mesa única e execução comercial integradas (ver seção acima); a visão V2 original segue como referência histórica |
+| Apresentação visual de decisões MCP (11/10)                          | Publicada pela PR #68; leitor comprovado no ChatGPT e Claude Web/Desktop; limites da coleção registrados no ensaio de 12/10              |
+| Ocultação do site (11/10)                                            | Publicada pela PR #66; validação técnica em produção registrada; avaliação humana por Boni                                               |
 
 A descrição do fluxo abaixo registra o produto anteriormente publicado,
 preservado no backend e oculto na interface atual.
@@ -550,10 +550,10 @@ originais. O runtime atual incorpora essas entregas e está indicado no início.
 | Contexto autorizado e retorno de texto por MCP               | Publicado; homologações anteriores em ChatGPT e Claude registradas | Recebimentos versionados, idempotência e adoção humana; ver STATUS                                                               |
 | Arquivo, lixeira, restauração e exclusão                     | Publicado                                                          | Homologado em `forgelex-api-prod-lifecycle-ui-326a96e` com dados sintéticos; incluído na revisão atual do leitor                 |
 | Leitura integral de documentos e abertura das fontes         | Publicado; percurso completo homologado em produção                | PR #54, revisão `forgelex-api-prod-reader-0dc9ec5`, 100%; Claude → versão 2 → DOCX inspecionado; permissões sintéticas revogadas |
-| Identificação das conexões de IA no caso                     | Publicado; integração e promoção verificadas | PR #56, revisão `forgelex-api-prod-connection-a23cc07`, 100%; CI da PR e de main aprovada                     |
-| Julgados da Pesquisa no caso                                 | Publicado; salvar, conferir fonte e reutilizar nos rascunhos | PR #58; CI com 130 E2E; runtime `forgelex-api-prod-audit-5aca51e`; sem nova pesquisa para salvar/copiar |
-| Retenção operacional                                        | Limpeza diária às 8h, autenticada por OAuth, ativada em 09/10 | Autorização nominal; apply manual e via Scheduler concluídos com zero removidos; worker HTTP desabilitado; ver registro residual |
-| Mesa do caso e orientação do próximo passo                   | Suspensa como execução                                                    | Organizar os recursos existentes em torno do caso, com detalhes técnicos sob demanda; não há execução autorizada nesta entrega   |
+| Identificação das conexões de IA no caso                     | Publicado; integração e promoção verificadas                       | PR #56, revisão `forgelex-api-prod-connection-a23cc07`, 100%; CI da PR e de main aprovada                                        |
+| Julgados da Pesquisa no caso                                 | Publicado; salvar, conferir fonte e reutilizar nos rascunhos       | PR #58; CI com 130 E2E; runtime `forgelex-api-prod-audit-5aca51e`; sem nova pesquisa para salvar/copiar                          |
+| Retenção operacional                                         | Limpeza diária às 8h, autenticada por OAuth, ativada em 09/10      | Autorização nominal; apply manual e via Scheduler concluídos com zero removidos; worker HTTP desabilitado; ver registro residual |
+| Mesa do caso e orientação do próximo passo                   | Suspensa como execução                                             | Organizar os recursos existentes em torno do caso, com detalhes técnicos sob demanda; não há execução autorizada nesta entrega   |
 | Novos agentes internos, modelos hospedados e novos tribunais | Fora do incremento atual                                           | Exigem necessidade demonstrada e decisão própria; não bloqueiam o fluxo MCP externo                                              |
 
 ## A entrega encerrada

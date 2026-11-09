@@ -1,5 +1,5 @@
 import { ToolRegistry, toolJsonSchema, toolSchemaVariantsNote, type ToolExecutionResult } from '@forgelex/agent-core';
-import { getLegalToolContract, LegalToolGatewayError, type SearchCaseLawOutput } from '@forgelex/legal-tools';
+import { getLegalToolContract, LegalToolGatewayError, MIN_SEARCH_RESULTS, type SearchCaseLawOutput } from '@forgelex/legal-tools';
 import { getForgeLexBillingPolicy, LedgerService, searchOperationFingerprint } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
 import { randomUUID } from 'node:crypto';
@@ -207,13 +207,17 @@ export class McpHandler {
               console.error(JSON.stringify({ level: 'error', message: 'mcp.tool_schema_invalid', tool: tool.name }));
               return [];
             }
-            if(!isCaseContextTool(tool.name) && tool.name !== 'draft.save_from_ai' && tool.name !== 'case.save_analysis' && !isResearchPresentationTool(tool.name)) cleanSchema.properties = {
+            // Toda ferramenta cobrada ou de análise exige a chave: sem ela a chamada falha (-32602). Declará-la em `required`
+            // faz o host enviá-la na primeira tentativa, em vez de errar e repetir (ChatGPT, 09/11/2026).
+            const needsIdempotencyKey = !isCaseContextTool(tool.name) && tool.name !== 'draft.save_from_ai' && tool.name !== 'case.save_analysis' && !isResearchPresentationTool(tool.name);
+            if (needsIdempotencyKey) cleanSchema.properties = {
               ...(cleanSchema.properties ?? {}),
               idempotencyKey: {
                 type: 'string', minLength: 1,
                 description: IDEMPOTENCY_KEY_DESCRIPTION,
               },
             };
+            if (needsIdempotencyKey) cleanSchema.required = [...new Set([...(Array.isArray(cleanSchema.required) ? cleanSchema.required : []), 'idempotencyKey'])];
 
             const contract = getLegalToolContract(tool.name) ?? getCaseContextToolContract(tool.name) ?? getDraftAiToolContract(tool.name) ?? getAnalysisToolContract(tool.name);
             const outputSchema=isCaseContextTool(tool.name)?toolJsonSchema(tool.outputSchema):undefined;
@@ -575,6 +579,9 @@ export class McpHandler {
         operation: async () => {
           const { idempotencyKey: _idempotencyKey, ...withoutIdempotencyKey } = toolArgs ?? {};
           const executionArgs = name === 'workflow.legal_research_memo' ? (toolArgs ?? {}) : withoutIdempotencyKey;
+          // Pelo MCP a cobrança é por chamada: pedir 1 ou 2 decisões só entregaria menos pelo mesmo preço.
+          if (name === 'research.search_case_law' && typeof executionArgs.limit === 'number')
+            executionArgs.limit = Math.max(executionArgs.limit, MIN_SEARCH_RESULTS);
           const result = await this.toolRegistry.executeTool(name, executionArgs, {
             sessionId,
             tenantId,

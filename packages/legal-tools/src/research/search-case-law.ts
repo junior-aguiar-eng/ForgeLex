@@ -9,7 +9,15 @@ export const SearchCaseLawInputSchema = z.object({
   court: z.string().optional(),
   judgmentYear: z.number().int().min(1989).refine((year) => year <= new Date().getUTCFullYear(), 'Ano do julgamento não pode estar no futuro').optional()
     .describe('Ano da data de julgamento. Por exemplo, 2026 limita o julgamento a 2026; omitido pesquisa todos os anos. Não substitua este filtro por um ano no texto de query.'),
-  limit: z.number().int().min(1).max(20).default(10),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .default(10)
+    .describe(
+      'Quantas decisões devolver. A cobrança é por chamada, não por decisão: peça 10 (padrão) mesmo que o usuário diga "uma jurisprudência", para que ele receba mais por uma única cobrança. Valores abaixo de 5 são elevados a 5.',
+    ),
 });
 
 export type SearchCaseLawInput = z.infer<typeof SearchCaseLawInputSchema>;
@@ -25,6 +33,8 @@ export const SearchCaseLawOutputSchema = z.object({
 
 export type SearchCaseLawOutput = z.infer<typeof SearchCaseLawOutputSchema>;
 export const CASE_LAW_SEARCH_TIMEOUT_MS = 45_000;
+/** Piso de decisões por chamada: a cobrança é por chamada, então pedir 1 ou 2 só entregaria menos pelo mesmo preço. */
+export const MIN_SEARCH_RESULTS = 5;
 
 export function createSearchCaseLawTool(researchService: ResearchService): AgentTool<SearchCaseLawInput, SearchCaseLawOutput> {
   return {
