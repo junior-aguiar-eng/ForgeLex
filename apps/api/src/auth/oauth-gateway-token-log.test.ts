@@ -192,4 +192,39 @@ describe('motivo de cada recusa em /oauth/token', () => {
     expect(raw).not.toContain('native-next');
     await app.close();
   });
+
+  it('atende o alias /token na raiz com as mesmas regras e registra o caminho usado', async () => {
+    const app = build(
+      (async () =>
+        new Response(
+          JSON.stringify({ access_token: 'native-access-secret', refresh_token: 'next', expires_in: 3600 }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          },
+        )) as unknown as typeof fetch,
+    );
+    const ok = await app.inject({
+      ...form({ grant_type: 'refresh_token', client_id: clientOf('c1'), refresh_token: refreshOf('c1') }),
+      url: '/token',
+    });
+    expect(ok.statusCode).toBe(200);
+    expect(vault.open(ok.json().access_token, 'access')).toBe('native-access-secret');
+    const refused = await app.inject({
+      ...form({
+        grant_type: 'refresh_token',
+        client_id: clientOf('c1'),
+        refresh_token: refreshOf('c1'),
+        resource: 'https://evil.example/mcp',
+      }),
+      url: '/token?x=1',
+    });
+    expect(refused.statusCode).toBe(400);
+    expect(refused.json()).toEqual({ error: 'invalid_target' });
+    expect(lines.filter((line) => line.message === 'oauth.token_issued')).toEqual([
+      expect.objectContaining({ path: '/token', clientId: 'c1' }),
+    ]);
+    expect(rejected()).toEqual([expect.objectContaining({ path: '/token', reason: 'RESOURCE_MISMATCH' })]);
+    await app.close();
+  });
 });
