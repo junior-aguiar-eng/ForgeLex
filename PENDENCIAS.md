@@ -49,7 +49,7 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
 - Investigar por que a renovação do token do Claude falhou em 11/10, 18/10 e 03/11 (400 em `/oauth/token` e 404 em
   `/token`). Hipóteses não testadas: cliente em modo de endpoints padrão (aliases na raiz `/token`, `/authorize`,
   `/register` seriam o remédio previsto na especificação), rotação de refresh token do Supabase. Ligar o log do
-  balanceador (hoje desligado) segue como decisão de Boni.
+  balanceador foi ligado em `forgelex-api-prod-backend` em 09/11/2026 (decisão de Boni).
   **Log do motivo publicado no `e799141` (09/11/2026):** cada recusa de `POST /oauth/token`
   grava `oauth.token_rejected` com `reason` estável (`RESOURCE_MISMATCH`, `RESOURCE_REQUIRED`,
   `GRANT_TYPE_UNSUPPORTED`, `BODY_MISSING`, `CLIENT_ENVELOPE_INVALID`, `REFRESH_ENVELOPE_INVALID`,
@@ -71,7 +71,29 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
 - Ferramentas cobradas exigem `idempotencyKey` (ou o cabeçalho `Idempotency-Key`); sem ela o servidor devolve `-32602`.
   Se o modelo não a enviar, a pesquisa falha. Verificar nas conversas reais.
 
-## Estado publicado atual — 09/11/2026 (UTC): SHA `e799141` em produção
+## Estado publicado atual — 09/11/2026 (UTC): SHA `9e2a30f` em produção
+
+`9e2a30f84413a6f2ef9830bb35a85b9ead9f0cf3` (`main`, PR #128: alias `POST /token` na raiz; CI verde). Imagem
+`forgelex-api@sha256:ab151b746c8ed989010b3a1e99469f1b5ca98096e832180a9f17707d160ae3a1`. Revisões
+`forgelex-api-prod-9e2a30f` e `forgelex-closure-hml-private-9e2a30f` a 100%, conferidas contra as `-e799141` e
+trocadas por `deploy-from-main.ps1`, sem reversão e sem migration. Verificado: `POST /token` com corpo de teste
+responde 400 `invalid_target` (antes, 404) e os metadados OAuth respondem 200. **Não observado ainda:** a renovação
+real do Claude pelo alias (procurar `oauth.token_issued` com `path="/token"` e ausência de novos 404). Reversão:
+`--to-revisions=...-e799141=100` nos dois serviços.
+
+**Decisões de Boni, 09/11/2026:**
+
+- **M5 (limites contam consumo ainda não faturado):** mantido. O limite é conservador e impede estourar o teto, ao
+  custo de poder bloquear o cliente por valores que depois não viram cobrança.
+- **A1 (cancelar durante a chamada mantém o tenant bloqueado até a reconciliação):** mantido, para evitar cobrança
+  dupla ou sem controle.
+- **Log do balanceador:** autorizado e **ligado em `forgelex-api-prod-backend`** (taxa de amostragem 1,0) em
+  09/11/2026. Os backends de homologação (`forgelex-api-hml-backend`, `forgelex-api-hml-isolated-backend`) e
+  `nexohub-hub-backend` continuam desligados. Cuidado com o custo de ingestão do Cloud Logging.
+- **Painel do conector:** o teste de chamada do ForgeLex no Claude deu certo (painel `research.present_decisions`
+  exibido); o painel precisa ser pedido expressamente ("abra o painel").
+
+## Publicação anterior — 09/11/2026 (UTC): SHA `e799141`
 
 `e799141f1ed598ec70e4eeffa8434db5f6b6ce0a` (`main`, PR #127: log do motivo de `/oauth/token`; CI verde).
 Cloud Build `e94e996a-437a-4a20-917c-400b9852a5bd` (SUCCESS, 01:22 UTC, 4m47s), imagem
