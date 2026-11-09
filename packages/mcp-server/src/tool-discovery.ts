@@ -37,3 +37,12 @@ export function withDiscoveryHint(toolName: string, description: string): string
   if (!(toolName in MCP_TOOL_DISCOVERY_HINTS) && /forgelex/i.test(description)) return description;
   return `${hint} ${description}`;
 }
+
+/**
+ * Texto único, servido no `tools/list` a qualquer cliente (Claude, ChatGPT ou outro): o mesmo servidor, o mesmo
+ * contrato. Nenhuma regra muda; as descrições só dizem ao modelo o que o servidor já exige ou oferece.
+ */
+export const IDEMPOTENCY_KEY_DESCRIPTION =
+  'Obrigatório nesta ferramenta: envie um identificador novo e único (por exemplo, um UUID) a cada operação nova; sem ele a chamada falha. Reenvie o mesmo valor só ao repetir exatamente a mesma operação. Use este argumento quando o host MCP não permitir enviar o header Idempotency-Key.';
+export const PRESENT_AFTER_SEARCH_HINT =
+  'Concluída a pesquisa, chame research.present_decisions com o operationId devolvido para mostrar as decisões ao usuário no painel.';
