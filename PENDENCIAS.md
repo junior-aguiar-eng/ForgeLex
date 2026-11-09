@@ -85,6 +85,16 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   não adotada por risco de quebrar clientes que mandam o header: declarar `idempotencyKey` em `required`. Depois de
   publicado, conferir no `mcp.call` se a primeira chamada de pesquisa já vem com `idempotency=argument` e se o
   painel passa a abrir sem pedido. O ChatGPT ainda não foi observado neste ponto.
+- **Painel automático na pesquisa (09/11/2026, em código, ainda não publicado):** com as descrições do `b8c44ee`, o
+  Claude ainda respondeu em texto, parafraseando a ementa, e só abriu o painel depois do pedido (relato de Boni). A
+  decisão de chamar o painel é do modelo, então deixou de depender dele: `research.search_case_law` agora carrega a
+  interface do painel (`_meta.ui.resourceUri` para o Claude e `openai/outputTemplate` para o ChatGPT, só quando o
+  painel e a interface existem) e devolve no `structuredContent` os dados do painel (`forgelex.decisions.v1`, com o
+  botão de salvar quando autorizado; sem repetir `items`). O texto do resultado traz um `aviso`: a ementa integral já
+  está no painel, não reproduzir nem parafrasear, comentar em complemento. Se a ferramenta do painel falhar, o painel
+  sai montado do próprio resultado, sem salvar. `research.present_decisions` segue para reabrir ou escolher decisões.
+  Sem painel ou sem interface, nada muda. **Não verificado:** como cada host renderiza o painel na ferramenta de
+  pesquisa e se o modelo respeita o aviso; confirmar com uma pesquisa no Claude e outra no ChatGPT depois do deploy.
 - Ferramentas cobradas exigem `idempotencyKey` (ou o cabeçalho `Idempotency-Key`); sem ela o servidor devolve `-32602`.
   Se o modelo não a enviar, a pesquisa falha. Verificar nas conversas reais.
 
