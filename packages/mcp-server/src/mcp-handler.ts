@@ -11,7 +11,7 @@ import { handleDraftAiCall } from './draft-ai-handler.js';
 import { DECISION_UI_URI, isResearchPresentationTool, researchPresentationMetadata } from '@forgelex/legal-tools';
 import { getAnalysisToolContract } from '@forgelex/legal-tools';
 import { handleCaseAnalysisCall } from './case-analysis-handler.js';
-import { IDEMPOTENCY_KEY_DESCRIPTION, PRESENT_AFTER_SEARCH_HINT, withDiscoveryHint } from './tool-discovery.js';
+import { IDEMPOTENCY_KEY_DESCRIPTION, PANEL_SHOWN_NOTICE, PRESENT_AFTER_SEARCH_HINT, withDiscoveryHint } from './tool-discovery.js';
 
 /** Versões do protocolo MCP que este servidor aceita negociar, da mais recente para a mais antiga. */
 export const MCP_SUPPORTED_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'] as const;
@@ -194,6 +194,8 @@ export class McpHandler {
         const registered = this.toolRegistry.list();
         // A dica de abrir o painel só vale se o painel existe de fato neste servidor.
         const panelAvailable = registered.some((tool) => tool.name === 'research.present_decisions' && this.isExposed(tool.name));
+        // Com o painel registrado e a interface disponível, a própria pesquisa o abre: não depende de o modelo chamar.
+        const searchOpensPanel = panelAvailable && Boolean(this.decisionUi);
         const tools = registered
           .filter((tool) => this.isExposed(tool.name))
           .flatMap((tool) => {
@@ -223,6 +225,7 @@ export class McpHandler {
               ...(tool.name === 'draft.save_from_ai' || tool.name === 'case.save_analysis' ? { annotations: DRAFT_AI_ANNOTATIONS } : {}),
               ...(outputSchema?{outputSchema:Object.fromEntries(Object.entries(outputSchema).filter(([key])=>key!=='$schema')),annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true,openWorldHint:false}}:{}),
               ...(contract ? { 'x-forgelex-contract': contract } : {}),
+              ...(tool.name === 'research.search_case_law' && searchOpensPanel ? { _meta: (researchPresentationMetadata('research.present_decisions') as { _meta?: unknown })._meta } : {}),
               ...(isResearchPresentationTool(tool.name) ? { ...researchPresentationMetadata(tool.name), ...(!this.decisionUi && ['research.present_decisions', 'research.get_saved_search'].includes(tool.name) ? { _meta: undefined } : {}) } : {}),
             }];
           });
@@ -475,6 +478,54 @@ export class McpHandler {
     }
   }
 
+  /**
+   * Dados que o painel lê, devolvidos na própria pesquisa para que ele abra sem depender de uma segunda chamada do
+   * modelo. Usa a mesma ferramenta gratuita do painel (com o botão de salvar quando autorizado) e, se ela falhar,
+   * monta as decisões direto do resultado, sem salvar. As `items` saem do `structuredContent` porque as decisões já
+   * as contêm; o texto do resultado, lido pelo modelo, segue completo.
+   */
+  private async searchPanelData(
+    search: SearchCaseLawOutput,
+    operationId: string,
+    who: { tenantId: string; userId: string; context: McpRequestContext },
+  ): Promise<Record<string, unknown>> {
+    const summary = { total: search.total, queryExecuted: search.queryExecuted, ...(search.criteria ? { criteria: search.criteria } : {}) };
+    try {
+      await who.context.revalidateConnection?.();
+      const shown = await this.toolRegistry.executeTool(
+        'research.present_decisions',
+        { operationId },
+        {
+          sessionId: `mcp_reader_${randomUUID()}`,
+          tenantId: who.tenantId,
+          userId: who.userId,
+          source: 'MCP' as const,
+          oauthConnection: who.context.oauthConnection,
+          revalidateConnection: who.context.revalidateConnection,
+          abortSignal: who.context.abortSignal ?? new AbortController().signal,
+        },
+      );
+      await who.context.revalidateConnection?.();
+      if (shown.success) return { ...summary, ...(shown.data as Record<string, unknown>) };
+    } catch {
+      /* cai no painel montado direto do resultado */
+    }
+    return {
+      ...summary,
+      kind: 'forgelex.decisions.v1',
+      decisions: search.items
+        .filter((item) => item.versionId)
+        .map((item) => ({
+          reference: { recordId: item.id, versionId: item.versionId },
+          availability: 'AVAILABLE',
+          decision: item,
+        })),
+      operationId,
+      savedResearchEnabled: false,
+      canSave: false,
+    };
+  }
+
   /** Ferramentas de jurisprudência, verificação e workflows: idempotentes e cobradas pelo ledger conforme a política. */
   private async callMeteredTool(call: ToolCall): Promise<JsonRpcResponse> {
     const { id, name, args: toolArgs, tool, billing, tenantId, userId, context } = call;
@@ -535,14 +586,26 @@ export class McpHandler {
         },
       });
 
+      const opensPanel =
+        name === 'research.search_case_law' &&
+        Boolean(this.decisionUi) &&
+        this.isExposed('research.present_decisions') &&
+        this.toolRegistry.list().some((candidate) => candidate.name === 'research.present_decisions');
       const toolResult: ToolExecutionResult =
         name === 'research.search_case_law'
           ? {
               success: true,
-              data: { ...(execution.data as SearchCaseLawOutput), operationId: idempotencyKey },
+              data: {
+                ...(execution.data as SearchCaseLawOutput),
+                operationId: idempotencyKey,
+                ...(opensPanel ? { aviso: PANEL_SHOWN_NOTICE } : {}),
+              },
               provenance: (execution.data as SearchCaseLawOutput).items.map((item) => item.provenance),
             }
           : (execution.data as ToolExecutionResult);
+      const panelData = opensPanel
+        ? await this.searchPanelData(execution.data as SearchCaseLawOutput, idempotencyKey, { tenantId, userId, context })
+        : undefined;
 
       await this.recordAudit({
         sessionId,
@@ -558,7 +621,7 @@ export class McpHandler {
         jsonrpc: '2.0',
         id,
         result: {
-          ...(name === 'research.search_case_law' ? { structuredContent: toolResult.data } : {}),
+          ...(name === 'research.search_case_law' ? { structuredContent: panelData ?? toolResult.data } : {}),
           content: [
             {
               type: 'text',

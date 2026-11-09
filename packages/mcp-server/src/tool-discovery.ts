@@ -45,4 +45,7 @@ export function withDiscoveryHint(toolName: string, description: string): string
 export const IDEMPOTENCY_KEY_DESCRIPTION =
   'Obrigatório nesta ferramenta: envie um identificador novo e único (por exemplo, um UUID) a cada operação nova; sem ele a chamada falha. Reenvie o mesmo valor só ao repetir exatamente a mesma operação. Use este argumento quando o host MCP não permitir enviar o header Idempotency-Key.';
 export const PRESENT_AFTER_SEARCH_HINT =
-  'Concluída a pesquisa, chame research.present_decisions com o operationId devolvido para mostrar as decisões ao usuário no painel.';
+  'O resultado abre sozinho no painel ForgeLex, que mostra a ementa integral ao usuário: não a reproduza nem a parafraseie no lugar do painel; comente em complemento, atribuindo a explicação a você. Para reabrir o painel ou apresentar decisões escolhidas, use research.present_decisions.';
+/** Aviso dentro do próprio resultado da pesquisa, que o modelo lê junto com os dados. */
+export const PANEL_SHOWN_NOTICE =
+  'A ementa integral de cada decisão já está exibida ao usuário no painel ForgeLex desta resposta. Não a reproduza nem a parafraseie no lugar do painel: comente em complemento, atribuindo a explicação a você, e cite apenas o que consta aqui.';
