@@ -68,6 +68,12 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   implementado** (mesmo handler; o log passa a trazer `path`); `/authorize` e `/register` seguem sem evidência e fora.
   Depois de publicado, confirmar: renovação do Claude em `path="/token"` com `oauth.token_issued`, e ausência de
   novos 404 em `/token`.
+- **Log `mcp.call` implementado em código (09/11/2026, ainda não publicado):** cada chamada JSON-RPC em `/mcp` grava
+  `method`, `tool` (só em `tools/call`), `idempotency` (`header`, `argument` ou `none`, nunca o valor), `ok`,
+  `rpcErrorCode`, `serverVersion` (no `initialize`), `toolCount` (no `tools/list`), `durationMs` e `agent`. Nada de
+  argumentos, resultados, consultas ou identificadores. Serve para fechar as duas verificações abertas (versão
+  `2.0.0+<sha7>` e envio do `idempotencyKey`). No Cloud Logging: `jsonPayload.message="mcp.call"`. Não cobre o 202 de
+  notificações nem a ferramenta `forgelex.connection_status` (respondida antes do handler) nem o 429 do limitador.
 - Ferramentas cobradas exigem `idempotencyKey` (ou o cabeçalho `Idempotency-Key`); sem ela o servidor devolve `-32602`.
   Se o modelo não a enviar, a pesquisa falha. Verificar nas conversas reais.
 
