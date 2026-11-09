@@ -10,33 +10,33 @@ Nenhum arquivo do projeto foi alterado nesta revisão.
 O texto abaixo (seções 1 a 4) é o da revisão original e não foi reescrito. Esta tabela registra o que
 foi reverificado **por leitura do código** em 07/11/2026; “não reverificado” significa que não foi relido.
 
-| Achado | Situação |
-| --- | --- |
-| A1 conciliação | Existem `scripts/reconcile-commercial-call.mjs` e o cancelamento cooperativo (`cancelRequestedAt`, PR #101), descritos em `commercial-execution.md`. Fluxo de ponta a ponta não reverificado |
-| M1 falha de autenticação no stream | Não reverificado |
-| M2 leituras como escrita | Parcial. `getExecution` e `listClientEvents` passaram a snapshot somente leitura (#114); `eventsChanged` já aliviava o SSE. Segue a leitura de até 1000 execuções por conversa |
-| M3 varreduras globais | Corrigido: `sweepAdmissions` filtra por expiração, ordena e limita; a recuperação parte das reservas abertas |
-| M4 resposta destrutiva | Corrigido: `assertCanAdmit` roda antes de consumir a pergunta |
-| M5 execuções sem cobrança fora dos limites | Corrigido: `limitCents` conta o uso medido mesmo sem cobrança |
-| M6 lista negra de códigos | Resolvido no #115: apontamento nunca torna a entrega cobrável sozinho |
-| M7 falhas engolidas | Não há `catch {}` vazio em `apps/api/src` nem `packages/*/src`; log e métricas não reverificados |
-| M8 contador de reconexão do SSE | O contador passa por `streamRetries` em `use-execution-events.ts`; comportamento não reverificado |
-| M9 smokes fora da CI | Corrigido: os quatro smokes do núcleo agêntico estão no job `postgres` do `ci.yml` |
-| Constantes duplicadas | O caminho comercial já tinha fonte única (`COMMERCIAL_POLICY.model`); as duplicações do piloto foram unificadas no #116 |
-| Formatação fora do Prettier | A CI roda `format:check:code` |
-| Documentos e imagens na raiz | Movidos para `docs/historico/` e `docs/product/referencias-visuais/`; os `playwright.*.config.ts` seguem na raiz |
+| Achado                                     | Situação                                                                                                                                                                                     |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1 conciliação                             | Existem `scripts/reconcile-commercial-call.mjs` e o cancelamento cooperativo (`cancelRequestedAt`, PR #101), descritos em `commercial-execution.md`. Fluxo de ponta a ponta não reverificado |
+| M1 falha de autenticação no stream         | Não reverificado                                                                                                                                                                             |
+| M2 leituras como escrita                   | Parcial. `getExecution` e `listClientEvents` passaram a snapshot somente leitura (#114); `eventsChanged` já aliviava o SSE. Segue a leitura de até 1000 execuções por conversa               |
+| M3 varreduras globais                      | Corrigido: `sweepAdmissions` filtra por expiração, ordena e limita; a recuperação parte das reservas abertas                                                                                 |
+| M4 resposta destrutiva                     | Corrigido: `assertCanAdmit` roda antes de consumir a pergunta                                                                                                                                |
+| M5 execuções sem cobrança fora dos limites | Corrigido: `limitCents` conta o uso medido mesmo sem cobrança                                                                                                                                |
+| M6 lista negra de códigos                  | Resolvido no #115: apontamento nunca torna a entrega cobrável sozinho                                                                                                                        |
+| M7 falhas engolidas                        | Não há `catch {}` vazio em `apps/api/src` nem `packages/*/src`; log e métricas não reverificados                                                                                             |
+| M8 contador de reconexão do SSE            | O contador passa por `streamRetries` em `use-execution-events.ts`; comportamento não reverificado                                                                                            |
+| M9 smokes fora da CI                       | Corrigido: os quatro smokes do núcleo agêntico estão no job `postgres` do `ci.yml`                                                                                                           |
+| Constantes duplicadas                      | O caminho comercial já tinha fonte única (`COMMERCIAL_POLICY.model`); as duplicações do piloto foram unificadas no #116                                                                      |
+| Formatação fora do Prettier                | A CI roda `format:check:code`                                                                                                                                                                |
+| Documentos e imagens na raiz               | Movidos para `docs/historico/` e `docs/product/referencias-visuais/`; os `playwright.*.config.ts` seguem na raiz                                                                             |
 
 ## 1. O que foi executado e o resultado
 
-| Verificação | Resultado |
-| --- | --- |
-| `pnpm build`, `typecheck` (16 pacotes), `lint` | Aprovados |
-| `vitest run` completo | 1313 aprovados, 17 ignorados, 0 falhas |
-| Migrations em PostgreSQL 16 limpo (35 persistence + 10 billing) | Aplicadas sem erro |
-| Smokes PG: `commercial-inference`, `agentic-retention`, `operational-retention` | Aprovados |
-| E2E Playwright: `agentic-workspace` (23), `agentic-commercial-flow` (1), `agentic-flags` (1) | 25/25 aprovados |
+| Verificação                                                                                  | Resultado                                                                    |
+| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `pnpm build`, `typecheck` (16 pacotes), `lint`                                               | Aprovados                                                                    |
+| `vitest run` completo                                                                        | 1313 aprovados, 17 ignorados, 0 falhas                                       |
+| Migrations em PostgreSQL 16 limpo (35 persistence + 10 billing)                              | Aplicadas sem erro                                                           |
+| Smokes PG: `commercial-inference`, `agentic-retention`, `operational-retention`              | Aprovados                                                                    |
+| E2E Playwright: `agentic-workspace` (23), `agentic-commercial-flow` (1), `agentic-flags` (1) | 25/25 aprovados                                                              |
 | Smokes PG: `agentic-workspace`, `agentic-execution`, `agentic-case-task`, `inference-budget` | **Não executados** — exigem Docker (indisponível aqui) e **não estão na CI** |
-| Chamada real à OpenAI | Não executada (sem chave/autorização) |
+| Chamada real à OpenAI                                                                        | Não executada (sem chave/autorização)                                        |
 
 **Conclusão:** não há quebra de build, tipos, lint, testes ou fluxo E2E. A "bagunça" é de
 projeto, operação e higiene — não de código que falhe hoje. Os achados abaixo vêm de leitura
@@ -47,6 +47,7 @@ do código; o único provado por execução está marcado.
 ### ALTA
 
 **A1. Uma chamada ao provedor que termina "incerta" trava a conta inteira, sem ferramenta de saída.**
+
 - Causa: após o envio, qualquer fim sem `usage` válido (cancelar o trabalho durante a chamada,
   timeout de 30 s, erro de rede, prazo de 5 min, **deploy/`worker.stop()` durante a chamada**)
   chama `markUncertain` (`commercial-provider.ts:99-102`). `assertReconciled`
@@ -167,20 +168,20 @@ nos testes existentes); M1 foi reproduzido por teste descartável.
 
 ## 6. Correções aplicadas (30–31/10/2026)
 
-| Achado | Correção |
-| --- | --- |
-| M1 | O stream tolera falhas de verificação isoladas e só encerra após 3 consecutivas ou se a identidade mudar (`execution-routes.ts`). Se chegar `ACCESS_REVOKED` no meio do stream, o cliente reconecta, e uma revogação real é recusada pela própria conexão. Testes de API (falham sem a correção) e E2E novo. |
-| M8 | Stream estável (≥ 10 s) zera o contador de reconexão (`streamRetries`). |
-| A1 | Ferramenta de conciliação: `CommercialInferenceService.reconcileCall`/`listUnresolvedCalls` e `scripts/reconcile-commercial-call.mjs` (lista, dry-run e `--apply`), restrita a chamadas UNCERTAIN, com evidência obrigatória, sem cobrança ao cliente. Procedimento em `docs/operations/agentic-workspace/commercial-execution.md`. |
+| Achado | Correção                                                                                                                                                                                                                                                                                                                            |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1     | O stream tolera falhas de verificação isoladas e só encerra após 3 consecutivas ou se a identidade mudar (`execution-routes.ts`). Se chegar `ACCESS_REVOKED` no meio do stream, o cliente reconecta, e uma revogação real é recusada pela própria conexão. Testes de API (falham sem a correção) e E2E novo.                        |
+| M8     | Stream estável (≥ 10 s) zera o contador de reconexão (`streamRetries`).                                                                                                                                                                                                                                                             |
+| A1     | Ferramenta de conciliação: `CommercialInferenceService.reconcileCall`/`listUnresolvedCalls` e `scripts/reconcile-commercial-call.mjs` (lista, dry-run e `--apply`), restrita a chamadas UNCERTAIN, com evidência obrigatória, sem cobrança ao cliente. Procedimento em `docs/operations/agentic-workspace/commercial-execution.md`. |
 
 **A1 — o que não mudou, por decisão que cabe a Boni:** cancelar ou reiniciar durante uma chamada
 continua marcando-a UNCERTAIN e bloqueando o tenant até a conciliação. Sem prova do consumo, não há
 base para tratar cancelamento como custo zero. Se quiser reduzir a frequência do bloqueio, a política
 precisa ser definida (por exemplo, conciliação automática por consulta ao registro de uso do provedor).
 
-| Achado | Correção (31/10/2026) |
-| --- | --- |
-| M4 | A resposta confere saldo, limites, execução ativa e conciliação (`assertCanAdmit`) **antes** de cancelar a execução e consumir a pergunta. Se faltar saldo, a pergunta continua respondível; teste falha sem a correção. Não resolvido: a sucessora ainda reinicia sem checkpoint, porque a resposta muda o contexto e invalida o estado anterior. |
-| M5 | Trabalho sem cobrança, mas com consumo medido, conta nos limites diário/mensal pelo preço que teria. Trabalho sem consumo não conta. **Muda o comportamento visível dos limites; política a confirmar por Boni.** Constantes 500/2000/10000 passaram a ler `COMMERCIAL_POLICY`. |
-| M6 | Lista única `CASE_TASK_LIMITATION_CODES` no workflow; `finding()` só aceita esses códigos (o compilador impede código novo sem classificação) e a cobrança lê a mesma lista. A regex para códigos emitidos pelo modelo foi mantida. |
-| M7 | Falhas engolidas passam a gerar log estruturado com código estável (`failure-log.ts`); ver `commercial-execution.md`. |
+| Achado | Correção (31/10/2026)                                                                                                                                                                                                                                                                                                                              |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M4     | A resposta confere saldo, limites, execução ativa e conciliação (`assertCanAdmit`) **antes** de cancelar a execução e consumir a pergunta. Se faltar saldo, a pergunta continua respondível; teste falha sem a correção. Não resolvido: a sucessora ainda reinicia sem checkpoint, porque a resposta muda o contexto e invalida o estado anterior. |
+| M5     | Trabalho sem cobrança, mas com consumo medido, conta nos limites diário/mensal pelo preço que teria. Trabalho sem consumo não conta. **Muda o comportamento visível dos limites; política a confirmar por Boni.** Constantes 500/2000/10000 passaram a ler `COMMERCIAL_POLICY`.                                                                    |
+| M6     | Lista única `CASE_TASK_LIMITATION_CODES` no workflow; `finding()` só aceita esses códigos (o compilador impede código novo sem classificação) e a cobrança lê a mesma lista. A regex para códigos emitidos pelo modelo foi mantida.                                                                                                                |
+| M7     | Falhas engolidas passam a gerar log estruturado com código estável (`failure-log.ts`); ver `commercial-execution.md`.                                                                                                                                                                                                                              |

@@ -68,7 +68,7 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   implementado** (mesmo handler; o log passa a trazer `path`); `/authorize` e `/register` seguem sem evidência e fora.
   Depois de publicado, confirmar: renovação do Claude em `path="/token"` com `oauth.token_issued`, e ausência de
   novos 404 em `/token`.
-- **Log `mcp.call` implementado em código (09/11/2026, ainda não publicado):** cada chamada JSON-RPC em `/mcp` grava
+- **Log `mcp.call` (09/11/2026, publicado no `a44035e`):** cada chamada JSON-RPC em `/mcp` grava
   `method`, `tool` (só em `tools/call`), `idempotency` (`header`, `argument` ou `none`, nunca o valor), `ok`,
   `rpcErrorCode`, `serverVersion` (no `initialize`), `toolCount` (no `tools/list`), `durationMs` e `agent`. Nada de
   argumentos, resultados, consultas ou identificadores. Serve para fechar as duas verificações abertas (versão
@@ -85,7 +85,7 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   não adotada por risco de quebrar clientes que mandam o header: declarar `idempotencyKey` em `required`. Depois de
   publicado, conferir no `mcp.call` se a primeira chamada de pesquisa já vem com `idempotency=argument` e se o
   painel passa a abrir sem pedido. O ChatGPT ainda não foi observado neste ponto.
-- **Painel automático na pesquisa (09/11/2026, em código, ainda não publicado):** com as descrições do `b8c44ee`, o
+- **Painel automático na pesquisa (09/11/2026, publicado no `5757733`, confirmado por Boni):** com as descrições do `b8c44ee`, o
   Claude ainda respondeu em texto, parafraseando a ementa, e só abriu o painel depois do pedido (relato de Boni). A
   decisão de chamar o painel é do modelo, então deixou de depender dele: `research.search_case_law` agora carrega a
   interface do painel (`_meta.ui.resourceUri` para o Claude e `openai/outputTemplate` para o ChatGPT, só quando o
@@ -93,12 +93,43 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   botão de salvar quando autorizado; sem repetir `items`). O texto do resultado traz um `aviso`: a ementa integral já
   está no painel, não reproduzir nem parafrasear, comentar em complemento. Se a ferramenta do painel falhar, o painel
   sai montado do próprio resultado, sem salvar. `research.present_decisions` segue para reabrir ou escolher decisões.
-  Sem painel ou sem interface, nada muda. **Não verificado:** como cada host renderiza o painel na ferramenta de
-  pesquisa e se o modelo respeita o aviso; confirmar com uma pesquisa no Claude e outra no ChatGPT depois do deploy.
-- Ferramentas cobradas exigem `idempotencyKey` (ou o cabeçalho `Idempotency-Key`); sem ela o servidor devolve `-32602`.
-  Se o modelo não a enviar, a pesquisa falha. Verificar nas conversas reais.
+  Sem painel ou sem interface, nada muda. **Confirmado em 09/11/2026 (Boni, capturas):** no Claude e no ChatGPT o
+  painel abriu sem pedido. O `mcp.call` mostra que, nos dois, o modelo também chamou `research.present_decisions`
+  depois da pesquisa (28 s e 17 s); não dá para saber pelo log se o painel automático da pesquisa renderizou sozinho,
+  mas o resultado para o usuário é o esperado.
+- **Chave de idempotência (`mcp.call`, 09/11/2026):** após o `b8c44ee`, o Claude passou a enviar `idempotencyKey` na
+  primeira pesquisa (antes errava e repetia); o ChatGPT ainda errou duas vezes (20:38) antes de acertar. Nenhuma das 12
+  chamadas registradas usou o cabeçalho `Idempotency-Key`. **Em código, ainda não publicado:** `idempotencyKey` passa a
+  constar em `required` no schema de toda ferramenta que a exige (pesquisa, verificação, workflows e análise), para o
+  host enviá-la na primeira tentativa. Risco conhecido: um cliente que mande só o cabeçalho e valide os argumentos
+  contra o schema seria recusado; não há sinal desse cliente nos logs. Sem a chave, a chamada segue falhando com
+  `-32602`. Conferir no `mcp.call` do ChatGPT depois do deploy.
+- **Decisões por chamada (Boni, 09/11/2026):** a cobrança é por chamada (R$ 0,20), não por decisão, então devolver 1
+  decisão no ChatGPT entrega menos pelo mesmo preço. O Claude devolve 5 a 10; o ChatGPT devolvia 1, provavelmente
+  porque o modelo enviava `limit` baixo ao ler "uma jurisprudência". **Em código, ainda não publicado:** o `limit` ganha
+  descrição ("a cobrança é por chamada; peça 10, o padrão, mesmo que o usuário diga uma jurisprudência") e, no MCP, o
+  servidor eleva qualquer `limit` abaixo de 5 para 5 (`MIN_SEARCH_RESULTS`); o padrão continua 10 e o máximo 20. O piso
+  vale só no MCP: os fluxos internos (workflows agênticos, API de pesquisa) mantêm o `limit` que pedirem. Piso e padrão
+  são ajustáveis. Conferir no ChatGPT depois do deploy se passam a vir de 5 a 10 decisões.
+- **M2 (resto):** `getExecution` ainda lê até 1000 execuções da conversa para achar a vigente (filtra e ordena em
+  memória). Resolver de vez exige colunas indexadas (`status`, `createdAt`, `contextRevision`) na tabela
+  `agentic_executions`, portanto uma migration, que o `deploy-from-main.ps1` não aplica e pede backup. Fica para um
+  bloco próprio, não é ajuste pequeno.
 
-## Estado publicado atual — 09/11/2026 (UTC): SHA `9e2a30f` em produção
+## Estado publicado atual — 09/11/2026 (UTC): SHA `5757733` em produção
+
+`5757733a54869f1d7d2e06e7b38ab7b99d4aeeb0` (`main`, PR #131: painel na própria pesquisa; CI verde). Imagem
+`forgelex-api@sha256:58cd1f6f64b41de7cf2149ec7051b626372b92d1967018723ae9a566a68fc935`. Revisões
+`forgelex-api-prod-5757733` e `forgelex-closure-hml-private-5757733` a 100%, criadas sem tráfego, conferidas contra as
+`-b8c44ee` e trocadas por `deploy-from-main.ps1`, sem reversão e sem migration. Verificado: metadados OAuth respondem 200
+e Boni confirmou o painel sem pedido no Claude e no ChatGPT. Reversão: `--to-revisions=...-b8c44ee=100` nos dois serviços.
+
+Publicações do mesmo dia, em ordem, todas por `deploy-from-main.ps1` e sem migration: `9e2a30f` (PR #128, alias
+`POST /token`), `a44035e` (PR #129, log `mcp.call` e registro das decisões, digest
+`sha256:120ac9071d1b920e424b2fa50fada25dcae822fc9d6d80c5dbf8498b4c94ff38`) e `b8c44ee` (PR #130, descrições da chave e do
+painel, digest `sha256:7b26faabc0a0efc238dbfbf6216a2a6e6a491509468aee88ea4790e03a9bfb3e`).
+
+## Publicação anterior — 09/11/2026 (UTC): SHA `9e2a30f`
 
 `9e2a30f84413a6f2ef9830bb35a85b9ead9f0cf3` (`main`, PR #128: alias `POST /token` na raiz; CI verde). Imagem
 `forgelex-api@sha256:ab151b746c8ed989010b3a1e99469f1b5ca98096e832180a9f17707d160ae3a1`. Revisões
@@ -270,20 +301,20 @@ gerada pelo Cloud Build `6004a5cc-758d-427f-9d4e-a79313a9a054` (4m35s).
   `_VITE_FORGELEX_CASE_WORKSPACE_ENABLED`, e o `cloudbuild.yaml` assume `false`. O build de 07/11 reaproveitou
   as substituições do build anterior (`gcloud builds describe`), trocando só `_SOURCE_SHA`; repetir esse
   caminho evita publicar o front sem a mesa agêntica. Depois: `gcloud run deploy ... --no-traffic
-  --revision-suffix=<sha7> --update-env-vars=FORGELEX_SOURCE_SHA=<sha>` nos dois serviços e
+--revision-suffix=<sha7> --update-env-vars=FORGELEX_SOURCE_SHA=<sha>` nos dois serviços e
   `update-traffic --to-revisions=<revisão>=100`.
 
 ## Melhorias de código após 06/11/2026 (em `main` e publicadas em 07/11)
 
 Cinco PRs de revisão técnica, todos mergeados em 07/11/2026, sem migration:
 
-| PR | Mudança |
-| --- | --- |
+| PR   | Mudança                                                                                                                                                                                                                                                                              |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | #112 | MCP falha fechado sem tenant/usuário autenticado (`MCP_IDENTITY_REQUIRED`); limite de 120 `tools/call` por minuto por tenant e usuário em `/mcp` (`FORGELEX_MCP_RATE_LIMIT_PER_MINUTE`, `0` desliga, vale por instância); remoção de `PolicyEngine.sanitizeDocumentContent`, sem uso |
-| #113 | MCP responde `ping`; negociação de `protocolVersion` dentro do handler, sem mudar o resultado |
-| #114 | `getExecution` e `listClientEvents` leem em snapshot somente leitura (sem lock de tenant, sem bump de versão, sem `UPDATE`) |
-| #115 | Apontamento (`finding`) nunca torna a entrega cobrável sozinho; só afirmação fundamentada, minuta ou matriz probatória verificada. Uma revisão cujo único resultado seja um apontamento deixa de ser cobrada |
-| #116 | `tools/call` do handler MCP dividido por família de ferramenta; modelo do piloto unificado em `PILOT_POLICY.model` |
+| #113 | MCP responde `ping`; negociação de `protocolVersion` dentro do handler, sem mudar o resultado                                                                                                                                                                                        |
+| #114 | `getExecution` e `listClientEvents` leem em snapshot somente leitura (sem lock de tenant, sem bump de versão, sem `UPDATE`)                                                                                                                                                          |
+| #115 | Apontamento (`finding`) nunca torna a entrega cobrável sozinho; só afirmação fundamentada, minuta ou matriz probatória verificada. Uma revisão cujo único resultado seja um apontamento deixa de ser cobrada                                                                         |
+| #116 | `tools/call` do handler MCP dividido por família de ferramenta; modelo do piloto unificado em `PILOT_POLICY.model`                                                                                                                                                                   |
 
 Os checks da CI de cada PR passaram antes do merge. Antes de 07/11 às 17:35 UTC nenhum deles estava em
 produção (a revisão em uso era `forgelex-api-prod-d2a329d`, do PR #111); a publicação acima os levou
@@ -371,7 +402,6 @@ A composição permanece opt-in, desativada por padrão. Nenhuma chamada paga,
 commit, push, migration operacional ou publicação ocorreu nesta etapa.
 D04-v8 permanece residual não bloqueante, com US$ 0,083620 reservados.
 [Implementação, validação e limites](docs/architecture/2026-11-05-editorial-commercial-integration.md).
-
 
 ## Estado vigente — campanha v9 e consolidação local de 04/11/2026
 
@@ -690,7 +720,6 @@ com histórico preservado e sem cobrança pela decisão. Ver
 [escopo e validação local](docs/architecture/2026-11-02-forgelex-3-evidence-reapproval.md).
 [Design corrigido](docs/superpowers/specs/2026-11-01-forgelex-3-approved-case-context-design.md).
 
-
 ## Evolução ForgeLex 3 — diagnóstico local de 01/11/2026
 
 O [primeiro incremento de qualidade](docs/architecture/2026-11-01-forgelex-3-audit.md)
@@ -745,13 +774,13 @@ com build, digest, verificações, a promoção, o rollback feito por Boni por
 engano e a repromoção. A imagem anterior (`commercial-7abf606`) segue
 disponível para retorno de tráfego.
 
-| Pendência | Dependência para encerrar |
-| --- | --- |
+| Pendência                                             | Dependência para encerrar                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Recibo da publicação e ativação da execução comercial | Boni autorizou publicar e ativar ([commercial-execution.md](docs/operations/agentic-workspace/commercial-execution.md)), e em 01/11 a API de produção estava assim: `FORGELEX_AGENTIC_WORKSPACE_ENABLED=true` e `FORGELEX_COMMERCIAL_EXECUTION_ENABLED=true`, interface agêntica no build, mínimo de uma instância, CPU sempre alocada e `OPENAI_API_KEY` no Secret Manager. Essa configuração vem da revisão `commercial-7abf606` (30/10), que não tem recibo no repositório; o registro de 30/10 descreve a `dc68fcb` com as flags desligadas. Falta registrar o recibo exigido (backup, flags, segredo, instância e ensaio sintético com teto comercial). A migration `billing-ledger-0010-commercial-inference` consta no journal desde 30/10 |
-| Cancelamento cooperativo em produção | Política de 01/11 implementada e presente na imagem publicada em 02/11; não houve cancelamento real em produção para comprovar. Timeout ou queda de rede ainda deixam a chamada incerta (saída: conciliação manual por `scripts/reconcile-commercial-call.mjs`, com evidência do provedor) |
-| Limites diário e mensal contam consumo sem cobrança | Confirmar a regra com Boni; é visível ao cliente |
-| Chave do DataJud como variável simples | `FORGELEX_DATAJUD_API_KEY` está como variável de ambiente, não como segredo. Em 02/11 Boni decidiu não alterá-la; fica registrado como decisão, não como defeito. Pelo que se sabe é a chave pública do CNJ (confirmar na documentação oficial) |
-| Configurações do Playwright na raiz | Os 17 `playwright.*.config.ts` seguem na raiz: o `package.json` e a CI os chamam por nome. Prompts, adendos e relatórios históricos foram para `docs/historico/` e as imagens `ForgeLex_0*.png` para `docs/product/referencias-visuais/` |
+| Cancelamento cooperativo em produção                  | Política de 01/11 implementada e presente na imagem publicada em 02/11; não houve cancelamento real em produção para comprovar. Timeout ou queda de rede ainda deixam a chamada incerta (saída: conciliação manual por `scripts/reconcile-commercial-call.mjs`, com evidência do provedor)                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Limites diário e mensal contam consumo sem cobrança   | Confirmar a regra com Boni; é visível ao cliente                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Chave do DataJud como variável simples                | `FORGELEX_DATAJUD_API_KEY` está como variável de ambiente, não como segredo. Em 02/11 Boni decidiu não alterá-la; fica registrado como decisão, não como defeito. Pelo que se sabe é a chave pública do CNJ (confirmar na documentação oficial)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Configurações do Playwright na raiz                   | Os 17 `playwright.*.config.ts` seguem na raiz: o `package.json` e a CI os chamam por nome. Prompts, adendos e relatórios históricos foram para `docs/historico/` e as imagens `ForgeLex_0*.png` para `docs/product/referencias-visuais/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ## Dependências de segurança — publicadas em 24/10/2026
 
@@ -801,26 +830,26 @@ em 23/10; mitigação local e gate de audit permanecem.
 
 ## Correções encerradas
 
-| Frente | Resultado e evidência |
-| --- | --- |
-| CI do lifecycle | Correção de sincronização e diagnósticos entregue; cinco E2E e seis checks aprovados novamente na PR #61. A causa exata da ocorrência Linux original não foi demonstrada |
-| Dependências de build | source-map-js e postcss-selector-parser corrigidos; braces tem mitigação local de profundidade, regressão e audit completo obrigatório. O advisory upstream continua aberto |
-| Pesquisa → Caso | PR #58 publicada: salvar/deduplicar julgado, conferir fonte e reutilizar nos rascunhos. Pesquisa com dez E2E aprovados; vínculo não decide pertinência jurídica |
-| Retenção ordinária | Ativação autorizada em 09/10; job diário às 8h, OAuth, --apply; execuções manual e Scheduler concluídas, zero removidos. Worker HTTP desabilitado; não constitui qualificação fiscal |
-| Reserva histórica | Classificada: uma PENDING de 20 centavos, lease vencido, sem fingerprint e sem débito correspondente. Não bloqueia saldo pela regra atual; nenhum estorno/backfill executado |
-| Busca ampla STJ / P2 | Código anterior já publicado; corpus real medido. PR #61/migration 0029 aplicada: índice de metadados usado, zero Heap Fetches nessa etapa. Mesma amostra ampla: 20,3 s antes, 13,3–16,5 s depois, resultados idênticos. Não é p95 nem garantia sob carga |
-| Referências históricas | Registros P2/acessibilidade de 02/10 receberam adendos para separar entrega já publicada e limites dos ensaios antigos |
+| Frente                                      | Resultado e evidência                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CI do lifecycle                             | Correção de sincronização e diagnósticos entregue; cinco E2E e seis checks aprovados novamente na PR #61. A causa exata da ocorrência Linux original não foi demonstrada                                                                                                                                      |
+| Dependências de build                       | source-map-js e postcss-selector-parser corrigidos; braces tem mitigação local de profundidade, regressão e audit completo obrigatório. O advisory upstream continua aberto                                                                                                                                   |
+| Pesquisa → Caso                             | PR #58 publicada: salvar/deduplicar julgado, conferir fonte e reutilizar nos rascunhos. Pesquisa com dez E2E aprovados; vínculo não decide pertinência jurídica                                                                                                                                               |
+| Retenção ordinária                          | Ativação autorizada em 09/10; job diário às 8h, OAuth, --apply; execuções manual e Scheduler concluídas, zero removidos. Worker HTTP desabilitado; não constitui qualificação fiscal                                                                                                                          |
+| Reserva histórica                           | Classificada: uma PENDING de 20 centavos, lease vencido, sem fingerprint e sem débito correspondente. Não bloqueia saldo pela regra atual; nenhum estorno/backfill executado                                                                                                                                  |
+| Busca ampla STJ / P2                        | Código anterior já publicado; corpus real medido. PR #61/migration 0029 aplicada: índice de metadados usado, zero Heap Fetches nessa etapa. Mesma amostra ampla: 20,3 s antes, 13,3–16,5 s depois, resultados idênticos. Não é p95 nem garantia sob carga                                                     |
+| Referências históricas                      | Registros P2/acessibilidade de 02/10 receberam adendos para separar entrega já publicada e limites dos ensaios antigos                                                                                                                                                                                        |
 | Leitor MCP e reabertura nos aplicativos web | ChatGPT: leitor, expansão, salvar a mesma operação sem duplicar e reabrir confirmados. Claude Web: leitor, expansão, listagem e reabertura confirmados. Boni comprovou leitor Desktop e aprovou apresentação ChatGPT. [Evidências e limites](docs/operations/stabilization/2026-10-12-mcp-live-validation.md) |
 
 ## Pendências humanas e externas
 
-| Pendência | Dependência para encerrar |
-| --- | --- |
-| Ensaios residuais da coleção MCP | Falta testar salvamento pelo Claude e coleção no Claude Desktop. Exclusão confirmada, seis vagas/sétima bloqueada, revogação e expiração do histórico não foram reproduzidas na conta real; testes automatizados permanecem evidência separada. ChatGPT teve cópia manual funcional após falha automática; painel aberto antes da permissão conserva aviso até reabertura. [Recorte confirmado](docs/operations/stabilization/2026-10-12-mcp-live-validation.md) |
-| Comprovações operacionais | Executar, avaliar e aprovar o ensaio pelo próprio Boni; ausência de segundo revisor não constitui pendência nem bloqueio |
-| Execução fiscal, contratos e provas comerciais | Preparação FISCAL-2026-10-10.v1 aprovada por Boni em 10/10. Restam situação/classificação municipal, conciliação dos R$ 25 e contratos efetivos; prova de venda real depende de evento real, ainda inexistente segundo Boni |
-| Braces upstream | Advisory retirado pelo upstream em 23/10, sem nova versão corrigida (registry 3.0.3). Patch, testes e gate de audit preservados; exceção anterior não foi ampliada. [Conferência de 24/10](docs/operations/stabilization/2026-10-24-security-dependencies.md) |
-| Lacuna oficial STJ | Recurso 20240229.json mantém os mesmos 599 bytes e hash da falha na linha 24, reconferido em 10/10. Depende de correção na fonte e posterior reavaliação da lacuna; conteúdo parcial não foi incorporado |
+| Pendência                                      | Dependência para encerrar                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ensaios residuais da coleção MCP               | Falta testar salvamento pelo Claude e coleção no Claude Desktop. Exclusão confirmada, seis vagas/sétima bloqueada, revogação e expiração do histórico não foram reproduzidas na conta real; testes automatizados permanecem evidência separada. ChatGPT teve cópia manual funcional após falha automática; painel aberto antes da permissão conserva aviso até reabertura. [Recorte confirmado](docs/operations/stabilization/2026-10-12-mcp-live-validation.md) |
+| Comprovações operacionais                      | Executar, avaliar e aprovar o ensaio pelo próprio Boni; ausência de segundo revisor não constitui pendência nem bloqueio                                                                                                                                                                                                                                                                                                                                         |
+| Execução fiscal, contratos e provas comerciais | Preparação FISCAL-2026-10-10.v1 aprovada por Boni em 10/10. Restam situação/classificação municipal, conciliação dos R$ 25 e contratos efetivos; prova de venda real depende de evento real, ainda inexistente segundo Boni                                                                                                                                                                                                                                      |
+| Braces upstream                                | Advisory retirado pelo upstream em 23/10, sem nova versão corrigida (registry 3.0.3). Patch, testes e gate de audit preservados; exceção anterior não foi ampliada. [Conferência de 24/10](docs/operations/stabilization/2026-10-24-security-dependencies.md)                                                                                                                                                                                                    |
+| Lacuna oficial STJ                             | Recurso 20240229.json mantém os mesmos 599 bytes e hash da falha na linha 24, reconferido em 10/10. Depende de correção na fonte e posterior reavaliação da lacuna; conteúdo parcial não foi incorporado                                                                                                                                                                                                                                                         |
 
 Braces/STJ foram [reavaliados em 10/10](docs/operations/stabilization/2026-10-10-external-pending-review.md):
 51 testes dos controles existentes aprovados, audit de produção sem alertas,
