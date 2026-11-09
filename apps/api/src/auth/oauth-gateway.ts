@@ -1,5 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { structuredLog } from '../observability.js';
 import type { OAuthTokenVault } from './oauth-token-vault.js';
 
@@ -220,7 +220,7 @@ export function registerOAuthGateway(app: FastifyInstance, options: Options): vo
       return reply.code(503).send({ error: 'temporarily_unavailable' });
     }
   });
-  app.post('/oauth/token', async (request, reply) => {
+  const tokenHandler = async (request: FastifyRequest, reply: FastifyReply) => {
     reply.header('Cache-Control', 'no-store').header('Pragma', 'no-cache');
     const body = request.body as Record<string, string> | null;
     const grant =
@@ -229,7 +229,13 @@ export function registerOAuthGateway(app: FastifyInstance, options: Options): vo
     const seen: { clientId?: string } = {};
     /** Registra só códigos estáveis e metadados sem segredo: nunca o corpo, tokens, código, verificador ou recurso. */
     const record = (level: 'info' | 'warn', event: string, fields: Record<string, unknown>) =>
-      structuredLog(level, event, { grant, clientId: seen.clientId, agent, ...fields });
+      structuredLog(level, event, {
+        grant,
+        clientId: seen.clientId,
+        agent,
+        path: request.url.split('?')[0],
+        ...fields,
+      });
     const deny = (status: number, error: string, reason: string, fields: Record<string, unknown> = {}) => {
       record('warn', 'oauth.token_rejected', { status, error, reason, ...fields });
       return reply.code(status).send({ error });
@@ -358,5 +364,11 @@ export function registerOAuthGateway(app: FastifyInstance, options: Options): vo
     } catch {
       return deny(503, 'temporarily_unavailable', 'UPSTREAM_RESPONSE_UNREADABLE', { upstreamStatus: response.status });
     }
-  });
+  };
+  app.post('/oauth/token', tokenHandler);
+  /**
+   * Alias na raiz: o cliente do Claude, sem os metadados em memória, renova em `/token` em vez de usar o
+   * `token_endpoint` anunciado (404 observado em 03/11 e 09/11/2026). Mesmo handler, mesmas regras.
+   */
+  app.post('/token', tokenHandler);
 }

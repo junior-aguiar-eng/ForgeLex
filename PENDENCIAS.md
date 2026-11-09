@@ -50,7 +50,7 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   `/token`). Hipóteses não testadas: cliente em modo de endpoints padrão (aliases na raiz `/token`, `/authorize`,
   `/register` seriam o remédio previsto na especificação), rotação de refresh token do Supabase. Ligar o log do
   balanceador (hoje desligado) segue como decisão de Boni.
-  **Log do motivo implementado em código (08/11/2026, ainda não publicado):** cada recusa de `POST /oauth/token`
+  **Log do motivo publicado no `e799141` (09/11/2026):** cada recusa de `POST /oauth/token`
   grava `oauth.token_rejected` com `reason` estável (`RESOURCE_MISMATCH`, `RESOURCE_REQUIRED`,
   `GRANT_TYPE_UNSUPPORTED`, `BODY_MISSING`, `CLIENT_ENVELOPE_INVALID`, `REFRESH_ENVELOPE_INVALID`,
   `REFRESH_CLIENT_MISMATCH`, `CODE_ENVELOPE_INVALID`, `PKCE_MISMATCH`, `REDIRECT_URI_MISMATCH`, `UPSTREAM_REJECTED`
@@ -60,10 +60,28 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   `jsonPayload.message="oauth.token_rejected"`. Não cobre 4xx gerados antes do handler (JSON sem corpo ou tipo de
   conteúdo não aceito, respondidos pelo Fastify) nem o 404 de `/token` na raiz. Depois de publicado, o próximo 400
   de renovação diz qual das causas foi; só então decidir sobre aliases na raiz.
+  **Evidência de 09/11/2026 (UTC, Cloud Run):** o login do Claude caiu duas vezes com 401 em `/mcp`. Às 02:16 o
+  cliente do Claude (`python-httpx`) fez `POST /token` na raiz e levou 404 (o anunciado é `/oauth/token`); às 05:08
+  não tentou renovar e se re-registrou (3 chamadas a `/oauth/register`), voltando só com nova autorização. Nenhuma
+  recusa de `/oauth/token` foi registrada; as renovações que chegaram lá deram 200 (inclusive a do Claude às 10:34).
+  Hipótese: sem os metadados em memória, o cliente renova no `/token` padrão. **Alias `POST /token` na raiz
+  implementado** (mesmo handler; o log passa a trazer `path`); `/authorize` e `/register` seguem sem evidência e fora.
+  Depois de publicado, confirmar: renovação do Claude em `path="/token"` com `oauth.token_issued`, e ausência de
+  novos 404 em `/token`.
 - Ferramentas cobradas exigem `idempotencyKey` (ou o cabeçalho `Idempotency-Key`); sem ela o servidor devolve `-32602`.
   Se o modelo não a enviar, a pesquisa falha. Verificar nas conversas reais.
 
-## Estado publicado atual — 08/11/2026 (UTC): SHA `e7cf3b7` em produção
+## Estado publicado atual — 09/11/2026 (UTC): SHA `e799141` em produção
+
+`e799141f1ed598ec70e4eeffa8434db5f6b6ce0a` (`main`, PR #127: log do motivo de `/oauth/token`; CI verde).
+Cloud Build `e94e996a-437a-4a20-917c-400b9852a5bd` (SUCCESS, 01:22 UTC, 4m47s), imagem
+`forgelex-api@sha256:3c181937fb1e8a585ea7e96f07fde79f137661a9014ea9d936bd04c55a54dc42`. Revisões
+`forgelex-api-prod-e799141` e `forgelex-closure-hml-private-e799141` a 100%, criadas sem tráfego, conferidas contra as
+`-e7cf3b7` (só imagem e `FORGELEX_SOURCE_SHA` mudaram) e trocadas por `deploy-from-main.ps1`, que terminou sem
+reverter. Sem migration. Verificado: metadados OAuth públicos respondem 200 e o log novo já grava `oauth.token_issued`.
+Reversão: `--to-revisions=...-e7cf3b7=100` nos dois serviços.
+
+## Publicação anterior — 08/11/2026 (UTC): SHA `e7cf3b7`
 
 Registro feito depois da publicação, a partir do que se lê hoje em produção (somente leitura). Código
 `e7cf3b7e6f3dc31e2380b91bf5bed1e630763597` (`main`, PR #126; CI verde para este SHA). Imagem
