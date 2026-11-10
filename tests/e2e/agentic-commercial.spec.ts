@@ -5,7 +5,7 @@ const quote = {
   currency: 'BRL',
   policyVersion: 'commercial-test-v1',
   minCostCents: 50,
-  maxCostCents: 500,
+  maxCostCents: 1150,
   availableCents: 2000,
   dailyLimitCents: 2000,
   monthlyLimitCents: 10000,
@@ -18,7 +18,7 @@ async function commercial(page: Page) {
   await page.route('**/api/agentic/commercial/quote', (route) => route.fulfill({ json: quote }));
   await page.route('**/api/agentic/commercial/executions/*/receipt', (route) =>
     route.fulfill({
-      json: { currency: 'BRL', reservedCents: 500, chargedCents: 50, releasedCents: 450, status: 'COMPLETED' },
+      json: { currency: 'BRL', reservedCents: 1150, chargedCents: 50, releasedCents: 1100, status: 'COMPLETED' },
     }),
   );
 }
@@ -51,7 +51,7 @@ test('autoriza preço em reais, preserva retry e mostra comprovante no celular',
   await page.setViewportSize({ width: 320, height: 900 });
   await login(page);
   const composer = page.getByRole('region', { name: 'Novo pedido', exact: true });
-  await expect(composer).toContainText(/Enviar autoriza até R\$\s*5,00/);
+  await expect(composer).toContainText(/Enviar autoriza até R\$\s*11,50/);
   await expect(composer).toContainText('o restante é liberado');
   expect(posted).toHaveLength(0);
   const accessibility = await new AxeBuilder({ page }).include('[data-agentic-workspace]').analyze();
@@ -156,7 +156,7 @@ test('continuação exige preço confirmado e o processamento permite cancelar',
   await page.goto(`/app/trabalho?executionId=${executionId}`);
   await page.getByRole('button', { name: 'Continuar trabalho', exact: true }).click();
   expect(posts).toHaveLength(0);
-  await expect(page.getByRole('region', { name: 'Autorizar trabalho' })).toContainText(/R\$\s*5,00/);
+  await expect(page.getByRole('region', { name: 'Autorizar trabalho' })).toContainText(/R\$\s*11,50/);
   await page.getByRole('button', { name: 'Iniciar trabalho', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Cancelar', exact: true })).toBeVisible();
   expect(posts[0]).toEqual({ kind: 'continue', body: { confirmed: true, policyVersion: quote.policyVersion } });

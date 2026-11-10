@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import { MAX_SOURCE_TEXT_CHARS } from './agentic-limits.js';
 
 const id = z.string().trim().min(1).max(200);
 const text = z.string().trim().min(1).max(4000);
 export const TaskEvidenceReferenceSchema = z.strictObject({
   sourceId: id,
   quote: z.string().min(1).max(4000),
-  start: z.number().int().min(0).max(64000),
+  start: z.number().int().min(0).max(MAX_SOURCE_TEXT_CHARS),
   relation: z.enum(['SUPPORTS', 'CONTRADICTS', 'CONTEXT']),
 });
 const row = z.strictObject({

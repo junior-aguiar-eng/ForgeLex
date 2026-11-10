@@ -263,6 +263,7 @@ export function registerAgenticWorkspace(
                   'COMMERCIAL_MONTHLY_LIMIT',
                   'BILLING_INSUFFICIENT_BALANCE',
                   'COMMERCIAL_POLICY_MISMATCH',
+                  'COMMERCIAL_INPUT_TOO_LARGE',
                 ].includes(message)
               ? message
               : /NOT_FOUND$/.test(message)
@@ -285,7 +286,9 @@ export function registerAgenticWorkspace(
           message:
             code === 'INVALID_INPUT'
               ? 'Confira os dados da solicitação.'
-              : 'Não foi possível concluir esta operação. Consulte o estado do trabalho.',
+              : code === 'COMMERCIAL_INPUT_TOO_LARGE'
+                ? 'O texto passa de 100.000 caracteres, cerca de 30 páginas. Envie um trecho menor. Nada foi cobrado.'
+                : 'Não foi possível concluir esta operação. Consulte o estado do trabalho.',
         });
       }
     };

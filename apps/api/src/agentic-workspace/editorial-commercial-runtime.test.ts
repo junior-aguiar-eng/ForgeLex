@@ -137,7 +137,7 @@ async function fixture(fail = false, desk = false) {
 it.each([false, true])('charges a completed empty review once and recovers it (desk=%s)', async (desk) => {
   const f = await fixture(false, desk);
   const started = await f.runtime.start(owner, 'one', f.input);
-  expect(started.receipt?.reservedCents).toBe(500);
+  expect(started.receipt?.reservedCents).toBe(1150);
   expect(f.transport).not.toHaveBeenCalled();
   await f.runtime.worker.runOnce();
   const result = await f.runtime.read(owner, started.commandId, {
@@ -147,7 +147,7 @@ it.each([false, true])('charges a completed empty review once and recovers it (d
   });
   expect(result.status).toBe('COMPLETED');
   expect(result.result?.proposal.changes).toEqual([]);
-  expect(result.receipt).toMatchObject({ chargedCents: 50, releasedCents: 450, status: 'COMPLETED' });
+  expect(result.receipt).toMatchObject({ chargedCents: 50, releasedCents: 1100, status: 'COMPLETED' });
   expect((await f.runtime.start(owner, 'one', f.input)).commandId).toBe(started.commandId);
   await f.runtime.worker.runOnce();
   expect(f.transport).toHaveBeenCalledTimes(1);
@@ -170,7 +170,7 @@ it('releases the customer reservation after an uncertain response, without retry
     versionId: f.input.versionId,
   });
   expect(result.status).toBe('FAILED');
-  expect(result.receipt).toMatchObject({ chargedCents: 0, releasedCents: 500 });
+  expect(result.receipt).toMatchObject({ chargedCents: 0, releasedCents: 1150 });
   expect(result.receipt!.uncertainMicroUsd).toBeGreaterThan(0);
   await f.runtime.start(owner, 'lost', f.input);
   await f.runtime.worker.runOnce();
@@ -204,7 +204,7 @@ it('cancels before dispatch, releases the full reservation and recovers by reque
   await f.runtime.worker.runOnce();
   const result = await f.runtime.read(owner, started.commandId, target);
   expect(result.status).toBe('CANCELLED');
-  expect(result.receipt).toMatchObject({ chargedCents: 0, releasedCents: 500 });
+  expect(result.receipt).toMatchObject({ chargedCents: 0, releasedCents: 1150 });
   expect(f.transport).not.toHaveBeenCalled();
 });
 
@@ -236,7 +236,7 @@ it('checks live account access before dispatch', async () => {
   expect(f.transport).not.toHaveBeenCalled();
   expect(await f.runtime.finance.getReceipt(owner, started.commandId)).toMatchObject({
     chargedCents: 0,
-    releasedCents: 500,
+    releasedCents: 1150,
   });
 });
 

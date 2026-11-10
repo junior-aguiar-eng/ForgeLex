@@ -184,9 +184,11 @@ async function replay(legacy: boolean, spent = 100930, checks = true) {
   return { reservations, error, input, state, delivery, dispatches, originalOutputs };
 }
 
-it('reproduces the historical D04 reserve rejection without dispatching', async () => {
-  const r = await replay(true);
-  expect(r.reservations).toEqual([182612]);
+it('refuses the recorded D04 request without dispatching when its reserve no longer fits the remaining budget', async () => {
+  // The reserve is (bytes + 8192) * 2 + 2048 * 10 micro-USD: 109738 for the recorded 36437-byte request
+  // (182612 under the earlier bytes * 2 rule). Spending 140263 first leaves one micro-USD too little.
+  const r = await replay(true, 140263);
+  expect(r.reservations).toEqual([109738]);
   expect(r.dispatches).toBe(0);
   expect(r.delivery).toBeUndefined();
   expect(r.error.diagnostic).toMatchObject({ failureCode: 'BUDGET_EXCEEDED', role: 'authority-verifier' });
@@ -205,7 +207,7 @@ it('fits recorded D04 inside the unchanged budget and retains all original concl
           capMicroUsd: 250000,
           paidModelCalls: 0,
           syntheticVerifierCalls: r.dispatches,
-          requestBytes: (r.reservations[0] - 36864) / 4,
+          requestBytes: (r.reservations[0] - 36864) / 2,
         },
         null,
         2,

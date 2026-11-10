@@ -13,6 +13,7 @@ import { FinalEditorService } from '@forgelex/legal-workflows';
 import { createEditorialCommercialRuntime } from './editorial-commercial-runtime.js';
 import {
   LegalAnswerSchema,
+  exceedsSourceTextLimit,
   type AgenticOwner,
   type AgenticExecution,
   type TaskBinding,
@@ -286,6 +287,8 @@ export async function createCommercialRuntime(
       const { input } = commercialConfirmedInput(raw);
       await authorizeOwner(owner, typeof input.matterId === 'string' ? input.matterId : undefined, db);
       const parsed = StartExecutionSchema.parse(input);
+      // Measured before any reservation: an oversized text costs nothing and is refused with its limit.
+      if (parsed.context && exceedsSourceTextLimit(parsed.context.text)) throw new Error('COMMERCIAL_INPUT_TOO_LARGE');
       return activate(
         owner,
         key,

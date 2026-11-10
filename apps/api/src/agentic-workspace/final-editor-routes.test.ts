@@ -862,11 +862,11 @@ it('admite revisão comercial somente com sessão, escrita e política confirmad
     url: `${f.path}/editorial-proposals/generation?${new URLSearchParams(f.target)}`,
     headers: { authorization: 'Bearer owner' },
   });
-  expect(quote.json()).toMatchObject({ enabled: true, mode: 'COMMERCIAL', currency: 'BRL', maxCostCents: 500 });
+  expect(quote.json()).toMatchObject({ enabled: true, mode: 'COMMERCIAL', currency: 'BRL', maxCostCents: 1150 });
   expect(quote.json()).not.toHaveProperty('maxCostUsd');
   const started = await send('owner');
   expect(started.statusCode, started.body).toBe(200);
-  expect(started.json().receipt).toMatchObject({ reservedCents: 500, chargedCents: 0 });
+  expect(started.json().receipt).toMatchObject({ reservedCents: 1150, chargedCents: 0 });
   const recovery = await f.app.inject({
     method: 'GET',
     url: `${url}?${new URLSearchParams({ ...f.target, requestId: 'editorial-route' })}`,
@@ -882,7 +882,7 @@ it('admite revisão comercial somente com sessão, escrita e política confirmad
     payload: f.target,
   });
   expect(cancelled.statusCode, cancelled.body).toBe(200);
-  expect(cancelled.json().receipt).toMatchObject({ chargedCents: 0, releasedCents: 500 });
+  expect(cancelled.json().receipt).toMatchObject({ chargedCents: 0, releasedCents: 1150 });
   expect((await f.client.execute('SELECT * FROM draft_versions')).rows).toEqual(before);
   await new DraftRepository(f.db).createVersion({
     ...f.owner,
@@ -912,7 +912,7 @@ it('admite revisão comercial somente com sessão, escrita e política confirmad
   });
   expect(historical.statusCode, historical.body).toBe(200);
   expect(historical.json().command.commandId).toBe(started.json().commandId);
-  expect(historical.json().command.receipt.releasedCents).toBe(500);
+  expect(historical.json().command.receipt.releasedCents).toBe(1150);
   const staleQuote = await f.app.inject({
     method: 'GET',
     url: `${f.path}/editorial-proposals/generation?${new URLSearchParams(f.target)}`,
@@ -1500,7 +1500,7 @@ it('revisa versão humana da mesa sem entrega vinculada, recupera reserva e bloq
     headers,
   });
   expect(quote.statusCode, quote.body).toBe(200);
-  expect(quote.json()).toMatchObject({ enabled: true, maxCostCents: 500 });
+  expect(quote.json()).toMatchObject({ enabled: true, maxCostCents: 1150 });
   const post = () =>
     f.app.inject({
       method: 'POST',
@@ -1534,7 +1534,7 @@ it('revisa versão humana da mesa sem entrega vinculada, recupera reserva e bloq
     payload: target,
   });
   expect(cancelled.statusCode, cancelled.body).toBe(200);
-  expect(cancelled.json().receipt).toMatchObject({ chargedCents: 0, releasedCents: 500 });
+  expect(cancelled.json().receipt).toMatchObject({ chargedCents: 0, releasedCents: 1150 });
   f.revoke();
   expect(
     (await f.app.inject({ method: 'GET', url: `${base}/editorial-context?${new URLSearchParams(target)}`, headers }))

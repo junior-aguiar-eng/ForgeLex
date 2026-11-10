@@ -9,13 +9,13 @@ import { billingOperations, ledgerAccounts, ledgerEntries, usageEvents } from '.
 import { billingCreditLots } from './schema/billing-schema.js';
 import { commercialCalls, commercialExecutions } from './schema/commercial-inference-schema.js';
 
-export const COMMERCIAL_POLICY_VERSION = 'commercial-brl-2026-10-30-v1';
+export const COMMERCIAL_POLICY_VERSION = 'commercial-brl-2026-11-10-v2';
 export const COMMERCIAL_POLICY = Object.freeze({
   version: COMMERCIAL_POLICY_VERSION,
   currency: 'BRL' as const,
-  reserveCents: 500,
+  reserveCents: 1150,
   minimumCents: 50,
-  maxInferenceMicroUsd: 250000,
+  maxInferenceMicroUsd: 600000,
   maxCalls: 24,
   dailyLimitCents: 2000,
   monthlyLimitCents: 10000,

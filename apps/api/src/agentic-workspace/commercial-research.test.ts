@@ -280,7 +280,7 @@ it.each(['document', 'user'] as const)(
     expect(record.delivery.legalAssessment).toBe('NOT_EVALUATED');
     expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({
       chargedCents: mode === 'document' ? 50 : 0,
-      releasedCents: mode === 'document' ? 450 : 500,
+      releasedCents: mode === 'document' ? 1100 : 1150,
       uncertainMicroUsd: 0,
     });
     expect(f.search).not.toHaveBeenCalled();
@@ -309,7 +309,7 @@ it('research and verification run through the commercial SDK, persist provenance
   expect(await f.commercial.finance.getReceipt(owner, f.run.id)).toMatchObject({
     status: 'COMPLETED',
     chargedCents: 50,
-    releasedCents: 450,
+    releasedCents: 1100,
     uncertainMicroUsd: 0,
   });
   expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(1950);
@@ -348,7 +348,7 @@ it.each(['revoke', 'cancel'] as const)(
     expect((await f.commercial.service.getExecution(owner, f.run.id)).status).not.toBe('COMPLETED');
     expect(await f.commercial.finance.getReceipt(owner, f.run.id)).toMatchObject({
       chargedCents: 0,
-      releasedCents: 500,
+      releasedCents: 1150,
     });
   },
 );
@@ -375,7 +375,7 @@ it('adaptive refinement preserves one reservation, terminal verification and a s
   expect(execution.deliveryIds).toHaveLength(1);
   expect(await f.commercial.finance.getReceipt(owner, f.run.id)).toMatchObject({
     chargedCents: 50,
-    releasedCents: 450,
+    releasedCents: 1100,
     status: 'COMPLETED',
     uncertainMicroUsd: 0,
   });
@@ -399,7 +399,7 @@ it('cooperative cancellation during adaptive refinement prevents research and re
   expect((await f.commercial.service.getExecution(owner, f.run.id)).status).toBe('CANCELLED');
   expect(await f.commercial.finance.getReceipt(owner, f.run.id)).toMatchObject({
     chargedCents: 0,
-    releasedCents: 500,
+    releasedCents: 1150,
     uncertainMicroUsd: 0,
   });
 });

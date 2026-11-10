@@ -126,7 +126,7 @@ try {
   assert.equal(attempts.filter((r) => r.status === 'fulfilled').length, 1);
   const admitted = attempts[0].status === 'fulfilled' ? a : b;
   const [reserved] = await locker`SELECT paid_balance_cents FROM ledger_accounts WHERE tenant_id=${owner.tenantId}`;
-  assert.equal(reserved.paid_balance_cents, 1500);
+  assert.equal(reserved.paid_balance_cents, 850);
   checks.push('two_connections_admit_one_active_execution');
   await finance.authorizeCall(owner, admitted.executionId, {
     callId: 'measured',
@@ -141,7 +141,7 @@ try {
   });
   const receipt = await finance.finalize(owner, admitted.executionId, { usableDelivery: true, outcome: 'COMPLETED' });
   assert.equal(receipt.chargedCents, 50);
-  assert.equal(receipt.releasedCents, 450);
+  assert.equal(receipt.releasedCents, 1100);
   const [settled] = await locker`SELECT paid_balance_cents FROM ledger_accounts WHERE tenant_id=${owner.tenantId}`;
   assert.equal(settled.paid_balance_cents, 1950);
   const replay = await otherFinance.finalize(owner, admitted.executionId, {
@@ -217,7 +217,7 @@ try {
     }
     const before = await commercial.finance.getReceipt(subject, run.id);
     assert.equal(before.chargedCents, 0);
-    assert.equal(before.releasedCents, 500);
+    assert.equal(before.releasedCents, 1150);
     const closureId = `closure-${kind}`,
       now = new Date().toISOString();
     if (kind === 'held-question') {

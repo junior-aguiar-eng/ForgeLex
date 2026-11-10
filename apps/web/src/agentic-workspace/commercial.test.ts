@@ -14,7 +14,7 @@ const quote = {
   currency: 'BRL' as const,
   policyVersion: 'v1',
   minCostCents: 50,
-  maxCostCents: 500,
+  maxCostCents: 1150,
   availableCents: 2000,
   dailyLimitCents: 2000,
   monthlyLimitCents: 10000,
@@ -48,7 +48,7 @@ it('exibe o preço e uma ação clara antes da autorização, sem detalhes inter
   const html = renderToStaticMarkup(
     React.createElement(CommercialPriceReview, { quote, busy: false, onConfirm: () => {} }),
   );
-  expect(html).toMatch(/Este trabalho custa até R\$\s*5,00/);
+  expect(html).toMatch(/Este trabalho custa até R\$\s*11,50/);
   expect(html).toContain('O saldo não utilizado será liberado');
   expect(html).toContain('Iniciar trabalho');
   expect(html).toContain('serão enviados à OpenAI para processamento');

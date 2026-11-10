@@ -73,7 +73,7 @@ test('entrega análise na mesa sem etapas ou metadados e libera reserva sem docu
   const receipt = await (
     await page.request.get(`http://127.0.0.1:3301/api/agentic/commercial/executions/${id}/receipt`, { headers })
   ).json();
-  expect(receipt).toMatchObject({ status: 'COMPLETED', chargedCents: 0, releasedCents: 500 });
+  expect(receipt).toMatchObject({ status: 'COMPLETED', chargedCents: 0, releasedCents: 1150 });
   await page.reload();
   await expect(result.getByText('Análise de fatos e provas', { exact: true })).toBeVisible();
 });
@@ -103,7 +103,7 @@ test('percorre cobrança comercial real com transporte sintético e preserva ide
   const receipt = page.getByText('Custo deste trabalho', { exact: true }).locator('..');
   await page.getByText('Custo deste trabalho', { exact: true }).click();
   await expect(receipt).toContainText('0,50');
-  await expect(receipt).toContainText('4,50');
+  await expect(receipt).toContainText('11,00');
   const id = new URL(page.url()).searchParams.get('executionId');
   const headers = { authorization: 'Bearer phase7-e2e-access-token' };
   const before = await (
@@ -112,20 +112,20 @@ test('percorre cobrança comercial real com transporte sintético e preserva ide
   expect(before).toMatchObject({
     status: 'COMPLETED',
     currency: 'BRL',
-    reservedCents: 500,
+    reservedCents: 1150,
     chargedCents: 50,
-    releasedCents: 450,
+    releasedCents: 1100,
   });
   const quote = await (
     await page.request.get('http://127.0.0.1:3301/api/agentic/commercial/quote', { headers })
   ).json();
-  expect(quote.availableCents).toBe(950);
+  expect(quote.availableCents).toBe(1950);
   await page.reload();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   const after = await (
     await page.request.get(`http://127.0.0.1:3301/api/agentic/commercial/executions/${id}/receipt`, { headers })
   ).json();
-  expect(after).toMatchObject({ chargedCents: 50, releasedCents: 450 });
+  expect(after).toMatchObject({ chargedCents: 50, releasedCents: 1100 });
   const other = await page.request.get(`http://127.0.0.1:3301/api/agentic/commercial/executions/${id}/receipt`);
   expect(other.status()).toBe(401);
 });

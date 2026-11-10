@@ -88,7 +88,7 @@ it.each([
   { ...body, tools: [{ type: 'function', name: 'forgelex_drafting_save_final_draft' }] },
   { ...body, tools: [{ type: 'function', name: 'forgelex_research_get_legislation' }] },
   { ...body, model: 'other' },
-  { ...body, input: 'x'.repeat(64001) },
+  { ...body, input: 'x'.repeat(128001) },
 ])('invalid transport input never reserves or sends', async (invalid) => {
   const f = fixture();
   await expect(
@@ -272,4 +272,40 @@ it('retains HTTP correlation on malformed successful responses and rejects unsaf
     expect(JSON.stringify(f.recordCall.mock.calls)).not.toContain('private');
     expect(f.finance.markUncertain).toHaveBeenCalledOnce();
   }
+});
+
+it('refuses a request over the ceiling with its own code, logs sizes only and sends nothing', async () => {
+  const f = fixture();
+  const write = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+  let caught: unknown;
+  try {
+    await f.runtime.fetchFor('execution')(
+      'https://api.openai.com/v1/responses',
+      request({ ...body, input: 'segredo '.repeat(20000) }),
+    );
+  } catch (error) {
+    caught = error;
+  }
+  const logged = write.mock.calls.map(([line]) => String(line)).join('');
+  write.mockRestore();
+  expect(caught).toMatchObject({ message: 'COMMERCIAL_REQUEST_TOO_LARGE' });
+  expect(logged).toContain('commercial_request_too_large');
+  expect(logged).toMatch(/"limitBytes":128000/);
+  expect(logged).toMatch(/"bytes":\d+/);
+  expect(logged).not.toContain('segredo');
+  expect(f.finance.authorizeCall).not.toHaveBeenCalled();
+  expect(f.transport).not.toHaveBeenCalled();
+});
+it('admits a request of about 100 KB and reserves bytes plus the provider framing', async () => {
+  const f = fixture();
+  await f.runtime.fetchFor('execution')(
+    'https://api.openai.com/v1/responses',
+    request({ ...body, input: 'a'.repeat(100000) }),
+  );
+  const sent = String(f.transport.mock.calls[0]?.[1]?.body);
+  const reserved = (f.finance.authorizeCall.mock.calls as any)[0][2];
+  expect(Buffer.byteLength(sent)).toBeGreaterThan(100000);
+  expect(reserved.inputTokens).toBe(Buffer.byteLength(sent) + 8192);
+  expect(reserved.upperBoundMicroUsd).toBe(Math.ceil((reserved.inputTokens * 2000000 + 2048 * 10000000) / 1_000_000));
+  expect(reserved.upperBoundMicroUsd).toBeLessThan(300000);
 });
