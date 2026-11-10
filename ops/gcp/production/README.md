@@ -44,6 +44,31 @@ essa indisponibilidade esperada para inferir falha de produção. Como não há
 backup automático, o ambiente HML só pode conter fixtures e corpus
 reconstituíveis. O SSD continua cobrado mesmo com a instância parada.
 
+## Chave do provedor comercial (OpenAI): alerta, verificação e rotação
+
+A mesa e as peças dependem de `OPENAI_API_KEY`, lida do segredo `forgelex-prod-openai-commercial-api-key`. Em 09/11/2026 a
+chave ficou inválida e só se soube quando um cliente tentou uma peça (HTTP 401 da OpenAI). Três proteções:
+
+- **Verificação leve:** o `/readyz` consulta `GET /v1/models` (sem custo) no máximo a cada 10 minutos, espera no máximo 1 s e
+  grava `provider.key_invalid` em caso de 401. Nunca altera a prontidão: o site e o MCP funcionam sem a chave comercial.
+  403 (chave restrita sem permissão de leitura de modelos) é `provider.key_unverifiable`, sem alerta.
+- **Alerta:** `provision-provider-alert.ps1` cria a política de log que avisa por e-mail em `provider.key_invalid` ou em
+  `commercial_call_trace` com `failureClass=AUTHORIZATION`. Só cria; `-DryRun` mostra a política.
+- **Segredo em `latest`:** `set-provider-secret-latest.ps1` troca a versão fixa por `latest`, com revisão sem tráfego,
+  sonda pública e reversão automática. Depois disso, uma versão nova do segredo vale para as instâncias novas; para
+  forçar já, publique com `deploy-from-main.ps1`, que parte do modelo do serviço e mantém `latest`.
+
+```powershell
+./ops/gcp/production/provision-provider-alert.ps1 -DryRun
+./ops/gcp/production/set-provider-secret-latest.ps1 -DryRun
+```
+
+**Rotação** (a chave nunca passa por chat, log ou ticket): gerar a chave na OpenAI, gravar como nova versão do segredo,
+conferir que `provider.key_invalid` não aparece e que uma chamada comercial fecha em `SETTLED`. Desabilite a versão
+antiga do segredo depois. Com `latest`, uma versão nova com a chave errada derruba só o caminho comercial das instâncias
+novas: o alerta avisa, e para desfazer basta desabilitar a versão ruim. Uma chamada recusada por autenticação acontece
+antes do consumo e não exige reconciliação.
+
 ## Publicação em um comando
 
 Com o `gcloud` autenticado no projeto do ForgeLex, o `gh` autenticado e um checkout limpo no SHA de

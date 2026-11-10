@@ -135,6 +135,38 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(canonical.json()).toMatchObject({ status: 'ok', service: 'forgelex-api' });
   });
 
+  it('GET /readyz com a chave do provedor inválida segue pronto, consulta no máximo uma vez e só registra o log para o alerta', async () => {
+    const { ProviderKeyMonitor } = await import('./provider-key-monitor.js');
+    let output = '';
+    const spy = vi.spyOn(process.stdout, 'write').mockImplementation(((chunk: string | Uint8Array) => {
+      output += String(chunk);
+      return true;
+    }) as typeof process.stdout.write);
+    let fetches = 0;
+    const monitorApp = await buildApp({
+      database,
+      databaseClient: client,
+      ledgerService,
+      environment: { NODE_ENV: 'test', FORGELEX_WEBHOOK_MASTER_KEY: 'test-webhook-master-key' },
+      providerKeyMonitor: new ProviderKeyMonitor({
+        apiKey: 'sk-proj-chave-de-teste',
+        fetchImpl: (async () => { fetches++; return new Response('{}', { status: 401 }); }) as unknown as typeof fetch,
+      }),
+    });
+    try {
+      const first = await monitorApp.inject({ method: 'GET', url: '/readyz' });
+      const second = await monitorApp.inject({ method: 'GET', url: '/readyz' });
+      expect([first.statusCode, second.statusCode]).toEqual([200, 200]);
+      expect(JSON.stringify(first.json())).not.toMatch(/provider|openai|sk-proj/i);
+      expect(fetches).toBe(1);
+      expect(output).toContain('"message":"provider.key_invalid"');
+      expect(output).not.toContain('sk-proj-chave-de-teste');
+    } finally {
+      spy.mockRestore();
+      await monitorApp.close();
+    }
+  });
+
   it('GET /readyz consulta a persistência e separa processo ativo de dependência indisponível', async () => {
     const readyResponse = await app.inject({ method: 'GET', url: '/readyz' });
     expect(readyResponse.statusCode).toBe(200);

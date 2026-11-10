@@ -117,8 +117,11 @@ import { registerSavedResearchRoutes } from './research/saved-research-routes.js
 import { createResearchPresentationTools, DecisionPresentationService, isResearchPresentationTool, researchPresentationMetadata, toCaseLaw } from '@forgelex/legal-tools';
 import { readMcpReaderHtml } from './research/mcp-reader-resource.js';
 import { createMcpRateLimiter, readMcpRateLimitPerMinute } from './mcp-rate-limit.js';
+import { ProviderKeyMonitor } from './provider-key-monitor.js';
 
 export interface BuildAppOptions {
+  /** Verificação da chave do provedor comercial; por padrão criada quando o modo comercial está ligado. */
+  providerKeyMonitor?: ProviderKeyMonitor;
   closedPilotDependencies?: ClosedPilotDependencies;
   commercialRuntimeDependencies?: CommercialRuntimeDependencies;
   agenticWorkspace?: AgenticWorkspaceRuntimeOptions;
@@ -1111,7 +1114,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.get('/healthz', async () => healthResponse());
   app.get('/health', async () => healthResponse());
 
+  // A chave comercial inválida só gera log e alerta; nunca altera a prontidão (o site e o MCP funcionam sem ela).
+  const providerKeyMonitor =
+    options.providerKeyMonitor ??
+    (environment.FORGELEX_COMMERCIAL_EXECUTION_ENABLED === 'true' && environment.OPENAI_API_KEY?.trim()
+      ? new ProviderKeyMonitor({ apiKey: environment.OPENAI_API_KEY.trim() })
+      : undefined);
   app.get('/readyz', async (_, reply) => {
+    await providerKeyMonitor?.checkWithin(1000).catch(() => undefined);
     let persistenceReady = false;
     if (database && databaseClient) {
       try {
