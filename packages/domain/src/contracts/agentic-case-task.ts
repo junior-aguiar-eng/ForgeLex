@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { LegalAnswerSchema } from './agentic-workspace.js';
+import { MAX_SOURCE_TEXT_CHARS } from './agentic-limits.js';
 import { TaskEvidenceMatrixSchema } from './task-evidence.js';
 import { ApprovedItemSnapshotSchema } from './approved-case-context.js';
 const id = z.string().trim().min(1).max(200);
@@ -24,7 +25,7 @@ export const TaskSourceSchema = z.strictObject({
     'CASE_FACT',
     'CASE_EVIDENCE',
   ]),
-  text: z.string().min(1).max(64000),
+  text: z.string().min(1).max(MAX_SOURCE_TEXT_CHARS),
   contentHash: z.string().regex(/^[a-f0-9]{64}$/),
   documentId: id.optional(),
   versionId: id.optional(),

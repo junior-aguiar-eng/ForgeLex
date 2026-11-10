@@ -89,7 +89,7 @@ it.each(['settle', 'void'] as const)(
     expect(await restarted.getReceipt(owner, a.executionId)).toMatchObject({
       chargedCents: 0,
       uncertainMicroUsd: 0,
-      releasedCents: 500,
+      releasedCents: 1150,
     });
   },
 );
@@ -158,9 +158,9 @@ it('prices in integer cents with approved rounding and floor', () => {
   expect(() => commercialPriceCents(-1)).toThrow();
 });
 it('escrows BRL, prevents research spending escrow, settles once and releases unused', async () => {
-  const f = await fixture(600);
+  const f = await fixture(1250);
   const input = await f.execution();
-  expect(await f.service.quote(owner)).toMatchObject({ currency: 'BRL', availableCents: 600, maxCostCents: 500 });
+  expect(await f.service.quote(owner)).toMatchObject({ currency: 'BRL', availableCents: 1250, maxCostCents: 1150 });
   await f.service.reserve(owner, input);
   expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(100);
   await expect(
@@ -174,14 +174,19 @@ it('escrows BRL, prevents research spending escrow, settles once and releases un
   await f.service.authorizeCall(owner, input.executionId, quote);
   await f.service.settleCall(owner, input.executionId, quote.callId, usage);
   const receipt = await f.service.finalize(owner, input.executionId, { usableDelivery: true, outcome: 'COMPLETED' });
-  expect(receipt).toMatchObject({ reservedCents: 500, chargedCents: 50, releasedCents: 450, measuredMicroUsd: 12000 });
+  expect(receipt).toMatchObject({
+    reservedCents: 1150,
+    chargedCents: 50,
+    releasedCents: 1100,
+    measuredMicroUsd: 12000,
+  });
   expect(await f.service.finalize(owner, input.executionId, { usableDelivery: true, outcome: 'COMPLETED' })).toEqual(
     receipt,
   );
-  expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(550);
+  expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(1200);
 });
 it('rejects insufficient balance, version conflict and changed replay fingerprint', async () => {
-  const f = await fixture(499);
+  const f = await fixture(1149);
   const input = await f.execution();
   await expect(f.service.reserve(owner, input)).rejects.toThrow('BILLING_INSUFFICIENT_BALANCE');
   await expect(f.service.reserve(owner, { ...input, policyVersion: 'unknown' })).rejects.toThrow(
@@ -212,7 +217,7 @@ it('does not repeat dispatch after restart and retains unknown operational cost 
   const restarted = new CommercialInferenceService(f.db, f.client);
   expect((await restarted.authorizeCall(owner, input.executionId, quote)).shouldExecute).toBe(false);
   const receipt = await restarted.finalize(owner, input.executionId, { usableDelivery: false, outcome: 'CANCELLED' });
-  expect(receipt).toMatchObject({ chargedCents: 0, releasedCents: 500, uncertainMicroUsd: 12000 });
+  expect(receipt).toMatchObject({ chargedCents: 0, releasedCents: 1150, uncertainMicroUsd: 12000 });
   expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(20000);
   await expect(restarted.authorizeCall(owner, input.executionId, { ...quote, callId: 'new' })).rejects.toThrow();
 });
@@ -236,7 +241,7 @@ it('enforces 24 calls, operational budget, bounded usage and stops after uncerta
   const f = await fixture();
   const a = await f.execution();
   await f.service.reserve(owner, a);
-  await expect(f.service.authorizeCall(owner, a.executionId, { ...quote, upperBoundMicroUsd: 250001 })).rejects.toThrow(
+  await expect(f.service.authorizeCall(owner, a.executionId, { ...quote, upperBoundMicroUsd: 600001 })).rejects.toThrow(
     'COMMERCIAL_INFERENCE_LIMIT',
   );
   await expect(f.service.authorizeCall(owner, a.executionId, { ...quote, upperBoundMicroUsd: 1 })).rejects.toThrow(
@@ -251,7 +256,7 @@ it('enforces 24 calls, operational budget, bounded usage and stops after uncerta
 });
 it('includes reservations in daily and monthly limits with Fortaleza periods', async () => {
   const f = await fixture();
-  for (let n = 0; n < 4; n++) {
+  for (let n = 0; n < 2; n++) {
     const a = await f.execution();
     await f.service.reserve(owner, a);
     await f.service.authorizeCall(owner, a.executionId, {
@@ -369,13 +374,13 @@ it('honors research already in flight before commercial escrow', async () => {
   expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(400);
 });
 it('serializes competing reservations through the database account lock', async () => {
-  const f = await fixture(1000);
+  const f = await fixture(1800);
   const a = await f.execution(),
     b = await f.execution();
   const other = new CommercialInferenceService(f.db, f.client);
   const results = await Promise.allSettled([f.service.reserve(owner, a), other.reserve(owner, b)]);
   expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
-  expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(500);
+  expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(650);
   expect(await f.service.listActive(owner)).toHaveLength(1);
 });
 it('voids proven unsent requests, rejects contradictory settlement and preserves replay', async () => {
@@ -392,7 +397,7 @@ it('voids proven unsent requests, rejects contradictory settlement and preserves
     'COMMERCIAL_CALL_NOT_DISPATCHED',
   );
   expect(await f.service.finalize(owner, a.executionId, { usableDelivery: false, outcome: 'CANCELLED' })).toMatchObject(
-    { chargedCents: 0, uncertainMicroUsd: 0, releasedCents: 500 },
+    { chargedCents: 0, uncertainMicroUsd: 0, releasedCents: 1150 },
   );
 });
 
@@ -405,13 +410,13 @@ it('resolves cancellation uncertainty when transport subsequently proves no requ
   expect(await f.service.getReceipt(owner, input.executionId)).toMatchObject({
     uncertainMicroUsd: 12000,
     chargedCents: 0,
-    releasedCents: 500,
+    releasedCents: 1150,
   });
   await f.service.markNotDispatched(owner, input.executionId, quote.callId);
   expect(await f.service.getReceipt(owner, input.executionId)).toMatchObject({
     uncertainMicroUsd: 0,
     chargedCents: 0,
-    releasedCents: 500,
+    releasedCents: 1150,
   });
   expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(20000);
 });
@@ -430,7 +435,7 @@ it('blocks after uncertainty and reconciles late actual cost without repricing c
     measuredMicroUsd: 12000,
     uncertainMicroUsd: 0,
     chargedCents: 0,
-    releasedCents: 500,
+    releasedCents: 1150,
   });
   await expect(f.service.settleCall(owner, a.executionId, quote.callId, { ...usage, outputTokens: 1 })).rejects.toThrow(
     'IDEMPOTENCY_CONFLICT',
@@ -438,8 +443,8 @@ it('blocks after uncertainty and reconciles late actual cost without repricing c
 });
 it('enforces cumulative monthly limit across local days and resets at local month boundary', async () => {
   const f = await fixture();
-  for (let n = 0; n < 21; n++) {
-    f.advance(`2026-10-${String(1 + Math.floor(n / 4)).padStart(2, '0')}T12:00:00Z`);
+  for (let n = 0; n < 19; n++) {
+    f.advance(`2026-10-${String(1 + Math.floor(n / 2)).padStart(2, '0')}T12:00:00Z`);
     const a = await f.execution();
     await f.service.reserve(owner, a);
     await f.service.authorizeCall(owner, a.executionId, {
@@ -471,16 +476,16 @@ it('starts time cap at first call, measures cached tokens and preserves promotio
   );
   await f.service.finalize(owner, a.executionId, { usableDelivery: false, outcome: 'CANCELLED' });
   await f.client.execute({
-    sql: 'UPDATE ledger_accounts SET paid_balance_cents=100,promotional_balance_cents=400,promo_expires_at=? WHERE tenant_id=?',
+    sql: 'UPDATE ledger_accounts SET paid_balance_cents=750,promotional_balance_cents=400,promo_expires_at=? WHERE tenant_id=?',
     args: ['2026-10-30T14:00:00Z', owner.tenantId],
   });
   const b = await f.execution();
   await f.service.reserve(owner, b);
   f.advance('2026-10-30T15:00:00Z');
   expect(await f.service.finalize(owner, b.executionId, { usableDelivery: false, outcome: 'CANCELLED' })).toMatchObject(
-    { releasedCents: 100, expiredPromoCents: 400 },
+    { releasedCents: 750, expiredPromoCents: 400 },
   );
-  expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(100);
+  expect(await f.ledger.getAvailableBalanceCents(owner.tenantId)).toBe(750);
   const expired = await f.client.execute("SELECT amount_cents FROM ledger_entries WHERE kind='EXPIRATION'");
   expect(expired.rows[0]?.amount_cents).toBe(400);
 });
@@ -512,7 +517,7 @@ it.each([
       measuredMicroUsd: measured,
       uncertainMicroUsd: 0,
       chargedCents: 0,
-      releasedCents: 500,
+      releasedCents: 1150,
     });
     await expect(f.service.reserve(owner, b)).resolves.toMatchObject({ status: 'ACTIVE' });
   },
@@ -543,14 +548,14 @@ it('work with measured provider usage but no charge still counts against the dai
   const f = await fixture();
   const heavy = { callId: 'heavy', inputTokens: 100000, maxOutputTokens: 2048, upperBoundMicroUsd: 250000 };
   const heavyUsage = { inputTokens: 100000, outputTokens: 2048 };
-  for (let run = 0; run < 4; run++) {
+  for (let run = 0; run < 3; run++) {
     const input = await f.execution();
     await f.service.reserve(owner, input);
     await f.service.authorizeCall(owner, input.executionId, heavy);
     await f.service.settleCall(owner, input.executionId, heavy.callId, heavyUsage);
     expect(
       await f.service.finalize(owner, input.executionId, { usableDelivery: false, outcome: 'FAILED' }),
-    ).toMatchObject({ chargedCents: 0, releasedCents: 500 });
+    ).toMatchObject({ chargedCents: 0, releasedCents: 1150 });
   }
   await expect(f.service.reserve(owner, await f.execution())).rejects.toThrow('COMMERCIAL_DAILY_LIMIT');
   expect((await f.service.quote(owner)).availableCents).toBe(20000);

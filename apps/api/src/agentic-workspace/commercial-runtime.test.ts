@@ -170,7 +170,7 @@ it.each([
       status: 'COMPLETED',
       measuredMicroUsd: 12000,
       chargedCents: charge,
-      releasedCents: 500 - charge,
+      releasedCents: 1150 - charge,
     });
     expect((await native.getDelivery(owner, saved.id)).delivery.humanReviewRequired).toBe(true);
   },
@@ -209,7 +209,7 @@ it.each(['question', 'reconciliation', 'held-question'] as const)(
       await f.commercial.service.failLease(lease);
     }
     const before = await f.commercial.finance.getReceipt(owner, run.id);
-    expect(before).toMatchObject({ chargedCents: 0, releasedCents: 500 });
+    expect(before).toMatchObject({ chargedCents: 0, releasedCents: 1150 });
     if (kind === 'held-question') {
       const now = new Date().toISOString();
       await f.client.execute({
@@ -289,7 +289,7 @@ it('requires a session and exact price confirmation before any reservation', asy
   });
   expect((await f.app.inject({ method: 'GET', url: '/api/agentic/commercial/quote', headers })).json()).toMatchObject({
     currency: 'BRL',
-    maxCostCents: 500,
+    maxCostCents: 1150,
     availableCents: 2000,
   });
   for (const body of [{ objective: 'texto' }, { ...input, policyVersion: 'old' }])
@@ -310,7 +310,7 @@ it('persists reservation before enabling work; cancellation releases without HTT
   });
   expect(response.statusCode).toBe(202);
   const run = response.json();
-  expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({ reservedCents: 500, status: 'ACTIVE' });
+  expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({ reservedCents: 1150, status: 'ACTIVE' });
   expect((await f.commercial.service.store.getJob(owner, run.id)).state).toBe('READY');
   const replay = await f.app.inject({
     method: 'POST',
@@ -334,7 +334,7 @@ it('persists reservation before enabling work; cancellation releases without HTT
     url: `/api/agentic/commercial/executions/${run.id}/receipt`,
     headers,
   });
-  expect(receipt.json()).toMatchObject({ chargedCents: 0, releasedCents: 500, status: 'CANCELLED', currency: 'BRL' });
+  expect(receipt.json()).toMatchObject({ chargedCents: 0, releasedCents: 1150, status: 'CANCELLED', currency: 'BRL' });
   expect(await f.commercial.finance.getReceipt({ ...owner, userId: 'other' }, run.id)).toBeUndefined();
   expect(f.transport).not.toHaveBeenCalled();
 });
@@ -354,7 +354,7 @@ it('continuation requires fresh consent, ID and reservation before worker dispat
   expect(next.json().id).not.toBe(first.id);
   expect(await f.commercial.finance.getReceipt(owner, next.json().id)).toMatchObject({
     status: 'ACTIVE',
-    reservedCents: 500,
+    reservedCents: 1150,
   });
   expect((await f.commercial.service.store.getJob(owner, next.json().id)).state).toBe('READY');
 });
@@ -380,7 +380,7 @@ it('a human question releases no-delivery funds and its answer reserves a fresh 
   });
   expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({
     chargedCents: 0,
-    releasedCents: 500,
+    releasedCents: 1150,
     status: 'CANCELLED',
   });
   const answer = {
@@ -396,7 +396,10 @@ it('a human question releases no-delivery funds and its answer reserves a fresh 
     policyVersion: COMMERCIAL_POLICY_VERSION,
   });
   expect(next.id).not.toBe(run.id);
-  expect(await f.commercial.finance.getReceipt(owner, next.id)).toMatchObject({ reservedCents: 500, status: 'ACTIVE' });
+  expect(await f.commercial.finance.getReceipt(owner, next.id)).toMatchObject({
+    reservedCents: 1150,
+    status: 'ACTIVE',
+  });
   expect((await new AgenticWorkspaceRepository(f.db).getExecution(owner, next.id))?.authorizationId).toMatch(
     /^commercial:/,
   );
@@ -444,7 +447,10 @@ it('an answer refused for balance keeps the question so it can be answered after
   expect((await f.commercial.service.store.getJob(owner, run.id)).successorId).toBeUndefined();
   await setBalance(2000);
   const next = await f.commercial.successor(owner, run.id, 'answer-funded', 'answer', answer);
-  expect(await f.commercial.finance.getReceipt(owner, next.id)).toMatchObject({ reservedCents: 500, status: 'ACTIVE' });
+  expect(await f.commercial.finance.getReceipt(owner, next.id)).toMatchObject({
+    reservedCents: 1150,
+    status: 'ACTIVE',
+  });
 });
 it('the admission deadline column follows the job: set while admitting, null once admitted or waiting for a person', async () => {
   const f = await fixture();
@@ -496,7 +502,7 @@ it('restart cancels a reserved orphan that never reached activation and releases
   });
   await recovered.recover();
   expect(await recovered.finance.getReceipt(owner, run.id)).toMatchObject({
-    releasedCents: 500,
+    releasedCents: 1150,
     chargedCents: 0,
     status: 'CANCELLED',
   });
@@ -601,7 +607,7 @@ it('an already-running scheduler releases an expired admission without a restart
       expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({
         status: 'CANCELLED',
         chargedCents: 0,
-        releasedCents: 500,
+        releasedCents: 1150,
       }),
     { timeout: 1000 },
   );
@@ -626,7 +632,7 @@ it('restart never replays an uncertain dispatched step and releases a no-deliver
   expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({
     status: 'FAILED',
     chargedCents: 0,
-    releasedCents: 500,
+    releasedCents: 1150,
     uncertainMicroUsd: 22480,
   });
   const next = await f.app.inject({
@@ -638,7 +644,7 @@ it('restart never replays an uncertain dispatched step and releases a no-deliver
   expect(next.statusCode).toBe(409);
   expect(next.json()).toMatchObject({ error: 'COMMERCIAL_RECONCILIATION_REQUIRED' });
   expect((await f.commercial.start(owner, 'uncertain', input)).id).toBe(run.id);
-  expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({ chargedCents: 0, releasedCents: 500 });
+  expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({ chargedCents: 0, releasedCents: 1150 });
   expect(f.transport).not.toHaveBeenCalled();
 });
 it('current owner revocation blocks provider dispatch and closes zero-charge work', async () => {
@@ -649,7 +655,7 @@ it('current owner revocation blocks provider dispatch and closes zero-charge wor
   expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({
     status: 'FAILED',
     chargedCents: 0,
-    releasedCents: 500,
+    releasedCents: 1150,
   });
   expect(f.transport).not.toHaveBeenCalled();
 });
@@ -734,7 +740,7 @@ it('active work deadline aborts an in-flight step and releases its no-delivery r
   expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({
     status: 'FAILED',
     chargedCents: 0,
-    releasedCents: 500,
+    releasedCents: 1150,
   });
 });
 function inFlightWorker(
@@ -785,7 +791,7 @@ it('cancelling during a provider call lets the call settle, then cancels without
   expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({
     status: 'CANCELLED',
     chargedCents: 0,
-    releasedCents: 500,
+    releasedCents: 1150,
     uncertainMicroUsd: 0,
   });
   const next = await f.app.inject({
@@ -837,4 +843,27 @@ it('without a call in flight, cancel stays immediate', async () => {
   const run = await f.commercial.start(owner, 'coop-idle', input);
   const view = await f.commercial.service.cancelExecution(owner, run.id, 'cancel-idle');
   expect(view).toMatchObject({ status: 'CANCELLED', cancelRequested: false });
+});
+it('refuses an oversized written context before any reservation and says nothing was charged', async () => {
+  const f = await fixture();
+  const response = await f.app.inject({
+    method: 'POST',
+    url: '/api/agentic/commercial/executions',
+    headers,
+    payload: { ...input, context: { text: 'a'.repeat(100001), origin: 'USER', documents: [] } },
+  });
+  expect(response.statusCode).toBe(409);
+  expect(response.json()).toMatchObject({
+    error: 'COMMERCIAL_INPUT_TOO_LARGE',
+    message: expect.stringContaining('100.000 caracteres'),
+  });
+  expect(await f.commercial.finance.listActive(owner)).toEqual([]);
+  expect(f.transport).not.toHaveBeenCalled();
+  const accepted = await f.app.inject({
+    method: 'POST',
+    url: '/api/agentic/commercial/executions',
+    headers: { ...headers, 'idempotency-key': 'commercial-start-large' },
+    payload: { ...input, context: { text: 'a'.repeat(100000), origin: 'USER', documents: [] } },
+  });
+  expect(accepted.statusCode).toBe(202);
 });

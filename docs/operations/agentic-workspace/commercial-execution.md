@@ -22,9 +22,9 @@ não autoriza ativação editorial nem um novo ensaio pago.
 
 ## Fluxo e preço
 
-O site mostra preço em reais antes de iniciar cada trabalho, resposta, correção ou continuação paga. Navegação, leitura, edição e exportação não autorizam novos envios. Retry conserva a chave. A política imutável é commercial-brl-2026-10-30-v1: reserva de R$ 5,00, mínimo de R$ 0,50 se houver entrega utilizável, teto de inferência US$ 0,25, preço calculado pela fórmula aprovada. Recibo distingue valor reservado, cobrado, liberado e crédito promocional expirado.
+O site mostra preço em reais antes de iniciar cada trabalho, resposta, correção ou continuação paga. Navegação, leitura, edição e exportação não autorizam novos envios. Retry conserva a chave. A política imutável é commercial-brl-2026-11-10-v2 (a v1, de 30/10/2026, tinha reserva de R$ 5,00 e teto de inferência de US$ 0,25): reserva de R$ 11,50, mínimo de R$ 0,50 se houver entrega utilizável, teto de inferência US$ 0,60 por trabalho, preço calculado pela fórmula aprovada. Recibo distingue valor reservado, cobrado, liberado e crédito promocional expirado.
 
-Uma execução ativa por conta; R$ 20/dia e R$ 100/mês incluindo reservas, períodos America/Fortaleza. Trabalho encerrado sem cobrança, mas com consumo medido do provedor, conta nos limites pelo preço que teria (mínimo de R$ 0,50, no máximo a reserva); trabalho sem nenhum consumo medido não conta. Assim a conta não consome inferência sem cobrança de forma ilimitada. Até 24 chamadas, 2.048 tokens de saída por chamada, 64.000 bytes por request, 30 segundos por chamada e cinco minutos a partir do primeiro envio autorizado. Não há pesquisa paga, tools hospedadas, fallback ou retries automáticos do SDK.
+Uma execução ativa por conta; R$ 20/dia e R$ 100/mês incluindo reservas, períodos America/Fortaleza. Trabalho encerrado sem cobrança, mas com consumo medido do provedor, conta nos limites pelo preço que teria (mínimo de R$ 0,50, no máximo a reserva); trabalho sem nenhum consumo medido não conta. Assim a conta não consome inferência sem cobrança de forma ilimitada. Até 24 chamadas, 2.048 tokens de saída por chamada, 128.000 bytes por request (a v1 aceitava 64.000), 30 segundos por chamada e cinco minutos a partir do primeiro envio autorizado. Não há pesquisa paga, tools hospedadas, fallback ou retries automáticos do SDK.
 
 A reserva BRL é descontada do saldo disponível sob o mesmo lock usado por consultas, créditos e reembolsos. A medição operacional é em micro-USD e não consome o ledger sintético do piloto. Tokens normalizados e tarifa persistida permitem comprovar o cálculo; custo externo desconhecido permanece desconhecido.
 
@@ -125,3 +125,11 @@ a reserva. Preço, teto e pesquisa incluída seguem a política existente.
 Ver [implementação e validação](../../architecture/2026-11-01-forgelex-3-evidence.md).
 Não implica habilitação em produção. Checkpoints v3 exigem imagem compatível;
 as tarefas anteriores continuam usando os contratos v1/v2.
+
+## Tamanho do texto (v2, 10/11/2026)
+
+- Texto de entrada: até 100.000 caracteres (e 112.000 bytes em UTF-8) por fonte e como contexto escrito, cerca de 30 páginas. A conferência ocorre na entrada, antes de qualquer reserva: acima disso a API responde `COMMERCIAL_INPUT_TOO_LARGE`, a tela pede um trecho menor e nada é cobrado.
+- Pedido ao provedor: até 128.000 bytes, que inclui o texto, as instruções, as ferramentas e os resultados das rodadas anteriores. Acima disso a chamada é recusada antes de reservar, com `COMMERCIAL_REQUEST_TOO_LARGE` (distinto de `COMMERCIAL_REQUEST_INVALID`, que é pedido malformado). O log `commercial_request_too_large` traz só `executionId`, `bytes` e `limitBytes`, nunca o conteúdo.
+- Estimativa da reserva por chamada: `(bytes + 8.192) * 2 + 2.048 * 10` micro-USD. Um token ocupa ao menos um byte, então os bytes serializados limitam os tokens de entrada; 8.192 cobre o enquadramento do provedor. Na v1 era `bytes * 2` em vez de `bytes`. A cobrança continua sendo o uso medido; a estimativa só reserva risco.
+- O teto de US$ 0,60 vale para o trabalho inteiro (soma das chamadas, usando o custo medido das já liquidadas e a estimativa da nova). A reserva de R$ 11,50 cobre US$ 0,60 a R$ 18,00 por dólar mais a parcela fixa de R$ 0,25 (R$ 11,05). Limite diário (R$ 20) e mensal (R$ 100) não mudaram; como a reserva cresceu, o diário admite cerca de dois trabalhos grandes por dia.
+- O piloto fechado (`real-provider.ts`) não mudou e continua com 64.000 bytes por pedido.

@@ -210,7 +210,7 @@ it('fits the recorded D01 verifier budget without duplicated source retrieval or
     expect(JSON.parse(captured.prompt).untrustedContext.sources).toEqual(fixture.packet.sources);
     return captured;
   }
-  async function replay(input: any) {
+  async function replay(input: any, cap = 250000) {
     const reservations: number[] = [];
     let spent = 85506; // Recorded D01 usage immediately before authority-verifier.
     let dispatched = 0;
@@ -220,7 +220,7 @@ it('fits the recorded D01 verifier budget without duplicated source retrieval or
       finance: {
         authorizeCall: async (_o: any, _e: any, call: any) => {
           reservations.push(call.upperBoundMicroUsd);
-          if (spent + call.upperBoundMicroUsd > 250000) throw new Error('BUDGET_EXCEEDED');
+          if (spent + call.upperBoundMicroUsd > cap) throw new Error('BUDGET_EXCEEDED');
           return { shouldExecute: true };
         },
         settleCall: async () => {
@@ -260,9 +260,12 @@ it('fits the recorded D01 verifier budget without duplicated source retrieval or
     const provider = runtime.createProvider({ binding: { executionId: 'e' }, selectedPacket: fixture.packet } as any);
     const events = [];
     for await (const event of provider.run({ ...input, abortSignal: new AbortController().signal })) events.push(event);
-    return { reservations, dispatched, events, initialSpentMicroUsd: 85506, capMicroUsd: 250000 };
+    return { reservations, dispatched, events, initialSpentMicroUsd: 85506, capMicroUsd: cap };
   }
-  const legacy = await replay(await capture(true));
+  // The earlier packet reserves more than the current one. With the reserve now (bytes + 8192) * 2 + 2048 * 10
+  // it fits the old US$ 0,25 cap on its own, so the cap is set one micro-USD below what that packet needs.
+  const probe = await replay(await capture(true), 1_000_000);
+  const legacy = await replay(await capture(true), 85506 + probe.reservations[0]! - 1);
   expect(legacy.events).toContainEqual(
     expect.objectContaining({ type: 'error', details: expect.objectContaining({ failureCode: 'BUDGET_EXCEEDED' }) }),
   );

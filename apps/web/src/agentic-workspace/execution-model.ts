@@ -246,6 +246,10 @@ export function statusText(status: string, code = ''): string {
     return 'Um fato ou uma prova do caso mudou. Use Revisar alterações antes de enviar outro pedido.';
   if (code === 'TASK_CONTEXT_LIMIT')
     return 'O material do caso excede o limite deste trabalho. Seu pedido foi preservado.';
+  if (code === 'COMMERCIAL_INPUT_TOO_LARGE')
+    return 'O texto passa de 100.000 caracteres, cerca de 30 páginas. Envie um trecho menor. Nada foi cobrado.';
+  if (code === 'COMMERCIAL_REQUEST_TOO_LARGE')
+    return 'O material deste trabalho ficou maior que o limite do pedido. Envie um trecho menor.';
   if (code === 'COMMERCIAL_DAILY_LIMIT') return 'O limite diário de trabalhos foi atingido. Seu pedido foi preservado.';
   if (code === 'COMMERCIAL_MONTHLY_LIMIT')
     return 'O limite mensal de trabalhos foi atingido. Seu pedido foi preservado.';

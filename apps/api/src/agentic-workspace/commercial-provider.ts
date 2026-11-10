@@ -3,7 +3,7 @@ import { OpenAIAgentProvider } from '@forgelex/agent-provider-openai';
 import { structuredLog } from '../observability.js';
 import { safeAgentFailure, type AgentFailureDiagnostic } from '@forgelex/agent-core';
 import type { AgentProvider } from '@forgelex/agent-core';
-import type { AgenticOwner, TaskBinding } from '@forgelex/domain';
+import { MAX_COMMERCIAL_REQUEST_BYTES, type AgenticOwner, type TaskBinding } from '@forgelex/domain';
 import { COMMERCIAL_POLICY, type CommercialInferenceService } from '@forgelex/billing-ledger';
 import type { CaseTaskProviderInput } from '@forgelex/legal-workflows';
 import { COMMERCIAL_AGENT_TOOL_NAMES, readBounded, responseUsage, sdkCompatibleSse } from './provider-transport.js';
@@ -92,9 +92,18 @@ function createBudgetedOpenAIRuntime(
       });
       const serialized = JSON.stringify(body),
         bytes = Buffer.byteLength(serialized);
-      if (bytes > 64000) throw new Error('COMMERCIAL_REQUEST_INVALID');
+      if (bytes > MAX_COMMERCIAL_REQUEST_BYTES) {
+        // Sizes only: never the content. Tells "over the ceiling" apart from "malformed request".
+        structuredLog('warn', 'commercial_request_too_large', {
+          executionId,
+          bytes,
+          limitBytes: MAX_COMMERCIAL_REQUEST_BYTES,
+        });
+        throw new Error('COMMERCIAL_REQUEST_TOO_LARGE');
+      }
       const owner = await options.assertContext(executionId, packet);
-      const inputTokens = bytes * 2 + 8192;
+      // A token is at least one byte, so the serialized size bounds the input tokens; 8192 covers the provider's own framing.
+      const inputTokens = bytes + 8192;
       // Micro-USD from the policy rates. No cache discount is assumed for authorization.
       const upperBoundMicroUsd = Math.ceil(
         (inputTokens * COMMERCIAL_POLICY.inputMicroUsdPerMillion +
