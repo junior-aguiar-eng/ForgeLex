@@ -300,6 +300,9 @@ pnpm test:postgres
 # 9. Executar E2E Chromium com Supabase e pagamento simulados localmente
 pnpm exec playwright install chromium
 pnpm test:e2e:phase7
+# Em Linux e macOS, exporte LANG=C.UTF-8 e LC_ALL=C.UTF-8 antes dos E2E: sem locale UTF-8
+# o Chromium nomeia como "download" o arquivo de título acentuado e o teste de exportação
+# Word falha. A CI já define as duas variáveis.
 
 # 10. Executar carga básica da busca (25 intenções, concorrência 5)
 pnpm test:load:search
