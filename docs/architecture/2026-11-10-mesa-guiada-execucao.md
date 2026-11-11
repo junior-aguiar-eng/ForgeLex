@@ -76,7 +76,16 @@ A API prepara a conversa, registra cada resposta e reabre a pergunta ativa usand
 - A validação usa fichas sintéticas. A elegibilidade do acervo real continua sujeita à avaliação de origem e reutilização prevista em R1. O grafo, as ferramentas e as projeções públicas mantêm seus contratos vigentes. A ligação do snapshot ao fluxo do orquestrador entra em R7 e a compatibilidade dos checkpoints em R10.
 - Validação local com 385 testes em 29 suítes, incluindo 13 testes novos de catálogo, seleção e integridade. Build do pacote, verificação de tipos, lint e formatação passaram nos arquivos TypeScript da etapa.
 
-Próxima etapa é R6, composição da orientação na Mesa.
+## R6 · perguntas e resumo na Mesa
+
+- “Me ajude a começar” abre a orientação dentro da conversa. A Mesa mostra uma pergunta por vez, com opções compactas, texto livre quando previsto e “Não sei”. O compositor continua disponível para pedido livre.
+- O resumo reúne área, tarefa e peça em uma linha que se ajusta ao espaço. “Alterar” abre a decisão escolhida na própria conversa. Uma correção troca a revisão ativa e o servidor invalida decisões dependentes. Respostas anteriores ficam recolhidas.
+- A pergunta e o resumo usam a superfície da conversa. As opções mantêm uma grade alinhada com duas colunas no celular. O compositor recebe o indicador de foco na borda arredondada. A peça permanece montada durante o fluxo.
+- A Mesa habilita a orientação pela capacidade anunciada pela API no modo opt-in. A projeção inclui perguntas usadas nas correções e o histórico da revisão, com rótulos de resposta. As conversas anteriores mantêm as regras `mesa-v1`. Conversas novas usam `mesa-v2` e guardam respostas em texto.
+- A conclusão sem peça ou documentos selecionados pode encaminhar o pedido com a conversa e a revisão persistidas. O envio guiado com contexto documental depende de R7. Nesta etapa, o compositor conserva o contexto documental para envio pelo pedido livre.
+- Validação local com 41 testes Vitest, quatro cenários Playwright de orientação, 36 regressões de Mesa e revisão, builds de web e API e lint dos arquivos TypeScript alterados. O teste de interface verifica foco visível no compositor, pergunta sem moldura, acesso por teclado, análise Axe, resolução de conflito entre abas, descarte de resposta atrasada e preservação do texto da peça no celular. As capturas mostram o fluxo implementado.
+
+Próxima etapa é R7, integração com o orquestrador e interpretação das respostas em aberto.
 
 ## Evidências locais
 

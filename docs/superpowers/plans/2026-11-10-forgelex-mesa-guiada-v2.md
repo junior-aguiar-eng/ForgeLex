@@ -504,15 +504,17 @@ flowchart LR
 
 **Arquivos.** `GuidedQuestion`, `GuidanceSummary`, `QuestionOptions`, compositor e Mesa.
 
-- [ ] Implementar estados da seção 9 com componentes/tokens existentes.
-- [ ] Permitir resposta por opção, texto e “Não sei” conforme o contrato.
-- [ ] Permitir corrigir o pedido pelo resumo sem expor catálogo, hashes ou nomes internos.
-- [ ] Preservar edição da peça ao abrir fontes e responder.
-- [ ] Validar teclado, foco, anúncio de estado, contraste e comportamento móvel.
-- [ ] Conferir uma ação principal por estado, hierarquia da peça, densidade, tipografia e transições nos estados da seção 9.
-- [ ] Apresentar a Boni a jornada visual concreta em desktop e celular, com as decisões e o próximo passo reconhecíveis em cada estado.
+- [x] Implementar estados da seção 9 com componentes/tokens existentes.
+- [x] Permitir resposta por opção, texto e “Não sei” conforme o contrato.
+- [x] Permitir corrigir o pedido pelo resumo sem expor catálogo, hashes ou nomes internos.
+- [x] Preservar edição da peça ao abrir fontes e responder.
+- [x] Validar teclado, foco, anúncio de estado, contraste e comportamento móvel.
+- [x] Conferir uma ação principal por estado, hierarquia da peça, densidade, tipografia e transições nos estados da seção 9.
+- [x] Apresentar a Boni a jornada visual concreta em desktop e celular, com as decisões e o próximo passo reconhecíveis em cada estado.
 
 **Aceite.** Uma pergunta ativa por vez. O usuário consegue completar/corrigir o pedido com teclado. A visão normal contém apenas contexto útil, ação, conversa e documento/fontes.
+
+**Evidência.** Quatro cenários Playwright da orientação, 36 regressões da Mesa e 41 testes de contratos e modelos aprovados localmente. As capturas de desktop e celular vêm da aplicação com o fluxo opt-in habilitado no ambiente de teste.
 
 ### R7 — Integração com o orquestrador e “Não sei”
 

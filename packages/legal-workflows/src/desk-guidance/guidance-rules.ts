@@ -6,7 +6,7 @@ import {
   type LegalQuestion,
 } from '@forgelex/domain';
 
-const rulesVersion = 'mesa-v1';
+const rulesVersion = 'mesa-v2';
 const unanswered = { value: null, status: 'unknown', origin: 'user' } as const;
 type Draft = Omit<GuidanceSnapshot, 'guidanceHash'>;
 type Field = 'area' | 'action' | 'documentType';
@@ -63,7 +63,8 @@ export function initialGuidance(): GuidanceSnapshot {
 }
 
 export function guidanceQuestion(snapshot: GuidanceSnapshot, contextRevision: number): LegalQuestion | null {
-  if (snapshot.rulesVersion !== rulesVersion) throw new Error('GUIDANCE_RULES_UNAVAILABLE');
+  if (snapshot.rulesVersion !== rulesVersion && snapshot.rulesVersion !== 'mesa-v1')
+    throw new Error('GUIDANCE_RULES_UNAVAILABLE');
   const field = nextField(snapshot);
   if (!field) return null;
   const options =
@@ -85,7 +86,7 @@ export function guidanceQuestion(snapshot: GuidanceSnapshot, contextRevision: nu
     prompt,
     selection: 'single',
     options,
-    allowFreeText: false,
+    allowFreeText: snapshot.rulesVersion === rulesVersion,
     allowUnknown: true,
     reason: 'Delimitar o pedido',
   };

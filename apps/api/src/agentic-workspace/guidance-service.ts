@@ -3,6 +3,7 @@ import { LegalAnswerSchema, validateLegalAnswer, type AgenticConversation, type 
 import { MatterWriteGuard, type ForgeLexDatabase } from '@forgelex/persistence';
 import { applyGuidanceAnswer, guidanceField, guidanceQuestion, initialGuidance } from '@forgelex/legal-workflows';
 import { digest, ExecutionStore } from './execution-store.js';
+import { publicQuestion } from './event-stream.js';
 
 type Access = { owner: AgenticOwner; canReadMatter: boolean };
 type Context = AgenticConversation['contexts'][number];
@@ -21,19 +22,49 @@ function conversationId(owner: AgenticOwner, commandId: string): string {
 function project(conversation: AgenticConversation, context: Context) {
   const snapshot = context.guidance;
   if (!snapshot) throw new Error('CONVERSATION_NOT_FOUND');
+  const questions = new Map(
+    conversation.messages.flatMap(({ executionId, question }) =>
+      !executionId && question ? [[question.id, question] as const] : [],
+    ),
+  );
   const decisions = Object.fromEntries(
     (['area', 'action', 'documentType', 'partyRole', 'stage'] as const).map((field) => {
       const { value, status, questionId } = snapshot[field];
-      const original = conversation.messages.find((message) => message.question?.id === questionId)?.question;
-      return [field, { value, status, ...(original ? { questionId, questionVersion: original.version } : {}) }];
+      const original = questionId ? questions.get(questionId) : undefined;
+      return [
+        field,
+        {
+          value,
+          status,
+          ...(original
+            ? {
+                questionId,
+                questionVersion: original.version,
+                question: publicQuestion({ ...original, contextRevision: context.revision }),
+              }
+            : {}),
+        },
+      ];
     }),
   );
   return {
     conversationId: conversation.id,
     matterId: conversation.matterId,
     contextRevision: context.revision,
+    objective: context.text,
     decisions,
     question: guidanceQuestion(snapshot, context.revision),
+    history: conversation.messages.flatMap((message) => {
+      const answer = message.answer;
+      if (message.executionId || !answer || answer.contextRevision >= context.revision) return [];
+      const original = questions.get(answer.questionId);
+      if (!original) return [];
+      const label = answer.selectedOptionIds
+        .map((id) => original.options.find((option) => option.id === id)?.label)
+        .filter(Boolean);
+      const text = answer.unknown ? 'Não sei' : [...label, answer.freeText].filter(Boolean).join(' · ');
+      return [{ id: message.id, prompt: original.prompt, text }];
+    }),
   };
 }
 

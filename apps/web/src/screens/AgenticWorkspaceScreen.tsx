@@ -7,6 +7,9 @@ import { ApiRequestError } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 import { WorkspaceClient, type StartInput } from '../agentic-workspace/client';
 import { Composer } from '../agentic-workspace/Composer';
+import { GuidancePanel } from '../agentic-workspace/GuidancePanel';
+import { useDeskGuidance, type DeskGuidanceRoute } from '../agentic-workspace/use-desk-guidance';
+import type { GuidanceField } from '../agentic-workspace/guidance-model';
 import { EvidenceChangesPanel } from '../agentic-workspace/EvidenceChangesPanel';
 import { Conversation } from '../agentic-workspace/Conversation';
 import { ResultCard } from '../agentic-workspace/ResultCard';
@@ -53,6 +56,7 @@ export function AgenticWorkspaceScreen({
   onExecutionChange,
   onConversationChange,
   selectionKey,
+  guidanceRoute,
   requestedExecutionId,
   integrated = false,
   piece,
@@ -71,6 +75,7 @@ export function AgenticWorkspaceScreen({
   onExecutionChange: (id: string | null, switched: boolean) => void;
   onConversationChange?: (run: Execution) => void;
   selectionKey?: () => string;
+  guidanceRoute?: DeskGuidanceRoute;
 }) {
   const { status: authStatus } = useAuth();
   const client = useMemo(() => new WorkspaceClient(), []);
@@ -84,6 +89,26 @@ export function AgenticWorkspaceScreen({
     [error, setError] = useState('');
   const [closedPilot, setClosedPilot] = useState<boolean>();
   const [commercial, setCommercial] = useState(false);
+  const [guidanceEnabled, setGuidanceEnabled] = useState(false);
+  const navigationEpoch = useRef(0);
+  const guidanceSelectionKey = guidanceRoute?.selectionKey;
+  const currentGuidanceScope = useCallback(
+    () => JSON.stringify([navigationEpoch.current, guidanceSelectionKey?.()]),
+    [guidanceSelectionKey],
+  );
+  const guidance = useDeskGuidance(
+    client,
+    guidanceRoute && { ...guidanceRoute, selectionKey: currentGuidanceScope },
+    integrated && guidanceEnabled && !id,
+    isActiveSurface,
+  );
+  const [editGuidance, setEditGuidance] = useState<{ field: GuidanceField; id: string; revision: number }>();
+  const guidanceField =
+    editGuidance &&
+    editGuidance.id === guidance.state?.conversationId &&
+    editGuidance.revision === guidance.state.contextRevision
+      ? editGuidance.field
+      : undefined;
   const [paidCommand, setPaidCommand] = useState<{
     kind: string;
     body: unknown;
@@ -113,7 +138,6 @@ export function AgenticWorkspaceScreen({
     tab: 'sources',
     source: null,
   });
-  const navigationEpoch = useRef(0);
   const generation = useRef(0),
     command = useRef<{ hash: string; key: string }>(),
     mounted = useRef(true);
@@ -152,6 +176,7 @@ export function AgenticWorkspaceScreen({
           setAvailable(r.available);
           setClosedPilot(r.closedPilot ?? false);
           setCommercial(r.commercial === true && !r.closedPilot);
+          setGuidanceEnabled(r.guidance === true && !r.closedPilot);
         }
       })
       .catch((e) => {
@@ -497,10 +522,16 @@ export function AgenticWorkspaceScreen({
           )}
           <header
             className={
-              landing ? 'mx-auto w-full max-w-3xl pt-8' : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
+              landing && guidance.id
+                ? 'sr-only'
+                : landing
+                  ? 'mx-auto w-full max-w-3xl pt-8'
+                  : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
             }
           >
-            {landing ? (
+            {landing && guidance.id ? (
+              <h1 className="sr-only">Mesa Jurídica</h1>
+            ) : landing ? (
               <>
                 <h1 className="font-editorial text-3xl font-medium text-stone-900">O que você precisa fazer hoje?</h1>
                 <p className="mt-2 text-stone-600">
@@ -562,7 +593,23 @@ export function AgenticWorkspaceScreen({
             />
           )}
           {closedPilot === false && landing && (
-            <div className="mx-auto w-full max-w-3xl space-y-4">
+            <div
+              className={`mx-auto w-full max-w-3xl space-y-4 ${guidance.id ? 'min-h-0 overflow-y-auto px-1 pb-3' : ''}`}
+            >
+              {guidance.id && (
+                <GuidancePanel
+                  guidance={guidance}
+                  field={guidanceField}
+                  blocked={busy || Boolean(paidCommand)}
+                  onEdit={(field) =>
+                    setEditGuidance(
+                      field && guidance.state
+                        ? { field, id: guidance.state.conversationId, revision: guidance.state.contextRevision }
+                        : undefined,
+                    )
+                  }
+                />
+              )}
               <Composer
                 key={navigationEpoch.current}
                 client={client}
@@ -576,6 +623,13 @@ export function AgenticWorkspaceScreen({
                 available={isActiveSurface && available}
                 onFail={fail}
                 onSubmit={start}
+                onGuide={integrated && guidanceEnabled ? guidance.start : undefined}
+                guidanceId={guidance.id}
+                guidanceState={guidance.state}
+                guidanceBusy={guidance.busy}
+                guidanceEditing={Boolean(guidanceField)}
+                guidanceError={!guidance.id ? guidance.feedback : undefined}
+                onLeaveGuidance={guidance.leave}
               />
               {paidBar('start')}
             </div>

@@ -287,6 +287,7 @@ const app = await buildApp({
     NODE_ENV: 'test',
     FORGELEX_SUPABASE_URL: authUrl,
     ...(process.env.FORGELEX_E2E_AGENTIC === 'true' ? { FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true' } : {}),
+    ...(process.env.FORGELEX_DESK_GUIDANCE_ENABLED === 'true' ? { FORGELEX_DESK_GUIDANCE_ENABLED: 'true' } : {}),
     ...(process.env.FORGELEX_E2E_COMMERCIAL === 'true'
       ? {
           FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true',

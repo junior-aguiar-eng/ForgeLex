@@ -5,6 +5,7 @@ import { DraftStudioScreen } from './DraftStudioScreen';
 import { useApp } from '../context/AppContext';
 import type { DeskPiece } from '../agentic-workspace/desk-model';
 import type { Execution } from '../agentic-workspace/execution-model';
+import type { GuidanceState } from '../agentic-workspace/guidance-model';
 import {
   hasDeskPiece,
   matchesDeskPiece,
@@ -74,6 +75,18 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
     [getDeskSelection, setDeskSelection],
   );
   const selectionKey = useCallback(() => deskLocation(getDeskSelection()), [getDeskSelection]);
+  const guidanceSelectionKey = useCallback(() => {
+    const { executionId, conversationId, contextRevision, matterId } = getDeskSelection();
+    return deskLocation({ executionId, conversationId, contextRevision, matterId });
+  }, [getDeskSelection]);
+  const publishGuidance = useCallback(
+    (state?: GuidanceState) => {
+      const current = getDeskSelection();
+      if (current.executionId) return;
+      setDeskSelection({ ...current, conversationId: state?.conversationId, contextRevision: state?.contextRevision });
+    },
+    [getDeskSelection, setDeskSelection],
+  );
 
   const openPiece = useCallback(
     (url: string, keepSelected = false) => {
@@ -188,6 +201,12 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
               onExecutionChange={changeExecution}
               onConversationChange={rememberConversation}
               selectionKey={selectionKey}
+              guidanceRoute={{
+                id: selection.executionId ? undefined : selection.conversationId,
+                revision: selection.contextRevision,
+                selectionKey: guidanceSelectionKey,
+                publish: publishGuidance,
+              }}
               piece={activePiece}
               piecePending={attached && !activePiece}
             />

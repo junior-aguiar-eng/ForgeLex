@@ -294,7 +294,8 @@ export function registerAgenticWorkspace(
         });
       }
     };
-  if (!pilot && deps.database && deps.environment.FORGELEX_DESK_GUIDANCE_ENABLED === 'true') {
+  const guidance = !pilot && deps.database && deps.environment.FORGELEX_DESK_GUIDANCE_ENABLED === 'true';
+  if (guidance && deps.database) {
     registerGuidanceRoutes(
       app,
       new GuidanceService(deps.database),
@@ -322,6 +323,7 @@ export function registerAgenticWorkspace(
       available: Boolean(driver),
       ...(pilot ? { closedPilot: true } : {}),
       ...(commercial ? { commercial: true } : {}),
+      ...(guidance ? { guidance: true } : {}),
       actions: [...LEGAL_ACTION_CATALOG, EVIDENCE_TASK_ACTION].map((a) => ({
         id: a.id,
         label: a.label,
