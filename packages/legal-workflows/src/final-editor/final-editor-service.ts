@@ -1,7 +1,7 @@
 import { editorialArithmeticFindings } from './editorial-arithmetic.js';
 import { createHash } from 'node:crypto';
 import type { AgenticOwner } from '@forgelex/domain';
-import { TaskDocumentSchema } from '@forgelex/domain';
+import { StoredTaskDocumentSchema, TaskDocumentSchema } from '@forgelex/domain';
 import type { NativeCaseTaskRepository } from '@forgelex/persistence';
 import { FinalEditorialContextSchema, validateFinalEditorialProposal } from '@forgelex/legal-agents';
 
@@ -40,7 +40,11 @@ export function editorialContextFromSnapshot(
     draftId: saved.draftId,
     versionId: saved.versionId,
     documentHash: createHash('sha256')
-      .update(JSON.stringify(TaskDocumentSchema.parse(delivery.document)))
+      .update(
+        JSON.stringify(
+          (saved.origin === 'SCOPED_DELIVERY' ? StoredTaskDocumentSchema : TaskDocumentSchema).parse(delivery.document),
+        ),
+      )
       .digest('hex'),
     document: delivery.document,
     claims: delivery.claims,

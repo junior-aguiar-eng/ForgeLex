@@ -25,7 +25,7 @@ import {
 import { type ForgeLexDatabase, MatterWriteGuard } from '@forgelex/persistence';
 import { InferenceBudgetService } from '@forgelex/billing-ledger';
 import { ExecutionStore, digest, type ExecutionJob, type WorkerLease } from './execution-store.js';
-import { projectClientExecutionEvent, publicQuestion } from './event-stream.js';
+import { projectClientExecutionEvent, publicQuestion, type ExecutionFailureReason } from './event-stream.js';
 import { reportAgenticFailure } from './failure-log.js';
 
 const id = z.string().trim().min(1).max(200);
@@ -35,8 +35,12 @@ export const StartExecutionSchema = z
     actionId: AgenticTaskActionSchema.optional(),
     conversationId: z.string().guid().optional(),
     matterId: z.string().guid().optional(),
-    context: AgenticContextSchema.refine((c) => c.approvedItems === undefined, 'SERVER_OWNED_CONTEXT').optional(),
+    context: AgenticContextSchema.refine(
+      (c) => c.approvedItems === undefined && c.guidance === undefined && c.guidanceReceipt === undefined,
+      'SERVER_OWNED_CONTEXT',
+    ).optional(),
     contextRevision: z.number().int().positive().optional(),
+    useGuidance: z.literal(false).optional(),
   })
   .strict()
   .refine((v) => !v.conversationId || !v.context || v.contextRevision !== undefined, 'CONTEXT_REVISION_REQUIRED');
@@ -305,7 +309,15 @@ export class ExecutionService {
           throw new Error('CONTEXT_CONFLICT');
         const matterId = conversation?.matterId ?? input.matterId;
         const inherited = conversation?.contexts.at(-1);
-        const { revision: _revision, ...previousContext } = inherited ?? {
+        if (inherited?.guidance && input.contextRevision !== inherited.revision) throw new Error('CONTEXT_CONFLICT');
+        const releaseGuidance = Boolean(inherited?.guidance && input.useGuidance === false);
+        const {
+          revision: _revision,
+          deskEdit: _previousEdit,
+          guidance,
+          guidanceReceipt,
+          ...previousContext
+        } = inherited ?? {
           revision: 0,
           text: '',
           origin: 'USER' as const,
@@ -314,11 +326,16 @@ export class ExecutionService {
         const approvedItems = matterId ? await new ApprovedCaseContextRepository(s.db).capture(owner, matterId) : [];
         const context = {
           ...(input.context ?? previousContext),
+          ...(!releaseGuidance && guidance ? { guidance } : {}),
+          ...(!releaseGuidance && !input.context && guidanceReceipt ? { guidanceReceipt } : {}),
           ...(approvedItems.length || inherited?.approvedItems ? { approvedItems } : {}),
         };
         if (
           conversation &&
-          (input.context || JSON.stringify(inherited?.approvedItems ?? []) !== JSON.stringify(approvedItems))
+          (input.context ||
+            releaseGuidance ||
+            inherited?.deskEdit ||
+            JSON.stringify(inherited?.approvedItems ?? []) !== JSON.stringify(approvedItems))
         ) {
           await s.workspace.reviseContext(
             owner,
@@ -733,7 +750,7 @@ export class ExecutionService {
     j: ExecutionJob,
     e: AgenticExecution,
     code: string,
-    reason?: 'BUDGET_EXHAUSTED',
+    reason?: ExecutionFailureReason,
   ) {
     if (!terminal(e)) {
       await s.workspace.compareAndSetStatus({ tenantId: j.tenantId, userId: j.userId }, e.id, e.status, 'FAILED');
@@ -755,7 +772,7 @@ export class ExecutionService {
       budgetReleasePending: true,
     });
   }
-  async failLease(lease: WorkerLease, code = 'EXECUTION_FAILED') {
+  async failLease(lease: WorkerLease, code = 'EXECUTION_FAILED', reason?: ExecutionFailureReason) {
     await this.store.atomic(lease.owner, async (s) => {
       const j = await s.getJob(lease.owner, lease.executionId);
       if (j.leaseToken !== lease.token || j.state !== 'LEASED') return;
@@ -765,7 +782,7 @@ export class ExecutionService {
         j,
         e,
         j.pendingCallId ? 'RECONCILIATION_REQUIRED' : code,
-        code === 'BUDGET_EXHAUSTED' ? 'BUDGET_EXHAUSTED' : undefined,
+        reason ?? (code === 'BUDGET_EXHAUSTED' ? 'BUDGET_EXHAUSTED' : undefined),
       );
     });
     await this.releaseBudget(lease.owner, lease.executionId);

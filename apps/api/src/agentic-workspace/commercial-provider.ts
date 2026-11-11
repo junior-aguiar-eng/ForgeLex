@@ -1,12 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { OpenAIAgentProvider } from '@forgelex/agent-provider-openai';
+import { OpenAIAgentProvider, openAIWireToolNames } from '@forgelex/agent-provider-openai';
 import { structuredLog } from '../observability.js';
 import { safeAgentFailure, type AgentFailureDiagnostic } from '@forgelex/agent-core';
 import type { AgentProvider } from '@forgelex/agent-core';
 import { MAX_COMMERCIAL_REQUEST_BYTES, type AgenticOwner, type TaskBinding } from '@forgelex/domain';
 import { COMMERCIAL_POLICY, type CommercialInferenceService } from '@forgelex/billing-ledger';
 import type { CaseTaskProviderInput } from '@forgelex/legal-workflows';
-import { COMMERCIAL_AGENT_TOOL_NAMES, readBounded, responseUsage, sdkCompatibleSse } from './provider-transport.js';
+import { AGENT_TOOL_NAMES, readBounded, responseUsage, sdkCompatibleSse } from './provider-transport.js';
 
 /** The commercial policy is the single source of truth for the model, its rates and its output ceiling. */
 export const COMMERCIAL_MODEL = COMMERCIAL_POLICY.model;
@@ -36,7 +36,7 @@ export interface CommercialProviderOptions {
   transport?: typeof globalThis.fetch;
 }
 export function createCommercialOpenAIRuntime(options: CommercialProviderOptions) {
-  return createBudgetedOpenAIRuntime(options, COMMERCIAL_AGENT_TOOL_NAMES, () => randomUUID());
+  return createBudgetedOpenAIRuntime(options, AGENT_TOOL_NAMES, () => randomUUID());
 }
 
 /** Same financial transport, but only a single durable call to the editorial submission tool. */
@@ -56,7 +56,11 @@ function createBudgetedOpenAIRuntime(
   if (!options.apiKey.trim()) throw new Error('COMMERCIAL_KEY_REQUIRED');
   const providers = new WeakSet<AgentProvider>();
   const fetchFor =
-    (executionId: string, packet?: CaseTaskProviderInput['selectedPacket']): typeof globalThis.fetch =>
+    (
+      executionId: string,
+      packet?: CaseTaskProviderInput['selectedPacket'],
+      allowedTools = toolNames,
+    ): typeof globalThis.fetch =>
     async (url, init) => {
       if (String(url) !== 'https://api.openai.com/v1/responses') throw new Error('COMMERCIAL_DESTINATION_INVALID');
       if (init?.signal?.aborted) throw new Error('SESSION_CANCELLED');
@@ -79,7 +83,7 @@ function createBudgetedOpenAIRuntime(
         body.prompt_cache_key ||
         JSON.stringify(body).includes('prompt_cache_breakpoint') ||
         !Array.isArray(body.tools ?? []) ||
-        (body.tools ?? []).some((t: any) => t.type !== 'function' || !toolNames.includes(t.name))
+        (body.tools ?? []).some((t: any) => t.type !== 'function' || !allowedTools.includes(t.name))
       )
         throw new Error('COMMERCIAL_REQUEST_INVALID');
       Object.assign(body, {
@@ -233,12 +237,12 @@ function createBudgetedOpenAIRuntime(
       }
     };
   return {
-    fetchFor,
+    fetchFor: (executionId: string, packet?: CaseTaskProviderInput['selectedPacket']) => fetchFor(executionId, packet),
     createProvider(input: CaseTaskProviderInput) {
       const provider = new OpenAIAgentProvider({
         apiKey: options.apiKey,
         model: COMMERCIAL_MODEL,
-        fetch: fetchFor(input.binding.executionId, input.selectedPacket),
+        fetch: fetchFor(input.binding.executionId, input.selectedPacket, openAIWireToolNames(input.registry.list())),
       });
       providers.add(provider);
       return provider;

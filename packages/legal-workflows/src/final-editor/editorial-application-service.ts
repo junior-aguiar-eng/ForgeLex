@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TaskDocumentSchema, type AgenticOwner } from '@forgelex/domain';
+import { StoredTaskDocumentSchema, TaskDocumentSchema, type AgenticOwner } from '@forgelex/domain';
 import type { NativeCaseTaskRepository } from '@forgelex/persistence';
 import { validateFinalEditorialProposal, FINAL_EDITOR_GENERATION_PROFILE } from '@forgelex/legal-agents';
 import { EditorialReviewTargetSchema } from './editorial-review-service.js';
@@ -72,7 +72,9 @@ export class EditorialApplicationService {
           section.content = section.content.slice(0, change.start) + change.after + section.content.slice(change.end);
         }
         // Validation must not silently trim accepted replacements at section boundaries.
-        const parsed = TaskDocumentSchema.parse(document);
+        const parsed = (context.origin === 'SCOPED_DELIVERY' ? StoredTaskDocumentSchema : TaskDocumentSchema).parse(
+          document,
+        );
         if (JSON.stringify(parsed) !== JSON.stringify(document)) throw new Error('EDITORIAL_REVIEW_CONFLICT');
         return {
           document,

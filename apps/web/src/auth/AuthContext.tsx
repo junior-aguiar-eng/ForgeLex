@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { ApiRequestError, requestApi } from '../api-client';
+import { clearPendingDraftSaves } from '../documents/draft-save-session';
 import { supabase } from './supabase-client';
 import type { Session } from '@supabase/supabase-js';
 
@@ -198,6 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setPasswordRecovery(true);
       }
       if (event === 'SIGNED_OUT' || !session) {
+        clearPendingDraftSaves();
         setAccount(undefined);
         setStatus('signed_out');
         return;
@@ -238,6 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = useCallback(async () => {
     if (supabase) await supabase.auth.signOut();
+    clearPendingDraftSaves();
     setAccount(undefined);
     setPasswordRecovery(false);
     setPasswordRecoveryError(false);
@@ -253,6 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (supabase) await signOutAfterClosure(supabase.auth);
     } finally {
+      clearPendingDraftSaves();
       setAccount(undefined);
       setPasswordRecovery(false);
       setPasswordRecoveryError(false);

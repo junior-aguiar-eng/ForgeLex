@@ -2,11 +2,14 @@ import { CanvasDialog } from './draft-review/DraftCanvas';
 import { createPortal } from 'react-dom';
 import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
 import { editorLink } from '../agentic-workspace/execution-model';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ApiRequestError } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 import { WorkspaceClient, type StartInput } from '../agentic-workspace/client';
 import { Composer } from '../agentic-workspace/Composer';
+import { GuidancePanel } from '../agentic-workspace/GuidancePanel';
+import { useDeskGuidance, type DeskGuidanceRoute } from '../agentic-workspace/use-desk-guidance';
+import type { GuidanceField } from '../agentic-workspace/guidance-model';
 import { EvidenceChangesPanel } from '../agentic-workspace/EvidenceChangesPanel';
 import { Conversation } from '../agentic-workspace/Conversation';
 import { ResultCard } from '../agentic-workspace/ResultCard';
@@ -51,22 +54,36 @@ export function AgenticWorkspaceScreen({
   onEditor,
   active: isActiveSurface,
   onExecutionChange,
+  onConversationChange,
+  onDeskEditorialAvailability,
+  selectionKey,
+  guidanceRoute,
+  requestedExecutionId,
   integrated = false,
   piece,
+  piecePending,
   request,
   historyContainer,
 }: {
-  onEditor: (url: string) => void;
+  onEditor: (url: string, keepSelected?: boolean) => void;
   integrated?: boolean;
   piece?: DeskPiece | null;
+  piecePending?: boolean;
   request?: DeskRequest;
   historyContainer?: HTMLElement | null;
   active: boolean;
-  onExecutionChange: (id: string | null) => void;
+  requestedExecutionId?: string | null;
+  onExecutionChange: (id: string | null, switched: boolean) => void;
+  onDeskEditorialAvailability?: (enabled: boolean) => void;
+  onConversationChange?: (run: Execution) => void;
+  selectionKey?: () => string;
+  guidanceRoute?: DeskGuidanceRoute;
 }) {
   const { status: authStatus } = useAuth();
   const client = useMemo(() => new WorkspaceClient(), []);
-  const [id, setId] = useState<string | null>(initialId),
+  const [id, setId] = useState<string | null>(() =>
+      requestedExecutionId === undefined ? initialId() : requestedExecutionId,
+    ),
     [run, setRun] = useState<Execution>(),
     [actions, setActions] = useState<PublicAction[]>([]);
   const [available, setAvailable] = useState(false),
@@ -74,17 +91,41 @@ export function AgenticWorkspaceScreen({
     [error, setError] = useState('');
   const [closedPilot, setClosedPilot] = useState<boolean>();
   const [commercial, setCommercial] = useState(false);
+  const [guidanceEnabled, setGuidanceEnabled] = useState(false);
+  const navigationEpoch = useRef(0);
+  const guidanceSelectionKey = guidanceRoute?.selectionKey;
+  const currentGuidanceScope = useCallback(
+    () => JSON.stringify([navigationEpoch.current, guidanceSelectionKey?.()]),
+    [guidanceSelectionKey],
+  );
+  const guidance = useDeskGuidance(
+    client,
+    guidanceRoute && { ...guidanceRoute, selectionKey: currentGuidanceScope },
+    integrated && guidanceEnabled && !id,
+    isActiveSurface,
+  );
+  const [editGuidance, setEditGuidance] = useState<{ field: GuidanceField; id: string; revision: number }>();
+  const guidanceField =
+    editGuidance &&
+    editGuidance.id === guidance.state?.conversationId &&
+    editGuidance.revision === guidance.state.contextRevision
+      ? editGuidance.field
+      : undefined;
   const [paidCommand, setPaidCommand] = useState<{
     kind: string;
     body: unknown;
     send: (key: string, authorization: CommercialAuthorization) => Promise<Execution>;
   }>();
   useEffect(() => {
-    if (paidCommand?.kind !== 'start' || !piece) return;
+    if (paidCommand?.kind !== 'start') return;
     const input = paidCommand.body as StartInput;
-    if (piece.dirty || input.matterId !== piece.matterId || input.context?.draft?.versionId !== piece.versionId)
+    if (
+      piecePending ||
+      (piece &&
+        (piece.dirty || input.matterId !== piece.matterId || input.context?.draft?.versionId !== piece.versionId))
+    )
       setPaidCommand(undefined);
-  }, [piece, paidCommand]);
+  }, [piece, piecePending, paidCommand]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]),
     [reading, setReading] = useState<DocumentSource>(),
     [correction, setCorrection] = useState<Question>();
@@ -99,34 +140,23 @@ export function AgenticWorkspaceScreen({
     tab: 'sources',
     source: null,
   });
-  const surface = useRef(isActiveSurface),
-    navigationEpoch = useRef(0);
-  surface.current = isActiveSurface;
   const generation = useRef(0),
     command = useRef<{ hash: string; key: string }>(),
     mounted = useRef(true);
+  const submittedRun = useRef<string>();
   const events = useExecutionEvents(client, id);
   const denied = /ACCESS_REVOKED|UNAUTHENTICATED|NOT_FOUND/.test(error || events.error);
   const titles = useDocumentTitles(run?.matterId ?? null, Boolean(run) && !denied);
   const changeId = useCallback(
-    (next: string) => {
+    (next: string | null, switched = false) => {
       setId(next);
-      onExecutionChange(next);
-      if (!surface.current || window.location.pathname !== '/app/trabalho') return;
-      const url = new URL(window.location.href);
-      url.pathname = '/app/trabalho';
-      if (!integrated) url.search = '';
-      url.searchParams.set('executionId', next);
-      window.history.replaceState({}, '', url);
+      onExecutionChange(next, switched);
     },
-    [onExecutionChange, integrated],
+    [onExecutionChange],
   );
   useEffect(() => {
-    onExecutionChange(id);
-  }, [id, onExecutionChange]);
-  useEffect(() => {
-    if (isActiveSurface && id && window.location.pathname === '/app/trabalho' && !initialId()) changeId(id);
-  }, [isActiveSurface, id, changeId]);
+    if (run && run.id === id) onConversationChange?.(run);
+  }, [id, run, onConversationChange]);
   const fail = useCallback(
     (e: unknown) => setError(e instanceof ApiRequestError ? e.code : 'EXECUTION_UNAVAILABLE'),
     [],
@@ -148,6 +178,8 @@ export function AgenticWorkspaceScreen({
           setAvailable(r.available);
           setClosedPilot(r.closedPilot ?? false);
           setCommercial(r.commercial === true && !r.closedPilot);
+          setGuidanceEnabled(r.guidance === true && !r.closedPilot);
+          onDeskEditorialAvailability?.(r.deskEditorial === true && !r.closedPilot);
         }
       })
       .catch((e) => {
@@ -156,26 +188,43 @@ export function AgenticWorkspaceScreen({
     return () => {
       active = false;
     };
-  }, [client, authStatus, fail]);
-  useEffect(() => {
-    const sync = () => {
-      if (window.location.pathname === '/app/trabalho') {
-        const next = initialId();
-        if (next !== id) {
-          navigationEpoch.current++;
-          setId(next);
-          if (!next) setRun(undefined);
-          setPaidCommand(undefined);
-        }
-      }
-    };
-    window.addEventListener('popstate', sync);
-    return () => window.removeEventListener('popstate', sync);
-  }, [id]);
+  }, [client, authStatus, fail, onDeskEditorialAvailability]);
   const [pastDeliveries, setPastDeliveries] = useState<{ delivery: Delivery; createdAt: string }[]>([]);
   const transcript = useRef<HTMLDivElement>(null);
   const historyLoaded = useRef('');
   const [historyUnavailable, setHistoryUnavailable] = useState(false);
+  const resetSelection = useCallback(() => {
+    navigationEpoch.current++;
+    generation.current++;
+    command.current = undefined;
+    submittedRun.current = undefined;
+    historyLoaded.current = '';
+    setRun(undefined);
+    setDeliveries([]);
+    setPastDeliveries([]);
+    setHistoryUnavailable(false);
+    setReading(undefined);
+    setCorrection(undefined);
+    setPaidCommand(undefined);
+    setBusy(false);
+    setError('');
+    setSide({ open: false, tab: 'sources', source: null });
+  }, []);
+  useLayoutEffect(() => {
+    if (requestedExecutionId === undefined || requestedExecutionId === id) return;
+    resetSelection();
+    setId(requestedExecutionId);
+  }, [requestedExecutionId, id, resetSelection]);
+  useEffect(() => {
+    if (integrated) return;
+    const sync = () => {
+      if (window.location.pathname !== '/app/trabalho' || initialId() === id) return;
+      resetSelection();
+      setId(initialId());
+    };
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, [integrated, id, resetSelection]);
   useEffect(() => {
     const element = transcript.current;
     if (element && integrated) element.scrollTop = element.scrollHeight;
@@ -189,6 +238,9 @@ export function AgenticWorkspaceScreen({
         value = await client.get(value.successorId);
       if (!mounted.current || ticket !== generation.current) return;
       if (value.id !== id) {
+        if (submittedRun.current === id) submittedRun.current = value.id;
+        setRun(undefined);
+        setDeliveries([]);
         changeId(value.id);
         return;
       }
@@ -226,10 +278,14 @@ export function AgenticWorkspaceScreen({
     setBusy(true);
     setError('');
     const epoch = navigationEpoch.current;
+    const target = selectionKey?.();
+    const isCurrent = () => mounted.current && epoch === navigationEpoch.current && target === selectionKey?.();
     try {
       const value = await fn(command.current.key);
-      if (!mounted.current || epoch !== navigationEpoch.current) return;
+      if (!isCurrent()) return;
+      generation.current++;
       command.current = undefined;
+      submittedRun.current = value.id;
       setRun(value);
       setDeliveries([]);
       setCorrection(undefined);
@@ -237,9 +293,9 @@ export function AgenticWorkspaceScreen({
       setSide((old) => ({ ...old, open: false, source: null }));
       changeId(value.id);
     } catch (e) {
-      if (mounted.current && epoch === navigationEpoch.current) fail(e);
+      if (isCurrent()) fail(e);
     } finally {
-      if (mounted.current) setBusy(false);
+      if (mounted.current && epoch === navigationEpoch.current) setBusy(false);
     }
   };
   const start = (input: StartInput, authorization?: CommercialAuthorization) => {
@@ -278,32 +334,13 @@ export function AgenticWorkspaceScreen({
     }
   };
   const newWork = () => {
-    navigationEpoch.current++;
-    generation.current++;
-    command.current = undefined;
-    setId(null);
-    setRun(undefined);
-    setDeliveries([]);
-    setCorrection(undefined);
-    setPaidCommand(undefined);
-    setError('');
-    setSide({ open: false, tab: 'sources', source: null });
-    onExecutionChange(null);
-    if (surface.current && window.location.pathname === '/app/trabalho')
-      window.history.replaceState({}, '', '/app/trabalho');
+    resetSelection();
+    changeId(null, true);
   };
   const openExecution = (next: string) => {
     if (busy || next === id) return;
-    navigationEpoch.current++;
-    generation.current++;
-    command.current = undefined;
-    setRun(undefined);
-    setDeliveries([]);
-    setCorrection(undefined);
-    setPaidCommand(undefined);
-    setError('');
-    setSide({ open: false, tab: 'sources', source: null });
-    changeId(next);
+    resetSelection();
+    changeId(next, true);
   };
   const currentStatus = events.executionId === id && events.status ? events.status : (run?.status ?? '');
   const currentQuestion =
@@ -325,10 +362,11 @@ export function AgenticWorkspaceScreen({
     if (historyBusy) return;
     setHistoryBusy(true);
     setHistoryError('');
+    const epoch = navigationEpoch.current;
     try {
       await client.setConversationHidden(item.executionId, hidden);
       setRecent((items) => items.filter((row) => row.executionId !== item.executionId));
-      if (hidden && item.executionId === id) newWork();
+      if (hidden && item.executionId === id && epoch === navigationEpoch.current) newWork();
       setHistoryPending(undefined);
     } catch {
       setHistoryError('Não foi possível atualizar o histórico. Tente novamente.');
@@ -364,13 +402,14 @@ export function AgenticWorkspaceScreen({
   const latest = results.at(-1);
   const openedPiece = useRef<string>();
   useEffect(() => {
-    if (!integrated || !isActiveSurface || denied || !run || !latest || run.status !== 'COMPLETED') return;
+    if (!integrated || !isActiveSurface || denied || !run || run.id !== id || !latest || run.status !== 'COMPLETED')
+      return;
     const url = editorLink(run, latest.delivery);
     if (url && openedPiece.current !== latest.delivery.id) {
       openedPiece.current = latest.delivery.id;
-      onEditor(url);
+      onEditor(url, submittedRun.current !== run.id);
     }
-  }, [integrated, isActiveSurface, denied, run, latest, onEditor]);
+  }, [integrated, isActiveSurface, denied, id, run, latest, onEditor]);
   const reevaluate = Boolean(run?.requiresReevaluation);
   // Without a result there is nothing to open: keep the lawyer's own text in view after a failure or revocation.
   const showSide = side.open || denied || (!latest && ['FAILED', 'CANCELLED'].includes(currentStatus));
@@ -486,10 +525,16 @@ export function AgenticWorkspaceScreen({
           )}
           <header
             className={
-              landing ? 'mx-auto w-full max-w-3xl pt-8' : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
+              landing && guidance.id
+                ? 'sr-only'
+                : landing
+                  ? 'mx-auto w-full max-w-3xl pt-8'
+                  : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
             }
           >
-            {landing ? (
+            {landing && guidance.id ? (
+              <h1 className="sr-only">Mesa Jurídica</h1>
+            ) : landing ? (
               <>
                 <h1 className="font-editorial text-3xl font-medium text-stone-900">O que você precisa fazer hoje?</h1>
                 <p className="mt-2 text-stone-600">
@@ -543,6 +588,7 @@ export function AgenticWorkspaceScreen({
               refreshKey={`${currentStatus}:${events.cursor}`}
               active={active || currentStatus === 'WAITING_USER'}
               onStarted={(execution) => {
+                submittedRun.current = execution.id;
                 setRun(execution);
                 setDeliveries([]);
                 changeId(execution.id);
@@ -550,18 +596,42 @@ export function AgenticWorkspaceScreen({
             />
           )}
           {closedPilot === false && landing && (
-            <div className="mx-auto w-full max-w-3xl space-y-4">
+            <div
+              className={`mx-auto w-full max-w-3xl space-y-4 ${guidance.id ? 'min-h-0 overflow-y-auto px-1 pb-3' : ''}`}
+            >
+              {guidance.id && (
+                <GuidancePanel
+                  guidance={guidance}
+                  field={guidanceField}
+                  blocked={busy || Boolean(paidCommand)}
+                  onEdit={(field) =>
+                    setEditGuidance(
+                      field && guidance.state
+                        ? { field, id: guidance.state.conversationId, revision: guidance.state.contextRevision }
+                        : undefined,
+                    )
+                  }
+                />
+              )}
               <Composer
+                key={navigationEpoch.current}
                 client={client}
                 piece={piece}
+                piecePending={piecePending}
                 request={request}
                 actions={actions}
                 commercial={commercial}
                 authorizeOnSend={integrated}
                 busy={busy || Boolean(paidCommand)}
-                available={available}
+                available={isActiveSurface && available}
                 onFail={fail}
                 onSubmit={start}
+                onGuide={integrated && guidanceEnabled ? guidance.start : undefined}
+                guidanceId={guidance.id}
+                guidanceState={guidance.state}
+                guidanceBusy={guidance.busy}
+                guidanceEditing={Boolean(guidanceField)}
+                guidanceError={!guidance.id ? guidance.feedback : undefined}
               />
               {paidBar('start')}
             </div>
@@ -722,15 +792,16 @@ export function AgenticWorkspaceScreen({
                 {canFollowUp && (
                   <div className="shrink-0 space-y-4 pt-3">
                     <Composer
-                      key={`${run.id}:${run.contextRevision}`}
+                      key={`${navigationEpoch.current}:${run.id}:${run.contextRevision}`}
                       client={client}
                       piece={piece}
+                      piecePending={piecePending}
                       request={request}
                       actions={actions}
                       commercial={commercial}
                       authorizeOnSend={integrated}
                       busy={busy || Boolean(paidCommand)}
-                      available={available}
+                      available={isActiveSurface && available}
                       followUp={{
                         conversationId: run.conversationId,
                         contextRevision: run.contextRevision,

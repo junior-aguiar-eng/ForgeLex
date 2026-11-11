@@ -33,6 +33,37 @@ export function ResultCard({
 }) {
   const [copied, setCopied] = useState(false);
   const link = CASE_WORKSPACE_ENABLED ? editorLink(run, delivery) : null;
+  const proceduralChecks = (delivery.delivery.procedureAudit ?? []).flatMap((audit) => {
+    const requirement = delivery.delivery.requirements.find(
+      ({ id, verified }) => id === audit.requirementId && verified,
+    );
+    return requirement ? [{ audit, requirement }] : [];
+  });
+  const verifiedRequirements = proceduralChecks.length > 0 && (
+    <details className="mt-3 text-sm text-stone-700">
+      <summary className="cursor-pointer font-medium text-cognac-800">Requisitos processuais verificados</summary>
+      <ul className="mt-2 space-y-3">
+        {proceduralChecks.map(({ audit, requirement }) => (
+          <li key={requirement.id}>
+            <p>{requirement.statement}</p>
+            {[...audit.norms, ...audit.documents].map(({ sourceId, quote }, index) => {
+              const source = view.sources.find(({ id }) => id === sourceId);
+              return (
+                <blockquote key={index} className="mt-1 border-l border-stone-300 pl-3">
+                  <p>{quote}</p>
+                  {source && (
+                    <button type="button" className="text-cognac-800 underline" onClick={() => onSource(source.n)}>
+                      Fonte {source.n} · {source.label}
+                    </button>
+                  )}
+                </blockquote>
+              );
+            })}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(deliveryPlainText(view));
@@ -70,6 +101,7 @@ export function ResultCard({
             </button>
           )}
         </div>
+        {verifiedRequirements}
         {receipt && (
           <details className="mt-3 text-xs text-stone-500">
             <summary className="cursor-pointer">Recibo</summary>
@@ -110,6 +142,7 @@ export function ResultCard({
         )}
       </div>
       <p className="text-sm text-stone-600">Preliminar: exige a sua revisão antes de qualquer uso.</p>
+      {verifiedRequirements}
       <div className="space-y-4 break-words font-serif leading-8 text-stone-900">
         {view.blocks.map((block, i) =>
           block.kind === 'heading' ? (

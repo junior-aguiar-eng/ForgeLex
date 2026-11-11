@@ -3,6 +3,7 @@ import type { Context, Execution } from './execution-model';
 import { sourceLink } from './execution-model';
 import type { PresentedDelivery, PresentedSource } from './present-delivery';
 import type { DocumentSource } from '../documents/document-reader-model';
+import { CitationChecks } from '../components/CitationChecks';
 
 export type SideTab = 'sources' | 'pending' | 'context';
 
@@ -51,6 +52,7 @@ function SourceCard({
       </p>
       {title && <p className="break-words font-semibold text-stone-900">{title}</p>}
       {note && <p className="text-sm text-stone-700">{note}</p>}
+      {source.kind === 'AUTHORITY' && <CitationChecks />}
       {source.source.approvedItem && (
         <div className="space-y-3 text-sm text-stone-700">
           <p>{source.source.approvedItem.text}</p>

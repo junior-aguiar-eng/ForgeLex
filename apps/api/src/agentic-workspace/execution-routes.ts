@@ -32,6 +32,8 @@ import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
 import { EditorialCommercialCommand } from './editorial-commercial-runtime.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
+import { GuidanceService } from './guidance-service.js';
+import { registerGuidanceRoutes } from './guidance-routes.js';
 
 export interface AgenticWorkspaceRuntimeOptions {
   /** Trusted opt-in. Real generation requires a separately provisioned financial command. */
@@ -72,7 +74,10 @@ export function registerAgenticWorkspace(
       ? createCaseTaskDriver(
           deps.database,
           deps.client,
-          (pilot?.caseTask ?? commercial?.caseTask ?? deps.options!.caseTask)!,
+          {
+            ...(pilot?.caseTask ?? commercial?.caseTask ?? deps.options!.caseTask)!,
+            guidedWorkflow: !pilot && deps.environment.FORGELEX_DESK_GUIDANCE_ENABLED === 'true',
+          },
           pilot || commercial ? undefined : deps.researchService,
         )
       : undefined;
@@ -236,6 +241,8 @@ export function registerAgenticWorkspace(
                   'EDITORIAL_SOURCE_UNAVAILABLE',
                   'EDITORIAL_AUDIT_UNAVAILABLE',
                   'SOURCE_VERSION_CONFLICT',
+                  'DESK_EDIT_ANCHOR_INVALID',
+                  'DESK_EDIT_TARGET_INVALID',
                   'EVIDENCE_COMMAND_CONFLICT',
                   'EVIDENCE_ALREADY_DECIDED',
                   'EVIDENCE_ITEM_INVALID',
@@ -292,6 +299,15 @@ export function registerAgenticWorkspace(
         });
       }
     };
+  const guidance = !pilot && deps.database && deps.environment.FORGELEX_DESK_GUIDANCE_ENABLED === 'true';
+  if (guidance && deps.database) {
+    registerGuidanceRoutes(
+      app,
+      new GuidanceService(deps.database),
+      { preHandler: [deps.auth.createPreHandler(['research:read']), session] },
+      handle,
+    );
+  }
   app.post(
     '/api/agentic/executions',
     options,
@@ -312,6 +328,9 @@ export function registerAgenticWorkspace(
       available: Boolean(driver),
       ...(pilot ? { closedPilot: true } : {}),
       ...(commercial ? { commercial: true } : {}),
+      ...(commercial?.editorial ? { deskEditorial: true } : {}),
+      ...(guidance ? { guidance: true } : {}),
+      ...(caseTask ? { researchCapabilities: caseTask.researchCapabilities } : {}),
       actions: [...LEGAL_ACTION_CATALOG, EVIDENCE_TASK_ACTION].map((a) => ({
         id: a.id,
         label: a.label,

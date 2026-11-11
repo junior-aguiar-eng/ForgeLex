@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { DeskEditSelectionSchema } from './desk-edit.js';
 import { ApprovedItemsSchema } from './approved-case-context.js';
+import { GuidanceSnapshotSchema } from './desk-guidance.js';
 
 const id = z.string().min(1).max(200);
 const revision = z.number().int().positive();
@@ -82,10 +84,21 @@ export const AgenticContextSchema = z
     documents: z.array(z.object({ documentId: z.string().guid(), versionId: z.string().guid() }).strict()).max(100),
     answers: z.array(LegalAnswerSchema).max(1000).optional(),
     draft: z.object({ draftId: z.string().guid(), versionId: z.string().guid() }).strict().optional(),
+    deskEdit: DeskEditSelectionSchema.optional(),
     approvedItems: ApprovedItemsSchema.optional(),
+    guidance: GuidanceSnapshotSchema.optional(),
+    guidanceReceipt: z
+      .strictObject({
+        commandId: z.uuid(),
+        requestHash: z.string().regex(/^[a-f0-9]{64}$/),
+        revision,
+      })
+      .optional(),
   })
   .strict()
   .superRefine((c, ctx) => {
+    if (c.deskEdit && c.draft?.versionId !== c.deskEdit.versionId)
+      ctx.addIssue({ code: 'custom', message: 'DESK_EDIT_TARGET_INVALID' });
     if (c.origin === 'USER' && c.documents.length) ctx.addIssue({ code: 'custom', message: 'CONTEXT_ORIGIN_MISMATCH' });
     if (c.origin !== 'USER' && !c.documents.length)
       ctx.addIssue({ code: 'custom', message: 'CONTEXT_DOCUMENT_REQUIRED' });

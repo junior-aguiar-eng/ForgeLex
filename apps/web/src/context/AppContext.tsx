@@ -1,11 +1,13 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiRequestError, getBillingAccount, requestApi } from '../api-client';
 import { SearchCoordinator } from '../operations/search-coordinator';
 import { OperationsClient } from '../operations/operations-client';
 import type { OperationalResource, ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
 import { isKnownPath, navigateToTab, resolveVisibleTab, tabForPath, updateDocumentTitle, type AppTab, type CaseRouteContext } from '../navigation/routes';
 
-import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import type { DeskSelection } from '../agentic-workspace/desk-selection';
+import { readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
 
 export type { ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
 export type { AppTab } from '../navigation/routes';
@@ -19,6 +21,9 @@ export interface AuthorityVerification {
 
 interface AppContextType {
   activeTab: AppTab;
+  routeLocation: string;
+  getDeskSelection: () => DeskSelection;
+  setDeskSelection: (selection: DeskSelection, mode?: 'push' | 'replace') => void;
   setActiveTab: (tab: AppTab, mode?: 'push' | 'replace', context?: CaseRouteContext) => void;
   tribunals: OperationalResource<TribunalCapability[]>;
   recentSearches: OperationalResource<ResearchHistoryItem[]>;
@@ -36,6 +41,11 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | null>(null);
+
+function isDeskRoute(path: string): boolean {
+  const tab = tabForPath(path);
+  return tab === 'work' || (AGENTIC_WORKSPACE_ENABLED && CASE_WORKSPACE_ENABLED && tab === 'draft_studio');
+}
 
 function mapAuthority(item: any): SearchResultItem {
   return {
@@ -78,6 +88,15 @@ export async function loadVisibleOperationalState(client: OperationsClient, case
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setCurrentTab] = useState<AppTab>(() => typeof window === 'undefined' ? 'landing' : resolveVisibleTab(tabForPath(window.location.pathname), CASE_WORKSPACE_ENABLED));
+  const [routeLocation, setRouteLocation] = useState(() => typeof window === 'undefined' ? '' : window.location.href);
+  const lastDesk = useRef<DeskSelection>();
+  const getDeskSelection = useCallback(() => (
+    isDeskRoute(window.location.pathname) ? readDeskLocation(window.location.href) : lastDesk.current ?? {}
+  ), []);
+  const setDeskSelection = useCallback((selection: DeskSelection, mode?: 'push' | 'replace') => {
+    if (isDeskRoute(window.location.pathname)) writeDeskLocation(selection, mode);
+    else lastDesk.current = selection;
+  }, []);
   const client = useMemo(() => new OperationsClient(), []);
   const [tribunals, setTribunals] = useState<OperationalResource<TribunalCapability[]>>(OperationsClient.loading([]));
   const [recentSearches, setRecentSearches] = useState<OperationalResource<ResearchHistoryItem[]>>(OperationsClient.loading([]));
@@ -128,7 +147,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let acceptedIndex = Number(window.history.state?.forgelexIndex ?? 0);
     let restoring = false;
     window.history.replaceState({...window.history.state,forgelexIndex:acceptedIndex},document.title,acceptedUrl);
-    const rememberLocation = () => { acceptedUrl = window.location.href;acceptedIndex=Number(window.history.state?.forgelexIndex ?? acceptedIndex); };
+    const rememberLocation = () => {
+      acceptedUrl = window.location.href;
+      acceptedIndex = Number(window.history.state?.forgelexIndex ?? acceptedIndex);
+      if (isDeskRoute(window.location.pathname)) lastDesk.current = readDeskLocation(acceptedUrl);
+      setRouteLocation(acceptedUrl);
+    };
     const syncFromLocation = (event?: Event) => {
       if(restoring){restoring=false;return;}
       if (event?.type === 'popstate' && !window.dispatchEvent(new Event('forgelex:before-navigate', {cancelable:true}))) {
@@ -156,7 +180,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!window.dispatchEvent(new Event('forgelex:before-navigate',{cancelable:true}))) return;
     const index=Number(window.history.state?.forgelexIndex??0);
     const previousUrl=window.location.href;
-    navigateToTab(tab, mode, context);
+    navigateToTab(tab, mode, context ?? (tab === 'work' ? lastDesk.current : undefined));
     window.history.replaceState({...window.history.state,forgelexIndex:index+(mode==='push'&&window.location.href!==previousUrl?1:0)},document.title,window.location.href);
     window.dispatchEvent(new Event('forgelex:route-updated'));
     setCurrentTab(resolveVisibleTab(tab, CASE_WORKSPACE_ENABLED));
@@ -176,7 +200,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const actions = createOperationalActions(client, setReviewQueue);
   return <AppContext.Provider value={{
-    activeTab, setActiveTab, tribunals, recentSearches, reviewQueue,
+    activeTab, routeLocation, getDeskSelection, setDeskSelection, setActiveTab, tribunals, recentSearches, reviewQueue,
     refreshOperationalState, performSearch, retrySearch: performSearch, searchBusy, searchCostCents, searchIntent, searchExecution, searchFailure,
     resolveReview: actions.resolveReview, verifyAuthority,
   }}>{children}</AppContext.Provider>;

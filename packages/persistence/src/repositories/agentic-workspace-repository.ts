@@ -2,6 +2,7 @@ import { lockAgenticTenant } from './agentic-tenant-guard.js';
 import { and, asc, desc, eq, gt, isNull, isNotNull, max, sql } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import { DraftRepository } from './draft-repository.js';
 import {
   AgenticContextSchema,
   AgenticExecutionInputSchema,
@@ -10,6 +11,7 @@ import {
   AgenticOwnerSchema,
   ExecutionEventInputSchema,
   LegalQuestionSchema,
+  validateDeskEditSelection,
   validateLegalAnswer,
   type AgenticContext,
   type AgenticConversation,
@@ -130,6 +132,16 @@ export class AgenticWorkspaceRepository {
           )
           .limit(1);
         if (!target) throw new Error('DRAFT_VERSION_NOT_FOUND');
+        if (context.deskEdit) {
+          const bundle = await new DraftRepository(this.db).getVersion(
+            owner.tenantId,
+            matterId,
+            context.draft.draftId,
+            context.draft.versionId,
+          );
+          if (!bundle) throw new Error('DRAFT_VERSION_NOT_FOUND');
+          validateDeskEditSelection(bundle.sections, context.deskEdit);
+        }
       }
       for (const doc of context.documents) {
         await new MatterWriteGuard(this.db).captureRevision({ ...owner, matterId, documentId: doc.documentId });
@@ -145,13 +157,14 @@ export class AgenticWorkspaceRepository {
   async createConversation(
     owner: AgenticOwner,
     input: { objective: string; matterId?: string; context: AgenticContext },
+    conversationId: string = randomUUID(),
   ): Promise<AgenticConversation> {
     AgenticOwnerSchema.parse(owner);
     const objective = z.string().trim().min(1).max(16000).parse(input.objective);
     const context = AgenticContextSchema.parse(input.context);
     if (context.answers?.length) throw new Error('ANSWERS_REQUIRE_QUESTION');
     const matterId = input.matterId ? z.string().guid().parse(input.matterId) : null;
-    const id = randomUUID();
+    const id = z.string().guid().parse(conversationId);
     await this.db.transaction(async (transaction) => {
       const repo = new AgenticWorkspaceRepository(transaction as unknown as ForgeLexDatabase);
       await lockAgenticTenant(repo.db, owner.tenantId);
@@ -509,6 +522,34 @@ export class AgenticWorkspaceRepository {
       const { revision: _revision, ...context } = current;
       await repo.insertMessage(row.id, executionId, { role: 'USER', answer });
       await repo.insertContext(owner, row, { ...context, answers: [...(context.answers ?? []), answer] });
+    });
+  }
+
+  async reviseGuidance(
+    owner: AgenticOwner,
+    conversationId: string,
+    expectedRevision: number,
+    guidance: NonNullable<AgenticContext['guidance']>,
+    receipt: NonNullable<AgenticContext['guidanceReceipt']>,
+    question: LegalQuestion,
+    raw: LegalAnswer,
+    correcting: boolean,
+  ): Promise<void> {
+    await this.lockConversation(owner, conversationId, async (repo, row) => {
+      if (row.contextRevision !== expectedRevision) throw new Error('CONTEXT_CONFLICT');
+      const answer = validateLegalAnswer({ ...question, contextRevision: expectedRevision }, raw);
+      const conversation = await repo.readConversation(row);
+      const { revision: _revision, ...context } = conversation.contexts.at(-1)!;
+      if (!correcting) await repo.insertMessage(row.id, null, { role: 'ASSISTANT', question });
+      await repo.insertMessage(row.id, null, { role: 'USER', answer });
+      // Runtime answers were given against the earlier interpretation. Keep
+      // their messages in history, but let the next run reassess them.
+      await repo.insertContext(owner, row, {
+        ...context,
+        ...(correcting ? { answers: undefined } : {}),
+        guidance,
+        guidanceReceipt: receipt,
+      });
     });
   }
   async correctAnswer(

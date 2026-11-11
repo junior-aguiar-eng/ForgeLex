@@ -4,13 +4,21 @@ import { SAVED_RESEARCH_NOTICE } from '../config/research-copy';
 import { savedResearchClient, type SavedSearch, type SavedSearchSummary } from './saved-research-client';
 import { DecisionReader } from '../components/DecisionReader';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
+import { SaveAuthorityToCase } from '../components/SaveAuthorityToCase';
+import { ApiRequestError } from '../api-client';
 
 export function SavedResearchPanel({
   operationId,
   onResearchAgain,
+  caseLink = false,
+  pieceMatterId,
+  canResearchAgain,
 }: {
   operationId?: string;
   onResearchAgain: (criteria: SavedSearchSummary['criteria']) => void | Promise<void>;
+  caseLink?: boolean;
+  pieceMatterId?: string;
+  canResearchAgain?: (criteria: SavedSearchSummary['criteria']) => boolean;
 }) {
   const [items, setItems] = useState<SavedSearchSummary[]>([]);
   const [opened, setOpened] = useState<SavedSearch | null>(null);
@@ -21,8 +29,7 @@ export function SavedResearchPanel({
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const refresh = async () => {
-    const next = await savedResearchClient.list();
-    setItems(next);
+    setItems(await savedResearchClient.list());
   };
   useEffect(() => {
     if (!SAVED_RESEARCH_ENABLED) return;
@@ -32,8 +39,8 @@ export function SavedResearchPanel({
       .then((next) => {
         if (current) setItems(next);
       })
-      .catch((e) => {
-        if (current) setError(e.message);
+      .catch((e: unknown) => {
+        if (current) setError(e instanceof Error ? e.message : 'Não foi possível carregar as pesquisas salvas.');
       })
       .finally(() => {
         if (current) setLoading(false);
@@ -42,7 +49,7 @@ export function SavedResearchPanel({
       current = false;
     };
   }, []);
-  const act = async (run: () => Promise<void>) => {
+  const act = async (run: () => Promise<void>, savedAction = true) => {
     if (lock.current) return;
     lock.current = true;
     setBusy(true);
@@ -50,6 +57,12 @@ export function SavedResearchPanel({
     try {
       await run();
     } catch (e) {
+      if (savedAction && e instanceof ApiRequestError && (e.status === 401 || e.status === 403)) {
+        setOpened(null);
+        setItems([]);
+        setRemoving(null);
+        setRerunning(null);
+      }
       setError(e instanceof Error ? e.message : 'Não foi possível concluir a ação.');
     } finally {
       lock.current = false;
@@ -104,16 +117,29 @@ export function SavedResearchPanel({
               {item.criteria.limit} resultados · {item.resultCount} encontrados
             </p>
             <p className="text-xs text-stone-600">Pesquisa de {new Date(item.searchedAt).toLocaleString('pt-BR')}</p>
+            {canResearchAgain?.(item.criteria) === false && (
+              <p className="text-xs text-stone-600">Tribunal indisponível para novas pesquisas.</p>
+            )}
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
                 className="btn-secondary"
                 disabled={busy}
-                onClick={() => void act(async () => setOpened(await savedResearchClient.get(item.id)))}
+                onClick={() =>
+                  void act(async () => {
+                    setOpened(null);
+                    setOpened(await savedResearchClient.get(item.id));
+                  })
+                }
               >
                 Abrir
               </button>
-              <button type="button" className="btn-secondary" disabled={busy} onClick={() => setRerunning(item)}>
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={busy || canResearchAgain?.(item.criteria) === false}
+                onClick={() => setRerunning(item)}
+              >
                 Pesquisar novamente
               </button>
               <button type="button" className="btn-secondary" disabled={busy} onClick={() => setRemoving(item)}>
@@ -128,7 +154,12 @@ export function SavedResearchPanel({
           <button type="button" className="btn-secondary" onClick={() => setOpened(null)}>
             Fechar pesquisa salva
           </button>
-          <DecisionReader entries={opened.entries} searchedAt={opened.searchedAt} />
+          <DecisionReader
+            key={opened.id}
+            entries={opened.entries}
+            searchedAt={opened.searchedAt}
+            actions={caseLink ? (item) => <SaveAuthorityToCase item={item} pieceMatterId={pieceMatterId} /> : undefined}
+          />
         </div>
       )}
       {removing && (
@@ -165,7 +196,7 @@ export function SavedResearchPanel({
             void act(async () => {
               await onResearchAgain(rerunning.criteria);
               setRerunning(null);
-            })
+            }, false)
           }
         />
       )}

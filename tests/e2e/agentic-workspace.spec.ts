@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { randomUUID } from 'node:crypto';
 const api = 'http://127.0.0.1:3301',
   headers = { authorization: 'Bearer phase7-e2e-access-token' };
 
@@ -144,6 +145,9 @@ test('regressão final: resposta tardia não troca URL de outra superfície ou s
   release();
   await expect(page.locator('[data-agentic-workspace] article')).toHaveCount(1);
   await expect(page).toHaveURL(/\/app\/casos(?:\?|$)/);
+  await page.getByRole('button', { name: 'Mesa', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/trabalho\?executionId=/);
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
 });
 test('regressão final: EOF em pergunta reconecta e observa perda de acesso', async ({ page }) => {
   await login(page);
@@ -288,18 +292,28 @@ test('regressão final: falha em outra área preserva trabalho e edição não s
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await reachedCases;
   const input = page.getByRole('textbox', { name: 'Texto da seção 1', exact: true });
-  await page.route('**/src/screens/ResearchDeskScreen.tsx*', (route) => route.abort('failed'));
+  let failedResearchLoads = 0;
+  await page.route('**/src/screens/ResearchDeskScreen.tsx*', (route) => {
+    failedResearchLoads++;
+    return route.abort('failed');
+  });
   await page
     .getByRole('navigation', { name: 'Navegação principal', exact: true })
     .getByRole('button', { name: 'Pesquisa', exact: true })
     .click();
   await expect(page.getByRole('heading', { name: 'Não foi possível abrir esta página', exact: true })).toBeVisible();
+  expect(failedResearchLoads).toBeGreaterThan(0);
   releaseCases();
   await finishedCases;
   await page.getByRole('button', { name: 'Mesa', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   await openPiece(page);
   await input.fill('Edição preservada durante falha de outra página.');
+  await page.getByRole('button', { name: 'Pesquisa e fontes', exact: true }).click();
+  const research = page.getByRole('dialog', { name: 'Pesquisa e fontes', exact: true });
+  await expect(research.getByRole('alert')).toContainText('Não foi possível abrir a pesquisa.');
+  await research.getByRole('button', { name: 'Fechar', exact: true }).click();
+  await expect(input).toHaveValue('Edição preservada durante falha de outra página.');
   await page
     .getByRole('navigation', { name: 'Navegação principal' })
     .getByRole('button', { name: 'Casos', exact: true })
@@ -620,8 +634,9 @@ test('compara conferir fonte e editar a mesma minuta nos dois percursos com font
   page,
 }, info) => {
   await login(page);
+  const caseTitle = `Comparação verificável ${randomUUID()}`;
   const matter = await (
-    await page.request.post(api + '/api/v2/matters', { headers, data: { title: 'Comparação verificável' } })
+    await page.request.post(api + '/api/v2/matters', { headers, data: { title: caseTitle } })
   ).json();
   const source = await (
     await page.request.post(`${api}/api/v2/matters/${matter.id}/documents`, {
@@ -691,7 +706,12 @@ test('compara conferir fonte e editar a mesma minuta nos dois percursos com font
     };
     if (mode === 'anterior') {
       await step(() => page.getByRole('button', { name: 'Casos', exact: true }).click());
-      await step(() => page.getByRole('button', { name: new RegExp('^' + matter.title) }).click());
+      await step(() =>
+        page
+          .getByRole('button')
+          .filter({ has: page.getByText(caseTitle, { exact: true }) })
+          .click(),
+      );
       await step(() => page.getByRole('button', { name: 'Abrir documento: Fonte comparável', exact: true }).click());
     } else {
       await step(() => page.getByRole('button', { name: /^Fontes \(\d+\)$/ }).click());
@@ -733,7 +753,8 @@ test('compara conferir fonte e editar a mesma minuta nos dois percursos com font
 test('conversas recentes: começa outra conversa e reabre a anterior pela lista', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page);
-  await prepare(page, 'Pedido para reabrir pela lista RECENTE');
+  const objective = `Pedido para reabrir pela lista RECENTE ${randomUUID()}`;
+  await prepare(page, objective);
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
   const original = page.url();
@@ -743,8 +764,8 @@ test('conversas recentes: começa outra conversa e reabre a anterior pela lista'
   await expect(page.getByLabel('O que você precisa fazer?', { exact: true })).toBeVisible();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toHaveCount(0);
   await recent
-    .getByRole('button', { name: /Pedido para reabrir pela lista RECENTE/ })
-    .filter({ hasNot: page.locator('svg') })
+    .getByRole('button')
+    .filter({ has: page.getByText(objective, { exact: true }) })
     .click();
   await expect(page).toHaveURL(original);
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();

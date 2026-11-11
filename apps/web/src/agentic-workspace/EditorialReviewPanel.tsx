@@ -49,19 +49,25 @@ export function EditorialReviewPanel({
     sequence = useRef(0),
     active = useRef<AbortController | null>(null);
   const base = `/api/agentic/deliveries/${encodeURIComponent(deliveryId)}/editorial-review`;
-  useEffect(() => {
-    if (review?.application)
+  const publishApplication = (result: EditorialReview) => {
+    if (result.application)
       window.dispatchEvent(
         new CustomEvent('forgelex:draft-version-created', {
-          detail: { matterId, draftId, versionId: review.application.versionId },
+          detail: { matterId, draftId, versionId: result.application.versionId },
         }),
       );
-  }, [matterId, draftId, review?.application]);
+  };
   const target = { draftId, versionId };
   const generationBase = `/api/agentic/deliveries/${encodeURIComponent(deliveryId)}/editorial-proposals`;
   useEffect(() => {
-    if (open) dialog.current?.showModal();
-    else dialog.current?.close();
+    const element = dialog.current;
+    if (!open || !element) return;
+    const trigger = document.activeElement as HTMLElement | null;
+    element.showModal();
+    return () => {
+      element.close();
+      if (trigger?.isConnected) trigger.focus();
+    };
   }, [open]);
   useEffect(
     () => () => {
@@ -101,7 +107,8 @@ export function EditorialReviewPanel({
       setBlocked(!!result.stale);
       setUncertain(false);
       pending.current = null;
-      if (!input) {
+      if (!input) setGeneration(null);
+      if (!input && !result.stale) {
         const availability = await requestApi<typeof generation>(
           `${generationBase}/generation?${new URLSearchParams(target)}`,
           { signal },
@@ -184,6 +191,7 @@ export function EditorialReviewPanel({
       if (application) {
         setProposal(null);
         setBlocked(true);
+        publishApplication(result);
       }
       setNotice(
         application
@@ -222,6 +230,7 @@ export function EditorialReviewPanel({
                 ? 'Decisão localizada no histórico. Confira o registro; a minuta permanece intacta.'
                 : 'Comando não consta do histórico. Confira a revisão atual antes de uma nova decisão.',
           );
+          if (application && result.reconciliation.status === 'RECORDED') publishApplication(result);
         } catch {
           if (ticket !== sequence.current) return;
           setError('Não foi possível consultar o histórico. Restabeleça o acesso e verifique novamente.');
@@ -318,7 +327,7 @@ export function EditorialReviewPanel({
           if (!pending.current) void read();
         }}
       >
-        {deliveryId.startsWith('desk:') ? 'Revisar texto com IA' : 'Revisar proposta editorial'}
+        Revisão editorial
       </button>
       {createPortal(
         <dialog

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "custodia",
+    "area": "Penal",
+    "piece": "Resposta à acusação",
+    "objective": "Redigir a resposta à acusação. O registro de recebimento informa que o lacre do vestígio estava rompido."
+  },
+  {
+    "id": "incidental",
+    "area": "Penal",
+    "piece": "Resposta à acusação",
+    "objective": "Redigir a resposta à acusação. A capa menciona cadeia de custódia. O pedido é conferir a identificação do acusado."
+  },
+  {
+    "id": "indefinida",
+    "area": "Penal",
+    "piece": null,
+    "objective": "Não sei qual peça elaborar após receber a comunicação. Preciso identificar a medida."
+  },
+  {
+    "id": "civel",
+    "area": "Cível",
+    "piece": "Contestação",
+    "objective": "Redigir a contestação. A parte relata que houve pagamento parcial."
+  }
+]

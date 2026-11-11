@@ -102,6 +102,17 @@ const queries = (target: LifecycleTarget) => [
 
 export class MatterPurgeRepository {
   constructor(private readonly client: Client) {}
+  private async draftSaveCommandsInstalled(executor: Executor): Promise<boolean> {
+    const dialect = (this.client as Client & { forgelexDialect?: 'sqlite' | 'postgres' }).forgelexDialect ?? 'sqlite';
+    const found = await executor.execute({
+      sql:
+        dialect === 'postgres'
+          ? 'SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = current_schema() AND tablename = ?'
+          : "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+      args: ['draft_save_commands'],
+    });
+    return found.rows.length > 0;
+  }
   async assertCanManage(target: LifecycleTarget, actor: LifecycleActor): Promise<void> {
     const rows = await this.client.execute({
       sql: 'SELECT created_by FROM matters WHERE id=? AND tenant_id=?',
@@ -325,6 +336,13 @@ export class MatterPurgeRepository {
         args: [target.tenantId, target.matterId],
       });
       if (pending.rows.length) throw new Error('PURGE_AGENTIC_PENDING');
+      if (await this.draftSaveCommandsInstalled(tx))
+        counts.draft_save_commands = (
+          await tx.execute({
+            sql: 'DELETE FROM draft_save_commands WHERE tenant_id=? AND matter_id=?',
+            args: [target.tenantId, target.matterId],
+          })
+        ).rowsAffected;
       for (const query of queries(target))
         counts[query.table] = (
           await tx.execute({ sql: `DELETE FROM ${query.table} WHERE ${query.where}`, args: query.args })
@@ -416,6 +434,13 @@ export class MatterPurgeRepository {
       });
       if (Number(content.rows[0]?.count)) throw new Error('PURGE_RESIDUAL_DATA');
     } else {
+      if (await this.draftSaveCommandsInstalled(this.client)) {
+        const commands = await this.client.execute({
+          sql: 'SELECT command_id FROM draft_save_commands WHERE tenant_id=? AND matter_id=? LIMIT 1',
+          args: [target.tenantId, target.matterId],
+        });
+        if (commands.rows.length) throw new Error('PURGE_RESIDUAL_DATA');
+      }
       for (const query of queries(target)) {
         const count = await this.client.execute({
           sql: `SELECT COUNT(*) AS count FROM ${query.table} WHERE ${query.where}`,

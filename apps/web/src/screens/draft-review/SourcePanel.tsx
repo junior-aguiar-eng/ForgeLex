@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { requestApiWithToken } from '../../api-client';
 import { reviewCheckLabel, type ReviewPoint } from './review-model';
+import { CitationChecks } from '../../components/CitationChecks';
 interface Support {
   fact: { statement: string };
   sourceLinks: { documentAnchorId: string; relation: string }[];
@@ -238,6 +239,7 @@ export function SourcePanel({
             <p className="text-sm whitespace-pre-wrap">{authority.authority.syllabus}</p>
           </>
         )}
+        {check.kind === 'CITATION' && <CitationChecks />}
         {proof && <p>Prova: {proof.title}</p>}
         {check.source?.capturedAt && (
           <p className="text-xs">Acervo capturado em {new Date(check.source.capturedAt).toLocaleString('pt-BR')}</p>

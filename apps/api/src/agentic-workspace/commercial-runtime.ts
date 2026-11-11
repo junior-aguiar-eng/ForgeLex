@@ -43,6 +43,9 @@ export interface CommercialRuntimeDependencies {
   authorizeOwner?: AuthorizeNativeTask;
   /** Production injects the existing persisted STJ index, with no provider fallback. */
   researchService?: ResearchService;
+  /** Trusted host injection only. The standard bootstrap supplies no normative provider. */
+  legislationProvider?: NativeCaseTaskOptions['legislationProvider'];
+  skills?: NativeCaseTaskOptions['skills'];
 }
 export type CommercialRuntime = Awaited<ReturnType<typeof createCommercialRuntime>>;
 
@@ -180,7 +183,10 @@ export async function createCommercialRuntime(
       (live.contextId !== packet.contextId ||
         live.contextRevision !== packet.contextRevision ||
         JSON.stringify(live.sources) !== JSON.stringify(packet.sources) ||
-        JSON.stringify(live.answers) !== JSON.stringify(packet.answers))
+        JSON.stringify(live.answers) !== JSON.stringify(packet.answers) ||
+        JSON.stringify(live.deskEdit) !== JSON.stringify(packet.deskEdit) ||
+        JSON.stringify(live.guidance) !== JSON.stringify(packet.guidance) ||
+        JSON.stringify(live.guidanceAnswers) !== JSON.stringify(packet.guidanceAnswers))
     )
       throw new Error('CONTEXT_CONFLICT');
     return owner;
@@ -196,6 +202,8 @@ export async function createCommercialRuntime(
     createProvider: providerRuntime.createProvider,
     authorizeRealProvider: providerRuntime.authorizeRealProvider,
     researchService: dependencies.researchService,
+    legislationProvider: dependencies.legislationProvider,
+    skills: dependencies.skills,
     executeIncludedResearch: async (binding, operation) => {
       const owner = await assertContext(binding.executionId);
       if (owner.tenantId !== binding.tenantId || owner.userId !== binding.userId) throw new Error('ACCESS_REVOKED');

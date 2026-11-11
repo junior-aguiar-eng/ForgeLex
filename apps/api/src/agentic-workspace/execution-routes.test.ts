@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Fastify from 'fastify';
+import { randomUUID } from 'node:crypto';
 import {
   createDatabase,
   runPersistenceMigrations,
   AgenticWorkspaceRepository,
   MatterRepository,
+  agenticExecutions,
+  agenticExecutionJobs,
+  agenticExecutionCalls,
 } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
 import type { AuthenticatedPrincipal } from '@forgelex/domain';
@@ -60,7 +64,7 @@ async function fixture(driver?: ExecutionDriver) {
     database: c.db,
     client: c.client,
     auth,
-    environment: { FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true' },
+    environment: { FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true', FORGELEX_DESK_GUIDANCE_ENABLED: 'true' },
     options: { driver, scheduler: false, pollMs: 20 },
   })!;
   await app.ready();
@@ -74,6 +78,170 @@ async function fixture(driver?: ExecutionDriver) {
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
+
+describe('orientação antes da execução', () => {
+  const url = '/api/agentic/guidance';
+  const command = () => ({ ...headers, 'idempotency-key': randomUUID() });
+  const pick = (question: { id: string; version: number }, contextRevision: number, value?: string) => ({
+    questionId: question.id,
+    questionVersion: question.version,
+    contextRevision,
+    selectedOptionIds: value ? [value] : [],
+    ...(!value ? { unknown: true } : {}),
+  });
+
+  it('recupera a pergunta ativa e repete comandos sem executar, mesmo depois de outra resposta', async () => {
+    const next = vi.fn(() => {
+      throw new Error('A orientação não deve chamar o driver');
+    });
+    const f = await fixture({ next });
+    const start = { method: 'POST' as const, url, headers: command(), payload: { objective: 'Preparar pedido' } };
+    const created = await f.app.inject(start);
+    expect(created.statusCode).toBe(201);
+    const initial = created.json();
+    const path = `${url}/${initial.conversationId}`;
+    expect(initial).toMatchObject({ contextRevision: 1, question: { allowUnknown: true } });
+    expect(initial).not.toHaveProperty('guidanceHash');
+    expect((await f.app.inject({ method: 'GET', url: path, headers })).json()).toEqual(initial);
+    const first = {
+      method: 'POST' as const,
+      url: `${path}/answer`,
+      headers: command(),
+      payload: pick(initial.question, 1),
+    };
+    const answered = await f.app.inject(first);
+    expect(answered.statusCode).toBe(200);
+    const after = answered.json();
+    expect(after).toMatchObject({ contextRevision: 2, decisions: { area: { value: null, status: 'unknown' } } });
+    expect(after.question.id).not.toBe(initial.question.id);
+    expect((await f.app.inject({ ...first, payload: pick(initial.question, 1, 'penal') })).statusCode).toBe(409);
+    expect(
+      (await f.app.inject({ ...first, headers: command(), payload: pick(after.question, 2, 'review_text') }))
+        .statusCode,
+    ).toBe(200);
+    expect((await f.app.inject(first)).json()).toEqual(after);
+    expect((await f.app.inject(start)).json()).toEqual(initial);
+    expect((await f.app.inject({ ...start, payload: { objective: 'Outro pedido' } })).statusCode).toBe(409);
+    await f.worker?.runOnce();
+    expect(next).not.toHaveBeenCalled();
+    expect(await f.db.select().from(agenticExecutions)).toHaveLength(0);
+    expect(await f.db.select().from(agenticExecutionJobs)).toHaveLength(0);
+    expect(await f.db.select().from(agenticExecutionCalls)).toHaveLength(0);
+    expect((await f.client.execute('SELECT id FROM inference_budgets')).rows).toHaveLength(0);
+  });
+
+  it('preserva histórico e invalida a peça ao corrigir a área, rejeitando a outra aba', async () => {
+    const f = await fixture();
+    const created = await f.app.inject({ method: 'POST', url, headers: command(), payload: {} });
+    expect(created.statusCode).toBe(201);
+    const initial = created.json();
+    const path = `${url}/${initial.conversationId}`;
+    const submit = (state: typeof initial, value: string) =>
+      f.app.inject({
+        method: 'POST',
+        url: `${path}/answer`,
+        headers: command(),
+        payload: pick(state.question, state.contextRevision, value),
+      });
+    const tabs = await Promise.all([submit(initial, 'penal'), submit(initial, 'penal')]);
+    expect(tabs.map(({ statusCode }) => statusCode).sort()).toEqual([200, 409]);
+    const area = tabs.find(({ statusCode }) => statusCode === 200)!.json();
+    const task = (await submit(area, 'create_document')).json();
+    const piece = (await submit(task, 'resposta-acusacao')).json();
+    expect(piece).toMatchObject({
+      contextRevision: 4,
+      question: null,
+      decisions: { documentType: { value: 'resposta-acusacao' } },
+    });
+    const correction = {
+      method: 'POST' as const,
+      url: `${path}/correct`,
+      headers: command(),
+      payload: pick(initial.question, 4, 'civel'),
+    };
+    const corrections = await Promise.all([
+      f.app.inject(correction),
+      f.app.inject({ ...correction, headers: command() }),
+    ]);
+    expect(corrections.map(({ statusCode }) => statusCode).sort()).toEqual([200, 409]);
+    const corrected = corrections.find(({ statusCode }) => statusCode === 200)!;
+    expect(corrected.json()).toMatchObject({
+      contextRevision: 5,
+      decisions: { area: { value: 'civel' }, action: { value: 'create_document' }, documentType: { value: null } },
+    });
+    expect((await f.app.inject({ ...correction, headers: command() })).statusCode).toBe(409);
+    expect(
+      (await f.app.inject({ ...correction, headers: command(), payload: pick(task.question, 5, 'resposta-acusacao') }))
+        .statusCode,
+    ).toBe(409);
+    const repo = new AgenticWorkspaceRepository(f.db);
+    const history = await repo.getConversation(owner, initial.conversationId);
+    expect(history?.contexts[3]?.guidance?.documentType.value).toBe('resposta-acusacao');
+    expect(history?.contexts[4]?.guidance?.documentType.value).toBeNull();
+  });
+
+  it('valida sessão, escopos, comando UUID e as opções da pergunta', async () => {
+    const f = await fixture();
+    const request = { method: 'POST' as const, url, payload: {} };
+    expect((await f.app.inject({ ...request, headers })).statusCode).toBe(400);
+    expect(
+      (await f.app.inject({ ...request, headers: { ...command(), authorization: 'Bearer key' } })).statusCode,
+    ).toBe(403);
+    const matter = await new MatterRepository(f.db).createMatter({
+      ...owner,
+      title: 'Caso privado',
+      createdBy: owner.userId,
+    });
+    const limited = { ...command(), authorization: 'Bearer research-only' };
+    expect((await f.app.inject({ ...request, headers: limited, payload: { matterId: matter.id } })).statusCode).toBe(
+      403,
+    );
+    const initial = (await f.app.inject({ ...request, headers: command(), payload: { matterId: matter.id } })).json();
+    const path = `${url}/${initial.conversationId}`;
+    expect(
+      (await f.app.inject({ method: 'GET', url: path, headers: { authorization: 'Bearer other' } })).statusCode,
+    ).toBe(404);
+    expect((await f.app.inject({ method: 'GET', url: path, headers: limited })).statusCode).toBe(403);
+    expect(
+      (
+        await f.app.inject({
+          method: 'POST',
+          url: `${path}/answer`,
+          headers: command(),
+          payload: pick(initial.question, 1, 'fora-da-lista'),
+        })
+      ).statusCode,
+    ).toBe(400);
+  });
+
+  it('inicia a execução guiada apenas na revisão persistida informada', async () => {
+    const f = await fixture({ next: () => undefined });
+    const initial = (await f.app.inject({ method: 'POST', url, headers: command(), payload: {} })).json();
+    const path = `${url}/${initial.conversationId}`;
+    const answer = await f.app.inject({
+      method: 'POST',
+      url: `${path}/answer`,
+      headers: command(),
+      payload: pick(initial.question, 1, 'penal'),
+    });
+    expect(answer.statusCode).toBe(200);
+    const submit = (contextRevision?: number) =>
+      f.app.inject({
+        method: 'POST',
+        url: '/api/agentic/executions',
+        headers: command(),
+        payload: { objective: 'Preparar peça', conversationId: initial.conversationId, contextRevision },
+      });
+    expect((await submit()).statusCode).toBe(409);
+    expect((await submit(1)).statusCode).toBe(409);
+    const started = await submit(2);
+    expect(started.statusCode).toBe(202);
+    expect(started.json()).toMatchObject({ conversationId: initial.conversationId, contextRevision: 2 });
+    expect(started.json().context).not.toHaveProperty('guidanceReceipt');
+    expect(await f.db.select().from(agenticExecutionJobs)).toHaveLength(1);
+  });
+});
+
 describe('rotas e transporte do trabalho', () => {
   it('capacidade de edição acompanha draft:write, não matter:write', async () => {
     const f = await fixture({ next: () => undefined });

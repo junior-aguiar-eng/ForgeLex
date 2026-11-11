@@ -1,7 +1,15 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import Fastify from 'fastify';
 import { afterEach, expect, it, vi } from 'vitest';
-import { createDatabase, runPersistenceMigrations, MatterRepository } from '@forgelex/persistence';
+import {
+  createDatabase,
+  runPersistenceMigrations,
+  MatterRepository,
+  LegislationRepository,
+} from '@forgelex/persistence';
+import { LegislationCatalog } from '@forgelex/source-catalog';
+import { IndexedLegislationProvider } from '@forgelex/source-providers';
+import { LegislationService } from '@forgelex/legal-data';
 import { LedgerService, COMMERCIAL_POLICY_VERSION } from '@forgelex/billing-ledger';
 import { createFixtureResearchService, NativeCaseContextService } from '@forgelex/legal-tools';
 import { AuthAdapter } from '../auth/fastify-auth.js';
@@ -18,6 +26,7 @@ async function fixture(
   beforeTool?: (name: string, f: any) => Promise<void>,
   refine = false,
   probatory?: 'document' | 'user',
+  normative?: 'absent' | 'available',
 ) {
   const c = await createDatabase({ url: 'file::memory:' });
   await runPersistenceMigrations(c.client);
@@ -30,18 +39,65 @@ async function fixture(
   const verify = vi.spyOn(researchService, 'verifyAuthority');
   const authorizeOwner = vi.fn(async () => {});
   const packets: any[] = [];
+  const provision = { normId: 'fixture-law', provisionId: 'art-1', selector: { kind: 'CURRENT' as const } };
+  const normText = 'Texto normativo sintético. '.repeat(640).trim();
+  let legislationProvider: IndexedLegislationProvider | undefined;
+  if (normative === 'available') {
+    const repository = new LegislationRepository(c.db);
+    const officialUrl = 'https://www.planalto.gov.br/fixture-not-a-real-law.htm';
+    const catalog = new LegislationCatalog([
+      {
+        sourceId: 'synthetic',
+        normId: provision.normId,
+        provisionIds: [provision.provisionId],
+        officialUrl,
+        currentVersionId: 'v1',
+      },
+    ]);
+    const contentHash = createHash('sha256').update(normText).digest('hex');
+    await new LegislationService(repository, (n, p) => catalog.find(n, p)).ingest({
+      document: {
+        sourceId: 'synthetic',
+        normId: provision.normId,
+        provisionId: provision.provisionId,
+        versionId: 'v1',
+        text: normText,
+        officialUrl,
+        capturedAt: '2026-10-26T00:00:00Z',
+        effectiveFrom: '2000-01-01',
+        effectiveTo: null,
+        contentHash,
+        snapshotHash: contentHash,
+        start: 0,
+        end: normText.length,
+        curationEvidence: 'synthetic-curation-only',
+      },
+      snapshotText: normText,
+    });
+    legislationProvider = new IndexedLegislationProvider(repository, catalog);
+  }
   const transport = vi.fn(async (_url: unknown, init?: RequestInit) => {
     const body = JSON.parse(String(init?.body));
-    const role = JSON.parse(body.instructions.split('\n\n')[0]).profile.role;
+    const policy = JSON.parse(body.instructions.split('\n\n')[0]);
+    const role = policy.profile.role;
     const inputs = body.input;
     const user = inputs.find((item: any) => item.role === 'user');
     const text =
       typeof user.content === 'string' ? user.content : user.content.find((p: any) => p.type === 'input_text').text;
     const packet = JSON.parse(text).untrustedContext;
-    packets.push({ role, packet });
+    packets.push({
+      role,
+      packet,
+      tools: body.tools.map((tool: { name: string }) => tool.name),
+      researchCapabilities: policy.researchCapabilities,
+    });
     const calls = inputs.filter((item: any) => item.type === 'function_call').map((item: any) => item.name);
-    const researchName =
-      role === 'legal-researcher'
+    const researchName = normative
+      ? role === 'legal-researcher' &&
+        body.tools.some((tool: { name: string }) => tool.name === 'forgelex_research_get_legislation')
+        ? 'forgelex_research_get_legislation'
+        : undefined
+      : role === 'legal-researcher'
         ? 'forgelex_research_search_case_law'
         : role === 'authority-verifier'
           ? 'forgelex_research_verify_authority'
@@ -49,7 +105,7 @@ async function fixture(
     const name =
       researchName && !calls.includes(researchName)
         ? researchName
-        : role === 'legal-researcher' && !calls.includes('forgelex_research_get_authority')
+        : !normative && role === 'legal-researcher' && !calls.includes('forgelex_research_get_authority')
           ? 'forgelex_research_get_authority'
           : 'forgelex_task_submit';
     if (beforeTool) await beforeTool(name, f);
@@ -57,8 +113,8 @@ async function fixture(
       role === 'legal-orchestrator'
         ? {
             action: probatory ? 'analyze_evidence' : refine ? 'review_text' : 'research_question',
-            requiresCaseLaw: !refine && !probatory,
-            requiresNorms: false,
+            requiresCaseLaw: !normative && !refine && !probatory,
+            requiresNorms: Boolean(normative),
             requiresProcedure: false,
             issues: [{ id: 'issue', statement: 'Questão sintética', sourceIds: [packet.sources[0].id] }],
             gaps: [],
@@ -80,7 +136,7 @@ async function fixture(
                 }
               : {}),
             claims:
-              role === 'legal-researcher'
+              !normative && role === 'legal-researcher'
                 ? [
                     {
                       id: 'claim',
@@ -91,7 +147,7 @@ async function fixture(
                   ]
                 : [],
             supportChecks:
-              role === 'authority-verifier'
+              !normative && role === 'authority-verifier'
                 ? [
                     {
                       claimId: packet.priorResults['legal-researcher'].claims[0].id,
@@ -130,7 +186,9 @@ async function fixture(
       ? { query: 'vazamento', court: 'STJ', limit: 1 }
       : name.endsWith('verify_authority') || name.endsWith('get_authority')
         ? { court: 'STJ', processNumber: authority.processNumber }
-        : result;
+        : name.endsWith('get_legislation')
+          ? provision
+          : result;
     const id = randomUUID().replaceAll('-', '');
     const output = calls.includes('forgelex_task_submit')
       ? [
@@ -190,13 +248,16 @@ async function fixture(
     FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true',
     FORGELEX_COMMERCIAL_EXECUTION_ENABLED: 'true',
     FORGELEX_DATABASE_URL: 'file:synthetic.sqlite',
+    ...(normative ? { FORGELEX_DESK_GUIDANCE_ENABLED: 'true' } : {}),
   };
-  const commercial = await createCommercialRuntime(c.db, c.client, environment, {
+  const dependencies = {
     apiKey: 'synthetic',
     transport,
     authorizeOwner,
     researchService,
-  });
+    legislationProvider,
+  };
+  const commercial = await createCommercialRuntime(c.db, c.client, environment, dependencies);
   const auth = new AuthAdapter({
     verify: async () => ({
       ...owner,
@@ -216,6 +277,7 @@ async function fixture(
     options: { commercial, scheduler: false },
   })!;
   await app.ready();
+  const headers = { authorization: 'Bearer owner', 'idempotency-key': randomUUID() };
   cleanup.push(async () => {
     await runtime.worker!.stop();
     await app.close();
@@ -236,12 +298,23 @@ async function fixture(
     });
     selection = { matterId: matter.id, documents: [{ documentId: doc.document.id, versionId: doc.version.id }] };
   }
+  const guided = normative
+    ? (
+        await app.inject({
+          method: 'POST',
+          url: '/api/agentic/guidance',
+          headers,
+          payload: { objective: 'Conferir dispositivo sintético' },
+        })
+      ).json()
+    : undefined;
   const run = await commercial.start(owner, 'research', {
     objective: 'Pesquisar questão sintética',
     actionId: probatory ? 'analyze_evidence' : refine ? 'review_text' : 'research_question',
     ...(selection.matterId ? { matterId: selection.matterId } : {}),
     confirmed: true,
     policyVersion: COMMERCIAL_POLICY_VERSION,
+    ...(guided ? { conversationId: guided.conversationId, contextRevision: guided.contextRevision } : {}),
     context: {
       text: 'Questão sintética fornecida.',
       origin: selection.documents.length ? 'MIXED' : 'USER',
@@ -260,9 +333,40 @@ async function fixture(
     authorizeOwner,
     packets,
     authority,
+    app,
+    headers,
+    normText,
   };
   return f;
 }
+
+it.each(['absent', 'available'] as const)(
+  'anuncia e usa somente a capacidade normativa instalada (%s)',
+  async (mode) => {
+    const f = await fixture(undefined, false, undefined, mode);
+    const advertised = (await f.app.inject({ method: 'GET', url: '/api/agentic/actions', headers: f.headers })).json();
+    expect(advertised.researchCapabilities).toEqual({ caseLaw: true, legislation: mode === 'available' });
+    await f.worker.runOnce();
+    const run = await f.commercial.service.getExecution(owner, f.run.id);
+    expect(run.status).toBe('COMPLETED');
+    expect(f.packets[0].researchCapabilities).toEqual(advertised.researchCapabilities);
+    expect(f.search).not.toHaveBeenCalled();
+    const researcher = f.packets.find((entry) => entry.role === 'legal-researcher');
+    const native = new NativeCaseContextService(f.db, async () => {});
+    const { delivery } = await native.getDelivery(owner, run.deliveryIds[0]);
+    if (mode === 'absent') {
+      expect(researcher).toBeUndefined();
+      expect(delivery.findings).toContainEqual(expect.objectContaining({ code: 'NORMATIVE_CAPABILITY_UNAVAILABLE' }));
+    } else {
+      expect(researcher?.tools).toContain('forgelex_research_get_legislation');
+      expect(researcher?.tools).not.toContain('forgelex_research_search_case_law');
+      const verifier = f.packets.find((entry) => entry.role === 'authority-verifier');
+      expect(verifier.packet.sources).toContainEqual(
+        expect.objectContaining({ kind: 'NORM', text: f.normText, extent: 'PROVISION' }),
+      );
+    }
+  },
+);
 
 it.each(['document', 'user'] as const)(
   'probatory SDK flow persists matrix, charges only documentary work and never adopts facts: %s',

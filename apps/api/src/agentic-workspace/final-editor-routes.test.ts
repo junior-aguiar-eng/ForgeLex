@@ -616,6 +616,7 @@ async function fixture(
   generation?: FinalEditorGenerationOptions,
   documentContent = 'O pedido esta condicionado. 😀',
   editorialEnabled = false,
+  checkpointVersion = 8,
 ) {
   const c = await editorialDatabase();
   await runPersistenceMigrations(c.client);
@@ -684,7 +685,9 @@ async function fixture(
     },
   };
   const saved = await native.save(binding, delivery);
-  await workspace.saveProgress(owner, execution.id, { caseTask: { version: 8, evidence: [legal] } }, [saved.id]);
+  await workspace.saveProgress(owner, execution.id, { caseTask: { version: checkpointVersion, evidence: [legal] } }, [
+    saved.id,
+  ]);
   await workspace.compareAndSetStatus(owner, execution.id, 'RUNNING', 'COMPLETED');
   const provider = vi.fn(() => {
     throw new Error('PROVIDER_MUST_NOT_RUN');
@@ -919,6 +922,14 @@ it('admite revisão comercial somente com sessão, escrita e política confirmad
     headers: { authorization: 'Bearer owner' },
   });
   expect(staleQuote.json()).toMatchObject({ enabled: false, mode: 'COMMERCIAL' });
+});
+
+it.each([9, 10, 11, 12])('lê fonte da revisão editorial de checkpoint v%s sem chamar IA', async (version) => {
+  const f = await fixture(undefined, undefined, undefined, false, version);
+  const response = await f.get();
+  expect(response.statusCode).toBe(200);
+  expect(response.json().sources).toContainEqual(expect.objectContaining({ id: 'norm', text: 'Norma sintética.' }));
+  expect(f.provider).not.toHaveBeenCalled();
 });
 
 it('carrega somente entrega/minuta persistida e valida sem escrever nem chamar IA', async () => {
