@@ -68,7 +68,15 @@ A API prepara a conversa, registra cada resposta e reabre a pergunta ativa usand
 - A seleção transporta a referência da orientação persistida e limpa seu vínculo ao trocar o caso antes da execução. O formulário guiado e o consumo desse contexto pelo orquestrador seguem em R6 e R7.
 - Validação local com 67 testes unitários de navegação, seleção e modelo de execução e 36 testes Playwright da Mesa, revisão editorial, workspace agêntico e autorização comercial simulada. Build web, lint dos arquivos TypeScript alterados e verificação de diff passaram.
 
-Próxima etapa é R5, seleção interna de habilidades.
+## R5 · seleção interna de habilidades
+
+- O catálogo interno valida metadados, papéis existentes e versão elegível por habilidade. A Forma combina área e peça confirmada. A Matéria combina área e tema de cada questão estruturada com referências a fontes presentes no contexto. Uma questão cível e outra penal podem selecionar referências diferentes no mesmo trabalho.
+- Candidatos concorrentes para o mesmo alvo produzem uma limitação auditável, assim como falta de ficha elegível, ausência de fonte no escopo e orçamento insuficiente. O resolvedor registra a peça ou o tema, os IDs das questões e as fontes usadas em cada seleção.
+- O vínculo verifica o orçamento em bytes UTF-8 por papel e no conjunto antes da leitura. Cada corpo selecionado é carregado uma vez. O snapshot fixa conteúdo, versão, SHA-256, papéis e questões. Uma falha de leitura ou de integridade invalida o vínculo inteiro. A projeção por papel confere novamente versão e hash e entrega apenas referências textuais.
+- A validação usa fichas sintéticas. A elegibilidade do acervo real continua sujeita à avaliação de origem e reutilização prevista em R1. O grafo, as ferramentas e as projeções públicas mantêm seus contratos vigentes. A ligação do snapshot ao fluxo do orquestrador entra em R7 e a compatibilidade dos checkpoints em R10.
+- Validação local com 385 testes em 29 suítes, incluindo 13 testes novos de catálogo, seleção e integridade. Build do pacote, verificação de tipos, lint e formatação passaram nos arquivos TypeScript da etapa.
+
+Próxima etapa é R6, composição da orientação na Mesa.
 
 ## Evidências locais
 

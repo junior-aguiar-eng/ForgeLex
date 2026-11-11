@@ -26,3 +26,6 @@ export {
 } from './agentic-reviewed-delivery.js';
 
 export * from './agentic-desk.js';
+export { createSkillCatalog, type SkillCatalog } from './skills/skill-catalog.js';
+export { resolveDeskSkills, type ClassifiedSkillIssue, type DeskSkillRequest } from './skills/skill-resolver.js';
+export { bindDeskSkills, skillReferencesForRole, type ExecutionSkillSnapshot } from './skills/skill-binding.js';

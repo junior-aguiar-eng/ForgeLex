@@ -487,14 +487,16 @@ flowchart LR
 
 **Arquivos.** `skill-catalog.ts`, `skill-resolver.ts`, `skill-binding.ts` e testes.
 
-- [ ] Testar peça conhecida, matéria conhecida, área desconhecida e questão multidisciplinar.
-- [ ] Resolver Forma pela peça confirmada e Matéria pelas questões/evidências pertinentes.
-- [ ] Validar versão elegível e limites de contexto antes do carregamento.
-- [ ] Registrar motivo de seleção e conflito de habilidades.
-- [ ] Congelar conteúdo/hash para a execução. Atualização posterior do catálogo não muda o snapshot.
-- [ ] Testar que habilidade e texto processual não podem ampliar ferramentas/permissões.
+- [x] Testar peça conhecida, matéria conhecida, área desconhecida e questão multidisciplinar.
+- [x] Resolver Forma pela peça confirmada e Matéria pelas questões/evidências pertinentes.
+- [x] Validar versão elegível e limites de contexto antes do carregamento.
+- [x] Registrar motivo de seleção e conflito de habilidades.
+- [x] Congelar conteúdo/hash para a execução. Atualização posterior do catálogo não muda o snapshot.
+- [x] Testar que habilidade e texto processual não podem ampliar ferramentas/permissões.
 
 **Aceite.** Seleção reproduzível, sem conteúdo de habilidade na resposta pública da Mesa. Registro interno identifica exatamente as versões usadas. Ausência ou conflito gera limitação ou pergunta material.
+
+**Evidência.** 13 testes novos com fichas sintéticas e 385 testes locais aprovados no total. A seleção e o snapshot estão prontos como módulos internos. O [registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#r5--seleção-interna-de-habilidades) delimita a integração prevista em R7 e R10.
 
 ### R6 — Composição de UI/UX da orientação
 
