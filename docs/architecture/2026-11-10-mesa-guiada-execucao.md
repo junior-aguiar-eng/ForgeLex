@@ -384,6 +384,20 @@ Em 11/11/2026, sobre `3dcb72c`. O plano previa declarar `FORGELEX_DESK_GUIDANCE_
 
 Reversão: reverter o commit.
 
+## E1 · estado publicado real e E3 · verificação periódica da chave
+
+Em 11/11/2026, sobre `9b37287`. Leitura somente leitura do Cloud Run, do Cloud Monitoring e do Cloud Scheduler no projeto `project-bbbe1209-c295-4720-867`, com `gcloud run services describe`, `gcloud run revisions list`, `gcloud monitoring uptime list-configs`, `gcloud alpha monitoring policies list` e `gcloud scheduler jobs list`. O `-DryRun` completo de `deploy-from-main.ps1` não foi executado.
+
+| Item | Resultado |
+| --- | --- |
+| E1 · SHA em produção | `8fcd1d0` (PR #134) nos dois serviços; `PENDENCIAS.md` dizia `5757733`. A API recebe 100% em `forgelex-api-prod-secretlatest-202611092347`. Os PRs #135 a #137 estão integrados e não publicados. |
+| E1 · flags da API | `DESK_GUIDANCE` e `DRAFT_SAVE_COMMANDS` ausentes (desligadas). Estão ligadas `AGENTIC_WORKSPACE`, `COMMERCIAL_EXECUTION`, `SAVED_RESEARCH`, `BILLING`, `ANALISE` e outras; o padrão `false` do plano era o do build. |
+| E1 · documentação | `PENDENCIAS.md` ganhou a seção do estado publicado atual, e as quatro linhas “ainda não publicado” (PRs #130, #132 e #133) foram reescritas. |
+| E3 · defeito apontado | Não procede: existe Uptime Check em `https://nexojuris.ia.br/readyz` a cada 300 s e a política de alerta da chave está ativa. O que faltava era a documentação; o Uptime Check não está provisionado por script. |
+| E3 · pendente | Ensaio com chave inválida em homologação (log e e-mail do alerta), não executado. |
+
+Reversão: reverter o commit; nada foi alterado no Cloud Run.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.

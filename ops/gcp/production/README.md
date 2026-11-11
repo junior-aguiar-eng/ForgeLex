@@ -52,6 +52,14 @@ chave ficou inválida e só se soube quando um cliente tentou uma peça (HTTP 40
 - **Verificação leve:** o `/readyz` consulta `GET /v1/models` (sem custo) no máximo a cada 10 minutos, espera no máximo 1 s e
   grava `provider.key_invalid` em caso de 401. Nunca altera a prontidão: o site e o MCP funcionam sem a chave comercial.
   403 (chave restrita sem permissão de leitura de modelos) é `provider.key_unverifiable`, sem alerta.
+- **Disparo periódico:** o `/readyz` só consulta a OpenAI quando alguém o acessa. Em 11/11/2026 (leitura do Cloud
+  Monitoring) existe o Uptime Check “ForgeLex – disponibilidade pública”, que chama `https://nexojuris.ia.br/readyz` a
+  cada 300 s, o que mantém a verificação leve rodando sem ação de cliente (no máximo 10 minutos entre consultas à
+  OpenAI). Esse Uptime Check foi criado no console e **não está provisionado por script**. Ele aponta para o domínio
+  atual: na virada de domínio (Frente D), recriá-lo no host novo antes de desligar o antigo. Os serviços só têm
+  `startupProbe` em `/readyz`; não há sonda de vida. Conferir a existência com
+  `gcloud monitoring uptime list-configs --project=<projeto>`.
+  **Ainda não ensaiado:** chave inválida em homologação confirmando o log e o e-mail do alerta.
 - **Alerta:** `provision-provider-alert.ps1` cria a política de log que avisa por e-mail em `provider.key_invalid` ou em
   `commercial_call_trace` com `failureClass=AUTHORIZATION`. Só cria; `-DryRun` mostra a política.
 - **Segredo em `latest`:** `set-provider-secret-latest.ps1` troca a versão fixa por `latest`, com revisão sem tráfego,
