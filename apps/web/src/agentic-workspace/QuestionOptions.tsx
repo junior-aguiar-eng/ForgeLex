@@ -31,7 +31,8 @@ export function QuestionOptions({
   const optionClass = guided
     ? 'flex min-h-11 min-w-0 cursor-pointer items-center gap-2 rounded-xl border border-stone-300 bg-white/70 px-3 py-2 text-sm font-medium leading-snug text-stone-800 transition-colors hover:bg-ivory-200 focus-within:ring-2 focus-within:ring-cognac-700 has-[:checked]:border-cognac-700 has-[:checked]:bg-cognac-100 has-[:checked]:text-cognac-900 motion-reduce:transition-none'
     : 'flex min-h-11 items-center gap-3 rounded-lg border border-stone-200 p-3';
-  const guidedInput = 'size-4 shrink-0 cursor-pointer accent-cognac-700 focus-visible:outline-none disabled:cursor-default';
+  const guidedInput =
+    'size-4 shrink-0 cursor-pointer accent-cognac-700 focus-visible:outline-none disabled:cursor-default';
   const choose = (id: string) => {
     setUnknown(false);
     setSelected((current) =>

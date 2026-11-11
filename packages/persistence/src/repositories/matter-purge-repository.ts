@@ -105,9 +105,10 @@ export class MatterPurgeRepository {
   private async draftSaveCommandsInstalled(executor: Executor): Promise<boolean> {
     const dialect = (this.client as Client & { forgelexDialect?: 'sqlite' | 'postgres' }).forgelexDialect ?? 'sqlite';
     const found = await executor.execute({
-      sql: dialect === 'postgres'
-        ? 'SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = current_schema() AND tablename = ?'
-        : "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+      sql:
+        dialect === 'postgres'
+          ? 'SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = current_schema() AND tablename = ?'
+          : "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
       args: ['draft_save_commands'],
     });
     return found.rows.length > 0;
@@ -336,10 +337,12 @@ export class MatterPurgeRepository {
       });
       if (pending.rows.length) throw new Error('PURGE_AGENTIC_PENDING');
       if (await this.draftSaveCommandsInstalled(tx))
-        counts.draft_save_commands = (await tx.execute({
-          sql: 'DELETE FROM draft_save_commands WHERE tenant_id=? AND matter_id=?',
-          args: [target.tenantId, target.matterId],
-        })).rowsAffected;
+        counts.draft_save_commands = (
+          await tx.execute({
+            sql: 'DELETE FROM draft_save_commands WHERE tenant_id=? AND matter_id=?',
+            args: [target.tenantId, target.matterId],
+          })
+        ).rowsAffected;
       for (const query of queries(target))
         counts[query.table] = (
           await tx.execute({ sql: `DELETE FROM ${query.table} WHERE ${query.where}`, args: query.args })

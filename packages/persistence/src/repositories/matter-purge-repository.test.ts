@@ -103,11 +103,20 @@ it('purges only one case with real foreign keys enabled', async () => {
     });
     await createDraftSaveTestStorage(f.client);
     const drafts = new DraftRepository(f.db);
-    const save = (matterId: string, commandId: string) => drafts.saveManualCommand({
-      tenantId: f.owner.tenantId, matterId, createdBy: f.owner.userId, title: 'Rascunho guardado',
-      contentHash: 'a'.repeat(64), sections: [{ ordinal: 0, title: 'Texto', content: 'Trecho sintético.' }],
-    }, commandId);
-    const removed = randomUUID(), preserved = randomUUID();
+    const save = (matterId: string, commandId: string) =>
+      drafts.saveManualCommand(
+        {
+          tenantId: f.owner.tenantId,
+          matterId,
+          createdBy: f.owner.userId,
+          title: 'Rascunho guardado',
+          contentHash: 'a'.repeat(64),
+          sections: [{ ordinal: 0, title: 'Texto', content: 'Trecho sintético.' }],
+        },
+        commandId,
+      );
+    const removed = randomUUID(),
+      preserved = randomUUID();
     await save(f.matter.id, removed);
     const retained = await save(other.id, preserved);
     const target = { tenantId: f.owner.tenantId, matterId: f.matter.id };
@@ -131,8 +140,12 @@ it('purges only one case with real foreign keys enabled', async () => {
     expect(await f.matters.getMatter(target.tenantId, target.matterId)).toBeUndefined();
     expect((await f.matters.getMatter(target.tenantId, other.id))?.title).toBe(other.title);
     await repo.verifyResiduals(target);
-    expect(await drafts.recoverManualSave({ ...f.owner, matterId: target.matterId, commandId: removed })).toBeUndefined();
-    expect(await drafts.recoverManualSave({ ...f.owner, matterId: other.id, commandId: preserved })).toEqual(retained.result);
+    expect(
+      await drafts.recoverManualSave({ ...f.owner, matterId: target.matterId, commandId: removed }),
+    ).toBeUndefined();
+    expect(await drafts.recoverManualSave({ ...f.owner, matterId: other.id, commandId: preserved })).toEqual(
+      retained.result,
+    );
     expect((await f.client.execute('SELECT * FROM ledger_accounts')).rows).toEqual(ledgerBefore);
     expect((await f.client.execute('PRAGMA foreign_key_check')).rows).toEqual([]);
   } finally {

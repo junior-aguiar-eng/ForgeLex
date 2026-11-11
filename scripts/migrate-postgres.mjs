@@ -10,13 +10,14 @@ if (!url?.startsWith('postgres://') && !url?.startsWith('postgresql://')) {
 }
 
 const sql = postgres(url, { max: 1, onnotice: () => undefined });
-const migrations = process.env.FORGELEX_MIGRATE_DRAFT_SAVE_COMMANDS === 'true'
-  ? [draftSaveCommandsMigration]
-  : [
-      ...persistenceMigrations,
-      ...ledgerMigrations,
-      ...(process.env.FORGELEX_ANALISE_ENABLED === 'true' ? analiseMigrations : []),
-    ];
+const migrations =
+  process.env.FORGELEX_MIGRATE_DRAFT_SAVE_COMMANDS === 'true'
+    ? [draftSaveCommandsMigration]
+    : [
+        ...persistenceMigrations,
+        ...ledgerMigrations,
+        ...(process.env.FORGELEX_ANALISE_ENABLED === 'true' ? analiseMigrations : []),
+      ];
 
 try {
   await sql`CREATE TABLE IF NOT EXISTS forgelex_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL)`;

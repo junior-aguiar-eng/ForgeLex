@@ -110,7 +110,8 @@ await runPersistenceMigrations(connection.client);
 const draftSaveRecovery = process.env.FORGELEX_E2E_DRAFT_SAVE_RECOVERY === 'true';
 if (draftSaveRecovery) {
   if (!databaseUrl.startsWith('file::memory:')) throw new Error('DRAFT_SAVE_E2E_REQUIRES_DISPOSABLE_MEMORY_DB');
-  const { createDraftSaveTestStorage } = await import('../packages/persistence/dist/testing/draft-save-command-fixture.js');
+  const { createDraftSaveTestStorage } =
+    await import('../packages/persistence/dist/testing/draft-save-command-fixture.js');
   await createDraftSaveTestStorage(connection.client);
 }
 const ledger = new LedgerService(connection.db, connection.client);
