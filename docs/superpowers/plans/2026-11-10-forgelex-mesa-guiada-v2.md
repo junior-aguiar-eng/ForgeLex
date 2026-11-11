@@ -524,14 +524,16 @@ flowchart LR
 
 **Arquivos.** `case-task.ts`, perfis versionados, `case-task-driver`, `execution-service` e contratos novos.
 
-- [ ] Testar pedido completo sem perguntas repetidas.
-- [ ] Testar área desconhecida com descrição suficiente e insuficiente.
-- [ ] Consumir o snapshot confirmado e aproveitar o plano para inferências necessárias.
-- [ ] Perguntar quando a hipótese alterar materialmente a tarefa. Registrar origem e evidências da proposta.
-- [ ] Reutilizar `QUESTION` e projeção do plano quando compatíveis. Manter snapshots internos de habilidades no servidor.
-- [ ] Testar correção durante execução, obsolescência, cancelamento e retomada.
+- [x] Testar pedido completo sem perguntas repetidas.
+- [x] Testar área desconhecida com descrição suficiente e insuficiente.
+- [x] Consumir o snapshot confirmado e aproveitar o plano para inferências necessárias.
+- [x] Perguntar quando a hipótese alterar materialmente a tarefa. Registrar origem e evidências da proposta.
+- [x] Reutilizar `QUESTION` e projeção do plano quando compatíveis. Manter snapshots internos de habilidades no servidor.
+- [x] Testar correção durante execução, obsolescência, cancelamento e retomada.
 
 **Aceite.** Pedidos completos avançam. “Não sei” produz ajuda útil. Hipótese material não vira fato silenciosamente. O grafo executa apenas papéis necessários e conserva seus limites de replanejamento.
+
+**Evidência.** O [registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#r7--interpretação-no-fluxo-agêntico) descreve o protocolo v11 opt-in, a retomada, a seleção interna e a validação local com transporte simulado.
 
 ### R8 — Integridade documental e edição delimitada
 
@@ -539,14 +541,16 @@ flowchart LR
 
 **Arquivos.** `native-case-task-repository`, contratos/validador de `desk-edit`, metadados e writer.
 
-- [ ] Reproduzir perda de vínculos na nova versão derivada e insuficiência da regeneração integral.
-- [ ] Carregar bundle original e preservar citações, fatos, provas, autoridades e teses fora da alteração.
-- [ ] Validar âncoras, versão/hash, intervalos e Unicode.
-- [ ] Materializar o resultado no servidor a partir de patches para o protocolo novo.
-- [ ] Testar revisão que tenta devolver documento e edição fora do escopo.
-- [ ] Testar edição concorrente e replay após escrita.
+- [x] Reproduzir perda de vínculos na nova versão derivada e insuficiência da regeneração integral.
+- [x] Carregar bundle original e preservar citações, fatos, provas, autoridades e teses fora da alteração.
+- [x] Validar âncoras, versão/hash, intervalos e Unicode.
+- [x] Materializar o resultado no servidor a partir de patches para o protocolo novo.
+- [x] Testar revisão que tenta devolver documento e edição fora do escopo.
+- [x] Testar edição concorrente e replay após escrita.
 
 **Aceite.** Revisão cria zero versões. Conteúdo fora dos intervalos fica idêntico. Comando repetido cria uma única versão. Original, ancestralidade e fontes conservam sua integridade.
+
+**Evidência.** O [registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#r8--integridade-documental-e-edição-delimitada) descreve o protocolo v12, a seleção na Mesa, a preservação de metadados e os testes locais.
 
 ### R9 — Pesquisa e fontes na Mesa
 
@@ -554,13 +558,15 @@ flowchart LR
 
 **Arquivos.** `SavedResearchPanel`, leitor, `SaveAuthorityToCase`, Casos, fontes do editor.
 
-- [ ] Reutilizar os contratos existentes de abrir pesquisa salva e pesquisar novamente.
-- [ ] Abrir a fonte sem mudar a seleção de escrita.
-- [ ] Confirmar caso de destino quando houver ambiguidade de vínculo.
-- [ ] Distinguir identidade, fidelidade da citação e aplicabilidade nos pontos de conferência.
-- [ ] Testar capacidade desabilitada, acesso revogado, fonte indisponível e resultado antigo.
+- [x] Reutilizar os contratos existentes de abrir pesquisa salva e pesquisar novamente.
+- [x] Abrir a fonte sem mudar a seleção de escrita.
+- [x] Confirmar caso de destino quando houver ambiguidade de vínculo.
+- [x] Distinguir identidade, fidelidade da citação e aplicabilidade nos pontos de conferência.
+- [x] Testar capacidade desabilitada, acesso revogado, fonte indisponível e resultado antigo.
 
 **Aceite.** Abrir cópia conservada não dispara busca nova. Vínculo ocorre no caso escolhido e preserva proveniência. A peça e seu buffer permanecem acessíveis.
+
+**Evidência.** O [registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#r9--pesquisa-e-fontes-na-mesa) descreve o painel, o vínculo ao caso e os cenários locais.
 
 ### R10 — Revisão, aprovação e compatibilidade histórica
 
@@ -568,13 +574,15 @@ flowchart LR
 
 **Arquivos.** `ReviewPanel`, `EditorialReviewPanel`, fila, schemas puros de evidências e repositório.
 
-- [ ] Recolocar conferência, decisão editorial, aplicação e aprovação nos contextos corretos.
-- [ ] Adaptar entradas antigas de Revisão e Rascunhos.
-- [ ] Corrigir o leitor editorial que limita evidências a checkpoints até v8.
-- [ ] Validar versões suportadas com fixtures, incluindo o protocolo novo quando definido.
-- [ ] Testar aprovação sobre versão antiga e consulta de histórico sem geração.
+- [x] Recolocar conferência, decisão editorial, aplicação e aprovação nos contextos corretos.
+- [x] Adaptar entradas antigas de Revisão e Rascunhos.
+- [x] Corrigir o leitor editorial que limita evidências a checkpoints até v8.
+- [x] Validar versões suportadas com fixtures, incluindo o protocolo novo quando definido.
+- [x] Testar aprovação sobre versão antiga e consulta de histórico sem geração.
 
 **Aceite.** Operações têm entrada funcional na Mesa. Decisões vinculam versão e autoria. Leitores aceitam formatos suportados e recusam adulteração. Abertura de histórico não chama provider.
+
+**Evidência.** O [registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#r10--revisão-aprovação-e-histórico-na-mesa) descreve os fluxos, o tratamento das versões antigas e a leitura validada de checkpoints.
 
 ### R11 — Salvamento atômico e recuperável
 
@@ -582,14 +590,16 @@ flowchart LR
 
 **Arquivos.** `draft-service`, `draft-repository`, registro de comando compatível, handlers e editor.
 
-- [ ] Testar falha entre criação e primeira versão.
-- [ ] Unir as escritas no guard/transação existentes.
-- [ ] Registrar intenção de salvar e fingerprint por owner e alvo.
-- [ ] Recuperar resposta perdida antes de repetir escrita.
-- [ ] Manter suporte aos clientes antigos com contrato aditivo.
-- [ ] Testar duas conexões, payload divergente na mesma chave e versão posterior.
+- [x] Testar falha entre criação e primeira versão.
+- [x] Unir as escritas no guard/transação existentes.
+- [x] Registrar intenção de salvar e fingerprint por owner e alvo.
+- [x] Recuperar resposta perdida antes de repetir escrita.
+- [x] Manter suporte aos clientes antigos com contrato aditivo.
+- [x] Testar duas conexões, payload divergente na mesma chave e versão posterior.
 
 **Aceite.** Falha anterior ao commit deixa zero rascunhos órfãos. Replay retorna o resultado original. Nenhum usuário consulta o comando de outro. Eventual migration é aditiva e tem procedimento próprio.
+
+**Evidência.** O [registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#r11--salvamento-atômico-e-recuperável) descreve a validação local. A aplicação da migração tem [procedimento separado](../../operations/draft-save-recovery.md).
 
 ### R12 — Manifesto, contexto e controles financeiros
 
@@ -597,14 +607,16 @@ flowchart LR
 
 **Arquivos.** Bootstrap, driver, runtime comercial e testes de integração.
 
-- [ ] Testar que cliques determinísticos não criam inferência/reserva.
-- [ ] Exigir confirmação aplicável antes da interpretação que use provider.
-- [ ] Verificar manifesto derivado das ferramentas realmente registradas.
-- [ ] Cobrir ausência de provider normativo na composição auditada.
-- [ ] Medir o conteúdo carregado e recusar excesso de modo explícito, sem truncar fonte ou habilidade silenciosamente.
-- [ ] Preservar regras de operação utilizável, liquidação, cancelamento e consumo incerto.
+- [x] Testar que cliques determinísticos não criam inferência/reserva.
+- [x] Exigir confirmação aplicável antes da interpretação que use provider.
+- [x] Verificar manifesto derivado das ferramentas realmente registradas.
+- [x] Cobrir ausência de provider normativo na composição auditada.
+- [x] Medir o conteúdo carregado e recusar excesso de modo explícito, sem truncar fonte ou habilidade silenciosamente.
+- [x] Preservar regras de operação utilizável, liquidação, cancelamento e consumo incerto.
 
 **Aceite.** O pedido nunca promete ferramenta ausente. Catálogo e seleção não controlam preço/provider. Operações financeiras mantêm o contrato vigente e são verificadas com transporte simulado.
+
+**Evidência.** O [registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#r12--capacidades-contexto-e-controles-financeiros) descreve a composição e os ensaios locais.
 
 ### R13 — Regressão integrada e revisão de exposição
 
@@ -612,14 +624,16 @@ flowchart LR
 
 **Arquivos.** `guided-desk.spec.ts`, suites da Mesa, revisão, workflow, persistência e execução.
 
-- [ ] Exercitar criação, revisão, edição, pesquisa e fontes com orientação completa e pedido livre.
-- [ ] Trocar respostas, área, conversa e caso com buffer local e respostas tardias.
-- [ ] Inspecionar DOM e respostas públicas para ausência de corpo/IDs/títulos de habilidades.
-- [ ] Testar snapshots antigos e protocolos novos na mesma aplicação.
-- [ ] Cobrir perda de resposta, concorrência, cancelamento e recuperação.
-- [ ] Executar tipos, lint, build, suites pertinentes e PostgreSQL descartável.
+- [x] Exercitar criação, revisão, edição, pesquisa e fontes com orientação completa e pedido livre.
+- [x] Trocar respostas, área, conversa e caso com buffer local e respostas tardias.
+- [x] Inspecionar DOM e respostas públicas para ausência de corpo/IDs/títulos de habilidades.
+- [x] Testar snapshots antigos e protocolos novos na mesma aplicação.
+- [x] Cobrir perda de resposta, concorrência, cancelamento e recuperação.
+- [x] Executar tipos, lint, build, suites pertinentes e PostgreSQL descartável.
 
 **Aceite.** Critérios da seção 14 passam na mesma revisão. Falhas preexistentes e testes ignorados são registrados sem contarem como aprovação.
+
+**Evidência local.** [Registro do R13 por critério](../../architecture/2026-11-10-mesa-guiada-execucao.md#r13--regressão-integrada-e-exposição-pública). A homologação de produção e o aceite visual de Boni seguem pendentes. O piloto tem registro próprio no R14.
 
 ### R14 — Piloto Penal e regressão Cível
 
@@ -627,26 +641,34 @@ flowchart LR
 
 **Dados.** Casos sintéticos, fontes autorizadas e habilidades identificadas por versão.
 
-- [ ] Preparar jornada Penal com peça explicitamente escolhida e outra com “Não sei”.
+- [x] Preparar jornada Penal com peça explicitamente escolhida e outra com “Não sei”.
 - [ ] Usar como candidato técnico de Forma `resposta-acusacao`, v3, existente no acervo capturado, após decisão de incorporação e avaliação pertinente.
-- [ ] Selecionar Matéria apenas pelas questões do caso. `cadeia-custodia-cpp-158`, v3, é um candidato de teste quando a fixture efetivamente contiver essa questão.
-- [ ] Incluir um caso em que esse tema não aparece para testar seleção excessiva.
-- [ ] Repetir jornada Cível existente para conferir regressões.
-- [ ] Comparar baseline, Mesa guiada e Mesa guiada com habilidades no mesmo conjunto de casos.
-- [ ] Usar saídas simuladas/gravadas para contratos. Ensaios reais posteriores recebem corpus e orçamento específicos.
+- [x] Selecionar Matéria apenas pelas questões do caso. `cadeia-custodia-cpp-158`, v3, é um candidato de teste quando a fixture efetivamente contiver essa questão.
+- [x] Incluir um caso em que esse tema não aparece para testar seleção excessiva.
+- [x] Repetir jornada Cível existente para conferir regressões.
+- [x] Comparar baseline, Mesa guiada e Mesa guiada com habilidades no mesmo conjunto de casos.
+- [x] Usar saídas simuladas/gravadas para contratos. Ensaios reais posteriores recebem corpus e orçamento específicos.
 
 **Aceite.** Seleção corresponde às questões, origem das inferências é rastreável, texto permanece íntegro e o usuário conclui o trabalho sem conhecer os nomes internos. A avaliação jurídica e de experiência é de Boni.
+
+**Evidência local.** [Registro do R14](../../architecture/2026-11-10-mesa-guiada-execucao.md#r14--piloto-penal-e-regressão-cível). O piloto técnico passou com fichas sintéticas. A incorporação dos candidatos v3 capturados e a avaliação jurídica e de experiência permanecem pendentes.
 
 ### R15 — Expansão por área e operação
 
 **Entrega.** Aumentar a elegibilidade do catálogo e a cobertura de fluxos com evidência.
 
 - [ ] Expandir formas e matérias pelos casos priorizados, aproveitando o inventário das 2.077 fichas.
-- [ ] Registrar versão de catálogo, cobertura de perguntas e resultados da avaliação de cada lote.
+- [x] Registrar versão de catálogo, cobertura de perguntas e resultados da avaliação de cada lote.
 - [ ] Medir perguntas desnecessárias, abandono, correções, custo de contexto e qualidade das entregas.
 - [ ] Ajustar regras e habilidades versionadamente, conservando execuções anteriores.
 
 **Aceite.** Cada expansão tem cobertura e avaliação identificadas. O tamanho do catálogo não amplia automaticamente as ferramentas ou o custo permitido por execução.
+
+**Evidência local.** [Lote e métricas do R15](../../architecture/2026-11-10-mesa-guiada-execucao.md#r15--expansão-por-área-e-operação). A v2 sintética foi validada com os mesmos limites de ferramentas e contexto. A incorporação das fichas, a avaliação em uso e os ajustes de regras que ela indicar continuam pendentes.
+
+**Avaliação das candidatas.** [Conferência técnica e jurídica amostral das quatro fichas](../../architecture/2026-11-10-mesa-guiada-execucao.md#avaliação-das-quatro-fichas-capturadas). As versões capturadas passaram pelo ensaio local com provedor simulado. Os achados por ficha e a decisão de incorporação ficam registrados separadamente.
+
+**Decisão de 11/11/2026.** A verificação processual passou na homologação local e a etapa foi encerrada. A expansão do catálogo fica suspensa. [Registro da homologação](../../architecture/2026-11-10-mesa-guiada-execucao.md#homologação-local-da-verificação-processual)
 
 ## 12. Correspondência com o plano anterior
 
