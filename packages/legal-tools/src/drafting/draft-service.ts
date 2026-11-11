@@ -13,6 +13,7 @@ import {
   DraftRepository,
   DraftReviewRunRepository,
   DraftSectionInput,
+  type ManualDraftWriteInput,
   DraftVersionBundle,
   reviewContextHash,
   type DraftReviewContextSnapshot,
@@ -62,18 +63,19 @@ export class DraftingService {
   public constructor(private readonly repository: DraftRepository, private readonly runs: DraftReviewRunRepository = repository.reviewRuns()) {}
 
   public async createDraft(context: DraftContext, input: DraftContentInput): Promise<DraftWriteResult> {
-    const draft = await this.repository.createDraft({
-      tenantId: context.tenantId,
-      matterId: context.matterId,
-      title: input.title,
-      createdBy: context.userId,
-    });
-    return this.writeVersion(context, draft.id, input, 'HUMAN');
+    return this.repository.saveManual(this.manualWriteInput(context, input));
   }
 
   public async updateDraft(context: DraftContext, draftId: string, input: DraftContentInput): Promise<DraftWriteResult> {
-    await this.requireDraft(context, draftId);
-    return this.writeVersion(context, draftId, input, 'HUMAN');
+    return this.repository.saveManual(this.manualWriteInput(context, input, draftId));
+  }
+
+  public saveCommand(context: DraftContext, commandId: string, input: DraftContentInput, draftId?: string) {
+    return this.repository.saveManualCommand(this.manualWriteInput(context, input, draftId), commandId);
+  }
+
+  public recoverSave(context: DraftContext, commandId: string) {
+    return this.repository.recoverManualSave({ ...context, commandId });
   }
 
   public async getDraft(context: DraftContext, draftId: string, audience: 'web_history' | 'work' = 'work'): Promise<DraftDetails> {
@@ -132,23 +134,20 @@ export class DraftingService {
     });
   }
 
-  private async writeVersion(context: DraftContext, draftId: string, input: DraftContentInput, source: 'HUMAN' | 'WORKFLOW' | 'SYSTEM'): Promise<DraftWriteResult> {
-    const bundle = await this.repository.createVersion({
+  private manualWriteInput(context: DraftContext, input: DraftContentInput, draftId?: string): ManualDraftWriteInput {
+    return {
       tenantId: context.tenantId,
       matterId: context.matterId,
       draftId,
       title: input.title,
       createdBy: context.userId,
-      source,
-      status: 'DRAFT',
       contentHash: hashDraftContent(input),
       notes: input.notes,
       baseVersionId: input.baseVersionId,
       expectedCurrentVersionId: input.expectedCurrentVersionId,
       sections: input.sections,
       citations: input.citations,
-    });
-    return { draft: (await this.requireDraft(context, draftId)), ...bundle };
+    };
   }
 
   private async requireDraft(context: DraftContext, draftId: string): Promise<Draft> {

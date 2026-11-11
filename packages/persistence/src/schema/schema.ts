@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const agenticTenantGuards = sqliteTable('agentic_tenant_guards', {
   tenantKey: text('tenant_key').primaryKey(), closed: integer('closed').notNull().default(0),
@@ -491,6 +491,21 @@ export const draftVersions = sqliteTable(
     index('draft_versions_tenant_matter_idx').on(table.tenantId, table.matterId, table.createdAt),
   ],
 );
+
+export const draftSaveCommands = sqliteTable('draft_save_commands', {
+  tenantId: text('tenant_id').notNull(),
+  userId: text('user_id').notNull(),
+  commandId: text('command_id').notNull(),
+  matterId: text('matter_id').notNull().references(() => matters.id),
+  inputHash: text('input_hash').notNull(),
+  versionId: text('version_id').references(() => draftVersions.id, { onDelete: 'cascade' }),
+  receiptJson: text('receipt_json'),
+  createdAt: text('created_at').notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.tenantId, table.userId, table.commandId] }),
+  index('draft_save_commands_matter_idx').on(table.tenantId, table.matterId),
+  index('draft_save_commands_version_idx').on(table.versionId),
+]);
 
 export const draftAiReceipts = sqliteTable('draft_ai_receipts', {
   id: text('id').primaryKey(), tenantId: text('tenant_id').notNull(), userId: text('user_id').notNull(),

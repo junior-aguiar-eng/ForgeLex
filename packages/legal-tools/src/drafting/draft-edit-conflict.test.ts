@@ -1,6 +1,29 @@
 import { expect, it } from 'vitest';
+import { randomUUID } from 'node:crypto';
 import { createDatabase, runPersistenceMigrations, MatterRepository, DraftRepository } from '@forgelex/persistence';
 import { DraftingService } from './draft-service.js';
+it('reverte a criação quando a primeira versão falha após a inserção do rascunho', async () => {
+  const c = await createDatabase({ url: 'file::memory:' });
+  try {
+    await runPersistenceMigrations(c.client);
+    const owner = { tenantId: 'atomic', userId: 'author' };
+    const matter = await new MatterRepository(c.db).createMatter({ ...owner, createdBy: owner.userId, title: 'Caso' });
+    const repo = new DraftRepository(c.db);
+    await expect(
+      new DraftingService(repo).createDraft(
+        { ...owner, matterId: matter.id },
+        {
+          title: 'Minuta',
+          sections: [{ ordinal: 0, title: 'Texto', content: 'Original', linkedThesisIds: [randomUUID()] }],
+        },
+      ),
+    ).rejects.toThrow('DRAFT_THESIS_NOT_FOUND');
+    expect(await repo.listDrafts(owner.tenantId, matter.id)).toEqual([]);
+    expect((await c.client.execute('SELECT id FROM draft_versions')).rows).toHaveLength(0);
+  } finally {
+    c.client.close();
+  }
+});
 it('recusa save com revisão esperada antiga sob lock e preserva a versão concorrente', async () => {
   const c = await createDatabase({ url: 'file::memory:' });
   try {
