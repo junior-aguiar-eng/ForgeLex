@@ -471,6 +471,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const draftRepository = database ? new DraftRepository(database) : undefined;
   const draftReviewRuns = database ? new DraftReviewRunRepository(database) : undefined;
   const draftingService = draftRepository ? new DraftingService(draftRepository, draftReviewRuns) : undefined;
+  const draftSaveRecovery = environment.FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED === 'true';
+  if (draftSaveRecovery) {
+    if (!draftRepository) throw new Error('DRAFT_SAVE_COMMAND_STORAGE_REQUIRED');
+    try { await draftRepository.assertSaveCommandStorage(); }
+    catch (error) { throw new Error('DRAFT_SAVE_COMMAND_STORAGE_REQUIRED', { cause: error }); }
+  }
+  const draftSaveInput = DraftCreateInputSchema.extend({ commandId: z.uuid().optional() });
   const strategyService = legalThesisRepository && legalIssueRepository
     ? new StrategyService(legalThesisRepository, legalIssueRepository)
     : undefined;
@@ -2392,7 +2399,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
       }
       const items = await draftRepository.listDrafts(req.principal.tenantId, matterId);
-      return { items, total: items.length };
+      return { items, total: items.length, ...(draftSaveRecovery ? { saveRecovery: true } : {}) };
     },
   );
 
@@ -2405,16 +2412,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de rascunhos não está disponível.' };
       }
       const { matterId } = req.params as { matterId: string };
-      const parsed = DraftCreateInputSchema.safeParse(req.body ?? {});
+      const parsed = draftSaveInput.safeParse(req.body ?? {});
       if (!parsed.success) {
         reply.status(400);
         return { error: 'INVALID_REQUEST', message: 'Título, seções e vínculos do rascunho são inválidos.', details: parsed.error.flatten() };
       }
+      const { commandId, ...content } = parsed.data;
+      if (commandId && !draftSaveRecovery) return draftSaveUnavailable(reply);
+      const context = { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId };
+      let committed = false;
       try {
-        const result = await draftingService.createDraft(
-          { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
-          parsed.data,
-        );
+        const { result, replayed } = commandId
+          ? await draftingService.saveCommand(context, commandId, content)
+          : { result: await draftingService.createDraft(context, content), replayed: false };
+        committed = true;
+        if (replayed) return reply.header('X-Idempotent-Replay', 'true').send(result);
         await recordAudit({
           sessionId: `draft_${result.draft.id}`,
           tenantId: req.principal.tenantId,
@@ -2431,9 +2443,50 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         });
         return result;
       } catch (error) {
+        if (commandId) return draftSaveCommandFailure(reply, error, committed);
         const message = error instanceof Error ? error.message : 'Não foi possível criar o rascunho.';
         reply.status(message.startsWith('MATTER_NOT_FOUND') ? 404 : 400);
         return { error: message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST', message };
+      }
+    },
+  );
+
+  function draftSaveUnavailable(reply: FastifyReply) {
+    return reply.code(503).send({ error: 'DRAFT_SAVE_RECOVERY_DISABLED', message: 'A recuperação de salvamento está indisponível.' });
+  }
+
+  function draftSaveCommandFailure(reply: FastifyReply, error: unknown, committed = false) {
+    const message = error instanceof Error ? error.message : '';
+    if (!committed) {
+      const code = message.split(':')[0];
+      if (['DRAFT_SAVE_COMMAND_CONFLICT', 'DRAFT_VERSION_CONFLICT', 'MATTER_NOT_ACTIVE', 'LIFECYCLE_CONFLICT'].includes(code))
+        return reply.code(409).send({ error: code, message: code === 'DRAFT_SAVE_COMMAND_CONFLICT'
+          ? 'Este comando já foi usado com outro alvo ou conteúdo.' : message });
+      if (['MATTER_NOT_FOUND', 'DRAFT_NOT_FOUND'].includes(code))
+        return reply.code(404).send({ error: code, message });
+      if (['DRAFT_SAVE_VERSION_REQUIRED', 'DRAFT_PARENT_INVALID', 'DRAFT_THESIS_NOT_FOUND', 'DRAFT_SECTION_NOT_FOUND'].includes(code))
+        return reply.code(400).send({ error: code, message });
+    }
+    return reply.code(503).send({ error: 'DRAFT_SAVE_UNCONFIRMED', message: 'Não foi possível confirmar o salvamento. Consulte o resultado antes de tentar novamente.' });
+  }
+
+  app.get(
+    '/api/v2/matters/:matterId/draft-save-commands/:commandId',
+    { preHandler: authAdapter.createPreHandler(['draft:write']) },
+    async (req, reply) => {
+      if (!draftingService || !draftSaveRecovery) return draftSaveUnavailable(reply);
+      reply.header('Cache-Control', 'no-store');
+      const params = z.object({ matterId: z.guid(), commandId: z.uuid() }).safeParse(req.params);
+      if (!params.success) return reply.code(400).send({ error: 'INVALID_REQUEST', message: 'Comando inválido.' });
+      const { matterId, commandId } = params.data;
+      try {
+        const result = await draftingService.recoverSave(
+          { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId }, commandId,
+        );
+        if (!result) return reply.code(404).send({ error: 'DRAFT_SAVE_COMMAND_NOT_FOUND', message: 'Comando de salvamento não localizado.' });
+        return result;
+      } catch (error) {
+        return draftSaveCommandFailure(reply, error);
       }
     },
   );
@@ -2470,17 +2523,21 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de rascunhos não está disponível.' };
       }
       const { matterId, draftId } = req.params as { matterId: string; draftId: string };
-      const parsed = DraftCreateInputSchema.extend({ expectedCurrentVersionId: z.string().guid().optional() }).safeParse(req.body ?? {});
+      const parsed = draftSaveInput.extend({ expectedCurrentVersionId: z.string().guid().optional() }).safeParse(req.body ?? {});
       if (!parsed.success) {
         reply.status(400);
         return { error: 'INVALID_REQUEST', message: 'Conteúdo da nova versão é inválido.', details: parsed.error.flatten() };
       }
+      const { commandId, ...content } = parsed.data;
+      if (commandId && !draftSaveRecovery) return draftSaveUnavailable(reply);
+      const context = { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId };
+      let committed = false;
       try {
-        const result = await draftingService.updateDraft(
-          { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
-          draftId,
-          parsed.data,
-        );
+        const { result, replayed } = commandId
+          ? await draftingService.saveCommand(context, commandId, content, draftId)
+          : { result: await draftingService.updateDraft(context, draftId, content), replayed: false };
+        committed = true;
+        if (replayed) return reply.header('X-Idempotent-Replay', 'true').send(result);
         await recordAudit({
           sessionId: `draft_${draftId}`,
           tenantId: req.principal.tenantId,
@@ -2497,6 +2554,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         });
         return result;
       } catch (error) {
+        if (commandId) return draftSaveCommandFailure(reply, error, committed);
         const message = error instanceof Error ? error.message : 'Não foi possível criar a versão.';
         if (message.startsWith('DRAFT_VERSION_CONFLICT')) return reply.code(409).send({ error: 'DRAFT_VERSION_CONFLICT', message });
         reply.status(message.startsWith('DRAFT_NOT_FOUND') ? 404 : 400);

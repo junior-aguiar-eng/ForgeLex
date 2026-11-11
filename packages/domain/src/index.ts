@@ -18,6 +18,8 @@ export * from './contracts/agentic-workspace.js';
 export * from './contracts/desk-guidance.js';
 export * from './contracts/agentic-limits.js';
 export * from './contracts/agentic-case-task.js';
+export * from './contracts/desk-edit.js';
+export * from './contracts/checkpoint-evidence.js';
 export * from './contracts/task-evidence.js';
 export * from './contracts/evidence-review.js';
 export * from './contracts/approved-case-context.js';

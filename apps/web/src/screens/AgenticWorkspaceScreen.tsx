@@ -55,6 +55,7 @@ export function AgenticWorkspaceScreen({
   active: isActiveSurface,
   onExecutionChange,
   onConversationChange,
+  onDeskEditorialAvailability,
   selectionKey,
   guidanceRoute,
   requestedExecutionId,
@@ -73,6 +74,7 @@ export function AgenticWorkspaceScreen({
   active: boolean;
   requestedExecutionId?: string | null;
   onExecutionChange: (id: string | null, switched: boolean) => void;
+  onDeskEditorialAvailability?: (enabled: boolean) => void;
   onConversationChange?: (run: Execution) => void;
   selectionKey?: () => string;
   guidanceRoute?: DeskGuidanceRoute;
@@ -177,6 +179,7 @@ export function AgenticWorkspaceScreen({
           setClosedPilot(r.closedPilot ?? false);
           setCommercial(r.commercial === true && !r.closedPilot);
           setGuidanceEnabled(r.guidance === true && !r.closedPilot);
+          onDeskEditorialAvailability?.(r.deskEditorial === true && !r.closedPilot);
         }
       })
       .catch((e) => {
@@ -185,7 +188,7 @@ export function AgenticWorkspaceScreen({
     return () => {
       active = false;
     };
-  }, [client, authStatus, fail]);
+  }, [client, authStatus, fail, onDeskEditorialAvailability]);
   const [pastDeliveries, setPastDeliveries] = useState<{ delivery: Delivery; createdAt: string }[]>([]);
   const transcript = useRef<HTMLDivElement>(null);
   const historyLoaded = useRef('');
@@ -629,7 +632,6 @@ export function AgenticWorkspaceScreen({
                 guidanceBusy={guidance.busy}
                 guidanceEditing={Boolean(guidanceField)}
                 guidanceError={!guidance.id ? guidance.feedback : undefined}
-                onLeaveGuidance={guidance.leave}
               />
               {paidBar('start')}
             </div>

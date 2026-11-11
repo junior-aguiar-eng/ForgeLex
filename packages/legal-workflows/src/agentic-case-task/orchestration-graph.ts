@@ -33,7 +33,7 @@ const InputSchema = z.strictObject({
   previousAttemptHash: digest.nullable(),
 });
 type NodeInput = z.infer<typeof InputSchema>;
-type GraphContext = { bindingHash: string; contractHash: string; sources: TaskSource[] };
+type GraphContext = { bindingHash: string; contractHash: string; sources: TaskSource[]; explicitResearch?: boolean };
 const NodeSchema = z.strictObject({
   id: z.string(),
   role: RoleSchema,
@@ -116,10 +116,27 @@ export function createOrchestrationGraph(plan: TaskPlan, tools: string[]): Orche
   dependencies(graph);
   return graph;
 }
-export function researchAvailable(plan: TaskPlan, tools: string[]) {
+export function researchNeeds(plan: TaskPlan, requests: readonly TaskCapabilityRequest[], explicitResearch: boolean) {
+  const legislation =
+    plan.requiresNorms || (explicitResearch && requests.some((r) => r.capability === 'NORM_RESEARCH'));
+  return {
+    legislation,
+    caseLaw:
+      plan.requiresCaseLaw ||
+      (explicitResearch && requests.some((r) => r.capability === 'CASE_LAW_RESEARCH')) ||
+      (plan.action === 'research_question' && (!explicitResearch || !legislation)),
+  };
+}
+export function researchAvailable(
+  plan: TaskPlan,
+  tools: string[],
+  explicitResearch = false,
+  requests: readonly TaskCapabilityRequest[] = [],
+) {
+  const needs = researchNeeds(plan, requests, explicitResearch);
   return (
-    ((plan.requiresCaseLaw || plan.action === 'research_question') && tools.includes('research.search_case_law')) ||
-    (plan.requiresNorms && tools.includes('research.get_legislation'))
+    (needs.caseLaw && tools.includes('research.search_case_law')) ||
+    (needs.legislation && tools.includes('research.get_legislation'))
   );
 }
 export function validateOrchestrationGraph(
@@ -197,6 +214,8 @@ export function validateOrchestrationGraph(
         researchAvailable(
           plan,
           graph.tools.filter((name) => !graph.failedTools.includes(name)),
+          context.explicitResearch,
+          graphRequests(graph),
         ))
     )
       fail();

@@ -105,10 +105,11 @@ const tenantStatements: readonly TenantStatement[] = [
   },
 ];
 
-// Analysis sessions are independent of matters. Their results and operation
+// The manual save receipt follows the draft's retention. Analysis sessions are independent of matters. Their results and operation
 // snapshots follow the existing SESSIONS retention category, including holds.
 // Children must precede sessions because the optional module owns its own FKs.
 const optionalTenantStatements: readonly TenantStatement[] = [
+  direct('draft_save_commands', 'MATTERS'),
   direct('analise_consumos', 'SESSIONS'),
   direct('analise_operacoes', 'SESSIONS'),
   nested(

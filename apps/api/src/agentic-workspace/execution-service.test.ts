@@ -18,6 +18,8 @@ import { LedgerService, type InferenceBudgetService } from '@forgelex/billing-le
 import { createGuidanceSnapshot } from '@forgelex/domain';
 import { ExecutionService } from './execution-service.js';
 import { ExecutionWorker } from './execution-worker.js';
+import { initialGuidance } from '@forgelex/legal-workflows';
+import { GuidanceService } from './guidance-service.js';
 
 const owner = { tenantId: 'durable', userId: 'author' };
 const input = {
@@ -150,6 +152,103 @@ it('lê o estado e os eventos sem escrever: nem a versão do dono nem o job muda
   }
   expect(await versions()).toEqual(before);
   expect(JSON.stringify((await f.db.select().from(agenticExecutionJobs))[0])).toBe(jobBefore);
+});
+
+it('enriquece orientação com contexto público sem perder decisões e recusa revisão obsoleta', async () => {
+  const f = await fixture();
+  const guidance = initialGuidance();
+  const conversation = await f.repo.createConversation(owner, { ...input, context: { ...input.context, guidance } });
+  const run = await f.service.startExecution(owner, 'guided-document', {
+    ...input,
+    conversationId: conversation.id,
+    contextRevision: 1,
+    context: { text: 'Peça aberta pelo usuário', origin: 'USER', documents: [] },
+  });
+  expect(run.contextRevision).toBe(2);
+  expect(run.context.text).toBe('Peça aberta pelo usuário');
+  expect((await f.repo.getConversation(owner, conversation.id))?.contexts.at(-1)?.guidance).toEqual(guidance);
+  await expect(
+    f.service.startExecution(owner, 'stale-guide', {
+      objective: 'Outra execução',
+      conversationId: conversation.id,
+      contextRevision: 1,
+      useGuidance: false,
+    }),
+  ).rejects.toThrow('CONTEXT_CONFLICT');
+  const followUp = await f.service.startExecution(owner, 'free-follow-up', {
+    objective: 'Revisar a peça aberta',
+    conversationId: conversation.id,
+    contextRevision: 2,
+    useGuidance: false,
+  });
+  expect(followUp.contextRevision).toBe(3);
+  expect(followUp.context.text).toBe('Peça aberta pelo usuário');
+  const updated = await f.repo.getConversation(owner, conversation.id);
+  expect(updated?.contexts[1]?.guidance).toEqual(guidance);
+  expect(updated?.contexts[2]?.guidance).toBeUndefined();
+  expect(updated?.contexts[2]?.guidanceReceipt).toBeUndefined();
+});
+
+it('correção guiada durante a execução impede publicar e retomar o checkpoint antigo', async () => {
+  const f = await fixture();
+  const guidance = new GuidanceService(f.db);
+  const access = { owner, canReadMatter: true };
+  const initial = await guidance.start(access, randomUUID(), { objective: input.objective });
+  const pick = (q: NonNullable<typeof initial.question>, option: string, contextRevision = q.contextRevision) => ({
+    questionId: q.id,
+    questionVersion: q.version,
+    contextRevision,
+    selectedOptionIds: [option],
+  });
+  const penal = await guidance.respond(
+    access,
+    initial.conversationId,
+    randomUUID(),
+    pick(initial.question!, 'penal'),
+    false,
+  );
+  const guidedInput = {
+    objective: input.objective,
+    conversationId: initial.conversationId,
+    contextRevision: penal.contextRevision,
+  };
+  const old = await f.service.startExecution(owner, 'guided-old', guidedInput);
+  const lease = (await f.service.claimNext('guided-worker'))!;
+  await f.service.beginStep(lease, 'guided-first');
+  const civel = await guidance.respond(
+    access,
+    initial.conversationId,
+    randomUUID(),
+    pick(initial.question!, 'civel', penal.contextRevision),
+    true,
+  );
+  await expect(
+    f.service.finishStep(lease, 'guided-first', {
+      kind: 'question',
+      checkpoint: {},
+      question: { ...question, contextRevision: penal.contextRevision },
+    }),
+  ).rejects.toThrow('CONTEXT_CONFLICT');
+  expect((await f.service.getExecution(owner, old.id)).question).toBeNull();
+  await f.service.cancelExecution(owner, old.id, 'guided-cancel');
+  await expect(f.service.continueFromCheckpoint(owner, old.id, 'guided-continue')).rejects.toThrow(
+    'RECONCILIATION_REQUIRED',
+  );
+  const fresh = await f.service.startExecution(owner, 'guided-fresh', {
+    ...guidedInput,
+    contextRevision: civel.contextRevision,
+  });
+  expect(fresh.contextRevision).toBe(civel.contextRevision);
+  expect(
+    (await f.repo.getConversation(owner, initial.conversationId))?.contexts.map((c) => c.guidance?.area.value),
+  ).toEqual([null, 'penal', 'civel']);
+  const freshLease = (await f.service.claimNext('guided-worker'))!;
+  const checkpoint = { syntheticStep: 1 };
+  await f.service.finishStep(freshLease, null, { kind: 'checkpoint', checkpoint });
+  await f.service.cancelExecution(owner, fresh.id, 'guided-cancel-current');
+  const resumed = await f.service.continueFromCheckpoint(owner, fresh.id, 'guided-resume-current');
+  expect(resumed.contextRevision).toBe(civel.contextRevision);
+  expect((await f.repo.getExecution(owner, resumed.id))?.checkpoint).toEqual(checkpoint);
 });
 it('as leituras continuam recusando tenant encerrado e execução alheia', async () => {
   const f = await fixture();

@@ -46,6 +46,34 @@ async function selectionFixture(page: Page) {
   return { selection, run, editor, text, other, objective };
 }
 
+test('edita apenas o trecho selecionado da peça salva', async ({ page }) => {
+  const { selection, text, editor } = await selectionFixture(page);
+  await text.press('Home');
+  for (let i = 0; i < 6; i++) await text.press('ArrowRight');
+  for (let i = 0; i < 5; i++) await text.press('Shift+ArrowRight');
+  await editor.getByRole('button', { name: 'Usar trecho na conversa' }).click();
+  await expect(page.getByText('Trecho para editar · salvo')).toBeVisible();
+  const composer = page.getByRole('textbox', { name: 'O que você precisa fazer?' });
+  await composer.fill('Corrigir apenas o trecho selecionado.');
+  const request = page.waitForRequest(
+    (r) => r.method() === 'POST' && new URL(r.url()).pathname.endsWith('/executions'),
+  );
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  expect((await request).postDataJSON().context.deskEdit).toMatchObject({
+    versionId: selection.get('versionId'),
+    start: 6,
+    end: 11,
+    before: 'salvo',
+  });
+  const draftUrl = `${api}/api/v2/matters/${selection.get('matterId')}/drafts/${selection.get('draftId')}`;
+  await expect
+    .poll(async () => {
+      const response = await page.request.get(draftUrl, { headers });
+      return (await response.json()).currentVersion?.sections[0]?.content;
+    })
+    .toBe('Texto revisto de A.');
+});
+
 test('seleção persistida da Mesa retorna com caso, peça e versão e abre após recarga', async ({ page }) => {
   const { selection, text } = await selectionFixture(page);
   const nav = page.getByRole('navigation', { name: 'Navegação principal' });

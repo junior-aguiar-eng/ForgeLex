@@ -11,6 +11,8 @@ const codes = z.enum([
   'CONTEXT_CHANGED',
   'BUDGET_EXHAUSTED',
 ]);
+const failureReasons = z.enum(['BUDGET_EXHAUSTED', 'TASK_CONTEXT_LIMIT', 'COMMERCIAL_REQUEST_TOO_LARGE']);
+export type ExecutionFailureReason = z.infer<typeof failureReasons>;
 export interface AuthorizedEventContext {
   executionId: string;
   deliveryIds: string[];
@@ -73,7 +75,8 @@ export function projectClientExecutionEvent(
     case 'ERROR': {
       const code = codes.safeParse(p.code);
       payload = { code: code.success ? code.data : 'EXECUTION_FAILED' };
-      if (p.reason === 'BUDGET_EXHAUSTED') payload.reason = 'BUDGET_EXHAUSTED';
+      const reason = failureReasons.safeParse(p.reason);
+      if (reason.success) payload.reason = reason.data;
       break;
     }
     default:

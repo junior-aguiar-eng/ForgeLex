@@ -52,6 +52,7 @@ export interface Context {
   text: string;
   origin: 'USER' | 'DOCUMENT' | 'MIXED';
   documents: { documentId: string; versionId: string }[];
+  deskEdit?: DeskEditSelection;
   answers?: Answer[];
   draft?: { draftId: string; versionId: string };
 }
@@ -124,6 +125,11 @@ export interface Delivery {
     }[];
     findings: { id: string; code?: string; statement: string; severity: string; sourceIds: string[] }[];
     sources: Source[];
+    procedureAudit?: {
+      requirementId: string;
+      norms: { sourceId: string; quote: string }[];
+      documents: { sourceId: string; quote: string }[];
+    }[];
     review?: {
       version: 1;
       questions: { prompt: string; reason: string; sourceIds: string[] }[];
@@ -179,7 +185,11 @@ export function applyEvent(state: EventState, raw: unknown): EventState {
   if (e.type === 'DELIVERY' && typeof e.payload.deliveryId === 'string')
     next.deliveryIds = [...new Set([...state.deliveryIds, e.payload.deliveryId])];
   if (e.type === 'ERROR' && typeof e.payload.code === 'string') {
-    next.error = e.payload.reason === 'BUDGET_EXHAUSTED' ? 'BUDGET_EXHAUSTED' : e.payload.code;
+    const reason = e.payload.reason;
+    next.error =
+      reason === 'BUDGET_EXHAUSTED' || reason === 'TASK_CONTEXT_LIMIT' || reason === 'COMMERCIAL_REQUEST_TOO_LARGE'
+        ? reason
+        : e.payload.code;
     next.reconciliation = state.reconciliation || e.payload.code === 'RECONCILIATION_REQUIRED';
   }
   return next;
@@ -290,3 +300,4 @@ export function editorLink(run: Execution, delivery: Delivery): string | null {
   });
   return `/app/rascunhos?${query}`;
 }
+import type { DeskEditSelection } from './desk-model';

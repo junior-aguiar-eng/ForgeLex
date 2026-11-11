@@ -162,7 +162,7 @@ test('atualiza pergunta e resumo quando outra aba respondeu primeiro', async ({ 
   await expect(question(page).getByRole('radio', { name: 'Elaborar uma peça' })).toBeVisible();
 });
 
-test('celular conserva peça e recebe desconhecimento e texto sem iniciar execução', async ({ page }) => {
+test('celular conserva a peça até o envio com a orientação concluída', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await openDesk(page);
@@ -192,7 +192,9 @@ test('celular conserva peça e recebe desconhecimento e texto sem iniciar execu�
   await expect(question(page)).toHaveCount(0);
   await expect(summary(page)).toContainText('Área a definir');
   await page.getByText('Respostas anteriores', { exact: true }).click();
-  await expect(page.getByText('Preciso conferir os pontos da peça aberta.', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('list').getByText('Preciso conferir os pontos da peça aberta.', { exact: true }),
+  ).toBeVisible();
   await page.getByText('Respostas anteriores', { exact: true }).click();
   await page.screenshot({ path: 'test-results/desk-guidance/06-mobile-resumo.png' });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -200,4 +202,22 @@ test('celular conserva peça e recebe desconhecimento e texto sem iniciar execu�
   await page.getByRole('button', { name: 'Peça', exact: true }).click();
   await expect(draft).toHaveValue('Edição local preservada enquanto defino o pedido.');
   expect(sent).toEqual([]);
+  await page.getByRole('button', { name: 'Conversa', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'O que você precisa fazer?' })).toHaveValue(
+    'Preciso conferir os pontos da peça aberta.',
+  );
+  const guided = new URL(page.url());
+  await page.route('**/api/agentic/executions', (route) =>
+    route.fulfill({ status: 503, json: { error: 'SYNTHETIC_STOP' } }),
+  );
+  const submitted = page.waitForRequest(
+    (request) => request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/executions'),
+  );
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  expect((await submitted).postDataJSON()).toMatchObject({
+    objective: 'Preciso conferir os pontos da peça aberta.',
+    conversationId: guided.searchParams.get('conversationId'),
+    contextRevision: Number(guided.searchParams.get('contextRevision')),
+    context: { text: expect.stringContaining('Edição local preservada enquanto defino o pedido.'), documents: [] },
+  });
 });

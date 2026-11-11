@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { WorkerLease } from './execution-store.js';
 import { ExecutionService, type StepOutcome } from './execution-service.js';
 import { reportAgenticFailure } from './failure-log.js';
+import { CaseTaskExecutionError } from '@forgelex/legal-workflows';
 
 export interface ExecutionDriver {
   /** Planning is deterministic; paid/uncertain operations belong in the journaled run callback. */
@@ -98,7 +99,10 @@ export class ExecutionWorker {
           executionId: lease.executionId,
           failureCode: code,
         });
-      await this.service.failLease(lease, code).catch(() => undefined);
+      const cause = error instanceof CaseTaskExecutionError ? (error.diagnostic.failureCode ?? reason) : reason;
+      const contextLimit =
+        cause === 'TASK_CONTEXT_LIMIT' || cause === 'COMMERCIAL_REQUEST_TOO_LARGE' ? cause : undefined;
+      await this.service.failLease(lease, code, contextLimit).catch(() => undefined);
     } finally {
       clearInterval(timer);
       if (deadline) clearTimeout(deadline);

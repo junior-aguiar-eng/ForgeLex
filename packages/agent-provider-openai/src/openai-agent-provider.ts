@@ -97,6 +97,11 @@ function toWireToolName(name: string, usedNames: Set<string>): string {
   return candidate;
 }
 
+export function openAIWireToolNames(tools: readonly { name: string }[]): string[] {
+  const used = new Set<string>();
+  return tools.map(({ name }) => toWireToolName(name, used));
+}
+
 function itemFromStreamEvent(event: unknown): Record<string, any> | undefined {
   const record = asRecord(event);
   if (record.type !== 'run_item_stream_event') {

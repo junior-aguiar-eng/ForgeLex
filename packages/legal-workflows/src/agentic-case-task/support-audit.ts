@@ -7,6 +7,7 @@ export function auditClaimSupport(
   sources: TaskSource[],
   checks: TaskSpecialistResult['supportChecks'],
   includeDocuments = false,
+  draftCitations: readonly Pick<TaskSpecialistResult['supportChecks'][number], 'claimId' | 'sourceId' | 'quote'>[] = [],
 ): { entries: TaskSupportAudit[]; invalidChecks: boolean } {
   const sourceById = new Map(sources.map((source) => [source.id, source]));
   const kinds = includeDocuments ? ['AUTHORITY', 'NORM', 'DOCUMENT', 'USER_TEXT', 'ANSWER'] : ['AUTHORITY', 'NORM'];
@@ -30,6 +31,7 @@ export function auditClaimSupport(
       if (!source || !kinds.includes(source.kind)) continue;
       const pairChecks = checksByPair.get(key(claim.id, sourceId)) ?? [];
       const unique = pairChecks.length === 1 ? pairChecks[0] : undefined;
+      const proposed = draftCitations.filter((item) => item.claimId === claim.id && item.sourceId === sourceId);
       if (pairChecks.length > 1) invalidChecks = true;
       entries.push({
         claimId: claim.id,
@@ -41,7 +43,8 @@ export function auditClaimSupport(
             ? 'CONFLICTING'
             : !unique
               ? 'MISSING'
-              : source.text.includes(unique.quote)
+              : source.text.includes(unique.quote) &&
+                  (!proposed.length || proposed.every((item) => item.quote === unique.quote))
                 ? 'MATCHED'
                 : 'MISMATCH',
         modelAssessment: unique?.assessment ?? 'NOT_ASSESSED',

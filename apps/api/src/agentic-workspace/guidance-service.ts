@@ -47,11 +47,23 @@ function project(conversation: AgenticConversation, context: Context) {
       ];
     }),
   );
+  const description = snapshot.action.questionId
+    ? [...conversation.messages]
+        .reverse()
+        .find(
+          ({ executionId, answer }) =>
+            !executionId &&
+            answer &&
+            answer.questionId === snapshot.action.questionId &&
+            answer.contextRevision < context.revision,
+        )?.answer?.freeText
+    : undefined;
   return {
     conversationId: conversation.id,
     matterId: conversation.matterId,
     contextRevision: context.revision,
     objective: context.text,
+    ...(description ? { description } : {}),
     decisions,
     question: guidanceQuestion(snapshot, context.revision),
     history: conversation.messages.flatMap((message) => {

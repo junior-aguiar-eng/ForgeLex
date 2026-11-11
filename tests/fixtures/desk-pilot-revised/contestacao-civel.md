@@ -1,0 +1,9 @@
+# Contestação cível · revisão ForgeLex
+
+Use a estrutura como roteiro editorial. Identifique o procedimento e as partes, apresente as preliminares cabíveis antes do mérito, impugne os fatos pertinentes, especifique as provas e formule pedidos compatíveis com a defesa. Conforme o art. 337, § 5º, do CPC, o juiz conhece de ofício as matérias do artigo, excetuadas a convenção de arbitragem e a incompetência relativa. Verifique também a consequência específica da omissão da convenção arbitral no § 6º. Na impugnação de fatos, confira as ressalvas do art. 341.
+
+Para o prazo da contestação, identifique o evento efetivamente ocorrido e documentado nos autos. Separe os marcos do art. 335: audiência ou última sessão sem autocomposição ou com ausência, protocolo do pedido de cancelamento na hipótese legal, ou marco do art. 231 nos demais casos. Verifique o § 1º em litisconsórcio. Distinga a hipótese literal do § 2º do caso julgado no REsp 2.180.502/GO, em que a audiência foi redesignada em razão de corréu ainda não citado e cancelada após a desistência em relação a ele. Evite concluir pela tempestividade sem os eventos e as datas.
+
+Se houver pagamento parcial, diferencie negativa do fato constitutivo de defesa indireta fundada em fato modificativo ou extintivo. Indique a obrigação, a parcela impugnada, o valor, a data, o beneficiário e o comprovante. O art. 373, II, atribui ao réu o ônus do fato impeditivo, modificativo ou extintivo alegado, ressalvadas as regras aplicáveis ao caso. Exponha o saldo apenas quando os dados permitirem apurá-lo e mantenha explícita a falta de comprovação quando houver apenas relato.
+
+Fontes: [CPC, arts. 219, 231, 334 a 343 e 373](https://legis.senado.leg.br/norma/584917/publicacao/34619046) e [REsp 2.180.502/GO](https://scon.stj.jus.br/SCON/GetInteiroTeorDoAcordao?dt_publicacao=26%2F05%2F2025&num_registro=202404135242).

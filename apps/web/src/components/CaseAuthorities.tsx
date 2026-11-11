@@ -1,5 +1,7 @@
 import { CopyCitationButton } from './CopyCitationButton';
 import { mapSearchResult } from '../operations/operations-client';
+import { safeSourceUrl } from './DecisionReader';
+import { CitationChecks } from './CitationChecks';
 
 export interface SavedCaseAuthority {
   id: string;
@@ -22,12 +24,11 @@ export function CaseAuthorities({ items }: { items: SavedCaseAuthority[] }) {
         ao caso.
       </p>
       {items.length === 0 && (
-        <p className="text-sm text-stone-500">
-          Nenhum julgado salvo. Em Pesquisa, use “Salvar no caso” no resultado escolhido.
-        </p>
+        <p className="text-sm text-stone-500">Nenhum julgado salvo. Use “Salvar no caso” no resultado escolhido.</p>
       )}
       {items.map((record) => {
         const item = mapSearchResult(record.authority);
+        const sourceUrl = safeSourceUrl(item.sourceUrl);
         return (
           <article
             key={record.id}
@@ -40,19 +41,13 @@ export function CaseAuthorities({ items }: { items: SavedCaseAuthority[] }) {
               Relatoria: {item.relator} · Julgamento: {item.judgmentDate}
             </p>
             <p className="text-xs leading-relaxed text-stone-700 whitespace-pre-wrap">{item.ementa}</p>
-            <p className="text-xs text-stone-500">
-              {item.verificationStatus === 'VERIFIED_OFFICIAL'
-                ? 'Verificado na fonte oficial'
-                : item.verificationStatus === 'VERIFIED_PROVIDER'
-                  ? 'Verificado pelo provedor'
-                  : 'Não verificado'}{' '}
-              · Salvo em {new Date(record.savedAt).toLocaleDateString('pt-BR')}
-            </p>
+            <CitationChecks identity={item.verificationStatus} />
+            <p className="text-xs text-stone-500">Salvo em {new Date(record.savedAt).toLocaleDateString('pt-BR')}</p>
             <div className="flex flex-wrap items-center gap-3">
               <CopyCitationButton item={item} />
-              {item.sourceUrl && (
+              {sourceUrl && (
                 <a
-                  href={item.sourceUrl}
+                  href={sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs font-semibold text-cognac-700 hover:underline"

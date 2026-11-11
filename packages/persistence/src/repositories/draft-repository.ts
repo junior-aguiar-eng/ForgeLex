@@ -25,6 +25,7 @@ import { MatterRepository } from './matter-repository.js';
 import { readDraftReviewContext, reviewContextHash } from './draft-review-context.js';
 import type { ReviewContext } from './draft-review-run-repository.js';
 import { DraftReviewRunRepository } from './draft-review-run-repository.js';
+import { DraftSaveCommandRepository } from './draft-save-command-repository.js';
 
 function parseIds(value: string): string[] {
   const parsed: unknown = JSON.parse(value);
@@ -189,6 +190,14 @@ export interface DraftVersionWriteInput {
     expectedCurrentVersionId?: string;
 }
 
+export type ManualDraftWriteInput = Omit<DraftVersionWriteInput, 'draftId' | 'source' | 'status'> & {
+  draftId?: string;
+};
+
+export interface DraftSaveResult extends DraftVersionBundle {
+  draft: Draft;
+}
+
 export class DraftRepository {
   private readonly matterRepository: MatterRepository;
 
@@ -272,6 +281,62 @@ export class DraftRepository {
       await tx.update(schema.matters).set({ updatedAt: sql`${schema.matters.updatedAt}` }).where(and(eq(schema.matters.id, input.matterId), eq(schema.matters.tenantId, input.tenantId)));
       return new DraftRepository(db).insertVersionInTransaction(input);
     });
+  }
+
+  public async saveManual(input: ManualDraftWriteInput): Promise<DraftSaveResult> {
+    return withMatterWrite(this.db, input, (tx) => new DraftRepository(tx).writeManual(input));
+  }
+
+  public async assertSaveCommandStorage() {
+    await new DraftSaveCommandRepository(this.db).assertAvailable();
+  }
+
+  public async saveManualCommand(input: ManualDraftWriteInput, commandId: string) {
+    const { tenantId, matterId, createdBy: userId } = input;
+    const command = { tenantId, matterId, userId, commandId };
+    const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex');
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await withMatterWrite(this.db, input, async (tx) => {
+          const repo = new DraftRepository(tx);
+          const commands = new DraftSaveCommandRepository(tx);
+          const existing = await commands.claim(command, fingerprint);
+          if (existing) {
+            const result = await commands.result(existing, (draftId, versionId) =>
+              repo.getVersion(tenantId, matterId, draftId, versionId));
+            return { result, replayed: true };
+          }
+          if (input.draftId && !input.expectedCurrentVersionId) throw new Error('DRAFT_SAVE_VERSION_REQUIRED');
+          const result = await repo.writeManual(input);
+          await commands.complete(command, result);
+          return { result, replayed: false };
+        });
+      } catch (error) {
+        const contention = error instanceof Error && 'code' in error && error.code === 'TRANSACTION_ACTIVE';
+        if (attempt === 4 || (!contention && !/SQLITE_BUSY|SQLITE_LOCKED|database (?:table )?is locked/i.test(String(error))))
+          throw error;
+        await new Promise((resolve) => setTimeout(resolve, 25 * 2 ** attempt));
+      }
+    }
+  }
+
+  public async recoverManualSave(command: { tenantId: string; userId: string; matterId: string; commandId: string }) {
+    const commands = new DraftSaveCommandRepository(this.db);
+    const row = await commands.find(command);
+    if (!row) return undefined;
+    await new MatterWriteGuard(this.db).captureRevision(command);
+    return commands.result(row, (draftId, versionId) => this.getVersion(command.tenantId, command.matterId, draftId, versionId));
+  }
+
+  private async writeManual(input: ManualDraftWriteInput): Promise<DraftSaveResult> {
+    const { draftId: requested, ...version } = input;
+    const draftId = requested ?? (await this.createDraft(version)).id;
+    if (requested && !(await this.getDraft(input.tenantId, input.matterId, draftId)))
+      throw new Error('DRAFT_NOT_FOUND: rascunho não localizado no matter do tenant autenticado.');
+    const bundle = await this.insertVersionInTransaction({ ...version, draftId, source: 'HUMAN', status: 'DRAFT' });
+    const draft = await this.getDraft(input.tenantId, input.matterId, draftId);
+    if (!draft) throw new Error('DRAFT_NOT_FOUND');
+    return { draft, ...bundle };
   }
 
   /** Caller owns transaction; serialize all version writers under the draft lock. */

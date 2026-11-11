@@ -1194,3 +1194,20 @@ export const persistenceMigrations: readonly SqlMigration[] = [
 export async function runPersistenceMigrations(client: Client): Promise<void> {
   await runMigrations(client, persistenceMigrations);
 }
+
+/** Applied separately from automatic startup migrations. */
+export const draftSaveCommandsMigration: SqlMigration = {
+  id: 'persistence-0041-draft-save-commands',
+  statements: [
+    `CREATE TABLE draft_save_commands (
+      tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, command_id TEXT NOT NULL,
+      matter_id TEXT NOT NULL REFERENCES matters(id), input_hash TEXT NOT NULL,
+      version_id TEXT REFERENCES draft_versions(id) ON DELETE CASCADE,
+      receipt_json TEXT, created_at TEXT NOT NULL,
+      PRIMARY KEY (tenant_id, user_id, command_id),
+      CHECK ((version_id IS NULL) = (receipt_json IS NULL))
+    );`,
+    'CREATE INDEX draft_save_commands_matter_idx ON draft_save_commands(tenant_id, matter_id);',
+    'CREATE INDEX draft_save_commands_version_idx ON draft_save_commands(version_id);',
+  ],
+};

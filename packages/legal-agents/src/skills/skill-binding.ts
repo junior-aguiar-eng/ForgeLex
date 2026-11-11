@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { createSkillBinding, type SkillBinding } from '@forgelex/domain';
+import { createSkillBinding, SkillBindingSchema, type SkillBinding } from '@forgelex/domain';
+import { z } from 'zod';
 import { CASE_TASK_POLICY, type CaseTaskRole } from '../agentic-case-contracts.js';
 import type { SkillCatalogEntry } from './skill-catalog.js';
 import {
@@ -30,12 +31,54 @@ export interface ExecutionSkillSnapshot {
   readonly limitations: readonly SkillBindingLimitation[];
 }
 
-interface SkillBindingRequest extends DeskSkillRequest {
+export interface SkillBindingRequest extends DeskSkillRequest {
   readonly contextRevision: number;
   readonly budget: { readonly maxBytesPerRole: number; readonly maxBytesTotal: number };
   /** Read the exact version, bounded by the supplied UTF-8 byte length. */
   readonly loadContent: (resource: Readonly<SkillResource>) => Promise<string>;
 }
+
+const referenceId = z.string().min(1).max(200);
+const issueEvidence = z.strictObject({ id: referenceId, sourceIds: z.array(referenceId).max(100) });
+const reasonSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('FORM'), area: referenceId, documentType: referenceId }),
+  z.strictObject({
+    kind: z.literal('MATTER'),
+    area: referenceId,
+    topic: referenceId,
+    issues: z.array(issueEvidence).max(100),
+  }),
+]);
+export const ExecutionSkillSnapshotSchema = z.strictObject({
+  binding: SkillBindingSchema,
+  references: z
+    .array(z.strictObject({ id: referenceId, version: z.number().int().positive(), content: z.string() }))
+    .max(100),
+  reasons: z
+    .array(z.strictObject({ skillId: referenceId, version: z.number().int().positive(), reason: reasonSchema }))
+    .max(100),
+  limitations: z
+    .array(
+      z.union([
+        z.strictObject({ code: z.enum(['FORM_SCOPE_UNRESOLVED', 'SKILL_BUDGET_EXCEEDED']) }),
+        z.strictObject({ code: z.literal('FORM_UNAVAILABLE'), area: referenceId, documentType: referenceId }),
+        z.strictObject({
+          code: z.literal('FORM_CONFLICT'),
+          area: referenceId,
+          documentType: referenceId,
+          skillIds: z.array(referenceId),
+        }),
+        z.strictObject({ code: z.enum(['ISSUE_WITHOUT_SCOPED_SOURCE', 'MATTER_UNAVAILABLE']), issueId: referenceId }),
+        z.strictObject({ code: z.literal('MATTER_CONFLICT'), issueId: referenceId, skillIds: z.array(referenceId) }),
+        z.strictObject({
+          code: z.enum(['SKILL_CONTENT_UNAVAILABLE', 'SKILL_CONTENT_MISMATCH']),
+          skillId: referenceId,
+          version: z.number().int().positive(),
+        }),
+      ]),
+    )
+    .max(200),
+});
 
 export async function bindDeskSkills(input: SkillBindingRequest): Promise<ExecutionSkillSnapshot> {
   const { maxBytesPerRole, maxBytesTotal } = input.budget;

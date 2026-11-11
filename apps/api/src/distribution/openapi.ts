@@ -17,6 +17,15 @@ export interface PublicApiRouteDefinition {
   requestSchema?: keyof typeof OPENAPI_SCHEMAS;
 }
 
+const draftWriteProperties = {
+  title: { type: 'string', minLength: 3 },
+  sections: { type: 'array', minItems: 1, maxItems: 100, items: { $ref: '#/components/schemas/DraftSectionRequest' } },
+  citations: { type: 'array', maxItems: 500, items: { $ref: '#/components/schemas/DraftCitationRequest' } },
+  notes: { type: 'string', maxLength: 2000 },
+  baseVersionId: { type: 'string', format: 'uuid' },
+  commandId: { type: 'string', format: 'uuid', description: 'Opcional quando saveRecovery é anunciado. Identifica uma intenção de salvamento.' },
+};
+
 const OPENAPI_SCHEMAS = {
   SavedResearchRequest: { type: 'object', additionalProperties: false, required: ['operationId'], properties: { operationId: { type: 'string', minLength: 1 } } },
   SavedResearchPermissionRequest: { type: 'object', additionalProperties: false, required: ['clientId', 'grantedAt', 'enabled'], properties: { clientId: { type: 'string', minLength: 1, maxLength: 200 }, grantedAt: { type: 'string', format: 'date-time' }, enabled: { type: 'boolean' } } },
@@ -131,8 +140,18 @@ const OPENAPI_SCHEMAS = {
   ThesisRequest: { type: 'object', additionalProperties: false, required: ['statement'], properties: { statement: { type: 'string' }, issueId: { type: 'string' } } },
   ResearchMemoRequest: { type: 'object', additionalProperties: false, properties: { title: { type: 'string' }, query: { type: 'string' } } },
   ResearchMemoReviewRequest: { type: 'object', additionalProperties: false, required: ['decision'], properties: { decision: { type: 'string', enum: ['APPROVED', 'REJECTED'] }, notes: { type: 'string' } } },
-  DraftRequest: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string' }, content: { type: 'string' } } },
-  DraftVersionRequest: { type: 'object', additionalProperties: false, required: ['content'], properties: { content: { type: 'string' } } },
+  DraftSectionRequest: { type: 'object', required: ['ordinal', 'title', 'content'], properties: {
+    ordinal: { type: 'integer', minimum: 0 }, title: { type: 'string', minLength: 1 }, content: { type: 'string' },
+    ...Object.fromEntries(['linkedFactIds','linkedEvidenceIds','linkedAuthorityIds','linkedThesisIds'].map(key => [key, { type: 'array', items: { type: 'string', format: 'uuid' } }])),
+  } },
+  DraftCitationRequest: { type: 'object', required: ['sectionOrdinal','targetType','targetId','citationText','verified'], properties: {
+    sectionOrdinal: { type: 'integer', minimum: 0 }, targetType: { type: 'string', enum: ['AUTHORITY','FACT','EVIDENCE'] },
+    targetId: { type: 'string', format: 'uuid' }, citationText: { type: 'string', minLength: 3 }, verified: { type: 'boolean' },
+  } },
+  DraftRequest: { type: 'object', additionalProperties: false, required: ['title','sections'], properties: draftWriteProperties },
+  DraftVersionRequest: { type: 'object', additionalProperties: false, required: ['title','sections'], properties: {
+    ...draftWriteProperties, expectedCurrentVersionId: { type: 'string', format: 'uuid', description: 'Obrigatório quando commandId é informado.' },
+  } },
   DraftReviewRequest: { type: 'object', additionalProperties: false, properties: { type: { type: 'string', enum: ['all', 'citations', 'fact_support', 'adversarial'] }, versionId: { type: 'string', format: 'uuid' } } },
   DraftReviewCheck: {
     type: 'object', required: ['kind', 'state', 'code', 'message', 'checkedAt'],
@@ -257,8 +276,9 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/api/v2/matters/{matterId}/research-memos', summary: 'Listar research memos', description: 'Lista os memorandos de pesquisa do caso e seu estado de revisão humana.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/matters/{matterId}/research-memos', summary: 'Gerar research memo', description: 'Cruza questões e contexto do matter com pesquisa jurisprudencial do ForgeLex. O memo não tem preço próprio nesta fase: a operação é gratuita, embora a chave seja obrigatória para rastreabilidade; a consulta usa somente a infraestrutura STJ habilitada nesta fase.', scopes: ['matter:write', 'research:read'], requestBody: 'object', requiresIdempotencyKey: true },
   { method: 'post', path: '/api/v2/matters/{matterId}/research-memos/{memoId}/review', summary: 'Revisar research memo', description: 'Registra a decisão humana sobre o memorando de pesquisa.', scopes: ['matter:write'], requestBody: 'object' },
-  { method: 'get', path: '/api/v2/matters/{matterId}/drafts', summary: 'Listar rascunhos', description: 'Lista rascunhos do caso.', scopes: ['matter:read'] },
-  { method: 'post', path: '/api/v2/matters/{matterId}/drafts', summary: 'Criar rascunho', description: 'Cria rascunho estruturado.', scopes: ['draft:write'], requestBody: 'object' },
+  { method: 'get', path: '/api/v2/matters/{matterId}/drafts', summary: 'Listar rascunhos', description: 'Lista rascunhos do caso. saveRecovery é informado quando a recuperação está habilitada.', scopes: ['matter:read'] },
+  { method: 'post', path: '/api/v2/matters/{matterId}/drafts', summary: 'Criar rascunho', description: 'Cria o rascunho e a primeira versão na mesma transação. Quando informado, commandId vincula o resultado ao comando.', scopes: ['draft:write'], requestBody: 'object' },
+  { method: 'get', path: '/api/v2/matters/{matterId}/draft-save-commands/{commandId}', summary: 'Recuperar salvamento', description: 'Quando habilitado, recupera o resultado original do comando para o usuário que o enviou. Retorna 404 se não houver resultado acessível.', scopes: ['draft:write'] },
   { method: 'get', path: '/api/v2/matters/{matterId}/drafts/{draftId}', summary: 'Consultar rascunho', description: 'Retorna o rascunho e sua versão corrente.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/matters/{matterId}/drafts/{draftId}/versions', summary: 'Criar versão do rascunho', description: 'Cria uma versão imutável do rascunho.', scopes: ['draft:write'], requestBody: 'object' },
   { method: 'post', path: '/api/v2/matters/{matterId}/drafts/{draftId}/review', summary: 'Revisar rascunho', description: 'Confere referências registradas, suporte e estrutura de uma versão; devolve execução persistida e INCOMPLETE quando não concluir.', scopes: ['matter:read', 'draft:write'], requestBody: 'object', responseSchema: 'DraftReviewResult' },

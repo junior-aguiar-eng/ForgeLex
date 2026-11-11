@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FakeAgentProvider, type AgentTool } from '@forgelex/agent-core';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { createDeskEditSnapshot } from '@forgelex/domain';
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { AgenticCaseTask } from './case-task.js';
@@ -10,6 +11,8 @@ import { IndexedLegislationProvider } from '@forgelex/source-providers';
 import { LegislationCatalog } from '@forgelex/source-catalog';
 import { createGetLegislationTool } from '@forgelex/legal-tools';
 import { TaskPlanSchema } from '@forgelex/legal-agents';
+import { createSkillCatalog } from '@forgelex/legal-agents';
+import { initialGuidance } from '../desk-guidance/guidance-rules.js';
 
 const hash = (text: string) => createHash('sha256').update(text).digest('hex');
 const binding = {
@@ -60,7 +63,7 @@ it('preserva pergunta de seleção múltipla indicada no plano público', async 
 function fixture(
   plan = basicPlan,
   options: {
-    workflowVersion?: 8 | 9 | 10;
+    workflowVersion?: 8 | 9 | 10 | 11 | 12;
     outputs?: Record<string, unknown>;
     steps?: Record<string, { name: string; input: Record<string, unknown> }[]>;
     tools?: AgentTool<any, any>[];
@@ -68,6 +71,8 @@ function fixture(
     text?: string;
     sources?: any[];
     onRegistry?: (role: string, registry: any) => void;
+    skills?: any;
+    planner?: (packet: any) => Record<string, unknown> | undefined;
   } = {},
 ) {
   const roles: string[] = [],
@@ -100,6 +105,7 @@ function fixture(
     workflowVersion: options.workflowVersion,
     context,
     tools: options.tools ?? [],
+    skills: options.skills,
     createProvider: ({ role, registry, packet: p }: any) => {
       options.onRegistry?.(role, registry);
       roles.push(role);
@@ -111,7 +117,7 @@ function fixture(
           toolCall: {
             name: 'task.submit',
             input: (role === 'legal-orchestrator'
-              ? plan
+              ? (options.planner?.(p) ?? plan)
               : typeof options.outputs?.[role] === 'function'
                 ? (options.outputs[role] as (packet: any) => unknown)(p)
                 : (options.outputs?.[role] ?? empty)) as Record<string, unknown>,
@@ -143,6 +149,326 @@ function fixture(
   };
 }
 describe('orquestração jurídica interna com especialistas', () => {
+  it('v12 aceita patch curto e materializa a peça longa com a seção restante intacta', async () => {
+    const draftId = randomUUID(),
+      versionId = randomUUID(),
+      sectionId = randomUUID();
+    const original = '  Antes: trocar. Depois.\r\n';
+    const other = 'Parágrafo que não pode ser reescrito. '.repeat(260);
+    const snapshot = createDeskEditSnapshot(
+      {
+        draftId,
+        versionId,
+        versionHash: 'a'.repeat(64),
+        title: 'Peça',
+        sections: [
+          { id: sectionId, title: 'Relato', content: original },
+          { id: randomUUID(), title: 'Fundamento', content: other },
+        ],
+      },
+      { versionId, sectionId, start: 9, end: 15, before: 'trocar' },
+    );
+    const f = fixture({ ...basicPlan, action: 'create_document', documentType: 'Peça', documentMode: 'EDIT' } as any, {
+      sources: [
+        source,
+        {
+          ...source,
+          id: versionId,
+          kind: 'DRAFT',
+          versionId,
+          text: original + other,
+          contentHash: hash(original + other),
+        },
+      ],
+      outputs: {
+        'legal-drafter': {
+          ...empty,
+          editProposal: { target: snapshot.target, changes: [{ ...snapshot.scope, id: 'p', after: 'manter' }] },
+        },
+      },
+    });
+    Object.assign(f.packet, { deskEdit: snapshot });
+    expect((await f.finish({ ...binding, actionId: 'create_document' })).kind).toBe('completed');
+    expect(f.deliveries[0]).toMatchObject({
+      replacesVersionId: versionId,
+      document: { sections: [{ content: '  Antes: manter. Depois.\r\n' }, { content: other }] },
+    });
+  });
+
+  it('v12 pede seleção em pedido de edição livre e não executa o redator', async () => {
+    const versionId = randomUUID();
+    const f = fixture({ ...basicPlan, action: 'create_document', documentMode: 'EDIT' } as any, {
+      workflowVersion: 12,
+      sources: [source, { ...source, id: versionId, kind: 'DRAFT', versionId }],
+    });
+    expect((await f.finish({ ...binding, actionId: 'create_document' })).kind).toBe('completed');
+    expect(f.roles).toEqual(['legal-orchestrator']);
+    expect(f.deliveries[0].findings).toContainEqual(expect.objectContaining({ code: 'DESK_EDIT_SCOPE_REQUIRED' }));
+    expect(f.deliveries[0]).not.toHaveProperty('document');
+  });
+
+  it('v12 bloqueia documento devolvido por um especialista numa revisão', async () => {
+    const f = fixture(
+      { ...basicPlan, action: 'review_text' },
+      {
+        workflowVersion: 12,
+        outputs: {
+          'adversarial-reviewer': {
+            ...empty,
+            document: {
+              title: 'Peça',
+              documentType: 'Peça',
+              sections: [{ title: 'Seção', content: 'Alteração indevida.', sourceIds: [source.id] }],
+            },
+          },
+        },
+      },
+    );
+    await expect(f.finish({ ...binding, actionId: 'review_text' })).rejects.toThrow();
+    expect(f.deliveries).toEqual([]);
+  });
+  it('v11 fixa conteúdo por execução, entrega apenas ao papel selecionado e recusa adulteração', async () => {
+    let content = 'Orientação sintética interna';
+    const catalog = createSkillCatalog({
+      version: 'test-v1',
+      entries: [
+        {
+          id: 'internal-reference',
+          version: 1,
+          status: 'eligible',
+          kind: 'MATTER',
+          area: 'civel',
+          topic: 'contrato',
+          roles: ['matter-analyst'],
+          contentHash: hash(content),
+          byteLength: Buffer.byteLength(content),
+        },
+      ],
+    });
+    const plan = { ...basicPlan, skillIssues: [{ id: 'i1', area: 'civel', topic: 'contrato', sourceIds: ['user:1'] }] };
+    const budget = { maxBytesPerRole: 1000, maxBytesTotal: 1000 };
+    const f = fixture(plan, {
+      workflowVersion: 11,
+      skills: { catalog, budget, loadContent: async () => content },
+    });
+    Object.assign(f.packet, { guidance: initialGuidance() });
+    const first = await f.task.step(binding, undefined, new AbortController().signal);
+    expect((first.state as any).skillSnapshot.references[0].content).toBe('Orientação sintética interna');
+    content = 'Catálogo alterado depois';
+    await f.task.step(binding, JSON.parse(JSON.stringify(first.state)), new AbortController().signal);
+    expect(f.packets[1].skillReferences).toEqual([
+      { id: 'internal-reference', version: 1, content: 'Orientação sintética interna' },
+    ]);
+    expect(f.packets[0].skillReferences).toEqual([]);
+    const nextCatalog = createSkillCatalog({
+      version: 'test-v2',
+      entries: [
+        {
+          ...catalog.entries[0],
+          version: 2,
+          contentHash: hash(content),
+          byteLength: Buffer.byteLength(content),
+        },
+      ],
+    });
+    const next = fixture(plan, {
+      workflowVersion: 11,
+      skills: {
+        catalog: nextCatalog,
+        budget,
+        loadContent: async ({ version }: { version: number }) => {
+          expect(version).toBe(2);
+          return content;
+        },
+      },
+    });
+    Object.assign(next.packet, { guidance: initialGuidance() });
+    await next.task.step(binding, JSON.parse(JSON.stringify(first.state)), new AbortController().signal);
+    expect(next.packets[0].skillReferences).toEqual(f.packets[1].skillReferences);
+    const newRun = await next.task.step(
+      { ...binding, executionId: 'new-run' },
+      undefined,
+      new AbortController().signal,
+    );
+    expect((newRun.state as any).skillSnapshot.references).toEqual([{ id: 'internal-reference', version: 2, content }]);
+    expect((newRun.state as any).skillSnapshot.binding.catalogVersion).toBe('test-v2');
+    const tampered = JSON.parse(JSON.stringify(first.state));
+    tampered.skillSnapshot.references[0].content = 'Conteúdo adulterado';
+    await expect(f.task.step(binding, tampered, new AbortController().signal)).rejects.toThrow(
+      'SKILL_SNAPSHOT_MISMATCH',
+    );
+    expect(f.deliveries).toEqual([]);
+  });
+  it('v11 aproveita orientação e avança sem perguntar novamente por área desconhecida não material', async () => {
+    const f = fixture(basicPlan, { workflowVersion: 11 });
+    Object.assign(f.packet, { guidance: initialGuidance() });
+    expect((await f.finish()).kind).toBe('completed');
+    expect(f.packets[0].guidance.area.status).toBe('unknown');
+    expect(f.roles).toEqual(['legal-orchestrator', 'matter-analyst']);
+  });
+
+  it('v11 explica o limite de contexto complementar sem ler nem truncar o conteúdo recusado', async () => {
+    const content = 'Material complementar sintético. '.repeat(20);
+    const catalog = createSkillCatalog({
+      version: 'test-v1',
+      entries: [
+        {
+          id: 'internal-reference',
+          version: 1,
+          status: 'eligible',
+          kind: 'MATTER',
+          area: 'civel',
+          topic: 'contrato',
+          roles: ['matter-analyst'],
+          contentHash: hash(content),
+          byteLength: Buffer.byteLength(content),
+        },
+      ],
+    });
+    let loaded = false;
+    const f = fixture(
+      { ...basicPlan, skillIssues: [{ id: 'i1', area: 'civel', topic: 'contrato', sourceIds: ['user:1'] }] } as any,
+      {
+        workflowVersion: 11,
+        skills: {
+          catalog,
+          budget: { maxBytesPerRole: 40, maxBytesTotal: 40 },
+          loadContent: async () => {
+            loaded = true;
+            return content;
+          },
+        },
+      },
+    );
+    Object.assign(f.packet, { guidance: initialGuidance() });
+    expect((await f.finish()).kind).toBe('completed');
+    expect(loaded).toBe(false);
+    expect(f.deliveries[0].findings).toContainEqual(
+      expect.objectContaining({
+        code: 'SUPPORTING_CONTEXT_LIMITED',
+        statement: 'O contexto complementar excede o limite deste trabalho.',
+      }),
+    );
+    expect(JSON.stringify(f.deliveries[0])).not.toContain('internal-reference');
+  });
+
+  it('v11 pergunta pela hipótese material antes de executar especialistas e mantém a origem', async () => {
+    const proposal = {
+      field: 'documentType',
+      value: 'resposta-acusacao',
+      material: true,
+      sourceIds: ['user:1'],
+      reason: 'A medida define o trabalho',
+      prompt: 'Você quer preparar a resposta à acusação?',
+    };
+    const f = fixture({ ...basicPlan, guidanceProposals: [proposal] } as any, { workflowVersion: 11 });
+    Object.assign(f.packet, { guidance: initialGuidance() });
+    const result = await f.finish();
+    expect(result.kind).toBe('question');
+    expect(result.question.options).toEqual([{ id: 'resposta-acusacao', label: 'Sim, seguir com essa opção' }]);
+    expect(result.state.plan.guidanceProposals).toEqual([{ ...proposal, origin: 'model' }]);
+    expect(f.roles).toEqual(['legal-orchestrator']);
+    expect(f.deliveries).toEqual([]);
+  });
+
+  it('v11 não permite tornar silenciosa uma hipótese sobre peça', async () => {
+    const f = fixture(
+      {
+        ...basicPlan,
+        guidanceProposals: [
+          {
+            field: 'documentType',
+            value: 'resposta-acusacao',
+            material: false,
+            sourceIds: ['user:1'],
+            reason: 'Medida',
+            prompt: 'Confirmar medida?',
+          },
+        ],
+      } as any,
+      { workflowVersion: 11 },
+    );
+    Object.assign(f.packet, { guidance: initialGuidance() });
+    await expect(f.finish()).rejects.toThrow('GUIDANCE_MATERIAL_CONFIRMATION_REQUIRED');
+  });
+
+  it.each([false, true])(
+    'v11 não produz peça sem confirmação, inclusive se o plano seguinte omitir a hipótese (%s)',
+    async (omitProposal) => {
+      const f = fixture(
+        {
+          ...basicPlan,
+          action: 'create_document',
+          documentType: 'Resposta à acusação',
+          guidanceProposals: [
+            {
+              field: 'documentType',
+              value: 'resposta-acusacao',
+              material: true,
+              sourceIds: ['user:1'],
+              reason: 'A peça define o trabalho',
+              prompt: 'Você quer preparar uma resposta à acusação?',
+            },
+          ],
+        } as any,
+        {
+          workflowVersion: 11,
+          planner: (packet) =>
+            omitProposal && packet.answers.length
+              ? { ...basicPlan, action: 'create_document', documentType: 'Resposta à acusação' }
+              : undefined,
+        },
+      );
+      const request = { ...binding, actionId: 'create_document' as const };
+      Object.assign(f.packet, { guidance: initialGuidance() });
+      const waiting = await f.finish(request);
+      expect(waiting.kind).toBe('question');
+      Object.assign(f.packet, {
+        contextRevision: 2,
+        answers: [
+          {
+            questionId: waiting.question.id,
+            questionVersion: 1,
+            contextRevision: 1,
+            selectedOptionIds: [],
+            unknown: true,
+          },
+        ],
+      });
+      expect((await f.finish({ ...request, contextRevision: 2 })).kind).toBe('completed');
+      expect(f.roles).toEqual(['legal-orchestrator', 'legal-orchestrator']);
+      expect(f.deliveries[0]).toMatchObject({
+        status: 'LIMITED',
+        findings: expect.arrayContaining([expect.objectContaining({ code: 'GUIDANCE_UNCONFIRMED' })]),
+      });
+      expect(f.deliveries[0]).not.toHaveProperty('document');
+    },
+  );
+
+  it('v11 não repete pergunta material já respondida com desconhecimento', async () => {
+    const plan = {
+      ...basicPlan,
+      gaps: [
+        {
+          key: 'goal',
+          kind: 'MISSING',
+          material: true,
+          prompt: 'Qual o resultado pretendido?',
+          reason: 'Objetivo insuficiente',
+          sourceIds: [],
+          options: [],
+        },
+      ],
+    };
+    const f = fixture(plan as any, {
+      workflowVersion: 11,
+      answers: [
+        { questionId: 'case-task:goal', questionVersion: 1, contextRevision: 1, selectedOptionIds: [], unknown: true },
+      ],
+    });
+    expect((await f.finish()).kind).toBe('completed');
+    expect(f.deliveries[0].findings.some((finding: any) => finding.code === 'USER_UNKNOWN')).toBe(true);
+  });
   it('entrega revisão com ressalva para a lacuna não impeditiva observada na calibração real', async () => {
     const historical = JSON.parse(
       readFileSync(

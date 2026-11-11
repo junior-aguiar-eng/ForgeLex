@@ -1,12 +1,15 @@
 import { DeskEditorialRepository } from './desk-editorial-repository.js';
 import { createHash } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
-import { z } from 'zod';
 import {
   AgenticTaskDeliverySchema,
   NativeTaskPacketSchema,
   TaskSourceSchema,
-  TaskDocumentSchema,
+  readCheckpointEvidence,
+  readCaseTaskCheckpointVersion,
+  applyDeskEdit,
+  createDeskEditSnapshot,
+  type DeskEditProposal,
   type AgenticOwner,
   type TaskBinding,
   type NativeTaskContextPort,
@@ -17,7 +20,9 @@ import {
 import { AgenticWorkspaceRepository } from './agentic-workspace-repository.js';
 import { CaseAiAccessRepository } from './case-ai-access-repository.js';
 import { MatterRepository } from './matter-repository.js';
-import { DraftRepository } from './draft-repository.js';
+import { DraftRepository, type DraftVersionBundle } from './draft-repository.js';
+import { DraftAiReceiptRepository } from './draft-ai-receipt-repository.js';
+import { inheritDraftEditMetadata } from './draft-edit-metadata.js';
 import {
   agenticEvents,
   agenticTaskDeliveries,
@@ -40,7 +45,7 @@ export type AuthorizeNativeTask = (
   db: ForgeLexDatabase,
 ) => Promise<void>;
 export interface EditorialSnapshot {
-  origin?: 'DESK_VERSION';
+  origin?: 'DESK_VERSION' | 'SCOPED_DELIVERY';
   id: string;
   draftId: string;
   versionId: string;
@@ -78,17 +83,16 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
     action: (
       db: ForgeLexDatabase,
       packet: NativeTaskPacket,
-      draft?: { draftId: string; versionId: string },
+      draft?: { draftId: string; versionId: string; bundle: DraftVersionBundle },
     ) => Promise<T>,
-    historical = false,
-    completedRead = false,
+    { historical = false, completedRead = false, publishing = false } = {},
   ): Promise<T> {
     await this.authorize({ tenantId: binding.tenantId, userId: binding.userId }, binding.matterId, this.db);
     return this.db.transaction(async (transaction) => {
       const db = transaction as unknown as ForgeLexDatabase,
         workspace = new AgenticWorkspaceRepository(db);
       const owner = { tenantId: binding.tenantId, userId: binding.userId };
-      if (completedRead)
+      if (completedRead || publishing)
         await db
           .update(agenticConversations)
           .set({ contextRevision: sql`${agenticConversations.contextRevision}` })
@@ -127,6 +131,8 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
         await new MatterWriteGuard(db).captureRevision({ tenantId: binding.tenantId, matterId: binding.matterId });
       }
       const sources: TaskSource[] = [];
+      let target: { draftId: string; versionId: string; bundle: DraftVersionBundle } | undefined;
+      let deskEdit: NativeTaskPacket['deskEdit'];
       const add = (id: string, kind: TaskSource['kind'], text: string, extra: Partial<TaskSource> = {}) => {
         if (text.trim()) sources.push({ id, kind, text, contentHash: hash(text), ...extra });
       };
@@ -206,6 +212,18 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
           }
           const version = await repo.getVersion(binding.tenantId, binding.matterId, draft.id, context.draft.versionId);
           if (!version) throw new Error('ACCESS_REVOKED');
+          target = { ...context.draft, bundle: version };
+          if (!historical && !completedRead && context.deskEdit) {
+            deskEdit = createDeskEditSnapshot(
+              {
+                ...context.draft,
+                versionHash: version.version.contentHash,
+                title: draft.title,
+                sections: version.sections.map(({ id, title, content }) => ({ id, title, content })),
+              },
+              context.deskEdit,
+            );
+          }
           if (!historical)
             add(context.draft.versionId, 'DRAFT', version.sections.map((s) => `${s.title}\n${s.content}`).join('\n'), {
               versionId: context.draft.versionId,
@@ -254,13 +272,33 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       }
       await this.authorize({ tenantId: binding.tenantId, userId: binding.userId }, binding.matterId, db);
       if (Buffer.byteLength(JSON.stringify(sources)) > 128000) throw new Error('TASK_CONTEXT_LIMIT');
+      const guidance = context.guidance;
+      const guidanceAnswers = guidance
+        ? (['area', 'action', 'documentType', 'partyRole', 'stage'] as const).flatMap((key) => {
+            const questionId = guidance[key].questionId;
+            if (!questionId) return [];
+            const question = conversation.messages.find(
+              (m) => !m.executionId && m.question?.id === questionId,
+            )?.question;
+            const answer = [...conversation.messages]
+              .reverse()
+              .find(
+                (m) =>
+                  !m.executionId && m.answer?.questionId === questionId && m.answer.contextRevision < context.revision,
+              )?.answer;
+            return question && answer ? [{ question, answer }] : [];
+          })
+        : undefined;
       const packet = NativeTaskPacketSchema.parse({
         contextId: conversation.id,
         contextRevision: binding.contextRevision,
         sources,
         answers: context.answers ?? [],
+        ...(deskEdit ? { deskEdit } : {}),
+        ...(context.guidance ? { guidance: context.guidance } : {}),
+        ...(guidanceAnswers ? { guidanceAnswers } : {}),
       });
-      return action(db, packet, context.draft);
+      return action(db, packet, target);
     });
   }
   load(binding: TaskBinding): Promise<NativeTaskPacket> {
@@ -272,11 +310,33 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
   async save(
     binding: TaskBinding,
     raw: AgenticTaskDelivery,
+    edit?: DeskEditProposal,
   ): Promise<{ id: string; draftId?: string; versionId?: string }> {
     const delivery = AgenticTaskDeliverySchema.parse(raw);
     if (delivery.contextId !== binding.conversationId || delivery.contextRevision !== binding.contextRevision)
       throw new Error('CONTEXT_CONFLICT');
-    return this.guarded(binding, async (db, packet, target) => {
+    const persist = async (
+      db: ForgeLexDatabase,
+      packet: NativeTaskPacket,
+      target?: { draftId: string; versionId: string; bundle: DraftVersionBundle },
+    ) => {
+      if (delivery.document && delivery.action !== 'create_document') throw new Error('DOCUMENT_ACTION_INVALID');
+      if (edit || (packet.deskEdit && delivery.document)) {
+        if (
+          !edit ||
+          !packet.deskEdit ||
+          !delivery.document ||
+          delivery.replacesVersionId !== packet.deskEdit.target.versionId
+        )
+          throw new Error('DESK_EDIT_REQUIRED');
+        const sections = applyDeskEdit(packet.deskEdit, edit);
+        if (
+          delivery.document.title !== packet.deskEdit.title ||
+          JSON.stringify(delivery.document.sections.map(({ title, content }) => ({ title, content }))) !==
+            JSON.stringify(sections.map(({ title, content }) => ({ title, content })))
+        )
+          throw new Error('DESK_EDIT_DOCUMENT_MISMATCH');
+      }
       for (const s of delivery.sources.filter((s) => !['AUTHORITY', 'NORM'].includes(s.kind)))
         if (!packet.sources.some((p) => p.id === s.id && p.contentHash === s.contentHash))
           throw new Error('SOURCE_REFERENCE_INVALID');
@@ -310,7 +370,6 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
           ...(existing.draftId ? { draftId: existing.draftId, versionId: existing.versionId! } : {}),
         };
       }
-      if (delivery.document && delivery.action !== 'create_document') throw new Error('DOCUMENT_ACTION_INVALID');
       if (
         delivery.replacesVersionId &&
         (!delivery.document || !target || target.versionId !== delivery.replacesVersionId)
@@ -328,6 +387,55 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
                 title: delivery.document.title,
                 createdBy: binding.userId,
               });
+        const sections = delivery.document.sections.map((s, i) => ({
+          title: s.title,
+          content: s.content,
+          ordinal: edit && target ? target.bundle.sections[i].ordinal : i + 1,
+          linkedFactIds: edit
+            ? []
+            : [
+                ...new Set(
+                  s.sourceIds.flatMap((id) => {
+                    const source = packet.sources.find((p) => p.id === id);
+                    const factId =
+                      source?.kind === 'CASE_FACT'
+                        ? source.approvedItem?.targetId
+                        : source?.approvedItem?.relatedFactId;
+                    return factId ? [factId] : [];
+                  }),
+                ),
+              ],
+          linkedEvidenceIds: edit
+            ? []
+            : [
+                ...new Set(
+                  s.sourceIds.flatMap((id) => {
+                    const source = packet.sources.find((p) => p.id === id);
+                    return source?.kind === 'CASE_EVIDENCE' && source.approvedItem
+                      ? [source.approvedItem.targetId]
+                      : [];
+                  }),
+                ),
+              ],
+        }));
+        const citations =
+          delivery.replacesVersionId && target
+            ? inheritDraftEditMetadata(
+                target.bundle,
+                sections,
+                new Set(
+                  (
+                    await new DraftAiReceiptRepository(db).getReferences(
+                      binding,
+                      binding.matterId,
+                      draft.id,
+                      target.versionId,
+                    )
+                  ).map((reference) => reference.sectionOrdinal),
+                ),
+                edit,
+              )
+            : undefined;
         const bundle = await repo.createVersion({
           tenantId: binding.tenantId,
           matterId: binding.matterId,
@@ -341,34 +449,8 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
           status: 'DRAFT',
           contentHash: hash(delivery.document),
           notes: 'Minuta preliminar agêntica; exige revisão humana de Boni.',
-          sections: delivery.document.sections.map((s, i) => ({
-            title: s.title,
-            content: s.content,
-            ordinal: i + 1,
-            linkedFactIds: [
-              ...new Set(
-                s.sourceIds.flatMap((id) => {
-                  const source = packet.sources.find((p) => p.id === id);
-                  return source?.approvedItem
-                    ? source.kind === 'CASE_FACT'
-                      ? [source.approvedItem.targetId]
-                      : source.approvedItem.relatedFactId
-                        ? [source.approvedItem.relatedFactId]
-                        : []
-                    : [];
-                }),
-              ),
-            ],
-            linkedEvidenceIds: [
-              ...new Set(
-                s.sourceIds.flatMap((id) => {
-                  const source = packet.sources.find((p) => p.id === id);
-                  return source?.kind === 'CASE_EVIDENCE' && source.approvedItem ? [source.approvedItem.targetId] : [];
-                }),
-              ),
-            ],
-            linkedThesisIds: [],
-          })),
+          sections,
+          citations,
         });
         draftId = draft.id;
         versionId = bundle.version.id;
@@ -394,7 +476,8 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       ]);
       await workspace.appendEvent(owner, binding.executionId, { type: 'DELIVERY', payload: { deliveryId: id } });
       return { id, ...(draftId ? { draftId, versionId } : {}) };
-    });
+    };
+    return this.guarded(binding, persist, { publishing: true });
   }
   async getDelivery(owner: AgenticOwner, id: string) {
     const [row] = await this.db
@@ -433,7 +516,7 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
           ...(row.draftId ? { draftId: row.draftId, versionId: row.versionId! } : {}),
         };
       },
-      true,
+      { historical: true },
     );
   }
   /** Load an authorized snapshot; desk metadata may be initialized, but the piece is never changed. */
@@ -481,7 +564,7 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
       snapshot: EditorialSnapshot,
       saved: string | null,
     ) => {
-      document: z.infer<typeof TaskDocumentSchema>;
+      document: NonNullable<AgenticTaskDelivery['document']>;
       complete: (version: { id: string; versionNumber: number; contentHash: string }) => { result: T; record: string };
     },
     replay: (saved: string | null) => T | undefined,
@@ -627,7 +710,16 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
         const repo = new DraftRepository(db);
         const draft = await repo.getDraft(owner.tenantId, run.matterId!, row.draftId);
         const bundle = await repo.getVersion(owner.tenantId, run.matterId!, row.draftId, row.versionId);
-        const document = TaskDocumentSchema.parse(delivery.document);
+        const execution = await new AgenticWorkspaceRepository(db).getExecution(owner, run.id);
+        const document = delivery.document;
+        const scoped = Boolean(
+          delivery.replacesVersionId && readCaseTaskCheckpointVersion(execution?.checkpoint) === 12,
+        );
+        const parent = scoped
+          ? await repo.getVersion(owner.tenantId, run.matterId!, row.draftId, delivery.replacesVersionId!)
+          : undefined;
+        if (scoped && (!parent || parent.sections.length !== document.sections.length))
+          throw new Error('EDITORIAL_VERSION_CONFLICT');
         if (
           !draft ||
           (!historyOnly && draft.currentVersionId !== row.versionId) ||
@@ -637,7 +729,7 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
           bundle.sections.length !== document.sections.length ||
           bundle.sections.some(
             (s, index) =>
-              s.ordinal !== index + 1 ||
+              s.ordinal !== (parent?.sections[index].ordinal ?? index + 1) ||
               s.title !== document.sections[index].title ||
               s.content !== document.sections[index].content,
           )
@@ -649,20 +741,9 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
 
         // Only legal source text needs the completed checkpoint. The delivery is mandatory,
         // and every recovered byte/metadata field must match its persisted source reference.
-        const execution = await new AgenticWorkspaceRepository(db).getExecution(owner, run.id);
-        let evidence: TaskSource[] = [];
-        if (delivery.sources.some((s) => ['AUTHORITY', 'NORM'].includes(s.kind))) {
-          const parsed = z
-            .object({
-              caseTask: z.object({
-                version: z.number().int().min(1).max(8),
-                evidence: z.array(TaskSourceSchema).max(100),
-              }),
-            })
-            .safeParse(execution?.checkpoint);
-          if (!parsed.success) throw new Error('EDITORIAL_SOURCE_UNAVAILABLE');
-          evidence = parsed.data.caseTask.evidence;
-        }
+        const evidence = delivery.sources.some((s) => ['AUTHORITY', 'NORM'].includes(s.kind))
+          ? readCheckpointEvidence(execution?.checkpoint)
+          : [];
         const sources = delivery.sources.map((ref) => {
           const candidates = (['AUTHORITY', 'NORM'].includes(ref.kind) ? evidence : packet.sources).filter(
             (s) => s.id === ref.id,
@@ -674,10 +755,20 @@ export class NativeCaseTaskRepository implements NativeTaskContextPort {
             throw new Error('EDITORIAL_SOURCE_UNAVAILABLE');
           return source;
         });
-        return action(db, { id: row.id, draftId: row.draftId, versionId: row.versionId, delivery, sources }, row);
+        return action(
+          db,
+          {
+            id: row.id,
+            draftId: row.draftId,
+            versionId: row.versionId,
+            delivery,
+            sources,
+            ...(scoped ? { origin: 'SCOPED_DELIVERY' } : {}),
+          },
+          row,
+        );
       },
-      historyOnly,
-      true,
+      { historical: historyOnly, completedRead: true },
     );
   }
   /** Trusted financial finalization reads only an already committed immutable snapshot.

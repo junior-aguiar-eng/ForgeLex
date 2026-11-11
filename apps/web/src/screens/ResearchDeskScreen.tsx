@@ -9,6 +9,7 @@ import { createSearchIntent } from '../operations/contracts';
 import { SaveAuthorityToCase } from '../components/SaveAuthorityToCase';
 import { ExecutedSearchLabel, JudgmentYearSelect, ResearchRetentionNotice, SearchChargeNotice, ResearchCoverageNotice } from '../components/ResearchControls';
 import { createResearchDeskModel } from './research-desk-model';
+import { canSearchCourt } from '../operations/search-capabilities';
 
 const statusLabel: Record<AuthorityVerification['status'], string> = {
   VERIFIED_OFFICIAL: 'Verificado na fonte oficial',
@@ -18,7 +19,7 @@ const statusLabel: Record<AuthorityVerification['status'], string> = {
   NOT_FOUND: 'Não localizado',
 };
 
-export const ResearchDeskScreen: React.FC = () => {
+export const ResearchDeskScreen: React.FC<{ compact?: boolean; pieceMatterId?: string }> = ({ compact = false, pieceMatterId }) => {
   const { verifyAuthority, tribunals, searchIntent, performSearch } = useApp();
   const [query, setQuery] = useState(() => searchIntent?.query ?? '');
   const [court, setCourt] = useState<string>(() => searchIntent?.court ?? 'STJ');
@@ -55,9 +56,9 @@ export const ResearchDeskScreen: React.FC = () => {
   };
 
   return (
-    <div className="py-8 md:py-12">
-      <div className="page-container space-y-8">
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+    <div className={compact ? undefined : 'py-8 md:py-12'}>
+      <div className={compact ? 'space-y-4' : 'page-container space-y-8'}>
+        {!compact && <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div className="space-y-3">
             <div className="eyebrow inline-flex items-center gap-2 rounded-full bg-cognac-100 px-3 py-1">
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -69,9 +70,9 @@ export const ResearchDeskScreen: React.FC = () => {
             </p>
           </div>
           <div className="text-right text-xs text-stone-500">Resultados e cobrança dependem da API autenticada.</div>
-        </div>
+        </div>}
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
+        <div className={compact ? 'space-y-4' : 'grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start'}>
           <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
             <div className="flex items-center gap-2 text-stone-900">
               <Search className="w-5 h-5 text-cognac-700" />
@@ -81,7 +82,7 @@ export const ResearchDeskScreen: React.FC = () => {
             <ResearchCoverageNotice />
             <form onSubmit={search} className="space-y-3">
               <div className="flex flex-col md:flex-row gap-3">
-                <input value={query} onChange={(event) => setQuery(event.target.value)} className="flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
+                <input aria-label="Termo de pesquisa" value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-0 flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
                 <select aria-label="Tribunal da pesquisa" value={court} onChange={(event) => setCourt(event.target.value)} className="md:w-40 px-3 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm">
                   {model.courts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
                 </select>
@@ -93,8 +94,21 @@ export const ResearchDeskScreen: React.FC = () => {
 
             <ExecutedSearchLabel execution={execution} />
             {execution && <ResearchRetentionNotice />}
-            {results.length > 0 && <DecisionReader entries={results.map(decision => ({ decision }))} actions={item => CASE_WORKSPACE_ENABLED && <SaveAuthorityToCase item={item} />} />}
-            <SavedResearchPanel operationId={execution?.intent.idempotencyKey} onResearchAgain={async criteria => { setQuery(criteria.query); setCourt(criteria.court ?? court); setYear(criteria.judgmentYear?.toString() ?? ''); await performSearch(createSearchIntent(criteria.query, criteria.court ?? court, criteria.limit, criteria.judgmentYear)); }} />
+            {results.length > 0 && <DecisionReader entries={results.map(decision => ({ decision }))} actions={item => CASE_WORKSPACE_ENABLED && <SaveAuthorityToCase item={item} pieceMatterId={pieceMatterId} />} />}
+            <SavedResearchPanel
+              operationId={execution?.intent.idempotencyKey}
+              caseLink={CASE_WORKSPACE_ENABLED}
+              pieceMatterId={pieceMatterId}
+              canResearchAgain={criteria => canSearchCourt(tribunals.data, criteria.court ?? court)}
+              onResearchAgain={async criteria => {
+                const targetCourt = criteria.court ?? court;
+                if (!canSearchCourt(tribunals.data, targetCourt)) throw new Error('Este tribunal está indisponível para novas pesquisas.');
+                setQuery(criteria.query);
+                setCourt(targetCourt);
+                setYear(criteria.judgmentYear?.toString() ?? '');
+                await performSearch(createSearchIntent(criteria.query, targetCourt, criteria.limit, criteria.judgmentYear));
+              }}
+            />
             {model.billingMessage && <div className="surface-subtle p-3 text-xs text-stone-600">{model.billingMessage}</div>}
             {hasSearched && !searchBusy && results.length === 0 && !searchError && <div className="surface-subtle p-6 text-center text-sm text-stone-500">{model.emptyMessage}</div>}
           </section>

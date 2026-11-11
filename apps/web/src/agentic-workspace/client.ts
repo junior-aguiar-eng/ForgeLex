@@ -10,6 +10,7 @@ export interface StartInput {
   matterId?: string;
   context?: Context;
   contextRevision?: number;
+  useGuidance?: false;
 }
 export interface ClosedPilotBudget {
   currency: 'USD';
@@ -32,6 +33,8 @@ export class WorkspaceClient {
       closedPilot?: boolean;
       commercial?: boolean;
       guidance?: boolean;
+      deskEditorial?: boolean;
+      researchCapabilities?: { caseLaw: boolean; legislation: boolean };
     }>('/api/agentic/actions', {}, { sessionOnly: true });
   closedBudget = (id?: string) =>
     requestApi<ClosedPilotBudget>(

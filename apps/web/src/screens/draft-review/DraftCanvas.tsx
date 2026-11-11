@@ -52,6 +52,7 @@ function PaperText({
   id,
   label,
   onChange,
+  onSelect,
   disabled,
   heading,
 }: {
@@ -59,6 +60,7 @@ function PaperText({
   label: string;
   id: string;
   onChange: (value: string) => void;
+  onSelect?: (start: number, end: number, value: string) => void;
   disabled: boolean;
   heading?: 'title' | 'section';
 }) {
@@ -87,6 +89,12 @@ function PaperText({
       aria-label={label}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onSelect={
+        onSelect
+          ? ({ currentTarget }) =>
+              onSelect(currentTarget.selectionStart, currentTarget.selectionEnd, currentTarget.value)
+          : undefined
+      }
       disabled={disabled}
       rows={heading ? 1 : 3}
       className={`block w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-stone-800 outline-none focus:ring-0 disabled:opacity-70 ${heading === 'title' ? 'font-editorial text-3xl leading-tight' : heading ? 'font-serif text-lg font-semibold' : 'font-serif text-base leading-8'}`}
@@ -107,10 +115,14 @@ export function DraftCanvas({
   status,
   onTitle,
   onSection,
+  editVersionId,
+  onEditSelection,
   onMatter,
   onDraft,
   onSave,
   onExport,
+  onCaseSources,
+  reviewActions,
   history,
   extras,
   caseControls,
@@ -127,21 +139,38 @@ export function DraftCanvas({
   status: string | null;
   onTitle: (s: string) => void;
   onSection: (index: number, field: 'title' | 'content', value: string) => void;
+  editVersionId?: string;
+  onEditSelection?: (index: number, start: number, end: number, value: string) => void;
   onMatter: (id: string) => void;
   onDraft: (id: string) => void;
   onSave: () => void;
   onExport: (format: 'docx' | 'pdf') => void;
+  onCaseSources?: () => void;
+  reviewActions?: ReactNode;
   history: ReactNode;
   extras?: ReactNode;
   caseControls?: ReactNode;
 }) {
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [selection, setSelection] = useState<{
+    index: number;
+    start: number;
+    end: number;
+    value: string;
+    versionId: string;
+  }>();
   return (
     <section
       aria-label="Mesa da peça"
       className="flex min-h-[70dvh] min-w-0 flex-col bg-[#F1EEE8] lg:h-[calc(100dvh-8rem)]"
     >
       <header className="flex flex-wrap items-center gap-2 border-b border-stone-200 bg-[#FBF9F5] px-4 py-3 text-sm">
+        {onCaseSources && (
+          <button type="button" className="min-h-9 rounded-lg px-2 hover:bg-stone-100" onClick={onCaseSources}>
+            Fontes do caso
+          </button>
+        )}
+        {reviewActions}
         <details className="relative mr-auto">
           <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded-lg px-2 hover:bg-stone-100">
             {draftId ? 'Peça aberta' : 'Abrir peça'}
@@ -280,8 +309,32 @@ export function DraftCanvas({
                 label={`Texto da seção ${i + 1}`}
                 value={s.content}
                 onChange={(v) => onSection(i, 'content', v)}
+                onSelect={
+                  editVersionId
+                    ? (start, end, value) =>
+                        setSelection(
+                          end > start ? { index: i, start, end, value, versionId: editVersionId } : undefined,
+                        )
+                    : undefined
+                }
                 disabled={busy}
               />
+              {selection?.index === i &&
+                selection.versionId === editVersionId &&
+                onEditSelection &&
+                !busy &&
+                !dirty && (
+                  <button
+                    type="button"
+                    className="text-sm text-cognac-800 underline"
+                    onClick={() => {
+                      onEditSelection(i, selection.start, selection.end, selection.value);
+                      setSelection(undefined);
+                    }}
+                  >
+                    Usar trecho na conversa
+                  </button>
+                )}
             </section>
           ))}
           {historyOpen && (
