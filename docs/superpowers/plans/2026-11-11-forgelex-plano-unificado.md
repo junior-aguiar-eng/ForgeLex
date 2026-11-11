@@ -39,21 +39,22 @@
 
 As etapas indicadas não começam enquanto a decisão estiver aberta. A recomendação é técnica e não substitui a decisão.
 
-| ID     | Decisão                                                                                                                       | Recomendação                                                                                                                                                                                                                                      | Bloqueia           |
-| ------ | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| DEC-1  | Nome exato do domínio novo e do subdomínio de homologação (grafia “ForgeLex” ou “Forglex”, extensão `.com.br`, `.ia.br` etc.) | Registrar a mesma grafia da marca; reservar também a grafia alternativa para redirecionar                                                                                                                                                         | D2 em diante       |
-| DEC-2  | Paleta do tema novo                                                                                                           | **Decidido por Boni em 11/11/2026:** branco gelo com petróleo, conforme o protótipo de 09/11 (seção 7.1). Substitui a diretriz do v2 de preservar `ivory`, `cognac` e `champagne`                                                                 | Nada               |
-| DEC-3  | Tipografia                                                                                                                    | Spectral (títulos e texto jurídico) e Inter (interface), hospedadas no próprio site, sem dependência de terceiros                                                                                                                                 | V1                 |
-| DEC-4  | Origem do catálogo de habilidades                                                                                             | **Decidido por Boni em 11/11/2026:** manter e incorporar as 2.077 fichas capturadas (MinutaIA), com origem e hash registrados. Substitui a recomendação de catálogo próprio                                                                       | Nada (M3 liberada) |
-| DEC-5  | Reserva de R$ 11,50 por trabalho comercial (PR #135, antes R$ 5,00)                                                           | Confirmar a regra e exibi-la na Conta e na confirmação de custo                                                                                                                                                                                   | M1                 |
-| DEC-6  | Tarifa da análise de aderência na busca ancorada                                                                              | Gerar a frase de aderência na mesma chamada da pesquisa, sem tarifa adicional, enquanto o uso real é medido                                                                                                                                       | M4                 |
-| DEC-7  | Título principal do site público                                                                                              | Manter o título aprovado travado em `tests/public-copy.test.ts`; o título do protótipo não entra                                                                                                                                                  | V2                 |
-| DEC-8  | Destino do Ratione (`ratione.nexojuris.ia.br`) na troca de domínio                                                            | Manter onde está até a Frente R; decidir junto com o modelo de produto (dois produtos ligados ou um só)                                                                                                                                           | D5 e Frente R      |
-| DEC-9  | Arquivamento dos planos antigos de `docs/superpowers/plans/`                                                                  | Mover os concluídos para `docs/historico/planos/`, preservando links                                                                                                                                                                              | E6                 |
-| DEC-10 | Mesa: seleção explícita de peça e matéria                                                                                     | **Decidido por Boni em 11/11/2026:** o cliente escolhe a peça (Forma) e a matéria por rótulos legíveis, com busca. Conteúdo, IDs e hashes das fichas continuam ocultos. Revisa a decisão do v2 de manter Forma e Matéria só nos bastidores        | Nada (U3 liberada) |
-| DEC-11 | Modo de piloto fechado (`closedPilot`, `ClosedPilotPanel`, `closed-pilot*.ts`, `task6-homologation.ts`)                       | Confirmar em E1 se está ativo em produção. Se não estiver, remover painel, rotas e testes em U1; se estiver, manter fora da nova Mesa                                                                                                             | U1                 |
-| DEC-12 | Anexos: guardar o arquivo original ou só o texto extraído                                                                     | Só o texto, como na importação de PDF atual (a especificação de 03/10/2026 deixou a retenção do original para avaliação posterior)                                                                                                                | U5                 |
-| DEC-13 | Motor de OCR                                                                                                                  | OCR no navegador (Tesseract.js, idioma português), sem enviar o arquivo ao servidor, preservando a promessa atual de que a extração ocorre no navegador. OCR no servidor só se a qualidade não bastar, com decisão própria sobre custo e retenção | U6                 |
+| ID     | Decisão                                                                                                                       | Recomendação                                                                                                                                                                                                                                                                                                                                                                     | Bloqueia           |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| DEC-1  | Nome exato do domínio novo e do subdomínio de homologação (grafia “ForgeLex” ou “Forglex”, extensão `.com.br`, `.ia.br` etc.) | Registrar a mesma grafia da marca; reservar também a grafia alternativa para redirecionar                                                                                                                                                                                                                                                                                        | D2 em diante       |
+| DEC-2  | Paleta do tema novo                                                                                                           | **Decidido por Boni em 11/11/2026:** branco gelo com petróleo, conforme o protótipo de 09/11 (seção 7.1). Substitui a diretriz do v2 de preservar `ivory`, `cognac` e `champagne`                                                                                                                                                                                                | Nada               |
+| DEC-3  | Tipografia                                                                                                                    | Spectral (títulos e texto jurídico) e Inter (interface), hospedadas no próprio site, sem dependência de terceiros                                                                                                                                                                                                                                                                | V1                 |
+| DEC-4  | Origem do catálogo de habilidades                                                                                             | **Decidido por Boni em 11/11/2026:** manter e incorporar as 2.077 fichas capturadas (MinutaIA), com origem e hash registrados. Substitui a recomendação de catálogo próprio                                                                                                                                                                                                      | Nada (M3 liberada) |
+| DEC-5  | Reserva de R$ 11,50 por trabalho comercial (PR #135, antes R$ 5,00)                                                           | Confirmar a regra e exibi-la na Conta e na confirmação de custo                                                                                                                                                                                                                                                                                                                  | M1                 |
+| DEC-6  | Tarifa da análise de aderência na busca ancorada                                                                              | Gerar a frase de aderência na mesma chamada da pesquisa, sem tarifa adicional, enquanto o uso real é medido                                                                                                                                                                                                                                                                      | M4                 |
+| DEC-7  | Título principal do site público                                                                                              | Manter o título aprovado travado em `tests/public-copy.test.ts`; o título do protótipo não entra                                                                                                                                                                                                                                                                                 | V2                 |
+| DEC-8  | Destino do Ratione (`ratione.nexojuris.ia.br`) na troca de domínio                                                            | Manter onde está até a Frente R; decidir junto com o modelo de produto (dois produtos ligados ou um só)                                                                                                                                                                                                                                                                          | D5 e Frente R      |
+| DEC-9  | Arquivamento dos planos antigos de `docs/superpowers/plans/`                                                                  | Mover os concluídos para `docs/historico/planos/`, preservando links                                                                                                                                                                                                                                                                                                             | E6                 |
+| DEC-10 | Mesa: peça e matéria em uso, sem lista exposta                                                                                | **Decidido por Boni em 11/11/2026:** a Mesa mostra expressamente só a peça e a matéria que serão usadas naquele momento, nunca uma lista do catálogo. O cliente chega a elas por grande área, por texto livre e, depois, pela leitura de um PDF anexado. Conteúdo, IDs e hashes das fichas continuam ocultos. Revisa a decisão do v2 de manter Forma e Matéria só nos bastidores | Nada (U3 liberada) |
+| DEC-11 | Modo de piloto fechado (`closedPilot`, `ClosedPilotPanel`, `closed-pilot*.ts`, `task6-homologation.ts`)                       | **Decidido por Boni em 11/11/2026:** manter enquanto servir a testes. Fica isolado fora da Mesa nova e é reavaliado ao fim da Frente U                                                                                                                                                                                                                                           | Nada               |
+| DEC-12 | Anexos: guardar o arquivo original ou só o texto extraído                                                                     | Só o texto, como na importação de PDF atual (a especificação de 03/10/2026 deixou a retenção do original para avaliação posterior)                                                                                                                                                                                                                                               | U5                 |
+| DEC-13 | Motor de OCR                                                                                                                  | OCR no navegador (Tesseract.js, idioma português), sem enviar o arquivo ao servidor, preservando a promessa atual de que a extração ocorre no navegador. OCR no servidor só se a qualidade não bastar, com decisão própria sobre custo e retenção                                                                                                                                | U6                 |
+| DEC-14 | Tela “Casos” (`/app/casos`, `MatterWorkspaceScreen`)                                                                          | **Direção de Boni em 11/11/2026:** a tela é dispensável. Recomendação técnica: remover só depois de a Mesa absorver o que ela faz (criar e renomear caso, arquivar, restaurar e excluir caso e documento, importar PDF), porque o caso continua sendo o eixo da Mesa, da busca ancorada (M4) e das ferramentas MCP                                                               | U7                 |
 
 ## 3. O que já está concluído (herdado do v2)
 
@@ -112,6 +113,9 @@ flowchart LR
     U3 --> U4["U4 Ações: voltar, alterar, excluir, adicionar"]
     U4 --> U5["U5 Anexos"]
     U5 --> U6["U6 OCR"]
+    V3 --> U7["U7 Absorver Casos na Mesa"]
+    U6 --> U7
+    U7 --> V5
     U4 --> V3
     V3 --> M5["M5 Selo de terceira origem"]
     M5 --> R["R · Ratione"]
@@ -120,7 +124,7 @@ flowchart LR
 
 As Frentes V, D e U andam em paralelo depois de E, mas a estrutura da Mesa (U) vem antes do visual da Mesa (V3),
 para não pintar uma tela que será reorganizada. A sequência sugerida, sem prazo fixo: E, M1, V0, D0, D1, U0, U1,
-V1, M2, M3, U2, U3, U4, V2, D2, U5, U6, V3, M4, V4, D3, D4, V5, V6, V7, D5. A Frente R só começa quando V6 estiver
+V1, M2, M3, U2, U3, U4, V2, D2, U5, U6, V3, U7, M4, V4, D3, D4, V5, V6, V7, D5. A Frente R só começa quando V6 estiver
 estável.
 
 ## 5. Etapa E — estabilização
@@ -244,12 +248,11 @@ de qualquer incorporação.
 - [ ] **Matéria:** usar o `stableId` como tópico (único; evita depender das 655 subáreas, e 580 fichas não têm subárea
       no caminho). A classificação das questões do caso escolhe entre candidatos pré-filtrados por área e `triggers`;
       o resolvedor continua exigindo igualdade exata. Escrever os testes dessa classificação.
-- [ ] **Vocabulário de área:** as fichas têm 25 áreas (`civil`, `processo-civil`, `processo-penal`, `trabalho`…) e a
-      Mesa tem seis (`penal`, `civel`, `trabalhista`, `administrativo`, `tributario`, `outra`). Proposta inicial,
-      a confirmar por Boni: Penal recebe `penal` e `processo-penal`; Cível recebe `civil`, `processo-civil`,
-      `contratos`, `imobiliario`, `familia-sucessoes`, `consumidor`, `bancario`, `empresarial` e `societario`;
-      Trabalhista recebe `trabalho`; Administrativo e Tributário mantêm o nome; o restante vai para Outra área.
-      O catálogo guarda a área original e a área da Mesa.
+- [ ] **Vocabulário de área:** as grandes áreas da Mesa passam a ser as das próprias fichas (25: `civil`,
+      `processo-civil`, `penal`, `processo-penal`, `constitucional`, `administrativo`, `tributario`, `trabalho`,
+      `previdenciario`, `consumidor`, `empresarial`…), no lugar das seis atuais (`penal`, `civel`, `trabalhista`,
+      `administrativo`, `tributario`, `outra`). A Matéria dispensa tabela de conversão. Boni pode agrupar áreas
+      próximas depois, sem mexer nas fichas. A mudança alcança o contrato `desk-guidance` e `guidance-rules.ts`.
 - [ ] **Orçamento de contexto:** a ficha mediana tem 9,3 KB, 34 fichas passam de 15 KB, e hoje o excesso devolve
       seleção vazia (`SKILL_BUDGET_EXCEEDED`). Definir o limite por papel com fichas reais e avaliar seleção parcial
       (Forma primeiro, depois Matéria por relevância) com limitação registrada.
@@ -315,14 +318,14 @@ Depende de E1 e M1. Só leitura; produz a lista do que sai.
 
 ### U1 — Remover duplicidade e código morto
 
-Depende de U0, DEC-11 e da confirmação das flags em produção.
+Depende de U0 e da confirmação das flags em produção.
 
 - [ ] Eliminar o caminho não integrado em `App.tsx` (`!integrated`) e fazer `/app/rascunhos` e `/app/revisao`
       redirecionarem para a Mesa, preservando links.
 - [ ] Remover o que a lista de U0 marcou como `remove`, em PRs pequenas por área, cada uma com os testes
       correspondentes removidos ou migrados no mesmo commit.
-- [ ] Com DEC-11: se o piloto fechado estiver desativado, remover `ClosedPilotPanel`, `closed-pilot*.ts`,
-      `task6-homologation.ts`, o valor padrão `T6-MIN` e os testes ligados; se ativo, isolar fora da Mesa nova.
+- [ ] Com DEC-11: manter o piloto fechado enquanto servir a testes, isolado fora da Mesa nova (`ClosedPilotPanel` e
+      `closed-pilot*.ts` não entram no `DeskShell`).
 - [ ] Remover exemplos e dados de demonstração mortos da interface e das fixtures não usadas.
 
 **Verificação.** Etapa E completa, mais o relatório de código sem uso de U0 sem item novo. **Aceite.** Uma só Mesa em produção e
@@ -343,20 +346,29 @@ Depende de U1. Atrás de flag (`VITE_FORGELEX_DESK_SHELL`), desligada por padrã
 **Verificação.** `playwright.writing-desk.config.ts`, `playwright.desk-guidance.config.ts` e capturas desktop e
 celular. **Aceite.** Mesma funcionalidade da Mesa atual na nova estrutura. **Reversão.** Desligar a flag.
 
-### U3 — Peça e matéria na Mesa
+### U3 — Entrada em linguagem natural, grande área e peça identificada
 
-Depende de U2, M3.0 e DEC-10.
+Depende de U2, M3.0 e DEC-10. Nenhuma lista do catálogo aparece ao cliente: a Mesa mostra só a peça e a matéria em uso.
 
-- [ ] Seletor de **Peça** no compositor: lista pelas áreas e tipos mapeados em M3.0 que tenham ficha `elegível`,
-      com busca por nome. Substitui a lista fixa de duas peças em `guidance-rules.ts`.
-- [ ] Seletor de **Matéria**: busca por tema, com sugestões a partir do pedido; permite mais de uma matéria.
-- [ ] Os rótulos vêm do catálogo mapeado; conteúdo, ID e hash da ficha nunca vão ao navegador (A02, revisado).
-- [ ] A escolha explícita preenche as decisões da orientação (área, peça, matéria) e dispensa as perguntas
-      correspondentes; “Não sei” e “Me ajude a começar” continuam.
-- [ ] Peça ou matéria sem ficha elegível aparece como indisponível, sem prometer o que o catálogo não tem.
+- [ ] Primeira pergunta em linguagem natural, no próprio compositor: “Explique de forma simples o que você gostaria
+      de fazer: área, tribunal, tipo de peça”. Ao lado, as grandes áreas como atalho (as 25 de M3.0, com busca).
+- [ ] A IA identifica área, tribunal e tipo de peça a partir do texto. O que ela inferir vira **hipótese** que o
+      cliente confirma (“Pelo que você informou, a peça é uma resposta à acusação, no TJ-AL. Está correto?”), como
+      no fluxo atual da hipótese material. Se disser que não, a Mesa propõe a próxima candidata, uma por vez.
+- [ ] Ao escolher uma grande área sem texto, a Mesa correlaciona internamente as peças daquela área e pergunta pelo
+      objetivo, sem mostrar a lista; propõe uma peça por vez.
+- [ ] Incluir o **tribunal** como decisão da orientação, com “Não sei”. Isso muda o contrato `GuidanceSnapshot`:
+      nova versão das regras (`mesa-v3`), leitores antes dos escritores e compatibilidade com orientações já
+      persistidas e seus hashes.
+- [ ] Mostrar como chips apenas a área, o tribunal, a peça e a matéria em uso. Rótulos legíveis; conteúdo, ID e hash
+      da ficha nunca vão ao navegador (A02, revisado).
+- [ ] Peça ou matéria sem ficha elegível: dizer que ainda não há apoio específico e seguir como pedido livre, sem
+      prometer o que o catálogo não tem.
+- [ ] Cliques determinísticos não chamam provedor nem reservam saldo; a identificação por texto segue o
+      consentimento e o custo vigentes (A14). Os rótulos de “Peça” e “Matéria” saem do mapa de M3.0.
 
-**Aceite.** Em até três interações o cliente escolhe a peça e a matéria, e a seleção interna registra a ficha usada.
-**Reversão.** Flag do seletor; a orientação por perguntas permanece.
+**Aceite.** Do pedido em texto livre ou da grande área, o cliente confirma a peça em até três interações, vê só a
+peça em uso, e a seleção interna registra a ficha usada. **Reversão.** Flag; a orientação por perguntas permanece.
 
 ### U4 — Ações: voltar, alterar, excluir, adicionar
 
@@ -389,6 +401,8 @@ Depende de U4 e DEC-12.
 - [ ] Anexo vira chip no pedido; pode ser aberto, trocado ou removido. Pode alimentar “revisar um texto” e a análise
       de documentos, e ser salvo no caso como documento.
 - [ ] Armazenar somente o texto, conforme DEC-12, com aviso claro ao cliente.
+- [ ] **Identificação pela leitura do PDF:** o texto extraído alimenta a mesma hipótese de U3 (área, tribunal e
+      peça), confirmada pelo cliente. Segue consentimento e custo vigentes; o PDF não escolhe nada sozinho.
 - [ ] Estados: lendo, concluído, sem texto extraível (oferece OCR em U6), erro, arquivo grande demais.
 
 **Aceite.** Anexar, revisar e remover por teclado e por clique. **Reversão.** Flag de anexos.
@@ -405,6 +419,20 @@ Depende de U5 e DEC-13.
 - [ ] Medir qualidade em documentos reais autorizados por Boni; só então avaliar OCR no servidor, em decisão separada.
 
 **Aceite.** Um PDF escaneado de teste vira texto editável e utilizável no pedido. **Reversão.** Flag de OCR.
+
+### U7 — Absorver a tela “Casos” na Mesa e removê-la
+
+Depende de U4, U5, U6 e de V3 (seletor de caso e “Criar caso a partir desta conversa”). DEC-14.
+
+- [ ] Levar para a Mesa o que só existe em `MatterWorkspaceScreen` (904 linhas): criar e renomear caso, ciclo de
+      vida de caso e documento (`matter-lifecycle`: arquivar, restaurar, excluir definitivamente) e importação de
+      PDF (`PdfTextImport`, substituída pelo anexo de U5).
+- [ ] Manter o caso como entidade de dados: busca ancorada (M4), ferramentas MCP `case.*` e A07 dependem dele.
+- [ ] Redirecionar `/app/casos` para a Mesa, preservando links, e retirar o item “Casos” da lateral.
+- [ ] Remover `MatterWorkspaceScreen` e seus testes só depois de a Mesa passar nos mesmos cenários de E2E.
+
+**Aceite.** Nenhuma função hoje exclusiva da tela “Casos” se perde. **Reversão.** Reverter a PR; a rota antiga
+volta enquanto a tela existir no histórico.
 
 ## 7. Frente V — refatoração visual
 
@@ -528,7 +556,7 @@ Depende de V3 e M4. `ResearchDeskScreen.tsx`, `DecisionReader`, `SavedResearchPa
 
 ### V5 — Casos, Caso novo, Conectar e Conta
 
-Telas da 7.2. Remover ou dar comportamento real aos botões inertes. Valores financeiros sempre vindos do serviço.
+Depende de U7: sem a tela “Casos”, o que for dela já está na Mesa e só Conectar e Conta mudam aqui. Telas da 7.2. Remover ou dar comportamento real aos botões inertes. Valores financeiros sempre vindos do serviço.
 
 ### V6 — Ligar o tema gelo
 
@@ -690,8 +718,8 @@ etapas D. Falhas preexistentes e testes ignorados são registrados sem contar co
 - “Não sei” é resposta válida e persistida; a IA ajuda a identificar o contexto e a hipótese material exige
   confirmação.
 - A área influencia as perguntas seguintes; Forma, Matéria, especialistas e ferramentas são escolhidos no servidor.
-- Conteúdo, hashes e identificadores internos das fichas ficam nos bastidores. Desde 11/11/2026 (DEC-10) o cliente
-  escolhe peça e matéria por rótulos legíveis; isso revisa a decisão original de manter Forma e Matéria só nos
+- Conteúdo, hashes e identificadores internos das fichas ficam nos bastidores. Desde 11/11/2026 (DEC-10) a Mesa
+  mostra só a peça e a matéria em uso, identificadas por área, texto livre ou leitura de PDF e confirmadas pelo cliente; isso revisa a decisão original de manter Forma e Matéria só nos
   bastidores.
 - Cliques em opções determinísticas não chamam provedor nem reservam saldo; inferências seguem consentimento e custo
   vigentes.
@@ -728,7 +756,7 @@ antes dos escritores; checkpoints antigos continuam no protocolo original.
 | A17 | Piloto Penal e regressão Cível na mesma revisão                                                     | Técnico atendido; jurídico em M3        |
 | A18 | Homologação de produção com registro próprio                                                        | Pendente (M2)                           |
 | A19 | Boni valida a jornada visual em desktop e celular                                                   | Pendente (V3)                           |
-| A20 | Uma só Mesa em produção, sem rota órfã nem código morto                                             | Pendente (U1)                           |
-| A21 | Cliente escolhe peça e matéria por rótulos; conteúdo e IDs ficam ocultos                            | Pendente (U3)                           |
+| A20 | Uma só Mesa em produção, sem rota órfã nem código morto                                             | Pendente (U1, U7)                       |
+| A21 | Mesa mostra só a peça e a matéria em uso, sem listar o catálogo; conteúdo e IDs ocultos             | Pendente (U3)                           |
 | A22 | Voltar, alterar, adicionar e excluir com desfazer, testados por teclado                             | Pendente (U4)                           |
 | A23 | Anexo e OCR no pedido, com texto editável antes de salvar                                           | Pendente (U5, U6)                       |
