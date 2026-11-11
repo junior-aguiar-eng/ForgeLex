@@ -107,6 +107,12 @@ await new Promise((resolve, reject) => authServer.listen(authPort, '127.0.0.1', 
 
 const connection = await createDatabase({ url: databaseUrl });
 await runPersistenceMigrations(connection.client);
+const draftSaveRecovery = process.env.FORGELEX_E2E_DRAFT_SAVE_RECOVERY === 'true';
+if (draftSaveRecovery) {
+  if (!databaseUrl.startsWith('file::memory:')) throw new Error('DRAFT_SAVE_E2E_REQUIRES_DISPOSABLE_MEMORY_DB');
+  const { createDraftSaveTestStorage } = await import('../packages/persistence/dist/testing/draft-save-command-fixture.js');
+  await createDraftSaveTestStorage(connection.client);
+}
 const ledger = new LedgerService(connection.db, connection.client);
 await ledger.runMigrations();
 const account = await new AccountRepository(connection.db).bootstrap({
@@ -285,6 +291,7 @@ const app = await buildApp({
   paymentProvider,
   environment: {
     NODE_ENV: 'test',
+    ...(draftSaveRecovery ? { FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED: 'true' } : {}),
     FORGELEX_SUPABASE_URL: authUrl,
     ...(process.env.FORGELEX_E2E_AGENTIC === 'true' ? { FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true' } : {}),
     ...(process.env.FORGELEX_DESK_GUIDANCE_ENABLED === 'true' ? { FORGELEX_DESK_GUIDANCE_ENABLED: 'true' } : {}),
@@ -293,6 +300,9 @@ const app = await buildApp({
           FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true',
           FORGELEX_COMMERCIAL_EXECUTION_ENABLED: 'true',
           FORGELEX_DATABASE_URL: databaseUrl,
+          ...(process.env.FORGELEX_EDITORIAL_COMMERCIAL_ENABLED === 'true'
+            ? { FORGELEX_EDITORIAL_COMMERCIAL_ENABLED: 'true' }
+            : {}),
         }
       : {}),
     ...(process.env.FORGELEX_E2E_SAVED_RESEARCH === 'true'

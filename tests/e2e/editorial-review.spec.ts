@@ -41,7 +41,8 @@ test('um chat cria, revisa sem alterar e muda a mesma peça ao lado', async ({ p
   await login(page);
   let editorialCalls = 0;
   page.on('request', (request) => {
-    if (request.url().includes('/editorial-')) editorialCalls++;
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith('/api/agentic/') && path.includes('/editorial-')) editorialCalls++;
   });
   const matter = await (
     await page.request.post(`${api}/api/v2/matters`, { headers, data: { title: 'Caso do chat único' } })
@@ -109,8 +110,26 @@ test('enviar revisão guarda a edição manual e usa essa versão sem etapa adic
     .getByLabel('Texto da seção 1', { exact: true })
     .fill('Três parcelas de R$ 100,00 cada. O total é R$ 200,00.');
   await desk.getByText('Abrir peça', { exact: true }).click();
-  await desk.getByLabel('Caso da peça').selectOption(matter.id);
+  let releaseContext!: () => void;
+  const pendingContext = new Promise<void>((resolve) => {
+    releaseContext = resolve;
+  });
+  await page.route(`**/api/v2/matters/${matter.id}/drafts`, async (route) => {
+    await pendingContext;
+    await route.continue();
+  });
+  const draftsRequested = page.waitForRequest(`**/api/v2/matters/${matter.id}/drafts`);
+  try {
+    await desk.getByLabel('Caso da peça').selectOption(matter.id);
+    await draftsRequested;
+    await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Revisar o texto aberto sem alterar');
+    await expect(page.getByRole('button', { name: 'Enviar', exact: true })).toBeDisabled();
+    await expect(desk.getByLabel('Texto da seção 1', { exact: true })).toHaveValue(/200,00/);
+  } finally {
+    releaseContext();
+  }
   const run = await ask(page, 'Revisar o texto aberto sem alterar');
+  expect(run.matterId).toBe(matter.id);
   expect(run.context.draft?.versionId).toBeTruthy();
   const result = await delivery(page, run);
   expect(result.delivery.findings.some((f: any) => f.code === 'EDITORIAL_ARITHMETIC_MISMATCH')).toBe(true);

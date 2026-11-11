@@ -1,6 +1,23 @@
+import { createHash } from 'node:crypto';
 import { FakeAgentProvider } from '../packages/agent-core/dist/index.js';
+import { createSkillCatalog } from '../packages/legal-agents/dist/index.js';
+import { deskPilotResponse, deskPilotSkills } from './desk-pilot-e2e-fixture.mjs';
+import { procedureFixtureResponse, procedureLegislationFixture } from './desk-procedure-e2e-fixture.mjs';
+
+const skillId = 'skill-r13-forma-privada';
+const skillContent = 'Título reservado R13\nCorpo reservado R13 para a contestação sintética.';
+
 // Only imported by local test servers; never registered by production bootstrap.
-export function agenticE2EPlan({ role, packet }) {
+export function agenticE2EPlan({ role, packet, registry }) {
+  const procedure = procedureFixtureResponse({ role, packet });
+  if (procedure) return procedure;
+  const pilot = deskPilotResponse({ role, packet, registry });
+  if (pilot) return pilot;
+  const guidedFixture = packet.objective.includes('FLUXO_MESA R13');
+  if (guidedFixture && role === 'legal-drafter') {
+    const skill = packet.skillReferences?.find(({ id }) => id === skillId);
+    if (skill?.content !== skillContent) throw new Error('A habilidade sintética não chegou ao redator.');
+  }
   const action =
     packet.plan?.action ??
     (/PROBATORIA/.test(packet.objective)
@@ -30,7 +47,8 @@ export function agenticE2EPlan({ role, packet }) {
     requiresCaseLaw: packet.objective.includes('SEM_ORCAMENTO'),
     requiresNorms: false,
     requiresProcedure: action === 'create_document',
-    documentType: action === 'create_document' ? 'Requerimento preliminar' : undefined,
+    documentType:
+      action === 'create_document' ? (guidedFixture ? 'contestacao-civel' : 'Requerimento preliminar') : undefined,
     issues: [{ id: 'goal', statement: 'Necessidade informada na fixture sintética', sourceIds: refs }],
     gaps: needsQuestion
       ? [
@@ -142,6 +160,11 @@ export function agenticE2EPlan({ role, packet }) {
       ],
     };
   }
+  if (role === 'legal-drafter' && packet.plan?.documentMode === 'EDIT' && packet.editScope) {
+    const { target, ...range } = packet.editScope;
+    delete result.document;
+    result.editProposal = { target, changes: [{ ...range, id: 'trecho', after: 'revisto' }] };
+  }
   return [
     ...(role === 'legal-researcher' && plan.requiresCaseLaw
       ? [
@@ -158,9 +181,34 @@ export function agenticE2EPlan({ role, packet }) {
   ];
 }
 export function agenticE2EOptions() {
+  const skills =
+    process.env.FORGELEX_E2E_GUIDED_SKILLS === 'true'
+      ? {
+          catalog: createSkillCatalog({
+            version: 'catalogo-r13-sintetico',
+            entries: [
+              {
+                id: skillId,
+                version: 1,
+                status: 'eligible',
+                kind: 'FORM',
+                area: 'civel',
+                documentType: 'contestacao-civel',
+                roles: ['legal-drafter'],
+                contentHash: createHash('sha256').update(skillContent).digest('hex'),
+                byteLength: Buffer.byteLength(skillContent),
+              },
+            ],
+          }),
+          budget: { maxBytesPerRole: 1000, maxBytesTotal: 1000 },
+          loadContent: async () => skillContent,
+        }
+      : undefined;
   return {
     pollMs: 100,
     caseTask: {
+      skills: deskPilotSkills() ?? skills,
+      ...(process.env.FORGELEX_E2E_PROCEDURE === 'true' ? { legislationProvider: procedureLegislationFixture } : {}),
       authorizeNative: async () => {},
       createProvider: (input) => new FakeAgentProvider(input.registry, undefined, agenticE2EPlan(input)),
     },

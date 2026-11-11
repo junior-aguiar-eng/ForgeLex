@@ -62,7 +62,7 @@ function validateEntries(zip, entries) {
   assertValid(Object.keys(zip.files).length === allowed.size, 'Arquivo esperado ausente no ZIP');
 }
 
-function readMarkdown(bytes, row) {
+export function readCatalogEntry(bytes, row) {
   assertValid(sha(bytes) === row.sha256File, 'Hash do Markdown divergente: ' + row.path);
   const text = utf8.decode(bytes);
   const cut = text.indexOf('\n---\n\n', 4);
@@ -93,7 +93,7 @@ function readMarkdown(bytes, row) {
       metadata.isActive === true,
     'Metadados divergentes: ' + row.path,
   );
-  return metadata;
+  return { metadata, content };
 }
 
 function indexItem(row, metadata) {
@@ -168,7 +168,7 @@ export async function inventoryCatalog(bytes, { archiveSha256, counts } = captur
   const items = [];
   for (const row of manifest.files) {
     const bytes = await zip.file(row.path).async('nodebuffer');
-    items.push(indexItem(row, readMarkdown(bytes, row)));
+    items.push(indexItem(row, readCatalogEntry(bytes, row).metadata));
   }
   items.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   const forms = items.filter((item) => item.category === 'forma');
