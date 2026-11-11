@@ -354,6 +354,23 @@ Em 11/11/2026, sobre `main` em `df8c714`. `desk-location.ts` e `routes.ts` decid
 
 Reversão: reverter o commit.
 
+## E5 · área digitada no resumo da orientação
+
+Em 11/11/2026, sobre `4018c92`. Quando o usuário escrevia a área ou a peça em vez de escolher uma opção, a resposta virava `unknown` e o resumo mostrava “Área a definir”. `guidance-service.ts` passou a projetar o texto livre mais recente de cada campo sem opção como `detail`, limitado a 120 caracteres; a tarefa fica de fora porque o texto dela já reaparece inteiro em `description`. O snapshot, o estado da decisão e o `guidanceHash` não mudam. O resumo exibe “Área: previdenciário, a confirmar”; sem texto digitado continua “Área a definir”.
+
+| Item | Resultado |
+| --- | --- |
+| Testes novos | `guidance-service.test.ts` (projeção em área e tarefa, opção escolhida sem `detail`) e `guidance-model.test.ts` (texto do resumo). O primeiro falhou antes da correção. |
+| Vitest | Serviço, modelo, regras e contrato da orientação: 12 aprovados de 12. |
+| Tipos, ESLint e Prettier | Sem erros (Prettier com `--end-of-line auto` no checkout Windows). |
+| `playwright.desk-guidance.config.ts` | 6 aprovados de 6. |
+
+Reversão: reverter o commit; o snapshot não muda.
+
+## E7 · locale UTF-8 nos testes de interface
+
+Em 11/11/2026. O fluxo `ci.yml` passou a definir `LANG=C.UTF-8` e `LC_ALL=C.UTF-8` para todos os jobs, e o `README.md` documenta a exigência para quem roda os E2E em Linux ou macOS. Sem locale UTF-8, o Chromium em Linux nomeia como `download` o arquivo de título acentuado e o teste de exportação Word falha. Verificação: configuração apenas; o efeito se confirma na primeira execução da CI. Reversão: reverter o commit.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.
