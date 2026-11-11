@@ -428,6 +428,24 @@ Em 11/11/2026, sobre `ceb85f8`, por decisão de Boni (DEC-9). Os 53 planos de `d
 
 Reversão: reverter o commit.
 
+## M2 (parcial) · migração 0041 no banco HML isolado
+
+Em 11/11/2026, sobre `9e4d81b`, por decisão de Boni (“aplicar só em isolado”, via Cloud Run Job). A 0041 (`persistence-0041-draft-save-commands`) foi aplicada **somente** em `forgelex-hml-isolated-pg`. O banco compartilhado `forgelex-hml-pg` (produção, `forgelex-api-hml` e encerramento) não foi tocado, nenhuma flag foi alterada e nenhuma revisão de serviço foi criada.
+
+| Passo | Resultado |
+| --- | --- |
+| Imagem | Cloud Build `ddb1df78-a465-4b5f-a9d0-817da5396e9e` (SUCCESS), `forgelex-hml-isolated/forgelex-api:mig0041-9e4d81b`, digest `sha256:1a949f332726ae425ff93339d5b27ab61fde0d8e3a23e9405660978c02f285a4`. Construída de `main` mais os commits da Frente E, com a Supabase HML como alvo do build web. Mantida no repositório HML isolado. |
+| Instância | Ligada com `--activation-policy=ALWAYS` (a operação levou cerca de 12 min) e parada de novo ao fim: `STOPPED`/`NEVER`. |
+| Backup | Sob demanda, `1794441092040`, `SUCCESSFUL`, antes da migração. O banco não tem backup automático. |
+| Job | `forgelex-hml-isolated-migrate-0041` (mesma conta de serviço, VPC `forgelex-hml-vpc`, sub-rede `forgelex-hml-sa-east1` e segredo `forgelex-hml-isolated-database-url`), execução `forgelex-hml-isolated-migrate-0041-qw4ht`, concluída sem erro. Aplicou apenas `draftSaveCommandsMigration`, em transação, e foi apagado depois. |
+| Verificação | Antes: 30 migrações registradas, última `persistence-0023-account-closure`; `matters` e `draft_versions` presentes; `draft_save_commands` ausente. Depois: 0041 registrada, tabela criada e índices `draft_save_commands_pkey`, `draft_save_commands_matter_idx` e `draft_save_commands_version_idx`. |
+
+**Achado.** O banco isolado parou na `persistence-0023`: as migrações `0024` a `0040` não estão aplicadas nele, e a 0041 entrou fora de ordem. Antes de ligar `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` ou ensaiar a Mesa guiada nesse ambiente, é preciso aplicar as migrações pendentes do esquema atual (a API recusa subir com migrações pendentes). Isso não foi feito aqui por estar fora do pedido.
+
+**Não verificado.** A 0041 não foi exercitada pela API (criação, leitura do recibo, repetição do comando): o serviço `forgelex-api-hml-isolated` não foi atualizado e roda a imagem anterior. O procedimento de recuperação (`draft-save-recovery.md`, passo 5) fica para o ensaio da M2.
+
+Reversão: restaurar o backup `1794441092040`, ou remover a tabela e o registro da 0041 por decisão separada, com backup (a tabela está vazia).
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.

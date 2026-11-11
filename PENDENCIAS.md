@@ -176,6 +176,10 @@ imagem `forgelex-api@sha256:18d643917434ca29392f5250624f9c007e13b29d2996081faa41
   ligada). Só `forgelex-api-hml-isolated` tem banco próprio (`forgelex-hml-isolated-pg`, **parada**). Portanto
   “homologação” na `forgelex-api-hml` **não é um banco separado da produção**: aplicar a migração `0041` ou ligar
   flags ali afeta o mesmo banco.
+- **Migração `0041` no banco HML isolado (11/11/2026, M2 parcial):** aplicada só em `forgelex-hml-isolated-pg`, por Cloud
+  Run Job, com backup `1794441092040`; instância parada de novo. Esse banco está na `persistence-0023` e ainda precisa das
+  migrações `0024` a `0040`. Produção e o banco compartilhado `forgelex-hml-pg` não foram tocados. Detalhes no registro
+  de execução, seção “M2 (parcial)”.
 - **Migração `0041`:** o código publicado (`8fcd1d0`) não contém `persistence-0041`; ela só existe em `main`. Com
   `FORGELEX_AUTO_MIGRATE=false` em todos os serviços, não foi aplicada pelo deploy. Não li o registro de migrações do
   banco (a credencial é um segredo e não a li), então não há prova direta; o `/readyz` de produção responde 200 com
