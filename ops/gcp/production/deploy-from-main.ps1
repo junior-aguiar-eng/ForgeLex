@@ -112,6 +112,7 @@ $apiContainer = @(Get-Prop $state[$ApiService].Service 'spec.template.spec.conta
 $publicUrl = Get-EnvValue $apiContainer 'FORGELEX_PUBLIC_URL'
 Assert-Precondition (-not [string]::IsNullOrWhiteSpace($publicUrl)) "O serviço $ApiService não define FORGELEX_PUBLIC_URL; não há URL para verificar."
 Write-Host "  URL pública  $publicUrl"
+Get-ApiRuntimeFlagReport $apiContainer | ForEach-Object { Write-Host "  $_" }
 
 # ---------------------------------------------------------------- 4. Configuração de build
 Write-Step '4/7 Configuração de build (do último build bem-sucedido)'

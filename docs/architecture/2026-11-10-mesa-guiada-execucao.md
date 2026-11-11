@@ -371,6 +371,19 @@ Reversão: reverter o commit; o snapshot não muda.
 
 Em 11/11/2026. O fluxo `ci.yml` passou a definir `LANG=C.UTF-8` e `LC_ALL=C.UTF-8` para todos os jobs, e o `README.md` documenta a exigência para quem roda os E2E em Linux ou macOS. Sem locale UTF-8, o Chromium em Linux nomeia como `download` o arquivo de título acentuado e o teste de exportação Word falha. Verificação: configuração apenas; o efeito se confirma na primeira execução da CI. Reversão: reverter o commit.
 
+## E4 · flags e migração da Mesa guiada no roteiro de deploy
+
+Em 11/11/2026, sobre `3dcb72c`. O plano previa declarar `FORGELEX_DESK_GUIDANCE_ENABLED` e `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` no `cloudbuild.yaml`. As duas são variáveis de execução da API no Cloud Run, enquanto o `cloudbuild.yaml` só carrega as flags de interface do build (`VITE_*`); além disso, o deploy preserva o ambiente do serviço e recusa diferenças além da imagem e de `FORGELEX_SOURCE_SHA`. Declará-las no build não teria efeito. A etapa foi cumprida assim: o passo 3 de `deploy-from-main.ps1` informa o valor efetivo de cada flag (ausente vale como desligada; só `true` liga) e o `ops/gcp/production/README.md` registra o padrão, a ordem obrigatória (backup, migração `0041`, conferência no registro de migrações, só então ligar o salvamento) e a reversão. Nenhuma flag foi alterada em produção ou homologação.
+
+| Item | Resultado |
+| --- | --- |
+| Testes novos | Quatro casos de `Get-ApiRuntimeFlagReport` em `deploy-from-main.tests.ps1`; falharam antes da função. |
+| `deploy-from-main.tests.ps1` | 36 aprovados de 36. |
+| Sintaxe de `deploy-from-main.ps1` | Sem erros. Não executado contra o gcloud real; o `-DryRun` fica para a E1/M1. |
+| Prettier do README | Aprovado. |
+
+Reversão: reverter o commit.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.

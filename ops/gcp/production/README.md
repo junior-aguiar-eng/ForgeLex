@@ -89,6 +89,18 @@ Ao terminar, imprime os comandos de reversão e o que registrar no `PENDENCIAS.m
 
 - **Não aplica migrations.** `FORGELEX_AUTO_MIGRATE` continua como está nos serviços. Se o SHA traz migration,
   faça backup e aplique-a pelo procedimento próprio antes de publicar.
+- **Flags de execução da Mesa guiada.** `FORGELEX_DESK_GUIDANCE_ENABLED` e
+  `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` são variáveis do serviço da API no Cloud Run, não substituições do
+  build; por isso o `cloudbuild.yaml` não as define. A ausência vale como desligada (só o valor exato `true`
+  liga), e o deploy preserva o ambiente do serviço e recusa qualquer diferença além da imagem e de
+  `FORGELEX_SOURCE_SHA`. O passo 3 do script informa o valor efetivo de cada uma, sem alterá-lo.
+  Ordem obrigatória para ligar: (1) backup e migração `0041`, pelo procedimento de
+  [`draft-save-recovery.md`](../../../docs/operations/draft-save-recovery.md); (2) conferir
+  `persistence-0041-draft-save-commands` no registro de migrações; (3) só então ligar
+  `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED=true` na API. Com a flag ligada e sem a tabela, a API recusa subir; isso
+  é intencional e o deploy reverte sozinho. A Mesa guiada (`FORGELEX_DESK_GUIDANCE_ENABLED`) liga em homologação
+  antes da produção. Para trocar o valor, use um comando separado e autorizado por Boni
+  (`gcloud run services update <serviço> --update-env-vars=NOME=true`) e reverta com `=false`.
 - **Trocar uma flag de interface de propósito:** `-AgenticWorkspaceEnabled`, `-CaseWorkspaceEnabled` ou
   `-SavedResearchEnabled` (`true`/`false`). Sem elas, valem as do último build.
 - **Repetir é seguro:** se a imagem e as revisões do SHA já existem, são reaproveitadas, e um serviço que já
