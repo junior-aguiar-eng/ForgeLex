@@ -39,17 +39,17 @@
 
 As etapas indicadas não começam enquanto a decisão estiver aberta. A recomendação é técnica e não substitui a decisão.
 
-| ID    | Decisão                                                                                                                       | Recomendação                                                                                                                                                                                  | Bloqueia      |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| DEC-1 | Nome exato do domínio novo e do subdomínio de homologação (grafia “ForgeLex” ou “Forglex”, extensão `.com.br`, `.ia.br` etc.) | Registrar a mesma grafia da marca; reservar também a grafia alternativa para redirecionar                                                                                                     | D2 em diante  |
-| DEC-2 | Paleta do tema novo                                                                                                           | **Decidido por Boni em 11/11/2026:** branco gelo com petróleo, conforme o protótipo de 09/11 (seção 7.1). Substitui a diretriz do v2 de preservar `ivory`, `cognac` e `champagne`             | Nada          |
-| DEC-3 | Tipografia                                                                                                                    | Spectral (títulos e texto jurídico) e Inter (interface), hospedadas no próprio site, sem dependência de terceiros                                                                             | V1            |
-| DEC-4 | Origem do catálogo de habilidades                                                                                             | Não incorporar fichas capturadas do MinutaIA nem derivadas delas. Redigir fichas próprias a partir das fontes oficiais. Retirar do repositório as quatro fichas “revisadas” vinculadas ao ZIP | M3 e R15      |
-| DEC-5 | Reserva de R$ 11,50 por trabalho comercial (PR #135, antes R$ 5,00)                                                           | Confirmar a regra e exibi-la na Conta e na confirmação de custo                                                                                                                               | M1            |
-| DEC-6 | Tarifa da análise de aderência na busca ancorada                                                                              | Gerar a frase de aderência na mesma chamada da pesquisa, sem tarifa adicional, enquanto o uso real é medido                                                                                   | M4            |
-| DEC-7 | Título principal do site público                                                                                              | Manter o título aprovado travado em `tests/public-copy.test.ts`; o título do protótipo não entra                                                                                              | V2            |
-| DEC-8 | Destino do Ratione (`ratione.nexojuris.ia.br`) na troca de domínio                                                            | Manter onde está até a Frente R; decidir junto com o modelo de produto (dois produtos ligados ou um só)                                                                                       | D5 e Frente R |
-| DEC-9 | Arquivamento dos planos antigos de `docs/superpowers/plans/`                                                                  | Mover os concluídos para `docs/historico/planos/`, preservando links                                                                                                                          | E6            |
+| ID    | Decisão                                                                                                                       | Recomendação                                                                                                                                                                      | Bloqueia           |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| DEC-1 | Nome exato do domínio novo e do subdomínio de homologação (grafia “ForgeLex” ou “Forglex”, extensão `.com.br`, `.ia.br` etc.) | Registrar a mesma grafia da marca; reservar também a grafia alternativa para redirecionar                                                                                         | D2 em diante       |
+| DEC-2 | Paleta do tema novo                                                                                                           | **Decidido por Boni em 11/11/2026:** branco gelo com petróleo, conforme o protótipo de 09/11 (seção 7.1). Substitui a diretriz do v2 de preservar `ivory`, `cognac` e `champagne` | Nada               |
+| DEC-3 | Tipografia                                                                                                                    | Spectral (títulos e texto jurídico) e Inter (interface), hospedadas no próprio site, sem dependência de terceiros                                                                 | V1                 |
+| DEC-4 | Origem do catálogo de habilidades                                                                                             | **Decidido por Boni em 11/11/2026:** manter e incorporar as 2.077 fichas capturadas (MinutaIA), com origem e hash registrados. Substitui a recomendação de catálogo próprio       | Nada (M3 liberada) |
+| DEC-5 | Reserva de R$ 11,50 por trabalho comercial (PR #135, antes R$ 5,00)                                                           | Confirmar a regra e exibi-la na Conta e na confirmação de custo                                                                                                                   | M1                 |
+| DEC-6 | Tarifa da análise de aderência na busca ancorada                                                                              | Gerar a frase de aderência na mesma chamada da pesquisa, sem tarifa adicional, enquanto o uso real é medido                                                                       | M4                 |
+| DEC-7 | Título principal do site público                                                                                              | Manter o título aprovado travado em `tests/public-copy.test.ts`; o título do protótipo não entra                                                                                  | V2                 |
+| DEC-8 | Destino do Ratione (`ratione.nexojuris.ia.br`) na troca de domínio                                                            | Manter onde está até a Frente R; decidir junto com o modelo de produto (dois produtos ligados ou um só)                                                                           | D5 e Frente R      |
+| DEC-9 | Arquivamento dos planos antigos de `docs/superpowers/plans/`                                                                  | Mover os concluídos para `docs/historico/planos/`, preservando links                                                                                                              | E6                 |
 
 ## 3. O que já está concluído (herdado do v2)
 
@@ -60,7 +60,7 @@ Os contratos, princípios e critérios A01–A19 continuam valendo e estão no A
 | Etapa v2 | Entrega                                                                             | Situação                                                          |
 | -------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | R0       | Baseline e protocolo v11 opt-in                                                     | Concluída                                                         |
-| R1       | Inventário técnico das 2.077 fichas (303 Forma, 1.774 Matéria), fora do repositório | Concluída. Elegibilidade depende de DEC-4                         |
+| R1       | Inventário técnico das 2.077 fichas (303 Forma, 1.774 Matéria), fora do repositório | Concluída. Incorporação em M3                                     |
 | R2       | Contratos `desk-guidance`, `GuidanceSnapshot`, `SkillBinding` e hashes              | Concluída                                                         |
 | R3       | Orientação persistida antes da inferência, rotas `/api/agentic/guidance`            | Concluída                                                         |
 | R4       | Seleção única da Mesa e URL (`desk-selection.ts`, `desk-location.ts`)               | Concluída. Defeito de compatibilidade em E2                       |
@@ -99,14 +99,14 @@ flowchart LR
     D2 --> D3["D3 Produção nos dois domínios"]
     D3 --> D4["D4 Redirecionar o site"]
     D4 --> D5["D5 Encerrar o uso do domínio antigo"]
-    DEC4["DEC-4"] --> M3["M3 Catálogo próprio"]
+    M1 --> M3["M3 Incorporação do catálogo"]
     V3 --> M5["M5 Selo de terceira origem"]
     M5 --> R["R · Ratione"]
     V6 --> R
 ```
 
 A Frente V e a Frente D andam em paralelo depois de E. A sequência sugerida, sem prazo fixo: E, M1, V0, D0, D1, V1,
-M2, V2, D2, V3, M4, V4, D3, D4, V5, V6, V7, D5. A Frente R só começa quando V6 estiver estável.
+M2, M3, V2, D2, V3, M4, V4, D3, D4, V5, V6, V7, D5. A Frente R só começa quando V6 estiver estável.
 
 ## 5. Etapa E — estabilização
 
@@ -210,43 +210,29 @@ revisão anterior (`--to-revisions=...=100`).
 
 **Aceite.** A18 registrado em homologação. Ligar em produção é decisão separada de Boni, depois de V3.
 
-### M3 — Catálogo próprio de habilidades
+### M3 — Incorporação do catálogo de habilidades
 
-Depende de DEC-4.
+Decisão de Boni (DEC-4, 11/11/2026): as 2.077 fichas capturadas (303 Forma, 1.774 Matéria) são mantidas e incorporadas.
+O R1 já validou o ZIP (SHA-256 no registro de execução), o manifesto, as contagens e os hashes.
 
-- [ ] Remover `tests/fixtures/desk-pilot-revised/*` e as referências ao ZIP capturado nos testes e no registro, se
-      DEC-4 confirmar a recomendação. Manter as fichas sintéticas autorais dos testes.
-- [ ] Definir o formato da ficha própria (metadados do R1: tipo, área, gatilhos, versão, hash, fontes oficiais).
-- [ ] Redigir as fichas do piloto (resposta à acusação, cadeia de custódia, contestação, adimplemento) a partir de
-      CPP, CPC, CC e precedentes conferidos, sem uso das fichas capturadas.
-- [ ] Repetir o piloto R14 (`playwright.desk-pilot.config.ts`) com o catálogo próprio.
-- [ ] Reabrir R15 só com nova decisão de Boni.
+- [ ] Definir a forma de incorporação: onde o conteúdo fica (fora dos assets públicos e do bundle do navegador),
+      como o servidor o carrega e como a versão do catálogo é fixada por execução.
+- [ ] Gravar em cada ficha incorporada a origem (MinutaIA), a versão original, o hash original e a data da decisão.
+      Descrever apenas condições de reutilização que existam de fato, sem criar exigência de terceiro.
+- [ ] Transformar o inventário do R1 em catálogo consultável pelo resolvedor (R5), mantendo os 2.077 registros
+      rastreáveis e os itens ambíguos com estado explícito.
+- [ ] Aplicar às quatro fichas do piloto os ajustes da conferência amostral
+      ([registro](../architecture/2026-11-10-mesa-guiada-execucao.md#avaliação-das-quatro-fichas-capturadas)) como
+      nova versão elegível, preservando a versão original e as execuções anteriores.
+- [ ] Definir com Boni o subconjunto elegível do piloto; a seleção técnica e a avaliação jurídica têm campos próprios.
+- [ ] Manter `tests/fixtures/desk-pilot-revised/*` e as fichas sintéticas autorais dos testes de regressão.
+- [ ] Repetir o piloto R14 (`playwright.desk-pilot.config.ts`) com o catálogo incorporado e com os limites de
+      contexto do R12.
+- [ ] Reabrir R15 (expansão por área) com nova decisão de Boni, usando as métricas do piloto.
 
-**Aceite.** Nenhum conteúdo de terceiro no repositório ou no catálogo. Piloto aprovado por Boni.
-
-### M4 — Busca ancorada no caso
-
-Depende de V3 e DEC-6. Reaproveita R9 e o papel `legal-researcher` com `coveredIssueIds`.
-
-| Entrega                                                                                | Onde                                 | Aceite                                                        |
-| -------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------- |
-| Interruptor “Pesquisar com o caso N” na Jurisprudência                                 | `ResearchDeskScreen.tsx`             | Desligado, a busca é idêntica à atual                         |
-| Consultas geradas das questões do caso (Q1, Q2…), visíveis e editáveis antes de gastar | orquestração e Composer              | O usuário vê e altera as consultas                            |
-| Teto de custo visível (“até 3 · R$ 0,60”), com valor vindo do serviço                  | composer e pesquisa                  | Para no teto; debita só o realizado                           |
-| Aderência em uma frase (aproxima / distancia), rotulada “análise da IA”                | resultados e `DecisionReader`        | Sem percentual; texto “A análise não substitui a verificação” |
-| Verificação gratuita e selo “verificada / sem correspondência”                         | índice STJ                           | Não consome saldo                                             |
-| “Salvar na questão N” e “Citar na peça da Mesa”                                        | `SaveAuthorityToCase`, `DraftCanvas` | Citação entra com o selo e a proveniência                     |
-| Lacuna de questão sem fonte, com ação “Pesquisar”                                      | aba Fontes                           | Achado volta como candidato, nunca como citação automática    |
-
-**Aceite.** A11 e A14 continuam válidos; nenhum selo “verificada” sai de fonte que não seja o índice STJ.
-
-### M5 — Selo de terceira origem
-
-- [ ] Ampliar o modelo de fontes e selos da aba Fontes para aceitar uma origem externa com rótulo, fonte e data de
-      consulta próprios, distinta de “análise da IA” e de “verificada”.
-- [ ] Sem nenhuma integração ainda: só tipo de dado, apresentação e testes.
-
-**Aceite.** A interface diferencia as três origens por texto, não só por cor.
+**Aceite.** 2.077 fichas incorporadas e rastreáveis, sem exposição de conteúdo, título, ID ou hash na interface (A02).
+Piloto Penal e regressão Cível aprovados por Boni. **Reversão.** Catálogo versionado: voltar à versão anterior
+preserva as execuções já registradas.
 
 ## 7. Frente V — refatoração visual
 
@@ -509,7 +495,7 @@ etapas D. Falhas preexistentes e testes ignorados são registrados sem contar co
 | Conectores MCP antigos param na troca de domínio      | Recurso duplo, sem redirecionar `/mcp` e OAuth, desligamento só com uso zero     | D1–D5      |
 | Notificação de pagamento perdida                      | Domínio antigo continua servindo notificações                                    | D3–D5      |
 | Domínio antigo registrado por terceiro                | Renovação indefinida                                                             | D5         |
-| Conteúdo de terceiro no catálogo                      | DEC-4 e M3                                                                       | M3         |
+| Fichas com erro jurídico ou de escopo                 | Ajustes da conferência amostral em nova versão; avaliação de Boni por lote       | M3         |
 | Reserva de R$ 11,50 impede uso com saldo baixo        | DEC-5 e mensagem clara                                                           | M1         |
 | Alerta de chave não dispara                           | Checagem periódica de `/readyz`                                                  | E3         |
 | Duas mudanças de risco juntas                         | Seção 0, item 6                                                                  | V6, D3, D4 |
@@ -544,24 +530,24 @@ antes dos escritores; checkpoints antigos continuam no protocolo original.
 
 ### A.3 Critérios de aceite
 
-| ID  | Critério                                                                                 | Situação                                  |
-| --- | ---------------------------------------------------------------------------------------- | ----------------------------------------- |
-| A01 | Inventário com as 2.077 fichas (303 Forma, 1.774 Matéria) e verificação de origem e hash | Atendido localmente; uso depende de DEC-4 |
-| A02 | A interface não expõe catálogo, conteúdo, títulos ou IDs de habilidades nem hashes       | Atendido localmente                       |
-| A03 | Pedido completo evita perguntas redundantes                                              | Atendido localmente                       |
-| A04 | “Não sei” persiste e mantém hipótese separada de resposta confirmada                     | Atendido localmente                       |
-| A05 | Correção cria nova revisão e reavalia decisões dependentes                               | Atendido localmente                       |
-| A06 | Seleção de habilidades reproduzível                                                      | Atendido localmente                       |
-| A07 | Conversa, caso, documento, versão e alvo enviado correspondem                            | Atendido localmente; reconferir em V3     |
-| A08 | Hash independente de autorização e de comando                                            | Atendido localmente                       |
-| A09 | Revisão cria zero versões; edição preserva o que está fora do escopo                     | Atendido localmente; reconferir em V3     |
-| A10 | Concorrência e replay não duplicam escritas                                              | Atendido localmente                       |
-| A11 | Pesquisa conservada abre sem busca nova, com caso e proveniência corretos                | Atendido localmente; reconferir em M4     |
-| A12 | Conferência, decisão editorial e aprovação ligadas à versão correta                      | Atendido localmente                       |
-| A13 | Checkpoints históricos legíveis                                                          | Atendido localmente                       |
-| A14 | Perguntas determinísticas sem provedor nem reserva                                       | Atendido localmente                       |
-| A15 | Manifesto corresponde às ferramentas reais                                               | Atendido localmente                       |
-| A16 | Jornada completa por teclado e em celular                                                | Atendido localmente; reconferir em V6     |
-| A17 | Piloto Penal e regressão Cível na mesma revisão                                          | Técnico atendido; jurídico em M3          |
-| A18 | Homologação de produção com registro próprio                                             | Pendente (M2)                             |
-| A19 | Boni valida a jornada visual em desktop e celular                                        | Pendente (V3)                             |
+| ID  | Critério                                                                                 | Situação                                |
+| --- | ---------------------------------------------------------------------------------------- | --------------------------------------- |
+| A01 | Inventário com as 2.077 fichas (303 Forma, 1.774 Matéria) e verificação de origem e hash | Atendido localmente; incorporação em M3 |
+| A02 | A interface não expõe catálogo, conteúdo, títulos ou IDs de habilidades nem hashes       | Atendido localmente                     |
+| A03 | Pedido completo evita perguntas redundantes                                              | Atendido localmente                     |
+| A04 | “Não sei” persiste e mantém hipótese separada de resposta confirmada                     | Atendido localmente                     |
+| A05 | Correção cria nova revisão e reavalia decisões dependentes                               | Atendido localmente                     |
+| A06 | Seleção de habilidades reproduzível                                                      | Atendido localmente                     |
+| A07 | Conversa, caso, documento, versão e alvo enviado correspondem                            | Atendido localmente; reconferir em V3   |
+| A08 | Hash independente de autorização e de comando                                            | Atendido localmente                     |
+| A09 | Revisão cria zero versões; edição preserva o que está fora do escopo                     | Atendido localmente; reconferir em V3   |
+| A10 | Concorrência e replay não duplicam escritas                                              | Atendido localmente                     |
+| A11 | Pesquisa conservada abre sem busca nova, com caso e proveniência corretos                | Atendido localmente; reconferir em M4   |
+| A12 | Conferência, decisão editorial e aprovação ligadas à versão correta                      | Atendido localmente                     |
+| A13 | Checkpoints históricos legíveis                                                          | Atendido localmente                     |
+| A14 | Perguntas determinísticas sem provedor nem reserva                                       | Atendido localmente                     |
+| A15 | Manifesto corresponde às ferramentas reais                                               | Atendido localmente                     |
+| A16 | Jornada completa por teclado e em celular                                                | Atendido localmente; reconferir em V6   |
+| A17 | Piloto Penal e regressão Cível na mesma revisão                                          | Técnico atendido; jurídico em M3        |
+| A18 | Homologação de produção com registro próprio                                             | Pendente (M2)                           |
+| A19 | Boni valida a jornada visual em desktop e celular                                        | Pendente (V3)                           |
