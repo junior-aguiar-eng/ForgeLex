@@ -402,29 +402,33 @@ flowchart LR
 
 ### R0 — Reconciliar a revisão e os contratos
 
+**Concluída em 10/11/2026.** [Baseline e evidência](../../architecture/2026-11-10-mesa-guiada-execucao.md#r0--revisão-de-partida).
+
 **Entrega.** Baseline de execução e mapa de mudanças aprovado no escopo de implementação.
 
 **Arquivos.** Leitura de `AGENTS.md`, manifests, contratos, plano e arquivos auditados.
 
-- [ ] Confirmar remoto, branch, HEAD, worktree e alterações preexistentes.
-- [ ] Verificar achados já resolvidos na revisão escolhida e atualizar o mapa de tarefas com evidência.
-- [ ] Conferir scripts de build/teste e dependências já declaradas.
-- [ ] Mapear leitores estritos de contexto/checkpoint e sua compatibilidade com orientação opcional.
-- [ ] Fixar a numeração livre do protocolo novo e a estratégia leitor antes do escritor.
+- [x] Confirmar remoto, branch, HEAD, worktree e alterações preexistentes.
+- [x] Verificar a diferença entre as revisões da auditoria e de execução e registrar o impacto no mapa de tarefas.
+- [x] Conferir scripts de build/teste e dependências já declaradas.
+- [x] Mapear leitores estritos de contexto/checkpoint e sua compatibilidade com orientação opcional.
+- [x] Identificar v11 como próximo protocolo na baseline e registrar a estratégia leitor antes do escritor.
 
 **Teste/aceite.** Cada contrato novo tem consumidor e política de compatibilidade definidos. Nenhuma alteração alheia é perdida. A execução identifica o checkout correto e o ambiente descartável de teste.
 
 ### R1 — Inventariar as 2.077 habilidades
 
+**Concluída em 10/11/2026.** [Inventário, testes e elegibilidade](../../architecture/2026-11-10-mesa-guiada-execucao.md#r1--inventário-técnico).
+
 **Entrega.** Índice técnico completo, reproduzível, com estado de avaliação por item.
 
 **Arquivos.** `scripts/skills/inventory-catalog.mjs`, teste Node e recursos de análise internos.
 
-- [ ] Revalidar hash do ZIP, manifesto, 303/1.774 itens, IDs e hashes de conteúdo.
-- [ ] Testar rejeição de caminho inseguro, entrada duplicada, categoria inválida e conteúdo divergente.
-- [ ] Extrair metadados em formato normalizado, preservando origem, versão e hash original.
-- [ ] Produzir mapa de área/subárea e cobertura de formas com itens ambíguos identificados.
-- [ ] Registrar a política de incorporação e a lista elegível do piloto separadamente do inventário.
+- [x] Revalidar hash do ZIP, manifesto, 303/1.774 itens, IDs e hashes de conteúdo.
+- [x] Testar rejeição de caminho inseguro, entrada duplicada, categoria inválida e conteúdo divergente.
+- [x] Extrair metadados em formato normalizado, preservando origem, versão e hash original.
+- [x] Produzir mapa de área/subárea e cobertura de formas com itens ambíguos identificados.
+- [x] Registrar a política de incorporação e a lista elegível do piloto separadamente do inventário.
 
 **Aceite.** Exatamente 2.077 registros rastreáveis. Nenhum item some por falha de classificação. Catálogo e textos permanecem fora dos assets públicos.
 

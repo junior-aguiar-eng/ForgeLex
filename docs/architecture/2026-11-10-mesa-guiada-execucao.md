@@ -9,7 +9,33 @@ O [plano v2](../superpowers/plans/2026-11-10-forgelex-mesa-guiada-v2.md) teve se
 - A auditoria principal usou `8fcd1d0`. A comparação com a base de execução confirmou as alterações posteriores de limites de entrada, transporte e política comercial. A implementação usará os contratos dessa base de execução. Os valores históricos da auditoria não orientam cobrança.
 - `pnpm install --frozen-lockfile` concluiu para 18 projetos com pnpm 11.19.0 e reaproveitou os 541 pacotes do cache. O lockfile permaneceu igual.
 - Verificação focada de baseline com Vitest. 48 testes aprovados em três arquivos, cobrindo contrato agêntico, navegação e modelo de execução da interface.
-- O schema de contexto é estrito. A extensão de orientação em R2/R3 exige leitores compatíveis antes de novos escritores e uma projeção pública que exclua os dados internos. R7/R10 preservam os checkpoints históricos. A numeração final do novo protocolo será conferida quando a alteração de contrato for implementada.
+- O schema de contexto é estrito. A extensão de orientação em R2/R3 exige leitores compatíveis antes de novos escritores e uma projeção pública que exclua os dados internos. O driver padrão usa v10, o schema v10 é o último da baseline e o leitor editorial ainda limita evidências até v8. O plano usa v11 como próximo número e mantém a leitura histórica em R7/R10.
+
+## R1 · inventário técnico
+
+O script `scripts/skills/inventory-catalog.mjs` verifica o hash da captura, confere o manifesto e os hashes de cada Markdown e conteúdo, cruza identidade, versão e categoria e gera o índice sem copiar o corpo das fichas para a saída.
+
+| Evidência | Resultado |
+|---|---|
+| Captura validada | 2.077 registros. 303 de Forma e 1.774 de Matéria. |
+| Cobertura | 302 tipos distintos de Forma e 91 grupos de Matéria por área/subárea, incluindo grupos com subárea ausente. |
+| Classificação pendente | 580 fichas de Matéria têm área, mas não têm subárea identificável pelos campos examinados. Foram conservadas e sinalizadas. |
+| Sobreposição exata | Nenhum título duplicado na mesma categoria ou conteúdo com hash idêntico. O tipo `notificacao-extrajudicial` está associado a duas formas e exige desambiguação futura. |
+| Avaliação | As 2.077 fichas permanecem pendentes de avaliação para uso no runtime. |
+| Índice local | `.superpowers/sdd/2026-11-10-forgelex-mesa-guiada-v2/catalog-inventory.json`, ignorado pelo Git. |
+| SHA-256 do índice | `770eb0dc3eabc06349e481c396612bb7d037669fef1b07d00559ed617f06d9f7` |
+| Verificação | Nove testes Node aprovados e Prettier aprovado nos dois arquivos novos. |
+
+O inventário técnico é independente da elegibilidade. A lista elegível inicial para execução está vazia. Os candidatos registrados no plano para a futura avaliação de Boni são `resposta-acusacao` v3 e, quando a questão do caso a justificar, `cadeia-custodia-cpp-158` v3. A incorporação depende da decisão sobre origem e reutilização prevista no plano. O inventário e os textos da captura permanecem locais.
+
+Para reproduzir em um worktree com as dependências instaladas, a partir da raiz:
+
+```powershell
+node --test scripts/skills/inventory-catalog.test.mjs
+node scripts/skills/inventory-catalog.mjs --archive "<caminho do ZIP aprovado>" --out "<caminho local novo>.json"
+```
+
+Próxima tarefa: R2, contratos de orientação e hashes. O estado de cada etapa está nos checkboxes do plano.
 
 ## Evidências locais
 
