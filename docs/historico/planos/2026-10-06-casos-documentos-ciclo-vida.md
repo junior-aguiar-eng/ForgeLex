@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript, Zod, Drizzle, SQLite/PostgreSQL, Fastify, React, Vitest e Playwright. Reutilizar os adaptadores de banco e padrões operacionais de journal/restore existentes.
 
-**Spec:** [Especificação aprovada](../specs/2026-10-06-casos-documentos-ciclo-vida-design.md).
+**Spec:** [Especificação aprovada](../../superpowers/specs/2026-10-06-casos-documentos-ciclo-vida-design.md).
 
 **Checkout:** `C:/Users/Boni Jr/.codex/worktrees/draft-review/SDK`; branch `codex/casos-documentos-ciclo-vida`, base `dbdc349`, especificação em `f6a008f`. Não modificar o checkout original com trabalho P2 independente.
 

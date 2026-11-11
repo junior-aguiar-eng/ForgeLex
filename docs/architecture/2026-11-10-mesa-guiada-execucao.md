@@ -1,6 +1,6 @@
 # Mesa guiada do ForgeLex · registro de execução
 
-O [plano v2](../superpowers/plans/2026-11-10-forgelex-mesa-guiada-v2.md) teve seu início autorizado por Boni em 10 de novembro de 2026. Fluxo limpo e visual moderno são critérios de aceite da Mesa.
+O [plano v2](../historico/planos/2026-11-10-forgelex-mesa-guiada-v2.md) teve seu início autorizado por Boni em 10 de novembro de 2026. Fluxo limpo e visual moderno são critérios de aceite da Mesa.
 
 ## R0 · revisão de partida
 
@@ -397,6 +397,19 @@ Em 11/11/2026, sobre `9b37287`. Leitura somente leitura do Cloud Run, do Cloud M
 | E3 · pendente | Ensaio com chave inválida em homologação (log e e-mail do alerta), não executado. |
 
 Reversão: reverter o commit; nada foi alterado no Cloud Run.
+
+## E6 · higiene documental
+
+Em 11/11/2026, sobre `ceb85f8`, por decisão de Boni (DEC-9). Os 53 planos de `docs/superpowers/plans/` foram movidos com `git mv` para `docs/historico/planos/`, preservando o histórico dos arquivos. Não separei “concluídos” de “em aberto”: muitas listas nunca foram marcadas e o estado não se lê pelas caixas; o plano unificado declara todos os anteriores como histórico, e o estado atual fica em `PENDENCIAS.md`. A pasta `docs/superpowers/plans/` deixou de existir; `specs/` e `references/` continuam onde estavam.
+
+| Item | Resultado |
+| --- | --- |
+| Referências reescritas | `superpowers/plans/` virou `historico/planos/` em 26 arquivos Markdown e no `.prettierignore`. Nos planos movidos, os links para `../specs/` e `../references/` apontam agora para `../../superpowers/`. |
+| Não reescritos de propósito | `docs/architecture/evidence/2026-11-03-v9-review-remediation/changed-files.json` e `.superpowers/sdd/.../progress.md`, por serem evidência e registro do que existia na época. |
+| Verificação | Varredura dos links relativos de todo `.md` versionado que envolvem os planos: 0 quebrados. Nenhuma referência a `superpowers/plans` fora dos dois arquivos acima. |
+| Pendente | O link do registro de execução para o plano unificado (outro item da E6) espera esse plano entrar nesta branch. |
+
+Reversão: reverter o commit.
 
 ## Evidências locais
 

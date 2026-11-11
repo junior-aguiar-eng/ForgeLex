@@ -1401,7 +1401,7 @@ desabilitada. A evidência saneada está em
 
 ## Marco posterior — experiência do produto e ativação MCP
 
-O plano `docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md`
+O plano `docs/historico/planos/2026-09-21-melhorias-experiencia-produto-forgelex.md`
 teve implementação técnica local concluída nos incrementos 0–8. Ele cobre
 navegação endereçável, ativação MCP por plataforma, estado verificável, gestão
 de chaves, conta operacional e documentação segmentada. A ativação remota do
@@ -1860,7 +1860,7 @@ acessa conversas, arquivos ou histórico do host.
 
 O plano de UI pública com `/para-advogados`, `/para-desenvolvedores` e
 `/documentacao` foi superado pela decisão posterior de manter apenas o login
-público. O arquivo `docs/superpowers/plans/2026-09-17-forgelex-ui-publica.md`
+público. O arquivo `docs/historico/planos/2026-09-17-forgelex-ui-publica.md`
 foi preservado como histórico.
 
 ## Limites operacionais

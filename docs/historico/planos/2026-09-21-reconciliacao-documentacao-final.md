@@ -45,7 +45,7 @@ locais foram concluídas e a publicação foi autorizada.
 **Files:**
 - Modify: `Plano de conclusão progressiva do F.md`
 - Modify: `STATUS_VALIDACAO.md`
-- Modify: `docs/superpowers/plans/2026-09-21-fase-14-estabilizacao-stj.md`
+- Modify: `docs/historico/planos/2026-09-21-fase-14-estabilizacao-stj.md`
 
 - [x] Marcar Fases 0–8 e 14 como concluídas e 9–13 como congeladas estrategicamente.
 - [x] Registrar o encerramento de billing, webhook, revogação e limites preservados.

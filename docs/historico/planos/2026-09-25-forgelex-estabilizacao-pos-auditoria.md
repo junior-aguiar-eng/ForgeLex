@@ -14,7 +14,7 @@
 
 **Tech Stack:** TypeScript, React 18, Vite, Fastify, Vitest, Playwright, PostgreSQL, Supabase Auth, Google Cloud Run, Cloud SQL, Cloud Scheduler, Cloud Storage, GitHub Actions e pnpm 11.
 
-**Spec:** `Plano de conclusão progressiva do F.md`; `STATUS_VALIDACAO.md`; `docs/operations/phase8/final-validation.md`; `docs/operations/phase14/controlled-charge-evidence.md`; `docs/operations/account-closure/validation.md`; `docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md`; e o prompt mestre canônico versionado `docs/product/frontend-master-prompt.md` (origem registrada em `docs/README.md`).
+**Spec:** `Plano de conclusão progressiva do F.md`; `STATUS_VALIDACAO.md`; `docs/operations/phase8/final-validation.md`; `docs/operations/phase14/controlled-charge-evidence.md`; `docs/operations/account-closure/validation.md`; `docs/historico/planos/2026-09-21-melhorias-experiencia-produto-forgelex.md`; e o prompt mestre canônico versionado `docs/product/frontend-master-prompt.md` (origem registrada em `docs/README.md`).
 
 ## Global Constraints
 
@@ -245,7 +245,7 @@ Expected: todos PASS com serviços exclusivamente locais/sintéticos.
 - Modify: `README.md`
 - Modify: `STATUS_VALIDACAO.md`
 - Modify: `docs/README.md`
-- Modify: `docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md`
+- Modify: `docs/historico/planos/2026-09-21-melhorias-experiencia-produto-forgelex.md`
 - Create: `docs/product/frontend-master-prompt.md`
 - Modify: `apps/web/index.html`
 
@@ -278,7 +278,7 @@ Adicionar teste que falhe se o slogan rejeitado reaparecer em `README.md`, `apps
 
 - [ ] **Step 5: validar links e formatação**
 
-Run: `pnpm exec prettier --check README.md STATUS_VALIDACAO.md docs/README.md docs/product/frontend-master-prompt.md docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md && git diff --check`
+Run: `pnpm exec prettier --check README.md STATUS_VALIDACAO.md docs/README.md docs/product/frontend-master-prompt.md docs/historico/planos/2026-09-21-melhorias-experiencia-produto-forgelex.md && git diff --check`
 
 Expected: PASS, sem link local quebrado para os documentos canônicos.
 

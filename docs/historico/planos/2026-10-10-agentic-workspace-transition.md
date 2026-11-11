@@ -137,7 +137,7 @@ todas as evoluções posteriores como consequência da aprovação da primeira.
 ### Incremento M — camada visual do MCP, incluído em 11/10/2026
 
 Pedido de Boni: incluir no plano e visualizar antes de implementar. Desenho em
-[`../specs/2026-10-11-mcp-decision-presentation-design.md`](../specs/2026-10-11-mcp-decision-presentation-design.md).
+[`../specs/2026-10-11-mcp-decision-presentation-design.md`](../../superpowers/specs/2026-10-11-mcp-decision-presentation-design.md).
 A análise no ChatGPT/Claude pertence ao modelo do host; o ForgeLex fornece
 fontes, contratos e leitor. O componente não prova raciocínio jurídico próprio,
 orquestração, competência de agentes ou recuperação do inteiro teor.

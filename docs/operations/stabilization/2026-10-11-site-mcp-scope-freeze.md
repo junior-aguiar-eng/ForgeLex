@@ -1,7 +1,7 @@
 # Congelamento reversível do site — evidência local
 
 Execução autorizada por Boni em 11/10/2026, conforme
-[plano](../../superpowers/plans/2026-10-11-site-mcp-scope-freeze.md).
+[plano](../../historico/planos/2026-10-11-site-mcp-scope-freeze.md).
 Base/HEAD: `f5f9316dd0255e49029972806fb161963ab4d54a` (origin/main atualizado).
 Branch: `codex/site-mcp-scope-freeze`. Este registro descreve a etapa local
 anterior ao commit e deploy. A publicação posterior está no

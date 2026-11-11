@@ -89,7 +89,7 @@ descartável local configurado por `FORGELEX_ACCOUNT_CLOSURE_TEST_ADMIN_URL`.
 O marco de experiência do produto foi integrado, publicado e homologado no
 escopo registrado em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md), sucedendo o
 plano de
-[melhorias de experiência e ativação MCP](docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md).
+[melhorias de experiência e ativação MCP](docs/historico/planos/2026-09-21-melhorias-experiencia-produto-forgelex.md).
 Ele sucede o produto STJ concluído sem reabrir suas fases nem ampliar os
 tribunais comercialmente habilitados. Há homologações anteriores em ChatGPT e
 Claude e um percurso documental real no Claude, com retorno versionado,

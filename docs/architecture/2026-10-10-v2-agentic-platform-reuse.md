@@ -47,7 +47,7 @@ de seus adapters. Host sem UI continua usando ferramentas e resultados textuais.
 A comparação com Exordial evidencia um componente de apresentação; a explicação
 da conversa é do modelo host. Não inferir agentes, qualidade jurídica ou geração
 do inteiro teor pela existência desse componente. Escopo e testes:
-[`../superpowers/plans/2026-10-11-mcp-decision-presentation.md`](../superpowers/plans/2026-10-11-mcp-decision-presentation.md).
+[`../historico/planos/2026-10-11-mcp-decision-presentation.md`](../historico/planos/2026-10-11-mcp-decision-presentation.md).
 
 ```text
 Site ForgeLex                         Hosts externos via REST/MCP

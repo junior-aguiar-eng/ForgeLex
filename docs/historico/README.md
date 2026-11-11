@@ -19,3 +19,11 @@ O estado atual do projeto está em [PENDENCIAS.md](../../PENDENCIAS.md).
 
 O plano mestre “Plano de conclusão progressiva do ForgeLex”, o `STATUS_VALIDACAO.md`
 e o `CONTINUIDADE.md` continuam na raiz por terem muitas referências cruzadas.
+
+## Planos de execução
+
+A pasta [`planos/`](planos/) guarda os 53 planos de execução que ficavam em `docs/superpowers/plans/`, movidos
+em 11/11/2026 por decisão de Boni (DEC-9). Muitos têm caixas de seleção abertas porque a lista nunca foi marcada,
+então o estado de cada um não se lê pelas caixas: o estado atual está em [PENDENCIAS.md](../../PENDENCIAS.md). Os
+planos não abrem tarefas novas. Os desenhos de apoio continuam em `docs/superpowers/specs/` e as referências em
+`docs/superpowers/references/`.
