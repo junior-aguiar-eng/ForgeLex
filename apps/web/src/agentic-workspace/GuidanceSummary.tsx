@@ -4,6 +4,7 @@ import {
   guidanceDecisionText,
   guidanceFields,
   guidanceLabels,
+  guidanceSummaryText,
   type GuidanceField,
   type GuidanceState,
 } from './guidance-model';
@@ -23,7 +24,7 @@ export function GuidanceSummary({
   const list = useId();
   const toggle = useRef<HTMLButtonElement>(null);
   const fields = guidanceFields.filter((field) => Boolean(state.decisions[field].question));
-  const labels = fields.map((field) => guidanceDecisionText(state, field)).filter(Boolean);
+  const labels = fields.map((field) => guidanceSummaryText(state, field)).filter(Boolean);
   if (!fields.length)
     return (
       <div className="flex justify-end">

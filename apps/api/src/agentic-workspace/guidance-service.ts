@@ -27,15 +27,34 @@ function project(conversation: AgenticConversation, context: Context) {
       !executionId && question ? [[question.id, question] as const] : [],
     ),
   );
+  // O texto livre mais recente de uma pergunta ainda sem opção escolhida é só exibição:
+  // não altera o snapshot, o estado da decisão nem o guidanceHash.
+  const typedDetail = (questionId: string | undefined) =>
+    questionId
+      ? [...conversation.messages]
+          .reverse()
+          .find(
+            ({ executionId, answer }) =>
+              !executionId &&
+              answer &&
+              answer.questionId === questionId &&
+              answer.contextRevision < context.revision &&
+              answer.freeText?.trim(),
+          )
+          ?.answer?.freeText?.trim()
+      : undefined;
   const decisions = Object.fromEntries(
     (['area', 'action', 'documentType', 'partyRole', 'stage'] as const).map((field) => {
       const { value, status, questionId } = snapshot[field];
       const original = questionId ? questions.get(questionId) : undefined;
+      // O texto livre da tarefa já reaparece inteiro como `description`; aqui só área, peça e demais campos.
+      const detail = value === null && field !== 'action' ? typedDetail(questionId)?.slice(0, 120) : undefined;
       return [
         field,
         {
           value,
           status,
+          ...(detail ? { detail } : {}),
           ...(original
             ? {
                 questionId,
