@@ -39,17 +39,21 @@
 
 As etapas indicadas não começam enquanto a decisão estiver aberta. A recomendação é técnica e não substitui a decisão.
 
-| ID    | Decisão                                                                                                                       | Recomendação                                                                                                                                                                      | Bloqueia           |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| DEC-1 | Nome exato do domínio novo e do subdomínio de homologação (grafia “ForgeLex” ou “Forglex”, extensão `.com.br`, `.ia.br` etc.) | Registrar a mesma grafia da marca; reservar também a grafia alternativa para redirecionar                                                                                         | D2 em diante       |
-| DEC-2 | Paleta do tema novo                                                                                                           | **Decidido por Boni em 11/11/2026:** branco gelo com petróleo, conforme o protótipo de 09/11 (seção 7.1). Substitui a diretriz do v2 de preservar `ivory`, `cognac` e `champagne` | Nada               |
-| DEC-3 | Tipografia                                                                                                                    | Spectral (títulos e texto jurídico) e Inter (interface), hospedadas no próprio site, sem dependência de terceiros                                                                 | V1                 |
-| DEC-4 | Origem do catálogo de habilidades                                                                                             | **Decidido por Boni em 11/11/2026:** manter e incorporar as 2.077 fichas capturadas (MinutaIA), com origem e hash registrados. Substitui a recomendação de catálogo próprio       | Nada (M3 liberada) |
-| DEC-5 | Reserva de R$ 11,50 por trabalho comercial (PR #135, antes R$ 5,00)                                                           | Confirmar a regra e exibi-la na Conta e na confirmação de custo                                                                                                                   | M1                 |
-| DEC-6 | Tarifa da análise de aderência na busca ancorada                                                                              | Gerar a frase de aderência na mesma chamada da pesquisa, sem tarifa adicional, enquanto o uso real é medido                                                                       | M4                 |
-| DEC-7 | Título principal do site público                                                                                              | Manter o título aprovado travado em `tests/public-copy.test.ts`; o título do protótipo não entra                                                                                  | V2                 |
-| DEC-8 | Destino do Ratione (`ratione.nexojuris.ia.br`) na troca de domínio                                                            | Manter onde está até a Frente R; decidir junto com o modelo de produto (dois produtos ligados ou um só)                                                                           | D5 e Frente R      |
-| DEC-9 | Arquivamento dos planos antigos de `docs/superpowers/plans/`                                                                  | Mover os concluídos para `docs/historico/planos/`, preservando links                                                                                                              | E6                 |
+| ID     | Decisão                                                                                                                       | Recomendação                                                                                                                                                                                                                                      | Bloqueia           |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| DEC-1  | Nome exato do domínio novo e do subdomínio de homologação (grafia “ForgeLex” ou “Forglex”, extensão `.com.br`, `.ia.br` etc.) | Registrar a mesma grafia da marca; reservar também a grafia alternativa para redirecionar                                                                                                                                                         | D2 em diante       |
+| DEC-2  | Paleta do tema novo                                                                                                           | **Decidido por Boni em 11/11/2026:** branco gelo com petróleo, conforme o protótipo de 09/11 (seção 7.1). Substitui a diretriz do v2 de preservar `ivory`, `cognac` e `champagne`                                                                 | Nada               |
+| DEC-3  | Tipografia                                                                                                                    | Spectral (títulos e texto jurídico) e Inter (interface), hospedadas no próprio site, sem dependência de terceiros                                                                                                                                 | V1                 |
+| DEC-4  | Origem do catálogo de habilidades                                                                                             | **Decidido por Boni em 11/11/2026:** manter e incorporar as 2.077 fichas capturadas (MinutaIA), com origem e hash registrados. Substitui a recomendação de catálogo próprio                                                                       | Nada (M3 liberada) |
+| DEC-5  | Reserva de R$ 11,50 por trabalho comercial (PR #135, antes R$ 5,00)                                                           | Confirmar a regra e exibi-la na Conta e na confirmação de custo                                                                                                                                                                                   | M1                 |
+| DEC-6  | Tarifa da análise de aderência na busca ancorada                                                                              | Gerar a frase de aderência na mesma chamada da pesquisa, sem tarifa adicional, enquanto o uso real é medido                                                                                                                                       | M4                 |
+| DEC-7  | Título principal do site público                                                                                              | Manter o título aprovado travado em `tests/public-copy.test.ts`; o título do protótipo não entra                                                                                                                                                  | V2                 |
+| DEC-8  | Destino do Ratione (`ratione.nexojuris.ia.br`) na troca de domínio                                                            | Manter onde está até a Frente R; decidir junto com o modelo de produto (dois produtos ligados ou um só)                                                                                                                                           | D5 e Frente R      |
+| DEC-9  | Arquivamento dos planos antigos de `docs/superpowers/plans/`                                                                  | Mover os concluídos para `docs/historico/planos/`, preservando links                                                                                                                                                                              | E6                 |
+| DEC-10 | Mesa: seleção explícita de peça e matéria                                                                                     | **Decidido por Boni em 11/11/2026:** o cliente escolhe a peça (Forma) e a matéria por rótulos legíveis, com busca. Conteúdo, IDs e hashes das fichas continuam ocultos. Revisa a decisão do v2 de manter Forma e Matéria só nos bastidores        | Nada (U3 liberada) |
+| DEC-11 | Modo de piloto fechado (`closedPilot`, `ClosedPilotPanel`, `closed-pilot*.ts`, `task6-homologation.ts`)                       | Confirmar em E1 se está ativo em produção. Se não estiver, remover painel, rotas e testes em U1; se estiver, manter fora da nova Mesa                                                                                                             | U1                 |
+| DEC-12 | Anexos: guardar o arquivo original ou só o texto extraído                                                                     | Só o texto, como na importação de PDF atual (a especificação de 03/10/2026 deixou a retenção do original para avaliação posterior)                                                                                                                | U5                 |
+| DEC-13 | Motor de OCR                                                                                                                  | OCR no navegador (Tesseract.js, idioma português), sem enviar o arquivo ao servidor, preservando a promessa atual de que a extração ocorre no navegador. OCR no servidor só se a qualidade não bastar, com decisão própria sobre custo e retenção | U6                 |
 
 ## 3. O que já está concluído (herdado do v2)
 
@@ -99,14 +103,25 @@ flowchart LR
     D2 --> D3["D3 Produção nos dois domínios"]
     D3 --> D4["D4 Redirecionar o site"]
     D4 --> D5["D5 Encerrar o uso do domínio antigo"]
-    M1 --> M3["M3 Incorporação do catálogo"]
+    M1 --> M3["M3 Catálogo: mapa, incorporação e cruzamento"]
+    M1 --> U0["U0 Inventário da Mesa"]
+    U0 --> U1["U1 Remover duplicidade e código morto"]
+    U1 --> U2["U2 Nova estrutura da Mesa"]
+    M3 --> U3["U3 Peça e matéria na Mesa"]
+    U2 --> U3
+    U3 --> U4["U4 Ações: voltar, alterar, excluir, adicionar"]
+    U4 --> U5["U5 Anexos"]
+    U5 --> U6["U6 OCR"]
+    U4 --> V3
     V3 --> M5["M5 Selo de terceira origem"]
     M5 --> R["R · Ratione"]
     V6 --> R
 ```
 
-A Frente V e a Frente D andam em paralelo depois de E. A sequência sugerida, sem prazo fixo: E, M1, V0, D0, D1, V1,
-M2, M3, V2, D2, V3, M4, V4, D3, D4, V5, V6, V7, D5. A Frente R só começa quando V6 estiver estável.
+As Frentes V, D e U andam em paralelo depois de E, mas a estrutura da Mesa (U) vem antes do visual da Mesa (V3),
+para não pintar uma tela que será reorganizada. A sequência sugerida, sem prazo fixo: E, M1, V0, D0, D1, U0, U1,
+V1, M2, M3, U2, U3, U4, V2, D2, U5, U6, V3, M4, V4, D3, D4, V5, V6, V7, D5. A Frente R só começa quando V6 estiver
+estável.
 
 ## 5. Etapa E — estabilização
 
@@ -210,54 +225,186 @@ revisão anterior (`--to-revisions=...=100`).
 
 **Aceite.** A18 registrado em homologação. Ligar em produção é decisão separada de Boni, depois de V3.
 
-### M3 — Incorporação do catálogo e revisão das fichas por lotes
+### M3 — Catálogo de habilidades: mapa, incorporação e cruzamento
 
-Decisão de Boni (DEC-4, 11/11/2026): as 2.077 fichas capturadas (303 Forma, 1.774 Matéria) são mantidas e incorporadas.
-O R1 já validou o ZIP (SHA-256 no registro de execução), o manifesto, as contagens e os hashes. A incorporação e a
-elegibilidade são separadas: todas as fichas ficam no catálogo com estado, mas o resolvedor (R5) só seleciona as que
-Boni aprovou em lote. Ficha sem revisão não é selecionada.
+Decisão de Boni (DEC-4, 11/11/2026): as 2.077 fichas originais (303 Forma, 1.774 Matéria) são mantidas e incorporadas
+como estão. A revisão é um cruzamento de dados em massa; só os alertas chegam a Boni. O R1 já validou o ZIP, o
+manifesto, as contagens e os hashes. Todas as fichas ficam no catálogo, mas o resolvedor só seleciona as `elegível`.
 
-**M3.1 — Incorporação (infraestrutura).**
+**M3.0 — Mapa de correspondência.** O resolvedor (`skill-resolver.ts`) exige igualdade exata: Forma por área e tipo de
+peça; Matéria por área e tópico. As fichas não trazem essas chaves prontas, então elas são geradas e conferidas antes
+de qualquer incorporação.
 
-- [ ] Definir a forma de incorporação: onde o conteúdo fica (fora dos assets públicos e do bundle do navegador),
-      como o servidor o carrega e como a versão do catálogo é fixada por execução.
+- [ ] Gerar por script (`scripts/skills/map-catalog.mjs`) a tabela `stableId → área da Mesa, tipo de peça ou tópico`,
+      a partir de `materia`, caminho, título e `triggers`, com relatório de cobertura.
+- [ ] **Forma:** as 303 fichas não têm área. Atribuir uma ou mais áreas da Mesa a cada uma. Como o catálogo hoje aceita
+      uma só área por ficha, avaliar o contrato `areas` (lista) em `skill-catalog.ts`, com testes. Desambiguar
+      `notificacao-extrajudicial` e `notificacao-extrajudicial-civel`, que compartilham o mesmo tipo e hoje gerariam
+      `FORM_CONFLICT`.
+- [ ] **Matéria:** usar o `stableId` como tópico (único; evita depender das 655 subáreas, e 580 fichas não têm subárea
+      no caminho). A classificação das questões do caso escolhe entre candidatos pré-filtrados por área e `triggers`;
+      o resolvedor continua exigindo igualdade exata. Escrever os testes dessa classificação.
+- [ ] **Vocabulário de área:** as fichas têm 25 áreas (`civil`, `processo-civil`, `processo-penal`, `trabalho`…) e a
+      Mesa tem seis (`penal`, `civel`, `trabalhista`, `administrativo`, `tributario`, `outra`). Proposta inicial,
+      a confirmar por Boni: Penal recebe `penal` e `processo-penal`; Cível recebe `civil`, `processo-civil`,
+      `contratos`, `imobiliario`, `familia-sucessoes`, `consumidor`, `bancario`, `empresarial` e `societario`;
+      Trabalhista recebe `trabalho`; Administrativo e Tributário mantêm o nome; o restante vai para Outra área.
+      O catálogo guarda a área original e a área da Mesa.
+- [ ] **Orçamento de contexto:** a ficha mediana tem 9,3 KB, 34 fichas passam de 15 KB, e hoje o excesso devolve
+      seleção vazia (`SKILL_BUDGET_EXCEEDED`). Definir o limite por papel com fichas reais e avaliar seleção parcial
+      (Forma primeiro, depois Matéria por relevância) com limitação registrada.
+- [ ] Fichas sem mapeamento claro entram numa fila de ambíguas. Nenhuma ficha fica sem resultado.
+
+**Aceite da M3.0.** As 2.077 fichas têm resultado de mapeamento (mapeada ou na fila), sem chave duplicada.
+
+**M3.1 — Incorporação.**
+
+- [ ] Definir onde o conteúdo fica (fora dos assets públicos e do bundle do navegador), como o servidor o carrega e
+      como a versão do catálogo é fixada por execução.
 - [ ] Gravar em cada ficha a origem (MinutaIA), a versão original, o hash original e a data da decisão. Descrever
       apenas condições de reutilização que existam de fato, sem criar exigência de terceiro.
-- [ ] Transformar o inventário do R1 em catálogo consultável, mantendo os 2.077 registros rastreáveis e o estado de
-      revisão de cada um: `pendente`, `em revisão`, `ajustada`, `elegível`, `inelegível`, `adiada`.
-- [ ] Fazer o resolvedor ignorar fichas fora de `elegível` e registrar na seleção a versão do catálogo e a do lote.
-- [ ] Manter `tests/fixtures/desk-pilot-revised/*` e as fichas sintéticas autorais dos testes de regressão.
+- [ ] Estado de revisão por ficha: `pendente`, `em revisão`, `ajustada`, `elegível`, `inelegível`, `adiada`.
+- [ ] Resolvedor ignora fichas fora de `elegível` e registra na seleção a versão do catálogo.
+- [ ] Manter `tests/fixtures/desk-pilot-revised/*` e as fichas sintéticas dos testes de regressão.
 
-**M3.2 — Ciclo de cada lote.** O mesmo ciclo vale para todos os lotes e usa `scripts/skills/prepare-catalog-lot.mjs`,
-generalizado para receber a lista de fichas do lote em vez dos quatro candidatos fixos.
+**M3.2 — Cruzamento em massa.** Sem leitura ficha a ficha.
 
-- [ ] Definir o lote: identificador (`area-lote-vN`), fichas de Forma e de Matéria que se complementam, casos de uso
-      que o lote cobre. Tamanho inicial sugerido de 10 a 20 fichas, ajustável conforme o esforço da primeira rodada.
-- [ ] Preparar a fila: versões, hashes, tamanho, proveniência, sobreposições e `reviewReasons` do inventário.
-- [ ] Conferir cada ficha com as fontes oficiais (lei, súmula, precedente), registrando divergência, escopo excessivo,
-      tese apresentada como regra geral e vigência. Ferramentas e IA apoiam; a avaliação é de Boni.
-- [ ] Aplicar os ajustes como nova versão da ficha, preservando a original e as execuções já registradas.
-- [ ] Boni decide por ficha: `elegível`, `elegível com ajuste`, `inelegível` ou `adiada`. Registrar decisão, fundamento
-      e data no registro de execução.
-- [ ] Rodar a regressão do lote (Playwright do piloto com o catálogo do lote) e conferir limites de contexto do R12,
-      ausência de exposição (A02) e as mesmas ferramentas por papel.
-- [ ] Publicar a nova versão do catálogo com o lote aprovado e registrar contagem por estado.
+- [ ] Script que extrai de cada ficha as referências (artigos, súmulas, precedentes) e confere existência e vigência
+      no texto oficial e no índice do STJ do ForgeLex.
+- [ ] Comparar fichas do mesmo tema para achar contradição entre Forma e Matéria (como na `resposta-acusacao` contra a
+      ficha de cadeia de custódia).
+- [ ] Relatório com uma marcação por ficha: sem alerta ou com alerta, e o tipo. Fichas sem alerta ficam `elegível`,
+      marcadas como cruzadas. Fichas com alerta vão para a fila.
+- [ ] Boni olha só a fila, em lotes de alertas por área de maior uso. Para cada ficha decide manter, ajustar (só aí
+      nasce nova versão, preservando a original) ou excluir. Registrar decisão e data no registro de execução.
+- [ ] O cruzamento não detecta tese exagerada ou generalizada, defeito encontrado nas quatro fichas conferidas à mão.
+      Cobrir esse risco incluindo na fila as fichas mais selecionadas nos casos reais.
 
-**Lote 0 (piloto).** As quatro fichas do `penal-civel-r15-v1` (`resposta-acusacao`, `cadeia-custodia-cpp-158`,
-`contestacao-civel`, `adimplemento-pagamento-cc-304`) com os ajustes da
+**M3.3 — Lote 0 (piloto).** As quatro fichas do `penal-civel-r15-v1` (`resposta-acusacao`,
+`cadeia-custodia-cpp-158`, `contestacao-civel`, `adimplemento-pagamento-cc-304`) com os ajustes da
 [conferência amostral](../architecture/2026-11-10-mesa-guiada-execucao.md#avaliação-das-quatro-fichas-capturadas).
-O piloto Penal e a regressão Cível (R14) são repetidos com o catálogo incorporado. A conferência do lote 0 foi
-amostral; nos lotes seguintes a leitura é integral de cada ficha.
+O piloto Penal e a regressão Cível (R14) são repetidos com o catálogo incorporado. A R15 (expansão por área) passa a
+ser a ampliação da elegibilidade por esse cruzamento e reabre por nova decisão de Boni.
 
-**Lotes seguintes.** Ordem sugerida, sujeita à sua decisão: Penal e Processo Penal; Civil e Processo Civil; demais
-áreas por demanda real dos casos. Cada lote só começa com o anterior registrado. A R15 (expansão por área) passa a ser
-esse ciclo, e reabre por nova decisão sua, com as métricas do lote anterior (perguntas desnecessárias, correções,
-custo de contexto, qualidade das entregas).
+**Aceite.** 2.077 fichas incorporadas, mapeadas e rastreáveis, sem exposição de conteúdo, ID ou hash na interface
+(A02, revisado). Lote 0 e regressão aprovados por Boni. **Reversão.** Catálogo versionado: voltar à versão anterior
+preserva as execuções já registradas.
 
-**Aceite.** 2.077 fichas incorporadas, rastreáveis e sem exposição de conteúdo, título, ID ou hash na interface (A02).
-Lote 0 aprovado por Boni, com piloto Penal e regressão Cível aprovados. Cada lote seguinte tem fila, decisões por
-ficha, regressão e versão de catálogo registradas. **Reversão.** Catálogo versionado: voltar à versão anterior do
-lote preserva as execuções já registradas.
+## 6A. Frente U — Mesa: estrutura, ações e anexos
+
+Objetivo: uma só Mesa, organizada como as interfaces de conversa modernas (Claude, ChatGPT), em que o cliente chega à
+peça (Forma) e à matéria com poucos cliques, controla o que foi pedido e anexa documentos. Esta frente entrega a
+estrutura e o comportamento; a pele visual vem depois, em V3.
+
+### U0 — Inventário da Mesa
+
+Depende de E1 e M1. Só leitura; produz a lista do que sai.
+
+- [ ] Registrar em E1 as flags de produção `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED` e
+      `VITE_FORGELEX_CASE_WORKSPACE_ENABLED`. Hoje `App.tsx` define `integrated` como as duas ligadas: com
+      `integrated`, `WritingDeskScreen` envolve `AgenticWorkspaceScreen`, `DraftStudioScreen` e `DashboardScreen`; sem
+      ela, `AgenticWorkspaceScreen` e `DraftStudioScreen` aparecem sozinhas em `/app/trabalho` e `/app/rascunhos`.
+      São as duas Mesas.
+- [ ] Listar o que existe nos dois caminhos: telas (`WritingDeskScreen` 337 linhas, `AgenticWorkspaceScreen` 858,
+      `DraftStudioScreen` 1.156, `DashboardScreen` 54, `ResearchDeskScreen` 150), rotas e abas.
+- [ ] Rodar um relatório de código sem uso (por exemplo, `knip`, só em modo relatório) e `rg` por exemplos, dados de
+      demonstração e textos de teste visíveis na interface. Nada é apagado nesta etapa.
+- [ ] Classificar cada item: `mantém`, `migra para a Mesa nova`, `remove`. Boni aprova a lista.
+
+**Aceite.** Lista aprovada por Boni, com evidência de uso. **Reversão.** Não se aplica.
+
+### U1 — Remover duplicidade e código morto
+
+Depende de U0, DEC-11 e da confirmação das flags em produção.
+
+- [ ] Eliminar o caminho não integrado em `App.tsx` (`!integrated`) e fazer `/app/rascunhos` e `/app/revisao`
+      redirecionarem para a Mesa, preservando links.
+- [ ] Remover o que a lista de U0 marcou como `remove`, em PRs pequenas por área, cada uma com os testes
+      correspondentes removidos ou migrados no mesmo commit.
+- [ ] Com DEC-11: se o piloto fechado estiver desativado, remover `ClosedPilotPanel`, `closed-pilot*.ts`,
+      `task6-homologation.ts`, o valor padrão `T6-MIN` e os testes ligados; se ativo, isolar fora da Mesa nova.
+- [ ] Remover exemplos e dados de demonstração mortos da interface e das fixtures não usadas.
+
+**Verificação.** Etapa E completa, mais o relatório de código sem uso de U0 sem item novo. **Aceite.** Uma só Mesa em produção e
+nenhuma rota órfã. **Reversão.** Reverter a PR; remoções de dados só depois de uma versão estável.
+
+### U2 — Nova estrutura da Mesa
+
+Depende de U1. Atrás de flag (`VITE_FORGELEX_DESK_SHELL`), desligada por padrão.
+
+- [ ] Dividir `AgenticWorkspaceScreen` e `DraftStudioScreen` em componentes menores sob `apps/web/src/desk/`, sem
+      mudar comportamento (refatoração com os testes atuais passando).
+- [ ] Casca única `DeskShell`: coluna de conversas e casos recolhível à esquerda; conversa no centro, com compositor
+      fixo no rodapé; painel da peça e das fontes à direita, aberto sob demanda. Abaixo de `lg`, alternância
+      Conversa/Peça.
+- [ ] Estado vazio com o compositor em destaque e atalhos para os fluxos comuns (nova peça, revisar texto, pesquisar).
+- [ ] Preservar o buffer da peça ao abrir fonte, trocar de aba ou responder (A07, A09).
+
+**Verificação.** `playwright.writing-desk.config.ts`, `playwright.desk-guidance.config.ts` e capturas desktop e
+celular. **Aceite.** Mesma funcionalidade da Mesa atual na nova estrutura. **Reversão.** Desligar a flag.
+
+### U3 — Peça e matéria na Mesa
+
+Depende de U2, M3.0 e DEC-10.
+
+- [ ] Seletor de **Peça** no compositor: lista pelas áreas e tipos mapeados em M3.0 que tenham ficha `elegível`,
+      com busca por nome. Substitui a lista fixa de duas peças em `guidance-rules.ts`.
+- [ ] Seletor de **Matéria**: busca por tema, com sugestões a partir do pedido; permite mais de uma matéria.
+- [ ] Os rótulos vêm do catálogo mapeado; conteúdo, ID e hash da ficha nunca vão ao navegador (A02, revisado).
+- [ ] A escolha explícita preenche as decisões da orientação (área, peça, matéria) e dispensa as perguntas
+      correspondentes; “Não sei” e “Me ajude a começar” continuam.
+- [ ] Peça ou matéria sem ficha elegível aparece como indisponível, sem prometer o que o catálogo não tem.
+
+**Aceite.** Em até três interações o cliente escolhe a peça e a matéria, e a seleção interna registra a ficha usada.
+**Reversão.** Flag do seletor; a orientação por perguntas permanece.
+
+### U4 — Ações: voltar, alterar, excluir, adicionar
+
+Depende de U3. Regra geral: toda ação destrutiva é reversível por padrão (arquivar com “Desfazer”); exclusão
+definitiva só na lixeira, com confirmação (`ConfirmationDialog`).
+
+| Ação                              | Onde                                       | Comportamento                                              | Base existente                                                                 |
+| --------------------------------- | ------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Voltar                            | Pergunta guiada, peça aberta, fonte aberta | Volta um passo sem perder o que foi digitado               | “Voltar ao pedido livre” em `GuidancePanel`                                    |
+| Alterar área, peça ou matéria     | Resumo do pedido e chips do compositor     | Cria nova revisão e reavalia as decisões dependentes (A05) | “Alterar” em `GuidanceSummary`                                                 |
+| Adicionar matéria ou peça         | Chips do compositor                        | Soma ao pedido atual                                       | A criar                                                                        |
+| Remover matéria ou peça do pedido | Chip com “x”                               | Retira do pedido; não apaga conteúdo salvo                 | A criar                                                                        |
+| Excluir conversa                  | Lista de conversas                         | Vai para a lixeira, com “Desfazer”                         | “Excluir do histórico”                                                         |
+| Excluir peça (rascunho)           | Painel da peça                             | Arquiva com “Desfazer”; definitivo só na lixeira           | Ciclo de caso e documento (`matter-lifecycle`); verificar a rota para rascunho |
+| Excluir anexo                     | Chip do anexo                              | Retira do pedido; remove o texto salvo conforme o caso     | A criar com U5                                                                 |
+| Nova peça, nova conversa          | Cabeçalho da Mesa                          | Abre fluxo limpo                                           | Parcial                                                                        |
+
+- [ ] Cada ação com rótulo acessível, foco previsível, atalho de teclado onde fizer sentido e registro de auditoria.
+- [ ] Rota de exclusão e restauração de rascunho, se a verificação mostrar que não existe, com testes.
+- [ ] Nenhuma ação destrutiva consome saldo nem interrompe execução paga sem aviso.
+
+**Aceite.** Cada ação testada em E2E, com desfazer funcional. **Reversão.** Flag por grupo de ações.
+
+### U5 — Anexos
+
+Depende de U4 e DEC-12.
+
+- [ ] Botão de clipe no compositor para anexar PDF, DOCX, TXT e imagens. A extração de PDF reaproveita
+      `extractPdfText` (hoje usada só na tela de casos): limite de 15 MB e 300 páginas.
+- [ ] Anexo vira chip no pedido; pode ser aberto, trocado ou removido. Pode alimentar “revisar um texto” e a análise
+      de documentos, e ser salvo no caso como documento.
+- [ ] Armazenar somente o texto, conforme DEC-12, com aviso claro ao cliente.
+- [ ] Estados: lendo, concluído, sem texto extraível (oferece OCR em U6), erro, arquivo grande demais.
+
+**Aceite.** Anexar, revisar e remover por teclado e por clique. **Reversão.** Flag de anexos.
+
+### U6 — OCR
+
+Depende de U5 e DEC-13.
+
+- [ ] Quando o PDF ou a imagem não tem texto selecionável, oferecer “Reconhecer texto (OCR)”. Hoje o erro manda o
+      cliente fazer OCR por fora.
+- [ ] OCR no navegador, em português, com progresso, cancelamento e limite de páginas definido por medição de tempo.
+- [ ] O texto reconhecido é marcado como “reconhecido por OCR — conferir”, editável antes de salvar.
+- [ ] Fixtures próprias de PDF escaneado e imagem, com teste E2E.
+- [ ] Medir qualidade em documentos reais autorizados por Boni; só então avaliar OCR no servidor, em decisão separada.
+
+**Aceite.** Um PDF escaneado de teste vira texto editável e utilizável no pedido. **Reversão.** Flag de OCR.
 
 ## 7. Frente V — refatoração visual
 
@@ -358,7 +505,7 @@ Depende de V1 e DEC-7.
 
 ### V3 — Mesa
 
-Depende de V2 e M2. É a maior etapa; entregar em duas PRs (composição e abas; depois seletor de caso e estados).
+Depende de V2, M2 e U4. É a maior etapa; entregar em duas PRs (composição e abas; depois seletor de caso e estados).
 
 | Entrega                                                                  | Arquivos                                                                      | Aceite                                                               |
 | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | -------------------------------------------------------------------- |
@@ -511,19 +658,22 @@ etapas D. Falhas preexistentes e testes ignorados são registrados sem contar co
 
 ## 11. Riscos
 
-| Risco                                                 | Mitigação                                                                        | Etapa      |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------- | ---------- |
-| Tema novo quebra seletores de teste                   | Testes localizam por papel e rótulo; texto alterado muda o teste no mesmo commit | V0–V5      |
-| Diferença visual não intencional ao introduzir tokens | Screenshots pixel a pixel em V0                                                  | V0         |
-| Contraste insuficiente em bordas de controle          | `line-control` com 3,5:1; medição por script                                     | V1         |
-| Fontes externas lentas ou bloqueadas                  | Fontes no próprio site e `font-display: swap`                                    | V1         |
-| Conectores MCP antigos param na troca de domínio      | Recurso duplo, sem redirecionar `/mcp` e OAuth, desligamento só com uso zero     | D1–D5      |
-| Notificação de pagamento perdida                      | Domínio antigo continua servindo notificações                                    | D3–D5      |
-| Domínio antigo registrado por terceiro                | Renovação indefinida                                                             | D5         |
-| Fichas com erro jurídico ou de escopo                 | Ajustes da conferência amostral em nova versão; avaliação de Boni por lote       | M3         |
-| Reserva de R$ 11,50 impede uso com saldo baixo        | DEC-5 e mensagem clara                                                           | M1         |
-| Alerta de chave não dispara                           | Checagem periódica de `/readyz`                                                  | E3         |
-| Duas mudanças de risco juntas                         | Seção 0, item 6                                                                  | V6, D3, D4 |
+| Risco                                                 | Mitigação                                                                         | Etapa      |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------- | ---------- |
+| Tema novo quebra seletores de teste                   | Testes localizam por papel e rótulo; texto alterado muda o teste no mesmo commit  | V0–V5      |
+| Diferença visual não intencional ao introduzir tokens | Screenshots pixel a pixel em V0                                                   | V0         |
+| Contraste insuficiente em bordas de controle          | `line-control` com 3,5:1; medição por script                                      | V1         |
+| Fontes externas lentas ou bloqueadas                  | Fontes no próprio site e `font-display: swap`                                     | V1         |
+| Conectores MCP antigos param na troca de domínio      | Recurso duplo, sem redirecionar `/mcp` e OAuth, desligamento só com uso zero      | D1–D5      |
+| Notificação de pagamento perdida                      | Domínio antigo continua servindo notificações                                     | D3–D5      |
+| Domínio antigo registrado por terceiro                | Renovação indefinida                                                              | D5         |
+| Fichas com erro jurídico ou de escopo                 | Ajustes da conferência amostral em nova versão; avaliação de Boni por lote        | M3         |
+| Reserva de R$ 11,50 impede uso com saldo baixo        | DEC-5 e mensagem clara                                                            | M1         |
+| Remover código ainda usado em produção                | U0 com flags de produção e relatório de uso; PRs pequenas; reversão por PR        | U1         |
+| Seleção sem ficha por falta de chave no mapa          | M3.0 gera e confere o mapa; fila de ambíguas                                      | M3, U3     |
+| OCR lento ou fraco em documento ruim                  | OCR com cancelamento, limite de páginas e texto editável; servidor só por decisão | U6         |
+| Alerta de chave não dispara                           | Checagem periódica de `/readyz`                                                   | E3         |
+| Duas mudanças de risco juntas                         | Seção 0, item 6                                                                   | V6, D3, D4 |
 
 ## 12. Referências
 
@@ -540,7 +690,9 @@ etapas D. Falhas preexistentes e testes ignorados são registrados sem contar co
 - “Não sei” é resposta válida e persistida; a IA ajuda a identificar o contexto e a hipótese material exige
   confirmação.
 - A área influencia as perguntas seguintes; Forma, Matéria, especialistas e ferramentas são escolhidos no servidor.
-- Habilidades, hashes e identificadores internos ficam nos bastidores.
+- Conteúdo, hashes e identificadores internos das fichas ficam nos bastidores. Desde 11/11/2026 (DEC-10) o cliente
+  escolhe peça e matéria por rótulos legíveis; isso revisa a decisão original de manter Forma e Matéria só nos
+  bastidores.
 - Cliques em opções determinísticas não chamam provedor nem reservam saldo; inferências seguem consentimento e custo
   vigentes.
 - Penal é a jornada principal do piloto; Cível é a regressão.
@@ -555,24 +707,28 @@ antes dos escritores; checkpoints antigos continuam no protocolo original.
 
 ### A.3 Critérios de aceite
 
-| ID  | Critério                                                                                 | Situação                                |
-| --- | ---------------------------------------------------------------------------------------- | --------------------------------------- |
-| A01 | Inventário com as 2.077 fichas (303 Forma, 1.774 Matéria) e verificação de origem e hash | Atendido localmente; incorporação em M3 |
-| A02 | A interface não expõe catálogo, conteúdo, títulos ou IDs de habilidades nem hashes       | Atendido localmente                     |
-| A03 | Pedido completo evita perguntas redundantes                                              | Atendido localmente                     |
-| A04 | “Não sei” persiste e mantém hipótese separada de resposta confirmada                     | Atendido localmente                     |
-| A05 | Correção cria nova revisão e reavalia decisões dependentes                               | Atendido localmente                     |
-| A06 | Seleção de habilidades reproduzível                                                      | Atendido localmente                     |
-| A07 | Conversa, caso, documento, versão e alvo enviado correspondem                            | Atendido localmente; reconferir em V3   |
-| A08 | Hash independente de autorização e de comando                                            | Atendido localmente                     |
-| A09 | Revisão cria zero versões; edição preserva o que está fora do escopo                     | Atendido localmente; reconferir em V3   |
-| A10 | Concorrência e replay não duplicam escritas                                              | Atendido localmente                     |
-| A11 | Pesquisa conservada abre sem busca nova, com caso e proveniência corretos                | Atendido localmente; reconferir em M4   |
-| A12 | Conferência, decisão editorial e aprovação ligadas à versão correta                      | Atendido localmente                     |
-| A13 | Checkpoints históricos legíveis                                                          | Atendido localmente                     |
-| A14 | Perguntas determinísticas sem provedor nem reserva                                       | Atendido localmente                     |
-| A15 | Manifesto corresponde às ferramentas reais                                               | Atendido localmente                     |
-| A16 | Jornada completa por teclado e em celular                                                | Atendido localmente; reconferir em V6   |
-| A17 | Piloto Penal e regressão Cível na mesma revisão                                          | Técnico atendido; jurídico em M3        |
-| A18 | Homologação de produção com registro próprio                                             | Pendente (M2)                           |
-| A19 | Boni valida a jornada visual em desktop e celular                                        | Pendente (V3)                           |
+| ID  | Critério                                                                                            | Situação                                |
+| --- | --------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| A01 | Inventário com as 2.077 fichas (303 Forma, 1.774 Matéria) e verificação de origem e hash            | Atendido localmente; incorporação em M3 |
+| A02 | A interface não expõe conteúdo, IDs ou hashes das fichas (rótulos de peça e matéria são permitidos) | Atendido localmente                     |
+| A03 | Pedido completo evita perguntas redundantes                                                         | Atendido localmente                     |
+| A04 | “Não sei” persiste e mantém hipótese separada de resposta confirmada                                | Atendido localmente                     |
+| A05 | Correção cria nova revisão e reavalia decisões dependentes                                          | Atendido localmente                     |
+| A06 | Seleção de habilidades reproduzível                                                                 | Atendido localmente                     |
+| A07 | Conversa, caso, documento, versão e alvo enviado correspondem                                       | Atendido localmente; reconferir em V3   |
+| A08 | Hash independente de autorização e de comando                                                       | Atendido localmente                     |
+| A09 | Revisão cria zero versões; edição preserva o que está fora do escopo                                | Atendido localmente; reconferir em V3   |
+| A10 | Concorrência e replay não duplicam escritas                                                         | Atendido localmente                     |
+| A11 | Pesquisa conservada abre sem busca nova, com caso e proveniência corretos                           | Atendido localmente; reconferir em M4   |
+| A12 | Conferência, decisão editorial e aprovação ligadas à versão correta                                 | Atendido localmente                     |
+| A13 | Checkpoints históricos legíveis                                                                     | Atendido localmente                     |
+| A14 | Perguntas determinísticas sem provedor nem reserva                                                  | Atendido localmente                     |
+| A15 | Manifesto corresponde às ferramentas reais                                                          | Atendido localmente                     |
+| A16 | Jornada completa por teclado e em celular                                                           | Atendido localmente; reconferir em V6   |
+| A17 | Piloto Penal e regressão Cível na mesma revisão                                                     | Técnico atendido; jurídico em M3        |
+| A18 | Homologação de produção com registro próprio                                                        | Pendente (M2)                           |
+| A19 | Boni valida a jornada visual em desktop e celular                                                   | Pendente (V3)                           |
+| A20 | Uma só Mesa em produção, sem rota órfã nem código morto                                             | Pendente (U1)                           |
+| A21 | Cliente escolhe peça e matéria por rótulos; conteúdo e IDs ficam ocultos                            | Pendente (U3)                           |
+| A22 | Voltar, alterar, adicionar e excluir com desfazer, testados por teclado                             | Pendente (U4)                           |
+| A23 | Anexo e OCR no pedido, com texto editável antes de salvar                                           | Pendente (U5, U6)                       |
