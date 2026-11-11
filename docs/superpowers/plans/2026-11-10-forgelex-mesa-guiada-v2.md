@@ -516,6 +516,8 @@ flowchart LR
 
 **Evidência.** Quatro cenários Playwright da orientação, 36 regressões da Mesa e 41 testes de contratos e modelos aprovados localmente. As capturas de desktop e celular vêm da aplicação com o fluxo opt-in habilitado no ambiente de teste.
 
+**Reexecução do histórico.** Corrigido o reaproveitamento da chave fixa do teste após a reprodução com 21 conversas posteriores. O cenário de abertura, exclusão e restauração passou duas vezes na mesma API local com dados anteriores.
+
 ### R7 — Integração com o orquestrador e “Não sei”
 
 **Entrega.** Interpretação e perguntas materiais no fluxo agêntico existente.

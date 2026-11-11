@@ -87,6 +87,12 @@ A API prepara a conversa, registra cada resposta e reabre a pergunta ativa usand
 
 Próxima etapa é R7, integração com o orquestrador e interpretação das respostas em aberto.
 
+### Correção da repetição do teste de histórico
+
+O trace apresentado por Boni mostrou que o POST do teste devolvia uma execução criada três minutos antes. A chave fixa `history-sidebar` repetia o comando anterior. A lista das 20 conversas recentes já continha conversas posteriores, e o alvo esperado ficava fora dela. O cenário foi reproduzido em uma API local isolada, com uma execução antiga e 21 conversas posteriores.
+
+O teste passou a criar chave UUID e título próprios para cada execução e a localizar esse título. O cenário completo passou duas vezes na mesma API com dados anteriores, incluindo abertura, exclusão, restauração e histórico no celular. A alteração ficou restrita à preparação e aos seletores do teste.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.

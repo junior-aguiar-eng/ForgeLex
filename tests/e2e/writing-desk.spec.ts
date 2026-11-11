@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { randomUUID } from 'node:crypto';
 const api = 'http://127.0.0.1:3301';
 const headers = { authorization: 'Bearer phase7-e2e-access-token' };
 
@@ -187,18 +188,21 @@ test('uma caixa envia pedido e contexto com a opção selecionada', async ({ pag
 test('histórico lateral visível, exclusão recuperável e seletor legível', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page);
+  const commandId = randomUUID();
+  const title = `Conversa para conferir a lateral ${commandId}`;
   const created = await page.request.post(api + '/api/agentic/executions', {
-    headers: { ...headers, 'Idempotency-Key': 'history-sidebar' },
+    headers: { ...headers, 'Idempotency-Key': commandId },
     data: {
-      objective: 'Conversa para conferir a lateral',
+      objective: title,
       context: { text: 'Contexto sintético local', origin: 'USER', documents: [] },
     },
   });
   expect(created.ok()).toBe(true);
   const run = await created.json();
+  expect(run.objective).toBe(title);
   await page.reload();
   const sidebar = page.getByRole('complementary', { name: 'Histórico de conversas' });
-  const open = sidebar.getByRole('button', { name: /^Conversa para conferir a lateral/ });
+  const open = sidebar.getByRole('button', { name: title, exact: true });
   await expect(open).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Conversas', exact: true })).toHaveCount(0);
   const selector = page.getByLabel('Opção do pedido');
@@ -230,21 +234,21 @@ test('histórico lateral visível, exclusão recuperável e seletor legível', a
   await page.getByRole('button', { name: 'Mostrar conversas' }).click();
   await open.click();
   await expect(page).toHaveURL(new RegExp(`executionId=${run.id}`));
-  await sidebar.getByRole('button', { name: /^Excluir do histórico: Conversa para conferir/ }).click();
+  await sidebar.getByRole('button', { name: `Excluir do histórico: ${title}`, exact: true }).click();
   const confirmation = page.getByRole('dialog', { name: 'Excluir conversa do histórico?' });
   await confirmation.getByRole('button', { name: 'Excluir do histórico', exact: true }).click();
   await expect(open).toHaveCount(0);
   await page.reload();
   await expect(open).toHaveCount(0);
   await sidebar.getByRole('button', { name: 'Conversas excluídas', exact: true }).click();
-  await sidebar.getByRole('button', { name: /^Restaurar: Conversa para conferir/ }).click();
+  await sidebar.getByRole('button', { name: `Restaurar: ${title}`, exact: true }).click();
   await sidebar.getByRole('button', { name: 'Voltar às conversas' }).click();
   await expect(open).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(sidebar).not.toBeVisible();
   await page.getByRole('button', { name: 'Conversas', exact: true }).click();
   const mobileHistory = page.getByRole('dialog', { name: 'Conversas', exact: true });
-  await expect(mobileHistory.getByRole('button', { name: /^Conversa para conferir/ })).toBeVisible();
+  await expect(mobileHistory.getByRole('button', { name: title, exact: true })).toBeVisible();
   await expect(mobileHistory.getByRole('button', { name: 'Nova conversa' })).toBeVisible();
   expect((await new AxeBuilder({ page }).include('dialog[open]').analyze()).violations).toEqual([]);
 });
