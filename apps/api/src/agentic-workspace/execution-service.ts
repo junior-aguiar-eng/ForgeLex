@@ -35,7 +35,10 @@ export const StartExecutionSchema = z
     actionId: AgenticTaskActionSchema.optional(),
     conversationId: z.string().guid().optional(),
     matterId: z.string().guid().optional(),
-    context: AgenticContextSchema.refine((c) => c.approvedItems === undefined, 'SERVER_OWNED_CONTEXT').optional(),
+    context: AgenticContextSchema.refine(
+      (c) => c.approvedItems === undefined && c.guidance === undefined,
+      'SERVER_OWNED_CONTEXT',
+    ).optional(),
     contextRevision: z.number().int().positive().optional(),
   })
   .strict()

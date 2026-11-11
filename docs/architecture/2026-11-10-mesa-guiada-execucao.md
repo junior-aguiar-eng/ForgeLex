@@ -35,7 +35,14 @@ node --test scripts/skills/inventory-catalog.test.mjs
 node scripts/skills/inventory-catalog.mjs --archive "<caminho do ZIP aprovado>" --out "<caminho local novo>.json"
 ```
 
-Próxima tarefa: R2, contratos de orientação e hashes. O estado de cada etapa está nos checkboxes do plano.
+## R2 · contratos de orientação e hashes
+
+- `DecisionValue` distingue valores informados, desconhecidos, propostos e confirmados. Uma decisão de origem documental exige evidência. A confirmação pertence ao usuário. O contrato existente de respostas continua recusando opção inválida, resposta vazia e revisão obsoleta.
+- `GuidanceSnapshot` aceita contexto interno opcional e versionado. Contextos históricos continuam legíveis. O hash v1 usa campos em ordem fixa e ordena referências de evidência. A revisão e os IDs de perguntas não alteram a identidade das decisões. O hash da seleção de habilidades inclui revisão do contexto, versão do catálogo, entradas e seus vínculos.
+- Os contratos de orientação e de seleção não aceitam campos de autorização ou comando. A entrada pública de execução recusa a orientação interna, inclusive se o snapshot/hash for válido. A projeção pública continua omitindo a orientação. A validação de comandos de orientação com owner e revisão pertence a R3. O contrato das chaves já aceitas pelo cliente permanece compatível.
+- Validação local: build completo, verificação de tipos de domínio e API, ESLint e Prettier nos arquivos alterados e 79 testes focados em seis suites. Os testes de API e persistência usam banco em memória. Não houve execução de inferência real ou operação em produção.
+
+Próxima tarefa: R3, orientação persistida anterior à inferência. O estado de cada etapa está nos checkboxes do plano.
 
 ## Evidências locais
 

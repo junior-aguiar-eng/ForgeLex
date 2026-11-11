@@ -15,6 +15,7 @@ export * from './contracts/research.js';
 export * from './contracts/strategy.js';
 export * from './contracts/case-analysis.js';
 export * from './contracts/agentic-workspace.js';
+export * from './contracts/desk-guidance.js';
 export * from './contracts/agentic-limits.js';
 export * from './contracts/agentic-case-task.js';
 export * from './contracts/task-evidence.js';

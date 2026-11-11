@@ -434,15 +434,17 @@ flowchart LR
 
 ### R2 — Contratos de orientação e hashes
 
+**Concluída em 10/11/2026.** [Contratos e evidência de validação](../../architecture/2026-11-10-mesa-guiada-execucao.md#r2--contratos-de-orientação-e-hashes).
+
 **Entrega.** Schemas, serialização canônica e estados de resposta definidos.
 
 **Arquivos.** `desk-guidance.ts`, teste, extensão opcional do contexto e exportações.
 
-- [ ] Testar escolhido, desconhecido, proposto e confirmado com suas origens.
-- [ ] Testar resposta vazia, opção inexistente, pergunta obsoleta e origem de evidência ausente.
-- [ ] Implementar `GuidanceSnapshot` e `SkillBinding` com versões de protocolo.
-- [ ] Implementar hashes determinísticos, com ordem semântica documentada.
-- [ ] Validar que hashes não são aceitos como autorização ou chave de comando.
+- [x] Testar escolhido, desconhecido, proposto e confirmado com suas origens.
+- [x] Testar resposta vazia, opção inexistente, pergunta obsoleta e origem de evidência ausente.
+- [x] Implementar `GuidanceSnapshot` e `SkillBinding` com versões de protocolo.
+- [x] Implementar hashes determinísticos, com ordem semântica documentada.
+- [x] Separar hashes dos campos de autorização e comando e recusar a orientação interna quando enviada pelo cliente.
 
 **Aceite.** Mesmo snapshot canônico gera o mesmo hash. Alterar decisão relevante, versão de regra ou habilidade altera o vínculo esperado. Objetos antigos continuam legíveis.
 

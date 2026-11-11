@@ -15,6 +15,7 @@ import {
   MatterRepository,
 } from '@forgelex/persistence';
 import { LedgerService, type InferenceBudgetService } from '@forgelex/billing-ledger';
+import { createGuidanceSnapshot } from '@forgelex/domain';
 import { ExecutionService } from './execution-service.js';
 import { ExecutionWorker } from './execution-worker.js';
 
@@ -104,6 +105,35 @@ it('expõe contexto e histórico públicos para recuperar o trabalho sem checkpo
   expect(view).not.toHaveProperty('checkpoint');
   expect(view).not.toHaveProperty('provider');
 });
+
+it('lê orientação interna sem permitir injeção pelo cliente ou exposição na execução pública', async () => {
+  const f = await fixture();
+  const unknown = { value: null, status: 'unknown', origin: 'user' } as const;
+  const guidance = createGuidanceSnapshot({
+    protocolVersion: 1,
+    rulesVersion: 'mesa-v1',
+    revision: 1,
+    area: { value: 'penal', status: 'confirmed', origin: 'user' },
+    action: unknown,
+    documentType: unknown,
+    partyRole: unknown,
+    stage: unknown,
+    activeQuestionId: null,
+  });
+  const context = { ...input.context, guidance };
+  await expect(f.service.startExecution(owner, 'public-injection', { ...input, context })).rejects.toThrow(
+    'SERVER_OWNED_CONTEXT',
+  );
+  const conversation = await f.repo.createConversation(owner, { ...input, context });
+  expect(conversation.contexts[0]?.guidance).toEqual(guidance);
+  const run = await f.service.startExecution(owner, 'internal-context', {
+    objective: input.objective,
+    conversationId: conversation.id,
+    contextRevision: 1,
+  });
+  expect((await f.service.getExecution(owner, run.id)).context).toEqual(input.context);
+});
+
 it('lê o estado e os eventos sem escrever: nem a versão do dono nem o job mudam', async () => {
   const f = await fixture();
   const run = await f.service.startExecution(owner, 'read-only-reads', input);
