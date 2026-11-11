@@ -12,6 +12,148 @@ async function login(page: Page) {
   await page.goto('/app/trabalho');
 }
 
+async function selectionFixture(page: Page) {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page);
+  const createCase = async (title: string) =>
+    (await page.request.post(api + '/api/v2/matters', { headers, data: { title } })).json();
+  const matter = await createCase('Caso A · seleção');
+  const other = await createCase('Caso B · seleção');
+  const { draft, version } = await (
+    await page.request.post(`${api}/api/v2/matters/${matter.id}/drafts`, {
+      headers,
+      data: { title: 'Peça A', sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto salvo de A.' }] },
+    })
+  ).json();
+  const objective = `Pesquisar no caso B ${other.id.slice(0, 8)}`;
+  const run = await (
+    await page.request.post(api + '/api/agentic/executions', {
+      headers: { ...headers, 'Idempotency-Key': `selection-${matter.id}` },
+      data: {
+        matterId: other.id,
+        actionId: 'research_question',
+        objective,
+        context: { text: 'Contexto sintético B.', origin: 'USER', documents: [] },
+      },
+    })
+  ).json();
+  const selection = new URLSearchParams({ matterId: matter.id, draftId: draft.id, versionId: version.id });
+  await page.goto(`/app/trabalho?${selection}`);
+  const editor = page.getByRole('region', { name: 'Mesa da peça' });
+  const text = editor.getByLabel('Texto da seção 1', { exact: true });
+  await expect(text).toHaveValue('Texto salvo de A.');
+  return { selection, run, editor, text, other, objective };
+}
+
+test('seleção persistida da Mesa retorna com caso, peça e versão e abre após recarga', async ({ page }) => {
+  const { selection, text } = await selectionFixture(page);
+  const nav = page.getByRole('navigation', { name: 'Navegação principal' });
+  await nav.getByRole('button', { name: 'Casos', exact: true }).click();
+  await nav.getByRole('button', { name: 'Mesa', exact: true }).click();
+  for (const [key, value] of selection) expect(new URL(page.url()).searchParams.get(key)).toBe(value);
+  await page.reload();
+  await expect(text).toHaveValue('Texto salvo de A.');
+});
+
+test('seleção persistida da Mesa desvincula peça antiga ao trocar conversa e recupera a edição ao voltar', async ({
+  page,
+}) => {
+  const { run, editor, text, other, objective } = await selectionFixture(page);
+  await text.fill('Texto local de A, ainda não salvo.');
+  await page
+    .getByRole('complementary', { name: 'Histórico de conversas' })
+    .getByRole('button', { name: objective, exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`executionId=${run.id}`));
+  await expect(editor).not.toBeVisible();
+  expect(new URL(page.url()).searchParams.get('draftId')).toBeNull();
+  const composer = page.getByLabel('O que você precisa fazer?', { exact: true });
+  await composer.fill('Continue a pesquisa do caso B.');
+  const send = page.getByRole('button', { name: 'Enviar', exact: true });
+  await page.getByRole('button', { name: 'Abrir peça', exact: true }).click();
+  await expect(text).toHaveValue('Texto local de A, ainda não salvo.');
+  await expect(send).toBeDisabled();
+  await page.goBack();
+  await expect(editor).not.toBeVisible();
+  let sent: { matterId?: string; conversationId?: string; context?: { draft?: unknown } } | undefined;
+  await page.route('**/api/agentic/executions', async (route) => {
+    sent = route.request().postDataJSON();
+    await route.fulfill({ status: 503, json: { error: 'SYNTHETIC_STOP' } });
+  });
+  await send.click();
+  await expect.poll(() => sent?.conversationId).toBe(run.conversationId);
+  expect(sent?.matterId).toBe(other.id);
+  expect(sent?.context?.draft).toBeUndefined();
+  await page.goBack();
+  await expect(text).toHaveValue('Texto local de A, ainda não salvo.');
+  await page.goForward();
+  await expect(editor).not.toBeVisible();
+});
+
+test('seleção persistida da Mesa ignora execução recebida depois de voltar', async ({ page }) => {
+  const { run, text, objective, selection } = await selectionFixture(page);
+  await text.fill('Edição preservada durante a resposta.');
+  await page
+    .getByRole('complementary', { name: 'Histórico de conversas' })
+    .getByRole('button', { name: objective, exact: true })
+    .click();
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Continue a pesquisa B.');
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/agentic/executions', async (route) => {
+    await pending;
+    await route.fulfill({ status: 200, json: run });
+  });
+  const command = page.waitForRequest(
+    (request) => request.method() === 'POST' && request.url().endsWith('/api/agentic/executions'),
+  );
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await command;
+  await page.goBack();
+  await expect(text).toHaveValue('Edição preservada durante a resposta.');
+  const received = page.waitForResponse(
+    (response) => response.request().method() === 'POST' && response.url().endsWith('/api/agentic/executions'),
+  );
+  release();
+  await (await received).finished();
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const params = new URL(page.url()).searchParams;
+  expect(params.get('executionId')).toBeNull();
+  expect(params.get('draftId')).toBe(selection.get('draftId'));
+  await expect(text).toHaveValue('Edição preservada durante a resposta.');
+});
+
+test('seleção persistida da Mesa exige confirmação para enviar com uma versão diferente da indicada', async ({
+  page,
+}) => {
+  const { selection, editor, text } = await selectionFixture(page);
+  const previous = selection.get('versionId');
+  const written = await page.request.post(
+    `${api}/api/v2/matters/${selection.get('matterId')}/drafts/${selection.get('draftId')}/versions`,
+    {
+      headers,
+      data: {
+        baseVersionId: previous,
+        title: 'Peça A atualizada',
+        sections: [{ ordinal: 0, title: 'Fatos', content: 'Nova versão salva de A.' }],
+      },
+    },
+  );
+  expect(written.ok()).toBe(true);
+  const { version } = await written.json();
+  await page.goto(`/rascunhos?${selection}`);
+  await expect(text).toHaveValue('Nova versão salva de A.');
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Revise a peça.');
+  const send = page.getByRole('button', { name: 'Enviar', exact: true });
+  await expect(send).toBeDisabled();
+  expect(new URL(page.url()).searchParams.get('versionId')).toBe(previous);
+  await editor.getByRole('button', { name: 'Usar versão aberta', exact: true }).click();
+  await expect(send).toBeEnabled();
+  expect(new URL(page.url()).searchParams.get('versionId')).toBe(version.id);
+});
+
 test('uma caixa envia pedido e contexto com a opção selecionada', async ({ page }) => {
   await login(page);
   await page.getByRole('button', { name: /^Sem caso/ }).click();

@@ -1,6 +1,8 @@
 export type AppTab = 'work' | 'landing' | 'research' | 'datajud' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'account_activity' | 'account_security' | 'account_closure_status' | 'api_keys' | 'for_lawyers_guide' | 'api_docs';
 
 import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import type { DeskSelection } from '../agentic-workspace/desk-selection';
+import { deskLocation } from './desk-location';
 
 export function resolveVisibleTab(tab: AppTab, casesEnabled: boolean, workEnabled = AGENTIC_WORKSPACE_ENABLED): AppTab {
   if (tab === 'work' && !workEnabled) return 'landing';
@@ -63,7 +65,7 @@ export function updateDocumentTitle(tab: AppTab): void {
   if (typeof document !== 'undefined') document.title = `ForgeLex · ${routeForTab(tab).title}`;
 }
 
-export interface CaseRouteContext { matterId?: string; draftId?: string; analysisId?: string; versionId?: string }
+export interface CaseRouteContext extends DeskSelection { analysisId?: string }
 export function navigateToTab(tab: AppTab, mode: 'push' | 'replace' = 'push', contextOrEnabled?: CaseRouteContext | boolean, enabled = CASE_WORKSPACE_ENABLED): void {
   if (typeof window === 'undefined') return;
   const context = typeof contextOrEnabled === 'boolean' ? undefined : contextOrEnabled;
@@ -76,7 +78,7 @@ export function navigateToTab(tab: AppTab, mode: 'push' | 'replace' = 'push', co
   if (!redirected && context?.matterId) params.set(tab === 'matter' ? 'caso' : 'matterId', context.matterId);
   if (!redirected) for (const key of ['draftId','analysisId','versionId'] as const) if (context?.[key]) params.set(key, context[key]!);
   const preserveReturnParameters = redirected ? '' : context ? (params.size ? `?${params}` : '') : mode === 'replace' ? `${window.location.search}${window.location.hash}` : '';
-  const destination = `${route.path}${preserveReturnParameters}`;
+  const destination = visibleTab === 'work' && context ? deskLocation(context) : `${route.path}${preserveReturnParameters}`;
   const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
   updateDocumentTitle(visibleTab);

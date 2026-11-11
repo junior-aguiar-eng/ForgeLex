@@ -4,6 +4,8 @@ export interface DeskPiece {
   versionId: string;
   title: string;
   dirty: boolean;
+  deliveryId?: string;
+  canOpenDelivery?: (attached: boolean) => boolean;
   localText?: string;
   prepare?: () => Promise<DeskPiece>;
 }

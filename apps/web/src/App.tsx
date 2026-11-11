@@ -32,7 +32,7 @@ const ApiDocsScreen = lazy(() => import('./screens/ApiDocsScreen').then(({ ApiDo
 const OAuthConsentScreen = lazy(() => import('./screens/OAuthConsentScreen').then(({ OAuthConsentScreen: screen }) => ({ default: screen })));
 
 const AppContent: React.FC = () => {
-  const { activeTab, setActiveTab } = useApp();
+  const { activeTab, routeLocation, setActiveTab, setDeskSelection } = useApp();
   const integrated = AGENTIC_WORKSPACE_ENABLED && CASE_WORKSPACE_ENABLED;
   const resolvedTab = resolveVisibleTab(activeTab, CASE_WORKSPACE_ENABLED);
   const visibleTab = integrated && (resolvedTab === 'draft_studio' || resolvedTab === 'dashboard') ? 'work' : resolvedTab;
@@ -41,9 +41,10 @@ const AppContent: React.FC = () => {
   const [draftVisited, setDraftVisited] = React.useState(visibleTab === 'draft_studio');
   const [workVisited, setWorkVisited] = React.useState(visibleTab === 'work');
   const [draftRequest, setDraftRequest] = React.useState('');
-  const workExecution = React.useRef<string | null>(null);
-  const rememberExecution = React.useCallback((id: string | null) => { workExecution.current = id; }, []);
-  const selectTab = (tab: AppTab) => { setActiveTab(tab); if (tab === 'work' && workExecution.current) window.history.replaceState({}, '', `/app/trabalho?executionId=${encodeURIComponent(workExecution.current)}`); };
+  const selectTab = (tab: AppTab) => setActiveTab(tab);
+  const rememberExecution = React.useCallback((id: string | null) => {
+    setDeskSelection({ executionId: id ?? undefined });
+  }, [setDeskSelection]);
   React.useEffect(() => { if (visibleTab === 'draft_studio') setDraftVisited(true); if (visibleTab === 'work') setWorkVisited(true); }, [visibleTab]);
   const openEditor = (url: string) => { setDraftRequest(url); setActiveTab('draft_studio'); window.history.replaceState({}, '', url); };
   const billingReturn = React.useMemo(() => parseBillingReturn(window.location.search), []);
@@ -71,7 +72,7 @@ const AppContent: React.FC = () => {
         {<Sidebar mobileOnly={visibleTab === 'work'} activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
         <main className="min-w-0 flex-1">
           {!integrated && (visibleTab === 'draft_studio' || draftVisited) && <div key="retained-draft" hidden={visibleTab !== 'draft_studio'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando editor…</div>}><DraftStudioScreen requestedLocation={draftRequest} /></Suspense></ScreenLoadBoundary></div>}
-          {(visibleTab === 'work' || workVisited) && <div key="retained-work" hidden={visibleTab !== 'work'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando trabalho…</div>}>{integrated ? <WritingDeskScreen active={visibleTab === 'work'} requestedLocation={window.location.href} onExecutionChange={rememberExecution} /> : <AgenticWorkspaceScreen active={visibleTab === 'work'} onExecutionChange={rememberExecution} onEditor={openEditor} />}</Suspense></ScreenLoadBoundary></div>}
+          {(visibleTab === 'work' || workVisited) && <div key="retained-work" hidden={visibleTab !== 'work'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando trabalho…</div>}>{integrated ? <WritingDeskScreen active={visibleTab === 'work'} requestedLocation={routeLocation} /> : <AgenticWorkspaceScreen active={visibleTab === 'work'} onExecutionChange={rememberExecution} onEditor={openEditor} />}</Suspense></ScreenLoadBoundary></div>}
           <ScreenLoadBoundary key={`page-${visibleTab}`}>
             <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
               {visibleTab === 'landing' && <LandingScreen />}

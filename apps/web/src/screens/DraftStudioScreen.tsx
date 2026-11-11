@@ -1,4 +1,6 @@
 import { DraftCanvas } from './draft-review/DraftCanvas';
+import { hasDeskPiece, selectDeskPiece, type DeskDocumentSelection } from '../agentic-workspace/desk-selection';
+import { deskLocation, readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
 import type { DeskPiece } from '../agentic-workspace/desk-model';
 import { printDraftPdf } from '../documents/draft-print';
 import {getDraftPrimaryAction} from './draft-review/draft-action-model';
@@ -154,7 +156,7 @@ const statusLabel: Record<Draft['status'], string> = {
   ARCHIVED: 'Arquivado',
 };
 
-export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrated?: boolean; onPieceChange?: (piece: DeskPiece | null) => void }> = ({ requestedLocation, integrated = false, onPieceChange }) => {
+export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrated?: boolean; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void }> = ({ requestedLocation, integrated = false, selectedVersionId, onPieceChange }) => {
   const emptySections = () => integrated ? [{title:'Texto da peça',content:'',linkedFactIds:[],linkedEvidenceIds:[],linkedAuthorityIds:[],linkedThesisIds:[]}] : initialSections();
   const { setActiveTab } = useApp();
   const [importedDelivery, setImportedDelivery] = useState<Delivery>();
@@ -223,6 +225,17 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
   const hasApiAccess = Boolean(token.trim()) || authStatus === 'authenticated' || authStatus === 'legacy';
 
   const selectedMatter = useMemo(() => matters.find((matter) => matter.id === selectedMatterId), [matters, selectedMatterId]);
+  const deskScope = () => {
+    if (!integrated || window.location.pathname !== '/app/trabalho') return;
+    const current = readDeskLocation(window.location.href);
+    if (hasDeskPiece(current)) return deskLocation({
+      ...current, conversationId: current.executionId ? undefined : current.conversationId, contextRevision: undefined,
+    });
+  };
+  const publishDeskPiece = (scope: string | undefined, document: DeskDocumentSelection) => {
+    if (!scope || scope !== deskScope()) return;
+    writeDeskLocation(selectDeskPiece(readDeskLocation(window.location.href), document));
+  };
 
   const saveToken = (value: string) => {
     setToken(value);
@@ -247,7 +260,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
       if (response.items.length > 0 && !selectedMatterId && (!integrated || requestedQuery.has('matterId')) && (!requestedQuery.has('deliveryId') || requestedQuery.has('draftId'))) {
         const initial = requestedQuery.get('matterId');
         if (initial && !response.items.some(m => m.id === initial)) { setError('Este caso não está disponível para sua conta.'); return; }
-        await selectMatter(initial ?? response.items[0].id);
+        await selectMatter(initial ?? response.items[0].id, true);
       }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Não foi possível carregar os casos.');
@@ -287,7 +300,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     setMatterContextReady(matterId);
   };
 
-  const selectMatter = async (matterId: string) => {
+  const selectMatter = async (matterId: string, fromLocation = false) => {
     const keepLocal = integrated && !selectedMatterId && !selectedDraftId;
     if (!keepLocal && dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir este caso?')) return;
     setReadingDocument(undefined);
@@ -298,7 +311,8 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     setSelectedDraftId('');
     editingVersion.current=undefined;
     setDetails(null);
-    if (!keepLocal) { setDraftTitle('Minuta para revisão humana'); setSections(emptySections()); setCitations([]); }
+    if (!keepLocal) { setImportedDelivery(undefined); setDraftTitle('Minuta para revisão humana'); setSections(emptySections()); setCitations([]); }
+    if (!fromLocation) publishDeskPiece(deskScope(), { matterId: matterId || undefined });
     setError(null);
     setLoadingSelection(true);
     setBusy(true);
@@ -312,14 +326,14 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     }
   };
 
-  const selectDraft = async (draftId: string, adopted = false) => {
+  const selectDraft = async (draftId: string, adopted = false, fromLocation = false) => {
     if (!selectedMatterId) return;
     if (!adopted && dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir este rascunho?')) return;
     initialDraftOpened.current=true;
     setReadingDocument(undefined);
     const sequence = ++selection.current;
+    const scope = deskScope();
     setPoint(undefined); setHistoryVersion(''); setHistoryRuns([]); setReviewStatus(null); setApprovalConfirmation(null); setContextChanged(false);
-    setSelectedDraftId(draftId);
     setLoadingSelection(true);
     setBusy(true);
     setError(null);
@@ -329,14 +343,28 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
         loadMatterContext(selectedMatterId),
       ]);
       if (sequence !== selection.current) return;
+      setSelectedDraftId(draftId);
       setDetails(response);
+      setImportedDelivery(undefined);
+      editingVersion.current=response.currentVersion?.version.id;
       const route = new URL(window.location.href);
-      route.searchParams.set('matterId',selectedMatterId);route.searchParams.set('draftId',draftId);
-      const requested = new URL(requestedLocation || window.location.href, window.location.origin);
-      if (requested.searchParams.get('draftId') === draftId && requested.searchParams.has('deliveryId')) route.searchParams.set('deliveryId',requested.searchParams.get('deliveryId')!);
-      if (!integrated || window.location.pathname === '/app/trabalho') { window.history.replaceState({...window.history.state},document.title,route);window.dispatchEvent(new Event('forgelex:route-updated')); }
+      const current = readDeskLocation(route.href);
+      const sameDraft = current.matterId === selectedMatterId && current.draftId === draftId;
+      if (integrated) {
+        publishDeskPiece(scope, {
+          matterId: selectedMatterId, draftId,
+          versionId: fromLocation && sameDraft && current.versionId ? current.versionId : response.currentVersion?.version.id,
+          deliveryId: sameDraft ? current.deliveryId : undefined,
+        });
+      } else {
+        route.searchParams.set('matterId', selectedMatterId);
+        route.searchParams.set('draftId', draftId);
+        const requested = readDeskLocation(requestedLocation || window.location.href);
+        if (requested.draftId === draftId && requested.deliveryId) route.searchParams.set('deliveryId', requested.deliveryId);
+        window.history.replaceState({...window.history.state}, document.title, route);
+        window.dispatchEvent(new Event('forgelex:route-updated'));
+      }
       if (response.currentVersion) {
-        editingVersion.current=response.currentVersion.version.id;
         const version = response.currentVersion;
         setCitationSectionOrdinal(version.sections[0]?.ordinal??0);
         setSavedPayload(JSON.stringify({ title: response.draft.title, sections: version.sections.map((s) => ({ ordinal:s.ordinal, title: s.title, content: s.content, linkedFactIds: s.linkedFactIds, linkedEvidenceIds: s.linkedEvidenceIds, linkedAuthorityIds: s.linkedAuthorityIds, linkedThesisIds: s.linkedThesisIds })), citations: version.citations.map(c => ({ sectionOrdinal: version.sections.find(s => s.id === c.sectionId)?.ordinal ?? 0, targetType: c.targetType, targetId: c.targetId, citationText: c.citationText, verified: c.verified })) }));
@@ -509,6 +537,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     setError(null);
     setApprovalConfirmation(null);
     const sequence = selection.current;
+    const scope = deskScope();
     const content = JSON.stringify(payload());
     try {
       const response = selectedDraftId
@@ -524,7 +553,11 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
       const updated = await request<DraftDetails>(`/api/v2/matters/${selectedMatterId}/drafts/${response.draft.id}`, token);
       if (sequence !== selection.current) return;
       setDetails(updated);
-      if (integrated) { const route = new URL(window.location.href); route.searchParams.set('matterId',selectedMatterId); route.searchParams.set('draftId',response.draft.id); route.searchParams.set('versionId',response.version.id); window.history.replaceState({},'',route); }
+      const current = readDeskLocation(window.location.href);
+      publishDeskPiece(scope, {
+        matterId: selectedMatterId, draftId: response.draft.id, versionId: response.version.id,
+        deliveryId: current.draftId === response.draft.id ? current.deliveryId : undefined,
+      });
       setReviewStatus(integrated ? 'Versão salva.' : 'Versão salva. Confira o rascunho antes de encaminhar à aprovação.');
       return response;
     } catch (saveError) {
@@ -559,33 +592,38 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
   const initialDraftOpened=useRef(false);
   useEffect(()=>{
     const target=new URL(requestedLocation || window.location.href, window.location.origin).searchParams.get('draftId');
-    if(!initialDraftOpened.current&&target&&selectedMatterId&&matterContextReady===selectedMatterId&&drafts.some(d=>d.id===target)){initialDraftOpened.current=true;void selectDraft(target);}
+    if(!initialDraftOpened.current&&target&&selectedMatterId&&matterContextReady===selectedMatterId&&drafts.some(d=>d.id===target)){initialDraftOpened.current=true;void selectDraft(target,false,true);}
   },[drafts,selectedMatterId,matterContextReady]); // eslint-disable-line react-hooks/exhaustive-deps
   const handledLocation = useRef<string>();
   useEffect(() => {
     if (!requestedLocation || !matters.length || handledLocation.current === requestedLocation) return;
     handledLocation.current = requestedLocation;
     const query = new URL(requestedLocation, window.location.origin).searchParams;
-    const targetMatter = query.get('matterId'), targetDraft = query.get('draftId'), targetVersion = query.get('versionId');
-    if (!targetMatter) return;
+    const targetMatter = query.get('matterId'), targetDraft = query.get('draftId') ?? '', targetVersion = query.get('versionId');
+    if (!targetMatter) {
+      if (integrated && !query.has('deliveryId') && selectedMatterId) void selectMatter('', true);
+      return;
+    }
     if (targetMatter === selectedMatterId && targetDraft === selectedDraftId) {
-      if (targetVersion && targetVersion !== details?.currentVersion?.version.id) {
+      if (targetDraft && targetVersion && targetVersion !== editingVersion.current) {
         if (dirty) { setError('A IA concluiu uma nova versão. Sua edição local foi preservada.'); return; }
-        void selectDraft(targetDraft);
+        void selectDraft(targetDraft, false, true);
       }
       return;
     }
     if (!matters.some(matter => matter.id === targetMatter)) { setError('Este caso não está disponível para sua conta.'); return; }
     initialDraftOpened.current = false;
-    if (targetMatter !== selectedMatterId) void selectMatter(targetMatter);
-    else if (targetDraft) void selectDraft(targetDraft);
+    if (targetMatter !== selectedMatterId || !targetDraft) void selectMatter(targetMatter, true);
+    else void selectDraft(targetDraft, false, true);
   }, [requestedLocation, matters]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!onPieceChange) return;
-    const versionId = details?.currentVersion?.version.id;
+    const versionId = editingVersion.current;
     const snapshot: DeskPiece = {
       matterId: selectedMatterId, draftId: selectedDraftId, versionId: versionId ?? '', title: draftTitle,
       dirty: dirty || loadingSelection || caseUnavailable || contextChanged,
+      deliveryId: importedDelivery?.id,
+      canOpenDelivery: attached => !loadingSelection && (!dirty || (attached && submittedLocalSnapshot.current === localSnapshot.current)),
     };
     snapshot.prepare = async () => {
       if (busy || loadingSelection || caseUnavailable) throw new Error('A peça ainda está sendo atualizada.');
@@ -596,19 +634,22 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
       return { matterId: selectedMatterId, draftId: saved.draft.id, versionId: saved.version.id, title: draftTitle, dirty: false };
     };
     onPieceChange(snapshot);
-  }, [integrated, onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, draftTitle, sections, dirty, busy, loadingSelection, caseUnavailable, contextChanged]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [integrated, onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, importedDelivery, draftTitle, sections, dirty, busy, loadingSelection, caseUnavailable, contextChanged]); // eslint-disable-line react-hooks/exhaustive-deps
   const expectedWorkVersion = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('versionId');
+  const selectionHasDifferentVersion = Boolean(selectedVersionId && editingVersion.current && selectedVersionId !== editingVersion.current);
   const returnExecution = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('returnExecution');
   const importDeliveryId = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('deliveryId');
   useEffect(() => {
     let active = true;
+    const sequence = selection.current;
+    const scope = deskScope();
     if (!importDeliveryId || new URL(requestedLocation || window.location.href, window.location.origin).searchParams.has('draftId') || authStatus !== 'authenticated') return;
     void requestApi<Delivery>(`/api/agentic/deliveries/${encodeURIComponent(importDeliveryId)}`, {}, { sessionOnly: true }).then(d => {
-      if (!active || !d.delivery.document) return;
+      if (!active || sequence !== selection.current || (integrated && scope !== deskScope()) || !d.delivery.document) return;
       if (dirty && submittedLocalSnapshot.current !== localSnapshot.current) { setError('Sua edição local foi preservada. A resposta está disponível na conversa.'); return; }
       submittedLocalSnapshot.current = undefined;
+      editingVersion.current=undefined;
       setSelectedMatterId(''); setSelectedDraftId(''); setDetails(null); setImportedDelivery(d); setSavedPayload('');
-      if (integrated && window.location.pathname === '/app/trabalho') { const route=new URL(window.location.href); route.searchParams.delete('matterId');route.searchParams.delete('draftId');route.searchParams.delete('versionId');route.searchParams.set('deliveryId',importDeliveryId);window.history.replaceState({},'',route); }
     }).catch(e => { if (active) setError(e instanceof Error ? e.message : 'Entrega indisponível.'); });
     return () => { active = false; };
   }, [importDeliveryId, authStatus]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -696,7 +737,10 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
       onMatter={id=>void selectMatter(id)} onDraft={id=>id ? void selectDraft(id) : void selectMatter(selectedMatterId)}
       onSave={()=>void saveDraft()} onExport={format=>void exportOpenPiece(format)}
       caseControls={<details><summary className="cursor-pointer text-xs text-stone-600">Criar caso</summary><label className="mt-2 block text-xs">Nome do caso<input className="mt-1 w-full rounded border p-2" value={newWorkCase} maxLength={200} onChange={e=>setNewWorkCase(e.target.value)}/></label><button type="button" className="mt-2 text-sm text-cognac-800" disabled={busy || !newWorkCase.trim()} onClick={async()=>{setBusy(true);try{const m=await requestApi<Matter>('/api/v2/matters',{method:'POST',body:JSON.stringify({title:newWorkCase.trim()})},{sessionOnly:true});setMatters(old=>[...old,m]);await selectMatter(m.id);setNewWorkCase('');}catch(e){setError(e instanceof Error?e.message:'Não foi possível criar o caso.');}finally{setBusy(false);}}}>Criar caso e usar na peça</button></details>}
-      extras={importedDelivery && !selectedMatterId ? <p className="px-5 pt-3 text-sm text-stone-600">Escolha um caso em “Abrir peça” para guardar esta entrega. Você já pode editar e exportar localmente.</p> : undefined}
+      extras={selectionHasDifferentVersion ? <p className="px-5 pt-3 text-sm text-stone-600">
+        Este link aponta para outra versão. <button type="button" className="underline" disabled={busy || loadingSelection}
+          onClick={() => publishDeskPiece(deskScope(), { matterId: selectedMatterId, draftId: selectedDraftId, versionId: editingVersion.current })}>Usar versão aberta</button>
+      </p> : importedDelivery && !selectedMatterId ? <p className="px-5 pt-3 text-sm text-stone-600">Escolha um caso em “Abrir peça” para guardar esta entrega. Você já pode editar e exportar localmente.</p> : undefined}
       history={<div className="space-y-3">{details?.versions.map(v=><button type="button" key={v.id} onClick={()=>void openHistory(v.id)} className="block w-full rounded-lg border border-stone-200 p-3 text-left">Versão {v.versionNumber} · {statusLabel[v.status]}</button>)}{historyLoading && <p>Carregando…</p>}{historyRuns.map(r=><div key={r.id}>{r.checks.map((c,i)=><p key={i} className="py-2 text-sm">{c.message}</p>)}</div>)}</div>}
 
     />
@@ -705,7 +749,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     <div className="py-8 md:py-12">
       <div className="page-container space-y-8">
         {importedDelivery && !selectedDraftId && <section aria-label="Vincular entrega ao caso" className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4"><p>Minuta preliminar recebida do trabalho. Escolha um caso na lista ou crie um caso antes de salvar. A avaliação jurídica continua pendente.</p><label className="block">Novo caso para esta minuta<input className="ml-2 rounded border p-2" value={newWorkCase} maxLength={200} onChange={e => setNewWorkCase(e.target.value)} /></label><button className="btn-secondary min-h-11" disabled={busy || !newWorkCase.trim()} onClick={async () => { setBusy(true); try { const m = await requestApi<Matter>('/api/v2/matters', { method: 'POST', body: JSON.stringify({ title: newWorkCase.trim() }) }, { sessionOnly: true }); setMatters(old => [...old,m]); await selectMatter(m.id); setNewWorkCase(''); } catch(e) { setError(e instanceof Error ? e.message : 'Não foi possível criar o caso.'); } finally { setBusy(false); } }}>Criar caso e vincular minuta</button></section>}
-        {returnExecution && <div className="space-y-2"><button type="button" className="btn-secondary min-h-11" onClick={() => { setActiveTab('work'); window.history.replaceState({}, '', `/app/trabalho?executionId=${encodeURIComponent(returnExecution)}`); window.dispatchEvent(new PopStateEvent('popstate')); }}>Voltar ao trabalho</button>{dirty && <p role="status">Há alterações não salvas. Elas permanecem no editor ao voltar ao trabalho.</p>}{expectedWorkVersion && details?.currentVersion && expectedWorkVersion !== details.currentVersion.version.id && <p role="status">A versão atual da minuta difere da entrega original. O editor mostra a versão atual; confira o histórico antes de salvar.</p>}</div>}
+        {returnExecution && <div className="space-y-2"><button type="button" className="btn-secondary min-h-11" onClick={() => setActiveTab('work', 'push', { executionId: returnExecution })}>Voltar ao trabalho</button>{dirty && <p role="status">Há alterações não salvas. Elas permanecem no editor ao voltar ao trabalho.</p>}{expectedWorkVersion && details?.currentVersion && expectedWorkVersion !== details.currentVersion.version.id && <p role="status">A versão atual da minuta difere da entrega original. O editor mostra a versão atual; confira o histórico antes de salvar.</p>}</div>}
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div className="space-y-3">
             <div className="eyebrow inline-flex items-center gap-2 rounded-full bg-cognac-100 px-3 py-1">

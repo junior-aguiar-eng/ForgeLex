@@ -1,5 +1,5 @@
 import type { DeskPiece, DeskRequest } from './desk-model';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { requestApi } from '../api-client';
 import type { WorkspaceClient, StartInput } from './client';
 import { reais, type CommercialAuthorization, type CommercialQuote } from './commercial-model';
@@ -38,6 +38,7 @@ export function Composer({
   available,
   followUp,
   piece,
+  piecePending = false,
   request,
   onFail,
   onSubmit,
@@ -50,6 +51,7 @@ export function Composer({
   available: boolean;
   followUp?: ComposerFollowUp;
   piece?: DeskPiece | null;
+  piecePending?: boolean;
   request?: DeskRequest;
   onFail: (error: unknown) => void;
   onSubmit: (input: StartInput, authorization?: CommercialAuthorization) => void;
@@ -70,13 +72,18 @@ export function Composer({
   const [matters, setMatters] = useState<{ id: string; title: string }[]>([]);
   const [documents, setDocuments] = useState<MatterDocument[]>([]);
   const [drafts, setDrafts] = useState<MatterDraft[]>([]);
+  const hadPiece = useRef(false);
   useEffect(() => {
-    if (!piece || piece.matterId === matter) return;
-    setMatter(piece.matterId);
+    if (piecePending || followUp) return;
+    if (!piece && !hadPiece.current) return;
+    hadPiece.current = Boolean(piece);
+    const nextMatter = piece?.matterId ?? '';
+    if (nextMatter === matter) return;
+    setMatter(nextMatter);
     setInheritedText('');
     setSelected([]);
     setSelectedDraft(undefined);
-  }, [piece, matter]);
+  }, [piece, piecePending, followUp, matter]);
   const [scopeOpen, setScopeOpen] = useState(false);
   const [quoteFailed, setQuoteFailed] = useState(false);
   const [quote, setQuote] = useState<CommercialQuote>();
@@ -154,21 +161,37 @@ export function Composer({
     .filter(Boolean)
     .join(' · ');
   const [preparing, setPreparing] = useState(false);
+  const preparation = useRef(0);
+  useLayoutEffect(() => {
+    const ticket = preparation.current;
+    return () => {
+      preparation.current = ticket + 1;
+    };
+  }, [available]);
+  const pieceConflict = Boolean(piece && followUp && (piece.matterId || null) !== followUp.matterId);
   const send = async () => {
-    if (!goal || busy || preparing || !available) return;
+    if (!goal || busy || preparing || !available || piecePending || pieceConflict) return;
     if (commercial && authorizeOnSend && (!quote || quote.availableCents < quote.maxCostCents)) return;
+    const ticket = preparation.current;
+    const index = window.history.state?.forgelexIndex;
+    const isCurrent = () => ticket === preparation.current && index === window.history.state?.forgelexIndex;
     setPreparing(true);
     try {
       const currentPiece = piece?.prepare ? await piece.prepare() : piece;
+      if (!isCurrent()) return;
       if (currentPiece?.dirty) throw new Error('A peça ainda está sendo atualizada.');
+      const matterId = currentPiece ? currentPiece.matterId : followUp ? followUp.matterId : matter;
+      const draft = currentPiece
+        ? currentPiece.draftId && currentPiece.versionId
+          ? { draftId: currentPiece.draftId, versionId: currentPiece.versionId }
+          : undefined
+        : selectedDraft;
       onSubmit(
         {
           objective: goal,
           ...(action ? { actionId: action } : {}),
-          ...(followUp && (!currentPiece || (currentPiece.matterId || null) === followUp.matterId)
-            ? { conversationId: followUp.conversationId, contextRevision: followUp.contextRevision }
-            : {}),
-          ...(currentPiece?.matterId || matter ? { matterId: currentPiece?.matterId || matter } : {}),
+          ...(followUp ? { conversationId: followUp.conversationId, contextRevision: followUp.contextRevision } : {}),
+          ...(matterId ? { matterId } : {}),
           context: {
             text: currentPiece?.localText
               ? `Peça aberta (conteúdo do usuário):\n${currentPiece.localText}`
@@ -184,25 +207,31 @@ export function Composer({
                     : 'DOCUMENT'
                   : 'USER',
             documents: currentPiece && currentPiece.matterId !== matter ? [] : selected,
-            ...(currentPiece?.draftId && currentPiece.versionId
-              ? { draft: { draftId: currentPiece.draftId, versionId: currentPiece.versionId } }
-              : selectedDraft
-                ? { draft: selectedDraft }
-                : {}),
+            ...(draft ? { draft } : {}),
           },
         },
         commercial && authorizeOnSend && quote ? { confirmed: true, policyVersion: quote.policyVersion } : undefined,
       );
     } catch (error) {
-      onFail(error);
+      if (isCurrent()) onFail(error);
     } finally {
       setPreparing(false);
     }
   };
   return (
     <section aria-label="Novo pedido" className="space-y-4">
-      {piece && (
+      {piece && !pieceConflict && (
         <p className="text-xs text-stone-500">{`Sobre a peça: ${piece.title}`} · Ao enviar, uso o texto aberto.</p>
+      )}
+      {piecePending && (
+        <p role="status" className="text-xs text-stone-600">
+          A peça selecionada precisa estar disponível para enviar.
+        </p>
+      )}
+      {pieceConflict && (
+        <p role="status" className="text-xs text-stone-600">
+          Abra uma nova conversa para trabalhar com a peça de outro caso.
+        </p>
       )}
       <div
         role="group"
@@ -255,6 +284,8 @@ export function Composer({
             disabled={
               busy ||
               preparing ||
+              piecePending ||
+              pieceConflict ||
               !available ||
               !goal ||
               (commercial && authorizeOnSend && (!quote || quote.availableCents < quote.maxCostCents))

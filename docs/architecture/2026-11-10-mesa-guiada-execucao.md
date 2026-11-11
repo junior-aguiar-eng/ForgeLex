@@ -60,7 +60,15 @@ A API prepara a conversa, registra cada resposta e reabre a pergunta ativa usand
 - A gravação é opt-in por `FORGELEX_DESK_GUIDANCE_ENABLED=true` junto ao workspace agêntico, fora do piloto fechado. O padrão preserva o rollout leitor antes do escritor.
 - Validação local: build da API e dependências, tipos de API e domínio, lint e formatação dos arquivos alterados. 76 testes focados passaram em cinco suítes. Os novos casos cobrem concorrência de duas abas, acesso, chave UUID, opção inválida, retomada, replay histórico, invalidação de peça e recusa de revisão antiga. A preparação verificou ausência de execução, job, chamada e reserva de inferência. Os testes de persistência usam SQLite em memória.
 
-Próxima tarefa: R4, seleção única e navegação da Mesa. O estado de cada etapa está nos checkboxes do plano.
+## R4 · seleção única e navegação da Mesa
+
+- A URL da Mesa concentra execução, conversa, revisão de contexto, caso, peça e versão. A navegação por Casos preserva a seleção completa. Links antigos de Rascunhos e Revisão continuam abrindo na Mesa.
+- Abrir outra conversa desvincula a peça anterior do envio. O editor montado conserva a edição local para recuperar com Voltar. Quando um link indica uma versão diferente da carregada, o envio com a versão aberta exige confirmação explícita.
+- O compositor envia a versão preparada pelo editor e mantém o vínculo da conversa nas continuações. Respostas de outro alvo são ignoradas. Se o usuário apenas abre outra área do app, o trabalho pode terminar e atualizar a seleção guardada da Mesa sem alterar a página ativa.
+- A seleção transporta a referência da orientação persistida e limpa seu vínculo ao trocar o caso antes da execução. O formulário guiado e o consumo desse contexto pelo orquestrador seguem em R6 e R7.
+- Validação local com 67 testes unitários de navegação, seleção e modelo de execução e 36 testes Playwright da Mesa, revisão editorial, workspace agêntico e autorização comercial simulada. Build web, lint dos arquivos TypeScript alterados e verificação de diff passaram.
+
+Próxima etapa é R5, seleção interna de habilidades.
 
 ## Evidências locais
 

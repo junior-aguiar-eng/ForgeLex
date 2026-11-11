@@ -1,46 +1,111 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { FileText, MessageSquare, PanelLeftClose, PanelLeftOpen, PanelRightClose, Plus } from 'lucide-react';
 import { AgenticWorkspaceScreen } from './AgenticWorkspaceScreen';
 import { DraftStudioScreen } from './DraftStudioScreen';
+import { useApp } from '../context/AppContext';
 import type { DeskPiece } from '../agentic-workspace/desk-model';
+import type { Execution } from '../agentic-workspace/execution-model';
+import {
+  hasDeskPiece,
+  matchesDeskPiece,
+  selectDeskExecution,
+  selectDeskPiece,
+} from '../agentic-workspace/desk-selection';
+import { deskLocation, readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
+import { tabForPath, updateDocumentTitle } from '../navigation/routes';
 
-export function WritingDeskScreen({
-  active,
-  requestedLocation,
-  onExecutionChange,
-}: {
-  active: boolean;
-  requestedLocation: string;
-  onExecutionChange: (id: string | null) => void;
-}) {
-  const initial = new URL(requestedLocation, window.location.origin);
-  const [location, setLocation] = useState(
-    initial.searchParams.has('draftId') ||
-      initial.searchParams.has('deliveryId') ||
-      initial.pathname.includes('rascunhos')
-      ? requestedLocation
-      : '',
-  );
+function editorLocation(selection: ReturnType<typeof readDeskLocation>): string {
+  return deskLocation(selectDeskPiece({}, selection));
+}
+
+export function WritingDeskScreen({ active, requestedLocation }: { active: boolean; requestedLocation: string }) {
+  const { getDeskSelection, setDeskSelection } = useApp();
+  const selection = readDeskLocation(requestedLocation);
+  const attached = active && hasDeskPiece(selection);
+  const [location, setLocation] = useState(() => (attached ? editorLocation(selection) : ''));
   const [open, setOpen] = useState(Boolean(location));
   const [mobile, setMobile] = useState<'chat' | 'piece'>(location ? 'piece' : 'chat');
   const [piece, setPiece] = useState<DeskPiece | null>(null);
   const [historyContainer, setHistoryContainer] = useState<HTMLElement | null>(null);
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
-  const openPiece = useCallback((url: string) => {
-    setLocation(url);
+  const activePiece = attached && piece && matchesDeskPiece(selection, piece) ? piece : null;
+  const target = attached ? editorLocation(selection) : '';
+  const previousTarget = useRef(target);
+
+  useLayoutEffect(() => {
+    if (!active) return;
+    const tab = tabForPath(new URL(requestedLocation).pathname);
+    if (tab === 'draft_studio' || tab === 'dashboard') {
+      writeDeskLocation(readDeskLocation(requestedLocation));
+      updateDocumentTitle('work');
+    }
+  }, [active, requestedLocation]);
+
+  useLayoutEffect(() => {
+    if (!active) return;
+    if (!target) {
+      setOpen(false);
+      setMobile('chat');
+    } else {
+      setLocation(target);
+      if (!previousTarget.current) {
+        setOpen(true);
+        setMobile('piece');
+      }
+    }
+    previousTarget.current = target;
+  }, [active, target]);
+
+  const changeExecution = useCallback(
+    (id: string | null, switched: boolean) => {
+      const current = getDeskSelection();
+      if (switched) setDeskSelection(selectDeskExecution(current, id ?? undefined), 'push');
+      else setDeskSelection({ ...current, executionId: id ?? undefined });
+    },
+    [getDeskSelection, setDeskSelection],
+  );
+
+  const rememberConversation = useCallback(
+    (run: Execution) => {
+      const current = getDeskSelection();
+      if (current.executionId !== run.id) return;
+      setDeskSelection({ ...current, conversationId: run.conversationId, contextRevision: run.contextRevision });
+    },
+    [getDeskSelection, setDeskSelection],
+  );
+  const selectionKey = useCallback(() => deskLocation(getDeskSelection()), [getDeskSelection]);
+
+  const openPiece = useCallback(
+    (url: string, keepSelected = false) => {
+      if (tabForPath(window.location.pathname) !== 'work') return;
+      const current = readDeskLocation(window.location.href);
+      const delivery = readDeskLocation(url);
+      if (keepSelected && hasDeskPiece(current)) return;
+      if (delivery.executionId !== current.executionId || piece?.canOpenDelivery?.(hasDeskPiece(current)) === false)
+        return;
+      writeDeskLocation(selectDeskPiece(current, delivery));
+      setOpen(true);
+      setMobile('piece');
+    },
+    [piece],
+  );
+
+  const reopenPiece = () => {
+    if (!attached) {
+      const document = piece
+        ? {
+            matterId: piece.matterId || undefined,
+            draftId: piece.draftId || undefined,
+            versionId: piece.versionId || undefined,
+            deliveryId: piece.deliveryId,
+          }
+        : {};
+      writeDeskLocation(selectDeskPiece(selection, document), 'push');
+    }
     setOpen(true);
     setMobile('piece');
-    const next = new URL(window.location.href);
-    const execution =
-      new URL(window.location.href).searchParams.get('executionId') ?? next.searchParams.get('returnExecution');
-    next.pathname = '/app/trabalho';
-    if (execution) next.searchParams.set('executionId', execution);
-    window.history.replaceState({}, '', next);
-  }, []);
-  useEffect(() => {
-    const url = new URL(requestedLocation, window.location.origin);
-    if (url.pathname.includes('rascunhos')) openPiece(requestedLocation);
-  }, [requestedLocation, openPiece]);
+    if (!location) setLocation(target || editorLocation({}));
+  };
   return (
     <div className="min-w-0" data-writing-desk>
       <header className="flex min-h-12 items-center gap-3 border-b border-stone-200 px-5 text-sm">
@@ -57,11 +122,7 @@ export function WritingDeskScreen({
         <span className="mr-auto" />
         <button
           type="button"
-          onClick={() => {
-            setOpen(true);
-            setMobile('piece');
-            if (!location) setLocation('/app/trabalho');
-          }}
+          onClick={reopenPiece}
           className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100"
         >
           <Plus size={16} />
@@ -123,8 +184,12 @@ export function WritingDeskScreen({
               integrated
               historyContainer={historyContainer}
               onEditor={openPiece}
-              onExecutionChange={onExecutionChange}
-              piece={piece}
+              requestedExecutionId={active ? (selection.executionId ?? null) : undefined}
+              onExecutionChange={changeExecution}
+              onConversationChange={rememberConversation}
+              selectionKey={selectionKey}
+              piece={activePiece}
+              piecePending={attached && !activePiece}
             />
           </div>
           {location && (
@@ -132,7 +197,12 @@ export function WritingDeskScreen({
               style={!open ? { display: 'none' } : undefined}
               className={`${mobile === 'chat' ? 'hidden lg:block' : ''} min-w-0 border-l border-stone-200`}
             >
-              <DraftStudioScreen integrated requestedLocation={location} onPieceChange={setPiece} />
+              <DraftStudioScreen
+                integrated
+                requestedLocation={location}
+                selectedVersionId={attached ? selection.versionId : undefined}
+                onPieceChange={setPiece}
+              />
             </div>
           )}
         </div>

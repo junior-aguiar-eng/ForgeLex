@@ -471,13 +471,15 @@ flowchart LR
 
 **Arquivos.** `desk-selection.ts`, `desk-location.ts`, `App`, contexto, Mesa e editor.
 
-- [ ] Reproduzir troca de conversa mantendo peça incompatível e perda de parâmetros ao voltar à Mesa.
-- [ ] Implementar transições puras e adaptação comum de URL.
-- [ ] Integrar orientação ao contexto selecionado sem duplicar o buffer da peça.
-- [ ] Preservar histórico do navegador, aliases antigos e texto local.
-- [ ] Ignorar respostas tardias de uma seleção anterior.
+- [x] Reproduzir troca de conversa mantendo peça incompatível e perda de parâmetros ao voltar à Mesa.
+- [x] Implementar transições puras e adaptação comum de URL.
+- [x] Integrar orientação ao contexto selecionado sem duplicar o buffer da peça.
+- [x] Preservar histórico do navegador, aliases antigos e texto local.
+- [x] Ignorar respostas tardias de uma seleção anterior.
 
 **Aceite.** Alvo apresentado corresponde ao enviado. Voltar/Avançar e recarga restauram a seleção persistida. Trocar caso não aplica decisão de uma conversa anterior.
+
+**Evidência.** 67 testes unitários e 36 testes Playwright locais aprovados. O [registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#r4--seleção-única-e-navegação-da-mesa) descreve a seleção e o limite da integração com a orientação.
 
 ### R5 — Seleção interna de habilidades
 

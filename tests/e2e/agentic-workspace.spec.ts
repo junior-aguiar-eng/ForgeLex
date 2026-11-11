@@ -144,6 +144,9 @@ test('regressão final: resposta tardia não troca URL de outra superfície ou s
   release();
   await expect(page.locator('[data-agentic-workspace] article')).toHaveCount(1);
   await expect(page).toHaveURL(/\/app\/casos(?:\?|$)/);
+  await page.getByRole('button', { name: 'Mesa', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/trabalho\?executionId=/);
+  await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
 });
 test('regressão final: EOF em pergunta reconecta e observa perda de acesso', async ({ page }) => {
   await login(page);
