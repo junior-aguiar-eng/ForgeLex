@@ -13,6 +13,7 @@ export interface GuidanceState {
   matterId: string | null;
   contextRevision: number;
   objective: string;
+  description?: string;
   decisions: Record<
     GuidanceField,
     {

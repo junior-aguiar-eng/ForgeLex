@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { SearchResultItem } from '../operations/contracts';
 import './decision-reader.css';
+import { CitationChecks } from './CitationChecks';
 
 export interface ReaderEntry {
   decision?: SearchResultItem;
@@ -256,13 +257,7 @@ export function DecisionReader({
             </div>
           )}
           <div className="reader-origin" id={`${contentId}-origin`} hidden={!originOpen}>
-            <p>
-              {item.verificationStatus === 'VERIFIED_OFFICIAL'
-                ? 'Conferida na fonte oficial.'
-                : item.verificationStatus === 'VERIFIED_PROVIDER'
-                  ? 'Conferida no fornecedor informado.'
-                  : 'A fonte ainda não foi conferida.'}
-            </p>
+            <CitationChecks identity={item.verificationStatus} />
             {safeSourceUrl(item.sourceUrl) ? (
               sourceLink(safeSourceUrl(item.sourceUrl)!, 'Conferir decisão')
             ) : (

@@ -3,10 +3,10 @@ import { ApiRequestError, requestApi } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 import type { SearchResultItem } from '../operations/contracts';
 
-export function SaveAuthorityToCase({ item }: { item: SearchResultItem }) {
+export function SaveAuthorityToCase({ item, pieceMatterId }: { item: SearchResultItem; pieceMatterId?: string }) {
   const { status, account } = useAuth();
   const [open, setOpen] = useState(false);
-  const identity = `${status}:${account?.user.id ?? ''}:${account?.workspace.id ?? ''}`;
+  const identity = `${status}:${account?.user.id ?? ''}:${account?.workspace.id ?? ''}:${item.id}:${item.versionId ?? ''}`;
   useEffect(() => {
     setOpen(false);
   }, [identity]);
@@ -16,12 +16,20 @@ export function SaveAuthorityToCase({ item }: { item: SearchResultItem }) {
       <button type="button" className="btn-quiet min-h-9 text-xs" onClick={() => setOpen(true)}>
         Salvar no caso
       </button>
-      {open && <SaveDialog key={identity} item={item} onClose={() => setOpen(false)} />}
+      {open && <SaveDialog key={identity} item={item} pieceMatterId={pieceMatterId} onClose={() => setOpen(false)} />}
     </>
   );
 }
 
-function SaveDialog({ item, onClose }: { item: SearchResultItem; onClose: () => void }) {
+function SaveDialog({
+  item,
+  pieceMatterId,
+  onClose,
+}: {
+  item: SearchResultItem;
+  pieceMatterId?: string;
+  onClose: () => void;
+}) {
   const label = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const [cases, setCases] = useState<Array<{ id: string; title: string }>>([]);
@@ -78,7 +86,7 @@ function SaveDialog({ item, onClose }: { item: SearchResultItem; onClose: () => 
     setError('');
     setNotice('');
     try {
-      const result = await requestApi<{ created: boolean }>(
+      const result = await requestApi<{ created: boolean; record?: { authority: { versionId?: string } } }>(
         `/api/v2/matters/${encodeURIComponent(selected)}/authorities`,
         {
           method: 'POST',
@@ -86,10 +94,22 @@ function SaveDialog({ item, onClose }: { item: SearchResultItem; onClose: () => 
           body: JSON.stringify({ authority: item.sourceAuthority }),
         },
       );
-      if (!controller.current.signal.aborted)
-        setNotice(result.created ? 'Julgado salvo no caso.' : 'Este julgado já está salvo no caso.');
+      if (!controller.current.signal.aborted) {
+        const differentVersion = result.record && result.record.authority.versionId !== item.versionId;
+        setNotice(
+          result.created
+            ? 'Julgado salvo no caso.'
+            : differentVersion
+              ? 'O caso já guarda outra versão deste julgado.'
+              : 'Este julgado já está salvo no caso.',
+        );
+      }
     } catch (failure) {
-      if (!controller.current.signal.aborted)
+      if (!controller.current.signal.aborted) {
+        if (failure instanceof ApiRequestError && [401, 403, 404].includes(failure.status)) {
+          setSelected('');
+          setCases((previous) => (failure.status === 401 ? [] : previous.filter((matter) => matter.id !== selected)));
+        }
         setError(
           failure instanceof ApiRequestError && failure.status === 409
             ? 'Caso indisponível para edição. Ele pode ter sido arquivado ou movido para a lixeira. Escolha outro caso ativo.'
@@ -97,6 +117,7 @@ function SaveDialog({ item, onClose }: { item: SearchResultItem; onClose: () => 
               ? failure.message
               : 'Não foi possível salvar. Você pode tentar novamente sem duplicar o julgado.',
         );
+      }
     } finally {
       pending.current = false;
       if (!controller.current.signal.aborted) setBusy(false);
@@ -108,6 +129,7 @@ function SaveDialog({ item, onClose }: { item: SearchResultItem; onClose: () => 
       aria-labelledby={label}
       onCancel={(event) => {
         event.preventDefault();
+        event.stopPropagation();
         onClose();
       }}
       className="w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-champagne-border bg-white p-6 text-stone-900 shadow-xl backdrop:bg-stone-950/40"
@@ -143,6 +165,7 @@ function SaveDialog({ item, onClose }: { item: SearchResultItem; onClose: () => 
             {cases.map((matter) => (
               <option key={matter.id} value={matter.id}>
                 {matter.title}
+                {matter.id === pieceMatterId ? ' (caso da peça)' : ''}
               </option>
             ))}
           </select>

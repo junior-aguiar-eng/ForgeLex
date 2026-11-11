@@ -1,5 +1,5 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { FileText, MessageSquare, PanelLeftClose, PanelLeftOpen, PanelRightClose, Plus } from 'lucide-react';
+import { lazy, Suspense, useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { FileText, MessageSquare, PanelLeftClose, PanelLeftOpen, PanelRightClose, Plus, Search } from 'lucide-react';
 import { AgenticWorkspaceScreen } from './AgenticWorkspaceScreen';
 import { DraftStudioScreen } from './DraftStudioScreen';
 import { useApp } from '../context/AppContext';
@@ -11,17 +11,31 @@ import {
   matchesDeskPiece,
   selectDeskExecution,
   selectDeskPiece,
+  type DeskDocumentSelection,
 } from '../agentic-workspace/desk-selection';
 import { deskLocation, readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
 import { tabForPath, updateDocumentTitle } from '../navigation/routes';
+import { useAuth } from '../auth/AuthContext';
+import { ScreenLoadBoundary } from '../components/ScreenLoadBoundary';
+import { CanvasDialog } from './draft-review/DraftCanvas';
+import { DeskCaseSources } from '../research/DeskCaseSources';
+import { DashboardScreen } from './DashboardScreen';
+import type { ReviewQueueItem } from '../operations/contracts';
+
+const ResearchDeskScreen = lazy(() =>
+  import('./ResearchDeskScreen').then(({ ResearchDeskScreen }) => ({ default: ResearchDeskScreen })),
+);
 
 function editorLocation(selection: ReturnType<typeof readDeskLocation>): string {
   return deskLocation(selectDeskPiece({}, selection));
 }
 
 export function WritingDeskScreen({ active, requestedLocation }: { active: boolean; requestedLocation: string }) {
-  const { getDeskSelection, setDeskSelection } = useApp();
-  const selection = readDeskLocation(requestedLocation);
+  const { getDeskSelection, setDeskSelection, refreshOperationalState } = useApp();
+  const { status, account } = useAuth();
+  const legacyTab = tabForPath(new URL(requestedLocation).pathname);
+  const routeSelection = readDeskLocation(requestedLocation);
+  const selection = legacyTab === 'dashboard' && !routeSelection.draftId ? getDeskSelection() : routeSelection;
   const attached = active && hasDeskPiece(selection);
   const [location, setLocation] = useState(() => (attached ? editorLocation(selection) : ''));
   const [open, setOpen] = useState(Boolean(location));
@@ -32,15 +46,58 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
   const activePiece = attached && piece && matchesDeskPiece(selection, piece) ? piece : null;
   const target = attached ? editorLocation(selection) : '';
   const previousTarget = useRef(target);
+  const [sources, setSources] = useState<{ kind: 'research' | 'case'; key: string }>();
+  const [queueOpen, setQueueOpen] = useState(false);
+  const [queueError, setQueueError] = useState('');
+  const [requestedReview, setRequestedReview] = useState<DeskDocumentSelection>();
+  const [deskEditorialEnabled, setDeskEditorialEnabled] = useState(false);
+  const sourceKey = JSON.stringify([status, account?.user.id, account?.workspace.id, deskLocation(selection)]);
+  const openCaseSources = selection.matterId ? () => setSources({ kind: 'case', key: sourceKey }) : undefined;
 
   useLayoutEffect(() => {
-    if (!active) return;
+    if (!active) {
+      setSources(undefined);
+      setQueueOpen(false);
+      setRequestedReview(undefined);
+      return;
+    }
     const tab = tabForPath(new URL(requestedLocation).pathname);
-    if (tab === 'draft_studio' || tab === 'dashboard') {
-      writeDeskLocation(readDeskLocation(requestedLocation));
+    const legacy = readDeskLocation(requestedLocation);
+    if (tab === 'dashboard') {
+      if (legacy.draftId) {
+        setQueueOpen(false);
+        setRequestedReview(legacy);
+        setOpen(true);
+        setMobile('piece');
+      } else {
+        setQueueError('');
+        setQueueOpen(true);
+        void refreshOperationalState();
+      }
+      writeDeskLocation(legacy.draftId ? legacy : getDeskSelection());
+      updateDocumentTitle('work');
+    } else if (tab === 'draft_studio') {
+      writeDeskLocation(legacy);
       updateDocumentTitle('work');
     }
-  }, [active, requestedLocation]);
+  }, [active, getDeskSelection, refreshOperationalState, requestedLocation]);
+
+  const openQueuedDraft = (item: ReviewQueueItem) => {
+    if (!item.draftVersionId) {
+      setQueueError('A pendência não informa a versão do rascunho.');
+      return;
+    }
+    if (piece?.dirty && (item.matterId !== piece.matterId || item.targetId !== piece.draftId)) {
+      setQueueError('Salve a peça aberta antes de trocar de rascunho.');
+      return;
+    }
+    const document = { matterId: item.matterId, draftId: item.targetId, versionId: item.draftVersionId };
+    setRequestedReview(document);
+    setDeskSelection(selectDeskPiece(getDeskSelection(), document), 'push');
+    setOpen(true);
+    setMobile('piece');
+    setQueueOpen(false);
+  };
 
   useLayoutEffect(() => {
     if (!active) return;
@@ -121,7 +178,7 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
   };
   return (
     <div className="min-w-0" data-writing-desk>
-      <header className="flex min-h-12 items-center gap-3 border-b border-stone-200 px-5 text-sm">
+      <header className="flex min-h-12 flex-wrap items-center gap-3 border-b border-stone-200 px-5 text-sm">
         <button
           type="button"
           aria-label={historyCollapsed ? 'Mostrar conversas' : 'Recolher conversas'}
@@ -133,6 +190,25 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
           {historyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
         </button>
         <span className="mr-auto" />
+        <button
+          type="button"
+          className="rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100"
+          onClick={() => {
+            setQueueError('');
+            setQueueOpen(true);
+            void refreshOperationalState();
+          }}
+        >
+          Pendências de revisão
+        </button>
+        <button
+          type="button"
+          onClick={() => setSources({ kind: 'research', key: sourceKey })}
+          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100"
+        >
+          <Search size={16} aria-hidden="true" />
+          Pesquisa e fontes
+        </button>
         <button
           type="button"
           onClick={reopenPiece}
@@ -200,6 +276,7 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
               requestedExecutionId={active ? (selection.executionId ?? null) : undefined}
               onExecutionChange={changeExecution}
               onConversationChange={rememberConversation}
+              onDeskEditorialAvailability={setDeskEditorialEnabled}
               selectionKey={selectionKey}
               guidanceRoute={{
                 id: selection.executionId ? undefined : selection.conversationId,
@@ -208,7 +285,7 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
                 publish: publishGuidance,
               }}
               piece={activePiece}
-              piecePending={attached && !activePiece}
+              piecePending={attached && (!activePiece || activePiece.loadingSelection)}
             />
           </div>
           {location && (
@@ -221,11 +298,40 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
                 requestedLocation={location}
                 selectedVersionId={attached ? selection.versionId : undefined}
                 onPieceChange={setPiece}
+                onCaseSources={openCaseSources}
+                requestedReview={requestedReview}
+                deskEditorialEnabled={deskEditorialEnabled}
               />
             </div>
           )}
         </div>
       </div>
+      {active && sources?.key === sourceKey && (
+        <CanvasDialog
+          title={sources.kind === 'research' ? 'Pesquisa e fontes' : 'Fontes do caso'}
+          onClose={() => setSources(undefined)}
+        >
+          {sources.kind === 'research' ? (
+            <ScreenLoadBoundary fallback={<p role="alert">Não foi possível abrir a pesquisa.</p>}>
+              <Suspense fallback={<p role="status">Carregando pesquisa…</p>}>
+                <ResearchDeskScreen compact pieceMatterId={selection.matterId} />
+              </Suspense>
+            </ScreenLoadBoundary>
+          ) : (
+            selection.matterId && <DeskCaseSources key={sourceKey} matterId={selection.matterId} />
+          )}
+        </CanvasDialog>
+      )}
+      {active && queueOpen && (
+        <CanvasDialog title="Revisão do caso" onClose={() => setQueueOpen(false)}>
+          {queueError && (
+            <p role="alert" className="text-sm text-amber-800">
+              {queueError}
+            </p>
+          )}
+          <DashboardScreen compact onOpenDraft={openQueuedDraft} />
+        </CanvasDialog>
+      )}
     </div>
   );
 }

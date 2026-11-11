@@ -17,7 +17,7 @@ export function ReviewPanel({
   currentRun?: DraftReviewRun;
   findings: DraftReviewFinding[];
   stale: boolean;
-  onOpenPoint: (point: ReviewPoint) => void;
+  onOpenPoint?: (point: ReviewPoint) => void;
 }) {
   const shown = latestRun ?? currentRun;
   const groups = groupReviewChecks(shown?.checks ?? []);
@@ -34,25 +34,27 @@ export function ReviewPanel({
             {check.humanConfirmed ? 'Conferência humana registrada' : 'Conferência humana ainda não registrada'}
           </p>
         )}
-        <button
-          type="button"
-          onClick={() =>
-            onOpenPoint({
-              check,
-              finding: findings.find(
-                (f) => f.code === check.code && f.sectionId === check.sectionId && f.targetId === check.targetId,
-              ),
-            })
-          }
-          className="btn-secondary"
-        >
-          Ver ponto
-        </button>
+        {onOpenPoint && (
+          <button
+            type="button"
+            onClick={() =>
+              onOpenPoint({
+                check,
+                finding: findings.find(
+                  (f) => f.code === check.code && f.sectionId === check.sectionId && f.targetId === check.targetId,
+                ),
+              })
+            }
+            className="btn-secondary"
+          >
+            Ver ponto
+          </button>
+        )}
       </div>
     ));
   return (
     <section
-      id="conferencia"
+      id={onOpenPoint ? 'conferencia' : undefined}
       aria-label="Conferência do rascunho"
       className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-4"
     >

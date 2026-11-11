@@ -44,7 +44,7 @@ const AppContext = createContext<AppContextType | null>(null);
 
 function isDeskRoute(path: string): boolean {
   const tab = tabForPath(path);
-  return tab === 'work' || (AGENTIC_WORKSPACE_ENABLED && CASE_WORKSPACE_ENABLED && (tab === 'draft_studio' || tab === 'dashboard'));
+  return tab === 'work' || (AGENTIC_WORKSPACE_ENABLED && CASE_WORKSPACE_ENABLED && tab === 'draft_studio');
 }
 
 function mapAuthority(item: any): SearchResultItem {

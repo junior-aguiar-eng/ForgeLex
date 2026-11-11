@@ -33,6 +33,7 @@ export function ConfirmationDialog({
       aria-describedby="research-confirm-description"
       onCancel={(event) => {
         event.preventDefault();
+        event.stopPropagation();
         if (!busy) onCancel();
       }}
       className="rounded-2xl border border-stone-200 p-5 max-w-md w-[calc(100%-2rem)] backdrop:bg-black/50"

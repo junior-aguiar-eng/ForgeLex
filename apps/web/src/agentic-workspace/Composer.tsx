@@ -50,7 +50,6 @@ export function Composer({
   guidanceBusy = false,
   guidanceEditing = false,
   guidanceError,
-  onLeaveGuidance,
 }: {
   client: WorkspaceClient;
   actions: PublicAction[];
@@ -70,9 +69,8 @@ export function Composer({
   guidanceBusy?: boolean;
   guidanceEditing?: boolean;
   guidanceError?: string;
-  onLeaveGuidance?: () => void;
 }) {
-  const [objective, setObjective] = useState('');
+  const [objective, setObjective] = useState<string>();
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const lastGuidance = useRef<string>();
   const startFromComposer = useRef(false);
@@ -86,7 +84,7 @@ export function Composer({
     if (!guidanceState || lastGuidance.current === guidanceState.conversationId) return;
     lastGuidance.current = guidanceState.conversationId;
     if (!startFromComposer.current) {
-      setObjective(guidanceState.objective);
+      setObjective(guidanceState.objective || undefined);
       setMatter(guidanceState.matterId ?? '');
       setSelected([]);
       setSelectedDraft(undefined);
@@ -189,7 +187,9 @@ export function Composer({
     };
   }, [matter, scopeOpen]);
 
-  const goal = objective.trim();
+  const description = guidanceState?.description;
+  const message = objective ?? (description && description.length <= 15000 ? description : '');
+  const goal = message.trim();
   // One visible message supplies the written context; existing conversations retain theirs.
   const text = inheritedText || goal;
   const matterTitle = matters.find((m) => m.id === matter)?.title;
@@ -207,10 +207,12 @@ export function Composer({
       preparation.current = ticket + 1;
     };
   }, [available]);
-  const pieceConflict = Boolean(piece && followUp && (piece.matterId || null) !== followUp.matterId);
+  const conversationMatter = guidanceState ? guidanceState.matterId : followUp?.matterId;
+  const pieceConflict = Boolean(
+    piece && conversationMatter !== undefined && (piece.matterId || null) !== conversationMatter,
+  );
   const guided = Boolean(guidanceId);
-  const guidedDocumentContext = guided && Boolean(piece || piecePending || selected.length || selectedDraft);
-  const canSendGuide = Boolean(guidanceState && !guidanceState.question && !guidanceEditing && !guidedDocumentContext);
+  const canSendGuide = Boolean(guidanceState && !guidanceState.question && !guidanceEditing);
   const authorization =
     commercial && authorizeOnSend && quote
       ? { confirmed: true as const, policyVersion: quote.policyVersion }
@@ -218,21 +220,7 @@ export function Composer({
   const send = async () => {
     if (!goal || busy || preparing || !available || piecePending || pieceConflict || guidanceBusy) return;
     if (commercial && authorizeOnSend && (!quote || quote.availableCents < quote.maxCostCents)) return;
-    if (guided) {
-      if (!canSendGuide || !guidanceState) return;
-      const confirmedAction = actions.find((action) => action.id === guidanceState.decisions.action.value);
-      onSubmit(
-        {
-          objective: goal,
-          conversationId: guidanceState.conversationId,
-          contextRevision: guidanceState.contextRevision,
-          ...(guidanceState.matterId ? { matterId: guidanceState.matterId } : {}),
-          ...(confirmedAction ? { actionId: confirmedAction.id } : {}),
-        },
-        authorization,
-      );
-      return;
-    }
+    if (guided && !canSendGuide) return;
     const ticket = preparation.current;
     const index = window.history.state?.forgelexIndex;
     const isCurrent = () => ticket === preparation.current && index === window.history.state?.forgelexIndex;
@@ -241,7 +229,13 @@ export function Composer({
       const currentPiece = piece?.prepare ? await piece.prepare() : piece;
       if (!isCurrent()) return;
       if (currentPiece?.dirty) throw new Error('A peça ainda está sendo atualizada.');
-      const matterId = currentPiece ? currentPiece.matterId : followUp ? followUp.matterId : matter;
+      const conversation = guidanceState ?? followUp;
+      const matterId = currentPiece ? currentPiece.matterId : conversation ? conversation.matterId : matter;
+      if (conversation && (matterId || null) !== conversation.matterId)
+        throw new Error('A peça pertence a outro caso.');
+      const actionId = guidanceState
+        ? actions.find((item) => item.id === guidanceState.decisions.action.value)?.id
+        : action;
       const draft = currentPiece
         ? currentPiece.draftId && currentPiece.versionId
           ? { draftId: currentPiece.draftId, versionId: currentPiece.versionId }
@@ -250,26 +244,36 @@ export function Composer({
       onSubmit(
         {
           objective: goal,
-          ...(action ? { actionId: action } : {}),
-          ...(followUp ? { conversationId: followUp.conversationId, contextRevision: followUp.contextRevision } : {}),
+          ...(actionId ? { actionId } : {}),
+          ...(conversation
+            ? { conversationId: conversation.conversationId, contextRevision: conversation.contextRevision }
+            : {}),
+          ...(followUp && !guided ? { useGuidance: false } : {}),
           ...(matterId ? { matterId } : {}),
-          context: {
-            text: currentPiece?.localText
-              ? `Peça aberta (conteúdo do usuário):\n${currentPiece.localText}`
-              : currentPiece && currentPiece.matterId !== matter
-                ? goal
-                : text,
-            origin:
-              currentPiece && currentPiece.matterId !== matter
-                ? 'USER'
-                : selected.length
-                  ? text.trim()
-                    ? 'MIXED'
-                    : 'DOCUMENT'
-                  : 'USER',
-            documents: currentPiece && currentPiece.matterId !== matter ? [] : selected,
-            ...(draft ? { draft } : {}),
-          },
+          ...(!guided || currentPiece || selected.length || draft
+            ? {
+                context: {
+                  text: currentPiece?.localText
+                    ? `Peça aberta (conteúdo do usuário):\n${currentPiece.localText}`
+                    : currentPiece && currentPiece.matterId !== matter
+                      ? goal
+                      : text,
+                  origin:
+                    currentPiece && currentPiece.matterId !== matter
+                      ? 'USER'
+                      : selected.length
+                        ? text.trim()
+                          ? 'MIXED'
+                          : 'DOCUMENT'
+                        : 'USER',
+                  documents: currentPiece && currentPiece.matterId !== matter ? [] : selected,
+                  ...(draft ? { draft } : {}),
+                  ...(currentPiece?.editSelection && currentPiece.editSelection.versionId === draft?.versionId
+                    ? { deskEdit: currentPiece.editSelection }
+                    : {}),
+                },
+              }
+            : {}),
         },
         authorization,
       );
@@ -283,8 +287,16 @@ export function Composer({
   const pendingQuestion = guidanceEditing || Boolean(guidanceState?.question);
   return (
     <section aria-label="Novo pedido" className="space-y-4">
-      {!guided && piece && !pieceConflict && (
+      {piece && !pieceConflict && (!guided || canSendGuide) && (
         <p className="text-xs text-stone-500">{`Sobre a peça: ${piece.title}`} · Ao enviar, uso o texto aberto.</p>
+      )}
+      {piece?.editSelection && !pieceConflict && (
+        <div className="flex items-start gap-2 text-sm text-stone-700">
+          <span className="min-w-0 flex-1 truncate">Trecho para editar · {piece.editSelection.before}</span>
+          <button type="button" className="shrink-0 underline" onClick={piece.clearEditSelection}>
+            Retirar seleção
+          </button>
+        </div>
       )}
       {piecePending && (
         <p role="status" className="text-xs text-stone-600">
@@ -320,14 +332,14 @@ export function Composer({
           className="w-full resize-none border-0 bg-transparent p-1 text-base focus-visible:outline-none"
           maxLength={15000}
           rows={guided ? 2 : 3}
-          value={objective}
+          value={message}
           onChange={(e) => setObjective(e.target.value)}
           placeholder={
             guided
               ? 'Descreva o que você precisa resolver…'
               : followUp
                 ? 'Peça um ajuste, pesquise fundamentos ou revise o texto…'
-                : 'Descreva o que você precisa. Eu leio o caso, pergunto o que faltar e entrego um texto com as fontes.'
+                : 'Descreva o que você precisa. Você pode incluir a peça e as fontes do pedido.'
           }
         />
         <div className="flex flex-wrap items-center gap-2">
@@ -347,7 +359,7 @@ export function Composer({
               ))}
             </select>
           )}
-          {!guided && (
+          {(!guided || (canSendGuide && matter)) && (
             <button
               type="button"
               aria-expanded={scopeOpen}
@@ -378,17 +390,6 @@ export function Composer({
             </button>
           )}
         </div>
-        {guidedDocumentContext && !pendingQuestion && (
-          <button
-            type="button"
-            onClick={onLeaveGuidance}
-            className="min-h-11 rounded-lg px-2 text-sm font-medium text-cognac-800 hover:bg-ivory-100"
-          >
-            {piece || piecePending
-              ? 'Voltar ao pedido livre para enviar com a peça'
-              : 'Voltar ao pedido livre para enviar com os documentos'}
-          </button>
-        )}
       </div>
 
       {!guided && onGuide && (
@@ -400,6 +401,7 @@ export function Composer({
             onClick={() => {
               startFromComposer.current = true;
               const selectedMatter = piece ? piece.matterId : matter;
+              if (!goal) setObjective(undefined);
               onGuide({
                 ...(goal ? { objective: goal } : {}),
                 ...(selectedMatter ? { matterId: selectedMatter } : {}),
@@ -420,7 +422,7 @@ export function Composer({
           )}
         </div>
       )}
-      {!guided && scopeOpen && (
+      {(!guided || canSendGuide) && scopeOpen && (
         <section
           aria-label="Caso e documentos"
           className="space-y-4 rounded-2xl border border-champagne-border bg-white p-4"
@@ -428,7 +430,7 @@ export function Composer({
           <label className="block text-sm font-medium">
             Caso (opcional)
             <select
-              disabled={Boolean(followUp || piece)}
+              disabled={Boolean(followUp || piece || guided)}
               className="mt-2 min-h-11 w-full rounded-lg border border-stone-300 p-2 font-normal"
               value={matter}
               onChange={(e) => {

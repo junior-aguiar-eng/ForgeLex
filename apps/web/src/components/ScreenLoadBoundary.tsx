@@ -1,6 +1,9 @@
 import React from 'react';
 
-export class ScreenLoadBoundary extends React.Component<{ children: React.ReactNode }, { failed: boolean }> {
+export class ScreenLoadBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { failed: boolean }
+> {
   public state = { failed: false };
 
   public static getDerivedStateFromError(): { failed: boolean } {
@@ -9,6 +12,7 @@ export class ScreenLoadBoundary extends React.Component<{ children: React.ReactN
 
   public render(): React.ReactNode {
     if (!this.state.failed) return this.props.children;
+    if (this.props.fallback !== undefined) return this.props.fallback;
     return (
       <section className="page-container py-16">
         <div role="alert" className="surface max-w-2xl space-y-4 p-6">
