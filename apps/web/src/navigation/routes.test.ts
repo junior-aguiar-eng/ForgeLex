@@ -35,6 +35,22 @@ describe('rotas do espaço de trabalho', () => {
     navigateToTab('matter','push',{matterId:'A',analysisId:'R'},true);
     expect(pushState).toHaveBeenLastCalledWith({},'ForgeLex · Casos','/app/casos?caso=A&analysisId=R');
   });
+  it('preserva os parâmetros de retorno em navegadores sem URLSearchParams.size', () => {
+    const sizeDescriptor = Object.getOwnPropertyDescriptor(URLSearchParams.prototype, 'size');
+    const pushState = vi.fn();
+    vi.stubGlobal('window', { location: { pathname: '/app/casos', search: '', hash: '' }, history: { pushState, replaceState: vi.fn() } });
+    vi.stubGlobal('document', { title: '' });
+    try {
+      Reflect.deleteProperty(URLSearchParams.prototype, 'size');
+      expect(new URLSearchParams('a=1').size).toBeUndefined();
+      navigateToTab('draft_studio', 'push', { matterId: 'A', draftId: 'D' }, true);
+      expect(pushState).toHaveBeenCalledWith({}, 'ForgeLex · Rascunhos', '/app/rascunhos?matterId=A&draftId=D');
+      navigateToTab('research', 'push', {}, true);
+      expect(pushState).toHaveBeenLastCalledWith({}, 'ForgeLex · Pesquisa', '/app/pesquisa');
+    } finally {
+      if (sizeDescriptor) Object.defineProperty(URLSearchParams.prototype, 'size', sizeDescriptor);
+    }
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
   });

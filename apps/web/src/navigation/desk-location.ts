@@ -29,7 +29,9 @@ export function deskLocation(selection: DeskSelection): string {
   if (selection.conversationId && selection.contextRevision !== undefined)
     query.set('contextRevision', String(selection.contextRevision));
   if (selection.piece && !selection.matterId && !selection.draftId && !selection.deliveryId) query.set('piece', '1');
-  return query.size ? `${deskPath}?${query}` : deskPath;
+  // `URLSearchParams.size` não existe em Safari/iOS < 17 nem Chrome < 113.
+  const serialized = query.toString();
+  return serialized ? `${deskPath}?${serialized}` : deskPath;
 }
 
 export function writeDeskLocation(selection: DeskSelection, mode: 'push' | 'replace' = 'replace'): void {

@@ -340,6 +340,20 @@ Em 11/11/2026, os três cenários passaram em Chromium, com a Mesa, a API e o wo
 
 A homologação encerra esta etapa da verificação processual. A expansão do catálogo fica suspensa. O teste pode ser reproduzido com `pnpm exec playwright test -c playwright.desk-procedure.config.ts` após a compilação das dependências locais.
 
+## E2 · URL da Mesa sem `URLSearchParams.size`
+
+Em 11/11/2026, sobre `main` em `df8c714`. `desk-location.ts` e `routes.ts` decidiam pela propriedade `size`, ausente em Safari e iOS anteriores ao 17 e no Chrome anterior ao 113; nesses navegadores a URL saía sem caso, peça e conversa, e os parâmetros de retorno eram descartados. Ambos passaram a decidir por `toString()`.
+
+| Item | Resultado |
+| --- | --- |
+| Testes novos | Três, removendo `size` de `URLSearchParams.prototype`: URL idêntica com e sem a propriedade, caminho limpo sem seleção e preservação dos parâmetros em `navigateToTab`. Falharam antes da correção. |
+| Vitest da navegação | 63 aprovados de 63. |
+| Tipos e Prettier | Sem erros. Prettier exige `--end-of-line auto` neste checkout Windows (CRLF). |
+| `playwright.writing-desk.config.ts` | 37 aprovados de 37. |
+| Outras APIs recentes | Sem outro `URLSearchParams.size`. Restam `.at(-1)` e `Object.hasOwn` (Safari 15.4, Chrome 92 e 93), fora do escopo; o alvo do build é ES2022 sem polyfill. |
+
+Reversão: reverter o commit.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.
