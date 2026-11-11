@@ -398,6 +398,23 @@ Em 11/11/2026, sobre `9b37287`. Leitura somente leitura do Cloud Run, do Cloud M
 
 Reversão: reverter o commit; nada foi alterado no Cloud Run.
 
+### Complemento da E1 (insumos de U0, U1, V5A, D0 e M1)
+
+Em 11/11/2026, também somente leitura (Cloud Run, Cloud Build, Cloud Logging, Cloud SQL e balanceador por `gcloud`; DNS, RDAP do Registro.br e TLS por consulta pública; Supabase pela lista de projetos e tabelas). O detalhe item a item está em `PENDENCIAS.md`, na seção “Estado publicado atual — 11/11/2026”. Plano lido: `claude/plano-unificado` no commit `713774e`.
+
+| Item | Resultado |
+| --- | --- |
+| Web em produção | `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED=true` e `VITE_FORGELEX_CASE_WORKSPACE_ENABLED=true` (build `2e3691f7`): `integrated` é verdadeiro e está no ar a Mesa integrada (`WritingDeskScreen`). Build web de homologação não lido. |
+| Piloto fechado | `FORGELEX_CLOSED_PILOT_ENABLED=false` em produção e no encerramento; ausente na homologação; `_MODEL`, `_TENANT_ID` e `_USER_ID` inexistentes. |
+| Flags de servidor | Produção: `AGENTIC_WORKSPACE`, `COMMERCIAL_EXECUTION`, `EDITORIAL_COMMERCIAL` e `ANALISE` ligadas; `DESK_GUIDANCE` e `DRAFT_SAVE_COMMANDS` ausentes. Homologação: nenhuma das seis definida. |
+| Banco | Produção, `forgelex-api-hml` e encerramento compartilham o segredo `forgelex-hml-database-url` e a instância `forgelex-hml-pg`. Só a `forgelex-api-hml-isolated` tem banco próprio, parado. Homologação não é isolada da produção. |
+| Migração `0041` | Ausente do código publicado (`8fcd1d0`) e `AUTO_MIGRATE=false`: não aplicada pelo deploy. Registro de migrações do banco não lido (credencial). |
+| MCP e preço | `toolCount=21` no `mcp.call`; lista nominal não lida (401 sem token). Pesquisa R$ 0,20; reserva comercial **R$ 5,00** em produção (R$ 11,50 só em `main`, PR #135); limite diário de R$ 20,00. |
+| Clientes MCP | Claude 108 chamadas (11 `tools/call`), ChatGPT 12 (5), Codex 8 (0), Gemini 0, de 09/11 16:20 a 11/11 22:55 UTC. |
+| Domínio | Canônico `nexojuris.ia.br` (Registro.br, expira em 17/09/2027, certificado Google até 20/12/2026); Mercado Pago notifica `https://nexojuris.ia.br/api/v2/webhooks/mercadopago` também na homologação; `ratione.nexojuris.ia.br` responde 200; `hml.nexojuris.ia.br` não respondeu `/readyz`. |
+| Não lido | Registro de migrações do Cloud SQL, Site URL e Redirect URLs do Supabase Auth, painel do Mercado Pago, CAA, regras de host do balanceador, build web de homologação. |
+
+
 ## E6 · higiene documental
 
 Em 11/11/2026, sobre `ceb85f8`, por decisão de Boni (DEC-9). Os 53 planos de `docs/superpowers/plans/` foram movidos com `git mv` para `docs/historico/planos/`, preservando o histórico dos arquivos. Não separei “concluídos” de “em aberto”: muitas listas nunca foram marcadas e o estado não se lê pelas caixas; o plano unificado declara todos os anteriores como histórico, e o estado atual fica em `PENDENCIAS.md`. A pasta `docs/superpowers/plans/` deixou de existir; `specs/` e `references/` continuam onde estavam.

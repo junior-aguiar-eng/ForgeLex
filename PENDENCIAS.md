@@ -150,6 +150,69 @@ imagem `forgelex-api@sha256:18d643917434ca29392f5250624f9c007e13b29d2996081faa41
 - **Não observado:** a revisão do SHA `8fcd1d0` não foi exercitada nesta leitura além do que os serviços declaram;
   o estado do banco e a migração `0041` não foram consultados.
 
+**Complemento da E1 (11/11/2026, somente leitura; insumo de U0, U1, V5A, D0 e M1):**
+
+- **Web em produção:** `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED=true`, `VITE_FORGELEX_CASE_WORKSPACE_ENABLED=true` e
+  `VITE_FORGELEX_SAVED_RESEARCH_ENABLED=true` (build `2e3691f7`, imagem em uso `sha256:18d64391…`; os 23 builds desde
+  30/10 têm as duas primeiras ligadas). Em `App.tsx` do `8fcd1d0`, `integrated` = as duas ligadas, logo está no ar a
+  **Mesa integrada** (`WritingDeskScreen` envolvendo `AgenticWorkspaceScreen`, `DraftStudioScreen` e `DashboardScreen`).
+  O build web de homologação não foi lido (a imagem do `forgelex-api-hml` é a tag `closure-release-f10e13f`, fora do
+  histórico recente do Cloud Build).
+- **Piloto fechado:** `FORGELEX_CLOSED_PILOT_ENABLED=false` em produção e no encerramento; ausente (desligado) em
+  `forgelex-api-hml` e `forgelex-api-hml-isolated`. `_MODEL`, `_TENANT_ID` e `_USER_ID` não existem em nenhum serviço.
+- **Flags de servidor** (ausente = desligada):
+
+| Flag | `forgelex-api-prod` | `forgelex-closure-hml-private` | `forgelex-api-hml` | `forgelex-api-hml-isolated` |
+| --- | --- | --- | --- | --- |
+| `DESK_GUIDANCE_ENABLED` | ausente | ausente | ausente | ausente |
+| `DRAFT_SAVE_COMMANDS_ENABLED` | ausente | ausente | ausente | ausente |
+| `AGENTIC_WORKSPACE_ENABLED` | true | false | ausente | ausente |
+| `COMMERCIAL_EXECUTION_ENABLED` | true | false | ausente | ausente |
+| `EDITORIAL_COMMERCIAL_ENABLED` | true | true | ausente | ausente |
+| `ANALISE_ENABLED` | true | false | ausente | ausente |
+
+- **Banco compartilhado (achado):** `forgelex-api-prod`, `forgelex-api-hml` e `forgelex-closure-hml-private` usam o
+  mesmo segredo `forgelex-hml-database-url` e a mesma instância Cloud SQL `forgelex-hml-pg` (PostgreSQL 16, sempre
+  ligada). Só `forgelex-api-hml-isolated` tem banco próprio (`forgelex-hml-isolated-pg`, **parada**). Portanto
+  “homologação” na `forgelex-api-hml` **não é um banco separado da produção**: aplicar a migração `0041` ou ligar
+  flags ali afeta o mesmo banco.
+- **Migração `0041`:** o código publicado (`8fcd1d0`) não contém `persistence-0041`; ela só existe em `main`. Com
+  `FORGELEX_AUTO_MIGRATE=false` em todos os serviços, não foi aplicada pelo deploy. Não li o registro de migrações do
+  banco (a credencial é um segredo e não a li), então não há prova direta; o `/readyz` de produção responde 200 com
+  `migrations: true`, o que só diz que as migrações conhecidas pela revisão estão aplicadas.
+- **MCP em produção:** `tools/list` sem token dá 401, então não li a lista nominal. O log `mcp.call` registra
+  `toolCount=21` em todos os dias (09, 10 e 11/11), com `serverVersion` `2.0.0+8fcd1d0` desde a publicação. O código
+  do `8fcd1d0` define `research.*` (busca, verificação, obtenção, pesquisas salvas, painel de decisões), `case.*`
+  (`get_context`, `list_shared`, `read_item`, `save_analysis`), `draft.save_from_ai`, `workflow.legal_research_memo`,
+  `forgelex.connection_status` e os sete `analise.*` (`ANALISE_ENABLED=true`); isso soma 22 nomes contra 21 observados,
+  então a lista exata em produção fica por confirmar com um cliente autenticado.
+- **Preços vigentes em produção** (código do `8fcd1d0`, política `commercial-brl-2026-10-30-v1`): pesquisa
+  `research.search_case_law` R$ 0,20 por execução válida (única ferramenta MCP faturável; obtenção, verificação e memo
+  gratuitos); trabalho comercial com **reserva de R$ 5,00**, mínimo de R$ 0,50, limite diário de R$ 20,00 e mensal de
+  R$ 100,00; pacotes de R$ 25, 50 e 80, valor livre de R$ 25 a R$ 500 e recarga automática com limiar de R$ 5,00. A
+  **reserva de R$ 11,50 existe só em `main`** (PR #135, não publicado). Com o limite diário de R$ 20,00 e a reserva de
+  R$ 11,50, uma segunda execução no mesmo dia pode ser recusada depois de R$ 8,50 gastos; a política nova precisa
+  rever o limite (decisão de Boni, DEC-5).
+- **Clientes MCP** (`mcp.call` de 09/11 16:20 a 11/11 22:55 UTC; o log só existe desde 09/11; 128 linhas): Claude
+  (`Claude-User`) 108, das quais 11 `tools/call`; ChatGPT (`openai-mcp/1.0.0`) 12, das quais 5 `tools/call`; Codex da
+  OpenAI (`openai-mcp/1.0.0 (Codex)`) 8, sem nenhum `tools/call` (`initialize`, `server/discover`, `tools/list` e uma `resources/read`); **Gemini: nenhuma**. Os
+  16 `tools/call` foram 12 `research.search_case_law` (8 Claude, 4 ChatGPT) e 4 `research.present_decisions`. Sem
+  chave de idempotência (`idempotency=none`): 5 do Claude e 3 do ChatGPT.
+- **Domínio:** canônico `nexojuris.ia.br` (`FORGELEX_PUBLIC_URL`, `FORGELEX_WEB_URL`, `FORGELEX_MCP_RESOURCE_URL` e
+  `FORGELEX_OAUTH_AUTHORIZATION_SERVERS`). Registro.br (RDAP): ativo, registrado em 17/09/2026, expira em 17/09/2027,
+  DNS do próprio Registro.br (`e.sec.dns.br`, `f.sec.dns.br`); o titular não é exposto no RDAP. `nexojuris.ia.br` e
+  `hml.nexojuris.ia.br` resolvem para `34.160.73.22` (balanceador global); certificados gerenciados do Google
+  (`forgelex-api-prod-cert` só com `nexojuris.ia.br`, válido até 20/12/2026; `forgelex-api-hml-cert` com
+  `hml.nexojuris.ia.br`, até 19/12/2026). **URL de notificação do Mercado Pago** declarada:
+  `https://nexojuris.ia.br/api/v2/webhooks/mercadopago`, tanto em `forgelex-api-prod` quanto em `forgelex-api-hml`
+  (a homologação notifica o host de produção). `ratione.nexojuris.ia.br` **responde 200** (aplicação Next.js em outro
+  balanceador, `34.120.34.54`, certificado próprio até 08/01/2027). `https://hml.nexojuris.ia.br/readyz` **não
+  respondeu** em duas tentativas de 30 s e `/` devolveu 500.
+- **Não consegui ler:** o registro de migrações do Cloud SQL (credencial); Site URL e Redirect URLs do Supabase Auth
+  (as ferramentas disponíveis não expõem a configuração de Auth); a configuração no painel do Mercado Pago (só a URL
+  declarada no serviço); registros CAA e a zona DNS (a API do Cloud DNS está desativada no projeto e o DNS é do
+  Registro.br); as regras de host do balanceador; o build web de homologação.
+
 ## Publicação anterior — 09/11/2026 (UTC): SHA `5757733`
 
 `5757733a54869f1d7d2e06e7b38ab7b99d4aeeb0` (`main`, PR #131: painel na própria pesquisa; CI verde). Imagem
