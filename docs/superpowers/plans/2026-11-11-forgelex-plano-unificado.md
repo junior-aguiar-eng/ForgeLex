@@ -57,24 +57,24 @@ O plano v2 definiu a Mesa guiada: perguntas objetivas com opção “Não sei”
 servidor, nada do catálogo exposto ao usuário. As etapas abaixo têm código e validação local registrados.
 Os contratos, princípios e critérios A01–A19 continuam valendo e estão no Apêndice A.
 
-| Etapa v2 | Entrega                                                                             | Situação                                                          |
-| -------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| R0       | Baseline e protocolo v11 opt-in                                                     | Concluída                                                         |
-| R1       | Inventário técnico das 2.077 fichas (303 Forma, 1.774 Matéria), fora do repositório | Concluída. Incorporação em M3                                     |
-| R2       | Contratos `desk-guidance`, `GuidanceSnapshot`, `SkillBinding` e hashes              | Concluída                                                         |
-| R3       | Orientação persistida antes da inferência, rotas `/api/agentic/guidance`            | Concluída                                                         |
-| R4       | Seleção única da Mesa e URL (`desk-selection.ts`, `desk-location.ts`)               | Concluída. Defeito de compatibilidade em E2                       |
-| R5       | Resolvedor e vínculo de habilidades                                                 | Concluída com fichas sintéticas                                   |
-| R6       | `GuidedQuestion`, `GuidanceSummary`, `GuidancePanel`                                | Concluída. Aceite visual migra para V3                            |
-| R7       | Interpretação no fluxo agêntico e hipótese confirmável                              | Concluída                                                         |
-| R8       | Edição delimitada sobre versão e hash (protocolo v12)                               | Concluída                                                         |
-| R9       | Pesquisa salva e fontes na Mesa                                                     | Concluída. Base da busca ancorada (M4)                            |
-| R10      | Revisão, aprovação e histórico na Mesa                                              | Concluída                                                         |
-| R11      | Salvamento atômico com recibo (`persistence-0041-draft-save-commands`)              | Concluída em código. Migração manual pendente (E4)                |
-| R12      | Manifesto real, contexto medido e controles financeiros                             | Concluída                                                         |
-| R13      | Regressão integrada e exposição pública                                             | Concluída localmente                                              |
-| R14      | Piloto Penal e regressão Cível                                                      | Técnica concluída com fichas sintéticas. Incorporação vai para M3 |
-| R15      | Expansão por área                                                                   | Suspensa por decisão de 11/11/2026. Reabertura depende de M3      |
+| Etapa v2 | Entrega                                                                             | Situação                                                               |
+| -------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| R0       | Baseline e protocolo v11 opt-in                                                     | Concluída                                                              |
+| R1       | Inventário técnico das 2.077 fichas (303 Forma, 1.774 Matéria), fora do repositório | Concluída. Incorporação em M3                                          |
+| R2       | Contratos `desk-guidance`, `GuidanceSnapshot`, `SkillBinding` e hashes              | Concluída                                                              |
+| R3       | Orientação persistida antes da inferência, rotas `/api/agentic/guidance`            | Concluída                                                              |
+| R4       | Seleção única da Mesa e URL (`desk-selection.ts`, `desk-location.ts`)               | Concluída. Defeito de compatibilidade em E2                            |
+| R5       | Resolvedor e vínculo de habilidades                                                 | Concluída com fichas sintéticas                                        |
+| R6       | `GuidedQuestion`, `GuidanceSummary`, `GuidancePanel`                                | Concluída. Aceite visual migra para V3                                 |
+| R7       | Interpretação no fluxo agêntico e hipótese confirmável                              | Concluída                                                              |
+| R8       | Edição delimitada sobre versão e hash (protocolo v12)                               | Concluída                                                              |
+| R9       | Pesquisa salva e fontes na Mesa                                                     | Concluída. Base da busca ancorada (M4)                                 |
+| R10      | Revisão, aprovação e histórico na Mesa                                              | Concluída                                                              |
+| R11      | Salvamento atômico com recibo (`persistence-0041-draft-save-commands`)              | Concluída em código. Migração manual pendente (E4)                     |
+| R12      | Manifesto real, contexto medido e controles financeiros                             | Concluída                                                              |
+| R13      | Regressão integrada e exposição pública                                             | Concluída localmente                                                   |
+| R14      | Piloto Penal e regressão Cível                                                      | Técnica concluída com fichas sintéticas. Incorporação vai para M3      |
+| R15      | Expansão por área                                                                   | Suspensa por decisão de 11/11/2026. Passa a ser o ciclo de lotes da M3 |
 
 ## 4. Frentes e ordem
 
@@ -210,29 +210,54 @@ revisão anterior (`--to-revisions=...=100`).
 
 **Aceite.** A18 registrado em homologação. Ligar em produção é decisão separada de Boni, depois de V3.
 
-### M3 — Incorporação do catálogo de habilidades
+### M3 — Incorporação do catálogo e revisão das fichas por lotes
 
 Decisão de Boni (DEC-4, 11/11/2026): as 2.077 fichas capturadas (303 Forma, 1.774 Matéria) são mantidas e incorporadas.
-O R1 já validou o ZIP (SHA-256 no registro de execução), o manifesto, as contagens e os hashes.
+O R1 já validou o ZIP (SHA-256 no registro de execução), o manifesto, as contagens e os hashes. A incorporação e a
+elegibilidade são separadas: todas as fichas ficam no catálogo com estado, mas o resolvedor (R5) só seleciona as que
+Boni aprovou em lote. Ficha sem revisão não é selecionada.
+
+**M3.1 — Incorporação (infraestrutura).**
 
 - [ ] Definir a forma de incorporação: onde o conteúdo fica (fora dos assets públicos e do bundle do navegador),
       como o servidor o carrega e como a versão do catálogo é fixada por execução.
-- [ ] Gravar em cada ficha incorporada a origem (MinutaIA), a versão original, o hash original e a data da decisão.
-      Descrever apenas condições de reutilização que existam de fato, sem criar exigência de terceiro.
-- [ ] Transformar o inventário do R1 em catálogo consultável pelo resolvedor (R5), mantendo os 2.077 registros
-      rastreáveis e os itens ambíguos com estado explícito.
-- [ ] Aplicar às quatro fichas do piloto os ajustes da conferência amostral
-      ([registro](../architecture/2026-11-10-mesa-guiada-execucao.md#avaliação-das-quatro-fichas-capturadas)) como
-      nova versão elegível, preservando a versão original e as execuções anteriores.
-- [ ] Definir com Boni o subconjunto elegível do piloto; a seleção técnica e a avaliação jurídica têm campos próprios.
+- [ ] Gravar em cada ficha a origem (MinutaIA), a versão original, o hash original e a data da decisão. Descrever
+      apenas condições de reutilização que existam de fato, sem criar exigência de terceiro.
+- [ ] Transformar o inventário do R1 em catálogo consultável, mantendo os 2.077 registros rastreáveis e o estado de
+      revisão de cada um: `pendente`, `em revisão`, `ajustada`, `elegível`, `inelegível`, `adiada`.
+- [ ] Fazer o resolvedor ignorar fichas fora de `elegível` e registrar na seleção a versão do catálogo e a do lote.
 - [ ] Manter `tests/fixtures/desk-pilot-revised/*` e as fichas sintéticas autorais dos testes de regressão.
-- [ ] Repetir o piloto R14 (`playwright.desk-pilot.config.ts`) com o catálogo incorporado e com os limites de
-      contexto do R12.
-- [ ] Reabrir R15 (expansão por área) com nova decisão de Boni, usando as métricas do piloto.
 
-**Aceite.** 2.077 fichas incorporadas e rastreáveis, sem exposição de conteúdo, título, ID ou hash na interface (A02).
-Piloto Penal e regressão Cível aprovados por Boni. **Reversão.** Catálogo versionado: voltar à versão anterior
-preserva as execuções já registradas.
+**M3.2 — Ciclo de cada lote.** O mesmo ciclo vale para todos os lotes e usa `scripts/skills/prepare-catalog-lot.mjs`,
+generalizado para receber a lista de fichas do lote em vez dos quatro candidatos fixos.
+
+- [ ] Definir o lote: identificador (`area-lote-vN`), fichas de Forma e de Matéria que se complementam, casos de uso
+      que o lote cobre. Tamanho inicial sugerido de 10 a 20 fichas, ajustável conforme o esforço da primeira rodada.
+- [ ] Preparar a fila: versões, hashes, tamanho, proveniência, sobreposições e `reviewReasons` do inventário.
+- [ ] Conferir cada ficha com as fontes oficiais (lei, súmula, precedente), registrando divergência, escopo excessivo,
+      tese apresentada como regra geral e vigência. Ferramentas e IA apoiam; a avaliação é de Boni.
+- [ ] Aplicar os ajustes como nova versão da ficha, preservando a original e as execuções já registradas.
+- [ ] Boni decide por ficha: `elegível`, `elegível com ajuste`, `inelegível` ou `adiada`. Registrar decisão, fundamento
+      e data no registro de execução.
+- [ ] Rodar a regressão do lote (Playwright do piloto com o catálogo do lote) e conferir limites de contexto do R12,
+      ausência de exposição (A02) e as mesmas ferramentas por papel.
+- [ ] Publicar a nova versão do catálogo com o lote aprovado e registrar contagem por estado.
+
+**Lote 0 (piloto).** As quatro fichas do `penal-civel-r15-v1` (`resposta-acusacao`, `cadeia-custodia-cpp-158`,
+`contestacao-civel`, `adimplemento-pagamento-cc-304`) com os ajustes da
+[conferência amostral](../architecture/2026-11-10-mesa-guiada-execucao.md#avaliação-das-quatro-fichas-capturadas).
+O piloto Penal e a regressão Cível (R14) são repetidos com o catálogo incorporado. A conferência do lote 0 foi
+amostral; nos lotes seguintes a leitura é integral de cada ficha.
+
+**Lotes seguintes.** Ordem sugerida, sujeita à sua decisão: Penal e Processo Penal; Civil e Processo Civil; demais
+áreas por demanda real dos casos. Cada lote só começa com o anterior registrado. A R15 (expansão por área) passa a ser
+esse ciclo, e reabre por nova decisão sua, com as métricas do lote anterior (perguntas desnecessárias, correções,
+custo de contexto, qualidade das entregas).
+
+**Aceite.** 2.077 fichas incorporadas, rastreáveis e sem exposição de conteúdo, título, ID ou hash na interface (A02).
+Lote 0 aprovado por Boni, com piloto Penal e regressão Cível aprovados. Cada lote seguinte tem fila, decisões por
+ficha, regressão e versão de catálogo registradas. **Reversão.** Catálogo versionado: voltar à versão anterior do
+lote preserva as execuções já registradas.
 
 ## 7. Frente V — refatoração visual
 
