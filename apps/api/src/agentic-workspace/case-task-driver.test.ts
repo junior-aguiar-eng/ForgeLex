@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import { randomUUID } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import { FakeAgentProvider } from '@forgelex/agent-core';
 import {
@@ -18,7 +19,7 @@ const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const run of cleanup.splice(0)) await run();
 });
-async function fixture(research = false, ask = false) {
+async function fixture(research = false, ask = false, guided = false) {
   const researchService = createFixtureResearchService();
   const authority = research
     ? (await researchService.searchCaseLaw({ query: 'vazamento', court: 'STJ', limit: 1 })).items[0]
@@ -41,13 +42,14 @@ async function fixture(research = false, ask = false) {
         : null,
   });
   const roles: string[] = [],
-    seenAnswers: any[] = [];
+    seenAnswers: any[] = [],
+    packets: any[] = [];
   const app = Fastify();
   const runtime = registerAgenticWorkspace(app, {
     database: c.db,
     client: c.client,
     auth,
-    environment: { FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true' },
+    environment: { FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true', FORGELEX_DESK_GUIDANCE_ENABLED: String(guided) },
     options: {
       scheduler: false,
       caseTask: {
@@ -56,6 +58,7 @@ async function fixture(research = false, ask = false) {
         createProvider: ({ role, registry, packet }: any) => {
           roles.push(role);
           seenAnswers.push(packet.answers);
+          packets.push(packet);
           const sourceId = packet.sources[0]?.id;
           const plan = {
             action: research ? 'research_question' : ask ? 'create_document' : 'analyze_documents',
@@ -141,9 +144,64 @@ async function fixture(research = false, ask = false) {
     await app.close();
     c.client.close();
   });
-  return { ...c, app, ...runtime, ledger, roles, seenAnswers };
+  return { ...c, app, ...runtime, ledger, roles, seenAnswers, packets };
 }
 describe('driver jurídico integrado ao serviço durável', () => {
+  it('retoma o trabalho guiado com as respostas em texto e esclarecimentos já registrados', async () => {
+    const f = await fixture(false, true, true);
+    const post = async (url: string, payload: unknown, status: number) => {
+      const response = await f.app.inject({
+        method: 'POST',
+        url,
+        headers: { ...headers, 'idempotency-key': randomUUID() },
+        payload,
+      });
+      expect(response.statusCode).toBe(status);
+      return response.json();
+    };
+    const guidance = await post('/api/agentic/guidance', { objective: 'Preciso entender qual medida cabe.' }, 201);
+    const path = `/api/agentic/guidance/${guidance.conversationId}`;
+    const answer = (question: any, value: Record<string, unknown>) => ({
+      questionId: question.id,
+      questionVersion: question.version,
+      contextRevision: question.contextRevision,
+      selectedOptionIds: [],
+      ...value,
+    });
+    const area = await post(`${path}/answer`, answer(guidance.question, { unknown: true }), 200);
+    const task = await post(
+      `${path}/answer`,
+      answer(area.question, { freeText: 'Recebi citação e preciso responder.' }),
+      200,
+    );
+    const run = await post(
+      '/api/agentic/executions',
+      {
+        objective: task.objective,
+        conversationId: task.conversationId,
+        contextRevision: task.contextRevision,
+      },
+      202,
+    );
+    await f.worker!.runOnce();
+    const waiting = await f.service!.getExecution(owner, run.id);
+    expect(waiting.status).toBe('WAITING_USER');
+    expect(f.packets[0].guidance.area.status).toBe('unknown');
+    expect(f.packets[0].guidanceAnswers.map(({ answer }: any) => [answer.unknown, answer.freeText])).toEqual([
+      [true, undefined],
+      [undefined, 'Recebi citação e preciso responder.'],
+    ]);
+    expect(JSON.stringify(waiting)).not.toMatch(/guidanceHash|skillSnapshot|guidanceProposals/);
+    const next = await post(
+      `/api/agentic/executions/${run.id}/answers`,
+      answer(waiting.question, { unknown: true }),
+      202,
+    );
+    await f.worker!.runOnce();
+    expect((await f.service!.getExecution(owner, next.id)).status).toBe('COMPLETED');
+    expect(f.packets[1].answers).toContainEqual(expect.objectContaining({ unknown: true }));
+    expect(f.packets[1].guidanceAnswers).toEqual(f.packets[0].guidanceAnswers);
+  });
   it('sem reserva não realiza pesquisa paga nem altera saldo', async () => {
     const f = await fixture(true);
     const run = (

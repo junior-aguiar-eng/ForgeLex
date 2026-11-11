@@ -1,6 +1,12 @@
 import Fastify from 'fastify';
+import { randomUUID } from 'node:crypto';
 import { afterEach, expect, it, vi } from 'vitest';
-import { createDatabase, runPersistenceMigrations, AgenticWorkspaceRepository } from '@forgelex/persistence';
+import {
+  createDatabase,
+  runPersistenceMigrations,
+  AgenticWorkspaceRepository,
+  MatterRepository,
+} from '@forgelex/persistence';
 import { LedgerService, COMMERCIAL_POLICY_VERSION } from '@forgelex/billing-ledger';
 import { AuthAdapter } from '../auth/fastify-auth.js';
 import { registerAgenticWorkspace } from './execution-routes.js';
@@ -30,7 +36,7 @@ const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const close of cleanup.splice(0)) await close();
 });
-async function fixture() {
+async function fixture(guided = false) {
   const c = await createDatabase({ url: 'file::memory:' });
   cleanup.push(async () => c.client.close());
   await runPersistenceMigrations(c.client);
@@ -63,7 +69,7 @@ async function fixture() {
     database: c.db,
     client: c.client,
     auth,
-    environment: env,
+    environment: { ...env, ...(guided ? { FORGELEX_DESK_GUIDANCE_ENABLED: 'true' } : {}) },
     options: { commercial, scheduler: false },
   })!;
   cleanup.unshift(async () => {
@@ -73,6 +79,95 @@ async function fixture() {
   await app.ready();
   return { ...c, app, commercial, transport, authorizeOwner, worker: runtime.worker! };
 }
+it('preserva o Não sei sem reserva e exige confirmação antes de admitir a interpretação', async () => {
+  const f = await fixture(true);
+  const reserve = vi.spyOn(f.commercial.finance, 'reserve');
+  const post = (url: string, payload: Record<string, unknown>) =>
+    f.app.inject({
+      method: 'POST',
+      url,
+      headers: { ...headers, 'idempotency-key': randomUUID() },
+      payload,
+    });
+  const base = '/api/agentic/guidance';
+  const created = await post(base, { objective: 'Preciso entender o material.' });
+  expect(created.statusCode).toBe(201);
+  let guidance = created.json();
+  for (const option of [undefined, 'analyze_documents']) {
+    const result = await post(`${base}/${guidance.conversationId}/answer`, {
+      questionId: guidance.question.id,
+      questionVersion: guidance.question.version,
+      contextRevision: guidance.contextRevision,
+      selectedOptionIds: option ? [option] : [],
+      ...(option ? {} : { unknown: true }),
+    });
+    expect(result.statusCode).toBe(200);
+    guidance = result.json();
+  }
+  const target = {
+    objective: 'Preciso entender o material.',
+    conversationId: guidance.conversationId,
+    contextRevision: guidance.contextRevision,
+  };
+  expect((await post('/api/agentic/executions', target)).statusCode).toBe(400);
+  expect(reserve).not.toHaveBeenCalled();
+  expect(f.transport).not.toHaveBeenCalled();
+  expect((await f.client.execute('SELECT id FROM agentic_executions')).rows).toHaveLength(0);
+  expect(await f.commercial.finance.listActive(owner)).toEqual([]);
+  expect(
+    (
+      await post('/api/agentic/commercial/executions', {
+        ...target,
+        confirmed: true,
+        policyVersion: COMMERCIAL_POLICY_VERSION,
+      })
+    ).statusCode,
+  ).toBe(202);
+  expect(reserve).toHaveBeenCalledTimes(1);
+  expect(f.transport).not.toHaveBeenCalled();
+});
+
+it('recusa as fontes completas acima do limite, informa o motivo e libera a reserva', async () => {
+  const f = await fixture();
+  const matters = new MatterRepository(f.db);
+  const matter = await matters.createMatter({
+    ...owner,
+    title: 'Caso sintético com contexto excedente',
+    createdBy: owner.userId,
+  });
+  const doc = await matters.ingestTextDocument({
+    tenantId: owner.tenantId,
+    matterId: matter.id,
+    title: 'Documento extenso',
+    content: 'Trecho sintético do documento. '.repeat(1500),
+    mimeType: 'text/plain',
+    originalFilename: 'contexto.txt',
+    createdBy: owner.userId,
+  });
+  const run = await f.commercial.start(owner, 'oversized-context', {
+    ...input,
+    matterId: matter.id,
+    context: {
+      text: 'a'.repeat(100000),
+      origin: 'MIXED',
+      documents: [{ documentId: doc.document.id, versionId: doc.version.id }],
+    },
+  });
+  await f.worker.runOnce();
+  expect(f.transport).not.toHaveBeenCalled();
+  const events = await f.commercial.service.listClientEvents(owner, run.id, 0);
+  expect(events.events).toContainEqual(
+    expect.objectContaining({
+      type: 'ERROR',
+      payload: expect.objectContaining({ reason: 'TASK_CONTEXT_LIMIT' }),
+    }),
+  );
+  expect(await f.commercial.finance.getReceipt(owner, run.id)).toMatchObject({
+    chargedCents: 0,
+    releasedCents: 1150,
+    uncertainMicroUsd: 0,
+  });
+});
 it.each([
   ['create_document', false, false, 0],
   ['create_document', true, false, 50],

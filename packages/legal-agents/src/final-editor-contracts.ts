@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   TaskClaimSchema,
   TaskDocumentSchema,
+  StoredTaskDocumentSchema,
   TaskFindingSchema,
   TaskRequirementSchema,
   TaskSourceSchema,
@@ -36,11 +37,11 @@ const envelope = {
 };
 
 // Domain parsing trims content. Anchors must instead address the original text.
-const documentSchema = TaskDocumentSchema.extend({
+const documentSchema = StoredTaskDocumentSchema.extend({
   sections: z
     .array(
-      TaskDocumentSchema.shape.sections.element.extend({
-        content: exactText(16000),
+      StoredTaskDocumentSchema.shape.sections.element.extend({
+        content: unicodeText.max(16000),
       }),
     )
     .min(1)
@@ -50,7 +51,7 @@ const documentSchema = TaskDocumentSchema.extend({
 export const FinalEditorialContextSchema = z
   .strictObject({
     ...envelope,
-    origin: z.literal('DESK_VERSION').optional(),
+    origin: z.enum(['DESK_VERSION', 'SCOPED_DELIVERY']).optional(),
     document: documentSchema,
     claims: z.array(TaskClaimSchema).max(100),
     requirements: z.array(TaskRequirementSchema).max(100),
@@ -66,7 +67,9 @@ export const FinalEditorialContextSchema = z
   })
   .superRefine((context, ctx) => {
     const issue = (path: (string | number)[], message: string) => ctx.addIssue({ code: 'custom', path, message });
-    const canonicalDocument = TaskDocumentSchema.safeParse(context.document);
+    const canonicalDocument = (
+      context.origin === 'SCOPED_DELIVERY' ? StoredTaskDocumentSchema : TaskDocumentSchema
+    ).safeParse(context.document);
     if (!canonicalDocument.success) {
       issue(['document'], 'Documento inválido.');
       return;

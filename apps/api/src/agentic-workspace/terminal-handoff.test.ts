@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { FakeAgentProvider } from '@forgelex/agent-core';
+import { FakeAgentProvider, ToolRegistry } from '@forgelex/agent-core';
 import { AgenticCaseTask } from '@forgelex/legal-workflows';
 import { createCommercialOpenAIRuntime } from './commercial-provider.js';
 
@@ -80,23 +80,24 @@ function fixture({ stop = true, incomplete = false, reject = false, rejectResult
     assertContext: async () => owner,
     transport,
   });
-  const provider = runtime.createProvider({ binding: { executionId: 'e' }, selectedPacket: {} } as any);
+  const handoff = {
+    name: 'task.submit',
+    description: 'Validated handoff',
+    impactLevel: 'L0_OBSERVATION' as const,
+    inputSchema: z.object({ value: z.string() }),
+    outputSchema: z.object({ accepted: z.boolean() }),
+    execute: submit,
+  };
+  const registry = new ToolRegistry();
+  registry.register(handoff);
+  const provider = runtime.createProvider({ binding: { executionId: 'e' }, selectedPacket: {}, registry } as any);
   const run = async () => {
     const events = [];
     for await (const event of provider.run({
       sessionId: 'session',
       ...owner,
       prompt: 'Synthetic handoff',
-      tools: [
-        {
-          name: 'task.submit',
-          description: 'Validated handoff',
-          impactLevel: 'L0_OBSERVATION',
-          inputSchema: z.object({ value: z.string() }),
-          outputSchema: z.object({ accepted: z.boolean() }),
-          execute: submit,
-        },
-      ],
+      tools: [handoff],
       ...(stop ? { finishOnTools: ['task.submit'] } : {}),
       abortSignal: new AbortController().signal,
     }))
@@ -257,7 +258,13 @@ it('fits the recorded D01 verifier budget without duplicated source retrieval or
         ]);
       },
     });
-    const provider = runtime.createProvider({ binding: { executionId: 'e' }, selectedPacket: fixture.packet } as any);
+    const registry = new ToolRegistry();
+    for (const tool of input.tools) registry.register(tool);
+    const provider = runtime.createProvider({
+      binding: { executionId: 'e' },
+      selectedPacket: fixture.packet,
+      registry,
+    } as any);
     const events = [];
     for await (const event of provider.run({ ...input, abortSignal: new AbortController().signal })) events.push(event);
     return { reservations, dispatched, events, initialSpentMicroUsd: 85506, capMicroUsd: cap };

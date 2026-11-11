@@ -2,6 +2,7 @@ import { lockAgenticTenant } from './agentic-tenant-guard.js';
 import { and, asc, desc, eq, gt, isNull, isNotNull, max, sql } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import { DraftRepository } from './draft-repository.js';
 import {
   AgenticContextSchema,
   AgenticExecutionInputSchema,
@@ -10,6 +11,7 @@ import {
   AgenticOwnerSchema,
   ExecutionEventInputSchema,
   LegalQuestionSchema,
+  validateDeskEditSelection,
   validateLegalAnswer,
   type AgenticContext,
   type AgenticConversation,
@@ -130,6 +132,16 @@ export class AgenticWorkspaceRepository {
           )
           .limit(1);
         if (!target) throw new Error('DRAFT_VERSION_NOT_FOUND');
+        if (context.deskEdit) {
+          const bundle = await new DraftRepository(this.db).getVersion(
+            owner.tenantId,
+            matterId,
+            context.draft.draftId,
+            context.draft.versionId,
+          );
+          if (!bundle) throw new Error('DRAFT_VERSION_NOT_FOUND');
+          validateDeskEditSelection(bundle.sections, context.deskEdit);
+        }
       }
       for (const doc of context.documents) {
         await new MatterWriteGuard(this.db).captureRevision({ ...owner, matterId, documentId: doc.documentId });
@@ -530,7 +542,14 @@ export class AgenticWorkspaceRepository {
       const { revision: _revision, ...context } = conversation.contexts.at(-1)!;
       if (!correcting) await repo.insertMessage(row.id, null, { role: 'ASSISTANT', question });
       await repo.insertMessage(row.id, null, { role: 'USER', answer });
-      await repo.insertContext(owner, row, { ...context, guidance, guidanceReceipt: receipt });
+      // Runtime answers were given against the earlier interpretation. Keep
+      // their messages in history, but let the next run reassess them.
+      await repo.insertContext(owner, row, {
+        ...context,
+        ...(correcting ? { answers: undefined } : {}),
+        guidance,
+        guidanceReceipt: receipt,
+      });
     });
   }
   async correctAnswer(

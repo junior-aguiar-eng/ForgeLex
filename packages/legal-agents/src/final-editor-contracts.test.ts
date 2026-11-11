@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { TaskDocumentSchema } from '@forgelex/domain';
+import { StoredTaskDocumentSchema, TaskDocumentSchema } from '@forgelex/domain';
 import {
   FinalEditorialContextSchema,
   FinalEditorialProposalSchema,
@@ -9,6 +9,29 @@ import {
 
 const hash = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
 const original = '  Olá 😀. O pedido esta condicionado.  ';
+it('valida o hash exato da edição delimitada, inclusive com seção vazia', () => {
+  const { context } = fixture();
+  const document = {
+    ...context.document,
+    sections: [...context.document.sections, { title: 'Seção esvaziada', content: '', sourceIds: [] }],
+  };
+  const scoped = {
+    ...context,
+    origin: 'SCOPED_DELIVERY',
+    document,
+    documentHash: hash(JSON.stringify(StoredTaskDocumentSchema.parse(document))),
+  };
+  expect(FinalEditorialContextSchema.parse(scoped).document.sections.map((s) => s.content)).toEqual([original, '']);
+  expect(() =>
+    FinalEditorialContextSchema.parse({
+      ...scoped,
+      document: {
+        ...document,
+        sections: [{ ...document.sections[0], content: original.trim() }, document.sections[1]],
+      },
+    }),
+  ).toThrow('Hash do documento divergente.');
+});
 function fixture(content = original) {
   const document = {
     title: 'Minuta',

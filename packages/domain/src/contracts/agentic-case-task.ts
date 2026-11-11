@@ -1,8 +1,10 @@
 import { z } from 'zod';
-import { LegalAnswerSchema } from './agentic-workspace.js';
+import { DeskEditSnapshotSchema, type DeskEditProposal } from './desk-edit.js';
+import { LegalAnswerSchema, LegalQuestionSchema } from './agentic-workspace.js';
 import { MAX_SOURCE_TEXT_CHARS } from './agentic-limits.js';
 import { TaskEvidenceMatrixSchema } from './task-evidence.js';
 import { ApprovedItemSnapshotSchema } from './approved-case-context.js';
+import { GuidanceSnapshotSchema } from './desk-guidance.js';
 const id = z.string().trim().min(1).max(200);
 const text = z.string().trim().min(1).max(16000);
 export const AgenticTaskActionSchema = z.enum([
@@ -74,6 +76,16 @@ export const TaskSupportAuditSchema = z.strictObject({
   modelAssessment: z.enum(['SUPPORTED', 'PARTIAL', 'NONE', 'UNDETERMINED', 'NOT_ASSESSED']),
 });
 export type TaskSupportAudit = z.infer<typeof TaskSupportAuditSchema>;
+const ProcedureEvidenceSchema = z.strictObject({
+  sourceId: id,
+  quote: z.string().min(1).max(4000),
+  contentHash: z.string().regex(/^[a-f0-9]{64}$/),
+});
+export const TaskProcedureAuditSchema = z.strictObject({
+  requirementId: id,
+  norms: z.array(ProcedureEvidenceSchema).min(1).max(8),
+  documents: z.array(ProcedureEvidenceSchema).min(1).max(8),
+});
 export const TaskDocumentAssessmentSchema = z.strictObject({
   sourceId: id,
   aspects: z
@@ -129,6 +141,18 @@ export const TaskReviewedDeliverySchema = z.strictObject({
     findings: z.array(TaskFindingSchema).max(200),
   }),
 });
+export const StoredTaskDocumentSchema = TaskDocumentSchema.extend({
+  title: z.string().min(1).max(200),
+  sections: z
+    .array(
+      TaskDocumentSchema.shape.sections.element.extend({
+        title: z.string().min(1).max(200),
+        content: z.string().max(16000),
+      }),
+    )
+    .min(1)
+    .max(30),
+});
 export const AgenticTaskDeliverySchema = z.strictObject({
   action: AgenticTaskActionSchema,
   contextId: id,
@@ -143,8 +167,9 @@ export const AgenticTaskDeliverySchema = z.strictObject({
   sources: z.array(TaskSourceSchema.omit({ text: true })).max(100),
   // Optional for reading historical deliveries without rewriting their content/hash.
   supportAudit: z.array(TaskSupportAuditSchema).max(10000).optional(),
+  procedureAudit: z.array(TaskProcedureAuditSchema).max(10000).optional(),
   evidenceMatrix: TaskEvidenceMatrixSchema.optional(),
-  document: TaskDocumentSchema.optional(),
+  document: StoredTaskDocumentSchema.optional(),
   // Server-bound edit target; omitted for new pieces and read-only reviews.
   replacesVersionId: id.optional(),
   review: TaskReviewedDeliverySchema.optional(),
@@ -166,6 +191,12 @@ export const NativeTaskPacketSchema = z.strictObject({
   contextRevision: z.number().int().positive(),
   sources: z.array(TaskSourceSchema).max(100),
   answers: z.array(LegalAnswerSchema).max(1000),
+  deskEdit: DeskEditSnapshotSchema.optional(),
+  guidance: GuidanceSnapshotSchema.optional(),
+  guidanceAnswers: z
+    .array(z.strictObject({ question: LegalQuestionSchema, answer: LegalAnswerSchema }))
+    .max(5)
+    .optional(),
 });
 export type NativeTaskPacket = z.infer<typeof NativeTaskPacketSchema>;
 export interface NativeTaskContextPort {
@@ -174,5 +205,6 @@ export interface NativeTaskContextPort {
   save(
     binding: TaskBinding,
     delivery: AgenticTaskDelivery,
+    edit?: DeskEditProposal,
   ): Promise<{ id: string; draftId?: string; versionId?: string }>;
 }

@@ -13,6 +13,7 @@ import {
 } from '@forgelex/legal-tools';
 import {
   AgenticCaseTask,
+  caseTaskResearchCapabilities,
   caseTaskStepIndex,
   caseTaskPreviousDeliveryIds,
   type CaseTaskOptions,
@@ -25,6 +26,8 @@ import type { ExecutionDriver } from './execution-worker.js';
 
 export interface NativeCaseTaskOptions {
   workflowVersion?: CaseTaskOptions['workflowVersion'];
+  guidedWorkflow?: boolean;
+  skills?: CaseTaskOptions['skills'];
   authorizeNative: AuthorizeNativeTask;
   createProvider: CaseTaskOptions['createProvider'];
   authorizeRealProvider?: CaseTaskOptions['authorizeRealProvider'];
@@ -41,6 +44,19 @@ export function createCaseTaskDriver(
 ) {
   const native = new NativeCaseContextService(database, options.authorizeNative),
     budget = new InferenceBudgetService(database, client);
+  const research = options.researchService ?? researchService;
+  const researchTools = research
+    ? ([
+        createSearchCaseLawTool(research),
+        createGetAuthorityTool(research),
+        createVerifyAuthorityTool(research),
+      ] as const)
+    : undefined;
+  const legislation = options.legislationProvider && createGetLegislationTool(options.legislationProvider);
+  const researchCapabilities = caseTaskResearchCapabilities([
+    ...(researchTools ?? []),
+    ...(legislation ? [legislation] : []),
+  ]);
   const driver: ExecutionDriver = {
     next: ({ execution }) => ({
       callId: `case-task:${caseTaskStepIndex(execution.checkpoint?.caseTask)}:${execution.contextRevision}`,
@@ -57,10 +73,9 @@ export function createCaseTaskDriver(
           previousDeliveryIds: caseTaskPreviousDeliveryIds(execution.checkpoint?.caseTask),
         };
         const tools: AgentTool<any, any>[] = [createNativeSelectedSourceTool(native, binding)];
-        const research = options.researchService ?? researchService;
-        if (research) {
+        if (researchTools) {
           let ordinal = 0;
-          const search = createSearchCaseLawTool(research);
+          const [search, getAuthority, verifyAuthority] = researchTools;
           const included = (tool: AgentTool<any, any>): AgentTool<any, any> => ({
             ...tool,
             execute: async (input, context) => {
@@ -72,9 +87,7 @@ export function createCaseTaskDriver(
             },
           });
           if (options.executeIncludedResearch) {
-            tools.push(
-              ...[search, createGetAuthorityTool(research), createVerifyAuthorityTool(research)].map(included),
-            );
+            tools.push(...researchTools.map(included));
           } else {
             tools.push(
               {
@@ -94,14 +107,16 @@ export function createCaseTaskDriver(
                   return billed.data;
                 },
               },
-              createGetAuthorityTool(research),
-              createVerifyAuthorityTool(research),
+              getAuthority,
+              verifyAuthority,
             );
           }
         }
-        if (options.legislationProvider) tools.push(createGetLegislationTool(options.legislationProvider));
+        if (legislation) tools.push(legislation);
         const task = new AgenticCaseTask({
           workflowVersion: options.workflowVersion ?? 10,
+          guidedWorkflow: options.guidedWorkflow,
+          skills: options.skills,
           context: native,
           tools,
           createProvider: options.createProvider,
@@ -119,5 +134,5 @@ export function createCaseTaskDriver(
       },
     }),
   };
-  return { native, driver };
+  return { native, driver, researchCapabilities };
 }

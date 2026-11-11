@@ -7,14 +7,6 @@ export const AGENT_TOOL_NAMES: readonly string[] = [
   'forgelex_task_submit',
 ];
 
-/** Indexed STJ research is included only in the commercial runtime; the closed pilot remains unchanged. */
-export const COMMERCIAL_AGENT_TOOL_NAMES: readonly string[] = [
-  ...AGENT_TOOL_NAMES,
-  'forgelex_research_search_case_law',
-  'forgelex_research_get_authority',
-  'forgelex_research_verify_authority',
-];
-
 export async function readBounded(response: Response) {
   if (!response.body) throw new Error('PILOT_RESPONSE_INVALID');
   const reader = response.body.getReader();
