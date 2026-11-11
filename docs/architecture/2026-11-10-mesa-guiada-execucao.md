@@ -1,6 +1,6 @@
 # Mesa guiada do ForgeLex · registro de execução
 
-O [plano v2](../superpowers/plans/2026-11-10-forgelex-mesa-guiada-v2.md) teve seu início autorizado por Boni em 10 de novembro de 2026. Fluxo limpo e visual moderno são critérios de aceite da Mesa.
+O plano v2 teve seu início autorizado por Boni em 10 de novembro de 2026 e foi incorporado ao [plano unificado](../superpowers/plans/2026-11-11-forgelex-plano-unificado.md), único plano vigente desde 11/11/2026. Fluxo limpo e visual moderno são critérios de aceite da Mesa.
 
 ## R0 · revisão de partida
 
