@@ -47,7 +47,7 @@ As etapas indicadas não começam enquanto a decisão estiver aberta. A recomend
 | DEC-4  | Origem do catálogo de habilidades                                                                       | **Decidido por Boni em 11/11/2026:** manter e incorporar as 2.077 fichas capturadas (MinutaIA), com origem e hash registrados. Substitui a recomendação de catálogo próprio                                                                                                                                                                                                      | Nada (M3 liberada) |
 | DEC-5  | Reserva de R$ 11,50 por trabalho comercial (PR #135, antes R$ 5,00)                                     | **Decidido por Boni em 11/11/2026:** manter R$ 11,50. Aumento já autorizado até R$ 20,00, se necessário, com nova política de preço versionada e exibida na Conta e na confirmação de custo. Acima de R$ 20,00 exige nova decisão                                                                                                                                                | M1                 |
 | DEC-6  | Tarifa da análise de aderência na busca ancorada                                                        | Gerar a frase de aderência na mesma chamada da pesquisa, sem tarifa adicional, enquanto o uso real é medido                                                                                                                                                                                                                                                                      | M4                 |
-| DEC-7  | Título principal do site público                                                                        | Manter o título aprovado travado em `tests/public-copy.test.ts`; o título do protótipo não entra                                                                                                                                                                                                                                                                                 | V2                 |
+| DEC-7  | Título principal e posicionamento do site público                                                       | **Decidido por Boni em 11/11/2026:** todo o frontend e a parte externa do site se adaptam ao modelo MCP originário (a IA do cliente conectada ao ForgeLex, mais a Mesa). O título novo é escolhido na V5A entre propostas escritas por mim; até lá vale o título atual, travado em `tests/public-copy.test.ts`                                                                   | V5A                |
 | DEC-8  | Destino do Ratione (`ratione.nexojuris.ia.br`) na troca de domínio                                      | **Decidido por Boni em 11/11/2026:** por ora o Ratione continua em `ratione.nexojuris.ia.br`. O domínio `nexojuris.ia.br` e esse subdomínio permanecem ativos e renovados; a troca de domínio não os toca                                                                                                                                                                        | D5 e Frente R      |
 | DEC-9  | Arquivamento dos planos antigos de `docs/superpowers/plans/`                                            | Boni informa que o Claude Code já está fazendo o arquivamento. Em 11/11/2026 não havia essa mudança em `main` nem em branch remota; a E6 só confere o resultado e atualiza os links, ou executa se ainda faltar                                                                                                                                                                  | E6                 |
 | DEC-10 | Mesa: peça e matéria em uso, sem lista exposta                                                          | **Decidido por Boni em 11/11/2026:** a Mesa mostra expressamente só a peça e a matéria que serão usadas naquele momento, nunca uma lista do catálogo. O cliente chega a elas por grande área, por texto livre e, depois, pela leitura de um PDF anexado. Conteúdo, IDs e hashes das fichas continuam ocultos. Revisa a decisão do v2 de manter Forma e Matéria só nos bastidores | Nada (U3 liberada) |
@@ -96,7 +96,10 @@ flowchart LR
     V3 --> V4["V4 Jurisprudência e fontes"]
     M4 --> V4
     V4 --> V5["V5 Casos, Conectar e Conta"]
-    V5 --> V6["V6 Ligar o tema novo"]
+    V5 --> V5A["V5A Site público no modelo MCP e Mesa"]
+    M2 --> V5A
+    U6 --> V5A
+    V5A --> V6["V6 Ligar o tema novo"]
     V6 --> V7["V7 Limpeza do tema antigo"]
     E --> D0["D0 Decidir e inventariar domínio"]
     D0 --> D1["D1 Código com domínio configurável"]
@@ -124,7 +127,7 @@ flowchart LR
 
 As Frentes V, D e U andam em paralelo depois de E, mas a estrutura da Mesa (U) vem antes do visual da Mesa (V3),
 para não pintar uma tela que será reorganizada. A sequência sugerida, sem prazo fixo: E, M1, V0, D0, D1, U0, U1,
-V1, M2, M3, U2, U3, U4, V2, D2, U5, U6, V3, U7, M4, V4, D3, D4, V5, V6, V7, D5. A Frente R só começa quando V6 estiver
+V1, M2, M3, U2, U3, U4, V2, D2, U5, U6, V3, U7, M4, V4, D3, D4, V5, V5A, V6, V7, D5. A Frente R só começa quando V6 estiver
 estável.
 
 ## 5. Etapa E — estabilização
@@ -521,13 +524,13 @@ Depende de V0 e DEC-3.
 
 Depende de V1 e DEC-7.
 
-| Entrega                                         | Arquivos                              | Aceite                                                                    |
-| ----------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
-| Lateral com Mesa, Casos, Jurisprudência e conta | `Sidebar.tsx`, `navigation/routes.ts` | Aliases antigos (Rascunhos, Revisão) continuam redirecionando para a Mesa |
-| Cabeçalho enxuto                                | `Header.tsx`                          | Nenhum item leva a ferramenta removida                                    |
-| Entrar, Produto e páginas públicas              | telas públicas                        | `public-copy.test.ts` e `public-seo.test.ts` verdes                       |
-| Visão com “Primeiros passos” ocultável          | tela de visão geral                   | Estado persiste por usuário                                               |
-| “Andamento processual”                          | rotas e rótulos                       | Testes de cópia atualizados no mesmo commit; rota antiga redireciona      |
+| Entrega                                                                         | Arquivos                              | Aceite                                                                    |
+| ------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| Lateral com Mesa, Casos, Jurisprudência e conta                                 | `Sidebar.tsx`, `navigation/routes.ts` | Aliases antigos (Rascunhos, Revisão) continuam redirecionando para a Mesa |
+| Cabeçalho enxuto                                                                | `Header.tsx`                          | Nenhum item leva a ferramenta removida                                    |
+| Entrar, Produto e páginas públicas (só estrutura e visual; o texto muda na V5A) | telas públicas                        | `public-copy.test.ts` e `public-seo.test.ts` verdes                       |
+| Visão com “Primeiros passos” ocultável                                          | tela de visão geral                   | Estado persiste por usuário                                               |
+| “Andamento processual”                                                          | rotas e rótulos                       | Testes de cópia atualizados no mesmo commit; rota antiga redireciona      |
 
 **Verificação.** `playwright.public.config.ts`, `accessibility.spec.ts`, suíte da Mesa nos dois temas.
 
@@ -557,6 +560,41 @@ Depende de V3 e M4. `ResearchDeskScreen.tsx`, `DecisionReader`, `SavedResearchPa
 ### V5 — Casos, Caso novo, Conectar e Conta
 
 Depende de U7: sem a tela “Casos”, o que for dela já está na Mesa e só Conectar e Conta mudam aqui. Telas da 7.2. Remover ou dar comportamento real aos botões inertes. Valores financeiros sempre vindos do serviço.
+
+### V5A — Site público no modelo MCP e Mesa
+
+Depende de DEC-7, M2, U6 e do estado publicado registrado em E1. Decisão de Boni (11/11/2026): o frontend e a parte
+externa do site representam o modelo MCP originário e precisam refletir o produto novo. Hoje o texto vende “pesquisa
+jurisprudencial dos tribunais superiores e consulta processual”; o comentário de `tests/public-copy.test.ts` registra
+que o site oferece o escopo congelado, e o título “A inteligência jurídica que pensa antes de peticionar.” está
+vetado por ter prometido além do publicado.
+
+**Regra.** O site só afirma o que está em produção e com preço publicado. Texto e funcionalidade saem na mesma
+publicação, por flag (`VITE_FORGELEX_PUBLIC_MODEL`), e uma frase sem função publicada correspondente não entra.
+
+- [ ] Registrar o posicionamento a aprovar, com base no que Boni descreveu: (1) conectar o ForgeLex à própria IA do
+      cliente por MCP, com o raciocínio no ChatGPT ou Claude dele; (2) conferência de jurisprudência com
+      proveniência e vigência; (3) agentes analíticos por função (analisar, mapear teses, avaliar provas, estratégia,
+      redigir), só depois de publicados; (4) a Mesa, para elaborar e revisar peças com orientação, anexos e OCR;
+      (5) pagamento por uso, com recarga e valores sempre vindos do serviço.
+- [ ] Clientes de IA citados: só os com conexão ensaiada em M1 e D2 (hoje ChatGPT e Claude, “conforme a
+      disponibilidade do MCP”). O Gemini entra no texto só depois de ensaio de conexão.
+- [ ] Escrever três propostas de título e subtítulo; Boni escolhe uma. O resultado entra no registro de execução.
+- [ ] Reescrever, no modelo escolhido: `HomePage`, `ProductPage`, `HowPage`, `IntegrationsPage`, `CreditsPage`,
+      `GuidePage`, `ApiDocsPage`, `PublicSections.tsx`, `LandingScreen.tsx` (remover a dupla versão do título por
+      `CASE_WORKSPACE_ENABLED`), `ConnectionsScreen` (Conectar IA), `index.html`, `public-metadata.ts`,
+      `sitemap.xml`, imagem Open Graph e `README.md`.
+- [ ] Textos legais em `apps/web/public/legal/` (termos, privacidade, retenção, encerramento): revisar para o modelo
+      novo, incluindo anexos (só o texto é guardado), OCR no navegador e os agentes. Descrever apenas o que
+      acontece de fato; a aprovação é de Boni.
+- [ ] Atualizar no mesmo commit `tests/public-copy.test.ts`, `tests/public-seo.test.ts` e
+      `apps/web/src/public/PublicSite.test.ts`; manter o veto ao título rejeitado.
+- [ ] A consulta processual gratuita (DataJud) continua descrita como é, sem sugerir mais do que oferece.
+- [ ] URLs canônicas e `og:url` com o domínio vigente na ocasião (D3), sem valor fixo no texto.
+
+**Verificação.** `playwright.public.config.ts`, `accessibility.spec.ts`, testes de cópia e SEO. **Aceite.** Cada
+afirmação do site corresponde a uma função publicada; título aprovado por Boni. **Reversão.** Desligar
+`VITE_FORGELEX_PUBLIC_MODEL` e fazer novo deploy do web.
 
 ### V6 — Ligar o tema gelo
 
@@ -701,6 +739,7 @@ etapas D. Falhas preexistentes e testes ignorados são registrados sem contar co
 | Remover código ainda usado em produção                | U0 com flags de produção e relatório de uso; PRs pequenas; reversão por PR        | U1         |
 | Seleção sem ficha por falta de chave no mapa          | M3.0 gera e confere o mapa; fila de ambíguas                                      | M3, U3     |
 | OCR lento ou fraco em documento ruim                  | OCR com cancelamento, limite de páginas e texto editável; servidor só por decisão | U6         |
+| Site promete função ainda não publicada               | V5A: texto e função saem juntos, por flag; título vetado mantido                  | V5A        |
 | Alerta de chave não dispara                           | Checagem periódica de `/readyz`                                                   | E3         |
 | Duas mudanças de risco juntas                         | Seção 0, item 6                                                                   | V6, D3, D4 |
 
@@ -761,3 +800,4 @@ antes dos escritores; checkpoints antigos continuam no protocolo original.
 | A21 | Mesa mostra só a peça e a matéria em uso, sem listar o catálogo; conteúdo e IDs ocultos             | Pendente (U3)                           |
 | A22 | Voltar, alterar, adicionar e excluir com desfazer, testados por teclado                             | Pendente (U4)                           |
 | A23 | Anexo e OCR no pedido, com texto editável antes de salvar                                           | Pendente (U5, U6)                       |
+| A24 | Cada afirmação do site público corresponde a uma função publicada e a um preço do serviço           | Pendente (V5A)                          |
