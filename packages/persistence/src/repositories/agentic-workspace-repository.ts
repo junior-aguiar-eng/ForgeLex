@@ -145,13 +145,14 @@ export class AgenticWorkspaceRepository {
   async createConversation(
     owner: AgenticOwner,
     input: { objective: string; matterId?: string; context: AgenticContext },
+    conversationId: string = randomUUID(),
   ): Promise<AgenticConversation> {
     AgenticOwnerSchema.parse(owner);
     const objective = z.string().trim().min(1).max(16000).parse(input.objective);
     const context = AgenticContextSchema.parse(input.context);
     if (context.answers?.length) throw new Error('ANSWERS_REQUIRE_QUESTION');
     const matterId = input.matterId ? z.string().guid().parse(input.matterId) : null;
-    const id = randomUUID();
+    const id = z.string().guid().parse(conversationId);
     await this.db.transaction(async (transaction) => {
       const repo = new AgenticWorkspaceRepository(transaction as unknown as ForgeLexDatabase);
       await lockAgenticTenant(repo.db, owner.tenantId);
@@ -509,6 +510,27 @@ export class AgenticWorkspaceRepository {
       const { revision: _revision, ...context } = current;
       await repo.insertMessage(row.id, executionId, { role: 'USER', answer });
       await repo.insertContext(owner, row, { ...context, answers: [...(context.answers ?? []), answer] });
+    });
+  }
+
+  async reviseGuidance(
+    owner: AgenticOwner,
+    conversationId: string,
+    expectedRevision: number,
+    guidance: NonNullable<AgenticContext['guidance']>,
+    receipt: NonNullable<AgenticContext['guidanceReceipt']>,
+    question: LegalQuestion,
+    raw: LegalAnswer,
+    correcting: boolean,
+  ): Promise<void> {
+    await this.lockConversation(owner, conversationId, async (repo, row) => {
+      if (row.contextRevision !== expectedRevision) throw new Error('CONTEXT_CONFLICT');
+      const answer = validateLegalAnswer({ ...question, contextRevision: expectedRevision }, raw);
+      const conversation = await repo.readConversation(row);
+      const { revision: _revision, ...context } = conversation.contexts.at(-1)!;
+      if (!correcting) await repo.insertMessage(row.id, null, { role: 'ASSISTANT', question });
+      await repo.insertMessage(row.id, null, { role: 'USER', answer });
+      await repo.insertContext(owner, row, { ...context, guidance, guidanceReceipt: receipt });
     });
   }
   async correctAnswer(

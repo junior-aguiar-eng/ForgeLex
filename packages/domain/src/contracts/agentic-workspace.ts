@@ -85,6 +85,13 @@ export const AgenticContextSchema = z
     draft: z.object({ draftId: z.string().guid(), versionId: z.string().guid() }).strict().optional(),
     approvedItems: ApprovedItemsSchema.optional(),
     guidance: GuidanceSnapshotSchema.optional(),
+    guidanceReceipt: z
+      .strictObject({
+        commandId: z.uuid(),
+        requestHash: z.string().regex(/^[a-f0-9]{64}$/),
+        revision,
+      })
+      .optional(),
   })
   .strict()
   .superRefine((c, ctx) => {

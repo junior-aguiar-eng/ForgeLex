@@ -42,7 +42,25 @@ node scripts/skills/inventory-catalog.mjs --archive "<caminho do ZIP aprovado>" 
 - Os contratos de orientação e de seleção não aceitam campos de autorização ou comando. A entrada pública de execução recusa a orientação interna, inclusive se o snapshot/hash for válido. A projeção pública continua omitindo a orientação. A validação de comandos de orientação com owner e revisão pertence a R3. O contrato das chaves já aceitas pelo cliente permanece compatível.
 - Validação local: build completo, verificação de tipos de domínio e API, ESLint e Prettier nos arquivos alterados e 79 testes focados em seis suites. Os testes de API e persistência usam banco em memória. Não houve execução de inferência real ou operação em produção.
 
-Próxima tarefa: R3, orientação persistida anterior à inferência. O estado de cada etapa está nos checkboxes do plano.
+## R3 · orientação persistida anterior à inferência
+
+A API prepara a conversa, registra cada resposta e reabre a pergunta ativa usando os snapshots existentes. A revisão e os recibos ficam no JSON do contexto. A gravação usa o lock já existente e preserva as revisões anteriores. Nenhuma migration é necessária para esta etapa.
+
+| Operação | Contrato |
+|---|---|
+| `POST /api/agentic/guidance` | Inicia a orientação. Recebe `objective` e `matterId` opcionais e um `Idempotency-Key` UUID. |
+| `GET /api/agentic/guidance/:conversationId` | Recupera decisões públicas e pergunta ativa em leitura consistente. |
+| `POST /api/agentic/guidance/:conversationId/answer` | Registra `LegalAnswer` para a pergunta ativa na revisão indicada. |
+| `POST /api/agentic/guidance/:conversationId/correct` | Corrige uma decisão ainda válida na revisão indicada. Invalida a peça dependente quando área ou tarefa mudam. |
+
+- As rotas exigem sessão e `research:read`. Contexto vinculado a caso exige `matter:read` e caso ativo. A projeção pública omite hashes, recibos e conteúdos internos.
+- A identidade do comando de início localiza a primeira revisão por UUID derivado no escopo do dono. Respostas e correções guardam o comando na revisão produzida. A repetição devolve essa revisão, inclusive após o avanço da conversa. Usar a mesma chave com outro pedido retorna conflito.
+- A escolha “Não sei” fica registrada. As regras iniciais guiam área e tarefa e incluem peças de referência para Penal e Cível. A interpretação por IA e o consumo pelo compositor entram nas etapas seguintes.
+- A execução que consome orientação precisa apontar para a revisão persistida, sem substituir esse contexto no pedido de início.
+- A gravação é opt-in por `FORGELEX_DESK_GUIDANCE_ENABLED=true` junto ao workspace agêntico, fora do piloto fechado. O padrão preserva o rollout leitor antes do escritor.
+- Validação local: build da API e dependências, tipos de API e domínio, lint e formatação dos arquivos alterados. 76 testes focados passaram em cinco suítes. Os novos casos cobrem concorrência de duas abas, acesso, chave UUID, opção inválida, retomada, replay histórico, invalidação de peça e recusa de revisão antiga. A preparação verificou ausência de execução, job, chamada e reserva de inferência. Os testes de persistência usam SQLite em memória.
+
+Próxima tarefa: R4, seleção única e navegação da Mesa. O estado de cada etapa está nos checkboxes do plano.
 
 ## Evidências locais
 

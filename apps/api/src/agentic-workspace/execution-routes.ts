@@ -32,6 +32,8 @@ import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
 import { EditorialCommercialCommand } from './editorial-commercial-runtime.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
+import { GuidanceService } from './guidance-service.js';
+import { registerGuidanceRoutes } from './guidance-routes.js';
 
 export interface AgenticWorkspaceRuntimeOptions {
   /** Trusted opt-in. Real generation requires a separately provisioned financial command. */
@@ -292,6 +294,14 @@ export function registerAgenticWorkspace(
         });
       }
     };
+  if (!pilot && deps.database && deps.environment.FORGELEX_DESK_GUIDANCE_ENABLED === 'true') {
+    registerGuidanceRoutes(
+      app,
+      new GuidanceService(deps.database),
+      { preHandler: [deps.auth.createPreHandler(['research:read']), session] },
+      handle,
+    );
+  }
   app.post(
     '/api/agentic/executions',
     options,

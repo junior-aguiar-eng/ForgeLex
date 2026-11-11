@@ -36,7 +36,7 @@ export const StartExecutionSchema = z
     conversationId: z.string().guid().optional(),
     matterId: z.string().guid().optional(),
     context: AgenticContextSchema.refine(
-      (c) => c.approvedItems === undefined && c.guidance === undefined,
+      (c) => c.approvedItems === undefined && c.guidance === undefined && c.guidanceReceipt === undefined,
       'SERVER_OWNED_CONTEXT',
     ).optional(),
     contextRevision: z.number().int().positive().optional(),
@@ -308,6 +308,8 @@ export class ExecutionService {
           throw new Error('CONTEXT_CONFLICT');
         const matterId = conversation?.matterId ?? input.matterId;
         const inherited = conversation?.contexts.at(-1);
+        if (inherited?.guidance && (input.context || input.contextRevision !== inherited.revision))
+          throw new Error('CONTEXT_CONFLICT');
         const { revision: _revision, ...previousContext } = inherited ?? {
           revision: 0,
           text: '',

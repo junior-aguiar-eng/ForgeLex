@@ -450,16 +450,18 @@ flowchart LR
 
 ### R3 — Orientação persistida anterior à inferência
 
+**Concluída em 10/11/2026.** [Rotas e evidência de validação](../../architecture/2026-11-10-mesa-guiada-execucao.md#r3--orientação-persistida-anterior-à-inferência).
+
 **Entrega.** Criar/retomar orientação e registrar resposta/correção com revisão e comando.
 
 **Arquivos.** `guidance-service.ts`, `guidance-routes.ts`, repositório de conversa e testes.
 
-- [ ] Testar fluxo determinístico com transportes de IA que falham se forem chamados.
-- [ ] Reutilizar conversa e snapshots para preparar a tarefa sem criar job de inferência.
-- [ ] Validar comando, owner, opção e revisão antes de registrar resposta.
-- [ ] Implementar correção com nova revisão e invalidação de decisões dependentes.
-- [ ] Testar duas abas respondendo ou corrigindo a mesma pergunta.
-- [ ] Testar recarga e retomada da pergunta ativa.
+- [x] Testar fluxo determinístico com driver que falha se for chamado.
+- [x] Reutilizar conversa e snapshots para preparar a tarefa sem criar job de inferência.
+- [x] Validar comando, owner, opção e revisão antes de registrar resposta.
+- [x] Implementar correção com nova revisão e invalidação de decisões dependentes.
+- [x] Testar duas abas respondendo ou corrigindo a mesma pergunta.
+- [x] Testar recarga e retomada da pergunta ativa.
 
 **Aceite.** Respostas de formulário não chamam provider ou reservam orçamento. Um comando repetido retorna o mesmo resultado. Uma resposta obsoleta falha sem substituir a atual.
 
