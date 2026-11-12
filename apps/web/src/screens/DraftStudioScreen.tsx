@@ -9,6 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ReviewPanel } from './draft-review/ReviewPanel';
 import { SourcePanel } from './draft-review/SourcePanel';
 import { DocumentReaderDialog } from '../components/DocumentReaderDialog';
+import { UndoNotice } from '../components/UndoNotice';
 import type { DocumentReference, DocumentSource } from '../documents/document-reader-model';
 import { type DraftReviewRun, type ReviewPoint, type DraftReviewFinding } from './draft-review/review-model';
 import { ApiRequestError, requestApiWithToken, requestApi } from '../api-client';
@@ -154,6 +155,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   const [token] = useState(initialToken);
   const [matters, setMatters] = useState<Matter[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [undoDraft, setUndoDraft] = useState<{ id: string; title: string }>();
   const [selectedMatterId, setSelectedMatterId] = useState('');
   const [selectedDraftId, setSelectedDraftId] = useState('');
   const [loadingSelection, setLoadingSelection] = useState(false);
@@ -305,6 +307,45 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
     } finally {
       if (sequence === selection.current) { setBusy(false); setLoadingSelection(false); }
     }
+  };
+
+  // Excluir peça (U4): arquiva sem apagar nada. A peça sai da lista e o aviso oferece "Desfazer", que a reabre.
+  const archiveOpenDraft = async () => {
+    if (!selectedMatterId || !selectedDraftId || busy) return;
+    if (dirty) {
+      setError('Salve ou descarte a edição antes de excluir a peça.');
+      return;
+    }
+    const target = { id: selectedDraftId, title: draftTitle || 'Peça sem título' };
+    setBusy(true);
+    setError(null);
+    try {
+      await request(`/api/v2/matters/${selectedMatterId}/drafts/${target.id}/archive`, token, { method: 'POST' });
+      setUndoDraft(target);
+    } catch (archiveError) {
+      setError(archiveError instanceof Error ? archiveError.message : 'Não foi possível excluir a peça.');
+      setBusy(false);
+      return;
+    }
+    setBusy(false);
+    await selectMatter(selectedMatterId);
+  };
+  const restoreArchivedDraft = async () => {
+    if (!selectedMatterId || !undoDraft || busy) return;
+    const target = undoDraft;
+    setBusy(true);
+    setError(null);
+    try {
+      await request(`/api/v2/matters/${selectedMatterId}/drafts/${target.id}/restore`, token, { method: 'POST' });
+      setUndoDraft(undefined);
+      await loadDrafts(selectedMatterId);
+    } catch (restoreError) {
+      setError(restoreError instanceof Error ? restoreError.message : 'Não foi possível desfazer a exclusão.');
+      return;
+    } finally {
+      setBusy(false);
+    }
+    await selectDraft(target.id, true);
   };
 
   const selectDraft = async (draftId: string, adopted = false, fromLocation = false) => {
@@ -860,12 +901,13 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
         setEditSelection({ versionId: version.version.id, sectionId: section.id, start: from, end: to, before });
       }}
       onMatter={id=>void selectMatter(id)} onDraft={id=>id ? void selectDraft(id) : void selectMatter(selectedMatterId)}
+      onArchive={() => void archiveOpenDraft()}
       onSave={()=>void saveDraft()} onExport={format=>void exportOpenPiece(format)} onCaseSources={onCaseSources} reviewActions={reviewActions}
       caseControls={<details><summary className="cursor-pointer text-xs text-stone-600">Criar caso</summary><label className="mt-2 block text-xs">Nome do caso<input className="mt-1 w-full rounded border p-2" value={newWorkCase} maxLength={200} onChange={e=>setNewWorkCase(e.target.value)}/></label><button type="button" className="mt-2 text-sm text-cognac-800" disabled={busy || !newWorkCase.trim()} onClick={async()=>{setBusy(true);try{const m=await requestApi<Matter>('/api/v2/matters',{method:'POST',body:JSON.stringify({title:newWorkCase.trim()})},{sessionOnly:true});setMatters(old=>[...old,m]);await selectMatter(m.id);setNewWorkCase('');}catch(e){setError(e instanceof Error?e.message:'Não foi possível criar o caso.');}finally{setBusy(false);}}}>Criar caso e usar na peça</button></details>}
-      extras={selectionHasDifferentVersion ? <p className="px-5 pt-3 text-sm text-stone-600">
+      extras={<>{undoDraft && <UndoNotice message={`Peça excluída: ${undoDraft.title}. As versões, revisões e recibos foram preservados.`} busy={busy} onUndo={() => void restoreArchivedDraft()} onDismiss={() => setUndoDraft(undefined)} />}{selectionHasDifferentVersion ? <p className="px-5 pt-3 text-sm text-stone-600">
         Este link aponta para outra versão. <button type="button" className="underline" disabled={busy || loadingSelection}
           onClick={() => publishDeskPiece(deskScope(), { matterId: selectedMatterId, draftId: selectedDraftId, versionId: editingVersion.current })}>Usar versão aberta</button>
-      </p> : importedDelivery && !selectedMatterId ? <p className="px-5 pt-3 text-sm text-stone-600">Escolha um caso em “Abrir peça” para guardar esta entrega. Você já pode editar e exportar localmente.</p> : undefined}
+      </p> : importedDelivery && !selectedMatterId ? <p className="px-5 pt-3 text-sm text-stone-600">Escolha um caso em “Abrir peça” para guardar esta entrega. Você já pode editar e exportar localmente.</p> : undefined}</>}
       history={<div className="space-y-3">{details?.versions.map(v=><button type="button" key={v.id} onClick={()=>void openHistory(v.id)} className="block w-full rounded-lg border border-stone-200 p-3 text-left">Versão {v.versionNumber} · {statusLabel[v.status]}</button>)}{historyLoading && <p>Carregando…</p>}{historyRuns.map(r=><div key={r.id}>{r.checks.map((c,i)=><p key={i} className="py-2 text-sm">{c.message}</p>)}</div>)}</div>}
 
     />

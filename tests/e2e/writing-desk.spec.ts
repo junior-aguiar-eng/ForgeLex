@@ -407,3 +407,54 @@ test('entrega abre ao lado, mantém edição ao navegar e aceita links antigos',
   await page.goto('/app/revisao');
   await expect(page.getByRole('region', { name: 'Conferências do caso' })).toHaveCount(0);
 });
+
+test('excluir peça salva é reversível: sai da lista, o aviso desfaz e nada é apagado', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page);
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers, data: { title: 'Caso da peça excluída' } })
+  ).json();
+  await page.getByRole('button', { name: 'Nova peça', exact: true }).click();
+  const desk = page.getByRole('region', { name: 'Mesa da peça' });
+  await desk.getByLabel('Título da peça').fill('Peça que será excluída');
+  await desk.getByLabel('Texto da seção 1', { exact: true }).fill('Texto que precisa sobreviver à exclusão.');
+  await desk.getByText('Abrir peça', { exact: true }).click();
+  await desk.getByLabel('Caso da peça').selectOption(matter.id);
+  await desk.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(desk.getByText('Salvo', { exact: true })).toBeVisible();
+  const list = async (query = '') =>
+    (await (await page.request.get(`${api}/api/v2/matters/${matter.id}/drafts${query}`, { headers })).json()).items;
+  const [saved] = await list();
+  expect(saved.title).toBe('Peça que será excluída');
+
+  // Com edição não salva, excluir fica indisponível: nada se perde.
+  const archive = desk.getByRole('button', { name: 'Excluir peça', exact: true });
+  const openMenu = async () => {
+    if (!(await archive.isVisible())) await desk.getByText('Peça aberta', { exact: true }).click();
+  };
+  await openMenu();
+  await desk.getByLabel('Texto da seção 1', { exact: true }).fill('Edição ainda não salva.');
+  await expect(archive).toBeDisabled();
+  await expect(desk.getByText('Salve ou descarte a edição antes de excluir.')).toBeVisible();
+  await desk.getByLabel('Texto da seção 1', { exact: true }).fill('Texto que precisa sobreviver à exclusão.');
+  await desk.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(desk.getByText('Salvo', { exact: true })).toBeVisible();
+
+  await openMenu();
+  await archive.click();
+  const notice = page.getByRole('status').filter({ hasText: 'Peça excluída: Peça que será excluída' });
+  await expect(notice).toBeVisible();
+  expect(await list()).toEqual([]);
+  expect((await list('?archived=true')).map((item: { id: string }) => item.id)).toEqual([saved.id]);
+
+  await notice.getByRole('button', { name: 'Desfazer', exact: true }).click();
+  await expect(notice).toHaveCount(0);
+  expect((await list()).map((item: { id: string }) => item.id)).toEqual([saved.id]);
+  await expect(desk.getByLabel('Texto da seção 1', { exact: true })).toHaveValue(
+    'Texto que precisa sobreviver à exclusão.',
+  );
+  const details = await (
+    await page.request.get(`${api}/api/v2/matters/${matter.id}/drafts/${saved.id}`, { headers })
+  ).json();
+  expect(details.currentVersion.sections[0].content).toBe('Texto que precisa sobreviver à exclusão.');
+});
