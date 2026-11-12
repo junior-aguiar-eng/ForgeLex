@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "status": "proposta-nao-aplicada",
+  "status": "aprovada-por-boni-2026-11-12",
   "proposedOn": "2026-11-12",
-  "note": "Propostas para Boni decidir. Nada aqui é aplicado ao mapa: para valer, a decisão é copiada para o arquivo de decisões (decidedBy, date, reason) e passada a map-catalog.mjs --decisions.",
+  "note": "Aprovadas por Boni em 12/11/2026 e copiadas para map-decisions.json, que é o arquivo aplicado por map-catalog.mjs --decisions.",
   "natures": {
     "M": "moldura",
     "C": "rito-cpc",
