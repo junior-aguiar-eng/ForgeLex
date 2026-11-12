@@ -89,7 +89,7 @@ descartável local configurado por `FORGELEX_ACCOUNT_CLOSURE_TEST_ADMIN_URL`.
 O marco de experiência do produto foi integrado, publicado e homologado no
 escopo registrado em [STATUS_VALIDACAO.md](STATUS_VALIDACAO.md), sucedendo o
 plano de
-[melhorias de experiência e ativação MCP](docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md).
+[melhorias de experiência e ativação MCP](docs/historico/planos/2026-09-21-melhorias-experiencia-produto-forgelex.md).
 Ele sucede o produto STJ concluído sem reabrir suas fases nem ampliar os
 tribunais comercialmente habilitados. Há homologações anteriores em ChatGPT e
 Claude e um percurso documental real no Claude, com retorno versionado,
@@ -300,6 +300,9 @@ pnpm test:postgres
 # 9. Executar E2E Chromium com Supabase e pagamento simulados localmente
 pnpm exec playwright install chromium
 pnpm test:e2e:phase7
+# Em Linux e macOS, exporte LANG=C.UTF-8 e LC_ALL=C.UTF-8 antes dos E2E: sem locale UTF-8
+# o Chromium nomeia como "download" o arquivo de título acentuado e o teste de exportação
+# Word falha. A CI já define as duas variáveis.
 
 # 10. Executar carga básica da busca (25 intenções, concorrência 5)
 pnpm test:load:search

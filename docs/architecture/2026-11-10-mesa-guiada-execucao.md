@@ -1,6 +1,6 @@
 # Mesa guiada do ForgeLex · registro de execução
 
-O [plano v2](../superpowers/plans/2026-11-10-forgelex-mesa-guiada-v2.md) teve seu início autorizado por Boni em 10 de novembro de 2026. Fluxo limpo e visual moderno são critérios de aceite da Mesa.
+O [plano v2](../historico/planos/2026-11-10-forgelex-mesa-guiada-v2.md) teve seu início autorizado por Boni em 10 de novembro de 2026. Fluxo limpo e visual moderno são critérios de aceite da Mesa.
 
 ## R0 · revisão de partida
 
@@ -339,6 +339,114 @@ Em 11/11/2026, os três cenários passaram em Chromium, com a Mesa, a API e o wo
 | Divergência | Verificou o marco inicial. Manteve a tempestividade pendente e indicou a divergência entre o trecho enviado pelo verificador e o documento dos autos. |
 
 A homologação encerra esta etapa da verificação processual. A expansão do catálogo fica suspensa. O teste pode ser reproduzido com `pnpm exec playwright test -c playwright.desk-procedure.config.ts` após a compilação das dependências locais.
+
+## E2 · URL da Mesa sem `URLSearchParams.size`
+
+Em 11/11/2026, sobre `main` em `df8c714`. `desk-location.ts` e `routes.ts` decidiam pela propriedade `size`, ausente em Safari e iOS anteriores ao 17 e no Chrome anterior ao 113; nesses navegadores a URL saía sem caso, peça e conversa, e os parâmetros de retorno eram descartados. Ambos passaram a decidir por `toString()`.
+
+| Item | Resultado |
+| --- | --- |
+| Testes novos | Três, removendo `size` de `URLSearchParams.prototype`: URL idêntica com e sem a propriedade, caminho limpo sem seleção e preservação dos parâmetros em `navigateToTab`. Falharam antes da correção. |
+| Vitest da navegação | 63 aprovados de 63. |
+| Tipos e Prettier | Sem erros. Prettier exige `--end-of-line auto` neste checkout Windows (CRLF). |
+| `playwright.writing-desk.config.ts` | 37 aprovados de 37. |
+| Outras APIs recentes | Sem outro `URLSearchParams.size`. Restam `.at(-1)` e `Object.hasOwn` (Safari 15.4, Chrome 92 e 93), fora do escopo; o alvo do build é ES2022 sem polyfill. |
+
+Reversão: reverter o commit.
+
+## E5 · área digitada no resumo da orientação
+
+Em 11/11/2026, sobre `4018c92`. Quando o usuário escrevia a área ou a peça em vez de escolher uma opção, a resposta virava `unknown` e o resumo mostrava “Área a definir”. `guidance-service.ts` passou a projetar o texto livre mais recente de cada campo sem opção como `detail`, limitado a 120 caracteres; a tarefa fica de fora porque o texto dela já reaparece inteiro em `description`. O snapshot, o estado da decisão e o `guidanceHash` não mudam. O resumo exibe “Área: previdenciário, a confirmar”; sem texto digitado continua “Área a definir”.
+
+| Item | Resultado |
+| --- | --- |
+| Testes novos | `guidance-service.test.ts` (projeção em área e tarefa, opção escolhida sem `detail`) e `guidance-model.test.ts` (texto do resumo). O primeiro falhou antes da correção. |
+| Vitest | Serviço, modelo, regras e contrato da orientação: 12 aprovados de 12. |
+| Tipos, ESLint e Prettier | Sem erros (Prettier com `--end-of-line auto` no checkout Windows). |
+| `playwright.desk-guidance.config.ts` | 6 aprovados de 6. |
+
+Reversão: reverter o commit; o snapshot não muda.
+
+## E7 · locale UTF-8 nos testes de interface
+
+Em 11/11/2026. O fluxo `ci.yml` passou a definir `LANG=C.UTF-8` e `LC_ALL=C.UTF-8` para todos os jobs, e o `README.md` documenta a exigência para quem roda os E2E em Linux ou macOS. Sem locale UTF-8, o Chromium em Linux nomeia como `download` o arquivo de título acentuado e o teste de exportação Word falha. Verificação: configuração apenas; o efeito se confirma na primeira execução da CI. Reversão: reverter o commit.
+
+## E4 · flags e migração da Mesa guiada no roteiro de deploy
+
+Em 11/11/2026, sobre `3dcb72c`. O plano previa declarar `FORGELEX_DESK_GUIDANCE_ENABLED` e `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` no `cloudbuild.yaml`. As duas são variáveis de execução da API no Cloud Run, enquanto o `cloudbuild.yaml` só carrega as flags de interface do build (`VITE_*`); além disso, o deploy preserva o ambiente do serviço e recusa diferenças além da imagem e de `FORGELEX_SOURCE_SHA`. Declará-las no build não teria efeito. A etapa foi cumprida assim: o passo 3 de `deploy-from-main.ps1` informa o valor efetivo de cada flag (ausente vale como desligada; só `true` liga) e o `ops/gcp/production/README.md` registra o padrão, a ordem obrigatória (backup, migração `0041`, conferência no registro de migrações, só então ligar o salvamento) e a reversão. Nenhuma flag foi alterada em produção ou homologação.
+
+| Item | Resultado |
+| --- | --- |
+| Testes novos | Quatro casos de `Get-ApiRuntimeFlagReport` em `deploy-from-main.tests.ps1`; falharam antes da função. |
+| `deploy-from-main.tests.ps1` | 36 aprovados de 36. |
+| Sintaxe de `deploy-from-main.ps1` | Sem erros. Não executado contra o gcloud real; o `-DryRun` fica para a E1/M1. |
+| Prettier do README | Aprovado. |
+
+Reversão: reverter o commit.
+
+## E1 · estado publicado real e E3 · verificação periódica da chave
+
+Em 11/11/2026, sobre `9b37287`. Leitura somente leitura do Cloud Run, do Cloud Monitoring e do Cloud Scheduler no projeto `project-bbbe1209-c295-4720-867`, com `gcloud run services describe`, `gcloud run revisions list`, `gcloud monitoring uptime list-configs`, `gcloud alpha monitoring policies list` e `gcloud scheduler jobs list`. O `-DryRun` completo de `deploy-from-main.ps1` não foi executado.
+
+| Item | Resultado |
+| --- | --- |
+| E1 · SHA em produção | `8fcd1d0` (PR #134) nos dois serviços; `PENDENCIAS.md` dizia `5757733`. A API recebe 100% em `forgelex-api-prod-secretlatest-202611092347`. Os PRs #135 a #137 estão integrados e não publicados. |
+| E1 · flags da API | `DESK_GUIDANCE` e `DRAFT_SAVE_COMMANDS` ausentes (desligadas). Estão ligadas `AGENTIC_WORKSPACE`, `COMMERCIAL_EXECUTION`, `SAVED_RESEARCH`, `BILLING`, `ANALISE` e outras; o padrão `false` do plano era o do build. |
+| E1 · documentação | `PENDENCIAS.md` ganhou a seção do estado publicado atual, e as quatro linhas “ainda não publicado” (PRs #130, #132 e #133) foram reescritas. |
+| E3 · defeito apontado | Não procede: existe Uptime Check em `https://nexojuris.ia.br/readyz` a cada 300 s e a política de alerta da chave está ativa. O que faltava era a documentação; o Uptime Check não está provisionado por script. |
+| E3 · pendente | Ensaio com chave inválida em homologação (log e e-mail do alerta), não executado. |
+
+Reversão: reverter o commit; nada foi alterado no Cloud Run.
+
+### Complemento da E1 (insumos de U0, U1, V5A, D0 e M1)
+
+Em 11/11/2026, também somente leitura (Cloud Run, Cloud Build, Cloud Logging, Cloud SQL e balanceador por `gcloud`; DNS, RDAP do Registro.br e TLS por consulta pública; Supabase pela lista de projetos e tabelas). O detalhe item a item está em `PENDENCIAS.md`, na seção “Estado publicado atual — 11/11/2026”. Plano lido: `claude/plano-unificado` no commit `713774e`.
+
+| Item | Resultado |
+| --- | --- |
+| Web em produção | `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED=true` e `VITE_FORGELEX_CASE_WORKSPACE_ENABLED=true` (build `2e3691f7`): `integrated` é verdadeiro e está no ar a Mesa integrada (`WritingDeskScreen`). Build web de homologação não lido. |
+| Piloto fechado | `FORGELEX_CLOSED_PILOT_ENABLED=false` em produção e no encerramento; ausente na homologação; `_MODEL`, `_TENANT_ID` e `_USER_ID` inexistentes. |
+| Flags de servidor | Produção: `AGENTIC_WORKSPACE`, `COMMERCIAL_EXECUTION`, `EDITORIAL_COMMERCIAL` e `ANALISE` ligadas; `DESK_GUIDANCE` e `DRAFT_SAVE_COMMANDS` ausentes. Homologação: nenhuma das seis definida. |
+| Banco | Produção, `forgelex-api-hml` e encerramento compartilham o segredo `forgelex-hml-database-url` e a instância `forgelex-hml-pg`. Só a `forgelex-api-hml-isolated` tem banco próprio, parado. Homologação não é isolada da produção. |
+| Migração `0041` | Ausente do código publicado (`8fcd1d0`) e `AUTO_MIGRATE=false`: não aplicada pelo deploy. Registro de migrações do banco não lido (credencial). |
+| MCP e preço | `toolCount=21` no `mcp.call`; lista nominal não lida (401 sem token). Pesquisa R$ 0,20; reserva comercial **R$ 5,00** em produção (R$ 11,50 só em `main`, PR #135); limite diário de R$ 20,00. |
+| Clientes MCP | Claude 108 chamadas (11 `tools/call`), ChatGPT 12 (5), Codex 8 (0), Gemini 0, de 09/11 16:20 a 11/11 22:55 UTC. |
+| Domínio | Canônico `nexojuris.ia.br` (Registro.br, expira em 17/09/2027, certificado Google até 20/12/2026); Mercado Pago notifica `https://nexojuris.ia.br/api/v2/webhooks/mercadopago` também na homologação; `ratione.nexojuris.ia.br` responde 200; `hml.nexojuris.ia.br` não respondeu `/readyz`. |
+| Não lido | Registro de migrações do Cloud SQL, Site URL e Redirect URLs do Supabase Auth, painel do Mercado Pago, CAA, regras de host do balanceador, build web de homologação. |
+
+
+## E6 · higiene documental
+
+Em 11/11/2026, sobre `ceb85f8`, por decisão de Boni (DEC-9). Os 53 planos de `docs/superpowers/plans/` foram movidos com `git mv` para `docs/historico/planos/`, preservando o histórico dos arquivos. Não separei “concluídos” de “em aberto”: muitas listas nunca foram marcadas e o estado não se lê pelas caixas; o plano unificado declara todos os anteriores como histórico, e o estado atual fica em `PENDENCIAS.md`. A pasta `docs/superpowers/plans/` deixou de existir; `specs/` e `references/` continuam onde estavam.
+
+| Item | Resultado |
+| --- | --- |
+| Referências reescritas | `superpowers/plans/` virou `historico/planos/` em 26 arquivos Markdown e no `.prettierignore`. Nos planos movidos, os links para `../specs/` e `../references/` apontam agora para `../../superpowers/`. |
+| Não reescritos de propósito | `docs/architecture/evidence/2026-11-03-v9-review-remediation/changed-files.json` e `.superpowers/sdd/.../progress.md`, por serem evidência e registro do que existia na época. |
+| Verificação | Varredura dos links relativos de todo `.md` versionado que envolvem os planos: 0 quebrados. Nenhuma referência a `superpowers/plans` fora dos dois arquivos acima. |
+| Pendente | O link do registro de execução para o plano unificado (outro item da E6) espera esse plano entrar nesta branch. |
+
+Reversão: reverter o commit.
+
+## M2 (parcial) · migração 0041 no banco HML isolado
+
+Em 11/11/2026, sobre `9e4d81b`, por decisão de Boni (“aplicar só em isolado”, via Cloud Run Job). A 0041 (`persistence-0041-draft-save-commands`) foi aplicada **somente** em `forgelex-hml-isolated-pg`. O banco compartilhado `forgelex-hml-pg` (produção, `forgelex-api-hml` e encerramento) não foi tocado, nenhuma flag foi alterada e nenhuma revisão de serviço foi criada.
+
+| Passo | Resultado |
+| --- | --- |
+| Imagem | Cloud Build `ddb1df78-a465-4b5f-a9d0-817da5396e9e` (SUCCESS), `forgelex-hml-isolated/forgelex-api:mig0041-9e4d81b`, digest `sha256:1a949f332726ae425ff93339d5b27ab61fde0d8e3a23e9405660978c02f285a4`. Construída de `main` mais os commits da Frente E, com a Supabase HML como alvo do build web. Mantida no repositório HML isolado. |
+| Instância | Ligada com `--activation-policy=ALWAYS` (a operação levou cerca de 12 min) e parada de novo ao fim: `STOPPED`/`NEVER`. |
+| Backup | Sob demanda, `1794441092040`, `SUCCESSFUL`, antes da migração. O banco não tem backup automático. |
+| Job | `forgelex-hml-isolated-migrate-0041` (mesma conta de serviço, VPC `forgelex-hml-vpc`, sub-rede `forgelex-hml-sa-east1` e segredo `forgelex-hml-isolated-database-url`), execução `forgelex-hml-isolated-migrate-0041-qw4ht`, concluída sem erro. Aplicou apenas `draftSaveCommandsMigration`, em transação, e foi apagado depois. |
+| Verificação | Antes: 30 migrações registradas, última `persistence-0023-account-closure`; `matters` e `draft_versions` presentes; `draft_save_commands` ausente. Depois: 0041 registrada, tabela criada e índices `draft_save_commands_pkey`, `draft_save_commands_matter_idx` e `draft_save_commands_version_idx`. |
+
+**Achado.** O banco isolado parou na `persistence-0023`: as migrações `0024` a `0040` não estavam aplicadas e a 0041 entrou fora de ordem. Elas foram aplicadas em seguida (parágrafo abaixo).
+
+**Não verificado.** A 0041 não foi exercitada pela API (criação, leitura do recibo, repetição do comando): o serviço `forgelex-api-hml-isolated` não foi atualizado e roda a imagem anterior. O procedimento de recuperação (`draft-save-recovery.md`, passo 5) fica para o ensaio da M2.
+
+**Migrações pendentes (mesmo dia, depois da pergunta sobre o achado).** Por decisão de Boni, as 18 migrações de persistência pendentes foram aplicadas no mesmo banco isolado, pelo mesmo caminho (Cloud Run Job `forgelex-hml-isolated-migrate-pending`, execução `…-454l7`, 1 tarefa bem-sucedida, Job apagado depois, mesma imagem `mig0041-9e4d81b`). Novo backup sob demanda antes: `1794442309699`, `SUCCESSFUL`. Aplicadas, em ordem do código: `0024-research-judgment-year`, `0025-draft-review-runs`, `0026-case-ai-access`, `0027-draft-ai-receipts`, `0028-matter-lifecycle`, `0029-jurisprudence-search-metadata-index`, `0030-saved-research`, `0031-case-document-analysis`, `0031-agentic-workspace`, `0032-agentic-execution-control`, `0033-legislation-versions`, `0034-agentic-task-deliveries`, `0035-agentic-tenant-guards`, `0036-agentic-admission-deadline`, `0037-native-evidence-review`, `0038-editorial-human-review`, `0039-conversation-history` e `0040-desk-editorial`. Registradas: 31 antes (incluída a 0041) e 49 depois; nenhuma migração de persistência pendente, `assertMigrationsApplied` aprovado e a 0041 continua registrada. Instância parada de novo (`STOPPED`/`NEVER`). As migrações de ledger e de análise não foram tocadas; se faltar alguma delas, a API acusa no `/readyz` e isso não foi checado. O serviço isolado continua na imagem anterior, sem subir contra o esquema novo.
+
+Reversão: restaurar o backup `1794441092040`, ou remover a tabela e o registro da 0041 por decisão separada, com backup (a tabela está vazia).
 
 ## Evidências locais
 

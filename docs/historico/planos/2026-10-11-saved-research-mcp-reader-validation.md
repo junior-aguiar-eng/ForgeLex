@@ -162,7 +162,7 @@ A primeira entrega local implementou as funções do leitor, mas não reproduziu
 a apresentação da prévia aprovada. Em 11/10/2026, após Boni apontar a divergência,
 foi localizado e comparado o arquivo original `forgelex-mcp-decisions-preview.html`
 no diretório de visualizações da conversa anterior. Uma
-[cópia integral, sem alterações](../references/2026-10-11-mcp-decisions-approved-preview.html)
+[cópia integral, sem alterações](../../superpowers/references/2026-10-11-mcp-decisions-approved-preview.html)
 foi conservada neste checkout como referência verificável.
 
 O leitor real compartilhado agora reproduz cabeçalho ForgeLex, identificação

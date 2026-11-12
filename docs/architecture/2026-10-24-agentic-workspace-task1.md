@@ -2,7 +2,7 @@
 
 Autorização: Boni pediu a próxima etapa após confirmar `a7d8832`, em
 24/10/2026. Recorte: Tarefa 1 do
-[plano canônico](../superpowers/plans/2026-10-10-agentic-workspace-transition.md).
+[plano canônico](../historico/planos/2026-10-10-agentic-workspace-transition.md).
 Base: `a7d883218a15674b63b2b0336cf0aa3877fdecca`, branch
 `codex/agent-contracts-a0`, worktree `analise-release/SDK`.
 

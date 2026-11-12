@@ -4,7 +4,7 @@ Primeiro incremento executado no checkout `forgelex-3-audit/SDK`, branch
 `codex/forgelex-3-quality`, sobre `5ba4ca87f3d4602db878ce8935552354c2743ee2`.
 O pedido de continuação abrangeu o contrato delimitado na
 [spec](../superpowers/specs/2026-11-02-forgelex-final-editor-contract.md) e no
-[plano](../superpowers/plans/2026-11-02-forgelex-final-editor-contract.md).
+[plano](../historico/planos/2026-11-02-forgelex-final-editor-contract.md).
 
 ## Implementação
 

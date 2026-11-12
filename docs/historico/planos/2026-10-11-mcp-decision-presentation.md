@@ -25,7 +25,7 @@ apenas apresentação associa recurso visual. Sem novo backend jurídico ou LLM.
 existentes. Bridge MCP Apps oficial com versão conferida no início da execução;
 dependência/bundle somente no módulo UI necessário, sem trocar o transporte.
 
-**Spec:** [Desenho](../specs/2026-10-11-mcp-decision-presentation-design.md).
+**Spec:** [Desenho](../../superpowers/specs/2026-10-11-mcp-decision-presentation-design.md).
 Integra o incremento M do plano V2 histórico
 (`2026-10-10-agentic-workspace-transition.md`, conservado no checkout de origem).
 O restante da orquestração V2 continua suspenso.
@@ -170,7 +170,7 @@ ementa, trecho identificado, origem e citação. Sem API real, cobrança, salvam
 instalação ou alteração de código do produto. A avaliação visual é de Boni.
 
 Referência de aparência para a implementação:
-[cópia integral da prévia aprovada](../references/2026-10-11-mcp-decisions-approved-preview.html).
+[cópia integral da prévia aprovada](../../superpowers/references/2026-10-11-mcp-decisions-approved-preview.html).
 O leitor real deve conservar cabeçalho, hierarquia dos dados, área delimitada
 de leitura, apresentação por abas e ações compactas dessa referência.
 Os controles das pesquisas salvas são acréscimos funcionais; não autorizam

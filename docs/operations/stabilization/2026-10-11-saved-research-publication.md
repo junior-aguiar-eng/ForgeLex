@@ -111,4 +111,4 @@ Desligar o controle de frontend requer build compatível com esse valor.
 As evidências sanitizadas estão em
 [2026-10-11-saved-research-publication-proof.json](2026-10-11-saved-research-publication-proof.json).
 O plano e os limites de integração real continuam em
-[validação da entrega](../../superpowers/plans/2026-10-11-saved-research-mcp-reader-validation.md).
+[validação da entrega](../../historico/planos/2026-10-11-saved-research-mcp-reader-validation.md).

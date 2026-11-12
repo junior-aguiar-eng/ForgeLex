@@ -324,7 +324,7 @@ Sem alteração de interface, billing policy, conectores, lockfile ou migrations
 | `packages/legal-tools/src/case-context/native-case-context.test.ts` | Persistência, integridade e isolamento da auditoria |
 | `apps/api/src/agentic-workspace/case-task-driver.test.ts` | Auditoria preenchida no percurso driver → persistência → API |
 | `CONTINUIDADE.md`, `PENDENCIAS.md` | Referência ao incremento local e limites da evolução |
-| `docs/superpowers/specs/2026-11-01-forgelex-3-quality-design.md`, `docs/superpowers/plans/2026-11-01-forgelex-3-quality.md` | Desenho, plano e decisões |
+| `docs/superpowers/specs/2026-11-01-forgelex-3-quality-design.md`, `docs/historico/planos/2026-11-01-forgelex-3-quality.md` | Desenho, plano e decisões |
 | Este relatório e `docs/architecture/evidence/2026-11-01-*.json` | Diagnóstico e recibos de benchmark/validação |
 
 | Verificação executada | Resultado |

@@ -78,7 +78,7 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   `tools/list` traz 21 ferramentas. A primeira `research.search_case_law` do Claude veio sem chave de idempotência
   (`idempotency=none`, `ok=false`); a segunda, 20 s depois, com a chave como argumento, funcionou. O painel
   (`research.present_decisions`) só abriu depois, e nada orienta o modelo a abri-lo após a pesquisa. **Correção em
-  código (ainda não publicada):** o `tools/list` e o `initialize` passam a dizer que a chave é obrigatória (um
+  código (publicada no `b8c44ee`):** o `tools/list` e o `initialize` passam a dizer que a chave é obrigatória (um
   identificador novo e único por operação) e que, concluída a pesquisa, o modelo chama o painel com o `operationId`
   devolvido. O texto é único para Claude, ChatGPT e qualquer cliente (o `tools/list` não depende de quem pergunta; um
   teste trava isso). Só descrições: nenhuma regra de cobrança, autorização ou schema muda. Alternativa mais forte,
@@ -99,19 +99,19 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   mas o resultado para o usuário é o esperado.
 - **Chave de idempotência (`mcp.call`, 09/11/2026):** após o `b8c44ee`, o Claude passou a enviar `idempotencyKey` na
   primeira pesquisa (antes errava e repetia); o ChatGPT ainda errou duas vezes (20:38) antes de acertar. Nenhuma das 12
-  chamadas registradas usou o cabeçalho `Idempotency-Key`. **Em código, ainda não publicado:** `idempotencyKey` passa a
+  chamadas registradas usou o cabeçalho `Idempotency-Key`. **Integrado no PR #132 e presente no SHA em produção `8fcd1d0` (conferência no `mcp.call` não registrada):** `idempotencyKey` passa a
   constar em `required` no schema de toda ferramenta que a exige (pesquisa, verificação, workflows e análise), para o
   host enviá-la na primeira tentativa. Risco conhecido: um cliente que mande só o cabeçalho e valide os argumentos
   contra o schema seria recusado; não há sinal desse cliente nos logs. Sem a chave, a chamada segue falhando com
   `-32602`. Conferir no `mcp.call` do ChatGPT depois do deploy.
 - **Decisões por chamada (Boni, 09/11/2026):** a cobrança é por chamada (R$ 0,20), não por decisão, então devolver 1
   decisão no ChatGPT entrega menos pelo mesmo preço. O Claude devolve 5 a 10; o ChatGPT devolvia 1, provavelmente
-  porque o modelo enviava `limit` baixo ao ler "uma jurisprudência". **Em código, ainda não publicado:** o `limit` ganha
+  porque o modelo enviava `limit` baixo ao ler "uma jurisprudência". **Integrado no PR #132 e presente no SHA em produção `8fcd1d0` (conferência no ChatGPT não registrada):** o `limit` ganha
   descrição ("a cobrança é por chamada; peça 10, o padrão, mesmo que o usuário diga uma jurisprudência") e, no MCP, o
   servidor eleva qualquer `limit` abaixo de 5 para 5 (`MIN_SEARCH_RESULTS`); o padrão continua 10 e o máximo 20. O piso
   vale só no MCP: os fluxos internos (workflows agênticos, API de pesquisa) mantêm o `limit` que pedirem. Piso e padrão
   são ajustáveis. Conferir no ChatGPT depois do deploy se passam a vir de 5 a 10 decisões.
-- **M2 resolvido em código (09/11/2026, ainda não publicado):** `getExecution` lia até 1000 execuções da conversa e as
+- **M2 resolvido em código (09/11/2026, PR #133, presente no SHA em produção `8fcd1d0`):** `getExecution` lia até 1000 execuções da conversa e as
   filtrava e ordenava em memória. Agora o banco devolve a execução vigente entre as outras (uma linha) e só as
   anteriores que entregaram algo (três campos), em duas consultas novas do `ExecutionStore`
   (`newestCurrentExecution`, `priorDeliveries`). **Sem migration:** o filtro lê os campos do `payload_json`
@@ -124,7 +124,100 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   ordenado por `createdAt` (antes, sem ordem definida). Fica de fora, por não haver necessidade medida: índice sobre
   expressão do JSON; só vale se a consulta aparecer lenta com conversas muito longas.
 
-## Estado publicado atual — 09/11/2026 (UTC): SHA `5757733` em produção
+## Estado publicado atual — 11/11/2026: SHA `8fcd1d0` em produção
+
+Leitura somente leitura do Cloud Run em 11/11/2026 (projeto `project-bbbe1209-c295-4720-867`, região
+`southamerica-east1`), registrada na etapa E1 do plano unificado. Os dois serviços declaram
+`FORGELEX_SOURCE_SHA=8fcd1d0ea920898983b96db153848205a37b0a5b` (`main`, PR #134: alerta da chave do provedor), com a
+imagem `forgelex-api@sha256:18d643917434ca29392f5250624f9c007e13b29d2996081faa41659c62214e4a`.
+
+- `forgelex-api-prod` recebe 100% em `forgelex-api-prod-secretlatest-202611092347` (criada em 10/11/2026 02:47 UTC
+  a partir da `-8fcd1d0`, de 02:09 UTC, por `set-provider-secret-latest.ps1`). Revisão anterior com o mesmo código:
+  `forgelex-api-prod-8fcd1d0` (`--to-revisions=forgelex-api-prod-8fcd1d0=100`).
+- `forgelex-closure-hml-private` recebe 100% em `forgelex-closure-hml-private-8fcd1d0`.
+- **Integrados em `main` e não publicados:** PR #135 (entrada maior, teto de 100 kB e reserva por trabalho
+  comercial), PR #136 (Mesa guiada) e PR #137 (base da Mesa guiada). Os PRs #132 a #134 estão publicados.
+- **Flags efetivas da API em produção** (ambiente do serviço; ausente vale como desligada):
+  `AGENTIC_WORKSPACE`, `ANALISE`, `BILLING`, `COMMERCIAL_EXECUTION`, `EDITORIAL_COMMERCIAL`, `MCP_DECISION_UI`,
+  `MCP_OAUTH`, `SAVED_RESEARCH` e `ACCOUNT_CLOSURE` ligadas; `CLOSED_PILOT`, `ACCOUNT_CLOSURE_SCHEDULER` e
+  `ACCOUNT_CLOSURE_WORKER` desligadas; `AUTO_MIGRATE=false`. `FORGELEX_DESK_GUIDANCE_ENABLED` e
+  `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` não existem no serviço, logo estão desligadas. Os padrões `false` do
+  `cloudbuild.yaml` valem para as flags de interface do build, não para estas.
+- **Flags no serviço de encerramento:** `ACCOUNT_CLOSURE_SCHEDULER` ligada; `ACCOUNT_CLOSURE`, `AGENTIC_WORKSPACE`,
+  `ANALISE`, `BILLING` e `COMMERCIAL_EXECUTION` desligadas; `EDITORIAL_COMMERCIAL` ligada.
+- Os dois serviços só têm `startupProbe` em `/readyz`; não há sonda de vida. A checagem periódica de `/readyz` vem do
+  Uptime Check do Cloud Monitoring (ver `ops/gcp/production/README.md`).
+- **Não observado:** a revisão do SHA `8fcd1d0` não foi exercitada nesta leitura além do que os serviços declaram;
+  o estado do banco e a migração `0041` não foram consultados.
+
+**Complemento da E1 (11/11/2026, somente leitura; insumo de U0, U1, V5A, D0 e M1):**
+
+- **Web em produção:** `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED=true`, `VITE_FORGELEX_CASE_WORKSPACE_ENABLED=true` e
+  `VITE_FORGELEX_SAVED_RESEARCH_ENABLED=true` (build `2e3691f7`, imagem em uso `sha256:18d64391…`; os 23 builds desde
+  30/10 têm as duas primeiras ligadas). Em `App.tsx` do `8fcd1d0`, `integrated` = as duas ligadas, logo está no ar a
+  **Mesa integrada** (`WritingDeskScreen` envolvendo `AgenticWorkspaceScreen`, `DraftStudioScreen` e `DashboardScreen`).
+  O build web de homologação não foi lido (a imagem do `forgelex-api-hml` é a tag `closure-release-f10e13f`, fora do
+  histórico recente do Cloud Build).
+- **Piloto fechado:** `FORGELEX_CLOSED_PILOT_ENABLED=false` em produção e no encerramento; ausente (desligado) em
+  `forgelex-api-hml` e `forgelex-api-hml-isolated`. `_MODEL`, `_TENANT_ID` e `_USER_ID` não existem em nenhum serviço.
+- **Flags de servidor** (ausente = desligada):
+
+| Flag | `forgelex-api-prod` | `forgelex-closure-hml-private` | `forgelex-api-hml` | `forgelex-api-hml-isolated` |
+| --- | --- | --- | --- | --- |
+| `DESK_GUIDANCE_ENABLED` | ausente | ausente | ausente | ausente |
+| `DRAFT_SAVE_COMMANDS_ENABLED` | ausente | ausente | ausente | ausente |
+| `AGENTIC_WORKSPACE_ENABLED` | true | false | ausente | ausente |
+| `COMMERCIAL_EXECUTION_ENABLED` | true | false | ausente | ausente |
+| `EDITORIAL_COMMERCIAL_ENABLED` | true | true | ausente | ausente |
+| `ANALISE_ENABLED` | true | false | ausente | ausente |
+
+- **Banco compartilhado (achado):** `forgelex-api-prod`, `forgelex-api-hml` e `forgelex-closure-hml-private` usam o
+  mesmo segredo `forgelex-hml-database-url` e a mesma instância Cloud SQL `forgelex-hml-pg` (PostgreSQL 16, sempre
+  ligada). Só `forgelex-api-hml-isolated` tem banco próprio (`forgelex-hml-isolated-pg`, **parada**). Portanto
+  “homologação” na `forgelex-api-hml` **não é um banco separado da produção**: aplicar a migração `0041` ou ligar
+  flags ali afeta o mesmo banco.
+- **Migração `0041` no banco HML isolado (11/11/2026, M2 parcial):** aplicada só em `forgelex-hml-isolated-pg`, por Cloud
+  Run Job, com backup `1794441092040`; instância parada de novo. Esse banco estava na `persistence-0023`; as 18 migrações
+  pendentes `0024` a `0040` foram aplicadas depois (backup `1794442309699`), sem pendência de persistência. Produção e o banco compartilhado `forgelex-hml-pg` não foram tocados. Detalhes no registro
+  de execução, seção “M2 (parcial)”.
+- **Migração `0041`:** o código publicado (`8fcd1d0`) não contém `persistence-0041`; ela só existe em `main`. Com
+  `FORGELEX_AUTO_MIGRATE=false` em todos os serviços, não foi aplicada pelo deploy. Não li o registro de migrações do
+  banco (a credencial é um segredo e não a li), então não há prova direta; o `/readyz` de produção responde 200 com
+  `migrations: true`, o que só diz que as migrações conhecidas pela revisão estão aplicadas.
+- **MCP em produção:** `tools/list` sem token dá 401, então não li a lista nominal. O log `mcp.call` registra
+  `toolCount=21` em todos os dias (09, 10 e 11/11), com `serverVersion` `2.0.0+8fcd1d0` desde a publicação. O código
+  do `8fcd1d0` define `research.*` (busca, verificação, obtenção, pesquisas salvas, painel de decisões), `case.*`
+  (`get_context`, `list_shared`, `read_item`, `save_analysis`), `draft.save_from_ai`, `workflow.legal_research_memo`,
+  `forgelex.connection_status` e os sete `analise.*` (`ANALISE_ENABLED=true`); isso soma 22 nomes contra 21 observados,
+  então a lista exata em produção fica por confirmar com um cliente autenticado.
+- **Preços vigentes em produção** (código do `8fcd1d0`, política `commercial-brl-2026-10-30-v1`): pesquisa
+  `research.search_case_law` R$ 0,20 por execução válida (única ferramenta MCP faturável; obtenção, verificação e memo
+  gratuitos); trabalho comercial com **reserva de R$ 5,00**, mínimo de R$ 0,50, limite diário de R$ 20,00 e mensal de
+  R$ 100,00; pacotes de R$ 25, 50 e 80, valor livre de R$ 25 a R$ 500 e recarga automática com limiar de R$ 5,00. A
+  **reserva de R$ 11,50 existe só em `main`** (PR #135, não publicado). Com o limite diário de R$ 20,00 e a reserva de
+  R$ 11,50, uma segunda execução no mesmo dia pode ser recusada depois de R$ 8,50 gastos; a política nova precisa
+  rever o limite (decisão de Boni, DEC-5).
+- **Clientes MCP** (`mcp.call` de 09/11 16:20 a 11/11 22:55 UTC; o log só existe desde 09/11; 128 linhas): Claude
+  (`Claude-User`) 108, das quais 11 `tools/call`; ChatGPT (`openai-mcp/1.0.0`) 12, das quais 5 `tools/call`; Codex da
+  OpenAI (`openai-mcp/1.0.0 (Codex)`) 8, sem nenhum `tools/call` (`initialize`, `server/discover`, `tools/list` e uma `resources/read`); **Gemini: nenhuma**. Os
+  16 `tools/call` foram 12 `research.search_case_law` (8 Claude, 4 ChatGPT) e 4 `research.present_decisions`. Sem
+  chave de idempotência (`idempotency=none`): 5 do Claude e 3 do ChatGPT.
+- **Domínio:** canônico `nexojuris.ia.br` (`FORGELEX_PUBLIC_URL`, `FORGELEX_WEB_URL`, `FORGELEX_MCP_RESOURCE_URL` e
+  `FORGELEX_OAUTH_AUTHORIZATION_SERVERS`). Registro.br (RDAP): ativo, registrado em 17/09/2026, expira em 17/09/2027,
+  DNS do próprio Registro.br (`e.sec.dns.br`, `f.sec.dns.br`); o titular não é exposto no RDAP. `nexojuris.ia.br` e
+  `hml.nexojuris.ia.br` resolvem para `34.160.73.22` (balanceador global); certificados gerenciados do Google
+  (`forgelex-api-prod-cert` só com `nexojuris.ia.br`, válido até 20/12/2026; `forgelex-api-hml-cert` com
+  `hml.nexojuris.ia.br`, até 19/12/2026). **URL de notificação do Mercado Pago** declarada:
+  `https://nexojuris.ia.br/api/v2/webhooks/mercadopago`, tanto em `forgelex-api-prod` quanto em `forgelex-api-hml`
+  (a homologação notifica o host de produção). `ratione.nexojuris.ia.br` **responde 200** (aplicação Next.js em outro
+  balanceador, `34.120.34.54`, certificado próprio até 08/01/2027). `https://hml.nexojuris.ia.br/readyz` **não
+  respondeu** em duas tentativas de 30 s e `/` devolveu 500.
+- **Não consegui ler:** o registro de migrações do Cloud SQL (credencial); Site URL e Redirect URLs do Supabase Auth
+  (as ferramentas disponíveis não expõem a configuração de Auth); a configuração no painel do Mercado Pago (só a URL
+  declarada no serviço); registros CAA e a zona DNS (a API do Cloud DNS está desativada no projeto e o DNS é do
+  Registro.br); as regras de host do balanceador; o build web de homologação.
+
+## Publicação anterior — 09/11/2026 (UTC): SHA `5757733`
 
 `5757733a54869f1d7d2e06e7b38ab7b99d4aeeb0` (`main`, PR #131: painel na própria pesquisa; CI verde). Imagem
 `forgelex-api@sha256:58cd1f6f64b41de7cf2149ec7051b626372b92d1967018723ae9a566a68fc935`. Revisões

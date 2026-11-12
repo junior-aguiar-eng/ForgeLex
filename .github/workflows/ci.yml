@@ -8,6 +8,12 @@ on:
 permissions:
   contents: read
 
+# Chromium em Linux nomeia como "download" o arquivo de título acentuado quando o locale
+# não é UTF-8, e o teste de exportação Word falha. Vale para todos os jobs Playwright.
+env:
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
 jobs:
   validate:
     runs-on: ubuntu-latest

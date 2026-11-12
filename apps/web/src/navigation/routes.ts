@@ -77,7 +77,8 @@ export function navigateToTab(tab: AppTab, mode: 'push' | 'replace' = 'push', co
   const params = new URLSearchParams();
   if (!redirected && context?.matterId) params.set(tab === 'matter' ? 'caso' : 'matterId', context.matterId);
   if (!redirected) for (const key of ['draftId','analysisId','versionId'] as const) if (context?.[key]) params.set(key, context[key]!);
-  const preserveReturnParameters = redirected ? '' : context ? (params.size ? `?${params}` : '') : mode === 'replace' ? `${window.location.search}${window.location.hash}` : '';
+  const serializedParams = params.toString(); // `params.size` não existe em Safari/iOS < 17 nem Chrome < 113
+  const preserveReturnParameters = redirected ? '' : context ? (serializedParams ? `?${serializedParams}` : '') : mode === 'replace' ? `${window.location.search}${window.location.hash}` : '';
   const destination = visibleTab === 'work' && context ? deskLocation(context) : `${route.path}${preserveReturnParameters}`;
   const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 

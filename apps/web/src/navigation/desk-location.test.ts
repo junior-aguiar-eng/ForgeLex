@@ -1,6 +1,33 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { matchesDeskPiece, selectDeskExecution, selectDeskPiece } from '../agentic-workspace/desk-selection';
 import { deskLocation, readDeskLocation } from './desk-location';
+
+const sizeDescriptor = Object.getOwnPropertyDescriptor(URLSearchParams.prototype, 'size');
+
+function removeUrlSearchParamsSize(): void {
+  Reflect.deleteProperty(URLSearchParams.prototype, 'size');
+  expect(new URLSearchParams('a=1').size).toBeUndefined();
+}
+
+afterEach(() => {
+  if (sizeDescriptor) Object.defineProperty(URLSearchParams.prototype, 'size', sizeDescriptor);
+});
+
+describe('navegadores sem URLSearchParams.size', () => {
+  const selection = readDeskLocation('/app/trabalho?executionId=E&conversationId=C&contextRevision=2&matterId=M');
+
+  it('gera a mesma URL com e sem a propriedade', () => {
+    const expected = deskLocation(selection);
+    expect(expected).toBe('/app/trabalho?executionId=E&conversationId=C&matterId=M&contextRevision=2');
+    removeUrlSearchParamsSize();
+    expect(deskLocation(selection)).toBe(expected);
+  });
+
+  it('mantém o caminho limpo quando não há seleção', () => {
+    removeUrlSearchParamsSize();
+    expect(deskLocation({})).toBe('/app/trabalho');
+  });
+});
 
 describe('seleção da Mesa', () => {
   it('migra o alias com retorno e preserva a revisão e a peça no link canônico', () => {

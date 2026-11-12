@@ -1,7 +1,7 @@
 # Reutilização do contexto aprovado — registro de trabalho
 
 A direção vigente está em
-[design](../specs/2026-11-01-forgelex-3-approved-case-context-design.md).
+[design](../../superpowers/specs/2026-11-01-forgelex-3-approved-case-context-design.md).
 
 A proposta de catálogo e seleção explícita por item em cada pedido foi retirada
 por contrariar a experiência definida por Boni. Não implementar essa interface.

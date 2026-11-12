@@ -8,7 +8,7 @@
 
 **Stack:** React 18, TypeScript, Vite, Tailwind, Fastify, repositórios existentes SQLite/PostgreSQL, Vitest e Playwright. Nenhuma nova biblioteca prevista.
 
-**Especificação:** [design do fluxo](../specs/2026-10-10-case-flow-simplification-design.md).
+**Especificação:** [design do fluxo](../../superpowers/specs/2026-10-10-case-flow-simplification-design.md).
 
 **Estado:** aprovado por Boni em 10/10/2026; implementado localmente sobre `101ee33`, branch `codex/case-flow-simplification`. Validação final e evidências em [registro operacional](../../operations/stabilization/2026-10-10-case-flow-simplification.md). Sem commit/push/deploy deste incremento.
 

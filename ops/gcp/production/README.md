@@ -52,6 +52,14 @@ chave ficou inválida e só se soube quando um cliente tentou uma peça (HTTP 40
 - **Verificação leve:** o `/readyz` consulta `GET /v1/models` (sem custo) no máximo a cada 10 minutos, espera no máximo 1 s e
   grava `provider.key_invalid` em caso de 401. Nunca altera a prontidão: o site e o MCP funcionam sem a chave comercial.
   403 (chave restrita sem permissão de leitura de modelos) é `provider.key_unverifiable`, sem alerta.
+- **Disparo periódico:** o `/readyz` só consulta a OpenAI quando alguém o acessa. Em 11/11/2026 (leitura do Cloud
+  Monitoring) existe o Uptime Check “ForgeLex – disponibilidade pública”, que chama `https://nexojuris.ia.br/readyz` a
+  cada 300 s, o que mantém a verificação leve rodando sem ação de cliente (no máximo 10 minutos entre consultas à
+  OpenAI). Esse Uptime Check foi criado no console e **não está provisionado por script**. Ele aponta para o domínio
+  atual: na virada de domínio (Frente D), recriá-lo no host novo antes de desligar o antigo. Os serviços só têm
+  `startupProbe` em `/readyz`; não há sonda de vida. Conferir a existência com
+  `gcloud monitoring uptime list-configs --project=<projeto>`.
+  **Ainda não ensaiado:** chave inválida em homologação confirmando o log e o e-mail do alerta.
 - **Alerta:** `provision-provider-alert.ps1` cria a política de log que avisa por e-mail em `provider.key_invalid` ou em
   `commercial_call_trace` com `failureClass=AUTHORIZATION`. Só cria; `-DryRun` mostra a política.
 - **Segredo em `latest`:** `set-provider-secret-latest.ps1` troca a versão fixa por `latest`, com revisão sem tráfego,
@@ -89,6 +97,18 @@ Ao terminar, imprime os comandos de reversão e o que registrar no `PENDENCIAS.m
 
 - **Não aplica migrations.** `FORGELEX_AUTO_MIGRATE` continua como está nos serviços. Se o SHA traz migration,
   faça backup e aplique-a pelo procedimento próprio antes de publicar.
+- **Flags de execução da Mesa guiada.** `FORGELEX_DESK_GUIDANCE_ENABLED` e
+  `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` são variáveis do serviço da API no Cloud Run, não substituições do
+  build; por isso o `cloudbuild.yaml` não as define. A ausência vale como desligada (só o valor exato `true`
+  liga), e o deploy preserva o ambiente do serviço e recusa qualquer diferença além da imagem e de
+  `FORGELEX_SOURCE_SHA`. O passo 3 do script informa o valor efetivo de cada uma, sem alterá-lo.
+  Ordem obrigatória para ligar: (1) backup e migração `0041`, pelo procedimento de
+  [`draft-save-recovery.md`](../../../docs/operations/draft-save-recovery.md); (2) conferir
+  `persistence-0041-draft-save-commands` no registro de migrações; (3) só então ligar
+  `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED=true` na API. Com a flag ligada e sem a tabela, a API recusa subir; isso
+  é intencional e o deploy reverte sozinho. A Mesa guiada (`FORGELEX_DESK_GUIDANCE_ENABLED`) liga em homologação
+  antes da produção. Para trocar o valor, use um comando separado e autorizado por Boni
+  (`gcloud run services update <serviço> --update-env-vars=NOME=true`) e reverta com `=false`.
 - **Trocar uma flag de interface de propósito:** `-AgenticWorkspaceEnabled`, `-CaseWorkspaceEnabled` ou
   `-SavedResearchEnabled` (`true`/`false`). Sem elas, valem as do último build.
 - **Repetir é seguro:** se a imagem e as revisões do SHA já existem, são reaproveitadas, e um serviço que já

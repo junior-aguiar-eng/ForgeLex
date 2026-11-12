@@ -2,7 +2,7 @@
 
 Boni autorizou expressamente “commit, push e deploy” e, na confirmação do
 fluxo canônico, “Autorizar PR, integração em main e deploy”. A publicação
-executa o [plano aprovado](../../superpowers/plans/2026-10-11-site-mcp-scope-freeze.md).
+executa o [plano aprovado](../../historico/planos/2026-10-11-site-mcp-scope-freeze.md).
 A avaliação humana pertence exclusivamente a Boni; as verificações abaixo
 são evidências técnicas, sem presumir sua homologação visual.
 

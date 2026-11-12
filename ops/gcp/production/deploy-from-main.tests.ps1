@@ -302,6 +302,34 @@ Test-Case 'falha também ao reverter: o resultado diz que a reversão NÃO foi c
   Assert-True (($script:calls -join "`n") -match 'closure-old=100') 'deve seguir tentando o outro serviço'
 }
 
+Write-Host 'Get-ApiRuntimeFlagReport'
+function New-Container {
+  param([hashtable]$Env = @{})
+  $entries = @()
+  foreach ($key in $Env.Keys) { $entries += [pscustomobject]@{ name = $key; value = $Env[$key] } }
+  return [pscustomobject]@{ env = $entries }
+}
+Test-Case 'flags ausentes contam como desligadas e são declaradas como ausentes' {
+  $report = @(Get-ApiRuntimeFlagReport -Container (New-Container))
+  Assert-Equal $report.Count 2
+  Assert-True ($report[0] -match 'FORGELEX_DESK_GUIDANCE_ENABLED.*desligada.*ausente') $report[0]
+  Assert-True ($report[1] -match 'FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED.*desligada.*ausente') $report[1]
+}
+Test-Case 'só o valor exato true liga a flag; false declarado é desligada declarada' {
+  $report = @(Get-ApiRuntimeFlagReport -Container (New-Container -Env @{ FORGELEX_DESK_GUIDANCE_ENABLED = 'false'; FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED = 'TRUE' }))
+  Assert-True ($report[0] -match 'desligada.*declarada') $report[0]
+  Assert-True ($report[1] -match 'desligada.*declarada') $report[1]
+}
+Test-Case 'salvamento ligado lembra a migração 0041 antes de qualquer outra coisa' {
+  $report = @(Get-ApiRuntimeFlagReport -Container (New-Container -Env @{ FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED = 'true' }))
+  Assert-True ($report[1] -match 'ligada') $report[1]
+  Assert-True ($report[1] -match '0041') 'deve citar a migração 0041'
+}
+Test-Case 'contêiner sem env não quebra a leitura' {
+  $report = @(Get-ApiRuntimeFlagReport -Container ([pscustomobject]@{}))
+  Assert-Equal $report.Count 2
+}
+
 Write-Host ''
 Write-Host "$script:passed passaram, $script:failed falharam"
 if ($script:failed -gt 0) { exit 1 }

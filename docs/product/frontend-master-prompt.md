@@ -72,7 +72,7 @@ Não reproduza:
    - `Plano de conclusão progressiva do F.md`;
    - `docs/README.md`;
    - `docs/product/mcp-onboarding.md`;
-   - plano de experiência mais recente em `docs/superpowers/plans/`;
+   - plano de experiência mais recente em `docs/historico/planos/`;
    - contratos de `apps/api`, `packages/domain`, `packages/legal-tools`, `packages/legal-workflows`, `packages/billing-ledger` e `packages/mcp-server`.
 5. Inspecione os componentes e estilos existentes antes de propor novos componentes.
 6. Reutilize autenticação Supabase, clientes HTTP, contratos, componentes, tokens e padrões já existentes.

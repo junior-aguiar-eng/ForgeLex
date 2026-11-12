@@ -37,7 +37,7 @@ pendência residual deste programa.
 
 O ciclo concluído passa a ser sucedido pelo plano de melhoria da experiência
 do produto, registrado em
-`docs/superpowers/plans/2026-09-21-melhorias-experiencia-produto-forgelex.md`.
+`docs/historico/planos/2026-09-21-melhorias-experiencia-produto-forgelex.md`.
 Registro histórico de 26/09/2026: os incrementos 0–8 desse plano de experiência foram
 concluídos no escopo técnico local; o encerramento de conta foi posteriormente
 publicado e habilitado. O novo site público está implementado na branch de

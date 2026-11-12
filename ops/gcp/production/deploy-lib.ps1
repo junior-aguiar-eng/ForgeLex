@@ -34,6 +34,29 @@ function Get-Prop {
   return $current
 }
 
+# Flags de execução da API (variáveis do serviço no Cloud Run, não substituições do build). O cloudbuild.yaml
+# não as define e o deploy preserva o ambiente do serviço, então o padrão efetivo é 'ausente = desligada'.
+# Só o valor exato 'true' liga. O deploy apenas informa o valor efetivo; trocá-lo é decisão separada.
+$script:ApiRuntimeFlags = @(
+  [pscustomobject]@{ Name = 'FORGELEX_DESK_GUIDANCE_ENABLED'; Requirement = 'Mesa guiada homologada em homologação (M2)' }
+  [pscustomobject]@{ Name = 'FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED'; Requirement = 'migração 0041 aplicada (docs/operations/draft-save-recovery.md); sem a tabela a API recusa subir' }
+)
+
+function Get-ApiRuntimeFlagReport {
+  param($Container)
+  foreach ($flag in $script:ApiRuntimeFlags) {
+    $declared = $false
+    $value = $null
+    foreach ($entry in @(Get-Prop $Container 'env')) {
+      if ($null -ne $entry -and $entry.name -eq $flag.Name) { $declared = $true; $value = Get-Prop $entry 'value'; break }
+    }
+    $state = if ($value -ceq 'true') { 'ligada' } else { 'desligada' }
+    $origin = if ($declared) { 'declarada' } else { 'ausente' }
+    $note = if ($state -eq 'ligada') { "Confirme: $($flag.Requirement)." } else { "Antes de ligar: $($flag.Requirement)." }
+    "$($flag.Name): $state ($origin). $note"
+  }
+}
+
 function Invoke-Gcloud {
   param(
     [Parameter(Mandatory)][string[]]$Arguments,

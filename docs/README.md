@@ -47,7 +47,7 @@ Comprovações humanas, dependências externas e manutenção estão no backlog 
 - [Auditoria de acessibilidade e limites de cobertura](operations/stabilization/2026-10-02-accessibility-audit.md)
 - [Estudo externo opcional com cinco usuários](operations/stabilization/2026-10-01-phase7-user-study.md)
 - [Reconciliação documental da Fase 2](operations/stabilization/2026-09-26-phase2.md)
-- [Plano de estabilização pós-auditoria](superpowers/plans/2026-09-25-forgelex-estabilizacao-pos-auditoria.md)
+- [Plano de estabilização pós-auditoria](historico/planos/2026-09-25-forgelex-estabilizacao-pos-auditoria.md)
 
 ## Plataforma agêntica
 
@@ -63,8 +63,8 @@ Operação (`operations/agentic-workspace/`), em ordem cronológica inversa:
 Arquitetura e revisão: tarefas e contratos em `architecture/` (de
 [contratos A0](architecture/2026-10-24-agent-contracts-a0.md) à
 [reconciliação dos agentes](architecture/2026-10-29-reconciliacao-agentes.md)),
-os planos de [bloqueios editoriais](superpowers/plans/2026-10-30-bloqueios-editoriais.md)
-e de [execução comercial](superpowers/plans/2026-10-30-execucao-comercial.md), e a
+os planos de [bloqueios editoriais](historico/planos/2026-10-30-bloqueios-editoriais.md)
+e de [execução comercial](historico/planos/2026-10-30-execucao-comercial.md), e a
 [revisão da plataforma de 30/10](historico/REVISAO_PLATAFORMA_AGENTICA_2026-10-30.md).
 
 ## Operação e evidências
@@ -111,7 +111,7 @@ e de [execução comercial](superpowers/plans/2026-10-30-execucao-comercial.md),
   A cópia versionada é a fonte para revisão e release; o arquivo externo
   permanece apenas como origem.
 - `superpowers/specs/`: especificações históricas que fundamentaram as fases.
-- `superpowers/plans/`: planos de implementação e seus registros de execução;
+- `historico/planos/`: planos de implementação e seus registros de execução;
   não substituem o estado canônico nem as evidências operacionais.
 
 ## Limites preservados
