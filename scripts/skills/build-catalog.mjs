@@ -78,7 +78,10 @@ export function buildCatalog({ rows, map, crosscheck, lot0 = new Map(), version,
     } else if (check.state === 'alerta') {
       reviewState = 'pending';
       alerts = check.alerts.slice(0, 50).map((alert) => `${alert.code}:${alert.law}:${alert.article}`);
-    } else if (check.state === 'sem-referencia-verificavel') {
+    } else if (check.state === 'precedente-nao-verificado') {
+      reviewState = 'pending';
+      alerts = ['PRECEDENT_UNVERIFIED'];
+    } else if (check.state !== 'sem-alerta') {
       reviewState = 'pending';
     } else {
       reviewState = 'eligible';

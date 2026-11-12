@@ -163,3 +163,24 @@ test('Forma transversal sai no manifesto sem áreas e com a marca; o alias não 
   assert.equal(entry.transversal, true);
   assert.equal(entry.documentType, 'agravo-interno');
 });
+
+test('precedente não verificado e fonte documental: o primeiro fica pendente com a marca, o segundo elegível', () => {
+  const state = (result) =>
+    buildCatalog({
+      rows,
+      map,
+      crosscheck: {
+        results: crosscheck.results.map((item) =>
+          item.stableId === 'resposta-acusacao' ? { ...item, ...result } : item,
+        ),
+      },
+      version: 'v1',
+      date: '2026-11-12',
+    }).manifest.entries.find((entry) => entry.id === 'resposta-acusacao');
+  const pending = state({ state: 'precedente-nao-verificado', crossChecks: [] });
+  assert.equal(pending.reviewState, 'pending');
+  assert.deepEqual(pending.alerts, ['PRECEDENT_UNVERIFIED']);
+  const documentary = state({ state: 'sem-alerta', crossChecks: ['fonte-documental'] });
+  assert.equal(documentary.reviewState, 'eligible');
+  assert.deepEqual(documentary.crossChecks, ['fonte-documental']);
+});

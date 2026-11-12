@@ -122,3 +122,54 @@ test('ficha sem artigo verificável informa o motivo', () => {
   assert.equal(kind('Aplica a Súmula 7 do STJ.'), 'so-precedente');
   assert.equal(kind('Conforme a Lei 15.504/2026.'), 'norma-nao-carregada');
 });
+
+test('norma esparsa de qualquer tipo: LC, decreto, MP e EC; norma fora da lista não é conferida', () => {
+  const found = (text, known) => extractReferences(text, known).map(({ law, article }) => `${law} ${article}`);
+  const known = new Set(['lc214', 'decreto13095', 'mp1359', 'ec132']);
+  assert.deepEqual(found('LC 214/2025, art. 329 e o art. 3º do Decreto 13.095/2026.', known), [
+    'decreto13095 3',
+    'lc214 329',
+  ]);
+  assert.deepEqual(found('A MP 1.359/2026, art. 2º, e a EC 132, art. 4º.', known), ['ec132 4', 'mp1359 2']);
+  assert.deepEqual(found('Lei Complementar nº 999, art. 1º.', known), []);
+});
+
+test('sigla de uso corrente (LGPD) aponta para a norma; artigo sem lei vale só com a lei implícita da ficha', () => {
+  const found = (text, implied) =>
+    extractReferences(text, new Set(['lei13709']), implied).map(({ law, article }) => `${law} ${article}`);
+  assert.deepEqual(found('LGPD, art. 33 e o art. 34 da LGPD.'), ['lei13709 33', 'lei13709 34']);
+  const text = 'Impugne conforme o art. 351, o art. 430 do CPC e o art. 5º da CF.';
+  assert.deepEqual(found(text), ['cf 5', 'cpc 430']);
+  assert.deepEqual(found(text, 'cpc'), ['cf 5', 'cpc 351', 'cpc 430']);
+});
+
+test('lei implícita só entra por suplemento da ficha e passa pelas mesmas conferências', () => {
+  const laws = { cpc: indexLaw('Art. 351. Réplica.\nArt. 350. Defesa indireta.') };
+  const supplements = { impliedLaw: [{ stableId: 'replica', law: 'cpc', reason: 'só cita o CPC sem nomeá-lo' }] };
+  const ok = crosscheckItem(itemOf('replica', 'Veja o art. 351 e o art. 350.'), laws, supplements);
+  assert.equal(ok.state, 'sem-alerta');
+  const bad = crosscheckItem(itemOf('replica', 'Veja o art. 999.'), laws, supplements);
+  assert.equal(bad.state, 'alerta');
+  assert.equal(
+    crosscheckItem(itemOf('outra', 'Veja o art. 351.'), laws, supplements).state,
+    'sem-referencia-verificavel',
+  );
+});
+
+test('fonte documental conferida à mão tira a ficha de "sem referência"; precedentes ficam registrados à parte', () => {
+  const supplements = {
+    documentary: [{ stableId: 'oficio', source: 'Manual de Redação da Presidência, 3ª ed.', verifiedOn: '2026-11-12' }],
+    precedents: [{ stableId: 'ag', verified: ['Tema 988 STJ'], unverified: ['REsp 1.803.925'] }],
+  };
+  const doc = crosscheckItem(itemOf('oficio', 'Modelo sem artigo.'), {}, supplements);
+  assert.equal(doc.state, 'sem-alerta');
+  assert.deepEqual(doc.crossChecks, ['fonte-documental']);
+  assert.equal(doc.unverifiedKind, undefined);
+  assert.equal(
+    crosscheckItem(itemOf('outra', 'Modelo sem artigo.'), {}, supplements).state,
+    'sem-referencia-verificavel',
+  );
+  const prec = crosscheckItem(itemOf('ag', 'Aplica o Tema 988 STJ.'), {}, supplements);
+  assert.equal(prec.state, 'precedente-nao-verificado');
+  assert.deepEqual(prec.precedents, { verified: ['Tema 988 STJ'], unverified: ['REsp 1.803.925'] });
+});

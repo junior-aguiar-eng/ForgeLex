@@ -723,6 +723,65 @@ Catálogo reconstruído com o cruzamento novo: 2.081 entradas, 1.908 elegíveis,
 
 **Pendente.** Decisão de Boni sobre as 82 propostas e sobre os 6 alertas; carregar mais leis para as 72 fichas com norma não carregada; verificar súmulas e precedentes no índice do STJ; ligar o catálogo só depois disso.
 
+## M3.5 — Decisões, normas carregadas e precedentes (12/11/2026)
+
+O catálogo continua desligado: nenhum serviço recebe `FORGELEX_SKILL_CATALOG_DIR`. Orçamento mantido em 64 KB por papel e 96 KB no total.
+
+### Decisão de Boni sobre as 82 fichas
+
+Boni aprovou as 82 propostas em 12/11/2026. Elas viraram `scripts/skills/map-decisions.json` (motivo, autor e data em cada linha) e são aplicadas por `map-catalog.mjs --decisions`. A fila do mapa ficou em zero: 2.077 fichas mapeadas, sem chave duplicada. Das 82, 22 viraram Forma transversal (21 molduras e a correição parcial) e 60 ficaram com áreas explícitas.
+
+### Normas carregadas
+
+`fetch-laws.mjs` pergunta ao Senado o ano de cada norma, tenta as URLs possíveis do Planalto e guarda o texto compilado quando o número da norma aparece no cabeçalho. Foram baixadas 101 normas (leis, leis complementares, decretos, medidas provisórias e emendas), além das 16 anteriores, e `law-sources.json` passou a listar as 117. Três delas exigiram a URL certa à mão (Lei 9.615, MP 2.158-35 e MP 2.215-10).
+
+O cruzamento ganhou: normas esparsas de qualquer tipo, siglas (LGPD, LDB, LEP), artigo com letra colada ("22A") ou com "º" ("9º-A"), cabeçalho quebrado ("Art" / ". 71"), "art. 895 CLT" sem "do", lei implícita por ficha (suplemento `impliedLaw`, para fichas que citam "art. 351" sem dizer a lei), fonte documental conferida à mão (`documentary`) e o registro de precedentes verificados e não verificados (`precedents`). Ficha com precedente não verificado fica pendente com a marca `PRECEDENT_UNVERIFIED`.
+
+| Situação                      | Antes |    Depois |
+| ----------------------------- | ----: | --------: |
+| Cruzadas sem alerta           | 1.988 | **2.062** |
+| Com alerta                    |     6 |     **7** |
+| Sem referência verificável    |    83 |     **2** |
+| Com precedente não verificado |     – |     **6** |
+
+A lista de alertas reais subiu em um: `precos-transferencia-lei-14596` cita o art. 74 da MP 2.158-35 (revogado pela Lei 12.973/2014) no presente. As demais citações de artigos revogados, que apareceram ao carregar as normas, eram históricas e ficaram registradas com motivo: Súmula Vinculante 8 (Lei 8.212, arts. 45 e 46), art. 55 da Lei 8.212 (a Lei 9.766 ainda remete a ele), arts. 41-B a 41-G da Lei 10.671, art. 144 da Lei 8.213 (redação original).
+
+### As 5 "nada verificável"
+
+| Ficha                                         | Resolução                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `replica`                                     | Só cita o CPC sem nomeá-lo; com a lei implícita, os artigos conferem.                                                                                                                                                                                                                                                       |
+| `lgpd-transferencia-internacional`            | Artigos da LGPD conferem. A Resolução CD/ANPD 19/2024 foi lida no site da ANPD e confere. A Resolução CD/ANPD 32/2026 (reconhecimento da União Europeia) só foi confirmada em fontes secundárias; o texto oficial não foi lido.                                                                                             |
+| `oficio`                                      | Conferida contra o Manual de Redação da Presidência, 3ª ed.: unificação de ofício, aviso e memorando, fonte Calibri ou Carlito, fechos "Respeitosamente" e "Atenciosamente", "Ilustríssimo" abolido, exemplo do número do ofício. Texto lido em cópia do PDF hospedada pela UFGD, porque o Planalto não entregou o arquivo. |
+| `navegacao-interior-antaq-resolucoes-136-141` | Conferida no DOU: 20, 2, 3, 1 e 2 normas revogadas (28 no total), vigência de 180 dias após a publicação em todas, art. 17 da Res. 136 (120 dias) e art. 9º, § 8º. A Res. 139 não foi conferida.                                                                                                                            |
+| `pnct-conformidade-tributaria-ibs-cbs`        | Artigos da LC 214/2025 conferem. O Ato Conjunto RFB/CGIBS 5/2026 não foi lido.                                                                                                                                                                                                                                              |
+
+### Precedentes das 6 fichas
+
+Fontes oficiais usadas: dados abertos do STJ (temas e processos qualificados) e o compêndio oficial de Súmulas do STJ.
+
+| Ficha                                        | Verificado                                                           | Não verificado                                               |
+| -------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `recurso-apelacao`                           | Temas 1.180, 1.267 e 1.059 do STJ.                                   | Nada. A ficha ficou **elegível**.                            |
+| `agravo-instrumento`                         | Temas 1.281, 1.022, 1.267, 988 e 1.180; REsps 1.696.396 e 1.704.520. | REsps 1.803.925, 2.129.011, 2.237.365 e 2.242.573.           |
+| `impugnacao-cumprimento-cpc-525`             | Tema 1.458 do STJ (REsp 2.269.091), Súmulas 519 e 393.               | Temas 360 e 100 do STF, ADPF 615, AR 2.876, Temas 881 e 885. |
+| `sfh-cdc-cooperativa-anatel-stj-sumulas`     | Súmulas 31, 84, 297, 327, 450, 473, 514 e 586; Temas 50 e 51 do STJ. | Tema 1.011 do STF.                                           |
+| `defesa-consumerista`                        | –                                                                    | REsps 1.195.642 e 802.832.                                   |
+| `progressao-ect-pccs-irr-309`                | –                                                                    | IRR 309 e Súmula 202 do TST.                                 |
+| `remuneracao-egresso-cpor-npor-tema-401-tnu` | –                                                                    | Tema 401 da TNU.                                             |
+
+A consulta ao índice do ForgeLex (`research.verify_authority`) devolveu `NOT_FOUND` para os seis REsps de teste. O corpus persistido é parcial, então a resposta não confirma nem nega; foram seis chamadas. O portal de dados abertos do STJ negou a página de grupo (403), e o acesso foi feito pela API pública, sem contornar a negação.
+
+### Fichas ainda pendentes (15)
+
+- **Alerta (7):** `execucao-fazer-nao-fazer` e `tutela-especifica-cpc-497` (CC 757), `curatela-tda-epd-cc-1767` (CC 1773), `insolvencia-civil-cpc-1052` (CPC 786-A), `professor-clt-317` (CLT 324), `prova-testemunhal-cpc-442` (CC 227) e `precos-transferencia-lei-14596` (MP 2.158-35, art. 74).
+- **Precedente não verificado (6):** `agravo-instrumento`, `defesa-consumerista`, `impugnacao-cumprimento-cpc-525`, `progressao-ect-pccs-irr-309`, `remuneracao-egresso-cpor-npor-tema-401-tnu` e `sfh-cdc-cooperativa-anatel-stj-sumulas`.
+- **Sem referência verificável (2):** `ata-reuniao-conselho` (cita a Resolução CVM 23/2021, art. 31-B, cuja página oficial não trouxe o texto) e `ensino-arte-bncc-resolucao-cne-ceb-5-2026` (a Lei 15.388/2026 confere; a Resolução CNE/CEB 5/2026 existe segundo fontes secundárias, mas o texto do DOU não foi lido).
+
+### Verificação
+
+`node --test scripts/skills`: 46 aprovados. Catálogo reconstruído: 2.081 entradas, 2.058 elegíveis (as 22 transversais entre elas), 15 pendentes, 4 ajustadas e 4 redações do Lote 0. `desk-pilot` em `incorporated`: 4 aprovados.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.

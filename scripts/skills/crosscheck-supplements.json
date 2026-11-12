@@ -53,6 +53,48 @@
       "law": "cpp",
       "article": "398",
       "reason": "Transcreve o art. 394, § 4º, do CPP, que manda aplicar os arts. 395 a 398 a todos os procedimentos de primeiro grau; o art. 398 consta revogado no texto compilado."
+    },
+    {
+      "stableId": "decadencia-tributaria-ctn-173",
+      "law": "lei8212",
+      "article": "46",
+      "reason": "A ficha transcreve a Súmula Vinculante 8, que declara inconstitucionais os arts. 45 e 46 da Lei 8.212/1991; a citação é do próprio enunciado."
+    },
+    {
+      "stableId": "prescricao-tributaria-ctn-174",
+      "law": "lei8212",
+      "article": "46",
+      "reason": "A ficha transcreve a Súmula Vinculante 8, que declara inconstitucionais os arts. 45 e 46 da Lei 8.212/1991; a citação é do próprio enunciado."
+    },
+    {
+      "stableId": "sumula-vinculante-53-jt-execucao-previdenciaria",
+      "law": "lei8212",
+      "article": "46",
+      "reason": "A ficha transcreve a Súmula Vinculante 8, que declara inconstitucionais os arts. 45 e 46 da Lei 8.212/1991; a citação é do próprio enunciado."
+    },
+    {
+      "stableId": "salario-educacao-fnde-cf-212",
+      "law": "lei8212",
+      "article": "55",
+      "reason": "A Lei 9.766/1998, art. 1º, § 1º, ainda remete ao art. 55 da Lei 8.212/1991 (texto do Planalto lido em 12/11/2026); a ficha indica a LC 187/2021 como requisito atual."
+    },
+    {
+      "stableId": "estatuto-torcedor-lei-10671",
+      "law": "lei14597",
+      "article": "41-B",
+      "reason": "Os arts. 41-B a 41-G citados são da Lei 10.671/2003 (revogada pela Lei 14.597/2023), referidos como regime histórico; a ficha os distingue dos da Lei Geral do Esporte."
+    },
+    {
+      "stableId": "estatuto-torcedor-lei-10671",
+      "law": "lei14597",
+      "article": "41-G",
+      "reason": "Os arts. 41-B a 41-G citados são da Lei 10.671/2003 (revogada pela Lei 14.597/2023), referidos como regime histórico; a ficha os distingue dos da Lei Geral do Esporte."
+    },
+    {
+      "stableId": "revisao-beneficios",
+      "law": "lei8213",
+      "article": "144",
+      "reason": "A ficha trata do art. 144 em sua redação original (recálculo do buraco negro), revogado pela MP 2.187-13/2001; a citação é histórica."
     }
   ],
   "notCode": [
@@ -61,6 +103,171 @@
       "law": "cp",
       "article": "2-A",
       "reason": "O art. 2-A citado é da Lei 7.716/1989, não do Código Penal."
+    }
+  ],
+  "impliedLaw": [
+    {
+      "stableId": "replica",
+      "law": "cpc",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "impugnacao-cumprimento-sentenca",
+      "law": "cpc",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "alegacoes-finais-civeis",
+      "law": "cpc",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "recurso-apelacao",
+      "law": "cpc",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "agravo-instrumento",
+      "law": "cpc",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "promocao-arquivamento",
+      "law": "cpp",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "formacao-continuada-profissionais-educacao-ldb-67",
+      "law": "lei9394",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "ensino-arte-bncc-resolucao-cne-ceb-5-2026",
+      "law": "lei9394",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "jogos-eletronicos-lei-14852-decreto-13138",
+      "law": "lei14852",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "neutralizacao-comunicacoes-ilicitas-presidios-decreto-13136",
+      "law": "decreto13136",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "plano-brasil-soberano-credito-exportacao-lei-15473",
+      "law": "lei15473",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "prescricao-acao-punitiva-lei-9873",
+      "law": "lei9873",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "programa-venda-balcao-provb-lei-14293",
+      "law": "lei14293",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "propriedade-industrial-lei-9279",
+      "law": "lei9279",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "remicao-leitura-tema-1278",
+      "law": "lei7210",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "sac-decreto-13135",
+      "law": "decreto13135",
+      "reason": "Cita artigos sem nomear a lei; todos são da norma indicada."
+    },
+    {
+      "stableId": "estatuto-torcedor-lei-10671",
+      "law": "lei14597",
+      "reason": "Os artigos sem lei da seção \"Regime atual\" são da Lei 14.597/2023 (Lei Geral do Esporte); os da Lei 10.671 e da Lei 12.299 vêm nomeados."
+    }
+  ],
+  "documentary": [
+    {
+      "stableId": "oficio",
+      "verifiedOn": "2026-11-12",
+      "source": "Manual de Redação da Presidência da República, 3ª ed. (2018), Parte I, cap. 5 (padrão ofício): unificação de ofício, aviso e memorando; Calibri ou Carlito; fechos Respeitosamente e Atenciosamente; Ilustríssimo abolido; exemplo OFÍCIO Nº 652/2018/SAA/SE/MT. Texto lido em cópia do PDF hospedada pela UFGD, porque a página oficial do Planalto não entregou o arquivo."
+    },
+    {
+      "stableId": "navegacao-interior-antaq-resolucoes-136-141",
+      "verifiedOn": "2026-11-12",
+      "source": "Resoluções ANTAQ 136, 137, 138, 140 e 141/2026 lidas no DOU (in.gov.br): 20, 2, 3, 1 e 2 normas revogadas (28 no total), vigência 180 dias após a publicação em todas, art. 17 da Res. 136 (120 dias) e art. 9º, § 8º. Res. 139 não conferida."
+    }
+  ],
+  "precedents": [
+    {
+      "stableId": "agravo-instrumento",
+      "source": "STJ dados abertos (Temas.csv e Processos.csv, lidos em 12/11/2026)",
+      "verified": [
+        "Tema 1.281 STJ",
+        "Tema 1.022 STJ",
+        "Tema 1.267 STJ",
+        "Tema 988 STJ",
+        "REsp 1.696.396",
+        "REsp 1.704.520",
+        "Tema 1.180 STJ"
+      ],
+      "unverified": ["REsp 1.803.925 (Inf. 653)", "REsp 2.129.011", "REsp 2.237.365", "REsp 2.242.573"]
+    },
+    {
+      "stableId": "recurso-apelacao",
+      "source": "STJ dados abertos (Temas.csv)",
+      "verified": ["Tema 1.180 STJ (em julgamento)", "Tema 1.267 STJ", "Tema 1.059 STJ"],
+      "unverified": []
+    },
+    {
+      "stableId": "impugnacao-cumprimento-cpc-525",
+      "source": "STJ dados abertos (Temas.csv e Processos.csv) e compêndio oficial de Súmulas do STJ",
+      "verified": [
+        "Tema 1.458 STJ (afetado em 26/06/2026, 1ª Seção, REsp 2.269.091)",
+        "Súmula 519 STJ",
+        "Súmula 393 STJ"
+      ],
+      "unverified": [
+        "Tema 360 STF (RE 611.503)",
+        "Tema 100 STF (RE 586.068)",
+        "ADPF 615",
+        "AR 2.876 QO",
+        "Temas 881 e 885 STF"
+      ]
+    },
+    {
+      "stableId": "defesa-consumerista",
+      "source": "Consulta ao índice do ForgeLex devolveu NOT_FOUND, que não confirma nem nega",
+      "verified": [],
+      "unverified": ["REsp 1.195.642", "REsp 802.832"]
+    },
+    {
+      "stableId": "progressao-ect-pccs-irr-309",
+      "source": "Nenhuma fonte oficial do TST consultada",
+      "verified": [],
+      "unverified": ["IRR 309 TST (RR 0020286-91.2023.5.04.0022)", "Súmula 202 TST"]
+    },
+    {
+      "stableId": "remuneracao-egresso-cpor-npor-tema-401-tnu",
+      "source": "Nenhuma fonte oficial da TNU consultada",
+      "verified": [],
+      "unverified": ["Tema 401 TNU"]
+    },
+    {
+      "stableId": "sfh-cdc-cooperativa-anatel-stj-sumulas",
+      "source": "Compêndio oficial de Súmulas do STJ e STJ dados abertos (Temas.csv), lidos em 12/11/2026",
+      "verified": [
+        "Súmulas 31, 84, 297, 327, 450, 473, 514 e 586 do STJ",
+        "Tema 50 STJ (REsp 1.091.363)",
+        "Tema 51 STJ"
+      ],
+      "unverified": ["Tema 1.011 STF"]
     }
   ]
 }
