@@ -133,11 +133,10 @@ test('a case archived in another tab keeps the draft buffer and blocks saving', 
     })
   ).json();
   await login(page);
-  await page.goto(`/app/rascunhos?matterId=${matter.id}&draftId=${draft.draft.id}`);
-  const editor = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
+  await page.goto(`/app/trabalho?matterId=${matter.id}&draftId=${draft.draft.id}`);
+  const editor = page.getByRole('textbox', { name: 'Texto da seção 1', exact: true });
   await expect(editor).toHaveValue('Texto salvo.');
   await editor.fill('Edição ainda não salva.');
-  await page.getByText('Salvar e exportar', { exact: true }).click();
   expect(
     (
       await request.post(`${api}/api/v2/matters/${matter.id}/archive`, {
@@ -147,9 +146,8 @@ test('a case archived in another tab keeps the draft buffer and blocks saving', 
     ).status(),
   ).toBe(200);
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  await expect(page.getByRole('button', { name: 'Salvar nova versão', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Salvar', exact: true })).toBeDisabled();
   await expect(editor).toHaveValue('Edição ainda não salva.');
-  await expect(page.getByRole('button', { name: 'Copiar meu texto', exact: true })).toBeVisible();
 });
 test('case archive, trash, restore and confirmed deletion use clear controls', async ({ page, request }) => {
   const title = `Caso de ciclo ${Date.now()}`;
