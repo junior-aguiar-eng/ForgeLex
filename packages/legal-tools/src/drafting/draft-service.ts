@@ -78,6 +78,12 @@ export class DraftingService {
     return this.repository.recoverManualSave({ ...context, commandId });
   }
 
+  /** Arquiva ou restaura o rascunho sem apagar versões, revisões, aprovações nem recibos. */
+  public async setArchived(context: DraftContext, draftId: string, archived: boolean) {
+    await this.requireDraft(context, draftId);
+    return this.repository.setArchived({ tenantId: context.tenantId, matterId: context.matterId, draftId }, archived);
+  }
+
   public async getDraft(context: DraftContext, draftId: string, audience: 'web_history' | 'work' = 'work'): Promise<DraftDetails> {
     const draft = await this.requireDraft(context, draftId);
     const [currentVersion, versions, reviewFindings, approvals] = await Promise.all([

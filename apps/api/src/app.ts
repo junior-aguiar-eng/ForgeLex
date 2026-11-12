@@ -2407,7 +2407,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         reply.status(404);
         return { error: 'MATTER_NOT_FOUND', message: 'Matter não localizado para o tenant autenticado.' };
       }
-      const items = await draftRepository.listDrafts(req.principal.tenantId, matterId);
+      const archived = (req.query as { archived?: string } | undefined)?.archived === 'true';
+      const items = await draftRepository.listDrafts(req.principal.tenantId, matterId, { archived });
       return { items, total: items.length, ...(draftSaveRecovery ? { saveRecovery: true } : {}) };
     },
   );
@@ -2468,7 +2469,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     const message = error instanceof Error ? error.message : '';
     if (!committed) {
       const code = message.split(':')[0];
-      if (['DRAFT_SAVE_COMMAND_CONFLICT', 'DRAFT_VERSION_CONFLICT', 'MATTER_NOT_ACTIVE', 'LIFECYCLE_CONFLICT'].includes(code))
+      if (['DRAFT_SAVE_COMMAND_CONFLICT', 'DRAFT_VERSION_CONFLICT', 'DRAFT_ARCHIVED', 'MATTER_NOT_ACTIVE', 'LIFECYCLE_CONFLICT'].includes(code))
         return reply.code(409).send({ error: code, message: code === 'DRAFT_SAVE_COMMAND_CONFLICT'
           ? 'Este comando já foi usado com outro alvo ou conteúdo.' : message });
       if (['MATTER_NOT_FOUND', 'DRAFT_NOT_FOUND'].includes(code))
@@ -2523,6 +2524,47 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     },
   );
 
+  // Arquivar e restaurar rascunho (U4): nada é apagado; só o status muda, e cada ação deixa registro de auditoria.
+  for (const action of ['archive', 'restore'] as const) {
+    app.post(
+      `/api/v2/matters/:matterId/drafts/:draftId/${action}`,
+      { preHandler: authAdapter.createPreHandler(['draft:write']) },
+      async (req, reply) => {
+        if (!draftingService) {
+          return reply.code(503).send({ error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de rascunhos não está disponível.' });
+        }
+        const params = z.object({ matterId: z.guid(), draftId: z.guid() }).safeParse(req.params);
+        if (!params.success) return reply.code(400).send({ error: 'INVALID_REQUEST', message: 'Rascunho inválido.' });
+        const { matterId, draftId } = params.data;
+        try {
+          const draft = await draftingService.setArchived(
+            { tenantId: req.principal.tenantId, userId: req.principal.userId, matterId },
+            draftId,
+            action === 'archive',
+          );
+          await recordAudit({
+            sessionId: `draft_${draftId}`,
+            tenantId: req.principal.tenantId,
+            userId: req.principal.userId,
+            toolName: action === 'archive' ? 'drafting.archive_draft' : 'drafting.restore_draft',
+            durationMs: 0,
+            status: 'SUCCESS',
+            payload: { draftId, matterId, status: draft.status },
+          });
+          return { draft };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Não foi possível atualizar o rascunho.';
+          const code = message.split(':')[0];
+          if (['DRAFT_NOT_FOUND', 'MATTER_NOT_FOUND'].includes(code)) return reply.code(404).send({ error: code, message });
+          if (['DRAFT_APPROVAL_PENDING', 'MATTER_NOT_ACTIVE', 'LIFECYCLE_CONFLICT'].includes(code)) {
+            return reply.code(409).send({ error: code, message });
+          }
+          return reply.code(400).send({ error: 'INVALID_REQUEST', message });
+        }
+      },
+    );
+  }
+
   app.post(
     '/api/v2/matters/:matterId/drafts/:draftId/versions',
     { preHandler: authAdapter.createPreHandler(['draft:write']) },
@@ -2566,6 +2608,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         if (commandId) return draftSaveCommandFailure(reply, error, committed);
         const message = error instanceof Error ? error.message : 'Não foi possível criar a versão.';
         if (message.startsWith('DRAFT_VERSION_CONFLICT')) return reply.code(409).send({ error: 'DRAFT_VERSION_CONFLICT', message });
+        if (message.startsWith('DRAFT_ARCHIVED')) return reply.code(409).send({ error: 'DRAFT_ARCHIVED', message });
         reply.status(message.startsWith('DRAFT_NOT_FOUND') ? 404 : 400);
         return { error: message.startsWith('DRAFT_NOT_FOUND') ? 'DRAFT_NOT_FOUND' : 'INVALID_REQUEST', message };
       }
