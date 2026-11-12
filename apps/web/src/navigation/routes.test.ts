@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { isDeskEnabled } from '../config/site-capabilities';
 import { navigateToTab, resolveVisibleTab, routeForTab, tabForPath } from './routes';
 
 describe('rotas do espaço de trabalho', () => {
@@ -14,11 +15,22 @@ describe('rotas do espaço de trabalho', () => {
     const pushState = vi.fn();
     vi.stubGlobal('window', { location: { pathname: '/app/casos', search: '?matterId=private', hash: '#document' }, history: { replaceState, pushState } });
     vi.stubGlobal('document', { title: '' });
-    expect(resolveVisibleTab(tab, false)).toBe('connections');
-    expect(resolveVisibleTab(tab, true)).toBe(tab);
+    expect(resolveVisibleTab(tab, false, true)).toBe('connections');
+    expect(resolveVisibleTab(tab, true, true)).toBe(tab);
+    // Sem a Mesa agêntica não existe Mesa avulsa: rascunhos e revisão deixam de ser rotas.
+    expect(resolveVisibleTab(tab, true, false)).toBe(tab === 'matter' ? 'matter' : 'connections');
     navigateToTab(tab, 'push', false);
     expect(replaceState).toHaveBeenCalledWith({}, 'ForgeLex · Conectar IA', '/app/conectar');
     expect(pushState).not.toHaveBeenCalled();
+  });
+  it('a Mesa só existe com a Mesa agêntica e os casos ligados', () => {
+    expect(resolveVisibleTab('work', true, true)).toBe('work');
+    expect(resolveVisibleTab('work', true, false)).toBe('landing');
+    expect(resolveVisibleTab('work', false, true)).toBe('landing');
+    expect(resolveVisibleTab('work', false, false)).toBe('landing');
+    expect(isDeskEnabled(true, true)).toBe(true);
+    expect(isDeskEnabled(true, false)).toBe(false);
+    expect(isDeskEnabled(false, true)).toBe(false);
   });
   it('preserva abas de conta e pesquisa nos dois modos', () => {
     for (const tab of ['credits', 'research', 'datajud', 'api_docs', 'account_security', 'api_keys'] as const) {
@@ -30,9 +42,9 @@ describe('rotas do espaço de trabalho', () => {
     const pushState = vi.fn();
     vi.stubGlobal('window',{location:{pathname:'/app/casos',search:'?caso=A',hash:''},history:{pushState,replaceState:vi.fn()}});
     vi.stubGlobal('document',{title:''});
-    navigateToTab('draft_studio','push',{matterId:'A',draftId:'D'},true);
+    navigateToTab('draft_studio','push',{matterId:'A',draftId:'D'},true,true);
     expect(pushState).toHaveBeenCalledWith({},'ForgeLex · Rascunhos','/app/rascunhos?matterId=A&draftId=D');
-    navigateToTab('matter','push',{matterId:'A',analysisId:'R'},true);
+    navigateToTab('matter','push',{matterId:'A',analysisId:'R'},true,true);
     expect(pushState).toHaveBeenLastCalledWith({},'ForgeLex · Casos','/app/casos?caso=A&analysisId=R');
   });
   it('preserva os parâmetros de retorno em navegadores sem URLSearchParams.size', () => {
@@ -43,9 +55,9 @@ describe('rotas do espaço de trabalho', () => {
     try {
       Reflect.deleteProperty(URLSearchParams.prototype, 'size');
       expect(new URLSearchParams('a=1').size).toBeUndefined();
-      navigateToTab('draft_studio', 'push', { matterId: 'A', draftId: 'D' }, true);
+      navigateToTab('draft_studio', 'push', { matterId: 'A', draftId: 'D' }, true, true);
       expect(pushState).toHaveBeenCalledWith({}, 'ForgeLex · Rascunhos', '/app/rascunhos?matterId=A&draftId=D');
-      navigateToTab('research', 'push', {}, true);
+      navigateToTab('research', 'push', {}, true, true);
       expect(pushState).toHaveBeenLastCalledWith({}, 'ForgeLex · Pesquisa', '/app/pesquisa');
     } finally {
       if (sizeDescriptor) Object.defineProperty(URLSearchParams.prototype, 'size', sizeDescriptor);

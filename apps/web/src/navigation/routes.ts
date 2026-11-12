@@ -1,12 +1,14 @@
 export type AppTab = 'work' | 'landing' | 'research' | 'datajud' | 'matter' | 'draft_studio' | 'dashboard' | 'connections' | 'credits' | 'account_activity' | 'account_security' | 'account_closure_status' | 'api_keys' | 'for_lawyers_guide' | 'api_docs';
 
-import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED, isDeskEnabled } from '../config/site-capabilities';
 import type { DeskSelection } from '../agentic-workspace/desk-selection';
 import { deskLocation } from './desk-location';
 
 export function resolveVisibleTab(tab: AppTab, casesEnabled: boolean, workEnabled = AGENTIC_WORKSPACE_ENABLED): AppTab {
-  if (tab === 'work' && !workEnabled) return 'landing';
-  return !casesEnabled && (tab === 'matter' || tab === 'draft_studio' || tab === 'dashboard') ? 'connections' : tab;
+  const desk = isDeskEnabled(casesEnabled, workEnabled);
+  if (tab === 'work') return desk ? 'work' : 'landing';
+  if (tab === 'draft_studio' || tab === 'dashboard') return desk ? tab : 'connections';
+  return !casesEnabled && tab === 'matter' ? 'connections' : tab;
 }
 
 export type AppRoute = {
@@ -66,11 +68,11 @@ export function updateDocumentTitle(tab: AppTab): void {
 }
 
 export interface CaseRouteContext extends DeskSelection { analysisId?: string }
-export function navigateToTab(tab: AppTab, mode: 'push' | 'replace' = 'push', contextOrEnabled?: CaseRouteContext | boolean, enabled = CASE_WORKSPACE_ENABLED): void {
+export function navigateToTab(tab: AppTab, mode: 'push' | 'replace' = 'push', contextOrEnabled?: CaseRouteContext | boolean, enabled = CASE_WORKSPACE_ENABLED, workEnabled = AGENTIC_WORKSPACE_ENABLED): void {
   if (typeof window === 'undefined') return;
   const context = typeof contextOrEnabled === 'boolean' ? undefined : contextOrEnabled;
   const casesEnabled = typeof contextOrEnabled === 'boolean' ? contextOrEnabled : enabled;
-  const visibleTab = resolveVisibleTab(tab, casesEnabled);
+  const visibleTab = resolveVisibleTab(tab, casesEnabled, workEnabled);
   const redirected = visibleTab !== tab;
   if (redirected) mode = 'replace';
   const route = routeForTab(visibleTab);
