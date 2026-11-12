@@ -42,7 +42,12 @@ export interface SkillBindingRequest extends DeskSkillRequest {
 const referenceId = z.string().min(1).max(200);
 const issueEvidence = z.strictObject({ id: referenceId, sourceIds: z.array(referenceId).max(100) });
 const reasonSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('FORM'), area: referenceId, documentType: referenceId }),
+  z.strictObject({
+    kind: z.literal('FORM'),
+    area: referenceId,
+    documentType: referenceId,
+    transversal: z.literal(true).optional(),
+  }),
   z.strictObject({
     kind: z.literal('MATTER'),
     area: referenceId,

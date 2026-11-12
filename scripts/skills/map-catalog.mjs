@@ -270,13 +270,47 @@ const count = (items, pick) => {
   return Object.fromEntries(Object.entries(result).sort((a, b) => b[1] - a[1]));
 };
 
-export function mapCatalog(inventory) {
+/**
+ * Decisão de Boni sobre uma Forma da fila: áreas explícitas ou "transversal" (moldura que serve a qualquer área).
+ * Só decisões registradas aqui saem da fila; as propostas (`map-proposals.json`) não são aplicadas por si.
+ */
+function applyDecision(result, decision) {
+  if (result.kind !== 'FORM') throw new Error(`Decisão só vale para Forma: ${decision.stableId}`);
+  const transversal = decision.transversal === true;
+  const areas = decision.areas ?? [];
+  if (transversal === Boolean(areas.length))
+    throw new Error(`Decisão precisa de áreas ou de transversal: ${decision.stableId}`);
+  if (!decision.reason || !decision.decidedBy || !decision.date)
+    throw new Error(`Decisão sem motivo, autor ou data: ${decision.stableId}`);
+  const { queueReason: _dropped, ...rest } = result;
+  return {
+    ...rest,
+    areas,
+    ...(transversal ? { transversal: true } : {}),
+    confidence: 'decisao',
+    status: 'mapped',
+    evidence: {
+      ...result.evidence,
+      decision: { reason: decision.reason, decidedBy: decision.decidedBy, date: decision.date },
+    },
+  };
+}
+
+export function mapCatalog(inventory, decisions = []) {
   const forms = inventory.items.filter((item) => item.category === 'forma');
   const matters = inventory.items.filter((item) => item.category === 'materia');
   const stable = new Set(inventory.items.map((item) => item.stableId));
   if (stable.size !== inventory.items.length) throw new Error('stableId duplicado no inventário');
   const voteIndex = buildVoteIndex(matters);
-  const formResults = forms.map((form) => mapForm(form, voteIndex));
+  const decided = new Map(decisions.map((decision) => [decision.stableId, decision]));
+  if (decided.size !== decisions.length) throw new Error('Decisão duplicada para a mesma ficha');
+  for (const id of decided.keys()) if (!stable.has(id)) throw new Error(`Decisão para ficha desconhecida: ${id}`);
+  const formIds = new Set(forms.map((form) => form.stableId));
+  for (const id of decided.keys()) if (!formIds.has(id)) throw new Error(`Decisão só vale para Forma: ${id}`);
+  const formResults = forms.map((form) => {
+    const result = mapForm(form, voteIndex);
+    return decided.has(form.stableId) ? applyDecision(result, decided.get(form.stableId)) : result;
+  });
   const matterResults = matters.map(mapMatter);
   const results = [...formResults, ...matterResults];
   // Chaves que o resolvedor usa: não pode haver duas fichas com a mesma chave exata.
@@ -285,7 +319,9 @@ export function mapCatalog(inventory) {
   for (const result of results) {
     const keys =
       result.kind === 'FORM'
-        ? result.areas.map((area) => `FORM|${area}|${result.documentType}`)
+        ? result.transversal
+          ? [`FORM|*|${result.documentType}`]
+          : result.areas.map((area) => `FORM|${area}|${result.documentType}`)
         : [`MATTER|${result.area}|${result.topic}`];
     for (const key of keys) {
       if (seen.has(key)) duplicateKeys.push([key, seen.get(key), result.stableId]);
@@ -328,11 +364,14 @@ export function mapCatalog(inventory) {
 }
 
 async function main() {
-  const { values } = parseArgs({ options: { inventory: { type: 'string' }, out: { type: 'string' } } });
+  const { values } = parseArgs({
+    options: { inventory: { type: 'string' }, out: { type: 'string' }, decisions: { type: 'string' } },
+  });
   if (!values.inventory || !values.out) {
     throw new Error('Uso: node scripts/skills/map-catalog.mjs --inventory <JSON local do R1> --out <JSON local>');
   }
-  const map = mapCatalog(JSON.parse(await readFile(values.inventory, 'utf8')));
+  const decisions = values.decisions ? JSON.parse(await readFile(values.decisions, 'utf8')).decisions : [];
+  const map = mapCatalog(JSON.parse(await readFile(values.inventory, 'utf8')), decisions);
   await writeFile(values.out, JSON.stringify(map, null, 2) + '\n', { flag: 'wx' });
   console.log(JSON.stringify({ counts: map.counts, report: map.report, output: values.out }, null, 2));
 }

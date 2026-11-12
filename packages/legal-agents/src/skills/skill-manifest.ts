@@ -50,14 +50,17 @@ const base = z.strictObject({
   alerts: z.array(code).max(50).default([]),
 });
 const entry = z.discriminatedUnion('kind', [
-  base.extend({
-    kind: z.literal('FORM'),
-    areas: z
-      .array(code)
-      .min(1)
-      .refine((areas) => new Set(areas).size === areas.length),
-    documentType: code,
-  }),
+  base
+    .extend({
+      kind: z.literal('FORM'),
+      areas: z.array(code).refine((areas) => new Set(areas).size === areas.length),
+      /** Forma-moldura que serve ao tipo de peça em qualquer área: não declara áreas (ver resolvedor). */
+      transversal: z.boolean().optional(),
+      documentType: code,
+    })
+    .refine((form) => (form.transversal ? form.areas.length === 0 : form.areas.length > 0), {
+      message: 'FORM_AREAS_OR_TRANSVERSAL',
+    }),
   base.extend({ kind: z.literal('MATTER'), area: code, topic: code }),
 ]);
 const manifest = z.strictObject({
@@ -98,7 +101,7 @@ export function manifestToCatalog(input: SkillManifest): SkillCatalog {
       status: item.reviewState === 'eligible' ? 'eligible' : 'pending',
       kind: item.kind,
       ...(item.kind === 'FORM'
-        ? { areas: item.areas, documentType: item.documentType }
+        ? { areas: item.areas, documentType: item.documentType, ...(item.transversal ? { transversal: true } : {}) }
         : { area: item.area, topic: item.topic }),
       roles: item.roles,
       contentHash: item.contentHash,

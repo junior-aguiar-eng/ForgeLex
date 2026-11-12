@@ -62,7 +62,9 @@ export function buildCatalog({ rows, map, crosscheck, lot0 = new Map(), version,
     };
     const placement =
       kind === 'FORM'
-        ? { areas: place.areas.length ? place.areas : ['sem-area'], documentType: place.documentType }
+        ? place.transversal
+          ? { areas: [], transversal: true, documentType: place.documentType }
+          : { areas: place.areas.length ? place.areas : ['sem-area'], documentType: place.documentType }
         : { area: place.area, topic: place.topic };
 
     let reviewState;
@@ -90,7 +92,11 @@ export function buildCatalog({ rows, map, crosscheck, lot0 = new Map(), version,
       const hash = sha(adjusted);
       const aliased =
         kind === 'FORM'
-          ? { areas: aliasAreas(placement.areas, areaAliases), documentType: placement.documentType }
+          ? {
+              areas: aliasAreas(placement.areas, areaAliases),
+              ...(placement.transversal ? { transversal: true } : {}),
+              documentType: placement.documentType,
+            }
           : { area: areaAliases.get(placement.area) ?? placement.area, topic: placement.topic };
       entries.push({
         ...base,

@@ -141,3 +141,25 @@ test('ficha sem mapa, sem cruzamento ou com identificador fora do formato é rec
     /formato/,
   );
 });
+
+test('Forma transversal sai no manifesto sem áreas e com a marca; o alias não a transforma em área', () => {
+  const transversal = {
+    ...map,
+    results: map.results.map((result) =>
+      result.stableId === 'agravo-interno'
+        ? { ...result, areas: [], transversal: true, status: 'mapped', queueReason: undefined }
+        : result,
+    ),
+  };
+  const { manifest } = buildCatalog({
+    rows,
+    map: transversal,
+    crosscheck,
+    version: 'v1',
+    date: '2026-11-12',
+  });
+  const entry = manifest.entries.find((candidate) => candidate.id === 'agravo-interno');
+  assert.deepEqual(entry.areas, []);
+  assert.equal(entry.transversal, true);
+  assert.equal(entry.documentType, 'agravo-interno');
+});

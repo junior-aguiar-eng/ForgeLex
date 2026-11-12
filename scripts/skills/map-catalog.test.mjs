@@ -100,3 +100,49 @@ test('identificador do catálogo: igual ao stableId quando seguro, sem acento e 
   assert.equal(catalogId('federalismo-fiscal-repartição-receitas'), safe);
   assert.notEqual(catalogId('x-ç'), catalogId('x-ã'));
 });
+
+test('decisão de Boni tira a Forma da fila: áreas explícitas ou transversal, com motivo, autor e data', () => {
+  const base = [item('forma', 'oficio'), item('forma', 'procuracao')];
+  const decide = (extra) => ({
+    stableId: 'oficio',
+    reason: 'moldura',
+    decidedBy: 'Boni',
+    date: '2026-11-12',
+    ...extra,
+  });
+  const open = mapCatalog(inventory(base));
+  assert.equal(open.results[0].status, 'queue');
+  const decided = mapCatalog(inventory(base), [decide({ transversal: true })]);
+  assert.equal(decided.results[0].status, 'mapped');
+  assert.equal(decided.results[0].transversal, true);
+  assert.deepEqual(decided.results[0].areas, []);
+  assert.equal(decided.results[0].confidence, 'decisao');
+  assert.equal(decided.results[0].evidence.decision.decidedBy, 'Boni');
+  assert.equal(decided.report.duplicateKeys.length, 0);
+  const withAreas = mapCatalog(inventory(base), [decide({ areas: ['civil', 'trabalho'] })]);
+  assert.deepEqual(withAreas.results[0].areas, ['civil', 'trabalho']);
+});
+
+test('decisão inválida é recusada: sem áreas nem transversal, com os dois, sem autor, duplicada ou para ficha desconhecida', () => {
+  const inv = inventory([item('forma', 'oficio'), item('materia', 'tema-x', { area: 'penal' })]);
+  const ok = { stableId: 'oficio', reason: 'r', decidedBy: 'Boni', date: '2026-11-12' };
+  assert.throws(() => mapCatalog(inv, [{ ...ok }]), /áreas ou de transversal/);
+  assert.throws(() => mapCatalog(inv, [{ ...ok, transversal: true, areas: ['civil'] }]), /áreas ou de transversal/);
+  assert.throws(() => mapCatalog(inv, [{ ...ok, transversal: true, decidedBy: '' }]), /motivo, autor ou data/);
+  assert.throws(
+    () =>
+      mapCatalog(inv, [
+        { ...ok, transversal: true },
+        { ...ok, transversal: true },
+      ]),
+    /duplicada/,
+  );
+  assert.throws(() => mapCatalog(inv, [{ ...ok, stableId: 'nao-existe', transversal: true }]), /desconhecida/);
+  assert.throws(() => mapCatalog(inv, [{ ...ok, stableId: 'tema-x', transversal: true }]), /só vale para Forma/);
+});
+
+test('duas Formas transversais para o mesmo tipo de peça aparecem como chave duplicada', () => {
+  const inv = inventory([item('forma', 'oficio'), item('forma', 'oficio-b', { documentType: 'oficio' })]);
+  const d = (stableId) => ({ stableId, transversal: true, reason: 'r', decidedBy: 'Boni', date: '2026-11-12' });
+  assert.equal(mapCatalog(inv, [d('oficio'), d('oficio-b')]).report.duplicateKeys.length, 0);
+});
