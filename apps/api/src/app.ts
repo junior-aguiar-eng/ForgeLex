@@ -502,8 +502,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (!database || !databaseClient || workspaceOptions?.driver || workspaceOptions?.caseTask || workspaceOptions?.closedPilot || workspaceOptions?.commercial)
       throw new Error('COMMERCIAL_CONFIGURATION_REQUIRED');
     const { createCommercialRuntime } = await import('./agentic-workspace/commercial-runtime.js');
+    // Catálogo de habilidades incorporado (M3.1): só existe com FORGELEX_SKILL_CATALOG_DIR; sem ele nada é aplicado.
+    const { skillCatalogFromEnvironment } = await import('./skills/file-skill-catalog.js');
+    const skills = options.commercialRuntimeDependencies?.skills ?? (await skillCatalogFromEnvironment(environment));
     const commercial = await createCommercialRuntime(database, databaseClient, environment, {
       ...options.commercialRuntimeDependencies,
+      ...(skills ? { skills } : {}),
       researchService,
     });
     await commercial.recover();
