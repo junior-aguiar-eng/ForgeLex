@@ -1,6 +1,6 @@
 # Mesa guiada do ForgeLex · registro de execução
 
-O [plano v2](../historico/planos/2026-11-10-forgelex-mesa-guiada-v2.md) teve seu início autorizado por Boni em 10 de novembro de 2026. Fluxo limpo e visual moderno são critérios de aceite da Mesa.
+O [plano unificado](../superpowers/plans/2026-11-11-forgelex-plano-unificado.md) reúne as etapas vigentes. O [plano v2 arquivado](../historico/planos/2026-11-10-forgelex-mesa-guiada-v2.md) teve seu início autorizado por Boni em 10 de novembro de 2026. Fluxo limpo e visual moderno são critérios de aceite da Mesa.
 
 ## R0 · revisão de partida
 
@@ -400,7 +400,7 @@ Reversão: reverter o commit; nada foi alterado no Cloud Run.
 
 ### Complemento da E1 (insumos de U0, U1, V5A, D0 e M1)
 
-Em 11/11/2026, também somente leitura (Cloud Run, Cloud Build, Cloud Logging, Cloud SQL e balanceador por `gcloud`; DNS, RDAP do Registro.br e TLS por consulta pública; Supabase pela lista de projetos e tabelas). O detalhe item a item está em `PENDENCIAS.md`, na seção “Estado publicado atual — 11/11/2026”. Plano lido: `claude/plano-unificado` no commit `713774e`.
+Em 11/11/2026, também somente leitura (Cloud Run, Cloud Build, Cloud Logging, Cloud SQL e balanceador por `gcloud`; DNS, RDAP do Registro.br e TLS por consulta pública; Supabase pela lista de projetos e tabelas). O detalhe item a item está em `PENDENCIAS.md`, na seção “Inventário histórico de 11/11/2026”. Plano lido: `claude/plano-unificado` no commit `713774e`.
 
 | Item              | Resultado                                                                                                                                                                                                                                                                                    |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -423,7 +423,7 @@ Em 11/11/2026, sobre `ceb85f8`, por decisão de Boni (DEC-9). Os 53 planos de `d
 | Referências reescritas      | `superpowers/plans/` virou `historico/planos/` em 26 arquivos Markdown e no `.prettierignore`. Nos planos movidos, os links para `../specs/` e `../references/` apontam agora para `../../superpowers/`. |
 | Não reescritos de propósito | `docs/architecture/evidence/2026-11-03-v9-review-remediation/changed-files.json` e `.superpowers/sdd/.../progress.md`, por serem evidência e registro do que existia na época.                           |
 | Verificação                 | Varredura dos links relativos de todo `.md` versionado que envolvem os planos: 0 quebrados. Nenhuma referência a `superpowers/plans` fora dos dois arquivos acima.                                       |
-| Pendente                    | O link do registro de execução para o plano unificado (outro item da E6) espera esse plano entrar nesta branch.                                                                                          |
+| Referência vigente          | Link para o plano unificado incluído na abertura deste registro na reconciliação de 12/11.                                                                                                                |
 
 Reversão: reverter o commit.
 
@@ -932,6 +932,18 @@ Vitest completo: 285 arquivos e 2.120 testes aprovados. Playwright: `writing-des
 - Atalhos de teclado além do Esc: não foram criados. O ponto é desenho (conflito com o botão voltar do navegador e com o desfazer de texto), não código.
 - Leitura de Word, OCR (U6) e identificação da peça pelo PDF.
 - Duas falhas isoladas de tempo limite apareceram em suítes pesadas rodadas em paralelo e passaram ao rodar sozinhas; a suíte completa passou.
+
+## Reconciliação pós-deploy · 12 de novembro de 2026
+
+Base `origin/main` em `b4c76e0ee593588365992b66597701f161001502`. Plano trazido de `claude/plano-unificado` em `7e66daf2276ac0380d4ba6ea29ba3f67ad23b339`, com o v2 preservado no arquivo histórico. O [estado publicado](../../PENDENCIAS.md#estado-publicado-atual--12112026-sha-b4c76e0) reúne as revisões e as flags observadas.
+
+- **E1 e M1.** `gcloud run services describe` e `gcloud run revisions describe` identificaram as revisões ativas e as flags de execução. `gcloud builds list` ligou o digest ativo ao build que habilita a casca, os anexos e os chips. `Invoke-WebRequest` retornou HTTP 200 em `/healthz` e `/readyz` de produção. A [CI de b4c76e0](https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/43320401061) passou. O conteúdo do manifesto servido e a jornada autenticada ficaram fora da conferência.
+- **M1 e DEC-5.** `pnpm exec vitest run packages/billing-ledger/src/commercial-inference-service.test.ts apps/web/src/agentic-workspace/commercial.test.ts` aprovou 41 testes. Um ensaio temporário com o serviço real de reserva e SQLite em memória liquidou valores em duas contas independentes. Com R$ 8,50 contabilizados, o serviço admitiu a próxima reserva de R$ 11,50. Com R$ 8,51, retornou `COMMERCIAL_DAILY_LIMIT` e o saldo disponível permaneceu igual ao anterior à tentativa. Os dois casos passaram e o arquivo de ensaio foi removido. A suíte web cobre a mensagem de limite diário. O teste usou dados sintéticos, sem chamadas ao provedor.
+- **M2.** Parcial. O PR #138 registra a aplicação da `0041` no banco HML isolado. As revisões publicadas têm migração automática e salvamento recuperável desligados. A referência de banco é igual em produção, HML comum e encerramento. A jornada funcional deve ocorrer no ambiente isolado. A consulta não leu a tabela de migrações nem valores de credenciais.
+- **M3 e U.** O PR #139 integrou o catálogo e a Mesa única. Os PRs #140–141 viabilizaram a ativação das flags web no build publicado. O escopo e os recortes ainda abertos de U2–U5 estão nos registros acima. U6 e U7 seguem no plano. V0 foi adiada por Boni.
+- **Pendências operacionais.** Jornada autenticada de M2, comportamento comercial na jornada, verificações residuais de MCP e ensaio do alerta E3 com chave inválida.
+
+A conferência operacional citada foi somente leitura. A reconciliação local não executou deploy, migração remota, alteração de flags nem chamada comercial.
 
 ## Evidências locais
 
