@@ -112,10 +112,12 @@ for (const width of [1366, 320]) {
       await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('senha-controlada-fase-7');
       await page.getByRole('button', { name: 'Entrar', exact: true }).click();
       await page.waitForURL('**/app');
-      await page.goto('/rascunhos');
-      await page.getByText('Detalhes técnicos', { exact: true }).click();
-      await page.getByRole('button', { name: 'Atualizar casos', exact: true }).click();
-      await expect(page.getByPlaceholder('Título do rascunho')).toBeVisible();
+      // A peça aberta ao lado da conversa, com título e seções (a Mesa é a única tela de peça; /rascunhos já é auditada acima).
+      await page.goto('/app/trabalho');
+      await page.getByRole('button', { name: 'Nova peça', exact: true }).click();
+      const desk = page.getByRole('region', { name: 'Mesa da peça' });
+      await expect(desk.getByLabel('Título da peça')).toBeVisible();
+      await expect(desk.getByLabel('Texto da seção 1', { exact: true })).toBeVisible();
       await audit(page, testInfo);
     });
     test('revisão modal mantém foco, nome e saída por Escape', async ({ page }, testInfo) => {
