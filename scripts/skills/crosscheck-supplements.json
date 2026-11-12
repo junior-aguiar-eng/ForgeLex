@@ -1,0 +1,66 @@
+{
+  "verifiedOn": "2026-11-12",
+  "exists": [
+    {
+      "law": "cpc",
+      "article": "529-A",
+      "source": "Lei 15.479/2026, art. 1º (insere o art. 529-A no CPC); texto de https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15479.htm"
+    },
+    {
+      "law": "clt",
+      "article": "392-D",
+      "source": "Lei 15.371/2026 (insere o art. 392-D na CLT); texto de https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15371.htm"
+    },
+    {
+      "law": "lei8213",
+      "article": "73-B",
+      "source": "Lei 15.371/2026, art. 8º (insere o art. 73-B na Lei 8.213/1991); texto de https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15371.htm"
+    },
+    {
+      "law": "lei8213",
+      "article": "73-C",
+      "source": "Lei 15.371/2026, art. 8º (insere o art. 73-C na Lei 8.213/1991); texto de https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15371.htm"
+    },
+    {
+      "law": "lei8213",
+      "article": "73-D",
+      "source": "Lei 15.371/2026, art. 8º (insere o art. 73-D na Lei 8.213/1991); texto de https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15371.htm"
+    },
+    {
+      "law": "lei8213",
+      "article": "73-E",
+      "source": "Lei 15.371/2026, art. 8º (insere o art. 73-E na Lei 8.213/1991); texto de https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15371.htm"
+    },
+    {
+      "law": "lei8213",
+      "article": "73-F",
+      "source": "Lei 15.371/2026, art. 8º (insere o art. 73-F na Lei 8.213/1991); texto de https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15371.htm"
+    },
+    {
+      "law": "lei8213",
+      "article": "73-G",
+      "source": "Lei 15.371/2026, art. 8º (insere o art. 73-G na Lei 8.213/1991); texto de https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15371.htm"
+    },
+    {
+      "law": "lei8213",
+      "article": "73-H",
+      "source": "Lei 15.371/2026, art. 8º (insere o art. 73-H na Lei 8.213/1991); texto de https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15371.htm"
+    }
+  ],
+  "literal": [
+    {
+      "stableId": "defesa-preliminar-lei-drogas",
+      "law": "cpp",
+      "article": "398",
+      "reason": "Transcreve o art. 394, § 4º, do CPP, que manda aplicar os arts. 395 a 398 a todos os procedimentos de primeiro grau; o art. 398 consta revogado no texto compilado."
+    }
+  ],
+  "notCode": [
+    {
+      "stableId": "ado-26-criminalizacao-lgbtfobia",
+      "law": "cp",
+      "article": "2-A",
+      "reason": "O art. 2-A citado é da Lei 7.716/1989, não do Código Penal."
+    }
+  ]
+}

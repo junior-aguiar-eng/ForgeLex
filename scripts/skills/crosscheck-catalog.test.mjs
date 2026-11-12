@@ -79,3 +79,46 @@ test('o relatório conta o que foi e o que não foi verificado', () => {
   assert.ok(report.checksNotPerformed.includes('precedente-indice-stj'));
   assert.ok(report.checksNotPerformed.includes('contradicao-forma-materia'));
 });
+
+const itemOf = (stableId, content) => ({ stableId, category: 'materia', content });
+
+test('menção histórica reconhecida pela própria ficha não é alerta; a citação seca de artigo revogado é', () => {
+  const laws = { cc: indexLaw(lawText) };
+  const historical = crosscheckItem(itemOf('h', 'O CC, art. 757 foi revogado pela Lei 15.040/2024.'), laws);
+  assert.equal(historical.state, 'sem-alerta');
+  assert.equal(historical.historicalReferences.length, 1);
+  const stale = crosscheckItem(itemOf('s', 'Aplique o CC, art. 757 ao contrato de seguro.'), laws);
+  assert.equal(stale.state, 'alerta');
+  assert.equal(stale.historicalReferences.length, 0);
+});
+
+test('suplemento curado resolve com motivo, só para a ficha e o artigo indicados', () => {
+  const laws = { cpp: indexLaw(lawText) };
+  const supplements = {
+    exists: [{ law: 'cpp', article: '999', source: 'Lei X, art. 1º' }],
+    literal: [{ stableId: 'lit', law: 'cpp', article: '998', reason: 'transcreve outro artigo' }],
+  };
+  const exists = crosscheckItem(itemOf('x', 'Ver CPP, art. 999.'), laws, supplements);
+  assert.equal(exists.state, 'sem-alerta');
+  assert.equal(exists.resolvedBySupplement[0].reason, 'Lei X, art. 1º');
+  assert.equal(crosscheckItem(itemOf('lit', 'Ver CPP, art. 998.'), laws, supplements).state, 'sem-alerta');
+  assert.equal(crosscheckItem(itemOf('outra', 'Ver CPP, art. 998.'), laws, supplements).state, 'alerta');
+});
+
+test('lei esparsa: extrai "Lei 8.213/91, art. 59" e "art. 59 da Lei 8.213/1991" e confere no texto', () => {
+  const found = (text) => extractReferences(text).map(({ law, article }) => `${law} ${article}`);
+  assert.deepEqual(found('Lei 8.213/91, art. 59 e 60.'), ['lei8213 59', 'lei8213 60']);
+  assert.deepEqual(found('O art. 59 da Lei nº 8.213/1991 trata do auxílio.'), ['lei8213 59']);
+  assert.deepEqual(found('A Lei 99.999/2000, art. 3º, não é conferida.'), []);
+  const laws = { lei8213: indexLaw('Art. 59. Auxílio-doença.\nArt. 60. Início.') };
+  assert.equal(crosscheckItem(itemOf('p', 'Lei 8.213/91, art. 59.'), laws).state, 'sem-alerta');
+  assert.equal(crosscheckItem(itemOf('q', 'Lei 8.213/91, art. 999.'), laws).state, 'alerta');
+});
+
+test('ficha sem artigo verificável informa o motivo', () => {
+  const laws = {};
+  const kind = (text) => crosscheckItem(itemOf('k', text), laws).unverifiedKind;
+  assert.equal(kind('Modelo de ofício.'), 'sem-citacao');
+  assert.equal(kind('Aplica a Súmula 7 do STJ.'), 'so-precedente');
+  assert.equal(kind('Conforme a Lei 15.504/2026.'), 'norma-nao-carregada');
+});
