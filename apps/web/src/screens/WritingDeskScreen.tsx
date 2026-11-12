@@ -270,7 +270,6 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
           >
             <AgenticWorkspaceScreen
               active={active}
-              integrated
               historyContainer={historyContainer}
               onEditor={openPiece}
               requestedExecutionId={active ? (selection.executionId ?? null) : undefined}
