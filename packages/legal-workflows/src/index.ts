@@ -17,4 +17,6 @@ export * from './final-editor/final-editor-generator.js';
 export * from './final-editor/editorial-review-service.js';
 export * from './final-editor/editorial-application-service.js';
 export * from './desk-guidance/guidance-rules.js';
+export * from './desk-guidance/desk-vocabulary.js';
+export * from './desk-guidance/piece-ranking.js';
 export * from './agentic-case-task/research-capabilities.js';
