@@ -47,6 +47,14 @@ const snapshotInput = z.strictObject({
   documentType: DecisionValueSchema,
   partyRole: DecisionValueSchema,
   stage: DecisionValueSchema,
+  /** Tribunal (regras mesa-v3 em diante). Ausente nas orientações anteriores, cujos hashes não mudam. */
+  court: DecisionValueSchema.optional(),
+  /** Peças que o cliente já recusou nesta orientação (mesa-v3), para a Mesa propor a próxima candidata. */
+  rejectedDocumentTypes: z
+    .array(code)
+    .max(50)
+    .refine((items) => new Set(items).size === items.length)
+    .optional(),
   activeQuestionId: reference.nullable(),
 });
 type GuidanceInput = z.infer<typeof snapshotInput>;
@@ -72,6 +80,11 @@ function guidanceDigest(snapshot: GuidanceInput): string {
     documentType: decision(snapshot.documentType),
     partyRole: decision(snapshot.partyRole),
     stage: decision(snapshot.stage),
+    // Campos acrescentados na mesa-v3: entram no resumo só quando existem, para o hash das orientações v1 e v2 seguir o mesmo.
+    ...(snapshot.court ? { court: decision(snapshot.court) } : {}),
+    ...(snapshot.rejectedDocumentTypes?.length
+      ? { rejectedDocumentTypes: [...snapshot.rejectedDocumentTypes].sort() }
+      : {}),
   });
 }
 

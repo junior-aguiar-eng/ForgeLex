@@ -130,3 +130,46 @@ describe('orientação interna da Mesa', () => {
     expect(SkillBindingSchema.safeParse({ ...first, commandId: first.resolutionHash }).success).toBe(false);
   });
 });
+
+describe('mesa-v3: tribunal e peças recusadas', () => {
+  const v2 = {
+    ...input,
+    rulesVersion: 'mesa-v2',
+    revision: 3,
+    area: { value: 'penal', status: 'confirmed', origin: 'user', questionId: 'area:1' } as const,
+    action: { value: 'create_document', status: 'confirmed', origin: 'user', questionId: 'action:2' } as const,
+    documentType: {
+      value: 'resposta-acusacao',
+      status: 'confirmed',
+      origin: 'user',
+      questionId: 'documentType:3',
+    } as const,
+  };
+
+  it('não muda o hash das orientações anteriores, que não têm tribunal nem recusas', () => {
+    expect(createGuidanceSnapshot(v2).guidanceHash).toBe(
+      '9a15888461ebc3adfda5ac40ed10f82e38f9501bb98ce371a5f194516403b30b',
+    );
+    expect(createGuidanceSnapshot({ ...v2, rejectedDocumentTypes: [] }).guidanceHash).toBe(
+      createGuidanceSnapshot(v2).guidanceHash,
+    );
+  });
+
+  it('o tribunal e as recusas entram no hash, e a ordem das recusas não importa', () => {
+    const base = createGuidanceSnapshot({ ...v2, rulesVersion: 'mesa-v3' });
+    const court = { value: 'tj-al', status: 'confirmed', origin: 'user' } as const;
+    const withCourt = createGuidanceSnapshot({ ...v2, rulesVersion: 'mesa-v3', court });
+    expect(withCourt.guidanceHash).not.toBe(base.guidanceHash);
+    const a = createGuidanceSnapshot({ ...v2, rulesVersion: 'mesa-v3', rejectedDocumentTypes: ['b', 'a'] });
+    const b = createGuidanceSnapshot({ ...v2, rulesVersion: 'mesa-v3', rejectedDocumentTypes: ['a', 'b'] });
+    expect(a.guidanceHash).toBe(b.guidanceHash);
+    expect(a.guidanceHash).not.toBe(base.guidanceHash);
+    expect(GuidanceSnapshotSchema.parse(withCourt)).toEqual(withCourt);
+  });
+
+  it('recusa peça repetida na lista de recusas e hash adulterado', () => {
+    expect(() => createGuidanceSnapshot({ ...v2, rejectedDocumentTypes: ['a', 'a'] })).toThrow();
+    const good = createGuidanceSnapshot({ ...v2, rulesVersion: 'mesa-v3', rejectedDocumentTypes: ['a'] });
+    expect(() => GuidanceSnapshotSchema.parse({ ...good, rejectedDocumentTypes: ['b'] })).toThrow();
+  });
+});
