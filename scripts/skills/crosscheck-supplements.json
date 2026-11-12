@@ -95,6 +95,12 @@
       "law": "lei8213",
       "article": "144",
       "reason": "A ficha trata do art. 144 em sua redação original (recálculo do buraco negro), revogado pela MP 2.187-13/2001; a citação é histórica."
+    },
+    {
+      "stableId": "prova-testemunhal-cpc-442",
+      "law": "cc",
+      "article": "227",
+      "reason": "O caput do art. 227 foi revogado pelo CPC (Lei 13.105/2015, art. 1.072, II), mas o parágrafo único segue em vigor (texto do Planalto lido em 12/11/2026); a ficha informa a revogação do caput e usa o parágrafo único."
     }
   ],
   "notCode": [
@@ -202,12 +208,22 @@
       "stableId": "navegacao-interior-antaq-resolucoes-136-141",
       "verifiedOn": "2026-11-12",
       "source": "Resoluções ANTAQ 136, 137, 138, 140 e 141/2026 lidas no DOU (in.gov.br): 20, 2, 3, 1 e 2 normas revogadas (28 no total), vigência 180 dias após a publicação em todas, art. 17 da Res. 136 (120 dias) e art. 9º, § 8º. Res. 139 não conferida."
+    },
+    {
+      "stableId": "ata-reuniao-conselho",
+      "verifiedOn": "2026-11-12",
+      "source": "Resolução CVM 23/2021, art. 31-B (comitê de auditoria estatutário), lida no PDF oficial da CVM; arts. 138 a 165 da Lei 6.404 conferidos no texto do Planalto. Lei 14.195/2021, DREI 81/2020 e RCVM 44 não conferidos."
+    },
+    {
+      "stableId": "ensino-arte-bncc-resolucao-cne-ceb-5-2026",
+      "verifiedOn": "2026-11-12",
+      "source": "Resolução CNE/CEB 5/2026 lida no DOU (in.gov.br): quatro componentes de Arte, no mínimo dois por ano ou série, revisão das normas dos sistemas em até 180 dias da homologação do plano de assistência técnica (art. 11), implementação completa até o fim do PNE 2026-2036 (art. 12, § 3º). Lei 15.388/2026 conferida no Planalto (PNE com duração de 10 anos)."
     }
   ],
   "precedents": [
     {
       "stableId": "agravo-instrumento",
-      "source": "STJ dados abertos (Temas.csv e Processos.csv, lidos em 12/11/2026)",
+      "source": "STJ dados abertos (Temas.csv, Processos.csv) e espelhos de acórdãos da 2ª e da 4ª Turma (jan. a set. 2026), lidos em 12/11/2026; Informativo de Jurisprudência do STJ n. 653 (30/08/2019)",
       "verified": [
         "Tema 1.281 STJ",
         "Tema 1.022 STJ",
@@ -215,9 +231,13 @@
         "Tema 988 STJ",
         "REsp 1.696.396",
         "REsp 1.704.520",
-        "Tema 1.180 STJ"
+        "Tema 1.180 STJ",
+        "REsp 2.129.011 (2ª T., 21/05/2026)",
+        "REsp 2.237.365 (4ª T., 19/03/2026)",
+        "REsp 2.242.573 (4ª T., 19/03/2026)",
+        "REsp 1.803.925-SP (Corte Especial, Rel. Min. Nancy Andrighi, julgado em 01/08/2019, Inf. 653)"
       ],
-      "unverified": ["REsp 1.803.925 (Inf. 653)", "REsp 2.129.011", "REsp 2.237.365", "REsp 2.242.573"]
+      "unverified": []
     },
     {
       "stableId": "recurso-apelacao",
@@ -227,47 +247,54 @@
     },
     {
       "stableId": "impugnacao-cumprimento-cpc-525",
-      "source": "STJ dados abertos (Temas.csv e Processos.csv) e compêndio oficial de Súmulas do STJ",
+      "source": "STJ dados abertos (Temas.csv e Processos.csv) e compêndio oficial de Súmulas do STJ; portal do STF (repercussão geral e processos), lido em 12/11/2026",
       "verified": [
         "Tema 1.458 STJ (afetado em 26/06/2026, 1ª Seção, REsp 2.269.091)",
         "Súmula 519 STJ",
-        "Súmula 393 STJ"
+        "Súmula 393 STJ",
+        "Tema 360 STF (RE 611.503, trânsito em julgado em 27/03/2019): existência e objeto",
+        "Tema 100 STF (RE 586.068, trânsito em julgado em 30/05/2026): existência e objeto",
+        "Tema 881 STF (RE 949.297): existência e objeto",
+        "Tema 885 STF (RE 955.227): existência e objeto",
+        "ADPF 615: existência",
+        "AR 2.876: existência"
       ],
-      "unverified": [
-        "Tema 360 STF (RE 611.503)",
-        "Tema 100 STF (RE 586.068)",
-        "ADPF 615",
-        "AR 2.876 QO",
-        "Temas 881 e 885 STF"
-      ]
+      "unverified": []
     },
     {
       "stableId": "defesa-consumerista",
-      "source": "Consulta ao índice do ForgeLex devolveu NOT_FOUND, que não confirma nem nega",
-      "verified": [],
-      "unverified": ["REsp 1.195.642", "REsp 802.832"]
+      "source": "Informativos de Jurisprudência do STJ (pesquisa por número, 12/11/2026)",
+      "verified": [
+        "REsp 802.832-MG (Rel. Min. Paulo de Tarso Sanseverino, julgado em 13/04/2011; questão de ordem remetida à 2ª Seção em 16/11/2010)",
+        "REsp 1.195.642-RJ (Rel. Min. Nancy Andrighi, julgado em 13/11/2012)"
+      ],
+      "unverified": []
     },
     {
       "stableId": "progressao-ect-pccs-irr-309",
-      "source": "Nenhuma fonte oficial do TST consultada",
-      "verified": [],
-      "unverified": ["IRR 309 TST (RR 0020286-91.2023.5.04.0022)", "Súmula 202 TST"]
+      "source": "Tabela de recursos de revista repetitivos e documento do Tema 309 no site do TST, lidos em 12/11/2026",
+      "verified": [
+        "IRR 309 TST (RR 20286-91.2023.5.04.0022; julgado em 8/9/2025; acórdão publicado em 15/9/2025)",
+        "Súmula 202 TST (referência legislativa do próprio Tema 309)"
+      ],
+      "unverified": []
     },
     {
       "stableId": "remuneracao-egresso-cpor-npor-tema-401-tnu",
-      "source": "Nenhuma fonte oficial da TNU consultada",
-      "verified": [],
-      "unverified": ["Tema 401 TNU"]
+      "source": "Temas representativos da TNU no site do CJF, lido em 12/11/2026",
+      "verified": ["Tema 401 TNU (afetado; PEDILEF 5064082-43.2024.4.02.5101; afetação em 30/09/2026)"],
+      "unverified": []
     },
     {
       "stableId": "sfh-cdc-cooperativa-anatel-stj-sumulas",
-      "source": "Compêndio oficial de Súmulas do STJ e STJ dados abertos (Temas.csv), lidos em 12/11/2026",
+      "source": "Compêndio oficial de Súmulas do STJ e STJ dados abertos (Temas.csv), lidos em 12/11/2026; portal do STF (repercussão geral)",
       "verified": [
         "Súmulas 31, 84, 297, 327, 450, 473, 514 e 586 do STJ",
         "Tema 50 STJ (REsp 1.091.363)",
-        "Tema 51 STJ"
+        "Tema 51 STJ",
+        "Tema 1.011 STF (RE 827.996, trânsito em julgado em 17/06/2023): existência e objeto"
       ],
-      "unverified": ["Tema 1.011 STF"]
+      "unverified": []
     }
   ]
 }

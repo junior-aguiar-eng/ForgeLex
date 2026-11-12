@@ -184,3 +184,35 @@ test('precedente não verificado e fonte documental: o primeiro fica pendente co
   assert.equal(documentary.reviewState, 'eligible');
   assert.deepEqual(documentary.crossChecks, ['fonte-documental']);
 });
+
+test('Lote 1: a original com alerta vira ajustada, guarda o alerta e a redação atualizada nasce elegível com a conferência', () => {
+  const alerted = {
+    results: crosscheck.results.map((item) =>
+      item.stableId === 'resposta-acusacao'
+        ? {
+            ...item,
+            state: 'alerta',
+            alerts: [{ code: 'ARTICLE_REVOKED', law: 'cc', article: '757' }],
+            crossChecks: [],
+          }
+        : item,
+    ),
+  };
+  const built = buildCatalog({
+    rows,
+    map,
+    crosscheck: alerted,
+    lot1: new Map([['resposta-acusacao', 'Texto atualizado.']]),
+    lot1Checks: new Map([['resposta-acusacao', ['norma-existencia', 'norma-vigencia', 'norma-atualizada']]]),
+    version: 'v1',
+    date: '2026-11-12',
+  });
+  const [original, updated] = built.manifest.entries.filter((entry) => entry.id === 'resposta-acusacao');
+  assert.equal(original.reviewState, 'adjusted');
+  assert.deepEqual(original.alerts, ['ARTICLE_REVOKED:cc:757']);
+  assert.equal(updated.reviewState, 'eligible');
+  assert.deepEqual(updated.alerts, []);
+  assert.deepEqual(updated.crossChecks, ['norma-existencia', 'norma-vigencia', 'norma-atualizada']);
+  assert.equal(updated.provenance.adjustedFrom.version, original.version);
+  assert.equal(built.counts['eligible-lote-1'], 1);
+});

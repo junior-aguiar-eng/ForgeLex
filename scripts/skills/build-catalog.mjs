@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import JSZip from 'jszip';
+import { LAW_CODES, SPARSE_CODES, crosscheckItem, indexLaw } from './crosscheck-catalog.mjs';
 import { inventoryCatalog, readCatalogEntry } from './inventory-catalog.mjs';
 
 /**
@@ -30,7 +31,17 @@ function aliasAreas(areas, aliases) {
 }
 
 /** Núcleo puro: recebe as fichas com conteúdo e devolve o manifesto e os arquivos de conteúdo. */
-export function buildCatalog({ rows, map, crosscheck, lot0 = new Map(), version, date, areaAliases = new Map() }) {
+export function buildCatalog({
+  rows,
+  map,
+  crosscheck,
+  lot0 = new Map(),
+  lot1 = new Map(),
+  lot1Checks = new Map(),
+  version,
+  date,
+  areaAliases = new Map(),
+}) {
   const mapped = new Map(map.results.map((result) => [result.stableId, result]));
   const crossed = new Map(crosscheck.results.map((result) => [result.stableId, result]));
   const entries = [];
@@ -45,7 +56,10 @@ export function buildCatalog({ rows, map, crosscheck, lot0 = new Map(), version,
     const kind = place.kind;
     const id = place.catalogId ?? row.stableId;
     if (!ID.test(id)) throw new Error(`identificador fora do formato aceito: ${row.stableId}`);
-    const adjusted = lot0.get(row.stableId);
+    // Lote 0: redação ajustada após revisão amostral. Lote 1: redação atualizada para a norma equivalente à revogada;
+    // o texto novo passa pelo mesmo cruzamento antes de entrar (ver `main`).
+    const adjusted = lot0.get(row.stableId) ?? lot1.get(row.stableId);
+    const lot1Checked = lot1.has(row.stableId);
     const base = {
       id,
       version: row.version,
@@ -72,6 +86,10 @@ export function buildCatalog({ rows, map, crosscheck, lot0 = new Map(), version,
     let crossChecks = [];
     if (adjusted) {
       reviewState = 'adjusted';
+      // A original superada guarda os alertas que motivaram o ajuste.
+      if (check.state === 'alerta') {
+        alerts = check.alerts.slice(0, 50).map((alert) => `${alert.code}:${alert.law}:${alert.article}`);
+      }
     } else if (place.status === 'queue') {
       reviewState = 'pending';
       alerts = [`MAP:${place.queueReason}`];
@@ -109,10 +127,10 @@ export function buildCatalog({ rows, map, crosscheck, lot0 = new Map(), version,
         byteLength: Buffer.byteLength(adjusted),
         provenance: { ...base.provenance, adjustedFrom: { version: row.version, hash: row.sha256Content } },
         reviewState: 'eligible',
-        crossChecks: ['conferencia-amostral'],
+        crossChecks: lot1Checked ? lot1Checks.get(row.stableId) : ['conferencia-amostral'],
         alerts: [],
       });
-      count('eligible-lote-0');
+      count(lot1Checked ? 'eligible-lote-1' : 'eligible-lote-0');
       files.set(`${id}@${row.version + 1}.md`, adjusted);
     }
   }
@@ -138,6 +156,9 @@ async function main() {
       map: { type: 'string' },
       crosscheck: { type: 'string' },
       lot0: { type: 'string' },
+      lot1: { type: 'string' },
+      laws: { type: 'string' },
+      supplements: { type: 'string' },
       out: { type: 'string' },
       version: { type: 'string' },
       date: { type: 'string' },
@@ -157,6 +178,32 @@ async function main() {
       if (name.endsWith('.md')) lot0.set(name.slice(0, -3), await readFile(join(values.lot0, name), 'utf8'));
     }
   }
+  // Lote 1: cada texto atualizado passa pelo cruzamento contra as normas carregadas e só entra sem alerta.
+  const lot1 = new Map();
+  const lot1Checks = new Map();
+  if (values.lot1) {
+    if (!values.laws) throw new Error('--lot1 exige --laws <pasta com os textos das normas>');
+    const laws = {};
+    for (const code of [...LAW_CODES, ...SPARSE_CODES]) {
+      try {
+        laws[code] = indexLaw(await readFile(join(values.laws, `${code}.md`), 'utf8'));
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+    }
+    const supplements = values.supplements ? JSON.parse(await readFile(values.supplements, 'utf8')) : {};
+    for (const name of await readdir(values.lot1)) {
+      if (!name.endsWith('.md')) continue;
+      const stableId = name.slice(0, -3);
+      const content = await readFile(join(values.lot1, name), 'utf8');
+      const result = crosscheckItem({ stableId, category: 'materia', content }, laws, supplements);
+      if (result.state !== 'sem-alerta') {
+        throw new Error(`Texto atualizado ainda com pendência (${result.state}): ${stableId}`);
+      }
+      lot1.set(stableId, content);
+      lot1Checks.set(stableId, [...result.crossChecks, 'norma-atualizada']);
+    }
+  }
   const areaAliases = new Map(
     (values['area-alias'] ?? '')
       .split(',')
@@ -168,6 +215,8 @@ async function main() {
     map: JSON.parse(await readFile(values.map, 'utf8')),
     crosscheck: JSON.parse(await readFile(values.crosscheck, 'utf8')),
     lot0,
+    lot1,
+    lot1Checks,
     version: values.version,
     date: values.date,
     areaAliases,

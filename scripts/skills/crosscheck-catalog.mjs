@@ -88,8 +88,8 @@ function expand(list) {
 }
 
 /** Siglas de uso corrente que apontam para uma norma esparsa. */
-const NAMED_LAWS = { LGPD: 'lei13709', LDB: 'lei9394', LEP: 'lei7210' };
-const NAMED = '(LGPD|LDB|LEP)';
+const NAMED_LAWS = { LGPD: 'lei13709', LDB: 'lei9394', LEP: 'lei7210', LSA: 'lei6404' };
+const NAMED = '(LGPD|LDB|LEP|LSA)';
 const QUALIFIERS = String.raw`(?:\s*,?\s*(?:§\s*\d+[º°o]?|par[aá]grafo\s+[uú]nico|inc(?:iso)?s?\.?\s*[IVXLC]+|[IVXLC]{1,6}(?![A-Za-z])|al[ií]nea\s*\w)\s*,?)*`;
 
 /**
@@ -134,6 +134,9 @@ export function extractReferences(text, known = new Set(SPARSE_CODES), implied =
   }
   const named = new RegExp(String.raw`\b${NAMED}\s*,?\s*(?:arts?\.?\s*)(${LIST})`, 'g');
   for (const match of text.matchAll(named)) if (sparseKnown(NAMED_LAWS[match[1]])) add(NAMED_LAWS[match[1]], match[2]);
+  // "LSA 143" é a forma corrente da sigla da Lei das S.A., sem "art."
+  const lsa = new RegExp(String.raw`\bLSA\s*,?\s*(${LIST})(?!\s*\/\d)`, 'g');
+  for (const match of text.matchAll(lsa)) if (sparseKnown(NAMED_LAWS.LSA)) add(NAMED_LAWS.LSA, match[1]);
   const namedTrailing = new RegExp(
     String.raw`\barts?\.?\s*(${LIST})[º°o]?${QUALIFIERS}\s*(?:d[oa]s?\s+)?${NAMED}\b`,
     'g',
@@ -176,9 +179,12 @@ function occurrences(text, law, article) {
   if (article.includes('-'))
     return [...text.matchAll(new RegExp(String.raw`(?<![\d-])${digits}\b`, 'gi'))].map((m) => m.index);
   const number = digits.length > 4 ? digits : digits.replace(/^(\d)(\d{3})$/, '$1\\.?$2');
-  return [
+  const named = [
     ...text.matchAll(new RegExp(String.raw`(?:${law}\s*,?\s*(?:arts?\.?\s*)?|arts?\.?\s*)${number}\b`, 'gi')),
   ].map((m) => m.index);
+  if (named.length) return named;
+  // Fim de intervalo ("CC 1.768 a 1.773"): o número vem sem "art." nem sigla; vale a ocorrência solta.
+  return [...text.matchAll(new RegExp(String.raw`(?<![\d.,-])${number}(?![\d])`, 'g'))].map((m) => m.index);
 }
 
 function acknowledged(text, law, article, found) {
@@ -236,13 +242,15 @@ export function crosscheckItem(item, laws, supplements = {}) {
       else alerts.push(mention);
     }
   }
-  // Ficha sem artigo a conferir, cujo conteúdo foi conferido à mão contra a fonte oficial que ela segue (manual,
-  // resolução, ato do DOU): a conferência fica registrada no suplemento `documentary`, com fonte e data.
-  const documentary =
-    !alerts.length && checked === 0
-      ? (supplements.documentary ?? []).find((row) => row.stableId === item.stableId)
-      : undefined;
+  // Ficha cujo conteúdo foi conferido à mão contra a fonte oficial que ela segue (manual, resolução, ato do DOU): a
+  // conferência fica registrada no suplemento `documentary`, com fonte e data. Vale também para a ficha que tem
+  // artigos conferidos, quando parte do que ela cita não é artigo de lei (ex.: resolução de agência).
+  const documentary = !alerts.length
+    ? (supplements.documentary ?? []).find((row) => row.stableId === item.stableId)
+    : undefined;
   const precedents = (supplements.precedents ?? []).find((row) => row.stableId === item.stableId);
+  const precedentsVerified = Boolean(precedents?.verified?.length) && !precedents?.unverified?.length;
+  const grounded = checked > 0 || Boolean(documentary) || precedentsVerified;
   return {
     stableId: item.stableId,
     kind: item.category === 'forma' ? 'FORM' : 'MATTER',
@@ -250,13 +258,13 @@ export function crosscheckItem(item, laws, supplements = {}) {
       ? 'alerta'
       : precedents?.unverified?.length
         ? 'precedente-nao-verificado'
-        : checked === 0 && !documentary
-          ? 'sem-referencia-verificavel'
-          : 'sem-alerta',
+        : grounded
+          ? 'sem-alerta'
+          : 'sem-referencia-verificavel',
     ...(documentary ? { documentarySource: { source: documentary.source, verifiedOn: documentary.verifiedOn } } : {}),
     ...(precedents ? { precedents: { verified: precedents.verified, unverified: precedents.unverified } } : {}),
     alerts,
-    unverifiedKind: !alerts.length && checked === 0 && !documentary ? unverifiedKind(item.content) : undefined,
+    unverifiedKind: !alerts.length && !grounded ? unverifiedKind(item.content) : undefined,
     historicalReferences: historical,
     resolvedBySupplement: supplementedHits,
     references: {
@@ -267,11 +275,11 @@ export function crosscheckItem(item, laws, supplements = {}) {
     crossChecks:
       alerts.length || precedents?.unverified?.length
         ? []
-        : checked === 0
-          ? documentary
-            ? ['fonte-documental']
-            : []
-          : CHECKS_PERFORMED,
+        : [
+            ...(checked > 0 ? CHECKS_PERFORMED : []),
+            ...(documentary ? ['fonte-documental'] : []),
+            ...(precedentsVerified ? ['precedente-existencia'] : []),
+          ],
   };
 }
 

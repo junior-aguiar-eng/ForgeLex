@@ -173,3 +173,18 @@ test('fonte documental conferida à mão tira a ficha de "sem referência"; prec
   assert.equal(prec.state, 'precedente-nao-verificado');
   assert.deepEqual(prec.precedents, { verified: ['Tema 988 STJ'], unverified: ['REsp 1.803.925'] });
 });
+
+test('precedentes todos verificados sustentam a ficha sem artigo; fonte documental soma à ficha com artigos; LSA aponta a Lei 6.404', () => {
+  const supplements = {
+    precedents: [{ stableId: 'p', verified: ['Tema 309 TST'], unverified: [] }],
+    documentary: [{ stableId: 'd', source: 'Resolução CVM 23/2021', verifiedOn: '2026-11-12' }],
+  };
+  const prec = crosscheckItem(itemOf('p', 'Aplica o IRR 309.'), {}, supplements);
+  assert.equal(prec.state, 'sem-alerta');
+  assert.deepEqual(prec.crossChecks, ['precedente-existencia']);
+  const laws = { lei6404: indexLaw('Art. 143. Diretoria.\nArt. 162. Conselho fiscal.') };
+  const doc = crosscheckItem(itemOf('d', 'LSA 143 e LSA 162; RCVM 23 art. 31-B.'), laws, supplements);
+  assert.equal(doc.state, 'sem-alerta');
+  assert.deepEqual(doc.crossChecks, ['norma-existencia', 'norma-vigencia', 'fonte-documental']);
+  assert.equal(crosscheckItem(itemOf('x', 'LSA 999.'), laws, {}).state, 'alerta');
+});

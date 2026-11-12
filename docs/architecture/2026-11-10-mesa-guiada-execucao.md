@@ -782,6 +782,53 @@ A consulta ao índice do ForgeLex (`research.verify_authority`) devolveu `NOT_FO
 
 `node --test scripts/skills`: 46 aprovados. Catálogo reconstruído: 2.081 entradas, 2.058 elegíveis (as 22 transversais entre elas), 15 pendentes, 4 ajustadas e 4 redações do Lote 0. `desk-pilot` em `incorporated`: 4 aprovados.
 
+## M3.6 — Normas revogadas atualizadas e precedentes verificados (12/11/2026)
+
+Esta seção substitui a lista de pendentes da M3.5: o catálogo reconstruído tem **2.086 entradas, 2.077 fichas elegíveis e nenhuma pendente**. O catálogo continua desligado e o orçamento, em 64 KB por papel e 96 KB no total.
+
+### Lote 1: redação atualizada para a norma equivalente
+
+Cinco fichas citavam artigo revogado como se estivesse em vigor. Cada uma ganhou uma versão nova (`adjustedFrom` aponta a original), com o texto em `tests/fixtures/catalog-lot1/`. A versão nova só entra se passar pelo cruzamento sem alerta, e a conferência fica registrada em `crossChecks` (`norma-atualizada`). A original passa a `adjusted` e guarda o alerta que motivou o ajuste.
+
+| Ficha                            | Versão | O que mudou                                                                                  | Norma equivalente conferida                                                                                                             |
+| -------------------------------- | ------ | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `execucao-fazer-nao-fazer`       | 2 → 3  | Duas menções ao CC art. 757 no art. 499, p.ú., do CPC ganharam a ressalva da revogação.      | Lei 15.040/2024 (contrato de seguro, em vigor um ano após a publicação, art. 134). O texto do CPC no Planalto ainda remete ao art. 757. |
+| `tutela-especifica-cpc-497`      | 2 → 3  | Mesma ressalva, na linha da Lei 14.833/2024.                                                 | Lei 15.040/2024.                                                                                                                        |
+| `insolvencia-civil-cpc-1052`     | 2 → 3  | "art. 786-A" passou a "art. 786-A do CPC/1973", pois o artigo não existe no CPC de 2015.     | CPC/1973 (art. 1.052 do CPC/2015 mantém o regime).                                                                                      |
+| `professor-clt-317`              | 3 → 4  | "CLT 317 a 324" passou a "CLT 317 a 323", com a revogação do art. 324.                       | Lei 7.855/1989 (indicada no texto do Planalto).                                                                                         |
+| `precos-transferencia-lei-14596` | 2 → 3  | O art. 74 da MP 2.158-35, citado no presente, ganhou a revogação e a norma que o substituiu. | Lei 12.973/2014, art. 117, IX (revogação a partir de 1º/01/2015); lucros no exterior nos arts. 76 a 92.                                 |
+
+Duas fichas deixaram de alertar sem mudar de texto. `prova-testemunhal-cpc-442` cita o caput do CC 227, revogado pelo CPC, mas usa o parágrafo único, que segue em vigor (suplemento `literal`, texto do Planalto lido). `curatela-tda-epd-cc-1767` já diz que o CC 1.768 a 1.773 foi revogado; o cruzamento só não reconhecia o fim do intervalo, o que foi corrigido.
+
+### Precedentes: de 6 fichas pendentes a nenhuma
+
+A conferência é de **existência e objeto** do precedente (número, órgão, relator ou leading case, data ou situação), não da redação da tese.
+
+| Precedente                              | Fonte oficial                                                      | Resultado                                                                                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| REsps 2.129.011, 2.237.365 e 2.242.573  | Espelhos de acórdãos da 2ª e da 4ª Turma do STJ (jan. a set. 2026) | Existem, nos órgãos, relatores e datas que as fichas indicam.                                                                                  |
+| REsp 1.803.925                          | Informativo do STJ n. 653 (30/08/2019)                             | Corte Especial, Min. Nancy Andrighi, julgado em 01/08/2019.                                                                                    |
+| REsps 802.832 e 1.195.642               | Informativos do STJ (pesquisa por número)                          | 802.832: Min. Sanseverino, julgado em 13/04/2011, questão de ordem remetida à 2ª Seção. 1.195.642: Min. Nancy Andrighi, julgado em 13/11/2012. |
+| Temas 360, 100, 881, 885 e 1.011 do STF | Portal do STF (repercussão geral)                                  | Existem, com os leading cases RE 611.503, 586.068, 949.297, 955.227 e 827.996.                                                                 |
+| ADPF 615 e AR 2.876                     | Portal do STF                                                      | Existem. Só a existência foi conferida.                                                                                                        |
+| IRR 309 e Súmula 202 do TST             | Tabela de repetitivos e documento do Tema 309 no site do TST       | RR 20286-91.2023.5.04.0022, julgado em 8/9/2025, acórdão de 15/9/2025; a Súmula 202 é a referência legislativa do próprio tema.                |
+| Tema 401 da TNU                         | Temas representativos no site do CJF                               | Afetado; PEDILEF 5064082-43.2024.4.02.5101, afetação em 30/09/2026, questão idêntica à da ficha.                                               |
+
+Os demais precedentes já tinham sido conferidos na M3.5 (temas do STJ e súmulas do compêndio oficial). A consulta ao índice do ForgeLex segue sem valor de prova: `NOT_FOUND` não nega, porque o corpus é parcial. A tentativa de varrer as íntegras do STJ de 2008 a 2020 foi abandonada: cada arquivo diário leva dezenas de segundos e a data de publicação não bate com o nome do arquivo. O acesso ao SCON do STJ foi negado (403) e não foi contornado.
+
+### As 2 fichas sem referência
+
+- `ata-reuniao-conselho`: o art. 31-B da Resolução CVM 23/2021 trata do comitê de auditoria estatutário, como a ficha diz (PDF oficial da CVM). Os arts. 138 a 165 da Lei 6.404 existem, e a sigla "LSA" passou a ser reconhecida. Não foram conferidos a Lei 14.195/2021, o DREI 81/2020 e a RCVM 44.
+- `ensino-arte-bncc-resolucao-cne-ceb-5-2026`: a Resolução CNE/CEB 5/2026 foi lida no DOU (quatro componentes, mínimo de dois por ano ou série, revisão das normas em 180 dias da homologação do plano, implementação até o fim do PNE 2026-2036), e a Lei 15.388/2026 confere.
+
+### Limites que continuam
+
+A Resolução CD/ANPD 32/2026 (reconhecimento da União Europeia), o Ato Conjunto RFB/CGIBS 5/2026, a Resolução ANTAQ 139/2026, a Lei 14.195/2021, o DREI 81/2020 e a RCVM 44 seguem sem leitura do texto oficial. O cruzamento diz o que conferiu em cada ficha e não equivale a revisão jurídica do conteúdo.
+
+### Verificação
+
+`node --test scripts/skills`: 48 aprovados. `desk-pilot` em `incorporated`: 4 aprovados. Catálogo: 2.086 entradas (2.068 elegíveis, 9 ajustadas e superadas, 4 redações do Lote 0 e 5 do Lote 1).
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.

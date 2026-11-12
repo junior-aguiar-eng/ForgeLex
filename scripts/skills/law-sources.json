@@ -214,6 +214,10 @@
       "url": "https://www.planalto.gov.br/ccivil_03/leis/L9430.htm"
     },
     {
+      "code": "lei9503",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9503compilado.htm"
+    },
+    {
       "code": "lei9504",
       "url": "https://www.planalto.gov.br/ccivil_03/leis/l9504compilado.htm"
     },
@@ -334,6 +338,10 @@
       "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12965.htm"
     },
     {
+      "code": "lei12973",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12973.htm"
+    },
+    {
       "code": "lei13021",
       "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l13021.htm"
     },
@@ -441,6 +449,10 @@
       "code": "lei15371"
     },
     {
+      "code": "lei15388",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm"
+    },
+    {
       "code": "lei15473",
       "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15473.htm"
     },
@@ -466,14 +478,6 @@
     {
       "code": "mp2215",
       "url": "https://www.planalto.gov.br/ccivil_03/mpv/2215-10.htm"
-    },
-    {
-      "code": "lei15388",
-      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm"
-    },
-    {
-      "code": "lei9503",
-      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9503compilado.htm"
     }
   ]
 }
