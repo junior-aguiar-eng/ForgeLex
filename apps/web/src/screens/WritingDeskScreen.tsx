@@ -293,7 +293,6 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
               className={`${mobile === 'chat' ? 'hidden lg:block' : ''} min-w-0 border-l border-stone-200`}
             >
               <DraftStudioScreen
-                integrated
                 requestedLocation={location}
                 selectedVersionId={attached ? selection.versionId : undefined}
                 onPieceChange={setPiece}

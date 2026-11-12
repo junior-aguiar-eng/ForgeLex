@@ -5,21 +5,16 @@ import { deskLocation, readDeskLocation, writeDeskLocation } from '../navigation
 import type { DeskEditSelection, DeskPiece } from '../agentic-workspace/desk-model';
 import { printDraftPdf } from '../documents/draft-print';
 import {getDraftPrimaryAction} from './draft-review/draft-action-model';
-import { CaseFlowHeader } from '../components/CaseFlowHeader';
-import { useApp } from '../context/AppContext';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ReviewPanel } from './draft-review/ReviewPanel';
 import { SourcePanel } from './draft-review/SourcePanel';
 import { DocumentReaderDialog } from '../components/DocumentReaderDialog';
 import type { DocumentReference, DocumentSource } from '../documents/document-reader-model';
 import { type DraftReviewRun, type ReviewPoint, type DraftReviewFinding } from './draft-review/review-model';
-import { AlertCircle, CheckCircle2, FileText, LockKeyhole, Plus, RefreshCw, ShieldAlert } from 'lucide-react';
-import { ApiRequestError, requestApiWithToken, requestApi, resolveApiOrigin } from '../api-client';
+import { ApiRequestError, requestApiWithToken, requestApi } from '../api-client';
 import { pendingDraftSaveKey, readPendingDraftSave, storePendingDraftSave } from '../documents/draft-save-session';
-import { ReceivedDraftPanel } from './draft-ai/ReceivedDraftPanel';
-import type { Receipt } from './draft-ai/received-draft-model';
+import type { } from './draft-ai/received-draft-model';
 import { useAuth } from '../auth/AuthContext';
-import { AGENTIC_WORKSPACE_ENABLED } from '../config/site-capabilities';
 import type { Delivery } from '../agentic-workspace/execution-model';
 
 interface Matter {
@@ -127,16 +122,6 @@ interface EditableSection {
   linkedThesisIds: string[];
 }
 
-function initialSections(): EditableSection[] {
-  return [
-    { title: 'Síntese dos fatos', content: '', linkedFactIds: [], linkedEvidenceIds: [], linkedAuthorityIds: [], linkedThesisIds: [] },
-    { title: 'Questões jurídicas', content: '', linkedFactIds: [], linkedEvidenceIds: [], linkedAuthorityIds: [], linkedThesisIds: [] },
-    { title: 'Fundamentação a revisar', content: '', linkedFactIds: [], linkedEvidenceIds: [], linkedAuthorityIds: [], linkedThesisIds: [] },
-    { title: 'Pedidos e providências', content: '', linkedFactIds: [], linkedEvidenceIds: [], linkedAuthorityIds: [], linkedThesisIds: [] },
-  ];
-}
-
-const apiUrl = resolveApiOrigin();
 
 function initialToken(): string {
   try {
@@ -159,15 +144,14 @@ const statusLabel: Record<Draft['status'], string> = {
   ARCHIVED: 'Arquivado',
 };
 
-export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrated?: boolean; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void; onCaseSources?: () => void; requestedReview?: DeskDocumentSelection; deskEditorialEnabled?: boolean }> = ({ requestedLocation, integrated = false, selectedVersionId, onPieceChange, onCaseSources, requestedReview, deskEditorialEnabled = false }) => {
-  const emptySections = () => integrated ? [{title:'Texto da peça',content:'',linkedFactIds:[],linkedEvidenceIds:[],linkedAuthorityIds:[],linkedThesisIds:[]}] : initialSections();
-  const { setActiveTab } = useApp();
+export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void; onCaseSources?: () => void; requestedReview?: DeskDocumentSelection; deskEditorialEnabled?: boolean }> = ({ requestedLocation, selectedVersionId, onPieceChange, onCaseSources, requestedReview, deskEditorialEnabled = false }) => {
+  const emptySections = () => [{title:'Texto da peça',content:'',linkedFactIds:[],linkedEvidenceIds:[],linkedAuthorityIds:[],linkedThesisIds:[]}];
   const [importedDelivery, setImportedDelivery] = useState<Delivery>();
   const submittedLocalSnapshot = useRef<string>();
   const localSnapshot = useRef('');
   const [newWorkCase, setNewWorkCase] = useState('');
   const { status: authStatus, account } = useAuth();
-  const [token, setToken] = useState(initialToken);
+  const [token] = useState(initialToken);
   const [matters, setMatters] = useState<Matter[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [selectedMatterId, setSelectedMatterId] = useState('');
@@ -176,17 +160,11 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
   const [details, setDetails] = useState<DraftDetails | null>(null);
   const [draftTitle, setDraftTitle] = useState('Minuta para revisão humana');
   const [sections, setSections] = useState<EditableSection[]>(emptySections);
-  const [issues, setIssues] = useState<LegalIssue[]>([]);
+  const [, setIssues] = useState<LegalIssue[]>([]);
   const [facts, setFacts] = useState<Fact[]>([]);
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [authorities, setAuthorities] = useState<SavedAuthority[]>([]);
-  const [theses, setTheses] = useState<LegalThesis[]>([]);
-  const [thesisTitle, setThesisTitle] = useState('');
-  const [thesisStatement, setThesisStatement] = useState('');
-  const [thesisIssueId, setThesisIssueId] = useState('');
-  const [thesisFactId, setThesisFactId] = useState('');
-  const [thesisEvidenceId, setThesisEvidenceId] = useState('');
-  const [thesisAuthorityId, setThesisAuthorityId] = useState('');
+  const [, setTheses] = useState<LegalThesis[]>([]);
   const [citations, setCitations] = useState<Array<{
     sectionOrdinal: number;
     targetType: Citation['targetType'];
@@ -194,11 +172,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     citationText: string;
     verified: boolean;
   }>>([]);
-  const [citationSectionOrdinal, setCitationSectionOrdinal] = useState(0);
-  const [citationTargetType, setCitationTargetType] = useState<Citation['targetType']>('AUTHORITY');
-  const [citationTargetId, setCitationTargetId] = useState('');
-  const [citationText, setCitationText] = useState('');
-  const [citationVerified, setCitationVerified] = useState(false);
+  const [, setCitationSectionOrdinal] = useState(0);
   const [reviewStatus, setReviewStatus] = useState<string | null>(null);
   const [approvalConfirmation, setApprovalConfirmation] = useState<{versionId:string;versionNumber:number} | null>(null);
   const approvalDialog = useRef<HTMLDialogElement>(null);
@@ -211,8 +185,6 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     return () => { dialog.close(); if(trigger?.isConnected) trigger.focus(); };
   }, [approvalConfirmation]);
   const [busy, setBusy] = useState(false);
-  const [adopting,setAdopting]=useState(false);
-  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedPayload, setSavedPayload] = useState('');
   const [contextChanged, setContextChanged] = useState(false);
@@ -229,9 +201,8 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
   const [matterContextReady,setMatterContextReady]=useState('');
   const hasApiAccess = Boolean(token.trim()) || authStatus === 'authenticated' || authStatus === 'legacy';
 
-  const selectedMatter = useMemo(() => matters.find((matter) => matter.id === selectedMatterId), [matters, selectedMatterId]);
   const deskScope = () => {
-    if (!integrated || window.location.pathname !== '/app/trabalho') return;
+    if (window.location.pathname !== '/app/trabalho') return;
     const current = readDeskLocation(window.location.href);
     if (hasDeskPiece(current)) return deskLocation({
       ...current, conversationId: current.executionId ? undefined : current.conversationId, contextRevision: undefined,
@@ -242,14 +213,6 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     writeDeskLocation(selectDeskPiece(readDeskLocation(window.location.href), document));
   };
 
-  const saveToken = (value: string) => {
-    setToken(value);
-    try {
-      window.localStorage.setItem('forgelex_api_token', value);
-    } catch {
-      // O fluxo continua utilizável quando o armazenamento do navegador está indisponível.
-    }
-  };
 
   const loadMatters = async () => {
     if (!hasApiAccess) return;
@@ -262,7 +225,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
       if (sequence !== selection.current) return;
       setMatters(response.items);
       if(selectedMatterId)await loadDrafts(selectedMatterId);
-      if (response.items.length > 0 && !selectedMatterId && (!integrated || requestedQuery.has('matterId')) && (!requestedQuery.has('deliveryId') || requestedQuery.has('draftId'))) {
+      if (response.items.length > 0 && !selectedMatterId && requestedQuery.has('matterId') && (!requestedQuery.has('deliveryId') || requestedQuery.has('draftId'))) {
         const initial = requestedQuery.get('matterId');
         if (initial && !response.items.some(m => m.id === initial)) { setError('Este caso não está disponível para sua conta.'); return; }
         await selectMatter(initial ?? response.items[0].id, true);
@@ -319,7 +282,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
   };
 
   const selectMatter = async (matterId: string, fromLocation = false) => {
-    const keepLocal = integrated && !selectedMatterId && !selectedDraftId;
+    const keepLocal = !selectedMatterId && !selectedDraftId;
     if (!keepLocal && dirty && !window.confirm('Há alterações não salvas. Deseja descartá-las e abrir este caso?')) return;
     setReadingDocument(undefined);
     const sequence = ++selection.current;
@@ -368,21 +331,12 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
       const route = new URL(window.location.href);
       const current = readDeskLocation(route.href);
       const sameDraft = current.matterId === selectedMatterId && current.draftId === draftId;
-      if (integrated) {
-        publishDeskPiece(scope, {
-          matterId: selectedMatterId, draftId,
-          versionId: fromLocation && sameDraft && current.versionId ? current.versionId : response.currentVersion?.version.id,
-          deliveryId: sameDraft ? current.deliveryId : undefined,
-        });
-      } else {
-        route.searchParams.set('matterId', selectedMatterId);
-        route.searchParams.set('draftId', draftId);
-        if (!fromLocation) route.searchParams.delete('versionId');
-        const requested = readDeskLocation(requestedLocation || window.location.href);
-        if (requested.draftId === draftId && requested.deliveryId) route.searchParams.set('deliveryId', requested.deliveryId);
-        window.history.replaceState({...window.history.state}, document.title, route);
-        window.dispatchEvent(new Event('forgelex:route-updated'));
-      }
+      publishDeskPiece(scope, {
+        matterId: selectedMatterId, draftId,
+        versionId: fromLocation && sameDraft && current.versionId ? current.versionId : response.currentVersion?.version.id,
+        deliveryId: sameDraft ? current.deliveryId : undefined,
+      });
+
       if (response.currentVersion) {
         const version = response.currentVersion;
         setCitationSectionOrdinal(version.sections[0]?.ordinal??0);
@@ -413,18 +367,6 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     }
   };
 
-  const exportSavedVersion = async () => {
-    if (!details?.currentVersion || exporting) return;
-    const saved = { title: details.draft.title, ...details.currentVersion, documentReferences:details.documentReferences };
-    setExporting(true);
-    setError(null);
-    try {
-      const { downloadDraftDocx } = await import('../documents/draft-docx');
-      await downloadDraftDocx(saved);
-    } catch (exportError) {
-      setError(exportError instanceof Error ? exportError.message : 'Não foi possível gerar o DOCX. Tente novamente.');
-    } finally { setExporting(false); }
-  };
 
   const payload = () => ({
     title: draftTitle,
@@ -433,7 +375,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
   });
   const versionChanged=Boolean(editingVersion.current && details?.currentVersion && editingVersion.current!==details.currentVersion.version.id);
   localSnapshot.current = JSON.stringify({ title: draftTitle, sections: sections.map(({title, content}) => ({title, content})) });
-  const dirty = Boolean((selectedMatterId || integrated) && (versionChanged || JSON.stringify(payload()) !== (details ? savedPayload : JSON.stringify({ title: 'Minuta para revisão humana', sections: emptySections().map((s, ordinal) => ({ ordinal, ...s })), citations: [] }))));
+  const dirty = Boolean((versionChanged || JSON.stringify(payload()) !== (details ? savedPayload : JSON.stringify({ title: 'Minuta para revisão humana', sections: emptySections().map((s, ordinal) => ({ ordinal, ...s })), citations: [] }))));
   const [caseUnavailable, setCaseUnavailable] = useState(false);
   useEffect(() => {
     setCaseUnavailable(false);
@@ -453,9 +395,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
   useEffect(() => {
     const protect = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ''; } };
     window.addEventListener('beforeunload', protect);
-    const navigate = (event:Event) => { if(dirty && !AGENTIC_WORKSPACE_ENABLED && !window.confirm('Há alterações não salvas. Sair e descartar esta edição?'))event.preventDefault(); };
-    window.addEventListener('forgelex:before-navigate',navigate);
-    return () => {window.removeEventListener('beforeunload', protect);window.removeEventListener('forgelex:before-navigate',navigate);};
+    return () => window.removeEventListener('beforeunload', protect);
   }, [dirty]);
   const approvalReady = Boolean(details?.latestReviewRun?.state === 'COMPLETE' &&
     details.latestReviewRun.draftVersionId === details.currentVersion?.version.id &&
@@ -467,7 +407,6 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     if (sequence === selection.current) setDetails(response);
   };
   useEffect(() => {
-    if (!integrated) return;
     const changed = (event: Event) => {
       const target = (event as CustomEvent<{matterId:string;draftId:string;versionId:string}>).detail;
       if (target.matterId !== selectedMatterId || target.draftId !== selectedDraftId || target.versionId === editingVersion.current) return;
@@ -476,7 +415,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     };
     window.addEventListener('forgelex:draft-version-created', changed);
     return ()=>window.removeEventListener('forgelex:draft-version-created', changed);
-  }, [integrated, selectedMatterId, selectedDraftId, dirty]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedMatterId, selectedDraftId, dirty]); // eslint-disable-line react-hooks/exhaustive-deps
   const openHistory = async (versionId: string) => {
     const sequence = selection.current;
     const requestNumber = ++historyRequest.current;
@@ -489,66 +428,9 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     finally { if (sequence === selection.current && requestNumber === historyRequest.current) setHistoryLoading(false); }
   };
 
-  const toggleLink = (sectionIndex: number, field: 'linkedFactIds' | 'linkedEvidenceIds' | 'linkedAuthorityIds' | 'linkedThesisIds', id: string) => {
-    setSections((current) => current.map((section, index) => {
-      if (index !== sectionIndex) return section;
-      const values = section[field];
-      return { ...section, [field]: values.includes(id) ? values.filter((item) => item !== id) : [...values, id] };
-    }));
-  };
 
-  const citationTargets = citationTargetType === 'AUTHORITY'
-    ? authorities.map((item) => ({ id: item.id, label: `${item.authority.court} · ${item.authority.processNumber}` }))
-    : citationTargetType === 'FACT'
-      ? facts.map((item) => ({ id: item.id, label: item.statement }))
-      : evidence.map((item) => ({ id: item.id, label: item.title }));
 
-  const addCitation = () => {
-    if (!citationTargetId || citationText.trim().length < 3) return;
-    const ordinal=sections.some((section,index)=>(section.ordinal??index)===citationSectionOrdinal)
-      ? citationSectionOrdinal : (sections[0]?.ordinal??0);
-    setCitations((current) => [...current, {
-      sectionOrdinal: ordinal,
-      targetType: citationTargetType,
-      targetId: citationTargetId,
-      citationText: citationText.trim(),
-      verified: citationVerified,
-    }]);
-    setCitationText('');
-    setCitationTargetId('');
-    setCitationVerified(false);
-  };
 
-  const createThesis = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!selectedMatterId || thesisTitle.trim().length < 3 || thesisStatement.trim().length < 10) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await request<LegalThesis>(`/api/v2/matters/${selectedMatterId}/theses`, token, {
-        method: 'POST',
-        body: JSON.stringify({
-          title: thesisTitle.trim(),
-          statement: thesisStatement.trim(),
-          issueIds: thesisIssueId ? [thesisIssueId] : [],
-          factIds: thesisFactId ? [thesisFactId] : [],
-          evidenceIds: thesisEvidenceId ? [thesisEvidenceId] : [],
-          authorityIds: thesisAuthorityId ? [thesisAuthorityId] : [],
-        }),
-      });
-      await loadMatterContext(selectedMatterId);
-      setThesisTitle('');
-      setThesisStatement('');
-      setThesisIssueId('');
-      setThesisFactId('');
-      setThesisEvidenceId('');
-      setThesisAuthorityId('');
-    } catch (createError) {
-      setError(createError instanceof Error ? createError.message : 'Não foi possível registrar a tese.');
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const saveDraft = async (
     event?: React.FormEvent,
@@ -673,8 +555,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
         setError('Salvamento localizado. Há uma versão posterior no caso e sua edição local foi preservada.');
         return;
       }
-      setReviewStatus(recovered || pendingId ? 'Salvamento recuperado.' :
-        integrated ? 'Versão salva.' : 'Versão salva. Confira o rascunho antes de encaminhar à aprovação.');
+      setReviewStatus(recovered || pendingId ? 'Salvamento recuperado.' : 'Versão salva.');
       // The composer must not submit a saved version if the editor still has other unsaved text.
       if (commandId && !restoreLocal && (content !== savedContent || localSnapshot.current !== localTextAtStart)) return;
       return response;
@@ -694,27 +575,6 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     </button>
   );
 
-  const useReceived = async (receipt:Receipt,choice:'SAVE'|'DISCARD'|'ADOPT') => {
-    setAdopting(true);
-    try {
-    const sequence=selection.current;
-    let expected=details?.draft.currentVersionId??null;
-    if(choice==='SAVE'){
-      // This explicit choice preserves local text after the user has seen a concurrent-version conflict.
-      // Keep its original ancestry, and still reject any change since the refreshed version was observed.
-      const saved=await saveDraft(undefined, expected ?? undefined);
-      if(!saved)throw new Error('Não foi possível salvar sua edição. O texto foi mantido.');
-      expected=saved.version.id;
-    }
-    if(sequence!==selection.current)throw new Error('O caso aberto mudou.');
-    try{
-      await requestApi(`/api/v2/matters/${selectedMatterId}/drafts/${selectedDraftId}/ai-receipts/${receipt.id}/adopt`,{method:'POST',body:JSON.stringify({expectedCurrentVersionId:expected})},{sessionOnly:true});
-    }catch(error){await refreshDetails().catch(()=>undefined);throw error;}
-    if(sequence!==selection.current)return;
-    await selectDraft(selectedDraftId,true);
-    setReviewStatus('Texto recebido da IA — Aguardando revisão');
-    } finally {setAdopting(false);}
-  };
 
   const initialDraftOpened=useRef(false);
   useEffect(()=>{
@@ -729,7 +589,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     const query = new URL(requestedLocation, window.location.origin).searchParams;
     const targetMatter = query.get('matterId'), targetDraft = query.get('draftId') ?? '', targetVersion = query.get('versionId');
     if (!targetMatter) {
-      if (integrated && !query.has('deliveryId') && selectedMatterId) void selectMatter('', true);
+      if (!query.has('deliveryId') && selectedMatterId) void selectMatter('', true);
       return;
     }
     if (targetMatter === selectedMatterId && targetDraft === selectedDraftId) {
@@ -765,12 +625,11 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
       return { matterId: selectedMatterId, draftId: saved.draft.id, versionId: saved.version.id, title: draftTitle, dirty: false };
     };
     onPieceChange(snapshot);
-  }, [integrated, onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, importedDelivery, draftTitle, sections, dirty, busy, loadingSelection, caseUnavailable, contextChanged, editSelection]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, importedDelivery, draftTitle, sections, dirty, busy, loadingSelection, caseUnavailable, contextChanged, editSelection]); // eslint-disable-line react-hooks/exhaustive-deps
   const expectedWorkVersion = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('versionId');
   const selectionHasDifferentVersion = Boolean(selectedVersionId && editingVersion.current && selectedVersionId !== editingVersion.current);
-  const requestedVersion = integrated ? selectedVersionId ?? expectedWorkVersion : new URLSearchParams(window.location.search).get('versionId');
+  const requestedVersion = selectedVersionId ?? expectedWorkVersion;
   const reviewTargetMismatch = Boolean(requestedVersion && requestedVersion !== details?.currentVersion?.version.id);
-  const returnExecution = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('returnExecution');
   const importDeliveryId = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('deliveryId');
   useEffect(() => {
     let active = true;
@@ -778,7 +637,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     const scope = deskScope();
     if (!importDeliveryId || new URL(requestedLocation || window.location.href, window.location.origin).searchParams.has('draftId') || authStatus !== 'authenticated') return;
     void requestApi<Delivery>(`/api/agentic/deliveries/${encodeURIComponent(importDeliveryId)}`, {}, { sessionOnly: true }).then(d => {
-      if (!active || sequence !== selection.current || (integrated && scope !== deskScope()) || !d.delivery.document) return;
+      if (!active || sequence !== selection.current || scope !== deskScope() || !d.delivery.document) return;
       if (dirty && submittedLocalSnapshot.current !== localSnapshot.current) { setError('Sua edição local foi preservada. A resposta está disponível na conversa.'); return; }
       submittedLocalSnapshot.current = undefined;
       editingVersion.current=undefined;
@@ -812,11 +671,6 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     } finally {
       if (sequence === selection.current) setBusy(false);
     }
-  };
-  const saveAndReview = async () => {
-    if (reviewTargetMismatch || caseUnavailable) return;
-    const saved = await saveDraft();
-    if (saved) await runReview(saved);
   };
 
   const requestApproval = async () => {
@@ -976,14 +830,14 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
     </CanvasDialog>
   );
 
-  if (integrated) return <>
+  return <>
     {recoverSaveAction && <div className="px-4 py-2">{recoverSaveAction}</div>}
     {reviewModal}
     {approvalModal}
     {sourcePanel}
     {readingDocument && readingDocument.matterId === selectedMatterId && hasApiAccess && <DocumentReaderDialog source={readingDocument} token={token} onClose={() => setReadingDocument(undefined)} />}
     <DraftCanvas title={draftTitle} sections={sections} matters={matters} drafts={drafts} matterId={selectedMatterId} draftId={selectedDraftId}
-      busy={busy || adopting || loadingSelection || caseUnavailable} dirty={dirty} error={error} status={reviewStatus}
+      busy={busy || loadingSelection || caseUnavailable} dirty={dirty} error={error} status={reviewStatus}
       onTitle={setDraftTitle} onSection={(i,field,value)=>setSections(old=>old.map((s,index)=>index===i?{...s,[field]:value}:s))}
       editVersionId={!dirty && !selectionHasDifferentVersion && !contextChanged ? details?.currentVersion?.version.id : undefined}
       onEditSelection={(index, start, end, displayed) => {
@@ -1016,141 +870,4 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; integrate
 
     />
   </>;
-  return (
-    <div className="py-8 md:py-12">
-      <div className="page-container space-y-8">
-        {importedDelivery && !selectedDraftId && <section aria-label="Vincular entrega ao caso" className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4"><p>Minuta preliminar recebida do trabalho. Escolha um caso na lista ou crie um caso antes de salvar. A avaliação jurídica continua pendente.</p><label className="block">Novo caso para esta minuta<input className="ml-2 rounded border p-2" value={newWorkCase} maxLength={200} onChange={e => setNewWorkCase(e.target.value)} /></label><button className="btn-secondary min-h-11" disabled={busy || !newWorkCase.trim()} onClick={async () => { setBusy(true); try { const m = await requestApi<Matter>('/api/v2/matters', { method: 'POST', body: JSON.stringify({ title: newWorkCase.trim() }) }, { sessionOnly: true }); setMatters(old => [...old,m]); await selectMatter(m.id); setNewWorkCase(''); } catch(e) { setError(e instanceof Error ? e.message : 'Não foi possível criar o caso.'); } finally { setBusy(false); } }}>Criar caso e vincular minuta</button></section>}
-        {returnExecution && <div className="space-y-2"><button type="button" className="btn-secondary min-h-11" onClick={() => setActiveTab('work', 'push', { executionId: returnExecution })}>Voltar ao trabalho</button>{dirty && <p role="status">Há alterações não salvas. Elas permanecem no editor ao voltar ao trabalho.</p>}{expectedWorkVersion && details?.currentVersion && expectedWorkVersion !== details.currentVersion.version.id && <p role="status">A versão atual da minuta difere da entrega original. O editor mostra a versão atual; confira o histórico antes de salvar.</p>}</div>}
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
-          <div className="space-y-3">
-            <div className="eyebrow inline-flex items-center gap-2 rounded-full bg-cognac-100 px-3 py-1">
-              <FileText className="w-3.5 h-3.5" />
-              Rascunhos
-            </div>
-            <h1 className="font-editorial text-4xl font-bold text-stone-950">Rascunho do caso</h1>
-            <p className="max-w-2xl text-sm leading-relaxed text-stone-600">
-              Organize as seções, as fontes do caso e o histórico de versões. O conteúdo permanece minuta até a conferência humana.
-            </p>
-          </div>
-          <div className="inline-flex items-center gap-2 text-xs text-stone-500"><ShieldAlert className="w-4 h-4 text-amber-600" />Sem efeito externo automático</div>
-        </div>
-
-        <details className="technical-access">
-              <summary>Detalhes técnicos</summary>
-          <div className="technical-access__content space-y-3 pt-3">
-            <div className="flex items-center gap-2 text-stone-900"><LockKeyhole className="h-4 w-4 text-cognac-700" aria-hidden="true" /><h2 className="text-sm font-bold">Conexão com a área de rascunhos</h2></div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <label className="sr-only" htmlFor="draft-api-token">Credencial da API</label>
-              <input id="draft-api-token" value={token} onChange={(event) => saveToken(event.target.value)} type="password" placeholder="Credencial da API" className="input-control flex-1" />
-              <button type="button" onClick={() => void loadMatters()} disabled={!hasApiAccess || busy} className="btn-secondary disabled:opacity-50"><RefreshCw className="h-4 w-4" aria-hidden="true" />Atualizar casos</button>
-            </div>
-            <p className="text-[11px] text-stone-500">A conexão usa {apiUrl}. A credencial permanece no navegador.</p>
-          </div>
-        </details>
-
-        {reviewStatus && <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center gap-3 text-sm"><CheckCircle2 className="w-5 h-5" />{reviewStatus}</div>}
-        {approvalModal}
-        {recoverSaveAction}
-        {error && <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 flex items-center gap-3 text-sm"><AlertCircle className="w-5 h-5" />{error}</div>}
-
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
-          <aside className="champagne-card bg-white rounded-2xl p-5 space-y-5">
-            <div className="flex items-center justify-between"><h2 className="font-editorial text-xl font-bold text-stone-900">Casos</h2><span className="text-xs text-stone-500">{matters.length}</span></div>
-            <div className="space-y-2">
-              {matters.map((matter) => <button key={matter.id} disabled={busy||adopting} onClick={() => void selectMatter(matter.id)} className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedMatterId === matter.id ? 'border-cognac-400 bg-cognac-50' : 'border-champagne-border hover:border-cognac-300'}`}><span className="block text-sm font-semibold text-stone-900 truncate">{matter.title}</span><span className="text-[11px] text-stone-500">{matter.practiceArea ?? 'Área não informada'}</span></button>)}
-              {matters.length === 0 && <p className="text-xs text-stone-500 leading-relaxed">Nenhum caso disponível para sua conta.</p>}
-            </div>
-            {selectedMatter && <div className="pt-4 border-t border-stone-100 space-y-2"><p className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Rascunhos do caso</p>{drafts.map((draft) => <button key={draft.id} disabled={busy||adopting} onClick={() => void selectDraft(draft.id)} className={`w-full text-left p-3 rounded-xl border ${selectedDraftId === draft.id ? 'border-cognac-400 bg-cognac-50' : 'border-champagne-border hover:border-cognac-300'}`}><span className="block text-sm font-semibold text-stone-800 truncate">{draft.title}</span><span className="text-[11px] text-stone-500">{statusLabel[draft.status]}</span></button>)}{drafts.length === 0 && <p className="text-xs text-stone-500">Nenhum rascunho neste caso.</p>}</div>}
-          </aside>
-
-          <div className="space-y-6">
-            {selectedMatterId && <CaseFlowHeader matterId={selectedMatterId} activeStep="TEXT" onStepChange={step=>step==='TEXT'?undefined:setActiveTab('matter','push',{matterId:selectedMatterId,analysisId:new URLSearchParams(window.location.search).get('analysisId')??undefined})} />}
-            {!selectedMatter ? <section className="champagne-card bg-white rounded-2xl p-10 text-center"><FileText className="w-10 h-10 mx-auto text-cognac-400" /><h2 className="font-editorial text-xl font-bold text-stone-900 mt-3">Selecione um caso</h2><p className="text-sm text-stone-500 mt-2">As seções e o histórico de versões aparecerão aqui.</p></section> : <>
-              <details className="champagne-card bg-white rounded-2xl p-5"><summary className="cursor-pointer font-semibold">Mapa de teses · {theses.length}</summary><div className="pt-4">              <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
-                <div className="flex items-start justify-between gap-4"><div><span className="text-[10px] uppercase tracking-wider font-bold text-cognac-700">Estratégia do caso</span><h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">Mapa de teses</h2><p className="text-sm text-stone-500 mt-1">Cada tese pode carregar a questão, o fato, a prova e o julgado que justificam sua redação.</p></div><span className="rounded-full bg-cognac-50 px-3 py-1 text-xs font-semibold text-cognac-800">{theses.length} tese(s)</span></div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {theses.map((thesis) => <div key={thesis.id} className="rounded-xl border border-cognac-100 bg-[#FDFBF7] p-4"><p className="text-sm font-semibold text-stone-900">{thesis.title}</p><p className="mt-1 text-xs leading-relaxed text-stone-600">{thesis.statement}</p><p className="mt-3 text-[11px] text-stone-500">{thesis.factIds.length} fato(s) · {thesis.evidenceIds.length} prova(s) · {thesis.authorityIds.length} julgado(s)</p></div>)}
-                  {theses.length === 0 && <p className="text-xs text-stone-500">Nenhuma tese registrada. Crie a primeira abaixo para vinculá-la à minuta.</p>}
-                </div>
-                <form onSubmit={createThesis} className="grid gap-3 border-t border-stone-100 pt-4">
-                  <div className="grid gap-3 md:grid-cols-2"><input value={thesisTitle} onChange={(event) => setThesisTitle(event.target.value)} aria-label="Título da tese" placeholder="Título da tese" className="input-control" /><input value={thesisStatement} onChange={(event) => setThesisStatement(event.target.value)} aria-label="Enunciado da tese jurídica" placeholder="Enunciado da tese jurídica" className="input-control" /></div>
-                  <div className="grid gap-3 md:grid-cols-4">
-                    <select aria-label="Questão jurídica da tese" value={thesisIssueId} onChange={(event) => setThesisIssueId(event.target.value)} className="input-control"><option value="">Questão jurídica</option>{issues.map((issue) => <option key={issue.id} value={issue.id}>{issue.statement}</option>)}</select>
-                    <select aria-label="Fato da tese" value={thesisFactId} onChange={(event) => setThesisFactId(event.target.value)} className="input-control"><option value="">Fato</option>{facts.map((fact) => <option key={fact.id} value={fact.id}>{fact.statement}</option>)}</select>
-                    <select aria-label="Prova da tese" value={thesisEvidenceId} onChange={(event) => setThesisEvidenceId(event.target.value)} className="input-control"><option value="">Prova</option>{evidence.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
-                    <select aria-label="Julgado da tese" value={thesisAuthorityId} onChange={(event) => setThesisAuthorityId(event.target.value)} className="input-control"><option value="">Julgado</option>{authorities.map((item) => <option key={item.id} value={item.id}>{item.authority.court} · {item.authority.processNumber}</option>)}</select>
-                  </div>
-                  <div><button type="submit" disabled={busy || thesisTitle.trim().length < 3 || thesisStatement.trim().length < 10} className="btn-secondary disabled:opacity-50"><Plus className="h-4 w-4" aria-hidden="true" />Registrar tese</button></div>
-                </form>
-              </section>
-
-</div></details>
-              {caseUnavailable && <div role="alert" className="p-4 rounded-xl bg-amber-50 text-amber-900 text-sm">Este caso não está disponível para edição. Seu texto foi mantido.<button type="button" className="btn-secondary ml-3" onClick={() => void navigator.clipboard.writeText([draftTitle, ...sections.map(section => `${section.title}\n${section.content}`)].join('\n\n')).then(() => setReviewStatus('Texto copiado.')).catch(() => setError('Não foi possível copiar o texto.'))}>Copiar meu texto</button></div>}
-              {selectedDraftId && authStatus==='authenticated' && !caseUnavailable && <ReceivedDraftPanel key={`${selectedMatterId}:${selectedDraftId}`} matterId={selectedMatterId} draftId={selectedDraftId} currentVersionId={details?.draft.currentVersionId} dirty={dirty} onAdopt={useReceived} />}
-              <form onSubmit={saveDraft} className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5"><fieldset disabled={loadingSelection || adopting || caseUnavailable} className="contents">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><span className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">{selectedDraftId ? 'Nova versão' : 'Novo rascunho'}</span><h2 className="font-editorial text-2xl font-bold text-stone-900 mt-1">{selectedMatter.title}</h2></div><span className="text-xs text-stone-500">{selectedDraftId && details ? `Versão ${details.currentVersion?.version.versionNumber ?? '-'}` : 'Estrutura inicial'}</span></div>
-                {new URLSearchParams(window.location.search).get('versionId') && new URLSearchParams(window.location.search).get('versionId')!==details?.draft.currentVersionId && <p role="alert" className="text-sm text-amber-900">A solicitação aberta pertence a outra versão. Este editor mostra a versão atual; confira seu texto antes de decidir.</p>}
-                <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} aria-label="Título do rascunho" placeholder="Título do rascunho" className="w-full px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm" />
-                <div className="space-y-3">{sections.map((section, index) => <div key={index} className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-3"><div className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-cognac-100 text-cognac-800 text-xs font-bold flex items-center justify-center">{index + 1}</span><input aria-label={`Título da seção ${index + 1}`} value={section.title} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} className="flex-1 bg-transparent text-sm font-semibold text-stone-900 border-b border-transparent focus:border-cognac-300 focus:outline-none" /></div><textarea id={`draft-section-${index}`} aria-label={`Conteúdo da seção ${index + 1}`} value={section.content} onChange={(event) => setSections((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, content: event.target.value } : item))} rows={3} placeholder="Conteúdo da seção para conferência..." className="w-full px-3 py-2 rounded-lg border border-champagne-border bg-white text-sm resize-y" /><details><summary className="cursor-pointer text-xs font-semibold">Gerenciar fontes e vínculos · {section.linkedFactIds.length + section.linkedEvidenceIds.length + section.linkedAuthorityIds.length + section.linkedThesisIds.length}</summary><div className="grid gap-3 border-t border-stone-100 pt-3 md:grid-cols-2"><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Vínculos do mapa</legend><div className="space-y-1">{theses.map((thesis) => <label key={thesis.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedThesisIds.includes(thesis.id)} onChange={() => toggleLink(index, 'linkedThesisIds', thesis.id)} className="mt-0.5 accent-cognac-700" /><span>{thesis.title}</span></label>)}{theses.length === 0 && <p className="text-xs text-stone-500">Sem teses disponíveis.</p>}</div></fieldset><fieldset><legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stone-500">Fatos, provas e julgados</legend><div className="grid gap-1 sm:grid-cols-2">{facts.map((fact) => <label key={fact.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedFactIds.includes(fact.id)} onChange={() => toggleLink(index, 'linkedFactIds', fact.id)} className="mt-0.5 accent-cognac-700" /><span>Fato: {fact.statement}</span></label>)}{evidence.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedEvidenceIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedEvidenceIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Prova: {item.title}</span></label>)}{authorities.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-stone-700"><input type="checkbox" checked={section.linkedAuthorityIds.includes(item.id)} onChange={() => toggleLink(index, 'linkedAuthorityIds', item.id)} className="mt-0.5 accent-cognac-700" /><span>Julgado: {item.authority.processNumber}</span></label>)}</div></fieldset></div></details></div>)}</div>
-                <details className="rounded-xl border border-cognac-100 p-4"><summary className="cursor-pointer text-sm font-semibold">Citações e conferência de fontes</summary><div className="pt-3 space-y-3"><div><p className="text-xs font-bold text-stone-800">Âncoras de citação</p><p className="text-[11px] text-stone-500">Registre a fonte usada e marque como verificada somente após a conferência humana.</p></div><div className="grid gap-3 md:grid-cols-5"><select aria-label="Seção da citação" value={citationSectionOrdinal} onChange={(event) => setCitationSectionOrdinal(Number(event.target.value))} className="input-control">{sections.map((section,index)=><option key={section.ordinal??index} value={section.ordinal??index}>Seção {index+1}</option>)}</select><select aria-label="Tipo de fonte da citação" value={citationTargetType} onChange={(event) => { setCitationTargetType(event.target.value as Citation['targetType']); setCitationTargetId(''); }} className="input-control"><option value="AUTHORITY">Julgado</option><option value="FACT">Fato</option><option value="EVIDENCE">Prova</option></select><select aria-label="Fonte da citação" value={citationTargetId} onChange={(event) => setCitationTargetId(event.target.value)} className="input-control md:col-span-2"><option value="">Selecione a fonte</option>{citationTargets.map((target) => <option key={target.id} value={target.id}>{target.label}</option>)}</select><input value={citationText} onChange={(event) => setCitationText(event.target.value)} aria-label="Texto da citação" placeholder="Texto da citação" className="input-control" /></div><div className="flex flex-wrap items-center gap-4"><label className="flex items-center gap-2 text-xs text-stone-700"><input type="checkbox" checked={citationVerified} onChange={(event) => setCitationVerified(event.target.checked)} className="accent-cognac-700" />Conferida por mim</label><button type="button" onClick={addCitation} disabled={!citationTargetId || citationText.trim().length < 3} className="btn-secondary disabled:opacity-50">Adicionar citação</button></div>{citations.length > 0 && <div className="space-y-1">{citations.map((citation, index) => <div key={`${citation.targetId}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-xs text-stone-700"><span>Seção {sections.findIndex((section,index)=>(section.ordinal??index)===citation.sectionOrdinal)+1} · {citation.citationText}</span><span className={citation.verified ? 'text-emerald-700' : 'text-amber-700'}>{citation.verified ? 'Conferência humana registrada' : 'Conferência humana pendente'}</span></div>)}</div>}</div></details>
-                <div className="flex flex-wrap gap-3" aria-label="Ações do rascunho">
-                  {primaryAction==='CREATE' && <button type="submit" disabled={busy||!draftTitle.trim()} className="btn-primary">Criar rascunho</button>}
-                  {primaryAction==='SAVE_REVIEW' && <button type="button" disabled={busy||!draftTitle.trim()||versionChanged} className="btn-primary" onClick={()=>void saveAndReview()}>Salvar e conferir</button>}
-                  {primaryAction==='REVIEW' && <button type="button" disabled={busy||dirty||reviewTargetMismatch||caseUnavailable} className="btn-primary" onClick={()=>void runReview()}>Conferir rascunho</button>}
-                  {primaryAction==='APPROVE' && <button type="button" disabled={busy||!approvalReady||reviewTargetMismatch||caseUnavailable} className="btn-primary" onClick={()=>details?.currentVersion&&setApprovalConfirmation({versionId:details.currentVersion.version.id,versionNumber:details.currentVersion.version.versionNumber})}>Aprovar esta versão</button>}
-                  {primaryAction==='DOWNLOAD' && <button type="button" disabled={busy||exporting} className="btn-primary" onClick={()=>void exportSavedVersion()}>Baixar DOCX da versão salva</button>}
-                  {selectedDraftId && <details><summary className="cursor-pointer text-sm">Salvar e exportar</summary><div className="mt-2 flex flex-wrap gap-2">
-                    <button type="submit" disabled={busy||!draftTitle.trim()||caseUnavailable} className="btn-secondary">Salvar nova versão</button>
-                    {primaryAction!=='DOWNLOAD' && <button type="button" disabled={busy||exporting} className="btn-secondary" onClick={()=>void exportSavedVersion()}>Baixar DOCX da versão salva</button>}
-                    <p className="text-xs">Exporta somente a versão salva, com as pendências registradas.</p>
-                  </div></details>}
-                </div>
-                <p className="text-[11px] text-stone-500">Salve as alterações antes de conferir. A conferência humana continua necessária para o uso da peça.</p>
-                {versionChanged && <p role="alert" className="text-sm text-amber-800">A versão salva mudou em outra aba. Sua edição foi mantida. Salve ou abra uma versão antes de conferir.</p>}{dirty && <p role="status" className="text-sm text-amber-800">Há alterações não salvas. Salve a nova versão para conferir este texto.</p>}
-                {details?.currentVersion && <div className="border-t border-stone-100 pt-4 space-y-2">
-
-                  <p className="text-xs text-stone-500">Exporta a versão {details.currentVersion.version.versionNumber} registrada. Edições ainda não salvas não entram no arquivo. Pendências de revisão são indicadas no DOCX.</p>
-                </div>}
-              </fieldset></form>
-
-              {details && <>
-                {!!details.documentReferences?.length && <details><summary className="cursor-pointer font-semibold">Fontes do rascunho · {details.documentReferences.length} referências</summary><section aria-label="Fontes documentais da versão salva" className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-4">
-                  <h2 className="font-editorial text-xl font-bold text-stone-900">Fontes do rascunho</h2>
-                  <p className="text-xs text-stone-600">Referências da versão {details.currentVersion?.version.versionNumber} salva. A leitura preserva sua edição e abre a versão documental citada.</p>
-                  {details.documentReferences.map((document, index) => <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 p-4">
-                    <div className="min-w-0 space-y-1 break-words">
-                      <p className="text-xs text-stone-600">{details.currentVersion?.sections.find(section => section.ordinal === document.reference.sectionOrdinal)?.title ?? 'Seção não identificada'}</p>
-                      <p className="text-sm font-semibold">{document.documentTitle ?? 'Documento indisponível'}{document.versionNumber ? ` · versão ${document.versionNumber}` : ''}</p>
-                      {document.reference.citationText && <p className="text-sm whitespace-pre-wrap">{document.reference.citationText}</p>}
-                      {!document.available && <p className="text-xs text-stone-600">A disponibilidade da fonte será conferida ao abrir.</p>}
-                    </div>
-                    <button type="button" className="btn-secondary min-h-11 shrink-0" onClick={() => setReadingDocument({ matterId: selectedMatterId, documentId: document.reference.itemId, versionId: document.reference.documentVersionId, anchorId: document.reference.anchorId })}>Conferir fonte</button>
-                  </div>)}
-                </section></details>}
-                {currentReview}
-                <details className="champagne-card bg-white rounded-2xl p-5 space-y-4">
-                  <summary className="font-semibold cursor-pointer">Histórico de versões e conferências</summary>
-                  <div className="space-y-3 pt-4">{details.versions.map(version => <div key={version.id} className="rounded-xl border border-stone-200 p-3 space-y-2">
-                    <p className="text-sm">Versão {version.versionNumber} · {statusLabel[version.status]}</p>
-                    <button type="button" onClick={() => void openHistory(version.id)} className="btn-secondary">Ver conferências da versão {version.versionNumber}</button>
-                  </div>)}</div>
-                  {historyVersion && <div aria-live="polite" className="space-y-3 pt-4"><p className="text-xs text-stone-600">Consultar o histórico preserva o texto em edição.</p>
-                    {historyLoading && <p className="text-sm">Carregando conferências…</p>}
-                    {!historyLoading && !historyRuns.length && <p className="text-sm">Nenhuma conferência registrada para esta versão.</p>}
-                    {historyRuns.map(run => <details key={run.id} className="rounded-lg border border-stone-200 p-3"><summary className="cursor-pointer text-sm">Conferência {run.runNumber} · {new Date(run.startedAt).toLocaleString('pt-BR')} · {run.state === 'COMPLETE' ? 'Concluída' : run.state === 'RUNNING' ? 'Em andamento' : 'Incompleta'}</summary>
-                      <div className="mt-3 space-y-2">{run.checks.map((check, index) => <p key={index} className="text-sm">{check.message}</p>)}</div>
-                    </details>)}
-                  </div>}
-                </details>
-              </>}
-              {sourcePanel}
-
-              {readingDocument && readingDocument.matterId === selectedMatterId && hasApiAccess && <DocumentReaderDialog source={readingDocument} token={token} onClose={() => setReadingDocument(undefined)} />}
-
-            </>}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 };
