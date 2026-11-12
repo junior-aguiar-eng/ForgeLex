@@ -11,3 +11,6 @@ export function isDeskEnabled(casesEnabled: boolean, workEnabled: boolean): bool
   return casesEnabled && workEnabled;
 }
 export const DESK_ENABLED = isDeskEnabled(CASE_WORKSPACE_ENABLED, AGENTIC_WORKSPACE_ENABLED);
+
+/** Nova casca da Mesa (U2): atalhos no estado vazio. Desligada por padrão; ligada só com `true` exato. */
+export const DESK_SHELL_ENABLED = import.meta.env.VITE_FORGELEX_DESK_SHELL === 'true';
