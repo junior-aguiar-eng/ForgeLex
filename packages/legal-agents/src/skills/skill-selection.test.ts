@@ -240,6 +240,40 @@ describe('vínculo interno por execução', () => {
     expect(loadContent).not.toHaveBeenCalled();
   });
 
+  it('seleção parcial: a Forma entra primeiro, depois a Matéria com mais fontes, e o que sobra é registrado', async () => {
+    const loadContent = vi.fn(async ({ id }: { id: string }) =>
+      id === form.id ? formText : id === matter.id ? matterText : civilText,
+    );
+    const partial = {
+      ...request,
+      guidance: guide({ area: confirm('penal') }),
+      issues: [
+        { ...penalIssue, sourceIds: ['prova-1', 'prova-2'] },
+        { ...civilIssue, sourceIds: ['contrato-1'] },
+      ],
+      sourceIds: ['prova-1', 'prova-2', 'contrato-1'],
+      contextRevision: 1,
+      loadContent,
+    };
+    // Cabe uma Matéria por papel: a penal tem duas fontes e vence a cível, que tem uma.
+    const result = await bindDeskSkills({
+      ...partial,
+      budget: { maxBytesPerRole: matter.byteLength + 1, maxBytesTotal: 100_000 },
+    });
+    expect(result.references.map(({ id }) => id).sort()).toEqual(['forma-teste', 'materia-teste']);
+    expect(result.limitations).toEqual([{ code: 'SKILL_BUDGET_PARTIAL', skillIds: ['materia-civel-teste'] }]);
+    expect(loadContent).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'materia-civel-teste' }));
+    // Sem espaço nem para a Forma e as Matérias juntas, a Forma continua primeiro.
+    const onlyForm = await bindDeskSkills({
+      ...partial,
+      budget: { maxBytesPerRole: form.byteLength, maxBytesTotal: form.byteLength },
+    });
+    expect(onlyForm.references.map(({ id }) => id)).toEqual(['forma-teste']);
+    expect(onlyForm.limitations).toEqual([
+      { code: 'SKILL_BUDGET_PARTIAL', skillIds: ['materia-civel-teste', 'materia-teste'] },
+    ]);
+  });
+
   it('fixa corpo e hash, carrega uma vez por versão e entrega apenas as referências do papel ativo', async () => {
     const loadContent = vi.fn(async ({ id }: { id: string }) => (id === form.id ? formText : matterText));
     const result = await bindDeskSkills({

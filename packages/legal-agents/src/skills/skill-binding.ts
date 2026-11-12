@@ -17,6 +17,7 @@ const hashContent = (content: string) => createHash('sha256').update(content, 'u
 type SkillBindingLimitation =
   | SkillResolutionLimitation
   | { code: 'SKILL_BUDGET_EXCEEDED' }
+  | { code: 'SKILL_BUDGET_PARTIAL'; skillIds: string[] }
   | { code: 'SKILL_CONTENT_UNAVAILABLE' | 'SKILL_CONTENT_MISMATCH'; skillId: string; version: number };
 
 /** Server-only payload for the execution checkpoint. */
@@ -61,6 +62,7 @@ export const ExecutionSkillSnapshotSchema = z.strictObject({
     .array(
       z.union([
         z.strictObject({ code: z.enum(['FORM_SCOPE_UNRESOLVED', 'SKILL_BUDGET_EXCEEDED']) }),
+        z.strictObject({ code: z.literal('SKILL_BUDGET_PARTIAL'), skillIds: z.array(referenceId) }),
         z.strictObject({ code: z.literal('FORM_UNAVAILABLE'), area: referenceId, documentType: referenceId }),
         z.strictObject({
           code: z.literal('FORM_CONFLICT'),
@@ -85,14 +87,39 @@ export async function bindDeskSkills(input: SkillBindingRequest): Promise<Execut
   if ([maxBytesPerRole, maxBytesTotal].some((value) => !Number.isSafeInteger(value) || value < 0)) {
     throw new Error('INVALID_SKILL_BUDGET');
   }
-  const { selections, limitations } = resolveDeskSkills(input);
-  const entries: SkillBindingEntry[] = [];
+  const resolved = resolveDeskSkills(input);
+  const limitations: SkillBindingLimitation[] = [...resolved.limitations];
+  // Seleção parcial: a Forma entra primeiro, depois a Matéria com mais fontes selecionadas (desempate pelo id). O que
+  // não cabe no orçamento é omitido e registrado; só quando nada cabe a seleção fica vazia.
+  const relevance = ({ reason }: (typeof resolved.selections)[number]) =>
+    reason.kind === 'MATTER' ? reason.issues.reduce((sum, issue) => sum + issue.sourceIds.length, 0) : Infinity;
+  const priority = [...resolved.selections].sort(
+    (a, b) => relevance(b) - relevance(a) || (a.skill.id < b.skill.id ? -1 : a.skill.id > b.skill.id ? 1 : 0),
+  );
+  const totalLimit = Math.min(maxBytesTotal, CASE_TASK_POLICY.maxBytes);
   const bytesByRole = new Map<CaseTaskRole, number>();
   let totalBytes = 0;
+  let assignments = 0; // SkillBindingSchema caps the number of role assignments at 100.
+  const kept = new Set<string>();
+  const omitted: string[] = [];
+  for (const { skill, roles } of priority) {
+    const fits =
+      assignments + roles.length <= 100 &&
+      totalBytes + skill.byteLength * roles.length <= totalLimit &&
+      roles.every((role) => (bytesByRole.get(role) ?? 0) + skill.byteLength <= maxBytesPerRole);
+    if (!fits) {
+      omitted.push(skill.id);
+      continue;
+    }
+    kept.add(skill.id);
+    assignments += roles.length;
+    totalBytes += skill.byteLength * roles.length;
+    for (const role of roles) bytesByRole.set(role, (bytesByRole.get(role) ?? 0) + skill.byteLength);
+  }
+  const selections = resolved.selections.filter(({ skill }) => kept.has(skill.id));
+  const entries: SkillBindingEntry[] = [];
   for (const { skill, roles, reason } of selections) {
     for (const role of roles) {
-      totalBytes += skill.byteLength;
-      bytesByRole.set(role, (bytesByRole.get(role) ?? 0) + skill.byteLength);
       entries.push({
         id: skill.id,
         version: skill.version,
@@ -102,6 +129,8 @@ export async function bindDeskSkills(input: SkillBindingRequest): Promise<Execut
       });
     }
   }
+  const everyOmitted = resolved.selections.length > 0 && !selections.length;
+  if (omitted.length && !everyOmitted) limitations.push({ code: 'SKILL_BUDGET_PARTIAL', skillIds: omitted.sort() });
   const hashInput = {
     guidanceHash: input.guidance.guidanceHash,
     contextRevision: input.contextRevision,
@@ -114,13 +143,7 @@ export async function bindDeskSkills(input: SkillBindingRequest): Promise<Execut
       reasons: Object.freeze([]),
       limitations: Object.freeze([...limitations, limitation]),
     });
-  if (
-    entries.length > 100 || // SkillBindingSchema caps the number of role assignments.
-    totalBytes > Math.min(maxBytesTotal, CASE_TASK_POLICY.maxBytes) ||
-    [...bytesByRole.values()].some((bytes) => bytes > maxBytesPerRole)
-  ) {
-    return empty({ code: 'SKILL_BUDGET_EXCEEDED' });
-  }
+  if (everyOmitted) return empty({ code: 'SKILL_BUDGET_EXCEEDED' });
 
   const binding = createSkillBinding({ ...hashInput, entries });
   const references: SkillReference[] = [];
