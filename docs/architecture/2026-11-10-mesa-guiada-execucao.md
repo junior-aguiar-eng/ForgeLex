@@ -891,6 +891,48 @@ Playwright: `desk-guidance-v3` (3, com o novo teste de voltar), `desk-guidance` 
 - **Flag por grupo de ações.** Não criada: as mudanças são de interface e a reversão é desfazer os commits.
 - **Voltar na peça aberta e na fonte aberta.** Só a pergunta guiada ganhou "Voltar"; a peça e a fonte seguem com os controles atuais.
 
+## U4 (complemento) e U5 — rascunho, matérias, anexos e auditoria (12/11/2026)
+
+Branch `claude/frente-u-inventario-mesa`. Esta seção completa a U4 e registra a U5. Tudo o que muda o que o cliente vê ficou atrás de flags de navegador desligadas por padrão; o que é de servidor não exigiu migração.
+
+### U4: o que passou a existir
+
+| Item                                | Como ficou                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Excluir peça (rascunho)             | **Sem migração.** `ARCHIVED` já era um status do contrato de rascunho, que ninguém usava. Arquivar troca só o status; restaurar devolve o status da versão atual. Nada é apagado: versões, revisões, aprovações e recibos ficam como estão. Rotas `POST …/drafts/:draftId/archive` e `…/restore` (escopo `draft:write`, com auditoria), e `GET …/drafts?archived=true` para a lixeira. A lista padrão não mostra arquivados.                                                                                                                                                  |
+| Regras de segurança do arquivamento | Rascunho arquivado não recebe versão nem pedido de aprovação (`DRAFT_ARCHIVED`, 409) até ser restaurado. Aprovação pendente impede arquivar (`DRAFT_APPROVAL_PENDING`, 409): é uma decisão humana em aberto. Arquivar e restaurar são idempotentes.                                                                                                                                                                                                                                                                                                                           |
+| Excluir peça na tela                | "Excluir peça" no menu da peça aberta, com o aviso "Peça excluída… Desfazer". Fica indisponível enquanto houver edição não salva, para não perder texto. O Desfazer reabre a peça.                                                                                                                                                                                                                                                                                                                                                                                            |
+| Chips de matéria                    | A Mesa sugere uma matéria por vez a partir do que o cliente escreve ("Pelo que você escreveu, a matéria é: X. Está correto?"), sem lista, sem provedor e sem custo. O cliente confirma, recusa ("Não, outra") ou cancela, e remove o chip com o "x". A matéria confirmada segue como **dica** no contexto do pedido ("Matérias indicadas pelo cliente (confira se se aplicam ao caso): …"), que o servidor ainda confere com as fontes. O servidor entrega só o rótulo e um código opaco; o id interno do tópico e a lista não saem dele. Uma peça por pedido, como decidido. |
+| Auditoria                           | Excluir e restaurar conversa passaram a gravar `workspace.hide_conversation` e `workspace.restore_conversation` (quem, qual execução e quando), sem o conteúdo. Arquivar e restaurar rascunho gravam `drafting.archive_draft` e `drafting.restore_draft`.                                                                                                                                                                                                                                                                                                                     |
+| Voltar na peça e na fonte           | Já funcionavam e foram conferidos no código: "Recolher peça" e "Abrir peça" preservam o texto editado (coberto pelo e2e existente), e o painel de fontes é um diálogo nativo que fecha com Esc e devolve o foco a quem o abriu, sem tocar na peça. Só faltava a pergunta guiada, entregue antes.                                                                                                                                                                                                                                                                              |
+
+### U5: anexos (atrás de `VITE_FORGELEX_ATTACHMENTS_ENABLED`)
+
+- Clipe no compositor para anexar PDF, TXT e MD, até 5 arquivos. A leitura é no navegador e reaproveita `extractPdfText` (limite de 15 MB e 300 páginas). TXT e MD até 2 MB.
+- Só o texto extraído segue com o pedido (DEC-12), somado ao contexto escrito; o arquivo não é enviado nem guardado. O texto dos anexos juntos fica limitado a 80.000 caracteres, e o pedido inteiro a 100.000, com mensagem clara antes de enviar.
+- Cada anexo é um chip com estado (lendo, texto extraído, sem texto extraível, formato não aceito, erro, grande demais), e pode ser aberto, trocado e removido por clique e por teclado. A leitura em andamento bloqueia o envio.
+- Imagens ficam como "sem texto extraível" (OCR na U6). Word (.docx) ainda não é lido e diz isso, sugerindo exportar para PDF.
+- **Não feito:** a identificação da peça pela leitura do PDF. O texto do anexo não entra no ranqueamento da peça, porque o servidor o mostraria de volta ao cliente como "pedido". Fica para quando houver um campo próprio para isso.
+
+### Flags
+
+| Flag                                 | Onde                 | Efeito                                                        | Padrão    |
+| ------------------------------------ | -------------------- | ------------------------------------------------------------- | --------- |
+| `VITE_FORGELEX_ATTACHMENTS_ENABLED`  | navegador (montagem) | Clipe e chips de anexo                                        | desligada |
+| `VITE_FORGELEX_MATTER_CHIPS_ENABLED` | navegador (montagem) | Chips de matéria (precisa da orientação guiada e do catálogo) | desligada |
+| `FORGELEX_DESK_GUIDANCE_V3_ENABLED`  | servidor             | Regras mesa-v3                                                | desligada |
+
+### Verificação
+
+Vitest completo: 285 arquivos e 2.120 testes aprovados. Playwright: `writing-desk` (39, com excluir peça), `desk-guidance` (6), `desk-guidance-v3` (4, com matérias), `attachments` (2, com PDF real e axe) e `desk-pilot` em `incorporated` (4). Os testes de persistência e de rotas cobrem arquivar, restaurar, bloqueio de escrita, aprovação pendente, isolamento de tenant e auditoria.
+
+### Ainda aberto
+
+- Aplicar nada em banco ou ambiente foi necessário e nada foi aplicado.
+- Atalhos de teclado além do Esc: não foram criados. O ponto é desenho (conflito com o botão voltar do navegador e com o desfazer de texto), não código.
+- Leitura de Word, OCR (U6) e identificação da peça pelo PDF.
+- Duas falhas isoladas de tempo limite apareceram em suítes pesadas rodadas em paralelo e passaram ao rodar sozinhas; a suíte completa passou.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.

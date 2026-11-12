@@ -39,7 +39,7 @@ const question = {
   reason: 'Delimitar',
 };
 const cleanups: (() => Promise<unknown>)[] = [];
-async function fixture(driver?: ExecutionDriver) {
+async function fixture(driver?: ExecutionDriver, audit?: Parameters<typeof registerAgenticWorkspace>[1]['audit']) {
   const c = await createDatabase({ url: 'file::memory:' });
   await runPersistenceMigrations(c.client);
   const ledger = new LedgerService(c.db, c.client);
@@ -66,6 +66,7 @@ async function fixture(driver?: ExecutionDriver) {
     auth,
     environment: { FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true', FORGELEX_DESK_GUIDANCE_ENABLED: 'true' },
     options: { driver, scheduler: false, pollMs: 20 },
+    ...(audit ? { audit } : {}),
   })!;
   await app.ready();
   cleanups.push(async () => {
@@ -726,4 +727,40 @@ describe('conversas recentes', () => {
     expect(others.items).toHaveLength(1);
     expect(others.items[0].title).toBe('De outra pessoa');
   });
+});
+
+it('excluir e restaurar do histórico deixam auditoria, sem o conteúdo da conversa', async () => {
+  const events: { toolName: string; tenantId: string; userId: string; payload: Record<string, unknown> }[] = [];
+  const f = await fixture({ next: () => undefined }, async (event) => {
+    events.push(event);
+  });
+  const run = (await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })).json();
+  const update = (hidden: boolean) =>
+    f.app.inject({
+      method: 'POST',
+      url: `/api/agentic/executions/${run.id}/history`,
+      headers: { authorization: 'Bearer session' },
+      payload: { hidden },
+    });
+  expect((await update(true)).statusCode).toBe(200);
+  expect((await update(false)).statusCode).toBe(200);
+  expect(events.map((event) => event.toolName)).toEqual([
+    'workspace.hide_conversation',
+    'workspace.restore_conversation',
+  ]);
+  expect(events[0]).toMatchObject({
+    tenantId: owner.tenantId,
+    userId: owner.userId,
+    payload: { executionId: run.id, hidden: true },
+  });
+  expect(JSON.stringify(events)).not.toContain('Somente texto do usuário');
+  // Sem permissão ou de outro usuário, nada é registrado.
+  const before = events.length;
+  await f.app.inject({
+    method: 'POST',
+    url: `/api/agentic/executions/${run.id}/history`,
+    headers: { authorization: 'Bearer other' },
+    payload: { hidden: true },
+  });
+  expect(events).toHaveLength(before);
 });

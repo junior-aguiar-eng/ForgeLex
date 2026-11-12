@@ -62,6 +62,16 @@ export function registerAgenticWorkspace(
     environment: Record<string, string | undefined>;
     options?: AgenticWorkspaceRuntimeOptions;
     researchService?: ResearchService;
+    /** Registro de auditoria das ações do cliente que escondem ou restauram conteúdo (U4). Opcional e sem efeito se faltar. */
+    audit?: (event: {
+      sessionId: string;
+      tenantId: string;
+      userId: string;
+      toolName: string;
+      durationMs: number;
+      status: 'SUCCESS';
+      payload: Record<string, unknown>;
+    }) => Promise<void>;
   },
 ) {
   if (deps.environment.FORGELEX_AGENTIC_WORKSPACE_ENABLED !== 'true') return;
@@ -474,6 +484,16 @@ export function registerAgenticWorkspace(
     handle(async (req) => {
       const { hidden } = z.object({ hidden: z.boolean() }).strict().parse(req.body);
       await required().store.workspace.setConversationHidden(owner(req), executionId(req), hidden);
+      // Excluir e restaurar do histórico deixam trilha: quem, o quê e quando. O conteúdo da conversa não entra no registro.
+      await deps.audit?.({
+        sessionId: `conversation_${executionId(req)}`,
+        tenantId: req.principal.tenantId,
+        userId: req.principal.userId,
+        toolName: hidden ? 'workspace.hide_conversation' : 'workspace.restore_conversation',
+        durationMs: 0,
+        status: 'SUCCESS',
+        payload: { executionId: executionId(req), hidden },
+      });
       return { hidden };
     }),
   );

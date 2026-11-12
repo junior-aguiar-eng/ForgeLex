@@ -526,7 +526,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     workspaceOptions = { ...workspaceOptions, closedPilot };
     app.addHook('onClose', () => closedPilot.close());
   }
-  registerAgenticWorkspace(app, { database, client: databaseClient, auth: authAdapter, environment, options: workspaceOptions, researchService });
+  registerAgenticWorkspace(app, { database, client: databaseClient, auth: authAdapter, environment, options: workspaceOptions, researchService, audit: (event) => recordAudit(event) });
   const savedResearchEnabled = environment.FORGELEX_SAVED_RESEARCH_ENABLED === 'true';
   const savedResearchService = databaseClient ? new SavedResearchService(new SavedResearchRepository(databaseClient), ledgerService) : undefined;
   const savedResearchDirectory = options.oauthClientDirectory ?? (environment.FORGELEX_SUPABASE_URL && environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY ? new SessionOAuthClientDirectory(environment.FORGELEX_SUPABASE_URL, environment.FORGELEX_SUPABASE_PUBLISHABLE_KEY) : { list: async () => { throw new Error('OAUTH_DIRECTORY_UNAVAILABLE'); } });
