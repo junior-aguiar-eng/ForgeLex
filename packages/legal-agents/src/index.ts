@@ -30,6 +30,14 @@ export * from './agentic-guided-desk.js';
 export { createSkillCatalog, type SkillCatalog } from './skills/skill-catalog.js';
 export { resolveDeskSkills, type ClassifiedSkillIssue, type DeskSkillRequest } from './skills/skill-resolver.js';
 export {
+  manifestToCatalog,
+  parseSkillManifest,
+  REVIEW_STATES,
+  type ReviewState,
+  type SkillManifest,
+  type SkillManifestEntry,
+} from './skills/skill-manifest.js';
+export {
   matterCandidates,
   pickMatterTopic,
   type MatterCandidate,
