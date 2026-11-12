@@ -10,8 +10,12 @@
 
 ## 0. Como usar este plano
 
-1. **Uma etapa por vez, uma PR por etapa.** Cada etapa tem objetivo, dependências, arquivos, passos, verificação,
-   aceite e reversão. Uma PR não mistura frentes.
+1. **Uma PR por frente, um commit por etapa.** Cada etapa tem objetivo, dependências, arquivos, passos, verificação,
+   aceite e reversão, e fecha com um commit na branch da frente. A PR só abre quando todas as etapas da frente estão
+   concluídas e verificadas, e nunca mistura frentes. Publicações (deploy, migração, virada de domínio) seguem por
+   etapa e só com autorização de Boni (item 6 e `AGENTS.md`). Onde duas frentes dependem uma da outra, a frente se
+   divide em duas PRs na fronteira da dependência (seção 4, “PRs por frente”). Decisão de Boni de 11/11/2026: não se
+   abre PR por etapa nem por alteração isolada.
 2. **Nada muda para o cliente sem flag.** Fluxo novo, tema novo e domínio novo entram desligados ou em paralelo ao
    atual, e são ligados por configuração, com reversão pela mesma configuração.
 3. **Registro único de execução.** Toda etapa concluída registra HEAD, arquivos, comandos, resultados e riscos
@@ -129,6 +133,30 @@ As Frentes V, D e U andam em paralelo depois de E, mas a estrutura da Mesa (U) v
 para não pintar uma tela que será reorganizada. A sequência sugerida, sem prazo fixo: E, M1, V0, D0, D1, U0, U1,
 V1, M2, M3, U2, U3, U4, V2, D2, U5, U6, V3, U7, M4, V4, D3, D4, V5, V5A, V6, V7, D5. A Frente R só começa quando V6 estiver
 estável.
+
+### PRs por frente
+
+Regra: uma PR por frente, aberta quando todas as suas etapas estão concluídas. Quatro etapas dependem de etapas de
+frentes que, por sua vez, dependem delas (M2 → V3 → M4 e M5; U4 → V3 → U7), e uma PR por frente fechada em volta delas
+teria dependência circular. Por isso as Frentes M e U têm duas PRs cada, divididas na fronteira da dependência. As
+PRs são empilhadas: a branch de uma parte pode sair da branch da PR de que depende, e a integração segue a ordem da
+tabela. Proposta de 11/11/2026, a confirmar por Boni.
+
+| PR       | Frente | Etapas       | Depende de                        | Situação                                  |
+| -------- | ------ | ------------ | --------------------------------- | ----------------------------------------- |
+| PR-E     | E      | E1 a E7      | —                                 | Aberta (#138), CI verde                   |
+| PR-M1    | M      | M1 a M3      | PR-E                              | M1 é publicação; M2 e M3 pendentes        |
+| PR-D     | D      | D0 a D5      | PR-E                              | Pendente; cada virada é uma publicação    |
+| PR-U1    | U      | U0 a U6      | PR-E; M3.0 (PR-M1) para a U3      | U0 feita; U1 em andamento                 |
+| PR-V1    | V      | V0 a V3      | PR-M1 (M2); PR-U1 (U4)            | Pendente                                  |
+| PR-M2    | M      | M4 e M5      | PR-V1 (V3)                        | Pendente                                  |
+| PR-U2    | U      | U7           | PR-V1 (V3); PR-U1 (U6)            | Pendente                                  |
+| PR-V2    | V      | V4 a V7      | PR-M2 (M4); PR-U2 (U7)            | Pendente; V6 e D3/D4 nunca na mesma semana |
+| PR-R     | R      | Frente R     | PR-V2 (V6); PR-M2 (M5)            | Posterior                                 |
+
+Cada etapa continua com seu registro, seus critérios de aceite e sua reversão; o que muda é só a unidade de PR. As
+etapas que são publicação (M1, M2 em homologação, D2 a D5, V6) seguem exigindo a autorização de Boni no momento de
+publicar, independentemente da PR.
 
 ## 5. Etapa E — estabilização
 
@@ -325,14 +353,14 @@ Depende de U0 e da confirmação das flags em produção.
 
 - [ ] Eliminar o caminho não integrado em `App.tsx` (`!integrated`) e fazer `/app/rascunhos` e `/app/revisao`
       redirecionarem para a Mesa, preservando links.
-- [ ] Remover o que a lista de U0 marcou como `remove`, em PRs pequenas por área, cada uma com os testes
-      correspondentes removidos ou migrados no mesmo commit.
+- [ ] Remover o que a lista de U0 marcou como `remove`, em commits pequenos por área na branch da frente, cada um
+      com os testes correspondentes removidos ou migrados no mesmo commit.
 - [ ] Com DEC-11: manter o piloto fechado enquanto servir a testes, isolado fora da Mesa nova (`ClosedPilotPanel` e
       `closed-pilot*.ts` não entram no `DeskShell`).
 - [ ] Remover exemplos e dados de demonstração mortos da interface e das fixtures não usadas.
 
 **Verificação.** Etapa E completa, mais o relatório de código sem uso de U0 sem item novo. **Aceite.** Uma só Mesa em produção e
-nenhuma rota órfã. **Reversão.** Reverter a PR; remoções de dados só depois de uma versão estável.
+nenhuma rota órfã. **Reversão.** Reverter o commit da área; remoções de dados só depois de uma versão estável.
 
 ### U2 — Nova estrutura da Mesa
 
@@ -434,7 +462,7 @@ Depende de U4, U5, U6 e de V3 (seletor de caso e “Criar caso a partir desta co
 - [ ] Redirecionar `/app/casos` para a Mesa, preservando links, e retirar o item “Casos” da lateral.
 - [ ] Remover `MatterWorkspaceScreen` e seus testes só depois de a Mesa passar nos mesmos cenários de E2E.
 
-**Aceite.** Nenhuma função hoje exclusiva da tela “Casos” se perde. **Reversão.** Reverter a PR; a rota antiga
+**Aceite.** Nenhuma função hoje exclusiva da tela “Casos” se perde. **Reversão.** Reverter o commit da etapa; a rota antiga
 volta enquanto a tela existir no histórico.
 
 ## 7. Frente V — refatoração visual
@@ -736,7 +764,7 @@ etapas D. Falhas preexistentes e testes ignorados são registrados sem contar co
 | Domínio antigo registrado por terceiro                | Renovação indefinida                                                              | D5         |
 | Fichas com erro jurídico ou de escopo                 | Ajustes da conferência amostral em nova versão; avaliação de Boni por lote        | M3         |
 | Reserva de R$ 11,50 impede uso com saldo baixo        | DEC-5 e mensagem clara                                                            | M1         |
-| Remover código ainda usado em produção                | U0 com flags de produção e relatório de uso; PRs pequenas; reversão por PR        | U1         |
+| Remover código ainda usado em produção                | U0 com flags de produção e relatório de uso; commits pequenos; reversão por commit | U1         |
 | Seleção sem ficha por falta de chave no mapa          | M3.0 gera e confere o mapa; fila de ambíguas                                      | M3, U3     |
 | OCR lento ou fraco em documento ruim                  | OCR com cancelamento, limite de páginas e texto editável; servidor só por decisão | U6         |
 | Site promete função ainda não publicada               | V5A: texto e função saem juntos, por flag; título vetado mantido                  | V5A        |
