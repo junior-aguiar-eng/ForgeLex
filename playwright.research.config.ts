@@ -33,6 +33,7 @@ export default defineConfig({
       reuseExistingServer: false,
       env: {
         VITE_FORGELEX_CASE_WORKSPACE_ENABLED: 'true',
+        VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true',
         VITE_SUPABASE_URL: 'http://127.0.0.1:15571',
         VITE_SUPABASE_PUBLISHABLE_KEY: 'phase7-e2e-publishable',
         VITE_FORGELEX_API_URL: 'http://127.0.0.1:3341',

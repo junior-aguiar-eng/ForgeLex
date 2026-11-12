@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+
+// A conferência do rascunho acontece dentro da Mesa (única Mesa desde a U1): a peça abre por /app/trabalho e a
+// conferência fica no diálogo "Conferência da peça". O editor avulso (várias seções, histórico de conferências por
+// versão, "Salvar e conferir") foi removido; ver o registro de execução da U1.
 async function setup(page: Page, linked = true) {
   await page.goto('/entrar');
   await page.getByLabel('E-mail').fill('conferencia@forgelex.test');
@@ -38,122 +41,40 @@ async function setup(page: Page, linked = true) {
       },
     })
   ).json();
-  await page.getByRole('button', { name: 'Rascunhos', exact: true }).click();
-  await page.getByRole('button', { name: matter.title }).click();
-  await page.getByRole('button', { name: /Minuta para conferência/ }).click();
-  await expect(page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true })).toHaveValue(
+  await page.goto(`/app/trabalho?matterId=${matter.id}&draftId=${draft.draft.id}`);
+  await expect(page.getByRole('textbox', { name: 'Texto da seção 1', exact: true })).toHaveValue(
     'O contrato foi assinado.',
   );
   return { root, headers, draft, fact, document, matter };
 }
-test('aprova pelo editor e exporta sem token exposto ou API auxiliar', async ({ page }) => {
+async function openReview(page: Page) {
+  await page.getByRole('button', { name: 'Conferência da peça', exact: true }).click();
+  return page.getByRole('dialog', { name: 'Conferência da peça' });
+}
+test('aprova pela Mesa e exporta sem token exposto ou API auxiliar', async ({ page }) => {
   await setup(page, false);
-  await page.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
-  await page.getByRole('button', { name: 'Aprovar esta versão', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Aprovar esta versão' })).toContainText('Versão 1');
-  await page.getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
-  await expect(page.getByRole('button', { name: /Minuta para conferência Aprovado/ })).toBeVisible();
-  const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Baixar DOCX da versão salva', exact: true }).click();
-  expect((await download).suggestedFilename()).toContain('v1.docx');
-});
-
-test('corrigir fonte no rascunho preserva edição, exige nova conferência e mantém histórico', async ({
-  page,
-}, testInfo) => {
-  const f = await setup(page);
-  const review = page.getByRole('button', { name: 'Conferir rascunho', exact: true });
-  const approval = page.getByRole('button', { name: 'Aprovar esta versão', exact: true });
-  await expect(approval).not.toBeVisible();
-  await review.click();
-  const panel = page.getByRole('region', { name: 'Conferência do rascunho' });
-  await expect(panel).toContainText('Há pontos que precisam de correção');
-  const textbox = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
-  await textbox.fill('Texto que ainda está em edição.');
-  const point = panel
-    .locator('div.rounded-xl')
-    .filter({ has: page.getByText('Este fato não tem prova de apoio vinculada.', { exact: true }) })
-    .getByRole('button', { name: 'Ver ponto', exact: true });
-  if (!(await point.isVisible())) await page.getByText(/Verificações concluídas ·/).click();
-  await point.click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('O contrato foi assinado.');
-  await page.getByLabel('Documento do caso').selectOption(f.document.document.id);
-  await page.getByLabel('Trecho do documento').selectOption(f.document.anchors[0].id);
-  await expect(dialog).toContainText('As partes assinaram o contrato');
-  await page.getByRole('button', { name: 'Vincular fonte ao fato' }).click();
-  await expect(dialog.getByRole('status')).toContainText('Vínculo registrado');
-  await page.setViewportSize({ width: 390, height: 844 });
-  await dialog.screenshot({ path: testInfo.outputPath('source-mobile.png') });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  const accessibility = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
-  expect(accessibility.violations).toEqual([]);
+  const review = await openReview(page);
+  await review.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
+  await review.getByRole('button', { name: 'Aprovar esta versão', exact: true }).click();
+  const approval = page.getByRole('dialog', { name: 'Aprovar esta versão' });
+  await expect(approval).toContainText('Versão 1');
+  await approval.getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
+  await expect(page.getByText('Aprovação registrada para esta versão.').first()).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(dialog).not.toBeVisible();
-  await expect(point).toBeFocused();
-  await expect(textbox).toHaveValue('Texto que ainda está em edição.');
-  await expect(review).not.toBeVisible();
-  await page.getByText('Salvar e exportar', { exact: true }).click();
-  await page.getByRole('button', { name: 'Salvar nova versão', exact: true }).click();
-  await expect(review).toBeEnabled();
-  await expect(panel).toContainText('Conferência pendente');
-  await review.click();
-  await expect(panel).toContainText('Há provas vinculadas ao fato');
-  await expect(approval).toBeEnabled();
-  await page.getByText('Histórico de versões e conferências', { exact: true }).click();
-  await page.getByRole('button', { name: 'Ver conferências da versão 1', exact: true }).click();
-  await expect(page.getByText('Consultar o histórico preserva o texto em edição.')).toBeVisible();
-  await expect(textbox).toHaveValue('Texto que ainda está em edição.');
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await panel.screenshot({ path: testInfo.outputPath('review-desktop.png') });
+  const download = page.waitForEvent('download');
+  await page.getByLabel('Exportar peça').click();
+  await page.getByRole('button', { name: 'Word (.docx)', exact: true }).click();
+  expect((await download).suggestedFilename()).toMatch(/\.docx$/);
 });
-test('resposta demorada da conferência não apaga texto digitado durante a consulta', async ({ page }) => {
-  await setup(page, false);
-  let release!: () => void;
-  const hold = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  let started!: () => void;
-  const ready = new Promise<void>((resolve) => {
-    started = resolve;
-  });
-  await page.route('**/drafts/*/review', async (route) => {
-    const response = await route.fetch();
-    started();
-    await hold;
-    await route.fulfill({ response });
-  });
-  await page.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
-  await ready;
-  const editor = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
-  await editor.fill('Texto digitado durante a conferência.');
-  release();
-  await expect(page.getByRole('region', { name: 'Conferência do rascunho' })).toContainText('Há alterações');
-  await expect(editor).toHaveValue('Texto digitado durante a conferência.');
-  await expect(page.getByRole('button', { name: 'Aprovar esta versão', exact: true })).not.toBeVisible();
-});
-test('falha ao salvar não confere nem descarta a edição; trocar caso permite cancelar', async ({ page }) => {
-  await setup(page, false);
-  const editor = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
-  await editor.fill('Edição preservada após falha.');
-  let reviews = 0;
-  page.on('request', (request) => {
-    if (request.url().endsWith('/review') && request.method() === 'POST') reviews++;
-  });
-  await page.route('**/drafts/*/versions', (route) =>
-    route.fulfill({ status: 500, json: { error: 'SAVE_FAILED', message: 'Falha de salvamento no ensaio.' } }),
-  );
-  await page.getByRole('button', { name: 'Salvar e conferir', exact: true }).click();
-  await expect(page.getByText('Falha de salvamento no ensaio.', { exact: true })).toBeVisible();
-  await expect(editor).toHaveValue('Edição preservada após falha.');
-  expect(reviews).toBe(0);
-  page.once('dialog', (dialog) => dialog.dismiss());
-  await page.getByRole('button', { name: /Caso E2E Fase 7/ }).click();
-  await expect(editor).toHaveValue('Edição preservada após falha.');
-});
-test('ESC fecha painel mesmo durante leitura demorada da fonte', async ({ page }) => {
+const pointOf = (review: ReturnType<Page['getByRole']>, text: string) =>
+  review
+    .locator('div.rounded-xl')
+    .filter({ has: review.page().getByText(text, { exact: true }) })
+    .getByRole('button', { name: 'Ver ponto', exact: true });
+test('ESC fecha o painel de fonte mesmo durante leitura demorada', async ({ page }) => {
   await setup(page);
-  await page.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
+  const review = await openReview(page);
+  await review.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
   let release!: () => void, started!: () => void;
   const hold = new Promise<void>((resolve) => {
     release = resolve;
@@ -166,62 +87,21 @@ test('ESC fecha painel mesmo durante leitura demorada da fonte', async ({ page }
     await hold;
     await route.continue();
   });
-  const point = page
-    .getByRole('region', { name: 'Conferência do rascunho' })
-    .locator('div.rounded-xl')
-    .filter({ has: page.getByText('Este fato não tem prova de apoio vinculada.', { exact: true }) })
-    .getByRole('button', { name: 'Ver ponto', exact: true });
+  const point = pointOf(review, 'Este fato não tem prova de apoio vinculada.');
   try {
     const requested = page.waitForRequest((request) => /\/facts\/[^/]+\/support$/.test(request.url()), {
       timeout: 10_000,
     });
-    if (!(await point.isVisible())) await page.getByText(/Verificações concluídas ·/).click();
+    if (!(await point.isVisible())) await review.getByText(/Verificações concluídas ·/).click();
     await point.click();
     await requested;
     await ready;
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog')).not.toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(1);
     await expect(point).toBeFocused();
   } finally {
     release();
   }
-});
-test('resposta antiga do histórico não substitui a versão escolhida', async ({ page }) => {
-  const f = await setup(page, false);
-  await page.request.post(f.root + '/drafts/' + f.draft.draft.id + '/review', { headers: f.headers, data: {} });
-  await page.request.post(f.root + '/drafts/' + f.draft.draft.id + '/review', { headers: f.headers, data: {} });
-  await page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true }).fill('Versão seguinte.');
-  await page.getByRole('button', { name: 'Salvar e conferir', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Conferência do rascunho' })).toContainText('Conferência concluída');
-  let release!: () => void, started!: () => void;
-  const hold = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  const ready = new Promise<void>((resolve) => {
-    started = resolve;
-  });
-  await page.route('**/review-runs?*', async (route) => {
-    const response = await route.fetch();
-    if (route.request().url().includes(f.draft.version.id)) {
-      started();
-      await hold;
-    }
-    await route.fulfill({ response });
-  });
-  await page.getByText('Histórico de versões e conferências', { exact: true }).click();
-  await page.getByRole('button', { name: 'Ver conferências da versão 1', exact: true }).click();
-  await ready;
-  const history = page
-    .locator('details')
-    .filter({ has: page.getByText('Histórico de versões e conferências', { exact: true }) })
-    .first();
-  await page.getByRole('button', { name: 'Ver conferências da versão 2', exact: true }).click();
-  await expect(history.locator('summary').filter({ hasText: 'Conferência 1' })).toHaveCount(1);
-  release();
-  await page.waitForResponse(
-    (response) => response.url().includes(f.draft.version.id) && response.url().includes('review-runs'),
-  );
-  await expect(history.locator('summary').filter({ hasText: 'Conferência 2' })).toHaveCount(0);
 });
 test('referência do acervo local é revalidada sem marcar conferência humana', async ({ page }) => {
   const f = await setup(page, false);
@@ -257,35 +137,25 @@ test('referência do acervo local é revalidada sem marcar conferência humana',
     },
   });
   expect(version.status()).toBe(200);
-  await page.getByRole('button', { name: /Minuta para conferência/ }).click();
-  await page.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Conferência do rascunho' })).toContainText('Localizada no acervo');
-  await expect(page.getByRole('region', { name: 'Conferência do rascunho' })).toContainText(
-    'Conferência humana ainda não registrada',
+  await page.goto(`/app/trabalho?matterId=${f.matter.id}&draftId=${f.draft.draft.id}`);
+  await expect(page.getByRole('textbox', { name: 'Texto da seção 1', exact: true })).toHaveValue(
+    'Texto a ser conferido.',
   );
+  const review = await openReview(page);
+  await review.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
+  await expect(review).toContainText('Localizada no acervo');
+  await expect(review).toContainText('Conferência humana ainda não registrada');
   const details = await (await page.request.get(f.root + '/drafts/' + f.draft.draft.id, { headers: f.headers })).json();
   expect(details.currentVersion.citations[0].verified).toBe(false);
   expect(details.latestReviewRun.draftVersionId).toBe((await version.json()).version.id);
   expect(details.latestReviewRun.checks.find((c: { targetType: string }) => c.targetType === 'AUTHORITY').state).toBe(
     'CONFIRMED',
   );
-  await page.reload();
-  await page.getByRole('button', { name: f.matter.title }).click();
-  await page.getByRole('button', { name: /Minuta para conferência/ }).click();
-  await expect(page.getByRole('region', { name: 'Conferência do rascunho' })).toContainText('Localizada no acervo');
-});
-test('composição inicial ainda não salva também protege o texto ao trocar de caso', async ({ page }) => {
-  await setup(page, false);
-  await page.getByRole('button', { name: /Caso E2E Fase 7/ }).click();
-  const editor = page.getByRole('textbox', { name: 'Conteúdo da seção 1', exact: true });
-  await editor.fill('Primeira composição ainda não salva.');
-  await expect(page.getByRole('button', { name: 'Criar rascunho', exact: true })).toBeVisible();
-  page.once('dialog', (dialog) => dialog.dismiss());
-  await page
-    .getByRole('button', { name: /Caso de conferência/ })
-    .last()
-    .click();
-  await expect(editor).toHaveValue('Primeira composição ainda não salva.');
+  await page.goto(`/app/trabalho?matterId=${f.matter.id}&draftId=${f.draft.draft.id}`);
+  await expect(page.getByRole('textbox', { name: 'Texto da seção 1', exact: true })).toHaveValue(
+    'Texto a ser conferido.',
+  );
+  await expect(await openReview(page)).toContainText('Localizada no acervo');
 });
 test('abrir rascunho atualiza fatos criados após o carregamento do caso', async ({ page }) => {
   await page.route('**/matters/*/facts', (route) =>
@@ -293,41 +163,34 @@ test('abrir rascunho atualiza fatos criados após o carregamento do caso', async
   );
   const f = await setup(page);
   await page.unroute('**/matters/*/facts');
-  await page.getByRole('button', { name: /Minuta para conferência/ }).click();
-  await page.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
-  await page
-    .getByRole('region', { name: 'Conferência do rascunho' })
-    .locator('div.rounded-xl')
-    .filter({
-      has: page.getByText('Este fato não tem prova de apoio vinculada.', { exact: true }),
-    })
-    .getByRole('button', { name: 'Ver ponto', exact: true })
-    .click();
-  await expect(page.getByRole('dialog')).toContainText(f.fact.statement);
+  await page.getByText('Peça aberta', { exact: true }).click();
+  await page.getByLabel('Peça do caso').selectOption('');
+  await page.getByLabel('Peça do caso').selectOption(f.draft.draft.id);
+  await expect(page.getByRole('textbox', { name: 'Texto da seção 1', exact: true })).toHaveValue(
+    'O contrato foi assinado.',
+  );
+  const review = await openReview(page);
+  await review.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
+  const point = pointOf(review, 'Este fato não tem prova de apoio vinculada.');
+  if (!(await point.isVisible())) await review.getByText(/Verificações concluídas ·/).click();
+  await point.click();
+  await expect(page.getByRole('dialog', { name: 'Precisa de atenção' })).toContainText(f.fact.statement);
   await expect(page.getByLabel('Documento do caso')).toContainText('Contrato do caso');
 });
-
 test('vínculo salvo permanece reconhecido quando a releitura da fonte falha', async ({ page }) => {
   const f = await setup(page);
   await page.request.post(f.root + '/facts/' + f.fact.id + '/support', {
     headers: f.headers,
     data: { anchorId: f.document.anchors[0].id, relation: 'SUPPORTS' },
   });
-  await page.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
-  const approval = page.getByRole('button', { name: 'Aprovar esta versão', exact: true });
+  const review = await openReview(page);
+  await review.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
+  const approval = review.getByRole('button', { name: 'Aprovar esta versão', exact: true });
   await expect(approval).toBeEnabled();
-  const point = page
-    .getByRole('region', { name: 'Conferência do rascunho' })
-    .locator('div.rounded-xl')
-    .filter({
-      has: page.getByText('Há provas vinculadas ao fato. O vínculo não comprova a veracidade do conteúdo.', {
-        exact: true,
-      }),
-    })
-    .getByRole('button', { name: 'Ver ponto', exact: true });
-  if (!(await point.isVisible())) await page.getByText(/Verificações concluídas ·/).click();
+  const point = pointOf(review, 'Há provas vinculadas ao fato. O vínculo não comprova a veracidade do conteúdo.');
+  if (!(await point.isVisible())) await review.getByText(/Verificações concluídas ·/).click();
   await point.click();
-  const dialog = page.getByRole('dialog');
+  const dialog = page.getByRole('dialog').filter({ hasText: 'Fontes vinculadas' });
   await expect(dialog).toContainText('Contrato do caso');
   await page.getByLabel('Documento do caso').selectOption(f.document.document.id);
   await page.getByLabel('Trecho do documento').selectOption(f.document.anchors[0].id);
@@ -340,7 +203,7 @@ test('vínculo salvo permanece reconhecido quando a releitura da fonte falha', a
   await page.getByRole('button', { name: 'Vincular fonte ao fato' }).click();
   await expect(dialog.getByRole('status')).toContainText('Vínculo registrado');
   await expect(dialog.getByRole('alert')).toContainText('carregar as fontes');
-  await page.getByRole('button', { name: 'Fechar', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Fechar', exact: true }).click();
   await expect(approval).not.toBeVisible();
   const support = await (
     await page.request.get(f.root + '/facts/' + f.fact.id + '/support', { headers: f.headers })

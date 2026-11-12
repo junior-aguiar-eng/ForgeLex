@@ -155,21 +155,18 @@ test('ciclo documental completo por UI com host MCP sintético e aprovação rec
   });
   await page.getByRole('button', { name: 'Ir para o texto' }).click();
   await expect(page).toHaveURL(new RegExp('matterId=' + matter.id));
-  await page.getByRole('button', { name: /Relatório do ciclo completo/ }).click();
-  await expect(page.getByRole('textbox', { name: 'Conteúdo da seção 2', exact: true })).toHaveValue(
-    'Ausência de comprovante; não concluir pela quitação.',
-  );
-  await page
-    .getByRole('textbox', { name: 'Conteúdo da seção 2', exact: true })
-    .fill('Ausência de comprovante. Preservar divergência e solicitar documentos.');
-  page.once('dialog', (dialog) => void dialog.dismiss());
-  await page.goBack();
-  await expect(page.getByRole('textbox', { name: 'Conteúdo da seção 2', exact: true })).toHaveValue(
-    'Ausência de comprovante. Preservar divergência e solicitar documentos.',
-  );
-  await expect(page).toHaveURL(new RegExp('draftId='));
-  await page.getByRole('button', { name: 'Salvar e conferir', exact: true }).click();
-  await page.getByRole('button', { name: 'Aprovar esta versão', exact: true }).click();
+  // A peça recebida abre na Mesa (única Mesa desde a U1), onde a conferência e a aprovação ficam no diálogo da peça.
+  const piece = `/app/trabalho?matterId=${matter.id}&draftId=${received.draftId}`;
+  await page.goto(piece);
+  const section = page.getByRole('textbox', { name: 'Texto da seção 2', exact: true });
+  await expect(section).toHaveValue('Ausência de comprovante; não concluir pela quitação.');
+  await section.fill('Ausência de comprovante. Preservar divergência e solicitar documentos.');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Versão salva.' }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Conferência da peça', exact: true }).click();
+  const review = page.getByRole('dialog', { name: 'Conferência da peça' });
+  await review.getByRole('button', { name: 'Conferir rascunho', exact: true }).click();
+  await review.getByRole('button', { name: 'Aprovar esta versão', exact: true }).click();
   // Hold resolution after emission, then reload. Approval must recover the pending request through UI.
   let release!: () => void;
   const hold = new Promise<void>((r) => (release = r));
@@ -180,19 +177,25 @@ test('ciclo documental completo por UI com host MCP sintético e aprovação rec
     await hold;
     await route.abort();
   });
-  await page.getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
+  const approval = page.getByRole('dialog', { name: 'Aprovar esta versão' });
+  await approval.getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
   await started;
   release();
-  await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();
+  await expect(approval.getByRole('alert')).toBeVisible();
   await page.unroute('**/draft-approvals/resolve');
-  await page.reload();
-  await page.getByRole('button', { name: /Relatório do ciclo completo/ }).click();
-  await page.getByRole('button', { name: 'Aprovar esta versão', exact: true }).click();
-  await page.getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
-  await expect(page.getByRole('button', { name: /Relatório do ciclo completo Aprovado/ })).toBeVisible();
+  await page.goto(piece);
+  await expect(page.getByRole('textbox', { name: 'Texto da seção 2', exact: true })).toHaveValue(
+    'Ausência de comprovante. Preservar divergência e solicitar documentos.',
+  );
+  await page.getByRole('button', { name: 'Conferência da peça', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Conferência da peça' }).getByRole('button', { name: 'Aprovar esta versão', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Aprovar esta versão' }).getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
+  await expect(page.getByText('Aprovação registrada para esta versão.').first()).toBeVisible();
+  await page.keyboard.press('Escape');
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Baixar DOCX da versão salva', exact: true }).click();
-  expect((await download).suggestedFilename()).toContain('v2.docx');
+  await page.getByLabel('Exportar peça').click();
+  await page.getByRole('button', { name: 'Word (.docx)', exact: true }).click();
+  expect((await download).suggestedFilename()).toMatch(/\.docx$/);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);

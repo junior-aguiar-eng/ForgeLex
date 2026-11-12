@@ -47,6 +47,7 @@ export default defineConfig({
         VITE_SUPABASE_PUBLISHABLE_KEY: 'phase7-e2e-publishable',
         VITE_FORGELEX_API_URL: api,
         VITE_FORGELEX_CASE_WORKSPACE_ENABLED: 'true',
+        VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED: 'true',
       },
     },
   ],
