@@ -15,11 +15,18 @@ $script:RequiredSubstitutions = @(
   '_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED',
   '_VITE_FORGELEX_CASE_WORKSPACE_ENABLED'
 )
+# Flags da Mesa (casca, anexos, chips de matéria) entraram depois: builds antigos não as têm. Ausente = 'false',
+# igual ao padrão do cloudbuild.yaml; quando um build as traz, o valor dele é preservado.
+$script:OptionalFlagSubstitutions = @(
+  '_VITE_FORGELEX_DESK_SHELL',
+  '_VITE_FORGELEX_ATTACHMENTS_ENABLED',
+  '_VITE_FORGELEX_MATTER_CHIPS_ENABLED'
+)
 $script:FlagSubstitutions = @(
   '_VITE_FORGELEX_SAVED_RESEARCH_ENABLED',
   '_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED',
   '_VITE_FORGELEX_CASE_WORKSPACE_ENABLED'
-)
+) + $script:OptionalFlagSubstitutions
 
 function Get-Prop {
   # Leitura tolerante de JSON do gcloud: devolve $null em vez de falhar quando um campo opcional não existe.
@@ -150,6 +157,9 @@ function New-BuildSubstitutions {
       throw "Substituição ausente no build anterior: $key"
     }
     $result[$key] = [string]$Previous[$key]
+  }
+  foreach ($key in $script:OptionalFlagSubstitutions) {
+    $result[$key] = if ($Previous.ContainsKey($key) -and -not [string]::IsNullOrWhiteSpace($Previous[$key])) { [string]$Previous[$key] } else { 'false' }
   }
   $result['_SOURCE_SHA'] = $Sha
   foreach ($key in $Overrides.Keys) {
