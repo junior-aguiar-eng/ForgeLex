@@ -496,6 +496,44 @@ Em 11/11/2026. O deploy depende de a PR #138 entrar em `main`: `deploy-from-main
 | Migração | O código de `main` traz a `0041` e `AUTO_MIGRATE=false`. O esquema do banco compartilhado, usado por produção, não foi lido; se `main` trouxer migração que ele não tem, a API acusa no `/readyz`. A conferência exige ler o registro de migrações do banco, o que não foi feito. |
 | `mcp.call` | A conferência do #132 e do piso de 5 decisões depende de tráfego real depois do deploy. Hoje: 5 `tools/call` sem chave de idempotência do Claude e 3 do ChatGPT. |
 
+## U1 · remover duplicidade e código morto
+
+Em 12/11/2026, sobre `63f6a71` (Frente U, branch `claude/frente-u-inventario-mesa`, empilhada na PR #138). Aprovada a classificação da U0, a Mesa integrada passou a ser o único caminho. Produção já rodava `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED=true` e `VITE_FORGELEX_CASE_WORKSPACE_ENABLED=true` (E1), então nada muda para o cliente de hoje.
+
+**Regra nova.** A Mesa só existe com a Mesa agêntica e os casos ligados (`DESK_ENABLED`, `isDeskEnabled` em `site-capabilities.ts`). Sem as duas, `/app/trabalho` volta para a Visão geral e `/app/rascunhos` e `/app/revisao` voltam para Conectar IA. Com as duas, Rascunhos e Revisão continuam abrindo a Mesa por URL.
+
+| Commit | Conteúdo |
+| --- | --- |
+| `7ceac5c` | `resolveVisibleTab`, `App.tsx`, cabeçalho e menu lateral só com a Mesa integrada; a tela Casos perde o botão de Revisão avulsa. `App.tsx` deixa de montar `AgenticWorkspaceScreen`, `DraftStudioScreen` e `DashboardScreen` avulsas. |
+| `d620201` | `AgenticWorkspaceScreen` perde a prop `integrated`, a coluna lateral própria e o ouvinte de `popstate` do modo avulso. A prop `onEditor` fica: a Mesa a usa para abrir a peça (a U0 a listou por engano como parte do ramo avulso). |
+| `f512c5d` | `DraftStudioScreen` perde a prop `integrated` e a interface do editor avulso (283 linhas a menos no arquivo). Saem estados, funções e importações sem uso e o `ReceivedDraftPanel` (180 linhas), que só o modo avulso usava. |
+| `daef999`, `a6860dd`, `b906e0c`, `ec112eb` | As configurações Playwright base (`playwright.config.ts`, `case-flow`, `documents`, `research`) passam a ligar a Mesa agêntica junto dos casos, e os specs são migrados ou removidos. |
+
+**Testes migrados para a Mesa.** `draft-review`: aprovar e exportar, ESC no painel de fonte, referência do acervo, fatos atualizados ao abrir a peça e vínculo salvo, usando o diálogo “Conferência da peça” e o painel “Precisa de atenção”. `case-flow`: o ciclo completo, com a peça aberta em `/app/trabalho`. `matter-lifecycle`: caso arquivado em outra aba mantém o texto e bloqueia o salvamento. `research-history`: perde só o trecho final do painel de tese. `agentic-flags`: passa a validar que, com os casos ocultos, não há Mesa.
+
+**Testes removidos por serem exclusivos do editor avulso (9).**
+
+| Spec | Teste | O que o editor avulso tinha e a Mesa não tem |
+| --- | --- | --- |
+| `case-ai-access` | novo rascunho abre pelo recibo; receber texto preserva edição e exige adoção consciente | Painel “Textos recebidos da IA”, prévia e adoção de recibo. |
+| `document-reader` | fonte citada abre a versão fixada e destaca âncora | Editor de citações (“Adicionar citação”, “Fontes documentais da versão salva”). |
+| `draft-review` | corrigir fonte preserva edição e mantém histórico; resposta antiga do histórico; falha ao salvar não confere; composição inicial protege o texto; resposta demorada não apaga o texto digitado | Edição por várias seções, “Salvar e conferir”, “Salvar nova versão” e histórico de conferências por versão. Na Mesa o campo fica desabilitado durante a consulta. |
+| `documents` | DOCX exporta a versão salva e não inclui edição não salva | Exportação da versão salva; a Mesa exporta o texto aberto, incluindo a edição local. |
+
+**Backlog para as etapas U2 a U5.** O que o editor avulso fazia e a Mesa ainda não faz, e que o histórico do Git preserva (commits anteriores a `f512c5d`): edição por várias seções com título; painéis de tese e de citação; adoção consciente de texto recebido da IA, com prévia; histórico de conferências por versão; salvar-e-conferir em um passo; exportação da versão salva sem a edição local. Nenhum deles existe em produção hoje; reativar qualquer um é decisão de produto de Boni.
+
+**Verificação.**
+
+| Item | Resultado |
+| --- | --- |
+| Tipos, ESLint, Prettier | `pnpm typecheck` e `pnpm lint` sem erros; Prettier aprovado com `--end-of-line auto`. |
+| Vitest | Suíte completa: 272 arquivos e 2.023 testes aprovados, 17 ignorados (dependem de PostgreSQL), sem falhas. |
+| Playwright, passando | `writing-desk` 37, `desk-guidance` 6, `desk-review` 3, `desk-research` 2, `editorial-review` 3, `agentic-workspace` 25, `case-flow` 16, `case-ai` 7, `document-reader` 3, `documents` 4, `matter-lifecycle` 5, `research` 10, `saved-research` 5, `mcp-site` 32, `public` 17, `chunk-recovery` 3 e `agentic-flags` 1. |
+| Playwright, intermitente | `agentic-commercial-flow`: “incorpora somente seleção revisada…” falha às vezes (a Mesa não abre a peça e mostra “O serviço está indisponível”). Falhou 1 de 3 vezes também com os fontes de `248bd2c`, antes da U1: não é regressão da U1. |
+| Playwright, não executado | `playwright.config.ts` (phase7): precisa de PostgreSQL em `127.0.0.1:55432`, indisponível aqui. Foi alterado para ligar a Mesa agêntica; a primeira execução na CI confirma. |
+
+Reversão: reverter os commits da U1, em ordem inversa; o código removido do editor avulso volta pelo Git.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.
