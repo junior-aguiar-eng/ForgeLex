@@ -22,6 +22,20 @@ export function registerGuidanceRoutes(
     options,
     handle(async (req, reply) => reply.code(201).send(await service.start(access(req), command(req), req.body ?? {}))),
   );
+  app.post(
+    `${base}/matter-suggestions`,
+    options,
+    handle(async (req, reply) => {
+      try {
+        return service.suggestMatter(req.body ?? {});
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return reply.code(400).send({ error: 'INVALID_INPUT', message: 'Confira o texto da matéria.' });
+        }
+        throw error;
+      }
+    }),
+  );
   app.get(
     `${base}/:conversationId`,
     options,

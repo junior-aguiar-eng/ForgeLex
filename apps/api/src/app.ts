@@ -75,7 +75,7 @@ import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
 import { WebhookRepository } from '@forgelex/persistence';
 import { WebhookService } from './distribution/webhook-service.js';
 import type { Client } from '@forgelex/persistence';
-import { createLegalResearchMemoTool, LegalResearchMemoExecutionService, type DeskPiece } from '@forgelex/legal-workflows';
+import { createLegalResearchMemoTool, LegalResearchMemoExecutionService, type DeskMatter, type DeskPiece } from '@forgelex/legal-workflows';
 import { RequestMetrics, structuredLog } from './observability.js';
 import { logMcpCall } from './mcp-call-log.js';
 import { BillingOperationsService, type PaymentProvider } from './billing/billing-operations.js';
@@ -504,7 +504,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     const { createCommercialRuntime } = await import('./agentic-workspace/commercial-runtime.js');
     // Catálogo de habilidades incorporado (M3.1): só existe com FORGELEX_SKILL_CATALOG_DIR; sem ele nada é aplicado.
     const { skillCatalogFromEnvironment } = await import('./skills/file-skill-catalog.js');
-    const skills: (NonNullable<typeof options.commercialRuntimeDependencies>['skills'] & { pieces?: readonly DeskPiece[] }) | undefined =
+    const skills: (NonNullable<typeof options.commercialRuntimeDependencies>['skills'] & { pieces?: readonly DeskPiece[]; matters?: readonly DeskMatter[] }) | undefined =
       options.commercialRuntimeDependencies?.skills ?? (await skillCatalogFromEnvironment(environment));
     const commercial = await createCommercialRuntime(database, databaseClient, environment, {
       ...options.commercialRuntimeDependencies,
@@ -515,7 +515,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     workspaceOptions = {
       ...workspaceOptions,
       commercial,
-      ...(skills?.pieces ? { guidance: { pieces: skills.pieces } } : {}),
+      ...(skills?.pieces ? { guidance: { pieces: skills.pieces, ...(skills.matters ? { matters: skills.matters } : {}) } } : {}),
     };
   }
   if (environment.FORGELEX_CLOSED_PILOT_ENABLED === 'true') {

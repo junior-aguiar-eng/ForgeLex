@@ -144,3 +144,33 @@ it('mesa-v3: recusar a peça propõe outra ou segue como pedido livre, e a conve
   expect(legacy.decisions).not.toHaveProperty('court');
   expect(legacy.question?.options).toHaveLength(6);
 });
+
+it('sugere uma matéria por vez, com código opaco, e respeita área, recusas e entradas inválidas', async () => {
+  const connection = await createDatabase({ url: 'file::memory:' });
+  connections.push(connection);
+  await runPersistenceMigrations(connection.client);
+  const guidance = new GuidanceService(connection.db, {
+    matters: [
+      { id: 'prescricao-intercorrente', label: 'Prescrição intercorrente', area: 'civil' },
+      { id: 'prova-ilicita', label: 'Prova ilícita', area: 'processo-penal' },
+    ],
+  });
+  const first = guidance.suggestMatter({ text: 'O réu alega prescrição intercorrente e prova ilícita' });
+  expect(first.suggestion?.label).toMatch(/Prescrição intercorrente|Prova ilícita/);
+  expect(JSON.stringify(first)).not.toContain('prescricao-intercorrente');
+  expect(JSON.stringify(first)).not.toContain('prova-ilicita');
+  const next = guidance.suggestMatter({
+    text: 'O réu alega prescrição intercorrente e prova ilícita',
+    rejected: [first.suggestion!.token],
+  });
+  expect(next.suggestion?.label).not.toBe(first.suggestion?.label);
+  expect(
+    guidance.suggestMatter({ text: 'prescrição intercorrente e prova ilícita', area: 'processo-penal' }).suggestion
+      ?.label,
+  ).toBe('Prova ilícita');
+  expect(guidance.suggestMatter({ text: 'quero entender como proceder' }).suggestion).toBeNull();
+  expect(() => guidance.suggestMatter({ text: '' })).toThrow();
+  expect(() => guidance.suggestMatter({ text: 'x', rejected: ['não-é-código'] })).toThrow();
+  expect(() => guidance.suggestMatter({ text: 'x', extra: true })).toThrow();
+  expect(new GuidanceService(connection.db).suggestMatter({ text: 'prova ilícita' }).suggestion).toBeNull();
+});

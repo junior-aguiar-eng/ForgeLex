@@ -41,7 +41,7 @@ export interface AgenticWorkspaceRuntimeOptions {
   closedPilot?: ClosedPilot;
   commercial?: CommercialRuntime;
   /** Peças internas do catálogo para a orientação da Mesa (U3); não vão ao navegador. */
-  guidance?: Pick<GuidanceServiceOptions, 'pieces'>;
+  guidance?: Pick<GuidanceServiceOptions, 'pieces' | 'matters'>;
   driver?: ExecutionDriver;
   caseTask?: NativeCaseTaskOptions;
   scheduler?: boolean;
@@ -309,6 +309,7 @@ export function registerAgenticWorkspace(
         // Regras mesa-v3 (25 áreas, tribunal, peça proposta): desligadas por padrão e só para conversas novas.
         ...(deps.environment.FORGELEX_DESK_GUIDANCE_V3_ENABLED === 'true' ? { rulesVersion: 'mesa-v3' as const } : {}),
         ...(deps.options?.guidance?.pieces ? { pieces: deps.options.guidance.pieces } : {}),
+        ...(deps.options?.guidance?.matters ? { matters: deps.options.guidance.matters } : {}),
       }),
       { preHandler: [deps.auth.createPreHandler(['research:read']), session] },
       handle,

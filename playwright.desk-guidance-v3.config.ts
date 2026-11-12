@@ -19,6 +19,6 @@ export default defineConfig({
             FORGELEX_E2E_GUIDANCE_V3: 'true',
           },
         }
-      : server,
+      : { ...server, env: { ...server.env, VITE_FORGELEX_MATTER_CHIPS_ENABLED: 'true' } },
   ),
 });

@@ -1,6 +1,13 @@
 import { open, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { manifestToCatalog, parseSkillManifest, piecesFromManifest, type DeskPiece } from '@forgelex/legal-workflows';
+import {
+  manifestToCatalog,
+  mattersFromManifest,
+  parseSkillManifest,
+  piecesFromManifest,
+  type DeskMatter,
+  type DeskPiece,
+} from '@forgelex/legal-workflows';
 import type { NativeCaseTaskOptions } from '../agentic-workspace/case-task-driver.js';
 
 /**
@@ -15,7 +22,10 @@ import type { NativeCaseTaskOptions } from '../agentic-workspace/case-task-drive
  */
 export type FileSkillCatalog = NonNullable<NativeCaseTaskOptions['skills']>;
 /** O catálogo de habilidades mais a lista interna de peças que a Mesa pode propor (U3); a lista não vai ao navegador. */
-export type LoadedSkillCatalog = FileSkillCatalog & { readonly pieces: readonly DeskPiece[] };
+export type LoadedSkillCatalog = FileSkillCatalog & {
+  readonly pieces: readonly DeskPiece[];
+  readonly matters: readonly DeskMatter[];
+};
 
 const MANIFEST_LIMIT_BYTES = 16 * 1024 * 1024;
 // Valores propostos a partir das fichas reais (mediana de 7,5 KB, máximo de 27 KB); o servidor pode trocá-los.
@@ -40,6 +50,7 @@ export async function loadFileSkillCatalog(
   return Object.freeze({
     catalog: manifestToCatalog(manifest),
     pieces: Object.freeze(piecesFromManifest(manifest)),
+    matters: Object.freeze(mattersFromManifest(manifest)),
     budget,
     loadContent: async ({ id, version, byteLength }: Parameters<FileSkillCatalog['loadContent']>[0]) => {
       const file = await open(contentPath(directory, id, version), 'r');

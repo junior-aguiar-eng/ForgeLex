@@ -225,6 +225,10 @@ export function agenticE2EOptions() {
             },
             { id: 'oficio', label: 'Ofício', areas: [], transversal: true, triggers: [] },
           ],
+          matters: [
+            { id: 'prescricao-intercorrente', label: 'Prescrição intercorrente', area: 'civil' },
+            { id: 'prova-ilicita', label: 'Prova ilícita', area: 'processo-penal' },
+          ],
         }
       : undefined;
   return {

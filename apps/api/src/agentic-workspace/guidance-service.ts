@@ -8,6 +8,8 @@ import {
   guidanceField,
   guidanceQuestion,
   initialGuidance,
+  suggestMatter,
+  type DeskMatter,
   type DeskPiece,
   type GuidanceEnvironment,
 } from '@forgelex/legal-workflows';
@@ -32,7 +34,18 @@ function conversationId(owner: AgenticOwner, commandId: string): string {
 export interface GuidanceServiceOptions {
   readonly rulesVersion?: 'mesa-v3';
   readonly pieces?: readonly DeskPiece[];
+  /** Matérias do catálogo que a Mesa pode sugerir como dica do pedido; ficam no servidor. */
+  readonly matters?: readonly DeskMatter[];
 }
+
+const matterSuggestionInput = z.strictObject({
+  text: z.string().trim().min(1).max(4000),
+  area: z.string().trim().min(1).max(80).optional(),
+  rejected: z
+    .array(z.string().regex(/^[a-f0-9]{16}$/))
+    .max(20)
+    .optional(),
+});
 
 /**
  * O que as regras mesa-v3 leem da conversa: o texto do pedido e o que o cliente escreveu nas respostas livres, menos a
@@ -203,6 +216,21 @@ export class GuidanceService {
       );
       return project(conversation, conversation.contexts[0], this.options);
     });
+  }
+
+  /**
+   * Sugere uma matéria por vez a partir do texto do pedido (U4). Não chama provedor, não reserva saldo e não grava nada:
+   * é só uma sugestão que o cliente confirma. O cliente recebe o rótulo e um código opaco, nunca a lista nem o id interno.
+   */
+  suggestMatter(raw: unknown) {
+    const input = matterSuggestionInput.parse(raw);
+    const suggestion = suggestMatter({
+      matters: this.options.matters ?? [],
+      text: input.text,
+      area: input.area ?? null,
+      rejected: input.rejected ?? [],
+    });
+    return { suggestion };
   }
 
   async get(access: Access, id: string) {

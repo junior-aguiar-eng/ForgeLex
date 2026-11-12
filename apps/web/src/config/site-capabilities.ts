@@ -17,3 +17,6 @@ export const DESK_SHELL_ENABLED = import.meta.env.VITE_FORGELEX_DESK_SHELL === '
 
 /** Anexos no compositor da Mesa (U5): PDF, TXT e MD, só o texto. Desligados por padrão; ligados só com `true` exato. */
 export const ATTACHMENTS_ENABLED = import.meta.env.VITE_FORGELEX_ATTACHMENTS_ENABLED === 'true';
+
+/** Chips de matéria no compositor da Mesa (U4): a Mesa sugere uma matéria por vez. Desligados por padrão. */
+export const MATTER_CHIPS_ENABLED = import.meta.env.VITE_FORGELEX_MATTER_CHIPS_ENABLED === 'true';

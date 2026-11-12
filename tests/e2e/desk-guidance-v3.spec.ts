@@ -112,3 +112,51 @@ test('voltar um passo reabre a resposta anterior e não perde o que já foi esco
   await expect(question(page).locator('legend')).toHaveText('O que você precisa fazer?');
   await expect(question(page).getByRole('radio', { name: 'Analisar documentos', exact: true })).toBeChecked();
 });
+
+test('matérias do pedido: a Mesa sugere uma por vez, o cliente confirma, remove, e a dica segue no contexto', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 980 });
+  await openDesk(page);
+  const group = page.getByRole('region', { name: 'Matérias do pedido' });
+  await group.getByRole('button', { name: 'Adicionar matéria' }).click();
+  await group.getByLabel(/Qual matéria você quer incluir/).fill('o réu alega prescrição intercorrente');
+  await group.getByRole('button', { name: 'Sugerir matéria' }).click();
+  const proposal = group.getByRole('group', { name: 'Matéria sugerida' });
+  await expect(proposal).toContainText('Prescrição intercorrente');
+  await page.screenshot({ path: 'test-results/desk-guidance-v3/06-materia-sugerida.png', animations: 'disabled' });
+
+  // Recusar: sem outra parecida, a Mesa pede para descrever de outro jeito (e nunca mostra lista).
+  await proposal.getByRole('button', { name: 'Não, outra' }).click();
+  await expect(group.getByText(/Não há outra matéria parecida/)).toBeVisible();
+  await group.getByLabel(/Qual matéria você quer incluir/).fill('prova ilícita');
+  await group.getByRole('button', { name: 'Sugerir matéria' }).click();
+  await expect(group.getByRole('group', { name: 'Matéria sugerida' })).toContainText('Prova ilícita');
+  await group.getByRole('button', { name: 'Sim, adicionar' }).click();
+  await expect(group.getByRole('list', { name: 'Matérias do pedido' })).toContainText('Prova ilícita');
+
+  // Remover e adicionar de novo.
+  await group.getByRole('button', { name: 'Remover matéria: Prova ilícita' }).click();
+  await expect(group.getByRole('list', { name: 'Matérias do pedido' })).toHaveCount(0);
+  await group.getByRole('button', { name: 'Adicionar matéria' }).click();
+  await group.getByLabel(/Qual matéria você quer incluir/).fill('prova ilícita');
+  await group.getByRole('button', { name: 'Sugerir matéria' }).click();
+  await group.getByRole('button', { name: 'Sim, adicionar' }).click();
+
+  const message = 'Elaborar a defesa considerando as matérias indicadas.';
+  await page.getByRole('textbox', { name: 'O que você precisa fazer?' }).fill(message);
+  let sent: any;
+  await page.route('**/api/agentic/executions', async (route) => {
+    sent = route.request().postDataJSON();
+    await route.fulfill({ status: 503, json: { error: 'SYNTHETIC_STOP' } });
+  });
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect.poll(() => sent).toBeTruthy();
+  expect(sent.objective).toBe(message);
+  expect(sent.context.text).toContain(message);
+  expect(sent.context.text).toContain(
+    'Matérias indicadas pelo cliente (confira se se aplicam ao caso): Prova ilícita.',
+  );
+  expect(JSON.stringify(sent)).not.toContain('prova-ilicita');
+  expect((await new AxeBuilder({ page }).include('[data-writing-desk]').analyze()).violations).toEqual([]);
+});

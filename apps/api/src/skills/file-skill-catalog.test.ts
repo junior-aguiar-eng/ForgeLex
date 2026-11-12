@@ -162,3 +162,33 @@ describe('lista de peças do catálogo (U3)', () => {
     expect(JSON.stringify(loaded.pieces)).not.toMatch(/Roteiro|contentHash|sha|version/i);
   });
 });
+
+describe('lista de matérias do catálogo (U4)', () => {
+  it('entrega as Matérias elegíveis com rótulo, só como área, tópico e rótulo', async () => {
+    const text = 'Roteiro sintético.';
+    const matter = (id: string, state: string, extra: object = {}) => ({
+      id,
+      version: 1,
+      kind: 'MATTER',
+      area: 'civil',
+      topic: id,
+      roles: ['matter-analyst'],
+      contentHash: sha(text),
+      byteLength: Buffer.byteLength(text),
+      provenance,
+      reviewState: state,
+      ...extra,
+    });
+    const dir = await catalogDir(
+      [
+        matter('prescricao', 'eligible', { label: 'Prescrição' }),
+        matter('sem-rotulo', 'eligible'),
+        matter('pendente', 'pending', { label: 'Pendente' }),
+      ] as never,
+      { 'prescricao@1.md': text, 'sem-rotulo@1.md': text },
+    );
+    const loaded = await loadFileSkillCatalog(dir);
+    expect(loaded.matters).toEqual([{ id: 'prescricao', label: 'Prescrição', area: 'civil' }]);
+    expect(JSON.stringify(loaded.matters)).not.toMatch(/Roteiro|contentHash|sha/i);
+  });
+});
