@@ -448,6 +448,54 @@ Em 11/11/2026, sobre `9e4d81b`, por decisão de Boni (“aplicar só em isolado�
 
 Reversão: restaurar o backup `1794441092040`, ou remover a tabela e o registro da 0041 por decisão separada, com backup (a tabela está vazia).
 
+## U0 · inventário da Mesa (proposta para aprovação de Boni)
+
+Em 11/11/2026, sobre `248bd2c` (Frente E, PR #138), na branch `claude/frente-u-inventario-mesa`. Só leitura: nada foi apagado nem alterado no código. A classificação abaixo é uma **proposta**; a lista só vale depois da aprovação de Boni (aceite da U0).
+
+**Fatos de base.**
+
+- Produção roda `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED=true` e `VITE_FORGELEX_CASE_WORKSPACE_ENABLED=true` (E1): `integrated` é verdadeiro e o cliente vê a Mesa integrada. O padrão sem a variável é **desligado** (`isCaseWorkspaceEnabled` só aceita `true` exato).
+- Em `App.tsx`, `integrated = AGENTIC && CASE`. Com `integrated`, `WritingDeskScreen` (337 linhas) envolve `AgenticWorkspaceScreen` (858), `DraftStudioScreen` (1.156) e `DashboardScreen` (54), e abre `ResearchDeskScreen` (150) em modo `compact`. Sem `integrated`, `App.tsx` monta `AgenticWorkspaceScreen` e `DraftStudioScreen` sozinhas.
+- Rotas: `/app/trabalho` (`work`), `/app/rascunhos` (`draft_studio`) e `/app/revisao` (`dashboard`) já mostram a aba `work` quando `integrated`; `/app/casos` (`matter`) abre `MatterWorkspaceScreen` (904 linhas), que só `App.tsx` importa.
+- O piloto fechado vive em `ClosedPilotPanel` (191 linhas, importado só por `AgenticWorkspaceScreen`), `apps/api/src/agentic-workspace/closed-pilot*.ts`, `task6-homologation.ts` e `scripts/verify-closed-pilot-local.mjs`; está desligado em todos os serviços (E1).
+
+**Classificação proposta.**
+
+| Item | Onde | Proposta | Evidência de uso |
+| --- | --- | --- | --- |
+| Mesa integrada | `WritingDeskScreen.tsx` | mantém | Única Mesa em produção; só `App.tsx` a importa. |
+| Núcleo da conversa (composer, perguntas, resultado, orientação) | `AgenticWorkspaceScreen.tsx` e `agentic-workspace/*` | mantém | Importado por `WritingDeskScreen`; é o motor da Mesa. |
+| Ramo `!integrated` de `AgenticWorkspaceScreen` | `showRail`, prop `onEditor` e abertura do editor externo (linhas 349 e 410) | remove (U1) | Só roda quando `AGENTIC` está ligado e `CASE` desligado; produção não usa. |
+| Ramo `!integrated` de `App.tsx` | linha 74 (`DraftStudioScreen` avulsa) e o ternário da linha 75 | remove (U1) | Mesmo critério; `/app/rascunhos` e `/app/revisao` passam a redirecionar. |
+| Editor de peças | `DraftStudioScreen.tsx` | migra para a Mesa nova (U2) | Hoje embutido por `WritingDeskScreen` (`integrated`); o uso avulso sai. |
+| Fila de revisão | `DashboardScreen.tsx` | migra (U2) | Embutida por `WritingDeskScreen`; a rota `/app/revisao` redireciona. |
+| Jurisprudência | `ResearchDeskScreen.tsx` | mantém | Rota própria e uso `compact` na Mesa. Recebe a busca ancorada (M4). |
+| Tela “Casos” | `MatterWorkspaceScreen.tsx` e rota `/app/casos` | migra para a Mesa e depois remove (U7, DEC-14) | Só `App.tsx` a importa; sai depois de a Mesa absorver criar, renomear, arquivar, restaurar e excluir caso e documento e importar PDF. |
+| Piloto fechado | `ClosedPilotPanel.tsx`, `closed-pilot*.ts`, `task6-homologation.ts` | mantém, isolado fora do `DeskShell` (DEC-11) | Desligado em produção e homologação; serve a testes. Reavaliar no fim da Frente U. |
+| Arquivos sem uso | `screens/connections/ConnectionChecklist.tsx`, `PlatformConnectionCard.tsx` | remove (U1) | `knip` 6.45.0 aponta ambos como sem uso; nenhuma outra referência no repositório (só eles mesmos). |
+| Exportações e tipos sem uso | 4 exportações (`PRODUCT_TITLE`, `SectionHeader`, `CANONICAL_ORIGIN`, `responseExamples`) e 9 tipos exportados em `apps/web` | remove o `export` (U1, baixo risco) | Relatório do `knip` do workspace `apps/web`. |
+| Texto “Gerar proposta de teste” | `EditorialReviewPanel.tsx:393` | mantém por ora; reavaliar (U1) | Aparece só quando o modo de geração não é `REAL` nem `COMMERCIAL`; em produção o modo é comercial. Decidir junto com o piloto. |
+| Texto “exemplos sintéticos” | `ClosedPilotPanel.tsx` | mantém (isolado) | Só no piloto fechado. |
+| Placeholders e exemplos de documentação | `AuthScreen` (`voce@exemplo.com`), `ApiDocsPage`/`ApiDocsScreen` (exemplos de pesquisa), `LandingScreen` (“Exemplos de temas”) | mantém; o texto do site muda em V5A | Não são dados de demonstração. |
+
+**O que o relatório do `knip` não decide.** Rodado na raiz, ele lista 50 arquivos sem uso, quase todos entradas por linha de comando (`scripts/*.mjs`, `scripts/forgelex-final-evaluation/*`, `playwright.desk-*.config.ts`, `apps/api/src/operations/retention-main.ts`) que o `knip` não reconhece por falta de configuração. Não os classifiquei como remoção; só os dois arquivos de `connections/` foram conferidos um a um.
+
+**Dependência que a U1 precisa tratar.** As suítes `playwright.agentic-workspace.config.ts` e `playwright.agentic-commercial-flow.config.ts` sobem com `AGENTIC=true` e `CASE` desligado, ou seja, exercitam justamente o ramo `!integrated` que a U1 remove. Elas precisam migrar para `integrated` (ou para a Mesa nova) no mesmo commit da remoção. Já `playwright.writing-desk`, `desk-research` e `desk-review` usam as duas flags ligadas. As suítes com `CASE=false` e sem `AGENTIC` (`agentic-flags`, `mcp-site`, `public`, `saved-research`, `chunk-recovery`) testam o site sem a Mesa e não dependem do ramo removido. Os specs que citam `/app/rascunhos` ou `/app/revisao` são `agentic-flags`, `agentic-workspace`, `case-ai-access`, `desk-review`, `matter-lifecycle`, `research-history`, `site-mcp-scope` e `writing-desk`.
+
+**Decisões pedidas a Boni.** (1) Aprovar ou ajustar a tabela acima. (2) Confirmar que o modo “sem casos” (`CASE` desligado) continua existindo como configuração do site sem Mesa, e não como segunda Mesa. (3) Dizer se “Gerar proposta de teste” sai já na U1 ou fica com o piloto.
+
+## M1 · preparação (somente leitura; nada publicado)
+
+Em 11/11/2026. O deploy depende de a PR #138 entrar em `main`: `deploy-from-main.ps1` exige checkout limpo no SHA de `origin/main`, então o `-DryRun` não foi executado aqui. Pontos de atenção levantados para a publicação:
+
+| Item | Situação |
+| --- | --- |
+| Política comercial | `main` define `commercial-brl-2026-11-10-v2`: reserva R$ 11,50 (antes R$ 5,00) e `maxInferenceMicroUsd` de 600.000 (antes 250.000). O limite diário continua R$ 20,00 e o mensal R$ 100,00. Com a reserva de R$ 11,50, uma segunda execução no mesmo dia é recusada depois de R$ 8,50 gastos. DEC-5 autorizou manter R$ 11,50 e subir até R$ 20,00 com nova política versionada; o limite diário não foi decidido. |
+| Efeito visível | A Conta e a confirmação de custo leem o preço do serviço (`CommercialPanel`); a mensagem de saldo insuficiente existe. A conferência com uma execução comercial de teste fica para depois do deploy. |
+| Flags | Publicar com `DESK_GUIDANCE` e `DRAFT_SAVE_COMMANDS` ausentes (desligadas). O deploy agora informa o valor efetivo (E4). |
+| Migração | O código de `main` traz a `0041` e `AUTO_MIGRATE=false`. O esquema do banco compartilhado, usado por produção, não foi lido; se `main` trouxer migração que ele não tem, a API acusa no `/readyz`. A conferência exige ler o registro de migrações do banco, o que não foi feito. |
+| `mcp.call` | A conferência do #132 e do piso de 5 decisões depende de tráfego real depois do deploy. Hoje: 5 `tools/call` sem chave de idempotência do Claude e 3 do ChatGPT. |
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.
