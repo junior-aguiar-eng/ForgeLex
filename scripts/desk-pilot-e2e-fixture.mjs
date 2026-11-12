@@ -59,10 +59,12 @@ const budget =
 
 const archive = process.env.FORGELEX_E2E_SKILL_ARCHIVE;
 const pilotEntries = revised ? await loadRevisedPilot(archive) : captured ? await loadCapturedPilot(archive) : [];
+// Forma declara uma lista de áreas (M3.0); o piloto usa a primeira.
+const areaOf = (entry) => (entry.kind === 'FORM' ? entry.areas[0] : entry.area);
 const resources = [...Object.values(forms), matter, ...(expanded ? [civilMatter] : [])].map((entry) => {
   if (!captured && !revised) return { ...entry, version };
   const candidate = pilotEntries.find(
-    (item) => item.area === entry.area && item.category === (entry.kind === 'FORM' ? 'forma' : 'materia'),
+    (item) => item.area === areaOf(entry) && item.category === (entry.kind === 'FORM' ? 'forma' : 'materia'),
   );
   assert.ok(candidate, 'Ficha do lote indisponível');
   return { ...entry, id: candidate.id, version: candidate.version, content: candidate.content };
@@ -120,7 +122,7 @@ export function deskPilotResponse({ role, packet, registry }) {
   );
   assert.equal(Boolean(packet.guidance), isGuided);
   if (isGuided) {
-    assert.equal(packet.guidance.area.value, form.area);
+    assert.equal(packet.guidance.area.value, areaOf(form));
     assert.equal(packet.guidance.documentType.status, isUnknown ? 'unknown' : 'confirmed');
     if (isUnknown) {
       assert.ok(packet.guidanceAnswers.some(({ answer }) => answer.unknown));

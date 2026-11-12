@@ -563,6 +563,43 @@ Em 12/11/2026, sobre `89ab9cc` (Frente U, branch `claude/frente-u-inventario-mes
 
 Reversão: manter a flag desligada, ou reverter os commits da U2.
 
+## M3.0 · mapa de correspondência do catálogo (parcial)
+
+Em 12/11/2026, sobre `7ddca59` (branch `claude/frente-u-inventario-mesa`; a M3 é da Frente M, mas foi feita aqui porque destrava a U3). DEC-4: as 2.077 fichas (303 Forma, 1.774 Matéria) são mantidas e incorporadas. O ZIP em Downloads confere com o SHA-256 da captura (`2a0efbbc…`). Inventário R1 regenerado em `.superpowers/sdd/2026-11-12-m3-catalog/` (ignorado pelo Git); o mapa gerado (`catalog-map.json`) fica ali também, porque traz títulos e gatilhos de terceiros, e o que entra no repositório é só o script, os testes e este relatório.
+
+**Script.** `scripts/skills/map-catalog.mjs --inventory <JSON do R1> --out <JSON local>` gera, por ficha, a chave exata do resolvedor. Matéria: a área declarada na própria ficha e o `stableId` como tópico. Forma: uma ou mais áreas e o `stableId` como tipo de peça. A área da Forma vem de (1) regras por palavra do `stableId`, (2) 16 sobrescritas explícitas, cada uma com motivo (ex.: agravo de petição é trabalhista), e (3) votos por citações normativas (CPC, CC, súmulas) que a Forma compartilha com as Matérias de cada área. Regra e votos concordando dão confiança alta; só a regra, média; discordância, só votos ou peça processual genérica vão para a fila.
+
+**Resultado sobre as 2.077 fichas.**
+
+| Item | Resultado |
+| --- | --- |
+| Fichas com resultado | 2.077 de 2.077 (1.994 mapeadas, 83 na fila). Nenhuma sem resultado e nenhuma chave duplicada. |
+| Matéria | 1.774 mapeadas, 25 áreas. As 580 sem subárea não importam: o tópico é o `stableId`. |
+| Forma mapeadas | 220: 132 com regra e votos concordando (alta) e 88 só pela regra (média). 66 fichas servem a mais de uma área. |
+| Forma na fila | 83: 47 peças processuais genéricas sem área clara (agravo, embargos, execução…), 26 em que a regra e os votos discordam, 6 sem nenhuma evidência (`codigo-conduta-etica`, `correicao-parcial`, `excecao-pre-executividade`, `mediacao-extrajudicial-defensoria`, `politica-corporativa`, `restituicao-administrativa`) e 4 só por votos. |
+| `notificacao-extrajudicial` | Deixou de gerar `FORM_CONFLICT`: o tipo de peça é o `stableId`, e o `documentType` de origem comum fica registrado como `sourceDocumentType`. |
+
+A qualidade da atribuição de área da Forma é heurística: nenhuma ficha foi lida uma a uma, e a fila é o ponto em que só Boni é chamado (DEC-4). As 83 vão em lotes por área na M3.2.
+
+**Contrato e resolvedor.** As entradas FORM do catálogo passam a declarar `areas` (lista, ao menos uma, sem repetição); MATTER mantém `area` e `topic`. O resolvedor seleciona a Forma quando a área consultada está na lista e o tipo de peça coincide; duas Formas com o mesmo tipo e área em comum continuam em `FORM_CONFLICT`. As fixtures de teste e do piloto foram atualizadas.
+
+**Matéria: candidatos e classificação.** `matterCandidates` (em `packages/legal-agents/src/skills/skill-candidates.ts`) pré-filtra pela área e pelos `triggers` e devolve até oito candidatos em ordem estável; `pickMatterTopic` só aceita a escolha de quem classifica se ela estiver entre eles, e o resolvedor segue exigindo igualdade exata. Verificação contra o catálogo real (teste opcional com `FORGELEX_CATALOG_INVENTORY`): em 1.774 consultas, a própria ficha apareceu entre os oito candidatos em todas e em primeiro lugar em 1.745.
+
+**Orçamento de contexto.** Medido nas fichas reais: Forma com mediana de 7,6 KB, p90 de 11 KB e máximo de 15,6 KB (2 acima de 15 KB); Matéria com mediana de 7,4 KB, p90 de 12,2 KB, p99 de 15,9 KB e máximo de 27 KB (28 acima de 15 KB). O limite do trabalho inteiro é `CASE_TASK_POLICY.maxBytes` = 192.000 bytes. **Proposta, a decidir por Boni:** 64 KB por papel (uma Forma e quatro Matérias típicas) e 96 KB no total (metade do limite). A seleção deixou de zerar quando estoura: a Forma entra primeiro, depois a Matéria com mais fontes selecionadas, o que não cabe é omitido e registrado em `SKILL_BUDGET_PARTIAL` com os ids omitidos; só quando nada cabe a seleção fica vazia (`SKILL_BUDGET_EXCEEDED`). Os valores continuam parâmetros do servidor, ainda sem catálogo em produção.
+
+**Não feito e por quê.** O vocabulário de 25 áreas na Mesa (`desk-guidance`, `guidance-rules.ts`, hoje seis áreas e a tabela de peças fixa em código) fica para a U3: é lá que o cliente chega à área por grande área e por texto livre, e a tabela de peças será substituída pelas Formas do mapa. A guiada continua desligada em produção, então nada se perde. A M3.1 (incorporação, estado de revisão e versão do catálogo por execução), a M3.2 (cruzamento em massa) e a M3.3 (Lote 0) seguem pendentes.
+
+**Verificação.**
+
+| Item | Resultado |
+| --- | --- |
+| Vitest | 274 arquivos e 2.035 testes aprovados, 18 ignorados (17 de PostgreSQL e o do catálogo real, que exige o inventário). |
+| Testes novos | `map-catalog.test.mjs` (8, com `node --test`), áreas em lista e seleção parcial (4 e 1 em `skill-selection.test.ts`) e `skill-candidates.test.ts` (5, mais 1 opcional). |
+| Playwright | `desk-pilot` 4 aprovados (depois de ajustar a fixture) e `agentic-workspace` 25 aprovados. |
+| Tipos, ESLint, Prettier | Sem erros. |
+
+Reversão: reverter os commits da M3.0; o catálogo ainda não está em produção.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.
