@@ -32,7 +32,7 @@ import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
 import { EditorialCommercialCommand } from './editorial-commercial-runtime.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
-import { GuidanceService } from './guidance-service.js';
+import { GuidanceService, type GuidanceServiceOptions } from './guidance-service.js';
 import { registerGuidanceRoutes } from './guidance-routes.js';
 
 export interface AgenticWorkspaceRuntimeOptions {
@@ -40,6 +40,8 @@ export interface AgenticWorkspaceRuntimeOptions {
   editorialGeneration?: FinalEditorGenerationOptions;
   closedPilot?: ClosedPilot;
   commercial?: CommercialRuntime;
+  /** Peças internas do catálogo para a orientação da Mesa (U3); não vão ao navegador. */
+  guidance?: Pick<GuidanceServiceOptions, 'pieces' | 'matters'>;
   driver?: ExecutionDriver;
   caseTask?: NativeCaseTaskOptions;
   scheduler?: boolean;
@@ -60,6 +62,16 @@ export function registerAgenticWorkspace(
     environment: Record<string, string | undefined>;
     options?: AgenticWorkspaceRuntimeOptions;
     researchService?: ResearchService;
+    /** Registro de auditoria das ações do cliente que escondem ou restauram conteúdo (U4). Opcional e sem efeito se faltar. */
+    audit?: (event: {
+      sessionId: string;
+      tenantId: string;
+      userId: string;
+      toolName: string;
+      durationMs: number;
+      status: 'SUCCESS';
+      payload: Record<string, unknown>;
+    }) => Promise<void>;
   },
 ) {
   if (deps.environment.FORGELEX_AGENTIC_WORKSPACE_ENABLED !== 'true') return;
@@ -303,7 +315,12 @@ export function registerAgenticWorkspace(
   if (guidance && deps.database) {
     registerGuidanceRoutes(
       app,
-      new GuidanceService(deps.database),
+      new GuidanceService(deps.database, {
+        // Regras mesa-v3 (25 áreas, tribunal, peça proposta): desligadas por padrão e só para conversas novas.
+        ...(deps.environment.FORGELEX_DESK_GUIDANCE_V3_ENABLED === 'true' ? { rulesVersion: 'mesa-v3' as const } : {}),
+        ...(deps.options?.guidance?.pieces ? { pieces: deps.options.guidance.pieces } : {}),
+        ...(deps.options?.guidance?.matters ? { matters: deps.options.guidance.matters } : {}),
+      }),
       { preHandler: [deps.auth.createPreHandler(['research:read']), session] },
       handle,
     );
@@ -467,6 +484,16 @@ export function registerAgenticWorkspace(
     handle(async (req) => {
       const { hidden } = z.object({ hidden: z.boolean() }).strict().parse(req.body);
       await required().store.workspace.setConversationHidden(owner(req), executionId(req), hidden);
+      // Excluir e restaurar do histórico deixam trilha: quem, o quê e quando. O conteúdo da conversa não entra no registro.
+      await deps.audit?.({
+        sessionId: `conversation_${executionId(req)}`,
+        tenantId: req.principal.tenantId,
+        userId: req.principal.userId,
+        toolName: hidden ? 'workspace.hide_conversation' : 'workspace.restore_conversation',
+        durationMs: 0,
+        status: 'SUCCESS',
+        payload: { executionId: executionId(req), hidden },
+      });
       return { hidden };
     }),
   );

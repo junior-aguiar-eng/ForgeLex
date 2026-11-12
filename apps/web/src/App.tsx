@@ -12,15 +12,12 @@ import { DataJudPage } from './public/pages/DataJudPage';
 import { resolveSiteRoute, safeWorkspaceDestination, type SiteRoute } from './navigation/site-routes';
 
 import { resolveVisibleTab, type AppTab } from './navigation/routes';
-import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from './config/site-capabilities';
+import { CASE_WORKSPACE_ENABLED } from './config/site-capabilities';
 
 const LandingScreen = lazy(() => import('./screens/LandingScreen').then(({ LandingScreen: screen }) => ({ default: screen })));
 const WritingDeskScreen = lazy(() => import('./screens/WritingDeskScreen').then(({ WritingDeskScreen: screen }) => ({ default: screen })));
-const AgenticWorkspaceScreen = lazy(() => import('./screens/AgenticWorkspaceScreen').then(({ AgenticWorkspaceScreen: screen }) => ({ default: screen })));
 const ResearchDeskScreen = lazy(() => import('./screens/ResearchDeskScreen').then(({ ResearchDeskScreen: screen }) => ({ default: screen })));
 const MatterWorkspaceScreen = lazy(() => import('./screens/MatterWorkspaceScreen').then(({ MatterWorkspaceScreen: screen }) => ({ default: screen })));
-const DraftStudioScreen = lazy(() => import('./screens/DraftStudioScreen').then(({ DraftStudioScreen: screen }) => ({ default: screen })));
-const DashboardScreen = lazy(() => import('./screens/DashboardScreen').then(({ DashboardScreen: screen }) => ({ default: screen })));
 const ConnectionsScreen = lazy(() => import('./screens/ConnectionsScreen').then(({ ConnectionsScreen: screen }) => ({ default: screen })));
 const CreditsScreen = lazy(() => import('./screens/CreditsScreen').then(({ CreditsScreen: screen }) => ({ default: screen })));
 const AccountActivityScreen = lazy(() => import('./screens/AccountActivityScreen').then(({ AccountActivityScreen: screen }) => ({ default: screen })));
@@ -32,21 +29,15 @@ const ApiDocsScreen = lazy(() => import('./screens/ApiDocsScreen').then(({ ApiDo
 const OAuthConsentScreen = lazy(() => import('./screens/OAuthConsentScreen').then(({ OAuthConsentScreen: screen }) => ({ default: screen })));
 
 const AppContent: React.FC = () => {
-  const { activeTab, routeLocation, setActiveTab, setDeskSelection } = useApp();
-  const integrated = AGENTIC_WORKSPACE_ENABLED && CASE_WORKSPACE_ENABLED;
+  const { activeTab, routeLocation, setActiveTab } = useApp();
   const resolvedTab = resolveVisibleTab(activeTab, CASE_WORKSPACE_ENABLED);
-  const visibleTab = integrated && (resolvedTab === 'draft_studio' || resolvedTab === 'dashboard') ? 'work' : resolvedTab;
+  // Rascunhos e Revisão são a Mesa: os links antigos continuam abrindo-a.
+  const visibleTab = resolvedTab === 'draft_studio' || resolvedTab === 'dashboard' ? 'work' : resolvedTab;
   const { status, passwordRecovery, passwordRecoveryError } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const [draftVisited, setDraftVisited] = React.useState(visibleTab === 'draft_studio');
   const [workVisited, setWorkVisited] = React.useState(visibleTab === 'work');
-  const [draftRequest, setDraftRequest] = React.useState('');
   const selectTab = (tab: AppTab) => setActiveTab(tab);
-  const rememberExecution = React.useCallback((id: string | null) => {
-    setDeskSelection({ executionId: id ?? undefined });
-  }, [setDeskSelection]);
-  React.useEffect(() => { if (visibleTab === 'draft_studio') setDraftVisited(true); if (visibleTab === 'work') setWorkVisited(true); }, [visibleTab]);
-  const openEditor = (url: string) => { setDraftRequest(url); setActiveTab('draft_studio'); window.history.replaceState({}, '', url); };
+  React.useEffect(() => { if (visibleTab === 'work') setWorkVisited(true); }, [visibleTab]);
   const billingReturn = React.useMemo(() => parseBillingReturn(window.location.search), []);
 
   React.useEffect(() => {
@@ -71,15 +62,13 @@ const AppContent: React.FC = () => {
       <div className="relative flex min-w-0 flex-1">
         {<Sidebar mobileOnly={visibleTab === 'work'} activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
         <main className="min-w-0 flex-1">
-          {!integrated && (visibleTab === 'draft_studio' || draftVisited) && <div key="retained-draft" hidden={visibleTab !== 'draft_studio'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando editor…</div>}><DraftStudioScreen requestedLocation={draftRequest} /></Suspense></ScreenLoadBoundary></div>}
-          {(visibleTab === 'work' || workVisited) && <div key="retained-work" hidden={visibleTab !== 'work'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando trabalho…</div>}>{integrated ? <WritingDeskScreen active={visibleTab === 'work'} requestedLocation={routeLocation} /> : <AgenticWorkspaceScreen active={visibleTab === 'work'} onExecutionChange={rememberExecution} onEditor={openEditor} />}</Suspense></ScreenLoadBoundary></div>}
+          {(visibleTab === 'work' || workVisited) && <div key="retained-work" hidden={visibleTab !== 'work'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando trabalho…</div>}><WritingDeskScreen active={visibleTab === 'work'} requestedLocation={routeLocation} /></Suspense></ScreenLoadBoundary></div>}
           <ScreenLoadBoundary key={`page-${visibleTab}`}>
             <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
               {visibleTab === 'landing' && <LandingScreen />}
               {visibleTab === 'research' && <ResearchDeskScreen />}
               {visibleTab === 'datajud' && <DataJudPage />}
               {visibleTab === 'matter' && <MatterWorkspaceScreen />}
-              {visibleTab === 'dashboard' && <DashboardScreen />}
               {visibleTab === 'connections' && <ConnectionsScreen />}
               {visibleTab === 'credits' && <CreditsScreen />}
               {visibleTab === 'account_activity' && <AccountActivityScreen />}

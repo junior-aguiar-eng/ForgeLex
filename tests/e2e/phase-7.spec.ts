@@ -55,7 +55,8 @@ test('Fase 7: login, pesquisa, verificação, billing e revisão operam com fixt
   }, { purchaseId: purchase.purchaseId, api });
   expect(confirmed.status).toBe('PAID');
 
-  await page.getByRole('button', { name: 'Revisão', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: 'Mesa' }).click();
+  await page.getByRole('button', { name: 'Pendências de revisão', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Memo prescricional' })).toBeVisible();
   await page.getByRole('button', { name: 'Aprovar' }).click();
   await expect(page.getByText('Revisão aprovada no fluxo interno.')).toBeVisible();

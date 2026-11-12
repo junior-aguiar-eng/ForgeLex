@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { GuidedQuestion } from './GuidedQuestion';
 import { GuidanceSummary } from './GuidanceSummary';
-import type { GuidanceField } from './guidance-model';
+import { askedGuidanceFields, type GuidanceField } from './guidance-model';
+import type { QuestionDraft } from './question-draft';
 import type { useDeskGuidance } from './use-desk-guidance';
 
 export function GuidancePanel({
@@ -22,6 +23,17 @@ export function GuidancePanel({
   const summary = useRef<HTMLDivElement>(null);
   const editing = field ? state?.decisions[field] : undefined;
   const question = editing?.question ?? state?.question;
+  // O que o cliente digitou numa pergunta fica guardado por pergunta, para voltar um passo e retomar sem perder nada.
+  const drafts = useRef(new Map<string, QuestionDraft>());
+  const draftKey = question ? `${question.id}:${question.contextRevision}` : undefined;
+  const saveDraft = useCallback(
+    (draft: QuestionDraft) => {
+      if (draftKey) drafts.current.set(draftKey, draft);
+    },
+    [draftKey],
+  );
+  // "Voltar": a resposta mais recente vira a pergunta aberta; a pendente mantém o rascunho.
+  const previous = !editing && state ? askedGuidanceFields(state).at(-1) : undefined;
   const returnToSummary = () => summary.current?.querySelector('button')?.focus();
   useEffect(() => {
     if (focus && !question) summary.current?.querySelector('button')?.focus();
@@ -65,6 +77,16 @@ export function GuidancePanel({
           busy={busy}
           focus={focus + editFocus}
           initialValue={editing?.value}
+          draft={draftKey ? drafts.current.get(draftKey) : undefined}
+          onDraft={saveDraft}
+          onBack={
+            previous
+              ? () => {
+                  onEdit(previous);
+                  setEditFocus((value) => value + 1);
+                }
+              : undefined
+          }
           onAnswer={(value) => {
             void answer(value, Boolean(editing));
           }}

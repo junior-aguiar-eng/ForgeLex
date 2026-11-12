@@ -1,0 +1,580 @@
+{
+  "schemaVersion": 1,
+  "approvedOn": "2026-11-12",
+  "decisions": [
+    {
+      "stableId": "acao-resolucao-contratual",
+      "areas": ["civil", "contratos"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "acao-revisional-contratual",
+      "areas": ["consumidor", "contratos"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "acordao-relator",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "acordo-transacao",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "acp",
+      "areas": ["administrativo", "ambiental", "consumidor"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "agravo-instrumento",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "agravo-interno",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "agravo-resp-re",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "alvara-judicial",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "assistencia-judiciaria-gratuita",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "carta-arbitral",
+      "areas": ["processo-civil", "civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "carta-precatoria",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "chamamento-processo",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "codigo-conduta-etica",
+      "areas": ["consultoria", "empresarial"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (sem-evidencia): Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "conflito-competencia",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "contranotificacao-resposta",
+      "areas": ["civil", "processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "correicao-parcial",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (sem-evidencia): Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "cumprimento-obrigacao-saude",
+      "areas": ["saude", "processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "cumprimento-sentenca",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "custos-vulnerabilis",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "decisao-interlocutoria",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "decisao-monocratica",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "defesa-acao-civil-publica-fazenda",
+      "areas": ["administrativo", "ambiental"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "defesa-busca-apreensao",
+      "areas": ["bancario", "consumidor"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "defesa-paf",
+      "areas": ["administrativo", "tributario"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "defesa-par-anticorrupcao",
+      "areas": ["administrativo"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "despacho-saneador",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "edital",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "embargos-devedor",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "embargos-divergencia",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "excecao-pre-executividade",
+      "areas": ["processo-civil", "tributario"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (sem-evidencia): Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "execucao-entrega-coisa",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "execucao-fazer-nao-fazer",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "execucao-quantia-certa",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "iac",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "impugnacao-cumprimento-sentenca",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "impugnacao-valor-causa",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "incidente-falsidade-documental",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "irdr",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "jec",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "mandado-expediente",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "manifestacao-mp-controle-constitucionalidade",
+      "areas": ["constitucional"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "mediacao-extrajudicial-defensoria",
+      "areas": ["civil", "processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (sem-evidencia): Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "memoriais-tribunal-superior",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "minuta-clausula-contratual",
+      "areas": ["contratos"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "minuta-contratual",
+      "areas": ["contratos"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "ms-coletivo",
+      "areas": ["constitucional"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "nota-tecnica-juridica",
+      "areas": ["consultoria"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "nota-tecnica",
+      "areas": ["consultoria"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "notificacao-extrajudicial",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "nunciacao-obra-nova-tutela-inibitoria",
+      "areas": ["imobiliario", "processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "oficio",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "penhora-online",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "peticao-inicial-civel",
+      "areas": ["civil", "processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "peticao-inicial-jec",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "politica-corporativa",
+      "areas": ["consultoria", "empresarial"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (sem-evidencia): Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "procuracao",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "quesitos-pericia",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "reclamacao-cnj-cnmp",
+      "areas": ["administrativo", "constitucional"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "reclamacao-constitucional",
+      "areas": ["constitucional"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "recurso-adesivo",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "recurso-apelacao",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "recurso-extraordinario",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "recurso-sentido-estrito",
+      "areas": ["processo-penal"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "regulamento-interno",
+      "areas": ["empresarial", "trabalho"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "relatorio-investigacao-interna",
+      "areas": ["consultoria", "empresarial"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "replica",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "restituicao-administrativa",
+      "areas": ["tributario"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (sem-evidencia): Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "retificacao-registro-civil",
+      "areas": ["familia-sucessoes", "civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "sentenca-civel",
+      "areas": ["civil", "processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "sentenca-jec",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "sentenca-jecrim",
+      "areas": ["processo-penal"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "sentenca-mandado-seguranca",
+      "areas": ["administrativo", "constitucional"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "suspensao-liminar-sentenca",
+      "areas": ["administrativo", "processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "sustentacao-oral",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "termo-audiencia",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "tomada-decisao-apoiada",
+      "areas": ["familia-sucessoes"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (peculiaridade): Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "tutela-antecipada-antecedente",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "tutela-cautelar-antecedente",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "tutela-cautelar-incidental",
+      "areas": ["processo-civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "tutela-provisoria-arbitragem",
+      "areas": ["processo-civil", "civil"],
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (rito-cpc): Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    },
+    {
+      "stableId": "voto-vista",
+      "transversal": true,
+      "reason": "Proposta aprovada por Boni em 12/11/2026 (moldura): Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "decidedBy": "Boni",
+      "date": "2026-11-12"
+    }
+  ]
+}

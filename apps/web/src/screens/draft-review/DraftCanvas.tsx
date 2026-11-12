@@ -126,6 +126,7 @@ export function DraftCanvas({
   history,
   extras,
   caseControls,
+  onArchive,
 }: {
   title: string;
   sections: Section[];
@@ -150,6 +151,8 @@ export function DraftCanvas({
   history: ReactNode;
   extras?: ReactNode;
   caseControls?: ReactNode;
+  /** Exclui a peça aberta: ela sai da lista, nada é apagado e o aviso oferece "Desfazer". */
+  onArchive?: () => void;
 }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selection, setSelection] = useState<{
@@ -213,6 +216,19 @@ export function DraftCanvas({
                   ))}
                 </select>
               </label>
+            )}
+            {matterId && draftId && onArchive && (
+              <div>
+                <button
+                  type="button"
+                  disabled={busy || dirty}
+                  onClick={onArchive}
+                  className="min-h-9 rounded-lg px-2 text-sm font-medium text-cognac-800 hover:bg-cognac-50 disabled:opacity-40"
+                >
+                  Excluir peça
+                </button>
+                {dirty && <p className="text-xs text-stone-600">Salve ou descarte a edição antes de excluir.</p>}
+              </div>
             )}
           </div>
         </details>

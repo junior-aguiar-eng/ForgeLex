@@ -41,6 +41,34 @@ await Promise.all([
   import('../components/Header'),
   import('../components/Sidebar'),
 ]);
+describe('Mesa única na navegação', () => {
+  it('mostra a Mesa só com a Mesa agêntica e os casos ligados, sem Rascunhos nem Revisão avulsos', async () => {
+    for (const [cases, agentic, mesa] of [
+      ['true', 'true', true],
+      ['true', 'false', false],
+      ['false', 'true', false],
+    ] as const) {
+      vi.stubEnv('VITE_FORGELEX_CASE_WORKSPACE_ENABLED', cases);
+      vi.stubEnv('VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED', agentic);
+      vi.resetModules();
+      const { Header } = await import('../components/Header');
+      const { Sidebar } = await import('../components/Sidebar');
+      const header = renderToStaticMarkup(React.createElement(Header, { menuOpen: false, onMenuToggle: () => {} }));
+      const sidebar = renderToStaticMarkup(
+        React.createElement(Sidebar, {
+          activeTab: 'connections',
+          mobileOpen: true,
+          onCloseMobile: () => {},
+          onSelect: () => {},
+        }),
+      );
+      for (const html of [header, sidebar]) {
+        expect(html.includes('>Mesa<')).toBe(mesa);
+        for (const label of ['>Rascunhos<', '>Revisão<']) expect(html.includes(label)).toBe(false);
+      }
+    }
+  });
+});
 describe('atalhos de casos nas telas preservadas', () => {
   it.each([false, true])('respeita flag casesEnabled=%s em resultados e conexão', async (enabled) => {
     vi.stubEnv('VITE_FORGELEX_CASE_WORKSPACE_ENABLED', String(enabled));
@@ -60,7 +88,10 @@ describe('atalhos de casos nas telas preservadas', () => {
       }),
     );
     for (const html of [header, sidebar]) {
-      for (const label of ['>Casos<', '>Rascunhos<', '>Revisão<']) expect(html.includes(label)).toBe(enabled);
+      expect(html.includes('>Casos<')).toBe(enabled);
+      // Rascunhos e Revisão deixaram de ser itens avulsos: viraram abas da Mesa.
+      for (const label of ['>Rascunhos<', '>Revisão<']) expect(html.includes(label)).toBe(false);
+      expect(html.includes('>Mesa<')).toBe(false);
       expect(html).toContain('Pesquisa');
     }
     expect(sidebar).toContain('Consulta processual gratuita');

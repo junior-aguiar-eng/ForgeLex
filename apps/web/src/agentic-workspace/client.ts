@@ -69,6 +69,13 @@ export class WorkspaceClient {
     requestApi<Execution>(`/api/agentic/executions/${encodeURIComponent(id)}`, {}, { sessionOnly: true });
   guidance = (id: string, signal?: AbortSignal) =>
     requestApi<GuidanceState>(`/api/agentic/guidance/${encodeURIComponent(id)}`, { signal }, { sessionOnly: true });
+  /** Sugere uma matéria por vez a partir do texto; sem custo, sem provedor e sem lista. */
+  suggestMatter = (input: { text: string; area?: string; rejected?: string[] }) =>
+    requestApi<{ suggestion: { token: string; label: string } | null }>(
+      '/api/agentic/guidance/matter-suggestions',
+      { method: 'POST', body: JSON.stringify(input) },
+      { sessionOnly: true },
+    );
   startGuidance = (input: GuidanceStart, key: string) =>
     this.command<GuidanceState>('/api/agentic/guidance', input, key);
   answerGuidance = (id: string, input: Answer, key: string, correcting: boolean) =>

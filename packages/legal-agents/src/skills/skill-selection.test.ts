@@ -31,7 +31,7 @@ const form = {
   version: 1,
   status: 'eligible',
   kind: 'FORM',
-  area: 'penal',
+  areas: ['penal'],
   documentType: 'resposta-acusacao',
   roles: ['legal-drafter', 'adversarial-reviewer'],
   contentHash: hash(formText),
@@ -173,6 +173,59 @@ describe('catálogo e seleção interna da Mesa', () => {
   });
 });
 
+describe('Forma em mais de uma área (M3.0)', () => {
+  const shared = { ...form, id: 'forma-compartilhada', areas: ['penal', 'processo-penal'] } as const;
+  const sharedCatalog = createSkillCatalog({ version: 'catalogo-v1', entries: [shared] });
+  const asking = (area: string) => ({
+    ...request,
+    catalog: sharedCatalog,
+    guidance: guide({ area: confirm(area) }),
+    issues: [],
+    activeRoles: ['legal-drafter'] as const,
+  });
+
+  it('seleciona a mesma Forma por qualquer uma das suas áreas, com a área consultada na razão', () => {
+    for (const area of ['penal', 'processo-penal']) {
+      const result = resolveDeskSkills(asking(area));
+      expect(result.limitations).toEqual([]);
+      expect(result.selections.map(({ skill, reason }) => [skill.id, reason])).toEqual([
+        ['forma-compartilhada', { kind: 'FORM', area, documentType: 'resposta-acusacao' }],
+      ]);
+    }
+  });
+
+  it('não seleciona fora das áreas listadas', () => {
+    const result = resolveDeskSkills(asking('civil'));
+    expect(result.selections).toEqual([]);
+    expect(result.limitations).toEqual([
+      { code: 'FORM_UNAVAILABLE', area: 'civil', documentType: 'resposta-acusacao' },
+    ]);
+  });
+
+  it('exige ao menos uma área e recusa áreas repetidas', () => {
+    expect(() => createSkillCatalog({ version: 'v', entries: [{ ...form, areas: [] }] })).toThrow();
+    expect(() => createSkillCatalog({ version: 'v', entries: [{ ...form, areas: ['penal', 'penal'] }] })).toThrow();
+    expect(() =>
+      createSkillCatalog({ version: 'v', entries: [{ ...form, area: 'penal', areas: undefined }] }),
+    ).toThrow();
+  });
+
+  it('duas Formas com o mesmo tipo e área em comum continuam em conflito', () => {
+    const other = { ...shared, id: 'forma-concorrente', areas: ['processo-penal'] } as const;
+    const catalog = createSkillCatalog({ version: 'v', entries: [shared, other] });
+    const result = resolveDeskSkills({ ...asking('processo-penal'), catalog });
+    expect(result.selections).toEqual([]);
+    expect(result.limitations).toEqual([
+      {
+        code: 'FORM_CONFLICT',
+        area: 'processo-penal',
+        documentType: 'resposta-acusacao',
+        skillIds: ['forma-compartilhada', 'forma-concorrente'],
+      },
+    ]);
+  });
+});
+
 describe('vínculo interno por execução', () => {
   it('valida orçamento total e por papel antes de ler qualquer corpo', async () => {
     const loadContent = vi.fn();
@@ -185,6 +238,40 @@ describe('vínculo interno por execução', () => {
       expect(result.limitations).toContainEqual({ code: 'SKILL_BUDGET_EXCEEDED' });
     }
     expect(loadContent).not.toHaveBeenCalled();
+  });
+
+  it('seleção parcial: a Forma entra primeiro, depois a Matéria com mais fontes, e o que sobra é registrado', async () => {
+    const loadContent = vi.fn(async ({ id }: { id: string }) =>
+      id === form.id ? formText : id === matter.id ? matterText : civilText,
+    );
+    const partial = {
+      ...request,
+      guidance: guide({ area: confirm('penal') }),
+      issues: [
+        { ...penalIssue, sourceIds: ['prova-1', 'prova-2'] },
+        { ...civilIssue, sourceIds: ['contrato-1'] },
+      ],
+      sourceIds: ['prova-1', 'prova-2', 'contrato-1'],
+      contextRevision: 1,
+      loadContent,
+    };
+    // Cabe uma Matéria por papel: a penal tem duas fontes e vence a cível, que tem uma.
+    const result = await bindDeskSkills({
+      ...partial,
+      budget: { maxBytesPerRole: matter.byteLength + 1, maxBytesTotal: 100_000 },
+    });
+    expect(result.references.map(({ id }) => id).sort()).toEqual(['forma-teste', 'materia-teste']);
+    expect(result.limitations).toEqual([{ code: 'SKILL_BUDGET_PARTIAL', skillIds: ['materia-civel-teste'] }]);
+    expect(loadContent).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'materia-civel-teste' }));
+    // Sem espaço nem para a Forma e as Matérias juntas, a Forma continua primeiro.
+    const onlyForm = await bindDeskSkills({
+      ...partial,
+      budget: { maxBytesPerRole: form.byteLength, maxBytesTotal: form.byteLength },
+    });
+    expect(onlyForm.references.map(({ id }) => id)).toEqual(['forma-teste']);
+    expect(onlyForm.limitations).toEqual([
+      { code: 'SKILL_BUDGET_PARTIAL', skillIds: ['materia-civel-teste', 'materia-teste'] },
+    ]);
   });
 
   it('fixa corpo e hash, carrega uma vez por versão e entrega apenas as referências do papel ativo', async () => {

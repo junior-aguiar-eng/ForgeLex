@@ -1,0 +1,483 @@
+{
+  "note": "Normas esparsas conferidas pelo cruzamento. O código é o prefixo do tipo (lei, lc, dl, decreto, mp, ec) mais o número sem pontos. O texto vem do Planalto, pelo fetch_oficial.py, e fica fora do Git.",
+  "norms": [
+    {
+      "code": "decreto11563",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/decreto/D11563.htm"
+    },
+    {
+      "code": "decreto11802",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/decreto/D11802.htm"
+    },
+    {
+      "code": "decreto13094",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/decreto/D13094.htm"
+    },
+    {
+      "code": "decreto13095",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/decreto/D13095.htm"
+    },
+    {
+      "code": "decreto13096",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/decreto/D13096.htm"
+    },
+    {
+      "code": "decreto13135",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/decreto/D13135.htm"
+    },
+    {
+      "code": "decreto13136",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/decreto/D13136.htm"
+    },
+    {
+      "code": "decreto13138",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/decreto/D13138.htm"
+    },
+    {
+      "code": "decreto20910",
+      "url": "https://www.planalto.gov.br/ccivil_03/decreto/1930-1949/d20910.htm"
+    },
+    {
+      "code": "decreto84669",
+      "url": "https://www.planalto.gov.br/ccivil_03/decreto/1980-1989/d84669.htm"
+    },
+    {
+      "code": "ec132",
+      "url": "https://www.planalto.gov.br/ccivil_03/constituicao/Emendas/Emc/emc132.htm"
+    },
+    {
+      "code": "lc64",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp64.htm"
+    },
+    {
+      "code": "lc87",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp87.htm"
+    },
+    {
+      "code": "lc95",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp95.htm"
+    },
+    {
+      "code": "lc101",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp101.htm"
+    },
+    {
+      "code": "lc116",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp116.htm"
+    },
+    {
+      "code": "lc123",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp123.htm"
+    },
+    {
+      "code": "lc214",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp214.htm"
+    },
+    {
+      "code": "lc224",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp224.htm"
+    },
+    {
+      "code": "lc225",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp225.htm"
+    },
+    {
+      "code": "lc227",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp227.htm"
+    },
+    {
+      "code": "lc229",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp229.htm"
+    },
+    {
+      "code": "lei4502",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l4502compilado.htm"
+    },
+    {
+      "code": "lei4595",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l4595compilado.htm"
+    },
+    {
+      "code": "lei4728",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l4728compilado.htm"
+    },
+    {
+      "code": "lei5991",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L5991.htm"
+    },
+    {
+      "code": "lei6024",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L6024.htm"
+    },
+    {
+      "code": "lei6194",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L6194.htm"
+    },
+    {
+      "code": "lei6385",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l6385.htm"
+    },
+    {
+      "code": "lei6404",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l6404consol.htm"
+    },
+    {
+      "code": "lei6683",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L6683.htm"
+    },
+    {
+      "code": "lei6938",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L6938.htm"
+    },
+    {
+      "code": "lei7210",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l7210compilado.htm"
+    },
+    {
+      "code": "lei7492",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L7492.htm"
+    },
+    {
+      "code": "lei7713",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L7713.htm"
+    },
+    {
+      "code": "lei8009",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L8009.htm"
+    },
+    {
+      "code": "lei8078",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l8078compilado.htm"
+    },
+    {
+      "code": "lei8112",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l8112cons.htm"
+    },
+    {
+      "code": "lei8212",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l8212cons.htm"
+    },
+    {
+      "code": "lei8213",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l8213cons.htm"
+    },
+    {
+      "code": "lei8245",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l8245compilado.htm"
+    },
+    {
+      "code": "lei8429",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l8429.htm"
+    },
+    {
+      "code": "lei8906",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L8906.htm"
+    },
+    {
+      "code": "lei8981",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L8981.htm"
+    },
+    {
+      "code": "lei9074",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9074cons.htm"
+    },
+    {
+      "code": "lei9099",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9099.htm"
+    },
+    {
+      "code": "lei9112",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L9112.htm"
+    },
+    {
+      "code": "lei9249",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L9249.htm"
+    },
+    {
+      "code": "lei9250",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9250compilado.htm"
+    },
+    {
+      "code": "lei9279",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L9279.htm"
+    },
+    {
+      "code": "lei9307",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L9307.htm"
+    },
+    {
+      "code": "lei9394",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9394compilado.htm"
+    },
+    {
+      "code": "lei9430",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L9430.htm"
+    },
+    {
+      "code": "lei9503",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9503compilado.htm"
+    },
+    {
+      "code": "lei9504",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9504compilado.htm"
+    },
+    {
+      "code": "lei9605",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9605.htm"
+    },
+    {
+      "code": "lei9613",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9613compilado.htm"
+    },
+    {
+      "code": "lei9615",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9615consol.htm"
+    },
+    {
+      "code": "lei9711",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L9711.htm"
+    },
+    {
+      "code": "lei9784",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9784.htm"
+    },
+    {
+      "code": "lei9873",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/L9873.htm"
+    },
+    {
+      "code": "lei9984",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9984compilado.htm"
+    },
+    {
+      "code": "lei10233",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/leis_2001/l10233.htm"
+    },
+    {
+      "code": "lei10438",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/2002/l10438.htm"
+    },
+    {
+      "code": "lei10671",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/2003/l10.671.htm"
+    },
+    {
+      "code": "lei11101",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2005/lei/l11101.htm"
+    },
+    {
+      "code": "lei11129",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2005/lei/l11129.htm"
+    },
+    {
+      "code": "lei11182",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2005/lei/l11182.htm"
+    },
+    {
+      "code": "lei11196",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2005/lei/l11196.htm"
+    },
+    {
+      "code": "lei11343",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11343.htm"
+    },
+    {
+      "code": "lei11419",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11419.htm"
+    },
+    {
+      "code": "lei11445",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2007/lei/l11445.htm"
+    },
+    {
+      "code": "lei11482",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2007/lei/l11482.htm"
+    },
+    {
+      "code": "lei11784",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2008/lei/l11784.htm"
+    },
+    {
+      "code": "lei12016",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/lei/l12016.htm"
+    },
+    {
+      "code": "lei12249",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2010/lei/l12249.htm"
+    },
+    {
+      "code": "lei12529",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2011/lei/l12529.htm"
+    },
+    {
+      "code": "lei12546",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2011/lei/l12546.htm"
+    },
+    {
+      "code": "lei12651",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2012/lei/l12651.htm"
+    },
+    {
+      "code": "lei12815",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2013/lei/l12815.htm"
+    },
+    {
+      "code": "lei12846",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2013/lei/l12846.htm"
+    },
+    {
+      "code": "lei12852",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2013/lei/l12852.htm"
+    },
+    {
+      "code": "lei12865",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2013/lei/l12865.htm"
+    },
+    {
+      "code": "lei12965",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12965.htm"
+    },
+    {
+      "code": "lei12973",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12973.htm"
+    },
+    {
+      "code": "lei13021",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l13021.htm"
+    },
+    {
+      "code": "lei13303",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2016/lei/l13303.htm"
+    },
+    {
+      "code": "lei13324",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2016/lei/l13324.htm"
+    },
+    {
+      "code": "lei13709",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"
+    },
+    {
+      "code": "lei13810",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2019/lei/l13810.htm"
+    },
+    {
+      "code": "lei13848",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2019/lei/l13848.htm"
+    },
+    {
+      "code": "lei13874",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2019/lei/l13874.htm"
+    },
+    {
+      "code": "lei14133",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm"
+    },
+    {
+      "code": "lei14193",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14193.htm"
+    },
+    {
+      "code": "lei14293",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2022/lei/l14293.htm"
+    },
+    {
+      "code": "lei14300",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2022/lei/l14300.htm"
+    },
+    {
+      "code": "lei14478",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2022/lei/l14478.htm"
+    },
+    {
+      "code": "lei14509",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2022/lei/l14509.htm"
+    },
+    {
+      "code": "lei14515",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2022/lei/l14515.htm"
+    },
+    {
+      "code": "lei14596",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/lei/l14596.htm"
+    },
+    {
+      "code": "lei14597",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/lei/l14597.htm"
+    },
+    {
+      "code": "lei14600",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/lei/l14600.htm"
+    },
+    {
+      "code": "lei14852",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2024/lei/l14852.htm"
+    },
+    {
+      "code": "lei14874",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2024/lei/l14874.htm"
+    },
+    {
+      "code": "lei14990",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2024/lei/l14990.htm"
+    },
+    {
+      "code": "lei14993",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2024/lei/l14993.htm"
+    },
+    {
+      "code": "lei15040",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2024/lei/l15040.htm"
+    },
+    {
+      "code": "lei15080",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2024/lei/l15080.htm"
+    },
+    {
+      "code": "lei15190",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/lei/l15190.htm"
+    },
+    {
+      "code": "lei15321",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/lei/l15321.htm"
+    },
+    {
+      "code": "lei15352",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15352.htm"
+    },
+    {
+      "code": "lei15371"
+    },
+    {
+      "code": "lei15388",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm"
+    },
+    {
+      "code": "lei15473",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15473.htm"
+    },
+    {
+      "code": "lei15479"
+    },
+    {
+      "code": "lei15503",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15503.htm"
+    },
+    {
+      "code": "lei15504",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15504.htm"
+    },
+    {
+      "code": "mp1359",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/mpv/mpv1359.htm"
+    },
+    {
+      "code": "mp2158",
+      "url": "https://www.planalto.gov.br/ccivil_03/mpv/2158-35.htm"
+    },
+    {
+      "code": "mp2215",
+      "url": "https://www.planalto.gov.br/ccivil_03/mpv/2215-10.htm"
+    }
+  ]
+}

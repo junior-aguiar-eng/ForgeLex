@@ -20,7 +20,7 @@ export interface DeskSkillRequest {
 
 type IssueEvidence = { id: string; sourceIds: string[] };
 export type SkillReason =
-  | { kind: 'FORM'; area: string; documentType: string }
+  | { kind: 'FORM'; area: string; documentType: string; transversal?: true }
   | { kind: 'MATTER'; area: string; topic: string; issues: IssueEvidence[] };
 
 export type SkillResolutionLimitation =
@@ -60,19 +60,35 @@ export function resolveDeskSkills(input: DeskSkillRequest): {
     (guidance.action.value === 'create_document' || (guidance.action.value === 'review_text' && pieceConfirmed))
   ) {
     const areaKnown = guidance.area.status === 'confirmed' || guidance.area.status === 'known';
-    const { value: area } = guidance.area;
     const { value: documentType } = guidance.documentType;
-    if (!areaKnown || !area || area === 'outra' || !pieceConfirmed || !documentType) {
+    const area = areaKnown && guidance.area.value && guidance.area.value !== 'outra' ? guidance.area.value : undefined;
+    if (!pieceConfirmed || !documentType) {
       limitations.push({ code: 'FORM_SCOPE_UNRESOLVED' });
     } else {
-      const forms = eligible.filter(
-        (skill) => skill.kind === 'FORM' && skill.area === area && skill.documentType === documentType,
-      );
-      if (forms.length === 1) select(forms[0], { kind: 'FORM', area, documentType });
-      else if (forms.length) {
-        limitations.push({ code: 'FORM_CONFLICT', area, documentType, skillIds: forms.map(({ id }) => id).sort() });
-      } else {
+      // A Forma da área vence; a transversal (moldura que serve a qualquer área) só entra quando não há Forma da
+      // área para o tipo de peça, ou quando a área ainda não foi definida. Nunca as duas ao mesmo tempo.
+      const ofType = eligible.filter((skill) => skill.kind === 'FORM' && skill.documentType === documentType);
+      const specific = area ? ofType.filter((skill) => skill.kind === 'FORM' && skill.areas.includes(area)) : [];
+      const forms = specific.length ? specific : ofType.filter((skill) => skill.kind === 'FORM' && skill.transversal);
+      const scope = area ?? 'transversal';
+      if (forms.length === 1) {
+        select(forms[0], {
+          kind: 'FORM',
+          area: scope,
+          documentType,
+          ...(specific.length ? {} : { transversal: true as const }),
+        });
+      } else if (forms.length) {
+        limitations.push({
+          code: 'FORM_CONFLICT',
+          area: scope,
+          documentType,
+          skillIds: forms.map(({ id }) => id).sort(),
+        });
+      } else if (area) {
         limitations.push({ code: 'FORM_UNAVAILABLE', area, documentType });
+      } else {
+        limitations.push({ code: 'FORM_SCOPE_UNRESOLVED' });
       }
     }
   }

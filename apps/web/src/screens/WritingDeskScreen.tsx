@@ -1,9 +1,8 @@
-import { lazy, Suspense, useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { FileText, MessageSquare, PanelLeftClose, PanelLeftOpen, PanelRightClose, Plus, Search } from 'lucide-react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { AgenticWorkspaceScreen } from './AgenticWorkspaceScreen';
 import { DraftStudioScreen } from './DraftStudioScreen';
 import { useApp } from '../context/AppContext';
-import type { DeskPiece } from '../agentic-workspace/desk-model';
+import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
 import type { Execution } from '../agentic-workspace/execution-model';
 import type { GuidanceState } from '../agentic-workspace/guidance-model';
 import {
@@ -16,15 +15,12 @@ import {
 import { deskLocation, readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
 import { tabForPath, updateDocumentTitle } from '../navigation/routes';
 import { useAuth } from '../auth/AuthContext';
-import { ScreenLoadBoundary } from '../components/ScreenLoadBoundary';
-import { CanvasDialog } from './draft-review/DraftCanvas';
-import { DeskCaseSources } from '../research/DeskCaseSources';
-import { DashboardScreen } from './DashboardScreen';
+import { DeskShell } from '../desk/DeskShell';
+import { DeskShortcuts, reviewTextRequest } from '../desk/DeskShortcuts';
+import { DESK_SHELL_ENABLED } from '../config/site-capabilities';
+import { DeskMobileTabs, DeskToolbar } from '../desk/DeskToolbar';
+import { DeskQueueDialog, DeskSourcesDialog } from '../desk/DeskDialogs';
 import type { ReviewQueueItem } from '../operations/contracts';
-
-const ResearchDeskScreen = lazy(() =>
-  import('./ResearchDeskScreen').then(({ ResearchDeskScreen }) => ({ default: ResearchDeskScreen })),
-);
 
 function editorLocation(selection: ReturnType<typeof readDeskLocation>): string {
   return deskLocation(selectDeskPiece({}, selection));
@@ -51,6 +47,7 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
   const [queueError, setQueueError] = useState('');
   const [requestedReview, setRequestedReview] = useState<DeskDocumentSelection>();
   const [deskEditorialEnabled, setDeskEditorialEnabled] = useState(false);
+  const [request, setRequest] = useState<DeskRequest>();
   const sourceKey = JSON.stringify([status, account?.user.id, account?.workspace.id, deskLocation(selection)]);
   const openCaseSources = selection.matterId ? () => setSources({ kind: 'case', key: sourceKey }) : undefined;
 
@@ -177,161 +174,88 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
     if (!location) setLocation(target || editorLocation({}));
   };
   return (
-    <div className="min-w-0" data-writing-desk>
-      <header className="flex min-h-12 flex-wrap items-center gap-3 border-b border-stone-200 px-5 text-sm">
-        <button
-          type="button"
-          aria-label={historyCollapsed ? 'Mostrar conversas' : 'Recolher conversas'}
-          aria-expanded={!historyCollapsed}
-          aria-controls="desk-conversations"
-          onClick={() => setHistoryCollapsed((value) => !value)}
-          className="hidden rounded-lg p-2 text-stone-600 hover:bg-stone-100 lg:block"
-        >
-          {historyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-        </button>
-        <span className="mr-auto" />
-        <button
-          type="button"
-          className="rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100"
-          onClick={() => {
+    <DeskShell
+      historyRef={setHistoryContainer}
+      historyCollapsed={historyCollapsed}
+      open={open}
+      mobile={mobile}
+      toolbar={
+        <DeskToolbar
+          historyCollapsed={historyCollapsed}
+          onToggleHistory={() => setHistoryCollapsed((value) => !value)}
+          onOpenQueue={() => {
             setQueueError('');
             setQueueOpen(true);
             void refreshOperationalState();
           }}
-        >
-          Pendências de revisão
-        </button>
-        <button
-          type="button"
-          onClick={() => setSources({ kind: 'research', key: sourceKey })}
-          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100"
-        >
-          <Search size={16} aria-hidden="true" />
-          Pesquisa e fontes
-        </button>
-        <button
-          type="button"
-          onClick={reopenPiece}
-          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100"
-        >
-          <Plus size={16} />
-          {location ? 'Abrir peça' : 'Nova peça'}
-        </button>
-        {open && (
-          <button
-            type="button"
-            aria-label="Recolher peça"
-            onClick={() => {
-              setOpen(false);
-              setMobile('chat');
-            }}
-            className="rounded-lg p-2 text-stone-500 hover:bg-stone-100"
-          >
-            <PanelRightClose size={18} />
-          </button>
-        )}
-      </header>
-      {open && (
-        <nav aria-label="Áreas da mesa" className="flex justify-center gap-2 border-b border-stone-200 p-2 lg:hidden">
-          <button
-            type="button"
-            aria-pressed={mobile === 'chat'}
-            onClick={() => setMobile('chat')}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 aria-pressed:bg-stone-200"
-          >
-            <MessageSquare size={16} />
-            Conversa
-          </button>
-          <button
-            type="button"
-            aria-pressed={mobile === 'piece'}
-            onClick={() => setMobile('piece')}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 aria-pressed:bg-stone-200"
-          >
-            <FileText size={16} />
-            Peça
-          </button>
-        </nav>
-      )}
-      <div className={`min-w-0 ${historyCollapsed ? '' : 'lg:grid lg:grid-cols-[224px_minmax(0,1fr)]'}`}>
-        <aside
-          id="desk-conversations"
-          aria-label="Histórico de conversas"
-          ref={setHistoryContainer}
-          className={`${historyCollapsed ? 'hidden' : 'hidden lg:block'} min-w-0 border-r border-stone-200 bg-stone-50/60 px-3 py-5 lg:h-[calc(100dvh-8rem)] lg:overflow-y-auto`}
+          onOpenResearch={() => setSources({ kind: 'research', key: sourceKey })}
+          onReopenPiece={reopenPiece}
+          hasPiece={Boolean(location)}
+          pieceOpen={open}
+          onCollapsePiece={() => {
+            setOpen(false);
+            setMobile('chat');
+          }}
         />
-        <div
-          className={
-            open ? 'grid min-w-0 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.4fr)]' : 'mx-auto w-full max-w-4xl'
-          }
-        >
-          <div
-            className={`${open && mobile === 'piece' ? 'hidden lg:block' : ''} min-w-0 lg:h-[calc(100dvh-8rem)] lg:overflow-hidden`}
-          >
-            <AgenticWorkspaceScreen
-              active={active}
-              integrated
-              historyContainer={historyContainer}
-              onEditor={openPiece}
-              requestedExecutionId={active ? (selection.executionId ?? null) : undefined}
-              onExecutionChange={changeExecution}
-              onConversationChange={rememberConversation}
-              onDeskEditorialAvailability={setDeskEditorialEnabled}
-              selectionKey={selectionKey}
-              guidanceRoute={{
-                id: selection.executionId ? undefined : selection.conversationId,
-                revision: selection.contextRevision,
-                selectionKey: guidanceSelectionKey,
-                publish: publishGuidance,
-              }}
-              piece={activePiece}
-              piecePending={attached && (!activePiece || activePiece.loadingSelection)}
-            />
-          </div>
-          {location && (
-            <div
-              style={!open ? { display: 'none' } : undefined}
-              className={`${mobile === 'chat' ? 'hidden lg:block' : ''} min-w-0 border-l border-stone-200`}
-            >
-              <DraftStudioScreen
-                integrated
-                requestedLocation={location}
-                selectedVersionId={attached ? selection.versionId : undefined}
-                onPieceChange={setPiece}
-                onCaseSources={openCaseSources}
-                requestedReview={requestedReview}
-                deskEditorialEnabled={deskEditorialEnabled}
+      }
+      mobileTabs={<DeskMobileTabs mobile={mobile} onChange={setMobile} />}
+      conversation={
+        <AgenticWorkspaceScreen
+          active={active}
+          historyContainer={historyContainer}
+          onEditor={openPiece}
+          requestedExecutionId={active ? (selection.executionId ?? null) : undefined}
+          onExecutionChange={changeExecution}
+          onConversationChange={rememberConversation}
+          onDeskEditorialAvailability={setDeskEditorialEnabled}
+          selectionKey={selectionKey}
+          guidanceRoute={{
+            id: selection.executionId ? undefined : selection.conversationId,
+            revision: selection.contextRevision,
+            selectionKey: guidanceSelectionKey,
+            publish: publishGuidance,
+          }}
+          piece={activePiece}
+          piecePending={attached && (!activePiece || activePiece.loadingSelection)}
+          request={request}
+          emptyState={
+            DESK_SHELL_ENABLED ? (
+              <DeskShortcuts
+                onNewPiece={reopenPiece}
+                onReviewText={() => setRequest((old) => ({ id: (old?.id ?? 0) + 1, text: reviewTextRequest }))}
+                onResearch={() => setSources({ kind: 'research', key: sourceKey })}
               />
-            </div>
+            ) : undefined
+          }
+        />
+      }
+      piece={
+        location && (
+          <DraftStudioScreen
+            requestedLocation={location}
+            selectedVersionId={attached ? selection.versionId : undefined}
+            onPieceChange={setPiece}
+            onCaseSources={openCaseSources}
+            requestedReview={requestedReview}
+            deskEditorialEnabled={deskEditorialEnabled}
+          />
+        )
+      }
+      overlays={
+        <>
+          {active && sources?.key === sourceKey && (
+            <DeskSourcesDialog
+              kind={sources.kind}
+              sourceKey={sourceKey}
+              matterId={selection.matterId}
+              onClose={() => setSources(undefined)}
+            />
           )}
-        </div>
-      </div>
-      {active && sources?.key === sourceKey && (
-        <CanvasDialog
-          title={sources.kind === 'research' ? 'Pesquisa e fontes' : 'Fontes do caso'}
-          onClose={() => setSources(undefined)}
-        >
-          {sources.kind === 'research' ? (
-            <ScreenLoadBoundary fallback={<p role="alert">Não foi possível abrir a pesquisa.</p>}>
-              <Suspense fallback={<p role="status">Carregando pesquisa…</p>}>
-                <ResearchDeskScreen compact pieceMatterId={selection.matterId} />
-              </Suspense>
-            </ScreenLoadBoundary>
-          ) : (
-            selection.matterId && <DeskCaseSources key={sourceKey} matterId={selection.matterId} />
+          {active && queueOpen && (
+            <DeskQueueDialog error={queueError} onClose={() => setQueueOpen(false)} onOpenDraft={openQueuedDraft} />
           )}
-        </CanvasDialog>
-      )}
-      {active && queueOpen && (
-        <CanvasDialog title="Revisão do caso" onClose={() => setQueueOpen(false)}>
-          {queueError && (
-            <p role="alert" className="text-sm text-amber-800">
-              {queueError}
-            </p>
-          )}
-          <DashboardScreen compact onOpenDraft={openQueuedDraft} />
-        </CanvasDialog>
-      )}
-    </div>
+        </>
+      }
+    />
   );
 }

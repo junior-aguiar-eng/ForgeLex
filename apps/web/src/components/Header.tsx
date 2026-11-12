@@ -1,19 +1,18 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Cable, FileCode2, FileText, FolderOpen, LogOut, Menu, Scale, Search } from 'lucide-react';
+import { Cable, FileText, FolderOpen, LogOut, Menu, Scale, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import type { AppTab } from '../navigation/routes';
 
-import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import { CASE_WORKSPACE_ENABLED, DESK_ENABLED } from '../config/site-capabilities';
 
 const caseNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = [
   { tab: 'matter', label: 'Casos', icon: FolderOpen },
   { tab: 'research', label: 'Pesquisa', icon: Search },
-  ...(!AGENTIC_WORKSPACE_ENABLED ? [{ tab: 'draft_studio' as const, label: 'Rascunhos', icon: FileText }, { tab: 'dashboard' as const, label: 'Revisão', icon: FileCode2 }] : []),
 ];
 
-const workNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = AGENTIC_WORKSPACE_ENABLED
+const workNavigation: Array<{ tab: AppTab; label: string; icon: LucideIcon }> = DESK_ENABLED
   ? [{ tab: 'work', label: 'Mesa', icon: FileText }]
   : [];
 const primaryNavigation = [
@@ -81,7 +80,7 @@ export const Header: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }> =
 
           <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex" aria-label="Navegação principal">
             {primaryNavigation.map((item) => (
-              <NavigationButton key={item.tab} item={item} active={item.tab === (AGENTIC_WORKSPACE_ENABLED && (activeTab === 'draft_studio' || activeTab === 'dashboard') ? 'work' : activeTab)} onSelect={selectTab} />
+              <NavigationButton key={item.tab} item={item} active={item.tab === (DESK_ENABLED && (activeTab === 'draft_studio' || activeTab === 'dashboard') ? 'work' : activeTab)} onSelect={selectTab} />
             ))}
           </nav>
 

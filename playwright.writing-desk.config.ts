@@ -8,5 +8,6 @@ export default defineConfig({
     'editorial-review.spec.ts',
     'agentic-workspace.spec.ts',
     'agentic-commercial.spec.ts',
+    'desk-shell.spec.ts',
   ],
 });

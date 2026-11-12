@@ -192,7 +192,7 @@ export function agenticE2EOptions() {
                 version: 1,
                 status: 'eligible',
                 kind: 'FORM',
-                area: 'civel',
+                areas: ['civel'],
                 documentType: 'contestacao-civel',
                 roles: ['legal-drafter'],
                 contentHash: createHash('sha256').update(skillContent).digest('hex'),
@@ -204,8 +204,36 @@ export function agenticE2EOptions() {
           loadContent: async () => skillContent,
         }
       : undefined;
+  // Peças sintéticas da orientação mesa-v3 (U3): a lista fica no servidor e nunca chega ao navegador.
+  const guidance =
+    process.env.FORGELEX_E2E_GUIDANCE_V3 === 'true'
+      ? {
+          pieces: [
+            {
+              id: 'resposta-acusacao',
+              label: 'Resposta à acusação',
+              areas: ['penal', 'processo-penal'],
+              transversal: false,
+              triggers: ['defesa preliminar'],
+            },
+            {
+              id: 'contestacao-civel',
+              label: 'Contestação cível',
+              areas: ['civil', 'processo-civil'],
+              transversal: false,
+              triggers: ['defesa do reu'],
+            },
+            { id: 'oficio', label: 'Ofício', areas: [], transversal: true, triggers: [] },
+          ],
+          matters: [
+            { id: 'prescricao-intercorrente', label: 'Prescrição intercorrente', area: 'civil' },
+            { id: 'prova-ilicita', label: 'Prova ilícita', area: 'processo-penal' },
+          ],
+        }
+      : undefined;
   return {
     pollMs: 100,
+    ...(guidance ? { guidance } : {}),
     caseTask: {
       skills: deskPilotSkills() ?? skills,
       ...(process.env.FORGELEX_E2E_PROCEDURE === 'true' ? { legislationProvider: procedureLegislationFixture } : {}),

@@ -4,12 +4,15 @@ import { createSkillCatalog } from '../packages/legal-agents/dist/index.js';
 import { loadCapturedPilot, loadRevisedPilot } from './skills/load-captured-pilot.mjs';
 import cases from '../tests/fixtures/desk-pilot-cases.json' with { type: 'json' };
 
-const topic = 'cadeia-custodia';
+// Modo `incorporated` (M3.3): o catálogo vem de um diretório montado por scripts/skills/build-catalog.mjs e lido
+// pelo mesmo carregador do servidor; os tópicos de Matéria são os stableId das fichas.
+const incorporated = process.env.FORGELEX_E2E_DESK_PILOT === 'incorporated';
+const topic = incorporated ? 'cadeia-custodia-cpp-158' : 'cadeia-custodia';
 const forms = {
   penal: {
     id: 'piloto-forma-penal-sintetica',
     kind: 'FORM',
-    area: 'penal',
+    areas: ['penal'],
     documentType: 'resposta-acusacao',
     roles: ['legal-drafter'],
     content: 'Referência interna sintética de Forma Penal. Organizar somente o texto da fixture.',
@@ -17,7 +20,7 @@ const forms = {
   civel: {
     id: 'piloto-forma-civel-sintetica',
     kind: 'FORM',
-    area: 'civel',
+    areas: ['civel'],
     documentType: 'contestacao-civel',
     roles: ['legal-drafter'],
     content: 'Referência interna sintética de Forma Cível. Organizar somente o texto da fixture.',
@@ -35,41 +38,68 @@ const civilMatter = {
   id: 'piloto-materia-civel-sintetica',
   kind: 'MATTER',
   area: 'civel',
-  topic: 'pagamento-parcial',
+  topic: incorporated ? 'adimplemento-pagamento-cc-304' : 'pagamento-parcial',
   roles: ['matter-analyst'],
   content: 'Referência interna sintética de Matéria Cível. Identificar o pagamento parcial relatado na fixture.',
 };
 const version = 3;
 export const pilotMode = process.env.FORGELEX_E2E_DESK_PILOT;
 const captured = pilotMode === 'captured' || pilotMode === 'captured-limited';
-const revised = pilotMode === 'revised';
+const revised = pilotMode === 'revised' || incorporated; // mesmas asserções do lote revisado
 const expanded = captured || revised || pilotMode === 'expanded';
 const usesCatalog = pilotMode === 'skills' || expanded;
-const catalogVersion = revised
-  ? 'forgelex-r15-revisao-local-v1'
-  : captured
-    ? 'acervo-r15-avaliacao-local-v1'
-    : expanded
-      ? 'catalogo-piloto-sintetico-v2'
-      : 'catalogo-piloto-sintetico-v1';
+const catalogVersion = incorporated
+  ? 'catalogo-incorporado'
+  : revised
+    ? 'forgelex-r15-revisao-local-v1'
+    : captured
+      ? 'acervo-r15-avaliacao-local-v1'
+      : expanded
+        ? 'catalogo-piloto-sintetico-v2'
+        : 'catalogo-piloto-sintetico-v1';
 const budget =
   pilotMode === 'captured' || revised
     ? { maxBytesPerRole: 9000, maxBytesTotal: 17000 }
     : { maxBytesPerRole: 1000, maxBytesTotal: 1000 };
 
 const archive = process.env.FORGELEX_E2E_SKILL_ARCHIVE;
-const pilotEntries = revised ? await loadRevisedPilot(archive) : captured ? await loadCapturedPilot(archive) : [];
-const resources = [...Object.values(forms), matter, ...(expanded ? [civilMatter] : [])].map((entry) => {
-  if (!captured && !revised) return { ...entry, version };
-  const candidate = pilotEntries.find(
-    (item) => item.area === entry.area && item.category === (entry.kind === 'FORM' ? 'forma' : 'materia'),
-  );
-  assert.ok(candidate, 'Ficha do lote indisponível');
-  return { ...entry, id: candidate.id, version: candidate.version, content: candidate.content };
-});
+const incorporatedCatalog = incorporated ? await loadIncorporatedCatalog() : undefined;
+const pilotEntries =
+  revised && !incorporated ? await loadRevisedPilot(archive) : captured ? await loadCapturedPilot(archive) : [];
+
+async function loadIncorporatedCatalog() {
+  const directory = process.env.FORGELEX_E2E_SKILL_CATALOG_DIR;
+  assert.ok(directory, 'Defina FORGELEX_E2E_SKILL_CATALOG_DIR com o diretório do catálogo incorporado.');
+  const { loadFileSkillCatalog } = await import('../apps/api/dist/skills/file-skill-catalog.js');
+  return loadFileSkillCatalog(directory, { maxBytesPerRole: 9000, maxBytesTotal: 17000 });
+}
+// Forma declara uma lista de áreas (M3.0); o piloto usa a primeira.
+const areaOf = (entry) => (entry.kind === 'FORM' ? entry.areas[0] : entry.area);
+const resources = await Promise.all(
+  [...Object.values(forms), matter, ...(expanded ? [civilMatter] : [])].map(async (entry) => {
+    if (incorporated) {
+      const found = incorporatedCatalog.catalog.entries.find(
+        (item) =>
+          item.status === 'eligible' &&
+          item.kind === entry.kind &&
+          (entry.kind === 'FORM' ? item.documentType === entry.documentType : item.topic === entry.topic),
+      );
+      assert.ok(found, 'Ficha do lote indisponível no catálogo incorporado');
+      const content = await incorporatedCatalog.loadContent(found);
+      return { ...entry, id: found.id, version: found.version, content };
+    }
+    if (!captured && !revised) return { ...entry, version };
+    const candidate = pilotEntries.find(
+      (item) => item.area === areaOf(entry) && item.category === (entry.kind === 'FORM' ? 'forma' : 'materia'),
+    );
+    assert.ok(candidate, 'Ficha do lote indisponível');
+    return { ...entry, id: candidate.id, version: candidate.version, content: candidate.content };
+  }),
+);
 
 export function deskPilotSkills() {
   if (!usesCatalog) return undefined;
+  if (incorporated) return incorporatedCatalog;
   return {
     catalog: createSkillCatalog({
       version: catalogVersion,
@@ -120,7 +150,7 @@ export function deskPilotResponse({ role, packet, registry }) {
   );
   assert.equal(Boolean(packet.guidance), isGuided);
   if (isGuided) {
-    assert.equal(packet.guidance.area.value, form.area);
+    assert.equal(packet.guidance.area.value, areaOf(form));
     assert.equal(packet.guidance.documentType.status, isUnknown ? 'unknown' : 'confirmed');
     if (isUnknown) {
       assert.ok(packet.guidanceAnswers.some(({ answer }) => answer.unknown));

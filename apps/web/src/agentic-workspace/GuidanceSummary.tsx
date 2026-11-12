@@ -2,7 +2,7 @@ import { useId, useRef, useState } from 'react';
 import { Pencil } from 'lucide-react';
 import {
   guidanceDecisionText,
-  guidanceFields,
+  askedGuidanceFields,
   guidanceLabels,
   guidanceSummaryText,
   type GuidanceField,
@@ -23,7 +23,7 @@ export function GuidanceSummary({
   const [expanded, setExpanded] = useState(false);
   const list = useId();
   const toggle = useRef<HTMLButtonElement>(null);
-  const fields = guidanceFields.filter((field) => Boolean(state.decisions[field].question));
+  const fields = askedGuidanceFields(state);
   const labels = fields.map((field) => guidanceSummaryText(state, field)).filter(Boolean);
   if (!fields.length)
     return (

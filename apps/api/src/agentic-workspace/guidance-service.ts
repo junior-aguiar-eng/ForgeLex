@@ -1,7 +1,18 @@
 import { z } from 'zod';
 import { LegalAnswerSchema, validateLegalAnswer, type AgenticConversation, type AgenticOwner } from '@forgelex/domain';
 import { MatterWriteGuard, type ForgeLexDatabase } from '@forgelex/persistence';
-import { applyGuidanceAnswer, guidanceField, guidanceQuestion, initialGuidance } from '@forgelex/legal-workflows';
+import {
+  applyGuidanceAnswer,
+  deskAreaLabel,
+  deskCourtLabel,
+  guidanceField,
+  guidanceQuestion,
+  initialGuidance,
+  suggestMatter,
+  type DeskMatter,
+  type DeskPiece,
+  type GuidanceEnvironment,
+} from '@forgelex/legal-workflows';
 import { digest, ExecutionStore } from './execution-store.js';
 import { publicQuestion } from './event-stream.js';
 
@@ -19,7 +30,54 @@ function conversationId(owner: AgenticOwner, commandId: string): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-8${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
-function project(conversation: AgenticConversation, context: Context) {
+/** Opções do serviço: regras mesa-v3 (desligadas por padrão) e a lista interna de peças do catálogo. */
+export interface GuidanceServiceOptions {
+  readonly rulesVersion?: 'mesa-v3';
+  readonly pieces?: readonly DeskPiece[];
+  /** Matérias do catálogo que a Mesa pode sugerir como dica do pedido; ficam no servidor. */
+  readonly matters?: readonly DeskMatter[];
+}
+
+const matterSuggestionInput = z.strictObject({
+  text: z.string().trim().min(1).max(4000),
+  area: z.string().trim().min(1).max(80).optional(),
+  rejected: z
+    .array(z.string().regex(/^[a-f0-9]{16}$/))
+    .max(20)
+    .optional(),
+});
+
+/**
+ * O que as regras mesa-v3 leem da conversa: o texto do pedido e o que o cliente escreveu nas respostas livres, menos a
+ * resposta do tribunal. É a base do ranqueamento de peças; nada disso chama provedor nem reserva saldo.
+ */
+function environmentOf(
+  options: GuidanceServiceOptions,
+  conversation: AgenticConversation | undefined,
+  context: Context | undefined,
+  objective?: string,
+): GuidanceEnvironment {
+  const typed = (conversation?.messages ?? []).flatMap(({ executionId, answer }) =>
+    !executionId && answer?.freeText && !answer.questionId.startsWith('court:') ? [answer.freeText] : [],
+  );
+  const text = [objective ?? context?.text, ...typed].filter(Boolean).join('\n');
+  return {
+    ...(options.rulesVersion ? { rulesVersion: options.rulesVersion } : {}),
+    ...(options.pieces ? { pieces: options.pieces } : {}),
+    text,
+  };
+}
+
+/** Rótulo legível da decisão, só para o que está em uso. Conteúdo, ids de ficha e hashes nunca saem daqui. */
+function labelOf(field: string, value: string | null, options: GuidanceServiceOptions): string | undefined {
+  if (!value) return undefined;
+  if (field === 'area') return deskAreaLabel(value);
+  if (field === 'court') return deskCourtLabel(value);
+  if (field === 'documentType') return options.pieces?.find((piece) => piece.id === value)?.label;
+  return undefined;
+}
+
+function project(conversation: AgenticConversation, context: Context, options: GuidanceServiceOptions = {}) {
   const snapshot = context.guidance;
   if (!snapshot) throw new Error('CONVERSATION_NOT_FOUND');
   const questions = new Map(
@@ -44,8 +102,10 @@ function project(conversation: AgenticConversation, context: Context) {
           ?.answer?.freeText?.trim()
       : undefined;
   const decisions = Object.fromEntries(
-    (['area', 'action', 'documentType', 'partyRole', 'stage'] as const).map((field) => {
-      const { value, status, questionId } = snapshot[field];
+    (
+      [...(snapshot.court ? (['court'] as const) : []), 'area', 'action', 'documentType', 'partyRole', 'stage'] as const
+    ).map((field) => {
+      const { value, status, questionId } = snapshot[field]!;
       const original = questionId ? questions.get(questionId) : undefined;
       // O texto livre da tarefa já reaparece inteiro como `description`; aqui só área, peça e demais campos.
       const detail = value === null && field !== 'action' ? typedDetail(questionId)?.slice(0, 120) : undefined;
@@ -54,6 +114,7 @@ function project(conversation: AgenticConversation, context: Context) {
         {
           value,
           status,
+          ...(labelOf(field, value, options) ? { label: labelOf(field, value, options) } : {}),
           ...(detail ? { detail } : {}),
           ...(original
             ? {
@@ -84,7 +145,7 @@ function project(conversation: AgenticConversation, context: Context) {
     objective: context.text,
     ...(description ? { description } : {}),
     decisions,
-    question: guidanceQuestion(snapshot, context.revision),
+    question: guidanceQuestion(snapshot, context.revision, environmentOf(options, conversation, context)),
     history: conversation.messages.flatMap((message) => {
       const answer = message.answer;
       if (message.executionId || !answer || answer.contextRevision >= context.revision) return [];
@@ -102,7 +163,10 @@ function project(conversation: AgenticConversation, context: Context) {
 export class GuidanceService {
   private readonly store: ExecutionStore;
 
-  constructor(db: ForgeLexDatabase) {
+  constructor(
+    db: ForgeLexDatabase,
+    private readonly options: GuidanceServiceOptions = {},
+  ) {
     this.store = new ExecutionStore(db);
   }
 
@@ -132,7 +196,7 @@ export class GuidanceService {
         await this.checkMatter(store, access, previous.matterId);
         const first = previous.contexts[0];
         if (!first || first.guidanceReceipt?.requestHash !== requestHash) throw new Error('IDEMPOTENCY_CONFLICT');
-        return project(previous, first);
+        return project(previous, first, this.options);
       }
       await this.checkMatter(store, access, input.matterId);
       const conversation = await store.workspace.createConversation(
@@ -144,20 +208,35 @@ export class GuidanceService {
             origin: 'USER',
             text: input.objective ?? '',
             documents: [],
-            guidance: initialGuidance(),
+            guidance: initialGuidance(environmentOf(this.options, undefined, undefined, input.objective)),
             guidanceReceipt: { commandId, requestHash, revision: 1 },
           },
         },
         id,
       );
-      return project(conversation, conversation.contexts[0]);
+      return project(conversation, conversation.contexts[0], this.options);
     });
+  }
+
+  /**
+   * Sugere uma matéria por vez a partir do texto do pedido (U4). Não chama provedor, não reserva saldo e não grava nada:
+   * é só uma sugestão que o cliente confirma. O cliente recebe o rótulo e um código opaco, nunca a lista nem o id interno.
+   */
+  suggestMatter(raw: unknown) {
+    const input = matterSuggestionInput.parse(raw);
+    const suggestion = suggestMatter({
+      matters: this.options.matters ?? [],
+      text: input.text,
+      area: input.area ?? null,
+      rejected: input.rejected ?? [],
+    });
+    return { suggestion };
   }
 
   async get(access: Access, id: string) {
     return this.store.snapshot(access.owner, async (store) => {
       const { conversation, context } = await this.read(store, access, id);
-      return project(conversation, context);
+      return project(conversation, context, this.options);
     });
   }
 
@@ -172,17 +251,22 @@ export class GuidanceService {
       );
       if (previous) {
         if (previous.guidanceReceipt?.requestHash !== requestHash) throw new Error('IDEMPOTENCY_CONFLICT');
-        return project(conversation, previous);
+        return project(conversation, previous, this.options);
       }
       if (answer.contextRevision !== context.revision) throw new Error('CONTEXT_CONFLICT');
       const original = correcting
         ? conversation.messages.find((message) => message.question?.id === answer.questionId)?.question
-        : guidanceQuestion(snapshot, context.revision);
-      if (!original || (correcting && snapshot[guidanceField(original)].questionId !== original.id))
+        : guidanceQuestion(snapshot, context.revision, environmentOf(this.options, conversation, context));
+      if (!original || (correcting && snapshot[guidanceField(original)]?.questionId !== original.id))
         throw new Error('QUESTION_EXPIRED');
       const question = { ...original, contextRevision: context.revision };
       const validated = validateLegalAnswer(question, answer);
-      const guidance = applyGuidanceAnswer(snapshot, question, validated);
+      const guidance = applyGuidanceAnswer(
+        snapshot,
+        question,
+        validated,
+        environmentOf(this.options, conversation, context),
+      );
       await store.workspace.reviseGuidance(
         access.owner,
         id,
@@ -194,7 +278,7 @@ export class GuidanceService {
         correcting,
       );
       const updated = await this.read(store, access, id);
-      return project(updated.conversation, updated.context);
+      return project(updated.conversation, updated.context, this.options);
     });
   }
 }

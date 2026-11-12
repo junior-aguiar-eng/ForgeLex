@@ -13,7 +13,6 @@ const metadata = z.strictObject({
   id: code,
   version: z.number().int().positive(),
   status: z.enum(['eligible', 'pending']),
-  area: code,
   roles: z
     .array(role)
     .min(1)
@@ -23,8 +22,22 @@ const metadata = z.strictObject({
   byteLength: z.number().int().positive(),
 });
 const entry = z.discriminatedUnion('kind', [
-  metadata.extend({ kind: z.literal('FORM'), documentType: code }),
-  metadata.extend({ kind: z.literal('MATTER'), topic: code }),
+  // Uma Forma pode servir a mais de uma área da Mesa (M3.0); o tipo de peça é o identificador estável da ficha.
+  // Forma transversal ("coringa") é só moldura: serve ao tipo de peça em qualquer área e não declara áreas.
+  metadata
+    .extend({
+      kind: z.literal('FORM'),
+      areas: z
+        .array(code)
+        .refine((areas) => new Set(areas).size === areas.length)
+        .readonly(),
+      transversal: z.boolean().optional(),
+      documentType: code,
+    })
+    .refine((form) => (form.transversal ? form.areas.length === 0 : form.areas.length > 0), {
+      message: 'FORM_AREAS_OR_TRANSVERSAL',
+    }),
+  metadata.extend({ kind: z.literal('MATTER'), area: code, topic: code }),
 ]);
 export type SkillCatalogEntry = Readonly<z.infer<typeof entry>>;
 

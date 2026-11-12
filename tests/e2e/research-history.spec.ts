@@ -49,13 +49,6 @@ test('salva no caso sem nova cobrança, deduplica e mantém a fonte para reutili
   await collection.getByRole('button', { name: 'Copiar Citação', exact: true }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(source.syllabus);
   expect(await balance(page)).toBe(afterSearch);
-  await page.goto('/app/rascunhos');
-  await page.getByRole('button', { name: new RegExp(title) }).click();
-  await expect(
-    page
-      .getByLabel('Julgado da tese')
-      .getByRole('option', { name: new RegExp(source.processNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }),
-  ).toHaveAttribute('value', saved.items[0].id);
 });
 
 test('falha ao salvar preserva seleção e pesquisa quando o caso é arquivado', async ({ page, request }) => {

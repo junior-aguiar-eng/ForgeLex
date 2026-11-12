@@ -1,8 +1,9 @@
 import { CanvasDialog } from './draft-review/DraftCanvas';
+import { UndoNotice } from '../components/UndoNotice';
 import { createPortal } from 'react-dom';
 import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
 import { editorLink } from '../agentic-workspace/execution-model';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ApiRequestError } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 import { WorkspaceClient, type StartInput } from '../agentic-workspace/client';
@@ -59,17 +60,18 @@ export function AgenticWorkspaceScreen({
   selectionKey,
   guidanceRoute,
   requestedExecutionId,
-  integrated = false,
   piece,
   piecePending,
   request,
+  emptyState,
   historyContainer,
 }: {
   onEditor: (url: string, keepSelected?: boolean) => void;
-  integrated?: boolean;
   piece?: DeskPiece | null;
   piecePending?: boolean;
   request?: DeskRequest;
+  /** Atalhos do estado vazio (nova casca da Mesa); só aparecem antes do primeiro pedido e sem orientação ativa. */
+  emptyState?: ReactNode;
   historyContainer?: HTMLElement | null;
   active: boolean;
   requestedExecutionId?: string | null;
@@ -101,7 +103,7 @@ export function AgenticWorkspaceScreen({
   const guidance = useDeskGuidance(
     client,
     guidanceRoute && { ...guidanceRoute, selectionKey: currentGuidanceScope },
-    integrated && guidanceEnabled && !id,
+    guidanceEnabled && !id,
     isActiveSurface,
   );
   const [editGuidance, setEditGuidance] = useState<{ field: GuidanceField; id: string; revision: number }>();
@@ -216,19 +218,9 @@ export function AgenticWorkspaceScreen({
     setId(requestedExecutionId);
   }, [requestedExecutionId, id, resetSelection]);
   useEffect(() => {
-    if (integrated) return;
-    const sync = () => {
-      if (window.location.pathname !== '/app/trabalho' || initialId() === id) return;
-      resetSelection();
-      setId(initialId());
-    };
-    window.addEventListener('popstate', sync);
-    return () => window.removeEventListener('popstate', sync);
-  }, [integrated, id, resetSelection]);
-  useEffect(() => {
     const element = transcript.current;
-    if (element && integrated) element.scrollTop = element.scrollHeight;
-  }, [integrated, run?.id, run?.status, deliveries.length, pastDeliveries.length]);
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [run?.id, run?.status, deliveries.length, pastDeliveries.length]);
   const refresh = useCallback(async () => {
     if (!id) return;
     const ticket = ++generation.current;
@@ -246,7 +238,7 @@ export function AgenticWorkspaceScreen({
       }
       setRun(value);
       const results = await Promise.all(value.deliveryIds.map((d) => client.delivery(d)));
-      const prior = integrated ? (value.history ?? []).filter((entry) => entry.executionId !== value.id) : [];
+      const prior = (value.history ?? []).filter((entry) => entry.executionId !== value.id);
       const historyKey = JSON.stringify([value.id, prior.map((entry) => entry.deliveryIds)]);
       if (historyKey !== historyLoaded.current) {
         const past = await Promise.allSettled(
@@ -267,7 +259,7 @@ export function AgenticWorkspaceScreen({
     } catch (e) {
       if (mounted.current && ticket === generation.current) fail(e);
     }
-  }, [client, id, changeId, fail, integrated]);
+  }, [client, id, changeId, fail]);
   useEffect(() => {
     void refresh();
   }, [refresh, events.cursor]);
@@ -299,7 +291,7 @@ export function AgenticWorkspaceScreen({
     }
   };
   const start = (input: StartInput, authorization?: CommercialAuthorization) => {
-    if (commercial && integrated && authorization) {
+    if (commercial && authorization) {
       void invoke('start', { ...input, ...authorization }, (key) =>
         client.commercialStart({ ...input, ...authorization }, key),
       );
@@ -346,7 +338,6 @@ export function AgenticWorkspaceScreen({
   const currentQuestion =
     correction ?? (currentStatus === 'WAITING_USER' ? (events.question ?? run?.question ?? null) : null);
   const active = ['QUEUED', 'RUNNING'].includes(currentStatus);
-  const showRail = closedPilot === false && !integrated;
   useEffect(() => {
     if (authStatus !== 'authenticated' || closedPilot !== false) return;
     let active = true;
@@ -367,7 +358,8 @@ export function AgenticWorkspaceScreen({
       await client.setConversationHidden(item.executionId, hidden);
       setRecent((items) => items.filter((row) => row.executionId !== item.executionId));
       if (hidden && item.executionId === id && epoch === navigationEpoch.current) newWork();
-      setHistoryPending(undefined);
+      // Excluir é reversível: o aviso oferece "Desfazer" e o histórico guarda a conversa em "Conversas excluídas".
+      setHistoryPending(hidden ? item : undefined);
     } catch {
       setHistoryError('Não foi possível atualizar o histórico. Tente novamente.');
     } finally {
@@ -387,10 +379,8 @@ export function AgenticWorkspaceScreen({
       setHistoryError('');
     },
     onHistory: (item: RecentItem, hidden: boolean) => {
-      if (hidden) {
-        setHistoryPending(item);
-        setHistoryError('');
-      } else void updateHistory(item, false);
+      setHistoryError('');
+      void updateHistory(item, hidden);
     },
   };
 
@@ -402,14 +392,13 @@ export function AgenticWorkspaceScreen({
   const latest = results.at(-1);
   const openedPiece = useRef<string>();
   useEffect(() => {
-    if (!integrated || !isActiveSurface || denied || !run || run.id !== id || !latest || run.status !== 'COMPLETED')
-      return;
+    if (!isActiveSurface || denied || !run || run.id !== id || !latest || run.status !== 'COMPLETED') return;
     const url = editorLink(run, latest.delivery);
     if (url && openedPiece.current !== latest.delivery.id) {
       openedPiece.current = latest.delivery.id;
       onEditor(url, submittedRun.current !== run.id);
     }
-  }, [integrated, isActiveSurface, denied, id, run, latest, onEditor]);
+  }, [isActiveSurface, denied, id, run, latest, onEditor]);
   const reevaluate = Boolean(run?.requiresReevaluation);
   // Without a result there is nothing to open: keep the lawyer's own text in view after a failure or revocation.
   const showSide = side.open || denied || (!latest && ['FAILED', 'CANCELLED'].includes(currentStatus));
@@ -445,28 +434,14 @@ export function AgenticWorkspaceScreen({
     <div
       data-agentic-workspace
       aria-busy={busy}
-      className={
-        integrated
-          ? 'flex h-full min-h-0 min-w-0 flex-col px-4 py-5 text-stone-800'
-          : 'page-container py-8 text-stone-800'
-      }
+      className="flex h-full min-h-0 min-w-0 flex-col px-4 py-5 text-stone-800"
     >
-      {integrated &&
-        closedPilot === false &&
+      {closedPilot === false &&
         historyContainer &&
         createPortal(<RecentConversations {...historyProps} expanded />, historyContainer)}
-      <div
-        className={
-          showRail
-            ? 'lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8'
-            : integrated
-              ? 'flex min-h-0 flex-1 flex-col'
-              : ''
-        }
-      >
-        {showRail && <RecentConversations {...historyProps} />}
-        <div className={`min-w-0 space-y-4 ${integrated ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
-          {integrated && closedPilot === false && (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col space-y-4">
+          {closedPilot === false && (
             <button type="button" onClick={() => setHistoryOpen(true)} className="text-sm text-stone-600 lg:hidden">
               Conversas
             </button>
@@ -489,39 +464,14 @@ export function AgenticWorkspaceScreen({
               />
             </CanvasDialog>
           )}
-          {historyError && !historyPending && <p role="alert">{historyError}</p>}
+          {historyError && <p role="alert">{historyError}</p>}
           {historyPending && (
-            <CanvasDialog
-              title="Excluir conversa do histórico?"
-              onClose={() => {
-                if (!historyBusy) setHistoryPending(undefined);
-              }}
-            >
-              <p className="text-sm text-stone-600">
-                Você poderá restaurá-la em Conversas excluídas. As peças e os recibos serão preservados. Isso não
-                cancela um trabalho em andamento.
-              </p>
-              <p className="my-4 font-medium">{historyPending.title}</p>
-              {historyError && <p role="alert">{historyError}</p>}
-              <div className="mt-4 flex gap-3">
-                <button
-                  type="button"
-                  disabled={historyBusy}
-                  className="btn-secondary"
-                  onClick={() => setHistoryPending(undefined)}
-                >
-                  Manter conversa
-                </button>
-                <button
-                  type="button"
-                  disabled={historyBusy}
-                  className="btn-primary"
-                  onClick={() => void updateHistory(historyPending, true)}
-                >
-                  Excluir do histórico
-                </button>
-              </div>
-            </CanvasDialog>
+            <UndoNotice
+              message={`Conversa excluída do histórico: ${historyPending.title}. As peças e os recibos foram preservados.`}
+              busy={historyBusy}
+              onUndo={() => void updateHistory(historyPending, false)}
+              onDismiss={() => setHistoryPending(undefined)}
+            />
           )}
           <header
             className={
@@ -545,12 +495,7 @@ export function AgenticWorkspaceScreen({
               <>
                 <h1 className="font-editorial text-xl text-stone-900">Trabalho</h1>
                 <span className="grow" />
-                <button
-                  type="button"
-                  className={`btn-secondary min-h-11 ${showRail || integrated ? 'lg:hidden' : ''}`}
-                  disabled={busy}
-                  onClick={newWork}
-                >
+                <button type="button" className="btn-secondary min-h-11 lg:hidden" disabled={busy} onClick={newWork}>
                   Nova conversa
                 </button>
               </>
@@ -564,7 +509,7 @@ export function AgenticWorkspaceScreen({
           >
             {statusText(currentStatus, shownError)}
           </p>
-          {integrated && showSide && !side.open && (
+          {showSide && !side.open && (
             <button
               className="text-sm underline"
               type="button"
@@ -621,31 +566,26 @@ export function AgenticWorkspaceScreen({
                 request={request}
                 actions={actions}
                 commercial={commercial}
-                authorizeOnSend={integrated}
+                authorizeOnSend
                 busy={busy || Boolean(paidCommand)}
                 available={isActiveSurface && available}
                 onFail={fail}
                 onSubmit={start}
-                onGuide={integrated && guidanceEnabled ? guidance.start : undefined}
+                onGuide={guidanceEnabled ? guidance.start : undefined}
                 guidanceId={guidance.id}
                 guidanceState={guidance.state}
                 guidanceBusy={guidance.busy}
                 guidanceEditing={Boolean(guidanceField)}
                 guidanceError={!guidance.id ? guidance.feedback : undefined}
               />
+              {!guidance.id && emptyState}
               {paidBar('start')}
             </div>
           )}
           {run && (
-            <div
-              className={`${integrated ? 'min-h-0 flex-1' : ''} grid gap-6 ${showSide && !integrated ? 'lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]' : ''}`}
-            >
-              <div className={`mx-auto w-full min-w-0 max-w-3xl ${integrated ? 'flex min-h-0 flex-col' : 'space-y-5'}`}>
-                <div
-                  ref={transcript}
-                  data-chat-transcript
-                  className={`space-y-5 ${integrated ? 'min-h-0 flex-1 overflow-y-auto pr-1' : ''}`}
-                >
+            <div className="min-h-0 flex-1 grid gap-6">
+              <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-3xl flex-col">
+                <div ref={transcript} data-chat-transcript className="space-y-5 min-h-0 flex-1 overflow-y-auto pr-1">
                   {reevaluate && (
                     <div
                       role="status"
@@ -663,12 +603,12 @@ export function AgenticWorkspaceScreen({
                       )}
                     </div>
                   )}
-                  {integrated && !denied && historyUnavailable && (
+                  {!denied && historyUnavailable && (
                     <p className="text-xs text-stone-600">Algumas respostas anteriores estão indisponíveis.</p>
                   )}
                   <Conversation
                     deliveries={
-                      integrated && !denied
+                      !denied
                         ? pastDeliveries.map(({ delivery, createdAt }) => ({
                             id: delivery.id,
                             createdAt,
@@ -737,7 +677,7 @@ export function AgenticWorkspaceScreen({
                     results.map(({ delivery, view }) => (
                       <ResultCard
                         key={delivery.id}
-                        compact={integrated}
+                        compact
                         run={run}
                         delivery={delivery}
                         view={view}
@@ -799,7 +739,7 @@ export function AgenticWorkspaceScreen({
                       request={request}
                       actions={actions}
                       commercial={commercial}
-                      authorizeOnSend={integrated}
+                      authorizeOnSend
                       busy={busy || Boolean(paidCommand)}
                       available={isActiveSurface && available}
                       followUp={{
@@ -820,11 +760,8 @@ export function AgenticWorkspaceScreen({
                   </div>
                 )}
               </div>
-              {showSide && (!integrated || side.open) && (
-                <SupportingSurface
-                  modal={integrated}
-                  onClose={() => setSide((old) => ({ ...old, open: false, source: null }))}
-                >
+              {showSide && side.open && (
+                <SupportingSurface modal onClose={() => setSide((old) => ({ ...old, open: false, source: null }))}>
                   <SideTable
                     tab={side.tab}
                     onTab={(tab) => setSide((old) => ({ ...old, tab }))}

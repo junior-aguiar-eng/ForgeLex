@@ -1,4 +1,3 @@
-import { AGENTIC_WORKSPACE_ENABLED } from '../config/site-capabilities';
 import { CaseFlowHeader } from '../components/CaseFlowHeader';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, FileText, FolderOpen, LockKeyhole, Plus, RefreshCw, ShieldCheck } from 'lucide-react';
@@ -728,8 +727,7 @@ export const MatterWorkspaceScreen: React.FC = () => {
                       ['julgados', 'Julgados'],
                     ].map(([id, label]) => <button key={id} type="button" onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="btn-quiet min-h-9 px-2.5 text-xs">{label}</button>)}
                     <button type="button" onClick={() => setActiveTab('research')} className="btn-quiet min-h-9 px-2.5 text-xs">Fontes</button>
-                    <button type="button" onClick={() => setActiveTab('draft_studio','push',{matterId:selectedMatterId??undefined})} className="btn-quiet min-h-9 px-2.5 text-xs">{AGENTIC_WORKSPACE_ENABLED ? 'Abrir mesa da peça' : 'Rascunhos'}</button>
-                    {!AGENTIC_WORKSPACE_ENABLED && <button type="button" onClick={() => setActiveTab('dashboard')} className="btn-quiet min-h-9 px-2.5 text-xs">Revisão e atividade</button>}
+                    <button type="button" onClick={() => setActiveTab('draft_studio','push',{matterId:selectedMatterId??undefined})} className="btn-quiet min-h-9 px-2.5 text-xs">Abrir mesa da peça</button>
                   </nav></details>
                 </>
               ) : (

@@ -1,0 +1,1167 @@
+{
+  "schemaVersion": 1,
+  "status": "aprovada-por-boni-2026-11-12",
+  "proposedOn": "2026-11-12",
+  "note": "Aprovadas por Boni em 12/11/2026 e copiadas para map-decisions.json, que é o arquivo aplicado por map-catalog.mjs --decisions.",
+  "natures": {
+    "M": "moldura",
+    "C": "rito-cpc",
+    "P": "peculiaridade",
+    "S": "sem-evidencia"
+  },
+  "items": [
+    {
+      "stableId": "acao-resolucao-contratual",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["contratos"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["civil", "contratos"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 16,
+        "cdc": 1,
+        "cpc": 2
+      }
+    },
+    {
+      "stableId": "acao-revisional-contratual",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["contratos"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["consumidor", "contratos"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 5,
+        "cdc": 6
+      }
+    },
+    {
+      "stableId": "acordao-relator",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cf": 1,
+        "cpc": 8,
+        "lei9099": 1
+      }
+    },
+    {
+      "stableId": "acordo-transacao",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cc": 4,
+        "cpc": 5
+      }
+    },
+    {
+      "stableId": "acp",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["ambiental"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["administrativo", "ambiental", "consumidor"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cdc": 2,
+        "cf": 3
+      }
+    },
+    {
+      "stableId": "agravo-instrumento",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {}
+    },
+    {
+      "stableId": "agravo-interno",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cpc": 1
+      }
+    },
+    {
+      "stableId": "agravo-resp-re",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cpc": 2,
+        "cpp": 1
+      }
+    },
+    {
+      "stableId": "alvara-judicial",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cc": 4,
+        "cpc": 7
+      }
+    },
+    {
+      "stableId": "assistencia-judiciaria-gratuita",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cf": 1
+      }
+    },
+    {
+      "stableId": "carta-arbitral",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil", "civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cpc": 7
+      }
+    },
+    {
+      "stableId": "carta-precatoria",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cf": 1,
+        "cpc": 10
+      }
+    },
+    {
+      "stableId": "chamamento-processo",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cc": 2,
+        "cdc": 2
+      }
+    },
+    {
+      "stableId": "codigo-conduta-etica",
+      "queueReason": "NO_AREA_EVIDENCE",
+      "mappedAs": [],
+      "nature": "sem-evidencia",
+      "proposal": {
+        "areas": ["consultoria", "empresarial"]
+      },
+      "why": "Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "citations": {
+        "clt": 1,
+        "lei12846": 1,
+        "lei13303": 1,
+        "lei14133": 1,
+        "lei8429": 1
+      }
+    },
+    {
+      "stableId": "conflito-competencia",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cf": 3,
+        "clt": 1,
+        "cpc": 4
+      }
+    },
+    {
+      "stableId": "contranotificacao-resposta",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["civil", "processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cc": 7,
+        "cdc": 2,
+        "cpc": 1
+      }
+    },
+    {
+      "stableId": "correicao-parcial",
+      "queueReason": "NO_AREA_EVIDENCE",
+      "mappedAs": [],
+      "nature": "sem-evidencia",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "citations": {
+        "cf": 1,
+        "cpc": 2
+      }
+    },
+    {
+      "stableId": "cumprimento-obrigacao-saude",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["civil", "saude"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["saude", "processo-civil"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cf": 1,
+        "cpc": 6
+      }
+    },
+    {
+      "stableId": "cumprimento-sentenca",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cc": 1,
+        "cf": 1,
+        "cpc": 8,
+        "lei9099": 2
+      }
+    },
+    {
+      "stableId": "custos-vulnerabilis",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cf": 1,
+        "cpc": 4
+      }
+    },
+    {
+      "stableId": "decisao-interlocutoria",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "lei12016": 1,
+        "lei9099": 1
+      }
+    },
+    {
+      "stableId": "decisao-monocratica",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cpc": 1
+      }
+    },
+    {
+      "stableId": "defesa-acao-civil-publica-fazenda",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["administrativo", "ambiental"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["administrativo", "ambiental"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 2,
+        "cdc": 4,
+        "cf": 3,
+        "cpc": 10,
+        "lei12016": 1
+      }
+    },
+    {
+      "stableId": "defesa-busca-apreensao",
+      "queueReason": "AREA_FROM_VOTES_ONLY",
+      "mappedAs": ["bancario"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["bancario", "consumidor"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cdc": 3
+      }
+    },
+    {
+      "stableId": "defesa-paf",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["administrativo"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["administrativo", "tributario"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "ctn": 4
+      }
+    },
+    {
+      "stableId": "defesa-par-anticorrupcao",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["administrativo"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["administrativo"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "lei12846": 4,
+        "lei14133": 1,
+        "lei9784": 1
+      }
+    },
+    {
+      "stableId": "despacho-saneador",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cf": 1,
+        "cpc": 1
+      }
+    },
+    {
+      "stableId": "edital",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cpc": 6
+      }
+    },
+    {
+      "stableId": "embargos-devedor",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cc": 1
+      }
+    },
+    {
+      "stableId": "embargos-divergencia",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cf": 2,
+        "cpc": 3
+      }
+    },
+    {
+      "stableId": "excecao-pre-executividade",
+      "queueReason": "NO_AREA_EVIDENCE",
+      "mappedAs": [],
+      "nature": "sem-evidencia",
+      "proposal": {
+        "areas": ["processo-civil", "tributario"]
+      },
+      "why": "Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "citations": {
+        "ctn": 1
+      }
+    },
+    {
+      "stableId": "execucao-entrega-coisa",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cc": 5
+      }
+    },
+    {
+      "stableId": "execucao-fazer-nao-fazer",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cc": 3,
+        "cp": 1,
+        "cpc": 2
+      }
+    },
+    {
+      "stableId": "execucao-quantia-certa",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cc": 1,
+        "cpc": 4
+      }
+    },
+    {
+      "stableId": "iac",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cf": 1
+      }
+    },
+    {
+      "stableId": "impugnacao-cumprimento-sentenca",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {}
+    },
+    {
+      "stableId": "impugnacao-valor-causa",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cpc": 1
+      }
+    },
+    {
+      "stableId": "incidente-falsidade-documental",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cf": 1,
+        "cp": 2,
+        "cpc": 3
+      }
+    },
+    {
+      "stableId": "irdr",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cf": 1,
+        "cpc": 1
+      }
+    },
+    {
+      "stableId": "jec",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cf": 1,
+        "lei9099": 1
+      }
+    },
+    {
+      "stableId": "mandado-expediente",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cpc": 14
+      }
+    },
+    {
+      "stableId": "manifestacao-mp-controle-constitucionalidade",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["processo-civil"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["constitucional"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cf": 2
+      }
+    },
+    {
+      "stableId": "mediacao-extrajudicial-defensoria",
+      "queueReason": "NO_AREA_EVIDENCE",
+      "mappedAs": [],
+      "nature": "sem-evidencia",
+      "proposal": {
+        "areas": ["civil", "processo-civil"]
+      },
+      "why": "Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "citations": {
+        "cc": 1,
+        "cpc": 6
+      }
+    },
+    {
+      "stableId": "memoriais-tribunal-superior",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cpc": 4
+      }
+    },
+    {
+      "stableId": "minuta-clausula-contratual",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["contratos"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["contratos"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 16,
+        "cdc": 1,
+        "cf": 1,
+        "clt": 1,
+        "cpc": 1,
+        "lei12529": 1,
+        "lei12846": 1,
+        "lei13709": 1,
+        "lei14133": 1
+      }
+    },
+    {
+      "stableId": "minuta-contratual",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["contratos"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["contratos"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 31,
+        "cdc": 1,
+        "cpc": 3,
+        "lei13709": 1
+      }
+    },
+    {
+      "stableId": "ms-coletivo",
+      "queueReason": "AREA_FROM_VOTES_ONLY",
+      "mappedAs": ["processo-civil"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["constitucional"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cdc": 1,
+        "cf": 2
+      }
+    },
+    {
+      "stableId": "nota-tecnica-juridica",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["consultoria"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["consultoria"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cf": 2,
+        "cp": 2,
+        "lei14133": 2,
+        "lei9784": 2
+      }
+    },
+    {
+      "stableId": "nota-tecnica",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["consultoria"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["consultoria"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 1,
+        "lei14133": 1
+      }
+    },
+    {
+      "stableId": "notificacao-extrajudicial",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cc": 3,
+        "cpc": 2
+      }
+    },
+    {
+      "stableId": "nunciacao-obra-nova-tutela-inibitoria",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["imobiliario"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["imobiliario", "processo-civil"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 10,
+        "cpc": 13
+      }
+    },
+    {
+      "stableId": "oficio",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {}
+    },
+    {
+      "stableId": "penhora-online",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "clt": 1,
+        "cpc": 2
+      }
+    },
+    {
+      "stableId": "peticao-inicial-civel",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["civil"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["civil", "processo-civil"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 2,
+        "lei9099": 1
+      }
+    },
+    {
+      "stableId": "peticao-inicial-jec",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cpc": 4,
+        "lei9099": 1
+      }
+    },
+    {
+      "stableId": "politica-corporativa",
+      "queueReason": "NO_AREA_EVIDENCE",
+      "mappedAs": [],
+      "nature": "sem-evidencia",
+      "proposal": {
+        "areas": ["consultoria", "empresarial"]
+      },
+      "why": "Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "citations": {
+        "clt": 3,
+        "lei12529": 1,
+        "lei12846": 1,
+        "lei13303": 1
+      }
+    },
+    {
+      "stableId": "procuracao",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cc": 7,
+        "cpc": 1
+      }
+    },
+    {
+      "stableId": "quesitos-pericia",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cpc": 3
+      }
+    },
+    {
+      "stableId": "reclamacao-cnj-cnmp",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["processo-civil"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["administrativo", "constitucional"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cf": 4,
+        "cpc": 2,
+        "lei12016": 1
+      }
+    },
+    {
+      "stableId": "reclamacao-constitucional",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["constitucional"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["constitucional"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cf": 3,
+        "cpc": 3
+      }
+    },
+    {
+      "stableId": "recurso-adesivo",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cf": 1
+      }
+    },
+    {
+      "stableId": "recurso-apelacao",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {}
+    },
+    {
+      "stableId": "recurso-extraordinario",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cf": 2,
+        "cpc": 7
+      }
+    },
+    {
+      "stableId": "recurso-sentido-estrito",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["processo-penal"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "lei9099": 1
+      }
+    },
+    {
+      "stableId": "regulamento-interno",
+      "queueReason": "AREA_FROM_VOTES_ONLY",
+      "mappedAs": ["civil", "trabalho"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["empresarial", "trabalho"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 10,
+        "cf": 3,
+        "clt": 10,
+        "lei6404": 1
+      }
+    },
+    {
+      "stableId": "relatorio-investigacao-interna",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["consultoria", "empresarial"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cf": 1,
+        "clt": 2,
+        "lei12529": 1,
+        "lei12846": 2,
+        "lei13709": 1
+      }
+    },
+    {
+      "stableId": "replica",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {}
+    },
+    {
+      "stableId": "restituicao-administrativa",
+      "queueReason": "NO_AREA_EVIDENCE",
+      "mappedAs": [],
+      "nature": "sem-evidencia",
+      "proposal": {
+        "areas": ["tributario"]
+      },
+      "why": "Nome e citações não indicam área; a área proposta vem do conteúdo da ficha.",
+      "citations": {
+        "cf": 1,
+        "cpc": 1,
+        "ctn": 3,
+        "lei12016": 1
+      }
+    },
+    {
+      "stableId": "retificacao-registro-civil",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["familia-sucessoes"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["familia-sucessoes", "civil"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 1,
+        "cf": 2,
+        "cpc": 2
+      }
+    },
+    {
+      "stableId": "sentenca-civel",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["civil"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["civil", "processo-civil"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 2,
+        "cdc": 1,
+        "cf": 2
+      }
+    },
+    {
+      "stableId": "sentenca-jec",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cc": 2,
+        "cf": 1,
+        "cpc": 2
+      }
+    },
+    {
+      "stableId": "sentenca-jecrim",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["processo-penal"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cf": 1,
+        "lei11343": 1,
+        "lei9099": 2
+      }
+    },
+    {
+      "stableId": "sentenca-mandado-seguranca",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["administrativo", "constitucional"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cf": 1,
+        "cpc": 3,
+        "lei12016": 2
+      }
+    },
+    {
+      "stableId": "suspensao-liminar-sentenca",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["administrativo", "processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "lei12016": 1
+      }
+    },
+    {
+      "stableId": "sustentacao-oral",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cf": 1,
+        "clt": 1,
+        "cpc": 4,
+        "cpp": 4
+      }
+    },
+    {
+      "stableId": "termo-audiencia",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cpc": 7
+      }
+    },
+    {
+      "stableId": "tomada-decisao-apoiada",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["processo-civil"],
+      "nature": "peculiaridade",
+      "proposal": {
+        "areas": ["familia-sucessoes"]
+      },
+      "why": "Regra por nome e votos das Matérias apontam áreas diferentes: a peça pertence a mais de uma área ou a área é a do tema.",
+      "citations": {
+        "cc": 3,
+        "cf": 1,
+        "cpc": 1
+      }
+    },
+    {
+      "stableId": "tutela-antecipada-antecedente",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cpc": 1
+      }
+    },
+    {
+      "stableId": "tutela-cautelar-antecedente",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cpc": 1
+      }
+    },
+    {
+      "stableId": "tutela-cautelar-incidental",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cpc": 4
+      }
+    },
+    {
+      "stableId": "tutela-provisoria-arbitragem",
+      "queueReason": "AREA_RULE_VOTE_CONFLICT",
+      "mappedAs": ["civil"],
+      "nature": "rito-cpc",
+      "proposal": {
+        "areas": ["processo-civil", "civil"]
+      },
+      "why": "Texto assentado no rito do CPC; fora do processo civil a peça segue outro rito.",
+      "citations": {
+        "cc": 1,
+        "cpc": 9
+      }
+    },
+    {
+      "stableId": "voto-vista",
+      "queueReason": "PROCEDURAL_AREA_UNCONFIRMED",
+      "mappedAs": ["processo-civil"],
+      "nature": "moldura",
+      "proposal": {
+        "transversal": true
+      },
+      "why": "Ato ou peça que existe em qualquer área e instância; a ficha é moldura, não matéria.",
+      "citations": {
+        "cpc": 2
+      }
+    }
+  ]
+}

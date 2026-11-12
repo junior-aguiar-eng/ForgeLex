@@ -1,5 +1,5 @@
 import { isMatterWriteTransaction, withMatterWrite, MatterWriteGuard } from './matter-write-guard.js';
-import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   ApprovalDecision,
@@ -259,7 +259,8 @@ export class DraftRepository {
     return rows[0] ? toDraft(rows[0].drafts) : undefined;
   }
 
-  public async listDrafts(tenantId: string, matterId: string): Promise<Draft[]> {
+  /** Rascunhos arquivados não aparecem na lista padrão; `archived: true` lista só os arquivados (a lixeira da peça). */
+  public async listDrafts(tenantId: string, matterId: string, options: { archived?: boolean } = {}): Promise<Draft[]> {
     const rows = await this.db
       .select({ draft: schema.drafts })
       .from(schema.drafts)
@@ -268,9 +269,49 @@ export class DraftRepository {
         eq(schema.drafts.tenantId, tenantId),
         eq(schema.drafts.matterId, matterId),
         eq(schema.matters.tenantId, tenantId),
+        options.archived ? eq(schema.drafts.status, 'ARCHIVED') : ne(schema.drafts.status, 'ARCHIVED'),
       ))
       .orderBy(desc(schema.drafts.updatedAt));
     return rows.map((row) => toDraft(row.draft));
+  }
+
+  /**
+   * Arquiva ou restaura um rascunho sem apagar nada: versões, revisões, aprovações e recibos ficam como estão. Arquivar
+   * troca só o status do rascunho; restaurar devolve o status da versão atual. Não exige migração: `ARCHIVED` já é um
+   * status do contrato. Uma aprovação pendente é uma decisão humana em aberto, então ela impede o arquivamento.
+   */
+  public async setArchived(
+    input: { tenantId: string; matterId: string; draftId: string },
+    archived: boolean,
+  ): Promise<Draft> {
+    if (!isMatterWriteTransaction(this.db)) {
+      return withMatterWrite(this.db, input, (tx) => new DraftRepository(tx).setArchived(input, archived));
+    }
+    const draft = await this.getDraft(input.tenantId, input.matterId, input.draftId);
+    if (!draft) throw new Error('DRAFT_NOT_FOUND: rascunho não localizado no matter do tenant autenticado.');
+    let status: Draft['status'];
+    if (archived) {
+      if (draft.status === 'ARCHIVED') return draft;
+      if (draft.status === 'APPROVAL_PENDING') {
+        throw new Error('DRAFT_APPROVAL_PENDING: há uma aprovação pendente; decida ou aguarde antes de arquivar.');
+      }
+      status = 'ARCHIVED';
+    } else {
+      if (draft.status !== 'ARCHIVED') return draft;
+      const version = draft.currentVersionId
+        ? await this.getVersion(input.tenantId, input.matterId, input.draftId, draft.currentVersionId)
+        : undefined;
+      status = version && version.version.status !== 'ARCHIVED' ? version.version.status : 'DRAFT';
+    }
+    await this.db
+      .update(schema.drafts)
+      .set({ status })
+      .where(and(
+        eq(schema.drafts.id, input.draftId),
+        eq(schema.drafts.tenantId, input.tenantId),
+        eq(schema.drafts.matterId, input.matterId),
+      ));
+    return { ...draft, status };
   }
 
   public async createVersion(input: DraftVersionWriteInput): Promise<DraftVersionBundle> {
@@ -346,6 +387,7 @@ export class DraftRepository {
     if (input.baseVersionId && !(await this.getVersion(input.tenantId, input.matterId, input.draftId, input.baseVersionId))) throw new Error('DRAFT_PARENT_INVALID');
     const draft = await this.getDraft(input.tenantId, input.matterId, input.draftId);
     if (!draft) throw new Error('DRAFT_NOT_FOUND: rascunho não localizado no matter do tenant autenticado.');
+    if (draft.status === 'ARCHIVED') throw new Error('DRAFT_ARCHIVED: restaure o rascunho antes de alterá-lo.');
     if (input.expectedCurrentVersionId && input.expectedCurrentVersionId !== draft.currentVersionId) throw new Error('DRAFT_VERSION_CONFLICT: a minuta possui outra versão salva. Sua edição foi preservada; confira a versão atual antes de tentar novamente.');
     if (input.sections.length === 0) throw new Error('DRAFT_SECTIONS_REQUIRED: a versão precisa conter ao menos uma seção.');
 
@@ -525,6 +567,9 @@ export class DraftRepository {
 
     const version = await this.getVersion(input.tenantId, input.matterId, input.draftId, input.draftVersionId);
     if (!version) throw new Error('DRAFT_VERSION_NOT_FOUND: versão não localizada no matter do tenant autenticado.');
+    if ((await this.getDraft(input.tenantId, input.matterId, input.draftId))?.status === 'ARCHIVED') {
+      throw new Error('DRAFT_ARCHIVED: restaure o rascunho antes de pedir aprovação.');
+    }
     const pending = await this.db.select().from(schema.draftApprovalRequests).where(and(
       eq(schema.draftApprovalRequests.tenantId, input.tenantId),
       eq(schema.draftApprovalRequests.draftId, input.draftId),

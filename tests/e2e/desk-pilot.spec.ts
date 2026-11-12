@@ -1,17 +1,32 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import cases from '../fixtures/desk-pilot-cases.json';
 
 const api =
   process.env.FORGELEX_E2E_PILOT_PREVIEW === 'true' ? 'http://127.0.0.1:3361/api' : 'http://127.0.0.1:3311/api';
 const headers = { authorization: 'Bearer phase7-e2e-access-token' };
 const internal =
-  /piloto-(forma|materia)-|Referência interna sintética|catalogo-piloto|acervo-r15-avaliacao-local|forgelex-r15-revisao-local|skillSnapshot|skillReferences|guidanceHash/;
+  /piloto-(forma|materia)-|Referência interna sintética|catalogo-piloto|catalogo-incorporado|acervo-r15-avaliacao-local|forgelex-r15-revisao-local|skillSnapshot|skillReferences|guidanceHash/;
 let capturedMarkers: string[] = [];
 
 test.beforeAll(({}, info) => {
   const mode = String(info.config.metadata.deskPilotMode);
+  if (mode === 'incorporated') {
+    // Marcadores do catálogo incorporado: id e um trecho de cada redação do Lote 0, para provar que não vazam.
+    const directory = process.env.FORGELEX_E2E_SKILL_CATALOG_DIR!;
+    const manifest = JSON.parse(readFileSync(join(directory, 'catalog.json'), 'utf8'));
+    capturedMarkers = manifest.entries
+      .filter((entry: { provenance: { adjustedFrom?: unknown } }) => entry.provenance.adjustedFrom)
+      .flatMap((entry: { id: string; version: number }) => {
+        const content = readFileSync(join(directory, 'content', `${entry.id}@${entry.version}.md`), 'utf8');
+        const excerpt = content.split('\n').find((line) => !line.startsWith('#') && line.trim().length > 65)!;
+        return [excerpt.trim().slice(0, 65)];
+      });
+    return;
+  }
   if (!mode.startsWith('captured') && mode !== 'revised') return;
   const loader = mode === 'revised' ? 'loadRevisedPilot' : 'loadCapturedPilot';
   // Run the archive reader as native ESM, outside Playwright's TypeScript transform.
@@ -157,10 +172,10 @@ for (const scenario of cases) {
         expect(delivery.findings).toContainEqual(
           expect.objectContaining({ code: 'SUPPORTING_CONTEXT_LIMITED', statement: expect.stringContaining('excede') }),
         );
-      } else if (mode === 'captured' || mode === 'revised') {
+      } else if (mode === 'captured' || mode === 'revised' || mode === 'incorporated') {
         expect(delivery.findings).not.toContainEqual(expect.objectContaining({ code: 'SUPPORTING_CONTEXT_LIMITED' }));
       }
-      if (mode === 'revised') {
+      if (mode === 'revised' || mode === 'incorporated') {
         const expectedCode = { custodia: 'CUSTODY_RECORDS_TO_VERIFY', civel: 'PARTIAL_PAYMENT_TO_VERIFY' }[
           scenario.id as 'custodia' | 'civel'
         ];

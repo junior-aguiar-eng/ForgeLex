@@ -1,6 +1,4 @@
 import { expect, test, type Page } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
-import JSZip from 'jszip';
 import AxeBuilder from '@axe-core/playwright';
 import { textPdf } from './fixtures/text-pdf';
 
@@ -115,51 +113,4 @@ test('PDF sem texto ou inválido não salva documento nem substitui texto já di
   await expect(page.getByRole('alert')).toContainText('PDF');
   await expect(preview).toHaveValue('Texto anterior preservado.');
   expect(writes).toBe(0);
-});
-
-test('DOCX exporta a versão salva, preserva revisão pendente e não inclui edição não salva', async ({
-  page,
-}, testInfo) => {
-  await login(page);
-  await page.getByRole('button', { name: 'Rascunhos', exact: true }).click();
-  await page.getByPlaceholder('Título do rascunho').fill('Petição inicial');
-  await page.locator('textarea').first().fill('Fato contratual registrado para revisão.');
-  const saved = page.waitForResponse(
-    (response) => /\/matters\/[^/]+\/drafts$/.test(response.url()) && response.request().method() === 'POST',
-  );
-  await page.getByRole('button', { name: 'Criar rascunho' }).click();
-  expect((await saved).status()).toBe(200);
-  await page.getByText('Salvar e exportar', { exact: true }).click();
-  const exportButton = page.getByRole('button', { name: 'Baixar DOCX da versão salva' });
-  await expect(exportButton).toBeEnabled();
-  await page.setViewportSize({ width: 390, height: 844 });
-  await exportButton.locator('..').screenshot({ path: testInfo.outputPath('docx-export-mobile.png') });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.setViewportSize({ width: 1280, height: 720 });
-  const accessibility = await new AxeBuilder({ page })
-    .include('main')
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-    .analyze();
-  await testInfo.attach('draft-accessibility', {
-    body: JSON.stringify(accessibility, null, 2),
-    contentType: 'application/json',
-  });
-  expect(accessibility.violations).toEqual([]);
-  await page.locator('textarea').first().fill('Alteração ainda não salva.');
-  const downloadEvent = page.waitForEvent('download');
-  await exportButton.locator('..').screenshot({ path: testInfo.outputPath('docx-export.png') });
-  await exportButton.focus();
-  await page.keyboard.press('Enter');
-  const download = await downloadEvent;
-  expect(download.suggestedFilename()).toBe('Petição inicial-v1.docx');
-  const archive = await JSZip.loadAsync(await readFile((await download.path())!));
-  const xml = await archive.file('word/document.xml')!.async('string');
-  expect(xml).toContain('Fato contratual registrado para revisão.');
-  expect(xml).not.toContain('Alteração ainda não salva.');
-  expect(xml).toContain('Rascunho');
-  expect(xml).toContain('Versão 1');
-  expect(xml).toContain('Questões jurídicas');
-  expect(xml).toContain('revisão humana');
-  await page.getByText('Histórico de versões e conferências', { exact: true }).click();
-  await expect(page.getByText('Versão 1 · Rascunho')).toBeVisible();
 });

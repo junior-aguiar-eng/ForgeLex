@@ -1,6 +1,11 @@
 import type { DeskPiece, DeskRequest } from './desk-model';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Sparkles } from 'lucide-react';
+import { ATTACHMENTS_ENABLED, MATTER_CHIPS_ENABLED } from '../config/site-capabilities';
+import { MatterChips, type MatterChip } from './MatterChips';
+import { AttachButton, AttachmentChips } from './AttachmentChips';
+import { attachmentContext, hasReadingAttachment } from './attachments';
+import { useAttachments } from './use-attachments';
 import { requestApi } from '../api-client';
 import type { WorkspaceClient, StartInput } from './client';
 import { reais, type CommercialAuthorization, type CommercialQuote } from './commercial-model';
@@ -71,6 +76,10 @@ export function Composer({
   guidanceError?: string;
 }) {
   const [objective, setObjective] = useState<string>();
+  const attachments = useAttachments();
+  const [matterChips, setMatterChips] = useState<MatterChip[]>([]);
+  const chipsOn = MATTER_CHIPS_ENABLED && Boolean(onGuide);
+  const reading = ATTACHMENTS_ENABLED && hasReadingAttachment(attachments.items);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const lastGuidance = useRef<string>();
   const startFromComposer = useRef(false);
@@ -218,7 +227,7 @@ export function Composer({
       ? { confirmed: true as const, policyVersion: quote.policyVersion }
       : undefined;
   const send = async () => {
-    if (!goal || busy || preparing || !available || piecePending || pieceConflict || guidanceBusy) return;
+    if (!goal || busy || preparing || !available || piecePending || pieceConflict || guidanceBusy || reading) return;
     if (commercial && authorizeOnSend && (!quote || quote.availableCents < quote.maxCostCents)) return;
     if (guided && !canSendGuide) return;
     const ticket = preparation.current;
@@ -241,6 +250,17 @@ export function Composer({
           ? { draftId: currentPiece.draftId, versionId: currentPiece.versionId }
           : undefined
         : selectedDraft;
+      // Anexos (U5): só o texto extraído segue com o pedido, somado ao contexto escrito.
+      const attached = ATTACHMENTS_ENABLED ? attachmentContext(attachments.items) : '';
+      // Matérias que o cliente confirmou: dica para o plano, que o servidor ainda confere com as fontes do pedido.
+      const hinted =
+        chipsOn && matterChips.length
+          ? `Matérias indicadas pelo cliente (confira se se aplicam ao caso): ${matterChips.map((chip) => chip.label).join('; ')}.`
+          : '';
+      const contextText = (base: string) => [base, hinted, attached].filter(Boolean).join('\n\n');
+      if (attached && contextText(currentPiece?.localText ?? text).length > 100_000) {
+        throw new Error('O pedido com os anexos passa de 100.000 caracteres. Remova ou troque algum anexo.');
+      }
       onSubmit(
         {
           objective: goal,
@@ -250,14 +270,16 @@ export function Composer({
             : {}),
           ...(followUp && !guided ? { useGuidance: false } : {}),
           ...(matterId ? { matterId } : {}),
-          ...(!guided || currentPiece || selected.length || draft
+          ...(!guided || currentPiece || selected.length || draft || attached || hinted
             ? {
                 context: {
-                  text: currentPiece?.localText
-                    ? `Peça aberta (conteúdo do usuário):\n${currentPiece.localText}`
-                    : currentPiece && currentPiece.matterId !== matter
-                      ? goal
-                      : text,
+                  text: contextText(
+                    currentPiece?.localText
+                      ? `Peça aberta (conteúdo do usuário):\n${currentPiece.localText}`
+                      : currentPiece && currentPiece.matterId !== matter
+                        ? goal
+                        : text,
+                  ),
                   origin:
                     currentPiece && currentPiece.matterId !== matter
                       ? 'USER'
@@ -277,6 +299,8 @@ export function Composer({
         },
         authorization,
       );
+      attachments.clear();
+      setMatterChips([]);
     } catch (error) {
       if (isCurrent()) onFail(error);
     } finally {
@@ -342,7 +366,28 @@ export function Composer({
                 : 'Descreva o que você precisa. Você pode incluir a peça e as fontes do pedido.'
           }
         />
+        {chipsOn && (
+          <MatterChips
+            client={client}
+            chips={matterChips}
+            area={guidanceState?.decisions.area.status === 'confirmed' ? guidanceState.decisions.area.value : null}
+            disabled={busy || preparing}
+            onChange={setMatterChips}
+          />
+        )}
+        {ATTACHMENTS_ENABLED && (
+          <AttachmentChips
+            attachments={attachments.items}
+            notice={attachments.notice}
+            busy={busy || preparing}
+            onReplace={attachments.replace}
+            onRemove={attachments.remove}
+          />
+        )}
         <div className="flex flex-wrap items-center gap-2">
+          {ATTACHMENTS_ENABLED && (
+            <AttachButton disabled={busy || preparing} count={attachments.items.length} onFiles={attachments.add} />
+          )}
           {!guided && !followUp && (
             <select
               aria-label="Opção do pedido"
@@ -381,6 +426,7 @@ export function Composer({
                 pieceConflict ||
                 guidanceBusy ||
                 !available ||
+                reading ||
                 !goal ||
                 (commercial && authorizeOnSend && (!quote || quote.availableCents < quote.maxCostCents))
               }

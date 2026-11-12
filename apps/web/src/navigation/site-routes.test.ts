@@ -8,7 +8,7 @@ describe('rotas públicas e protegidas', () => {
       for (const suffix of ['', '/']) {
         expect(resolveSiteRoute(path + suffix, false)).toEqual({ kind: 'workspace', tab: 'connections' });
         expect(safeWorkspaceDestination(path + suffix + '?matterId=private#document', false)).toBe('/app/conectar');
-        expect(safeWorkspaceDestination(path + suffix + '?matterId=private#document', true)).toBe(
+        expect(safeWorkspaceDestination(path + suffix + '?matterId=private#document', true, true)).toBe(
           path + suffix + '?matterId=private#document',
         );
       }
