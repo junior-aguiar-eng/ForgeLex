@@ -188,8 +188,14 @@ test('ciclo documental completo por UI com host MCP sintético e aprovação rec
     'Ausência de comprovante. Preservar divergência e solicitar documentos.',
   );
   await page.getByRole('button', { name: 'Conferência da peça', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Conferência da peça' }).getByRole('button', { name: 'Aprovar esta versão', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Aprovar esta versão' }).getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'Conferência da peça' })
+    .getByRole('button', { name: 'Aprovar esta versão', exact: true })
+    .click();
+  await page
+    .getByRole('dialog', { name: 'Aprovar esta versão' })
+    .getByRole('button', { name: 'Confirmar aprovação', exact: true })
+    .click();
   await expect(page.getByText('Aprovação registrada para esta versão.').first()).toBeVisible();
   await page.keyboard.press('Escape');
   const download = page.waitForEvent('download');
