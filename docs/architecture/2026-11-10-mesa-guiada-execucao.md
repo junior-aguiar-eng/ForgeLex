@@ -534,6 +534,35 @@ Em 12/11/2026, sobre `63f6a71` (Frente U, branch `claude/frente-u-inventario-mes
 
 Reversão: reverter os commits da U1, em ordem inversa; o código removido do editor avulso volta pelo Git.
 
+## U2 · nova estrutura da Mesa (parcial)
+
+Em 12/11/2026, sobre `89ab9cc` (Frente U, branch `claude/frente-u-inventario-mesa`). A flag `VITE_FORGELEX_DESK_SHELL` nasce **desligada**, em `site-capabilities.ts` (`DESK_SHELL_ENABLED`, só `true` exato liga), no `vite-env.d.ts` e no `Dockerfile` (`ARG` com padrão `false`). Ela não entrou em `cloudbuild.yaml` nem nas substituições obrigatórias de `deploy-lib.ps1`: o deploy reaproveita as substituições do último build, e exigir uma nova quebraria a leitura de builds antigos. Ligar a casca em produção exige decisão e ajuste de operação próprios (M1/V6).
+
+**O que a Mesa atual já tinha.** `WritingDeskScreen` já organizava as três áreas pedidas: conversas recolhíveis à esquerda, conversa no centro com o compositor no rodapé e peça à direita sob demanda, com a alternância Conversa/Peça abaixo de `lg`. Por isso a U2 virou, na prática, organização do código, a flag e o estado vazio.
+
+| Item da U2 | Situação |
+| --- | --- |
+| Componentes sob `apps/web/src/desk/` | **Parcial.** `DeskShell`, `DeskToolbar`, `DeskMobileTabs`, `DeskSourcesDialog` e `DeskQueueDialog` saíram da `WritingDeskScreen` (335 para 248 linhas), sem mudar comportamento. **Não** dividi o corpo de `AgenticWorkspaceScreen` (cerca de 790 linhas) nem o de `DraftStudioScreen` (873): cada um é um único componente com estado entrelaçado, e dividi-los sem alterar comportamento pede um desenho próprio. |
+| Casca única `DeskShell` | Feita como componente de layout. A coluna esquerda guarda só as conversas; a lista de casos entra na U7 (DEC-14). Painel de fontes à direita fica para V3 (abas Texto, Fontes e Revisão); hoje as fontes abrem em diálogo, como antes. |
+| Estado vazio com atalhos | Feito atrás da flag: “Nova peça”, “Revisar um texto” (preenche o pedido, sem enviar) e “Pesquisar jurisprudência” (abre a pesquisa). Nenhum atalho lista o catálogo de habilidades (DEC-10). |
+| Preservar o buffer da peça (A07, A09) | Sem mudança de código nesses caminhos; coberto pelas suítes da Mesa, que passam com a flag desligada e ligada. |
+
+**Arquivos.** `apps/web/src/desk/` (`DeskShell`, `DeskToolbar`, `DeskDialogs`, `DeskShortcuts`), `WritingDeskScreen.tsx`, `AgenticWorkspaceScreen.tsx` (prop opcional `emptyState`), `site-capabilities.ts`, `Dockerfile`, `playwright.desk-shell.config.ts`, `tests/e2e/desk-shell.spec.ts`, `apps/web/src/desk/desk-shortcuts.test.ts` e `tests/dockerfile.test.ts`.
+
+**Verificação.**
+
+| Item | Resultado |
+| --- | --- |
+| Vitest do web e do Dockerfile | 44 arquivos e 240 testes aprovados. Tipos, ESLint e Prettier sem erros. |
+| Refatoração sem mudança de comportamento | Com a flag desligada, antes dos atalhos: `writing-desk` 37, `desk-guidance` 6, `desk-review` 3 e `desk-research` 2 aprovados. |
+| Flag desligada, com o spec novo | `writing-desk` 38 aprovados (inclui a verificação de que o estado vazio não tem atalhos) e `desk-guidance` 6. |
+| Flag ligada | `playwright.desk-shell.config.ts`: 30 aprovados (atalhos, `writing-desk` e `agentic-workspace`). |
+| Capturas | Estado vazio no desktop e no celular em `test-results/desk-shell/` (arquivos locais, fora do Git). Sem rolagem horizontal a 390 px. |
+
+**Pendente da U2.** Dividir `AgenticWorkspaceScreen` e `DraftStudioScreen` em componentes menores; lista de casos na coluna esquerda (U7); painel de fontes à direita (V3).
+
+Reversão: manter a flag desligada, ou reverter os commits da U2.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.

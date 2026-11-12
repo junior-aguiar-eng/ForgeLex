@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { AgenticWorkspaceScreen } from './AgenticWorkspaceScreen';
 import { DraftStudioScreen } from './DraftStudioScreen';
 import { useApp } from '../context/AppContext';
-import type { DeskPiece } from '../agentic-workspace/desk-model';
+import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
 import type { Execution } from '../agentic-workspace/execution-model';
 import type { GuidanceState } from '../agentic-workspace/guidance-model';
 import {
@@ -16,6 +16,8 @@ import { deskLocation, readDeskLocation, writeDeskLocation } from '../navigation
 import { tabForPath, updateDocumentTitle } from '../navigation/routes';
 import { useAuth } from '../auth/AuthContext';
 import { DeskShell } from '../desk/DeskShell';
+import { DeskShortcuts, reviewTextRequest } from '../desk/DeskShortcuts';
+import { DESK_SHELL_ENABLED } from '../config/site-capabilities';
 import { DeskMobileTabs, DeskToolbar } from '../desk/DeskToolbar';
 import { DeskQueueDialog, DeskSourcesDialog } from '../desk/DeskDialogs';
 import type { ReviewQueueItem } from '../operations/contracts';
@@ -45,6 +47,7 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
   const [queueError, setQueueError] = useState('');
   const [requestedReview, setRequestedReview] = useState<DeskDocumentSelection>();
   const [deskEditorialEnabled, setDeskEditorialEnabled] = useState(false);
+  const [request, setRequest] = useState<DeskRequest>();
   const sourceKey = JSON.stringify([status, account?.user.id, account?.workspace.id, deskLocation(selection)]);
   const openCaseSources = selection.matterId ? () => setSources({ kind: 'case', key: sourceKey }) : undefined;
 
@@ -214,6 +217,16 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
           }}
           piece={activePiece}
           piecePending={attached && (!activePiece || activePiece.loadingSelection)}
+          request={request}
+          emptyState={
+            DESK_SHELL_ENABLED ? (
+              <DeskShortcuts
+                onNewPiece={reopenPiece}
+                onReviewText={() => setRequest((old) => ({ id: (old?.id ?? 0) + 1, text: reviewTextRequest }))}
+                onResearch={() => setSources({ kind: 'research', key: sourceKey })}
+              />
+            ) : undefined
+          }
         />
       }
       piece={

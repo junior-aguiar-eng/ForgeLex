@@ -2,7 +2,7 @@ import { CanvasDialog } from './draft-review/DraftCanvas';
 import { createPortal } from 'react-dom';
 import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
 import { editorLink } from '../agentic-workspace/execution-model';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ApiRequestError } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 import { WorkspaceClient, type StartInput } from '../agentic-workspace/client';
@@ -62,12 +62,15 @@ export function AgenticWorkspaceScreen({
   piece,
   piecePending,
   request,
+  emptyState,
   historyContainer,
 }: {
   onEditor: (url: string, keepSelected?: boolean) => void;
   piece?: DeskPiece | null;
   piecePending?: boolean;
   request?: DeskRequest;
+  /** Atalhos do estado vazio (nova casca da Mesa); só aparecem antes do primeiro pedido e sem orientação ativa. */
+  emptyState?: ReactNode;
   historyContainer?: HTMLElement | null;
   active: boolean;
   requestedExecutionId?: string | null;
@@ -600,6 +603,7 @@ export function AgenticWorkspaceScreen({
                 guidanceEditing={Boolean(guidanceField)}
                 guidanceError={!guidance.id ? guidance.feedback : undefined}
               />
+              {!guidance.id && emptyState}
               {paidBar('start')}
             </div>
           )}
