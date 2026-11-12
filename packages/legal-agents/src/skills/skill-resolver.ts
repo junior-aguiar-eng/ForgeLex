@@ -66,7 +66,7 @@ export function resolveDeskSkills(input: DeskSkillRequest): {
       limitations.push({ code: 'FORM_SCOPE_UNRESOLVED' });
     } else {
       const forms = eligible.filter(
-        (skill) => skill.kind === 'FORM' && skill.area === area && skill.documentType === documentType,
+        (skill) => skill.kind === 'FORM' && skill.areas.includes(area) && skill.documentType === documentType,
       );
       if (forms.length === 1) select(forms[0], { kind: 'FORM', area, documentType });
       else if (forms.length) {

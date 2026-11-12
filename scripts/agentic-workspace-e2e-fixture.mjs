@@ -192,7 +192,7 @@ export function agenticE2EOptions() {
                 version: 1,
                 status: 'eligible',
                 kind: 'FORM',
-                area: 'civel',
+                areas: ['civel'],
                 documentType: 'contestacao-civel',
                 roles: ['legal-drafter'],
                 contentHash: createHash('sha256').update(skillContent).digest('hex'),

@@ -13,7 +13,6 @@ const metadata = z.strictObject({
   id: code,
   version: z.number().int().positive(),
   status: z.enum(['eligible', 'pending']),
-  area: code,
   roles: z
     .array(role)
     .min(1)
@@ -23,8 +22,17 @@ const metadata = z.strictObject({
   byteLength: z.number().int().positive(),
 });
 const entry = z.discriminatedUnion('kind', [
-  metadata.extend({ kind: z.literal('FORM'), documentType: code }),
-  metadata.extend({ kind: z.literal('MATTER'), topic: code }),
+  // Uma Forma pode servir a mais de uma área da Mesa (M3.0); o tipo de peça é o identificador estável da ficha.
+  metadata.extend({
+    kind: z.literal('FORM'),
+    areas: z
+      .array(code)
+      .min(1)
+      .refine((areas) => new Set(areas).size === areas.length)
+      .readonly(),
+    documentType: code,
+  }),
+  metadata.extend({ kind: z.literal('MATTER'), area: code, topic: code }),
 ]);
 export type SkillCatalogEntry = Readonly<z.infer<typeof entry>>;
 

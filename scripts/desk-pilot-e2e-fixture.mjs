@@ -9,7 +9,7 @@ const forms = {
   penal: {
     id: 'piloto-forma-penal-sintetica',
     kind: 'FORM',
-    area: 'penal',
+    areas: ['penal'],
     documentType: 'resposta-acusacao',
     roles: ['legal-drafter'],
     content: 'Referência interna sintética de Forma Penal. Organizar somente o texto da fixture.',
@@ -17,7 +17,7 @@ const forms = {
   civel: {
     id: 'piloto-forma-civel-sintetica',
     kind: 'FORM',
-    area: 'civel',
+    areas: ['civel'],
     documentType: 'contestacao-civel',
     roles: ['legal-drafter'],
     content: 'Referência interna sintética de Forma Cível. Organizar somente o texto da fixture.',
