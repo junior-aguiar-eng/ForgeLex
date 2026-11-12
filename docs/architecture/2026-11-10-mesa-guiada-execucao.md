@@ -600,6 +600,81 @@ A qualidade da atribuição de área da Forma é heurística: nenhuma ficha foi 
 
 Reversão: reverter os commits da M3.0; o catálogo ainda não está em produção.
 
+## M3.1, M3.2 e M3.3 · incorporação, cruzamento e Lote 0 (parciais)
+
+Em 12/11/2026, sobre `03d0d17` (branch `claude/frente-u-inventario-mesa`), em um lote só a pedido de Boni. DEC-4: as 2.077 fichas são incorporadas; o cruzamento em massa substitui a leitura ficha a ficha e só os alertas chegam a Boni. Nada do catálogo foi publicado: o diretório montado fica na pasta local ignorada pelo Git, e a produção continua sem catálogo (`FORGELEX_SKILL_CATALOG_DIR` não está definida em nenhum serviço).
+
+### M3.1 · incorporação
+
+| Item | Decisão e resultado |
+| --- | --- |
+| Onde fica o conteúdo | Em um **diretório privado do servidor**, fora dos assets públicos e do bundle do navegador: `catalog.json` (manifesto) e `content/<id>@<versão>.md`. Como o conteúdo é de terceiros e pesa 23 MB, ele não entra no repositório; entra no ambiente de execução por um passo de publicação (a decidir: camada da imagem da API ou Cloud Storage privado). O repositório guarda só o código e o relatório. |
+| Como o servidor carrega | `loadFileSkillCatalog` (`apps/api/src/skills/file-skill-catalog.ts`) valida o manifesto, confere na subida que toda ficha elegível tem o arquivo com o tamanho declarado e lê cada versão limitada ao tamanho declarado; o hash é conferido pelo vínculo (`bindDeskSkills`). Sobre o catálogo real (2.081 entradas) a subida leva cerca de 1,1 s. `FORGELEX_SKILL_CATALOG_DIR` liga o catálogo no runtime comercial; sem ela, nada é aplicado. |
+| Versão por execução | O vínculo já registra a versão do catálogo, e cada ficha por versão e hash. As versões convivem lado a lado, então uma execução em andamento continua lendo a versão e o hash que fixou depois de o catálogo ganhar uma versão nova. |
+| Proveniência por ficha | Origem (`MinutaIA`), versão e hash originais, decisão (`DEC-4`) e data, mais `adjustedFrom` quando a versão é uma redação ajustada. Descreve só o que existe; não cria condição de reutilização. |
+| Estados de revisão | Pendente, em revisão, ajustada, elegível, inelegível e adiada (`REVIEW_STATES`). Só `eligible` chega ao resolvedor; a ficha elegível não pode ter alerta. |
+| Orçamento | Padrão de 64 KB por papel e 96 KB no total (metade do limite de 192 KB do trabalho), trocável por `FORGELEX_SKILL_BUDGET_ROLE_BYTES` e `FORGELEX_SKILL_BUDGET_TOTAL_BYTES`. Valores propostos, a confirmar por Boni. |
+| Mantidos | As fixtures `tests/fixtures/desk-pilot-revised/*` e as fichas sintéticas dos testes de regressão continuam. |
+
+**Montagem.** `scripts/skills/build-catalog.mjs` junta o ZIP verificado, o mapa (M3.0), o cruzamento (M3.2) e o Lote 0. Um `stableId` com acento (`federalismo-fiscal-repartição-receitas`) ganhou identificador seguro (`catalogId`, sem acento e com sufixo de hash).
+
+| Resultado da montagem (`catalogo-incorporado-2026-11-12`) | Entradas |
+| --- | ---: |
+| Fichas do ZIP | 2.077 |
+| Elegíveis (mapeadas e cruzadas sem alerta) | 1.802 (200 Forma e 1.602 Matéria) |
+| Ajustadas (as quatro originais do Lote 0) | 4 |
+| Elegíveis do Lote 0 (redações ajustadas, versão original mais 1) | 4 |
+| Pendentes | 271 |
+| Total de entradas no manifesto | 2.081 |
+
+As 271 pendentes são: 82 na fila do mapa (área ambígua), 80 com alerta no cruzamento e 109 sem referência verificável a artigo de código. A fila fica no catálogo e nunca é selecionada.
+
+### M3.2 · cruzamento em massa
+
+`scripts/skills/crosscheck-catalog.mjs` extrai de cada ficha as referências a artigos de CPC, CPP, CC, CP, CF, CLT, CTN e CDC e confere, no texto compilado do Planalto, que o artigo existe e não está revogado. Os oito textos foram baixados com `fetch_oficial.py` (CPP, CP, CLT, CC, CF, CTN e CDC compilados; o CPC é a página anotada, em que vale o texto não tachado). Foram conferidas **14.906 referências a artigos** em 2.077 fichas.
+
+| Resultado | Fichas |
+| --- | ---: |
+| Cruzadas sem alerta (existência e vigência) | 1.877 |
+| Com alerta | 83 (7 de Forma e 76 de Matéria) |
+| Sem referência verificável a artigo (nada a conferir) | 117 |
+
+Alertas por tipo: 79 artigos revogados do CC (sobretudo os arts. 757 a 802, do seguro, revogados pela Lei 15.040/2024), 14 do CP, 5 do CPP, 4 da CLT e 1 do CTN; 39 artigos inexistentes (23 no CPC, entre eles o art. 529-A em 12 fichas e o 475-J, da versão antiga; 6 no CC, entre eles o art. 853-A em 5 fichas; 5 no CP, 4 na CLT e 1 no CPP). Os alertas são o que chega a Boni, por área, na fila.
+
+**O que o cruzamento não faz, e por quê.** Ficha cruzada não é ficha revisada: ela passou nas conferências listadas e em nenhuma outra.
+
+| Não conferido | Motivo |
+| --- | --- |
+| Existência de súmulas e precedentes no índice do STJ do ForgeLex (16.289 referências) | Exige consultar o índice autenticado por referência; não há acesso em lote fora do conector. |
+| Leis esparsas (por exemplo, Lei 8.429, 9.099, 11.343) | Os oito códigos acima foram baixados; as demais leis não. |
+| Contradição de teor entre Forma e Matéria (como a `resposta-acusacao` contra a cadeia de custódia) | Exige leitura semântica; não é verificável por dado. |
+| Tese exagerada ou generalizada | O próprio plano já registra que o cruzamento não a detecta; o risco fica coberto só pela fila das fichas mais selecionadas em casos reais, quando houver uso. |
+
+Por isso a elegibilidade das 1.802 vale como “cruzada em norma”, não como aprovação jurídica de conteúdo. Ligar o catálogo em produção continua decisão de Boni (variável de ambiente e publicação).
+
+### M3.3 · Lote 0 e repetição do piloto
+
+As quatro redações revisadas (`resposta-acusacao`, `cadeia-custodia-cpp-158`, `contestacao-civel` e `adimplemento-pagamento-cc-304`, de `tests/fixtures/desk-pilot-revised`) entram como versões novas elegíveis, ligadas por `adjustedFrom` à original, que passa a ajustada. O piloto da Mesa ganhou o modo `incorporated`, que lê o catálogo do diretório pelo mesmo carregador do servidor.
+
+| Modo do piloto | Resultado |
+| --- | --- |
+| `incorporated` (catálogo real, 2.081 entradas) | 4 cenários aprovados: a Forma Penal e a Matéria de custódia no caso do lacre, só a Forma no caso incidental, nenhuma ficha na peça indefinida e Forma e Matéria Cíveis na contestação, com versão, hash e ausência de vazamento conferidos |
+| `skills`, `expanded` e `revised` | 4, 5 e 4 cenários aprovados (sem regressão) |
+
+**Ressalva do piloto.** A Mesa ainda usa o vocabulário antigo de áreas (`penal`, `civel`), e o catálogo real usa as 25 áreas das fichas (por exemplo, `processo-penal` e `civil`). Para repetir o piloto, o diretório de teste foi montado com `--area-alias "processo-penal=penal,civil=civel"`, que acrescenta a área antiga só às quatro redações do Lote 0 (o diretório real, sem alias, fica intacto). Esse alias some quando o vocabulário de 25 áreas entrar na Mesa (U3). A avaliação jurídica das quatro redações e a aprovação do Lote 0 continuam com Boni.
+
+### Verificação
+
+| Item | Resultado |
+| --- | --- |
+| Testes novos | `skill-manifest.test.ts` (5), `file-skill-catalog.test.ts` (5), `crosscheck-catalog.test.mjs` (6) e `build-catalog.test.mjs` (5), mais um teste em `map-catalog.test.mjs`. `node --test scripts/skills`: 31 aprovados. |
+| Vitest | 276 arquivos e 2.045 testes aprovados, 18 ignorados (17 de PostgreSQL e o do catálogo real, que exige o inventário). Tipos, ESLint e Prettier sem erros. |
+| Playwright | `desk-pilot` nos quatro modos, como na tabela acima. |
+
+**Pendente.** A fila de 271 fichas e o veredicto de Boni sobre ela; a verificação de súmulas e precedentes no índice do STJ; a publicação do conteúdo no servidor e a decisão de ligar o catálogo; o vocabulário de 25 áreas na Mesa (U3); e a R15 (expansão por área), que reabre só por nova decisão de Boni.
+
+Reversão: reverter os commits e apagar o diretório local; nenhuma flag foi ligada.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.
