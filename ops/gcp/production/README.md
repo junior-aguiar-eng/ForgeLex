@@ -109,8 +109,9 @@ Ao terminar, imprime os comandos de reversão e o que registrar no `PENDENCIAS.m
   é intencional e o deploy reverte sozinho. A Mesa guiada (`FORGELEX_DESK_GUIDANCE_ENABLED`) liga em homologação
   antes da produção. Para trocar o valor, use um comando separado e autorizado por Boni
   (`gcloud run services update <serviço> --update-env-vars=NOME=true`) e reverta com `=false`.
-- **Trocar uma flag de interface de propósito:** `-AgenticWorkspaceEnabled`, `-CaseWorkspaceEnabled` ou
-  `-SavedResearchEnabled` (`true`/`false`). Sem elas, valem as do último build.
+- **Trocar uma flag de interface de propósito:** `-AgenticWorkspaceEnabled`, `-CaseWorkspaceEnabled`,
+  `-SavedResearchEnabled`, `-DeskShellEnabled`, `-AttachmentsEnabled` ou `-MatterChipsEnabled` (`true`/`false`).
+  Sem elas, valem as do último build (as três da Mesa, ausentes em builds antigos, valem `false`).
 - **Repetir é seguro:** se a imagem e as revisões do SHA já existem, são reaproveitadas, e um serviço que já
   recebe 100% na revisão nova não é tocado.
 - **Testes** (sem gcloud, sem rede): `pwsh -NoProfile -File ops/gcp/production/deploy-from-main.tests.ps1`.

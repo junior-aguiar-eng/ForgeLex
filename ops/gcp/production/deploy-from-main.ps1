@@ -23,10 +23,13 @@ param(
   [string]$ImageUri = 'southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api',
   [string]$ApiService = 'forgelex-api-prod',
   [string]$ClosureService = 'forgelex-closure-hml-private',
-  # Por padrão as três flags de interface vêm do último build. Informe só para mudá-las de propósito.
+  # Por padrão as flags de interface vêm do último build. Informe só para mudá-las de propósito.
   [ValidateSet('true', 'false')][string]$AgenticWorkspaceEnabled,
   [ValidateSet('true', 'false')][string]$CaseWorkspaceEnabled,
   [ValidateSet('true', 'false')][string]$SavedResearchEnabled,
+  [ValidateSet('true', 'false')][string]$DeskShellEnabled,
+  [ValidateSet('true', 'false')][string]$AttachmentsEnabled,
+  [ValidateSet('true', 'false')][string]$MatterChipsEnabled,
   [switch]$DryRun,
   [switch]$NoTraffic,
   [switch]$SkipCiCheck
@@ -122,6 +125,9 @@ $overrides = @{}
 if ($PSBoundParameters.ContainsKey('AgenticWorkspaceEnabled')) { $overrides['_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED'] = $AgenticWorkspaceEnabled }
 if ($PSBoundParameters.ContainsKey('CaseWorkspaceEnabled')) { $overrides['_VITE_FORGELEX_CASE_WORKSPACE_ENABLED'] = $CaseWorkspaceEnabled }
 if ($PSBoundParameters.ContainsKey('SavedResearchEnabled')) { $overrides['_VITE_FORGELEX_SAVED_RESEARCH_ENABLED'] = $SavedResearchEnabled }
+if ($PSBoundParameters.ContainsKey('DeskShellEnabled')) { $overrides['_VITE_FORGELEX_DESK_SHELL'] = $DeskShellEnabled }
+if ($PSBoundParameters.ContainsKey('AttachmentsEnabled')) { $overrides['_VITE_FORGELEX_ATTACHMENTS_ENABLED'] = $AttachmentsEnabled }
+if ($PSBoundParameters.ContainsKey('MatterChipsEnabled')) { $overrides['_VITE_FORGELEX_MATTER_CHIPS_ENABLED'] = $MatterChipsEnabled }
 $substitutions = New-BuildSubstitutions -Previous $base.Substitutions -Sha $sha -Overrides $overrides
 Write-Host "  base: build $($base.Id)$(if ($overrides.Count) { "  (com $($overrides.Count) flag(s) trocada(s) de propósito)" })"
 Format-MaskedSubstitutions $substitutions | ForEach-Object { Write-Host "  $_" }

@@ -133,7 +133,24 @@ Test-Case 'copia tudo do build anterior e troca só o SHA' {
   Assert-Equal $result['_SOURCE_SHA'] $sha
   Assert-Equal $result['_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED'] 'true'
   Assert-Equal $result['_VITE_FORGELEX_CASE_WORKSPACE_ENABLED'] 'true'
-  Assert-Equal $result.Count 8
+  Assert-Equal $result.Count 11
+}
+Test-Case 'flags da Mesa ausentes no build anterior valem false, como no cloudbuild.yaml' {
+  $result = New-BuildSubstitutions -Previous $goodSubs -Sha $sha
+  foreach ($key in '_VITE_FORGELEX_DESK_SHELL', '_VITE_FORGELEX_ATTACHMENTS_ENABLED', '_VITE_FORGELEX_MATTER_CHIPS_ENABLED') {
+    Assert-Equal $result[$key] 'false'
+  }
+}
+Test-Case 'flags da Mesa presentes no build anterior são preservadas e podem ser trocadas de propósito' {
+  $prev = @{}; foreach ($key in $goodSubs.Keys) { $prev[$key] = $goodSubs[$key] }
+  $prev['_VITE_FORGELEX_DESK_SHELL'] = 'true'
+  $kept = New-BuildSubstitutions -Previous $prev -Sha $sha
+  Assert-Equal $kept['_VITE_FORGELEX_DESK_SHELL'] 'true'
+  Assert-Equal $kept['_VITE_FORGELEX_ATTACHMENTS_ENABLED'] 'false'
+  $on = New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_FORGELEX_ATTACHMENTS_ENABLED' = 'true'; '_VITE_FORGELEX_MATTER_CHIPS_ENABLED' = 'true' }
+  Assert-Equal $on['_VITE_FORGELEX_ATTACHMENTS_ENABLED'] 'true'
+  Assert-Equal $on['_VITE_FORGELEX_MATTER_CHIPS_ENABLED'] 'true'
+  Assert-Throws { New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_FORGELEX_DESK_SHELL' = 'sim' } } 'Flag inválida'
 }
 Test-Case 'aceita troca explícita de flag de interface' {
   $result = New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_FORGELEX_CASE_WORKSPACE_ENABLED' = 'false' }
