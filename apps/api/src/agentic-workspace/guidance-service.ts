@@ -64,11 +64,7 @@ function labelOf(field: string, value: string | null, options: GuidanceServiceOp
   return undefined;
 }
 
-function project(
-  conversation: AgenticConversation,
-  context: Context,
-  options: GuidanceServiceOptions = {},
-) {
+function project(conversation: AgenticConversation, context: Context, options: GuidanceServiceOptions = {}) {
   const snapshot = context.guidance;
   if (!snapshot) throw new Error('CONVERSATION_NOT_FOUND');
   const questions = new Map(
@@ -93,7 +89,9 @@ function project(
           ?.answer?.freeText?.trim()
       : undefined;
   const decisions = Object.fromEntries(
-    ([...(snapshot.court ? (['court'] as const) : []), 'area', 'action', 'documentType', 'partyRole', 'stage'] as const).map((field) => {
+    (
+      [...(snapshot.court ? (['court'] as const) : []), 'area', 'action', 'documentType', 'partyRole', 'stage'] as const
+    ).map((field) => {
       const { value, status, questionId } = snapshot[field]!;
       const original = questionId ? questions.get(questionId) : undefined;
       // O texto livre da tarefa já reaparece inteiro como `description`; aqui só área, peça e demais campos.
@@ -235,7 +233,12 @@ export class GuidanceService {
         throw new Error('QUESTION_EXPIRED');
       const question = { ...original, contextRevision: context.revision };
       const validated = validateLegalAnswer(question, answer);
-      const guidance = applyGuidanceAnswer(snapshot, question, validated, environmentOf(this.options, conversation, context));
+      const guidance = applyGuidanceAnswer(
+        snapshot,
+        question,
+        validated,
+        environmentOf(this.options, conversation, context),
+      );
       await store.workspace.reviseGuidance(
         access.owner,
         id,

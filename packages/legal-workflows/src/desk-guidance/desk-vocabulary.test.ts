@@ -91,6 +91,17 @@ describe('ranqueamento de peças', () => {
     expect(rankPieces({ pieces, text: '   ' })).toEqual([]);
   });
 
+  it('a palavra rara do rótulo identifica a peça mesmo sem o nome inteiro no texto', () => {
+    const many = Array.from({ length: 29 }, (_, index) =>
+      piece(`acao-${index}`, `Ação Tipo${String.fromCharCode(65 + (index % 26))}${index}`, ['civil']),
+    );
+    const catalog = [...many, piece('acao-alimentos', 'Ação de Alimentos', ['familia-sucessoes'])];
+    expect(rankPieces({ pieces: catalog, text: 'pedido de alimentos para meu filho' })[0]?.piece.id).toBe(
+      'acao-alimentos',
+    );
+    expect(rankPieces({ pieces: catalog, text: 'quero fazer uma ação' })).toEqual([]);
+  });
+
   it('desempata de forma estável, sem depender da ordem de entrada', () => {
     const twin = [
       piece('b-peca', 'Petição simples', ['civil'], ['peticao']),

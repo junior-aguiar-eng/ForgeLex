@@ -30,7 +30,22 @@ const MIN_SCORE = 4;
 const tokens = (normalized: string) => normalized.split(' ').filter((word) => word.length >= 3 && !STOPWORDS.has(word));
 const contains = (haystack: string, phrase: string) => ` ${haystack} `.includes(` ${phrase} `);
 
-function scoreOf(piece: DeskPiece, text: string, textTokens: ReadonlySet<string>, area: string | null): number {
+/** Peso de cada palavra de rótulo: quanto mais rara entre as peças, mais ela identifica ("alimentos" pesa mais que "ação"). */
+function weights(pieces: readonly DeskPiece[]): Map<string, number> {
+  const frequency = new Map<string, number>();
+  for (const piece of pieces) {
+    for (const word of new Set(tokens(normalizeText(piece.label)))) frequency.set(word, (frequency.get(word) ?? 0) + 1);
+  }
+  return new Map([...frequency].map(([word, count]) => [word, 1 + Math.log(pieces.length / count)]));
+}
+
+function scoreOf(
+  piece: DeskPiece,
+  text: string,
+  textTokens: ReadonlySet<string>,
+  area: string | null,
+  weight: ReadonlyMap<string, number>,
+): number {
   const label = normalizeText(piece.label);
   let score = 0;
   if (label && contains(text, label)) score += 10;
@@ -38,7 +53,7 @@ function scoreOf(piece: DeskPiece, text: string, textTokens: ReadonlySet<string>
     const phrase = normalizeText(trigger);
     if (phrase.length >= 4 && contains(text, phrase)) score += 5;
   }
-  for (const word of tokens(label)) if (textTokens.has(word)) score += 2;
+  for (const word of tokens(label)) if (textTokens.has(word)) score += weight.get(word) ?? 1;
   if (score > 0 && area && piece.areas.includes(area)) score += 1;
   return score;
 }
@@ -58,10 +73,12 @@ export function rankPieces(input: {
   const area = input.area ?? null;
   const rejected = new Set(input.rejected ?? []);
   const textTokens = new Set(tokens(text));
+  // O peso vem de todas as peças, não só das da área: a raridade de uma palavra é a do catálogo.
+  const weight = weights(input.pieces);
   return input.pieces
     .filter((piece) => !rejected.has(piece.id))
     .filter((piece) => !area || area === 'outra' || piece.transversal || piece.areas.includes(area))
-    .map((piece) => ({ piece, score: scoreOf(piece, text, textTokens, area === 'outra' ? null : area) }))
+    .map((piece) => ({ piece, score: scoreOf(piece, text, textTokens, area === 'outra' ? null : area, weight) }))
     .filter(({ score }) => score >= MIN_SCORE)
     .sort(
       (a, b) => b.score - a.score || a.piece.label.length - b.piece.label.length || (a.piece.id < b.piece.id ? -1 : 1),

@@ -829,6 +829,40 @@ A Resolução CD/ANPD 32/2026 (reconhecimento da União Europeia), o Ato Conjunt
 
 `node --test scripts/skills`: 48 aprovados. `desk-pilot` em `incorporated`: 4 aprovados. Catálogo: 2.086 entradas (2.068 elegíveis, 9 ajustadas e superadas, 4 redações do Lote 0 e 5 do Lote 1).
 
+## U3 — Peça e matéria na Mesa (12/11/2026)
+
+Branch `claude/frente-u-inventario-mesa`. A orientação ganhou as regras `mesa-v3`, atrás da flag `FORGELEX_DESK_GUIDANCE_V3_ENABLED` do servidor (desligada). Nada foi publicado nem ligado: o catálogo continua sem `FORGELEX_SKILL_CATALOG_DIR` em qualquer serviço.
+
+### O que mudou
+
+| Camada                        | Mudança                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contrato (`GuidanceSnapshot`) | Dois campos opcionais: `court` (tribunal) e `rejectedDocumentTypes` (peças que o cliente já recusou). Entram no hash só quando existem, então o hash das orientações v1 e v2 não muda (conferido por um valor de referência gravado no teste).                                                                                                                |
+| Regras (`guidance-rules`)     | v1 e v2 seguem como eram (seis áreas e a tabela fixa de peças). A v3 usa as 25 grandes áreas do mapa mais "Outra área", e a peça sai do catálogo. Fluxo: área, tarefa, peça, tribunal.                                                                                                                                                                        |
+| Peça proposta                 | A Mesa propõe uma peça por vez, pelo texto do pedido ("Pelo que você informou, a peça é: Resposta à acusação. Está correto?"). "Não, é outra" propõe a próxima candidata; sem mais candidatas, pede para o cliente explicar e segue como pedido livre. "Não sei" também segue como pedido livre. Mudar a área ou a tarefa apaga a peça proposta e as recusas. |
+| Ranqueamento                  | Local, sem provedor e sem reservar saldo: nome da peça no texto (+10), expressões da ficha (+5) e palavras do rótulo ponderadas pela raridade no catálogo (+1 a +5). Com a área escolhida, só entram as peças da área e as transversais.                                                                                                                      |
+| Tribunal                      | Pergunta em texto livre. Reconhece STF, STJ, TST, TSE, STM, TRF 1 a 6, TRT 1 a 24, TJ e TRE de cada estado, por sigla ou por extenso. Texto que não reconhece vira "Outro tribunal"; "Não sei" deixa em aberto.                                                                                                                                               |
+| Manifesto do catálogo         | Cada ficha ganhou `label` (o título) e as Formas ganharam `triggers`, ambos só para o servidor. `piecesFromManifest` monta a lista interna de peças: Formas elegíveis com rótulo, uma por tipo.                                                                                                                                                               |
+| API                           | `GuidanceService` recebe a lista de peças e a versão das regras. A projeção traz `court` e um `label` legível por decisão. A lista de peças, as expressões, os ids de ficha e os hashes não saem do servidor.                                                                                                                                                 |
+| Interface                     | O resumo mostra tribunal, usa o rótulo legível e marca a peça só proposta como "a confirmar". Perguntas com mais de 12 opções ganham busca sem acento nem caixa.                                                                                                                                                                                              |
+
+### Sobre o catálogo real
+
+Com o catálogo reconstruído, a lista tem 303 peças (22 transversais), todas com expressões. Em 11 de 13 pedidos de teste o resultado foi o esperado: a peça certa em primeiro lugar, ou nenhuma proposta para texto vago ("quero entender como proceder"). Nos dois pedidos genéricos ("petição inicial" e "execução fiscal") as candidatas empatam, e o cliente chega à certa recusando uma ou duas.
+
+### Verificação
+
+Vitest completo: 281 arquivos e 2.096 testes aprovados. Playwright: `desk-guidance-v3` (novo, 2 testes, com axe e celular), `desk-guidance` (6) e `desk-pilot` em `incorporated` (4). `node --test scripts/skills`: 49.
+
+### Decisão de desenho e o que falta
+
+- **Identificação por texto sem provedor.** O plano previa a IA identificando área, tribunal e peça. Fiz primeiro o ranqueamento local: é gratuito, instantâneo e não depende de consentimento. Uma refinação por IA continua possível, sob o consentimento e o custo vigentes, e só vale a pena se o ranqueamento errar mais do que a recusa resolve.
+- **A área não é inferida do texto.** O cliente a escolhe (atalho com busca) antes da peça. Inferir a área pela peça proposta poupa uma pergunta e fica para uma segunda rodada.
+- **Matéria em uso.** A matéria já sai das questões classificadas da execução. Os chips de matéria e a soma ou retirada de peça e matéria são da U4.
+- **Chips no compositor.** Por ora área, peça e tribunal aparecem no resumo do pedido; levá-los para o compositor segue com a U4 (ações) e a U7.
+- **Peça ou matéria sem ficha elegível.** Sem peça no catálogo o pedido segue como livre, mas a Mesa ainda não diz "não há apoio específico para isto". Fica para a U4.
+- **Ligar.** A v3 só vale para conversas novas, com a flag ligada e o catálogo carregado (as peças vêm dele). Sem catálogo, a v3 funciona sem propor peça.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.
