@@ -88,3 +88,27 @@ test('recusar a peça proposta segue para outra candidata ou para o pedido livre
   await expect(question(page).locator('legend')).toContainText('Em qual tribunal');
   await page.screenshot({ path: 'test-results/desk-guidance-v3/04-celular-livre.png', animations: 'disabled' });
 });
+
+test('voltar um passo reabre a resposta anterior e não perde o que já foi escolhido ou digitado', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 980 });
+  await openDesk(page);
+  await page.getByRole('textbox', { name: 'O que você precisa fazer?' }).fill('resposta à acusação');
+  await page.getByRole('button', { name: 'Me ajude a começar' }).click();
+  // Na primeira pergunta não há para onde voltar.
+  await expect(question(page).getByRole('button', { name: 'Voltar', exact: true })).toHaveCount(0);
+  await question(page).getByRole('radio', { name: 'Penal', exact: true }).check();
+  await next(page);
+  await expect(question(page).locator('legend')).toHaveText('O que você precisa fazer?');
+  await question(page).getByRole('radio', { name: 'Analisar documentos', exact: true }).check();
+  await question(page).getByRole('button', { name: 'Voltar', exact: true }).click();
+
+  // A resposta anterior reabre com a opção escolhida.
+  await expect(question(page).locator('legend')).toHaveText('Em qual área você precisa trabalhar?');
+  await expect(question(page).getByRole('radio', { name: 'Penal', exact: true })).toBeChecked();
+  await page.screenshot({ path: 'test-results/desk-guidance-v3/05-voltar.png', animations: 'disabled' });
+  await question(page).getByRole('button', { name: 'Cancelar alteração' }).click();
+
+  // De volta à pergunta pendente, a escolha ainda não enviada continua marcada.
+  await expect(question(page).locator('legend')).toHaveText('O que você precisa fazer?');
+  await expect(question(page).getByRole('radio', { name: 'Analisar documentos', exact: true })).toBeChecked();
+});

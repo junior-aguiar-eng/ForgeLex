@@ -262,9 +262,15 @@ test('histórico lateral visível, exclusão recuperável e seletor legível', a
   await page.getByRole('button', { name: 'Mostrar conversas' }).click();
   await open.click();
   await expect(page).toHaveURL(new RegExp(`executionId=${run.id}`));
+  // Excluir é reversível: sai do histórico na hora e o aviso oferece "Desfazer".
   await sidebar.getByRole('button', { name: `Excluir do histórico: ${title}`, exact: true }).click();
-  const confirmation = page.getByRole('dialog', { name: 'Excluir conversa do histórico?' });
-  await confirmation.getByRole('button', { name: 'Excluir do histórico', exact: true }).click();
+  const notice = page.getByRole('status').filter({ hasText: 'Conversa excluída do histórico' });
+  await expect(notice).toContainText(title);
+  await expect(open).toHaveCount(0);
+  await notice.getByRole('button', { name: 'Desfazer', exact: true }).click();
+  await expect(notice).toHaveCount(0);
+  await expect(open).toBeVisible();
+  await sidebar.getByRole('button', { name: `Excluir do histórico: ${title}`, exact: true }).click();
   await expect(open).toHaveCount(0);
   await page.reload();
   await expect(open).toHaveCount(0);

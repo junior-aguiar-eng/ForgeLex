@@ -1,4 +1,5 @@
 import { CanvasDialog } from './draft-review/DraftCanvas';
+import { UndoNotice } from '../components/UndoNotice';
 import { createPortal } from 'react-dom';
 import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
 import { editorLink } from '../agentic-workspace/execution-model';
@@ -357,7 +358,8 @@ export function AgenticWorkspaceScreen({
       await client.setConversationHidden(item.executionId, hidden);
       setRecent((items) => items.filter((row) => row.executionId !== item.executionId));
       if (hidden && item.executionId === id && epoch === navigationEpoch.current) newWork();
-      setHistoryPending(undefined);
+      // Excluir é reversível: o aviso oferece "Desfazer" e o histórico guarda a conversa em "Conversas excluídas".
+      setHistoryPending(hidden ? item : undefined);
     } catch {
       setHistoryError('Não foi possível atualizar o histórico. Tente novamente.');
     } finally {
@@ -377,10 +379,8 @@ export function AgenticWorkspaceScreen({
       setHistoryError('');
     },
     onHistory: (item: RecentItem, hidden: boolean) => {
-      if (hidden) {
-        setHistoryPending(item);
-        setHistoryError('');
-      } else void updateHistory(item, false);
+      setHistoryError('');
+      void updateHistory(item, hidden);
     },
   };
 
@@ -464,39 +464,14 @@ export function AgenticWorkspaceScreen({
               />
             </CanvasDialog>
           )}
-          {historyError && !historyPending && <p role="alert">{historyError}</p>}
+          {historyError && <p role="alert">{historyError}</p>}
           {historyPending && (
-            <CanvasDialog
-              title="Excluir conversa do histórico?"
-              onClose={() => {
-                if (!historyBusy) setHistoryPending(undefined);
-              }}
-            >
-              <p className="text-sm text-stone-600">
-                Você poderá restaurá-la em Conversas excluídas. As peças e os recibos serão preservados. Isso não
-                cancela um trabalho em andamento.
-              </p>
-              <p className="my-4 font-medium">{historyPending.title}</p>
-              {historyError && <p role="alert">{historyError}</p>}
-              <div className="mt-4 flex gap-3">
-                <button
-                  type="button"
-                  disabled={historyBusy}
-                  className="btn-secondary"
-                  onClick={() => setHistoryPending(undefined)}
-                >
-                  Manter conversa
-                </button>
-                <button
-                  type="button"
-                  disabled={historyBusy}
-                  className="btn-primary"
-                  onClick={() => void updateHistory(historyPending, true)}
-                >
-                  Excluir do histórico
-                </button>
-              </div>
-            </CanvasDialog>
+            <UndoNotice
+              message={`Conversa excluída do histórico: ${historyPending.title}. As peças e os recibos foram preservados.`}
+              busy={historyBusy}
+              onUndo={() => void updateHistory(historyPending, false)}
+              onDismiss={() => setHistoryPending(undefined)}
+            />
           )}
           <header
             className={

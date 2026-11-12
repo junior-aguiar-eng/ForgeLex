@@ -863,6 +863,34 @@ Vitest completo: 281 arquivos e 2.096 testes aprovados. Playwright: `desk-guidan
 - **Peça ou matéria sem ficha elegível.** Sem peça no catálogo o pedido segue como livre, mas a Mesa ainda não diz "não há apoio específico para isto". Fica para a U4.
 - **Ligar.** A v3 só vale para conversas novas, com a flag ligada e o catálogo carregado (as peças vêm dele). Sem catálogo, a v3 funciona sem propor peça.
 
+## U4 — Ações: voltar, alterar, excluir (12/11/2026, parcial)
+
+Branch `claude/frente-u-inventario-mesa`. Entraram as ações que não dependem de modelo de dados novo nem de migração. As demais ficam registradas abaixo, com o motivo.
+
+### Feito
+
+| Ação                           | Como ficou                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Voltar                         | Cada pergunta da orientação, menos a primeira, ganhou "Voltar": reabre a resposta mais recente com a opção marcada, pelo mesmo caminho de "Alterar" (nova revisão e reavaliação das decisões dependentes). O que o cliente escolheu ou digitou na pergunta pendente fica guardado por pergunta (`QuestionDraft`) e volta intacto ao "Cancelar alteração".                                   |
+| Alterar área, peça ou tribunal | Já existia no resumo; agora cobre o tribunal da mesa-v3.                                                                                                                                                                                                                                                                                                                                    |
+| Excluir conversa               | Deixou de pedir confirmação e passou a sair do histórico na hora, com o aviso "Conversa excluída do histórico: … As peças e os recibos foram preservados" e o botão "Desfazer". O aviso fica 10 segundos, pausa com o ponteiro ou o foco e fecha com Esc. A conversa continua recuperável em "Conversas excluídas", sem prazo. Excluir não cancela trabalho em andamento nem consome saldo. |
+| Nova peça, nova conversa       | Já existiam no cabeçalho e na lista de conversas; sem mudança.                                                                                                                                                                                                                                                                                                                              |
+
+O aviso é o componente `UndoNotice` (`role="status"`, não rouba o foco), reutilizável pelas próximas ações reversíveis.
+
+### Verificação
+
+Playwright: `desk-guidance-v3` (3, com o novo teste de voltar), `desk-guidance` (6), `writing-desk` (38, incluindo excluir, desfazer, excluir de novo, recarregar e restaurar). Tipos e ESLint do pacote web sem erros.
+
+### Não feito e por quê
+
+- **Adicionar e remover peça ou matéria (chips).** O pedido hoje carrega uma peça e as matérias saem das questões classificadas da execução. Somar ou retirar exige um modelo de pedido com várias peças e matérias, que muda o contrato da execução. Fica para quando esse modelo for decidido.
+- **Excluir peça (rascunho).** A verificação pedida pelo plano mostrou que não há rota de exclusão nem de restauração de rascunho: o ciclo de vida existente é o do caso e do documento. Arquivar e restaurar rascunho pede uma coluna nova (migração), que só se aplica com autorização de Boni.
+- **Excluir anexo.** Depende da U5.
+- **Atalho de teclado e registro de auditoria por ação.** O aviso fecha com Esc; os demais atalhos e a auditoria própria das ações não foram feitos. A exclusão de conversa já grava o estado oculto, mas não há trilha de auditoria dedicada.
+- **Flag por grupo de ações.** Não criada: as mudanças são de interface e a reversão é desfazer os commits.
+- **Voltar na peça aberta e na fonte aberta.** Só a pergunta guiada ganhou "Voltar"; a peça e a fonte seguem com os controles atuais.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.
