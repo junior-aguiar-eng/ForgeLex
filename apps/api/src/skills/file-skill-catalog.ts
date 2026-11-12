@@ -1,6 +1,6 @@
 import { open, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { manifestToCatalog, parseSkillManifest } from '@forgelex/legal-workflows';
+import { manifestToCatalog, parseSkillManifest, piecesFromManifest, type DeskPiece } from '@forgelex/legal-workflows';
 import type { NativeCaseTaskOptions } from '../agentic-workspace/case-task-driver.js';
 
 /**
@@ -14,6 +14,8 @@ import type { NativeCaseTaskOptions } from '../agentic-workspace/case-task-drive
  * depois de o catálogo ganhar uma versão nova. O hash é conferido pelo vínculo (`bindDeskSkills`), não aqui.
  */
 export type FileSkillCatalog = NonNullable<NativeCaseTaskOptions['skills']>;
+/** O catálogo de habilidades mais a lista interna de peças que a Mesa pode propor (U3); a lista não vai ao navegador. */
+export type LoadedSkillCatalog = FileSkillCatalog & { readonly pieces: readonly DeskPiece[] };
 
 const MANIFEST_LIMIT_BYTES = 16 * 1024 * 1024;
 // Valores propostos a partir das fichas reais (mediana de 7,5 KB, máximo de 27 KB); o servidor pode trocá-los.
@@ -25,7 +27,7 @@ const contentPath = (directory: string, id: string, version: number) =>
 export async function loadFileSkillCatalog(
   directory: string,
   budget: FileSkillCatalog['budget'] = DEFAULT_SKILL_BUDGET,
-): Promise<FileSkillCatalog> {
+): Promise<LoadedSkillCatalog> {
   const manifestFile = join(directory, 'catalog.json');
   if ((await stat(manifestFile)).size > MANIFEST_LIMIT_BYTES) throw new Error('SKILL_MANIFEST_TOO_LARGE');
   const manifest = parseSkillManifest(JSON.parse(await readFile(manifestFile, 'utf8')));
@@ -37,6 +39,7 @@ export async function loadFileSkillCatalog(
   }
   return Object.freeze({
     catalog: manifestToCatalog(manifest),
+    pieces: Object.freeze(piecesFromManifest(manifest)),
     budget,
     loadContent: async ({ id, version, byteLength }: Parameters<FileSkillCatalog['loadContent']>[0]) => {
       const file = await open(contentPath(directory, id, version), 'r');
@@ -55,7 +58,7 @@ export async function loadFileSkillCatalog(
 /** Lê as variáveis do servidor. Sem `FORGELEX_SKILL_CATALOG_DIR` não há catálogo e nenhuma habilidade é aplicada. */
 export async function skillCatalogFromEnvironment(
   environment: Readonly<Record<string, string | undefined>>,
-): Promise<FileSkillCatalog | undefined> {
+): Promise<LoadedSkillCatalog | undefined> {
   const directory = environment.FORGELEX_SKILL_CATALOG_DIR?.trim();
   if (!directory) return undefined;
   const number = (name: string, fallback: number) => {

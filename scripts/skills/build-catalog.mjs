@@ -80,6 +80,17 @@ export function buildCatalog({
           ? { areas: [], transversal: true, documentType: place.documentType }
           : { areas: place.areas.length ? place.areas : ['sem-area'], documentType: place.documentType }
         : { area: place.area, topic: place.topic };
+    // Rótulo legível (o título da ficha) e, nas Formas, as expressões que anunciam a peça: servem à Mesa (U3) no servidor.
+    const label = typeof row.title === 'string' ? row.title.trim().slice(0, 160) : '';
+    const triggers =
+      kind === 'FORM'
+        ? [
+            ...new Set(
+              (row.triggers ?? []).map((value) => String(value).trim()).filter((v) => v.length >= 2 && v.length <= 120),
+            ),
+          ].slice(0, 30)
+        : [];
+    Object.assign(base, label ? { label } : {}, triggers.length ? { triggers } : {});
 
     let reviewState;
     let alerts = [];
@@ -143,8 +154,8 @@ async function readRows(archiveBytes) {
   const manifest = JSON.parse(await zip.file('MANIFESTO.json').async('string'));
   const rows = [];
   for (const row of manifest.files) {
-    const { content } = readCatalogEntry(await zip.file(row.path).async('nodebuffer'), row);
-    rows.push({ ...row, content });
+    const { content, metadata } = readCatalogEntry(await zip.file(row.path).async('nodebuffer'), row);
+    rows.push({ ...row, content, triggers: metadata.triggers });
   }
   return rows;
 }

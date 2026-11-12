@@ -45,6 +45,8 @@ const base = z.strictObject({
   byteLength: z.number().int().positive(),
   provenance,
   reviewState: z.enum(REVIEW_STATES),
+  /** Rótulo legível da peça ou da matéria, mostrado ao cliente (U3). Nunca o conteúdo da ficha. */
+  label: z.string().trim().min(1).max(160).optional(),
   /** Conferências realizadas e alertas encontrados; vazio enquanto não houver cruzamento. */
   crossChecks: z.array(code).max(20).default([]),
   alerts: z.array(code).max(50).default([]),
@@ -56,6 +58,8 @@ const entry = z.discriminatedUnion('kind', [
       areas: z.array(code).refine((areas) => new Set(areas).size === areas.length),
       /** Forma-moldura que serve ao tipo de peça em qualquer área: não declara áreas (ver resolvedor). */
       transversal: z.boolean().optional(),
+      /** Expressões que costumam anunciar a peça; usadas só no servidor, para propor a peça ao cliente. */
+      triggers: z.array(z.string().trim().min(2).max(120)).max(30).optional(),
       documentType: code,
     })
     .refine((form) => (form.transversal ? form.areas.length === 0 : form.areas.length > 0), {

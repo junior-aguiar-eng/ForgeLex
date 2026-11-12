@@ -32,7 +32,7 @@ import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
 import { EditorialCommercialCommand } from './editorial-commercial-runtime.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
-import { GuidanceService } from './guidance-service.js';
+import { GuidanceService, type GuidanceServiceOptions } from './guidance-service.js';
 import { registerGuidanceRoutes } from './guidance-routes.js';
 
 export interface AgenticWorkspaceRuntimeOptions {
@@ -40,6 +40,8 @@ export interface AgenticWorkspaceRuntimeOptions {
   editorialGeneration?: FinalEditorGenerationOptions;
   closedPilot?: ClosedPilot;
   commercial?: CommercialRuntime;
+  /** Peças internas do catálogo para a orientação da Mesa (U3); não vão ao navegador. */
+  guidance?: Pick<GuidanceServiceOptions, 'pieces'>;
   driver?: ExecutionDriver;
   caseTask?: NativeCaseTaskOptions;
   scheduler?: boolean;
@@ -303,7 +305,11 @@ export function registerAgenticWorkspace(
   if (guidance && deps.database) {
     registerGuidanceRoutes(
       app,
-      new GuidanceService(deps.database),
+      new GuidanceService(deps.database, {
+        // Regras mesa-v3 (25 áreas, tribunal, peça proposta): desligadas por padrão e só para conversas novas.
+        ...(deps.environment.FORGELEX_DESK_GUIDANCE_V3_ENABLED === 'true' ? { rulesVersion: 'mesa-v3' as const } : {}),
+        ...(deps.options?.guidance?.pieces ? { pieces: deps.options.guidance.pieces } : {}),
+      }),
       { preHandler: [deps.auth.createPreHandler(['research:read']), session] },
       handle,
     );

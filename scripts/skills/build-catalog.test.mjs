@@ -216,3 +216,25 @@ test('Lote 1: a original com alerta vira ajustada, guarda o alerta e a redação
   assert.equal(updated.provenance.adjustedFrom.version, original.version);
   assert.equal(built.counts['eligible-lote-1'], 1);
 });
+
+test('o rótulo vem do título da ficha e as expressões da peça só entram nas Formas, limpas e sem repetição', () => {
+  const titled = rows.map((item) =>
+    item.stableId === 'resposta-acusacao'
+      ? {
+          ...item,
+          title: '  Resposta à acusação ',
+          triggers: ['defesa preliminar', ' defesa preliminar ', 'a', 'art. 396'],
+        }
+      : item.stableId === 'cadeia-custodia-cpp-158'
+        ? { ...item, title: 'Cadeia de custódia', triggers: ['prova digital'] }
+        : item,
+  );
+  const { manifest } = buildCatalog({ rows: titled, map, crosscheck, version: 'v1', date: '2026-11-12' });
+  const form = manifest.entries.find((entry) => entry.id === 'resposta-acusacao');
+  assert.equal(form.label, 'Resposta à acusação');
+  assert.deepEqual(form.triggers, ['defesa preliminar', 'art. 396']);
+  const matter = manifest.entries.find((entry) => entry.id === 'cadeia-custodia-cpp-158');
+  assert.equal(matter.label, 'Cadeia de custódia');
+  assert.equal(matter.triggers, undefined);
+  assert.equal(manifest.entries.find((entry) => entry.id === 'acao-alimentos').label, undefined);
+});

@@ -134,3 +134,31 @@ describe('catálogo de habilidades em diretório privado (M3.1)', () => {
     ).rejects.toThrow('INVALID_FORGELEX_SKILL_BUDGET_ROLE_BYTES');
   });
 });
+
+describe('lista de peças do catálogo (U3)', () => {
+  it('entrega as peças elegíveis com rótulo e expressões, sem conteúdo, ids de versão nem hashes', async () => {
+    const text = 'Roteiro sintético.';
+    const dir = await catalogDir(
+      [
+        entry('resposta-acusacao', 3, text, 'eligible', {
+          label: 'Resposta à acusação',
+          triggers: ['defesa preliminar'],
+        }),
+        entry('sem-rotulo', 1, text, 'eligible'),
+        entry('pendente', 1, text, 'pending', { label: 'Pendente' }),
+      ],
+      { 'resposta-acusacao@3.md': text, 'sem-rotulo@1.md': text },
+    );
+    const loaded = await loadFileSkillCatalog(dir);
+    expect(loaded.pieces).toEqual([
+      {
+        id: 'resposta-acusacao',
+        label: 'Resposta à acusação',
+        areas: ['penal'],
+        transversal: false,
+        triggers: ['defesa preliminar'],
+      },
+    ]);
+    expect(JSON.stringify(loaded.pieces)).not.toMatch(/Roteiro|contentHash|sha|version/i);
+  });
+});
