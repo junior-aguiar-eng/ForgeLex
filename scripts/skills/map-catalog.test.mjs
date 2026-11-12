@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { citations, mapCatalog } from './map-catalog.mjs';
+import { catalogId, citations, mapCatalog } from './map-catalog.mjs';
 
 const item = (category, stableId, extra = {}) => ({
   category,
@@ -19,6 +19,7 @@ test('Matéria usa a área declarada e o stableId como tópico', () => {
   const map = mapCatalog(inventory([item('materia', 'abandono-funcao-cp-323', { area: 'penal', subarea: null })]));
   assert.deepEqual(map.results[0], {
     stableId: 'abandono-funcao-cp-323',
+    catalogId: 'abandono-funcao-cp-323',
     kind: 'MATTER',
     area: 'penal',
     topic: 'abandono-funcao-cp-323',
@@ -90,4 +91,12 @@ test('extrai citações normativas e súmulas', () => {
   assert.ok(found.has('cc 1.696'));
   assert.ok(found.has('sumula 309 stj'));
   assert.ok(found.has('lei 5.478/1968'));
+});
+
+test('identificador do catálogo: igual ao stableId quando seguro, sem acento e com sufixo de hash quando não', () => {
+  assert.equal(catalogId('acao-alimentos'), 'acao-alimentos');
+  const safe = catalogId('federalismo-fiscal-repartição-receitas');
+  assert.match(safe, /^federalismo-fiscal-reparticao-receitas-[0-9a-f]{8}$/);
+  assert.equal(catalogId('federalismo-fiscal-repartição-receitas'), safe);
+  assert.notEqual(catalogId('x-ç'), catalogId('x-ã'));
 });

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -25,7 +26,7 @@ const FORM_RULES = [
     ['tributario'],
   ],
   [
-    /(^|-)(penal|penais|criminal|denuncia|queixa|juri|pronuncia|impronuncia|flagrante|prisao|pena|penas|lep|livramento|progressao|remicao|saida|indulto|comutacao|desaforamento|drogas|interrogatorio|carta-testemunhavel|liberdade|medidas-protetivas|cpp|inquerito|presidio|presa|habeas|corpus|arquivamento)(-|$)/,
+    /(^|-)(penal|penais|criminal|denuncia|queixa|juri|pronuncia|impronuncia|flagrante|prisao|pena|penas|lep|livramento|progressao|remicao|saida|indulto|comutacao|desaforamento|drogas|interrogatorio|carta-testemunhavel|liberdade|medidas-protetivas|cpp|inquerito|presidio|presa|habeas|corpus|arquivamento|acusacao)(-|$)/,
     ['penal', 'processo-penal'],
   ],
   [/(^|-)(eleitor\w*|aije|aime|rde|elegibilidade|conduta-vedada)(-|$)/, ['eleitoral']],
@@ -113,6 +114,18 @@ const FORM_OVERRIDES = new Map([
     [['administrativo', 'processo-civil'], 'acordo de não persecução cível (improbidade, Lei 8.429)'],
   ],
 ]);
+
+const SAFE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]*$/;
+/** Identificador do catálogo: o próprio stableId quando já é seguro; senão, sem acento nem símbolo e com sufixo de hash. */
+export function catalogId(stableId) {
+  if (SAFE_ID.test(stableId)) return stableId;
+  const folded = stableId
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-zA-Z0-9._:-]+/g, '-')
+    .replace(/^[^a-zA-Z0-9]+/, '');
+  return `${folded}-${createHash('sha256').update(stableId).digest('hex').slice(0, 8)}`;
+}
 
 const normalize = (value) =>
   String(value ?? '')
@@ -219,8 +232,9 @@ function mapForm(form, voteIndex) {
   }
   return {
     stableId: form.stableId,
+    catalogId: catalogId(form.stableId),
     kind: 'FORM',
-    documentType: form.stableId,
+    documentType: catalogId(form.stableId),
     sourceDocumentType: form.documentType,
     areas,
     confidence,
@@ -239,9 +253,10 @@ function mapMatter(matter) {
   const area = matter.area;
   return {
     stableId: matter.stableId,
+    catalogId: catalogId(matter.stableId),
     kind: 'MATTER',
     area,
-    topic: matter.stableId,
+    topic: catalogId(matter.stableId),
     subarea: matter.subarea ?? null,
     confidence: area ? 'alta' : 'sem-evidencia',
     status: area ? 'mapped' : 'queue',

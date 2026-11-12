@@ -2,7 +2,11 @@ import { defineConfig } from '@playwright/test';
 import guidance from './playwright.desk-guidance.config';
 
 const mode = process.env.FORGELEX_E2E_DESK_PILOT ?? 'skills';
-if (!['baseline', 'guided', 'skills', 'expanded', 'captured', 'captured-limited', 'revised'].includes(mode))
+if (
+  !['baseline', 'guided', 'skills', 'expanded', 'captured', 'captured-limited', 'revised', 'incorporated'].includes(
+    mode,
+  )
+)
   throw new Error('Modo desconhecido do piloto da Mesa');
 const servers = Array.isArray(guidance.webServer) ? guidance.webServer : [];
 const preview = process.env.FORGELEX_E2E_PILOT_PREVIEW === 'true';
