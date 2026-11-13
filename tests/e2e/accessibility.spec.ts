@@ -100,7 +100,13 @@ for (const width of [1366, 320]) {
         await page.getByRole('button', { name: 'Entrar', exact: true }).click();
         await page.waitForURL('**/app');
         await page.goto(path);
-        await expect(page.locator('h1')).toBeVisible();
+        if (path === '/rascunhos') {
+          await expect(page).toHaveURL(/\/app\/trabalho(?:\?|$)/);
+          const piece = page.getByRole('region', { name: 'Mesa da peça', exact: true });
+          await expect(piece.getByLabel('Título da peça', { exact: true })).toBeVisible();
+        } else {
+          await expect(page.locator('h1')).toBeVisible();
+        }
         await expect(page.getByRole('main')).toHaveCount(1);
         await audit(page, testInfo);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
