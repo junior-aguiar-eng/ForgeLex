@@ -124,7 +124,21 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   ordenado por `createdAt` (antes, sem ordem definida). Fica de fora, por não haver necessidade medida: índice sobre
   expressão do JSON; só vale se a consulta aparecer lenta com conversas muito longas.
 
-## Estado publicado atual — 12/11/2026: SHA `b4c76e0`
+## Estado publicado atual — 13/11/2026: SHA `01b46c5`
+
+Publicação autorizada por Boni a partir de `main` em `01b46c5069c91b8660561502d8fea38bf484bd1d`, com CI pós-merge aprovada. O `DryRun` do roteiro oficial passou antes da execução. O build `d158413d-f737-4704-9354-eb566611a3b6` gerou o digest `sha256:dd3ecc7234660c39b41b72bf97d5d5209c69c7b570c02cf26d589e855d8b5ac3`.
+
+- `forgelex-api-prod-01b46c5` e `forgelex-closure-hml-private-01b46c5` recebem 100% do tráfego dos respectivos serviços. A comparação das revisões confirmou alteração somente de imagem e `FORGELEX_SOURCE_SHA`.
+- As seis flags web de Mesa agêntica, casos, pesquisa salva, casca, anexos e chips de matéria estão ligadas no build. A API mantém orientação guiada e `mesa-v3` ligadas, com catálogo em `/skills`. `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` permanece ausente/desligada e `FORGELEX_AUTO_MIGRATE=false`. A publicação não aplicou migrações.
+- Cinco cenários autenticados de produção passaram em desktop e celular, cobrindo os controles de tribunal, peça, área e tarefa, cancelamento e persistência após recarga. A identidade sintética foi removida do Auth após encerramento das sessões, e o arquivo local de credenciais foi apagado. O ensaio não enviou execuções comerciais.
+- `/health`, `/readyz`, a página inicial e os metadados OAuth responderam 200. `/mcp` sem token respondeu 401, conforme esperado. As verificações automáticas do roteiro aprovaram a publicação.
+- Pendência residual observada no ensaio: uma resposta 503 em `/api/v2/auth/bootstrap` às 05:13:40 UTC, causada por colisão da chave `forgelex_user_profiles_pkey` ao provisionar o perfil sintético. A mesma rota registrou 23 respostas 200 e os testes concluíram. O código de cadastro não mudou neste deploy. A colisão no provisionamento deve ser tratada em investigação própria; não foi alterada durante esta publicação.
+
+Ver [registro da publicação de M2](docs/architecture/2026-11-10-mesa-guiada-execucao.md#publicação-das-correções-de-m2-em-13112026). O aceite final A18 e a avaliação jurídica continuam com Boni. A habilitação do salvamento recuperável em produção segue condicionada ao procedimento da migração `0041`.
+
+<a id="estado-publicado-atual--12112026-sha-b4c76e0"></a>
+
+## Estado publicado anterior — 12/11/2026: SHA `b4c76e0`
 
 O Cloud Run aponta `FORGELEX_SOURCE_SHA=b4c76e0ee593588365992b66597701f161001502` nas revisões `forgelex-api-prod-b4c76e0` e `forgelex-closure-hml-private-b4c76e0`, ambas com 100% do tráfego. O build `edfc13e1-be29-484a-9824-fac46addbaf1` corresponde à imagem ativa, de digest `sha256:819c990ca60b50f3b5d9f22e409153d6dca28c0bd2616d6b0bdd4f8e72a841e3`. Produção respondeu HTTP 200 em `/healthz` e `/readyz`.
 

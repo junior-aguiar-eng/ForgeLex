@@ -1,6 +1,6 @@
 # ForgeLex — Plano unificado de execução
 
-**Versão 3 · 11 de novembro de 2026 · Estado reconciliado em 12 de novembro de 2026**
+**Versão 3 · 11 de novembro de 2026 · Estado atualizado em 13 de novembro de 2026**
 
 > Este é o único plano vigente do ForgeLex. Ele substitui o plano v2 da Mesa guiada (10/11/2026), cujo conteúdo foi
 > incorporado aqui, e o plano de reestruturação visual e integração com o Ratione elaborado em 09/11/2026 fora do
@@ -29,18 +29,18 @@
 
 ## 1. Ponto de partida
 
-| Item                   | Situação em 12/11/2026                                                                                                                                 |
+| Item                   | Situação em 13/11/2026                                                                                                                                 |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Base Git               | `main` em `5793964` na preparação de M2. A #142 integrou a reconciliação pós-deploy.                                                                   |
-| Publicação             | `b4c76e0` recebe 100% do tráfego de `forgelex-api-prod` e `forgelex-closure-hml-private`. Produção respondeu HTTP 200 em `/healthz` e `/readyz`.       |
+| Base Git               | `main` em `01b46c5`, com as correções de M2 integradas pela PR #146.                                                                                   |
+| Publicação             | `01b46c5` publicado nos dois serviços em 13/11. DryRun, comparação de configuração, saúde e cinco cenários autenticados aprovados.                     |
 | Mesa em produção       | Casca, anexos PDF/TXT/MD e chips de matéria ligados no build. Orientação guiada e `mesa-v3` ligadas no serviço, com diretório do catálogo configurado. |
 | Salvamento recuperável | Flag desligada nas revisões publicadas. A aplicação da `0041` está documentada no banco isolado de HML. M2 permanece parcial.                          |
 | Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                    |
-| Verificação            | CI de `b4c76e0` aprovada. Jornada autenticada de M2 e verificações pós-deploy do MCP em aberto.                                                        |
+| Verificação            | CI de `01b46c5` aprovada. M2 validado em HML e controles do resumo reconferidos em produção. Aceite A18 e verificações residuais do MCP pendentes.     |
 | Visual                 | Tema clássico vigente. V0 adiada nesta reconciliação.                                                                                                  |
 | Domínio em uso         | `nexojuris.ia.br` em produção. `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                              |
 
-Revisões, flags e validação da reserva constam em [PENDENCIAS.md](../../../PENDENCIAS.md#estado-publicado-atual--12112026-sha-b4c76e0) e no [registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
+Revisões, flags e validação da reserva constam em [PENDENCIAS.md](../../../PENDENCIAS.md#estado-publicado-atual--13112026-sha-01b46c5) e no [registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
 
 ## 2. Decisões de Boni
 
@@ -253,7 +253,7 @@ Defeito: quando o usuário escreve a área em vez de escolher uma opção, a res
 
 ### M2 — Homologar a Mesa guiada (A18)
 
-**Situação após a correção e o reteste.** Dez cenários passaram na primeira rodada, incluindo criação, revisão e edição delimitada com IA real. Os dois defeitos encontrados nos controles do resumo foram corrigidos nesta branch e validados em HML, com os cinco cenários remotos do resumo aprovados. O código ainda aguarda integração e publicação pelo fluxo autorizado; A18 aguarda o aceite final de Boni. O consumo confirmado continua em US$ 0,192308, dentro do teto de US$ 1. Ver [correções e evidências do reteste](../../architecture/2026-11-10-mesa-guiada-execucao.md#correção-dos-controles-e-reteste-de-m2).
+**Situação após a correção e o reteste.** Dez cenários passaram na primeira rodada, incluindo criação, revisão e edição delimitada com IA real. Os dois defeitos encontrados nos controles do resumo foram corrigidos na PR #146 e validados em HML, com os cinco cenários remotos do resumo aprovados. As correções foram integradas pela PR #146 e publicadas em `01b46c5` em 13/11. A18 aguarda o aceite final de Boni. O consumo confirmado continua em US$ 0,192308, dentro do teto de US$ 1. Ver [correções e evidências do reteste](../../architecture/2026-11-10-mesa-guiada-execucao.md#correção-dos-controles-e-reteste-de-m2).
 
 - [x] Aplicar a migração `0041` no banco de HML isolado, com backup registrado no PR #138.
 - [x] Ligar `FORGELEX_DESK_GUIDANCE_ENABLED` e `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` no serviço ligado ao banco isolado, com autorização de Boni.
