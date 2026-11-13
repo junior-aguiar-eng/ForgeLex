@@ -124,7 +124,22 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   ordenado por `createdAt` (antes, sem ordem definida). Fica de fora, por não haver necessidade medida: índice sobre
   expressão do JSON; só vale se a consulta aparecer lenta com conversas muito longas.
 
-## Estado publicado atual — 11/11/2026: SHA `8fcd1d0` em produção
+## Estado publicado atual — 12/11/2026: SHA `b4c76e0`
+
+O Cloud Run aponta `FORGELEX_SOURCE_SHA=b4c76e0ee593588365992b66597701f161001502` nas revisões `forgelex-api-prod-b4c76e0` e `forgelex-closure-hml-private-b4c76e0`, ambas com 100% do tráfego. O build `edfc13e1-be29-484a-9824-fac46addbaf1` corresponde à imagem ativa, de digest `sha256:819c990ca60b50f3b5d9f22e409153d6dca28c0bd2616d6b0bdd4f8e72a841e3`. Produção respondeu HTTP 200 em `/healthz` e `/readyz`.
+
+- **PRs #135–141 publicados.** A revisão inclui o teto de entrada de 100.000 caracteres, a política comercial v2, a Mesa guiada, a estabilização, a Mesa única e as flags do build. O #141 corrigiu o Dockerfile do #140.
+- **Web.** `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED`, `VITE_FORGELEX_DESK_SHELL`, `VITE_FORGELEX_ATTACHMENTS_ENABLED` e `VITE_FORGELEX_MATTER_CHIPS_ENABLED` estão `true` no build publicado.
+- **API.** `FORGELEX_DESK_GUIDANCE_ENABLED` e `FORGELEX_DESK_GUIDANCE_V3_ENABLED` estão `true` em produção, e `FORGELEX_SKILL_CATALOG_DIR` está configurada. As duas flags de orientação e a configuração do catálogo estão ausentes no serviço de encerramento.
+- **Salvamento recuperável e banco.** `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` está ausente e `FORGELEX_AUTO_MIGRATE=false` nas duas revisões. Produção, `forgelex-api-hml` e `forgelex-closure-hml-private` continuam com a mesma referência de `DATABASE_URL`. A aplicação documentada da `0041` é no banco HML isolado. O registro de migrações do banco compartilhado não foi consultado. O host `hml.nexojuris.ia.br` deu timeout em `/` e `/healthz` na conferência.
+- **Política comercial.** `commercial-brl-2026-11-10-v2`, com reserva de R$ 11,50 por trabalho, mínimo de R$ 0,50, teto diário de R$ 20,00 e mensal de R$ 100,00. No teste local, após contabilizar R$ 8,50 no dia, outra reserva foi aceita. Após R$ 8,51, foi recusada com `COMMERCIAL_DAILY_LIMIT`. A DEC-5 mantém a reserva de R$ 11,50.
+- **Verificações abertas.** M2 (A18) segue parcial. Faltam a jornada autenticada no ambiente isolado, a conferência da mensagem de saldo insuficiente na jornada e as verificações de MCP com cliente autenticado (lista nominal, idempotência, piso de cinco decisões e renovação pelo alias `/token`). O inventário de 11/11 registra o host de produção como destino de notificação de pagamento em HML. Essa configuração externa não foi revalidada em 12/11.
+
+[Evidência da reconciliação e teste local](docs/architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
+
+## Inventário histórico de 11/11/2026 — SHA `8fcd1d0`
+
+Esta seção registra o estado anterior à publicação de 12/11.
 
 Leitura somente leitura do Cloud Run em 11/11/2026 (projeto `project-bbbe1209-c295-4720-867`, região
 `southamerica-east1`), registrada na etapa E1 do plano unificado. Os dois serviços declaram
@@ -190,13 +205,11 @@ imagem `forgelex-api@sha256:18d643917434ca29392f5250624f9c007e13b29d2996081faa41
   (`get_context`, `list_shared`, `read_item`, `save_analysis`), `draft.save_from_ai`, `workflow.legal_research_memo`,
   `forgelex.connection_status` e os sete `analise.*` (`ANALISE_ENABLED=true`); isso soma 22 nomes contra 21 observados,
   então a lista exata em produção fica por confirmar com um cliente autenticado.
-- **Preços vigentes em produção** (código do `8fcd1d0`, política `commercial-brl-2026-10-30-v1`): pesquisa
+- **Preços em produção em 11/11** (código do `8fcd1d0`, política `commercial-brl-2026-10-30-v1`): pesquisa
   `research.search_case_law` R$ 0,20 por execução válida (única ferramenta MCP faturável; obtenção, verificação e memo
   gratuitos); trabalho comercial com **reserva de R$ 5,00**, mínimo de R$ 0,50, limite diário de R$ 20,00 e mensal de
   R$ 100,00; pacotes de R$ 25, 50 e 80, valor livre de R$ 25 a R$ 500 e recarga automática com limiar de R$ 5,00. A
-  **reserva de R$ 11,50 existe só em `main`** (PR #135, não publicado). Com o limite diário de R$ 20,00 e a reserva de
-  R$ 11,50, uma segunda execução no mesmo dia pode ser recusada depois de R$ 8,50 gastos; a política nova precisa
-  rever o limite (decisão de Boni, DEC-5).
+  **reserva de R$ 11,50** estava apenas em `main` (PR #135) naquela data. A reconciliação de 12/11 registra a publicação e o teste do limite diário.
 - **Clientes MCP** (`mcp.call` de 09/11 16:20 a 11/11 22:55 UTC; o log só existe desde 09/11; 128 linhas): Claude
   (`Claude-User`) 108, das quais 11 `tools/call`; ChatGPT (`openai-mcp/1.0.0`) 12, das quais 5 `tools/call`; Codex da
   OpenAI (`openai-mcp/1.0.0 (Codex)`) 8, sem nenhum `tools/call` (`initialize`, `server/discover`, `tools/list` e uma `resources/read`); **Gemini: nenhuma**. Os
