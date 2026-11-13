@@ -68,6 +68,52 @@ test('do texto livre à peça confirmada e ao tribunal, com busca nas 25 áreas 
   expect((await new AxeBuilder({ page }).include('[data-writing-desk]').analyze()).violations).toEqual([]);
 });
 
+for (const width of [1440, 390]) {
+  test(`corrige tribunal e peça confirmada pelos controles do resumo em ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 980 });
+    await openDesk(page);
+    await page
+      .getByRole('textbox', { name: 'O que você precisa fazer?' })
+      .fill('Preciso elaborar resposta à acusação.');
+    await page.getByRole('button', { name: 'Me ajude a começar' }).click();
+    await question(page).getByRole('radio', { name: 'Penal', exact: true }).check();
+    await next(page);
+    await question(page).getByRole('radio', { name: 'Elaborar uma peça', exact: true }).check();
+    await next(page);
+    await question(page).getByRole('radio', { name: 'Sim, é essa', exact: true }).check();
+    await next(page);
+    await question(page).getByRole('textbox', { name: 'Sua resposta' }).fill('TJ-AL');
+    await next(page);
+    await expect(question(page)).toHaveCount(0);
+    const conversationId = new URL(page.url()).searchParams.get('conversationId');
+    await summary(page).getByRole('button', { name: 'Alterar', exact: true }).click();
+    await summary(page).getByRole('button', { name: 'Alterar tribunal', exact: true }).click();
+    await question(page).getByRole('textbox', { name: 'Sua resposta' }).fill('TJ-SP');
+    const correction = page.waitForResponse(
+      (response) => response.request().method() === 'POST' && response.url().endsWith('/correct'),
+    );
+    await next(page);
+    const corrected = await correction;
+    expect(corrected.ok()).toBe(true);
+    expect(corrected.request().postDataJSON()).toMatchObject({ selectedOptionIds: [], freeText: 'TJ-SP' });
+    await expect(summary(page)).toContainText('TJ-SP');
+    await expect(summary(page)).toContainText('Resposta à acusação');
+    await page.reload();
+    await expect(summary(page)).toContainText('TJ-SP');
+    expect(new URL(page.url()).searchParams.get('conversationId')).toBe(conversationId);
+    await summary(page).getByRole('button', { name: 'Alterar', exact: true }).click();
+    await summary(page).getByRole('button', { name: 'Alterar peça', exact: true }).click();
+    await question(page).getByRole('radio', { name: 'Não, é outra', exact: true }).check();
+    await next(page);
+    await expect(question(page).locator('legend')).toContainText('Explique em poucas palavras');
+    await expect(summary(page)).not.toContainText('Resposta à acusação');
+    await page.reload();
+    await expect(question(page).locator('legend')).toContainText('Explique em poucas palavras');
+    await expect(summary(page)).toContainText('TJ-SP');
+    expect(new URL(page.url()).searchParams.get('conversationId')).toBe(conversationId);
+  });
+}
+
 test('recusar a peça proposta segue para outra candidata ou para o pedido livre, no celular', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openDesk(page);

@@ -145,6 +145,49 @@ it('mesa-v3: recusar a peça propõe outra ou segue como pedido livre, e a conve
   expect(legacy.question?.options).toHaveLength(6);
 });
 
+it.each([
+  { selectedOptionIds: ['sim'], unknown: false, expectedStatus: 'confirmed', expectedValue: 'resposta-acusacao' },
+  { selectedOptionIds: ['nao'], unknown: false, expectedStatus: 'unknown', expectedValue: null },
+  { selectedOptionIds: [], unknown: true, expectedStatus: 'unknown', expectedValue: null },
+])('mesa-v3: corrigir peça confirmada pelo resumo com $selectedOptionIds e unknown=$unknown', async (choice) => {
+  const guidance = await v3Service();
+  let view = await guidance.start(access, randomUUID(), { objective: 'Preciso elaborar resposta à acusação' });
+  for (const selectedOptionIds of [['penal'], ['create_document'], ['sim']]) {
+    view = await guidance.respond(access, view.conversationId, randomUUID(), answer(view, { selectedOptionIds }));
+  }
+  view = await guidance.respond(access, view.conversationId, randomUUID(), answer(view, { freeText: 'TJ-AL' }));
+  const previous = view;
+  const original = previous.decisions.documentType.question!;
+  const commandId = randomUUID();
+  const input = {
+    questionId: original.id,
+    questionVersion: original.version,
+    contextRevision: previous.contextRevision,
+    selectedOptionIds: choice.selectedOptionIds,
+    ...(choice.unknown ? { unknown: true } : {}),
+  };
+  const corrected = await guidance.respond(access, view.conversationId, commandId, input, true);
+  expect(corrected.contextRevision).toBe(previous.contextRevision + 1);
+  expect(corrected.decisions.documentType).toMatchObject({
+    value: choice.expectedValue,
+    status: choice.expectedStatus,
+  });
+  expect(corrected.decisions.court.value).toBe('tj-al');
+  expect(corrected.decisions.area.value).toBe('penal');
+  expect(await guidance.respond(access, view.conversationId, commandId, input, true)).toEqual(corrected);
+  expect(await guidance.get(access, view.conversationId)).toEqual(corrected);
+  if (choice.selectedOptionIds[0] === 'nao') {
+    expect(corrected.question?.selection).toBe('free_text');
+    const explained = await guidance.respond(
+      access,
+      view.conversationId,
+      randomUUID(),
+      answer(corrected, { freeText: 'resposta à acusação' }),
+    );
+    expect(explained.decisions.documentType.value).toBeNull();
+  }
+});
+
 it('sugere uma matéria por vez, com código opaco, e respeita área, recusas e entradas inválidas', async () => {
   const connection = await createDatabase({ url: 'file::memory:' });
   connections.push(connection);

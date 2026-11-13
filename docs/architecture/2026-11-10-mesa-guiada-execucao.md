@@ -945,6 +945,123 @@ Base `origin/main` em `b4c76e0ee593588365992b66597701f161001502`. Plano trazido 
 
 A conferência operacional citada foi somente leitura. A reconciliação local não executou deploy, migração remota, alteração de flags nem chamada comercial.
 
+## M2 · preparação local da homologação
+
+Base `origin/main` em `5793964`. Codex trabalha na preparação da homologação na branch `codex/coordenacao-mesa-m2`. O worktree `retomada-case-flow` estava reservado à sessão do Claude Code na conferência. Alterações que cruzem a Mesa e o fluxo de casos serão encaminhadas a Boni com a evidência do cenário e os arquivos afetados. O [plano unificado](../superpowers/plans/2026-11-11-forgelex-plano-unificado.md#coordenação-entre-codex-e-claude-code) registra a divisão de trabalho.
+
+### Cobertura local de M2
+
+A instalação com lockfile congelado e o build passaram. As cinco suítes somaram 18 cenários aprovados.
+
+Cada configuração da tabela é executada com `pnpm exec playwright test --config <arquivo>`. As suítes usam Chromium, autenticação de teste em loopback, banco SQLite descartável e respostas sintéticas.
+
+| Jornada                                                                                                                        | Cobertura existente                       | Resultado nesta preparação |
+| ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | -------------------------- |
+| Pedido completo, “Me ajude a começar”, “Não sei”, resumo, duas abas, recarga, criação e edição delimitada em desktop e celular | `playwright.desk-guidance.config.ts`      | 6 aprovados                |
+| Texto livre, 25 áreas, tribunal, peça proposta e chips de matéria com `mesa-v3`                                                | `playwright.desk-guidance-v3.config.ts`   | 4 aprovados                |
+| Revisão e aprovação vinculadas à versão, além de navegação por links legados                                                   | `playwright.desk-review.config.ts`        | 3 aprovados                |
+| Abertura de pesquisa salva, vínculo ao destino e preservação da peça                                                           | `playwright.desk-research.config.ts`      | 2 aprovados                |
+| Perda de resposta após o commit, recarga e recuperação do recibo antes de reenviar                                             | `playwright.desk-save-recovery.config.ts` | 3 aprovados                |
+
+### Jornada pendente no HML isolado
+
+1. Na execução autorizada por Boni, identificar o SHA do serviço `forgelex-api-hml-isolated`, conferir a referência ao banco `forgelex-hml-isolated-pg` e confirmar a `0041` antes de habilitar o salvamento. Seguir o [procedimento de recuperação](../operations/draft-save-recovery.md#preparar-a-aplicação). O serviço HML comum e o serviço de encerramento compartilham o banco de produção.
+2. Com conta e dados de teste no ambiente isolado, percorrer a orientação publicada (`mesa-v3`), criação e revisão sem nova versão, edição delimitada e pesquisa salva. Conferir a versão da peça, o caso e a conversa após recarga e atualização em duas abas.
+3. Após salvar, simular a perda da resposta. Conferir que a consulta ao recibo recupera a versão persistida e que a tentativa não duplica a versão nem perde uma edição posterior. Registrar SHA, revisão, flags, cenário e resultado por etapa neste registro.
+4. Levar a Boni o resultado de A18 e eventuais lacunas. A19 é o aceite visual previsto em V3. O manifesto efetivamente servido e o aceite jurídico do piloto seguem na M3.
+
+O preparo local não atesta o serviço HML, o registro da migração no alvo da execução, o manifesto servido ou o comportamento sob as flags combinadas. O ensaio autenticado em HML permanece pendente.
+
+## M2 · início do ensaio remoto em 12/11/2026
+
+Boni autorizou iniciar M2, com teto total de US$ 1 em inferências, reutilização temporária da chave comercial e pausa temporária do Ratione para liberar o limite de projetos gratuitos do Supabase. Ao encerrar o ensaio, o Auth HML deve voltar à pausa e o Ratione deve ser retomado. O banco Cloud SQL isolado deve voltar à política `NEVER`.
+
+A conferência encontrou `forgelex-api-hml-isolated` na revisão `00002-kf2`, com imagem de setembro, banco `forgelex-hml-isolated-pg` parado e Supabase `hhemvrxygfzbzpgmohfj` inativo. O domínio `hml.nexojuris.ia.br` aponta ao backend isolado no mapa `forgelex-api-hml-map`. A produção recebia 100% do tráfego na revisão `forgelex-api-prod-b4c76e0`.
+
+A primeira retomada do Supabase HML foi recusada pelo limite de dois projetos gratuitos ativos. Após a autorização de Boni, a pausa de Ratione (`hpxbjltyoqxretwtgnkp`) e a retomada do HML foram aceitas. O Cloud SQL recebeu a solicitação de ativação `57a4d7f6-7837-4233-8daf-a54e00000030`. A preparação da imagem usa código de `5793964` e uma cópia privada do catálogo publicado em `gs://forgelex-prod-skill-catalog-bbbe1209/v1`.
+
+### Resultados do ensaio remoto
+
+O build `791d0f6d-9a8f-4348-b062-4751054d89a6` publicou a imagem privada de HML com digest `sha256:77fcc628bf0d9be25d4ed5c8c390468894a1f9cf723f563631e55e9ebb51f275`. O código corresponde a `5793964`; o Dockerfile temporário acrescentou somente a cópia do catálogo ao runtime. O frontend aponta ao Supabase HML. As alterações de código versionado nesta branch continuam documentais.
+
+A inspeção do banco confirmou 49 migrações e a tabela `draft_save_commands`, e identificou as migrações `billing-ledger-0008`, `0009` e `0010` pendentes. Após o backup `1794538101210` concluir com `SUCCESSFUL`, o job temporário aplicou as migrações existentes do ledger e preparou a conta sintética. A primeira configuração de saldo promocional ficou sem validade e foi corrigida exclusivamente nessa conta de teste.
+
+A revisão inicial recusou subir por falta do diário obrigatório de exclusão de casos. O bucket HML já existia. Foram criados os segredos HML `forgelex-hml-isolated-purge-encryption`, `forgelex-hml-isolated-purge-mac` e `forgelex-hml-isolated-purge-key`, além da âncora no bucket isolado. Com essa configuração, a revisão `forgelex-api-hml-isolated-m2-journal-5793964` respondeu 200 em `/readyz`, com persistência, migrações, ledger, Auth e integridade do diário aprovados.
+
+| Cenário remoto                            | Evidência e resultado                                                                                                                                                                                                             |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Orientação `mesa-v3` em desktop e celular | Dois cenários aprovados com Auth real, 25 áreas, proposta confirmável, tribunal, resumo e axe. A expectativa de capitalização foi adaptada ao título do catálogo real.                                                            |
+| “Não sei”, recarga e concorrência         | Um cenário aprovado. A resposta concorrente enviada pela API foi preservada e a interface recusou a resposta antiga com a mensagem de atualização em outra aba.                                                                   |
+| Salvamento recuperável                    | Três cenários aprovados contra PostgreSQL remoto. Perda da resposta após gravação, recarga com recibo pendente e recuperação preservando edição posterior. Uma única versão foi criada por comando.                               |
+| Pesquisa salva e caso                     | Um cenário aprovado. Reabrir a pesquisa conservada gerou zero buscas novas. O vínculo foi salvo apenas no caso escolhido, preservando texto local e URL da peça.                                                                  |
+| Criação com IA real                       | Execução `05fbe99e-17d4-4e69-ba2a-a009b7018058` concluída, com uma minuta sintética salva. A entrega manteve `LIMITED`, `humanReviewRequired=true` e `legalAssessment=NOT_EVALUATED`.                                             |
+| Revisão com IA real                       | Execução `3cc7b16c-3c44-4447-ab4a-0a4644788ebb` concluída. A peça permaneceu com uma versão e o mesmo identificador de versão.                                                                                                    |
+| Edição delimitada pela interface          | Execução `d83eaaa5-d363-4663-b040-4e5a3711e9c5` concluída. A seleção por teclado no compositor resultou em exatamente uma versão nova. O texto fora do intervalo e as demais seções foram comparados integralmente e preservados. |
+
+Foram dez cenários aprovados nesta rodada. As treze chamadas ao provedor tiveram custo confirmado de **US$ 0,192308**, calculado pelo uso registrado e pela política do código. Nenhuma chamada ficou com custo incerto. Antes de cada nova execução, o consumo confirmado mais a reserva máxima de US$ 0,60 foi conferido contra o teto total de US$ 1. Os créditos do ledger eram sintéticos, no banco HML.
+
+As evidências privadas ficam em `.superpowers/m2-20261112/`, incluindo os scripts derivados dos testes existentes, resultados das três execuções reais, contagem de versões, consumo e capturas. O ensaio não constitui aprovação jurídica da minuta nem aceite visual A19. A correção diretamente pelos controles do resumo e o aceite final de A18 por Boni ainda precisam de registro específico.
+
+### Encerramento do ambiente temporário
+
+As sessões do usuário sintético foram encerradas e sua identidade foi removida do Auth HML. O arquivo local de credenciais foi removido. A conta e os documentos sintéticos no banco foram conservados como evidência. O job temporário foi excluído.
+
+O acesso da conta de serviço HML à chave comercial foi revogado. A revisão `forgelex-api-hml-isolated-m2-idle-5793964` desabilita execução comercial e edição editorial comercial, remove a referência à chave OpenAI e mantém a preparação técnica de HML para uma próxima rodada. A conferência final confirmou Cloud SQL isolado em `STOPPED` com política `NEVER`, Auth HML em `INACTIVE` e Ratione novamente em `ACTIVE_HEALTHY`. O site do Ratione respondeu HTTP 200. Os segredos e a âncora do diário HML permanecem para preservar a configuração de integridade das próximas rodadas.
+
+A produção foi conferida em `forgelex-api-prod-b4c76e0`, com 100% do tráfego. A18 permanece parcial pelos itens explicitados acima.
+
+## M2 · correção pelos controles do resumo em 13/11/2026
+
+O cenário restante foi exercitado no HML isolado, na revisão `forgelex-api-hml-isolated-m2-journal-5793964`, com o código `5793964` e o catálogo da rodada anterior. A retomada reutilizou a pausa temporária de Ratione autorizada para M2. O comando foi `pnpm exec playwright test --config .superpowers/m2-summary-20261113/remote.config.ts`. A API respondeu 200 em `/readyz` após o Cloud SQL concluir a retomada.
+
+### Resultado para o aceite A18
+
+| Controle                  | Resultado observado                                                                                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cancelar alteração        | Passou. A API retornou exatamente o estado anterior, inclusive a revisão do contexto.                                                                       |
+| Alterar tarefa            | Passou em 1440 e 390 px. “Elaborar uma peça” mudou para “Revisar um texto”, com uma nova revisão do contexto e invalidação da peça anterior.                |
+| Alterar área e recarregar | Passou em 1440 e 390 px. “Penal” mudou para “Civil”. Tarefa e tribunal permaneceram, a peça continuou vazia e a mesma conversa foi recuperada após recarga. |
+| Alterar tribunal          | Falhou em 1440 e 390 px. Ao editar TJ-AL para TJ-SP, o botão “Salvar alteração” permaneceu desabilitado apesar do texto preenchido.                         |
+| Alterar peça confirmada   | Falhou. Depois de “Não, é outra”, a API respondeu com a revisão 6, mas voltou a propor a mesma `resposta-acusacao` que estava confirmada na revisão 5.      |
+
+Os cinco cenários finais ficaram em dois aprovados e três falhos (tribunal em duas larguras e peça). A primeira observação da peça lia o estado antes de a requisição terminar; o ensaio foi ajustado para aguardar a resposta de `/correct`, e a falha de comportamento permaneceu. As asserções de preservação e invalidação foram mantidas.
+
+### Causas identificadas e evidências
+
+- Tribunal. `QuestionOptions.tsx` inicializa `selected` com o valor atual `tj-al`, embora a pergunta seja de texto livre e não tenha opções. Digitar TJ-SP altera o texto, mas conserva essa seleção inválida. `answerFor` devolve `null`, mantendo o botão desabilitado.
+- Peça. `answerV3`, em `guidance-rules.ts`, trata a recusa apenas quando o estado é `proposed`. Ao corrigir uma peça `confirmed`, o caminho de texto livre ranqueia novamente o pedido original e volta à mesma peça. A resposta HTTP 200 e os estados antes/depois estão registrados.
+- Capturas e dados privados em `.superpowers/m2-summary-20261113/`: `tribunal-desktop.png`, `tribunal-mobile.png`, `piece-after-correction.png`, `piece-states.json`, `1440-correcao-area-tarefa.png`, `390-correcao-area-tarefa.png`, `1440-states.json` e `390-states.json`. O manifesto de evidências liga esta rodada aos resultados e hashes dos artefatos anteriores.
+
+A consulta aos logs não encontrou chamadas `commercial_call_trace` nesta rodada. O consumo acumulado de M2 continua em US$ 0,192308. A aplicação versionada não foi alterada durante a avaliação. As correções alcançam o componente de perguntas e as regras de orientação, áreas compartilhadas com o fluxo da Mesa, e devem ser coordenadas com Boni antes de uma nova implementação.
+
+**Conclusão desta rodada.** Os dois defeitos impediram recomendar o aceite naquele momento. A correção e o reteste subsequentes estão na seção [Correção dos controles e reteste de M2](#correção-dos-controles-e-reteste-de-m2). Os dez cenários aprovados na rodada anterior continuam registrados como evidência, com a ressalva jurídica e visual já indicada.
+
+### Encerramento desta rodada
+
+O usuário Auth sintético foi removido após encerramento global das sessões. A credencial local foi removida. O HML voltou à revisão `m2-idle-5793964`, e o acesso temporário à chave comercial foi revogado. A conferência final confirmou o banco HML em `STOPPED` com política `NEVER`, o Auth HML em `INACTIVE` e o Ratione em `ACTIVE_HEALTHY`, com HTTP 200 no site. A produção continuou em `forgelex-api-prod-b4c76e0`, com 100% do tráfego.
+
+## Correção dos controles e reteste de M2
+
+Em 13/11/2026, após a solicitação de Boni para corrigir as falhas, foram alterados dois pontos de implementação. `QuestionOptions.tsx` filtra a seleção inicial pelas opções válidas da pergunta, permitindo que o tribunal seja corrigido como texto livre. `guidance-rules.ts` reconhece a pergunta de confirmação da peça também quando a escolha já estava confirmada, aplicando corretamente confirmação, recusa e “Não sei”. As regras de área, tarefa, orçamento e persistência conservaram seus contratos.
+
+### Regressão automatizada
+
+- Três novos casos em `guidance-service.test.ts` falharam antes da correção e passaram depois. Cobrem confirmação, recusa e “Não sei”, preservação de área e tribunal, leitura persistida, replay idempotente e exclusão da peça recusada das propostas seguintes.
+- Dois novos cenários em `desk-guidance-v3.spec.ts` reproduziram o botão de tribunal desabilitado em 1440 e 390 px antes da alteração. Após a correção, verificam o salvamento de TJ-SP, persistência na recarga, recusa da peça confirmada e preservação da conversa.
+- Resultado local final: 58 testes Vitest aprovados em oito arquivos; 15 cenários Playwright aprovados nas suítes `desk-guidance-v3` (6), `desk-guidance` (6) e `desk-save-recovery` (3). Build, ESLint nos arquivos alterados, Prettier e `git diff --check` passaram.
+
+### Reteste remoto da correção
+
+O build `fac99eba-2ef1-4bc0-9690-a7b6d8c67be8` gerou a imagem privada de HML com digest `sha256:931b320042d5905a6936ae662953dac59218d454b89147803af8eecc9e4113be`. A imagem contém a base `5793964` com o patch local de runtime `9888d4e645eebfa983ad0c090915db3e65ab9994506bd970a0d34c00acbfeece`, conservado em `.superpowers/m2-fix-20261113/runtime.patch`. A revisão `forgelex-api-hml-isolated-m2fix-9888d4e6` retornou 200 em `/readyz` antes dos testes.
+
+Foram repetidos os mesmos cinco cenários do resumo, com **cinco aprovados**. Em desktop e celular, TJ-SP foi salvo e persistiu na recarga, a tarefa e a área foram corrigidas, a seleção anterior da peça foi invalidada e a conversa permaneceu a mesma. A recusa da peça confirmada passou a avançar à próxima candidata do catálogo, sujeita a confirmação. A adequação jurídica dessa próxima candidata não foi avaliada por esse teste funcional.
+
+As capturas, estados da API e relatório do Playwright estão em `.superpowers/m2-fix-20261113/`. Destaques: `1440-03-depois-recarga.png`, `390-03-depois-recarga.png` e `piece-after-correction.png`. O comando de reteste foi `pnpm exec playwright test --config .superpowers/m2-fix-20261113/remote.config.ts`. Os registros da rodada que falhou foram preservados no diretório anterior.
+
+Nenhuma chamada de inferência foi realizada nesta correção e reteste. O consumo acumulado de M2 continua em US$ 0,192308. A conta sintética foi removida após encerramento das sessões e o arquivo local de credenciais foi apagado. A revisão de repouso de HML passou a `m2fix-idle-9888d4e6`, com execução comercial desligada e sem a referência à chave OpenAI. A conferência final confirmou o banco HML em `STOPPED` com política `NEVER`, Auth HML em `INACTIVE` e Ratione novamente em `ACTIVE_HEALTHY`.
+
+**Situação para A18.** Os dois defeitos identificados foram corrigidos no código local e validados em HML. O aceite final cabe a Boni sobre essas evidências. A publicação da correção na branch principal e em produção segue o fluxo de integração e publicação autorizado.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.

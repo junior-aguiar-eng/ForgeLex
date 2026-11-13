@@ -31,7 +31,7 @@
 
 | Item                   | Situação em 12/11/2026                                                                                                                                 |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Base Git               | `main` em `b4c76e0` (PR #141), com os PRs #135 a #141 integrados.                                                                                      |
+| Base Git               | `main` em `5793964` na preparação de M2. A #142 integrou a reconciliação pós-deploy.                                                                   |
 | Publicação             | `b4c76e0` recebe 100% do tráfego de `forgelex-api-prod` e `forgelex-closure-hml-private`. Produção respondeu HTTP 200 em `/healthz` e `/readyz`.       |
 | Mesa em produção       | Casca, anexos PDF/TXT/MD e chips de matéria ligados no build. Orientação guiada e `mesa-v3` ligadas no serviço, com diretório do catálogo configurado. |
 | Salvamento recuperável | Flag desligada nas revisões publicadas. A aplicação da `0041` está documentada no banco isolado de HML. M2 permanece parcial.                          |
@@ -92,7 +92,7 @@ Os contratos, princípios e critérios A01–A19 continuam valendo e estão no A
 
 ```mermaid
 flowchart LR
-    E["E · Estabilização"] --> M1["M1 Publicar código com flags desligadas"]
+    E["E · Estabilização"] --> M1["M1 Publicação e verificações operacionais"]
     M1 --> M2["M2 Homologar Mesa guiada"]
     M1 --> V0["V0 Tokens sem mudança visual"]
     V0 --> V1["V1 Tema, fontes e primitivos"]
@@ -132,10 +132,14 @@ flowchart LR
     V6 --> R
 ```
 
-As Frentes V, D e U andam em paralelo depois de E, mas a estrutura da Mesa (U) vem antes do visual da Mesa (V3),
-para não pintar uma tela que será reorganizada. A sequência sugerida, sem prazo fixo: E, M1, V0, D0, D1, U0, U1,
-V1, M2, M3, U2, U3, U4, V2, D2, U5, U6, V3, U7, M4, V4, D3, D4, V5, V5A, V6, V7, D5. A Frente R só começa quando V6 estiver
-estável.
+### Coordenação entre Codex e Claude Code
+
+- **Codex · M2 (A18).** Preparar e rodar as verificações locais da jornada da Mesa a partir da `origin/main`. Trabalhar em branch e worktree próprias. Usar as suítes existentes de orientação, revisão, pesquisa salva e recuperação de salvamento. Registrar lacunas e evidências no registro único. M2 permanece parcial até o ensaio autenticado no HML isolado.
+- **Claude Code · fluxo de casos.** Continuar o trabalho em curso na sua worktree. Esse recorte inclui as alterações que ele estiver fazendo nas telas, rotas e contratos do fluxo de casos. U7 só começa após as dependências de V3 e U6 previstas abaixo.
+- **Sobreposição.** Ao encontrar uma correção que alcance o mesmo arquivo ou contrato em trabalho, identificar o cenário, o SHA e os arquivos afetados. Alinhar com Boni qual branch fará a alteração. Até lá, cada frente pode avançar em leitura e nos testes locais que independem da mudança.
+- **Próxima frente.** V0 segue adiada. M3.0 e M3.2 já têm scripts e resultados registrados. Retomar o catálogo somente para uma lacuna identificada, como verificar o manifesto servido ou avaliar uma ficha concreta. As tarefas de M1 e os aceites ainda abertos de M3 permanecem nas respectivas seções.
+
+A Frente V depende das etapas indicadas no diagrama. Em particular, V3 depende de M2, V2 e U4. A Frente R começa após V6 estável e M5.
 
 ### PRs por frente
 
@@ -249,11 +253,13 @@ Defeito: quando o usuário escreve a área em vez de escolher uma opção, a res
 
 ### M2 — Homologar a Mesa guiada (A18)
 
+**Situação após a correção e o reteste.** Dez cenários passaram na primeira rodada, incluindo criação, revisão e edição delimitada com IA real. Os dois defeitos encontrados nos controles do resumo foram corrigidos nesta branch e validados em HML, com os cinco cenários remotos do resumo aprovados. O código ainda aguarda integração e publicação pelo fluxo autorizado; A18 aguarda o aceite final de Boni. O consumo confirmado continua em US$ 0,192308, dentro do teto de US$ 1. Ver [correções e evidências do reteste](../../architecture/2026-11-10-mesa-guiada-execucao.md#correção-dos-controles-e-reteste-de-m2).
+
 - [x] Aplicar a migração `0041` no banco de HML isolado, com backup registrado no PR #138.
-- [ ] Ligar `FORGELEX_DESK_GUIDANCE_ENABLED` e `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` no serviço ligado ao banco isolado, com autorização de Boni.
-- [ ] Percorrer: pedido completo, “Me ajude a começar”, “Não sei”, correção pelo resumo, duas abas, recarga, criação,
+- [x] Ligar `FORGELEX_DESK_GUIDANCE_ENABLED` e `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` no serviço ligado ao banco isolado, com autorização de Boni.
+- [x] Percorrer: pedido completo, “Me ajude a começar”, “Não sei”, correção pelo resumo, duas abas, recarga, criação,
       revisão sem nova versão, edição delimitada, pesquisa salva, salvamento com perda de resposta simulada.
-- [ ] Registrar o resultado funcional. O aceite visual (A19) passa a ser feito em V3, no tema novo.
+- [x] Registrar o resultado funcional e os cenários ainda pendentes. O aceite visual (A19) passa a ser feito em V3, no tema novo.
 
 **Situação.** Parcial. Os serviços `forgelex-api-hml` e `forgelex-closure-hml-private` compartilham a configuração de banco da produção. A jornada com escrita deve usar o banco isolado.
 
@@ -261,65 +267,33 @@ Defeito: quando o usuário escreve a área em vez de escolher uma opção, a res
 
 ### M3 — Catálogo de habilidades: mapa, incorporação e cruzamento
 
-**Situação em 12/11.** O PR #139 integrou mapa, carregador, cruzamento e piloto técnico. O registro da M3.6 contabiliza 2.077 fichas elegíveis na montagem local. O diretório foi observado em produção. O manifesto servido, a jornada autenticada e o aceite do piloto por Boni seguem como verificações próprias. As listas abaixo preservam os critérios de M3.0–M3.3. O [registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#m36--normas-revogadas-atualizadas-e-precedentes-verificados-12112026) detalha o resultado.
+**Situação em 12/11.** O PR #139 integrou mapa, carregador, cruzamento e piloto técnico. O registro da M3.6 contabiliza 2.077 fichas elegíveis na montagem local. O diretório foi observado em produção. O manifesto servido, a jornada autenticada e o aceite do piloto por Boni seguem como verificações próprias. As listas abaixo registram entregas verificadas e lacunas de M3.0–M3.3. O [registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#m36--normas-revogadas-atualizadas-e-precedentes-verificados-12112026) detalha o resultado.
 
 Decisão de Boni (DEC-4, 11/11/2026): as 2.077 fichas originais (303 Forma, 1.774 Matéria) são mantidas e incorporadas
 como estão. A revisão é um cruzamento de dados em massa; só os alertas chegam a Boni. O R1 já validou o ZIP, o
 manifesto, as contagens e os hashes. Todas as fichas ficam no catálogo, mas o resolvedor só seleciona as `elegível`.
 
-**M3.0 — Mapa de correspondência.** O resolvedor (`skill-resolver.ts`) exige igualdade exata: Forma por área e tipo de
-peça; Matéria por área e tópico. As fichas não trazem essas chaves prontas, então elas são geradas e conferidas antes
-de qualquer incorporação.
+**M3.0 — Mapa de correspondência (integrado).**
 
-- [ ] Gerar por script (`scripts/skills/map-catalog.mjs`) a tabela `stableId → área da Mesa, tipo de peça ou tópico`,
-      a partir de `materia`, caminho, título e `triggers`, com relatório de cobertura.
-- [ ] **Forma:** as 303 fichas não têm área. Atribuir uma ou mais áreas da Mesa a cada uma. Como o catálogo hoje aceita
-      uma só área por ficha, avaliar o contrato `areas` (lista) em `skill-catalog.ts`, com testes. Desambiguar
-      `notificacao-extrajudicial` e `notificacao-extrajudicial-civel`, que compartilham o mesmo tipo e hoje gerariam
-      `FORM_CONFLICT`.
-- [ ] **Matéria:** usar o `stableId` como tópico (único; evita depender das 655 subáreas, e 580 fichas não têm subárea
-      no caminho). A classificação das questões do caso escolhe entre candidatos pré-filtrados por área e `triggers`;
-      o resolvedor continua exigindo igualdade exata. Escrever os testes dessa classificação.
-- [ ] **Vocabulário de área:** as grandes áreas da Mesa passam a ser as das próprias fichas (25: `civil`,
-      `processo-civil`, `penal`, `processo-penal`, `constitucional`, `administrativo`, `tributario`, `trabalho`,
-      `previdenciario`, `consumidor`, `empresarial`…), no lugar das seis atuais (`penal`, `civel`, `trabalhista`,
-      `administrativo`, `tributario`, `outra`). A Matéria dispensa tabela de conversão. Boni pode agrupar áreas
-      próximas depois, sem mexer nas fichas. A mudança alcança o contrato `desk-guidance` e `guidance-rules.ts`.
-- [ ] **Orçamento de contexto:** a ficha mediana tem 9,3 KB, 34 fichas passam de 15 KB, e hoje o excesso devolve
-      seleção vazia (`SKILL_BUDGET_EXCEEDED`). Definir o limite por papel com fichas reais e avaliar seleção parcial
-      (Forma primeiro, depois Matéria por relevância) com limitação registrada.
-- [ ] Fichas sem mapeamento claro entram numa fila de ambíguas. Nenhuma ficha fica sem resultado.
+- [x] `scripts/skills/map-catalog.mjs` produziu resultado para as 2.077 fichas, com 1.994 mapeadas e 83 na fila inicial, sem chave duplicada.
+- [x] Forma aceita lista de áreas e usa o tipo de peça para resolver a seleção. Matéria usa o `stableId` como tópico e pré-filtra candidatos por área e gatilhos.
+- [x] U3 publicou o vocabulário de 25 áreas em `mesa-v3`. A seleção parcial do catálogo usa limites de 64 KB por papel e 96 KB no total na montagem registrada.
 
-**Aceite da M3.0.** As 2.077 fichas têm resultado de mapeamento (mapeada ou na fila), sem chave duplicada.
+**M3.1 — Incorporação (código integrado).**
 
-**M3.1 — Incorporação.**
+- [x] Carregador privado do servidor com manifesto versionado, proveniência e estados de revisão. O resolvedor usa entradas elegíveis. O vínculo fixa as versões usadas pela execução.
+- [ ] Conferir a versão e a composição do manifesto servido em produção. O diretório configurado no deploy é evidência de configuração.
 
-- [ ] Definir onde o conteúdo fica (fora dos assets públicos e do bundle do navegador), como o servidor o carrega e
-      como a versão do catálogo é fixada por execução.
-- [ ] Gravar em cada ficha a origem (MinutaIA), a versão original, o hash original e a data da decisão. Descrever
-      apenas condições de reutilização que existam de fato, sem criar exigência de terceiro.
-- [ ] Estado de revisão por ficha: `pendente`, `em revisão`, `ajustada`, `elegível`, `inelegível`, `adiada`.
-- [ ] Resolvedor ignora fichas fora de `elegível` e registra na seleção a versão do catálogo.
-- [ ] Manter `tests/fixtures/desk-pilot-revised/*` e as fichas sintéticas dos testes de regressão.
+**M3.2 — Cruzamento em massa (executado).**
 
-**M3.2 — Cruzamento em massa (aprovado por Boni em 11/11/2026).** Sem leitura ficha a ficha.
-
-- [ ] Script que extrai de cada ficha as referências (artigos, súmulas, precedentes) e confere existência e vigência
-      no texto oficial e no índice do STJ do ForgeLex.
-- [ ] Comparar fichas do mesmo tema para achar contradição entre Forma e Matéria (como na `resposta-acusacao` contra a
-      ficha de cadeia de custódia).
-- [ ] Relatório com uma marcação por ficha: sem alerta ou com alerta, e o tipo. Fichas sem alerta ficam `elegível`,
-      marcadas como cruzadas. Fichas com alerta vão para a fila.
-- [ ] Boni olha só a fila, em lotes de alertas por área de maior uso. Para cada ficha decide manter, ajustar (só aí
-      nasce nova versão, preservando a original) ou excluir. Registrar decisão e data no registro de execução.
-- [ ] O cruzamento não detecta tese exagerada ou generalizada, defeito encontrado nas quatro fichas conferidas à mão.
-      Cobrir esse risco incluindo na fila as fichas mais selecionadas nos casos reais.
+- [x] `scripts/skills/crosscheck-catalog.mjs` conferiu existência e vigência de 14.906 referências a artigos no primeiro cruzamento. As rodadas M3.4–M3.6 trataram a fila, leis esparsas e precedentes selecionados. O registro final da montagem local aponta 2.077 fichas elegíveis e nenhuma pendente.
+- [ ] Verificação integral de súmulas e precedentes no índice do STJ pendente. O cruzamento cobriu referências selecionadas.
+- [ ] A avaliação de contradições de teor e teses generalizadas depende de leitura dirigida. Usar o piloto e as fichas de maior uso quando houver casos autorizados para avaliar.
 
 **M3.3 — Lote 0 (piloto).** As quatro fichas do `penal-civel-r15-v1` (`resposta-acusacao`,
 `cadeia-custodia-cpp-158`, `contestacao-civel`, `adimplemento-pagamento-cc-304`) com os ajustes da
 [conferência amostral](../../architecture/2026-11-10-mesa-guiada-execucao.md#avaliação-das-quatro-fichas-capturadas).
-O piloto Penal e a regressão Cível (R14) são repetidos com o catálogo incorporado. A R15 (expansão por área) passa a
-ser a ampliação da elegibilidade por esse cruzamento e reabre por nova decisão de Boni.
+O piloto técnico Penal e a regressão Cível (R14) foram repetidos com o catálogo incorporado. A avaliação jurídica do Lote 0 e a eventual reabertura de R15 seguem com Boni.
 
 **Aceite.** 2.077 fichas incorporadas, mapeadas e rastreáveis, sem exposição de conteúdo, ID ou hash na interface
 (A02, revisado). Lote 0 e regressão aprovados por Boni. **Reversão.** Catálogo versionado: voltar à versão anterior
