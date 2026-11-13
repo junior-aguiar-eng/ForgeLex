@@ -110,7 +110,9 @@ export class AccountRepository {
           updatedAt: now,
           deactivatedAt: null,
         })
-        .onConflictDoNothing({ target: schema.forgelexUserProfiles.supabaseUserId });
+        // Sem alvo: cobre a chave primária `id` e o índice de `supabase_user_id`. Com alvo único, uma chamada
+        // simultânea do mesmo usuário podia esbarrar na chave primária e falhar com 503.
+        .onConflictDoNothing();
 
       await tx
         .update(schema.forgelexUserProfiles)
@@ -148,7 +150,7 @@ export class AccountRepository {
           updatedAt: now,
           revokedAt: null,
         })
-        .onConflictDoNothing({ target: [schema.forgelexTenantMemberships.tenantId, schema.forgelexTenantMemberships.userId] });
+        .onConflictDoNothing();
 
       const rows = await tx
         .select({ user: schema.forgelexUserProfiles, tenant: schema.forgelexTenants, membership: schema.forgelexTenantMemberships })
