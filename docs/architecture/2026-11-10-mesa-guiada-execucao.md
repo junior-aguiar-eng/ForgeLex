@@ -1062,6 +1062,28 @@ Nenhuma chamada de inferência foi realizada nesta correção e reteste. O consu
 
 **Situação para A18.** Os dois defeitos identificados foram corrigidos no código local e validados em HML. O aceite final cabe a Boni sobre essas evidências. A publicação da correção na branch principal e em produção segue o fluxo de integração e publicação autorizado.
 
+## Publicação das correções de M2 em 13/11/2026
+
+Boni autorizou publicar a `main`, executar `DryRun` primeiro, conferir as flags e validar a produção. A publicação partiu de um worktree limpo em `01b46c5069c91b8660561502d8fea38bf484bd1d`, com [CI pós-merge aprovada](https://github.com/junior-aguiar-eng/ForgeLex/actions/runs/43366583998).
+
+1. `pwsh -NoProfile -File ops/gcp/production/deploy-from-main.ps1 -DryRun` passou. As seis flags web estavam em `true`; orientação guiada e v3 ligadas na API; salvamento recuperável ausente/desligado; migração automática em `false`.
+2. O mesmo comando sem `-DryRun` construiu a imagem e criou as revisões sem tráfego. O build `d158413d-f737-4704-9354-eb566611a3b6` terminou com sucesso e produziu `sha256:dd3ecc7234660c39b41b72bf97d5d5209c69c7b570c02cf26d589e855d8b5ac3`.
+3. O roteiro comparou cada candidata com sua revisão anterior `b4c76e0`, conferindo igualdade de configuração exceto imagem e SHA. Promoveu primeiro `forgelex-closure-hml-private-01b46c5` e depois `forgelex-api-prod-01b46c5`. Ambos recebem 100% do tráfego. O catálogo montado em `/skills` e as flags de execução foram preservados.
+4. As sondagens do roteiro passaram. A conferência adicional confirmou 200 em `/`, `/health`, `/readyz` e `/.well-known/oauth-protected-resource/mcp`, além do 401 esperado em `/mcp` sem autenticação.
+5. `pnpm exec playwright test --config .superpowers/deploy-m2/remote.config.ts` aprovou cinco cenários autenticados contra `https://nexojuris.ia.br`, com dados sintéticos próprios. Foram conferidos cancelamento, correção de tribunal, rejeição da peça confirmada, correção de tarefa e área, identidade da conversa e persistência após recarga, em desktop e celular. O envio de execução comercial foi bloqueado pelo ensaio. Não houve inferência paga nessa validação.
+
+### Ocorrência residual no cadastro
+
+A conferência ampliada dos logs encontrou um 503 em `/api/v2/auth/bootstrap` às `2026-11-13T05:13:40.518283Z`. O log do Cloud SQL correlacionado apontou `duplicate key value violates unique constraint "forgelex_user_profiles_pkey"`. O perfil era o da conta sintética criada para este ensaio. A rota registrou também 23 respostas 200, e todos os cenários de navegador concluíram. O diff desde `b4c76e0` não altera o cadastro nem o repositório de contas. A investigação da colisão no provisionamento fica registrada como pendência; a publicação preservou o código integrado na `main`.
+
+Uma rodada adicional de três sondagens completas passou após a ocorrência. A consulta final dos logs das duas revisões não encontrou novos 5xx posteriores às 05:13:41 UTC.
+
+### Encerramento e reversão
+
+As sessões de validação foram encerradas globalmente, a identidade sintética foi removida do Auth e o arquivo local de credenciais foi apagado. Os registros internos sintéticos permanecem como evidência. `DryRun`, log do deploy, configuração do ensaio, resultados e capturas ficam no diretório local ignorado `.superpowers/deploy-m2/` deste worktree.
+
+Se necessária, a reversão usa `gcloud run services update-traffic` para as revisões `forgelex-api-prod-b4c76e0` e `forgelex-closure-hml-private-b4c76e0`, ambas com 100%, no projeto `project-bbbe1209-c295-4720-867` e região `southamerica-east1`. Não houve migração nesta publicação.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.
