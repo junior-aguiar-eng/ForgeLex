@@ -218,7 +218,7 @@ function answerV3(
     return { draft, environment };
   }
   if (field === 'documentType') {
-    if (snapshot.documentType.status === 'proposed') {
+    if (snapshot.documentType.value && question.options.some((option) => option.id === 'sim')) {
       if (value === 'sim') {
         draft.documentType = { value: snapshot.documentType.value, status: 'confirmed', origin: 'user', ...asked };
       } else if (value === 'nao') {

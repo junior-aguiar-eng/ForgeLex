@@ -25,7 +25,11 @@ export function QuestionOptions({
   draft?: QuestionDraft;
   onDraft?: (draft: QuestionDraft) => void;
 }) {
-  const [selected, setSelected] = useState<string[]>(draft?.selected ?? (initialValue ? [initialValue] : [])),
+  const [selected, setSelected] = useState<string[]>(
+      (draft?.selected ?? (initialValue ? [initialValue] : [])).filter((id) =>
+        question.options.some((option) => option.id === id),
+      ),
+    ),
     [text, setText] = useState(draft?.text ?? ''),
     [unknown, setUnknown] = useState(draft?.unknown ?? initialValue === null);
   const [textOpen, setTextOpen] = useState(draft?.textOpen ?? question.selection === 'free_text');
