@@ -124,7 +124,20 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   ordenado por `createdAt` (antes, sem ordem definida). Fica de fora, por não haver necessidade medida: índice sobre
   expressão do JSON; só vale se a consulta aparecer lenta com conversas muito longas.
 
-## Estado publicado atual — 13/11/2026: SHA `01b46c5`
+## Estado publicado atual — 13/11/2026: SHA `2a315e5`
+
+Publicação autorizada por Boni a partir de `main` em `2a315e5b5a9c191bfc953abe04a81a3283af9091` (PR #148, correção do cadastro simultâneo), com CI pós-merge aprovada. O `DryRun` do roteiro oficial passou. O build `421a7012-4715-4c8c-9f02-a9205b94b2f7` gerou o digest `sha256:297aa6e8dddb9235e51686ccc4d7658b0d427c62468958d78c2d818a35f95c35`.
+
+- `forgelex-api-prod-2a315e5` e `forgelex-closure-hml-private-2a315e5` recebem 100% do tráfego. A comparação das revisões confirmou alteração somente de imagem e `FORGELEX_SOURCE_SHA`. As flags web e de API não mudaram em relação a `01b46c5`. Sem migração.
+- **Falha do roteiro e retomada.** Na etapa 7, o `gcloud run revisions describe` caiu com `ConnectionResetError(10054)`. O roteiro reverteu a API para `01b46c5`, mas a reversão do serviço de encerramento também falhou por erro de rede, e ele permaneceu em `2a315e5`. Por cerca de meia hora, a API ficou em `01b46c5` e o encerramento em `2a315e5`. Conferidos o tráfego e a prontidão das duas revisões `-2a315e5` (Ready), a troca da API foi refeita à mão com `gcloud run services update-traffic forgelex-api-prod --to-revisions=forgelex-api-prod-2a315e5=100`, sem refazer o build nem recriar revisões.
+- Verificação: `/`, `/health`, `/readyz` e `/.well-known/oauth-protected-resource/mcp` responderam 200, e `/mcp` sem token respondeu 401. A consulta de logs de 15 minutos por 5xx e erros nas revisões `2a315e5` voltou vazia. Não houve ensaio autenticado de navegador.
+- **Correção do cadastro (PR #148).** `AccountRepository.bootstrap` passa a usar `ON CONFLICT DO NOTHING` sem alvo no perfil e no vínculo, o que evita a colisão da chave primária `forgelex_user_profiles_pkey` em chamadas simultâneas do mesmo usuário. O smoke `pnpm test:postgres:account-bootstrap` (5 usuários × 12 chamadas simultâneas, PostgreSQL 16 local) falhou no código anterior e passou três vezes com a correção. Ele ainda não faz parte da CI.
+- **Pendente de confirmação em produção:** a ausência de novos 503 em `/api/v2/auth/bootstrap`. Não houve teste do cadastro simultâneo em produção, pois exigiria criar contas reais. Vale conferir esta rota nos logs após uso real e antes de qualquer login social, porque o primeiro acesso por OAuth passa pelo mesmo caminho.
+- Reversão: `gcloud run services update-traffic` para `forgelex-api-prod-01b46c5` e `forgelex-closure-hml-private-01b46c5`, ambas com 100%, no projeto `project-bbbe1209-c295-4720-867` e região `southamerica-east1`. O roteiro oficial não trata falha de rede na reversão; a conferência manual do tráfego dos dois serviços é necessária quando ele reporta "A REVERSÃO NÃO FOI CONCLUÍDA".
+
+<a id="estado-publicado-atual--13112026-sha-01b46c5"></a>
+
+## Estado publicado anterior — 13/11/2026: SHA `01b46c5`
 
 Publicação autorizada por Boni a partir de `main` em `01b46c5069c91b8660561502d8fea38bf484bd1d`, com CI pós-merge aprovada. O `DryRun` do roteiro oficial passou antes da execução. O build `d158413d-f737-4704-9354-eb566611a3b6` gerou o digest `sha256:dd3ecc7234660c39b41b72bf97d5d5209c69c7b570c02cf26d589e855d8b5ac3`.
 
