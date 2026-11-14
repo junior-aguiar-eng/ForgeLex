@@ -99,7 +99,7 @@ describe('Supabase authentication', () => {
       userId: 'user_1',
       authMethod: 'session',
       roles: ['owner'],
-      scopes: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write'],
+      scopes: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write', 'webhooks:read', 'webhooks:write', 'credentials:read', 'credentials:write'],
     });
   });
 

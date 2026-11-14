@@ -1147,3 +1147,73 @@ As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo
 | Acervo capturado   | `MinutaIA-Habilidades-Oficiais-2077-2026-11-10.zip`                         |
 
 SHA-256 verificado do ZIP `2a0efbbc301e53c357d5fe6baac1a896c84669fc1646a62c2aec410550543d01`.
+
+## Frente S — execução Daybreak — 14/11/2026 (America/Fortaleza)
+
+Autorização: Boni pediu “vamos implementar!” após receber a Frente S do plano unificado.
+Isso autoriza implementação e validação local, sem merge, deploy ou mudanças em produção.
+
+### S0 — reconciliação
+
+Base remota reconferida: `main` = `a00ffa934dbd075cba8b63142e3b61ed675cd4e5`.
+PR #152 integrado nessa base; branch da fixture preservada em `/workspace/ForgeLex`.
+Frente de autorização isolada em `/workspace/ForgeLex-security-auth`, branch
+`fix/daybreak-authorization`, originada de `origin/main`.
+
+Verificação: PowerShell 7.5.4 portátil em `/tmp/forgelex-pwsh`, suíte
+`ops/gcp/production/deploy-from-main.tests.ps1`: **43 passaram, 0 falharam**.
+Não houve chamada gcloud real nem operação de release. O helper valida projeto, ID,
+status, substituições e imagem/digest; não equivale a atestação independente da origem,
+configuração ou identidade do builder. IAM e estado publicado não foram inspecionados.
+A lacuna de confiança além do bypass de tag permanece risco residual explícito.
+
+Ruling: os getters dos fixes MCP e reembolso retornaram FORBIDDEN (“finding chat is
+unavailable in the current workspace”). Implementar pelo código e evidência do relatório,
+sem contornar a restrição e sem declarar revisão dos diffs salvos — custo: não reaproveitar
+automaticamente esses fixes.
+
+Pre-flight: S1 produz permissões usadas por S4; S2 e S3 compartilham billing-operations
+mas terão mudanças financeiras separadas da fixture; S4 e S6 requerem leases entre réplicas.
+Ruling: usar worktrees por subsistema e preservar a branch da fixture; acompanhar esta
+execução no registro existente, conforme a regra do plano unificado, sem novo ledger.
+
+### S1 — autorização e isolamento — validado localmente
+
+Implementação: escopos por ferramenta MCP antes da cobrança; memo autenticado exige
+`research:read` e `matter:write` independentemente do canal declarado. Contextos internos
+sem metadados de autenticação conservam compatibilidade, mas o HTTP sempre fornece esses
+metadados. OAuth verifica conexão/grant exato, inclusive replay e resposta final; os efeitos
+persistentes verificam o grant dentro da transação sob o mesmo lock de matter usado na
+revogação. Memo REST recusa tokens OAuth destinados ao MCP antes das leituras do caso.
+
+Integrações: `credentials:read/write`, mutações só por sessão de proprietário;
+`webhooks:read/write` e autorização de cada família de evento. Listas filtram destinos e
+entregas não autorizados. Campos de identidade do JSON não substituem o tenant autenticado.
+OpenAPI, tela de chaves e orientação de migração atualizados.
+
+Evidências: 21 regressões falharam no código-base original; teste de corrida PostgreSQL
+sem a checagem transacional gravou indevidamente um checkpoint (esperado zero), depois
+passou com a correção. PostgreSQL isolado: 13/13 testes de autorização, incluindo revogação
+enquanto o checkpoint espera o lock. Verificação focada final: 96 passaram, 1 teste
+PostgreSQL pulado nesse comando; ele foi executado separadamente com sucesso. Build e
+API typecheck aprovados; ESLint dos arquivos alterados e diff check aprovados.
+
+A revisão independente encontrou três pontos importantes (transação, replay, metadados de
+autenticação), todos corrigidos e cobertos por testes. Item menor adiado: guarda redundante
+de mutação no handler GET de credenciais; não altera autorização nem dados.
+
+Ruling: usar trabalho paralelo somente entre frentes independentes em worktrees distintas,
+conforme a skill dispatching-parallel-agents; preservar implementação e revisão financeira
+no coordenador. Custo observado: disputa de CPU causou timeouts de suítes gerais. As
+execuções gerais redundantes foram interrompidas e a verificação completa será serial em
+S8. Falhas observadas por contenção não são declaradas resolvidas antes dessa execução.
+
+Ruling: o getter de fix não estava disponível; a correção foi desenvolvida do código-fonte
+com reprodução local, sem afirmar que o diff salvo do Daybreak foi aplicado.
+Ruling: manter contextos internos sem autenticação explícita como chamadas confiáveis de
+servidor; contextos autenticados não podem evitar a política trocando `source`.
+Custo se mal utilizado: um novo adaptador remoto deve obrigatoriamente fornecer metadados,
+como os adaptadores HTTP deste patch já fazem.
+
+Estado: sem CI remota nova, sem push, sem integração e sem publicação. A validação integrada
+S8 ainda é necessária, especialmente com as alterações de worker e pagamentos.

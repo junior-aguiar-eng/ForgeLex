@@ -8,6 +8,8 @@ export interface ToolExecutionContext {
   userId: string;
   matterId?: string;
   abortSignal: AbortSignal;
+  scopes?: readonly string[];
+  authMethod?: string;
   source?: 'REST' | 'MCP' | 'AGENT_CORE';
   oauthConnection?: VerifiedOAuthConnection;
   revalidateConnection?: () => Promise<void>;

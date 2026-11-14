@@ -106,6 +106,9 @@ export interface McpRequestContext {
   userId?: string;
   idempotencyKey?: string;
   abortSignal?: AbortSignal;
+  scopes?: readonly string[];
+  authMethod?: string;
+  authorizeMatter?: (matterId: string) => Promise<void>;
   oauthConnection?: VerifiedOAuthConnection;
   revalidateConnection?: () => Promise<void>;
 }
@@ -279,6 +282,28 @@ export class McpHandler {
             id,
             error: { code: -32601, message: `Method not found: ferramenta '${name}' não está disponível no pacote externo.` },
           };
+        }
+
+        // HTTP callers always supply authenticated scopes. Internal callers must not
+        // use this compatibility path as a remote authentication boundary.
+        if (context.authMethod !== undefined || context.scopes !== undefined) {
+          const scopes = context.scopes ?? [];
+          const required = name === 'workflow.legal_research_memo' ? ['research:read', 'matter:write']
+            : name === 'draft.save_from_ai' || name === 'case.save_analysis' || isCaseContextTool(name)
+              ? []
+              : isResearchPresentationTool(name) ? ['research:read']
+              : ['research.search_case_law', 'research.get_authority', 'research.verify_authority'].includes(name) || this.toolModules.some((candidate) => candidate.owns(name)) ? ['research:read'] : null;
+          if (!required || required.some((scope) => !scopes.includes(scope))) {
+            return { jsonrpc: '2.0', id, error: { code: -32001, message: 'INSUFFICIENT_SCOPE', data: { code: 'INSUFFICIENT_SCOPE', retryable: false } } };
+          }
+          if (name === 'workflow.legal_research_memo' && context.authMethod === 'oauth_access_token') {
+            try {
+              if (!context.authorizeMatter || typeof toolArgs?.matterId !== 'string') throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+              await context.authorizeMatter(toolArgs.matterId);
+            } catch {
+              return { jsonrpc: '2.0', id, error: { code: -32001, message: 'CASE_CONTEXT_NOT_AUTHORIZED' } };
+            }
+          }
         }
 
         const toolModule = this.toolModules.find((candidate) => candidate.owns(name));
@@ -588,6 +613,8 @@ export class McpHandler {
             userId,
             abortSignal: context.abortSignal ?? new AbortController().signal,
             source: 'MCP',
+            scopes: context.scopes, authMethod: context.authMethod,
+            oauthConnection: context.oauthConnection, revalidateConnection: context.revalidateConnection,
           });
           return name === 'research.search_case_law' ? result.data : result;
         },
