@@ -182,6 +182,32 @@ export class BillingOperationsService {
     return { purchaseId: purchase.id, amountCents: purchase.amountCents, currency: purchase.currency, status: 'PENDING', checkoutUrl: checkout.url };
   }
 
+  /** Fences a worker to the receipt it claimed: a stale worker's updates match no row once another worker re-claimed it. */
+  private webhookLease(id: string, provider: string, receivedAt: string) {
+    return and(eq(billingWebhookEvents.id, id), eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.receivedAt, receivedAt));
+  }
+
+  /** Inserts the receipt, or takes over an existing one that is retryable: FAILED (after `failedAfterMs`, when set)
+   * or RECEIVED by a worker that went silent for five minutes. Returns whether this caller now owns it.
+   */
+  private async claimWebhookEvent(
+    row: typeof billingWebhookEvents.$inferInsert,
+    options: { failedAfterMs?: number; refreshPayload: boolean },
+  ): Promise<boolean> {
+    const inserted = await this.db.insert(billingWebhookEvents).values(row).onConflictDoNothing().returning({ id: billingWebhookEvents.id });
+    if (inserted[0]) return true;
+    const before = (ms: number) => new Date(Date.now() - ms).toISOString();
+    const failed = options.failedAfterMs === undefined
+      ? eq(billingWebhookEvents.status, 'FAILED')
+      : and(eq(billingWebhookEvents.status, 'FAILED'), lt(billingWebhookEvents.receivedAt, before(options.failedAfterMs)));
+    const claimed = await this.db.update(billingWebhookEvents)
+      .set({ status: 'RECEIVED', receivedAt: row.receivedAt, errorMessage: null, ...(options.refreshPayload ? { payload: row.payload } : {}) })
+      .where(and(eq(billingWebhookEvents.id, row.id), eq(billingWebhookEvents.provider, row.provider),
+        or(failed, and(eq(billingWebhookEvents.status, 'RECEIVED'), lt(billingWebhookEvents.receivedAt, before(300_000))))))
+      .returning({ id: billingWebhookEvents.id });
+    return Boolean(claimed[0]);
+  }
+
   /** Durable signed-delivery receipt: legitimate long retries reuse the same authenticated tuple. */
   public async processMercadoPagoWebhook(provider: MercadoPagoPaymentProvider, input: MercadoPagoWebhookInput): Promise<void> {
     const id = provider.verifiedDeliveryId(input);
@@ -190,16 +216,12 @@ export class BillingOperationsService {
     if (known?.status === 'PROCESSED') return;
     if (!known) provider.verifyWebhook(input);
     const receivedAt = new Date().toISOString();
-    const lease = and(eq(billingWebhookEvents.id, id), eq(billingWebhookEvents.provider, 'mercadopago'), eq(billingWebhookEvents.receivedAt, receivedAt));
-    const inserted = await this.db.insert(billingWebhookEvents).values({ id, provider: 'mercadopago', eventType: 'delivery.received', payload: JSON.stringify(input), status: 'RECEIVED', receivedAt }).onConflictDoNothing().returning({ id: billingWebhookEvents.id });
-    if (!inserted[0]) {
-      const claimed = await this.db.update(billingWebhookEvents).set({ status: 'RECEIVED', receivedAt, errorMessage: null })
-        .where(and(eq(billingWebhookEvents.id, id), eq(billingWebhookEvents.provider, 'mercadopago'),
-          or(and(eq(billingWebhookEvents.status, 'FAILED'), lt(billingWebhookEvents.receivedAt, new Date(Date.now() - 15_000).toISOString())),
-            and(eq(billingWebhookEvents.status, 'RECEIVED'), lt(billingWebhookEvents.receivedAt, new Date(Date.now() - 300_000).toISOString())))))
-        .returning({ id: billingWebhookEvents.id });
-      if (!claimed[0]) throw new Error('BILLING_WEBHOOK_RETRY_LATER');
-    }
+    const lease = this.webhookLease(id, 'mercadopago', receivedAt);
+    const claimed = await this.claimWebhookEvent(
+      { id, provider: 'mercadopago', eventType: 'delivery.received', payload: JSON.stringify(input), status: 'RECEIVED', receivedAt },
+      { failedAfterMs: 15_000, refreshPayload: false },
+    );
+    if (!claimed) throw new Error('BILLING_WEBHOOK_RETRY_LATER');
     try {
       const event = await provider.normalizeWebhook(input, { allowExpiredDelivery: Boolean(known) });
       await this.processWebhook(event);
@@ -219,21 +241,14 @@ export class BillingOperationsService {
     await this.billing.runMigrations();
     const provider = event.provider ?? 'mercadopago';
     const receivedAt = new Date().toISOString();
-    const inserted = await this.db.insert(billingWebhookEvents)
-      .values({ id: event.id, provider, eventType: event.type, payload: JSON.stringify(event), status: 'RECEIVED', receivedAt, processedAt: null, errorMessage: null })
-      .onConflictDoNothing()
-      .returning({ id: billingWebhookEvents.id });
-    if (!inserted[0]) {
-      const claimed = await this.db.update(billingWebhookEvents)
-        .set({ status: 'RECEIVED', payload: JSON.stringify(event), receivedAt, errorMessage: null })
-        .where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id),
-          or(eq(billingWebhookEvents.status, 'FAILED'), and(eq(billingWebhookEvents.status, 'RECEIVED'), lt(billingWebhookEvents.receivedAt, new Date(Date.now() - 300_000).toISOString())))))
-        .returning({ id: billingWebhookEvents.id });
-      if (!claimed[0]) {
-        const current = (await this.db.select().from(billingWebhookEvents).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id))))[0];
-        if (current?.status === 'PROCESSED') return;
-        throw new Error('BILLING_WEBHOOK_RETRY_LATER');
-      }
+    const claimed = await this.claimWebhookEvent(
+      { id: event.id, provider, eventType: event.type, payload: JSON.stringify(event), status: 'RECEIVED', receivedAt, processedAt: null, errorMessage: null },
+      { refreshPayload: true },
+    );
+    if (!claimed) {
+      const current = (await this.db.select().from(billingWebhookEvents).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id))))[0];
+      if (current?.status === 'PROCESSED') return;
+      throw new Error('BILLING_WEBHOOK_RETRY_LATER');
     }
 
     try {
@@ -265,9 +280,9 @@ export class BillingOperationsService {
           await this.db.update(billingAccounts).set({ autoRechargeEnabled: 0, updatedAt: new Date().toISOString() }).where(eq(billingAccounts.tenantId, (await this.db.select().from(billingPurchases).where(eq(billingPurchases.id, purchaseId)))[0]!.tenantId));
         }
       }
-      await this.db.update(billingWebhookEvents).set({ status: 'PROCESSED', processedAt: new Date().toISOString() }).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id), eq(billingWebhookEvents.receivedAt, receivedAt)));
+      await this.db.update(billingWebhookEvents).set({ status: 'PROCESSED', processedAt: new Date().toISOString() }).where(this.webhookLease(event.id, provider, receivedAt));
     } catch (error) {
-      await this.db.update(billingWebhookEvents).set({ status: 'FAILED', errorMessage: error instanceof Error ? error.message : String(error) }).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id), eq(billingWebhookEvents.receivedAt, receivedAt)));
+      await this.db.update(billingWebhookEvents).set({ status: 'FAILED', errorMessage: error instanceof Error ? error.message : String(error) }).where(this.webhookLease(event.id, provider, receivedAt));
       throw error;
     }
   }
@@ -379,6 +394,13 @@ export class BillingOperationsService {
     return this.getBillingAccount(input.tenantId);
   }
 
+  /**
+   * Serialized per tenant inside this process, on top of the conditional claim in startAutoRechargeOnce that protects
+   * across replicas. The in-process chain is not redundant: the embedded libsql client has a single connection and
+   * rejects other work while a transaction is open (TRANSACTION_ACTIVE). It is deliberately separate from the
+   * BillingService tenant lock: an early webhook can credit the purchase from inside the provider call, and that path
+   * takes the BillingService lock for the same tenant.
+   */
   public async startAutoRecharge(tenantId: string): Promise<{ started: boolean; purchaseId?: string; reason?: string }> {
     const previous = this.autoRechargeLocks.get(tenantId) ?? Promise.resolve();
     let release!: () => void;
