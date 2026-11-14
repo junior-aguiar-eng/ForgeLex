@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Fastify from 'fastify';
 import { randomUUID } from 'node:crypto';
+import { get as httpGet, type IncomingMessage } from 'node:http';
 import {
   createDatabase,
   runPersistenceMigrations,
@@ -858,9 +859,19 @@ it('libera lease e polling quando o cliente fecha a conexão SSE', async () => {
     response.once('close', finish);
   });
   const address = await f.app.listen({ port: 0, host: '127.0.0.1' });
-  const response = await fetch(`${address}/api/agentic/executions/${run.id}/events`, { headers });
-  expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(1);
-  await response.body!.cancel();
+  // Own the test socket: fetch can open a replacement pooled connection on cancellation,
+  // racing app.close() even after the SSE lease has already been released.
+  const response = await new Promise<IncomingMessage>((resolve, reject) => {
+    httpGet(`${address}/api/agentic/executions/${run.id}/events`, { headers, agent: false }, resolve).once(
+      'error',
+      reject,
+    );
+  });
+  try {
+    expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(1);
+  } finally {
+    response.destroy();
+  }
   await closed;
   expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(0);
 });
