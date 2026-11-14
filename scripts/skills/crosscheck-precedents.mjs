@@ -14,12 +14,21 @@ import { parseArgs } from 'node:util';
  * de tribunais sem lista carregada (TST, TSE, TNU, TRF) e números de processo não entram: o relatório os conta à parte.
  * Citação com contexto histórico (“cancelada”, “superada”, “revogada”, “antiga”) não gera alerta.
  */
-export const CHECKS_PERFORMED = ['sumula-stj', 'sumula-stf', 'sumula-vinculante', 'sumula-tst', 'tema-stj'];
-export const CHECKS_NOT_PERFORMED = ['tese-da-sumula', 'sumula-tse-tnu-trf', 'tema-stf', 'processo-numerado'];
+export const CHECKS_PERFORMED = [
+  'sumula-stj',
+  'sumula-stf',
+  'sumula-vinculante',
+  'sumula-tst',
+  'sumula-tnu',
+  'tema-stj',
+  'tema-tnu',
+];
+export const CHECKS_NOT_PERFORMED = ['tese-da-sumula', 'sumula-tse-trf', 'tema-stf', 'processo-numerado'];
 
 const HISTORICAL =
   /cancel|supera|superou|revog|hist[óo]ric|antig[ao]|anterior|ultrapassad|abandon|n[ãa]o mais|inconstitucional|\bex-[\s*_]*S[úu]m/i;
-const COURT = /\b(STJ|STF|TST|TSE|TNU|TRF)\b/;
+// TRF fica de fora: nas fichas aparece como foro (“TJ ou TRF”, “→ TRF”), e as súmulas regionais vêm como “TRF4”, nunca “TRF”.
+const COURT = /\b(STJ|STF|TST|TSE|TNU)\b/;
 
 /**
  * Súmulas do STJ, no PDF oficial de enunciados (`VerbetesSTJ_asc`): cada súmula abre com “SÚMULA N [(SÚMULA ALTERADA)]
@@ -54,6 +63,37 @@ export function parseTstSumulas(text) {
     result.set(number, {
       status: /^cancel(?:ad[ao]|amento)\b(?!\s+(?:o|a|os|as)\s)/i.test(status) ? 'cancelada' : 'vigente',
     });
+  }
+  return result;
+}
+
+/**
+ * Súmulas da TNU, na lista oficial do CJF (`phpdoc/virtus/listaSumulas.php`): cada linha começa com `[SÚMULA N](…)` e traz
+ * “(CANCELADA EM …)”, “(REVOGADA EM …)” ou “(ALTERADA EM …)” ao lado das datas de publicação.
+ */
+export function parseTnuSumulas(markdown) {
+  const result = new Map();
+  for (const match of markdown.matchAll(/\[S.{1,2}MULA (\d{1,3})\]\([^)]*\)([^|]*)\|/gi)) {
+    const rest = match[2];
+    const status = /\(\s*(?:CANCELADA|REVOGADA)\b/i.test(rest)
+      ? 'cancelada'
+      : /\(\s*ALTERADA\b/i.test(rest)
+        ? 'alterada'
+        : 'vigente';
+    result.set(Number(match[1]), { status });
+  }
+  return result;
+}
+
+/**
+ * Temas representativos da TNU (`temas-representativos?b_size:int=1000`): linhas `| Tema | N | Situação do tema | … |`.
+ * “Desafetado”, “Revisado” e “Cancelado” saíram de vigor; “Julgado”, “Afetado”, “Sobrestado” e afins não.
+ */
+export function parseTnuTemas(markdown) {
+  const result = new Map();
+  for (const match of markdown.matchAll(/^\|\s*Tema\s*\|\s*(\d+)\s*\|\s*Situa..o do tema\s*\|\s*([^|]*)\|/gim)) {
+    const word = (match[2].trim().match(/^[A-Za-zÀ-ú]+/)?.[0] ?? '').toLowerCase();
+    result.set(Number(match[1]), { status: ['desafetado', 'revisado', 'cancelado'].includes(word) ? word : 'vigente' });
   }
   return result;
 }
@@ -213,9 +253,13 @@ export function verifyReference(ref, sources) {
           ? sources.stfSumulas
           : ref.kind === 'sumula' && ref.court === 'TST'
             ? sources.tstSumulas
-            : ref.kind === 'tema' && ref.court === 'STJ'
-              ? sources.stjTemas
-              : undefined;
+            : ref.kind === 'sumula' && ref.court === 'TNU'
+              ? sources.tnuSumulas
+              : ref.kind === 'tema' && ref.court === 'STJ'
+                ? sources.stjTemas
+                : ref.kind === 'tema' && ref.court === 'TNU'
+                  ? sources.tnuTemas
+                  : undefined;
   if (!table && ref.kind === 'sumula' && ref.court === '?') {
     // Sem tribunal: não dá para conferir a tese, mas um número que não existe nem no STJ nem no STF é suspeito.
     return sources.stjSumulas.has(ref.number) || sources.stfSumulas.has(ref.number)
@@ -322,6 +366,8 @@ async function main() {
       'stf-sv': { type: 'string' },
       'stj-temas': { type: 'string' },
       'tst-sumulas': { type: 'string' },
+      'tnu-sumulas': { type: 'string' },
+      'tnu-temas': { type: 'string' },
       out: { type: 'string' },
       'with-context': { type: 'boolean' },
     },
@@ -338,6 +384,8 @@ async function main() {
     stfSv: parseStfList(await readFile(values['stf-sv'], 'utf8'), true),
     stjTemas: parseStjTemas(await readFile(values['stj-temas'], 'utf8')),
     // Opcional: sem a lista do TST, as citações do TST ficam “tribunal sem lista”.
+    ...(values['tnu-sumulas'] ? { tnuSumulas: parseTnuSumulas(await readFile(values['tnu-sumulas'], 'utf8')) } : {}),
+    ...(values['tnu-temas'] ? { tnuTemas: parseTnuTemas(await readFile(values['tnu-temas'], 'utf8')) } : {}),
     ...(values['tst-sumulas'] ? { tstSumulas: parseTstSumulas(await readFile(values['tst-sumulas'], 'latin1')) } : {}),
   };
   const files = [];

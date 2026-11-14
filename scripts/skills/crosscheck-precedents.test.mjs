@@ -7,6 +7,8 @@ import {
   parseStfList,
   parseStjSumulas,
   parseStjTemas,
+  parseTnuSumulas,
+  parseTnuTemas,
   parseTstSumulas,
   verifyReference,
 } from './crosscheck-precedents.mjs';
@@ -87,6 +89,38 @@ test('atribui o tribunal certo e reconhece o histórico nos casos reais do catá
       text,
     );
   }
+});
+
+test('TNU: súmulas cancelada, revogada e alterada, e temas desafetado, revisado e cancelado', () => {
+  const sumulas = parseTnuSumulas(
+    '| [SÚMULA 89](sumula.php?nsul=89&PHPSESSID=x) DJeN Disponibilização em: 24/04/2024 | Não há direito |\n' +
+      '| [SÚMULA 86](sumula.php?nsul=86) DOU nº 242  (CANCELADA EM 26/08/2021)  DOU nº 166 | Texto |\n' +
+      '| [SÚMULA 31](sumula.php?nsul=31) DJ DATA:13/02/2006  (REVOGADA EM 22/11/2023) | Texto |\n' +
+      '| [SÚMULA 63](sumula.php?nsul=63) DOU 23/08/2012  (ALTERADA EM 18/09/2025) DJeN | Texto |\n',
+  );
+  assert.equal(sumulas.get(89).status, 'vigente');
+  assert.equal(sumulas.get(86).status, 'cancelada');
+  assert.equal(sumulas.get(31).status, 'cancelada');
+  assert.equal(sumulas.get(63).status, 'alterada');
+  const temas = parseTnuTemas(
+    '| Tema | 10 | Situação do tema | Julgado - TEMA 350/STF | | Ramo | X |\n' +
+      '| Tema | 11 | Situação do tema | Desafetado | | Ramo | X |\n' +
+      '| Tema | 12 | Situação do tema | Revisado pelo Tema 145 | | Ramo | X |\n' +
+      '| Tema | 13 | Situação do tema | Cancelado | | Ramo | X |\n' +
+      '| Tema | 14 | Situação do tema | Sobrestado - Tema 1467/STF | | Ramo | X |\n',
+  );
+  assert.deepEqual(
+    [10, 11, 12, 13, 14].map((n) => temas.get(n).status),
+    ['vigente', 'desafetado', 'revisado', 'cancelado', 'vigente'],
+  );
+  const sources2 = { ...sources, tnuSumulas: sumulas, tnuTemas: temas };
+  const v = (kind, number) => verifyReference({ kind, court: 'TNU', number, historical: false }, sources2).state;
+  assert.equal(v('sumula', 89), 'ok');
+  assert.equal(v('sumula', 86), 'alert');
+  assert.equal(v('sumula', 63), 'warning');
+  assert.equal(v('tema', 10), 'ok');
+  assert.equal(v('tema', 11), 'alert');
+  assert.equal(v('tema', 999), 'alert');
 });
 
 test('TST: cancelamento parcial de item ou de parte da redação não tira a súmula de vigor', () => {
