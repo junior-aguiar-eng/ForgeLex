@@ -23,11 +23,13 @@ export const CHECKS_PERFORMED = [
   'tema-stj',
   'tema-tnu',
 ];
-export const CHECKS_NOT_PERFORMED = ['tese-da-sumula', 'sumula-tse-trf', 'tema-stf', 'processo-numerado'];
+export const CHECKS_NOT_PERFORMED = ['tese-da-sumula', 'sumula-tse-trf', 'processo-numerado'];
 
 const HISTORICAL =
-  /cancel|supera|superou|revog|hist[óo]ric|antig[ao]|anterior|ultrapassad|abandon|n[ãa]o mais|inconstitucional|\bex-[\s*_]*S[úu]m/i;
+  /cancel|supera|superou|revog|hist[óo]ric|antig[ao]|anterior|ultrapassad|abandon|n[ãa]o mais|inconstitucional|infraconstitucional|sem repercuss|n[ãa]o h[áa] repercuss|pendente|aguard|sem tese|sobrest|suspens|\bex-[\s*_]*S[úu]m/i;
 // TRF fica de fora: nas fichas aparece como foro (“TJ ou TRF”, “→ TRF”), e as súmulas regionais vêm como “TRF4”, nunca “TRF”.
+// Situações em que o número existe e a ficha deve citá-lo com cuidado, mas que não são cancelamento.
+const WARNING_STATUSES = ['alterada', 'sem-repercussao-geral', 'repercussao-em-definicao', 'merito-pendente'];
 const COURT = /\b(STJ|STF|TST|TSE|TNU)\b/;
 
 /**
@@ -94,6 +96,29 @@ export function parseTnuTemas(markdown) {
   for (const match of markdown.matchAll(/^\|\s*Tema\s*\|\s*(\d+)\s*\|\s*Situa..o do tema\s*\|\s*([^|]*)\|/gim)) {
     const word = (match[2].trim().match(/^[A-Za-zÀ-ú]+/)?.[0] ?? '').toLowerCase();
     result.set(Number(match[1]), { status: ['desafetado', 'revisado', 'cancelado'].includes(word) ? word : 'vigente' });
+  }
+  return result;
+}
+
+/**
+ * Temas de repercussão geral do STF, lidos por `fetch-stf-temas.mjs` (um por página do portal): número → situação.
+ * Cancelado sai de vigor. “Sem repercussão geral” (questão infraconstitucional), “em definição” e “mérito pendente” (repercussão
+ * reconhecida, sem tese fixada ainda) são avisos: o tema existe, mas não é uma tese de repercussão geral firmada.
+ */
+export function parseStfTemas(data) {
+  const result = new Map();
+  for (const [number, row] of Object.entries(data)) {
+    if (!row?.existe || !row.situacao) continue;
+    const status = /^Cancelad/i.test(row.situacao)
+      ? 'cancelado'
+      : /^N.o h. repercuss/i.test(row.repercussao ?? '')
+        ? 'sem-repercussao-geral'
+        : /^Em defini/i.test(row.repercussao ?? '')
+          ? 'repercussao-em-definicao'
+          : /^(?:Ac.rd.o de Repercuss.o Geral publicado|Analisada Preliminar)/i.test(row.situacao)
+            ? 'merito-pendente'
+            : 'vigente';
+    result.set(Number(number), { status });
   }
   return result;
 }
@@ -226,18 +251,30 @@ export function extractReferences(text) {
       });
     }
   }
-  const tema = /\bTemas?\s*(?:Repetitivo\s*)?(?:n[º°o.]*\s*)?(\d[\d.]*)/gi;
+  // Lista de temas: “Temas 126 e 1.072/STJ”, “Temas 20/985 STF”; o tribunal depois da lista vale para todos.
+  const number = String.raw`\d{1,4}(?:\.\d{3})?`;
+  const tema = new RegExp(
+    String.raw`\bTemas?\s*(?:Repetitivo\s*)?(?:n[º°o.]*\s*)?(${number}(?:\s*(?:,|e|ou|a|\/)\s*${number}(?![\d.]))*)`,
+    'gi',
+  );
   for (const match of text.matchAll(tema)) {
     const end = match.index + match[0].length;
     const court = /repetitivo/i.test(match[0]) ? 'STJ' : courtAround(text, match.index, end);
-    refs.push({
-      kind: 'tema',
-      court,
-      number: Number(match[1].replace(/\./g, '')),
-      historical: historicalAt(match.index, end),
-      start: match.index,
-      end,
+    // Depois do primeiro número, de 1900 a 2100 é ano (“Tema 944, 2021”), não tema: os temas ainda não passam de 1.500.
+    const values = match[1].match(new RegExp(number, 'g')).filter((value, index) => {
+      const n = Number(value.replace(/\./g, ''));
+      return index === 0 || n < 1900 || n > 2100;
     });
+    for (const value of values) {
+      refs.push({
+        kind: 'tema',
+        court,
+        number: Number(value.replace(/\./g, '')),
+        historical: historicalAt(match.index, end),
+        start: match.index,
+        end,
+      });
+    }
   }
   return refs;
 }
@@ -259,7 +296,9 @@ export function verifyReference(ref, sources) {
                 ? sources.stjTemas
                 : ref.kind === 'tema' && ref.court === 'TNU'
                   ? sources.tnuTemas
-                  : undefined;
+                  : ref.kind === 'tema' && ref.court === 'STF'
+                    ? sources.stfTemas
+                    : undefined;
   if (!table && ref.kind === 'sumula' && ref.court === '?') {
     // Sem tribunal: não dá para conferir a tese, mas um número que não existe nem no STJ nem no STF é suspeito.
     return sources.stjSumulas.has(ref.number) || sources.stfSumulas.has(ref.number)
@@ -271,7 +310,9 @@ export function verifyReference(ref, sources) {
   const found = table.get(ref.number);
   if (!found) return { state: ref.historical ? 'historical' : 'alert', reason: 'inexistente' };
   // “Alterada”: a súmula segue em vigor com outra redação; a ficha deve citar a redação atual (aviso, não alerta).
-  if (found.status === 'alterada') return { state: ref.historical ? 'historical' : 'warning', reason: 'alterada' };
+  if (WARNING_STATUSES.includes(found.status)) {
+    return { state: ref.historical ? 'historical' : 'warning', reason: found.status };
+  }
   if (found.status !== 'vigente') return { state: ref.historical ? 'historical' : 'alert', reason: found.status };
   return { state: 'ok' };
 }
@@ -366,6 +407,7 @@ async function main() {
       'stf-sv': { type: 'string' },
       'stj-temas': { type: 'string' },
       'tst-sumulas': { type: 'string' },
+      'stf-temas': { type: 'string' },
       'tnu-sumulas': { type: 'string' },
       'tnu-temas': { type: 'string' },
       out: { type: 'string' },
@@ -384,6 +426,9 @@ async function main() {
     stfSv: parseStfList(await readFile(values['stf-sv'], 'utf8'), true),
     stjTemas: parseStjTemas(await readFile(values['stj-temas'], 'utf8')),
     // Opcional: sem a lista do TST, as citações do TST ficam “tribunal sem lista”.
+    ...(values['stf-temas']
+      ? { stfTemas: parseStfTemas(JSON.parse(await readFile(values['stf-temas'], 'utf8'))) }
+      : {}),
     ...(values['tnu-sumulas'] ? { tnuSumulas: parseTnuSumulas(await readFile(values['tnu-sumulas'], 'utf8')) } : {}),
     ...(values['tnu-temas'] ? { tnuTemas: parseTnuTemas(await readFile(values['tnu-temas'], 'utf8')) } : {}),
     ...(values['tst-sumulas'] ? { tstSumulas: parseTstSumulas(await readFile(values['tst-sumulas'], 'latin1')) } : {}),

@@ -7,6 +7,7 @@ import {
   parseStfList,
   parseStjSumulas,
   parseStjTemas,
+  parseStfTemas,
   parseTnuSumulas,
   parseTnuTemas,
   parseTstSumulas,
@@ -123,6 +124,51 @@ test('TNU: súmulas cancelada, revogada e alterada, e temas desafetado, revisado
   assert.equal(v('tema', 999), 'alert');
 });
 
+test('temas do STF: cancelado é alerta; sem repercussão geral, em definição e mérito pendente são aviso; o resto vale', () => {
+  const temas = parseStfTemas({
+    10: { existe: true, repercussao: 'Há repercussão geral', situacao: 'Trânsito em Julgado - 26/08/2020' },
+    11: { existe: true, repercussao: 'Há repercussão geral', situacao: 'Cancelado' },
+    12: {
+      existe: true,
+      repercussao: 'Não há repercussão geral (questão infraconstitucional)',
+      situacao: 'Trânsito em Julgado',
+    },
+    13: { existe: true, repercussao: 'Em definição', situacao: 'Trânsito em Julgado - em 23/02/2012.' },
+    14: {
+      existe: true,
+      repercussao: 'Há repercussão geral',
+      situacao: 'Acórdão de Repercussão Geral publicado - Publicado em: 30/04/2010',
+    },
+    15: {
+      existe: true,
+      repercussao: 'Há repercussão geral com reafirmação de Jurisprudência',
+      situacao: 'Acórdão de mérito publicado - Publicado em: 26/02/2025',
+    },
+    16: { existe: false },
+  });
+  assert.deepEqual(
+    [10, 11, 12, 13, 14, 15].map((n) => temas.get(n).status),
+    ['vigente', 'cancelado', 'sem-repercussao-geral', 'repercussao-em-definicao', 'merito-pendente', 'vigente'],
+  );
+  assert.equal(temas.has(16), false, 'tema sem situação não existe');
+  const withStf = { ...sources, stfTemas: temas };
+  const v = (number, historical = false) =>
+    verifyReference({ kind: 'tema', court: 'STF', number, historical }, withStf).state;
+  assert.equal(v(10), 'ok');
+  assert.equal(v(11), 'alert');
+  assert.equal(v(12), 'warning');
+  assert.equal(v(12, true), 'historical');
+  assert.equal(v(14), 'warning');
+  assert.equal(v(16), 'alert');
+  for (const text of [
+    'Tema 756 STF: matéria infraconstitucional, definida pelo STJ',
+    'Tema 809 STF (sem repercussão geral)',
+    'o Tema 1.234 STF segue pendente de julgamento do mérito',
+  ]) {
+    assert.equal(extractReferences(text).find((r) => r.kind === 'tema').historical, true, text);
+  }
+});
+
 test('TST: cancelamento parcial de item ou de parte da redação não tira a súmula de vigor', () => {
   const tst = parseTstSumulas(
     'SUM-221 RECURSO (cancelado o item II e conferida nova redação na sessão) - Res. 185/2012 texto ' +
@@ -162,6 +208,33 @@ test('lê as súmulas do TST: mantida e nova redação em vigor, cancelada e can
     verifyReference({ kind: 'sumula', court: 'TST', number: 1, historical: false }, sources).reason,
     'tribunal-sem-lista',
   );
+});
+
+test('lista de temas: cada número é uma citação e o tribunal depois da lista vale para todos', () => {
+  const list = extractReferences('os Temas 126 e 1.072/STJ; ADI 2.332/DF (STF)').filter((r) => r.kind === 'tema');
+  assert.deepEqual(
+    list.map((r) => [r.number, r.court]),
+    [
+      [126, 'STJ'],
+      [1072, 'STJ'],
+    ],
+  );
+  const slash = extractReferences('Súm. 688 e Temas 20/985 STF').filter((r) => r.kind === 'tema');
+  assert.deepEqual(
+    slash.map((r) => [r.number, r.court]),
+    [
+      [20, 'STF'],
+      [985, 'STF'],
+    ],
+  );
+  assert.deepEqual(
+    extractReferences('Tema 1.239, de 2024').map((r) => r.number),
+    [1239],
+  );
+  const numbers = (text) => extractReferences(text).map((r) => r.number);
+  assert.deepEqual(numbers('ARE 954.858 (Tema 944, 2021): atos'), [944], 'ano não é tema');
+  assert.deepEqual(numbers('Tema 1.262, 2023); via'), [1262]);
+  assert.deepEqual(numbers('Temas 100, 360 e 881 do STF'), [100, 360, 881]);
 });
 
 test('“alterada” é aviso (a súmula segue em vigor com outra redação), não alerta', () => {

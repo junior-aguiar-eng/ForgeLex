@@ -1098,37 +1098,40 @@ Efeito no plano: a dependência de V1 em M2 está atendida.
 
 ## M3.7 · Conferência em massa de súmulas e temas (14/11/2026)
 
-`scripts/skills/crosscheck-precedents.mjs` (com `crosscheck-precedents.test.mjs`, 11 testes) lê as 2.077 fichas da pasta local do catálogo, extrai as citações a súmulas e temas e as confere contra listas oficiais, sem leitura ficha a ficha. O relatório traz só identificadores (tipo, tribunal, número, motivo e `stableId` das fichas); `--with-context` acrescenta o trecho citado e fica desligado por padrão.
+`scripts/skills/crosscheck-precedents.mjs` lê as 2.077 fichas da pasta local do catálogo, extrai as citações a súmulas e temas e as confere contra listas oficiais, sem leitura ficha a ficha. `scripts/skills/fetch-stf-temas.mjs` consulta o portal do STF tema a tema. Ao todo 19 testes (`crosscheck-precedents.test.mjs` e `fetch-stf-temas.test.mjs`). O relatório traz só identificadores (tipo, tribunal, número, motivo e `stableId` das fichas); `--with-context` acrescenta o trecho citado e fica desligado por padrão.
 
 **Fontes oficiais usadas**
 
 | Fonte | Conteúdo | Observação |
 | --- | --- | --- |
-| STJ, `processo.stj.jus.br/SCON/sumstj/toc.jsp`, PDF `VerbetesSTJ_asc` | 676 súmulas, com a situação de cada uma (em vigor, alterada, cancelada, revogada) | O PDF `SumulasSTJ.pdf` baixado antes termina na súmula 649 e foi descartado: com ele, 28 citações das súmulas 650 a 691 apareceriam como inexistentes. |
+| STJ, `processo.stj.jus.br/SCON/sumstj/toc.jsp`, PDF `VerbetesSTJ_asc` | 676 súmulas, com a situação (em vigor, alterada, cancelada, revogada) | O PDF `SumulasSTJ.pdf` baixado antes termina na 649 e foi descartado: com ele, 28 citações das súmulas 650 a 691 apareceriam como inexistentes. |
 | STF, `portal.stf.jus.br/jurisprudencia/sumariosumulas.asp` (base 30 e 26) | 736 súmulas e 62 vinculantes, com “superada”, “cancelada” e “alterada” | |
-| STJ, dados abertos, `temas.csv` (precedentes qualificados) | 1.474 temas do tipo Tema (não conta Controvérsias), com a situação | |
-| TNU, CJF, `phpdoc/virtus/listaSumulas.php` | 89 súmulas, com “(CANCELADA EM …)”, “(REVOGADA EM …)” e “(ALTERADA EM …)” | |
-| TNU, CJF, `temas-representativos?b_size:int=1000` | 402 temas com a situação (Desafetado, Revisado e Cancelado saem de vigor) | Uma página só, sem paginação. |
-| TST, Livro de Jurisprudência (Res. 225/2025, `livrointernet-12-pdf`) | 463 súmulas (1 a 463, sem buraco), 156 canceladas | A edição de 2011 (“Súmulas da Jurisprudência Uniforme”) termina na 429 e foi descartada. Cancelamento parcial (“cancelado o item II”, “cancelada a parte final”) mantém a súmula em vigor. |
+| STJ, dados abertos, `temas.csv` (precedentes qualificados) | 1.474 temas do tipo Tema (sem Controvérsias), com a situação | |
+| TST, Livro de Jurisprudência (Res. 225/2025, `livrointernet-12-pdf`) | 463 súmulas (1 a 463, sem buraco), 156 canceladas | A edição de 2011 termina na 429 e foi descartada. Cancelamento parcial (“cancelado o item II”) mantém a súmula em vigor. |
+| TNU, CJF, `phpdoc/virtus/listaSumulas.php` | 89 súmulas, com cancelada, revogada e alterada | |
+| TNU, CJF, `temas-representativos?b_size:int=1000` | 402 temas com a situação (Desafetado, Revisado e Cancelado saem de vigor) | Uma página só. |
+| STF, `portal.stf.jus.br/jurisprudenciaRepercussao/tema.asp?num=N` | 728 temas consultados um a um (cerca de 1 por segundo): repercussão geral e situação | A planilha `merito_julgado.xlsx` do STF é de abril de 2022 e foi descartada. Tema sem o campo “Situação” não existe (os anos “2021”, “2023”, “2024” e “2025”, lidos como tema, foram descartados). |
 
-**Sem fonte:** o SCON do STJ (`scon.stj.jus.br`) e o site do TSE (`www.tse.jus.br`) negam acesso (403) e não foram contornados; por isso as súmulas do TSE (16 citações distintas) não foram conferidas. **TRF:** nenhuma súmula de TRF regional é citada nas fichas (“TRF4”, “TRF-1”); as menções a “TRF” são do foro (“TJ ou TRF”, “Súm. 702 → TRF”, súmula do STF), e “TRF” deixou de ser tratado como tribunal que atribui súmula.
+**Sem fonte:** o SCON do STJ (`scon.stj.jus.br`) e o site do TSE (`www.tse.jus.br`) negam acesso (403) e não foram contornados; por isso as súmulas do TSE (16 citações distintas) não foram conferidas. **TRF:** nenhuma súmula de TRF regional é citada nas fichas; as menções a “TRF” são do foro (“TJ ou TRF”, “Súm. 702 → TRF”), e “TRF” deixou de ser tratado como tribunal que atribui súmula.
 
-**Resultado** (4.005 citações distintas):
+**Resultado** (4.051 citações distintas):
 
 | Situação | Citações |
 | --- | ---: |
-| Conferidas e corretas | 1.791 |
-| Históricas (a própria ficha diz que foi cancelada, superada ou revogada) | 54 |
+| Conferidas e corretas | 2.438 |
+| Históricas (a própria ficha diz que foi cancelada, superada, revogada, pendente etc.) | 124 |
 | Alerta | 0 |
-| Aviso | 1 |
-| Não conferidas: tribunal não declarado | 1.357 |
-| Não conferidas: tribunal sem lista (TSE e temas do STF) | 802 |
+| Aviso | 44 |
+| Não conferidas: tribunal não declarado | 1.355 |
+| Não conferidas: tribunal sem lista (TSE e outros) | 90 |
 
-**O aviso** é a Súmula 359 do STF (“alterada”, em vigor com outra redação), citada em 6 fichas. **Nenhuma ficha foi editada.** Pela primeira passada, apareciam 2 alertas de súmula cancelada (Súmula 263 do STJ em `leasing-arrendamento-mercantil` e Súmula 394 do STF em `foro-prerrogativa-funcao-cf-102`), mas as duas fichas declaram no corpo que a súmula está cancelada (“Súm. 263 STJ (CANCELADA)”, “CANCELADA em 1999, não invocar”) e a mantêm na lista de gatilhos de busca para avisar quando alguém a cita. Boni disse “cancelada exclui” antes de esse contexto ser apresentado; a exclusão dessas menções ficou pendente de nova confirmação.
+**Os 44 avisos** são citações de número que existe, mas sem tese de repercussão geral firmada ou com redação alterada, e ficam para revisão de Boni, sem presumir erro da ficha: 24 temas do STF com **mérito pendente** (34 fichas; o mais citado é o Tema 1.389, em 7), 18 temas do STF **sem repercussão geral** (21 fichas; por exemplo os Temas 1.402, 1.221 e 1.345), 1 em definição e a Súmula 359 do STF (“alterada”, em 6 fichas). Muitas dessas fichas descrevem o estado do tema (“pendente de julgamento”, “repercussão geral negada”), e as que o fazem na mesma frase já saem como históricas; o aviso é o que sobra.
 
-**O que a rodada mostrou sobre a própria conferência.** A primeira passada deu 38 alertas, e a inspeção do contexto de cada um mostrou que quase todos eram leitura errada: citação histórica não reconhecida (“com cancelamento da Súm. 512”, “supera Súm. 276”, “ex-Súm. 423”, “inconstitucional a Súm. 277”), tribunal atribuído a partir de outra citação da mesma frase (“STF (Tema 810)”, “Tema 745 … Tema 986 STJ”, “fixou no Tema 386”, da TNU), cancelamento parcial lido como total (TST 221 e 191), o ponto de “Súm.” tratado como fim de frase e fontes desatualizadas. Cada caso virou teste. As 54 citações históricas e a ausência de alertas dependem dessa leitura heurística da frase; o relatório lista o que não conferiu.
+**Nenhuma ficha foi editada.** Pela primeira passada, apareciam 2 alertas de súmula cancelada (Súmula 263 do STJ em `leasing-arrendamento-mercantil` e Súmula 394 do STF em `foro-prerrogativa-funcao-cf-102`). As duas fichas declaram no corpo que a súmula está cancelada e a mantêm no cabeçalho como gatilho de busca. Boni autorizou retirar as súmulas canceladas; **não havia o que retirar do catálogo**: o gerador (`build-catalog.mjs`) só leva os gatilhos ao manifesto nas fichas de Forma (`kind === 'FORM'`), e as duas são de Matéria, então a súmula cancelada nunca esteve no catálogo como gatilho. O que existe no catálogo é o aviso no corpo (“CANCELADA… não invocar”), que foi mantido, pois retirá-lo tiraria a orientação.
 
-**Não conferido:** a tese de cada súmula (se a ficha atribui à súmula o conteúdo certo); súmulas do TSE e temas do STF; as 1.357 citações sem tribunal declarado (só se sabe que o número existe no STJ ou no STF); e os números de processo (REsp, HC, ADI etc.), pois a extração por padrão mistura artigos de lei (“CC 1.723”) com classes processuais, e o índice do ForgeLex não tem valor de prova negativa (M3.6).
+**O que a rodada mostrou sobre a própria conferência.** A primeira passada deu 38 alertas, e a inspeção do contexto de cada um mostrou que quase todos eram leitura errada: citação histórica não reconhecida (“com cancelamento da Súm. 512”, “supera Súm. 276”, “ex-Súm. 423”, “inconstitucional a Súm. 277”), tribunal atribuído a partir de outra citação da mesma frase (“STF (Tema 810)”, “Tema 745 … Tema 986 STJ”, “fixou no Tema 386”), lista de temas lida só pelo primeiro número (“Temas 126 e 1.072/STJ”), ano lido como tema (“Tema 944, 2021”), cancelamento parcial lido como total (TST 221 e 191), o ponto de “Súm.” tratado como fim de frase e fontes desatualizadas. Cada caso virou teste. As 124 citações históricas e a ausência de alertas dependem dessa leitura heurística da frase; o relatório lista o que não conferiu.
+
+**Não conferido:** a tese de cada súmula e de cada tema (se a ficha atribui ao precedente o conteúdo certo); súmulas do TSE; as 1.355 citações sem tribunal declarado (só se sabe que o número existe no STJ ou no STF); e os números de processo (REsp, HC, ADI etc.), pois a extração por padrão mistura artigos de lei (“CC 1.723”) com classes processuais, e o índice do ForgeLex não tem valor de prova negativa (M3.6).
 
 ## Evidências locais
 
