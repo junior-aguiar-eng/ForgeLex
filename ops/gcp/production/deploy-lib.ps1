@@ -197,6 +197,50 @@ function Format-MaskedSubstitutions {
     })
 }
 
+function Get-TrustedBuildOutput {
+  # Autoriza a imagem somente pelo recurso do Cloud Build que a produziu. A tag do Artifact Registry é
+  # deliberadamente ignorada: ela é um nome mutável e não prova qual build publicou o digest.
+  param(
+    [Parameter(Mandatory)]$Build,
+    [Parameter(Mandatory)][string]$ProjectId,
+    [Parameter(Mandatory)][string]$ImageUri,
+    [Parameter(Mandatory)][System.Collections.IDictionary]$ExpectedSubstitutions
+  )
+  if ((Get-Prop $Build 'status') -ne 'SUCCESS') { throw 'O Cloud Build selecionado não terminou com SUCCESS.' }
+
+  $id = [string](Get-Prop $Build 'id')
+  $parsedId = [guid]::Empty
+  if (-not [guid]::TryParse($id, [ref]$parsedId)) { throw 'O Cloud Build selecionado não tem um ID válido.' }
+  if ([string](Get-Prop $Build 'projectId') -ne $ProjectId) { throw 'O Cloud Build selecionado pertence a outro projeto.' }
+
+  $actualSubstitutions = Get-Prop $Build 'substitutions'
+  if ($null -eq $actualSubstitutions) { throw "O Cloud Build $id não informa as substituições usadas." }
+  foreach ($key in $ExpectedSubstitutions.Keys) {
+    $property = $actualSubstitutions.PSObject.Properties[[string]$key]
+    if ($null -eq $property -or [string]$property.Value -cne [string]$ExpectedSubstitutions[$key]) {
+      throw "O Cloud Build $id não corresponde à substituição esperada $key."
+    }
+  }
+
+  $sourceSha = [string]$ExpectedSubstitutions['_SOURCE_SHA']
+  if ($sourceSha -notmatch '^[0-9a-f]{40}$') { throw 'O SHA esperado para o Cloud Build é inválido.' }
+  $expectedTag = "${ImageUri}:$sourceSha"
+  $images = @(Get-Prop $Build 'results.images')
+  if ($images.Count -ne 1 -or [string](Get-Prop $images[0] 'name') -cne $expectedTag) {
+    throw "O Cloud Build $id não produziu exatamente a imagem esperada."
+  }
+  $digest = [string](Get-Prop $images[0] 'digest')
+  if ($digest -notmatch '^sha256:[0-9a-f]{64}$') { throw "O Cloud Build $id não retornou um digest válido." }
+
+  $buildToken = $parsedId.ToString('N').Substring(0, 8)
+  return [pscustomobject]@{
+    Id             = $id
+    Digest         = $digest
+    Image          = "$ImageUri@$digest"
+    RevisionSuffix = "$($sourceSha.Substring(0, 7))-$buildToken"
+  }
+}
+
 function ConvertTo-EnvMap {
   param($Container)
   $map = [ordered]@{}
