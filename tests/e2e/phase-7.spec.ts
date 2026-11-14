@@ -47,13 +47,28 @@ test('Fase 7: login, pesquisa, verificação, billing e revisão operam com fixt
     return response.json();
   }, api);
   expect(purchase.status).toBe('PENDING');
-  await page.request.post(`${api}/e2e/confirm-purchase/${purchase.purchaseId}`);
+  const readPaidBalance = () => page.evaluate(async (api) => {
+    const sessionRaw = Object.entries(localStorage).find(([key]) => key.includes('auth-token'))?.[1];
+    const accessToken = sessionRaw ? JSON.parse(sessionRaw).access_token : '';
+    const response = await fetch(`${api}/api/v2/billing/account`, {
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) throw new Error(`Billing account request failed: ${response.status}`);
+    return (await response.json()).paidBalanceCents as number;
+  }, api);
+  const balanceBefore = await readPaidBalance();
+  const confirmation = await page.request.post(`${api}/e2e/confirm-purchase/${purchase.purchaseId}`);
+  expect(confirmation.ok()).toBeTruthy();
   const confirmed = await page.evaluate(async ({ purchaseId, api }) => {
     const sessionRaw = Object.entries(localStorage).find(([key]) => key.includes('auth-token'))?.[1];
     const accessToken = sessionRaw ? JSON.parse(sessionRaw).access_token : '';
     return fetch(`${api}/api/v2/billing/purchases/${purchaseId}`, { headers: { authorization: `Bearer ${accessToken}` } }).then((response) => response.json());
   }, { purchaseId: purchase.purchaseId, api });
   expect(confirmed.status).toBe('PAID');
+  expect(await readPaidBalance()).toBe(balanceBefore + purchase.amountCents);
+  const replay = await page.request.post(`${api}/e2e/confirm-purchase/${purchase.purchaseId}`);
+  expect(replay.ok()).toBeTruthy();
+  expect(await readPaidBalance()).toBe(balanceBefore + purchase.amountCents);
 
   await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: 'Mesa' }).click();
   await page.getByRole('button', { name: 'Pendências de revisão', exact: true }).click();

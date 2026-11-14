@@ -336,6 +336,10 @@ app.post('/e2e/confirm-purchase/:purchaseId', async (request, reply) => {
       object: {
         id: `payment_${purchaseId}`,
         provider_payment_id: `payment_${purchaseId}`,
+        provider_checkout_id: purchase.providerCheckoutId,
+        amount_total: purchase.amountCents,
+        currency: purchase.currency,
+        external_reference: purchase.id,
         receipt_url: 'https://example.test/receipt',
         metadata: { purchase_id: purchaseId },
       },

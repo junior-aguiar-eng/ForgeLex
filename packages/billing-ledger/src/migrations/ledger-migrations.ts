@@ -240,6 +240,14 @@ export const ledgerMigrations: readonly SqlMigration[] = [
     `CREATE UNIQUE INDEX commercial_calls_execution_call_idx ON commercial_calls(execution_id,call_id);`,
     `CREATE INDEX commercial_calls_tenant_status_idx ON commercial_calls(tenant_id,status);`,
   ] },
+  { id: 'billing-ledger-0011-refund-recovery', statements: [
+    `ALTER TABLE billing_refund_requests ADD COLUMN operation_state TEXT NOT NULL DEFAULT 'UNPREPARED';`,
+    `ALTER TABLE billing_refund_requests ADD COLUMN provider_payment_id TEXT;`,
+    `ALTER TABLE billing_refund_requests ADD COLUMN provider_result TEXT;`,
+    `ALTER TABLE billing_refund_requests ADD COLUMN operation_error TEXT;`,
+    // Historical PENDING cannot prove that a provider effect never happened. No fabricated hold.
+    `UPDATE billing_refund_requests SET status = 'RECONCILIATION_REQUIRED', operation_state = 'LEGACY_RECONCILIATION_REQUIRED', operation_error = 'LEGACY_PROVIDER_OUTCOME_UNKNOWN' WHERE status = 'PENDING';`,
+  ] },
 ];
 
 export async function runLedgerMigrations(client: Client): Promise<void> {

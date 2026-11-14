@@ -16,7 +16,7 @@ describe('MercadoPagoPaymentProvider', () => {
       checkout_url: 'https://www.mercadopago.com.br/checkout/v1/redirect?order_id=ORDTEST123',
     }));
     const provider = new MercadoPagoPaymentProvider({
-      accessToken: 'APP_USR_test',
+      accessToken: 'APP_USR_test', now: () => 1700000000000,
       webhookSecret: 'webhook-secret',
       notificationUrl: 'https://api.forgelex.test/api/v2/webhooks/mercadopago',
       fetcher,
@@ -66,7 +66,7 @@ describe('MercadoPagoPaymentProvider', () => {
       checkout_url: 'https://www.mercadopago.com.br/checkout/v1/redirect?order_id=ORDTEST124',
     }));
     const provider = new MercadoPagoPaymentProvider({
-      accessToken: 'APP_USR_test',
+      accessToken: 'APP_USR_test', now: () => 1700000000000,
       webhookSecret: 'webhook-secret',
       notificationUrl: 'https://api.forgelex.test/api/v2/webhooks/mercadopago',
       fetcher,
@@ -97,7 +97,7 @@ describe('MercadoPagoPaymentProvider', () => {
       checkout_url: 'https://www.mercadopago.com.br/checkout/v1/redirect?order_id=ORDTEST125',
     }));
     const provider = new MercadoPagoPaymentProvider({
-      accessToken: 'APP_USR_test',
+      accessToken: 'APP_USR_test', now: () => 1700000000000,
       webhookSecret: 'webhook-secret',
       notificationUrl: 'https://api.forgelex.test/api/v2/webhooks/mercadopago',
       fetcher,
@@ -128,7 +128,7 @@ describe('MercadoPagoPaymentProvider', () => {
       transactions: { payments: [{ id: 'PAYTEST123', status: 'processed' }] },
     }));
     const provider = new MercadoPagoPaymentProvider({
-      accessToken: 'APP_USR_test',
+      accessToken: 'APP_USR_test', now: () => 1700000000000,
       webhookSecret: 'webhook-secret',
       fetcher,
       clock: () => 1700000000,
@@ -146,7 +146,7 @@ describe('MercadoPagoPaymentProvider', () => {
     });
 
     expect(event).toMatchObject({
-      id: '99',
+      id: 'order:ORDTEST123:paid',
       provider: 'mercadopago',
       type: 'payment.approved',
       data: { object: {
@@ -171,7 +171,7 @@ describe('MercadoPagoPaymentProvider', () => {
       currency_id: 'BRL',
       order: { id: 'ORDTEST123' },
     }));
-    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher });
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', now: () => 1700000000000, webhookSecret: 'webhook-secret', fetcher });
     const manifest = 'id:paytest123;request-id:req_2;ts:1700000000;';
     const signature = `ts=1700000000,v1=${createHmac('sha256', 'webhook-secret').update(manifest).digest('hex')}`;
 
@@ -195,7 +195,7 @@ describe('MercadoPagoPaymentProvider', () => {
   it('distingue mudança de status sem id de notificação e preserva replay', async () => {
     let status = 'created';
     const fetcher = vi.fn(async () => response({ id: 'ORDTEST123', status, external_reference: 'purchase_1', total_amount: '25.00', currency: 'BRL' }));
-    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher });
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', now: () => 1700000000000, webhookSecret: 'webhook-secret', fetcher });
     const manifest = 'id:ordtest123;request-id:req_1;ts:1700000000;';
     const signature = `ts=1700000000,v1=${createHmac('sha256', 'webhook-secret').update(manifest).digest('hex')}`;
     const input = { payload: { type: 'order' }, dataId: 'ORDTEST123', requestId: 'req_1', signature };
@@ -211,7 +211,7 @@ describe('MercadoPagoPaymentProvider', () => {
 
   it('rejeita assinatura inválida antes de consultar a order', async () => {
     const fetcher = vi.fn(async () => response({}));
-    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher });
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', now: () => 1700000000000, webhookSecret: 'webhook-secret', fetcher });
 
     await expect(provider.normalizeWebhook({
       payload: { id: 99, type: 'order', data: { id: 'ORDTEST123' } },
@@ -227,7 +227,7 @@ describe('MercadoPagoPaymentProvider', () => {
       .fn()
       .mockResolvedValueOnce(response({ transactions: { payments: [{ id: 'PAYTEST123' }] } }))
       .mockResolvedValueOnce(response({ id: 'ORDTEST123', status: 'processed' }));
-    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher });
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', now: () => 1700000000000, webhookSecret: 'webhook-secret', fetcher });
 
     await provider.refundPayment({ providerPaymentId: 'ORDTEST123', amountCents: 1250, idempotencyKey: 'refund_1' });
 
@@ -239,7 +239,7 @@ describe('MercadoPagoPaymentProvider', () => {
   });
 
   it('mantém recarga automática e cartão salvo bloqueados até haver fluxo próprio do Mercado Pago', async () => {
-    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret' });
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', now: () => 1700000000000, webhookSecret: 'webhook-secret' });
 
     await expect(provider.createPaymentMethodSetup({ customerId: 'tenant_1', idempotencyKey: 'setup_1' })).rejects.toThrow('MERCADOPAGO_PAYMENT_METHODS_UNAVAILABLE');
     await expect(provider.createOffSessionPayment({
@@ -252,7 +252,7 @@ describe('MercadoPagoPaymentProvider', () => {
   });
 
   it('não cria checkout sem URL HTTPS de webhook configurada', async () => {
-    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret' });
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', now: () => 1700000000000, webhookSecret: 'webhook-secret' });
 
     await expect(provider.createCheckout({
       amountCents: 2500,
@@ -264,4 +264,47 @@ describe('MercadoPagoPaymentProvider', () => {
       idempotencyKey: 'checkout_2',
     })).rejects.toThrow('MERCADOPAGO_NOTIFICATION_URL_REQUIRED');
   });
+  it('ignora o id não assinado do corpo na identidade do evento', async () => {
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'test', webhookSecret: 'secret', now: () => 1700000000000,
+      fetcher: async () => response({ id: 'ORD1', status: 'processed', external_reference: 'purchase', total_amount: '25.00', currency: 'BRL' }) });
+    const signature = `ts=1700000000000,v1=${createHmac('sha256', 'secret').update('id:ord1;request-id:req;ts:1700000000000;').digest('hex')}`;
+    const input = { dataId: 'ORD1', requestId: 'req', signature };
+    const first = await provider.normalizeWebhook({ ...input, payload: { id: 'attacker-1', type: 'order' } });
+    const second = await provider.normalizeWebhook({ ...input, payload: { id: 'attacker-2', type: 'order' } });
+    expect(first.id).toBe(second.id);
+  });
+
+  it.each([1700000000000 - 300001, 1700000000000 + 60001])('rejeita timestamp assinado fora da janela: %s', async (ts) => {
+    let calls = 0;
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'test', webhookSecret: 'secret', now: () => 1700000000000,
+      fetcher: async () => { calls++; return response({}); } });
+    const signature = `ts=${ts},v1=${createHmac('sha256', 'secret').update(`id:ord1;request-id:req;ts:${ts};`).digest('hex')}`;
+    await expect(provider.normalizeWebhook({ payload: { type: 'order' }, dataId: 'ORD1', requestId: 'req', signature })).rejects.toThrow('MERCADOPAGO_WEBHOOK_EXPIRED');
+    expect(calls).toBe(0);
+  });
+
+  it('não permite timestamp duplicado produzir recibos diferentes com a mesma assinatura', () => {
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'test', webhookSecret: 'secret', now: () => 1700000000000 });
+    const signature = `ts=1700000000000,v1=${createHmac('sha256', 'secret').update('id:ord1;request-id:req;ts:1700000000000;').digest('hex')}`;
+    expect(() => provider.verifiedDeliveryId({ payload: {}, dataId: 'ORD1', requestId: 'req', signature: `ts=1700000000001,${signature}` })).toThrow('MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID');
+  });
+
+  it.each([['25.00', 'brl'], ['24.00', undefined]] as const)('obtém moeda ausente da order somente por pagamento vinculado com valor %s', async (paidAmount, currency) => {
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'test', webhookSecret: 'secret', now: () => 1700000000000,
+      fetcher: async (url) => String(url).includes('/orders/')
+        ? response({ id: 'ORD1', status: 'processed', total_amount: '25.00', external_reference: 'purchase', transactions: { payments: [{ id: 'PAY1', reference_id: '12345' }] } })
+        : response({ id: 12345, status: 'approved', transaction_amount: paidAmount, currency_id: 'BRL', external_reference: 'purchase' }) });
+    const signature = `ts=1700000000000,v1=${createHmac('sha256', 'secret').update('id:ord1;request-id:req;ts:1700000000000;').digest('hex')}`;
+    const event = await provider.normalizeWebhook({ payload: { type: 'order' }, dataId: 'ORD1', requestId: 'req', signature });
+    expect(event.data.object.currency).toBe(currency);
+  });
+
+  it('normaliza espaços da assinatura antes de calcular o recibo', () => {
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'test', webhookSecret: 'secret', now: () => 1700000000000 });
+    const hash = createHmac('sha256', 'secret').update('id:ord1;request-id:req;ts:1700000000000;').digest('hex');
+    const input = { payload: {}, dataId: 'ORD1', requestId: 'req', signature: `ts=1700000000000,v1=${hash}` };
+    expect(provider.verifiedDeliveryId({ ...input, signature: `ts= 1700000000000,v1=${hash}` })).toBe(provider.verifiedDeliveryId(input));
+    expect(() => provider.verifiedDeliveryId({ ...input, signature: `ts =1,${input.signature}` })).toThrow('MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID');
+  });
+
 });

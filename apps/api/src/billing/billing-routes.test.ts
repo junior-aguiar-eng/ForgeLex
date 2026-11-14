@@ -225,7 +225,7 @@ describe('rotas de billing', () => {
     const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), paymentProvider);
     let purchaseId = '';
     const mercadoPago = new MercadoPagoPaymentProvider({
-      accessToken: 'APP_USR_test',
+      accessToken: 'APP_USR_test', now: () => 1700000000000,
       webhookSecret: 'webhook-secret',
       fetcher: vi.fn(async () => new Response(JSON.stringify({
         id: 'ORDTEST123',
@@ -247,7 +247,7 @@ describe('rotas de billing', () => {
     });
     const checkout = await operations.createCheckout({ tenantId: principal.tenantId, userId: principal.userId, packageId: 'credits_50', idempotencyKey: 'mp_checkout_1' });
     purchaseId = checkout.purchaseId;
-    const timestamp = String(Math.floor(Date.now() / 1000));
+    const timestamp = '1700000000';
     const manifest = `id:ordtest123;request-id:mp_req_1;ts:${timestamp};`;
     const signature = `ts=${timestamp},v1=${createHmac('sha256', 'webhook-secret').update(manifest).digest('hex')}`;
     const payload = { id: 123, type: 'order', action: 'order.updated', data: { id: 'ORDTEST123' } };
@@ -269,7 +269,7 @@ describe('rotas de billing', () => {
     const ledger = new LedgerService(connection.db, connection.client);
     await ledger.runMigrations();
     const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), new Provider());
-    const mercadoPago = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret' });
+    const mercadoPago = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', now: () => 1700000000000, webhookSecret: 'webhook-secret' });
     const app = await buildApp({
       authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger,
       database: connection.db, databaseClient: connection.client,
