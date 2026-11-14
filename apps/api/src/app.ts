@@ -1,10 +1,10 @@
-import { canSubscribeWebhook } from './distribution/integration-authorization.js';
+import { canSubscribeWebhook, isValidWebhookEventTypes, missingWebhookScopes } from './distribution/integration-authorization.js';
 import { registerAgenticWorkspace, type AgenticWorkspaceRuntimeOptions } from './agentic-workspace/execution-routes.js';
 import type { ClosedPilotDependencies } from './agentic-workspace/closed-pilot.js';
 import type { CommercialRuntimeDependencies } from './agentic-workspace/commercial-runtime.js';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import Fastify, { FastifyInstance, FastifyReply } from 'fastify';
+import Fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import { CourtCatalog } from '@forgelex/source-catalog';
 import { SourceRouter, StjSconProvider } from '@forgelex/source-providers';
@@ -72,7 +72,7 @@ import { ApiKeyService } from './auth/api-key-service.js';
 import { buildOpenApiDocument } from './distribution/openapi.js';
 import { createRequestAbortSignal } from './distribution/request-abort-signal.js';
 import { classifyResearchError } from './distribution/research-error.js';
-import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
+import { WEBHOOK_EVENT_TYPES, WEBHOOK_TEST_EVENT_TYPE } from './distribution/webhooks.js';
 import { WebhookRepository } from '@forgelex/persistence';
 import { WebhookService } from './distribution/webhook-service.js';
 import type { Client } from '@forgelex/persistence';
@@ -569,6 +569,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         matterAuthorityRepository: matterAuthorityRepository!,
         checkpointStore: new PersistentWorkflowCheckpointStore(database),
         toolRegistry,
+        onCheckpointWriteFailed: ({ executionId, tenantId, matterId, error }) => structuredLog('error', 'research_memo.failed_checkpoint_not_written', {
+          executionId, tenantId, matterId,
+          errorName: error instanceof Error ? error.name : typeof error,
+          errorCode: error instanceof Error ? error.message.split(':')[0] : 'UNKNOWN',
+        }),
       })
     : undefined;
   if (legalResearchMemoExecutionService) toolRegistry.register(createLegalResearchMemoTool(legalResearchMemoExecutionService));
@@ -1212,7 +1217,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.post('/api/v2/webhooks/endpoints', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
     const principal = request.principal;
     const body = (request.body ?? {}) as { url?: string; description?: string; secret?: string; eventTypes?: string[] };
-    if (!canSubscribeWebhook(principal.scopes, body.eventTypes ?? WEBHOOK_EVENT_TYPES)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
+    const requestedEvents: unknown = body.eventTypes ?? [...WEBHOOK_EVENT_TYPES];
+    if (!isValidWebhookEventTypes(requestedEvents)) return reply.status(400).send({ error: 'WEBHOOK_EVENT_TYPE_INVALID' });
+    const missingScopes = missingWebhookScopes(principal.scopes, requestedEvents);
+    if (missingScopes.length > 0) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE', missingScopes });
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     if (!body.url) return reply.status(400).send({ error: 'WEBHOOK_URL_REQUIRED' });
     try {
@@ -1236,7 +1244,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const endpointId = (request.params as { endpointId: string }).endpointId;
-    const endpoint = (await webhookService.listEndpoints(principal.tenantId)).find((item) => item.id === endpointId);
+    const endpoint = await webhookService.findEndpoint(principal.tenantId, endpointId);
     if (endpoint && !canSubscribeWebhook(principal.scopes, endpoint.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
     return { revoked: await webhookService.revokeEndpoint(principal.tenantId, endpointId) };
   });
@@ -1245,11 +1253,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const endpointId = (request.params as { endpointId: string }).endpointId;
-    const endpoint = await webhookService.listEndpoints(principal.tenantId);
-    const selected = endpoint.find((item) => item.id === endpointId && item.status === 'ACTIVE');
-    if (selected && !canSubscribeWebhook(principal.scopes, selected.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
-    if (!selected) return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
-    const eventId = await webhookService.enqueue({ tenantId: principal.tenantId, endpointId, type: selected.eventTypes[0] as typeof WEBHOOK_EVENT_TYPES[number], payload: { test: true, requestedBy: principal.userId } });
+    const selected = await webhookService.findEndpoint(principal.tenantId, endpointId);
+    if (selected && selected.status === 'ACTIVE' && !canSubscribeWebhook(principal.scopes, selected.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
+    if (!selected || selected.status !== 'ACTIVE') return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
+    const eventId = await webhookService.enqueue({ tenantId: principal.tenantId, endpointId, type: WEBHOOK_TEST_EVENT_TYPE, payload: { test: true, requestedBy: principal.userId } });
     return reply.status(202).send({ eventId, status: 'QUEUED' });
   });
 
@@ -1257,27 +1264,34 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const endpointId = (request.query as { endpointId?: string }).endpointId;
-    const permitted = new Set((await webhookService.listEndpoints(principal.tenantId)).filter((item) => canSubscribeWebhook(principal.scopes, item.eventTypes)).map((item) => item.id));
-    return (await webhookService.listDeliveries(principal.tenantId, endpointId)).filter((item) => permitted.has(item.endpointId));
+    const permitted = (await webhookService.listEndpoints(principal.tenantId)).filter((item) => canSubscribeWebhook(principal.scopes, item.eventTypes)).map((item) => item.id);
+    const wanted = endpointId === undefined ? permitted : permitted.filter((id) => id === endpointId);
+    return webhookService.listDeliveries(principal.tenantId, wanted);
   });
 
   app.post('/api/v2/webhooks/deliveries/:deliveryId/retry', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const deliveryId = (request.params as { deliveryId: string }).deliveryId;
-    const delivery = (await webhookService.listDeliveries(principal.tenantId)).find((item) => item.id === deliveryId);
+    const delivery = await webhookService.findDelivery(principal.tenantId, deliveryId);
     if (delivery) {
-      const endpoint = (await webhookService.listEndpoints(principal.tenantId)).find((item) => item.id === delivery.endpointId);
+      const endpoint = await webhookService.findEndpoint(principal.tenantId, delivery.endpointId);
       if (!endpoint || !canSubscribeWebhook(principal.scopes, endpoint.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
     }
     return { requeued: await webhookService.requeue(principal.tenantId, deliveryId) };
   });
 
+  /** Credentials are administered only from an owner's own session: never by an API key, even one holding the scope. */
+  const requireOwnerSession = async (request: FastifyRequest, reply: FastifyReply) => {
+    if (request.principal.authMethod !== 'session' || !request.principal.roles.includes('owner')) {
+      return reply.status(403).send({ error: 'CREDENTIAL_ADMIN_SESSION_REQUIRED' });
+    }
+  };
+
   app.get(
     '/api/v2/api-keys',
     { preHandler: authAdapter.createPreHandler(['credentials:read']) },
     async (req, reply) => {
-      if (req.method !== 'GET' && (req.principal.authMethod !== 'session' || !req.principal.roles.includes('owner'))) return reply.status(403).send({ error: 'CREDENTIAL_ADMIN_SESSION_REQUIRED' });
       if (!apiKeyService) {
         reply.status(503);
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de chaves de API não está disponível.' };
@@ -1289,9 +1303,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.post(
     '/api/v2/api-keys',
-    { preHandler: authAdapter.createPreHandler(['credentials:write']) },
+    { preHandler: [authAdapter.createPreHandler(['credentials:write']), requireOwnerSession] },
     async (req, reply) => {
-      if (req.method !== 'GET' && (req.principal.authMethod !== 'session' || !req.principal.roles.includes('owner'))) return reply.status(403).send({ error: 'CREDENTIAL_ADMIN_SESSION_REQUIRED' });
       if (!apiKeyService) {
         reply.status(503);
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de chaves de API não está disponível.' };
@@ -1339,9 +1352,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.delete(
     '/api/v2/api-keys/:keyId',
-    { preHandler: authAdapter.createPreHandler(['credentials:write']) },
+    { preHandler: [authAdapter.createPreHandler(['credentials:write']), requireOwnerSession] },
     async (req, reply) => {
-      if (req.method !== 'GET' && (req.principal.authMethod !== 'session' || !req.principal.roles.includes('owner'))) return reply.status(403).send({ error: 'CREDENTIAL_ADMIN_SESSION_REQUIRED' });
       if (!apiKeyService) {
         reply.status(503);
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de chaves de API não está disponível.' };

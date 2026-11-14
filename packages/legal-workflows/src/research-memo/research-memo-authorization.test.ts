@@ -99,7 +99,7 @@ async function fixture() {
     oauthConnection: { clientId: 'app', grantedAt: stamp },
     revalidateConnection: async () => {},
   };
-  return { c, issues, owner, grants, grant, registry, memos, authorities, service, input, context, matter };
+  return { c, issues, owner, grants, grant, registry, memos, authorities, matters, service, input, context, matter };
 }
 
 describe('exact OAuth matter authorization', () => {
@@ -196,6 +196,196 @@ describe('authorization races and authenticated direct contexts', () => {
     } finally {
       f.c.client.close();
     }
+  });
+});
+
+describe('authorization cost and placement', () => {
+  it('does not call the token revalidation while the matter write transaction is open', async () => {
+    const f = await fixture();
+    try {
+      let insideTransaction = false;
+      const original = f.grants.withActive.bind(f.grants);
+      const withActive = vi.spyOn(f.grants, 'withActive').mockImplementation((reader, matterId, operation) =>
+        original(reader, matterId, async (tx) => {
+          insideTransaction = true;
+          try {
+            return await operation(tx);
+          } finally {
+            insideTransaction = false;
+          }
+        }),
+      );
+      const revalidatedInside: boolean[] = [];
+      const context = {
+        ...f.context,
+        revalidateConnection: async () => {
+          revalidatedInside.push(insideTransaction);
+        },
+      };
+
+      await f.service.execute(f.input, context);
+
+      expect(withActive).toHaveBeenCalled();
+      expect(revalidatedInside.length).toBeGreaterThan(0);
+      expect(revalidatedInside).not.toContain(true);
+    } finally {
+      f.c.client.close();
+    }
+  });
+
+  it('still rechecks the grant inside the transaction, so a revocation that lands between the checks blocks the write', async () => {
+    const f = await fixture();
+    try {
+      const original = f.grants.withActive.bind(f.grants);
+      vi.spyOn(f.grants, 'withActive').mockImplementation(async (reader, matterId, operation) => {
+        await f.grants.revoke(f.owner, f.matter.id, f.grant.id, 1);
+        return original(reader, matterId, operation);
+      });
+
+      await expect(f.service.execute(f.input, f.context)).rejects.toThrow('CASE_CONTEXT_NOT_AUTHORIZED');
+      expect(await f.memos.listMemos(f.owner.tenantId, f.matter.id)).toHaveLength(0);
+    } finally {
+      f.c.client.close();
+    }
+  });
+
+  it('never revalidates twice in a row without reading or writing anything in between', async () => {
+    const f = await fixture();
+    const restores: Array<() => void> = [];
+    try {
+      const events: string[] = [];
+      // Prototypes, not instances: inside the OAuth transaction the service builds fresh repositories on the tx.
+      const watch = (target: object, method: string, name: string) => {
+        const original = (target as Record<string, (...a: unknown[]) => unknown>)[method]!;
+        const spy = vi.spyOn(target as never, method as never).mockImplementation(function (
+          this: unknown,
+          ...args: unknown[]
+        ) {
+          events.push(name);
+          return original.apply(this, args);
+        } as never);
+        restores.push(() => spy.mockRestore());
+      };
+      watch(Object.getPrototypeOf(f.registry), 'executeTool', 'tool');
+      watch(MatterRepository.prototype, 'captureWorkRevision', 'read:revision');
+      // The instance, not the prototype: assertActive reads the matter through its own repository and must not count.
+      watch(f.matters, 'getMatter', 'read:matter');
+      watch(LegalIssueRepository.prototype, 'listIssues', 'read:issues');
+      watch(ResearchMemoRepository.prototype, 'getByIdempotencyKey', 'read:memo');
+      watch(ResearchMemoRepository.prototype, 'createMemo', 'effect:memo');
+      watch(MatterAuthorityRepository.prototype, 'saveAuthority', 'effect:authority');
+      watch(MatterAuthorityRepository.prototype, 'recordVerification', 'effect:verification');
+      watch(PersistentWorkflowCheckpointStore.prototype, 'save', 'effect:checkpoint');
+      const context = {
+        ...f.context,
+        revalidateConnection: async () => {
+          events.push('revalidate');
+        },
+      };
+
+      await f.service.execute(f.input, context);
+
+      const doubled = events.flatMap((event, index) =>
+        event === 'revalidate' && events[index + 1] === 'revalidate' ? [index] : [],
+      );
+      expect(events.filter((event) => event.startsWith('effect:')).length).toBeGreaterThan(5);
+      expect(doubled).toEqual([]);
+    } finally {
+      restores.forEach((restore) => restore());
+      f.c.client.close();
+    }
+  });
+});
+
+describe('closing a failed execution', () => {
+  const stubs = (overrides: Record<string, unknown> = {}) => {
+    const checkpoints: string[] = [];
+    const dependencies = {
+      matterRepository: { captureWorkRevision: async () => 1, getMatter: async () => ({ id: 'm' }) },
+      legalIssueRepository: { listIssues: async () => [] },
+      researchMemoRepository: { getByIdempotencyKey: async () => undefined },
+      matterAuthorityRepository: {},
+      checkpointStore: {
+        save: vi.fn(async (record: { status: string }) => {
+          checkpoints.push(record.status);
+          if (record.status === 'FAILED') throw new Error('DB_DOWN');
+        }),
+      },
+      toolRegistry: {
+        executeTool: vi.fn(async () => {
+          throw new Error('SEARCH_FAILED');
+        }),
+      },
+      onCheckpointWriteFailed: vi.fn(),
+      ...overrides,
+    };
+    const input = {
+      matterId: randomUUID(),
+      query: 'vazamento de dados',
+      court: 'STJ' as const,
+      limit: 10,
+      idempotencyKey: 'k',
+    };
+    return { dependencies, checkpoints, input };
+  };
+
+  it('reports a failure to write the FAILED checkpoint without hiding the original error', async () => {
+    const { dependencies, input } = stubs();
+    const service = new LegalResearchMemoExecutionService(dependencies as never);
+
+    await expect(
+      service.execute(input, { tenantId: 't', userId: 'u', sessionId: 'mcp_x', source: 'MCP' }),
+    ).rejects.toThrow('SEARCH_FAILED');
+
+    expect(dependencies.onCheckpointWriteFailed).toHaveBeenCalledTimes(1);
+    expect(dependencies.onCheckpointWriteFailed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 't',
+        matterId: input.matterId,
+        error: expect.objectContaining({ message: 'DB_DOWN' }),
+      }),
+    );
+  });
+
+  it('stays quiet when the FAILED checkpoint is skipped because authorization was lost', async () => {
+    let revoked = false;
+    const { dependencies, checkpoints, input } = stubs({
+      toolRegistry: {
+        executeTool: vi.fn(async () => {
+          revoked = true;
+          throw new Error('SEARCH_FAILED');
+        }),
+      },
+    });
+    const service = new LegalResearchMemoExecutionService(dependencies as never);
+    const context = {
+      tenantId: 't',
+      userId: 'u',
+      sessionId: 'mcp_x',
+      source: 'MCP' as const,
+      authMethod: 'api_key',
+      get scopes() {
+        return revoked ? [] : ['research:read', 'matter:write'];
+      },
+    };
+
+    await expect(service.execute(input, context)).rejects.toThrow('SEARCH_FAILED');
+
+    expect(checkpoints).not.toContain('FAILED');
+    expect(dependencies.onCheckpointWriteFailed).not.toHaveBeenCalled();
+  });
+
+  it('does not let a throwing report hook replace the original error', async () => {
+    const { dependencies, input } = stubs({
+      onCheckpointWriteFailed: vi.fn(() => {
+        throw new Error('HOOK_BROKEN');
+      }),
+    });
+    const service = new LegalResearchMemoExecutionService(dependencies as never);
+
+    await expect(
+      service.execute(input, { tenantId: 't', userId: 'u', sessionId: 'mcp_x', source: 'MCP' }),
+    ).rejects.toThrow('SEARCH_FAILED');
   });
 });
 

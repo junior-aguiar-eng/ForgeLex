@@ -71,4 +71,29 @@ describe('WebhookRepository', () => {
       try { rmSync(directory, { recursive: true, force: true }); } catch { /* SQLite pode manter o arquivo bloqueado até o worker terminar. */ }
     }
   });
+
+  it('busca uma entrega por id dentro do tenant e filtra a listagem por vários destinos', async () => {
+    const connection = await createDatabase({ url: 'file::memory:?cache=shared' });
+    await runPersistenceMigrations(connection.client);
+    const repository = new WebhookRepository(connection.client);
+    const base = { url: 'https://example.test/hook', secretCiphertext: 'ciphertext', eventTypes: ['matter.created'] };
+    await repository.createEndpoint({ ...base, id: 'lookup_a1', tenantId: 'lookup_tenant_a' });
+    await repository.createEndpoint({ ...base, id: 'lookup_a2', tenantId: 'lookup_tenant_a' });
+    await repository.createEndpoint({ ...base, id: 'lookup_a3', tenantId: 'lookup_tenant_a' });
+    await repository.createEndpoint({ ...base, id: 'lookup_b1', tenantId: 'lookup_tenant_b' });
+    await repository.enqueueEvent({ tenantId: 'lookup_tenant_a', eventType: 'matter.created', payloadJson: '{}', endpointIds: ['lookup_a1', 'lookup_a2', 'lookup_a3'] });
+    await repository.enqueueEvent({ tenantId: 'lookup_tenant_b', eventType: 'matter.created', payloadJson: '{}', endpointIds: ['lookup_b1'] });
+    const all = await repository.listDeliveries('lookup_tenant_a');
+    const second = all.find((delivery) => delivery.endpointId === 'lookup_a2')!;
+
+    expect(await repository.findDelivery('lookup_tenant_a', second.id)).toMatchObject({ id: second.id, endpointId: 'lookup_a2' });
+    expect(await repository.findDelivery('lookup_tenant_b', second.id)).toBeUndefined();
+    expect(await repository.findDelivery('lookup_tenant_a', 'missing')).toBeUndefined();
+
+    expect((await repository.listDeliveries('lookup_tenant_a', ['lookup_a1', 'lookup_a3'])).map((d) => d.endpointId).sort()).toEqual(['lookup_a1', 'lookup_a3']);
+    expect(await repository.listDeliveries('lookup_tenant_a', [])).toEqual([]);
+    expect(await repository.listDeliveries('lookup_tenant_a', ['lookup_b1'])).toEqual([]);
+    expect(await repository.listDeliveries('lookup_tenant_a', 'lookup_a2')).toHaveLength(1);
+    connection.client.close();
+  });
 });
