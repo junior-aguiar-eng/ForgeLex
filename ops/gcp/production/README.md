@@ -86,14 +86,19 @@ Com o `gcloud` autenticado no projeto do ForgeLex, o `gh` autenticado e um check
 ./ops/gcp/production/deploy-from-main.ps1 -DryRun      # só lê e mostra o plano; não altera nada
 ./ops/gcp/production/deploy-from-main.ps1              # publica
 ./ops/gcp/production/deploy-from-main.ps1 -NoTraffic   # gera a imagem e as revisões, sem trocar o tráfego
+# depois do -NoTraffic, use o ID exibido para promover exatamente o mesmo build:
+./ops/gcp/production/deploy-from-main.ps1 -ReleaseBuildId '<build-id>'
 ```
 
 O script confere o checkout e a CI do SHA, lê o estado de produção, reaproveita as substituições do último
 build bem-sucedido (trocando só o SHA, inclusive as flags de interface `AGENTIC_WORKSPACE` e `CASE_WORKSPACE`),
-gera a imagem, cria as revisões da API e do encerramento **sem tráfego**, confere que só a imagem e
+sempre gera a imagem de uma nova promoção no Cloud Build e aceita somente o digest retornado no resultado desse
+build. A existência da tag previsível do SHA no Artifact Registry nunca autoriza o release. O script confere o
+projeto, o ID, o sucesso, o SHA, todas as substituições e a única imagem resultante antes de criar as revisões da
+API e do encerramento **sem tráfego**. Depois confere que só a imagem e
 `FORGELEX_SOURCE_SHA` mudaram, troca o tráfego (encerramento, depois API), verifica `/health`, `/readyz`,
 `/mcp` sem token (deve dar 401) e a ausência de 5xx nos logs, e **reverte sozinho** se qualquer passo falhar.
-Ao terminar, imprime os comandos de reversão e o que registrar no `PENDENCIAS.md`.
+Ao terminar, imprime o build ID, os comandos de reversão e o que registrar no `PENDENCIAS.md`.
 
 - **Não aplica migrations.** `FORGELEX_AUTO_MIGRATE` continua como está nos serviços. Se o SHA traz migration,
   faça backup e aplique-a pelo procedimento próprio antes de publicar.
@@ -112,8 +117,10 @@ Ao terminar, imprime os comandos de reversão e o que registrar no `PENDENCIAS.m
 - **Trocar uma flag de interface de propósito:** `-AgenticWorkspaceEnabled`, `-CaseWorkspaceEnabled`,
   `-SavedResearchEnabled`, `-DeskShellEnabled`, `-AttachmentsEnabled` ou `-MatterChipsEnabled` (`true`/`false`).
   Sem elas, valem as do último build (as três da Mesa, ausentes em builds antigos, valem `false`).
-- **Repetir é seguro:** se a imagem e as revisões do SHA já existem, são reaproveitadas, e um serviço que já
-  recebe 100% na revisão nova não é tocado.
+- **Retomar é seguro:** depois de `-NoTraffic`, informe o `-ReleaseBuildId` exibido. O recurso desse build é lido
+  novamente e precisa coincidir com o projeto, SHA, substituições e digest esperados; então a imagem e as revisões
+  identificadas por SHA e build ID são reaproveitadas. Sem esse ID explícito, uma nova execução cria um novo build,
+  ainda que uma tag do mesmo SHA já exista.
 - **Testes** (sem gcloud, sem rede): `pwsh -NoProfile -File ops/gcp/production/deploy-from-main.tests.ps1`.
   Rodam na CI.
 
@@ -132,7 +139,9 @@ do `origin/main`, URL inválida e chave que não seja `sb_publishable_...`.
 O Dockerfile recusa build sem configuração pública válida; após `pnpm build`,
 confere que URL e chave aparecem no artefato e que não há `sb_secret_...` ou
 JWT `service_role`. O teste imprime apenas aprovado/reprovado, nunca a chave.
-Guardar o `sourceSha` e a referência `image@sha256:...` no registro do ensaio.
+O script obtém o digest do resultado autenticado do Cloud Build, nunca por uma
+consulta posterior à tag. Guardar o `buildId`, o `sourceSha` e a referência
+`image@sha256:...` no registro do ensaio.
 Não usar `latest` nem tag editorial como identidade de release.
 
 O repositório `forgelex-prod` deve existir antes do build. O executor do build
