@@ -8,7 +8,7 @@ import {
   calculateRefundableCents,
   validateCreditPurchase,
 } from '@forgelex/billing-ledger';
-import { BillingService } from '@forgelex/billing-ledger';
+import { BillingService, KeyedMutex } from '@forgelex/billing-ledger';
 import {
   billingAccounts,
   billingInvoices,
@@ -92,7 +92,7 @@ export function refundFailureStatus(error: unknown): number {
 }
 
 export class BillingOperationsService {
-  private readonly autoRechargeLocks = new Map<string, Promise<void>>();
+  private readonly autoRechargeLock = new KeyedMutex();
   public constructor(
     private readonly db: ForgeLexDatabase,
     client: Client,
@@ -402,16 +402,7 @@ export class BillingOperationsService {
    * takes the BillingService lock for the same tenant.
    */
   public async startAutoRecharge(tenantId: string): Promise<{ started: boolean; purchaseId?: string; reason?: string }> {
-    const previous = this.autoRechargeLocks.get(tenantId) ?? Promise.resolve();
-    let release!: () => void;
-    const current = new Promise<void>((resolve) => { release = resolve; });
-    const tail = previous.then(() => current);
-    this.autoRechargeLocks.set(tenantId, tail);
-    await previous;
-    try { return await this.startAutoRechargeOnce(tenantId); } finally {
-      release();
-      if (this.autoRechargeLocks.get(tenantId) === tail) this.autoRechargeLocks.delete(tenantId);
-    }
+    return this.autoRechargeLock.run(tenantId, () => this.startAutoRechargeOnce(tenantId));
   }
 
   private async startAutoRechargeOnce(tenantId: string): Promise<{ started: boolean; purchaseId?: string; reason?: string }> {
