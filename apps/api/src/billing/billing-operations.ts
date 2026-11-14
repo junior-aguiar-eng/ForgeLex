@@ -123,18 +123,21 @@ export class BillingOperationsService {
     const validated = validateCreditPurchase({ packageId: input.packageId, amountCents: input.amountCents });
     await this.billing.runMigrations();
     await this.ensureBillingAccount(input.tenantId);
-    const existing = await this.db.select().from(billingPurchases).where(and(eq(billingPurchases.tenantId, input.tenantId), eq(billingPurchases.idempotencyKey, input.idempotencyKey)));
-    const existingPurchase = existing[0];
-    if (existingPurchase && (
-      existingPurchase.tenantId !== input.tenantId ||
-      existingPurchase.userId !== input.userId ||
-      existingPurchase.packageId !== validated.packageId ||
-      existingPurchase.amountCents !== validated.amountCents ||
-      existingPurchase.currency !== BILLING_CURRENCY
-    )) throw new Error('IDEMPOTENCY_CONFLICT');
+    const findByKey = async () => (await this.db.select().from(billingPurchases).where(and(eq(billingPurchases.tenantId, input.tenantId), eq(billingPurchases.idempotencyKey, input.idempotencyKey))))[0];
+    const assertSameRequest = (row: typeof billingPurchases.$inferSelect | undefined): void => {
+      if (row && (
+        row.tenantId !== input.tenantId ||
+        row.userId !== input.userId ||
+        row.packageId !== validated.packageId ||
+        row.amountCents !== validated.amountCents ||
+        row.currency !== BILLING_CURRENCY
+      )) throw new Error('IDEMPOTENCY_CONFLICT');
+    };
+    const existingPurchase = await findByKey();
+    assertSameRequest(existingPurchase);
     if (existingPurchase?.checkoutUrl) return this.purchaseResponse(existingPurchase);
 
-    const purchase = existingPurchase ?? {
+    let purchase: typeof billingPurchases.$inferSelect = existingPurchase ?? {
       id: randomUUID(),
       tenantId: input.tenantId,
       userId: input.userId,
@@ -151,7 +154,17 @@ export class BillingOperationsService {
       paidAt: null,
       updatedAt: new Date().toISOString(),
     };
-    if (!existingPurchase) await this.db.insert(billingPurchases).values(purchase);
+    if (!existingPurchase) {
+      const inserted = await this.db.insert(billingPurchases).values(purchase).onConflictDoNothing().returning({ id: billingPurchases.id });
+      if (!inserted[0]) {
+        // A concurrent request with the same key won the insert: continue with its purchase, not a new one.
+        const winner = await findByKey();
+        if (!winner) throw new Error('BILLING_PURCHASE_CONFLICT_UNRESOLVED');
+        assertSameRequest(winner);
+        if (winner.checkoutUrl) return this.purchaseResponse(winner);
+        purchase = winner;
+      }
+    }
 
     const billingAccount = await this.db.select().from(billingAccounts).where(eq(billingAccounts.tenantId, purchase.tenantId));
     const checkout = await this.provider.createCheckout({
@@ -501,7 +514,9 @@ export class BillingOperationsService {
     if (existing[0]) return;
     const now = new Date().toISOString();
     const providerCustomer = await this.provider.createCustomer({ tenantId, idempotencyKey: `customer:${tenantId}` });
-    await this.db.insert(billingAccounts).values({ id: randomUUID(), tenantId, providerCustomerId: providerCustomer.id, autoRechargeEnabled: 0, autoRechargeThresholdCents: 500, lastRechargeAmountCents: null, defaultPaymentMethodId: null, autoRechargeArmed: 1, createdAt: now, updatedAt: now });
+    await this.db.insert(billingAccounts).values({ id: randomUUID(), tenantId, providerCustomerId: providerCustomer.id, autoRechargeEnabled: 0, autoRechargeThresholdCents: 500, lastRechargeAmountCents: null, defaultPaymentMethodId: null, autoRechargeArmed: 1, createdAt: now, updatedAt: now }).onConflictDoNothing();
+    // A concurrent request may have created it; a conflict on anything else (e.g. a reused provider customer) must not pass silently.
+    if (!(await this.db.select({ id: billingAccounts.id }).from(billingAccounts).where(eq(billingAccounts.tenantId, tenantId)))[0]) throw new Error('BILLING_ACCOUNT_PROVISION_FAILED');
   }
 
   private async completePurchase(purchaseId: string, object: Record<string, unknown>, provider = 'mercadopago'): Promise<void> {

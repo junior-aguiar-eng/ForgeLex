@@ -140,6 +140,36 @@ describe('BillingOperationsService', () => {
     ]));
   });
 
+  it('duas requisições simultâneas com a mesma chave resolvem para a mesma compra e o mesmo checkout', async () => {
+    const tenantId = `tenant_concurrent_${randomUUID()}`;
+    const input = { tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` };
+
+    const [first, second] = await Promise.all([operations.createCheckout(input), operations.createCheckout(input)]);
+
+    expect(second.purchaseId).toBe(first.purchaseId);
+    expect(second.checkoutUrl).toBe(first.checkoutUrl);
+    const rows = await client.execute({ sql: 'SELECT id FROM billing_purchases WHERE tenant_id = ?', args: [tenantId] });
+    expect(rows.rows).toHaveLength(1);
+    expect(new Set(provider.checkouts.map((checkout) => checkout.idempotencyKey))).toEqual(new Set([first.purchaseId]));
+  });
+
+  it('duas requisições simultâneas com a mesma chave e parâmetros diferentes aceitam uma e recusam a outra com conflito', async () => {
+    const tenantId = `tenant_concurrent_conflict_${randomUUID()}`;
+    const key = `checkout_${tenantId}`;
+
+    const results = await Promise.allSettled([
+      operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: key }),
+      operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_50', idempotencyKey: key }),
+    ]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0]!.reason as Error).message).toBe('IDEMPOTENCY_CONFLICT');
+    const rows = await client.execute({ sql: 'SELECT id FROM billing_purchases WHERE tenant_id = ?', args: [tenantId] });
+    expect(rows.rows).toHaveLength(1);
+  });
+
   it('isola a chave de idempotência do provedor por compra quando dois tenants usam a mesma chave do cliente', async () => {
     const first = await operations.createCheckout({ tenantId: `tenant_key_a_${randomUUID()}`, userId: 'user_a', packageId: 'credits_25', idempotencyKey: 'checkout' });
     const second = await operations.createCheckout({ tenantId: `tenant_key_b_${randomUUID()}`, userId: 'user_b', packageId: 'credits_25', idempotencyKey: 'checkout' });
