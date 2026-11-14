@@ -246,7 +246,8 @@ Defeito: quando o usuário escreve a área em vez de escolher uma opção, a res
 
 - [x] Publicação de `b4c76e0` em 12/11. Orientação guiada, v3, casca, anexos e chips já estão ativos em produção. O salvamento recuperável segue desligado.
 - [x] Validar localmente a reserva de R$ 11,50 e o teto de R$ 20,00. Com R$ 8,50 contabilizados no dia, a próxima reserva cabe. Com R$ 8,51, retorna `COMMERCIAL_DAILY_LIMIT`.
-- [ ] Conferir no `mcp.call` o efeito do #132 no Claude e no ChatGPT, incluindo idempotência e piso de cinco decisões. Confirmar a lista nominal com cliente autenticado e a renovação do Claude pelo alias `/token`.
+- [x] Efeito do #132 no `mcp.call` (amostra de 14/11/2026, 02:37 a 02:42 UTC): a primeira pesquisa do Claude (2 chamadas) e a do ChatGPT vieram com `idempotency=argument` e `ok=true`. Piso de decisões: pesquisas devolveram 8 e 10 decisões. O ChatGPT abriu as autoridades (`research.get_authority`, 3 chamadas) e o Claude não, o que explica a diferença de verificação no texto da conversa; o painel mostra “Conferida na fonte oficial” nos dois.
+- [ ] Confirmar a lista nominal das ferramentas com cliente autenticado e a renovação do Claude pelo alias `/token`.
 - [ ] Conferir a reserva e a mensagem de saldo insuficiente numa jornada autenticada autorizada.
 
 **Evidência.** [Registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026). **Reversão da publicação.** Tráfego para a revisão anterior, mediante autorização de Boni.
