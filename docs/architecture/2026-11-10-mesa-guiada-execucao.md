@@ -1084,6 +1084,18 @@ As sessões de validação foram encerradas globalmente, a identidade sintética
 
 Se necessária, a reversão usa `gcloud run services update-traffic` para as revisões `forgelex-api-prod-b4c76e0` e `forgelex-closure-hml-private-b4c76e0`, ambas com 100%, no projeto `project-bbbe1209-c295-4720-867` e região `southamerica-east1`. Não houve migração nesta publicação.
 
+## Aceite A18 em 14/11/2026
+
+Boni aceitou a A18 (homologação funcional no ambiente isolado) em 14/11/2026, sobre a evidência já registrada neste documento:
+
+- **Homologação isolada (12/11), IA real:** dez cenários aprovados, incluindo orientação `mesa-v3` em desktop e celular, “Não sei”, recarga e duas abas, salvamento com perda de resposta (uma versão por comando), pesquisa salva sem nova busca, e criação, revisão e edição delimitada com IA real. Custo confirmado de US$ 0,192308 de um teto de US$ 1, sem chamada incerta.
+- **Controles do resumo (13/11):** dois defeitos encontrados (correção do tribunal e recusa da peça confirmada), corrigidos na PR #146 e validados em HML e em produção, cinco de cinco cenários nos dois ambientes.
+- **Local:** suítes de orientação, revisão, pesquisa e recuperação aprovadas; CI da `main` verde.
+
+**Ressalvas que permanecem (não fazem parte da A18):** a avaliação jurídica das minutas continua com Boni; o aceite visual é a A19, em V3; as verificações do MCP com cliente autenticado (lista nominal das ferramentas, chave de idempotência no ChatGPT, piso de resultados) seguem abertas; o salvamento recuperável permanece desligado em produção e depende da migração `0041` e de decisão de Boni.
+
+Efeito no plano: a dependência de V1 em M2 está atendida.
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.

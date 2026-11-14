@@ -36,7 +36,7 @@
 | Mesa em produção       | Casca, anexos PDF/TXT/MD e chips de matéria ligados no build. Orientação guiada e `mesa-v3` ligadas no serviço, com diretório do catálogo configurado. |
 | Salvamento recuperável | Flag desligada nas revisões publicadas. A aplicação da `0041` está documentada no banco isolado de HML. M2 permanece parcial.                          |
 | Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                    |
-| Verificação            | CI de `01b46c5` aprovada. M2 validado em HML e controles do resumo reconferidos em produção. Aceite A18 e verificações residuais do MCP pendentes.     |
+| Verificação            | CI de `01b46c5` aprovada. M2 validado em HML e controles do resumo reconferidos em produção. Aceite A18 dado em 14/11/2026; verificações residuais do MCP pendentes. |
 | Visual                 | Tema clássico vigente. V0 adiada nesta reconciliação.                                                                                                  |
 | Domínio em uso         | `nexojuris.ia.br` em produção. `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                              |
 
@@ -261,7 +261,7 @@ Defeito: quando o usuário escreve a área em vez de escolher uma opção, a res
       revisão sem nova versão, edição delimitada, pesquisa salva, salvamento com perda de resposta simulada.
 - [x] Registrar o resultado funcional e os cenários ainda pendentes. O aceite visual (A19) passa a ser feito em V3, no tema novo.
 
-**Situação.** Parcial. Os serviços `forgelex-api-hml` e `forgelex-closure-hml-private` compartilham a configuração de banco da produção. A jornada com escrita deve usar o banco isolado.
+**Situação.** A18 aceita por Boni em 14/11/2026 ([registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#aceite-a18-em-14112026)). Ressalvas fora da A18: avaliação jurídica, aceite visual (A19, em V3), verificações do MCP e salvamento recuperável em produção. Os serviços `forgelex-api-hml` e `forgelex-closure-hml-private` compartilham a configuração de banco da produção; a jornada com escrita deve usar o banco isolado.
 
 **Aceite.** A18 registrado em homologação. A ativação do salvamento recuperável em produção permanece prevista para depois de V3 e depende de decisão de Boni e da confirmação da migração.
 
@@ -811,7 +811,7 @@ antes dos escritores; checkpoints antigos continuam no protocolo original.
 | A15 | Manifesto corresponde às ferramentas reais                                                          | Atendido localmente                     |
 | A16 | Jornada completa por teclado e em celular                                                           | Atendido localmente; reconferir em V6   |
 | A17 | Piloto Penal e regressão Cível na mesma revisão                                                     | Técnico atendido; jurídico em M3        |
-| A18 | Homologação funcional no ambiente isolado com registro próprio                                      | Parcial (M2)                            |
+| A18 | Homologação funcional no ambiente isolado com registro próprio                                      | Atendido (aceite de Boni, 14/11/2026)   |
 | A19 | Boni valida a jornada visual em desktop e celular                                                   | Pendente (V3)                           |
 | A20 | Uma só Mesa em produção, sem rota órfã nem código morto                                             | Pendente (U1, U7)                       |
 | A21 | Mesa mostra só a peça e a matéria em uso, sem listar o catálogo; conteúdo e IDs ocultos             | Pendente (U3)                           |
