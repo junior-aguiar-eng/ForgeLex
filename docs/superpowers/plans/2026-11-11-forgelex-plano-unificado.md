@@ -262,7 +262,7 @@ Defeito: quando o usuário escreve a área em vez de escolher uma opção, a res
 - [x] Ligar `FORGELEX_DESK_GUIDANCE_ENABLED` e `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` no serviço ligado ao banco isolado, com autorização de Boni.
 - [x] Percorrer: pedido completo, “Me ajude a começar”, “Não sei”, correção pelo resumo, duas abas, recarga, criação,
       revisão sem nova versão, edição delimitada, pesquisa salva, salvamento com perda de resposta simulada.
-- [x] Migração `0041` aplicada no banco de produção em 14/11/2026 (backup `1794627324194`; flag de salvamento recuperável ainda desligada, a ligar em publicação própria).
+- [x] Migração `0041` aplicada no banco de produção em 14/11/2026 (backup `1794627324194`). Flag `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` ligada em produção no mesmo dia, em revisão própria (`forgelex-api-prod-draftsave-cd94c2c`); falta o ensaio autenticado do passo 5 em produção.
 - [x] Registrar o resultado funcional e os cenários ainda pendentes. O aceite visual (A19) passa a ser feito em V3, no tema novo.
 
 **Situação.** A18 aceita por Boni em 14/11/2026 ([registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#aceite-a18-em-14112026)). Ressalvas fora da A18: avaliação jurídica, aceite visual (A19, em V3), verificações do MCP e salvamento recuperável em produção. Os serviços `forgelex-api-hml` e `forgelex-closure-hml-private` compartilham a configuração de banco da produção; a jornada com escrita deve usar o banco isolado.
