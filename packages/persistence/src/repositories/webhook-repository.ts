@@ -56,8 +56,30 @@ function endpointFromRow(row: Record<string, unknown>): WebhookEndpointRecord {
   };
 }
 
+/** Every admission and scheduling bound in one place, so SQL and tests agree on the same numbers. */
+export interface WebhookLimits {
+  /** Queued deliveries (PENDING, RETRYING, DELIVERING) across all tenants; beyond it an event is refused. */
+  globalQueued: number;
+  /** Queued deliveries of one tenant; beyond it an event is refused. */
+  tenantQueued: number;
+  /** Queued deliveries of one endpoint; beyond it only that endpoint's delivery is recorded as FAILED, replayable. */
+  endpointQueued: number;
+  /** Deliveries in flight across all replicas. A tenant never has more than one. */
+  concurrentDeliveries: number;
+  leaseMs: number;
+  maxAttempts: number;
+}
+export const WEBHOOK_LIMITS: WebhookLimits = {
+  globalQueued: 1000, tenantQueued: 250, endpointQueued: 100, concurrentDeliveries: 4, leaseMs: 30_000, maxAttempts: 8,
+};
+export interface EnqueueResult { id: string; queued: number; overflowed: number }
+
 export class WebhookRepository {
-  public constructor(private readonly client: Client) {}
+  private readonly limits: WebhookLimits;
+
+  public constructor(private readonly client: Client, options: { limits?: Partial<WebhookLimits> } = {}) {
+    this.limits = { ...WEBHOOK_LIMITS, ...options.limits };
+  }
 
   public async createEndpoint(input: Omit<WebhookEndpointRecord, 'createdAt' | 'updatedAt' | 'status'>): Promise<WebhookEndpointRecord> {
     const now = new Date().toISOString();
@@ -79,63 +101,74 @@ export class WebhookRepository {
     return result.rows[0] ? endpointFromRow(result.rows[0] as Record<string, unknown>) : undefined;
   }
 
+  /** Revoking is final: it also cancels every queued delivery of the endpoint, including those held while suspended. */
   public async revokeEndpoint(tenantId: string, id: string): Promise<boolean> {
-    return this.retireEndpoint(tenantId, id, 'REVOKED');
-  }
-
-  public async suspendEndpoint(tenantId: string, id: string): Promise<void> {
-    await this.retireEndpoint(tenantId, id, 'SUSPENDED');
-  }
-
-  private async retireEndpoint(tenantId: string, id: string, status: 'REVOKED' | 'SUSPENDED'): Promise<boolean> {
     const now = new Date().toISOString();
+    return this.withAdmission(async (transaction) => {
+      const result = await transaction.execute({ sql: "UPDATE webhook_endpoints SET status = 'REVOKED', revoked_at = ?, updated_at = ? WHERE tenant_id = ? AND id = ? AND status IN ('ACTIVE', 'SUSPENDED')", args: [now, now, tenantId, id] });
+      if (result.rowsAffected === 0) return false;
+      await transaction.execute({ sql: `UPDATE webhook_deliveries SET status = 'FAILED', claim_token = NULL, last_error = 'WEBHOOK_ENDPOINT_INACTIVE', updated_at = ?
+        WHERE tenant_id = ? AND endpoint_id = ? AND status IN ('PENDING', 'RETRYING', 'DELIVERING')`, args: [now, tenantId, id] });
+      return true;
+    });
+  }
+
+  /** Suspending is recoverable: queued deliveries are held, not cancelled, and resume on reactivateEndpoint. */
+  public async suspendEndpoint(tenantId: string, id: string): Promise<void> {
+    const now = new Date().toISOString();
+    await this.withAdmission((transaction) => transaction.execute({ sql: "UPDATE webhook_endpoints SET status = 'SUSPENDED', last_error = 'WEBHOOK_URL_BLOCKED', updated_at = ? WHERE tenant_id = ? AND id = ? AND status = 'ACTIVE'", args: [now, tenantId, id] }));
+  }
+
+  /** Puts a suspended endpoint back in service and makes its held deliveries due immediately. */
+  public async reactivateEndpoint(tenantId: string, id: string): Promise<boolean> {
+    const now = new Date().toISOString();
+    return this.withAdmission(async (transaction) => {
+      const result = await transaction.execute({ sql: "UPDATE webhook_endpoints SET status = 'ACTIVE', last_error = NULL, updated_at = ? WHERE tenant_id = ? AND id = ? AND status = 'SUSPENDED'", args: [now, tenantId, id] });
+      if (result.rowsAffected === 0) return false;
+      await transaction.execute({ sql: "UPDATE webhook_deliveries SET next_attempt_at = ?, updated_at = ? WHERE tenant_id = ? AND endpoint_id = ? AND status IN ('PENDING', 'RETRYING') AND next_attempt_at > ?", args: [now, now, tenantId, id, now] });
+      return true;
+    });
+  }
+
+  /** One transaction serialized across replicas and dialects by the shared admission row. */
+  private async withAdmission<T>(work: (transaction: Pick<Client, 'execute'>) => Promise<T>): Promise<T> {
     const transaction = await this.client.transaction();
     try {
       await transaction.execute('UPDATE webhook_admission SET revision = revision WHERE id = 1');
-      const result = await transaction.execute({ sql: status === 'REVOKED'
-        ? "UPDATE webhook_endpoints SET status = 'REVOKED', revoked_at = ?, updated_at = ? WHERE tenant_id = ? AND id = ? AND status IN ('ACTIVE', 'SUSPENDED')"
-        : "UPDATE webhook_endpoints SET status = 'SUSPENDED', last_error = 'WEBHOOK_URL_BLOCKED', updated_at = ? WHERE tenant_id = ? AND id = ? AND status = 'ACTIVE'",
-        args: status === 'REVOKED' ? [now, now, tenantId, id] : [now, tenantId, id] });
-      await this.cancelInactiveDeliveries(transaction, now);
+      const result = await work(transaction);
       await transaction.commit();
-      return result.rowsAffected > 0;
+      return result;
     } catch (error) { await transaction.rollback(); throw error; }
   }
 
-  private async cancelInactiveDeliveries(client: Pick<Client, 'execute'>, now: string): Promise<void> {
-    await client.execute({ sql: `UPDATE webhook_deliveries SET status = 'FAILED', claim_token = NULL,
-      last_error = 'WEBHOOK_ENDPOINT_INACTIVE', updated_at = ?
-      WHERE status IN ('PENDING', 'RETRYING', 'DELIVERING') AND NOT EXISTS (
-        SELECT 1 FROM webhook_endpoints e WHERE e.id = webhook_deliveries.endpoint_id
-        AND e.tenant_id = webhook_deliveries.tenant_id AND e.status = 'ACTIVE')`, args: [now] });
-  }
-
-  public async enqueueEvent(input: { id?: string; tenantId: string; eventType: string; payloadJson: string; endpointIds: string[] }): Promise<string> {
+  public async enqueueEvent(input: { id?: string; tenantId: string; eventType: string; payloadJson: string; endpointIds: string[] }): Promise<EnqueueResult> {
     const id = input.id ?? randomUUID();
-    if (!input.endpointIds.length) return id;
+    const none: EnqueueResult = { id, queued: 0, overflowed: 0 };
+    if (!input.endpointIds.length) return none;
     const now = new Date().toISOString();
-    const transaction = await this.client.transaction();
-    try {
-      await transaction.execute('UPDATE webhook_admission SET revision = revision WHERE id = 1');
-      await this.cancelInactiveDeliveries(transaction, now);
-      const activeEndpoints: string[] = [];
+    return this.withAdmission(async (transaction) => {
+      const active = ['PENDING', 'RETRYING', 'DELIVERING'];
+      const marks = active.map(() => '?').join(', ');
+      const targets: Array<{ endpointId: string; full: boolean }> = [];
       for (const endpointId of new Set(input.endpointIds)) {
-        const active = await transaction.execute({ sql: "SELECT id FROM webhook_endpoints WHERE id = ? AND tenant_id = ? AND status = 'ACTIVE'", args: [endpointId, input.tenantId] });
-        if (active.rows.length) activeEndpoints.push(endpointId);
+        const found = await transaction.execute({ sql: "SELECT id FROM webhook_endpoints WHERE id = ? AND tenant_id = ? AND status = 'ACTIVE'", args: [endpointId, input.tenantId] });
+        if (!found.rows.length) continue;
+        const queued = await transaction.execute({ sql: `SELECT COUNT(*) total FROM webhook_deliveries WHERE endpoint_id = ? AND tenant_id = ? AND status IN (${marks})`, args: [endpointId, input.tenantId, ...active] });
+        targets.push({ endpointId, full: Number(queued.rows[0]?.total) >= this.limits.endpointQueued });
       }
-      if (!activeEndpoints.length) { await transaction.commit(); return id; }
-      const queued = await transaction.execute({ sql: "SELECT COUNT(*) total, SUM(CASE WHEN tenant_id = ? THEN 1 ELSE 0 END) tenant_total FROM webhook_deliveries WHERE status IN ('PENDING', 'RETRYING', 'DELIVERING')", args: [input.tenantId] });
-      if (Number(queued.rows[0]?.total) + activeEndpoints.length > 1000 || Number(queued.rows[0]?.tenant_total ?? 0) + activeEndpoints.length > 250) throw new Error('WEBHOOK_QUEUE_FULL');
+      if (!targets.length) return none;
+      const admitted = targets.filter((target) => !target.full).length;
+      const queued = await transaction.execute({ sql: `SELECT COUNT(*) total, SUM(CASE WHEN tenant_id = ? THEN 1 ELSE 0 END) tenant_total FROM webhook_deliveries WHERE status IN (${marks})`, args: [input.tenantId, ...active] });
+      if (Number(queued.rows[0]?.total) + admitted > this.limits.globalQueued || Number(queued.rows[0]?.tenant_total ?? 0) + admitted > this.limits.tenantQueued) throw new Error('WEBHOOK_QUEUE_FULL');
       await transaction.execute({ sql: 'INSERT INTO webhook_events (id, tenant_id, event_type, payload_json, occurred_at, created_at) VALUES (?, ?, ?, ?, ?, ?)', args: [id, input.tenantId, input.eventType, input.payloadJson, now, now] });
-      for (const endpointId of activeEndpoints) {
-        await transaction.execute({ sql: `INSERT INTO webhook_deliveries (id, event_id, endpoint_id, tenant_id, status, attempt_count, max_attempts, next_attempt_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'PENDING', 0, 8, ?, ?, ?)`, args: [randomUUID(), id, endpointId, input.tenantId, now, now, now] });
+      for (const { endpointId, full } of targets) {
+        await transaction.execute({
+          sql: `INSERT INTO webhook_deliveries (id, event_id, endpoint_id, tenant_id, status, attempt_count, max_attempts, next_attempt_at, last_error, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`,
+          args: [randomUUID(), id, endpointId, input.tenantId, full ? 'FAILED' : 'PENDING', this.limits.maxAttempts, now, full ? 'WEBHOOK_QUEUE_FULL' : null, now, now],
+        });
       }
-      await transaction.commit();
-      return id;
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
+      return { id, queued: admitted, overflowed: targets.length - admitted };
+    });
   }
 
   public async listDeliveries(tenantId: string, endpointId?: string): Promise<WebhookDeliveryRecord[]> {
@@ -147,23 +180,21 @@ export class WebhookRepository {
 
   public async requeue(tenantId: string, deliveryId: string): Promise<boolean> {
     const now = new Date().toISOString();
-    const transaction = await this.client.transaction();
-    try {
-      await transaction.execute('UPDATE webhook_admission SET revision = revision WHERE id = 1');
-      await this.cancelInactiveDeliveries(transaction, now);
-      const candidate = await transaction.execute({ sql: "SELECT d.status FROM webhook_deliveries d JOIN webhook_endpoints e ON e.id = d.endpoint_id AND e.tenant_id = d.tenant_id WHERE d.tenant_id = ? AND d.id = ? AND d.status IN ('FAILED', 'RETRYING') AND e.status = 'ACTIVE'", args: [tenantId, deliveryId] });
-      if (!candidate.rows.length) { await transaction.commit(); return false; }
-      if (candidate.rows[0]!.status === 'FAILED') {
-        const queued = await transaction.execute({ sql: "SELECT COUNT(*) total, SUM(CASE WHEN tenant_id = ? THEN 1 ELSE 0 END) tenant_total FROM webhook_deliveries WHERE status IN ('PENDING', 'RETRYING', 'DELIVERING')", args: [tenantId] });
-        if (Number(queued.rows[0]?.total) >= 1000 || Number(queued.rows[0]?.tenant_total ?? 0) >= 250) throw new Error('WEBHOOK_QUEUE_FULL');
+    return this.withAdmission(async (transaction) => {
+      const candidate = await transaction.execute({ sql: "SELECT d.status, d.endpoint_id FROM webhook_deliveries d JOIN webhook_endpoints e ON e.id = d.endpoint_id AND e.tenant_id = d.tenant_id WHERE d.tenant_id = ? AND d.id = ? AND d.status IN ('FAILED', 'RETRYING') AND e.status = 'ACTIVE'", args: [tenantId, deliveryId] });
+      const row = candidate.rows[0] as Record<string, unknown> | undefined;
+      if (!row) return false;
+      if (row.status === 'FAILED') {
+        const queued = await transaction.execute({ sql: "SELECT COUNT(*) total, SUM(CASE WHEN tenant_id = ? THEN 1 ELSE 0 END) tenant_total, SUM(CASE WHEN endpoint_id = ? THEN 1 ELSE 0 END) endpoint_total FROM webhook_deliveries WHERE status IN ('PENDING', 'RETRYING', 'DELIVERING')", args: [tenantId, String(row.endpoint_id)] });
+        const counts = queued.rows[0];
+        if (Number(counts?.total) >= this.limits.globalQueued || Number(counts?.tenant_total ?? 0) >= this.limits.tenantQueued || Number(counts?.endpoint_total ?? 0) >= this.limits.endpointQueued) throw new Error('WEBHOOK_QUEUE_FULL');
       }
       const result = await transaction.execute({ sql: "UPDATE webhook_deliveries SET status = 'RETRYING', next_attempt_at = ?, last_error = NULL, updated_at = ? WHERE tenant_id = ? AND id = ? AND status IN ('FAILED', 'RETRYING')", args: [now, now, tenantId, deliveryId] });
-      await transaction.commit();
       return result.rowsAffected > 0;
-    } catch (error) { await transaction.rollback(); throw error; }
+    });
   }
 
-  public async claimDueDelivery(now = new Date().toISOString(), leaseMs = 30_000): Promise<WebhookDispatchRecord | undefined> {
+  public async claimDueDelivery(now = new Date().toISOString(), leaseMs = this.limits.leaseMs): Promise<WebhookDispatchRecord | undefined> {
     const leaseUntil = new Date(Date.parse(now) + leaseMs).toISOString();
     let transaction;
     try { transaction = await this.client.transaction(); } catch (error) {
@@ -174,19 +205,18 @@ export class WebhookRepository {
     try {
       // Shared admission row serializes candidate selection across replicas and dialects.
       await transaction.execute('UPDATE webhook_admission SET revision = revision WHERE id = 1');
-      await this.cancelInactiveDeliveries(transaction, now);
       const claimed = await transaction.execute({
         sql: `UPDATE webhook_deliveries SET status = 'DELIVERING', attempt_count = attempt_count + 1,
               last_attempt_at = ?, next_attempt_at = ?, updated_at = ?, claim_token = ?
               WHERE id = (
                 SELECT d.id FROM webhook_deliveries d JOIN webhook_endpoints e ON e.id = d.endpoint_id
                 WHERE d.status IN ('PENDING', 'RETRYING', 'DELIVERING') AND d.next_attempt_at <= ? AND e.status = 'ACTIVE'
-                  AND (SELECT COUNT(*) FROM webhook_deliveries a WHERE a.status = 'DELIVERING' AND a.next_attempt_at > ?) < 4
+                  AND (SELECT COUNT(*) FROM webhook_deliveries a WHERE a.status = 'DELIVERING' AND a.next_attempt_at > ?) < ?
                   AND NOT EXISTS (SELECT 1 FROM webhook_deliveries a WHERE a.tenant_id = d.tenant_id AND a.status = 'DELIVERING' AND a.next_attempt_at > ?)
                 ORDER BY COALESCE((SELECT MAX(a.last_attempt_at) FROM webhook_deliveries a WHERE a.tenant_id = d.tenant_id), '') ASC,
                          d.next_attempt_at ASC, d.created_at ASC, d.id ASC LIMIT 1
               ) RETURNING id`,
-        args: [now, leaseUntil, now, randomUUID(), now, now, now],
+        args: [now, leaseUntil, now, randomUUID(), now, now, this.limits.concurrentDeliveries, now],
       });
       const id = claimed.rows[0] ? String((claimed.rows[0] as Record<string, unknown>).id) : undefined;
       dispatch = id ? await this.findDispatch(id, transaction) : undefined;

@@ -1,5 +1,5 @@
-import { lookup } from 'node:dns/promises';
-import { BlockList, isIP } from 'node:net';
+import { Resolver } from 'node:dns/promises';
+import { BlockList, isIP, type LookupFunction } from 'node:net';
 import { request } from 'node:https';
 
 const forbidden = new BlockList();
@@ -58,42 +58,94 @@ export function validateWebhookUrl(raw: string): URL {
     throw new WebhookUrlBlocked();
   return url;
 }
-interface Target {
+export interface Target {
   url: URL;
   address: string;
   family: number;
 }
-type Transport = (
+export type Transport = (
   target: Target,
   headers: Record<string, string>,
   body: string,
   signal: AbortSignal,
 ) => Promise<number>;
 
-// https.request never follows redirects. The lookup closure is the only address source
-// used by the socket; the original hostname remains in Host, SNI and certificate checks.
-const pinnedTransport: Transport = (target, headers, body, signal) =>
-  new Promise((resolve, reject) => {
-    const req = request(
-      target.url,
-      {
-        method: 'POST',
-        headers,
-        signal,
-        agent: false,
-        lookup: (_hostname, _options, callback) => callback(null, target.address, target.family),
-        maxHeaderSize: 16_384,
-        family: target.family,
-      },
-      (response) => {
-        const status = response.statusCode ?? 0;
-        response.destroy(); // Never buffer, decode or persist the remote body.
-        resolve(status);
-      },
-    );
-    req.on('error', reject);
-    req.end(body);
-  });
+/**
+ * The only address source used by the socket. It answers both shapes Node may ask for: the single-address form, and the
+ * list form used when `all` is set (autoSelectFamily). Relying on the `family` option alone to avoid the list form is
+ * fragile: without it the single-address answer fails with ERR_INVALID_IP_ADDRESS.
+ */
+export function pinnedLookup(address: string, family: number): LookupFunction {
+  return (_hostname, options, callback) => {
+    if (options.all) callback(null, [{ address, family }]);
+    else callback(null, address, family);
+  };
+}
+
+// https.request never follows redirects. The pinned lookup is the only address source used by the socket; the original
+// hostname remains in Host, SNI and certificate checks. `tls.ca` exists so tests can trust a throwaway certificate.
+export function createPinnedTransport(tls: { ca?: string | Buffer } = {}): Transport {
+  return (target, headers, body, signal) =>
+    new Promise((resolve, reject) => {
+      const req = request(
+        target.url,
+        {
+          method: 'POST',
+          headers,
+          signal,
+          agent: false,
+          lookup: pinnedLookup(target.address, target.family),
+          maxHeaderSize: 16_384,
+          family: target.family,
+          ...(tls.ca ? { ca: tls.ca } : {}),
+        },
+        (response) => {
+          const status = response.statusCode ?? 0;
+          response.destroy(); // Never buffer, decode or persist the remote body.
+          resolve(status);
+        },
+      );
+      req.on('error', reject);
+      req.end(body);
+    });
+}
+const pinnedTransport = createPinnedTransport();
+
+// DNS goes through c-ares with explicit timeout and tries, not getaddrinfo: a getaddrinfo lookup cannot be cancelled and
+// keeps one of libuv's four threads busy after our abort, which would starve fs and crypto in the same process.
+export interface DnsResolver {
+  resolve4(hostname: string): Promise<string[]>;
+  resolve6(hostname: string): Promise<string[]>;
+}
+const NO_RECORDS = new Set(['ENODATA', 'ENOTFOUND']);
+
+export async function resolveHostAddresses(
+  resolver: DnsResolver,
+  hostname: string,
+): Promise<Array<{ address: string; family: number }>> {
+  const [v4, v6] = await Promise.allSettled([resolver.resolve4(hostname), resolver.resolve6(hostname)]);
+  const answers: Array<{ address: string; family: number }> = [];
+  const failures: unknown[] = [];
+  for (const [result, family] of [
+    [v6, 6],
+    [v4, 4],
+  ] as const) {
+    if (result.status === 'fulfilled') answers.push(...result.value.map((address) => ({ address, family })));
+    else failures.push(result.reason);
+  }
+  // "No records" for one family is normal; any other failure must not be hidden behind the other family's answer.
+  const real = failures.find((error) => !NO_RECORDS.has(String((error as { code?: string })?.code)));
+  if (real) throw real;
+  if (!answers.length) throw failures[0] ?? Object.assign(new Error('ENODATA'), { code: 'ENODATA' });
+  return answers;
+}
+let sharedResolver: Resolver | undefined;
+const defaultResolve = (hostname: string) =>
+  resolveHostAddresses((sharedResolver ??= new Resolver({ timeout: 3_000, tries: 2 })), hostname);
+
+// Only errors from establishing the connection may move on to the next address. Anything later (reset, TLS failure,
+// abort) may happen after the request was sent, and resending it elsewhere would duplicate the delivery.
+const CONNECT_ERRORS = new Set(['ECONNREFUSED', 'ENETUNREACH', 'EHOSTUNREACH', 'EADDRNOTAVAIL', 'ETIMEDOUT']);
 
 export interface WebhookHttpClientOptions {
   resolve?: (hostname: string) => Promise<Array<{ address: string; family: number }>>;
@@ -101,10 +153,20 @@ export interface WebhookHttpClientOptions {
 }
 export interface WebhookPoster {
   post(url: string, headers: Record<string, string>, body: string, signal: AbortSignal): Promise<number>;
+  /** Resolves the destination and verifies it is public, without sending anything. Throws WebhookUrlBlocked otherwise. */
+  check?(url: string, signal: AbortSignal): Promise<void>;
 }
 export class WebhookHttpClient implements WebhookPoster {
   public constructor(private readonly options: WebhookHttpClientOptions = {}) {}
-  public async post(raw: string, headers: Record<string, string>, body: string, signal: AbortSignal): Promise<number> {
+  public async check(raw: string, signal: AbortSignal): Promise<void> {
+    await this.validatedTargets(raw, signal);
+  }
+
+  /** Validates the URL, resolves it with the abort signal bounding the wait, and refuses unless every address is public. */
+  private async validatedTargets(
+    raw: string,
+    signal: AbortSignal,
+  ): Promise<{ url: URL; addresses: Array<{ address: string; family: number }> }> {
     const url = validateWebhookUrl(raw);
     const host = url.hostname.replace(/^\[|\]$/g, '');
     if (signal.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
@@ -115,7 +177,7 @@ export class WebhookHttpClient implements WebhookPoster {
     });
     const resolving = isIP(host)
       ? [{ address: host, family: isIP(host) }]
-      : (this.options.resolve ?? ((hostname) => lookup(hostname, { all: true })))(host);
+      : (this.options.resolve ?? defaultResolve)(host);
     let addresses: Array<{ address: string; family: number }>;
     try {
       addresses = await Promise.race([resolving, aborted]);
@@ -125,6 +187,21 @@ export class WebhookHttpClient implements WebhookPoster {
     if (!addresses.length || addresses.some(({ address }) => !isPublicWebhookAddress(address)))
       throw new WebhookUrlBlocked();
     if (signal.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
-    return (this.options.transport ?? pinnedTransport)({ url, ...addresses[0]! }, headers, body, signal);
+    return { url, addresses };
+  }
+
+  public async post(raw: string, headers: Record<string, string>, body: string, signal: AbortSignal): Promise<number> {
+    const { url, addresses } = await this.validatedTargets(raw, signal);
+    const transport = this.options.transport ?? pinnedTransport;
+    let lastError: unknown;
+    for (const address of addresses) {
+      try {
+        return await transport({ url, ...address }, headers, body, signal);
+      } catch (error) {
+        if (!CONNECT_ERRORS.has(String((error as { code?: string })?.code)) || signal.aborted) throw error;
+        lastError = error;
+      }
+    }
+    throw lastError;
   }
 }
