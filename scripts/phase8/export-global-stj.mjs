@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
+import { createReadStream, mkdtempSync, chmodSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
 import { spawn } from 'node:child_process';
 
 export const GLOBAL_STJ_TABLES = Object.freeze([
@@ -31,12 +32,96 @@ export function assertRemoteRestore(sourceUrl, targetUrl, confirmation) {
   if (confirmation !== 'confirmed') throw new Error('REMOTE_RESTORE_NOT_CONFIRMED');
   if (new URL(sourceUrl).hostname === new URL(targetUrl).hostname) throw new Error('RESTORE_TARGET_MUST_DIFFER');
 }
-function run(command, args) {
-  return new Promise((ok, reject) => {
-    const child = spawn(command, args, { stdio: 'inherit', env: process.env });
-    child.once('error', reject);
-    child.once('exit', (code) => (code === 0 ? ok() : reject(new Error(`${command.toUpperCase()}_FAILED:${code}`))));
-  });
+// libpq passfiles cannot encode record separators. Reject them before creating files.
+function connectionCredentials(value) {
+  try {
+    if (typeof value !== 'string' || /[\r\n\0]/.test(value)) throw new Error();
+    const url = new URL(value);
+    if (
+      !['postgres:', 'postgresql:'].includes(url.protocol) ||
+      url.hash ||
+      !/^[a-zA-Z0-9._:[\]\-]+$/.test(url.hostname)
+    )
+      throw new Error();
+    const user = decodeURIComponent(url.username);
+    const database = decodeURIComponent(url.pathname.slice(1));
+    const password = decodeURIComponent(url.password);
+    if (!user || !database || [user, database, password].some((field) => /[\r\n\0]/.test(field))) throw new Error();
+    // No service/passfile/password overrides: they could bypass the private passfile.
+    const parameters = {
+      sslmode: /^(disable|allow|prefer|require|verify-ca|verify-full)$/,
+      host: /^[^\r\n\0]+$/,
+      port: /^\d+$/,
+      connect_timeout: /^\d+$/,
+      sslrootcert: /^[^\r\n\0]+$/,
+      sslcert: /^[^\r\n\0]+$/,
+      sslkey: /^[^\r\n\0]+$/,
+    };
+    for (const [key, parameter] of url.searchParams) {
+      if (
+        !Object.hasOwn(parameters, key) ||
+        !parameters[key].test(parameter) ||
+        url.searchParams.getAll(key).length !== 1
+      )
+        throw new Error();
+    }
+    const port = url.searchParams.get('port') ?? (url.port || '5432');
+    const escape = (field) => field.replace(/\\/g, '\\\\').replace(/:/g, '\\:');
+    // Each private file serves exactly one child/connection; host wildcard also supports Unix sockets.
+    const passfile = `*:${escape(port)}:${escape(database)}:${escape(user)}:${escape(password)}\n`;
+    url.password = '';
+    return { url: url.toString(), passfile };
+  } catch {
+    throw new Error('DATABASE_CONNECTION_INVALID');
+  }
+}
+
+async function run(command, args, databaseUrl) {
+  if (process.platform === 'win32') throw new Error('POSTGRES_EXPORT_REQUIRES_POSIX');
+  const credentials = connectionCredentials(databaseUrl);
+  const directory = mkdtempSync(join(tmpdir(), 'forgelex-pgpass-'));
+  let child;
+  let interrupted;
+  const cleanup = () => rmSync(directory, { recursive: true, force: true });
+  const interrupt = (signal) => {
+    interrupted = signal;
+    // Remove credentials immediately, including when a child ignores termination.
+    cleanup();
+    child?.kill('SIGKILL');
+  };
+  const onInt = () => interrupt('SIGINT');
+  const onTerm = () => interrupt('SIGTERM');
+  process.once('SIGINT', onInt);
+  process.once('SIGTERM', onTerm);
+  try {
+    chmodSync(directory, 0o700);
+    const passfile = join(directory, 'pgpass');
+    writeFileSync(passfile, credentials.passfile, { mode: 0o600, flag: 'wx' });
+    // Do not pass inherited libpq overrides or credential-bearing application URLs.
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter(
+        ([key]) =>
+          !key.startsWith('PG') &&
+          !['FORGELEX_PHASE8_SOURCE_DATABASE_URL', 'FORGELEX_PHASE8_TARGET_DATABASE_URL'].includes(key),
+      ),
+    );
+    env.PGPASSFILE = passfile;
+    await new Promise((ok, reject) => {
+      child = spawn(command, [`--dbname=${credentials.url}`, '--no-password', ...args], { stdio: 'ignore', env });
+      child.once('error', () => reject(new Error(`${command.toUpperCase()}_START_FAILED`)));
+      child.once('close', (code) => {
+        if (interrupted) {
+          process.exitCode = interrupted === 'SIGINT' ? 130 : 143;
+          reject(new Error('POSTGRES_EXPORT_INTERRUPTED'));
+        } else if (code === 0) ok();
+        else reject(new Error(`${command.toUpperCase()}_FAILED:${code}`));
+      });
+    });
+  } finally {
+    cleanup();
+    process.removeListener('SIGINT', onInt);
+    process.removeListener('SIGTERM', onTerm);
+  }
 }
 async function sha256(file) {
   const hash = createHash('sha256');
@@ -50,15 +135,19 @@ async function main() {
   const sourceUrl = process.env.FORGELEX_PHASE8_SOURCE_DATABASE_URL;
   if (!sourceUrl) throw new Error('FORGELEX_PHASE8_SOURCE_DATABASE_URL_REQUIRED');
   if (action === 'export') {
-    await run('pg_dump', [...buildDumpArgs(file), sourceUrl]);
+    await run('pg_dump', buildDumpArgs(file), sourceUrl);
     console.log(JSON.stringify({ file, sha256: await sha256(file), tables: GLOBAL_STJ_TABLES }));
     return;
   }
   if (action === 'restore') {
     const targetUrl = process.env.FORGELEX_PHASE8_TARGET_DATABASE_URL;
     if (!targetUrl) throw new Error('FORGELEX_PHASE8_TARGET_DATABASE_URL_REQUIRED');
-    assertRemoteRestore(sourceUrl, targetUrl, process.env.FORGELEX_PHASE8_ALLOW_REMOTE_RESTORE);
-    await run('pg_restore', [...buildRestoreArgs(file), `--dbname=${targetUrl}`]);
+    assertRemoteRestore(
+      connectionCredentials(sourceUrl).url,
+      connectionCredentials(targetUrl).url,
+      process.env.FORGELEX_PHASE8_ALLOW_REMOTE_RESTORE,
+    );
+    await run('pg_restore', buildRestoreArgs(file), targetUrl);
     console.log(JSON.stringify({ file, sha256: await sha256(file), tables: GLOBAL_STJ_TABLES, restored: true }));
     return;
   }
@@ -66,6 +155,7 @@ async function main() {
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]))
   main().catch((error) => {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
+    const message = error instanceof Error ? error.message : '';
+    console.error(/^[A-Z][A-Z0-9_]*(?::(?:\d+|null))?$/.test(message) ? message : 'POSTGRES_EXPORT_FAILED');
+    process.exitCode ||= 1;
   });
