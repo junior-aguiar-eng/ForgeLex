@@ -52,7 +52,7 @@ describe('WebhookService', () => {
     const revokedFetcher = vi.fn(async () => new Response('unexpected', { status: 500 }));
     expect(await service.deliverOne(revokedFetcher)).toBe('idle');
     expect(revokedFetcher).not.toHaveBeenCalled();
-    expect((await repository.listDeliveries('tenant_a'))[0]).toMatchObject({ status: 'PENDING', attemptCount: 0 });
+    expect((await repository.listDeliveries('tenant_a'))[0]).toMatchObject({ status: 'FAILED', attemptCount: 0, lastError: 'WEBHOOK_ENDPOINT_INACTIVE' });
 
     await service.createEndpoint({ tenantId: 'tenant_a', url: 'https://example.test/active', eventTypes: ['matter.created'] });
     await service.enqueue({ tenantId: 'tenant_a', type: 'matter.created', payload: { replay: true } });
@@ -84,6 +84,51 @@ describe('WebhookService', () => {
     await connection.client.execute({ sql: "UPDATE webhook_deliveries SET attempt_count = 8, next_attempt_at = '2000-01-01T00:00:00.000Z'", args: [] });
     expect(await service.deliverOne(async () => new Response('unavailable', { status: 503 }))).toBe('failed');
     expect((await repository.listDeliveries('tenant_a'))[0]).toMatchObject({ status: 'FAILED', responseStatus: 503, attemptCount: 9 });
+    connection.client.close();
+  });
+  it('never reads or returns an unbounded remote response body', async () => {
+    const connection = await createDatabase({ url: 'file::memory:' });
+    await runPersistenceMigrations(connection.client);
+    const repository = new WebhookRepository(connection.client);
+    const service = new WebhookService(repository, { masterKey: 'key' });
+    await service.createEndpoint({ tenantId: 'safe', url: 'https://example.test' });
+    await service.enqueue({ tenantId: 'safe', type: 'matter.created', payload: {} });
+    let cancelled = false;
+    const response = new Response(new ReadableStream({ cancel() { cancelled = true; } }));
+    response.text = async () => { throw new Error('BODY_MUST_NOT_BE_READ'); };
+    expect(await service.deliverOne(async () => response)).toBe('delivered');
+    expect(cancelled).toBe(true);
+    expect((await service.listDeliveries('safe'))[0].responseBodyExcerpt).toBeUndefined();
+    connection.client.close();
+  });
+
+});
+
+describe('worker safety', () => {
+  it('skips overlapping ticks instead of growing an in-memory queue', async () => {
+    const connection = await createDatabase({ url: 'file::memory:' });
+    const service = new WebhookService(new WebhookRepository(connection.client));
+    let release!: () => void;
+    const deliver = vi.spyOn(service, 'deliverOne').mockImplementation(async () => { await new Promise<void>((resolve) => { release = resolve; }); return 'delivered'; });
+    const first = service.tick();
+    expect(await service.tick()).toBe('idle');
+    expect(await service.tick()).toBe('idle');
+    expect(deliver).toHaveBeenCalledTimes(1);
+    release();
+    expect(await first).toBe('delivered');
+    connection.client.close();
+  });
+  it('suspends a pre-existing private endpoint with diagnostics without connecting', async () => {
+    const connection = await createDatabase({ url: 'file::memory:' });
+    await runPersistenceMigrations(connection.client);
+    const repository = new WebhookRepository(connection.client);
+    const service = new WebhookService(repository, { masterKey: 'key' });
+    const created = await service.createEndpoint({ tenantId: 'tenant', url: 'https://example.test' });
+    await service.enqueue({ tenantId: 'tenant', type: 'matter.created', payload: {} });
+    await connection.client.execute({ sql: "UPDATE webhook_endpoints SET url = 'https://127.0.0.1' WHERE id = ?", args: [created.id] });
+    expect(await service.deliverOne()).toBe('failed');
+    expect((await service.listEndpoints('tenant'))[0]).toMatchObject({ status: 'SUSPENDED', lastError: 'WEBHOOK_URL_BLOCKED' });
+    expect(await service.deliverOne()).toBe('idle');
     connection.client.close();
   });
 });
