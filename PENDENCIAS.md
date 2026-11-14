@@ -124,7 +124,18 @@ protocolo já estava atual (`2025-11-25`) e não mudou.
   ordenado por `createdAt` (antes, sem ordem definida). Fica de fora, por não haver necessidade medida: índice sobre
   expressão do JSON; só vale se a consulta aparecer lenta com conversas muito longas.
 
-## Estado publicado atual — 13/11/2026: SHA `2a315e5`
+## Estado publicado atual — 14/11/2026: SHA `cd94c2c`
+
+Publicação autorizada por Boni a partir de `main` em `cd94c2c57fefb45dc99b6951400aa1eb7a9bfc95` (PR #150: ambiente `pnpm dev:mesa`, compositor e janelas da Mesa), com CI pós-merge aprovada. O `DryRun` do roteiro oficial passou. O build `8cb21e38-1bd2-42b2-b21a-e7aadb4c5389` gerou o digest `sha256:d22e225b188a15562134f102e6e0c092c23a7f72b8bf9ff45caac34087b22d02`.
+
+- `forgelex-api-prod-cd94c2c` e `forgelex-closure-hml-private-cd94c2c` recebem 100% do tráfego. A comparação das revisões confirmou alteração somente de imagem e `FORGELEX_SOURCE_SHA`. Flags e migrações inalteradas (sem migração).
+- O roteiro terminou sem reversão. Conferido o tráfego dos dois serviços no mesmo SHA, `/`, `/health`, `/readyz` e os metadados OAuth responderam 200, `/mcp` sem token respondeu 401, e a consulta de logs de 15 minutos por 5xx e erros nas revisões novas voltou vazia.
+- Não houve ensaio autenticado de navegador nesta publicação. O que muda para o cliente: campo de texto que cresce, “Vincular a um caso” no lugar de “Sem caso”, legenda de custo curta, peça fixa ao lado, janela de pesquisa larga e fila de revisão com nome, plural e data legíveis.
+- Reversão: `gcloud run services update-traffic` para `forgelex-api-prod-2a315e5` e `forgelex-closure-hml-private-2a315e5`, ambas com 100%.
+
+<a id="estado-publicado-atual--13112026-sha-2a315e5"></a>
+
+## Estado publicado anterior — 13/11/2026: SHA `2a315e5`
 
 Publicação autorizada por Boni a partir de `main` em `2a315e5b5a9c191bfc953abe04a81a3283af9091` (PR #148, correção do cadastro simultâneo), com CI pós-merge aprovada. O `DryRun` do roteiro oficial passou. O build `421a7012-4715-4c8c-9f02-a9205b94b2f7` gerou o digest `sha256:297aa6e8dddb9235e51686ccc4d7658b0d427c62468958d78c2d818a35f95c35`.
 
