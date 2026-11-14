@@ -68,7 +68,7 @@ export class SavedResearchRepository {
         if (Number(permission.rows[0]?.enabled) !== 1)
           throw savedResearchError(
             'SAVED_RESEARCH_NOT_AUTHORIZED',
-            'Autorize “Gerenciar pesquisas salvas” para este aplicativo nas conexões da sua conta.',
+            'Este aplicativo ainda não foi autorizado a gerenciar pesquisas salvas. Permita no painel do ForgeLex ou em Conectar, no site.',
           );
       }
       const result = await run(tx);

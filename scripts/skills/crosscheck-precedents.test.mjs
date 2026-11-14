@@ -1,0 +1,298 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import {
+  crosscheckPrecedents,
+  extractReferences,
+  parseCsv,
+  parseStfList,
+  parseStjSumulas,
+  parseStjTemas,
+  parseStfTemas,
+  parseTnuSumulas,
+  parseTnuTemas,
+  parseTstSumulas,
+  verifyReference,
+} from './crosscheck-precedents.mjs';
+
+const sources = {
+  stjSumulas: parseStjSumulas(
+    'q SÚMULA 7 VEJA MAIS\nEnunciado x\n\nq SÚMULA 8 (SÚMULA CANCELADA) VEJA MAIS\nEnunciado y\n\nq SÚMULA 9 (SÚMULA ALTERADA) VEJA MAIS\nEnunciado z\n',
+  ),
+  stfSumulas: parseStfList('[Súmula 1](a)\n[Súmula 3 *(superada)*](b)\n[Súmula 4 *(cancelada)*](c)', false),
+  stfSv: parseStfList('[Súmula Vinculante 1](a)\n[Súmula Vinculante 2](b)', true),
+  stjTemas: parseStjTemas(
+    'sequencialPrecedente,tipoPrecedente,numeroPrecedente,situacao,teseFirmada\n1,Tema,10,Trânsito em Julgado,"tese, com vírgula\ne quebra"\n2,Tema,11,Cancelado,x\n3,Controvérsia,12,Afetado,y\n',
+  ),
+};
+
+test('lê as listas oficiais: súmulas do STJ, STF, vinculantes e temas, inclusive CSV com aspas e quebra de linha', () => {
+  assert.deepEqual(
+    [...sources.stjSumulas],
+    [
+      [7, { status: 'vigente' }],
+      [8, { status: 'cancelada' }],
+      [9, { status: 'vigente' }],
+    ],
+  );
+  assert.equal(sources.stfSumulas.get(3).status, 'superada');
+  assert.equal(sources.stfSv.size, 2);
+  assert.equal(sources.stjTemas.get(10).status, 'vigente');
+  assert.equal(sources.stjTemas.get(11).status, 'cancelado');
+  assert.equal(sources.stjTemas.has(12), false, 'controvérsia não é tema');
+  assert.deepEqual(parseCsv('a,"b,c"\n1,"x""y"\n'), [
+    ['a', 'b,c'],
+    ['1', 'x"y'],
+  ]);
+});
+
+test('extrai súmulas em lista, o tribunal ao redor, vinculantes, temas e contexto histórico', () => {
+  const refs = extractReferences(
+    'Súmulas 7, 8 e 9 do STJ. Súmula Vinculante 2. STF Súmula 4. Tema 10 do STJ. Tema Repetitivo 11. Súmula 99 antiga do STJ.',
+  );
+  const pick = (kind, court, number) => refs.find((r) => r.kind === kind && r.court === court && r.number === number);
+  assert.ok(pick('sumula', 'STJ', 7) && pick('sumula', 'STJ', 8) && pick('sumula', 'STJ', 9));
+  assert.ok(pick('sv', 'STF', 2));
+  assert.ok(pick('sumula', 'STF', 4));
+  assert.ok(pick('tema', 'STJ', 10) && pick('tema', 'STJ', 11));
+  assert.equal(pick('sumula', 'STJ', 99).historical, true);
+});
+
+test('atribui o tribunal certo e reconhece o histórico nos casos reais do catálogo', () => {
+  const one = (text, kind, number) => extractReferences(text).find((r) => r.kind === kind && r.number === number);
+  assert.equal(one('| STF (Tema 810) | STJ (Tema 905) |', 'tema', 810).court, 'STF');
+  assert.equal(one('Confundir Tema 745 (alíquota) com Tema 986 STJ (TUST)', 'tema', 745).court, '?');
+  assert.equal(
+    one('A TNU revisou o Tema 206 diante do Tema 1.129 STJ e fixou no Tema 386: 1. É legal', 'tema', 386).court,
+    '?',
+  );
+  assert.equal(one('STF Tema 815 e STJ admitem área inferior', 'tema', 815).court, 'STF');
+  assert.equal(one('STF (Tema 906) + STJ (Tema 912)', 'tema', 906).court, 'STF');
+  assert.equal(
+    one('admissibilidade restritiva STF/STJ (HC substitutivo + Súm. 691 + esgotamento)', 'sumula', 691).court,
+    '?',
+  );
+  assert.equal(one('restritiva\\nSTF/STJ (HC substitutivo + Súm. 691 + esgotamento)', 'sumula', 691).court, '?');
+  assert.equal(one('(Temas 687-689, 1.170 e 1.252 STJ, Súm. 688 e Temas 20/985 STF)', 'sumula', 688).court, '?');
+  assert.equal(one('Aplicar a Súmula 7 do STJ ao caso', 'sumula', 7).court, 'STJ');
+  assert.equal(one('Súm. 394 STF e outras', 'sumula', 394).court, 'STF');
+  for (const text of [
+    'com cancelamento da Súm. 512 STJ',
+    'STJ cancelou a Súm. 408 em 2020',
+    'supera Súm. 276 STJ',
+    'superando a Súm. 105 STF e a Súm. 61 STJ',
+    'baliza reafirmada pelo STJ ao cancelar o Tema 479, em 2026',
+    '- **ex-Súm. 423 TST**: turno ininterrupto > 6h via ACT/CCT até 8h sem HE; cancelada pela Res. TST 225/2025',
+    'Declarou **inconstitucional** a Súm. 277 TST (na redação da Res. TST 185/2012) e qualquer interpretação',
+  ]) {
+    assert.equal(
+      extractReferences(text).every((r) => r.historical),
+      true,
+      text,
+    );
+  }
+});
+
+test('TNU: súmulas cancelada, revogada e alterada, e temas desafetado, revisado e cancelado', () => {
+  const sumulas = parseTnuSumulas(
+    '| [SÚMULA 89](sumula.php?nsul=89&PHPSESSID=x) DJeN Disponibilização em: 24/04/2024 | Não há direito |\n' +
+      '| [SÚMULA 86](sumula.php?nsul=86) DOU nº 242  (CANCELADA EM 26/08/2021)  DOU nº 166 | Texto |\n' +
+      '| [SÚMULA 31](sumula.php?nsul=31) DJ DATA:13/02/2006  (REVOGADA EM 22/11/2023) | Texto |\n' +
+      '| [SÚMULA 63](sumula.php?nsul=63) DOU 23/08/2012  (ALTERADA EM 18/09/2025) DJeN | Texto |\n',
+  );
+  assert.equal(sumulas.get(89).status, 'vigente');
+  assert.equal(sumulas.get(86).status, 'cancelada');
+  assert.equal(sumulas.get(31).status, 'cancelada');
+  assert.equal(sumulas.get(63).status, 'alterada');
+  const temas = parseTnuTemas(
+    '| Tema | 10 | Situação do tema | Julgado - TEMA 350/STF | | Ramo | X |\n' +
+      '| Tema | 11 | Situação do tema | Desafetado | | Ramo | X |\n' +
+      '| Tema | 12 | Situação do tema | Revisado pelo Tema 145 | | Ramo | X |\n' +
+      '| Tema | 13 | Situação do tema | Cancelado | | Ramo | X |\n' +
+      '| Tema | 14 | Situação do tema | Sobrestado - Tema 1467/STF | | Ramo | X |\n',
+  );
+  assert.deepEqual(
+    [10, 11, 12, 13, 14].map((n) => temas.get(n).status),
+    ['vigente', 'desafetado', 'revisado', 'cancelado', 'vigente'],
+  );
+  const sources2 = { ...sources, tnuSumulas: sumulas, tnuTemas: temas };
+  const v = (kind, number) => verifyReference({ kind, court: 'TNU', number, historical: false }, sources2).state;
+  assert.equal(v('sumula', 89), 'ok');
+  assert.equal(v('sumula', 86), 'alert');
+  assert.equal(v('sumula', 63), 'warning');
+  assert.equal(v('tema', 10), 'ok');
+  assert.equal(v('tema', 11), 'alert');
+  assert.equal(v('tema', 999), 'alert');
+});
+
+test('temas do STF: cancelado é alerta; sem repercussão geral, em definição e mérito pendente são aviso; o resto vale', () => {
+  const temas = parseStfTemas({
+    10: { existe: true, repercussao: 'Há repercussão geral', situacao: 'Trânsito em Julgado - 26/08/2020' },
+    11: { existe: true, repercussao: 'Há repercussão geral', situacao: 'Cancelado' },
+    12: {
+      existe: true,
+      repercussao: 'Não há repercussão geral (questão infraconstitucional)',
+      situacao: 'Trânsito em Julgado',
+    },
+    13: { existe: true, repercussao: 'Em definição', situacao: 'Trânsito em Julgado - em 23/02/2012.' },
+    14: {
+      existe: true,
+      repercussao: 'Há repercussão geral',
+      situacao: 'Acórdão de Repercussão Geral publicado - Publicado em: 30/04/2010',
+    },
+    15: {
+      existe: true,
+      repercussao: 'Há repercussão geral com reafirmação de Jurisprudência',
+      situacao: 'Acórdão de mérito publicado - Publicado em: 26/02/2025',
+    },
+    16: { existe: false },
+  });
+  assert.deepEqual(
+    [10, 11, 12, 13, 14, 15].map((n) => temas.get(n).status),
+    ['vigente', 'cancelado', 'sem-repercussao-geral', 'repercussao-em-definicao', 'merito-pendente', 'vigente'],
+  );
+  assert.equal(temas.has(16), false, 'tema sem situação não existe');
+  const withStf = { ...sources, stfTemas: temas };
+  const v = (number, historical = false) =>
+    verifyReference({ kind: 'tema', court: 'STF', number, historical }, withStf).state;
+  assert.equal(v(10), 'ok');
+  assert.equal(v(11), 'alert');
+  assert.equal(v(12), 'warning');
+  assert.equal(v(12, true), 'historical');
+  assert.equal(v(14), 'warning');
+  assert.equal(v(16), 'alert');
+  for (const text of [
+    'Tema 756 STF: matéria infraconstitucional, definida pelo STJ',
+    'Tema 809 STF (sem repercussão geral)',
+    'o Tema 1.234 STF segue pendente de julgamento do mérito',
+  ]) {
+    assert.equal(extractReferences(text).find((r) => r.kind === 'tema').historical, true, text);
+  }
+});
+
+test('TST: cancelamento parcial de item ou de parte da redação não tira a súmula de vigor', () => {
+  const tst = parseTstSumulas(
+    'SUM-221 RECURSO (cancelado o item II e conferida nova redação na sessão) - Res. 185/2012 texto ' +
+      'SUM-191 ADICIONAL (cancelada a parte final da antiga redação e inseridos os itens II e III) - Res. 214/2016 texto ' +
+      'SUM-294 PRESCRIÇÃO (cancelada por perda de eficácia a partir de 11.11.2017, pela Lei 13.467/2017) - Res. 225/2025 texto ' +
+      'SUM-9 Z (cancelada) - Res. 1/2003 texto',
+  );
+  assert.equal(tst.get(221).status, 'vigente');
+  assert.equal(tst.get(191).status, 'vigente');
+  assert.equal(tst.get(294).status, 'cancelada');
+  assert.equal(tst.get(9).status, 'cancelada');
+});
+
+test('o ponto e vírgula dentro de parênteses depois da citação não corta a frase (histórico fica visível)', () => {
+  const [ref] = extractReferences(
+    'a Súm. 294 TST (total na alteração contratual; parcial no trato sucessivo assegurado por lei) foi cancelada pela Lei 13.467.',
+  );
+  assert.equal(ref.court, 'TST');
+  assert.equal(ref.historical, true);
+});
+
+test('lê as súmulas do TST: mantida e nova redação em vigor, cancelada e cancelamento mantido fora', () => {
+  const tst = parseTstSumulas(
+    'SUM-1 PRAZO JUDICIAL (mantida) - Res. 121/2003 Quando a intimação...  SUM-2 GRATIFICAÇÃO NATALINA (cancelada) - Res. 121/2003 É devida...\n' +
+      'SUM-3 X (nova redação) - Res. 1/2020 texto (ex-Súmula nº 6) SUM-4 Y (cancelamento mantido) - Res. 2/2021 texto SUM-3 remissão',
+  );
+  assert.equal(tst.get(1).status, 'vigente');
+  assert.equal(tst.get(2).status, 'cancelada');
+  assert.equal(tst.get(3).status, 'vigente');
+  assert.equal(tst.get(4).status, 'cancelada');
+  const withTst = { ...sources, tstSumulas: tst };
+  const v = (court, number) => verifyReference({ kind: 'sumula', court, number, historical: false }, withTst).state;
+  assert.equal(v('TST', 1), 'ok');
+  assert.equal(v('TST', 2), 'alert');
+  assert.equal(v('TST', 999), 'alert');
+  assert.equal(
+    verifyReference({ kind: 'sumula', court: 'TST', number: 1, historical: false }, sources).reason,
+    'tribunal-sem-lista',
+  );
+});
+
+test('lista de temas: cada número é uma citação e o tribunal depois da lista vale para todos', () => {
+  const list = extractReferences('os Temas 126 e 1.072/STJ; ADI 2.332/DF (STF)').filter((r) => r.kind === 'tema');
+  assert.deepEqual(
+    list.map((r) => [r.number, r.court]),
+    [
+      [126, 'STJ'],
+      [1072, 'STJ'],
+    ],
+  );
+  const slash = extractReferences('Súm. 688 e Temas 20/985 STF').filter((r) => r.kind === 'tema');
+  assert.deepEqual(
+    slash.map((r) => [r.number, r.court]),
+    [
+      [20, 'STF'],
+      [985, 'STF'],
+    ],
+  );
+  assert.deepEqual(
+    extractReferences('Tema 1.239, de 2024').map((r) => r.number),
+    [1239],
+  );
+  const numbers = (text) => extractReferences(text).map((r) => r.number);
+  assert.deepEqual(numbers('ARE 954.858 (Tema 944, 2021): atos'), [944], 'ano não é tema');
+  assert.deepEqual(numbers('Tema 1.262, 2023); via'), [1262]);
+  assert.deepEqual(numbers('Temas 100, 360 e 881 do STF'), [100, 360, 881]);
+});
+
+test('“alterada” é aviso (a súmula segue em vigor com outra redação), não alerta', () => {
+  const state = verifyReference({ kind: 'sumula', court: 'STF', number: 3, historical: false }, sources).state;
+  assert.equal(state, 'alert');
+  const altered = { ...sources, stfSumulas: parseStfList('[Súmula 359 *(alterada)*](a)', false) };
+  assert.equal(
+    verifyReference({ kind: 'sumula', court: 'STF', number: 359, historical: false }, altered).state,
+    'warning',
+  );
+});
+
+test('classifica: existe, cancelada, inexistente, histórica e não conferida', () => {
+  const v = (kind, court, number, historical = false) =>
+    verifyReference({ kind, court, number, historical }, sources).state;
+  assert.equal(v('sumula', 'STJ', 7), 'ok');
+  assert.equal(v('sumula', 'STJ', 8), 'alert');
+  assert.equal(v('sumula', 'STJ', 8, true), 'historical');
+  assert.equal(v('sumula', 'STJ', 500), 'alert');
+  assert.equal(v('sumula', 'STF', 3), 'alert');
+  assert.equal(v('sv', 'STF', 2), 'ok');
+  assert.equal(v('tema', 'STJ', 11), 'alert');
+  assert.equal(v('sumula', 'TST', 100), 'not-checked');
+  assert.equal(v('sumula', '?', 7), 'not-checked', 'existe no STJ, mas sem tribunal declarado não confere a tese');
+  assert.equal(v('sumula', '?', 100), 'warning', 'não existe nem no STJ nem no STF');
+  assert.equal(v('tema', '?', 10), 'not-checked');
+});
+
+test('ficha que declara a súmula cancelada em outro trecho não gera alerta pelas outras menções (ex.: lista de gatilhos)', async () => {
+  const report = await crosscheckPrecedents(
+    [
+      {
+        id: 'avisa',
+        text: 'triggers: ["Súm. 8 STJ", "outra"]\n\n## Súm. 8 STJ (CANCELADA)\nNão invocar.\n- Aplicar a Súm. 8 STJ: errado.',
+      },
+      { id: 'cita-como-vigente', text: 'Aplique a Súm. 8 STJ ao caso.' },
+    ],
+    sources,
+  );
+  assert.deepEqual(
+    report.alerts.map((a) => a.fichas),
+    [['cita-como-vigente']],
+  );
+});
+
+test('o relatório agrega por referência, lista só identificadores de ficha e conta o que não conferiu', async () => {
+  const report = await crosscheckPrecedents(
+    [
+      { id: 'ficha-a', text: 'Aplique a Súmula 8 do STJ e a Súmula 7 do STJ.' },
+      { id: 'ficha-b', text: 'A Súmula 8 do STJ também. Súmula 100 do TST.' },
+    ],
+    sources,
+  );
+  assert.equal(report.summary.alerta, 1);
+  assert.equal(report.summary.ok, 1);
+  assert.equal(report.summary.naoConferidas, 1);
+  assert.deepEqual(report.alerts, [
+    { kind: 'sumula', court: 'STJ', number: 8, reason: 'cancelada', fichas: ['ficha-a', 'ficha-b'] },
+  ]);
+  assert.ok(!JSON.stringify(report).includes('Aplique'), 'não vaza texto de ficha');
+});

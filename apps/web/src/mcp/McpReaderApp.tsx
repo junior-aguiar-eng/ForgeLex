@@ -64,6 +64,7 @@ function ReaderApp() {
   const [expandable, setExpandable] = useState(false);
   const [collectionEnabled, setCollectionEnabled] = useState(false);
   const [removing, setRemoving] = useState<SavedSearchSummary>();
+  const [confirmingAllow, setConfirmingAllow] = useState(false);
   const apply = (value: unknown) => {
     const next = presentation(value);
     received.current = true;
@@ -190,25 +191,63 @@ function ReaderApp() {
         <div className="mcp-actions">
           {data?.operationId && !data.savedResearchId && (
             <button
-              disabled={!ready || busy || !data.canSave}
+              disabled={!ready || busy}
               onClick={() =>
-                void act(async () => {
-                  await call('research.save_search', { operationId: data.operationId!, requestedByUser: true });
-                  setNotice('Pesquisa completa salva.');
-                  await refresh();
-                })
+                data.canSave
+                  ? void act(async () => {
+                      await call('research.save_search', { operationId: data.operationId!, requestedByUser: true });
+                      setNotice('Pesquisa completa salva.');
+                      await refresh();
+                    })
+                  : setConfirmingAllow(true)
               }
             >
               Salvar pesquisa
             </button>
           )}
           {ready && (
-            <button disabled={busy} onClick={() => void act(refresh)}>
+            <button
+              disabled={busy}
+              onClick={() =>
+                void act(async () => {
+                  try {
+                    await refresh();
+                  } catch (e) {
+                    if (!/permit|autoriz/i.test((e as Error).message)) throw e;
+                    setConfirmingAllow(true);
+                  }
+                })
+              }
+            >
               Pesquisas salvas{items ? ` — ${items.length} de 6` : ''}
             </button>
           )}
-          {data?.operationId && !data.savedResearchId && !data.canSave && (
-            <p>Para salvar, autorize “Gerenciar pesquisas salvas” nas conexões do site.</p>
+          {confirmingAllow && (
+            <div role="group" aria-label="Permitir pesquisas salvas">
+              <p>
+                Permitir que este aplicativo salve e gerencie suas pesquisas salvas? Vale só para esta conexão, e você
+                pode revogar em Conectar, no site.
+              </p>
+              <button
+                disabled={!ready || busy}
+                onClick={() =>
+                  void act(async () => {
+                    await call('research.allow_saving', { confirmed: true });
+                    setConfirmingAllow(false);
+                    if (data?.operationId && !data.savedResearchId) {
+                      await call('research.save_search', { operationId: data.operationId, requestedByUser: true });
+                      setNotice('Pesquisa completa salva.');
+                    }
+                    await refresh();
+                  })
+                }
+              >
+                {data?.operationId && !data.savedResearchId ? 'Permitir e salvar' : 'Permitir'}
+              </button>
+              <button disabled={busy} onClick={() => setConfirmingAllow(false)}>
+                Agora não
+              </button>
+            </div>
           )}
         </div>
       )}

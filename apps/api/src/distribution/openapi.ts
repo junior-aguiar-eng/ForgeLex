@@ -544,7 +544,7 @@ export function buildOpenApiDocument(serverUrl = 'http://localhost:3001', option
       },
     },
     'x-forgelex-generated-from': 'apps/api/src/distribution/openapi.ts',
-    'x-forgelex-external-mcp-tools': [...EXTERNAL_MCP_TOOL_NAMES, ...(options.savedResearchEnabled || options.decisionUiEnabled ? ['research.present_decisions'] : []), ...(options.savedResearchEnabled ? ['research.list_saved_searches', 'research.get_saved_search', 'research.save_search', 'research.delete_saved_search'] : [])],
+    'x-forgelex-external-mcp-tools': [...EXTERNAL_MCP_TOOL_NAMES, ...(options.savedResearchEnabled || options.decisionUiEnabled ? ['research.present_decisions'] : []), ...(options.savedResearchEnabled ? ['research.list_saved_searches', 'research.get_saved_search', 'research.save_search', 'research.delete_saved_search', 'research.allow_saving'] : [])],
     'x-forgelex-case-analysis':{tool:'case.save_analysis',authentication:'OAuth ativo e permissão independente por conexão e caso',inputSchema:{$ref:'#/components/schemas/CaseAnalysisInput'},receiptSchema:{$ref:'#/components/schemas/AnalysisReceipt'},billing:{mode:'FREE',chargedCents:0},maxInputBytes:524288,maxResponseBytes:24576,humanAdoptionRequired:true},
     'x-forgelex-case-context':{authentication:'OAuth ativo + permissão por usuário, aplicativo, concessão e caso',tools:['case.list_shared','case.get_context','case.read_item'],billing:{mode:'FREE',chargedCents:0,isReplay:false},remainingBalanceCents:'ausente nas leituras de contexto',maxResponseBytes:24576,writeAccess:false},
   };

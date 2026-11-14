@@ -36,7 +36,7 @@
 | Mesa em produção       | Casca, anexos PDF/TXT/MD e chips de matéria ligados no build. Orientação guiada e `mesa-v3` ligadas no serviço, com diretório do catálogo configurado. |
 | Salvamento recuperável | Flag desligada nas revisões publicadas. A aplicação da `0041` está documentada no banco isolado de HML. M2 permanece parcial.                          |
 | Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                    |
-| Verificação            | CI de `01b46c5` aprovada. M2 validado em HML e controles do resumo reconferidos em produção. Aceite A18 e verificações residuais do MCP pendentes.     |
+| Verificação            | CI de `01b46c5` aprovada. M2 validado em HML e controles do resumo reconferidos em produção. Aceite A18 dado em 14/11/2026; verificações residuais do MCP pendentes. |
 | Visual                 | Tema clássico vigente. V0 adiada nesta reconciliação.                                                                                                  |
 | Domínio em uso         | `nexojuris.ia.br` em produção. `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                              |
 
@@ -246,7 +246,10 @@ Defeito: quando o usuário escreve a área em vez de escolher uma opção, a res
 
 - [x] Publicação de `b4c76e0` em 12/11. Orientação guiada, v3, casca, anexos e chips já estão ativos em produção. O salvamento recuperável segue desligado.
 - [x] Validar localmente a reserva de R$ 11,50 e o teto de R$ 20,00. Com R$ 8,50 contabilizados no dia, a próxima reserva cabe. Com R$ 8,51, retorna `COMMERCIAL_DAILY_LIMIT`.
-- [ ] Conferir no `mcp.call` o efeito do #132 no Claude e no ChatGPT, incluindo idempotência e piso de cinco decisões. Confirmar a lista nominal com cliente autenticado e a renovação do Claude pelo alias `/token`.
+- [x] Efeito do #132 no `mcp.call` (amostra de 14/11/2026, 02:37 a 02:42 UTC): a primeira pesquisa do Claude (2 chamadas) e a do ChatGPT vieram com `idempotency=argument` e `ok=true`. Piso de decisões: pesquisas devolveram 8 e 10 decisões. O ChatGPT abriu as autoridades (`research.get_authority`, 3 chamadas) e o Claude não, o que explica a diferença de verificação no texto da conversa; o painel mostra “Conferida na fonte oficial” nos dois.
+- [x] Lista nominal das ferramentas: Boni confirmou em 14/11/2026 que todas aparecem e funcionam no Claude.
+- [x] Alias `/token` (log de 7 dias, lido em 14/11/2026): o Claude renovou 32 vezes por `/oauth/token` e nenhuma pelo alias; o único 404 em `/token` foi de 09/11, antes da publicação do alias, e não se repetiu. O alias fica como salvaguarda, sem evidência de uso.
+- [ ] Monitorar a recusa de renovação do Claude: 1 `UPSTREAM_REJECTED` (400 do Supabase) em 7 dias, contra 33 renovações aceitas, em 14/11 às 02:50 UTC; logo depois o Claude se registrou de novo (2 chamadas a `/oauth/register`), o que cria conexão nova e zera a chave de pesquisas salvas. Coincide com a reconexão feita por Boni; causa não provada.
 - [ ] Conferir a reserva e a mensagem de saldo insuficiente numa jornada autenticada autorizada.
 
 **Evidência.** [Registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026). **Reversão da publicação.** Tráfego para a revisão anterior, mediante autorização de Boni.
@@ -259,9 +262,10 @@ Defeito: quando o usuário escreve a área em vez de escolher uma opção, a res
 - [x] Ligar `FORGELEX_DESK_GUIDANCE_ENABLED` e `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` no serviço ligado ao banco isolado, com autorização de Boni.
 - [x] Percorrer: pedido completo, “Me ajude a começar”, “Não sei”, correção pelo resumo, duas abas, recarga, criação,
       revisão sem nova versão, edição delimitada, pesquisa salva, salvamento com perda de resposta simulada.
+- [x] Migração `0041` aplicada no banco de produção em 14/11/2026 (backup `1794627324194`). Flag `FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED` ligada em produção no mesmo dia, em revisão própria (`forgelex-api-prod-draftsave-cd94c2c`); falta o ensaio autenticado do passo 5 em produção.
 - [x] Registrar o resultado funcional e os cenários ainda pendentes. O aceite visual (A19) passa a ser feito em V3, no tema novo.
 
-**Situação.** Parcial. Os serviços `forgelex-api-hml` e `forgelex-closure-hml-private` compartilham a configuração de banco da produção. A jornada com escrita deve usar o banco isolado.
+**Situação.** A18 aceita por Boni em 14/11/2026 ([registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#aceite-a18-em-14112026)). Ressalvas fora da A18: avaliação jurídica, aceite visual (A19, em V3), verificações do MCP e salvamento recuperável em produção. Os serviços `forgelex-api-hml` e `forgelex-closure-hml-private` compartilham a configuração de banco da produção; a jornada com escrita deve usar o banco isolado.
 
 **Aceite.** A18 registrado em homologação. A ativação do salvamento recuperável em produção permanece prevista para depois de V3 e depende de decisão de Boni e da confirmação da migração.
 
@@ -287,7 +291,8 @@ manifesto, as contagens e os hashes. Todas as fichas ficam no catálogo, mas o r
 **M3.2 — Cruzamento em massa (executado).**
 
 - [x] `scripts/skills/crosscheck-catalog.mjs` conferiu existência e vigência de 14.906 referências a artigos no primeiro cruzamento. As rodadas M3.4–M3.6 trataram a fila, leis esparsas e precedentes selecionados. O registro final da montagem local aponta 2.077 fichas elegíveis e nenhuma pendente.
-- [ ] Verificação integral de súmulas e precedentes no índice do STJ pendente. O cruzamento cobriu referências selecionadas.
+- [x] Súmulas do STJ, do STF, do TST e da TNU, súmulas vinculantes e temas do STJ, do STF e da TNU conferidos em massa contra listas oficiais (M3.7, 14/11/2026): 2.438 citações corretas, 124 históricas, nenhum alerta e 44 avisos (24 temas do STF com mérito pendente, 18 sem repercussão geral, 1 em definição e a Súmula 359 do STF, alterada) para revisão de Boni. Nenhuma ficha foi editada: as súmulas canceladas que a primeira passada apontou (STJ 263 e STF 394) estão em fichas de Matéria, cujos gatilhos não vão ao catálogo, e as próprias fichas as declaram canceladas no corpo.
+- [ ] Ainda sem conferência: súmulas do TSE (site com 403); 1.355 citações sem tribunal declarado; números de processo; e a tese de cada súmula e de cada tema (leitura dirigida). Revisão dos 44 avisos, a cargo de Boni.
 - [ ] A avaliação de contradições de teor e teses generalizadas depende de leitura dirigida. Usar o piloto e as fichas de maior uso quando houver casos autorizados para avaliar.
 
 **M3.3 — Lote 0 (piloto).** As quatro fichas do `penal-civel-r15-v1` (`resposta-acusacao`,
@@ -811,7 +816,7 @@ antes dos escritores; checkpoints antigos continuam no protocolo original.
 | A15 | Manifesto corresponde às ferramentas reais                                                          | Atendido localmente                     |
 | A16 | Jornada completa por teclado e em celular                                                           | Atendido localmente; reconferir em V6   |
 | A17 | Piloto Penal e regressão Cível na mesma revisão                                                     | Técnico atendido; jurídico em M3        |
-| A18 | Homologação funcional no ambiente isolado com registro próprio                                      | Parcial (M2)                            |
+| A18 | Homologação funcional no ambiente isolado com registro próprio                                      | Atendido (aceite de Boni, 14/11/2026)   |
 | A19 | Boni valida a jornada visual em desktop e celular                                                   | Pendente (V3)                           |
 | A20 | Uma só Mesa em produção, sem rota órfã nem código morto                                             | Pendente (U1, U7)                       |
 | A21 | Mesa mostra só a peça e a matéria em uso, sem listar o catálogo; conteúdo e IDs ocultos             | Pendente (U3)                           |

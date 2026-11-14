@@ -23,6 +23,7 @@ const FORGELEX_BILLING_POLICIES: Readonly<Record<string, ForgeLexBillingPolicy>>
   'research.get_saved_search': { mode: 'FREE' },
   'research.save_search': { mode: 'FREE' },
   'research.delete_saved_search': { mode: 'FREE' },
+  'research.allow_saving': { mode: 'FREE' },
   'workflow.legal_research_memo': { mode: 'FREE' },
   'case.list_shared': { mode: 'FREE' },
   'case.get_context': { mode: 'FREE' },
