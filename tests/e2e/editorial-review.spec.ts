@@ -47,8 +47,8 @@ test('um chat cria, revisa sem alterar e muda a mesma peça ao lado', async ({ p
   const matter = await (
     await page.request.post(`${api}/api/v2/matters`, { headers, data: { title: 'Caso do chat único' } })
   ).json();
-  await page.getByRole('button', { name: /^Sem caso/ }).click();
-  await page.getByLabel('Caso (opcional)').selectOption(matter.id);
+  await page.getByRole('button', { name: /^Vincular a um caso/ }).click();
+  await page.getByLabel('Caso', { exact: true }).selectOption(matter.id);
   await page.getByRole('button', { name: /^Caso:/ }).click();
   const first = await ask(page, 'Redigir um relato sintético FLUXO_MESA com três parcelas e total');
   const original = await delivery(page, first);

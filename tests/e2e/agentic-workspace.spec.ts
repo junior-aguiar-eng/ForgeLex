@@ -246,7 +246,7 @@ test('regressão final: afirmações mantêm suas fontes e versões disponíveis
   ).json();
   await prepare(page, 'Analisar o documento');
   await scope(page);
-  await page.getByLabel('Caso (opcional)').selectOption(matter.id);
+  await page.getByLabel('Caso', { exact: true }).selectOption(matter.id);
   await page.getByLabel('Fonte vinculada', { exact: true }).check();
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
@@ -266,7 +266,7 @@ test('regressão final: falha em outra área preserva trabalho e edição não s
   ).json();
   await prepare(page, 'Preciso de uma minuta para conferir', 'Criar uma peça');
   await scope(page);
-  await page.getByLabel('Caso (opcional)').selectOption(matter.id);
+  await page.getByLabel('Caso', { exact: true }).selectOption(matter.id);
   // A late case-list response must use the editor's requested location,
   // even while that retained editor is hidden behind another surface.
   let releaseCases!: () => void, casesReached!: () => void, casesFinished!: () => void;
@@ -340,7 +340,7 @@ test('revisão seleciona versão da minuta existente e mantém conflito de ediç
   ).json();
   await prepare(page, 'Revisar a versão humana selecionada', 'Revisar um texto');
   await scope(page);
-  await page.getByLabel('Caso (opcional)').selectOption(matter.id);
+  await page.getByLabel('Caso', { exact: true }).selectOption(matter.id);
   await expect(page.getByLabel('Minuta do caso (opcional)')).toBeVisible();
   await page.getByLabel('Minuta do caso (opcional)').selectOption(`${draft.draft.id}:${draft.version.id}`);
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
@@ -396,7 +396,7 @@ async function login(page: Page) {
   await page.goto('/app/trabalho');
 }
 async function scope(page: Page) {
-  const toggle = page.getByRole('button', { name: /^(Sem caso|Caso:)/ });
+  const toggle = page.getByRole('button', { name: /^(Vincular a um caso|Caso:)/ });
   if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
 }
 async function prepare(page: Page, text: string, action?: string) {
@@ -449,7 +449,7 @@ test('objetivo, escopo, pergunta, entrega redigida, fonte e edição no editor r
         '\n\n' +
         'Alegação: serviço não entregue. Não confirmar como fato.',
     );
-  await page.getByLabel('Caso (opcional)').selectOption(matter.id);
+  await page.getByLabel('Caso', { exact: true }).selectOption(matter.id);
   await page.getByLabel('Contrato para leitura').check();
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('group', { name: 'Qual a finalidade concreta?' })).toBeVisible();
@@ -582,7 +582,7 @@ test('teclado, resposta desconhecida e documento revogado mantêm pedido e limit
         '\n\n' +
         'Meu relato permanece',
     );
-  await page.getByLabel('Caso (opcional)').selectOption(matter.id);
+  await page.getByLabel('Caso', { exact: true }).selectOption(matter.id);
   await page.getByLabel('Documento revogável', { exact: true }).check();
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Organizar informações', exact: true })).toBeVisible();
@@ -658,7 +658,7 @@ test('compara conferir fonte e editar a mesma minuta nos dois percursos com font
         '\n\n' +
         'Comparar conferência e edição',
     );
-  await page.getByLabel('Caso (opcional)').selectOption(matter.id);
+  await page.getByLabel('Caso', { exact: true }).selectOption(matter.id);
   await page.getByLabel('Fonte comparável').check();
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();

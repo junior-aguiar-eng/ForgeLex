@@ -10,10 +10,13 @@ export function CanvasDialog({
   title,
   onClose,
   children,
+  wide = false,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  /** Janela larga (pesquisa e fontes): aproveita a tela em vez de rolar numa coluna estreita. */
+  wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -32,7 +35,7 @@ export function CanvasDialog({
         event.preventDefault();
         onClose();
       }}
-      className="m-auto max-h-[85dvh] w-[min(680px,calc(100%-2rem))] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-6 shadow-xl backdrop:bg-stone-900/25"
+      className={`m-auto overflow-y-auto rounded-2xl border border-stone-200 bg-white p-6 shadow-xl backdrop:bg-stone-900/25 ${wide ? 'max-h-[92dvh] w-[min(1120px,calc(100%-2rem))]' : 'max-h-[85dvh] w-[min(680px,calc(100%-2rem))]'}`}
       aria-label={title}
     >
       <header className="mb-5 flex items-center justify-between gap-4">
@@ -297,10 +300,10 @@ export function DraftCanvas({
         </p>
       )}
       {extras}
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-6 sm:px-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3 sm:px-4">
         <article
           aria-label="Documento em edição"
-          className="mx-auto min-h-[60dvh] max-w-[760px] space-y-7 bg-white px-6 py-10 shadow-sm sm:px-12"
+          className="mx-auto min-h-full max-w-[860px] space-y-6 bg-white px-5 py-8 shadow-sm sm:px-8 xl:px-10"
         >
           <PaperText
             id="desk-title"

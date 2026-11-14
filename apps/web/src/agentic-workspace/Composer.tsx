@@ -199,11 +199,18 @@ export function Composer({
   const description = guidanceState?.description;
   const message = objective ?? (description && description.length <= 15000 ? description : '');
   const goal = message.trim();
+  // O campo cresce com o texto, sem barra de rolagem, até 60% da altura da tela.
+  useLayoutEffect(() => {
+    const field = inputRef.current;
+    if (!field) return;
+    field.style.height = 'auto';
+    field.style.height = `${field.scrollHeight}px`;
+  }, [message, descriptionOpen]);
   // One visible message supplies the written context; existing conversations retain theirs.
   const text = inheritedText || goal;
   const matterTitle = matters.find((m) => m.id === matter)?.title;
   const scopeSummary = [
-    matter ? `Caso: ${matterTitle ?? 'selecionado'}` : 'Sem caso',
+    matter ? `Caso: ${matterTitle ?? 'selecionado'}` : 'Vincular a um caso',
     selected.length ? `${selected.length} documento${selected.length > 1 ? 's' : ''}` : '',
   ]
     .filter(Boolean)
@@ -310,7 +317,7 @@ export function Composer({
   if (guided && !guidanceState) return null;
   const pendingQuestion = guidanceEditing || Boolean(guidanceState?.question);
   return (
-    <section aria-label="Novo pedido" className="space-y-4">
+    <section aria-label="Novo pedido" className="space-y-3">
       {piece && !pieceConflict && (!guided || canSendGuide) && (
         <p className="text-xs text-stone-500">{`Sobre a peça: ${piece.title}`} · Ao enviar, uso o texto aberto.</p>
       )}
@@ -348,14 +355,14 @@ export function Composer({
         hidden={pendingQuestion && !descriptionOpen}
         role="group"
         aria-label="Mensagem"
-        className="space-y-3 rounded-3xl border border-stone-200 bg-white p-4 has-[textarea:focus-visible]:border-cognac-700 has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-cognac-700"
+        className="space-y-2 rounded-3xl border border-stone-200 bg-white p-4 shadow-[0_1px_2px_rgba(28,25,23,0.04),0_12px_32px_-16px_rgba(28,25,23,0.18)] transition-shadow has-[textarea:focus-visible]:border-cognac-700 has-[textarea:focus-visible]:ring-1 has-[textarea:focus-visible]:ring-cognac-700"
       >
         <textarea
           ref={inputRef}
           aria-label="O que você precisa fazer?"
-          className="w-full resize-none border-0 bg-transparent p-1 text-base focus-visible:outline-none"
+          className="max-h-[60dvh] min-h-[7rem] w-full resize-none overflow-y-auto border-0 bg-transparent p-1 text-[1.0625rem] leading-7 text-stone-900 placeholder:text-stone-500 focus-visible:outline-none"
           maxLength={15000}
-          rows={guided ? 2 : 3}
+          rows={guided ? 3 : 4}
           value={message}
           onChange={(e) => setObjective(e.target.value)}
           placeholder={
@@ -415,6 +422,24 @@ export function Composer({
               <span className="truncate">{scopeSummary}</span>
             </button>
           )}
+          {!guided && onGuide && (
+            <button
+              type="button"
+              disabled={busy || preparing || guidanceBusy || piecePending}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-medium text-cognac-800 hover:bg-ivory-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-700"
+              onClick={() => {
+                startFromComposer.current = true;
+                const selectedMatter = piece ? piece.matterId : matter;
+                if (!goal) setObjective(undefined);
+                onGuide({
+                  ...(goal ? { objective: goal } : {}),
+                  ...(selectedMatter ? { matterId: selectedMatter } : {}),
+                });
+              }}
+            >
+              <Sparkles size={16} aria-hidden="true" /> Me ajude a começar
+            </button>
+          )}
           {(!guided || canSendGuide) && (
             <button
               type="button"
@@ -437,25 +462,26 @@ export function Composer({
           )}
         </div>
       </div>
+      {commercial && !quote && (
+        <p role="status" className="px-2 text-xs text-stone-600">
+          {quoteFailed ? 'Preço indisponível. Recarregue a página para consultar novamente.' : 'Consultando preço…'}
+        </p>
+      )}
+      {commercial && quote && (
+        <p className="px-2 text-xs leading-5 text-stone-600">
+          Até {reais(quote.maxCostCents)} por trabalho (o não usado é devolvido) · Saldo {reais(quote.availableCents)}
+          {quote.availableCents < quote.maxCostCents && (
+            <strong className="font-semibold text-stone-800"> · Saldo insuficiente</strong>
+          )}{' '}
+          · Processado por IA ·{' '}
+          <a href="/legal/privacidade.html" target="_blank" rel="noreferrer" className="underline">
+            Privacidade
+          </a>
+        </p>
+      )}
 
       {!guided && onGuide && (
         <div className="space-y-1">
-          <button
-            type="button"
-            disabled={busy || preparing || guidanceBusy || piecePending}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium text-cognac-800 hover:bg-ivory-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-700"
-            onClick={() => {
-              startFromComposer.current = true;
-              const selectedMatter = piece ? piece.matterId : matter;
-              if (!goal) setObjective(undefined);
-              onGuide({
-                ...(goal ? { objective: goal } : {}),
-                ...(selectedMatter ? { matterId: selectedMatter } : {}),
-              });
-            }}
-          >
-            <Sparkles size={16} aria-hidden="true" /> Me ajude a começar
-          </button>
           {guidanceBusy && (
             <p role="status" className="text-sm text-stone-700">
               Preparando seu pedido…
@@ -474,8 +500,9 @@ export function Composer({
           className="space-y-4 rounded-2xl border border-champagne-border bg-white p-4"
         >
           <label className="block text-sm font-medium">
-            Caso (opcional)
+            Caso
             <select
+              aria-label="Caso"
               disabled={Boolean(followUp || piece || guided)}
               className="mt-2 min-h-11 w-full rounded-lg border border-stone-300 p-2 font-normal"
               value={matter}
@@ -485,7 +512,7 @@ export function Composer({
                 setSelectedDraft(undefined);
               }}
             >
-              <option value="">Sem caso — somente texto</option>
+              <option value="">Escolha um caso</option>
               {matters.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.title}
@@ -549,22 +576,6 @@ export function Composer({
       {!guided && matter && scopeOpen && <EvidenceChangesPanel key={matter} matterId={matter} disabled={busy} />}
       {!available && (
         <p className="text-sm text-stone-600">O processamento deste trabalho ainda não está disponível.</p>
-      )}
-      {commercial && !quote && (
-        <p role="status" className="text-xs text-stone-600">
-          {quoteFailed ? 'Preço indisponível. Recarregue a página para consultar novamente.' : 'Consultando preço…'}
-        </p>
-      )}
-      {commercial && quote && (
-        <p className="text-sm text-stone-600">
-          Custo de {reais(quote.minCostCents)} a {reais(quote.maxCostCents)} por trabalho. Enviar autoriza até{' '}
-          {reais(quote.maxCostCents)}; o restante é liberado. Saldo: {reais(quote.availableCents)}.{' '}
-          {quote.availableCents < quote.maxCostCents && 'Saldo insuficiente.'} O texto e as fontes são processados pela
-          OpenAI.{' '}
-          <a href="/legal/privacidade.html" target="_blank" rel="noreferrer" className="underline">
-            Privacidade
-          </a>
-        </p>
       )}
     </section>
   );

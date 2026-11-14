@@ -434,7 +434,7 @@ export function AgenticWorkspaceScreen({
     <div
       data-agentic-workspace
       aria-busy={busy}
-      className="flex h-full min-h-0 min-w-0 flex-col px-4 py-5 text-stone-800"
+      className="flex h-full min-h-0 min-w-0 flex-col px-4 py-3 text-stone-800"
     >
       {closedPilot === false &&
         historyContainer &&
@@ -478,7 +478,7 @@ export function AgenticWorkspaceScreen({
               landing && guidance.id
                 ? 'sr-only'
                 : landing
-                  ? 'mx-auto w-full max-w-3xl pt-8'
+                  ? `mx-auto w-full max-w-3xl ${piece ? 'pt-0' : 'pt-8'}`
                   : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
             }
           >
@@ -486,8 +486,10 @@ export function AgenticWorkspaceScreen({
               <h1 className="sr-only">Mesa Jurídica</h1>
             ) : landing ? (
               <>
-                <h1 className="font-editorial text-3xl font-medium text-stone-900">O que você precisa fazer hoje?</h1>
-                <p className="mt-2 text-stone-600">
+                <h1 className={`font-editorial font-medium text-stone-900 ${piece ? 'text-2xl' : 'text-3xl'}`}>
+                  O que você precisa fazer hoje?
+                </h1>
+                <p className={`text-stone-600 ${piece ? 'mt-1 text-sm' : 'mt-2'}`}>
                   Descreva o que precisa preparar ou mudar. A peça fica aberta ao lado da conversa.
                 </p>
               </>

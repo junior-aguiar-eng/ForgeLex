@@ -63,8 +63,8 @@ async function exerciseDesk(page: Page, mobile: boolean) {
   };
 
   await openDesk(page);
-  await page.getByRole('button', { name: 'Sem caso', exact: true }).click();
-  await page.getByLabel('Caso (opcional)').selectOption(matterId);
+  await page.getByRole('button', { name: 'Vincular a um caso', exact: true }).click();
+  await page.getByLabel('Caso', { exact: true }).selectOption(matterId);
   const message = page.getByRole('textbox', { name: 'O que você precisa fazer?' });
   await message.fill('Redigir a contestação com base no relato FLUXO_MESA R13.');
   await help(page).press('Enter');

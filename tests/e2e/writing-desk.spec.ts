@@ -185,7 +185,7 @@ test('seleção persistida da Mesa exige confirmação para enviar com uma vers�
 
 test('uma caixa envia pedido e contexto com a opção selecionada', async ({ page }) => {
   await login(page);
-  await page.getByRole('button', { name: /^Sem caso/ }).click();
+  await page.getByRole('button', { name: /^Vincular a um caso/ }).click();
   const composer = page.getByRole('region', { name: 'Novo pedido', exact: true });
   await expect(composer.getByRole('textbox')).toHaveCount(1);
   await expect(page.getByLabel('Contexto escrito')).toHaveCount(0);
@@ -367,8 +367,8 @@ test('entrega abre ao lado, mantém edição ao navegar e aceita links antigos',
     await page.request.post(api + '/api/v2/matters', { headers, data: { title: 'Caso da entrega integrada' } })
   ).json();
   await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Redigir minuta para revisão editorial');
-  await page.getByRole('button', { name: /^(Sem caso|Caso:)/ }).click();
-  await page.getByLabel('Caso (opcional)').selectOption(matter.id);
+  await page.getByRole('button', { name: /^(Vincular a um caso|Caso:)/ }).click();
+  await page.getByLabel('Caso', { exact: true }).selectOption(matter.id);
   await page
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill(

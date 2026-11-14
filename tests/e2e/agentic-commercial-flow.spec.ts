@@ -52,7 +52,7 @@ test('entrega análise na mesa sem etapas ou metadados e libera reserva sem docu
   await page
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('PROBATORIA: organizar fatos do relato sintético.');
-  await page.getByRole('button', { name: /^Sem caso/ }).click();
+  await page.getByRole('button', { name: /^Vincular a um caso/ }).click();
   await page
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill(
@@ -88,7 +88,7 @@ test('percorre cobrança comercial real com transporte sintético e preserva ide
   await page
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('Organizar o relato sintético para conferência.');
-  await page.getByRole('button', { name: /^Sem caso/ }).click();
+  await page.getByRole('button', { name: /^Vincular a um caso/ }).click();
   await page
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill(
@@ -96,7 +96,7 @@ test('percorre cobrança comercial real com transporte sintético e preserva ide
         '\n\n' +
         'Relato sintético: a parte informa que contratou um serviço, mas o serviço não foi entregue.',
     );
-  await expect(page.getByText(/Custo de .* por trabalho/)).toBeVisible();
+  await expect(page.getByText(/Até R\$ .* por trabalho/)).toBeVisible();
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Autorizar trabalho' })).toHaveCount(0);
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible({ timeout: 60000 });
@@ -160,7 +160,7 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
   await page
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill('PROBATORIA: conferir relato e documento sintéticos.');
-  await page.getByRole('button', { name: /^Sem caso/ }).click();
+  await page.getByRole('button', { name: /^Vincular a um caso/ }).click();
   await page
     .getByLabel('O que você precisa fazer?', { exact: true })
     .fill(
@@ -168,7 +168,7 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
         '\n\n' +
         'Relato sintético a revisar.',
     );
-  await page.getByLabel('Caso (opcional)').selectOption(matter.id);
+  await page.getByLabel('Caso', { exact: true }).selectOption(matter.id);
   await page.getByLabel('Relato para conferência', { exact: true }).check();
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   const result = page.getByRole('article', { name: 'Resultado do trabalho' });

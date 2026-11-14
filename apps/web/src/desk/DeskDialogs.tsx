@@ -21,7 +21,11 @@ export function DeskSourcesDialog({
   onClose: () => void;
 }) {
   return (
-    <CanvasDialog title={kind === 'research' ? 'Pesquisa e fontes' : 'Fontes do caso'} onClose={onClose}>
+    <CanvasDialog
+      title={kind === 'research' ? 'Pesquisa e fontes' : 'Fontes do caso'}
+      onClose={onClose}
+      wide={kind === 'research'}
+    >
       {kind === 'research' ? (
         <ScreenLoadBoundary fallback={<p role="alert">Não foi possível abrir a pesquisa.</p>}>
           <Suspense fallback={<p role="status">Carregando pesquisa…</p>}>
