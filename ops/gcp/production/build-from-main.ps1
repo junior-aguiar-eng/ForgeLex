@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 param(
   [Parameter(Mandatory = $true)][string]$ProjectId,
   [Parameter(Mandatory = $true)][string]$ImageUri,
@@ -11,6 +12,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'deploy-lib.ps1')
 $branch = (git branch --show-current).Trim()
 if ($LASTEXITCODE -ne 0 -or $branch -ne 'main') { throw 'O build de produção exige checkout na branch main.' }
 if (git status --porcelain) { throw 'O build de produção exige working tree limpo.' }
@@ -28,12 +30,20 @@ if ($SupabasePublishableKey -notmatch '^sb_publishable_[A-Za-z0-9_-]{8,}$') {
   throw 'A chave de build deve ser publishable.'
 }
 
-$substitutions = "_IMAGE_URI=$ImageUri,_SOURCE_SHA=$sourceSha,_VITE_SUPABASE_URL=$SupabaseUrl,_VITE_SUPABASE_PUBLISHABLE_KEY=$SupabasePublishableKey,_SUPABASE_PROJECT_REF=$projectRef,_VITE_FORGELEX_SAVED_RESEARCH_ENABLED=$SavedResearchEnabled,_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED=$AgenticWorkspaceEnabled,_VITE_FORGELEX_CASE_WORKSPACE_ENABLED=$CaseWorkspaceEnabled"
-gcloud builds submit . --config=ops/gcp/production/cloudbuild.yaml --project=$ProjectId --substitutions=$substitutions --quiet
-if ($LASTEXITCODE -ne 0) { throw 'Cloud Build falhou.' }
+$previous = @{
+  '_IMAGE_URI'                               = $ImageUri
+  '_SOURCE_SHA'                              = $sourceSha
+  '_SUPABASE_PROJECT_REF'                    = $projectRef
+  '_VITE_SUPABASE_URL'                       = $SupabaseUrl
+  '_VITE_SUPABASE_PUBLISHABLE_KEY'           = $SupabasePublishableKey
+  '_VITE_FORGELEX_SAVED_RESEARCH_ENABLED'    = $SavedResearchEnabled
+  '_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED' = $AgenticWorkspaceEnabled
+  '_VITE_FORGELEX_CASE_WORKSPACE_ENABLED'    = $CaseWorkspaceEnabled
+}
+$substitutions = New-BuildSubstitutions -Previous $previous -Sha $sourceSha
+$build = Invoke-GcloudJson -Arguments @('builds', 'submit', '.', '--config=ops/gcp/production/cloudbuild.yaml', "--project=$ProjectId", "--substitutions=$(ConvertTo-SubstitutionArgument $substitutions)", '--suppress-logs', '--quiet')
+$trustedBuild = Get-TrustedBuildOutput -Build $build -ProjectId $ProjectId -ImageUri $ImageUri -ExpectedSubstitutions $substitutions
 
-$image = "${ImageUri}:$sourceSha"
-$digest = (gcloud artifacts docker images describe $image --project=$ProjectId --format='value(image_summary.digest)').Trim()
-if ($LASTEXITCODE -ne 0 -or !$digest) { throw 'O digest da imagem não foi encontrado.' }
+Write-Output "buildId=$($trustedBuild.Id)"
 Write-Output "sourceSha=$sourceSha"
-Write-Output "image=${ImageUri}@$digest"
+Write-Output "image=$($trustedBuild.Image)"

@@ -189,6 +189,66 @@ Test-Case 'monta o argumento do gcloud e mascara a chave na exibição' {
   Assert-True ($shown -match 'sb_publishable_\*\*\*') 'a máscara não apareceu'
 }
 
+Write-Host 'Get-TrustedBuildOutput'
+$trustedBuildId = '12345678-1234-4234-9234-123456789abc'
+$trustedProject = 'project-test'
+$trustedDigest = 'sha256:' + ('c' * 64)
+function New-TrustedBuild {
+  param(
+    [string]$Id = $trustedBuildId,
+    [string]$ProjectId = $trustedProject,
+    [string]$Status = 'SUCCESS',
+    [hashtable]$Substitutions,
+    [object[]]$Images
+  )
+  if ($null -eq $Substitutions) {
+    $Substitutions = @{}; foreach ($key in $script:trustedExpected.Keys) { $Substitutions[$key] = $script:trustedExpected[$key] }
+  }
+  if ($null -eq $Images) {
+    $Images = @([pscustomobject]@{ name = "$($script:trustedImage):$($script:trustedExpected['_SOURCE_SHA'])"; digest = $trustedDigest })
+  }
+  return [pscustomobject]@{
+    id = $Id; projectId = $ProjectId; status = $Status; substitutions = [pscustomobject]$Substitutions
+    results = [pscustomobject]@{ images = $Images }
+  }
+}
+$script:trustedExpected = New-BuildSubstitutions -Previous $goodSubs -Sha $sha
+$script:trustedImage = $goodSubs['_IMAGE_URI']
+
+Test-Case 'aceita somente a imagem vinculada ao resultado do build esperado' {
+  $result = Get-TrustedBuildOutput -Build (New-TrustedBuild) -ProjectId $trustedProject -ImageUri $script:trustedImage -ExpectedSubstitutions $script:trustedExpected
+  Assert-Equal $result.Id $trustedBuildId
+  Assert-Equal $result.Image "$($script:trustedImage)@$trustedDigest"
+  Assert-Equal $result.RevisionSuffix 'aaaaaaa-12345678'
+}
+Test-Case 'recusa build de outro SHA ou com substituições diferentes' {
+  $wrong = @{}; foreach ($key in $script:trustedExpected.Keys) { $wrong[$key] = $script:trustedExpected[$key] }
+  $wrong['_SOURCE_SHA'] = 'b' * 40
+  Assert-Throws { Get-TrustedBuildOutput -Build (New-TrustedBuild -Substitutions $wrong) -ProjectId $trustedProject -ImageUri $script:trustedImage -ExpectedSubstitutions $script:trustedExpected } 'substituição esperada _SOURCE_SHA'
+}
+Test-Case 'recusa tag, digest ou quantidade de imagens divergente' {
+  $wrongTag = @([pscustomobject]@{ name = "$($script:trustedImage):$('b' * 40)"; digest = $trustedDigest })
+  Assert-Throws { Get-TrustedBuildOutput -Build (New-TrustedBuild -Images $wrongTag) -ProjectId $trustedProject -ImageUri $script:trustedImage -ExpectedSubstitutions $script:trustedExpected } 'exatamente a imagem esperada'
+  $wrongDigest = @([pscustomobject]@{ name = "$($script:trustedImage):$sha"; digest = 'sha256:curto' })
+  Assert-Throws { Get-TrustedBuildOutput -Build (New-TrustedBuild -Images $wrongDigest) -ProjectId $trustedProject -ImageUri $script:trustedImage -ExpectedSubstitutions $script:trustedExpected } 'digest válido'
+  $extra = @((New-TrustedBuild).results.images[0], [pscustomobject]@{ name = 'outra'; digest = $trustedDigest })
+  Assert-Throws { Get-TrustedBuildOutput -Build (New-TrustedBuild -Images $extra) -ProjectId $trustedProject -ImageUri $script:trustedImage -ExpectedSubstitutions $script:trustedExpected } 'exatamente a imagem esperada'
+}
+Test-Case 'recusa build sem identidade, projeto ou sucesso esperados' {
+  Assert-Throws { Get-TrustedBuildOutput -Build (New-TrustedBuild -Id 'previsivel') -ProjectId $trustedProject -ImageUri $script:trustedImage -ExpectedSubstitutions $script:trustedExpected } 'ID válido'
+  Assert-Throws { Get-TrustedBuildOutput -Build (New-TrustedBuild -ProjectId 'outro') -ProjectId $trustedProject -ImageUri $script:trustedImage -ExpectedSubstitutions $script:trustedExpected } 'outro projeto'
+  Assert-Throws { Get-TrustedBuildOutput -Build (New-TrustedBuild -Status 'FAILURE') -ProjectId $trustedProject -ImageUri $script:trustedImage -ExpectedSubstitutions $script:trustedExpected } 'SUCCESS'
+}
+Test-Case 'script nunca autoriza release pela existência de tag' {
+  $deploySource = Get-Content -Raw (Join-Path $PSScriptRoot 'deploy-from-main.ps1')
+  $buildSource = Get-Content -Raw (Join-Path $PSScriptRoot 'build-from-main.ps1')
+  Assert-True ($deploySource -notmatch "'artifacts', 'docker', 'images', 'describe'") 'o deploy voltou a consultar uma tag mutável'
+  Assert-True ($buildSource -notmatch 'artifacts docker images describe') 'o build auxiliar voltou a consultar uma tag mutável'
+  Assert-True ($deploySource -match "'builds', 'submit'") 'o deploy deixou de criar um build para a promoção'
+  Assert-True ($deploySource -match 'Get-TrustedBuildOutput') 'o digest não está vinculado ao resultado do build'
+  Assert-True ($buildSource -match 'Get-TrustedBuildOutput') 'o build auxiliar não vinculou o digest ao resultado'
+}
+
 Write-Host 'Compare-RevisionConfig'
 Test-Case 'revisões iguais, exceto FORGELEX_SOURCE_SHA e a imagem, não têm diferenças' {
   # @(...) é como o deploy-from-main.ps1 chama; sem ele este teste escondeu um array embrulhado (Count sempre 1).

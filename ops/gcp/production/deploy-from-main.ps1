@@ -5,8 +5,9 @@
 
 .DESCRIPTION
   Sequência: confere o checkout e a CI, lê o estado de produção, reaproveita as substituições do último build
-  bem-sucedido (trocando só o SHA), gera a imagem, cria as revisões SEM tráfego, confere que só a imagem e
-  FORGELEX_SOURCE_SHA mudaram, troca o tráfego, verifica e, se qualquer coisa falhar, reverte sozinho.
+  bem-sucedido (trocando só o SHA), gera a imagem em um novo Cloud Build e usa somente o digest autenticado pelo
+  resultado desse build. Depois cria as revisões SEM tráfego, confere que só a imagem e FORGELEX_SOURCE_SHA mudaram,
+  troca o tráfego, verifica e, se qualquer coisa falhar, reverte sozinho.
 
   Não aplica migrations: FORGELEX_AUTO_MIGRATE continua como está nos serviços. Se o SHA traz migration, aplique-a
   antes, pelo procedimento próprio, e faça backup.
@@ -15,6 +16,7 @@
   ./ops/gcp/production/deploy-from-main.ps1 -DryRun     # só lê e mostra o plano; não altera nada
   ./ops/gcp/production/deploy-from-main.ps1             # publica
   ./ops/gcp/production/deploy-from-main.ps1 -NoTraffic  # gera a imagem e as revisões, sem trocar o tráfego
+  ./ops/gcp/production/deploy-from-main.ps1 -ReleaseBuildId '<id>' # retoma o build exibido pelo -NoTraffic
 #>
 [CmdletBinding()]
 param(
@@ -30,6 +32,8 @@ param(
   [ValidateSet('true', 'false')][string]$DeskShellEnabled,
   [ValidateSet('true', 'false')][string]$AttachmentsEnabled,
   [ValidateSet('true', 'false')][string]$MatterChipsEnabled,
+  [ValidatePattern('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')]
+  [string]$ReleaseBuildId,
   [switch]$DryRun,
   [switch]$NoTraffic,
   [switch]$SkipCiCheck
@@ -118,9 +122,16 @@ Write-Host "  URL pública  $publicUrl"
 Get-ApiRuntimeFlagReport $apiContainer | ForEach-Object { Write-Host "  $_" }
 
 # ---------------------------------------------------------------- 4. Configuração de build
-Write-Step '4/7 Configuração de build (do último build bem-sucedido)'
-$builds = @(Invoke-GcloudJson -Arguments @('builds', 'list', "--project=$ProjectId", '--filter=status=SUCCESS', '--limit=30', '--sort-by=~createTime'))
-$base = Select-ProductionBuild -Builds $builds -ImageUri $ImageUri
+Write-Step '4/7 Configuração de build'
+$build = $null
+if ($ReleaseBuildId) {
+  $build = Invoke-GcloudJson -Arguments @('builds', 'describe', $ReleaseBuildId, "--project=$ProjectId")
+  $base = Select-ProductionBuild -Builds @($build) -ImageUri $ImageUri
+}
+else {
+  $builds = @(Invoke-GcloudJson -Arguments @('builds', 'list', "--project=$ProjectId", '--filter=status=SUCCESS', '--limit=30', '--sort-by=~createTime'))
+  $base = Select-ProductionBuild -Builds $builds -ImageUri $ImageUri
+}
 $overrides = @{}
 if ($PSBoundParameters.ContainsKey('AgenticWorkspaceEnabled')) { $overrides['_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED'] = $AgenticWorkspaceEnabled }
 if ($PSBoundParameters.ContainsKey('CaseWorkspaceEnabled')) { $overrides['_VITE_FORGELEX_CASE_WORKSPACE_ENABLED'] = $CaseWorkspaceEnabled }
@@ -129,21 +140,26 @@ if ($PSBoundParameters.ContainsKey('DeskShellEnabled')) { $overrides['_VITE_FORG
 if ($PSBoundParameters.ContainsKey('AttachmentsEnabled')) { $overrides['_VITE_FORGELEX_ATTACHMENTS_ENABLED'] = $AttachmentsEnabled }
 if ($PSBoundParameters.ContainsKey('MatterChipsEnabled')) { $overrides['_VITE_FORGELEX_MATTER_CHIPS_ENABLED'] = $MatterChipsEnabled }
 $substitutions = New-BuildSubstitutions -Previous $base.Substitutions -Sha $sha -Overrides $overrides
-Write-Host "  base: build $($base.Id)$(if ($overrides.Count) { "  (com $($overrides.Count) flag(s) trocada(s) de propósito)" })"
+Write-Host "  base: build $($base.Id)$(if ($ReleaseBuildId) { '  (retomada explícita)' } elseif ($overrides.Count) { "  (com $($overrides.Count) flag(s) trocada(s) de propósito)" })"
 Format-MaskedSubstitutions $substitutions | ForEach-Object { Write-Host "  $_" }
 
 $imageTag = "${ImageUri}:$sha"
-$lookup = Invoke-Gcloud -AllowFailure -Arguments @('artifacts', 'docker', 'images', 'describe', $imageTag, "--project=$ProjectId", '--format=value(image_summary.digest)')
-$digest = $null
-if ($lookup.ExitCode -eq 0) { $digest = @($lookup.Output | Where-Object { $_ -match '^sha256:[0-9a-f]{64}$' })[0] }
-$needBuild = (-not $digest) -or ($overrides.Count -gt 0)
-$suffix = $sha.Substring(0, 7)
+$trustedBuild = if ($null -ne $build) {
+  Get-TrustedBuildOutput -Build $build -ProjectId $ProjectId -ImageUri $ImageUri -ExpectedSubstitutions $substitutions
+}
+else { $null }
+$plannedSuffix = if ($null -ne $trustedBuild) { $trustedBuild.RevisionSuffix } else { "$($sha.Substring(0, 7))-<build-id>" }
 
 if ($DryRun) {
   Write-Step 'Plano (simulação)'
-  Write-Host "  imagem           $imageTag  $(if ($needBuild) { '(será construída)' } else { "(já existe: $digest)" })"
+  if ($null -ne $trustedBuild) {
+    Write-Host "  imagem           $($trustedBuild.Image)  (Cloud Build $($trustedBuild.Id))"
+  }
+  else {
+    Write-Host "  imagem           $imageTag  (será construída; o digest virá do resultado do novo Cloud Build)"
+  }
   foreach ($name in $ApiService, $ClosureService) {
-    Write-Host "  $name  $($state[$name].Previous)  ->  $name-$suffix"
+    Write-Host "  $name  $($state[$name].Previous)  ->  $name-$plannedSuffix"
   }
   Write-Host '  ordem da troca   encerramento, depois API; verificação; reversão automática se falhar'
   Write-Host ''
@@ -158,19 +174,19 @@ if ($DryRun) {
 
 # ---------------------------------------------------------------- 5. Build
 Write-Step '5/7 Imagem'
-if ($needBuild) {
-  Write-Host "  construindo $imageTag (alguns minutos)..."
-  & gcloud builds submit . --config=ops/gcp/production/cloudbuild.yaml "--project=$ProjectId" "--substitutions=$(ConvertTo-SubstitutionArgument $substitutions)" --quiet 2>&1 |
-    ForEach-Object { ("$_") -replace 'sb_publishable_[A-Za-z0-9_-]+', 'sb_publishable_***' } | Select-Object -Last 8 | ForEach-Object { Write-Host "  $_" }
-  if ($LASTEXITCODE -ne 0) { throw 'O Cloud Build falhou. Nada foi alterado em produção.' }
-  $lookup = Invoke-Gcloud -Arguments @('artifacts', 'docker', 'images', 'describe', $imageTag, "--project=$ProjectId", '--format=value(image_summary.digest)')
-  $digest = @($lookup.Output | Where-Object { $_ -match '^sha256:[0-9a-f]{64}$' })[0]
+if ($null -eq $trustedBuild) {
+  Write-Host "  construindo $imageTag em um novo Cloud Build (alguns minutos)..."
+  $build = Invoke-GcloudJson -Arguments @('builds', 'submit', '.', '--config=ops/gcp/production/cloudbuild.yaml', "--project=$ProjectId", "--substitutions=$(ConvertTo-SubstitutionArgument $substitutions)", '--suppress-logs', '--quiet')
+  $trustedBuild = Get-TrustedBuildOutput -Build $build -ProjectId $ProjectId -ImageUri $ImageUri -ExpectedSubstitutions $substitutions
 }
 else {
-  Write-Host "  a imagem deste SHA já existe; reaproveitando"
+  Write-Host "  retomando o Cloud Build $($trustedBuild.Id) após conferir projeto, SHA, substituições e digest"
 }
-if (-not $digest) { throw 'Não foi possível obter o digest da imagem.' }
-$image = "$ImageUri@$digest"
+$buildId = $trustedBuild.Id
+$digest = $trustedBuild.Digest
+$image = $trustedBuild.Image
+$suffix = $trustedBuild.RevisionSuffix
+Write-Host "  build $buildId"
 Write-Host "  $image"
 
 # ---------------------------------------------------------------- 6. Revisões sem tráfego
@@ -208,7 +224,7 @@ foreach ($name in $ClosureService, $ApiService) {
 
 if ($NoTraffic) {
   Write-Step 'Parado antes da troca (-NoTraffic)'
-  Write-Host '  Revisões prontas e sem tráfego. Para trocar, rode novamente sem -NoTraffic: a imagem e as revisões serão reaproveitadas.'
+  Write-Host "  Revisões prontas e sem tráfego. Para trocar, rode novamente com -ReleaseBuildId '$buildId': o build e as revisões serão revalidados e reaproveitados."
   exit 0
 }
 
@@ -232,6 +248,7 @@ $result = Switch-Traffic -Plan $plan -ProjectId $ProjectId -Region $Region -Veri
 Write-Host ''
 if ($result.Ok) {
   Write-Host "PUBLICADO: $sha" -ForegroundColor Green
+  Write-Host "  build    $buildId"
   Write-Host "  imagem   $image"
   foreach ($step in $plan) { Write-Host "  $($step.Service)  $($step.Previous)  ->  $($step.Revision)" }
   Write-Host ''
@@ -242,7 +259,7 @@ if ($result.Ok) {
     }
   }
   Write-Host ''
-  Write-Host 'Registre no PENDENCIAS.md: SHA, digest, revisões e a verificação acima.'
+  Write-Host 'Registre no PENDENCIAS.md: aprovação de Boni, SHA, build ID, digest, revisões e a verificação acima.'
   exit 0
 }
 
