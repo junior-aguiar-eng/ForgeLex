@@ -14,10 +14,11 @@ import { parseArgs } from 'node:util';
  * de tribunais sem lista carregada (TST, TSE, TNU, TRF) e números de processo não entram: o relatório os conta à parte.
  * Citação com contexto histórico (“cancelada”, “superada”, “revogada”, “antiga”) não gera alerta.
  */
-export const CHECKS_PERFORMED = ['sumula-stj', 'sumula-stf', 'sumula-vinculante', 'tema-stj'];
-export const CHECKS_NOT_PERFORMED = ['tese-da-sumula', 'sumula-tst-tse-tnu-trf', 'tema-stf', 'processo-numerado'];
+export const CHECKS_PERFORMED = ['sumula-stj', 'sumula-stf', 'sumula-vinculante', 'sumula-tst', 'tema-stj'];
+export const CHECKS_NOT_PERFORMED = ['tese-da-sumula', 'sumula-tse-tnu-trf', 'tema-stf', 'processo-numerado'];
 
-const HISTORICAL = /cancel|supera|superou|revog|hist[óo]ric|antig[ao]|anterior|ultrapassad|abandon|n[ãa]o mais/i;
+const HISTORICAL =
+  /cancel|supera|superou|revog|hist[óo]ric|antig[ao]|anterior|ultrapassad|abandon|n[ãa]o mais|inconstitucional|\bex-[\s*_]*S[úu]m/i;
 const COURT = /\b(STJ|STF|TST|TSE|TNU|TRF)\b/;
 
 /**
@@ -31,6 +32,28 @@ export function parseStjSumulas(text) {
     const out = /CANCELAD|REVOGAD/i.test(match[2] ?? '');
     const number = Number(match[1]);
     if (out || !result.has(number)) result.set(number, { status: out ? 'cancelada' : 'vigente' });
+  }
+  return result;
+}
+
+/**
+ * Súmulas do TST, no PDF “Súmulas da Jurisprudência Uniforme”: cada uma abre com “SUM-N TÍTULO (situação) - Res. …”. Vale a
+ * primeira ocorrência de “SUM-N” e o primeiro parêntese depois do título: “cancelada” ou “cancelamento mantido” saíram de vigor;
+ * “mantida”, “nova redação” e “alterada” seguem em vigor.
+ */
+export function parseTstSumulas(text) {
+  const flat = text.replace(/\s+/g, ' ');
+  const result = new Map();
+  for (const match of flat.matchAll(/SUM-(\d{1,4})\s/g)) {
+    const number = Number(match[1]);
+    if (result.has(number)) continue;
+    const head = flat.slice(match.index, match.index + 260);
+    // A situação abre o primeiro parêntese, que pode ser longo. “Cancelada”, “cancelada por …” e “cancelamento mantido” tiram a
+    // súmula de vigor; “cancelado o item II” e “cancelada a parte final da antiga redação” são parciais e ela segue em vigor.
+    const status = head.match(/\(\s*([^)]{0,60})/)?.[1] ?? '';
+    result.set(number, {
+      status: /^cancel(?:ad[ao]|amento)\b(?!\s+(?:o|a|os|as)\s)/i.test(status) ? 'cancelada' : 'vigente',
+    });
   }
   return result;
 }
@@ -102,6 +125,11 @@ const sentenceAround = (text, start, end) => {
   for (const m of left.matchAll(/\.\s/g)) if (isEnd(left, m.index) && m.index > cutLeft) cutLeft = m.index;
   let cutRight = -1;
   for (const m of right.matchAll(/\.(?:\s|$)|;|\n/g)) {
+    // “;” dentro de um parêntese aberto depois da citação (“Súm. 294 (total …; parcial …) foi cancelada”) não encerra a frase.
+    const inParentheses =
+      m[0] === ';' &&
+      (right.slice(0, m.index).match(/\(/g) ?? []).length > (right.slice(0, m.index).match(/\)/g) ?? []).length;
+    if (inParentheses) continue;
     if (m[0][0] !== '.' || isEnd(right, m.index)) {
       cutRight = m.index;
       break;
@@ -183,9 +211,11 @@ export function verifyReference(ref, sources) {
         ? sources.stjSumulas
         : ref.kind === 'sumula' && ref.court === 'STF'
           ? sources.stfSumulas
-          : ref.kind === 'tema' && ref.court === 'STJ'
-            ? sources.stjTemas
-            : undefined;
+          : ref.kind === 'sumula' && ref.court === 'TST'
+            ? sources.tstSumulas
+            : ref.kind === 'tema' && ref.court === 'STJ'
+              ? sources.stjTemas
+              : undefined;
   if (!table && ref.kind === 'sumula' && ref.court === '?') {
     // Sem tribunal: não dá para conferir a tese, mas um número que não existe nem no STJ nem no STF é suspeito.
     return sources.stjSumulas.has(ref.number) || sources.stfSumulas.has(ref.number)
@@ -212,48 +242,58 @@ async function listMarkdown(directory) {
   return out;
 }
 
+// Do mais grave ao menos grave, para a situação resumida de uma citação que aparece em várias fichas.
+const SEVERITY = ['alert', 'warning', 'not-checked', 'historical', 'ok'];
+
 export async function crosscheckPrecedents(files, sources, { withContext = false } = {}) {
+  // chave da citação → { ...citação, porEstado: Map(estado → { motivo, fichas, contexto }) }
   const byKey = new Map();
-  const notChecked = {};
-  let fichasComAlerta = new Set();
   for (const file of files) {
-    for (const ref of extractReferences(file.text)) {
-      const result = verifyReference(ref, sources);
+    const refs = extractReferences(file.text);
+    // Se a própria ficha declara a súmula ou o tema cancelado, superado etc. em algum trecho, as demais menções dela na
+    // mesma ficha (por exemplo, a lista de gatilhos de busca) são históricas: a ficha existe para avisar.
+    const declared = new Set(
+      refs.filter((ref) => ref.historical).map((ref) => `${ref.kind}|${ref.court}|${ref.number}`),
+    );
+    for (const ref of refs) {
       const key = `${ref.kind}|${ref.court}|${ref.number}`;
-      const row = byKey.get(key) ?? { ...ref, ...result, fichas: new Set() };
-      if (withContext && !row.context)
-        row.context = file.text.slice(Math.max(0, ref.start - 90), ref.end + 130).replace(/\s+/g, ' ');
-      row.fichas.add(file.id);
+      const result = verifyReference({ ...ref, historical: ref.historical || declared.has(key) }, sources);
+      const row = byKey.get(key) ?? { kind: ref.kind, court: ref.court, number: ref.number, byState: new Map() };
+      const entry = row.byState.get(result.state) ?? { reason: result.reason, fichas: new Set() };
+      if (withContext && !entry.context)
+        entry.context = file.text.slice(Math.max(0, ref.start - 90), ref.end + 130).replace(/\s+/g, ' ');
+      entry.fichas.add(file.id);
+      row.byState.set(result.state, entry);
       byKey.set(key, row);
     }
   }
-  const rows = [...byKey.values()];
+  const rows = [...byKey.values()].map((row) => ({
+    ...row,
+    state: SEVERITY.find((state) => row.byState.has(state)),
+  }));
   const count = (state) => rows.filter((row) => row.state === state).length;
+  const notChecked = {};
   for (const row of rows.filter((item) => item.state === 'not-checked')) {
-    notChecked[row.reason] = (notChecked[row.reason] ?? 0) + 1;
+    const reason = row.byState.get('not-checked').reason;
+    notChecked[reason] = (notChecked[reason] ?? 0) + 1;
   }
-  const alerts = rows
-    .filter((row) => row.state === 'alert')
-    .map((row) => ({
-      kind: row.kind,
-      court: row.court,
-      number: row.number,
-      reason: row.reason,
-      fichas: [...row.fichas].sort(),
-      ...(row.context ? { context: row.context } : {}),
-    }))
-    .sort((a, b) => b.fichas.length - a.fichas.length || a.number - b.number);
-  for (const alert of alerts) for (const id of alert.fichas) fichasComAlerta.add(id);
-  const warnings = rows
-    .filter((row) => row.state === 'warning')
-    .map((row) => ({
-      kind: row.kind,
-      court: row.court,
-      number: row.number,
-      reason: row.reason,
-      fichas: [...row.fichas].sort(),
-    }))
-    .sort((a, b) => b.fichas.length - a.fichas.length || a.number - b.number);
+  const listFor = (state) =>
+    rows
+      .filter((row) => row.byState.has(state))
+      .map((row) => {
+        const entry = row.byState.get(state);
+        return {
+          kind: row.kind,
+          court: row.court,
+          number: row.number,
+          reason: entry.reason,
+          fichas: [...entry.fichas].sort(),
+          ...(entry.context ? { context: entry.context } : {}),
+        };
+      })
+      .sort((a, b) => b.fichas.length - a.fichas.length || a.number - b.number);
+  const alerts = listFor('alert');
+  const warnings = listFor('warning');
   return {
     checksPerformed: CHECKS_PERFORMED,
     checksNotPerformed: CHECKS_NOT_PERFORMED,
@@ -266,7 +306,7 @@ export async function crosscheckPrecedents(files, sources, { withContext = false
       historicas: count('historical'),
       naoConferidas: count('not-checked'),
       naoConferidasPorMotivo: notChecked,
-      fichasComAlerta: fichasComAlerta.size,
+      fichasComAlerta: new Set(alerts.flatMap((alert) => alert.fichas)).size,
     },
     alerts,
     warnings,
@@ -281,6 +321,7 @@ async function main() {
       'stf-sumulas': { type: 'string' },
       'stf-sv': { type: 'string' },
       'stj-temas': { type: 'string' },
+      'tst-sumulas': { type: 'string' },
       out: { type: 'string' },
       'with-context': { type: 'boolean' },
     },
@@ -296,6 +337,8 @@ async function main() {
     stfSumulas: parseStfList(await readFile(values['stf-sumulas'], 'utf8'), false),
     stfSv: parseStfList(await readFile(values['stf-sv'], 'utf8'), true),
     stjTemas: parseStjTemas(await readFile(values['stj-temas'], 'utf8')),
+    // Opcional: sem a lista do TST, as citações do TST ficam “tribunal sem lista”.
+    ...(values['tst-sumulas'] ? { tstSumulas: parseTstSumulas(await readFile(values['tst-sumulas'], 'latin1')) } : {}),
   };
   const files = [];
   // Só as fichas (pastas Forma e Matéria); LEIA-ME e manifesto ficam de fora.

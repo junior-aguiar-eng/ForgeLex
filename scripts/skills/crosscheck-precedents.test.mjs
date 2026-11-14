@@ -7,6 +7,7 @@ import {
   parseStfList,
   parseStjSumulas,
   parseStjTemas,
+  parseTstSumulas,
   verifyReference,
 } from './crosscheck-precedents.mjs';
 
@@ -77,6 +78,8 @@ test('atribui o tribunal certo e reconhece o histórico nos casos reais do catá
     'supera Súm. 276 STJ',
     'superando a Súm. 105 STF e a Súm. 61 STJ',
     'baliza reafirmada pelo STJ ao cancelar o Tema 479, em 2026',
+    '- **ex-Súm. 423 TST**: turno ininterrupto > 6h via ACT/CCT até 8h sem HE; cancelada pela Res. TST 225/2025',
+    'Declarou **inconstitucional** a Súm. 277 TST (na redação da Res. TST 185/2012) e qualquer interpretação',
   ]) {
     assert.equal(
       extractReferences(text).every((r) => r.historical),
@@ -84,6 +87,47 @@ test('atribui o tribunal certo e reconhece o histórico nos casos reais do catá
       text,
     );
   }
+});
+
+test('TST: cancelamento parcial de item ou de parte da redação não tira a súmula de vigor', () => {
+  const tst = parseTstSumulas(
+    'SUM-221 RECURSO (cancelado o item II e conferida nova redação na sessão) - Res. 185/2012 texto ' +
+      'SUM-191 ADICIONAL (cancelada a parte final da antiga redação e inseridos os itens II e III) - Res. 214/2016 texto ' +
+      'SUM-294 PRESCRIÇÃO (cancelada por perda de eficácia a partir de 11.11.2017, pela Lei 13.467/2017) - Res. 225/2025 texto ' +
+      'SUM-9 Z (cancelada) - Res. 1/2003 texto',
+  );
+  assert.equal(tst.get(221).status, 'vigente');
+  assert.equal(tst.get(191).status, 'vigente');
+  assert.equal(tst.get(294).status, 'cancelada');
+  assert.equal(tst.get(9).status, 'cancelada');
+});
+
+test('o ponto e vírgula dentro de parênteses depois da citação não corta a frase (histórico fica visível)', () => {
+  const [ref] = extractReferences(
+    'a Súm. 294 TST (total na alteração contratual; parcial no trato sucessivo assegurado por lei) foi cancelada pela Lei 13.467.',
+  );
+  assert.equal(ref.court, 'TST');
+  assert.equal(ref.historical, true);
+});
+
+test('lê as súmulas do TST: mantida e nova redação em vigor, cancelada e cancelamento mantido fora', () => {
+  const tst = parseTstSumulas(
+    'SUM-1 PRAZO JUDICIAL (mantida) - Res. 121/2003 Quando a intimação...  SUM-2 GRATIFICAÇÃO NATALINA (cancelada) - Res. 121/2003 É devida...\n' +
+      'SUM-3 X (nova redação) - Res. 1/2020 texto (ex-Súmula nº 6) SUM-4 Y (cancelamento mantido) - Res. 2/2021 texto SUM-3 remissão',
+  );
+  assert.equal(tst.get(1).status, 'vigente');
+  assert.equal(tst.get(2).status, 'cancelada');
+  assert.equal(tst.get(3).status, 'vigente');
+  assert.equal(tst.get(4).status, 'cancelada');
+  const withTst = { ...sources, tstSumulas: tst };
+  const v = (court, number) => verifyReference({ kind: 'sumula', court, number, historical: false }, withTst).state;
+  assert.equal(v('TST', 1), 'ok');
+  assert.equal(v('TST', 2), 'alert');
+  assert.equal(v('TST', 999), 'alert');
+  assert.equal(
+    verifyReference({ kind: 'sumula', court: 'TST', number: 1, historical: false }, sources).reason,
+    'tribunal-sem-lista',
+  );
 });
 
 test('“alterada” é aviso (a súmula segue em vigor com outra redação), não alerta', () => {
@@ -110,6 +154,23 @@ test('classifica: existe, cancelada, inexistente, histórica e não conferida', 
   assert.equal(v('sumula', '?', 7), 'not-checked', 'existe no STJ, mas sem tribunal declarado não confere a tese');
   assert.equal(v('sumula', '?', 100), 'warning', 'não existe nem no STJ nem no STF');
   assert.equal(v('tema', '?', 10), 'not-checked');
+});
+
+test('ficha que declara a súmula cancelada em outro trecho não gera alerta pelas outras menções (ex.: lista de gatilhos)', async () => {
+  const report = await crosscheckPrecedents(
+    [
+      {
+        id: 'avisa',
+        text: 'triggers: ["Súm. 8 STJ", "outra"]\n\n## Súm. 8 STJ (CANCELADA)\nNão invocar.\n- Aplicar a Súm. 8 STJ: errado.',
+      },
+      { id: 'cita-como-vigente', text: 'Aplique a Súm. 8 STJ ao caso.' },
+    ],
+    sources,
+  );
+  assert.deepEqual(
+    report.alerts.map((a) => a.fichas),
+    [['cita-como-vigente']],
+  );
 });
 
 test('o relatório agrega por referência, lista só identificadores de ficha e conta o que não conferiu', async () => {
