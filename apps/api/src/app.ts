@@ -814,7 +814,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      reply.status(message.startsWith('BILLING_') || message.startsWith('INVALID_') ? 400 : 503);
+      reply.status(message === 'IDEMPOTENCY_CONFLICT' ? 409 : message.startsWith('BILLING_') || message.startsWith('INVALID_') ? 400 : 503);
       return { error: message.split(':')[0] ?? 'BILLING_CHECKOUT_FAILED', message: 'Não foi possível criar o Checkout.' };
     }
   });

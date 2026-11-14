@@ -143,9 +143,23 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
     );
     const status = this.resolveStatus(resourceType, resource);
     const purchaseId = typeof resource.external_reference === 'string' ? resource.external_reference : undefined;
-    const providerReference = resourceType === 'order'
-      ? (typeof resource.id === 'string' ? resource.id : input.dataId)
-      : (typeof resource.order_id === 'string' ? resource.order_id : input.dataId);
+    const nestedOrder = resource.order && typeof resource.order === 'object'
+      ? resource.order as Record<string, unknown>
+      : undefined;
+    const providerCheckoutId = resourceType === 'order'
+      ? (typeof resource.id === 'string' ? resource.id : undefined)
+      : typeof resource.order_id === 'string'
+        ? resource.order_id
+        : typeof nestedOrder?.id === 'string'
+          ? nestedOrder.id
+          : undefined;
+    const providerReference = providerCheckoutId ?? (typeof resource.id === 'string' ? resource.id : input.dataId);
+    const amountCents = this.parseAmountCents(resource.total_amount ?? resource.transaction_amount);
+    const providerCurrency = typeof resource.currency === 'string'
+      ? resource.currency
+      : typeof resource.currency_id === 'string'
+        ? resource.currency_id
+        : undefined;
     const eventType = status === 'paid'
       ? 'payment.approved'
       : status === 'failed'
@@ -165,8 +179,11 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
           id: providerReference,
           payment_status: status,
           provider_payment_id: providerReference,
+          ...(providerCheckoutId ? { provider_checkout_id: providerCheckoutId } : {}),
+          ...(purchaseId ? { external_reference: purchaseId } : {}),
           ...(purchaseId ? { metadata: { purchase_id: purchaseId } } : {}),
-          ...(typeof resource.total_amount === 'string' ? { amount_total: Math.round(Number(resource.total_amount) * 100) } : {}),
+          ...(amountCents !== undefined ? { amount_total: amountCents } : {}),
+          ...(providerCurrency?.trim() ? { currency: providerCurrency.toLowerCase() } : {}),
         },
       },
     };
@@ -225,5 +242,15 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
   private formatAmount(amountCents: number): string {
     if (!Number.isInteger(amountCents) || amountCents <= 0) throw new Error('MERCADOPAGO_AMOUNT_INVALID');
     return (amountCents / 100).toFixed(2);
+  }
+
+  private parseAmountCents(value: unknown): number | undefined {
+    if (typeof value !== 'string' && typeof value !== 'number') return undefined;
+    const match = String(value).match(/^(\d+)(?:\.(\d{1,2}))?$/);
+    if (!match) return undefined;
+    const wholeCents = Number(match[1]) * 100;
+    const fractionalCents = Number((match[2] ?? '').padEnd(2, '0'));
+    const amountCents = wholeCents + fractionalCents;
+    return Number.isSafeInteger(amountCents) && amountCents > 0 ? amountCents : undefined;
   }
 }

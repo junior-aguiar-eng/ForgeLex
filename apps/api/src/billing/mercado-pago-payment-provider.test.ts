@@ -124,6 +124,7 @@ describe('MercadoPagoPaymentProvider', () => {
       status: 'processed',
       external_reference: 'purchase_1',
       total_amount: '50.00',
+      currency: 'BRL',
       transactions: { payments: [{ id: 'PAYTEST123', status: 'processed' }] },
     }));
     const provider = new MercadoPagoPaymentProvider({
@@ -151,15 +152,49 @@ describe('MercadoPagoPaymentProvider', () => {
       data: { object: {
         payment_status: 'paid',
         provider_payment_id: 'ORDTEST123',
+        provider_checkout_id: 'ORDTEST123',
+        amount_total: 5000,
+        currency: 'brl',
+        external_reference: 'purchase_1',
         metadata: { purchase_id: 'purchase_1' },
       } },
     });
     expect(fetcher).toHaveBeenCalledWith('https://api.mercadopago.com/v1/orders/ORDTEST123', expect.objectContaining({ method: 'GET' }));
   });
 
+  it('normaliza pagamento com order aninhada para a mesma identidade de checkout', async () => {
+    const fetcher = vi.fn(async () => response({
+      id: 'PAYTEST123',
+      status: 'approved',
+      external_reference: 'purchase_1',
+      transaction_amount: 50,
+      currency_id: 'BRL',
+      order: { id: 'ORDTEST123' },
+    }));
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher });
+    const manifest = 'id:paytest123;request-id:req_2;ts:1700000000;';
+    const signature = `ts=1700000000,v1=${createHmac('sha256', 'webhook-secret').update(manifest).digest('hex')}`;
+
+    const event = await provider.normalizeWebhook({
+      payload: { type: 'payment', action: 'payment.updated' },
+      dataId: 'PAYTEST123',
+      requestId: 'req_2',
+      signature,
+    });
+
+    expect(event.data.object).toMatchObject({
+      provider_payment_id: 'ORDTEST123',
+      provider_checkout_id: 'ORDTEST123',
+      amount_total: 5000,
+      currency: 'brl',
+      external_reference: 'purchase_1',
+      metadata: { purchase_id: 'purchase_1' },
+    });
+  });
+
   it('distingue mudança de status sem id de notificação e preserva replay', async () => {
     let status = 'created';
-    const fetcher = vi.fn(async () => response({ id: 'ORDTEST123', status, external_reference: 'purchase_1', total_amount: '25.00' }));
+    const fetcher = vi.fn(async () => response({ id: 'ORDTEST123', status, external_reference: 'purchase_1', total_amount: '25.00', currency: 'BRL' }));
     const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher });
     const manifest = 'id:ordtest123;request-id:req_1;ts:1700000000;';
     const signature = `ts=1700000000,v1=${createHmac('sha256', 'webhook-secret').update(manifest).digest('hex')}`;
