@@ -291,7 +291,8 @@ manifesto, as contagens e os hashes. Todas as fichas ficam no catálogo, mas o r
 **M3.2 — Cruzamento em massa (executado).**
 
 - [x] `scripts/skills/crosscheck-catalog.mjs` conferiu existência e vigência de 14.906 referências a artigos no primeiro cruzamento. As rodadas M3.4–M3.6 trataram a fila, leis esparsas e precedentes selecionados. O registro final da montagem local aponta 2.077 fichas elegíveis e nenhuma pendente.
-- [ ] Verificação integral de súmulas e precedentes no índice do STJ pendente. O cruzamento cobriu referências selecionadas.
+- [x] Súmulas do STJ e do STF, súmulas vinculantes e temas do STJ conferidos em massa contra listas oficiais (M3.7, 14/11/2026): 1.585 citações corretas, 31 históricas, 2 alertas (Súmula 263 do STJ e Súmula 394 do STF, canceladas, em listas de gatilhos) e 1 aviso (Súmula 359 do STF, alterada).
+- [ ] Ainda sem conferência: súmulas do TST, TSE, TNU e TRF e temas do STF (1.031 citações); 1.355 citações sem tribunal declarado; números de processo; e a tese de cada súmula (leitura dirigida).
 - [ ] A avaliação de contradições de teor e teses generalizadas depende de leitura dirigida. Usar o piloto e as fichas de maior uso quando houver casos autorizados para avaliar.
 
 **M3.3 — Lote 0 (piloto).** As quatro fichas do `penal-civel-r15-v1` (`resposta-acusacao`,

@@ -1096,6 +1096,37 @@ Boni aceitou a A18 (homologação funcional no ambiente isolado) em 14/11/2026, 
 
 Efeito no plano: a dependência de V1 em M2 está atendida.
 
+## M3.7 · Conferência em massa de súmulas e temas (14/11/2026)
+
+`scripts/skills/crosscheck-precedents.mjs` (com `crosscheck-precedents.test.mjs`, 6 testes) lê as 2.077 fichas da pasta local do catálogo, extrai as citações a súmulas e temas e as confere contra listas oficiais, sem leitura ficha a ficha. O relatório traz só identificadores (tipo, tribunal, número, motivo e `stableId` das fichas); `--with-context` acrescenta o trecho citado e fica desligado por padrão.
+
+**Fontes oficiais usadas**
+
+| Fonte | Conteúdo | Observação |
+| --- | --- | --- |
+| STJ, página `processo.stj.jus.br/SCON/sumstj/toc.jsp`, PDF `VerbetesSTJ_asc` | 676 súmulas, cada uma com a situação (em vigor, alterada, cancelada, revogada) | O PDF `SumulasSTJ.pdf` baixado antes termina na súmula 649 e foi descartado; com ele, 28 citações de súmulas 650 a 691 apareceram como inexistentes por defeito da fonte. |
+| STF, `portal.stf.jus.br/jurisprudencia/sumariosumulas.asp` (base 30 e 26) | 736 súmulas e 62 vinculantes, com “superada”, “cancelada” e “alterada” | |
+| STJ, dados abertos, `temas.csv` (precedentes qualificados) | 1.474 temas do tipo Tema (não conta Controvérsias), com a situação | |
+
+O SCON do STJ (`scon.stj.jus.br`) segue negando acesso (403) e não foi contornado.
+
+**Resultado** (4.005 citações distintas):
+
+| Situação | Citações |
+| --- | ---: |
+| Conferidas e corretas | 1.585 |
+| Históricas (a própria ficha diz que foi cancelada ou superada) | 31 |
+| Alerta | 2 |
+| Aviso | 1 |
+| Não conferidas: tribunal não declarado | 1.355 |
+| Não conferidas: tribunal sem lista (TST, TSE, TNU, TRF, temas do STF) | 1.031 |
+
+**Os 2 alertas** são súmulas canceladas que aparecem só em listas de gatilhos de busca: Súmula 263 do STJ em `leasing-arrendamento-mercantil` e Súmula 394 do STF em `foro-prerrogativa-funcao-cf-102`. **O aviso** é a Súmula 359 do STF (“alterada”, ainda em vigor com outra redação), citada em 6 fichas. Nenhuma decisão de Boni foi tomada sobre essas fichas.
+
+**O que a rodada mostrou sobre a própria conferência.** A primeira passada deu 38 alertas, e a inspeção do contexto de cada um mostrou que quase todos eram leitura errada: citação histórica não reconhecida (“com cancelamento da Súm. 512”, “supera Súm. 276”), tribunal atribuído a partir de outra citação da mesma frase (“STF (Tema 810)”, “Tema 745 … Tema 986 STJ”, “fixou no Tema 386”, da TNU) e o ponto de “Súm.” tratado como fim de frase. Cada caso virou teste. O que resta tem o mesmo risco de leitura imperfeita e por isso o relatório diz o que não conferiu.
+
+**Não conferido:** a tese de cada súmula (se a ficha atribui à súmula o conteúdo certo); súmulas do TST, TSE, TNU e TRF e temas do STF; as 1.355 citações sem tribunal declarado (só se sabe que o número existe no STJ ou no STF); e os números de processo (REsp, HC, ADI etc.), pois a extração por padrão mistura artigos de lei (“CC 1.723”) com classes processuais e o índice do ForgeLex não tem valor de prova negativa (M3.6).
+
 ## Evidências locais
 
 As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo das fichas são insumos de análise local. O inventário completo será gerado no workspace local ignorado pelo Git.
