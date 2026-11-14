@@ -140,6 +140,14 @@ describe('BillingOperationsService', () => {
     ]));
   });
 
+  it('isola a chave de idempotência do provedor por compra quando dois tenants usam a mesma chave do cliente', async () => {
+    const first = await operations.createCheckout({ tenantId: `tenant_key_a_${randomUUID()}`, userId: 'user_a', packageId: 'credits_25', idempotencyKey: 'checkout' });
+    const second = await operations.createCheckout({ tenantId: `tenant_key_b_${randomUUID()}`, userId: 'user_b', packageId: 'credits_25', idempotencyKey: 'checkout' });
+
+    expect(first.purchaseId).not.toBe(second.purchaseId);
+    expect(provider.checkouts.map((checkout) => checkout.idempotencyKey)).toEqual([first.purchaseId, second.purchaseId]);
+  });
+
   it('processa pagamento confirmado e não duplica o crédito em replay do webhook', async () => {
     const tenantId = `tenant_${randomUUID()}`;
     const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });

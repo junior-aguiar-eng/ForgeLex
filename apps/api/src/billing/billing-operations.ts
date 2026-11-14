@@ -71,6 +71,17 @@ export class PaymentProviderRejectedError extends Error {
   }
 }
 
+/** Status and public code for a failed Mercado Pago delivery. Only an unauthentic delivery is final (401); every other
+ * failure, including timeouts and database errors, answers 503 so the provider retries. Only our own error codes are
+ * echoed back: raw driver or network messages never reach the sender.
+ */
+export function mercadoPagoWebhookFailure(error: unknown): { status: number; code: string } {
+  const code = error instanceof Error ? (error.message.split(':')[0] ?? '') : '';
+  if (code === 'MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID' || code === 'MERCADOPAGO_WEBHOOK_EXPIRED') return { status: 401, code };
+  if (code.startsWith('BILLING_') || code.startsWith('MERCADOPAGO_')) return { status: 503, code };
+  return { status: 503, code: 'MERCADOPAGO_WEBHOOK_PROCESSING_FAILED' };
+}
+
 /** HTTP status for refund review/recovery failures: the admin must know whether a retry (503) or a decision (4xx) is needed. */
 export function refundFailureStatus(error: unknown): number {
   if (error instanceof PaymentProviderRejectedError) return 422;

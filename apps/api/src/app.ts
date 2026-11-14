@@ -78,7 +78,7 @@ import type { Client } from '@forgelex/persistence';
 import { createLegalResearchMemoTool, LegalResearchMemoExecutionService, type DeskMatter, type DeskPiece } from '@forgelex/legal-workflows';
 import { RequestMetrics, structuredLog } from './observability.js';
 import { logMcpCall } from './mcp-call-log.js';
-import { BillingOperationsService, refundFailureStatus, type PaymentProvider } from './billing/billing-operations.js';
+import { BillingOperationsService, mercadoPagoWebhookFailure, refundFailureStatus, type PaymentProvider } from './billing/billing-operations.js';
 import { MercadoPagoPaymentProvider } from './billing/mercado-pago-payment-provider.js';
 import { resolveDatabasePolicy } from './config/database-policy.js';
 import { OperationalRetentionService, resolveRetentionPolicy } from './operations/retention-service.js';
@@ -861,10 +861,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       await billingOperationsService.processMercadoPagoWebhook(mercadoPagoPaymentProvider, { payload, dataId, requestId, signature });
       return { received: true };
     } catch (error) {
-      const code = error instanceof Error ? error.message.split(':')[0] : 'MERCADOPAGO_WEBHOOK_INVALID';
-      reply.status(code === 'MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID' || code === 'MERCADOPAGO_WEBHOOK_EXPIRED' ? 401 : code.startsWith('BILLING_') || code.startsWith('MERCADOPAGO_REQUEST_FAILED') ? 503 : 400);
-      if (code === 'BILLING_WEBHOOK_RETRY_LATER') reply.header('Retry-After', '15');
-      return { error: code, message: 'Webhook Mercado Pago rejeitado.' };
+      const failure = mercadoPagoWebhookFailure(error);
+      reply.status(failure.status);
+      if (failure.code === 'BILLING_WEBHOOK_RETRY_LATER') reply.header('Retry-After', '15');
+      return { error: failure.code, message: 'Webhook Mercado Pago rejeitado.' };
     }
   });
 

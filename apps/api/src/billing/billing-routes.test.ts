@@ -163,6 +163,70 @@ describe('rotas de billing', () => {
     }
   });
 
+  describe('falhas do webhook Mercado Pago', () => {
+    const signed = (dataId: string, requestId: string, secret = 'webhook-secret') => ({
+      'x-signature': `ts=1700000000,v1=${createHmac('sha256', secret).update(`id:${dataId.toLowerCase()};request-id:${requestId};ts:1700000000;`).digest('hex')}`,
+      'x-request-id': requestId,
+    });
+    const webhookApp = async (fetcher: (input: string | URL, init?: RequestInit) => Promise<Response>) => {
+      const connection = await createDatabase();
+      await runPersistenceMigrations(connection.client);
+      const ledger = new LedgerService(connection.db, connection.client);
+      await ledger.runMigrations();
+      const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), new Provider());
+      const mercadoPago = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', now: () => 1700000000000, webhookSecret: 'webhook-secret', fetcher });
+      const app = await buildApp({ authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger, database: connection.db, databaseClient: connection.client, billingOperationsService: operations, mercadoPagoPaymentProvider: mercadoPago, environment: { NODE_ENV: 'test' } });
+      return { app, operations, close: async () => { await app.close(); connection.client.close(); } };
+    };
+    const deliver = (app: Awaited<ReturnType<typeof webhookApp>>['app'], dataId: string, requestId: string, headers = signed(dataId, requestId)) =>
+      app.inject({ method: 'POST', url: `/api/v2/webhooks/mercadopago?data.id=${dataId}`, headers, payload: { id: 1, type: 'order', data: { id: dataId } } });
+
+    it.each([
+      ['timeout ao consultar o provedor', 'ORDTIMEOUT1', () => { throw new DOMException('The operation was aborted due to timeout', 'TimeoutError'); }],
+      ['falha de rede ao consultar o provedor', 'ORDNETWORK1', () => { throw new TypeError('fetch failed'); }],
+    ])('responde 503 para retentativa em %s, sem expor o texto do erro', async (_name, dataId, failure) => {
+      const { app, close } = await webhookApp(async () => failure());
+      try {
+        const response = await deliver(app, dataId, `req_${dataId}`);
+        expect(response.statusCode).toBe(503);
+        expect(JSON.parse(response.body)).toMatchObject({ error: 'MERCADOPAGO_WEBHOOK_PROCESSING_FAILED' });
+        expect(response.body).not.toContain('timeout');
+        expect(response.body).not.toContain('fetch failed');
+      } finally { await close(); }
+    });
+
+    it('responde 503 para retentativa quando o processamento local falha, sem vazar a mensagem do banco', async () => {
+      const { app, operations, close } = await webhookApp(async () => new Response(JSON.stringify({ id: 'ORDTRANSIENT2', status: 'processed', total_amount: '25.00', currency: 'BRL', external_reference: 'purchase_unknown' })));
+      try {
+        vi.spyOn(operations, 'processWebhook').mockRejectedValueOnce(new Error('SQLITE_BUSY: database is locked (tenants_secret_table)'));
+        const response = await deliver(app, 'ORDTRANSIENT2', 'req_transient_2');
+        expect(response.statusCode).toBe(503);
+        expect(JSON.parse(response.body)).toMatchObject({ error: 'MERCADOPAGO_WEBHOOK_PROCESSING_FAILED' });
+        expect(response.body).not.toContain('tenants_secret_table');
+      } finally { await close(); }
+    });
+
+    it('mantém 401 para assinatura inválida e 400 para entrega sem cabeçalhos', async () => {
+      const { app, close } = await webhookApp(async () => new Response('{}'));
+      try {
+        const invalid = await deliver(app, 'ORDSIGN1', 'req_sign_1', signed('ORDSIGN1', 'req_sign_1', 'wrong-secret'));
+        expect(invalid.statusCode).toBe(401);
+        expect(JSON.parse(invalid.body)).toMatchObject({ error: 'MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID' });
+        const missing = await deliver(app, 'ORDSIGN2', 'req_sign_2', {} as ReturnType<typeof signed>);
+        expect(missing.statusCode).toBe(400);
+      } finally { await close(); }
+    });
+
+    it('mantém 503 com o código estável quando o provedor responde com erro HTTP', async () => {
+      const { app, close } = await webhookApp(async () => new Response('{}', { status: 500 }));
+      try {
+        const response = await deliver(app, 'ORDHTTP500', 'req_http_500');
+        expect(response.statusCode).toBe(503);
+        expect(JSON.parse(response.body)).toMatchObject({ error: 'MERCADOPAGO_REQUEST_FAILED' });
+      } finally { await close(); }
+    });
+  });
+
   it('impede chave exclusiva de billing de pesquisar jurisprudência', async () => {
     const connection = await createDatabase();
     await runPersistenceMigrations(connection.client);
