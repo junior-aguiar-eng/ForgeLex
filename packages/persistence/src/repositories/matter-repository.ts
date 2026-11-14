@@ -2,6 +2,8 @@ import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.
 import { and, desc, eq } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import {
+  TEXT_DOCUMENT_MAX_BYTES,
+  TEXT_DOCUMENT_MAX_ANCHORS,
   DocumentAnchor,
   DocumentAnchorSchema,
   DocumentVersion,
@@ -22,11 +24,28 @@ function contentHash(content: string): string {
   return createHash('sha256').update(content, 'utf8').digest('hex');
 }
 
+// Scan before UUIDs, hashes, paragraph arrays, lifecycle locks or writes. The byte
+// check bounds even a single enormous line; the incremental count bounds expansion.
+function validateTextDocumentContent(content: string): void {
+  if (Buffer.byteLength(content, 'utf8') > TEXT_DOCUMENT_MAX_BYTES) {
+    throw new Error('DOCUMENT_TEXT_TOO_LARGE: o texto excede o limite de 1 MiB UTF-8.');
+  }
+  let count = 0;
+  for (const match of content.matchAll(/[^\r\n]+/g)) {
+    if (/\S/.test(match[0]) && ++count > TEXT_DOCUMENT_MAX_ANCHORS) {
+      throw new Error('DOCUMENT_ANCHOR_LIMIT_EXCEEDED: o texto excede o limite de 5000 parágrafos.');
+    }
+  }
+  if (count === 0) {
+    throw new Error('DOCUMENT_CONTENT_REQUIRED: o documento precisa conter texto.');
+  }
+}
+
 function splitIntoParagraphs(content: string): Array<{ text: string; startOffset: number; endOffset: number }> {
   const paragraphs: Array<{ text: string; startOffset: number; endOffset: number }> = [];
-  const paragraphPattern = /[^\r\n]+(?:\r?\n|$)/g;
+  const paragraphPattern = /[^\r\n]+/g;
   for (const match of content.matchAll(paragraphPattern)) {
-    const text = match[0].replace(/\r?\n$/, '').trim();
+    const text = match[0].trim();
     if (!text) continue;
     const rawStart = match.index ?? 0;
     const leadingWhitespace = match[0].search(/\S/);
@@ -174,14 +193,12 @@ export class MatterRepository {
   }
 
   public async ingestTextDocument(input: IngestTextDocumentInput): Promise<IngestedTextDocument> {
+    validateTextDocumentContent(input.content);
     if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new MatterRepository(tx).ingestTextDocument(input));
 
     const matter = await this.getMatter(input.tenantId, input.matterId);
     if (!matter) {
       throw new Error('MATTER_NOT_FOUND: matter não pertence ao tenant informado ou não existe.');
-    }
-    if (input.content.trim().length === 0) {
-      throw new Error('DOCUMENT_CONTENT_REQUIRED: o documento precisa conter texto.');
     }
 
     const documentId = randomUUID();
@@ -233,10 +250,10 @@ export class MatterRepository {
       await tx.insert(schema.documentVersions).values({
         ...version,
       });
-      if (anchors.length > 0) {
-        await tx.insert(schema.documentAnchors).values(
-          anchors.map((anchor) => ({ ...anchor }))
-        );
+      // Keep SQL bind counts bounded on both SQLite and PostgreSQL. All batches
+      // stay in the same transaction, including the document and version rows.
+      for (let offset = 0; offset < anchors.length; offset += 250) {
+        await tx.insert(schema.documentAnchors).values(anchors.slice(offset, offset + 250));
       }
     });
 
