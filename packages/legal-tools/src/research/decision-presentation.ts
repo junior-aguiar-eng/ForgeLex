@@ -41,12 +41,14 @@ export const RESEARCH_PRESENTATION_TOOL_NAMES = [
   'research.get_saved_search',
   'research.save_search',
   'research.delete_saved_search',
+  'research.allow_saving',
 ] as const;
 export function isResearchPresentationTool(name: string): boolean {
   return (RESEARCH_PRESENTATION_TOOL_NAMES as readonly string[]).includes(name);
 }
 export function researchPresentationMetadata(name: string) {
-  const writing = name === 'research.save_search' || name === 'research.delete_saved_search';
+  const writing =
+    name === 'research.save_search' || name === 'research.delete_saved_search' || name === 'research.allow_saving';
   const visual = name === 'research.present_decisions' || name === 'research.get_saved_search';
   return {
     annotations: {
@@ -63,7 +65,7 @@ export function researchPresentationMetadata(name: string) {
             'openai/ui': { entrypoints: [{ type: 'thread' }] },
           },
         }
-      : name === 'research.delete_saved_search'
+      : name === 'research.delete_saved_search' || name === 'research.allow_saving'
         ? { _meta: { ui: { visibility: ['app'] } } }
         : {}),
   };
@@ -232,6 +234,19 @@ export function createResearchPresentationTools(
       execute: async (input, context) => {
         await saved.delete(owner(context), input.id, await connection(context));
         return { success: true, data: { deleted: true } };
+      },
+    },
+    {
+      ...common,
+      impactLevel: 'L1_ANALYSIS',
+      name: 'research.allow_saving',
+      description:
+        'Ação de administração do leitor, nunca do modelo: depois que o usuário confirma no painel, permite que este aplicativo salve e gerencie as pesquisas salvas. Vale só para a conexão atual.',
+      inputSchema: z.object({ confirmed: z.literal(true) }).strict(),
+      outputSchema: z.object({ enabled: z.literal(true) }),
+      execute: async (_input, context) => {
+        await saved.repository.setPermission(owner(context), await connection(context), true);
+        return { success: true, data: { enabled: true } };
       },
     },
   );
