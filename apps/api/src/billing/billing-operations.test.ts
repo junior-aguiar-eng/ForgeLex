@@ -165,11 +165,6 @@ describe('BillingOperationsService', () => {
   });
 
   it.each([
-    ['missing amount', { amount_total: undefined }],
-    ['missing currency', { currency: undefined }],
-    ['missing external reference', { external_reference: undefined }],
-    ['missing checkout identity', { provider_checkout_id: undefined }],
-    ['missing payment identity', { provider_payment_id: undefined }],
     ['amount', { amount_total: 2500 }],
     ['currency', { currency: 'usd' }],
     ['external reference', { external_reference: 'purchase_other' }],
@@ -189,6 +184,46 @@ describe('BillingOperationsService', () => {
 
     expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('RECONCILIATION_REQUIRED');
     expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
+  });
+
+  it.each([
+    ['amount', { amount_total: undefined }],
+    ['currency', { currency: undefined }],
+    ['external reference', { external_reference: undefined }],
+    ['checkout identity', { provider_checkout_id: undefined }],
+    ['payment identity', { provider_payment_id: undefined }],
+  ])('aguarda evidência completa quando a liquidação chega sem %s, sem travar a compra', async (_field, overrides) => {
+    const tenantId = `tenant_incomplete_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
+
+    await expect(operations.processWebhook(
+      paidCheckoutEvent(purchase, `evt_incomplete_${tenantId}`, overrides),
+    )).rejects.toThrow('BILLING_SETTLEMENT_EVIDENCE_INCOMPLETE');
+    expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('PENDING');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
+
+    await operations.processWebhook(paidCheckoutEvent(purchase, `evt_complete_${tenantId}`));
+    expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('PAID');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
+  });
+
+  it('notificação de pagamento sem vínculo com a ordem aguarda a notificação da ordem em vez de travar a compra', async () => {
+    const tenantId = `tenant_payment_first_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'u', packageId: 'credits_25', idempotencyKey: 'checkout' });
+    const orderId = `cs_${purchase.purchaseId}`;
+    const remote = new MercadoPagoPaymentProvider({ accessToken: 'test', webhookSecret: 'secret', now: () => 1700000000000,
+      fetcher: async (url) => String(url).includes('/v1/payments/')
+        ? new Response(JSON.stringify({ id: 'PAY1', status: 'approved', external_reference: purchase.purchaseId, transaction_amount: 25, currency_id: 'BRL' }))
+        : new Response(JSON.stringify({ id: orderId, status: 'processed', total_amount: '25.00', currency: 'BRL', external_reference: purchase.purchaseId })) });
+    const delivery = (type: string, dataId: string, requestId: string) => ({ payload: { type }, dataId, requestId,
+      signature: `ts=1700000000000,v1=${createHmac('sha256', 'secret').update(`id:${dataId.toLowerCase()};request-id:${requestId};ts:1700000000000;`).digest('hex')}` });
+
+    await expect(operations.processMercadoPagoWebhook(remote, delivery('payment', 'PAY1', 'req_payment'))).rejects.toThrow('BILLING_SETTLEMENT_EVIDENCE_INCOMPLETE');
+    expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('PENDING');
+
+    await operations.processMercadoPagoWebhook(remote, delivery('order', orderId, 'req_order'));
+    expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('PAID');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
   });
 
   it('atribui ownership do webhook pela compra persistida, não pelo metadata', async () => {

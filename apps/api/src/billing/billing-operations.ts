@@ -503,6 +503,16 @@ export class BillingOperationsService {
       validate: async (tx) => {
         const purchase = (await tx.select().from(billingPurchases).where(eq(billingPurchases.id, purchaseId)))[0];
         if (!purchase || !eligible.includes(purchase.status)) return false;
+        // Absent evidence proves nothing either way: retry on a later notification and leave the purchase eligible.
+        // Only evidence that is present and different is a contradiction that needs manual reconciliation.
+        const evidenceComplete = typeof object.amount_total === 'number'
+          && typeof object.currency === 'string' && object.currency.trim() !== ''
+          && typeof object.external_reference === 'string' && paymentId !== null
+          && (!purchase.providerCheckoutId || typeof object.provider_checkout_id === 'string');
+        if (!evidenceComplete) {
+          failure = 'BILLING_SETTLEMENT_EVIDENCE_INCOMPLETE';
+          return false;
+        }
         const amountsMatch = object.amount_total === purchase.amountCents && typeof object.currency === 'string'
           && object.currency.toLowerCase() === purchase.currency.toLowerCase() && object.external_reference === purchase.id && paymentId !== null;
         if (amountsMatch && !purchase.providerCheckoutId && !purchase.providerPaymentId) {
