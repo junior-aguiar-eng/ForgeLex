@@ -247,7 +247,9 @@ Defeito: quando o usuário escreve a área em vez de escolher uma opção, a res
 - [x] Publicação de `b4c76e0` em 12/11. Orientação guiada, v3, casca, anexos e chips já estão ativos em produção. O salvamento recuperável segue desligado.
 - [x] Validar localmente a reserva de R$ 11,50 e o teto de R$ 20,00. Com R$ 8,50 contabilizados no dia, a próxima reserva cabe. Com R$ 8,51, retorna `COMMERCIAL_DAILY_LIMIT`.
 - [x] Efeito do #132 no `mcp.call` (amostra de 14/11/2026, 02:37 a 02:42 UTC): a primeira pesquisa do Claude (2 chamadas) e a do ChatGPT vieram com `idempotency=argument` e `ok=true`. Piso de decisões: pesquisas devolveram 8 e 10 decisões. O ChatGPT abriu as autoridades (`research.get_authority`, 3 chamadas) e o Claude não, o que explica a diferença de verificação no texto da conversa; o painel mostra “Conferida na fonte oficial” nos dois.
-- [ ] Confirmar a lista nominal das ferramentas com cliente autenticado e a renovação do Claude pelo alias `/token`.
+- [x] Lista nominal das ferramentas: Boni confirmou em 14/11/2026 que todas aparecem e funcionam no Claude.
+- [x] Alias `/token` (log de 7 dias, lido em 14/11/2026): o Claude renovou 32 vezes por `/oauth/token` e nenhuma pelo alias; o único 404 em `/token` foi de 09/11, antes da publicação do alias, e não se repetiu. O alias fica como salvaguarda, sem evidência de uso.
+- [ ] Monitorar a recusa de renovação do Claude: 1 `UPSTREAM_REJECTED` (400 do Supabase) em 7 dias, contra 33 renovações aceitas, em 14/11 às 02:50 UTC; logo depois o Claude se registrou de novo (2 chamadas a `/oauth/register`), o que cria conexão nova e zera a chave de pesquisas salvas. Coincide com a reconexão feita por Boni; causa não provada.
 - [ ] Conferir a reserva e a mensagem de saldo insuficiente numa jornada autenticada autorizada.
 
 **Evidência.** [Registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026). **Reversão da publicação.** Tráfego para a revisão anterior, mediante autorização de Boni.
