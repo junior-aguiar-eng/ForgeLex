@@ -1,5 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import type { PaymentProvider } from './billing-operations.js';
+import { PaymentProviderRejectedError, type PaymentProvider } from './billing-operations.js';
 
 type Fetcher = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
@@ -45,6 +45,11 @@ interface MercadoPagoOrder {
   total_amount?: unknown;
   transactions?: unknown;
   payment?: unknown;
+}
+
+/** 4xx means the request was refused before any effect; 408/409/425/429 can still be in flight or retried. */
+function isDefinitiveRejection(status: number): boolean {
+  return status >= 400 && status < 500 && ![408, 409, 425, 429].includes(status);
 }
 
 function parseWebhookSignature(raw: string): { timestamp: string; receivedSignature: string } {
@@ -134,7 +139,7 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
   public async refundPayment(input: { providerPaymentId: string; amountCents: number; idempotencyKey: string }): Promise<Record<string, unknown>> {
     const order = await this.request(`/v1/orders/${encodeURIComponent(input.providerPaymentId)}`, { method: 'GET' }) as MercadoPagoOrder;
     const paymentId = this.extractPaymentId(order);
-    if (!paymentId) throw new Error('MERCADOPAGO_PAYMENT_NOT_FOUND');
+    if (!paymentId) throw new PaymentProviderRejectedError('MERCADOPAGO_PAYMENT_NOT_FOUND');
     return this.request(`/v1/orders/${encodeURIComponent(input.providerPaymentId)}/refund`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Idempotency-Key': input.idempotencyKey },
@@ -231,7 +236,10 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
       },
     });
     const data: unknown = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(`MERCADOPAGO_REQUEST_FAILED:${response.status}`);
+    if (!response.ok) {
+      const message = `MERCADOPAGO_REQUEST_FAILED:${response.status}`;
+      throw isDefinitiveRejection(response.status) ? new PaymentProviderRejectedError(message) : new Error(message);
+    }
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('MERCADOPAGO_INVALID_RESPONSE');
     return data as Record<string, unknown>;
   }

@@ -61,6 +61,25 @@ export interface PaymentProvider {
   refundPayment(input: { providerPaymentId: string; amountCents: number; idempotencyKey: string }): Promise<Record<string, unknown>>;
 }
 
+/** The provider refused the request and performed no effect, so any local hold for it can be released.
+ * Timeouts, 5xx and other unknown outcomes must stay plain errors: the provider may have acted.
+ */
+export class PaymentProviderRejectedError extends Error {
+  public constructor(message: string) {
+    super(message);
+    this.name = 'PaymentProviderRejectedError';
+  }
+}
+
+/** HTTP status for refund review/recovery failures: the admin must know whether a retry (503) or a decision (4xx) is needed. */
+export function refundFailureStatus(error: unknown): number {
+  if (error instanceof PaymentProviderRejectedError) return 422;
+  const code = error instanceof Error ? (error.message.split(':')[0] ?? '') : '';
+  if (code === 'BILLING_REFUND_REQUEST_NOT_FOUND') return 404;
+  if (['BILLING_REFUND_REQUEST_ALREADY_REVIEWED', 'BILLING_REFUND_MANUAL_RECONCILIATION_REQUIRED', 'BILLING_REFUND_NOT_SETTLEABLE'].includes(code)) return 409;
+  return code.startsWith('BILLING_') || code.startsWith('INVALID_') ? 400 : 503;
+}
+
 export class BillingOperationsService {
   private readonly autoRechargeLocks = new Map<string, Promise<void>>();
   public constructor(
@@ -442,7 +461,7 @@ export class BillingOperationsService {
     await this.billing.runMigrations();
     const request = (await this.db.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, requestId)))[0];
     if (!request) throw new Error('BILLING_REFUND_REQUEST_NOT_FOUND');
-    if (request.operationState === 'LEDGER_SETTLED') return request;
+    if (request.operationState === 'LEDGER_SETTLED' || request.operationState === 'PROVIDER_REJECTED') return request;
     if (request.operationState === 'PROVIDER_SUCCEEDED') return this.billing.settlePreparedRefund(requestId);
     if (!['PREPARED', 'PROVIDER_PENDING', 'RECONCILIATION_REQUIRED'].includes(request.operationState) || !request.approvedAmountCents || !request.providerPaymentId) throw new Error('BILLING_REFUND_MANUAL_RECONCILIATION_REQUIRED');
     await this.db.update(billingRefundRequests).set({ operationState: 'PROVIDER_PENDING', updatedAt: new Date().toISOString() })
@@ -453,6 +472,10 @@ export class BillingOperationsService {
       await this.db.update(billingRefundRequests).set({ operationState: 'PROVIDER_SUCCEEDED', providerResult: JSON.stringify(result), operationError: null, updatedAt: new Date().toISOString() })
         .where(and(eq(billingRefundRequests.id, request.id), inArray(billingRefundRequests.operationState, ['PROVIDER_PENDING', 'RECONCILIATION_REQUIRED'])));
     } catch (error) {
+      if (error instanceof PaymentProviderRejectedError) {
+        await this.billing.releasePreparedRefund(request.id, error.message);
+        throw error;
+      }
       await this.db.update(billingRefundRequests).set({ operationState: 'RECONCILIATION_REQUIRED', operationError: error instanceof Error ? error.message : String(error), updatedAt: new Date().toISOString() })
         .where(and(eq(billingRefundRequests.id, request.id), eq(billingRefundRequests.operationState, 'PROVIDER_PENDING')));
       throw error;

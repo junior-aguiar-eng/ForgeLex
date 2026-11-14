@@ -78,7 +78,7 @@ import type { Client } from '@forgelex/persistence';
 import { createLegalResearchMemoTool, LegalResearchMemoExecutionService, type DeskMatter, type DeskPiece } from '@forgelex/legal-workflows';
 import { RequestMetrics, structuredLog } from './observability.js';
 import { logMcpCall } from './mcp-call-log.js';
-import { BillingOperationsService, type PaymentProvider } from './billing/billing-operations.js';
+import { BillingOperationsService, refundFailureStatus, type PaymentProvider } from './billing/billing-operations.js';
 import { MercadoPagoPaymentProvider } from './billing/mercado-pago-payment-provider.js';
 import { resolveDatabasePolicy } from './config/database-policy.js';
 import { OperationalRetentionService, resolveRetentionPolicy } from './operations/retention-service.js';
@@ -787,7 +787,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (!params.requestId || (body.decision !== 'APPROVED' && body.decision !== 'REJECTED')) { reply.status(400); return { error: 'INVALID_REQUEST', message: 'decision e requestId são obrigatórios.' }; }
     try {
       return await billingOperationsService.reviewRefundRequest({ requestId: params.requestId, reviewerId: request.principal.userId, decision: body.decision, approvedAmountCents: typeof body.approvedAmountCents === 'number' ? body.approvedAmountCents : undefined, reason: typeof body.reason === 'string' ? body.reason : undefined });
-    } catch (error) { reply.status(400); return { error: error instanceof Error ? error.message : 'REFUND_REVIEW_FAILED', message: 'Não foi possível revisar o reembolso.' }; }
+    } catch (error) { reply.status(refundFailureStatus(error)); return { error: error instanceof Error ? (error.message.split(':')[0] ?? 'REFUND_REVIEW_FAILED') : 'REFUND_REVIEW_FAILED', message: 'Não foi possível revisar o reembolso.' }; }
+  });
+
+  /** Explicit recovery of an approved refund whose provider outcome was unknown or whose local settlement failed. */
+  app.post('/api/v2/admin/billing/refund-requests/:requestId/recover', { preHandler: authAdapter.createPreHandler(['billing:admin']) }, async (request, reply) => {
+    if (!billingOperationsService) { reply.status(503); return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' }; }
+    const params = request.params as { requestId?: string };
+    if (!params.requestId) { reply.status(400); return { error: 'INVALID_REQUEST', message: 'requestId é obrigatório.' }; }
+    try {
+      return await billingOperationsService.recoverRefundRequest(params.requestId);
+    } catch (error) { reply.status(refundFailureStatus(error)); return { error: error instanceof Error ? (error.message.split(':')[0] ?? 'REFUND_RECOVERY_FAILED') : 'REFUND_RECOVERY_FAILED', message: 'Não foi possível concluir o reembolso.' }; }
   });
 
   app.post('/api/v2/billing/checkout', { preHandler: authAdapter.createPreHandler(['billing:write']) }, async (request, reply) => {

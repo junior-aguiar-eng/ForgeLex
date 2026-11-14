@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
+import { PaymentProviderRejectedError } from './billing-operations.js';
 import { MercadoPagoPaymentProvider } from './mercado-pago-payment-provider.js';
 
 function response(body: Record<string, unknown>, status = 200): Response {
@@ -220,6 +221,36 @@ describe('MercadoPagoPaymentProvider', () => {
       signature: 'ts=1700000000,v1=invalid',
     })).rejects.toThrow('MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID');
     expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it.each([[400], [404], [422]])('classifica HTTP %i do provedor como recusa definitiva', async (status) => {
+    const fetcher = vi.fn(async () => response({ message: 'rejected' }, status));
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher });
+    const failure = await provider.refundPayment({ providerPaymentId: 'ORDTEST123', amountCents: 1000, idempotencyKey: 'refund:1' }).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(PaymentProviderRejectedError);
+    expect((failure as Error).message).toBe(`MERCADOPAGO_REQUEST_FAILED:${status}`);
+  });
+
+  it.each([[408], [409], [425], [429], [500], [503]])('mantem HTTP %i do provedor como resultado desconhecido', async (status) => {
+    const fetcher = vi.fn(async () => response({ message: 'later' }, status));
+    const provider = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher });
+    const failure = await provider.refundPayment({ providerPaymentId: 'ORDTEST123', amountCents: 1000, idempotencyKey: 'refund:1' }).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).not.toBeInstanceOf(PaymentProviderRejectedError);
+    expect((failure as Error).message).toBe(`MERCADOPAGO_REQUEST_FAILED:${status}`);
+  });
+
+  it('trata ordem sem pagamento vinculado como recusa definitiva e timeout como desconhecido', async () => {
+    const noPayment = vi.fn(async () => response({ transactions: { payments: [] } }));
+    const rejected = await new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher: noPayment })
+      .refundPayment({ providerPaymentId: 'ORDTEST123', amountCents: 1000, idempotencyKey: 'refund:1' }).catch((error: unknown) => error);
+    expect(rejected).toBeInstanceOf(PaymentProviderRejectedError);
+    expect((rejected as Error).message).toBe('MERCADOPAGO_PAYMENT_NOT_FOUND');
+
+    const timedOut = vi.fn(async () => { throw new DOMException('The operation was aborted due to timeout', 'TimeoutError'); });
+    const unknown = await new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret', fetcher: timedOut })
+      .refundPayment({ providerPaymentId: 'ORDTEST123', amountCents: 1000, idempotencyKey: 'refund:1' }).catch((error: unknown) => error);
+    expect(unknown).not.toBeInstanceOf(PaymentProviderRejectedError);
   });
 
   it('consulta a transação e envia reembolso parcial idempotente na order', async () => {

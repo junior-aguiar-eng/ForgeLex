@@ -1,4 +1,5 @@
 import { createHmac, randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import { MercadoPagoPaymentProvider } from './mercado-pago-payment-provider.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -10,11 +11,12 @@ import {
 import {
   billingWebhookEvents,
   billingOperations,
+  billingRefundRequests,
   ledgerEntries,
   BillingService,
   LedgerService,
 } from '@forgelex/billing-ledger';
-import { BillingOperationsService, type PaymentProvider } from './billing-operations.js';
+import { BillingOperationsService, PaymentProviderRejectedError, type PaymentProvider } from './billing-operations.js';
 
 class FakePaymentProvider implements PaymentProvider {
   public checkouts: Array<Record<string, unknown>> = [];
@@ -306,6 +308,57 @@ describe('BillingOperationsService', () => {
     expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
     await operations.recoverRefundRequest(request.id);
     expect(keys).toHaveLength(2);
+  });
+
+  it('devolve a retenção quando o provedor recusa o estorno de forma definitiva', async () => {
+    const tenantId = `tenant_rejected_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: tenantId });
+    await operations.processWebhook(paidCheckoutEvent(purchase, `evt_${tenantId}`));
+    const request = await operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId });
+    provider.refundPayment = async () => { throw new PaymentProviderRejectedError('MERCADOPAGO_REQUEST_FAILED:422'); };
+    await expect(operations.reviewRefundRequest({ requestId: request.id, reviewerId: 'admin', decision: 'APPROVED' })).rejects.toThrow('MERCADOPAGO_REQUEST_FAILED:422');
+
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
+    const lot = (await operations.getBillingService().getCreditLots(tenantId)).find((item) => item.purchaseId === purchase.purchaseId);
+    expect(lot?.remainingCents).toBe(2500);
+    expect((await operations.listRefundRequests(tenantId))[0]).toMatchObject({
+      status: 'REJECTED', operationState: 'PROVIDER_REJECTED', openKey: null, approvedAmountCents: 0, operationError: 'MERCADOPAGO_REQUEST_FAILED:422',
+    });
+    const account = await operations.getBillingService().getAccount(tenantId);
+    const entries = await db.select().from(ledgerEntries);
+    expect(entries.filter((entry) => entry.accountId === account.id && entry.idempotencyKey === `refund-reserve-release:${request.id}`)).toHaveLength(1);
+    await expect(operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId })).resolves.toMatchObject({ status: 'PENDING' });
+  });
+
+  it('libera a retenção quando a recuperação após um timeout encontra recusa definitiva', async () => {
+    const tenantId = `tenant_rejected_recover_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: tenantId });
+    await operations.processWebhook(paidCheckoutEvent(purchase, `evt_${tenantId}`));
+    const request = await operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId });
+    provider.refundPayment = async () => { throw new Error('TIMEOUT'); };
+    await expect(operations.reviewRefundRequest({ requestId: request.id, reviewerId: 'admin', decision: 'APPROVED' })).rejects.toThrow('TIMEOUT');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
+
+    provider.refundPayment = async () => { throw new PaymentProviderRejectedError('MERCADOPAGO_PAYMENT_NOT_FOUND'); };
+    await expect(operations.recoverRefundRequest(request.id)).rejects.toThrow('MERCADOPAGO_PAYMENT_NOT_FOUND');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
+    expect((await operations.listRefundRequests(tenantId))[0]).toMatchObject({ status: 'REJECTED', operationState: 'PROVIDER_REJECTED', openKey: null });
+    await expect(operations.recoverRefundRequest(request.id)).resolves.toMatchObject({ operationState: 'PROVIDER_REJECTED' });
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
+  });
+
+  it('nao libera a retencao quando uma recuperacao concorrente ja confirmou o estorno no provedor', async () => {
+    const tenantId = `tenant_rejected_race_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: tenantId });
+    await operations.processWebhook(paidCheckoutEvent(purchase, `evt_${tenantId}`));
+    const request = await operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId });
+    provider.refundPayment = async () => {
+      await db.update(billingRefundRequests).set({ operationState: 'PROVIDER_SUCCEEDED' }).where(eq(billingRefundRequests.id, request.id));
+      throw new PaymentProviderRejectedError('MERCADOPAGO_REQUEST_FAILED:422');
+    };
+    await expect(operations.reviewRefundRequest({ requestId: request.id, reviewerId: 'admin', decision: 'APPROVED' })).rejects.toThrow('MERCADOPAGO_REQUEST_FAILED:422');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
+    expect((await operations.listRefundRequests(tenantId))[0]).toMatchObject({ operationState: 'PROVIDER_SUCCEEDED' });
   });
 
   it('aprova uma única vez enquanto provider está suspenso, sem manter lock de carteira', async () => {

@@ -25,6 +25,14 @@ const billingOnlyPrincipal: AuthenticatedPrincipal = {
   scopes: ['billing:read', 'billing:write'],
 };
 
+const adminPrincipal: AuthenticatedPrincipal = {
+  ...principal,
+  subjectId: 'subject_billing_admin',
+  tenantId: 'tenant_billing_admin',
+  userId: 'user_billing_admin',
+  scopes: ['billing:admin'],
+};
+
 const activityPrincipal: AuthenticatedPrincipal = {
   ...principal,
   subjectId: 'subject_billing_activity',
@@ -37,6 +45,7 @@ class TokenVerifier implements TokenVerifier {
     if (token === 'billing-token') return principal;
     if (token === 'billing-only-token') return billingOnlyPrincipal;
     if (token === 'billing-activity-token') return activityPrincipal;
+    if (token === 'billing-admin-token') return adminPrincipal;
     if (token === 'billing-public-return-token') return { ...principal, tenantId: 'tenant_public_return', userId: 'user_public_return' };
     return null;
   }
@@ -78,6 +87,76 @@ describe('rotas de billing', () => {
         successUrl: `https://nexojuris.ia.br/?billing_purchase=${purchaseId}`,
         cancelUrl: `https://nexojuris.ia.br/?billing_canceled=${purchaseId}`,
       }));
+    } finally {
+      await app.close();
+      connection.client.close();
+    }
+  });
+
+  it('permite ao administrador concluir um estorno retido sem repetir a revisão', async () => {
+    const connection = await createDatabase();
+    await runPersistenceMigrations(connection.client);
+    const ledger = new LedgerService(connection.db, connection.client);
+    await ledger.runMigrations();
+    const provider = new Provider();
+    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), provider);
+    const app = await buildApp({ authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger, database: connection.db, databaseClient: connection.client, billingOperationsService: operations, environment: { NODE_ENV: 'test' } });
+    try {
+      provider.createCustomer = async () => ({ id: 'cus_recover_route_1' });
+      const tenantId = 'tenant_recover_route';
+      const purchase = await operations.createCheckout({ tenantId, userId: 'user_recover', packageId: 'credits_25', idempotencyKey: 'recover_route_1' });
+      const checkoutId = `cs_${purchase.purchaseId}`;
+      await operations.processWebhook({ id: 'evt_recover_route', type: 'payment.approved', data: { object: {
+        id: checkoutId, payment_status: 'paid', provider_payment_id: checkoutId, provider_checkout_id: checkoutId,
+        amount_total: purchase.amountCents, currency: purchase.currency, external_reference: purchase.purchaseId, metadata: { purchase_id: purchase.purchaseId },
+      } } });
+      const request = await operations.createRefundRequest({ tenantId, userId: 'user_recover', purchaseId: purchase.purchaseId });
+      provider.refundPayment = async () => { throw new Error('TIMEOUT'); };
+      await expect(operations.reviewRefundRequest({ requestId: request.id, reviewerId: 'admin', decision: 'APPROVED' })).rejects.toThrow('TIMEOUT');
+      provider.refundPayment = async () => ({ id: 're_recovered', status: 'succeeded' });
+      const url = `/api/v2/admin/billing/refund-requests/${request.id}/recover`;
+
+      expect((await app.inject({ method: 'POST', url })).statusCode).toBe(401);
+      expect((await app.inject({ method: 'POST', url, headers: { authorization: 'Bearer billing-token' } })).statusCode).toBe(403);
+      expect((await app.inject({ method: 'POST', url: '/api/v2/admin/billing/refund-requests/inexistente/recover', headers: { authorization: 'Bearer billing-admin-token' } })).statusCode).toBe(404);
+
+      const recovered = await app.inject({ method: 'POST', url, headers: { authorization: 'Bearer billing-admin-token' } });
+      expect(recovered.statusCode).toBe(200);
+      expect(JSON.parse(recovered.body)).toMatchObject({ id: request.id, status: 'APPROVED', operationState: 'LEDGER_SETTLED' });
+      const replay = await app.inject({ method: 'POST', url, headers: { authorization: 'Bearer billing-admin-token' } });
+      expect(replay.statusCode).toBe(200);
+      expect(JSON.parse(replay.body)).toMatchObject({ operationState: 'LEDGER_SETTLED' });
+    } finally {
+      await app.close();
+      connection.client.close();
+    }
+  });
+
+  it('informa falha do provedor na recuperação com 503 e mantém o estorno recuperável', async () => {
+    const connection = await createDatabase();
+    await runPersistenceMigrations(connection.client);
+    const ledger = new LedgerService(connection.db, connection.client);
+    await ledger.runMigrations();
+    const provider = new Provider();
+    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), provider);
+    const app = await buildApp({ authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger, database: connection.db, databaseClient: connection.client, billingOperationsService: operations, environment: { NODE_ENV: 'test' } });
+    try {
+      provider.createCustomer = async () => ({ id: 'cus_recover_route_2' });
+      const tenantId = 'tenant_recover_route_503';
+      const purchase = await operations.createCheckout({ tenantId, userId: 'user_recover', packageId: 'credits_25', idempotencyKey: 'recover_route_2' });
+      const checkoutId = `cs_${purchase.purchaseId}`;
+      await operations.processWebhook({ id: 'evt_recover_route_2', type: 'payment.approved', data: { object: {
+        id: checkoutId, payment_status: 'paid', provider_payment_id: checkoutId, provider_checkout_id: checkoutId,
+        amount_total: purchase.amountCents, currency: purchase.currency, external_reference: purchase.purchaseId, metadata: { purchase_id: purchase.purchaseId },
+      } } });
+      const request = await operations.createRefundRequest({ tenantId, userId: 'user_recover', purchaseId: purchase.purchaseId });
+      provider.refundPayment = async () => { throw new Error('TIMEOUT'); };
+      await expect(operations.reviewRefundRequest({ requestId: request.id, reviewerId: 'admin', decision: 'APPROVED' })).rejects.toThrow('TIMEOUT');
+
+      const failed = await app.inject({ method: 'POST', url: `/api/v2/admin/billing/refund-requests/${request.id}/recover`, headers: { authorization: 'Bearer billing-admin-token' } });
+      expect(failed.statusCode).toBe(503);
+      expect(JSON.parse(failed.body)).toMatchObject({ error: 'TIMEOUT' });
+      expect((await operations.listRefundRequests(tenantId))[0]).toMatchObject({ operationState: 'RECONCILIATION_REQUIRED' });
     } finally {
       await app.close();
       connection.client.close();

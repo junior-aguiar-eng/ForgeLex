@@ -245,8 +245,17 @@ export const ledgerMigrations: readonly SqlMigration[] = [
     `ALTER TABLE billing_refund_requests ADD COLUMN provider_payment_id TEXT;`,
     `ALTER TABLE billing_refund_requests ADD COLUMN provider_result TEXT;`,
     `ALTER TABLE billing_refund_requests ADD COLUMN operation_error TEXT;`,
-    // Historical PENDING cannot prove that a provider effect never happened. No fabricated hold.
-    `UPDATE billing_refund_requests SET status = 'RECONCILIATION_REQUIRED', operation_state = 'LEGACY_RECONCILIATION_REQUIRED', operation_error = 'LEGACY_PROVIDER_OUTCOME_UNKNOWN' WHERE status = 'PENDING';`,
+    // Historical PENDING normally means "awaiting review": the old flow wrote nothing before the provider call,
+    // so those rows stay in the review queue (UNPREPARED). Only rows with a local trace of an earlier attempt
+    // (the legacy `refund-ledger:<id>` ledger entry, or a purchase payment already marked REFUNDED) are
+    // quarantined. No hold is fabricated for either group.
+    `UPDATE billing_refund_requests SET status = 'RECONCILIATION_REQUIRED', operation_state = 'LEGACY_RECONCILIATION_REQUIRED', operation_error = 'LEGACY_PROVIDER_OUTCOME_UNKNOWN'
+      WHERE status = 'PENDING' AND (
+        EXISTS (SELECT 1 FROM ledger_entries e JOIN ledger_accounts a ON a.id = e.account_id
+          WHERE a.tenant_id = billing_refund_requests.tenant_id AND e.idempotency_key = 'refund-ledger:' || billing_refund_requests.id)
+        OR EXISTS (SELECT 1 FROM billing_payments p
+          WHERE p.tenant_id = billing_refund_requests.tenant_id AND p.purchase_id = billing_refund_requests.purchase_id AND p.status = 'REFUNDED')
+      );`,
   ] },
 ];
 
