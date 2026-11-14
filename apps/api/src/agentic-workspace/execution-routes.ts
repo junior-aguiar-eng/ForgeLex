@@ -1,6 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
+  ExecutionStreamLeases,
+  EXECUTION_STREAM_LEASE_MS,
   NativeEvidenceReviewRepository,
   EvidenceReapprovalRepository,
   AgenticWorkspaceRepository,
@@ -16,7 +18,8 @@ import {
 import { AuthAdapter } from '../auth/fastify-auth.js';
 import { ExecutionService, StartExecutionSchema } from './execution-service.js';
 import { ExecutionWorker, type ExecutionDriver } from './execution-worker.js';
-import { encodeExecutionEvent } from './event-stream.js';
+import { encodeExecutionEvent, type ClientExecutionEvent } from './event-stream.js';
+import { SharedExecutionStreams, reserveProcessStream } from './shared-execution-streams.js';
 import { createCaseTaskDriver, type NativeCaseTaskOptions } from './case-task-driver.js';
 import type { ResearchService } from '@forgelex/legal-tools';
 import {
@@ -154,6 +157,14 @@ export function registerAgenticWorkspace(
       await commercial?.editorial?.worker.stop();
     });
   }
+  const streamLeases = deps.client ? new ExecutionStreamLeases(deps.client) : undefined;
+  const streams = new SharedExecutionStreams<ClientExecutionEvent>(deps.options?.pollMs ?? 1000);
+  const activeStreams = new Set<() => void>();
+  const streamReleases = new Set<Promise<void>>();
+  app.addHook('preClose', async () => {
+    for (const finish of [...activeStreams]) finish();
+    await Promise.all([...streamReleases]);
+  });
   const owner = (req: FastifyRequest) => ({ tenantId: req.principal.tenantId, userId: req.principal.userId });
   const session = async (req: FastifyRequest, reply: FastifyReply) => {
     if (pilot) {
@@ -237,6 +248,7 @@ export function registerAgenticWorkspace(
           error instanceof z.ZodError
             ? 'INVALID_INPUT'
             : [
+                  'STREAM_LIMIT_EXCEEDED',
                   'EVIDENCE_REVIEW_CONFLICT',
                   'EDITORIAL_VERSION_CONFLICT',
                   'EDITORIAL_GENERATION_DISABLED',
@@ -291,15 +303,17 @@ export function registerAgenticWorkspace(
         if (code === 'EXECUTION_UNAVAILABLE' && !(error instanceof z.ZodError))
           reportAgenticFailure('agentic.request.failed', error, { method: req.method, route: req.routeOptions.url });
         const status =
-          code === 'INVALID_INPUT'
-            ? 400
-            : code === 'EXECUTION_NOT_FOUND'
-              ? 404
-              : code === 'ACCESS_REVOKED'
-                ? 403
-                : code === 'EXECUTION_UNAVAILABLE' || code === 'EXECUTOR_UNAVAILABLE'
-                  ? 503
-                  : 409;
+          code === 'STREAM_LIMIT_EXCEEDED'
+            ? 429
+            : code === 'INVALID_INPUT'
+              ? 400
+              : code === 'EXECUTION_NOT_FOUND'
+                ? 404
+                : code === 'ACCESS_REVOKED'
+                  ? 403
+                  : code === 'EXECUTION_UNAVAILABLE' || code === 'EXECUTOR_UNAVAILABLE'
+                    ? 503
+                    : 409;
         return reply.code(status).send({
           error: code,
           message:
@@ -554,94 +568,136 @@ export function registerAgenticWorkspace(
       const id = executionId(req),
         s = required(),
         identity = owner(req);
-      const requiresCaseScope = await s.hasCaseContext(identity, { executionId: id });
-      let cursor = query.after;
-      // Authorization and validation complete before opening an irreversible streaming response.
-      let batch = await s.listClientEvents(identity, id, cursor);
-      reply.hijack();
-      for (const [name, value] of Object.entries(reply.getHeaders()))
-        if (value !== undefined) reply.raw.setHeader(name, value);
-      reply.raw.writeHead(200, {
-        'Content-Type': 'text/event-stream; charset=utf-8',
-        'Cache-Control': 'no-store',
-        'X-Accel-Buffering': 'no',
-      });
-      reply.raw.write(': connected\n\n');
+      if (!streamLeases) throw new Error('PERSISTENCE_UNAVAILABLE');
+      const releaseProcess = reserveProcessStream();
       let closed = false,
-        timer: ReturnType<typeof setTimeout> | undefined;
-      reply.raw.once('close', () => {
-        closed = true;
-        if (timer) clearTimeout(timer);
-      });
-      const sameIdentity = (p: AuthenticatedPrincipal) =>
-        p.authMethod === 'session' &&
-        p.tenantId === identity.tenantId &&
-        p.userId === identity.userId &&
-        p.scopes.includes('research:read') &&
-        (!requiresCaseScope || p.scopes.includes('matter:read'));
-      const send = () => {
-        for (const event of batch.events) {
-          if (closed) return;
-          reply.raw.write(encodeExecutionEvent(event));
-        }
-        cursor = batch.cursor;
-      };
-      // Identity providers fail transiently (timeout, 429, 5xx) and the verifier reports that as a null
-      // principal. Only consecutive failures, or a principal that no longer matches, end the stream.
-      let authFailures = 0,
-        lastAuthAt = Date.now();
-      const recheckMs = deps.options?.authRecheckMs ?? 3000;
-      const again = () => {
-        timer = setTimeout(() => void poll(), deps.options?.pollMs ?? 1000);
-        timer.unref();
-      };
-      const poll = async () => {
+        leaseId: string | undefined,
+        unsubscribe: (() => void) | undefined;
+      const cleanup = () => {
         if (closed) return;
-        try {
-          // The session was verified when the stream opened; re-verify on a slower cadence than the event poll.
-          if (Date.now() - lastAuthAt >= recheckMs) {
-            const current = await deps.auth.authenticate(req.headers.authorization).catch(() => null);
-            lastAuthAt = Date.now();
-            if (current && !sameIdentity(current)) throw new Error('ACCESS_REVOKED');
-            if (!current) {
-              if (++authFailures >= STREAM_AUTH_FAILURE_LIMIT) throw new Error('ACCESS_REVOKED');
-              if (closed) return;
-              reply.raw.write(': keepalive\n\n');
-              again();
-              return;
-            }
-            authFailures = 0;
-            if (closed) return;
-          }
-          // Two plain reads decide whether the heavy, locking snapshot is worth taking.
-          if (await s.eventsChanged(identity, id, cursor)) {
-            batch = await s.listClientEvents(identity, id, cursor);
-            send();
-            if (batch.terminal) {
-              reply.raw.end();
-              return;
-            }
-          }
-          if (closed) return;
-          reply.raw.write(': keepalive\n\n');
-          again();
-        } catch (error) {
-          if (!closed) {
-            const code =
-              error instanceof Error && ['ACCESS_REVOKED', 'AGENTIC_TENANT_CLOSED'].includes(error.message)
-                ? 'ACCESS_REVOKED'
-                : 'EXECUTION_UNAVAILABLE';
-            if (code === 'EXECUTION_UNAVAILABLE')
-              reportAgenticFailure('agentic.stream.failed', error, { executionId: id });
-            reply.raw.write(`event: error\ndata: ${JSON.stringify({ code })}\n\n`);
-            reply.raw.end();
-          }
+        closed = true;
+        unsubscribe?.();
+        releaseProcess();
+        activeStreams.delete(finish);
+        req.raw.removeListener('aborted', finish);
+        reply.raw.removeListener('close', cleanup);
+        reply.raw.removeListener('error', finish);
+        if (leaseId) {
+          const release = streamLeases
+            .release(leaseId)
+            .catch((error) => reportAgenticFailure('agentic.stream.release.failed', error));
+          streamReleases.add(release);
+          void release.finally(() => streamReleases.delete(release));
         }
       };
-      send();
-      if (batch.terminal) reply.raw.end();
-      else again();
-      return reply;
+      const finish = () => {
+        cleanup();
+        reply.raw.end();
+      };
+      activeStreams.add(finish);
+      req.raw.once('aborted', finish);
+      reply.raw.once('close', cleanup);
+      reply.raw.once('error', finish);
+      try {
+        leaseId = await streamLeases.acquire(identity, id);
+        if (closed) {
+          await streamLeases.release(leaseId);
+          return reply;
+        }
+        let lastRenewAt = performance.now();
+        const requiresCaseScope = await s.hasCaseContext(identity, { executionId: id });
+        const batch = await s.listClientEvents(identity, id, query.after);
+        if (closed) return reply;
+        if (!(await streamLeases.renew(leaseId))) throw new Error('EXECUTION_UNAVAILABLE');
+        lastRenewAt = performance.now();
+        reply.hijack();
+        for (const [name, value] of Object.entries(reply.getHeaders()))
+          if (value !== undefined) reply.raw.setHeader(name, value);
+        reply.raw.writeHead(200, {
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'X-Accel-Buffering': 'no',
+        });
+        reply.raw.write(': connected\n\n');
+        const sameIdentity = (p: AuthenticatedPrincipal) =>
+          p.authMethod === 'session' &&
+          p.tenantId === identity.tenantId &&
+          p.userId === identity.userId &&
+          p.scopes.includes('research:read') &&
+          (!requiresCaseScope || p.scopes.includes('matter:read'));
+        let authFailures = 0,
+          lastAuthAt = Date.now();
+        const recheckMs = deps.options?.authRecheckMs ?? 3000;
+        const fail = (error: unknown) => {
+          if (closed) return;
+          const code =
+            error instanceof Error && ['ACCESS_REVOKED', 'AGENTIC_TENANT_CLOSED'].includes(error.message)
+              ? 'ACCESS_REVOKED'
+              : 'EXECUTION_UNAVAILABLE';
+          if (code === 'EXECUTION_UNAVAILABLE')
+            reportAgenticFailure('agentic.stream.failed', error, { executionId: id });
+          try {
+            reply.raw.write(`event: error\ndata: ${JSON.stringify({ code })}\n\n`);
+          } finally {
+            finish();
+          }
+        };
+        const subscriber = {
+          cursor: query.after,
+          prepare: async () => {
+            if (closed) return false;
+            if (Date.now() - lastAuthAt >= recheckMs) {
+              const current = await deps.auth.authenticate(req.headers.authorization).catch(() => null);
+              lastAuthAt = Date.now();
+              if (closed) return false;
+              if (current && !sameIdentity(current)) throw new Error('ACCESS_REVOKED');
+              if (!current) {
+                if (++authFailures >= STREAM_AUTH_FAILURE_LIMIT) throw new Error('ACCESS_REVOKED');
+                reply.raw.write(': keepalive\n\n');
+                return false;
+              }
+              authFailures = 0;
+            }
+            if (performance.now() - lastRenewAt >= 10_000) {
+              if (!(await streamLeases.renew(leaseId!))) throw new Error('EXECUTION_UNAVAILABLE');
+              lastRenewAt = performance.now();
+            }
+            return !closed;
+          },
+          send: (next: typeof batch) => {
+            if (closed) return;
+            if (performance.now() - lastRenewAt >= EXECUTION_STREAM_LEASE_MS) throw new Error('EXECUTION_UNAVAILABLE');
+            for (const event of next.events) {
+              if (closed) return;
+              // Bound slow consumers rather than buffering an unbounded stream in Node.
+              if (!reply.raw.write(encodeExecutionEvent(event))) {
+                finish();
+                return;
+              }
+            }
+            subscriber.cursor = next.cursor;
+            if (next.terminal) finish();
+          },
+          keepalive: () => {
+            if (!closed && !reply.raw.write(': keepalive\n\n')) finish();
+          },
+          fail,
+        };
+        subscriber.send(batch);
+        if (!closed)
+          unsubscribe = streams.subscribe(
+            JSON.stringify([identity.tenantId, id]),
+            {
+              changed: (after) => s.eventsChanged(identity, id, after),
+              read: (after) => s.listClientEvents(identity, id, after),
+            },
+            subscriber,
+          );
+        return reply;
+      } catch (error) {
+        cleanup();
+        throw error;
+      }
     }),
   );
   if (caseTask)

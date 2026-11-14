@@ -1,3 +1,4 @@
+import { executionStreamLeasesMigration } from './execution-stream-leases.js';
 import type { Client } from '@libsql/client';
 
 export interface SqlMigration {
@@ -1189,6 +1190,7 @@ export const persistenceMigrations: readonly SqlMigration[] = [
 { id: 'persistence-0040-desk-editorial', statements: [
   `ALTER TABLE draft_versions ADD COLUMN editorial_reviews_json TEXT;`,
 ] },
+executionStreamLeasesMigration,
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {
