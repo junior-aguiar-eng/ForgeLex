@@ -868,13 +868,13 @@ sobre a branch da fixture; preservar as alterações locais ao preparar cada bas
 | --- | --- | --- | --- |
 | S0 | Conferir base, fixes e estado real | Validado localmente; origem/IAM/publicação não atestados | Nenhuma |
 | S1 | Autorizações MCP, credenciais e assinaturas | Validado localmente; revisão integrada S8 pendente | S0 |
-| S2 | Fechar regressão E2E do checkout e testar liquidação | Parcial local | S0 |
-| S3 | Reembolso atômico e recuperação financeira | Pendente | S0; coordenar contratos com S2 |
-| S4 | Saída HTTP segura e worker limitado | Pendente | S1 para permissões; bloqueios de rede independentes |
-| S5 | Ingestão com limites de cardinalidade | Pendente | S0 |
-| S6 | Limites e limpeza de streams SSE | Pendente | S0 |
-| S7 | Segredos fora dos argumentos de processos | Pendente | S0 |
-| S8 | Verificação integrada e decisão de publicação | Pendente | S1–S7 |
+| S2 | Fechar regressão E2E do checkout e testar liquidação | Validado localmente; verificação conjunta S8 | S0 |
+| S3 | Reembolso atômico e recuperação financeira | Validado localmente; verificação conjunta S8 | S0; coordenar contratos com S2 |
+| S4 | Saída HTTP segura e worker limitado | Validado localmente; verificação conjunta S8 | S1 para permissões; bloqueios de rede independentes |
+| S5 | Ingestão com limites de cardinalidade | Validado localmente; verificação conjunta S8 | S0 |
+| S6 | Limites e limpeza de streams SSE | Validado localmente; verificação conjunta S8 | S0 |
+| S7 | Segredos fora dos argumentos de processos | Validado localmente; verificação conjunta S8 | S0 |
+| S8 | Verificação integrada e decisão de publicação | Validado localmente; CI remota e publicação pendentes | S1–S7 |
 
 Ordem recomendada: S0 → S1 → S2 → S3 → S4 → S5 → S6 → S7 → S8.
 Se a consulta autorizada confirmar worker de webhook ativo em produção, antecipar S4.
@@ -1101,3 +1101,37 @@ Não desligar controles de segurança por flag para preservar comportamento vuln
 qual risco foi reduzido, o que foi testado, o que falta e se algo mudou para clientes.
 Nenhuma aprovação de terceiro é exigida. Commit, push, integração, migração e publicação
 continuam sujeitos ao escopo de autorização que Boni conceder.
+
+
+### S.2 — Resultado local para acompanhamento — 14/11/2026
+
+As implementações S1–S7 estão em branches locais por subsistema. O conjunto foi montado
+para teste em `review/daybreak-security`, sem merge de PR. Verificação conjunta: 2.256 testes
+aprovados/27 pulados; PostgreSQL dedicado 20 + um teste financeiro combinado; fase 7 com
+PostgreSQL aprovada; build, lint, typecheck e formatação de código aprovados. A formatação
+global permanece com 393 avisos legados. Detalhes, decisões, commits e riscos residuais estão
+na [Frente S do registro vigente](../../architecture/2026-11-10-mesa-guiada-execucao.md#frente-s--execução-daybreak--14112026-americafortaleza).
+
+Nenhuma correção foi publicada, nenhum achado foi fechado no Daybreak e não houve nova CI
+remota. Antes de publicação: revisar as frentes, planejar/aprovar migrações e homologação,
+validar capacidade operacional, recuperação financeira e controles de infraestrutura.
+
+
+### S.3 — Autorização e envio remoto — 14/11/2026
+
+Boni autorizou expressamente “commit, push e deploy” após o aceite local. Essa decisão
+amplia a autorização anterior para publicação, mantendo backup, migrations e verificações
+do runbook como pré-condições técnicas. Não autoriza compras/reembolsos reais nem o
+encerramento de achados no Daybreak.
+
+As frentes foram enviadas separadamente: pagamentos/reembolsos no PR #153 (atualizado e
+retirado de rascunho); autorização #154; webhooks #155; ingestão #156; streams #157;
+scripts #158. As seis CIs remotas iniciaram. O conector criou commits com as mesmas
+árvores de conteúdo, pois o token do Git/gh local é inválido; os SHAs remotos diferem
+dos commits locais. Nenhum force-push foi usado.
+
+Deploy ainda não executado: o ambiente não dispõe de gcloud nem de credenciais Google
+Cloud. Sem esse acesso não é possível comprovar backup, executar as migrations
+`billing-ledger-0011-refund-recovery`, `persistence-0042` e `persistence-0043`, preparar
+revisões sem tráfego e promover o digest pelo procedimento oficial. Não houve mudança
+em produção. Acompanhar CI e resolver falhas antes de integração.
