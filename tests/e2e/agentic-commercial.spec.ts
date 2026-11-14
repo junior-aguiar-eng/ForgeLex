@@ -51,8 +51,8 @@ test('autoriza preço em reais, preserva retry e mostra comprovante no celular',
   await page.setViewportSize({ width: 320, height: 900 });
   await login(page);
   const composer = page.getByRole('region', { name: 'Novo pedido', exact: true });
-  await expect(composer).toContainText(/Enviar autoriza até R\$\s*11,50/);
-  await expect(composer).toContainText('o restante é liberado');
+  await expect(composer).toContainText(/Até R\$\s*11,50 por trabalho/);
+  await expect(composer).toContainText('o não usado é devolvido');
   expect(posted).toHaveLength(0);
   const accessibility = await new AxeBuilder({ page }).include('[data-agentic-workspace]').analyze();
   expect(accessibility.violations).toEqual([]);

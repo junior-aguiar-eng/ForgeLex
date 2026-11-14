@@ -96,7 +96,7 @@ test('percorre cobrança comercial real com transporte sintético e preserva ide
         '\n\n' +
         'Relato sintético: a parte informa que contratou um serviço, mas o serviço não foi entregue.',
     );
-  await expect(page.getByText(/Até R\$ .* por trabalho/)).toBeVisible();
+  await expect(page.getByText(/Até R\$\s.* por trabalho/)).toBeVisible();
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Autorizar trabalho' })).toHaveCount(0);
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible({ timeout: 60000 });
