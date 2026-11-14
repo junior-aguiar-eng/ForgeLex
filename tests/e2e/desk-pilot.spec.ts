@@ -104,8 +104,8 @@ for (const scenario of cases) {
     };
 
     await login(page);
-    await page.getByRole('button', { name: 'Sem caso', exact: true }).click();
-    await page.getByLabel('Caso (opcional)').selectOption(matterId);
+    await page.getByRole('button', { name: 'Vincular a um caso', exact: true }).click();
+    await page.getByLabel('Caso', { exact: true }).selectOption(matterId);
     await page.getByRole('textbox', { name: 'O que você precisa fazer?' }).fill(scenario.objective);
     const helper = page.getByRole('button', { name: 'Me ajude a começar' });
     const question = guideQuestion(page);

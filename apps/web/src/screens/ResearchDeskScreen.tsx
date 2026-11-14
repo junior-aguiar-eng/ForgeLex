@@ -72,7 +72,7 @@ export const ResearchDeskScreen: React.FC<{ compact?: boolean; pieceMatterId?: s
           <div className="text-right text-xs text-stone-500">Resultados e cobrança dependem da API autenticada.</div>
         </div>}
 
-        <div className={compact ? 'space-y-4' : 'grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start'}>
+        <div className={compact ? 'grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]' : 'grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start'}>
           <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
             <div className="flex items-center gap-2 text-stone-900">
               <Search className="w-5 h-5 text-cognac-700" />
@@ -82,8 +82,8 @@ export const ResearchDeskScreen: React.FC<{ compact?: boolean; pieceMatterId?: s
             <ResearchCoverageNotice />
             <form onSubmit={search} className="space-y-3">
               <div className="flex flex-col md:flex-row gap-3">
-                <input aria-label="Termo de pesquisa" value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-0 flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
-                <select aria-label="Tribunal da pesquisa" value={court} onChange={(event) => setCourt(event.target.value)} className="md:w-40 px-3 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm">
+                <input aria-label="Termo de pesquisa" value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-[12rem] flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
+                <select aria-label="Tribunal da pesquisa" value={court} onChange={(event) => setCourt(event.target.value)} className="md:w-28 px-3 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm">
                   {model.courts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
                 </select>
                 <JudgmentYearSelect value={year} onChange={setYear} />
@@ -96,6 +96,7 @@ export const ResearchDeskScreen: React.FC<{ compact?: boolean; pieceMatterId?: s
             {execution && <ResearchRetentionNotice />}
             {results.length > 0 && <DecisionReader entries={results.map(decision => ({ decision }))} actions={item => CASE_WORKSPACE_ENABLED && <SaveAuthorityToCase item={item} pieceMatterId={pieceMatterId} />} />}
             <SavedResearchPanel
+              showNotice={false}
               operationId={execution?.intent.idempotencyKey}
               caseLink={CASE_WORKSPACE_ENABLED}
               pieceMatterId={pieceMatterId}

@@ -36,8 +36,8 @@ for (const scenario of ['completo', 'parcial', 'divergência'] as const) {
     await page.getByRole('button', { name: 'Entrar', exact: true }).click();
     await page.waitForURL('**/app');
     await page.goto('/app/trabalho');
-    await page.getByRole('button', { name: 'Sem caso', exact: true }).click();
-    await page.getByLabel('Caso (opcional)').selectOption(matterId);
+    await page.getByRole('button', { name: 'Vincular a um caso', exact: true }).click();
+    await page.getByLabel('Caso', { exact: true }).selectOption(matterId);
     for (const { title } of documents) await page.getByLabel(title, { exact: true }).check();
     await page.getByRole('textbox', { name: 'O que você precisa fazer?' }).fill(`HOMOLOGAÇÃO PROCESSUAL ${scenario}`);
     await page.getByRole('button', { name: 'Me ajude a começar' }).click();

@@ -219,7 +219,8 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
           piecePending={attached && (!activePiece || activePiece.loadingSelection)}
           request={request}
           emptyState={
-            DESK_SHELL_ENABLED ? (
+            // Com a peça aberta, os atalhos repetem a barra de cima e só alongariam a conversa além da altura da peça.
+            DESK_SHELL_ENABLED && !activePiece ? (
               <DeskShortcuts
                 onNewPiece={reopenPiece}
                 onReviewText={() => setRequest((old) => ({ id: (old?.id ?? 0) + 1, text: reviewTextRequest }))}

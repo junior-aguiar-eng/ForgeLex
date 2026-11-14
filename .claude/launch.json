@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mesa-dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/dev-mesa.mjs"],
+      "port": 3400,
+      "url": "http://127.0.0.1:3400"
+    }
+  ]
+}

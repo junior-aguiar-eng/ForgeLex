@@ -13,7 +13,10 @@ export function SavedResearchPanel({
   caseLink = false,
   pieceMatterId,
   canResearchAgain,
+  showNotice = true,
 }: {
+  /** Falso quando a tela já mostra o mesmo aviso acima, para não repeti-lo. */
+  showNotice?: boolean;
   operationId?: string;
   onResearchAgain: (criteria: SavedSearchSummary['criteria']) => void | Promise<void>;
   caseLink?: boolean;
@@ -91,7 +94,7 @@ export function SavedResearchPanel({
           </button>
         )}
       </div>
-      <p className="text-xs leading-relaxed text-stone-600">{SAVED_RESEARCH_NOTICE}</p>
+      {showNotice && <p className="text-xs leading-relaxed text-stone-600">{SAVED_RESEARCH_NOTICE}</p>}
       {loading ? (
         <p role="status">Carregando pesquisas salvas…</p>
       ) : (
