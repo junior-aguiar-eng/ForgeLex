@@ -92,9 +92,17 @@ export class BillingOperationsService {
     await this.billing.runMigrations();
     await this.ensureBillingAccount(input.tenantId);
     const existing = await this.db.select().from(billingPurchases).where(and(eq(billingPurchases.tenantId, input.tenantId), eq(billingPurchases.idempotencyKey, input.idempotencyKey)));
-    if (existing[0]?.checkoutUrl) return this.purchaseResponse(existing[0]);
+    const existingPurchase = existing[0];
+    if (existingPurchase && (
+      existingPurchase.tenantId !== input.tenantId ||
+      existingPurchase.userId !== input.userId ||
+      existingPurchase.packageId !== validated.packageId ||
+      existingPurchase.amountCents !== validated.amountCents ||
+      existingPurchase.currency !== BILLING_CURRENCY
+    )) throw new Error('IDEMPOTENCY_CONFLICT');
+    if (existingPurchase?.checkoutUrl) return this.purchaseResponse(existingPurchase);
 
-    const purchase = existing[0] ?? {
+    const purchase = existingPurchase ?? {
       id: randomUUID(),
       tenantId: input.tenantId,
       userId: input.userId,
@@ -111,22 +119,22 @@ export class BillingOperationsService {
       paidAt: null,
       updatedAt: new Date().toISOString(),
     };
-    if (!existing[0]) await this.db.insert(billingPurchases).values(purchase);
+    if (!existingPurchase) await this.db.insert(billingPurchases).values(purchase);
 
-    const billingAccount = await this.db.select().from(billingAccounts).where(eq(billingAccounts.tenantId, input.tenantId));
+    const billingAccount = await this.db.select().from(billingAccounts).where(eq(billingAccounts.tenantId, purchase.tenantId));
     const checkout = await this.provider.createCheckout({
-      amountCents: validated.amountCents,
-      tenantId: input.tenantId,
-      userId: input.userId,
+      amountCents: purchase.amountCents,
+      tenantId: purchase.tenantId,
+      userId: purchase.userId,
       purchaseId: purchase.id,
       successUrl: `${this.origin}/?billing_purchase=${purchase.id}`,
       cancelUrl: `${this.origin}/?billing_canceled=${purchase.id}`,
-      idempotencyKey: input.idempotencyKey,
+      idempotencyKey: purchase.id,
       customerId: billingAccount[0]?.providerCustomerId ?? undefined,
     });
     const updated = new Date().toISOString();
     await this.db.update(billingPurchases).set({ providerCheckoutId: checkout.id, checkoutUrl: checkout.url, updatedAt: updated }).where(eq(billingPurchases.id, purchase.id));
-    return { purchaseId: purchase.id, amountCents: validated.amountCents, currency: BILLING_CURRENCY, status: 'PENDING', checkoutUrl: checkout.url };
+    return { purchaseId: purchase.id, amountCents: purchase.amountCents, currency: purchase.currency, status: 'PENDING', checkoutUrl: checkout.url };
   }
 
   public async processWebhook(event: {
@@ -395,6 +403,22 @@ export class BillingOperationsService {
     const purchase = purchases[0];
     if (!purchase || !['PENDING', 'PROCESSING'].includes(purchase.status)) return;
     const providerPaymentId = typeof object.provider_payment_id === 'string' ? object.provider_payment_id : null;
+    const providerIdentityMatches = purchase.providerCheckoutId
+      ? object.provider_checkout_id === purchase.providerCheckoutId
+      : purchase.providerPaymentId !== null && providerPaymentId === purchase.providerPaymentId;
+    const settlementMatches =
+      object.amount_total === purchase.amountCents &&
+      typeof object.currency === 'string' &&
+      object.currency.toLowerCase() === purchase.currency.toLowerCase() &&
+      object.external_reference === purchase.id &&
+      providerPaymentId !== null &&
+      providerIdentityMatches;
+    if (!settlementMatches) {
+      await this.db.update(billingPurchases)
+        .set({ status: 'RECONCILIATION_REQUIRED', updatedAt: new Date().toISOString() })
+        .where(and(eq(billingPurchases.id, purchase.id), inArray(billingPurchases.status, ['PENDING', 'PROCESSING'])));
+      throw new Error('BILLING_SETTLEMENT_RECONCILIATION_REQUIRED');
+    }
     await this.billing.creditPurchase({ tenantId: purchase.tenantId, purchaseId: purchase.id, amountCents: purchase.amountCents, idempotencyKey: `${provider}:purchase:${purchase.id}` });
     const now = new Date().toISOString();
     await this.db.update(billingPurchases).set({ status: 'PAID', providerPaymentId, paidAt: now, receiptUrl: typeof object.receipt_url === 'string' ? object.receipt_url : null, updatedAt: now }).where(and(eq(billingPurchases.id, purchase.id), inArray(billingPurchases.status, ['PENDING', 'PROCESSING'])));

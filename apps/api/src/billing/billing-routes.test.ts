@@ -143,10 +143,13 @@ describe('rotas de billing', () => {
 
     const missingKey = await app.inject({ method: 'POST', url: '/api/v2/billing/checkout', headers: { authorization: 'Bearer billing-token' }, payload: { packageId: 'credits_50' } });
     const created = await app.inject({ method: 'POST', url: '/api/v2/billing/checkout', headers: { authorization: 'Bearer billing-token', 'idempotency-key': 'route_checkout_1' }, payload: { packageId: 'credits_50' } });
+    const conflict = await app.inject({ method: 'POST', url: '/api/v2/billing/checkout', headers: { authorization: 'Bearer billing-token', 'idempotency-key': 'route_checkout_1' }, payload: { packageId: 'credits_25' } });
 
     expect(missingKey.statusCode).toBe(400);
     expect(created.statusCode).toBe(201);
     expect(JSON.parse(created.body)).toMatchObject({ amountCents: 5000, status: 'PENDING' });
+    expect(conflict.statusCode).toBe(409);
+    expect(JSON.parse(conflict.body).error).toBe('IDEMPOTENCY_CONFLICT');
     await app.close();
     connection.client.close();
   });
@@ -217,7 +220,9 @@ describe('rotas de billing', () => {
     await runPersistenceMigrations(connection.client);
     const ledger = new LedgerService(connection.db, connection.client);
     await ledger.runMigrations();
-    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), new Provider());
+    const paymentProvider = new Provider();
+    vi.spyOn(paymentProvider, 'createCheckout').mockImplementation(async (input) => ({ id: 'ORDTEST123', url: `https://checkout.test/${input.purchaseId}` }));
+    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), paymentProvider);
     let purchaseId = '';
     const mercadoPago = new MercadoPagoPaymentProvider({
       accessToken: 'APP_USR_test',
@@ -227,6 +232,7 @@ describe('rotas de billing', () => {
         status: 'processed',
         external_reference: purchaseId,
         total_amount: '50.00',
+        currency: 'BRL',
         transactions: { payments: [{ id: 'PAYTEST123' }] },
       }), { status: 200 })),
     });
