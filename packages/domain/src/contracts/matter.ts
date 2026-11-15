@@ -76,6 +76,10 @@ export type DocumentAnchor = z.infer<typeof DocumentAnchorSchema>;
 /** UTF-8 content and nonempty paragraph ceilings also bound the complete anchor response. */
 export const TEXT_DOCUMENT_MAX_BYTES = 1_048_576;
 export const TEXT_DOCUMENT_MAX_ANCHORS = 5_000;
+/** Ingest-time ceilings for document metadata, so a request cannot park megabytes in a title or file name. */
+export const TEXT_DOCUMENT_MAX_TITLE_LENGTH = 500;
+export const TEXT_DOCUMENT_MAX_FILENAME_LENGTH = 255;
+export const TEXT_DOCUMENT_MAX_MIME_TYPE_LENGTH = 127;
 
 export interface IngestTextDocumentInput {
   tenantId: string;

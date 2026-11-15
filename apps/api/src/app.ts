@@ -1541,7 +1541,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.post(
     '/api/v2/matters/:matterId/documents',
     {
-      preHandler: authAdapter.createPreHandler(['matter:write']),
+      // onRequest runs before the body is read. As a preHandler, authentication would only start after Fastify had already
+      // buffered and parsed up to bodyLimit, so any anonymous caller could make the server do that work.
+      onRequest: authAdapter.createPreHandler(['matter:write']),
       // JSON can escape one UTF-8 byte as six ASCII bytes; retain a bounded
       // envelope for metadata while enforcing decoded content limits below.
       bodyLimit: TEXT_DOCUMENT_MAX_BYTES * 6 + 65_536,
@@ -1614,9 +1616,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         const message = error instanceof Error ? error.message : 'Não foi possível ingerir o documento.';
         const limitCode = ['DOCUMENT_TEXT_TOO_LARGE', 'DOCUMENT_ANCHOR_LIMIT_EXCEEDED']
           .find((code) => message.startsWith(`${code}:`));
+        const fieldCode = message.startsWith('DOCUMENT_FIELD_TOO_LONG:') ? 'DOCUMENT_FIELD_TOO_LONG' : undefined;
         reply.status(limitCode ? 413 : message.startsWith('MATTER_NOT_FOUND') ? 404 : 400);
         return {
-          error: limitCode ?? (message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST'),
+          error: limitCode ?? fieldCode ?? (message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST'),
           message,
         };
       }
