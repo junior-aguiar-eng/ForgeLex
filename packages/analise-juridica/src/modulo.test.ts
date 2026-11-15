@@ -80,6 +80,7 @@ describe('módulo de análise jurídica (via McpHandler)', () => {
     const registry = new ToolRegistry();
     const modulo = await ModuloAnalise.criar({ client, ledger, registry, buscador: buscadorFake });
     handler = new McpHandler(registry, ledger, undefined, {
+      trustUnscopedContext: true,
       exposedToolNames: ModuloAnalise.toolsExpostas,
       toolModules: [modulo],
     });

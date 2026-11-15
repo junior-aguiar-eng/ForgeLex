@@ -15,9 +15,15 @@ export const WEBHOOK_EVENT_TYPES = [
 
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];
 
+/**
+ * Sent only to one chosen endpoint when its owner asks for a test. It is not part of WEBHOOK_EVENT_TYPES, so nobody can
+ * subscribe to it and it never borrows the identity of a real business event.
+ */
+export const WEBHOOK_TEST_EVENT_TYPE = 'webhook.test';
+
 export interface ForgeLexWebhookEvent<TPayload = Record<string, unknown>> {
   id: string;
-  type: WebhookEventType;
+  type: WebhookEventType | typeof WEBHOOK_TEST_EVENT_TYPE;
   tenantId: string;
   occurredAt: string;
   payload: TPayload;

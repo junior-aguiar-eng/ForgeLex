@@ -68,6 +68,7 @@ describe('a pesquisa abre o painel sem depender de uma segunda chamada do modelo
         registry.register(tool);
     }
     return new McpHandler(registry, ledger, undefined, {
+      trustUnscopedContext: true,
       ...(options.ui ? { decisionUi: { readHtml: async () => '<p>Reader</p>' } } : {}),
     });
   }
