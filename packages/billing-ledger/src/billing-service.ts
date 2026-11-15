@@ -7,6 +7,7 @@ import { billingCreditLots, billingRefundRequests, billingPurchases, billingPaym
 import { ledgerAccounts, ledgerEntries, billingOperations } from './schema/ledger-schema.js';
 import { calculateRefundableCents } from './billing-rules.js';
 import { LedgerService } from './ledger-service.js';
+import { KeyedMutex } from './keyed-mutex.js';
 
 export interface CreditSettlementInput {
   tenantId: string;
@@ -24,7 +25,7 @@ export interface BillingLedgerResult {
 
 export class BillingService {
   private readonly ledger: LedgerService;
-  private readonly tenantLocks = new Map<string, Promise<void>>();
+  private readonly tenantLocks = new KeyedMutex();
 
   public constructor(private readonly db: ForgeLexDatabase, client?: Client) {
     this.ledger = new LedgerService(db, client);
@@ -53,7 +54,7 @@ export class BillingService {
     this.validateKey(input.idempotencyKey);
     await this.runMigrations();
 
-    return this.withTenantLock(input.tenantId, async () => this.db.transaction(async (transaction) => {
+    return this.tenantLocks.run(input.tenantId, async () => this.db.transaction(async (transaction) => {
       const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, input.tenantId);
       if (!account) throw new DomainError('BILLING_ACCOUNT_NOT_PROVISIONED', 'Carteira de billing não provisionada.');
 
@@ -119,7 +120,7 @@ export class BillingService {
     this.validateKey(input.idempotencyKey);
     await this.runMigrations();
 
-    return this.withTenantLock(input.tenantId, async () => this.db.transaction(async (transaction) => {
+    return this.tenantLocks.run(input.tenantId, async () => this.db.transaction(async (transaction) => {
       const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, input.tenantId);
       if (!account) throw new DomainError('BILLING_ACCOUNT_NOT_PROVISIONED', 'Carteira de billing não provisionada.');
       const existingEntry = await transaction
@@ -157,7 +158,7 @@ export class BillingService {
     this.validateKey(input.idempotencyKey);
     await this.runMigrations();
 
-    return this.withTenantLock(input.tenantId, async () => this.db.transaction(async (transaction) => {
+    return this.tenantLocks.run(input.tenantId, async () => this.db.transaction(async (transaction) => {
       const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, input.tenantId);
       if (!account) throw new DomainError('BILLING_ACCOUNT_NOT_PROVISIONED', 'Carteira de billing não provisionada.');
       const existingEntry = await transaction
@@ -202,7 +203,7 @@ export class BillingService {
     await this.runMigrations();
     const initial = (await this.db.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, input.requestId)))[0];
     if (!initial) throw new Error('BILLING_REFUND_REQUEST_NOT_FOUND');
-    return this.withTenantLock(initial.tenantId, () => this.db.transaction(async (transaction) => {
+    return this.tenantLocks.run(initial.tenantId, () => this.db.transaction(async (transaction) => {
       const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, initial.tenantId);
       if (!account) throw new Error('BILLING_ACCOUNT_NOT_PROVISIONED');
       const request = (await transaction.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, input.requestId)))[0]!;
@@ -237,7 +238,7 @@ export class BillingService {
     await this.runMigrations();
     const initial = (await this.db.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, requestId)))[0];
     if (!initial) throw new Error('BILLING_REFUND_REQUEST_NOT_FOUND');
-    return this.withTenantLock(initial.tenantId, () => this.db.transaction(async (transaction) => {
+    return this.tenantLocks.run(initial.tenantId, () => this.db.transaction(async (transaction) => {
       const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, initial.tenantId);
       const request = (await transaction.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, requestId)))[0]!;
       if (!['PREPARED', 'PROVIDER_PENDING', 'RECONCILIATION_REQUIRED'].includes(request.operationState) || !account || !request.approvedAmountCents) return request;
@@ -257,7 +258,7 @@ export class BillingService {
     await this.runMigrations();
     const initial = (await this.db.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, requestId)))[0];
     if (!initial) throw new Error('BILLING_REFUND_REQUEST_NOT_FOUND');
-    return this.withTenantLock(initial.tenantId, () => this.db.transaction(async (transaction) => {
+    return this.tenantLocks.run(initial.tenantId, () => this.db.transaction(async (transaction) => {
       const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, initial.tenantId);
       const request = (await transaction.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, requestId)))[0]!;
       if (request.operationState === 'LEDGER_SETTLED') return request;
@@ -304,18 +305,5 @@ export class BillingService {
 
   private validateKey(key: string): void {
     if (!key.trim()) throw new DomainError('INVALID_CANONICAL_STATE', 'A chave de idempotência é obrigatória.');
-  }
-
-  private async withTenantLock<T>(tenantId: string, task: () => Promise<T>): Promise<T> {
-    const previous = this.tenantLocks.get(tenantId) ?? Promise.resolve();
-    let release: () => void = () => undefined;
-    const current = new Promise<void>((resolve) => { release = resolve; });
-    const chain = previous.then(() => current);
-    this.tenantLocks.set(tenantId, chain);
-    await previous;
-    try { return await task(); } finally {
-      release();
-      if (this.tenantLocks.get(tenantId) === chain) this.tenantLocks.delete(tenantId);
-    }
   }
 }
