@@ -1,9 +1,11 @@
+import { mcpScopes } from './auth/mcp-scopes.js';
+import { canSubscribeWebhook, isValidWebhookEventTypes, missingWebhookScopes } from './distribution/integration-authorization.js';
 import { registerAgenticWorkspace, type AgenticWorkspaceRuntimeOptions } from './agentic-workspace/execution-routes.js';
 import type { ClosedPilotDependencies } from './agentic-workspace/closed-pilot.js';
 import type { CommercialRuntimeDependencies } from './agentic-workspace/commercial-runtime.js';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import Fastify, { FastifyInstance, FastifyReply } from 'fastify';
+import Fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import { CourtCatalog } from '@forgelex/source-catalog';
 import { SourceRouter, StjSconProvider } from '@forgelex/source-providers';
@@ -53,7 +55,7 @@ import {
 import { AuditRecorder } from '@forgelex/audit';
 import { EXTERNAL_MCP_TOOL_NAMES, McpHandler } from '@forgelex/mcp-server';
 import { ModuloAnalise, criarBuscadorHttp } from '@forgelex/analise-juridica';
-import { CaseLawSchema, type AuthenticatedPrincipal } from '@forgelex/domain';
+import { CaseLawSchema, TEXT_DOCUMENT_MAX_BYTES, type AuthenticatedPrincipal } from '@forgelex/domain';
 import { JurisprudenceSearchService } from '@forgelex/legal-data';
 import {
   AuthAdapter,
@@ -71,14 +73,14 @@ import { ApiKeyService } from './auth/api-key-service.js';
 import { buildOpenApiDocument } from './distribution/openapi.js';
 import { createRequestAbortSignal } from './distribution/request-abort-signal.js';
 import { classifyResearchError } from './distribution/research-error.js';
-import { WEBHOOK_EVENT_TYPES } from './distribution/webhooks.js';
+import { WEBHOOK_EVENT_TYPES, WEBHOOK_TEST_EVENT_TYPE } from './distribution/webhooks.js';
 import { WebhookRepository } from '@forgelex/persistence';
-import { WebhookService } from './distribution/webhook-service.js';
+import { WEBHOOK_MAX_TIMEOUT_MS, WebhookService } from './distribution/webhook-service.js';
 import type { Client } from '@forgelex/persistence';
 import { createLegalResearchMemoTool, LegalResearchMemoExecutionService, type DeskMatter, type DeskPiece } from '@forgelex/legal-workflows';
 import { RequestMetrics, structuredLog } from './observability.js';
 import { logMcpCall } from './mcp-call-log.js';
-import { BillingOperationsService, type PaymentProvider } from './billing/billing-operations.js';
+import { BillingOperationsService, mercadoPagoWebhookFailure, refundFailureStatus, type PaymentProvider } from './billing/billing-operations.js';
 import { MercadoPagoPaymentProvider } from './billing/mercado-pago-payment-provider.js';
 import { resolveDatabasePolicy } from './config/database-policy.js';
 import { OperationalRetentionService, resolveRetentionPolicy } from './operations/retention-service.js';
@@ -248,6 +250,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const webhookTimeoutMs = Number.isFinite(configuredWebhookTimeoutMs) && configuredWebhookTimeoutMs > 0
     ? configuredWebhookTimeoutMs
     : undefined;
+  if (webhookTimeoutMs !== undefined && webhookTimeoutMs > WEBHOOK_MAX_TIMEOUT_MS) {
+    structuredLog('warn', 'webhook.timeout.capped', { configuredMs: webhookTimeoutMs, appliedMs: WEBHOOK_MAX_TIMEOUT_MS });
+  }
   const webhookService = databaseClient
     ? new WebhookService(new WebhookRepository(databaseClient), {
       masterKey: environment.FORGELEX_WEBHOOK_MASTER_KEY,
@@ -255,8 +260,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     })
     : undefined;
   const webhookWorker = webhookService && environment.FORGELEX_WEBHOOK_WORKER_ENABLED === 'true'
-    ? setInterval(() => void webhookService.deliverOne()
-      .then((result) => metrics.observeWebhookDelivery(result))
+    ? setInterval(() => void webhookService.tick()
+      .then((results) => results.forEach((result) => metrics.observeWebhookDelivery(result)))
       .catch((error) => structuredLog('error', 'webhook.worker.failed', {
         error: error instanceof Error ? error.message : String(error),
       })), 1_000)
@@ -562,11 +567,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const legalResearchMemoExecutionService = database && matterRepository && legalIssueRepository && researchMemoRepository
     ? new LegalResearchMemoExecutionService({
         matterRepository,
+        caseAiAccessRepository: new CaseAiAccessRepository(database),
         legalIssueRepository,
         researchMemoRepository,
         matterAuthorityRepository: matterAuthorityRepository!,
         checkpointStore: new PersistentWorkflowCheckpointStore(database),
         toolRegistry,
+        onCheckpointWriteFailed: ({ executionId, tenantId, matterId, error }) => structuredLog('error', 'research_memo.failed_checkpoint_not_written', {
+          executionId, tenantId, matterId,
+          errorName: error instanceof Error ? error.name : typeof error,
+          errorCode: error instanceof Error ? error.message.split(':')[0] : 'UNKNOWN',
+        }),
       })
     : undefined;
   if (legalResearchMemoExecutionService) toolRegistry.register(createLegalResearchMemoTool(legalResearchMemoExecutionService));
@@ -787,7 +798,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (!params.requestId || (body.decision !== 'APPROVED' && body.decision !== 'REJECTED')) { reply.status(400); return { error: 'INVALID_REQUEST', message: 'decision e requestId são obrigatórios.' }; }
     try {
       return await billingOperationsService.reviewRefundRequest({ requestId: params.requestId, reviewerId: request.principal.userId, decision: body.decision, approvedAmountCents: typeof body.approvedAmountCents === 'number' ? body.approvedAmountCents : undefined, reason: typeof body.reason === 'string' ? body.reason : undefined });
-    } catch (error) { reply.status(400); return { error: error instanceof Error ? error.message : 'REFUND_REVIEW_FAILED', message: 'Não foi possível revisar o reembolso.' }; }
+    } catch (error) { reply.status(refundFailureStatus(error)); return { error: error instanceof Error ? (error.message.split(':')[0] ?? 'REFUND_REVIEW_FAILED') : 'REFUND_REVIEW_FAILED', message: 'Não foi possível revisar o reembolso.' }; }
+  });
+
+  /** Explicit recovery of an approved refund whose provider outcome was unknown or whose local settlement failed. */
+  app.post('/api/v2/admin/billing/refund-requests/:requestId/recover', { preHandler: authAdapter.createPreHandler(['billing:admin']) }, async (request, reply) => {
+    if (!billingOperationsService) { reply.status(503); return { error: 'BILLING_UNAVAILABLE', message: 'O billing ainda não está configurado.' }; }
+    const params = request.params as { requestId?: string };
+    if (!params.requestId) { reply.status(400); return { error: 'INVALID_REQUEST', message: 'requestId é obrigatório.' }; }
+    try {
+      return await billingOperationsService.recoverRefundRequest(params.requestId);
+    } catch (error) { reply.status(refundFailureStatus(error)); return { error: error instanceof Error ? (error.message.split(':')[0] ?? 'REFUND_RECOVERY_FAILED') : 'REFUND_RECOVERY_FAILED', message: 'Não foi possível concluir o reembolso.' }; }
   });
 
   app.post('/api/v2/billing/checkout', { preHandler: authAdapter.createPreHandler(['billing:write']) }, async (request, reply) => {
@@ -814,7 +835,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      reply.status(message.startsWith('BILLING_') || message.startsWith('INVALID_') ? 400 : 503);
+      reply.status(message === 'IDEMPOTENCY_CONFLICT' ? 409 : message.startsWith('BILLING_') || message.startsWith('INVALID_') ? 400 : 503);
       return { error: message.split(':')[0] ?? 'BILLING_CHECKOUT_FAILED', message: 'Não foi possível criar o Checkout.' };
     }
   });
@@ -848,13 +869,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
     try {
       const payload = request.body && typeof request.body === 'object' ? request.body as Record<string, unknown> : {};
-      const event = await mercadoPagoPaymentProvider.normalizeWebhook({ payload, dataId, requestId, signature });
-      await billingOperationsService.processWebhook(event);
+      await billingOperationsService.processMercadoPagoWebhook(mercadoPagoPaymentProvider, { payload, dataId, requestId, signature });
       return { received: true };
     } catch (error) {
-      const code = error instanceof Error ? error.message.split(':')[0] : 'MERCADOPAGO_WEBHOOK_INVALID';
-      reply.status(code === 'MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID' ? 401 : 400);
-      return { error: code, message: 'Webhook Mercado Pago rejeitado.' };
+      const failure = mercadoPagoWebhookFailure(error);
+      reply.status(failure.status);
+      if (failure.code === 'BILLING_WEBHOOK_RETRY_LATER') reply.header('Retry-After', '15');
+      return { error: failure.code, message: 'Webhook Mercado Pago rejeitado.' };
     }
   });
 
@@ -1207,13 +1228,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       : 'Persistência de webhooks indisponível neste processo.',
   }));
 
-  app.post('/api/v2/webhooks/endpoints', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
-    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+  app.post('/api/v2/webhooks/endpoints', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
     const principal = request.principal;
-    const body = request.body as { url?: string; description?: string; secret?: string; eventTypes?: string[] };
+    const body = (request.body ?? {}) as { url?: string; description?: string; secret?: string; eventTypes?: string[] };
+    const requestedEvents: unknown = body.eventTypes ?? [...WEBHOOK_EVENT_TYPES];
+    if (!isValidWebhookEventTypes(requestedEvents)) return reply.status(400).send({ error: 'WEBHOOK_EVENT_TYPE_INVALID' });
+    const missingScopes = missingWebhookScopes(principal.scopes, requestedEvents);
+    if (missingScopes.length > 0) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE', missingScopes });
+    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     if (!body.url) return reply.status(400).send({ error: 'WEBHOOK_URL_REQUIRED' });
     try {
-      const created = await webhookService.createEndpoint({ tenantId: principal.tenantId, ...body, url: body.url });
+      const created = await webhookService.createEndpoint({ tenantId: principal.tenantId, url: body.url, description: body.description, secret: body.secret, eventTypes: body.eventTypes });
       const { secretCiphertext: _secretCiphertext, ...publicRecord } = created;
       return reply.status(201).send(publicRecord);
     } catch (error) {
@@ -1222,47 +1247,87 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   });
 
-  app.get('/api/v2/webhooks/endpoints', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+  app.get('/api/v2/webhooks/endpoints', { preHandler: authAdapter.createPreHandler(['webhooks:read']) }, async (request, reply) => {
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const endpoints = await webhookService.listEndpoints(principal.tenantId);
-    return endpoints.map(({ secretCiphertext: _secret, ...endpoint }) => endpoint);
+    return endpoints.filter((endpoint) => canSubscribeWebhook(principal.scopes, endpoint.eventTypes)).map(({ secretCiphertext: _secret, ...endpoint }) => endpoint);
   });
 
-  app.delete('/api/v2/webhooks/endpoints/:endpointId', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+  app.delete('/api/v2/webhooks/endpoints/:endpointId', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const endpointId = (request.params as { endpointId: string }).endpointId;
+    const endpoint = await webhookService.findEndpoint(principal.tenantId, endpointId);
+    if (endpoint && !canSubscribeWebhook(principal.scopes, endpoint.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
     return { revoked: await webhookService.revokeEndpoint(principal.tenantId, endpointId) };
   });
 
-  app.post('/api/v2/webhooks/endpoints/:endpointId/test', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+  app.post('/api/v2/webhooks/endpoints/:endpointId/test', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const endpointId = (request.params as { endpointId: string }).endpointId;
-    const endpoint = await webhookService.listEndpoints(principal.tenantId);
-    if (!endpoint.some((item) => item.id === endpointId && item.status === 'ACTIVE')) return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
-    const eventId = await webhookService.enqueue({ tenantId: principal.tenantId, endpointId, type: 'matter.created', payload: { test: true, requestedBy: principal.userId } });
-    return reply.status(202).send({ eventId, status: 'QUEUED' });
+    const selected = await webhookService.findEndpoint(principal.tenantId, endpointId);
+    if (selected && selected.status === 'ACTIVE' && !canSubscribeWebhook(principal.scopes, selected.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
+    if (!selected || selected.status !== 'ACTIVE') return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
+    try {
+      const eventId = await webhookService.enqueue({ tenantId: principal.tenantId, endpointId, type: WEBHOOK_TEST_EVENT_TYPE, payload: { test: true, requestedBy: principal.userId } });
+      return reply.status(202).send({ eventId, status: 'QUEUED' });
+    } catch (error) {
+      // The endpoint was retired between the check above and the enqueue: nothing was queued.
+      if (error instanceof Error && error.message === 'WEBHOOK_ENDPOINT_NOT_ACTIVE') return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
+      throw error;
+    }
   });
 
-  app.get('/api/v2/webhooks/deliveries', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+  // A suspended endpoint is held, not lost: reactivating it checks the address again and resumes its queued deliveries.
+  app.post('/api/v2/webhooks/endpoints/:endpointId/reactivate', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
+    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+    const principal = request.principal;
+    const endpointId = (request.params as { endpointId: string }).endpointId;
+    const endpoint = await webhookService.findEndpoint(principal.tenantId, endpointId);
+    if (!endpoint) return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
+    if (!canSubscribeWebhook(principal.scopes, endpoint.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
+    try {
+      const reactivated = await webhookService.reactivateEndpoint(principal.tenantId, endpointId);
+      return reactivated ? { reactivated: true } : reply.status(409).send({ error: 'WEBHOOK_ENDPOINT_NOT_SUSPENDED' });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'WEBHOOK_URL_BLOCKED') return reply.status(422).send({ error: 'WEBHOOK_URL_BLOCKED' });
+      return reply.status(502).send({ error: 'WEBHOOK_DESTINATION_CHECK_FAILED' });
+    }
+  });
+
+  app.get('/api/v2/webhooks/deliveries', { preHandler: authAdapter.createPreHandler(['webhooks:read']) }, async (request, reply) => {
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const endpointId = (request.query as { endpointId?: string }).endpointId;
-    return webhookService.listDeliveries(principal.tenantId, endpointId);
+    const permitted = (await webhookService.listEndpoints(principal.tenantId)).filter((item) => canSubscribeWebhook(principal.scopes, item.eventTypes)).map((item) => item.id);
+    const wanted = endpointId === undefined ? permitted : permitted.filter((id) => id === endpointId);
+    return webhookService.listDeliveries(principal.tenantId, wanted);
   });
 
-  app.post('/api/v2/webhooks/deliveries/:deliveryId/retry', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+  app.post('/api/v2/webhooks/deliveries/:deliveryId/retry', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const deliveryId = (request.params as { deliveryId: string }).deliveryId;
+    const delivery = await webhookService.findDelivery(principal.tenantId, deliveryId);
+    if (delivery) {
+      const endpoint = await webhookService.findEndpoint(principal.tenantId, delivery.endpointId);
+      if (!endpoint || !canSubscribeWebhook(principal.scopes, endpoint.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
+    }
     return { requeued: await webhookService.requeue(principal.tenantId, deliveryId) };
   });
 
+  /** Credentials are administered only from an owner's own session: never by an API key, even one holding the scope. */
+  const requireOwnerSession = async (request: FastifyRequest, reply: FastifyReply) => {
+    if (request.principal.authMethod !== 'session' || !request.principal.roles.includes('owner')) {
+      return reply.status(403).send({ error: 'CREDENTIAL_ADMIN_SESSION_REQUIRED' });
+    }
+  };
+
   app.get(
     '/api/v2/api-keys',
-    { preHandler: authAdapter.createPreHandler(['billing:read']) },
+    { preHandler: authAdapter.createPreHandler(['credentials:read']) },
     async (req, reply) => {
       if (!apiKeyService) {
         reply.status(503);
@@ -1275,7 +1340,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.post(
     '/api/v2/api-keys',
-    { preHandler: authAdapter.createPreHandler(['billing:read']) },
+    { preHandler: [authAdapter.createPreHandler(['credentials:write']), requireOwnerSession] },
     async (req, reply) => {
       if (!apiKeyService) {
         reply.status(503);
@@ -1324,7 +1389,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.delete(
     '/api/v2/api-keys/:keyId',
-    { preHandler: authAdapter.createPreHandler(['billing:read']) },
+    { preHandler: [authAdapter.createPreHandler(['credentials:write']), requireOwnerSession] },
     async (req, reply) => {
       if (!apiKeyService) {
         reply.status(503);
@@ -1540,7 +1605,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.post(
     '/api/v2/matters/:matterId/documents',
-    { preHandler: authAdapter.createPreHandler(['matter:write']) },
+    {
+      // onRequest runs before the body is read. As a preHandler, authentication would only start after Fastify had already
+      // buffered and parsed up to bodyLimit, so any anonymous caller could make the server do that work.
+      onRequest: authAdapter.createPreHandler(['matter:write']),
+      // JSON can escape one UTF-8 byte as six ASCII bytes; retain a bounded
+      // envelope for metadata while enforcing decoded content limits below.
+      bodyLimit: TEXT_DOCUMENT_MAX_BYTES * 6 + 65_536,
+    },
     async (req, reply) => {
       if (!matterRepository) {
         reply.status(503);
@@ -1607,9 +1679,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Não foi possível ingerir o documento.';
-        reply.status(message.startsWith('MATTER_NOT_FOUND') ? 404 : 400);
+        const limitCode = ['DOCUMENT_TEXT_TOO_LARGE', 'DOCUMENT_ANCHOR_LIMIT_EXCEEDED']
+          .find((code) => message.startsWith(`${code}:`));
+        const fieldCode = message.startsWith('DOCUMENT_FIELD_TOO_LONG:') ? 'DOCUMENT_FIELD_TOO_LONG' : undefined;
+        reply.status(limitCode ? 413 : message.startsWith('MATTER_NOT_FOUND') ? 404 : 400);
         return {
-          error: message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST',
+          error: limitCode ?? fieldCode ?? (message.startsWith('MATTER_NOT_FOUND') ? 'MATTER_NOT_FOUND' : 'INVALID_REQUEST'),
           message,
         };
       }
@@ -2209,6 +2284,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     '/api/v2/matters/:matterId/research-memos',
     { preHandler: authAdapter.createPreHandler(['matter:write', 'research:read']) },
     async (req, reply) => {
+      if (req.principal.authMethod === 'oauth_access_token') return reply.status(403).send({ error: 'OAUTH_MCP_ONLY' });
       if (!matterRepository || !legalIssueRepository || !researchMemoRepository || !factsEvidenceService) {
         reply.status(503);
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'A infraestrutura do research memo não está disponível.' };
@@ -2272,6 +2348,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           issueIds: selectedIssues.map((issue) => issue.id), idempotencyKey }, {
           tenantId: req.principal.tenantId, userId: req.principal.userId, sessionId,
           abortSignal: requestAbort.signal, source: 'REST',
+          scopes: req.principal.scopes, authMethod: req.principal.authMethod,
         });
         setBillingHeaders(reply, { billingMode: 'FREE', chargedCents: 0,
           remainingBalanceCents: await ledgerService.getAvailableBalanceCents(req.principal.tenantId),
@@ -3057,12 +3134,18 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           idempotencyKey,
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
+          scopes: mcpScopes(req.principal), authMethod: req.principal.authMethod,
+          authorizeMatter: async (matterId: string) => {
+            const current = await authAdapter.authenticate(req.headers.authorization);
+            if (!current || current.tenantId !== req.principal.tenantId || current.userId !== req.principal.userId || current.oauthClientId !== req.principal.oauthClientId || current.oauthGrantedAt !== req.principal.oauthGrantedAt || !mcpScopes(current).includes('matter:write') || !caseAiAccess || !current.oauthClientId || !current.oauthGrantedAt) throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+            await caseAiAccess.assertActive({ tenantId: current.tenantId, userId: current.userId, oauthConnection: { clientId: current.oauthClientId, grantedAt: current.oauthGrantedAt } }, matterId);
+          },
           abortSignal: requestAbort.signal,
           ...(req.principal.authMethod==='oauth_access_token' && req.principal.oauthClientId && req.principal.oauthGrantedAt ? {
             oauthConnection:{clientId:req.principal.oauthClientId,grantedAt:req.principal.oauthGrantedAt},
             revalidateConnection:async()=>{
               const current=await authAdapter.authenticate(req.headers.authorization).catch(()=>null);
-              if(!current||current.authMethod!=='oauth_access_token'||!current.scopes.includes('mcp')||current.tenantId!==req.principal.tenantId||current.userId!==req.principal.userId||current.oauthClientId!==req.principal.oauthClientId||current.oauthGrantedAt!==req.principal.oauthGrantedAt)throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+              if(!current||current.authMethod!=='oauth_access_token'||!current.scopes.includes('mcp')||!req.principal.scopes.every((scope)=>current.scopes.includes(scope))||current.tenantId!==req.principal.tenantId||current.userId!==req.principal.userId||current.oauthClientId!==req.principal.oauthClientId||current.oauthGrantedAt!==req.principal.oauthGrantedAt)throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
             },
           }:{}),
         });

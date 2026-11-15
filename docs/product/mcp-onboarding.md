@@ -139,3 +139,27 @@ revisão e atalhos ficam ocultos por configuração reversível. A listagem de
 aplicativos e os fluxos OAuth continuam disponíveis. O catálogo MCP existente
 não foi reduzido, e a pesquisa no site foi preservada como recurso auxiliar.
 [Contrato do congelamento](site-mcp-scope-freeze.md).
+
+## Migração de permissões de integrações — Frente S
+
+Estas regras descrevem a implementação em desenvolvimento; não comprovam publicação.
+Chaves antigas com `billing:read` continuam autorizadas apenas à leitura de billing:
+não recebem automaticamente permissão para administrar chaves ou webhooks.
+
+- Listar chaves exige `credentials:read`. Criar ou revogar exige `credentials:write`
+  e sessão autenticada do proprietário. Uma chave de API não administra outras chaves,
+  mesmo quando contém o escopo de escrita. Use a tela Chaves de API com a sessão do proprietário.
+- Webhooks usam `webhooks:read` para consultas e `webhooks:write` para mutações.
+  Cada assinatura exige também os escopos da família: `billing:read` para billing,
+  `research:read` para autoridades, `matter:read` para casos/documentos e `draft:write`
+  para os eventos de rascunhos já protegidos por esse escopo. Consultas não exibem
+  destinos ou entregas cujas famílias não estejam autorizadas.
+- O workflow MCP de research memo exige `research:read` e `matter:write`.
+  Uma conexão OAuth exige ainda grant ativo para o caso exato, revalidado durante a
+  execução e no replay. Decisão de Boni (15/11/2026): o aplicativo conectado por OAuth
+  usa `matter:write` **somente dentro do MCP**. O token OAuth em si continua com `mcp` e
+  `research:read`, e as rotas REST que exigem `matter:write` seguem recusando-o; o que
+  autoriza o acesso a um caso é o compartilhamento exato que o usuário concedeu e pode revogar.
+- Para migrar uma integração, o proprietário deve emitir uma credencial com os escopos
+  necessários, validar a integração e só então revogar a anterior. Não ampliar credenciais
+  existentes silenciosamente. Memo por REST não admite tokens OAuth restritos ao MCP.

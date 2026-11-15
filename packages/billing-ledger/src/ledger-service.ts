@@ -9,6 +9,7 @@ import { assertMigrationsApplied, type ForgeLexDatabase } from '@forgelex/persis
 import { billingOperations, ledgerAccounts, ledgerEntries, usageEvents } from './schema/ledger-schema.js';
 import { ledgerMigrations, runLedgerMigrations } from './migrations/ledger-migrations.js';
 import type { ForgeLexBillingPolicy } from './billing-rules.js';
+import { KeyedMutex } from './keyed-mutex.js';
 
 export interface BillableExecutionResult<T> {
   data: T;
@@ -68,7 +69,7 @@ export class LedgerService {
   private readonly client?: Client;
   private readonly provisioningPolicy: BillingAccountProvisioningPolicy;
   private readonly migrationMode: 'apply' | 'verify';
-  private readonly tenantLocks = new Map<string, Promise<void>>();
+  private readonly tenantLocks = new KeyedMutex();
 
   public constructor(db: ForgeLexDatabase, client?: Client, options: LedgerServiceOptions = {}) {
     this.db = db;
@@ -266,7 +267,7 @@ export class LedgerService {
     this.validateBillableInput(params.idempotencyKey, costCents, Boolean(params.budgetFunding));
     await this.runMigrations();
 
-    const reservation = await this.withTenantLock(params.tenantId, async () => {
+    const reservation = await this.tenantLocks.run(params.tenantId, async () => {
       const leaseOwner = randomUUID();
       return this.db.transaction(async (transaction) => {
         const accountRows = await transaction
@@ -366,10 +367,10 @@ export class LedgerService {
     try {
       const result = await params.operation();
       const snapshot = this.serializeSnapshot(result);
-      return await this.withTenantLock(params.tenantId, () =>
+      return await this.tenantLocks.run(params.tenantId, () =>
         this.completeReservation(reservation.id, reservation.leaseOwner, params, result, snapshot, costCents));
     } catch (error) {
-      await this.withTenantLock(params.tenantId, () => this.failReservation(reservation.id, reservation.leaseOwner, error));
+      await this.tenantLocks.run(params.tenantId, () => this.failReservation(reservation.id, reservation.leaseOwner, error));
       throw error;
     }
   }
@@ -676,25 +677,5 @@ export class LedgerService {
       sessionId: usage.sessionId ?? params.sessionId,
       timestamp,
     };
-  }
-
-  private async withTenantLock<T>(tenantId: string, task: () => Promise<T>): Promise<T> {
-    const previous = this.tenantLocks.get(tenantId) ?? Promise.resolve();
-    let release: () => void = () => undefined;
-    const current = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    const chain = previous.then(() => current);
-    this.tenantLocks.set(tenantId, chain);
-
-    await previous;
-    try {
-      return await task();
-    } finally {
-      release();
-      if (this.tenantLocks.get(tenantId) === chain) {
-        this.tenantLocks.delete(tenantId);
-      }
-    }
   }
 }

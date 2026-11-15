@@ -25,6 +25,14 @@ const billingOnlyPrincipal: AuthenticatedPrincipal = {
   scopes: ['billing:read', 'billing:write'],
 };
 
+const adminPrincipal: AuthenticatedPrincipal = {
+  ...principal,
+  subjectId: 'subject_billing_admin',
+  tenantId: 'tenant_billing_admin',
+  userId: 'user_billing_admin',
+  scopes: ['billing:admin'],
+};
+
 const activityPrincipal: AuthenticatedPrincipal = {
   ...principal,
   subjectId: 'subject_billing_activity',
@@ -37,6 +45,7 @@ class TokenVerifier implements TokenVerifier {
     if (token === 'billing-token') return principal;
     if (token === 'billing-only-token') return billingOnlyPrincipal;
     if (token === 'billing-activity-token') return activityPrincipal;
+    if (token === 'billing-admin-token') return adminPrincipal;
     if (token === 'billing-public-return-token') return { ...principal, tenantId: 'tenant_public_return', userId: 'user_public_return' };
     return null;
   }
@@ -82,6 +91,140 @@ describe('rotas de billing', () => {
       await app.close();
       connection.client.close();
     }
+  });
+
+  it('permite ao administrador concluir um estorno retido sem repetir a revisão', async () => {
+    const connection = await createDatabase();
+    await runPersistenceMigrations(connection.client);
+    const ledger = new LedgerService(connection.db, connection.client);
+    await ledger.runMigrations();
+    const provider = new Provider();
+    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), provider);
+    const app = await buildApp({ authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger, database: connection.db, databaseClient: connection.client, billingOperationsService: operations, environment: { NODE_ENV: 'test' } });
+    try {
+      provider.createCustomer = async () => ({ id: 'cus_recover_route_1' });
+      const tenantId = 'tenant_recover_route';
+      const purchase = await operations.createCheckout({ tenantId, userId: 'user_recover', packageId: 'credits_25', idempotencyKey: 'recover_route_1' });
+      const checkoutId = `cs_${purchase.purchaseId}`;
+      await operations.processWebhook({ id: 'evt_recover_route', type: 'payment.approved', data: { object: {
+        id: checkoutId, payment_status: 'paid', provider_payment_id: checkoutId, provider_checkout_id: checkoutId,
+        amount_total: purchase.amountCents, currency: purchase.currency, external_reference: purchase.purchaseId, metadata: { purchase_id: purchase.purchaseId },
+      } } });
+      const request = await operations.createRefundRequest({ tenantId, userId: 'user_recover', purchaseId: purchase.purchaseId });
+      provider.refundPayment = async () => { throw new Error('TIMEOUT'); };
+      await expect(operations.reviewRefundRequest({ requestId: request.id, reviewerId: 'admin', decision: 'APPROVED' })).rejects.toThrow('TIMEOUT');
+      provider.refundPayment = async () => ({ id: 're_recovered', status: 'succeeded' });
+      const url = `/api/v2/admin/billing/refund-requests/${request.id}/recover`;
+
+      expect((await app.inject({ method: 'POST', url })).statusCode).toBe(401);
+      expect((await app.inject({ method: 'POST', url, headers: { authorization: 'Bearer billing-token' } })).statusCode).toBe(403);
+      expect((await app.inject({ method: 'POST', url: '/api/v2/admin/billing/refund-requests/inexistente/recover', headers: { authorization: 'Bearer billing-admin-token' } })).statusCode).toBe(404);
+
+      const recovered = await app.inject({ method: 'POST', url, headers: { authorization: 'Bearer billing-admin-token' } });
+      expect(recovered.statusCode).toBe(200);
+      expect(JSON.parse(recovered.body)).toMatchObject({ id: request.id, status: 'APPROVED', operationState: 'LEDGER_SETTLED' });
+      const replay = await app.inject({ method: 'POST', url, headers: { authorization: 'Bearer billing-admin-token' } });
+      expect(replay.statusCode).toBe(200);
+      expect(JSON.parse(replay.body)).toMatchObject({ operationState: 'LEDGER_SETTLED' });
+    } finally {
+      await app.close();
+      connection.client.close();
+    }
+  });
+
+  it('informa falha do provedor na recuperação com 503 e mantém o estorno recuperável', async () => {
+    const connection = await createDatabase();
+    await runPersistenceMigrations(connection.client);
+    const ledger = new LedgerService(connection.db, connection.client);
+    await ledger.runMigrations();
+    const provider = new Provider();
+    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), provider);
+    const app = await buildApp({ authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger, database: connection.db, databaseClient: connection.client, billingOperationsService: operations, environment: { NODE_ENV: 'test' } });
+    try {
+      provider.createCustomer = async () => ({ id: 'cus_recover_route_2' });
+      const tenantId = 'tenant_recover_route_503';
+      const purchase = await operations.createCheckout({ tenantId, userId: 'user_recover', packageId: 'credits_25', idempotencyKey: 'recover_route_2' });
+      const checkoutId = `cs_${purchase.purchaseId}`;
+      await operations.processWebhook({ id: 'evt_recover_route_2', type: 'payment.approved', data: { object: {
+        id: checkoutId, payment_status: 'paid', provider_payment_id: checkoutId, provider_checkout_id: checkoutId,
+        amount_total: purchase.amountCents, currency: purchase.currency, external_reference: purchase.purchaseId, metadata: { purchase_id: purchase.purchaseId },
+      } } });
+      const request = await operations.createRefundRequest({ tenantId, userId: 'user_recover', purchaseId: purchase.purchaseId });
+      provider.refundPayment = async () => { throw new Error('TIMEOUT'); };
+      await expect(operations.reviewRefundRequest({ requestId: request.id, reviewerId: 'admin', decision: 'APPROVED' })).rejects.toThrow('TIMEOUT');
+
+      const failed = await app.inject({ method: 'POST', url: `/api/v2/admin/billing/refund-requests/${request.id}/recover`, headers: { authorization: 'Bearer billing-admin-token' } });
+      expect(failed.statusCode).toBe(503);
+      expect(JSON.parse(failed.body)).toMatchObject({ error: 'TIMEOUT' });
+      expect((await operations.listRefundRequests(tenantId))[0]).toMatchObject({ operationState: 'RECONCILIATION_REQUIRED' });
+    } finally {
+      await app.close();
+      connection.client.close();
+    }
+  });
+
+  describe('falhas do webhook Mercado Pago', () => {
+    const signed = (dataId: string, requestId: string, secret = 'webhook-secret') => ({
+      'x-signature': `ts=1700000000,v1=${createHmac('sha256', secret).update(`id:${dataId.toLowerCase()};request-id:${requestId};ts:1700000000;`).digest('hex')}`,
+      'x-request-id': requestId,
+    });
+    const webhookApp = async (fetcher: (input: string | URL, init?: RequestInit) => Promise<Response>) => {
+      const connection = await createDatabase();
+      await runPersistenceMigrations(connection.client);
+      const ledger = new LedgerService(connection.db, connection.client);
+      await ledger.runMigrations();
+      const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), new Provider());
+      const mercadoPago = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', now: () => 1700000000000, webhookSecret: 'webhook-secret', fetcher });
+      const app = await buildApp({ authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger, database: connection.db, databaseClient: connection.client, billingOperationsService: operations, mercadoPagoPaymentProvider: mercadoPago, environment: { NODE_ENV: 'test' } });
+      return { app, operations, close: async () => { await app.close(); connection.client.close(); } };
+    };
+    const deliver = (app: Awaited<ReturnType<typeof webhookApp>>['app'], dataId: string, requestId: string, headers = signed(dataId, requestId)) =>
+      app.inject({ method: 'POST', url: `/api/v2/webhooks/mercadopago?data.id=${dataId}`, headers, payload: { id: 1, type: 'order', data: { id: dataId } } });
+
+    it.each([
+      ['timeout ao consultar o provedor', 'ORDTIMEOUT1', () => { throw new DOMException('The operation was aborted due to timeout', 'TimeoutError'); }],
+      ['falha de rede ao consultar o provedor', 'ORDNETWORK1', () => { throw new TypeError('fetch failed'); }],
+    ])('responde 503 para retentativa em %s, sem expor o texto do erro', async (_name, dataId, failure) => {
+      const { app, close } = await webhookApp(async () => failure());
+      try {
+        const response = await deliver(app, dataId, `req_${dataId}`);
+        expect(response.statusCode).toBe(503);
+        expect(JSON.parse(response.body)).toMatchObject({ error: 'MERCADOPAGO_WEBHOOK_PROCESSING_FAILED' });
+        expect(response.body).not.toContain('timeout');
+        expect(response.body).not.toContain('fetch failed');
+      } finally { await close(); }
+    });
+
+    it('responde 503 para retentativa quando o processamento local falha, sem vazar a mensagem do banco', async () => {
+      const { app, operations, close } = await webhookApp(async () => new Response(JSON.stringify({ id: 'ORDTRANSIENT2', status: 'processed', total_amount: '25.00', currency: 'BRL', external_reference: 'purchase_unknown' })));
+      try {
+        vi.spyOn(operations, 'processWebhook').mockRejectedValueOnce(new Error('SQLITE_BUSY: database is locked (tenants_secret_table)'));
+        const response = await deliver(app, 'ORDTRANSIENT2', 'req_transient_2');
+        expect(response.statusCode).toBe(503);
+        expect(JSON.parse(response.body)).toMatchObject({ error: 'MERCADOPAGO_WEBHOOK_PROCESSING_FAILED' });
+        expect(response.body).not.toContain('tenants_secret_table');
+      } finally { await close(); }
+    });
+
+    it('mantém 401 para assinatura inválida e 400 para entrega sem cabeçalhos', async () => {
+      const { app, close } = await webhookApp(async () => new Response('{}'));
+      try {
+        const invalid = await deliver(app, 'ORDSIGN1', 'req_sign_1', signed('ORDSIGN1', 'req_sign_1', 'wrong-secret'));
+        expect(invalid.statusCode).toBe(401);
+        expect(JSON.parse(invalid.body)).toMatchObject({ error: 'MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID' });
+        const missing = await deliver(app, 'ORDSIGN2', 'req_sign_2', {} as ReturnType<typeof signed>);
+        expect(missing.statusCode).toBe(400);
+      } finally { await close(); }
+    });
+
+    it('mantém 503 com o código estável quando o provedor responde com erro HTTP', async () => {
+      const { app, close } = await webhookApp(async () => new Response('{}', { status: 500 }));
+      try {
+        const response = await deliver(app, 'ORDHTTP500', 'req_http_500');
+        expect(response.statusCode).toBe(503);
+        expect(JSON.parse(response.body)).toMatchObject({ error: 'MERCADOPAGO_REQUEST_FAILED' });
+      } finally { await close(); }
+    });
   });
 
   it('impede chave exclusiva de billing de pesquisar jurisprudência', async () => {
@@ -143,10 +286,13 @@ describe('rotas de billing', () => {
 
     const missingKey = await app.inject({ method: 'POST', url: '/api/v2/billing/checkout', headers: { authorization: 'Bearer billing-token' }, payload: { packageId: 'credits_50' } });
     const created = await app.inject({ method: 'POST', url: '/api/v2/billing/checkout', headers: { authorization: 'Bearer billing-token', 'idempotency-key': 'route_checkout_1' }, payload: { packageId: 'credits_50' } });
+    const conflict = await app.inject({ method: 'POST', url: '/api/v2/billing/checkout', headers: { authorization: 'Bearer billing-token', 'idempotency-key': 'route_checkout_1' }, payload: { packageId: 'credits_25' } });
 
     expect(missingKey.statusCode).toBe(400);
     expect(created.statusCode).toBe(201);
     expect(JSON.parse(created.body)).toMatchObject({ amountCents: 5000, status: 'PENDING' });
+    expect(conflict.statusCode).toBe(409);
+    expect(JSON.parse(conflict.body).error).toBe('IDEMPOTENCY_CONFLICT');
     await app.close();
     connection.client.close();
   });
@@ -217,16 +363,19 @@ describe('rotas de billing', () => {
     await runPersistenceMigrations(connection.client);
     const ledger = new LedgerService(connection.db, connection.client);
     await ledger.runMigrations();
-    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), new Provider());
+    const paymentProvider = new Provider();
+    vi.spyOn(paymentProvider, 'createCheckout').mockImplementation(async (input) => ({ id: 'ORDTEST123', url: `https://checkout.test/${input.purchaseId}` }));
+    const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), paymentProvider);
     let purchaseId = '';
     const mercadoPago = new MercadoPagoPaymentProvider({
-      accessToken: 'APP_USR_test',
+      accessToken: 'APP_USR_test', now: () => 1700000000000,
       webhookSecret: 'webhook-secret',
       fetcher: vi.fn(async () => new Response(JSON.stringify({
         id: 'ORDTEST123',
         status: 'processed',
         external_reference: purchaseId,
         total_amount: '50.00',
+        currency: 'BRL',
         transactions: { payments: [{ id: 'PAYTEST123' }] },
       }), { status: 200 })),
     });
@@ -241,7 +390,7 @@ describe('rotas de billing', () => {
     });
     const checkout = await operations.createCheckout({ tenantId: principal.tenantId, userId: principal.userId, packageId: 'credits_50', idempotencyKey: 'mp_checkout_1' });
     purchaseId = checkout.purchaseId;
-    const timestamp = String(Math.floor(Date.now() / 1000));
+    const timestamp = '1700000000';
     const manifest = `id:ordtest123;request-id:mp_req_1;ts:${timestamp};`;
     const signature = `ts=${timestamp},v1=${createHmac('sha256', 'webhook-secret').update(manifest).digest('hex')}`;
     const payload = { id: 123, type: 'order', action: 'order.updated', data: { id: 'ORDTEST123' } };
@@ -263,7 +412,7 @@ describe('rotas de billing', () => {
     const ledger = new LedgerService(connection.db, connection.client);
     await ledger.runMigrations();
     const operations = new BillingOperationsService(connection.db, connection.client, new BillingService(connection.db, connection.client), new Provider());
-    const mercadoPago = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', webhookSecret: 'webhook-secret' });
+    const mercadoPago = new MercadoPagoPaymentProvider({ accessToken: 'APP_USR_test', now: () => 1700000000000, webhookSecret: 'webhook-secret' });
     const app = await buildApp({
       authAdapter: new AuthAdapter(new TokenVerifier()), ledgerService: ledger,
       database: connection.db, databaseClient: connection.client,
