@@ -2,6 +2,8 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID }
 import type { WebhookEndpointRecord, WebhookRepository } from '@forgelex/persistence';
 import { WEBHOOK_EVENT_TYPES, WEBHOOK_TEST_EVENT_TYPE, createWebhookDeliveryHeaders, type ForgeLexWebhookEvent, type WebhookEventType } from './webhooks.js';
 
+import { validateWebhookUrl, WebhookHttpClient, WebhookUrlBlocked } from './webhook-http-client.js';
+
 const ALGORITHM = 'aes-256-gcm';
 
 function encryptionKey(raw: string): Buffer {
@@ -36,7 +38,7 @@ export class WebhookService {
     const masterKey = this.options.masterKey;
     if (!masterKey) throw new Error('WEBHOOK_MASTER_KEY_NOT_CONFIGURED');
     const eventTypes = input.eventTypes ?? [...WEBHOOK_EVENT_TYPES];
-    if (!/^https:\/\//i.test(input.url) && !/^http:\/\/localhost(?::\d+)?(?:\/|$)/i.test(input.url)) throw new Error('WEBHOOK_URL_INVALID');
+    validateWebhookUrl(input.url);
     if (eventTypes.some((type) => !WEBHOOK_EVENT_TYPES.includes(type as WebhookEventType))) throw new Error('WEBHOOK_EVENT_TYPE_INVALID');
     return this.repository.createEndpoint({ id: randomUUID(), tenantId: input.tenantId, url: input.url, description: input.description, secretCiphertext: encryptWebhookSecret(secret, masterKey), eventTypes }).then((record) => ({ ...record, secret }));
   }
@@ -57,30 +59,45 @@ export class WebhookService {
     return this.repository.enqueueEvent({ id: event.id, tenantId: input.tenantId, eventType: input.type, payloadJson: JSON.stringify(event), endpointIds: input.endpointId ? endpoints.filter((endpoint) => endpoint.id === input.endpointId).map((endpoint) => endpoint.id) : endpoints.map((endpoint) => endpoint.id) });
   }
 
-  public async deliverOne(fetcher: typeof fetch = fetch): Promise<'delivered' | 'retrying' | 'failed' | 'idle'> {
+  private ticking = false;
+  public async tick(): Promise<'delivered' | 'retrying' | 'failed' | 'idle'> {
+    if (this.ticking) return 'idle';
+    this.ticking = true;
+    try { return await this.deliverOne(); } finally { this.ticking = false; }
+  }
+
+  public async deliverOne(fetcher?: (url: string, init?: RequestInit) => Promise<Response>): Promise<'delivered' | 'retrying' | 'failed' | 'idle'> {
     const dispatch = await this.repository.claimDueDelivery();
     if (!dispatch) return 'idle';
     const masterKey = this.options.masterKey;
     if (!masterKey) {
-      const status = await this.repository.markDeliveryFailure(dispatch.id, 'WEBHOOK_MASTER_KEY_NOT_CONFIGURED');
+      const status = await this.repository.markDeliveryFailure(dispatch.id, 'WEBHOOK_MASTER_KEY_NOT_CONFIGURED', dispatch.claimToken);
       return status === 'FAILED' ? 'failed' : 'retrying';
     }
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.options.timeoutMs ?? 10_000);
+    const timer = setTimeout(() => controller.abort(), Math.min(this.options.timeoutMs ?? 10_000, 10_000));
     try {
       const secret = decryptWebhookSecret(dispatch.endpoint.secretCiphertext, masterKey);
       const event = JSON.parse(dispatch.payloadJson) as ForgeLexWebhookEvent;
       const headers = createWebhookDeliveryHeaders(event, secret);
-      const response = await fetcher(dispatch.endpoint.url, { method: 'POST', headers, body: dispatch.payloadJson, signal: controller.signal });
-      const responseExcerpt = (await response.text()).slice(0, 500);
-      if (response.status >= 200 && response.status < 300) {
-        await this.repository.markDelivered(dispatch.id, response.status, responseExcerpt);
+      // A fetcher is an explicit test transport injection; production always uses pinned HTTPS.
+      let responseStatus: number;
+      if (fetcher) {
+        const response = await fetcher(dispatch.endpoint.url, { method: 'POST', headers, body: dispatch.payloadJson, signal: controller.signal, redirect: 'manual' });
+        responseStatus = response.status;
+        void response.body?.cancel().catch(() => undefined);
+      } else {
+        responseStatus = await new WebhookHttpClient().post(dispatch.endpoint.url, headers, dispatch.payloadJson, controller.signal);
+      }
+      if (responseStatus >= 200 && responseStatus < 300) {
+        await this.repository.markDelivered(dispatch.id, responseStatus, dispatch.claimToken);
         return 'delivered';
       }
-      const status = await this.repository.markDeliveryFailure(dispatch.id, `WEBHOOK_HTTP_${response.status}`, response.status, responseExcerpt);
+      const status = await this.repository.markDeliveryFailure(dispatch.id, `WEBHOOK_HTTP_${responseStatus}`, dispatch.claimToken, responseStatus);
       return status === 'FAILED' ? 'failed' : 'retrying';
     } catch (error) {
-      const status = await this.repository.markDeliveryFailure(dispatch.id, error instanceof Error && error.name === 'AbortError' ? 'WEBHOOK_TIMEOUT' : 'WEBHOOK_NETWORK_ERROR');
+      if (error instanceof WebhookUrlBlocked) await this.repository.suspendEndpoint(dispatch.tenantId, dispatch.endpointId);
+      const status = await this.repository.markDeliveryFailure(dispatch.id, error instanceof WebhookUrlBlocked ? 'WEBHOOK_URL_BLOCKED' : error instanceof Error && error.name === 'AbortError' ? 'WEBHOOK_TIMEOUT' : 'WEBHOOK_NETWORK_ERROR', dispatch.claimToken);
       return status === 'FAILED' ? 'failed' : 'retrying';
     } finally {
       clearTimeout(timer);

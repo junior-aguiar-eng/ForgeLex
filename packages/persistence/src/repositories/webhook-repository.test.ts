@@ -64,12 +64,33 @@ describe('WebhookRepository', () => {
       const second = new WebhookRepository(secondConnection.client);
       const recovered = await second.claimDueDelivery('2099-01-01T00:00:02.000Z', 1_000);
       expect(recovered?.id).toBe(claimed?.id);
-      await second.markDelivered(recovered!.id, 204, '');
+      await second.markDelivered(recovered!.id, 204, recovered!.claimToken);
       expect(await second.claimDueDelivery('2099-01-01T00:00:04.000Z', 1_000)).toBeUndefined();
       secondConnection.client.close();
     } finally {
       try { rmSync(directory, { recursive: true, force: true }); } catch { /* SQLite pode manter o arquivo bloqueado até o worker terminar. */ }
     }
+  });
+  it('limits concurrent replicas to four global and one per tenant, with lease recovery', async () => {
+    const connection = await createDatabase({ url: 'file::memory:' });
+    await runPersistenceMigrations(connection.client);
+    const repository = new WebhookRepository(connection.client);
+    for (let i = 0; i < 6; i++) {
+      const tenantId = `tenant_${i}`;
+      await repository.createEndpoint({ id: tenantId, tenantId, url: 'https://example.test', secretCiphertext: 'secret', eventTypes: ['matter.created'] });
+      for (let n = 0; n < 2; n++) await repository.enqueueEvent({ tenantId, eventType: 'matter.created', payloadJson: '{}', endpointIds: [tenantId] });
+    }
+    const claims = [];
+    for (let i = 0; i < 6; i++) claims.push(await repository.claimDueDelivery('2099-01-01T00:00:00.000Z', 1000));
+    const active = claims.filter((claim) => claim !== undefined);
+    expect(active).toHaveLength(4);
+    expect(new Set(active.map((claim) => claim.tenantId)).size).toBe(4);
+    await repository.markDelivered(active[0]!.id, 204, active[0]!.claimToken);
+    const fair = await repository.claimDueDelivery('2099-01-01T00:00:00.500Z', 1000);
+    expect(fair).toBeDefined();
+    expect(active.map((claim) => claim.tenantId)).not.toContain(fair!.tenantId);
+    expect(await repository.claimDueDelivery('2099-01-01T00:00:02.000Z', 1000)).toBeDefined();
+    connection.client.close();
   });
 
   it('busca uma entrega por id dentro do tenant e filtra a listagem por vários destinos', async () => {
@@ -96,4 +117,54 @@ describe('WebhookRepository', () => {
     expect(await repository.listDeliveries('lookup_tenant_a', 'lookup_a2')).toHaveLength(1);
     connection.client.close();
   });
+});
+
+describe('webhook backpressure', () => {
+  it('bounds tenant queue including manual requeues and rolls back refused events', async () => {
+    const connection = await createDatabase({ url: 'file::memory:' });
+    await runPersistenceMigrations(connection.client);
+    const repository = new WebhookRepository(connection.client);
+    await repository.createEndpoint({ id: 'endpoint', tenantId: 'tenant', url: 'https://example.test', secretCiphertext: 'secret', eventTypes: ['matter.created'] });
+    for (let i = 0; i < 250; i++) await repository.enqueueEvent({ tenantId: 'tenant', eventType: 'matter.created', payloadJson: '{}', endpointIds: ['endpoint'] });
+    await expect(repository.enqueueEvent({ id: 'refused', tenantId: 'tenant', eventType: 'matter.created', payloadJson: '{}', endpointIds: ['endpoint'] })).rejects.toThrow('WEBHOOK_QUEUE_FULL');
+    expect((await connection.client.execute("SELECT id FROM webhook_events WHERE id = 'refused'")).rows).toHaveLength(0);
+    const failed = (await repository.listDeliveries('tenant'))[0]!;
+    await connection.client.execute({ sql: "UPDATE webhook_deliveries SET status = 'FAILED' WHERE id = ?", args: [failed.id] });
+    await repository.enqueueEvent({ tenantId: 'tenant', eventType: 'matter.created', payloadJson: '{}', endpointIds: ['endpoint'] });
+    await expect(repository.requeue('tenant', failed.id)).rejects.toThrow('WEBHOOK_QUEUE_FULL');
+    connection.client.close();
+  });
+});
+
+
+describe('retired webhook queue cleanup', () => {
+  it.each(['revoke', 'suspend'] as const)('%s frees queued deliveries and refuses their requeue', async (action) => {
+    const c = await createDatabase({ url: 'file::memory:' });
+    await runPersistenceMigrations(c.client);
+    const repository = new WebhookRepository(c.client);
+    try {
+      for (const id of ['old', 'new']) await repository.createEndpoint({ id, tenantId: 'tenant', url: 'https://example.test', secretCiphertext: 'secret', eventTypes: ['matter.created'] });
+      for (let i = 0; i < 250; i++) await repository.enqueueEvent({ tenantId: 'tenant', eventType: 'matter.created', payloadJson: '{}', endpointIds: ['old'] });
+      const claimed = await repository.claimDueDelivery();
+      if (action === 'revoke') await repository.revokeEndpoint('tenant', 'old'); else await repository.suspendEndpoint('tenant', 'old');
+      await expect(repository.enqueueEvent({ tenantId: 'tenant', eventType: 'matter.created', payloadJson: '{}', endpointIds: ['new'] })).resolves.toBeTruthy();
+      const retired = await repository.listDeliveries('tenant', 'old');
+      expect(retired.every((delivery) => delivery.status === 'FAILED')).toBe(true);
+      expect(await repository.requeue('tenant', retired[0]!.id)).toBe(false);
+      await repository.markDelivered(claimed!.id, 204, claimed!.claimToken);
+      expect((await repository.listDeliveries('tenant', 'old')).every((delivery) => delivery.status === 'FAILED')).toBe(true);
+    } finally { c.client.close(); }
+  });
+});
+
+it('does not fail a business event when its endpoint was retired after the service snapshot', async () => {
+  const c = await createDatabase({ url: 'file::memory:' });
+  await runPersistenceMigrations(c.client);
+  const repository = new WebhookRepository(c.client);
+  try {
+    await repository.createEndpoint({ id: 'retired-snapshot', tenantId: 'tenant', url: 'https://example.test', secretCiphertext: 'secret', eventTypes: ['matter.created'] });
+    await repository.revokeEndpoint('tenant', 'retired-snapshot');
+    await expect(repository.enqueueEvent({ tenantId: 'tenant', eventType: 'matter.created', payloadJson: '{}', endpointIds: ['retired-snapshot'] })).resolves.toBeTruthy();
+    expect(await repository.listDeliveries('tenant')).toHaveLength(0);
+  } finally { c.client.close(); }
 });

@@ -257,7 +257,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     })
     : undefined;
   const webhookWorker = webhookService && environment.FORGELEX_WEBHOOK_WORKER_ENABLED === 'true'
-    ? setInterval(() => void webhookService.deliverOne()
+    ? setInterval(() => void webhookService.tick()
       .then((result) => metrics.observeWebhookDelivery(result))
       .catch((error) => structuredLog('error', 'webhook.worker.failed', {
         error: error instanceof Error ? error.message : String(error),
