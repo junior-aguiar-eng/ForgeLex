@@ -1,3 +1,4 @@
+import { executionStreamLeasesMigration } from './execution-stream-leases.js';
 import type { Client } from '@libsql/client';
 
 export interface SqlMigration {
@@ -1197,7 +1198,7 @@ export const persistenceMigrations: readonly SqlMigration[] = [
   `ALTER TABLE webhook_endpoints ADD COLUMN last_error TEXT;`,
   `UPDATE webhook_deliveries SET response_body_excerpt = NULL;`,
 ] },
-
+executionStreamLeasesMigration,
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {
