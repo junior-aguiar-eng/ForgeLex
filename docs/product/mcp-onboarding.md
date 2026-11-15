@@ -156,7 +156,10 @@ não recebem automaticamente permissão para administrar chaves ou webhooks.
   destinos ou entregas cujas famílias não estejam autorizadas.
 - O workflow MCP de research memo exige `research:read` e `matter:write`.
   Uma conexão OAuth exige ainda grant ativo para o caso exato, revalidado durante a
-  execução e no replay. O OAuth atual de pesquisa não recebe `matter:write` por esta mudança.
+  execução e no replay. Decisão de Boni (15/11/2026): o aplicativo conectado por OAuth
+  usa `matter:write` **somente dentro do MCP**. O token OAuth em si continua com `mcp` e
+  `research:read`, e as rotas REST que exigem `matter:write` seguem recusando-o; o que
+  autoriza o acesso a um caso é o compartilhamento exato que o usuário concedeu e pode revogar.
 - Para migrar uma integração, o proprietário deve emitir uma credencial com os escopos
   necessários, validar a integração e só então revogar a anterior. Não ampliar credenciais
   existentes silenciosamente. Memo por REST não admite tokens OAuth restritos ao MCP.

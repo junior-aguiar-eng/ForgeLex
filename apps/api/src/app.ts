@@ -1,3 +1,4 @@
+import { mcpScopes } from './auth/mcp-scopes.js';
 import { canSubscribeWebhook, isValidWebhookEventTypes, missingWebhookScopes } from './distribution/integration-authorization.js';
 import { registerAgenticWorkspace, type AgenticWorkspaceRuntimeOptions } from './agentic-workspace/execution-routes.js';
 import type { ClosedPilotDependencies } from './agentic-workspace/closed-pilot.js';
@@ -3097,10 +3098,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           idempotencyKey,
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
-          scopes: req.principal.scopes, authMethod: req.principal.authMethod,
+          scopes: mcpScopes(req.principal), authMethod: req.principal.authMethod,
           authorizeMatter: async (matterId: string) => {
             const current = await authAdapter.authenticate(req.headers.authorization);
-            if (!current || current.tenantId !== req.principal.tenantId || current.userId !== req.principal.userId || current.oauthClientId !== req.principal.oauthClientId || current.oauthGrantedAt !== req.principal.oauthGrantedAt || !current.scopes.includes('matter:write') || !caseAiAccess || !current.oauthClientId || !current.oauthGrantedAt) throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+            if (!current || current.tenantId !== req.principal.tenantId || current.userId !== req.principal.userId || current.oauthClientId !== req.principal.oauthClientId || current.oauthGrantedAt !== req.principal.oauthGrantedAt || !mcpScopes(current).includes('matter:write') || !caseAiAccess || !current.oauthClientId || !current.oauthGrantedAt) throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
             await caseAiAccess.assertActive({ tenantId: current.tenantId, userId: current.userId, oauthConnection: { clientId: current.oauthClientId, grantedAt: current.oauthGrantedAt } }, matterId);
           },
           abortSignal: requestAbort.signal,
