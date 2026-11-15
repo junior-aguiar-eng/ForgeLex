@@ -34,7 +34,7 @@ describe('chave de idempotência obrigatória e piso de decisões por chamada', 
       new DecisionPresentationService(undefined, async () => undefined),
     ))
       registry.register(tool);
-    handler = new McpHandler(registry, ledger);
+    handler = new McpHandler(registry, ledger, undefined, { trustUnscopedContext: true });
   });
   afterEach(() => client.close());
 
