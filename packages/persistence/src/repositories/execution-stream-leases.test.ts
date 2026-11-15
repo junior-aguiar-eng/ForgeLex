@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDatabase } from '../db.js';
 import { runPersistenceMigrations } from '../migrations/migration-runner.js';
 import { ExecutionStreamLeases } from './execution-stream-leases.js';
@@ -55,5 +55,44 @@ describe('persistent execution stream admission', () => {
     expect(await f.a.renew(id)).toBe(true);
     f.advance(30_000);
     expect(await f.b.renew(id)).toBe(false);
+  });
+});
+
+describe('lease renewal', () => {
+  const open = async () => {
+    const { client } = await createDatabase({ url: 'file::memory:' });
+    close.push(() => client.close());
+    await runPersistenceMigrations(client);
+    let now = 1000;
+    return {
+      client,
+      leases: new ExecutionStreamLeases(client, () => now),
+      advance: (ms: number) => {
+        now += ms;
+      },
+    };
+  };
+
+  it('does not open a transaction or take the global admission lock', async () => {
+    const f = await open();
+    const id = await f.leases.acquire(owner, 'execution');
+    const transaction = vi.spyOn(f.client, 'transaction');
+
+    expect(await f.leases.renew(id)).toBe(true);
+
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('extends a live lease, and refuses an expired or unknown one', async () => {
+    const f = await open();
+    const id = await f.leases.acquire(owner, 'execution');
+    f.advance(20_000);
+    expect(await f.leases.renew(id)).toBe(true);
+    f.advance(25_000);
+    expect(await f.leases.renew(id)).toBe(true);
+    f.advance(31_000);
+
+    expect(await f.leases.renew(id)).toBe(false);
+    expect(await f.leases.renew('unknown')).toBe(false);
   });
 });

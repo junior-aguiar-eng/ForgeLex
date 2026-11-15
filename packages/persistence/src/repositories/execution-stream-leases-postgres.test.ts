@@ -66,4 +66,18 @@ describe.skipIf(!url)('PostgreSQL stream leases across replicas', () => {
     await a.release(recovered);
     await expect(a.acquire(owner, 'execution')).resolves.toBeTypeOf('string');
   });
+  it('renews a live lease while another replica holds the global admission lock', async () => {
+    const id = await a.acquire({ tenantId: 'renew', userId: 'renew-user' }, 'execution');
+    const holder = await second.transaction('write');
+    try {
+      await holder.execute('UPDATE execution_stream_admission_lock SET value = 1 WHERE id = 1');
+      const renewed = await Promise.race([
+        a.renew(id),
+        new Promise<'blocked'>((resolve) => setTimeout(() => resolve('blocked'), 2000)),
+      ]);
+      expect(renewed).toBe(true);
+    } finally {
+      await holder.rollback();
+    }
+  });
 });
