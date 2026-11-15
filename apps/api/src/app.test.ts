@@ -1399,6 +1399,32 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
     expect(JSON.parse(documentDetailResponse.body).anchors).toHaveLength(2);
   });
 
+  it.each([
+    ['x'.repeat(1_048_577), 'DOCUMENT_TEXT_TOO_LARGE'],
+    ['a\n'.repeat(5_001), 'DOCUMENT_ANCHOR_LIMIT_EXCEEDED'],
+  ])('rejects document ingestion excess with a stable client error %#', async (content, code) => {
+    const create = await app.inject({ method: 'POST', url: '/api/v2/matters', headers: authHeaders,
+      payload: { title: 'Matter bounded ingestion' } });
+    const matter = create.json();
+    const response = await app.inject({ method: 'POST', url: `/api/v2/matters/${matter.id}/documents`,
+      headers: authHeaders, payload: { title: 'Petição', originalFilename: 'peticao.txt', content } });
+    expect(response.statusCode).toBe(413);
+    expect(response.json().error).toBe(code);
+    const documents = await app.inject({ method: 'GET', url: `/api/v2/matters/${matter.id}`, headers: authHeaders });
+    expect(documents.statusCode).toBe(200);
+    expect(documents.json().documents).toEqual([]);
+  });
+
+  it('accepts exactly 1 MiB UTF-8 content within a bounded JSON envelope', async () => {
+    const create = await app.inject({ method: 'POST', url: '/api/v2/matters', headers: authHeaders,
+      payload: { title: 'Matter byte boundary' } });
+    const response = await app.inject({ method: 'POST', url: `/api/v2/matters/${create.json().id}/documents`,
+      headers: authHeaders, payload: { title: 'Petição', originalFilename: 'peticao.txt', content: 'é'.repeat(524_288) } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().document.byteSize).toBe(1_048_576);
+    expect(response.json().anchors).toHaveLength(1);
+  });
+
   it('deve registrar fatos, provas, suporte, cobertura e linha do tempo no matter autenticado', async () => {
     const createResponse = await app.inject({
       method: 'POST',
