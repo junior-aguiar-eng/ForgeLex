@@ -823,3 +823,315 @@ antes dos escritores; checkpoints antigos continuam no protocolo original.
 | A22 | Voltar, alterar, adicionar e excluir com desfazer, testados por teclado                             | Pendente (U4)                           |
 | A23 | Anexo e OCR no pedido, com texto editável antes de salvar                                           | Pendente (U5, U6)                       |
 | A24 | Cada afirmação do site público corresponde a uma função publicada e a um preço do serviço           | Pendente (V5A)                          |
+
+## 13. Frente S — correções de segurança Daybreak
+
+**Plano de implementação · 14/11/2026 · Execução local autorizada por Boni.**
+
+Objetivo: tratar os 11 achados sem enfraquecer validações, perder valor financeiro,
+ampliar permissões ou confundir correção local, integração e publicação.
+Esta seção complementa as demais frentes; não muda seu estado nem autoriza sua execução.
+
+**Execução:** implementar uma etapa por vez, com teste que reproduz o problema antes da
+correção, revisão do diff e evidências depois. Usar `superpowers:executing-plans` na execução.
+Boni permanece o único aprovador humano. Boni autorizou a implementação local em 14/11/2026 (“vamos implementar!”).
+Não executar merge, deploy, migração em produção, pagamentos, reembolsos ou encerramento de
+achados no Daybreak como consequência automática deste documento.
+
+### S.1 — Base, abordagem e acompanhamento
+
+- Varredura concluída: `wfr_952f4e6a38b25137bac99154f4e4d21c2e12db0c4424f35ab3779d2507c0849d`.
+- Saída: `wfo_77a211cfe372c8a678c1a61aa03548b70b0cafd5e33d1229296b8caeba49b37f`.
+- Revisão analisada: `cd94c2c57fefb45dc99b6951400aa1eb7a9bfc95`; seis achados altos e cinco médios.
+- Evidência original estática: nenhum ataque, pagamento, reembolso ou deploy real foi executado.
+- PR #152 integrado em `a00ffa934dbd075cba8b63142e3b61ed675cd4e5`; confirmar código e
+  evidência de publicação separadamente. Daybreak ainda registra o achado em andamento.
+- PR #153 aberto em rascunho no head `46929e941f9dba013de216e303f0e39bb1a8f60a` na consulta.
+  A correção da fixture e testes está local em `fix/pr-153-payment-simulation`, sem push.
+  Evidências locais: fase 7 aprovada com Chromium e banco em memória; 42 testes de billing;
+  suíte geral com 2.142 aprovados e 18 pulados. Isso não substitui CI com PostgreSQL.
+- Existem fixes preparados no Daybreak para reembolso e MCP; ainda precisam de revisão do
+  diff e execução de testes. Não tratá-los como correções integradas.
+
+**Abordagem proposta:** aproveitar os fixes existentes somente após revisão e testes;
+implementar as demais correções por subsistema. Aplicar todos os fixes juntos dificulta
+atribuir regressões; reescrever os já disponíveis perde trabalho aproveitável.
+
+Seguir a regra de uma PR por frente/subsistema, não por teste isolado: S-A autorização
+(S1); S-B pagamentos (S2–S3); S-C webhooks (S4); S-D ingestão (S5); S-E streams (S6);
+S-F scripts operacionais (S7). A correção da fixture acompanha a PR #153 existente;
+separar mudanças financeiras adicionais quando forem independentes do seu objeto.
+S0 e S8 são reconciliação e aceite, não PRs adicionais. Não empilhar frentes independentes
+sobre a branch da fixture; preservar as alterações locais ao preparar cada base.
+
+| Etapa | Entrega | Estado inicial | Dependência |
+| --- | --- | --- | --- |
+| S0 | Conferir base, fixes e estado real | Validado localmente; origem/IAM/publicação não atestados | Nenhuma |
+| S1 | Autorizações MCP, credenciais e assinaturas | Validado localmente; revisão integrada S8 pendente | S0 |
+| S2 | Fechar regressão E2E do checkout e testar liquidação | Validado localmente; verificação conjunta S8 | S0 |
+| S3 | Reembolso atômico e recuperação financeira | Validado localmente; verificação conjunta S8 | S0; coordenar contratos com S2 |
+| S4 | Saída HTTP segura e worker limitado | Validado localmente; verificação conjunta S8 | S1 para permissões; bloqueios de rede independentes |
+| S5 | Ingestão com limites de cardinalidade | Validado localmente; verificação conjunta S8 | S0 |
+| S6 | Limites e limpeza de streams SSE | Validado localmente; verificação conjunta S8 | S0 |
+| S7 | Segredos fora dos argumentos de processos | Validado localmente; verificação conjunta S8 | S0 |
+| S8 | Verificação integrada e decisão de publicação | Validado localmente; CI remota e publicação pendentes | S1–S7 |
+
+Ordem recomendada: S0 → S1 → S2 → S3 → S4 → S5 → S6 → S7 → S8.
+Se a consulta autorizada confirmar worker de webhook ativo em produção, antecipar S4.
+
+Em cada etapa registrar no arquivo de execução já vigente
+`docs/architecture/2026-11-10-mesa-guiada-execucao.md`, sob o código S correspondente:
+SHA/base, achados, arquivos, teste que falhou antes, comandos e resultados depois,
+limitações, reversão e decisão de Boni. Atualizar esta tabela com links para as evidências.
+Usar estados distintos: **pendente → em execução → validado localmente → CI aprovada →
+integrado → publicado → reavaliado**. Uma etapa não salta estados por inferência.
+
+### S0 — Reconciliação e verificação da correção de deploy
+
+**Achado:** `acf_c1e9dd4b071da5e45cb0f9affcc82232`.
+**Arquivos:** `ops/gcp/production/deploy-from-main.ps1`,
+`ops/gcp/production/build-from-main.ps1`, `ops/gcp/production/deploy-from-main.tests.ps1`;
+helpers de validação do build referenciados por esses scripts.
+
+- [ ] Consultar novamente `main`, PRs #152/#153, fixes e achados; registrar SHAs e diferenças.
+- [ ] Revisar o PR #152 para rejeição de build de projeto, origem, configuração,
+  substituições, status ou imagem divergentes. Não aceitar apenas labels declaradas.
+- [ ] Rodar a suíte PowerShell com gcloud simulado e sem rede: provar que tag preexistente
+  não evita build confiável e que ambos os serviços recebem o mesmo digest validado.
+- [ ] Registrar separadamente o que depende de IAM, origem do build e política do registry.
+  Conferir configuração real apenas em consulta autorizada; não executar release para testar.
+
+**Aceite:** correção integrada rastreada e controles testados, sem declarar publicação
+ou proteção completa da cadeia de build sem evidência correspondente.
+
+### S1 — Autorização por ferramenta e administração de integrações
+
+**Achados:** `acf_98e9303e16aac654e9f5413bea5b7ee3` e `acf_8dc52cdc4d4cd4e9f238da491ab218e9`.
+**Arquivos:** `apps/api/src/app.ts`, `apps/api/src/auth/fastify-auth.ts`,
+`apps/api/src/auth/api-key-service.ts`, `packages/mcp-server/src/mcp-handler.ts`,
+`packages/mcp-server/src/external-tool-pack.ts`,
+`packages/legal-workflows/src/research-memo/legal-research-memo-execution.ts`.
+**Testes:** `packages/mcp-server/src/mcp-server.test.ts`,
+`apps/api/src/case-context/case-context-mcp.test.ts`,
+`packages/legal-workflows/src/research-memo/legal-research-memo-execution.test.ts`,
+`apps/api/src/auth/fastify-auth.test.ts`; criar `apps/api/src/distribution/authorization-routes.test.ts`.
+
+- [ ] Ler o fix MCP salvo e comparar com os caminhos REST, MCP e execução direta atuais.
+- [ ] Reproduzir acesso sem `matter:write`, grant ausente, caso errado, outro tenant,
+  conexão revogada e grant revogado entre duas operações do workflow.
+- [ ] Exigir `research:read` e `matter:write` no memo, grant OAuth exato e vivo; negar
+  ferramentas externas sem política antes de leitura, escrita ou reserva financeira.
+- [ ] Separar `credentials:read`, `credentials:write`, `webhooks:read`, `webhooks:write`;
+  mutações de credenciais exigem sessão de proprietário. Assinaturas jurídicas exigem
+  também autoridade explícita sobre a família de eventos, conforme seus escopos de leitura.
+- [ ] Atualizar emissão de escopos, contratos/OpenAPI e UI; chaves antigas `billing:read`
+  não recebem permissões de escrita implicitamente. Documentar a migração de clientes.
+- [ ] Provar negação sem efeito colateral e sucesso dos clientes legitimamente autorizados;
+  grant deve continuar válido no momento de cada efeito durável.
+
+**Aceite:** matriz de permissões REST/MCP aprovada, isolamento por tenant/caso preservado,
+nenhuma ampliação silenciosa. **Reversão:** suspender operação afetada se necessário;
+não restabelecer autorização vulnerável por flag de compatibilidade.
+
+### S2 — Checkout, simulação e eventos de pagamento
+
+**Achados:** `acf_79e14ec140232d8193f74aca0a82126a` e `acf_8d315e32768119966210367dbd66781d`.
+**Arquivos/testes:** `scripts/e2e-phase-7-server.mjs`, `tests/e2e/phase-7.spec.ts`,
+`apps/api/src/billing/billing-operations.ts` e `.test.ts`,
+`apps/api/src/billing/mercado-pago-payment-provider.ts` e `.test.ts`,
+`apps/api/src/billing/billing-routes.test.ts`.
+
+- [ ] Preservar e revisar as alterações locais da fixture: quatro campos persistidos,
+  confirmação HTTP, crédito exato, replay e testes de campos ausentes.
+- [ ] Executar fase 7 e testes de billing sobre a base atual, inclusive PostgreSQL isolado.
+- [ ] Testar normalização → liquidação com respostas representativas do contrato real do
+  provedor. Confirmar tipos de IDs, moeda e associação order/payment; não inventar campos.
+- [ ] Cobrir aprovação → falha e falha → aprovação, webhook antes da persistência do ID,
+  evento com erro transitório e replay, duas aprovações simultâneas e IDs diferentes.
+  Usar promessas/barreiras, sem sleeps. Verificar saldo, lote, pagamento, fatura e estado.
+- [ ] Para identidade ainda não persistida, manter crédito bloqueado e evento recuperável;
+  uma aprovação posterior a falha exige evidência canônica atual e validação completa.
+  Reconciliação nunca pode virar pagamento só por nova entrega do callback.
+- [ ] Corrigir a identidade de deduplicação para derivar de material autenticado; alterações
+  em `payload.id` não geram trabalho durável distinto. Considerar status canônico para
+  não eliminar uma transição legítima de pendente para pago.
+- [ ] Confirmar unidade e política de retries de `ts` no contrato do Mercado Pago antes de
+  fixar janela de idade/futuro. Injetar relógio e testar bordas; não bloquear retries
+  legítimos silenciosamente. Deduplicar antes de consultas repetidas quando possível,
+  mantendo recuperação de tentativa interrompida.
+- [ ] Confirmar recarga sequencial e webhook antecipado para provedor que a suporte;
+  Mercado Pago continua com recarga indisponível, sem ativação artificial.
+
+**Aceite:** crédito uma única vez, evidência completa, callbacks recuperáveis e CI aprovada.
+As limitações de ordenação são trabalho adicional à fixture e não estão resolvidas pelo
+patch local. **Reversão:** interromper novas compras/recargas afetadas e reconciliar;
+não reverter para liquidação sem valor, moeda, referência e identidade.
+
+### S3 — Reembolso com reserva prévia e recuperação
+
+**Achado:** `acf_a394707a36b3559d01f0906277102c10`.
+**Arquivos:** `apps/api/src/billing/billing-operations.ts`,
+`packages/billing-ledger/src/billing-service.ts`, schema e migrações do billing,
+repositório persistente para operações de reembolso se necessário.
+**Testes:** `apps/api/src/billing/billing-operations.test.ts`,
+`packages/billing-ledger/src/billing-service.test.ts`; criar teste PostgreSQL de concorrência
+junto dos testes de ledger existentes, usando a infraestrutura de banco isolado do projeto.
+
+- [ ] Ler o fix salvo; conferir se cobre reserva, envio, timeout, retry, recuperação e auditoria.
+- [ ] Reproduzir consumo/reserva após solicitação, duas aprovações concorrentes,
+  sucesso remoto seguido de crash local e timeout com resultado remoto desconhecido.
+- [ ] Recalcular elegibilidade sob lock do tenant/carteira; tornar valor indisponível e
+  persistir operação na mesma transação antes de chamar o provedor. Não segurar lock
+  durante chamada de rede. Evitar alteração de lançamentos históricos do ledger.
+- [ ] Persistir estados `PREPARED`, `PROVIDER_PENDING`, `PROVIDER_SUCCEEDED`,
+  `LEDGER_SETTLED`, `RECONCILIATION_REQUIRED`; `APPROVED` permanece o resultado público
+  de sucesso. Reusar chave estável do pedido em todas as tentativas.
+- [ ] Usar intenção persistida/outbox para recuperar envio interrompido; resultado ambíguo
+  mantém valor indisponível até consulta/reconciliação. Não liberar saldo por timeout.
+- [ ] Testar migração com pedidos antigos, devolução parcial, saldo consumido e reservas
+  pendentes; executar testes concorrentes em PostgreSQL, não apenas em memória.
+
+**Aceite:** devolução nunca supera valor retido; repetição não duplica efeitos; operação
+interrompida é recuperável e auditável. **Reversão:** parar aprovações; preservar operações
+pendentes e valores retidos. Não fazer downgrade de schema que apague recuperação.
+
+### S4 — Webhooks com saída HTTP segura e consumo limitado
+
+**Achados:** `acf_a36f03cb34e267fb4ce2ba5ecde4a29e` e `acf_62caf8efb0d442b18aa2532b29b13cb6`.
+**Arquivos:** `apps/api/src/distribution/webhook-service.ts`, `apps/api/src/app.ts`,
+`packages/persistence/src/repositories/webhook-repository.ts`.
+Criar `apps/api/src/distribution/webhook-http-client.ts` para política de rede e transporte.
+**Testes:** os respectivos `.test.ts` e novo `webhook-http-client.test.ts`.
+
+- [ ] Reproduzir URL privada literal, DNS privado, IPv6, IPv4 mapeado, redirect para rede
+  proibida, mudança de DNS entre validação e conexão, resposta infinita e ticks sobrepostos.
+- [ ] Exigir HTTPS em operação normal; localhost somente no transporte de teste injetado.
+  Bloquear endereços privados/reservados, fixar endereço validado na conexão preservando
+  hostname/TLS e desabilitar redirects. Não usar apenas validação de string ou DNS inicial.
+- [ ] Remover corpo remoto do histórico; manter status e diagnóstico sem conteúdo.
+  Cancelar corpo sem bufferizar quando ele não for necessário.
+- [ ] Serializar ticks e limitar entregas globais/por tenant. Usar lease/admissão persistente
+  para limites entre réplicas, com expiração e retomada após crash; limite local não basta.
+- [ ] Propor limites iniciais de quatro entregas globais e uma por tenant; testar exatamente
+  os limites, justiça entre tenants, retries, liberação e expiração. Definir teto da fila
+  a partir da capacidade medida antes de habilitar o worker alterado.
+- [ ] Testar endpoints já cadastrados contra a nova política; os inválidos ficam suspensos,
+  com diagnóstico acessível, sem tentativa automática na rede proibida.
+
+**Aceite:** nenhum destino proibido recebe conexão e nenhum corpo remoto é devolvido;
+concorrência limitada inclusive entre réplicas. **Reversão:** desligar o worker, preservando
+fila e diagnóstico; não restaurar transporte sem política.
+
+### S5 — Ingestão limitada antes da expansão
+
+**Achado:** `acf_206b8eb76e35eeae207a2ba031ed2c7b`.
+**Arquivos:** `packages/persistence/src/repositories/matter-repository.ts`,
+`apps/api/src/app.ts`, contratos de ingestão em `packages/domain/src`.
+Criar `packages/persistence/src/repositories/matter-ingestion-limits.test.ts`.
+
+- [ ] Medir fixtures legítimas já existentes e reproduzir texto com muitas linhas curtas
+  dentro do limite de bytes; medir contagem sem inserir carga patológica no banco.
+- [ ] Propor teto inicial de 1 MiB UTF-8 e 5.000 âncoras por documento; confirmar compatibilidade
+  das fixtures antes de adotar. Validar contagem incremental antes de arrays e escrita.
+- [ ] Rejeitar excesso com código estável e resposta de cliente apropriada, sem documento
+  parcial. Não rejeitar texto jurídico legítimo apenas por ter linhas curtas.
+- [ ] Limitar lote SQL e resposta; adaptar consumidores/paginação se o contrato atual
+  exige todas as âncoras. Preservar offsets, Unicode, CRLF e hashes.
+- [ ] Testar limite exato, limite + 1, bytes multibyte, vazio e falha durante inserção.
+
+**Aceite:** custo limitado por bytes e âncoras; rejeição sem escrita parcial.
+**Reversão:** manter limite de segurança; corrigir compatibilidade sem ingestão ilimitada.
+
+### S6 — Streams SSE com admissão e limpeza
+
+**Achado:** `acf_ed603822150a91cef56374b3f49f8faf`.
+**Arquivos/testes:** `apps/api/src/agentic-workspace/execution-routes.ts` e `.test.ts`,
+`apps/api/src/auth/fastify-auth.ts`; componente de admissão persistente caso não exista.
+
+- [ ] Reproduzir conexões duplicadas com relógio controlado e contar consultas reais.
+- [ ] Propor limites iniciais: duas conexões por usuário/execução, cinco por usuário,
+  vinte por tenant e cem por processo. Para limites de usuário/tenant entre réplicas,
+  usar leases persistentes; contador apenas em memória protege somente o processo.
+- [ ] Compartilhar polling para execução/tenant dentro do processo, preservando autenticação
+  e revogação por assinante. Nunca compartilhar contexto de autorização entre tenants.
+- [ ] Testar rejeição ao exceder limites e liberação em close, erro, revogação, execução
+  terminal e crash/expiração de lease. Retomar eventos sem perda pelo cursor existente.
+
+**Aceite:** conexão adicional não multiplica polling local da mesma execução, limites
+respeitados e revogação preservada. **Reversão:** restringir admissão; não retirar limites.
+
+### S7 — Segredos fora de argv
+
+**Achado:** `acf_a9e464c2b88577a8d980a8ffe2baef98`.
+**Arquivos:** `scripts/phase8/export-global-stj.mjs` e `.test.ts`,
+`ops/gcp/phase8/02-provision-gate-a.sh`, `ops/gcp/phase8/README.md`.
+
+- [ ] Usar senhas sintéticas nos testes e demonstrar sua presença no argv atual, sem
+  imprimir nem ler credenciais reais.
+- [ ] Remover senha das URLs de `pg_dump`/`pg_restore`; usar `PGPASSFILE` temporário em
+  diretório privado, permissão restrita e escape correto de dois-pontos e barra invertida.
+- [ ] Garantir limpeza em sucesso, erro e interrupção; redigir logs e mensagens de erro.
+  Testar permissões nos sistemas operacionais efetivamente suportados.
+- [ ] Desabilitar provisionador histórico com orientação ao substituto seguro ou migrar
+  sua chamada para mecanismo sem senha em argv; preservar comandos de consulta seguros.
+
+**Aceite:** nenhum argumento ou erro contém senha; arquivos temporários não ficam legíveis
+por terceiros. **Reversão:** suspender script, sem voltar à URL com senha.
+
+### S8 — Verificação integrada e entrega para decisão de Boni
+
+- [ ] Executar testes focados por etapa e `pnpm test`, `pnpm lint`, `pnpm typecheck`,
+  `pnpm format:check`; registrar falhas preexistentes nominalmente, sem formatar o
+  repositório inteiro por conveniência. Executar `git diff --check`.
+- [ ] Executar E2E fase 7 e jornadas MCP/autorização relevantes; repetir concorrência,
+  leases e migrações em PostgreSQL isolado. Memória não substitui esses testes.
+- [ ] Para cada PR, apresentar problema, mudança, testes, compatibilidade, riscos
+  residuais e reversão; conferir head atual e CI antes de recomendar integração.
+- [ ] Entregar painel com os 11 IDs e estados: código corrigido, validado, integrado,
+  publicado e reavaliado. Atualizar Daybreak somente com autorização e evidência.
+- [ ] Preparar proposta de homologação/publicação em etapa separada, incluindo backup,
+  migrações, configuração e sinais de parada. Não publicar por causa do aceite local.
+
+**Critérios transversais de revisão:** falha entre efeito remoto/local (S2/S3), revogação
+entre autorização/uso (S1/S6), DNS/redirect após validação (S4), execução em várias réplicas
+(S4/S6), bytes multibyte e cardinalidade no limite (S5/S7). Todos têm testes nas etapas.
+Não desligar controles de segurança por flag para preservar comportamento vulnerável.
+
+**Ponto de acompanhamento por Boni:** ao fim de cada etapa, mostrar em linguagem simples
+qual risco foi reduzido, o que foi testado, o que falta e se algo mudou para clientes.
+Nenhuma aprovação de terceiro é exigida. Commit, push, integração, migração e publicação
+continuam sujeitos ao escopo de autorização que Boni conceder.
+
+
+### S.2 — Resultado local para acompanhamento — 14/11/2026
+
+As implementações S1–S7 estão em branches locais por subsistema. O conjunto foi montado
+para teste em `review/daybreak-security`, sem merge de PR. Verificação conjunta: 2.256 testes
+aprovados/27 pulados; PostgreSQL dedicado 20 + um teste financeiro combinado; fase 7 com
+PostgreSQL aprovada; build, lint, typecheck e formatação de código aprovados. A formatação
+global permanece com 393 avisos legados. Detalhes, decisões, commits e riscos residuais estão
+na [Frente S do registro vigente](../../architecture/2026-11-10-mesa-guiada-execucao.md#frente-s--execução-daybreak--14112026-americafortaleza).
+
+Nenhuma correção foi publicada, nenhum achado foi fechado no Daybreak e não houve nova CI
+remota. Antes de publicação: revisar as frentes, planejar/aprovar migrações e homologação,
+validar capacidade operacional, recuperação financeira e controles de infraestrutura.
+
+
+### S.3 — Autorização e envio remoto — 14/11/2026
+
+Boni autorizou expressamente “commit, push e deploy” após o aceite local. Essa decisão
+amplia a autorização anterior para publicação, mantendo backup, migrations e verificações
+do runbook como pré-condições técnicas. Não autoriza compras/reembolsos reais nem o
+encerramento de achados no Daybreak.
+
+As frentes foram enviadas separadamente: pagamentos/reembolsos no PR #153 (atualizado e
+retirado de rascunho); autorização #154; webhooks #155; ingestão #156; streams #157;
+scripts #158. As seis CIs remotas iniciaram. O conector criou commits com as mesmas
+árvores de conteúdo, pois o token do Git/gh local é inválido; os SHAs remotos diferem
+dos commits locais. Nenhum force-push foi usado.
+
+Deploy ainda não executado: o ambiente não dispõe de gcloud nem de credenciais Google
+Cloud. Sem esse acesso não é possível comprovar backup, executar as migrations
+`billing-ledger-0011-refund-recovery`, `persistence-0042` e `persistence-0043`, preparar
+revisões sem tráfego e promover o digest pelo procedimento oficial. Não houve mudança
+em produção. Acompanhar CI e resolver falhas antes de integração.

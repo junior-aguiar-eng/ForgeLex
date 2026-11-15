@@ -93,7 +93,7 @@ export const ApiKeysScreen: React.FC = () => {
   };
 
   return <div className="py-8 md:py-12"><div className="page-container space-y-8">
-    <header className="border-b border-champagne-border pb-6"><p className="eyebrow">Integrações</p><h1 className="font-editorial text-3xl font-bold text-stone-900 sm:text-4xl">Chaves de API</h1><p className="mt-1 max-w-3xl text-sm leading-relaxed text-stone-500">Crie chaves para integrações ou software próprio. Para conectar ChatGPT ou Claude sem programar, use <strong className="font-semibold text-stone-700">Conectar IA</strong>.</p></header>
+    <header className="border-b border-champagne-border pb-6"><p className="eyebrow">Integrações</p><h1 className="font-editorial text-3xl font-bold text-stone-900 sm:text-4xl">Chaves de API</h1><p className="mt-1 max-w-3xl text-sm leading-relaxed text-stone-500">Crie chaves para integrações ou software próprio. A criação e a revogação exigem a sessão do proprietário da conta. Para conectar ChatGPT ou Claude sem programar, use <strong className="font-semibold text-stone-700">Conectar IA</strong>.</p></header>
 
     {error && <div role="alert" className="surface-subtle flex items-start gap-3 border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" /><p>{error}</p></div>}
 

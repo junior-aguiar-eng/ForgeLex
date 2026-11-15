@@ -1,3 +1,4 @@
+import { canSubscribeWebhook } from './distribution/integration-authorization.js';
 import { registerAgenticWorkspace, type AgenticWorkspaceRuntimeOptions } from './agentic-workspace/execution-routes.js';
 import type { ClosedPilotDependencies } from './agentic-workspace/closed-pilot.js';
 import type { CommercialRuntimeDependencies } from './agentic-workspace/commercial-runtime.js';
@@ -562,6 +563,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const legalResearchMemoExecutionService = database && matterRepository && legalIssueRepository && researchMemoRepository
     ? new LegalResearchMemoExecutionService({
         matterRepository,
+        caseAiAccessRepository: new CaseAiAccessRepository(database),
         legalIssueRepository,
         researchMemoRepository,
         matterAuthorityRepository: matterAuthorityRepository!,
@@ -1207,13 +1209,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       : 'Persistência de webhooks indisponível neste processo.',
   }));
 
-  app.post('/api/v2/webhooks/endpoints', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
-    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+  app.post('/api/v2/webhooks/endpoints', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
     const principal = request.principal;
-    const body = request.body as { url?: string; description?: string; secret?: string; eventTypes?: string[] };
+    const body = (request.body ?? {}) as { url?: string; description?: string; secret?: string; eventTypes?: string[] };
+    if (!canSubscribeWebhook(principal.scopes, body.eventTypes ?? WEBHOOK_EVENT_TYPES)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
+    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     if (!body.url) return reply.status(400).send({ error: 'WEBHOOK_URL_REQUIRED' });
     try {
-      const created = await webhookService.createEndpoint({ tenantId: principal.tenantId, ...body, url: body.url });
+      const created = await webhookService.createEndpoint({ tenantId: principal.tenantId, url: body.url, description: body.description, secret: body.secret, eventTypes: body.eventTypes });
       const { secretCiphertext: _secretCiphertext, ...publicRecord } = created;
       return reply.status(201).send(publicRecord);
     } catch (error) {
@@ -1222,48 +1225,59 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   });
 
-  app.get('/api/v2/webhooks/endpoints', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+  app.get('/api/v2/webhooks/endpoints', { preHandler: authAdapter.createPreHandler(['webhooks:read']) }, async (request, reply) => {
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const endpoints = await webhookService.listEndpoints(principal.tenantId);
-    return endpoints.map(({ secretCiphertext: _secret, ...endpoint }) => endpoint);
+    return endpoints.filter((endpoint) => canSubscribeWebhook(principal.scopes, endpoint.eventTypes)).map(({ secretCiphertext: _secret, ...endpoint }) => endpoint);
   });
 
-  app.delete('/api/v2/webhooks/endpoints/:endpointId', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+  app.delete('/api/v2/webhooks/endpoints/:endpointId', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const endpointId = (request.params as { endpointId: string }).endpointId;
+    const endpoint = (await webhookService.listEndpoints(principal.tenantId)).find((item) => item.id === endpointId);
+    if (endpoint && !canSubscribeWebhook(principal.scopes, endpoint.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
     return { revoked: await webhookService.revokeEndpoint(principal.tenantId, endpointId) };
   });
 
-  app.post('/api/v2/webhooks/endpoints/:endpointId/test', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+  app.post('/api/v2/webhooks/endpoints/:endpointId/test', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const endpointId = (request.params as { endpointId: string }).endpointId;
     const endpoint = await webhookService.listEndpoints(principal.tenantId);
-    if (!endpoint.some((item) => item.id === endpointId && item.status === 'ACTIVE')) return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
-    const eventId = await webhookService.enqueue({ tenantId: principal.tenantId, endpointId, type: 'matter.created', payload: { test: true, requestedBy: principal.userId } });
+    const selected = endpoint.find((item) => item.id === endpointId && item.status === 'ACTIVE');
+    if (selected && !canSubscribeWebhook(principal.scopes, selected.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
+    if (!selected) return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
+    const eventId = await webhookService.enqueue({ tenantId: principal.tenantId, endpointId, type: selected.eventTypes[0] as typeof WEBHOOK_EVENT_TYPES[number], payload: { test: true, requestedBy: principal.userId } });
     return reply.status(202).send({ eventId, status: 'QUEUED' });
   });
 
-  app.get('/api/v2/webhooks/deliveries', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+  app.get('/api/v2/webhooks/deliveries', { preHandler: authAdapter.createPreHandler(['webhooks:read']) }, async (request, reply) => {
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const endpointId = (request.query as { endpointId?: string }).endpointId;
-    return webhookService.listDeliveries(principal.tenantId, endpointId);
+    const permitted = new Set((await webhookService.listEndpoints(principal.tenantId)).filter((item) => canSubscribeWebhook(principal.scopes, item.eventTypes)).map((item) => item.id));
+    return (await webhookService.listDeliveries(principal.tenantId, endpointId)).filter((item) => permitted.has(item.endpointId));
   });
 
-  app.post('/api/v2/webhooks/deliveries/:deliveryId/retry', { preHandler: authAdapter.createPreHandler(['billing:read']) }, async (request, reply) => {
+  app.post('/api/v2/webhooks/deliveries/:deliveryId/retry', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
     if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
     const principal = request.principal;
     const deliveryId = (request.params as { deliveryId: string }).deliveryId;
+    const delivery = (await webhookService.listDeliveries(principal.tenantId)).find((item) => item.id === deliveryId);
+    if (delivery) {
+      const endpoint = (await webhookService.listEndpoints(principal.tenantId)).find((item) => item.id === delivery.endpointId);
+      if (!endpoint || !canSubscribeWebhook(principal.scopes, endpoint.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
+    }
     return { requeued: await webhookService.requeue(principal.tenantId, deliveryId) };
   });
 
   app.get(
     '/api/v2/api-keys',
-    { preHandler: authAdapter.createPreHandler(['billing:read']) },
+    { preHandler: authAdapter.createPreHandler(['credentials:read']) },
     async (req, reply) => {
+      if (req.method !== 'GET' && (req.principal.authMethod !== 'session' || !req.principal.roles.includes('owner'))) return reply.status(403).send({ error: 'CREDENTIAL_ADMIN_SESSION_REQUIRED' });
       if (!apiKeyService) {
         reply.status(503);
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de chaves de API não está disponível.' };
@@ -1275,8 +1289,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.post(
     '/api/v2/api-keys',
-    { preHandler: authAdapter.createPreHandler(['billing:read']) },
+    { preHandler: authAdapter.createPreHandler(['credentials:write']) },
     async (req, reply) => {
+      if (req.method !== 'GET' && (req.principal.authMethod !== 'session' || !req.principal.roles.includes('owner'))) return reply.status(403).send({ error: 'CREDENTIAL_ADMIN_SESSION_REQUIRED' });
       if (!apiKeyService) {
         reply.status(503);
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de chaves de API não está disponível.' };
@@ -1324,8 +1339,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.delete(
     '/api/v2/api-keys/:keyId',
-    { preHandler: authAdapter.createPreHandler(['billing:read']) },
+    { preHandler: authAdapter.createPreHandler(['credentials:write']) },
     async (req, reply) => {
+      if (req.method !== 'GET' && (req.principal.authMethod !== 'session' || !req.principal.roles.includes('owner'))) return reply.status(403).send({ error: 'CREDENTIAL_ADMIN_SESSION_REQUIRED' });
       if (!apiKeyService) {
         reply.status(503);
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'Persistência de chaves de API não está disponível.' };
@@ -2219,6 +2235,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     '/api/v2/matters/:matterId/research-memos',
     { preHandler: authAdapter.createPreHandler(['matter:write', 'research:read']) },
     async (req, reply) => {
+      if (req.principal.authMethod === 'oauth_access_token') return reply.status(403).send({ error: 'OAUTH_MCP_ONLY' });
       if (!matterRepository || !legalIssueRepository || !researchMemoRepository || !factsEvidenceService) {
         reply.status(503);
         return { error: 'PERSISTENCE_UNAVAILABLE', message: 'A infraestrutura do research memo não está disponível.' };
@@ -2282,6 +2299,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           issueIds: selectedIssues.map((issue) => issue.id), idempotencyKey }, {
           tenantId: req.principal.tenantId, userId: req.principal.userId, sessionId,
           abortSignal: requestAbort.signal, source: 'REST',
+          scopes: req.principal.scopes, authMethod: req.principal.authMethod,
         });
         setBillingHeaders(reply, { billingMode: 'FREE', chargedCents: 0,
           remainingBalanceCents: await ledgerService.getAvailableBalanceCents(req.principal.tenantId),
@@ -3067,12 +3085,18 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           idempotencyKey,
           tenantId: req.principal.tenantId,
           userId: req.principal.userId,
+          scopes: req.principal.scopes, authMethod: req.principal.authMethod,
+          authorizeMatter: async (matterId: string) => {
+            const current = await authAdapter.authenticate(req.headers.authorization);
+            if (!current || current.tenantId !== req.principal.tenantId || current.userId !== req.principal.userId || current.oauthClientId !== req.principal.oauthClientId || current.oauthGrantedAt !== req.principal.oauthGrantedAt || !current.scopes.includes('matter:write') || !caseAiAccess || !current.oauthClientId || !current.oauthGrantedAt) throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+            await caseAiAccess.assertActive({ tenantId: current.tenantId, userId: current.userId, oauthConnection: { clientId: current.oauthClientId, grantedAt: current.oauthGrantedAt } }, matterId);
+          },
           abortSignal: requestAbort.signal,
           ...(req.principal.authMethod==='oauth_access_token' && req.principal.oauthClientId && req.principal.oauthGrantedAt ? {
             oauthConnection:{clientId:req.principal.oauthClientId,grantedAt:req.principal.oauthGrantedAt},
             revalidateConnection:async()=>{
               const current=await authAdapter.authenticate(req.headers.authorization).catch(()=>null);
-              if(!current||current.authMethod!=='oauth_access_token'||!current.scopes.includes('mcp')||current.tenantId!==req.principal.tenantId||current.userId!==req.principal.userId||current.oauthClientId!==req.principal.oauthClientId||current.oauthGrantedAt!==req.principal.oauthGrantedAt)throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+              if(!current||current.authMethod!=='oauth_access_token'||!current.scopes.includes('mcp')||!req.principal.scopes.every((scope)=>current.scopes.includes(scope))||current.tenantId!==req.principal.tenantId||current.userId!==req.principal.userId||current.oauthClientId!==req.principal.oauthClientId||current.oauthGrantedAt!==req.principal.oauthGrantedAt)throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
             },
           }:{}),
         });

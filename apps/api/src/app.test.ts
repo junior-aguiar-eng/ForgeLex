@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { buildApp } from './app.js';
 import { FastifyInstance } from 'fastify';
-import { AuthAdapter, hashApiKey, SupabaseIdentityVerifier } from './auth/fastify-auth.js';
+import { AuthAdapter, DatabaseApiKeyVerifier, hashApiKey, SupabaseIdentityVerifier } from './auth/fastify-auth.js';
 import { AuthenticatedPrincipal, TokenVerifier } from '@forgelex/domain';
 import { ResearchService } from '@forgelex/legal-tools';
-import { createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
+import { ApiKeyRepository, createDatabase, ForgeLexDatabase } from '@forgelex/persistence';
 import { runPersistenceMigrations } from '@forgelex/persistence';
 import { LedgerService } from '@forgelex/billing-ledger';
 import { AuditRecorder } from '@forgelex/audit';
@@ -23,7 +23,7 @@ const testPrincipal: AuthenticatedPrincipal = {
   tenantId: 'tenant_test',
   userId: 'user_test',
   roles: ['lawyer'],
-  scopes: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read'],
+  scopes: ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'webhooks:read', 'webhooks:write'],
   authMethod: 'api_key',
 };
 
@@ -59,7 +59,7 @@ const webhookSuitePrincipal: AuthenticatedPrincipal = {
   tenantId: 'tenant_webhook_suite',
   userId: 'user_webhook_suite',
   roles: ['lawyer'],
-  scopes: ['research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read'],
+  scopes: ['research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'webhooks:read', 'webhooks:write'],
   authMethod: 'api_key',
 };
 const webhookSuiteHeaders = { authorization: 'Bearer webhook-suite-token' };
@@ -1120,18 +1120,16 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
 
   it('API keys persistem somente hashes, retornam o segredo uma vez e autentica a chave criada', async () => {
     const bootstrapToken = 'bootstrap-api-key-token';
+    const c = await createDatabase();
+    await runPersistenceMigrations(c.client);
+    const keyVerifier = new DatabaseApiKeyVerifier(new ApiKeyRepository(c.db));
     const keyApp = await buildApp({
-      environment: {
-        NODE_ENV: 'test',
-        FORGELEX_API_KEYS: JSON.stringify([{
-          tokenHash: hashApiKey(bootstrapToken),
-          subjectId: 'subject_key_admin',
-          tenantId: 'tenant_key_test',
-          userId: 'user_key_admin',
-          roles: ['admin'],
-          scopes: ['billing:read'],
-        }]),
-      },
+      database: c.db, databaseClient: c.client, ledgerService: new LedgerService(c.db, c.client),
+      authAdapter: new AuthAdapter({ verify: async (token) => token === bootstrapToken ? {
+        subjectId: 'subject_key_admin', tenantId: 'tenant_key_test', userId: 'user_key_admin',
+        roles: ['owner'], scopes: ['credentials:read', 'credentials:write'], authMethod: 'session',
+      } : keyVerifier.verify(token) }),
+      environment: { NODE_ENV: 'test' },
     });
 
     try {
@@ -1139,7 +1137,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
         method: 'POST',
         url: '/api/v2/api-keys',
         headers: { authorization: `Bearer ${bootstrapToken}` },
-        payload: { name: 'Integração externa', scopes: ['billing:read'] },
+        payload: { name: 'Integração externa', scopes: ['credentials:read'] },
       });
       expect(createResponse.statusCode).toBe(201);
       const created = JSON.parse(createResponse.body).key;
@@ -1170,6 +1168,7 @@ describe('Fastify API & Remote MCP Edge (apps/api)', () => {
       expect(revokedResponse.statusCode).toBe(401);
     } finally {
       await keyApp.close();
+      c.client.close();
     }
   });
 
