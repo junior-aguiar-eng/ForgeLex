@@ -35,7 +35,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     const registry = new ToolRegistry();
     createLegalToolGateway(createFixtureResearchService()).registerInto(registry);
 
-    handler = new McpHandler(registry, ledger);
+    handler = new McpHandler(registry, ledger, undefined, { trustUnscopedContext: true });
   });
 
   afterEach(() => {
@@ -131,7 +131,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     }
     const registry = new ToolRegistry();
     createLegalToolGateway(createFixtureResearchService()).registerInto(registry);
-    const withSha = new McpHandler(registry, new LedgerService(db), undefined, { buildSha: '68810ae4955c6dbb95ca9b3b185aeba28270db05' });
+    const withSha = new McpHandler(registry, new LedgerService(db), undefined, { trustUnscopedContext: true, buildSha: '68810ae4955c6dbb95ca9b3b185aeba28270db05' });
     const response = await withSha.handleRequest({ jsonrpc: '2.0', id: 1, method: 'initialize' });
     expect(response.result.serverInfo.version).toBe('2.0.0+68810ae');
     const semSha = await handler.handleRequest({ jsonrpc: '2.0', id: 2, method: 'initialize' });
@@ -152,6 +152,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
       execute: async () => ({ success: true, data: {} }),
     } as never);
     const local = new McpHandler(registry, new LedgerService(db), undefined, {
+      trustUnscopedContext: true,
       exposedToolNames: ['research.search_case_law', 'teste.uniao_invalida'],
     });
     const errors: string[] = [];
@@ -277,7 +278,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
       ...searchCaseLawTool,
       execute: async () => { throw Object.assign(new Error('Provider indisponível.'), { code: 'SOURCE_PROVIDER_UNAVAILABLE' }); },
     });
-    const unavailableHandler = new McpHandler(registry, new LedgerService(db));
+    const unavailableHandler = new McpHandler(registry, new LedgerService(db), undefined, { trustUnscopedContext: true });
 
     const response = await unavailableHandler.handleRequest({
       jsonrpc: '2.0', id: 8, method: 'tools/call',
@@ -347,6 +348,7 @@ describe('McpHandler (Protocolo JSON-RPC 2.0 e Execução Remota)', () => {
     externalRegistry.register(searchCaseLawTool);
     externalRegistry.register(verifyAuthorityTool);
     const externalHandler = new McpHandler(externalRegistry, new LedgerService(db), undefined, {
+      trustUnscopedContext: true,
       exposedToolNames: ['research.search_case_law'],
     });
     const listed = await externalHandler.handleRequest({ jsonrpc: '2.0', id: 10, method: 'tools/list' });

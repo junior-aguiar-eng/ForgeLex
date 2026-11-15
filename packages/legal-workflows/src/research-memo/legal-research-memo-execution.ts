@@ -73,6 +73,8 @@ export function isAcceptedAuthorityVerification(status: VerifyAuthorityOutput['s
 
 interface Dependencies {
   caseAiAccessRepository?: CaseAiAccessRepository;
+  /** Told when the final FAILED checkpoint could not be written for a reason other than lost authorization. */
+  onCheckpointWriteFailed?: (event: { executionId: string; tenantId: string; matterId: string; error: unknown }) => void;
   matterRepository: MatterRepository;
   legalIssueRepository: LegalIssueRepository;
   researchMemoRepository: ResearchMemoRepository;
@@ -82,6 +84,10 @@ interface Dependencies {
 }
 
 interface ExecutionContext { scopes?: readonly string[]; authMethod?: string; oauthConnection?: import('@forgelex/domain').VerifiedOAuthConnection; revalidateConnection?: () => Promise<void>; tenantId: string; userId: string; sessionId: string; abortSignal?: AbortSignal; source?: 'REST' | 'MCP' | 'AGENT_CORE' }
+
+function isAuthorizationLoss(error: unknown): boolean {
+  return error instanceof Error && (error.message === 'INSUFFICIENT_SCOPE' || error.message === 'CASE_CONTEXT_NOT_AUTHORIZED');
+}
 
 export class LegalResearchMemoExecutionService {
   public constructor(private readonly dependencies: Dependencies) {}
@@ -99,11 +105,13 @@ export class LegalResearchMemoExecutionService {
       }
     };
     await authorize();
+    // Every durable effect goes through here: it authorizes once up front, then rechecks the grant inside its transaction.
     const authorizedEffect = async <T>(operation: (dependencies: Dependencies) => Promise<T>): Promise<T> => {
       await authorize();
       if (!context.oauthConnection) return operation(this.dependencies);
+      // The token was revalidated above, outside the transaction: an external call must not hold the matter write lock.
+      // Only the grant is rechecked here, on the transaction itself, which is what serializes against a revocation.
       return this.dependencies.caseAiAccessRepository!.withActive({ tenantId: context.tenantId, userId: context.userId, oauthConnection: context.oauthConnection }, input.matterId, async (tx) => {
-        await context.revalidateConnection!();
         return operation({ ...this.dependencies, checkpointStore: new PersistentWorkflowCheckpointStore(tx),
           matterAuthorityRepository: new MatterAuthorityRepository(tx), researchMemoRepository: new ResearchMemoRepository(tx) });
       });
@@ -134,7 +142,6 @@ export class LegalResearchMemoExecutionService {
       issues: selectedIssues, authorities: [], verification: [],
     };
     const save = async (stepId: string, stepIndex: number, status: 'RUNNING' | 'COMPLETED' | 'FAILED' = 'RUNNING') => {
-      await authorize();
       return authorizedEffect((dependencies) => dependencies.checkpointStore.save({ executionId, workflowId: LEGAL_RESEARCH_MEMO_WORKFLOW_ID,
         workflowVersion: LEGAL_RESEARCH_MEMO_WORKFLOW_VERSION, tenantId: context.tenantId, matterId: input.matterId, expectedMatterRevision,
         source, idempotencyKey: input.idempotencyKey,
@@ -160,11 +167,9 @@ export class LegalResearchMemoExecutionService {
         state.verification.push(result.data as VerifyAuthorityOutput);
       }
       for (let index = 0; index < state.authorities.length; index++) {
-        await authorize();
         const saved = await authorizedEffect((dependencies) => dependencies.matterAuthorityRepository.saveAuthority({ tenantId: context.tenantId,
           expectedMatterRevision,
           matterId: input.matterId, savedBy: context.userId, authority: state.authorities[index] }));
-        await authorize();
         await authorizedEffect((dependencies) => dependencies.matterAuthorityRepository.recordVerification({ tenantId: context.tenantId,
           expectedMatterRevision,
           matterId: input.matterId, savedAuthorityId: saved.record.id, createdBy: context.userId,
@@ -180,7 +185,6 @@ export class LegalResearchMemoExecutionService {
       state.memoId = memo.id;
       await save(STEPS[stepIndex], stepIndex++);
       await save(STEPS[stepIndex], stepIndex++);
-      await authorize();
       const record = await authorizedEffect((dependencies) => dependencies.researchMemoRepository.createMemo({ tenantId: context.tenantId,
         expectedMatterRevision,
         matterId: input.matterId, query: input.query, issueIds: selectedIssues.map((issue) => issue.id), memo,
@@ -191,8 +195,17 @@ export class LegalResearchMemoExecutionService {
       await authorize();
       return this.output(record, selectedIssues, input, source, executionId, false, searchData.total);
     } catch (error) {
-      // Authorization loss must not trigger a final unauthorized checkpoint write.
-      try { await save(STEPS[Math.min(stepIndex, STEPS.length - 1)], Math.min(stepIndex, STEPS.length - 1), 'FAILED'); } catch { /* preserve the original failure */ }
+      // Closing the execution must never replace the failure that caused it. Losing authorization is expected to block
+      // this final write; any other failure to write it is reported so the execution is not left RUNNING unnoticed.
+      try {
+        await save(STEPS[Math.min(stepIndex, STEPS.length - 1)], Math.min(stepIndex, STEPS.length - 1), 'FAILED');
+      } catch (checkpointError) {
+        if (!isAuthorizationLoss(checkpointError)) {
+          try {
+            this.dependencies.onCheckpointWriteFailed?.({ executionId, tenantId: context.tenantId, matterId: input.matterId, error: checkpointError });
+          } catch { /* a broken report hook must not mask the original failure either */ }
+        }
+      }
       throw error;
     }
   }

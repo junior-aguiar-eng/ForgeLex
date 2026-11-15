@@ -13,6 +13,7 @@ describe('MCP presentation transport', () => {
       registry.register(tool);
     const executeOperation = vi.fn();
     const handler = new McpHandler(registry, { executeOperation } as unknown as LedgerService, undefined, {
+      trustUnscopedContext: true,
       decisionUi: { readHtml: async () => '<!doctype html><p>Reader</p>' },
     });
     const list = await handler.handleRequest({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
