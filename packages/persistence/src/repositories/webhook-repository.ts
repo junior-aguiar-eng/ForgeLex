@@ -138,9 +138,17 @@ export class WebhookRepository {
     }
   }
 
-  public async listDeliveries(tenantId: string, endpointId?: string): Promise<WebhookDeliveryRecord[]> {
-    const result = endpointId
-      ? await this.client.execute({ sql: 'SELECT * FROM webhook_deliveries WHERE tenant_id = ? AND endpoint_id = ? ORDER BY created_at DESC', args: [tenantId, endpointId] })
+  public async findDelivery(tenantId: string, id: string): Promise<WebhookDeliveryRecord | undefined> {
+    const result = await this.client.execute({ sql: 'SELECT * FROM webhook_deliveries WHERE tenant_id = ? AND id = ?', args: [tenantId, id] });
+    return result.rows[0] ? this.deliveryFromRow(result.rows[0] as Record<string, unknown>) : undefined;
+  }
+
+  /** `endpoints` narrows the listing to one endpoint or to a set of them; an empty set matches nothing. */
+  public async listDeliveries(tenantId: string, endpoints?: string | readonly string[]): Promise<WebhookDeliveryRecord[]> {
+    const ids = endpoints === undefined ? undefined : typeof endpoints === 'string' ? [endpoints] : endpoints;
+    if (ids?.length === 0) return [];
+    const result = ids
+      ? await this.client.execute({ sql: `SELECT * FROM webhook_deliveries WHERE tenant_id = ? AND endpoint_id IN (${ids.map(() => '?').join(', ')}) ORDER BY created_at DESC`, args: [tenantId, ...ids] })
       : await this.client.execute({ sql: 'SELECT * FROM webhook_deliveries WHERE tenant_id = ? ORDER BY created_at DESC', args: [tenantId] });
     return result.rows.map((row) => this.deliveryFromRow(row as Record<string, unknown>));
   }

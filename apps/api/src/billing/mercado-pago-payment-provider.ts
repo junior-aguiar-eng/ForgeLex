@@ -1,5 +1,5 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
-import type { PaymentProvider } from './billing-operations.js';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { PaymentProviderRejectedError, type PaymentProvider } from './billing-operations.js';
 
 type Fetcher = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
@@ -9,6 +9,8 @@ export interface MercadoPagoPaymentProviderOptions {
   notificationUrl?: string;
   fetcher?: Fetcher;
   apiBaseUrl?: string;
+  now?: () => number;
+  webhookToleranceMs?: number;
 }
 
 export interface MercadoPagoCheckoutInput {
@@ -43,6 +45,19 @@ interface MercadoPagoOrder {
   total_amount?: unknown;
   transactions?: unknown;
   payment?: unknown;
+}
+
+/** 4xx means the request was refused before any effect; 408/409/425/429 can still be in flight or retried. */
+function isDefinitiveRejection(status: number): boolean {
+  return status >= 400 && status < 500 && ![408, 409, 425, 429].includes(status);
+}
+
+function parseWebhookSignature(raw: string): { timestamp: string; receivedSignature: string } {
+  const parts = raw.split(',').map((part) => { const [key, value] = part.split('=', 2); return [key.trim(), value?.trim() ?? ''] as const; });
+  const timestamps = parts.filter(([key]) => key === 'ts');
+  const signatures = parts.filter(([key]) => key === 'v1');
+  if (timestamps.length !== 1 || signatures.length !== 1) throw new Error('MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID');
+  return { timestamp: timestamps[0]![1], receivedSignature: signatures[0]![1] };
 }
 
 export class MercadoPagoPaymentProvider implements PaymentProvider {
@@ -124,7 +139,7 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
   public async refundPayment(input: { providerPaymentId: string; amountCents: number; idempotencyKey: string }): Promise<Record<string, unknown>> {
     const order = await this.request(`/v1/orders/${encodeURIComponent(input.providerPaymentId)}`, { method: 'GET' }) as MercadoPagoOrder;
     const paymentId = this.extractPaymentId(order);
-    if (!paymentId) throw new Error('MERCADOPAGO_PAYMENT_NOT_FOUND');
+    if (!paymentId) throw new PaymentProviderRejectedError('MERCADOPAGO_PAYMENT_NOT_FOUND');
     return this.request(`/v1/orders/${encodeURIComponent(input.providerPaymentId)}/refund`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Idempotency-Key': input.idempotencyKey },
@@ -132,8 +147,8 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
     });
   }
 
-  public async normalizeWebhook(input: MercadoPagoWebhookInput): Promise<MercadoPagoWebhookEvent> {
-    this.verifyWebhook(input);
+  public async normalizeWebhook(input: MercadoPagoWebhookInput, options: { allowExpiredDelivery?: boolean } = {}): Promise<MercadoPagoWebhookEvent> {
+    this.verifyWebhook(input, options.allowExpiredDelivery === true);
     const resourceType = input.payload.type === 'payment' || String(input.payload.action ?? '').startsWith('payment')
       ? 'payment'
       : 'order';
@@ -143,9 +158,24 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
     );
     const status = this.resolveStatus(resourceType, resource);
     const purchaseId = typeof resource.external_reference === 'string' ? resource.external_reference : undefined;
-    const providerReference = resourceType === 'order'
-      ? (typeof resource.id === 'string' ? resource.id : input.dataId)
-      : (typeof resource.order_id === 'string' ? resource.order_id : input.dataId);
+    const nestedOrder = resource.order && typeof resource.order === 'object'
+      ? resource.order as Record<string, unknown>
+      : undefined;
+    const providerCheckoutId = resourceType === 'order'
+      ? (typeof resource.id === 'string' ? resource.id : undefined)
+      : (typeof resource.order_id === 'string' || typeof resource.order_id === 'number')
+        ? String(resource.order_id)
+        : (typeof nestedOrder?.id === 'string' || typeof nestedOrder?.id === 'number')
+          ? String(nestedOrder.id)
+          : undefined;
+    const providerReference = providerCheckoutId ?? (typeof resource.id === 'string' ? resource.id : input.dataId);
+    const amountCents = this.parseAmountCents(resource.total_amount ?? resource.transaction_amount);
+    let providerCurrency = typeof resource.currency === 'string'
+      ? resource.currency
+      : typeof resource.currency_id === 'string'
+        ? resource.currency_id
+        : undefined;
+    if (!providerCurrency && resourceType === 'order' && status === 'paid') providerCurrency = await this.linkedPaymentCurrency(resource, amountCents, purchaseId);
     const eventType = status === 'paid'
       ? 'payment.approved'
       : status === 'failed'
@@ -153,9 +183,7 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
         : status === 'refunded'
           ? 'payment.refunded'
           : 'payment.processing';
-    const eventId = input.payload.id === undefined || input.payload.id === null
-      ? `${resourceType}:${input.dataId}:${status}`
-      : String(input.payload.id);
+    const eventId = `${resourceType}:${typeof resource.id === 'string' || typeof resource.id === 'number' ? resource.id : input.dataId}:${status}`;
     return {
       id: eventId,
       provider: 'mercadopago',
@@ -165,21 +193,19 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
           id: providerReference,
           payment_status: status,
           provider_payment_id: providerReference,
+          ...(providerCheckoutId ? { provider_checkout_id: providerCheckoutId } : {}),
+          ...(purchaseId ? { external_reference: purchaseId } : {}),
           ...(purchaseId ? { metadata: { purchase_id: purchaseId } } : {}),
-          ...(typeof resource.total_amount === 'string' ? { amount_total: Math.round(Number(resource.total_amount) * 100) } : {}),
+          ...(amountCents !== undefined ? { amount_total: amountCents } : {}),
+          ...(providerCurrency?.trim() ? { currency: providerCurrency.toLowerCase() } : {}),
         },
       },
     };
   }
 
-  public verifyWebhook(input: Pick<MercadoPagoWebhookInput, 'dataId' | 'requestId' | 'signature'>): void {
-    const parts = new Map(input.signature.split(',').map((part) => {
-      const [key, value] = part.split('=', 2);
-      return [key.trim(), value?.trim() ?? ''] as const;
-    }));
-    const timestamp = parts.get('ts');
-    const receivedSignature = parts.get('v1');
-    if (!timestamp || !receivedSignature || !input.dataId || !input.requestId) throw new Error('MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID');
+  public verifyWebhook(input: Pick<MercadoPagoWebhookInput, 'dataId' | 'requestId' | 'signature'>, allowExpiredDelivery = false): void {
+    const { timestamp, receivedSignature } = parseWebhookSignature(input.signature);
+    if (!timestamp || !/^\d{10}(?:\d{3})?$/.test(timestamp) || !receivedSignature || !input.dataId || !input.requestId) throw new Error('MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID');
     const manifest = `id:${input.dataId.toLowerCase()};request-id:${input.requestId};ts:${timestamp};`;
     const expected = createHmac('sha256', this.options.webhookSecret).update(manifest).digest('hex');
     const expectedBuffer = Buffer.from(expected, 'utf8');
@@ -187,11 +213,22 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
     if (expectedBuffer.length !== receivedBuffer.length || !timingSafeEqual(expectedBuffer, receivedBuffer)) {
       throw new Error('MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID');
     }
+    const timestampMs = Number(timestamp) * (timestamp.length === 10 ? 1000 : 1);
+    const now = (this.options.now ?? Date.now)();
+    if (!allowExpiredDelivery && (now - timestampMs > (this.options.webhookToleranceMs ?? 300_000) || timestampMs - now > 60_000)) throw new Error('MERCADOPAGO_WEBHOOK_EXPIRED');
+  }
+
+  /** Authenticate the delivery tuple before consulting its durable receipt. Payload IDs are unsigned. */
+  public verifiedDeliveryId(input: MercadoPagoWebhookInput): string {
+    this.verifyWebhook(input, true);
+    const { timestamp } = parseWebhookSignature(input.signature);
+    return `mercadopago:delivery:${createHash('sha256').update(JSON.stringify([input.dataId.toLowerCase(), input.requestId, timestamp])).digest('hex')}`;
   }
 
   private async request(path: string, init: RequestInit): Promise<Record<string, unknown>> {
     const response = await this.fetcher(`${this.apiBaseUrl}${path}`, {
       ...init,
+      signal: init.signal ?? AbortSignal.timeout(15_000),
       headers: {
         Accept: 'application/json',
         Authorization: `Bearer ${this.options.accessToken}`,
@@ -199,7 +236,10 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
       },
     });
     const data: unknown = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(`MERCADOPAGO_REQUEST_FAILED:${response.status}`);
+    if (!response.ok) {
+      const message = `MERCADOPAGO_REQUEST_FAILED:${response.status}`;
+      throw isDefinitiveRejection(response.status) ? new PaymentProviderRejectedError(message) : new Error(message);
+    }
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('MERCADOPAGO_INVALID_RESPONSE');
     return data as Record<string, unknown>;
   }
@@ -225,5 +265,39 @@ export class MercadoPagoPaymentProvider implements PaymentProvider {
   private formatAmount(amountCents: number): string {
     if (!Number.isInteger(amountCents) || amountCents <= 0) throw new Error('MERCADOPAGO_AMOUNT_INVALID');
     return (amountCents / 100).toFixed(2);
+  }
+
+  /** Never infer BRL from country/account defaults: use explicit linked settlement evidence. */
+  private async linkedPaymentCurrency(order: Record<string, unknown>, orderAmount: number | undefined, reference: string | undefined): Promise<string | undefined> {
+    const transactions = order.transactions as { payments?: unknown } | undefined;
+    if (!reference || orderAmount === undefined || !Array.isArray(transactions?.payments) || transactions.payments.length < 1 || transactions.payments.length > 20) return undefined;
+    let total = 0;
+    let currency: string | undefined;
+    const references = new Set<string>();
+    for (const entry of transactions.payments) {
+      if (!entry || typeof entry !== 'object') return undefined;
+      const linkedId = String((entry as Record<string, unknown>).reference_id ?? '');
+      if (!/^\d+$/.test(linkedId) || references.has(linkedId)) return undefined;
+      references.add(linkedId);
+      const payment = await this.request(`/v1/payments/${encodeURIComponent(linkedId)}`, { method: 'GET' });
+      const amount = this.parseAmountCents(payment.transaction_amount);
+      if (String(payment.id) !== linkedId || payment.external_reference !== reference || this.resolveStatus('payment', payment) !== 'paid' || amount === undefined || typeof payment.currency_id !== 'string' || !payment.currency_id.trim()) return undefined;
+      const current = payment.currency_id.toLowerCase();
+      if (currency && current !== currency) return undefined;
+      currency = current;
+      total += amount;
+      if (!Number.isSafeInteger(total) || total > orderAmount) return undefined;
+    }
+    return total === orderAmount ? currency : undefined;
+  }
+
+  private parseAmountCents(value: unknown): number | undefined {
+    if (typeof value !== 'string' && typeof value !== 'number') return undefined;
+    const match = String(value).match(/^(\d+)(?:\.(\d{1,2}))?$/);
+    if (!match) return undefined;
+    const wholeCents = Number(match[1]) * 100;
+    const fractionalCents = Number((match[2] ?? '').padEnd(2, '0'));
+    const amountCents = wholeCents + fractionalCents;
+    return Number.isSafeInteger(amountCents) && amountCents > 0 ? amountCents : undefined;
   }
 }

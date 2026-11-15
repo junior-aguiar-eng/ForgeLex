@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { WebhookEndpointRecord, WebhookRepository } from '@forgelex/persistence';
-import { WEBHOOK_EVENT_TYPES, createWebhookDeliveryHeaders, type ForgeLexWebhookEvent, type WebhookEventType } from './webhooks.js';
+import { WEBHOOK_EVENT_TYPES, WEBHOOK_TEST_EVENT_TYPE, createWebhookDeliveryHeaders, type ForgeLexWebhookEvent, type WebhookEventType } from './webhooks.js';
 
 import { validateWebhookUrl, WebhookHttpClient, WebhookUrlBlocked } from './webhook-http-client.js';
 
@@ -45,11 +45,16 @@ export class WebhookService {
 
   public listEndpoints(tenantId: string) { return this.repository.listEndpoints(tenantId); }
   public revokeEndpoint(tenantId: string, id: string) { return this.repository.revokeEndpoint(tenantId, id); }
-  public listDeliveries(tenantId: string, endpointId?: string) { return this.repository.listDeliveries(tenantId, endpointId); }
+  public findEndpoint(tenantId: string, id: string) { return this.repository.findEndpoint(tenantId, id); }
+  public findDelivery(tenantId: string, id: string) { return this.repository.findDelivery(tenantId, id); }
+  public listDeliveries(tenantId: string, endpointId?: string | readonly string[]) { return this.repository.listDeliveries(tenantId, endpointId); }
   public requeue(tenantId: string, deliveryId: string) { return this.repository.requeue(tenantId, deliveryId); }
 
-  public async enqueue(input: { tenantId: string; type: WebhookEventType; payload: Record<string, unknown>; endpointId?: string }): Promise<string> {
-    const endpoints = (await this.repository.listEndpoints(input.tenantId)).filter((endpoint) => endpoint.eventTypes.includes(input.type) && endpoint.status === 'ACTIVE');
+  public async enqueue(input: { tenantId: string; type: WebhookEventType | typeof WEBHOOK_TEST_EVENT_TYPE; payload: Record<string, unknown>; endpointId?: string }): Promise<string> {
+    const isTest = input.type === WEBHOOK_TEST_EVENT_TYPE;
+    if (isTest && !input.endpointId) throw new Error('WEBHOOK_TEST_REQUIRES_ENDPOINT');
+    // A test targets one endpoint whatever it subscribes to; every other event goes only to its subscribers.
+    const endpoints = (await this.repository.listEndpoints(input.tenantId)).filter((endpoint) => endpoint.status === 'ACTIVE' && (isTest || endpoint.eventTypes.includes(input.type)));
     const event: ForgeLexWebhookEvent = { id: randomUUID(), type: input.type, tenantId: input.tenantId, occurredAt: new Date().toISOString(), payload: input.payload };
     return this.repository.enqueueEvent({ id: event.id, tenantId: input.tenantId, eventType: input.type, payloadJson: JSON.stringify(event), endpointIds: input.endpointId ? endpoints.filter((endpoint) => endpoint.id === input.endpointId).map((endpoint) => endpoint.id) : endpoints.map((endpoint) => endpoint.id) });
   }
