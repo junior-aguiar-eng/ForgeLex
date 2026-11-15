@@ -1,5 +1,15 @@
 # Pendências atuais do ForgeLex
 
+## Daybreak — correções enviadas, deploy pendente (14/11/2026)
+
+Boni autorizou commit, push e deploy. Correções enviadas nos PRs #153–#158, separados
+por subsistema; seis CIs remotas iniciadas. O conjunto local passou 2.256 testes
+(27 pulados), build, lint, tipos, formatação de código e fase 7 com PostgreSQL.
+Ainda não integrado nem publicado. Falta acesso Google Cloud autenticado neste ambiente
+para comprovar backup, aplicar migrations 0042/0043 e ledger 0011 e executar
+`ops/gcp/production/deploy-from-main.ps1` com candidata sem tráfego e reversão.
+Registro e riscos residuais: Frente S do plano unificado e do diário de execução.
+
 ## Conector MCP no Claude: causa raiz e correção (08/11/2026)
 
 **Sintoma:** no chat do Claude, `@forgelex` não achava ferramenta nenhuma ("nenhuma ferramenta correspondente

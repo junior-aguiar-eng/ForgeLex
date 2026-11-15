@@ -98,6 +98,12 @@ export interface McpHandlerOptions {
   exposedToolNames?: readonly string[];
   beforeToolCall?: (toolName: string) => void | Promise<void>;
   decisionUi?: { readHtml: () => Promise<string> };
+  /**
+   * Accept tool calls whose context carries neither scopes nor an auth method. Off by default: such a call is
+   * denied, so a route that forgets to forward the authenticated scopes fails closed. Only in-process callers
+   * that already hold their own authority (tests, embedded use) should turn this on.
+   */
+  trustUnscopedContext?: boolean;
 }
 
 /** Identidade e sinais da requisição HTTP já autenticada, repassados ao handler. */
@@ -106,6 +112,9 @@ export interface McpRequestContext {
   userId?: string;
   idempotencyKey?: string;
   abortSignal?: AbortSignal;
+  scopes?: readonly string[];
+  authMethod?: string;
+  authorizeMatter?: (matterId: string) => Promise<void>;
   oauthConnection?: VerifiedOAuthConnection;
   revalidateConnection?: () => Promise<void>;
 }
@@ -133,6 +142,7 @@ export class McpHandler {
   private readonly decisionUi?: McpHandlerOptions['decisionUi'];
   private readonly serverVersion: string;
   private readonly toolModules: readonly McpToolModule[];
+  private readonly trustUnscopedContext: boolean;
 
   constructor(
     toolRegistry: ToolRegistry,
@@ -148,6 +158,7 @@ export class McpHandler {
     this.decisionUi = options.decisionUi;
     this.serverVersion = mcpServerVersion(options.buildSha);
     this.toolModules = options.toolModules ?? [];
+    this.trustUnscopedContext = options.trustUnscopedContext === true;
   }
 
   public async handleRequest(
@@ -279,6 +290,32 @@ export class McpHandler {
             id,
             error: { code: -32601, message: `Method not found: ferramenta '${name}' não está disponível no pacote externo.` },
           };
+        }
+
+        // HTTP callers always supply authenticated scopes, and a call without them is denied unless this handler
+        // was explicitly built for trusted in-process callers.
+        const scoped = context.authMethod !== undefined || context.scopes !== undefined;
+        if (!scoped && !this.trustUnscopedContext) {
+          return { jsonrpc: '2.0', id, error: { code: -32001, message: 'INSUFFICIENT_SCOPE', data: { code: 'INSUFFICIENT_SCOPE', retryable: false } } };
+        }
+        if (scoped) {
+          const scopes = context.scopes ?? [];
+          const required = name === 'workflow.legal_research_memo' ? ['research:read', 'matter:write']
+            : name === 'draft.save_from_ai' || name === 'case.save_analysis' || isCaseContextTool(name)
+              ? []
+              : isResearchPresentationTool(name) ? ['research:read']
+              : ['research.search_case_law', 'research.get_authority', 'research.verify_authority'].includes(name) || this.toolModules.some((candidate) => candidate.owns(name)) ? ['research:read'] : null;
+          if (!required || required.some((scope) => !scopes.includes(scope))) {
+            return { jsonrpc: '2.0', id, error: { code: -32001, message: 'INSUFFICIENT_SCOPE', data: { code: 'INSUFFICIENT_SCOPE', retryable: false } } };
+          }
+          if (name === 'workflow.legal_research_memo' && context.authMethod === 'oauth_access_token') {
+            try {
+              if (!context.authorizeMatter || typeof toolArgs?.matterId !== 'string') throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
+              await context.authorizeMatter(toolArgs.matterId);
+            } catch {
+              return { jsonrpc: '2.0', id, error: { code: -32001, message: 'CASE_CONTEXT_NOT_AUTHORIZED' } };
+            }
+          }
         }
 
         const toolModule = this.toolModules.find((candidate) => candidate.owns(name));
@@ -588,6 +625,8 @@ export class McpHandler {
             userId,
             abortSignal: context.abortSignal ?? new AbortController().signal,
             source: 'MCP',
+            scopes: context.scopes, authMethod: context.authMethod,
+            oauthConnection: context.oauthConnection, revalidateConnection: context.revalidateConnection,
           });
           return name === 'research.search_case_law' ? result.data : result;
         },

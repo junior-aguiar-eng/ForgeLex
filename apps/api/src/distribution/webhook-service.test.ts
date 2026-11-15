@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createDatabase, runPersistenceMigrations, WebhookRepository } from '@forgelex/persistence';
 import { decryptWebhookSecret, WebhookService } from './webhook-service.js';
 import type { WebhookPoster } from './webhook-http-client.js';
+import { WEBHOOK_TEST_EVENT_TYPE } from './webhooks.js';
 
 type Post = WebhookPoster['post'];
 const posterOf = (post: Post, check?: WebhookPoster['check']): WebhookPoster => ({ post, ...(check ? { check } : {}) });
@@ -98,6 +99,51 @@ describe('WebhookService', () => {
 
     expect((await service.listDeliveries('safe'))[0]!.responseBodyExcerpt).toBeUndefined();
     connection.client.close();
+  });
+
+  describe('test events', () => {
+    const tenantId = 'tenant_test_event';
+
+    it('delivers a webhook.test event to the chosen endpoint even though it subscribes to a different type', async () => {
+      const sent: Array<Record<string, string>> = [];
+      const { connection, repository, service } = await open({ poster: posterOf(async (_url, headers) => { sent.push(headers); return 200; }) });
+      const target = await service.createEndpoint({ tenantId, url: 'https://example.test/target', eventTypes: ['billing.usage.recorded'] });
+
+      const eventId = await service.enqueue({ tenantId, type: WEBHOOK_TEST_EVENT_TYPE, endpointId: target.id, payload: { test: true } });
+
+      expect((await repository.listDeliveries(tenantId)).map((delivery) => delivery.endpointId)).toEqual([target.id]);
+      expect(await service.deliverOne()).toBe('delivered');
+      expect(sent[0]).toMatchObject({ 'x-forgelex-event-id': eventId, 'x-forgelex-event-type': 'webhook.test' });
+      connection.client.close();
+    });
+
+    it('never fans a test event out to the tenant\'s other endpoints', async () => {
+      const { connection, repository, service } = await open();
+      const target = await service.createEndpoint({ tenantId, url: 'https://example.test/target', eventTypes: ['matter.created'] });
+      await service.createEndpoint({ tenantId, url: 'https://example.test/other', eventTypes: ['matter.created'] });
+
+      await service.enqueue({ tenantId, type: WEBHOOK_TEST_EVENT_TYPE, endpointId: target.id, payload: { test: true } });
+
+      expect((await repository.listDeliveries(tenantId)).map((delivery) => delivery.endpointId)).toEqual([target.id]);
+      connection.client.close();
+    });
+
+    it('refuses a test event without a target endpoint instead of broadcasting it', async () => {
+      const { connection, repository, service } = await open();
+      await service.createEndpoint({ tenantId, url: 'https://example.test/target', eventTypes: ['matter.created'] });
+
+      await expect(service.enqueue({ tenantId, type: WEBHOOK_TEST_EVENT_TYPE, payload: { test: true } })).rejects.toThrow('WEBHOOK_TEST_REQUIRES_ENDPOINT');
+
+      expect(await repository.listDeliveries(tenantId)).toHaveLength(0);
+      connection.client.close();
+    });
+
+    it('does not treat webhook.test as a subscribable event type', async () => {
+      const { connection, service } = await open();
+
+      await expect((async () => service.createEndpoint({ tenantId, url: 'https://example.test/x', eventTypes: [WEBHOOK_TEST_EVENT_TYPE] }))()).rejects.toThrow('WEBHOOK_EVENT_TYPE_INVALID');
+      connection.client.close();
+    });
   });
 });
 

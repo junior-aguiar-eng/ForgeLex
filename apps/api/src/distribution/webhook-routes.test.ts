@@ -17,7 +17,7 @@ const principal = (scopes: string[]): AuthenticatedPrincipal => ({
 
 afterEach(() => vi.restoreAllMocks());
 
-const fixture = async (scopes = ['billing:read'], environment: Record<string, string> = {}) => {
+const fixture = async (scopes = ['webhooks:read', 'webhooks:write', 'matter:read'], environment: Record<string, string> = {}) => {
   const connection = await createDatabase({ url: 'file::memory:' });
   await runPersistenceMigrations(connection.client);
   const app = await buildApp({
@@ -89,6 +89,21 @@ describe('POST /api/v2/webhooks/endpoints/:id/reactivate', () => {
 
       expect(response.statusCode).toBe(409);
       expect(response.json()).toMatchObject({ error: 'WEBHOOK_ENDPOINT_NOT_SUSPENDED' });
+    } finally {
+      await f.close();
+    }
+  });
+
+  it('refuses with 403 when the caller may write webhooks but cannot subscribe to the endpoint\'s events', async () => {
+    const f = await fixture(['webhooks:write']);
+    try {
+      await f.endpoint('ep', 'https://8.8.8.8/hook', 'SUSPENDED');
+
+      const response = await f.call('POST', '/api/v2/webhooks/endpoints/ep/reactivate');
+
+      expect(response.statusCode).toBe(403);
+      expect(response.json()).toMatchObject({ error: 'INSUFFICIENT_EVENT_SCOPE' });
+      expect((await f.repository.findEndpoint('tenant', 'ep'))?.status).toBe('SUSPENDED');
     } finally {
       await f.close();
     }
