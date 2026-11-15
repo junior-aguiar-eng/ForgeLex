@@ -1,14 +1,23 @@
 # Pendências atuais do ForgeLex
 
-## Daybreak — correções enviadas, deploy pendente (14/11/2026)
+## Daybreak — integrado em `main`, deploy pendente (15/11/2026)
 
-Boni autorizou commit, push e deploy. Correções enviadas nos PRs #153–#158, separados
-por subsistema; seis CIs remotas iniciadas. O conjunto local passou 2.256 testes
-(27 pulados), build, lint, tipos, formatação de código e fase 7 com PostgreSQL.
-Ainda não integrado nem publicado. Falta acesso Google Cloud autenticado neste ambiente
-para comprovar backup, aplicar migrations 0042/0043 e ledger 0011 e executar
-`ops/gcp/production/deploy-from-main.ps1` com candidata sem tráfego e reversão.
-Registro e riscos residuais: Frente S do plano unificado e do diário de execução.
+Boni autorizou commit, push e deploy. Os PRs #153–#158 (um por subsistema) e os de
+acompanhamento da revisão (#159–#162, #164, #165) estão **integrados em `main`**
+(último: #165, SSE, em 15/11/2026 05:20 UTC; `main` em `bbda500`). Junto entrou o #163
+(`research memo` por apps conectados via OAuth, só dentro do MCP), que não é correção
+Daybreak, mas também está em `main` e fora de produção. O conjunto local passou 2.256
+testes (27 pulados), build, lint, tipos, formatação de código e fase 7 com PostgreSQL,
+antes dos PRs de acompanhamento; a CI pós-merge de `bbda500` não foi conferida na
+elaboração deste registro.
+
+**Nada disso está publicado.** Produção segue no último registro de publicação
+(`cd94c2c`, mais a revisão `draftsave`). Pendem, nesta ordem e com acesso Google Cloud
+autenticado (este ambiente de sessão não o tem): backup sob demanda; migrations
+`persistence-0042`, `persistence-0043` e `billing-ledger-0011-refund-recovery`;
+`ops/gcp/production/deploy-from-main.ps1` com candidata sem tráfego, verificação e reversão.
+Compras e reembolsos reais e o encerramento dos achados no Daybreak seguem fora da
+autorização. Registro e riscos residuais: Frente S do plano unificado e do diário de execução.
 
 ## Conector MCP no Claude: causa raiz e correção (08/11/2026)
 

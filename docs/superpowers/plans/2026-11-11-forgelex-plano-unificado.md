@@ -1135,3 +1135,17 @@ Cloud. Sem esse acesso não é possível comprovar backup, executar as migration
 `billing-ledger-0011-refund-recovery`, `persistence-0042` e `persistence-0043`, preparar
 revisões sem tráfego e promover o digest pelo procedimento oficial. Não houve mudança
 em produção. Acompanhar CI e resolver falhas antes de integração.
+
+
+### S.4 — Integração em `main` — 15/11/2026
+
+Todos os PRs da frente foram integrados: #153 (pagamentos e reembolsos), #154 (autorização),
+#155 (webhooks), #156 (ingestão), #157 (SSE), #158 (segredos fora de argv) e os de
+acompanhamento da revisão #159, #160, #161, #162, #164 e #165. O #152 (proveniência da tag
+de deploy) entrou em 14/11. O #163 (memo de pesquisa por apps OAuth, só dentro do MCP) também
+está em `main`, mas não pertence à Frente S. `main` está em `bbda500`.
+
+Continua valendo o S.3: nada foi publicado, as migrations `persistence-0042`, `persistence-0043`
+e `billing-ledger-0011-refund-recovery` não foram aplicadas e o deploy exige acesso Google
+Cloud autenticado. A CI pós-merge de `bbda500` não foi conferida neste registro. S8 (verificação
+integrada e decisão de Boni) segue aberta até a publicação.
