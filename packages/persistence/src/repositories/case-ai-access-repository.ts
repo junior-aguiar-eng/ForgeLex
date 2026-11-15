@@ -1,3 +1,4 @@
+import { withMatterWrite } from './matter-write-guard.js';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
@@ -83,6 +84,17 @@ export class CaseAiAccessRepository {
     if (!rows[0] || (await new MatterRepository(this.db).getMatter(r.tenantId, matterId))?.lifecycleState !== 'ACTIVE')
       throw new Error('CASE_CONTEXT_NOT_AUTHORIZED');
     return grant(rows[0]);
+  }
+  /** Serialize grant revocation and authorized effects on the same matter row. */
+  async withActive<T>(
+    reader: CaseAiReader,
+    matterId: string,
+    operation: (tx: ForgeLexDatabase) => Promise<T>,
+  ): Promise<T> {
+    return withMatterWrite(this.db, { tenantId: reader.tenantId, matterId }, async (tx) => {
+      await new CaseAiAccessRepository(tx).assertActive(reader, matterId);
+      return operation(tx);
+    });
   }
   async loadSelection(o: CaseAiOwner, matterId: string, selection: CaseAiSelection): Promise<SelectedCaseRecord[]> {
     const matters = new MatterRepository(this.db);

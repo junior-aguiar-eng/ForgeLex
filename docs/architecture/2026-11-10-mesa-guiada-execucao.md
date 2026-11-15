@@ -1147,3 +1147,210 @@ As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo
 | Acervo capturado   | `MinutaIA-Habilidades-Oficiais-2077-2026-11-10.zip`                         |
 
 SHA-256 verificado do ZIP `2a0efbbc301e53c357d5fe6baac1a896c84669fc1646a62c2aec410550543d01`.
+
+## Frente S — execução Daybreak — 14/11/2026 (America/Fortaleza)
+
+Autorização: Boni pediu “vamos implementar!” após receber a Frente S do plano unificado.
+Isso autoriza implementação e validação local, sem merge, deploy ou mudanças em produção.
+
+### S0 — reconciliação
+
+Base remota reconferida: `main` = `a00ffa934dbd075cba8b63142e3b61ed675cd4e5`.
+PR #152 integrado nessa base; branch da fixture preservada em `/workspace/ForgeLex`.
+Frente de autorização isolada em `/workspace/ForgeLex-security-auth`, branch
+`fix/daybreak-authorization`, originada de `origin/main`.
+
+Verificação: PowerShell 7.5.4 portátil em `/tmp/forgelex-pwsh`, suíte
+`ops/gcp/production/deploy-from-main.tests.ps1`: **43 passaram, 0 falharam**.
+Não houve chamada gcloud real nem operação de release. O helper valida projeto, ID,
+status, substituições e imagem/digest; não equivale a atestação independente da origem,
+configuração ou identidade do builder. IAM e estado publicado não foram inspecionados.
+A lacuna de confiança além do bypass de tag permanece risco residual explícito.
+
+Ruling: os getters dos fixes MCP e reembolso retornaram FORBIDDEN (“finding chat is
+unavailable in the current workspace”). Implementar pelo código e evidência do relatório,
+sem contornar a restrição e sem declarar revisão dos diffs salvos — custo: não reaproveitar
+automaticamente esses fixes.
+
+Pre-flight: S1 produz permissões usadas por S4; S2 e S3 compartilham billing-operations
+mas terão mudanças financeiras separadas da fixture; S4 e S6 requerem leases entre réplicas.
+Ruling: usar worktrees por subsistema e preservar a branch da fixture; acompanhar esta
+execução no registro existente, conforme a regra do plano unificado, sem novo ledger.
+
+### S1 — autorização e isolamento — validado localmente
+
+Implementação: escopos por ferramenta MCP antes da cobrança; memo autenticado exige
+`research:read` e `matter:write` independentemente do canal declarado. Contextos internos
+sem metadados de autenticação conservam compatibilidade, mas o HTTP sempre fornece esses
+metadados. OAuth verifica conexão/grant exato, inclusive replay e resposta final; os efeitos
+persistentes verificam o grant dentro da transação sob o mesmo lock de matter usado na
+revogação. Memo REST recusa tokens OAuth destinados ao MCP antes das leituras do caso.
+
+Integrações: `credentials:read/write`, mutações só por sessão de proprietário;
+`webhooks:read/write` e autorização de cada família de evento. Listas filtram destinos e
+entregas não autorizados. Campos de identidade do JSON não substituem o tenant autenticado.
+OpenAPI, tela de chaves e orientação de migração atualizados.
+
+Evidências: 21 regressões falharam no código-base original; teste de corrida PostgreSQL
+sem a checagem transacional gravou indevidamente um checkpoint (esperado zero), depois
+passou com a correção. PostgreSQL isolado: 13/13 testes de autorização, incluindo revogação
+enquanto o checkpoint espera o lock. Verificação focada final: 96 passaram, 1 teste
+PostgreSQL pulado nesse comando; ele foi executado separadamente com sucesso. Build e
+API typecheck aprovados; ESLint dos arquivos alterados e diff check aprovados.
+
+A revisão independente encontrou três pontos importantes (transação, replay, metadados de
+autenticação), todos corrigidos e cobertos por testes. Item menor adiado: guarda redundante
+de mutação no handler GET de credenciais; não altera autorização nem dados.
+
+Ruling: usar trabalho paralelo somente entre frentes independentes em worktrees distintas,
+conforme a skill dispatching-parallel-agents; preservar implementação e revisão financeira
+no coordenador. Custo observado: disputa de CPU causou timeouts de suítes gerais. As
+execuções gerais redundantes foram interrompidas e a verificação completa será serial em
+S8. Falhas observadas por contenção não são declaradas resolvidas antes dessa execução.
+
+Ruling: o getter de fix não estava disponível; a correção foi desenvolvida do código-fonte
+com reprodução local, sem afirmar que o diff salvo do Daybreak foi aplicado.
+Ruling: manter contextos internos sem autenticação explícita como chamadas confiáveis de
+servidor; contextos autenticados não podem evitar a política trocando `source`.
+Custo se mal utilizado: um novo adaptador remoto deve obrigatoriamente fornecer metadados,
+como os adaptadores HTTP deste patch já fazem.
+
+Estado: sem CI remota nova, sem push, sem integração e sem publicação. A validação integrada
+S8 ainda é necessária, especialmente com as alterações de worker e pagamentos.
+
+### S2–S7 — implementação isolada e montagem para revisão
+
+Branches locais (sem push): S1 `fix/daybreak-authorization` (`f0e2207`), S2
+`fix/daybreak-payments` (`8fd899c`, inclui a base do PR #153), S3
+`fix/daybreak-refunds` (`df6a52d`), S4 `fix/daybreak-webhooks` (`d53c377`), S5
+`fix/daybreak-ingestion` (`c9ab7ec`), S6 `fix/daybreak-sse` (`bf22f2d`), S7
+`fix/daybreak-secrets` (`b40643f`). A montagem local está em
+`/workspace/ForgeLex-security-review`, branch `review/daybreak-security`, base `a00ffa9`.
+Ela usa patches locais, não merge de PR. Combina registros de migração 0042/0043 e os testes
+financeiros das duas frentes; as branches de implementação permanecem separadas.
+
+**S2.** Liquidação, crédito, compra, pagamento e fatura agora compartilham a transação da
+carteira. Falha de gravação desfaz o conjunto; retry recupera sem crédito duplicado.
+Aprovação válida pode suceder falha; identidade ainda não persistida gera erro recuperável,
+sem liberar crédito. Reconciliação não é paga automaticamente por nova notificação.
+Recarga tem claim transacional antes do provedor, com CAS entre réplicas e mutex local;
+Mercado Pago continua sem recarga automática habilitada.
+
+Callbacks usam identidade canônica do recurso/estado e recibo durável da tupla autenticada.
+Novas entregas exigem idade máxima de cinco minutos e futuro máximo de um minuto; aceitam
+milissegundos e exemplos legados em segundos. Retry já recebido/autenticado pode ser antigo,
+com cooldown de 15 segundos e lease recuperável de cinco minutos. Alterar `payload.id` ou
+espaços não cria outra identidade. Não se confirma recibo quando o evento canônico ainda
+está em andamento. Recibos antigos desconhecidos não são autenticados retroativamente:
+retornam erro explícito e exigem recuperação operacional se forem legítimos.
+
+Fontes do contrato consultadas via Context7: documentação Mercado Pago de notificações
+Checkout Pro/Orders (ACK 200/201 em 22 segundos; retries após 15 minutos e além), Wallet
+Connect/Point (timestamp em milissegundos) e exemplos legados de assinatura em segundos.
+Documentação de GET Orders mostra variantes com/sem currency. Na ausência dela, só há
+normalização de moeda por pagamentos explicitamente vinculados via reference_id, consultados
+na API autenticada, com IDs, referência, estados, soma de valores e moedas coerentes.
+Sem evidência suficiente, não se inventa BRL: mantém-se reconciliação. Não houve pagamento
+ou chamada à API real do Mercado Pago.
+
+Evidências S2: testes RED de ordenação/identidade antecipada e fatura parcial; 60 testes
+financeiros focados aprovados antes da revisão; três PostgreSQL de liquidação/duas réplicas
+e recarga aprovados. Correções da revisão: 48 testes S2 focados aprovados. Testes de SQLite
+usam falhas reais de trigger e promises controladas; PostgreSQL usa instâncias independentes.
+
+**S3.** Reserva recalcula lote/carteira/reservas pendentes sob lock antes da rede. Intenção
+persistente e estados PREPARED, PROVIDER_PENDING, PROVIDER_SUCCEEDED, LEDGER_SETTLED,
+RECONCILIATION_REQUIRED tornam resultados ambíguos recuperáveis sem devolver saldo por
+suposição. Chave `refund:<request>` e valor congelados. Confirmação remota persistida permite
+repetir só a parte local. Migração `billing-ledger-0011-refund-recovery` põe pedidos PENDING
+antigos em reconciliação, sem fabricar retenção ou inferir ausência de efeito remoto.
+Evidências: 25 casos PostgreSQL em banco novo, testes de migração, snapshot consumido,
+reserva pendente, concorrência, crash antes do envio e falha local depois do sucesso remoto.
+A recuperação é método explícito do serviço; não há CLI/endpoint novo nem scheduler.
+
+**S4.** HTTPS com IP validado/fixado, hostname/TLS preservados, sem redirects e sem corpos
+remotos no histórico; testes de socket, DNS e transporte controlados. Admission persistente
+4 global/1 por tenant, fencing e recuperação de lease; fila provisória 1.000 global/250 por
+tenant, com backpressure em enqueue/requeue. Revogar/suspender terminaliza trabalho
+inviável dentro do mesmo lock de admissão; snapshots antigos de endpoints não quebram o
+evento de negócio e não recriam fila inativa. Lease usa relógio da API, pressupõe relógios
+sincronizados; dimensionamento operacional dos limites continua pré-requisito para habilitar.
+Evidências isoladas: 31 testes, incluindo oito conexões PostgreSQL; revisão/cleanup: 15 testes.
+
+**S5.** Teto de 1 MiB UTF-8/5.000 parágrafos antes de expansão/acesso ao banco, lotes de 250
+âncoras dentro da transação; resposta completa preservada dentro do teto. HTTP 413 com
+códigos estáveis; envelope JSON comporta escapes sem remover o limite de texto. Unicode,
+CRLF e hashes preservados; corrigida perda de parágrafo em CR isolado. Evidências: 72 testes
+API/repositório e typecheck completo. Documento acima do teto precisa ser reduzido.
+
+**S6.** Leases persistentes: 2 por usuário/execução, 5 por usuário (entre tenants), 20 por
+tenant; 100 por processo. Relógio de banco, lease 30 segundos/renovação 10 segundos.
+Polling compartilhado por tenant/execução dentro de cada runtime, com autenticação e cursor
+por assinante. Limpeza em encerramento/erro/revogação e backpressure de consumidores lentos.
+Evidências: 28 rotas, 4 poller, 4 leases locais e 3 PostgreSQL. Réplicas compartilham limites,
+mas não o poller em memória. Falha ao apagar lease conserva ocupação até expiração.
+
+**S7.** URLs sem senha em argv; PGPASSFILE privado por filho, diretório 0700/arquivo 0600,
+escape e allowlist de opções; ambientes/diagnósticos não propagam segredos de banco.
+Provisionador histórico interrompe antes de ler configuração; alternativa segura documentada.
+Evidências: 29 testes CLI/subprocessos reais controlados, sintaxe, lint, build e formatação dos
+arquivos alterados. Não executou pg_dump/pg_restore reais. Windows falha fechado; usar Linux
+ou WSL. SIGKILL/crash não garante unlink, mas o arquivo permanece protegido por permissões.
+
+### Revisão integrada — correções importantes e decisões
+
+Revisor independente reproduziu três problemas antes de recomendar aceite:
+1. Timestamp era aparado na verificação e não no recibo: parser agora único, normalizado,
+   rejeitando chaves duplicadas normalizadas.
+2. Evento RECEIVED era tratado como terminado: agora retorna retry-later e o segundo
+   recibo continua recuperável após falha transitória do primeiro.
+3. Destinos inativos consumiam fila indefinidamente: terminalização, varredura de filas
+   antigas, fencing e recusa de requeue inativo recuperam a capacidade.
+
+RED: quatro falhas em três arquivos; regressão adicional de snapshot aposentado falhou antes
+da correção. GREEN: 71 testes em quatro arquivos. O teste PostgreSQL de grant bloqueado
+já havia provado RED→GREEN na revisão S1. Não houve correção baseada só em inspeção.
+
+Ruling: preservar a resposta de ingestão completa e limitada, sem paginação nova, para não
+romper os consumidores existentes; custo: até 5.000 âncoras ainda podem compor uma resposta.
+Ruling: nenhuma liberação automática de retenção financeira por timeout/erro definitivo;
+custo: intervenção explícita de reconciliação e procedimento operacional antes de publicação.
+Ruling: conservar falha fechada em Windows em vez de criar garantia de ACL não testada;
+custo: exportador exige Linux/WSL até existir suporte seguro validado.
+
+Itens menores/residuais não corrigidos nesta frente: relógio da API nos leases S4; recuperação
+de refund sem caller operacional HTTP/CLI; SSE conserva a política anterior de até três
+falhas sucessivas de reautenticação antes de encerrar (pode retomar envios entre rechecagens);
+atestação independente da origem/build e IAM de produção não verificados em S0.
+Os limites de fila são candidatos para homologação, não medição de capacidade em produção.
+
+### S8 — verificação local conjunta
+
+Já aprovados: build integrado; lint; typecheck recursivo; `format:check:code`; `git diff --check`;
+20 testes PostgreSQL combinando grants/locks, liquidação e limites entre réplicas; teste
+PostgreSQL adicional pagamento→consumo→refund→replay; fase 7 E2E com PostgreSQL local e
+Chromium do ambiente (1/1, inclui crédito exato e replay). Configuração temporária do navegador
+removida depois da execução. Nenhum teste acessou provedores de pagamento reais.
+
+`pnpm format:check` global continua falhando em 393 arquivos legados, mesma contagem observada
+na base isolada; `format:check:code`, usado pela CI, passou. Não houve reformatação em massa.
+Resultado final da suíte geral serial: **2.256 passaram, 27 pulados; 295 arquivos
+aprovados e seis arquivos pulados**, em 453,62 segundos. Comando: `pnpm test
+--maxWorkers=1 --testTimeout=30000` (inclui build). Os testes de PostgreSQL opcionais foram
+executados separadamente conforme as evidências acima; os pulos não são prova de
+compatibilidade com provedores reais ou de verificações em produção. PR #153 reconferido: aberto/rascunho, head `46929e9`, base `a00ffa9`.
+Nenhuma CI remota nova, push, merge, publicação, migração ou alteração em produção.
+
+
+### Publicação autorizada e envio remoto — 14/11/2026
+
+Decisão de Boni: “commit, push e deploy”. Enviadas as frentes S-A a S-F em PRs
+separados: #154 (autorização), #153 (pagamentos/reembolsos e fixture), #155 (webhooks),
+#156 (ingestão), #157 (streams) e #158 (scripts). #153 deixou de ser rascunho.
+O Git/gh local recusou autenticação; o conector GitHub publicou árvores de conteúdo
+equivalentes com novos SHAs, sem sobrescrever commits remotos ou usar force-push.
+
+CI remota iniciou nas seis frentes. Produção permanece inalterada: faltam gcloud e
+credenciais Google Cloud neste ambiente. Portanto backup, migrations, candidata sem
+tráfego e promoção ainda não foram executados. A autorização existe; o impedimento é
+acesso técnico, não ausência de outro aprovador. Nenhum achado foi fechado no Daybreak.

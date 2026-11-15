@@ -2,6 +2,11 @@ import { isMatterWriteTransaction, withMatterWrite } from './matter-write-guard.
 import { and, desc, eq } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
 import {
+  TEXT_DOCUMENT_MAX_BYTES,
+  TEXT_DOCUMENT_MAX_ANCHORS,
+  TEXT_DOCUMENT_MAX_TITLE_LENGTH,
+  TEXT_DOCUMENT_MAX_FILENAME_LENGTH,
+  TEXT_DOCUMENT_MAX_MIME_TYPE_LENGTH,
   DocumentAnchor,
   DocumentAnchorSchema,
   DocumentVersion,
@@ -22,20 +27,38 @@ function contentHash(content: string): string {
   return createHash('sha256').update(content, 'utf8').digest('hex');
 }
 
-function splitIntoParagraphs(content: string): Array<{ text: string; startOffset: number; endOffset: number }> {
-  const paragraphs: Array<{ text: string; startOffset: number; endOffset: number }> = [];
-  const paragraphPattern = /[^\r\n]+(?:\r?\n|$)/g;
-  for (const match of content.matchAll(paragraphPattern)) {
-    const text = match[0].replace(/\r?\n$/, '').trim();
+type ParagraphSpan = { text: string; startOffset: number; endOffset: number };
+
+function validateDocumentMetadata(input: { title: string; originalFilename: string; mimeType: string }): void {
+  for (const [field, value, max] of [
+    ['title', input.title, TEXT_DOCUMENT_MAX_TITLE_LENGTH],
+    ['originalFilename', input.originalFilename, TEXT_DOCUMENT_MAX_FILENAME_LENGTH],
+    ['mimeType', input.mimeType, TEXT_DOCUMENT_MAX_MIME_TYPE_LENGTH],
+  ] as const) {
+    if (value.length > max) throw new Error(`DOCUMENT_FIELD_TOO_LONG: ${field} excede ${max} caracteres.`);
+  }
+}
+
+/**
+ * The only pass over the content: byte ceiling first (it bounds even one enormous line), then one scan that builds the
+ * paragraphs and stops as soon as the anchor ceiling is crossed. Each non-empty line is an anchor.
+ */
+function parseBoundedParagraphs(content: string): ParagraphSpan[] {
+  if (Buffer.byteLength(content, 'utf8') > TEXT_DOCUMENT_MAX_BYTES) {
+    throw new Error('DOCUMENT_TEXT_TOO_LARGE: o texto excede o limite de 1 MiB UTF-8.');
+  }
+  const paragraphs: ParagraphSpan[] = [];
+  for (const match of content.matchAll(/[^\r\n]+/g)) {
+    const text = match[0].trim();
     if (!text) continue;
-    const rawStart = match.index ?? 0;
-    const leadingWhitespace = match[0].search(/\S/);
-    const startOffset = rawStart + Math.max(leadingWhitespace, 0);
-    paragraphs.push({
-      text,
-      startOffset,
-      endOffset: startOffset + text.length,
-    });
+    if (paragraphs.length >= TEXT_DOCUMENT_MAX_ANCHORS) {
+      throw new Error(`DOCUMENT_ANCHOR_LIMIT_EXCEEDED: o texto excede o limite de ${TEXT_DOCUMENT_MAX_ANCHORS} linhas não vazias (cada linha vira uma âncora).`);
+    }
+    const startOffset = (match.index ?? 0) + Math.max(match[0].search(/\S/), 0);
+    paragraphs.push({ text, startOffset, endOffset: startOffset + text.length });
+  }
+  if (paragraphs.length === 0) {
+    throw new Error('DOCUMENT_CONTENT_REQUIRED: o documento precisa conter texto.');
   }
   return paragraphs;
 }
@@ -174,21 +197,23 @@ export class MatterRepository {
   }
 
   public async ingestTextDocument(input: IngestTextDocumentInput): Promise<IngestedTextDocument> {
-    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new MatterRepository(tx).ingestTextDocument(input));
+    // Validate and parse once, before any lock or write; the transaction receives the result instead of redoing it.
+    validateDocumentMetadata(input);
+    const paragraphs = parseBoundedParagraphs(input.content);
+    if (!isMatterWriteTransaction(this.db)) return withMatterWrite(this.db, input, tx => new MatterRepository(tx).ingestParsedDocument(input, paragraphs));
+    return this.ingestParsedDocument(input, paragraphs);
+  }
 
+  private async ingestParsedDocument(input: IngestTextDocumentInput, paragraphs: ParagraphSpan[]): Promise<IngestedTextDocument> {
     const matter = await this.getMatter(input.tenantId, input.matterId);
     if (!matter) {
       throw new Error('MATTER_NOT_FOUND: matter não pertence ao tenant informado ou não existe.');
-    }
-    if (input.content.trim().length === 0) {
-      throw new Error('DOCUMENT_CONTENT_REQUIRED: o documento precisa conter texto.');
     }
 
     const documentId = randomUUID();
     const versionId = randomUUID();
     const now = new Date().toISOString();
     const hash = contentHash(input.content);
-    const paragraphs = splitIntoParagraphs(input.content);
     const document = LegalDocumentSchema.parse({
       id: documentId,
       tenantId: input.tenantId,
@@ -233,10 +258,10 @@ export class MatterRepository {
       await tx.insert(schema.documentVersions).values({
         ...version,
       });
-      if (anchors.length > 0) {
-        await tx.insert(schema.documentAnchors).values(
-          anchors.map((anchor) => ({ ...anchor }))
-        );
+      // Keep SQL bind counts bounded on both SQLite and PostgreSQL. All batches
+      // stay in the same transaction, including the document and version rows.
+      for (let offset = 0; offset < anchors.length; offset += 250) {
+        await tx.insert(schema.documentAnchors).values(anchors.slice(offset, offset + 250));
       }
     });
 
