@@ -1,4 +1,5 @@
 import { createHmac, randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import { MercadoPagoPaymentProvider } from './mercado-pago-payment-provider.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -10,11 +11,12 @@ import {
 import {
   billingWebhookEvents,
   billingOperations,
+  billingRefundRequests,
   ledgerEntries,
   BillingService,
   LedgerService,
 } from '@forgelex/billing-ledger';
-import { BillingOperationsService, type PaymentProvider } from './billing-operations.js';
+import { BillingOperationsService, PaymentProviderRejectedError, type PaymentProvider } from './billing-operations.js';
 
 class FakePaymentProvider implements PaymentProvider {
   public checkouts: Array<Record<string, unknown>> = [];
@@ -138,6 +140,44 @@ describe('BillingOperationsService', () => {
     ]));
   });
 
+  it('duas requisições simultâneas com a mesma chave resolvem para a mesma compra e o mesmo checkout', async () => {
+    const tenantId = `tenant_concurrent_${randomUUID()}`;
+    const input = { tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` };
+
+    const [first, second] = await Promise.all([operations.createCheckout(input), operations.createCheckout(input)]);
+
+    expect(second.purchaseId).toBe(first.purchaseId);
+    expect(second.checkoutUrl).toBe(first.checkoutUrl);
+    const rows = await client.execute({ sql: 'SELECT id FROM billing_purchases WHERE tenant_id = ?', args: [tenantId] });
+    expect(rows.rows).toHaveLength(1);
+    expect(new Set(provider.checkouts.map((checkout) => checkout.idempotencyKey))).toEqual(new Set([first.purchaseId]));
+  });
+
+  it('duas requisições simultâneas com a mesma chave e parâmetros diferentes aceitam uma e recusam a outra com conflito', async () => {
+    const tenantId = `tenant_concurrent_conflict_${randomUUID()}`;
+    const key = `checkout_${tenantId}`;
+
+    const results = await Promise.allSettled([
+      operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: key }),
+      operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_50', idempotencyKey: key }),
+    ]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0]!.reason as Error).message).toBe('IDEMPOTENCY_CONFLICT');
+    const rows = await client.execute({ sql: 'SELECT id FROM billing_purchases WHERE tenant_id = ?', args: [tenantId] });
+    expect(rows.rows).toHaveLength(1);
+  });
+
+  it('isola a chave de idempotência do provedor por compra quando dois tenants usam a mesma chave do cliente', async () => {
+    const first = await operations.createCheckout({ tenantId: `tenant_key_a_${randomUUID()}`, userId: 'user_a', packageId: 'credits_25', idempotencyKey: 'checkout' });
+    const second = await operations.createCheckout({ tenantId: `tenant_key_b_${randomUUID()}`, userId: 'user_b', packageId: 'credits_25', idempotencyKey: 'checkout' });
+
+    expect(first.purchaseId).not.toBe(second.purchaseId);
+    expect(provider.checkouts.map((checkout) => checkout.idempotencyKey)).toEqual([first.purchaseId, second.purchaseId]);
+  });
+
   it('processa pagamento confirmado e não duplica o crédito em replay do webhook', async () => {
     const tenantId = `tenant_${randomUUID()}`;
     const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
@@ -163,11 +203,6 @@ describe('BillingOperationsService', () => {
   });
 
   it.each([
-    ['missing amount', { amount_total: undefined }],
-    ['missing currency', { currency: undefined }],
-    ['missing external reference', { external_reference: undefined }],
-    ['missing checkout identity', { provider_checkout_id: undefined }],
-    ['missing payment identity', { provider_payment_id: undefined }],
     ['amount', { amount_total: 2500 }],
     ['currency', { currency: 'usd' }],
     ['external reference', { external_reference: 'purchase_other' }],
@@ -187,6 +222,46 @@ describe('BillingOperationsService', () => {
 
     expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('RECONCILIATION_REQUIRED');
     expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
+  });
+
+  it.each([
+    ['amount', { amount_total: undefined }],
+    ['currency', { currency: undefined }],
+    ['external reference', { external_reference: undefined }],
+    ['checkout identity', { provider_checkout_id: undefined }],
+    ['payment identity', { provider_payment_id: undefined }],
+  ])('aguarda evidência completa quando a liquidação chega sem %s, sem travar a compra', async (_field, overrides) => {
+    const tenantId = `tenant_incomplete_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: `checkout_${tenantId}` });
+
+    await expect(operations.processWebhook(
+      paidCheckoutEvent(purchase, `evt_incomplete_${tenantId}`, overrides),
+    )).rejects.toThrow('BILLING_SETTLEMENT_EVIDENCE_INCOMPLETE');
+    expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('PENDING');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
+
+    await operations.processWebhook(paidCheckoutEvent(purchase, `evt_complete_${tenantId}`));
+    expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('PAID');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
+  });
+
+  it('notificação de pagamento sem vínculo com a ordem aguarda a notificação da ordem em vez de travar a compra', async () => {
+    const tenantId = `tenant_payment_first_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'u', packageId: 'credits_25', idempotencyKey: 'checkout' });
+    const orderId = `cs_${purchase.purchaseId}`;
+    const remote = new MercadoPagoPaymentProvider({ accessToken: 'test', webhookSecret: 'secret', now: () => 1700000000000,
+      fetcher: async (url) => String(url).includes('/v1/payments/')
+        ? new Response(JSON.stringify({ id: 'PAY1', status: 'approved', external_reference: purchase.purchaseId, transaction_amount: 25, currency_id: 'BRL' }))
+        : new Response(JSON.stringify({ id: orderId, status: 'processed', total_amount: '25.00', currency: 'BRL', external_reference: purchase.purchaseId })) });
+    const delivery = (type: string, dataId: string, requestId: string) => ({ payload: { type }, dataId, requestId,
+      signature: `ts=1700000000000,v1=${createHmac('sha256', 'secret').update(`id:${dataId.toLowerCase()};request-id:${requestId};ts:1700000000000;`).digest('hex')}` });
+
+    await expect(operations.processMercadoPagoWebhook(remote, delivery('payment', 'PAY1', 'req_payment'))).rejects.toThrow('BILLING_SETTLEMENT_EVIDENCE_INCOMPLETE');
+    expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('PENDING');
+
+    await operations.processMercadoPagoWebhook(remote, delivery('order', orderId, 'req_order'));
+    expect((await operations.getPurchase(purchase.purchaseId, tenantId))?.status).toBe('PAID');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
   });
 
   it('atribui ownership do webhook pela compra persistida, não pelo metadata', async () => {
@@ -306,6 +381,57 @@ describe('BillingOperationsService', () => {
     expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
     await operations.recoverRefundRequest(request.id);
     expect(keys).toHaveLength(2);
+  });
+
+  it('devolve a retenção quando o provedor recusa o estorno de forma definitiva', async () => {
+    const tenantId = `tenant_rejected_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: tenantId });
+    await operations.processWebhook(paidCheckoutEvent(purchase, `evt_${tenantId}`));
+    const request = await operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId });
+    provider.refundPayment = async () => { throw new PaymentProviderRejectedError('MERCADOPAGO_REQUEST_FAILED:422'); };
+    await expect(operations.reviewRefundRequest({ requestId: request.id, reviewerId: 'admin', decision: 'APPROVED' })).rejects.toThrow('MERCADOPAGO_REQUEST_FAILED:422');
+
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
+    const lot = (await operations.getBillingService().getCreditLots(tenantId)).find((item) => item.purchaseId === purchase.purchaseId);
+    expect(lot?.remainingCents).toBe(2500);
+    expect((await operations.listRefundRequests(tenantId))[0]).toMatchObject({
+      status: 'REJECTED', operationState: 'PROVIDER_REJECTED', openKey: null, approvedAmountCents: 0, operationError: 'MERCADOPAGO_REQUEST_FAILED:422',
+    });
+    const account = await operations.getBillingService().getAccount(tenantId);
+    const entries = await db.select().from(ledgerEntries);
+    expect(entries.filter((entry) => entry.accountId === account.id && entry.idempotencyKey === `refund-reserve-release:${request.id}`)).toHaveLength(1);
+    await expect(operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId })).resolves.toMatchObject({ status: 'PENDING' });
+  });
+
+  it('libera a retenção quando a recuperação após um timeout encontra recusa definitiva', async () => {
+    const tenantId = `tenant_rejected_recover_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: tenantId });
+    await operations.processWebhook(paidCheckoutEvent(purchase, `evt_${tenantId}`));
+    const request = await operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId });
+    provider.refundPayment = async () => { throw new Error('TIMEOUT'); };
+    await expect(operations.reviewRefundRequest({ requestId: request.id, reviewerId: 'admin', decision: 'APPROVED' })).rejects.toThrow('TIMEOUT');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
+
+    provider.refundPayment = async () => { throw new PaymentProviderRejectedError('MERCADOPAGO_PAYMENT_NOT_FOUND'); };
+    await expect(operations.recoverRefundRequest(request.id)).rejects.toThrow('MERCADOPAGO_PAYMENT_NOT_FOUND');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
+    expect((await operations.listRefundRequests(tenantId))[0]).toMatchObject({ status: 'REJECTED', operationState: 'PROVIDER_REJECTED', openKey: null });
+    await expect(operations.recoverRefundRequest(request.id)).resolves.toMatchObject({ operationState: 'PROVIDER_REJECTED' });
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
+  });
+
+  it('nao libera a retencao quando uma recuperacao concorrente ja confirmou o estorno no provedor', async () => {
+    const tenantId = `tenant_rejected_race_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'user_a', packageId: 'credits_25', idempotencyKey: tenantId });
+    await operations.processWebhook(paidCheckoutEvent(purchase, `evt_${tenantId}`));
+    const request = await operations.createRefundRequest({ tenantId, userId: 'user_a', purchaseId: purchase.purchaseId });
+    provider.refundPayment = async () => {
+      await db.update(billingRefundRequests).set({ operationState: 'PROVIDER_SUCCEEDED' }).where(eq(billingRefundRequests.id, request.id));
+      throw new PaymentProviderRejectedError('MERCADOPAGO_REQUEST_FAILED:422');
+    };
+    await expect(operations.reviewRefundRequest({ requestId: request.id, reviewerId: 'admin', decision: 'APPROVED' })).rejects.toThrow('MERCADOPAGO_REQUEST_FAILED:422');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
+    expect((await operations.listRefundRequests(tenantId))[0]).toMatchObject({ operationState: 'PROVIDER_SUCCEEDED' });
   });
 
   it('aprova uma única vez enquanto provider está suspenso, sem manter lock de carteira', async () => {
@@ -569,6 +695,68 @@ describe('BillingOperationsService', () => {
     expect(provider.autoPayments).toHaveLength(1);
     await operations.processWebhook(event!);
     expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2700);
+  });
+
+  it('evento canônico RECEIVED só é retomado depois de cinco minutos sem conclusão', async () => {
+    const tenantId = `tenant_stale_canonical_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'u', packageId: 'credits_25', idempotencyKey: 'checkout' });
+    const event = paidCheckoutEvent(purchase, `evt_stale_${tenantId}`);
+    const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
+    await db.insert(billingWebhookEvents).values({ id: event.id, provider: 'mercadopago', eventType: event.type, payload: JSON.stringify(event), status: 'RECEIVED', receivedAt: ago(60_000) });
+
+    await expect(operations.processWebhook(event)).rejects.toThrow('BILLING_WEBHOOK_RETRY_LATER');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
+
+    await db.update(billingWebhookEvents).set({ receivedAt: ago(6 * 60_000) }).where(eq(billingWebhookEvents.id, event.id));
+    await operations.processWebhook(event);
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
+  });
+
+  it('recibo de entrega RECEIVED só é retomado depois de cinco minutos sem conclusão', async () => {
+    const tenantId = `tenant_stale_receipt_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'u', packageId: 'credits_25', idempotencyKey: 'checkout' });
+    const remote = new MercadoPagoPaymentProvider({ accessToken: 'test', webhookSecret: 'secret', now: () => 1700000000000,
+      fetcher: async () => new Response(JSON.stringify({ id: `cs_${purchase.purchaseId}`, status: 'processed', total_amount: '25.00', currency: 'BRL', external_reference: purchase.purchaseId })) });
+    const dataId = `cs_${purchase.purchaseId}`;
+    const input = { payload: { type: 'order' }, dataId, requestId: 'stale', signature: `ts=1700000000000,v1=${createHmac('sha256', 'secret').update(`id:${dataId.toLowerCase()};request-id:stale;ts:1700000000000;`).digest('hex')}` };
+    const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
+    await db.insert(billingWebhookEvents).values({ id: remote.verifiedDeliveryId(input), provider: 'mercadopago', eventType: 'delivery.received', payload: JSON.stringify(input), status: 'RECEIVED', receivedAt: ago(60_000) });
+
+    await expect(operations.processMercadoPagoWebhook(remote, input)).rejects.toThrow('BILLING_WEBHOOK_RETRY_LATER');
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(0);
+
+    await db.update(billingWebhookEvents).set({ receivedAt: ago(6 * 60_000) }).where(eq(billingWebhookEvents.id, remote.verifiedDeliveryId(input)));
+    await operations.processMercadoPagoWebhook(remote, input);
+    expect((await operations.getAccount(tenantId)).paidBalanceCents).toBe(2500);
+  });
+
+  it('ao retomar um evento canônico FAILED, grava o payload da nova tentativa', async () => {
+    const tenantId = `tenant_payload_canonical_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'u', packageId: 'credits_25', idempotencyKey: 'checkout' });
+    const event = paidCheckoutEvent(purchase, `evt_payload_${tenantId}`);
+    await db.insert(billingWebhookEvents).values({ id: event.id, provider: 'mercadopago', eventType: event.type, payload: '{"first":"attempt"}', status: 'FAILED', receivedAt: new Date(Date.now() - 60_000).toISOString(), errorMessage: 'EARLIER' });
+
+    await operations.processWebhook(event);
+
+    const [row] = await db.select().from(billingWebhookEvents).where(eq(billingWebhookEvents.id, event.id));
+    expect(row).toMatchObject({ status: 'PROCESSED', payload: JSON.stringify(event) });
+  });
+
+  it('ao retomar um recibo de entrega FAILED, preserva o payload não assinado do primeiro recebimento', async () => {
+    const tenantId = `tenant_payload_receipt_${randomUUID()}`;
+    const purchase = await operations.createCheckout({ tenantId, userId: 'u', packageId: 'credits_25', idempotencyKey: 'checkout' });
+    const remote = new MercadoPagoPaymentProvider({ accessToken: 'test', webhookSecret: 'secret', now: () => 1700000000000,
+      fetcher: async () => new Response(JSON.stringify({ id: `cs_${purchase.purchaseId}`, status: 'processed', total_amount: '25.00', currency: 'BRL', external_reference: purchase.purchaseId })) });
+    const dataId = `cs_${purchase.purchaseId}`;
+    const signature = `ts=1700000000000,v1=${createHmac('sha256', 'secret').update(`id:${dataId.toLowerCase()};request-id:keep;ts:1700000000000;`).digest('hex')}`;
+    const input = { payload: { type: 'order', note: 'first' }, dataId, requestId: 'keep', signature };
+    const receiptId = remote.verifiedDeliveryId(input);
+    await db.insert(billingWebhookEvents).values({ id: receiptId, provider: 'mercadopago', eventType: 'delivery.received', payload: JSON.stringify(input), status: 'FAILED', receivedAt: new Date(Date.now() - 60_000).toISOString(), errorMessage: 'EARLIER' });
+
+    await operations.processMercadoPagoWebhook(remote, { ...input, payload: { type: 'order', note: 'different-unsigned-body' } });
+
+    const [row] = await db.select().from(billingWebhookEvents).where(eq(billingWebhookEvents.id, receiptId));
+    expect(row).toMatchObject({ status: 'PROCESSED', payload: JSON.stringify(input) });
   });
 
   it('não confirma recibo B enquanto evento canônico A está em andamento e B pode recuperar falha de A', async () => {

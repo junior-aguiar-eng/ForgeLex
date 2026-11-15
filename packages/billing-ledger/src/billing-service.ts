@@ -232,6 +232,26 @@ export class BillingService {
     }));
   }
 
+  /** Undo a hold when the provider definitively refused the refund (no provider effect). Replay-safe; never releases once the provider outcome may have succeeded. */
+  public async releasePreparedRefund(requestId: string, reason: string): Promise<typeof billingRefundRequests.$inferSelect> {
+    await this.runMigrations();
+    const initial = (await this.db.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, requestId)))[0];
+    if (!initial) throw new Error('BILLING_REFUND_REQUEST_NOT_FOUND');
+    return this.withTenantLock(initial.tenantId, () => this.db.transaction(async (transaction) => {
+      const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, initial.tenantId);
+      const request = (await transaction.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, requestId)))[0]!;
+      if (!['PREPARED', 'PROVIDER_PENDING', 'RECONCILIATION_REQUIRED'].includes(request.operationState) || !account || !request.approvedAmountCents) return request;
+      const now = new Date().toISOString();
+      const lot = (await transaction.select().from(billingCreditLots).where(and(eq(billingCreditLots.purchaseId, request.purchaseId), eq(billingCreditLots.tenantId, request.tenantId))))[0];
+      if (lot) await transaction.update(billingCreditLots).set({ remainingCents: lot.remainingCents + request.approvedAmountCents, updatedAt: now }).where(eq(billingCreditLots.id, lot.id));
+      await transaction.update(ledgerAccounts).set({ paidBalanceCents: account.paidBalanceCents + request.approvedAmountCents, updatedAt: now }).where(eq(ledgerAccounts.id, account.id));
+      await transaction.insert(ledgerEntries).values({ id: randomUUID(), accountId: account.id, usageEventId: null,
+        idempotencyKey: `refund-reserve-release:${request.id}`, kind: 'RELEASE', bucket: 'PAID', amountCents: request.approvedAmountCents,
+        operationResultSnapshot: JSON.stringify({ requestId, purchaseId: request.purchaseId, reason }), createdAt: now });
+      return (await transaction.update(billingRefundRequests).set({ status: 'REJECTED', openKey: null, approvedAmountCents: 0, operationState: 'PROVIDER_REJECTED', operationError: reason, updatedAt: now }).where(eq(billingRefundRequests.id, request.id)).returning())[0]!;
+    }));
+  }
+
   /** Finalize an already withheld refund. Replay never debits the wallet twice. */
   public async settlePreparedRefund(requestId: string): Promise<typeof billingRefundRequests.$inferSelect> {
     await this.runMigrations();

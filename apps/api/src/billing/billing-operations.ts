@@ -61,6 +61,36 @@ export interface PaymentProvider {
   refundPayment(input: { providerPaymentId: string; amountCents: number; idempotencyKey: string }): Promise<Record<string, unknown>>;
 }
 
+/** The provider refused the request and performed no effect, so any local hold for it can be released.
+ * Timeouts, 5xx and other unknown outcomes must stay plain errors: the provider may have acted.
+ */
+export class PaymentProviderRejectedError extends Error {
+  public constructor(message: string) {
+    super(message);
+    this.name = 'PaymentProviderRejectedError';
+  }
+}
+
+/** Status and public code for a failed Mercado Pago delivery. Only an unauthentic delivery is final (401); every other
+ * failure, including timeouts and database errors, answers 503 so the provider retries. Only our own error codes are
+ * echoed back: raw driver or network messages never reach the sender.
+ */
+export function mercadoPagoWebhookFailure(error: unknown): { status: number; code: string } {
+  const code = error instanceof Error ? (error.message.split(':')[0] ?? '') : '';
+  if (code === 'MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID' || code === 'MERCADOPAGO_WEBHOOK_EXPIRED') return { status: 401, code };
+  if (code.startsWith('BILLING_') || code.startsWith('MERCADOPAGO_')) return { status: 503, code };
+  return { status: 503, code: 'MERCADOPAGO_WEBHOOK_PROCESSING_FAILED' };
+}
+
+/** HTTP status for refund review/recovery failures: the admin must know whether a retry (503) or a decision (4xx) is needed. */
+export function refundFailureStatus(error: unknown): number {
+  if (error instanceof PaymentProviderRejectedError) return 422;
+  const code = error instanceof Error ? (error.message.split(':')[0] ?? '') : '';
+  if (code === 'BILLING_REFUND_REQUEST_NOT_FOUND') return 404;
+  if (['BILLING_REFUND_REQUEST_ALREADY_REVIEWED', 'BILLING_REFUND_MANUAL_RECONCILIATION_REQUIRED', 'BILLING_REFUND_NOT_SETTLEABLE'].includes(code)) return 409;
+  return code.startsWith('BILLING_') || code.startsWith('INVALID_') ? 400 : 503;
+}
+
 export class BillingOperationsService {
   private readonly autoRechargeLocks = new Map<string, Promise<void>>();
   public constructor(
@@ -93,18 +123,21 @@ export class BillingOperationsService {
     const validated = validateCreditPurchase({ packageId: input.packageId, amountCents: input.amountCents });
     await this.billing.runMigrations();
     await this.ensureBillingAccount(input.tenantId);
-    const existing = await this.db.select().from(billingPurchases).where(and(eq(billingPurchases.tenantId, input.tenantId), eq(billingPurchases.idempotencyKey, input.idempotencyKey)));
-    const existingPurchase = existing[0];
-    if (existingPurchase && (
-      existingPurchase.tenantId !== input.tenantId ||
-      existingPurchase.userId !== input.userId ||
-      existingPurchase.packageId !== validated.packageId ||
-      existingPurchase.amountCents !== validated.amountCents ||
-      existingPurchase.currency !== BILLING_CURRENCY
-    )) throw new Error('IDEMPOTENCY_CONFLICT');
+    const findByKey = async () => (await this.db.select().from(billingPurchases).where(and(eq(billingPurchases.tenantId, input.tenantId), eq(billingPurchases.idempotencyKey, input.idempotencyKey))))[0];
+    const assertSameRequest = (row: typeof billingPurchases.$inferSelect | undefined): void => {
+      if (row && (
+        row.tenantId !== input.tenantId ||
+        row.userId !== input.userId ||
+        row.packageId !== validated.packageId ||
+        row.amountCents !== validated.amountCents ||
+        row.currency !== BILLING_CURRENCY
+      )) throw new Error('IDEMPOTENCY_CONFLICT');
+    };
+    const existingPurchase = await findByKey();
+    assertSameRequest(existingPurchase);
     if (existingPurchase?.checkoutUrl) return this.purchaseResponse(existingPurchase);
 
-    const purchase = existingPurchase ?? {
+    let purchase: typeof billingPurchases.$inferSelect = existingPurchase ?? {
       id: randomUUID(),
       tenantId: input.tenantId,
       userId: input.userId,
@@ -121,7 +154,17 @@ export class BillingOperationsService {
       paidAt: null,
       updatedAt: new Date().toISOString(),
     };
-    if (!existingPurchase) await this.db.insert(billingPurchases).values(purchase);
+    if (!existingPurchase) {
+      const inserted = await this.db.insert(billingPurchases).values(purchase).onConflictDoNothing().returning({ id: billingPurchases.id });
+      if (!inserted[0]) {
+        // A concurrent request with the same key won the insert: continue with its purchase, not a new one.
+        const winner = await findByKey();
+        if (!winner) throw new Error('BILLING_PURCHASE_CONFLICT_UNRESOLVED');
+        assertSameRequest(winner);
+        if (winner.checkoutUrl) return this.purchaseResponse(winner);
+        purchase = winner;
+      }
+    }
 
     const billingAccount = await this.db.select().from(billingAccounts).where(eq(billingAccounts.tenantId, purchase.tenantId));
     const checkout = await this.provider.createCheckout({
@@ -139,6 +182,32 @@ export class BillingOperationsService {
     return { purchaseId: purchase.id, amountCents: purchase.amountCents, currency: purchase.currency, status: 'PENDING', checkoutUrl: checkout.url };
   }
 
+  /** Fences a worker to the receipt it claimed: a stale worker's updates match no row once another worker re-claimed it. */
+  private webhookLease(id: string, provider: string, receivedAt: string) {
+    return and(eq(billingWebhookEvents.id, id), eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.receivedAt, receivedAt));
+  }
+
+  /** Inserts the receipt, or takes over an existing one that is retryable: FAILED (after `failedAfterMs`, when set)
+   * or RECEIVED by a worker that went silent for five minutes. Returns whether this caller now owns it.
+   */
+  private async claimWebhookEvent(
+    row: typeof billingWebhookEvents.$inferInsert,
+    options: { failedAfterMs?: number; refreshPayload: boolean },
+  ): Promise<boolean> {
+    const inserted = await this.db.insert(billingWebhookEvents).values(row).onConflictDoNothing().returning({ id: billingWebhookEvents.id });
+    if (inserted[0]) return true;
+    const before = (ms: number) => new Date(Date.now() - ms).toISOString();
+    const failed = options.failedAfterMs === undefined
+      ? eq(billingWebhookEvents.status, 'FAILED')
+      : and(eq(billingWebhookEvents.status, 'FAILED'), lt(billingWebhookEvents.receivedAt, before(options.failedAfterMs)));
+    const claimed = await this.db.update(billingWebhookEvents)
+      .set({ status: 'RECEIVED', receivedAt: row.receivedAt, errorMessage: null, ...(options.refreshPayload ? { payload: row.payload } : {}) })
+      .where(and(eq(billingWebhookEvents.id, row.id), eq(billingWebhookEvents.provider, row.provider),
+        or(failed, and(eq(billingWebhookEvents.status, 'RECEIVED'), lt(billingWebhookEvents.receivedAt, before(300_000))))))
+      .returning({ id: billingWebhookEvents.id });
+    return Boolean(claimed[0]);
+  }
+
   /** Durable signed-delivery receipt: legitimate long retries reuse the same authenticated tuple. */
   public async processMercadoPagoWebhook(provider: MercadoPagoPaymentProvider, input: MercadoPagoWebhookInput): Promise<void> {
     const id = provider.verifiedDeliveryId(input);
@@ -147,16 +216,12 @@ export class BillingOperationsService {
     if (known?.status === 'PROCESSED') return;
     if (!known) provider.verifyWebhook(input);
     const receivedAt = new Date().toISOString();
-    const lease = and(eq(billingWebhookEvents.id, id), eq(billingWebhookEvents.provider, 'mercadopago'), eq(billingWebhookEvents.receivedAt, receivedAt));
-    const inserted = await this.db.insert(billingWebhookEvents).values({ id, provider: 'mercadopago', eventType: 'delivery.received', payload: JSON.stringify(input), status: 'RECEIVED', receivedAt }).onConflictDoNothing().returning({ id: billingWebhookEvents.id });
-    if (!inserted[0]) {
-      const claimed = await this.db.update(billingWebhookEvents).set({ status: 'RECEIVED', receivedAt, errorMessage: null })
-        .where(and(eq(billingWebhookEvents.id, id), eq(billingWebhookEvents.provider, 'mercadopago'),
-          or(and(eq(billingWebhookEvents.status, 'FAILED'), lt(billingWebhookEvents.receivedAt, new Date(Date.now() - 15_000).toISOString())),
-            and(eq(billingWebhookEvents.status, 'RECEIVED'), lt(billingWebhookEvents.receivedAt, new Date(Date.now() - 300_000).toISOString())))))
-        .returning({ id: billingWebhookEvents.id });
-      if (!claimed[0]) throw new Error('BILLING_WEBHOOK_RETRY_LATER');
-    }
+    const lease = this.webhookLease(id, 'mercadopago', receivedAt);
+    const claimed = await this.claimWebhookEvent(
+      { id, provider: 'mercadopago', eventType: 'delivery.received', payload: JSON.stringify(input), status: 'RECEIVED', receivedAt },
+      { failedAfterMs: 15_000, refreshPayload: false },
+    );
+    if (!claimed) throw new Error('BILLING_WEBHOOK_RETRY_LATER');
     try {
       const event = await provider.normalizeWebhook(input, { allowExpiredDelivery: Boolean(known) });
       await this.processWebhook(event);
@@ -176,21 +241,14 @@ export class BillingOperationsService {
     await this.billing.runMigrations();
     const provider = event.provider ?? 'mercadopago';
     const receivedAt = new Date().toISOString();
-    const inserted = await this.db.insert(billingWebhookEvents)
-      .values({ id: event.id, provider, eventType: event.type, payload: JSON.stringify(event), status: 'RECEIVED', receivedAt, processedAt: null, errorMessage: null })
-      .onConflictDoNothing()
-      .returning({ id: billingWebhookEvents.id });
-    if (!inserted[0]) {
-      const claimed = await this.db.update(billingWebhookEvents)
-        .set({ status: 'RECEIVED', payload: JSON.stringify(event), receivedAt, errorMessage: null })
-        .where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id),
-          or(eq(billingWebhookEvents.status, 'FAILED'), and(eq(billingWebhookEvents.status, 'RECEIVED'), lt(billingWebhookEvents.receivedAt, new Date(Date.now() - 300_000).toISOString())))))
-        .returning({ id: billingWebhookEvents.id });
-      if (!claimed[0]) {
-        const current = (await this.db.select().from(billingWebhookEvents).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id))))[0];
-        if (current?.status === 'PROCESSED') return;
-        throw new Error('BILLING_WEBHOOK_RETRY_LATER');
-      }
+    const claimed = await this.claimWebhookEvent(
+      { id: event.id, provider, eventType: event.type, payload: JSON.stringify(event), status: 'RECEIVED', receivedAt, processedAt: null, errorMessage: null },
+      { refreshPayload: true },
+    );
+    if (!claimed) {
+      const current = (await this.db.select().from(billingWebhookEvents).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id))))[0];
+      if (current?.status === 'PROCESSED') return;
+      throw new Error('BILLING_WEBHOOK_RETRY_LATER');
     }
 
     try {
@@ -222,9 +280,9 @@ export class BillingOperationsService {
           await this.db.update(billingAccounts).set({ autoRechargeEnabled: 0, updatedAt: new Date().toISOString() }).where(eq(billingAccounts.tenantId, (await this.db.select().from(billingPurchases).where(eq(billingPurchases.id, purchaseId)))[0]!.tenantId));
         }
       }
-      await this.db.update(billingWebhookEvents).set({ status: 'PROCESSED', processedAt: new Date().toISOString() }).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id), eq(billingWebhookEvents.receivedAt, receivedAt)));
+      await this.db.update(billingWebhookEvents).set({ status: 'PROCESSED', processedAt: new Date().toISOString() }).where(this.webhookLease(event.id, provider, receivedAt));
     } catch (error) {
-      await this.db.update(billingWebhookEvents).set({ status: 'FAILED', errorMessage: error instanceof Error ? error.message : String(error) }).where(and(eq(billingWebhookEvents.provider, provider), eq(billingWebhookEvents.id, event.id), eq(billingWebhookEvents.receivedAt, receivedAt)));
+      await this.db.update(billingWebhookEvents).set({ status: 'FAILED', errorMessage: error instanceof Error ? error.message : String(error) }).where(this.webhookLease(event.id, provider, receivedAt));
       throw error;
     }
   }
@@ -336,6 +394,13 @@ export class BillingOperationsService {
     return this.getBillingAccount(input.tenantId);
   }
 
+  /**
+   * Serialized per tenant inside this process, on top of the conditional claim in startAutoRechargeOnce that protects
+   * across replicas. The in-process chain is not redundant: the embedded libsql client has a single connection and
+   * rejects other work while a transaction is open (TRANSACTION_ACTIVE). It is deliberately separate from the
+   * BillingService tenant lock: an early webhook can credit the purchase from inside the provider call, and that path
+   * takes the BillingService lock for the same tenant.
+   */
   public async startAutoRecharge(tenantId: string): Promise<{ started: boolean; purchaseId?: string; reason?: string }> {
     const previous = this.autoRechargeLocks.get(tenantId) ?? Promise.resolve();
     let release!: () => void;
@@ -442,7 +507,7 @@ export class BillingOperationsService {
     await this.billing.runMigrations();
     const request = (await this.db.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, requestId)))[0];
     if (!request) throw new Error('BILLING_REFUND_REQUEST_NOT_FOUND');
-    if (request.operationState === 'LEDGER_SETTLED') return request;
+    if (request.operationState === 'LEDGER_SETTLED' || request.operationState === 'PROVIDER_REJECTED') return request;
     if (request.operationState === 'PROVIDER_SUCCEEDED') return this.billing.settlePreparedRefund(requestId);
     if (!['PREPARED', 'PROVIDER_PENDING', 'RECONCILIATION_REQUIRED'].includes(request.operationState) || !request.approvedAmountCents || !request.providerPaymentId) throw new Error('BILLING_REFUND_MANUAL_RECONCILIATION_REQUIRED');
     await this.db.update(billingRefundRequests).set({ operationState: 'PROVIDER_PENDING', updatedAt: new Date().toISOString() })
@@ -453,6 +518,10 @@ export class BillingOperationsService {
       await this.db.update(billingRefundRequests).set({ operationState: 'PROVIDER_SUCCEEDED', providerResult: JSON.stringify(result), operationError: null, updatedAt: new Date().toISOString() })
         .where(and(eq(billingRefundRequests.id, request.id), inArray(billingRefundRequests.operationState, ['PROVIDER_PENDING', 'RECONCILIATION_REQUIRED'])));
     } catch (error) {
+      if (error instanceof PaymentProviderRejectedError) {
+        await this.billing.releasePreparedRefund(request.id, error.message);
+        throw error;
+      }
       await this.db.update(billingRefundRequests).set({ operationState: 'RECONCILIATION_REQUIRED', operationError: error instanceof Error ? error.message : String(error), updatedAt: new Date().toISOString() })
         .where(and(eq(billingRefundRequests.id, request.id), eq(billingRefundRequests.operationState, 'PROVIDER_PENDING')));
       throw error;
@@ -467,7 +536,9 @@ export class BillingOperationsService {
     if (existing[0]) return;
     const now = new Date().toISOString();
     const providerCustomer = await this.provider.createCustomer({ tenantId, idempotencyKey: `customer:${tenantId}` });
-    await this.db.insert(billingAccounts).values({ id: randomUUID(), tenantId, providerCustomerId: providerCustomer.id, autoRechargeEnabled: 0, autoRechargeThresholdCents: 500, lastRechargeAmountCents: null, defaultPaymentMethodId: null, autoRechargeArmed: 1, createdAt: now, updatedAt: now });
+    await this.db.insert(billingAccounts).values({ id: randomUUID(), tenantId, providerCustomerId: providerCustomer.id, autoRechargeEnabled: 0, autoRechargeThresholdCents: 500, lastRechargeAmountCents: null, defaultPaymentMethodId: null, autoRechargeArmed: 1, createdAt: now, updatedAt: now }).onConflictDoNothing();
+    // A concurrent request may have created it; a conflict on anything else (e.g. a reused provider customer) must not pass silently.
+    if (!(await this.db.select({ id: billingAccounts.id }).from(billingAccounts).where(eq(billingAccounts.tenantId, tenantId)))[0]) throw new Error('BILLING_ACCOUNT_PROVISION_FAILED');
   }
 
   private async completePurchase(purchaseId: string, object: Record<string, unknown>, provider = 'mercadopago'): Promise<void> {
@@ -480,6 +551,16 @@ export class BillingOperationsService {
       validate: async (tx) => {
         const purchase = (await tx.select().from(billingPurchases).where(eq(billingPurchases.id, purchaseId)))[0];
         if (!purchase || !eligible.includes(purchase.status)) return false;
+        // Absent evidence proves nothing either way: retry on a later notification and leave the purchase eligible.
+        // Only evidence that is present and different is a contradiction that needs manual reconciliation.
+        const evidenceComplete = typeof object.amount_total === 'number'
+          && typeof object.currency === 'string' && object.currency.trim() !== ''
+          && typeof object.external_reference === 'string' && paymentId !== null
+          && (!purchase.providerCheckoutId || typeof object.provider_checkout_id === 'string');
+        if (!evidenceComplete) {
+          failure = 'BILLING_SETTLEMENT_EVIDENCE_INCOMPLETE';
+          return false;
+        }
         const amountsMatch = object.amount_total === purchase.amountCents && typeof object.currency === 'string'
           && object.currency.toLowerCase() === purchase.currency.toLowerCase() && object.external_reference === purchase.id && paymentId !== null;
         if (amountsMatch && !purchase.providerCheckoutId && !purchase.providerPaymentId) {
