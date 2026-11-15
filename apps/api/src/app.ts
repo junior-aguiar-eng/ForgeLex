@@ -822,7 +822,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      reply.status(message.startsWith('BILLING_') || message.startsWith('INVALID_') ? 400 : 503);
+      reply.status(message === 'IDEMPOTENCY_CONFLICT' ? 409 : message.startsWith('BILLING_') || message.startsWith('INVALID_') ? 400 : 503);
       return { error: message.split(':')[0] ?? 'BILLING_CHECKOUT_FAILED', message: 'Não foi possível criar o Checkout.' };
     }
   });
@@ -856,12 +856,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
     try {
       const payload = request.body && typeof request.body === 'object' ? request.body as Record<string, unknown> : {};
-      const event = await mercadoPagoPaymentProvider.normalizeWebhook({ payload, dataId, requestId, signature });
-      await billingOperationsService.processWebhook(event);
+      await billingOperationsService.processMercadoPagoWebhook(mercadoPagoPaymentProvider, { payload, dataId, requestId, signature });
       return { received: true };
     } catch (error) {
       const code = error instanceof Error ? error.message.split(':')[0] : 'MERCADOPAGO_WEBHOOK_INVALID';
-      reply.status(code === 'MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID' ? 401 : 400);
+      reply.status(code === 'MERCADOPAGO_WEBHOOK_SIGNATURE_INVALID' || code === 'MERCADOPAGO_WEBHOOK_EXPIRED' ? 401 : code.startsWith('BILLING_') || code.startsWith('MERCADOPAGO_REQUEST_FAILED') ? 503 : 400);
+      if (code === 'BILLING_WEBHOOK_RETRY_LATER') reply.header('Retry-After', '15');
       return { error: code, message: 'Webhook Mercado Pago rejeitado.' };
     }
   });

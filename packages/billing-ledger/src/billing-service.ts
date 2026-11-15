@@ -3,8 +3,8 @@ import type { Client } from '@libsql/client';
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import { DomainError } from '@forgelex/domain';
 import { lockAgenticTenant, type ForgeLexDatabase } from '@forgelex/persistence';
-import { billingCreditLots } from './schema/billing-schema.js';
-import { ledgerAccounts, ledgerEntries } from './schema/ledger-schema.js';
+import { billingCreditLots, billingRefundRequests, billingPurchases, billingPayments } from './schema/billing-schema.js';
+import { ledgerAccounts, ledgerEntries, billingOperations } from './schema/ledger-schema.js';
 import { calculateRefundableCents } from './billing-rules.js';
 import { LedgerService } from './ledger-service.js';
 
@@ -48,7 +48,7 @@ export class BillingService {
       .orderBy(asc(billingCreditLots.createdAt));
   }
 
-  public async creditPurchase(input: CreditSettlementInput): Promise<BillingLedgerResult> {
+  public async creditPurchase(input: CreditSettlementInput, settlement?: { validate: (tx: ForgeLexDatabase) => Promise<boolean>; complete: (tx: ForgeLexDatabase) => Promise<void> }): Promise<BillingLedgerResult> {
     this.validateAmount(input.amountCents);
     this.validateKey(input.idempotencyKey);
     await this.runMigrations();
@@ -57,11 +57,14 @@ export class BillingService {
       const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, input.tenantId);
       if (!account) throw new DomainError('BILLING_ACCOUNT_NOT_PROVISIONED', 'Carteira de billing não provisionada.');
 
+      if (settlement && !await settlement.validate(transaction as unknown as ForgeLexDatabase)) return { creditedCents: 0, isReplay: true, remainingBalanceCents: account.paidBalanceCents + account.promotionalBalanceCents };
+
       const existingPurchaseLot = await transaction
         .select()
         .from(billingCreditLots)
         .where(and(eq(billingCreditLots.tenantId, input.tenantId), eq(billingCreditLots.purchaseId, input.purchaseId)));
       if (existingPurchaseLot[0]) {
+        await settlement?.complete(transaction as unknown as ForgeLexDatabase);
         return { creditedCents: 0, isReplay: true, remainingBalanceCents: account.paidBalanceCents + account.promotionalBalanceCents };
       }
 
@@ -70,6 +73,7 @@ export class BillingService {
         .from(ledgerEntries)
         .where(and(eq(ledgerEntries.accountId, account.id), eq(ledgerEntries.idempotencyKey, input.idempotencyKey)));
       if (existingEntry[0]) {
+        await settlement?.complete(transaction as unknown as ForgeLexDatabase);
         return { creditedCents: 0, isReplay: true, remainingBalanceCents: account.paidBalanceCents + account.promotionalBalanceCents };
       }
 
@@ -101,6 +105,7 @@ export class BillingService {
         updatedAt: now,
       });
 
+      await settlement?.complete(transaction as unknown as ForgeLexDatabase);
       return { creditedCents: input.amountCents, isReplay: false, remainingBalanceCents: nextBalance + account.promotionalBalanceCents };
     }));
   }
@@ -189,6 +194,61 @@ export class BillingService {
         createdAt: now,
       });
       return { refundedCents: refundCents, isReplay: false, remainingBalanceCents: account.paidBalanceCents - refundCents + account.promotionalBalanceCents };
+    }));
+  }
+
+  /** Reserve by removing spendable value, atomically with the durable provider intent. */
+  public async prepareRefund(input: { requestId: string; reviewerId: string; decision: 'APPROVED' | 'REJECTED'; approvedAmountCents?: number; reason?: string }): Promise<typeof billingRefundRequests.$inferSelect> {
+    await this.runMigrations();
+    const initial = (await this.db.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, input.requestId)))[0];
+    if (!initial) throw new Error('BILLING_REFUND_REQUEST_NOT_FOUND');
+    return this.withTenantLock(initial.tenantId, () => this.db.transaction(async (transaction) => {
+      const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, initial.tenantId);
+      if (!account) throw new Error('BILLING_ACCOUNT_NOT_PROVISIONED');
+      const request = (await transaction.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, input.requestId)))[0]!;
+      if (request.status !== 'PENDING' || request.operationState !== 'UNPREPARED') throw new Error('BILLING_REFUND_REQUEST_ALREADY_REVIEWED');
+      const now = new Date().toISOString();
+      const review = { reason: input.reason ?? request.reason, reviewedBy: input.reviewerId, reviewedAt: now, updatedAt: now };
+      if (input.decision === 'REJECTED') {
+        return (await transaction.update(billingRefundRequests).set({ ...review, status: 'REJECTED', openKey: null, approvedAmountCents: 0 }).where(eq(billingRefundRequests.id, request.id)).returning())[0]!;
+      }
+      if (input.approvedAmountCents !== undefined && (!Number.isInteger(input.approvedAmountCents) || input.approvedAmountCents <= 0)) throw new Error('BILLING_REFUND_AMOUNT_INVALID');
+      const purchase = (await transaction.select().from(billingPurchases).where(and(eq(billingPurchases.id, request.purchaseId), eq(billingPurchases.tenantId, request.tenantId))))[0];
+      if (!purchase?.providerPaymentId || purchase.status !== 'PAID') throw new Error('BILLING_PROVIDER_PAYMENT_NOT_FOUND');
+      const lot = (await transaction.select().from(billingCreditLots).where(and(eq(billingCreditLots.purchaseId, request.purchaseId), eq(billingCreditLots.tenantId, request.tenantId))))[0];
+      const pending = await transaction.select().from(billingOperations).where(and(eq(billingOperations.accountId, account.id), eq(billingOperations.status, 'PENDING')));
+      // Reserve conservatively against every unfunded pending operation, even an expired lease:
+      // a worker may still complete it. Commercial escrow has already left the wallet balance.
+      const reserved = pending.filter((p) => !p.fundingExecutionId).reduce((sum, p) => sum + p.reservedAmountCents, 0);
+      const amount = Math.min(request.eligibleAmountCents, input.approvedAmountCents ?? request.eligibleAmountCents,
+        purchase.amountCents, lot?.remainingCents ?? 0, Math.max(0, account.paidBalanceCents - reserved));
+      if (!Number.isInteger(amount) || amount <= 0) throw new Error('BILLING_REFUND_AMOUNT_INVALID');
+      await transaction.update(billingCreditLots).set({ remainingCents: lot!.remainingCents - amount, updatedAt: now }).where(eq(billingCreditLots.id, lot!.id));
+      await transaction.update(ledgerAccounts).set({ paidBalanceCents: account.paidBalanceCents - amount, updatedAt: now }).where(eq(ledgerAccounts.id, account.id));
+      await transaction.insert(ledgerEntries).values({ id: randomUUID(), accountId: account.id, usageEventId: null,
+        idempotencyKey: `refund-reserve:${request.id}`, kind: 'RESERVE', bucket: 'PAID', amountCents: amount,
+        operationResultSnapshot: JSON.stringify({ requestId: request.id, purchaseId: request.purchaseId }), createdAt: now });
+      return (await transaction.update(billingRefundRequests).set({ ...review, operationState: 'PREPARED', approvedAmountCents: amount, providerPaymentId: purchase.providerPaymentId }).where(eq(billingRefundRequests.id, request.id)).returning())[0]!;
+    }));
+  }
+
+  /** Finalize an already withheld refund. Replay never debits the wallet twice. */
+  public async settlePreparedRefund(requestId: string): Promise<typeof billingRefundRequests.$inferSelect> {
+    await this.runMigrations();
+    const initial = (await this.db.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, requestId)))[0];
+    if (!initial) throw new Error('BILLING_REFUND_REQUEST_NOT_FOUND');
+    return this.withTenantLock(initial.tenantId, () => this.db.transaction(async (transaction) => {
+      const account = await this.lockAccount(transaction as unknown as ForgeLexDatabase, initial.tenantId);
+      const request = (await transaction.select().from(billingRefundRequests).where(eq(billingRefundRequests.id, requestId)))[0]!;
+      if (request.operationState === 'LEDGER_SETTLED') return request;
+      if (request.operationState !== 'PROVIDER_SUCCEEDED' || !account || !request.approvedAmountCents) throw new Error('BILLING_REFUND_NOT_SETTLEABLE');
+      const now = new Date().toISOString();
+      for (const kind of ['RELEASE', 'REFUND']) await transaction.insert(ledgerEntries).values({
+        id: randomUUID(), accountId: account.id, usageEventId: null, idempotencyKey: kind === 'REFUND' ? `refund-ledger:${request.id}` : `refund-release:${request.id}`,
+        kind, bucket: 'PAID', amountCents: request.approvedAmountCents, operationResultSnapshot: JSON.stringify({ requestId, purchaseId: request.purchaseId }), createdAt: now,
+      });
+      await transaction.update(billingPayments).set({ status: 'REFUNDED', updatedAt: now }).where(and(eq(billingPayments.purchaseId, request.purchaseId), eq(billingPayments.tenantId, request.tenantId)));
+      return (await transaction.update(billingRefundRequests).set({ status: 'APPROVED', openKey: null, operationState: 'LEDGER_SETTLED', operationError: null, updatedAt: now }).where(eq(billingRefundRequests.id, request.id)).returning())[0]!;
     }));
   }
 
