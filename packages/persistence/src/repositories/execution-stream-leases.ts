@@ -49,20 +49,16 @@ export class ExecutionStreamLeases {
   async release(id: string): Promise<void> {
     await this.client.execute({ sql: 'DELETE FROM execution_stream_leases WHERE id = ?', args: [id] });
   }
+  /**
+   * Renewal touches one row by primary key, so it needs neither a transaction nor the global admission lock:
+   * only admission must be serialized, and an expired lease is still refused by the `expires_at > now` guard.
+   */
   async renew(id: string): Promise<boolean> {
-    const tx = await this.client.transaction('write');
-    try {
-      await tx.execute('UPDATE execution_stream_admission_lock SET value = 1 WHERE id = 1');
-      const now = await this.time(tx);
-      const result = await tx.execute({
-        sql: 'UPDATE execution_stream_leases SET expires_at = ? WHERE id = ? AND expires_at > ?',
-        args: [now + EXECUTION_STREAM_LEASE_MS, id, now],
-      });
-      await tx.commit();
-      return result.rowsAffected === 1;
-    } catch (error) {
-      await tx.rollback();
-      throw error;
-    }
+    const now = await this.time(this.client);
+    const result = await this.client.execute({
+      sql: 'UPDATE execution_stream_leases SET expires_at = ? WHERE id = ? AND expires_at > ?',
+      args: [now + EXECUTION_STREAM_LEASE_MS, id, now],
+    });
+    return result.rowsAffected === 1;
   }
 }

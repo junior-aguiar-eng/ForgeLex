@@ -791,6 +791,38 @@ describe('admissão persistente SSE', () => {
     expect(await second.text()).toContain('CANCELLED');
     expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(0);
   });
+  it('não toma lease nem a trava global de admissão para uma execução que não existe', async () => {
+    const { ExecutionStreamLeases } = await import('@forgelex/persistence');
+    const f = await fixture({ next: () => undefined });
+    const acquire = vi.spyOn(ExecutionStreamLeases.prototype, 'acquire');
+    try {
+      const response = await f.app.inject({ url: `/api/agentic/executions/${randomUUID()}/events`, headers });
+
+      expect(response.statusCode).toBe(404);
+      expect(acquire).not.toHaveBeenCalled();
+      expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(0);
+    } finally {
+      acquire.mockRestore();
+    }
+  });
+  it('toma a lease depois de confirmar que a execução existe e pertence ao usuário', async () => {
+    const { ExecutionStreamLeases } = await import('@forgelex/persistence');
+    const f = await fixture({ next: () => undefined });
+    const run = (
+      await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })
+    ).json();
+    const acquire = vi.spyOn(ExecutionStreamLeases.prototype, 'acquire');
+    try {
+      const address = await f.app.listen({ port: 0, host: '127.0.0.1' });
+      const stream = await fetch(`${address}/api/agentic/executions/${run.id}/events`, { headers });
+
+      expect(stream.status).toBe(200);
+      expect(acquire).toHaveBeenCalledTimes(1);
+      await stream.body?.cancel();
+    } finally {
+      acquire.mockRestore();
+    }
+  });
   it('libera admissão após erro no snapshot inicial sem abrir resposta SSE', async () => {
     const f = await fixture({ next: () => undefined });
     const run = (

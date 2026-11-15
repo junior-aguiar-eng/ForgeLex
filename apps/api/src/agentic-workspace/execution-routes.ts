@@ -19,7 +19,7 @@ import { AuthAdapter } from '../auth/fastify-auth.js';
 import { ExecutionService, StartExecutionSchema } from './execution-service.js';
 import { ExecutionWorker, type ExecutionDriver } from './execution-worker.js';
 import { encodeExecutionEvent, type ClientExecutionEvent } from './event-stream.js';
-import { SharedExecutionStreams, reserveProcessStream } from './shared-execution-streams.js';
+import { SharedExecutionStreams, executionStreamKey, reserveProcessStream } from './shared-execution-streams.js';
 import { createCaseTaskDriver, type NativeCaseTaskOptions } from './case-task-driver.js';
 import type { ResearchService } from '@forgelex/legal-tools';
 import {
@@ -49,6 +49,8 @@ export interface AgenticWorkspaceRuntimeOptions {
   caseTask?: NativeCaseTaskOptions;
   scheduler?: boolean;
   pollMs?: number;
+  /** Longest a single poll step (auth recheck, change check, read) may take before its stream is failed. */
+  streamCallTimeoutMs?: number;
   /** How often an open event stream re-verifies the session; the stream itself polls at `pollMs`. */
   authRecheckMs?: number;
   leaseMs?: number;
@@ -158,7 +160,9 @@ export function registerAgenticWorkspace(
     });
   }
   const streamLeases = deps.client ? new ExecutionStreamLeases(deps.client) : undefined;
-  const streams = new SharedExecutionStreams<ClientExecutionEvent>(deps.options?.pollMs ?? 1000);
+  const streams = new SharedExecutionStreams<ClientExecutionEvent>(deps.options?.pollMs ?? 1000, {
+    callTimeoutMs: deps.options?.streamCallTimeoutMs,
+  });
   const activeStreams = new Set<() => void>();
   const streamReleases = new Set<Promise<void>>();
   app.addHook('preClose', async () => {
@@ -599,6 +603,9 @@ export function registerAgenticWorkspace(
       reply.raw.once('close', cleanup);
       reply.raw.once('error', finish);
       try {
+        // Ownership and access come first: an unknown id must not take a lease or the global admission lock.
+        await s.eventsChanged(identity, id, query.after);
+        if (closed) return reply;
         leaseId = await streamLeases.acquire(identity, id);
         if (closed) {
           await streamLeases.release(leaseId);
@@ -686,7 +693,7 @@ export function registerAgenticWorkspace(
         subscriber.send(batch);
         if (!closed)
           unsubscribe = streams.subscribe(
-            JSON.stringify([identity.tenantId, id]),
+            executionStreamKey(identity, id),
             {
               changed: (after) => s.eventsChanged(identity, id, after),
               read: (after) => s.listClientEvents(identity, id, after),
