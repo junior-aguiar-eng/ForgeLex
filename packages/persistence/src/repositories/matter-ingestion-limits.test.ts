@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { caseAccessFixture } from './matter-lifecycle-fixture.js';
 
 describe('bounded text document ingestion', () => {
@@ -88,5 +88,69 @@ describe('bounded text document ingestion', () => {
       WHEN NEW.ordinal >= 250 BEGIN SELECT RAISE(ABORT, 'injected anchor insert failure'); END`);
     await expect(ingest('Prova\n'.repeat(501))).rejects.toThrow();
     expect(await counts()).toEqual(before);
+  });
+
+  it.each([
+    ['title', { title: 'x'.repeat(501) }],
+    ['originalFilename', { originalFilename: 'x'.repeat(256) }],
+    ['mimeType', { mimeType: 'x'.repeat(128) }],
+  ])('rejects an oversized %s before touching the database', async (field, override) => {
+    const before = await counts();
+
+    await expect(
+      f.matters.ingestTextDocument({
+        tenantId: f.owner.tenantId,
+        matterId: f.matter.id,
+        createdBy: f.owner.userId,
+        title: 'Petição inicial',
+        originalFilename: 'peticao.txt',
+        mimeType: 'text/plain',
+        content: 'Texto válido.',
+        ...override,
+      }),
+    ).rejects.toThrow(`DOCUMENT_FIELD_TOO_LONG: ${field}`);
+
+    expect(await counts()).toEqual(before);
+  });
+
+  it('accepts metadata exactly at its limits', async () => {
+    const result = await f.matters.ingestTextDocument({
+      tenantId: f.owner.tenantId,
+      matterId: f.matter.id,
+      createdBy: f.owner.userId,
+      title: 'x'.repeat(500),
+      originalFilename: 'y'.repeat(255),
+      mimeType: 'z'.repeat(127),
+      content: 'Texto válido.',
+    });
+
+    expect(result.document.title).toHaveLength(500);
+  });
+
+  it('keeps a paragraph that ends in a bare CR, with exact offsets', async () => {
+    const result = await ingest('primeiro\rsegundo\r\nterceiro');
+
+    expect(result.anchors.map((anchor) => [anchor.text, anchor.startOffset, anchor.endOffset])).toEqual([
+      ['primeiro', 0, 8],
+      ['segundo', 9, 16],
+      ['terceiro', 18, 26],
+    ]);
+  });
+
+  it('says it counts non-empty lines, because each line becomes an anchor', async () => {
+    await expect(ingest(Array.from({ length: 5001 }, () => 'a').join('\n'))).rejects.toThrow(
+      /DOCUMENT_ANCHOR_LIMIT_EXCEEDED.*linhas/,
+    );
+  });
+
+  it('scans the content for paragraphs only once, outside the matter lock', async () => {
+    const scans = vi.spyOn(RegExp.prototype, Symbol.matchAll);
+    try {
+      await ingest('um\ndois\ntrês');
+
+      expect(scans).toHaveBeenCalledTimes(1);
+    } finally {
+      scans.mockRestore();
+    }
   });
 });
