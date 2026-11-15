@@ -73,6 +73,10 @@ export const DocumentAnchorSchema = z
 
 export type DocumentAnchor = z.infer<typeof DocumentAnchorSchema>;
 
+/** UTF-8 content and nonempty paragraph ceilings also bound the complete anchor response. */
+export const TEXT_DOCUMENT_MAX_BYTES = 1_048_576;
+export const TEXT_DOCUMENT_MAX_ANCHORS = 5_000;
+
 export interface IngestTextDocumentInput {
   tenantId: string;
   matterId: string;
