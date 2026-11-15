@@ -192,7 +192,7 @@ export class SupabaseTokenVerifier implements TokenVerifier {
       tenantId: account.tenant.id,
       userId: account.user.id,
       roles: [account.membership.role.toLowerCase()],
-      scopes: oauthToken ? ['mcp', 'research:read'] : ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write'],
+      scopes: oauthToken ? ['mcp', 'research:read'] : ['mcp', 'research:read', 'matter:read', 'matter:write', 'draft:write', 'billing:read', 'billing:write', 'webhooks:read', 'webhooks:write', ...(account.membership.role.toLowerCase() === 'owner' ? ['credentials:read', 'credentials:write'] : [])],
       authMethod: oauthToken ? 'oauth_access_token' : 'session',
       ...(oauthClientId ? { oauthClientId } : {}),
       ...(oauthConnection?.grantedAt ? {oauthGrantedAt:oauthConnection.grantedAt} : {}),

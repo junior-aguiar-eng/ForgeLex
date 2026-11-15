@@ -25,6 +25,7 @@ async function listTools(withPanel: boolean, clientHints: Record<string, unknown
     ))
       registry.register(tool);
   const handler = new McpHandler(registry, { executeOperation: vi.fn() } as unknown as LedgerService, undefined, {
+    trustUnscopedContext: true,
     ...(withPanel ? { decisionUi: { readHtml: async () => '<p>Reader</p>' } } : {}),
   });
   const response = await handler.handleRequest({ jsonrpc: '2.0', id: 1, method: 'tools/list', ...clientHints });
