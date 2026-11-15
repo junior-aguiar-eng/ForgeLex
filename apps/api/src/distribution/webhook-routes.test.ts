@@ -17,7 +17,10 @@ const principal = (scopes: string[]): AuthenticatedPrincipal => ({
 
 afterEach(() => vi.restoreAllMocks());
 
-const fixture = async (scopes = ['webhooks:read', 'webhooks:write', 'matter:read'], environment: Record<string, string> = {}) => {
+const fixture = async (
+  scopes = ['webhooks:read', 'webhooks:write', 'matter:read'],
+  environment: Record<string, string> = {},
+) => {
   const connection = await createDatabase({ url: 'file::memory:' });
   await runPersistenceMigrations(connection.client);
   const app = await buildApp({
@@ -94,7 +97,7 @@ describe('POST /api/v2/webhooks/endpoints/:id/reactivate', () => {
     }
   });
 
-  it('refuses with 403 when the caller may write webhooks but cannot subscribe to the endpoint\'s events', async () => {
+  it("refuses with 403 when the caller may write webhooks but cannot subscribe to the endpoint's events", async () => {
     const f = await fixture(['webhooks:write']);
     try {
       await f.endpoint('ep', 'https://8.8.8.8/hook', 'SUSPENDED');
