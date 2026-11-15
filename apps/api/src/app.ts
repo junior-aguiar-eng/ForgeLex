@@ -75,7 +75,7 @@ import { createRequestAbortSignal } from './distribution/request-abort-signal.js
 import { classifyResearchError } from './distribution/research-error.js';
 import { WEBHOOK_EVENT_TYPES, WEBHOOK_TEST_EVENT_TYPE } from './distribution/webhooks.js';
 import { WebhookRepository } from '@forgelex/persistence';
-import { WebhookService } from './distribution/webhook-service.js';
+import { WEBHOOK_MAX_TIMEOUT_MS, WebhookService } from './distribution/webhook-service.js';
 import type { Client } from '@forgelex/persistence';
 import { createLegalResearchMemoTool, LegalResearchMemoExecutionService, type DeskMatter, type DeskPiece } from '@forgelex/legal-workflows';
 import { RequestMetrics, structuredLog } from './observability.js';
@@ -250,6 +250,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const webhookTimeoutMs = Number.isFinite(configuredWebhookTimeoutMs) && configuredWebhookTimeoutMs > 0
     ? configuredWebhookTimeoutMs
     : undefined;
+  if (webhookTimeoutMs !== undefined && webhookTimeoutMs > WEBHOOK_MAX_TIMEOUT_MS) {
+    structuredLog('warn', 'webhook.timeout.capped', { configuredMs: webhookTimeoutMs, appliedMs: WEBHOOK_MAX_TIMEOUT_MS });
+  }
   const webhookService = databaseClient
     ? new WebhookService(new WebhookRepository(databaseClient), {
       masterKey: environment.FORGELEX_WEBHOOK_MASTER_KEY,
@@ -258,7 +261,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     : undefined;
   const webhookWorker = webhookService && environment.FORGELEX_WEBHOOK_WORKER_ENABLED === 'true'
     ? setInterval(() => void webhookService.tick()
-      .then((result) => metrics.observeWebhookDelivery(result))
+      .then((results) => results.forEach((result) => metrics.observeWebhookDelivery(result)))
       .catch((error) => structuredLog('error', 'webhook.worker.failed', {
         error: error instanceof Error ? error.message : String(error),
       })), 1_000)
@@ -1267,8 +1270,31 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     const selected = await webhookService.findEndpoint(principal.tenantId, endpointId);
     if (selected && selected.status === 'ACTIVE' && !canSubscribeWebhook(principal.scopes, selected.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
     if (!selected || selected.status !== 'ACTIVE') return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
-    const eventId = await webhookService.enqueue({ tenantId: principal.tenantId, endpointId, type: WEBHOOK_TEST_EVENT_TYPE, payload: { test: true, requestedBy: principal.userId } });
-    return reply.status(202).send({ eventId, status: 'QUEUED' });
+    try {
+      const eventId = await webhookService.enqueue({ tenantId: principal.tenantId, endpointId, type: WEBHOOK_TEST_EVENT_TYPE, payload: { test: true, requestedBy: principal.userId } });
+      return reply.status(202).send({ eventId, status: 'QUEUED' });
+    } catch (error) {
+      // The endpoint was retired between the check above and the enqueue: nothing was queued.
+      if (error instanceof Error && error.message === 'WEBHOOK_ENDPOINT_NOT_ACTIVE') return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
+      throw error;
+    }
+  });
+
+  // A suspended endpoint is held, not lost: reactivating it checks the address again and resumes its queued deliveries.
+  app.post('/api/v2/webhooks/endpoints/:endpointId/reactivate', { preHandler: authAdapter.createPreHandler(['webhooks:write']) }, async (request, reply) => {
+    if (!webhookService) return reply.status(503).send({ error: 'PERSISTENCE_UNAVAILABLE' });
+    const principal = request.principal;
+    const endpointId = (request.params as { endpointId: string }).endpointId;
+    const endpoint = await webhookService.findEndpoint(principal.tenantId, endpointId);
+    if (!endpoint) return reply.status(404).send({ error: 'WEBHOOK_ENDPOINT_NOT_FOUND' });
+    if (!canSubscribeWebhook(principal.scopes, endpoint.eventTypes)) return reply.status(403).send({ error: 'INSUFFICIENT_EVENT_SCOPE' });
+    try {
+      const reactivated = await webhookService.reactivateEndpoint(principal.tenantId, endpointId);
+      return reactivated ? { reactivated: true } : reply.status(409).send({ error: 'WEBHOOK_ENDPOINT_NOT_SUSPENDED' });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'WEBHOOK_URL_BLOCKED') return reply.status(422).send({ error: 'WEBHOOK_URL_BLOCKED' });
+      return reply.status(502).send({ error: 'WEBHOOK_DESTINATION_CHECK_FAILED' });
+    }
   });
 
   app.get('/api/v2/webhooks/deliveries', { preHandler: authAdapter.createPreHandler(['webhooks:read']) }, async (request, reply) => {
