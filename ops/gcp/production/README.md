@@ -121,6 +121,12 @@ Ao terminar, imprime o build ID, os comandos de reversão e o que registrar no `
   novamente e precisa coincidir com o projeto, SHA, substituições e digest esperados; então a imagem e as revisões
   identificadas por SHA e build ID são reaproveitadas. Sem esse ID explícito, uma nova execução cria um novo build,
   ainda que uma tag do mesmo SHA já exista.
+- **Recibo de publicação.** Ao terminar (publicado, `-NoTraffic`, falha revertida ou reversão incompleta), o script grava
+  `docs/operations/deploy-receipts/AAAA-MM-DD-HHMMZ-<sha7>-<resultado>.md` com SHA, build, digest, revisões antes e depois,
+  flags lidas, motivo da falha e comandos de reversão. Quem grava é `scripts/deploy-receipt.mjs`, que só aceita campos em
+  formato conhecido, limpa texto livre e nunca sobrescreve. **O script não commita**: revise o arquivo e commite-o. Falha
+  ao gravar vira aviso e o JSON é impresso; nunca interrompe uma publicação. O recibo não prova migrations, verificação
+  manual, autoria nem aprovação. Falhas antes do passo 7 não geram recibo, porque nada foi publicado.
 - **Testes** (sem gcloud, sem rede): `pwsh -NoProfile -File ops/gcp/production/deploy-from-main.tests.ps1`.
   Rodam na CI.
 

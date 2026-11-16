@@ -7,7 +7,9 @@
   Sequência: confere o checkout e a CI, lê o estado de produção, reaproveita as substituições do último build
   bem-sucedido (trocando só o SHA), gera a imagem em um novo Cloud Build e usa somente o digest autenticado pelo
   resultado desse build. Depois cria as revisões SEM tráfego, confere que só a imagem e FORGELEX_SOURCE_SHA mudaram,
-  troca o tráfego, verifica e, se qualquer coisa falhar, reverte sozinho.
+  troca o tráfego, verifica e, se qualquer coisa falhar, reverte sozinho. Ao terminar (publicado, sem tráfego ou
+  falha), grava um recibo em docs/operations/deploy-receipts/ com SHA, build, digest, revisões e o que foi verificado.
+  O script não commita o recibo: revise e commite.
 
   Não aplica migrations: FORGELEX_AUTO_MIGRATE continua como está nos serviços. Se o SHA traz migration, aplique-a
   antes, pelo procedimento próprio, e faça backup.
@@ -58,6 +60,35 @@ function Get-EnvValue {
     if ($null -ne $entry -and $entry.name -eq $Name) { return (Get-Prop $entry 'value') }
   }
   return $null
+}
+function Save-DeployReceipt {
+  # O recibo é o registro do que o script fez. Gravá-lo nunca muda o resultado da publicação.
+  param(
+    [Parameter(Mandatory)][string]$Status,
+    [string]$Reason,
+    [string[]]$Errors = @(),
+    [string]$PostRollbackHealth
+  )
+  $receipt = @{
+    status    = $Status
+    sha       = $sha
+    buildId   = $buildId
+    digest    = $digest
+    image     = $image
+    projectId = $ProjectId
+    region    = $Region
+    publicUrl = $publicUrl
+    services  = @($plan | ForEach-Object { @{ service = $_.Service; previous = $_.Previous; revision = $_.Revision } })
+    flags     = @($flagReport)
+  }
+  if ($Reason) { $receipt['failure'] = @{ reason = $Reason; errors = @($Errors) } }
+  if ($PostRollbackHealth) { $receipt['postRollbackHealth'] = $PostRollbackHealth }
+  $path = Write-DeployReceipt -Receipt $receipt
+  if ($path) {
+    Write-Host ''
+    Write-Host "Recibo gravado em $path" -ForegroundColor Green
+    Write-Host '  Revise e commite o arquivo (o script não commita).'
+  }
 }
 function Test-RevisionReady {
   param($Revision)
@@ -119,7 +150,8 @@ $apiContainer = @(Get-Prop $state[$ApiService].Service 'spec.template.spec.conta
 $publicUrl = Get-EnvValue $apiContainer 'FORGELEX_PUBLIC_URL'
 Assert-Precondition (-not [string]::IsNullOrWhiteSpace($publicUrl)) "O serviço $ApiService não define FORGELEX_PUBLIC_URL; não há URL para verificar."
 Write-Host "  URL pública  $publicUrl"
-Get-ApiRuntimeFlagReport $apiContainer | ForEach-Object { Write-Host "  $_" }
+$flagReport = @(Get-ApiRuntimeFlagReport $apiContainer)
+$flagReport | ForEach-Object { Write-Host "  $_" }
 
 # ---------------------------------------------------------------- 4. Configuração de build
 Write-Step '4/7 Configuração de build'
@@ -225,6 +257,7 @@ foreach ($name in $ClosureService, $ApiService) {
 if ($NoTraffic) {
   Write-Step 'Parado antes da troca (-NoTraffic)'
   Write-Host "  Revisões prontas e sem tráfego. Para trocar, rode novamente com -ReleaseBuildId '$buildId': o build e as revisões serão revalidados e reaproveitados."
+  Save-DeployReceipt -Status 'SEM_TRAFEGO'
   exit 0
 }
 
@@ -258,15 +291,18 @@ if ($result.Ok) {
       Write-Host "  gcloud run services update-traffic $($step.Service) --project=$ProjectId --region=$Region --to-revisions=$($step.Previous)=100"
     }
   }
+  Save-DeployReceipt -Status 'PUBLICADO'
   Write-Host ''
-  Write-Host 'Registre no PENDENCIAS.md: aprovação de Boni, SHA, build ID, digest, revisões e a verificação acima.'
+  Write-Host 'Registre no PENDENCIAS.md a aprovação de Boni e a verificação manual (seção 8 do checklist); o recibo traz o resto.'
   exit 0
 }
 
 Write-Host "A PUBLICAÇÃO FALHOU: $($result.Reason)" -ForegroundColor Red
 if ($result.RolledBack) {
   $after = Test-PublicHealth -BaseUrl $publicUrl -Attempts 2 -DelaySeconds 3
-  Write-Host "Tráfego revertido para as revisões anteriores. Saúde pública depois da reversão: $(if ($after.Ok) { 'OK' } else { 'FALHOU: ' + ($after.Failures -join '; ') })" -ForegroundColor Yellow
+  $afterText = if ($after.Ok) { 'OK' } else { 'FALHOU: ' + ($after.Failures -join '; ') }
+  Write-Host "Tráfego revertido para as revisões anteriores. Saúde pública depois da reversão: $afterText" -ForegroundColor Yellow
+  Save-DeployReceipt -Status 'FALHOU_REVERTIDO' -Reason $result.Reason -PostRollbackHealth $afterText
 }
 else {
   Write-Host 'A REVERSÃO NÃO FOI CONCLUÍDA. Verifique o tráfego manualmente:' -ForegroundColor Red
@@ -274,5 +310,6 @@ else {
   foreach ($step in $plan) {
     Write-Host "  gcloud run services update-traffic $($step.Service) --project=$ProjectId --region=$Region --to-revisions=$($step.Previous)=100"
   }
+  Save-DeployReceipt -Status 'FALHOU_SEM_REVERSAO' -Reason $result.Reason -Errors @($result.Errors)
 }
 exit 1
