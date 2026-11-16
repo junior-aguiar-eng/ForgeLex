@@ -1,5 +1,10 @@
 # Daybreak — checklist de deploy (16/11/2026)
 
+> **Executado em 16/11/2026.** As três migrations foram aplicadas às 13:17 UTC e o código foi publicado (`af13b1c` às
+> 15:11 UTC e `6fe4f75` às 18:13 UTC). O registro do que de fato aconteceu, com números e fontes, está em
+> [`2026-11-16-execucao-migrations-e-publicacao.md`](2026-11-16-execucao-migrations-e-publicacao.md). Este arquivo
+> permanece como o plano e como referência para a próxima vez.
+
 Preparado a partir de `main` em `d42337d` (CI do push: sucesso). **Não executa nada e não autoriza nada por si:** a
 autorização de Boni para commit, push e deploy (14/11) cobre a publicação, mas não compras ou reembolsos reais nem o
 encerramento de achados no Daybreak. Boni executa, confere e aprova; cada passo registra data, evidência e decisão.
@@ -20,14 +25,14 @@ pendentes sobre o último registro (a confirmar pelos IDs, seção 2; **não há
 `FORGELEX_ANALISE_ENABLED=true`), uma transação por migration. Sem filtro. A 0041 já está aplicada e fica fora.
 Nenhuma variável `FORGELEX_*` nova no serviço. Com migration pendente a API de produção **recusa subir**: migrar antes.
 
-**Contagem do journal (corrigida em 16/11/2026).** Este checklist dizia "54 entradas antes, 57 depois". O valor não se sustenta:
-o último registro de produção com contagem é **52 entradas após a 0039** (`PENDENCIAS.md`); o 54 "após a 0041" era uma
-inferência, não uma conferência. A lista do repositório, a mesma que o script aplica (conferida num PostgreSQL 16 novo),
-tem **54 IDs com as três migrations** (51 sem elas); com `FORGELEX_ANALISE_ENABLED=true`, **56** (53 sem elas). Em nenhum
-caso são 57. Se o journal de produção tem mais entradas do que a lista do repositório, essas entradas extras precisam ser
-identificadas e explicadas antes de migrar. Por isso a conferência é **por ID** (seções 2 e 6) e a contagem é só derivada
-(N = IDs do repositório − 3 + extras). O risco que a contagem não pega: o script aplica **qualquer** ID do repositório que
-falte no journal, não só as três; um ID faltando em produção seria aplicado em silêncio.
+**Contagem do journal.** A lista completa de migrations, a mesma do Job que aplicou as três em 16/11, tem **57 IDs**:
+persistência 43 (sem a 0041) + a 0041 (`draftSaveCommandsMigration`, exportada à parte) + ledger 11 + análise 2. Antes das
+três pendentes são **54**, depois são **57**. Isso foi confirmado em 16/11/2026 pelo próprio Job (`journalCount` 54 → 57,
+sem ID desconhecido). Uma versão deste parágrafo (PR #170) afirmou que o 54/57 estava errado e que "em nenhum caso são 57":
+**era um erro**. A conta tinha usado só a lista padrão de `scripts/migrate-postgres.mjs`, que não inclui a 0041 e deixa a
+análise atrás de `FORGELEX_ANALISE_ENABLED` (54 IDs num banco novo, que não é a configuração de produção). A conferência
+continua sendo **por ID** (seção 2), com a mesma lista do Job, porque o script aplica **qualquer** ID da lista que falte no
+journal, não só as três, e uma contagem não pega isso.
 
 ## 1. Pré-condições (somente leitura)
 
@@ -42,16 +47,16 @@ falte no journal, não só as três; um ID faltando em produção seria aplicado
 
 ## 2. Pré-checagens no banco (read-only, instância `forgelex-hml-pg`, banco `forgelex`)
 
-- [ ] `SELECT count(*) FROM forgelex_migrations;` → anotar o valor (**N**); sem comparar com número fixo.
-- [ ] Gerar as consultas a partir da lista do repositório. Na raiz do checkout do SHA a publicar, depois de `pnpm build`
-      (com a mesma `FORGELEX_ANALISE_ENABLED` que o serviço usa; a flag acrescenta as 2 migrations de análise à lista):
+- [ ] `SELECT count(*) FROM forgelex_migrations;` → esperado **54** (57 depois); anotar o valor (**N**).
+- [ ] Gerar as consultas a partir da lista completa (a do Job: persistência, 0041, ledger e análise). Na raiz do checkout do
+      SHA a publicar, depois de `pnpm build`:
 
       ```bash
       node --input-type=module <<'EOF'
-      import { persistenceMigrations } from './packages/persistence/dist/index.js';
+      import { persistenceMigrations, draftSaveCommandsMigration } from './packages/persistence/dist/index.js';
       import { ledgerMigrations } from './packages/billing-ledger/dist/index.js';
       import { analiseMigrations } from './packages/analise-juridica/dist/index.js';
-      const ids = [...persistenceMigrations, ...ledgerMigrations, ...(process.env.FORGELEX_ANALISE_ENABLED === 'true' ? analiseMigrations : [])].map((m) => m.id);
+      const ids = [...persistenceMigrations, draftSaveCommandsMigration, ...ledgerMigrations, ...analiseMigrations].map((m) => m.id);
       const repo = `WITH repo(id) AS (VALUES ${ids.map((id) => `('${id}')`).join(',')})`;
       console.log(`${repo} SELECT id FROM repo WHERE id NOT IN (SELECT id FROM forgelex_migrations) ORDER BY id;`);
       console.log(`${repo} SELECT id FROM forgelex_migrations WHERE id NOT IN (SELECT id FROM repo) ORDER BY id;`);
@@ -60,10 +65,10 @@ falte no journal, não só as três; um ID faltando em produção seria aplicado
 
       Consulta **A** (primeira linha impressa): IDs do repositório que faltam no journal. Esperado: **exatamente** os três
       IDs da tabela acima, e mais nenhum. Qualquer outra linha significa que o script aplicaria outra migration; parar e
-      entender antes. Consulta **B** (segunda): IDs do journal que não existem no repositório. Registrar todos (por
-      exemplo, entradas de análise se a flag estiver ligada em produção, ou legado); cada um precisa de explicação anotada.
-- [ ] Conferir a conta: **N = (54 − 3) + |B|** sem a flag de análise, ou **(56 − 3) + |B|** com ela; quando B é vazio, 51 ou 53.
-      Se não fechar, há ID duplicado ou diferença que A e B não mostram; parar.
+      entender antes. Consulta **B** (segunda): IDs do journal que não existem no repositório. Esperado: **vazia**.
+      Qualquer linha precisa de explicação anotada antes de migrar.
+- [ ] Conferir a conta: **N = (57 − 3) + |B|**; com B vazia, **54**. Se não fechar, há ID duplicado ou diferença que A e B
+      não mostram; parar.
 - [ ] `SELECT status, count(*) FROM billing_refund_requests GROUP BY 1;` → anotar os `PENDING`. A migration 0011
       move para reconciliação os que têm rastro local (`refund-ledger:<id>` ou pagamento `REFUNDED`); com zero `PENDING`, nada muda.
 - [ ] `SELECT count(*) FROM webhook_deliveries WHERE response_body_excerpt IS NOT NULL;` → ciência do que será apagado.
@@ -90,15 +95,21 @@ sobe a revisão com migration pendente (a API recusa subir e a sonda `/readyz` f
       nem imprimi-lo) e o Cloud SQL vinculado; comando `node scripts/migrate-postgres.mjs`, `FORGELEX_AUTO_MIGRATE` inalterado.
 - [ ] Armadilhas de 14/11 (0041): rodar a partir do diretório em que o módulo `postgres` resolve; o script **não** normaliza o
       parâmetro `host` do socket do Cloud SQL como o aplicativo faz. Fazer antes uma conexão de teste read-only (`SELECT 1`) no mesmo Job.
-- [ ] Saída esperada: `applied persistence-0042-webhook-admission`, `applied persistence-0043-execution-stream-leases`,
-      `applied billing-ledger-0011-refund-recovery`, nesta ordem.
+- [ ] Armadilhas de 16/11 (execução real, duas falhas antes do sucesso): (a) um argumento `inspect` logo depois de `node` é
+      lido como o subcomando `node inspect` e imprime o uso (`exit(9)`); (b) um script `data:` em base64 não consegue importar
+      caminhos absolutos como `/app/api/node_modules/...` (`ERR_UNSUPPORTED_RESOLVE_REQUEST`, `exit(1)`, sem tocar no banco);
+      importar por `file://` ou por um arquivo `.mjs` no contêiner. A correção usada em 16/11 não foi registrada.
+- [ ] Saída esperada: com o script do repositório, linhas `applied <id>` para `persistence-0042-webhook-admission`,
+      `persistence-0043-execution-stream-leases` e `billing-ledger-0011-refund-recovery`, nesta ordem. O Job de 16/11 imprimia
+      **JSON** (`{"stage":"applied","id":...}`), que o Cloud Run grava em `jsonPayload`; um filtro por `textPayload` não o
+      encontra. Ler com `jsonPayload.stage:*`.
 - [ ] Excluir o Job temporário.
 
 ## 6. Conferir as migrations
 
 - [ ] `forgelex_migrations`: rodar de novo as consultas A e B da seção 2. **A devolve 0 linhas** (os três IDs agora presentes)
       e **B devolve as mesmas linhas registradas antes**, sem ID novo. `count(*)` = **N + 3**, onde N é o valor anotado na
-      seção 2 (54 sem a flag de análise e 56 com ela, só se B for vazio).
+      seção 2 (57 se N era 54).
 - [ ] Existem `webhook_admission` (1 linha), `execution_stream_admission_lock` (1 linha), `execution_stream_leases` e as
       colunas `operation_state`, `provider_payment_id`, `provider_result`, `operation_error` em `billing_refund_requests`.
 - [ ] Contagens de referência iguais às da seção 2; `billing_refund_requests` com `RECONCILIATION_REQUIRED` apenas se havia rastro local.
