@@ -52,7 +52,13 @@ export function WorkspaceHeader({
 }
 
 /** Aviso de que o resultado veio de uma versão anterior do contexto. */
-export function ReevaluationNotice({ runId, currentExecutionId }: { runId: string; currentExecutionId?: string }) {
+export function ReevaluationNotice({
+  runId,
+  currentExecutionId,
+}: {
+  runId: string;
+  currentExecutionId?: string | null;
+}) {
   return (
     <div
       role="status"

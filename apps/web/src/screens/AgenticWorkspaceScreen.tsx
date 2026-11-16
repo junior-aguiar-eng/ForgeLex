@@ -1,6 +1,6 @@
-import { CanvasDialog } from './draft-review/DraftCanvas';
-import { UndoNotice } from '../components/UndoNotice';
-import { createPortal } from 'react-dom';
+import { SupportingSurface } from '../desk/SupportingSurface';
+import { ConversationHistoryView, useConversationHistory } from '../desk/ConversationHistory';
+import { ReevaluationNotice, WorkingIndicator, WorkspaceHeader, pastResponses } from '../desk/ConversationParts';
 import type { DeskPiece, DeskRequest } from '../agentic-workspace/desk-model';
 import { editorLink } from '../agentic-workspace/execution-model';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -15,7 +15,6 @@ import { EvidenceChangesPanel } from '../agentic-workspace/EvidenceChangesPanel'
 import { Conversation } from '../agentic-workspace/Conversation';
 import { ResultCard } from '../agentic-workspace/ResultCard';
 import { SideTable, type SideTab } from '../agentic-workspace/SideTable';
-import { RecentConversations, type RecentItem } from '../agentic-workspace/RecentConversations';
 import { ClosedPilotPanel } from '../agentic-workspace/ClosedPilotPanel';
 import { CommercialAuthorizationPanel, CommercialReceiptPanel } from '../agentic-workspace/CommercialPanel';
 import type { CommercialAuthorization } from '../agentic-workspace/commercial-model';
@@ -33,23 +32,6 @@ import {
 import { DocumentReaderDialog } from '../components/DocumentReaderDialog';
 import type { DocumentSource } from '../documents/document-reader-model';
 
-function SupportingSurface({
-  modal,
-  onClose,
-  children,
-}: {
-  modal: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return modal ? (
-    <CanvasDialog title="Fontes e conferência" onClose={onClose}>
-      {children}
-    </CanvasDialog>
-  ) : (
-    <>{children}</>
-  );
-}
 const initialId = () => new URLSearchParams(window.location.search).get('executionId');
 export function AgenticWorkspaceScreen({
   onEditor,
@@ -131,12 +113,6 @@ export function AgenticWorkspaceScreen({
   const [deliveries, setDeliveries] = useState<Delivery[]>([]),
     [reading, setReading] = useState<DocumentSource>(),
     [correction, setCorrection] = useState<Question>();
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [recent, setRecent] = useState<RecentItem[]>([]);
-  const [trash, setTrash] = useState(false);
-  const [historyPending, setHistoryPending] = useState<RecentItem>();
-  const [historyBusy, setHistoryBusy] = useState(false);
-  const [historyError, setHistoryError] = useState('');
   const [side, setSide] = useState<{ open: boolean; tab: SideTab; source: number | null }>({
     open: false,
     tab: 'sources',
@@ -338,51 +314,15 @@ export function AgenticWorkspaceScreen({
   const currentQuestion =
     correction ?? (currentStatus === 'WAITING_USER' ? (events.question ?? run?.question ?? null) : null);
   const active = ['QUEUED', 'RUNNING'].includes(currentStatus);
-  useEffect(() => {
-    if (authStatus !== 'authenticated' || closedPilot !== false) return;
-    let active = true;
-    client
-      .recent(trash)
-      .then((r) => active && setRecent(r.items))
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [client, authStatus, closedPilot, id, currentStatus, trash, historyBusy]);
-  const updateHistory = async (item: RecentItem, hidden: boolean) => {
-    if (historyBusy) return;
-    setHistoryBusy(true);
-    setHistoryError('');
-    const epoch = navigationEpoch.current;
-    try {
-      await client.setConversationHidden(item.executionId, hidden);
-      setRecent((items) => items.filter((row) => row.executionId !== item.executionId));
-      if (hidden && item.executionId === id && epoch === navigationEpoch.current) newWork();
-      // Excluir é reversível: o aviso oferece "Desfazer" e o histórico guarda a conversa em "Conversas excluídas".
-      setHistoryPending(hidden ? item : undefined);
-    } catch {
-      setHistoryError('Não foi possível atualizar o histórico. Tente novamente.');
-    } finally {
-      setHistoryBusy(false);
-    }
-  };
-  const historyProps = {
-    items: recent,
-    currentId: id,
+  const history = useConversationHistory({
+    client,
+    enabled: authStatus === 'authenticated' && closedPilot === false,
+    id,
+    status: currentStatus,
+    busy,
+    epoch: navigationEpoch,
     onNew: newWork,
-    onOpen: openExecution,
-    trash,
-    busy: busy || historyBusy,
-    onTrashToggle: () => {
-      setRecent([]);
-      setTrash((value) => !value);
-      setHistoryError('');
-    },
-    onHistory: (item: RecentItem, hidden: boolean) => {
-      setHistoryError('');
-      void updateHistory(item, hidden);
-    },
-  };
+  });
 
   const shownError = error || events.error;
   const results = useMemo(
@@ -436,73 +376,22 @@ export function AgenticWorkspaceScreen({
       aria-busy={busy}
       className="flex h-full min-h-0 min-w-0 flex-col px-4 py-3 text-stone-800"
     >
-      {closedPilot === false &&
-        historyContainer &&
-        createPortal(<RecentConversations {...historyProps} expanded />, historyContainer)}
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col space-y-4">
-          {closedPilot === false && (
-            <button type="button" onClick={() => setHistoryOpen(true)} className="text-sm text-stone-600 lg:hidden">
-              Conversas
-            </button>
-          )}
-          {historyOpen && (
-            <CanvasDialog title="Conversas" onClose={() => setHistoryOpen(false)}>
-              <RecentConversations
-                {...historyProps}
-                expanded
-                items={recent}
-                currentId={id}
-                onNew={() => {
-                  newWork();
-                  setHistoryOpen(false);
-                }}
-                onOpen={(next) => {
-                  openExecution(next);
-                  setHistoryOpen(false);
-                }}
-              />
-            </CanvasDialog>
-          )}
-          {historyError && <p role="alert">{historyError}</p>}
-          {historyPending && (
-            <UndoNotice
-              message={`Conversa excluída do histórico: ${historyPending.title}. As peças e os recibos foram preservados.`}
-              busy={historyBusy}
-              onUndo={() => void updateHistory(historyPending, false)}
-              onDismiss={() => setHistoryPending(undefined)}
-            />
-          )}
-          <header
-            className={
-              landing && guidance.id
-                ? 'sr-only'
-                : landing
-                  ? `mx-auto w-full max-w-3xl ${piece ? 'pt-0' : 'pt-8'}`
-                  : 'mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3'
-            }
-          >
-            {landing && guidance.id ? (
-              <h1 className="sr-only">Mesa Jurídica</h1>
-            ) : landing ? (
-              <>
-                <h1 className={`font-editorial font-medium text-stone-900 ${piece ? 'text-2xl' : 'text-3xl'}`}>
-                  O que você precisa fazer hoje?
-                </h1>
-                <p className={`text-stone-600 ${piece ? 'mt-1 text-sm' : 'mt-2'}`}>
-                  Descreva o que precisa preparar ou mudar. A peça fica aberta ao lado da conversa.
-                </p>
-              </>
-            ) : (
-              <>
-                <h1 className="font-editorial text-xl text-stone-900">Trabalho</h1>
-                <span className="grow" />
-                <button type="button" className="btn-secondary min-h-11 lg:hidden" disabled={busy} onClick={newWork}>
-                  Nova conversa
-                </button>
-              </>
-            )}
-          </header>
+          <ConversationHistoryView
+            history={history}
+            enabled={closedPilot === false}
+            container={historyContainer}
+            onNew={newWork}
+            onOpen={openExecution}
+          />
+          <WorkspaceHeader
+            landing={landing}
+            guided={Boolean(guidance.id)}
+            hasPiece={Boolean(piece)}
+            busy={busy}
+            onNew={newWork}
+          />
           <p
             role="status"
             aria-label="Andamento"
@@ -588,51 +477,12 @@ export function AgenticWorkspaceScreen({
             <div className="min-h-0 flex-1 grid gap-6">
               <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-3xl flex-col">
                 <div ref={transcript} data-chat-transcript className="space-y-5 min-h-0 flex-1 overflow-y-auto pr-1">
-                  {reevaluate && (
-                    <div
-                      role="status"
-                      aria-label="Reavaliação necessária"
-                      className="rounded-xl border border-amber-300 bg-amber-50 p-4"
-                    >
-                      <p>Este resultado foi feito com uma versão anterior do contexto e precisa ser refeito.</p>
-                      {run.currentExecutionId && run.currentExecutionId !== run.id && (
-                        <a
-                          className="inline-flex min-h-11 items-center underline"
-                          href={`/app/trabalho?executionId=${encodeURIComponent(run.currentExecutionId)}`}
-                        >
-                          Abrir o resultado atual
-                        </a>
-                      )}
-                    </div>
-                  )}
+                  {reevaluate && <ReevaluationNotice runId={run.id} currentExecutionId={run.currentExecutionId} />}
                   {!denied && historyUnavailable && (
                     <p className="text-xs text-stone-600">Algumas respostas anteriores estão indisponíveis.</p>
                   )}
                   <Conversation
-                    deliveries={
-                      !denied
-                        ? pastDeliveries.map(({ delivery, createdAt }) => ({
-                            id: delivery.id,
-                            createdAt,
-                            content: (
-                              <article
-                                className="rounded-xl border border-stone-200 bg-white p-4"
-                                aria-label="Resposta anterior"
-                              >
-                                {delivery.delivery.document ? (
-                                  <p>A peça “{delivery.delivery.document.title}” foi preparada nesta conversa.</p>
-                                ) : (
-                                  presentDelivery(delivery.delivery).blocks.map((block, index) => (
-                                    <p key={index} className="mb-2 whitespace-pre-wrap text-sm leading-7">
-                                      {block.text}
-                                    </p>
-                                  ))
-                                )}
-                              </article>
-                            ),
-                          }))
-                        : []
-                    }
+                    deliveries={!denied ? pastResponses(pastDeliveries) : []}
                     question={closedPilot || denied || reevaluate ? null : currentQuestion}
                     messages={run.messages}
                     busy={busy || Boolean(paidCommand)}
@@ -647,26 +497,11 @@ export function AgenticWorkspaceScreen({
                   />
                   {paidBar('other')}
                   {active && (
-                    <div role="status" className="flex items-center gap-3 text-stone-600">
-                      <span aria-hidden="true" className="inline-flex gap-1">
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700" />
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:200ms]" />
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cognac-700 [animation-delay:400ms]" />
-                      </span>
-                      <span>
-                        {run.cancelRequested
-                          ? 'Cancelando assim que a etapa em andamento terminar…'
-                          : 'Trabalhando no seu pedido…'}
-                      </span>
-                      <button
-                        type="button"
-                        className="ml-auto min-h-11 px-3 text-sm text-cognac-700 underline"
-                        disabled={busy || Boolean(run.cancelRequested)}
-                        onClick={() => void invoke('cancel', {}, (key) => client.cancel(run.id, key))}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
+                    <WorkingIndicator
+                      cancelRequested={run.cancelRequested}
+                      busy={busy}
+                      onCancel={() => void invoke('cancel', {}, (key) => client.cancel(run.id, key))}
+                    />
                   )}
                   {events.reconciliation && (
                     <p role="status">
