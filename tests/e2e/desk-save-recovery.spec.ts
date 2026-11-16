@@ -23,6 +23,34 @@ async function openNewPiece(page: Page) {
   return { piece, text, base: `${api}/matters/${id}/drafts` };
 }
 
+test('atualiza a versão na URL após salvar sem pedir para descartar a edição', async ({ page }) => {
+  const { piece, text, base } = await openNewPiece(page);
+  const save = piece.getByRole('button', { name: 'Salvar', exact: true });
+  const dialogs: string[] = [];
+  page.on('dialog', async (dialog) => {
+    dialogs.push(dialog.message());
+    await dialog.dismiss();
+  });
+
+  await save.click();
+  await expect(piece.getByText('Versão salva.')).toBeVisible();
+  await expect(page).toHaveURL(/versionId=/);
+  await text.fill('Segunda versão da peça.');
+  const version = page.waitForResponse(
+    (response) =>
+      response.url().startsWith(base) && response.url().endsWith('/versions') && response.request().method() === 'POST',
+  );
+  await save.click();
+  const response = await version;
+  expect(response.ok()).toBe(true);
+  const { version: savedVersion } = await response.json();
+  await expect(page).toHaveURL(new RegExp(`versionId=${savedVersion.id}`));
+  await expect(piece.getByText('Salvo', { exact: true })).toBeVisible();
+  expect(dialogs).toEqual([]);
+  await page.reload();
+  await expect(text).toHaveValue('Segunda versão da peça.');
+});
+
 test('recupera resposta perdida após commit sem repetir o POST', async ({ page }) => {
   const { piece, text, base } = await openNewPiece(page);
   let posts = 0;

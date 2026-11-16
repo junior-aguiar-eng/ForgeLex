@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { ToolRegistry } from '@forgelex/agent-core';
 import { LedgerService } from '@forgelex/billing-ledger';
@@ -39,9 +39,22 @@ describe('a pesquisa abre o painel sem depender de uma segunda chamada do modelo
   });
   afterEach(() => client.close());
 
-  function build(options: { panel: boolean; ui: boolean; presenter?: 'works' | 'unavailable' }) {
+  function build(options: {
+    panel: boolean;
+    ui: boolean;
+    presenter?: 'works' | 'unavailable';
+    orderedByDate?: boolean;
+  }) {
     const registry = new ToolRegistry();
-    createLegalToolGateway(createFixtureResearchService()).registerInto(registry);
+    const research = createFixtureResearchService();
+    if (options.orderedByDate) {
+      const search = research.searchCaseLaw.bind(research);
+      vi.spyOn(research, 'searchCaseLaw').mockImplementation(async (input) => ({
+        ...(await search(input)),
+        ordering: 'JUDGMENT_DATE_DESC',
+      }));
+    }
+    createLegalToolGateway(research).registerInto(registry);
     if (options.panel && options.presenter === 'works') {
       registry.register({
         name: 'research.present_decisions',
@@ -133,6 +146,18 @@ describe('a pesquisa abre o painel sem depender de uma segunda chamada do modelo
     expect(Array.isArray(structured.decisions)).toBe(true);
     expect(structured).not.toHaveProperty('items');
     expect(response.result.isError).not.toBe(true);
+  });
+
+  it('informa ao modelo e ao painel quando a pesquisa foi ordenada pela data do julgamento', async () => {
+    const response = await build({ panel: true, ui: true, presenter: 'works', orderedByDate: true }).handleRequest(
+      search('painel-data'),
+      who,
+    );
+    expect(response.result.structuredContent.ordering).toBe('JUDGMENT_DATE_DESC');
+    expect(JSON.parse(response.result.content[0].text).data).toMatchObject({
+      ordering: 'JUDGMENT_DATE_DESC',
+      avisoOrdenacao: expect.stringContaining('data do julgamento'),
+    });
   });
 
   it('sem painel ou sem interface, o resultado segue como antes, sem aviso nem troca do structuredContent', async () => {

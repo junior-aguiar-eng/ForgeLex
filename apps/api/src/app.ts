@@ -1119,6 +1119,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         total: execution.data.total,
         results: execution.data.items,
         criteria: execution.data.criteria,
+        ...(execution.data.ordering ? { ordering: execution.data.ordering } : {}),
         operationId: idempotencyKey,
       };
     } catch (error) {
