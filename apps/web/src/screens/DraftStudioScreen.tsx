@@ -199,6 +199,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   const [historyLoading, setHistoryLoading] = useState(false);
   const historyRequest = useRef(0);
   const selection = useRef(0);
+  const initialDraftOpened = useRef(false);
   const editingVersion=useRef<string>();
   const [matterContextReady,setMatterContextReady]=useState('');
   const hasApiAccess = Boolean(token.trim()) || authStatus === 'authenticated' || authStatus === 'legacy';
@@ -562,6 +563,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
         return;
       }
       // Bind the original receipt even if refreshing the current draft fails.
+      initialDraftOpened.current = true;
       setSelectedDraftId(response.draft.id);
       editingVersion.current = response.version.id;
       const savedSections = response.sections.map(({ ordinal, title, content, linkedFactIds, linkedEvidenceIds, linkedAuthorityIds, linkedThesisIds }) =>
@@ -617,7 +619,6 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   );
 
 
-  const initialDraftOpened=useRef(false);
   useEffect(()=>{
     const target=new URL(requestedLocation || window.location.href, window.location.origin).searchParams.get('draftId');
     if(!initialDraftOpened.current&&target&&selectedMatterId&&matterContextReady===selectedMatterId&&drafts.some(d=>d.id===target)){initialDraftOpened.current=true;void selectDraft(target,false,true);}
