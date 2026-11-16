@@ -1354,3 +1354,65 @@ CI remota iniciou nas seis frentes. Produção permanece inalterada: faltam gclo
 credenciais Google Cloud neste ambiente. Portanto backup, migrations, candidata sem
 tráfego e promoção ainda não foram executados. A autorização existe; o impedimento é
 acesso técnico, não ausência de outro aprovador. Nenhum achado foi fechado no Daybreak.
+
+## Fechamento das etapas parciais U2, U4 e U5 (16/11/2026)
+
+Sobre `main` em `2ccdc3f`, na branch `claude/frente-u-fechar-parciais` (PR #177). Boni pediu para fechar as etapas que
+estavam pela metade antes de seguir. Antes de agir, o estado real foi levantado por este registro, não pelas caixas do
+plano, que estavam desatualizadas (U0 e U1 apareciam abertas, embora aceitas em 11/11 e executadas em 12/11).
+
+**Decisões de Boni (16/11/2026).**
+
+| Etapa | Decisão                                                                                                                                                   |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U2    | Dividir `AgenticWorkspaceScreen` e `DraftStudioScreen` e fechar a etapa; a lista de casos fica na U7 e o painel de fontes na V3, que já eram delas.       |
+| U4    | Manter **uma peça por pedido** e fechar. Várias peças por pedido mudariam o contrato da execução e saem do escopo da U4; não se criam atalhos de teclado. |
+| U5    | Entra só a leitura de Word (.docx). Identificar a peça pelo PDF e salvar o anexo como documento do caso **não entram agora**. A OCR segue na U6.          |
+
+### O que foi feito
+
+| Etapa | Entrega                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U5    | **Word (.docx) nos anexos**, no navegador e só o texto (DEC-12), mostrado para conferência antes do envio. Lê o corpo e as notas de rodapé e de fim; texto inserido em alterações rastreadas entra, o apagado não; caixas de texto não se repetem. O XML não é lido como documento (entidades declaradas no arquivo não são expandidas) e cada parte descompactada tem teto de 20 MB contado em fluxo, contra pacote que expande demais. Arquivo acima de 15 MB é recusado sem ser lido. `.doc` antigo recebe orientação própria. Declara `jszip` 3.10.2 em `apps/web`, a versão que o `docx` já usava no bundle. |
+| U2    | `AgenticWorkspaceScreen` de 797 para 632 linhas e `DraftStudioScreen` de 916 para 809, com apresentação e modelo em `apps/web/src/desk/` (`ConversationHistory`, `ConversationParts`, `SupportingSurface`, `DraftStudioParts`, `draft-studio-model`). O JSX foi movido sem alterar o resultado no DOM.                                                                                                                                                                                                                                                                                                            |
+| U4    | Sem código novo: o conjunto entregue em 12/11 (voltar, alterar, excluir conversa e peça com Desfazer, chips de matéria como dica, auditoria) é o fechamento, com uma peça por pedido.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+
+**Limite honesto da U2.** A divisão é de **apresentação**. O estado e os fluxos assíncronos (que se entrelaçam por refs e
+por tickets de seleção) continuam dentro dos dois componentes. Não é a divisão em componentes pequenos que o plano
+descreve; é a que se conseguiu sem mudar comportamento, medida pelas suítes abaixo. Extrair a lógica, não só o JSX, é
+outra etapa e exige refatorar os fluxos com cobertura própria.
+
+### Adiado, com dono
+
+| Item                                                                                                                                                     | Onde fica                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Lista de casos na coluna esquerda da Mesa                                                                                                                | U7 (DEC-14)                                                                                    |
+| Painel de fontes à direita (hoje as fontes abrem em diálogo)                                                                                             | V3 (abas Texto, Fontes e Revisão)                                                              |
+| Várias peças por pedido                                                                                                                                  | Decisão de produto futura, junto de um modelo de pedido novo                                   |
+| Atalhos de teclado além do Esc                                                                                                                           | Desenho (conflito com o botão voltar do navegador e o desfazer de texto); sem etapa            |
+| Aviso "ainda não há apoio específico" quando peça ou matéria não têm ficha elegível (critério da U3)                                                     | **Aberto.** A U3 o deixou para a U4, que não o fez; precisa de decisão de Boni                 |
+| Chips de área, tribunal e peça no compositor (hoje só no resumo do pedido)                                                                               | U7 e V3                                                                                        |
+| Identificar a peça pela leitura do PDF                                                                                                                   | Aberto: precisa de campo próprio no contrato, para o servidor não devolver o anexo como pedido |
+| Salvar o anexo como documento do caso                                                                                                                    | Depende da U7                                                                                  |
+| Funções do editor avulso removidas na U1 (várias seções, painéis de tese e citação, adoção de texto da IA, histórico de conferências, salvar-e-conferir) | Continuam sendo decisão de produto de Boni, como registrado na U1                              |
+
+### Verificação
+
+| Item                              | Resultado                                                                                                                                                                                                                                                                                             |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vitest do web                     | 47 arquivos e 284 testes aprovados. O leitor de Word tem 23 testes (inclui ida e volta com o exportador do produto), com mutações conferidas; as duas que sobreviveram eram equivalentes e uma ganhou teste. `attachments.test.ts` cobre Word por MIME, vazio, erro, cancelamento e 15 MB.            |
+| Tipos, ESLint, Prettier           | Tipos do web sem erros; ESLint limpo em `desk`, `documents` e `agentic-workspace`; `format:check:code` aprovado. `DraftStudioScreen.tsx` está no `.prettierignore` e não foi reformatado.                                                                                                             |
+| Playwright, estado-base           | Rodado **antes** de refatorar: `writing-desk` 38 aprovados e 1 falho; `desk-shell` 30 e 1; `desk-guidance` 6; `desk-guidance-v3` 6; `desk-research` 2; `desk-review` 3; `desk-save-recovery` 4; `desk-procedure` 3; `desk-pilot` 4; `attachments` 4; `agentic-workspace` 25.                          |
+| Playwright, depois das duas telas | **Idêntico** ao estado-base, suíte por suíte, depois de cada tela. A única falha é a mesma nos dois momentos: `writing-desk.spec.ts:290`, em que o download do Word chega com o nome `download` em vez de `*.docx` neste ambiente. A CI passa esse spec em `main`; a causa local não foi investigada. |
+| Playwright, Word                  | `attachments` passou de 2 para 4 cenários: leitura real de um `.docx` com nota de rodapé, o texto seguindo com o pedido sem o arquivo, e um pacote corrompido com erro legível. O cenário "estados" trocou o `.docx` falso por um `.doc` legado.                                                      |
+| CI                                | Os commits intermediários do PR passaram na CI.                                                                                                                                                                                                                                                       |
+
+### Achado: suítes da Mesa fora da CI
+
+Nove suítes Playwright **não rodam na CI**: `attachments`, `desk-shell`, `desk-guidance`, `desk-guidance-v3`,
+`desk-pilot`, `desk-procedure`, `desk-research`, `desk-review` e `desk-save-recovery`. Várias cobrem recursos já ativos em
+produção (orientação guiada, v3, salvamento recuperável). Elas só protegem contra regressão na máquina de quem as roda.
+A proposta (um job `e2e-desk` em paralelo, em commit separado) depende de Boni; este fechamento não a inclui.
+
+Reversão: reverter os commits do PR #177; o leitor de Word fica atrás da flag de anexos
+(`VITE_FORGELEX_ATTACHMENTS_ENABLED`), desligada por padrão.
