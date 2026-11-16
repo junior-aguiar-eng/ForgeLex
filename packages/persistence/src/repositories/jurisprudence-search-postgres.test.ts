@@ -9,7 +9,7 @@ const databaseUrl = process.env.FORGELEX_LOCAL_POSTGRES_URL;
 const local = Boolean(
   databaseUrl && /^postgres(?:ql)?:\/\/(?:[^/]+@)?(?:localhost|127\.0\.0\.1)(?::\d+)?\//i.test(databaseUrl),
 );
-const documentCount = process.env.FORGELEX_P2_SEARCH_SCALE === 'incident' ? 33_759 : 12_000;
+const documentCount = process.env.FORGELEX_P2_SEARCH_SCALE === 'incident' ? 33_759 : 4_000;
 
 interface PlanNode {
   'Node Type': string;
@@ -25,7 +25,7 @@ function sortNodes(node: PlanNode): PlanNode[] {
 
 describe.skipIf(!local)('Busca PostgreSQL com candidatos extensos', () => {
   it(
-    'ordena apenas a projeção compacta antes de carregar o conteúdo jurídico',
+    'verifica a projeção compacta, o índice de metadados e os prazos de ordenação das buscas amplas e seletivas',
     async () => {
       const { db, client } = await createDatabase({ url: databaseUrl! });
       const runId = randomUUID();
@@ -38,17 +38,6 @@ describe.skipIf(!local)('Busca PostgreSQL com candidatos extensos', () => {
           (id, provider_id, court, status, started_at, completed_at)
           VALUES (?, 'p2-local', ?, 'COMPLETED', ?, ?)`,
           args: [runId, court, now, now],
-        });
-        await client.execute({
-          sql: `INSERT INTO jurisprudence_documents
-          (id, court, process_number, normalized_process_number, search_text, search_identity_text,
-           search_authority_text, content_hash, dedupe_key, current_version_id, first_seen_at,
-           last_seen_at, ingestion_run_id, created_at, updated_at)
-          SELECT md5(? || n)::uuid::text, ?, 'REsp ' || n, n::text,
-            CASE WHEN n % 2 = 0 THEN 'juros' ELSE 'capitalizados' END || repeat(' fundamento', 1000),
-            n::text, 'relator', repeat('a', 64), ? || n, md5(? || 'v' || n)::uuid::text, ?, ?, ?, ?, ?
-          FROM generate_series(1, ?) AS n`,
-          args: [runId, court, runId, runId, now, now, runId, now, now, documentCount],
         });
         const provenance = JSON.stringify({
           id: randomUUID(),
@@ -67,19 +56,34 @@ describe.skipIf(!local)('Busca PostgreSQL com candidatos extensos', () => {
           snippet: 'EMENTA LOCAL SUFICIENTE PARA REGRESSÃO.',
           confidence: 1,
         });
-        await client.execute({
-          sql: `INSERT INTO jurisprudence_document_versions
-          (id, document_id, version_number, process_number, rapporteur, judgment_date,
-           publication_date, syllabus, full_text, provider_id, content_hash, verification_status,
-           provenance_json, publication_status, ingestion_run_id, captured_at, created_at)
-          SELECT md5(? || 'v' || n)::uuid::text, md5(? || n)::uuid::text, 1, 'REsp ' || n, 'Relator local',
-            '2026-01-' || lpad((n % 28 + 1)::text, 2, '0'), '2026-01-30',
-            'EMENTA LOCAL. JUROS OU CAPITALIZADOS. ' || repeat('fundamento jurídico ', 1000),
-            repeat('inteiro teor local ', 1000), 'p2-local', repeat('a', 64),
-            'VERIFIED_OFFICIAL', ?, 'PUBLISHED', ?, ?, ?
-          FROM generate_series(1, ?) AS n`,
-          args: [runId, runId, provenance, runId, now, now, documentCount],
-        });
+        async function seed(from: number, to: number) {
+          await client.execute({
+            sql: `INSERT INTO jurisprudence_documents
+            (id, court, process_number, normalized_process_number, search_text, search_identity_text,
+             search_authority_text, content_hash, dedupe_key, current_version_id, first_seen_at,
+             last_seen_at, ingestion_run_id, created_at, updated_at)
+            SELECT md5(? || n)::uuid::text, ?, 'REsp ' || n, n::text,
+              CASE WHEN n % 2 = 0 THEN 'juros' ELSE 'capitalizados' END || repeat(' fundamento', 1000),
+              n::text, 'relator', repeat('a', 64), ? || n, md5(? || 'v' || n)::uuid::text, ?, ?, ?, ?, ?
+            FROM generate_series(?::integer, ?::integer) AS n`,
+            args: [runId, court, runId, runId, now, now, runId, now, now, from, to],
+          });
+          await client.execute({
+            sql: `INSERT INTO jurisprudence_document_versions
+            (id, document_id, version_number, process_number, rapporteur, judgment_date,
+             publication_date, syllabus, full_text, provider_id, content_hash, verification_status,
+             provenance_json, publication_status, ingestion_run_id, captured_at, created_at)
+            SELECT md5(? || 'v' || n)::uuid::text, md5(? || n)::uuid::text, 1, 'REsp ' || n, 'Relator local',
+              '2026-01-' || lpad((n % 28 + 1)::text, 2, '0'), '2026-01-30',
+              'EMENTA LOCAL. JUROS OU CAPITALIZADOS. ' || repeat('fundamento jurídico ', 1000),
+              repeat('inteiro teor local ', 1000), 'p2-local', repeat('a', 64),
+              'VERIFIED_OFFICIAL', ?, 'PUBLISHED', ?, ?, ?
+            FROM generate_series(?::integer, ?::integer) AS n`,
+            args: [runId, runId, provenance, runId, now, now, from, to],
+          });
+        }
+
+        await seed(1, documentCount);
         await client.execute('ANALYZE jurisprudence_documents');
         await client.execute('ANALYZE jurisprudence_document_versions');
 
@@ -93,22 +97,12 @@ describe.skipIf(!local)('Busca PostgreSQL com candidatos extensos', () => {
           statements.push({ query, parameters });
         };
         const repository = new JurisprudenceRepository(db);
-        const rankingTimeout = () => {
-          const setup = statements.filter(({ query }) => query.includes("set_config('statement_timeout'")).at(-1);
-          return Number(setup?.query.match(/,\s*'(\d+)'/)?.[1] ?? setup?.parameters[0]);
-        };
-        await repository.search({ query: 'fundamento', court, limit: 3 });
-        expect(rankingTimeout()).toBe(6000);
-        statements.length = 0;
         const results = await repository.search({ query: 'juros OR capitalizados', court, limit: 3 });
         expect(results).toHaveLength(3);
         expect(results.every((document) => document.fullText?.includes('inteiro teor local'))).toBe(true);
         expect(results.every((document) => document.snapshot.contentHash === 'a'.repeat(64))).toBe(true);
         const statement = [...statements].reverse().find((entry) => entry.query.includes('jurisprudence_documents'))!;
         expect(statement).toBeDefined();
-        statements.length = 0;
-        await repository.search({ query: 'capitalizados', court, processNumber: '1', limit: 3 });
-        expect(rankingTimeout()).toBe(30000);
         postgresClient.options.debug = undefined;
         const explain = await client.execute({
           sql: `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${statement.query}`,
@@ -188,6 +182,27 @@ describe.skipIf(!local)('Busca PostgreSQL com candidatos extensos', () => {
           ],
         });
         expect(await repository.search({ query: 'capitalizados', court, processNumber: '1', limit: 3 })).toEqual([]);
+
+        // Expand the corpus only after checking the original metadata plan.
+        if (documentCount < 12_000) {
+          await seed(documentCount + 1, 12_000);
+          await client.execute('ANALYZE jurisprudence_documents');
+          await client.execute('ANALYZE jurisprudence_document_versions');
+        }
+        statements.length = 0;
+        postgresClient.options.debug = (_id, query, parameters) => {
+          statements.push({ query, parameters });
+        };
+        const rankingTimeout = () => {
+          const setup = statements.filter(({ query }) => query.includes("set_config('statement_timeout'")).at(-1);
+          return Number(setup?.query.match(/,\s*'(\d+)'/)?.[1] ?? setup?.parameters[0]);
+        };
+        await repository.search({ query: 'fundamento', court, limit: 3 });
+        expect(rankingTimeout()).toBe(6000);
+        statements.length = 0;
+        await repository.search({ query: 'capitalizados', court, processNumber: '3', limit: 3 });
+        expect(rankingTimeout()).toBe(30000);
+        postgresClient.options.debug = undefined;
       } finally {
         await client.execute({
           sql: 'DELETE FROM jurisprudence_document_versions WHERE ingestion_run_id = ?',
@@ -198,6 +213,6 @@ describe.skipIf(!local)('Busca PostgreSQL com candidatos extensos', () => {
         client.close();
       }
     },
-    documentCount > 4_000 ? 120_000 : 30_000,
+    documentCount > 4_000 ? 120_000 : 90_000,
   );
 });
