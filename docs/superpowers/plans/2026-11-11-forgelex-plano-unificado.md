@@ -312,34 +312,34 @@ estrutura e o comportamento; a pele visual vem depois, em V3.
 
 ### U0 — Inventário da Mesa
 
-**Situação em 12/11.** Inventário registrado e integrado no PR #139.
+**Situação em 12/11.** Inventário registrado e integrado no PR #139. Classificação aprovada por Boni em 11/11/2026 (aceite da U0).
 
 Depende de E1 e M1. Só leitura; produz a lista do que sai.
 
-- [ ] Registrar em E1 as flags de produção `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED` e
+- [x] Registrar em E1 as flags de produção `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED` e
       `VITE_FORGELEX_CASE_WORKSPACE_ENABLED`. Hoje `App.tsx` define `integrated` como as duas ligadas: com
       `integrated`, `WritingDeskScreen` envolve `AgenticWorkspaceScreen`, `DraftStudioScreen` e `DashboardScreen`; sem
       ela, `AgenticWorkspaceScreen` e `DraftStudioScreen` aparecem sozinhas em `/app/trabalho` e `/app/rascunhos`.
       São as duas Mesas.
-- [ ] Listar o que existe nos dois caminhos: telas (`WritingDeskScreen` 337 linhas, `AgenticWorkspaceScreen` 858,
+- [x] Listar o que existe nos dois caminhos: telas (`WritingDeskScreen` 337 linhas, `AgenticWorkspaceScreen` 858,
       `DraftStudioScreen` 1.156, `DashboardScreen` 54, `ResearchDeskScreen` 150), rotas e abas.
-- [ ] Rodar um relatório de código sem uso (por exemplo, `knip`, só em modo relatório) e `rg` por exemplos, dados de
+- [x] Rodar um relatório de código sem uso (por exemplo, `knip`, só em modo relatório) e `rg` por exemplos, dados de
       demonstração e textos de teste visíveis na interface. Nada é apagado nesta etapa.
-- [ ] Classificar cada item: `mantém`, `migra para a Mesa nova`, `remove`. Boni aprova a lista.
+- [x] Classificar cada item: `mantém`, `migra para a Mesa nova`, `remove`. Boni aprova a lista.
 
 **Aceite.** Lista aprovada por Boni, com evidência de uso. **Reversão.** Não se aplica.
 
 ### U1 — Remover duplicidade e código morto
 
-**Situação em 12/11.** Mesa única publicada em `b4c76e0`, com testes de revisão e acessibilidade migrados.
+**Situação em 12/11.** Mesa única publicada em `b4c76e0`, com testes de revisão e acessibilidade migrados. Resta sem registro de execução o último item (exemplos e dados de demonstração mortos); as funções do editor avulso removidas são decisão de produto de Boni.
 
 Depende de U0 e da confirmação das flags em produção.
 
-- [ ] Eliminar o caminho não integrado em `App.tsx` (`!integrated`) e fazer `/app/rascunhos` e `/app/revisao`
+- [x] Eliminar o caminho não integrado em `App.tsx` (`!integrated`) e fazer `/app/rascunhos` e `/app/revisao`
       redirecionarem para a Mesa, preservando links.
-- [ ] Remover o que a lista de U0 marcou como `remove`, em commits pequenos por área na branch da frente, cada um
+- [x] Remover o que a lista de U0 marcou como `remove`, em commits pequenos por área na branch da frente, cada um
       com os testes correspondentes removidos ou migrados no mesmo commit.
-- [ ] Com DEC-11: manter o piloto fechado enquanto servir a testes, isolado fora da Mesa nova (`ClosedPilotPanel` e
+- [x] Com DEC-11: manter o piloto fechado enquanto servir a testes, isolado fora da Mesa nova (`ClosedPilotPanel` e
       `closed-pilot*.ts` não entram no `DeskShell`).
 - [ ] Remover exemplos e dados de demonstração mortos da interface e das fixtures não usadas.
 
@@ -348,17 +348,17 @@ nenhuma rota órfã. **Reversão.** Reverter o commit da área; remoções de da
 
 ### U2 — Nova estrutura da Mesa
 
-**Situação em 12/11.** Casca e atalhos publicados com a flag ligada. A divisão das telas e as partes previstas para V3 e U7 permanecem abertas.
+**Situação em 16/11.** Fechada por decisão de Boni. Casca e atalhos publicados com a flag ligada; as duas telas foram divididas **em apresentação** (797 para 632 e 916 para 809 linhas), com o estado e os fluxos assíncronos ainda dentro delas. A lista de casos na coluna esquerda fica na U7 e o painel de fontes à direita na V3. Suítes da Mesa idênticas ao estado-base antes e depois. Ver [registro de fechamento](../../architecture/2026-11-10-mesa-guiada-execucao.md#fechamento-das-etapas-parciais-u2-u4-e-u5-16112026).
 
 Depende de U1. Atrás de flag (`VITE_FORGELEX_DESK_SHELL`), desligada por padrão.
 
-- [ ] Dividir `AgenticWorkspaceScreen` e `DraftStudioScreen` em componentes menores sob `apps/web/src/desk/`, sem
+- [x] Dividir `AgenticWorkspaceScreen` e `DraftStudioScreen` em componentes menores sob `apps/web/src/desk/`, sem
       mudar comportamento (refatoração com os testes atuais passando).
-- [ ] Casca única `DeskShell`: coluna de conversas e casos recolhível à esquerda; conversa no centro, com compositor
+- [x] Casca única `DeskShell`: coluna de conversas e casos recolhível à esquerda; conversa no centro, com compositor
       fixo no rodapé; painel da peça e das fontes à direita, aberto sob demanda. Abaixo de `lg`, alternância
       Conversa/Peça.
-- [ ] Estado vazio com o compositor em destaque e atalhos para os fluxos comuns (nova peça, revisar texto, pesquisar).
-- [ ] Preservar o buffer da peça ao abrir fonte, trocar de aba ou responder (A07, A09).
+- [x] Estado vazio com o compositor em destaque e atalhos para os fluxos comuns (nova peça, revisar texto, pesquisar).
+- [x] Preservar o buffer da peça ao abrir fonte, trocar de aba ou responder (A07, A09).
 
 **Verificação.** `playwright.writing-desk.config.ts`, `playwright.desk-guidance.config.ts` e capturas desktop e
 celular. **Aceite.** Mesma funcionalidade da Mesa atual na nova estrutura. **Reversão.** Desligar a flag.
@@ -391,7 +391,7 @@ peça em uso, e a seleção interna registra a ficha usada. **Reversão.** Flag;
 
 ### U4 — Ações: voltar, alterar, excluir, adicionar
 
-**Situação em 12/11.** Publicados o retorno na orientação, excluir e restaurar conversa e peça com Desfazer, auditoria e chips de matéria como dica. O modelo de múltiplas peças no pedido e os atalhos adicionais seguem abertos.
+**Situação em 16/11.** Fechada por decisão de Boni, com **uma peça por pedido**: publicados o retorno na orientação, excluir e restaurar conversa e peça com Desfazer, auditoria e chips de matéria como dica. Várias peças por pedido e atalhos além do Esc ficam fora. **Herdado da U3 e ainda aberto:** o aviso "ainda não há apoio específico" quando peça ou matéria não têm ficha elegível; precisa de decisão. Ver [registro de fechamento](../../architecture/2026-11-10-mesa-guiada-execucao.md#fechamento-das-etapas-parciais-u2-u4-e-u5-16112026).
 
 Depende de U3. Regra geral: toda ação destrutiva é reversível por padrão (arquivar com “Desfazer”); exclusão
 definitiva só na lixeira, com confirmação (`ConfirmationDialog`).
@@ -407,26 +407,26 @@ definitiva só na lixeira, com confirmação (`ConfirmationDialog`).
 | Excluir anexo                     | Chip do anexo                              | Retira do pedido; remove o texto salvo conforme o caso     | A criar com U5                                                                 |
 | Nova peça, nova conversa          | Cabeçalho da Mesa                          | Abre fluxo limpo                                           | Parcial                                                                        |
 
-- [ ] Cada ação com rótulo acessível, foco previsível, atalho de teclado onde fizer sentido e registro de auditoria.
-- [ ] Rota de exclusão e restauração de rascunho, se a verificação mostrar que não existe, com testes.
-- [ ] Nenhuma ação destrutiva consome saldo nem interrompe execução paga sem aviso.
+- [x] Cada ação com rótulo acessível, foco previsível, atalho de teclado onde fizer sentido e registro de auditoria.
+- [x] Rota de exclusão e restauração de rascunho, se a verificação mostrar que não existe, com testes.
+- [x] Nenhuma ação destrutiva consome saldo nem interrompe execução paga sem aviso.
 
 **Aceite.** Cada ação testada em E2E, com desfazer funcional. **Reversão.** Flag por grupo de ações.
 
 ### U5 — Anexos
 
-**Situação em 12/11.** PDF com texto, TXT e MD publicados. DOCX, OCR, identificação da peça pelo PDF e gravação como documento do caso seguem fora desse recorte.
+**Situação em 16/11.** PDF com texto, TXT, MD e **Word (.docx)** lidos no navegador (só o texto, atrás de `VITE_FORGELEX_ATTACHMENTS_ENABLED`). Imagens aguardam a U6 (OCR). **Adiados, por decisão de Boni:** identificar a peça pela leitura do PDF (precisa de campo próprio no contrato) e salvar o anexo como documento do caso (depende da U7); por isso o item de identificação segue desmarcado. Ver [registro de fechamento](../../architecture/2026-11-10-mesa-guiada-execucao.md#fechamento-das-etapas-parciais-u2-u4-e-u5-16112026).
 
 Depende de U4 e DEC-12.
 
-- [ ] Botão de clipe no compositor para anexar PDF, DOCX, TXT e imagens. A extração de PDF reaproveita
+- [x] Botão de clipe no compositor para anexar PDF, DOCX, TXT e imagens. A extração de PDF reaproveita
       `extractPdfText` (hoje usada só na tela de casos): limite de 15 MB e 300 páginas.
-- [ ] Anexo vira chip no pedido; pode ser aberto, trocado ou removido. Pode alimentar “revisar um texto” e a análise
+- [x] Anexo vira chip no pedido; pode ser aberto, trocado ou removido. Pode alimentar “revisar um texto” e a análise
       de documentos, e ser salvo no caso como documento.
-- [ ] Armazenar somente o texto, conforme DEC-12, com aviso claro ao cliente.
+- [x] Armazenar somente o texto, conforme DEC-12, com aviso claro ao cliente.
 - [ ] **Identificação pela leitura do PDF:** o texto extraído alimenta a mesma hipótese de U3 (área, tribunal e
       peça), confirmada pelo cliente. Segue consentimento e custo vigentes; o PDF não escolhe nada sozinho.
-- [ ] Estados: lendo, concluído, sem texto extraível (oferece OCR em U6), erro, arquivo grande demais.
+- [x] Estados: lendo, concluído, sem texto extraível (oferece OCR em U6), erro, arquivo grande demais.
 
 **Aceite.** Anexar, revisar e remover por teclado e por clique. **Reversão.** Flag de anexos.
 

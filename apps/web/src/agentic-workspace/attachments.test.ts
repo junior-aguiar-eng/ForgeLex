@@ -57,8 +57,50 @@ describe('leitura de anexos (U5)', () => {
     const image = await readAttachment(file('foto.png', 'x', 'image/png'));
     expect(image.status).toBe('no-text');
     expect(image.message).toMatch(/OCR/);
-    expect((await readAttachment(file('minuta.docx', 'x'))).status).toBe('unsupported');
+    const legacy = await readAttachment(file('minuta.doc', 'x'));
+    expect(legacy.status).toBe('unsupported');
+    expect(legacy.message).toMatch(/\.docx/);
     expect((await readAttachment(file('planilha.xlsx', 'x'))).status).toBe('unsupported');
+  });
+
+  it('Word (.docx) usa o leitor do Word, sem páginas, e mostra o texto para conferência', async () => {
+    const reader = async () => ({ content: '  Dos fatos\nO autor alega dano.  ' });
+    const result = await readAttachment(file('peticao.docx', 'x'), undefined, undefined, reader);
+    expect(result).toEqual({ status: 'done', text: 'Dos fatos\nO autor alega dano.' });
+    // O tipo MIME basta quando o nome não tem a extensão.
+    const mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    expect((await readAttachment(file('sem-extensao', 'x', mime), undefined, undefined, reader)).status).toBe('done');
+  });
+
+  it('Word sem texto vira "sem texto extraível" e não promete OCR que não existe para Word', async () => {
+    const result = await readAttachment(file('so-imagens.docx', 'x'), undefined, undefined, async () => ({
+      content: ' \n ',
+    }));
+    expect(result.status).toBe('no-text');
+    expect(result.message).toMatch(/Word/);
+    expect(result.message).not.toMatch(/OCR/);
+  });
+
+  it('Word protegido ou corrompido vira erro legível; o cancelamento continua propagando', async () => {
+    const failing = async () => {
+      throw new Error('Não foi possível abrir o arquivo Word.');
+    };
+    expect(await readAttachment(file('a.docx', 'x'), undefined, undefined, failing)).toEqual({
+      status: 'error',
+      text: '',
+      message: 'Não foi possível abrir o arquivo Word.',
+    });
+    const controller = new AbortController();
+    controller.abort();
+    await expect(readAttachment(file('a.docx', 'x'), controller.signal, undefined, failing)).rejects.toThrow();
+  });
+
+  it('Word acima de 15 MB é recusado antes de ler', async () => {
+    const big = file('grande.docx', new Uint8Array(15 * 1024 * 1024 + 1));
+    const result = await readAttachment(big, undefined, undefined, async () => {
+      throw new Error('não deveria ler');
+    });
+    expect(result.status).toBe('too-large');
   });
 
   it('arquivo grande demais é recusado antes de ler', async () => {

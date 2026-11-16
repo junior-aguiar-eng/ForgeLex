@@ -28,7 +28,7 @@ export function AttachButton({
         type="button"
         disabled={disabled || full}
         aria-label="Anexar arquivo"
-        title={full ? `Até ${ATTACHMENT_MAX_FILES} anexos por pedido` : 'Anexar PDF, TXT ou MD'}
+        title={full ? `Até ${ATTACHMENT_MAX_FILES} anexos por pedido` : 'Anexar PDF, Word, TXT ou MD'}
         className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-stone-700 hover:bg-ivory-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-700 disabled:opacity-50"
         onClick={() => input.current?.click()}
       >

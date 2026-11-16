@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import JSZip from 'jszip';
 
 async function login(page: Page) {
   await page.goto('/entrar');
@@ -31,6 +32,25 @@ function pdfWith(text: string): Buffer {
   for (const offset of offsets) body += `${String(offset).padStart(10, '0')} 00000 n \n`;
   body += `trailer\n<</Size ${objects.length + 1}/Root 1 0 R>>\nstartxref\n${xref}\n%%EOF`;
   return Buffer.from(body, 'latin1');
+}
+
+/** Pacote .docx mínimo e válido: corpo com um parágrafo e uma nota de rodapé, para exercitar a leitura de verdade. */
+async function docxWith(paragraph: string, footnote: string): Promise<Buffer> {
+  const ns = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const zip = new JSZip();
+  zip.file(
+    '[Content_Types].xml',
+    '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>',
+  );
+  zip.file(
+    'word/document.xml',
+    `<?xml version="1.0"?><w:document ${ns}><w:body><w:p><w:r><w:t>${paragraph}</w:t></w:r></w:p></w:body></w:document>`,
+  );
+  zip.file(
+    'word/footnotes.xml',
+    `<?xml version="1.0"?><w:footnotes ${ns}><w:footnote w:id="1"><w:p><w:r><w:t>${footnote}</w:t></w:r></w:p></w:footnote></w:footnotes>`,
+  );
+  return Buffer.from(await zip.generateAsync({ type: 'uint8array' }));
 }
 
 const attach = (page: Page) => page.getByLabel('Escolher arquivos para anexar');
@@ -109,11 +129,7 @@ test('estados: sem texto extraível, formato não aceito, arquivo vazio e limite
   await login(page);
   await attach(page).setInputFiles([
     { name: 'foto.png', mimeType: 'image/png', buffer: Buffer.from('x') },
-    {
-      name: 'minuta.docx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      buffer: Buffer.from('x'),
-    },
+    { name: 'legado.doc', mimeType: 'application/msword', buffer: Buffer.from('x') },
     { name: 'vazio.txt', mimeType: 'text/plain', buffer: Buffer.from('') },
   ]);
   await expect(page.getByText('Sem texto extraível')).toBeVisible();
@@ -146,4 +162,48 @@ test('estados: sem texto extraível, formato não aceito, arquivo vazio e limite
   await expect(page.getByText('Limite de 5 anexos por pedido.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Anexar arquivo' })).toBeDisabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+});
+
+test('Word (.docx): lê o corpo e as notas, mostra o texto para conferência e só ele segue com o pedido', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 980 });
+  await login(page);
+  await attach(page).setInputFiles({
+    name: 'peticao.docx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    buffer: await docxWith('Excelentíssimo Senhor Juiz, o autor requer a tutela.', 'REsp 1.234/SP'),
+  });
+  await expect(list(page).getByText('Texto extraído')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Abrir o texto do anexo: peticao.docx' }).click();
+  const region = page.getByRole('region', { name: 'Texto do anexo: peticao.docx' });
+  await expect(region).toContainText('o autor requer a tutela.');
+  await expect(region).toContainText('Notas de rodapé:');
+  await expect(region).toContainText('[1] REsp 1.234/SP');
+
+  const message = 'Revisar a petição anexada.';
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill(message);
+  let sent: any;
+  await page.route('**/api/agentic/executions', async (route) => {
+    sent = route.request().postDataJSON();
+    await route.fulfill({ status: 503, json: { error: 'SYNTHETIC_STOP' } });
+  });
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect.poll(() => sent).toBeTruthy();
+  expect(sent.context.text).toContain('Anexo "peticao.docx" (texto extraído):');
+  expect(sent.context.text).toContain('o autor requer a tutela.');
+  expect(JSON.stringify(sent)).not.toMatch(/wordprocessingml|base64|PK/);
+});
+
+test('Word (.docx) corrompido ou protegido: erro legível e nada entra no pedido', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 980 });
+  await login(page);
+  await attach(page).setInputFiles({
+    name: 'protegido.docx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    buffer: Buffer.from('isto não é um pacote do Word'),
+  });
+  await expect(page.getByText('Erro na leitura')).toBeVisible();
+  await expect(list(page).getByRole('note')).toContainText('protegido por senha, corrompido');
 });

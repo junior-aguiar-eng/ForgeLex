@@ -15,7 +15,7 @@ export const DESK_ENABLED = isDeskEnabled(CASE_WORKSPACE_ENABLED, AGENTIC_WORKSP
 /** Nova casca da Mesa (U2): atalhos no estado vazio. Desligada por padrão; ligada só com `true` exato. */
 export const DESK_SHELL_ENABLED = import.meta.env.VITE_FORGELEX_DESK_SHELL === 'true';
 
-/** Anexos no compositor da Mesa (U5): PDF, TXT e MD, só o texto. Desligados por padrão; ligados só com `true` exato. */
+/** Anexos no compositor da Mesa (U5): PDF, Word (.docx), TXT e MD, só o texto. Desligados por padrão; ligados só com `true` exato. */
 export const ATTACHMENTS_ENABLED = import.meta.env.VITE_FORGELEX_ATTACHMENTS_ENABLED === 'true';
 
 /** Chips de matéria no compositor da Mesa (U4): a Mesa sugere uma matéria por vez. Desligados por padrão. */
