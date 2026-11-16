@@ -8,8 +8,9 @@ acompanhamento da revisão (#159–#162, #164, #165) estão **integrados em `mai
 (`research memo` por apps conectados via OAuth, só dentro do MCP), que não é correção
 Daybreak, mas também está em `main` e fora de produção. O conjunto local passou 2.256
 testes (27 pulados), build, lint, tipos, formatação de código e fase 7 com PostgreSQL,
-antes dos PRs de acompanhamento; a CI pós-merge de `bbda500` não foi conferida na
-elaboração deste registro.
+antes dos PRs de acompanhamento. A CI do push em `main` passou em `bbda500` e em `d42337d`
+(conferida em 16/11/2026). Checklist de deploy:
+[docs/operations/daybreak/2026-11-16-deploy-checklist.md](docs/operations/daybreak/2026-11-16-deploy-checklist.md).
 
 **Nada disso está publicado.** Produção segue no último registro de publicação
 (`cd94c2c`, mais a revisão `draftsave`). Pendem, nesta ordem e com acesso Google Cloud
