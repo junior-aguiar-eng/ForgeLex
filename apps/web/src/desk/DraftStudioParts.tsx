@@ -97,7 +97,7 @@ export function ReviewDialog({
   onClose,
 }: {
   details: DraftDetails;
-  requestedVersion?: string;
+  requestedVersion?: string | null;
   /** A versão pedida na URL não é a aberta: mostra o histórico, sem ações. */
   historyMode: boolean;
   historyLoading: boolean;

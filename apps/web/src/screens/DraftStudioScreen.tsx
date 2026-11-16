@@ -1,4 +1,4 @@
-import { CanvasDialog, DraftCanvas } from './draft-review/DraftCanvas';
+import { DraftCanvas } from './draft-review/DraftCanvas';
 import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
 import { hasDeskPiece, selectDeskPiece, type DeskDocumentSelection } from '../agentic-workspace/desk-selection';
 import { deskLocation, readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
@@ -9,141 +9,30 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ReviewPanel } from './draft-review/ReviewPanel';
 import { SourcePanel } from './draft-review/SourcePanel';
 import { DocumentReaderDialog } from '../components/DocumentReaderDialog';
-import { UndoNotice } from '../components/UndoNotice';
-import type { DocumentReference, DocumentSource } from '../documents/document-reader-model';
-import { type DraftReviewRun, type ReviewPoint, type DraftReviewFinding } from './draft-review/review-model';
-import { ApiRequestError, requestApiWithToken, requestApi } from '../api-client';
+import type { DocumentSource } from '../documents/document-reader-model';
+import { type DraftReviewRun, type ReviewPoint } from './draft-review/review-model';
+import { ApiRequestError, requestApi } from '../api-client';
 import { pendingDraftSaveKey, readPendingDraftSave, storePendingDraftSave } from '../documents/draft-save-session';
 import type { } from './draft-ai/received-draft-model';
 import { useAuth } from '../auth/AuthContext';
 import type { Delivery } from '../agentic-workspace/execution-model';
 
-interface Matter {
-  id: string;
-  title: string;
-  practiceArea?: string;
-  jurisdiction?: string;
-}
-
-interface Draft {
-  id: string;
-  matterId: string;
-  title: string;
-  status: 'DRAFT' | 'IN_REVIEW' | 'APPROVAL_PENDING' | 'APPROVED' | 'REJECTED' | 'ARCHIVED';
-  currentVersionId?: string;
-  updatedAt: string;
-}
-
-interface DraftSection {
-  id: string;
-  ordinal: number;
-  title: string;
-  content: string;
-  linkedFactIds: string[];
-  linkedEvidenceIds: string[];
-  linkedAuthorityIds: string[];
-  linkedThesisIds: string[];
-}
-
-interface LegalIssue {
-  id: string;
-  statement: string;
-  status: string;
-}
-
-interface Fact {
-  id: string;
-  statement: string;
-}
-
-interface EvidenceItem {
-  id: string;
-  title: string;
-}
-
-interface SavedAuthority {
-  id: string;
-  authority: { court: string; processNumber: string; syllabus: string };
-}
-
-interface LegalThesis {
-  id: string;
-  title: string;
-  statement: string;
-  issueIds: string[];
-  factIds: string[];
-  evidenceIds: string[];
-  authorityIds: string[];
-}
-
-interface DraftVersion {
-  id: string;
-  versionNumber: number;
-  contentHash: string;
-  status: Draft['status'];
-  createdAt: string;
-}
-
-
-interface DraftDetails {
-  draft: Draft;
-  currentVersion?: { version: DraftVersion; sections: DraftSection[]; citations: Citation[] };
-  versions: DraftVersion[];
-  reviewFindings: DraftReviewFinding[];
-  latestReviewRun?: DraftReviewRun;
-  currentReviewRun?: DraftReviewRun;
-  reviewContextChanged: boolean;
-  documentReferences?: DocumentReference[];
-  approvals?: {id:string;draftVersionId:string;status:string}[];
-}
-
-interface DraftWriteResponse {
-  draft: Draft;
-  version: DraftVersion;
-  sections: DraftSection[];
-  citations: Citation[];
-}
-
-interface Citation {
-  id: string;
-  sectionId: string;
-  targetType: 'AUTHORITY' | 'FACT' | 'EVIDENCE';
-  targetId: string;
-  citationText: string;
-  verified: boolean;
-}
-
-interface EditableSection {
-  ordinal?: number;
-  title: string;
-  content: string;
-  linkedFactIds: string[];
-  linkedEvidenceIds: string[];
-  linkedAuthorityIds: string[];
-  linkedThesisIds: string[];
-}
-
-
-function initialToken(): string {
-  try {
-    return window.localStorage.getItem('forgelex_api_token') ?? '';
-  } catch {
-    return '';
-  }
-}
-
-async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
-  return requestApiWithToken<T>(path, token, init);
-}
-
-const statusLabel: Record<Draft['status'], string> = {
-  DRAFT: 'Rascunho',
-  IN_REVIEW: 'Em revisão',
-  APPROVAL_PENDING: 'Aguardando aprovação',
-  APPROVED: 'Aprovado',
-  REJECTED: 'Rejeitado',
-  ARCHIVED: 'Arquivado',
-};
+import {
+  initialToken,
+  request,
+  type Citation,
+  type Draft,
+  type DraftDetails,
+  type DraftWriteResponse,
+  type EditableSection,
+  type EvidenceItem,
+  type Fact,
+  type LegalIssue,
+  type LegalThesis,
+  type Matter,
+  type SavedAuthority,
+} from '../desk/draft-studio-model';
+import { ApprovalDialog, CreateCaseControls, PieceNotices, ReviewDialog, VersionHistory } from '../desk/DraftStudioParts';
 
 export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void; onCaseSources?: () => void; requestedReview?: DeskDocumentSelection; deskEditorialEnabled?: boolean }> = ({ requestedLocation, selectedVersionId, onPieceChange, onCaseSources, requestedReview, deskEditorialEnabled = false }) => {
   const emptySections = () => [{title:'Texto da peça',content:'',linkedFactIds:[],linkedEvidenceIds:[],linkedAuthorityIds:[],linkedThesisIds:[]}];
@@ -809,15 +698,19 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
                   }
                   setPoint(undefined);
                 }} />;
-  const approvalModal = approvalConfirmation && <dialog ref={approvalDialog} aria-labelledby="draft-approval-title" onCancel={(event)=>{if(busy)event.preventDefault();else setApprovalConfirmation(null);}} className="rounded-2xl p-6 max-w-lg w-[calc(100%-2rem)] backdrop:bg-stone-900/50">
-          <h2 id="draft-approval-title" className="text-xl font-bold">Aprovar esta versão</h2>
-          <p className="mt-3">{draftTitle} · Versão {approvalConfirmation.versionNumber}</p>
-          <p className="mt-3 text-sm">Você registra sua decisão sobre esta versão. A conferência automática não confirma a veracidade dos fatos nem a pertinência jurídica. Esta ação não publica ou envia o documento.</p>
-          <ul className="mt-3 space-y-2 text-sm text-amber-900">{details?.latestReviewRun?.checks.filter(c=>c.state!=='CONFIRMED'&&c.state!=='NOT_APPLICABLE').map((c,i)=><li key={i}>{c.message}</li>)}</ul>
-          <p className="mt-3 text-sm">{details?.latestReviewRun?.checks.filter(c=>c.state!=='CONFIRMED'&&c.state!=='NOT_APPLICABLE').length ?? 0} pontos de atenção na conferência. Consulte os alertas antes de confirmar.</p>
-          {error && <p role="alert" className="mt-3 text-red-700">{error}</p>}
-          <div className="mt-5 flex gap-3"><button type="button" className="btn-primary" disabled={busy || reviewTargetMismatch || !approvalReady || caseUnavailable} onClick={()=>void requestApproval()}>Confirmar aprovação</button><button type="button" className="btn-secondary" disabled={busy} onClick={()=>setApprovalConfirmation(null)}>Voltar à conferência</button></div>
-        </dialog>;
+  const approvalModal = approvalConfirmation && (
+    <ApprovalDialog
+      dialogRef={approvalDialog}
+      title={draftTitle}
+      versionNumber={approvalConfirmation.versionNumber}
+      attention={details?.latestReviewRun?.checks.filter(c => c.state !== 'CONFIRMED' && c.state !== 'NOT_APPLICABLE')}
+      error={error}
+      busy={busy}
+      confirmDisabled={busy || reviewTargetMismatch || !approvalReady || caseUnavailable}
+      onConfirm={() => void requestApproval()}
+      onCancel={() => setApprovalConfirmation(null)}
+    />
+  );
   const activeVersion = details?.currentVersion?.version;
   const editorialVersionId = requestedVersion ?? activeVersion?.id;
   const editorialDelivery = importDeliveryId && expectedWorkVersion === editorialVersionId
@@ -839,38 +732,41 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
     </>
   );
   const reviewModal = reviewOpenFor && reviewOpenFor === selectedDraftId && details && (
-    <CanvasDialog title="Conferência da peça" onClose={() => setReviewOpenFor(undefined)}>
-      {reviewTargetMismatch ? (
-        <div className="space-y-3">
-          <p role="status">Histórico da versão {details.versions.find((v) => v.id === requestedVersion)?.versionNumber ?? 'solicitada'}. Somente leitura.</p>
-          {historyLoading && <p role="status">Carregando conferências…</p>}
-          {!historyLoading && historyVersion === requestedVersion && !error && historyRuns.length === 0 && (
-            <p>Nenhuma conferência registrada para esta versão.</p>
-          )}
-          {historyVersion === requestedVersion && historyRuns.map((run) => (
-            <ReviewPanel key={run.id} latestRun={run} findings={[]} stale={false} />
-          ))}
-        </div>
-      ) : (
-        <>
-          <p className="mb-3 text-sm text-stone-600">Versão salva {activeVersion?.versionNumber}</p>
-          {currentReview}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button type="button" className="btn-secondary" disabled={busy || dirty || caseUnavailable} onClick={() => void runReview()}>Conferir rascunho</button>
-            {primaryAction === 'APPROVE' && activeVersion && (
-              <button type="button" className="btn-primary" disabled={busy || !approvalReady || caseUnavailable}
-                onClick={() => setApprovalConfirmation({ versionId: activeVersion.id, versionNumber: activeVersion.versionNumber })}>
-                Aprovar esta versão
-              </button>
-            )}
-          </div>
-          {dirty && <p className="mt-3 text-sm text-stone-600">Salve as alterações para conferir o texto editado.</p>}
-        </>
-      )}
-      {error && <p role="alert" className="mt-3 text-sm text-amber-900">{error}</p>}
-      {reviewStatus && <p role="status" className="mt-3 text-sm text-emerald-800">{reviewStatus}</p>}
-    </CanvasDialog>
+    <ReviewDialog
+      details={details}
+      requestedVersion={requestedVersion}
+      historyMode={Boolean(reviewTargetMismatch)}
+      historyLoading={historyLoading}
+      historyVersion={historyVersion}
+      historyRuns={historyRuns}
+      activeVersionNumber={activeVersion?.versionNumber}
+      currentReview={currentReview}
+      busy={busy}
+      dirty={Boolean(dirty)}
+      caseUnavailable={caseUnavailable}
+      canApprove={primaryAction === 'APPROVE' && Boolean(activeVersion)}
+      approveDisabled={busy || !approvalReady || caseUnavailable}
+      error={error}
+      reviewStatus={reviewStatus}
+      onReview={() => void runReview()}
+      onApprove={() => activeVersion && setApprovalConfirmation({ versionId: activeVersion.id, versionNumber: activeVersion.versionNumber })}
+      onClose={() => setReviewOpenFor(undefined)}
+    />
   );
+
+  const createCase = async () => {
+    setBusy(true);
+    try {
+      const m = await requestApi<Matter>('/api/v2/matters', { method: 'POST', body: JSON.stringify({ title: newWorkCase.trim() }) }, { sessionOnly: true });
+      setMatters(old => [...old, m]);
+      await selectMatter(m.id);
+      setNewWorkCase('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível criar o caso.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return <>
     {recoverSaveAction && <div className="px-4 py-2">{recoverSaveAction}</div>}
@@ -904,12 +800,9 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       onMatter={id=>void selectMatter(id)} onDraft={id=>id ? void selectDraft(id) : void selectMatter(selectedMatterId)}
       onArchive={() => void archiveOpenDraft()}
       onSave={()=>void saveDraft()} onExport={format=>void exportOpenPiece(format)} onCaseSources={onCaseSources} reviewActions={reviewActions}
-      caseControls={<details><summary className="cursor-pointer text-xs text-stone-600">Criar caso</summary><label className="mt-2 block text-xs">Nome do caso<input className="mt-1 w-full rounded border p-2" value={newWorkCase} maxLength={200} onChange={e=>setNewWorkCase(e.target.value)}/></label><button type="button" className="mt-2 text-sm text-cognac-800" disabled={busy || !newWorkCase.trim()} onClick={async()=>{setBusy(true);try{const m=await requestApi<Matter>('/api/v2/matters',{method:'POST',body:JSON.stringify({title:newWorkCase.trim()})},{sessionOnly:true});setMatters(old=>[...old,m]);await selectMatter(m.id);setNewWorkCase('');}catch(e){setError(e instanceof Error?e.message:'Não foi possível criar o caso.');}finally{setBusy(false);}}}>Criar caso e usar na peça</button></details>}
-      extras={<>{undoDraft && <UndoNotice message={`Peça excluída: ${undoDraft.title}. As versões, revisões e recibos foram preservados.`} busy={busy} onUndo={() => void restoreArchivedDraft()} onDismiss={() => setUndoDraft(undefined)} />}{selectionHasDifferentVersion ? <p className="px-5 pt-3 text-sm text-stone-600">
-        Este link aponta para outra versão. <button type="button" className="underline" disabled={busy || loadingSelection}
-          onClick={() => publishDeskPiece(deskScope(), { matterId: selectedMatterId, draftId: selectedDraftId, versionId: editingVersion.current })}>Usar versão aberta</button>
-      </p> : importedDelivery && !selectedMatterId ? <p className="px-5 pt-3 text-sm text-stone-600">Escolha um caso em “Abrir peça” para guardar esta entrega. Você já pode editar e exportar localmente.</p> : undefined}</>}
-      history={<div className="space-y-3">{details?.versions.map(v=><button type="button" key={v.id} onClick={()=>void openHistory(v.id)} className="block w-full rounded-lg border border-stone-200 p-3 text-left">Versão {v.versionNumber} · {statusLabel[v.status]}</button>)}{historyLoading && <p>Carregando…</p>}{historyRuns.map(r=><div key={r.id}>{r.checks.map((c,i)=><p key={i} className="py-2 text-sm">{c.message}</p>)}</div>)}</div>}
+      caseControls={<CreateCaseControls name={newWorkCase} busy={busy} onName={setNewWorkCase} onCreate={() => void createCase()} />}
+      extras={<PieceNotices undo={undoDraft} busy={busy} differentVersion={Boolean(selectionHasDifferentVersion)} actionDisabled={busy || loadingSelection} importedWithoutMatter={Boolean(importedDelivery && !selectedMatterId)} onUndo={() => void restoreArchivedDraft()} onDismissUndo={() => setUndoDraft(undefined)} onUseOpenVersion={() => publishDeskPiece(deskScope(), { matterId: selectedMatterId, draftId: selectedDraftId, versionId: editingVersion.current })} />}
+      history={<VersionHistory versions={details?.versions} loading={historyLoading} runs={historyRuns} onOpen={(versionId) => void openHistory(versionId)} />}
 
     />
   </>;
