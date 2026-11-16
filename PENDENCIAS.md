@@ -20,11 +20,11 @@ medi latência: sem o corpus de produção, o ranking de 6 s e a alternativa por
 O pior caso do banco, 30 s de ranking mais 8 s da alternativa, cabe no limite de 45 s da ferramenta; se a alternativa
 também estourar, a chamada falha, sem segunda alternativa.
 
-**CI de `main` (push, conferida em 16/11/2026):** passou em `bbda500`, `d42337d`, `af13b1c` e `6fe4f75`. O push do
+**CI de `main` (push, conferida em 16/11/2026):** passou em `bbda500`, `d42337d`, `af13b1c`, `6fe4f75` e `17f05ac` (este com os 6 jobs conferidos). O push do
 merge do #155 (`910ba13`, 15/11) falhou no `e2e-product`: o teste `agentic-commercial-flow.spec.ts:328` recebeu
 `database is locked` ao escrever direto no SQLite enquanto o servidor segurava a trava. A mesma árvore passou no CI do PR e
-os pushes seguintes passaram; **a causa (escrita do teste concorrendo com o servidor) não foi corrigida**. O push do #170
-(`17f05ac`, checklist corrigido) estava em andamento quando isto foi escrito e não foi conferido.
+os pushes seguintes passaram, inclusive o `e2e-product` de `17f05ac`; **a causa (escrita do teste concorrendo com o
+servidor) não foi corrigida**, e o sucesso posterior não a prova: a falha é intermitente.
 
 **Checklist corrigido (#170, 16/11/2026): a contagem do journal.** O checklist mandava conferir 54 entradas antes e 57
 depois. O valor não se sustenta. O último registro de produção com contagem é **52 entradas após a 0039**; o 54 "após a
