@@ -9,7 +9,7 @@ const databaseUrl = process.env.FORGELEX_LOCAL_POSTGRES_URL;
 const local = Boolean(
   databaseUrl && /^postgres(?:ql)?:\/\/(?:[^/]+@)?(?:localhost|127\.0\.0\.1)(?::\d+)?\//i.test(databaseUrl),
 );
-const documentCount = process.env.FORGELEX_P2_SEARCH_SCALE === 'incident' ? 33_759 : 4_000;
+const documentCount = process.env.FORGELEX_P2_SEARCH_SCALE === 'incident' ? 33_759 : 12_000;
 
 interface PlanNode {
   'Node Type': string;
@@ -93,12 +93,22 @@ describe.skipIf(!local)('Busca PostgreSQL com candidatos extensos', () => {
           statements.push({ query, parameters });
         };
         const repository = new JurisprudenceRepository(db);
+        const rankingTimeout = () => {
+          const setup = statements.filter(({ query }) => query.includes("set_config('statement_timeout'")).at(-1);
+          return Number(setup?.query.match(/,\s*'(\d+)'/)?.[1] ?? setup?.parameters[0]);
+        };
+        await repository.search({ query: 'fundamento', court, limit: 3 });
+        expect(rankingTimeout()).toBe(6000);
+        statements.length = 0;
         const results = await repository.search({ query: 'juros OR capitalizados', court, limit: 3 });
         expect(results).toHaveLength(3);
         expect(results.every((document) => document.fullText?.includes('inteiro teor local'))).toBe(true);
         expect(results.every((document) => document.snapshot.contentHash === 'a'.repeat(64))).toBe(true);
         const statement = [...statements].reverse().find((entry) => entry.query.includes('jurisprudence_documents'))!;
         expect(statement).toBeDefined();
+        statements.length = 0;
+        await repository.search({ query: 'capitalizados', court, processNumber: '1', limit: 3 });
+        expect(rankingTimeout()).toBe(30000);
         postgresClient.options.debug = undefined;
         const explain = await client.execute({
           sql: `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${statement.query}`,

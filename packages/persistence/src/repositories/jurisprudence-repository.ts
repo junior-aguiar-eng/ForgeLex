@@ -36,6 +36,7 @@ function normalizeTerm(value: string): string {
 }
 
 const SEARCH_STOP_WORDS = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'no', 'na', 'nos', 'nas', 'ao', 'aos', 'por', 'para', 'com', 'um', 'uma', 'uns', 'umas']);
+const BROAD_SEARCH_CANDIDATES = 10_000;
 
 function fullTextQuery(value: string, dialect: 'sqlite' | 'postgres'): string {
   const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -259,8 +260,7 @@ export class JurisprudenceRepository {
   private searchRanked(postgresVector: SQL, query: string, filters: SQL[], limit: number): Promise<JurisprudenceDocument[]> {
     return this.db.transaction(async (tx) => {
       const executor = tx as unknown as ForgeLexDatabase & { execute(statement: SQL): Promise<unknown> };
-      // The DB deadline is scoped to this transaction, before the tool deadline;
-      // a slow query is stopped by PostgreSQL without changing ingestion limits.
+      // Scope the planning deadline to this transaction as well.
       await executor.execute(sql`SELECT set_config('statement_timeout', '30000', true)`);
       // Rank compact rows first. Carrying full texts/search projections through
       // a broad OR sort spills to disk even when only a few results are wanted.
@@ -277,6 +277,14 @@ export class JurisprudenceRepository {
         .leftJoin(schema.jurisprudenceSourceManifests,
           eq(schema.jurisprudenceDocumentVersions.sourceManifestId, schema.jurisprudenceSourceManifests.id))
         .where(and(...filters));
+      // EXPLAIN estimates the eligible candidates without scanning or ranking them.
+      // Use the plan before LIMIT, so requested result count cannot hide a broad search.
+      const planRows = await executor.execute(sql`EXPLAIN (FORMAT JSON) ${candidates}`) as
+        Array<{ 'QUERY PLAN'?: Array<{ Plan?: { 'Plan Rows'?: number } }> }>;
+      const estimatedCandidates = planRows[0]?.['QUERY PLAN']?.[0]?.Plan?.['Plan Rows'];
+      if (estimatedCandidates !== undefined && estimatedCandidates >= BROAD_SEARCH_CANDIDATES) {
+        await executor.execute(sql`SELECT set_config('statement_timeout', '6000', true)`);
+      }
       // A materialized boundary also prevents PostgreSQL from sorting raw
       // tsvectors before joining publication/date metadata and ranking again.
       const matches = executor.select({
