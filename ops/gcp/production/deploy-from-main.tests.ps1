@@ -465,6 +465,8 @@ Test-Case 'Write-DeployReceipt não lança nem grava nada quando o recibo é inv
     Assert-Equal $LASTEXITCODE 0 'o código de saída do node não pode vazar'
   }
   finally { Remove-Item -LiteralPath $directory -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 # ---------- Ferramenta de migrations (migrate-lib.ps1) ----------
 # Montagem de argumentos e leitura de respostas. O gcloud em si não é exercitado aqui: só numa execução real.
 function New-ApiServiceFixture {
