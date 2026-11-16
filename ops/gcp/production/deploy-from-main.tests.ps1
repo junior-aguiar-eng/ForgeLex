@@ -407,6 +407,66 @@ Test-Case 'contêiner sem env não quebra a leitura' {
   Assert-Equal $report.Count 2
 }
 
+# ---------- Sintaxe de todos os scripts de operação ----------
+# Os scripts de gcloud só rodam de verdade numa publicação; um erro de sintaxe só apareceria ali. Aqui ele aparece na CI.
+Test-Case 'todos os scripts de ops/gcp/production têm sintaxe PowerShell válida' {
+  foreach ($file in @(Get-ChildItem -Path $PSScriptRoot -Filter '*.ps1')) {
+    $tokens = $null
+    $parseErrors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$parseErrors)
+    $count = @($parseErrors).Count
+    $detail = if ($count -gt 0) { "$($file.Name): $(@($parseErrors)[0].Message)" } else { '' }
+    Assert-True ($count -eq 0) $detail
+  }
+}
+
+# ---------- Recibo de publicação ----------
+# A validação e o texto do recibo são testados em scripts/deploy-receipt.test.ts. Aqui só a cola: chamar o node,
+# devolver o caminho e nunca lançar exceção numa publicação.
+function New-ReceiptInput {
+  $digest = 'sha256:' + ('a' * 64)
+  return @{
+    status    = 'PUBLICADO'
+    sha       = '6fe4f75fccb53deb54c395b6f534b01eb5f49e5e'
+    buildId   = '92e59198-23c4-4341-b6b4-96e32fe1aec7'
+    digest    = $digest
+    image     = "southamerica-east1-docker.pkg.dev/project-bbbe1209-c295-4720-867/forgelex-prod/forgelex-api@$digest"
+    projectId = 'project-bbbe1209-c295-4720-867'
+    region    = 'southamerica-east1'
+    publicUrl = 'https://example.test'
+    services  = @(@{ service = 'forgelex-api-prod'; previous = 'forgelex-api-prod-af13b1c-65e7e42c'; revision = 'forgelex-api-prod-6fe4f75-92e59198' })
+    flags     = @('FORGELEX_DRAFT_SAVE_COMMANDS_ENABLED: ligada (declarada).')
+  }
+}
+$nodeAvailable = [bool](Get-Command node -ErrorAction SilentlyContinue)
+Test-Case 'Write-DeployReceipt grava o recibo e devolve o caminho' {
+  if (-not $nodeAvailable) { Write-Host '        (pulado: node ausente)'; return }
+  $directory = Join-Path ([System.IO.Path]::GetTempPath()) "deploy-receipt-$([guid]::NewGuid())"
+  try {
+    $path = Write-DeployReceipt -Receipt (New-ReceiptInput) -OutDir $directory
+    Assert-True (($null -ne $path) -and (Test-Path -LiteralPath $path)) 'o recibo deveria existir'
+    $text = Get-Content -LiteralPath $path -Raw
+    Assert-True ($text -match '6fe4f75') 'deve citar o SHA'
+    Assert-True ($text -match 'forgelex-api-prod-6fe4f75-92e59198') 'deve citar a revisão nova'
+  }
+  finally { Remove-Item -LiteralPath $directory -Recurse -Force -ErrorAction SilentlyContinue }
+}
+Test-Case 'Write-DeployReceipt não lança nem grava nada quando o recibo é inválido' {
+  if (-not $nodeAvailable) { Write-Host '        (pulado: node ausente)'; return }
+  $directory = Join-Path ([System.IO.Path]::GetTempPath()) "deploy-receipt-$([guid]::NewGuid())"
+  try {
+    $invalid = New-ReceiptInput
+    $invalid['sha'] = 'curto'
+    $path = Write-DeployReceipt -Receipt $invalid -OutDir $directory 3>$null 6>$null
+    Assert-True ($null -eq $path) 'um recibo inválido não deve devolver caminho'
+    $written = if (Test-Path -LiteralPath $directory) { @(Get-ChildItem -LiteralPath $directory).Count } else { 0 }
+    Assert-Equal $written 0
+    Assert-Equal $LASTEXITCODE 0 'o código de saída do node não pode vazar'
+  }
+  finally { Remove-Item -LiteralPath $directory -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 Write-Host ''
 Write-Host "$script:passed passaram, $script:failed falharam"
-if ($script:failed -gt 0) { exit 1 }
+# Código explícito: um $LASTEXITCODE deixado por um comando nativo de algum teste não pode decidir o resultado.
+if ($script:failed -gt 0) { exit 1 } else { exit 0 }
