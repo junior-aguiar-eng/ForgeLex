@@ -3,6 +3,9 @@
 # Invoke-Gcloud / Invoke-GcloudJson, que os testes substituem por fakes (deploy-from-main.tests.ps1).
 Set-StrictMode -Version Latest
 
+# Pasta deste arquivo: usada para achar scripts/deploy-receipt.mjs, qualquer que seja o diretório de onde o deploy rode.
+$script:DeployLibRoot = $PSScriptRoot
+
 # Substituições que o cloudbuild.yaml usa. O build anterior bem-sucedido é a fonte de todas elas, para que
 # a publicação não dependa de lembrar flags de interface (o padrão do cloudbuild.yaml é 'false').
 $script:RequiredSubstitutions = @(
@@ -390,5 +393,32 @@ function Switch-Traffic {
       }
     }
     return [pscustomobject]@{ Ok = $false; RolledBack = ($errors.Count -eq 0); Reason = $reason; Errors = $errors.ToArray() }
+  }
+}
+
+function Write-DeployReceipt {
+  # Grava o recibo da publicação em docs/operations/deploy-receipts por scripts/deploy-receipt.mjs, que valida cada campo,
+  # limpa texto livre e nunca sobrescreve um recibo existente. Falhar aqui NUNCA interrompe nem desfaz uma publicação:
+  # o erro vira aviso, o JSON é impresso para ser guardado e a função devolve $null.
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory)][hashtable]$Receipt,
+    [string]$OutDir
+  )
+  $json = $Receipt | ConvertTo-Json -Depth 8 -Compress
+  try {
+    if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw 'node não encontrado no PATH' }
+    $receiptScript = [System.IO.Path]::GetFullPath((Join-Path $script:DeployLibRoot '../../../scripts/deploy-receipt.mjs'))
+    if (-not (Test-Path -LiteralPath $receiptScript)) { throw "não achei $receiptScript" }
+    $nodeArguments = @($receiptScript)
+    if ($OutDir) { $nodeArguments += @('--out-dir', $OutDir) }
+    $output = @($json | node @nodeArguments 2>&1 | ForEach-Object { "$_" })
+    if ($LASTEXITCODE -ne 0) { throw ($output -join ' ') }
+    return @($output | Where-Object { $_ })[-1]
+  }
+  catch {
+    Write-Warning "Não consegui gravar o recibo: $($_.Exception.Message)"
+    Write-Host "Recibo (JSON; guarde-o): $json"
+    return $null
   }
 }
