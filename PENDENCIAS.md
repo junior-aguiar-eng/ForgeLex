@@ -1,6 +1,6 @@
 # Pendências atuais do ForgeLex
 
-## Daybreak — integrado em `main`, deploy pendente (15/11/2026)
+## Daybreak — integrado em `main`, deploy pendente (atualizado em 16/11/2026)
 
 Boni autorizou commit, push e deploy. Os PRs #153–#158 (um por subsistema) e os de
 acompanhamento da revisão (#159–#162, #164, #165) estão **integrados em `main`**
@@ -8,13 +8,40 @@ acompanhamento da revisão (#159–#162, #164, #165) estão **integrados em `mai
 (`research memo` por apps conectados via OAuth, só dentro do MCP), que não é correção
 Daybreak, mas também está em `main` e fora de produção. O conjunto local passou 2.256
 testes (27 pulados), build, lint, tipos, formatação de código e fase 7 com PostgreSQL,
-antes dos PRs de acompanhamento. A CI do push em `main` passou em `bbda500` e em `d42337d`
-(conferida em 16/11/2026). Checklist de deploy:
+antes dos PRs de acompanhamento. Checklist de deploy:
 [docs/operations/daybreak/2026-11-16-deploy-checklist.md](docs/operations/daybreak/2026-11-16-deploy-checklist.md).
+
+**Também em `main` e fora de produção (16/11/2026, Codex):** #168 (busca STJ devolve os julgamentos
+mais recentes, com `ordering=JUDGMENT_DATE_DESC`, quando a classificação por relevância estoura o prazo; termos de um
+dígito deixam de ser descartados; a minuta salva não pede mais descarte de edição ao versionar) e #169 (teto de 6 s para o
+ranking quando o plano estima 10.000 candidatos ou mais). **Sem migration.** Conferido nesta sessão sobre `6fe4f75`:
+build, ESLint e Prettier do CI, suíte completa (2.405 testes) e a busca em PostgreSQL 16 real (28 passaram, 1 pulado). Não
+medi latência: sem o corpus de produção, o ranking de 6 s e a alternativa por data continuam heurísticas não medidas aqui.
+O pior caso do banco, 30 s de ranking mais 8 s da alternativa, cabe no limite de 45 s da ferramenta; se a alternativa
+também estourar, a chamada falha, sem segunda alternativa.
+
+**CI de `main` (push, conferida em 16/11/2026):** passou em `bbda500`, `d42337d`, `af13b1c` e `6fe4f75`. O push do
+merge do #155 (`910ba13`, 15/11) falhou no `e2e-product`: o teste `agentic-commercial-flow.spec.ts:328` recebeu
+`database is locked` ao escrever direto no SQLite enquanto o servidor segurava a trava. A mesma árvore passou no CI do PR e
+os pushes seguintes passaram; **a causa (escrita do teste concorrendo com o servidor) não foi corrigida**. O push do #170
+(`17f05ac`, checklist corrigido) estava em andamento quando isto foi escrito e não foi conferido.
+
+**Checklist corrigido (#170, 16/11/2026): a contagem do journal.** O checklist mandava conferir 54 entradas antes e 57
+depois. O valor não se sustenta. O último registro de produção com contagem é **52 entradas após a 0039**; o 54 "após a
+0041" era inferência, não conferência. A lista do repositório (a mesma que `scripts/migrate-postgres.mjs` aplica) tem
+**54 IDs com as três migrations** (51 sem elas) e **56** (53) com `FORGELEX_ANALISE_ENABLED=true`; em nenhum caso 57,
+conferido num PostgreSQL 16 novo. A conferência passa a ser **por ID**, com duas consultas geradas da lista real: a A
+(repositório sem journal) deve devolver exatamente as três pendentes, e a B (journal sem repositório) registra as entradas
+extras, que precisam de explicação. A contagem fica só derivada: anota-se o N de antes e confere-se N + 3 depois. Motivo adicional: o script aplica
+**qualquer** ID do repositório que falte no journal, não só as três, e uma contagem não pega isso. **A contagem real do
+journal de produção continua desconhecida** (sem acesso Google Cloud aqui). Pontos do checklist ainda desatualizados: a
+seção "O que vai a produção" cita só #153–#165 e #163 (faltam #168 e #169), e as seções 1 e 5 citam o SHA `d42337d`, que
+já não é o mais recente de `main` (o documento diz "ou posterior").
 
 **Nada disso está publicado.** Produção segue no último registro de publicação
 (`cd94c2c`, mais a revisão `draftsave`). Pendem, nesta ordem e com acesso Google Cloud
-autenticado (este ambiente de sessão não o tem): backup sob demanda; migrations
+autenticado (este ambiente de sessão não o tem): backup sob demanda; conferência por ID das migrations
+pendentes (consultas A e B do checklist); migrations
 `persistence-0042`, `persistence-0043` e `billing-ledger-0011-refund-recovery`;
 `ops/gcp/production/deploy-from-main.ps1` com candidata sem tráfego, verificação e reversão.
 Compras e reembolsos reais e o encerramento dos achados no Daybreak seguem fora da
