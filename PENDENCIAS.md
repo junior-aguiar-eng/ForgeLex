@@ -33,11 +33,40 @@ completa (2.405 testes) e a busca em PostgreSQL 16 real (28 passaram, 1 pulado).
 medida aqui. O pior caso do banco, 30 s de ranking mais 8 s da alternativa, cabe no limite de 45 s da ferramenta; se a
 alternativa também estourar, a chamada falha, sem segunda alternativa.
 
-**CI de `main` (push, conferida em 16/11/2026):** passou em `bbda500`, `d42337d`, `af13b1c`, `6fe4f75`, `17f05ac`, `5de4813`
-e `4396713`. O push do merge do #155 (`910ba13`, 15/11) falhou no `e2e-product`: o teste
+**CI de `main` (push, conferida em 16/11/2026):** passou em `bbda500`, `d42337d`, `af13b1c`, `6fe4f75`, `17f05ac`, `5de4813`,
+`4396713`, `a4cf69f`, `cc2250e` e `039f5eb`. O push do merge do #155 (`910ba13`, 15/11) falhou no `e2e-product`: o teste
 `agentic-commercial-flow.spec.ts:328` recebeu `database is locked` ao escrever direto no SQLite enquanto o servidor segurava
 a trava. A mesma árvore passou no CI do PR e os pushes seguintes passaram; **a causa (escrita do teste concorrendo com o
 servidor) não foi corrigida**, e o sucesso posterior não a prova: a falha é intermitente.
+
+**Segunda instabilidade (16/11/2026, #175).** No head `94b4b82` o `e2e-product` falhou em
+`tests/e2e/matter-lifecycle.spec.ts:48` (campo "Texto do documento" desabilitado, `fill` estourou os 60 s); numa única nova
+execução do job, sem mudança de código, passou. O diff não tocava interface e `main` estava verde. **Causa não encontrada**;
+a repetição verde não a prova. Se reaparecer, investigar o `refresh` atrasado que o teste simula, sem repetir às cegas.
+
+## Ferramentas de publicação e de migrations (16/11/2026, em `main`)
+
+Duas ferramentas substituem trabalho que, no Daybreak, foi feito à mão. Ambas entraram em `main` pelos PRs
+[#174](https://github.com/junior-aguiar-eng/ForgeLex/pull/174) (`cc2250e`) e
+[#175](https://github.com/junior-aguiar-eng/ForgeLex/pull/175) (`039f5eb`), com a CI de `main` verde nos dois pushes. Uso e
+armadilhas: `ops/gcp/production/README.md` (seções "Publicação em um comando" e "Migrations em produção").
+
+- **Recibo de publicação (#174).** `deploy-from-main.ps1` grava `docs/operations/deploy-receipts/AAAA-MM-DD-HHMMZ-<sha7>-<resultado>.md`
+  (SHA, build, digest, revisões antes e depois, flags lidas, motivo da falha, reversão). **Não commita**: Boni revisa e
+  commita o arquivo junto com a aprovação. O recibo não prova migrations, verificação manual, autoria nem aprovação. Falhas
+  antes do passo 7 não geram recibo.
+- **Ferramenta de migrations (#175).** `apps/api/src/operations/migration-command.ts`, na imagem da API, com `inspect`,
+  `apply --allow=<id>` e `verify`; `migrate-production.ps1` cria, executa e apaga o Job temporário. `apply` só roda com todas
+  as faltantes autorizadas, sem ID desconhecido no journal, no banco e host esperados e com backup `SUCCESSFUL` de menos de
+  120 min; o Job não tenta de novo sozinho. A imagem do Job vem do `build-from-main.ps1`, não de um `-NoTraffic` com migration
+  pendente (a revisão nova recusa subir com `MIGRATIONS_PENDING`).
+
+**Não verificado (vale ler antes do primeiro uso real).** Não havia `pwsh` onde foram escritos; a parte PowerShell só foi
+exercitada pela CI. O `gcloud` em si **nunca foi exercitado**: criar, executar e apagar o Job, o formato real de
+`sql backups list` e de `logging read`, e a gravação do primeiro recibo numa publicação de verdade. Antes de depender deles:
+`deploy-from-main.ps1 -DryRun`; `migrate-production.ps1 -Mode inspect -DryRun` e depois `-Mode inspect`, lendo a saída antes
+de qualquer `apply`. As ferramentas não autorizam por si publicar, aplicar migration ou ligar flag: isso continua sendo
+decisão e execução de Boni.
 
 ## Conector MCP no Claude: causa raiz e correção (08/11/2026)
 
