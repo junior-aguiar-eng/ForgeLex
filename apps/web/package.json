@@ -12,6 +12,7 @@
     "@modelcontextprotocol/ext-apps": "1.1.2",
     "@supabase/supabase-js": "^2.116.0",
     "docx": "9.8.1",
+    "jszip": "3.10.2",
     "lucide-react": "^0.475.0",
     "pdfjs-dist": "6.3.289",
     "react": "^18.3.1",

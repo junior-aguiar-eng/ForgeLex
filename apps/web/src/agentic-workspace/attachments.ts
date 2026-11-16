@@ -2,7 +2,7 @@
  * Anexos do pedido (U5). Só o texto extraído segue com o pedido (DEC-12): o arquivo não é guardado. O texto passa a
  * fazer parte do contexto escrito, então o cliente o confere antes de enviar e pode abrir, trocar ou remover o anexo.
  */
-export const ATTACHMENT_ACCEPT = '.pdf,.txt,.md,.docx,image/*';
+export const ATTACHMENT_ACCEPT = '.pdf,.txt,.md,.docx,.doc,image/*';
 export const ATTACHMENT_MAX_FILES = 5;
 /** Teto do texto dos anexos juntos; o pedido inteiro, com o que o cliente escreveu, cabe nos 100.000 caracteres da execução. */
 export const ATTACHMENT_MAX_TOTAL_CHARS = 80_000;
@@ -29,16 +29,26 @@ const done = (text: string, pages?: number): AttachmentResult => ({
   ...(pages ? { pages } : {}),
 });
 
-async function loadPdfReader() {
+type TextReader = (file: File, signal?: AbortSignal) => Promise<{ content: string; pageCount?: number }>;
+
+async function loadPdfReader(): Promise<TextReader> {
   const { extractPdfText } = await import('../documents/pdf-text');
   return extractPdfText;
 }
+
+async function loadDocxReader(): Promise<TextReader> {
+  const { extractDocxText } = await import('../documents/docx-text');
+  return extractDocxText;
+}
+
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 /** Lê um arquivo e devolve o texto, ou o estado que explica por que não há texto. Nunca lança por arquivo ruim. */
 export async function readAttachment(
   file: File,
   signal?: AbortSignal,
   pdfReader?: (file: File, signal?: AbortSignal) => Promise<{ content: string; pageCount: number }>,
+  docxReader?: TextReader,
 ): Promise<AttachmentResult> {
   const name = file.name.toLowerCase();
   try {
@@ -67,14 +77,30 @@ export async function readAttachment(
           'Imagens não têm texto extraível ainda: a leitura de imagens (OCR) chega depois. Cole o texto no pedido.',
       };
     }
-    if (/\.docx$/.test(name)) {
+    if (/\.docx$/.test(name) || file.type === DOCX_MIME) {
+      if (file.size > 15 * 1024 * 1024) {
+        return {
+          status: 'too-large',
+          text: '',
+          message: 'O arquivo Word passa de 15 MB. Divida o documento e anexe as partes.',
+        };
+      }
+      const read = docxReader ?? (await loadDocxReader());
+      const text = (await read(file, signal)).content.trim();
+      return text ? done(text) : { status: 'no-text', text: '', message: noWordTextMessage };
+    }
+    if (/\.doc$/.test(name) || file.type === 'application/msword') {
       return {
         status: 'unsupported',
         text: '',
-        message: 'Arquivos Word ainda não são lidos aqui. Exporte para PDF ou cole o texto no pedido.',
+        message: 'O formato Word antigo (.doc) não é lido. Salve o arquivo como .docx ou PDF e anexe de novo.',
       };
     }
-    return { status: 'unsupported', text: '', message: 'Este tipo de arquivo não é aceito. Use PDF, TXT ou MD.' };
+    return {
+      status: 'unsupported',
+      text: '',
+      message: 'Este tipo de arquivo não é aceito. Use PDF, Word (.docx), TXT ou MD.',
+    };
   } catch (error) {
     if (signal?.aborted) throw error;
     return {
@@ -86,6 +112,8 @@ export async function readAttachment(
 }
 
 const noTextMessage = 'Não encontramos texto neste arquivo. Se for uma digitalização, a leitura por OCR chega depois.';
+const noWordTextMessage =
+  'Não encontramos texto neste documento Word. Se ele só tem imagens, anexe como PDF ou cole o texto no pedido.';
 
 export const attachmentStatusLabel: Record<AttachmentStatus, string> = {
   reading: 'Lendo…',
