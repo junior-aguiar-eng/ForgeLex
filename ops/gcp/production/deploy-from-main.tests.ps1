@@ -461,10 +461,12 @@ Test-Case 'Write-DeployReceipt não lança nem grava nada quando o recibo é inv
     Assert-True ($null -eq $path) 'um recibo inválido não deve devolver caminho'
     $written = if (Test-Path -LiteralPath $directory) { @(Get-ChildItem -LiteralPath $directory).Count } else { 0 }
     Assert-Equal $written 0
+    Assert-Equal $LASTEXITCODE 0 'o código de saída do node não pode vazar'
   }
   finally { Remove-Item -LiteralPath $directory -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
 Write-Host ''
 Write-Host "$script:passed passaram, $script:failed falharam"
-if ($script:failed -gt 0) { exit 1 }
+# Código explícito: um $LASTEXITCODE deixado por um comando nativo de algum teste não pode decidir o resultado.
+if ($script:failed -gt 0) { exit 1 } else { exit 0 }

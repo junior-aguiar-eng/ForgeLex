@@ -417,6 +417,9 @@ function Write-DeployReceipt {
     return @($output | Where-Object { $_ })[-1]
   }
   catch {
+    # O node que falhou deixa $LASTEXITCODE diferente de zero; sem isto o script de publicação terminaria com erro
+    # mesmo tendo publicado e verificado tudo.
+    $global:LASTEXITCODE = 0
     Write-Warning "Não consegui gravar o recibo: $($_.Exception.Message)"
     Write-Host "Recibo (JSON; guarde-o): $json"
     return $null
