@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { App } from '@modelcontextprotocol/ext-apps/app-with-deps';
 import { DecisionReader, type ReaderEntry } from '../components/DecisionReader';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
-import { SAVED_RESEARCH_NOTICE } from '../config/research-copy';
+import { JUDGMENT_DATE_ORDER_LABEL, SAVED_RESEARCH_NOTICE } from '../config/research-copy';
 import type { SavedSearchSummary } from '../research/saved-research-client';
-import type { SearchResultItem } from '../operations/contracts';
+import type { SearchExecution, SearchResultItem } from '../operations/contracts';
 import './mcp-reader.css';
 
 interface Presentation {
@@ -14,6 +14,7 @@ interface Presentation {
   operationId?: string;
   savedResearchId?: string;
   searchedAt?: string;
+  ordering?: SearchExecution['ordering'];
   canSave: boolean;
   savedResearchEnabled: boolean;
 }
@@ -158,6 +159,7 @@ function ReaderApp() {
   };
   return (
     <main className="mcp-shell">
+      {data?.ordering === 'JUDGMENT_DATE_DESC' && <p>{JUDGMENT_DATE_ORDER_LABEL}</p>}
       {data ? (
         <DecisionReader
           entries={entries}

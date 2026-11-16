@@ -28,6 +28,7 @@ export const SearchCaseLawOutputSchema = z.object({
   queryExecuted: z.string(),
   courtFilter: z.string().optional(),
   criteria: SearchCaseLawInputSchema.optional(),
+  ordering: z.literal('JUDGMENT_DATE_DESC').optional().describe('Ordenado pelos julgamentos mais recentes quando a classificação por relevância excede o tempo de busca. Informe ao usuário quando este campo estiver presente.'),
   operationId: z.string().optional(),
 });
 

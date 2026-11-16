@@ -1,6 +1,7 @@
 import { ApiRequestError, requestApi } from '../api-client';
 import { mapSearchResult } from '../operations/operations-client';
 import type { ReaderEntry } from '../components/DecisionReader';
+import type { SearchExecution } from '../operations/contracts';
 export interface SavedSearchSummary {
   id: string;
   operationId: string;
@@ -11,6 +12,7 @@ export interface SavedSearchSummary {
 }
 export interface SavedSearch extends SavedSearchSummary {
   entries: ReaderEntry[];
+  ordering?: SearchExecution['ordering'];
 }
 export const savedResearchClient = {
   async list(): Promise<SavedSearchSummary[]> {
@@ -26,11 +28,12 @@ export const savedResearchClient = {
     return requestApi('/api/v2/research/saved', { method: 'POST', body: JSON.stringify({ operationId }) });
   },
   async get(id: string): Promise<SavedSearch> {
-    const saved = await requestApi<SavedSearchSummary & { results: { items: unknown[] } }>(
-      `/api/v2/research/saved/${encodeURIComponent(id)}`,
-    );
+    const saved = await requestApi<
+      SavedSearchSummary & { results: { items: unknown[]; ordering?: SearchExecution['ordering'] } }
+    >(`/api/v2/research/saved/${encodeURIComponent(id)}`);
     return {
       ...saved,
+      ...(saved.results.ordering ? { ordering: saved.results.ordering } : {}),
       entries: saved.results.items.map((item) => {
         if (
           !item ||

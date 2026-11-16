@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { generateContentHash, generateDedupeKey, type JurisprudenceDocument } from '@forgelex/legal-data';
 import { createDatabase } from '../db.js';
 import { runPersistenceMigrations } from '../migrations/migration-runner.js';
@@ -25,13 +25,16 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
       repository = new JurisprudenceRepository(connection.db);
       const runs = new IngestionRunRepository(connection.db);
       runId = (await runs.start({ providerId: 'query-local', court })).id;
-      await runs.complete(runId, { documentsSeen: 5, documentsPublished: 5 });
       documents = [
         ['2026-01-10', 'PENAL. LEI MARIA DA PENHA. VIOLÊNCIA DOMÉSTICA E FAMILIAR.'],
         ['2025-01-10', 'PENAL. MARIA PENHA. VIOLÊNCIA DOMÉSTICA FAMILIAR.'],
         ['2026-01-10', 'CIVIL. RESPONSABILIDADE DA ADMINISTRAÇÃO. COBRANÇA E CONTRATO.'],
         ['2026-01-10', 'PENAL. MARIA. VIOLÊNCIA DOMÉSTICA.'],
         ['2026-01-10', 'CIVIL. JUROS CAPITALIZADOS. CONTRATO.'],
+        ['2026-01-10', 'SÚMULA 7. REEXAME DE PROVAS.'],
+        ['2026-01-10', 'SÚMULA 8. COMPETÊNCIA.'],
+        ['2026-01-10', 'SÚMULA 17. FALSIDADE.'],
+        ['2025-01-10', 'SÚMULA 7. REEXAME DE FATOS.'],
       ].map(([judgmentDate, syllabus], index) => {
         const processNumber = 'REsp ' + (100 + index);
         const contentHash = generateContentHash(syllabus!);
@@ -61,6 +64,7 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
           },
         };
       });
+      await runs.complete(runId, { documentsSeen: documents.length, documentsPublished: documents.length });
       await repository.upsertDocuments({ documents, ingestionRunId: runId });
     });
 
@@ -92,6 +96,7 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
       ['combina frase exata com OR explícito', '"Maria da Penha" OR juros', [0, 4]],
       ['não pesquisa apenas preposições', 'da de com para', []],
       ['preserva busca por um único termo', 'contrato', [2, 4]],
+      ['preserva um número de um dígito fora de aspas', 'Súmula 7', [5, 8]],
       ['trata o ano no texto como termo e não como filtro de julgamento', 'maria penha 2026', []],
       ['não transforma pontuação dentro de um termo em operador OR', 'maria/or/penha', []],
       ['não transforma OR com pontuação em alternativa implícita', '"Maria da Penha" OR, contrato', []],
@@ -115,5 +120,22 @@ for (const dialect of ['sqlite', 'postgres'] as const) {
       });
       expect(result.map((document) => document.id)).toEqual([documents[0]!.id]);
     });
+
+    it.skipIf(dialect !== 'postgres')(
+      'recupera timeout da relevância com a decisão mais recente que satisfaz os mesmos filtros',
+      async () => {
+        const timeout = Object.assign(new Error('canceling statement due to statement timeout'), { code: '57014' });
+        const transaction = vi
+          .spyOn(connection.db, 'transaction')
+          .mockRejectedValueOnce(new Error('query failed', { cause: timeout }));
+        try {
+          const result = await repository.searchWithOrdering({ query: 'Súmula 7', court, limit: 1 });
+          expect(result.ordering).toBe('JUDGMENT_DATE_DESC');
+          expect(result.documents.map((document) => document.id)).toEqual([documents[5]!.id]);
+        } finally {
+          transaction.mockRestore();
+        }
+      },
+    );
   });
 }

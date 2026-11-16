@@ -76,6 +76,7 @@ export const createSearchIntent = (query: string, court: string, limit = 20, jud
 export interface SearchExecution {
   intent: SearchIntent;
   results: SearchResultItem[];
+  ordering?: 'JUDGMENT_DATE_DESC';
   resultCount: number;
   billingMode: 'FREE' | 'METERED';
   chargedCents: number;

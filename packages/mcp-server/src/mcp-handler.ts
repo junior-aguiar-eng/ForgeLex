@@ -530,7 +530,7 @@ export class McpHandler {
     operationId: string,
     who: { tenantId: string; userId: string; context: McpRequestContext },
   ): Promise<Record<string, unknown>> {
-    const summary = { total: search.total, queryExecuted: search.queryExecuted, ...(search.criteria ? { criteria: search.criteria } : {}) };
+    const summary = { total: search.total, queryExecuted: search.queryExecuted, ...(search.criteria ? { criteria: search.criteria } : {}), ...(search.ordering ? { ordering: search.ordering } : {}) };
     try {
       await who.context.revalidateConnection?.();
       const shown = await this.toolRegistry.executeTool(
@@ -645,6 +645,7 @@ export class McpHandler {
                 ...(execution.data as SearchCaseLawOutput),
                 operationId: idempotencyKey,
                 ...(opensPanel ? { aviso: PANEL_SHOWN_NOTICE } : {}),
+                ...((execution.data as SearchCaseLawOutput).ordering ? { avisoOrdenacao: 'A classificação por relevância excedeu o tempo de busca. As decisões estão ordenadas da mais recente para a mais antiga pela data do julgamento.' } : {}),
               },
               provenance: (execution.data as SearchCaseLawOutput).items.map((item) => item.provenance),
             }

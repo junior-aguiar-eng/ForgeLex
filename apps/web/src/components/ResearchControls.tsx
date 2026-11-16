@@ -1,6 +1,6 @@
 import { useApp } from '../context/AppContext';
 import type { SearchExecution } from '../operations/contracts';
-import { SAVED_RESEARCH_NOTICE } from '../config/research-copy';
+import { JUDGMENT_DATE_ORDER_LABEL, SAVED_RESEARCH_NOTICE } from '../config/research-copy';
 import { SAVED_RESEARCH_ENABLED } from '../config/site-capabilities';
 
 export function JudgmentYearSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
@@ -69,6 +69,7 @@ export function ExecutedSearchLabel({ execution }: { execution: SearchExecution 
     <p className="text-xs text-stone-600">
       Consulta exibida: {execution.intent.query} · {execution.intent.court} ·{' '}
       {execution.intent.judgmentYear ?? 'Todos os anos'}
+      {execution.ordering === 'JUDGMENT_DATE_DESC' && ` · ${JUDGMENT_DATE_ORDER_LABEL}`}
     </p>
   );
 }
