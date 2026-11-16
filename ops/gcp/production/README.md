@@ -130,6 +130,49 @@ Ao terminar, imprime o build ID, os comandos de reversão e o que registrar no `
 - **Testes** (sem gcloud, sem rede): `pwsh -NoProfile -File ops/gcp/production/deploy-from-main.tests.ps1`.
   Rodam na CI.
 
+## Migrations em produção
+
+O `deploy-from-main.ps1` **não aplica migrations**. Elas são aplicadas por uma ferramenta versionada e testada,
+`apps/api/src/operations/migration-command.ts`, que vai na imagem da API e roda como Cloud Run Job temporário pelo
+`migrate-production.ps1`. Substitui o script embutido que foi escrito à mão em 16/11/2026
+([registro](../../../docs/operations/daybreak/2026-11-16-execucao-migrations-e-publicacao.md)).
+
+```powershell
+./ops/gcp/production/migrate-production.ps1 -Mode inspect -Image '<registro>/forgelex-api@sha256:...' -DryRun   # só mostra o plano
+./ops/gcp/production/migrate-production.ps1 -Mode inspect -Image '...@sha256:...'                              # lê o journal e as contagens
+./ops/gcp/production/migrate-production.ps1 -Mode apply   -Image '...@sha256:...' -Allow <id>,<id>             # aplica só o autorizado
+./ops/gcp/production/migrate-production.ps1 -Mode verify  -Image '...@sha256:...'                              # journal completo?
+```
+
+- **`-Image`** é o digest de um build que já contém a ferramenta, obtido sem trocar tráfego: use o `build-from-main.ps1`
+  (só gera a imagem). **Não** tire o digest de um `deploy-from-main.ps1 -NoTraffic` quando houver migration pendente: a
+  API de produção confere o journal ao subir (`assertMigrationsApplied`) e a revisão nova recusa subir com
+  `MIGRATIONS_PENDING`.
+- **`inspect`** só lê, numa transação `REPEATABLE READ` somente leitura. Mostra o journal (aplicadas, faltantes,
+  desconhecidas) e contagens de dados que as migrations recentes poderiam afetar (casos, minutas, lançamentos do ledger,
+  entregas de webhook, entregas com corpo de resposta, pedidos de reembolso). `null` quer dizer que a tabela ou coluna
+  ainda não existe.
+- **`apply`** só roda se **todas** as faltantes estiverem em `-Allow`, se o journal **não tiver ID desconhecido** e se
+  houver backup `SUCCESSFUL` do Cloud SQL com menos de 120 min (`-MaxBackupAgeMinutes`; não há como pular). Aplica uma
+  migration por vez, relê o journal e termina com erro se algo não bater. Nunca tenta de novo sozinho
+  (`--max-retries=0`): um `apply` que falhou a meio é lido por uma pessoa antes de repetir.
+- **`verify`** termina com erro se faltar migration ou houver ID desconhecido.
+- **Alvo.** O Job copia do serviço da API a conta de serviço, a instância do Cloud SQL e o segredo `DATABASE_URL`
+  (o valor nunca é lido). A ferramenta só abre a conexão se o banco e o host baterem com
+  `FORGELEX_MIGRATION_EXPECTED_DATABASE` e `FORGELEX_MIGRATION_EXPECTED_HOST`, e confere de novo `current_database()`.
+- **Saída.** Uma linha JSON por evento no stdout (o Cloud Run grava em `jsonPayload`, não em `textPayload`). Erros
+  trazem só um código e a mensagem da ferramenta, nunca URL, senha nem SQL. O Job é apagado no fim, também em falha; os
+  logs ficam no Cloud Logging (`resource.labels.job_name`).
+- **Ordem de uma publicação com migration:** `build-from-main.ps1` (imagem) → backup sob demanda → `inspect` →
+  `apply -Allow ...` → `verify` → `deploy-from-main.ps1`. O código novo só sobe depois que o journal está completo.
+- **Armadilhas já vividas** (e como a ferramenta as evita): `node inspect` lido como subcomando do Node (o script vem
+  sempre antes do modo nos argumentos); `import()` de caminho absoluto a partir de URL `data:` (a ferramenta é compilada
+  e fica na imagem); filtro de logs por `textPayload` (a saída é JSON).
+- **Testes:** a lógica e o PostgreSQL de verdade (bancos descartáveis) em `migration-command.test.ts`, no job
+  `postgres` da CI; a montagem dos comandos e a leitura de backups e logs em `deploy-from-main.tests.ps1`. **O gcloud
+  em si (criar/executar/apagar o Job, formato do `sql backups list` e dos logs) só é exercitado numa execução real**:
+  na primeira vez, rode `-Mode inspect` e leia a saída antes de qualquer `apply`.
+
 ## Build por SHA e inspeção do frontend
 
 O `build-from-main.ps1` abaixo só gera a imagem. Ele exige `-AgenticWorkspaceEnabled` e `-CaseWorkspaceEnabled`

@@ -4,6 +4,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'deploy-lib.ps1')
+. (Join-Path $PSScriptRoot 'migrate-lib.ps1')
 
 $script:passed = 0
 $script:failed = 0
@@ -464,6 +465,112 @@ Test-Case 'Write-DeployReceipt não lança nem grava nada quando o recibo é inv
     Assert-Equal $LASTEXITCODE 0 'o código de saída do node não pode vazar'
   }
   finally { Remove-Item -LiteralPath $directory -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
+# ---------- Ferramenta de migrations (migrate-lib.ps1) ----------
+# Montagem de argumentos e leitura de respostas. O gcloud em si não é exercitado aqui: só numa execução real.
+function New-ApiServiceFixture {
+  $json = @'
+{"metadata":{"name":"forgelex-api-prod"},"spec":{"template":{
+ "metadata":{"annotations":{"run.googleapis.com/cloudsql-instances":"proj-1:southamerica-east1:forgelex-hml-pg"}},
+ "spec":{"serviceAccountName":"runtime@proj-1.iam.gserviceaccount.com","containers":[{"env":[
+   {"name":"FORGELEX_PUBLIC_URL","value":"https://example.test"},
+   {"name":"DATABASE_URL","valueFrom":{"secretKeyRef":{"name":"forgelex-prod-database-url","key":"latest"}}}]}]}}}}
+'@
+  return (ConvertFrom-JsonText $json)
+}
+$migrationImage = 'southamerica-east1-docker.pkg.dev/proj-1/forgelex-prod/forgelex-api@sha256:' + ('c' * 64)
+$migrationNow = [datetime]::new(2026, 11, 16, 20, 0, 0, [System.DateTimeKind]::Utc)
+function New-MigrationCommandSet {
+  param([string]$Mode = 'inspect', [string[]]$Allow = @())
+  New-MigrationJobCommands -Mode $Mode -JobName 'forgelex-migrate-x' -Settings (Get-MigrationJobSettings -Service (New-ApiServiceFixture)) `
+    -Image $migrationImage -Allow $Allow -ProjectId 'proj-1' -Region 'southamerica-east1'
+}
+
+Test-Case 'Get-MigrationJobSettings espelha identidade, instância e segredo do serviço' {
+  $settings = Get-MigrationJobSettings -Service (New-ApiServiceFixture)
+  Assert-Equal $settings.ServiceAccount 'runtime@proj-1.iam.gserviceaccount.com'
+  Assert-Equal $settings.CloudSqlInstance 'proj-1:southamerica-east1:forgelex-hml-pg'
+  Assert-Equal $settings.InstanceName 'forgelex-hml-pg'
+  Assert-Equal $settings.DatabaseHost '/cloudsql/proj-1:southamerica-east1:forgelex-hml-pg'
+  Assert-Equal $settings.SecretName 'forgelex-prod-database-url'
+  Assert-Equal $settings.SecretKey 'latest'
+}
+Test-Case 'Get-MigrationJobSettings recusa DATABASE_URL em texto, mais de uma instância e conta ausente' {
+  $plain = New-ApiServiceFixture
+  $plain.spec.template.spec.containers[0].env[1] = [pscustomobject]@{ name = 'DATABASE_URL'; value = 'postgres://u:p@h/db' }
+  Assert-Throws { Get-MigrationJobSettings -Service $plain } 'não vem de um segredo'
+  $two = New-ApiServiceFixture
+  $two.spec.template.metadata.annotations.'run.googleapis.com/cloudsql-instances' = 'a:b:c,d:e:f'
+  Assert-Throws { Get-MigrationJobSettings -Service $two } 'única instância'
+  $noAccount = New-ApiServiceFixture
+  $noAccount.spec.template.spec.PSObject.Properties.Remove('serviceAccountName')
+  Assert-Throws { Get-MigrationJobSettings -Service $noAccount } 'conta de serviço'
+}
+
+Test-Case 'Test-RecentBackup aceita um backup bem-sucedido recente' {
+  $backups = ConvertFrom-JsonText '[{"status":"SUCCESSFUL","endTime":"2026-11-16T19:30:00.000Z"}]'
+  $result = Test-RecentBackup -Backups $backups -Now $migrationNow -MaxAgeMinutes 120
+  Assert-True $result.Ok $result.Reason
+}
+Test-Case 'Test-RecentBackup recusa backup velho, falho, ausente ou no futuro' {
+  foreach ($case in @(
+      @{ Json = '[{"status":"SUCCESSFUL","endTime":"2026-11-16T10:00:00.000Z"}]'; Pattern = 'tem' },
+      @{ Json = '[{"status":"FAILED","endTime":"2026-11-16T19:55:00.000Z"}]'; Pattern = 'Não há backup' },
+      @{ Json = '[]'; Pattern = 'Não há backup' },
+      @{ Json = '[{"status":"SUCCESSFUL","endTime":"2026-11-16T23:00:00.000Z"}]'; Pattern = 'futuro' })) {
+    $result = Test-RecentBackup -Backups (ConvertFrom-JsonText $case.Json) -Now $migrationNow -MaxAgeMinutes 120
+    Assert-True (-not $result.Ok) "deveria recusar $($case.Json)"
+    Assert-True ($result.Reason -match $case.Pattern) "motivo inesperado: $($result.Reason)"
+  }
+  Assert-True (-not (Test-RecentBackup -Backups $null -Now $migrationNow).Ok) 'sem lista de backups deve recusar'
+}
+Test-Case 'Test-RecentBackup usa o mais novo entre vários' {
+  $backups = ConvertFrom-JsonText '[{"status":"SUCCESSFUL","endTime":"2026-11-16T05:00:00.000Z"},{"status":"SUCCESSFUL","endTime":"2026-11-16T19:40:00.000Z"}]'
+  Assert-True (Test-RecentBackup -Backups $backups -Now $migrationNow).Ok 'o de 19:40 deveria valer'
+}
+
+Test-Case 'New-MigrationJobCommands cria um Job sem nova tentativa, com o script antes do modo' {
+  $commands = New-MigrationCommandSet -Mode 'apply' -Allow @('persistence-0042-webhook-admission', 'billing-ledger-0011-refund-recovery')
+  $create = $commands.Create -join ' '
+  Assert-True ($commands.Create -contains '--max-retries=0') 'apply nunca deve tentar de novo sozinho'
+  Assert-True ($commands.Create -contains '--command=node') 'o comando deve ser node'
+  # Em 16/11/2026 `inspect` foi lido pelo node como o subcomando `node inspect`: o script vem sempre antes do modo.
+  Assert-True ($commands.Create -contains '--args=api/dist/operations/migration-main.js,apply,--allow=persistence-0042-webhook-admission,--allow=billing-ledger-0011-refund-recovery') $create
+  Assert-True ($commands.Create -contains '--set-secrets=DATABASE_URL=forgelex-prod-database-url:latest') $create
+  Assert-True ($commands.Create -contains '--set-cloudsql-instances=proj-1:southamerica-east1:forgelex-hml-pg') $create
+  Assert-True ($commands.Create -contains '--set-env-vars=FORGELEX_MIGRATION_EXPECTED_DATABASE=forgelex,FORGELEX_MIGRATION_EXPECTED_HOST=/cloudsql/proj-1:southamerica-east1:forgelex-hml-pg') $create
+  Assert-True ($commands.Create -contains "--image=$migrationImage") $create
+  Assert-Equal ($commands.Delete -join ' ') 'run jobs delete forgelex-migrate-x --project=proj-1 --region=southamerica-east1 --quiet'
+}
+Test-Case 'New-MigrationJobCommands: inspect e verify não levam --allow' {
+  Assert-True ($null -ne (New-MigrationCommandSet -Mode 'verify')) 'verify sem allow deve montar'
+  $inspect = New-MigrationCommandSet -Mode 'inspect'
+  Assert-True ($inspect.Create -contains '--args=api/dist/operations/migration-main.js,inspect') ($inspect.Create -join ' ')
+}
+Test-Case 'New-MigrationJobCommands recusa entradas inseguras' {
+  Assert-Throws { New-MigrationCommandSet -Mode 'apply' } 'apply exige'
+  Assert-Throws { New-MigrationCommandSet -Mode 'inspect' -Allow @('persistence-0042-webhook-admission') } 'inspect não aceita'
+  Assert-Throws { New-MigrationCommandSet -Mode 'apply' -Allow @('x; rm -rf /') } 'ID de migration inválido'
+  Assert-Throws { New-MigrationCommandSet -Mode 'apply' -Allow @('a,b') } 'ID de migration inválido'
+  Assert-Throws {
+    New-MigrationJobCommands -Mode 'inspect' -JobName 'j' -Settings (Get-MigrationJobSettings -Service (New-ApiServiceFixture)) `
+      -Image 'southamerica-east1-docker.pkg.dev/proj-1/forgelex-prod/forgelex-api:latest' -ProjectId 'proj-1' -Region 'r'
+  } 'digest'
+}
+Test-Case 'New-MigrationJobName inclui o modo e o horário UTC' {
+  Assert-Equal (New-MigrationJobName -Mode 'apply' -Now $migrationNow) 'forgelex-migrate-apply-20261116200000'
+}
+
+Test-Case 'Format-MigrationLogEntries e Test-MigrationOutcome leem jsonPayload' {
+  $entries = ConvertFrom-JsonText '[{"jsonPayload":{"stage":"applied","id":"x"}},{"textPayload":"linha de texto"},{"jsonPayload":{"event":"migration.completed","mode":"apply"}}]'
+  $lines = @(Format-MigrationLogEntries -Entries $entries)
+  Assert-Equal $lines.Count 3
+  Assert-True ($lines[0] -match '"stage":"applied"') $lines[0]
+  Assert-Equal $lines[1] 'linha de texto'
+  Assert-Equal (Test-MigrationOutcome -Entries $entries) 'completed'
+  Assert-Equal (Test-MigrationOutcome -Entries (ConvertFrom-JsonText '[{"jsonPayload":{"event":"migration.failed","code":"X"}}]')) 'failed'
+  Assert-Equal (Test-MigrationOutcome -Entries $null) 'unknown'
 }
 
 Write-Host ''
