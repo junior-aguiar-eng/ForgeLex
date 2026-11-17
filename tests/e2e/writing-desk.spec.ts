@@ -257,9 +257,11 @@ test('histórico lateral visível, exclusão recuperável e seletor legível', a
   expect(chatBox.x + chatBox.width).toBeLessThanOrEqual(pieceBox.x + 1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.screenshot({ path: 'test-results/writing-desk/history-desktop.png', fullPage: true });
-  await page.getByRole('button', { name: 'Recolher conversas' }).click();
+  // No tema gelo a lista fica dentro da lateral do app, que tem o próprio botão; no clássico, a Mesa tem a coluna.
+  const ice = process.env.FORGELEX_E2E_THEME === 'gelo';
+  await page.getByRole('button', { name: ice ? 'Recolher menu lateral' : 'Recolher conversas' }).click();
   await expect(sidebar).not.toBeVisible();
-  await page.getByRole('button', { name: 'Mostrar conversas' }).click();
+  await page.getByRole('button', { name: ice ? 'Expandir menu lateral' : 'Mostrar conversas' }).click();
   await open.click();
   await expect(page).toHaveURL(new RegExp(`executionId=${run.id}`));
   // Excluir é reversível: sai do histórico na hora e o aviso oferece "Desfazer".

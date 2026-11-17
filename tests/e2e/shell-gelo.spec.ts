@@ -66,27 +66,37 @@ test('Rascunhos e Revisão antigos abrem a Mesa e acendem o item Mesa', async ({
   }
 });
 
-test('na Mesa a lateral nasce recolhida; fora dela, aberta; e o cliente pode trocar', async ({ page }) => {
+test('na Mesa a lateral fica aberta com as conversas recentes dentro dela, e o cliente pode recolhê-la', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page);
   const aside = sidebar(page);
   const toggle = (name: string) => aside.getByRole('button', { name, exact: true });
+  const history = page.getByRole('complementary', { name: 'Histórico de conversas' });
 
+  // Fora da Mesa não há lista de conversas na lateral.
   await expect(toggle('Recolher menu lateral')).toHaveAttribute('aria-expanded', 'true');
+  await expect(history).toHaveCount(0);
+
   await aside.getByRole('button', { name: 'Mesa', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'O que você precisa fazer hoje?' })).toBeVisible();
-  // Recolhida em trilho de ícones, mas cada item continua com nome acessível.
+  // Aberta na Mesa, com as conversas recentes dentro dela (e não numa coluna ao lado).
+  await expect(toggle('Recolher menu lateral')).toHaveAttribute('aria-expanded', 'true');
+  expect((await aside.boundingBox())!.width).toBeGreaterThan(200);
+  await expect(aside.getByRole('complementary', { name: 'Histórico de conversas' })).toBeVisible();
+  await expect(history).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Recolher conversas' })).toHaveCount(0);
+
+  // Recolhida em trilho de ícones, cada item continua com nome acessível e a lista de conversas sai.
+  await toggle('Recolher menu lateral').click();
   await expect(toggle('Expandir menu lateral')).toHaveAttribute('aria-expanded', 'false');
   expect((await aside.boundingBox())!.width).toBeLessThan(100);
   await expect(aside.getByRole('button', { name: 'Casos', exact: true })).toBeVisible();
   await expect(aside.getByRole('button', { name: 'Sair da conta' })).toBeVisible();
+  await expect(history).toHaveCount(0);
 
-  await toggle('Expandir menu lateral').click();
-  await expect(toggle('Recolher menu lateral')).toBeVisible();
-  expect((await aside.boundingBox())!.width).toBeGreaterThan(200);
-
-  // Voltar a uma tela fora da Mesa com a lateral recolhida pelo cliente respeita a escolha dele.
-  await toggle('Recolher menu lateral').click();
+  // A escolha do cliente vale também fora da Mesa.
   await aside.getByRole('button', { name: 'Casos', exact: true }).click();
   await expect(page).toHaveURL(/\/app\/casos/);
   await expect(toggle('Expandir menu lateral')).toBeVisible();

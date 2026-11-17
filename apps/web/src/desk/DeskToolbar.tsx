@@ -2,6 +2,7 @@ import { FileText, MessageSquare, PanelLeftClose, PanelLeftOpen, PanelRightClose
 
 export function DeskToolbar({
   historyCollapsed,
+  historyInSidebar = false,
   onToggleHistory,
   onOpenQueue,
   onOpenResearch,
@@ -11,6 +12,8 @@ export function DeskToolbar({
   onCollapsePiece,
 }: {
   historyCollapsed: boolean;
+  /** Tema gelo: as conversas ficam na lateral do app, que tem o próprio botão de recolher. */
+  historyInSidebar?: boolean;
   onToggleHistory: () => void;
   onOpenQueue: () => void;
   onOpenResearch: () => void;
@@ -22,16 +25,18 @@ export function DeskToolbar({
 }) {
   return (
     <header className="flex min-h-12 flex-wrap items-center gap-3 border-b border-stone-200 px-5 text-sm">
-      <button
-        type="button"
-        aria-label={historyCollapsed ? 'Mostrar conversas' : 'Recolher conversas'}
-        aria-expanded={!historyCollapsed}
-        aria-controls="desk-conversations"
-        onClick={onToggleHistory}
-        className="hidden rounded-lg p-2 text-stone-600 hover:bg-stone-100 lg:block"
-      >
-        {historyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-      </button>
+      {!historyInSidebar && (
+        <button
+          type="button"
+          aria-label={historyCollapsed ? 'Mostrar conversas' : 'Recolher conversas'}
+          aria-expanded={!historyCollapsed}
+          aria-controls="desk-conversations"
+          onClick={onToggleHistory}
+          className="hidden rounded-lg p-2 text-stone-600 hover:bg-stone-100 lg:block"
+        >
+          {historyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+        </button>
+      )}
       <span className="mr-auto" />
       <button type="button" className="rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100" onClick={onOpenQueue}>
         Pendências de revisão
