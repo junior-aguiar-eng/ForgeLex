@@ -624,6 +624,12 @@ origem externa (M5) e a lista com painel da decisão ao lado, que mexe no leitor
 
 Depende de U7: sem a tela “Casos”, o que for dela já está na Mesa e só Conectar e Conta mudam aqui. Telas da 7.2. Remover ou dar comportamento real aos botões inertes. Valores financeiros sempre vindos do serviço.
 
+**Situação em 17/11 (só no gelo, Conta e Conectar IA).** Casos e Caso novo aguardam a U7. Auditoria: nenhum botão inerte e nenhum
+valor em reais fora do serviço. Feitas a coluna lateral da Conta (identificação, chaves pelo prefixo, atividade e
+encerramento, só com dado real) e "Como fica o trabalho" em Conectar IA. Decisão de Boni: sem endpoint novo; a tabela de
+ferramentas com tarifa fica como pendência. Registro em
+[V5](../../architecture/2026-11-10-mesa-guiada-execucao.md#v5--conta-e-conectar-ia-17112026).
+
 ### V5A — Site público no modelo MCP e Mesa
 
 Depende de DEC-7, M2, U6 e do estado publicado registrado em E1. Decisão de Boni (11/11/2026): o frontend e a parte

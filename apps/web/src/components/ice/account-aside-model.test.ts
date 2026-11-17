@@ -41,7 +41,9 @@ describe('resumo das chaves de API', () => {
   });
 
   it('mostra no máximo três chaves, as ativas primeiro', () => {
-    const keys = ['a', 'b', 'c', 'd'].map((id, index) => key({ id, revokedAt: index === 0 ? '2026-10-01T00:00:00Z' : null }));
+    const keys = ['a', 'b', 'c', 'd'].map((id, index) =>
+      key({ id, revokedAt: index === 0 ? '2026-10-01T00:00:00Z' : null }),
+    );
     const summary = summarizeApiKeys(keys);
     expect(summary.items).toHaveLength(3);
     expect(summary.items.map((item) => item.active)).toEqual([true, true, true]);
