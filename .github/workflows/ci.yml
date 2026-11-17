@@ -275,6 +275,8 @@ jobs:
         env:
           VITE_FORGELEX_THEME: gelo
           FORGELEX_E2E_THEME: gelo
+      - name: Public home with the new public model on (VITE_FORGELEX_PUBLIC_MODEL)
+        run: pnpm exec playwright test --config playwright.public-model.config.ts
       - run: pnpm build
       - run: pnpm test:e2e:chunk-recovery
 

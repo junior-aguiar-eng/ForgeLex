@@ -1936,3 +1936,44 @@ Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
 - O aceite vale para o **tema gelo**, que continua só atrás do tema `gelo`. Nada foi publicado: o gelo ainda não passa pelo Cloud Build nem pelo `deploy-from-main.ps1`.
 
 **Não decide.** O aceite visual não decide a publicação do gelo, nem a V5A (site público), a U7, a M4 e a M5, que seguem pendentes.
+
+## V5A — Site público no modelo novo, parte 1: título e página inicial (17/11/2026)
+
+Sobre `main` em `47ae880`, na branch `claude/v5a-site-publico`. Primeira entrega da V5A. Tudo vale **só com `VITE_FORGELEX_PUBLIC_MODEL=true`**, desligada por padrão: com ela desligada o site é exatamente o de hoje (escopo congelado). A flag **deve continuar desligada em produção até a V5A inteira estar pronta**, porque só a página inicial muda nesta parte.
+
+### Decisão de Boni: o título
+
+Escritas três propostas, todas só com o que está no ar na publicação de 14/11 (`cd94c2c`) e sem o título vetado. **Boni escolheu a A em 17/11/2026:**
+
+- **Título:** "Sua IA, com jurisprudência que dá para conferir."
+- **Subtítulo:** "Conecte o ForgeLex ao ChatGPT ou ao Claude por MCP e pesquise decisões com a fonte e o estado de verificação de cada resultado. Você paga só pelo uso."
+
+As outras duas, para o registro: **B** "Pesquise na sua IA. Escreva na Mesa." (prometia mais, dependia de a Mesa estar aberta ao cliente) e **C** "A citação que você usa, conferida na fonte." (deixava de fora a vigência, que ainda não tem conferência no ar).
+
+### Cada afirmação do título e a função no ar
+
+| Afirmação | Função publicada |
+| --------- | ---------------- |
+| Conectar ao ChatGPT ou ao Claude por MCP | Conexão MCP com OAuth e ferramentas de pesquisa, publicada. O texto abaixo mantém "conforme a disponibilidade do MCP". |
+| Fonte e estado de verificação por resultado | Leitor de decisões e verificação de autoridade, publicados. |
+| Pagar só pelo uso | Créditos pré-pagos em reais, com valores vindos do serviço, publicados. |
+
+### O que foi feito
+
+- **Flag `VITE_FORGELEX_PUBLIC_MODEL`** (`config/site-capabilities.ts`) e a propriedade `model` em `PublicSite`, que as páginas recebem; os testes ligam o modelo sem recarregar módulos.
+- **Página inicial.** Título e subtítulo aprovados; os quatro passos do percurso reescritos (acesso, conexão, pesquisa com a fonte à vista, conferência e Mesa); "Mesa de trabalho" entra nas ferramentas e nas formas de uso, com o que está no ar: elaborar e revisar peças com orientação, a partir de anexos em PDF, texto ou Markdown; a pergunta "O que é a Mesa de trabalho?" e a de "O que é o ForgeLex?" reescritas; sai o aviso de que o fluxo de casos e rascunhos "está suspenso" (as âncoras antigas ficam).
+- **Metadados da inicial** (`metadataFor`): título, descrição e canônica. Para as outras páginas o metadado segue o atual.
+- **Fica de fora, de propósito:** Word, OCR, agentes analíticos, vigência e Gemini. Testes de unidade e de ponta a ponta conferem que essas palavras não aparecem, com uma mutação provada (pôr "OCR" no texto da Mesa derruba o teste).
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Texto atual preservado | Com a flag desligada o HTML da inicial é idêntico ao anterior (teste compara os dois); `public-copy.test.ts` segue exigindo o texto atual e o veto ao título rejeitado, e agora também o título novo. |
+| Playwright | `public-model.spec.ts` (novo, 3 cenários, passo próprio na CI): título, metadados, ausência do que não está no ar e axe; celular sem rolagem lateral e menu por teclado; as outras páginas com o texto atual. Suíte pública existente: 17 aprovados. |
+
+### Pendente na V5A
+
+Reescrever `ProductPage`, `HowPage`, `IntegrationsPage`, `CreditsPage`, `GuidePage` e `ApiDocsPage`; `LandingScreen` (a dupla versão do título por `CASE_WORKSPACE_ENABLED`); `ConnectionsScreen`; `index.html`, `sitemap.xml`, a imagem Open Graph e `README.md`; os textos legais em `apps/web/public/legal/` (**a aprovação é de Boni**; só devem descrever o que acontece de fato); `public-seo.test.ts`; e as URLs canônicas com o domínio vigente (D3). Depois, ligar a flag e publicar texto e função juntos.
+
+Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.

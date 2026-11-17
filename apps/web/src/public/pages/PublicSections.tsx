@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, FileCheck2, Search, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BookOpen, FileCheck2, FileText, Search, ShieldCheck } from 'lucide-react';
 
 const movements = [
   {
@@ -88,6 +88,54 @@ const faq = [
   },
 ] as const;
 
+/**
+ * Texto do modelo novo (V5A, título escolhido por Boni em 17/11/2026). Cada frase corresponde a uma função publicada
+ * (MCP com ChatGPT e Claude, pesquisa com fonte e verificação, Mesa com orientação e anexos de PDF, texto e Markdown,
+ * pré-pago). Word, OCR, agentes analíticos e outros clientes de IA só entram depois de publicados e ensaiados.
+ */
+export const MODEL_TITLE = 'Sua IA, com jurisprudência que dá para conferir.';
+export const MODEL_SUBTITLE =
+  'Conecte o ForgeLex ao ChatGPT ou ao Claude por MCP e pesquise decisões com a fonte e o estado de verificação de cada resultado. Você paga só pelo uso.';
+
+const modelMovements = [
+  movements[0],
+  movements[1],
+  {
+    number: '03',
+    title: 'Pesquise com a fonte à vista',
+    body: 'Peça a pesquisa no aplicativo conectado. Cada resultado mostra a fonte e o estado de verificação, e cada nova pesquisa válida é faturável.',
+  },
+  {
+    number: '04',
+    title: 'Confira e trabalhe a peça',
+    body: 'Abra a autoridade e confira antes de usar; essas operações são gratuitas. Para elaborar e revisar a peça, use a Mesa de trabalho.',
+  },
+] as const;
+
+const modelCapabilities = [
+  ...capabilities.map((item, index) => ({ ...item, id: ['pesquisa', 'integracao', 'conta', 'api'][index] })),
+  {
+    id: 'mesa',
+    icon: FileText,
+    title: 'Mesa de trabalho',
+    body: 'Elabore e revise peças com orientação do ForgeLex, a partir de anexos em PDF, texto ou Markdown. A decisão jurídica e o uso do resultado continuam sob responsabilidade humana.',
+  },
+] as const;
+
+const modelFaq = [
+  {
+    question: 'O que é o ForgeLex?',
+    answer:
+      'É um serviço de jurisprudência para a sua própria IA: ferramentas MCP para ChatGPT ou Claude, pesquisa com fonte e estado de verificação, a Mesa de trabalho, API REST e consulta processual gratuita.',
+  },
+  {
+    question: 'O que é a Mesa de trabalho?',
+    answer:
+      'É o espaço do ForgeLex para elaborar e revisar peças com orientação, a partir de anexos em PDF, texto ou Markdown. A conferência e o uso jurídico do resultado continuam sob sua responsabilidade.',
+  },
+  ...faq.slice(1),
+] as const;
+
 export function SectionHeader({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
   return (
     <div className="max-w-3xl">
@@ -98,17 +146,19 @@ export function SectionHeader({ eyebrow, title, text }: { eyebrow: string; title
   );
 }
 
-export function Hero() {
+export function Hero({ model = false }: { model?: boolean }) {
+  const steps = model ? modelMovements : movements;
   return (
     <section className="page-container grid gap-10 py-16 sm:py-24 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
       <div className="min-w-0 break-words">
-        <p className="eyebrow">Pesquisa jurídica por MCP</p>
+        <p className="eyebrow">{model ? 'Conexão por MCP' : 'Pesquisa jurídica por MCP'}</p>
         <h1 className="mt-5 max-w-3xl font-editorial text-4xl font-bold leading-[1.16] tracking-tight text-stone-950 sm:text-5xl xl:text-6xl">
-          Jurisprudência dos tribunais superiores e consulta processual.
+          {model ? MODEL_TITLE : 'Jurisprudência dos tribunais superiores e consulta processual.'}
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-8 text-stone-600">
-          Pesquise decisões, confira as fontes e consulte processos. Use o site ou conecte o ForgeLex ao ChatGPT ou
-          Claude.
+          {model
+            ? MODEL_SUBTITLE
+            : 'Pesquise decisões, confira as fontes e consulte processos. Use o site ou conecte o ForgeLex ao ChatGPT ou Claude.'}
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a href="/cadastro" className="btn-primary">
@@ -118,12 +168,14 @@ export function Hero() {
             Conhecer o produto
           </a>
         </div>
-        <p className="mt-8 text-sm text-stone-500">Decisões, fontes e consulta processual</p>
+        <p className="mt-8 text-sm text-stone-500">
+          {model ? 'Decisões, fontes à vista e a Mesa de trabalho' : 'Decisões, fontes e consulta processual'}
+        </p>
       </div>
       <div className="surface min-w-0 break-words p-6 sm:p-8" aria-label="Percurso de trabalho">
         <p className="eyebrow">Da conexão à fonte</p>
         <ol className="mt-6 space-y-5">
-          {movements.map((step) => (
+          {steps.map((step) => (
             <li key={step.number} className="flex gap-4 border-b border-stone-100 pb-4 last:border-0 last:pb-0">
               <span className="font-editorial text-2xl text-cognac-700">{step.number}</span>
               <div className="min-w-0">
@@ -170,12 +222,13 @@ export function Problems() {
   );
 }
 
-export function Movements() {
+export function Movements({ model = false }: { model?: boolean }) {
+  const steps = model ? modelMovements : movements;
   return (
     <section className="page-container py-16 sm:py-20">
       <SectionHeader eyebrow="Como funciona" title="Da conta à pesquisa com fontes." />
       <ol className="mt-9 grid gap-4 md:grid-cols-2">
-        {movements.map((step, index) => (
+        {steps.map((step, index) => (
           <li key={step.number} className="border-l-2 border-champagne-border py-2 pl-6">
             <span className="text-sm font-bold text-cognac-700">{step.number}</span>
             <h3 className="mt-3 font-editorial text-xl font-bold text-stone-900">{step.title}</h3>
@@ -193,26 +246,32 @@ export function Movements() {
   );
 }
 
-export function Capabilities() {
+export function Capabilities({ model = false }: { model?: boolean }) {
+  const items = model
+    ? modelCapabilities
+    : capabilities.map((item, index) => ({ ...item, id: ['pesquisa', 'integracao', 'conta', 'api'][index] }));
   return (
     <section className="border-y border-champagne-border bg-white/70 py-16 sm:py-20">
       <div className="page-container">
         <div className="scroll-mt-24" id="casos">
           <span id="rascunhos" />
           <span id="revisao" />
-          <p className="mb-6 text-sm text-stone-600">
-            O fluxo de casos, rascunhos e revisão está suspenso na interface. Veja abaixo os recursos de pesquisa e
-            integração disponíveis.
-          </p>
+          {!model && (
+            <p className="mb-6 text-sm text-stone-600">
+              O fluxo de casos, rascunhos e revisão está suspenso na interface. Veja abaixo os recursos de pesquisa e
+              integração disponíveis.
+            </p>
+          )}
         </div>
-        <SectionHeader eyebrow="Ferramentas do produto" title="Pesquisa, conexão e conta em um só lugar." />
+        <SectionHeader
+          eyebrow="Ferramentas do produto"
+          title={
+            model ? 'Pesquisa, conexão, Mesa e conta em um só lugar.' : 'Pesquisa, conexão e conta em um só lugar.'
+          }
+        />
         <div className="mt-9 grid gap-5 md:grid-cols-2">
-          {capabilities.map(({ icon: Icon, title, body }, index) => (
-            <article
-              id={['pesquisa', 'integracao', 'conta', 'api'][index]}
-              key={title}
-              className="surface scroll-mt-24 p-6"
-            >
+          {items.map(({ icon: Icon, title, body, id }) => (
+            <article id={id} key={title} className={`surface scroll-mt-24 p-6 ${id === 'mesa' ? 'md:col-span-2' : ''}`}>
               <Icon className="h-6 w-6 text-cognac-700" aria-hidden="true" />
               <h3 className="mt-4 font-editorial text-xl font-bold text-stone-900">{title}</h3>
               <p className="mt-2 text-sm leading-6 text-stone-600">{body}</p>
@@ -228,15 +287,25 @@ export function Capabilities() {
   );
 }
 
-export function WaysToUse() {
+export function WaysToUse({ model = false }: { model?: boolean }) {
+  const mesa = [
+    'Mesa de trabalho',
+    'Elabore e revise peças no próprio site, com orientação e anexos em PDF, texto ou Markdown.',
+    '/cadastro',
+    'Criar acesso',
+  ];
   return (
     <section className="page-container py-16 sm:py-20">
       <SectionHeader
         eyebrow="Use do seu jeito"
         title="Escolha onde o trabalho acontece."
-        text="Conecte sua IA por MCP, pesquise no site ou integre seu software por API REST."
+        text={
+          model
+            ? 'Conecte sua IA por MCP, trabalhe a peça na Mesa, pesquise no site ou integre seu software por API REST.'
+            : 'Conecte sua IA por MCP, pesquise no site ou integre seu software por API REST.'
+        }
       />
-      <div className="mt-9 grid gap-4 lg:grid-cols-3">
+      <div className={`mt-9 grid gap-4 ${model ? 'md:grid-cols-2 lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         {[
           [
             'Pesquisa no site',
@@ -250,6 +319,7 @@ export function WaysToUse() {
             '/guia',
             'Ler o guia',
           ],
+          ...(model ? [mesa] : []),
           [
             'API REST',
             'Integre pesquisa e metadados a software próprio com autenticação e contratos documentados.',
@@ -330,13 +400,14 @@ export function Safeguards() {
   );
 }
 
-export function FAQ() {
+export function FAQ({ model = false }: { model?: boolean }) {
+  const items = model ? modelFaq : faq;
   return (
     <section id="perguntas" className="scroll-mt-24 border-t border-champagne-border bg-white/70 py-16 sm:py-20">
       <div className="page-container">
         <SectionHeader eyebrow="Perguntas frequentes" title="Respostas antes de criar acesso." />
         <div className="mt-8 max-w-4xl divide-y divide-champagne-border border-y border-champagne-border">
-          {faq.map((item) => (
+          {items.map((item) => (
             <details key={item.question} className="group py-4">
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-left font-semibold text-stone-900 marker:hidden">
                 {item.question}

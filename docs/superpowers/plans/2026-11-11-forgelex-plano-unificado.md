@@ -649,8 +649,8 @@ publicação, por flag (`VITE_FORGELEX_PUBLIC_MODEL`), e uma frase sem função 
       (5) pagamento por uso, com recarga e valores sempre vindos do serviço.
 - [ ] Clientes de IA citados: só os com conexão ensaiada em M1 e D2 (hoje ChatGPT e Claude, “conforme a
       disponibilidade do MCP”). O Gemini entra no texto só depois de ensaio de conexão.
-- [ ] Escrever três propostas de título e subtítulo; Boni escolhe uma. O resultado entra no registro de execução.
-- [ ] Reescrever, no modelo escolhido: `HomePage`, `ProductPage`, `HowPage`, `IntegrationsPage`, `CreditsPage`,
+- [x] Escrever três propostas de título e subtítulo; Boni escolhe uma. O resultado entra no registro de execução. **Boni escolheu a A em 17/11/2026:** “Sua IA, com jurisprudência que dá para conferir.” Registro em [V5A parte 1](../../architecture/2026-11-10-mesa-guiada-execucao.md#v5a--site-público-no-modelo-novo-parte-1-título-e-página-inicial-17112026).
+- [ ] Reescrever, no modelo escolhido (a `HomePage` e os metadados dela estão feitos, atrás da flag; faltam as demais): `HomePage`, `ProductPage`, `HowPage`, `IntegrationsPage`, `CreditsPage`,
       `GuidePage`, `ApiDocsPage`, `PublicSections.tsx`, `LandingScreen.tsx` (remover a dupla versão do título por
       `CASE_WORKSPACE_ENABLED`), `ConnectionsScreen` (Conectar IA), `index.html`, `public-metadata.ts`,
       `sitemap.xml`, imagem Open Graph e `README.md`.
