@@ -9,7 +9,7 @@ try {
     JSON.stringify({
       knownMitigated: result.knownMitigated.map(summarize),
       actionable: result.actionable.map(summarize),
-      mitigationReviewBefore: '2026-11-08T00:00:00Z',
+      mitigationReviewBefore: result.reviewBefore,
     }) + '\n',
   );
   if (result.actionable.length > 0) process.exitCode = 1;
