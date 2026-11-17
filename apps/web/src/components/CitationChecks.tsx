@@ -1,4 +1,6 @@
 import type { SearchResultItem } from '../operations/contracts';
+import { activeTheme } from '../theme/active-theme';
+import { VerificationSeal } from './ice/Seal';
 
 const identityLabels: Record<SearchResultItem['verificationStatus'], string> = {
   VERIFIED_OFFICIAL: 'Conferida na fonte oficial.',
@@ -9,12 +11,21 @@ const identityLabels: Record<SearchResultItem['verificationStatus'], string> = {
 };
 
 export function CitationChecks({ identity }: { identity?: SearchResultItem['verificationStatus'] }) {
+  // Tema gelo: o estado da identidade vira o selo (ícone e texto), com a mesma frase ao lado.
+  const ice = activeTheme() === 'gelo';
   return (
     <dl className="space-y-1 text-xs text-stone-600">
       {identity && (
         <div>
           <dt className="inline font-semibold">Identidade do julgado. </dt>
-          <dd className="inline">{identityLabels[identity]}</dd>
+          {ice ? (
+            <dd className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <VerificationSeal status={identity} />
+              <span>{identityLabels[identity]}</span>
+            </dd>
+          ) : (
+            <dd className="inline">{identityLabels[identity]}</dd>
+          )}
         </div>
       )}
       <div>

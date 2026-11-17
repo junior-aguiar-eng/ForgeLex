@@ -190,6 +190,8 @@ jobs:
       - run: pnpm test:e2e:research
       - name: Saved research and isolated MCP Apps reader
         run: pnpm exec playwright test --config playwright.saved-research.config.ts
+      - name: Research page, seals and reader with the ice theme on
+        run: pnpm exec playwright test --config playwright.research-gelo.config.ts
       - name: Preserve product diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4

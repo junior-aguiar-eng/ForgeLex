@@ -1,4 +1,4 @@
-import { BadgeCheck, Sparkles } from 'lucide-react';
+import { AiSeal, VerificationSeal } from '../components/ice/Seal';
 
 /**
  * Estado vazio da Mesa no tema gelo (V3): exemplos que só preenchem o pedido (o cliente edita e envia) e a explicação
@@ -54,20 +54,14 @@ export function DeskEmptyGuide({ onExample }: { onExample: (text: string) => voi
         </h2>
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="rounded-xl border border-line bg-surface p-3">
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-strong">
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
-              Análise da IA
-            </span>
+            <AiSeal />
             <p className="mt-1 text-xs text-muted">
               Explica por que uma decisão serve, ou não, à questão do caso. É leitura da IA, sempre rotulada, e você a
               confere.
             </p>
           </div>
           <div className="rounded-xl border border-line bg-surface p-3">
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-ok">
-              <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-              Verificada
-            </span>
+            <VerificationSeal status="VERIFIED_OFFICIAL" />
             <p className="mt-1 text-xs text-muted">Número, data e órgão conferidos na fonte oficial.</p>
           </div>
         </div>
