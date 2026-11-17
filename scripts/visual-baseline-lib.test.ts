@@ -7,6 +7,7 @@ import {
   normalizeVolatileText,
   parseDevMesaOutput,
   screenName,
+  summarizeAxe,
 } from './visual-baseline-lib.mjs';
 
 describe('normalizeVolatileText', () => {
@@ -125,5 +126,34 @@ Ambiente de desenvolvimento da Mesa pronto.
 
   it('devolve nulo enquanto o ambiente não terminou de subir', () => {
     expect(parseDevMesaOutput('[web] VITE ready in 300 ms\n  Site:   http://127.0.0.1:3400/entrar\n')).toBeNull();
+  });
+});
+
+describe('summarizeAxe', () => {
+  const violation = (id: string, impact: string, targets: string[][]) => ({
+    id,
+    impact,
+    help: `ajuda ${id}`,
+    nodes: targets.map((target) => ({ target })),
+  });
+
+  it('resume cada violação com a regra, a gravidade, a contagem e os primeiros elementos', () => {
+    const summary = summarizeAxe([
+      violation('color-contrast', 'serious', [['.a'], ['.b'], ['.c'], ['.d']]),
+      violation('label', 'critical', [['input']]),
+    ]);
+    expect(summary).toEqual([
+      { id: 'color-contrast', impact: 'serious', help: 'ajuda color-contrast', count: 4, targets: ['.a', '.b', '.c'] },
+      { id: 'label', impact: 'critical', help: 'ajuda label', count: 1, targets: ['input'] },
+    ]);
+  });
+
+  it('une o caminho de elementos dentro de iframe ou componente com " >> "', () => {
+    const [item] = summarizeAxe([violation('x', 'minor', [['iframe', '.dentro']])]);
+    expect(item!.targets).toEqual(['iframe >> .dentro']);
+  });
+
+  it('sem violação, lista vazia', () => {
+    expect(summarizeAxe([])).toEqual([]);
   });
 });
