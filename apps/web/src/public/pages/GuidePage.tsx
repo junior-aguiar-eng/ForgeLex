@@ -1,12 +1,18 @@
 import { PageIntro } from './PublicSections';
 
-export function GuidePage() {
+export function GuidePage({ model = false }: { model?: boolean }) {
   return (
     <>
       <PageIntro
         eyebrow="Guia para advogados"
-        title="Pesquise pelo ChatGPT ou Claude com o ForgeLex."
-        text="Confira se sua conta no ChatGPT ou Claude oferece MCP, crie seu acesso ForgeLex e autorize a conexão. A pesquisa também pode ser feita no site."
+        title={
+          model ? 'Conecte sua IA e pesquise com a fonte à vista.' : 'Pesquise pelo ChatGPT ou Claude com o ForgeLex.'
+        }
+        text={
+          model
+            ? 'Confira se sua conta no ChatGPT ou Claude oferece MCP, crie seu acesso ForgeLex e autorize a conexão. A pesquisa também pode ser feita no site, e a Mesa de trabalho serve para elaborar e revisar a peça.'
+            : 'Confira se sua conta no ChatGPT ou Claude oferece MCP, crie seu acesso ForgeLex e autorize a conexão. A pesquisa também pode ser feita no site.'
+        }
       />
       <section className="page-container grid gap-5 pb-16 md:grid-cols-2">
         <article className="surface p-6">
@@ -16,6 +22,7 @@ export function GuidePage() {
             <li>Abra Conectar IA ou pesquise jurisprudência dos tribunais superiores.</li>
             <li>Abra a autoridade e confira a proveniência antes de usá-la.</li>
             <li>Confira créditos e atividade na conta.</li>
+            {model && <li>Para elaborar e revisar uma peça, abra a Mesa de trabalho.</li>}
           </ol>
           <a className="btn-primary mt-6" href="/cadastro">
             Criar acesso
@@ -33,6 +40,19 @@ export function GuidePage() {
             Entrar para conectar
           </a>
         </article>
+        {model && (
+          <article className="surface p-6 md:col-span-2">
+            <h2 className="font-editorial text-xl font-bold">Mesa de trabalho</h2>
+            <p className="mt-3 text-sm leading-6 text-stone-600">
+              A Mesa orienta a elaboração e a revisão da peça, a partir de anexos em PDF, texto ou Markdown. A
+              orientação é do ForgeLex; a decisão jurídica e a conferência do resultado continuam sob sua
+              responsabilidade.
+            </p>
+            <a className="btn-secondary mt-5" href="/entrar?next=%2Fapp%2Ftrabalho">
+              Entrar na Mesa
+            </a>
+          </article>
+        )}
         <article className="surface p-6 md:col-span-2">
           <h2 className="font-editorial text-xl font-bold">Privacidade e custos</h2>
           <p className="mt-3 text-sm leading-6 text-stone-600">

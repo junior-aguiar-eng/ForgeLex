@@ -2,7 +2,7 @@ import { Code2 } from 'lucide-react';
 import { resolveApiOrigin } from '../../api-client';
 import { PageIntro } from './PublicSections';
 
-export function ApiDocsPage() {
+export function ApiDocsPage({ model = false }: { model?: boolean }) {
   const apiUrl = resolveApiOrigin();
   const curl = `curl -G '${apiUrl}/api/v2/jurisprudencias' \\\n  --data-urlencode 'q=<CONSULTA>' --data-urlencode 'court=STJ' \\\n  -H 'Authorization: Bearer <SUA_CHAVE>' \\\n  -H 'Idempotency-Key: <CHAVE_UNICA>'`;
   const node = `const url = new URL('${apiUrl}/api/v2/jurisprudencias');
@@ -20,7 +20,9 @@ response = httpx.get('${apiUrl}/api/v2/jurisprudencias',
     <>
       <PageIntro
         eyebrow="Desenvolvedores"
-        title="Integre as operações jurídicas do ForgeLex."
+        title={
+          model ? 'Integre a pesquisa do ForgeLex ao seu software.' : 'Integre as operações jurídicas do ForgeLex.'
+        }
         text="A API REST e o MCP expõem a mesma infraestrutura jurídica. A autenticação, os escopos, os erros e a cobrança pertencem a cada operação; o modelo da integração MCP é fornecido pelo aplicativo conectado."
       />
       <section className="page-container space-y-8 pb-16">
