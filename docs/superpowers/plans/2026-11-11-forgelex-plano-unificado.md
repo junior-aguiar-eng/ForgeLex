@@ -614,6 +614,12 @@ Depende de V3 e M4. `ResearchDeskScreen.tsx`, `DecisionReader`, `SavedResearchPa
 `SaveAuthorityToCase`. Linguagem visual única para os selos: verificada (verde, ícone e texto), análise da IA
 (petróleo, rotulada), origem externa (M5).
 
+**Situação em 17/11 (só no gelo, parte que não depende da M4).** Feitos os selos de verificação e o da análise da IA
+(ícone e texto), o título e a legenda da Jurisprudência, o leitor de decisões no tema e o selo no alto do registro. Ficam
+para depois da M4: aderência ao caso por resultado, "Pesquisar com o caso" e consultas sugeridas. Não feitos: o selo de
+origem externa (M5) e a lista com painel da decisão ao lado, que mexe no leitor compartilhado com o MCP. Registro em
+[V4](../../architecture/2026-11-10-mesa-guiada-execucao.md#v4--jurisprudência-leitor-e-selos-17112026).
+
 ### V5 — Casos, Caso novo, Conectar e Conta
 
 Depende de U7: sem a tela “Casos”, o que for dela já está na Mesa e só Conectar e Conta mudam aqui. Telas da 7.2. Remover ou dar comportamento real aos botões inertes. Valores financeiros sempre vindos do serviço.

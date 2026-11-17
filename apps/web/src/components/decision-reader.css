@@ -28,3 +28,9 @@
 [data-theme=dark] .decision-reader,.dark .decision-reader{--reader-bg:#191816;--reader-paper:#24211d;--reader-fg:#eee6dc;--reader-muted:#bcb0a0;--reader-border:#4b4137;--reader-accent:#e1b681}
 [data-theme=light] .decision-reader{--reader-bg:#fbf9f5;--reader-paper:#fff;--reader-fg:#2d2721;--reader-muted:#71695f;--reader-border:#e6ded3;--reader-accent:#8e5d2a}
 @media(max-width:650px){.reader-brandbar{flex-wrap:wrap}.reader-brandbar,.reader-toolbar,.reader-record,.reader-footer{padding-left:17px;padding-right:17px}.reader-saved-date{padding-left:17px;padding-right:17px}.decision-reader h2{font-size:21px}.reader-text{max-height:400px}}
+
+/* Tema gelo (V4): o leitor usa os papéis do tema e a fonte editorial do app. Só vale com `data-theme="gelo"` na página
+   do app; no leitor do MCP (isolado) e no tema clássico nada muda. A especificidade vence a regra do modo escuro. */
+[data-theme=gelo] .decision-reader{--reader-bg:rgb(var(--fl-surface-muted));--reader-paper:rgb(var(--fl-surface));--reader-fg:rgb(var(--fl-ink));--reader-muted:rgb(var(--fl-muted));--reader-border:rgb(var(--fl-line));--reader-accent:rgb(var(--fl-accent));border-radius:var(--fl-radius-card,12px)}
+[data-theme=gelo] .decision-reader .reader-brand,[data-theme=gelo] .decision-reader h2{font-family:var(--fl-font-heading)}
+[data-theme=gelo] .decision-reader .reader-seal{margin:0 0 12px}

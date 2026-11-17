@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { SearchResultItem } from '../operations/contracts';
 import './decision-reader.css';
 import { CitationChecks } from './CitationChecks';
+import { activeTheme } from '../theme/active-theme';
+import { VerificationSeal } from './ice/Seal';
 
 export interface ReaderEntry {
   decision?: SearchResultItem;
@@ -175,6 +177,11 @@ export function DecisionReader({
           <h2 ref={heading} tabIndex={-1}>
             {item.processNumber}
           </h2>
+          {activeTheme() === 'gelo' && (
+            <p className="reader-seal">
+              <VerificationSeal status={item.verificationStatus} />
+            </p>
+          )}
           <p className="reader-relator">Relatoria: {item.relator || 'Não informada'}</p>
           <p className="reader-chamber">Órgão julgador: {item.chamber || 'Não informado'}</p>
           <dl className="reader-metadata">
