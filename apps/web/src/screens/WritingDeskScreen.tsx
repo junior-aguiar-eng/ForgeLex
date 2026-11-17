@@ -19,6 +19,7 @@ import { DeskShell } from '../desk/DeskShell';
 import { useDeskHistorySlot } from '../components/ice/desk-history-slot';
 import { DeskCaseSlotProvider } from '../desk/desk-case-slot';
 import { DeskShortcuts, reviewTextRequest } from '../desk/DeskShortcuts';
+import { DeskEmptyGuide } from '../desk/DeskEmptyGuide';
 import { DESK_SHELL_ENABLED } from '../config/site-capabilities';
 import { DeskMobileTabs, DeskToolbar } from '../desk/DeskToolbar';
 import { DeskQueueDialog, DeskSourcesDialog } from '../desk/DeskDialogs';
@@ -232,11 +233,16 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
             emptyState={
               // Com a peça aberta, os atalhos repetem a barra de cima e só alongariam a conversa além da altura da peça.
               DESK_SHELL_ENABLED && !activePiece ? (
-                <DeskShortcuts
-                  onNewPiece={reopenPiece}
-                  onReviewText={() => setRequest((old) => ({ id: (old?.id ?? 0) + 1, text: reviewTextRequest }))}
-                  onResearch={() => setSources({ kind: 'research', key: sourceKey })}
-                />
+                <div className="space-y-6">
+                  <DeskShortcuts
+                    onNewPiece={reopenPiece}
+                    onReviewText={() => setRequest((old) => ({ id: (old?.id ?? 0) + 1, text: reviewTextRequest }))}
+                    onResearch={() => setSources({ kind: 'research', key: sourceKey })}
+                  />
+                  {historySlot.inSidebar && (
+                    <DeskEmptyGuide onExample={(text) => setRequest((old) => ({ id: (old?.id ?? 0) + 1, text }))} />
+                  )}
+                </div>
               ) : undefined
             }
           />

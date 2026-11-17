@@ -360,7 +360,7 @@ test('peça salva: abas Texto, Fontes e Revisão, sem os diálogos antigos, e o 
   await expect(text).toHaveValue('Texto digitado e ainda não salvo.');
 });
 
-test('abas da peça: setas e Home/End trocam de aba, e peça sem caso só tem o texto', async ({ page }) => {
+test('abas da peça: setas e Home/End trocam de aba, e peça sem caso não tem revisão', async ({ page }) => {
   const { piece } = await openSavedPiece(page);
   const tabs = piece.getByRole('tablist', { name: 'Partes da peça' });
   await tabs.getByRole('tab', { name: 'Texto', exact: true }).focus();
@@ -372,13 +372,40 @@ test('abas da peça: setas e Home/End trocam de aba, e peça sem caso só tem o 
   await page.keyboard.press('Home');
   await expect(tabs.getByRole('tab', { name: 'Texto', exact: true })).toHaveAttribute('aria-selected', 'true');
 
-  // Sem caso não há fontes do caso nem versão salva para revisar.
+  // Sem caso: o texto e as fontes estão abertos (a aba Fontes explica e oferece criar o caso); sem versão salva não há
+  // o que revisar.
   await page.goto('/app/trabalho');
   await page.getByRole('button', { name: 'Nova peça', exact: true }).click();
   const fresh = page.getByRole('region', { name: 'Mesa da peça' }).getByRole('tablist', { name: 'Partes da peça' });
   await expect(fresh.getByRole('tab', { name: 'Texto', exact: true })).toHaveAttribute('aria-selected', 'true');
-  await expect(fresh.getByRole('tab', { name: 'Fontes', exact: true })).toBeDisabled();
+  await expect(fresh.getByRole('tab', { name: 'Fontes', exact: true })).toBeEnabled();
   await expect(fresh.getByRole('tab', { name: 'Revisão', exact: true })).toBeDisabled();
+});
+
+test('peça sem caso: a aba Fontes explica e cria o caso só com o nome, e a peça passa a usá-lo', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'semcaso@forgelex.test');
+  await page.goto('/app/trabalho');
+  await page.getByRole('button', { name: 'Nova peça', exact: true }).click();
+  const piece = page.getByRole('region', { name: 'Mesa da peça' });
+  await piece.getByLabel('Título da peça', { exact: true }).fill('Apelação contra a sentença. Fatos relevantes.');
+  await piece.getByRole('tab', { name: 'Fontes', exact: true }).click();
+  const panel = piece.getByRole('region', { name: 'Peça sem caso' });
+  await expect(panel).toContainText('Esta peça não está ligada a um caso');
+  await expect(panel).toContainText('Sem caso, não há questões, cobertura de fontes nem análise de aderência');
+  const name = panel.getByLabel('Nome do caso');
+  await expect(name).toHaveValue('Apelação contra a sentença');
+  // O cliente pode apagar a sugestão sem que ela volte sozinha.
+  await name.fill('');
+  await expect(name).toHaveValue('');
+  await name.fill('Caso da apelação');
+  await panel.getByRole('button', { name: 'Criar caso a partir desta conversa', exact: true }).click();
+  await expect(piece.getByRole('region', { name: 'Peça sem caso' })).toHaveCount(0);
+  await expect(piece.getByRole('tabpanel', { name: 'Fontes' })).toContainText('Nenhum julgado salvo');
+  const cases = await (await page.request.get(api + '/api/v2/matters', { headers: apiHeaders })).json();
+  const created = cases.items.find((item: { title: string }) => item.title === 'Caso da apelação');
+  expect(created).toBeTruthy();
+  expect(created.description ?? null).toBeNull();
 });
 
 test('acessibilidade das abas da peça: Texto, Fontes e Revisão, sem violação', async ({ page }) => {
@@ -497,4 +524,72 @@ test('Mesa: com a conversa em andamento o caso fica fixo, com o motivo escrito',
   await expect(
     page.locator('[data-writing-desk] > header').getByRole('button', { name: 'Criar caso a partir desta conversa' }),
   ).toHaveCount(0);
+});
+
+test('Mesa: estado vazio com exemplos que só preenchem o pedido e a explicação dos dois selos', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'vazio@forgelex.test');
+  await page.goto('/app/trabalho');
+  const composer = page.getByLabel('O que você precisa fazer?', { exact: true });
+  await expect(composer).toBeVisible();
+  await expect(composer).toHaveValue('');
+
+  const examples = page.getByRole('region', { name: 'Comece por um exemplo' });
+  await expect(examples.getByRole('button')).toHaveCount(3);
+  await examples.getByRole('button', { name: /Teses sobre um tema/ }).click();
+  await expect(composer).toHaveValue('Preciso das teses do STJ sobre ');
+  // Um exemplo só preenche: nada foi enviado nem cobrado.
+  await expect(page.getByRole('region', { name: 'Etapas do trabalho' })).toHaveCount(0);
+
+  const seals = page.getByRole('region', { name: 'Dois selos, dois sentidos' });
+  await expect(seals).toContainText('Análise da IA');
+  await expect(seals).toContainText('É leitura da IA, sempre rotulada');
+  await expect(seals).toContainText('Verificada');
+  await expect(seals).toContainText('Número, data e órgão conferidos na fonte oficial');
+  const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // Com a peça aberta, o estado vazio sai do caminho (a conversa não passa da altura da peça).
+  await page.getByRole('button', { name: 'Nova peça', exact: true }).first().click();
+  await expect(page.getByRole('region', { name: 'Mesa da peça' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Dois selos, dois sentidos' })).toHaveCount(0);
+});
+
+test('etapas do trabalho: o erro fica sempre visível, anunciado e marcado na etapa', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'erro@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso do erro' } })
+  ).json();
+  const run = await (
+    await page.request.post(api + '/api/agentic/executions', {
+      headers: { ...apiHeaders, 'Idempotency-Key': `erro-${matter.id}` },
+      data: {
+        matterId: matter.id,
+        actionId: 'research_question',
+        objective: 'Pesquisar para o erro',
+        context: { text: 'Contexto sintético.', origin: 'USER', documents: [] },
+      },
+    })
+  ).json();
+  const frame = (sequence: number, type: string, event: string, payload: Record<string, unknown>) =>
+    `id: ${sequence}\nevent: ${event}\ndata: ${JSON.stringify({ executionId: run.id, sequence, type, payload })}\n\n`;
+  await page.route('**/api/agentic/executions/*/events?*', (route) =>
+    route.fulfill({
+      contentType: 'text/event-stream',
+      body:
+        frame(1000, 'STATUS', 'status', { status: 'FAILED' }) +
+        frame(1001, 'ERROR', 'error', { code: 'EXECUTION_FAILED' }),
+    }),
+  );
+  await page.goto(`/app/trabalho?executionId=${run.id}`);
+  const alert = page.getByRole('alert');
+  await expect(alert).toBeVisible();
+  await expect(alert).toContainText('Não foi possível concluir o trabalho');
+  // O erro também marca a etapa e vai em texto, não só na cor.
+  const working = page.getByRole('region', { name: 'Etapas do trabalho' }).locator('[data-stage="working"]');
+  await expect(working).toHaveAttribute('data-state', 'error');
+  await expect(working).toContainText('com problema');
+  // O parágrafo de andamento (região viva) diz o mesmo para leitor de tela.
+  await expect(page.getByRole('status', { name: 'Andamento' })).toContainText('Não foi possível concluir o trabalho');
 });

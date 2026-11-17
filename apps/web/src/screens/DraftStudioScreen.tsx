@@ -1,6 +1,7 @@
 import { DraftCanvas, type PieceTab } from './draft-review/DraftCanvas';
 import { activeTheme } from '../theme/active-theme';
 import { DeskCaseSources } from '../research/DeskCaseSources';
+import { caseNameFrom } from '../desk/case-name';
 import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
 import { hasDeskPiece, selectDeskPiece, type DeskDocumentSelection } from '../agentic-workspace/desk-selection';
 import { deskLocation, readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
@@ -34,7 +35,7 @@ import {
   type Matter,
   type SavedAuthority,
 } from '../desk/draft-studio-model';
-import { ApprovalDialog, CreateCaseControls, PieceNotices, ReviewBody, ReviewDialog, VersionHistory } from '../desk/DraftStudioParts';
+import { ApprovalDialog, CreateCaseControls, CreateCaseFromPiece, PieceNotices, ReviewBody, ReviewDialog, VersionHistory } from '../desk/DraftStudioParts';
 
 export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void; onCaseSources?: () => void; requestedReview?: DeskDocumentSelection; deskEditorialEnabled?: boolean }> = ({ requestedLocation, selectedVersionId, onPieceChange, onCaseSources, requestedReview, deskEditorialEnabled = false }) => {
   const emptySections = () => [{title:'Texto da peça',content:'',linkedFactIds:[],linkedEvidenceIds:[],linkedAuthorityIds:[],linkedThesisIds:[]}];
@@ -765,18 +766,37 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       {editorialPanel}
     </>
   );
+  // Fontes numa peça sem caso: o nome sugerido para o caso vem do título da peça, e o cliente pode mudá-lo.
+  const suggestedCaseName = useRef(false);
+  useEffect(() => {
+    if (!ice || pieceTab !== 'fontes' || selectedMatterId) {
+      suggestedCaseName.current = false;
+      return;
+    }
+    if (suggestedCaseName.current) return;
+    suggestedCaseName.current = true;
+    if (!newWorkCase) setNewWorkCase(caseNameFrom(draftTitle));
+  }, [ice, pieceTab, selectedMatterId, newWorkCase, draftTitle]);
   // Voltar ao texto quando a aba aberta perde o que a sustenta (outro caso, peça sem versão salva).
   useEffect(() => {
     if (!ice) return;
-    if (pieceTab === 'fontes' && !selectedMatterId) setPieceTab('texto');
     if (pieceTab === 'revisao' && !activeVersion) setPieceTab('texto');
   }, [ice, pieceTab, selectedMatterId, activeVersion]);
   const pieceTabs = ice ? {
     selected: pieceTab,
     onSelect: (tab: PieceTab) => { setPieceTab(tab); if (tab === 'revisao' && selectedDraftId) openVersionReview(); },
-    enabled: { texto: true, fontes: Boolean(selectedMatterId), revisao: Boolean(selectedMatterId && selectedDraftId && activeVersion) },
+    enabled: { texto: true, fontes: true, revisao: Boolean(selectedMatterId && selectedDraftId && activeVersion) },
     panels: {
-      fontes: selectedMatterId ? <DeskCaseSources key={selectedMatterId} matterId={selectedMatterId} /> : null,
+      fontes: selectedMatterId ? <DeskCaseSources key={selectedMatterId} matterId={selectedMatterId} /> : (
+        <section aria-label="Peça sem caso" className="space-y-3">
+          <h2 className="font-editorial text-[17px] font-semibold text-ink">Esta peça não está ligada a um caso</h2>
+          <p className="text-sm text-muted">
+            Sem caso, não há questões, cobertura de fontes nem análise de aderência. Ao criar o caso, ele nasce só com o nome;
+            os fatos e as provas você aprova depois, na tela do caso.
+          </p>
+          <CreateCaseFromPiece name={newWorkCase} busy={busy} onName={setNewWorkCase} onCreate={() => void createCase()} />
+        </section>
+      ),
       revisao: (
         <div className="space-y-4">
           {reviewProps && <ReviewBody {...reviewProps} />}
