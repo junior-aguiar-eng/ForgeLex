@@ -189,11 +189,7 @@ export function applyEvent(state: EventState, raw: unknown): EventState {
   if (e.type === 'QUESTION') next.question = e.payload.question as Question;
   if (e.type === 'DELIVERY' && typeof e.payload.deliveryId === 'string')
     next.deliveryIds = [...new Set([...state.deliveryIds, e.payload.deliveryId])];
-  if (
-    e.type === 'SOURCE' &&
-    typeof e.payload.documentId === 'string' &&
-    typeof e.payload.versionId === 'string'
-  ) {
+  if (e.type === 'SOURCE' && typeof e.payload.documentId === 'string' && typeof e.payload.versionId === 'string') {
     const key = `${e.payload.documentId}:${e.payload.versionId}`;
     if (!state.sourceKeys.includes(key)) {
       next.sourceKeys = [...state.sourceKeys, key];
