@@ -37,7 +37,7 @@
 | Salvamento recuperável | Flag desligada nas revisões publicadas. A aplicação da `0041` está documentada no banco isolado de HML. M2 permanece parcial.                          |
 | Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                    |
 | Verificação            | CI de `01b46c5` aprovada. M2 validado em HML e controles do resumo reconferidos em produção. Aceite A18 dado em 14/11/2026; verificações residuais do MCP pendentes. |
-| Visual                 | Tema clássico vigente. V0 a V2 feitas em 17/11 (V2 só no gelo); V3 pendente.                                                                           |
+| Visual                 | Tema clássico vigente. V0 a V2 feitas (V2 só no gelo); V3 parte 1 feita.                                                                               |
 | Domínio em uso         | `nexojuris.ia.br` em produção. `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                              |
 
 Revisões, flags e validação da reserva constam em [PENDENCIAS.md](../../../PENDENCIAS.md#estado-publicado-atual--13112026-sha-01b46c5) e no [registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
@@ -155,7 +155,7 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 | PR-M1 | M      | M1 a M3  | PR-E                         | Código publicado. M1 tem verificações residuais. M2 parcial. M3 integrada no #139, com diretório do catálogo configurado em produção. |
 | PR-D  | D      | D0 a D5  | PR-E                         | Pendente; cada virada é uma publicação                                                                                                |
 | PR-U1 | U      | U0 a U6  | PR-E; M3.0 (PR-M1) para a U3 | PR #139 integrado. Mesa única, casca, orientação v3, ações e anexos publicados. U2–U5 têm recortes pendentes e U6 está aberta.        |
-| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 (#181) e V1 (#183) integradas; V2 feita em 17/11 (`claude/v2-casca`). V3 pendente.                                                 |
+| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 (#181) e V1 (#183) integradas; V2 (#184) feita. V3: parte 1 feita.                                                                 |
 | PR-M2 | M      | M4 e M5  | PR-V1 (V3)                   | Pendente                                                                                                                              |
 | PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Pendente                                                                                                                              |
 | PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D3/D4 nunca na mesma semana                                                                                            |
@@ -600,6 +600,9 @@ Depende de V2, M2 e U4. É a maior etapa; entregar em duas PRs (composição e a
 | “Criar caso a partir desta conversa”                                     | Mesa e `/api/v2/matters`                                                      | Caso nasce só com nome                                               |
 | Etapas do trabalho a partir de STATUS, QUESTION, DELIVERY, SOURCE, ERROR | `agentic-workspace/*`                                                         | ERROR sempre visível e anunciado                                     |
 | Estado vazio com exemplos e os dois selos                                | `Composer.tsx`                                                                | Primeiro uso sem documentação                                        |
+
+**Situação em 17/11 (parte 1, só no gelo).** Feitas a lateral com as conversas recentes (decisão de Boni: como no protótipo) e as abas Texto, Fontes e Revisão da peça, com o texto preservado ao trocar de aba. Pendentes, na parte 2: cabeçalho da Mesa, seletor de caso e "Sem caso", "Criar caso a partir desta conversa", etapas do trabalho, estado vazio com os dois selos e a revisão editorial em linha. Registro em
+[V3 — Mesa, parte 1](../../architecture/2026-11-10-mesa-guiada-execucao.md#v3--mesa-parte-1-composição-e-abas-da-peça-17112026).
 
 - [ ] Rótulos e papéis ARIA usados pelos testes mantidos; qualquer mudança de texto atualiza o teste no mesmo commit.
 - [ ] Capturas desktop e celular para Boni: **A19 é decidido aqui.**
