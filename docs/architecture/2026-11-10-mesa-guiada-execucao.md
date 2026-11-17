@@ -163,7 +163,7 @@ O teste passou a criar chave UUID e título próprios para cada execução e a l
 | A16      | `guided-desk.spec.ts` exercita a jornada em desktop e viewport móvel, com teclas nos passos de orientação, envio e seleção de trecho. `desk-guidance.spec.ts` confere foco, acessibilidade e disposição dos controles.        |
 | A17      | Piloto Penal e regressão Cível reservados ao R14.                                                                                                                                                                             |
 | A18      | Esta seção registra código e validação local. Homologação de produção pendente.                                                                                                                                               |
-| A19      | Aceite visual de Boni em desktop e celular pendente.                                                                                                                                                                          |
+| A19      | Aceite visual de Boni em desktop e celular: atendido em 17/11/2026.                                                                                                                                                           |
 
 ## R14 · piloto Penal e regressão Cível
 
@@ -1912,3 +1912,27 @@ O plano põe a V5 atrás da U7 (a tela "Casos" sai e a Mesa a absorve), que **ai
 - **Casos e Caso novo:** aguardam a U7.
 
 Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
+
+## Aceite A19 em 17/11/2026
+
+**Decisão de Boni (17/11/2026):** aprovou todas as telas da jornada visual do tema gelo, em desktop e celular, e pediu o registro da A19.
+
+**O que foi mostrado.** As capturas de `main` em `9aace0` (etapas V0 a V5), com dados sintéticos de teste, numa página de revisão com as duas capturas de cada tela (1440 px e 390 px) e o que olhar em cada uma. Foram 14 telas, na ordem em que uma pessoa as atravessa:
+
+1. Início e Produto (site público, tema da V1; o texto novo é da V5A).
+2. Entrar.
+3. Visão geral.
+4. Mesa sem trabalho em curso e Mesa com a peça aberta.
+5. Jurisprudência e Pesquisa e fontes, com o leitor de decisões.
+6. Andamento processual.
+7. Conectar IA.
+8. Conta: Faturamento, Atividade, Segurança e Chaves de API.
+9. Casos, **no layout anterior**: a tela sai na U7 e não foi redesenhada. Boni aprovou a captura como estava.
+
+**Evidência e seus limites.**
+
+- A aprovação é a declaração de Boni na conversa de 17/11/2026. A página de revisão tinha controle de veredito por tela, mas, ao conferir o armazenamento dela, **estava vazio**: o registro não foi gravado pela página. Por isso o aceite consta pela palavra de Boni, não pela leitura dos vereditos.
+- A aprovação cobre o que estava nas capturas. **Não foram fotografados** (e portanto não passam por este aceite): as etapas do trabalho em andamento e com erro, as abas Fontes e Revisão abertas, o seletor de caso aberto, os diálogos e o selo de verificação no registro do leitor (fica abaixo da área capturada). Esses estados têm teste automatizado e axe; se Boni quiser vê-los, são capturados à parte.
+- O aceite vale para o **tema gelo**, que continua só atrás do tema `gelo`. Nada foi publicado: o gelo ainda não passa pelo Cloud Build nem pelo `deploy-from-main.ps1`.
+
+**Não decide.** O aceite visual não decide a publicação do gelo, nem a V5A (site público), a U7, a M4 e a M5, que seguem pendentes.
