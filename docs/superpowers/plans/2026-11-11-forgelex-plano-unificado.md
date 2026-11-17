@@ -37,7 +37,7 @@
 | Salvamento recuperável | Flag desligada nas revisões publicadas. A aplicação da `0041` está documentada no banco isolado de HML. M2 permanece parcial.                          |
 | Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                    |
 | Verificação            | CI de `01b46c5` aprovada. M2 validado em HML e controles do resumo reconferidos em produção. Aceite A18 dado em 14/11/2026; verificações residuais do MCP pendentes. |
-| Visual                 | Tema clássico vigente. V0 feita em 17/11 (cores em variáveis, sem mudança visual); V1 a V3 pendentes.                                                  |
+| Visual                 | Tema clássico vigente. V0 a V2 feitas em 17/11 (V2 só no gelo); V3 pendente.                                                                           |
 | Domínio em uso         | `nexojuris.ia.br` em produção. `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                              |
 
 Revisões, flags e validação da reserva constam em [PENDENCIAS.md](../../../PENDENCIAS.md#estado-publicado-atual--13112026-sha-01b46c5) e no [registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
@@ -137,7 +137,7 @@ flowchart LR
 - **Codex · M2 (A18).** Preparar e rodar as verificações locais da jornada da Mesa a partir da `origin/main`. Trabalhar em branch e worktree próprias. Usar as suítes existentes de orientação, revisão, pesquisa salva e recuperação de salvamento. Registrar lacunas e evidências no registro único. M2 permanece parcial até o ensaio autenticado no HML isolado.
 - **Claude Code · fluxo de casos.** Continuar o trabalho em curso na sua worktree. Esse recorte inclui as alterações que ele estiver fazendo nas telas, rotas e contratos do fluxo de casos. U7 só começa após as dependências de V3 e U6 previstas abaixo.
 - **Sobreposição.** Ao encontrar uma correção que alcance o mesmo arquivo ou contrato em trabalho, identificar o cenário, o SHA e os arquivos afetados. Alinhar com Boni qual branch fará a alteração. Até lá, cada frente pode avançar em leitura e nos testes locais que independem da mudança.
-- **Próxima frente.** V0 retomada e feita em 17/11; a V1 foi feita no mesmo dia e a V2 é a seguinte. M3.0 e M3.2 já têm scripts e resultados registrados. Retomar o catálogo somente para uma lacuna identificada, como verificar o manifesto servido ou avaliar uma ficha concreta. As tarefas de M1 e os aceites ainda abertos de M3 permanecem nas respectivas seções.
+- **Próxima frente.** V0 retomada e feita em 17/11; a V1 e a V2 foram feitas no mesmo dia e a V3 é a seguinte. M3.0 e M3.2 já têm scripts e resultados registrados. Retomar o catálogo somente para uma lacuna identificada, como verificar o manifesto servido ou avaliar uma ficha concreta. As tarefas de M1 e os aceites ainda abertos de M3 permanecem nas respectivas seções.
 
 A Frente V depende das etapas indicadas no diagrama. Em particular, V3 depende de M2, V2 e U4. A Frente R começa após V6 estável e M5.
 
@@ -155,7 +155,7 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 | PR-M1 | M      | M1 a M3  | PR-E                         | Código publicado. M1 tem verificações residuais. M2 parcial. M3 integrada no #139, com diretório do catálogo configurado em produção. |
 | PR-D  | D      | D0 a D5  | PR-E                         | Pendente; cada virada é uma publicação                                                                                                |
 | PR-U1 | U      | U0 a U6  | PR-E; M3.0 (PR-M1) para a U3 | PR #139 integrado. Mesa única, casca, orientação v3, ações e anexos publicados. U2–U5 têm recortes pendentes e U6 está aberta.        |
-| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 e V1 feitas em 17/11 (#181, branch `claude/v1-tema-gelo`). V2–V3 pendentes.                                                        |
+| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 (#181) e V1 (#183) integradas; V2 feita em 17/11 (`claude/v2-casca`). V3 pendente.                                                 |
 | PR-M2 | M      | M4 e M5  | PR-V1 (V3)                   | Pendente                                                                                                                              |
 | PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Pendente                                                                                                                              |
 | PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D3/D4 nunca na mesma semana                                                                                            |
@@ -577,6 +577,15 @@ Depende de V1 e DEC-7.
 | “Andamento processual”                                                          | rotas e rótulos                       | Testes de cópia atualizados no mesmo commit; rota antiga redireciona      |
 
 **Verificação.** `playwright.public.config.ts`, `accessibility.spec.ts`, suíte da Mesa nos dois temas.
+
+**Situação em 17/11.** Feita, **só no tema gelo** (o clássico não mudou, provado por captura: estilo e 52 imagens
+idênticos), e adaptada ao protótipo que Boni enviou: lateral com Trabalho (Mesa, Casos, Jurisprudência) e Conta e recursos,
+sem cabeçalho na tela larga, Visão geral com dados reais e "Primeiros passos", Entrar em duas colunas, seções de Conta e
+Conectar IA. Decisões de Boni: trilho de ícones na Mesa; "Andamento processual" só dentro do app, com o site público
+mantido até a V5A; "Primeiros passos" guardado no navegador, por usuário. Evidência: axe sem violação em 52 telas,
+`shell-gelo.spec.ts` (12 cenários), suíte da Mesa com o gelo ligado e suíte pública nos dois temas. A Mesa fica com o
+trilho provisório até a V3. Registro em
+[V2 — Casca e site público](../../architecture/2026-11-10-mesa-guiada-execucao.md#v2--casca-e-site-público-17112026).
 
 ### V3 — Mesa
 

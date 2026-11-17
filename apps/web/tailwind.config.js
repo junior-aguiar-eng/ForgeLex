@@ -78,6 +78,8 @@ export default {
         accent: 'rgb(var(--fl-accent) / <alpha-value>)',
         'accent-strong': 'rgb(var(--fl-accent-strong) / <alpha-value>)',
         'accent-soft': 'rgb(var(--fl-accent-soft) / <alpha-value>)',
+        'accent-tint': 'rgb(var(--fl-accent-tint) / <alpha-value>)',
+        'ok-tint': 'rgb(var(--fl-ok-tint) / <alpha-value>)',
         ok: 'rgb(var(--fl-ok) / <alpha-value>)',
         warn: 'rgb(var(--fl-warn) / <alpha-value>)',
         danger: 'rgb(var(--fl-danger) / <alpha-value>)',

@@ -1725,3 +1725,51 @@ Os 9 pares ainda abaixo de 4,5:1 no gelo são ícones decorativos (`stone-400` s
 - **Só Chromium**; capturas ficam fora do Git.
 
 Reversão: `VITE_FORGELEX_THEME=classico`, que é o padrão; ou reverter o commit. Nada do que está publicado muda.
+
+## V2 — Casca e site público (17/11/2026)
+
+Sobre `main` em `66617a0`, na branch `claude/v2-casca`. A casca nova (lateral, Visão geral, Entrar, seções de Conta e Conectar IA, rótulos novos) existe **só no tema gelo**. O clássico, que é o que roda em produção, continua exatamente como está: o plano manda que nada mude para o cliente sem flag, e a flag desta etapa é o tema (`VITE_FORGELEX_THEME`). Reverter é voltar para `classico`. Depois da primeira entrega, Boni enviou o protótipo (artefato de 17/11); a casca foi adaptada a ele, em vez da leitura do texto da seção 7.2.
+
+### Decisões de Boni nesta etapa
+
+- **Navegação.** Mesa, Casos e Jurisprudência na lateral, com a conta no rodapé. A lateral nasce recolhida em trilho de ícones na Mesa, para não tomar espaço das três áreas.
+- **Andamento processual.** A troca vale só dentro do app. O site público continua com "Consulta processual" (URL, sitemap, título e texto) até a V5A, quando a DEC-7 deixa o texto mudar.
+- **Primeiros passos.** O estado fica no navegador, por usuário, sem API nem banco.
+
+### O que foi feito
+
+- **Tema ativo (`theme/active-theme.ts`).** Lê o `data-theme` que o script da V1 escreve no `<html>` e decide, em tempo de execução, qual casca o `App` monta.
+- **Lateral (`IceSidebar`).** Como no protótipo: marca no alto; grupo **Trabalho** (Mesa, Casos, Jurisprudência); grupo **Conta e recursos** (Visão geral, Andamento processual, Conectar IA, Conta); rodapé com o nome do usuário, o saldo e "Sair da conta". Na tela larga não há cabeçalho: a marca e a navegação ficam na lateral. Abaixo de `lg`, `IceHeader` traz a marca e o botão da gaveta, que tem os mesmos itens, fecha com Escape e devolve o foco ao botão. Na Mesa nasce recolhida; fora dela, aberta; a escolha do cliente prevalece até recarregar. `Header` e `Sidebar` clássicos não foram tocados.
+- **Cabeçalho de página (`PageHeader`) e seções.** Conta tem as seções Faturamento, Atividade, Segurança e Chaves de API no alto; Conectar IA tem Conexão, Guia de conexão e API para desenvolvedores. A lateral acende o item pai da seção aberta (`highlightedTab`).
+- **Visão geral (`OverviewScreen`).** Substitui a tela inicial no gelo, com dados reais: "Primeiros passos" (Conectar sua IA, Criar o primeiro caso, quando Casos está ligado, e Verificar uma citação), atalhos, casos ativos, conexões e consumo do mês. As regras ficam num modelo puro (`overview-model.ts`), testado. O cartão é ocultável, com "Mostrar primeiros passos" para voltar; o estado de cada passo vem do que o app já sabe (conexão, casos, citação verificada), e a chave no `localStorage` leva o identificador do usuário.
+- **Entrar (`IceAuthLayout`).** Duas colunas na tela larga (contexto do produto ao lado do formulário); só o formulário no celular.
+- **Tokens novos.** `accent-tint` e `ok-tint` (clássico e gelo), nos mesmos arquivos do medidor de contraste.
+- **Rotas por tema (`navigation/routes.ts`).** No gelo, `datajud` vira "Andamento processual" em `/app/andamento-processual` e `research` vira "Jurisprudência" (o caminho `/app/pesquisa` não muda). O caminho antigo é reescrito para o novo ao carregar, mantendo consulta e âncora. A página pública `/consulta-processual` não mudou.
+- **Título da página de andamento.** `DataJudPage` ganhou a propriedade `title`; no gelo, dentro do app, é "Andamento processual", com a linha do tempo do protótipo.
+- **Páginas públicas.** O tema gelo da V1 as serve; sem alteração de estrutura ou texto, que ficam para a V5A. `PublicSections` passou a exportar `PILLARS`, usado na coluna de contexto de Entrar.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Clássico inalterado | 52 capturas (26 telas, dois tamanhos) depois da V2 contra as de depois da V1: **estilo de todos os elementos idêntico e as 52 imagens idênticas**. |
+| Gelo e acessibilidade | axe em 52 telas com a casca nova: **nenhuma violação**. |
+| Vitest | 316 arquivos e 2631 testes aprovados. ESLint e tipos limpos; Prettier limpo nos arquivos alterados (os três CSS que acusam já estavam fora do padrão em `main`); medidor de contraste: 109 pares, **nenhuma piora** em relação ao clássico. |
+| Playwright, casca nova | `shell-gelo.spec.ts`, 12 cenários aprovados: lateral e rodapé; sem cabeçalho na tela larga; Rascunhos e Revisão acendem a Mesa; trilho na Mesa e troca pelo cliente; andamento e jurisprudência; Visão com dados reais; Primeiros passos (ocultar, lembrar, isolar por usuário); seções de Conta e Conectar; Entrar em duas colunas; gaveta no celular; axe na Visão, na Mesa recolhida, em Conta, na gaveta e em Entrar. |
+| Suíte da Mesa nos dois temas | Gelo: `desk-shell`, `writing-desk` e `agentic-workspace` com 42 aprovados e 1 falho, o download do Word deste ambiente (o mesmo de `main`; na CI passa). Clássico: 30 aprovados e o mesmo 1. |
+| Suíte pública nos dois temas | 17 aprovados no clássico e 17 no gelo; `datajud.spec` e `agentic-workspace.spec` escolhem rótulo, caminho e título conforme `FORGELEX_E2E_THEME`. |
+| CI | Passos novos: a casca do gelo no job `e2e-desk` e a suíte pública com o gelo ligado no `e2e-public`. |
+
+### Divergências em relação ao protótipo
+
+- **Mesa, Pesquisa, Casos e Decisão.** Ficam para a V3: a Mesa segue com o trilho provisório de 80 px e a composição atual.
+- **Cabeçalho público.** Sem destaque da página atual nem botão "Entrar" discreto; é da V5A.
+- **Consumo do mês.** Soma das operações do mês que a API de recibos já devolve; sem dado, a Visão diz "Consumo indisponível no momento" em vez de inventar número. O texto dos passos e dos cartões é proposta minha.
+- **Dois usuários de verdade.** A Auth sintética dos testes devolve sempre a mesma identidade; o isolamento por usuário foi provado pela chave e pelos testes unitários.
+
+### Não coberto
+
+- **Outros textos do app** ainda dizem "Pesquisa" e "consulta processual" (botão "Pesquisa e fontes" da Mesa, rótulos de teste); seguem V3, V4 e V5A.
+- **Publicação.** Nada foi publicado. O gelo ainda não passa pelo Cloud Build nem pelo `deploy-from-main.ps1` (V1), então nenhum build de produção sai com a casca nova.
+
+Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.

@@ -138,6 +138,16 @@ export function Hero() {
   );
 }
 
+/** Os três pontos de "Por que o ForgeLex existe"; a tela de entrada do tema gelo os repete. */
+export const PILLARS: ReadonlyArray<readonly [string, string]> = [
+  ['Pesquisa que dá para conferir', 'Resultados e autoridades apresentam dados de origem e estado de verificação.'],
+  ['No seu aplicativo de IA', 'Pesquise pelo ChatGPT ou Claude com ferramentas MCP autorizadas.'],
+  [
+    'Custos visíveis',
+    'A conta apresenta créditos e atividade; os custos do modelo pertencem ao aplicativo conectado escolhido.',
+  ],
+];
+
 export function Problems() {
   return (
     <section className="border-y border-champagne-border bg-white/70 py-16 sm:py-20">
@@ -148,17 +158,7 @@ export function Problems() {
           text="Use pesquisa com dados de origem no seu aplicativo de IA e confira as decisões retornadas antes de utilizá-las."
         />
         <div className="mt-9 grid gap-4 md:grid-cols-3">
-          {[
-            [
-              'Pesquisa que dá para conferir',
-              'Resultados e autoridades apresentam dados de origem e estado de verificação.',
-            ],
-            ['No seu aplicativo de IA', 'Pesquise pelo ChatGPT ou Claude com ferramentas MCP autorizadas.'],
-            [
-              'Custos visíveis',
-              'A conta apresenta créditos e atividade; os custos do modelo pertencem ao aplicativo conectado escolhido.',
-            ],
-          ].map(([title, body]) => (
+          {PILLARS.map(([title, body]) => (
             <article key={title} className="border-t border-champagne-border pt-5">
               <h3 className="font-editorial text-xl font-bold text-stone-900">{title}</h3>
               <p className="mt-3 text-sm leading-6 text-stone-600">{body}</p>

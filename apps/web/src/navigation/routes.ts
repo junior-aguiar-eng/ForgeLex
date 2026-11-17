@@ -3,6 +3,7 @@ export type AppTab = 'work' | 'landing' | 'research' | 'datajud' | 'matter' | 'd
 import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED, isDeskEnabled } from '../config/site-capabilities';
 import type { DeskSelection } from '../agentic-workspace/desk-selection';
 import { deskLocation } from './desk-location';
+import { activeTheme, type Theme } from '../theme/active-theme';
 
 export function resolveVisibleTab(tab: AppTab, casesEnabled: boolean, workEnabled = AGENTIC_WORKSPACE_ENABLED): AppTab {
   const desk = isDeskEnabled(casesEnabled, workEnabled);
@@ -35,9 +36,20 @@ const routes: readonly AppRoute[] = [
   { tab: 'api_docs', path: '/app/desenvolvedores/api', title: 'API para desenvolvedores' },
 ];
 
+/**
+ * Rótulos e caminhos do tema gelo (V2). "Pesquisa" vira "Jurisprudência" e "Consulta processual" vira "Andamento
+ * processual"; o clássico fica como está. O caminho antigo do andamento continua abrindo a mesma tela e, no gelo, é
+ * reescrito para o novo.
+ */
+const iceOverrides: Partial<Record<AppTab, { path?: string; title: string }>> = {
+  research: { title: 'Jurisprudência' },
+  datajud: { path: '/app/andamento-processual', title: 'Andamento processual' },
+};
+
 const routeByTab = new Map(routes.map((route) => [route.tab, route]));
 const tabByPath = new Map<string, AppTab>([
   ...routes.map((route) => [route.path, route.tab] as const),
+  ['/app/andamento-processual', 'datajud'],
   ['/pesquisa', 'research'], ['/casos', 'matter'], ['/rascunhos', 'draft_studio'],
   ['/revisao', 'dashboard'], ['/conectar', 'connections'], ['/conta', 'credits'],
   ['/conta/atividade', 'account_activity'], ['/conta/seguranca', 'account_security'],
@@ -49,10 +61,19 @@ function normalizePath(pathname: string): string {
   return path || '/';
 }
 
-export function routeForTab(tab: AppTab): AppRoute {
+export function routeForTab(tab: AppTab, theme: Theme = activeTheme()): AppRoute {
   const route = routeByTab.get(tab);
   if (!route) throw new Error(`Rota não registrada para a aba ${tab}`);
-  return route;
+  const override = theme === 'gelo' ? iceOverrides[tab] : undefined;
+  return override ? { tab, path: override.path ?? route.path, title: override.title } : route;
+}
+
+/** O caminho que a página deve mostrar. No gelo, o caminho antigo de uma tela renomeada vira o novo; no resto, o mesmo. */
+export function canonicalPathname(pathname: string, theme: Theme = activeTheme()): string {
+  if (theme !== 'gelo') return pathname;
+  const tab = tabByPath.get(normalizePath(pathname));
+  const canonical = tab ? iceOverrides[tab]?.path : undefined;
+  return canonical && canonical !== normalizePath(pathname) ? canonical : pathname;
 }
 
 export function isKnownPath(pathname: string): boolean {

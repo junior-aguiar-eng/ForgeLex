@@ -179,7 +179,9 @@ const SEMANTIC = [
   'accent',
   'accent-strong',
   'accent-soft',
+  'accent-tint',
   'ok',
+  'ok-tint',
   'warn',
   'danger',
 ];
@@ -203,7 +205,9 @@ describe('nomes semânticos (7.1 do plano)', () => {
       accent: '#8e5d2a',
       'accent-strong': '#73481d',
       'accent-soft': '#f9ede0',
+      'accent-tint': '#f9ede0',
       ok: '#047857',
+      'ok-tint': '#ecfdf5',
       warn: '#b45309',
       danger: '#b91c1c',
     });
@@ -225,7 +229,9 @@ describe('nomes semânticos (7.1 do plano)', () => {
       accent: '#0f5c6e',
       'accent-strong': '#0b4552',
       'accent-soft': '#f0f6f7',
+      'accent-tint': '#e8f1f3',
       ok: '#1f6b4c',
+      'ok-tint': '#eaf4ee',
       warn: '#b45309',
       danger: '#b91c1c',
     });

@@ -116,6 +116,8 @@
     --fl-accent: 142 93 42;
     --fl-accent-strong: 115 72 29;
     --fl-accent-soft: 249 237 224;
+    --fl-accent-tint: 249 237 224;
+    --fl-ok-tint: 236 253 245;
     --fl-ok: 4 120 87;
     --fl-warn: 180 83 9;
     --fl-danger: 185 28 28;
@@ -192,6 +194,8 @@
     --fl-accent: 15 92 110;
     --fl-accent-strong: 11 69 82;
     --fl-accent-soft: 240 246 247;
+    --fl-accent-tint: 232 241 243;
+    --fl-ok-tint: 234 244 238;
     --fl-ok: 31 107 76;
     --fl-warn: 180 83 9;
     --fl-danger: 185 28 28;

@@ -1,3 +1,5 @@
+import { IceAuthLayout } from '../components/ice/IceAuthLayout';
+import { activeTheme } from '../theme/active-theme';
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, Scale, UserRound } from 'lucide-react';
 import { useAuth, type AuthStatus, type AuthView } from '../auth/AuthContext';
@@ -151,7 +153,9 @@ const Field: React.FC<{ icon: React.ReactNode; label: string; value: string; onC
   </div>
 );
 
-const AuthLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10"><section className="surface w-full max-w-md px-6 py-8 sm:px-10" aria-label="Acesso ao ForgeLex">{children}</section></main>;
+const AuthLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => activeTheme() === 'gelo'
+  ? <IceAuthLayout>{children}</IceAuthLayout>
+  : <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10"><section className="surface w-full max-w-md px-6 py-8 sm:px-10" aria-label="Acesso ao ForgeLex">{children}</section></main>;
 
 const MessageState: React.FC<{ icon?: React.ReactNode; title: string; body: string; action?: React.ReactNode }> = ({ icon, title, body, action }) => <div className="text-center"><div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-cognac-100 text-cognac-800">{icon ?? <Mail className="h-7 w-7" aria-hidden="true" />}</div><h1 className="font-editorial text-2xl font-bold text-stone-900">{title}</h1><p className="mt-3 text-sm leading-6 text-stone-500">{body}</p>{action && <div className="mt-6">{action}</div>}</div>;
 

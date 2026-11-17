@@ -299,7 +299,11 @@ test('regressão final: falha em outra área preserva trabalho e edição não s
   });
   await page
     .getByRole('navigation', { name: 'Navegação principal', exact: true })
-    .getByRole('button', { name: 'Pesquisa', exact: true })
+    // No tema gelo (V2) o item de pesquisa se chama Jurisprudência.
+    .getByRole('button', {
+      name: process.env.FORGELEX_E2E_THEME === 'gelo' ? 'Jurisprudência' : 'Pesquisa',
+      exact: true,
+    })
     .click();
   await expect(page.getByRole('heading', { name: 'Não foi possível abrir esta página', exact: true })).toBeVisible();
   expect(failedResearchLoads).toBeGreaterThan(0);

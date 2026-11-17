@@ -3,11 +3,13 @@ import { ApiRequestError, getBillingAccount, requestApi } from '../api-client';
 import { SearchCoordinator } from '../operations/search-coordinator';
 import { OperationsClient } from '../operations/operations-client';
 import type { OperationalResource, ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
-import { isKnownPath, navigateToTab, resolveVisibleTab, tabForPath, updateDocumentTitle, type AppTab, type CaseRouteContext } from '../navigation/routes';
+import { canonicalPathname, isKnownPath, navigateToTab, resolveVisibleTab, tabForPath, updateDocumentTitle, type AppTab, type CaseRouteContext } from '../navigation/routes';
 
 import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 import type { DeskSelection } from '../agentic-workspace/desk-selection';
 import { readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
+import { useAuth } from '../auth/AuthContext';
+import { browserStorage, writeVerifiedCitation } from '../screens/first-steps-storage';
 
 export type { ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
 export type { AppTab } from '../navigation/routes';
@@ -87,6 +89,8 @@ export async function loadVisibleOperationalState(client: OperationsClient, case
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { account } = useAuth();
+  const userId = account?.user.id ?? '';
   const [activeTab, setCurrentTab] = useState<AppTab>(() => typeof window === 'undefined' ? 'landing' : resolveVisibleTab(tabForPath(window.location.pathname), CASE_WORKSPACE_ENABLED));
   const [routeLocation, setRouteLocation] = useState(() => typeof window === 'undefined' ? '' : window.location.href);
   const lastDesk = useRef<DeskSelection>();
@@ -161,6 +165,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         else window.history.replaceState({...window.history.state,forgelexIndex:acceptedIndex},document.title,acceptedUrl);
         return;
       }
+      // No tema gelo, o caminho antigo de uma tela renomeada (Consulta processual) redireciona para o novo.
+      const canonical = canonicalPathname(window.location.pathname);
+      if (canonical !== window.location.pathname) {
+        window.history.replaceState({ ...window.history.state }, document.title, `${canonical}${window.location.search}${window.location.hash}`);
+      }
       const requestedTab = tabForPath(window.location.pathname);
       const tab = resolveVisibleTab(requestedTab, CASE_WORKSPACE_ENABLED);
       if (!isKnownPath(window.location.pathname)) navigateToTab('landing', 'replace');
@@ -195,7 +204,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       method: 'POST',
       headers: { 'Idempotency-Key': `web_verify_${crypto.randomUUID()}` },
       body: JSON.stringify({ court, processNumber, judgmentDate }),
-    }).then((response) => ({ ...response, authority: response.authority ? mapAuthority(response.authority) : undefined }));
+    }).then((response) => {
+      // O passo "Verificar uma citação" da Visão (tema gelo): a verificação é gratuita e não deixa lançamento.
+      writeVerifiedCitation(browserStorage(), userId);
+      return { ...response, authority: response.authority ? mapAuthority(response.authority) : undefined };
+    });
   };
 
   const actions = createOperationalActions(client, setReviewQueue);
