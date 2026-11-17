@@ -3,7 +3,7 @@ import { ApiRequestError, getBillingAccount, requestApi } from '../api-client';
 import { SearchCoordinator } from '../operations/search-coordinator';
 import { OperationsClient } from '../operations/operations-client';
 import type { OperationalResource, ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
-import { isKnownPath, navigateToTab, resolveVisibleTab, tabForPath, updateDocumentTitle, type AppTab, type CaseRouteContext } from '../navigation/routes';
+import { canonicalPathname, isKnownPath, navigateToTab, resolveVisibleTab, tabForPath, updateDocumentTitle, type AppTab, type CaseRouteContext } from '../navigation/routes';
 
 import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 import type { DeskSelection } from '../agentic-workspace/desk-selection';
@@ -160,6 +160,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if(typeof targetIndex==='number' && targetIndex!==acceptedIndex){restoring=true;window.history.go(acceptedIndex-targetIndex);}
         else window.history.replaceState({...window.history.state,forgelexIndex:acceptedIndex},document.title,acceptedUrl);
         return;
+      }
+      // No tema gelo, o caminho antigo de uma tela renomeada (Consulta processual) redireciona para o novo.
+      const canonical = canonicalPathname(window.location.pathname);
+      if (canonical !== window.location.pathname) {
+        window.history.replaceState({ ...window.history.state }, document.title, `${canonical}${window.location.search}${window.location.hash}`);
       }
       const requestedTab = tabForPath(window.location.pathname);
       const tab = resolveVisibleTab(requestedTab, CASE_WORKSPACE_ENABLED);

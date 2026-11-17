@@ -2,6 +2,9 @@ import React, { Suspense, lazy } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
+import { IceHeader } from './components/ice/IceHeader';
+import { IceSidebar } from './components/ice/IceSidebar';
+import { activeTheme } from './theme/active-theme';
 import { ScreenLoadBoundary } from './components/ScreenLoadBoundary';
 import AuthScreen from './screens/AuthScreen';
 import { AuthProvider, useAuth } from './auth/AuthContext';
@@ -35,6 +38,8 @@ const AppContent: React.FC = () => {
   const visibleTab = resolvedTab === 'draft_studio' || resolvedTab === 'dashboard' ? 'work' : resolvedTab;
   const { status, passwordRecovery, passwordRecoveryError } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  // A casca nova (V2) existe só no tema gelo; o clássico mantém o cabeçalho e a lateral de sempre.
+  const ice = React.useMemo(() => activeTheme() === 'gelo', []);
   const [workVisited, setWorkVisited] = React.useState(visibleTab === 'work');
   const selectTab = (tab: AppTab) => setActiveTab(tab);
   React.useEffect(() => { if (visibleTab === 'work') setWorkVisited(true); }, [visibleTab]);
@@ -57,17 +62,21 @@ const AppContent: React.FC = () => {
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-canvas">
       {/* Header */}
-      <Header menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((value) => !value)} />
+      {ice
+        ? <IceHeader menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((value) => !value)} />
+        : <Header menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((value) => !value)} />}
 
       <div className="relative flex min-w-0 flex-1">
-        {<Sidebar mobileOnly={visibleTab === 'work'} activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
+        {ice
+          ? <IceSidebar activeTab={visibleTab} collapsedByDefault={visibleTab === 'work'} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />
+          : <Sidebar mobileOnly={visibleTab === 'work'} activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
         <main className="min-w-0 flex-1">
           {(visibleTab === 'work' || workVisited) && <div key="retained-work" hidden={visibleTab !== 'work'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando trabalho…</div>}><WritingDeskScreen active={visibleTab === 'work'} requestedLocation={routeLocation} /></Suspense></ScreenLoadBoundary></div>}
           <ScreenLoadBoundary key={`page-${visibleTab}`}>
             <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
               {visibleTab === 'landing' && <LandingScreen />}
               {visibleTab === 'research' && <ResearchDeskScreen />}
-              {visibleTab === 'datajud' && <DataJudPage />}
+              {visibleTab === 'datajud' && <DataJudPage title={ice ? 'Andamento processual' : undefined} />}
               {visibleTab === 'matter' && <MatterWorkspaceScreen />}
               {visibleTab === 'connections' && <ConnectionsScreen />}
               {visibleTab === 'credits' && <CreditsScreen />}

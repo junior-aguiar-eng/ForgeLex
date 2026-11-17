@@ -4,7 +4,8 @@ import { formatCnjNumber, formatDataJudDate, lookupDataJudProcess, type DataJudR
 import { DATAJUD_COURTS, type DataJudCourtId } from '../../datajud-courts';
 import { PageIntro } from './PublicSections';
 
-export function DataJudPage() {
+/** `title` só muda dentro do app, no tema gelo ("Andamento processual"); o site público mantém o texto até a V5A. */
+export function DataJudPage({ title = 'Consulta processual' }: { title?: string } = {}) {
   const [courtId, setCourtId] = useState<DataJudCourtId>(DATAJUD_COURTS[0].id);
   const court = DATAJUD_COURTS.find((entry) => entry.id === courtId) ?? DATAJUD_COURTS[0];
   const [number, setNumber] = useState('');
@@ -48,7 +49,7 @@ export function DataJudPage() {
     <>
       <PageIntro
         eyebrow="Serviço gratuito · CNJ / DataJud"
-        title="Consulta processual"
+        title={title}
         text="Consulte os dados públicos e as movimentações de um processo. Selecione o tribunal disponível e informe o número CNJ. Acesso gratuito, sem cadastro, assinatura ou compra de créditos."
       />
       <section className="page-container space-y-6 pb-16">
