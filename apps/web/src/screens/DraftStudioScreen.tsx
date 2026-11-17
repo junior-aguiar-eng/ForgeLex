@@ -1,4 +1,6 @@
-import { DraftCanvas } from './draft-review/DraftCanvas';
+import { DraftCanvas, type PieceTab } from './draft-review/DraftCanvas';
+import { activeTheme } from '../theme/active-theme';
+import { DeskCaseSources } from '../research/DeskCaseSources';
 import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
 import { hasDeskPiece, selectDeskPiece, type DeskDocumentSelection } from '../agentic-workspace/desk-selection';
 import { deskLocation, readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
@@ -32,7 +34,7 @@ import {
   type Matter,
   type SavedAuthority,
 } from '../desk/draft-studio-model';
-import { ApprovalDialog, CreateCaseControls, PieceNotices, ReviewDialog, VersionHistory } from '../desk/DraftStudioParts';
+import { ApprovalDialog, CreateCaseControls, PieceNotices, ReviewBody, ReviewDialog, VersionHistory } from '../desk/DraftStudioParts';
 
 export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedVersionId?: string; onPieceChange?: (piece: DeskPiece | null) => void; onCaseSources?: () => void; requestedReview?: DeskDocumentSelection; deskEditorialEnabled?: boolean }> = ({ requestedLocation, selectedVersionId, onPieceChange, onCaseSources, requestedReview, deskEditorialEnabled = false }) => {
   const emptySections = () => [{title:'Texto da peça',content:'',linkedFactIds:[],linkedEvidenceIds:[],linkedAuthorityIds:[],linkedThesisIds:[]}];
@@ -82,6 +84,9 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   const [point, setPoint] = useState<ReviewPoint>();
   const [readingDocument, setReadingDocument] = useState<DocumentSource>();
   const [reviewOpenFor, setReviewOpenFor] = useState<string>();
+  // Tema gelo: a peça tem abas Texto, Fontes e Revisão no lugar dos diálogos de fontes do caso e de conferência.
+  const ice = activeTheme() === 'gelo';
+  const [pieceTab, setPieceTab] = useState<PieceTab>('texto');
   const lastRequestedReview = useRef<DeskDocumentSelection>();
   const [historyVersion, setHistoryVersion] = useState('');
   const [historyRuns, setHistoryRuns] = useState<DraftReviewRun[]>([]);
@@ -658,6 +663,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   const openVersionReview = () => {
     if (!selectedDraftId) return;
     setReviewOpenFor(selectedDraftId);
+    if (ice) setPieceTab('revisao');
     if (reviewTargetMismatch && requestedVersion) void openHistory(requestedVersion);
   };
   useEffect(() => {
@@ -680,7 +686,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
                 onClose={() => setPoint(undefined)} onLinked={() => { setContextChanged(true); void refreshDetails().catch(() => setError('Vínculo salvo. Atualize a conferência para consultar o resultado.')); }}
                 onEditSection={() => {
                   const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
-                  setPoint(undefined); setReviewOpenFor(undefined); requestAnimationFrame(() => document.getElementById('draft-section-' + index)?.focus());
+                  setPoint(undefined); setReviewOpenFor(undefined); setPieceTab('texto'); requestAnimationFrame(() => document.getElementById('draft-section-' + index)?.focus());
                 }}
                 onLinkReference={() => {
                   const index = details?.currentVersion?.sections.findIndex(s => s.id === point.check.sectionId) ?? -1;
@@ -716,11 +722,8 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   const editorialDelivery = importDeliveryId && expectedWorkVersion === editorialVersionId
     ? importDeliveryId
     : deskEditorialEnabled ? `desk:${selectedMatterId}` : undefined;
-  const reviewActions = selectedMatterId && selectedDraftId && activeVersion && (
+  const editorialPanel = selectedMatterId && selectedDraftId && activeVersion && (
     <>
-      <button type="button" className="min-h-9 rounded-lg px-2 hover:bg-stone-100" onClick={openVersionReview}>
-        Conferência da peça
-      </button>
       {editorialDelivery && editorialVersionId && details?.versions.some((version) => version.id === editorialVersionId) && (
         <EditorialReviewPanel
           key={`${editorialDelivery}:${selectedDraftId}:${editorialVersionId}`}
@@ -731,28 +734,57 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       )}
     </>
   );
-  const reviewModal = reviewOpenFor && reviewOpenFor === selectedDraftId && details && (
-    <ReviewDialog
-      details={details}
-      requestedVersion={requestedVersion}
-      historyMode={Boolean(reviewTargetMismatch)}
-      historyLoading={historyLoading}
-      historyVersion={historyVersion}
-      historyRuns={historyRuns}
-      activeVersionNumber={activeVersion?.versionNumber}
-      currentReview={currentReview}
-      busy={busy}
-      dirty={Boolean(dirty)}
-      caseUnavailable={caseUnavailable}
-      canApprove={primaryAction === 'APPROVE' && Boolean(activeVersion)}
-      approveDisabled={busy || !approvalReady || caseUnavailable}
-      error={error}
-      reviewStatus={reviewStatus}
-      onReview={() => void runReview()}
-      onApprove={() => activeVersion && setApprovalConfirmation({ versionId: activeVersion.id, versionNumber: activeVersion.versionNumber })}
-      onClose={() => setReviewOpenFor(undefined)}
-    />
+  const reviewProps = details && {
+    details,
+    requestedVersion,
+    historyMode: Boolean(reviewTargetMismatch),
+    historyLoading,
+    historyVersion,
+    historyRuns,
+    activeVersionNumber: activeVersion?.versionNumber,
+    currentReview,
+    busy,
+    dirty: Boolean(dirty),
+    caseUnavailable,
+    canApprove: primaryAction === 'APPROVE' && Boolean(activeVersion),
+    approveDisabled: busy || !approvalReady || caseUnavailable,
+    error,
+    reviewStatus,
+    onReview: () => void runReview(),
+    onApprove: () => activeVersion && setApprovalConfirmation({ versionId: activeVersion.id, versionNumber: activeVersion.versionNumber }),
+  };
+  // Clássico: a conferência é um diálogo. Gelo: o mesmo conteúdo é a aba Revisão, ao lado da revisão editorial.
+  const reviewModal = !ice && reviewOpenFor && reviewOpenFor === selectedDraftId && reviewProps && (
+    <ReviewDialog {...reviewProps} onClose={() => setReviewOpenFor(undefined)} />
   );
+  const reviewActions = ice ? undefined : selectedMatterId && selectedDraftId && activeVersion && (
+    <>
+      <button type="button" className="min-h-9 rounded-lg px-2 hover:bg-stone-100" onClick={openVersionReview}>
+        Conferência da peça
+      </button>
+      {editorialPanel}
+    </>
+  );
+  // Voltar ao texto quando a aba aberta perde o que a sustenta (outro caso, peça sem versão salva).
+  useEffect(() => {
+    if (!ice) return;
+    if (pieceTab === 'fontes' && !selectedMatterId) setPieceTab('texto');
+    if (pieceTab === 'revisao' && !activeVersion) setPieceTab('texto');
+  }, [ice, pieceTab, selectedMatterId, activeVersion]);
+  const pieceTabs = ice ? {
+    selected: pieceTab,
+    onSelect: (tab: PieceTab) => { setPieceTab(tab); if (tab === 'revisao' && selectedDraftId) openVersionReview(); },
+    enabled: { texto: true, fontes: Boolean(selectedMatterId), revisao: Boolean(selectedMatterId && selectedDraftId && activeVersion) },
+    panels: {
+      fontes: selectedMatterId ? <DeskCaseSources key={selectedMatterId} matterId={selectedMatterId} /> : null,
+      revisao: (
+        <div className="space-y-4">
+          {reviewProps && <ReviewBody {...reviewProps} />}
+          {editorialPanel}
+        </div>
+      ),
+    },
+  } : undefined;
 
   const createCase = async () => {
     setBusy(true);
@@ -799,7 +831,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       }}
       onMatter={id=>void selectMatter(id)} onDraft={id=>id ? void selectDraft(id) : void selectMatter(selectedMatterId)}
       onArchive={() => void archiveOpenDraft()}
-      onSave={()=>void saveDraft()} onExport={format=>void exportOpenPiece(format)} onCaseSources={onCaseSources} reviewActions={reviewActions}
+      onSave={()=>void saveDraft()} onExport={format=>void exportOpenPiece(format)} onCaseSources={onCaseSources} reviewActions={reviewActions} tabs={pieceTabs}
       caseControls={<CreateCaseControls name={newWorkCase} busy={busy} onName={setNewWorkCase} onCreate={() => void createCase()} />}
       extras={<PieceNotices undo={undoDraft} busy={busy} differentVersion={Boolean(selectionHasDifferentVersion)} actionDisabled={busy || loadingSelection} importedWithoutMatter={Boolean(importedDelivery && !selectedMatterId)} onUndo={() => void restoreArchivedDraft()} onDismissUndo={() => setUndoDraft(undefined)} onUseOpenVersion={() => publishDeskPiece(deskScope(), { matterId: selectedMatterId, draftId: selectedDraftId, versionId: editingVersion.current })} />}
       history={<VersionHistory versions={details?.versions} loading={historyLoading} runs={historyRuns} onOpen={(versionId) => void openHistory(versionId)} />}

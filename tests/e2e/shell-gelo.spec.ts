@@ -304,3 +304,92 @@ test('acessibilidade de Entrar com a coluna de contexto, sem violação', async 
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(result.violations).toEqual([]);
 });
+
+// A peça no gelo: abas Texto, Fontes e Revisão no lugar dos diálogos "Fontes do caso" e "Conferência da peça".
+const api = 'http://127.0.0.1:3301';
+const apiHeaders = { authorization: 'Bearer phase7-e2e-access-token' };
+
+async function openSavedPiece(page: Page) {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'abas@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso das abas' } })
+  ).json();
+  const { draft, version } = await (
+    await page.request.post(`${api}/api/v2/matters/${matter.id}/drafts`, {
+      headers: apiHeaders,
+      data: { title: 'Peça das abas', sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto salvo.' }] },
+    })
+  ).json();
+  const selection = new URLSearchParams({ matterId: matter.id, draftId: draft.id, versionId: version.id });
+  await page.goto(`/app/trabalho?${selection}`);
+  const piece = page.getByRole('region', { name: 'Mesa da peça' });
+  const text = piece.getByLabel('Texto da seção 1', { exact: true });
+  await expect(text).toHaveValue('Texto salvo.');
+  return { piece, text };
+}
+
+test('peça salva: abas Texto, Fontes e Revisão, sem os diálogos antigos, e o texto digitado não se perde', async ({
+  page,
+}) => {
+  const { piece, text } = await openSavedPiece(page);
+  const tabs = piece.getByRole('tablist', { name: 'Partes da peça' });
+  const tab = (name: string) => tabs.getByRole('tab', { name, exact: true });
+
+  await expect(tab('Texto')).toHaveAttribute('aria-selected', 'true');
+  await expect(tab('Fontes')).toBeEnabled();
+  await expect(tab('Revisão')).toBeEnabled();
+  // Os botões que abriam diálogos saíram do cabeçalho.
+  await expect(piece.getByRole('button', { name: 'Fontes do caso', exact: true })).toHaveCount(0);
+  await expect(piece.getByRole('button', { name: 'Conferência da peça', exact: true })).toHaveCount(0);
+
+  await text.fill('Texto digitado e ainda não salvo.');
+  await tab('Fontes').click();
+  await expect(tab('Fontes')).toHaveAttribute('aria-selected', 'true');
+  await expect(piece.getByRole('tabpanel', { name: 'Fontes' })).toContainText('Nenhum julgado salvo');
+  await expect(text).toBeHidden();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await tab('Revisão').click();
+  await expect(piece.getByRole('tabpanel', { name: 'Revisão' })).toContainText('Versão salva');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  // Voltar ao texto devolve exatamente o que foi digitado, inclusive sem salvar.
+  await tab('Texto').click();
+  await expect(text).toBeVisible();
+  await expect(text).toHaveValue('Texto digitado e ainda não salvo.');
+});
+
+test('abas da peça: setas e Home/End trocam de aba, e peça sem caso só tem o texto', async ({ page }) => {
+  const { piece } = await openSavedPiece(page);
+  const tabs = piece.getByRole('tablist', { name: 'Partes da peça' });
+  await tabs.getByRole('tab', { name: 'Texto', exact: true }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(tabs.getByRole('tab', { name: 'Fontes', exact: true })).toBeFocused();
+  await expect(tabs.getByRole('tab', { name: 'Fontes', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('End');
+  await expect(tabs.getByRole('tab', { name: 'Revisão', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('Home');
+  await expect(tabs.getByRole('tab', { name: 'Texto', exact: true })).toHaveAttribute('aria-selected', 'true');
+
+  // Sem caso não há fontes do caso nem versão salva para revisar.
+  await page.goto('/app/trabalho');
+  await page.getByRole('button', { name: 'Nova peça', exact: true }).click();
+  const fresh = page.getByRole('region', { name: 'Mesa da peça' }).getByRole('tablist', { name: 'Partes da peça' });
+  await expect(fresh.getByRole('tab', { name: 'Texto', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(fresh.getByRole('tab', { name: 'Fontes', exact: true })).toBeDisabled();
+  await expect(fresh.getByRole('tab', { name: 'Revisão', exact: true })).toBeDisabled();
+});
+
+test('acessibilidade das abas da peça: Texto, Fontes e Revisão, sem violação', async ({ page }) => {
+  const { piece } = await openSavedPiece(page);
+  const tabs = piece.getByRole('tablist', { name: 'Partes da peça' });
+  for (const name of ['Texto', 'Fontes', 'Revisão']) {
+    await tabs.getByRole('tab', { name, exact: true }).click();
+    const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    expect(
+      result.violations.map((v) => `${v.id}: ${v.help}`),
+      `aba ${name}`,
+    ).toEqual([]);
+  }
+});
