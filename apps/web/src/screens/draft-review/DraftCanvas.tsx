@@ -168,9 +168,9 @@ export function DraftCanvas({
   return (
     <section
       aria-label="Mesa da peça"
-      className="flex min-h-[70dvh] min-w-0 flex-col bg-[#F1EEE8] lg:h-[calc(100dvh-8rem)]"
+      className="flex min-h-[70dvh] min-w-0 flex-col bg-canvas-deep lg:h-[calc(100dvh-8rem)]"
     >
-      <header className="flex flex-wrap items-center gap-2 border-b border-stone-200 bg-[#FBF9F5] px-4 py-3 text-sm">
+      <header className="flex flex-wrap items-center gap-2 border-b border-stone-200 bg-canvas px-4 py-3 text-sm">
         {onCaseSources && (
           <button type="button" className="min-h-9 rounded-lg px-2 hover:bg-stone-100" onClick={onCaseSources}>
             Fontes do caso

@@ -37,7 +37,7 @@
 | Salvamento recuperável | Flag desligada nas revisões publicadas. A aplicação da `0041` está documentada no banco isolado de HML. M2 permanece parcial.                          |
 | Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                    |
 | Verificação            | CI de `01b46c5` aprovada. M2 validado em HML e controles do resumo reconferidos em produção. Aceite A18 dado em 14/11/2026; verificações residuais do MCP pendentes. |
-| Visual                 | Tema clássico vigente. V0 adiada nesta reconciliação.                                                                                                  |
+| Visual                 | Tema clássico vigente. V0 feita em 17/11 (cores em variáveis, sem mudança visual); V1 a V3 pendentes.                                                  |
 | Domínio em uso         | `nexojuris.ia.br` em produção. `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                              |
 
 Revisões, flags e validação da reserva constam em [PENDENCIAS.md](../../../PENDENCIAS.md#estado-publicado-atual--13112026-sha-01b46c5) e no [registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
@@ -137,7 +137,7 @@ flowchart LR
 - **Codex · M2 (A18).** Preparar e rodar as verificações locais da jornada da Mesa a partir da `origin/main`. Trabalhar em branch e worktree próprias. Usar as suítes existentes de orientação, revisão, pesquisa salva e recuperação de salvamento. Registrar lacunas e evidências no registro único. M2 permanece parcial até o ensaio autenticado no HML isolado.
 - **Claude Code · fluxo de casos.** Continuar o trabalho em curso na sua worktree. Esse recorte inclui as alterações que ele estiver fazendo nas telas, rotas e contratos do fluxo de casos. U7 só começa após as dependências de V3 e U6 previstas abaixo.
 - **Sobreposição.** Ao encontrar uma correção que alcance o mesmo arquivo ou contrato em trabalho, identificar o cenário, o SHA e os arquivos afetados. Alinhar com Boni qual branch fará a alteração. Até lá, cada frente pode avançar em leitura e nos testes locais que independem da mudança.
-- **Próxima frente.** V0 segue adiada. M3.0 e M3.2 já têm scripts e resultados registrados. Retomar o catálogo somente para uma lacuna identificada, como verificar o manifesto servido ou avaliar uma ficha concreta. As tarefas de M1 e os aceites ainda abertos de M3 permanecem nas respectivas seções.
+- **Próxima frente.** V0 retomada e feita em 17/11; a V1 é a seguinte da frente V. M3.0 e M3.2 já têm scripts e resultados registrados. Retomar o catálogo somente para uma lacuna identificada, como verificar o manifesto servido ou avaliar uma ficha concreta. As tarefas de M1 e os aceites ainda abertos de M3 permanecem nas respectivas seções.
 
 A Frente V depende das etapas indicadas no diagrama. Em particular, V3 depende de M2, V2 e U4. A Frente R começa após V6 estável e M5.
 
@@ -155,7 +155,7 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 | PR-M1 | M      | M1 a M3  | PR-E                         | Código publicado. M1 tem verificações residuais. M2 parcial. M3 integrada no #139, com diretório do catálogo configurado em produção. |
 | PR-D  | D      | D0 a D5  | PR-E                         | Pendente; cada virada é uma publicação                                                                                                |
 | PR-U1 | U      | U0 a U6  | PR-E; M3.0 (PR-M1) para a U3 | PR #139 integrado. Mesa única, casca, orientação v3, ações e anexos publicados. U2–U5 têm recortes pendentes e U6 está aberta.        |
-| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 adiada nesta reconciliação. V1–V3 pendentes.                                                                                       |
+| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 feita em 17/11 (branch `claude/v0-tokens`). V1–V3 pendentes.                                                                       |
 | PR-M2 | M      | M4 e M5  | PR-V1 (V3)                   | Pendente                                                                                                                              |
 | PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Pendente                                                                                                                              |
 | PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D3/D4 nunca na mesma semana                                                                                            |
@@ -511,21 +511,30 @@ tema muda, sem reescrever telas. Só depois do tema estabilizado as classes migr
 
 ### V0 — Tokens sem mudança visual
 
-**Situação em 12/11.** Adiada por Boni nesta reconciliação.
+**Situação em 17/11.** Adiada por Boni em 12/11 e retomada por ele em 17/11. Feita sem mudança visual, na branch
+`claude/v0-tokens`. Registro em
+[V0 — Tokens de cor sem mudança visual](../../architecture/2026-11-10-mesa-guiada-execucao.md#v0--tokens-de-cor-sem-mudança-visual-17112026).
 
-- [ ] Capturar screenshots de referência (desktop 1440 px e celular 390 px) de Entrar, site público, Visão, Mesa vazia,
+- [x] Capturar screenshots de referência (desktop 1440 px e celular 390 px) de Entrar, site público, Visão, Mesa vazia,
       Mesa com peça, Jurisprudência, leitor, Casos, Conectar e Conta. Guardar fora do Git; registrar o local.
-- [ ] Em `index.css`, criar variáveis RGB (`--fl-canvas: 248 246 240` etc.) para todos os tons usados: `ivory`
+      _Feita com 22 telas em dois tamanhos e o estilo computado de cada elemento. Mesa com peça e leitor ficaram de fora
+      (pedem dados) e a referência fica só na máquina da sessão; recapturar antes da V1._
+- [x] Em `index.css`, criar variáveis RGB (`--fl-canvas: 248 246 240` etc.) para todos os tons usados: `ivory`
       50–300, `cognac` 50–900, `champagne`, `stone` 50–950 (todos os 11 tons estão em uso), `amber` e `emerald` usados.
       Valores do tema `classico` idênticos aos atuais.
-- [ ] Em `tailwind.config.js`, apontar `ivory`, `cognac`, `champagne` e `stone` para `rgb(var(--x) / <alpha-value>)` e
+- [x] Em `tailwind.config.js`, apontar `ivory`, `cognac`, `champagne` e `stone` para `rgb(var(--x) / <alpha-value>)` e
       acrescentar os nomes semânticos da 7.1 apontando para as mesmas variáveis.
-- [ ] Substituir as 48 cores hexadecimais literais em `.tsx` por tokens (inclui `bg-[#FDFBF7]` do editor).
-- [ ] Sombras `card` e `card-hover` com cor por variável.
+- [x] Substituir as 48 cores hexadecimais literais em `.tsx` por tokens (inclui `bg-[#FDFBF7]` do editor).
+      _Eram 45 em `.tsx`. Os leitores de decisão (`--reader-*`), a página de impressão e as páginas estáticas de
+      `public/legal` ficaram fora._
+- [x] Sombras `card` e `card-hover` com cor por variável.
 
 **Verificação.** Screenshots antes e depois comparados pixel a pixel (`toHaveScreenshot` local, não versionado);
 Vitest, lint, `axe` e as suítes Playwright da Mesa e do site público.
 **Aceite.** Diferença visual zero. **Reversão.** Reverter o commit.
+**Evidência (17/11).** Estilo computado de todos os elementos das 44 capturas idêntico; CSS do Tailwind idêntico regra a
+regra; 38 das 44 capturas iguais byte a byte e as 6 restantes diferem só em dado (horário e e-mail sintético). A
+comparação foi por script próprio, não por `toHaveScreenshot`.
 
 ### V1 — Tema gelo, fontes e primitivos
 

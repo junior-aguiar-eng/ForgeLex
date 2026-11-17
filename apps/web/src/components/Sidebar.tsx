@@ -52,7 +52,7 @@ export const Sidebar: React.FC<{
       <aside
         id="forgelex-sidebar"
         aria-label="Navegação secundária"
-        className={`${mobileOnly ? "lg:!hidden" : ""} fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-champagne-border bg-[#FBF9F5] pt-16 shadow-xl transition-transform duration-200 lg:sticky lg:top-16 lg:z-30 lg:h-[calc(100vh-4rem)] lg:visible lg:translate-x-0 lg:pt-0 lg:shadow-none ${
+        className={`${mobileOnly ? "lg:!hidden" : ""} fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-champagne-border bg-canvas pt-16 shadow-xl transition-transform duration-200 lg:sticky lg:top-16 lg:z-30 lg:h-[calc(100vh-4rem)] lg:visible lg:translate-x-0 lg:pt-0 lg:shadow-none ${
           mobileOpen ? 'visible translate-x-0' : 'invisible -translate-x-full'
         } ${collapsed ? 'lg:w-20' : 'lg:w-64'}`}
       >

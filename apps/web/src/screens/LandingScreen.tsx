@@ -88,7 +88,7 @@ export const LandingScreen: React.FC = () => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Consulte acórdãos, súmulas, número CNJ ou teses jurídicas..."
-                className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-cognac-500/20 focus:border-cognac-600 transition-all"
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-champagne-border bg-surface-muted text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-cognac-500/20 focus:border-cognac-600 transition-all"
               />
             </div>
 
@@ -98,7 +98,7 @@ export const LandingScreen: React.FC = () => {
                 aria-label="Tribunal da pesquisa"
                 value={court}
                 onChange={(e) => setCourt(e.target.value)}
-                className="w-full px-3 py-3.5 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm font-medium text-stone-700 focus:outline-none focus:border-cognac-600"
+                className="w-full px-3 py-3.5 rounded-xl border border-champagne-border bg-surface-muted text-sm font-medium text-stone-700 focus:outline-none focus:border-cognac-600"
               >
                 {searchableCourts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
               </select>
