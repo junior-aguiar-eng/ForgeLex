@@ -2,6 +2,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import AxeBuilder from '@axe-core/playwright';
 import { chromium } from '@playwright/test';
 import {
   APP_ROUTES,
@@ -12,16 +13,19 @@ import {
   normalizeVolatileText,
   parseDevMesaOutput,
   screenName,
+  summarizeAxe,
 } from './visual-baseline-lib.mjs';
 
-// Referência visual do app (plano, etapas V0 a V7): captura as telas em dois tamanhos, grava o estilo de cada elemento
+// Referência visual do app (plano, etapas V0 a V7): captura as telas em dois tamanhos, grava a cor, a tipografia e o raio de cada elemento
 // e compara duas capturas. Serve para provar que um tema ou uma refatoração não mudou o que não devia.
 //
-//   node scripts/visual-baseline.mjs capture --out <pasta> [--origin <site> --api <api>] [--only <trecho>]
+//   node scripts/visual-baseline.mjs capture --out <pasta> [--origin <site> --api <api>] [--only <trecho>] [--axe]
 //   node scripts/visual-baseline.mjs compare <pasta-antes> <pasta-depois> [--styles-only]
 //
 // Sem `--origin`, sobe um ambiente novo (`scripts/dev-mesa.mjs`, que exige `pnpm build`) e o encerra no fim. Subir um
 // ambiente novo evita o servidor de desenvolvimento com a configuração do Tailwind antiga. As imagens ficam fora do Git.
+// `--axe` roda o axe (WCAG 2.0 e 2.1, A e AA) em cada tela e grava `axe.json`; sai com código 1 se achar violação. O tema vem
+// de `VITE_FORGELEX_THEME` (clássico, `gelo` ou `previa`), que o ambiente repassa ao Vite.
 
 const root = resolve(import.meta.dirname, '..');
 const token = 'phase7-e2e-access-token';
@@ -70,7 +74,13 @@ async function startEnvironment() {
 async function capture(args) {
   const { values } = parseArgs({
     args,
-    options: { out: { type: 'string' }, origin: { type: 'string' }, api: { type: 'string' }, only: { type: 'string' } },
+    options: {
+      out: { type: 'string' },
+      origin: { type: 'string' },
+      api: { type: 'string' },
+      only: { type: 'string' },
+      axe: { type: 'boolean', default: false },
+    },
   });
   if (!values.out) throw new Error('Informe --out <pasta>.');
   if (Boolean(values.origin) !== Boolean(values.api)) throw new Error('Informe --origin e --api juntos.');
@@ -79,6 +89,7 @@ async function capture(args) {
   const environment = values.origin ? { site: values.origin, api: values.api, stop() {} } : await startEnvironment();
   const browser = await chromium.launch();
   const dumps = {};
+  const accessibility = {};
   const errors = [];
   try {
     for (const [size, viewport] of Object.entries(VIEWPORTS)) {
@@ -96,6 +107,12 @@ async function capture(args) {
           await settle(page);
           await page.screenshot({ path: join(out, `${name}.png`), fullPage: true });
           dumps[name] = await styleDump(page);
+          if (values.axe) {
+            const result = await new AxeBuilder({ page })
+              .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+              .analyze();
+            accessibility[name] = summarizeAxe(result.violations);
+          }
           console.log(`${name}: ${dumps[name].length} elementos`);
         } catch (error) {
           dumps[name] = `ERRO ${String(error.message).split('\n')[0]}`;
@@ -117,6 +134,7 @@ async function capture(args) {
     environment.stop();
   }
   writeFileSync(join(out, 'styles.json'), JSON.stringify(dumps));
+  if (values.axe) writeFileSync(join(out, 'axe.json'), JSON.stringify(accessibility, null, 2));
   writeFileSync(
     join(out, 'manifest.json'),
     JSON.stringify(
@@ -133,6 +151,17 @@ async function capture(args) {
   if (errors.length) {
     console.error(`\n${errors.length} tela(s) com erro: ${errors.join(', ')}`);
     process.exit(1);
+  }
+  if (values.axe) {
+    const failing = Object.entries(accessibility).filter(([, violations]) => violations.length);
+    for (const [name, violations] of failing) {
+      for (const item of violations)
+        console.error(`AXE ${name}: ${item.id} (${item.impact}) em ${item.count}: ${item.targets.join(' | ')}`);
+    }
+    console.log(
+      `Acessibilidade: ${failing.length === 0 ? 'nenhuma violação' : `${failing.length} tela(s) com violação`} em ${Object.keys(accessibility).length} telas`,
+    );
+    if (failing.length) process.exit(1);
   }
   console.log(`\n${Object.keys(dumps).length} capturas em ${out}`);
 }

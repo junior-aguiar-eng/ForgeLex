@@ -16,6 +16,9 @@ describe('imagem de produção', () => {
     // OCR (U6): desligada por padrão, e a flag chega ao build tanto pelo Dockerfile quanto pelo Cloud Build.
     expect(dockerfile).toContain('ARG VITE_FORGELEX_OCR_ENABLED=false');
     expect(dockerfile.indexOf('VITE_FORGELEX_OCR_ENABLED=${VITE_FORGELEX_OCR_ENABLED}')).toBeLessThan(dockerfile.indexOf('RUN pnpm build'));
+    // Tema (V1): o build padrão é o clássico; `previa` e `gelo` entram só quando alguém passar o argumento.
+    expect(dockerfile).toContain('ARG VITE_FORGELEX_THEME=classico');
+    expect(dockerfile.indexOf('VITE_FORGELEX_THEME=${VITE_FORGELEX_THEME}')).toBeLessThan(dockerfile.indexOf('RUN pnpm build'));
     const productionBuild = await readFile(
       fileURLToPath(new URL('../ops/gcp/production/cloudbuild.yaml', import.meta.url)),
       'utf8',

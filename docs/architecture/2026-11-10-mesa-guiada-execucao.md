@@ -1607,7 +1607,7 @@ Sobre `main` em `7d77775`, na branch `claude/v1-captura`. É o primeiro passo da
 ### O que foi feito
 
 - **`scripts/visual-baseline.mjs`** (`pnpm visual:baseline`). Dois comandos:
-  - `capture --out <pasta>` sobe um ambiente novo (`scripts/dev-mesa.mjs`, que exige `pnpm build`), abre 26 telas em 1440 px e 390 px e grava, por tela, a imagem e o estilo computado de todos os elementos (cor do texto, fundo, as quatro bordas, contorno, sombra, decoração, cursor, preenchimento, traço, cor de destaque e imagem de fundo). Encerra o ambiente no fim. `--only <trecho>` limita as telas; `--origin` e `--api` reaproveitam um ambiente já aberto.
+  - `capture --out <pasta>` sobe um ambiente novo (`scripts/dev-mesa.mjs`, que exige `pnpm build`), abre 26 telas em 1440 px e 390 px e grava, por tela, a imagem e o estilo computado de todos os elementos (cor do texto, fundo, as quatro bordas, contorno, sombra, decoração, cursor, preenchimento, traço, cor de destaque e imagem de fundo). A V1 acrescentou a tipografia (família, peso, tamanho, altura de linha e espaçamento de letras) e o raio, para provar que o tema `classico` também não mudou de fonte. Encerra o ambiente no fim. `--only <trecho>` limita as telas; `--origin` e `--api` reaproveitam um ambiente já aberto.
   - `compare <antes> <depois>` aponta tela, elemento, propriedade e os dois valores de cada diferença de estilo, e conta os pixels diferentes de cada imagem. `--styles-only` ignora as imagens, para quando a mudança de visual é de propósito. Sai com código 1 se houver diferença.
 - **As 26 telas.** As 10 do site público, as 12 autenticadas que não dependem de dados e as 4 que ficaram sem referência na V0, agora criadas pela API do ambiente sintético com nomes fixos: **Mesa com peça aberta**, **leitor de decisão** (pesquisa salva aberta em "Pesquisa e fontes"), **Casos com caso aberto** e **leitor de documento** do caso.
 - **`scripts/visual-baseline-lib.mjs`** e seu teste (12 testes). A parte sem navegador: roteiro de telas, normalização do que muda a cada execução, comparação de estilos e leitura da saída do ambiente.
@@ -1651,3 +1651,77 @@ Cada captura leva uns 4 minutos. Para a V1 com o tema `classico` o critério é 
 - **Imagens fora do Git.** A ferramenta é versionada; as capturas, não. Guarde cada uma enquanto a etapa durar.
 
 Reversão: reverter o commit. Nada do app depende da ferramenta.
+
+## V1 — Tema gelo, fontes e primitivos (17/11/2026)
+
+Sobre `main` em `2e02e6d`, na branch `claude/v1-tema-gelo`. O tema gelo entra como um bloco de variáveis, desligado: o padrão continua sendo o clássico, o build de produção sai como antes e nada foi publicado. Esta etapa não toca nas telas, só no que as cores, as fontes, os raios e o foco leem.
+
+### O que foi feito
+
+- **Tema gelo em `index.css`.** O bloco `[data-theme="gelo"]` redefine todas as variáveis do `:root` (tons legados, papéis semânticos, bordas de controle, fontes, raios e foco) com os valores da seção 7.1. Um teste exige que ele cubra todas, sem herdar nenhuma. Os papéis semânticos da 7.1 ganharam variável própria (`--fl-accent`, `--fl-ink`, `--fl-line-control`...); no clássico valem a cor que a interface já usava, no gelo a da tabela.
+- **Escolha do tema antes da primeira pintura.** Um script no `<head>` do `index.html` lê `VITE_FORGELEX_THEME` e põe `data-theme` no `<html>`. Valores: `classico` (padrão; também vale se a variável não existir ou tiver outro valor), `gelo` (fixo) e `previa` (clássico, mas `?tema=gelo` troca e fica guardado em `localStorage`, com `?tema=classico` para voltar; é a prévia de homologação). Em produção, com `classico`, o parâmetro e o armazenamento não mudam nada. O gelo pré-carrega só a Inter 400.
+- **Fontes no próprio site (DEC-3).** Inter 400, 500 e 600 e Spectral 400, 500 e 600, só o subconjunto latino, em `apps/web/public/fonts` (6 arquivos `woff2`, de 21 a 24 KB, 137 KB no total), com `font-display: swap` e as licenças OFL ao lado. As famílias se chamam `ForgeLex Inter` e `ForgeLex Spectral`, para não disputar com as fontes do clássico. O servidor trata `/fonts/` como arquivo estático: fonte ausente é 404, nunca a página inicial.
+- **Primitivos só com tokens semânticos.** `.btn-primary`, `.btn-secondary`, `.btn-quiet`, `.input-control`, `.surface`, `.surface-subtle`, foco e barra de rolagem usam só variáveis semânticas. Surgiram `.seal` (verificada) e `.seal-gap` (lacuna), sem uso até a V3; o Tailwind não os emite antes disso. Borda de botão secundário e de campo, foco e raios mudam por tema: no gelo, `line-control` sólido (3:1), foco de 2 px, raio de 10 px nos controles e 18 px nos cartões.
+- **Medidor de contraste (`scripts/theme-contrast.mjs`, `pnpm theme:contrast`).** Lê as classes de texto e fundo que o código usa, mede cada par em cada tema e sai com código 1 se um par que o clássico cumpre deixar de ser cumprido em outro tema. Entrou na CI, depois dos testes unitários.
+- **Ferramenta de referência visual (`--axe`).** `visual-baseline.mjs capture --axe` roda o axe (WCAG 2.0 e 2.1, A e AA) em cada tela. A captura também grava agora tipografia (família, peso, tamanho, altura de linha, espaçamento) e raio.
+- **Body do `index.html`** usava `bg-[#FBF9F5]`, que a V0 não alcançou; virou `bg-canvas`.
+
+### Tons legados no gelo (proposta minha)
+
+A tabela 7.1 do plano só define os papéis semânticos. Os tons legados, que as classes atuais ainda usam, precisavam de equivalente; esta é a minha proposta, e Boni pode trocar qualquer linha (cada uma é uma variável e um teste).
+
+| Tom                   | Clássico  | Gelo      | Papel no gelo                      |
+| --------------------- | --------- | --------- | ---------------------------------- |
+| ivory 50              | `#FCFBF8` | `#F7FAFB` | superfície suave                   |
+| ivory 100             | `#F8F6F0` | `#F4F7F8` | fundo da aplicação (`canvas`)      |
+| ivory 200             | `#F2EFE8` | `#EDF2F4` | área secundária                    |
+| ivory 300             | `#E7E2D6` | `#E2E8EB` | divisória                          |
+| cognac 50             | `#FDF8F3` | `#F5F9FA` | destaque muito claro               |
+| cognac 100            | `#F9EDE0` | `#F0F6F7` | `accent-soft`                      |
+| cognac 200            | `#F2D7BF` | `#D2E3E7` | destaque claro                     |
+| cognac 400            | `#B87A3E` | `#2F7A8E` | ícone e destaque médio (4,5:1)     |
+| cognac 500            | `#9C6A36` | `#1F7085` | anel de foco                       |
+| cognac 600            | `#8E5D2A` | `#0F5C6E` | `accent`                           |
+| cognac 700            | `#73481D` | `#0B4552` | `accent-strong`                    |
+| cognac 800            | `#5A3716` | `#083642` | texto de destaque                  |
+| cognac 900            | `#3D240E` | `#05252E` | texto de destaque escuro           |
+| champagne borda       | `#B4966E` a 22% | `#7B96A4` a 22% | dá `#E2E8EB` sobre o branco |
+| champagne claro       | `#F4EDE2` | `#EDF3F5` | realce suave                       |
+| stone 50 a 100        | `#FAFAF9`, `#F5F5F4` | `#F7FAFB`, `#EEF2F4` | superfícies          |
+| stone 200 a 300       | `#E7E5E4`, `#D6D3D1` | `#E2E8EB`, `#C9D2D7` | linhas                |
+| stone 400             | `#A8A29E` | `#96A2A9` | ícone decorativo                   |
+| stone 500 a 600       | `#78716C`, `#57534E` | `#67727A`, `#4C585F` | `subtle`, `muted`    |
+| stone 700 a 900       | `#44403C`, `#292524`, `#1C1917` | `#2A363C`, `#1A2428`, `#101619` | `ink-soft`, texto, `ink` |
+| stone 950             | `#0C0A09` | `#080C0E` | texto mais escuro                  |
+| emerald 50, 200, 300  | `#ECFDF5`, `#A7F3D0`, `#6EE7B7` | `#EEF7F2`, `#BDE0CD`, `#8FCAAC` | fundos do selo   |
+| emerald 600, 700, 800 | `#059669`, `#047857`, `#065F46` | `#287759`, `#1F6B4C`, `#175439` | `ok` em 700      |
+| amber                 | padrão do Tailwind | igual | `warn` não muda de tema (decisão do plano) |
+
+### Verificação
+
+| Item                       | Resultado                                                                                                                                                                                                                                       |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Clássico inalterado        | Captura de 52 imagens (26 telas, dois tamanhos, incluindo as 4 com dados) antes e depois: **estilo de todos os elementos idêntico, com cor, tipografia e raio, e as 52 imagens idênticas byte a byte**.                                          |
+| Gelo e acessibilidade      | axe em 52 telas: **nenhuma violação**, no gelo e no clássico.                                                                                                                                                                                   |
+| Contraste                  | 101 pares distintos usados no código. Abaixo de 4,5:1: **14 no clássico e 9 no gelo**; nenhum par que o clássico cumpre deixa de ser cumprido no gelo. Os valores da tabela 7.1 foram reproduzidos pelo script (por exemplo `ink` sobre `canvas` 16,95:1, `subtle` sobre branco 4,92:1, `ok` sobre branco 6,43:1). |
+| Testes novos               | `theme-tokens` 27 (valores dos dois temas, completude do gelo, fontes, primitivos, sem literais), `theme-script` 7 (o script do `index.html` executado de verdade para cada valor da variável), `static-web` +1 (`/fonts/`), duas asserções novas no teste do Dockerfile, `theme-contrast-lib` 15, `visual-baseline-lib` 15. |
+| Suíte completa             | 310 arquivos e 2589 testes aprovados (40 pulados, que exigem PostgreSQL). ESLint, Prettier e tipos limpos. O build de produção copia as fontes para `dist/fonts` e escreve o valor da variável no `index.html`.                                  |
+| Playwright                 | `public` 17 aprovados; `desk-shell` 30 aprovados e 1 falho, o download do Word deste ambiente, igual ao de `main`.                                                                                                                              |
+
+Os 9 pares ainda abaixo de 4,5:1 no gelo são ícones decorativos (`stone-400` sobre campo, `amber-600`, `emerald-300`) e artefatos do medidor (`text-white` numa lista de classes cujo fundo está no elemento pai). Nenhum é texto lido.
+
+### Decisões que ficam com Boni
+
+- **Tons legados do gelo.** A tabela acima é proposta minha. A V2 e as seguintes migram as classes para os nomes semânticos, e os tons legados somem na V7.
+- **Fontes do clássico.** O Google Fonts continua sendo pedido pelo `index.html` nos dois temas, porque o clássico ainda depende dele; o gelo simplesmente não usa. A dependência de terceiros só some na limpeza final.
+- **Publicar o gelo.** `VITE_FORGELEX_THEME` está no `Dockerfile` (padrão `classico`), mas **não** passa pelo `cloudbuild.yaml` nem pelo `deploy-from-main.ps1`. O deploy compara as substituições do build com as esperadas, e um valor novo mexeria nessa conferência de procedência; não consigo rodar o PowerShell aqui. Isso entra junto com a primeira publicação em homologação, com testes na CI. Até lá, nenhum build de produção sai com gelo.
+
+### Não coberto
+
+- **Leitor de decisão e leitor do MCP** (`--reader-*`) continuam com a paleta quente no tema gelo, como já se via na tela "Pesquisa e fontes". A V3 os revisa.
+- **CSP do balanceador** continua não lida. As fontes são da própria origem, então valem com `font-src 'self'` ou `default-src 'self'`. Se a política proibir script inline, o `data-theme` não é escrito e a página fica no clássico, que é o lado seguro; a prévia só funcionaria com o script liberado.
+- **Estados** (passar o mouse, foco, mensagens de erro) não entram nem na captura nem no medidor de contraste, que ignora classes com variante.
+- **Medidor de contraste** mede pares por lista de classes e não distingue texto grande, ícone e texto lido; por isso lista, não bloqueia, o que já falhava no clássico.
+- **Só Chromium**; capturas ficam fora do Git.
+
+Reversão: `VITE_FORGELEX_THEME=classico`, que é o padrão; ou reverter o commit. Nada do que está publicado muda.

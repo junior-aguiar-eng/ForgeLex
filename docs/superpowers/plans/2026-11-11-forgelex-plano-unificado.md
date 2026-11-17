@@ -137,7 +137,7 @@ flowchart LR
 - **Codex · M2 (A18).** Preparar e rodar as verificações locais da jornada da Mesa a partir da `origin/main`. Trabalhar em branch e worktree próprias. Usar as suítes existentes de orientação, revisão, pesquisa salva e recuperação de salvamento. Registrar lacunas e evidências no registro único. M2 permanece parcial até o ensaio autenticado no HML isolado.
 - **Claude Code · fluxo de casos.** Continuar o trabalho em curso na sua worktree. Esse recorte inclui as alterações que ele estiver fazendo nas telas, rotas e contratos do fluxo de casos. U7 só começa após as dependências de V3 e U6 previstas abaixo.
 - **Sobreposição.** Ao encontrar uma correção que alcance o mesmo arquivo ou contrato em trabalho, identificar o cenário, o SHA e os arquivos afetados. Alinhar com Boni qual branch fará a alteração. Até lá, cada frente pode avançar em leitura e nos testes locais que independem da mudança.
-- **Próxima frente.** V0 retomada e feita em 17/11; a V1 é a seguinte da frente V. M3.0 e M3.2 já têm scripts e resultados registrados. Retomar o catálogo somente para uma lacuna identificada, como verificar o manifesto servido ou avaliar uma ficha concreta. As tarefas de M1 e os aceites ainda abertos de M3 permanecem nas respectivas seções.
+- **Próxima frente.** V0 retomada e feita em 17/11; a V1 foi feita no mesmo dia e a V2 é a seguinte. M3.0 e M3.2 já têm scripts e resultados registrados. Retomar o catálogo somente para uma lacuna identificada, como verificar o manifesto servido ou avaliar uma ficha concreta. As tarefas de M1 e os aceites ainda abertos de M3 permanecem nas respectivas seções.
 
 A Frente V depende das etapas indicadas no diagrama. Em particular, V3 depende de M2, V2 e U4. A Frente R começa após V6 estável e M5.
 
@@ -155,7 +155,7 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 | PR-M1 | M      | M1 a M3  | PR-E                         | Código publicado. M1 tem verificações residuais. M2 parcial. M3 integrada no #139, com diretório do catálogo configurado em produção. |
 | PR-D  | D      | D0 a D5  | PR-E                         | Pendente; cada virada é uma publicação                                                                                                |
 | PR-U1 | U      | U0 a U6  | PR-E; M3.0 (PR-M1) para a U3 | PR #139 integrado. Mesa única, casca, orientação v3, ações e anexos publicados. U2–U5 têm recortes pendentes e U6 está aberta.        |
-| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 integrada em 17/11 (#181). Ferramenta de referência visual pronta. V1–V3 pendentes.                                                |
+| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 e V1 feitas em 17/11 (#181, branch `claude/v1-tema-gelo`). V2–V3 pendentes.                                                        |
 | PR-M2 | M      | M4 e M5  | PR-V1 (V3)                   | Pendente                                                                                                                              |
 | PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Pendente                                                                                                                              |
 | PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D3/D4 nunca na mesma semana                                                                                            |
@@ -544,18 +544,25 @@ Depende de V0 e DEC-3.
       com 26 telas em dois tamanhos, as 4 que dependem de dados incluídas. Registro em
       [V1 · preparação](../../architecture/2026-11-10-mesa-guiada-execucao.md#v1--preparação-ferramenta-de-referência-visual-versionada-17112026).
       Capturar a referência no `main` antes de mexer em qualquer cor.
-- [ ] Bloco `[data-theme="gelo"]` em `index.css` com os valores da 7.1 e mapeamento dos tons legados para os tons gelo
-      equivalentes (tabela no registro de execução).
-- [ ] `VITE_FORGELEX_THEME` (`classico` padrão, `gelo`) aplicado no `index.html` antes da primeira pintura. Em
+- [x] Bloco `[data-theme="gelo"]` em `index.css` com os valores da 7.1 e mapeamento dos tons legados para os tons gelo
+      equivalentes (tabela no registro de execução). _Mapeamento dos tons legados é proposta minha; Boni pode trocar._
+- [x] `VITE_FORGELEX_THEME` (`classico` padrão, `gelo`) aplicado no `index.html` antes da primeira pintura. Em
       homologação, prévia por `?tema=gelo` guardada em `localStorage` (com `try/catch`); desativada em produção.
-- [ ] Spectral e Inter em `woff2` no próprio site (`public/fonts`), subconjunto latino, `font-display: swap`,
-      `preload` só da Inter 400; conferir CSP `font-src 'self'`.
-- [ ] Primitivos em `index.css` (`.btn-primary`, `.btn-secondary`, `.input-control`, cartão, selo, foco) usando só
+      _Um terceiro valor, `previa`, liga a prévia; só está no `Dockerfile`. Ainda não passa pelo Cloud Build nem pelo
+      `deploy-from-main.ps1`: entra com a primeira publicação em homologação._
+- [x] Spectral e Inter em `woff2` no próprio site (`public/fonts`), subconjunto latino, `font-display: swap`,
+      `preload` só da Inter 400; conferir CSP `font-src 'self'`. _CSP do balanceador continua não lida; as fontes são
+      da própria origem._
+- [x] Primitivos em `index.css` (`.btn-primary`, `.btn-secondary`, `.input-control`, cartão, selo, foco) usando só
       tokens semânticos.
-- [ ] Medir contraste de todos os pares usados com script (registro com a tabela).
+- [x] Medir contraste de todos os pares usados com script (registro com a tabela). _`pnpm theme:contrast`, também na
+      CI._
 
 **Aceite.** Tema `classico` inalterado; tema `gelo` sem violação `axe` nas telas da V0.
 **Reversão.** `VITE_FORGELEX_THEME=classico`.
+**Evidência (17/11).** Clássico: estilo de todos os elementos e as 52 imagens idênticos antes e depois. Gelo: axe sem
+violação em 52 telas. Registro em
+[V1 — Tema gelo, fontes e primitivos](../../architecture/2026-11-10-mesa-guiada-execucao.md#v1--tema-gelo-fontes-e-primitivos-17112026).
 
 ### V2 — Casca e site público
 

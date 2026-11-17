@@ -50,6 +50,9 @@ jobs:
       - name: Unit tests
         run: pnpm exec vitest run
 
+      - name: Contraste dos temas (o gelo não pode piorar um par que o clássico cumpre)
+        run: node scripts/theme-contrast.mjs
+
       - name: Deploy scripts (PowerShell, sem gcloud nem rede)
         shell: pwsh
         run: ./ops/gcp/production/deploy-from-main.tests.ps1

@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
-// Cores como variáveis (V0): cada tom aponta para `--fl-*` em `src/index.css`, onde o tema `classico` guarda os
-// valores de sempre. Trocar de tema é trocar essas variáveis; nenhuma tela escreve cor literal.
+// Cores, fontes e sombras como variáveis (V0 e V1): cada tom aponta para `--fl-*` em `src/index.css`, onde o tema
+// `classico` guarda os valores de sempre e o tema `gelo` os troca. Nenhuma tela escreve cor literal.
 export default {
   content: [
     "./index.html",
@@ -58,37 +58,37 @@ export default {
           800: 'rgb(var(--fl-emerald-800) / <alpha-value>)',
         },
         champagne: {
-          border: 'rgb(var(--fl-champagne-line) / 0.22)',
-          'border-subtle': 'rgb(var(--fl-champagne-line) / 0.12)',
+          border: 'rgb(var(--fl-line) / 0.22)',
+          'border-subtle': 'rgb(var(--fl-line) / 0.12)',
           light: 'rgb(var(--fl-champagne-light) / <alpha-value>)',
         },
-        // Nomes semânticos da especificação de tokens (plano, 7.1). No tema clássico cada um aponta para a cor que a
-        // interface já usa nesse papel, então nada muda; o tema gelo (V1) troca os valores. Mapeamento provisório,
-        // a revisar na V1 junto com a tabela de tons legados.
+        // Nomes semânticos da especificação de tokens (plano, 7.1). Cada um tem a própria variável: no tema clássico vale
+        // a cor que a interface já usa nesse papel, no gelo vale a da tabela. As telas novas usam estes nomes; os tons
+        // legados acima existem até a migração das classes (V7).
         canvas: 'rgb(var(--fl-canvas) / <alpha-value>)',
         'canvas-deep': 'rgb(var(--fl-canvas-deep) / <alpha-value>)',
         surface: 'rgb(var(--fl-surface) / <alpha-value>)',
         'surface-muted': 'rgb(var(--fl-surface-muted) / <alpha-value>)',
-        line: 'rgb(var(--fl-champagne-line) / 0.22)',
-        'line-control': 'rgb(var(--fl-champagne-line) / 0.22)',
+        line: 'rgb(var(--fl-line) / 0.22)',
+        'line-control': 'rgb(var(--fl-line-control) / <alpha-value>)',
         ink: 'rgb(var(--fl-ink) / <alpha-value>)',
-        'ink-soft': 'rgb(var(--fl-stone-700) / <alpha-value>)',
+        'ink-soft': 'rgb(var(--fl-ink-soft) / <alpha-value>)',
         muted: 'rgb(var(--fl-muted) / <alpha-value>)',
-        subtle: 'rgb(var(--fl-stone-500) / <alpha-value>)',
-        accent: 'rgb(var(--fl-cognac-600) / <alpha-value>)',
-        'accent-strong': 'rgb(var(--fl-cognac-700) / <alpha-value>)',
-        'accent-soft': 'rgb(var(--fl-cognac-100) / <alpha-value>)',
-        ok: 'rgb(var(--fl-emerald-700) / <alpha-value>)',
-        warn: 'rgb(var(--fl-amber-700) / <alpha-value>)',
+        subtle: 'rgb(var(--fl-subtle) / <alpha-value>)',
+        accent: 'rgb(var(--fl-accent) / <alpha-value>)',
+        'accent-strong': 'rgb(var(--fl-accent-strong) / <alpha-value>)',
+        'accent-soft': 'rgb(var(--fl-accent-soft) / <alpha-value>)',
+        ok: 'rgb(var(--fl-ok) / <alpha-value>)',
+        warn: 'rgb(var(--fl-warn) / <alpha-value>)',
         danger: 'rgb(var(--fl-danger) / <alpha-value>)',
       },
       fontFamily: {
-        serif: ['Georgia', 'Cambria', '"Times New Roman"', 'serif'],
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        serif: ['var(--fl-font-serif)'],
+        sans: ['var(--fl-font-sans)'],
       },
       boxShadow: {
-        'card': '0 2px 12px rgb(var(--fl-cognac-600) / 0.05), 0 1px 3px rgba(0, 0, 0, 0.02)',
-        'card-hover': '0 8px 24px rgb(var(--fl-cognac-600) / 0.09), 0 2px 6px rgba(0, 0, 0, 0.03)',
+        'card': '0 2px 12px rgb(var(--fl-accent) / 0.05), 0 1px 3px rgba(0, 0, 0, 0.02)',
+        'card-hover': '0 8px 24px rgb(var(--fl-accent) / 0.09), 0 2px 6px rgba(0, 0, 0, 0.03)',
       }
     },
   },

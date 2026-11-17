@@ -37,7 +37,7 @@ export const VIEWPORTS = {
   celular: { width: 390, height: 844 },
 };
 
-/** Propriedades de estilo gravadas para cada elemento. Cor em todas as formas em que ela aparece na tela. */
+/** Propriedades de estilo gravadas para cada elemento: cor em todas as formas em que ela aparece, tipografia e raio. */
 export const STYLE_PROPS = [
   'color',
   'backgroundColor',
@@ -53,6 +53,12 @@ export const STYLE_PROPS = [
   'stroke',
   'accentColor',
   'backgroundImage',
+  'fontFamily',
+  'fontWeight',
+  'fontSize',
+  'lineHeight',
+  'letterSpacing',
+  'borderTopLeftRadius',
 ];
 
 const SYNTHETIC_EMAIL = /fase7-[0-9a-f-]+@forgelex\.test/g;
@@ -135,4 +141,15 @@ export function parseDevMesaOutput(output) {
   const site = /Site:\s+(https?:\/\/[^\s/]+)/.exec(output)?.[1];
   const api = /API:\s+(https?:\/\/[^\s/]+)/.exec(output)?.[1];
   return site && api ? { site, api } : null;
+}
+
+/** Resumo de violações do axe: regra, gravidade, quantos elementos e os três primeiros (caminho de iframe unido por " >> "). */
+export function summarizeAxe(violations) {
+  return violations.map((violation) => ({
+    id: violation.id,
+    impact: violation.impact,
+    help: violation.help,
+    count: violation.nodes.length,
+    targets: violation.nodes.slice(0, 3).map((node) => node.target.join(' >> ')),
+  }));
 }

@@ -2,10 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Fontes do tema gelo (DEC-3), hospedadas no próprio site. Têm nome próprio ("ForgeLex ...") para não disputar com as
+ * fontes do tema clássico, que ainda vêm de fora até a limpeza final (V7): o navegador só baixa um arquivo daqui quando
+ * o tema gelo está ativo e a família é usada.
+ */
+@font-face {
+  font-family: 'ForgeLex Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/inter-latin-400-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'ForgeLex Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/inter-latin-500-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'ForgeLex Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(/fonts/inter-latin-600-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'ForgeLex Spectral';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/spectral-latin-400-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'ForgeLex Spectral';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/spectral-latin-500-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'ForgeLex Spectral';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(/fonts/spectral-latin-600-normal.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @layer base {
   /*
-   * Tema clássico (V0): todo tom de cor do app vive aqui como "R G B", para o Tailwind compor a transparência
-   * (`rgb(var(--fl-x) / 0.5)`). Os valores são os de sempre; o tema gelo (V1) troca este bloco.
+   * Temas (V0 e V1). Todo tom de cor do app vive aqui como "R G B", para o Tailwind compor a transparência
+   * (`rgb(var(--fl-x) / 0.5)`). O tema clássico é o padrão e guarda os valores de sempre; o tema gelo troca cada
+   * variável quando o `<html>` recebe `data-theme="gelo"` (script do index.html). Primeiro os tons legados, que as
+   * classes atuais usam, depois os papéis semânticos, as bordas de controle, as fontes, os raios e o foco.
    */
   :root {
     --fl-ivory-50: 252 251 248;
@@ -46,27 +102,117 @@
     --fl-emerald-600: 5 150 105;
     --fl-emerald-700: 4 120 87;
     --fl-emerald-800: 6 95 70;
-    --fl-champagne-line: 180 150 110;
     --fl-champagne-light: 244 237 226;
     --fl-canvas: 251 249 245;
     --fl-canvas-deep: 241 238 232;
     --fl-surface: 255 255 255;
     --fl-surface-muted: 253 251 247;
+    --fl-line: 180 150 110;
+    --fl-line-control: 239 232 223;
     --fl-ink: 45 39 33;
+    --fl-ink-soft: 68 64 60;
     --fl-muted: 113 105 95;
+    --fl-subtle: 120 113 108;
+    --fl-accent: 142 93 42;
+    --fl-accent-strong: 115 72 29;
+    --fl-accent-soft: 249 237 224;
+    --fl-ok: 4 120 87;
+    --fl-warn: 180 83 9;
     --fl-danger: 185 28 28;
     --fl-placeholder: 161 154 145;
+    --fl-scrollbar-track: 244 237 226;
     --fl-scrollbar-thumb: 212 195 172;
+    --fl-scrollbar-thumb-hover: 184 122 62;
     --fl-shadow-ink: 66 45 25;
     --fl-shadow-cta: 91 55 22;
+    --fl-field-border: rgb(180 150 110 / 0.2);
+    --fl-btn-border: rgb(142 93 42 / 0.28);
+    --fl-btn-border-hover: rgb(142 93 42 / 0.5);
+    --fl-font-body: 'Inter', system-ui, -apple-system, sans-serif;
+    --fl-font-heading: 'Merriweather', 'Playfair Display', Georgia, serif;
+    --fl-font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --fl-font-serif: Georgia, Cambria, "Times New Roman", serif;
+    --fl-radius-control: 0.75rem;
+    --fl-radius-card: 1rem;
+    --fl-radius-card-subtle: 0.875rem;
+    --fl-focus-width: 3px;
+    --fl-focus-offset: 2px;
+  }
 
-    --forgelex-ivory: rgb(var(--fl-canvas));
-    --forgelex-paper: rgb(var(--fl-surface));
-    --forgelex-ink: rgb(var(--fl-ink));
-    --forgelex-muted: rgb(var(--fl-muted));
-    --forgelex-line: rgb(var(--fl-champagne-line) / 0.2);
-    --forgelex-accent: rgb(var(--fl-cognac-600));
-    --forgelex-accent-soft: rgb(var(--fl-cognac-100));
+  [data-theme="gelo"] {
+    --fl-ivory-50: 247 250 251;
+    --fl-ivory-100: 244 247 248;
+    --fl-ivory-200: 237 242 244;
+    --fl-ivory-300: 226 232 235;
+    --fl-cognac-50: 245 249 250;
+    --fl-cognac-100: 240 246 247;
+    --fl-cognac-200: 210 227 231;
+    --fl-cognac-400: 47 122 142;
+    --fl-cognac-500: 31 112 133;
+    --fl-cognac-600: 15 92 110;
+    --fl-cognac-700: 11 69 82;
+    --fl-cognac-800: 8 54 66;
+    --fl-cognac-900: 5 37 46;
+    --fl-stone-50: 247 250 251;
+    --fl-stone-100: 238 242 244;
+    --fl-stone-200: 226 232 235;
+    --fl-stone-300: 201 210 215;
+    --fl-stone-400: 150 162 169;
+    --fl-stone-500: 103 114 122;
+    --fl-stone-600: 76 88 95;
+    --fl-stone-700: 42 54 60;
+    --fl-stone-800: 26 36 40;
+    --fl-stone-900: 16 22 25;
+    --fl-stone-950: 8 12 14;
+    --fl-amber-50: 255 251 235;
+    --fl-amber-100: 254 243 199;
+    --fl-amber-200: 253 230 138;
+    --fl-amber-300: 252 211 77;
+    --fl-amber-600: 217 119 6;
+    --fl-amber-700: 180 83 9;
+    --fl-amber-800: 146 64 14;
+    --fl-amber-900: 120 53 15;
+    --fl-emerald-50: 238 247 242;
+    --fl-emerald-200: 189 224 205;
+    --fl-emerald-300: 143 202 172;
+    --fl-emerald-600: 40 119 89;
+    --fl-emerald-700: 31 107 76;
+    --fl-emerald-800: 23 84 57;
+    --fl-champagne-light: 237 243 245;
+    --fl-canvas: 244 247 248;
+    --fl-canvas-deep: 236 241 243;
+    --fl-surface: 255 255 255;
+    --fl-surface-muted: 247 250 251;
+    --fl-line: 123 150 164;
+    --fl-line-control: 126 139 146;
+    --fl-ink: 16 22 25;
+    --fl-ink-soft: 42 54 60;
+    --fl-muted: 76 88 95;
+    --fl-subtle: 103 114 122;
+    --fl-accent: 15 92 110;
+    --fl-accent-strong: 11 69 82;
+    --fl-accent-soft: 240 246 247;
+    --fl-ok: 31 107 76;
+    --fl-warn: 180 83 9;
+    --fl-danger: 185 28 28;
+    --fl-placeholder: 103 114 122;
+    --fl-scrollbar-track: 237 243 245;
+    --fl-scrollbar-thumb: 197 208 213;
+    --fl-scrollbar-thumb-hover: 103 114 122;
+    --fl-shadow-ink: 16 22 25;
+    --fl-shadow-cta: 11 69 82;
+    --fl-field-border: rgb(126 139 146);
+    --fl-btn-border: rgb(126 139 146);
+    --fl-btn-border-hover: rgb(15 92 110);
+    --fl-font-body: 'ForgeLex Inter', system-ui, -apple-system, sans-serif;
+    --fl-font-heading: 'ForgeLex Spectral', Georgia, serif;
+    --fl-font-sans: 'ForgeLex Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --fl-font-serif: 'ForgeLex Spectral', Georgia, Cambria, "Times New Roman", serif;
+    --fl-radius-control: 10px;
+    --fl-radius-card: 1.125rem;
+    --fl-radius-card-subtle: 1rem;
+    --fl-focus-width: 2px;
+    --fl-focus-offset: 2px;
   }
 
   *,
@@ -77,20 +223,20 @@
 
   html {
     overflow-x: hidden;
-    background: var(--forgelex-ivory);
+    background: rgb(var(--fl-canvas));
   }
 
   body {
     margin: 0;
     min-width: 320px;
-    background-color: var(--forgelex-ivory);
-    color: var(--forgelex-ink);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: rgb(var(--fl-canvas));
+    color: rgb(var(--fl-ink));
+    font-family: var(--fl-font-body);
     line-height: 1.5;
   }
 
   h1, h2, h3, .font-editorial {
-    font-family: 'Merriweather', 'Playfair Display', Georgia, serif;
+    font-family: var(--fl-font-heading);
   }
 
   button,
@@ -106,8 +252,8 @@
   }
 
   :focus-visible {
-    outline: 3px solid rgb(var(--fl-cognac-600));
-    outline-offset: 2px;
+    outline: var(--fl-focus-width) solid rgb(var(--fl-accent));
+    outline-offset: var(--fl-focus-offset);
   }
 }
 
@@ -118,16 +264,16 @@
   }
 
   .surface {
-    background: var(--forgelex-paper);
-    border: 1px solid var(--forgelex-line);
-    border-radius: 1rem;
+    background: rgb(var(--fl-surface));
+    border: 1px solid rgb(var(--fl-line) / 0.2);
+    border-radius: var(--fl-radius-card);
     box-shadow: 0 1px 4px rgb(var(--fl-shadow-ink) / 0.035);
   }
 
   .surface-subtle {
     background: rgb(var(--fl-surface-muted));
-    border: 1px solid rgb(var(--fl-champagne-line) / 0.16);
-    border-radius: 0.875rem;
+    border: 1px solid rgb(var(--fl-line) / 0.16);
+    border-radius: var(--fl-radius-card-subtle);
   }
 
   .btn-primary,
@@ -138,7 +284,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border-radius: 0.75rem;
+    border-radius: var(--fl-radius-control);
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
     font-weight: 600;
@@ -146,42 +292,42 @@
   }
 
   .btn-primary {
-    border: 1px solid var(--forgelex-accent);
-    background: rgb(var(--fl-cognac-600));
+    border: 1px solid rgb(var(--fl-accent));
+    background: rgb(var(--fl-accent));
     color: white;
     box-shadow: 0 2px 5px rgb(var(--fl-shadow-cta) / 0.12);
   }
 
   .btn-primary:hover {
-    background: rgb(var(--fl-cognac-700));
+    background: rgb(var(--fl-accent-strong));
   }
 
   .btn-secondary {
-    border: 1px solid rgb(var(--fl-cognac-600) / 0.28);
+    border: 1px solid var(--fl-btn-border);
     background: rgb(var(--fl-surface));
-    color: rgb(var(--fl-cognac-700));
+    color: rgb(var(--fl-accent-strong));
   }
 
   .btn-secondary:hover,
   .btn-quiet:hover {
-    border-color: rgb(var(--fl-cognac-600) / 0.5);
-    background: var(--forgelex-accent-soft);
+    border-color: var(--fl-btn-border-hover);
+    background: rgb(var(--fl-accent-soft));
   }
 
   .btn-quiet {
     border: 1px solid transparent;
     background: transparent;
-    color: var(--forgelex-muted);
+    color: rgb(var(--fl-muted));
   }
 
   .input-control {
     min-height: 2.75rem;
     width: 100%;
-    border: 1px solid var(--forgelex-line);
-    border-radius: 0.75rem;
+    border: 1px solid var(--fl-field-border);
+    border-radius: var(--fl-radius-control);
     background: rgb(var(--fl-surface-muted));
     padding: 0.625rem 0.875rem;
-    color: var(--forgelex-ink);
+    color: rgb(var(--fl-ink));
     font-size: 0.875rem;
   }
 
@@ -190,22 +336,47 @@
   }
 
   .input-control:focus {
-    border-color: rgb(var(--fl-cognac-600) / 0.7);
-    box-shadow: 0 0 0 3px rgb(var(--fl-cognac-600) / 0.12);
+    border-color: rgb(var(--fl-accent) / 0.7);
+    box-shadow: 0 0 0 3px rgb(var(--fl-accent) / 0.12);
   }
 
   .input-control:focus-visible {
-    outline: 3px solid rgb(var(--fl-cognac-600));
-    outline-offset: 2px;
+    outline: var(--fl-focus-width) solid rgb(var(--fl-accent));
+    outline-offset: var(--fl-focus-offset);
   }
 
   .eyebrow {
-    color: rgb(var(--fl-cognac-600));
+    color: rgb(var(--fl-accent));
     font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     line-height: 1.2;
     text-transform: uppercase;
+  }
+
+  /* Selos da V3: "verificada" (ok) e lacuna ou pendência (warn). Sem uso até a V3; o Tailwind não os emite antes disso. */
+  .seal,
+  .seal-gap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .seal {
+    color: rgb(var(--fl-ok));
+    background: rgb(var(--fl-ok) / 0.1);
+    border: 1px solid rgb(var(--fl-ok) / 0.3);
+  }
+
+  .seal-gap {
+    color: rgb(var(--fl-warn));
+    background: rgb(var(--fl-warn) / 0.1);
+    border: 1px solid rgb(var(--fl-warn) / 0.3);
   }
 }
 
@@ -215,36 +386,36 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgb(var(--fl-champagne-light));
+  background: rgb(var(--fl-scrollbar-track));
 }
 ::-webkit-scrollbar-thumb {
   background: rgb(var(--fl-scrollbar-thumb));
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--fl-cognac-400));
+  background: rgb(var(--fl-scrollbar-thumb-hover));
 }
 
 .champagne-card {
   background: rgb(var(--fl-surface));
-  border: 1px solid rgb(var(--fl-champagne-line) / 0.22);
+  border: 1px solid rgb(var(--fl-line) / 0.22);
   box-shadow: 0 1px 4px rgb(var(--fl-shadow-ink) / 0.035);
 }
 
 .champagne-card-subtle {
   background: rgb(var(--fl-surface-muted));
-  border: 1px solid rgb(var(--fl-champagne-line) / 0.16);
+  border: 1px solid rgb(var(--fl-line) / 0.16);
 }
 
 .glass-pill {
   background: rgb(var(--fl-surface) / 0.85);
   backdrop-filter: blur(8px);
-  border: 1px solid rgb(var(--fl-champagne-line) / 0.25);
+  border: 1px solid rgb(var(--fl-line) / 0.25);
 }
 
 .technical-access {
-  border: 1px solid rgb(var(--fl-champagne-line) / 0.16);
-  border-radius: 0.875rem;
+  border: 1px solid rgb(var(--fl-line) / 0.16);
+  border-radius: var(--fl-radius-card-subtle);
   background: transparent;
 }
 
@@ -265,7 +436,7 @@
   content: '+';
   display: inline-block;
   width: 1rem;
-  color: rgb(var(--fl-cognac-600));
+  color: rgb(var(--fl-accent));
   font-size: 1rem;
   line-height: 0.75;
 }
@@ -275,7 +446,7 @@
 }
 
 .technical-access__content {
-  border-top: 1px solid rgb(var(--fl-champagne-line) / 0.14);
+  border-top: 1px solid rgb(var(--fl-line) / 0.14);
   padding: 0 1rem 1rem;
 }
 
