@@ -195,6 +195,59 @@ jobs:
           path: test-results/
           retention-days: 7
 
+  # The guided desk, its shell, attachments and draft-save recovery are live in production, and these suites only
+  # ran on the machine of whoever wrote them. They are independent of e2e-product (in-memory SQLite, no PostgreSQL),
+  # each runs even if an earlier one failed, and this job is not a required check until it has proven stable.
+  e2e-desk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - id: browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Attachments in the composer (PDF, Word, TXT, MD; text only)
+        run: pnpm exec playwright test --config playwright.attachments.config.ts
+      - name: Desk shell, empty-state shortcuts and layout
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-shell.config.ts
+      - name: Guided desk questions, summary and corrections
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-guidance.config.ts
+      - name: Guided desk v3 (court, proposed piece, matter chips)
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-guidance-v3.config.ts
+      - name: Desk pilot (incorporated and closed modes)
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-pilot.config.ts
+      - name: Desk procedure
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-procedure.config.ts
+      - name: Desk research and sources
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-research.config.ts
+      - name: Desk review and approval
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-review.config.ts
+      - name: Recoverable draft save
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-save-recovery.config.ts
+      - name: Preserve desk diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desk-test-results
+          path: test-results/
+          retention-days: 7
+
   e2e-public:
     runs-on: ubuntu-latest
     steps:
