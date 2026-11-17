@@ -34,9 +34,52 @@ test('página inicial no celular: sem rolagem lateral e o menu abre por teclado'
   await expect(page.getByRole('navigation', { name: 'Navegação pública mobile' })).toBeVisible();
 });
 
-test('as outras páginas públicas seguem com o texto atual até receberem o novo', async ({ page }) => {
-  await page.goto('/produto');
-  await expect(page).toHaveTitle('Produto · ForgeLex');
+test('as demais páginas públicas trazem o texto novo, com metadados próprios e sem violação de acessibilidade', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const pages: Array<[string, string, string, RegExp]> = [
+    [
+      '/produto',
+      'Produto · ForgeLex',
+      'Pesquisa com fonte, conexão com a sua IA e Mesa de trabalho.',
+      /Mesa de trabalho/,
+    ],
+    [
+      '/como-funciona',
+      'Como funciona · ForgeLex',
+      'Da conta à pesquisa com fonte, e da fonte à peça.',
+      /elabore a peça/,
+    ],
+    [
+      '/integracoes',
+      'Integrações · ForgeLex',
+      'Conecte o ForgeLex à sua IA, à Mesa e ao seu software.',
+      /Mesa de trabalho/,
+    ],
+    ['/creditos', 'Créditos · ForgeLex', 'Você paga só pelo uso.', /só pelo uso/],
+    ['/guia', 'Guia para advogados · ForgeLex', 'Conecte sua IA e pesquise com a fonte à vista.', /fonte à vista/],
+    [
+      '/desenvolvedores/api',
+      'API para desenvolvedores · ForgeLex',
+      'Integre a pesquisa do ForgeLex ao seu software.',
+      /pesquisa do ForgeLex/,
+    ],
+  ];
+  for (const [path, documentTitle, heading, description] of pages) {
+    await page.goto(path);
+    await expect(page.getByRole('heading', { level: 1 }), path).toHaveText(heading);
+    await expect(page, path).toHaveTitle(documentTitle);
+    await expect(page.locator('meta[name="description"]'), path).toHaveAttribute('content', description);
+    const body = await page.locator('main').innerText();
+    for (const absent of ['OCR', 'Word', '.docx', 'agentes analíticos', 'Gemini', 'vigência', 'está suspenso'])
+      expect(body, `${path}: ${absent}`).not.toContain(absent);
+    const result = await new AxeBuilder({ page }).withTags(wcag).analyze();
+    expect(result.violations.map((v) => `${path} ${v.id}: ${v.help}`)).toEqual([]);
+  }
+});
+
+test('a consulta processual gratuita segue como é', async ({ page }) => {
   await page.goto('/consulta-processual');
   await expect(page).toHaveTitle('Consulta processual gratuita · ForgeLex');
 });

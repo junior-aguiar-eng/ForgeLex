@@ -1977,3 +1977,38 @@ As outras duas, para o registro: **B** "Pesquise na sua IA. Escreva na Mesa." (p
 Reescrever `ProductPage`, `HowPage`, `IntegrationsPage`, `CreditsPage`, `GuidePage` e `ApiDocsPage`; `LandingScreen` (a dupla versão do título por `CASE_WORKSPACE_ENABLED`); `ConnectionsScreen`; `index.html`, `sitemap.xml`, a imagem Open Graph e `README.md`; os textos legais em `apps/web/public/legal/` (**a aprovação é de Boni**; só devem descrever o que acontece de fato); `public-seo.test.ts`; e as URLs canônicas com o domínio vigente (D3). Depois, ligar a flag e publicar texto e função juntos.
 
 Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.
+
+## V5A — Site público no modelo novo, parte 2: as demais páginas públicas (17/11/2026)
+
+Na branch `claude/v5a-paginas`, empilhada sobre `claude/v5a-site-publico` (parte 1, [#191](https://github.com/junior-aguiar-eng/ForgeLex/pull/191)). Continua **só com `VITE_FORGELEX_PUBLIC_MODEL=true`**, desligada por padrão e **desligada em produção** até a V5A inteira estar pronta.
+
+### O que foi feito
+
+| Página | Texto novo (resumo) |
+| ------ | ------------------- |
+| Produto | "Pesquisa com fonte, conexão com a sua IA e Mesa de trabalho."; ferramentas e percurso no modelo novo, mais as salvaguardas. |
+| Como funciona | "Da conta à pesquisa com fonte, e da fonte à peça."; percurso de quatro passos, terminando na Mesa. |
+| Integrações | "Conecte o ForgeLex à sua IA, à Mesa e ao seu software."; quatro formas de uso (site, ChatGPT ou Claude, Mesa, API). |
+| Créditos | "Você paga só pelo uso."; mesmo conteúdo contratual de hoje: pré-pago em reais, pesquisa válida faturável, abrir e verificar sem cobrança própria, custo do aplicativo de IA separado. |
+| Guia | "Conecte sua IA e pesquise com a fonte à vista."; passo novo e cartão "Mesa de trabalho" (anexos em PDF, texto ou Markdown) com link para `/entrar?next=%2Fapp%2Ftrabalho`. |
+| API | Só o título muda ("Integre a pesquisa do ForgeLex ao seu software."); autenticação, exemplos, consulta gratuita TJAL e OpenAPI ficam como estão. |
+
+Os metadados (título e descrição) de cada uma dessas páginas mudam com o texto, em `public-metadata.ts`; a canônica e a indexação não mudam. A consulta processual gratuita (DataJud) e a página não encontrada **não mudam**, como o plano pede.
+
+### Regra mantida
+
+Nenhuma frase afirma o que não está no ar: Word, OCR, agentes analíticos, vigência e Gemini não aparecem; o texto não diz que o fluxo de casos "está suspenso" nem oferece `/app/casos`, `/app/rascunhos` ou `/app/revisao`. **A Mesa aparece sem preço**: o texto só afirma a cobrança da pesquisa jurisprudencial válida, que é o que está publicado com tarifa. Se a Mesa tiver tarifa própria, o texto dela entra quando Boni confirmar o valor (A24).
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Vitest | 320 arquivos e 2.695 testes aprovados. Novos: cada página, com o modelo desligado, sai idêntica à de antes e sem "Mesa de trabalho"; com ele ligado traz um só h1, texto novo e nada do que não está no ar; Créditos conserva o que é cobrado; Guia leva à Mesa; metadados por página. Mutação provada: pôr "OCR" no cartão da Mesa do Guia derruba o teste. |
+| Playwright | `public-model.spec.ts` agora com 4 cenários: as seis páginas conferem título, metadados e ausência do que não está no ar, com axe sem violação em cada uma; a consulta gratuita segue como é. Suíte pública existente: 17 aprovados. |
+| Capturas | Com a flag desligada, as 52 capturas saíram idênticas às da parte 1 (estilos e imagens). Com ela ligada, as seis páginas foram vistas em 1440 px (Produto e Guia conferidos a olho: o cartão "Mesa de trabalho" do Guia, o quinto passo e o título novo). O axe passou nas seis, no e2e. |
+
+### Pendente na V5A
+
+`PublicFooter` (o texto de apresentação do rodapé segue o atual); `LandingScreen` (a dupla versão do título por `CASE_WORKSPACE_ENABLED`); `ConnectionsScreen`; `index.html`, `sitemap.xml`, imagem Open Graph e `README.md`; `public-seo.test.ts`; URLs canônicas com o domínio vigente (D3); os textos legais em `apps/web/public/legal/` (**a aprovação é de Boni**). Depois, ligar a flag e publicar texto e função juntos.
+
+Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.
