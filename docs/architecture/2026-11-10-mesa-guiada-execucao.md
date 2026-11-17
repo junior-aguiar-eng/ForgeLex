@@ -1412,7 +1412,7 @@ outra etapa e exige refatorar os fluxos com cobertura própria.
 Nove suítes Playwright **não rodam na CI**: `attachments`, `desk-shell`, `desk-guidance`, `desk-guidance-v3`,
 `desk-pilot`, `desk-procedure`, `desk-research`, `desk-review` e `desk-save-recovery`. Várias cobrem recursos já ativos em
 produção (orientação guiada, v3, salvamento recuperável). Elas só protegem contra regressão na máquina de quem as roda.
-A proposta (um job `e2e-desk` em paralelo, em commit separado) depende de Boni; este fechamento não a inclui.
+**Resolvido em 17/11/2026** pelo job `e2e-desk` (PR #178): as nove suítes rodam em paralelo ao `e2e-product`, cada uma em passo próprio, em cerca de 4 minutos. Passou na primeira execução na CI, inclusive o `desk-shell`, o que confirma que a falha local do download do Word é específica do ambiente. Foi **uma** execução: o job não é verificação obrigatória e só deve virar depois de algumas execuções verdes seguidas (decisão de Boni, na proteção de branch).
 
 Reversão: reverter os commits do PR #177; o leitor de Word fica atrás da flag de anexos
 (`VITE_FORGELEX_ATTACHMENTS_ENABLED`), desligada por padrão.
