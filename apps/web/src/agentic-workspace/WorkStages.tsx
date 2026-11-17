@@ -35,9 +35,7 @@ export function WorkStages({ stages }: { stages: WorkStage[] }) {
               {index < stages.length - 1 && <span className="min-h-[22px] w-px flex-1 bg-line" />}
             </span>
             <span className="min-w-0 pb-3">
-              <span
-                className={`block text-sm font-medium ${stage.state === 'pending' ? 'text-subtle' : 'text-ink'}`}
-              >
+              <span className={`block text-sm font-medium ${stage.state === 'pending' ? 'text-subtle' : 'text-ink'}`}>
                 {stage.label}
                 <span className="sr-only"> — {STATE_TEXT[stage.state]}</span>
               </span>

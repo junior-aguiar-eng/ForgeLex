@@ -6,7 +6,11 @@ const LIMIT = 80;
  */
 export function caseNameFrom(text: string): string {
   const firstLine = text.split(/\r?\n/).find((line) => line.trim()) ?? '';
-  const sentence = firstLine.replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s/)[0] ?? '';
+  const sentence =
+    firstLine
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(/(?<=[.!?])\s/)[0] ?? '';
   const clean = sentence.replace(/[.!?:;,\s]+$/u, '');
   if (clean.length <= LIMIT) return clean;
   const cut = clean.slice(0, LIMIT);

@@ -181,6 +181,13 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
     setMobile('piece');
     if (!location) setLocation(target || editorLocation({}));
   };
+  const shortcuts = (
+    <DeskShortcuts
+      onNewPiece={reopenPiece}
+      onReviewText={() => setRequest((old) => ({ id: (old?.id ?? 0) + 1, text: reviewTextRequest }))}
+      onResearch={() => setSources({ kind: 'research', key: sourceKey })}
+    />
+  );
   return (
     <DeskCaseSlotProvider element={caseSlot}>
       <DeskShell
@@ -233,16 +240,14 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
             emptyState={
               // Com a peça aberta, os atalhos repetem a barra de cima e só alongariam a conversa além da altura da peça.
               DESK_SHELL_ENABLED && !activePiece ? (
-                <div className="space-y-6">
-                  <DeskShortcuts
-                    onNewPiece={reopenPiece}
-                    onReviewText={() => setRequest((old) => ({ id: (old?.id ?? 0) + 1, text: reviewTextRequest }))}
-                    onResearch={() => setSources({ kind: 'research', key: sourceKey })}
-                  />
-                  {historySlot.inSidebar && (
+                historySlot.inSidebar ? (
+                  <div className="space-y-6">
+                    {shortcuts}
                     <DeskEmptyGuide onExample={(text) => setRequest((old) => ({ id: (old?.id ?? 0) + 1, text }))} />
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  shortcuts
+                )
               ) : undefined
             }
           />

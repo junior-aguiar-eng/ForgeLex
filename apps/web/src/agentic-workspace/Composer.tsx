@@ -531,6 +531,11 @@ export function Composer({
           aria-label="Caso e documentos"
           className="space-y-4 rounded-2xl border border-champagne-border bg-white p-4"
         >
+          {caseSlot && !matter && (
+            <p className="text-sm text-stone-700">
+              Escolha um caso no cabeçalho da Mesa para ver as minutas e os documentos dele.
+            </p>
+          )}
           {!caseSlot && (
             <label className="block text-sm font-medium">
               Caso
