@@ -19,6 +19,9 @@ import { ClosedPilotPanel } from '../agentic-workspace/ClosedPilotPanel';
 import { CommercialAuthorizationPanel, CommercialReceiptPanel } from '../agentic-workspace/CommercialPanel';
 import type { CommercialAuthorization } from '../agentic-workspace/commercial-model';
 import { useExecutionEvents } from '../agentic-workspace/use-execution-events';
+import { WorkStages } from '../agentic-workspace/WorkStages';
+import { workStages } from '../agentic-workspace/work-stages';
+import { activeTheme } from '../theme/active-theme';
 import { useDocumentTitles } from '../agentic-workspace/use-document-titles';
 import { presentDelivery } from '../agentic-workspace/present-delivery';
 import {
@@ -354,6 +357,8 @@ export function AgenticWorkspaceScreen({
       </div>
     );
   const landing = !run && !id;
+  // Tema gelo: o andamento vira a lista de etapas do trabalho (V3).
+  const ice = activeTheme() === 'gelo';
   const paidBar = (kinds: 'start' | 'other') =>
     commercial &&
     paidCommand &&
@@ -396,10 +401,20 @@ export function AgenticWorkspaceScreen({
             role="status"
             aria-label="Andamento"
             aria-live="polite"
-            className={active || shownError ? 'text-sm text-stone-600' : 'sr-only'}
+            className={!ice && (active || shownError) ? 'text-sm text-stone-600' : 'sr-only'}
           >
             {statusText(currentStatus, shownError)}
           </p>
+          {ice && !landing && (
+            <WorkStages
+              stages={workStages({
+                status: currentStatus,
+                sources: events.executionId === id ? events.sources : 0,
+                deliveries: deliveries.length,
+                error: shownError,
+              })}
+            />
+          )}
           {showSide && !side.open && (
             <button
               className="text-sm underline"

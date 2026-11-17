@@ -393,3 +393,36 @@ test('acessibilidade das abas da peça: Texto, Fontes e Revisão, sem violação
     ).toEqual([]);
   }
 });
+
+test('etapas do trabalho: lista ordenada com o estado de cada etapa, sem nome de documento nem identificador', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'etapas@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso das etapas' } })
+  ).json();
+  const run = await (
+    await page.request.post(api + '/api/agentic/executions', {
+      headers: { ...apiHeaders, 'Idempotency-Key': `etapas-${matter.id}` },
+      data: {
+        matterId: matter.id,
+        actionId: 'research_question',
+        objective: 'Pesquisar para as etapas',
+        context: { text: 'Contexto sintético.', origin: 'USER', documents: [] },
+      },
+    })
+  ).json();
+  await page.goto(`/app/trabalho?executionId=${run.id}`);
+  const stages = page.getByRole('region', { name: 'Etapas do trabalho' });
+  await expect(stages).toBeVisible();
+  const items = stages.getByRole('listitem');
+  await expect(items.first()).toContainText('Pedido recebido');
+  await expect(items.first()).toHaveAttribute('data-state', 'done');
+  await expect(stages.locator('[data-stage="working"]')).toBeVisible();
+  await expect(stages.locator('[data-stage="delivery"]')).toBeVisible();
+  // O estado também vai em texto para leitor de tela, não só na cor do ponto.
+  await expect(stages.locator('[data-stage="received"]')).toContainText('concluída');
+  const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
