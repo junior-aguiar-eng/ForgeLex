@@ -1599,3 +1599,55 @@ Sobre `main` em `8d53ad0`, na branch `claude/v0-tokens`. Boni retomou a V0, que 
 `border-cognac-300` aparece em 7 lugares (`EvidenceChangesPanel`, `EditorialReviewPanel`, `SideTable`, `EvidenceReviewPanel`, `MatterWorkspaceScreen`, `ResearchDeskScreen`, `CreditsScreen`), mas o `cognac` nunca teve o tom 300. A classe não gera regra e a borda fica na cor padrão. Corrigir mudaria o visual, então a V0 deixou como está; a V1 decide o tom ao mapear os legados.
 
 Reversão: reverter o commit. Sem flag, sem migração e sem efeito sobre o que já foi publicado.
+
+## V1 · preparação: ferramenta de referência visual versionada (17/11/2026)
+
+Sobre `main` em `7d77775`, na branch `claude/v1-captura`. É o primeiro passo da V1 que propus ao fechar a V0: a captura de telas e a comparação que usei na V0 viviam só no container da sessão. A V1 troca cores de propósito e tem de provar que o tema `classico` não mudou; as V2 a V7 vão precisar da mesma prova. Nenhum código do app mudou nesta etapa.
+
+### O que foi feito
+
+- **`scripts/visual-baseline.mjs`** (`pnpm visual:baseline`). Dois comandos:
+  - `capture --out <pasta>` sobe um ambiente novo (`scripts/dev-mesa.mjs`, que exige `pnpm build`), abre 26 telas em 1440 px e 390 px e grava, por tela, a imagem e o estilo computado de todos os elementos (cor do texto, fundo, as quatro bordas, contorno, sombra, decoração, cursor, preenchimento, traço, cor de destaque e imagem de fundo). Encerra o ambiente no fim. `--only <trecho>` limita as telas; `--origin` e `--api` reaproveitam um ambiente já aberto.
+  - `compare <antes> <depois>` aponta tela, elemento, propriedade e os dois valores de cada diferença de estilo, e conta os pixels diferentes de cada imagem. `--styles-only` ignora as imagens, para quando a mudança de visual é de propósito. Sai com código 1 se houver diferença.
+- **As 26 telas.** As 10 do site público, as 12 autenticadas que não dependem de dados e as 4 que ficaram sem referência na V0, agora criadas pela API do ambiente sintético com nomes fixos: **Mesa com peça aberta**, **leitor de decisão** (pesquisa salva aberta em "Pesquisa e fontes"), **Casos com caso aberto** e **leitor de documento** do caso.
+- **`scripts/visual-baseline-lib.mjs`** e seu teste (12 testes). A parte sem navegador: roteiro de telas, normalização do que muda a cada execução, comparação de estilos e leitura da saída do ambiente.
+
+### Como a captura fica igual de uma execução para outra
+
+Antes de capturar, a ferramenta troca por valores fixos o que o ambiente muda sozinho: data e hora, o e-mail sintético sorteado, identificadores (UUID) e a porta local (que aparece nos exemplos de uso da API). Espera as fontes carregarem e dois quadros pintados, desliga animações e esconde o cursor de texto.
+
+### Verificação
+
+| Item                 | Resultado                                                                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vitest dos scripts   | 18 arquivos e 162 testes aprovados; 12 são da ferramenta nova (normalização de data, hora, e-mail, UUID e porta, sem tocar em valores e contagens; comparação de estilos; leitura do ambiente). |
+| Estabilidade         | Duas capturas completas, cada uma em ambiente novo: **52 imagens idênticas byte a byte e estilos idênticos**, incluindo as 4 telas com dados.                                                  |
+| Sensibilidade        | Mudar 1 unidade em um canal de `--fl-cognac-600` e capturar de novo: a comparação acusa 1005 diferenças de estilo, cada uma com elemento e propriedade, e 49 das 52 imagens (diferença de canal 1). |
+| Qualidade            | Prettier limpo nos três arquivos novos.                                                                                                                                                        |
+
+### Três armadilhas encontradas e tratadas
+
+- **Dados que mudam sozinhos.** A primeira comparação entre duas capturas dava diferença em horário, no e-mail sintético e na porta da API escrita na tela de Conectar e no site de desenvolvedores. Virou a normalização acima, com teste.
+- **Corrida de fontes no desktop.** Mesmo com os estilos idênticos, 26 imagens de 1440 px saíam com diferença de até 96 em um canal, em quase toda página, e as de 390 px não. Esperar `document.fonts.ready` e dois quadros resolveu: depois disso, 52 de 52 idênticas.
+- **Processo sobrando.** O ambiente deixava o Vite vivo ao encerrar (o `dev-mesa` o inicia por um `pnpm` e encerra só o `pnpm`), e as portas iam subindo de 3401 para 3404 e além. A ferramenta agora encerra o grupo de processos inteiro; conferido sem sobras depois da captura.
+
+### Uso nas etapas seguintes
+
+```bash
+pnpm build
+pnpm visual:baseline capture --out <pasta-antes>   # com o código de antes (main)
+pnpm visual:baseline capture --out <pasta-depois>  # com a mudança
+pnpm visual:baseline compare <pasta-antes> <pasta-depois>
+```
+
+Cada captura leva uns 4 minutos. Para a V1 com o tema `classico` o critério é zero diferença; para o tema `gelo`, `--styles-only` mostra o que mudou de cor, elemento a elemento.
+
+### Não coberto
+
+- **Reaproveitar um ambiente aberto não é reprodutível.** Repetir a captura no mesmo ambiente acumula atividade e rascunhos e muda as telas. Para uma referência, use sempre o ambiente novo (o padrão).
+- **Estados que não são capturados:** passar o mouse e foco, a Mesa durante uma execução, mensagens de erro, a lista de conversas com histórico, e qualquer tela atrás de uma flag desligada no ambiente de desenvolvimento.
+- **Só Chromium.** Firefox e Safari não são comparados.
+- **A imagem não prova a cor sozinha.** O estilo computado é a prova de cor; a imagem pega o que o estilo não mostra (posição, tamanho, texto).
+- **Imagens fora do Git.** A ferramenta é versionada; as capturas, não. Guarde cada uma enquanto a etapa durar.
+
+Reversão: reverter o commit. Nada do app depende da ferramenta.

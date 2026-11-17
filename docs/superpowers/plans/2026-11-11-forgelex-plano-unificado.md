@@ -155,7 +155,7 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 | PR-M1 | M      | M1 a M3  | PR-E                         | Código publicado. M1 tem verificações residuais. M2 parcial. M3 integrada no #139, com diretório do catálogo configurado em produção. |
 | PR-D  | D      | D0 a D5  | PR-E                         | Pendente; cada virada é uma publicação                                                                                                |
 | PR-U1 | U      | U0 a U6  | PR-E; M3.0 (PR-M1) para a U3 | PR #139 integrado. Mesa única, casca, orientação v3, ações e anexos publicados. U2–U5 têm recortes pendentes e U6 está aberta.        |
-| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 feita em 17/11 (branch `claude/v0-tokens`). V1–V3 pendentes.                                                                       |
+| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 integrada em 17/11 (#181). Ferramenta de referência visual pronta. V1–V3 pendentes.                                                |
 | PR-M2 | M      | M4 e M5  | PR-V1 (V3)                   | Pendente                                                                                                                              |
 | PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Pendente                                                                                                                              |
 | PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D3/D4 nunca na mesma semana                                                                                            |
@@ -540,6 +540,10 @@ comparação foi por script próprio, não por `toHaveScreenshot`.
 
 Depende de V0 e DEC-3.
 
+- [x] Preparação (17/11): ferramenta de referência visual versionada, `scripts/visual-baseline.mjs` (`pnpm visual:baseline`),
+      com 26 telas em dois tamanhos, as 4 que dependem de dados incluídas. Registro em
+      [V1 · preparação](../../architecture/2026-11-10-mesa-guiada-execucao.md#v1--preparação-ferramenta-de-referência-visual-versionada-17112026).
+      Capturar a referência no `main` antes de mexer em qualquer cor.
 - [ ] Bloco `[data-theme="gelo"]` em `index.css` com os valores da 7.1 e mapeamento dos tons legados para os tons gelo
       equivalentes (tabela no registro de execução).
 - [ ] `VITE_FORGELEX_THEME` (`classico` padrão, `gelo`) aplicado no `index.html` antes da primeira pintura. Em
