@@ -58,8 +58,23 @@ const metadata: Record<PublicPage, { title: string; description: string; path: s
   },
 };
 
-export function applyPublicMetadata(page: PublicPage): void {
-  const current = metadata[page];
+/**
+ * Metadados da página inicial no modelo novo (V5A). As demais páginas mudam junto com o texto delas, nas etapas
+ * seguintes; até lá o modelo novo só vale para a inicial.
+ */
+const modelHome = {
+  title: 'ForgeLex · Sua IA, com jurisprudência que dá para conferir',
+  description:
+    'Conecte o ForgeLex ao ChatGPT ou ao Claude por MCP e pesquise decisões com a fonte e o estado de verificação de cada resultado. Mesa de trabalho, pagamento só pelo uso e consulta processual gratuita.',
+  path: '/',
+};
+
+export function metadataFor(page: PublicPage, model = false) {
+  return model && page === 'home' ? modelHome : metadata[page];
+}
+
+export function applyPublicMetadata(page: PublicPage, model = false): void {
+  const current = metadataFor(page, model);
   document.title = current.title;
   document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute('content', current.description);
   document

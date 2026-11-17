@@ -9,6 +9,8 @@ const publicSurfaces = [
   ['apps/web/index.html', 'ForgeLex · Jurisprudência e consulta processual'],
   ['apps/web/src/public/pages/PublicSections.tsx', 'Jurisprudência dos tribunais superiores e consulta processual.'],
   ['apps/web/src/screens/LandingScreen.tsx', 'Jurisprudência dos tribunais superiores e consulta processual.'],
+  // V5A: o título do modelo novo, escolhido por Boni em 17/11/2026, mora no mesmo arquivo, atrás de VITE_FORGELEX_PUBLIC_MODEL.
+  ['apps/web/src/public/pages/PublicSections.tsx', 'Sua IA, com jurisprudência que dá para conferir.'],
 ];
 
 describe('public headline', () => {
