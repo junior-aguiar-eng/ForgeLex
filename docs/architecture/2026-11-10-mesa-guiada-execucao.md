@@ -1806,3 +1806,39 @@ Sobre `main` em `b15bbd3`, na branch `claude/v3-mesa`. Primeira das duas PRs que
 - **Download do Word** neste ambiente (sem relação com a V3).
 
 Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
+
+## V3 — Mesa, parte 2: caso, etapas e estado vazio (17/11/2026)
+
+Sobre `main` em `ceb205a`, na branch `claude/v3-mesa-2`. Segunda e última PR da V3. Tudo vale **só no tema gelo**; o clássico segue como está, com o DOM idêntico.
+
+### O que foi feito
+
+- **Seletor de caso no cabeçalho da Mesa.** `DeskCaseSelector` mostra "Caso" com a opção **Sem caso — somente texto** e os casos do cliente. O estado do caso continua no pedido (`Composer`), que renderiza o seletor no cabeçalho por portal (`desk-case-slot`), sem subir estado. O campo "Caso" saiu de "Caso e documentos", que agora diz onde escolher quando não há caso. **A07:** o caso não troca depois que a conversa começa; o seletor fica desabilitado com o motivo escrito ("Fixo nesta conversa", "Fixo pela peça aberta"), e trocar o caso antes de enviar zera os documentos e a minuta escolhidos.
+- **Criar caso a partir desta conversa.** Botão no cabeçalho (antes de enviar): o nome é sugerido pela primeira frase do pedido (`caseNameFrom`, até 80 caracteres), é editável e o caso nasce **só com o nome**, pelo `POST /api/v2/matters` de sempre. O texto do pedido continua onde estava. Na aba Fontes de uma peça sem caso, o mesmo gesto liga a peça ao caso criado.
+- **Aba Fontes sem caso.** Deixa de ficar desabilitada: explica que, sem caso, não há questões, cobertura de fontes nem análise de aderência, e oferece criar o caso. Revisão continua exigindo versão salva.
+- **Etapas do trabalho.** `workStages` (puro, testado) deriva as etapas dos eventos que o servidor realmente envia: STATUS (recebido, em andamento, concluído, interrompido), SOURCE (documentos lidos, contados sem repetir), QUESTION (esperando a resposta) e DELIVERY (entrega). Sem etapa inventada: não há "pesquisando no STJ" nem "3 consultas" porque o servidor não informa isso. `WorkStages` mostra a lista ordenada com o estado também em texto. **ERROR** continua no aviso `role="alert"` sempre visível, no parágrafo "Andamento" (região viva) e marcado na etapa de trabalho.
+- **Estado vazio.** `DeskEmptyGuide` junta, abaixo dos atalhos de sempre, "Comece por um exemplo" (três exemplos que só preenchem o pedido, sem enviar nem cobrar) e "Dois selos, dois sentidos" (Análise da IA, rotulada e conferida por você; Verificada, número, data e órgão conferidos na fonte oficial). Os textos dos exemplos e dos selos são proposta minha.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Clássico inalterado | 52 capturas contra as de depois da V3 parte 1: **estilo idêntico e as 52 imagens idênticas**. A primeira captura acusou um elemento a mais no clássico (um `div` em volta dos atalhos); foi corrigido e a segunda confere. |
+| Gelo e acessibilidade | axe em 52 telas: nenhuma violação; mais axe nas etapas e no estado vazio. |
+| Vitest | 318 arquivos e 2655 testes aprovados (+11 do modelo das etapas, +6 do nome sugerido, +o contador de documentos lidos nos eventos); ESLint e tipos limpos; contraste sem piora. |
+| Playwright, gelo | 52 cenários, 51 aprovados e 1 falho: o download do Word deste ambiente (o mesmo de `main`; na CI passa). Novos: seletor no cabeçalho e criação do caso só com o nome; caso fixo com o motivo; etapas; erro sempre visível e anunciado; estado vazio; Fontes sem caso. Mutações conferidas: desligar o bloqueio do seletor e desligar as etapas derrubam os testes. |
+| Playwright, clássico | `desk-shell`, `draft-review` (exceto o Word), `desk-review`, `editorial-review`, `desk-save-recovery`, `desk-guidance`, `desk-guidance-v3` e `agentic-workspace` aprovados. |
+
+### Divergências em relação ao protótipo
+
+- **Etapas com números.** O protótipo mostra detalhes como "12 fatos e 5 provas" e "3 consultas, R$ 0,60". Aqui só aparece o que o servidor informa; os detalhes ricos dependem de eventos novos (fica registrado como pendência para a V4/M4).
+- **Criar caso com a conversa e os documentos.** No protótipo, o caso leva a conversa, os anexos e as fontes e a IA propõe fatos. Aqui o caso nasce só com o nome (aceite do plano); levar o restante exige uma operação de servidor própria.
+- **Cabeçalho.** Sem o título "Mesa" no cabeçalho (a lateral já marca a página) e sem o botão "Nova tarefa" (a lateral tem "Nova conversa"). Sem o link "Base do caso" nem o contador de questões, que dependem de dados que a Mesa não carrega.
+- **Revisão editorial em linha** (aceitar e recusar na aba Revisão) segue fora, como na parte 1.
+
+### Não coberto
+
+- **Orientação** (pergunta ativa, "Não sei"): o comportamento já existia e continua; seguem as cores legadas mapeadas pela V1, sem acabamento próprio.
+- **Download do Word** neste ambiente (sem relação com a V3).
+
+Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.

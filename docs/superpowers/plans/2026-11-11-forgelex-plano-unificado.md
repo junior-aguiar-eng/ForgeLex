@@ -37,7 +37,7 @@
 | Salvamento recuperável | Flag desligada nas revisões publicadas. A aplicação da `0041` está documentada no banco isolado de HML. M2 permanece parcial.                          |
 | Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                    |
 | Verificação            | CI de `01b46c5` aprovada. M2 validado em HML e controles do resumo reconferidos em produção. Aceite A18 dado em 14/11/2026; verificações residuais do MCP pendentes. |
-| Visual                 | Tema clássico vigente. V0 a V2 feitas (V2 só no gelo); V3 parte 1 feita.                                                                               |
+| Visual                 | Tema clássico vigente. V0 a V3 feitas no gelo; aceite visual (A19) pendente.                                                                             |
 | Domínio em uso         | `nexojuris.ia.br` em produção. `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                              |
 
 Revisões, flags e validação da reserva constam em [PENDENCIAS.md](../../../PENDENCIAS.md#estado-publicado-atual--13112026-sha-01b46c5) e no [registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
@@ -155,7 +155,7 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 | PR-M1 | M      | M1 a M3  | PR-E                         | Código publicado. M1 tem verificações residuais. M2 parcial. M3 integrada no #139, com diretório do catálogo configurado em produção. |
 | PR-D  | D      | D0 a D5  | PR-E                         | Pendente; cada virada é uma publicação                                                                                                |
 | PR-U1 | U      | U0 a U6  | PR-E; M3.0 (PR-M1) para a U3 | PR #139 integrado. Mesa única, casca, orientação v3, ações e anexos publicados. U2–U5 têm recortes pendentes e U6 está aberta.        |
-| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 (#181) e V1 (#183) integradas; V2 (#184) feita. V3: parte 1 feita.                                                                 |
+| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 (#181) e V1 (#183) integradas; V2 (#184) e V3 feitas no gelo; A19 pendente.                                                        |
 | PR-M2 | M      | M4 e M5  | PR-V1 (V3)                   | Pendente                                                                                                                              |
 | PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Pendente                                                                                                                              |
 | PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D3/D4 nunca na mesma semana                                                                                            |
@@ -601,11 +601,12 @@ Depende de V2, M2 e U4. É a maior etapa; entregar em duas PRs (composição e a
 | Etapas do trabalho a partir de STATUS, QUESTION, DELIVERY, SOURCE, ERROR | `agentic-workspace/*`                                                         | ERROR sempre visível e anunciado                                     |
 | Estado vazio com exemplos e os dois selos                                | `Composer.tsx`                                                                | Primeiro uso sem documentação                                        |
 
-**Situação em 17/11 (parte 1, só no gelo).** Feitas a lateral com as conversas recentes (decisão de Boni: como no protótipo) e as abas Texto, Fontes e Revisão da peça, com o texto preservado ao trocar de aba. Pendentes, na parte 2: cabeçalho da Mesa, seletor de caso e "Sem caso", "Criar caso a partir desta conversa", etapas do trabalho, estado vazio com os dois selos e a revisão editorial em linha. Registro em
-[V3 — Mesa, parte 1](../../architecture/2026-11-10-mesa-guiada-execucao.md#v3--mesa-parte-1-composição-e-abas-da-peça-17112026).
+**Situação em 17/11 (só no gelo).** Parte 1 (#186): lateral com as conversas recentes (decisão de Boni: como no protótipo) e abas Texto, Fontes e Revisão da peça, com o texto preservado. Parte 2: seletor de caso no cabeçalho com "Sem caso — somente texto" e o caso fixo depois que a conversa começa (A07), "Criar caso a partir desta conversa" (o caso nasce só com o nome), etapas do trabalho derivadas dos eventos reais com ERROR sempre visível e anunciado, e estado vazio com exemplos e os dois selos. Ficam fora, registrados como divergências: detalhes numéricos nas etapas (dependem de eventos novos), levar conversa e anexos ao caso criado, revisão editorial em linha e acabamento próprio da orientação. Registro em
+[V3 parte 1](../../architecture/2026-11-10-mesa-guiada-execucao.md#v3--mesa-parte-1-composição-e-abas-da-peça-17112026) e
+[V3 parte 2](../../architecture/2026-11-10-mesa-guiada-execucao.md#v3--mesa-parte-2-caso-etapas-e-estado-vazio-17112026).
 
 - [ ] Rótulos e papéis ARIA usados pelos testes mantidos; qualquer mudança de texto atualiza o teste no mesmo commit.
-- [ ] Capturas desktop e celular para Boni: **A19 é decidido aqui.**
+- [ ] Capturas desktop e celular para Boni: **A19 é decidido aqui.** As capturas do gelo (52 telas, dois tamanhos) estão na PR; o aceite é de Boni.
 
 ### V4 — Jurisprudência, leitor e fontes
 
@@ -851,7 +852,7 @@ antes dos escritores; checkpoints antigos continuam no protocolo original.
 | A16 | Jornada completa por teclado e em celular                                                           | Atendido localmente; reconferir em V6   |
 | A17 | Piloto Penal e regressão Cível na mesma revisão                                                     | Técnico atendido; jurídico em M3        |
 | A18 | Homologação funcional no ambiente isolado com registro próprio                                      | Atendido (aceite de Boni, 14/11/2026)   |
-| A19 | Boni valida a jornada visual em desktop e celular                                                   | Pendente (V3)                           |
+| A19 | Boni valida a jornada visual em desktop e celular                                                   | Pendente (capturas da V3 prontas)       |
 | A20 | Uma só Mesa em produção, sem rota órfã nem código morto                                             | Pendente (U1, U7)                       |
 | A21 | Mesa mostra só a peça e a matéria em uso, sem listar o catálogo; conteúdo e IDs ocultos             | Pendente (U3)                           |
 | A22 | Voltar, alterar, adicionar e excluir com desfazer, testados por teclado                             | Pendente (U4)                           |

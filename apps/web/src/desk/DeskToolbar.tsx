@@ -3,6 +3,7 @@ import { FileText, MessageSquare, PanelLeftClose, PanelLeftOpen, PanelRightClose
 export function DeskToolbar({
   historyCollapsed,
   historyInSidebar = false,
+  caseSlotRef,
   onToggleHistory,
   onOpenQueue,
   onOpenResearch,
@@ -14,6 +15,8 @@ export function DeskToolbar({
   historyCollapsed: boolean;
   /** Tema gelo: as conversas ficam na lateral do app, que tem o próprio botão de recolher. */
   historyInSidebar?: boolean;
+  /** Tema gelo: onde o seletor de caso aparece no cabeçalho. */
+  caseSlotRef?: (element: HTMLElement | null) => void;
   onToggleHistory: () => void;
   onOpenQueue: () => void;
   onOpenResearch: () => void;
@@ -37,6 +40,7 @@ export function DeskToolbar({
           {historyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
         </button>
       )}
+      {caseSlotRef && <div ref={caseSlotRef} className="min-w-0 py-1" />}
       <span className="mr-auto" />
       <button type="button" className="rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100" onClick={onOpenQueue}>
         Pendências de revisão
