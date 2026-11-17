@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "typecheck": "pnpm build && pnpm -r run typecheck",
     "dev:mesa": "pnpm build && node scripts/dev-mesa.mjs",
+    "visual:baseline": "node scripts/visual-baseline.mjs",
     "db:migrate":"pnpm build && node scripts/migrate-postgres.mjs",
     "test:postgres": "pnpm build && node scripts/smoke-postgres.mjs",
     "test:postgres:draft-ai": "pnpm build && node scripts/smoke-draft-ai-postgres.mjs",
