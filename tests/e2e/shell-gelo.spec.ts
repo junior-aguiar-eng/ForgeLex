@@ -426,3 +426,75 @@ test('etapas do trabalho: lista ordenada com o estado de cada etapa, sem nome de
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
+
+// Seletor de caso no cabeçalho da Mesa, "Sem caso — somente texto" e criar caso a partir da conversa.
+test('Mesa: o caso é escolhido no cabeçalho, com "Sem caso — somente texto", e o caso nasce só com o nome', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'caso@forgelex.test');
+  const existing = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso já existente' } })
+  ).json();
+  await page.goto('/app/trabalho');
+  const header = page.locator('[data-writing-desk] > header');
+  const selector = header.getByLabel('Caso', { exact: true });
+
+  await expect(selector).toBeVisible();
+  await expect(selector).toBeEnabled();
+  await expect(selector).toHaveValue('');
+  await expect(selector.locator('option').first()).toHaveText('Sem caso — somente texto');
+  await selector.selectOption(existing.id);
+  await expect(selector).toHaveValue(existing.id);
+  // O seletor saiu de "Caso e documentos": não há dois campos "Caso" na página.
+  await expect(page.getByLabel('Caso', { exact: true })).toHaveCount(1);
+  await selector.selectOption('');
+
+  // Criar caso a partir desta conversa: o nome vem do pedido, é editável e só o nome vai para o caso.
+  await page
+    .getByLabel('O que você precisa fazer?', { exact: true })
+    .fill('Preciso das teses do STJ sobre o registro mantido após a quitação. Depois revise a peça.');
+  await header.getByRole('button', { name: 'Criar caso a partir desta conversa', exact: true }).click();
+  const form = header.getByRole('form', { name: 'Criar caso' });
+  const name = form.getByLabel('Nome do caso');
+  await expect(name).toHaveValue('Preciso das teses do STJ sobre o registro mantido após a quitação');
+  await name.fill('Registro mantido após a quitação');
+  await form.getByRole('button', { name: 'Criar caso', exact: true }).click();
+  await expect(selector).toBeEnabled();
+  await expect(selector.locator('option:checked')).toHaveText('Registro mantido após a quitação');
+  const created = await (await page.request.get(api + '/api/v2/matters', { headers: apiHeaders })).json();
+  const matter = created.items.find((item: { title: string }) => item.title === 'Registro mantido após a quitação');
+  expect(matter).toBeTruthy();
+  expect(matter.description ?? null).toBeNull();
+  // O texto do pedido continua onde estava.
+  await expect(page.getByLabel('O que você precisa fazer?', { exact: true })).toHaveValue(
+    'Preciso das teses do STJ sobre o registro mantido após a quitação. Depois revise a peça.',
+  );
+});
+
+test('Mesa: com a conversa em andamento o caso fica fixo, com o motivo escrito', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'fixo@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso da conversa' } })
+  ).json();
+  const run = await (
+    await page.request.post(api + '/api/agentic/executions', {
+      headers: { ...apiHeaders, 'Idempotency-Key': `fixo-${matter.id}` },
+      data: {
+        matterId: matter.id,
+        actionId: 'research_question',
+        objective: 'Pesquisar para o caso fixo',
+        context: { text: 'Contexto sintético.', origin: 'USER', documents: [] },
+      },
+    })
+  ).json();
+  await page.goto(`/app/trabalho?executionId=${run.id}`);
+  const selector = page.locator('[data-writing-desk] > header').getByLabel('Caso', { exact: true });
+  await expect(selector).toBeVisible();
+  await expect(selector).toBeDisabled();
+  await expect(page.locator('[data-writing-desk] > header')).toContainText('Fixo nesta conversa');
+  await expect(
+    page.locator('[data-writing-desk] > header').getByRole('button', { name: 'Criar caso a partir desta conversa' }),
+  ).toHaveCount(0);
+});
