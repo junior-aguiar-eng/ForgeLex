@@ -82,8 +82,8 @@ export const ResearchDeskScreen: React.FC<{ compact?: boolean; pieceMatterId?: s
             <ResearchCoverageNotice />
             <form onSubmit={search} className="space-y-3">
               <div className="flex flex-col md:flex-row gap-3">
-                <input aria-label="Termo de pesquisa" value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-[12rem] flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
-                <select aria-label="Tribunal da pesquisa" value={court} onChange={(event) => setCourt(event.target.value)} className="md:w-28 px-3 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm">
+                <input aria-label="Termo de pesquisa" value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-[12rem] flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-surface-muted text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
+                <select aria-label="Tribunal da pesquisa" value={court} onChange={(event) => setCourt(event.target.value)} className="md:w-28 px-3 py-3 rounded-xl border border-champagne-border bg-surface-muted text-sm">
                   {model.courts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
                 </select>
                 <JudgmentYearSelect value={year} onChange={setYear} />
@@ -121,13 +121,13 @@ export const ResearchDeskScreen: React.FC<{ compact?: boolean; pieceMatterId?: s
             </div>
             <form onSubmit={verify} className="space-y-3">
               <label className="block text-xs font-semibold text-stone-600">Tribunal
-                <select value={court} onChange={(event) => setCourt(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">{model.courts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}</select>
+                <select value={court} onChange={(event) => setCourt(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-surface-muted text-sm">{model.courts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}</select>
               </label>
               <label className="block text-xs font-semibold text-stone-600">Número do processo
-                <input value={processNumber} onChange={(event) => setProcessNumber(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                <input value={processNumber} onChange={(event) => setProcessNumber(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-surface-muted text-sm" />
               </label>
               <label className="block text-xs font-semibold text-stone-600">Data do julgamento (opcional)
-                <input value={judgmentDate} onChange={(event) => setJudgmentDate(event.target.value)} placeholder="DD/MM/AAAA" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                <input value={judgmentDate} onChange={(event) => setJudgmentDate(event.target.value)} placeholder="DD/MM/AAAA" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-surface-muted text-sm" />
               </label>
               <button disabled={busy || !model.canSearch} className="w-full px-4 py-3 rounded-xl border border-cognac-300 bg-cognac-50 hover:bg-cognac-100 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">{model.verificationActionLabel}</button>
             </form>

@@ -74,7 +74,7 @@ export function OAuthConsentScreen() {
     );
   if (status !== 'authenticated') return <AuthScreen initialView="sign_in" status={status} />;
   return (
-    <main className="min-h-screen bg-[#FBF9F5] px-4 py-10 sm:py-16">
+    <main className="min-h-screen bg-canvas px-4 py-10 sm:py-16">
       <div className="mx-auto max-w-xl">
         <a href="/" className="inline-flex items-center gap-3 font-editorial text-2xl font-bold text-stone-900">
           <Scale aria-hidden="true" className="h-7 w-7 text-cognac-800" />

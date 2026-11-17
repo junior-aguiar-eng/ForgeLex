@@ -3,14 +3,70 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * Tema clássico (V0): todo tom de cor do app vive aqui como "R G B", para o Tailwind compor a transparência
+   * (`rgb(var(--fl-x) / 0.5)`). Os valores são os de sempre; o tema gelo (V1) troca este bloco.
+   */
   :root {
-    --forgelex-ivory: #fbf9f5;
-    --forgelex-paper: #ffffff;
-    --forgelex-ink: #2d2721;
-    --forgelex-muted: #71695f;
-    --forgelex-line: rgba(180, 150, 110, 0.2);
-    --forgelex-accent: #8e5d2a;
-    --forgelex-accent-soft: #f9ede0;
+    --fl-ivory-50: 252 251 248;
+    --fl-ivory-100: 248 246 240;
+    --fl-ivory-200: 242 239 232;
+    --fl-ivory-300: 231 226 214;
+    --fl-cognac-50: 253 248 243;
+    --fl-cognac-100: 249 237 224;
+    --fl-cognac-200: 242 215 191;
+    --fl-cognac-400: 184 122 62;
+    --fl-cognac-500: 156 106 54;
+    --fl-cognac-600: 142 93 42;
+    --fl-cognac-700: 115 72 29;
+    --fl-cognac-800: 90 55 22;
+    --fl-cognac-900: 61 36 14;
+    --fl-stone-50: 250 250 249;
+    --fl-stone-100: 245 245 244;
+    --fl-stone-200: 231 229 228;
+    --fl-stone-300: 214 211 209;
+    --fl-stone-400: 168 162 158;
+    --fl-stone-500: 120 113 108;
+    --fl-stone-600: 87 83 78;
+    --fl-stone-700: 68 64 60;
+    --fl-stone-800: 41 37 36;
+    --fl-stone-900: 28 25 23;
+    --fl-stone-950: 12 10 9;
+    --fl-amber-50: 255 251 235;
+    --fl-amber-100: 254 243 199;
+    --fl-amber-200: 253 230 138;
+    --fl-amber-300: 252 211 77;
+    --fl-amber-600: 217 119 6;
+    --fl-amber-700: 180 83 9;
+    --fl-amber-800: 146 64 14;
+    --fl-amber-900: 120 53 15;
+    --fl-emerald-50: 236 253 245;
+    --fl-emerald-200: 167 243 208;
+    --fl-emerald-300: 110 231 183;
+    --fl-emerald-600: 5 150 105;
+    --fl-emerald-700: 4 120 87;
+    --fl-emerald-800: 6 95 70;
+    --fl-champagne-line: 180 150 110;
+    --fl-champagne-light: 244 237 226;
+    --fl-canvas: 251 249 245;
+    --fl-canvas-deep: 241 238 232;
+    --fl-surface: 255 255 255;
+    --fl-surface-muted: 253 251 247;
+    --fl-ink: 45 39 33;
+    --fl-muted: 113 105 95;
+    --fl-danger: 185 28 28;
+    --fl-placeholder: 161 154 145;
+    --fl-scrollbar-thumb: 212 195 172;
+    --fl-shadow-ink: 66 45 25;
+    --fl-shadow-cta: 91 55 22;
+
+    --forgelex-ivory: rgb(var(--fl-canvas));
+    --forgelex-paper: rgb(var(--fl-surface));
+    --forgelex-ink: rgb(var(--fl-ink));
+    --forgelex-muted: rgb(var(--fl-muted));
+    --forgelex-line: rgb(var(--fl-champagne-line) / 0.2);
+    --forgelex-accent: rgb(var(--fl-cognac-600));
+    --forgelex-accent-soft: rgb(var(--fl-cognac-100));
   }
 
   *,
@@ -50,7 +106,7 @@
   }
 
   :focus-visible {
-    outline: 3px solid #8e5d2a;
+    outline: 3px solid rgb(var(--fl-cognac-600));
     outline-offset: 2px;
   }
 }
@@ -65,12 +121,12 @@
     background: var(--forgelex-paper);
     border: 1px solid var(--forgelex-line);
     border-radius: 1rem;
-    box-shadow: 0 1px 4px rgba(66, 45, 25, 0.035);
+    box-shadow: 0 1px 4px rgb(var(--fl-shadow-ink) / 0.035);
   }
 
   .surface-subtle {
-    background: #fdfbf7;
-    border: 1px solid rgba(180, 150, 110, 0.16);
+    background: rgb(var(--fl-surface-muted));
+    border: 1px solid rgb(var(--fl-champagne-line) / 0.16);
     border-radius: 0.875rem;
   }
 
@@ -91,24 +147,24 @@
 
   .btn-primary {
     border: 1px solid var(--forgelex-accent);
-    background: #8e5d2a;
+    background: rgb(var(--fl-cognac-600));
     color: white;
-    box-shadow: 0 2px 5px rgba(91, 55, 22, 0.12);
+    box-shadow: 0 2px 5px rgb(var(--fl-shadow-cta) / 0.12);
   }
 
   .btn-primary:hover {
-    background: #73481d;
+    background: rgb(var(--fl-cognac-700));
   }
 
   .btn-secondary {
-    border: 1px solid rgba(142, 93, 42, 0.28);
-    background: #fff;
-    color: #73481d;
+    border: 1px solid rgb(var(--fl-cognac-600) / 0.28);
+    background: rgb(var(--fl-surface));
+    color: rgb(var(--fl-cognac-700));
   }
 
   .btn-secondary:hover,
   .btn-quiet:hover {
-    border-color: rgba(142, 93, 42, 0.5);
+    border-color: rgb(var(--fl-cognac-600) / 0.5);
     background: var(--forgelex-accent-soft);
   }
 
@@ -123,28 +179,28 @@
     width: 100%;
     border: 1px solid var(--forgelex-line);
     border-radius: 0.75rem;
-    background: #fdfbf7;
+    background: rgb(var(--fl-surface-muted));
     padding: 0.625rem 0.875rem;
     color: var(--forgelex-ink);
     font-size: 0.875rem;
   }
 
   .input-control::placeholder {
-    color: #a19a91;
+    color: rgb(var(--fl-placeholder));
   }
 
   .input-control:focus {
-    border-color: rgba(142, 93, 42, 0.7);
-    box-shadow: 0 0 0 3px rgba(142, 93, 42, 0.12);
+    border-color: rgb(var(--fl-cognac-600) / 0.7);
+    box-shadow: 0 0 0 3px rgb(var(--fl-cognac-600) / 0.12);
   }
 
   .input-control:focus-visible {
-    outline: 3px solid #8e5d2a;
+    outline: 3px solid rgb(var(--fl-cognac-600));
     outline-offset: 2px;
   }
 
   .eyebrow {
-    color: #8e5d2a;
+    color: rgb(var(--fl-cognac-600));
     font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 0.12em;
@@ -159,35 +215,35 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #F4EDE2;
+  background: rgb(var(--fl-champagne-light));
 }
 ::-webkit-scrollbar-thumb {
-  background: #D4C3AC;
+  background: rgb(var(--fl-scrollbar-thumb));
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #B87A3E;
+  background: rgb(var(--fl-cognac-400));
 }
 
 .champagne-card {
-  background: #FFFFFF;
-  border: 1px solid rgba(180, 150, 110, 0.22);
-  box-shadow: 0 1px 4px rgba(66, 45, 25, 0.035);
+  background: rgb(var(--fl-surface));
+  border: 1px solid rgb(var(--fl-champagne-line) / 0.22);
+  box-shadow: 0 1px 4px rgb(var(--fl-shadow-ink) / 0.035);
 }
 
 .champagne-card-subtle {
-  background: #FDFBF7;
-  border: 1px solid rgba(180, 150, 110, 0.16);
+  background: rgb(var(--fl-surface-muted));
+  border: 1px solid rgb(var(--fl-champagne-line) / 0.16);
 }
 
 .glass-pill {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgb(var(--fl-surface) / 0.85);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(180, 150, 110, 0.25);
+  border: 1px solid rgb(var(--fl-champagne-line) / 0.25);
 }
 
 .technical-access {
-  border: 1px solid rgba(180, 150, 110, 0.16);
+  border: 1px solid rgb(var(--fl-champagne-line) / 0.16);
   border-radius: 0.875rem;
   background: transparent;
 }
@@ -196,7 +252,7 @@
   cursor: pointer;
   list-style: none;
   padding: 0.8rem 1rem;
-  color: #71695f;
+  color: rgb(var(--fl-muted));
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -209,7 +265,7 @@
   content: '+';
   display: inline-block;
   width: 1rem;
-  color: #8e5d2a;
+  color: rgb(var(--fl-cognac-600));
   font-size: 1rem;
   line-height: 0.75;
 }
@@ -219,7 +275,7 @@
 }
 
 .technical-access__content {
-  border-top: 1px solid rgba(180, 150, 110, 0.14);
+  border-top: 1px solid rgb(var(--fl-champagne-line) / 0.14);
   padding: 0 1rem 1rem;
 }
 

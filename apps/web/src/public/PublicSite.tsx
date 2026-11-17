@@ -35,7 +35,7 @@ export function PublicSite({ page }: { page: PublicPage }) {
   const Page = pages[page];
 
   return (
-    <div className="min-h-screen bg-[#FBF9F5]">
+    <div className="min-h-screen bg-canvas">
       <a
         href="#conteudo"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3"

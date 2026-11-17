@@ -1556,3 +1556,46 @@ A regra é `guidanceSupportNote` em `apps/web/src/agentic-workspace/guidance-mod
 | Qualidade     | ESLint, Prettier (escopo da CI) e tipos limpos.                                                                                                                                         |
 
 Reversão: reverter o commit; não há flag, e o efeito é só um parágrafo no resumo.
+
+## V0 — Tokens de cor sem mudança visual (17/11/2026)
+
+Sobre `main` em `8d53ad0`, na branch `claude/v0-tokens`. Boni retomou a V0, que a reconciliação de 12/11 tinha adiado. Toda cor do app passa a vir de variáveis CSS, e o tema `classico` guarda nelas os mesmos valores de sempre. Nenhuma flag nova e nenhum tema novo: o que muda é onde a cor mora, para a V1 poder trocar um bloco só.
+
+### O que foi feito
+
+- **`apps/web/src/index.css`.** Um bloco `:root` com 51 variáveis `--fl-*`, cada uma em "R G B" para o Tailwind compor a transparência: `ivory` 50–300, `cognac` 50–900 (sem o 300, que nunca existiu), `stone` 50–950 (os 11 tons), os tons usados de `amber` e `emerald`, mais `champagne`, `canvas`, `canvas-deep`, `surface`, `surface-muted`, `ink`, `muted`, `danger`, `placeholder`, `scrollbar-thumb` e duas cores de sombra. As variáveis antigas `--forgelex-*` continuam, agora derivadas. Os 23 hexadecimais e as `rgba(...)` literais do arquivo viraram `rgb(var(--fl-x) / alfa)`.
+- **`apps/web/tailwind.config.js`.** `ivory`, `cognac`, `champagne`, `stone`, `amber` e `emerald` apontam para `rgb(var(--fl-x) / <alpha-value>)`; as sombras `card` e `card-hover` têm a cor por variável. Os 16 nomes semânticos da seção 7.1 do plano existem: `canvas`, `surface`, `surface-muted`, `line`, `line-control`, `ink`, `ink-soft`, `muted`, `subtle`, `accent`, `accent-strong`, `accent-soft`, `ok`, `warn`, `danger` (e `canvas-deep`, para o fundo atrás da página do editor, que não estava na tabela).
+- **17 arquivos `.tsx`.** As 45 cores literais (`bg-[#FBF9F5]`, `bg-[#FDFBF7]`, `bg-[#F1EEE8]`, `text-[#FBF9F5]`) viraram `bg-canvas`, `bg-surface-muted`, `bg-canvas-deep` e `text-canvas`. O plano falava em 48; o número atual é 45.
+- **`apps/web/src/theme-tokens.test.ts`** (8 testes). Trava o tema clássico nos valores de antes (cada tom, a transparência das bordas, as sombras, os nomes semânticos) e impede o retorno de hexadecimal literal em qualquer `.ts`, `.tsx` ou `.css` da interface.
+
+**Mapeamento semântico provisório.** No tema clássico cada nome aponta para a cor que a interface já usa naquele papel (`accent` = `cognac-600`, `ink-soft` = `stone-700`, `subtle` = `stone-500`, `ok` = `emerald-700`, `warn` = `amber-700`, `line` e `line-control` = a borda `champagne-border`). Nenhuma classe usa esses nomes ainda, exceto `canvas`, `surface-muted` e `canvas-deep`. A V1 revisa o mapeamento junto com a tabela de tons legados.
+
+### Fora da V0, de propósito
+
+- **Leitor de decisão e leitor do MCP** (`decision-reader.css`, `mcp-reader.css`). Já têm tema próprio por variáveis `--reader-*`, com versão escura. A V3 os revisa.
+- **`documents/draft-print.ts`.** Monta a página de impressão, um documento à parte que não carrega o CSS do app.
+- **Páginas estáticas de `public/legal/*.html`.** Têm CSS próprio com cores literais. Ficam para a V2 (site público).
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| CSS gerado | Tailwind compilado antes e depois e comparado regra a regra, com variáveis e transparência resolvidas: 739 regras antes, 741 depois. As únicas diferenças são as 4 classes arbitrárias que viraram 5 utilitários de mesmo valor e uma regra `.border-subtle` sem uso (o nome semântico `subtle` casa com o trecho `border-subtle` de `border-champagne-border-subtle`; nenhum elemento a usa). O comparador foi testado: mudar uma unidade em um canal de `stone-600` ou de `cognac-600` faz a diferença aparecer. |
+| Estilos nas telas | 22 telas (10 públicas e 12 autenticadas) em 1440 px e 390 px, 44 capturas. Para cada elemento, cor do texto, fundo, as quatro bordas, contorno, sombra, decoração, cursor, preenchimento, traço e imagem de fundo: **idênticos antes e depois**, sem uma diferença. |
+| Pixels | 38 das 44 capturas idênticas byte a byte. As 6 restantes (Casos, Revisão e Segurança da conta, nos dois tamanhos) diferem em horário e no e-mail sintético sorteado a cada subida do ambiente, conferido por recorte. |
+| Vitest do web | 49 arquivos e 322 testes aprovados (+1 arquivo e +8 testes). **6 mutações no teste novo, todas mortas** (um canal de `stone-600`, a transparência de `champagne-border`, hexadecimal em `.tsx`, nome semântico removido, hexadecimal em `index.css`, a transparência da sombra). |
+| Playwright | `public` 17 aprovados. `desk-shell` 30 aprovados e 1 falho; `draft-review` 4 aprovados e 1 falho. As duas falhas são o download do Word deste ambiente (nome `download`, sem `.docx`) e a de `draft-review` falha igual em `main`, conferida com as alterações guardadas. |
+| Qualidade | ESLint, Prettier e tipos limpos. |
+
+**Armadilha encontrada.** A primeira comparação deu 44 de 44 telas diferentes: o servidor de desenvolvimento tinha lido o `tailwind.config.js` antigo e tratava `bg-canvas` como classe desconhecida (fundo transparente). Depois de reiniciar o ambiente tudo bateu. Regra: **mudou o `tailwind.config.js`, reinicie `pnpm dev:mesa`**.
+
+### Não coberto
+
+- Telas que exigem dados (Mesa com peça aberta, leitor de decisão, Casos com um caso aberto) não foram capturadas. Para elas vale a comparação do CSS inteiro, que é exaustiva para as classes, mais as suítes de Playwright.
+- A referência de screenshots para a V1 ficou só na máquina da sessão, fora do Git, como o plano pede; o container é descartável. Quem for fazer a V1 deve recapturar antes de mexer.
+
+### Achado, sem correção
+
+`border-cognac-300` aparece em 7 lugares (`EvidenceChangesPanel`, `EditorialReviewPanel`, `SideTable`, `EvidenceReviewPanel`, `MatterWorkspaceScreen`, `ResearchDeskScreen`, `CreditsScreen`), mas o `cognac` nunca teve o tom 300. A classe não gera regra e a borda fica na cor padrão. Corrigir mudaria o visual, então a V0 deixou como está; a V1 decide o tom ao mapear os legados.
+
+Reversão: reverter o commit. Sem flag, sem migração e sem efeito sobre o que já foi publicado.

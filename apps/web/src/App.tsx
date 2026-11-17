@@ -55,7 +55,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-[#FBF9F5]">
+    <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-canvas">
       {/* Header */}
       <Header menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((value) => !value)} />
 
