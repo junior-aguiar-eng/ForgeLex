@@ -20,3 +20,5 @@ export const ATTACHMENTS_ENABLED = import.meta.env.VITE_FORGELEX_ATTACHMENTS_ENA
 
 /** Chips de matéria no compositor da Mesa (U4): a Mesa sugere uma matéria por vez. Desligados por padrão. */
 export const MATTER_CHIPS_ENABLED = import.meta.env.VITE_FORGELEX_MATTER_CHIPS_ENABLED === 'true';
+/** Reconhecimento de texto (OCR) de PDF e imagem sem texto, no navegador (U6). Só vale com os anexos ligados; desligado por padrão. */
+export const OCR_ENABLED = ATTACHMENTS_ENABLED && import.meta.env.VITE_FORGELEX_OCR_ENABLED === 'true';

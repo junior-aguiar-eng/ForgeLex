@@ -207,3 +207,111 @@ test('Word (.docx) corrompido ou protegido: erro legível e nada entra no pedido
   await expect(page.getByText('Erro na leitura')).toBeVisible();
   await expect(list(page).getByRole('note')).toContainText('protegido por senha, corrompido');
 });
+
+// ---------------------------------------------------------------------------------------------------------------
+// OCR no navegador (U6). Motor real (Tesseract.js) com os arquivos servidos da própria origem.
+const fixture = (name: string) => `tests/e2e/fixtures/ocr/${name}`;
+const recognizeButton = (page: Page, name: string) =>
+  page.getByRole('button', { name: `Reconhecer texto por OCR: ${name}` });
+
+test('PDF escaneado: oferece OCR, reconhece no navegador, o texto é editável e segue com o pedido', async ({
+  page,
+}) => {
+  const outside: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (!['127.0.0.1', 'localhost'].includes(url.hostname)) outside.push(request.url());
+  });
+  await page.setViewportSize({ width: 1440, height: 980 });
+  await login(page);
+  await attach(page).setInputFiles(fixture('escaneado-2-paginas.pdf'));
+
+  // Sem texto selecionável: a Mesa diz isso e oferece o OCR, explicando que roda no navegador.
+  await expect(list(page).getByText('Sem texto extraível')).toBeVisible();
+  await expect(list(page).getByRole('note')).toContainText('no seu navegador');
+  await recognizeButton(page, 'escaneado-2-paginas.pdf').click();
+  await expect(list(page).getByText(/Reconhecendo texto… página \d de 2/)).toBeVisible();
+  await expect(list(page).getByText(/Reconhecido por OCR — conferir/)).toBeVisible({ timeout: 90_000 });
+  await expect(
+    page.getByRole('status').filter({ hasText: 'texto reconhecido por OCR. Confira antes de enviar.' }),
+  ).toHaveCount(1);
+
+  await page.getByRole('button', { name: 'Abrir o texto do anexo: escaneado-2-paginas.pdf' }).click();
+  const editor = page.getByRole('textbox', { name: 'Texto reconhecido por OCR de escaneado-2-paginas.pdf (editável)' });
+  await expect(editor).toHaveValue(/EXCELENT.SSIMO/);
+  await expect(editor).toHaveValue(/R\$ 12\.345,67/);
+  await expect(editor).toHaveValue(/Maceió, 16 de novembro de 2026/);
+  await page.screenshot({ path: 'test-results/attachments/03-ocr-pdf.png', animations: 'disabled' });
+
+  // O cliente corrige o texto antes de enviar; é a versão corrigida que segue.
+  await editor.fill('Texto corrigido pelo cliente depois do OCR.');
+  const message = 'Revisar o texto reconhecido.';
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill(message);
+  let sent: any;
+  await page.route('**/api/agentic/executions', async (route) => {
+    sent = route.request().postDataJSON();
+    await route.fulfill({ status: 503, json: { error: 'SYNTHETIC_STOP' } });
+  });
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect.poll(() => sent).toBeTruthy();
+  expect(sent.context.text).toContain(
+    'Anexo "escaneado-2-paginas.pdf" (texto reconhecido por OCR; pode conter erros de leitura):\nTexto corrigido pelo cliente depois do OCR.',
+  );
+  expect(sent.context.text).not.toContain('EXCELENT');
+  expect(JSON.stringify(sent)).not.toMatch(/application\/pdf|base64/);
+  // O arquivo e o texto nunca foram a outra origem: nenhuma requisição de OCR saiu daqui (CDN, dados de idioma).
+  expect(outside.filter((url) => /jsdelivr|tessdata|unpkg|cdnjs|naptha/i.test(url))).toEqual([]);
+});
+
+test('imagem com texto: reconhece no navegador e a marca de OCR aparece', async ({ page }) => {
+  await login(page);
+  await attach(page).setInputFiles(fixture('imagem-com-texto.png'));
+  await expect(list(page).getByText('Sem texto extraível')).toBeVisible();
+  await recognizeButton(page, 'imagem-com-texto.png').click();
+  await expect(list(page).getByText(/Reconhecido por OCR — conferir/)).toBeVisible({ timeout: 60_000 });
+  await page.getByRole('button', { name: 'Abrir o texto do anexo: imagem-com-texto.png' }).click();
+  await expect(
+    page.getByRole('textbox', { name: 'Texto reconhecido por OCR de imagem-com-texto.png (editável)' }),
+  ).toHaveValue(/a citação do réu para responder à ação/);
+  expect((await new AxeBuilder({ page }).include('[data-writing-desk]').analyze()).violations).toEqual([]);
+});
+
+test('página em branco: o OCR diz que não achou texto e não oferece de novo', async ({ page }) => {
+  await login(page);
+  await attach(page).setInputFiles(fixture('pagina-em-branco.png'));
+  await recognizeButton(page, 'pagina-em-branco.png').click();
+  await expect(list(page).getByRole('note')).toContainText('O OCR não encontrou texto legível', { timeout: 60_000 });
+  await expect(recognizeButton(page, 'pagina-em-branco.png')).toHaveCount(0);
+});
+
+test('PDF com páginas demais: recusa antes de gastar tempo e diz o limite', async ({ page }) => {
+  await login(page);
+  await attach(page).setInputFiles(fixture('escaneado-21-paginas.pdf'));
+  await recognizeButton(page, 'escaneado-21-paginas.pdf').click();
+  await expect(list(page).getByRole('note')).toContainText(
+    'O PDF tem 21 páginas e o reconhecimento por OCR aceita até 20',
+  );
+});
+
+test('cancelar o reconhecimento volta ao estado anterior, bloqueia o envio enquanto roda e permite tentar de novo', async ({
+  page,
+}) => {
+  await login(page);
+  await attach(page).setInputFiles(fixture('escaneado-2-paginas.pdf'));
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('Pedido com OCR em andamento.');
+  await recognizeButton(page, 'escaneado-2-paginas.pdf').click();
+
+  // Durante o OCR o envio fica bloqueado, como numa leitura comum.
+  await expect(page.getByRole('button', { name: 'Cancelar o reconhecimento: escaneado-2-paginas.pdf' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Enviar', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Cancelar o reconhecimento: escaneado-2-paginas.pdf' }).click();
+
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Reconhecimento cancelado: escaneado-2-paginas.pdf.' }),
+  ).toHaveCount(1);
+  await expect(list(page).getByText('Sem texto extraível')).toBeVisible();
+  await expect(list(page).getByText(/Reconhecido por OCR/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Enviar', exact: true })).toBeEnabled();
+  // Dá para tentar de novo.
+  await expect(recognizeButton(page, 'escaneado-2-paginas.pdf')).toBeVisible();
+});

@@ -67,8 +67,13 @@ export async function extractPdfText(file: File, signal?: AbortSignal): Promise<
         }
       }
       if (emptyPages.length === pdf.numPages)
-        throw new Error(
-          'Este PDF não possui texto extraível. Use um PDF com texto selecionável ou faça OCR antes da importação.',
+        // O código deixa os anexos da Mesa tratarem "só imagem" como "sem texto extraível" e oferecerem o OCR (U6);
+        // a mensagem não muda para quem importa o PDF na tela de casos.
+        throw Object.assign(
+          new Error(
+            'Este PDF não possui texto extraível. Use um PDF com texto selecionável ou faça OCR antes da importação.',
+          ),
+          { code: 'PDF_NO_TEXT' },
         );
       signal?.throwIfAborted();
       return { content: pages.join('\n\n'), filename: `${file.name}.txt`, pageCount: pdf.numPages, emptyPages };

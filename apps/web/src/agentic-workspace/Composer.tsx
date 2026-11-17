@@ -389,6 +389,9 @@ export function Composer({
             busy={busy || preparing}
             onReplace={attachments.replace}
             onRemove={attachments.remove}
+            onRecognize={(id) => void attachments.recognize(id)}
+            onCancelRecognize={attachments.cancelRecognize}
+            onEdit={attachments.edit}
           />
         )}
         <div className="flex flex-wrap items-center gap-2">

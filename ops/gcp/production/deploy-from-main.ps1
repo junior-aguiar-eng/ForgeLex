@@ -34,6 +34,7 @@ param(
   [ValidateSet('true', 'false')][string]$DeskShellEnabled,
   [ValidateSet('true', 'false')][string]$AttachmentsEnabled,
   [ValidateSet('true', 'false')][string]$MatterChipsEnabled,
+  [ValidateSet('true', 'false')][string]$OcrEnabled,
   [ValidatePattern('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')]
   [string]$ReleaseBuildId,
   [switch]$DryRun,
@@ -171,6 +172,7 @@ if ($PSBoundParameters.ContainsKey('SavedResearchEnabled')) { $overrides['_VITE_
 if ($PSBoundParameters.ContainsKey('DeskShellEnabled')) { $overrides['_VITE_FORGELEX_DESK_SHELL'] = $DeskShellEnabled }
 if ($PSBoundParameters.ContainsKey('AttachmentsEnabled')) { $overrides['_VITE_FORGELEX_ATTACHMENTS_ENABLED'] = $AttachmentsEnabled }
 if ($PSBoundParameters.ContainsKey('MatterChipsEnabled')) { $overrides['_VITE_FORGELEX_MATTER_CHIPS_ENABLED'] = $MatterChipsEnabled }
+if ($PSBoundParameters.ContainsKey('OcrEnabled')) { $overrides['_VITE_FORGELEX_OCR_ENABLED'] = $OcrEnabled }
 $substitutions = New-BuildSubstitutions -Previous $base.Substitutions -Sha $sha -Overrides $overrides
 Write-Host "  base: build $($base.Id)$(if ($ReleaseBuildId) { '  (retomada explícita)' } elseif ($overrides.Count) { "  (com $($overrides.Count) flag(s) trocada(s) de propósito)" })"
 Format-MaskedSubstitutions $substitutions | ForEach-Object { Write-Host "  $_" }

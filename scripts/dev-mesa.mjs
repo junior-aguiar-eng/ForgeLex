@@ -72,6 +72,8 @@ const webEnv = {
   VITE_FORGELEX_DESK_SHELL: 'true',
   VITE_FORGELEX_ATTACHMENTS_ENABLED: 'true',
   VITE_FORGELEX_MATTER_CHIPS_ENABLED: 'true',
+  // Ainda desligada em produção; ligada aqui para experimentar o reconhecimento de texto (U6).
+  VITE_FORGELEX_OCR_ENABLED: 'true',
 };
 
 const windows = process.platform === 'win32';

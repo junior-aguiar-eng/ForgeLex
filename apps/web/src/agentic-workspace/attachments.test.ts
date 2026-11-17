@@ -3,9 +3,11 @@ import {
   ATTACHMENT_MAX_TOTAL_CHARS,
   attachmentChars,
   attachmentContext,
+  attachmentRoom,
   fitAttachment,
   hasReadingAttachment,
   readAttachment,
+  withOcrOffer,
   type Attachment,
 } from './attachments';
 
@@ -95,6 +97,21 @@ describe('leitura de anexos (U5)', () => {
     await expect(readAttachment(file('a.docx', 'x'), controller.signal, undefined, failing)).rejects.toThrow();
   });
 
+  it('PDF só de imagem: o erro "sem texto selecionável" do leitor vira "sem texto extraível", não erro de leitura', async () => {
+    const result = await readAttachment(file('digitalizado.pdf', 'x', 'application/pdf'), undefined, async () => {
+      throw Object.assign(new Error('Este PDF não possui texto extraível.'), { code: 'PDF_NO_TEXT' });
+    });
+    expect(result.status).toBe('no-text');
+    expect(result.message).toMatch(/OCR/);
+  });
+
+  it('outros erros do leitor de PDF continuam sendo erro de leitura, mesmo que a mensagem cite OCR', async () => {
+    const result = await readAttachment(file('quebrado.pdf', 'x', 'application/pdf'), undefined, async () => {
+      throw new Error('Este PDF não possui texto extraível... faça OCR');
+    });
+    expect(result.status).toBe('error');
+  });
+
   it('Word acima de 15 MB é recusado antes de ler', async () => {
     const big = file('grande.docx', new Uint8Array(15 * 1024 * 1024 + 1));
     const result = await readAttachment(big, undefined, undefined, async () => {
@@ -144,5 +161,48 @@ describe('conjunto de anexos', () => {
   it('sabe quando algum anexo ainda está sendo lido', () => {
     expect(hasReadingAttachment([attachment('a'), attachment('b', { status: 'reading', text: '' })])).toBe(true);
     expect(hasReadingAttachment([attachment('a')])).toBe(false);
+  });
+});
+
+describe('OCR nos anexos (U6)', () => {
+  it('o contexto marca o texto reconhecido por OCR, para a IA saber que pode haver erro de leitura', () => {
+    const list = [
+      attachment('a'),
+      attachment('b', { name: 'escaneado.pdf', text: 'Texto reconhecido', ocr: { confidence: 91, pages: 2 } }),
+    ];
+    expect(attachmentContext(list)).toBe(
+      'Anexo "a.txt" (texto extraído):\ntexto a\n\nAnexo "escaneado.pdf" (texto reconhecido por OCR; pode conter erros de leitura):\nTexto reconhecido',
+    );
+  });
+
+  it('o envio fica bloqueado enquanto algum anexo está em OCR, como numa leitura comum', () => {
+    expect(hasReadingAttachment([attachment('a'), attachment('b', { status: 'ocr', text: '' })])).toBe(true);
+  });
+
+  it('oferece OCR só para PDF ou imagem sem texto, e só com o OCR ligado', () => {
+    const none = { status: 'no-text' as const, text: '', message: 'Sem texto.' };
+    const pdf = withOcrOffer(none, new File(['x'], 'scan.pdf'), true);
+    expect(pdf.canOcr).toBe(true);
+    expect(pdf.message).toMatch(/Reconhecer texto \(OCR\)/);
+    expect(pdf.message).toMatch(/navegador/);
+    expect(withOcrOffer(none, new File(['x'], 'foto.png', { type: 'image/png' }), true).canOcr).toBe(true);
+    expect(withOcrOffer(none, new File(['x'], 'scan.pdf'), false)).toEqual(none);
+    expect(withOcrOffer(none, new File(['x'], 'nota.docx'), true)).toEqual(none);
+    expect(withOcrOffer({ status: 'done', text: 'ok' }, new File(['x'], 'a.pdf'), true)).toEqual({
+      status: 'done',
+      text: 'ok',
+    });
+    expect(
+      withOcrOffer({ status: 'error', text: '', message: 'm' }, new File(['x'], 'a.pdf'), true).canOcr,
+    ).toBeUndefined();
+  });
+
+  it('o espaço para editar o texto reconhecido é o que sobra do teto, sem contar o próprio anexo', () => {
+    const list = [
+      attachment('a', { text: 'x'.repeat(1000) }),
+      attachment('b', { text: 'y'.repeat(500), ocr: { confidence: 90, pages: 1 } }),
+    ];
+    expect(attachmentRoom(list, 'b')).toBe(ATTACHMENT_MAX_TOTAL_CHARS - 1000);
+    expect(attachmentRoom(list, 'a')).toBe(ATTACHMENT_MAX_TOTAL_CHARS - 500);
   });
 });
