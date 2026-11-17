@@ -391,7 +391,7 @@ peça em uso, e a seleção interna registra a ficha usada. **Reversão.** Flag;
 
 ### U4 — Ações: voltar, alterar, excluir, adicionar
 
-**Situação em 16/11.** Fechada por decisão de Boni, com **uma peça por pedido**: publicados o retorno na orientação, excluir e restaurar conversa e peça com Desfazer, auditoria e chips de matéria como dica. Várias peças por pedido e atalhos além do Esc ficam fora. **Herdado da U3 e ainda aberto:** o aviso "ainda não há apoio específico" quando peça ou matéria não têm ficha elegível; precisa de decisão. Ver [registro de fechamento](../../architecture/2026-11-10-mesa-guiada-execucao.md#fechamento-das-etapas-parciais-u2-u4-e-u5-16112026).
+**Situação em 16/11.** Fechada por decisão de Boni, com **uma peça por pedido**: publicados o retorno na orientação, excluir e restaurar conversa e peça com Desfazer, auditoria e chips de matéria como dica. Várias peças por pedido e atalhos além do Esc ficam fora. **Herdado da U3:** o aviso "ainda não há apoio específico" foi entregue em 17/11 **para a peça** (ver o [registro do aviso](../../architecture/2026-11-10-mesa-guiada-execucao.md#aviso-ainda-não-há-apoio-específico-17112026)); para a **matéria** sem ficha elegível segue sem aviso. Ver [registro de fechamento](../../architecture/2026-11-10-mesa-guiada-execucao.md#fechamento-das-etapas-parciais-u2-u4-e-u5-16112026).
 
 Depende de U3. Regra geral: toda ação destrutiva é reversível por padrão (arquivar com “Desfazer”); exclusão
 definitiva só na lixeira, com confirmação (`ConfirmationDialog`).

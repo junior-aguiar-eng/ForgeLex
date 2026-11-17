@@ -1390,7 +1390,7 @@ outra etapa e exige refatorar os fluxos com cobertura própria.
 | Painel de fontes à direita (hoje as fontes abrem em diálogo)                                                                                             | V3 (abas Texto, Fontes e Revisão)                                                              |
 | Várias peças por pedido                                                                                                                                  | Decisão de produto futura, junto de um modelo de pedido novo                                   |
 | Atalhos de teclado além do Esc                                                                                                                           | Desenho (conflito com o botão voltar do navegador e o desfazer de texto); sem etapa            |
-| Aviso "ainda não há apoio específico" quando peça ou matéria não têm ficha elegível (critério da U3)                                                     | **Aberto.** A U3 o deixou para a U4, que não o fez; precisa de decisão de Boni                 |
+| Aviso "ainda não há apoio específico" quando peça ou matéria não têm ficha elegível (critério da U3)                                                     | **Resolvido para a peça em 17/11/2026** (seção abaixo); a matéria segue sem aviso                 |
 | Chips de área, tribunal e peça no compositor (hoje só no resumo do pedido)                                                                               | U7 e V3                                                                                        |
 | Identificar a peça pela leitura do PDF                                                                                                                   | Aberto: precisa de campo próprio no contrato, para o servidor não devolver o anexo como pedido |
 | Salvar o anexo como documento do caso                                                                                                                    | Depende da U7                                                                                  |
@@ -1513,3 +1513,46 @@ ambiente; a CI passa esse spec em `main`).
   exercitadas pela CI.
 
 Reversão: manter a flag desligada, ou reverter os commits do PR #179.
+
+## Aviso "ainda não há apoio específico" (17/11/2026)
+
+Sobre `main` em `5ddffd1`, na branch `claude/aviso-sem-apoio`. Fecha a promessa que a U3 deixou para a U4 e que o
+fechamento de 16/11 registrou como aberta: quando não há ficha de apoio para a peça, a Mesa passa a **dizer isso** em vez de
+seguir como pedido livre sem avisar. Nenhuma flag nova e nenhuma mudança de contrato; vale onde a orientação mesa-v3 já vale.
+
+**Como funciona.** Na mesa-v3, se nenhuma peça do catálogo serve para propor, a Mesa pede uma explicação em texto livre; se,
+com o texto, ainda não há candidata, o pedido segue como livre. O navegador recebe essa decisão com `value` nulo e o que o
+cliente digitou em `detail`. Agora, nesse caso, o resumo do pedido mostra, abaixo da linha de resumo:
+
+> Ainda não temos orientação específica para esta peça. Vamos seguir com o seu pedido como está; confira o resultado com atenção.
+
+| Situação                                                              | Aviso |
+| --------------------------------------------------------------------- | ----- |
+| O cliente explicou a peça em texto e nenhuma do catálogo serviu       | sim   |
+| O cliente respondeu "Não sei" (ainda não descreveu nada)              | não   |
+| Há peça proposta ou confirmada                                        | não   |
+| A peça nunca foi perguntada, ou a conversa não é mesa-v3              | não   |
+
+A regra é `guidanceSupportNote` em `apps/web/src/agentic-workspace/guidance-model.ts`, o texto é a constante
+`GUIDANCE_NO_SUPPORT_NOTE` (ajustar a redação é mexer só ali) e a exibição está em `GuidanceSummary.tsx`.
+
+**Redação.** O texto é proposta minha; Boni escolheu seguir com ele ao escolher a frente, e pode trocá-lo.
+
+**Não coberto.**
+
+- **Matéria sem ficha elegível.** O critério da U3 falava em "peça ou matéria". Só a peça foi tratada. Para a matéria, os
+  chips sugeridos (`MatterChips`) simplesmente não aparecem quando não há sugestão, e a Mesa não diz nada.
+- **Regras mesa-v1 e mesa-v2.** Usam a tabela fixa de peças e não propõem peças do catálogo; não têm esse caso.
+- **Detalhe cosmético que já existia.** Quando o texto digitado termina em ponto, o resumo mostra "…formandos., a
+  confirmar". Vem de `guidanceDecisionText` e não foi alterado.
+
+**Verificação.**
+
+| Item          | Resultado                                                                                                                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vitest do web | 48 arquivos e 314 testes aprovados; 6 testes novos da regra. **5 mutações, todas mortas** (avisar fora da v3, com "Não sei", com peça proposta, sem a peça perguntada, e nunca avisar). |
+| Playwright    | `desk-guidance-v3`: 8 cenários na pilha real, 2 novos (aviso quando nenhuma peça serve, com texto acessível e sem violação de acessibilidade; sem aviso com "Não sei").                 |
+| Regressão     | `desk-guidance` 6, `desk-pilot` 4, `desk-procedure` 3 aprovados; `desk-shell` 30 aprovados e 1 falho, a mesma falha anterior (download do Word neste ambiente).                          |
+| Qualidade     | ESLint, Prettier (escopo da CI) e tipos limpos.                                                                                                                                         |
+
+Reversão: reverter o commit; não há flag, e o efeito é só um parágrafo no resumo.

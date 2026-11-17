@@ -206,3 +206,50 @@ test('matérias do pedido: a Mesa sugere uma por vez, o cliente confirma, remove
   expect(JSON.stringify(sent)).not.toContain('prova-ilicita');
   expect((await new AxeBuilder({ page }).include('[data-writing-desk]').analyze()).violations).toEqual([]);
 });
+
+test('peça sem apoio específico: avisa no resumo que o pedido segue como livre; com "Não sei" não avisa', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 980 });
+  await openDesk(page);
+  await page
+    .getByRole('textbox', { name: 'O que você precisa fazer?' })
+    .fill('Quero preparar um texto de saudação pelo aniversário do tribunal.');
+  await page.getByRole('button', { name: 'Me ajude a começar' }).click();
+  await question(page).getByRole('radio', { name: 'Outra área', exact: true }).check();
+  await next(page);
+  await question(page).getByRole('radio', { name: 'Elaborar uma peça', exact: true }).check();
+  await next(page);
+
+  // Nenhuma peça do catálogo serve: a Mesa pede uma explicação em vez de propor.
+  await expect(question(page).locator('legend')).toContainText('Explique em poucas palavras');
+  await question(page)
+    .getByRole('textbox', { name: 'Sua resposta' })
+    .fill('Moção de congratulações à turma de formandos.');
+  await next(page);
+
+  // O pedido segue como livre, e o cliente é avisado de que não há ficha de apoio por trás.
+  await expect(summary(page).getByRole('note')).toContainText('Ainda não temos orientação específica para esta peça');
+  await expect(summary(page)).toContainText('a confirmar');
+  await page.screenshot({ path: 'test-results/desk-guidance-v3/04-sem-apoio.png', animations: 'disabled' });
+  expect((await new AxeBuilder({ page }).include('[data-writing-desk]').analyze()).violations).toEqual([]);
+});
+
+test('peça: responder "Não sei" não gera o aviso de falta de apoio', async ({ page }) => {
+  await openDesk(page);
+  await page
+    .getByRole('textbox', { name: 'O que você precisa fazer?' })
+    .fill('Quero preparar um texto de saudação pelo aniversário do tribunal.');
+  await page.getByRole('button', { name: 'Me ajude a começar' }).click();
+  await question(page).getByRole('radio', { name: 'Outra área', exact: true }).check();
+  await next(page);
+  await question(page).getByRole('radio', { name: 'Elaborar uma peça', exact: true }).check();
+  await next(page);
+  await expect(question(page).locator('legend')).toContainText('Explique em poucas palavras');
+  // Em pergunta de texto livre o "Não sei" é uma caixa de seleção.
+  await question(page).getByRole('checkbox', { name: 'Não sei', exact: true }).check();
+  await next(page);
+
+  await expect(summary(page)).toBeVisible();
+  await expect(summary(page).getByRole('note')).toHaveCount(0);
+});

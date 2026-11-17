@@ -5,6 +5,7 @@ import {
   askedGuidanceFields,
   guidanceLabels,
   guidanceSummaryText,
+  guidanceSupportNote,
   type GuidanceField,
   type GuidanceState,
 } from './guidance-model';
@@ -25,6 +26,7 @@ export function GuidanceSummary({
   const toggle = useRef<HTMLButtonElement>(null);
   const fields = askedGuidanceFields(state);
   const labels = fields.map((field) => guidanceSummaryText(state, field)).filter(Boolean);
+  const supportNote = guidanceSupportNote(state);
   if (!fields.length)
     return (
       <div className="flex justify-end">
@@ -63,6 +65,11 @@ export function GuidanceSummary({
           <Pencil size={15} aria-hidden="true" /> Alterar
         </button>
       </div>
+      {supportNote && (
+        <p role="note" className="pb-2 text-xs leading-snug text-stone-700">
+          {supportNote}
+        </p>
+      )}
       <div id={list} hidden={!expanded} className="max-w-sm border-l border-stone-200 pl-2">
         {fields.map((field) => (
           <button
