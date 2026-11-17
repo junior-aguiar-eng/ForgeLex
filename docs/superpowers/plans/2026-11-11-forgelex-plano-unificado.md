@@ -579,11 +579,13 @@ Depende de V1 e DEC-7.
 **Verificação.** `playwright.public.config.ts`, `accessibility.spec.ts`, suíte da Mesa nos dois temas.
 
 **Situação em 17/11.** Feita, **só no tema gelo** (o clássico não mudou, provado por captura: estilo e 52 imagens
-idênticos). Decisões de Boni: lateral com os três itens e trilho de ícones na Mesa; "Andamento processual" só dentro do
-app, com o site público mantido até a V5A; "Primeiros passos" guardado no navegador, por usuário. Nas páginas públicas
-não houve alteração de código: o tema gelo da V1 já as serve, e a estrutura e o texto novos são da V5A. Evidência: axe sem
-violação em 52 telas, `shell-gelo.spec.ts` (8 cenários), suíte da Mesa com o gelo ligado e suíte pública nos dois temas.
-Registro em [V2 — Casca e site público](../../architecture/2026-11-10-mesa-guiada-execucao.md#v2--casca-e-site-público-17112026).
+idênticos), e adaptada ao protótipo que Boni enviou: lateral com Trabalho (Mesa, Casos, Jurisprudência) e Conta e recursos,
+sem cabeçalho na tela larga, Visão geral com dados reais e "Primeiros passos", Entrar em duas colunas, seções de Conta e
+Conectar IA. Decisões de Boni: trilho de ícones na Mesa; "Andamento processual" só dentro do app, com o site público
+mantido até a V5A; "Primeiros passos" guardado no navegador, por usuário. Evidência: axe sem violação em 52 telas,
+`shell-gelo.spec.ts` (12 cenários), suíte da Mesa com o gelo ligado e suíte pública nos dois temas. A Mesa fica com o
+trilho provisório até a V3. Registro em
+[V2 — Casca e site público](../../architecture/2026-11-10-mesa-guiada-execucao.md#v2--casca-e-site-público-17112026).
 
 ### V3 — Mesa
 

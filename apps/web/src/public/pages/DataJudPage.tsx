@@ -3,6 +3,7 @@ import { Search, LoaderCircle, ExternalLink } from 'lucide-react';
 import { formatCnjNumber, formatDataJudDate, lookupDataJudProcess, type DataJudResult } from '../../datajud-client';
 import { DATAJUD_COURTS, type DataJudCourtId } from '../../datajud-courts';
 import { PageIntro } from './PublicSections';
+import { activeTheme } from '../../theme/active-theme';
 
 /** `title` só muda dentro do app, no tema gelo ("Andamento processual"); o site público mantém o texto até a V5A. */
 export function DataJudPage({ title = 'Consulta processual' }: { title?: string } = {}) {
@@ -12,6 +13,9 @@ export function DataJudPage({ title = 'Consulta processual' }: { title?: string 
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<DataJudResult | null>(null);
   const [error, setError] = useState('');
+  // No tema gelo (V2) o campo leva a borda de controle (3:1) e as movimentações viram linha do tempo.
+  const ice = activeTheme() === 'gelo';
+  const fieldBorder = ice ? 'border-line-control' : 'border-champagne-border';
   const inFlight = useRef<AbortController | null>(null);
   useEffect(() => () => inFlight.current?.abort(), []);
 
@@ -72,7 +76,7 @@ export function DataJudPage({ title = 'Consulta processual' }: { title?: string 
                   if (selected) setCourtId(selected.id);
                 }}
                 aria-describedby="datajud-court-help"
-                className="mt-2 min-h-12 w-full rounded-xl border border-champagne-border bg-white px-4 text-stone-900 disabled:opacity-70"
+                className={`mt-2 min-h-12 w-full rounded-xl border ${fieldBorder} bg-white px-4 text-stone-900 disabled:opacity-70`}
               >
                 {DATAJUD_COURTS.map((entry) => (
                   <option key={entry.id} value={entry.id}>
@@ -101,7 +105,7 @@ export function DataJudPage({ title = 'Consulta processual' }: { title?: string 
                 value={number}
                 onChange={(event) => setNumber(event.target.value)}
                 aria-describedby="datajud-number-help"
-                className="mt-2 min-h-12 w-full rounded-xl border border-champagne-border bg-white px-4 text-stone-900"
+                className={`mt-2 min-h-12 w-full rounded-xl border ${fieldBorder} bg-white px-4 text-stone-900`}
               />
               <p id="datajud-number-help" className="mt-2 text-xs text-stone-600">
                 Use a numeração CNJ do {court.code}, com ou sem pontuação.
@@ -203,6 +207,26 @@ export function DataJudPage({ title = 'Consulta processual' }: { title?: string 
                   </summary>
                   {entry.movements.length === 0 ? (
                     <p className="mt-3 text-sm text-stone-600">Movimentações não retornadas pelo DataJud.</p>
+                  ) : ice ? (
+                    <ol className="mt-4">
+                      {entry.movements.map((movement, position) => (
+                        <li key={`${movement.code}:${movement.occurredAt}:${position}`} className="flex gap-4">
+                          <span className="flex w-2.5 flex-col items-center" aria-hidden="true">
+                            <span
+                              className={`mt-1.5 h-[9px] w-[9px] rounded-full ${position === 0 ? 'bg-accent' : 'bg-accent/30'}`}
+                            />
+                            {position < entry.movements.length - 1 && <span className="min-h-7 w-px flex-1 bg-line" />}
+                          </span>
+                          <span className="min-w-0 pb-[18px]">
+                            <span className="block break-words text-sm font-semibold text-ink">{movement.name}</span>
+                            <span className="mt-0.5 block text-[13px] text-subtle">
+                              {formatDataJudDate(movement.occurredAt)}
+                              {movement.code !== undefined ? ` · Código ${movement.code}` : ''}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
                   ) : (
                     <ol className="mt-4 divide-y divide-stone-200">
                       {entry.movements.map((movement, position) => (

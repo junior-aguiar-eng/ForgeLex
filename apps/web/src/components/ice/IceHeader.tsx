@@ -3,14 +3,14 @@ import { Menu, Scale } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 /**
- * Cabeçalho do tema gelo (V2): só a marca e, abaixo de `lg`, o botão da gaveta. A navegação, a conta e a saída estão na
- * lateral; nenhum item aqui leva a uma ferramenta removida. Translúcido, como no protótipo.
+ * Barra de cima do tema gelo, só abaixo de `lg` (V2): a marca e o botão da gaveta. Na tela larga não há cabeçalho, como
+ * no protótipo de 09/11: a marca, a navegação, a conta e a saída estão na lateral, e cada tela tem o seu título.
  */
 export const IceHeader: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }> = ({ menuOpen, onMenuToggle }) => {
   const { setActiveTab } = useApp();
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-canvas/90 backdrop-blur-md">
-      <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-2 lg:px-6">
+    <header className="sticky top-0 z-50 border-b border-line bg-canvas/90 backdrop-blur-md lg:hidden">
+      <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-2">
         <button
           type="button"
           onClick={() => setActiveTab('landing')}
@@ -26,7 +26,7 @@ export const IceHeader: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }
           id="forgelex-menu-toggle"
           type="button"
           onClick={onMenuToggle}
-          className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-[var(--fl-radius-control)] border border-line-control px-3 text-sm font-semibold text-ink-soft hover:bg-surface-muted lg:hidden"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-[var(--fl-radius-control)] border border-line-control px-3 text-sm font-semibold text-ink-soft hover:bg-canvas-deep"
           aria-label={menuOpen ? 'Fechar menu lateral' : 'Abrir menu lateral'}
           aria-expanded={menuOpen}
           aria-controls="forgelex-sidebar"

@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { IceHeader } from './components/ice/IceHeader';
+import { IceFrame } from './components/ice/IceFrame';
 import { IceSidebar } from './components/ice/IceSidebar';
 import { activeTheme } from './theme/active-theme';
 import { ScreenLoadBoundary } from './components/ScreenLoadBoundary';
@@ -18,6 +19,7 @@ import { resolveVisibleTab, type AppTab } from './navigation/routes';
 import { CASE_WORKSPACE_ENABLED } from './config/site-capabilities';
 
 const LandingScreen = lazy(() => import('./screens/LandingScreen').then(({ LandingScreen: screen }) => ({ default: screen })));
+const OverviewScreen = lazy(() => import('./screens/OverviewScreen').then(({ OverviewScreen: screen }) => ({ default: screen })));
 const WritingDeskScreen = lazy(() => import('./screens/WritingDeskScreen').then(({ WritingDeskScreen: screen }) => ({ default: screen })));
 const ResearchDeskScreen = lazy(() => import('./screens/ResearchDeskScreen').then(({ ResearchDeskScreen: screen }) => ({ default: screen })));
 const MatterWorkspaceScreen = lazy(() => import('./screens/MatterWorkspaceScreen').then(({ MatterWorkspaceScreen: screen }) => ({ default: screen })));
@@ -71,10 +73,11 @@ const AppContent: React.FC = () => {
           ? <IceSidebar activeTab={visibleTab} collapsedByDefault={visibleTab === 'work'} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />
           : <Sidebar mobileOnly={visibleTab === 'work'} activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
         <main className="min-w-0 flex-1">
+          {ice && visibleTab !== 'work' && <IceFrame tab={visibleTab} />}
           {(visibleTab === 'work' || workVisited) && <div key="retained-work" hidden={visibleTab !== 'work'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando trabalho…</div>}><WritingDeskScreen active={visibleTab === 'work'} requestedLocation={routeLocation} /></Suspense></ScreenLoadBoundary></div>}
           <ScreenLoadBoundary key={`page-${visibleTab}`}>
             <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
-              {visibleTab === 'landing' && <LandingScreen />}
+              {visibleTab === 'landing' && (ice ? <OverviewScreen /> : <LandingScreen />)}
               {visibleTab === 'research' && <ResearchDeskScreen />}
               {visibleTab === 'datajud' && <DataJudPage title={ice ? 'Andamento processual' : undefined} />}
               {visibleTab === 'matter' && <MatterWorkspaceScreen />}

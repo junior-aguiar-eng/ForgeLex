@@ -13,49 +13,42 @@ async function login(page: Page, email = 'casca@forgelex.test') {
 
 const sidebar = (page: Page) => page.locator('#forgelex-sidebar');
 
-test('o tema gelo está ligado e a lateral tem trabalho, recursos e conta, na ordem do plano', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await login(page);
-
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'gelo');
-  const aside = sidebar(page);
-  await expect(aside.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button')).toHaveText([
-    'Mesa',
-    'Casos',
-    'Jurisprudência',
-  ]);
-  await expect(aside.getByRole('navigation', { name: 'Recursos' }).getByRole('button')).toHaveText([
-    'Visão geral',
-    'Andamento processual',
-    'Conectar IA',
-    'Guia de conexão',
-    'API para desenvolvedores',
-  ]);
-  await expect(aside.getByRole('navigation', { name: 'Conta' }).getByRole('button')).toHaveText([
-    'Conta e faturamento',
-    'Atividade da conta',
-    'Segurança da conta',
-    'Chaves de API',
-  ]);
-  await expect(aside.getByRole('button', { name: 'Sair da conta' })).toBeVisible();
-  // A tela atual acende o item dela.
-  await expect(aside.getByRole('button', { name: 'Visão geral', exact: true })).toHaveAttribute('aria-current', 'page');
-});
-
-test('o cabeçalho é enxuto: só a marca, sem navegação, sem busca e sem item de ferramenta removida', async ({
+test('o tema gelo está ligado e a lateral tem a marca, Trabalho e Conta e recursos, como no protótipo', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page);
 
-  const header = page.getByRole('banner');
-  await expect(header.getByRole('navigation')).toHaveCount(0);
-  await expect(header.getByRole('button', { name: 'Pesquisar', exact: true })).toHaveCount(0);
-  await expect(header.getByRole('button', { name: 'Sair da conta' })).toHaveCount(0);
-  // Em tela larga o botão da gaveta não aparece; sobra a marca.
-  await expect(header.getByRole('button')).toHaveText(['ForgeLex']);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'gelo');
+  const aside = sidebar(page);
+  await expect(aside.getByRole('button', { name: 'ForgeLex, ir para o início' })).toBeVisible();
+  await expect(aside.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button')).toHaveText([
+    'Mesa',
+    'Casos',
+    'Jurisprudência',
+  ]);
+  await expect(aside.getByRole('navigation', { name: 'Conta e recursos' }).getByRole('button')).toHaveText([
+    'Visão geral',
+    'Andamento processual',
+    'Conectar IA',
+    'Conta',
+  ]);
+  await expect(aside.getByRole('button', { name: 'Sair da conta' })).toBeVisible();
+  // A tela atual acende o item dela, e o saldo vem da conta.
+  await expect(aside.getByRole('button', { name: 'Visão geral', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(aside.getByText('Saldo', { exact: true })).toBeVisible();
+  await expect(aside.getByRole('button', { name: 'Recarregar' })).toBeVisible();
+});
+
+test('não há cabeçalho na tela larga: a marca e a navegação estão na lateral, sem item de ferramenta removida', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+
+  await expect(page.getByRole('banner')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Pesquisar', exact: true })).toHaveCount(0);
   for (const removed of [/Rascunhos/, /^Revisão$/]) {
-    await expect(header.getByRole('button', { name: removed })).toHaveCount(0);
     await expect(sidebar(page).getByRole('button', { name: removed })).toHaveCount(0);
   }
 });
@@ -128,7 +121,37 @@ test('Andamento processual e Jurisprudência: rótulo, caminho, título e redire
   await expect(page).toHaveURL(/\/consulta-processual$/);
 });
 
-test('Primeiros passos: aparecem, ocultam, lembram por usuário e voltam quando o cliente pede', async ({ page }) => {
+test('Visão: primeiros passos com estado real, atalhos, casos, conexões e consumo', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+
+  await expect(page.getByRole('heading', { level: 1, name: 'O que você precisa fazer hoje?' })).toBeVisible();
+  const card = page.getByRole('region', { name: 'Primeiros passos' });
+  await expect(card.getByRole('listitem')).toHaveCount(3);
+  await expect(card.getByRole('heading', { level: 3 })).toHaveText([
+    'Conectar sua IA',
+    'Criar o primeiro caso',
+    'Verificar uma citação',
+  ]);
+  await expect(card.getByText(/^\d de 3 concluídos$/)).toBeVisible();
+  await expect(card.getByRole('progressbar', { name: 'Primeiros passos concluídos' })).toBeVisible();
+
+  const shortcuts = page.getByRole('region', { name: 'Atalhos' });
+  await expect(shortcuts.getByRole('button')).toHaveText([/Abrir a Mesa/, /Pesquisar o STJ/, /Conectar sua IA/]);
+  await expect(page.getByRole('region', { name: 'Casos ativos' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Conexões' })).toContainText('MCP remoto');
+  await expect(page.getByRole('region', { name: 'Conexões' })).toContainText('Chaves de API');
+  await expect(page.getByRole('region', { name: 'Consumo do mês' })).toContainText(/R\$/);
+  await expect(page.getByRole('region', { name: 'Consumo do mês' })).toContainText(
+    'Verificações de autoridade e consultas processuais não entram neste total.',
+  );
+
+  await shortcuts.getByRole('button', { name: /Abrir a Mesa/ }).click();
+  await expect(page.getByRole('heading', { name: 'O que você precisa fazer hoje?' })).toBeVisible();
+  await expect(page).toHaveURL(/\/app\/trabalho/);
+});
+
+test('Primeiros passos: ocultam, lembram por usuário e voltam quando o cliente pede', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page);
   const card = page.getByRole('region', { name: 'Primeiros passos' });
@@ -138,13 +161,7 @@ test('Primeiros passos: aparecem, ocultam, lembram por usuário e voltam quando 
         .filter((key) => key.startsWith('forgelex.primeiros-passos.'))
         .sort(),
     );
-  await expect(card.getByRole('listitem')).toHaveCount(4);
-  await expect(card.getByRole('heading', { level: 3 })).toHaveText([
-    'Conecte a sua IA',
-    'Abra a Mesa',
-    'Pesquise jurisprudência',
-    'Confira um andamento',
-  ]);
+  await expect(card).toBeVisible();
 
   // O estado de outro usuário no mesmo navegador não esconde o cartão deste.
   await page.evaluate(() => localStorage.setItem('forgelex.primeiros-passos.outro-usuario', 'oculto'));
@@ -170,12 +187,58 @@ test('Primeiros passos: aparecem, ocultam, lembram por usuário e voltam quando 
   await login(page);
   await expect(card).toHaveCount(0);
 
-  // Mostrar de novo apaga só a chave deste usuário.
+  // Mostrar de novo apaga só a chave deste usuário; o passo pendente leva à tela dele.
   await page.getByRole('button', { name: 'Mostrar primeiros passos' }).click();
   await expect(card).toBeVisible();
   expect(await stored()).toEqual(['forgelex.primeiros-passos.outro-usuario']);
-  await card.getByRole('button', { name: /^Conectar IA/ }).click();
+  await card.getByRole('button', { name: 'Abrir a jurisprudência' }).click();
+  await expect(page).toHaveURL(/\/app\/pesquisa$/);
+});
+
+test('Conta e Conectar IA têm as seções no alto, e a lateral acende o item certo', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+  const aside = sidebar(page);
+
+  await aside.getByRole('button', { name: 'Conta', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/conta$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Conta e créditos' })).toBeVisible();
+  const sections = page.getByRole('navigation', { name: 'Seções da conta' });
+  await expect(sections.getByRole('button')).toHaveText(['Faturamento', 'Atividade', 'Segurança', 'Chaves de API']);
+  await expect(sections.getByRole('button', { name: 'Faturamento' })).toHaveAttribute('aria-current', 'page');
+
+  await sections.getByRole('button', { name: 'Atividade' }).click();
+  await expect(page).toHaveURL(/\/app\/conta\/atividade$/);
+  await expect(aside.getByRole('button', { name: 'Conta', exact: true })).toHaveAttribute('aria-current', 'page');
+  await sections.getByRole('button', { name: 'Chaves de API' }).click();
+  await expect(page).toHaveURL(/\/app\/conta\/chaves$/);
+
+  await aside.getByRole('button', { name: 'Conectar IA', exact: true }).click();
   await expect(page).toHaveURL(/\/app\/conectar$/);
+  const connect = page.getByRole('navigation', { name: 'Seções de Conectar IA' });
+  await expect(connect.getByRole('button')).toHaveText(['Conexão', 'Guia de conexão', 'API para desenvolvedores']);
+  await connect.getByRole('button', { name: 'API para desenvolvedores' }).click();
+  await expect(page).toHaveURL(/\/app\/desenvolvedores\/api$/);
+  await expect(aside.getByRole('button', { name: 'Conectar IA', exact: true })).toHaveAttribute('aria-current', 'page');
+  await connect.getByRole('button', { name: 'Guia de conexão' }).click();
+  await expect(page).toHaveURL(/\/app\/guia\/mcp$/);
+});
+
+test('Entrar: coluna de contexto ao lado do formulário na tela larga; só o formulário no celular', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/entrar');
+  const context = page.getByRole('region', { name: 'Sobre o ForgeLex' });
+  await expect(context).toBeVisible();
+  await expect(context.getByText('Fontes visíveis. Decisões sob controle humano.')).toBeVisible();
+  await expect(context.getByText('Pesquisa que dá para conferir')).toBeVisible();
+  await expect(context.getByText('Custos visíveis')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Entre no ForgeLex');
+  await expect(page.getByRole('region', { name: 'Acesso ao ForgeLex' })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(context).toBeHidden();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Entre no ForgeLex');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test('celular: a gaveta tem os mesmos itens, Escape fecha e devolve o foco, escolher um item fecha', async ({
@@ -190,7 +253,7 @@ test('celular: a gaveta tem os mesmos itens, Escape fecha e devolve o foco, esco
   await toggle.click();
   await expect(aside).toBeVisible();
   await expect(aside.getByRole('button', { name: 'Jurisprudência', exact: true })).toBeVisible();
-  await expect(aside.getByRole('button', { name: 'Chaves de API', exact: true })).toBeVisible();
+  await expect(aside.getByRole('button', { name: 'Conta', exact: true })).toBeVisible();
 
   await page.keyboard.press('Escape');
   await expect(aside).toBeHidden();
@@ -202,7 +265,7 @@ test('celular: a gaveta tem os mesmos itens, Escape fecha e devolve o foco, esco
   await expect(aside).toBeHidden();
 });
 
-test('acessibilidade da casca nova: Visão, Mesa recolhida e gaveta aberta, sem violação', async ({ page }) => {
+test('acessibilidade da casca nova: Visão, Mesa recolhida, Conta e gaveta aberta, sem violação', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page);
   const scan = () => new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
@@ -214,8 +277,20 @@ test('acessibilidade da casca nova: Visão, Mesa recolhida e gaveta aberta, sem 
   await expect(page.getByRole('heading', { name: 'O que você precisa fazer hoje?' })).toBeVisible();
   expect((await scan()).violations).toEqual([]);
 
+  await sidebar(page).getByRole('button', { name: 'Conta', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Conta e créditos' })).toBeVisible();
+  expect((await scan()).violations).toEqual([]);
+
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Abrir menu lateral' }).click();
   await expect(sidebar(page)).toBeVisible();
   expect((await scan()).violations).toEqual([]);
+});
+
+test('acessibilidade de Entrar com a coluna de contexto, sem violação', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/entrar');
+  await expect(page.getByRole('region', { name: 'Sobre o ForgeLex' })).toBeVisible();
+  const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(result.violations).toEqual([]);
 });

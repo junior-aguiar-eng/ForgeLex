@@ -8,6 +8,8 @@ import { canonicalPathname, isKnownPath, navigateToTab, resolveVisibleTab, tabFo
 import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 import type { DeskSelection } from '../agentic-workspace/desk-selection';
 import { readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
+import { useAuth } from '../auth/AuthContext';
+import { browserStorage, writeVerifiedCitation } from '../screens/first-steps-storage';
 
 export type { ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
 export type { AppTab } from '../navigation/routes';
@@ -87,6 +89,8 @@ export async function loadVisibleOperationalState(client: OperationsClient, case
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { account } = useAuth();
+  const userId = account?.user.id ?? '';
   const [activeTab, setCurrentTab] = useState<AppTab>(() => typeof window === 'undefined' ? 'landing' : resolveVisibleTab(tabForPath(window.location.pathname), CASE_WORKSPACE_ENABLED));
   const [routeLocation, setRouteLocation] = useState(() => typeof window === 'undefined' ? '' : window.location.href);
   const lastDesk = useRef<DeskSelection>();
@@ -200,7 +204,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       method: 'POST',
       headers: { 'Idempotency-Key': `web_verify_${crypto.randomUUID()}` },
       body: JSON.stringify({ court, processNumber, judgmentDate }),
-    }).then((response) => ({ ...response, authority: response.authority ? mapAuthority(response.authority) : undefined }));
+    }).then((response) => {
+      // O passo "Verificar uma citação" da Visão (tema gelo): a verificação é gratuita e não deixa lançamento.
+      writeVerifiedCitation(browserStorage(), userId);
+      return { ...response, authority: response.authority ? mapAuthority(response.authority) : undefined };
+    });
   };
 
   const actions = createOperationalActions(client, setReviewQueue);

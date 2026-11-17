@@ -1,23 +1,13 @@
 import type { AppTab } from './routes';
 
 /**
- * Navegação da casca do tema gelo (V2, tabela 7.2): a lateral tem Mesa, Casos e Jurisprudência no alto, os recursos no
- * meio e a conta no rodapé. É um modelo puro; a lateral escolhe o componente de cada ícone.
+ * Navegação da casca do tema gelo (V2, protótipo de 09/11): a lateral tem o grupo Trabalho (Mesa, Casos e
+ * Jurisprudência) e o grupo Conta e recursos (Visão geral, Andamento processual, Conectar IA e Conta). Atividade,
+ * Segurança e Chaves de API são seções da Conta; o guia e a API são parte de Conectar IA. É um modelo puro; a lateral
+ * escolhe o componente de cada ícone, que só aparece no trilho recolhido.
  */
 
-export type NavIcon =
-  | 'desk'
-  | 'cases'
-  | 'research'
-  | 'overview'
-  | 'progress'
-  | 'connections'
-  | 'guide'
-  | 'api'
-  | 'billing'
-  | 'activity'
-  | 'security'
-  | 'keys';
+export type NavIcon = 'desk' | 'cases' | 'research' | 'overview' | 'progress' | 'connections' | 'billing';
 
 export interface NavItem {
   tab: AppTab;
@@ -28,7 +18,11 @@ export interface NavItem {
 export interface IceNavigation {
   work: NavItem[];
   resources: NavItem[];
-  account: NavItem[];
+}
+
+export interface AccountSection {
+  tab: AppTab;
+  label: string;
 }
 
 export function iceNavigation(flags: { deskEnabled: boolean; casesEnabled: boolean }): IceNavigation {
@@ -42,19 +36,37 @@ export function iceNavigation(flags: { deskEnabled: boolean; casesEnabled: boole
       { tab: 'landing', label: 'Visão geral', icon: 'overview' },
       { tab: 'datajud', label: 'Andamento processual', icon: 'progress' },
       { tab: 'connections', label: 'Conectar IA', icon: 'connections' },
-      { tab: 'for_lawyers_guide', label: 'Guia de conexão', icon: 'guide' },
-      { tab: 'api_docs', label: 'API para desenvolvedores', icon: 'api' },
-    ],
-    account: [
-      { tab: 'credits', label: 'Conta e faturamento', icon: 'billing' },
-      { tab: 'account_activity', label: 'Atividade da conta', icon: 'activity' },
-      { tab: 'account_security', label: 'Segurança da conta', icon: 'security' },
-      { tab: 'api_keys', label: 'Chaves de API', icon: 'keys' },
+      { tab: 'credits', label: 'Conta', icon: 'billing' },
     ],
   };
 }
 
-/** Rascunhos e Revisão são a Mesa: os links antigos abrem a Mesa e acendem o item dela. */
+/** Seções da Conta, na barra que as telas da conta mostram no alto (protótipo: Faturamento, Atividade, Segurança...). */
+export function accountSections(): AccountSection[] {
+  return [
+    { tab: 'credits', label: 'Faturamento' },
+    { tab: 'account_activity', label: 'Atividade' },
+    { tab: 'account_security', label: 'Segurança' },
+    { tab: 'api_keys', label: 'Chaves de API' },
+  ];
+}
+
+/** Seções de Conectar IA: a conexão, o guia e a API para desenvolvedores. */
+export function connectSections(): AccountSection[] {
+  return [
+    { tab: 'connections', label: 'Conexão' },
+    { tab: 'for_lawyers_guide', label: 'Guia de conexão' },
+    { tab: 'api_docs', label: 'API para desenvolvedores' },
+  ];
+}
+
+/**
+ * O item aceso da lateral. Rascunhos e Revisão são a Mesa; as seções da conta acendem Conta; o guia e a API acendem
+ * Conectar IA.
+ */
 export function highlightedTab(tab: AppTab): AppTab {
-  return tab === 'draft_studio' || tab === 'dashboard' ? 'work' : tab;
+  if (tab === 'draft_studio' || tab === 'dashboard') return 'work';
+  if (tab === 'account_activity' || tab === 'account_security' || tab === 'api_keys') return 'credits';
+  if (tab === 'for_lawyers_guide' || tab === 'api_docs') return 'connections';
+  return tab;
 }

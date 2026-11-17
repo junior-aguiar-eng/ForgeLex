@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { firstStepsKey, readFirstStepsHidden, writeFirstStepsHidden } from './first-steps-storage';
+import {
+  firstStepsKey,
+  readFirstStepsHidden,
+  readVerifiedCitation,
+  verifiedCitationKey,
+  writeFirstStepsHidden,
+  writeVerifiedCitation,
+} from './first-steps-storage';
 
 function memory(initial: Record<string, string> = {}) {
   const data = { ...initial };
@@ -55,5 +62,25 @@ describe('"Primeiros passos" ocultável, por usuário', () => {
     writeFirstStepsHidden(storage, '', true);
     expect(storage.data).toEqual({});
     expect(readFirstStepsHidden(storage, '')).toBe(false);
+  });
+});
+
+describe('passo "Verificar uma citação"', () => {
+  it('a marca vale por usuário e nunca volta atrás sozinha', () => {
+    const storage = memory();
+    expect(readVerifiedCitation(storage, 'u1')).toBe(false);
+    writeVerifiedCitation(storage, 'u1');
+    expect(readVerifiedCitation(storage, 'u1')).toBe(true);
+    expect(readVerifiedCitation(storage, 'u2')).toBe(false);
+    expect(verifiedCitationKey('u1')).not.toBe(firstStepsKey('u1'));
+  });
+
+  it('sem armazenamento ou sem usuário, não grava e não quebra', () => {
+    expect(() => writeVerifiedCitation(broken, 'u1')).not.toThrow();
+    expect(readVerifiedCitation(broken, 'u1')).toBe(false);
+    expect(() => writeVerifiedCitation(undefined, 'u1')).not.toThrow();
+    const storage = memory();
+    writeVerifiedCitation(storage, '');
+    expect(storage.data).toEqual({});
   });
 });

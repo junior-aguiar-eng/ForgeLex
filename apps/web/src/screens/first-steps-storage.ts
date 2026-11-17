@@ -10,6 +10,7 @@ export interface KeyValueStorage {
 }
 
 export const firstStepsKey = (userId: string) => `forgelex.primeiros-passos.${userId}`;
+export const verifiedCitationKey = (userId: string) => `forgelex.passo-verificacao.${userId}`;
 
 export function readFirstStepsHidden(storage: KeyValueStorage | undefined, userId: string): boolean {
   if (!storage || !userId) return false;
@@ -36,5 +37,24 @@ export function browserStorage(): KeyValueStorage | undefined {
     return typeof window === 'undefined' ? undefined : window.localStorage;
   } catch {
     return undefined;
+  }
+}
+
+/** O passo "Verificar uma citação" é de graça e não deixa lançamento: o navegador lembra que o usuário já verificou. */
+export function readVerifiedCitation(storage: KeyValueStorage | undefined, userId: string): boolean {
+  if (!storage || !userId) return false;
+  try {
+    return storage.getItem(verifiedCitationKey(userId)) === 'feito';
+  } catch {
+    return false;
+  }
+}
+
+export function writeVerifiedCitation(storage: KeyValueStorage | undefined, userId: string): void {
+  if (!storage || !userId) return;
+  try {
+    storage.setItem(verifiedCitationKey(userId), 'feito');
+  } catch {
+    // sem armazenamento: o passo só não lembra
   }
 }
