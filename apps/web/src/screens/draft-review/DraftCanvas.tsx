@@ -1,6 +1,71 @@
 import { createPortal } from 'react-dom';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import React, { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, Download, History, X } from 'lucide-react';
+
+/** Partes da peça no tema gelo: o texto, as fontes do caso e a revisão. */
+export type PieceTab = 'texto' | 'fontes' | 'revisao';
+
+const PIECE_TABS: { id: PieceTab; label: string }[] = [
+  { id: 'texto', label: 'Texto' },
+  { id: 'fontes', label: 'Fontes' },
+  { id: 'revisao', label: 'Revisão' },
+];
+
+/**
+ * Abas Texto, Fontes e Revisão da peça (tema gelo). O texto continua montado, só escondido, quando outra aba está
+ * aberta: o que a pessoa digitou, a seleção e a rolagem ficam como estavam.
+ */
+function PieceTabs({
+  selected,
+  onSelect,
+  enabled,
+}: {
+  selected: PieceTab;
+  onSelect: (tab: PieceTab) => void;
+  enabled: Record<PieceTab, boolean>;
+}) {
+  const move = (event: React.KeyboardEvent<HTMLElement>, from: PieceTab) => {
+    const usable = PIECE_TABS.filter((tab) => enabled[tab.id]);
+    const index = usable.findIndex((tab) => tab.id === from);
+    const target =
+      event.key === 'ArrowRight'
+        ? usable[(index + 1) % usable.length]
+        : event.key === 'ArrowLeft'
+          ? usable[(index - 1 + usable.length) % usable.length]
+          : event.key === 'Home'
+            ? usable[0]
+            : event.key === 'End'
+              ? usable[usable.length - 1]
+              : undefined;
+    if (!target) return;
+    event.preventDefault();
+    onSelect(target.id);
+    document.getElementById(`piece-tab-${target.id}`)?.focus();
+  };
+  return (
+    <div role="tablist" aria-label="Partes da peça" className="flex gap-1 border-b border-line bg-canvas px-4">
+      {PIECE_TABS.map((tab) => (
+        <button
+          key={tab.id}
+          id={`piece-tab-${tab.id}`}
+          type="button"
+          role="tab"
+          aria-selected={selected === tab.id}
+          aria-controls={`piece-panel-${tab.id}`}
+          tabIndex={selected === tab.id ? 0 : -1}
+          disabled={!enabled[tab.id]}
+          onClick={() => onSelect(tab.id)}
+          onKeyDown={(event) => move(event, tab.id)}
+          className={`-mb-px min-h-11 border-b-2 px-3 text-sm font-medium disabled:opacity-40 ${
+            selected === tab.id ? 'border-accent text-accent-strong' : 'border-transparent text-muted hover:text-ink'
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 interface Section {
   title: string;
@@ -126,6 +191,7 @@ export function DraftCanvas({
   onExport,
   onCaseSources,
   reviewActions,
+  tabs,
   history,
   extras,
   caseControls,
@@ -151,6 +217,16 @@ export function DraftCanvas({
   onExport: (format: 'docx' | 'pdf') => void;
   onCaseSources?: () => void;
   reviewActions?: ReactNode;
+  /**
+   * Tema gelo: a peça tem abas. Com elas, "Fontes do caso" e a conferência saem do cabeçalho e viram as abas Fontes e
+   * Revisão, cujo conteúdo vem em `panels`.
+   */
+  tabs?: {
+    selected: PieceTab;
+    onSelect: (tab: PieceTab) => void;
+    enabled: Record<PieceTab, boolean>;
+    panels: { fontes: ReactNode; revisao: ReactNode };
+  };
   history: ReactNode;
   extras?: ReactNode;
   caseControls?: ReactNode;
@@ -171,7 +247,7 @@ export function DraftCanvas({
       className="flex min-h-[70dvh] min-w-0 flex-col bg-canvas-deep lg:h-[calc(100dvh-8rem)]"
     >
       <header className="flex flex-wrap items-center gap-2 border-b border-stone-200 bg-canvas px-4 py-3 text-sm">
-        {onCaseSources && (
+        {onCaseSources && !tabs && (
           <button type="button" className="min-h-9 rounded-lg px-2 hover:bg-stone-100" onClick={onCaseSources}>
             Fontes do caso
           </button>
@@ -300,7 +376,24 @@ export function DraftCanvas({
         </p>
       )}
       {extras}
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3 sm:px-4">
+      {tabs && <PieceTabs selected={tabs.selected} onSelect={tabs.onSelect} enabled={tabs.enabled} />}
+      {tabs && tabs.selected !== 'texto' && (
+        <div
+          id={`piece-panel-${tabs.selected}`}
+          role="tabpanel"
+          aria-labelledby={`piece-tab-${tabs.selected}`}
+          className="min-h-0 flex-1 overflow-y-auto bg-canvas px-5 py-4"
+        >
+          {tabs.panels[tabs.selected]}
+        </div>
+      )}
+      <div
+        id="piece-panel-texto"
+        role={tabs ? 'tabpanel' : undefined}
+        aria-labelledby={tabs ? 'piece-tab-texto' : undefined}
+        hidden={tabs ? tabs.selected !== 'texto' : undefined}
+        className="min-h-0 flex-1 overflow-y-auto px-2 py-3 sm:px-4"
+      >
         <article
           aria-label="Documento em edição"
           className="mx-auto min-h-full max-w-[860px] space-y-6 bg-white px-5 py-8 shadow-sm sm:px-8 xl:px-10"

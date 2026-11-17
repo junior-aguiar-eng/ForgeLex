@@ -76,7 +76,7 @@ export function ApprovalDialog({
 }
 
 /** Conferência da peça: a versão salva, ou o histórico somente leitura de uma versão antiga. */
-export function ReviewDialog({
+export function ReviewBody({
   details,
   requestedVersion,
   historyMode,
@@ -94,7 +94,6 @@ export function ReviewDialog({
   reviewStatus,
   onReview,
   onApprove,
-  onClose,
 }: {
   details: DraftDetails;
   requestedVersion?: string | null;
@@ -115,10 +114,9 @@ export function ReviewDialog({
   reviewStatus: string | null;
   onReview: () => void;
   onApprove: () => void;
-  onClose: () => void;
 }) {
   return (
-    <CanvasDialog title="Conferência da peça" onClose={onClose}>
+    <>
       {historyMode ? (
         <div className="space-y-3">
           <p role="status">
@@ -164,6 +162,17 @@ export function ReviewDialog({
           {reviewStatus}
         </p>
       )}
+    </>
+  );
+}
+
+type ReviewBodyProps = Parameters<typeof ReviewBody>[0];
+
+/** A conferência em diálogo (tema clássico). No gelo o mesmo conteúdo vira a aba Revisão da peça. */
+export function ReviewDialog({ onClose, ...props }: ReviewBodyProps & { onClose: () => void }) {
+  return (
+    <CanvasDialog title="Conferência da peça" onClose={onClose}>
+      <ReviewBody {...props} />
     </CanvasDialog>
   );
 }

@@ -19,13 +19,14 @@ import { CASE_WORKSPACE_ENABLED, DESK_ENABLED } from '../../config/site-capabili
 import { formatBRL } from '../../format';
 import { highlightedTab, iceNavigation, type NavIcon, type NavItem } from '../../navigation/app-navigation';
 import type { AppTab } from '../../navigation/routes';
+import { useDeskHistorySlot } from './desk-history-slot';
 import { useBalanceCents } from './use-balance';
 
 /**
  * Lateral da casca do tema gelo (protótipo de 09/11): a marca no alto, o grupo Trabalho (Mesa, Casos, Jurisprudência),
- * o grupo Conta e recursos e, no pé, o saldo. Na Mesa ela nasce recolhida em trilho de ícones, até a V3 levar a lista de
- * conversas para dentro dela; o cliente pode expandi-la e a escolha vale até a página recarregar. Abaixo de `lg` vira
- * gaveta, aberta pelo botão do cabeçalho.
+ * o grupo Conta e recursos e, no pé, o saldo. Na Mesa, as conversas recentes ficam dentro dela (V3). O cliente pode
+ * recolhê-la em trilho de ícones e a escolha vale até a página recarregar. Abaixo de `lg` vira gaveta, aberta pelo botão
+ * do cabeçalho.
  */
 
 // Os ícones só aparecem no trilho; a lateral aberta é de texto, como no protótipo.
@@ -69,15 +70,13 @@ const ItemButton: React.FC<{ item: NavItem; active: boolean; collapsed: boolean;
 
 export const IceSidebar: React.FC<{
   activeTab: AppTab;
-  /** Recolhida por padrão (na Mesa). A escolha do cliente prevalece. */
-  collapsedByDefault: boolean;
   mobileOpen: boolean;
   onCloseMobile: () => void;
   onSelect: (tab: AppTab) => void;
-}> = ({ activeTab, collapsedByDefault, mobileOpen, onCloseMobile, onSelect }) => {
+}> = ({ activeTab, mobileOpen, onCloseMobile, onSelect }) => {
   const { account, signOut } = useAuth();
-  const [preference, setPreference] = useState<boolean | undefined>(undefined);
-  const collapsed = preference ?? collapsedByDefault;
+  const [collapsed, setCollapsed] = useState(false);
+  const { setElement: setHistorySlot } = useDeskHistorySlot();
   const navigation = React.useMemo(
     () => iceNavigation({ deskEnabled: DESK_ENABLED, casesEnabled: CASE_WORKSPACE_ENABLED }),
     [],
@@ -165,6 +164,12 @@ export const IceSidebar: React.FC<{
               />
             ))}
           </nav>
+          {/* A Mesa renderiza aqui a lista de conversas. No trilho recolhido não há espaço para ela. */}
+          {active === 'work' && (
+            <div className={collapsed ? 'lg:hidden' : ''}>
+              <aside aria-label="Histórico de conversas" ref={setHistorySlot} className="min-w-0" />
+            </div>
+          )}
         </div>
 
         <div className="shrink-0 space-y-3">
@@ -203,7 +208,7 @@ export const IceSidebar: React.FC<{
           )}
           <button
             type="button"
-            onClick={() => setPreference(!collapsed)}
+            onClick={() => setCollapsed(!collapsed)}
             className="hidden min-h-11 w-full items-center justify-center gap-2 rounded-[var(--fl-radius-control)] text-xs font-medium text-subtle hover:bg-canvas-deep hover:text-ink lg:inline-flex"
             aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
             aria-expanded={!collapsed}

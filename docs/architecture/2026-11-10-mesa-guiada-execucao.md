@@ -1773,3 +1773,36 @@ Sobre `main` em `66617a0`, na branch `claude/v2-casca`. A casca nova (lateral, V
 - **Publicação.** Nada foi publicado. O gelo ainda não passa pelo Cloud Build nem pelo `deploy-from-main.ps1` (V1), então nenhum build de produção sai com a casca nova.
 
 Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
+
+## V3 — Mesa, parte 1: composição e abas da peça (17/11/2026)
+
+Sobre `main` em `b15bbd3`, na branch `claude/v3-mesa`. Primeira das duas PRs que o plano prevê para a V3. Tudo vale **só no tema gelo**; o clássico segue como está.
+
+### Decisão de Boni nesta etapa
+
+- **Lateral na Mesa.** Como no protótipo: as conversas recentes passam para dentro da lateral e ela fica aberta na Mesa. A coluna de histórico da Mesa some; o trilho de ícones (V2) deixa de ser o padrão da Mesa e continua disponível pelo botão "Recolher".
+
+### O que foi feito
+
+- **Conversas recentes na lateral.** `components/ice/desk-history-slot.tsx` dá à lateral um ponto onde a Mesa renderiza a lista (portal), com a lista, a lixeira, o "Desfazer" e o diálogo do celular como eram. O clássico usa o contexto padrão, sem elemento, e mantém a coluna. `DeskShell` e `DeskToolbar` recebem `historyInSidebar`: no gelo não reservam coluna nem mostram o botão "Recolher conversas".
+- **Abas da peça.** `DraftCanvas` ganhou `PieceTabs` (Texto, Fontes, Revisão; `role="tablist"`, setas, Home e End). "Fontes do caso" e "Conferência da peça" deixam de ser botões de diálogo no gelo: Fontes mostra o conteúdo de `DeskCaseSources`; Revisão mostra a conferência (`ReviewBody`, extraída de `ReviewDialog`, que passa a ser só o diálogo em volta do mesmo conteúdo) e, abaixo, a revisão editorial. O texto continua montado e só escondido nas outras abas: o que foi digitado, a seleção e a rolagem ficam. Sem caso não há Fontes; sem versão salva não há Revisão (as abas ficam desabilitadas).
+- **Abrir a conferência de fora.** Uma pendência da fila que abre a conferência leva direto à aba Revisão; "Editar a seção" a partir de um apontamento volta à aba Texto.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Clássico inalterado | 52 capturas contra as de depois da V2: **estilo idêntico e as 52 imagens idênticas**. |
+| Gelo e acessibilidade | axe em 52 telas: nenhuma violação. Três testes novos de acessibilidade das abas (Texto, Fontes, Revisão). |
+| Vitest | 316 arquivos e 2638 testes aprovados; ESLint, tipos e Prettier limpos; contraste sem piora. |
+| Playwright, gelo | 46 cenários, 45 aprovados e 1 falho: o download do Word deste ambiente (o mesmo de `main`; na CI passa). Novos: lateral aberta na Mesa com a lista dentro dela e recolhimento; abas com o texto preservado e sem diálogos; teclado; abas desabilitadas sem caso; axe das abas. |
+| Playwright, clássico | `desk-shell` (30 de 31, o mesmo falho do Word), `draft-review` (4 de 5, o falho é o mesmo download do Word), `desk-review`, `editorial-review` e `desk-save-recovery` aprovados. |
+
+### Divergências em relação ao protótipo e o que fica para a parte 2
+
+- **Revisão editorial.** No protótipo as sugestões (aceitar e recusar) aparecem em linha na aba Revisão. Aqui a aba mostra a conferência e o botão da revisão editorial existente, que abre o próprio diálogo; reescrevê-la mexe em recibos e execução comercial, e fica fora desta parte.
+- **Cabeçalho da Mesa, seletor de caso, "Criar caso a partir desta conversa", etapas do trabalho e estado vazio com os dois selos** são a parte 2 (V3b).
+- **Orientação.** A pergunta ativa e o "Não sei" já existiam; no gelo seguem com as cores legadas mapeadas pela V1. O acabamento visual fica para a parte 2.
+- **Download do Word** neste ambiente (sem relação com a V3).
+
+Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.

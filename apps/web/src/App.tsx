@@ -5,6 +5,7 @@ import { Sidebar } from './components/Sidebar';
 import { IceHeader } from './components/ice/IceHeader';
 import { IceFrame } from './components/ice/IceFrame';
 import { IceSidebar } from './components/ice/IceSidebar';
+import { DeskHistorySlotProvider } from './components/ice/desk-history-slot';
 import { activeTheme } from './theme/active-theme';
 import { ScreenLoadBoundary } from './components/ScreenLoadBoundary';
 import AuthScreen from './screens/AuthScreen';
@@ -61,7 +62,7 @@ const AppContent: React.FC = () => {
     return <AuthScreen initialView="sign_in" status={status} />;
   }
 
-  return (
+  const shell = (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-canvas">
       {/* Header */}
       {ice
@@ -70,7 +71,7 @@ const AppContent: React.FC = () => {
 
       <div className="relative flex min-w-0 flex-1">
         {ice
-          ? <IceSidebar activeTab={visibleTab} collapsedByDefault={visibleTab === 'work'} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />
+          ? <IceSidebar activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />
           : <Sidebar mobileOnly={visibleTab === 'work'} activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
         <main className="min-w-0 flex-1">
           {ice && visibleTab !== 'work' && <IceFrame tab={visibleTab} />}
@@ -109,6 +110,7 @@ const AppContent: React.FC = () => {
       </footer>}
     </div>
   );
+  return ice ? <DeskHistorySlotProvider>{shell}</DeskHistorySlotProvider> : shell;
 };
 
 const AuthEntry: React.FC<{ route: SiteRoute }> = ({ route }) => {

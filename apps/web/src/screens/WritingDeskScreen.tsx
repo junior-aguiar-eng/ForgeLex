@@ -16,6 +16,7 @@ import { deskLocation, readDeskLocation, writeDeskLocation } from '../navigation
 import { tabForPath, updateDocumentTitle } from '../navigation/routes';
 import { useAuth } from '../auth/AuthContext';
 import { DeskShell } from '../desk/DeskShell';
+import { useDeskHistorySlot } from '../components/ice/desk-history-slot';
 import { DeskShortcuts, reviewTextRequest } from '../desk/DeskShortcuts';
 import { DESK_SHELL_ENABLED } from '../config/site-capabilities';
 import { DeskMobileTabs, DeskToolbar } from '../desk/DeskToolbar';
@@ -37,7 +38,10 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
   const [open, setOpen] = useState(Boolean(location));
   const [mobile, setMobile] = useState<'chat' | 'piece'>(location ? 'piece' : 'chat');
   const [piece, setPiece] = useState<DeskPiece | null>(null);
-  const [historyContainer, setHistoryContainer] = useState<HTMLElement | null>(null);
+  const [columnContainer, setHistoryContainer] = useState<HTMLElement | null>(null);
+  // No tema gelo a lista de conversas vive na lateral do app; no clássico, na coluna da própria Mesa.
+  const historySlot = useDeskHistorySlot();
+  const historyContainer = historySlot.inSidebar ? historySlot.element : columnContainer;
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const activePiece = attached && piece && matchesDeskPiece(selection, piece) ? piece : null;
   const target = attached ? editorLocation(selection) : '';
@@ -177,11 +181,13 @@ export function WritingDeskScreen({ active, requestedLocation }: { active: boole
     <DeskShell
       historyRef={setHistoryContainer}
       historyCollapsed={historyCollapsed}
+      historyInSidebar={historySlot.inSidebar}
       open={open}
       mobile={mobile}
       toolbar={
         <DeskToolbar
           historyCollapsed={historyCollapsed}
+          historyInSidebar={historySlot.inSidebar}
           onToggleHistory={() => setHistoryCollapsed((value) => !value)}
           onOpenQueue={() => {
             setQueueError('');
