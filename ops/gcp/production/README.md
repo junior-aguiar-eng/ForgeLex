@@ -115,7 +115,7 @@ Ao terminar, imprime o build ID, os comandos de reversão e o que registrar no `
   antes da produção. Para trocar o valor, use um comando separado e autorizado por Boni
   (`gcloud run services update <serviço> --update-env-vars=NOME=true`) e reverta com `=false`.
 - **Trocar uma flag de interface de propósito:** `-AgenticWorkspaceEnabled`, `-CaseWorkspaceEnabled`,
-  `-SavedResearchEnabled`, `-DeskShellEnabled`, `-AttachmentsEnabled` ou `-MatterChipsEnabled` (`true`/`false`).
+  `-SavedResearchEnabled`, `-DeskShellEnabled`, `-AttachmentsEnabled`, `-MatterChipsEnabled` ou `-OcrEnabled` (`true`/`false`).
   Sem elas, valem as do último build (as três da Mesa, ausentes em builds antigos, valem `false`).
 - **Retomar é seguro:** depois de `-NoTraffic`, informe o `-ReleaseBuildId` exibido. O recurso desse build é lido
   novamente e precisa coincidir com o projeto, SHA, substituições e digest esperados; então a imagem e as revisões

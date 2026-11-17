@@ -9,6 +9,11 @@ export default defineConfig({
   outputDir: 'test-results/attachments',
   testMatch: 'attachments.spec.ts',
   webServer: servers.map((server, index) =>
-    index === 0 ? server : { ...server, env: { ...server.env, VITE_FORGELEX_ATTACHMENTS_ENABLED: 'true' } },
+    index === 0
+      ? server
+      : {
+          ...server,
+          env: { ...server.env, VITE_FORGELEX_ATTACHMENTS_ENABLED: 'true', VITE_FORGELEX_OCR_ENABLED: 'true' },
+        },
   ),
 });

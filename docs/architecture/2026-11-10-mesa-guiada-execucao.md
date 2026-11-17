@@ -1416,3 +1416,100 @@ produção (orientação guiada, v3, salvamento recuperável). Elas só protegem
 
 Reversão: reverter os commits do PR #177; o leitor de Word fica atrás da flag de anexos
 (`VITE_FORGELEX_ATTACHMENTS_ENABLED`), desligada por padrão.
+
+## U6 — OCR no navegador (17/11/2026)
+
+Sobre `main` em `27d0329`, na branch `claude/u6-ocr` (PR #179). Boni pediu a U6 depois de fechar as parciais. Atrás de
+`VITE_FORGELEX_OCR_ENABLED`, **desligada por padrão**, e só vale com os anexos ligados (`OCR_ENABLED` em
+`site-capabilities.ts`). Nada foi publicado nem ligado.
+
+### O que foi feito
+
+Um PDF só de imagem ou uma imagem anexada passa a oferecer "Reconhecer texto (OCR)", dizendo que a leitura é feita no
+navegador. O motor é o Tesseract.js 7.0.0 (Apache-2.0), só o LSTM, em português, **no navegador, sem enviar o arquivo
+ao servidor** (DEC-13). Durante o reconhecimento há andamento por página, botão Cancelar e o envio fica bloqueado. O
+texto fica marcado "Reconhecido por OCR — conferir" (com a confiança média), é **editável** antes do envio e segue para a
+IA rotulado `texto reconhecido por OCR; pode conter erros de leitura`. PDF com mais de 20 páginas é **recusado** antes de
+gastar tempo, em vez de reconhecer só uma parte e entregar um texto incompleto sem o cliente notar.
+
+| Peça                       | Onde                                                                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Orquestração               | `apps/web/src/ocr/ocr-document.ts`: abre o PDF ou a imagem, reconhece página por página, junta, limita e cancela; motor, PDF e imagem entram por injeção e são carregados sob demanda.     |
+| Motor e fontes de imagem   | `tesseract-engine.ts` (Tesseract.js) e `browser-sources.ts` (páginas do pdf.js em canvas a cerca de 200 dpi; imagens reduzidas a 4.000 px no lado maior).                                  |
+| Arquivos do motor          | `apps/web/ocr-assets-plugin.ts`: worker, núcleo WebAssembly (três variantes LSTM, conforme o suporte a SIMD) e idioma `por` (`4.0.0_best_int`, 1,4 MB), servidos de **`/ocr/`**, mais `NOTICE.txt`. |
+| Anexos                     | `use-attachments.ts` (reconhecer, cancelar, editar), `AttachmentChips.tsx` e `attachments.ts` (rótulo no contexto, oferta só para PDF ou imagem sem texto, espaço de edição).               |
+| Flag ponta a ponta         | `site-capabilities.ts`, `Dockerfile`, `cloudbuild.yaml`, `deploy-lib.ps1`, `deploy-from-main.ps1 -OcrEnabled`, `dev-mesa.mjs`, README de `ops/gcp/production`.                              |
+| Servidor                   | `static-web.ts`: arquivo ausente em `/ocr/` responde 404, nunca a página inicial (o worker a executaria como script).                                                                      |
+| Fixtures                   | `scripts/generate-ocr-fixtures.mjs` gera `tests/e2e/fixtures/ocr/` (PDF de 2 páginas só imagem, PNG com texto, página em branco e PDF de 21 páginas); a geração é determinística.            |
+
+**Decisões técnicas desta etapa (minhas, para Boni rever).** Idioma `best_int` (1,4 MB) em vez do pacote com o motor
+legado (6,7 MB). Arquivos servidos da nossa origem, não do CDN que a biblioteca usa por padrão: o arquivo do cliente não
+sai do navegador, e as requisições de OCR também não vão a terceiros. Os arquivos só entram na imagem quando o OCR está
+ligado no build (com a flag desligada `dist/` tem 3,2 MB; ligada, 16 MB). `tesseract.js: false` em `allowBuilds`: o
+script de instalação do pacote é só um aviso de financiamento. O PDF "só imagem" passou a ter um código (`PDF_NO_TEXT`) no
+leitor existente, para os anexos o tratarem como "sem texto extraível" e não como "Erro na leitura"; a mensagem do leitor,
+usada também na tela de casos, não mudou.
+
+### Medição de tempo (define o limite de páginas)
+
+Chromium headless, Xeon de 2,1 GHz com 4 vCPU virtuais, motor real:
+
+| Caso                                              | Resultado                                                       |
+| ------------------------------------------------- | --------------------------------------------------------------- |
+| Página densa A4 (1652×2336 px, ≈2.700 caracteres) | **4,6 a 5,0 s** por página; 2.702 caracteres reconhecidos       |
+| Página de poucas linhas                           | cerca de 0,8 s                                                  |
+| Imagem de uma página, com a carga do motor        | 1,4 s                                                           |
+| PDF de 2 páginas, com a carga do motor            | 3,1 s                                                           |
+| Carga do motor (worker, núcleo e idioma)          | cerca de 0,8 s a frio                                           |
+
+Limite escolhido: **20 páginas** (cerca de 95 s no pior caso aqui, com cancelamento a qualquer momento) e 15 MB por
+arquivo. O tempo em um notebook de cliente pode ser menor ou maior; o limite está em `OCR_MAX_PAGES`.
+
+### Verificação
+
+As 11 suítes da Mesa foram rodadas no Chromium **depois** das mudanças e comparadas com o estado-base de 16/11/2026
+(antes da refatoração das telas): resultado **idêntico, suíte por suíte**, com uma única diferença esperada.
+
+| Suíte                | Estado-base         | Depois da U6                                   |
+| -------------------- | ------------------- | ---------------------------------------------- |
+| `writing-desk`       | 38 aprovados, 1 falho | 38 aprovados, 1 falho (o mesmo)               |
+| `desk-shell`         | 30 aprovados, 1 falho | 30 aprovados, 1 falho (o mesmo)               |
+| `desk-guidance`      | 6                   | 6                                              |
+| `desk-guidance-v3`   | 6                   | 6                                              |
+| `desk-research`      | 2                   | 2                                              |
+| `desk-review`        | 3                   | 3                                              |
+| `desk-save-recovery` | 4                   | 4                                              |
+| `desk-procedure`     | 3                   | 3                                              |
+| `desk-pilot`         | 4                   | 4                                              |
+| `attachments`        | 4                   | **9** (os 5 cenários novos de OCR)             |
+| `agentic-workspace`  | 25                  | 25                                             |
+
+A falha é a mesma nos dois momentos, `writing-desk.spec.ts:290` (o download do Word chega com o nome `download` neste
+ambiente; a CI passa esse spec em `main`).
+
+| Item                    | Resultado                                                                                                                                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vitest completo         | 306 arquivos e 2.518 testes aprovados, 40 ignorados (PostgreSQL), nenhum falho.                                                                                                                                |
+| Orquestração do OCR     | 18 testes. **14 mutações, todas mortas**: três sobreviveram na primeira rodada (página renderizada depois do cancelamento, progresso que regride, motor não encerrado na hora) e ganharam teste próprio.      |
+| Playwright, anexos      | 9 cenários com o **motor real**: PDF escaneado reconhece, edita e segue com o pedido; imagem; página em branco; PDF de 21 páginas recusado; cancelar volta ao estado anterior e bloqueia o envio.                |
+| Requisições             | No Chromium, nenhuma requisição de OCR saiu da origem (CDN, dados de idioma); só `/ocr/…`.                                                                                                                     |
+| Build                   | Pacote principal 473.908 B sem a flag e 473.921 B com ela (**+13 B**); o motor é um chunk de 833 B carregado sob demanda e a carga inicial é só o pacote principal. O validador do Dockerfile aprova os dois. |
+| Dependências            | `pnpm audit --prod`: só um aviso baixo, em `fast-xml-parser` da API, sem relação; `check-build-audit` limpo.                                                                                                   |
+
+### Aberto, para decisão de Boni
+
+- **Qualidade em documentos reais.** O último item do plano ("medir qualidade em documentos reais autorizados por Boni;
+  só então avaliar OCR no servidor") **não foi feito**. Todos os arquivos medidos são sintéticos e limpos, o melhor caso do
+  OCR; não se sabe a taxa de erro em digitalizações de verdade (ruído, inclinação, carimbos, manuscrito). **Por isso a U6
+  está pronta no código, mas a flag deve continuar desligada** até essa medição. OCR no servidor só entra depois, em decisão
+  própria sobre custo e retenção.
+- **Licença do pacote de idioma.** O `NOTICE.txt` traz o texto das duas licenças Apache-2.0 do código e, para o idioma,
+  uma **declaração de origem** (pacote `@tesseract.js-data/por`, MIT; modelos do projeto Tesseract, Apache-2.0), não o texto
+  de uma licença. Boni deve conferir.
+- **Balanceador.** O servidor da aplicação não define política de segurança de conteúdo, mas o balanceador não foi lido.
+  Se houver uma lá, ela precisa permitir worker `blob:` e WebAssembly (`wasm-unsafe-eval`).
+- **Cache local.** O Tesseract.js guarda os dados de idioma (públicos, não o documento) no IndexedDB do navegador.
+- **PowerShell.** Não havia `pwsh` aqui: as mudanças em `deploy-lib.ps1`, `deploy-from-main.ps1` e seus testes só são
+  exercitadas pela CI.
+
+Reversão: manter a flag desligada, ou reverter os commits do PR #179.

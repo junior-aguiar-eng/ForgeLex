@@ -434,11 +434,13 @@ Depende de U4 e DEC-12.
 
 Depende de U5 e DEC-13.
 
-- [ ] Quando o PDF ou a imagem não tem texto selecionável, oferecer “Reconhecer texto (OCR)”. Hoje o erro manda o
+**Situação em 17/11.** Pronta no código, atrás de `VITE_FORGELEX_OCR_ENABLED` (desligada por padrão): OCR no navegador com Tesseract.js, andamento, cancelamento, limite de 20 páginas (medido: 4,6 a 5,0 s por página densa), texto editável e marcado, arquivos do motor servidos da nossa origem. **O último item segue aberto**: a qualidade só foi medida em arquivos sintéticos e limpos; a medição em documentos reais, que Boni autoriza, decide se a flag liga e se o OCR no servidor chega a ser avaliado. Ver [registro da U6](../../architecture/2026-11-10-mesa-guiada-execucao.md#u6--ocr-no-navegador-17112026).
+
+- [x] Quando o PDF ou a imagem não tem texto selecionável, oferecer “Reconhecer texto (OCR)”. Hoje o erro manda o
       cliente fazer OCR por fora.
-- [ ] OCR no navegador, em português, com progresso, cancelamento e limite de páginas definido por medição de tempo.
-- [ ] O texto reconhecido é marcado como “reconhecido por OCR — conferir”, editável antes de salvar.
-- [ ] Fixtures próprias de PDF escaneado e imagem, com teste E2E.
+- [x] OCR no navegador, em português, com progresso, cancelamento e limite de páginas definido por medição de tempo.
+- [x] O texto reconhecido é marcado como “reconhecido por OCR — conferir”, editável antes de salvar.
+- [x] Fixtures próprias de PDF escaneado e imagem, com teste E2E.
 - [ ] Medir qualidade em documentos reais autorizados por Boni; só então avaliar OCR no servidor, em decisão separada.
 
 **Aceite.** Um PDF escaneado de teste vira texto editável e utilizável no pedido. **Reversão.** Flag de OCR.

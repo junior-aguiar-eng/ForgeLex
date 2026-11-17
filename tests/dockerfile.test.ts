@@ -13,6 +13,15 @@ describe('imagem de produção', () => {
     expect(dockerfile.indexOf('VITE_FORGELEX_CASE_WORKSPACE_ENABLED=${VITE_FORGELEX_CASE_WORKSPACE_ENABLED}')).toBeLessThan(dockerfile.indexOf('RUN pnpm build'));
     expect(dockerfile).toContain('ARG VITE_FORGELEX_DESK_SHELL=false');
     expect(dockerfile.indexOf('VITE_FORGELEX_DESK_SHELL=${VITE_FORGELEX_DESK_SHELL}')).toBeLessThan(dockerfile.indexOf('RUN pnpm build'));
+    // OCR (U6): desligada por padrão, e a flag chega ao build tanto pelo Dockerfile quanto pelo Cloud Build.
+    expect(dockerfile).toContain('ARG VITE_FORGELEX_OCR_ENABLED=false');
+    expect(dockerfile.indexOf('VITE_FORGELEX_OCR_ENABLED=${VITE_FORGELEX_OCR_ENABLED}')).toBeLessThan(dockerfile.indexOf('RUN pnpm build'));
+    const productionBuild = await readFile(
+      fileURLToPath(new URL('../ops/gcp/production/cloudbuild.yaml', import.meta.url)),
+      'utf8',
+    );
+    expect(productionBuild).toContain('VITE_FORGELEX_OCR_ENABLED=${_VITE_FORGELEX_OCR_ENABLED}');
+    expect(productionBuild).toContain("_VITE_FORGELEX_OCR_ENABLED: 'false'");
     expect(cloudBuild).toContain('VITE_SUPABASE_URL=${_VITE_SUPABASE_URL}');
     expect(cloudBuild).toContain('VITE_SUPABASE_PUBLISHABLE_KEY=${_VITE_SUPABASE_PUBLISHABLE_KEY}');
   });

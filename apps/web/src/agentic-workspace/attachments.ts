@@ -2,13 +2,15 @@
  * Anexos do pedido (U5). Só o texto extraído segue com o pedido (DEC-12): o arquivo não é guardado. O texto passa a
  * fazer parte do contexto escrito, então o cliente o confere antes de enviar e pode abrir, trocar ou remover o anexo.
  */
+import { isImageFile, isPdfFile } from '../ocr/ocr-document';
+
 export const ATTACHMENT_ACCEPT = '.pdf,.txt,.md,.docx,.doc,image/*';
 export const ATTACHMENT_MAX_FILES = 5;
 /** Teto do texto dos anexos juntos; o pedido inteiro, com o que o cliente escreveu, cabe nos 100.000 caracteres da execução. */
 export const ATTACHMENT_MAX_TOTAL_CHARS = 80_000;
 export const ATTACHMENT_MAX_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 
-export type AttachmentStatus = 'reading' | 'done' | 'no-text' | 'unsupported' | 'error' | 'too-large';
+export type AttachmentStatus = 'reading' | 'ocr' | 'done' | 'no-text' | 'unsupported' | 'error' | 'too-large';
 
 export interface Attachment {
   id: string;
@@ -19,9 +21,15 @@ export interface Attachment {
   /** Mensagem legível para os estados que não são `done` nem `reading`. */
   message?: string;
   pages?: number;
+  /** Só em `no-text` de PDF ou imagem, com o OCR ligado: o cliente pode pedir o reconhecimento (U6). */
+  canOcr?: boolean;
+  /** O texto veio de OCR: pode ter erros, o cliente o confere e pode editá-lo antes de enviar. */
+  ocr?: { confidence: number | null; pages: number };
+  /** Andamento do OCR em curso (`status` é `ocr`). */
+  ocrProgress?: { page: number; pages: number; fraction: number };
 }
 
-export type AttachmentResult = Pick<Attachment, 'status' | 'text' | 'message' | 'pages'>;
+export type AttachmentResult = Pick<Attachment, 'status' | 'text' | 'message' | 'pages' | 'canOcr'>;
 
 const done = (text: string, pages?: number): AttachmentResult => ({
   status: 'done',
@@ -103,6 +111,10 @@ export async function readAttachment(
     };
   } catch (error) {
     if (signal?.aborted) throw error;
+    // PDF só de imagem (digitalização): não é falha de leitura, é um arquivo sem texto selecionável.
+    if ((error as { code?: unknown } | null)?.code === 'PDF_NO_TEXT') {
+      return { status: 'no-text', text: '', message: noTextMessage };
+    }
     return {
       status: 'error',
       text: '',
@@ -117,6 +129,7 @@ const noWordTextMessage =
 
 export const attachmentStatusLabel: Record<AttachmentStatus, string> = {
   reading: 'Lendo…',
+  ocr: 'Reconhecendo texto…',
   done: 'Texto extraído',
   'no-text': 'Sem texto extraível',
   unsupported: 'Formato não aceito',
@@ -151,8 +164,30 @@ export function fitAttachment(result: AttachmentResult, others: readonly Attachm
 export function attachmentContext(attachments: readonly Attachment[]): string {
   const ready = attachments.filter((attachment) => attachment.status === 'done' && attachment.text);
   if (!ready.length) return '';
-  return ready.map((attachment) => `Anexo "${attachment.name}" (texto extraído):\n${attachment.text}`).join('\n\n');
+  return ready
+    .map(
+      (attachment) =>
+        `Anexo "${attachment.name}" (${attachment.ocr ? 'texto reconhecido por OCR; pode conter erros de leitura' : 'texto extraído'}):\n${attachment.text}`,
+    )
+    .join('\n\n');
 }
 
 export const hasReadingAttachment = (attachments: readonly Attachment[]) =>
-  attachments.some((attachment) => attachment.status === 'reading');
+  attachments.some((attachment) => attachment.status === 'reading' || attachment.status === 'ocr');
+
+const ocrOfferMessage =
+  'Não encontramos texto neste arquivo. Se for uma digitalização, use "Reconhecer texto (OCR)": a leitura é feita no seu navegador e o arquivo não sai dele.';
+
+/**
+ * Com o OCR ligado, um PDF ou imagem sem texto passa a oferecer o reconhecimento. Qualquer outro resultado, ou o OCR
+ * desligado, segue como veio.
+ */
+export function withOcrOffer(result: AttachmentResult, file: File, enabled: boolean): AttachmentResult {
+  if (!enabled || result.status !== 'no-text' || !(isPdfFile(file) || isImageFile(file))) return result;
+  return { ...result, message: ocrOfferMessage, canOcr: true };
+}
+
+/** Caracteres que o texto de um anexo ainda pode ter: o teto do conjunto menos o que os outros anexos já usam. */
+export function attachmentRoom(attachments: readonly Attachment[], id: string): number {
+  return ATTACHMENT_MAX_TOTAL_CHARS - attachmentChars(attachments.filter((attachment) => attachment.id !== id));
+}
