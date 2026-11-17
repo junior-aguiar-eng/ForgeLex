@@ -1842,3 +1842,37 @@ Sobre `main` em `ceb205a`, na branch `claude/v3-mesa-2`. Segunda e última PR da
 - **Download do Word** neste ambiente (sem relação com a V3).
 
 Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
+
+## V4 — Jurisprudência, leitor e selos (17/11/2026)
+
+Sobre `main` em `0e8d8b3`, na branch `claude/v4-jurisprudencia`. Tudo vale **só no tema gelo**; o clássico segue como está.
+
+### Escopo e dependência
+
+O plano põe a V4 atrás da M4 (busca ancorada no caso, com a frase de aderência por resultado), que **ainda não existe**. Esta PR faz a parte da V4 que não depende dela: a linguagem visual dos selos, o título e a legenda da Jurisprudência e o leitor de decisões. A aderência ao caso (análise da IA por resultado, consultas sugeridas pelas questões do caso, "Pesquisar com o caso") fica para depois da M4; o selo da IA existe e aparece na explicação do estado vazio da Mesa, mas nenhum resultado de pesquisa o mostra, porque nenhum resultado tem análise.
+
+### O que foi feito
+
+- **Selos (`components/ice/Seal`, `verification-seal.ts`).** A verificação é um fato da fonte, com estados próprios, em ícone e texto (nunca só cor): **Verificada** (verde, só a conferência na fonte oficial), **Conferida no fornecedor** (aviso), **A conferir na fonte** (neutro), **Metadados divergentes** (aviso) e **Sem correspondência** (erro, com "isso não prova que não exista"). Estado desconhecido nunca aparece como verificado. O selo da análise da IA (petróleo, rotulado "Análise da IA") é um componente à parte, para não confundir verificação com leitura da IA. O selo de origem externa (M5) não foi criado.
+- **Jurisprudência.** Título "Jurisprudência" com a frase que leva ao Andamento processual; antes da primeira busca, a legenda "Como ler os resultados" com três selos; o resultado da conferência de decisão usa o selo. O resto da tela (consulta, cobrança, pesquisas salvas) não mudou.
+- **Leitor de decisões.** No gelo usa a paleta e a fonte editorial do tema (variáveis `--reader-*` sobrescritas só com `data-theme="gelo"`) e mostra o selo de verificação no alto do registro, não mais escondido em "Origem e fonte". O leitor do MCP (isolado) e o clássico ficam iguais.
+- **Fontes do caso e pesquisa salva.** O selo entra pelo `CitationChecks`, que as duas telas já usam.
+- **Mesa.** O estado vazio passa a usar os mesmos componentes de selo.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Clássico inalterado | 52 capturas contra as da V3: **estilo idêntico e as 52 imagens idênticas**. |
+| Gelo e acessibilidade | axe em 52 telas: nenhuma violação; mais axe na Jurisprudência antes e depois de uma busca. Tons dos selos sobre os dois fundos: 4,66 a 6,47 para 1 (o menor é o aviso sobre o fundo da página). |
+| Vitest | 319 arquivos e 2661 testes aprovados (+6 do modelo dos selos); ESLint, tipos, `format:check:code` e contraste sem piora. |
+| Playwright, gelo | `research-gelo.spec.ts` (novo, 2 cenários, com passo próprio na CI): título, legenda, ausência de promessa de aderência, selo no leitor, paleta do leitor, selo na conferência; `shell-gelo` com 51 de 52 (o falho é o download do Word deste ambiente). |
+| Playwright, clássico e MCP | `saved-research` (inclui o leitor isolado do MCP), `research`, `desk-research` e as 32 do `mcp-site` aprovados; `case-flow` com o mesmo download do Word falhando. |
+
+### Divergências em relação ao protótipo
+
+- **Lista com painel da decisão ao lado.** O protótipo mostra os resultados numa lista e a decisão selecionada num painel. O leitor atual é um leitor passo a passo ("1 de N"), compartilhado com o leitor do MCP; trocá-lo por lista e painel mexe nos dois e fica fora desta etapa.
+- **Aderência ao caso, "Pesquisar com o caso" e consultas sugeridas.** Dependem da M4.
+- **Leitor de decisão em página própria (`Decisao`).** Segue o leitor existente, no tema.
+
+Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
