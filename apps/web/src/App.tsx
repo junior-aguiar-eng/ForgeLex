@@ -6,6 +6,7 @@ import { IceHeader } from './components/ice/IceHeader';
 import { IceFrame } from './components/ice/IceFrame';
 import { IceSidebar } from './components/ice/IceSidebar';
 import { DeskHistorySlotProvider } from './components/ice/desk-history-slot';
+import { AccountAside } from './components/ice/AccountAside';
 import { activeTheme } from './theme/active-theme';
 import { ScreenLoadBoundary } from './components/ScreenLoadBoundary';
 import AuthScreen from './screens/AuthScreen';
@@ -83,7 +84,9 @@ const AppContent: React.FC = () => {
               {visibleTab === 'datajud' && <DataJudPage title={ice ? 'Andamento processual' : undefined} />}
               {visibleTab === 'matter' && <MatterWorkspaceScreen />}
               {visibleTab === 'connections' && <ConnectionsScreen />}
-              {visibleTab === 'credits' && <CreditsScreen />}
+              {visibleTab === 'credits' && (ice
+                ? <div className="mx-auto grid max-w-[1400px] gap-6 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8"><div className="min-w-0"><CreditsScreen /></div><div className="pt-8 md:pt-12"><AccountAside /></div></div>
+                : <CreditsScreen />)}
               {visibleTab === 'account_activity' && <AccountActivityScreen />}
               {visibleTab === 'account_security' && <AccountSecurityScreen />}
               {visibleTab === 'api_keys' && <ApiKeysScreen />}

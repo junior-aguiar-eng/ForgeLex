@@ -1876,3 +1876,39 @@ O plano põe a V4 atrás da M4 (busca ancorada no caso, com a frase de aderênci
 - **Leitor de decisão em página própria (`Decisao`).** Segue o leitor existente, no tema.
 
 Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
+
+## V5 — Conta e Conectar IA (17/11/2026)
+
+Sobre `main` em `ae43108`, na branch `claude/v5-conta-conectar`. Tudo vale **só no tema gelo**; o clássico segue como está, com o DOM idêntico.
+
+### Escopo e decisão de Boni
+
+O plano põe a V5 atrás da U7 (a tela "Casos" sai e a Mesa a absorve), que **ainda não foi feita**. Casos e Caso novo, portanto, **ficam de fora** (não faz sentido vestir uma tela que vai sair). Conta e Conectar IA já tinham a estrutura do protótipo desde a V2 (seções no alto) e são mais completas que ele. Decisão de Boni: complementar **só com dado real**, sem criar endpoint novo.
+
+### Auditoria pedida pelo plano
+
+- **Botões inertes.** Varri todos os `<button>` do app sem tratador: o único é a aba única "Ementa" do leitor de decisões, que é um `tab` selecionado por definição, não um botão que prometa algo. Também não há `href="#"`, tratador vazio nem texto de "em breve".
+- **Valores financeiros.** Nenhum valor em reais está escrito no código do app: pacotes, tarifas e saldo vêm do serviço e passam por `formatBRL`. A coluna nova segue a regra e usa os centavos como vieram.
+
+### O que foi feito
+
+- **Coluna lateral da Conta (`AccountAside`).** Ao lado de Faturamento, em telas largas (abaixo de `lg` vai para baixo): **Identificação** (nome e espaço de trabalho da conta, "conta pré-paga, em reais"), **Chaves de API** (quantas e quais, só pelo prefixo público e o estado; nunca o segredo nem os escopos; leva a "Gerenciar chaves"), **Atividade da conta** (os três lançamentos mais recentes, com os rótulos da tela de lançamentos e o valor em centavos do serviço; leva a "Ver atividade") e **Encerramento de conta** (o pedido é em Segurança e a política segue a publicada; leva a Segurança e à política de destinação). Cada cartão busca o próprio dado e, se falhar, diz que está indisponível sem derrubar os outros. O modelo (`account-aside-model.ts`) é puro e testado.
+- **Conectar IA.** "Como fica o trabalho", em três passos que o próprio serviço sustenta: a conversa é na IA do cliente, com a assinatura dele; ela chama as ferramentas do ForgeLex quando precisa de fonte; o que for cobrado aparece na atividade da conta, por operação, e comando gratuito não gera lançamento.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Clássico inalterado | 52 capturas contra as da V4: **estilo idêntico e as 52 imagens idênticas**. |
+| Gelo e acessibilidade | axe em 52 telas: nenhuma violação; mais axe em Conta no celular e em Conectar IA. |
+| Vitest | 320 arquivos e 2669 testes aprovados (+8 do modelo da coluna lateral); ESLint, tipos, `format:check:code` e contraste sem piora. |
+| Playwright, gelo | 55 cenários, 54 aprovados e 1 falho (o download do Word deste ambiente, igual a `main`; na CI passa). Novos: a coluna lateral com uma chave criada (aparece o prefixo, nunca o segredo), a ida a Segurança, a coluna no celular sem rolagem lateral e "Como fica o trabalho". |
+
+### Divergências em relação ao protótipo
+
+- **Tabela de ferramentas publicadas, com tarifa** (Conectar): o serviço não expõe esse catálogo; criar o endpoint ficou fora do escopo decidido. Fica como pendência.
+- **"Consumo recente" e "Tarifas vigentes" como blocos da Conta:** a tela real já tem saldo, valores, lançamentos e recarga, e é mais completa; não foram reescritos.
+- **"Baixar recibos", "Última recarga" e "Dados de cobrança"** do protótipo não têm correspondente real e não foram criados.
+- **Casos e Caso novo:** aguardam a U7.
+
+Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.

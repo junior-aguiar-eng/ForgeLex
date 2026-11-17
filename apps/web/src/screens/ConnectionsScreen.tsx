@@ -1,3 +1,4 @@
+import { activeTheme } from '../theme/active-theme';
 import { CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, LockKeyhole, ShieldCheck } from 'lucide-react';
@@ -48,6 +49,19 @@ export const ConnectionsScreen: React.FC = () => {
       <section className="surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-cognac-700" aria-hidden="true" /><div><h2 className="font-editorial text-xl font-bold text-stone-900">Créditos ForgeLex e assinatura da sua IA</h2><p className="mt-1 text-sm leading-relaxed text-stone-600">A assinatura do ChatGPT ou Claude não paga operações ForgeLex. O ForgeLex cobra somente a pesquisa jurídica faturável; comandos de abrir autoridade e verificar proveniência são gratuitos.</p></div></div>
       </section>
+
+      {activeTheme() === 'gelo' && (
+        <section aria-labelledby="como-fica" className="rounded-2xl border border-line bg-surface p-5">
+          <h2 id="como-fica" className="text-[11px] font-semibold uppercase tracking-[0.1em] text-subtle">
+            Como fica o trabalho
+          </h2>
+          <ol className="mt-3 grid gap-3 text-sm text-ink-soft sm:grid-cols-3">
+            <li><span className="mr-2 font-mono text-xs text-subtle">1</span>Você conversa na sua própria IA, com a sua assinatura.</li>
+            <li><span className="mr-2 font-mono text-xs text-subtle">2</span>Ela chama as ferramentas do ForgeLex quando precisa de fonte.</li>
+            <li><span className="mr-2 font-mono text-xs text-subtle">3</span>O que for cobrado aparece na atividade da conta, por operação; comando gratuito não gera lançamento.</li>
+          </ol>
+        </section>
+      )}
 
       <nav aria-label="Plataforma para conectar" className="flex flex-wrap gap-3">{connections.map((connection) => <button key={connection.platform} aria-pressed={connection.platform === platform} onClick={() => setPlatform(connection.platform)} className={connection.platform === platform ? 'btn-primary' : 'btn-secondary'}>Mostrar instruções para {platformName(connection.platform)}</button>)}</nav>
 
