@@ -2184,3 +2184,31 @@ Nem o backend nem a tela "Casos" renomeavam caso (só criavam). Esta fatia acres
 3. Decidir o destino da exclusão definitiva (ficar em Dados do caso ou ir para a Mesa).
 
 Reversão: reverter o commit; a rota nova some e a tela "Casos" continua igual. A rota só existe depois de a API ser publicada.
+
+## Retomada e reordenação das pendências (18/11/2026)
+
+Sobre `main` em `d2c2d69` (merge do #196). Só documentação e conferência de código; nada foi publicado.
+
+### CI do push do #196 (run 525)
+
+Falhou só o `e2e-product`, em "Initialize containers": `failed to bind host port 0.0.0.0:55432/tcp: address already in use`
+ao subir o Postgres de serviço. Nenhum teste rodou; os outros seis jobs passaram (inclusive `validate`, `postgres`, `e2e-desk`
+e `e2e-public`). No PR, o mesmo job tinha passado. Boni reexecutou e passou. **Causa não provada.** O `ci.yml` (linhas 71 e 154)
+mapeia o Postgres de serviço na porta fixa `55432:5432`; o `e2e-product` roda em `ubuntu-latest` (imagem 26.04 nessa execução),
+enquanto o job `postgres` está fixado em `ubuntu-24.04`. Hipótese não testada: algo na imagem ou no host do runner ocupou a 55432.
+Uma porta aleatória para o serviço (e a URL lida do mapeamento) removeria a dependência. Terceira instabilidade do
+`e2e-product` registrada (ver `PENDENCIAS.md`).
+
+### E2 — fechada
+
+`rg` no `apps/web/src` (sem testes) por `.size`, `structuredClone`, `.at(`, `findLast`, `toSorted`, `Object.groupBy`,
+`replaceAll`, `Object.hasOwn` e `randomUUID`. Nenhum outro `.size` sobre `URLSearchParams` (os demais são `File.size`, universal).
+Há `Array.prototype.at`, `Object.hasOwn` e `crypto.randomUUID` (Safari 15.4 e Chrome 92–93; `randomUUID` só em contexto seguro,
+e o site é HTTPS), coerentes com o alvo ES2022. Sem mudança de código. Limite: não medi a lista de navegadores suportados, que o
+repositório não declara (`browserslist` ausente).
+
+### Plano
+
+`docs/superpowers/plans/2026-11-11-forgelex-plano-unificado.md`: estado atualizado para 18/11 (seção 1), nova seção 1A com as
+pendências da mais antiga para a mais recente e quem as executa, E2 marcada, PR-U2 em andamento e S.5 corrigindo o S.4 (o Daybreak
+foi publicado em 16/11; as caixas de S0 a S7 não foram marcadas na época e precisam de conferência).

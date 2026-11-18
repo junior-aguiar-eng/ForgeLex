@@ -1,5 +1,16 @@
 # Pendências atuais do ForgeLex
 
+## Estado em 18/11/2026 (`main` em `d2c2d69`)
+
+`main` tem o #196 (U7 parte 1: gerenciar casos na Mesa no tema gelo e `PATCH /api/v2/matters/:matterId`), que **não está
+publicado**: em produção continua `6fe4f75`. Plano e ordem de retomada, da pendência mais antiga para a mais recente:
+[seção 1A do plano unificado](docs/superpowers/plans/2026-11-11-forgelex-plano-unificado.md).
+
+**Terceira instabilidade do `e2e-product` em `main` (18/11, run 525 do #196).** Falhou ao subir o Postgres de serviço:
+`address already in use` na porta 55432; nenhum teste rodou. Reexecutado por Boni, passou. O `ci.yml` fixa `55432:5432` e o job roda em
+`ubuntu-latest` (26.04 nessa execução); a causa da ocupação da porta não foi provada. Com as duas anteriores (`database is locked`, `matter-lifecycle.spec.ts:48`) são três falhas
+intermitentes sem causa corrigida; investigar antes da próxima publicação.
+
 ## Daybreak — publicado em produção em 16/11/2026 (registro corrigido)
 
 Boni autorizou commit, push e deploy. Os PRs #153–#158 (um por subsistema) e os de acompanhamento da revisão
