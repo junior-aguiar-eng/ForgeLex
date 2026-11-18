@@ -13,7 +13,11 @@ export default defineConfig(({ mode }) => {
     build: { outDir: process.env.FORGELEX_VITE_OUT_DIR || 'dist' },
     plugins: [
       react(),
-      publicSitePlugin({ model: env.VITE_FORGELEX_PUBLIC_MODEL === 'true', origin: env.VITE_PUBLIC_ORIGIN }),
+      publicSitePlugin({
+        model: env.VITE_FORGELEX_PUBLIC_MODEL === 'true',
+        origin: env.VITE_PUBLIC_ORIGIN,
+        theme: env.VITE_FORGELEX_THEME,
+      }),
       ...(ocr ? [ocrAssetsPlugin()] : []),
     ],
     server: {

@@ -11,6 +11,7 @@ import {
   VIEWPORTS,
   diffStyleDumps,
   normalizeVolatileText,
+  parseViewports,
   parseDevMesaOutput,
   screenName,
   summarizeAxe,
@@ -19,7 +20,7 @@ import {
 // Referência visual do app (plano, etapas V0 a V7): captura as telas em dois tamanhos, grava a cor, a tipografia e o raio de cada elemento
 // e compara duas capturas. Serve para provar que um tema ou uma refatoração não mudou o que não devia.
 //
-//   node scripts/visual-baseline.mjs capture --out <pasta> [--origin <site> --api <api>] [--only <trecho>] [--axe]
+//   node scripts/visual-baseline.mjs capture --out <pasta> [--origin <site> --api <api>] [--only <trecho>] [--axe] [--viewports 360,768,1440]
 //   node scripts/visual-baseline.mjs compare <pasta-antes> <pasta-depois> [--styles-only]
 //
 // Sem `--origin`, sobe um ambiente novo (`scripts/dev-mesa.mjs`, que exige `pnpm build`) e o encerra no fim. Subir um
@@ -80,8 +81,10 @@ async function capture(args) {
       api: { type: 'string' },
       only: { type: 'string' },
       axe: { type: 'boolean', default: false },
+      viewports: { type: 'string' },
     },
   });
+  const viewports = parseViewports(values.viewports);
   if (!values.out) throw new Error('Informe --out <pasta>.');
   if (Boolean(values.origin) !== Boolean(values.api)) throw new Error('Informe --origin e --api juntos.');
   const out = resolve(values.out);
@@ -92,7 +95,7 @@ async function capture(args) {
   const accessibility = {};
   const errors = [];
   try {
-    for (const [size, viewport] of Object.entries(VIEWPORTS)) {
+    for (const [size, viewport] of Object.entries(viewports)) {
       const context = await browser.newContext({
         viewport,
         reducedMotion: 'reduce',
@@ -141,7 +144,7 @@ async function capture(args) {
       {
         commit: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim(),
         screens: Object.keys(dumps),
-        viewports: VIEWPORTS,
+        viewports,
         styleProps: STYLE_PROPS,
       },
       null,

@@ -32,6 +32,13 @@ test('apresentação pública enxuta e âncoras antigas são acessíveis', async
   expect(errors).toEqual([]);
 });
 
+test('o tema clássico não define theme-color nem troca o favicon', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'classico');
+  expect(await page.locator('meta[name="theme-color"]').count()).toBe(0);
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /fill='%238E5D2A'/);
+});
+
 test('visitante lê o produto e chega ao cadastro sem autenticação', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(

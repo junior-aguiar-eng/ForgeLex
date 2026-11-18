@@ -11,7 +11,7 @@
     <!--
       Tema (V1), escolhido antes da primeira pintura. VITE_FORGELEX_THEME vale "classico" (padrão), "gelo" ou "previa"
       (clássico, com ?tema=gelo guardado no navegador, só para homologação). Qualquer outro valor, ou a variável sem
-      valor, é o tema clássico. O tema gelo pré-carrega só a Inter 400.
+      valor, é o tema clássico. O tema gelo pré-carrega só a Inter 400, troca o favicon e define a cor da barra do navegador (theme-color); o clássico não mexe em nenhum dos dois.
     -->
     <script data-theme-script>
       (function () {
@@ -42,6 +42,18 @@
           preload.href = '/fonts/inter-latin-400-normal.woff2';
           preload.crossOrigin = 'anonymous';
           document.head.appendChild(preload);
+          // V6: favicon e cor da barra do navegador na paleta do gelo (acento e fundo de apps/web/src/index.css).
+          var icon = document.querySelector && document.querySelector('link[rel="icon"]');
+          if (icon) {
+            icon.setAttribute(
+              'href',
+              "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230F5C6E'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>",
+            );
+          }
+          var color = document.createElement('meta');
+          color.name = 'theme-color';
+          color.content = '#F4F7F8';
+          document.head.appendChild(color);
         }
       })();
     </script>

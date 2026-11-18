@@ -8,22 +8,27 @@ import { DEFAULT_PUBLIC_ORIGIN, metadata, modelMetadata } from './src/public/pub
  * `sitemap.xml` e o `robots.txt`. Duas coisas mudam, e só quando pedidas:
  *
  * - `VITE_FORGELEX_PUBLIC_MODEL=true` troca o título e a descrição da página inicial pelos do modelo novo (V5A), as
- *   mesmas strings de `public-metadata-data.ts`, e acrescenta a imagem de prévia (`og:image`) com o título novo;
+ *   mesmas strings de `public-metadata-data.ts`, e acrescenta a imagem de prévia (`og:image`) com o título novo, na
+ *   paleta do tema do build (`VITE_FORGELEX_THEME=gelo` usa a imagem azul-petróleo, V6);
  * - `VITE_PUBLIC_ORIGIN` troca o domínio (D3, virada de domínio); sem ela vale o domínio atual.
  *
  * Sem nenhuma das duas, o `index.html` sai exatamente como está no repositório.
  */
 export const OG_IMAGE_PATH = '/og/forgelex-modelo.png';
+/** Mesma imagem na paleta do tema gelo (V6); entra quando o build é `VITE_FORGELEX_THEME=gelo`. */
+export const OG_IMAGE_GELO_PATH = '/og/forgelex-modelo-gelo.png';
 export const OG_IMAGE_ALT = 'ForgeLex: Sua IA, com jurisprudência que dá para conferir.';
 
 export interface PublicSiteOptions {
   model: boolean;
   origin?: string;
+  /** `VITE_FORGELEX_THEME` do build; só `gelo` troca a imagem de prévia. */
+  theme?: string;
 }
 
 const normalizeOrigin = (origin?: string) => (origin?.trim() || DEFAULT_PUBLIC_ORIGIN).replace(/\/$/, '');
 
-export function transformPublicIndexHtml(html: string, { model, origin }: PublicSiteOptions): string {
+export function transformPublicIndexHtml(html: string, { model, origin, theme }: PublicSiteOptions): string {
   const target = normalizeOrigin(origin);
   let out = html;
   if (model) {
@@ -37,7 +42,7 @@ export function transformPublicIndexHtml(html: string, { model, origin }: Public
       if (!out.includes(from)) throw new Error(`index.html não contém o texto esperado: ${from}`);
       out = out.split(from).join(to);
     }
-    const image = `${target}${OG_IMAGE_PATH}`;
+    const image = `${target}${theme === 'gelo' ? OG_IMAGE_GELO_PATH : OG_IMAGE_PATH}`;
     const tags = [
       `    <meta property="og:image" content="${image}" />`,
       `    <meta property="og:image:alt" content="${OG_IMAGE_ALT}" />`,

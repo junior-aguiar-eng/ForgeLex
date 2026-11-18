@@ -2068,3 +2068,39 @@ Sobre `main` em `b5660d4`, na branch `claude/v6-plumbing`. **Não liga nada.** H
 **Ligar de fato** (fora desta entrega, decisão de Boni, em publicação isolada): `./ops/gcp/production/deploy-from-main.ps1 -DryRun -Theme gelo` para ver o plano, depois sem `-DryRun`. Reversão: `-Theme classico`.
 
 Reversão desta entrega: reverter o commit; nada em produção muda enquanto os parâmetros não forem usados.
+
+## V6 — Favicon, theme-color, imagem de prévia e passada completa no tema gelo (18/11/2026)
+
+Sobre `main` em `cad9fcb`, na branch `claude/v6-favicon`. **Não liga o tema.** Tudo o que muda vale só com `VITE_FORGELEX_THEME=gelo`; o clássico sai igual.
+
+### O que foi feito
+
+| Item | O que mudou |
+| ---- | ----------- |
+| Favicon | O script do tema no `index.html` (o mesmo que escolhe o tema antes da primeira pintura) troca o `href` do `<link rel="icon">` por um SVG na cor do acento do gelo, `#0F5C6E`. O clássico mantém o marrom `#8E5D2A`. |
+| `theme-color` | No gelo o script acrescenta `<meta name="theme-color" content="#F4F7F8">`, o fundo da página, para a barra do navegador no celular. O clássico **não tem** `theme-color`, como hoje. |
+| Imagem Open Graph | `apps/web/public/og/forgelex-modelo-gelo.png` (1200×630, 67 KB), a mesma do modelo novo na paleta do gelo (Spectral, fundo `#F4F7F8`, acento `#0F5C6E`). O plugin do `index.html` usa essa imagem quando o build é `VITE_FORGELEX_THEME=gelo` e a original nos demais temas. |
+| Ferramenta de capturas | Nova opção `--viewports 360,768,1440` (`parseViewports`, com teste); sem ela valem os dois tamanhos de sempre. |
+
+As duas cores não ficam soltas: um teste lê o bloco `[data-theme="gelo"]` de `index.css` e exige que o favicon e o `theme-color` usem o acento (`--fl-accent`) e o fundo (`--fl-canvas`) de lá. Se o tema mudar de cor, o teste acusa.
+
+### Passada completa (item de aceite da V6)
+
+| Item | Resultado |
+| ---- | --------- |
+| Axe (WCAG 2.0 e 2.1, A e AA) | **Sem violação em 78 telas**: as 26 telas do roteiro em 360, 768 e 1440 px, com o tema gelo. |
+| Olhada humana | Vi a Mesa com peça em 360 px e o diálogo "Pesquisa e fontes" em 768 px. **Não revi as 78 imagens**: o aceite visual por tela continua sendo de Boni (como na A19). |
+| Achado antigo | No diálogo "Pesquisa e fontes" a 768 px, o cartão "Consulta jurisprudencial" passa da borda direita do diálogo e perde a borda. **Acontece igual no tema clássico** (capturado e comparado), então não é regressão do gelo. Fica anotado, sem correção aqui para não mexer no clássico. |
+| Leitor de tela nos eventos da Mesa | **Não feito.** Exige leitor de tela de verdade (NVDA, VoiceOver); é conferência de Boni antes de ligar o tema. |
+
+### Verificação
+
+Vitest do script de tema (3 casos novos: favicon e `theme-color` só no gelo, cores iguais às do CSS, página sem `querySelector` não quebra; mutação provada trocando um dígito do `#F4F7F8`), do plugin (imagem por tema) e da ferramenta de capturas. Playwright: o clássico não define `theme-color` e mantém o favicon (`public-site.spec.ts`, 18 aprovados); o gelo define os dois já na página de entrada (`shell-gelo.spec.ts`); `public-model.spec.ts` 5 aprovados.
+
+### Pendente para ligar o gelo
+
+1. Boni confere as telas (aceite visual) e o leitor de tela nos eventos da Mesa.
+2. Decidir o achado do cartão a 768 px (corrigir antes ou depois).
+3. Homologação com `VITE_FORGELEX_THEME=gelo`, depois produção, em publicação isolada: `deploy-from-main.ps1 -Theme gelo`.
+
+Reversão: `-Theme classico` e novo deploy; ou reverter este commit.
