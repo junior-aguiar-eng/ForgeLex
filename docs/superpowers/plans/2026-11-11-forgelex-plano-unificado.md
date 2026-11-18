@@ -1,6 +1,6 @@
 # ForgeLex — Plano unificado de execução
 
-**Versão 3 · 11 de novembro de 2026 · Estado atualizado em 13 de novembro de 2026**
+**Versão 3 · 11 de novembro de 2026 · Estado atualizado em 18 de novembro de 2026**
 
 > Este é o único plano vigente do ForgeLex. Ele substitui o plano v2 da Mesa guiada (10/11/2026), cujo conteúdo foi
 > incorporado aqui, e o plano de reestruturação visual e integração com o Ratione elaborado em 09/11/2026 fora do
@@ -29,18 +29,44 @@
 
 ## 1. Ponto de partida
 
-| Item                   | Situação em 13/11/2026                                                                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Base Git               | `main` em `01b46c5`, com as correções de M2 integradas pela PR #146.                                                                                   |
-| Publicação             | `01b46c5` publicado nos dois serviços em 13/11. DryRun, comparação de configuração, saúde e cinco cenários autenticados aprovados.                     |
-| Mesa em produção       | Casca, anexos PDF/TXT/MD e chips de matéria ligados no build. Orientação guiada e `mesa-v3` ligadas no serviço, com diretório do catálogo configurado. |
-| Salvamento recuperável | Flag desligada nas revisões publicadas. A aplicação da `0041` está documentada no banco isolado de HML. M2 permanece parcial.                          |
-| Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                    |
-| Verificação            | CI de `01b46c5` aprovada. M2 validado em HML e controles do resumo reconferidos em produção. Aceite A18 dado em 14/11/2026; verificações residuais do MCP pendentes. |
-| Visual                 | Tema clássico vigente. V0 a V5 feitas no gelo; A19 aceita por Boni em 17/11.                                                                             |
-| Domínio em uso         | `nexojuris.ia.br` em produção. `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                              |
+| Item                   | Situação em 18/11/2026                                                                                                                                                                  |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Base Git               | `main` em `d2c2d69` (merge do #196, U7 parte 1). O CI desse push falhou só no `e2e-product`, por colisão da porta 55432 do Postgres no runner; reexecutado, passou.                      |
+| Publicação             | `6fe4f75` em produção desde 16/11 (Daybreak S1–S7, migrations 0042, 0043 e `billing-ledger-0011`, busca STJ #168/#169). O código posterior (V0–V6 preparação, V5A, U7 parte 1) está em `main` e não publicado. |
+| Mesa em produção       | Casca, anexos PDF/TXT/MD e chips de matéria ligados no build. Orientação guiada, `mesa-v3` e salvamento recuperável (migração `0041`, 14/11) ligados no serviço.                          |
+| Salvamento recuperável | Ligado em produção desde 14/11 (`forgelex-api-prod-draftsave-cd94c2c`). Falta o ensaio autenticado do passo 5 em produção.                                                               |
+| Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                                                     |
+| Verificação            | A18 aceita em 14/11; A19 aceita em 17/11. Pendentes: verificações residuais do MCP, ensaio de E3, manifesto do catálogo em produção e três falhas intermitentes de CI sem causa provada. |
+| Visual                 | Tema clássico vigente em produção. Gelo feito de V0 a V5A e pronto atrás de flag; V6 (ligar) aguarda passada final e publicação isolada.                                                 |
+| U7                     | Parte 1 integrada (#196): renomear, arquivar, lixeira e restaurar caso na Mesa (gelo). Decisão de 18/11: a tela “Casos” vira “Dados do caso”, não sai.                                    |
+| Domínio em uso         | `nexojuris.ia.br` em produção. D0 a D5 não iniciadas; `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                                         |
 
 Revisões, flags e validação da reserva constam em [PENDENCIAS.md](../../../PENDENCIAS.md#estado-publicado-atual--13112026-sha-01b46c5) e no [registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
+
+### 1A. Pendências abertas, da mais antiga para a mais recente (18/11/2026)
+
+Ordem de retomada decidida por Boni em 18/11/2026. “Código” é o que a sessão executa sozinha; “Boni” exige ação, acesso
+ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
+
+| #   | Origem          | Pendência                                                                                                                                         | Quem  |
+| --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 1   | Out/2026        | Ensaios residuais do MCP, provas comerciais e fiscais, braces e lacuna STJ (`PENDENCIAS.md`, “Pendências humanas e externas”)                      | Boni  |
+| 2   | E2, 11/11       | ~~Outros usos de API recente sem fallback~~ — **fechada em 18/11** (ver E2)                                                                         | Código |
+| 3   | E3, 12/11       | Ensaio em homologação com chave inválida: log e e-mail do alerta                                                                                  | Boni  |
+| 4   | U1, 12/11       | Remover exemplos e dados de demonstração mortos da interface e das fixtures                                                                       | Código |
+| 5   | U3, 12/11       | Entrada em linguagem natural, grande área, tribunal na orientação (muda `GuidanceSnapshot`), chips, peça sem ficha e cliques sem provedor         | Código |
+| 6   | M1, 14/11       | Recusa de renovação do Claude (1 em 33); reserva e mensagem de saldo insuficiente em jornada autenticada                                           | Boni  |
+| 7   | M3, 12–14/11    | Manifesto servido em produção; súmulas do TSE, 1.355 citações sem tribunal, processos e teses; 44 avisos; contradições de teor                     | Boni e código |
+| 8   | S0–S7, 14/11    | Conferir cada caixa `[ ]` contra o registro da Frente S e marcar; S8 segue com Boni                                                               | Código, depois Boni |
+| 9   | CI, 15–18/11    | Três falhas intermitentes do `e2e-product` sem causa provada: `database is locked` (15/11), `matter-lifecycle.spec.ts:48` (16/11), porta 55432 (18/11, ambiente) | Código |
+| 10  | Daybreak, 16/11 | “Não verificado”: seção 8 do checklist, saída do script de publicação, primeiro uso real das ferramentas de publicação e de migrations (`-DryRun`) | Boni  |
+| 11  | U5, U6          | Identificação pela leitura do PDF (hipótese de U3); qualidade do OCR em documentos autorizados                                                    | Código e Boni |
+| 12  | U7, 18/11       | Documentos do caso e PDF como anexo; “Dados do caso” e redirecionamento de `/app/casos`; destino da exclusão definitiva                           | Código |
+| 13  | V5A, V6, V7     | Textos legais, `tests/public-*`, passada final e aceite, ligar o gelo, limpeza                                                                    | Código e Boni |
+| 14  | D0–D5           | Mudança de domínio (começa por registrar `forgelex.com.br`)                                                                                       | Boni, depois código |
+
+Sequência de trabalho a partir daqui: 4 (U1), depois 5 (U3), depois 9 (diagnóstico das falhas de CI, antes de qualquer
+nova publicação), depois 8 e 12. Os itens “Boni” ficam à espera dele e não bloqueiam os de código.
 
 ## 2. Decisões de Boni
 
@@ -157,7 +183,7 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 | PR-U1 | U      | U0 a U6  | PR-E; M3.0 (PR-M1) para a U3 | PR #139 integrado. Mesa única, casca, orientação v3, ações e anexos publicados. U2–U5 têm recortes pendentes e U6 está aberta.        |
 | PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 (#181) e V1 (#183) integradas; V2 a V5 (#184 a #189) feitas no gelo; A19 aceita.                                                   |
 | PR-M2 | M      | M4 e M5  | PR-V1 (V3)                   | Pendente                                                                                                                              |
-| PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Pendente                                                                                                                              |
+| PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Em andamento: parte 1 (#196) integrada; restam documentos, PDF, “Dados do caso”, redirecionamento e exclusão. |
 | PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D3/D4 nunca na mesma semana                                                                                            |
 | PR-R  | R      | Frente R | PR-V2 (V6); PR-M2 (M5)       | Posterior                                                                                                                             |
 
@@ -190,7 +216,7 @@ de retorno.
 
 - [x] Teste que remove `size` de `URLSearchParams.prototype` e confere `deskLocation` e a preservação em `routes.ts`.
 - [x] Trocar a decisão por `query.toString()` (string vazia quando não há parâmetros) e fazer o mesmo em `routes.ts`.
-- [ ] Procurar outros usos de API recente sem fallback (`rg "\.size\b|structuredClone|Array\.prototype\.at"` no web).
+- [x] Procurar outros usos de API recente sem fallback (18/11/2026): não há outro `.size` sobre `URLSearchParams` no web (os demais são `File.size`). Sem `structuredClone`. Restam `Array.prototype.at`, `Object.hasOwn` e `crypto.randomUUID` (Safari 15.4 e Chrome 92–93, em contexto seguro), compatíveis com o alvo ES2022 do projeto; sem mudança de código.
 
 **Verificação.** `desk-location.test.ts`, testes de rotas, `playwright.writing-desk.config.ts`.
 **Aceite.** URL idêntica com e sem a propriedade. **Reversão.** Reverter o commit.
@@ -1203,3 +1229,14 @@ Continua valendo o S.3: nada foi publicado, as migrations `persistence-0042`, `p
 e `billing-ledger-0011-refund-recovery` não foram aplicadas e o deploy exige acesso Google
 Cloud autenticado. A CI pós-merge de `bbda500` não foi conferida neste registro. S8 (verificação
 integrada e decisão de Boni) segue aberta até a publicação.
+
+### S.5 — Publicação e correção do registro — 16/11/2026
+
+O S.4 acima, que diz “nada foi publicado”, descreve o estado de 15/11 e ficou superado. Em 16/11/2026 (UTC) Boni publicou
+o Daybreak: backup sob demanda, migrations `persistence-0042`, `persistence-0043` e `billing-ledger-0011-refund-recovery`
+(journal 54 → 57, sem dado afetado), `af13b1c` e depois `6fe4f75` com 100% do tráfego. Evidência e horários em
+[PENDENCIAS.md](../../../PENDENCIAS.md) e em `docs/operations/daybreak/2026-11-16-execucao-migrations-e-publicacao.md`.
+
+As caixas `[ ]` de S0 a S7 acima não foram marcadas quando o trabalho foi feito e **não** são evidência de pendência nem de
+conclusão: cada uma precisa ser conferida contra o registro da Frente S antes de ser marcada. S8 (verificação integrada e
+decisão de Boni) segue aberta; compras e reembolsos reais e o encerramento dos achados no Daybreak continuam fora da autorização.
