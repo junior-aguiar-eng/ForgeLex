@@ -1,6 +1,12 @@
 import { resolveApiOrigin } from '../api-client';
 
-export function PublicFooter() {
+/** Frase de apresentação do rodapé. No modelo novo (V5A) segue o que o site afirma: fonte, MCP, Mesa e API. */
+export const FOOTER_TAGLINE =
+  'Jurisprudência dos tribunais superiores e consulta processual por MCP e API, com fontes e proveniência.';
+export const FOOTER_TAGLINE_MODEL =
+  'Jurisprudência com fonte e estado de verificação para a sua IA, por MCP, com Mesa de trabalho e API.';
+
+export function PublicFooter({ model = false }: { model?: boolean }) {
   const groups = [
     {
       title: 'Produto',
@@ -46,9 +52,7 @@ export function PublicFooter() {
           <a href="/" className="font-editorial text-xl font-bold text-stone-900">
             ForgeLex
           </a>
-          <p className="mt-4 text-sm leading-6 text-stone-600">
-            Jurisprudência dos tribunais superiores e consulta processual por MCP e API, com fontes e proveniência.
-          </p>
+          <p className="mt-4 text-sm leading-6 text-stone-600">{model ? FOOTER_TAGLINE_MODEL : FOOTER_TAGLINE}</p>
         </div>
         {groups.map((group) => (
           <nav key={group.title} aria-label={group.title}>

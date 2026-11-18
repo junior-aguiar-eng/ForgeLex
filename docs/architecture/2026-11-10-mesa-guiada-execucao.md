@@ -2012,3 +2012,39 @@ Nenhuma frase afirma o que não está no ar: Word, OCR, agentes analíticos, vig
 `PublicFooter` (o texto de apresentação do rodapé segue o atual); `LandingScreen` (a dupla versão do título por `CASE_WORKSPACE_ENABLED`); `ConnectionsScreen`; `index.html`, `sitemap.xml`, imagem Open Graph e `README.md`; `public-seo.test.ts`; URLs canônicas com o domínio vigente (D3); os textos legais em `apps/web/public/legal/` (**a aprovação é de Boni**). Depois, ligar a flag e publicar texto e função juntos.
 
 Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.
+
+## V5A — Site público no modelo novo, parte 3: rodapé, tela inicial, HTML estático, imagem e README (18/11/2026)
+
+Sobre `main` em `3f7ab5d`, na branch `claude/v5a-resto`. Continua **só com `VITE_FORGELEX_PUBLIC_MODEL=true`**, desligada por padrão e **desligada em produção** até a V5A inteira estar pronta.
+
+### O que foi feito
+
+| Item | O que mudou |
+| ---- | ----------- |
+| Rodapé público | Frase de apresentação nova no modelo ("Jurisprudência com fonte e estado de verificação para a sua IA, por MCP, com Mesa de trabalho e API."); links e documentos legais iguais. |
+| Tela inicial interna (`LandingScreen`) | No modelo novo mostra o título e o subtítulo aprovados, num só texto: some a dupla versão por `CASE_WORKSPACE_ENABLED` (a flag continua mandando no botão "Abrir caso", que é função). Com o modelo desligado, nada muda. O título passou para `config/public-model-copy.ts`, módulo pequeno que o site e o app dividem. |
+| Tela Conectar IA | **Sem mudança.** Já diz o que o modelo diz (conectar à IA do cliente, a assinatura dela não paga o ForgeLex, só a pesquisa é cobrada) e já tem "Como fica o trabalho" da V5. |
+| HTML que o robô lê sem JavaScript | Novo plugin de build (`public-site-html-plugin.ts`): com o modelo ligado, troca título e descrição da inicial no `index.html` pelas mesmas strings do código (`public-metadata-data.ts`, fonte única) e acrescenta `og:image`, `og:image:alt` e `twitter:image`, com `summary_large_image`. Sem a flag, o `index.html` sai igual. |
+| Imagem Open Graph | `apps/web/public/og/forgelex-modelo.png` (1200×630, 66 KB) com o título aprovado; entra no `index.html` só no modelo novo. |
+| Domínio sem valor fixo | `VITE_PUBLIC_ORIGIN` troca o domínio de `canonical`, `og:url`, imagem, `sitemap.xml` e `robots.txt` no build (D3); sem ela vale `https://nexojuris.ia.br`. Conferido com um build real em outro domínio: nada do domínio antigo sobra. |
+| `sitemap.xml` | Mesmas oito páginas; só passa a seguir `VITE_PUBLIC_ORIGIN`. |
+| `README.md` | Título e subtítulo aprovados no alto e a seção "Posicionamento público". |
+
+### Textos legais
+
+**Não alterei nenhum.** Levantei o que dizem e o que o modelo novo exige e deixei uma redação proposta para Boni em [docs/operations/stabilization/2026-11-18-textos-legais-modelo-novo-proposta.md](../operations/stabilization/2026-11-18-textos-legais-modelo-novo-proposta.md). A lacuna principal: a política de privacidade não diz que, na Mesa, o texto do pedido e dos anexos vai a um provedor de modelo contratado pelo ForgeLex (o código do piloto usa OpenAI). Dependem de Boni o nome do provedor e suas condições, onde fica o texto extraído do anexo e a tarifa da Mesa.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Vitest | 321 arquivos e 2.708 testes aprovados. Novos: `public-site-html.test.ts` (7: HTML idêntico sem flag, título e descrição nas três marcas, imagem, domínio trocado, sitemap e robots, falha alta se o texto esperado sumir), rodapé (2), tela inicial interna nos dois estados de casos (3). Mutação provada: pôr "OCR" na frase do rodapé derruba 9 testes. |
+| Playwright | `public-model.spec.ts` com 5 cenários; o novo lê o HTML bruto, confere título, `og:image`, o PNG servido e o rodapé. Suíte pública existente: 17 aprovados. |
+| Builds reais | Padrão: sem `og:image`, título atual. Modelo com `VITE_PUBLIC_ORIGIN=https://exemplo.com.br`: título novo, imagem no domínio novo, `sitemap.xml` e `robots.txt` sem o domínio antigo. |
+| Clássico | Com a flag desligada, 52 capturas idênticas às da parte 2 (estilos e imagens). |
+
+### Pendente na V5A
+
+Os textos legais (aprovação de Boni, a proposta acima) e a tarifa da Mesa (A24). Depois, ligar a flag e publicar texto e função juntos: a ligação em `Dockerfile`/Cloud Build e `deploy-from-main.ps1` é decisão de publicação de Boni e não faz parte desta entrega.
+
+Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.

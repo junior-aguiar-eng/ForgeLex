@@ -48,7 +48,7 @@ export function PublicSite({ page, model = PUBLIC_MODEL_ENABLED }: { page: Publi
       <main id="conteudo">
         <Page model={model} />
       </main>
-      <PublicFooter />
+      <PublicFooter model={model} />
     </div>
   );
 }

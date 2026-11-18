@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { ocrAssetsPlugin } from './ocr-assets-plugin';
+import { publicSitePlugin } from './public-site-html-plugin';
 
 export default defineConfig(({ mode }) => {
   const env = { ...loadEnv(mode, process.cwd(), 'VITE_'), ...process.env };
@@ -10,7 +11,11 @@ export default defineConfig(({ mode }) => {
   return {
     cacheDir: process.env.FORGELEX_VITE_CACHE_DIR || 'node_modules/.vite',
     build: { outDir: process.env.FORGELEX_VITE_OUT_DIR || 'dist' },
-    plugins: [react(), ...(ocr ? [ocrAssetsPlugin()] : [])],
+    plugins: [
+      react(),
+      publicSitePlugin({ model: env.VITE_FORGELEX_PUBLIC_MODEL === 'true', origin: env.VITE_PUBLIC_ORIGIN }),
+      ...(ocr ? [ocrAssetsPlugin()] : []),
+    ],
     server: {
       port: 3000,
     },

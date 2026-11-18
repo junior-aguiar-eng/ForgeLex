@@ -83,3 +83,16 @@ test('a consulta processual gratuita segue como é', async ({ page }) => {
   await page.goto('/consulta-processual');
   await expect(page).toHaveTitle('Consulta processual gratuita · ForgeLex');
 });
+
+test('o HTML que o robô lê sem JavaScript já traz o título novo e a imagem de prévia', async ({ page, request }) => {
+  const raw = await (await request.get('/')).text();
+  expect(raw).toContain('<title>ForgeLex · Sua IA, com jurisprudência que dá para conferir</title>');
+  expect(raw).toMatch(/<meta property="og:image" content="[^"]+\/og\/forgelex-modelo\.png" \/>/);
+  expect(raw).toContain('name="twitter:card" content="summary_large_image"');
+  expect(raw).not.toContain('Jurisprudência e consulta processual</title>');
+  const image = await request.get('/og/forgelex-modelo.png');
+  expect(image.ok()).toBe(true);
+  expect(image.headers()['content-type']).toContain('image/png');
+  await page.goto('/');
+  await expect(page.locator('footer')).toContainText('Jurisprudência com fonte e estado de verificação para a sua IA');
+});
