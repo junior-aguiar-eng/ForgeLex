@@ -117,6 +117,10 @@ Ao terminar, imprime o build ID, os comandos de reversão e o que registrar no `
 - **Trocar uma flag de interface de propósito:** `-AgenticWorkspaceEnabled`, `-CaseWorkspaceEnabled`,
   `-SavedResearchEnabled`, `-DeskShellEnabled`, `-AttachmentsEnabled`, `-MatterChipsEnabled` ou `-OcrEnabled` (`true`/`false`).
   Sem elas, valem as do último build (as três da Mesa, ausentes em builds antigos, valem `false`).
+- **Tema e texto público do modelo novo:** `-Theme classico|gelo` (V6) e `-PublicModelEnabled true|false` (V5A). Seguem a
+  mesma regra das flags: sem informar, vale o do último build, e build antigo sem eles vale `classico` e `false`. Só
+  `classico` e `gelo` são aceitos; `previa` é de homologação e é recusado. Reversão: publicar de novo com
+  `-Theme classico -PublicModelEnabled false`. A troca é publicação isolada, decidida por Boni (plano, seção 0, item 6).
 - **Retomar é seguro:** depois de `-NoTraffic`, informe o `-ReleaseBuildId` exibido. O recurso desse build é lido
   novamente e precisa coincidir com o projeto, SHA, substituições e digest esperados; então a imagem e as revisões
   identificadas por SHA e build ID são reaproveitadas. Sem esse ID explícito, uma nova execução cria um novo build,

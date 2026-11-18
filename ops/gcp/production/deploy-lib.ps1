@@ -24,8 +24,13 @@ $script:OptionalFlagSubstitutions = @(
   '_VITE_FORGELEX_DESK_SHELL',
   '_VITE_FORGELEX_ATTACHMENTS_ENABLED',
   '_VITE_FORGELEX_MATTER_CHIPS_ENABLED',
-  '_VITE_FORGELEX_OCR_ENABLED'
+  '_VITE_FORGELEX_OCR_ENABLED',
+  '_VITE_FORGELEX_PUBLIC_MODEL'
 )
+# Tema do app (V6). Não é true/false: só 'classico' (padrão) e 'gelo' podem ir à produção. 'previa' é de homologação.
+# Ausente no build anterior = 'classico', igual ao padrão do cloudbuild.yaml; quando o build traz, o valor dele é preservado.
+$script:ThemeSubstitution = '_VITE_FORGELEX_THEME'
+$script:AllowedThemes = @('classico', 'gelo')
 $script:FlagSubstitutions = @(
   '_VITE_FORGELEX_SAVED_RESEARCH_ENABLED',
   '_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED',
@@ -165,9 +170,10 @@ function New-BuildSubstitutions {
   foreach ($key in $script:OptionalFlagSubstitutions) {
     $result[$key] = if ($Previous.ContainsKey($key) -and -not [string]::IsNullOrWhiteSpace($Previous[$key])) { [string]$Previous[$key] } else { 'false' }
   }
+  $result[$script:ThemeSubstitution] = if ($Previous.ContainsKey($script:ThemeSubstitution) -and -not [string]::IsNullOrWhiteSpace($Previous[$script:ThemeSubstitution])) { [string]$Previous[$script:ThemeSubstitution] } else { 'classico' }
   $result['_SOURCE_SHA'] = $Sha
   foreach ($key in $Overrides.Keys) {
-    if ($key -notin $script:FlagSubstitutions) { throw "Só as flags de interface podem ser trocadas: $key" }
+    if ($key -notin $script:FlagSubstitutions -and $key -ne $script:ThemeSubstitution) { throw "Só as flags de interface e o tema podem ser trocados: $key" }
     $result[$key] = [string]$Overrides[$key]
   }
   if ($result['_SOURCE_SHA'] -notmatch '^[0-9a-f]{40}$') { throw 'SHA de origem inválido.' }
@@ -179,6 +185,9 @@ function New-BuildSubstitutions {
   if ($ref -ne $result['_SUPABASE_PROJECT_REF']) { throw 'A URL e o project ref do Supabase divergem.' }
   foreach ($flag in $script:FlagSubstitutions) {
     if ($result[$flag] -notin @('true', 'false')) { throw "Flag inválida: $flag deve ser 'true' ou 'false'." }
+  }
+  if ($result[$script:ThemeSubstitution] -cnotin $script:AllowedThemes) {
+    throw "Tema inválido: $($script:ThemeSubstitution) deve ser 'classico' ou 'gelo' em produção."
   }
   foreach ($value in $result.Values) {
     if ($value -match '[,\s]') { throw 'Valor de substituição com vírgula ou espaço não é suportado.' }

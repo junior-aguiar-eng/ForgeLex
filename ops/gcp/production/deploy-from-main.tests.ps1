@@ -134,7 +134,7 @@ Test-Case 'copia tudo do build anterior e troca só o SHA' {
   Assert-Equal $result['_SOURCE_SHA'] $sha
   Assert-Equal $result['_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED'] 'true'
   Assert-Equal $result['_VITE_FORGELEX_CASE_WORKSPACE_ENABLED'] 'true'
-  Assert-Equal $result.Count 12
+  Assert-Equal $result.Count 14
 }
 Test-Case 'flags da Mesa ausentes no build anterior valem false, como no cloudbuild.yaml' {
   $result = New-BuildSubstitutions -Previous $goodSubs -Sha $sha
@@ -153,6 +153,32 @@ Test-Case 'flags da Mesa presentes no build anterior são preservadas e podem se
   Assert-Equal $on['_VITE_FORGELEX_MATTER_CHIPS_ENABLED'] 'true'
   Assert-Equal $on['_VITE_FORGELEX_OCR_ENABLED'] 'true'
   Assert-Throws { New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_FORGELEX_DESK_SHELL' = 'sim' } } 'Flag inválida'
+}
+Test-Case 'tema e texto público do modelo novo ausentes no build anterior valem classico e false, como no cloudbuild.yaml' {
+  $result = New-BuildSubstitutions -Previous $goodSubs -Sha $sha
+  Assert-Equal $result['_VITE_FORGELEX_THEME'] 'classico'
+  Assert-Equal $result['_VITE_FORGELEX_PUBLIC_MODEL'] 'false'
+}
+Test-Case 'tema e texto público presentes no build anterior são preservados e só mudam de propósito' {
+  $prev = @{}; foreach ($key in $goodSubs.Keys) { $prev[$key] = $goodSubs[$key] }
+  $prev['_VITE_FORGELEX_THEME'] = 'gelo'; $prev['_VITE_FORGELEX_PUBLIC_MODEL'] = 'true'
+  $kept = New-BuildSubstitutions -Previous $prev -Sha $sha
+  Assert-Equal $kept['_VITE_FORGELEX_THEME'] 'gelo'
+  Assert-Equal $kept['_VITE_FORGELEX_PUBLIC_MODEL'] 'true'
+  $back = New-BuildSubstitutions -Previous $prev -Sha $sha -Overrides @{ '_VITE_FORGELEX_THEME' = 'classico'; '_VITE_FORGELEX_PUBLIC_MODEL' = 'false' }
+  Assert-Equal $back['_VITE_FORGELEX_THEME'] 'classico'
+  Assert-Equal $back['_VITE_FORGELEX_PUBLIC_MODEL'] 'false'
+  $on = New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_FORGELEX_THEME' = 'gelo' }
+  Assert-Equal $on['_VITE_FORGELEX_THEME'] 'gelo'
+}
+Test-Case 'só classico e gelo vão à produção: previa, vazio e maiúsculas são recusados' {
+  foreach ($bad in 'previa', 'Gelo', 'escuro') {
+    Assert-Throws { New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_FORGELEX_THEME' = $bad } } 'Tema inválido'
+  }
+  $prev = @{}; foreach ($key in $goodSubs.Keys) { $prev[$key] = $goodSubs[$key] }
+  $prev['_VITE_FORGELEX_THEME'] = 'previa'
+  Assert-Throws { New-BuildSubstitutions -Previous $prev -Sha $sha } 'Tema inválido'
+  Assert-Throws { New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_FORGELEX_PUBLIC_MODEL' = 'sim' } } 'Flag inválida'
 }
 Test-Case 'aceita troca explícita de flag de interface' {
   $result = New-BuildSubstitutions -Previous $goodSubs -Sha $sha -Overrides @{ '_VITE_FORGELEX_CASE_WORKSPACE_ENABLED' = 'false' }

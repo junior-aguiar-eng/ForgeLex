@@ -2048,3 +2048,23 @@ Sobre `main` em `3f7ab5d`, na branch `claude/v5a-resto`. Continua **só com `VIT
 Os textos legais (aprovação de Boni, a proposta acima) e a tarifa da Mesa (A24). Depois, ligar a flag e publicar texto e função juntos: a ligação em `Dockerfile`/Cloud Build e `deploy-from-main.ps1` é decisão de publicação de Boni e não faz parte desta entrega.
 
 Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.
+
+## V6 — Preparação: tema e texto público chegam ao build de produção (18/11/2026)
+
+Sobre `main` em `b5660d4`, na branch `claude/v6-plumbing`. **Não liga nada.** Hoje a publicação de produção (`cloudbuild.yaml` e `deploy-from-main.ps1`) não passa `VITE_FORGELEX_THEME` nem `VITE_FORGELEX_PUBLIC_MODEL` ao build: o `Dockerfile` já tinha o tema, mas só com o padrão `classico`, e o texto público do modelo novo (V5A) não tinha caminho algum. Sem isso não haveria como ligar o gelo nem o texto novo na produção.
+
+| Arquivo | Mudança |
+| ------- | ------- |
+| `Dockerfile` | `ARG` e `ENV` de `VITE_FORGELEX_PUBLIC_MODEL` (padrão `false`), antes do `pnpm build`. |
+| `ops/gcp/production/cloudbuild.yaml` | Argumentos de build e substituições `_VITE_FORGELEX_THEME` (`classico`) e `_VITE_FORGELEX_PUBLIC_MODEL` (`false`). |
+| `deploy-lib.ps1` | `_VITE_FORGELEX_PUBLIC_MODEL` entra nas flags opcionais (ausente = `false`, preservada do build anterior). `_VITE_FORGELEX_THEME` é tratada à parte: ausente = `classico`, preservada do build anterior, e **só `classico` e `gelo` são aceitos** (`previa`, vazio ou maiúsculas são recusados, inclusive se vierem do build anterior). |
+| `deploy-from-main.ps1` | Parâmetros `-Theme classico|gelo` e `-PublicModelEnabled true|false`, que só mudam o valor se informados. |
+| `README.md` do ops | Os dois parâmetros, a regra e a reversão. |
+
+**Efeito na produção atual: nenhum.** O build anterior de produção não traz as duas substituições, então valem `classico` e `false`, os mesmos valores de hoje; a imagem sai igual.
+
+**Verificação.** `tests/dockerfile.test.ts` confere os dois `ARG`, a ordem antes do build e as duas linhas do `cloudbuild.yaml`. Os testes do deploy (`deploy-from-main.tests.ps1`, que a CI executa) ganharam 3 casos (padrões, preservação e troca de propósito, recusa de `previa`, `Gelo` e `escuro`, e de `sim` na flag) e a contagem de substituições passou de 12 para 14. **Não consegui rodar o PowerShell neste contêiner** (o classificador negou executar o binário baixado); a conferência desses testes é da CI.
+
+**Ligar de fato** (fora desta entrega, decisão de Boni, em publicação isolada): `./ops/gcp/production/deploy-from-main.ps1 -DryRun -Theme gelo` para ver o plano, depois sem `-DryRun`. Reversão: `-Theme classico`.
+
+Reversão desta entrega: reverter o commit; nada em produção muda enquanto os parâmetros não forem usados.

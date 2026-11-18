@@ -25,6 +25,13 @@ describe('imagem de produção', () => {
     );
     expect(productionBuild).toContain('VITE_FORGELEX_OCR_ENABLED=${_VITE_FORGELEX_OCR_ENABLED}');
     expect(productionBuild).toContain("_VITE_FORGELEX_OCR_ENABLED: 'false'");
+    // V6 e V5A: tema e texto público do modelo novo chegam ao build de produção, desligados por padrão.
+    expect(dockerfile).toContain('ARG VITE_FORGELEX_PUBLIC_MODEL=false');
+    expect(dockerfile.indexOf('VITE_FORGELEX_PUBLIC_MODEL=${VITE_FORGELEX_PUBLIC_MODEL}')).toBeLessThan(dockerfile.indexOf('RUN pnpm build'));
+    expect(productionBuild).toContain('VITE_FORGELEX_THEME=${_VITE_FORGELEX_THEME}');
+    expect(productionBuild).toContain("_VITE_FORGELEX_THEME: 'classico'");
+    expect(productionBuild).toContain('VITE_FORGELEX_PUBLIC_MODEL=${_VITE_FORGELEX_PUBLIC_MODEL}');
+    expect(productionBuild).toContain("_VITE_FORGELEX_PUBLIC_MODEL: 'false'");
     expect(cloudBuild).toContain('VITE_SUPABASE_URL=${_VITE_SUPABASE_URL}');
     expect(cloudBuild).toContain('VITE_SUPABASE_PUBLISHABLE_KEY=${_VITE_SUPABASE_PUBLISHABLE_KEY}');
   });
