@@ -37,6 +37,25 @@ export const VIEWPORTS = {
   celular: { width: 390, height: 844 },
 };
 
+/**
+ * Tamanhos pedidos em `--viewports 360,768,1440` (largura em pixels, de 320 a 3840). Cada um vira `w<largura>` nos
+ * nomes das telas; a altura é a de um celular até 480 px, a de um tablet até 1024 e a do desktop acima disso. Sem o
+ * argumento valem os dois tamanhos de sempre (`VIEWPORTS`), para que as capturas antigas continuem comparáveis.
+ */
+export function parseViewports(spec) {
+  if (!spec) return VIEWPORTS;
+  const widths = spec.split(',').map((part) => part.trim());
+  const result = {};
+  for (const part of widths) {
+    if (!/^\d{3,4}$/.test(part)) throw new Error(`Largura inválida em --viewports: "${part}".`);
+    const width = Number(part);
+    if (width < 320 || width > 3840) throw new Error(`Largura fora de 320 a 3840 em --viewports: ${width}.`);
+    result[`w${width}`] = { width, height: width <= 480 ? 844 : width <= 1024 ? 1024 : 1000 };
+  }
+  if (Object.keys(result).length !== widths.length) throw new Error('Larguras repetidas em --viewports.');
+  return result;
+}
+
 /** Propriedades de estilo gravadas para cada elemento: cor em todas as formas em que ela aparece, tipografia e raio. */
 export const STYLE_PROPS = [
   'color',

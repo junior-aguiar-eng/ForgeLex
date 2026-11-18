@@ -645,3 +645,13 @@ test('Conectar IA: "Como fica o trabalho" diz o que é cobrado e o que é gratui
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
+
+test('no tema gelo o favicon e a cor da barra do navegador seguem a paleta, já na página de entrada', async ({
+  page,
+}) => {
+  await page.goto('/entrar');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'gelo');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#F4F7F8');
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /fill='%230F5C6E'/);
+  expect(await page.locator('meta[name="theme-color"]').count()).toBe(1);
+});

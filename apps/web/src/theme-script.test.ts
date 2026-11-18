@@ -33,17 +33,30 @@ const broken: Storage = {
 function run(configured: string, options: { search?: string; storage?: Storage | undefined } = {}) {
   const attributes: Record<string, string> = {};
   const appended: Record<string, unknown>[] = [];
+  const iconAttributes: Record<string, string> = {};
+  const queries: string[] = [];
   const document = {
     documentElement: { setAttribute: (name: string, value: string) => void (attributes[name] = value) },
     head: { appendChild: (element: Record<string, unknown>) => void appended.push(element) },
     createElement: () => ({}) as Record<string, unknown>,
+    // O `<link rel="icon">` do index.html: o script só troca o `href` dele.
+    querySelector: (selector: string) => {
+      queries.push(selector);
+      return { setAttribute: (name: string, value: string) => void (iconAttributes[name] = value) };
+    },
   };
   runInNewContext(script.replace('%VITE_FORGELEX_THEME%', configured), {
     document,
     location: { search: options.search ?? '' },
     ...('storage' in options ? { localStorage: options.storage } : { localStorage: memory() }),
   });
-  return { theme: attributes['data-theme'], preloads: appended };
+  return {
+    theme: attributes['data-theme'],
+    preloads: appended.filter((element) => element.rel === 'preload'),
+    themeColors: appended.filter((element) => element.name === 'theme-color'),
+    iconHref: iconAttributes.href,
+    queries,
+  };
 }
 
 describe('script de tema do index.html', () => {
@@ -80,6 +93,52 @@ describe('script de tema do index.html', () => {
         crossOrigin: 'anonymous',
       },
     ]);
+  });
+
+  it('gelo: troca o favicon e define a cor da barra do navegador; o clássico não mexe em nenhum dos dois', () => {
+    const gelo = run('gelo');
+    expect(gelo.queries).toEqual(['link[rel="icon"]']);
+    expect(gelo.iconHref).toContain("fill='%230F5C6E'");
+    expect(gelo.themeColors).toEqual([{ name: 'theme-color', content: '#F4F7F8' }]);
+    for (const configured of ['classico', '', 'qualquer-coisa']) {
+      const classic = run(configured);
+      expect(classic.queries, configured).toEqual([]);
+      expect(classic.iconHref, configured).toBeUndefined();
+      expect(classic.themeColors, configured).toEqual([]);
+    }
+    // A prévia só troca quando o parâmetro escolhe o gelo.
+    expect(run('previa').themeColors).toEqual([]);
+    expect(run('previa', { search: '?tema=gelo' }).themeColors).toHaveLength(1);
+  });
+
+  it('gelo: as duas cores são as do bloco do tema (acento e fundo), sem repetir à mão um valor que mudou', () => {
+    const css = readFileSync(join(resolve(import.meta.dirname), 'index.css'), 'utf8');
+    const block = /\[data-theme="gelo"\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    const hex = (name: string) => {
+      const channels = new RegExp(`${name}:\\s*(\\d+) (\\d+) (\\d+);`).exec(block)?.slice(1).map(Number) ?? [];
+      return (
+        '#' +
+        channels
+          .map((channel) => channel.toString(16).padStart(2, '0'))
+          .join('')
+          .toUpperCase()
+      );
+    };
+    expect(hex('--fl-canvas')).toBe('#F4F7F8');
+    expect(hex('--fl-accent')).toBe('#0F5C6E');
+    expect(run('gelo').iconHref).toContain(`%23${hex('--fl-accent').slice(1)}`);
+    expect(run('gelo').themeColors[0]).toEqual({ name: 'theme-color', content: hex('--fl-canvas') });
+  });
+
+  it('falha sem quebrar a página se o documento não tiver querySelector', () => {
+    const document = {
+      documentElement: { setAttribute() {} },
+      head: { appendChild() {} },
+      createElement: () => ({}) as Record<string, unknown>,
+    };
+    expect(() =>
+      runInNewContext(script.replace('%VITE_FORGELEX_THEME%', 'gelo'), { document, location: { search: '' } }),
+    ).not.toThrow();
   });
 
   it('prévia: começa no clássico e o parâmetro escolhe e guarda o tema', () => {

@@ -668,8 +668,8 @@ afirmação do site corresponde a uma função publicada; título aprovado por B
 
 ### V6 — Ligar o tema gelo
 
-- [ ] Passada completa em 360, 768 e 1440 px; `axe` em todas as telas; leitor de tela nos eventos da Mesa.
-- [ ] Favicon, imagem Open Graph e cores de `theme-color` no tema novo.
+- [ ] Passada completa em 360, 768 e 1440 px; `axe` em todas as telas; leitor de tela nos eventos da Mesa. Feito: axe sem violação em 78 telas (26 × 3 tamanhos). Falta: aceite visual de Boni e leitor de tela.
+- [x] Favicon, imagem Open Graph e cores de `theme-color` no tema novo: feitos só para `gelo` ([registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#v6--favicon-theme-color-imagem-de-prévia-e-passada-completa-no-tema-gelo-18112026)).
 - [ ] `VITE_FORGELEX_THEME=gelo` em homologação, depois em produção, em publicação isolada (seção 0, item 6).
       O caminho do build de produção (`cloudbuild.yaml`, `deploy-from-main.ps1 -Theme`) está pronto e desligado; registro em
       [V6, preparação](../../architecture/2026-11-10-mesa-guiada-execucao.md#v6--preparação-tema-e-texto-público-chegam-ao-build-de-produção-18112026).

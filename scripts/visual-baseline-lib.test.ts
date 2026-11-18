@@ -3,9 +3,11 @@ import {
   APP_ROUTES,
   PUBLIC_ROUTES,
   STYLE_PROPS,
+  VIEWPORTS,
   diffStyleDumps,
   normalizeVolatileText,
   parseDevMesaOutput,
+  parseViewports,
   screenName,
   summarizeAxe,
 } from './visual-baseline-lib.mjs';
@@ -43,6 +45,28 @@ describe('normalizeVolatileText', () => {
   it('é idempotente', () => {
     const once = normalizeVolatileText('17/11/2026, 09:01:59 e 17/11, 09:07');
     expect(normalizeVolatileText(once)).toBe(once);
+  });
+});
+
+describe('parseViewports', () => {
+  it('sem argumento mantém os dois tamanhos de sempre, para as capturas antigas seguirem comparáveis', () => {
+    expect(parseViewports(undefined)).toBe(VIEWPORTS);
+    expect(parseViewports('')).toBe(VIEWPORTS);
+  });
+
+  it('360, 768 e 1440 viram w360, w768 e w1440, com altura de celular, tablet e desktop', () => {
+    expect(parseViewports('360,768,1440')).toEqual({
+      w360: { width: 360, height: 844 },
+      w768: { width: 768, height: 1024 },
+      w1440: { width: 1440, height: 1000 },
+    });
+    expect(screenName('w768', '/app/conta')).toBe('w768-app_conta');
+  });
+
+  it('aceita espaços e recusa larguras inválidas, fora do intervalo ou repetidas', () => {
+    expect(Object.keys(parseViewports(' 360 , 768 '))).toEqual(['w360', 'w768']);
+    for (const bad of ['abc', '360,', '100', '5000', '360,360', '36.5'])
+      expect(() => parseViewports(bad), bad).toThrow(/--viewports/);
   });
 });
 

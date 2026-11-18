@@ -1,6 +1,11 @@
 import { readFileSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { OG_IMAGE_PATH, transformPublicIndexHtml, transformPublicText } from '../apps/web/public-site-html-plugin';
+import {
+  OG_IMAGE_GELO_PATH,
+  OG_IMAGE_PATH,
+  transformPublicIndexHtml,
+  transformPublicText,
+} from '../apps/web/public-site-html-plugin';
 import { DEFAULT_PUBLIC_ORIGIN, metadata, modelMetadata } from '../apps/web/src/public/public-metadata-data';
 
 const html = readFileSync('apps/web/index.html', 'utf8');
@@ -31,13 +36,23 @@ describe('index.html montado no build (V5A, parte 3)', () => {
     expect(transformPublicIndexHtml(html, { model: false })).not.toContain('og:image');
   });
 
-  it('a imagem existe, é PNG 1200 por 630 e é leve', () => {
-    const file = `apps/web/public${OG_IMAGE_PATH}`;
+  it.each([OG_IMAGE_PATH, OG_IMAGE_GELO_PATH])('a imagem %s existe, é PNG 1200 por 630 e é leve', (path) => {
+    const file = `apps/web/public${path}`;
     const bytes = readFileSync(file);
     expect(bytes.subarray(1, 4).toString()).toBe('PNG');
     expect(bytes.readUInt32BE(16)).toBe(1200);
     expect(bytes.readUInt32BE(20)).toBe(630);
     expect(statSync(file).size).toBeLessThan(300_000);
+  });
+
+  it('a imagem de prévia segue o tema do build: gelo usa a azul-petróleo, o resto a original', () => {
+    const image = (theme?: string) =>
+      /og:image" content="([^"]+)"/.exec(transformPublicIndexHtml(html, { model: true, theme }))?.[1];
+    expect(image('gelo')).toBe(`${DEFAULT_PUBLIC_ORIGIN}${OG_IMAGE_GELO_PATH}`);
+    for (const theme of [undefined, 'classico', 'previa', 'Gelo'])
+      expect(image(theme)).toBe(`${DEFAULT_PUBLIC_ORIGIN}${OG_IMAGE_PATH}`);
+    // Sem o modelo novo não há imagem, qualquer que seja o tema.
+    expect(transformPublicIndexHtml(html, { model: false, theme: 'gelo' })).toBe(html);
   });
 
   it('VITE_PUBLIC_ORIGIN troca o domínio em canonical, og:url e imagem, sem sobrar o antigo', () => {
