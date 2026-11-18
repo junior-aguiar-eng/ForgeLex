@@ -6,11 +6,13 @@ export function GuidePage({ model = false }: { model?: boolean }) {
       <PageIntro
         eyebrow="Guia para advogados"
         title={
-          model ? 'Conecte sua IA e pesquise com a fonte à vista.' : 'Pesquise pelo ChatGPT ou Claude com o ForgeLex.'
+          model
+            ? 'Trabalhe a peça na Mesa e pesquise com a fonte à vista.'
+            : 'Pesquise pelo ChatGPT ou Claude com o ForgeLex.'
         }
         text={
           model
-            ? 'Confira se sua conta no ChatGPT ou Claude oferece MCP, crie seu acesso ForgeLex e autorize a conexão. A pesquisa também pode ser feita no site, e a Mesa de trabalho serve para elaborar e revisar a peça.'
+            ? 'Confira se sua conta no ChatGPT ou Claude oferece MCP, crie seu acesso ForgeLex e autorize a conexão. A Mesa de trabalho serve para elaborar e revisar a peça, e a pesquisa também pode ser feita no site.'
             : 'Confira se sua conta no ChatGPT ou Claude oferece MCP, crie seu acesso ForgeLex e autorize a conexão. A pesquisa também pode ser feita no site.'
         }
       />
@@ -44,10 +46,21 @@ export function GuidePage({ model = false }: { model?: boolean }) {
           <article className="surface p-6 md:col-span-2">
             <h2 className="font-editorial text-xl font-bold">Mesa de trabalho</h2>
             <p className="mt-3 text-sm leading-6 text-stone-600">
-              A Mesa orienta a elaboração e a revisão da peça, a partir de anexos em PDF, texto ou Markdown. A
-              orientação é do ForgeLex; a decisão jurídica e a conferência do resultado continuam sob sua
-              responsabilidade.
+              A Mesa orienta, elabora e revisa a peça com as fontes à vista. A orientação é do ForgeLex; a decisão
+              jurídica e a conferência do resultado continuam sob sua responsabilidade.
             </p>
+            <ol className="mt-4 list-inside list-decimal space-y-2 text-sm leading-6 text-stone-600">
+              <li>
+                Entre na Mesa, escolha o caso e descreva o que precisa. Se não souber por onde começar, peça ajuda.
+              </li>
+              <li>Responda o que a Mesa perguntar, ou diga “não sei” e corrija o resumo antes de enviar.</li>
+              <li>
+                Anexe PDF, texto ou Markdown, se quiser: o arquivo não é enviado nem guardado, só o texto extraído.
+              </li>
+              <li>
+                Revise a entrega, peça a alteração de um trecho e salve a versão. Os trabalhos da Mesa usam créditos.
+              </li>
+            </ol>
             <a className="btn-secondary mt-5" href="/entrar?next=%2Fapp%2Ftrabalho">
               Entrar na Mesa
             </a>

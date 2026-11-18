@@ -77,19 +77,19 @@ export const modelMetadata: Partial<Record<PublicPage, PageMetadata>> = {
   home: {
     title: 'ForgeLex · Sua IA, com jurisprudência que dá para conferir',
     description:
-      'Conecte o ForgeLex ao ChatGPT ou ao Claude por MCP e pesquise decisões com a fonte e o estado de verificação de cada resultado. Mesa de trabalho, pagamento só pelo uso e consulta processual gratuita.',
+      'Conecte o ForgeLex ao ChatGPT ou ao Claude por MCP e pesquise decisões com a fonte e o estado de verificação de cada resultado, e elabore e revise peças na Mesa de trabalho. Pagamento só pelo uso e consulta processual gratuita.',
     path: '/',
   },
   product: {
     title: 'Produto · ForgeLex',
     description:
-      'Pesquisa com fonte e estado de verificação, conexão com o ChatGPT ou o Claude por MCP, Mesa de trabalho, conta com créditos, API e consulta processual gratuita.',
+      'Mesa de trabalho que orienta, elabora e revisa peças com as fontes à vista, pesquisa com estado de verificação, conexão com o ChatGPT ou o Claude por MCP, conta com créditos, API e consulta processual gratuita.',
     path: '/produto',
   },
   how: {
     title: 'Como funciona · ForgeLex',
     description:
-      'Crie seu acesso, conecte o ChatGPT ou o Claude por MCP, pesquise com a fonte à vista, confira a autoridade e elabore a peça na Mesa de trabalho.',
+      'Descreva o que precisa na Mesa de trabalho, responda o que faltar e revise a peça com as fontes à vista; ou conecte o ChatGPT ou o Claude por MCP e pesquise com a fonte à vista.',
     path: '/como-funciona',
   },
   integrations: {
@@ -101,13 +101,13 @@ export const modelMetadata: Partial<Record<PublicPage, PageMetadata>> = {
   credits: {
     title: 'Créditos · ForgeLex',
     description:
-      'Você paga só pelo uso: créditos pré-pagos em reais, pesquisa jurisprudencial válida faturável e custos do aplicativo de IA separados.',
+      'Você paga só pelo uso: créditos pré-pagos em reais para a pesquisa jurisprudencial válida e os trabalhos da Mesa, e custos do aplicativo de IA separados.',
     path: '/creditos',
   },
   guide: {
     title: 'Guia para advogados · ForgeLex',
     description:
-      'Conecte o ChatGPT ou o Claude ao ForgeLex por MCP, pesquise com a fonte à vista e use a Mesa de trabalho, respeitando privacidade e custos.',
+      'Use a Mesa de trabalho para elaborar e revisar peças, conecte o ChatGPT ou o Claude ao ForgeLex por MCP e pesquise com a fonte à vista, respeitando privacidade e custos.',
     path: '/guia',
   },
   api_docs: {
