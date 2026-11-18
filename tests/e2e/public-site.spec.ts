@@ -32,11 +32,20 @@ test('apresentação pública enxuta e âncoras antigas são acessíveis', async
   expect(errors).toEqual([]);
 });
 
-test('o tema clássico não define theme-color nem troca o favicon', async ({ page }) => {
+// A CI roda esta suíte duas vezes (clássico e `VITE_FORGELEX_THEME=gelo`), então o teste confere o tema que está ligado.
+test('favicon e theme-color seguem o tema: o clássico não define theme-color e o gelo usa a paleta dele', async ({
+  page,
+}) => {
+  const ice = process.env.FORGELEX_E2E_THEME === 'gelo';
   await page.goto('/');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'classico');
-  expect(await page.locator('meta[name="theme-color"]').count()).toBe(0);
-  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /fill='%238E5D2A'/);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', ice ? 'gelo' : 'classico');
+  if (ice) {
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#F4F7F8');
+    await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /fill='%230F5C6E'/);
+  } else {
+    expect(await page.locator('meta[name="theme-color"]').count()).toBe(0);
+    await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /fill='%238E5D2A'/);
+  }
 });
 
 test('visitante lê o produto e chega ao cadastro sem autenticação', async ({ page }) => {
