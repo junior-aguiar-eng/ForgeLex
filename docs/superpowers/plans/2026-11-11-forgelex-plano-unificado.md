@@ -452,6 +452,10 @@ Depende de U4, U5, U6 e de V3 (seletor de caso e “Criar caso a partir desta co
 - [ ] Levar para a Mesa o que só existe em `MatterWorkspaceScreen` (904 linhas): criar e renomear caso, ciclo de
       vida de caso e documento (`matter-lifecycle`: arquivar, restaurar, excluir definitivamente) e importação de
       PDF (`PdfTextImport`, substituída pelo anexo de U5).
+      **Decisão de Boni em 18/11/2026:** a tela não sai; vira “Dados do caso”, aberta a partir do caso na Mesa, com Fatos,
+      Provas, Linha do tempo, Questões e Memorando intactos (ver o [registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#u7--casos-dentro-da-mesa-parte-1-gerenciar-casos-18112026)).
+      **Parte 1 feita (gelo):** renomear (rota nova) e arquivar, lixeira e restaurar caso na Mesa; falta exclusão definitiva,
+      documentos e PDF.
 - [ ] Manter o caso como entidade de dados: busca ancorada (M4), ferramentas MCP `case.*` e A07 dependem dele.
 - [ ] Redirecionar `/app/casos` para a Mesa, preservando links, e retirar o item “Casos” da lateral.
 - [ ] Remover `MatterWorkspaceScreen` e seus testes só depois de a Mesa passar nos mesmos cenários de E2E.

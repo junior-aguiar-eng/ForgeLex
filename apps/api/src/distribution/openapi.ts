@@ -1,7 +1,7 @@
 import { EXTERNAL_MCP_TOOL_NAMES, CASE_ANALYSIS_JSON_SCHEMAS } from '@forgelex/mcp-server';
 import { getLegalToolContract, getCaseContextToolContract } from '@forgelex/legal-tools';
 
-type HttpMethod = 'get' | 'post' | 'put' | 'delete';
+type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 export interface PublicApiRouteDefinition {
   method: HttpMethod;
@@ -33,6 +33,8 @@ const OPENAPI_SCHEMAS = {
   SavedResearchList: { type: 'object', required: ['items', 'capacity'], properties: { items: { type: 'array', maxItems: 6, items: { $ref: '#/components/schemas/SavedResearchSummary' } }, capacity: { type: 'integer', const: 6 } } },
   SavedResearchResult: { allOf: [{ $ref: '#/components/schemas/SavedResearchSummary' }, { type: 'object', required: ['results'], properties: { results: { type: 'object', description: 'Resultado original integral da operação concluída, com critérios, decisões e referências às versões conservadas.' } } }] },
   ...CASE_ANALYSIS_JSON_SCHEMAS,
+  MatterRename: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string', minLength: 3, maxLength: 200, description: 'Novo nome do caso, depois de aparado.' } } },
+  MatterRenameResult: { type: 'object', required: ['id', 'title', 'updatedAt', 'lifecycleRevision'], properties: { id: { type: 'string', format: 'uuid' }, title: { type: 'string' }, updatedAt: { type: 'string', format: 'date-time' }, lifecycleRevision: { type: 'integer', minimum: 0, description: 'Não muda: renomear não é transição de ciclo de vida.' } } },
   LifecycleCommand: { type: 'object', additionalProperties: false, required: ['expectedLifecycleRevision'], properties: { expectedLifecycleRevision: { type: 'integer', minimum: 0 } } },
   PurgeCommand: { type: 'object', additionalProperties: false, required: ['expectedLifecycleRevision', 'confirmation'], properties: { expectedLifecycleRevision: { type: 'integer', minimum: 0 }, confirmation: { type: 'string', minLength: 1, description: 'Nome exato do caso ou ID do documento.' } } },
   LifecycleResult: { type: 'object', required: ['id', 'lifecycleState', 'lifecycleRevision'], properties: { id: { type: 'string', format: 'uuid' }, lifecycleState: { type: 'string', enum: ['ACTIVE', 'ARCHIVED', 'TRASHED', 'PURGED'] }, lifecycleRevision: { type: 'integer', minimum: 0 }, archivedAt: { type: 'string', format: 'date-time' }, trashedAt: { type: 'string', format: 'date-time' }, purgedAt: { type: 'string', format: 'date-time' } } },
@@ -194,6 +196,7 @@ const OPENAPI_SCHEMAS = {
 } as const;
 
 const OBJECT_REQUEST_SCHEMA_BY_PATH: Readonly<Record<string, keyof typeof OPENAPI_SCHEMAS>> = {
+  '/api/v2/matters/{matterId}': 'MatterRename',
   '/api/v2/matters/{matterId}/analyses/{analysisId}/decisions':'AnalysisDecisions',
   ...Object.fromEntries(['/api/v2/matters/{matterId}', '/api/v2/matters/{matterId}/documents/{documentId}'].flatMap(path => ['archive', 'trash', 'restore', 'purge'].map(action => [`${path}/${action}`, action === 'purge' ? 'PurgeCommand' as const : 'LifecycleCommand' as const]))),
   '/api/v2/matters/{matterId}/drafts/{draftId}/ai-receipts/{receiptId}/adopt':'DraftAiAdoptRequest',
@@ -258,6 +261,7 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/api/v2/matters', summary: 'Listar casos', description: 'Lista os casos do tenant autenticado.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/matters', summary: 'Criar caso', description: 'Cria um caso no tenant autenticado.', scopes: ['matter:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/matters/{matterId}', summary: 'Consultar caso', description: 'Retorna um caso e seus documentos.', scopes: ['matter:read'] },
+  { method: 'patch', path: '/api/v2/matters/{matterId}', summary: 'Renomear caso', description: 'Somente sessão web do criador ou administrador, e só para caso ativo (em arquivo ou lixeira retorna 409). Não troca a revisão do ciclo de vida. O nome vale de 3 a 200 caracteres depois de aparado.', scopes: ['matter:write'], requestBody: 'object', responseSchema: 'MatterRenameResult' },
   { method: 'post', path: '/api/v2/matters/{matterId}/documents', summary: 'Ingerir documento', description: 'Ingere texto, versão e âncoras de um documento.', scopes: ['matter:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/matters/{matterId}/documents/{documentId}', summary: 'Consultar documento', description: 'Retorna o documento e sua versão mais recente.', scopes: ['matter:read'] },
   { method: 'get', path: '/api/v2/matters/{matterId}/authorities', summary: 'Listar authorities salvas', description: 'Lista as autoridades judiciais salvas no caso.', scopes: ['matter:read'] },

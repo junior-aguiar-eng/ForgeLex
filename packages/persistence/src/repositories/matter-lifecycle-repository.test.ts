@@ -54,6 +54,53 @@ describe('case and document lifecycle', () => {
       f.client.close();
     }
   });
+  it('renames an active case for its author or an administrator, and only then', async () => {
+    const f = await caseAccessFixture();
+    try {
+      const repo = new MatterLifecycleRepository(f.db);
+      const target = { tenantId: f.owner.tenantId, matterId: f.matter.id };
+      const renamed = await repo.rename(target, actor, '  Ação de cobrança indevida  ');
+      expect(renamed).toMatchObject({ id: f.matter.id, title: 'Ação de cobrança indevida', lifecycleRevision: 0 });
+      expect((await f.matters.getMatter(target.tenantId, target.matterId))?.title).toBe('Ação de cobrança indevida');
+      // Renomear não é transição de ciclo de vida: a revisão que as execuções capturam não muda.
+      expect(await f.matters.captureWorkRevision(target.tenantId, target.matterId)).toBe(0);
+      await expect(
+        repo.rename(target, { ...actor, role: 'admin', userId: 'chefe' }, 'Nome do administrador'),
+      ).resolves.toMatchObject({
+        title: 'Nome do administrador',
+      });
+      await expect(repo.rename(target, { ...actor, userId: 'outro' }, 'Nome do intruso')).rejects.toThrow(
+        'LIFECYCLE_FORBIDDEN',
+      );
+      await expect(repo.rename(target, { ...actor, authType: 'api_key' }, 'Nome por chave')).rejects.toThrow(
+        'LIFECYCLE_FORBIDDEN',
+      );
+      await expect(repo.rename(target, { ...actor, scopes: ['matter:read'] }, 'Nome sem escrita')).rejects.toThrow(
+        'LIFECYCLE_FORBIDDEN',
+      );
+      await expect(repo.rename({ ...target, tenantId: 'foreign' }, actor, 'Nome de outro tenant')).rejects.toThrow(
+        'MATTER_NOT_FOUND',
+      );
+      expect((await f.matters.getMatter(target.tenantId, target.matterId))?.title).toBe('Nome do administrador');
+    } finally {
+      f.client.close();
+    }
+  });
+  it('refuses invalid titles and cases that are not active', async () => {
+    const f = await caseAccessFixture();
+    try {
+      const repo = new MatterLifecycleRepository(f.db);
+      const target = { tenantId: f.owner.tenantId, matterId: f.matter.id };
+      for (const bad of ['', '   ', 'ab', 'x'.repeat(201)])
+        await expect(repo.rename(target, actor, bad), JSON.stringify(bad.slice(0, 5))).rejects.toThrow('INVALID_TITLE');
+      expect((await f.matters.getMatter(target.tenantId, target.matterId))?.title).toBe('Caso autorizado');
+      await repo.transition(target, actor, 'archive', { expectedLifecycleRevision: 0 });
+      await expect(repo.rename(target, actor, 'Nome em arquivado')).rejects.toThrow('MATTER_NOT_ACTIVE');
+      expect((await f.matters.getMatter(target.tenantId, target.matterId))?.title).toBe('Caso autorizado');
+    } finally {
+      f.client.close();
+    }
+  });
   it('revokes only document grants affected, and case grants for all clients', async () => {
     const f = await caseAccessFixture();
     try {

@@ -46,6 +46,43 @@ export class MatterLifecycleRepository {
       if (!docs[0] || docs[0].lifecycleState === 'PURGED') throw new Error('DOCUMENT_NOT_FOUND');
     }
   }
+  /**
+   * Renomeia um caso ativo. Mesma regra de gestão do ciclo de vida (sessão web, escrita, autor ou administrador), mas
+   * não é uma transição: a `lifecycleRevision` que as execuções capturam não muda. O título vale como na criação
+   * (mínimo de 3 caracteres) e tem teto de 200, depois de aparado.
+   */
+  async rename(
+    target: Pick<LifecycleTarget, 'tenantId' | 'matterId'>,
+    actor: LifecycleActor,
+    title: string,
+  ): Promise<{ id: string; title: string; updatedAt: string; lifecycleRevision: number }> {
+    const trimmed = title.trim();
+    if (trimmed.length < 3 || trimmed.length > 200) throw new Error('INVALID_TITLE');
+    const rows = await this.db
+      .select()
+      .from(s.matters)
+      .where(and(eq(s.matters.id, target.matterId), eq(s.matters.tenantId, target.tenantId)))
+      .limit(1);
+    const matter = rows[0];
+    if (!matter || matter.lifecycleState === 'PURGED') throw new Error('MATTER_NOT_FOUND');
+    assertLifecycleManager(matter.createdBy, actor);
+    if (matter.lifecycleState !== 'ACTIVE') throw new Error('MATTER_NOT_ACTIVE');
+    const updatedAt = new Date().toISOString();
+    // O estado volta a ser conferido no próprio UPDATE: um arquivamento concorrente não é sobrescrito.
+    const updated = await this.db
+      .update(s.matters)
+      .set({ title: trimmed, updatedAt })
+      .where(
+        and(
+          eq(s.matters.id, target.matterId),
+          eq(s.matters.tenantId, target.tenantId),
+          eq(s.matters.lifecycleState, 'ACTIVE'),
+        ),
+      )
+      .returning();
+    if (!updated[0]) throw new Error('MATTER_NOT_ACTIVE');
+    return { id: updated[0].id, title: updated[0].title, updatedAt, lifecycleRevision: updated[0].lifecycleRevision };
+  }
   async transition(
     target: LifecycleTarget,
     actor: LifecycleActor,

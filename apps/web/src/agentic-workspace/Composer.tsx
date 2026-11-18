@@ -344,6 +344,15 @@ export function Composer({
               setSelected([]);
               setSelectedDraft(undefined);
             }}
+            onCasesChanged={(active) => {
+              setMatters(active);
+              // Um caso que saiu de uso (arquivado ou na lixeira) deixa de ser o escolhido.
+              if (matter && !active.some((item) => item.id === matter)) {
+                setMatter('');
+                setSelected([]);
+                setSelectedDraft(undefined);
+              }
+            }}
           />,
           caseSlot,
         )}
