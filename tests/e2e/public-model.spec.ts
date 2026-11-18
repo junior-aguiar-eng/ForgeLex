@@ -14,6 +14,10 @@ test('página inicial: título aprovado, metadados e a Mesa, sem o que ainda nã
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/$/);
 
   await expect(page.getByRole('heading', { name: 'Mesa de trabalho' }).first()).toBeVisible();
+  await expect(page.locator('#mesa-de-trabalho')).toContainText(
+    'Da pergunta à peça, com a IA trabalhando e você decidindo.',
+  );
+  await expect(page.locator('#mesa-de-trabalho').getByRole('heading', { level: 3 })).toHaveCount(6);
   const body = await page.locator('main').innerText();
   for (const absent of ['OCR', 'Word', '.docx', 'agentes analíticos', 'Gemini', 'vigência', 'está suspenso'])
     expect(body, absent).not.toContain(absent);
@@ -42,14 +46,14 @@ test('as demais páginas públicas trazem o texto novo, com metadados próprios 
     [
       '/produto',
       'Produto · ForgeLex',
-      'Pesquisa com fonte, conexão com a sua IA e Mesa de trabalho.',
+      'Mesa de trabalho e pesquisa com fonte, no site e na sua IA.',
       /Mesa de trabalho/,
     ],
     [
       '/como-funciona',
       'Como funciona · ForgeLex',
-      'Da conta à pesquisa com fonte, e da fonte à peça.',
-      /elabore a peça/,
+      'Da pergunta à peça na Mesa, e da conta à pesquisa com fonte.',
+      /Mesa de trabalho/,
     ],
     [
       '/integracoes',
@@ -58,7 +62,12 @@ test('as demais páginas públicas trazem o texto novo, com metadados próprios 
       /Mesa de trabalho/,
     ],
     ['/creditos', 'Créditos · ForgeLex', 'Você paga só pelo uso.', /só pelo uso/],
-    ['/guia', 'Guia para advogados · ForgeLex', 'Conecte sua IA e pesquise com a fonte à vista.', /fonte à vista/],
+    [
+      '/guia',
+      'Guia para advogados · ForgeLex',
+      'Trabalhe a peça na Mesa e pesquise com a fonte à vista.',
+      /fonte à vista/,
+    ],
     [
       '/desenvolvedores/api',
       'API para desenvolvedores · ForgeLex',
@@ -94,5 +103,7 @@ test('o HTML que o robô lê sem JavaScript já traz o título novo e a imagem d
   expect(image.ok()).toBe(true);
   expect(image.headers()['content-type']).toContain('image/png');
   await page.goto('/');
-  await expect(page.locator('footer')).toContainText('Jurisprudência com fonte e estado de verificação para a sua IA');
+  await expect(page.locator('footer')).toContainText(
+    'Mesa de trabalho para elaborar e revisar peças e jurisprudência com fonte para a sua IA',
+  );
 });
