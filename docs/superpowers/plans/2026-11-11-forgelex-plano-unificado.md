@@ -671,6 +671,8 @@ afirmação do site corresponde a uma função publicada; título aprovado por B
 - [ ] Passada completa em 360, 768 e 1440 px; `axe` em todas as telas; leitor de tela nos eventos da Mesa.
 - [ ] Favicon, imagem Open Graph e cores de `theme-color` no tema novo.
 - [ ] `VITE_FORGELEX_THEME=gelo` em homologação, depois em produção, em publicação isolada (seção 0, item 6).
+      O caminho do build de produção (`cloudbuild.yaml`, `deploy-from-main.ps1 -Theme`) está pronto e desligado; registro em
+      [V6, preparação](../../architecture/2026-11-10-mesa-guiada-execucao.md#v6--preparação-tema-e-texto-público-chegam-ao-build-de-produção-18112026).
 
 **Reversão.** `VITE_FORGELEX_THEME=classico` e novo deploy do web.
 
