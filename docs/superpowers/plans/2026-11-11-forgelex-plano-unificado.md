@@ -650,17 +650,17 @@ publicação, por flag (`VITE_FORGELEX_PUBLIC_MODEL`), e uma frase sem função 
 - [ ] Clientes de IA citados: só os com conexão ensaiada em M1 e D2 (hoje ChatGPT e Claude, “conforme a
       disponibilidade do MCP”). O Gemini entra no texto só depois de ensaio de conexão.
 - [x] Escrever três propostas de título e subtítulo; Boni escolhe uma. O resultado entra no registro de execução. **Boni escolheu a A em 17/11/2026:** “Sua IA, com jurisprudência que dá para conferir.” Registro em [V5A parte 1](../../architecture/2026-11-10-mesa-guiada-execucao.md#v5a--site-público-no-modelo-novo-parte-1-título-e-página-inicial-17112026).
-- [ ] Reescrever, no modelo escolhido (`HomePage`, `ProductPage`, `HowPage`, `IntegrationsPage`, `CreditsPage`, `GuidePage`, `ApiDocsPage` e os metadados delas estão feitos, atrás da flag; faltam os demais itens): `HomePage`, `ProductPage`, `HowPage`, `IntegrationsPage`, `CreditsPage`,
+- [ ] Reescrever, no modelo escolhido (todos feitos atrás da flag, nas partes 1 a 3 da V5A; `ConnectionsScreen` já dizia o que o modelo diz e ficou sem mudança; `LandingScreen` perde a dupla versão do título no modelo novo): `HomePage`, `ProductPage`, `HowPage`, `IntegrationsPage`, `CreditsPage`,
       `GuidePage`, `ApiDocsPage`, `PublicSections.tsx`, `LandingScreen.tsx` (remover a dupla versão do título por
       `CASE_WORKSPACE_ENABLED`), `ConnectionsScreen` (Conectar IA), `index.html`, `public-metadata.ts`,
       `sitemap.xml`, imagem Open Graph e `README.md`.
-- [ ] Textos legais em `apps/web/public/legal/` (termos, privacidade, retenção, encerramento): revisar para o modelo
+- [ ] Textos legais em `apps/web/public/legal/` (lacunas e redação proposta em [docs/operations/stabilization/2026-11-18-textos-legais-modelo-novo-proposta.md](../../operations/stabilization/2026-11-18-textos-legais-modelo-novo-proposta.md); nada alterado, aguarda Boni) (termos, privacidade, retenção, encerramento): revisar para o modelo
       novo, incluindo anexos (só o texto é guardado), OCR no navegador e os agentes. Descrever apenas o que
       acontece de fato; a aprovação é de Boni.
 - [ ] Atualizar no mesmo commit `tests/public-copy.test.ts`, `tests/public-seo.test.ts` e
       `apps/web/src/public/PublicSite.test.ts`; manter o veto ao título rejeitado.
 - [ ] A consulta processual gratuita (DataJud) continua descrita como é, sem sugerir mais do que oferece.
-- [ ] URLs canônicas e `og:url` com o domínio vigente na ocasião (D3), sem valor fixo no texto.
+- [x] URLs canônicas e `og:url` com o domínio vigente na ocasião (D3), sem valor fixo no texto: `VITE_PUBLIC_ORIGIN` no build (parte 3).
 
 **Verificação.** `playwright.public.config.ts`, `accessibility.spec.ts`, testes de cópia e SEO. **Aceite.** Cada
 afirmação do site corresponde a uma função publicada; título aprovado por Boni. **Reversão.** Desligar

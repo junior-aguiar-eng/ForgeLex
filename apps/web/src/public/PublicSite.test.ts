@@ -166,6 +166,36 @@ describe('demais páginas no modelo novo (V5A, parte 2)', () => {
   });
 });
 
+describe('rodapé no modelo novo (V5A, parte 3)', () => {
+  const footerText = (model: boolean) => {
+    const html = renderToStaticMarkup(createElement(PublicSite, { page: 'credits', model }));
+    return html
+      .slice(html.indexOf('<footer'))
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ');
+  };
+  it('troca só a frase de apresentação e mantém os links e os documentos legais', () => {
+    expect(footerText(true)).toContain(
+      'Jurisprudência com fonte e estado de verificação para a sua IA, por MCP, com Mesa de trabalho e API.',
+    );
+    expect(footerText(false)).toContain(
+      'Jurisprudência dos tribunais superiores e consulta processual por MCP e API, com fontes e proveniência.',
+    );
+    expect(footerText(false)).not.toContain('Mesa de trabalho');
+    for (const label of [
+      'Termos de uso',
+      'Política de Privacidade',
+      'Termos de encerramento',
+      'Política de destinação',
+    ])
+      expect(footerText(true)).toContain(label);
+  });
+  it('a frase nova não promete o que não está no ar', () => {
+    for (const absent of ['OCR', 'Word', 'agentes', 'Gemini', 'vigência'])
+      expect(footerText(true)).not.toContain(absent);
+  });
+});
+
 describe('metadados no modelo novo (V5A)', () => {
   it('cada página pública muda com o texto, menos a consulta gratuita e a não encontrada', () => {
     expect(metadataFor('home', true).title).toBe('ForgeLex · Sua IA, com jurisprudência que dá para conferir');
