@@ -2104,3 +2104,46 @@ Vitest do script de tema (3 casos novos: favicon e `theme-color` só no gelo, co
 3. Homologação com `VITE_FORGELEX_THEME=gelo`, depois produção, em publicação isolada: `deploy-from-main.ps1 -Theme gelo`.
 
 Reversão: `-Theme classico` e novo deploy; ou reverter este commit.
+
+## V5A — A Mesa de trabalho em destaque no site (18/11/2026)
+
+Sobre `main` em `f935b58`, na branch `claude/v5a-mesa`. Continua **só com `VITE_FORGELEX_PUBLIC_MODEL=true`**, desligada por padrão.
+
+### Por que
+
+Observação de Boni em 18/11/2026: nos textos do site faltavam referências à Mesa agêntica, "a parte mais interessante e complexa". Procede: a Mesa aparecia como um cartão a mais, e o produto lia como pesquisa de jurisprudência. O texto do clássico (hoje em produção) segue o escopo congelado e não muda; a correção é no modelo novo.
+
+### O que a Mesa faz e o que o site passa a dizer
+
+Cada frase corresponde a função publicada (web com Mesa agêntica, casos, pesquisa salva, anexos e chips ligados; orientação guiada e `mesa-v3` ligadas na API; salvamento recuperável ligado em 14/11; cenários da A18 aceitos por Boni).
+
+| Frente | Texto | Função publicada |
+| ------ | ----- | ---------------- |
+| Ela pergunta o que falta | Pedido em uma frase ou "ajuda para começar"; pergunta o que muda o resultado; "não sei"; corrigir o resumo antes de enviar. | Orientação guiada e `mesa-v3`, A18 (Me ajude a começar, Não sei, correção pelo resumo). |
+| Elabora, revisa e edita um trecho | Peça nova ou revisão sem gerar versão a cada pedido; alteração só do trecho selecionado. | A18 (criação, revisão sem nova versão, edição delimitada). |
+| Cada versão fica guardada | Versão com histórico; resposta perdida não duplica nem perde; a revisão aponta e o cliente decide o que aplicar. | Salvamento recuperável (migração `0041`, flag ligada em 14/11); revisão editorial. |
+| Fontes dentro da peça | Pesquisar sem sair da Mesa; origem e estado de verificação; pesquisa salva reabre sem nova busca. | R9 (pesquisa salva e fontes na Mesa), A11. |
+| Seu material e seu caso | PDF, texto e Markdown; o arquivo não é enviado nem guardado, só o texto extraído; peças e pesquisas por caso. | DEC-12 e U5 (anexos); casos. |
+| Você acompanha e decide | Andamento à vista; conferência e uso jurídico são do cliente. | Andamento da execução. |
+
+Evitei de propósito o que depende do tema gelo ou de avaliação de Boni: os selos "Análise da IA" e "Verificada", a lista de "Etapas do trabalho", o número de áreas e o catálogo de fichas (a avaliação jurídica do Lote 0 segue com Boni).
+
+### Onde entra
+
+- **Início:** nova seção "Da pergunta à peça, com a IA trabalhando e você decidindo." logo depois do topo, com as seis frentes e um botão "Conhecer a Mesa de trabalho" no topo. O título e o subtítulo aprovados por Boni **não mudaram**.
+- **Produto:** a mesma seção abre a página; o título passa a "Mesa de trabalho e pesquisa com fonte, no site e na sua IA."
+- **Como funciona:** passos próprios da Mesa (descreva, responda só o que falta, acompanhe, revise e salve a versão) antes dos da pesquisa por MCP.
+- **Ferramentas e formas de uso:** a Mesa vem em primeiro lugar, e o cartão é mais completo.
+- **Guia:** os quatro passos da Mesa dentro do cartão dela.
+- **FAQ:** "O que é a Mesa de trabalho?" detalhada e duas perguntas novas, "O que a Mesa faz com meus anexos?" e "A Mesa usa créditos?".
+- **Rodapé, metadados e imagem de prévia:** a Mesa entra na frase do rodapé, nas descrições e na imagem Open Graph (as duas versões foram refeitas).
+
+### Cobrança da Mesa
+
+O código mostra que os trabalhos da Mesa são medidos e cobrados (`COMMERCIAL_EXECUTION_ENABLED` ligada em produção, com reserva e liquidação). O texto anterior só dizia que a pesquisa válida é faturável, o que ficava incompleto. Agora Créditos, Início, Guia e FAQ dizem que **os trabalhos da Mesa usam créditos da conta, sem mensalidade, com saldo e consumo à vista**. **Nenhum valor é citado**: a tarifa da Mesa segue sem publicação (A24) e depende de Boni.
+
+### Verificação
+
+Vitest: 321 arquivos e 2.723 testes. Novos testes: seção da Mesa depois do topo e antes de "Por que o ForgeLex existe", as seis frentes com as frases que correspondem a funções, a Mesa antes do resto nas ferramentas e nas formas de uso, passos próprios em Como funciona, ids sem repetição nas seis páginas, créditos da Mesa sem preço, e nada disso com o modelo desligado. Mutações provadas: trocar o título de uma frente e inserir "Word" derrubam testes. Playwright: `public-model` 5 aprovados (agora conta as seis frentes) e suíte pública 18 aprovados, com axe sem violação. Linhas removidas conferidas: só o modelo novo muda; o clássico é o mesmo.
+
+Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.

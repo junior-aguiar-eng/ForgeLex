@@ -1,4 +1,4 @@
-import { PageIntro, Capabilities, Movements, Safeguards } from './PublicSections';
+import { PageIntro, Capabilities, MesaSection, Movements, Safeguards } from './PublicSections';
 
 export function ProductPage({ model = false }: { model?: boolean }) {
   return (
@@ -7,15 +7,16 @@ export function ProductPage({ model = false }: { model?: boolean }) {
         eyebrow="Produto"
         title={
           model
-            ? 'Pesquisa com fonte, conexão com a sua IA e Mesa de trabalho.'
+            ? 'Mesa de trabalho e pesquisa com fonte, no site e na sua IA.'
             : 'Jurisprudência dos tribunais superiores e consulta processual.'
         }
         text={
           model
-            ? 'O ForgeLex entrega jurisprudência com fonte e estado de verificação ao ChatGPT ou ao Claude por MCP, oferece a Mesa de trabalho para elaborar e revisar peças e cobra só pelo uso. API e consulta processual gratuita também estão disponíveis.'
+            ? 'A Mesa de trabalho orienta, elabora e revisa peças com as fontes à vista, e a pesquisa de jurisprudência com estado de verificação pode ser feita no site ou no ChatGPT e no Claude por MCP. Você paga só pelo uso; API e consulta processual gratuita também estão disponíveis.'
             : 'Conecte ferramentas de pesquisa ao ChatGPT ou Claude, confira autoridades e gerencie seus créditos. API e consulta processual gratuita também estão disponíveis.'
         }
       />
+      {model && <MesaSection />}
       <Capabilities model={model} />
       <Movements model={model} />
       {model && <Safeguards />}

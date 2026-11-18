@@ -166,6 +166,86 @@ describe('demais páginas no modelo novo (V5A, parte 2)', () => {
   });
 });
 
+describe('a Mesa de trabalho em destaque no modelo novo', () => {
+  const render = (page: Parameters<typeof PublicSite>[0]['page'], model = true) =>
+    renderToStaticMarkup(createElement(PublicSite, { page, model }));
+  const textOf = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+  it('a página inicial traz a seção da Mesa logo depois do topo, antes de "Por que o ForgeLex existe"', () => {
+    const html = render('home');
+    expect(html).toContain('id="mesa-de-trabalho"');
+    expect(html.indexOf('id="mesa-de-trabalho"')).toBeGreaterThan(html.indexOf('<h1'));
+    expect(html.indexOf('id="mesa-de-trabalho"')).toBeLessThan(html.indexOf('Por que o ForgeLex existe'));
+    expect(textOf(html)).toContain('Da pergunta à peça, com a IA trabalhando e você decidindo.');
+    expect(html).toContain('href="/produto#mesa-de-trabalho"');
+  });
+
+  it('descreve o que a Mesa faz, em seis frentes que correspondem a funções publicadas', () => {
+    const text = textOf(render('home'));
+    for (const phrase of [
+      'Ela pergunta o que falta',
+      'responder “não sei”',
+      'corrigir o resumo antes de enviar',
+      'Elabora, revisa e edita um trecho',
+      'sem gerar versão nova a cada pedido',
+      'selecione o trecho e peça a alteração só ali',
+      'Cada versão fica guardada',
+      'Fontes dentro da peça',
+      'uma pesquisa salva reabre sem nova busca',
+      'Seu material e seu caso',
+      'o arquivo não é enviado nem guardado, só o texto extraído acompanha o pedido',
+      'Você acompanha e decide',
+    ])
+      expect(text, phrase).toContain(phrase);
+  });
+
+  it('a Mesa vem antes do resto nas ferramentas e nas formas de uso', () => {
+    const tools = render('product');
+    expect(tools.indexOf('id="mesa"')).toBeGreaterThan(-1);
+    expect(tools.indexOf('id="mesa"')).toBeLessThan(tools.indexOf('id="pesquisa"'));
+    const ways = textOf(render('integrations'));
+    expect(ways.indexOf('Mesa de trabalho')).toBeLessThan(ways.indexOf('Pesquisa no site'));
+  });
+
+  it('Produto abre pela Mesa e Como funciona tem os passos próprios dela', () => {
+    expect(textOf(render('product'))).toContain('Da pergunta à peça, com a IA trabalhando e você decidindo.');
+    const how = textOf(render('how'));
+    for (const step of [
+      'Descreva o que precisa',
+      'Responda só o que falta',
+      'Acompanhe o trabalho',
+      'Revise, decida e salve a versão',
+    ])
+      expect(how, step).toContain(step);
+    expect(how.indexOf('Na Mesa de trabalho')).toBeLessThan(how.indexOf('Da conta à pesquisa com fontes.'));
+  });
+
+  it('não repete id na mesma página (a seção e o cartão da Mesa têm ids diferentes)', () => {
+    for (const page of ['home', 'product', 'how', 'integrations', 'credits', 'guide'] as const) {
+      const ids = [...render(page).matchAll(/ id="([^"]+)"/g)].map((match) => match[1]);
+      expect(new Set(ids).size, `${page}: ${ids.join(', ')}`).toBe(ids.length);
+    }
+  });
+
+  it('diz que os trabalhos da Mesa usam créditos, sem inventar preço', () => {
+    for (const page of ['home', 'credits', 'guide'] as const) {
+      const text = textOf(render(page));
+      expect(text, page).toMatch(/Mesa (também )?usa(m)? créditos|trabalhos da Mesa (também )?usam créditos/);
+      expect(text, page).not.toMatch(/R\$\s?\d/);
+    }
+    expect(textOf(render('home'))).toContain('A Mesa usa créditos?');
+    expect(textOf(render('home'))).toContain('os trabalhos da Mesa também usam créditos');
+  });
+
+  it('com o modelo desligado, nada disso aparece', () => {
+    for (const page of ['home', 'product', 'how'] as const) {
+      const html = render(page, false);
+      expect(html).not.toContain('mesa-de-trabalho');
+      expect(textOf(html)).not.toContain('Da pergunta à peça');
+    }
+  });
+});
+
 describe('rodapé no modelo novo (V5A, parte 3)', () => {
   const footerText = (model: boolean) => {
     const html = renderToStaticMarkup(createElement(PublicSite, { page: 'credits', model }));
@@ -176,7 +256,7 @@ describe('rodapé no modelo novo (V5A, parte 3)', () => {
   };
   it('troca só a frase de apresentação e mantém os links e os documentos legais', () => {
     expect(footerText(true)).toContain(
-      'Jurisprudência com fonte e estado de verificação para a sua IA, por MCP, com Mesa de trabalho e API.',
+      'Mesa de trabalho para elaborar e revisar peças e jurisprudência com fonte para a sua IA, por MCP e API.',
     );
     expect(footerText(false)).toContain(
       'Jurisprudência dos tribunais superiores e consulta processual por MCP e API, com fontes e proveniência.',

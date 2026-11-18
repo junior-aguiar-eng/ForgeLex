@@ -4,7 +4,7 @@ import { resolveApiOrigin } from '../api-client';
 export const FOOTER_TAGLINE =
   'Jurisprudência dos tribunais superiores e consulta processual por MCP e API, com fontes e proveniência.';
 export const FOOTER_TAGLINE_MODEL =
-  'Jurisprudência com fonte e estado de verificação para a sua IA, por MCP, com Mesa de trabalho e API.';
+  'Mesa de trabalho para elaborar e revisar peças e jurisprudência com fonte para a sua IA, por MCP e API.';
 
 export function PublicFooter({ model = false }: { model?: boolean }) {
   const groups = [
