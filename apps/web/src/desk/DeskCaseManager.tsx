@@ -16,7 +16,7 @@ import {
   type ManagedCase,
 } from './case-manager-model';
 
-const stateLabel = { ACTIVE: 'Em uso', ARCHIVED: 'Arquivado', TRASHED: 'Na lixeira', PURGED: 'Excluído' } as const;
+const stateLabel = { ACTIVE: 'Ativo', ARCHIVED: 'Arquivado', TRASHED: 'Na lixeira', PURGED: 'Excluído' } as const;
 const failureText = (failure: unknown, fallback: string) => (failure instanceof Error ? failure.message : fallback);
 
 /**
