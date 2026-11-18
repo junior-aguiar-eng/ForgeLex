@@ -463,7 +463,18 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       if ((request.url.startsWith('/api/') || request.url.startsWith('/mcp')) && !matterLifecycle.gate.isVerified()) return reply.code(503).send({ error: 'MATTER_PURGE_RESTORE_BLOCKED', message: 'O serviço está verificando a disponibilidade dos dados.' });
     });
   }
-  if (database) registerMatterLifecycleRoutes(app, database, authAdapter, matterLifecycle?.service);
+  if (database)
+    registerMatterLifecycleRoutes(app, database, authAdapter, matterLifecycle?.service, (event) =>
+      recordAudit({
+        sessionId: `matter_${event.matterId}`,
+        tenantId: event.tenantId,
+        userId: event.userId,
+        toolName: 'matter.renamed',
+        durationMs: 0,
+        status: 'SUCCESS',
+        payload: { matterId: event.matterId, title: event.title },
+      }),
+    );
   const matterAuthorityRepository = database ? new MatterAuthorityRepository(database) : undefined;
   const legalIssueRepository = database ? new LegalIssueRepository(database) : undefined;
   const researchMemoRepository = database ? new ResearchMemoRepository(database) : undefined;

@@ -524,6 +524,15 @@ test('Mesa: com a conversa em andamento o caso fica fixo, com o motivo escrito',
   await expect(
     page.locator('[data-writing-desk] > header').getByRole('button', { name: 'Criar caso a partir desta conversa' }),
   ).toHaveCount(0);
+
+  // Gerenciar casos segue disponível: o caso em uso pode ser renomeado, mas não sair de uso enquanto a conversa o usa.
+  await page.locator('[data-writing-desk] > header').getByRole('button', { name: 'Gerenciar casos' }).click();
+  const manager = page.getByRole('dialog', { name: 'Gerenciar casos' });
+  const row = manager.getByRole('listitem').filter({ hasText: 'Caso da conversa' });
+  await expect(row).toContainText('Em uso nesta conversa ou peça');
+  await expect(row.getByRole('button', { name: 'Renomear Caso da conversa' })).toBeVisible();
+  await expect(row.getByRole('button', { name: /^Arquivar/ })).toHaveCount(0);
+  await expect(row.getByRole('button', { name: /^Mover para a lixeira/ })).toHaveCount(0);
 });
 
 test('Mesa: estado vazio com exemplos que só preenchem o pedido e a explicação dos dois selos', async ({ page }) => {
@@ -654,4 +663,66 @@ test('no tema gelo o favicon e a cor da barra do navegador seguem a paleta, já 
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#F4F7F8');
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /fill='%230F5C6E'/);
   expect(await page.locator('meta[name="theme-color"]').count()).toBe(1);
+});
+
+// Gerenciar casos dentro da Mesa (U7): renomear, arquivar, restaurar e o caso em uso protegido.
+test('Mesa: gerenciar casos renomeia, arquiva e restaura, e o seletor acompanha', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'gerenciar@forgelex.test');
+  const created = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso para gerenciar' } })
+  ).json();
+  await page.goto('/app/trabalho');
+  const header = page.locator('[data-writing-desk] > header');
+  const selector = header.getByLabel('Caso', { exact: true });
+  await selector.selectOption(created.id);
+
+  await header.getByRole('button', { name: 'Gerenciar casos', exact: true }).click();
+  const manager = page.getByRole('dialog', { name: 'Gerenciar casos' });
+  await expect(manager).toBeVisible();
+  await expect(manager.getByText('Caso para gerenciar')).toBeVisible();
+
+  // Renomear: nome curto demais é recusado em texto; o válido atualiza a lista e o seletor.
+  await manager.getByRole('button', { name: 'Renomear Caso para gerenciar' }).click();
+  const field = manager.getByLabel('Novo nome do caso');
+  await field.fill('ab');
+  await manager.getByRole('button', { name: 'Salvar nome' }).click();
+  await expect(manager.getByRole('alert')).toContainText('pelo menos 3 letras');
+  await field.fill('Caso renomeado pela Mesa');
+  await manager.getByRole('button', { name: 'Salvar nome' }).click();
+  await expect(manager.getByRole('status')).toContainText('Nome do caso atualizado');
+  await expect(manager.getByText('Caso renomeado pela Mesa')).toBeVisible();
+  const afterRename = await (await page.request.get(api + '/api/v2/matters', { headers: apiHeaders })).json();
+  expect(afterRename.items.find((item: { id: string }) => item.id === created.id).title).toBe(
+    'Caso renomeado pela Mesa',
+  );
+
+  const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // Arquivar, com confirmação que diz o efeito sobre a IA; o caso sai do seletor e deixa de ser o escolhido.
+  await manager.getByRole('button', { name: 'Arquivar: Caso renomeado pela Mesa' }).click();
+  const confirm = page.getByRole('dialog', { name: /Arquivar caso/ });
+  await expect(confirm).toContainText('O acesso pela IA será encerrado');
+  await confirm.getByRole('button', { name: 'Arquivar', exact: true }).click();
+  await expect(manager.getByRole('status')).toContainText('Caso arquivado');
+  await expect(manager.getByText('Caso renomeado pela Mesa')).toHaveCount(0);
+  await expect(selector.locator('option', { hasText: 'Caso renomeado pela Mesa' })).toHaveCount(0);
+  await expect(selector).toHaveValue('');
+
+  // Em "Arquivados" aparece, sem renomear, e restaurar o devolve ao seletor.
+  await manager.getByLabel('Mostrar casos').selectOption('archived');
+  await expect(manager.getByText('Caso renomeado pela Mesa')).toBeVisible();
+  await expect(manager.getByRole('button', { name: /^Renomear/ })).toHaveCount(0);
+  await manager.getByRole('button', { name: 'Restaurar: Caso renomeado pela Mesa' }).click();
+  await page
+    .getByRole('dialog', { name: /Restaurar caso/ })
+    .getByRole('button', { name: 'Restaurar', exact: true })
+    .click();
+  await expect(manager.getByRole('status')).toContainText('Caso restaurado');
+  await manager.getByRole('button', { name: 'Fechar' }).click();
+  await expect(manager).toHaveCount(0);
+  await expect(selector.locator('option', { hasText: 'Caso renomeado pela Mesa' })).toHaveCount(1);
+  // O texto do pedido e a página seguem onde estavam: nada recarregou.
+  await expect(page.getByLabel('O que você precisa fazer?', { exact: true })).toBeVisible();
 });

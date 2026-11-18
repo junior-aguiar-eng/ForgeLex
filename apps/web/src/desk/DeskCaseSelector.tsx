@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { requestApi } from '../api-client';
 import { caseNameFrom } from './case-name';
+import { DeskCaseManager } from './DeskCaseManager';
 
 export interface CaseOption {
   id: string;
@@ -20,6 +21,7 @@ export function DeskCaseSelector({
   disabled,
   onChange,
   onCreated,
+  onCasesChanged,
 }: {
   cases: CaseOption[];
   value: string;
@@ -30,9 +32,12 @@ export function DeskCaseSelector({
   disabled: boolean;
   onChange: (id: string) => void;
   onCreated: (created: CaseOption) => void;
+  /** Casos ativos depois de renomear, arquivar, mover para a lixeira ou restaurar no gerenciador. */
+  onCasesChanged: (active: CaseOption[]) => void;
 }) {
   const hintId = useId();
   const [creating, setCreating] = useState(false);
+  const [managing, setManaging] = useState(false);
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -144,6 +149,21 @@ export function DeskCaseSelector({
             </p>
           )}
         </form>
+      )}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setManaging(true)}
+        className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
+      >
+        Gerenciar casos
+      </button>
+      {managing && (
+        <DeskCaseManager
+          inUse={locked && value ? value : undefined}
+          onClose={() => setManaging(false)}
+          onChanged={onCasesChanged}
+        />
       )}
     </div>
   );

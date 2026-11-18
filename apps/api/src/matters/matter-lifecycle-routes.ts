@@ -9,11 +9,15 @@ export const lifecycleViewQuery = z
   .object({ view: z.enum(['active', 'archived', 'trash']).default('active') })
   .strict();
 
+const RenameCommandSchema = z.object({ title: z.string() }).strict();
+
 export function registerMatterLifecycleRoutes(
   app: FastifyInstance,
   database: ForgeLexDatabase,
   auth: AuthAdapter,
   purge?: MatterPurgeService,
+  /** Chamado depois de um caso ser renomeado (trilha de auditoria); falha dele não desfaz a operação. */
+  onRenamed?: (event: { tenantId: string; userId: string; matterId: string; title: string }) => Promise<void>,
 ): void {
   const repository = new MatterLifecycleRepository(database);
   const matters = new MatterRepository(database);
@@ -143,4 +147,54 @@ export function registerMatterLifecycleRoutes(
       });
     }
   }
+  // Renomear não é transição de ciclo de vida: não troca a revisão e só vale para caso ativo (o guarda acima responde 409).
+  app.patch(
+    '/api/v2/matters/:matterId',
+    { preHandler: auth.createPreHandler(['matter:write']) },
+    async (request, reply) => {
+      reply.header('Cache-Control', 'no-store');
+      if (request.principal.authMethod !== 'session') return reply.code(403).send({ error: 'LIFECYCLE_FORBIDDEN' });
+      const params = z.object({ matterId: z.string().guid() }).strict().safeParse(request.params);
+      const body = RenameCommandSchema.safeParse(request.body);
+      if (!params.success || !body.success) return reply.code(400).send({ error: 'INVALID_REQUEST' });
+      const roles = request.principal.roles;
+      const actor: LifecycleActor = {
+        userId: request.principal.userId,
+        role: roles.includes('owner') ? 'owner' : roles.includes('admin') ? 'admin' : 'member',
+        authType: 'web_session',
+        scopes: request.principal.scopes,
+      };
+      try {
+        const renamed = await repository.rename(
+          { tenantId: request.principal.tenantId, matterId: params.data.matterId },
+          actor,
+          body.data.title,
+        );
+        try {
+          await onRenamed?.({
+            tenantId: request.principal.tenantId,
+            userId: request.principal.userId,
+            matterId: renamed.id,
+            title: renamed.title,
+          });
+        } catch (error) {
+          request.log.warn({ error }, 'Falha ao registrar a renomeação do caso na auditoria');
+        }
+        return renamed;
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'RENAME_FAILED';
+        if (code === 'INVALID_TITLE')
+          return reply
+            .code(400)
+            .send({ error: 'INVALID_TITLE', message: 'O nome do caso deve ter de 3 a 200 caracteres.' });
+        if (/NOT_FOUND/.test(code)) return reply.code(404).send({ error: 'MATTER_NOT_FOUND' });
+        if (code === 'LIFECYCLE_FORBIDDEN') return reply.code(403).send({ error: 'LIFECYCLE_FORBIDDEN' });
+        if (code === 'MATTER_NOT_ACTIVE')
+          return reply
+            .code(409)
+            .send({ error: 'MATTER_NOT_ACTIVE', message: 'Este caso está disponível apenas para consulta.' });
+        return reply.code(500).send({ error: 'RENAME_FAILED', message: 'Não foi possível renomear o caso.' });
+      }
+    },
+  );
 }

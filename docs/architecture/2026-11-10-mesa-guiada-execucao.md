@@ -2147,3 +2147,40 @@ O código mostra que os trabalhos da Mesa são medidos e cobrados (`COMMERCIAL_E
 Vitest: 321 arquivos e 2.723 testes. Novos testes: seção da Mesa depois do topo e antes de "Por que o ForgeLex existe", as seis frentes com as frases que correspondem a funções, a Mesa antes do resto nas ferramentas e nas formas de uso, passos próprios em Como funciona, ids sem repetição nas seis páginas, créditos da Mesa sem preço, e nada disso com o modelo desligado. Mutações provadas: trocar o título de uma frente e inserir "Word" derrubam testes. Playwright: `public-model` 5 aprovados (agora conta as seis frentes) e suíte pública 18 aprovados, com axe sem violação. Linhas removidas conferidas: só o modelo novo muda; o clássico é o mesmo.
 
 Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.
+
+## U7 — Casos dentro da Mesa, parte 1: gerenciar casos (18/11/2026)
+
+Sobre `main` em `f935b58`, na branch `claude/proxima`. Só no tema gelo (o seletor de caso da Mesa já é do gelo); o clássico e a tela "Casos" ficam como estão.
+
+### Decisão de Boni sobre o escopo da U7 (18/11/2026)
+
+A DEC-14 lista o que a Mesa deve absorver da tela "Casos" (criar e renomear caso, arquivar, restaurar e excluir caso e documento, importar PDF). O levantamento mostrou que a tela, que está no ar (flag de casos ligada em produção), também guarda **Fatos, Provas (com vínculo a fato e âncora), Linha do tempo, Questões jurídicas e Memorando de pesquisa**, e que a Mesa não tem nenhuma dessas funções. Remover a tela tiraria o único lugar onde o cliente vê e edita o que cadastrou. **Boni decidiu: manter como "Dados do caso".** A Mesa absorve a parte da DEC-14; a tela deixa de ser porta de entrada e passa a "Dados do caso", aberta a partir do caso na Mesa, com Fatos, Provas, Linha do tempo, Questões e Memorando intactos. O caso segue como eixo da busca ancorada (M4) e do MCP.
+
+### Achado: renomear caso não existia
+
+Nem o backend nem a tela "Casos" renomeavam caso (só criavam). Esta fatia acrescenta a rota.
+
+### O que foi feito
+
+| Camada | Mudança |
+| ------ | ------- |
+| Persistência | `MatterLifecycleRepository.rename`: título aparado, de 3 a 200 caracteres; mesma regra de gestão do ciclo de vida (sessão web, escrita, autor ou administrador); só caso ativo; o estado é conferido de novo no próprio `UPDATE`, então um arquivamento concorrente não é sobrescrito. **Não é transição:** a `lifecycleRevision` que as execuções capturam não muda. |
+| API | `PATCH /api/v2/matters/:matterId` com `{ title }`, só sessão web: 403 para chave de API e OAuth e para quem não é autor nem administrador, 400 para título inválido, 404 para outro tenant, 409 para caso em arquivo ou lixeira (o guarda de ciclo de vida já existente). Cada renomeação aceita grava `matter.renamed` na auditoria. Documentada no OpenAPI (`MatterRename`, `MatterRenameResult`). |
+| Mesa (gelo) | Botão **Gerenciar casos** no seletor de caso abre um diálogo com a lista (Em uso, Arquivados, Lixeira) e, por caso: **Renomear**, **Arquivar**, **Mover para a lixeira** e **Restaurar**, com a confirmação que já existia e que diz o efeito sobre o acesso da IA. O seletor acompanha a mudança, e um caso arquivado ou na lixeira deixa de ser o escolhido. O caso **em uso** na conversa ou peça aberta pode ser renomeado, mas não sair de uso. |
+| Fica fora desta fatia | **Exclusão definitiva** (pede o nome do caso e acompanha o diário): continua na tela Casos, e o diálogo diz isso. Ciclo de vida **do documento** e importação de PDF. |
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Vitest | 322 arquivos e 2.725 testes. Novos: repositório (autor, administrador, chave, escopo, outro tenant, títulos inválidos, caso arquivado, revisão intacta), rota (cada ator e status, auditoria, OpenAPI) e modelo do gerenciador. Mutação provada: tirar a checagem de autorização do `rename` derruba o teste. |
+| Playwright (gelo) | Suíte do gelo: 57 aprovados. Novo cenário: renomear (nome curto recusado em texto, nome válido atualiza lista e seletor), axe sem violação com o diálogo aberto, arquivar com confirmação, restaurar, seletor acompanha. Cenário do caso fixo estendido: o caso em uso pode ser renomeado e não aparece com Arquivar nem Lixeira. |
+| Tipos, lint, formato | `tsc` (API e web), ESLint e `pnpm format:check:code` limpos. |
+
+### Próximas fatias da U7
+
+1. Documentos do caso na Mesa (arquivar, restaurar, excluir) e PDF como anexo.
+2. A tela "Casos" vira **Dados do caso**, aberta a partir do caso na Mesa; `/app/casos` redireciona preservando links; o item "Casos" sai da lateral.
+3. Decidir o destino da exclusão definitiva (ficar em Dados do caso ou ir para a Mesa).
+
+Reversão: reverter o commit; a rota nova some e a tela "Casos" continua igual. A rota só existe depois de a API ser publicada.
