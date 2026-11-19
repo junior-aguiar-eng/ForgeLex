@@ -929,21 +929,23 @@ test('Mesa: caso na lixeira leva direto a Dados do caso, na lixeira, onde fica a
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page, 'lixeiradados@forgelex.test');
-  const matter = await trashed(page, 'Caso para excluir de vez');
+  // Título único: os casos de outros testes (e de repetições) vivem no mesmo tenant e não podem se confundir com este.
+  const title = `Caso para excluir de vez ${Date.now()}`;
+  const matter = await trashed(page, title);
   await page.goto('/app/trabalho');
   const header = page.locator('[data-writing-desk] > header');
   await header.getByRole('button', { name: 'Gerenciar casos', exact: true }).click();
   const manager = page.getByRole('dialog', { name: 'Gerenciar casos' });
   await manager.getByLabel('Mostrar casos').selectOption('trash');
   // Na lixeira o gerenciador oferece o caminho para a exclusão definitiva, que fica em Dados do caso.
-  await expect(manager.getByRole('button', { name: /^Restaurar:/ })).toBeVisible();
-  await expect(manager.getByRole('button', { name: /^Dados do caso:/ })).toHaveCount(0);
-  await manager.getByRole('button', { name: 'Excluir definitivamente: Caso para excluir de vez' }).click();
+  await expect(manager.getByRole('button', { name: `Restaurar: ${title}` })).toBeVisible();
+  await expect(manager.getByRole('button', { name: `Dados do caso: ${title}` })).toHaveCount(0);
+  await manager.getByRole('button', { name: `Excluir definitivamente: ${title}` }).click();
 
   await expect(page).toHaveURL(new RegExp(`/app/casos\\?caso=${matter.id}&visao=trash`));
   await expect(page.getByRole('heading', { level: 1, name: 'Dados do caso' })).toBeVisible();
   await expect(page.getByLabel('Mostrar casos')).toHaveValue('trash');
-  await expect(page.getByRole('heading', { name: 'Caso para excluir de vez', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   // A exclusão em si continua pedindo o nome do caso: abrir a tela não exclui nada.
   const still = await (await page.request.get(`${api}/api/v2/matters?view=trash`, { headers: apiHeaders })).json();
   expect(still.items.some((item: { id: string }) => item.id === matter.id)).toBe(true);
@@ -982,7 +984,8 @@ test('aba Documentos: o caminho da exclusão definitiva abre Dados do caso com o
   await panel.getByLabel('Mostrar documentos').selectOption('trash');
   await panel.getByRole('button', { name: 'Dados do caso', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/app/casos\\?caso=${matter.id}&documentos=trash`));
-  await expect(page.getByLabel('Mostrar documentos')).toHaveValue('trash');
+  // A Mesa fica montada, só escondida, enquanto a tela do caso está aberta: o filtro a considerar é o da tela à vista.
+  await expect(page.getByLabel('Mostrar documentos').and(page.locator(':visible'))).toHaveValue('trash');
 });
 
 test('Visão: os primeiros passos só aparecem quando se sabe o resultado, sem trocar de destaque nem animar depois', async ({
