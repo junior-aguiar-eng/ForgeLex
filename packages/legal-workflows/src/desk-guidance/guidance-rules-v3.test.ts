@@ -191,3 +191,98 @@ describe('compatibilidade das regras anteriores', () => {
     expect(guidanceQuestion(start, 1)?.options).toHaveLength(6);
   });
 });
+
+describe('área proposta pelo texto (mesa-v3, orientação inicial)', () => {
+  const catalog = [
+    piece('contestacao-trabalhista', 'Contestação trabalhista', ['trabalho'], ['reclamacao trabalhista']),
+    piece('contestacao-civel', 'Contestação cível', ['processo-civil'], ['defesa do reu']),
+    piece('resposta-acusacao', 'Resposta à acusação', ['penal', 'processo-penal']),
+    piece('oficio', 'Ofício', [], [], true),
+  ];
+  const envWith = (text: string, list = catalog): GuidanceEnvironment => ({
+    rulesVersion: 'mesa-v3',
+    pieces: list,
+    text,
+  });
+
+  it('propõe a área quando o texto aponta uma peça de uma única área, e pergunta se está correto', () => {
+    const environment = envWith('Preciso da contestação trabalhista da empresa');
+    const start = initialGuidance(environment);
+    expect(start.area).toEqual({ value: 'trabalho', status: 'proposed', origin: 'model' });
+    const question = guidanceQuestion(start, 1, environment)!;
+    expect(question.id).toBe('area:1');
+    expect(question.prompt).toBe('Pelo que você informou, a área é: Trabalho. Está correto?');
+    expect(question.options.map(({ id }) => id)).toEqual(['sim', 'nao']);
+    expect(question.allowFreeText).toBe(false);
+  });
+
+  it('confirmar a área proposta chega à peça confirmada em três interações, sem escolher na lista', () => {
+    const environment = envWith('Preciso da contestação trabalhista da empresa');
+    let snapshot = initialGuidance(environment);
+    snapshot = step(snapshot, { options: ['sim'] }, environment); // 1: área
+    expect(snapshot.area).toMatchObject({ value: 'trabalho', status: 'confirmed', origin: 'user' });
+    snapshot = step(snapshot, { options: ['create_document'] }, environment); // 2: tarefa
+    expect(snapshot.documentType).toMatchObject({ value: 'contestacao-trabalhista', status: 'proposed' });
+    snapshot = step(snapshot, { options: ['sim'] }, environment); // 3: peça
+    expect(snapshot.documentType).toMatchObject({ value: 'contestacao-trabalhista', status: 'confirmed' });
+  });
+
+  it('recusar a área volta à lista das 25 áreas, sem propor de novo', () => {
+    const environment = envWith('Preciso da contestação trabalhista da empresa');
+    let snapshot = initialGuidance(environment);
+    snapshot = step(snapshot, { options: ['nao'] }, environment);
+    expect(snapshot.area).toEqual({ value: null, status: 'unknown', origin: 'user' });
+    const question = guidanceQuestion(snapshot, 1, environment)!;
+    expect(question.prompt).toBe('Em qual área você precisa trabalhar?');
+    expect(question.options).toHaveLength(26);
+    snapshot = step(snapshot, { options: ['civil'] }, environment);
+    expect(snapshot.area).toMatchObject({ value: 'civil', status: 'confirmed' });
+  });
+
+  it('"não sei" na área proposta segue como área em aberto', () => {
+    const environment = envWith('Preciso da contestação trabalhista da empresa');
+    const snapshot = step(initialGuidance(environment), { unknown: true }, environment);
+    expect(snapshot.area).toMatchObject({ value: null, status: 'unknown' });
+    expect(snapshot.area.questionId).toBe('area:1');
+    expect(guidanceQuestion(snapshot, 1, environment)!.id).toBe('action:2');
+  });
+
+  it('não propõe sem texto, sem catálogo, com peça em várias áreas, com empate entre áreas ou com peça transversal', () => {
+    const none = (environment: GuidanceEnvironment) => initialGuidance(environment).area.value;
+    expect(none(envWith(''))).toBeNull();
+    expect(none(envWith('contestação trabalhista', []))).toBeNull();
+    expect(none(envWith('Preciso da resposta à acusação'))).toBeNull(); // penal e processo penal
+    expect(none(envWith('contestação'))).toBeNull(); // empate: trabalho e processo civil
+    expect(none(envWith('Preciso de um ofício'))).toBeNull(); // transversal
+    expect(none(envWith('qualquer coisa sem relação'))).toBeNull();
+  });
+
+  it('corrigir a confirmação da área para "não" a reabre sem deixar "nao" como valor e tira a confirmação da peça', () => {
+    const environment = envWith('Preciso da contestação trabalhista da empresa');
+    let snapshot = initialGuidance(environment);
+    const original = guidanceQuestion(snapshot, 1, environment) as LegalQuestion;
+    snapshot = step(snapshot, { options: ['sim'] }, environment);
+    snapshot = step(snapshot, { options: ['create_document'] }, environment);
+    expect(snapshot.documentType.value).toBe('contestacao-trabalhista');
+    const corrected = applyGuidanceAnswer(
+      snapshot,
+      { ...original, contextRevision: 1 },
+      {
+        questionId: original.id,
+        questionVersion: original.version,
+        contextRevision: 1,
+        selectedOptionIds: ['nao'],
+      },
+      environment,
+    );
+    expect(GuidanceSnapshotSchema.parse(corrected)).toEqual(corrected);
+    expect(corrected.area).toEqual({ value: null, status: 'unknown', origin: 'user' });
+    expect(corrected.documentType.status).not.toBe('confirmed'); // a peça volta a ser só hipótese
+    expect(guidanceQuestion(corrected, 1, environment)!.prompt).toBe('Em qual área você precisa trabalhar?');
+  });
+
+  it('as regras mesa-v2 não propõem área', () => {
+    const start = initialGuidance({ rulesVersion: 'mesa-v2', pieces: catalog, text: 'contestação trabalhista' });
+    expect(start.area.status).toBe('unknown');
+  });
+});

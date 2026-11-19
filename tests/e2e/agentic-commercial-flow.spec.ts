@@ -291,7 +291,8 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
   // Change only this disposable local fixture; no production editing endpoint is added for testing.
   const databaseUrl = process.env.FORGELEX_COMMERCIAL_TEST_DATABASE_URL!;
   expect(databaseUrl).toMatch(/^file:.*forgelex-commercial-e2e-/);
-  const fixture = await createDatabase({ url: databaseUrl });
+  // O servidor, em outro processo, também escreve neste arquivo; sem espera pela trava o SQLite recusa na hora (`database is locked`).
+  const fixture = await createDatabase({ url: databaseUrl, busyTimeoutMs: 5000 });
   try {
     await fixture.client.execute({
       sql: 'UPDATE facts SET statement=? WHERE matter_id=?',
@@ -323,7 +324,7 @@ test('incorpora somente seleção revisada, recupera resposta perdida e mantém 
   await page.route('**/evidence-changes/decisions', async (route) => route.abort('failed'), { times: 1 });
   await changes.getByRole('button', { name: 'Aprovar alterações', exact: true }).click();
   await expect(changes.getByRole('alert')).toContainText('Não foi possível confirmar');
-  const changedDuringReview = await createDatabase({ url: databaseUrl });
+  const changedDuringReview = await createDatabase({ url: databaseUrl, busyTimeoutMs: 5000 });
   try {
     await changedDuringReview.client.execute({
       sql: "UPDATE facts SET status=CASE WHEN status='ASSERTED' THEN 'DISPUTED' ELSE 'ASSERTED' END WHERE matter_id=?",

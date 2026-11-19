@@ -6,6 +6,8 @@
 publicado**: em produção continua `6fe4f75`. Plano e ordem de retomada, da pendência mais antiga para a mais recente:
 [seção 1A do plano unificado](docs/superpowers/plans/2026-11-11-forgelex-plano-unificado.md).
 
+**Diagnóstico das três instabilidades (19/11/2026).** `database is locked`: causa provada e corrigida (espera pela trava só nas conexões de apoio dos E2E). `matter-lifecycle.spec.ts:48`: mecanismo provado, gatilho no CI não provado; o teste passou a esperar a carga inicial. Porta 55432: causa não provada; `e2e-product` passa a usar porta aleatória do serviço (mitigação, decisão de Boni de 19/11; só o CI do PR a exercita). Detalhes e limites: [registro](docs/architecture/2026-11-10-mesa-guiada-execucao.md#ci--diagnóstico-das-três-falhas-intermitentes-do-e2e-product-19112026).
+
 **Terceira instabilidade do `e2e-product` em `main` (18/11, run 525 do #196).** Falhou ao subir o Postgres de serviço:
 `address already in use` na porta 55432; nenhum teste rodou. Reexecutado por Boni, passou. O `ci.yml` fixa `55432:5432` e o job roda em
 `ubuntu-latest` (26.04 nessa execução); a causa da ocupação da porta não foi provada. Com as duas anteriores (`database is locked`, `matter-lifecycle.spec.ts:48`) são três falhas

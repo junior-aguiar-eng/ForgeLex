@@ -151,7 +151,8 @@ jobs:
           POSTGRES_USER: forgelex
           POSTGRES_PASSWORD: forgelex
         ports:
-          - 55432:5432
+          # Host port left to Docker: a fixed 55432 already in use on the runner failed this job once (run 525).
+          - 5432
         options: >-
           --health-cmd "pg_isready -U forgelex -d forgelex"
           --health-interval 5s
@@ -159,6 +160,11 @@ jobs:
           --health-retries 12
     steps:
       - uses: actions/checkout@v4
+      - name: Point the E2E database at the published service port
+        run: |
+          port='${{ job.services.postgres.ports['5432'] }}'
+          test -n "$port" || { echo 'The postgres service port was not published.'; exit 1; }
+          echo "FORGELEX_E2E_DATABASE_URL=postgres://forgelex:forgelex@127.0.0.1:${port}/forgelex" >> "$GITHUB_ENV"
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0

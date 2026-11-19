@@ -5,7 +5,7 @@ import {
   type LegalAnswer,
   type LegalQuestion,
 } from '@forgelex/domain';
-import { DESK_AREAS, DESK_OTHER_AREA, parseCourt } from './desk-vocabulary.js';
+import { DESK_AREAS, DESK_OTHER_AREA, deskAreaLabel, parseCourt } from './desk-vocabulary.js';
 import { rankPieces, type DeskPiece } from './piece-ranking.js';
 
 const V2 = 'mesa-v2';
@@ -85,6 +85,24 @@ function propose(draft: Draft, environment: GuidanceEnvironment): Draft {
   return top ? { ...draft, documentType: { value: top.piece.id, status: 'proposed', origin: 'model' } } : draft;
 }
 
+/**
+ * Mesa-v3, só na orientação inicial: propõe a área quando o texto do pedido a sustenta sem ambiguidade. Usa o mesmo
+ * ranqueamento local das peças (sem provedor, sem saldo): vale quando todas as peças que empatam no topo são de uma
+ * única área e nenhuma é transversal. Texto vago, empate entre áreas ou catálogo ausente deixam a pergunta de área como
+ * está. Só a orientação inicial propõe: depois de o cliente recusar, a Mesa não insiste.
+ */
+function inferArea(environment: GuidanceEnvironment): string | null {
+  const matches = rankPieces({ pieces: environment.pieces ?? [], text: environment.text ?? '' });
+  const [top] = matches;
+  if (!top) return null;
+  const tied = matches.filter(({ score }) => score === top.score);
+  if (tied.some(({ piece }) => piece.transversal)) return null;
+  const areas = new Set(tied.flatMap(({ piece }) => piece.areas));
+  if (areas.size !== 1) return null;
+  const [only] = [...areas];
+  return only && only !== DESK_OTHER_AREA.id && deskAreaLabel(only) ? only : null;
+}
+
 function complete(draft: Draft, environment: GuidanceEnvironment = {}): GuidanceSnapshot {
   const proposed = propose(draft, environment);
   const field = nextField(proposed);
@@ -93,13 +111,14 @@ function complete(draft: Draft, environment: GuidanceEnvironment = {}): Guidance
 
 export function initialGuidance(environment: GuidanceEnvironment = {}): GuidanceSnapshot {
   const rulesVersion = environment.rulesVersion ?? V2;
+  const inferred = rulesVersion === V3 ? inferArea(environment) : null;
   return complete(
     {
       protocolVersion: 1,
       rulesVersion,
       revision: 1,
       activeQuestionId: null,
-      area: unanswered,
+      area: inferred ? { value: inferred, status: 'proposed', origin: 'model' } : unanswered,
       action: unanswered,
       documentType: unanswered,
       partyRole: unanswered,
@@ -161,6 +180,19 @@ export function guidanceQuestion(
             allowFreeText: true,
             reason: 'Delimitar o pedido',
           };
+    }
+    if (field === 'area' && snapshot.area.status === 'proposed') {
+      return {
+        ...base,
+        prompt: `Pelo que você informou, a área é: ${deskAreaLabel(snapshot.area.value) ?? snapshot.area.value}. Está correto?`,
+        selection: 'single',
+        options: [
+          { id: 'sim', label: 'Sim, é essa' },
+          { id: 'nao', label: 'Não, é outra' },
+        ],
+        allowFreeText: false,
+        reason: 'Confirmar a área antes de seguir',
+      };
     }
     return {
       ...base,
@@ -241,6 +273,24 @@ function answerV3(
     });
     if (top) draft.documentType = { value: top.piece.id, status: 'proposed', origin: 'model' };
     return { draft, environment: next };
+  }
+  if (field === 'area' && question.options.some((option) => option.id === 'sim')) {
+    // Resposta à área proposta pelo texto (ou correção dela): confirmar usa o valor proposto; recusar volta à lista, sem
+    // nova proposta. Sem valor proposto não há o que confirmar, e a lista é a saída.
+    const proposed = snapshot.area.value;
+    draft.area =
+      value === 'sim' && proposed
+        ? { value: proposed, status: 'confirmed', origin: 'user', ...asked }
+        : value === null
+          ? { ...unanswered, ...asked }
+          : unanswered;
+    if (draft.area.value !== proposed) {
+      draft.documentType = unanswered;
+      delete draft.rejectedDocumentTypes;
+      draft.partyRole = unanswered;
+      draft.stage = unanswered;
+    }
+    return { draft, environment };
   }
   if (snapshot[field].value !== value) {
     // Mudar a área ou a ação invalida a peça proposta ou escolhida e as recusas anteriores.

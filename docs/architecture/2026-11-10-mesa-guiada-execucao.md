@@ -2229,3 +2229,60 @@ Sobre `main` em `6bd76e1`. Só `apps/web`; nada muda para o cliente de hoje (pro
 **Verificação.** `tsc` do web, ESLint e Prettier nos arquivos alterados; Vitest `apps/web` (61 arquivos, 467 testes) e `tests/public-*` aprovados depois do build; `playwright.editorial-review.config.ts` (3 cenários) aprovado. Não rodei a suíte completa, nem as demais configurações Playwright: ficam para a CI do PR.
 
 Reversão: reverter o commit; os dois arquivos removidos voltam pelo Git.
+
+## U3 · área proposta pelo texto, aviso de matéria sem apoio e aceite de três interações (19/11/2026)
+
+Sobre `main` em `11fda82`. Regras `mesa-v3`; sem mudança de contrato, sem migração e sem provedor. A reconciliação do plano (as caixas da U3 estavam sem marcar) acompanha esta seção.
+
+**O que mudou.**
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Área proposta pelo texto | Só na orientação inicial (`initialGuidance`), com o texto do pedido. Usa o ranqueamento local das peças, sem provedor e sem saldo. Propõe quando **todas as peças que empatam no topo são de uma única área** e nenhuma é transversal; texto vago, empate entre áreas, peça em mais de uma área, catálogo ausente ou texto vazio mantêm a lista das 25 áreas. A decisão nasce `proposed` e `origin: model`, sem campo novo no `GuidanceSnapshot`; o resolvedor de habilidades só lê área `confirmed` ou `known`, então a proposta não chega à execução antes da confirmação. |
+| Pergunta | “Pelo que você informou, a área é: X. Está correto?”, com “Sim, é essa” e “Não, é outra” (e “Não sei”). “Sim” confirma; “Não” volta à lista e **a Mesa não propõe de novo** (só a orientação inicial propõe); “Não sei” segue com a área em aberto. A correção pelo resumo da própria confirmação (“Sim” para “Não”) reabre a área e tira a confirmação da peça, sem gravar “nao” como valor. |
+| Matéria sem apoio | `MatterChips`: sem sugestão na primeira tentativa, a Mesa diz “Não encontrei uma matéria de apoio para essa descrição. Descreva de outro jeito ou siga sem matéria; o pedido segue como está.” (antes: “Não encontrei uma matéria para isso…”). **Redação corrigida no mesmo PR:** a primeira versão dizia “Ainda não temos orientação específica para essa matéria”, o que afirma a cobertura do catálogo; o ranqueamento é lexical e pode não achar uma matéria que existe, então a frase podia ser falsa. A nova descreve só o resultado da busca. A mensagem depois de uma recusa (“Não há outra matéria parecida…”) não mudou. O aviso da peça, de 17/11, usa a redação antiga e tem o mesmo limite (só aparece depois de o cliente explicar a peça em texto); não foi alterado. |
+| Aceite “peça em até três interações” | Cenário E2E novo: do texto livre, área (sim), tarefa e peça (sim) = 3 interações, sem lista; conferido que o id da peça e as expressões não aparecem no HTML. |
+
+**Verificação.** Vitest: 17 testes das regras `mesa-v3` (7 novos: proposta, três interações, recusa, “não sei”, casos sem proposta, correção e `mesa-v2` sem proposta), 8 do serviço de orientação (3 ajustados porque o catálogo de teste agora leva à proposta de área); `desk-guidance-v3` no Playwright: 11 aprovados (3 novos, com axe, incluindo celular). Fixture do E2E ganhou a peça sintética “Recurso ordinário trabalhista” (área única), sem alterar os outros cenários. `tsc` (web e API), ESLint e Prettier limpos nos arquivos alterados.
+
+**Limite.** A proposta de área só dispara quando a peça de topo tem **uma** área. No catálogo de teste, peças como “Resposta à acusação” têm duas (`penal` e `processo-penal`) e, por isso, não geram proposta. A taxa de acerto e de disparo no catálogo real (2.077 fichas, fora do repositório) **não foi medida**; se for baixa, o próximo passo é decidir entre aceitar a primeira área da peça ou mostrar só as áreas candidatas.
+
+**Continua aberto na U3.** Chips de área, tribunal e peça no compositor (V3 e U7) e a refinação por IA, que só vale se o ranqueamento errar mais do que a recusa resolve.
+
+Reversão: reverter o commit; as orientações já gravadas não mudam (o contrato é o mesmo).
+
+## CI · diagnóstico das três falhas intermitentes do `e2e-product` (19/11/2026)
+
+Sobre `main` em `11fda82`. Método: evidência e reprodução antes de qualquer correção. Nada de produção muda (PostgreSQL em produção; o SQLite só existe em desenvolvimento e nos E2E).
+
+### 1. `database is locked` (`agentic-commercial-flow.spec.ts`, 15/11): causa provada
+
+`createDatabase` abria os arquivos SQLite com tempo de espera pela trava igual a zero (`libsql` usa `timeout = 0`). A conexão de apoio do teste (`UPDATE facts…` por fora do servidor) recebia `SQLITE_BUSY` na hora sempre que o servidor, em outro processo, estava no meio de uma transação de escrita; o resultado dependia do momento.
+
+**Reprodução (dois processos).** Um processo segura a trava de escrita por 300 ms; o outro escreve: sem `timeout`, falha em 1 ms com `SQLITE_BUSY: database is locked`; com `timeout: 5000`, espera e conclui em 310 ms; com a trava segurada por 8 s, falha em 5 s. (Um primeiro experimento no mesmo processo enganava: a espera bloqueia o laço de eventos e a trava nunca era solta.)
+
+**Primeira correção, errada, e por que voltei atrás.** Dar o tempo de espera a todo `createDatabase` quebrou `webhook-repository.test.ts`: `claimDueDelivery` trata `SQLITE_BUSY` como "outro worker já reivindicou" (`webhook-repository.ts:209`), e a espera de 5 s travou dois "workers" no mesmo processo. A falha do erro imediato é parte do desenho dali.
+
+**Correção.** Opt-in `DatabaseConfig.busyTimeoutMs` (padrão: não esperar), usado só nas duas conexões de apoio do E2E que escrevem por fora do servidor. Teste de regressão `packages/persistence/src/db-busy-timeout.test.ts`: com o opt-in a escrita espera e conclui; sem ele continua recusando na hora.
+
+### 2. `matter-lifecycle.spec.ts:48`, campo "Texto do documento" desabilitado (16/11): mecanismo provado, gatilho no CI não provado
+
+O teste arquiva o caso por API, "por trás" da tela. A tela só passa a saber disso quando uma leitura do caso chega ao servidor **depois** do arquivamento. Duas leituras podem fazer isso: o evento `focus` da janela (`MatterWorkspaceScreen`, `refresh`) e a **carga inicial** do caso (`loadMatterResources`, 8 requisições) ainda em andamento. Reproduzi as duas com sondas (apagadas): disparar `focus` após o arquivamento, e reter a leitura inicial até depois do arquivamento. Nos dois casos o campo fica desabilitado e o `fill` estoura, o sintoma do CI.
+
+**O que não sei.** Não reproduzi a falha em condição normal (16 de 16 passaram localmente, com 4 workers), então não provo que foi a carga inicial lenta, e não o `focus`, no runner do CI. A primeira é a hipótese mais forte (runner lento alonga a carga inicial), mas é hipótese.
+
+**Correção (só no teste).** O teste de "resposta atrasada" passa a esperar as 8 respostas da carga inicial antes de arquivar (`openCase`). É comportamento correto da tela (caso arquivado em outro lugar vira somente leitura). Suíte `matter-lifecycle`: 30 passagens (5 testes × 6 repetições).
+
+### 3. Porta 55432 em uso (`Initialize containers`, 18/11): causa não provada, mitigação aplicada
+
+O erro ocorre no passo 2 do job, antes do checkout: algo no runner (imagem `ubuntu-latest`, 26.04 nessa execução) já escutava a 55432. O `e2e-product` mapeava `55432:5432` fixo e o `postgres` está fixado em `ubuntu-24.04`. Não há como inspecionar o runner antes desse passo (ele roda antes de qualquer `run`), então **a causa continua não provada**.
+
+**Mitigação (decisão de Boni, 19/11/2026), só no job `e2e-product`.** O serviço publica `5432` (porta do host escolhida pelo Docker) e um passo novo, logo após o checkout, grava `FORGELEX_E2E_DATABASE_URL` em `$GITHUB_ENV` com a porta publicada (`job.services.postgres.ports['5432']`); o passo falha com mensagem clara se a porta não vier. Por que é seguro: os únicos leitores da porta nesse job são `playwright.config.ts` e `scripts/e2e-phase-7-server.mjs`, e os dois já leem a URL do ambiente (o 55432 era só o valor padrão); os demais E2E do job usam SQLite em arquivo. Se a variável não chegar, o erro é conexão recusada, alto e imediato. O job `postgres` (que também usa 55432) e o `docker-compose.yml` ficam como estão. Conferido localmente: YAML válido e o passo de shell com porta (grava a URL) e sem porta (sai com erro).
+
+**O que não está provado.** A mudança só é exercitada pelo CI do PR. Como a falha era intermitente, uma passagem verde não prova que ela acabou: a mitigação elimina a dependência de uma porta fixa, mas não explica por que a 55432 estava ocupada.
+
+### Verificação
+
+Vitest: `packages/persistence` 250 testes aprovados (inclui `webhook-repository`); suíte completa registrada no PR. Playwright: `agentic-commercial-flow` 4 aprovados, `matter-lifecycle` 30 passagens. ESLint, Prettier e `tsc` do pacote `persistence` limpos.
+
+Reversão: reverter o commit; o `busyTimeoutMs` não tem efeito sem ser passado.
