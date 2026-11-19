@@ -325,7 +325,7 @@ test('matéria sem apoio específico: a Mesa avisa que o pedido segue como está
   await group.getByLabel(/Qual matéria você quer incluir/).fill('saudação pelo aniversário do tribunal');
   await group.getByRole('button', { name: 'Sugerir matéria' }).click();
   await expect(group.getByRole('note')).toContainText(
-    'Ainda não temos orientação específica para essa matéria. Descreva de outro jeito ou siga sem matéria; o pedido segue como está.',
+    'Não encontrei uma matéria de apoio para essa descrição. Descreva de outro jeito ou siga sem matéria; o pedido segue como está.',
   );
   await expect(group.getByRole('group', { name: 'Matéria sugerida' })).toHaveCount(0);
   expect((await new AxeBuilder({ page }).include('[data-writing-desk]').analyze()).violations).toEqual([]);
