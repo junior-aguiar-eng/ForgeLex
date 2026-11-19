@@ -253,3 +253,80 @@ test('peça: responder "Não sei" não gera o aviso de falta de apoio', async ({
   await expect(summary(page)).toBeVisible();
   await expect(summary(page).getByRole('note')).toHaveCount(0);
 });
+
+test('área proposta pelo texto: confirma a área, a tarefa e a peça em três interações, sem lista', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 980 });
+  await openDesk(page);
+  await page
+    .getByRole('textbox', { name: 'O que você precisa fazer?' })
+    .fill('Preciso do recurso ordinário contra a sentença trabalhista.');
+  await page.getByRole('button', { name: 'Me ajude a começar' }).click();
+
+  let interactions = 0;
+  const advance = async () => {
+    interactions += 1;
+    await next(page);
+  };
+
+  // A Mesa propõe a área em vez de listar as 25.
+  await expect(question(page).locator('legend')).toHaveText(
+    'Pelo que você informou, a área é: Trabalho. Está correto?',
+  );
+  await expect(question(page).getByRole('radio')).toHaveCount(3); // Sim, Não e Não sei
+  await page.screenshot({ path: 'test-results/desk-guidance-v3/07-area-proposta.png', animations: 'disabled' });
+  expect((await new AxeBuilder({ page }).include('[data-writing-desk]').analyze()).violations).toEqual([]);
+  await question(page).getByRole('radio', { name: 'Sim, é essa', exact: true }).check();
+  await advance();
+  await expect(summary(page)).toContainText('Trabalho');
+  await expect(summary(page)).not.toContainText('Trabalho, a confirmar');
+
+  await question(page).getByRole('radio', { name: 'Elaborar uma peça', exact: true }).check();
+  await advance();
+  await expect(question(page).locator('legend')).toHaveText(
+    'Pelo que você informou, a peça é: Recurso ordinário trabalhista. Está correto?',
+  );
+  await question(page).getByRole('radio', { name: 'Sim, é essa', exact: true }).check();
+  await advance();
+
+  // Aceite da U3: peça confirmada em até três interações, e só a peça em uso à vista.
+  expect(interactions).toBeLessThanOrEqual(3);
+  await expect(summary(page)).toContainText('Recurso ordinário trabalhista');
+  await expect(question(page).locator('legend')).toContainText('Em qual tribunal');
+  const everything = await page.content();
+  expect(everything).not.toContain('recurso-ordinario-trabalhista');
+  expect(everything).not.toContain('sentenca trabalhista');
+});
+
+test('área proposta pelo texto: recusar volta à lista das áreas e a Mesa não insiste', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openDesk(page);
+  await page
+    .getByRole('textbox', { name: 'O que você precisa fazer?' })
+    .fill('Preciso do recurso ordinário contra a sentença trabalhista.');
+  await page.getByRole('button', { name: 'Me ajude a começar' }).click();
+  await expect(question(page).locator('legend')).toContainText('a área é: Trabalho');
+  await question(page).getByRole('radio', { name: 'Não, é outra', exact: true }).check();
+  await next(page);
+
+  await expect(question(page).locator('legend')).toHaveText('Em qual área você precisa trabalhar?');
+  await expect(question(page).getByRole('radio')).toHaveCount(27);
+  await question(page).getByRole('radio', { name: 'Tributário', exact: true }).check();
+  await next(page);
+  await expect(summary(page)).toContainText('Tributário');
+  await expect(summary(page)).not.toContainText('Trabalho');
+  expect((await new AxeBuilder({ page }).include('[data-writing-desk]').analyze()).violations).toEqual([]);
+});
+
+test('matéria sem apoio específico: a Mesa avisa que o pedido segue como está', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 980 });
+  await openDesk(page);
+  const group = page.getByRole('region', { name: 'Matérias do pedido' });
+  await group.getByRole('button', { name: 'Adicionar matéria' }).click();
+  await group.getByLabel(/Qual matéria você quer incluir/).fill('saudação pelo aniversário do tribunal');
+  await group.getByRole('button', { name: 'Sugerir matéria' }).click();
+  await expect(group.getByRole('note')).toContainText(
+    'Ainda não temos orientação específica para essa matéria. Descreva de outro jeito ou siga sem matéria; o pedido segue como está.',
+  );
+  await expect(group.getByRole('group', { name: 'Matéria sugerida' })).toHaveCount(0);
+  expect((await new AxeBuilder({ page }).include('[data-writing-desk]').analyze()).violations).toEqual([]);
+});

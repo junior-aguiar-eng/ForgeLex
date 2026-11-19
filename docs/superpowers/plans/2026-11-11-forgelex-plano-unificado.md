@@ -54,7 +54,7 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 | 2   | E2, 11/11       | ~~Outros usos de API recente sem fallback~~ — **fechada em 18/11** (ver E2)                                                                         | Código |
 | 3   | E3, 12/11       | Ensaio em homologação com chave inválida: log e e-mail do alerta                                                                                  | Boni  |
 | 4   | U1, 12/11       | ~~Remover exemplos e dados de demonstração mortos~~ — **fechada em 19/11** (ver U1)                                                              | Código |
-| 5   | U3, 12/11       | Entrada em linguagem natural, grande área, tribunal na orientação (muda `GuidanceSnapshot`), chips, peça sem ficha e cliques sem provedor         | Código |
+| 5   | U3, 12/11       | U3 quase fechada (19/11): área proposta pelo texto, aviso de matéria sem apoio e aceite de três interações feitos. Restam os chips de área, tribunal e peça no compositor (V3/U7) e a refinação por IA | Código |
 | 6   | M1, 14/11       | Recusa de renovação do Claude (1 em 33); reserva e mensagem de saldo insuficiente em jornada autenticada                                           | Boni  |
 | 7   | M3, 12–14/11    | Manifesto servido em produção; súmulas do TSE, 1.355 citações sem tribunal, processos e teses; 44 avisos; contradições de teor                     | Boni e código |
 | 8   | S0–S7, 14/11    | Conferir cada caixa `[ ]` contra o registro da Frente S e marcar; S8 segue com Boni                                                               | Código, depois Boni |
@@ -395,21 +395,21 @@ celular. **Aceite.** Mesma funcionalidade da Mesa atual na nova estrutura. **Rev
 
 Depende de U2, M3.0 e DEC-10. Nenhuma lista do catálogo aparece ao cliente: a Mesa mostra só a peça e a matéria em uso.
 
-- [ ] Primeira pergunta em linguagem natural, no próprio compositor: “Explique de forma simples o que você gostaria
+- [x] Primeira pergunta em linguagem natural, no próprio compositor (hoje com o rótulo “O que você precisa fazer?”, e as 25 áreas com busca como atalho): “Explique de forma simples o que você gostaria
       de fazer: área, tribunal, tipo de peça”. Ao lado, as grandes áreas como atalho (as 25 de M3.0, com busca).
-- [ ] A IA identifica área, tribunal e tipo de peça a partir do texto. O que ela inferir vira **hipótese** que o
+- [ ] A IA identifica área, tribunal e tipo de peça a partir do texto. **Parcial, sem provedor (12 e 19/11/2026):** o ranqueamento local propõe a peça e, desde 19/11, a área quando o texto a sustenta sem ambiguidade; o tribunal é lido do texto livre. Refinação por IA fica para depois de medir o erro do ranqueamento. O que ela inferir vira **hipótese** que o
       cliente confirma (“Pelo que você informou, a peça é uma resposta à acusação, no TJ-AL. Está correto?”), como
       no fluxo atual da hipótese material. Se disser que não, a Mesa propõe a próxima candidata, uma por vez.
-- [ ] Ao escolher uma grande área sem texto, a Mesa correlaciona internamente as peças daquela área e pergunta pelo
+- [x] Ao escolher uma grande área sem texto, a Mesa correlaciona internamente as peças daquela área e pergunta pelo
       objetivo, sem mostrar a lista; propõe uma peça por vez.
-- [ ] Incluir o **tribunal** como decisão da orientação, com “Não sei”. Isso muda o contrato `GuidanceSnapshot`:
+- [x] Incluir o **tribunal** como decisão da orientação, com “Não sei”. Isso muda o contrato `GuidanceSnapshot`:
       nova versão das regras (`mesa-v3`), leitores antes dos escritores e compatibilidade com orientações já
       persistidas e seus hashes.
-- [ ] Mostrar como chips apenas a área, o tribunal, a peça e a matéria em uso. Rótulos legíveis; conteúdo, ID e hash
+- [ ] Mostrar como chips apenas a área, o tribunal, a peça e a matéria em uso. **Aberto:** hoje só a matéria é chip; área, tribunal e peça ficam no resumo do pedido, e levá-los ao compositor segue com a V3 e a U7. Rótulos legíveis; conteúdo, ID e hash
       da ficha nunca vão ao navegador (A02, revisado).
-- [ ] Peça ou matéria sem ficha elegível: dizer que ainda não há apoio específico e seguir como pedido livre, sem
+- [x] Peça ou matéria sem ficha elegível (peça em 17/11; matéria em 19/11): dizer que ainda não há apoio específico e seguir como pedido livre, sem
       prometer o que o catálogo não tem.
-- [ ] Cliques determinísticos não chamam provedor nem reservam saldo; a identificação por texto segue o
+- [x] Cliques determinísticos não chamam provedor nem reservam saldo; a identificação por texto segue o
       consentimento e o custo vigentes (A14). Os rótulos de “Peça” e “Matéria” saem do mapa de M3.0.
 
 **Aceite.** Do pedido em texto livre ou da grande área, o cliente confirma a peça em até três interações, vê só a

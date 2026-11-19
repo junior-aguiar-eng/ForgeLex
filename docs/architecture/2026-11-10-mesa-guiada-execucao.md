@@ -2229,3 +2229,24 @@ Sobre `main` em `6bd76e1`. Só `apps/web`; nada muda para o cliente de hoje (pro
 **Verificação.** `tsc` do web, ESLint e Prettier nos arquivos alterados; Vitest `apps/web` (61 arquivos, 467 testes) e `tests/public-*` aprovados depois do build; `playwright.editorial-review.config.ts` (3 cenários) aprovado. Não rodei a suíte completa, nem as demais configurações Playwright: ficam para a CI do PR.
 
 Reversão: reverter o commit; os dois arquivos removidos voltam pelo Git.
+
+## U3 · área proposta pelo texto, aviso de matéria sem apoio e aceite de três interações (19/11/2026)
+
+Sobre `main` em `11fda82`. Regras `mesa-v3`; sem mudança de contrato, sem migração e sem provedor. A reconciliação do plano (as caixas da U3 estavam sem marcar) acompanha esta seção.
+
+**O que mudou.**
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Área proposta pelo texto | Só na orientação inicial (`initialGuidance`), com o texto do pedido. Usa o ranqueamento local das peças, sem provedor e sem saldo. Propõe quando **todas as peças que empatam no topo são de uma única área** e nenhuma é transversal; texto vago, empate entre áreas, peça em mais de uma área, catálogo ausente ou texto vazio mantêm a lista das 25 áreas. A decisão nasce `proposed` e `origin: model`, sem campo novo no `GuidanceSnapshot`; o resolvedor de habilidades só lê área `confirmed` ou `known`, então a proposta não chega à execução antes da confirmação. |
+| Pergunta | “Pelo que você informou, a área é: X. Está correto?”, com “Sim, é essa” e “Não, é outra” (e “Não sei”). “Sim” confirma; “Não” volta à lista e **a Mesa não propõe de novo** (só a orientação inicial propõe); “Não sei” segue com a área em aberto. A correção pelo resumo da própria confirmação (“Sim” para “Não”) reabre a área e tira a confirmação da peça, sem gravar “nao” como valor. |
+| Matéria sem apoio | `MatterChips`: sem sugestão na primeira tentativa, a Mesa diz “Ainda não temos orientação específica para essa matéria. Descreva de outro jeito ou siga sem matéria; o pedido segue como está.” (antes: “Não encontrei uma matéria para isso…”). A mensagem depois de uma recusa (“Não há outra matéria parecida…”) não mudou. |
+| Aceite “peça em até três interações” | Cenário E2E novo: do texto livre, área (sim), tarefa e peça (sim) = 3 interações, sem lista; conferido que o id da peça e as expressões não aparecem no HTML. |
+
+**Verificação.** Vitest: 17 testes das regras `mesa-v3` (7 novos: proposta, três interações, recusa, “não sei”, casos sem proposta, correção e `mesa-v2` sem proposta), 8 do serviço de orientação (3 ajustados porque o catálogo de teste agora leva à proposta de área); `desk-guidance-v3` no Playwright: 11 aprovados (3 novos, com axe, incluindo celular). Fixture do E2E ganhou a peça sintética “Recurso ordinário trabalhista” (área única), sem alterar os outros cenários. `tsc` (web e API), ESLint e Prettier limpos nos arquivos alterados.
+
+**Limite.** A proposta de área só dispara quando a peça de topo tem **uma** área. No catálogo de teste, peças como “Resposta à acusação” têm duas (`penal` e `processo-penal`) e, por isso, não geram proposta. A taxa de acerto e de disparo no catálogo real (2.077 fichas, fora do repositório) **não foi medida**; se for baixa, o próximo passo é decidir entre aceitar a primeira área da peça ou mostrar só as áreas candidatas.
+
+**Continua aberto na U3.** Chips de área, tribunal e peça no compositor (V3 e U7) e a refinação por IA, que só vale se o ranqueamento errar mais do que a recusa resolve.
+
+Reversão: reverter o commit; as orientações já gravadas não mudam (o contrato é o mesmo).

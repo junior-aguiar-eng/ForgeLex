@@ -54,7 +54,7 @@ export function MatterChips({
           busy: false,
           message: rejected.length
             ? 'Não há outra matéria parecida. Descreva de outro jeito ou siga sem matéria.'
-            : 'Não encontrei uma matéria para isso. Descreva de outro jeito ou siga sem matéria.',
+            : 'Ainda não temos orientação específica para essa matéria. Descreva de outro jeito ou siga sem matéria; o pedido segue como está.',
         });
         setStatus('Nenhuma matéria encontrada.');
         return;

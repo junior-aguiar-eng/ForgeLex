@@ -223,6 +223,13 @@ export function agenticE2EOptions() {
               transversal: false,
               triggers: ['defesa do reu'],
             },
+            {
+              id: 'recurso-ordinario-trabalhista',
+              label: 'Recurso ordinário trabalhista',
+              areas: ['trabalho'],
+              transversal: false,
+              triggers: ['sentenca trabalhista'],
+            },
             { id: 'oficio', label: 'Ofício', areas: [], transversal: true, triggers: [] },
           ],
           matters: [
