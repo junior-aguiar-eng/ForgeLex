@@ -153,7 +153,7 @@ const html = `<!doctype html>
       linhas.push((i+1)+'. '+t.dataset.title+': '+(sel?sel.value:'sem veredito')+(nota?' — '+nota:''));
     });
     cont.textContent='('+feitas+' de '+telas.length+' telas com veredito)';
-    area.value='Aceite visual — ${escapeHtml(manifest.titulo)}${values.ref ? ` (ref ${escapeHtml(values.ref)})` : ''}\\n'+linhas.join('\\n');
+    area.value='${escapeHtml(manifest.titulo)}${values.ref ? ` (ref ${escapeHtml(values.ref)})` : ''}\\n'+linhas.join('\\n');
   }
   document.addEventListener('input',atualizar);document.addEventListener('change',atualizar);atualizar();
   document.getElementById('copiar').onclick=function(){
