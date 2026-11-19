@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { requestApi } from '../api-client';
+import { ApiRequestError, requestApi } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
-import { useApp } from '../context/AppContext';
 import { LifecycleDialog, LifecycleFilter } from '../screens/matter-lifecycle/LifecycleControls';
 import {
   actionLabels,
@@ -21,9 +20,8 @@ const stateLabel = { ACTIVE: 'Ativo', ARCHIVED: 'Arquivado', TRASHED: 'Na lixeir
 const failureText = (failure: unknown, fallback: string) => (failure instanceof Error ? failure.message : fallback);
 
 /**
- * Gerenciar casos, dentro da Mesa (tema gelo): renomear, arquivar, mover para a lixeira e restaurar. Substitui na Mesa o
- * que só existia na tela "Casos" (U7). A exclusão definitiva, que pede o nome do caso e acompanha o diário, continua na
- * tela Casos. O caso que a conversa ou a peça está usando agora não pode ser arquivado nem ir para a lixeira, mas pode
+ * Gerenciar casos, dentro da Mesa (tema gelo): renomear, arquivar, mover para a lixeira, restaurar e excluir de vez
+ * (esta pede o nome do caso). É o único lugar onde se cuida dos casos. O caso que a conversa ou a peça está usando agora não pode ser arquivado nem ir para a lixeira, mas pode
  * ser renomeado.
  */
 export function DeskCaseManager({
@@ -38,7 +36,6 @@ export function DeskCaseManager({
   onChanged: (active: Array<{ id: string; title: string }>) => void;
 }) {
   const { status, account } = useAuth();
-  const { setActiveTab } = useApp();
   const dialog = useRef<HTMLDialogElement>(null);
   const [view, setView] = useState<LifecycleView>('active');
   const [items, setItems] = useState<ManagedCase[]>([]);
@@ -93,12 +90,6 @@ export function DeskCaseManager({
     }
   };
 
-  /** Fecha o gerenciador e abre Dados do caso, na lixeira quando é para excluir de vez. */
-  const openCaseData = (matterId: string, matterView?: 'archived' | 'trash') => {
-    onClose();
-    setActiveTab('matter', 'push', { matterId, ...(matterView ? { matterView } : {}) });
-  };
-
   const rename = async () => {
     if (!editing || busy) return;
     const problem = caseTitleProblem(editing.title);
@@ -125,7 +116,7 @@ export function DeskCaseManager({
     }
   };
 
-  const runLifecycle = async () => {
+  const runLifecycle = async (confirmation?: string) => {
     if (!confirming || busy) return;
     const { record, action } = confirming;
     setBusy(true);
@@ -133,13 +124,27 @@ export function DeskCaseManager({
     try {
       await requestApi(
         `/api/v2/matters/${encodeURIComponent(record.id)}/${action}`,
-        { method: 'POST', body: JSON.stringify({ expectedLifecycleRevision: record.lifecycleRevision ?? 0 }) },
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            expectedLifecycleRevision: record.lifecycleRevision ?? 0,
+            ...(action === 'purge' ? { confirmation } : {}),
+          }),
+        },
         { sessionOnly: true },
       );
       setConfirming(null);
       setNotice(lifecycleNotice(action));
       await refresh();
     } catch (failure) {
+      if (failure instanceof ApiRequestError && failure.code === 'PURGE_CONFIRMATION_PENDING') {
+        setConfirming(null);
+        setNotice(
+          'A exclusão está sendo confirmada. Reabra a lista em instantes: se não concluir, o caso fica preservado.',
+        );
+        await refresh();
+        return;
+      }
       setConfirmError(failureText(failure, 'Não foi possível concluir a operação.'));
     } finally {
       setBusy(false);
@@ -247,29 +252,6 @@ export function DeskCaseManager({
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {state === 'TRASHED' ? (
-                          canManage && (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              aria-label={`Excluir definitivamente: ${item.title}`}
-                              onClick={() => openCaseData(item.id, 'trash')}
-                              className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-danger hover:bg-canvas-deep disabled:opacity-50"
-                            >
-                              Excluir definitivamente…
-                            </button>
-                          )
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            aria-label={`Dados do caso: ${item.title}`}
-                            onClick={() => openCaseData(item.id, state === 'ARCHIVED' ? 'archived' : undefined)}
-                            className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
-                          >
-                            Dados do caso
-                          </button>
-                        )}
                         {canManage && (
                           <>
                             {state === 'ACTIVE' && (
@@ -312,10 +294,6 @@ export function DeskCaseManager({
             })}
           </ul>
         )}
-        <p className="mt-4 text-xs text-subtle">
-          Para excluir um caso de vez, mova-o para a lixeira e use “Excluir definitivamente…”: a exclusão pede o nome do
-          caso para confirmar.
-        </p>
       </dialog>
       {confirming && (
         <LifecycleDialog
@@ -325,7 +303,7 @@ export function DeskCaseManager({
           busy={busy}
           error={confirmError}
           onCancel={() => setConfirming(null)}
-          onConfirm={() => void runLifecycle()}
+          onConfirm={(confirmation) => void runLifecycle(confirmation)}
         />
       )}
     </>

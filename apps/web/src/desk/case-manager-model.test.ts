@@ -29,11 +29,11 @@ describe('deskLifecycleActions', () => {
     expect(deskLifecycleActions({ lifecycleState: 'ACTIVE' })).toEqual(['archive', 'trash']);
     expect(deskLifecycleActions({})).toEqual(['archive', 'trash']);
     expect(deskLifecycleActions({ lifecycleState: 'ARCHIVED' })).toEqual(['restore', 'trash']);
-    expect(deskLifecycleActions({ lifecycleState: 'TRASHED' })).toEqual(['restore']);
+    expect(deskLifecycleActions({ lifecycleState: 'TRASHED' })).toEqual(['restore', 'purge']);
   });
 
-  it('nunca oferece a exclusão definitiva: ela fica na tela do caso', () => {
-    for (const state of ['ACTIVE', 'ARCHIVED', 'TRASHED', 'PURGED'] as const)
+  it('a exclusão definitiva só aparece na lixeira, dentro da Mesa', () => {
+    for (const state of ['ACTIVE', 'ARCHIVED', 'PURGED'] as const)
       expect(deskLifecycleActions({ lifecycleState: state })).not.toContain('purge');
     expect(deskLifecycleActions({ lifecycleState: 'PURGED' })).toEqual([]);
   });

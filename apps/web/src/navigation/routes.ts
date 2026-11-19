@@ -43,8 +43,6 @@ const routes: readonly AppRoute[] = [
  */
 const iceOverrides: Partial<Record<AppTab, { path?: string; title: string }>> = {
   research: { title: 'Jurisprudência' },
-  // A tela "Casos" vira "Dados do caso" (U7): é aberta a partir do caso na Mesa; o caminho antigo continua valendo.
-  matter: { title: 'Dados do caso' },
   datajud: { path: '/app/andamento-processual', title: 'Andamento processual' },
 };
 
@@ -79,12 +77,11 @@ export function canonicalPathname(pathname: string, theme: Theme = activeTheme()
 }
 
 /**
- * Para onde a navegação vai de fato. No gelo os casos vivem na Mesa e "Dados do caso" é a tela de **um** caso: abrir
- * `/app/casos` sem dizer qual caso leva à Mesa, onde se escolhe, cria e gerencia casos. Com um caso na URL (os links
- * antigos), a tela continua. Sem a Mesa não há para onde mandar, e a tela Casos segue como o lugar dos casos.
+ * Para onde a navegação vai de fato. No gelo tudo vive na Mesa: abrir `/app/casos`, com ou sem caso na URL (os links
+ * antigos), leva à Mesa. Sem a Mesa não há para onde mandar, e a tela Casos segue como o lugar dos casos.
  */
-export function iceCaseDestination(tab: AppTab, hasCase: boolean, deskEnabled: boolean, theme: Theme = activeTheme()): AppTab {
-  return theme === 'gelo' && tab === 'matter' && !hasCase && deskEnabled ? 'work' : tab;
+export function iceCaseDestination(tab: AppTab, _hasCase: boolean, deskEnabled: boolean, theme: Theme = activeTheme()): AppTab {
+  return theme === 'gelo' && tab === 'matter' && deskEnabled ? 'work' : tab;
 }
 
 export function isKnownPath(pathname: string): boolean {
@@ -101,7 +98,7 @@ export function updateDocumentTitle(tab: AppTab): void {
 
 export interface CaseRouteContext extends DeskSelection {
   analysisId?: string;
-  /** Só em Dados do caso: a lista de casos que a tela abre (a lixeira, para excluir de vez) e a de documentos. */
+  /** Só na tela Casos do tema clássico: a lista de casos que ela abre e a de documentos. */
   matterView?: 'active' | 'archived' | 'trash';
   documentView?: 'active' | 'archived' | 'trash';
 }

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { requestApi } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
-import { useApp } from '../context/AppContext';
 import { LifecycleDialog, LifecycleFilter } from '../screens/matter-lifecycle/LifecycleControls';
 import {
   actionLabels,
@@ -30,7 +29,6 @@ const failureText = (failure: unknown, fallback: string) => (failure instanceof 
  */
 export function DeskCaseDocuments({ matterId, onOpen }: { matterId: string; onOpen: (documentId: string) => void }) {
   const { status, account } = useAuth();
-  const { setActiveTab } = useApp();
   const [view, setView] = useState<LifecycleView>('active');
   const [detail, setDetail] = useState<CaseDetail>();
   const [loading, setLoading] = useState(true);
@@ -81,7 +79,13 @@ export function DeskCaseDocuments({ matterId, onOpen }: { matterId: string; onOp
     try {
       await requestApi(
         `/api/v2/matters/${encodeURIComponent(matterId)}/documents/${encodeURIComponent(record.id)}/${action}`,
-        { method: 'POST', body: JSON.stringify({ expectedLifecycleRevision: record.lifecycleRevision ?? 0 }) },
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            expectedLifecycleRevision: record.lifecycleRevision ?? 0,
+            ...(action === 'purge' ? { confirmation: record.id } : {}),
+          }),
+        },
         { sessionOnly: true },
       );
       setConfirming(undefined);
@@ -180,22 +184,6 @@ export function DeskCaseDocuments({ matterId, onOpen }: { matterId: string; onOp
           })}
         </ul>
       )}
-      <p className="text-xs text-subtle">
-        Para excluir um documento de vez, abra{' '}
-        <button
-          type="button"
-          onClick={() =>
-            setActiveTab('matter', 'push', {
-              matterId,
-              ...(view === 'trash' ? { documentView: 'trash' as const } : {}),
-            })
-          }
-          className="font-medium text-accent underline hover:text-accent-strong"
-        >
-          Dados do caso
-        </button>
-        : a exclusão definitiva fica lá.
-      </p>
       {confirming && (
         <LifecycleDialog
           record={confirming.record}

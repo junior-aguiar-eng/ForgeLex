@@ -71,6 +71,8 @@ nova publicação), depois 8 e 12. Os itens “Boni” ficam à espera dele e n�
 
 ## 2. Decisões de Boni
 
+> **TRAVA DE PRODUTO (19/11/2026, inegociável):** a Mesa agêntica é a única superfície; agentes nos bastidores; visual limpo, poucos botões. Texto completo em `AGENTS.md`. Nenhuma fatia pode adicionar tela, painel ou controle que a conversa possa substituir. "Dados do caso" e a tela Casos saem do gelo (a exclusão definitiva vive no gerenciador da Mesa).
+
 A tabela preserva as decisões de 11/11/2026. A DEC-9 foi executada no PR #138. Registre novas decisões com a data.
 
 | ID     | Decisão                                                                                                 | Recomendação                                                                                                                                                                                                                                                                                                                                                                     | Bloqueia           |

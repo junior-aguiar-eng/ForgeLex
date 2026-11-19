@@ -862,7 +862,7 @@ test('Mesa: depois de arquivar um documento a lista segue à vista enquanto reca
   await expect(panel.getByText('Documento dois')).toBeVisible();
 });
 
-// Dados do caso (U7, parte 4): os casos vivem na Mesa; a tela de um caso abre a partir dele e leva de volta.
+// TRAVA DE PRODUTO (AGENTS.md): não existe tela "Dados do caso". Tudo vive na Mesa; a exclusão definitiva fica no gerenciador.
 const trashed = async (page: Page, title: string) => {
   const matter = await (
     await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title } })
@@ -875,7 +875,7 @@ const trashed = async (page: Page, title: string) => {
   return matter as { id: string };
 };
 
-test('Casos sai da lateral: /app/casos abre a Mesa; com ?caso= o link antigo abre Dados do caso, e a volta abre a Mesa limpa', async ({
+test('não há "Dados do caso": /app/casos, com ou sem caso, abre a Mesa, e a lateral não tem "Casos"', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -884,56 +884,16 @@ test('Casos sai da lateral: /app/casos abre a Mesa; com ?caso= o link antigo abr
     await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso dos dados' } })
   ).json();
   const aside = sidebar(page);
-
-  // Sem caso na URL, o caminho antigo vira a Mesa (e o histórico não guarda o desvio).
-  await page.goto('/app/casos');
-  await expect(page).toHaveURL(/\/app\/trabalho$/);
-  await expect(page.getByRole('heading', { name: 'O que você precisa fazer hoje?' })).toBeVisible();
-  await expect(aside.getByRole('button', { name: 'Casos', exact: true })).toHaveCount(0);
-
-  // Com o caso na URL, o link antigo continua valendo: é a tela Dados do caso, com a Mesa acesa na lateral.
-  await page.goto(`/app/casos?caso=${matter.id}`);
-  await expect(page.getByRole('heading', { level: 1, name: 'Dados do caso' })).toBeVisible();
-  await expect(page).toHaveTitle('ForgeLex · Dados do caso');
-  await expect(page.getByRole('heading', { name: 'Caso dos dados', exact: true })).toBeVisible();
-  await expect(aside.getByRole('button', { name: 'Mesa', exact: true })).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('heading', { name: 'Área do caso' })).toHaveCount(0);
-  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
-  expect(axe.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
-
-  // Por link direto a Mesa nunca foi aberta: a volta abre a Mesa limpa (e não uma minuta em branco com o caso travado).
-  await page.getByRole('button', { name: '← Voltar à Mesa' }).click();
-  await expect(page).toHaveURL(/\/app\/trabalho$/);
-  await expect(page.getByRole('heading', { name: 'O que você precisa fazer hoje?' })).toBeVisible();
-  await expect(page.getByText('Fixo pela peça aberta')).toHaveCount(0);
+  for (const url of ['/app/casos', `/app/casos?caso=${matter.id}`]) {
+    await page.goto(url);
+    await expect(page).toHaveURL(/\/app\/trabalho$/);
+    await expect(page.getByRole('heading', { name: 'O que você precisa fazer hoje?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dados do caso' })).toHaveCount(0);
+    await expect(aside.getByRole('button', { name: 'Casos', exact: true })).toHaveCount(0);
+  }
 });
 
-test('Mesa → Dados do caso → Voltar à Mesa: o cliente volta exatamente onde estava, com o caso e o texto digitado', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await login(page, 'voltarmesa@forgelex.test');
-  const matter = await (
-    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso da volta' } })
-  ).json();
-  await page.goto('/app/trabalho');
-  const header = page.locator('[data-writing-desk] > header');
-  await header.getByLabel('Caso', { exact: true }).selectOption(matter.id);
-  const request = page.getByLabel('O que você precisa fazer?', { exact: true });
-  await request.fill('Pedido que ainda não enviei.');
-
-  await header.getByRole('button', { name: 'Dados do caso', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Dados do caso' })).toBeVisible();
-  await page.getByRole('button', { name: '← Voltar à Mesa' }).click();
-
-  await expect(page).toHaveURL(/\/app\/trabalho$/);
-  await expect(header.getByLabel('Caso', { exact: true })).toHaveValue(matter.id);
-  await expect(request).toHaveValue('Pedido que ainda não enviei.');
-  await expect(page.getByText('Fixo pela peça aberta')).toHaveCount(0);
-  await expect(page.getByText('Minuta para revisão humana')).toHaveCount(0);
-});
-
-test('Mesa: "Dados do caso" só aparece com um caso escolhido e abre a tela daquele caso', async ({ page }) => {
+test('Mesa: nenhum botão "Dados do caso", nem com o caso escolhido nem na aba Documentos', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page, 'entradadados@forgelex.test');
   const matter = await (
@@ -941,18 +901,12 @@ test('Mesa: "Dados do caso" só aparece com um caso escolhido e abre a tela daqu
   ).json();
   await page.goto('/app/trabalho');
   const header = page.locator('[data-writing-desk] > header');
-  await expect(header.getByRole('button', { name: 'Dados do caso', exact: true })).toHaveCount(0);
-
   await header.getByLabel('Caso', { exact: true }).selectOption(matter.id);
-  await header.getByRole('button', { name: 'Dados do caso', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/app/casos\\?caso=${matter.id}`));
-  await expect(page.getByRole('heading', { level: 1, name: 'Dados do caso' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Caso da entrada', exact: true })).toBeVisible();
+  await expect(header.getByRole('button', { name: 'Gerenciar casos', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Dados do caso/ })).toHaveCount(0);
 });
 
-test('Mesa: caso na lixeira leva direto a Dados do caso, na lixeira, onde fica a exclusão definitiva', async ({
-  page,
-}) => {
+test('Mesa: caso na lixeira é excluído de vez no próprio gerenciador, pedindo o nome do caso', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page, 'lixeiradados@forgelex.test');
   // Título único: os casos de outros testes (e de repetições) vivem no mesmo tenant e não podem se confundir com este.
@@ -963,55 +917,24 @@ test('Mesa: caso na lixeira leva direto a Dados do caso, na lixeira, onde fica a
   await header.getByRole('button', { name: 'Gerenciar casos', exact: true }).click();
   const manager = page.getByRole('dialog', { name: 'Gerenciar casos' });
   await manager.getByLabel('Mostrar casos').selectOption('trash');
-  // Na lixeira o gerenciador oferece o caminho para a exclusão definitiva, que fica em Dados do caso.
   await expect(manager.getByRole('button', { name: `Restaurar: ${title}` })).toBeVisible();
-  await expect(manager.getByRole('button', { name: `Dados do caso: ${title}` })).toHaveCount(0);
   await manager.getByRole('button', { name: `Excluir definitivamente: ${title}` }).click();
 
-  await expect(page).toHaveURL(new RegExp(`/app/casos\\?caso=${matter.id}&visao=trash`));
-  await expect(page.getByRole('heading', { level: 1, name: 'Dados do caso' })).toBeVisible();
-  await expect(page.getByLabel('Mostrar casos')).toHaveValue('trash');
-  await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
-  // A exclusão em si continua pedindo o nome do caso: abrir a tela não exclui nada.
+  // Sem o nome, o botão de confirmar não libera; nada é excluído ao abrir o diálogo.
+  const confirm = page.getByRole('dialog', { name: /Excluir definitivamente caso/ });
+  const submit = confirm.getByRole('button', { name: 'Excluir definitivamente', exact: true });
+  await expect(submit).toBeDisabled();
   const still = await (await page.request.get(`${api}/api/v2/matters?view=trash`, { headers: apiHeaders })).json();
   expect(still.items.some((item: { id: string }) => item.id === matter.id)).toBe(true);
-});
 
-test('aba Documentos: o caminho da exclusão definitiva abre Dados do caso com o caso e a lixeira de documentos', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await login(page, 'docdados@forgelex.test');
-  const matter = await (
-    await page.request.post(api + '/api/v2/matters', {
-      headers: apiHeaders,
-      data: { title: 'Caso dos documentos soltos' },
-    })
-  ).json();
-  const { draft, version } = await (
-    await page.request.post(`${api}/api/v2/matters/${matter.id}/drafts`, {
-      headers: apiHeaders,
-      data: {
-        title: 'Peça dos documentos soltos',
-        sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto salvo.' }],
-      },
-    })
-  ).json();
-  await page.goto(
-    `/app/trabalho?${new URLSearchParams({ matterId: matter.id, draftId: draft.id, versionId: version.id })}`,
-  );
-  const piece = page.getByRole('region', { name: 'Mesa da peça' });
-  await expect(piece.getByLabel('Texto da seção 1', { exact: true })).toHaveValue('Texto salvo.');
-  await piece
-    .getByRole('tablist', { name: 'Partes da peça' })
-    .getByRole('tab', { name: 'Documentos', exact: true })
-    .click();
-  const panel = piece.getByRole('tabpanel', { name: 'Documentos' });
-  await panel.getByLabel('Mostrar documentos').selectOption('trash');
-  await panel.getByRole('button', { name: 'Dados do caso', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/app/casos\\?caso=${matter.id}&documentos=trash`));
-  // A Mesa fica montada, só escondida, enquanto a tela do caso está aberta: o filtro a considerar é o da tela à vista.
-  await expect(page.getByLabel('Mostrar documentos').and(page.locator(':visible'))).toHaveValue('trash');
+  await confirm.getByLabel('Digite o nome do caso para confirmar').fill(title);
+  await expect(submit).toBeEnabled();
+  // Este ambiente não habilita a exclusão definitiva no servidor (a resposta é "indisponível"): o que a Mesa garante é
+  // pedir com o nome do caso e mostrar a resposta sem sair do gerenciador.
+  const sent = page.waitForRequest((request) => request.url().endsWith(`/api/v2/matters/${matter.id}/purge`));
+  await submit.click();
+  expect(JSON.parse((await sent).postData() ?? '{}').confirmation).toBe(title);
+  await expect(confirm.getByRole('alert')).toBeVisible();
 });
 
 test('Visão: os primeiros passos só aparecem quando se sabe o resultado, sem trocar de destaque nem animar depois', async ({

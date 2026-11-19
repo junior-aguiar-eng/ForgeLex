@@ -702,7 +702,8 @@ test('compara conferir fonte e editar a mesma minuta nos dois percursos com font
     limitations:
       'Fixture determinística; mede somente o subpercurso documental, sem avaliação de qualidade jurídica ou redução de tempo humano.',
   };
-  for (const mode of ['anterior', 'trabalho']) {
+  // No gelo o percurso anterior (a tela de casos) não existe mais: só se mede o da Mesa.
+  for (const mode of process.env.FORGELEX_E2E_THEME === 'gelo' ? ['trabalho'] : ['anterior', 'trabalho']) {
     await page.goto(mode === 'anterior' ? '/app' : workUrl);
     let interventions = 0,
       screens = 0;
@@ -714,18 +715,13 @@ test('compara conferir fonte e editar a mesma minuta nos dois percursos com font
       if (before !== new URL(page.url()).pathname) screens++;
     };
     if (mode === 'anterior') {
-      if (process.env.FORGELEX_E2E_THEME === 'gelo') {
-        // No gelo não há item "Casos": o percurso anterior abre Dados do caso pelo link com o caso (os links antigos continuam).
-        await step(() => page.goto('/app/casos?caso=' + matter.id));
-      } else {
-        await step(() => page.getByRole('button', { name: 'Casos', exact: true }).click());
-        await step(() =>
-          page
-            .getByRole('button')
-            .filter({ has: page.getByText(caseTitle, { exact: true }) })
-            .click(),
-        );
-      }
+      await step(() => page.getByRole('button', { name: 'Casos', exact: true }).click());
+      await step(() =>
+        page
+          .getByRole('button')
+          .filter({ has: page.getByText(caseTitle, { exact: true }) })
+          .click(),
+      );
       await step(() => page.getByRole('button', { name: 'Abrir documento: Fonte comparável', exact: true }).click());
     } else {
       await step(() => page.getByRole('button', { name: /^Fontes \(\d+\)$/ }).click());

@@ -17,12 +17,9 @@ export function caseTitleProblem(raw: string): string | undefined {
   return undefined;
 }
 
-/**
- * Ações de ciclo de vida oferecidas na Mesa: arquivar, mover para a lixeira e restaurar. A exclusão definitiva (com
- * confirmação pelo nome e acompanhamento do diário) continua na tela do caso, onde mora hoje.
- */
+/** Ações de ciclo de vida oferecidas na Mesa: arquivar, mover para a lixeira, restaurar e, na lixeira, excluir de vez. */
 export function deskLifecycleActions(record: Pick<LifecycleRecord, 'lifecycleState'>): LifecycleAction[] {
-  return lifecycleActions(record.lifecycleState).filter((action) => action !== 'purge');
+  return lifecycleActions(record.lifecycleState);
 }
 
 export interface ManagedCase extends LifecycleRecord {

@@ -135,13 +135,13 @@ describe('rotas do espaço de trabalho', () => {
 
 describe('Dados do caso no tema gelo (U7)', () => {
   it('a tela Casos vira "Dados do caso" no gelo e continua "Casos" no clássico, no mesmo caminho', () => {
-    expect(routeForTab('matter', 'gelo')).toEqual({ tab: 'matter', path: '/app/casos', title: 'Dados do caso' });
+    expect(routeForTab('matter', 'gelo')).toEqual({ tab: 'matter', path: '/app/casos', title: 'Casos' });
     expect(routeForTab('matter', 'classico')).toEqual({ tab: 'matter', path: '/app/casos', title: 'Casos' });
   });
 
-  it('no gelo, /app/casos sem caso abre a Mesa; com caso, os links antigos continuam em Dados do caso', () => {
+  it('no gelo, /app/casos abre a Mesa, com ou sem caso na URL: não há tela de dados do caso', () => {
     expect(iceCaseDestination('matter', false, true, 'gelo')).toBe('work');
-    expect(iceCaseDestination('matter', true, true, 'gelo')).toBe('matter');
+    expect(iceCaseDestination('matter', true, true, 'gelo')).toBe('work');
   });
 
   it('sem a Mesa não há para onde mandar: a tela Casos continua sendo o lugar dos casos', () => {
