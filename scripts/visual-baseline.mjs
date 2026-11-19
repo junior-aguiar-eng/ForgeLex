@@ -20,7 +20,7 @@ import {
 // Referência visual do app (plano, etapas V0 a V7): captura as telas em dois tamanhos, grava a cor, a tipografia e o raio de cada elemento
 // e compara duas capturas. Serve para provar que um tema ou uma refatoração não mudou o que não devia.
 //
-//   node scripts/visual-baseline.mjs capture --out <pasta> [--origin <site> --api <api>] [--only <trecho>] [--axe] [--viewports 360,768,1440]
+//   node scripts/visual-baseline.mjs capture --out <pasta> [--origin <site> --api <api>] [--only <trecho>[,<trecho>…]] [--axe] [--viewports 360,768,1440]
 //   node scripts/visual-baseline.mjs compare <pasta-antes> <pasta-depois> [--styles-only]
 //
 // Sem `--origin`, sobe um ambiente novo (`scripts/dev-mesa.mjs`, que exige `pnpm build`) e o encerra no fim. Subir um
@@ -104,7 +104,7 @@ async function capture(args) {
       });
       const page = await context.newPage();
       const shoot = async (name, prepare) => {
-        if (values.only && !name.includes(values.only)) return;
+        if (values.only && !values.only.split(',').some((part) => name.includes(part.trim()))) return;
         try {
           await prepare();
           await settle(page);
@@ -231,6 +231,80 @@ async function dataScreens(page, { site, api }, size, shoot) {
     await page.getByRole('button', { name: 'Abrir documento: Contrato de referência', exact: true }).click();
     await page.getByRole('dialog', { name: 'Leitura do documento' }).waitFor();
   });
+  await u7Screens(page, { site, api }, size, shoot, post);
+}
+
+/**
+ * Telas da U7 e da Visão (aceite visual de 19/11/2026): a aba Documentos, salvar o anexo no caso, o gerenciador com um caso
+ * na lixeira e a Visão enquanto verifica os primeiros passos. Usam um caso à parte para não mudar as telas acima, que
+ * seguem comparáveis com as capturas antigas.
+ */
+async function u7Screens(page, { site, api }, size, shoot, post) {
+  const matter = await post('/api/v2/matters', { title: 'Caso do aceite da U7' });
+  const { draft, version } = await post(`/api/v2/matters/${matter.id}/drafts`, {
+    title: 'Peça do aceite da U7',
+    sections: [{ ordinal: 0, title: 'Dos fatos', content: 'O autor alega dano moral pela cobrança indevida.' }],
+  });
+  for (const [title, originalFilename, content] of [
+    ['Petição inicial', 'peticao.txt', 'O autor alega o descumprimento do contrato de locação.'],
+    ['Contrato de locação', 'contrato-locacao.txt', 'As partes ajustaram o prazo de trinta meses.'],
+  ]) {
+    await post(`/api/v2/matters/${matter.id}/documents`, { title, originalFilename, mimeType: 'text/plain', content });
+  }
+  const desk = `${site}/app/trabalho?${new URLSearchParams({ matterId: matter.id, draftId: draft.id, versionId: version.id })}`;
+
+  await shoot(screenName(size, '/dados/mesa-aba-documentos'), async () => {
+    await page.goto(desk, { waitUntil: 'networkidle' });
+    await page.getByRole('tab', { name: 'Documentos', exact: true }).click();
+    await page.getByRole('heading', { name: 'Documentos do caso' }).waitFor();
+    await page.getByText('Contrato de locação').waitFor();
+  });
+
+  // Salvar o anexo no caso: o botão no chip e, depois do clique, o aviso de onde foi salvo.
+  const attach = async () => {
+    await page.goto(`${site}/app/trabalho?matterId=${matter.id}`, { waitUntil: 'networkidle' });
+    await page.getByLabel('Escolher arquivos para anexar').setInputFiles({
+      name: 'relato.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('Primeira linha do relato.\nSegunda linha do relato.'),
+    });
+    await page.getByRole('button', { name: 'Salvar no caso: relato.txt' }).waitFor();
+  };
+  await shoot(screenName(size, '/dados/anexo-salvar-no-caso'), attach);
+  await shoot(screenName(size, '/dados/anexo-salvo-no-caso'), async () => {
+    await attach();
+    await page.getByRole('button', { name: 'Salvar no caso: relato.txt' }).click();
+    await page.getByText('Salvo no caso').waitFor();
+  });
+
+  // Gerenciador de casos na lixeira: o caminho para a exclusão definitiva.
+  const trashed = await post('/api/v2/matters', { title: 'Caso na lixeira do aceite' });
+  await post(`/api/v2/matters/${trashed.id}/trash`, { expectedLifecycleRevision: 0 });
+  await shoot(screenName(size, '/dados/gerenciar-casos-lixeira'), async () => {
+    await page.goto(`${site}/app/trabalho`, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Gerenciar casos', exact: true }).click();
+    const manager = page.getByRole('dialog', { name: 'Gerenciar casos' });
+    await manager.getByLabel('Mostrar casos').selectOption('trash');
+    await manager.getByRole('button', { name: 'Excluir definitivamente: Caso na lixeira do aceite' }).waitFor();
+  });
+
+  // A Visão enquanto os dados dos primeiros passos não chegaram: um esqueleto, sem destaque que depois troque de lugar.
+  let release;
+  const held = new Promise((resolve) => (release = resolve));
+  const hold = async (route) => {
+    await held;
+    await route.continue();
+  };
+  await page.route((url) => url.pathname === '/api/v2/matters', hold);
+  try {
+    await shoot(screenName(size, '/dados/visao-verificando'), async () => {
+      await page.goto(`${site}/app`, { waitUntil: 'domcontentloaded' });
+      await page.getByText('Verificando…').first().waitFor();
+    });
+  } finally {
+    release();
+    await page.unroute((url) => url.pathname === '/api/v2/matters', hold).catch(() => undefined);
+  }
 }
 
 /** Deixa a tela parada e igual de uma execução para outra: sem animação e sem data, hora ou identificador sorteado. */
