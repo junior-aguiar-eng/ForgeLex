@@ -38,9 +38,14 @@ export function DeskCaseDocuments({ matterId, onOpen }: { matterId: string; onOp
   const [confirming, setConfirming] = useState<{ record: CaseDocument; action: LifecycleAction }>();
   const [confirmError, setConfirmError] = useState('');
 
+  /**
+   * `keepList` é a recarga depois de uma operação: a lista fica à vista, com o aviso da operação, em vez de sumir atrás
+   * de "Carregando…" (que, além de piscar, deixava dois avisos de estado no painel). Na primeira carga e na troca de
+   * visão não há lista confiável para manter.
+   */
   const load = useCallback(
-    async (next: LifecycleView, signal?: AbortSignal) => {
-      setLoading(true);
+    async (next: LifecycleView, signal?: AbortSignal, keepList = false) => {
+      if (!keepList) setLoading(true);
       setError('');
       try {
         const response = await requestApi<CaseDetail>(
@@ -79,7 +84,7 @@ export function DeskCaseDocuments({ matterId, onOpen }: { matterId: string; onOp
       );
       setConfirming(undefined);
       setNotice(documentLifecycleNotice(action));
-      await load(view);
+      await load(view, undefined, true);
     } catch (failure) {
       setConfirmError(failureText(failure, 'Não foi possível concluir a operação.'));
     } finally {
@@ -96,7 +101,15 @@ export function DeskCaseDocuments({ matterId, onOpen }: { matterId: string; onOp
     <section aria-label="Documentos do caso" className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-editorial text-[17px] font-semibold text-ink">Documentos do caso</h2>
-        <LifecycleFilter label="Mostrar documentos" value={view} onChange={setView} disabled={busy || loading} />
+        <LifecycleFilter
+          label="Mostrar documentos"
+          value={view}
+          onChange={(next) => {
+            setNotice('');
+            setView(next);
+          }}
+          disabled={busy || loading}
+        />
       </div>
       {notice && (
         <p role="status" className="rounded-lg bg-accent-soft p-3 text-sm text-ink-soft">

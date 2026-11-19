@@ -779,7 +779,7 @@ test('Mesa: a aba Documentos lista os documentos do caso, arquiva e restaura com
   const confirm = page.getByRole('dialog', { name: /Arquivar documento/ });
   await expect(confirm).toContainText('O acesso pela IA será encerrado');
   await confirm.getByRole('button', { name: 'Arquivar', exact: true }).click();
-  await expect(panel.getByRole('status')).toContainText('Documento arquivado');
+  await expect(panel.getByRole('status').filter({ hasText: 'Documento arquivado' })).toBeVisible();
   await expect(panel.getByText('Petição inicial')).toHaveCount(0);
   await expect(panel.getByText('Contrato de locação')).toBeVisible();
 
@@ -792,8 +792,8 @@ test('Mesa: a aba Documentos lista os documentos do caso, arquiva e restaura com
     .getByRole('dialog', { name: /Restaurar documento/ })
     .getByRole('button', { name: 'Restaurar', exact: true })
     .click();
-  await expect(panel.getByRole('status')).toContainText(
-    'Documento restaurado. O acesso pela IA precisa de nova autorização',
+  await expect(panel.getByRole('status').filter({ hasText: 'Documento restaurado' })).toContainText(
+    'O acesso pela IA precisa de nova autorização',
   );
   await panel.getByLabel('Mostrar documentos').selectOption('active');
   await expect(panel.getByText('Petição inicial')).toBeVisible();
@@ -801,4 +801,64 @@ test('Mesa: a aba Documentos lista os documentos do caso, arquiva e restaura com
   // Abrir o documento usa o leitor que a peça já tem.
   await panel.getByRole('button', { name: 'Abrir documento: Contrato de locação' }).click();
   await expect(page.getByRole('dialog').filter({ hasText: 'trinta meses' })).toBeVisible();
+});
+
+test('Mesa: depois de arquivar um documento a lista segue à vista enquanto recarrega, com o aviso da operação', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'recarga@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso da recarga' } })
+  ).json();
+  for (const [title, originalFilename, content] of [
+    ['Documento um', 'um.txt', 'Primeiro texto.'],
+    ['Documento dois', 'dois.txt', 'Segundo texto.'],
+  ]) {
+    const response = await page.request.post(`${api}/api/v2/matters/${matter.id}/documents`, {
+      headers: apiHeaders,
+      data: { title, originalFilename, mimeType: 'text/plain', content },
+    });
+    expect(response.ok()).toBe(true);
+  }
+  const { draft, version } = await (
+    await page.request.post(`${api}/api/v2/matters/${matter.id}/drafts`, {
+      headers: apiHeaders,
+      data: { title: 'Peça da recarga', sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto salvo.' }] },
+    })
+  ).json();
+  await page.goto(
+    `/app/trabalho?${new URLSearchParams({ matterId: matter.id, draftId: draft.id, versionId: version.id })}`,
+  );
+  const piece = page.getByRole('region', { name: 'Mesa da peça' });
+  await expect(piece.getByLabel('Texto da seção 1', { exact: true })).toHaveValue('Texto salvo.');
+  await piece
+    .getByRole('tablist', { name: 'Partes da peça' })
+    .getByRole('tab', { name: 'Documentos', exact: true })
+    .click();
+  const panel = piece.getByRole('tabpanel', { name: 'Documentos' });
+  await expect(panel.getByText('Documento um')).toBeVisible();
+
+  // Segura a recarga que vem depois da operação, para observar o que o cliente vê enquanto ela não termina.
+  let hold = false;
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/api\/v2\/matters\/[^/?]+\?view=/, async (route) => {
+    if (hold) await gate;
+    await route.continue();
+  });
+  await panel.getByRole('button', { name: 'Arquivar: Documento um' }).click();
+  hold = true;
+  await page
+    .getByRole('dialog', { name: /Arquivar documento/ })
+    .getByRole('button', { name: 'Arquivar', exact: true })
+    .click();
+  await expect(panel.getByText('Documento arquivado para consulta.')).toBeVisible();
+  // Enquanto recarrega, a lista continua à vista e há um só aviso de estado.
+  await expect(panel.getByText('Documento dois')).toBeVisible();
+  await expect(panel.getByText('Carregando documentos…')).toHaveCount(0);
+  await expect(panel.getByRole('status')).toHaveCount(1);
+  release();
+  await expect(panel.getByText('Documento um')).toHaveCount(0);
+  await expect(panel.getByText('Documento dois')).toBeVisible();
 });
