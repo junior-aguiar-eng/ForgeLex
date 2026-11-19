@@ -87,6 +87,48 @@ describe('createSaveController', () => {
     expect(calls).toBe(3);
   });
 
+  it('trocar o anexo durante o salvamento: a resposta antiga é ignorada e o novo texto pode ser salvo', async () => {
+    // Achado do Codex (P2): `forget` limpava o estado, mas a conclusão da chamada antiga voltava a marcar o anexo como salvo.
+    const texts: string[] = [];
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const { controller, states } = setup(async (_matter, input) => {
+      texts.push(input.content);
+      if (texts.length === 1) await held;
+      return { title: input.title, paragraphs: 1 };
+    });
+    const first = controller.save(attachment({ text: 'Texto antigo.' }), 'm1');
+    controller.forget('a1'); // "Trocar": o mesmo id passa a ter outro conteúdo
+    expect(states.get('m1:a1')).toBeUndefined();
+    await controller.save(attachment({ text: 'Texto novo.' }), 'm1'); // não pode ficar presa atrás da chamada antiga
+    expect(texts).toEqual(['Texto antigo.', 'Texto novo.']);
+    expect(states.get('m1:a1')).toEqual({ status: 'saved', title: 'relato', paragraphs: 1 });
+    release();
+    await first;
+    // A conclusão antiga não muda o estado do anexo novo.
+    expect(states.get('m1:a1')).toEqual({ status: 'saved', title: 'relato', paragraphs: 1 });
+    await controller.save(attachment({ text: 'Texto novo.' }), 'm1');
+    expect(texts).toHaveLength(2); // o novo já está salvo: não duplica
+  });
+
+  it('remover o anexo durante o salvamento: a resposta antiga não deixa estado nem marca de salvo', async () => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let calls = 0;
+    const { controller, states } = setup(async (_matter, input) => {
+      calls += 1;
+      await held;
+      return { title: input.title, paragraphs: 1 };
+    });
+    const pending = controller.save(attachment(), 'm1');
+    controller.forget('a1');
+    release();
+    await pending;
+    expect(states.get('m1:a1')).toBeUndefined();
+    await controller.save(attachment(), 'm1'); // o id voltou a ser usado: pode salvar
+    expect(calls).toBe(2);
+  });
+
   it('anexo que não está pronto ou sem texto não chama a rota', async () => {
     let calls = 0;
     const { controller } = setup(async (_matter, input) => {

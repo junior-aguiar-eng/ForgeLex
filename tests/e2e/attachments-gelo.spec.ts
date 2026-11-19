@@ -105,3 +105,36 @@ test('salvar o anexo no caso: recusa da API aparece em texto, não duplica e a n
   const once = await (await page.request.get(`${api}/api/v2/matters/${matter.id}`, { headers: apiHeaders })).json();
   expect(once.documents).toHaveLength(1);
 });
+
+test('salvar o anexo no caso: durante o salvamento não dá para trocar nem remover o anexo, e depois volta', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', {
+      headers: apiHeaders,
+      data: { title: 'Caso do salvamento lento' },
+    })
+  ).json();
+  await login(page);
+  await page.goto('/app/trabalho');
+  await attach(page).setInputFiles(text('lento.txt', 'Linha única do arquivo lento.'));
+  await page.locator('[data-writing-desk] > header').getByLabel('Caso', { exact: true }).selectOption(matter.id);
+
+  // Segura o POST para observar a tela enquanto o texto ainda está sendo gravado.
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/api/v2/matters/*/documents', async (route) => {
+    if (route.request().method() === 'POST') await held;
+    await route.continue();
+  });
+  await page.getByRole('button', { name: 'Salvar no caso: lento.txt' }).click();
+  await expect(page.getByRole('button', { name: 'Salvando no caso: lento.txt' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Trocar anexo: lento.txt' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Remover anexo: lento.txt' })).toBeDisabled();
+
+  release();
+  await expect(page.getByRole('status').filter({ hasText: 'Salvo no caso “Caso do salvamento lento”' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Trocar anexo: lento.txt' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Remover anexo: lento.txt' })).toBeEnabled();
+});

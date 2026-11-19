@@ -128,7 +128,7 @@ function Chip({
             type="button"
             className={button}
             disabled={busy || saveState?.status === 'saving'}
-            aria-label={`Salvar no caso: ${attachment.name}`}
+            aria-label={`${saveState?.status === 'saving' ? 'Salvando no caso' : 'Salvar no caso'}: ${attachment.name}`}
             onClick={() => save.onSave(attachment.id)}
           >
             {saveState?.status === 'saving' ? 'Salvando…' : 'Salvar no caso'}
@@ -158,7 +158,7 @@ function Chip({
         <button
           type="button"
           className={button}
-          disabled={busy || attachment.status === 'reading' || recognizing}
+          disabled={busy || attachment.status === 'reading' || recognizing || saveState?.status === 'saving'}
           aria-label={`Trocar anexo: ${attachment.name}`}
           onClick={() => input.current?.click()}
         >
@@ -179,7 +179,7 @@ function Chip({
         <button
           type="button"
           className={button}
-          disabled={busy}
+          disabled={busy || saveState?.status === 'saving'}
           aria-label={`Remover anexo: ${attachment.name}`}
           onClick={onRemove}
         >

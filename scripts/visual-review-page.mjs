@@ -24,7 +24,7 @@ if (!values.in || !values.manifest || !values.out) {
 const dir = resolve(values.in);
 const manifest = JSON.parse(readFileSync(resolve(values.manifest), 'utf8'));
 const files = readdirSync(dir).filter((name) => name.endsWith('.png'));
-const accessibilityFile = join(dir, 'accessibility.json');
+const accessibilityFile = join(dir, 'axe.json');
 const accessibility = existsSync(accessibilityFile) ? JSON.parse(readFileSync(accessibilityFile, 'utf8')) : undefined;
 
 const escapeHtml = (text) =>

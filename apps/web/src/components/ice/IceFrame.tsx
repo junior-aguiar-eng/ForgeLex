@@ -11,8 +11,10 @@ import { PageHeader, SectionTabs } from './PageHeader';
  * tela vem logo abaixo, como era.
  */
 /**
- * Dados do caso (U7): a tela de um caso, aberta a partir da Mesa. O cabeçalho diz o que ela guarda e leva de volta à Mesa
- * com o mesmo caso escolhido, para o cliente não perder o fio do trabalho.
+ * Dados do caso (U7): a tela de um caso, aberta a partir da Mesa. O cabeçalho diz o que ela guarda e leva de volta à Mesa.
+ * A Mesa fica montada, só escondida, enquanto esta tela está aberta, então voltar a devolve exatamente como estava: a
+ * conversa, o texto digitado e o caso escolhido. Não se volta por `?matterId=`: esse endereço significa "abrir a peça deste
+ * caso" e abriria uma minuta em branco com o caso travado.
  */
 const CaseDataFrame: React.FC = () => {
   const { setActiveTab } = useApp();
@@ -25,11 +27,7 @@ const CaseDataFrame: React.FC = () => {
       {deskEnabled && (
         <button
           type="button"
-          onClick={() => {
-            // Lê a URL na hora do clique: a tela troca de caso sem recarregar, e o caso aberto é o que vale.
-            const matterId = new URLSearchParams(window.location.search).get('caso') ?? undefined;
-            setActiveTab('work', 'push', matterId ? { matterId } : undefined);
-          }}
+          onClick={() => setActiveTab('work')}
           className="mt-3.5 inline-flex min-h-11 items-center rounded-[9px] px-3.5 text-[13px] font-medium text-accent hover:bg-canvas-deep"
         >
           ← Voltar à Mesa

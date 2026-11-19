@@ -262,7 +262,9 @@ async function u7Screens(page, { site, api }, size, shoot, post) {
 
   // Salvar o anexo no caso: o botão no chip e, depois do clique, o aviso de onde foi salvo.
   const attach = async () => {
-    await page.goto(`${site}/app/trabalho?matterId=${matter.id}`, { waitUntil: 'networkidle' });
+    await page.goto(`${site}/app/trabalho`, { waitUntil: 'networkidle' });
+    // Pelo seletor, como o cliente: com `?matterId=` a Mesa abre a peça (no celular, a aba Peça, sem o compositor).
+    await page.getByLabel('Caso', { exact: true }).selectOption(matter.id);
     await page.getByLabel('Escolher arquivos para anexar').setInputFiles({
       name: 'relato.txt',
       mimeType: 'text/plain',
@@ -278,14 +280,16 @@ async function u7Screens(page, { site, api }, size, shoot, post) {
   });
 
   // Gerenciador de casos na lixeira: o caminho para a exclusão definitiva.
-  const trashed = await post('/api/v2/matters', { title: 'Caso na lixeira do aceite' });
+  // Título por tamanho: cada tamanho cria o seu caso no mesmo ambiente, e dois com o mesmo título se confundiriam.
+  const trashedTitle = `Caso na lixeira do aceite (${size})`;
+  const trashed = await post('/api/v2/matters', { title: trashedTitle });
   await post(`/api/v2/matters/${trashed.id}/trash`, { expectedLifecycleRevision: 0 });
   await shoot(screenName(size, '/dados/gerenciar-casos-lixeira'), async () => {
     await page.goto(`${site}/app/trabalho`, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: 'Gerenciar casos', exact: true }).click();
     const manager = page.getByRole('dialog', { name: 'Gerenciar casos' });
     await manager.getByLabel('Mostrar casos').selectOption('trash');
-    await manager.getByRole('button', { name: 'Excluir definitivamente: Caso na lixeira do aceite' }).waitFor();
+    await manager.getByRole('button', { name: `Excluir definitivamente: ${trashedTitle}` }).waitFor();
   });
 
   // A Visão enquanto os dados dos primeiros passos não chegaram: um esqueleto, sem destaque que depois troque de lugar.

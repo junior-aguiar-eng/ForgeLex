@@ -875,7 +875,7 @@ const trashed = async (page: Page, title: string) => {
   return matter as { id: string };
 };
 
-test('Casos sai da lateral: /app/casos abre a Mesa; com ?caso= o link antigo abre Dados do caso, e volta à Mesa com o caso', async ({
+test('Casos sai da lateral: /app/casos abre a Mesa; com ?caso= o link antigo abre Dados do caso, e a volta abre a Mesa limpa', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -901,10 +901,36 @@ test('Casos sai da lateral: /app/casos abre a Mesa; com ?caso= o link antigo abr
   const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(axe.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 
-  // O caminho de volta leva à Mesa com o mesmo caso escolhido.
+  // Por link direto a Mesa nunca foi aberta: a volta abre a Mesa limpa (e não uma minuta em branco com o caso travado).
   await page.getByRole('button', { name: '← Voltar à Mesa' }).click();
-  await expect(page).toHaveURL(new RegExp(`/app/trabalho\\?.*matterId=${matter.id}`));
-  await expect(page.locator('[data-writing-desk] > header').getByLabel('Caso', { exact: true })).toHaveValue(matter.id);
+  await expect(page).toHaveURL(/\/app\/trabalho$/);
+  await expect(page.getByRole('heading', { name: 'O que você precisa fazer hoje?' })).toBeVisible();
+  await expect(page.getByText('Fixo pela peça aberta')).toHaveCount(0);
+});
+
+test('Mesa → Dados do caso → Voltar à Mesa: o cliente volta exatamente onde estava, com o caso e o texto digitado', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'voltarmesa@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso da volta' } })
+  ).json();
+  await page.goto('/app/trabalho');
+  const header = page.locator('[data-writing-desk] > header');
+  await header.getByLabel('Caso', { exact: true }).selectOption(matter.id);
+  const request = page.getByLabel('O que você precisa fazer?', { exact: true });
+  await request.fill('Pedido que ainda não enviei.');
+
+  await header.getByRole('button', { name: 'Dados do caso', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Dados do caso' })).toBeVisible();
+  await page.getByRole('button', { name: '← Voltar à Mesa' }).click();
+
+  await expect(page).toHaveURL(/\/app\/trabalho$/);
+  await expect(header.getByLabel('Caso', { exact: true })).toHaveValue(matter.id);
+  await expect(request).toHaveValue('Pedido que ainda não enviei.');
+  await expect(page.getByText('Fixo pela peça aberta')).toHaveCount(0);
+  await expect(page.getByText('Minuta para revisão humana')).toHaveCount(0);
 });
 
 test('Mesa: "Dados do caso" só aparece com um caso escolhido e abre a tela daquele caso', async ({ page }) => {

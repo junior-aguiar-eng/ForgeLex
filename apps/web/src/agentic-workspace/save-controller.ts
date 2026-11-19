@@ -16,6 +16,10 @@ export function createSaveController(saver: Saver, onState: (key: string, state:
   const flight = createSingleFlight();
   const saved = new Set<string>();
   const known = new Set<string>();
+  // Geração de cada anexo: trocar ou remover a avança. Uma chamada que termina numa geração antiga não vale mais, porque o
+  // anexo (o mesmo id, outro conteúdo) já é outro; e ela não pode segurar a chave da geração nova.
+  const generations = new Map<string, number>();
+  const generationOf = (attachmentId: string) => generations.get(attachmentId) ?? 0;
   const keyOf = (attachmentId: string, matterId: string) => `${matterId}:${attachmentId}`;
   const emit = (key: string, state: SaveState | undefined) => {
     known.add(key);
@@ -28,13 +32,16 @@ export function createSaveController(saver: Saver, onState: (key: string, state:
       const key = keyOf(attachment.id, matterId);
       const input = attachmentDocumentInput(attachment);
       if (!input || saved.has(key)) return;
-      await flight.run(key, async () => {
+      const generation = generationOf(attachment.id);
+      await flight.run(`${key}#${generation}`, async () => {
         emit(key, { status: 'saving' });
         try {
           const result = await saver(matterId, input);
+          if (generationOf(attachment.id) !== generation) return;
           saved.add(key);
           emit(key, { status: 'saved', ...result });
         } catch (failure) {
+          if (generationOf(attachment.id) !== generation) return;
           const code = (failure as { code?: unknown } | null)?.code;
           emit(key, {
             status: 'error',
@@ -48,6 +55,7 @@ export function createSaveController(saver: Saver, onState: (key: string, state:
     },
     /** Apaga o que se sabe do anexo (trocado ou removido), em todos os casos. */
     forget(attachmentId: string): void {
+      generations.set(attachmentId, generationOf(attachmentId) + 1);
       for (const key of [...known]) {
         if (!key.endsWith(`:${attachmentId}`)) continue;
         saved.delete(key);
