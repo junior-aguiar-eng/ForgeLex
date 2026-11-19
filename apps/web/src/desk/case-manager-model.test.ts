@@ -3,6 +3,8 @@ import {
   activeCaseOptions,
   caseTitleProblem,
   deskLifecycleActions,
+  documentLifecycleNotice,
+  documentStateLabel,
   lifecycleNotice,
   type ManagedCase,
 } from './case-manager-model';
@@ -57,5 +59,27 @@ describe('lifecycleNotice', () => {
     expect(lifecycleNotice('archive')).toContain('acesso pela IA foi encerrado');
     expect(lifecycleNotice('trash')).toContain('acesso pela IA foi encerrado');
     expect(lifecycleNotice('restore')).toContain('autorize o acesso novamente');
+  });
+});
+
+describe('documentLifecycleNotice', () => {
+  it('fala de documento, e só a restauração avisa que a IA precisa de nova autorização', () => {
+    expect(documentLifecycleNotice('archive')).toBe('Documento arquivado para consulta.');
+    expect(documentLifecycleNotice('trash')).toBe('Documento movido para a lixeira.');
+    expect(documentLifecycleNotice('restore')).toContain('precisa de nova autorização');
+    expect(documentLifecycleNotice('archive')).not.toContain('Caso');
+  });
+});
+
+describe('documentStateLabel', () => {
+  it('mostra arquivado e lixeira antes da situação da indexação', () => {
+    expect(documentStateLabel({ lifecycleState: 'ARCHIVED', status: 'FAILED' })).toBe('Arquivado');
+    expect(documentStateLabel({ lifecycleState: 'TRASHED', status: 'INDEXED' })).toBe('Na lixeira');
+  });
+
+  it('em uso, diz se o documento está disponível ou falhou; sem estado conta como em uso', () => {
+    expect(documentStateLabel({ lifecycleState: 'ACTIVE', status: 'INDEXED' })).toBe('Disponível');
+    expect(documentStateLabel({ status: 'INDEXED' })).toBe('Disponível');
+    expect(documentStateLabel({ lifecycleState: 'ACTIVE', status: 'FAILED' })).toBe('Falhou');
   });
 });

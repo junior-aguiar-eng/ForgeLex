@@ -47,3 +47,27 @@ export function lifecycleNotice(action: LifecycleAction): string {
       return 'Exclusão definitiva concluída.';
   }
 }
+
+/** Frase de aviso depois da operação sobre um documento do caso, com o efeito sobre a IA quando há. */
+export function documentLifecycleNotice(action: LifecycleAction): string {
+  switch (action) {
+    case 'archive':
+      return 'Documento arquivado para consulta.';
+    case 'trash':
+      return 'Documento movido para a lixeira.';
+    case 'restore':
+      return 'Documento restaurado. O acesso pela IA precisa de nova autorização.';
+    case 'purge':
+      return 'Exclusão definitiva concluída.';
+  }
+}
+
+/** Situação do documento, em texto para o cliente. */
+export function documentStateLabel(document: {
+  lifecycleState?: LifecycleRecord['lifecycleState'];
+  status: 'INDEXED' | 'FAILED';
+}): string {
+  if (document.lifecycleState === 'TRASHED') return 'Na lixeira';
+  if (document.lifecycleState === 'ARCHIVED') return 'Arquivado';
+  return document.status === 'INDEXED' ? 'Disponível' : 'Falhou';
+}

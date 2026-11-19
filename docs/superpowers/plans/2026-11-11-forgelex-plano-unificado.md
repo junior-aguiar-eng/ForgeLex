@@ -61,7 +61,7 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 | 9   | CI, 15–18/11    | Três falhas intermitentes do `e2e-product`: **diagnosticadas em 19/11** — `database is locked` corrigida (causa provada); `matter-lifecycle.spec.ts:48` com mecanismo provado e teste corrigido (gatilho no CI não provado); porta 55432 sem causa provada, com mitigação aplicada em `e2e-product` (porta aleatória; decisão de Boni de 19/11) | Código, depois Boni |
 | 10  | Daybreak, 16/11 | “Não verificado”: seção 8 do checklist, saída do script de publicação, primeiro uso real das ferramentas de publicação e de migrations (`-DryRun`) | Boni  |
 | 11  | U5, U6          | Identificação pela leitura do PDF (hipótese de U3); qualidade do OCR em documentos autorizados                                                    | Código e Boni |
-| 12  | U7, 18/11       | Documentos do caso e PDF como anexo; “Dados do caso” e redirecionamento de `/app/casos`; destino da exclusão definitiva                           | Código |
+| 12  | U7, 18/11       | Parte 2 feita em 19/11 (aba Documentos). Restam: botão “Salvar no caso” no anexo, “Dados do caso” com o redirecionamento de `/app/casos` e a saída do item “Casos” da lateral | Código |
 | 13  | V5A, V6, V7     | Textos legais, `tests/public-*`, passada final e aceite, ligar o gelo, limpeza                                                                    | Código e Boni |
 | 14  | D0–D5           | Mudança de domínio (começa por registrar `forgelex.com.br`)                                                                                       | Boni, depois código |
 
@@ -482,6 +482,11 @@ Depende de U4, U5, U6 e de V3 (seletor de caso e “Criar caso a partir desta co
       Provas, Linha do tempo, Questões e Memorando intactos (ver o [registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#u7--casos-dentro-da-mesa-parte-1-gerenciar-casos-18112026)).
       **Parte 1 feita (gelo):** renomear (rota nova) e arquivar, lixeira e restaurar caso na Mesa; falta exclusão definitiva,
       documentos e PDF.
+      **Decisões de Boni em 19/11/2026:** (1) os documentos do caso ficam numa **aba própria da peça** (Documentos); (2) salvar
+      o anexo no caso é por **botão explícito**; (3) a **exclusão definitiva fica em “Dados do caso”**. (4) Retirar “Casos” do
+      menu só no tema gelo é recomendação minha, **aguardando a confirmação dele**: o clássico some na V7.
+      **Parte 2 feita (gelo, 19/11):** aba Documentos da peça, com arquivar, lixeira, restaurar e abrir. Falta o botão “Salvar
+      no caso” no anexo e a tela “Dados do caso”.
 - [ ] Manter o caso como entidade de dados: busca ancorada (M4), ferramentas MCP `case.*` e A07 dependem dele.
 - [ ] Redirecionar `/app/casos` para a Mesa, preservando links, e retirar o item “Casos” da lateral.
 - [ ] Remover `MatterWorkspaceScreen` e seus testes só depois de a Mesa passar nos mesmos cenários de E2E.

@@ -2286,3 +2286,29 @@ O erro ocorre no passo 2 do job, antes do checkout: algo no runner (imagem `ubun
 Vitest: `packages/persistence` 250 testes aprovados (inclui `webhook-repository`); suíte completa registrada no PR. Playwright: `agentic-commercial-flow` 4 aprovados, `matter-lifecycle` 30 passagens. ESLint, Prettier e `tsc` do pacote `persistence` limpos.
 
 Reversão: reverter o commit; o `busyTimeoutMs` não tem efeito sem ser passado.
+
+## U7 · casos dentro da Mesa, parte 2: aba Documentos (19/11/2026)
+
+Sobre `main` em `10edebc`. Só `apps/web`, só no tema gelo; sem rota nova, sem migração e sem mudança de contrato. O clássico e a tela "Casos" não mudam.
+
+**Decisões de Boni (19/11/2026) que orientam a U7.** Documentos do caso numa **aba própria da peça**; salvar o anexo no caso por **botão explícito**; exclusão definitiva **em "Dados do caso"**. Sobre tirar "Casos" do menu do clássico: a recomendação é **só no gelo** (o clássico some na V7), e a confirmação dele **ainda não veio**.
+
+**O que foi feito.**
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Aba | `DraftCanvas` ganha a aba **Documentos** entre Fontes e Revisão (`PieceTab` com `documentos`). Habilitada quando há caso; sem caso fica desabilitada. A ordem preserva as asserções de teclado existentes (`End` continua em Revisão). |
+| Painel | `DeskCaseDocuments` (novo): lista os documentos do caso por visão (Em uso, Arquivados, Lixeira), com **Abrir**, **Arquivar**, **Mover para a lixeira** e **Restaurar**, pela confirmação já existente (`LifecycleDialog`, que diz o efeito sobre a IA). Abrir reaproveita o leitor da peça. Sem a exclusão definitiva. |
+| Quem gerencia | Como na tela "Casos": criador do caso ou proprietário, e só com o caso em uso. Quem não gerencia vê a lista e abre os documentos. |
+| Modelo | `documentLifecycleNotice` e `documentStateLabel`, com teste. |
+| Rotas | Nenhuma nova: `GET /api/v2/matters/:id?view=` e `POST …/documents/:id/{archive,trash,restore}` já existiam. |
+
+**Limite conhecido.** As abas só aparecem com uma **peça aberta**, mas os documentos pertencem ao caso: sem peça aberta o cliente não alcança a aba. O botão "Salvar no caso" no anexo (próxima fatia) funciona sem peça. Se isso incomodar, a alternativa é uma entrada no seletor de caso.
+
+**Nota sobre a exclusão definitiva.** No caso ela pede o nome para confirmar; no documento, a confirmação existente **não** pede o nome (só o caso pede). A decisão de mantê-la em "Dados do caso" vale para os dois.
+
+**Verificação.** Vitest do web: 61 arquivos, 470 testes (3 novos do modelo). `shell-gelo` (Playwright): 58 aprovados, 1 novo (listar, arquivar e restaurar com confirmação, abrir, sem excluir definitivamente, com axe) e 3 ajustados para a aba nova; o `writing-desk.spec.ts:292` só passa com `LANG=C.UTF-8` (limite conhecido da E7, já definido na CI). `tsc`, ESLint e Prettier limpos nos arquivos alterados.
+
+**Não feito (próximas fatias).** Botão "Salvar no caso" no anexo (com trava contra clique duplo, já que a rota de ingestão não tem chave de idempotência); "Dados do caso", o redirecionamento de `/app/casos` e a saída do item "Casos" da lateral.
+
+Reversão: reverter o commit; a aba some e nada mais muda.
