@@ -2273,9 +2273,13 @@ O teste arquiva o caso por API, "por trás" da tela. A tela só passa a saber di
 
 **Correção (só no teste).** O teste de "resposta atrasada" passa a esperar as 8 respostas da carga inicial antes de arquivar (`openCase`). É comportamento correto da tela (caso arquivado em outro lugar vira somente leitura). Suíte `matter-lifecycle`: 30 passagens (5 testes × 6 repetições).
 
-### 3. Porta 55432 em uso (`Initialize containers`, 18/11): causa não provada
+### 3. Porta 55432 em uso (`Initialize containers`, 18/11): causa não provada, mitigação aplicada
 
-O erro ocorre no passo 2 do job, antes do checkout: algo no runner (imagem `ubuntu-latest`, 26.04 nessa execução) já escutava a 55432. O `e2e-product` mapeia `55432:5432` fixo (`ci.yml`, linha 154) e o `postgres` está fixado em `ubuntu-24.04`. Não consegui verificar a imagem. **Nenhuma mudança feita.** Mitigação possível, que exige decisão de Boni e só se valida no próprio CI: porta aleatória do serviço (`job.services.postgres.ports['5432']`) e as URLs do job (`FORGELEX_E2E_DATABASE_URL`, usado por `playwright.config.ts` e `scripts/e2e-phase-7-server.mjs`) lidas dela. Não há como inspecionar o runner antes desse passo (ele roda antes de qualquer `run`), então, se reaparecer, o caminho é a mitigação.
+O erro ocorre no passo 2 do job, antes do checkout: algo no runner (imagem `ubuntu-latest`, 26.04 nessa execução) já escutava a 55432. O `e2e-product` mapeava `55432:5432` fixo e o `postgres` está fixado em `ubuntu-24.04`. Não há como inspecionar o runner antes desse passo (ele roda antes de qualquer `run`), então **a causa continua não provada**.
+
+**Mitigação (decisão de Boni, 19/11/2026), só no job `e2e-product`.** O serviço publica `5432` (porta do host escolhida pelo Docker) e um passo novo, logo após o checkout, grava `FORGELEX_E2E_DATABASE_URL` em `$GITHUB_ENV` com a porta publicada (`job.services.postgres.ports['5432']`); o passo falha com mensagem clara se a porta não vier. Por que é seguro: os únicos leitores da porta nesse job são `playwright.config.ts` e `scripts/e2e-phase-7-server.mjs`, e os dois já leem a URL do ambiente (o 55432 era só o valor padrão); os demais E2E do job usam SQLite em arquivo. Se a variável não chegar, o erro é conexão recusada, alto e imediato. O job `postgres` (que também usa 55432) e o `docker-compose.yml` ficam como estão. Conferido localmente: YAML válido e o passo de shell com porta (grava a URL) e sem porta (sai com erro).
+
+**O que não está provado.** A mudança só é exercitada pelo CI do PR. Como a falha era intermitente, uma passagem verde não prova que ela acabou: a mitigação elimina a dependência de uma porta fixa, mas não explica por que a 55432 estava ocupada.
 
 ### Verificação
 
