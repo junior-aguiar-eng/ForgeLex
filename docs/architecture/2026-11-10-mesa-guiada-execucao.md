@@ -2250,3 +2250,35 @@ Sobre `main` em `11fda82`. Regras `mesa-v3`; sem mudança de contrato, sem migra
 **Continua aberto na U3.** Chips de área, tribunal e peça no compositor (V3 e U7) e a refinação por IA, que só vale se o ranqueamento errar mais do que a recusa resolve.
 
 Reversão: reverter o commit; as orientações já gravadas não mudam (o contrato é o mesmo).
+
+## CI · diagnóstico das três falhas intermitentes do `e2e-product` (19/11/2026)
+
+Sobre `main` em `11fda82`. Método: evidência e reprodução antes de qualquer correção. Nada de produção muda (PostgreSQL em produção; o SQLite só existe em desenvolvimento e nos E2E).
+
+### 1. `database is locked` (`agentic-commercial-flow.spec.ts`, 15/11): causa provada
+
+`createDatabase` abria os arquivos SQLite com tempo de espera pela trava igual a zero (`libsql` usa `timeout = 0`). A conexão de apoio do teste (`UPDATE facts…` por fora do servidor) recebia `SQLITE_BUSY` na hora sempre que o servidor, em outro processo, estava no meio de uma transação de escrita; o resultado dependia do momento.
+
+**Reprodução (dois processos).** Um processo segura a trava de escrita por 300 ms; o outro escreve: sem `timeout`, falha em 1 ms com `SQLITE_BUSY: database is locked`; com `timeout: 5000`, espera e conclui em 310 ms; com a trava segurada por 8 s, falha em 5 s. (Um primeiro experimento no mesmo processo enganava: a espera bloqueia o laço de eventos e a trava nunca era solta.)
+
+**Primeira correção, errada, e por que voltei atrás.** Dar o tempo de espera a todo `createDatabase` quebrou `webhook-repository.test.ts`: `claimDueDelivery` trata `SQLITE_BUSY` como "outro worker já reivindicou" (`webhook-repository.ts:209`), e a espera de 5 s travou dois "workers" no mesmo processo. A falha do erro imediato é parte do desenho dali.
+
+**Correção.** Opt-in `DatabaseConfig.busyTimeoutMs` (padrão: não esperar), usado só nas duas conexões de apoio do E2E que escrevem por fora do servidor. Teste de regressão `packages/persistence/src/db-busy-timeout.test.ts`: com o opt-in a escrita espera e conclui; sem ele continua recusando na hora.
+
+### 2. `matter-lifecycle.spec.ts:48`, campo "Texto do documento" desabilitado (16/11): mecanismo provado, gatilho no CI não provado
+
+O teste arquiva o caso por API, "por trás" da tela. A tela só passa a saber disso quando uma leitura do caso chega ao servidor **depois** do arquivamento. Duas leituras podem fazer isso: o evento `focus` da janela (`MatterWorkspaceScreen`, `refresh`) e a **carga inicial** do caso (`loadMatterResources`, 8 requisições) ainda em andamento. Reproduzi as duas com sondas (apagadas): disparar `focus` após o arquivamento, e reter a leitura inicial até depois do arquivamento. Nos dois casos o campo fica desabilitado e o `fill` estoura, o sintoma do CI.
+
+**O que não sei.** Não reproduzi a falha em condição normal (16 de 16 passaram localmente, com 4 workers), então não provo que foi a carga inicial lenta, e não o `focus`, no runner do CI. A primeira é a hipótese mais forte (runner lento alonga a carga inicial), mas é hipótese.
+
+**Correção (só no teste).** O teste de "resposta atrasada" passa a esperar as 8 respostas da carga inicial antes de arquivar (`openCase`). É comportamento correto da tela (caso arquivado em outro lugar vira somente leitura). Suíte `matter-lifecycle`: 30 passagens (5 testes × 6 repetições).
+
+### 3. Porta 55432 em uso (`Initialize containers`, 18/11): causa não provada
+
+O erro ocorre no passo 2 do job, antes do checkout: algo no runner (imagem `ubuntu-latest`, 26.04 nessa execução) já escutava a 55432. O `e2e-product` mapeia `55432:5432` fixo (`ci.yml`, linha 154) e o `postgres` está fixado em `ubuntu-24.04`. Não consegui verificar a imagem. **Nenhuma mudança feita.** Mitigação possível, que exige decisão de Boni e só se valida no próprio CI: porta aleatória do serviço (`job.services.postgres.ports['5432']`) e as URLs do job (`FORGELEX_E2E_DATABASE_URL`, usado por `playwright.config.ts` e `scripts/e2e-phase-7-server.mjs`) lidas dela. Não há como inspecionar o runner antes desse passo (ele roda antes de qualquer `run`), então, se reaparecer, o caminho é a mitigação.
+
+### Verificação
+
+Vitest: `packages/persistence` 250 testes aprovados (inclui `webhook-repository`); suíte completa registrada no PR. Playwright: `agentic-commercial-flow` 4 aprovados, `matter-lifecycle` 30 passagens. ESLint, Prettier e `tsc` do pacote `persistence` limpos.
+
+Reversão: reverter o commit; o `busyTimeoutMs` não tem efeito sem ser passado.

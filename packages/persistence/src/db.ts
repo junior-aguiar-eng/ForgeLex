@@ -8,6 +8,13 @@ export interface DatabaseConfig {
   url?: string;
   authToken?: string;
   driver?: 'sqlite' | 'postgres';
+  /**
+   * Quanto esperar, em milissegundos, a trava de escrita de outra conexão num arquivo SQLite local. O padrão é não
+   * esperar: o SQLite recusa na hora com `SQLITE_BUSY`, e há código que depende disso (a reivindicação de entregas de
+   * webhook trata `SQLITE_BUSY` como "outro worker já pegou"). Esperar é para quem escreve **por fora** do serviço, como
+   * a conexão de apoio dos testes E2E. A espera bloqueia o processo: não use com duas conexões no mesmo processo.
+   */
+  busyTimeoutMs?: number;
 }
 
 export type ForgeLexDatabase = LibSQLDatabase<typeof schema> & {
@@ -106,6 +113,7 @@ export async function createDatabase(config: DatabaseConfig = {}): Promise<{
   const client = createClient({
     url,
     authToken: config.authToken,
+    ...(config.busyTimeoutMs ? { timeout: config.busyTimeoutMs } : {}),
   });
 
   const db = drizzle(client, { schema }) as unknown as ForgeLexDatabase;

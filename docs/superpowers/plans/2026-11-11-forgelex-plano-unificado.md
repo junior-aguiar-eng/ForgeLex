@@ -58,7 +58,7 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 | 6   | M1, 14/11       | Recusa de renovação do Claude (1 em 33); reserva e mensagem de saldo insuficiente em jornada autenticada                                           | Boni  |
 | 7   | M3, 12–14/11    | Manifesto servido em produção; súmulas do TSE, 1.355 citações sem tribunal, processos e teses; 44 avisos; contradições de teor                     | Boni e código |
 | 8   | S0–S7, 14/11    | Conferir cada caixa `[ ]` contra o registro da Frente S e marcar; S8 segue com Boni                                                               | Código, depois Boni |
-| 9   | CI, 15–18/11    | Três falhas intermitentes do `e2e-product` sem causa provada: `database is locked` (15/11), `matter-lifecycle.spec.ts:48` (16/11), porta 55432 (18/11, ambiente) | Código |
+| 9   | CI, 15–18/11    | Três falhas intermitentes do `e2e-product`: **diagnosticadas em 19/11** — `database is locked` corrigida (causa provada); `matter-lifecycle.spec.ts:48` com mecanismo provado e teste corrigido (gatilho no CI não provado); porta 55432 sem causa provada e sem mudança (mitigação aguarda Boni) | Código, depois Boni |
 | 10  | Daybreak, 16/11 | “Não verificado”: seção 8 do checklist, saída do script de publicação, primeiro uso real das ferramentas de publicação e de migrations (`-DryRun`) | Boni  |
 | 11  | U5, U6          | Identificação pela leitura do PDF (hipótese de U3); qualidade do OCR em documentos autorizados                                                    | Código e Boni |
 | 12  | U7, 18/11       | Documentos do caso e PDF como anexo; “Dados do caso” e redirecionamento de `/app/casos`; destino da exclusão definitiva                           | Código |

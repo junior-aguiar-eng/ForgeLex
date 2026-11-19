@@ -11,6 +11,26 @@ async function login(page: Page) {
   await page.waitForURL('**/app');
 }
 
+/**
+ * Espera a carga inicial do caso terminar. O teste arquiva o caso por API, "por trás" da tela; se a leitura inicial do
+ * caso ainda estiver a caminho, ela chega ao servidor depois do arquivamento, a tela recebe "arquivado" antes da hora e
+ * o campo fica desabilitado (falha intermitente em runner lento).
+ */
+async function openCase(page: Page, matterId: string) {
+  const path = `/api/v2/matters/${matterId}`;
+  const loaded = [
+    '',
+    '/facts',
+    '/evidence',
+    '/evidence/coverage',
+    '/timeline',
+    '/issues',
+    '/research-memos',
+    '/authorities',
+  ].map((suffix) => page.waitForResponse((response) => new URL(response.url()).pathname === `${path}${suffix}`));
+  await page.goto(`/app/casos?caso=${matterId}`);
+  await Promise.all(loaded);
+}
 test('case filter cannot race an unfinished lifecycle operation', async ({ page, request }) => {
   const title = `Caso com operação em curso ${Date.now()}`;
   const matter = await (await request.post(api + '/api/v2/matters', { headers, data: { title } })).json();
@@ -49,7 +69,7 @@ test('typing during a delayed refresh keeps the buffer attached to the original 
   const title = `Caso com resposta atrasada ${Date.now()}`;
   const matter = await (await request.post(api + '/api/v2/matters', { headers, data: { title } })).json();
   await login(page);
-  await page.goto(`/app/casos?caso=${matter.id}`);
+  await openCase(page, matter.id);
   await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   await page.getByText('Adicionar documento', { exact: true }).click();
   await request.post(`${api}/api/v2/matters/${matter.id}/archive`, { headers, data: { expectedLifecycleRevision: 0 } });
