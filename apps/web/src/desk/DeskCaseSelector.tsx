@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import { requestApi } from '../api-client';
+import { useApp } from '../context/AppContext';
 import { caseNameFrom } from './case-name';
 import { DeskCaseManager } from './DeskCaseManager';
 
@@ -36,6 +37,7 @@ export function DeskCaseSelector({
   onCasesChanged: (active: CaseOption[]) => void;
 }) {
   const hintId = useId();
+  const { setActiveTab } = useApp();
   const [creating, setCreating] = useState(false);
   const [managing, setManaging] = useState(false);
   const [name, setName] = useState('');
@@ -141,7 +143,7 @@ export function DeskCaseSelector({
             Cancelar
           </button>
           <span className="basis-full text-xs text-subtle">
-            O caso nasce só com o nome. Os fatos e as provas você aprova depois, na tela do caso.
+            O caso nasce só com o nome. Os fatos e as provas você aprova depois, em Dados do caso.
           </span>
           {error && (
             <p role="alert" className="basis-full text-sm text-danger">
@@ -149,6 +151,15 @@ export function DeskCaseSelector({
             </p>
           )}
         </form>
+      )}
+      {value && (
+        <button
+          type="button"
+          onClick={() => setActiveTab('matter', 'push', { matterId: value })}
+          className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep"
+        >
+          Dados do caso
+        </button>
       )}
       <button
         type="button"

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { requestApi } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
+import { useApp } from '../context/AppContext';
 import { LifecycleDialog, LifecycleFilter } from '../screens/matter-lifecycle/LifecycleControls';
 import {
   actionLabels,
@@ -37,6 +38,7 @@ export function DeskCaseManager({
   onChanged: (active: Array<{ id: string; title: string }>) => void;
 }) {
   const { status, account } = useAuth();
+  const { setActiveTab } = useApp();
   const dialog = useRef<HTMLDialogElement>(null);
   const [view, setView] = useState<LifecycleView>('active');
   const [items, setItems] = useState<ManagedCase[]>([]);
@@ -89,6 +91,12 @@ export function DeskCaseManager({
     } catch {
       /* o seletor se atualiza na próxima carga; a lista do diálogo já mostra o resultado */
     }
+  };
+
+  /** Fecha o gerenciador e abre Dados do caso, na lixeira quando é para excluir de vez. */
+  const openCaseData = (matterId: string, matterView?: 'archived' | 'trash') => {
+    onClose();
+    setActiveTab('matter', 'push', { matterId, ...(matterView ? { matterView } : {}) });
   };
 
   const rename = async () => {
@@ -238,40 +246,65 @@ export function DeskCaseManager({
                           {using ? 'Em uso nesta conversa ou peça' : stateLabel[state]}
                         </p>
                       </div>
-                      {canManage && (
-                        <div className="flex flex-wrap gap-1">
-                          {state === 'ACTIVE' && (
+                      <div className="flex flex-wrap gap-1">
+                        {state === 'TRASHED' ? (
+                          canManage && (
                             <button
                               type="button"
                               disabled={busy}
-                              aria-label={`Renomear ${item.title}`}
-                              onClick={() => {
-                                setError('');
-                                setNotice('');
-                                setEditing({ id: item.id, title: item.title });
-                              }}
-                              className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
+                              aria-label={`Excluir definitivamente: ${item.title}`}
+                              onClick={() => openCaseData(item.id, 'trash')}
+                              className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-danger hover:bg-canvas-deep disabled:opacity-50"
                             >
-                              Renomear
+                              Excluir definitivamente…
                             </button>
-                          )}
-                          {actions.map((action) => (
-                            <button
-                              key={action}
-                              type="button"
-                              disabled={busy}
-                              aria-label={`${actionLabels[action]}: ${item.title}`}
-                              onClick={() => {
-                                setConfirmError('');
-                                setConfirming({ record: item, action });
-                              }}
-                              className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
-                            >
-                              {actionLabels[action]}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                          )
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            aria-label={`Dados do caso: ${item.title}`}
+                            onClick={() => openCaseData(item.id, state === 'ARCHIVED' ? 'archived' : undefined)}
+                            className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
+                          >
+                            Dados do caso
+                          </button>
+                        )}
+                        {canManage && (
+                          <>
+                            {state === 'ACTIVE' && (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                aria-label={`Renomear ${item.title}`}
+                                onClick={() => {
+                                  setError('');
+                                  setNotice('');
+                                  setEditing({ id: item.id, title: item.title });
+                                }}
+                                className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
+                              >
+                                Renomear
+                              </button>
+                            )}
+                            {actions.map((action) => (
+                              <button
+                                key={action}
+                                type="button"
+                                disabled={busy}
+                                aria-label={`${actionLabels[action]}: ${item.title}`}
+                                onClick={() => {
+                                  setConfirmError('');
+                                  setConfirming({ record: item, action });
+                                }}
+                                className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
+                              >
+                                {actionLabels[action]}
+                              </button>
+                            ))}
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </li>
@@ -280,7 +313,8 @@ export function DeskCaseManager({
           </ul>
         )}
         <p className="mt-4 text-xs text-subtle">
-          Para excluir um caso de vez, use a tela Casos: a exclusão definitiva pede o nome do caso para confirmar.
+          Para excluir um caso de vez, mova-o para a lixeira e use “Excluir definitivamente…”: a exclusão pede o nome do
+          caso para confirmar.
         </p>
       </dialog>
       {confirming && (

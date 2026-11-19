@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { requestApi } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
+import { useApp } from '../context/AppContext';
 import { LifecycleDialog, LifecycleFilter } from '../screens/matter-lifecycle/LifecycleControls';
 import {
   actionLabels,
@@ -29,6 +30,7 @@ const failureText = (failure: unknown, fallback: string) => (failure instanceof 
  */
 export function DeskCaseDocuments({ matterId, onOpen }: { matterId: string; onOpen: (documentId: string) => void }) {
   const { status, account } = useAuth();
+  const { setActiveTab } = useApp();
   const [view, setView] = useState<LifecycleView>('active');
   const [detail, setDetail] = useState<CaseDetail>();
   const [loading, setLoading] = useState(true);
@@ -179,7 +181,20 @@ export function DeskCaseDocuments({ matterId, onOpen }: { matterId: string; onOp
         </ul>
       )}
       <p className="text-xs text-subtle">
-        Para excluir um documento de vez, use a tela Casos (em breve “Dados do caso”): a exclusão definitiva fica lá.
+        Para excluir um documento de vez, abra{' '}
+        <button
+          type="button"
+          onClick={() =>
+            setActiveTab('matter', 'push', {
+              matterId,
+              ...(view === 'trash' ? { documentView: 'trash' as const } : {}),
+            })
+          }
+          className="font-medium text-accent underline hover:text-accent-strong"
+        >
+          Dados do caso
+        </button>
+        : a exclusão definitiva fica lá.
       </p>
       {confirming && (
         <LifecycleDialog

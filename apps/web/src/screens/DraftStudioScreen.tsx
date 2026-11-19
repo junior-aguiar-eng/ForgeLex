@@ -799,7 +799,7 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
           <h2 className="font-editorial text-[17px] font-semibold text-ink">Esta peça não está ligada a um caso</h2>
           <p className="text-sm text-muted">
             Sem caso, não há questões, cobertura de fontes nem análise de aderência. Ao criar o caso, ele nasce só com o nome;
-            os fatos e as provas você aprova depois, na tela do caso.
+            os fatos e as provas você aprova depois, em Dados do caso.
           </p>
           <CreateCaseFromPiece name={newWorkCase} busy={busy} onName={setNewWorkCase} onCreate={() => void createCase()} />
         </section>

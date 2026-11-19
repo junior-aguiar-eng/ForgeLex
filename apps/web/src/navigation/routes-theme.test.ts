@@ -46,7 +46,7 @@ describe('rotas por tema (V2)', () => {
   });
 
   it('as demais rotas são iguais nos dois temas', () => {
-    for (const tab of ALL_TABS.filter((tab) => tab !== 'datajud' && tab !== 'research')) {
+    for (const tab of ALL_TABS.filter((tab) => tab !== 'datajud' && tab !== 'research' && tab !== 'matter')) {
       expect(routeForTab(tab, 'gelo'), tab).toEqual(routeForTab(tab, 'classico'));
     }
   });

@@ -81,7 +81,7 @@ export const IceSidebar: React.FC<{
     () => iceNavigation({ deskEnabled: DESK_ENABLED, casesEnabled: CASE_WORKSPACE_ENABLED }),
     [],
   );
-  const active = highlightedTab(activeTab);
+  const active = highlightedTab(activeTab, DESK_ENABLED);
   const balance = useBalanceCents(activeTab);
 
   useEffect(() => {

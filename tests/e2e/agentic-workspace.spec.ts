@@ -1,6 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { randomUUID } from 'node:crypto';
+
+// Sair da Mesa para outra tela e voltar: no gelo os casos vivem na Mesa e não há item "Casos" na lateral (U7).
+const leaveDesk = process.env.FORGELEX_E2E_THEME === 'gelo' ? 'Jurisprudência' : 'Casos';
 const api = 'http://127.0.0.1:3301',
   headers = { authorization: 'Bearer phase7-e2e-access-token' };
 
@@ -89,7 +92,7 @@ test('regressão final: voltar pela navegação mantém ID e recuperação após
   const original = page.url();
   await page
     .getByRole('navigation', { name: 'Navegação principal', exact: true })
-    .getByRole('button', { name: 'Casos', exact: true })
+    .getByRole('button', { name: leaveDesk, exact: true })
     .click();
   await page.getByRole('button', { name: 'Mesa', exact: true }).click();
   await expect(page).toHaveURL(original);
@@ -140,11 +143,13 @@ test('regressão final: resposta tardia não troca URL de outra superfície ou s
   await reached;
   await page
     .getByRole('navigation', { name: 'Navegação principal', exact: true })
-    .getByRole('button', { name: 'Casos', exact: true })
+    .getByRole('button', { name: leaveDesk, exact: true })
     .click();
   release();
   await expect(page.locator('[data-agentic-workspace] article')).toHaveCount(1);
-  await expect(page).toHaveURL(/\/app\/casos(?:\?|$)/);
+  await expect(page).toHaveURL(
+    process.env.FORGELEX_E2E_THEME === 'gelo' ? /\/app\/pesquisa(?:\?|$)/ : /\/app\/casos(?:\?|$)/,
+  );
   await page.getByRole('button', { name: 'Mesa', exact: true }).click();
   await expect(page).toHaveURL(/\/app\/trabalho\?executionId=/);
   await expect(page.getByRole('article', { name: 'Resultado do trabalho' })).toBeVisible();
@@ -320,7 +325,7 @@ test('regressão final: falha em outra área preserva trabalho e edição não s
   await expect(input).toHaveValue('Edição preservada durante falha de outra página.');
   await page
     .getByRole('navigation', { name: 'Navegação principal' })
-    .getByRole('button', { name: 'Casos', exact: true })
+    .getByRole('button', { name: leaveDesk, exact: true })
     .click();
   await page
     .getByRole('navigation', { name: 'Navegação principal' })
@@ -709,13 +714,18 @@ test('compara conferir fonte e editar a mesma minuta nos dois percursos com font
       if (before !== new URL(page.url()).pathname) screens++;
     };
     if (mode === 'anterior') {
-      await step(() => page.getByRole('button', { name: 'Casos', exact: true }).click());
-      await step(() =>
-        page
-          .getByRole('button')
-          .filter({ has: page.getByText(caseTitle, { exact: true }) })
-          .click(),
-      );
+      if (process.env.FORGELEX_E2E_THEME === 'gelo') {
+        // No gelo não há item "Casos": o percurso anterior abre Dados do caso pelo link com o caso (os links antigos continuam).
+        await step(() => page.goto('/app/casos?caso=' + matter.id));
+      } else {
+        await step(() => page.getByRole('button', { name: 'Casos', exact: true }).click());
+        await step(() =>
+          page
+            .getByRole('button')
+            .filter({ has: page.getByText(caseTitle, { exact: true }) })
+            .click(),
+        );
+      }
       await step(() => page.getByRole('button', { name: 'Abrir documento: Fonte comparável', exact: true }).click());
     } else {
       await step(() => page.getByRole('button', { name: /^Fontes \(\d+\)$/ }).click());

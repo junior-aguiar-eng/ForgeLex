@@ -43,6 +43,8 @@ const routes: readonly AppRoute[] = [
  */
 const iceOverrides: Partial<Record<AppTab, { path?: string; title: string }>> = {
   research: { title: 'Jurisprudência' },
+  // A tela "Casos" vira "Dados do caso" (U7): é aberta a partir do caso na Mesa; o caminho antigo continua valendo.
+  matter: { title: 'Dados do caso' },
   datajud: { path: '/app/andamento-processual', title: 'Andamento processual' },
 };
 
@@ -76,6 +78,15 @@ export function canonicalPathname(pathname: string, theme: Theme = activeTheme()
   return canonical && canonical !== normalizePath(pathname) ? canonical : pathname;
 }
 
+/**
+ * Para onde a navegação vai de fato. No gelo os casos vivem na Mesa e "Dados do caso" é a tela de **um** caso: abrir
+ * `/app/casos` sem dizer qual caso leva à Mesa, onde se escolhe, cria e gerencia casos. Com um caso na URL (os links
+ * antigos), a tela continua. Sem a Mesa não há para onde mandar, e a tela Casos segue como o lugar dos casos.
+ */
+export function iceCaseDestination(tab: AppTab, hasCase: boolean, deskEnabled: boolean, theme: Theme = activeTheme()): AppTab {
+  return theme === 'gelo' && tab === 'matter' && !hasCase && deskEnabled ? 'work' : tab;
+}
+
 export function isKnownPath(pathname: string): boolean {
   return tabByPath.has(normalizePath(pathname));
 }
@@ -88,7 +99,12 @@ export function updateDocumentTitle(tab: AppTab): void {
   if (typeof document !== 'undefined') document.title = `ForgeLex · ${routeForTab(tab).title}`;
 }
 
-export interface CaseRouteContext extends DeskSelection { analysisId?: string }
+export interface CaseRouteContext extends DeskSelection {
+  analysisId?: string;
+  /** Só em Dados do caso: a lista de casos que a tela abre (a lixeira, para excluir de vez) e a de documentos. */
+  matterView?: 'active' | 'archived' | 'trash';
+  documentView?: 'active' | 'archived' | 'trash';
+}
 export function navigateToTab(tab: AppTab, mode: 'push' | 'replace' = 'push', contextOrEnabled?: CaseRouteContext | boolean, enabled = CASE_WORKSPACE_ENABLED, workEnabled = AGENTIC_WORKSPACE_ENABLED): void {
   if (typeof window === 'undefined') return;
   const context = typeof contextOrEnabled === 'boolean' ? undefined : contextOrEnabled;
@@ -100,6 +116,10 @@ export function navigateToTab(tab: AppTab, mode: 'push' | 'replace' = 'push', co
   const params = new URLSearchParams();
   if (!redirected && context?.matterId) params.set(tab === 'matter' ? 'caso' : 'matterId', context.matterId);
   if (!redirected) for (const key of ['draftId','analysisId','versionId'] as const) if (context?.[key]) params.set(key, context[key]!);
+  if (!redirected && tab === 'matter') {
+    if (context?.matterView) params.set('visao', context.matterView);
+    if (context?.documentView) params.set('documentos', context.documentView);
+  }
   const serializedParams = params.toString(); // `params.size` não existe em Safari/iOS < 17 nem Chrome < 113
   const preserveReturnParameters = redirected ? '' : context ? (serializedParams ? `?${serializedParams}` : '') : mode === 'replace' ? `${window.location.search}${window.location.hash}` : '';
   const destination = visibleTab === 'work' && context ? deskLocation(context) : `${route.path}${preserveReturnParameters}`;

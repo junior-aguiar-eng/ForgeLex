@@ -2347,3 +2347,23 @@ Uma execução completa do `shell-gelo` falhou no cenário de acessibilidade da 
 O `e2e-desk` do commit da parte 2 falhou **por defeito meu**, não pela intermitência conhecida: no painel Documentos havia dois `role="status"` ao mesmo tempo (o aviso da operação e o "Carregando documentos…"), e o seletor do meu teste exigia um só. Localmente a recarga era rápida demais para coincidir; o runner da CI era mais lento.
 
 O seletor frágil era o sintoma; o defeito real era de interface: depois de arquivar, a **lista inteira sumia** atrás de "Carregando documentos…" até a recarga terminar (piscada, e dois avisos de estado). Reproduzi primeiro com um teste que segura a recarga e exige a lista à vista (falhou: `Documento dois` não visível), depois corrigi: a recarga depois de uma operação (`keepList`) mantém a lista, e "Carregando…" fica só para a primeira carga e a troca de visão; trocar de visão limpa o aviso anterior. Os avisos nos testes passam a ser buscados pelo texto, não só pelo papel. Resultado: os 4 cenários da aba (3 antigos ajustados, 1 novo) passam 6 vezes seguidas com 3 workers.
+
+## U7 · casos dentro da Mesa, parte 4: Dados do caso (19/11/2026)
+
+Sobre `main` em `10edebc`, na mesma branch das partes 2 e 3. Só `apps/web` e só no tema gelo; sem rota nova de API, sem migração e sem mudança de contrato. O clássico não muda.
+
+**Princípio (Boni, 19/11/2026).** Arquitetura, fluxo e interface devem ser fáceis de usar e fluidos: intuitivos, práticos e sem dificuldade para o cliente. Daí as escolhas abaixo: o caminho para o caso está **onde o cliente já está** (na Mesa), e a volta **leva de volta ao mesmo caso**.
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Lateral | O item "Casos" **sai** da lateral do gelo (continua só se a Mesa estiver desligada, porque aí a tela Casos é o único lugar dos casos). Em Dados do caso, o item **Mesa** fica aceso. |
+| Rota | O caminho é o mesmo (`/app/casos`), então nenhum link antigo quebra. **Sem `?caso=`** abre a Mesa (e o desvio não entra no histórico); **com `?caso=`**, é a tela Dados do caso. Regra pura em `iceCaseDestination`. |
+| A tela | O título e o `h1` passam a ser "Dados do caso", com o subtítulo do que ela guarda e o botão **← Voltar à Mesa**, que leva à Mesa **com o mesmo caso escolhido** (lê a URL na hora do clique, porque a tela troca de caso sem recarregar). O cabeçalho antigo ("Área do caso") some no gelo para não haver dois `h1`. Fatos, provas, linha do tempo, questões, memorando e exclusão definitiva continuam como estavam. |
+| Entradas a partir da Mesa | (1) Botão **Dados do caso** ao lado do seletor, só com caso escolhido. (2) No gerenciador de casos, cada linha tem **Dados do caso**, e a de um caso **na lixeira** tem **Excluir definitivamente…**, que abre a tela **direto na lixeira** (`?visao=trash`), onde mora a exclusão. (3) Na aba Documentos, o texto da exclusão definitiva virou um botão **Dados do caso** que abre a lixeira de documentos (`?documentos=trash`) quando a visão é essa. |
+| Textos | "na tela do caso" e "use a tela Casos" viraram "em Dados do caso" ou um botão, em vez de uma instrução que o cliente precisa seguir sozinho. |
+
+**Verificação.** Vitest do web: modelo de rotas e de navegação (89 testes, 7 vermelhos antes da implementação). Playwright no gelo: 4 cenários novos (lateral e redirecionamento; entrada pelo seletor; caso na lixeira até a exclusão; aba Documentos até Dados do caso), com axe na nova tela. **Mutação:** com a regra de redirecionamento desligada, o cenário falha (`/app/casos` não vira a Mesa). Os specs compartilhados que clicavam em "Casos" para sair da Mesa (`writing-desk`, `agentic-workspace`, `shell-gelo`) passam a usar "Jurisprudência" no gelo e continuam com "Casos" no clássico.
+
+**Limites.** (1) Quem usa o gelo sem a Mesa (configuração que não é a de produção) continua com o item "Casos" e o título "Dados do caso". (2) "Criar caso" dentro da tela continua existindo, mas o caminho natural é pela Mesa. (3) A tela ainda é a mesma de 904 linhas; reorganizá-la por dentro (por exemplo, dividir em abas) não foi feito e seria outra etapa.
+
+Reversão: reverter o commit; o item "Casos" e o caminho antigo voltam.

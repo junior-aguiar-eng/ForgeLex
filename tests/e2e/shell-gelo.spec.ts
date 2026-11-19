@@ -24,7 +24,6 @@ test('o tema gelo está ligado e a lateral tem a marca, Trabalho e Conta e recur
   await expect(aside.getByRole('button', { name: 'ForgeLex, ir para o início' })).toBeVisible();
   await expect(aside.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button')).toHaveText([
     'Mesa',
-    'Casos',
     'Jurisprudência',
   ]);
   await expect(aside.getByRole('navigation', { name: 'Conta e recursos' }).getByRole('button')).toHaveText([
@@ -92,13 +91,13 @@ test('na Mesa a lateral fica aberta com as conversas recentes dentro dela, e o c
   await toggle('Recolher menu lateral').click();
   await expect(toggle('Expandir menu lateral')).toHaveAttribute('aria-expanded', 'false');
   expect((await aside.boundingBox())!.width).toBeLessThan(100);
-  await expect(aside.getByRole('button', { name: 'Casos', exact: true })).toBeVisible();
+  await expect(aside.getByRole('button', { name: 'Jurisprudência', exact: true })).toBeVisible();
   await expect(aside.getByRole('button', { name: 'Sair da conta' })).toBeVisible();
   await expect(history).toHaveCount(0);
 
   // A escolha do cliente vale também fora da Mesa.
-  await aside.getByRole('button', { name: 'Casos', exact: true }).click();
-  await expect(page).toHaveURL(/\/app\/casos/);
+  await aside.getByRole('button', { name: 'Jurisprudência', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/pesquisa/);
   await expect(toggle('Expandir menu lateral')).toBeVisible();
 });
 
@@ -270,8 +269,8 @@ test('celular: a gaveta tem os mesmos itens, Escape fecha e devolve o foco, esco
   await expect(page.getByRole('button', { name: 'Abrir menu lateral' })).toBeFocused();
 
   await toggle.click();
-  await aside.getByRole('button', { name: 'Casos', exact: true }).click();
-  await expect(page).toHaveURL(/\/app\/casos/);
+  await aside.getByRole('button', { name: 'Jurisprudência', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/pesquisa/);
   await expect(aside).toBeHidden();
 });
 
@@ -861,4 +860,127 @@ test('Mesa: depois de arquivar um documento a lista segue à vista enquanto reca
   release();
   await expect(panel.getByText('Documento um')).toHaveCount(0);
   await expect(panel.getByText('Documento dois')).toBeVisible();
+});
+
+// Dados do caso (U7, parte 4): os casos vivem na Mesa; a tela de um caso abre a partir dele e leva de volta.
+const trashed = async (page: Page, title: string) => {
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title } })
+  ).json();
+  const response = await page.request.post(`${api}/api/v2/matters/${matter.id}/trash`, {
+    headers: apiHeaders,
+    data: { expectedLifecycleRevision: 0 },
+  });
+  expect(response.ok()).toBe(true);
+  return matter as { id: string };
+};
+
+test('Casos sai da lateral: /app/casos abre a Mesa; com ?caso= o link antigo abre Dados do caso, e volta à Mesa com o caso', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'dadosdocaso@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso dos dados' } })
+  ).json();
+  const aside = sidebar(page);
+
+  // Sem caso na URL, o caminho antigo vira a Mesa (e o histórico não guarda o desvio).
+  await page.goto('/app/casos');
+  await expect(page).toHaveURL(/\/app\/trabalho$/);
+  await expect(page.getByRole('heading', { name: 'O que você precisa fazer hoje?' })).toBeVisible();
+  await expect(aside.getByRole('button', { name: 'Casos', exact: true })).toHaveCount(0);
+
+  // Com o caso na URL, o link antigo continua valendo: é a tela Dados do caso, com a Mesa acesa na lateral.
+  await page.goto(`/app/casos?caso=${matter.id}`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Dados do caso' })).toBeVisible();
+  await expect(page).toHaveTitle('ForgeLex · Dados do caso');
+  await expect(page.getByRole('heading', { name: 'Caso dos dados', exact: true })).toBeVisible();
+  await expect(aside.getByRole('button', { name: 'Mesa', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { name: 'Área do caso' })).toHaveCount(0);
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // O caminho de volta leva à Mesa com o mesmo caso escolhido.
+  await page.getByRole('button', { name: '← Voltar à Mesa' }).click();
+  await expect(page).toHaveURL(new RegExp(`/app/trabalho\\?.*matterId=${matter.id}`));
+  await expect(page.locator('[data-writing-desk] > header').getByLabel('Caso', { exact: true })).toHaveValue(matter.id);
+});
+
+test('Mesa: "Dados do caso" só aparece com um caso escolhido e abre a tela daquele caso', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'entradadados@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso da entrada' } })
+  ).json();
+  await page.goto('/app/trabalho');
+  const header = page.locator('[data-writing-desk] > header');
+  await expect(header.getByRole('button', { name: 'Dados do caso', exact: true })).toHaveCount(0);
+
+  await header.getByLabel('Caso', { exact: true }).selectOption(matter.id);
+  await header.getByRole('button', { name: 'Dados do caso', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/app/casos\\?caso=${matter.id}`));
+  await expect(page.getByRole('heading', { level: 1, name: 'Dados do caso' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Caso da entrada', exact: true })).toBeVisible();
+});
+
+test('Mesa: caso na lixeira leva direto a Dados do caso, na lixeira, onde fica a exclusão definitiva', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'lixeiradados@forgelex.test');
+  const matter = await trashed(page, 'Caso para excluir de vez');
+  await page.goto('/app/trabalho');
+  const header = page.locator('[data-writing-desk] > header');
+  await header.getByRole('button', { name: 'Gerenciar casos', exact: true }).click();
+  const manager = page.getByRole('dialog', { name: 'Gerenciar casos' });
+  await manager.getByLabel('Mostrar casos').selectOption('trash');
+  // Na lixeira o gerenciador oferece o caminho para a exclusão definitiva, que fica em Dados do caso.
+  await expect(manager.getByRole('button', { name: /^Restaurar:/ })).toBeVisible();
+  await expect(manager.getByRole('button', { name: /^Dados do caso:/ })).toHaveCount(0);
+  await manager.getByRole('button', { name: 'Excluir definitivamente: Caso para excluir de vez' }).click();
+
+  await expect(page).toHaveURL(new RegExp(`/app/casos\\?caso=${matter.id}&visao=trash`));
+  await expect(page.getByRole('heading', { level: 1, name: 'Dados do caso' })).toBeVisible();
+  await expect(page.getByLabel('Mostrar casos')).toHaveValue('trash');
+  await expect(page.getByRole('heading', { name: 'Caso para excluir de vez', exact: true })).toBeVisible();
+  // A exclusão em si continua pedindo o nome do caso: abrir a tela não exclui nada.
+  const still = await (await page.request.get(`${api}/api/v2/matters?view=trash`, { headers: apiHeaders })).json();
+  expect(still.items.some((item: { id: string }) => item.id === matter.id)).toBe(true);
+});
+
+test('aba Documentos: o caminho da exclusão definitiva abre Dados do caso com o caso e a lixeira de documentos', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'docdados@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', {
+      headers: apiHeaders,
+      data: { title: 'Caso dos documentos soltos' },
+    })
+  ).json();
+  const { draft, version } = await (
+    await page.request.post(`${api}/api/v2/matters/${matter.id}/drafts`, {
+      headers: apiHeaders,
+      data: {
+        title: 'Peça dos documentos soltos',
+        sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto salvo.' }],
+      },
+    })
+  ).json();
+  await page.goto(
+    `/app/trabalho?${new URLSearchParams({ matterId: matter.id, draftId: draft.id, versionId: version.id })}`,
+  );
+  const piece = page.getByRole('region', { name: 'Mesa da peça' });
+  await expect(piece.getByLabel('Texto da seção 1', { exact: true })).toHaveValue('Texto salvo.');
+  await piece
+    .getByRole('tablist', { name: 'Partes da peça' })
+    .getByRole('tab', { name: 'Documentos', exact: true })
+    .click();
+  const panel = piece.getByRole('tabpanel', { name: 'Documentos' });
+  await panel.getByLabel('Mostrar documentos').selectOption('trash');
+  await panel.getByRole('button', { name: 'Dados do caso', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/app/casos\\?caso=${matter.id}&documentos=trash`));
+  await expect(page.getByLabel('Mostrar documentos')).toHaveValue('trash');
 });

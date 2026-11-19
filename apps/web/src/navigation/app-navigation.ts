@@ -29,7 +29,10 @@ export function iceNavigation(flags: { deskEnabled: boolean; casesEnabled: boole
   return {
     work: [
       ...(flags.deskEnabled ? [{ tab: 'work' as const, label: 'Mesa', icon: 'desk' as const }] : []),
-      ...(flags.casesEnabled ? [{ tab: 'matter' as const, label: 'Casos', icon: 'cases' as const }] : []),
+      // Com a Mesa, os casos vivem nela e "Dados do caso" abre a partir de um caso; sem a Mesa, a tela Casos é o lugar.
+      ...(flags.casesEnabled && !flags.deskEnabled
+        ? [{ tab: 'matter' as const, label: 'Casos', icon: 'cases' as const }]
+        : []),
       { tab: 'research', label: 'Jurisprudência', icon: 'research' },
     ],
     resources: [
@@ -61,11 +64,12 @@ export function connectSections(): AccountSection[] {
 }
 
 /**
- * O item aceso da lateral. Rascunhos e Revisão são a Mesa; as seções da conta acendem Conta; o guia e a API acendem
- * Conectar IA.
+ * O item aceso da lateral. Rascunhos, Revisão e Dados do caso são a Mesa; as seções da conta acendem Conta; o guia e a
+ * API acendem Conectar IA.
  */
-export function highlightedTab(tab: AppTab): AppTab {
+export function highlightedTab(tab: AppTab, deskEnabled = true): AppTab {
   if (tab === 'draft_studio' || tab === 'dashboard') return 'work';
+  if (tab === 'matter' && deskEnabled) return 'work';
   if (tab === 'account_activity' || tab === 'account_security' || tab === 'api_keys') return 'credits';
   if (tab === 'for_lawyers_guide' || tab === 'api_docs') return 'connections';
   return tab;
