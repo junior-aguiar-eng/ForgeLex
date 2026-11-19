@@ -133,7 +133,8 @@ export function EditorialReviewPanel({
       pending.current ||
       generationAttempted ||
       !generation?.enabled ||
-      (generation.mode === 'REAL' && !generationConfirmed)
+      generation.mode !== 'REAL' ||
+      !generationConfirmed
     )
       return;
     const { ticket, signal } = begin();
@@ -364,33 +365,25 @@ export function EditorialReviewPanel({
               onProposal={read}
             />
           )}
-          {generation?.enabled && generation.mode !== 'COMMERCIAL' && !review?.stale && (
+          {generation?.enabled && generation.mode === 'REAL' && !review?.stale && (
             <span className="my-3 block">
-              {generation.mode === 'REAL' && (
-                <label className="mb-2 flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    checked={generationConfirmed}
-                    disabled={busy || uncertain || generationAttempted}
-                    onChange={(event) => setGenerationConfirmed(event.target.checked)}
-                  />
-                  {`Autorizo gerar uma proposta, com custo máximo de US$ ${generation.maxCostUsd.toFixed(2).replace('.', ',')}.`}
-                </label>
-              )}
+              <label className="mb-2 flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={generationConfirmed}
+                  disabled={busy || uncertain || generationAttempted}
+                  onChange={(event) => setGenerationConfirmed(event.target.checked)}
+                />
+                {`Autorizo gerar uma proposta, com custo máximo de US$ ${generation.maxCostUsd.toFixed(2).replace('.', ',')}.`}
+              </label>
               <button
                 type="button"
                 className="min-h-11 text-sm underline"
-                disabled={
-                  busy ||
-                  blocked ||
-                  uncertain ||
-                  generationAttempted ||
-                  (generation.mode === 'REAL' && !generationConfirmed)
-                }
+                disabled={busy || blocked || uncertain || generationAttempted || !generationConfirmed}
                 onClick={() => void generate()}
               >
-                {generation.mode === 'REAL' ? 'Gerar proposta editorial' : 'Gerar proposta de teste'}
+                Gerar proposta editorial
               </button>
               <span className="block text-xs text-stone-600">
                 A proposta será apresentada para revisão; gerar não aplica alterações.

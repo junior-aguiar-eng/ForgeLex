@@ -53,7 +53,7 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 | 1   | Out/2026        | Ensaios residuais do MCP, provas comerciais e fiscais, braces e lacuna STJ (`PENDENCIAS.md`, “Pendências humanas e externas”)                      | Boni  |
 | 2   | E2, 11/11       | ~~Outros usos de API recente sem fallback~~ — **fechada em 18/11** (ver E2)                                                                         | Código |
 | 3   | E3, 12/11       | Ensaio em homologação com chave inválida: log e e-mail do alerta                                                                                  | Boni  |
-| 4   | U1, 12/11       | Remover exemplos e dados de demonstração mortos da interface e das fixtures                                                                       | Código |
+| 4   | U1, 12/11       | ~~Remover exemplos e dados de demonstração mortos~~ — **fechada em 19/11** (ver U1)                                                              | Código |
 | 5   | U3, 12/11       | Entrada em linguagem natural, grande área, tribunal na orientação (muda `GuidanceSnapshot`), chips, peça sem ficha e cliques sem provedor         | Código |
 | 6   | M1, 14/11       | Recusa de renovação do Claude (1 em 33); reserva e mensagem de saldo insuficiente em jornada autenticada                                           | Boni  |
 | 7   | M3, 12–14/11    | Manifesto servido em produção; súmulas do TSE, 1.355 citações sem tribunal, processos e teses; 44 avisos; contradições de teor                     | Boni e código |
@@ -367,7 +367,7 @@ Depende de U0 e da confirmação das flags em produção.
       com os testes correspondentes removidos ou migrados no mesmo commit.
 - [x] Com DEC-11: manter o piloto fechado enquanto servir a testes, isolado fora da Mesa nova (`ClosedPilotPanel` e
       `closed-pilot*.ts` não entram no `DeskShell`).
-- [ ] Remover exemplos e dados de demonstração mortos da interface e das fixtures não usadas.
+- [x] Remover exemplos e dados de demonstração mortos da interface e das fixtures não usadas (19/11/2026, ver [registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#u1--fechamento-dos-itens-mortos-19112026)). Fica o `export` de tipos sem uso externo, que a U0 contou como 9 e que não pude reproduzir sem o `knip`.
 
 **Verificação.** Etapa E completa, mais o relatório de código sem uso de U0 sem item novo. **Aceite.** Uma só Mesa em produção e
 nenhuma rota órfã. **Reversão.** Reverter o commit da área; remoções de dados só depois de uma versão estável.
