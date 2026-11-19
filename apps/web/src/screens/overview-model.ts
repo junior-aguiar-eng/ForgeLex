@@ -73,6 +73,15 @@ export function overviewSteps(input: {
   ];
 }
 
+/**
+ * Se já se sabe o resultado das leituras que definem os passos: a conexão da IA e, com os casos ligados, a lista de casos.
+ * Cada leitura conta quando termina, com resposta ou com falha. Antes disso o estado dos passos seria um palpite (tudo "a
+ * fazer", com o primeiro destacado) que mudaria de destaque quando os dados chegassem; a tela mostra um esqueleto.
+ */
+export function stepsReady(settled: { mcp: boolean; matters: boolean }, casesEnabled: boolean): boolean {
+  return settled.mcp && (!casesEnabled || settled.matters);
+}
+
 export const stepsProgress = (steps: OverviewStep[]) => ({
   done: steps.filter((step) => step.done).length,
   total: steps.length,

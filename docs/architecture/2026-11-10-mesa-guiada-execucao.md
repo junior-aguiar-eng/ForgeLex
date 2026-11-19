@@ -2367,3 +2367,13 @@ Sobre `main` em `10edebc`, na mesma branch das partes 2 e 3. Só `apps/web` e s�
 **Limites.** (1) Quem usa o gelo sem a Mesa (configuração que não é a de produção) continua com o item "Casos" e o título "Dados do caso". (2) "Criar caso" dentro da tela continua existindo, mas o caminho natural é pela Mesa. (3) A tela ainda é a mesma de 904 linhas; reorganizá-la por dentro (por exemplo, dividir em abas) não foi feito e seria outra etapa.
 
 Reversão: reverter o commit; o item "Casos" e o caminho antigo voltam.
+
+### Item 15 resolvido: a intermitência do `shell-gelo.spec.ts:278` tinha causa de produto (19/11/2026)
+
+**Causa, provada.** A Visão decidia o estado dos "Primeiros passos" com dados que chegam depois (conexão da IA e lista de casos), e as leituras que falhavam eram engolidas. Até a resposta, "conectar" e "criar caso" contavam como pendentes e o primeiro era destacado; quando os dados chegavam, o destaque **pulava** para "Abrir a jurisprudência" (`btn-secondary` → `btn-primary`), que tem `transition` de 160 ms. Medido no navegador logo depois do login: o botão aparece `secondary` (fundo branco) a 124 ms, vira `primary` a 165 ms e as cores calculadas atravessam a transição; em 244 ms valem `rgb(58,121,136)` e `rgb(212,222,224)`, **exatamente** o `#3a7988` e `#d4dee0` que o axe acusava (contraste 3,58). O teste lia a página dentro dessa janela, por isso a taxa dependia da velocidade da máquina (4 falhas em 16 na `main` limpa).
+
+**O que não resolveu (e foi desfeito).** Esperar `document.getAnimations()` terminar antes do axe: o botão ainda nem tinha trocado de estilo quando a espera rodava (3 falhas em 24).
+
+**Correção, na origem (e boa para o cliente, não só para o teste).** O estado dos passos só aparece quando se sabe o resultado das leituras que o definem, com resposta **ou com falha** (`stepsReady`, `useOverviewData` com `settled`). Antes disso há um esqueleto do mesmo tamanho (sem pular o layout), "Verificando…" no lugar da contagem e um aviso de estado para leitores de tela. Quem usa a Visão deixa de ver o destaque trocar de lugar depois de a página parecer pronta.
+
+**Verificação.** `stepsReady` com teste (vermelho antes). Cenário E2E novo: com a lista de casos presa, não há "Falta este", "Feito", botões nem contagem; depois de liberar, o estado final aparece, **nada anima** (`document.getAnimations()` vazio) e o botão destacado não muda em 400 ms. **Mutação:** com `stepsKnown` sempre verdadeiro, o cenário falha. O cenário de acessibilidade, que falhava cerca de 1 em 4, passou **32 de 32** repetições com 3 workers (por acaso seria cerca de 0,01% se nada tivesse mudado). Isso não é prova de 0%, mas a causa foi medida e eliminada, não só escondida.

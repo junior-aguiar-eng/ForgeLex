@@ -984,3 +984,45 @@ test('aba Documentos: o caminho da exclusão definitiva abre Dados do caso com o
   await expect(page).toHaveURL(new RegExp(`/app/casos\\?caso=${matter.id}&documentos=trash`));
   await expect(page.getByLabel('Mostrar documentos')).toHaveValue('trash');
 });
+
+test('Visão: os primeiros passos só aparecem quando se sabe o resultado, sem trocar de destaque nem animar depois', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  // Segura a lista de casos, que decide o passo "Criar o primeiro caso", para ver o que o cliente vê enquanto espera.
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(
+    (url) => url.pathname === '/api/v2/matters',
+    async (route) => {
+      await held;
+      await route.continue();
+    },
+  );
+  await login(page, 'passos@forgelex.test');
+  await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso dos passos' } });
+
+  const steps = page.getByRole('region', { name: 'Primeiros passos' });
+  await expect(steps).toBeVisible();
+  // Enquanto espera: sem "Falta este", sem "Feito", sem botões de ação e sem a contagem, só o aviso de que está verificando.
+  await expect(steps.getByText('Verificando…')).toBeVisible();
+  await expect(steps.getByText('Falta este')).toHaveCount(0);
+  await expect(steps.getByText('Feito')).toHaveCount(0);
+  await expect(steps.getByRole('button', { name: /Conectar IA|Criar um caso|Abrir a jurisprudência/ })).toHaveCount(0);
+  await expect(steps.getByText(/de \d+ concluídos/)).toHaveCount(0);
+  await expect(steps.getByRole('status')).toContainText('Verificando seus primeiros passos');
+
+  release();
+  await expect(steps.getByText(/\d de \d concluídos/)).toBeVisible();
+  await expect(steps.getByText('Falta este')).toHaveCount(1);
+  // Depois de aparecer, o estado é o final: nada muda de estilo nem anima (era isso que o axe pegava no meio da troca).
+  const stable = async () => ({
+    primary: await steps.locator('.btn-primary').allTextContents(),
+    animating: await page.evaluate(() => document.getAnimations().length),
+  });
+  const first = await stable();
+  await page.waitForTimeout(400);
+  expect(await stable()).toEqual(first);
+  expect(first.animating).toBe(0);
+  expect(first.primary).toHaveLength(1);
+});

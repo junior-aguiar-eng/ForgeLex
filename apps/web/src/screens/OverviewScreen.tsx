@@ -19,6 +19,7 @@ import {
   matterStatusLabel,
   monthlyUsage,
   overviewSteps,
+  stepsReady,
   overviewSubtitle,
   pendingStep,
   stepsProgress,
@@ -38,6 +39,8 @@ import {
  */
 
 interface OverviewData {
+  /** Quais leituras dos passos já terminaram, com resposta ou com falha. */
+  settled: { mcp: boolean; matters: boolean };
   matters?: MatterSummary[];
   mcp?: McpConnectionStatusResponse;
   activeKeys?: number;
@@ -45,20 +48,25 @@ interface OverviewData {
 }
 
 function useOverviewData(): OverviewData {
-  const [data, setData] = useState<OverviewData>({});
+  const [data, setData] = useState<OverviewData>({ settled: { mcp: false, matters: false } });
   useEffect(() => {
     let active = true;
-    const apply = (patch: OverviewData) => {
+    const apply = (patch: Partial<OverviewData>) => {
       if (active) setData((current) => ({ ...current, ...patch }));
+    };
+    const settle = (source: 'mcp' | 'matters') => {
+      if (active) setData((current) => ({ ...current, settled: { ...current.settled, [source]: true } }));
     };
     if (CASE_WORKSPACE_ENABLED) {
       void requestApi<{ items: MatterSummary[] }>('/api/v2/matters', {}, { sessionOnly: true })
         .then((response) => apply({ matters: response.items }))
-        .catch(() => undefined);
+        .catch(() => undefined)
+        .finally(() => settle('matters'));
     }
     void getMcpConnectionStatus()
       .then((mcp) => apply({ mcp }))
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => settle('mcp'));
     void listApiKeys()
       .then((response) => apply({ activeKeys: response.items.filter((key) => !key.revokedAt).length }))
       .catch(() => undefined);
@@ -111,6 +119,7 @@ export const OverviewScreen: React.FC = () => {
     casesEnabled: CASE_WORKSPACE_ENABLED,
   });
   const progress = stepsProgress(steps);
+  const stepsKnown = stepsReady(data.settled, CASE_WORKSPACE_ENABLED);
   const next = pendingStep(steps);
   const usage = data.transactions ? monthlyUsage(data.transactions, new Date()) : undefined;
   const price = searchCostCents === null ? undefined : formatBRL(searchCostCents);
@@ -140,7 +149,7 @@ export const OverviewScreen: React.FC = () => {
                 Primeiros passos
               </h2>
               <span className="text-[13px] text-muted">
-                {progress.done} de {progress.total} concluídos
+                {stepsKnown ? `${progress.done} de ${progress.total} concluídos` : 'Verificando…'}
               </span>
               <button
                 type="button"
@@ -151,49 +160,72 @@ export const OverviewScreen: React.FC = () => {
                 Ocultar
               </button>
             </div>
-            <div
-              role="progressbar"
-              aria-label="Primeiros passos concluídos"
-              aria-valuemin={0}
-              aria-valuemax={progress.total}
-              aria-valuenow={progress.done}
-              className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-canvas-deep"
-            >
-              <div className="h-1.5 bg-accent" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
-            </div>
-            <ol className="mt-4 grid gap-3 sm:grid-cols-3">
-              {steps.map((step) => {
-                const highlighted = next?.id === step.id;
-                return (
-                  <li
-                    key={step.id}
-                    className={`rounded-xl border p-3.5 ${highlighted ? 'border-accent bg-accent-soft' : 'border-line'}`}
-                  >
-                    {step.done ? (
-                      <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ok">
-                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                        Feito
-                      </span>
-                    ) : (
-                      <span className="text-[13px] font-semibold text-accent-strong">
-                        {highlighted ? 'Falta este' : 'A fazer'}
-                      </span>
-                    )}
-                    <h3 className="mt-1.5 text-sm font-semibold text-ink">{step.title}</h3>
-                    <p className="mt-1 text-[13px] leading-relaxed text-muted">{step.description}</p>
-                    {!step.done && (
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab(step.tab)}
-                        className={`${highlighted ? 'btn-primary' : 'btn-secondary'} mt-3 !min-h-11 !px-4 !text-[13px]`}
-                      >
-                        {step.action}
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
+            {stepsKnown ? (
+              <div
+                role="progressbar"
+                aria-label="Primeiros passos concluídos"
+                aria-valuemin={0}
+                aria-valuemax={progress.total}
+                aria-valuenow={progress.done}
+                className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-canvas-deep"
+              >
+                <div className="h-1.5 bg-accent" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+              </div>
+            ) : (
+              <div aria-hidden="true" className="mt-2.5 h-1.5 rounded-full bg-canvas-deep" />
+            )}
+            {!stepsKnown && (
+              <>
+                <p role="status" className="sr-only">
+                  Verificando seus primeiros passos…
+                </p>
+                <ol aria-hidden="true" className="mt-4 grid gap-3 sm:grid-cols-3" data-first-steps-loading>
+                  {steps.map((step) => (
+                    <li key={step.id} className="rounded-xl border border-line p-3.5">
+                      <span className="block h-4 w-16 rounded bg-canvas-deep" />
+                      <span className="mt-2.5 block h-4 w-3/4 rounded bg-canvas-deep" />
+                      <span className="mt-2 block h-9 w-full rounded bg-canvas-deep" />
+                      <span className="mt-3 block h-11 w-36 rounded-[var(--fl-radius-control)] bg-canvas-deep" />
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+            {stepsKnown && (
+              <ol className="mt-4 grid gap-3 sm:grid-cols-3">
+                {steps.map((step) => {
+                  const highlighted = next?.id === step.id;
+                  return (
+                    <li
+                      key={step.id}
+                      className={`rounded-xl border p-3.5 ${highlighted ? 'border-accent bg-accent-soft' : 'border-line'}`}
+                    >
+                      {step.done ? (
+                        <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ok">
+                          <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                          Feito
+                        </span>
+                      ) : (
+                        <span className="text-[13px] font-semibold text-accent-strong">
+                          {highlighted ? 'Falta este' : 'A fazer'}
+                        </span>
+                      )}
+                      <h3 className="mt-1.5 text-sm font-semibold text-ink">{step.title}</h3>
+                      <p className="mt-1 text-[13px] leading-relaxed text-muted">{step.description}</p>
+                      {!step.done && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab(step.tab)}
+                          className={`${highlighted ? 'btn-primary' : 'btn-secondary'} mt-3 !min-h-11 !px-4 !text-[13px]`}
+                        >
+                          {step.action}
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
           </section>
         )}
 
