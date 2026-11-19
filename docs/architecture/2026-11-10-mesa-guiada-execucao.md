@@ -2212,3 +2212,20 @@ repositório não declara (`browserslist` ausente).
 `docs/superpowers/plans/2026-11-11-forgelex-plano-unificado.md`: estado atualizado para 18/11 (seção 1), nova seção 1A com as
 pendências da mais antiga para a mais recente e quem as executa, E2 marcada, PR-U2 em andamento e S.5 corrigindo o S.4 (o Daybreak
 foi publicado em 16/11; as caixas de S0 a S7 não foram marcadas na época e precisam de conferência).
+
+## U1 · fechamento dos itens mortos (19/11/2026)
+
+Sobre `main` em `6bd76e1`. Só `apps/web`; nada muda para o cliente de hoje (produção usa o modo comercial).
+
+| Item da U0 | O que foi feito |
+| ---------- | --------------- |
+| `ConnectionChecklist.tsx` e `PlatformConnectionCard.tsx` | Removidos. `grep` confirmou que só eles mesmos se referenciavam. |
+| `PRODUCT_TITLE` (`config/research-copy.ts`) | Removida: não tinha nenhum uso, nem interno. |
+| `CANONICAL_ORIGIN`, `SectionHeader`, `responseExamples` | Perdem o `export`; só têm uso interno no próprio arquivo. |
+| “Gerar proposta de teste” (decisão 3 da U0, que dizia “sai na U1” e não tinha sido feita) | `EditorialReviewPanel` só mostra a geração no modo `REAL`; o rótulo de teste e as bifurcações de `REAL` viraram código direto. `generate()` recusa qualquer modo diferente de `REAL`. O tipo mantém `SIMULATED`, que a API ainda devolve; os modos `COMMERCIAL` e `REAL`, a rota e o gerador simulado ficam. Nenhum teste referenciava o rótulo. |
+
+**Não feito.** Os 9 tipos exportados sem uso: sem o `knip` (o `npx knip` foi bloqueado por baixar pacote fora do lockfile), uma busca por `grep` listou 38 tipos exportados sem uso externo, mas incluí-los todos ampliaria a mudança sem a lista aprovada da U0. Ficam como estão.
+
+**Verificação.** `tsc` do web, ESLint e Prettier nos arquivos alterados; Vitest `apps/web` (61 arquivos, 467 testes) e `tests/public-*` aprovados depois do build; `playwright.editorial-review.config.ts` (3 cenários) aprovado. Não rodei a suíte completa, nem as demais configurações Playwright: ficam para a CI do PR.
+
+Reversão: reverter o commit; os dois arquivos removidos voltam pelo Git.

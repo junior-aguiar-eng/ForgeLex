@@ -111,7 +111,7 @@ export function freeDocumentationRequest(endpoint: Endpoint): { path: string; in
   return null;
 }
 
-export const responseExamples = {
+const responseExamples = {
   jurisprudencias: { query: 'juros capitalizados', court: 'STJ', total: 0, results: [] },
   verify_authority: { status: 'NOT_FOUND', checkedAt: '2026-10-02T12:00:00.000Z' },
   get_authority: { status: 'NOT_FOUND', checkedAt: '2026-10-02T12:00:00.000Z' },

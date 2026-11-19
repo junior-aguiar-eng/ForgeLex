@@ -215,7 +215,7 @@ const modelFaq = [
   ...faq.slice(3),
 ] as const;
 
-export function SectionHeader({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
+function SectionHeader({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
   return (
     <div className="max-w-3xl">
       <p className="eyebrow">{eyebrow}</p>
