@@ -315,3 +315,30 @@ test('cancelar o reconhecimento volta ao estado anterior, bloqueia o envio enqua
   // Dá para tentar de novo.
   await expect(recognizeButton(page, 'escaneado-2-paginas.pdf')).toBeVisible();
 });
+
+// Salvar o anexo no caso (U7) só existe no tema gelo: no clássico, mesmo com um caso vinculado, o chip não o oferece.
+test('tema clássico: com um caso vinculado, o anexo não oferece "Salvar no caso"', async ({ page }) => {
+  const matter = await (
+    await page.request.post('http://127.0.0.1:3301/api/v2/matters', {
+      headers: { authorization: 'Bearer phase7-e2e-access-token' },
+      data: { title: 'Caso do clássico' },
+    })
+  ).json();
+  await login(page);
+  await attach(page).setInputFiles({
+    name: 'relato.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Linha um.\nLinha dois.'),
+  });
+  await expect(page.getByRole('list', { name: 'Anexos do pedido' }).getByText('relato.txt')).toBeVisible();
+  await page.getByRole('button', { name: /Vincular a um caso/ }).click();
+  await page
+    .getByRole('region', { name: 'Caso e documentos' })
+    .getByLabel('Caso', { exact: true })
+    .selectOption(matter.id);
+  await expect(page.getByRole('button', { name: 'Caso: Caso do clássico' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Salvar no caso/ })).toHaveCount(0);
+  await expect(page.getByText('Para guardar o texto de um anexo como documento do caso, escolha um caso.')).toHaveCount(
+    0,
+  );
+});

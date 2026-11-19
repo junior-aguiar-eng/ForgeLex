@@ -6,9 +6,11 @@ import { useDeskCaseSlot } from '../desk/desk-case-slot';
 import { Sparkles } from 'lucide-react';
 import { ATTACHMENTS_ENABLED, MATTER_CHIPS_ENABLED } from '../config/site-capabilities';
 import { MatterChips, type MatterChip } from './MatterChips';
-import { AttachButton, AttachmentChips } from './AttachmentChips';
+import { AttachButton, AttachmentChips, type SaveToCase } from './AttachmentChips';
 import { attachmentContext, hasReadingAttachment } from './attachments';
 import { useAttachments } from './use-attachments';
+import { useSaveAttachment } from './use-save-attachment';
+import { activeTheme } from '../theme/active-theme';
 import { requestApi } from '../api-client';
 import type { WorkspaceClient, StartInput } from './client';
 import { reais, type CommercialAuthorization, type CommercialQuote } from './commercial-model';
@@ -80,6 +82,8 @@ export function Composer({
 }) {
   const [objective, setObjective] = useState<string>();
   const attachments = useAttachments();
+  const saveAttachment = useSaveAttachment();
+  const iceTheme = activeTheme() === 'gelo';
   const [matterChips, setMatterChips] = useState<MatterChip[]>([]);
   const chipsOn = MATTER_CHIPS_ENABLED && Boolean(onGuide);
   const reading = ATTACHMENTS_ENABLED && hasReadingAttachment(attachments.items);
@@ -214,6 +218,18 @@ export function Composer({
   // One visible message supplies the written context; existing conversations retain theirs.
   const text = inheritedText || goal;
   const matterTitle = matters.find((m) => m.id === matter)?.title;
+  // Salvar o anexo no caso escolhido (U7): só no tema gelo e só com um caso em uso que a lista de casos conhece.
+  const saveToCase: SaveToCase | undefined =
+    ATTACHMENTS_ENABLED && iceTheme && matter && matterTitle
+      ? {
+          caseTitle: matterTitle,
+          stateOf: (id) => saveAttachment.stateOf(id, matter),
+          onSave: (id) => {
+            const item = attachments.items.find((attachment) => attachment.id === id);
+            if (item) void saveAttachment.save(item, matter);
+          },
+        }
+      : undefined;
   const scopeSummary = [
     matter ? `Caso: ${matterTitle ?? 'selecionado'}` : 'Vincular a um caso',
     selected.length ? `${selected.length} documento${selected.length > 1 ? 's' : ''}` : '',
@@ -425,11 +441,21 @@ export function Composer({
             attachments={attachments.items}
             notice={attachments.notice}
             busy={busy || preparing}
-            onReplace={attachments.replace}
-            onRemove={attachments.remove}
+            onReplace={(id, file) => {
+              saveAttachment.forget(id);
+              attachments.replace(id, file);
+            }}
+            onRemove={(id) => {
+              saveAttachment.forget(id);
+              attachments.remove(id);
+            }}
             onRecognize={(id) => void attachments.recognize(id)}
             onCancelRecognize={attachments.cancelRecognize}
             onEdit={attachments.edit}
+            {...(saveToCase ? { save: saveToCase } : {})}
+            {...(iceTheme && !saveToCase
+              ? { saveHint: 'Para guardar o texto de um anexo como documento do caso, escolha um caso.' }
+              : {})}
           />
         )}
         <div className="flex flex-wrap items-center gap-2">

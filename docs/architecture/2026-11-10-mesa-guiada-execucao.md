@@ -2312,3 +2312,32 @@ Sobre `main` em `10edebc`. Só `apps/web`, só no tema gelo; sem rota nova, sem 
 **Não feito (próximas fatias).** Botão "Salvar no caso" no anexo (com trava contra clique duplo, já que a rota de ingestão não tem chave de idempotência); "Dados do caso", o redirecionamento de `/app/casos` e a saída do item "Casos" da lateral.
 
 Reversão: reverter o commit; a aba some e nada mais muda.
+
+## U7 · casos dentro da Mesa, parte 3: salvar o anexo no caso (19/11/2026)
+
+Sobre `main` em `10edebc`, na mesma branch da parte 2. Só `apps/web` e só no tema gelo (decisão de Boni); sem rota nova, sem migração e sem mudança de contrato. Ele substitui na Mesa a importação de PDF da tela "Casos" (`PdfTextImport`).
+
+**O que foi feito.**
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Botão | No chip do anexo pronto, "Salvar no caso", só no gelo e só com um caso escolhido que a lista de casos em uso conhece. Sem caso, o chip mostra uma dica (“Para guardar o texto de um anexo como documento do caso, escolha um caso.”) e nenhum botão. No clássico, nada muda. |
+| O que grava | `POST /api/v2/matters/:id/documents`, só por sessão: título = nome do arquivo sem extensão (com “(texto reconhecido por OCR)” quando veio de OCR, porque o documento ganha âncoras citáveis e pode ter erros), `originalFilename` = `<arquivo>.txt` (convenção da importação de PDF; `.txt` e `.md` ficam como estão), `mimeType` `text/plain`, só o texto extraído (DEC-12). |
+| Depois de salvar | O chip diz “Salvo no caso “X” como “Y” (N parágrafos)” e avisa que o documento salvo **não muda** se o texto for editado depois. O botão some. Trocar ou remover o anexo apaga o “salvo”; outro caso é outro destino. |
+| Recusa | `saveFailureMessage` traduz os códigos estáveis da S5 (`DOCUMENT_TEXT_TOO_LARGE`, `DOCUMENT_ANCHOR_LIMIT_EXCEEDED`) e `MATTER_NOT_FOUND`; a nova tentativa funciona. |
+
+**Duas travas contra duplicação.** A rota de ingestão não recebe chave de idempotência e cada chamada cria um documento (não achei busca por duplicata pelo hash do conteúdo). Por isso: uma chamada em andamento barra outra igual (`createSingleFlight`) e um anexo já salvo não é salvo de novo. A regra mora em `createSaveController`, sem React, para ser testada.
+
+**Achado na verificação: o E2E sozinho não provava as travas.** Com as duas travas desligadas, o cenário de clique duplo continuou passando, porque o botão desabilitado da própria interface barra o segundo clique depois do redesenho. As travas cobrem a corrida *antes* do redesenho, e isso só os testes unitários provam. Mutação feita: sem a trava de chamada em andamento, 2 testes quebram; sem a de anexo já salvo, 1 quebra; restauradas.
+
+**Verificação.** Vitest do web: 63 arquivos, 484 testes (controlador, trava, construção do documento e mensagens). Playwright: `attachments-gelo` (novo, 2 cenários, com axe: sem caso só a dica; com caso grava uma vez, “não muda depois”, trocar apaga o salvo; recusa em texto e nova tentativa) e `attachments` (10; o novo prova que **no clássico, mesmo com caso vinculado, não há botão nem dica**), `desk-guidance-v3` (11) e `shell-gelo`. O novo spec entra no job `e2e-desk` do CI. Um seletor de teste meu casava com a opção “Escolha um caso” do tema clássico (texto já existente); troquei por uma busca pelo texto completo da dica. `tsc`, ESLint e Prettier limpos nos arquivos alterados.
+
+**Limites.** (1) O texto de OCR que o cliente editou depois de salvar não altera o documento salvo; o aviso diz isso, mas não há “atualizar o documento”. (2) Texto muito grande esbarra nos tetos da S5 (1 MiB, 5.000 linhas com conteúdo), e o cliente é orientado a dividir o arquivo. (3) A aba Documentos só aparece com uma peça aberta, mas o botão do anexo funciona sem peça. (4) Ainda não medi com PDF real de produção; só textos sintéticos.
+
+Reversão: reverter o commit; o botão some e nada mais muda.
+
+### Achado na verificação da parte 3: `shell-gelo.spec.ts:278` já era intermitente (19/11/2026)
+
+Uma execução completa do `shell-gelo` falhou no cenário de acessibilidade da casca nova, que passou isolado. **Não é desta mudança:** repetido na `main` limpa (`git stash`), falhou 4 vezes em 16 com 3 workers. O axe acusa contraste de 2,56 a 3,58 sempre no botão primário “Abrir a jurisprudência” da Visão (`<button class="btn-primary …">`), com cores intermediárias (por exemplo #d4dee0 sobre #3a7988), o que indica leitura no meio de uma troca de cor.
+
+**Hipótese, não provada.** `.btn-primary` tem `transition` de 160 ms (`index.css`), e a ação da Visão pode mudar de estilo quando os dados de “Primeiros passos” chegam, depois de a página já parecer pronta. **Tentativa que não funcionou:** esperar `document.getAnimations()` terminar antes de cada leitura do axe; 3 falhas em 24, sem diferença do que a `main` já tinha. Desfeita; nada foi alterado no spec. Próximo passo: esperar um sinal de que os dados da Visão chegaram (e não só as animações em curso) antes da primeira leitura. Registrado na seção 1A do plano (item 15). O spec roda no `e2e-desk`, que não é check obrigatório.

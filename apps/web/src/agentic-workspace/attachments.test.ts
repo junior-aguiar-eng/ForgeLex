@@ -3,10 +3,12 @@ import {
   ATTACHMENT_MAX_TOTAL_CHARS,
   attachmentChars,
   attachmentContext,
+  attachmentDocumentInput,
   attachmentRoom,
   fitAttachment,
   hasReadingAttachment,
   readAttachment,
+  saveFailureMessage,
   withOcrOffer,
   type Attachment,
 } from './attachments';
@@ -204,5 +206,55 @@ describe('OCR nos anexos (U6)', () => {
     ];
     expect(attachmentRoom(list, 'b')).toBe(ATTACHMENT_MAX_TOTAL_CHARS - 1000);
     expect(attachmentRoom(list, 'a')).toBe(ATTACHMENT_MAX_TOTAL_CHARS - 500);
+  });
+});
+
+describe('attachmentDocumentInput', () => {
+  it('usa o nome sem a extensão como título e guarda só o texto, como texto simples', () => {
+    expect(attachmentDocumentInput(attachment('a', { name: 'relato.txt', text: 'Linha.' }))).toEqual({
+      title: 'relato',
+      originalFilename: 'relato.txt',
+      mimeType: 'text/plain',
+      content: 'Linha.',
+    });
+  });
+
+  it('segue a convenção da importação de PDF (`<arquivo>.txt`) e mantém .txt e .md como estão', () => {
+    expect(attachmentDocumentInput(attachment('a', { name: 'petição inicial.pdf' }))?.originalFilename).toBe(
+      'petição inicial.pdf.txt',
+    );
+    expect(attachmentDocumentInput(attachment('a', { name: 'petição inicial.pdf' }))?.title).toBe('petição inicial');
+    expect(attachmentDocumentInput(attachment('a', { name: 'notas.md' }))?.originalFilename).toBe('notas.md');
+    expect(attachmentDocumentInput(attachment('a', { name: 'sem-extensao' }))?.title).toBe('sem-extensao');
+  });
+
+  it('diz no título quando o texto veio de OCR, porque pode ter erros de leitura', () => {
+    const input = attachmentDocumentInput(attachment('a', { name: 'scan.pdf', ocr: { confidence: 81, pages: 2 } }));
+    expect(input?.title).toBe('scan (texto reconhecido por OCR)');
+  });
+
+  it('respeita os tetos da API para título e nome do arquivo', () => {
+    const input = attachmentDocumentInput(
+      attachment('a', { name: `${'a'.repeat(600)}.pdf`, ocr: { confidence: null, pages: 1 } }),
+    );
+    expect(input!.title.length).toBeLessThanOrEqual(500);
+    expect(input!.title.endsWith(' (texto reconhecido por OCR)')).toBe(true);
+    expect(input!.originalFilename.length).toBeLessThanOrEqual(255);
+  });
+
+  it('não gera documento de anexo que não está pronto ou não tem texto', () => {
+    expect(attachmentDocumentInput(attachment('a', { status: 'reading', text: '' }))).toBeUndefined();
+    expect(attachmentDocumentInput(attachment('a', { status: 'no-text', text: '' }))).toBeUndefined();
+    expect(attachmentDocumentInput(attachment('a', { text: '  \n ' }))).toBeUndefined();
+  });
+});
+
+describe('saveFailureMessage', () => {
+  it('traduz os códigos estáveis da API e cai na mensagem da falha nos demais', () => {
+    expect(saveFailureMessage('DOCUMENT_TEXT_TOO_LARGE', '')).toContain('1 MiB');
+    expect(saveFailureMessage('DOCUMENT_ANCHOR_LIMIT_EXCEEDED', '')).toContain('5.000 linhas');
+    expect(saveFailureMessage('MATTER_NOT_FOUND', '')).toContain('Escolha outro caso');
+    expect(saveFailureMessage('OUTRO', 'Mensagem da API.')).toBe('Mensagem da API.');
+    expect(saveFailureMessage('', '')).toBe('Não foi possível salvar o anexo no caso.');
   });
 });
