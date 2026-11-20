@@ -708,6 +708,30 @@ export function registerAgenticWorkspace(
     }),
   );
   if (caseTask)
+    // Estrutura do caso: qual é a análise de fatos e provas concluída mais recente deste caso. Só indica o caminho; o conteúdo
+    // vem da rota de entregas abaixo, com as mesmas permissões. Vale o trabalho do próprio usuário, no mesmo recorte das conversas.
+    app.get(
+      '/api/agentic/matters/:matterId/structure',
+      { preHandler: [deps.auth.createPreHandler(['research:read', 'matter:read']), session] },
+      handle(async (req, reply) => {
+        reply.header('Cache-Control', 'no-store');
+        const { matterId } = z.object({ matterId: z.string().uuid() }).parse(req.params);
+        const manages = commercial?.canManageExecution ?? pilot?.canManageExecution;
+        const conversations = await required().store.workspace.listRecentConversations(owner(req), 50, false);
+        for (const conversation of conversations) {
+          const execution = conversation.execution;
+          if (conversation.matterId !== matterId || execution.status !== 'COMPLETED') continue;
+          if (manages && !manages(execution)) continue;
+          const deliveryId = execution.deliveryIds.at(-1);
+          if (!deliveryId) continue;
+          const found = await caseTask.native.getDelivery(owner(req), deliveryId);
+          if (found.delivery.action !== 'analyze_evidence') continue;
+          return { structure: { executionId: execution.id, deliveryId, updatedAt: execution.updatedAt } };
+        }
+        return { structure: null };
+      }),
+    );
+  if (caseTask)
     app.get(
       '/api/agentic/deliveries/:id',
       { preHandler: [deps.auth.createPreHandler(['research:read']), session] },
