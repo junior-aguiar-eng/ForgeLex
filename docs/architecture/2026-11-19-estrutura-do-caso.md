@@ -69,3 +69,11 @@ O que falta, e é o que esta frente faz:
 
 Só textos sintéticos nos testes. Sem a aba, nada de dado real é estruturado. Regras de privacidade e consentimento de IA do
 caso permanecem: a análise só roda com o acesso da IA autorizado.
+
+## Estado de execução
+
+**E1 entregue (20/11/2026):** rota `GET /api/agentic/matters/:matterId/structure` (indica a análise de fatos e provas concluída mais recente do
+caso; 3 testes, com mutação) e aba **Estrutura** na peça (gelo), que mostra o resultado com classificação, fontes e pontos a conferir, sem
+formulário e sem botão. Ambiente sem o fluxo de análise (rota ausente) mostra o estado vazio, não erro. **Limite:** o teste de navegador usa as
+duas rotas de leitura simuladas; o encontro real rota + tela só aparece com o fluxo de análise ligado. **Falta:** disparo automático ao salvar
+documento ou colar relato (E1b), decisão pela conversa (E2), estrutura na orientação guiada e na minuta (E3), PDF direto (E4).

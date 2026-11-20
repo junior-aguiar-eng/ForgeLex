@@ -2,11 +2,12 @@ import { createPortal } from 'react-dom';
 import React, { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, Download, History, X } from 'lucide-react';
 
-/** Partes da peça no tema gelo: o texto, as fontes do caso, os documentos do caso e a revisão. */
-export type PieceTab = 'texto' | 'fontes' | 'documentos' | 'revisao';
+/** Partes da peça no tema gelo: o texto, a estrutura do caso, as fontes, os documentos do caso e a revisão. */
+export type PieceTab = 'texto' | 'estrutura' | 'fontes' | 'documentos' | 'revisao';
 
 const PIECE_TABS: { id: PieceTab; label: string }[] = [
   { id: 'texto', label: 'Texto' },
+  { id: 'estrutura', label: 'Estrutura' },
   { id: 'fontes', label: 'Fontes' },
   { id: 'documentos', label: 'Documentos' },
   { id: 'revisao', label: 'Revisão' },
@@ -226,7 +227,7 @@ export function DraftCanvas({
     selected: PieceTab;
     onSelect: (tab: PieceTab) => void;
     enabled: Record<PieceTab, boolean>;
-    panels: { fontes: ReactNode; documentos: ReactNode; revisao: ReactNode };
+    panels: { estrutura: ReactNode; fontes: ReactNode; documentos: ReactNode; revisao: ReactNode };
   };
   history: ReactNode;
   extras?: ReactNode;
