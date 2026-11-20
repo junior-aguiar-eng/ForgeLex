@@ -279,7 +279,7 @@ async function u7Screens(page, { site, api }, size, shoot, post) {
     await page.getByText('Salvo no caso').waitFor();
   });
 
-  // Gerenciador de casos na lixeira: o caminho para a exclusão definitiva.
+  // Gerenciador de casos na lixeira, com a exclusão definitiva dentro da Mesa.
   // Título por tamanho: cada tamanho cria o seu caso no mesmo ambiente, e dois com o mesmo título se confundiriam.
   const trashedTitle = `Caso na lixeira do aceite (${size})`;
   const trashed = await post('/api/v2/matters', { title: trashedTitle });
@@ -290,6 +290,15 @@ async function u7Screens(page, { site, api }, size, shoot, post) {
     const manager = page.getByRole('dialog', { name: 'Gerenciar casos' });
     await manager.getByLabel('Mostrar casos').selectOption('trash');
     await manager.getByRole('button', { name: `Excluir definitivamente: ${trashedTitle}` }).waitFor();
+  });
+  // A confirmação da exclusão definitiva, dentro da Mesa: pede o nome do caso e só então libera o botão.
+  await shoot(screenName(size, '/dados/excluir-de-vez'), async () => {
+    await page.goto(`${site}/app/trabalho`, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Gerenciar casos', exact: true }).click();
+    const manager = page.getByRole('dialog', { name: 'Gerenciar casos' });
+    await manager.getByLabel('Mostrar casos').selectOption('trash');
+    await manager.getByRole('button', { name: `Excluir definitivamente: ${trashedTitle}` }).click();
+    await page.getByRole('dialog', { name: /Excluir definitivamente caso/ }).waitFor();
   });
 
   // A Visão enquanto os dados dos primeiros passos não chegaram: um esqueleto, sem destaque que depois troque de lugar.

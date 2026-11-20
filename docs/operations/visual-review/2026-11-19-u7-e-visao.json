@@ -1,6 +1,6 @@
 {
   "titulo": "Aceite visual — U7 (casos dentro da Mesa) e Visão, tema gelo",
-  "subtitulo": "19/11/2026 · desktop e celular · dados sintéticos · só o que mudou desde o aceite A19",
+  "subtitulo": "só o que mudou desde o aceite A19; depois da trava de produto (Mesa única, sem “Dados do caso”)",
   "telas": [
     {
       "id": "visao",
@@ -23,11 +23,11 @@
     },
     {
       "id": "seletor",
-      "titulo": "Mesa: seletor de caso com “Dados do caso”",
+      "titulo": "Mesa: seletor de caso, sem “Dados do caso”",
       "capturas": ["dados_mesa-com-peca"],
       "olhar": [
-        "No cabeçalho da Mesa, com um caso escolhido, aparece o botão “Dados do caso” ao lado de “Gerenciar casos”.",
-        "O caminho para a tela do caso está onde o cliente já está, sem procurar no menu?"
+        "No cabeçalho da Mesa há só o seletor de caso, “Novo caso” e “Gerenciar casos”. Não existe botão “Dados do caso”.",
+        "O cabeçalho está limpo? Há algum botão que a conversa poderia substituir?"
       ]
     },
     {
@@ -35,8 +35,8 @@
       "titulo": "Mesa: aba Documentos da peça",
       "capturas": ["dados_mesa-aba-documentos"],
       "olhar": [
-        "A aba Documentos fica entre Fontes e Revisão e lista os documentos do caso, cada um com o nome do arquivo e a situação.",
-        "Cada documento oferece Abrir, Arquivar e Mover para a lixeira. A exclusão definitiva não aparece aqui; há um botão “Dados do caso” para ela.",
+        "A aba Documentos fica entre Fontes e Revisão e lista os documentos do caso, com o nome do arquivo e a situação.",
+        "Cada documento oferece Abrir, Arquivar e Mover para a lixeira; na lixeira, Restaurar e Excluir definitivamente. Não há mais remetente para outra tela.",
         "O filtro “Mostrar documentos” (Em uso, Arquivados, Lixeira) está claro?"
       ]
     },
@@ -52,21 +52,12 @@
     },
     {
       "id": "lixeira",
-      "titulo": "Gerenciar casos: caso na lixeira",
-      "capturas": ["dados_gerenciar-casos-lixeira"],
+      "titulo": "Gerenciar casos: lixeira e exclusão definitiva",
+      "capturas": ["dados_gerenciar-casos-lixeira", "dados_excluir-de-vez"],
       "olhar": [
-        "Na lixeira, o caso tem Restaurar e “Excluir definitivamente…” (em vermelho), que abre Dados do caso já na lixeira.",
-        "O texto no pé do diálogo explica o caminho para excluir de vez?"
-      ]
-    },
-    {
-      "id": "dados",
-      "titulo": "Dados do caso",
-      "capturas": ["dados_casos-com-caso"],
-      "olhar": [
-        "O título é “Dados do caso”, com o subtítulo do que a tela guarda e o botão “← Voltar à Mesa”.",
-        "Na lateral, o item Mesa continua aceso: o cliente sabe que ainda está no trabalho dele.",
-        "Fatos, provas, linha do tempo, questões e memorando continuam como estavam. Esta tela não foi redesenhada por dentro."
+        "Na lixeira, o caso tem Restaurar e “Excluir definitivamente” (em vermelho), tudo dentro do próprio gerenciador.",
+        "O diálogo não tem mais texto mandando para outra tela.",
+        "Segunda imagem: a confirmação pede o nome do caso; o botão só libera quando o nome confere. Está claro o que será apagado?"
       ]
     }
   ]
