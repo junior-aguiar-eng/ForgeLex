@@ -20,16 +20,21 @@ prova, linha do tempo, questão e memorando preenchidos à mão).
 - Já existe a ação `analyze_evidence` (papel `matter-analyst`) no fluxo agêntico da Mesa, com cobrança por trabalho em créditos. É o lugar
   natural do novo agente.
 
-## Decisão de arquitetura (recomendação, a confirmar por Boni)
+## Decisão de arquitetura (corrigida em 20/11/2026, depois de ler o fluxo agêntico)
 
-Criar a ação **`structure_case`** no fluxo agêntico da Mesa, para o ForgeLex mesmo dissecar o caso, sem exigir IA externa:
-1. Entrada: texto colado ou documentos salvos no caso (cada trecho já tem âncora).
-2. O agente propõe partes, pedido, fatos, linha do tempo, provas, questões e lacunas.
-3. **Trava anti-invenção:** todo fato e toda data precisam citar uma âncora e um trecho que exista *literalmente* no documento; o que não
-   passar nessa conferência é descartado antes de aparecer. Sem âncora, o item não entra.
-4. O resultado vira proposta de análise do caso (mesmo repositório e mesma conferência já existentes), exibida na aba "Estrutura".
-5. Custo e consentimento seguem o fluxo da Mesa: orçamento por trabalho e acesso da IA ao caso autorizado.
-A IA própria do cliente (MCP) continua podendo enviar análises ao mesmo lugar.
+**Não se cria um agente novo.** O fluxo agêntico da Mesa já tem a ação `analyze_evidence` ("Analisar fatos e provas", papel `matter-analyst`,
+conferida por `adversarial-reviewer`), que emite: questões, afirmações classificadas (alegação, dado extraído, inferência), matriz de
+prova com **trecho literal e posição UTF-16 conferidos contra a fonte** (`quoteStatus: MATCHED`), cronologia, contradições e lacunas. A Mesa
+já mostra isso no resultado da conversa, e existe fluxo de aprovação (`evidence-review`, `approved-case-context`) que leva o que o usuário
+confere para o contexto aprovado do caso. A trava contra invenção que eu propunha já existe ali.
+
+O que falta, e é o que esta frente faz:
+1. **Persistência na vista do caso:** hoje o resultado só aparece dentro da conversa que o gerou. A aba "Estrutura" mostra o resultado
+   vigente do caso (a última análise concluída e o que já foi aprovado), sem precisar procurar a conversa.
+2. **Disparo sem botão:** o usuário cola o relato ou salva o PDF no caso e a análise é proposta sozinha (hoje depende de escolher "Analisar
+   fatos e provas" no seletor ou de o modo Automático acertar). Verificar o que o modo Automático faz com um relato colado.
+3. **Decisão pela conversa:** aprovar, corrigir ou descartar itens no compositor ("o fato 3 foi em 2021"), usando o fluxo de aprovação existente.
+4. **IA própria do cliente (MCP):** continua enviando análises ao repositório de análises; a aba as exibe junto.
 
 ## Desenho
 
@@ -54,7 +59,8 @@ A IA própria do cliente (MCP) continua podendo enviar análises ao mesmo lugar.
 
 - **E1 (corrige a regressão do gelo):** aba "Estrutura" que lê o que a API já guarda e as propostas de análise pendentes (da IA do
   cliente), com os itens que têm âncora já aceitos por padrão e o resto "a confirmar". Só leitura, mais decisão pela conversa.
-- **E1b:** o agente `structure_case` (acima), com a conferência literal de trechos. É a fatia que cumpre o pedido de dissecar o caso.
+- **E1b (substitui o `structure_case` proposto antes):** disparo automático da análise existente ao salvar documento no caso ou colar um relato, e
+  estrutura persistente do caso a partir da análise vigente. Não cria agente novo.
 - **E2:** correção por conversa (comandos sobre itens: alterar, remover, acrescentar) e resumo do caso.
 - **E3:** estrutura confirmada entrando na orientação guiada e na minuta; lacunas viram perguntas.
 - **E4:** PDF direto (identificar a peça e extrair partes e datas pela leitura do PDF, item U5 pendente).
