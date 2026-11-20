@@ -396,7 +396,7 @@ export function Composer({
       {pendingQuestion && !descriptionOpen && (goal || !guidanceState?.question?.allowFreeText) && (
         <button
           type="button"
-          className="min-h-11 rounded-lg px-2 text-sm font-medium text-cognac-800 hover:bg-ivory-100"
+          className="min-h-11 lg:min-h-9 rounded-lg px-2 text-sm lg:text-[13px] font-medium text-cognac-800 hover:bg-ivory-100"
           onClick={() => {
             setDescriptionOpen(true);
             requestAnimationFrame(() => inputRef.current?.focus());
@@ -465,7 +465,7 @@ export function Composer({
           {!guided && !followUp && (
             <select
               aria-label="Opção do pedido"
-              className="min-h-11 w-auto max-w-full shrink-0 rounded-full border border-champagne-border bg-white py-2 pl-3 pr-8 text-sm font-medium text-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
+              className="min-h-11 lg:min-h-9 w-auto max-w-full shrink-0 rounded-full border border-champagne-border bg-white py-2 pl-3 pr-8 text-sm lg:text-[13px] font-medium text-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
               value={action ?? ''}
               disabled={busy}
               onChange={(event) => setAction(actions.find((item) => item.id === event.target.value)?.id)}
@@ -482,7 +482,7 @@ export function Composer({
             <button
               type="button"
               aria-expanded={scopeOpen}
-              className="inline-flex min-h-11 min-w-0 max-w-full items-center rounded-full bg-champagne-light px-3 text-sm text-cognac-900"
+              className="inline-flex min-h-11 lg:min-h-9 min-w-0 max-w-full items-center rounded-full bg-champagne-light px-3 text-sm lg:text-[13px] text-cognac-900"
               title={scopeSummary}
               onClick={() => setScopeOpen((open) => !open)}
             >
@@ -493,7 +493,7 @@ export function Composer({
             <button
               type="button"
               disabled={busy || preparing || guidanceBusy || piecePending}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-medium text-cognac-800 hover:bg-ivory-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-700"
+              className="inline-flex min-h-11 lg:min-h-9 items-center gap-2 rounded-full px-3 text-sm lg:text-[13px] font-medium text-cognac-800 hover:bg-ivory-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-700"
               onClick={() => {
                 startFromComposer.current = true;
                 const selectedMatter = piece ? piece.matterId : matter;
@@ -510,7 +510,7 @@ export function Composer({
           {(!guided || canSendGuide) && (
             <button
               type="button"
-              className="btn-primary ml-auto min-h-11 rounded-full disabled:cursor-default disabled:opacity-50"
+              className="btn-primary ml-auto min-h-11 lg:min-h-9 rounded-full disabled:cursor-default disabled:opacity-50"
               disabled={
                 busy ||
                 preparing ||

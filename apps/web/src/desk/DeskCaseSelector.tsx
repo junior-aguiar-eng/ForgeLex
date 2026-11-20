@@ -1,3 +1,4 @@
+import { FolderCog, FolderPlus } from 'lucide-react';
 import { useId, useState } from 'react';
 import { requestApi } from '../api-client';
 import { caseNameFrom } from './case-name';
@@ -65,15 +66,15 @@ export function DeskCaseSelector({
 
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" data-desk-case>
-      <label className="flex min-w-0 items-center gap-2 text-sm text-muted">
-        <span className="shrink-0 font-medium text-ink-soft">Caso</span>
+      <label className="flex min-w-0 items-center gap-2 text-[13px] text-muted">
+        <span className="sr-only">Caso</span>
         <select
           aria-label="Caso"
           aria-describedby={locked ? hintId : undefined}
           disabled={disabled || locked}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-h-9 min-w-0 max-w-[16rem] rounded-[var(--fl-radius-control)] border border-line-control bg-surface px-2 text-sm font-normal text-ink disabled:opacity-70"
+          className="min-h-8 min-w-0 max-w-[14rem] rounded-[var(--fl-radius-control)] border border-line-control bg-surface px-2 text-[13px] font-normal text-ink disabled:opacity-70"
         >
           <option value="">Sem caso — somente texto</option>
           {cases.map((item) => (
@@ -84,7 +85,7 @@ export function DeskCaseSelector({
         </select>
       </label>
       {locked && (
-        <span id={hintId} className="text-xs text-subtle">
+        <span id={hintId} className="text-[11px] text-subtle">
           {lockedReason}
         </span>
       )}
@@ -96,9 +97,11 @@ export function DeskCaseSelector({
             setName(caseNameFrom(suggestedName));
             setCreating(true);
           }}
-          className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
+          aria-label="Criar caso a partir desta conversa"
+          title="Criar caso a partir desta conversa"
+          className="grid size-8 place-items-center rounded-[var(--fl-radius-control)] text-accent hover:bg-canvas-deep disabled:opacity-50"
         >
-          Criar caso a partir desta conversa
+          <FolderPlus size={16} aria-hidden="true" />
         </button>
       )}
       {!locked && creating && (
@@ -154,9 +157,11 @@ export function DeskCaseSelector({
         type="button"
         disabled={disabled}
         onClick={() => setManaging(true)}
-        className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
+        aria-label="Gerenciar casos"
+        title="Gerenciar casos"
+        className="grid size-8 place-items-center rounded-[var(--fl-radius-control)] text-muted hover:bg-canvas-deep disabled:opacity-50"
       >
-        Gerenciar casos
+        <FolderCog size={16} aria-hidden="true" />
       </button>
       {managing && (
         <DeskCaseManager
