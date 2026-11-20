@@ -191,3 +191,49 @@ export function withOcrOffer(result: AttachmentResult, file: File, enabled: bool
 export function attachmentRoom(attachments: readonly Attachment[], id: string): number {
   return ATTACHMENT_MAX_TOTAL_CHARS - attachmentChars(attachments.filter((attachment) => attachment.id !== id));
 }
+
+/** Limites da API para título e nome do arquivo de um documento do caso. */
+const DOCUMENT_TITLE_MAX = 500;
+const DOCUMENT_FILENAME_MAX = 255;
+
+/** Documento do caso feito a partir de um anexo: só o texto extraído, como no pedido (DEC-12). */
+export interface CaseDocumentInput {
+  title: string;
+  originalFilename: string;
+  mimeType: string;
+  content: string;
+}
+
+/**
+ * O que a rota de ingestão recebe quando o cliente salva o anexo no caso. O título é o nome do arquivo sem a extensão e,
+ * quando o texto veio de OCR, diz isso, porque o documento ganha âncoras citáveis e pode ter erros de leitura. O nome do
+ * arquivo segue a convenção da importação de PDF da tela "Casos" (`<arquivo>.txt`). Anexo que não está pronto ou sem texto
+ * não gera documento.
+ */
+export function attachmentDocumentInput(attachment: Attachment): CaseDocumentInput | undefined {
+  if (attachment.status !== 'done' || !attachment.text.trim()) return undefined;
+  const name = attachment.name.trim();
+  const base = name.replace(/\.[^./\\]{1,5}$/, '').trim() || name || 'Anexo';
+  const suffix = attachment.ocr ? ' (texto reconhecido por OCR)' : '';
+  const filename = /\.(txt|md)$/i.test(name) ? name : `${name || 'anexo'}.txt`;
+  return {
+    title: `${base.slice(0, DOCUMENT_TITLE_MAX - suffix.length)}${suffix}`,
+    originalFilename: filename.slice(0, DOCUMENT_FILENAME_MAX),
+    mimeType: 'text/plain',
+    content: attachment.text,
+  };
+}
+
+/** Texto para o cliente quando a API recusa o documento, pelo código estável; sem código conhecido, a mensagem da API. */
+export function saveFailureMessage(code: string, fallback: string): string {
+  switch (code) {
+    case 'DOCUMENT_TEXT_TOO_LARGE':
+      return 'O texto passa de 1 MiB e não cabe num documento do caso. Divida o arquivo e salve as partes.';
+    case 'DOCUMENT_ANCHOR_LIMIT_EXCEEDED':
+      return 'O texto tem mais de 5.000 linhas com conteúdo e não cabe num documento do caso. Divida o arquivo ou junte linhas curtas.';
+    case 'MATTER_NOT_FOUND':
+      return 'O caso não está mais disponível. Escolha outro caso.';
+    default:
+      return fallback || 'Não foi possível salvar o anexo no caso.';
+  }
+}

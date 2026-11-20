@@ -24,7 +24,6 @@ test('o tema gelo está ligado e a lateral tem a marca, Trabalho e Conta e recur
   await expect(aside.getByRole('button', { name: 'ForgeLex, ir para o início' })).toBeVisible();
   await expect(aside.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button')).toHaveText([
     'Mesa',
-    'Casos',
     'Jurisprudência',
   ]);
   await expect(aside.getByRole('navigation', { name: 'Conta e recursos' }).getByRole('button')).toHaveText([
@@ -92,13 +91,13 @@ test('na Mesa a lateral fica aberta com as conversas recentes dentro dela, e o c
   await toggle('Recolher menu lateral').click();
   await expect(toggle('Expandir menu lateral')).toHaveAttribute('aria-expanded', 'false');
   expect((await aside.boundingBox())!.width).toBeLessThan(100);
-  await expect(aside.getByRole('button', { name: 'Casos', exact: true })).toBeVisible();
+  await expect(aside.getByRole('button', { name: 'Jurisprudência', exact: true })).toBeVisible();
   await expect(aside.getByRole('button', { name: 'Sair da conta' })).toBeVisible();
   await expect(history).toHaveCount(0);
 
   // A escolha do cliente vale também fora da Mesa.
-  await aside.getByRole('button', { name: 'Casos', exact: true }).click();
-  await expect(page).toHaveURL(/\/app\/casos/);
+  await aside.getByRole('button', { name: 'Jurisprudência', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/pesquisa/);
   await expect(toggle('Expandir menu lateral')).toBeVisible();
 });
 
@@ -270,8 +269,8 @@ test('celular: a gaveta tem os mesmos itens, Escape fecha e devolve o foco, esco
   await expect(page.getByRole('button', { name: 'Abrir menu lateral' })).toBeFocused();
 
   await toggle.click();
-  await aside.getByRole('button', { name: 'Casos', exact: true }).click();
-  await expect(page).toHaveURL(/\/app\/casos/);
+  await aside.getByRole('button', { name: 'Jurisprudência', exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/pesquisa/);
   await expect(aside).toBeHidden();
 });
 
@@ -329,7 +328,7 @@ async function openSavedPiece(page: Page) {
   return { piece, text };
 }
 
-test('peça salva: abas Texto, Fontes e Revisão, sem os diálogos antigos, e o texto digitado não se perde', async ({
+test('peça salva: abas Texto, Fontes, Documentos e Revisão, sem os diálogos antigos, e o texto digitado não se perde', async ({
   page,
 }) => {
   const { piece, text } = await openSavedPiece(page);
@@ -338,6 +337,7 @@ test('peça salva: abas Texto, Fontes e Revisão, sem os diálogos antigos, e o 
 
   await expect(tab('Texto')).toHaveAttribute('aria-selected', 'true');
   await expect(tab('Fontes')).toBeEnabled();
+  await expect(tab('Documentos')).toBeEnabled();
   await expect(tab('Revisão')).toBeEnabled();
   // Os botões que abriam diálogos saíram do cabeçalho.
   await expect(piece.getByRole('button', { name: 'Fontes do caso', exact: true })).toHaveCount(0);
@@ -379,6 +379,7 @@ test('abas da peça: setas e Home/End trocam de aba, e peça sem caso não tem r
   const fresh = page.getByRole('region', { name: 'Mesa da peça' }).getByRole('tablist', { name: 'Partes da peça' });
   await expect(fresh.getByRole('tab', { name: 'Texto', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(fresh.getByRole('tab', { name: 'Fontes', exact: true })).toBeEnabled();
+  await expect(fresh.getByRole('tab', { name: 'Documentos', exact: true })).toBeDisabled();
   await expect(fresh.getByRole('tab', { name: 'Revisão', exact: true })).toBeDisabled();
 });
 
@@ -408,10 +409,10 @@ test('peça sem caso: a aba Fontes explica e cria o caso só com o nome, e a pe�
   expect(created.description ?? null).toBeNull();
 });
 
-test('acessibilidade das abas da peça: Texto, Fontes e Revisão, sem violação', async ({ page }) => {
+test('acessibilidade das abas da peça: Texto, Fontes, Documentos e Revisão, sem violação', async ({ page }) => {
   const { piece } = await openSavedPiece(page);
   const tabs = piece.getByRole('tablist', { name: 'Partes da peça' });
-  for (const name of ['Texto', 'Fontes', 'Revisão']) {
+  for (const name of ['Texto', 'Fontes', 'Documentos', 'Revisão']) {
     await tabs.getByRole('tab', { name, exact: true }).click();
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     expect(
@@ -725,4 +726,255 @@ test('Mesa: gerenciar casos renomeia, arquiva e restaura, e o seletor acompanha'
   await expect(selector.locator('option', { hasText: 'Caso renomeado pela Mesa' })).toHaveCount(1);
   // O texto do pedido e a página seguem onde estavam: nada recarregou.
   await expect(page.getByLabel('O que você precisa fazer?', { exact: true })).toBeVisible();
+});
+
+// Documentos do caso dentro da Mesa (U7): a aba lista, arquiva, restaura e abre, sem a exclusão definitiva.
+test('Mesa: a aba Documentos lista os documentos do caso, arquiva e restaura com confirmação e abre o documento', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'documentos@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso dos documentos' } })
+  ).json();
+  for (const [title, originalFilename, content] of [
+    ['Petição inicial', 'peticao.txt', 'O autor alega o descumprimento do contrato.'],
+    ['Contrato de locação', 'contrato.txt', 'As partes ajustaram o prazo de trinta meses.'],
+  ]) {
+    const response = await page.request.post(`${api}/api/v2/matters/${matter.id}/documents`, {
+      headers: apiHeaders,
+      data: { title, originalFilename, mimeType: 'text/plain', content },
+    });
+    expect(response.ok()).toBe(true);
+  }
+  const { draft, version } = await (
+    await page.request.post(`${api}/api/v2/matters/${matter.id}/drafts`, {
+      headers: apiHeaders,
+      data: { title: 'Peça dos documentos', sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto salvo.' }] },
+    })
+  ).json();
+  await page.goto(
+    `/app/trabalho?${new URLSearchParams({ matterId: matter.id, draftId: draft.id, versionId: version.id })}`,
+  );
+  const piece = page.getByRole('region', { name: 'Mesa da peça' });
+  await expect(piece.getByLabel('Texto da seção 1', { exact: true })).toHaveValue('Texto salvo.');
+
+  await piece
+    .getByRole('tablist', { name: 'Partes da peça' })
+    .getByRole('tab', { name: 'Documentos', exact: true })
+    .click();
+  const panel = piece.getByRole('tabpanel', { name: 'Documentos' });
+  await expect(panel.getByRole('heading', { name: 'Documentos do caso' })).toBeVisible();
+  await expect(panel.getByText('Petição inicial')).toBeVisible();
+  await expect(panel.getByText('Contrato de locação')).toBeVisible();
+  await expect(panel).toContainText('peticao.txt · Disponível');
+  // A exclusão definitiva não é oferecida aqui.
+  await expect(panel.getByRole('button', { name: /Excluir definitivamente/ })).toHaveCount(0);
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // Arquivar, com a confirmação que diz o efeito sobre a IA; o documento sai da lista em uso.
+  await panel.getByRole('button', { name: 'Arquivar: Petição inicial' }).click();
+  const confirm = page.getByRole('dialog', { name: /Arquivar documento/ });
+  await expect(confirm).toContainText('O acesso pela IA será encerrado');
+  await confirm.getByRole('button', { name: 'Arquivar', exact: true }).click();
+  await expect(panel.getByRole('status').filter({ hasText: 'Documento arquivado' })).toBeVisible();
+  await expect(panel.getByText('Petição inicial')).toHaveCount(0);
+  await expect(panel.getByText('Contrato de locação')).toBeVisible();
+
+  // Em "Arquivados" aparece, e restaurar o devolve à lista em uso.
+  await panel.getByLabel('Mostrar documentos').selectOption('archived');
+  await expect(panel.getByText('Petição inicial')).toBeVisible();
+  await expect(panel).toContainText('peticao.txt · Arquivado');
+  await panel.getByRole('button', { name: 'Restaurar: Petição inicial' }).click();
+  await page
+    .getByRole('dialog', { name: /Restaurar documento/ })
+    .getByRole('button', { name: 'Restaurar', exact: true })
+    .click();
+  await expect(panel.getByRole('status').filter({ hasText: 'Documento restaurado' })).toContainText(
+    'O acesso pela IA precisa de nova autorização',
+  );
+  await panel.getByLabel('Mostrar documentos').selectOption('active');
+  await expect(panel.getByText('Petição inicial')).toBeVisible();
+
+  // Abrir o documento usa o leitor que a peça já tem.
+  await panel.getByRole('button', { name: 'Abrir documento: Contrato de locação' }).click();
+  await expect(page.getByRole('dialog').filter({ hasText: 'trinta meses' })).toBeVisible();
+});
+
+test('Mesa: depois de arquivar um documento a lista segue à vista enquanto recarrega, com o aviso da operação', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'recarga@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso da recarga' } })
+  ).json();
+  for (const [title, originalFilename, content] of [
+    ['Documento um', 'um.txt', 'Primeiro texto.'],
+    ['Documento dois', 'dois.txt', 'Segundo texto.'],
+  ]) {
+    const response = await page.request.post(`${api}/api/v2/matters/${matter.id}/documents`, {
+      headers: apiHeaders,
+      data: { title, originalFilename, mimeType: 'text/plain', content },
+    });
+    expect(response.ok()).toBe(true);
+  }
+  const { draft, version } = await (
+    await page.request.post(`${api}/api/v2/matters/${matter.id}/drafts`, {
+      headers: apiHeaders,
+      data: { title: 'Peça da recarga', sections: [{ ordinal: 0, title: 'Fatos', content: 'Texto salvo.' }] },
+    })
+  ).json();
+  await page.goto(
+    `/app/trabalho?${new URLSearchParams({ matterId: matter.id, draftId: draft.id, versionId: version.id })}`,
+  );
+  const piece = page.getByRole('region', { name: 'Mesa da peça' });
+  await expect(piece.getByLabel('Texto da seção 1', { exact: true })).toHaveValue('Texto salvo.');
+  await piece
+    .getByRole('tablist', { name: 'Partes da peça' })
+    .getByRole('tab', { name: 'Documentos', exact: true })
+    .click();
+  const panel = piece.getByRole('tabpanel', { name: 'Documentos' });
+  await expect(panel.getByText('Documento um')).toBeVisible();
+
+  // Segura a recarga que vem depois da operação, para observar o que o cliente vê enquanto ela não termina.
+  let hold = false;
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  await page.route(/\/api\/v2\/matters\/[^/?]+\?view=/, async (route) => {
+    if (hold) await gate;
+    await route.continue();
+  });
+  await panel.getByRole('button', { name: 'Arquivar: Documento um' }).click();
+  hold = true;
+  await page
+    .getByRole('dialog', { name: /Arquivar documento/ })
+    .getByRole('button', { name: 'Arquivar', exact: true })
+    .click();
+  await expect(panel.getByText('Documento arquivado para consulta.')).toBeVisible();
+  // Enquanto recarrega, a lista continua à vista e há um só aviso de estado.
+  await expect(panel.getByText('Documento dois')).toBeVisible();
+  await expect(panel.getByText('Carregando documentos…')).toHaveCount(0);
+  await expect(panel.getByRole('status')).toHaveCount(1);
+  release();
+  await expect(panel.getByText('Documento um')).toHaveCount(0);
+  await expect(panel.getByText('Documento dois')).toBeVisible();
+});
+
+// TRAVA DE PRODUTO (AGENTS.md): não existe tela "Dados do caso". Tudo vive na Mesa; a exclusão definitiva fica no gerenciador.
+const trashed = async (page: Page, title: string) => {
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title } })
+  ).json();
+  const response = await page.request.post(`${api}/api/v2/matters/${matter.id}/trash`, {
+    headers: apiHeaders,
+    data: { expectedLifecycleRevision: 0 },
+  });
+  expect(response.ok()).toBe(true);
+  return matter as { id: string };
+};
+
+test('não há "Dados do caso": /app/casos, com ou sem caso, abre a Mesa, e a lateral não tem "Casos"', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'dadosdocaso@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso dos dados' } })
+  ).json();
+  const aside = sidebar(page);
+  for (const url of ['/app/casos', `/app/casos?caso=${matter.id}`]) {
+    await page.goto(url);
+    await expect(page).toHaveURL(/\/app\/trabalho$/);
+    await expect(page.getByRole('heading', { name: 'O que você precisa fazer hoje?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dados do caso' })).toHaveCount(0);
+    await expect(aside.getByRole('button', { name: 'Casos', exact: true })).toHaveCount(0);
+  }
+});
+
+test('Mesa: nenhum botão "Dados do caso", nem com o caso escolhido nem na aba Documentos', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'entradadados@forgelex.test');
+  const matter = await (
+    await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso da entrada' } })
+  ).json();
+  await page.goto('/app/trabalho');
+  const header = page.locator('[data-writing-desk] > header');
+  await header.getByLabel('Caso', { exact: true }).selectOption(matter.id);
+  await expect(header.getByRole('button', { name: 'Gerenciar casos', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Dados do caso/ })).toHaveCount(0);
+});
+
+test('Mesa: caso na lixeira é excluído de vez no próprio gerenciador, pedindo o nome do caso', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, 'lixeiradados@forgelex.test');
+  // Título único: os casos de outros testes (e de repetições) vivem no mesmo tenant e não podem se confundir com este.
+  const title = `Caso para excluir de vez ${Date.now()}`;
+  const matter = await trashed(page, title);
+  await page.goto('/app/trabalho');
+  const header = page.locator('[data-writing-desk] > header');
+  await header.getByRole('button', { name: 'Gerenciar casos', exact: true }).click();
+  const manager = page.getByRole('dialog', { name: 'Gerenciar casos' });
+  await manager.getByLabel('Mostrar casos').selectOption('trash');
+  await expect(manager.getByRole('button', { name: `Restaurar: ${title}` })).toBeVisible();
+  await manager.getByRole('button', { name: `Excluir definitivamente: ${title}` }).click();
+
+  // Sem o nome, o botão de confirmar não libera; nada é excluído ao abrir o diálogo.
+  const confirm = page.getByRole('dialog', { name: /Excluir definitivamente caso/ });
+  const submit = confirm.getByRole('button', { name: 'Excluir definitivamente', exact: true });
+  await expect(submit).toBeDisabled();
+  const still = await (await page.request.get(`${api}/api/v2/matters?view=trash`, { headers: apiHeaders })).json();
+  expect(still.items.some((item: { id: string }) => item.id === matter.id)).toBe(true);
+
+  await confirm.getByLabel('Digite o nome do caso para confirmar').fill(title);
+  await expect(submit).toBeEnabled();
+  // Este ambiente não habilita a exclusão definitiva no servidor (a resposta é "indisponível"): o que a Mesa garante é
+  // pedir com o nome do caso e mostrar a resposta sem sair do gerenciador.
+  const sent = page.waitForRequest((request) => request.url().endsWith(`/api/v2/matters/${matter.id}/purge`));
+  await submit.click();
+  expect(JSON.parse((await sent).postData() ?? '{}').confirmation).toBe(title);
+  await expect(confirm.getByRole('alert')).toBeVisible();
+});
+
+test('Visão: os primeiros passos só aparecem quando se sabe o resultado, sem trocar de destaque nem animar depois', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  // Segura a lista de casos, que decide o passo "Criar o primeiro caso", para ver o que o cliente vê enquanto espera.
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(
+    (url) => url.pathname === '/api/v2/matters',
+    async (route) => {
+      await held;
+      await route.continue();
+    },
+  );
+  await login(page, 'passos@forgelex.test');
+  await page.request.post(api + '/api/v2/matters', { headers: apiHeaders, data: { title: 'Caso dos passos' } });
+
+  const steps = page.getByRole('region', { name: 'Primeiros passos' });
+  await expect(steps).toBeVisible();
+  // Enquanto espera: sem "Falta este", sem "Feito", sem botões de ação e sem a contagem, só o aviso de que está verificando.
+  await expect(steps.getByText('Verificando…')).toBeVisible();
+  await expect(steps.getByText('Falta este')).toHaveCount(0);
+  await expect(steps.getByText('Feito')).toHaveCount(0);
+  await expect(steps.getByRole('button', { name: /Conectar IA|Criar um caso|Abrir a jurisprudência/ })).toHaveCount(0);
+  await expect(steps.getByText(/de \d+ concluídos/)).toHaveCount(0);
+  await expect(steps.getByRole('status')).toContainText('Verificando seus primeiros passos');
+
+  release();
+  await expect(steps.getByText(/\d de \d concluídos/)).toBeVisible();
+  await expect(steps.getByText('Falta este')).toHaveCount(1);
+  // Depois de aparecer, o estado é o final: nada muda de estilo nem anima (era isso que o axe pegava no meio da troca).
+  const stable = async () => ({
+    primary: await steps.locator('.btn-primary').allTextContents(),
+    animating: await page.evaluate(() => document.getAnimations().length),
+  });
+  const first = await stable();
+  await page.waitForTimeout(400);
+  expect(await stable()).toEqual(first);
+  expect(first.animating).toBe(0);
+  expect(first.primary).toHaveLength(1);
 });

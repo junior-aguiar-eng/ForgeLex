@@ -8,8 +8,16 @@ import {
   attachmentStatusLabel,
   type Attachment,
 } from './attachments';
+import type { SaveState } from './save-controller';
 
 const PREVIEW_CHARS = 4000;
+
+/** Salvar o anexo no caso escolhido (U7, só no gelo). Sem isto, o chip não oferece o botão. */
+export interface SaveToCase {
+  caseTitle: string;
+  stateOf: (attachmentId: string) => SaveState | undefined;
+  onSave: (attachmentId: string) => void;
+}
 
 /** Botão de clipe do compositor: abre o seletor de arquivos e entrega os escolhidos. */
 export function AttachButton({
@@ -61,9 +69,11 @@ function Chip({
   onRecognize,
   onCancelRecognize,
   onEdit,
+  save,
 }: {
   attachment: Attachment;
   busy: boolean;
+  save?: SaveToCase;
   /** Caracteres que o texto deste anexo ainda pode ter (o teto do conjunto menos os outros anexos). */
   room: number;
   onReplace: (file: File) => void;
@@ -74,6 +84,7 @@ function Chip({
 }) {
   const [open, setOpen] = useState(false);
   const region = useId();
+  const saveState = save?.stateOf(attachment.id);
   const input = useRef<HTMLInputElement>(null);
   const done = attachment.status === 'done';
   const recognizing = attachment.status === 'ocr';
@@ -112,6 +123,17 @@ function Chip({
             {open ? 'Fechar' : 'Abrir'}
           </button>
         )}
+        {done && save && saveState?.status !== 'saved' && (
+          <button
+            type="button"
+            className={button}
+            disabled={busy || saveState?.status === 'saving'}
+            aria-label={`${saveState?.status === 'saving' ? 'Salvando no caso' : 'Salvar no caso'}: ${attachment.name}`}
+            onClick={() => save.onSave(attachment.id)}
+          >
+            {saveState?.status === 'saving' ? 'Salvando…' : 'Salvar no caso'}
+          </button>
+        )}
         {attachment.canOcr && (
           <button
             type="button"
@@ -136,7 +158,7 @@ function Chip({
         <button
           type="button"
           className={button}
-          disabled={busy || attachment.status === 'reading' || recognizing}
+          disabled={busy || attachment.status === 'reading' || recognizing || saveState?.status === 'saving'}
           aria-label={`Trocar anexo: ${attachment.name}`}
           onClick={() => input.current?.click()}
         >
@@ -157,13 +179,25 @@ function Chip({
         <button
           type="button"
           className={button}
-          disabled={busy}
+          disabled={busy || saveState?.status === 'saving'}
           aria-label={`Remover anexo: ${attachment.name}`}
           onClick={onRemove}
         >
           Remover
         </button>
       </div>
+      {done && save && saveState?.status === 'saved' && (
+        <p role="status" className="pb-2 text-sm text-stone-700">
+          Salvo no caso “{save.caseTitle}” como “{saveState.title}” ({saveState.paragraphs}{' '}
+          {saveState.paragraphs === 1 ? 'parágrafo' : 'parágrafos'}). O documento salvo não muda se você editar o texto
+          depois.
+        </p>
+      )}
+      {done && save && saveState?.status === 'error' && (
+        <p role="alert" className="pb-2 text-sm text-red-800">
+          {saveState.message}
+        </p>
+      )}
       {recognizing && (
         <progress
           className="mb-2 h-2 w-full"
@@ -221,10 +255,16 @@ export function AttachmentChips({
   onRecognize,
   onCancelRecognize,
   onEdit,
+  save,
+  saveHint,
 }: {
   attachments: readonly Attachment[];
   notice: string;
   busy: boolean;
+  /** Salvar no caso escolhido; ausente quando não há caso ou o tema não oferece. */
+  save?: SaveToCase;
+  /** Dica quando não há caso escolhido, para o cliente saber como guardar o texto. */
+  saveHint?: string;
   onReplace: (id: string, file: File) => void;
   onRemove: (id: string) => void;
   onRecognize: (id: string) => void;
@@ -247,6 +287,7 @@ export function AttachmentChips({
                 onRecognize={() => onRecognize(attachment.id)}
                 onCancelRecognize={() => onCancelRecognize(attachment.id)}
                 onEdit={(text) => onEdit(attachment.id, text)}
+                {...(save ? { save } : {})}
               />
             ))}
           </ul>
@@ -254,6 +295,9 @@ export function AttachmentChips({
             <p className="text-xs text-stone-700">
               Limite de {ATTACHMENT_MAX_FILES} anexos por pedido. Remova um para anexar outro.
             </p>
+          )}
+          {saveHint && attachments.some((attachment) => attachment.status === 'done') && (
+            <p className="text-xs text-stone-600">{saveHint}</p>
           )}
           <p className="text-xs text-stone-600">
             Guardamos só o texto extraído, não o arquivo. Confira o texto antes de enviar

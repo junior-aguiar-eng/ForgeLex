@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { requestApi } from '../api-client';
+import { ApiRequestError, requestApi } from '../api-client';
 import { useAuth } from '../auth/AuthContext';
 import { LifecycleDialog, LifecycleFilter } from '../screens/matter-lifecycle/LifecycleControls';
 import {
@@ -20,9 +20,8 @@ const stateLabel = { ACTIVE: 'Ativo', ARCHIVED: 'Arquivado', TRASHED: 'Na lixeir
 const failureText = (failure: unknown, fallback: string) => (failure instanceof Error ? failure.message : fallback);
 
 /**
- * Gerenciar casos, dentro da Mesa (tema gelo): renomear, arquivar, mover para a lixeira e restaurar. Substitui na Mesa o
- * que só existia na tela "Casos" (U7). A exclusão definitiva, que pede o nome do caso e acompanha o diário, continua na
- * tela Casos. O caso que a conversa ou a peça está usando agora não pode ser arquivado nem ir para a lixeira, mas pode
+ * Gerenciar casos, dentro da Mesa (tema gelo): renomear, arquivar, mover para a lixeira, restaurar e excluir de vez
+ * (esta pede o nome do caso). É o único lugar onde se cuida dos casos. O caso que a conversa ou a peça está usando agora não pode ser arquivado nem ir para a lixeira, mas pode
  * ser renomeado.
  */
 export function DeskCaseManager({
@@ -117,7 +116,7 @@ export function DeskCaseManager({
     }
   };
 
-  const runLifecycle = async () => {
+  const runLifecycle = async (confirmation?: string) => {
     if (!confirming || busy) return;
     const { record, action } = confirming;
     setBusy(true);
@@ -125,13 +124,27 @@ export function DeskCaseManager({
     try {
       await requestApi(
         `/api/v2/matters/${encodeURIComponent(record.id)}/${action}`,
-        { method: 'POST', body: JSON.stringify({ expectedLifecycleRevision: record.lifecycleRevision ?? 0 }) },
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            expectedLifecycleRevision: record.lifecycleRevision ?? 0,
+            ...(action === 'purge' ? { confirmation } : {}),
+          }),
+        },
         { sessionOnly: true },
       );
       setConfirming(null);
       setNotice(lifecycleNotice(action));
       await refresh();
     } catch (failure) {
+      if (failure instanceof ApiRequestError && failure.code === 'PURGE_CONFIRMATION_PENDING') {
+        setConfirming(null);
+        setNotice(
+          'A exclusão está sendo confirmada. Reabra a lista em instantes: se não concluir, o caso fica preservado.',
+        );
+        await refresh();
+        return;
+      }
       setConfirmError(failureText(failure, 'Não foi possível concluir a operação.'));
     } finally {
       setBusy(false);
@@ -238,40 +251,42 @@ export function DeskCaseManager({
                           {using ? 'Em uso nesta conversa ou peça' : stateLabel[state]}
                         </p>
                       </div>
-                      {canManage && (
-                        <div className="flex flex-wrap gap-1">
-                          {state === 'ACTIVE' && (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              aria-label={`Renomear ${item.title}`}
-                              onClick={() => {
-                                setError('');
-                                setNotice('');
-                                setEditing({ id: item.id, title: item.title });
-                              }}
-                              className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
-                            >
-                              Renomear
-                            </button>
-                          )}
-                          {actions.map((action) => (
-                            <button
-                              key={action}
-                              type="button"
-                              disabled={busy}
-                              aria-label={`${actionLabels[action]}: ${item.title}`}
-                              onClick={() => {
-                                setConfirmError('');
-                                setConfirming({ record: item, action });
-                              }}
-                              className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
-                            >
-                              {actionLabels[action]}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {canManage && (
+                          <>
+                            {state === 'ACTIVE' && (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                aria-label={`Renomear ${item.title}`}
+                                onClick={() => {
+                                  setError('');
+                                  setNotice('');
+                                  setEditing({ id: item.id, title: item.title });
+                                }}
+                                className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
+                              >
+                                Renomear
+                              </button>
+                            )}
+                            {actions.map((action) => (
+                              <button
+                                key={action}
+                                type="button"
+                                disabled={busy}
+                                aria-label={`${actionLabels[action]}: ${item.title}`}
+                                onClick={() => {
+                                  setConfirmError('');
+                                  setConfirming({ record: item, action });
+                                }}
+                                className="min-h-9 rounded-[var(--fl-radius-control)] px-2 text-sm font-medium text-accent hover:bg-canvas-deep disabled:opacity-50"
+                              >
+                                {actionLabels[action]}
+                              </button>
+                            ))}
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </li>
@@ -279,9 +294,6 @@ export function DeskCaseManager({
             })}
           </ul>
         )}
-        <p className="mt-4 text-xs text-subtle">
-          Para excluir um caso de vez, use a tela Casos: a exclusão definitiva pede o nome do caso para confirmar.
-        </p>
       </dialog>
       {confirming && (
         <LifecycleDialog
@@ -291,7 +303,7 @@ export function DeskCaseManager({
           busy={busy}
           error={confirmError}
           onCancel={() => setConfirming(null)}
-          onConfirm={() => void runLifecycle()}
+          onConfirm={(confirmation) => void runLifecycle(confirmation)}
         />
       )}
     </>

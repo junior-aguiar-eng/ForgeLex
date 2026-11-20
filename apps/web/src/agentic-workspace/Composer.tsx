@@ -6,9 +6,11 @@ import { useDeskCaseSlot } from '../desk/desk-case-slot';
 import { Sparkles } from 'lucide-react';
 import { ATTACHMENTS_ENABLED, MATTER_CHIPS_ENABLED } from '../config/site-capabilities';
 import { MatterChips, type MatterChip } from './MatterChips';
-import { AttachButton, AttachmentChips } from './AttachmentChips';
+import { AttachButton, AttachmentChips, type SaveToCase } from './AttachmentChips';
 import { attachmentContext, hasReadingAttachment } from './attachments';
 import { useAttachments } from './use-attachments';
+import { useSaveAttachment } from './use-save-attachment';
+import { activeTheme } from '../theme/active-theme';
 import { requestApi } from '../api-client';
 import type { WorkspaceClient, StartInput } from './client';
 import { reais, type CommercialAuthorization, type CommercialQuote } from './commercial-model';
@@ -80,6 +82,8 @@ export function Composer({
 }) {
   const [objective, setObjective] = useState<string>();
   const attachments = useAttachments();
+  const saveAttachment = useSaveAttachment();
+  const iceTheme = activeTheme() === 'gelo';
   const [matterChips, setMatterChips] = useState<MatterChip[]>([]);
   const chipsOn = MATTER_CHIPS_ENABLED && Boolean(onGuide);
   const reading = ATTACHMENTS_ENABLED && hasReadingAttachment(attachments.items);
@@ -214,6 +218,18 @@ export function Composer({
   // One visible message supplies the written context; existing conversations retain theirs.
   const text = inheritedText || goal;
   const matterTitle = matters.find((m) => m.id === matter)?.title;
+  // Salvar o anexo no caso escolhido (U7): só no tema gelo e só com um caso em uso que a lista de casos conhece.
+  const saveToCase: SaveToCase | undefined =
+    ATTACHMENTS_ENABLED && iceTheme && matter && matterTitle
+      ? {
+          caseTitle: matterTitle,
+          stateOf: (id) => saveAttachment.stateOf(id, matter),
+          onSave: (id) => {
+            const item = attachments.items.find((attachment) => attachment.id === id);
+            if (item) void saveAttachment.save(item, matter);
+          },
+        }
+      : undefined;
   const scopeSummary = [
     matter ? `Caso: ${matterTitle ?? 'selecionado'}` : 'Vincular a um caso',
     selected.length ? `${selected.length} documento${selected.length > 1 ? 's' : ''}` : '',
@@ -380,7 +396,7 @@ export function Composer({
       {pendingQuestion && !descriptionOpen && (goal || !guidanceState?.question?.allowFreeText) && (
         <button
           type="button"
-          className="min-h-11 rounded-lg px-2 text-sm font-medium text-cognac-800 hover:bg-ivory-100"
+          className="min-h-11 lg:min-h-9 rounded-lg px-2 text-sm lg:text-[13px] font-medium text-cognac-800 hover:bg-ivory-100"
           onClick={() => {
             setDescriptionOpen(true);
             requestAnimationFrame(() => inputRef.current?.focus());
@@ -425,21 +441,31 @@ export function Composer({
             attachments={attachments.items}
             notice={attachments.notice}
             busy={busy || preparing}
-            onReplace={attachments.replace}
-            onRemove={attachments.remove}
+            onReplace={(id, file) => {
+              saveAttachment.forget(id);
+              attachments.replace(id, file);
+            }}
+            onRemove={(id) => {
+              saveAttachment.forget(id);
+              attachments.remove(id);
+            }}
             onRecognize={(id) => void attachments.recognize(id)}
             onCancelRecognize={attachments.cancelRecognize}
             onEdit={attachments.edit}
+            {...(saveToCase ? { save: saveToCase } : {})}
+            {...(iceTheme && !saveToCase
+              ? { saveHint: 'Para guardar o texto de um anexo como documento do caso, escolha um caso.' }
+              : {})}
           />
         )}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-1 gap-y-0">
           {ATTACHMENTS_ENABLED && (
             <AttachButton disabled={busy || preparing} count={attachments.items.length} onFiles={attachments.add} />
           )}
           {!guided && !followUp && (
             <select
               aria-label="Opção do pedido"
-              className="min-h-11 w-auto max-w-full shrink-0 rounded-full border border-champagne-border bg-white py-2 pl-3 pr-8 text-sm font-medium text-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
+              className="min-h-11 lg:min-h-9 w-auto max-w-full shrink-0 cursor-pointer rounded-full border-0 bg-transparent py-2 pl-2 pr-7 text-sm lg:text-[13px] text-stone-600 hover:bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
               value={action ?? ''}
               disabled={busy}
               onChange={(event) => setAction(actions.find((item) => item.id === event.target.value)?.id)}
@@ -456,7 +482,7 @@ export function Composer({
             <button
               type="button"
               aria-expanded={scopeOpen}
-              className="inline-flex min-h-11 min-w-0 max-w-full items-center rounded-full bg-champagne-light px-3 text-sm text-cognac-900"
+              className="inline-flex min-h-11 lg:min-h-9 min-w-0 max-w-[12rem] items-center rounded-full px-2 text-sm lg:text-[13px] text-stone-600 hover:bg-stone-100"
               title={scopeSummary}
               onClick={() => setScopeOpen((open) => !open)}
             >
@@ -467,7 +493,7 @@ export function Composer({
             <button
               type="button"
               disabled={busy || preparing || guidanceBusy || piecePending}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-medium text-cognac-800 hover:bg-ivory-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-700"
+              className="inline-flex min-h-11 lg:min-h-9 items-center gap-1.5 rounded-full px-2 text-sm lg:text-[13px] text-stone-600 hover:bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-700"
               onClick={() => {
                 startFromComposer.current = true;
                 const selectedMatter = piece ? piece.matterId : matter;
@@ -484,7 +510,7 @@ export function Composer({
           {(!guided || canSendGuide) && (
             <button
               type="button"
-              className="btn-primary ml-auto min-h-11 rounded-full disabled:cursor-default disabled:opacity-50"
+              className="btn-primary ml-auto min-h-11 lg:min-h-9 rounded-full disabled:cursor-default disabled:opacity-50"
               disabled={
                 busy ||
                 preparing ||

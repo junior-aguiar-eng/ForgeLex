@@ -1,6 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { randomUUID } from 'node:crypto';
+
+// Sair da Mesa para outra tela e voltar: no gelo os casos vivem na Mesa e não há item "Casos" na lateral (U7).
+const leaveDesk = process.env.FORGELEX_E2E_THEME === 'gelo' ? 'Jurisprudência' : 'Casos';
 const api = 'http://127.0.0.1:3301';
 const headers = { authorization: 'Bearer phase7-e2e-access-token' };
 
@@ -77,7 +80,7 @@ test('edita apenas o trecho selecionado da peça salva', async ({ page }) => {
 test('seleção persistida da Mesa retorna com caso, peça e versão e abre após recarga', async ({ page }) => {
   const { selection, text } = await selectionFixture(page);
   const nav = page.getByRole('navigation', { name: 'Navegação principal' });
-  await nav.getByRole('button', { name: 'Casos', exact: true }).click();
+  await nav.getByRole('button', { name: leaveDesk, exact: true }).click();
   await nav.getByRole('button', { name: 'Mesa', exact: true }).click();
   for (const [key, value] of selection) expect(new URL(page.url()).searchParams.get(key)).toBe(value);
   await page.reload();
@@ -394,7 +397,7 @@ test('entrega abre ao lado, mantém edição ao navegar e aceita links antigos',
   await expect(page.getByLabel('Texto da seção 1', { exact: true })).toHaveValue('Alteração local preservada.');
   await page
     .getByRole('navigation', { name: 'Navegação principal' })
-    .getByRole('button', { name: 'Casos', exact: true })
+    .getByRole('button', { name: leaveDesk, exact: true })
     .click();
   await page
     .getByRole('navigation', { name: 'Navegação principal' })

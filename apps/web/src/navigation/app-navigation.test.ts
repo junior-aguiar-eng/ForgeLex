@@ -7,12 +7,12 @@ const labels = (items: ReadonlyArray<{ label: string }>) => items.map((item) => 
 describe('iceNavigation (V2, protótipo de 09/11)', () => {
   const all = iceNavigation({ deskEnabled: true, casesEnabled: true });
 
-  it('Trabalho (Mesa, Casos, Jurisprudência) e Conta e recursos, como no protótipo', () => {
-    expect(labels(all.work)).toEqual(['Mesa', 'Casos', 'Jurisprudência']);
+  it('Trabalho (Mesa, Jurisprudência) e Conta e recursos: os casos vivem na Mesa, sem item próprio', () => {
+    expect(labels(all.work)).toEqual(['Mesa', 'Jurisprudência']);
     expect(labels(all.resources)).toEqual(['Visão geral', 'Andamento processual', 'Conectar IA', 'Conta']);
   });
 
-  it('sem a Mesa não há item Mesa; sem casos não há Mesa nem Casos, e a Jurisprudência fica', () => {
+  it('sem a Mesa os casos precisam do próprio item; sem casos não há Mesa nem Casos, e a Jurisprudência fica', () => {
     expect(labels(iceNavigation({ deskEnabled: false, casesEnabled: true }).work)).toEqual(['Casos', 'Jurisprudência']);
     expect(labels(iceNavigation({ deskEnabled: false, casesEnabled: false }).work)).toEqual(['Jurisprudência']);
   });
@@ -70,8 +70,14 @@ describe('highlightedTab', () => {
     expect(highlightedTab('api_docs')).toBe('connections');
   });
 
+  it('Dados do caso é parte da Mesa: acende o item Mesa, e sem a Mesa acende o próprio item', () => {
+    expect(highlightedTab('matter')).toBe('work');
+    expect(highlightedTab('matter', true)).toBe('work');
+    expect(highlightedTab('matter', false)).toBe('matter');
+  });
+
   it('as outras telas acendem o próprio item', () => {
-    for (const tab of ['work', 'matter', 'research', 'landing', 'credits', 'datajud', 'connections'] as const) {
+    for (const tab of ['work', 'research', 'landing', 'credits', 'datajud', 'connections'] as const) {
       expect(highlightedTab(tab)).toBe(tab);
     }
   });

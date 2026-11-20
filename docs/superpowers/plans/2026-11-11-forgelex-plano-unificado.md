@@ -57,18 +57,21 @@ ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
 | 5   | U3, 12/11       | U3 quase fechada (19/11): área proposta pelo texto, aviso de matéria sem apoio e aceite de três interações feitos. Restam os chips de área, tribunal e peça no compositor (V3/U7) e a refinação por IA | Código |
 | 6   | M1, 14/11       | Recusa de renovação do Claude (1 em 33); reserva e mensagem de saldo insuficiente em jornada autenticada                                           | Boni  |
 | 7   | M3, 12–14/11    | Manifesto servido em produção; súmulas do TSE, 1.355 citações sem tribunal, processos e teses; 44 avisos; contradições de teor                     | Boni e código |
-| 8   | S0–S7, 14/11    | Conferir cada caixa `[ ]` contra o registro da Frente S e marcar; S8 segue com Boni                                                               | Código, depois Boni |
+| 8   | S0–S7, 14/11    | ~~Conferir as caixas contra o registro~~ — **feita em 19/11** (seção S.6): 38 marcadas, 5 abertas com motivo; S8 segue com Boni | Código, depois Boni |
 | 9   | CI, 15–18/11    | Três falhas intermitentes do `e2e-product`: **diagnosticadas em 19/11** — `database is locked` corrigida (causa provada); `matter-lifecycle.spec.ts:48` com mecanismo provado e teste corrigido (gatilho no CI não provado); porta 55432 sem causa provada, com mitigação aplicada em `e2e-product` (porta aleatória; decisão de Boni de 19/11) | Código, depois Boni |
 | 10  | Daybreak, 16/11 | “Não verificado”: seção 8 do checklist, saída do script de publicação, primeiro uso real das ferramentas de publicação e de migrations (`-DryRun`) | Boni  |
 | 11  | U5, U6          | Identificação pela leitura do PDF (hipótese de U3); qualidade do OCR em documentos autorizados                                                    | Código e Boni |
-| 12  | U7, 18/11       | Documentos do caso e PDF como anexo; “Dados do caso” e redirecionamento de `/app/casos`; destino da exclusão definitiva                           | Código |
+| 12  | U7, 18/11       | ~~Documentos do caso, PDF como anexo, “Dados do caso”, redirecionamento~~ — **feitos em 19/11, no gelo** (partes 2 a 4 da U7). **Aceite visual preparado** (página de revisão com 7 telas, desktop e celular, axe sem violação); aguarda o veredito de Boni. O clássico some na V7 | Boni |
 | 13  | V5A, V6, V7     | Textos legais, `tests/public-*`, passada final e aceite, ligar o gelo, limpeza                                                                    | Código e Boni |
 | 14  | D0–D5           | Mudança de domínio (começa por registrar `forgelex.com.br`)                                                                                       | Boni, depois código |
+| 15  | CI, 19/11       | ~~`shell-gelo.spec.ts:278` intermitente~~ — **causa provada e corrigida em 19/11**: a Visão mostrava os passos antes de os dados chegarem e o botão “Abrir a jurisprudência” trocava de estilo (com `transition` de 160 ms) quando chegavam; o axe lia a cor no meio da troca. Agora a tela mostra um esqueleto até saber o resultado | Código |
 
 Sequência de trabalho a partir daqui: 4 (U1), depois 5 (U3), depois 9 (diagnóstico das falhas de CI, antes de qualquer
 nova publicação), depois 8 e 12. Os itens “Boni” ficam à espera dele e não bloqueiam os de código.
 
 ## 2. Decisões de Boni
+
+> **TRAVA DE PRODUTO (19/11/2026, inegociável):** a Mesa agêntica é a única superfície; agentes nos bastidores; visual limpo, poucos botões. Texto completo em `AGENTS.md`. Nenhuma fatia pode adicionar tela, painel ou controle que a conversa possa substituir. "Dados do caso" e a tela Casos saem do gelo (a exclusão definitiva vive no gerenciador da Mesa).
 
 A tabela preserva as decisões de 11/11/2026. A DEC-9 foi executada no PR #138. Registre novas decisões com a data.
 
@@ -482,6 +485,14 @@ Depende de U4, U5, U6 e de V3 (seletor de caso e “Criar caso a partir desta co
       Provas, Linha do tempo, Questões e Memorando intactos (ver o [registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#u7--casos-dentro-da-mesa-parte-1-gerenciar-casos-18112026)).
       **Parte 1 feita (gelo):** renomear (rota nova) e arquivar, lixeira e restaurar caso na Mesa; falta exclusão definitiva,
       documentos e PDF.
+      **Decisões de Boni em 19/11/2026:** (1) os documentos do caso ficam numa **aba própria da peça** (Documentos); (2) salvar
+      o anexo no caso é por **botão explícito**; (3) a **exclusão definitiva fica em “Dados do caso”**. (4) Retirar “Casos” do
+      menu só no tema gelo é recomendação minha, **aguardando a confirmação dele**: o clássico some na V7.
+      **Parte 2 feita (gelo, 19/11):** aba Documentos da peça, com arquivar, lixeira, restaurar e abrir.
+      **Parte 3 feita (gelo, 19/11):** botão “Salvar no caso” no chip do anexo, só no gelo (decisão de Boni).
+      **Parte 4 feita (gelo, 19/11):** “Dados do caso” (a tela “Casos” renomeada, com o caminho de volta à Mesa), `/app/casos` sem caso
+      abre a Mesa e com `?caso=` os links antigos continuam, o item “Casos” sai da lateral, e a Mesa leva ao caso (botão no seletor, no
+      gerenciador e na aba Documentos). Falta só a remoção da tela antiga no clássico, que a V7 apaga com o tema.
 - [ ] Manter o caso como entidade de dados: busca ancorada (M4), ferramentas MCP `case.*` e A07 dependem dele.
 - [ ] Redirecionar `/app/casos` para a Mesa, preservando links, e retirar o item “Casos” da lateral.
 - [ ] Remover `MatterWorkspaceScreen` e seus testes só depois de a Mesa passar nos mesmos cenários de E2E.
@@ -973,13 +984,13 @@ integrado → publicado → reavaliado**. Uma etapa não salta estados por infer
 `ops/gcp/production/build-from-main.ps1`, `ops/gcp/production/deploy-from-main.tests.ps1`;
 helpers de validação do build referenciados por esses scripts.
 
-- [ ] Consultar novamente `main`, PRs #152/#153, fixes e achados; registrar SHAs e diferenças.
-- [ ] Revisar o PR #152 para rejeição de build de projeto, origem, configuração,
-  substituições, status ou imagem divergentes. Não aceitar apenas labels declaradas.
-- [ ] Rodar a suíte PowerShell com gcloud simulado e sem rede: provar que tag preexistente
-  não evita build confiável e que ambos os serviços recebem o mesmo digest validado.
-- [ ] Registrar separadamente o que depende de IAM, origem do build e política do registry.
-  Conferir configuração real apenas em consulta autorizada; não executar release para testar.
+- [x] Consultar novamente `main`, PRs #152/#153, fixes e achados; registrar SHAs e diferenças. (S.6)
+- [x] Revisar o PR #152 para rejeição de build de projeto, origem, configuração,
+  substituições, status ou imagem divergentes. Não aceitar apenas labels declaradas. (S.6)
+- [x] Rodar a suíte PowerShell com gcloud simulado e sem rede: provar que tag preexistente
+  não evita build confiável e que ambos os serviços recebem o mesmo digest validado. (S.6)
+- [x] Registrar separadamente o que depende de IAM, origem do build e política do registry.
+  Conferir configuração real apenas em consulta autorizada; não executar release para testar. (S.6)
 
 **Aceite:** correção integrada rastreada e controles testados, sem declarar publicação
 ou proteção completa da cadeia de build sem evidência correspondente.
@@ -997,17 +1008,18 @@ ou proteção completa da cadeia de build sem evidência correspondente.
 `apps/api/src/auth/fastify-auth.test.ts`; criar `apps/api/src/distribution/authorization-routes.test.ts`.
 
 - [ ] Ler o fix MCP salvo e comparar com os caminhos REST, MCP e execução direta atuais.
-- [ ] Reproduzir acesso sem `matter:write`, grant ausente, caso errado, outro tenant,
-  conexão revogada e grant revogado entre duas operações do workflow.
-- [ ] Exigir `research:read` e `matter:write` no memo, grant OAuth exato e vivo; negar
-  ferramentas externas sem política antes de leitura, escrita ou reserva financeira.
-- [ ] Separar `credentials:read`, `credentials:write`, `webhooks:read`, `webhooks:write`;
+  **Aberta em 19/11/2026 (S.6):** o getter do fix retornou FORBIDDEN; a correção foi feita a partir do código, sem comparar com o diff salvo.
+- [x] Reproduzir acesso sem `matter:write`, grant ausente, caso errado, outro tenant,
+  conexão revogada e grant revogado entre duas operações do workflow. (S.6)
+- [x] Exigir `research:read` e `matter:write` no memo, grant OAuth exato e vivo; negar
+  ferramentas externas sem política antes de leitura, escrita ou reserva financeira. (S.6)
+- [x] Separar `credentials:read`, `credentials:write`, `webhooks:read`, `webhooks:write`;
   mutações de credenciais exigem sessão de proprietário. Assinaturas jurídicas exigem
-  também autoridade explícita sobre a família de eventos, conforme seus escopos de leitura.
-- [ ] Atualizar emissão de escopos, contratos/OpenAPI e UI; chaves antigas `billing:read`
-  não recebem permissões de escrita implicitamente. Documentar a migração de clientes.
-- [ ] Provar negação sem efeito colateral e sucesso dos clientes legitimamente autorizados;
-  grant deve continuar válido no momento de cada efeito durável.
+  também autoridade explícita sobre a família de eventos, conforme seus escopos de leitura. (S.6)
+- [x] Atualizar emissão de escopos, contratos/OpenAPI e UI; chaves antigas `billing:read`
+  não recebem permissões de escrita implicitamente. Documentar a migração de clientes. (S.6)
+- [x] Provar negação sem efeito colateral e sucesso dos clientes legitimamente autorizados;
+  grant deve continuar válido no momento de cada efeito durável. (S.6)
 
 **Aceite:** matriz de permissões REST/MCP aprovada, isolamento por tenant/caso preservado,
 nenhuma ampliação silenciosa. **Reversão:** suspender operação afetada se necessário;
@@ -1021,26 +1033,26 @@ não restabelecer autorização vulnerável por flag de compatibilidade.
 `apps/api/src/billing/mercado-pago-payment-provider.ts` e `.test.ts`,
 `apps/api/src/billing/billing-routes.test.ts`.
 
-- [ ] Preservar e revisar as alterações locais da fixture: quatro campos persistidos,
-  confirmação HTTP, crédito exato, replay e testes de campos ausentes.
-- [ ] Executar fase 7 e testes de billing sobre a base atual, inclusive PostgreSQL isolado.
-- [ ] Testar normalização → liquidação com respostas representativas do contrato real do
-  provedor. Confirmar tipos de IDs, moeda e associação order/payment; não inventar campos.
-- [ ] Cobrir aprovação → falha e falha → aprovação, webhook antes da persistência do ID,
+- [x] Preservar e revisar as alterações locais da fixture: quatro campos persistidos,
+  confirmação HTTP, crédito exato, replay e testes de campos ausentes. (S.6)
+- [x] Executar fase 7 e testes de billing sobre a base atual, inclusive PostgreSQL isolado. (S.6)
+- [x] Testar normalização → liquidação com respostas representativas do contrato real do
+  provedor. Confirmar tipos de IDs, moeda e associação order/payment; não inventar campos. (S.6)
+- [x] Cobrir aprovação → falha e falha → aprovação, webhook antes da persistência do ID,
   evento com erro transitório e replay, duas aprovações simultâneas e IDs diferentes.
-  Usar promessas/barreiras, sem sleeps. Verificar saldo, lote, pagamento, fatura e estado.
-- [ ] Para identidade ainda não persistida, manter crédito bloqueado e evento recuperável;
+  Usar promessas/barreiras, sem sleeps. Verificar saldo, lote, pagamento, fatura e estado. (S.6)
+- [x] Para identidade ainda não persistida, manter crédito bloqueado e evento recuperável;
   uma aprovação posterior a falha exige evidência canônica atual e validação completa.
-  Reconciliação nunca pode virar pagamento só por nova entrega do callback.
-- [ ] Corrigir a identidade de deduplicação para derivar de material autenticado; alterações
+  Reconciliação nunca pode virar pagamento só por nova entrega do callback. (S.6)
+- [x] Corrigir a identidade de deduplicação para derivar de material autenticado; alterações
   em `payload.id` não geram trabalho durável distinto. Considerar status canônico para
-  não eliminar uma transição legítima de pendente para pago.
-- [ ] Confirmar unidade e política de retries de `ts` no contrato do Mercado Pago antes de
+  não eliminar uma transição legítima de pendente para pago. (S.6)
+- [x] Confirmar unidade e política de retries de `ts` no contrato do Mercado Pago antes de
   fixar janela de idade/futuro. Injetar relógio e testar bordas; não bloquear retries
   legítimos silenciosamente. Deduplicar antes de consultas repetidas quando possível,
-  mantendo recuperação de tentativa interrompida.
-- [ ] Confirmar recarga sequencial e webhook antecipado para provedor que a suporte;
-  Mercado Pago continua com recarga indisponível, sem ativação artificial.
+  mantendo recuperação de tentativa interrompida. (S.6)
+- [x] Confirmar recarga sequencial e webhook antecipado para provedor que a suporte;
+  Mercado Pago continua com recarga indisponível, sem ativação artificial. (S.6)
 
 **Aceite:** crédito uma única vez, evidência completa, callbacks recuperáveis e CI aprovada.
 As limitações de ordenação são trabalho adicional à fixture e não estão resolvidas pelo
@@ -1058,18 +1070,19 @@ repositório persistente para operações de reembolso se necessário.
 junto dos testes de ledger existentes, usando a infraestrutura de banco isolado do projeto.
 
 - [ ] Ler o fix salvo; conferir se cobre reserva, envio, timeout, retry, recuperação e auditoria.
-- [ ] Reproduzir consumo/reserva após solicitação, duas aprovações concorrentes,
-  sucesso remoto seguido de crash local e timeout com resultado remoto desconhecido.
-- [ ] Recalcular elegibilidade sob lock do tenant/carteira; tornar valor indisponível e
+  **Aberta em 19/11/2026 (S.6):** o getter do fix retornou FORBIDDEN; a correção foi feita a partir do código, sem comparar com o diff salvo.
+- [x] Reproduzir consumo/reserva após solicitação, duas aprovações concorrentes,
+  sucesso remoto seguido de crash local e timeout com resultado remoto desconhecido. (S.6)
+- [x] Recalcular elegibilidade sob lock do tenant/carteira; tornar valor indisponível e
   persistir operação na mesma transação antes de chamar o provedor. Não segurar lock
-  durante chamada de rede. Evitar alteração de lançamentos históricos do ledger.
-- [ ] Persistir estados `PREPARED`, `PROVIDER_PENDING`, `PROVIDER_SUCCEEDED`,
+  durante chamada de rede. Evitar alteração de lançamentos históricos do ledger. (S.6)
+- [x] Persistir estados `PREPARED`, `PROVIDER_PENDING`, `PROVIDER_SUCCEEDED`,
   `LEDGER_SETTLED`, `RECONCILIATION_REQUIRED`; `APPROVED` permanece o resultado público
-  de sucesso. Reusar chave estável do pedido em todas as tentativas.
-- [ ] Usar intenção persistida/outbox para recuperar envio interrompido; resultado ambíguo
-  mantém valor indisponível até consulta/reconciliação. Não liberar saldo por timeout.
-- [ ] Testar migração com pedidos antigos, devolução parcial, saldo consumido e reservas
-  pendentes; executar testes concorrentes em PostgreSQL, não apenas em memória.
+  de sucesso. Reusar chave estável do pedido em todas as tentativas. (S.6)
+- [x] Usar intenção persistida/outbox para recuperar envio interrompido; resultado ambíguo
+  mantém valor indisponível até consulta/reconciliação. Não liberar saldo por timeout. (S.6)
+- [x] Testar migração com pedidos antigos, devolução parcial, saldo consumido e reservas
+  pendentes; executar testes concorrentes em PostgreSQL, não apenas em memória. (S.6)
 
 **Aceite:** devolução nunca supera valor retido; repetição não duplica efeitos; operação
 interrompida é recuperável e auditável. **Reversão:** parar aprovações; preservar operações
@@ -1083,20 +1096,21 @@ pendentes e valores retidos. Não fazer downgrade de schema que apague recupera�
 Criar `apps/api/src/distribution/webhook-http-client.ts` para política de rede e transporte.
 **Testes:** os respectivos `.test.ts` e novo `webhook-http-client.test.ts`.
 
-- [ ] Reproduzir URL privada literal, DNS privado, IPv6, IPv4 mapeado, redirect para rede
-  proibida, mudança de DNS entre validação e conexão, resposta infinita e ticks sobrepostos.
-- [ ] Exigir HTTPS em operação normal; localhost somente no transporte de teste injetado.
+- [x] Reproduzir URL privada literal, DNS privado, IPv6, IPv4 mapeado, redirect para rede
+  proibida, mudança de DNS entre validação e conexão, resposta infinita e ticks sobrepostos. (S.6)
+- [x] Exigir HTTPS em operação normal; localhost somente no transporte de teste injetado.
   Bloquear endereços privados/reservados, fixar endereço validado na conexão preservando
-  hostname/TLS e desabilitar redirects. Não usar apenas validação de string ou DNS inicial.
-- [ ] Remover corpo remoto do histórico; manter status e diagnóstico sem conteúdo.
-  Cancelar corpo sem bufferizar quando ele não for necessário.
-- [ ] Serializar ticks e limitar entregas globais/por tenant. Usar lease/admissão persistente
-  para limites entre réplicas, com expiração e retomada após crash; limite local não basta.
+  hostname/TLS e desabilitar redirects. Não usar apenas validação de string ou DNS inicial. (S.6)
+- [x] Remover corpo remoto do histórico; manter status e diagnóstico sem conteúdo.
+  Cancelar corpo sem bufferizar quando ele não for necessário. (S.6)
+- [x] Serializar ticks e limitar entregas globais/por tenant. Usar lease/admissão persistente
+  para limites entre réplicas, com expiração e retomada após crash; limite local não basta. (S.6)
 - [ ] Propor limites iniciais de quatro entregas globais e uma por tenant; testar exatamente
   os limites, justiça entre tenants, retries, liberação e expiração. Definir teto da fila
   a partir da capacidade medida antes de habilitar o worker alterado.
-- [ ] Testar endpoints já cadastrados contra a nova política; os inválidos ficam suspensos,
-  com diagnóstico acessível, sem tentativa automática na rede proibida.
+  **Aberta em 19/11/2026 (S.6):** os limites de entrega foram propostos e testados, mas o teto da fila (1.000 global e 250 por tenant) é candidato para homologação, não medição de capacidade; o worker alterado não deve ser habilitado antes disso.
+- [x] Testar endpoints já cadastrados contra a nova política; os inválidos ficam suspensos,
+  com diagnóstico acessível, sem tentativa automática na rede proibida. (S.6)
 
 **Aceite:** nenhum destino proibido recebe conexão e nenhum corpo remoto é devolvido;
 concorrência limitada inclusive entre réplicas. **Reversão:** desligar o worker, preservando
@@ -1111,13 +1125,14 @@ Criar `packages/persistence/src/repositories/matter-ingestion-limits.test.ts`.
 
 - [ ] Medir fixtures legítimas já existentes e reproduzir texto com muitas linhas curtas
   dentro do limite de bytes; medir contagem sem inserir carga patológica no banco.
-- [ ] Propor teto inicial de 1 MiB UTF-8 e 5.000 âncoras por documento; confirmar compatibilidade
-  das fixtures antes de adotar. Validar contagem incremental antes de arrays e escrita.
-- [ ] Rejeitar excesso com código estável e resposta de cliente apropriada, sem documento
-  parcial. Não rejeitar texto jurídico legítimo apenas por ter linhas curtas.
-- [ ] Limitar lote SQL e resposta; adaptar consumidores/paginação se o contrato atual
-  exige todas as âncoras. Preservar offsets, Unicode, CRLF e hashes.
-- [ ] Testar limite exato, limite + 1, bytes multibyte, vazio e falha durante inserção.
+  **Aberta em 19/11/2026 (S.6):** o registro não traz a medição das fixtures; o teto está testado (limite exato, limite + 1, 5.000 linhas curtas), mas a medição pedida não consta.
+- [x] Propor teto inicial de 1 MiB UTF-8 e 5.000 âncoras por documento; confirmar compatibilidade
+  das fixtures antes de adotar. Validar contagem incremental antes de arrays e escrita. (S.6)
+- [x] Rejeitar excesso com código estável e resposta de cliente apropriada, sem documento
+  parcial. Não rejeitar texto jurídico legítimo apenas por ter linhas curtas. (S.6)
+- [x] Limitar lote SQL e resposta; adaptar consumidores/paginação se o contrato atual
+  exige todas as âncoras. Preservar offsets, Unicode, CRLF e hashes. (S.6)
+- [x] Testar limite exato, limite + 1, bytes multibyte, vazio e falha durante inserção. (S.6)
 
 **Aceite:** custo limitado por bytes e âncoras; rejeição sem escrita parcial.
 **Reversão:** manter limite de segurança; corrigir compatibilidade sem ingestão ilimitada.
@@ -1128,14 +1143,14 @@ Criar `packages/persistence/src/repositories/matter-ingestion-limits.test.ts`.
 **Arquivos/testes:** `apps/api/src/agentic-workspace/execution-routes.ts` e `.test.ts`,
 `apps/api/src/auth/fastify-auth.ts`; componente de admissão persistente caso não exista.
 
-- [ ] Reproduzir conexões duplicadas com relógio controlado e contar consultas reais.
-- [ ] Propor limites iniciais: duas conexões por usuário/execução, cinco por usuário,
+- [x] Reproduzir conexões duplicadas com relógio controlado e contar consultas reais. (S.6)
+- [x] Propor limites iniciais: duas conexões por usuário/execução, cinco por usuário,
   vinte por tenant e cem por processo. Para limites de usuário/tenant entre réplicas,
-  usar leases persistentes; contador apenas em memória protege somente o processo.
-- [ ] Compartilhar polling para execução/tenant dentro do processo, preservando autenticação
-  e revogação por assinante. Nunca compartilhar contexto de autorização entre tenants.
-- [ ] Testar rejeição ao exceder limites e liberação em close, erro, revogação, execução
-  terminal e crash/expiração de lease. Retomar eventos sem perda pelo cursor existente.
+  usar leases persistentes; contador apenas em memória protege somente o processo. (S.6)
+- [x] Compartilhar polling para execução/tenant dentro do processo, preservando autenticação
+  e revogação por assinante. Nunca compartilhar contexto de autorização entre tenants. (S.6)
+- [x] Testar rejeição ao exceder limites e liberação em close, erro, revogação, execução
+  terminal e crash/expiração de lease. Retomar eventos sem perda pelo cursor existente. (S.6)
 
 **Aceite:** conexão adicional não multiplica polling local da mesma execução, limites
 respeitados e revogação preservada. **Reversão:** restringir admissão; não retirar limites.
@@ -1148,12 +1163,13 @@ respeitados e revogação preservada. **Reversão:** restringir admissão; não 
 
 - [ ] Usar senhas sintéticas nos testes e demonstrar sua presença no argv atual, sem
   imprimir nem ler credenciais reais.
-- [ ] Remover senha das URLs de `pg_dump`/`pg_restore`; usar `PGPASSFILE` temporário em
-  diretório privado, permissão restrita e escape correto de dois-pontos e barra invertida.
-- [ ] Garantir limpeza em sucesso, erro e interrupção; redigir logs e mensagens de erro.
-  Testar permissões nos sistemas operacionais efetivamente suportados.
-- [ ] Desabilitar provisionador histórico com orientação ao substituto seguro ou migrar
-  sua chamada para mecanismo sem senha em argv; preservar comandos de consulta seguros.
+  **Aberta em 19/11/2026 (S.6):** os testes usam credenciais sintéticas, mas não há registro da demonstração da senha no argv antes da correção.
+- [x] Remover senha das URLs de `pg_dump`/`pg_restore`; usar `PGPASSFILE` temporário em
+  diretório privado, permissão restrita e escape correto de dois-pontos e barra invertida. (S.6)
+- [x] Garantir limpeza em sucesso, erro e interrupção; redigir logs e mensagens de erro.
+  Testar permissões nos sistemas operacionais efetivamente suportados. (S.6)
+- [x] Desabilitar provisionador histórico com orientação ao substituto seguro ou migrar
+  sua chamada para mecanismo sem senha em argv; preservar comandos de consulta seguros. (S.6)
 
 **Aceite:** nenhum argumento ou erro contém senha; arquivos temporários não ficam legíveis
 por terceiros. **Reversão:** suspender script, sem voltar à URL com senha.
@@ -1240,3 +1256,19 @@ o Daybreak: backup sob demanda, migrations `persistence-0042`, `persistence-0043
 As caixas `[ ]` de S0 a S7 acima não foram marcadas quando o trabalho foi feito e **não** são evidência de pendência nem de
 conclusão: cada uma precisa ser conferida contra o registro da Frente S antes de ser marcada. S8 (verificação integrada e
 decisão de Boni) segue aberta; compras e reembolsos reais e o encerramento dos achados no Daybreak continuam fora da autorização.
+
+### S.6 — Conferência das caixas de S0 a S7 — 19/11/2026
+
+As caixas de S0 a S7 não foram marcadas quando o trabalho foi feito (ver S.5). Esta conferência casou cada uma com o
+[registro da Frente S](../../architecture/2026-11-10-mesa-guiada-execucao.md#frente-s--execução-daybreak--14112026-americafortaleza)
+e, nos pontos ambíguos, com o código e os testes de `main` (`6bd76e1` em diante): teste de tag divergente em
+`deploy-from-main.tests.ps1`, suspensão de endpoint com `WEBHOOK_URL_BLOCKED`, `matter-ingestion-limits.test.ts`,
+repositório de leases de SSE com teste em PostgreSQL, `PGPASSFILE` e o provisionador desabilitado, e os testes do provedor
+Mercado Pago com variantes de moeda. **Resultado: 38 marcadas e 5 abertas (43 caixas)**, cada aberta com o motivo na própria caixa.
+
+**Limites desta conferência.** Foi leitura de registros e amostragem de código e testes; não reexecutei as suítes da Frente S.
+Marcar uma caixa diz que há evidência registrada do passo, não que o conjunto esteja correto em produção. Duas caixas
+(S1 e S3, “ler o fix salvo”) não podem ser cumpridas como escritas: o getter do fix foi negado, e a correção partiu do
+código. As outras três são medições ou demonstrações que o registro não traz (teto da fila de webhooks, fixtures de
+ingestão e senha no argv antes da correção). S8 (decisão de Boni) segue aberta, assim como compras e reembolsos reais e o
+encerramento dos achados no Daybreak, que continuam fora da autorização.

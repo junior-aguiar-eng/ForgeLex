@@ -2286,3 +2286,108 @@ O erro ocorre no passo 2 do job, antes do checkout: algo no runner (imagem `ubun
 Vitest: `packages/persistence` 250 testes aprovados (inclui `webhook-repository`); suíte completa registrada no PR. Playwright: `agentic-commercial-flow` 4 aprovados, `matter-lifecycle` 30 passagens. ESLint, Prettier e `tsc` do pacote `persistence` limpos.
 
 Reversão: reverter o commit; o `busyTimeoutMs` não tem efeito sem ser passado.
+
+## U7 · casos dentro da Mesa, parte 2: aba Documentos (19/11/2026)
+
+Sobre `main` em `10edebc`. Só `apps/web`, só no tema gelo; sem rota nova, sem migração e sem mudança de contrato. O clássico e a tela "Casos" não mudam.
+
+**Decisões de Boni (19/11/2026) que orientam a U7.** Documentos do caso numa **aba própria da peça**; salvar o anexo no caso por **botão explícito**; exclusão definitiva **em "Dados do caso"**. Sobre tirar "Casos" do menu do clássico: a recomendação é **só no gelo** (o clássico some na V7), e a confirmação dele **ainda não veio**.
+
+**O que foi feito.**
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Aba | `DraftCanvas` ganha a aba **Documentos** entre Fontes e Revisão (`PieceTab` com `documentos`). Habilitada quando há caso; sem caso fica desabilitada. A ordem preserva as asserções de teclado existentes (`End` continua em Revisão). |
+| Painel | `DeskCaseDocuments` (novo): lista os documentos do caso por visão (Em uso, Arquivados, Lixeira), com **Abrir**, **Arquivar**, **Mover para a lixeira** e **Restaurar**, pela confirmação já existente (`LifecycleDialog`, que diz o efeito sobre a IA). Abrir reaproveita o leitor da peça. Sem a exclusão definitiva. |
+| Quem gerencia | Como na tela "Casos": criador do caso ou proprietário, e só com o caso em uso. Quem não gerencia vê a lista e abre os documentos. |
+| Modelo | `documentLifecycleNotice` e `documentStateLabel`, com teste. |
+| Rotas | Nenhuma nova: `GET /api/v2/matters/:id?view=` e `POST …/documents/:id/{archive,trash,restore}` já existiam. |
+
+**Limite conhecido.** As abas só aparecem com uma **peça aberta**, mas os documentos pertencem ao caso: sem peça aberta o cliente não alcança a aba. O botão "Salvar no caso" no anexo (próxima fatia) funciona sem peça. Se isso incomodar, a alternativa é uma entrada no seletor de caso.
+
+**Nota sobre a exclusão definitiva.** No caso ela pede o nome para confirmar; no documento, a confirmação existente **não** pede o nome (só o caso pede). A decisão de mantê-la em "Dados do caso" vale para os dois.
+
+**Verificação.** Vitest do web: 61 arquivos, 470 testes (3 novos do modelo). `shell-gelo` (Playwright): 58 aprovados, 1 novo (listar, arquivar e restaurar com confirmação, abrir, sem excluir definitivamente, com axe) e 3 ajustados para a aba nova; o `writing-desk.spec.ts:292` só passa com `LANG=C.UTF-8` (limite conhecido da E7, já definido na CI). `tsc`, ESLint e Prettier limpos nos arquivos alterados.
+
+**Não feito (próximas fatias).** Botão "Salvar no caso" no anexo (com trava contra clique duplo, já que a rota de ingestão não tem chave de idempotência); "Dados do caso", o redirecionamento de `/app/casos` e a saída do item "Casos" da lateral.
+
+Reversão: reverter o commit; a aba some e nada mais muda.
+
+## U7 · casos dentro da Mesa, parte 3: salvar o anexo no caso (19/11/2026)
+
+Sobre `main` em `10edebc`, na mesma branch da parte 2. Só `apps/web` e só no tema gelo (decisão de Boni); sem rota nova, sem migração e sem mudança de contrato. Ele substitui na Mesa a importação de PDF da tela "Casos" (`PdfTextImport`).
+
+**O que foi feito.**
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Botão | No chip do anexo pronto, "Salvar no caso", só no gelo e só com um caso escolhido que a lista de casos em uso conhece. Sem caso, o chip mostra uma dica (“Para guardar o texto de um anexo como documento do caso, escolha um caso.”) e nenhum botão. No clássico, nada muda. |
+| O que grava | `POST /api/v2/matters/:id/documents`, só por sessão: título = nome do arquivo sem extensão (com “(texto reconhecido por OCR)” quando veio de OCR, porque o documento ganha âncoras citáveis e pode ter erros), `originalFilename` = `<arquivo>.txt` (convenção da importação de PDF; `.txt` e `.md` ficam como estão), `mimeType` `text/plain`, só o texto extraído (DEC-12). |
+| Depois de salvar | O chip diz “Salvo no caso “X” como “Y” (N parágrafos)” e avisa que o documento salvo **não muda** se o texto for editado depois. O botão some. Trocar ou remover o anexo apaga o “salvo”; outro caso é outro destino. |
+| Recusa | `saveFailureMessage` traduz os códigos estáveis da S5 (`DOCUMENT_TEXT_TOO_LARGE`, `DOCUMENT_ANCHOR_LIMIT_EXCEEDED`) e `MATTER_NOT_FOUND`; a nova tentativa funciona. |
+
+**Duas travas contra duplicação.** A rota de ingestão não recebe chave de idempotência e cada chamada cria um documento (não achei busca por duplicata pelo hash do conteúdo). Por isso: uma chamada em andamento barra outra igual (`createSingleFlight`) e um anexo já salvo não é salvo de novo. A regra mora em `createSaveController`, sem React, para ser testada.
+
+**Achado na verificação: o E2E sozinho não provava as travas.** Com as duas travas desligadas, o cenário de clique duplo continuou passando, porque o botão desabilitado da própria interface barra o segundo clique depois do redesenho. As travas cobrem a corrida *antes* do redesenho, e isso só os testes unitários provam. Mutação feita: sem a trava de chamada em andamento, 2 testes quebram; sem a de anexo já salvo, 1 quebra; restauradas.
+
+**Verificação.** Vitest do web: 63 arquivos, 484 testes (controlador, trava, construção do documento e mensagens). Playwright: `attachments-gelo` (novo, 2 cenários, com axe: sem caso só a dica; com caso grava uma vez, “não muda depois”, trocar apaga o salvo; recusa em texto e nova tentativa) e `attachments` (10; o novo prova que **no clássico, mesmo com caso vinculado, não há botão nem dica**), `desk-guidance-v3` (11) e `shell-gelo`. O novo spec entra no job `e2e-desk` do CI. Um seletor de teste meu casava com a opção “Escolha um caso” do tema clássico (texto já existente); troquei por uma busca pelo texto completo da dica. `tsc`, ESLint e Prettier limpos nos arquivos alterados.
+
+**Limites.** (1) O texto de OCR que o cliente editou depois de salvar não altera o documento salvo; o aviso diz isso, mas não há “atualizar o documento”. (2) Texto muito grande esbarra nos tetos da S5 (1 MiB, 5.000 linhas com conteúdo), e o cliente é orientado a dividir o arquivo. (3) A aba Documentos só aparece com uma peça aberta, mas o botão do anexo funciona sem peça. (4) Ainda não medi com PDF real de produção; só textos sintéticos.
+
+Reversão: reverter o commit; o botão some e nada mais muda.
+
+### Achado na verificação da parte 3: `shell-gelo.spec.ts:278` já era intermitente (19/11/2026)
+
+Uma execução completa do `shell-gelo` falhou no cenário de acessibilidade da casca nova, que passou isolado. **Não é desta mudança:** repetido na `main` limpa (`git stash`), falhou 4 vezes em 16 com 3 workers. O axe acusa contraste de 2,56 a 3,58 sempre no botão primário “Abrir a jurisprudência” da Visão (`<button class="btn-primary …">`), com cores intermediárias (por exemplo #d4dee0 sobre #3a7988), o que indica leitura no meio de uma troca de cor.
+
+**Hipótese, não provada.** `.btn-primary` tem `transition` de 160 ms (`index.css`), e a ação da Visão pode mudar de estilo quando os dados de “Primeiros passos” chegam, depois de a página já parecer pronta. **Tentativa que não funcionou:** esperar `document.getAnimations()` terminar antes de cada leitura do axe; 3 falhas em 24, sem diferença do que a `main` já tinha. Desfeita; nada foi alterado no spec. Próximo passo: esperar um sinal de que os dados da Visão chegaram (e não só as animações em curso) antes da primeira leitura. Registrado na seção 1A do plano (item 15). O spec roda no `e2e-desk`, que não é check obrigatório.
+
+### Correção da aba Documentos depois da CI (19/11/2026)
+
+O `e2e-desk` do commit da parte 2 falhou **por defeito meu**, não pela intermitência conhecida: no painel Documentos havia dois `role="status"` ao mesmo tempo (o aviso da operação e o "Carregando documentos…"), e o seletor do meu teste exigia um só. Localmente a recarga era rápida demais para coincidir; o runner da CI era mais lento.
+
+O seletor frágil era o sintoma; o defeito real era de interface: depois de arquivar, a **lista inteira sumia** atrás de "Carregando documentos…" até a recarga terminar (piscada, e dois avisos de estado). Reproduzi primeiro com um teste que segura a recarga e exige a lista à vista (falhou: `Documento dois` não visível), depois corrigi: a recarga depois de uma operação (`keepList`) mantém a lista, e "Carregando…" fica só para a primeira carga e a troca de visão; trocar de visão limpa o aviso anterior. Os avisos nos testes passam a ser buscados pelo texto, não só pelo papel. Resultado: os 4 cenários da aba (3 antigos ajustados, 1 novo) passam 6 vezes seguidas com 3 workers.
+
+## U7 · casos dentro da Mesa, parte 4: Dados do caso (19/11/2026)
+
+Sobre `main` em `10edebc`, na mesma branch das partes 2 e 3. Só `apps/web` e só no tema gelo; sem rota nova de API, sem migração e sem mudança de contrato. O clássico não muda.
+
+**Princípio (Boni, 19/11/2026).** Arquitetura, fluxo e interface devem ser fáceis de usar e fluidos: intuitivos, práticos e sem dificuldade para o cliente. Daí as escolhas abaixo: o caminho para o caso está **onde o cliente já está** (na Mesa), e a volta **leva de volta ao mesmo caso**.
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Lateral | O item "Casos" **sai** da lateral do gelo (continua só se a Mesa estiver desligada, porque aí a tela Casos é o único lugar dos casos). Em Dados do caso, o item **Mesa** fica aceso. |
+| Rota | O caminho é o mesmo (`/app/casos`), então nenhum link antigo quebra. **Sem `?caso=`** abre a Mesa (e o desvio não entra no histórico); **com `?caso=`**, é a tela Dados do caso. Regra pura em `iceCaseDestination`. |
+| A tela | O título e o `h1` passam a ser "Dados do caso", com o subtítulo do que ela guarda e o botão **← Voltar à Mesa**, que leva à Mesa **com o mesmo caso escolhido** (lê a URL na hora do clique, porque a tela troca de caso sem recarregar). O cabeçalho antigo ("Área do caso") some no gelo para não haver dois `h1`. Fatos, provas, linha do tempo, questões, memorando e exclusão definitiva continuam como estavam. |
+| Entradas a partir da Mesa | (1) Botão **Dados do caso** ao lado do seletor, só com caso escolhido. (2) No gerenciador de casos, cada linha tem **Dados do caso**, e a de um caso **na lixeira** tem **Excluir definitivamente…**, que abre a tela **direto na lixeira** (`?visao=trash`), onde mora a exclusão. (3) Na aba Documentos, o texto da exclusão definitiva virou um botão **Dados do caso** que abre a lixeira de documentos (`?documentos=trash`) quando a visão é essa. |
+| Textos | "na tela do caso" e "use a tela Casos" viraram "em Dados do caso" ou um botão, em vez de uma instrução que o cliente precisa seguir sozinho. |
+
+**Verificação.** Vitest do web: modelo de rotas e de navegação (89 testes, 7 vermelhos antes da implementação). Playwright no gelo: 4 cenários novos (lateral e redirecionamento; entrada pelo seletor; caso na lixeira até a exclusão; aba Documentos até Dados do caso), com axe na nova tela. **Mutação:** com a regra de redirecionamento desligada, o cenário falha (`/app/casos` não vira a Mesa). Os specs compartilhados que clicavam em "Casos" para sair da Mesa (`writing-desk`, `agentic-workspace`, `shell-gelo`) passam a usar "Jurisprudência" no gelo e continuam com "Casos" no clássico.
+
+**Limites.** (1) Quem usa o gelo sem a Mesa (configuração que não é a de produção) continua com o item "Casos" e o título "Dados do caso". (2) "Criar caso" dentro da tela continua existindo, mas o caminho natural é pela Mesa. (3) A tela ainda é a mesma de 904 linhas; reorganizá-la por dentro (por exemplo, dividir em abas) não foi feito e seria outra etapa.
+
+Reversão: reverter o commit; o item "Casos" e o caminho antigo voltam.
+
+### Item 15 resolvido: a intermitência do `shell-gelo.spec.ts:278` tinha causa de produto (19/11/2026)
+
+**Causa, provada.** A Visão decidia o estado dos "Primeiros passos" com dados que chegam depois (conexão da IA e lista de casos), e as leituras que falhavam eram engolidas. Até a resposta, "conectar" e "criar caso" contavam como pendentes e o primeiro era destacado; quando os dados chegavam, o destaque **pulava** para "Abrir a jurisprudência" (`btn-secondary` → `btn-primary`), que tem `transition` de 160 ms. Medido no navegador logo depois do login: o botão aparece `secondary` (fundo branco) a 124 ms, vira `primary` a 165 ms e as cores calculadas atravessam a transição; em 244 ms valem `rgb(58,121,136)` e `rgb(212,222,224)`, **exatamente** o `#3a7988` e `#d4dee0` que o axe acusava (contraste 3,58). O teste lia a página dentro dessa janela, por isso a taxa dependia da velocidade da máquina (4 falhas em 16 na `main` limpa).
+
+**O que não resolveu (e foi desfeito).** Esperar `document.getAnimations()` terminar antes do axe: o botão ainda nem tinha trocado de estilo quando a espera rodava (3 falhas em 24).
+
+**Correção, na origem (e boa para o cliente, não só para o teste).** O estado dos passos só aparece quando se sabe o resultado das leituras que o definem, com resposta **ou com falha** (`stepsReady`, `useOverviewData` com `settled`). Antes disso há um esqueleto do mesmo tamanho (sem pular o layout), "Verificando…" no lugar da contagem e um aviso de estado para leitores de tela. Quem usa a Visão deixa de ver o destaque trocar de lugar depois de a página parecer pronta.
+
+**Verificação.** `stepsReady` com teste (vermelho antes). Cenário E2E novo: com a lista de casos presa, não há "Falta este", "Feito", botões nem contagem; depois de liberar, o estado final aparece, **nada anima** (`document.getAnimations()` vazio) e o botão destacado não muda em 400 ms. **Mutação:** com `stepsKnown` sempre verdadeiro, o cenário falha. O cenário de acessibilidade, que falhava cerca de 1 em 4, passou **32 de 32** repetições com 3 workers (por acaso seria cerca de 0,01% se nada tivesse mudado). Isso não é prova de 0%, mas a causa foi medida e eliminada, não só escondida.
+
+### Aceite visual da U7 e da Visão: preparado (19/11/2026)
+
+**Reaproveitamento (sem refazer a "mesa visual").** A ferramenta `visual-baseline` já capturava as telas com dados; acrescentei a ela só as telas novas (`u7Screens`: aba Documentos, “Salvar no caso” antes e depois, o gerenciador com um caso na lixeira e a Visão com o esqueleto) e fiz o `--only` aceitar uma lista. Um caso à parte e título por tamanho, para não alterar as capturas antigas. Nova `scripts/visual-review-page.mjs`: gera **um HTML único** (imagens em JPEG comprimido, 1,6 MB para 18 imagens) a partir de uma pasta de capturas e de um manifesto (`docs/operations/visual-review/2026-11-19-u7-e-visao.json`: 7 telas, o que olhar em cada uma). Cada tela tem um veredito (Aprovado, Ajustar, Não vi) e uma nota; o **resumo em texto** fica fixo no pé da página, com “Copiar” e “Baixar .txt”, porque no A19 depender do armazenamento do navegador deixou o registro vazio. Da próxima vez basta um manifesto novo.
+
+**Evidência.** 12 telas do app e 18 dos dados capturadas no tema gelo, desktop (1440 px) e celular (390 px); **axe sem violação em todas**. A página foi aberta no navegador: 18 de 18 imagens carregam, sem erro de JavaScript, e o resumo reflete vereditos e notas.
+
+**Achado do aceite, corrigido (de produto).** Na captura do celular, “Salvar no caso” não aparecia. Causa: um endereço com `?matterId=` faz a Mesa abrir **a peça** (`hasDeskPiece`), e no celular isso mostra a aba “Peça” (uma minuta em branco, com o caso travado) e esconde a Conversa, onde ficam o compositor e os anexos. Isso atingia também o meu botão **← Voltar à Mesa**, que voltava por `?matterId=`. Agora ele chama `setActiveTab('work')`: como a Mesa fica montada enquanto se está em Dados do caso, o cliente volta **exatamente onde estava** (conversa, texto digitado e caso escolhido). Cenário novo cobre o caminho principal (o anterior só usava link direto); mutação: voltando por `?matterId=`, ele falha.
+
+**O que não cobre.** Estados que não são fotografados: o seletor aberto, o diálogo de confirmação de arquivar, e a Mesa durante uma execução. Link direto para Dados do caso, sem ter passado pela Mesa, volta para a Mesa limpa, sem o caso escolhido. A decisão de aceitar é de Boni.
+
+## 19/11/2026 — Trava de produto e fim de "Dados do caso"
+
+Decisão de Boni: a Mesa agêntica é a única superfície; agentes nos bastidores; visual limpo. Registrada como **trava inegociável** no `AGENTS.md` e no plano (seção 2). No gelo, "Dados do caso" deixou de existir: `/app/casos` (com ou sem `?caso=`) abre a Mesa; os botões e a moldura saíram; a exclusão definitiva (pede o nome do caso; documento, o id) passou a viver no gerenciador de casos e na aba Documentos da Mesa. A tela `MatterWorkspaceScreen` continua só no clássico, que sai com a V7; os fatos, provas e memorandos que ela editava devem passar a ser organizados pelos agentes, sem formulário (próxima fatia). `writing-desk.spec.ts` "edição local, exportação" falha neste container também sem esta mudança (download do Word).

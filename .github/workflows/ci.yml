@@ -227,6 +227,9 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Attachments in the composer (PDF, Word, TXT, MD; text only)
         run: pnpm exec playwright test --config playwright.attachments.config.ts
+      - name: Saving an attachment into the case (ice theme only)
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.attachments-gelo.config.ts
       - name: Desk shell, empty-state shortcuts and layout
         if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
         run: pnpm exec playwright test --config playwright.desk-shell.config.ts

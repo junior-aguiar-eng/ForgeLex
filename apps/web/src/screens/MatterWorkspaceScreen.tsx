@@ -7,6 +7,7 @@ import { canManageLifecycle, type LifecycleRecord, type LifecycleAction, type Li
 import { useAuth } from '../auth/AuthContext';
 import { useApp } from '../context/AppContext';
 import { PdfTextImport } from '../components/PdfTextImport';
+import { activeTheme } from '../theme/active-theme';
 import { CaseAiAccessPanel } from './case-ai/CaseAiAccessPanel';
 import { CaseAnalysisPanel } from './case-ai/CaseAnalysisPanel';
 import { DocumentReaderDialog } from '../components/DocumentReaderDialog';
@@ -172,11 +173,23 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
   return requestApiWithToken<T>(path, token, init);
 }
 
+/** Visão pedida na URL (`active`, `archived` ou `trash`); qualquer outra coisa abre a lista em uso. */
+function viewFromUrl(name: 'visao' | 'documentos'): LifecycleView {
+  try {
+    const value = new URLSearchParams(window.location.search).get(name);
+    return value === 'archived' || value === 'trash' ? value : 'active';
+  } catch {
+    return 'active';
+  }
+}
+
 export const MatterWorkspaceScreen: React.FC = () => {
   const { setActiveTab } = useApp();
   const { status: authStatus, account } = useAuth();
-  const [matterView, setMatterView] = useState<LifecycleView>('active');
-  const [documentView, setDocumentView] = useState<LifecycleView>('active');
+  const ice = activeTheme() === 'gelo';
+  // Os links da Mesa abrem direto na lixeira (`?visao=trash`, `?documentos=trash`), onde mora a exclusão definitiva.
+  const [matterView, setMatterView] = useState<LifecycleView>(() => viewFromUrl('visao'));
+  const [documentView, setDocumentView] = useState<LifecycleView>(() => viewFromUrl('documentos'));
   const [lifecycleDialog, setLifecycleDialog] = useState<{ record: LifecycleRecord; action: LifecycleAction; document: boolean } | null>(null);
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
   const [pendingPurge, setPendingPurge] = useState<string | null>(() => { try { return window.sessionStorage.getItem('forgelex_matter_purge_pending'); } catch { return null; } });
@@ -624,22 +637,26 @@ export const MatterWorkspaceScreen: React.FC = () => {
   return (
     <div className="py-8 md:py-12">
       <div className="page-container space-y-8">
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cognac-100 border border-cognac-200 text-cognac-800 text-xs font-bold uppercase tracking-wider">
-              <FolderOpen className="w-3.5 h-3.5" />
-              Caso
+        {/* No gelo o título é o da moldura (Dados do caso, com o caminho de volta à Mesa). */}
+        {!ice && (
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cognac-100 border border-cognac-200 text-cognac-800 text-xs font-bold uppercase tracking-wider">
+                <FolderOpen className="w-3.5 h-3.5" />
+                Caso
+              </div>
+              <h1 className="font-editorial text-4xl font-bold text-stone-950">Área do caso</h1>
+              <p className="max-w-2xl text-sm leading-relaxed text-stone-600">
+                Reúna documentos, fatos, provas e questões jurídicas para pesquisar e revisar o caso em um único contexto de trabalho.
+              </p>
             </div>
-            <h1 className="font-editorial text-4xl font-bold text-stone-950">Área do caso</h1>
-            <p className="max-w-2xl text-sm leading-relaxed text-stone-600">
-              Reúna documentos, fatos, provas e questões jurídicas para pesquisar e revisar o caso em um único contexto de trabalho.
-            </p>
+            <div className="inline-flex items-center gap-2 text-xs text-stone-500">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              Isolamento por organização
+            </div>
           </div>
-          <div className="inline-flex items-center gap-2 text-xs text-stone-500">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            Isolamento por organização
-          </div>
-        </div>
+
+        )}
 
         <details className="technical-access">
               <summary>Detalhes técnicos</summary>

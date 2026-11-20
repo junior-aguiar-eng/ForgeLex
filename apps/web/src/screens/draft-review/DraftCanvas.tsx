@@ -2,17 +2,18 @@ import { createPortal } from 'react-dom';
 import React, { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, Download, History, X } from 'lucide-react';
 
-/** Partes da peça no tema gelo: o texto, as fontes do caso e a revisão. */
-export type PieceTab = 'texto' | 'fontes' | 'revisao';
+/** Partes da peça no tema gelo: o texto, as fontes do caso, os documentos do caso e a revisão. */
+export type PieceTab = 'texto' | 'fontes' | 'documentos' | 'revisao';
 
 const PIECE_TABS: { id: PieceTab; label: string }[] = [
   { id: 'texto', label: 'Texto' },
   { id: 'fontes', label: 'Fontes' },
+  { id: 'documentos', label: 'Documentos' },
   { id: 'revisao', label: 'Revisão' },
 ];
 
 /**
- * Abas Texto, Fontes e Revisão da peça (tema gelo). O texto continua montado, só escondido, quando outra aba está
+ * Abas Texto, Fontes, Documentos e Revisão da peça (tema gelo). O texto continua montado, só escondido, quando outra aba está
  * aberta: o que a pessoa digitou, a seleção e a rolagem ficam como estavam.
  */
 function PieceTabs({
@@ -225,7 +226,7 @@ export function DraftCanvas({
     selected: PieceTab;
     onSelect: (tab: PieceTab) => void;
     enabled: Record<PieceTab, boolean>;
-    panels: { fontes: ReactNode; revisao: ReactNode };
+    panels: { fontes: ReactNode; documentos: ReactNode; revisao: ReactNode };
   };
   history: ReactNode;
   extras?: ReactNode;

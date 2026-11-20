@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  stepsReady,
   activeMatters,
   connectionRows,
   matterStatusLabel,
@@ -143,5 +144,20 @@ describe('connectionRows', () => {
       state: 'ok',
       text: '1 ativa',
     });
+  });
+});
+
+describe('stepsReady', () => {
+  it('só mostra o estado dos passos quando já se sabe o resultado das leituras que o definem', () => {
+    // Com casos: a conexão e a lista de casos decidem os passos.
+    expect(stepsReady({ mcp: false, matters: false }, true)).toBe(false);
+    expect(stepsReady({ mcp: true, matters: false }, true)).toBe(false);
+    expect(stepsReady({ mcp: false, matters: true }, true)).toBe(false);
+    expect(stepsReady({ mcp: true, matters: true }, true)).toBe(true);
+  });
+
+  it('sem casos, só a conexão conta', () => {
+    expect(stepsReady({ mcp: false, matters: false }, false)).toBe(false);
+    expect(stepsReady({ mcp: true, matters: false }, false)).toBe(true);
   });
 });

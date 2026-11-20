@@ -1,6 +1,7 @@
 import { DraftCanvas, type PieceTab } from './draft-review/DraftCanvas';
 import { activeTheme } from '../theme/active-theme';
 import { DeskCaseSources } from '../research/DeskCaseSources';
+import { DeskCaseDocuments } from '../desk/DeskCaseDocuments';
 import { caseNameFrom } from '../desk/case-name';
 import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
 import { hasDeskPiece, selectDeskPiece, type DeskDocumentSelection } from '../agentic-workspace/desk-selection';
@@ -781,22 +782,35 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   useEffect(() => {
     if (!ice) return;
     if (pieceTab === 'revisao' && !activeVersion) setPieceTab('texto');
+    if (pieceTab === 'documentos' && !selectedMatterId) setPieceTab('texto');
   }, [ice, pieceTab, selectedMatterId, activeVersion]);
   const pieceTabs = ice ? {
     selected: pieceTab,
     onSelect: (tab: PieceTab) => { setPieceTab(tab); if (tab === 'revisao' && selectedDraftId) openVersionReview(); },
-    enabled: { texto: true, fontes: true, revisao: Boolean(selectedMatterId && selectedDraftId && activeVersion) },
+    enabled: {
+      texto: true,
+      fontes: true,
+      documentos: Boolean(selectedMatterId),
+      revisao: Boolean(selectedMatterId && selectedDraftId && activeVersion),
+    },
     panels: {
       fontes: selectedMatterId ? <DeskCaseSources key={selectedMatterId} matterId={selectedMatterId} /> : (
         <section aria-label="Peça sem caso" className="space-y-3">
           <h2 className="font-editorial text-[17px] font-semibold text-ink">Esta peça não está ligada a um caso</h2>
           <p className="text-sm text-muted">
             Sem caso, não há questões, cobertura de fontes nem análise de aderência. Ao criar o caso, ele nasce só com o nome;
-            os fatos e as provas você aprova depois, na tela do caso.
+            o resto o ForgeLex organiza pela conversa.
           </p>
           <CreateCaseFromPiece name={newWorkCase} busy={busy} onName={setNewWorkCase} onCreate={() => void createCase()} />
         </section>
       ),
+      documentos: selectedMatterId ? (
+        <DeskCaseDocuments
+          key={selectedMatterId}
+          matterId={selectedMatterId}
+          onOpen={(documentId) => setReadingDocument({ matterId: selectedMatterId, documentId })}
+        />
+      ) : null,
       revisao: (
         <div className="space-y-4">
           {reviewProps && <ReviewBody {...reviewProps} />}

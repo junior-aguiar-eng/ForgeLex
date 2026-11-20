@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { isDeskEnabled } from '../config/site-capabilities';
-import { navigateToTab, resolveVisibleTab, routeForTab, tabForPath } from './routes';
+import { iceCaseDestination, navigateToTab, resolveVisibleTab, routeForTab, tabForPath } from './routes';
 
 describe('rotas do espaço de trabalho', () => {
   it('não expõe contexto de caso quando o espaço de trabalho está desativado', () => {
@@ -130,5 +130,39 @@ describe('rotas do espaço de trabalho', () => {
     navigateToTab('research');
 
     expect(pushState).not.toHaveBeenCalled();
+  });
+});
+
+describe('Dados do caso no tema gelo (U7)', () => {
+  it('a tela Casos vira "Dados do caso" no gelo e continua "Casos" no clássico, no mesmo caminho', () => {
+    expect(routeForTab('matter', 'gelo')).toEqual({ tab: 'matter', path: '/app/casos', title: 'Casos' });
+    expect(routeForTab('matter', 'classico')).toEqual({ tab: 'matter', path: '/app/casos', title: 'Casos' });
+  });
+
+  it('no gelo, /app/casos abre a Mesa, com ou sem caso na URL: não há tela de dados do caso', () => {
+    expect(iceCaseDestination('matter', false, true, 'gelo')).toBe('work');
+    expect(iceCaseDestination('matter', true, true, 'gelo')).toBe('work');
+  });
+
+  it('sem a Mesa não há para onde mandar: a tela Casos continua sendo o lugar dos casos', () => {
+    expect(iceCaseDestination('matter', false, false, 'gelo')).toBe('matter');
+  });
+
+  it('o clássico e as outras abas não mudam', () => {
+    expect(iceCaseDestination('matter', false, true, 'classico')).toBe('matter');
+    for (const tab of ['work', 'research', 'landing', 'credits'] as const) {
+      expect(iceCaseDestination(tab, false, true, 'gelo')).toBe(tab);
+    }
+  });
+
+  it('navegar para Dados do caso leva o caso e as visões da lixeira na URL', () => {
+    const pushState = vi.fn();
+    vi.stubGlobal('window', {
+      location: { pathname: '/app/trabalho', search: '', hash: '' },
+      history: { replaceState: vi.fn(), pushState },
+    });
+    vi.stubGlobal('document', { title: '' });
+    navigateToTab('matter', 'push', { matterId: 'c1', matterView: 'trash', documentView: 'archived' }, true, true);
+    expect(pushState).toHaveBeenCalledWith({}, expect.any(String), '/app/casos?caso=c1&visao=trash&documentos=archived');
   });
 });

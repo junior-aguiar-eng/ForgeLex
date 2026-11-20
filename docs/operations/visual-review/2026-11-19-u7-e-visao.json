@@ -1,0 +1,64 @@
+{
+  "titulo": "Aceite visual — U7 (casos dentro da Mesa) e Visão, tema gelo",
+  "subtitulo": "só o que mudou desde o aceite A19; depois da trava de produto (Mesa única, sem “Dados do caso”)",
+  "telas": [
+    {
+      "id": "visao",
+      "titulo": "Visão geral (primeiros passos)",
+      "capturas": ["dados_visao-verificando", "app"],
+      "olhar": [
+        "Primeira imagem: enquanto os dados chegam, os passos aparecem como esqueleto, com “Verificando…” no lugar da contagem. Não há passo destacado nem botão que depois troque de lugar.",
+        "Segunda imagem: o estado final. O destaque “Falta este” já está no passo certo.",
+        "O esqueleto tem o mesmo tamanho do conteúdo final? A página não deve “pular” quando os dados chegam."
+      ]
+    },
+    {
+      "id": "lateral",
+      "titulo": "Lateral sem “Casos”",
+      "capturas": ["app_trabalho"],
+      "olhar": [
+        "O grupo Trabalho tem só Mesa e Jurisprudência. Os casos vivem na Mesa.",
+        "Na Mesa, o item Mesa está aceso."
+      ]
+    },
+    {
+      "id": "seletor",
+      "titulo": "Mesa: seletor de caso, sem “Dados do caso”",
+      "capturas": ["dados_mesa-com-peca"],
+      "olhar": [
+        "No cabeçalho da Mesa há só o seletor de caso, “Novo caso” e “Gerenciar casos”. Não existe botão “Dados do caso”.",
+        "O cabeçalho está limpo? Há algum botão que a conversa poderia substituir?"
+      ]
+    },
+    {
+      "id": "documentos",
+      "titulo": "Mesa: aba Documentos da peça",
+      "capturas": ["dados_mesa-aba-documentos"],
+      "olhar": [
+        "A aba Documentos fica entre Fontes e Revisão e lista os documentos do caso, com o nome do arquivo e a situação.",
+        "Cada documento oferece Abrir, Arquivar e Mover para a lixeira; na lixeira, Restaurar e Excluir definitivamente. Não há mais remetente para outra tela.",
+        "O filtro “Mostrar documentos” (Em uso, Arquivados, Lixeira) está claro?"
+      ]
+    },
+    {
+      "id": "anexo",
+      "titulo": "Anexo: Salvar no caso",
+      "capturas": ["dados_anexo-salvar-no-caso", "dados_anexo-salvo-no-caso"],
+      "olhar": [
+        "Com um caso escolhido, o chip do anexo ganha o botão “Salvar no caso”.",
+        "Depois de salvar, o chip diz onde o texto foi salvo e avisa que o documento salvo não muda se o texto for editado depois.",
+        "Fica claro que só o texto é guardado, não o arquivo?"
+      ]
+    },
+    {
+      "id": "lixeira",
+      "titulo": "Gerenciar casos: lixeira e exclusão definitiva",
+      "capturas": ["dados_gerenciar-casos-lixeira", "dados_excluir-de-vez"],
+      "olhar": [
+        "Na lixeira, o caso tem Restaurar e “Excluir definitivamente” (em vermelho), tudo dentro do próprio gerenciador.",
+        "O diálogo não tem mais texto mandando para outra tela.",
+        "Segunda imagem: a confirmação pede o nome do caso; o botão só libera quando o nome confere. Está claro o que será apagado?"
+      ]
+    }
+  ]
+}

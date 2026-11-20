@@ -1,5 +1,23 @@
 # Governança do ForgeLex
 
+## TRAVA DE PRODUTO: simplicidade e fluxo agêntico (inegociável)
+
+Decisão expressa de Boni em 19/11/2026. É obrigatória, inquestionável e não admite exceção, nem por risco ao código,
+nem por recomendação de IA, nem por herança do projeto.
+
+- **A Mesa agêntica é a única superfície do produto.** Tudo acontece nela: casos, documentos, fatos, provas, peças,
+  exclusão, acesso da IA. Não criar, manter nem reintroduzir telas paralelas, painéis de gestão, rotas "de dados" ou
+  ferramentas que o usuário tenha de operar à parte.
+- **Agentes trabalham nos bastidores.** O usuário descreve o que quer; o ForgeLex organiza. Fatos, provas, análises e
+  cadastros não viram formulários nem botões para o usuário preencher.
+- **Visual limpo, poucos botões.** Cada novo botão, menu, aba ou tela precisa se justificar contra "o agente pode fazer
+  isso pela conversa?". Se pode, não se cria o controle.
+- **Segurança e privacidade ficam, sem virar tela.** Confirmação de exclusão definitiva e autorização de acesso da IA
+  continuam existindo, dentro da Mesa e de forma mínima.
+- **Conflito com este bloco:** vale o bloco. Antes de qualquer trabalho que adicione superfície ou controle, confira-o;
+  na dúvida, simplifique. Não perguntar a Boni se pode manter uma tela antiga: removê-la é o padrão.
+- Esta trava só é alterada por nova decisão expressa de Boni.
+
 ## Autoridade exclusiva de avaliação e aprovação
 
 Decisão expressa de Boni em 10/10/2026: nada no projeto deve depender de
