@@ -458,14 +458,14 @@ export function Composer({
               : {})}
           />
         )}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-1 gap-y-0">
           {ATTACHMENTS_ENABLED && (
             <AttachButton disabled={busy || preparing} count={attachments.items.length} onFiles={attachments.add} />
           )}
           {!guided && !followUp && (
             <select
               aria-label="Opção do pedido"
-              className="min-h-11 lg:min-h-9 w-auto max-w-full shrink-0 rounded-full border border-champagne-border bg-white py-2 pl-3 pr-8 text-sm lg:text-[13px] font-medium text-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
+              className="min-h-11 lg:min-h-9 w-auto max-w-[9rem] shrink-0 cursor-pointer rounded-full border-0 bg-transparent py-2 pl-2 pr-7 text-sm lg:text-[13px] text-stone-600 hover:bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
               value={action ?? ''}
               disabled={busy}
               onChange={(event) => setAction(actions.find((item) => item.id === event.target.value)?.id)}
@@ -482,7 +482,7 @@ export function Composer({
             <button
               type="button"
               aria-expanded={scopeOpen}
-              className="inline-flex min-h-11 lg:min-h-9 min-w-0 max-w-full items-center rounded-full bg-champagne-light px-3 text-sm lg:text-[13px] text-cognac-900"
+              className="inline-flex min-h-11 lg:min-h-9 min-w-0 max-w-[12rem] items-center rounded-full px-2 text-sm lg:text-[13px] text-stone-600 hover:bg-stone-100"
               title={scopeSummary}
               onClick={() => setScopeOpen((open) => !open)}
             >
@@ -493,7 +493,7 @@ export function Composer({
             <button
               type="button"
               disabled={busy || preparing || guidanceBusy || piecePending}
-              className="inline-flex min-h-11 lg:min-h-9 items-center gap-2 rounded-full px-3 text-sm lg:text-[13px] font-medium text-cognac-800 hover:bg-ivory-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-700"
+              className="inline-flex min-h-11 lg:min-h-9 items-center gap-1.5 rounded-full px-2 text-sm lg:text-[13px] text-stone-600 hover:bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-700"
               onClick={() => {
                 startFromComposer.current = true;
                 const selectedMatter = piece ? piece.matterId : matter;
