@@ -8,13 +8,28 @@ Uma seção exclusiva "Estrutura do caso", dentro da Mesa. Os agentes dissecam, 
 entregue pelo cliente, por **texto colado na janela** ou **PDF enviado**. Não é a estrutura antiga (formulários de fato,
 prova, linha do tempo, questão e memorando preenchidos à mão).
 
-## Ponto de partida real (verificado no código)
+## Ponto de partida real (verificado no código em 20/11/2026; corrige a primeira versão deste texto)
 
-- A API já tem registros de fatos, provas, cobertura, linha do tempo, questões e análises (`/api/v2/matters/:id/facts|evidence|timeline|issues|analyses`).
-- O fluxo de análise por IA existe (`packages/legal-workflows/src/case-document-analysis`, painel `CaseAnalysisPanel`): produz sugestões
-  de FATO, PROVA, LINHA DO TEMPO, QUESTÃO e LACUNA, que o usuário aceita ou recusa.
-- **Esse painel só existia dentro da tela Casos.** Com "Dados do caso" removida do gelo, hoje o gelo não tem como disparar nem
-  ver a análise do caso. Esta frente corrige isso e é a prioridade.
+- A API guarda fatos, provas, cobertura, linha do tempo, questões e análises (`/api/v2/matters/:id/facts|evidence|timeline|issues|analyses`).
+- **O ForgeLex não tem hoje um agente próprio que extraia a estrutura de um documento.** O `CaseDocumentAnalysisWorkflow` só reorganiza o que
+  já foi cadastrado e diz, nas suas limitações, que "não extrai fatos novos automaticamente". A ferramenta `case.save_analysis` só aceita
+  chamadas vindas do MCP com conexão OAuth (`source === 'MCP'`): as propostas de análise que o painel antigo mostrava vinham da IA
+  **própria do cliente** (Conectar IA), não de um agente do ForgeLex.
+- O painel antigo de conferência (`CaseAnalysisPanel`) só existia dentro da tela Casos. Com ela removida do gelo, o gelo não tem como ver
+  nem decidir essas propostas. Isso se corrige com a aba "Estrutura".
+- Já existe a ação `analyze_evidence` (papel `matter-analyst`) no fluxo agêntico da Mesa, com cobrança por trabalho em créditos. É o lugar
+  natural do novo agente.
+
+## Decisão de arquitetura (recomendação, a confirmar por Boni)
+
+Criar a ação **`structure_case`** no fluxo agêntico da Mesa, para o ForgeLex mesmo dissecar o caso, sem exigir IA externa:
+1. Entrada: texto colado ou documentos salvos no caso (cada trecho já tem âncora).
+2. O agente propõe partes, pedido, fatos, linha do tempo, provas, questões e lacunas.
+3. **Trava anti-invenção:** todo fato e toda data precisam citar uma âncora e um trecho que exista *literalmente* no documento; o que não
+   passar nessa conferência é descartado antes de aparecer. Sem âncora, o item não entra.
+4. O resultado vira proposta de análise do caso (mesmo repositório e mesma conferência já existentes), exibida na aba "Estrutura".
+5. Custo e consentimento seguem o fluxo da Mesa: orçamento por trabalho e acesso da IA ao caso autorizado.
+A IA própria do cliente (MCP) continua podendo enviar análises ao mesmo lugar.
 
 ## Desenho
 
@@ -37,9 +52,9 @@ prova, linha do tempo, questão e memorando preenchidos à mão).
 
 ## Fatias
 
-- **E1 (corrige a regressão):** aba "Estrutura" lendo e exibindo o que a API já guarda e as sugestões da análise, com aceitar
-  por padrão e a análise disparada ao salvar documento no caso. Reaproveita os endpoints e o `CaseAnalysisPanel` como fonte
-  de lógica; a interface nova é só leitura, mais correção por conversa.
+- **E1 (corrige a regressão do gelo):** aba "Estrutura" que lê o que a API já guarda e as propostas de análise pendentes (da IA do
+  cliente), com os itens que têm âncora já aceitos por padrão e o resto "a confirmar". Só leitura, mais decisão pela conversa.
+- **E1b:** o agente `structure_case` (acima), com a conferência literal de trechos. É a fatia que cumpre o pedido de dissecar o caso.
 - **E2:** correção por conversa (comandos sobre itens: alterar, remover, acrescentar) e resumo do caso.
 - **E3:** estrutura confirmada entrando na orientação guiada e na minuta; lacunas viram perguntas.
 - **E4:** PDF direto (identificar a peça e extrair partes e datas pela leitura do PDF, item U5 pendente).
