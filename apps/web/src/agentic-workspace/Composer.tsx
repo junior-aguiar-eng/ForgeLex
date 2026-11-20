@@ -465,7 +465,7 @@ export function Composer({
           {!guided && !followUp && (
             <select
               aria-label="Opção do pedido"
-              className="min-h-11 lg:min-h-9 w-auto max-w-[9rem] shrink-0 cursor-pointer rounded-full border-0 bg-transparent py-2 pl-2 pr-7 text-sm lg:text-[13px] text-stone-600 hover:bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
+              className="min-h-11 lg:min-h-9 w-auto max-w-full shrink-0 cursor-pointer rounded-full border-0 bg-transparent py-2 pl-2 pr-7 text-sm lg:text-[13px] text-stone-600 hover:bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cognac-600"
               value={action ?? ''}
               disabled={busy}
               onChange={(event) => setAction(actions.find((item) => item.id === event.target.value)?.id)}
