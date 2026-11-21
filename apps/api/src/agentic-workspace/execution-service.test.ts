@@ -99,6 +99,25 @@ it('mantém job fechado fora do worker até ativação financeira explícita', a
   expect(await service.claimNext('funded')).toMatchObject({ executionId: run.id });
 });
 
+it('relato colado em Automático, num caso, grava a análise de fatos e provas como ação do trabalho', async () => {
+  const f = await fixture();
+  const matter = await new MatterRepository(f.db).createMatter({
+    ...owner,
+    createdBy: owner.userId,
+    title: 'Caso sintético',
+  });
+  const account = 'Em março de 2021 o cliente assinou o contrato de locação. '.repeat(12);
+  const relato = {
+    objective: account,
+    matterId: matter.id,
+    context: { text: account, origin: 'USER' as const, documents: [] },
+  };
+  const auto = await f.service.startExecution(owner, 'relato-auto', relato);
+  expect(await f.service.getExecution(owner, auto.id)).toMatchObject({ actionId: 'analyze_evidence' });
+  const chosen = await f.service.startExecution(owner, 'relato-escolhido', { ...relato, actionId: 'review_text' });
+  expect(await f.service.getExecution(owner, chosen.id)).toMatchObject({ actionId: 'review_text' });
+});
+
 it('expõe contexto e histórico públicos para recuperar o trabalho sem checkpoint privado', async () => {
   const f = await fixture();
   const run = await f.service.startExecution(owner, 'public-recovery', input);

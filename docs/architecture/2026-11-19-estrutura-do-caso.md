@@ -65,6 +65,40 @@ O que falta, e é o que esta frente faz:
 - **E3:** estrutura confirmada entrando na orientação guiada e na minuta; lacunas viram perguntas.
 - **E4:** PDF direto (identificar a peça e extrair partes e datas pela leitura do PDF, item U5 pendente).
 
+## Desenho do E1b (20/11/2026)
+
+**Achado que motiva o desenho.** No modo Automático o pedido sai sem `actionId` e o `legal-orchestrator` escolhe `plan.action` sozinho
+(`case-task.ts`, nó `legal-orchestrator`). Nenhuma instrução o leva a `analyze_evidence`; a regra "não transformar todo pedido em peça
+processual" o afasta de decisões fixas. Um relato colado pode virar `analyze_documents`, `research_question` ou `create_document`, e a aba
+Estrutura só lê `analyze_evidence`.
+
+**Regra proposta (servidor, sem botão novo).** Em `ExecutionService.startExecution`, o gancho `prepareStart` já recebe o pedido antes de
+gravar o trabalho. Nele, o pedido ganha `actionId: 'analyze_evidence'` quando todas as condições valem:
+
+1. não veio `actionId` (usuário deixou em Automático);
+2. há caso (`matterId`), ou seja, existe onde guardar a estrutura;
+3. não é continuação de conversa (`conversationId` ausente);
+4. o texto parece relato: sem peça aberta (`context.draft`/`deskEdit` ausentes) e o corpo é narrativa, não instrução. Critério objetivo e
+   barato: pelo menos 600 caracteres e nenhuma pergunta direta ao fim. Limiar a calibrar com textos sintéticos.
+
+Se qualquer condição falhar, nada muda: o orquestrador decide como hoje. O usuário que escolheu uma ação nunca é sobrescrito.
+
+**Decisão de Boni (20/11/2026): só relato colado dispara.** Salvar documento no caso não dispara análise automática; o documento espera o
+pedido do usuário. Fica fora do E1b e só volta por nova decisão dele.
+
+**Salvaguardas (não mudam).**
+- Acesso da IA ao caso: `authorizeOwner` e `requireInferenceAuthorization` continuam antes de qualquer custo. Sem autorização, não roda e a
+  Mesa diz isso em uma frase.
+- Cobrança: o disparo automático gasta créditos como qualquer análise. A Mesa mostra o custo previsto no mesmo ponto em que hoje pede
+  confirmação; não há gasto escondido.
+- Antiduplicação: um documento ou relato com o mesmo hash de conteúdo não dispara de novo no mesmo caso.
+- A análise só propõe (matriz probatória, `quoteStatus`); adotar fatos continua sendo decisão do usuário pelo fluxo `evidence-review`.
+
+**Testes.** Unidade da regra (cada condição falhando isoladamente muda o resultado); ação escolhida preservada; sem caso não dispara;
+relato curto não dispara; mesmo hash não repete; sem autorização não gasta. Teste com mutação na condição 4, como no E1.
+
+**Em aberto.** Limiar de 600 caracteres como ponto de partida, a calibrar com textos sintéticos.
+
 ## Limites
 
 Só textos sintéticos nos testes. Sem a aba, nada de dado real é estruturado. Regras de privacidade e consentimento de IA do
