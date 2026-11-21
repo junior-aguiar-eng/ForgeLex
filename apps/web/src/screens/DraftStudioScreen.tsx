@@ -2,6 +2,7 @@ import { DraftCanvas, type PieceTab } from './draft-review/DraftCanvas';
 import { activeTheme } from '../theme/active-theme';
 import { DeskCaseSources } from '../research/DeskCaseSources';
 import { DeskCaseDocuments } from '../desk/DeskCaseDocuments';
+import { DeskCaseStructure } from '../desk/DeskCaseStructure';
 import { caseNameFrom } from '../desk/case-name';
 import { EditorialReviewPanel } from '../agentic-workspace/EditorialReviewPanel';
 import { hasDeskPiece, selectDeskPiece, type DeskDocumentSelection } from '../agentic-workspace/desk-selection';
@@ -782,18 +783,20 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
   useEffect(() => {
     if (!ice) return;
     if (pieceTab === 'revisao' && !activeVersion) setPieceTab('texto');
-    if (pieceTab === 'documentos' && !selectedMatterId) setPieceTab('texto');
+    if ((pieceTab === 'documentos' || pieceTab === 'estrutura') && !selectedMatterId) setPieceTab('texto');
   }, [ice, pieceTab, selectedMatterId, activeVersion]);
   const pieceTabs = ice ? {
     selected: pieceTab,
     onSelect: (tab: PieceTab) => { setPieceTab(tab); if (tab === 'revisao' && selectedDraftId) openVersionReview(); },
     enabled: {
       texto: true,
+      estrutura: Boolean(selectedMatterId),
       fontes: true,
       documentos: Boolean(selectedMatterId),
       revisao: Boolean(selectedMatterId && selectedDraftId && activeVersion),
     },
     panels: {
+      estrutura: selectedMatterId ? <DeskCaseStructure key={selectedMatterId} matterId={selectedMatterId} /> : null,
       fontes: selectedMatterId ? <DeskCaseSources key={selectedMatterId} matterId={selectedMatterId} /> : (
         <section aria-label="Peça sem caso" className="space-y-3">
           <h2 className="font-editorial text-[17px] font-semibold text-ink">Esta peça não está ligada a um caso</h2>

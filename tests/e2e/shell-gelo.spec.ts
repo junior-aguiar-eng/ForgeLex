@@ -328,7 +328,7 @@ async function openSavedPiece(page: Page) {
   return { piece, text };
 }
 
-test('peça salva: abas Texto, Fontes, Documentos e Revisão, sem os diálogos antigos, e o texto digitado não se perde', async ({
+test('peça salva: abas Texto, Estrutura, Fontes, Documentos e Revisão, sem os diálogos antigos, e o texto digitado não se perde', async ({
   page,
 }) => {
   const { piece, text } = await openSavedPiece(page);
@@ -336,6 +336,7 @@ test('peça salva: abas Texto, Fontes, Documentos e Revisão, sem os diálogos a
   const tab = (name: string) => tabs.getByRole('tab', { name, exact: true });
 
   await expect(tab('Texto')).toHaveAttribute('aria-selected', 'true');
+  await expect(tab('Estrutura')).toBeEnabled();
   await expect(tab('Fontes')).toBeEnabled();
   await expect(tab('Documentos')).toBeEnabled();
   await expect(tab('Revisão')).toBeEnabled();
@@ -365,8 +366,8 @@ test('abas da peça: setas e Home/End trocam de aba, e peça sem caso não tem r
   const tabs = piece.getByRole('tablist', { name: 'Partes da peça' });
   await tabs.getByRole('tab', { name: 'Texto', exact: true }).focus();
   await page.keyboard.press('ArrowRight');
-  await expect(tabs.getByRole('tab', { name: 'Fontes', exact: true })).toBeFocused();
-  await expect(tabs.getByRole('tab', { name: 'Fontes', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(tabs.getByRole('tab', { name: 'Estrutura', exact: true })).toBeFocused();
+  await expect(tabs.getByRole('tab', { name: 'Estrutura', exact: true })).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('End');
   await expect(tabs.getByRole('tab', { name: 'Revisão', exact: true })).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('Home');
@@ -409,10 +410,12 @@ test('peça sem caso: a aba Fontes explica e cria o caso só com o nome, e a pe�
   expect(created.description ?? null).toBeNull();
 });
 
-test('acessibilidade das abas da peça: Texto, Fontes, Documentos e Revisão, sem violação', async ({ page }) => {
+test('acessibilidade das abas da peça: Texto, Estrutura, Fontes, Documentos e Revisão, sem violação', async ({
+  page,
+}) => {
   const { piece } = await openSavedPiece(page);
   const tabs = piece.getByRole('tablist', { name: 'Partes da peça' });
-  for (const name of ['Texto', 'Fontes', 'Documentos', 'Revisão']) {
+  for (const name of ['Texto', 'Estrutura', 'Fontes', 'Documentos', 'Revisão']) {
     await tabs.getByRole('tab', { name, exact: true }).click();
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     expect(
@@ -420,6 +423,64 @@ test('acessibilidade das abas da peça: Texto, Fontes, Documentos e Revisão, se
       `aba ${name}`,
     ).toEqual([]);
   }
+});
+
+// Estrutura do caso (E1): a aba mostra a análise de fatos e provas mais recente do caso, sem formulário. Aqui as duas rotas de
+// leitura são simuladas, para provar só o que a tela faz com o resultado; a rota em si tem teste próprio na API.
+test('aba Estrutura: caso sem análise orienta pela conversa; com análise mostra itens classificados, fontes e pontos a conferir', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const { piece } = await openSavedPiece(page);
+  const tabs = piece.getByRole('tablist', { name: 'Partes da peça' });
+  await tabs.getByRole('tab', { name: 'Estrutura', exact: true }).click();
+  const panel = piece.getByRole('tabpanel', { name: 'Estrutura' });
+  await expect(panel.getByText('ainda não analisou os fatos e as provas')).toBeVisible();
+  // Sem formulário e sem botão para preencher: a correção é pela conversa.
+  await expect(panel.getByRole('button')).toHaveCount(0);
+  await expect(panel.getByRole('textbox')).toHaveCount(0);
+
+  const delivery = {
+    id: 'delivery:estrutura-simulada',
+    delivery: {
+      action: 'analyze_evidence',
+      status: 'COMPLETED',
+      humanReviewRequired: true,
+      legalAssessment: 'Leitura sintética.',
+      issues: [{ id: 'q1', statement: 'Houve cobrança indevida?', sourceIds: ['s1'] }],
+      claims: [
+        { id: 'c1', statement: 'O autor foi cobrado duas vezes.', classification: 'ALLEGATION', sourceIds: ['s1'] },
+        { id: 'c2', statement: 'A cobrança é ilegal.', classification: 'INFERENCE', sourceIds: [] },
+      ],
+      requirements: [],
+      findings: [],
+      sources: [{ id: 's1', kind: 'DOCUMENT', documentId: 'd1', versionId: 'v1' }],
+    },
+  };
+  await page.route(/\/api\/agentic\/matters\/[^/]+\/structure$/, (route) =>
+    route.fulfill({
+      json: { structure: { executionId: 'e1', deliveryId: delivery.id, updatedAt: '2026-11-20T12:00:00.000Z' } },
+    }),
+  );
+  await page.route(/\/api\/agentic\/deliveries\/delivery%3Aestrutura-simulada$/, (route) =>
+    route.fulfill({ json: delivery }),
+  );
+  await tabs.getByRole('tab', { name: 'Texto', exact: true }).click();
+  await page.reload();
+  const reopened = page.getByRole('region', { name: 'Mesa da peça' });
+  await reopened
+    .getByRole('tablist', { name: 'Partes da peça' })
+    .getByRole('tab', { name: 'Estrutura', exact: true })
+    .click();
+  const ready = reopened.getByRole('tabpanel', { name: 'Estrutura' });
+  await expect(ready.getByText('Houve cobrança indevida?')).toBeVisible();
+  await expect(ready.getByText('O autor foi cobrado duas vezes.')).toBeVisible();
+  await expect(ready.getByText('Alegação', { exact: true })).toBeVisible();
+  await expect(ready.getByText('Inferência', { exact: true })).toBeVisible();
+  await expect(ready.getByText('[1] Documento do caso')).toBeVisible();
+  await expect(ready.getByRole('button')).toHaveCount(0);
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
 test('etapas do trabalho: lista ordenada com o estado de cada etapa, sem nome de documento nem identificador', async ({

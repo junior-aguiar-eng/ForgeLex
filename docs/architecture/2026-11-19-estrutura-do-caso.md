@@ -8,13 +8,33 @@ Uma seção exclusiva "Estrutura do caso", dentro da Mesa. Os agentes dissecam, 
 entregue pelo cliente, por **texto colado na janela** ou **PDF enviado**. Não é a estrutura antiga (formulários de fato,
 prova, linha do tempo, questão e memorando preenchidos à mão).
 
-## Ponto de partida real (verificado no código)
+## Ponto de partida real (verificado no código em 20/11/2026; corrige a primeira versão deste texto)
 
-- A API já tem registros de fatos, provas, cobertura, linha do tempo, questões e análises (`/api/v2/matters/:id/facts|evidence|timeline|issues|analyses`).
-- O fluxo de análise por IA existe (`packages/legal-workflows/src/case-document-analysis`, painel `CaseAnalysisPanel`): produz sugestões
-  de FATO, PROVA, LINHA DO TEMPO, QUESTÃO e LACUNA, que o usuário aceita ou recusa.
-- **Esse painel só existia dentro da tela Casos.** Com "Dados do caso" removida do gelo, hoje o gelo não tem como disparar nem
-  ver a análise do caso. Esta frente corrige isso e é a prioridade.
+- A API guarda fatos, provas, cobertura, linha do tempo, questões e análises (`/api/v2/matters/:id/facts|evidence|timeline|issues|analyses`).
+- **O ForgeLex não tem hoje um agente próprio que extraia a estrutura de um documento.** O `CaseDocumentAnalysisWorkflow` só reorganiza o que
+  já foi cadastrado e diz, nas suas limitações, que "não extrai fatos novos automaticamente". A ferramenta `case.save_analysis` só aceita
+  chamadas vindas do MCP com conexão OAuth (`source === 'MCP'`): as propostas de análise que o painel antigo mostrava vinham da IA
+  **própria do cliente** (Conectar IA), não de um agente do ForgeLex.
+- O painel antigo de conferência (`CaseAnalysisPanel`) só existia dentro da tela Casos. Com ela removida do gelo, o gelo não tem como ver
+  nem decidir essas propostas. Isso se corrige com a aba "Estrutura".
+- Já existe a ação `analyze_evidence` (papel `matter-analyst`) no fluxo agêntico da Mesa, com cobrança por trabalho em créditos. É o lugar
+  natural do novo agente.
+
+## Decisão de arquitetura (corrigida em 20/11/2026, depois de ler o fluxo agêntico)
+
+**Não se cria um agente novo.** O fluxo agêntico da Mesa já tem a ação `analyze_evidence` ("Analisar fatos e provas", papel `matter-analyst`,
+conferida por `adversarial-reviewer`), que emite: questões, afirmações classificadas (alegação, dado extraído, inferência), matriz de
+prova com **trecho literal e posição UTF-16 conferidos contra a fonte** (`quoteStatus: MATCHED`), cronologia, contradições e lacunas. A Mesa
+já mostra isso no resultado da conversa, e existe fluxo de aprovação (`evidence-review`, `approved-case-context`) que leva o que o usuário
+confere para o contexto aprovado do caso. A trava contra invenção que eu propunha já existe ali.
+
+O que falta, e é o que esta frente faz:
+1. **Persistência na vista do caso:** hoje o resultado só aparece dentro da conversa que o gerou. A aba "Estrutura" mostra o resultado
+   vigente do caso (a última análise concluída e o que já foi aprovado), sem precisar procurar a conversa.
+2. **Disparo sem botão:** o usuário cola o relato ou salva o PDF no caso e a análise é proposta sozinha (hoje depende de escolher "Analisar
+   fatos e provas" no seletor ou de o modo Automático acertar). Verificar o que o modo Automático faz com um relato colado.
+3. **Decisão pela conversa:** aprovar, corrigir ou descartar itens no compositor ("o fato 3 foi em 2021"), usando o fluxo de aprovação existente.
+4. **IA própria do cliente (MCP):** continua enviando análises ao repositório de análises; a aba as exibe junto.
 
 ## Desenho
 
@@ -37,9 +57,10 @@ prova, linha do tempo, questão e memorando preenchidos à mão).
 
 ## Fatias
 
-- **E1 (corrige a regressão):** aba "Estrutura" lendo e exibindo o que a API já guarda e as sugestões da análise, com aceitar
-  por padrão e a análise disparada ao salvar documento no caso. Reaproveita os endpoints e o `CaseAnalysisPanel` como fonte
-  de lógica; a interface nova é só leitura, mais correção por conversa.
+- **E1 (corrige a regressão do gelo):** aba "Estrutura" que lê o que a API já guarda e as propostas de análise pendentes (da IA do
+  cliente), com os itens que têm âncora já aceitos por padrão e o resto "a confirmar". Só leitura, mais decisão pela conversa.
+- **E1b (substitui o `structure_case` proposto antes):** disparo automático da análise existente ao salvar documento no caso ou colar um relato, e
+  estrutura persistente do caso a partir da análise vigente. Não cria agente novo.
 - **E2:** correção por conversa (comandos sobre itens: alterar, remover, acrescentar) e resumo do caso.
 - **E3:** estrutura confirmada entrando na orientação guiada e na minuta; lacunas viram perguntas.
 - **E4:** PDF direto (identificar a peça e extrair partes e datas pela leitura do PDF, item U5 pendente).
@@ -48,3 +69,11 @@ prova, linha do tempo, questão e memorando preenchidos à mão).
 
 Só textos sintéticos nos testes. Sem a aba, nada de dado real é estruturado. Regras de privacidade e consentimento de IA do
 caso permanecem: a análise só roda com o acesso da IA autorizado.
+
+## Estado de execução
+
+**E1 entregue (20/11/2026):** rota `GET /api/agentic/matters/:matterId/structure` (indica a análise de fatos e provas concluída mais recente do
+caso; 3 testes, com mutação) e aba **Estrutura** na peça (gelo), que mostra o resultado com classificação, fontes e pontos a conferir, sem
+formulário e sem botão. Ambiente sem o fluxo de análise (rota ausente) mostra o estado vazio, não erro. **Limite:** o teste de navegador usa as
+duas rotas de leitura simuladas; o encontro real rota + tela só aparece com o fluxo de análise ligado. **Falta:** disparo automático ao salvar
+documento ou colar relato (E1b), decisão pela conversa (E2), estrutura na orientação guiada e na minuta (E3), PDF direto (E4).
