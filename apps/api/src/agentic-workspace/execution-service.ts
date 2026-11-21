@@ -27,6 +27,7 @@ import { InferenceBudgetService } from '@forgelex/billing-ledger';
 import { ExecutionStore, digest, type ExecutionJob, type WorkerLease } from './execution-store.js';
 import { projectClientExecutionEvent, publicQuestion, type ExecutionFailureReason } from './event-stream.js';
 import { reportAgenticFailure } from './failure-log.js';
+import { routePastedAccount } from './pasted-account.js';
 
 const id = z.string().trim().min(1).max(200);
 export const StartExecutionSchema = z
@@ -298,9 +299,11 @@ export class ExecutionService {
       key,
       { kind: 'start', input: requested, approval, ...(initialCheckpoint ? { initialCheckpoint } : {}) },
       async (s) => {
-        const input = this.options.prepareStart
-          ? StartExecutionSchema.parse(await this.options.prepareStart(s, owner, requested))
-          : requested;
+        const input = routePastedAccount(
+          this.options.prepareStart
+            ? StartExecutionSchema.parse(await this.options.prepareStart(s, owner, requested))
+            : requested,
+        );
         let conversation = input.conversationId
           ? await s.workspace.getConversation(owner, input.conversationId)
           : undefined;
