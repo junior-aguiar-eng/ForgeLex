@@ -1,0 +1,116 @@
+{
+  "action": "review_text",
+  "status": "CANDIDATE",
+  "humanReviewRequired": true,
+  "legalAssessment": "NOT_EVALUATED",
+  "issues": [
+    {
+      "id": "escopo",
+      "statement": "EDITORIAL: revisar somente o texto DRAFT disponível; apresentar achados e sugestões na conversa, sem editar, salvar versão, aplicar mudanças, pesquisar fontes externas ou pedir informações adicionais. Preservar a indicação de exercício fictício.",
+      "sourceIds": ["review-source-1", "review-source-2"]
+    },
+    {
+      "id": "concordancia",
+      "statement": "EDITORIAL: apontar a discordância em 'As parte informa que os documento foi recebido'. Sugerir, se mantido o plural indicado pelos artigos: 'As partes informam que os documentos foram recebidos em 3 de novembro de 2026'. A sugestão não confirma quantas partes ou documentos existem.",
+      "sourceIds": ["review-source-2"]
+    },
+    {
+      "id": "valores",
+      "statement": "EDITORIAL: apontar incoerência aritmética interna: três parcelas de R$ 100,00 somam R$ 300,00, enquanto o relato indica R$ 200,00. Sugerir R$ 300,00 apenas se preservados quantidade e valor unitário; não tratar como comprovado qual dado corresponde ao relato pretendido.",
+      "sourceIds": ["review-source-2"]
+    },
+    {
+      "id": "clareza",
+      "statement": "EDITORIAL: avaliar a referência genérica a 'As parte' em relação às duas entidades nomeadas, sem presumir quem recebeu os documentos. Como sugestão de clareza, indicar que a identificação do sujeito tornaria a frase mais precisa, sem inventá-la. Manter a revisão limitada à linguagem e à coerência interna, sem verificar fatos, data ou obrigações jurídicas.",
+      "sourceIds": ["review-source-2"]
+    }
+  ],
+  "claims": [
+    {
+      "id": "0623a0beb6:c1",
+      "classification": "INFERENCE",
+      "statement": "Há discordância em “As parte informa que os documento foi recebido”. Se mantido o plural dos artigos, a sugestão é: “As partes informam que os documentos foram recebidos em 3 de novembro de 2026”. Isso não confirma a quantidade de partes ou documentos.",
+      "sourceIds": ["review-source-2"]
+    },
+    {
+      "id": "0623a0beb6:c2",
+      "classification": "CONFLICT",
+      "statement": "O texto menciona três parcelas de R$ 100,00, mas indica total de R$ 200,00. Três vezes R$ 100,00 resulta em R$ 300,00: sugerir esse total somente se forem mantidos a quantidade e o valor unitário. O texto não permite determinar qual dado expressa o relato pretendido.",
+      "sourceIds": ["review-source-2"]
+    },
+    {
+      "id": "0623a0beb6:c3",
+      "classification": "INFERENCE",
+      "statement": "A expressão “As parte” não identifica com precisão quem recebeu os documentos. Para maior clareza, sugere-se explicitar o sujeito nessa frase, sem presumir que o recebimento ocorreu por uma ou por ambas as entidades nomeadas.",
+      "sourceIds": ["review-source-2"]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "0623a0beb6:r1",
+      "kind": "EDITORIAL",
+      "statement": "Apresentar apenas achados e sugestões na conversa, com base no texto disponível; não editar, salvar versão, aplicar alterações, pesquisar fontes externas ou pedir informações adicionais.",
+      "sourceIds": ["review-source-1"],
+      "verified": true
+    },
+    {
+      "id": "0623a0beb6:r2",
+      "kind": "EDITORIAL",
+      "statement": "Preservar a indicação de exercício inteiramente fictício. Limitar a revisão à concordância, clareza e coerência interna, sem validar fatos, data ou obrigações jurídicas.",
+      "sourceIds": ["review-source-2", "review-source-1"],
+      "verified": true
+    },
+    {
+      "id": "2dae41c78e:r1",
+      "kind": "EDITORIAL",
+      "statement": "Revisão limitada ao texto da versão review-source-2, sem pesquisas, edição, nova versão ou informações adicionais. Preservar o aviso de exercício fictício; não validar fatos, data ou obrigações jurídicas.",
+      "sourceIds": ["review-source-1", "review-source-2"],
+      "verified": true
+    }
+  ],
+  "findings": [
+    {
+      "id": "2dae41c78e:f1",
+      "code": "CONCORDANCIA",
+      "severity": "WARNING",
+      "statement": "Em “As parte informa que os documento foi recebido”, há discordâncias de número. Mantido o plural dos artigos, sugestão: “As partes informam que os documentos foram recebidos em 3 de novembro de 2026”. A sugestão não confirma quantas partes ou documentos existem.",
+      "sourceIds": ["review-source-2"]
+    },
+    {
+      "id": "2dae41c78e:f2",
+      "code": "TOTAL_DIVERGENTE",
+      "severity": "WARNING",
+      "statement": "“Três parcelas de R$ 100,00 cada” somam R$ 300,00, não os R$ 200,00 indicados: diferença de R$ 100,00. Sugestão: indicar R$ 300,00 somente se mantidos quantidade e valor unitário. O texto não permite determinar qual dado corresponde à intenção do relato.",
+      "sourceIds": ["review-source-2"]
+    },
+    {
+      "id": "2dae41c78e:f3",
+      "code": "SUJEITO_IMPRECISO",
+      "severity": "WARNING",
+      "statement": "“As parte” não esclarece quem informa o recebimento; tampouco fica explícito quem recebeu os documentos. Sugestão: identificar esses sujeitos para tornar o relato mais preciso, sem atribuir o recebimento à Cliente Modelo ou à Empresa Aurora por suposição.",
+      "sourceIds": ["review-source-2"]
+    },
+    {
+      "id": "editorial-arithmetic:v1:0:313:review-source-2",
+      "code": "EDITORIAL_ARITHMETIC_MISMATCH",
+      "severity": "WARNING",
+      "statement": "Seção “Texto da peça”: possível divergência no total das parcelas. Sem acréscimos ou abatimentos, 3 × R$ 100,00 = R$ 300,00, mas o total informado é R$ 200,00. Confira os valores e eventuais ajustes; esta conta não valida fatos nem o valor devido e não altera o texto.",
+      "sourceIds": ["review-source-2"]
+    }
+  ],
+  "sources": [
+    {
+      "id": "review-source-1",
+      "kind": "USER_TEXT",
+      "contentHash": "synthetic-hash-1"
+    },
+    {
+      "id": "review-source-2",
+      "kind": "DRAFT",
+      "contentHash": "synthetic-hash-2",
+      "versionId": "review-source-2",
+      "extent": "SELECTED_TEXT",
+      "identityStatus": "HUMAN"
+    }
+  ]
+}

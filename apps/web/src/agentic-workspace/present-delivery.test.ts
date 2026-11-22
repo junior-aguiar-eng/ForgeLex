@@ -3,6 +3,87 @@ import type { Delivery } from './execution-model';
 import { presentDelivery, deliveryPlainText } from './present-delivery';
 import { readFileSync } from 'node:fs';
 
+const deskReview = JSON.parse(
+  readFileSync('tests/fixtures/editorial/desk-review.json', 'utf8'),
+) as Delivery['delivery'];
+
+describe('revisão na conversa com a entrega sintética de 06/11', () => {
+  it('apresenta os achados uma vez sem planejamento nem requisitos operacionais', () => {
+    const before = JSON.stringify(deskReview);
+    const view = presentDelivery(deskReview);
+    const text = deliveryPlainText(view);
+    expect(view.blocks).toHaveLength(3);
+    for (const finding of deskReview.findings.slice(0, 3)) expect(text).toContain(finding.statement);
+    expect(text).not.toMatch(/EDITORIAL:|DRAFT|Questões|Afirmações|review-source|salvar versão/);
+    expect(view.blocks.every((block) => block.citations.length === 1)).toBe(true);
+    expect(view.sources).toHaveLength(2);
+    expect(JSON.stringify(deskReview)).toBe(before);
+  });
+
+  it('mantém divergências com outros valores, fontes ou mais de uma ocorrência', () => {
+    for (const change of ['values', 'source', 'multiple', 'blocking', 'wrong-sum']) {
+      const d = structuredClone(deskReview);
+      if (change === 'values') d.findings[1].statement = d.findings[1].statement.replaceAll('200,00', '250,00');
+      if (change === 'source') d.findings[1].sourceIds = ['other'];
+      if (change === 'multiple') d.findings.push({ ...d.findings[3], id: 'another-location' });
+      if (change === 'blocking') d.findings[3].severity = 'BLOCKING';
+      if (change === 'wrong-sum')
+        d.findings[1].statement = d.findings[1].statement.replace('somam R$ 300,00', 'somam R$ 200,00');
+      expect(presentDelivery(d).blocks.some((block) => block.text === d.findings[3].statement)).toBe(true);
+    }
+  });
+
+  it('não confunde ausência de achados com validação jurídica e mantém limitações', () => {
+    const d: Delivery['delivery'] = { ...deskReview, findings: [] };
+    const text = deliveryPlainText(presentDelivery(d));
+    expect(text).toContain('Nenhuma alteração foi sugerida');
+    expect(text).not.toMatch(/EDITORIAL:|DRAFT|review-source/);
+    d.findings = [
+      {
+        id: 'limit',
+        code: 'SOURCE_UNAVAILABLE',
+        statement: 'Não foi possível ler o anexo.',
+        severity: 'BLOCKING',
+        sourceIds: [],
+      },
+    ];
+    const limited = deliveryPlainText(presentDelivery(d));
+    expect(limited).toContain('Não foi possível ler o anexo.');
+    expect(limited).not.toContain('Nenhuma alteração');
+  });
+
+  it('preserva requisito não verificado sem duplicá-lo quando já consta dos achados', () => {
+    const d: Delivery['delivery'] = {
+      ...deskReview,
+      findings: [],
+      requirements: [
+        {
+          id: 'gap',
+          kind: 'EDITORIAL',
+          statement: 'A referência ao anexo não pôde ser conferida.',
+          verified: false,
+          sourceIds: ['review-source-2'],
+        },
+      ],
+    };
+    const text = deliveryPlainText(presentDelivery(d));
+    expect(text).toContain('A referência ao anexo não pôde ser conferida.');
+    expect(text).not.toContain('Nenhuma alteração');
+    d.findings.push({
+      id: 'gap-finding',
+      code: 'EDITORIAL_REQUIREMENT_UNVERIFIED',
+      statement: d.requirements[0].statement,
+      sourceIds: ['review-source-2'],
+      severity: 'WARNING',
+    });
+    const single = presentDelivery(d);
+    expect(single.blocks).toHaveLength(1);
+    expect(single.blocks[0].citations).toHaveLength(1);
+    d.requirements[0].sourceIds = ['review-source-1'];
+    expect(presentDelivery(d).blocks[0].citations).toHaveLength(2);
+  });
+});
+
 it('historical D01 already presents five issues without exposing scoped identifiers', () => {
   const run = JSON.parse(
     readFileSync('docs/architecture/evidence/2026-11-03-verifier-v8/real/D01-analyze-candidate.json', 'utf8'),

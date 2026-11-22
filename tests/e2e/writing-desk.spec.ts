@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { readFile } from 'node:fs/promises';
+import JSZip from 'jszip';
 import { randomUUID } from 'node:crypto';
 
 // Sair da Mesa para outra tela e voltar: no gelo os casos vivem na Mesa e não há item "Casos" na lateral (U7).
@@ -310,7 +312,15 @@ test('edição local, exportação, versão salva e pedido contextual na mesma m
   await desk.getByLabel('Exportar peça').click();
   const download = page.waitForEvent('download');
   await desk.getByRole('button', { name: /Word/ }).click();
-  expect((await download).suggestedFilename()).toMatch(/\.docx$/);
+  const word = await download;
+  expect(word.suggestedFilename()).toMatch(/\.docx$/);
+  const wordPath = await word.path();
+  expect(wordPath).toBeTruthy();
+  const zip = await JSZip.loadAsync(await readFile(wordPath!));
+  const xml = await zip.file('word/document.xml')!.async('string');
+  expect(xml).toContain('Texto editado localmente, sem chamada à IA.');
+  expect(xml).toContain('Petição de teste local');
+  expect(xml).not.toContain('undefined');
   await page.context().addInitScript(() => {
     window.print = () => {};
   });
@@ -320,6 +330,9 @@ test('edição local, exportação, versão salva e pedido contextual na mesma m
   const print = await popup;
   await expect(print.getByText('Texto editado localmente, sem chamada à IA.')).toBeVisible();
   await expect(print.getByRole('heading', { name: 'Petição de teste local' })).toBeVisible();
+  const pdf = await print.pdf({ preferCSSPageSize: true });
+  expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+  expect(pdf.length).toBeGreaterThan(1000);
   await print.close();
   // Choosing a case must preserve the locally authored text.
   await page.getByRole('button', { name: 'Recolher peça' }).click();
