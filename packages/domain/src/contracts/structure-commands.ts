@@ -1,5 +1,7 @@
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { EvidenceReviewCommand, EvidenceReviewItem } from './evidence-review.js';
+import type { TaskSource } from './agentic-case-task.js';
 
 const ItemIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const TextoSchema = z.string().trim().min(3).max(4000);
@@ -23,6 +25,91 @@ export const StructureCommandSchema = z.discriminatedUnion('op', [
 export type StructureCommand = z.infer<typeof StructureCommandSchema>;
 
 export const StructureCommandsSchema = z.array(StructureCommandSchema).min(1).max(20);
+
+/**
+ * Result of the adjust_structure action, stored with the delivery. Commands may be empty when every reference was
+ * ambiguous: the agent omits a command instead of guessing, and says why in its findings.
+ */
+export const StructureAdjustmentSchema = z.strictObject({
+  commands: z.array(StructureCommandSchema).max(20),
+  caseSummary: z.string().trim().min(1).max(1500),
+});
+export type StructureAdjustment = z.infer<typeof StructureAdjustmentSchema>;
+
+/** Public reference the user can use for an item: facts F1, F2..., evidence P1, P2..., in review order. */
+export function structureItemLabels(items: readonly Pick<EvidenceReviewItem, 'id' | 'kind'>[]): Map<string, string> {
+  const labels = new Map<string, string>();
+  let facts = 0,
+    evidence = 0;
+  for (const item of items) {
+    if (item.kind === 'FACT') labels.set(item.id, `F${++facts}`);
+    else if (item.kind === 'EVIDENCE') labels.set(item.id, `P${++evidence}`);
+  }
+  return labels;
+}
+
+/** Reserved id prefix of the server-assembled source that lists the items of the current analysis. */
+export const STRUCTURE_ITEMS_SOURCE_PREFIX = 'structure:';
+const StructureListedItemSchema = z.strictObject({
+  id: ItemIdSchema,
+  label: z.string().optional(),
+  kind: z.enum(['FACT', 'EVIDENCE', 'GAP', 'ISSUE', 'TIMELINE']),
+  classification: z.string(),
+  text: z.string(),
+  dateText: z.string().optional(),
+  eventDate: z.string().optional(),
+  decided: z.literal(true).optional(),
+  userAdded: z.literal(true).optional(),
+});
+const StructureListSchema = z.strictObject({ items: z.array(StructureListedItemSchema).max(1000) });
+
+/**
+ * One PREVIOUS_DELIVERY source with the items of the current analysis (id and text), so the agent can resolve the
+ * user's reference. Built by the server from the evidence review; it is analysis output, not documentary proof.
+ */
+export function structureItemsSource(
+  deliveryId: string,
+  items: readonly EvidenceReviewItem[],
+  decidedIds: ReadonlySet<string>,
+): TaskSource {
+  const labels = structureItemLabels(items);
+  const text = JSON.stringify(
+    StructureListSchema.parse({
+      items: items.map((item) => ({
+        id: item.id,
+        ...(labels.has(item.id) ? { label: labels.get(item.id) } : {}),
+        kind: item.kind,
+        classification: item.classification,
+        text: item.text,
+        ...(item.dateText ? { dateText: item.dateText } : {}),
+        ...(item.eventDate ? { eventDate: item.eventDate } : {}),
+        ...(decidedIds.has(item.id) ? { decided: true } : {}),
+        ...(item.userAdded ? { userAdded: true } : {}),
+      })),
+    }),
+  );
+  return {
+    id: `${STRUCTURE_ITEMS_SOURCE_PREFIX}${deliveryId}`,
+    kind: 'PREVIOUS_DELIVERY',
+    text,
+    contentHash: createHash('sha256').update(text).digest('hex'),
+    extent: 'SELECTED_TEXT',
+  };
+}
+
+/** Item ids listed by the structure source; undefined when the packet has none. Two lists are a conflict. */
+export function readStructureItemIds(sources: readonly TaskSource[]): Set<string> | undefined {
+  const found = sources.filter((s) => s.kind === 'PREVIOUS_DELIVERY' && s.id.startsWith(STRUCTURE_ITEMS_SOURCE_PREFIX));
+  if (!found.length) return undefined;
+  const source = found[0]!;
+  if (found.length > 1 || createHash('sha256').update(source.text).digest('hex') !== source.contentHash)
+    throw new Error('STRUCTURE_SOURCE_CONFLICT');
+  try {
+    return new Set(StructureListSchema.parse(JSON.parse(source.text)).items.map((i) => i.id));
+  } catch {
+    throw new Error('STRUCTURE_SOURCE_CONFLICT');
+  }
+}
 
 export type StructureQuestionReason =
   'ITEM_DESCONHECIDO' | 'JA_DECIDIDO' | 'DATA_SO_PARA_LINHA_DO_TEMPO' | 'SEM_EFEITO';

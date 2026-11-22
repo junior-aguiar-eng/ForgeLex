@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
-import type { ForgeLexDatabase, Client } from '@forgelex/persistence';
+import {
+  AgenticWorkspaceRepository,
+  NativeEvidenceReviewRepository,
+  type ForgeLexDatabase,
+  type Client,
+} from '@forgelex/persistence';
 import { InferenceBudgetService, getForgeLexBillingPolicy } from '@forgelex/billing-ledger';
 import {
   NativeCaseContextService,
@@ -18,7 +23,14 @@ import {
   caseTaskPreviousDeliveryIds,
   type CaseTaskOptions,
 } from '@forgelex/legal-workflows';
-import { AgenticTaskActionSchema, type TaskBinding } from '@forgelex/domain';
+import {
+  AgenticTaskActionSchema,
+  structureItemsSource,
+  type AgenticExecution,
+  type AgenticOwner,
+  type TaskBinding,
+} from '@forgelex/domain';
+import { findCurrentStructure } from './current-structure.js';
 import type { AgentTool, ToolExecutionContext } from '@forgelex/agent-core';
 import type { SearchCaseLawInput } from '@forgelex/legal-tools';
 import type { IndexedLegislationProvider } from '@forgelex/source-providers';
@@ -35,6 +47,8 @@ export interface NativeCaseTaskOptions {
   /** Trusted commercial gate: indexed research is included in its existing reservation. */
   executeIncludedResearch?: <T>(binding: TaskBinding, operation: () => Promise<T>) => Promise<T>;
   legislationProvider?: IndexedLegislationProvider;
+  /** Runtime execution boundary (commercial or pilot); the current analysis is searched only among these. */
+  manages?: (execution: AgenticExecution) => boolean;
 }
 export function createCaseTaskDriver(
   database: ForgeLexDatabase,
@@ -57,6 +71,20 @@ export function createCaseTaskDriver(
     ...(researchTools ?? []),
     ...(legislation ? [legislation] : []),
   ]);
+  const reviews = new NativeEvidenceReviewRepository(database, options.authorizeNative);
+  const workspace = new AgenticWorkspaceRepository(database);
+  // adjust_structure: the items of the case's current analysis (same criterion as the Estrutura tab), with id and text.
+  const structureSource = async (owner: AgenticOwner, matterId: string | undefined) => {
+    if (!matterId) throw new Error('STRUCTURE_NOT_AVAILABLE');
+    const current = await findCurrentStructure(
+      { store: { workspace }, native, manages: options.manages },
+      owner,
+      matterId,
+    );
+    if (!current) throw new Error('STRUCTURE_NOT_AVAILABLE');
+    const review = await reviews.preview(owner, current.deliveryId);
+    return structureItemsSource(current.deliveryId, review.items, new Set(Object.keys(review.decisions)));
+  };
   const driver: ExecutionDriver = {
     next: ({ execution }) => ({
       callId: `case-task:${caseTaskStepIndex(execution.checkpoint?.caseTask)}:${execution.contextRevision}`,
@@ -117,7 +145,10 @@ export function createCaseTaskDriver(
           workflowVersion: options.workflowVersion ?? 10,
           guidedWorkflow: options.guidedWorkflow,
           skills: options.skills,
-          context: native,
+          context:
+            binding.actionId === 'adjust_structure'
+              ? native.withTrustedSources([await structureSource(owner, binding.matterId)])
+              : native,
           tools,
           createProvider: options.createProvider,
           authorizeRealProvider: options.authorizeRealProvider,

@@ -37,6 +37,7 @@ const KIND_LABEL: Record<string, string> = {
 const TITLE: Record<string, string> = {
   analyze_documents: 'Análise dos documentos',
   analyze_evidence: 'Análise de fatos e provas',
+  adjust_structure: 'Ajuste da estrutura',
   research_question: 'Pesquisa',
   review_text: 'Revisão do texto',
 };

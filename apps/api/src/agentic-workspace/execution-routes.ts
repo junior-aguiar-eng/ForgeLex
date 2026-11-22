@@ -95,6 +95,7 @@ export function registerAgenticWorkspace(
           {
             ...(pilot?.caseTask ?? commercial?.caseTask ?? deps.options!.caseTask)!,
             guidedWorkflow: !pilot && deps.environment.FORGELEX_DESK_GUIDANCE_ENABLED === 'true',
+            manages: commercial?.canManageExecution ?? pilot?.canManageExecution,
           },
           pilot || commercial ? undefined : deps.researchService,
         )

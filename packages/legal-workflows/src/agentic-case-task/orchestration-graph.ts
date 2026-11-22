@@ -86,7 +86,10 @@ export function graphRoles(plan: TaskPlan, reviewRequired: boolean): GraphRole[]
     if (role === 'procedural-advisor') return (plan.action === 'create_document' && !factual) || plan.requiresProcedure;
     if (role === 'legal-drafter') return plan.action === 'create_document';
     if (role === 'adversarial-reviewer')
-      return ['create_document', 'review_text', 'analyze_evidence'].includes(plan.action) || reviewRequired;
+      return (
+        ['create_document', 'review_text', 'analyze_evidence', 'adjust_structure'].includes(plan.action) ||
+        reviewRequired
+      );
     return true; // Verification is a terminal conditional node, including the no-legal-evidence branch.
   });
 }
