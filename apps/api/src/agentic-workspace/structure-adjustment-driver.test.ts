@@ -4,6 +4,7 @@ import { FakeAgentProvider } from '@forgelex/agent-core';
 import { STRUCTURE_ITEMS_SOURCE_PREFIX } from '@forgelex/domain';
 import { createEvidenceFixture } from '../../../../packages/persistence/src/testing/native-evidence-review-fixture.js';
 import { createCaseTaskDriver } from './case-task-driver.js';
+import { findCurrentStructure } from './current-structure.js';
 
 const cleanup: (() => void)[] = [];
 afterEach(() => {
@@ -111,4 +112,23 @@ it('does not run without a current analysis of the case', async () => {
   });
   await expect(run()).rejects.toThrow('STRUCTURE_NOT_AVAILABLE');
   expect(packets).toEqual({});
+});
+
+it('applies the commands when the work completes, and the analysis stays the current one', async () => {
+  const { f, execution, items, run, native } = await setup();
+  const gap = items.find((i) => i.kind === 'GAP')!;
+  expect((await run()).kind).toBe('completed');
+  const review = await f.reviews.preview(f.owner, f.saved.id);
+  expect(review.decisions[gap.id]).toMatchObject({ action: 'DISCARD' });
+  expect(review.items.filter((i) => i.userAdded).map((i) => i.text)).toEqual(['O cliente pagou abril em dinheiro.']);
+  expect((await f.client.execute('SELECT * FROM facts')).rows).toHaveLength(0);
+  expect(Object.values(review.adjustments ?? {})).toEqual([
+    expect.objectContaining({ executionId: execution.id, applied: 2, questions: [] }),
+  ]);
+  // The worker then marks the adjustment completed in its own conversation; the analysis is still the current one.
+  await f.workspace.compareAndSetStatus(f.owner, execution.id, 'RUNNING', 'COMPLETED');
+  const saved = await f.workspace.getExecution(f.owner, execution.id);
+  expect(saved!.deliveryIds).toHaveLength(1);
+  const current = await findCurrentStructure({ store: { workspace: f.workspace }, native }, f.owner, f.matter.id);
+  expect(current).toMatchObject({ executionId: f.execution.id, deliveryId: f.saved.id });
 });

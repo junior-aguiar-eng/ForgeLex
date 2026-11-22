@@ -31,6 +31,7 @@ import {
   type TaskBinding,
 } from '@forgelex/domain';
 import { findCurrentStructure } from './current-structure.js';
+import { applyStructureAdjustment } from './apply-structure-adjustment.js';
 import type { AgentTool, ToolExecutionContext } from '@forgelex/agent-core';
 import type { SearchCaseLawInput } from '@forgelex/legal-tools';
 import type { IndexedLegislationProvider } from '@forgelex/source-providers';
@@ -154,6 +155,18 @@ export function createCaseTaskDriver(
           authorizeRealProvider: options.authorizeRealProvider,
         });
         const result = await task.step(binding, execution.checkpoint?.caseTask, signal);
+        // adjust_structure: once its delivery is persisted, apply the commands to the current analysis. Idempotent per
+        // execution; what cannot be applied safely is kept as questions with the analysis' review.
+        if (binding.actionId === 'adjust_structure' && result.kind === 'completed' && result.deliveryIds?.length) {
+          const id = result.deliveryIds.at(-1)!;
+          const { delivery } = await native.getDelivery(owner, id);
+          await applyStructureAdjustment(
+            { store: { workspace }, native, reviews, manages: options.manages },
+            owner,
+            binding.matterId!,
+            { id, delivery },
+          );
+        }
         if (result.kind === 'question')
           return { kind: 'question', checkpoint: { caseTask: result.state }, question: result.question! };
         return {

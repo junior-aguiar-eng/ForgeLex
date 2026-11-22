@@ -9,6 +9,7 @@ import {
   type EvidenceReviewCommand,
   type EvidenceReviewDecision,
   type EvidenceReviewItem,
+  type StructureAdjustmentRecord,
 } from '@forgelex/domain';
 import type { ForgeLexDatabase } from '../db.js';
 import * as s from '../schema/schema.js';
@@ -26,7 +27,11 @@ interface SavedReview {
   decisions: Record<string, EvidenceReviewDecision>;
   added?: EvidenceReviewItem[];
   commands: Record<string, { inputHash: string }>;
+  adjustments?: Record<string, StructureAdjustmentRecord>;
 }
+/** Cap of items the user may add to one review (also the schema limit of the saved review). */
+export const EVIDENCE_REVIEW_ADDED_LIMIT = 50;
+const ADJUSTMENT_RECORDS_KEPT = 100;
 const emptyReview = (): SavedReview => ({ version: 1, revision: 1, decisions: {}, commands: {} });
 const addedItem = z.strictObject({
   texto: z.string().trim().min(3).max(4000),
@@ -214,6 +219,7 @@ export class NativeEvidenceReviewRepository {
           revision: saved.revision,
           items,
           decisions: saved.decisions,
+          ...(saved.adjustments ? { adjustments: saved.adjustments } : {}),
           reviewToken: token(saved.revision),
         };
         await this.authorize(owner, matterId, tx);
@@ -252,6 +258,8 @@ export class NativeEvidenceReviewRepository {
         });
       }
       if (!fresh.length) return review;
+      if ((saved.added?.length ?? 0) + fresh.length > EVIDENCE_REVIEW_ADDED_LIMIT)
+        throw new Error('EVIDENCE_ADDED_LIMIT');
       saved.added = [...(saved.added ?? []), ...fresh];
       saved.revision++;
       const evidenceReviewJson = JSON.stringify(saved);
@@ -268,6 +276,39 @@ export class NativeEvidenceReviewRepository {
         );
       const items = [...review.items, ...fresh];
       return { ...review, items, revision: saved.revision, reviewToken: token(saved.revision, items) };
+    });
+  }
+  /**
+   * Keeps the outcome of an adjust_structure work with this review (first write wins, so a replay returns the stored
+   * outcome). It changes neither items nor decisions, so revision and token stay.
+   */
+  async recordStructureAdjustment(
+    owner: AgenticOwner,
+    id: string,
+    commandId: string,
+    record: StructureAdjustmentRecord,
+  ): Promise<StructureAdjustmentRecord> {
+    z.string().uuid().parse(commandId);
+    return this.guarded(owner, id, async (db, row, _review, saved) => {
+      const existing = saved.adjustments?.[commandId];
+      if (existing) return existing;
+      const kept = Object.entries(saved.adjustments ?? {})
+        .sort(([, a], [, b]) => b.recordedAt.localeCompare(a.recordedAt))
+        .slice(0, ADJUSTMENT_RECORDS_KEPT - 1);
+      saved.adjustments = { ...Object.fromEntries(kept), [commandId]: record };
+      const evidenceReviewJson = JSON.stringify(savedReviewSchema.parse(saved));
+      if (Buffer.byteLength(evidenceReviewJson) > 1000000) throw new Error('EVIDENCE_REVIEW_LIMIT');
+      await db
+        .update(s.agenticTaskDeliveries)
+        .set({ evidenceReviewJson })
+        .where(
+          and(
+            eq(s.agenticTaskDeliveries.id, row.id),
+            eq(s.agenticTaskDeliveries.tenantId, owner.tenantId),
+            eq(s.agenticTaskDeliveries.userId, owner.userId),
+          ),
+        );
+      return record;
     });
   }
   async decide(owner: AgenticOwner, id: string, raw: EvidenceReviewCommand): Promise<EvidenceReview> {

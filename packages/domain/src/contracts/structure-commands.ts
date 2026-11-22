@@ -111,11 +111,34 @@ export function readStructureItemIds(sources: readonly TaskSource[]): Set<string
   }
 }
 
-export type StructureQuestionReason =
-  'ITEM_DESCONHECIDO' | 'JA_DECIDIDO' | 'DATA_SO_PARA_LINHA_DO_TEMPO' | 'SEM_EFEITO';
+export const STRUCTURE_QUESTION_REASONS = [
+  'ITEM_DESCONHECIDO',
+  'JA_DECIDIDO',
+  'DATA_SO_PARA_LINHA_DO_TEMPO',
+  'SEM_EFEITO',
+  // Applying: the current analysis is not the one the agent read; nothing was applied.
+  'ANALISE_ALTERADA',
+  // Applying: the phrase the agent cited is not in the user's request; the item was not added.
+  'FRASE_NAO_ENCONTRADA',
+  // Applying: adding would pass the review's cap of items added by the user; none was added.
+  'LIMITE_DE_ITENS',
+  // Applying: the item cannot be adopted as is (blocked source, evidence without source, timeline without date).
+  'ITEM_BLOQUEADO',
+] as const;
+export type StructureQuestionReason = (typeof STRUCTURE_QUESTION_REASONS)[number];
 export interface StructureQuestion {
   itemId?: string;
+  /** Text of an ACRESCENTAR command that was not added. */
+  texto?: string;
   reason: StructureQuestionReason;
+}
+/** Outcome of applying one adjust_structure work, kept with the review of the analysis it targeted. */
+export interface StructureAdjustmentRecord {
+  executionId: string;
+  applied: number;
+  questions: StructureQuestion[];
+  caseSummary?: string;
+  recordedAt: string;
 }
 export interface StructureResolution {
   decisions: EvidenceReviewCommand['decisions'];

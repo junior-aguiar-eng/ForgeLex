@@ -319,3 +319,35 @@ it('item acrescentado pelo usuário entra com selo, sem fonte, sem duplicar e se
     f.reviews.decide(f.owner, f.saved.id, command(result, [{ itemId: item.id, action: 'DISCARD' }])),
   ).rejects.toThrow('EVIDENCE_ALREADY_DECIDED');
 });
+
+it('itens acrescentados pelo usuário têm teto cumulativo de 50 por revisão', async () => {
+  const f = await evidenceFixture();
+  const batch = (from: number, n: number) =>
+    Array.from({ length: n }, (_, i) => ({ texto: `Fato sintético ${from + i}.`, frase: 'sintético' }));
+  await f.reviews.addUserItems(f.owner, f.saved.id, batch(0, 49));
+  const before = await f.reviews.preview(f.owner, f.saved.id);
+  await expect(f.reviews.addUserItems(f.owner, f.saved.id, batch(49, 2))).rejects.toThrow('EVIDENCE_ADDED_LIMIT');
+  expect(await f.reviews.preview(f.owner, f.saved.id)).toEqual(before);
+  await f.reviews.addUserItems(f.owner, f.saved.id, batch(49, 1));
+  expect((await f.reviews.preview(f.owner, f.saved.id)).items.filter((i) => i.userAdded)).toHaveLength(50);
+});
+
+it('resultado do ajuste da estrutura fica com a revisão, sem mudar revisão nem token; primeira gravação vale', async () => {
+  const f = await evidenceFixture();
+  const before = await f.reviews.preview(f.owner, f.saved.id);
+  const commandId = randomUUID();
+  const record = {
+    executionId: 'exec-sintetica',
+    applied: 1,
+    questions: [{ reason: 'JA_DECIDIDO' as const, itemId: before.items[0]!.id }],
+    caseSummary: 'Resumo sintético.',
+    recordedAt: new Date().toISOString(),
+  };
+  expect(await f.reviews.recordStructureAdjustment(f.owner, f.saved.id, commandId, record)).toEqual(record);
+  expect(await f.reviews.recordStructureAdjustment(f.owner, f.saved.id, commandId, { ...record, applied: 9 })).toEqual(
+    record,
+  );
+  const after = await f.reviews.preview(f.owner, f.saved.id);
+  expect(after.adjustments).toEqual({ [commandId]: record });
+  expect([after.revision, after.reviewToken]).toEqual([before.revision, before.reviewToken]);
+});

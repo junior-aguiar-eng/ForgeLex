@@ -821,3 +821,21 @@ it('eventsChanged só indica mudança com evento novo ou execução terminal, se
     'EXECUTION_NOT_FOUND',
   );
 });
+
+it('ajuste da estrutura só começa em conversa nova, para não esconder a análise vigente', async () => {
+  const f = await fixture();
+  const first = await f.service.startExecution(owner, 'analysis-conversation', input);
+  await expect(
+    f.service.startExecution(owner, 'adjust-same-conversation', {
+      objective: 'Tire a lacuna sobre o recibo.',
+      actionId: 'adjust_structure',
+      conversationId: first.conversationId,
+    }),
+  ).rejects.toThrow('CONTEXT_CONFLICT');
+  const fresh = await f.service.startExecution(owner, 'adjust-new-conversation', {
+    ...input,
+    objective: 'Tire a lacuna sobre o recibo.',
+    actionId: 'adjust_structure',
+  });
+  expect(fresh.conversationId).not.toBe(first.conversationId);
+});
