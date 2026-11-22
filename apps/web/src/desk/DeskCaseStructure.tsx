@@ -2,15 +2,25 @@ import { useEffect, useState } from 'react';
 import { ApiRequestError, requestApi } from '../api-client';
 import type { Delivery } from '../agentic-workspace/execution-model';
 import { presentDelivery, type PresentedDelivery } from '../agentic-workspace/present-delivery';
-import { structureSections, structureSize, type StructureSection } from './case-structure-model';
+import {
+  structureQuestions,
+  structureSections,
+  structureSize,
+  structureSummary,
+  type StructureEntry,
+  type StructureReview,
+  type StructureSection,
+} from './case-structure-model';
 
 interface Loaded {
   updatedAt: string;
   sections: StructureSection[];
   sources: PresentedDelivery['sources'];
   pending: string[];
+  /** Resumo curto do caso, do ajuste mais recente feito pela conversa (E2). */
+  summary?: string;
 }
-type State =
+export type StructureViewState =
   { phase: 'loading' } | { phase: 'error'; message: string } | { phase: 'empty' } | ({ phase: 'ready' } & Loaded);
 
 const failureText = (failure: unknown) =>
@@ -23,7 +33,7 @@ const failureText = (failure: unknown) =>
  * resultado, nunca como fato.
  */
 export function DeskCaseStructure({ matterId }: { matterId: string }) {
-  const [state, setState] = useState<State>({ phase: 'loading' });
+  const [state, setState] = useState<StructureViewState>({ phase: 'loading' });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -44,8 +54,24 @@ export function DeskCaseStructure({ matterId }: { matterId: string }) {
           { signal: controller.signal },
           { sessionOnly: true },
         );
+        // A revisão da análise (E2) numera os itens, marca o que o usuário mudou e traz o resumo. Sem ela (rota ausente
+        // ou revisão indisponível), a aba fica como no E1: nunca vira falha.
+        let review: StructureReview | undefined;
+        try {
+          review = await requestApi<StructureReview>(
+            `/api/agentic/deliveries/${encodeURIComponent(found.structure.deliveryId)}/evidence-review`,
+            { signal: controller.signal },
+            { sessionOnly: true },
+          );
+        } catch {
+          if (controller.signal.aborted) return;
+          review = undefined;
+        }
         const presented = presentDelivery(result.delivery);
-        const sections = structureSections(presented.blocks);
+        const sections = structureSections(presented.blocks, review);
+        const summary = structureSummary(review);
+        const pending = [...presented.pending];
+        for (const line of structureQuestions(review)) if (!pending.includes(line)) pending.push(line);
         setState(
           structureSize(sections) === 0
             ? { phase: 'empty' }
@@ -54,7 +80,8 @@ export function DeskCaseStructure({ matterId }: { matterId: string }) {
                 updatedAt: found.structure.updatedAt,
                 sections,
                 sources: presented.sources,
-                pending: presented.pending,
+                pending,
+                ...(summary ? { summary } : {}),
               },
         );
       } catch (failure) {
@@ -67,6 +94,21 @@ export function DeskCaseStructure({ matterId }: { matterId: string }) {
     return () => controller.abort();
   }, [matterId]);
 
+  return <DeskCaseStructureView state={state} />;
+}
+
+/** Marca curta do que o usuário mudou pela conversa. */
+function ChangeMark({ entry }: { entry: StructureEntry }) {
+  if (!entry.change) return null;
+  return (
+    <span className="mr-2 rounded border border-line px-1.5 py-0.5 text-[11px] font-medium text-muted">
+      {entry.change.kind === 'removed' ? 'retirado por você' : 'corrigido por você'}
+    </span>
+  );
+}
+
+/** A aba já carregada: só leitura, sem formulário nem botão. */
+export function DeskCaseStructureView({ state }: { state: StructureViewState }) {
   return (
     <section aria-label="Estrutura do caso" className="space-y-4">
       <h2 className="font-editorial text-[17px] font-semibold text-ink">Estrutura do caso</h2>
@@ -88,6 +130,12 @@ export function DeskCaseStructure({ matterId }: { matterId: string }) {
       )}
       {state.phase === 'ready' && (
         <>
+          {state.summary && (
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-ink-soft">Resumo do caso</h3>
+              <p className="text-sm leading-6 text-ink">{state.summary}</p>
+            </div>
+          )}
           <p className="text-xs text-subtle">
             Análise de {new Date(state.updatedAt).toLocaleDateString('pt-BR')}. É leitura do ForgeLex sobre os
             documentos do caso, não decisão: confira as fontes. Para corrigir algo, diga no campo ao lado.
@@ -97,18 +145,35 @@ export function DeskCaseStructure({ matterId }: { matterId: string }) {
               <h3 className="text-sm font-semibold text-ink-soft">{section.title}</h3>
               <ul className="space-y-2">
                 {section.entries.map((entry, index) => (
-                  <li key={index} className="text-sm leading-6 text-ink">
+                  <li key={entry.label ?? index} className="text-sm leading-6 text-ink">
+                    {entry.label && (
+                      <span className="mr-2 font-semibold tabular-nums text-ink-soft">{entry.label}</span>
+                    )}
+                    {entry.seal && (
+                      <span className="mr-2 rounded border border-dashed border-line px-1.5 py-0.5 text-[11px] font-medium text-muted">
+                        {entry.seal}
+                      </span>
+                    )}
                     {entry.tag && (
                       <span className="mr-2 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-medium text-ink-soft">
                         {entry.tag}
                       </span>
                     )}
-                    <span className="break-words">{entry.text}</span>
-                    {entry.citations.length > 0 && (
+                    <ChangeMark entry={entry} />
+                    <span
+                      className={`break-words${entry.change?.kind === 'removed' ? ' text-muted line-through' : ''}`}
+                    >
+                      {entry.text}
+                    </span>
+                    {!entry.userAdded && entry.citations.length > 0 && (
                       <span className="ml-1 text-xs text-subtle" aria-label={`Fontes ${entry.citations.join(', ')}`}>
                         {entry.citations.map((n) => `[${n}]`).join(' ')}
                       </span>
                     )}
+                    {entry.change?.kind === 'corrected' && (
+                      <span className="block text-xs text-subtle">Antes: {entry.change.before}</span>
+                    )}
+                    {entry.frase && <span className="block text-xs text-subtle">Você disse: “{entry.frase}”</span>}
                   </li>
                 ))}
               </ul>

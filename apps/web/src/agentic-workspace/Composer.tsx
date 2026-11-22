@@ -16,6 +16,7 @@ import type { WorkspaceClient, StartInput } from './client';
 import { reais, type CommercialAuthorization, type CommercialQuote } from './commercial-model';
 import type { ActionId, Context, PublicAction } from './execution-model';
 import { EvidenceChangesPanel } from './EvidenceChangesPanel';
+import { adjustsStructure, structureAdjustInput } from './structure-request';
 import type { GuidanceStart, GuidanceState } from './guidance-model';
 
 export interface ComposerFollowUp {
@@ -286,6 +287,23 @@ export function Composer({
           ? `Matérias indicadas pelo cliente (confira se se aplicam ao caso): ${matterChips.map((chip) => chip.label).join('; ')}.`
           : '';
       const contextText = (base: string) => [base, hinted, attached].filter(Boolean).join('\n\n');
+      // E2: com a aba Estrutura aberta e o modo Automático, o pedido corrige a estrutura do caso, numa conversa nova.
+      if (
+        matterId &&
+        adjustsStructure({
+          structureTabActive: currentPiece?.structureTabActive ?? piece?.structureTabActive,
+          guided: Boolean(guidanceState),
+          matterId,
+          chosenAction: action,
+        })
+      ) {
+        if (attached && contextText(goal).length > 100_000)
+          throw new Error('O pedido com os anexos passa de 100.000 caracteres. Remova ou troque algum anexo.');
+        onSubmit(structureAdjustInput({ objective: goal, matterId, text: contextText(goal) }), authorization);
+        attachments.clear();
+        setMatterChips([]);
+        return;
+      }
       if (attached && contextText(currentPiece?.localText ?? text).length > 100_000) {
         throw new Error('O pedido com os anexos passa de 100.000 caracteres. Remova ou troque algum anexo.');
       }

@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { EvidenceReviewCommand, EvidenceReviewItem } from './evidence-review.js';
 import type { TaskSource } from './agentic-case-task.js';
+// Pure numbering lives in its own module (no Node imports) so the web tab can reuse it.
+import { structureItemLabels } from './structure-labels.js';
 
 const ItemIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const TextoSchema = z.string().trim().min(3).max(4000);
@@ -36,17 +38,7 @@ export const StructureAdjustmentSchema = z.strictObject({
 });
 export type StructureAdjustment = z.infer<typeof StructureAdjustmentSchema>;
 
-/** Public reference the user can use for an item: facts F1, F2..., evidence P1, P2..., in review order. */
-export function structureItemLabels(items: readonly Pick<EvidenceReviewItem, 'id' | 'kind'>[]): Map<string, string> {
-  const labels = new Map<string, string>();
-  let facts = 0,
-    evidence = 0;
-  for (const item of items) {
-    if (item.kind === 'FACT') labels.set(item.id, `F${++facts}`);
-    else if (item.kind === 'EVIDENCE') labels.set(item.id, `P${++evidence}`);
-  }
-  return labels;
-}
+export { structureItemLabels };
 
 /** Reserved id prefix of the server-assembled source that lists the items of the current analysis. */
 export const STRUCTURE_ITEMS_SOURCE_PREFIX = 'structure:';

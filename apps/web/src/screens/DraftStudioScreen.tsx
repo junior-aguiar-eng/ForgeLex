@@ -554,6 +554,8 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       canOpenDelivery: attached => !loadingSelection && (!dirty || (attached && submittedLocalSnapshot.current === localSnapshot.current)),
       editSelection: !dirty && editSelection?.versionId === versionId ? editSelection : undefined,
       clearEditSelection: () => setEditSelection(undefined),
+      // E2: com a aba Estrutura aberta, o compositor envia o pedido como ajuste da estrutura do caso.
+      ...(ice && pieceTab === 'estrutura' && selectedMatterId ? { structureTabActive: true } : {}),
     };
     snapshot.prepare = async () => {
       if (busy || loadingSelection || caseUnavailable) throw new Error('A peça ainda está sendo atualizada.');
@@ -561,10 +563,10 @@ export const DraftStudioScreen: React.FC<{ requestedLocation?: string; selectedV
       if (!dirty && selectedDraftId && versionId) return snapshot;
       const saved = await saveDraft();
       if (!saved) throw new Error('Não foi possível guardar a edição. Seu texto foi preservado.');
-      return { matterId: selectedMatterId, draftId: saved.draft.id, versionId: saved.version.id, title: draftTitle, dirty: false };
+      return { matterId: selectedMatterId, draftId: saved.draft.id, versionId: saved.version.id, title: draftTitle, dirty: false, ...(snapshot.structureTabActive ? { structureTabActive: true } : {}) };
     };
     onPieceChange(snapshot);
-  }, [onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, importedDelivery, draftTitle, sections, dirty, busy, loadingSelection, caseUnavailable, contextChanged, editSelection]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [onPieceChange, selectedMatterId, selectedDraftId, details?.currentVersion?.version.id, importedDelivery, draftTitle, sections, dirty, busy, loadingSelection, caseUnavailable, contextChanged, editSelection, ice, pieceTab]); // eslint-disable-line react-hooks/exhaustive-deps
   const expectedWorkVersion = new URLSearchParams(requestedLocation?.split('?')[1] ?? window.location.search).get('versionId');
   const selectionHasDifferentVersion = Boolean(selectedVersionId && editingVersion.current && selectedVersionId !== editingVersion.current);
   const requestedVersion = selectedVersionId ?? expectedWorkVersion;

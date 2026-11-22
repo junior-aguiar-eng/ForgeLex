@@ -483,6 +483,127 @@ test('aba Estrutura: caso sem análise orienta pela conversa; com análise mostr
   expect(axe.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
+// E2: a aba numera fatos e provas (F1, P1), mostra o selo do que o usuário acrescentou, o resumo e o que mudou; com a aba
+// aberta, o pedido sai como ajuste da estrutura, numa conversa nova. Rotas de leitura simuladas; a API tem testes próprios.
+test('aba Estrutura (E2): rótulos, selo, resumo e marcas; o pedido feito com a aba aberta é um ajuste da estrutura', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const { piece } = await openSavedPiece(page);
+  const ids = { fact: 'a'.repeat(64), proof: 'b'.repeat(64), added: 'c'.repeat(64) };
+  const delivery = {
+    id: 'delivery:estrutura-e2',
+    delivery: {
+      action: 'analyze_evidence',
+      status: 'COMPLETED',
+      humanReviewRequired: true,
+      legalAssessment: 'Leitura sintética.',
+      issues: [{ id: 'q1', statement: 'Houve pagamento do aluguel?', sourceIds: ['s1'] }],
+      claims: [{ id: 'c1', statement: 'O autor pagou março.', classification: 'ALLEGATION', sourceIds: ['s1'] }],
+      requirements: [],
+      findings: [],
+      sources: [{ id: 's1', kind: 'DOCUMENT', documentId: 'd1', versionId: 'v1' }],
+      evidenceMatrix: {
+        assessment: 'MODEL_PROPOSAL_NOT_FACT_CONFIRMATION',
+        rows: [
+          {
+            id: 'r1',
+            claimId: 'c1',
+            issueIds: ['q1'],
+            coverage: 'DOCUMENT_LINKED',
+            gaps: [],
+            references: [
+              { sourceId: 's1', quote: 'recibo de março', start: 0, relation: 'SUPPORTS', quoteStatus: 'MATCHED' },
+            ],
+          },
+        ],
+        chronology: [],
+        contradictions: [],
+      },
+    },
+  };
+  const review = {
+    deliveryId: delivery.id,
+    matterId: 'm',
+    revision: 3,
+    reviewToken: 'f'.repeat(64),
+    items: [
+      { id: ids.fact, kind: 'FACT', text: 'O autor pagou março.', originIds: ['r1', 'c1'], references: [] },
+      {
+        id: ids.proof,
+        kind: 'EVIDENCE',
+        text: 'recibo de março',
+        originIds: ['r1', 'c1'],
+        references: [{ sourceId: 's1', quote: 'recibo de março', start: 0 }],
+      },
+      {
+        id: ids.added,
+        kind: 'FACT',
+        text: 'O cliente pagou abril em dinheiro.',
+        originIds: [],
+        references: [],
+        userAdded: { frase: 'o cliente também pagou abril em dinheiro', addedAt: '2026-11-22T10:00:00.000Z' },
+      },
+    ],
+    decisions: { [ids.fact]: { action: 'ADOPT', text: 'O autor pagou março e abril.' } },
+    adjustments: {
+      cmd: {
+        executionId: 'x',
+        applied: 2,
+        questions: [{ reason: 'ITEM_DESCONHECIDO' }],
+        caseSummary: 'Locação residencial com pagamentos discutidos.',
+        recordedAt: '2026-11-22T10:00:00.000Z',
+      },
+    },
+  };
+  await page.route(/\/api\/agentic\/matters\/[^/]+\/structure$/, (route) =>
+    route.fulfill({
+      json: { structure: { executionId: 'e1', deliveryId: delivery.id, updatedAt: '2026-11-22T12:00:00.000Z' } },
+    }),
+  );
+  await page.route(/\/api\/agentic\/deliveries\/delivery%3Aestrutura-e2$/, (route) =>
+    route.fulfill({ json: delivery }),
+  );
+  await page.route(/\/api\/agentic\/deliveries\/delivery%3Aestrutura-e2\/evidence-review$/, (route) =>
+    route.fulfill({ json: review }),
+  );
+  await piece
+    .getByRole('tablist', { name: 'Partes da peça' })
+    .getByRole('tab', { name: 'Estrutura', exact: true })
+    .click();
+  const panel = piece.getByRole('tabpanel', { name: 'Estrutura' });
+  await expect(panel.getByText('Locação residencial com pagamentos discutidos.')).toBeVisible();
+  await expect(panel.getByText('F1', { exact: true })).toBeVisible();
+  await expect(panel.getByText('P1', { exact: true })).toBeVisible();
+  await expect(panel.getByText('F2', { exact: true })).toBeVisible();
+  await expect(panel.getByText('informado por você, a confirmar', { exact: true })).toBeVisible();
+  await expect(panel.getByText('O cliente pagou abril em dinheiro.')).toBeVisible();
+  await expect(panel.getByText('corrigido por você', { exact: true })).toBeVisible();
+  await expect(panel.getByText('O autor pagou março e abril.')).toBeVisible();
+  await expect(panel.getByText('Não identifiquei a qual item você se referiu', { exact: false })).toBeVisible();
+  await expect(panel).not.toContainText('ITEM_DESCONHECIDO');
+  await expect(panel).not.toContainText(ids.fact);
+  await expect(panel.getByRole('button')).toHaveCount(0);
+  await expect(panel.getByRole('textbox')).toHaveCount(0);
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // Com a aba aberta, o pedido sai como ajuste explícito, com o caso e sem conversa, mesmo longo (não vira relato colado).
+  let sent: { actionId?: string; matterId?: string; conversationId?: string; contextRevision?: number } | undefined;
+  await page.route('**/api/agentic/executions', async (route) => {
+    sent = route.request().postDataJSON();
+    await route.fulfill({ status: 503, json: { error: 'SYNTHETIC_STOP' } });
+  });
+  const correction =
+    `O fato 1 foi em 2021, não em 2020. ${'A prova 1 é o recibo certo do pagamento. '.repeat(20)}`.slice(0, 700);
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill(correction);
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect.poll(() => sent?.actionId).toBe('adjust_structure');
+  expect(sent?.matterId).toBeTruthy();
+  expect(sent?.conversationId).toBeUndefined();
+  expect(sent?.contextRevision).toBeUndefined();
+});
+
 test('etapas do trabalho: lista ordenada com o estado de cada etapa, sem nome de documento nem identificador', async ({
   page,
 }) => {
