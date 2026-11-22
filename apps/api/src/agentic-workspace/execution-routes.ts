@@ -34,6 +34,7 @@ import {
 import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
 import { EditorialCommercialCommand } from './editorial-commercial-runtime.js';
+import { findCurrentStructure } from './current-structure.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
 import { GuidanceService, type GuidanceServiceOptions } from './guidance-service.js';
 import { registerGuidanceRoutes } from './guidance-routes.js';
@@ -717,18 +718,12 @@ export function registerAgenticWorkspace(
         reply.header('Cache-Control', 'no-store');
         const { matterId } = z.object({ matterId: z.string().uuid() }).parse(req.params);
         const manages = commercial?.canManageExecution ?? pilot?.canManageExecution;
-        const conversations = await required().store.workspace.listRecentConversations(owner(req), 50, false);
-        for (const conversation of conversations) {
-          const execution = conversation.execution;
-          if (conversation.matterId !== matterId || execution.status !== 'COMPLETED') continue;
-          if (manages && !manages(execution)) continue;
-          const deliveryId = execution.deliveryIds.at(-1);
-          if (!deliveryId) continue;
-          const found = await caseTask.native.getDelivery(owner(req), deliveryId);
-          if (found.delivery.action !== 'analyze_evidence') continue;
-          return { structure: { executionId: execution.id, deliveryId, updatedAt: execution.updatedAt } };
-        }
-        return { structure: null };
+        const structure = await findCurrentStructure(
+          { store: required().store, native: caseTask.native, manages },
+          owner(req),
+          matterId,
+        );
+        return { structure };
       }),
     );
   if (caseTask)
