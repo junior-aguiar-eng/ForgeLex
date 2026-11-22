@@ -9,6 +9,7 @@ import {
   GuidedDeskPlanSchema,
   StructureTaskPlanSchema,
   TaskPlanSchema,
+  structureTaskProfile,
   structureTaskResultSchema,
 } from '@forgelex/legal-agents';
 import { structureItemsSource, type EvidenceReviewItem } from '@forgelex/domain';
@@ -242,4 +243,34 @@ it('advertises the v13 plan and analyst contracts as JSON Schema for real provid
   for (const schema of [StructureTaskPlanSchema, structureTaskResultSchema('matter-analyst')])
     expect(() => toolJsonSchema(schema)).not.toThrow();
   expect(Object.keys((toolJsonSchema(StructureTaskPlanSchema) as any).properties)).not.toContain('documentMode');
+});
+
+it('v13 instrui a devolver nada quando o pedido não é correção da estrutura, avisando para pedir fora da aba', () => {
+  for (const role of ['legal-orchestrator', 'matter-analyst'] as const) {
+    const text = structureTaskProfile(role).instructions;
+    expect(text).toContain('não for uma correção da estrutura listada');
+    expect(text).toContain('fora da aba Estrutura');
+  }
+  expect(structureTaskProfile('matter-analyst').instructions).toContain('commands vazio');
+});
+
+it('pedido que não é correção termina sem comandos, com o aviso em findings', async () => {
+  const notice = {
+    id: 'fora-do-ajuste',
+    code: 'FORA_DO_AJUSTE',
+    severity: 'WARNING' as const,
+    statement: 'Este pedido não é uma correção da estrutura. Envie-o fora da aba Estrutura.',
+    sourceIds: [userSource.id],
+  };
+  const f = fixture({
+    analyst: {
+      ...empty(),
+      findings: [notice],
+      structureAdjustment: { commands: [], caseSummary: 'Caso de locação com pagamentos discutidos.' },
+    },
+  });
+  const r = await f.finish();
+  expect(r.kind).toBe('completed');
+  expect(f.deliveries[0].structureAdjustment.commands).toEqual([]);
+  expect(f.deliveries[0].findings.map((x: any) => x.statement)).toContain(notice.statement);
 });
