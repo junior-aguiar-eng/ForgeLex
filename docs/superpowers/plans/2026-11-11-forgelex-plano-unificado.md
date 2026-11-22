@@ -1,6 +1,6 @@
 # ForgeLex — Plano unificado de execução
 
-**Versão 3 · 11 de novembro de 2026 · Estado atualizado em 13 de novembro de 2026**
+**Versão 3 · 11 de novembro de 2026 · Estado atualizado em 18 de novembro de 2026**
 
 > Este é o único plano vigente do ForgeLex. Ele substitui o plano v2 da Mesa guiada (10/11/2026), cujo conteúdo foi
 > incorporado aqui, e o plano de reestruturação visual e integração com o Ratione elaborado em 09/11/2026 fora do
@@ -29,20 +29,49 @@
 
 ## 1. Ponto de partida
 
-| Item                   | Situação em 13/11/2026                                                                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Base Git               | `main` em `01b46c5`, com as correções de M2 integradas pela PR #146.                                                                                   |
-| Publicação             | `01b46c5` publicado nos dois serviços em 13/11. DryRun, comparação de configuração, saúde e cinco cenários autenticados aprovados.                     |
-| Mesa em produção       | Casca, anexos PDF/TXT/MD e chips de matéria ligados no build. Orientação guiada e `mesa-v3` ligadas no serviço, com diretório do catálogo configurado. |
-| Salvamento recuperável | Flag desligada nas revisões publicadas. A aplicação da `0041` está documentada no banco isolado de HML. M2 permanece parcial.                          |
-| Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                    |
-| Verificação            | CI de `01b46c5` aprovada. M2 validado em HML e controles do resumo reconferidos em produção. Aceite A18 dado em 14/11/2026; verificações residuais do MCP pendentes. |
-| Visual                 | Tema clássico vigente. V0 adiada nesta reconciliação.                                                                                                  |
-| Domínio em uso         | `nexojuris.ia.br` em produção. `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                              |
+| Item                   | Situação em 18/11/2026                                                                                                                                                                  |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Base Git               | `main` em `d2c2d69` (merge do #196, U7 parte 1). O CI desse push falhou só no `e2e-product`, por colisão da porta 55432 do Postgres no runner; reexecutado, passou.                      |
+| Publicação             | `6fe4f75` em produção desde 16/11 (Daybreak S1–S7, migrations 0042, 0043 e `billing-ledger-0011`, busca STJ #168/#169). O código posterior (V0–V6 preparação, V5A, U7 parte 1) está em `main` e não publicado. |
+| Mesa em produção       | Casca, anexos PDF/TXT/MD e chips de matéria ligados no build. Orientação guiada, `mesa-v3` e salvamento recuperável (migração `0041`, 14/11) ligados no serviço.                          |
+| Salvamento recuperável | Ligado em produção desde 14/11 (`forgelex-api-prod-draftsave-cd94c2c`). Falta o ensaio autenticado do passo 5 em produção.                                                               |
+| Política comercial     | Reserva de R$ 11,50, teto diário de R$ 20,00 e mensal de R$ 100,00.                                                                                                                     |
+| Verificação            | A18 aceita em 14/11; A19 aceita em 17/11. Pendentes: verificações residuais do MCP, ensaio de E3, manifesto do catálogo em produção e três falhas intermitentes de CI sem causa provada. |
+| Visual                 | Tema clássico vigente em produção. Gelo feito de V0 a V5A e pronto atrás de flag; V6 (ligar) aguarda passada final e publicação isolada.                                                 |
+| U7                     | Parte 1 integrada (#196): renomear, arquivar, lixeira e restaurar caso na Mesa (gelo). Decisão de 18/11: a tela “Casos” vira “Dados do caso”, não sai.                                    |
+| Domínio em uso         | `nexojuris.ia.br` em produção. D0 a D5 não iniciadas; `hml.nexojuris.ia.br` deu timeout na conferência de 12/11.                                                                         |
 
 Revisões, flags e validação da reserva constam em [PENDENCIAS.md](../../../PENDENCIAS.md#estado-publicado-atual--13112026-sha-01b46c5) e no [registro da reconciliação](../../architecture/2026-11-10-mesa-guiada-execucao.md#reconciliação-pós-deploy--12-de-novembro-de-2026).
 
+### 1A. Pendências abertas, da mais antiga para a mais recente (18/11/2026)
+
+Ordem de retomada decidida por Boni em 18/11/2026. “Código” é o que a sessão executa sozinha; “Boni” exige ação, acesso
+ou decisão dele (nada abaixo se publica sem a autorização dele, seção 0).
+
+| #   | Origem          | Pendência                                                                                                                                         | Quem  |
+| --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 1   | Out/2026        | Ensaios residuais do MCP, provas comerciais e fiscais, braces e lacuna STJ (`PENDENCIAS.md`, “Pendências humanas e externas”)                      | Boni  |
+| 2   | E2, 11/11       | ~~Outros usos de API recente sem fallback~~ — **fechada em 18/11** (ver E2)                                                                         | Código |
+| 3   | E3, 12/11       | Ensaio em homologação com chave inválida: log e e-mail do alerta                                                                                  | Boni  |
+| 4   | U1, 12/11       | ~~Remover exemplos e dados de demonstração mortos~~ — **fechada em 19/11** (ver U1)                                                              | Código |
+| 5   | U3, 12/11       | U3 quase fechada (19/11): área proposta pelo texto, aviso de matéria sem apoio e aceite de três interações feitos. Restam os chips de área, tribunal e peça no compositor (V3/U7) e a refinação por IA | Código |
+| 6   | M1, 14/11       | Recusa de renovação do Claude (1 em 33); reserva e mensagem de saldo insuficiente em jornada autenticada                                           | Boni  |
+| 7   | M3, 12–14/11    | Manifesto servido em produção; súmulas do TSE, 1.355 citações sem tribunal, processos e teses; 44 avisos; contradições de teor                     | Boni e código |
+| 8   | S0–S7, 14/11    | ~~Conferir as caixas contra o registro~~ — **feita em 19/11** (seção S.6): 38 marcadas, 5 abertas com motivo; S8 segue com Boni | Código, depois Boni |
+| 9   | CI, 15–18/11    | Três falhas intermitentes do `e2e-product`: **diagnosticadas em 19/11** — `database is locked` corrigida (causa provada); `matter-lifecycle.spec.ts:48` com mecanismo provado e teste corrigido (gatilho no CI não provado); porta 55432 sem causa provada, com mitigação aplicada em `e2e-product` (porta aleatória; decisão de Boni de 19/11) | Código, depois Boni |
+| 10  | Daybreak, 16/11 | “Não verificado”: seção 8 do checklist, saída do script de publicação, primeiro uso real das ferramentas de publicação e de migrations (`-DryRun`) | Boni  |
+| 11  | U5, U6          | Identificação pela leitura do PDF (hipótese de U3); qualidade do OCR em documentos autorizados                                                    | Código e Boni |
+| 12  | U7, 18/11       | ~~Documentos do caso, PDF como anexo, “Dados do caso”, redirecionamento~~ — **feitos em 19/11, no gelo** (partes 2 a 4 da U7). **Aceite visual preparado** (página de revisão com 7 telas, desktop e celular, axe sem violação); aguarda o veredito de Boni. O clássico some na V7 | Boni |
+| 13  | V5A, V6, V7     | Textos legais, `tests/public-*`, passada final e aceite, ligar o gelo, limpeza                                                                    | Código e Boni |
+| 14  | D0–D5           | Mudança de domínio (começa por registrar `forgelex.com.br`)                                                                                       | Boni, depois código |
+| 15  | CI, 19/11       | ~~`shell-gelo.spec.ts:278` intermitente~~ — **causa provada e corrigida em 19/11**: a Visão mostrava os passos antes de os dados chegarem e o botão “Abrir a jurisprudência” trocava de estilo (com `transition` de 160 ms) quando chegavam; o axe lia a cor no meio da troca. Agora a tela mostra um esqueleto até saber o resultado | Código |
+
+Sequência de trabalho a partir daqui: 4 (U1), depois 5 (U3), depois 9 (diagnóstico das falhas de CI, antes de qualquer
+nova publicação), depois 8 e 12. Os itens “Boni” ficam à espera dele e não bloqueiam os de código.
+
 ## 2. Decisões de Boni
+
+> **TRAVA DE PRODUTO (19/11/2026, inegociável):** a Mesa agêntica é a única superfície; agentes nos bastidores; visual limpo, poucos botões. Texto completo em `AGENTS.md`. Nenhuma fatia pode adicionar tela, painel ou controle que a conversa possa substituir. "Dados do caso" e a tela Casos saem do gelo (a exclusão definitiva vive no gerenciador da Mesa).
 
 A tabela preserva as decisões de 11/11/2026. A DEC-9 foi executada no PR #138. Registre novas decisões com a data.
 
@@ -140,7 +169,7 @@ flowchart LR
 - **Codex · M2 (A18).** Preparar e rodar as verificações locais da jornada da Mesa a partir da `origin/main`. Trabalhar em branch e worktree próprias. Usar as suítes existentes de orientação, revisão, pesquisa salva e recuperação de salvamento. Registrar lacunas e evidências no registro único. M2 permanece parcial até o ensaio autenticado no HML isolado.
 - **Claude Code · fluxo de casos.** Continuar o trabalho em curso na sua worktree. Esse recorte inclui as alterações que ele estiver fazendo nas telas, rotas e contratos do fluxo de casos. U7 só começa após as dependências de V3 e U6 previstas abaixo.
 - **Sobreposição.** Ao encontrar uma correção que alcance o mesmo arquivo ou contrato em trabalho, identificar o cenário, o SHA e os arquivos afetados. Alinhar com Boni qual branch fará a alteração. Até lá, cada frente pode avançar em leitura e nos testes locais que independem da mudança.
-- **Próxima frente.** V0 segue adiada. M3.0 e M3.2 já têm scripts e resultados registrados. Retomar o catálogo somente para uma lacuna identificada, como verificar o manifesto servido ou avaliar uma ficha concreta. As tarefas de M1 e os aceites ainda abertos de M3 permanecem nas respectivas seções.
+- **Próxima frente.** V0 retomada e feita em 17/11; a V1 e a V2 foram feitas no mesmo dia e a V3 é a seguinte. M3.0 e M3.2 já têm scripts e resultados registrados. Retomar o catálogo somente para uma lacuna identificada, como verificar o manifesto servido ou avaliar uma ficha concreta. As tarefas de M1 e os aceites ainda abertos de M3 permanecem nas respectivas seções.
 
 A Frente V depende das etapas indicadas no diagrama. Em particular, V3 depende de M2, V2 e U4. A Frente R começa após V6 estável e M5. A Frente A parte da execução comercial integrada e segue A0 → A1 → A2 → A3.
 
@@ -158,9 +187,9 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 | PR-M1 | M      | M1 a M3  | PR-E                         | Código publicado. M1 tem verificações residuais. M2 parcial. M3 integrada no #139, com diretório do catálogo configurado em produção. |
 | PR-D  | D      | D0 a D5  | PR-E                         | Pendente; cada virada é uma publicação                                                                                                |
 | PR-U1 | U      | U0 a U6  | PR-E; M3.0 (PR-M1) para a U3 | PR #139 integrado. Mesa única, casca, orientação v3, ações e anexos publicados. U2–U5 têm recortes pendentes e U6 está aberta.        |
-| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 adiada nesta reconciliação. V1–V3 pendentes.                                                                                       |
+| PR-V1 | V      | V0 a V3  | PR-M1 (M2); PR-U1 (U4)       | V0 (#181) e V1 (#183) integradas; V2 a V5 (#184 a #189) feitas no gelo; A19 aceita.                                                   |
 | PR-M2 | M      | M4 e M5  | PR-V1 (V3)                   | Pendente                                                                                                                              |
-| PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Pendente                                                                                                                              |
+| PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Em andamento: parte 1 (#196) integrada; restam documentos, PDF, “Dados do caso”, redirecionamento e exclusão. |
 | PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D3/D4 nunca na mesma semana                                                                                            |
 | PR-R  | R      | Frente R | PR-V2 (V6); PR-M2 (M5)       | Posterior                                                                                                                             |
 | PR-A  | A      | A0 a A3  | Execução comercial integrada | A0 a A2 verificadas offline. Avaliação paga e ativação seguem autorização de Boni. |
@@ -194,7 +223,7 @@ de retorno.
 
 - [x] Teste que remove `size` de `URLSearchParams.prototype` e confere `deskLocation` e a preservação em `routes.ts`.
 - [x] Trocar a decisão por `query.toString()` (string vazia quando não há parâmetros) e fazer o mesmo em `routes.ts`.
-- [ ] Procurar outros usos de API recente sem fallback (`rg "\.size\b|structuredClone|Array\.prototype\.at"` no web).
+- [x] Procurar outros usos de API recente sem fallback (18/11/2026): não há outro `.size` sobre `URLSearchParams` no web (os demais são `File.size`). Sem `structuredClone`. Restam `Array.prototype.at`, `Object.hasOwn` e `crypto.randomUUID` (Safari 15.4 e Chrome 92–93, em contexto seguro), compatíveis com o alvo ES2022 do projeto; sem mudança de código.
 
 **Verificação.** `desk-location.test.ts`, testes de rotas, `playwright.writing-desk.config.ts`.
 **Aceite.** URL idêntica com e sem a propriedade. **Reversão.** Reverter o commit.
@@ -316,53 +345,53 @@ estrutura e o comportamento; a pele visual vem depois, em V3.
 
 ### U0 — Inventário da Mesa
 
-**Situação em 12/11.** Inventário registrado e integrado no PR #139.
+**Situação em 12/11.** Inventário registrado e integrado no PR #139. Classificação aprovada por Boni em 11/11/2026 (aceite da U0).
 
 Depende de E1 e M1. Só leitura; produz a lista do que sai.
 
-- [ ] Registrar em E1 as flags de produção `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED` e
+- [x] Registrar em E1 as flags de produção `VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED` e
       `VITE_FORGELEX_CASE_WORKSPACE_ENABLED`. Hoje `App.tsx` define `integrated` como as duas ligadas: com
       `integrated`, `WritingDeskScreen` envolve `AgenticWorkspaceScreen`, `DraftStudioScreen` e `DashboardScreen`; sem
       ela, `AgenticWorkspaceScreen` e `DraftStudioScreen` aparecem sozinhas em `/app/trabalho` e `/app/rascunhos`.
       São as duas Mesas.
-- [ ] Listar o que existe nos dois caminhos: telas (`WritingDeskScreen` 337 linhas, `AgenticWorkspaceScreen` 858,
+- [x] Listar o que existe nos dois caminhos: telas (`WritingDeskScreen` 337 linhas, `AgenticWorkspaceScreen` 858,
       `DraftStudioScreen` 1.156, `DashboardScreen` 54, `ResearchDeskScreen` 150), rotas e abas.
-- [ ] Rodar um relatório de código sem uso (por exemplo, `knip`, só em modo relatório) e `rg` por exemplos, dados de
+- [x] Rodar um relatório de código sem uso (por exemplo, `knip`, só em modo relatório) e `rg` por exemplos, dados de
       demonstração e textos de teste visíveis na interface. Nada é apagado nesta etapa.
-- [ ] Classificar cada item: `mantém`, `migra para a Mesa nova`, `remove`. Boni aprova a lista.
+- [x] Classificar cada item: `mantém`, `migra para a Mesa nova`, `remove`. Boni aprova a lista.
 
 **Aceite.** Lista aprovada por Boni, com evidência de uso. **Reversão.** Não se aplica.
 
 ### U1 — Remover duplicidade e código morto
 
-**Situação em 12/11.** Mesa única publicada em `b4c76e0`, com testes de revisão e acessibilidade migrados.
+**Situação em 12/11.** Mesa única publicada em `b4c76e0`, com testes de revisão e acessibilidade migrados. Resta sem registro de execução o último item (exemplos e dados de demonstração mortos); as funções do editor avulso removidas são decisão de produto de Boni.
 
 Depende de U0 e da confirmação das flags em produção.
 
-- [ ] Eliminar o caminho não integrado em `App.tsx` (`!integrated`) e fazer `/app/rascunhos` e `/app/revisao`
+- [x] Eliminar o caminho não integrado em `App.tsx` (`!integrated`) e fazer `/app/rascunhos` e `/app/revisao`
       redirecionarem para a Mesa, preservando links.
-- [ ] Remover o que a lista de U0 marcou como `remove`, em commits pequenos por área na branch da frente, cada um
+- [x] Remover o que a lista de U0 marcou como `remove`, em commits pequenos por área na branch da frente, cada um
       com os testes correspondentes removidos ou migrados no mesmo commit.
-- [ ] Com DEC-11: manter o piloto fechado enquanto servir a testes, isolado fora da Mesa nova (`ClosedPilotPanel` e
+- [x] Com DEC-11: manter o piloto fechado enquanto servir a testes, isolado fora da Mesa nova (`ClosedPilotPanel` e
       `closed-pilot*.ts` não entram no `DeskShell`).
-- [ ] Remover exemplos e dados de demonstração mortos da interface e das fixtures não usadas.
+- [x] Remover exemplos e dados de demonstração mortos da interface e das fixtures não usadas (19/11/2026, ver [registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#u1--fechamento-dos-itens-mortos-19112026)). Fica o `export` de tipos sem uso externo, que a U0 contou como 9 e que não pude reproduzir sem o `knip`.
 
 **Verificação.** Etapa E completa, mais o relatório de código sem uso de U0 sem item novo. **Aceite.** Uma só Mesa em produção e
 nenhuma rota órfã. **Reversão.** Reverter o commit da área; remoções de dados só depois de uma versão estável.
 
 ### U2 — Nova estrutura da Mesa
 
-**Situação em 12/11.** Casca e atalhos publicados com a flag ligada. A divisão das telas e as partes previstas para V3 e U7 permanecem abertas.
+**Situação em 16/11.** Fechada por decisão de Boni. Casca e atalhos publicados com a flag ligada; as duas telas foram divididas **em apresentação** (797 para 632 e 916 para 809 linhas), com o estado e os fluxos assíncronos ainda dentro delas. A lista de casos na coluna esquerda fica na U7 e o painel de fontes à direita na V3. Suítes da Mesa idênticas ao estado-base antes e depois. Ver [registro de fechamento](../../architecture/2026-11-10-mesa-guiada-execucao.md#fechamento-das-etapas-parciais-u2-u4-e-u5-16112026).
 
 Depende de U1. Atrás de flag (`VITE_FORGELEX_DESK_SHELL`), desligada por padrão.
 
-- [ ] Dividir `AgenticWorkspaceScreen` e `DraftStudioScreen` em componentes menores sob `apps/web/src/desk/`, sem
+- [x] Dividir `AgenticWorkspaceScreen` e `DraftStudioScreen` em componentes menores sob `apps/web/src/desk/`, sem
       mudar comportamento (refatoração com os testes atuais passando).
-- [ ] Casca única `DeskShell`: coluna de conversas e casos recolhível à esquerda; conversa no centro, com compositor
+- [x] Casca única `DeskShell`: coluna de conversas e casos recolhível à esquerda; conversa no centro, com compositor
       fixo no rodapé; painel da peça e das fontes à direita, aberto sob demanda. Abaixo de `lg`, alternância
       Conversa/Peça.
-- [ ] Estado vazio com o compositor em destaque e atalhos para os fluxos comuns (nova peça, revisar texto, pesquisar).
-- [ ] Preservar o buffer da peça ao abrir fonte, trocar de aba ou responder (A07, A09).
+- [x] Estado vazio com o compositor em destaque e atalhos para os fluxos comuns (nova peça, revisar texto, pesquisar).
+- [x] Preservar o buffer da peça ao abrir fonte, trocar de aba ou responder (A07, A09).
 
 **Verificação.** `playwright.writing-desk.config.ts`, `playwright.desk-guidance.config.ts` e capturas desktop e
 celular. **Aceite.** Mesma funcionalidade da Mesa atual na nova estrutura. **Reversão.** Desligar a flag.
@@ -373,21 +402,21 @@ celular. **Aceite.** Mesma funcionalidade da Mesa atual na nova estrutura. **Rev
 
 Depende de U2, M3.0 e DEC-10. Nenhuma lista do catálogo aparece ao cliente: a Mesa mostra só a peça e a matéria em uso.
 
-- [ ] Primeira pergunta em linguagem natural, no próprio compositor: “Explique de forma simples o que você gostaria
+- [x] Primeira pergunta em linguagem natural, no próprio compositor (hoje com o rótulo “O que você precisa fazer?”, e as 25 áreas com busca como atalho): “Explique de forma simples o que você gostaria
       de fazer: área, tribunal, tipo de peça”. Ao lado, as grandes áreas como atalho (as 25 de M3.0, com busca).
-- [ ] A IA identifica área, tribunal e tipo de peça a partir do texto. O que ela inferir vira **hipótese** que o
+- [ ] A IA identifica área, tribunal e tipo de peça a partir do texto. **Parcial, sem provedor (12 e 19/11/2026):** o ranqueamento local propõe a peça e, desde 19/11, a área quando o texto a sustenta sem ambiguidade; o tribunal é lido do texto livre. Refinação por IA fica para depois de medir o erro do ranqueamento. O que ela inferir vira **hipótese** que o
       cliente confirma (“Pelo que você informou, a peça é uma resposta à acusação, no TJ-AL. Está correto?”), como
       no fluxo atual da hipótese material. Se disser que não, a Mesa propõe a próxima candidata, uma por vez.
-- [ ] Ao escolher uma grande área sem texto, a Mesa correlaciona internamente as peças daquela área e pergunta pelo
+- [x] Ao escolher uma grande área sem texto, a Mesa correlaciona internamente as peças daquela área e pergunta pelo
       objetivo, sem mostrar a lista; propõe uma peça por vez.
-- [ ] Incluir o **tribunal** como decisão da orientação, com “Não sei”. Isso muda o contrato `GuidanceSnapshot`:
+- [x] Incluir o **tribunal** como decisão da orientação, com “Não sei”. Isso muda o contrato `GuidanceSnapshot`:
       nova versão das regras (`mesa-v3`), leitores antes dos escritores e compatibilidade com orientações já
       persistidas e seus hashes.
-- [ ] Mostrar como chips apenas a área, o tribunal, a peça e a matéria em uso. Rótulos legíveis; conteúdo, ID e hash
+- [ ] Mostrar como chips apenas a área, o tribunal, a peça e a matéria em uso. **Aberto:** hoje só a matéria é chip; área, tribunal e peça ficam no resumo do pedido, e levá-los ao compositor segue com a V3 e a U7. Rótulos legíveis; conteúdo, ID e hash
       da ficha nunca vão ao navegador (A02, revisado).
-- [ ] Peça ou matéria sem ficha elegível: dizer que ainda não há apoio específico e seguir como pedido livre, sem
+- [x] Peça ou matéria sem ficha elegível (peça em 17/11; matéria em 19/11): dizer que ainda não há apoio específico e seguir como pedido livre, sem
       prometer o que o catálogo não tem.
-- [ ] Cliques determinísticos não chamam provedor nem reservam saldo; a identificação por texto segue o
+- [x] Cliques determinísticos não chamam provedor nem reservam saldo; a identificação por texto segue o
       consentimento e o custo vigentes (A14). Os rótulos de “Peça” e “Matéria” saem do mapa de M3.0.
 
 **Aceite.** Do pedido em texto livre ou da grande área, o cliente confirma a peça em até três interações, vê só a
@@ -395,7 +424,7 @@ peça em uso, e a seleção interna registra a ficha usada. **Reversão.** Flag;
 
 ### U4 — Ações: voltar, alterar, excluir, adicionar
 
-**Situação em 12/11.** Publicados o retorno na orientação, excluir e restaurar conversa e peça com Desfazer, auditoria e chips de matéria como dica. O modelo de múltiplas peças no pedido e os atalhos adicionais seguem abertos.
+**Situação em 16/11.** Fechada por decisão de Boni, com **uma peça por pedido**: publicados o retorno na orientação, excluir e restaurar conversa e peça com Desfazer, auditoria e chips de matéria como dica. Várias peças por pedido e atalhos além do Esc ficam fora. **Herdado da U3:** o aviso "ainda não há apoio específico" foi entregue em 17/11 **para a peça** (ver o [registro do aviso](../../architecture/2026-11-10-mesa-guiada-execucao.md#aviso-ainda-não-há-apoio-específico-17112026)); para a **matéria** sem ficha elegível segue sem aviso. Ver [registro de fechamento](../../architecture/2026-11-10-mesa-guiada-execucao.md#fechamento-das-etapas-parciais-u2-u4-e-u5-16112026).
 
 Depende de U3. Regra geral: toda ação destrutiva é reversível por padrão (arquivar com “Desfazer”); exclusão
 definitiva só na lixeira, com confirmação (`ConfirmationDialog`).
@@ -411,26 +440,26 @@ definitiva só na lixeira, com confirmação (`ConfirmationDialog`).
 | Excluir anexo                     | Chip do anexo                              | Retira do pedido; remove o texto salvo conforme o caso     | A criar com U5                                                                 |
 | Nova peça, nova conversa          | Cabeçalho da Mesa                          | Abre fluxo limpo                                           | Parcial                                                                        |
 
-- [ ] Cada ação com rótulo acessível, foco previsível, atalho de teclado onde fizer sentido e registro de auditoria.
-- [ ] Rota de exclusão e restauração de rascunho, se a verificação mostrar que não existe, com testes.
-- [ ] Nenhuma ação destrutiva consome saldo nem interrompe execução paga sem aviso.
+- [x] Cada ação com rótulo acessível, foco previsível, atalho de teclado onde fizer sentido e registro de auditoria.
+- [x] Rota de exclusão e restauração de rascunho, se a verificação mostrar que não existe, com testes.
+- [x] Nenhuma ação destrutiva consome saldo nem interrompe execução paga sem aviso.
 
 **Aceite.** Cada ação testada em E2E, com desfazer funcional. **Reversão.** Flag por grupo de ações.
 
 ### U5 — Anexos
 
-**Situação em 12/11.** PDF com texto, TXT e MD publicados. DOCX, OCR, identificação da peça pelo PDF e gravação como documento do caso seguem fora desse recorte.
+**Situação em 16/11.** PDF com texto, TXT, MD e **Word (.docx)** lidos no navegador (só o texto, atrás de `VITE_FORGELEX_ATTACHMENTS_ENABLED`). Imagens aguardam a U6 (OCR). **Adiados, por decisão de Boni:** identificar a peça pela leitura do PDF (precisa de campo próprio no contrato) e salvar o anexo como documento do caso (depende da U7); por isso o item de identificação segue desmarcado. Ver [registro de fechamento](../../architecture/2026-11-10-mesa-guiada-execucao.md#fechamento-das-etapas-parciais-u2-u4-e-u5-16112026).
 
 Depende de U4 e DEC-12.
 
-- [ ] Botão de clipe no compositor para anexar PDF, DOCX, TXT e imagens. A extração de PDF reaproveita
+- [x] Botão de clipe no compositor para anexar PDF, DOCX, TXT e imagens. A extração de PDF reaproveita
       `extractPdfText` (hoje usada só na tela de casos): limite de 15 MB e 300 páginas.
-- [ ] Anexo vira chip no pedido; pode ser aberto, trocado ou removido. Pode alimentar “revisar um texto” e a análise
+- [x] Anexo vira chip no pedido; pode ser aberto, trocado ou removido. Pode alimentar “revisar um texto” e a análise
       de documentos, e ser salvo no caso como documento.
-- [ ] Armazenar somente o texto, conforme DEC-12, com aviso claro ao cliente.
+- [x] Armazenar somente o texto, conforme DEC-12, com aviso claro ao cliente.
 - [ ] **Identificação pela leitura do PDF:** o texto extraído alimenta a mesma hipótese de U3 (área, tribunal e
       peça), confirmada pelo cliente. Segue consentimento e custo vigentes; o PDF não escolhe nada sozinho.
-- [ ] Estados: lendo, concluído, sem texto extraível (oferece OCR em U6), erro, arquivo grande demais.
+- [x] Estados: lendo, concluído, sem texto extraível (oferece OCR em U6), erro, arquivo grande demais.
 
 **Aceite.** Anexar, revisar e remover por teclado e por clique. **Reversão.** Flag de anexos.
 
@@ -438,11 +467,13 @@ Depende de U4 e DEC-12.
 
 Depende de U5 e DEC-13.
 
-- [ ] Quando o PDF ou a imagem não tem texto selecionável, oferecer “Reconhecer texto (OCR)”. Hoje o erro manda o
+**Situação em 17/11.** Pronta no código, atrás de `VITE_FORGELEX_OCR_ENABLED` (desligada por padrão): OCR no navegador com Tesseract.js, andamento, cancelamento, limite de 20 páginas (medido: 4,6 a 5,0 s por página densa), texto editável e marcado, arquivos do motor servidos da nossa origem. **O último item segue aberto**: a qualidade só foi medida em arquivos sintéticos e limpos; a medição em documentos reais, que Boni autoriza, decide se a flag liga e se o OCR no servidor chega a ser avaliado. Ver [registro da U6](../../architecture/2026-11-10-mesa-guiada-execucao.md#u6--ocr-no-navegador-17112026).
+
+- [x] Quando o PDF ou a imagem não tem texto selecionável, oferecer “Reconhecer texto (OCR)”. Hoje o erro manda o
       cliente fazer OCR por fora.
-- [ ] OCR no navegador, em português, com progresso, cancelamento e limite de páginas definido por medição de tempo.
-- [ ] O texto reconhecido é marcado como “reconhecido por OCR — conferir”, editável antes de salvar.
-- [ ] Fixtures próprias de PDF escaneado e imagem, com teste E2E.
+- [x] OCR no navegador, em português, com progresso, cancelamento e limite de páginas definido por medição de tempo.
+- [x] O texto reconhecido é marcado como “reconhecido por OCR — conferir”, editável antes de salvar.
+- [x] Fixtures próprias de PDF escaneado e imagem, com teste E2E.
 - [ ] Medir qualidade em documentos reais autorizados por Boni; só então avaliar OCR no servidor, em decisão separada.
 
 **Aceite.** Um PDF escaneado de teste vira texto editável e utilizável no pedido. **Reversão.** Flag de OCR.
@@ -454,6 +485,18 @@ Depende de U4, U5, U6 e de V3 (seletor de caso e “Criar caso a partir desta co
 - [ ] Levar para a Mesa o que só existe em `MatterWorkspaceScreen` (904 linhas): criar e renomear caso, ciclo de
       vida de caso e documento (`matter-lifecycle`: arquivar, restaurar, excluir definitivamente) e importação de
       PDF (`PdfTextImport`, substituída pelo anexo de U5).
+      **Decisão de Boni em 18/11/2026:** a tela não sai; vira “Dados do caso”, aberta a partir do caso na Mesa, com Fatos,
+      Provas, Linha do tempo, Questões e Memorando intactos (ver o [registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#u7--casos-dentro-da-mesa-parte-1-gerenciar-casos-18112026)).
+      **Parte 1 feita (gelo):** renomear (rota nova) e arquivar, lixeira e restaurar caso na Mesa; falta exclusão definitiva,
+      documentos e PDF.
+      **Decisões de Boni em 19/11/2026:** (1) os documentos do caso ficam numa **aba própria da peça** (Documentos); (2) salvar
+      o anexo no caso é por **botão explícito**; (3) a **exclusão definitiva fica em “Dados do caso”**. (4) Retirar “Casos” do
+      menu só no tema gelo é recomendação minha, **aguardando a confirmação dele**: o clássico some na V7.
+      **Parte 2 feita (gelo, 19/11):** aba Documentos da peça, com arquivar, lixeira, restaurar e abrir.
+      **Parte 3 feita (gelo, 19/11):** botão “Salvar no caso” no chip do anexo, só no gelo (decisão de Boni).
+      **Parte 4 feita (gelo, 19/11):** “Dados do caso” (a tela “Casos” renomeada, com o caminho de volta à Mesa), `/app/casos` sem caso
+      abre a Mesa e com `?caso=` os links antigos continuam, o item “Casos” sai da lateral, e a Mesa leva ao caso (botão no seletor, no
+      gerenciador e na aba Documentos). Falta só a remoção da tela antiga no clássico, que a V7 apaga com o tema.
 - [ ] Manter o caso como entidade de dados: busca ancorada (M4), ferramentas MCP `case.*` e A07 dependem dele.
 - [ ] Redirecionar `/app/casos` para a Mesa, preservando links, e retirar o item “Casos” da lateral.
 - [ ] Remover `MatterWorkspaceScreen` e seus testes só depois de a Mesa passar nos mesmos cenários de E2E.
@@ -513,38 +556,58 @@ tema muda, sem reescrever telas. Só depois do tema estabilizado as classes migr
 
 ### V0 — Tokens sem mudança visual
 
-**Situação em 12/11.** Adiada por Boni nesta reconciliação.
+**Situação em 17/11.** Adiada por Boni em 12/11 e retomada por ele em 17/11. Feita sem mudança visual, na branch
+`claude/v0-tokens`. Registro em
+[V0 — Tokens de cor sem mudança visual](../../architecture/2026-11-10-mesa-guiada-execucao.md#v0--tokens-de-cor-sem-mudança-visual-17112026).
 
-- [ ] Capturar screenshots de referência (desktop 1440 px e celular 390 px) de Entrar, site público, Visão, Mesa vazia,
+- [x] Capturar screenshots de referência (desktop 1440 px e celular 390 px) de Entrar, site público, Visão, Mesa vazia,
       Mesa com peça, Jurisprudência, leitor, Casos, Conectar e Conta. Guardar fora do Git; registrar o local.
-- [ ] Em `index.css`, criar variáveis RGB (`--fl-canvas: 248 246 240` etc.) para todos os tons usados: `ivory`
+      _Feita com 22 telas em dois tamanhos e o estilo computado de cada elemento. Mesa com peça e leitor ficaram de fora
+      (pedem dados) e a referência fica só na máquina da sessão; recapturar antes da V1._
+- [x] Em `index.css`, criar variáveis RGB (`--fl-canvas: 248 246 240` etc.) para todos os tons usados: `ivory`
       50–300, `cognac` 50–900, `champagne`, `stone` 50–950 (todos os 11 tons estão em uso), `amber` e `emerald` usados.
       Valores do tema `classico` idênticos aos atuais.
-- [ ] Em `tailwind.config.js`, apontar `ivory`, `cognac`, `champagne` e `stone` para `rgb(var(--x) / <alpha-value>)` e
+- [x] Em `tailwind.config.js`, apontar `ivory`, `cognac`, `champagne` e `stone` para `rgb(var(--x) / <alpha-value>)` e
       acrescentar os nomes semânticos da 7.1 apontando para as mesmas variáveis.
-- [ ] Substituir as 48 cores hexadecimais literais em `.tsx` por tokens (inclui `bg-[#FDFBF7]` do editor).
-- [ ] Sombras `card` e `card-hover` com cor por variável.
+- [x] Substituir as 48 cores hexadecimais literais em `.tsx` por tokens (inclui `bg-[#FDFBF7]` do editor).
+      _Eram 45 em `.tsx`. Os leitores de decisão (`--reader-*`), a página de impressão e as páginas estáticas de
+      `public/legal` ficaram fora._
+- [x] Sombras `card` e `card-hover` com cor por variável.
 
 **Verificação.** Screenshots antes e depois comparados pixel a pixel (`toHaveScreenshot` local, não versionado);
 Vitest, lint, `axe` e as suítes Playwright da Mesa e do site público.
 **Aceite.** Diferença visual zero. **Reversão.** Reverter o commit.
+**Evidência (17/11).** Estilo computado de todos os elementos das 44 capturas idêntico; CSS do Tailwind idêntico regra a
+regra; 38 das 44 capturas iguais byte a byte e as 6 restantes diferem só em dado (horário e e-mail sintético). A
+comparação foi por script próprio, não por `toHaveScreenshot`.
 
 ### V1 — Tema gelo, fontes e primitivos
 
 Depende de V0 e DEC-3.
 
-- [ ] Bloco `[data-theme="gelo"]` em `index.css` com os valores da 7.1 e mapeamento dos tons legados para os tons gelo
-      equivalentes (tabela no registro de execução).
-- [ ] `VITE_FORGELEX_THEME` (`classico` padrão, `gelo`) aplicado no `index.html` antes da primeira pintura. Em
+- [x] Preparação (17/11): ferramenta de referência visual versionada, `scripts/visual-baseline.mjs` (`pnpm visual:baseline`),
+      com 26 telas em dois tamanhos, as 4 que dependem de dados incluídas. Registro em
+      [V1 · preparação](../../architecture/2026-11-10-mesa-guiada-execucao.md#v1--preparação-ferramenta-de-referência-visual-versionada-17112026).
+      Capturar a referência no `main` antes de mexer em qualquer cor.
+- [x] Bloco `[data-theme="gelo"]` em `index.css` com os valores da 7.1 e mapeamento dos tons legados para os tons gelo
+      equivalentes (tabela no registro de execução). _Mapeamento dos tons legados é proposta minha; Boni pode trocar._
+- [x] `VITE_FORGELEX_THEME` (`classico` padrão, `gelo`) aplicado no `index.html` antes da primeira pintura. Em
       homologação, prévia por `?tema=gelo` guardada em `localStorage` (com `try/catch`); desativada em produção.
-- [ ] Spectral e Inter em `woff2` no próprio site (`public/fonts`), subconjunto latino, `font-display: swap`,
-      `preload` só da Inter 400; conferir CSP `font-src 'self'`.
-- [ ] Primitivos em `index.css` (`.btn-primary`, `.btn-secondary`, `.input-control`, cartão, selo, foco) usando só
+      _Um terceiro valor, `previa`, liga a prévia; só está no `Dockerfile`. Ainda não passa pelo Cloud Build nem pelo
+      `deploy-from-main.ps1`: entra com a primeira publicação em homologação._
+- [x] Spectral e Inter em `woff2` no próprio site (`public/fonts`), subconjunto latino, `font-display: swap`,
+      `preload` só da Inter 400; conferir CSP `font-src 'self'`. _CSP do balanceador continua não lida; as fontes são
+      da própria origem._
+- [x] Primitivos em `index.css` (`.btn-primary`, `.btn-secondary`, `.input-control`, cartão, selo, foco) usando só
       tokens semânticos.
-- [ ] Medir contraste de todos os pares usados com script (registro com a tabela).
+- [x] Medir contraste de todos os pares usados com script (registro com a tabela). _`pnpm theme:contrast`, também na
+      CI._
 
 **Aceite.** Tema `classico` inalterado; tema `gelo` sem violação `axe` nas telas da V0.
 **Reversão.** `VITE_FORGELEX_THEME=classico`.
+**Evidência (17/11).** Clássico: estilo de todos os elementos e as 52 imagens idênticos antes e depois. Gelo: axe sem
+violação em 52 telas. Registro em
+[V1 — Tema gelo, fontes e primitivos](../../architecture/2026-11-10-mesa-guiada-execucao.md#v1--tema-gelo-fontes-e-primitivos-17112026).
 
 ### V2 — Casca e site público
 
@@ -560,6 +623,15 @@ Depende de V1 e DEC-7.
 
 **Verificação.** `playwright.public.config.ts`, `accessibility.spec.ts`, suíte da Mesa nos dois temas.
 
+**Situação em 17/11.** Feita, **só no tema gelo** (o clássico não mudou, provado por captura: estilo e 52 imagens
+idênticos), e adaptada ao protótipo que Boni enviou: lateral com Trabalho (Mesa, Casos, Jurisprudência) e Conta e recursos,
+sem cabeçalho na tela larga, Visão geral com dados reais e "Primeiros passos", Entrar em duas colunas, seções de Conta e
+Conectar IA. Decisões de Boni: trilho de ícones na Mesa; "Andamento processual" só dentro do app, com o site público
+mantido até a V5A; "Primeiros passos" guardado no navegador, por usuário. Evidência: axe sem violação em 52 telas,
+`shell-gelo.spec.ts` (12 cenários), suíte da Mesa com o gelo ligado e suíte pública nos dois temas. A Mesa fica com o
+trilho provisório até a V3. Registro em
+[V2 — Casca e site público](../../architecture/2026-11-10-mesa-guiada-execucao.md#v2--casca-e-site-público-17112026).
+
 ### V3 — Mesa
 
 Depende de V2, M2 e U4. É a maior etapa; entregar em duas PRs (composição e abas; depois seletor de caso e estados).
@@ -574,8 +646,13 @@ Depende de V2, M2 e U4. É a maior etapa; entregar em duas PRs (composição e a
 | Etapas do trabalho a partir de STATUS, QUESTION, DELIVERY, SOURCE, ERROR | `agentic-workspace/*`                                                         | ERROR sempre visível e anunciado                                     |
 | Estado vazio com exemplos e os dois selos                                | `Composer.tsx`                                                                | Primeiro uso sem documentação                                        |
 
+**Situação em 17/11 (só no gelo).** Parte 1 (#186): lateral com as conversas recentes (decisão de Boni: como no protótipo) e abas Texto, Fontes e Revisão da peça, com o texto preservado. Parte 2: seletor de caso no cabeçalho com "Sem caso — somente texto" e o caso fixo depois que a conversa começa (A07), "Criar caso a partir desta conversa" (o caso nasce só com o nome), etapas do trabalho derivadas dos eventos reais com ERROR sempre visível e anunciado, e estado vazio com exemplos e os dois selos. Ficam fora, registrados como divergências: detalhes numéricos nas etapas (dependem de eventos novos), levar conversa e anexos ao caso criado, revisão editorial em linha e acabamento próprio da orientação. Registro em
+[V3 parte 1](../../architecture/2026-11-10-mesa-guiada-execucao.md#v3--mesa-parte-1-composição-e-abas-da-peça-17112026) e
+[V3 parte 2](../../architecture/2026-11-10-mesa-guiada-execucao.md#v3--mesa-parte-2-caso-etapas-e-estado-vazio-17112026).
+
 - [ ] Rótulos e papéis ARIA usados pelos testes mantidos; qualquer mudança de texto atualiza o teste no mesmo commit.
-- [ ] Capturas desktop e celular para Boni: **A19 é decidido aqui.**
+- [x] Capturas desktop e celular para Boni: **A19 decidido aqui.** Aceita por Boni em 17/11/2026 sobre as 14 telas da jornada. Registro em
+      [Aceite A19](../../architecture/2026-11-10-mesa-guiada-execucao.md#aceite-a19-em-17112026).
 
 ### V4 — Jurisprudência, leitor e fontes
 
@@ -583,9 +660,21 @@ Depende de V3 e M4. `ResearchDeskScreen.tsx`, `DecisionReader`, `SavedResearchPa
 `SaveAuthorityToCase`. Linguagem visual única para os selos: verificada (verde, ícone e texto), análise da IA
 (petróleo, rotulada), origem externa (M5).
 
+**Situação em 17/11 (só no gelo, parte que não depende da M4).** Feitos os selos de verificação e o da análise da IA
+(ícone e texto), o título e a legenda da Jurisprudência, o leitor de decisões no tema e o selo no alto do registro. Ficam
+para depois da M4: aderência ao caso por resultado, "Pesquisar com o caso" e consultas sugeridas. Não feitos: o selo de
+origem externa (M5) e a lista com painel da decisão ao lado, que mexe no leitor compartilhado com o MCP. Registro em
+[V4](../../architecture/2026-11-10-mesa-guiada-execucao.md#v4--jurisprudência-leitor-e-selos-17112026).
+
 ### V5 — Casos, Caso novo, Conectar e Conta
 
 Depende de U7: sem a tela “Casos”, o que for dela já está na Mesa e só Conectar e Conta mudam aqui. Telas da 7.2. Remover ou dar comportamento real aos botões inertes. Valores financeiros sempre vindos do serviço.
+
+**Situação em 17/11 (só no gelo, Conta e Conectar IA).** Casos e Caso novo aguardam a U7. Auditoria: nenhum botão inerte e nenhum
+valor em reais fora do serviço. Feitas a coluna lateral da Conta (identificação, chaves pelo prefixo, atividade e
+encerramento, só com dado real) e "Como fica o trabalho" em Conectar IA. Decisão de Boni: sem endpoint novo; a tabela de
+ferramentas com tarifa fica como pendência. Registro em
+[V5](../../architecture/2026-11-10-mesa-guiada-execucao.md#v5--conta-e-conectar-ia-17112026).
 
 ### V5A — Site público no modelo MCP e Mesa
 
@@ -605,18 +694,18 @@ publicação, por flag (`VITE_FORGELEX_PUBLIC_MODEL`), e uma frase sem função 
       (5) pagamento por uso, com recarga e valores sempre vindos do serviço.
 - [ ] Clientes de IA citados: só os com conexão ensaiada em M1 e D2 (hoje ChatGPT e Claude, “conforme a
       disponibilidade do MCP”). O Gemini entra no texto só depois de ensaio de conexão.
-- [ ] Escrever três propostas de título e subtítulo; Boni escolhe uma. O resultado entra no registro de execução.
-- [ ] Reescrever, no modelo escolhido: `HomePage`, `ProductPage`, `HowPage`, `IntegrationsPage`, `CreditsPage`,
+- [x] Escrever três propostas de título e subtítulo; Boni escolhe uma. O resultado entra no registro de execução. **Boni escolheu a A em 17/11/2026:** “Sua IA, com jurisprudência que dá para conferir.” Registro em [V5A parte 1](../../architecture/2026-11-10-mesa-guiada-execucao.md#v5a--site-público-no-modelo-novo-parte-1-título-e-página-inicial-17112026).
+- [ ] Reescrever, no modelo escolhido (todos feitos atrás da flag, nas partes 1 a 3 da V5A; `ConnectionsScreen` já dizia o que o modelo diz e ficou sem mudança; `LandingScreen` perde a dupla versão do título no modelo novo): `HomePage`, `ProductPage`, `HowPage`, `IntegrationsPage`, `CreditsPage`,
       `GuidePage`, `ApiDocsPage`, `PublicSections.tsx`, `LandingScreen.tsx` (remover a dupla versão do título por
       `CASE_WORKSPACE_ENABLED`), `ConnectionsScreen` (Conectar IA), `index.html`, `public-metadata.ts`,
       `sitemap.xml`, imagem Open Graph e `README.md`.
-- [ ] Textos legais em `apps/web/public/legal/` (termos, privacidade, retenção, encerramento): revisar para o modelo
+- [ ] Textos legais em `apps/web/public/legal/` (lacunas e redação proposta em [docs/operations/stabilization/2026-11-18-textos-legais-modelo-novo-proposta.md](../../operations/stabilization/2026-11-18-textos-legais-modelo-novo-proposta.md); nada alterado, aguarda Boni) (termos, privacidade, retenção, encerramento): revisar para o modelo
       novo, incluindo anexos (só o texto é guardado), OCR no navegador e os agentes. Descrever apenas o que
       acontece de fato; a aprovação é de Boni.
 - [ ] Atualizar no mesmo commit `tests/public-copy.test.ts`, `tests/public-seo.test.ts` e
       `apps/web/src/public/PublicSite.test.ts`; manter o veto ao título rejeitado.
 - [ ] A consulta processual gratuita (DataJud) continua descrita como é, sem sugerir mais do que oferece.
-- [ ] URLs canônicas e `og:url` com o domínio vigente na ocasião (D3), sem valor fixo no texto.
+- [x] URLs canônicas e `og:url` com o domínio vigente na ocasião (D3), sem valor fixo no texto: `VITE_PUBLIC_ORIGIN` no build (parte 3).
 
 **Verificação.** `playwright.public.config.ts`, `accessibility.spec.ts`, testes de cópia e SEO. **Aceite.** Cada
 afirmação do site corresponde a uma função publicada; título aprovado por Boni. **Reversão.** Desligar
@@ -624,9 +713,11 @@ afirmação do site corresponde a uma função publicada; título aprovado por B
 
 ### V6 — Ligar o tema gelo
 
-- [ ] Passada completa em 360, 768 e 1440 px; `axe` em todas as telas; leitor de tela nos eventos da Mesa.
-- [ ] Favicon, imagem Open Graph e cores de `theme-color` no tema novo.
+- [ ] Passada completa em 360, 768 e 1440 px; `axe` em todas as telas; leitor de tela nos eventos da Mesa. Feito: axe sem violação em 78 telas (26 × 3 tamanhos). Falta: aceite visual de Boni e leitor de tela.
+- [x] Favicon, imagem Open Graph e cores de `theme-color` no tema novo: feitos só para `gelo` ([registro](../../architecture/2026-11-10-mesa-guiada-execucao.md#v6--favicon-theme-color-imagem-de-prévia-e-passada-completa-no-tema-gelo-18112026)).
 - [ ] `VITE_FORGELEX_THEME=gelo` em homologação, depois em produção, em publicação isolada (seção 0, item 6).
+      O caminho do build de produção (`cloudbuild.yaml`, `deploy-from-main.ps1 -Theme`) está pronto e desligado; registro em
+      [V6, preparação](../../architecture/2026-11-10-mesa-guiada-execucao.md#v6--preparação-tema-e-texto-público-chegam-ao-build-de-produção-18112026).
 
 **Reversão.** `VITE_FORGELEX_THEME=classico` e novo deploy do web.
 
@@ -897,9 +988,367 @@ antes dos escritores; checkpoints antigos continuam no protocolo original.
 | A16 | Jornada completa por teclado e em celular                                                           | Atendido localmente; reconferir em V6   |
 | A17 | Piloto Penal e regressão Cível na mesma revisão                                                     | Técnico atendido; jurídico em M3        |
 | A18 | Homologação funcional no ambiente isolado com registro próprio                                      | Atendido (aceite de Boni, 14/11/2026)   |
-| A19 | Boni valida a jornada visual em desktop e celular                                                   | Pendente (V3)                           |
+| A19 | Boni valida a jornada visual em desktop e celular                                                   | Atendido (aceite de Boni, 17/11/2026)   |
 | A20 | Uma só Mesa em produção, sem rota órfã nem código morto                                             | Pendente (U1, U7)                       |
 | A21 | Mesa mostra só a peça e a matéria em uso, sem listar o catálogo; conteúdo e IDs ocultos             | Pendente (U3)                           |
 | A22 | Voltar, alterar, adicionar e excluir com desfazer, testados por teclado                             | Pendente (U4)                           |
 | A23 | Anexo e OCR no pedido, com texto editável antes de salvar                                           | Pendente (U5, U6)                       |
 | A24 | Cada afirmação do site público corresponde a uma função publicada e a um preço do serviço           | Pendente (V5A)                          |
+
+## 13. Frente S — correções de segurança Daybreak
+
+**Plano de implementação · 14/11/2026 · Execução local autorizada por Boni.**
+
+Objetivo: tratar os 11 achados sem enfraquecer validações, perder valor financeiro,
+ampliar permissões ou confundir correção local, integração e publicação.
+Esta seção complementa as demais frentes; não muda seu estado nem autoriza sua execução.
+
+**Execução:** implementar uma etapa por vez, com teste que reproduz o problema antes da
+correção, revisão do diff e evidências depois. Usar `superpowers:executing-plans` na execução.
+Boni permanece o único aprovador humano. Boni autorizou a implementação local em 14/11/2026 (“vamos implementar!”).
+Não executar merge, deploy, migração em produção, pagamentos, reembolsos ou encerramento de
+achados no Daybreak como consequência automática deste documento.
+
+### S.1 — Base, abordagem e acompanhamento
+
+- Varredura concluída: `wfr_952f4e6a38b25137bac99154f4e4d21c2e12db0c4424f35ab3779d2507c0849d`.
+- Saída: `wfo_77a211cfe372c8a678c1a61aa03548b70b0cafd5e33d1229296b8caeba49b37f`.
+- Revisão analisada: `cd94c2c57fefb45dc99b6951400aa1eb7a9bfc95`; seis achados altos e cinco médios.
+- Evidência original estática: nenhum ataque, pagamento, reembolso ou deploy real foi executado.
+- PR #152 integrado em `a00ffa934dbd075cba8b63142e3b61ed675cd4e5`; confirmar código e
+  evidência de publicação separadamente. Daybreak ainda registra o achado em andamento.
+- PR #153 aberto em rascunho no head `46929e941f9dba013de216e303f0e39bb1a8f60a` na consulta.
+  A correção da fixture e testes está local em `fix/pr-153-payment-simulation`, sem push.
+  Evidências locais: fase 7 aprovada com Chromium e banco em memória; 42 testes de billing;
+  suíte geral com 2.142 aprovados e 18 pulados. Isso não substitui CI com PostgreSQL.
+- Existem fixes preparados no Daybreak para reembolso e MCP; ainda precisam de revisão do
+  diff e execução de testes. Não tratá-los como correções integradas.
+
+**Abordagem proposta:** aproveitar os fixes existentes somente após revisão e testes;
+implementar as demais correções por subsistema. Aplicar todos os fixes juntos dificulta
+atribuir regressões; reescrever os já disponíveis perde trabalho aproveitável.
+
+Seguir a regra de uma PR por frente/subsistema, não por teste isolado: S-A autorização
+(S1); S-B pagamentos (S2–S3); S-C webhooks (S4); S-D ingestão (S5); S-E streams (S6);
+S-F scripts operacionais (S7). A correção da fixture acompanha a PR #153 existente;
+separar mudanças financeiras adicionais quando forem independentes do seu objeto.
+S0 e S8 são reconciliação e aceite, não PRs adicionais. Não empilhar frentes independentes
+sobre a branch da fixture; preservar as alterações locais ao preparar cada base.
+
+| Etapa | Entrega | Estado inicial | Dependência |
+| --- | --- | --- | --- |
+| S0 | Conferir base, fixes e estado real | Validado localmente; origem/IAM/publicação não atestados | Nenhuma |
+| S1 | Autorizações MCP, credenciais e assinaturas | Validado localmente; revisão integrada S8 pendente | S0 |
+| S2 | Fechar regressão E2E do checkout e testar liquidação | Validado localmente; verificação conjunta S8 | S0 |
+| S3 | Reembolso atômico e recuperação financeira | Validado localmente; verificação conjunta S8 | S0; coordenar contratos com S2 |
+| S4 | Saída HTTP segura e worker limitado | Validado localmente; verificação conjunta S8 | S1 para permissões; bloqueios de rede independentes |
+| S5 | Ingestão com limites de cardinalidade | Validado localmente; verificação conjunta S8 | S0 |
+| S6 | Limites e limpeza de streams SSE | Validado localmente; verificação conjunta S8 | S0 |
+| S7 | Segredos fora dos argumentos de processos | Validado localmente; verificação conjunta S8 | S0 |
+| S8 | Verificação integrada e decisão de publicação | Validado localmente; CI remota e publicação pendentes | S1–S7 |
+
+Ordem recomendada: S0 → S1 → S2 → S3 → S4 → S5 → S6 → S7 → S8.
+Se a consulta autorizada confirmar worker de webhook ativo em produção, antecipar S4.
+
+Em cada etapa registrar no arquivo de execução já vigente
+`docs/architecture/2026-11-10-mesa-guiada-execucao.md`, sob o código S correspondente:
+SHA/base, achados, arquivos, teste que falhou antes, comandos e resultados depois,
+limitações, reversão e decisão de Boni. Atualizar esta tabela com links para as evidências.
+Usar estados distintos: **pendente → em execução → validado localmente → CI aprovada →
+integrado → publicado → reavaliado**. Uma etapa não salta estados por inferência.
+
+### S0 — Reconciliação e verificação da correção de deploy
+
+**Achado:** `acf_c1e9dd4b071da5e45cb0f9affcc82232`.
+**Arquivos:** `ops/gcp/production/deploy-from-main.ps1`,
+`ops/gcp/production/build-from-main.ps1`, `ops/gcp/production/deploy-from-main.tests.ps1`;
+helpers de validação do build referenciados por esses scripts.
+
+- [x] Consultar novamente `main`, PRs #152/#153, fixes e achados; registrar SHAs e diferenças. (S.6)
+- [x] Revisar o PR #152 para rejeição de build de projeto, origem, configuração,
+  substituições, status ou imagem divergentes. Não aceitar apenas labels declaradas. (S.6)
+- [x] Rodar a suíte PowerShell com gcloud simulado e sem rede: provar que tag preexistente
+  não evita build confiável e que ambos os serviços recebem o mesmo digest validado. (S.6)
+- [x] Registrar separadamente o que depende de IAM, origem do build e política do registry.
+  Conferir configuração real apenas em consulta autorizada; não executar release para testar. (S.6)
+
+**Aceite:** correção integrada rastreada e controles testados, sem declarar publicação
+ou proteção completa da cadeia de build sem evidência correspondente.
+
+### S1 — Autorização por ferramenta e administração de integrações
+
+**Achados:** `acf_98e9303e16aac654e9f5413bea5b7ee3` e `acf_8dc52cdc4d4cd4e9f238da491ab218e9`.
+**Arquivos:** `apps/api/src/app.ts`, `apps/api/src/auth/fastify-auth.ts`,
+`apps/api/src/auth/api-key-service.ts`, `packages/mcp-server/src/mcp-handler.ts`,
+`packages/mcp-server/src/external-tool-pack.ts`,
+`packages/legal-workflows/src/research-memo/legal-research-memo-execution.ts`.
+**Testes:** `packages/mcp-server/src/mcp-server.test.ts`,
+`apps/api/src/case-context/case-context-mcp.test.ts`,
+`packages/legal-workflows/src/research-memo/legal-research-memo-execution.test.ts`,
+`apps/api/src/auth/fastify-auth.test.ts`; criar `apps/api/src/distribution/authorization-routes.test.ts`.
+
+- [ ] Ler o fix MCP salvo e comparar com os caminhos REST, MCP e execução direta atuais.
+  **Aberta em 19/11/2026 (S.6):** o getter do fix retornou FORBIDDEN; a correção foi feita a partir do código, sem comparar com o diff salvo.
+- [x] Reproduzir acesso sem `matter:write`, grant ausente, caso errado, outro tenant,
+  conexão revogada e grant revogado entre duas operações do workflow. (S.6)
+- [x] Exigir `research:read` e `matter:write` no memo, grant OAuth exato e vivo; negar
+  ferramentas externas sem política antes de leitura, escrita ou reserva financeira. (S.6)
+- [x] Separar `credentials:read`, `credentials:write`, `webhooks:read`, `webhooks:write`;
+  mutações de credenciais exigem sessão de proprietário. Assinaturas jurídicas exigem
+  também autoridade explícita sobre a família de eventos, conforme seus escopos de leitura. (S.6)
+- [x] Atualizar emissão de escopos, contratos/OpenAPI e UI; chaves antigas `billing:read`
+  não recebem permissões de escrita implicitamente. Documentar a migração de clientes. (S.6)
+- [x] Provar negação sem efeito colateral e sucesso dos clientes legitimamente autorizados;
+  grant deve continuar válido no momento de cada efeito durável. (S.6)
+
+**Aceite:** matriz de permissões REST/MCP aprovada, isolamento por tenant/caso preservado,
+nenhuma ampliação silenciosa. **Reversão:** suspender operação afetada se necessário;
+não restabelecer autorização vulnerável por flag de compatibilidade.
+
+### S2 — Checkout, simulação e eventos de pagamento
+
+**Achados:** `acf_79e14ec140232d8193f74aca0a82126a` e `acf_8d315e32768119966210367dbd66781d`.
+**Arquivos/testes:** `scripts/e2e-phase-7-server.mjs`, `tests/e2e/phase-7.spec.ts`,
+`apps/api/src/billing/billing-operations.ts` e `.test.ts`,
+`apps/api/src/billing/mercado-pago-payment-provider.ts` e `.test.ts`,
+`apps/api/src/billing/billing-routes.test.ts`.
+
+- [x] Preservar e revisar as alterações locais da fixture: quatro campos persistidos,
+  confirmação HTTP, crédito exato, replay e testes de campos ausentes. (S.6)
+- [x] Executar fase 7 e testes de billing sobre a base atual, inclusive PostgreSQL isolado. (S.6)
+- [x] Testar normalização → liquidação com respostas representativas do contrato real do
+  provedor. Confirmar tipos de IDs, moeda e associação order/payment; não inventar campos. (S.6)
+- [x] Cobrir aprovação → falha e falha → aprovação, webhook antes da persistência do ID,
+  evento com erro transitório e replay, duas aprovações simultâneas e IDs diferentes.
+  Usar promessas/barreiras, sem sleeps. Verificar saldo, lote, pagamento, fatura e estado. (S.6)
+- [x] Para identidade ainda não persistida, manter crédito bloqueado e evento recuperável;
+  uma aprovação posterior a falha exige evidência canônica atual e validação completa.
+  Reconciliação nunca pode virar pagamento só por nova entrega do callback. (S.6)
+- [x] Corrigir a identidade de deduplicação para derivar de material autenticado; alterações
+  em `payload.id` não geram trabalho durável distinto. Considerar status canônico para
+  não eliminar uma transição legítima de pendente para pago. (S.6)
+- [x] Confirmar unidade e política de retries de `ts` no contrato do Mercado Pago antes de
+  fixar janela de idade/futuro. Injetar relógio e testar bordas; não bloquear retries
+  legítimos silenciosamente. Deduplicar antes de consultas repetidas quando possível,
+  mantendo recuperação de tentativa interrompida. (S.6)
+- [x] Confirmar recarga sequencial e webhook antecipado para provedor que a suporte;
+  Mercado Pago continua com recarga indisponível, sem ativação artificial. (S.6)
+
+**Aceite:** crédito uma única vez, evidência completa, callbacks recuperáveis e CI aprovada.
+As limitações de ordenação são trabalho adicional à fixture e não estão resolvidas pelo
+patch local. **Reversão:** interromper novas compras/recargas afetadas e reconciliar;
+não reverter para liquidação sem valor, moeda, referência e identidade.
+
+### S3 — Reembolso com reserva prévia e recuperação
+
+**Achado:** `acf_a394707a36b3559d01f0906277102c10`.
+**Arquivos:** `apps/api/src/billing/billing-operations.ts`,
+`packages/billing-ledger/src/billing-service.ts`, schema e migrações do billing,
+repositório persistente para operações de reembolso se necessário.
+**Testes:** `apps/api/src/billing/billing-operations.test.ts`,
+`packages/billing-ledger/src/billing-service.test.ts`; criar teste PostgreSQL de concorrência
+junto dos testes de ledger existentes, usando a infraestrutura de banco isolado do projeto.
+
+- [ ] Ler o fix salvo; conferir se cobre reserva, envio, timeout, retry, recuperação e auditoria.
+  **Aberta em 19/11/2026 (S.6):** o getter do fix retornou FORBIDDEN; a correção foi feita a partir do código, sem comparar com o diff salvo.
+- [x] Reproduzir consumo/reserva após solicitação, duas aprovações concorrentes,
+  sucesso remoto seguido de crash local e timeout com resultado remoto desconhecido. (S.6)
+- [x] Recalcular elegibilidade sob lock do tenant/carteira; tornar valor indisponível e
+  persistir operação na mesma transação antes de chamar o provedor. Não segurar lock
+  durante chamada de rede. Evitar alteração de lançamentos históricos do ledger. (S.6)
+- [x] Persistir estados `PREPARED`, `PROVIDER_PENDING`, `PROVIDER_SUCCEEDED`,
+  `LEDGER_SETTLED`, `RECONCILIATION_REQUIRED`; `APPROVED` permanece o resultado público
+  de sucesso. Reusar chave estável do pedido em todas as tentativas. (S.6)
+- [x] Usar intenção persistida/outbox para recuperar envio interrompido; resultado ambíguo
+  mantém valor indisponível até consulta/reconciliação. Não liberar saldo por timeout. (S.6)
+- [x] Testar migração com pedidos antigos, devolução parcial, saldo consumido e reservas
+  pendentes; executar testes concorrentes em PostgreSQL, não apenas em memória. (S.6)
+
+**Aceite:** devolução nunca supera valor retido; repetição não duplica efeitos; operação
+interrompida é recuperável e auditável. **Reversão:** parar aprovações; preservar operações
+pendentes e valores retidos. Não fazer downgrade de schema que apague recuperação.
+
+### S4 — Webhooks com saída HTTP segura e consumo limitado
+
+**Achados:** `acf_a36f03cb34e267fb4ce2ba5ecde4a29e` e `acf_62caf8efb0d442b18aa2532b29b13cb6`.
+**Arquivos:** `apps/api/src/distribution/webhook-service.ts`, `apps/api/src/app.ts`,
+`packages/persistence/src/repositories/webhook-repository.ts`.
+Criar `apps/api/src/distribution/webhook-http-client.ts` para política de rede e transporte.
+**Testes:** os respectivos `.test.ts` e novo `webhook-http-client.test.ts`.
+
+- [x] Reproduzir URL privada literal, DNS privado, IPv6, IPv4 mapeado, redirect para rede
+  proibida, mudança de DNS entre validação e conexão, resposta infinita e ticks sobrepostos. (S.6)
+- [x] Exigir HTTPS em operação normal; localhost somente no transporte de teste injetado.
+  Bloquear endereços privados/reservados, fixar endereço validado na conexão preservando
+  hostname/TLS e desabilitar redirects. Não usar apenas validação de string ou DNS inicial. (S.6)
+- [x] Remover corpo remoto do histórico; manter status e diagnóstico sem conteúdo.
+  Cancelar corpo sem bufferizar quando ele não for necessário. (S.6)
+- [x] Serializar ticks e limitar entregas globais/por tenant. Usar lease/admissão persistente
+  para limites entre réplicas, com expiração e retomada após crash; limite local não basta. (S.6)
+- [ ] Propor limites iniciais de quatro entregas globais e uma por tenant; testar exatamente
+  os limites, justiça entre tenants, retries, liberação e expiração. Definir teto da fila
+  a partir da capacidade medida antes de habilitar o worker alterado.
+  **Aberta em 19/11/2026 (S.6):** os limites de entrega foram propostos e testados, mas o teto da fila (1.000 global e 250 por tenant) é candidato para homologação, não medição de capacidade; o worker alterado não deve ser habilitado antes disso.
+- [x] Testar endpoints já cadastrados contra a nova política; os inválidos ficam suspensos,
+  com diagnóstico acessível, sem tentativa automática na rede proibida. (S.6)
+
+**Aceite:** nenhum destino proibido recebe conexão e nenhum corpo remoto é devolvido;
+concorrência limitada inclusive entre réplicas. **Reversão:** desligar o worker, preservando
+fila e diagnóstico; não restaurar transporte sem política.
+
+### S5 — Ingestão limitada antes da expansão
+
+**Achado:** `acf_206b8eb76e35eeae207a2ba031ed2c7b`.
+**Arquivos:** `packages/persistence/src/repositories/matter-repository.ts`,
+`apps/api/src/app.ts`, contratos de ingestão em `packages/domain/src`.
+Criar `packages/persistence/src/repositories/matter-ingestion-limits.test.ts`.
+
+- [ ] Medir fixtures legítimas já existentes e reproduzir texto com muitas linhas curtas
+  dentro do limite de bytes; medir contagem sem inserir carga patológica no banco.
+  **Aberta em 19/11/2026 (S.6):** o registro não traz a medição das fixtures; o teto está testado (limite exato, limite + 1, 5.000 linhas curtas), mas a medição pedida não consta.
+- [x] Propor teto inicial de 1 MiB UTF-8 e 5.000 âncoras por documento; confirmar compatibilidade
+  das fixtures antes de adotar. Validar contagem incremental antes de arrays e escrita. (S.6)
+- [x] Rejeitar excesso com código estável e resposta de cliente apropriada, sem documento
+  parcial. Não rejeitar texto jurídico legítimo apenas por ter linhas curtas. (S.6)
+- [x] Limitar lote SQL e resposta; adaptar consumidores/paginação se o contrato atual
+  exige todas as âncoras. Preservar offsets, Unicode, CRLF e hashes. (S.6)
+- [x] Testar limite exato, limite + 1, bytes multibyte, vazio e falha durante inserção. (S.6)
+
+**Aceite:** custo limitado por bytes e âncoras; rejeição sem escrita parcial.
+**Reversão:** manter limite de segurança; corrigir compatibilidade sem ingestão ilimitada.
+
+### S6 — Streams SSE com admissão e limpeza
+
+**Achado:** `acf_ed603822150a91cef56374b3f49f8faf`.
+**Arquivos/testes:** `apps/api/src/agentic-workspace/execution-routes.ts` e `.test.ts`,
+`apps/api/src/auth/fastify-auth.ts`; componente de admissão persistente caso não exista.
+
+- [x] Reproduzir conexões duplicadas com relógio controlado e contar consultas reais. (S.6)
+- [x] Propor limites iniciais: duas conexões por usuário/execução, cinco por usuário,
+  vinte por tenant e cem por processo. Para limites de usuário/tenant entre réplicas,
+  usar leases persistentes; contador apenas em memória protege somente o processo. (S.6)
+- [x] Compartilhar polling para execução/tenant dentro do processo, preservando autenticação
+  e revogação por assinante. Nunca compartilhar contexto de autorização entre tenants. (S.6)
+- [x] Testar rejeição ao exceder limites e liberação em close, erro, revogação, execução
+  terminal e crash/expiração de lease. Retomar eventos sem perda pelo cursor existente. (S.6)
+
+**Aceite:** conexão adicional não multiplica polling local da mesma execução, limites
+respeitados e revogação preservada. **Reversão:** restringir admissão; não retirar limites.
+
+### S7 — Segredos fora de argv
+
+**Achado:** `acf_a9e464c2b88577a8d980a8ffe2baef98`.
+**Arquivos:** `scripts/phase8/export-global-stj.mjs` e `.test.ts`,
+`ops/gcp/phase8/02-provision-gate-a.sh`, `ops/gcp/phase8/README.md`.
+
+- [ ] Usar senhas sintéticas nos testes e demonstrar sua presença no argv atual, sem
+  imprimir nem ler credenciais reais.
+  **Aberta em 19/11/2026 (S.6):** os testes usam credenciais sintéticas, mas não há registro da demonstração da senha no argv antes da correção.
+- [x] Remover senha das URLs de `pg_dump`/`pg_restore`; usar `PGPASSFILE` temporário em
+  diretório privado, permissão restrita e escape correto de dois-pontos e barra invertida. (S.6)
+- [x] Garantir limpeza em sucesso, erro e interrupção; redigir logs e mensagens de erro.
+  Testar permissões nos sistemas operacionais efetivamente suportados. (S.6)
+- [x] Desabilitar provisionador histórico com orientação ao substituto seguro ou migrar
+  sua chamada para mecanismo sem senha em argv; preservar comandos de consulta seguros. (S.6)
+
+**Aceite:** nenhum argumento ou erro contém senha; arquivos temporários não ficam legíveis
+por terceiros. **Reversão:** suspender script, sem voltar à URL com senha.
+
+### S8 — Verificação integrada e entrega para decisão de Boni
+
+- [ ] Executar testes focados por etapa e `pnpm test`, `pnpm lint`, `pnpm typecheck`,
+  `pnpm format:check`; registrar falhas preexistentes nominalmente, sem formatar o
+  repositório inteiro por conveniência. Executar `git diff --check`.
+- [ ] Executar E2E fase 7 e jornadas MCP/autorização relevantes; repetir concorrência,
+  leases e migrações em PostgreSQL isolado. Memória não substitui esses testes.
+- [ ] Para cada PR, apresentar problema, mudança, testes, compatibilidade, riscos
+  residuais e reversão; conferir head atual e CI antes de recomendar integração.
+- [ ] Entregar painel com os 11 IDs e estados: código corrigido, validado, integrado,
+  publicado e reavaliado. Atualizar Daybreak somente com autorização e evidência.
+- [ ] Preparar proposta de homologação/publicação em etapa separada, incluindo backup,
+  migrações, configuração e sinais de parada. Não publicar por causa do aceite local.
+
+**Critérios transversais de revisão:** falha entre efeito remoto/local (S2/S3), revogação
+entre autorização/uso (S1/S6), DNS/redirect após validação (S4), execução em várias réplicas
+(S4/S6), bytes multibyte e cardinalidade no limite (S5/S7). Todos têm testes nas etapas.
+Não desligar controles de segurança por flag para preservar comportamento vulnerável.
+
+**Ponto de acompanhamento por Boni:** ao fim de cada etapa, mostrar em linguagem simples
+qual risco foi reduzido, o que foi testado, o que falta e se algo mudou para clientes.
+Nenhuma aprovação de terceiro é exigida. Commit, push, integração, migração e publicação
+continuam sujeitos ao escopo de autorização que Boni conceder.
+
+
+### S.2 — Resultado local para acompanhamento — 14/11/2026
+
+As implementações S1–S7 estão em branches locais por subsistema. O conjunto foi montado
+para teste em `review/daybreak-security`, sem merge de PR. Verificação conjunta: 2.256 testes
+aprovados/27 pulados; PostgreSQL dedicado 20 + um teste financeiro combinado; fase 7 com
+PostgreSQL aprovada; build, lint, typecheck e formatação de código aprovados. A formatação
+global permanece com 393 avisos legados. Detalhes, decisões, commits e riscos residuais estão
+na [Frente S do registro vigente](../../architecture/2026-11-10-mesa-guiada-execucao.md#frente-s--execução-daybreak--14112026-americafortaleza).
+
+Nenhuma correção foi publicada, nenhum achado foi fechado no Daybreak e não houve nova CI
+remota. Antes de publicação: revisar as frentes, planejar/aprovar migrações e homologação,
+validar capacidade operacional, recuperação financeira e controles de infraestrutura.
+
+
+### S.3 — Autorização e envio remoto — 14/11/2026
+
+Boni autorizou expressamente “commit, push e deploy” após o aceite local. Essa decisão
+amplia a autorização anterior para publicação, mantendo backup, migrations e verificações
+do runbook como pré-condições técnicas. Não autoriza compras/reembolsos reais nem o
+encerramento de achados no Daybreak.
+
+As frentes foram enviadas separadamente: pagamentos/reembolsos no PR #153 (atualizado e
+retirado de rascunho); autorização #154; webhooks #155; ingestão #156; streams #157;
+scripts #158. As seis CIs remotas iniciaram. O conector criou commits com as mesmas
+árvores de conteúdo, pois o token do Git/gh local é inválido; os SHAs remotos diferem
+dos commits locais. Nenhum force-push foi usado.
+
+Deploy ainda não executado: o ambiente não dispõe de gcloud nem de credenciais Google
+Cloud. Sem esse acesso não é possível comprovar backup, executar as migrations
+`billing-ledger-0011-refund-recovery`, `persistence-0042` e `persistence-0043`, preparar
+revisões sem tráfego e promover o digest pelo procedimento oficial. Não houve mudança
+em produção. Acompanhar CI e resolver falhas antes de integração.
+
+
+### S.4 — Integração em `main` — 15/11/2026
+
+Todos os PRs da frente foram integrados: #153 (pagamentos e reembolsos), #154 (autorização),
+#155 (webhooks), #156 (ingestão), #157 (SSE), #158 (segredos fora de argv) e os de
+acompanhamento da revisão #159, #160, #161, #162, #164 e #165. O #152 (proveniência da tag
+de deploy) entrou em 14/11. O #163 (memo de pesquisa por apps OAuth, só dentro do MCP) também
+está em `main`, mas não pertence à Frente S. `main` está em `bbda500`.
+
+Continua valendo o S.3: nada foi publicado, as migrations `persistence-0042`, `persistence-0043`
+e `billing-ledger-0011-refund-recovery` não foram aplicadas e o deploy exige acesso Google
+Cloud autenticado. A CI pós-merge de `bbda500` não foi conferida neste registro. S8 (verificação
+integrada e decisão de Boni) segue aberta até a publicação.
+
+### S.5 — Publicação e correção do registro — 16/11/2026
+
+O S.4 acima, que diz “nada foi publicado”, descreve o estado de 15/11 e ficou superado. Em 16/11/2026 (UTC) Boni publicou
+o Daybreak: backup sob demanda, migrations `persistence-0042`, `persistence-0043` e `billing-ledger-0011-refund-recovery`
+(journal 54 → 57, sem dado afetado), `af13b1c` e depois `6fe4f75` com 100% do tráfego. Evidência e horários em
+[PENDENCIAS.md](../../../PENDENCIAS.md) e em `docs/operations/daybreak/2026-11-16-execucao-migrations-e-publicacao.md`.
+
+As caixas `[ ]` de S0 a S7 acima não foram marcadas quando o trabalho foi feito e **não** são evidência de pendência nem de
+conclusão: cada uma precisa ser conferida contra o registro da Frente S antes de ser marcada. S8 (verificação integrada e
+decisão de Boni) segue aberta; compras e reembolsos reais e o encerramento dos achados no Daybreak continuam fora da autorização.
+
+### S.6 — Conferência das caixas de S0 a S7 — 19/11/2026
+
+As caixas de S0 a S7 não foram marcadas quando o trabalho foi feito (ver S.5). Esta conferência casou cada uma com o
+[registro da Frente S](../../architecture/2026-11-10-mesa-guiada-execucao.md#frente-s--execução-daybreak--14112026-americafortaleza)
+e, nos pontos ambíguos, com o código e os testes de `main` (`6bd76e1` em diante): teste de tag divergente em
+`deploy-from-main.tests.ps1`, suspensão de endpoint com `WEBHOOK_URL_BLOCKED`, `matter-ingestion-limits.test.ts`,
+repositório de leases de SSE com teste em PostgreSQL, `PGPASSFILE` e o provisionador desabilitado, e os testes do provedor
+Mercado Pago com variantes de moeda. **Resultado: 38 marcadas e 5 abertas (43 caixas)**, cada aberta com o motivo na própria caixa.
+
+**Limites desta conferência.** Foi leitura de registros e amostragem de código e testes; não reexecutei as suítes da Frente S.
+Marcar uma caixa diz que há evidência registrada do passo, não que o conjunto esteja correto em produção. Duas caixas
+(S1 e S3, “ler o fix salvo”) não podem ser cumpridas como escritas: o getter do fix foi negado, e a correção partiu do
+código. As outras três são medições ou demonstrações que o registro não traz (teto da fila de webhooks, fixtures de
+ingestão e senha no argv antes da correção). S8 (decisão de Boni) segue aberta, assim como compras e reembolsos reais e o
+encerramento dos achados no Daybreak, que continuam fora da autorização.

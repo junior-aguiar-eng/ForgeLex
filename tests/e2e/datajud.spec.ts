@@ -92,17 +92,24 @@ async function mockWorkspace(page: Page) {
   return state;
 }
 
+// No tema gelo (V2) a consulta dentro do app se chama Andamento processual, em outro caminho; o clássico não mudou.
+const ice = process.env.FORGELEX_E2E_THEME === 'gelo';
+const consultationLabel = ice ? 'Andamento processual' : 'Consulta processual gratuita';
+const consultationPath = ice ? /\/app\/andamento-processual$/ : /\/app\/consulta-processual$/;
+const consultationHeading = ice ? 'Andamento processual' : 'Consulta processual';
+const consultationTitle = `ForgeLex · ${consultationHeading}`;
+
 test('consulta interna mantém sessão, menu e navegação; acesso direto e recarga conservam o workspace', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const state = await mockWorkspace(page);
   await page.evaluate(() => Reflect.set(window, '__navigationFixture', 'same-document'));
-  const consultation = page.getByRole('button', { name: 'Consulta processual gratuita', exact: true });
+  const consultation = page.getByRole('button', { name: consultationLabel, exact: true });
   await consultation.focus();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/\/app\/consulta-processual$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Consulta processual');
+  await expect(page).toHaveURL(consultationPath);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(consultationHeading);
   await expect(consultation).toHaveAttribute('aria-current', 'page');
   await expect(page.getByText('Conta fictícia DataJud', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Criar acesso', exact: true })).toHaveCount(0);
@@ -115,11 +122,11 @@ test('consulta interna mantém sessão, menu e navegação; acesso direto e reca
   await page.goBack();
   await expect(page).toHaveURL(/\/app$/);
   await page.goForward();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Consulta processual');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(consultationHeading);
   await page.reload();
   await expect(consultation).toHaveAttribute('aria-current', 'page');
   await expect(page.getByText('Conta fictícia DataJud', { exact: true })).toBeVisible();
-  await expect(page).toHaveTitle('ForgeLex · Consulta processual');
+  await expect(page).toHaveTitle(consultationTitle);
   expect(state.calls).toBe(1);
   expect(state.paid).toBe(0);
   expect(state.logout).toBe(0);
@@ -134,11 +141,11 @@ test('consulta interna mobile fecha o menu e permanece protegida para visitante'
   await page.setViewportSize({ width: 375, height: 812 });
   const state = await mockWorkspace(page);
   await page.getByRole('button', { name: 'Abrir menu lateral', exact: true }).click();
-  await page.getByRole('button', { name: 'Consulta processual gratuita', exact: true }).click();
-  await expect(page).toHaveURL(/\/app\/consulta-processual$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Consulta processual');
+  await page.getByRole('button', { name: consultationLabel, exact: true }).click();
+  await expect(page).toHaveURL(consultationPath);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(consultationHeading);
   await expect(page.getByRole('button', { name: 'Abrir menu lateral', exact: true })).toBeFocused();
-  await expect(page.getByRole('button', { name: 'Consulta processual gratuita', exact: true })).toBeHidden();
+  await expect(page.getByRole('button', { name: consultationLabel, exact: true })).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(state.calls).toBe(0);
   expect(state.paid).toBe(0);

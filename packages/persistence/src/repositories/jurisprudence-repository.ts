@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql, type SQL } from 'drizzle-orm';
-import { JurisprudenceDocumentSchema, normalizeProcessNumber, type JurisprudenceDocument, type JurisprudenceSearchOptions } from '@forgelex/legal-data';
+import { and, asc, desc, eq, getTableName, gte, inArray, isNull, lte, or, sql, type SQL } from 'drizzle-orm';
+import { JurisprudenceDocumentSchema, normalizeProcessNumber, type JurisprudenceDocument, type JurisprudenceSearchOptions, type JurisprudenceSearchResult } from '@forgelex/legal-data';
 import type { ForgeLexDatabase } from '../db.js';
 import * as schema from '../schema/schema.js';
 
@@ -36,6 +36,7 @@ function normalizeTerm(value: string): string {
 }
 
 const SEARCH_STOP_WORDS = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'no', 'na', 'nos', 'nas', 'ao', 'aos', 'por', 'para', 'com', 'um', 'uma', 'uns', 'umas']);
+const BROAD_SEARCH_CANDIDATES = 10_000;
 
 function fullTextQuery(value: string, dialect: 'sqlite' | 'postgres'): string {
   const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -55,7 +56,7 @@ function fullTextQuery(value: string, dialect: 'sqlite' | 'postgres'): string {
       // Literais ficam entre aspas para o PostgreSQL não reinterpretar, por
       // exemplo, o "or" produzido pela normalização de "maria/or/penha".
       group.push(...term.split(/\s+/)
-        .filter(word => word.length >= 2 && !SEARCH_STOP_WORDS.has(word))
+        .filter(word => (word.length >= 2 || /^\d$/.test(word)) && !SEARCH_STOP_WORDS.has(word))
         .map(word => `"${word}"`));
     }
   }
@@ -193,9 +194,13 @@ export class JurisprudenceRepository {
   }
 
   public async search(options: JurisprudenceSearchOptions): Promise<JurisprudenceDocument[]> {
+    return (await this.searchWithOrdering(options)).documents;
+  }
+
+  public async searchWithOrdering(options: JurisprudenceSearchOptions): Promise<JurisprudenceSearchResult> {
     const completedRunIds = await this.completedIngestionRunIds();
     const query = fullTextQuery(options.query, this.db.$forgelexDialect === 'postgres' ? 'postgres' : 'sqlite');
-    if (!query) return [];
+    if (!query) return { documents: [] };
 
     const postgresVector = sql`${schema.jurisprudenceDocuments.searchVector}::tsvector`;
     const searchCondition = this.db.$forgelexDialect === 'postgres'
@@ -204,58 +209,27 @@ export class JurisprudenceRepository {
           SELECT rowid FROM jurisprudence_documents_fts
           WHERE jurisprudence_documents_fts MATCH ${query}
         )`;
-    const filters = [searchCondition];
-    filters.push(this.publishedVersionCondition(completedRunIds));
-    if (options.court) filters.push(eq(schema.jurisprudenceDocuments.court, options.court.trim().toUpperCase()));
+    const documentFilters = [searchCondition];
+    const versionFilters = [this.publishedVersionCondition(completedRunIds)];
+    if (options.court) documentFilters.push(eq(schema.jurisprudenceDocuments.court, options.court.trim().toUpperCase()));
     if (options.processNumber) {
-      filters.push(eq(schema.jurisprudenceDocuments.normalizedProcessNumber, normalizeProcessNumber(options.processNumber)));
+      documentFilters.push(eq(schema.jurisprudenceDocuments.normalizedProcessNumber, normalizeProcessNumber(options.processNumber)));
     }
-    if (options.fromDate) filters.push(gte(schema.jurisprudenceDocumentVersions.judgmentDate, options.fromDate));
-    if (options.toDate) filters.push(lte(schema.jurisprudenceDocumentVersions.judgmentDate, options.toDate));
+    if (options.fromDate) versionFilters.push(gte(schema.jurisprudenceDocumentVersions.judgmentDate, options.fromDate));
+    if (options.toDate) versionFilters.push(lte(schema.jurisprudenceDocumentVersions.judgmentDate, options.toDate));
+    const filters = [...documentFilters, ...versionFilters];
 
     const limit = Math.max(1, Math.min(options.limit ?? 20, 100));
     if (this.db.$forgelexDialect === 'postgres') {
-      return this.db.transaction(async (tx) => {
-      const executor = tx as unknown as ForgeLexDatabase & { execute(statement: SQL): Promise<unknown> };
-      // The DB deadline is scoped to this transaction, before the tool deadline;
-      // a slow query is stopped by PostgreSQL without changing ingestion limits.
-      await executor.execute(sql`SELECT set_config('statement_timeout', '40000', true)`);
-      // Rank compact rows first. Carrying full texts/search projections through
-      // a broad OR sort spills to disk even when only a few results are wanted.
-      const rank = sql<number>`ts_rank(${postgresVector}, websearch_to_tsquery('simple', ${query}))`;
-      const candidates = executor.select({
-        documentId: sql<string>`${schema.jurisprudenceDocuments.id}`.as('document_id'),
-        versionId: sql<string>`${schema.jurisprudenceDocumentVersions.id}`.as('version_id'),
-        judgmentDate: schema.jurisprudenceDocumentVersions.judgmentDate,
-        rank: rank.as('rank'),
-      })
-        .from(schema.jurisprudenceDocuments)
-        .innerJoin(schema.jurisprudenceDocumentVersions,
-          eq(schema.jurisprudenceDocuments.currentVersionId, schema.jurisprudenceDocumentVersions.id))
-        .leftJoin(schema.jurisprudenceSourceManifests,
-          eq(schema.jurisprudenceDocumentVersions.sourceManifestId, schema.jurisprudenceSourceManifests.id))
-        .where(and(...filters));
-      // A materialized boundary also prevents PostgreSQL from sorting raw
-      // tsvectors before joining publication/date metadata and ranking again.
-      const matches = executor.select({
-        documentId: sql<string>`search_candidates.document_id`.as('document_id'),
-        versionId: sql<string>`search_candidates.version_id`.as('version_id'),
-        judgmentDate: sql<string>`search_candidates.judgment_date`.as('judgment_date'),
-        rank: sql<number>`search_candidates.rank`.as('rank'),
-      })
-        .from(sql`(WITH search_candidates AS MATERIALIZED (${candidates}) SELECT * FROM search_candidates) AS search_candidates`)
-        .orderBy(desc(sql`search_candidates.rank`), desc(sql`search_candidates.judgment_date`))
-        .limit(limit)
-        .as('ranked_matches');
-      // Hydrate in the same statement/snapshot and use the selected version ID,
-      // so concurrent ingestion cannot mix rank/date with another version.
-      const rows = await executor.select({ document: schema.jurisprudenceDocuments, version: schema.jurisprudenceDocumentVersions })
-        .from(matches)
-        .innerJoin(schema.jurisprudenceDocuments, eq(matches.documentId, schema.jurisprudenceDocuments.id))
-        .innerJoin(schema.jurisprudenceDocumentVersions, eq(matches.versionId, schema.jurisprudenceDocumentVersions.id))
-        .orderBy(desc(matches.rank), desc(matches.judgmentDate));
-      return rows.map((row) => toDocument(row.document, row.version));
-      });
+      try {
+        const documents = await this.searchRanked(postgresVector, query, filters, limit);
+        return { documents };
+      } catch (error) {
+        const cause = (error instanceof Error && error.cause ? error.cause : error) as { code?: string; message?: string } | undefined;
+        if (cause?.code !== '57014' || !cause.message?.includes('statement timeout')) throw error;
+        const documents = await this.searchRecent(documentFilters, versionFilters, limit);
+        return { documents, ordering: 'JUDGMENT_DATE_DESC' };
+      }
     }
 
     const sqliteRank = sql<number>`(
@@ -280,7 +254,91 @@ export class JurisprudenceRepository {
         desc(schema.jurisprudenceDocumentVersions.judgmentDate),
       )
       .limit(limit);
-    return rows.map((row) => toDocument(row.document, row.version));
+    return { documents: rows.map((row) => toDocument(row.document, row.version)) };
+  }
+
+  private searchRanked(postgresVector: SQL, query: string, filters: SQL[], limit: number): Promise<JurisprudenceDocument[]> {
+    return this.db.transaction(async (tx) => {
+      const executor = tx as unknown as ForgeLexDatabase & { execute(statement: SQL): Promise<unknown> };
+      // Scope the planning deadline to this transaction as well.
+      await executor.execute(sql`SELECT set_config('statement_timeout', '30000', true)`);
+      // Rank compact rows first. Carrying full texts/search projections through
+      // a broad OR sort spills to disk even when only a few results are wanted.
+      const rank = sql<number>`ts_rank(${postgresVector}, websearch_to_tsquery('simple', ${query}))`;
+      const candidates = executor.select({
+        documentId: sql<string>`${schema.jurisprudenceDocuments.id}`.as('document_id'),
+        versionId: sql<string>`${schema.jurisprudenceDocumentVersions.id}`.as('version_id'),
+        judgmentDate: schema.jurisprudenceDocumentVersions.judgmentDate,
+        rank: rank.as('rank'),
+      })
+        .from(schema.jurisprudenceDocuments)
+        .innerJoin(schema.jurisprudenceDocumentVersions,
+          eq(schema.jurisprudenceDocuments.currentVersionId, schema.jurisprudenceDocumentVersions.id))
+        .leftJoin(schema.jurisprudenceSourceManifests,
+          eq(schema.jurisprudenceDocumentVersions.sourceManifestId, schema.jurisprudenceSourceManifests.id))
+        .where(and(...filters));
+      // EXPLAIN estimates the eligible candidates without scanning or ranking them.
+      // Use the plan before LIMIT, so requested result count cannot hide a broad search.
+      const planRows = await executor.execute(sql`EXPLAIN (FORMAT JSON) ${candidates}`) as
+        Array<{ 'QUERY PLAN'?: Array<{ Plan?: { 'Plan Rows'?: number } }> }>;
+      const estimatedCandidates = planRows[0]?.['QUERY PLAN']?.[0]?.Plan?.['Plan Rows'];
+      if (estimatedCandidates !== undefined && estimatedCandidates >= BROAD_SEARCH_CANDIDATES) {
+        await executor.execute(sql`SELECT set_config('statement_timeout', '6000', true)`);
+      }
+      // A materialized boundary also prevents PostgreSQL from sorting raw
+      // tsvectors before joining publication/date metadata and ranking again.
+      const matches = executor.select({
+        documentId: sql<string>`search_candidates.document_id`.as('document_id'),
+        versionId: sql<string>`search_candidates.version_id`.as('version_id'),
+        judgmentDate: sql<string>`search_candidates.judgment_date`.as('judgment_date'),
+        rank: sql<number>`search_candidates.rank`.as('rank'),
+      })
+        .from(sql`(WITH search_candidates AS MATERIALIZED (${candidates}) SELECT * FROM search_candidates) AS search_candidates`)
+        .orderBy(desc(sql`search_candidates.rank`), desc(sql`search_candidates.judgment_date`))
+        .limit(limit)
+        .as('ranked_matches');
+      // Hydrate in the same statement/snapshot and use the selected version ID,
+      // so concurrent ingestion cannot mix rank/date with another version.
+      const rows = await executor.select({ document: schema.jurisprudenceDocuments, version: schema.jurisprudenceDocumentVersions })
+        .from(matches)
+        .innerJoin(schema.jurisprudenceDocuments, eq(matches.documentId, schema.jurisprudenceDocuments.id))
+        .innerJoin(schema.jurisprudenceDocumentVersions, eq(matches.versionId, schema.jurisprudenceDocumentVersions.id))
+        .orderBy(desc(matches.rank), desc(matches.judgmentDate));
+      return rows.map((row) => toDocument(row.document, row.version));
+    });
+  }
+
+  private searchRecent(documentFilters: SQL[], versionFilters: SQL[], limit: number): Promise<JurisprudenceDocument[]> {
+    const documents = schema.jurisprudenceDocuments;
+    const versions = schema.jurisprudenceDocumentVersions;
+    const manifests = schema.jurisprudenceSourceManifests;
+    return this.db.transaction(async (tx) => {
+      const executor = tx as unknown as ForgeLexDatabase & { execute(statement: SQL): Promise<unknown> };
+      await executor.execute(sql`SELECT set_config('statement_timeout', '8000', true)`);
+      // Start with the judgment date index. The lateral lookup tests the current
+      // document for each version and stops after the requested eligible matches.
+      const matches = executor.select({
+        documentId: sql<string>`${documents.id}`.as('document_id'),
+        versionId: sql<string>`${versions.id}`.as('version_id'),
+        judgmentDate: versions.judgmentDate,
+      }).from(versions)
+        .innerJoin(sql`LATERAL (
+          SELECT ${documents.id}, ${documents.ingestionRunId} FROM ${documents}
+          WHERE ${and(eq(documents.id, versions.documentId), eq(documents.currentVersionId, versions.id), ...documentFilters)}
+          OFFSET 0
+        ) AS ${sql.identifier(getTableName(documents))}`, sql`true`)
+        .leftJoin(manifests, eq(versions.sourceManifestId, manifests.id))
+        .where(and(...versionFilters))
+        .orderBy(desc(versions.judgmentDate))
+        .limit(limit)
+        .as('recent_matches');
+      const rows = await executor.select({ document: documents, version: versions })
+        .from(matches)
+        .innerJoin(documents, eq(matches.documentId, documents.id))
+        .innerJoin(versions, eq(matches.versionId, versions.id))
+        .orderBy(desc(matches.judgmentDate));
+      return rows.map((row) => toDocument(row.document, row.version));
+    });
   }
 
   private async completedIngestionRunIds(): Promise<string[]> {

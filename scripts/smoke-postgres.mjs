@@ -282,16 +282,29 @@ try {
   );
   const claimTime = new Date(Date.now() + 1000).toISOString();
   const secondWorker = new WebhookRepository(client);
-  const claims = [await outbox.claimDueDelivery(claimTime), await secondWorker.claimDueDelivery(claimTime)];
-  assert.ok(claims[0] && claims[1]);
-  assert.notEqual(claims[0].id, claims[1].id);
+  const claims = await Promise.all([outbox.claimDueDelivery(claimTime), secondWorker.claimDueDelivery(claimTime)]);
+  const admitted = claims.filter(Boolean);
+  assert.equal(admitted.length, 1, 'only one delivery per tenant may hold an active lease');
+  const firstClaim = admitted[0];
+  await outbox.markDelivered(firstClaim.id, 200, firstClaim.claimToken);
+  const nextClaim = await secondWorker.claimDueDelivery(claimTime);
+  assert.ok(nextClaim, 'completion must release tenant admission for the other worker');
+  assert.notEqual(firstClaim.id, nextClaim.id);
   passed.add('outbox_two_workers');
   await client.execute({
     sql: "UPDATE webhook_deliveries SET next_attempt_at = ?, status = 'DELIVERING' WHERE id = ?",
-    args: [new Date(Date.now() - 1000).toISOString(), claims[0].id],
+    args: [new Date(Date.now() - 1000).toISOString(), nextClaim.id],
   });
   const reclaimed = await outbox.claimDueDelivery(new Date().toISOString());
-  assert.equal(reclaimed?.id, claims[0].id);
+  assert.equal(reclaimed?.id, nextClaim.id);
+  assert.notEqual(reclaimed.claimToken, nextClaim.claimToken);
+  await secondWorker.markDelivered(nextClaim.id, 200, nextClaim.claimToken);
+  const fenced = await client.execute({
+    sql: 'SELECT status FROM webhook_deliveries WHERE id = ?',
+    args: [nextClaim.id],
+  });
+  assert.equal(fenced.rows[0]?.status, 'DELIVERING', 'an expired worker cannot finish the replacement lease');
+  await outbox.markDelivered(reclaimed.id, 200, reclaimed.claimToken);
   passed.add('worker_restart');
 
   const app = await buildApp({

@@ -31,6 +31,7 @@ export const DecisionPresentationSchema = z.object({
   operationId: z.string().optional(),
   savedResearchId: z.string().optional(),
   searchedAt: z.string().optional(),
+  ordering: z.literal('JUDGMENT_DATE_DESC').optional(),
   canSave: z.boolean(),
   savedResearchEnabled: z.boolean(),
 });
@@ -84,6 +85,7 @@ export class DecisionPresentationService {
   ): Promise<DecisionPresentation> {
     let originals: CaseLaw[] | undefined;
     let searchedAt: string | undefined;
+    let ordering: DecisionPresentation['ordering'];
     let operationId = input.operationId;
     if (input.savedResearchId) {
       if (!this.savedEnabled || !this.saved || !connection)
@@ -93,6 +95,7 @@ export class DecisionPresentationService {
         );
       const original = await this.saved.get(owner, input.savedResearchId, connection);
       originals = original.results.items;
+      ordering = original.results.ordering;
       searchedAt = original.searchedAt;
       operationId = original.operationId;
     } else if (input.operationId) {
@@ -100,6 +103,7 @@ export class DecisionPresentationService {
         throw savedResearchError('SAVED_RESEARCH_UNAVAILABLE', 'Os resultados desta operação não estão disponíveis.');
       const original = await this.saved.completed(owner, input.operationId);
       originals = original.results.items;
+      ordering = original.results.ordering;
       searchedAt = original.searchedAt;
     }
     const references =
@@ -124,6 +128,7 @@ export class DecisionPresentationService {
       operationId,
       savedResearchId: input.savedResearchId,
       searchedAt,
+      ...(ordering ? { ordering } : {}),
       savedResearchEnabled: this.savedEnabled && Boolean(this.saved),
       canSave: Boolean(
         this.savedEnabled &&

@@ -101,12 +101,15 @@ it('mesa-v3: da área e do texto livre à peça confirmada e ao tribunal, mostra
     objective: 'Preciso elaborar a resposta à acusação do meu cliente',
   });
   seen.push(view);
-  expect(view.question?.options).toHaveLength(26);
+  // O texto sustenta uma única área: a Mesa a propõe em vez de listar as 25.
+  expect(view.decisions.area).toMatchObject({ value: 'penal', status: 'proposed', label: 'Penal' });
+  expect(view.question?.prompt).toBe('Pelo que você informou, a área é: Penal. Está correto?');
+  expect(view.question?.options).toHaveLength(2);
   const send = async (extra: { selectedOptionIds?: string[]; freeText?: string }) => {
     view = await guidance.respond(access, view.conversationId, randomUUID(), answer(view, extra));
     seen.push(view);
   };
-  await send({ selectedOptionIds: ['penal'] });
+  await send({ selectedOptionIds: ['sim'] });
   await send({ selectedOptionIds: ['create_document'] });
   expect(view.decisions.area).toMatchObject({ value: 'penal', status: 'confirmed', label: 'Penal' });
   expect(view.decisions.documentType).toMatchObject({
@@ -132,7 +135,7 @@ it('mesa-v3: recusar a peça propõe outra ou segue como pedido livre, e a conve
   const send = async (extra: { selectedOptionIds?: string[]; freeText?: string }) => {
     view = await guidance.respond(access, view.conversationId, randomUUID(), answer(view, extra));
   };
-  await send({ selectedOptionIds: ['penal'] });
+  await send({ selectedOptionIds: ['sim'] });
   await send({ selectedOptionIds: ['create_document'] });
   await send({ selectedOptionIds: ['nao'] });
   expect(view.decisions.documentType).toMatchObject({ value: null, status: 'unknown' });
@@ -152,7 +155,7 @@ it.each([
 ])('mesa-v3: corrigir peça confirmada pelo resumo com $selectedOptionIds e unknown=$unknown', async (choice) => {
   const guidance = await v3Service();
   let view = await guidance.start(access, randomUUID(), { objective: 'Preciso elaborar resposta à acusação' });
-  for (const selectedOptionIds of [['penal'], ['create_document'], ['sim']]) {
+  for (const selectedOptionIds of [['sim'], ['create_document'], ['sim']]) {
     view = await guidance.respond(access, view.conversationId, randomUUID(), answer(view, { selectedOptionIds }));
   }
   view = await guidance.respond(access, view.conversationId, randomUUID(), answer(view, { freeText: 'TJ-AL' }));

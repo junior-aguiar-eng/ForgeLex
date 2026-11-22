@@ -3,11 +3,13 @@ import { ApiRequestError, getBillingAccount, requestApi } from '../api-client';
 import { SearchCoordinator } from '../operations/search-coordinator';
 import { OperationsClient } from '../operations/operations-client';
 import type { OperationalResource, ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
-import { isKnownPath, navigateToTab, resolveVisibleTab, tabForPath, updateDocumentTitle, type AppTab, type CaseRouteContext } from '../navigation/routes';
+import { canonicalPathname, iceCaseDestination, isKnownPath, navigateToTab, resolveVisibleTab, tabForPath, updateDocumentTitle, type AppTab, type CaseRouteContext } from '../navigation/routes';
 
-import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED } from '../config/site-capabilities';
+import { AGENTIC_WORKSPACE_ENABLED, CASE_WORKSPACE_ENABLED, isDeskEnabled } from '../config/site-capabilities';
 import type { DeskSelection } from '../agentic-workspace/desk-selection';
 import { readDeskLocation, writeDeskLocation } from '../navigation/desk-location';
+import { useAuth } from '../auth/AuthContext';
+import { browserStorage, writeVerifiedCitation } from '../screens/first-steps-storage';
 
 export type { ResearchHistoryItem, ReviewQueueItem, SearchExecution, SearchIntent, SearchResultItem, TribunalCapability } from '../operations/contracts';
 export type { AppTab } from '../navigation/routes';
@@ -87,6 +89,8 @@ export async function loadVisibleOperationalState(client: OperationsClient, case
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { account } = useAuth();
+  const userId = account?.user.id ?? '';
   const [activeTab, setCurrentTab] = useState<AppTab>(() => typeof window === 'undefined' ? 'landing' : resolveVisibleTab(tabForPath(window.location.pathname), CASE_WORKSPACE_ENABLED));
   const [routeLocation, setRouteLocation] = useState(() => typeof window === 'undefined' ? '' : window.location.href);
   const lastDesk = useRef<DeskSelection>();
@@ -161,7 +165,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         else window.history.replaceState({...window.history.state,forgelexIndex:acceptedIndex},document.title,acceptedUrl);
         return;
       }
-      const requestedTab = tabForPath(window.location.pathname);
+      // No tema gelo, o caminho antigo de uma tela renomeada (Consulta processual) redireciona para o novo.
+      const canonical = canonicalPathname(window.location.pathname);
+      if (canonical !== window.location.pathname) {
+        window.history.replaceState({ ...window.history.state }, document.title, `${canonical}${window.location.search}${window.location.hash}`);
+      }
+      // No tema gelo, "/app/casos" sem caso (um link antigo, o histórico do navegador) abre a Mesa, onde se escolhe e gerencia o
+      // caso; com `?caso=`, o link continua em Dados do caso.
+      const hasCase = Boolean(new URLSearchParams(window.location.search).get('caso'));
+      const known = tabForPath(window.location.pathname);
+      const destination = isKnownPath(window.location.pathname)
+        ? iceCaseDestination(known, hasCase, isDeskEnabled(CASE_WORKSPACE_ENABLED, AGENTIC_WORKSPACE_ENABLED))
+        : known;
+      if (destination === 'work' && known === 'matter') {
+        window.history.replaceState({ ...window.history.state }, document.title, '/app/trabalho');
+      }
+      const requestedTab = destination;
       const tab = resolveVisibleTab(requestedTab, CASE_WORKSPACE_ENABLED);
       if (!isKnownPath(window.location.pathname)) navigateToTab('landing', 'replace');
       else if (tab !== requestedTab) navigateToTab(requestedTab, 'replace');
@@ -180,10 +199,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!window.dispatchEvent(new Event('forgelex:before-navigate',{cancelable:true}))) return;
     const index=Number(window.history.state?.forgelexIndex??0);
     const previousUrl=window.location.href;
-    navigateToTab(tab, mode, context ?? (tab === 'work' ? lastDesk.current : undefined));
+    // No gelo, abrir "Casos" sem dizer o caso é abrir a Mesa (ver `iceCaseDestination`).
+    const target = iceCaseDestination(tab, Boolean(context?.matterId), isDeskEnabled(CASE_WORKSPACE_ENABLED, AGENTIC_WORKSPACE_ENABLED));
+    navigateToTab(target, mode, context ?? (target === 'work' ? lastDesk.current : undefined));
     window.history.replaceState({...window.history.state,forgelexIndex:index+(mode==='push'&&window.location.href!==previousUrl?1:0)},document.title,window.location.href);
     window.dispatchEvent(new Event('forgelex:route-updated'));
-    setCurrentTab(resolveVisibleTab(tab, CASE_WORKSPACE_ENABLED));
+    setCurrentTab(resolveVisibleTab(target, CASE_WORKSPACE_ENABLED));
   }, []);
 
   const performSearch = async (intent: SearchIntent): Promise<SearchExecution> => {
@@ -195,7 +216,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       method: 'POST',
       headers: { 'Idempotency-Key': `web_verify_${crypto.randomUUID()}` },
       body: JSON.stringify({ court, processNumber, judgmentDate }),
-    }).then((response) => ({ ...response, authority: response.authority ? mapAuthority(response.authority) : undefined }));
+    }).then((response) => {
+      // O passo "Verificar uma citação" da Visão (tema gelo): a verificação é gratuita e não deixa lançamento.
+      writeVerifiedCitation(browserStorage(), userId);
+      return { ...response, authority: response.authority ? mapAuthority(response.authority) : undefined };
+    });
   };
 
   const actions = createOperationalActions(client, setReviewQueue);

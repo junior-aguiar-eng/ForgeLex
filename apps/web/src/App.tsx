@@ -2,6 +2,12 @@ import React, { Suspense, lazy } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
+import { IceHeader } from './components/ice/IceHeader';
+import { IceFrame } from './components/ice/IceFrame';
+import { IceSidebar } from './components/ice/IceSidebar';
+import { DeskHistorySlotProvider } from './components/ice/desk-history-slot';
+import { AccountAside } from './components/ice/AccountAside';
+import { activeTheme } from './theme/active-theme';
 import { ScreenLoadBoundary } from './components/ScreenLoadBoundary';
 import AuthScreen from './screens/AuthScreen';
 import { AuthProvider, useAuth } from './auth/AuthContext';
@@ -15,6 +21,7 @@ import { resolveVisibleTab, type AppTab } from './navigation/routes';
 import { CASE_WORKSPACE_ENABLED } from './config/site-capabilities';
 
 const LandingScreen = lazy(() => import('./screens/LandingScreen').then(({ LandingScreen: screen }) => ({ default: screen })));
+const OverviewScreen = lazy(() => import('./screens/OverviewScreen').then(({ OverviewScreen: screen }) => ({ default: screen })));
 const WritingDeskScreen = lazy(() => import('./screens/WritingDeskScreen').then(({ WritingDeskScreen: screen }) => ({ default: screen })));
 const ResearchDeskScreen = lazy(() => import('./screens/ResearchDeskScreen').then(({ ResearchDeskScreen: screen }) => ({ default: screen })));
 const MatterWorkspaceScreen = lazy(() => import('./screens/MatterWorkspaceScreen').then(({ MatterWorkspaceScreen: screen }) => ({ default: screen })));
@@ -35,6 +42,8 @@ const AppContent: React.FC = () => {
   const visibleTab = resolvedTab === 'draft_studio' || resolvedTab === 'dashboard' ? 'work' : resolvedTab;
   const { status, passwordRecovery, passwordRecoveryError } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  // A casca nova (V2) existe só no tema gelo; o clássico mantém o cabeçalho e a lateral de sempre.
+  const ice = React.useMemo(() => activeTheme() === 'gelo', []);
   const [workVisited, setWorkVisited] = React.useState(visibleTab === 'work');
   const selectTab = (tab: AppTab) => setActiveTab(tab);
   React.useEffect(() => { if (visibleTab === 'work') setWorkVisited(true); }, [visibleTab]);
@@ -54,23 +63,30 @@ const AppContent: React.FC = () => {
     return <AuthScreen initialView="sign_in" status={status} />;
   }
 
-  return (
-    <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-[#FBF9F5]">
+  const shell = (
+    <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-canvas">
       {/* Header */}
-      <Header menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((value) => !value)} />
+      {ice
+        ? <IceHeader menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((value) => !value)} />
+        : <Header menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((value) => !value)} />}
 
       <div className="relative flex min-w-0 flex-1">
-        {<Sidebar mobileOnly={visibleTab === 'work'} activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
+        {ice
+          ? <IceSidebar activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />
+          : <Sidebar mobileOnly={visibleTab === 'work'} activeTab={visibleTab} mobileOpen={sidebarOpen} onCloseMobile={() => setSidebarOpen(false)} onSelect={selectTab} />}
         <main className="min-w-0 flex-1">
+          {ice && visibleTab !== 'work' && <IceFrame tab={visibleTab} />}
           {(visibleTab === 'work' || workVisited) && <div key="retained-work" hidden={visibleTab !== 'work'}><ScreenLoadBoundary><Suspense fallback={<div className="page-container py-16">Carregando trabalho…</div>}><WritingDeskScreen active={visibleTab === 'work'} requestedLocation={routeLocation} /></Suspense></ScreenLoadBoundary></div>}
           <ScreenLoadBoundary key={`page-${visibleTab}`}>
             <Suspense fallback={<div className="page-container py-16 text-sm text-stone-500">Carregando espaço de trabalho…</div>}>
-              {visibleTab === 'landing' && <LandingScreen />}
+              {visibleTab === 'landing' && (ice ? <OverviewScreen /> : <LandingScreen />)}
               {visibleTab === 'research' && <ResearchDeskScreen />}
-              {visibleTab === 'datajud' && <DataJudPage />}
+              {visibleTab === 'datajud' && <DataJudPage title={ice ? 'Andamento processual' : undefined} />}
               {visibleTab === 'matter' && <MatterWorkspaceScreen />}
               {visibleTab === 'connections' && <ConnectionsScreen />}
-              {visibleTab === 'credits' && <CreditsScreen />}
+              {visibleTab === 'credits' && (ice
+                ? <div className="mx-auto grid max-w-[1400px] gap-6 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8"><div className="min-w-0"><CreditsScreen /></div><div className="pt-8 md:pt-12"><AccountAside /></div></div>
+                : <CreditsScreen />)}
               {visibleTab === 'account_activity' && <AccountActivityScreen />}
               {visibleTab === 'account_security' && <AccountSecurityScreen />}
               {visibleTab === 'api_keys' && <ApiKeysScreen />}
@@ -97,6 +113,7 @@ const AppContent: React.FC = () => {
       </footer>}
     </div>
   );
+  return ice ? <DeskHistorySlotProvider>{shell}</DeskHistorySlotProvider> : shell;
 };
 
 const AuthEntry: React.FC<{ route: SiteRoute }> = ({ route }) => {

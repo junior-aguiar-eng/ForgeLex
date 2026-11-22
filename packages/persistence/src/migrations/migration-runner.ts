@@ -1,3 +1,4 @@
+import { executionStreamLeasesMigration } from './execution-stream-leases.js';
 import type { Client } from '@libsql/client';
 
 export interface SqlMigration {
@@ -1189,6 +1190,15 @@ export const persistenceMigrations: readonly SqlMigration[] = [
 { id: 'persistence-0040-desk-editorial', statements: [
   `ALTER TABLE draft_versions ADD COLUMN editorial_reviews_json TEXT;`,
 ] },
+{ id: 'persistence-0042-webhook-admission', statements: [
+  `CREATE TABLE webhook_admission (id INTEGER PRIMARY KEY, revision INTEGER NOT NULL);`,
+  `INSERT INTO webhook_admission (id, revision) VALUES (1, 0);`,
+  `ALTER TABLE webhook_deliveries ADD COLUMN claim_token TEXT;`,
+  `CREATE INDEX webhook_deliveries_tenant_attempt_idx ON webhook_deliveries(tenant_id, last_attempt_at);`,
+  `ALTER TABLE webhook_endpoints ADD COLUMN last_error TEXT;`,
+  `UPDATE webhook_deliveries SET response_body_excerpt = NULL;`,
+] },
+executionStreamLeasesMigration,
 ];
 
 export async function runPersistenceMigrations(client: Client): Promise<void> {

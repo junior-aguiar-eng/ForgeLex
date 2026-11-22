@@ -15,8 +15,16 @@ export const DESK_ENABLED = isDeskEnabled(CASE_WORKSPACE_ENABLED, AGENTIC_WORKSP
 /** Nova casca da Mesa (U2): atalhos no estado vazio. Desligada por padrão; ligada só com `true` exato. */
 export const DESK_SHELL_ENABLED = import.meta.env.VITE_FORGELEX_DESK_SHELL === 'true';
 
-/** Anexos no compositor da Mesa (U5): PDF, TXT e MD, só o texto. Desligados por padrão; ligados só com `true` exato. */
+/**
+ * Site público no modelo novo (V5A): a IA do cliente conectada ao ForgeLex por MCP, mais a Mesa. Texto e função saem na
+ * mesma publicação; desligada por padrão (o texto atual é o escopo congelado) e ligada só com `true` exato.
+ */
+export const PUBLIC_MODEL_ENABLED = import.meta.env.VITE_FORGELEX_PUBLIC_MODEL === 'true';
+
+/** Anexos no compositor da Mesa (U5): PDF, Word (.docx), TXT e MD, só o texto. Desligados por padrão; ligados só com `true` exato. */
 export const ATTACHMENTS_ENABLED = import.meta.env.VITE_FORGELEX_ATTACHMENTS_ENABLED === 'true';
 
 /** Chips de matéria no compositor da Mesa (U4): a Mesa sugere uma matéria por vez. Desligados por padrão. */
 export const MATTER_CHIPS_ENABLED = import.meta.env.VITE_FORGELEX_MATTER_CHIPS_ENABLED === 'true';
+/** Reconhecimento de texto (OCR) de PDF e imagem sem texto, no navegador (U6). Só vale com os anexos ligados; desligado por padrão. */
+export const OCR_ENABLED = ATTACHMENTS_ENABLED && import.meta.env.VITE_FORGELEX_OCR_ENABLED === 'true';

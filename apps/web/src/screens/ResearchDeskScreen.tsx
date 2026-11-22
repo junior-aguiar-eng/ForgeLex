@@ -10,6 +10,9 @@ import { SaveAuthorityToCase } from '../components/SaveAuthorityToCase';
 import { ExecutedSearchLabel, JudgmentYearSelect, ResearchRetentionNotice, SearchChargeNotice, ResearchCoverageNotice } from '../components/ResearchControls';
 import { createResearchDeskModel } from './research-desk-model';
 import { canSearchCourt } from '../operations/search-capabilities';
+import { activeTheme } from '../theme/active-theme';
+import { VerificationSeal } from '../components/ice/Seal';
+import { verificationSeal } from '../components/ice/verification-seal';
 
 const statusLabel: Record<AuthorityVerification['status'], string> = {
   VERIFIED_OFFICIAL: 'Verificado na fonte oficial',
@@ -20,7 +23,9 @@ const statusLabel: Record<AuthorityVerification['status'], string> = {
 };
 
 export const ResearchDeskScreen: React.FC<{ compact?: boolean; pieceMatterId?: string }> = ({ compact = false, pieceMatterId }) => {
-  const { verifyAuthority, tribunals, searchIntent, performSearch } = useApp();
+  const { verifyAuthority, tribunals, searchIntent, performSearch, setActiveTab } = useApp();
+  // Tema gelo (V4): título e legenda dos selos novos; as regras da pesquisa não mudam.
+  const ice = activeTheme() === 'gelo';
   const [query, setQuery] = useState(() => searchIntent?.query ?? '');
   const [court, setCourt] = useState<string>(() => searchIntent?.court ?? 'STJ');
   const [year, setYear] = useState(() => searchIntent?.judgmentYear?.toString() ?? '');
@@ -58,7 +63,24 @@ export const ResearchDeskScreen: React.FC<{ compact?: boolean; pieceMatterId?: s
   return (
     <div className={compact ? undefined : 'py-8 md:py-12'}>
       <div className={compact ? 'space-y-4' : 'page-container space-y-8'}>
-        {!compact && <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+        {!compact && ice && (
+          <header className="space-y-1">
+            <h1 className="font-editorial text-3xl font-semibold text-ink">Jurisprudência</h1>
+            <p className="max-w-2xl text-sm text-muted">
+              Pesquisa de decisões com a fonte e o estado de verificação de cada resultado. Para o andamento de um
+              processo, use{' '}
+              <button
+                type="button"
+                onClick={() => setActiveTab('datajud')}
+                className="font-medium text-accent underline hover:text-accent-strong"
+              >
+                Andamento processual
+              </button>
+              .
+            </p>
+          </header>
+        )}
+        {!compact && !ice && <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
           <div className="space-y-3">
             <div className="eyebrow inline-flex items-center gap-2 rounded-full bg-cognac-100 px-3 py-1">
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -72,6 +94,23 @@ export const ResearchDeskScreen: React.FC<{ compact?: boolean; pieceMatterId?: s
           <div className="text-right text-xs text-stone-500">Resultados e cobrança dependem da API autenticada.</div>
         </div>}
 
+        {!compact && ice && !hasSearched && !results.length && (
+          <section aria-labelledby="como-ler" className="rounded-2xl border border-line bg-surface p-5">
+            <h2 id="como-ler" className="text-[11px] font-semibold uppercase tracking-[0.1em] text-subtle">
+              Como ler os resultados
+            </h2>
+            <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+              {(['UNVERIFIED', 'VERIFIED_OFFICIAL', 'NOT_FOUND'] as const).map((status) => (
+                <div key={status}>
+                  <dt>
+                    <VerificationSeal status={status} />
+                  </dt>
+                  <dd className="mt-1 text-xs text-muted">{verificationSeal(status).detail}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
         <div className={compact ? 'grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]' : 'grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start'}>
           <section className="champagne-card bg-white rounded-2xl p-5 sm:p-6 space-y-5">
             <div className="flex items-center gap-2 text-stone-900">
@@ -82,8 +121,8 @@ export const ResearchDeskScreen: React.FC<{ compact?: boolean; pieceMatterId?: s
             <ResearchCoverageNotice />
             <form onSubmit={search} className="space-y-3">
               <div className="flex flex-col md:flex-row gap-3">
-                <input aria-label="Termo de pesquisa" value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-[12rem] flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
-                <select aria-label="Tribunal da pesquisa" value={court} onChange={(event) => setCourt(event.target.value)} className="md:w-28 px-3 py-3 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm">
+                <input aria-label="Termo de pesquisa" value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-[12rem] flex-1 px-4 py-3 rounded-xl border border-champagne-border bg-surface-muted text-sm focus:outline-none focus:ring-2 focus:ring-cognac-500/20" placeholder="Tema, tese ou número do processo" />
+                <select aria-label="Tribunal da pesquisa" value={court} onChange={(event) => setCourt(event.target.value)} className="md:w-28 px-3 py-3 rounded-xl border border-champagne-border bg-surface-muted text-sm">
                   {model.courts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
                 </select>
                 <JudgmentYearSelect value={year} onChange={setYear} />
@@ -121,20 +160,27 @@ export const ResearchDeskScreen: React.FC<{ compact?: boolean; pieceMatterId?: s
             </div>
             <form onSubmit={verify} className="space-y-3">
               <label className="block text-xs font-semibold text-stone-600">Tribunal
-                <select value={court} onChange={(event) => setCourt(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm">{model.courts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}</select>
+                <select value={court} onChange={(event) => setCourt(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-surface-muted text-sm">{model.courts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}</select>
               </label>
               <label className="block text-xs font-semibold text-stone-600">Número do processo
-                <input value={processNumber} onChange={(event) => setProcessNumber(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                <input value={processNumber} onChange={(event) => setProcessNumber(event.target.value)} className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-surface-muted text-sm" />
               </label>
               <label className="block text-xs font-semibold text-stone-600">Data do julgamento (opcional)
-                <input value={judgmentDate} onChange={(event) => setJudgmentDate(event.target.value)} placeholder="DD/MM/AAAA" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-[#FDFBF7] text-sm" />
+                <input value={judgmentDate} onChange={(event) => setJudgmentDate(event.target.value)} placeholder="DD/MM/AAAA" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-champagne-border bg-surface-muted text-sm" />
               </label>
               <button disabled={busy || !model.canSearch} className="w-full px-4 py-3 rounded-xl border border-cognac-300 bg-cognac-50 hover:bg-cognac-100 disabled:bg-stone-100 text-cognac-800 text-sm font-semibold">{model.verificationActionLabel}</button>
             </form>
 
             {verification && (
               <div className={`rounded-xl p-4 border ${verification.status === 'VERIFIED_OFFICIAL' ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'} space-y-2`}>
-                <p className="text-sm font-bold text-stone-900">{statusLabel[verification.status]}</p>
+                {ice ? (
+                  <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-bold text-stone-900">
+                    <VerificationSeal status={verification.status} />
+                    <span className="font-normal text-stone-700">{statusLabel[verification.status]}</span>
+                  </p>
+                ) : (
+                  <p className="text-sm font-bold text-stone-900">{statusLabel[verification.status]}</p>
+                )}
                 {verification.authority && <p className="text-xs text-stone-700">{verification.authority.court} · {verification.authority.processNumber} · {verification.authority.relator}</p>}
                 {verification.reason && <p className="text-xs text-amber-800">{verification.reason}</p>}
                 <p className="text-[10px] text-stone-500">Conferido em {new Date(verification.checkedAt).toLocaleString('pt-BR')}</p>

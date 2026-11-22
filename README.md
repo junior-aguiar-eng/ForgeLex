@@ -1,7 +1,7 @@
 # FORGELEX — Plataforma Agêntica Jurídica Agnóstica V2
 
-> **Do caso à minuta, conecte fatos, provas e jurisprudência.**
-> Organize o caso, pesquise o STJ em fontes rastreáveis e prepare rascunhos para revisão humana.
+> **Sua IA, com jurisprudência que dá para conferir.**
+> Conecte o ForgeLex ao ChatGPT ou ao Claude por MCP e pesquise decisões com a fonte e o estado de verificação de cada resultado. Você paga só pelo uso.
 
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-5.7%20Strict-blue.svg)](https://www.typescriptlang.org/)
 [![Validation](https://img.shields.io/badge/Validation-STJ%20Completed-brightgreen.svg)](STATUS_VALIDACAO.md)
@@ -13,6 +13,18 @@
 ## 🏛️ Visão Geral
 
 O **FORGELEX V2** foi construído para superar as limitações das ferramentas jurídicas de 1ª geração (prompts estáticos, alucinações de ementas, dependência de fornecedor único e falta de governança).
+
+## Posicionamento público
+
+O site público e o app seguem o modelo MCP e Mesa: a IA do cliente (ChatGPT ou Claude) conectada ao ForgeLex, mais a Mesa
+de trabalho para elaborar e revisar peças com orientação, a partir de anexos em PDF, texto ou Markdown. O título acima foi
+escolhido por Boni em 17/11/2026 e cada frase do texto corresponde a uma função publicada; Word, OCR, agentes analíticos,
+vigência e Gemini só entram depois de publicados e ensaiados.
+
+O texto novo é ligado no build por `VITE_FORGELEX_PUBLIC_MODEL=true` e **vem desligado por padrão**: sem a variável, o site
+é o de escopo congelado. `VITE_PUBLIC_ORIGIN` troca o domínio de `canonical`, `og:url`, `sitemap.xml` e `robots.txt` (virada
+de domínio, etapa D3). Registro em
+[docs/architecture/2026-11-10-mesa-guiada-execucao.md](docs/architecture/2026-11-10-mesa-guiada-execucao.md).
 
 ## Estado atual do produto
 

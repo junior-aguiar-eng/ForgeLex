@@ -8,6 +8,55 @@
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238E5D2A'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Tema (V1), escolhido antes da primeira pintura. VITE_FORGELEX_THEME vale "classico" (padrão), "gelo" ou "previa"
+      (clássico, com ?tema=gelo guardado no navegador, só para homologação). Qualquer outro valor, ou a variável sem
+      valor, é o tema clássico. O tema gelo pré-carrega só a Inter 400, troca o favicon e define a cor da barra do navegador (theme-color); o clássico não mexe em nenhum dos dois.
+    -->
+    <script data-theme-script>
+      (function () {
+        var configured = '%VITE_FORGELEX_THEME%';
+        var theme = 'classico';
+        try {
+          if (configured === 'gelo') {
+            theme = 'gelo';
+          } else if (configured === 'previa') {
+            var asked = /[?&]tema=(gelo|classico)(?:&|$)/.exec(location.search);
+            if (asked) theme = asked[1];
+            try {
+              if (asked) localStorage.setItem('forgelex.tema', theme);
+              else if (localStorage.getItem('forgelex.tema') === 'gelo') theme = 'gelo';
+            } catch (storageBlocked) {
+              /* sem armazenamento: vale o parâmetro da página, ou o clássico */
+            }
+          }
+        } catch (ignored) {
+          /* qualquer falha deixa o tema clássico */
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        if (theme === 'gelo') {
+          var preload = document.createElement('link');
+          preload.rel = 'preload';
+          preload.as = 'font';
+          preload.type = 'font/woff2';
+          preload.href = '/fonts/inter-latin-400-normal.woff2';
+          preload.crossOrigin = 'anonymous';
+          document.head.appendChild(preload);
+          // V6: favicon e cor da barra do navegador na paleta do gelo (acento e fundo de apps/web/src/index.css).
+          var icon = document.querySelector && document.querySelector('link[rel="icon"]');
+          if (icon) {
+            icon.setAttribute(
+              'href',
+              "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230F5C6E'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>",
+            );
+          }
+          var color = document.createElement('meta');
+          color.name = 'theme-color';
+          color.content = '#F4F7F8';
+          document.head.appendChild(color);
+        }
+      })();
+    </script>
     <link rel="canonical" href="https://nexojuris.ia.br/" />
     <meta name="robots" content="index,follow" />
     <meta property="og:type" content="website" />
@@ -37,7 +86,7 @@
       rel="stylesheet"
     />
   </head>
-  <body class="bg-[#FBF9F5] text-stone-800 antialiased selection:bg-cognac-100 selection:text-cognac-900">
+  <body class="bg-canvas text-stone-800 antialiased selection:bg-cognac-100 selection:text-cognac-900">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

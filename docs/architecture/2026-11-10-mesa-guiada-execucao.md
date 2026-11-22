@@ -163,7 +163,7 @@ O teste passou a criar chave UUID e título próprios para cada execução e a l
 | A16      | `guided-desk.spec.ts` exercita a jornada em desktop e viewport móvel, com teclas nos passos de orientação, envio e seleção de trecho. `desk-guidance.spec.ts` confere foco, acessibilidade e disposição dos controles.        |
 | A17      | Piloto Penal e regressão Cível reservados ao R14.                                                                                                                                                                             |
 | A18      | Esta seção registra código e validação local. Homologação de produção pendente.                                                                                                                                               |
-| A19      | Aceite visual de Boni em desktop e celular pendente.                                                                                                                                                                          |
+| A19      | Aceite visual de Boni em desktop e celular: atendido em 17/11/2026.                                                                                                                                                           |
 
 ## R14 · piloto Penal e regressão Cível
 
@@ -1147,6 +1147,1250 @@ As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo
 | Acervo capturado   | `MinutaIA-Habilidades-Oficiais-2077-2026-11-10.zip`                         |
 
 SHA-256 verificado do ZIP `2a0efbbc301e53c357d5fe6baac1a896c84669fc1646a62c2aec410550543d01`.
+
+## Frente S — execução Daybreak — 14/11/2026 (America/Fortaleza)
+
+Autorização: Boni pediu “vamos implementar!” após receber a Frente S do plano unificado.
+Isso autoriza implementação e validação local, sem merge, deploy ou mudanças em produção.
+
+### S0 — reconciliação
+
+Base remota reconferida: `main` = `a00ffa934dbd075cba8b63142e3b61ed675cd4e5`.
+PR #152 integrado nessa base; branch da fixture preservada em `/workspace/ForgeLex`.
+Frente de autorização isolada em `/workspace/ForgeLex-security-auth`, branch
+`fix/daybreak-authorization`, originada de `origin/main`.
+
+Verificação: PowerShell 7.5.4 portátil em `/tmp/forgelex-pwsh`, suíte
+`ops/gcp/production/deploy-from-main.tests.ps1`: **43 passaram, 0 falharam**.
+Não houve chamada gcloud real nem operação de release. O helper valida projeto, ID,
+status, substituições e imagem/digest; não equivale a atestação independente da origem,
+configuração ou identidade do builder. IAM e estado publicado não foram inspecionados.
+A lacuna de confiança além do bypass de tag permanece risco residual explícito.
+
+Ruling: os getters dos fixes MCP e reembolso retornaram FORBIDDEN (“finding chat is
+unavailable in the current workspace”). Implementar pelo código e evidência do relatório,
+sem contornar a restrição e sem declarar revisão dos diffs salvos — custo: não reaproveitar
+automaticamente esses fixes.
+
+Pre-flight: S1 produz permissões usadas por S4; S2 e S3 compartilham billing-operations
+mas terão mudanças financeiras separadas da fixture; S4 e S6 requerem leases entre réplicas.
+Ruling: usar worktrees por subsistema e preservar a branch da fixture; acompanhar esta
+execução no registro existente, conforme a regra do plano unificado, sem novo ledger.
+
+### S1 — autorização e isolamento — validado localmente
+
+Implementação: escopos por ferramenta MCP antes da cobrança; memo autenticado exige
+`research:read` e `matter:write` independentemente do canal declarado. Contextos internos
+sem metadados de autenticação conservam compatibilidade, mas o HTTP sempre fornece esses
+metadados. OAuth verifica conexão/grant exato, inclusive replay e resposta final; os efeitos
+persistentes verificam o grant dentro da transação sob o mesmo lock de matter usado na
+revogação. Memo REST recusa tokens OAuth destinados ao MCP antes das leituras do caso.
+
+Integrações: `credentials:read/write`, mutações só por sessão de proprietário;
+`webhooks:read/write` e autorização de cada família de evento. Listas filtram destinos e
+entregas não autorizados. Campos de identidade do JSON não substituem o tenant autenticado.
+OpenAPI, tela de chaves e orientação de migração atualizados.
+
+Evidências: 21 regressões falharam no código-base original; teste de corrida PostgreSQL
+sem a checagem transacional gravou indevidamente um checkpoint (esperado zero), depois
+passou com a correção. PostgreSQL isolado: 13/13 testes de autorização, incluindo revogação
+enquanto o checkpoint espera o lock. Verificação focada final: 96 passaram, 1 teste
+PostgreSQL pulado nesse comando; ele foi executado separadamente com sucesso. Build e
+API typecheck aprovados; ESLint dos arquivos alterados e diff check aprovados.
+
+A revisão independente encontrou três pontos importantes (transação, replay, metadados de
+autenticação), todos corrigidos e cobertos por testes. Item menor adiado: guarda redundante
+de mutação no handler GET de credenciais; não altera autorização nem dados.
+
+Ruling: usar trabalho paralelo somente entre frentes independentes em worktrees distintas,
+conforme a skill dispatching-parallel-agents; preservar implementação e revisão financeira
+no coordenador. Custo observado: disputa de CPU causou timeouts de suítes gerais. As
+execuções gerais redundantes foram interrompidas e a verificação completa será serial em
+S8. Falhas observadas por contenção não são declaradas resolvidas antes dessa execução.
+
+Ruling: o getter de fix não estava disponível; a correção foi desenvolvida do código-fonte
+com reprodução local, sem afirmar que o diff salvo do Daybreak foi aplicado.
+Ruling: manter contextos internos sem autenticação explícita como chamadas confiáveis de
+servidor; contextos autenticados não podem evitar a política trocando `source`.
+Custo se mal utilizado: um novo adaptador remoto deve obrigatoriamente fornecer metadados,
+como os adaptadores HTTP deste patch já fazem.
+
+Estado: sem CI remota nova, sem push, sem integração e sem publicação. A validação integrada
+S8 ainda é necessária, especialmente com as alterações de worker e pagamentos.
+
+### S2–S7 — implementação isolada e montagem para revisão
+
+Branches locais (sem push): S1 `fix/daybreak-authorization` (`f0e2207`), S2
+`fix/daybreak-payments` (`8fd899c`, inclui a base do PR #153), S3
+`fix/daybreak-refunds` (`df6a52d`), S4 `fix/daybreak-webhooks` (`d53c377`), S5
+`fix/daybreak-ingestion` (`c9ab7ec`), S6 `fix/daybreak-sse` (`bf22f2d`), S7
+`fix/daybreak-secrets` (`b40643f`). A montagem local está em
+`/workspace/ForgeLex-security-review`, branch `review/daybreak-security`, base `a00ffa9`.
+Ela usa patches locais, não merge de PR. Combina registros de migração 0042/0043 e os testes
+financeiros das duas frentes; as branches de implementação permanecem separadas.
+
+**S2.** Liquidação, crédito, compra, pagamento e fatura agora compartilham a transação da
+carteira. Falha de gravação desfaz o conjunto; retry recupera sem crédito duplicado.
+Aprovação válida pode suceder falha; identidade ainda não persistida gera erro recuperável,
+sem liberar crédito. Reconciliação não é paga automaticamente por nova notificação.
+Recarga tem claim transacional antes do provedor, com CAS entre réplicas e mutex local;
+Mercado Pago continua sem recarga automática habilitada.
+
+Callbacks usam identidade canônica do recurso/estado e recibo durável da tupla autenticada.
+Novas entregas exigem idade máxima de cinco minutos e futuro máximo de um minuto; aceitam
+milissegundos e exemplos legados em segundos. Retry já recebido/autenticado pode ser antigo,
+com cooldown de 15 segundos e lease recuperável de cinco minutos. Alterar `payload.id` ou
+espaços não cria outra identidade. Não se confirma recibo quando o evento canônico ainda
+está em andamento. Recibos antigos desconhecidos não são autenticados retroativamente:
+retornam erro explícito e exigem recuperação operacional se forem legítimos.
+
+Fontes do contrato consultadas via Context7: documentação Mercado Pago de notificações
+Checkout Pro/Orders (ACK 200/201 em 22 segundos; retries após 15 minutos e além), Wallet
+Connect/Point (timestamp em milissegundos) e exemplos legados de assinatura em segundos.
+Documentação de GET Orders mostra variantes com/sem currency. Na ausência dela, só há
+normalização de moeda por pagamentos explicitamente vinculados via reference_id, consultados
+na API autenticada, com IDs, referência, estados, soma de valores e moedas coerentes.
+Sem evidência suficiente, não se inventa BRL: mantém-se reconciliação. Não houve pagamento
+ou chamada à API real do Mercado Pago.
+
+Evidências S2: testes RED de ordenação/identidade antecipada e fatura parcial; 60 testes
+financeiros focados aprovados antes da revisão; três PostgreSQL de liquidação/duas réplicas
+e recarga aprovados. Correções da revisão: 48 testes S2 focados aprovados. Testes de SQLite
+usam falhas reais de trigger e promises controladas; PostgreSQL usa instâncias independentes.
+
+**S3.** Reserva recalcula lote/carteira/reservas pendentes sob lock antes da rede. Intenção
+persistente e estados PREPARED, PROVIDER_PENDING, PROVIDER_SUCCEEDED, LEDGER_SETTLED,
+RECONCILIATION_REQUIRED tornam resultados ambíguos recuperáveis sem devolver saldo por
+suposição. Chave `refund:<request>` e valor congelados. Confirmação remota persistida permite
+repetir só a parte local. Migração `billing-ledger-0011-refund-recovery` põe pedidos PENDING
+antigos em reconciliação, sem fabricar retenção ou inferir ausência de efeito remoto.
+Evidências: 25 casos PostgreSQL em banco novo, testes de migração, snapshot consumido,
+reserva pendente, concorrência, crash antes do envio e falha local depois do sucesso remoto.
+A recuperação é método explícito do serviço; não há CLI/endpoint novo nem scheduler.
+
+**S4.** HTTPS com IP validado/fixado, hostname/TLS preservados, sem redirects e sem corpos
+remotos no histórico; testes de socket, DNS e transporte controlados. Admission persistente
+4 global/1 por tenant, fencing e recuperação de lease; fila provisória 1.000 global/250 por
+tenant, com backpressure em enqueue/requeue. Revogar/suspender terminaliza trabalho
+inviável dentro do mesmo lock de admissão; snapshots antigos de endpoints não quebram o
+evento de negócio e não recriam fila inativa. Lease usa relógio da API, pressupõe relógios
+sincronizados; dimensionamento operacional dos limites continua pré-requisito para habilitar.
+Evidências isoladas: 31 testes, incluindo oito conexões PostgreSQL; revisão/cleanup: 15 testes.
+
+**S5.** Teto de 1 MiB UTF-8/5.000 parágrafos antes de expansão/acesso ao banco, lotes de 250
+âncoras dentro da transação; resposta completa preservada dentro do teto. HTTP 413 com
+códigos estáveis; envelope JSON comporta escapes sem remover o limite de texto. Unicode,
+CRLF e hashes preservados; corrigida perda de parágrafo em CR isolado. Evidências: 72 testes
+API/repositório e typecheck completo. Documento acima do teto precisa ser reduzido.
+
+**S6.** Leases persistentes: 2 por usuário/execução, 5 por usuário (entre tenants), 20 por
+tenant; 100 por processo. Relógio de banco, lease 30 segundos/renovação 10 segundos.
+Polling compartilhado por tenant/execução dentro de cada runtime, com autenticação e cursor
+por assinante. Limpeza em encerramento/erro/revogação e backpressure de consumidores lentos.
+Evidências: 28 rotas, 4 poller, 4 leases locais e 3 PostgreSQL. Réplicas compartilham limites,
+mas não o poller em memória. Falha ao apagar lease conserva ocupação até expiração.
+
+**S7.** URLs sem senha em argv; PGPASSFILE privado por filho, diretório 0700/arquivo 0600,
+escape e allowlist de opções; ambientes/diagnósticos não propagam segredos de banco.
+Provisionador histórico interrompe antes de ler configuração; alternativa segura documentada.
+Evidências: 29 testes CLI/subprocessos reais controlados, sintaxe, lint, build e formatação dos
+arquivos alterados. Não executou pg_dump/pg_restore reais. Windows falha fechado; usar Linux
+ou WSL. SIGKILL/crash não garante unlink, mas o arquivo permanece protegido por permissões.
+
+### Revisão integrada — correções importantes e decisões
+
+Revisor independente reproduziu três problemas antes de recomendar aceite:
+1. Timestamp era aparado na verificação e não no recibo: parser agora único, normalizado,
+   rejeitando chaves duplicadas normalizadas.
+2. Evento RECEIVED era tratado como terminado: agora retorna retry-later e o segundo
+   recibo continua recuperável após falha transitória do primeiro.
+3. Destinos inativos consumiam fila indefinidamente: terminalização, varredura de filas
+   antigas, fencing e recusa de requeue inativo recuperam a capacidade.
+
+RED: quatro falhas em três arquivos; regressão adicional de snapshot aposentado falhou antes
+da correção. GREEN: 71 testes em quatro arquivos. O teste PostgreSQL de grant bloqueado
+já havia provado RED→GREEN na revisão S1. Não houve correção baseada só em inspeção.
+
+Ruling: preservar a resposta de ingestão completa e limitada, sem paginação nova, para não
+romper os consumidores existentes; custo: até 5.000 âncoras ainda podem compor uma resposta.
+Ruling: nenhuma liberação automática de retenção financeira por timeout/erro definitivo;
+custo: intervenção explícita de reconciliação e procedimento operacional antes de publicação.
+Ruling: conservar falha fechada em Windows em vez de criar garantia de ACL não testada;
+custo: exportador exige Linux/WSL até existir suporte seguro validado.
+
+Itens menores/residuais não corrigidos nesta frente: relógio da API nos leases S4; recuperação
+de refund sem caller operacional HTTP/CLI; SSE conserva a política anterior de até três
+falhas sucessivas de reautenticação antes de encerrar (pode retomar envios entre rechecagens);
+atestação independente da origem/build e IAM de produção não verificados em S0.
+Os limites de fila são candidatos para homologação, não medição de capacidade em produção.
+
+### S8 — verificação local conjunta
+
+Já aprovados: build integrado; lint; typecheck recursivo; `format:check:code`; `git diff --check`;
+20 testes PostgreSQL combinando grants/locks, liquidação e limites entre réplicas; teste
+PostgreSQL adicional pagamento→consumo→refund→replay; fase 7 E2E com PostgreSQL local e
+Chromium do ambiente (1/1, inclui crédito exato e replay). Configuração temporária do navegador
+removida depois da execução. Nenhum teste acessou provedores de pagamento reais.
+
+`pnpm format:check` global continua falhando em 393 arquivos legados, mesma contagem observada
+na base isolada; `format:check:code`, usado pela CI, passou. Não houve reformatação em massa.
+Resultado final da suíte geral serial: **2.256 passaram, 27 pulados; 295 arquivos
+aprovados e seis arquivos pulados**, em 453,62 segundos. Comando: `pnpm test
+--maxWorkers=1 --testTimeout=30000` (inclui build). Os testes de PostgreSQL opcionais foram
+executados separadamente conforme as evidências acima; os pulos não são prova de
+compatibilidade com provedores reais ou de verificações em produção. PR #153 reconferido: aberto/rascunho, head `46929e9`, base `a00ffa9`.
+Nenhuma CI remota nova, push, merge, publicação, migração ou alteração em produção.
+
+
+### Publicação autorizada e envio remoto — 14/11/2026
+
+Decisão de Boni: “commit, push e deploy”. Enviadas as frentes S-A a S-F em PRs
+separados: #154 (autorização), #153 (pagamentos/reembolsos e fixture), #155 (webhooks),
+#156 (ingestão), #157 (streams) e #158 (scripts). #153 deixou de ser rascunho.
+O Git/gh local recusou autenticação; o conector GitHub publicou árvores de conteúdo
+equivalentes com novos SHAs, sem sobrescrever commits remotos ou usar force-push.
+
+CI remota iniciou nas seis frentes. Produção permanece inalterada: faltam gcloud e
+credenciais Google Cloud neste ambiente. Portanto backup, migrations, candidata sem
+tráfego e promoção ainda não foram executados. A autorização existe; o impedimento é
+acesso técnico, não ausência de outro aprovador. Nenhum achado foi fechado no Daybreak.
+
+## Fechamento das etapas parciais U2, U4 e U5 (16/11/2026)
+
+Sobre `main` em `2ccdc3f`, na branch `claude/frente-u-fechar-parciais` (PR #177). Boni pediu para fechar as etapas que
+estavam pela metade antes de seguir. Antes de agir, o estado real foi levantado por este registro, não pelas caixas do
+plano, que estavam desatualizadas (U0 e U1 apareciam abertas, embora aceitas em 11/11 e executadas em 12/11).
+
+**Decisões de Boni (16/11/2026).**
+
+| Etapa | Decisão                                                                                                                                                   |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U2    | Dividir `AgenticWorkspaceScreen` e `DraftStudioScreen` e fechar a etapa; a lista de casos fica na U7 e o painel de fontes na V3, que já eram delas.       |
+| U4    | Manter **uma peça por pedido** e fechar. Várias peças por pedido mudariam o contrato da execução e saem do escopo da U4; não se criam atalhos de teclado. |
+| U5    | Entra só a leitura de Word (.docx). Identificar a peça pelo PDF e salvar o anexo como documento do caso **não entram agora**. A OCR segue na U6.          |
+
+### O que foi feito
+
+| Etapa | Entrega                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U5    | **Word (.docx) nos anexos**, no navegador e só o texto (DEC-12), mostrado para conferência antes do envio. Lê o corpo e as notas de rodapé e de fim; texto inserido em alterações rastreadas entra, o apagado não; caixas de texto não se repetem. O XML não é lido como documento (entidades declaradas no arquivo não são expandidas) e cada parte descompactada tem teto de 20 MB contado em fluxo, contra pacote que expande demais. Arquivo acima de 15 MB é recusado sem ser lido. `.doc` antigo recebe orientação própria. Declara `jszip` 3.10.2 em `apps/web`, a versão que o `docx` já usava no bundle. |
+| U2    | `AgenticWorkspaceScreen` de 797 para 632 linhas e `DraftStudioScreen` de 916 para 809, com apresentação e modelo em `apps/web/src/desk/` (`ConversationHistory`, `ConversationParts`, `SupportingSurface`, `DraftStudioParts`, `draft-studio-model`). O JSX foi movido sem alterar o resultado no DOM.                                                                                                                                                                                                                                                                                                            |
+| U4    | Sem código novo: o conjunto entregue em 12/11 (voltar, alterar, excluir conversa e peça com Desfazer, chips de matéria como dica, auditoria) é o fechamento, com uma peça por pedido.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+
+**Limite honesto da U2.** A divisão é de **apresentação**. O estado e os fluxos assíncronos (que se entrelaçam por refs e
+por tickets de seleção) continuam dentro dos dois componentes. Não é a divisão em componentes pequenos que o plano
+descreve; é a que se conseguiu sem mudar comportamento, medida pelas suítes abaixo. Extrair a lógica, não só o JSX, é
+outra etapa e exige refatorar os fluxos com cobertura própria.
+
+### Adiado, com dono
+
+| Item                                                                                                                                                     | Onde fica                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Lista de casos na coluna esquerda da Mesa                                                                                                                | U7 (DEC-14)                                                                                    |
+| Painel de fontes à direita (hoje as fontes abrem em diálogo)                                                                                             | V3 (abas Texto, Fontes e Revisão)                                                              |
+| Várias peças por pedido                                                                                                                                  | Decisão de produto futura, junto de um modelo de pedido novo                                   |
+| Atalhos de teclado além do Esc                                                                                                                           | Desenho (conflito com o botão voltar do navegador e o desfazer de texto); sem etapa            |
+| Aviso "ainda não há apoio específico" quando peça ou matéria não têm ficha elegível (critério da U3)                                                     | **Resolvido para a peça em 17/11/2026** (seção abaixo); a matéria segue sem aviso                 |
+| Chips de área, tribunal e peça no compositor (hoje só no resumo do pedido)                                                                               | U7 e V3                                                                                        |
+| Identificar a peça pela leitura do PDF                                                                                                                   | Aberto: precisa de campo próprio no contrato, para o servidor não devolver o anexo como pedido |
+| Salvar o anexo como documento do caso                                                                                                                    | Depende da U7                                                                                  |
+| Funções do editor avulso removidas na U1 (várias seções, painéis de tese e citação, adoção de texto da IA, histórico de conferências, salvar-e-conferir) | Continuam sendo decisão de produto de Boni, como registrado na U1                              |
+
+### Verificação
+
+| Item                              | Resultado                                                                                                                                                                                                                                                                                             |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vitest do web                     | 47 arquivos e 284 testes aprovados. O leitor de Word tem 23 testes (inclui ida e volta com o exportador do produto), com mutações conferidas; as duas que sobreviveram eram equivalentes e uma ganhou teste. `attachments.test.ts` cobre Word por MIME, vazio, erro, cancelamento e 15 MB.            |
+| Tipos, ESLint, Prettier           | Tipos do web sem erros; ESLint limpo em `desk`, `documents` e `agentic-workspace`; `format:check:code` aprovado. `DraftStudioScreen.tsx` está no `.prettierignore` e não foi reformatado.                                                                                                             |
+| Playwright, estado-base           | Rodado **antes** de refatorar: `writing-desk` 38 aprovados e 1 falho; `desk-shell` 30 e 1; `desk-guidance` 6; `desk-guidance-v3` 6; `desk-research` 2; `desk-review` 3; `desk-save-recovery` 4; `desk-procedure` 3; `desk-pilot` 4; `attachments` 4; `agentic-workspace` 25.                          |
+| Playwright, depois das duas telas | **Idêntico** ao estado-base, suíte por suíte, depois de cada tela. A única falha é a mesma nos dois momentos: `writing-desk.spec.ts:290`, em que o download do Word chega com o nome `download` em vez de `*.docx` neste ambiente. A CI passa esse spec em `main`; a causa local não foi investigada. |
+| Playwright, Word                  | `attachments` passou de 2 para 4 cenários: leitura real de um `.docx` com nota de rodapé, o texto seguindo com o pedido sem o arquivo, e um pacote corrompido com erro legível. O cenário "estados" trocou o `.docx` falso por um `.doc` legado.                                                      |
+| CI                                | Os commits intermediários do PR passaram na CI.                                                                                                                                                                                                                                                       |
+
+### Achado: suítes da Mesa fora da CI
+
+Nove suítes Playwright **não rodam na CI**: `attachments`, `desk-shell`, `desk-guidance`, `desk-guidance-v3`,
+`desk-pilot`, `desk-procedure`, `desk-research`, `desk-review` e `desk-save-recovery`. Várias cobrem recursos já ativos em
+produção (orientação guiada, v3, salvamento recuperável). Elas só protegem contra regressão na máquina de quem as roda.
+**Resolvido em 17/11/2026** pelo job `e2e-desk` (PR #178): as nove suítes rodam em paralelo ao `e2e-product`, cada uma em passo próprio, em cerca de 4 minutos. Passou na primeira execução na CI, inclusive o `desk-shell`, o que confirma que a falha local do download do Word é específica do ambiente. Foi **uma** execução: o job não é verificação obrigatória e só deve virar depois de algumas execuções verdes seguidas (decisão de Boni, na proteção de branch).
+
+Reversão: reverter os commits do PR #177; o leitor de Word fica atrás da flag de anexos
+(`VITE_FORGELEX_ATTACHMENTS_ENABLED`), desligada por padrão.
+
+## U6 — OCR no navegador (17/11/2026)
+
+Sobre `main` em `27d0329`, na branch `claude/u6-ocr` (PR #179). Boni pediu a U6 depois de fechar as parciais. Atrás de
+`VITE_FORGELEX_OCR_ENABLED`, **desligada por padrão**, e só vale com os anexos ligados (`OCR_ENABLED` em
+`site-capabilities.ts`). Nada foi publicado nem ligado.
+
+### O que foi feito
+
+Um PDF só de imagem ou uma imagem anexada passa a oferecer "Reconhecer texto (OCR)", dizendo que a leitura é feita no
+navegador. O motor é o Tesseract.js 7.0.0 (Apache-2.0), só o LSTM, em português, **no navegador, sem enviar o arquivo
+ao servidor** (DEC-13). Durante o reconhecimento há andamento por página, botão Cancelar e o envio fica bloqueado. O
+texto fica marcado "Reconhecido por OCR — conferir" (com a confiança média), é **editável** antes do envio e segue para a
+IA rotulado `texto reconhecido por OCR; pode conter erros de leitura`. PDF com mais de 20 páginas é **recusado** antes de
+gastar tempo, em vez de reconhecer só uma parte e entregar um texto incompleto sem o cliente notar.
+
+| Peça                       | Onde                                                                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Orquestração               | `apps/web/src/ocr/ocr-document.ts`: abre o PDF ou a imagem, reconhece página por página, junta, limita e cancela; motor, PDF e imagem entram por injeção e são carregados sob demanda.     |
+| Motor e fontes de imagem   | `tesseract-engine.ts` (Tesseract.js) e `browser-sources.ts` (páginas do pdf.js em canvas a cerca de 200 dpi; imagens reduzidas a 4.000 px no lado maior).                                  |
+| Arquivos do motor          | `apps/web/ocr-assets-plugin.ts`: worker, núcleo WebAssembly (três variantes LSTM, conforme o suporte a SIMD) e idioma `por` (`4.0.0_best_int`, 1,4 MB), servidos de **`/ocr/`**, mais `NOTICE.txt`. |
+| Anexos                     | `use-attachments.ts` (reconhecer, cancelar, editar), `AttachmentChips.tsx` e `attachments.ts` (rótulo no contexto, oferta só para PDF ou imagem sem texto, espaço de edição).               |
+| Flag ponta a ponta         | `site-capabilities.ts`, `Dockerfile`, `cloudbuild.yaml`, `deploy-lib.ps1`, `deploy-from-main.ps1 -OcrEnabled`, `dev-mesa.mjs`, README de `ops/gcp/production`.                              |
+| Servidor                   | `static-web.ts`: arquivo ausente em `/ocr/` responde 404, nunca a página inicial (o worker a executaria como script).                                                                      |
+| Fixtures                   | `scripts/generate-ocr-fixtures.mjs` gera `tests/e2e/fixtures/ocr/` (PDF de 2 páginas só imagem, PNG com texto, página em branco e PDF de 21 páginas); a geração é determinística.            |
+
+**Decisões técnicas desta etapa (minhas, para Boni rever).** Idioma `best_int` (1,4 MB) em vez do pacote com o motor
+legado (6,7 MB). Arquivos servidos da nossa origem, não do CDN que a biblioteca usa por padrão: o arquivo do cliente não
+sai do navegador, e as requisições de OCR também não vão a terceiros. Os arquivos só entram na imagem quando o OCR está
+ligado no build (com a flag desligada `dist/` tem 3,2 MB; ligada, 16 MB). `tesseract.js: false` em `allowBuilds`: o
+script de instalação do pacote é só um aviso de financiamento. O PDF "só imagem" passou a ter um código (`PDF_NO_TEXT`) no
+leitor existente, para os anexos o tratarem como "sem texto extraível" e não como "Erro na leitura"; a mensagem do leitor,
+usada também na tela de casos, não mudou.
+
+### Medição de tempo (define o limite de páginas)
+
+Chromium headless, Xeon de 2,1 GHz com 4 vCPU virtuais, motor real:
+
+| Caso                                              | Resultado                                                       |
+| ------------------------------------------------- | --------------------------------------------------------------- |
+| Página densa A4 (1652×2336 px, ≈2.700 caracteres) | **4,6 a 5,0 s** por página; 2.702 caracteres reconhecidos       |
+| Página de poucas linhas                           | cerca de 0,8 s                                                  |
+| Imagem de uma página, com a carga do motor        | 1,4 s                                                           |
+| PDF de 2 páginas, com a carga do motor            | 3,1 s                                                           |
+| Carga do motor (worker, núcleo e idioma)          | cerca de 0,8 s a frio                                           |
+
+Limite escolhido: **20 páginas** (cerca de 95 s no pior caso aqui, com cancelamento a qualquer momento) e 15 MB por
+arquivo. O tempo em um notebook de cliente pode ser menor ou maior; o limite está em `OCR_MAX_PAGES`.
+
+### Verificação
+
+As 11 suítes da Mesa foram rodadas no Chromium **depois** das mudanças e comparadas com o estado-base de 16/11/2026
+(antes da refatoração das telas): resultado **idêntico, suíte por suíte**, com uma única diferença esperada.
+
+| Suíte                | Estado-base         | Depois da U6                                   |
+| -------------------- | ------------------- | ---------------------------------------------- |
+| `writing-desk`       | 38 aprovados, 1 falho | 38 aprovados, 1 falho (o mesmo)               |
+| `desk-shell`         | 30 aprovados, 1 falho | 30 aprovados, 1 falho (o mesmo)               |
+| `desk-guidance`      | 6                   | 6                                              |
+| `desk-guidance-v3`   | 6                   | 6                                              |
+| `desk-research`      | 2                   | 2                                              |
+| `desk-review`        | 3                   | 3                                              |
+| `desk-save-recovery` | 4                   | 4                                              |
+| `desk-procedure`     | 3                   | 3                                              |
+| `desk-pilot`         | 4                   | 4                                              |
+| `attachments`        | 4                   | **9** (os 5 cenários novos de OCR)             |
+| `agentic-workspace`  | 25                  | 25                                             |
+
+A falha é a mesma nos dois momentos, `writing-desk.spec.ts:290` (o download do Word chega com o nome `download` neste
+ambiente; a CI passa esse spec em `main`).
+
+| Item                    | Resultado                                                                                                                                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vitest completo         | 306 arquivos e 2.518 testes aprovados, 40 ignorados (PostgreSQL), nenhum falho.                                                                                                                                |
+| Orquestração do OCR     | 18 testes. **14 mutações, todas mortas**: três sobreviveram na primeira rodada (página renderizada depois do cancelamento, progresso que regride, motor não encerrado na hora) e ganharam teste próprio.      |
+| Playwright, anexos      | 9 cenários com o **motor real**: PDF escaneado reconhece, edita e segue com o pedido; imagem; página em branco; PDF de 21 páginas recusado; cancelar volta ao estado anterior e bloqueia o envio.                |
+| Requisições             | No Chromium, nenhuma requisição de OCR saiu da origem (CDN, dados de idioma); só `/ocr/…`.                                                                                                                     |
+| Build                   | Pacote principal 473.908 B sem a flag e 473.921 B com ela (**+13 B**); o motor é um chunk de 833 B carregado sob demanda e a carga inicial é só o pacote principal. O validador do Dockerfile aprova os dois. |
+| Dependências            | `pnpm audit --prod`: só um aviso baixo, em `fast-xml-parser` da API, sem relação; `check-build-audit` limpo.                                                                                                   |
+
+### Aberto, para decisão de Boni
+
+- **Qualidade em documentos reais.** O último item do plano ("medir qualidade em documentos reais autorizados por Boni;
+  só então avaliar OCR no servidor") **não foi feito**. Todos os arquivos medidos são sintéticos e limpos, o melhor caso do
+  OCR; não se sabe a taxa de erro em digitalizações de verdade (ruído, inclinação, carimbos, manuscrito). **Por isso a U6
+  está pronta no código, mas a flag deve continuar desligada** até essa medição. OCR no servidor só entra depois, em decisão
+  própria sobre custo e retenção.
+- **Licença do pacote de idioma.** O `NOTICE.txt` traz o texto das duas licenças Apache-2.0 do código e, para o idioma,
+  uma **declaração de origem** (pacote `@tesseract.js-data/por`, MIT; modelos do projeto Tesseract, Apache-2.0), não o texto
+  de uma licença. Boni deve conferir.
+- **Balanceador.** O servidor da aplicação não define política de segurança de conteúdo, mas o balanceador não foi lido.
+  Se houver uma lá, ela precisa permitir worker `blob:` e WebAssembly (`wasm-unsafe-eval`).
+- **Cache local.** O Tesseract.js guarda os dados de idioma (públicos, não o documento) no IndexedDB do navegador.
+- **PowerShell.** Não havia `pwsh` aqui: as mudanças em `deploy-lib.ps1`, `deploy-from-main.ps1` e seus testes só são
+  exercitadas pela CI.
+
+Reversão: manter a flag desligada, ou reverter os commits do PR #179.
+
+## Aviso "ainda não há apoio específico" (17/11/2026)
+
+Sobre `main` em `5ddffd1`, na branch `claude/aviso-sem-apoio`. Fecha a promessa que a U3 deixou para a U4 e que o
+fechamento de 16/11 registrou como aberta: quando não há ficha de apoio para a peça, a Mesa passa a **dizer isso** em vez de
+seguir como pedido livre sem avisar. Nenhuma flag nova e nenhuma mudança de contrato; vale onde a orientação mesa-v3 já vale.
+
+**Como funciona.** Na mesa-v3, se nenhuma peça do catálogo serve para propor, a Mesa pede uma explicação em texto livre; se,
+com o texto, ainda não há candidata, o pedido segue como livre. O navegador recebe essa decisão com `value` nulo e o que o
+cliente digitou em `detail`. Agora, nesse caso, o resumo do pedido mostra, abaixo da linha de resumo:
+
+> Ainda não temos orientação específica para esta peça. Vamos seguir com o seu pedido como está; confira o resultado com atenção.
+
+| Situação                                                              | Aviso |
+| --------------------------------------------------------------------- | ----- |
+| O cliente explicou a peça em texto e nenhuma do catálogo serviu       | sim   |
+| O cliente respondeu "Não sei" (ainda não descreveu nada)              | não   |
+| Há peça proposta ou confirmada                                        | não   |
+| A peça nunca foi perguntada, ou a conversa não é mesa-v3              | não   |
+
+A regra é `guidanceSupportNote` em `apps/web/src/agentic-workspace/guidance-model.ts`, o texto é a constante
+`GUIDANCE_NO_SUPPORT_NOTE` (ajustar a redação é mexer só ali) e a exibição está em `GuidanceSummary.tsx`.
+
+**Redação.** O texto é proposta minha; Boni escolheu seguir com ele ao escolher a frente, e pode trocá-lo.
+
+**Não coberto.**
+
+- **Matéria sem ficha elegível.** O critério da U3 falava em "peça ou matéria". Só a peça foi tratada. Para a matéria, os
+  chips sugeridos (`MatterChips`) simplesmente não aparecem quando não há sugestão, e a Mesa não diz nada.
+- **Regras mesa-v1 e mesa-v2.** Usam a tabela fixa de peças e não propõem peças do catálogo; não têm esse caso.
+- **Detalhe cosmético que já existia.** Quando o texto digitado termina em ponto, o resumo mostra "…formandos., a
+  confirmar". Vem de `guidanceDecisionText` e não foi alterado.
+
+**Verificação.**
+
+| Item          | Resultado                                                                                                                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vitest do web | 48 arquivos e 314 testes aprovados; 6 testes novos da regra. **5 mutações, todas mortas** (avisar fora da v3, com "Não sei", com peça proposta, sem a peça perguntada, e nunca avisar). |
+| Playwright    | `desk-guidance-v3`: 8 cenários na pilha real, 2 novos (aviso quando nenhuma peça serve, com texto acessível e sem violação de acessibilidade; sem aviso com "Não sei").                 |
+| Regressão     | `desk-guidance` 6, `desk-pilot` 4, `desk-procedure` 3 aprovados; `desk-shell` 30 aprovados e 1 falho, a mesma falha anterior (download do Word neste ambiente).                          |
+| Qualidade     | ESLint, Prettier (escopo da CI) e tipos limpos.                                                                                                                                         |
+
+Reversão: reverter o commit; não há flag, e o efeito é só um parágrafo no resumo.
+
+## V0 — Tokens de cor sem mudança visual (17/11/2026)
+
+Sobre `main` em `8d53ad0`, na branch `claude/v0-tokens`. Boni retomou a V0, que a reconciliação de 12/11 tinha adiado. Toda cor do app passa a vir de variáveis CSS, e o tema `classico` guarda nelas os mesmos valores de sempre. Nenhuma flag nova e nenhum tema novo: o que muda é onde a cor mora, para a V1 poder trocar um bloco só.
+
+### O que foi feito
+
+- **`apps/web/src/index.css`.** Um bloco `:root` com 51 variáveis `--fl-*`, cada uma em "R G B" para o Tailwind compor a transparência: `ivory` 50–300, `cognac` 50–900 (sem o 300, que nunca existiu), `stone` 50–950 (os 11 tons), os tons usados de `amber` e `emerald`, mais `champagne`, `canvas`, `canvas-deep`, `surface`, `surface-muted`, `ink`, `muted`, `danger`, `placeholder`, `scrollbar-thumb` e duas cores de sombra. As variáveis antigas `--forgelex-*` continuam, agora derivadas. Os 23 hexadecimais e as `rgba(...)` literais do arquivo viraram `rgb(var(--fl-x) / alfa)`.
+- **`apps/web/tailwind.config.js`.** `ivory`, `cognac`, `champagne`, `stone`, `amber` e `emerald` apontam para `rgb(var(--fl-x) / <alpha-value>)`; as sombras `card` e `card-hover` têm a cor por variável. Os 16 nomes semânticos da seção 7.1 do plano existem: `canvas`, `surface`, `surface-muted`, `line`, `line-control`, `ink`, `ink-soft`, `muted`, `subtle`, `accent`, `accent-strong`, `accent-soft`, `ok`, `warn`, `danger` (e `canvas-deep`, para o fundo atrás da página do editor, que não estava na tabela).
+- **17 arquivos `.tsx`.** As 45 cores literais (`bg-[#FBF9F5]`, `bg-[#FDFBF7]`, `bg-[#F1EEE8]`, `text-[#FBF9F5]`) viraram `bg-canvas`, `bg-surface-muted`, `bg-canvas-deep` e `text-canvas`. O plano falava em 48; o número atual é 45.
+- **`apps/web/src/theme-tokens.test.ts`** (8 testes). Trava o tema clássico nos valores de antes (cada tom, a transparência das bordas, as sombras, os nomes semânticos) e impede o retorno de hexadecimal literal em qualquer `.ts`, `.tsx` ou `.css` da interface.
+
+**Mapeamento semântico provisório.** No tema clássico cada nome aponta para a cor que a interface já usa naquele papel (`accent` = `cognac-600`, `ink-soft` = `stone-700`, `subtle` = `stone-500`, `ok` = `emerald-700`, `warn` = `amber-700`, `line` e `line-control` = a borda `champagne-border`). Nenhuma classe usa esses nomes ainda, exceto `canvas`, `surface-muted` e `canvas-deep`. A V1 revisa o mapeamento junto com a tabela de tons legados.
+
+### Fora da V0, de propósito
+
+- **Leitor de decisão e leitor do MCP** (`decision-reader.css`, `mcp-reader.css`). Já têm tema próprio por variáveis `--reader-*`, com versão escura. A V3 os revisa.
+- **`documents/draft-print.ts`.** Monta a página de impressão, um documento à parte que não carrega o CSS do app.
+- **Páginas estáticas de `public/legal/*.html`.** Têm CSS próprio com cores literais. Ficam para a V2 (site público).
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| CSS gerado | Tailwind compilado antes e depois e comparado regra a regra, com variáveis e transparência resolvidas: 739 regras antes, 741 depois. As únicas diferenças são as 4 classes arbitrárias que viraram 5 utilitários de mesmo valor e uma regra `.border-subtle` sem uso (o nome semântico `subtle` casa com o trecho `border-subtle` de `border-champagne-border-subtle`; nenhum elemento a usa). O comparador foi testado: mudar uma unidade em um canal de `stone-600` ou de `cognac-600` faz a diferença aparecer. |
+| Estilos nas telas | 22 telas (10 públicas e 12 autenticadas) em 1440 px e 390 px, 44 capturas. Para cada elemento, cor do texto, fundo, as quatro bordas, contorno, sombra, decoração, cursor, preenchimento, traço e imagem de fundo: **idênticos antes e depois**, sem uma diferença. |
+| Pixels | 38 das 44 capturas idênticas byte a byte. As 6 restantes (Casos, Revisão e Segurança da conta, nos dois tamanhos) diferem em horário e no e-mail sintético sorteado a cada subida do ambiente, conferido por recorte. |
+| Vitest do web | 49 arquivos e 322 testes aprovados (+1 arquivo e +8 testes). **6 mutações no teste novo, todas mortas** (um canal de `stone-600`, a transparência de `champagne-border`, hexadecimal em `.tsx`, nome semântico removido, hexadecimal em `index.css`, a transparência da sombra). |
+| Playwright | `public` 17 aprovados. `desk-shell` 30 aprovados e 1 falho; `draft-review` 4 aprovados e 1 falho. As duas falhas são o download do Word deste ambiente (nome `download`, sem `.docx`) e a de `draft-review` falha igual em `main`, conferida com as alterações guardadas. |
+| Qualidade | ESLint, Prettier e tipos limpos. |
+
+**Armadilha encontrada.** A primeira comparação deu 44 de 44 telas diferentes: o servidor de desenvolvimento tinha lido o `tailwind.config.js` antigo e tratava `bg-canvas` como classe desconhecida (fundo transparente). Depois de reiniciar o ambiente tudo bateu. Regra: **mudou o `tailwind.config.js`, reinicie `pnpm dev:mesa`**.
+
+### Não coberto
+
+- Telas que exigem dados (Mesa com peça aberta, leitor de decisão, Casos com um caso aberto) não foram capturadas. Para elas vale a comparação do CSS inteiro, que é exaustiva para as classes, mais as suítes de Playwright.
+- A referência de screenshots para a V1 ficou só na máquina da sessão, fora do Git, como o plano pede; o container é descartável. Quem for fazer a V1 deve recapturar antes de mexer.
+
+### Achado, sem correção
+
+`border-cognac-300` aparece em 7 lugares (`EvidenceChangesPanel`, `EditorialReviewPanel`, `SideTable`, `EvidenceReviewPanel`, `MatterWorkspaceScreen`, `ResearchDeskScreen`, `CreditsScreen`), mas o `cognac` nunca teve o tom 300. A classe não gera regra e a borda fica na cor padrão. Corrigir mudaria o visual, então a V0 deixou como está; a V1 decide o tom ao mapear os legados.
+
+Reversão: reverter o commit. Sem flag, sem migração e sem efeito sobre o que já foi publicado.
+
+## V1 · preparação: ferramenta de referência visual versionada (17/11/2026)
+
+Sobre `main` em `7d77775`, na branch `claude/v1-captura`. É o primeiro passo da V1 que propus ao fechar a V0: a captura de telas e a comparação que usei na V0 viviam só no container da sessão. A V1 troca cores de propósito e tem de provar que o tema `classico` não mudou; as V2 a V7 vão precisar da mesma prova. Nenhum código do app mudou nesta etapa.
+
+### O que foi feito
+
+- **`scripts/visual-baseline.mjs`** (`pnpm visual:baseline`). Dois comandos:
+  - `capture --out <pasta>` sobe um ambiente novo (`scripts/dev-mesa.mjs`, que exige `pnpm build`), abre 26 telas em 1440 px e 390 px e grava, por tela, a imagem e o estilo computado de todos os elementos (cor do texto, fundo, as quatro bordas, contorno, sombra, decoração, cursor, preenchimento, traço, cor de destaque e imagem de fundo). A V1 acrescentou a tipografia (família, peso, tamanho, altura de linha e espaçamento de letras) e o raio, para provar que o tema `classico` também não mudou de fonte. Encerra o ambiente no fim. `--only <trecho>` limita as telas; `--origin` e `--api` reaproveitam um ambiente já aberto.
+  - `compare <antes> <depois>` aponta tela, elemento, propriedade e os dois valores de cada diferença de estilo, e conta os pixels diferentes de cada imagem. `--styles-only` ignora as imagens, para quando a mudança de visual é de propósito. Sai com código 1 se houver diferença.
+- **As 26 telas.** As 10 do site público, as 12 autenticadas que não dependem de dados e as 4 que ficaram sem referência na V0, agora criadas pela API do ambiente sintético com nomes fixos: **Mesa com peça aberta**, **leitor de decisão** (pesquisa salva aberta em "Pesquisa e fontes"), **Casos com caso aberto** e **leitor de documento** do caso.
+- **`scripts/visual-baseline-lib.mjs`** e seu teste (12 testes). A parte sem navegador: roteiro de telas, normalização do que muda a cada execução, comparação de estilos e leitura da saída do ambiente.
+
+### Como a captura fica igual de uma execução para outra
+
+Antes de capturar, a ferramenta troca por valores fixos o que o ambiente muda sozinho: data e hora, o e-mail sintético sorteado, identificadores (UUID) e a porta local (que aparece nos exemplos de uso da API). Espera as fontes carregarem e dois quadros pintados, desliga animações e esconde o cursor de texto.
+
+### Verificação
+
+| Item                 | Resultado                                                                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vitest dos scripts   | 18 arquivos e 162 testes aprovados; 12 são da ferramenta nova (normalização de data, hora, e-mail, UUID e porta, sem tocar em valores e contagens; comparação de estilos; leitura do ambiente). |
+| Estabilidade         | Duas capturas completas, cada uma em ambiente novo: **52 imagens idênticas byte a byte e estilos idênticos**, incluindo as 4 telas com dados.                                                  |
+| Sensibilidade        | Mudar 1 unidade em um canal de `--fl-cognac-600` e capturar de novo: a comparação acusa 1005 diferenças de estilo, cada uma com elemento e propriedade, e 49 das 52 imagens (diferença de canal 1). |
+| Qualidade            | Prettier limpo nos três arquivos novos.                                                                                                                                                        |
+
+### Três armadilhas encontradas e tratadas
+
+- **Dados que mudam sozinhos.** A primeira comparação entre duas capturas dava diferença em horário, no e-mail sintético e na porta da API escrita na tela de Conectar e no site de desenvolvedores. Virou a normalização acima, com teste.
+- **Corrida de fontes no desktop.** Mesmo com os estilos idênticos, 26 imagens de 1440 px saíam com diferença de até 96 em um canal, em quase toda página, e as de 390 px não. Esperar `document.fonts.ready` e dois quadros resolveu: depois disso, 52 de 52 idênticas.
+- **Processo sobrando.** O ambiente deixava o Vite vivo ao encerrar (o `dev-mesa` o inicia por um `pnpm` e encerra só o `pnpm`), e as portas iam subindo de 3401 para 3404 e além. A ferramenta agora encerra o grupo de processos inteiro; conferido sem sobras depois da captura.
+
+### Uso nas etapas seguintes
+
+```bash
+pnpm build
+pnpm visual:baseline capture --out <pasta-antes>   # com o código de antes (main)
+pnpm visual:baseline capture --out <pasta-depois>  # com a mudança
+pnpm visual:baseline compare <pasta-antes> <pasta-depois>
+```
+
+Cada captura leva uns 4 minutos. Para a V1 com o tema `classico` o critério é zero diferença; para o tema `gelo`, `--styles-only` mostra o que mudou de cor, elemento a elemento.
+
+### Não coberto
+
+- **Reaproveitar um ambiente aberto não é reprodutível.** Repetir a captura no mesmo ambiente acumula atividade e rascunhos e muda as telas. Para uma referência, use sempre o ambiente novo (o padrão).
+- **Estados que não são capturados:** passar o mouse e foco, a Mesa durante uma execução, mensagens de erro, a lista de conversas com histórico, e qualquer tela atrás de uma flag desligada no ambiente de desenvolvimento.
+- **Só Chromium.** Firefox e Safari não são comparados.
+- **A imagem não prova a cor sozinha.** O estilo computado é a prova de cor; a imagem pega o que o estilo não mostra (posição, tamanho, texto).
+- **Imagens fora do Git.** A ferramenta é versionada; as capturas, não. Guarde cada uma enquanto a etapa durar.
+
+Reversão: reverter o commit. Nada do app depende da ferramenta.
+
+## V1 — Tema gelo, fontes e primitivos (17/11/2026)
+
+Sobre `main` em `2e02e6d`, na branch `claude/v1-tema-gelo`. O tema gelo entra como um bloco de variáveis, desligado: o padrão continua sendo o clássico, o build de produção sai como antes e nada foi publicado. Esta etapa não toca nas telas, só no que as cores, as fontes, os raios e o foco leem.
+
+### O que foi feito
+
+- **Tema gelo em `index.css`.** O bloco `[data-theme="gelo"]` redefine todas as variáveis do `:root` (tons legados, papéis semânticos, bordas de controle, fontes, raios e foco) com os valores da seção 7.1. Um teste exige que ele cubra todas, sem herdar nenhuma. Os papéis semânticos da 7.1 ganharam variável própria (`--fl-accent`, `--fl-ink`, `--fl-line-control`...); no clássico valem a cor que a interface já usava, no gelo a da tabela.
+- **Escolha do tema antes da primeira pintura.** Um script no `<head>` do `index.html` lê `VITE_FORGELEX_THEME` e põe `data-theme` no `<html>`. Valores: `classico` (padrão; também vale se a variável não existir ou tiver outro valor), `gelo` (fixo) e `previa` (clássico, mas `?tema=gelo` troca e fica guardado em `localStorage`, com `?tema=classico` para voltar; é a prévia de homologação). Em produção, com `classico`, o parâmetro e o armazenamento não mudam nada. O gelo pré-carrega só a Inter 400.
+- **Fontes no próprio site (DEC-3).** Inter 400, 500 e 600 e Spectral 400, 500 e 600, só o subconjunto latino, em `apps/web/public/fonts` (6 arquivos `woff2`, de 21 a 24 KB, 137 KB no total), com `font-display: swap` e as licenças OFL ao lado. As famílias se chamam `ForgeLex Inter` e `ForgeLex Spectral`, para não disputar com as fontes do clássico. O servidor trata `/fonts/` como arquivo estático: fonte ausente é 404, nunca a página inicial.
+- **Primitivos só com tokens semânticos.** `.btn-primary`, `.btn-secondary`, `.btn-quiet`, `.input-control`, `.surface`, `.surface-subtle`, foco e barra de rolagem usam só variáveis semânticas. Surgiram `.seal` (verificada) e `.seal-gap` (lacuna), sem uso até a V3; o Tailwind não os emite antes disso. Borda de botão secundário e de campo, foco e raios mudam por tema: no gelo, `line-control` sólido (3:1), foco de 2 px, raio de 10 px nos controles e 18 px nos cartões.
+- **Medidor de contraste (`scripts/theme-contrast.mjs`, `pnpm theme:contrast`).** Lê as classes de texto e fundo que o código usa, mede cada par em cada tema e sai com código 1 se um par que o clássico cumpre deixar de ser cumprido em outro tema. Entrou na CI, depois dos testes unitários.
+- **Ferramenta de referência visual (`--axe`).** `visual-baseline.mjs capture --axe` roda o axe (WCAG 2.0 e 2.1, A e AA) em cada tela. A captura também grava agora tipografia (família, peso, tamanho, altura de linha, espaçamento) e raio.
+- **Body do `index.html`** usava `bg-[#FBF9F5]`, que a V0 não alcançou; virou `bg-canvas`.
+
+### Tons legados no gelo (proposta minha)
+
+A tabela 7.1 do plano só define os papéis semânticos. Os tons legados, que as classes atuais ainda usam, precisavam de equivalente; esta é a minha proposta, e Boni pode trocar qualquer linha (cada uma é uma variável e um teste).
+
+| Tom                   | Clássico  | Gelo      | Papel no gelo                      |
+| --------------------- | --------- | --------- | ---------------------------------- |
+| ivory 50              | `#FCFBF8` | `#F7FAFB` | superfície suave                   |
+| ivory 100             | `#F8F6F0` | `#F4F7F8` | fundo da aplicação (`canvas`)      |
+| ivory 200             | `#F2EFE8` | `#EDF2F4` | área secundária                    |
+| ivory 300             | `#E7E2D6` | `#E2E8EB` | divisória                          |
+| cognac 50             | `#FDF8F3` | `#F5F9FA` | destaque muito claro               |
+| cognac 100            | `#F9EDE0` | `#F0F6F7` | `accent-soft`                      |
+| cognac 200            | `#F2D7BF` | `#D2E3E7` | destaque claro                     |
+| cognac 400            | `#B87A3E` | `#2F7A8E` | ícone e destaque médio (4,5:1)     |
+| cognac 500            | `#9C6A36` | `#1F7085` | anel de foco                       |
+| cognac 600            | `#8E5D2A` | `#0F5C6E` | `accent`                           |
+| cognac 700            | `#73481D` | `#0B4552` | `accent-strong`                    |
+| cognac 800            | `#5A3716` | `#083642` | texto de destaque                  |
+| cognac 900            | `#3D240E` | `#05252E` | texto de destaque escuro           |
+| champagne borda       | `#B4966E` a 22% | `#7B96A4` a 22% | dá `#E2E8EB` sobre o branco |
+| champagne claro       | `#F4EDE2` | `#EDF3F5` | realce suave                       |
+| stone 50 a 100        | `#FAFAF9`, `#F5F5F4` | `#F7FAFB`, `#EEF2F4` | superfícies          |
+| stone 200 a 300       | `#E7E5E4`, `#D6D3D1` | `#E2E8EB`, `#C9D2D7` | linhas                |
+| stone 400             | `#A8A29E` | `#96A2A9` | ícone decorativo                   |
+| stone 500 a 600       | `#78716C`, `#57534E` | `#67727A`, `#4C585F` | `subtle`, `muted`    |
+| stone 700 a 900       | `#44403C`, `#292524`, `#1C1917` | `#2A363C`, `#1A2428`, `#101619` | `ink-soft`, texto, `ink` |
+| stone 950             | `#0C0A09` | `#080C0E` | texto mais escuro                  |
+| emerald 50, 200, 300  | `#ECFDF5`, `#A7F3D0`, `#6EE7B7` | `#EEF7F2`, `#BDE0CD`, `#8FCAAC` | fundos do selo   |
+| emerald 600, 700, 800 | `#059669`, `#047857`, `#065F46` | `#287759`, `#1F6B4C`, `#175439` | `ok` em 700      |
+| amber                 | padrão do Tailwind | igual | `warn` não muda de tema (decisão do plano) |
+
+### Verificação
+
+| Item                       | Resultado                                                                                                                                                                                                                                       |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Clássico inalterado        | Captura de 52 imagens (26 telas, dois tamanhos, incluindo as 4 com dados) antes e depois: **estilo de todos os elementos idêntico, com cor, tipografia e raio, e as 52 imagens idênticas byte a byte**.                                          |
+| Gelo e acessibilidade      | axe em 52 telas: **nenhuma violação**, no gelo e no clássico.                                                                                                                                                                                   |
+| Contraste                  | 101 pares distintos usados no código. Abaixo de 4,5:1: **14 no clássico e 9 no gelo**; nenhum par que o clássico cumpre deixa de ser cumprido no gelo. Os valores da tabela 7.1 foram reproduzidos pelo script (por exemplo `ink` sobre `canvas` 16,95:1, `subtle` sobre branco 4,92:1, `ok` sobre branco 6,43:1). |
+| Testes novos               | `theme-tokens` 27 (valores dos dois temas, completude do gelo, fontes, primitivos, sem literais), `theme-script` 7 (o script do `index.html` executado de verdade para cada valor da variável), `static-web` +1 (`/fonts/`), duas asserções novas no teste do Dockerfile, `theme-contrast-lib` 15, `visual-baseline-lib` 15. |
+| Suíte completa             | 310 arquivos e 2589 testes aprovados (40 pulados, que exigem PostgreSQL). ESLint, Prettier e tipos limpos. O build de produção copia as fontes para `dist/fonts` e escreve o valor da variável no `index.html`.                                  |
+| Playwright                 | `public` 17 aprovados; `desk-shell` 30 aprovados e 1 falho, o download do Word deste ambiente, igual ao de `main`.                                                                                                                              |
+
+Os 9 pares ainda abaixo de 4,5:1 no gelo são ícones decorativos (`stone-400` sobre campo, `amber-600`, `emerald-300`) e artefatos do medidor (`text-white` numa lista de classes cujo fundo está no elemento pai). Nenhum é texto lido.
+
+### Decisões que ficam com Boni
+
+- **Tons legados do gelo.** A tabela acima é proposta minha. A V2 e as seguintes migram as classes para os nomes semânticos, e os tons legados somem na V7.
+- **Fontes do clássico.** O Google Fonts continua sendo pedido pelo `index.html` nos dois temas, porque o clássico ainda depende dele; o gelo simplesmente não usa. A dependência de terceiros só some na limpeza final.
+- **Publicar o gelo.** `VITE_FORGELEX_THEME` está no `Dockerfile` (padrão `classico`), mas **não** passa pelo `cloudbuild.yaml` nem pelo `deploy-from-main.ps1`. O deploy compara as substituições do build com as esperadas, e um valor novo mexeria nessa conferência de procedência; não consigo rodar o PowerShell aqui. Isso entra junto com a primeira publicação em homologação, com testes na CI. Até lá, nenhum build de produção sai com gelo.
+
+### Não coberto
+
+- **Leitor de decisão e leitor do MCP** (`--reader-*`) continuam com a paleta quente no tema gelo, como já se via na tela "Pesquisa e fontes". A V3 os revisa.
+- **CSP do balanceador** continua não lida. As fontes são da própria origem, então valem com `font-src 'self'` ou `default-src 'self'`. Se a política proibir script inline, o `data-theme` não é escrito e a página fica no clássico, que é o lado seguro; a prévia só funcionaria com o script liberado.
+- **Estados** (passar o mouse, foco, mensagens de erro) não entram nem na captura nem no medidor de contraste, que ignora classes com variante.
+- **Medidor de contraste** mede pares por lista de classes e não distingue texto grande, ícone e texto lido; por isso lista, não bloqueia, o que já falhava no clássico.
+- **Só Chromium**; capturas ficam fora do Git.
+
+Reversão: `VITE_FORGELEX_THEME=classico`, que é o padrão; ou reverter o commit. Nada do que está publicado muda.
+
+## V2 — Casca e site público (17/11/2026)
+
+Sobre `main` em `66617a0`, na branch `claude/v2-casca`. A casca nova (lateral, Visão geral, Entrar, seções de Conta e Conectar IA, rótulos novos) existe **só no tema gelo**. O clássico, que é o que roda em produção, continua exatamente como está: o plano manda que nada mude para o cliente sem flag, e a flag desta etapa é o tema (`VITE_FORGELEX_THEME`). Reverter é voltar para `classico`. Depois da primeira entrega, Boni enviou o protótipo (artefato de 17/11); a casca foi adaptada a ele, em vez da leitura do texto da seção 7.2.
+
+### Decisões de Boni nesta etapa
+
+- **Navegação.** Mesa, Casos e Jurisprudência na lateral, com a conta no rodapé. A lateral nasce recolhida em trilho de ícones na Mesa, para não tomar espaço das três áreas.
+- **Andamento processual.** A troca vale só dentro do app. O site público continua com "Consulta processual" (URL, sitemap, título e texto) até a V5A, quando a DEC-7 deixa o texto mudar.
+- **Primeiros passos.** O estado fica no navegador, por usuário, sem API nem banco.
+
+### O que foi feito
+
+- **Tema ativo (`theme/active-theme.ts`).** Lê o `data-theme` que o script da V1 escreve no `<html>` e decide, em tempo de execução, qual casca o `App` monta.
+- **Lateral (`IceSidebar`).** Como no protótipo: marca no alto; grupo **Trabalho** (Mesa, Casos, Jurisprudência); grupo **Conta e recursos** (Visão geral, Andamento processual, Conectar IA, Conta); rodapé com o nome do usuário, o saldo e "Sair da conta". Na tela larga não há cabeçalho: a marca e a navegação ficam na lateral. Abaixo de `lg`, `IceHeader` traz a marca e o botão da gaveta, que tem os mesmos itens, fecha com Escape e devolve o foco ao botão. Na Mesa nasce recolhida; fora dela, aberta; a escolha do cliente prevalece até recarregar. `Header` e `Sidebar` clássicos não foram tocados.
+- **Cabeçalho de página (`PageHeader`) e seções.** Conta tem as seções Faturamento, Atividade, Segurança e Chaves de API no alto; Conectar IA tem Conexão, Guia de conexão e API para desenvolvedores. A lateral acende o item pai da seção aberta (`highlightedTab`).
+- **Visão geral (`OverviewScreen`).** Substitui a tela inicial no gelo, com dados reais: "Primeiros passos" (Conectar sua IA, Criar o primeiro caso, quando Casos está ligado, e Verificar uma citação), atalhos, casos ativos, conexões e consumo do mês. As regras ficam num modelo puro (`overview-model.ts`), testado. O cartão é ocultável, com "Mostrar primeiros passos" para voltar; o estado de cada passo vem do que o app já sabe (conexão, casos, citação verificada), e a chave no `localStorage` leva o identificador do usuário.
+- **Entrar (`IceAuthLayout`).** Duas colunas na tela larga (contexto do produto ao lado do formulário); só o formulário no celular.
+- **Tokens novos.** `accent-tint` e `ok-tint` (clássico e gelo), nos mesmos arquivos do medidor de contraste.
+- **Rotas por tema (`navigation/routes.ts`).** No gelo, `datajud` vira "Andamento processual" em `/app/andamento-processual` e `research` vira "Jurisprudência" (o caminho `/app/pesquisa` não muda). O caminho antigo é reescrito para o novo ao carregar, mantendo consulta e âncora. A página pública `/consulta-processual` não mudou.
+- **Título da página de andamento.** `DataJudPage` ganhou a propriedade `title`; no gelo, dentro do app, é "Andamento processual", com a linha do tempo do protótipo.
+- **Páginas públicas.** O tema gelo da V1 as serve; sem alteração de estrutura ou texto, que ficam para a V5A. `PublicSections` passou a exportar `PILLARS`, usado na coluna de contexto de Entrar.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Clássico inalterado | 52 capturas (26 telas, dois tamanhos) depois da V2 contra as de depois da V1: **estilo de todos os elementos idêntico e as 52 imagens idênticas**. |
+| Gelo e acessibilidade | axe em 52 telas com a casca nova: **nenhuma violação**. |
+| Vitest | 316 arquivos e 2631 testes aprovados. ESLint e tipos limpos; Prettier limpo nos arquivos alterados (os três CSS que acusam já estavam fora do padrão em `main`); medidor de contraste: 109 pares, **nenhuma piora** em relação ao clássico. |
+| Playwright, casca nova | `shell-gelo.spec.ts`, 12 cenários aprovados: lateral e rodapé; sem cabeçalho na tela larga; Rascunhos e Revisão acendem a Mesa; trilho na Mesa e troca pelo cliente; andamento e jurisprudência; Visão com dados reais; Primeiros passos (ocultar, lembrar, isolar por usuário); seções de Conta e Conectar; Entrar em duas colunas; gaveta no celular; axe na Visão, na Mesa recolhida, em Conta, na gaveta e em Entrar. |
+| Suíte da Mesa nos dois temas | Gelo: `desk-shell`, `writing-desk` e `agentic-workspace` com 42 aprovados e 1 falho, o download do Word deste ambiente (o mesmo de `main`; na CI passa). Clássico: 30 aprovados e o mesmo 1. |
+| Suíte pública nos dois temas | 17 aprovados no clássico e 17 no gelo; `datajud.spec` e `agentic-workspace.spec` escolhem rótulo, caminho e título conforme `FORGELEX_E2E_THEME`. |
+| CI | Passos novos: a casca do gelo no job `e2e-desk` e a suíte pública com o gelo ligado no `e2e-public`. |
+
+### Divergências em relação ao protótipo
+
+- **Mesa, Pesquisa, Casos e Decisão.** Ficam para a V3: a Mesa segue com o trilho provisório de 80 px e a composição atual.
+- **Cabeçalho público.** Sem destaque da página atual nem botão "Entrar" discreto; é da V5A.
+- **Consumo do mês.** Soma das operações do mês que a API de recibos já devolve; sem dado, a Visão diz "Consumo indisponível no momento" em vez de inventar número. O texto dos passos e dos cartões é proposta minha.
+- **Dois usuários de verdade.** A Auth sintética dos testes devolve sempre a mesma identidade; o isolamento por usuário foi provado pela chave e pelos testes unitários.
+
+### Não coberto
+
+- **Outros textos do app** ainda dizem "Pesquisa" e "consulta processual" (botão "Pesquisa e fontes" da Mesa, rótulos de teste); seguem V3, V4 e V5A.
+- **Publicação.** Nada foi publicado. O gelo ainda não passa pelo Cloud Build nem pelo `deploy-from-main.ps1` (V1), então nenhum build de produção sai com a casca nova.
+
+Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
+
+## V3 — Mesa, parte 1: composição e abas da peça (17/11/2026)
+
+Sobre `main` em `b15bbd3`, na branch `claude/v3-mesa`. Primeira das duas PRs que o plano prevê para a V3. Tudo vale **só no tema gelo**; o clássico segue como está.
+
+### Decisão de Boni nesta etapa
+
+- **Lateral na Mesa.** Como no protótipo: as conversas recentes passam para dentro da lateral e ela fica aberta na Mesa. A coluna de histórico da Mesa some; o trilho de ícones (V2) deixa de ser o padrão da Mesa e continua disponível pelo botão "Recolher".
+
+### O que foi feito
+
+- **Conversas recentes na lateral.** `components/ice/desk-history-slot.tsx` dá à lateral um ponto onde a Mesa renderiza a lista (portal), com a lista, a lixeira, o "Desfazer" e o diálogo do celular como eram. O clássico usa o contexto padrão, sem elemento, e mantém a coluna. `DeskShell` e `DeskToolbar` recebem `historyInSidebar`: no gelo não reservam coluna nem mostram o botão "Recolher conversas".
+- **Abas da peça.** `DraftCanvas` ganhou `PieceTabs` (Texto, Fontes, Revisão; `role="tablist"`, setas, Home e End). "Fontes do caso" e "Conferência da peça" deixam de ser botões de diálogo no gelo: Fontes mostra o conteúdo de `DeskCaseSources`; Revisão mostra a conferência (`ReviewBody`, extraída de `ReviewDialog`, que passa a ser só o diálogo em volta do mesmo conteúdo) e, abaixo, a revisão editorial. O texto continua montado e só escondido nas outras abas: o que foi digitado, a seleção e a rolagem ficam. Sem caso não há Fontes; sem versão salva não há Revisão (as abas ficam desabilitadas).
+- **Abrir a conferência de fora.** Uma pendência da fila que abre a conferência leva direto à aba Revisão; "Editar a seção" a partir de um apontamento volta à aba Texto.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Clássico inalterado | 52 capturas contra as de depois da V2: **estilo idêntico e as 52 imagens idênticas**. |
+| Gelo e acessibilidade | axe em 52 telas: nenhuma violação. Três testes novos de acessibilidade das abas (Texto, Fontes, Revisão). |
+| Vitest | 316 arquivos e 2638 testes aprovados; ESLint, tipos e Prettier limpos; contraste sem piora. |
+| Playwright, gelo | 46 cenários, 45 aprovados e 1 falho: o download do Word deste ambiente (o mesmo de `main`; na CI passa). Novos: lateral aberta na Mesa com a lista dentro dela e recolhimento; abas com o texto preservado e sem diálogos; teclado; abas desabilitadas sem caso; axe das abas. |
+| Playwright, clássico | `desk-shell` (30 de 31, o mesmo falho do Word), `draft-review` (4 de 5, o falho é o mesmo download do Word), `desk-review`, `editorial-review` e `desk-save-recovery` aprovados. |
+
+### Divergências em relação ao protótipo e o que fica para a parte 2
+
+- **Revisão editorial.** No protótipo as sugestões (aceitar e recusar) aparecem em linha na aba Revisão. Aqui a aba mostra a conferência e o botão da revisão editorial existente, que abre o próprio diálogo; reescrevê-la mexe em recibos e execução comercial, e fica fora desta parte.
+- **Cabeçalho da Mesa, seletor de caso, "Criar caso a partir desta conversa", etapas do trabalho e estado vazio com os dois selos** são a parte 2 (V3b).
+- **Orientação.** A pergunta ativa e o "Não sei" já existiam; no gelo seguem com as cores legadas mapeadas pela V1. O acabamento visual fica para a parte 2.
+- **Download do Word** neste ambiente (sem relação com a V3).
+
+Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
+
+## V3 — Mesa, parte 2: caso, etapas e estado vazio (17/11/2026)
+
+Sobre `main` em `ceb205a`, na branch `claude/v3-mesa-2`. Segunda e última PR da V3. Tudo vale **só no tema gelo**; o clássico segue como está, com o DOM idêntico.
+
+### O que foi feito
+
+- **Seletor de caso no cabeçalho da Mesa.** `DeskCaseSelector` mostra "Caso" com a opção **Sem caso — somente texto** e os casos do cliente. O estado do caso continua no pedido (`Composer`), que renderiza o seletor no cabeçalho por portal (`desk-case-slot`), sem subir estado. O campo "Caso" saiu de "Caso e documentos", que agora diz onde escolher quando não há caso. **A07:** o caso não troca depois que a conversa começa; o seletor fica desabilitado com o motivo escrito ("Fixo nesta conversa", "Fixo pela peça aberta"), e trocar o caso antes de enviar zera os documentos e a minuta escolhidos.
+- **Criar caso a partir desta conversa.** Botão no cabeçalho (antes de enviar): o nome é sugerido pela primeira frase do pedido (`caseNameFrom`, até 80 caracteres), é editável e o caso nasce **só com o nome**, pelo `POST /api/v2/matters` de sempre. O texto do pedido continua onde estava. Na aba Fontes de uma peça sem caso, o mesmo gesto liga a peça ao caso criado.
+- **Aba Fontes sem caso.** Deixa de ficar desabilitada: explica que, sem caso, não há questões, cobertura de fontes nem análise de aderência, e oferece criar o caso. Revisão continua exigindo versão salva.
+- **Etapas do trabalho.** `workStages` (puro, testado) deriva as etapas dos eventos que o servidor realmente envia: STATUS (recebido, em andamento, concluído, interrompido), SOURCE (documentos lidos, contados sem repetir), QUESTION (esperando a resposta) e DELIVERY (entrega). Sem etapa inventada: não há "pesquisando no STJ" nem "3 consultas" porque o servidor não informa isso. `WorkStages` mostra a lista ordenada com o estado também em texto. **ERROR** continua no aviso `role="alert"` sempre visível, no parágrafo "Andamento" (região viva) e marcado na etapa de trabalho.
+- **Estado vazio.** `DeskEmptyGuide` junta, abaixo dos atalhos de sempre, "Comece por um exemplo" (três exemplos que só preenchem o pedido, sem enviar nem cobrar) e "Dois selos, dois sentidos" (Análise da IA, rotulada e conferida por você; Verificada, número, data e órgão conferidos na fonte oficial). Os textos dos exemplos e dos selos são proposta minha.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Clássico inalterado | 52 capturas contra as de depois da V3 parte 1: **estilo idêntico e as 52 imagens idênticas**. A primeira captura acusou um elemento a mais no clássico (um `div` em volta dos atalhos); foi corrigido e a segunda confere. |
+| Gelo e acessibilidade | axe em 52 telas: nenhuma violação; mais axe nas etapas e no estado vazio. |
+| Vitest | 318 arquivos e 2655 testes aprovados (+11 do modelo das etapas, +6 do nome sugerido, +o contador de documentos lidos nos eventos); ESLint e tipos limpos; contraste sem piora. |
+| Playwright, gelo | 52 cenários, 51 aprovados e 1 falho: o download do Word deste ambiente (o mesmo de `main`; na CI passa). Novos: seletor no cabeçalho e criação do caso só com o nome; caso fixo com o motivo; etapas; erro sempre visível e anunciado; estado vazio; Fontes sem caso. Mutações conferidas: desligar o bloqueio do seletor e desligar as etapas derrubam os testes. |
+| Playwright, clássico | `desk-shell`, `draft-review` (exceto o Word), `desk-review`, `editorial-review`, `desk-save-recovery`, `desk-guidance`, `desk-guidance-v3` e `agentic-workspace` aprovados. |
+
+### Divergências em relação ao protótipo
+
+- **Etapas com números.** O protótipo mostra detalhes como "12 fatos e 5 provas" e "3 consultas, R$ 0,60". Aqui só aparece o que o servidor informa; os detalhes ricos dependem de eventos novos (fica registrado como pendência para a V4/M4).
+- **Criar caso com a conversa e os documentos.** No protótipo, o caso leva a conversa, os anexos e as fontes e a IA propõe fatos. Aqui o caso nasce só com o nome (aceite do plano); levar o restante exige uma operação de servidor própria.
+- **Cabeçalho.** Sem o título "Mesa" no cabeçalho (a lateral já marca a página) e sem o botão "Nova tarefa" (a lateral tem "Nova conversa"). Sem o link "Base do caso" nem o contador de questões, que dependem de dados que a Mesa não carrega.
+- **Revisão editorial em linha** (aceitar e recusar na aba Revisão) segue fora, como na parte 1.
+
+### Não coberto
+
+- **Orientação** (pergunta ativa, "Não sei"): o comportamento já existia e continua; seguem as cores legadas mapeadas pela V1, sem acabamento próprio.
+- **Download do Word** neste ambiente (sem relação com a V3).
+
+Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
+
+## V4 — Jurisprudência, leitor e selos (17/11/2026)
+
+Sobre `main` em `0e8d8b3`, na branch `claude/v4-jurisprudencia`. Tudo vale **só no tema gelo**; o clássico segue como está.
+
+### Escopo e dependência
+
+O plano põe a V4 atrás da M4 (busca ancorada no caso, com a frase de aderência por resultado), que **ainda não existe**. Esta PR faz a parte da V4 que não depende dela: a linguagem visual dos selos, o título e a legenda da Jurisprudência e o leitor de decisões. A aderência ao caso (análise da IA por resultado, consultas sugeridas pelas questões do caso, "Pesquisar com o caso") fica para depois da M4; o selo da IA existe e aparece na explicação do estado vazio da Mesa, mas nenhum resultado de pesquisa o mostra, porque nenhum resultado tem análise.
+
+### O que foi feito
+
+- **Selos (`components/ice/Seal`, `verification-seal.ts`).** A verificação é um fato da fonte, com estados próprios, em ícone e texto (nunca só cor): **Verificada** (verde, só a conferência na fonte oficial), **Conferida no fornecedor** (aviso), **A conferir na fonte** (neutro), **Metadados divergentes** (aviso) e **Sem correspondência** (erro, com "isso não prova que não exista"). Estado desconhecido nunca aparece como verificado. O selo da análise da IA (petróleo, rotulado "Análise da IA") é um componente à parte, para não confundir verificação com leitura da IA. O selo de origem externa (M5) não foi criado.
+- **Jurisprudência.** Título "Jurisprudência" com a frase que leva ao Andamento processual; antes da primeira busca, a legenda "Como ler os resultados" com três selos; o resultado da conferência de decisão usa o selo. O resto da tela (consulta, cobrança, pesquisas salvas) não mudou.
+- **Leitor de decisões.** No gelo usa a paleta e a fonte editorial do tema (variáveis `--reader-*` sobrescritas só com `data-theme="gelo"`) e mostra o selo de verificação no alto do registro, não mais escondido em "Origem e fonte". O leitor do MCP (isolado) e o clássico ficam iguais.
+- **Fontes do caso e pesquisa salva.** O selo entra pelo `CitationChecks`, que as duas telas já usam.
+- **Mesa.** O estado vazio passa a usar os mesmos componentes de selo.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Clássico inalterado | 52 capturas contra as da V3: **estilo idêntico e as 52 imagens idênticas**. |
+| Gelo e acessibilidade | axe em 52 telas: nenhuma violação; mais axe na Jurisprudência antes e depois de uma busca. Tons dos selos sobre os dois fundos: 4,66 a 6,47 para 1 (o menor é o aviso sobre o fundo da página). |
+| Vitest | 319 arquivos e 2661 testes aprovados (+6 do modelo dos selos); ESLint, tipos, `format:check:code` e contraste sem piora. |
+| Playwright, gelo | `research-gelo.spec.ts` (novo, 2 cenários, com passo próprio na CI): título, legenda, ausência de promessa de aderência, selo no leitor, paleta do leitor, selo na conferência; `shell-gelo` com 51 de 52 (o falho é o download do Word deste ambiente). |
+| Playwright, clássico e MCP | `saved-research` (inclui o leitor isolado do MCP), `research`, `desk-research` e as 32 do `mcp-site` aprovados; `case-flow` com o mesmo download do Word falhando. |
+
+### Divergências em relação ao protótipo
+
+- **Lista com painel da decisão ao lado.** O protótipo mostra os resultados numa lista e a decisão selecionada num painel. O leitor atual é um leitor passo a passo ("1 de N"), compartilhado com o leitor do MCP; trocá-lo por lista e painel mexe nos dois e fica fora desta etapa.
+- **Aderência ao caso, "Pesquisar com o caso" e consultas sugeridas.** Dependem da M4.
+- **Leitor de decisão em página própria (`Decisao`).** Segue o leitor existente, no tema.
+
+Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
+
+## V5 — Conta e Conectar IA (17/11/2026)
+
+Sobre `main` em `ae43108`, na branch `claude/v5-conta-conectar`. Tudo vale **só no tema gelo**; o clássico segue como está, com o DOM idêntico.
+
+### Escopo e decisão de Boni
+
+O plano põe a V5 atrás da U7 (a tela "Casos" sai e a Mesa a absorve), que **ainda não foi feita**. Casos e Caso novo, portanto, **ficam de fora** (não faz sentido vestir uma tela que vai sair). Conta e Conectar IA já tinham a estrutura do protótipo desde a V2 (seções no alto) e são mais completas que ele. Decisão de Boni: complementar **só com dado real**, sem criar endpoint novo.
+
+### Auditoria pedida pelo plano
+
+- **Botões inertes.** Varri todos os `<button>` do app sem tratador: o único é a aba única "Ementa" do leitor de decisões, que é um `tab` selecionado por definição, não um botão que prometa algo. Também não há `href="#"`, tratador vazio nem texto de "em breve".
+- **Valores financeiros.** Nenhum valor em reais está escrito no código do app: pacotes, tarifas e saldo vêm do serviço e passam por `formatBRL`. A coluna nova segue a regra e usa os centavos como vieram.
+
+### O que foi feito
+
+- **Coluna lateral da Conta (`AccountAside`).** Ao lado de Faturamento, em telas largas (abaixo de `lg` vai para baixo): **Identificação** (nome e espaço de trabalho da conta, "conta pré-paga, em reais"), **Chaves de API** (quantas e quais, só pelo prefixo público e o estado; nunca o segredo nem os escopos; leva a "Gerenciar chaves"), **Atividade da conta** (os três lançamentos mais recentes, com os rótulos da tela de lançamentos e o valor em centavos do serviço; leva a "Ver atividade") e **Encerramento de conta** (o pedido é em Segurança e a política segue a publicada; leva a Segurança e à política de destinação). Cada cartão busca o próprio dado e, se falhar, diz que está indisponível sem derrubar os outros. O modelo (`account-aside-model.ts`) é puro e testado.
+- **Conectar IA.** "Como fica o trabalho", em três passos que o próprio serviço sustenta: a conversa é na IA do cliente, com a assinatura dele; ela chama as ferramentas do ForgeLex quando precisa de fonte; o que for cobrado aparece na atividade da conta, por operação, e comando gratuito não gera lançamento.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Clássico inalterado | 52 capturas contra as da V4: **estilo idêntico e as 52 imagens idênticas**. |
+| Gelo e acessibilidade | axe em 52 telas: nenhuma violação; mais axe em Conta no celular e em Conectar IA. |
+| Vitest | 320 arquivos e 2669 testes aprovados (+8 do modelo da coluna lateral); ESLint, tipos, `format:check:code` e contraste sem piora. |
+| Playwright, gelo | 55 cenários, 54 aprovados e 1 falho (o download do Word deste ambiente, igual a `main`; na CI passa). Novos: a coluna lateral com uma chave criada (aparece o prefixo, nunca o segredo), a ida a Segurança, a coluna no celular sem rolagem lateral e "Como fica o trabalho". |
+
+### Divergências em relação ao protótipo
+
+- **Tabela de ferramentas publicadas, com tarifa** (Conectar): o serviço não expõe esse catálogo; criar o endpoint ficou fora do escopo decidido. Fica como pendência.
+- **"Consumo recente" e "Tarifas vigentes" como blocos da Conta:** a tela real já tem saldo, valores, lançamentos e recarga, e é mais completa; não foram reescritos.
+- **"Baixar recibos", "Última recarga" e "Dados de cobrança"** do protótipo não têm correspondente real e não foram criados.
+- **Casos e Caso novo:** aguardam a U7.
+
+Reversão: `VITE_FORGELEX_THEME=classico` (o padrão), ou reverter o commit.
+
+## Aceite A19 em 17/11/2026
+
+**Decisão de Boni (17/11/2026):** aprovou todas as telas da jornada visual do tema gelo, em desktop e celular, e pediu o registro da A19.
+
+**O que foi mostrado.** As capturas de `main` em `9aace0` (etapas V0 a V5), com dados sintéticos de teste, numa página de revisão com as duas capturas de cada tela (1440 px e 390 px) e o que olhar em cada uma. Foram 14 telas, na ordem em que uma pessoa as atravessa:
+
+1. Início e Produto (site público, tema da V1; o texto novo é da V5A).
+2. Entrar.
+3. Visão geral.
+4. Mesa sem trabalho em curso e Mesa com a peça aberta.
+5. Jurisprudência e Pesquisa e fontes, com o leitor de decisões.
+6. Andamento processual.
+7. Conectar IA.
+8. Conta: Faturamento, Atividade, Segurança e Chaves de API.
+9. Casos, **no layout anterior**: a tela sai na U7 e não foi redesenhada. Boni aprovou a captura como estava.
+
+**Evidência e seus limites.**
+
+- A aprovação é a declaração de Boni na conversa de 17/11/2026. A página de revisão tinha controle de veredito por tela, mas, ao conferir o armazenamento dela, **estava vazio**: o registro não foi gravado pela página. Por isso o aceite consta pela palavra de Boni, não pela leitura dos vereditos.
+- A aprovação cobre o que estava nas capturas. **Não foram fotografados** (e portanto não passam por este aceite): as etapas do trabalho em andamento e com erro, as abas Fontes e Revisão abertas, o seletor de caso aberto, os diálogos e o selo de verificação no registro do leitor (fica abaixo da área capturada). Esses estados têm teste automatizado e axe; se Boni quiser vê-los, são capturados à parte.
+- O aceite vale para o **tema gelo**, que continua só atrás do tema `gelo`. Nada foi publicado: o gelo ainda não passa pelo Cloud Build nem pelo `deploy-from-main.ps1`.
+
+**Não decide.** O aceite visual não decide a publicação do gelo, nem a V5A (site público), a U7, a M4 e a M5, que seguem pendentes.
+
+## V5A — Site público no modelo novo, parte 1: título e página inicial (17/11/2026)
+
+Sobre `main` em `47ae880`, na branch `claude/v5a-site-publico`. Primeira entrega da V5A. Tudo vale **só com `VITE_FORGELEX_PUBLIC_MODEL=true`**, desligada por padrão: com ela desligada o site é exatamente o de hoje (escopo congelado). A flag **deve continuar desligada em produção até a V5A inteira estar pronta**, porque só a página inicial muda nesta parte.
+
+### Decisão de Boni: o título
+
+Escritas três propostas, todas só com o que está no ar na publicação de 14/11 (`cd94c2c`) e sem o título vetado. **Boni escolheu a A em 17/11/2026:**
+
+- **Título:** "Sua IA, com jurisprudência que dá para conferir."
+- **Subtítulo:** "Conecte o ForgeLex ao ChatGPT ou ao Claude por MCP e pesquise decisões com a fonte e o estado de verificação de cada resultado. Você paga só pelo uso."
+
+As outras duas, para o registro: **B** "Pesquise na sua IA. Escreva na Mesa." (prometia mais, dependia de a Mesa estar aberta ao cliente) e **C** "A citação que você usa, conferida na fonte." (deixava de fora a vigência, que ainda não tem conferência no ar).
+
+### Cada afirmação do título e a função no ar
+
+| Afirmação | Função publicada |
+| --------- | ---------------- |
+| Conectar ao ChatGPT ou ao Claude por MCP | Conexão MCP com OAuth e ferramentas de pesquisa, publicada. O texto abaixo mantém "conforme a disponibilidade do MCP". |
+| Fonte e estado de verificação por resultado | Leitor de decisões e verificação de autoridade, publicados. |
+| Pagar só pelo uso | Créditos pré-pagos em reais, com valores vindos do serviço, publicados. |
+
+### O que foi feito
+
+- **Flag `VITE_FORGELEX_PUBLIC_MODEL`** (`config/site-capabilities.ts`) e a propriedade `model` em `PublicSite`, que as páginas recebem; os testes ligam o modelo sem recarregar módulos.
+- **Página inicial.** Título e subtítulo aprovados; os quatro passos do percurso reescritos (acesso, conexão, pesquisa com a fonte à vista, conferência e Mesa); "Mesa de trabalho" entra nas ferramentas e nas formas de uso, com o que está no ar: elaborar e revisar peças com orientação, a partir de anexos em PDF, texto ou Markdown; a pergunta "O que é a Mesa de trabalho?" e a de "O que é o ForgeLex?" reescritas; sai o aviso de que o fluxo de casos e rascunhos "está suspenso" (as âncoras antigas ficam).
+- **Metadados da inicial** (`metadataFor`): título, descrição e canônica. Para as outras páginas o metadado segue o atual.
+- **Fica de fora, de propósito:** Word, OCR, agentes analíticos, vigência e Gemini. Testes de unidade e de ponta a ponta conferem que essas palavras não aparecem, com uma mutação provada (pôr "OCR" no texto da Mesa derruba o teste).
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Texto atual preservado | Com a flag desligada o HTML da inicial é idêntico ao anterior (teste compara os dois); `public-copy.test.ts` segue exigindo o texto atual e o veto ao título rejeitado, e agora também o título novo. |
+| Playwright | `public-model.spec.ts` (novo, 3 cenários, passo próprio na CI): título, metadados, ausência do que não está no ar e axe; celular sem rolagem lateral e menu por teclado; as outras páginas com o texto atual. Suíte pública existente: 17 aprovados. |
+
+### Pendente na V5A
+
+Reescrever `ProductPage`, `HowPage`, `IntegrationsPage`, `CreditsPage`, `GuidePage` e `ApiDocsPage`; `LandingScreen` (a dupla versão do título por `CASE_WORKSPACE_ENABLED`); `ConnectionsScreen`; `index.html`, `sitemap.xml`, a imagem Open Graph e `README.md`; os textos legais em `apps/web/public/legal/` (**a aprovação é de Boni**; só devem descrever o que acontece de fato); `public-seo.test.ts`; e as URLs canônicas com o domínio vigente (D3). Depois, ligar a flag e publicar texto e função juntos.
+
+Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.
+
+## V5A — Site público no modelo novo, parte 2: as demais páginas públicas (17/11/2026)
+
+Na branch `claude/v5a-paginas`, empilhada sobre `claude/v5a-site-publico` (parte 1, [#191](https://github.com/junior-aguiar-eng/ForgeLex/pull/191)). Continua **só com `VITE_FORGELEX_PUBLIC_MODEL=true`**, desligada por padrão e **desligada em produção** até a V5A inteira estar pronta.
+
+### O que foi feito
+
+| Página | Texto novo (resumo) |
+| ------ | ------------------- |
+| Produto | "Pesquisa com fonte, conexão com a sua IA e Mesa de trabalho."; ferramentas e percurso no modelo novo, mais as salvaguardas. |
+| Como funciona | "Da conta à pesquisa com fonte, e da fonte à peça."; percurso de quatro passos, terminando na Mesa. |
+| Integrações | "Conecte o ForgeLex à sua IA, à Mesa e ao seu software."; quatro formas de uso (site, ChatGPT ou Claude, Mesa, API). |
+| Créditos | "Você paga só pelo uso."; mesmo conteúdo contratual de hoje: pré-pago em reais, pesquisa válida faturável, abrir e verificar sem cobrança própria, custo do aplicativo de IA separado. |
+| Guia | "Conecte sua IA e pesquise com a fonte à vista."; passo novo e cartão "Mesa de trabalho" (anexos em PDF, texto ou Markdown) com link para `/entrar?next=%2Fapp%2Ftrabalho`. |
+| API | Só o título muda ("Integre a pesquisa do ForgeLex ao seu software."); autenticação, exemplos, consulta gratuita TJAL e OpenAPI ficam como estão. |
+
+Os metadados (título e descrição) de cada uma dessas páginas mudam com o texto, em `public-metadata.ts`; a canônica e a indexação não mudam. A consulta processual gratuita (DataJud) e a página não encontrada **não mudam**, como o plano pede.
+
+### Regra mantida
+
+Nenhuma frase afirma o que não está no ar: Word, OCR, agentes analíticos, vigência e Gemini não aparecem; o texto não diz que o fluxo de casos "está suspenso" nem oferece `/app/casos`, `/app/rascunhos` ou `/app/revisao`. **A Mesa aparece sem preço**: o texto só afirma a cobrança da pesquisa jurisprudencial válida, que é o que está publicado com tarifa. Se a Mesa tiver tarifa própria, o texto dela entra quando Boni confirmar o valor (A24).
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Vitest | 320 arquivos e 2.695 testes aprovados. Novos: cada página, com o modelo desligado, sai idêntica à de antes e sem "Mesa de trabalho"; com ele ligado traz um só h1, texto novo e nada do que não está no ar; Créditos conserva o que é cobrado; Guia leva à Mesa; metadados por página. Mutação provada: pôr "OCR" no cartão da Mesa do Guia derruba o teste. |
+| Playwright | `public-model.spec.ts` agora com 4 cenários: as seis páginas conferem título, metadados e ausência do que não está no ar, com axe sem violação em cada uma; a consulta gratuita segue como é. Suíte pública existente: 17 aprovados. |
+| Capturas | Com a flag desligada, as 52 capturas saíram idênticas às da parte 1 (estilos e imagens). Com ela ligada, as seis páginas foram vistas em 1440 px (Produto e Guia conferidos a olho: o cartão "Mesa de trabalho" do Guia, o quinto passo e o título novo). O axe passou nas seis, no e2e. |
+
+### Pendente na V5A
+
+`PublicFooter` (o texto de apresentação do rodapé segue o atual); `LandingScreen` (a dupla versão do título por `CASE_WORKSPACE_ENABLED`); `ConnectionsScreen`; `index.html`, `sitemap.xml`, imagem Open Graph e `README.md`; `public-seo.test.ts`; URLs canônicas com o domínio vigente (D3); os textos legais em `apps/web/public/legal/` (**a aprovação é de Boni**). Depois, ligar a flag e publicar texto e função juntos.
+
+Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.
+
+## V5A — Site público no modelo novo, parte 3: rodapé, tela inicial, HTML estático, imagem e README (18/11/2026)
+
+Sobre `main` em `3f7ab5d`, na branch `claude/v5a-resto`. Continua **só com `VITE_FORGELEX_PUBLIC_MODEL=true`**, desligada por padrão e **desligada em produção** até a V5A inteira estar pronta.
+
+### O que foi feito
+
+| Item | O que mudou |
+| ---- | ----------- |
+| Rodapé público | Frase de apresentação nova no modelo ("Jurisprudência com fonte e estado de verificação para a sua IA, por MCP, com Mesa de trabalho e API."); links e documentos legais iguais. |
+| Tela inicial interna (`LandingScreen`) | No modelo novo mostra o título e o subtítulo aprovados, num só texto: some a dupla versão por `CASE_WORKSPACE_ENABLED` (a flag continua mandando no botão "Abrir caso", que é função). Com o modelo desligado, nada muda. O título passou para `config/public-model-copy.ts`, módulo pequeno que o site e o app dividem. |
+| Tela Conectar IA | **Sem mudança.** Já diz o que o modelo diz (conectar à IA do cliente, a assinatura dela não paga o ForgeLex, só a pesquisa é cobrada) e já tem "Como fica o trabalho" da V5. |
+| HTML que o robô lê sem JavaScript | Novo plugin de build (`public-site-html-plugin.ts`): com o modelo ligado, troca título e descrição da inicial no `index.html` pelas mesmas strings do código (`public-metadata-data.ts`, fonte única) e acrescenta `og:image`, `og:image:alt` e `twitter:image`, com `summary_large_image`. Sem a flag, o `index.html` sai igual. |
+| Imagem Open Graph | `apps/web/public/og/forgelex-modelo.png` (1200×630, 66 KB) com o título aprovado; entra no `index.html` só no modelo novo. |
+| Domínio sem valor fixo | `VITE_PUBLIC_ORIGIN` troca o domínio de `canonical`, `og:url`, imagem, `sitemap.xml` e `robots.txt` no build (D3); sem ela vale `https://nexojuris.ia.br`. Conferido com um build real em outro domínio: nada do domínio antigo sobra. |
+| `sitemap.xml` | Mesmas oito páginas; só passa a seguir `VITE_PUBLIC_ORIGIN`. |
+| `README.md` | Título e subtítulo aprovados no alto e a seção "Posicionamento público". |
+
+### Textos legais
+
+**Não alterei nenhum.** Levantei o que dizem e o que o modelo novo exige e deixei uma redação proposta para Boni em [docs/operations/stabilization/2026-11-18-textos-legais-modelo-novo-proposta.md](../operations/stabilization/2026-11-18-textos-legais-modelo-novo-proposta.md). A lacuna principal: a política de privacidade não diz que, na Mesa, o texto do pedido e dos anexos vai a um provedor de modelo contratado pelo ForgeLex (o código do piloto usa OpenAI). Dependem de Boni o nome do provedor e suas condições, onde fica o texto extraído do anexo e a tarifa da Mesa.
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Vitest | 321 arquivos e 2.708 testes aprovados. Novos: `public-site-html.test.ts` (7: HTML idêntico sem flag, título e descrição nas três marcas, imagem, domínio trocado, sitemap e robots, falha alta se o texto esperado sumir), rodapé (2), tela inicial interna nos dois estados de casos (3). Mutação provada: pôr "OCR" na frase do rodapé derruba 9 testes. |
+| Playwright | `public-model.spec.ts` com 5 cenários; o novo lê o HTML bruto, confere título, `og:image`, o PNG servido e o rodapé. Suíte pública existente: 17 aprovados. |
+| Builds reais | Padrão: sem `og:image`, título atual. Modelo com `VITE_PUBLIC_ORIGIN=https://exemplo.com.br`: título novo, imagem no domínio novo, `sitemap.xml` e `robots.txt` sem o domínio antigo. |
+| Clássico | Com a flag desligada, 52 capturas idênticas às da parte 2 (estilos e imagens). |
+
+### Pendente na V5A
+
+Os textos legais (aprovação de Boni, a proposta acima) e a tarifa da Mesa (A24). Depois, ligar a flag e publicar texto e função juntos: a ligação em `Dockerfile`/Cloud Build e `deploy-from-main.ps1` é decisão de publicação de Boni e não faz parte desta entrega.
+
+Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.
+
+## V6 — Preparação: tema e texto público chegam ao build de produção (18/11/2026)
+
+Sobre `main` em `b5660d4`, na branch `claude/v6-plumbing`. **Não liga nada.** Hoje a publicação de produção (`cloudbuild.yaml` e `deploy-from-main.ps1`) não passa `VITE_FORGELEX_THEME` nem `VITE_FORGELEX_PUBLIC_MODEL` ao build: o `Dockerfile` já tinha o tema, mas só com o padrão `classico`, e o texto público do modelo novo (V5A) não tinha caminho algum. Sem isso não haveria como ligar o gelo nem o texto novo na produção.
+
+| Arquivo | Mudança |
+| ------- | ------- |
+| `Dockerfile` | `ARG` e `ENV` de `VITE_FORGELEX_PUBLIC_MODEL` (padrão `false`), antes do `pnpm build`. |
+| `ops/gcp/production/cloudbuild.yaml` | Argumentos de build e substituições `_VITE_FORGELEX_THEME` (`classico`) e `_VITE_FORGELEX_PUBLIC_MODEL` (`false`). |
+| `deploy-lib.ps1` | `_VITE_FORGELEX_PUBLIC_MODEL` entra nas flags opcionais (ausente = `false`, preservada do build anterior). `_VITE_FORGELEX_THEME` é tratada à parte: ausente = `classico`, preservada do build anterior, e **só `classico` e `gelo` são aceitos** (`previa`, vazio ou maiúsculas são recusados, inclusive se vierem do build anterior). |
+| `deploy-from-main.ps1` | Parâmetros `-Theme classico|gelo` e `-PublicModelEnabled true|false`, que só mudam o valor se informados. |
+| `README.md` do ops | Os dois parâmetros, a regra e a reversão. |
+
+**Efeito na produção atual: nenhum.** O build anterior de produção não traz as duas substituições, então valem `classico` e `false`, os mesmos valores de hoje; a imagem sai igual.
+
+**Verificação.** `tests/dockerfile.test.ts` confere os dois `ARG`, a ordem antes do build e as duas linhas do `cloudbuild.yaml`. Os testes do deploy (`deploy-from-main.tests.ps1`, que a CI executa) ganharam 3 casos (padrões, preservação e troca de propósito, recusa de `previa`, `Gelo` e `escuro`, e de `sim` na flag) e a contagem de substituições passou de 12 para 14. **Não consegui rodar o PowerShell neste contêiner** (o classificador negou executar o binário baixado); a conferência desses testes é da CI.
+
+**Ligar de fato** (fora desta entrega, decisão de Boni, em publicação isolada): `./ops/gcp/production/deploy-from-main.ps1 -DryRun -Theme gelo` para ver o plano, depois sem `-DryRun`. Reversão: `-Theme classico`.
+
+Reversão desta entrega: reverter o commit; nada em produção muda enquanto os parâmetros não forem usados.
+
+## V6 — Favicon, theme-color, imagem de prévia e passada completa no tema gelo (18/11/2026)
+
+Sobre `main` em `cad9fcb`, na branch `claude/v6-favicon`. **Não liga o tema.** Tudo o que muda vale só com `VITE_FORGELEX_THEME=gelo`; o clássico sai igual.
+
+### O que foi feito
+
+| Item | O que mudou |
+| ---- | ----------- |
+| Favicon | O script do tema no `index.html` (o mesmo que escolhe o tema antes da primeira pintura) troca o `href` do `<link rel="icon">` por um SVG na cor do acento do gelo, `#0F5C6E`. O clássico mantém o marrom `#8E5D2A`. |
+| `theme-color` | No gelo o script acrescenta `<meta name="theme-color" content="#F4F7F8">`, o fundo da página, para a barra do navegador no celular. O clássico **não tem** `theme-color`, como hoje. |
+| Imagem Open Graph | `apps/web/public/og/forgelex-modelo-gelo.png` (1200×630, 67 KB), a mesma do modelo novo na paleta do gelo (Spectral, fundo `#F4F7F8`, acento `#0F5C6E`). O plugin do `index.html` usa essa imagem quando o build é `VITE_FORGELEX_THEME=gelo` e a original nos demais temas. |
+| Ferramenta de capturas | Nova opção `--viewports 360,768,1440` (`parseViewports`, com teste); sem ela valem os dois tamanhos de sempre. |
+
+As duas cores não ficam soltas: um teste lê o bloco `[data-theme="gelo"]` de `index.css` e exige que o favicon e o `theme-color` usem o acento (`--fl-accent`) e o fundo (`--fl-canvas`) de lá. Se o tema mudar de cor, o teste acusa.
+
+### Passada completa (item de aceite da V6)
+
+| Item | Resultado |
+| ---- | --------- |
+| Axe (WCAG 2.0 e 2.1, A e AA) | **Sem violação em 78 telas**: as 26 telas do roteiro em 360, 768 e 1440 px, com o tema gelo. |
+| Olhada humana | Vi a Mesa com peça em 360 px e o diálogo "Pesquisa e fontes" em 768 px. **Não revi as 78 imagens**: o aceite visual por tela continua sendo de Boni (como na A19). |
+| Achado antigo | No diálogo "Pesquisa e fontes" a 768 px, o cartão "Consulta jurisprudencial" passa da borda direita do diálogo e perde a borda. **Acontece igual no tema clássico** (capturado e comparado), então não é regressão do gelo. Fica anotado, sem correção aqui para não mexer no clássico. |
+| Leitor de tela nos eventos da Mesa | **Não feito.** Exige leitor de tela de verdade (NVDA, VoiceOver); é conferência de Boni antes de ligar o tema. |
+
+### Verificação
+
+Vitest do script de tema (3 casos novos: favicon e `theme-color` só no gelo, cores iguais às do CSS, página sem `querySelector` não quebra; mutação provada trocando um dígito do `#F4F7F8`), do plugin (imagem por tema) e da ferramenta de capturas. Playwright: o clássico não define `theme-color` e mantém o favicon (`public-site.spec.ts`, 18 aprovados); o gelo define os dois já na página de entrada (`shell-gelo.spec.ts`); `public-model.spec.ts` 5 aprovados.
+
+### Pendente para ligar o gelo
+
+1. Boni confere as telas (aceite visual) e o leitor de tela nos eventos da Mesa.
+2. Decidir o achado do cartão a 768 px (corrigir antes ou depois).
+3. Homologação com `VITE_FORGELEX_THEME=gelo`, depois produção, em publicação isolada: `deploy-from-main.ps1 -Theme gelo`.
+
+Reversão: `-Theme classico` e novo deploy; ou reverter este commit.
+
+## V5A — A Mesa de trabalho em destaque no site (18/11/2026)
+
+Sobre `main` em `f935b58`, na branch `claude/v5a-mesa`. Continua **só com `VITE_FORGELEX_PUBLIC_MODEL=true`**, desligada por padrão.
+
+### Por que
+
+Observação de Boni em 18/11/2026: nos textos do site faltavam referências à Mesa agêntica, "a parte mais interessante e complexa". Procede: a Mesa aparecia como um cartão a mais, e o produto lia como pesquisa de jurisprudência. O texto do clássico (hoje em produção) segue o escopo congelado e não muda; a correção é no modelo novo.
+
+### O que a Mesa faz e o que o site passa a dizer
+
+Cada frase corresponde a função publicada (web com Mesa agêntica, casos, pesquisa salva, anexos e chips ligados; orientação guiada e `mesa-v3` ligadas na API; salvamento recuperável ligado em 14/11; cenários da A18 aceitos por Boni).
+
+| Frente | Texto | Função publicada |
+| ------ | ----- | ---------------- |
+| Ela pergunta o que falta | Pedido em uma frase ou "ajuda para começar"; pergunta o que muda o resultado; "não sei"; corrigir o resumo antes de enviar. | Orientação guiada e `mesa-v3`, A18 (Me ajude a começar, Não sei, correção pelo resumo). |
+| Elabora, revisa e edita um trecho | Peça nova ou revisão sem gerar versão a cada pedido; alteração só do trecho selecionado. | A18 (criação, revisão sem nova versão, edição delimitada). |
+| Cada versão fica guardada | Versão com histórico; resposta perdida não duplica nem perde; a revisão aponta e o cliente decide o que aplicar. | Salvamento recuperável (migração `0041`, flag ligada em 14/11); revisão editorial. |
+| Fontes dentro da peça | Pesquisar sem sair da Mesa; origem e estado de verificação; pesquisa salva reabre sem nova busca. | R9 (pesquisa salva e fontes na Mesa), A11. |
+| Seu material e seu caso | PDF, texto e Markdown; o arquivo não é enviado nem guardado, só o texto extraído; peças e pesquisas por caso. | DEC-12 e U5 (anexos); casos. |
+| Você acompanha e decide | Andamento à vista; conferência e uso jurídico são do cliente. | Andamento da execução. |
+
+Evitei de propósito o que depende do tema gelo ou de avaliação de Boni: os selos "Análise da IA" e "Verificada", a lista de "Etapas do trabalho", o número de áreas e o catálogo de fichas (a avaliação jurídica do Lote 0 segue com Boni).
+
+### Onde entra
+
+- **Início:** nova seção "Da pergunta à peça, com a IA trabalhando e você decidindo." logo depois do topo, com as seis frentes e um botão "Conhecer a Mesa de trabalho" no topo. O título e o subtítulo aprovados por Boni **não mudaram**.
+- **Produto:** a mesma seção abre a página; o título passa a "Mesa de trabalho e pesquisa com fonte, no site e na sua IA."
+- **Como funciona:** passos próprios da Mesa (descreva, responda só o que falta, acompanhe, revise e salve a versão) antes dos da pesquisa por MCP.
+- **Ferramentas e formas de uso:** a Mesa vem em primeiro lugar, e o cartão é mais completo.
+- **Guia:** os quatro passos da Mesa dentro do cartão dela.
+- **FAQ:** "O que é a Mesa de trabalho?" detalhada e duas perguntas novas, "O que a Mesa faz com meus anexos?" e "A Mesa usa créditos?".
+- **Rodapé, metadados e imagem de prévia:** a Mesa entra na frase do rodapé, nas descrições e na imagem Open Graph (as duas versões foram refeitas).
+
+### Cobrança da Mesa
+
+O código mostra que os trabalhos da Mesa são medidos e cobrados (`COMMERCIAL_EXECUTION_ENABLED` ligada em produção, com reserva e liquidação). O texto anterior só dizia que a pesquisa válida é faturável, o que ficava incompleto. Agora Créditos, Início, Guia e FAQ dizem que **os trabalhos da Mesa usam créditos da conta, sem mensalidade, com saldo e consumo à vista**. **Nenhum valor é citado**: a tarifa da Mesa segue sem publicação (A24) e depende de Boni.
+
+### Verificação
+
+Vitest: 321 arquivos e 2.723 testes. Novos testes: seção da Mesa depois do topo e antes de "Por que o ForgeLex existe", as seis frentes com as frases que correspondem a funções, a Mesa antes do resto nas ferramentas e nas formas de uso, passos próprios em Como funciona, ids sem repetição nas seis páginas, créditos da Mesa sem preço, e nada disso com o modelo desligado. Mutações provadas: trocar o título de uma frente e inserir "Word" derrubam testes. Playwright: `public-model` 5 aprovados (agora conta as seis frentes) e suíte pública 18 aprovados, com axe sem violação. Linhas removidas conferidas: só o modelo novo muda; o clássico é o mesmo.
+
+Reversão: desligar `VITE_FORGELEX_PUBLIC_MODEL` (o padrão), ou reverter o commit.
+
+## U7 — Casos dentro da Mesa, parte 1: gerenciar casos (18/11/2026)
+
+Sobre `main` em `f935b58`, na branch `claude/proxima`. Só no tema gelo (o seletor de caso da Mesa já é do gelo); o clássico e a tela "Casos" ficam como estão.
+
+### Decisão de Boni sobre o escopo da U7 (18/11/2026)
+
+A DEC-14 lista o que a Mesa deve absorver da tela "Casos" (criar e renomear caso, arquivar, restaurar e excluir caso e documento, importar PDF). O levantamento mostrou que a tela, que está no ar (flag de casos ligada em produção), também guarda **Fatos, Provas (com vínculo a fato e âncora), Linha do tempo, Questões jurídicas e Memorando de pesquisa**, e que a Mesa não tem nenhuma dessas funções. Remover a tela tiraria o único lugar onde o cliente vê e edita o que cadastrou. **Boni decidiu: manter como "Dados do caso".** A Mesa absorve a parte da DEC-14; a tela deixa de ser porta de entrada e passa a "Dados do caso", aberta a partir do caso na Mesa, com Fatos, Provas, Linha do tempo, Questões e Memorando intactos. O caso segue como eixo da busca ancorada (M4) e do MCP.
+
+### Achado: renomear caso não existia
+
+Nem o backend nem a tela "Casos" renomeavam caso (só criavam). Esta fatia acrescenta a rota.
+
+### O que foi feito
+
+| Camada | Mudança |
+| ------ | ------- |
+| Persistência | `MatterLifecycleRepository.rename`: título aparado, de 3 a 200 caracteres; mesma regra de gestão do ciclo de vida (sessão web, escrita, autor ou administrador); só caso ativo; o estado é conferido de novo no próprio `UPDATE`, então um arquivamento concorrente não é sobrescrito. **Não é transição:** a `lifecycleRevision` que as execuções capturam não muda. |
+| API | `PATCH /api/v2/matters/:matterId` com `{ title }`, só sessão web: 403 para chave de API e OAuth e para quem não é autor nem administrador, 400 para título inválido, 404 para outro tenant, 409 para caso em arquivo ou lixeira (o guarda de ciclo de vida já existente). Cada renomeação aceita grava `matter.renamed` na auditoria. Documentada no OpenAPI (`MatterRename`, `MatterRenameResult`). |
+| Mesa (gelo) | Botão **Gerenciar casos** no seletor de caso abre um diálogo com a lista (Em uso, Arquivados, Lixeira) e, por caso: **Renomear**, **Arquivar**, **Mover para a lixeira** e **Restaurar**, com a confirmação que já existia e que diz o efeito sobre o acesso da IA. O seletor acompanha a mudança, e um caso arquivado ou na lixeira deixa de ser o escolhido. O caso **em uso** na conversa ou peça aberta pode ser renomeado, mas não sair de uso. |
+| Fica fora desta fatia | **Exclusão definitiva** (pede o nome do caso e acompanha o diário): continua na tela Casos, e o diálogo diz isso. Ciclo de vida **do documento** e importação de PDF. |
+
+### Verificação
+
+| Item | Resultado |
+| ---- | --------- |
+| Vitest | 322 arquivos e 2.725 testes. Novos: repositório (autor, administrador, chave, escopo, outro tenant, títulos inválidos, caso arquivado, revisão intacta), rota (cada ator e status, auditoria, OpenAPI) e modelo do gerenciador. Mutação provada: tirar a checagem de autorização do `rename` derruba o teste. |
+| Playwright (gelo) | Suíte do gelo: 57 aprovados. Novo cenário: renomear (nome curto recusado em texto, nome válido atualiza lista e seletor), axe sem violação com o diálogo aberto, arquivar com confirmação, restaurar, seletor acompanha. Cenário do caso fixo estendido: o caso em uso pode ser renomeado e não aparece com Arquivar nem Lixeira. |
+| Tipos, lint, formato | `tsc` (API e web), ESLint e `pnpm format:check:code` limpos. |
+
+### Próximas fatias da U7
+
+1. Documentos do caso na Mesa (arquivar, restaurar, excluir) e PDF como anexo.
+2. A tela "Casos" vira **Dados do caso**, aberta a partir do caso na Mesa; `/app/casos` redireciona preservando links; o item "Casos" sai da lateral.
+3. Decidir o destino da exclusão definitiva (ficar em Dados do caso ou ir para a Mesa).
+
+Reversão: reverter o commit; a rota nova some e a tela "Casos" continua igual. A rota só existe depois de a API ser publicada.
+
+## Retomada e reordenação das pendências (18/11/2026)
+
+Sobre `main` em `d2c2d69` (merge do #196). Só documentação e conferência de código; nada foi publicado.
+
+### CI do push do #196 (run 525)
+
+Falhou só o `e2e-product`, em "Initialize containers": `failed to bind host port 0.0.0.0:55432/tcp: address already in use`
+ao subir o Postgres de serviço. Nenhum teste rodou; os outros seis jobs passaram (inclusive `validate`, `postgres`, `e2e-desk`
+e `e2e-public`). No PR, o mesmo job tinha passado. Boni reexecutou e passou. **Causa não provada.** O `ci.yml` (linhas 71 e 154)
+mapeia o Postgres de serviço na porta fixa `55432:5432`; o `e2e-product` roda em `ubuntu-latest` (imagem 26.04 nessa execução),
+enquanto o job `postgres` está fixado em `ubuntu-24.04`. Hipótese não testada: algo na imagem ou no host do runner ocupou a 55432.
+Uma porta aleatória para o serviço (e a URL lida do mapeamento) removeria a dependência. Terceira instabilidade do
+`e2e-product` registrada (ver `PENDENCIAS.md`).
+
+### E2 — fechada
+
+`rg` no `apps/web/src` (sem testes) por `.size`, `structuredClone`, `.at(`, `findLast`, `toSorted`, `Object.groupBy`,
+`replaceAll`, `Object.hasOwn` e `randomUUID`. Nenhum outro `.size` sobre `URLSearchParams` (os demais são `File.size`, universal).
+Há `Array.prototype.at`, `Object.hasOwn` e `crypto.randomUUID` (Safari 15.4 e Chrome 92–93; `randomUUID` só em contexto seguro,
+e o site é HTTPS), coerentes com o alvo ES2022. Sem mudança de código. Limite: não medi a lista de navegadores suportados, que o
+repositório não declara (`browserslist` ausente).
+
+### Plano
+
+`docs/superpowers/plans/2026-11-11-forgelex-plano-unificado.md`: estado atualizado para 18/11 (seção 1), nova seção 1A com as
+pendências da mais antiga para a mais recente e quem as executa, E2 marcada, PR-U2 em andamento e S.5 corrigindo o S.4 (o Daybreak
+foi publicado em 16/11; as caixas de S0 a S7 não foram marcadas na época e precisam de conferência).
+
+## U1 · fechamento dos itens mortos (19/11/2026)
+
+Sobre `main` em `6bd76e1`. Só `apps/web`; nada muda para o cliente de hoje (produção usa o modo comercial).
+
+| Item da U0 | O que foi feito |
+| ---------- | --------------- |
+| `ConnectionChecklist.tsx` e `PlatformConnectionCard.tsx` | Removidos. `grep` confirmou que só eles mesmos se referenciavam. |
+| `PRODUCT_TITLE` (`config/research-copy.ts`) | Removida: não tinha nenhum uso, nem interno. |
+| `CANONICAL_ORIGIN`, `SectionHeader`, `responseExamples` | Perdem o `export`; só têm uso interno no próprio arquivo. |
+| “Gerar proposta de teste” (decisão 3 da U0, que dizia “sai na U1” e não tinha sido feita) | `EditorialReviewPanel` só mostra a geração no modo `REAL`; o rótulo de teste e as bifurcações de `REAL` viraram código direto. `generate()` recusa qualquer modo diferente de `REAL`. O tipo mantém `SIMULATED`, que a API ainda devolve; os modos `COMMERCIAL` e `REAL`, a rota e o gerador simulado ficam. Nenhum teste referenciava o rótulo. |
+
+**Não feito.** Os 9 tipos exportados sem uso: sem o `knip` (o `npx knip` foi bloqueado por baixar pacote fora do lockfile), uma busca por `grep` listou 38 tipos exportados sem uso externo, mas incluí-los todos ampliaria a mudança sem a lista aprovada da U0. Ficam como estão.
+
+**Verificação.** `tsc` do web, ESLint e Prettier nos arquivos alterados; Vitest `apps/web` (61 arquivos, 467 testes) e `tests/public-*` aprovados depois do build; `playwright.editorial-review.config.ts` (3 cenários) aprovado. Não rodei a suíte completa, nem as demais configurações Playwright: ficam para a CI do PR.
+
+Reversão: reverter o commit; os dois arquivos removidos voltam pelo Git.
+
+## U3 · área proposta pelo texto, aviso de matéria sem apoio e aceite de três interações (19/11/2026)
+
+Sobre `main` em `11fda82`. Regras `mesa-v3`; sem mudança de contrato, sem migração e sem provedor. A reconciliação do plano (as caixas da U3 estavam sem marcar) acompanha esta seção.
+
+**O que mudou.**
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Área proposta pelo texto | Só na orientação inicial (`initialGuidance`), com o texto do pedido. Usa o ranqueamento local das peças, sem provedor e sem saldo. Propõe quando **todas as peças que empatam no topo são de uma única área** e nenhuma é transversal; texto vago, empate entre áreas, peça em mais de uma área, catálogo ausente ou texto vazio mantêm a lista das 25 áreas. A decisão nasce `proposed` e `origin: model`, sem campo novo no `GuidanceSnapshot`; o resolvedor de habilidades só lê área `confirmed` ou `known`, então a proposta não chega à execução antes da confirmação. |
+| Pergunta | “Pelo que você informou, a área é: X. Está correto?”, com “Sim, é essa” e “Não, é outra” (e “Não sei”). “Sim” confirma; “Não” volta à lista e **a Mesa não propõe de novo** (só a orientação inicial propõe); “Não sei” segue com a área em aberto. A correção pelo resumo da própria confirmação (“Sim” para “Não”) reabre a área e tira a confirmação da peça, sem gravar “nao” como valor. |
+| Matéria sem apoio | `MatterChips`: sem sugestão na primeira tentativa, a Mesa diz “Não encontrei uma matéria de apoio para essa descrição. Descreva de outro jeito ou siga sem matéria; o pedido segue como está.” (antes: “Não encontrei uma matéria para isso…”). **Redação corrigida no mesmo PR:** a primeira versão dizia “Ainda não temos orientação específica para essa matéria”, o que afirma a cobertura do catálogo; o ranqueamento é lexical e pode não achar uma matéria que existe, então a frase podia ser falsa. A nova descreve só o resultado da busca. A mensagem depois de uma recusa (“Não há outra matéria parecida…”) não mudou. O aviso da peça, de 17/11, usa a redação antiga e tem o mesmo limite (só aparece depois de o cliente explicar a peça em texto); não foi alterado. |
+| Aceite “peça em até três interações” | Cenário E2E novo: do texto livre, área (sim), tarefa e peça (sim) = 3 interações, sem lista; conferido que o id da peça e as expressões não aparecem no HTML. |
+
+**Verificação.** Vitest: 17 testes das regras `mesa-v3` (7 novos: proposta, três interações, recusa, “não sei”, casos sem proposta, correção e `mesa-v2` sem proposta), 8 do serviço de orientação (3 ajustados porque o catálogo de teste agora leva à proposta de área); `desk-guidance-v3` no Playwright: 11 aprovados (3 novos, com axe, incluindo celular). Fixture do E2E ganhou a peça sintética “Recurso ordinário trabalhista” (área única), sem alterar os outros cenários. `tsc` (web e API), ESLint e Prettier limpos nos arquivos alterados.
+
+**Limite.** A proposta de área só dispara quando a peça de topo tem **uma** área. No catálogo de teste, peças como “Resposta à acusação” têm duas (`penal` e `processo-penal`) e, por isso, não geram proposta. A taxa de acerto e de disparo no catálogo real (2.077 fichas, fora do repositório) **não foi medida**; se for baixa, o próximo passo é decidir entre aceitar a primeira área da peça ou mostrar só as áreas candidatas.
+
+**Continua aberto na U3.** Chips de área, tribunal e peça no compositor (V3 e U7) e a refinação por IA, que só vale se o ranqueamento errar mais do que a recusa resolve.
+
+Reversão: reverter o commit; as orientações já gravadas não mudam (o contrato é o mesmo).
+
+## CI · diagnóstico das três falhas intermitentes do `e2e-product` (19/11/2026)
+
+Sobre `main` em `11fda82`. Método: evidência e reprodução antes de qualquer correção. Nada de produção muda (PostgreSQL em produção; o SQLite só existe em desenvolvimento e nos E2E).
+
+### 1. `database is locked` (`agentic-commercial-flow.spec.ts`, 15/11): causa provada
+
+`createDatabase` abria os arquivos SQLite com tempo de espera pela trava igual a zero (`libsql` usa `timeout = 0`). A conexão de apoio do teste (`UPDATE facts…` por fora do servidor) recebia `SQLITE_BUSY` na hora sempre que o servidor, em outro processo, estava no meio de uma transação de escrita; o resultado dependia do momento.
+
+**Reprodução (dois processos).** Um processo segura a trava de escrita por 300 ms; o outro escreve: sem `timeout`, falha em 1 ms com `SQLITE_BUSY: database is locked`; com `timeout: 5000`, espera e conclui em 310 ms; com a trava segurada por 8 s, falha em 5 s. (Um primeiro experimento no mesmo processo enganava: a espera bloqueia o laço de eventos e a trava nunca era solta.)
+
+**Primeira correção, errada, e por que voltei atrás.** Dar o tempo de espera a todo `createDatabase` quebrou `webhook-repository.test.ts`: `claimDueDelivery` trata `SQLITE_BUSY` como "outro worker já reivindicou" (`webhook-repository.ts:209`), e a espera de 5 s travou dois "workers" no mesmo processo. A falha do erro imediato é parte do desenho dali.
+
+**Correção.** Opt-in `DatabaseConfig.busyTimeoutMs` (padrão: não esperar), usado só nas duas conexões de apoio do E2E que escrevem por fora do servidor. Teste de regressão `packages/persistence/src/db-busy-timeout.test.ts`: com o opt-in a escrita espera e conclui; sem ele continua recusando na hora.
+
+### 2. `matter-lifecycle.spec.ts:48`, campo "Texto do documento" desabilitado (16/11): mecanismo provado, gatilho no CI não provado
+
+O teste arquiva o caso por API, "por trás" da tela. A tela só passa a saber disso quando uma leitura do caso chega ao servidor **depois** do arquivamento. Duas leituras podem fazer isso: o evento `focus` da janela (`MatterWorkspaceScreen`, `refresh`) e a **carga inicial** do caso (`loadMatterResources`, 8 requisições) ainda em andamento. Reproduzi as duas com sondas (apagadas): disparar `focus` após o arquivamento, e reter a leitura inicial até depois do arquivamento. Nos dois casos o campo fica desabilitado e o `fill` estoura, o sintoma do CI.
+
+**O que não sei.** Não reproduzi a falha em condição normal (16 de 16 passaram localmente, com 4 workers), então não provo que foi a carga inicial lenta, e não o `focus`, no runner do CI. A primeira é a hipótese mais forte (runner lento alonga a carga inicial), mas é hipótese.
+
+**Correção (só no teste).** O teste de "resposta atrasada" passa a esperar as 8 respostas da carga inicial antes de arquivar (`openCase`). É comportamento correto da tela (caso arquivado em outro lugar vira somente leitura). Suíte `matter-lifecycle`: 30 passagens (5 testes × 6 repetições).
+
+### 3. Porta 55432 em uso (`Initialize containers`, 18/11): causa não provada, mitigação aplicada
+
+O erro ocorre no passo 2 do job, antes do checkout: algo no runner (imagem `ubuntu-latest`, 26.04 nessa execução) já escutava a 55432. O `e2e-product` mapeava `55432:5432` fixo e o `postgres` está fixado em `ubuntu-24.04`. Não há como inspecionar o runner antes desse passo (ele roda antes de qualquer `run`), então **a causa continua não provada**.
+
+**Mitigação (decisão de Boni, 19/11/2026), só no job `e2e-product`.** O serviço publica `5432` (porta do host escolhida pelo Docker) e um passo novo, logo após o checkout, grava `FORGELEX_E2E_DATABASE_URL` em `$GITHUB_ENV` com a porta publicada (`job.services.postgres.ports['5432']`); o passo falha com mensagem clara se a porta não vier. Por que é seguro: os únicos leitores da porta nesse job são `playwright.config.ts` e `scripts/e2e-phase-7-server.mjs`, e os dois já leem a URL do ambiente (o 55432 era só o valor padrão); os demais E2E do job usam SQLite em arquivo. Se a variável não chegar, o erro é conexão recusada, alto e imediato. O job `postgres` (que também usa 55432) e o `docker-compose.yml` ficam como estão. Conferido localmente: YAML válido e o passo de shell com porta (grava a URL) e sem porta (sai com erro).
+
+**O que não está provado.** A mudança só é exercitada pelo CI do PR. Como a falha era intermitente, uma passagem verde não prova que ela acabou: a mitigação elimina a dependência de uma porta fixa, mas não explica por que a 55432 estava ocupada.
+
+### Verificação
+
+Vitest: `packages/persistence` 250 testes aprovados (inclui `webhook-repository`); suíte completa registrada no PR. Playwright: `agentic-commercial-flow` 4 aprovados, `matter-lifecycle` 30 passagens. ESLint, Prettier e `tsc` do pacote `persistence` limpos.
+
+Reversão: reverter o commit; o `busyTimeoutMs` não tem efeito sem ser passado.
+
+## U7 · casos dentro da Mesa, parte 2: aba Documentos (19/11/2026)
+
+Sobre `main` em `10edebc`. Só `apps/web`, só no tema gelo; sem rota nova, sem migração e sem mudança de contrato. O clássico e a tela "Casos" não mudam.
+
+**Decisões de Boni (19/11/2026) que orientam a U7.** Documentos do caso numa **aba própria da peça**; salvar o anexo no caso por **botão explícito**; exclusão definitiva **em "Dados do caso"**. Sobre tirar "Casos" do menu do clássico: a recomendação é **só no gelo** (o clássico some na V7), e a confirmação dele **ainda não veio**.
+
+**O que foi feito.**
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Aba | `DraftCanvas` ganha a aba **Documentos** entre Fontes e Revisão (`PieceTab` com `documentos`). Habilitada quando há caso; sem caso fica desabilitada. A ordem preserva as asserções de teclado existentes (`End` continua em Revisão). |
+| Painel | `DeskCaseDocuments` (novo): lista os documentos do caso por visão (Em uso, Arquivados, Lixeira), com **Abrir**, **Arquivar**, **Mover para a lixeira** e **Restaurar**, pela confirmação já existente (`LifecycleDialog`, que diz o efeito sobre a IA). Abrir reaproveita o leitor da peça. Sem a exclusão definitiva. |
+| Quem gerencia | Como na tela "Casos": criador do caso ou proprietário, e só com o caso em uso. Quem não gerencia vê a lista e abre os documentos. |
+| Modelo | `documentLifecycleNotice` e `documentStateLabel`, com teste. |
+| Rotas | Nenhuma nova: `GET /api/v2/matters/:id?view=` e `POST …/documents/:id/{archive,trash,restore}` já existiam. |
+
+**Limite conhecido.** As abas só aparecem com uma **peça aberta**, mas os documentos pertencem ao caso: sem peça aberta o cliente não alcança a aba. O botão "Salvar no caso" no anexo (próxima fatia) funciona sem peça. Se isso incomodar, a alternativa é uma entrada no seletor de caso.
+
+**Nota sobre a exclusão definitiva.** No caso ela pede o nome para confirmar; no documento, a confirmação existente **não** pede o nome (só o caso pede). A decisão de mantê-la em "Dados do caso" vale para os dois.
+
+**Verificação.** Vitest do web: 61 arquivos, 470 testes (3 novos do modelo). `shell-gelo` (Playwright): 58 aprovados, 1 novo (listar, arquivar e restaurar com confirmação, abrir, sem excluir definitivamente, com axe) e 3 ajustados para a aba nova; o `writing-desk.spec.ts:292` só passa com `LANG=C.UTF-8` (limite conhecido da E7, já definido na CI). `tsc`, ESLint e Prettier limpos nos arquivos alterados.
+
+**Não feito (próximas fatias).** Botão "Salvar no caso" no anexo (com trava contra clique duplo, já que a rota de ingestão não tem chave de idempotência); "Dados do caso", o redirecionamento de `/app/casos` e a saída do item "Casos" da lateral.
+
+Reversão: reverter o commit; a aba some e nada mais muda.
+
+## U7 · casos dentro da Mesa, parte 3: salvar o anexo no caso (19/11/2026)
+
+Sobre `main` em `10edebc`, na mesma branch da parte 2. Só `apps/web` e só no tema gelo (decisão de Boni); sem rota nova, sem migração e sem mudança de contrato. Ele substitui na Mesa a importação de PDF da tela "Casos" (`PdfTextImport`).
+
+**O que foi feito.**
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Botão | No chip do anexo pronto, "Salvar no caso", só no gelo e só com um caso escolhido que a lista de casos em uso conhece. Sem caso, o chip mostra uma dica (“Para guardar o texto de um anexo como documento do caso, escolha um caso.”) e nenhum botão. No clássico, nada muda. |
+| O que grava | `POST /api/v2/matters/:id/documents`, só por sessão: título = nome do arquivo sem extensão (com “(texto reconhecido por OCR)” quando veio de OCR, porque o documento ganha âncoras citáveis e pode ter erros), `originalFilename` = `<arquivo>.txt` (convenção da importação de PDF; `.txt` e `.md` ficam como estão), `mimeType` `text/plain`, só o texto extraído (DEC-12). |
+| Depois de salvar | O chip diz “Salvo no caso “X” como “Y” (N parágrafos)” e avisa que o documento salvo **não muda** se o texto for editado depois. O botão some. Trocar ou remover o anexo apaga o “salvo”; outro caso é outro destino. |
+| Recusa | `saveFailureMessage` traduz os códigos estáveis da S5 (`DOCUMENT_TEXT_TOO_LARGE`, `DOCUMENT_ANCHOR_LIMIT_EXCEEDED`) e `MATTER_NOT_FOUND`; a nova tentativa funciona. |
+
+**Duas travas contra duplicação.** A rota de ingestão não recebe chave de idempotência e cada chamada cria um documento (não achei busca por duplicata pelo hash do conteúdo). Por isso: uma chamada em andamento barra outra igual (`createSingleFlight`) e um anexo já salvo não é salvo de novo. A regra mora em `createSaveController`, sem React, para ser testada.
+
+**Achado na verificação: o E2E sozinho não provava as travas.** Com as duas travas desligadas, o cenário de clique duplo continuou passando, porque o botão desabilitado da própria interface barra o segundo clique depois do redesenho. As travas cobrem a corrida *antes* do redesenho, e isso só os testes unitários provam. Mutação feita: sem a trava de chamada em andamento, 2 testes quebram; sem a de anexo já salvo, 1 quebra; restauradas.
+
+**Verificação.** Vitest do web: 63 arquivos, 484 testes (controlador, trava, construção do documento e mensagens). Playwright: `attachments-gelo` (novo, 2 cenários, com axe: sem caso só a dica; com caso grava uma vez, “não muda depois”, trocar apaga o salvo; recusa em texto e nova tentativa) e `attachments` (10; o novo prova que **no clássico, mesmo com caso vinculado, não há botão nem dica**), `desk-guidance-v3` (11) e `shell-gelo`. O novo spec entra no job `e2e-desk` do CI. Um seletor de teste meu casava com a opção “Escolha um caso” do tema clássico (texto já existente); troquei por uma busca pelo texto completo da dica. `tsc`, ESLint e Prettier limpos nos arquivos alterados.
+
+**Limites.** (1) O texto de OCR que o cliente editou depois de salvar não altera o documento salvo; o aviso diz isso, mas não há “atualizar o documento”. (2) Texto muito grande esbarra nos tetos da S5 (1 MiB, 5.000 linhas com conteúdo), e o cliente é orientado a dividir o arquivo. (3) A aba Documentos só aparece com uma peça aberta, mas o botão do anexo funciona sem peça. (4) Ainda não medi com PDF real de produção; só textos sintéticos.
+
+Reversão: reverter o commit; o botão some e nada mais muda.
+
+### Achado na verificação da parte 3: `shell-gelo.spec.ts:278` já era intermitente (19/11/2026)
+
+Uma execução completa do `shell-gelo` falhou no cenário de acessibilidade da casca nova, que passou isolado. **Não é desta mudança:** repetido na `main` limpa (`git stash`), falhou 4 vezes em 16 com 3 workers. O axe acusa contraste de 2,56 a 3,58 sempre no botão primário “Abrir a jurisprudência” da Visão (`<button class="btn-primary …">`), com cores intermediárias (por exemplo #d4dee0 sobre #3a7988), o que indica leitura no meio de uma troca de cor.
+
+**Hipótese, não provada.** `.btn-primary` tem `transition` de 160 ms (`index.css`), e a ação da Visão pode mudar de estilo quando os dados de “Primeiros passos” chegam, depois de a página já parecer pronta. **Tentativa que não funcionou:** esperar `document.getAnimations()` terminar antes de cada leitura do axe; 3 falhas em 24, sem diferença do que a `main` já tinha. Desfeita; nada foi alterado no spec. Próximo passo: esperar um sinal de que os dados da Visão chegaram (e não só as animações em curso) antes da primeira leitura. Registrado na seção 1A do plano (item 15). O spec roda no `e2e-desk`, que não é check obrigatório.
+
+### Correção da aba Documentos depois da CI (19/11/2026)
+
+O `e2e-desk` do commit da parte 2 falhou **por defeito meu**, não pela intermitência conhecida: no painel Documentos havia dois `role="status"` ao mesmo tempo (o aviso da operação e o "Carregando documentos…"), e o seletor do meu teste exigia um só. Localmente a recarga era rápida demais para coincidir; o runner da CI era mais lento.
+
+O seletor frágil era o sintoma; o defeito real era de interface: depois de arquivar, a **lista inteira sumia** atrás de "Carregando documentos…" até a recarga terminar (piscada, e dois avisos de estado). Reproduzi primeiro com um teste que segura a recarga e exige a lista à vista (falhou: `Documento dois` não visível), depois corrigi: a recarga depois de uma operação (`keepList`) mantém a lista, e "Carregando…" fica só para a primeira carga e a troca de visão; trocar de visão limpa o aviso anterior. Os avisos nos testes passam a ser buscados pelo texto, não só pelo papel. Resultado: os 4 cenários da aba (3 antigos ajustados, 1 novo) passam 6 vezes seguidas com 3 workers.
+
+## U7 · casos dentro da Mesa, parte 4: Dados do caso (19/11/2026)
+
+Sobre `main` em `10edebc`, na mesma branch das partes 2 e 3. Só `apps/web` e só no tema gelo; sem rota nova de API, sem migração e sem mudança de contrato. O clássico não muda.
+
+**Princípio (Boni, 19/11/2026).** Arquitetura, fluxo e interface devem ser fáceis de usar e fluidos: intuitivos, práticos e sem dificuldade para o cliente. Daí as escolhas abaixo: o caminho para o caso está **onde o cliente já está** (na Mesa), e a volta **leva de volta ao mesmo caso**.
+
+| Item | Como ficou |
+| ---- | ---------- |
+| Lateral | O item "Casos" **sai** da lateral do gelo (continua só se a Mesa estiver desligada, porque aí a tela Casos é o único lugar dos casos). Em Dados do caso, o item **Mesa** fica aceso. |
+| Rota | O caminho é o mesmo (`/app/casos`), então nenhum link antigo quebra. **Sem `?caso=`** abre a Mesa (e o desvio não entra no histórico); **com `?caso=`**, é a tela Dados do caso. Regra pura em `iceCaseDestination`. |
+| A tela | O título e o `h1` passam a ser "Dados do caso", com o subtítulo do que ela guarda e o botão **← Voltar à Mesa**, que leva à Mesa **com o mesmo caso escolhido** (lê a URL na hora do clique, porque a tela troca de caso sem recarregar). O cabeçalho antigo ("Área do caso") some no gelo para não haver dois `h1`. Fatos, provas, linha do tempo, questões, memorando e exclusão definitiva continuam como estavam. |
+| Entradas a partir da Mesa | (1) Botão **Dados do caso** ao lado do seletor, só com caso escolhido. (2) No gerenciador de casos, cada linha tem **Dados do caso**, e a de um caso **na lixeira** tem **Excluir definitivamente…**, que abre a tela **direto na lixeira** (`?visao=trash`), onde mora a exclusão. (3) Na aba Documentos, o texto da exclusão definitiva virou um botão **Dados do caso** que abre a lixeira de documentos (`?documentos=trash`) quando a visão é essa. |
+| Textos | "na tela do caso" e "use a tela Casos" viraram "em Dados do caso" ou um botão, em vez de uma instrução que o cliente precisa seguir sozinho. |
+
+**Verificação.** Vitest do web: modelo de rotas e de navegação (89 testes, 7 vermelhos antes da implementação). Playwright no gelo: 4 cenários novos (lateral e redirecionamento; entrada pelo seletor; caso na lixeira até a exclusão; aba Documentos até Dados do caso), com axe na nova tela. **Mutação:** com a regra de redirecionamento desligada, o cenário falha (`/app/casos` não vira a Mesa). Os specs compartilhados que clicavam em "Casos" para sair da Mesa (`writing-desk`, `agentic-workspace`, `shell-gelo`) passam a usar "Jurisprudência" no gelo e continuam com "Casos" no clássico.
+
+**Limites.** (1) Quem usa o gelo sem a Mesa (configuração que não é a de produção) continua com o item "Casos" e o título "Dados do caso". (2) "Criar caso" dentro da tela continua existindo, mas o caminho natural é pela Mesa. (3) A tela ainda é a mesma de 904 linhas; reorganizá-la por dentro (por exemplo, dividir em abas) não foi feito e seria outra etapa.
+
+Reversão: reverter o commit; o item "Casos" e o caminho antigo voltam.
+
+### Item 15 resolvido: a intermitência do `shell-gelo.spec.ts:278` tinha causa de produto (19/11/2026)
+
+**Causa, provada.** A Visão decidia o estado dos "Primeiros passos" com dados que chegam depois (conexão da IA e lista de casos), e as leituras que falhavam eram engolidas. Até a resposta, "conectar" e "criar caso" contavam como pendentes e o primeiro era destacado; quando os dados chegavam, o destaque **pulava** para "Abrir a jurisprudência" (`btn-secondary` → `btn-primary`), que tem `transition` de 160 ms. Medido no navegador logo depois do login: o botão aparece `secondary` (fundo branco) a 124 ms, vira `primary` a 165 ms e as cores calculadas atravessam a transição; em 244 ms valem `rgb(58,121,136)` e `rgb(212,222,224)`, **exatamente** o `#3a7988` e `#d4dee0` que o axe acusava (contraste 3,58). O teste lia a página dentro dessa janela, por isso a taxa dependia da velocidade da máquina (4 falhas em 16 na `main` limpa).
+
+**O que não resolveu (e foi desfeito).** Esperar `document.getAnimations()` terminar antes do axe: o botão ainda nem tinha trocado de estilo quando a espera rodava (3 falhas em 24).
+
+**Correção, na origem (e boa para o cliente, não só para o teste).** O estado dos passos só aparece quando se sabe o resultado das leituras que o definem, com resposta **ou com falha** (`stepsReady`, `useOverviewData` com `settled`). Antes disso há um esqueleto do mesmo tamanho (sem pular o layout), "Verificando…" no lugar da contagem e um aviso de estado para leitores de tela. Quem usa a Visão deixa de ver o destaque trocar de lugar depois de a página parecer pronta.
+
+**Verificação.** `stepsReady` com teste (vermelho antes). Cenário E2E novo: com a lista de casos presa, não há "Falta este", "Feito", botões nem contagem; depois de liberar, o estado final aparece, **nada anima** (`document.getAnimations()` vazio) e o botão destacado não muda em 400 ms. **Mutação:** com `stepsKnown` sempre verdadeiro, o cenário falha. O cenário de acessibilidade, que falhava cerca de 1 em 4, passou **32 de 32** repetições com 3 workers (por acaso seria cerca de 0,01% se nada tivesse mudado). Isso não é prova de 0%, mas a causa foi medida e eliminada, não só escondida.
+
+### Aceite visual da U7 e da Visão: preparado (19/11/2026)
+
+**Reaproveitamento (sem refazer a "mesa visual").** A ferramenta `visual-baseline` já capturava as telas com dados; acrescentei a ela só as telas novas (`u7Screens`: aba Documentos, “Salvar no caso” antes e depois, o gerenciador com um caso na lixeira e a Visão com o esqueleto) e fiz o `--only` aceitar uma lista. Um caso à parte e título por tamanho, para não alterar as capturas antigas. Nova `scripts/visual-review-page.mjs`: gera **um HTML único** (imagens em JPEG comprimido, 1,6 MB para 18 imagens) a partir de uma pasta de capturas e de um manifesto (`docs/operations/visual-review/2026-11-19-u7-e-visao.json`: 7 telas, o que olhar em cada uma). Cada tela tem um veredito (Aprovado, Ajustar, Não vi) e uma nota; o **resumo em texto** fica fixo no pé da página, com “Copiar” e “Baixar .txt”, porque no A19 depender do armazenamento do navegador deixou o registro vazio. Da próxima vez basta um manifesto novo.
+
+**Evidência.** 12 telas do app e 18 dos dados capturadas no tema gelo, desktop (1440 px) e celular (390 px); **axe sem violação em todas**. A página foi aberta no navegador: 18 de 18 imagens carregam, sem erro de JavaScript, e o resumo reflete vereditos e notas.
+
+**Achado do aceite, corrigido (de produto).** Na captura do celular, “Salvar no caso” não aparecia. Causa: um endereço com `?matterId=` faz a Mesa abrir **a peça** (`hasDeskPiece`), e no celular isso mostra a aba “Peça” (uma minuta em branco, com o caso travado) e esconde a Conversa, onde ficam o compositor e os anexos. Isso atingia também o meu botão **← Voltar à Mesa**, que voltava por `?matterId=`. Agora ele chama `setActiveTab('work')`: como a Mesa fica montada enquanto se está em Dados do caso, o cliente volta **exatamente onde estava** (conversa, texto digitado e caso escolhido). Cenário novo cobre o caminho principal (o anterior só usava link direto); mutação: voltando por `?matterId=`, ele falha.
+
+**O que não cobre.** Estados que não são fotografados: o seletor aberto, o diálogo de confirmação de arquivar, e a Mesa durante uma execução. Link direto para Dados do caso, sem ter passado pela Mesa, volta para a Mesa limpa, sem o caso escolhido. A decisão de aceitar é de Boni.
+
+## 19/11/2026 — Trava de produto e fim de "Dados do caso"
+
+Decisão de Boni: a Mesa agêntica é a única superfície; agentes nos bastidores; visual limpo. Registrada como **trava inegociável** no `AGENTS.md` e no plano (seção 2). No gelo, "Dados do caso" deixou de existir: `/app/casos` (com ou sem `?caso=`) abre a Mesa; os botões e a moldura saíram; a exclusão definitiva (pede o nome do caso; documento, o id) passou a viver no gerenciador de casos e na aba Documentos da Mesa. A tela `MatterWorkspaceScreen` continua só no clássico, que sai com a V7; os fatos, provas e memorandos que ela editava devem passar a ser organizados pelos agentes, sem formulário (próxima fatia). `writing-desk.spec.ts` "edição local, exportação" falha neste container também sem esta mudança (download do Word).
 
 ## A0 — Avaliação offline
 

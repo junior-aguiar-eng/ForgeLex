@@ -114,3 +114,31 @@ describe('atalhos de casos nas telas preservadas', () => {
     expect(connection).toContain('Aplicativos autorizados');
   });
 });
+
+describe('tela inicial interna no modelo novo (V5A)', () => {
+  it.each([false, true])('com VITE_FORGELEX_PUBLIC_MODEL ligado, o título é um só, com casos=%s', async (cases) => {
+    vi.stubEnv('VITE_FORGELEX_CASE_WORKSPACE_ENABLED', String(cases));
+    vi.stubEnv('VITE_FORGELEX_PUBLIC_MODEL', 'true');
+    vi.resetModules();
+    const { LandingScreen } = await import('./LandingScreen');
+    const home = renderToStaticMarkup(React.createElement(LandingScreen));
+    const text = home.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    expect(home).toContain('Sua IA, com jurisprudência que dá para conferir.');
+    expect(text).toContain('pesquise decisões com a fonte e o estado de verificação de cada resultado');
+    expect(text).toContain('Fonte e estado de verificação');
+    for (const gone of ['Do caso à minuta', 'Revisão humana antes de efeitos externos', 'Fontes e fatos rastreáveis'])
+      expect(home, gone).not.toContain(gone);
+    expect(home).toContain('Comece pela conexão com IA');
+    // A função não muda: o botão de caso continua pela mesma flag de casos.
+    expect(home.includes('Abrir caso')).toBe(cases);
+  });
+
+  it('com o modelo desligado a tela inicial fica como está', async () => {
+    vi.stubEnv('VITE_FORGELEX_CASE_WORKSPACE_ENABLED', 'false');
+    vi.resetModules();
+    const { LandingScreen } = await import('./LandingScreen');
+    const home = renderToStaticMarkup(React.createElement(LandingScreen));
+    expect(home).toContain('Jurisprudência dos tribunais superiores e consulta processual.');
+    expect(home).not.toContain('Sua IA, com jurisprudência');
+  });
+});

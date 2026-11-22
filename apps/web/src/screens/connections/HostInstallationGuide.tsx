@@ -47,7 +47,7 @@ export function HostInstallationGuide({ platform, mcpUrl }: { platform: HostPlat
           ))}
         </ol>
         <aside className="min-w-0 space-y-5">
-          <div className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-5">
+          <div className="rounded-xl border border-champagne-border bg-surface-muted p-5">
             <h3 className="text-sm font-semibold text-stone-900">Dados da conexão</h3>
             <dl className="mt-4 space-y-3 text-sm">
               <div>

@@ -153,6 +153,9 @@ export interface EventState {
   cursor: number;
   status: string;
   deliveryIds: string[];
+  /** Documentos do caso lidos pelo trabalho (evento SOURCE), sem repetição. */
+  sourceKeys: string[];
+  sources: number;
   question: Question | null;
   error: string;
   reconciliation: boolean;
@@ -162,6 +165,8 @@ export const emptyEvents = (executionId: string): EventState => ({
   cursor: 0,
   status: '',
   deliveryIds: [],
+  sourceKeys: [],
+  sources: 0,
   question: null,
   error: '',
   reconciliation: false,
@@ -184,6 +189,13 @@ export function applyEvent(state: EventState, raw: unknown): EventState {
   if (e.type === 'QUESTION') next.question = e.payload.question as Question;
   if (e.type === 'DELIVERY' && typeof e.payload.deliveryId === 'string')
     next.deliveryIds = [...new Set([...state.deliveryIds, e.payload.deliveryId])];
+  if (e.type === 'SOURCE' && typeof e.payload.documentId === 'string' && typeof e.payload.versionId === 'string') {
+    const key = `${e.payload.documentId}:${e.payload.versionId}`;
+    if (!state.sourceKeys.includes(key)) {
+      next.sourceKeys = [...state.sourceKeys, key];
+      next.sources = next.sourceKeys.length;
+    }
+  }
   if (e.type === 'ERROR' && typeof e.payload.code === 'string') {
     const reason = e.payload.reason;
     next.error =

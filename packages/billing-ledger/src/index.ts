@@ -3,6 +3,7 @@ export * from './schema/billing-schema.js';
 export * from './ledger-service.js';
 export * from './billing-service.js';
 export * from './billing-rules.js';
+export * from './keyed-mutex.js';
 export * from './search-fingerprint.js';
 export * from './migrations/ledger-migrations.js';
 export * from './result-snapshot.js';

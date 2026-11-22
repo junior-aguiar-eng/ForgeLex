@@ -1,7 +1,7 @@
 import { EXTERNAL_MCP_TOOL_NAMES, CASE_ANALYSIS_JSON_SCHEMAS } from '@forgelex/mcp-server';
 import { getLegalToolContract, getCaseContextToolContract } from '@forgelex/legal-tools';
 
-type HttpMethod = 'get' | 'post' | 'put' | 'delete';
+type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 export interface PublicApiRouteDefinition {
   method: HttpMethod;
@@ -33,6 +33,8 @@ const OPENAPI_SCHEMAS = {
   SavedResearchList: { type: 'object', required: ['items', 'capacity'], properties: { items: { type: 'array', maxItems: 6, items: { $ref: '#/components/schemas/SavedResearchSummary' } }, capacity: { type: 'integer', const: 6 } } },
   SavedResearchResult: { allOf: [{ $ref: '#/components/schemas/SavedResearchSummary' }, { type: 'object', required: ['results'], properties: { results: { type: 'object', description: 'Resultado original integral da operação concluída, com critérios, decisões e referências às versões conservadas.' } } }] },
   ...CASE_ANALYSIS_JSON_SCHEMAS,
+  MatterRename: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string', minLength: 3, maxLength: 200, description: 'Novo nome do caso, depois de aparado.' } } },
+  MatterRenameResult: { type: 'object', required: ['id', 'title', 'updatedAt', 'lifecycleRevision'], properties: { id: { type: 'string', format: 'uuid' }, title: { type: 'string' }, updatedAt: { type: 'string', format: 'date-time' }, lifecycleRevision: { type: 'integer', minimum: 0, description: 'Não muda: renomear não é transição de ciclo de vida.' } } },
   LifecycleCommand: { type: 'object', additionalProperties: false, required: ['expectedLifecycleRevision'], properties: { expectedLifecycleRevision: { type: 'integer', minimum: 0 } } },
   PurgeCommand: { type: 'object', additionalProperties: false, required: ['expectedLifecycleRevision', 'confirmation'], properties: { expectedLifecycleRevision: { type: 'integer', minimum: 0 }, confirmation: { type: 'string', minLength: 1, description: 'Nome exato do caso ou ID do documento.' } } },
   LifecycleResult: { type: 'object', required: ['id', 'lifecycleState', 'lifecycleRevision'], properties: { id: { type: 'string', format: 'uuid' }, lifecycleState: { type: 'string', enum: ['ACTIVE', 'ARCHIVED', 'TRASHED', 'PURGED'] }, lifecycleRevision: { type: 'integer', minimum: 0 }, archivedAt: { type: 'string', format: 'date-time' }, trashedAt: { type: 'string', format: 'date-time' }, purgedAt: { type: 'string', format: 'date-time' } } },
@@ -194,6 +196,7 @@ const OPENAPI_SCHEMAS = {
 } as const;
 
 const OBJECT_REQUEST_SCHEMA_BY_PATH: Readonly<Record<string, keyof typeof OPENAPI_SCHEMAS>> = {
+  '/api/v2/matters/{matterId}': 'MatterRename',
   '/api/v2/matters/{matterId}/analyses/{analysisId}/decisions':'AnalysisDecisions',
   ...Object.fromEntries(['/api/v2/matters/{matterId}', '/api/v2/matters/{matterId}/documents/{documentId}'].flatMap(path => ['archive', 'trash', 'restore', 'purge'].map(action => [`${path}/${action}`, action === 'purge' ? 'PurgeCommand' as const : 'LifecycleCommand' as const]))),
   '/api/v2/matters/{matterId}/drafts/{draftId}/ai-receipts/{receiptId}/adopt':'DraftAiAdoptRequest',
@@ -240,22 +243,25 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'post', path: '/api/v2/webhooks/mercadopago', summary: 'Receber webhook Mercado Pago', description: 'Recebe notificações do Mercado Pago e valida a assinatura HMAC do provedor.' },
   { method: 'get', path: '/api/v2/admin/billing/refund-requests', summary: 'Listar solicitações de reembolso', description: 'Consulta administrativa de solicitações de reembolso.', scopes: ['billing:admin'] },
   { method: 'post', path: '/api/v2/admin/billing/refund-requests/{requestId}/review', summary: 'Revisar solicitação de reembolso', description: 'Aprova ou rejeita manualmente uma solicitação de reembolso.', scopes: ['billing:admin'], requestBody: 'object' },
+  { method: 'post', path: '/api/v2/admin/billing/refund-requests/{requestId}/recover', summary: 'Concluir reembolso retido', description: 'Repete, com a mesma chave de idempotência, o estorno aprovado cujo resultado no provedor ficou desconhecido ou cuja liquidação local falhou. Não repete a revisão nem debita a carteira novamente.', scopes: ['billing:admin'] },
   { method: 'get', path: '/readyz', summary: 'Readiness', description: 'Verifica se as dependências locais necessárias estão disponíveis.', responseSchema: 'OperationalStatusResponse' },
   { method: 'get', path: '/api/v2/mcp/connection-status', summary: 'Consultar disponibilidade MCP', description: 'Separa disponibilidade do serviço ForgeLex da validade da credencial MCP, sem executar pesquisa jurídica, criar débito ou expor segredos.', scopes: ['mcp'], responseSchema: 'McpConnectionStatusResponse' },
   { method: 'get', path: '/metrics', summary: 'Métricas internas', description: 'Retorna contadores internos de requisições e latência.', requiresAuthentication: true },
   { method: 'get', path: '/metrics/prometheus', summary: 'Métricas Prometheus', description: 'Expõe as métricas internas em formato compatível com scrape do Prometheus.', requiresAuthentication: true },
-  { method: 'get', path: '/api/v2/webhooks/endpoints', summary: 'Listar destinos de webhook', description: 'Lista destinos ativos e revogados do tenant.', scopes: ['billing:read'] },
-  { method: 'post', path: '/api/v2/webhooks/endpoints', summary: 'Cadastrar destino de webhook', description: 'Cadastra um destino e retorna o segredo uma única vez.', scopes: ['billing:read'], requestBody: 'object' },
-  { method: 'delete', path: '/api/v2/webhooks/endpoints/{endpointId}', summary: 'Revogar destino de webhook', description: 'Revoga um destino sem apagar seu histórico.', scopes: ['billing:read'] },
-  { method: 'post', path: '/api/v2/webhooks/endpoints/{endpointId}/test', summary: 'Testar destino de webhook', description: 'Enfileira evento de teste para o destino autenticado.', scopes: ['billing:read'] },
-  { method: 'get', path: '/api/v2/webhooks/deliveries', summary: 'Listar entregas de webhook', description: 'Lista entregas e tentativas do tenant.', scopes: ['billing:read'] },
-  { method: 'post', path: '/api/v2/webhooks/deliveries/{deliveryId}/retry', summary: 'Reprocessar entrega de webhook', description: 'Recoloca uma entrega falha na fila.', scopes: ['billing:read'] },
+  { method: 'get', path: '/api/v2/webhooks/endpoints', summary: 'Listar destinos de webhook', description: 'Lista destinos ativos e revogados do tenant.', scopes: ['webhooks:read'] },
+  { method: 'post', path: '/api/v2/webhooks/endpoints', summary: 'Cadastrar destino de webhook', description: 'Cadastra um destino e retorna o segredo uma única vez.', scopes: ['webhooks:write'], requestBody: 'object' },
+  { method: 'delete', path: '/api/v2/webhooks/endpoints/{endpointId}', summary: 'Revogar destino de webhook', description: 'Revoga um destino sem apagar seu histórico.', scopes: ['webhooks:write'] },
+  { method: 'post', path: '/api/v2/webhooks/endpoints/{endpointId}/test', summary: 'Testar destino de webhook', description: 'Enfileira um evento webhook.test somente para o destino indicado, sem usar um tipo de evento real.', scopes: ['webhooks:write'] },
+  { method: 'post', path: '/api/v2/webhooks/endpoints/{endpointId}/reactivate', summary: 'Reativar destino de webhook suspenso', description: 'Confere de novo o endereço do destino e, se for público, o reativa e retoma as entregas retidas. Um destino é suspenso quando seu endereço resolve para uma rede não pública.', scopes: ['webhooks:write'] },
+  { method: 'get', path: '/api/v2/webhooks/deliveries', summary: 'Listar entregas de webhook', description: 'Lista entregas e tentativas do tenant.', scopes: ['webhooks:read'] },
+  { method: 'post', path: '/api/v2/webhooks/deliveries/{deliveryId}/retry', summary: 'Reprocessar entrega de webhook', description: 'Recoloca uma entrega falha na fila.', scopes: ['webhooks:write'] },
   { method: 'get', path: '/api/v2/tribunals', summary: 'Listar tribunais', description: 'Retorna o catálogo com capabilities derivadas do registro de provedores. Durante a estabilização inicial, somente o STJ é pesquisável; os demais tribunais permanecem visíveis como não habilitados.', scopes: ['research:read'] },
   { method: 'get', path: '/api/v2/research/history', summary: 'Listar histórico de pesquisa', description: 'Lista pesquisas concluídas do usuário autenticado no tenant atual. grouped=true retorna um item por termo, tribunal e ano, com repeatCount e data da última operação. Não contém cópias dos resultados.', scopes: ['research:read'], responseSchema: 'ResearchHistoryResponse' },
   { method: 'get', path: '/api/v2/review-queue', summary: 'Listar fila de revisão', description: 'Lista drafts e memorandos submetidos à revisão humana sem expor tokens ou conteúdo integral.', scopes: ['matter:read'], responseSchema: 'ReviewQueueResponse' },
   { method: 'get', path: '/api/v2/matters', summary: 'Listar casos', description: 'Lista os casos do tenant autenticado.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/matters', summary: 'Criar caso', description: 'Cria um caso no tenant autenticado.', scopes: ['matter:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/matters/{matterId}', summary: 'Consultar caso', description: 'Retorna um caso e seus documentos.', scopes: ['matter:read'] },
+  { method: 'patch', path: '/api/v2/matters/{matterId}', summary: 'Renomear caso', description: 'Somente sessão web do criador ou administrador, e só para caso ativo (em arquivo ou lixeira retorna 409). Não troca a revisão do ciclo de vida. O nome vale de 3 a 200 caracteres depois de aparado.', scopes: ['matter:write'], requestBody: 'object', responseSchema: 'MatterRenameResult' },
   { method: 'post', path: '/api/v2/matters/{matterId}/documents', summary: 'Ingerir documento', description: 'Ingere texto, versão e âncoras de um documento.', scopes: ['matter:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/matters/{matterId}/documents/{documentId}', summary: 'Consultar documento', description: 'Retorna o documento e sua versão mais recente.', scopes: ['matter:read'] },
   { method: 'get', path: '/api/v2/matters/{matterId}/authorities', summary: 'Listar authorities salvas', description: 'Lista as autoridades judiciais salvas no caso.', scopes: ['matter:read'] },
@@ -291,12 +297,12 @@ export const PUBLIC_API_ROUTES: readonly PublicApiRouteDefinition[] = [
   { method: 'get', path: '/api/v2/matters/{matterId}/draft-approvals', summary: 'Listar aprovações', description: 'Lista solicitações de aprovação do caso.', scopes: ['matter:read'] },
   { method: 'post', path: '/api/v2/draft-approvals/resolve', summary: 'Resolver aprovação', description: 'Registra decisão humana usando token efêmero.', scopes: ['draft:write'], requestBody: 'object' },
   { method: 'get', path: '/api/v2/jurisprudencias', summary: 'Pesquisar jurisprudência', description: 'Alias compatível da pesquisa faturável na infraestrutura STJ por R$ 0,20 por execução válida. q e Idempotency-Key são obrigatórios; uma consulta sem resultados continua sendo uma operação válida e faturável.', scopes: ['research:read'], toolName: 'research.search_case_law', requiresIdempotencyKey: true },
-  { method: 'post', path: '/api/v2/research/search-case-law', summary: 'Pesquisar jurisprudência', description: 'Executa a capability research.search_case_law na infraestrutura STJ com o mesmo serviço usado pelo MCP. A operação é faturável por R$ 0,20 por execução válida, inclusive sem resultados. Exige Idempotency-Key e rejeita tribunais não habilitados com 422.', scopes: ['research:read'], toolName: 'research.search_case_law', requestBody: 'search-case-law', requiresIdempotencyKey: true },
+  { method: 'post', path: '/api/v2/research/search-case-law', summary: 'Pesquisar jurisprudência', description: 'Executa a capability research.search_case_law na infraestrutura STJ com o mesmo serviço usado pelo MCP. A resposta inclui ordering=JUDGMENT_DATE_DESC quando a classificação por relevância excede o prazo e o serviço devolve os julgamentos mais recentes. A operação é faturável por R$ 0,20 por execução válida, inclusive sem resultados. Exige Idempotency-Key e rejeita tribunais não habilitados com 422.', scopes: ['research:read'], toolName: 'research.search_case_law', requestBody: 'search-case-law', requiresIdempotencyKey: true },
   { method: 'post', path: '/api/v2/research/get-authority', summary: 'Obter autoridade', description: 'Obtém uma autoridade STJ identificada e devolve o status de verificação e a proveniência. A operação é gratuita e não gera débito nesta fase; Idempotency-Key é exigida apenas para rastreabilidade.', scopes: ['research:read'], toolName: 'research.get_authority', requestBody: 'verify-authority', requiresIdempotencyKey: true },
   { method: 'post', path: '/api/v2/research/verify-authority', summary: 'Verificar autoridade', description: 'Executa a capability research.verify_authority na infraestrutura STJ com proveniência. A operação é gratuita e não gera débito nesta fase; Idempotency-Key é exigida apenas para rastreabilidade.', scopes: ['research:read'], toolName: 'research.verify_authority', requestBody: 'verify-authority', requiresIdempotencyKey: true },
-  { method: 'get', path: '/api/v2/api-keys', summary: 'Listar chaves de API', description: 'Lista somente metadados das chaves do tenant.', scopes: ['billing:read'] },
-  { method: 'post', path: '/api/v2/api-keys', summary: 'Criar chave de API', description: 'Cria chave e retorna o segredo uma única vez.', scopes: ['billing:read'], requestBody: 'api-key' },
-  { method: 'delete', path: '/api/v2/api-keys/{keyId}', summary: 'Revogar chave de API', description: 'Revoga uma chave do tenant autenticado.', scopes: ['billing:read'] },
+  { method: 'get', path: '/api/v2/api-keys', summary: 'Listar chaves de API', description: 'Lista somente metadados das chaves do tenant.', scopes: ['credentials:read'] },
+  { method: 'post', path: '/api/v2/api-keys', summary: 'Criar chave de API', description: 'Exige sessão de proprietário; cria chave e retorna o segredo uma única vez.', scopes: ['credentials:write'], requestBody: 'api-key' },
+  { method: 'delete', path: '/api/v2/api-keys/{keyId}', summary: 'Revogar chave de API', description: 'Exige sessão de proprietário; revoga uma chave do tenant autenticado.', scopes: ['credentials:write'] },
   { method: 'post', path: '/mcp', summary: 'Gateway MCP remoto', description: 'Aceita JSON-RPC 2.0 e expõe somente o pacote MCP externo allowlisted, compartilhando a infraestrutura jurisprudencial da API REST. tools/call exige Idempotency-Key e o MCP não acessa conversas, arquivos ou histórico do host.', scopes: ['mcp'] },
   { method: 'get', path: '/mcp', summary: 'Método MCP não permitido', description: 'Informa que o gateway MCP requer POST.', },
 ];

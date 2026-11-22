@@ -9,6 +9,7 @@ export function DeskShell({
   mobileTabs,
   historyRef,
   historyCollapsed,
+  historyInSidebar = false,
   open,
   mobile,
   conversation,
@@ -19,6 +20,8 @@ export function DeskShell({
   mobileTabs: ReactNode;
   historyRef: (element: HTMLElement | null) => void;
   historyCollapsed: boolean;
+  /** Tema gelo: a lista de conversas fica na lateral do app e a Mesa não reserva coluna para ela. */
+  historyInSidebar?: boolean;
   open: boolean;
   mobile: 'chat' | 'piece';
   conversation: ReactNode;
@@ -32,14 +35,16 @@ export function DeskShell({
       {open && mobileTabs}
       {/* Com a peça aberta, o histórico só aparece em telas largas (xl): a conversa e a peça precisam do espaço. */}
       <div
-        className={`min-w-0 ${historyCollapsed ? '' : open ? 'xl:grid xl:grid-cols-[224px_minmax(0,1fr)]' : 'lg:grid lg:grid-cols-[224px_minmax(0,1fr)]'}`}
+        className={`min-w-0 ${historyInSidebar || historyCollapsed ? '' : open ? 'xl:grid xl:grid-cols-[224px_minmax(0,1fr)]' : 'lg:grid lg:grid-cols-[224px_minmax(0,1fr)]'}`}
       >
-        <aside
-          id="desk-conversations"
-          aria-label="Histórico de conversas"
-          ref={historyRef}
-          className={`${historyCollapsed ? 'hidden' : open ? 'hidden xl:block' : 'hidden lg:block'} min-w-0 border-r border-stone-200 bg-stone-50/60 px-3 py-5 lg:h-[calc(100dvh-8rem)] lg:overflow-y-auto`}
-        />
+        {!historyInSidebar && (
+          <aside
+            id="desk-conversations"
+            aria-label="Histórico de conversas"
+            ref={historyRef}
+            className={`${historyCollapsed ? 'hidden' : open ? 'hidden xl:block' : 'hidden lg:block'} min-w-0 border-r border-stone-200 bg-stone-50/60 px-3 py-5 lg:h-[calc(100dvh-8rem)] lg:overflow-y-auto`}
+          />
+        )}
         <div
           className={
             open ? 'grid min-w-0 lg:grid-cols-[minmax(400px,1fr)_minmax(0,1.1fr)]' : 'mx-auto w-full max-w-4xl'

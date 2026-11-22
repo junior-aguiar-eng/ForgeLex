@@ -3,6 +3,7 @@ import type { PublicPage } from '../navigation/site-routes';
 import { PublicHeader } from './PublicHeader';
 import { PublicFooter } from './PublicFooter';
 import { applyPublicMetadata } from './public-metadata';
+import { PUBLIC_MODEL_ENABLED } from '../config/site-capabilities';
 import { HomePage } from './pages/HomePage';
 import { ProductPage } from './pages/ProductPage';
 import { HowPage } from './pages/HowPage';
@@ -23,19 +24,20 @@ const pages = {
   api_docs: ApiDocsPage,
   datajud: DataJudPage,
   not_found: NotFoundPage,
-} satisfies Record<PublicPage, () => React.JSX.Element>;
+} satisfies Record<PublicPage, (props: { model?: boolean; title?: string }) => React.JSX.Element>;
 
-export function PublicSite({ page }: { page: PublicPage }) {
+/** `model` liga o texto do modelo novo (V5A); sem ele vale `VITE_FORGELEX_PUBLIC_MODEL`. */
+export function PublicSite({ page, model = PUBLIC_MODEL_ENABLED }: { page: PublicPage; model?: boolean }) {
   useEffect(() => {
-    applyPublicMetadata(page);
+    applyPublicMetadata(page, model);
     if (window.location.hash)
       requestAnimationFrame(() => document.getElementById(window.location.hash.slice(1))?.scrollIntoView());
-  }, [page]);
+  }, [page, model]);
 
   const Page = pages[page];
 
   return (
-    <div className="min-h-screen bg-[#FBF9F5]">
+    <div className="min-h-screen bg-canvas">
       <a
         href="#conteudo"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3"
@@ -44,9 +46,9 @@ export function PublicSite({ page }: { page: PublicPage }) {
       </a>
       <PublicHeader />
       <main id="conteudo">
-        <Page />
+        <Page model={model} />
       </main>
-      <PublicFooter />
+      <PublicFooter model={model} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { LedgerService } from '@forgelex/billing-ledger';
 import { journalFixture } from './matter-purge-journal.test.js';
 import type { AuthenticatedPrincipal } from '@forgelex/domain';
 import { DraftAiReceiptRepository, MatterLifecycleRepository } from '@forgelex/persistence';
+import { AuditRecorder } from '@forgelex/audit';
 it('never exposes an archived original through draft references to API or OAuth readers', async () => {
   const f = await fixture();
   try {
@@ -51,8 +52,9 @@ it('never exposes an archived original through draft references to API or OAuth 
   }
 });
 
-async function fixture() {
+async function fixture(options: { audit?: boolean } = {}) {
   const f = await caseAccessFixture();
+  const auditRecorder = options.audit ? new AuditRecorder(f.db) : undefined;
   const j = journalFixture();
   await j.journal.provisionAnchor();
   const principal: AuthenticatedPrincipal = {
@@ -70,6 +72,7 @@ async function fixture() {
     ledgerService: ledger,
     environment: { NODE_ENV: 'test', FORGELEX_MATTER_PURGE_KEY_SECRET: 's'.repeat(32) },
     matterPurgeJournal: j.journal,
+    ...(auditRecorder ? { auditRecorder } : {}),
     authAdapter: new AuthAdapter({
       verify: async (token) =>
         token === 'session'
@@ -92,7 +95,7 @@ async function fixture() {
                     : null,
     }),
   });
-  return { ...f, app, journal: j.journal };
+  return { ...f, app, journal: j.journal, auditRecorder };
 }
 it('restricts management and inactive reads to the authorized web session', async () => {
   const f = await fixture();
@@ -219,6 +222,78 @@ it('rejects malformed commands and confirms definitive purge only from trash', a
       );
       expect((await f.app.inject({ url: statusUrl, headers: { authorization: 'Bearer api' } })).statusCode).toBe(403);
     }
+  } finally {
+    await f.app.close();
+    f.client.close();
+  }
+});
+
+it('renames an active case only through the authorized web session and audits it', async () => {
+  const f = await fixture({ audit: true });
+  try {
+    const url = `/api/v2/matters/${f.matter.id}`;
+    const patch = (token: string, payload: unknown, target = url) =>
+      f.app.inject({
+        method: 'PATCH',
+        url: target,
+        headers: { authorization: `Bearer ${token}` },
+        payload: payload as object,
+      });
+    // Chave de API, OAuth e quem não é o autor nem administrador não renomeiam; outro tenant nem enxerga o caso.
+    for (const [token, status] of [
+      ['api', 403],
+      ['oauth', 403],
+      ['member', 403],
+      ['foreign', 404],
+    ] as const)
+      expect((await patch(token, { title: 'Nome recusado' })).statusCode, token).toBe(status);
+    for (const bad of [
+      {},
+      { title: 7 },
+      { title: 'Novo', extra: true },
+      { title: '' },
+      { title: 'ab' },
+      { title: 'x'.repeat(201) },
+    ])
+      expect((await patch('session', bad)).statusCode, JSON.stringify(bad).slice(0, 30)).toBe(400);
+    expect((await patch('session', { title: 'Nome válido' }, '/api/v2/matters/not-a-guid')).statusCode).toBe(404);
+
+    const renamed = await patch('session', { title: '  Ação de cobrança indevida  ' });
+    expect(renamed.statusCode).toBe(200);
+    expect(renamed.headers['cache-control']).toBe('no-store');
+    expect(renamed.json()).toMatchObject({ id: f.matter.id, title: 'Ação de cobrança indevida', lifecycleRevision: 0 });
+    const read = await f.app.inject({ url, headers: { authorization: 'Bearer session' } });
+    expect(read.json().matter.title).toBe('Ação de cobrança indevida');
+    // Um administrador também pode.
+    expect((await patch('owner', { title: 'Nome do administrador' })).statusCode).toBe(200);
+    // Cada renomeação aceita deixa um evento; as recusadas não deixam nenhum.
+    const events = await f.auditRecorder!.getLogsForSession(`matter_${f.matter.id}`);
+    expect(events.map((event) => event.toolName)).toEqual(['matter.renamed', 'matter.renamed']);
+    expect(events).toEqual([
+      expect.objectContaining({
+        toolName: 'matter.renamed',
+        tenantId: f.owner.tenantId,
+        userId: f.owner.userId,
+        status: 'SUCCESS',
+      }),
+      expect.objectContaining({
+        toolName: 'matter.renamed',
+        tenantId: f.owner.tenantId,
+        userId: 'manager',
+        status: 'SUCCESS',
+      }),
+    ]);
+
+    // Em arquivo ou lixeira o caso só serve para consulta.
+    await f.app.inject({
+      method: 'POST',
+      url: `${url}/archive`,
+      headers: { authorization: 'Bearer session' },
+      payload: { expectedLifecycleRevision: 0 },
+    });
+    expect((await patch('session', { title: 'Nome em arquivado' })).statusCode).toBe(409);
+    const read2 = await f.app.inject({ url: `${url}?view=active`, headers: { authorization: 'Bearer session' } });
+    expect(read2.json().matter.title).toBe('Nome do administrador');
   } finally {
     await f.app.close();
     f.client.close();

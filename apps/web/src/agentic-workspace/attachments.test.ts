@@ -3,9 +3,13 @@ import {
   ATTACHMENT_MAX_TOTAL_CHARS,
   attachmentChars,
   attachmentContext,
+  attachmentDocumentInput,
+  attachmentRoom,
   fitAttachment,
   hasReadingAttachment,
   readAttachment,
+  saveFailureMessage,
+  withOcrOffer,
   type Attachment,
 } from './attachments';
 
@@ -57,8 +61,65 @@ describe('leitura de anexos (U5)', () => {
     const image = await readAttachment(file('foto.png', 'x', 'image/png'));
     expect(image.status).toBe('no-text');
     expect(image.message).toMatch(/OCR/);
-    expect((await readAttachment(file('minuta.docx', 'x'))).status).toBe('unsupported');
+    const legacy = await readAttachment(file('minuta.doc', 'x'));
+    expect(legacy.status).toBe('unsupported');
+    expect(legacy.message).toMatch(/\.docx/);
     expect((await readAttachment(file('planilha.xlsx', 'x'))).status).toBe('unsupported');
+  });
+
+  it('Word (.docx) usa o leitor do Word, sem páginas, e mostra o texto para conferência', async () => {
+    const reader = async () => ({ content: '  Dos fatos\nO autor alega dano.  ' });
+    const result = await readAttachment(file('peticao.docx', 'x'), undefined, undefined, reader);
+    expect(result).toEqual({ status: 'done', text: 'Dos fatos\nO autor alega dano.' });
+    // O tipo MIME basta quando o nome não tem a extensão.
+    const mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    expect((await readAttachment(file('sem-extensao', 'x', mime), undefined, undefined, reader)).status).toBe('done');
+  });
+
+  it('Word sem texto vira "sem texto extraível" e não promete OCR que não existe para Word', async () => {
+    const result = await readAttachment(file('so-imagens.docx', 'x'), undefined, undefined, async () => ({
+      content: ' \n ',
+    }));
+    expect(result.status).toBe('no-text');
+    expect(result.message).toMatch(/Word/);
+    expect(result.message).not.toMatch(/OCR/);
+  });
+
+  it('Word protegido ou corrompido vira erro legível; o cancelamento continua propagando', async () => {
+    const failing = async () => {
+      throw new Error('Não foi possível abrir o arquivo Word.');
+    };
+    expect(await readAttachment(file('a.docx', 'x'), undefined, undefined, failing)).toEqual({
+      status: 'error',
+      text: '',
+      message: 'Não foi possível abrir o arquivo Word.',
+    });
+    const controller = new AbortController();
+    controller.abort();
+    await expect(readAttachment(file('a.docx', 'x'), controller.signal, undefined, failing)).rejects.toThrow();
+  });
+
+  it('PDF só de imagem: o erro "sem texto selecionável" do leitor vira "sem texto extraível", não erro de leitura', async () => {
+    const result = await readAttachment(file('digitalizado.pdf', 'x', 'application/pdf'), undefined, async () => {
+      throw Object.assign(new Error('Este PDF não possui texto extraível.'), { code: 'PDF_NO_TEXT' });
+    });
+    expect(result.status).toBe('no-text');
+    expect(result.message).toMatch(/OCR/);
+  });
+
+  it('outros erros do leitor de PDF continuam sendo erro de leitura, mesmo que a mensagem cite OCR', async () => {
+    const result = await readAttachment(file('quebrado.pdf', 'x', 'application/pdf'), undefined, async () => {
+      throw new Error('Este PDF não possui texto extraível... faça OCR');
+    });
+    expect(result.status).toBe('error');
+  });
+
+  it('Word acima de 15 MB é recusado antes de ler', async () => {
+    const big = file('grande.docx', new Uint8Array(15 * 1024 * 1024 + 1));
+    const result = await readAttachment(big, undefined, undefined, async () => {
+      throw new Error('não deveria ler');
+    });
+    expect(result.status).toBe('too-large');
   });
 
   it('arquivo grande demais é recusado antes de ler', async () => {
@@ -102,5 +163,98 @@ describe('conjunto de anexos', () => {
   it('sabe quando algum anexo ainda está sendo lido', () => {
     expect(hasReadingAttachment([attachment('a'), attachment('b', { status: 'reading', text: '' })])).toBe(true);
     expect(hasReadingAttachment([attachment('a')])).toBe(false);
+  });
+});
+
+describe('OCR nos anexos (U6)', () => {
+  it('o contexto marca o texto reconhecido por OCR, para a IA saber que pode haver erro de leitura', () => {
+    const list = [
+      attachment('a'),
+      attachment('b', { name: 'escaneado.pdf', text: 'Texto reconhecido', ocr: { confidence: 91, pages: 2 } }),
+    ];
+    expect(attachmentContext(list)).toBe(
+      'Anexo "a.txt" (texto extraído):\ntexto a\n\nAnexo "escaneado.pdf" (texto reconhecido por OCR; pode conter erros de leitura):\nTexto reconhecido',
+    );
+  });
+
+  it('o envio fica bloqueado enquanto algum anexo está em OCR, como numa leitura comum', () => {
+    expect(hasReadingAttachment([attachment('a'), attachment('b', { status: 'ocr', text: '' })])).toBe(true);
+  });
+
+  it('oferece OCR só para PDF ou imagem sem texto, e só com o OCR ligado', () => {
+    const none = { status: 'no-text' as const, text: '', message: 'Sem texto.' };
+    const pdf = withOcrOffer(none, new File(['x'], 'scan.pdf'), true);
+    expect(pdf.canOcr).toBe(true);
+    expect(pdf.message).toMatch(/Reconhecer texto \(OCR\)/);
+    expect(pdf.message).toMatch(/navegador/);
+    expect(withOcrOffer(none, new File(['x'], 'foto.png', { type: 'image/png' }), true).canOcr).toBe(true);
+    expect(withOcrOffer(none, new File(['x'], 'scan.pdf'), false)).toEqual(none);
+    expect(withOcrOffer(none, new File(['x'], 'nota.docx'), true)).toEqual(none);
+    expect(withOcrOffer({ status: 'done', text: 'ok' }, new File(['x'], 'a.pdf'), true)).toEqual({
+      status: 'done',
+      text: 'ok',
+    });
+    expect(
+      withOcrOffer({ status: 'error', text: '', message: 'm' }, new File(['x'], 'a.pdf'), true).canOcr,
+    ).toBeUndefined();
+  });
+
+  it('o espaço para editar o texto reconhecido é o que sobra do teto, sem contar o próprio anexo', () => {
+    const list = [
+      attachment('a', { text: 'x'.repeat(1000) }),
+      attachment('b', { text: 'y'.repeat(500), ocr: { confidence: 90, pages: 1 } }),
+    ];
+    expect(attachmentRoom(list, 'b')).toBe(ATTACHMENT_MAX_TOTAL_CHARS - 1000);
+    expect(attachmentRoom(list, 'a')).toBe(ATTACHMENT_MAX_TOTAL_CHARS - 500);
+  });
+});
+
+describe('attachmentDocumentInput', () => {
+  it('usa o nome sem a extensão como título e guarda só o texto, como texto simples', () => {
+    expect(attachmentDocumentInput(attachment('a', { name: 'relato.txt', text: 'Linha.' }))).toEqual({
+      title: 'relato',
+      originalFilename: 'relato.txt',
+      mimeType: 'text/plain',
+      content: 'Linha.',
+    });
+  });
+
+  it('segue a convenção da importação de PDF (`<arquivo>.txt`) e mantém .txt e .md como estão', () => {
+    expect(attachmentDocumentInput(attachment('a', { name: 'petição inicial.pdf' }))?.originalFilename).toBe(
+      'petição inicial.pdf.txt',
+    );
+    expect(attachmentDocumentInput(attachment('a', { name: 'petição inicial.pdf' }))?.title).toBe('petição inicial');
+    expect(attachmentDocumentInput(attachment('a', { name: 'notas.md' }))?.originalFilename).toBe('notas.md');
+    expect(attachmentDocumentInput(attachment('a', { name: 'sem-extensao' }))?.title).toBe('sem-extensao');
+  });
+
+  it('diz no título quando o texto veio de OCR, porque pode ter erros de leitura', () => {
+    const input = attachmentDocumentInput(attachment('a', { name: 'scan.pdf', ocr: { confidence: 81, pages: 2 } }));
+    expect(input?.title).toBe('scan (texto reconhecido por OCR)');
+  });
+
+  it('respeita os tetos da API para título e nome do arquivo', () => {
+    const input = attachmentDocumentInput(
+      attachment('a', { name: `${'a'.repeat(600)}.pdf`, ocr: { confidence: null, pages: 1 } }),
+    );
+    expect(input!.title.length).toBeLessThanOrEqual(500);
+    expect(input!.title.endsWith(' (texto reconhecido por OCR)')).toBe(true);
+    expect(input!.originalFilename.length).toBeLessThanOrEqual(255);
+  });
+
+  it('não gera documento de anexo que não está pronto ou não tem texto', () => {
+    expect(attachmentDocumentInput(attachment('a', { status: 'reading', text: '' }))).toBeUndefined();
+    expect(attachmentDocumentInput(attachment('a', { status: 'no-text', text: '' }))).toBeUndefined();
+    expect(attachmentDocumentInput(attachment('a', { text: '  \n ' }))).toBeUndefined();
+  });
+});
+
+describe('saveFailureMessage', () => {
+  it('traduz os códigos estáveis da API e cai na mensagem da falha nos demais', () => {
+    expect(saveFailureMessage('DOCUMENT_TEXT_TOO_LARGE', '')).toContain('1 MiB');
+    expect(saveFailureMessage('DOCUMENT_ANCHOR_LIMIT_EXCEEDED', '')).toContain('5.000 linhas');
+    expect(saveFailureMessage('MATTER_NOT_FOUND', '')).toContain('Escolha outro caso');
+    expect(saveFailureMessage('OUTRO', 'Mensagem da API.')).toBe('Mensagem da API.');
+    expect(saveFailureMessage('', '')).toBe('Não foi possível salvar o anexo no caso.');
   });
 });

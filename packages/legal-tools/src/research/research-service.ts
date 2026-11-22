@@ -1,5 +1,5 @@
 import { CaseLaw, CaseLawSchema } from '@forgelex/domain';
-import { JurisprudenceDocument, JurisprudenceSearchService } from '@forgelex/legal-data';
+import { JurisprudenceDocument, JurisprudenceSearchService, type JurisprudenceSearchResult } from '@forgelex/legal-data';
 import { CanonicalFixtureProvider, SourceRouter, SourceRouterError } from '@forgelex/source-providers';
 
 export interface SearchCaseLawRequest {
@@ -15,6 +15,7 @@ export interface SearchCaseLawResponse {
   queryExecuted: string;
   courtFilter?: string;
   criteria?: SearchCaseLawRequest;
+  ordering?: JurisprudenceSearchResult['ordering'];
 }
 
 export interface VerifyAuthorityRequest {
@@ -72,17 +73,18 @@ export class ResearchService {
     const dateFilter = request.judgmentYear === undefined ? {} : {
       fromDate: `${request.judgmentYear}-01-01`, toDate: `${request.judgmentYear}-12-31`,
     };
-    const documents = this.jurisprudenceSearchService
-      ? await this.jurisprudenceSearchService.search({ query: request.query, court: effectiveCourt, limit: request.limit, ...dateFilter })
-      : await this.sourceRouter.search(request.query, {
+    const search: JurisprudenceSearchResult = this.jurisprudenceSearchService
+      ? await this.jurisprudenceSearchService.searchWithOrdering({ query: request.query, court: effectiveCourt, limit: request.limit, ...dateFilter })
+      : { documents: await this.sourceRouter.search(request.query, {
         court: effectiveCourt,
         limit: request.limit,
         ...dateFilter,
-      });
+      }) };
 
     return {
-      items: documents.map(toCaseLaw),
-      total: documents.length,
+      items: search.documents.map(toCaseLaw),
+      total: search.documents.length,
+      ...(search.ordering ? { ordering: search.ordering } : {}),
       queryExecuted: request.query,
       courtFilter: request.court,
       criteria: { ...request, court: effectiveCourt },

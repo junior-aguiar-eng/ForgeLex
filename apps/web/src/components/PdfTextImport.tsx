@@ -55,7 +55,7 @@ export function PdfTextImport({
   };
 
   return (
-    <div className="space-y-2 rounded-xl border border-champagne-border bg-[#FDFBF7] p-4" aria-busy={loading}>
+    <div className="space-y-2 rounded-xl border border-champagne-border bg-surface-muted p-4" aria-busy={loading}>
       <label
         htmlFor="pdf-text-import"
         className={`btn-secondary relative focus-within:outline focus-within:outline-[3px] focus-within:outline-cognac-700 focus-within:outline-offset-2 ${disabled || loading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}

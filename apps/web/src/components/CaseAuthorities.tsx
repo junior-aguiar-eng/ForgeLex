@@ -32,7 +32,7 @@ export function CaseAuthorities({ items }: { items: SavedCaseAuthority[] }) {
         return (
           <article
             key={record.id}
-            className="rounded-xl border border-champagne-border bg-[#FDFBF7] p-4 space-y-3 break-words"
+            className="rounded-xl border border-champagne-border bg-surface-muted p-4 space-y-3 break-words"
           >
             <div className="text-sm font-semibold text-stone-900">
               {item.court} · <span>{item.processNumber}</span>

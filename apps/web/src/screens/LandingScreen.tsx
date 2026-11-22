@@ -1,4 +1,5 @@
-import { CASE_WORKSPACE_ENABLED, SAVED_RESEARCH_ENABLED } from '../config/site-capabilities';
+import { CASE_WORKSPACE_ENABLED, PUBLIC_MODEL_ENABLED, SAVED_RESEARCH_ENABLED } from '../config/site-capabilities';
+import { MODEL_SUBTITLE, MODEL_TITLE } from '../config/public-model-copy';
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useCaseLawSearch } from '../operations/use-case-law-search';
@@ -41,26 +42,26 @@ export const LandingScreen: React.FC = () => {
         <div className="text-center max-w-4xl mx-auto space-y-6">
           <div className="eyebrow inline-flex items-center gap-2 rounded-full bg-cognac-100/70 px-3 py-1">
             <Sparkles className="w-3.5 h-3.5 text-cognac-600" />
-            <span>{CASE_WORKSPACE_ENABLED ? 'Pesquisa e preparação jurídica' : 'Pesquisa jurídica por MCP'}</span>
+            <span>{PUBLIC_MODEL_ENABLED ? 'Pesquisa e Mesa de trabalho' : CASE_WORKSPACE_ENABLED ? 'Pesquisa e preparação jurídica' : 'Pesquisa jurídica por MCP'}</span>
           </div>
 
           <h1 className="font-editorial text-4xl font-bold tracking-tight text-stone-950 leading-[1.15] sm:text-5xl">
-            {CASE_WORKSPACE_ENABLED ? 'Do caso à minuta, conecte fatos, provas e jurisprudência.' : 'Jurisprudência dos tribunais superiores e consulta processual.'}
+            {PUBLIC_MODEL_ENABLED ? MODEL_TITLE : CASE_WORKSPACE_ENABLED ? 'Do caso à minuta, conecte fatos, provas e jurisprudência.' : 'Jurisprudência dos tribunais superiores e consulta processual.'}
           </h1>
 
           <p className="text-base sm:text-lg md:text-xl text-stone-600 max-w-2xl mx-auto font-normal leading-relaxed">
-            {CASE_WORKSPACE_ENABLED ? 'Pesquise jurisprudência, organize o contexto do caso e prepare peças com fontes visíveis e revisão humana no momento certo.' : PRODUCT_DESCRIPTION}
+            {PUBLIC_MODEL_ENABLED ? MODEL_SUBTITLE : CASE_WORKSPACE_ENABLED ? 'Pesquise jurisprudência, organize o contexto do caso e prepare peças com fontes visíveis e revisão humana no momento certo.' : PRODUCT_DESCRIPTION}
           </p>
 
           {/* Quick Stats Banner */}
           <div className="pt-2 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs sm:text-sm text-stone-500 font-medium">
             <div className="flex items-center space-x-1.5">
               <Shield className="w-4 h-4 text-emerald-600" />
-              <span>{CASE_WORKSPACE_ENABLED ? 'Revisão humana antes de efeitos externos' : 'Conferência das fontes'}</span>
+              <span>{PUBLIC_MODEL_ENABLED ? 'Conferência das fontes' : CASE_WORKSPACE_ENABLED ? 'Revisão humana antes de efeitos externos' : 'Conferência das fontes'}</span>
             </div>
             <div className="flex items-center space-x-1.5">
               <BookmarkCheck className="w-4 h-4 text-cognac-600" />
-              <span>{CASE_WORKSPACE_ENABLED ? 'Fontes e fatos rastreáveis' : 'Fontes e proveniência'}</span>
+              <span>{PUBLIC_MODEL_ENABLED ? 'Fonte e estado de verificação' : CASE_WORKSPACE_ENABLED ? 'Fontes e fatos rastreáveis' : 'Fontes e proveniência'}</span>
             </div>
             <div className="flex items-center space-x-1.5">
               <Scale className="w-4 h-4 text-amber-600" />
@@ -69,7 +70,7 @@ export const LandingScreen: React.FC = () => {
           </div>
         </div>
 
-        <div className="surface-subtle mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-stone-800">{CASE_WORKSPACE_ENABLED ? 'Comece pelo trabalho do caso' : 'Comece pela conexão com IA'}</p><p className="text-xs text-stone-500">{CASE_WORKSPACE_ENABLED ? 'Abra um caso ou pesquise uma fonte jurídica para iniciar.' : 'Configure seu aplicativo ou pesquise jurisprudência nesta página.'}</p></div><div className="flex flex-wrap gap-2">{CASE_WORKSPACE_ENABLED && <button type="button" onClick={() => setActiveTab('matter')} className="btn-secondary inline-flex items-center gap-2"><FolderOpen className="h-4 w-4" aria-hidden="true" />Abrir caso</button>}<button type="button" onClick={() => setActiveTab('connections')} className="btn-quiet inline-flex items-center gap-2">Usar no ChatGPT ou Claude<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></button><a href="/guia/mcp" className="btn-quiet inline-flex items-center gap-2">Guia de conexão</a></div></div>
+        <div className="surface-subtle mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-stone-800">{CASE_WORKSPACE_ENABLED && !PUBLIC_MODEL_ENABLED ? 'Comece pelo trabalho do caso' : 'Comece pela conexão com IA'}</p><p className="text-xs text-stone-500">{CASE_WORKSPACE_ENABLED && !PUBLIC_MODEL_ENABLED ? 'Abra um caso ou pesquise uma fonte jurídica para iniciar.' : 'Configure seu aplicativo ou pesquise jurisprudência nesta página.'}</p></div><div className="flex flex-wrap gap-2">{CASE_WORKSPACE_ENABLED && <button type="button" onClick={() => setActiveTab('matter')} className="btn-secondary inline-flex items-center gap-2"><FolderOpen className="h-4 w-4" aria-hidden="true" />Abrir caso</button>}<button type="button" onClick={() => setActiveTab('connections')} className="btn-quiet inline-flex items-center gap-2">Usar no ChatGPT ou Claude<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></button><a href="/guia/mcp" className="btn-quiet inline-flex items-center gap-2">Guia de conexão</a></div></div>
 
         {/* SEARCH BAR (Inspirada em docs/product/referencias-visuais/ForgeLex_01_Landing.png) */}
         <div className="champagne-card mx-auto max-w-4xl space-y-4 rounded-xl bg-white p-4 sm:p-5">
@@ -88,7 +89,7 @@ export const LandingScreen: React.FC = () => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Consulte acórdãos, súmulas, número CNJ ou teses jurídicas..."
-                className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-cognac-500/20 focus:border-cognac-600 transition-all"
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-champagne-border bg-surface-muted text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-cognac-500/20 focus:border-cognac-600 transition-all"
               />
             </div>
 
@@ -98,7 +99,7 @@ export const LandingScreen: React.FC = () => {
                 aria-label="Tribunal da pesquisa"
                 value={court}
                 onChange={(e) => setCourt(e.target.value)}
-                className="w-full px-3 py-3.5 rounded-xl border border-champagne-border bg-[#FDFBF7] text-sm font-medium text-stone-700 focus:outline-none focus:border-cognac-600"
+                className="w-full px-3 py-3.5 rounded-xl border border-champagne-border bg-surface-muted text-sm font-medium text-stone-700 focus:outline-none focus:border-cognac-600"
               >
                 {searchableCourts.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}
               </select>

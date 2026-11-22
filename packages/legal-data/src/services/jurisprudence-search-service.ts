@@ -9,8 +9,14 @@ export interface JurisprudenceSearchOptions {
   limit?: number;
 }
 
+export interface JurisprudenceSearchResult {
+  documents: JurisprudenceDocument[];
+  ordering?: 'JUDGMENT_DATE_DESC';
+}
+
 export interface JurisprudenceSearchRepository {
   search(options: JurisprudenceSearchOptions): Promise<JurisprudenceDocument[]>;
+  searchWithOrdering?(options: JurisprudenceSearchOptions): Promise<JurisprudenceSearchResult>;
   getByProcessNumber?(input: { court: string; processNumber: string }): Promise<JurisprudenceDocument | undefined>;
 }
 
@@ -19,6 +25,10 @@ export class JurisprudenceSearchService {
 
   public search(options: JurisprudenceSearchOptions): Promise<JurisprudenceDocument[]> {
     return this.repository.search(options);
+  }
+
+  public async searchWithOrdering(options: JurisprudenceSearchOptions): Promise<JurisprudenceSearchResult> {
+    return this.repository.searchWithOrdering?.(options) ?? { documents: await this.search(options) };
   }
 
   public getByProcessNumber(input: { court: string; processNumber: string }): Promise<JurisprudenceDocument | undefined> {

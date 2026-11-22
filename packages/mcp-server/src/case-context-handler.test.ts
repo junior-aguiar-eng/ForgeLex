@@ -30,6 +30,7 @@ function fixture(options: { output?: unknown; revalidateResult?: AgentTool['reva
     registry,
     { executeOperation: vi.fn() } as unknown as LedgerService,
     { recordEvent } as unknown as AuditRecorder,
+    { trustUnscopedContext: true },
   );
   return { handler, execute, recordEvent };
 }

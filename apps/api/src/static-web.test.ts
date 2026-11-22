@@ -48,6 +48,58 @@ describe('registerStaticWeb', () => {
     }
   });
 
+  it('serve os arquivos do OCR com o tipo certo, sem Content-Encoding, e nunca troca um faltante por HTML', async () => {
+    const root = await createWebRoot();
+    await mkdir(join(root, 'ocr', 'core'), { recursive: true });
+    await mkdir(join(root, 'ocr', 'lang'), { recursive: true });
+    await writeFile(join(root, 'ocr', 'worker.min.js'), '/* worker */');
+    await writeFile(join(root, 'ocr', 'core', 'tesseract-core-simd-lstm.wasm.js'), '/* núcleo */');
+    await writeFile(join(root, 'ocr', 'lang', 'por.traineddata.gz'), Buffer.from([0x1f, 0x8b, 0x08, 0x00]));
+    const app = Fastify();
+    await registerStaticWeb(app, root);
+    try {
+      const worker = await app.inject({ url: '/ocr/worker.min.js' });
+      expect(worker.statusCode).toBe(200);
+      expect(worker.headers['content-type']).toContain('javascript');
+      const core = await app.inject({ url: '/ocr/core/tesseract-core-simd-lstm.wasm.js' });
+      expect(core.headers['content-type']).toContain('javascript');
+      // O Tesseract.js descompacta o idioma sozinho: o servidor entrega os bytes .gz como estão.
+      const language = await app.inject({ url: '/ocr/lang/por.traineddata.gz' });
+      expect(language.statusCode).toBe(200);
+      expect(language.headers['content-encoding']).toBeUndefined();
+      expect([...language.rawPayload]).toEqual([0x1f, 0x8b, 0x08, 0x00]);
+      // Um arquivo de OCR ausente é 404, nunca a página inicial: o worker tentaria executá-la como script.
+      for (const accept of ['text/html', '*/*']) {
+        const missing = await app.inject({ url: '/ocr/core/ausente.wasm.js', headers: { accept } });
+        expect(missing.statusCode).toBe(404);
+        expect(missing.headers['content-type']).not.toContain('text/html');
+      }
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('serve as fontes com o tipo woff2 e nunca troca uma fonte faltante por HTML', async () => {
+    const root = await createWebRoot();
+    await mkdir(join(root, 'fonts'), { recursive: true });
+    await writeFile(join(root, 'fonts', 'inter-latin-400-normal.woff2'), Buffer.from('wOF2'));
+    const app = Fastify();
+    await registerStaticWeb(app, root);
+    try {
+      const font = await app.inject({ url: '/fonts/inter-latin-400-normal.woff2' });
+      expect(font.statusCode).toBe(200);
+      expect(font.headers['content-type']).toContain('font/woff2');
+      // Uma fonte ausente é 404: o navegador não pode receber a página inicial no lugar do arquivo de fonte.
+      for (const accept of ['text/html', '*/*']) {
+        const missing = await app.inject({ url: '/fonts/ausente.woff2', headers: { accept } });
+        expect(missing.statusCode).toBe(404);
+        expect(missing.headers['content-type']).not.toContain('text/html');
+      }
+    } finally {
+      await app.close();
+    }
+  });
+
   it('serve o build real, SEO, páginas legais e fallback sem capturar rotas técnicas', async () => {
     const app = Fastify();
     await registerStaticWeb(app, resolve('apps/web/dist'));

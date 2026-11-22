@@ -1,0 +1,70 @@
+import {
+  lifecycleActions,
+  type LifecycleAction,
+  type LifecycleRecord,
+} from '../screens/matter-lifecycle/lifecycle-model';
+
+/** Mesmos limites da API: de 3 a 200 caracteres, depois de aparado. */
+export const CASE_TITLE_MIN = 3;
+export const CASE_TITLE_MAX = 200;
+
+/** Por que o nome não serve, em texto para o cliente; sem valor, serve. */
+export function caseTitleProblem(raw: string): string | undefined {
+  const length = raw.trim().length;
+  if (length === 0) return 'Escreva o nome do caso.';
+  if (length < CASE_TITLE_MIN) return `O nome precisa ter pelo menos ${CASE_TITLE_MIN} letras.`;
+  if (length > CASE_TITLE_MAX) return `O nome pode ter no máximo ${CASE_TITLE_MAX} letras.`;
+  return undefined;
+}
+
+/** Ações de ciclo de vida oferecidas na Mesa: arquivar, mover para a lixeira, restaurar e, na lixeira, excluir de vez. */
+export function deskLifecycleActions(record: Pick<LifecycleRecord, 'lifecycleState'>): LifecycleAction[] {
+  return lifecycleActions(record.lifecycleState);
+}
+
+export interface ManagedCase extends LifecycleRecord {
+  createdBy?: string;
+}
+
+/** Casos ativos, na forma que o seletor da Mesa usa, a partir de uma lista da API. */
+export function activeCaseOptions(items: ManagedCase[]): Array<{ id: string; title: string }> {
+  return items.filter((item) => (item.lifecycleState ?? 'ACTIVE') === 'ACTIVE').map(({ id, title }) => ({ id, title }));
+}
+
+/** Frase de aviso depois da operação, que diz o efeito sobre a IA quando há. */
+export function lifecycleNotice(action: LifecycleAction): string {
+  switch (action) {
+    case 'archive':
+      return 'Caso arquivado para consulta. O acesso pela IA foi encerrado.';
+    case 'trash':
+      return 'Caso movido para a lixeira. O acesso pela IA foi encerrado.';
+    case 'restore':
+      return 'Caso restaurado. Para usar na IA, autorize o acesso novamente.';
+    case 'purge':
+      return 'Exclusão definitiva concluída.';
+  }
+}
+
+/** Frase de aviso depois da operação sobre um documento do caso, com o efeito sobre a IA quando há. */
+export function documentLifecycleNotice(action: LifecycleAction): string {
+  switch (action) {
+    case 'archive':
+      return 'Documento arquivado para consulta.';
+    case 'trash':
+      return 'Documento movido para a lixeira.';
+    case 'restore':
+      return 'Documento restaurado. O acesso pela IA precisa de nova autorização.';
+    case 'purge':
+      return 'Exclusão definitiva concluída.';
+  }
+}
+
+/** Situação do documento, em texto para o cliente. */
+export function documentStateLabel(document: {
+  lifecycleState?: LifecycleRecord['lifecycleState'];
+  status: 'INDEXED' | 'FAILED';
+}): string {
+  if (document.lifecycleState === 'TRASHED') return 'Na lixeira';
+  if (document.lifecycleState === 'ARCHIVED') return 'Arquivado';
+  return document.status === 'INDEXED' ? 'Disponível' : 'Falhou';
+}

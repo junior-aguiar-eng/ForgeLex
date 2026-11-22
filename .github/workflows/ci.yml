@@ -50,6 +50,9 @@ jobs:
       - name: Unit tests
         run: pnpm exec vitest run
 
+      - name: Contraste dos temas (o gelo não pode piorar um par que o clássico cumpre)
+        run: node scripts/theme-contrast.mjs
+
       - name: Deploy scripts (PowerShell, sem gcloud nem rede)
         shell: pwsh
         run: ./ops/gcp/production/deploy-from-main.tests.ps1
@@ -126,6 +129,8 @@ jobs:
       - run: pnpm exec vitest run packages/persistence/src/repositories/jurisprudence-repository.test.ts
       - name: Saved research capacity and isolation (local PostgreSQL)
         run: pnpm exec vitest run packages/persistence/src/repositories/saved-research-postgres.test.ts --maxWorkers=1
+      - name: Production migration tool (inspect, apply, verify; throw-away databases)
+        run: pnpm exec vitest run apps/api/src/operations/migration-command.test.ts --maxWorkers=1
       - name: Create isolated analytical test database
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'CREATE DATABASE forgelex_analise_review'
       - name: Analytical billing, interruptions, migrations and account purge (isolated PostgreSQL)
@@ -146,7 +151,8 @@ jobs:
           POSTGRES_USER: forgelex
           POSTGRES_PASSWORD: forgelex
         ports:
-          - 55432:5432
+          # Host port left to Docker: a fixed 55432 already in use on the runner failed this job once (run 525).
+          - 5432
         options: >-
           --health-cmd "pg_isready -U forgelex -d forgelex"
           --health-interval 5s
@@ -154,6 +160,11 @@ jobs:
           --health-retries 12
     steps:
       - uses: actions/checkout@v4
+      - name: Point the E2E database at the published service port
+        run: |
+          port='${{ job.services.postgres.ports['5432'] }}'
+          test -n "$port" || { echo 'The postgres service port was not published.'; exit 1; }
+          echo "FORGELEX_E2E_DATABASE_URL=postgres://forgelex:forgelex@127.0.0.1:${port}/forgelex" >> "$GITHUB_ENV"
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
@@ -185,11 +196,72 @@ jobs:
       - run: pnpm test:e2e:research
       - name: Saved research and isolated MCP Apps reader
         run: pnpm exec playwright test --config playwright.saved-research.config.ts
+      - name: Research page, seals and reader with the ice theme on
+        run: pnpm exec playwright test --config playwright.research-gelo.config.ts
       - name: Preserve product diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: product-test-results
+          path: test-results/
+          retention-days: 7
+
+  # The guided desk, its shell, attachments and draft-save recovery are live in production, and these suites only
+  # ran on the machine of whoever wrote them. They are independent of e2e-product (in-memory SQLite, no PostgreSQL),
+  # each runs even if an earlier one failed, and this job is not a required check until it has proven stable.
+  e2e-desk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - id: browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Attachments in the composer (PDF, Word, TXT, MD; text only)
+        run: pnpm exec playwright test --config playwright.attachments.config.ts
+      - name: Saving an attachment into the case (ice theme only)
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.attachments-gelo.config.ts
+      - name: Desk shell, empty-state shortcuts and layout
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-shell.config.ts
+      - name: Ice theme shell (side navigation, first steps) and the desk with the ice theme on
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.shell-gelo.config.ts
+      - name: Guided desk questions, summary and corrections
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-guidance.config.ts
+      - name: Guided desk v3 (court, proposed piece, matter chips)
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-guidance-v3.config.ts
+      - name: Desk pilot (incorporated and closed modes)
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-pilot.config.ts
+      - name: Desk procedure
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-procedure.config.ts
+      - name: Desk research and sources
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-research.config.ts
+      - name: Desk review and approval
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-review.config.ts
+      - name: Recoverable draft save
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm exec playwright test --config playwright.desk-save-recovery.config.ts
+      - name: Preserve desk diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desk-test-results
           path: test-results/
           retention-days: 7
 
@@ -207,6 +279,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e:public
+      - name: Public site and in-app consultation with the ice theme on
+        run: pnpm test:e2e:public
+        env:
+          VITE_FORGELEX_THEME: gelo
+          FORGELEX_E2E_THEME: gelo
+      - name: Public home with the new public model on (VITE_FORGELEX_PUBLIC_MODEL)
+        run: pnpm exec playwright test --config playwright.public-model.config.ts
       - run: pnpm build
       - run: pnpm test:e2e:chunk-recovery
 

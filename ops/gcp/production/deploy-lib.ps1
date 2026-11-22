@@ -3,6 +3,9 @@
 # Invoke-Gcloud / Invoke-GcloudJson, que os testes substituem por fakes (deploy-from-main.tests.ps1).
 Set-StrictMode -Version Latest
 
+# Pasta deste arquivo: usada para achar scripts/deploy-receipt.mjs, qualquer que seja o diretório de onde o deploy rode.
+$script:DeployLibRoot = $PSScriptRoot
+
 # Substituições que o cloudbuild.yaml usa. O build anterior bem-sucedido é a fonte de todas elas, para que
 # a publicação não dependa de lembrar flags de interface (o padrão do cloudbuild.yaml é 'false').
 $script:RequiredSubstitutions = @(
@@ -15,13 +18,19 @@ $script:RequiredSubstitutions = @(
   '_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED',
   '_VITE_FORGELEX_CASE_WORKSPACE_ENABLED'
 )
-# Flags da Mesa (casca, anexos, chips de matéria) entraram depois: builds antigos não as têm. Ausente = 'false',
+# Flags da Mesa (casca, anexos, chips de matéria, OCR) entraram depois: builds antigos não as têm. Ausente = 'false',
 # igual ao padrão do cloudbuild.yaml; quando um build as traz, o valor dele é preservado.
 $script:OptionalFlagSubstitutions = @(
   '_VITE_FORGELEX_DESK_SHELL',
   '_VITE_FORGELEX_ATTACHMENTS_ENABLED',
-  '_VITE_FORGELEX_MATTER_CHIPS_ENABLED'
+  '_VITE_FORGELEX_MATTER_CHIPS_ENABLED',
+  '_VITE_FORGELEX_OCR_ENABLED',
+  '_VITE_FORGELEX_PUBLIC_MODEL'
 )
+# Tema do app (V6). Não é true/false: só 'classico' (padrão) e 'gelo' podem ir à produção. 'previa' é de homologação.
+# Ausente no build anterior = 'classico', igual ao padrão do cloudbuild.yaml; quando o build traz, o valor dele é preservado.
+$script:ThemeSubstitution = '_VITE_FORGELEX_THEME'
+$script:AllowedThemes = @('classico', 'gelo')
 $script:FlagSubstitutions = @(
   '_VITE_FORGELEX_SAVED_RESEARCH_ENABLED',
   '_VITE_FORGELEX_AGENTIC_WORKSPACE_ENABLED',
@@ -161,9 +170,10 @@ function New-BuildSubstitutions {
   foreach ($key in $script:OptionalFlagSubstitutions) {
     $result[$key] = if ($Previous.ContainsKey($key) -and -not [string]::IsNullOrWhiteSpace($Previous[$key])) { [string]$Previous[$key] } else { 'false' }
   }
+  $result[$script:ThemeSubstitution] = if ($Previous.ContainsKey($script:ThemeSubstitution) -and -not [string]::IsNullOrWhiteSpace($Previous[$script:ThemeSubstitution])) { [string]$Previous[$script:ThemeSubstitution] } else { 'classico' }
   $result['_SOURCE_SHA'] = $Sha
   foreach ($key in $Overrides.Keys) {
-    if ($key -notin $script:FlagSubstitutions) { throw "Só as flags de interface podem ser trocadas: $key" }
+    if ($key -notin $script:FlagSubstitutions -and $key -ne $script:ThemeSubstitution) { throw "Só as flags de interface e o tema podem ser trocados: $key" }
     $result[$key] = [string]$Overrides[$key]
   }
   if ($result['_SOURCE_SHA'] -notmatch '^[0-9a-f]{40}$') { throw 'SHA de origem inválido.' }
@@ -175,6 +185,9 @@ function New-BuildSubstitutions {
   if ($ref -ne $result['_SUPABASE_PROJECT_REF']) { throw 'A URL e o project ref do Supabase divergem.' }
   foreach ($flag in $script:FlagSubstitutions) {
     if ($result[$flag] -notin @('true', 'false')) { throw "Flag inválida: $flag deve ser 'true' ou 'false'." }
+  }
+  if ($result[$script:ThemeSubstitution] -cnotin $script:AllowedThemes) {
+    throw "Tema inválido: $($script:ThemeSubstitution) deve ser 'classico' ou 'gelo' em produção."
   }
   foreach ($value in $result.Values) {
     if ($value -match '[,\s]') { throw 'Valor de substituição com vírgula ou espaço não é suportado.' }
@@ -390,5 +403,35 @@ function Switch-Traffic {
       }
     }
     return [pscustomobject]@{ Ok = $false; RolledBack = ($errors.Count -eq 0); Reason = $reason; Errors = $errors.ToArray() }
+  }
+}
+
+function Write-DeployReceipt {
+  # Grava o recibo da publicação em docs/operations/deploy-receipts por scripts/deploy-receipt.mjs, que valida cada campo,
+  # limpa texto livre e nunca sobrescreve um recibo existente. Falhar aqui NUNCA interrompe nem desfaz uma publicação:
+  # o erro vira aviso, o JSON é impresso para ser guardado e a função devolve $null.
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory)][hashtable]$Receipt,
+    [string]$OutDir
+  )
+  $json = $Receipt | ConvertTo-Json -Depth 8 -Compress
+  try {
+    if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw 'node não encontrado no PATH' }
+    $receiptScript = [System.IO.Path]::GetFullPath((Join-Path $script:DeployLibRoot '../../../scripts/deploy-receipt.mjs'))
+    if (-not (Test-Path -LiteralPath $receiptScript)) { throw "não achei $receiptScript" }
+    $nodeArguments = @($receiptScript)
+    if ($OutDir) { $nodeArguments += @('--out-dir', $OutDir) }
+    $output = @($json | node @nodeArguments 2>&1 | ForEach-Object { "$_" })
+    if ($LASTEXITCODE -ne 0) { throw ($output -join ' ') }
+    return @($output | Where-Object { $_ })[-1]
+  }
+  catch {
+    # O node que falhou deixa $LASTEXITCODE diferente de zero; sem isto o script de publicação terminaria com erro
+    # mesmo tendo publicado e verificado tudo.
+    $global:LASTEXITCODE = 0
+    Write-Warning "Não consegui gravar o recibo: $($_.Exception.Message)"
+    Write-Host "Recibo (JSON; guarde-o): $json"
+    return $null
   }
 }

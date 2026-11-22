@@ -33,7 +33,11 @@ export async function registerStaticWeb(app: FastifyInstance, root: string): Pro
     const pathname = request.url.split('?', 1)[0] ?? request.url;
     const acceptsHtml = request.method === 'GET'
       && (request.headers.accept ?? '').split(',').some((value) => value.trim().startsWith('text/html'));
-    if (acceptsHtml && !isReservedPath(pathname) && !pathname.startsWith('/assets/')) {
+    // Arquivos de código, dados e fontes (chunks em /assets, worker e núcleo do OCR em /ocr, fontes em /fonts) faltando
+    // nunca viram HTML.
+    const isStaticFilePath =
+      pathname.startsWith('/assets/') || pathname.startsWith('/ocr/') || pathname.startsWith('/fonts/');
+    if (acceptsHtml && !isReservedPath(pathname) && !isStaticFilePath) {
       return reply.type('text/html; charset=utf-8').sendFile('index.html');
     }
     return reply.status(404).send({ error: 'NOT_FOUND', message: 'Recurso não encontrado.' });

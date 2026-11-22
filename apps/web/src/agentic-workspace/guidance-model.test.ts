@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { guidanceDecisionText, guidanceSummaryText, type GuidanceState } from './guidance-model';
+import {
+  GUIDANCE_NO_SUPPORT_NOTE,
+  guidanceDecisionText,
+  guidanceSummaryText,
+  guidanceSupportNote,
+  type GuidanceState,
+} from './guidance-model';
 
 const question = {
   id: 'area:1',
@@ -77,5 +83,57 @@ describe('mesa-v3 no resumo da orientação', () => {
     expect(guidanceSummaryText(v3({ ...court, value: null, status: 'unknown', label: undefined }), 'court')).toBe(
       'Tribunal a definir',
     );
+  });
+});
+
+describe('aviso de que não há apoio específico para a peça (U3/U4)', () => {
+  const empty = { value: null, status: 'unknown' as const };
+  const court = { value: null, status: 'unknown' as const, question };
+  const withPiece = (
+    documentType: GuidanceState['decisions']['documentType'],
+    extra: Partial<GuidanceState['decisions']> = { court },
+  ): GuidanceState => ({
+    conversationId: 'C',
+    matterId: null,
+    contextRevision: 2,
+    objective: '',
+    decisions: {
+      area: { value: 'penal', status: 'confirmed', question, label: 'Penal' },
+      action: { value: 'create_document', status: 'confirmed', question },
+      documentType,
+      ...extra,
+    },
+    question: null,
+    history: [],
+  });
+
+  it('avisa quando o cliente explicou a peça em texto e nenhuma do catálogo serviu', () => {
+    const typed = withPiece({ ...empty, question, detail: 'moção de congratulações' });
+    expect(guidanceSupportNote(typed)).toBe(GUIDANCE_NO_SUPPORT_NOTE);
+  });
+
+  it('o texto do aviso diz que o pedido segue e que o resultado deve ser conferido', () => {
+    expect(GUIDANCE_NO_SUPPORT_NOTE).toMatch(/orientação específica/);
+    expect(GUIDANCE_NO_SUPPORT_NOTE).toMatch(/seguir/);
+    expect(GUIDANCE_NO_SUPPORT_NOTE).toMatch(/confira/i);
+  });
+
+  it('não avisa quando o cliente disse que não sabe a peça: ainda não há o que dizer sobre apoio', () => {
+    expect(guidanceSupportNote(withPiece({ ...empty, question }))).toBeUndefined();
+  });
+
+  it('não avisa quando há peça proposta ou confirmada, mesmo com texto digitado antes', () => {
+    const proposed = { value: 'resposta-acusacao', status: 'proposed' as const, question, detail: 'resposta' };
+    expect(guidanceSupportNote(withPiece(proposed))).toBeUndefined();
+    expect(guidanceSupportNote(withPiece({ ...proposed, status: 'confirmed' }))).toBeUndefined();
+  });
+
+  it('não avisa se a peça nunca foi perguntada', () => {
+    expect(guidanceSupportNote(withPiece({ ...empty, detail: 'texto' }))).toBeUndefined();
+  });
+
+  it('só vale na mesa-v3, a única que propõe peças do catálogo (o tribunal só existe nela)', () => {
+    const typed = { ...empty, question, detail: 'moção de congratulações' };
+    expect(guidanceSupportNote(withPiece(typed, {}))).toBeUndefined();
   });
 });

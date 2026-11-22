@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Fastify from 'fastify';
 import { randomUUID } from 'node:crypto';
+import { get as httpGet, type IncomingMessage } from 'node:http';
 import {
   createDatabase,
   runPersistenceMigrations,
@@ -533,7 +534,7 @@ async function streamWithVerifier(verifyStream: (call: number) => boolean) {
   });
   const run = (await app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })).json();
   const address = await app.listen({ port: 0, host: '127.0.0.1' });
-  return { app, run, address, calls: () => calls };
+  return { app, run, address, client: c.client, calls: () => calls };
 }
 describe('custo do stream de eventos', () => {
   it('um stream sem novidades não toma o snapshot pesado a cada poll e encerra ao terminar', async () => {
@@ -588,6 +589,7 @@ describe('autenticação durante o stream de eventos', () => {
       headers: { authorization: 'Bearer stream' },
     });
     expect(await response.text()).toContain('"code":"ACCESS_REVOKED"');
+    expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(0);
   });
 });
 it('requisição com sessão antiga recebe acesso revogado após expurgo sem recriar trabalho', async () => {
@@ -763,4 +765,154 @@ it('excluir e restaurar do histórico deixam auditoria, sem o conteúdo da conve
     payload: { hidden: true },
   });
   expect(events).toHaveLength(before);
+});
+
+describe('admissão persistente SSE', () => {
+  it('rejeita a terceira conexão e libera as duas leases ao terminar a execução', async () => {
+    const f = await fixture({ next: () => undefined });
+    const run = (
+      await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })
+    ).json();
+    const address = await f.app.listen({ port: 0, host: '127.0.0.1' });
+    const url = `${address}/api/agentic/executions/${run.id}/events`;
+    const first = await fetch(url, { headers }),
+      second = await fetch(url, { headers });
+    const denied = await fetch(url, { headers });
+    expect(denied.status).toBe(429);
+    expect(await denied.json()).toMatchObject({ error: 'STREAM_LIMIT_EXCEEDED' });
+    expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(2);
+    await f.app.inject({
+      method: 'POST',
+      url: `/api/agentic/executions/${run.id}/cancel`,
+      headers: { ...headers, 'idempotency-key': 'cancel-admission' },
+      payload: {},
+    });
+    expect(await first.text()).toContain('CANCELLED');
+    expect(await second.text()).toContain('CANCELLED');
+    expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(0);
+  });
+  it('não toma lease nem a trava global de admissão para uma execução que não existe', async () => {
+    const { ExecutionStreamLeases } = await import('@forgelex/persistence');
+    const f = await fixture({ next: () => undefined });
+    const acquire = vi.spyOn(ExecutionStreamLeases.prototype, 'acquire');
+    try {
+      const response = await f.app.inject({ url: `/api/agentic/executions/${randomUUID()}/events`, headers });
+
+      expect(response.statusCode).toBe(404);
+      expect(acquire).not.toHaveBeenCalled();
+      expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(0);
+    } finally {
+      acquire.mockRestore();
+    }
+  });
+  it('toma a lease depois de confirmar que a execução existe e pertence ao usuário', async () => {
+    const { ExecutionStreamLeases } = await import('@forgelex/persistence');
+    const f = await fixture({ next: () => undefined });
+    const run = (
+      await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })
+    ).json();
+    const acquire = vi.spyOn(ExecutionStreamLeases.prototype, 'acquire');
+    try {
+      const address = await f.app.listen({ port: 0, host: '127.0.0.1' });
+      const stream = await fetch(`${address}/api/agentic/executions/${run.id}/events`, { headers });
+
+      expect(stream.status).toBe(200);
+      expect(acquire).toHaveBeenCalledTimes(1);
+      await stream.body?.cancel();
+    } finally {
+      acquire.mockRestore();
+    }
+  });
+  it('libera admissão após erro no snapshot inicial sem abrir resposta SSE', async () => {
+    const f = await fixture({ next: () => undefined });
+    const run = (
+      await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })
+    ).json();
+    vi.spyOn(f.service!, 'listClientEvents').mockRejectedValueOnce(new Error('ACCESS_REVOKED'));
+    const response = await f.app.inject({ url: `/api/agentic/executions/${run.id}/events`, headers });
+    expect(response.statusCode).toBe(403);
+    expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(0);
+  });
+});
+
+it('duas assinaturas compartilham consultas reais sob relógio controlado', async () => {
+  const { SharedExecutionStreams } = await import('./shared-execution-streams.js');
+  const f = await fixture({ next: () => undefined });
+  const run = (await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })).json();
+  const initial = await f.service!.listClientEvents(owner, run.id, 0);
+  const execute = vi.spyOn(f.client, 'execute');
+  const streams = new SharedExecutionStreams(1000);
+  let finish!: () => void;
+  const done = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  const source = {
+    changed: async (after: number) => {
+      try {
+        return await f.service!.eventsChanged(owner, run.id, after);
+      } finally {
+        finish();
+      }
+    },
+    read: (after: number) => f.service!.listClientEvents(owner, run.id, after),
+  };
+  const subscriber = () => ({
+    cursor: initial.cursor,
+    prepare: async () => true,
+    send: () => {},
+    keepalive: () => {},
+    fail: (error: unknown) => {
+      throw error;
+    },
+  });
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  const a = streams.subscribe('routes/execution', source, subscriber());
+  const b = streams.subscribe('routes/execution', source, subscriber());
+  try {
+    await vi.advanceTimersByTimeAsync(1000);
+    await done;
+    // One execution read and one max(sequence) read, despite two authorized subscribers.
+    expect(execute.mock.calls).toHaveLength(2);
+  } finally {
+    a();
+    b();
+    vi.useRealTimers();
+  }
+});
+
+it('libera lease e polling quando o cliente fecha a conexão SSE', async () => {
+  const f = await fixture({ next: () => undefined });
+  const run = (await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })).json();
+  let finish!: () => void;
+  const closed = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  f.app.server.on('request', (_req, response) => {
+    response.once('close', finish);
+  });
+  const address = await f.app.listen({ port: 0, host: '127.0.0.1' });
+  // Own the test socket: fetch can open a replacement pooled connection on cancellation,
+  // racing app.close() even after the SSE lease has already been released.
+  const response = await new Promise<IncomingMessage>((resolve, reject) => {
+    httpGet(`${address}/api/agentic/executions/${run.id}/events`, { headers, agent: false }, resolve).once(
+      'error',
+      reject,
+    );
+  });
+  try {
+    expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(1);
+  } finally {
+    response.destroy();
+  }
+  await closed;
+  expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(0);
+});
+it('libera lease após falha de leitura durante SSE', async () => {
+  const f = await fixture({ next: () => undefined });
+  const run = (await f.app.inject({ method: 'POST', url: '/api/agentic/executions', headers, payload: input })).json();
+  vi.spyOn(f.service!, 'eventsChanged').mockRejectedValueOnce(new Error('ACCESS_REVOKED'));
+  const address = await f.app.listen({ port: 0, host: '127.0.0.1' });
+  const response = await fetch(`${address}/api/agentic/executions/${run.id}/events`, { headers });
+  expect(await response.text()).toContain('ACCESS_REVOKED');
+  expect((await f.client.execute('SELECT id FROM execution_stream_leases')).rows).toHaveLength(0);
 });

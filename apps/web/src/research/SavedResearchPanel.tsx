@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { SAVED_RESEARCH_ENABLED } from '../config/site-capabilities';
-import { SAVED_RESEARCH_NOTICE } from '../config/research-copy';
+import { JUDGMENT_DATE_ORDER_LABEL, SAVED_RESEARCH_NOTICE } from '../config/research-copy';
 import { savedResearchClient, type SavedSearch, type SavedSearchSummary } from './saved-research-client';
 import { DecisionReader } from '../components/DecisionReader';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
@@ -157,6 +157,9 @@ export function SavedResearchPanel({
           <button type="button" className="btn-secondary" onClick={() => setOpened(null)}>
             Fechar pesquisa salva
           </button>
+          {opened.ordering === 'JUDGMENT_DATE_DESC' && (
+            <p className="text-xs text-stone-600">{JUDGMENT_DATE_ORDER_LABEL}</p>
+          )}
           <DecisionReader
             key={opened.id}
             entries={opened.entries}

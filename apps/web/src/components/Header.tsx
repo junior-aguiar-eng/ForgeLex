@@ -59,7 +59,7 @@ export const Header: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }> =
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-champagne-border bg-[#FBF9F5]/95 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-champagne-border bg-canvas/95 backdrop-blur-md">
       <div className="page-container">
         <div className="flex min-h-16 items-center gap-3 py-2">
           <div
@@ -72,7 +72,7 @@ export const Header: React.FC<{ menuOpen: boolean; onMenuToggle: () => void }> =
             className="group flex min-w-0 shrink-0 cursor-pointer items-center gap-2.5 rounded-lg pr-2"
             aria-label="ForgeLex, ir para o início"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cognac-700 text-[#FBF9F5] transition-transform duration-200 group-hover:scale-105">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cognac-700 text-canvas transition-transform duration-200 group-hover:scale-105">
               <Scale className="h-5 w-5" aria-hidden="true" />
             </div>
             <span className="font-editorial truncate text-xl font-bold tracking-tight text-stone-900">ForgeLex</span>

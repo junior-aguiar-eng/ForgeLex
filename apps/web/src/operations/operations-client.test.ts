@@ -4,6 +4,16 @@ import { createSearchIntent } from './contracts';
 import { OperationsClient } from './operations-client';
 
 describe('OperationsClient', () => {
+  it('preserva a ordenação por data informada pela API', async () => {
+    const client = new OperationsClient(async () => ({
+      data: { results: [], total: 0, ordering: 'JUDGMENT_DATE_DESC' },
+      status: 200,
+      headers: new Headers(),
+    }) as ApiResponse<any>);
+    await expect(client.searchCaseLaw(createSearchIntent('Súmula 7', 'STJ'))).resolves.toMatchObject({
+      ordering: 'JUDGMENT_DATE_DESC',
+    });
+  });
   it('preserva o registro completo da fonte para salvar no caso sem reconstruir proveniência', async () => {
     const authority = { id: 'original', court: 'STJ', processNumber: 'REsp 1/SP', rapporteur: 'Relator', syllabus: 'Ementa da fonte', dedupeKey: 'source-key', provenance: { source: { contentHash: 'original-hash', documentId: 'source-document' }, verified: true } };
     const client = new OperationsClient(async () => ({ data: { results: [authority], total: 1 }, status: 200, headers: new Headers() }) as ApiResponse<any>);

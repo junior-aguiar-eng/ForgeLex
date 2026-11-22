@@ -37,7 +37,7 @@ export class OperationsClient {
   public static loading<T>(data: T): OperationalResource<T> { return { state: 'loading', data }; }
 
   public async searchCaseLaw(intent: SearchIntent): Promise<SearchExecution> {
-    const response = await this.requester<{ results: unknown[]; total: number }>('/api/v2/research/search-case-law', {
+    const response = await this.requester<{ results: unknown[]; total: number; ordering?: SearchExecution['ordering'] }>('/api/v2/research/search-case-law', {
       method: 'POST',
       headers: { 'Idempotency-Key': intent.idempotencyKey },
       body: JSON.stringify({ query: intent.query, court: intent.court, limit: intent.limit, judgmentYear: intent.judgmentYear }),
@@ -49,6 +49,7 @@ export class OperationsClient {
     return {
       intent,
       results,
+      ...(response.data.ordering ? { ordering: response.data.ordering } : {}),
       resultCount: response.data.total,
       billingMode: response.headers.get('x-forgelex-billing-mode') === 'FREE' ? 'FREE' : 'METERED',
       chargedCents: cents(response.headers.get('x-credits-charged')),

@@ -1,7 +1,18 @@
-import { FileText, MessageSquare, PanelLeftClose, PanelLeftOpen, PanelRightClose, Plus, Search } from 'lucide-react';
+import {
+  FileText,
+  ListChecks,
+  MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  Plus,
+  Search,
+} from 'lucide-react';
 
 export function DeskToolbar({
   historyCollapsed,
+  historyInSidebar = false,
+  caseSlotRef,
   onToggleHistory,
   onOpenQueue,
   onOpenResearch,
@@ -11,6 +22,10 @@ export function DeskToolbar({
   onCollapsePiece,
 }: {
   historyCollapsed: boolean;
+  /** Tema gelo: as conversas ficam na lateral do app, que tem o próprio botão de recolher. */
+  historyInSidebar?: boolean;
+  /** Tema gelo: onde o seletor de caso aparece no cabeçalho. */
+  caseSlotRef?: (element: HTMLElement | null) => void;
   onToggleHistory: () => void;
   onOpenQueue: () => void;
   onOpenResearch: () => void;
@@ -21,43 +36,54 @@ export function DeskToolbar({
   onCollapsePiece: () => void;
 }) {
   return (
-    <header className="flex min-h-12 flex-wrap items-center gap-3 border-b border-stone-200 px-5 text-sm">
-      <button
-        type="button"
-        aria-label={historyCollapsed ? 'Mostrar conversas' : 'Recolher conversas'}
-        aria-expanded={!historyCollapsed}
-        aria-controls="desk-conversations"
-        onClick={onToggleHistory}
-        className="hidden rounded-lg p-2 text-stone-600 hover:bg-stone-100 lg:block"
-      >
-        {historyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-      </button>
+    <header className="flex min-h-11 flex-wrap items-center gap-2 border-b border-stone-200 px-4 text-[13px]">
+      {!historyInSidebar && (
+        <button
+          type="button"
+          aria-label={historyCollapsed ? 'Mostrar conversas' : 'Recolher conversas'}
+          aria-expanded={!historyCollapsed}
+          aria-controls="desk-conversations"
+          onClick={onToggleHistory}
+          className="hidden rounded-lg p-2 text-stone-600 hover:bg-stone-100 lg:block"
+        >
+          {historyCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+        </button>
+      )}
+      {caseSlotRef && <div ref={caseSlotRef} className="min-w-0 py-1" />}
       <span className="mr-auto" />
-      <button type="button" className="rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100" onClick={onOpenQueue}>
-        Pendências de revisão
+      <button
+        type="button"
+        aria-label="Pendências de revisão"
+        title="Pendências de revisão"
+        className="grid size-8 place-items-center rounded-lg text-stone-600 hover:bg-stone-100"
+        onClick={onOpenQueue}
+      >
+        <ListChecks size={16} aria-hidden="true" />
       </button>
       <button
         type="button"
+        aria-label="Pesquisa e fontes"
+        title="Pesquisa e fontes"
         onClick={onOpenResearch}
-        className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100"
+        className="grid size-8 place-items-center rounded-lg text-stone-600 hover:bg-stone-100"
       >
         <Search size={16} aria-hidden="true" />
-        Pesquisa e fontes
       </button>
       <button
         type="button"
+        aria-label={hasPiece ? 'Abrir peça' : 'Nova peça'}
+        title={hasPiece ? 'Abrir peça' : 'Nova peça'}
         onClick={onReopenPiece}
-        className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-stone-600 hover:bg-stone-100"
+        className="grid size-8 place-items-center rounded-lg text-stone-600 hover:bg-stone-100"
       >
-        <Plus size={16} />
-        {hasPiece ? 'Abrir peça' : 'Nova peça'}
+        <Plus size={16} aria-hidden="true" />
       </button>
       {pieceOpen && (
         <button
           type="button"
           aria-label="Recolher peça"
           onClick={onCollapsePiece}
-          className="rounded-lg p-2 text-stone-500 hover:bg-stone-100"
+          className="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-stone-100"
         >
           <PanelRightClose size={18} />
         </button>

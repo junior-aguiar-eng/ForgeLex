@@ -1,11 +1,27 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { ocrAssetsPlugin } from './ocr-assets-plugin';
+import { publicSitePlugin } from './public-site-html-plugin';
 
-export default defineConfig({
-  cacheDir: process.env.FORGELEX_VITE_CACHE_DIR || 'node_modules/.vite',
-  build: { outDir: process.env.FORGELEX_VITE_OUT_DIR || 'dist' },
-  plugins: [react()],
-  server: {
-    port: 3000,
-  },
+export default defineConfig(({ mode }) => {
+  const env = { ...loadEnv(mode, process.cwd(), 'VITE_'), ...process.env };
+  // Os arquivos do OCR (cerca de 9 MB) só entram na imagem quando o OCR está ligado no build, como no código:
+  // OCR_ENABLED exige os anexos ligados.
+  const ocr = env.VITE_FORGELEX_ATTACHMENTS_ENABLED === 'true' && env.VITE_FORGELEX_OCR_ENABLED === 'true';
+  return {
+    cacheDir: process.env.FORGELEX_VITE_CACHE_DIR || 'node_modules/.vite',
+    build: { outDir: process.env.FORGELEX_VITE_OUT_DIR || 'dist' },
+    plugins: [
+      react(),
+      publicSitePlugin({
+        model: env.VITE_FORGELEX_PUBLIC_MODEL === 'true',
+        origin: env.VITE_PUBLIC_ORIGIN,
+        theme: env.VITE_FORGELEX_THEME,
+      }),
+      ...(ocr ? [ocrAssetsPlugin()] : []),
+    ],
+    server: {
+      port: 3000,
+    },
+  };
 });

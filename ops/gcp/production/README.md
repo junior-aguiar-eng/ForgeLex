@@ -115,14 +115,67 @@ Ao terminar, imprime o build ID, os comandos de reversão e o que registrar no `
   antes da produção. Para trocar o valor, use um comando separado e autorizado por Boni
   (`gcloud run services update <serviço> --update-env-vars=NOME=true`) e reverta com `=false`.
 - **Trocar uma flag de interface de propósito:** `-AgenticWorkspaceEnabled`, `-CaseWorkspaceEnabled`,
-  `-SavedResearchEnabled`, `-DeskShellEnabled`, `-AttachmentsEnabled` ou `-MatterChipsEnabled` (`true`/`false`).
+  `-SavedResearchEnabled`, `-DeskShellEnabled`, `-AttachmentsEnabled`, `-MatterChipsEnabled` ou `-OcrEnabled` (`true`/`false`).
   Sem elas, valem as do último build (as três da Mesa, ausentes em builds antigos, valem `false`).
+- **Tema e texto público do modelo novo:** `-Theme classico|gelo` (V6) e `-PublicModelEnabled true|false` (V5A). Seguem a
+  mesma regra das flags: sem informar, vale o do último build, e build antigo sem eles vale `classico` e `false`. Só
+  `classico` e `gelo` são aceitos; `previa` é de homologação e é recusado. Reversão: publicar de novo com
+  `-Theme classico -PublicModelEnabled false`. A troca é publicação isolada, decidida por Boni (plano, seção 0, item 6).
 - **Retomar é seguro:** depois de `-NoTraffic`, informe o `-ReleaseBuildId` exibido. O recurso desse build é lido
   novamente e precisa coincidir com o projeto, SHA, substituições e digest esperados; então a imagem e as revisões
   identificadas por SHA e build ID são reaproveitadas. Sem esse ID explícito, uma nova execução cria um novo build,
   ainda que uma tag do mesmo SHA já exista.
+- **Recibo de publicação.** Ao terminar (publicado, `-NoTraffic`, falha revertida ou reversão incompleta), o script grava
+  `docs/operations/deploy-receipts/AAAA-MM-DD-HHMMZ-<sha7>-<resultado>.md` com SHA, build, digest, revisões antes e depois,
+  flags lidas, motivo da falha e comandos de reversão. Quem grava é `scripts/deploy-receipt.mjs`, que só aceita campos em
+  formato conhecido, limpa texto livre e nunca sobrescreve. **O script não commita**: revise o arquivo e commite-o. Falha
+  ao gravar vira aviso e o JSON é impresso; nunca interrompe uma publicação. O recibo não prova migrations, verificação
+  manual, autoria nem aprovação. Falhas antes do passo 7 não geram recibo, porque nada foi publicado.
 - **Testes** (sem gcloud, sem rede): `pwsh -NoProfile -File ops/gcp/production/deploy-from-main.tests.ps1`.
   Rodam na CI.
+
+## Migrations em produção
+
+O `deploy-from-main.ps1` **não aplica migrations**. Elas são aplicadas por uma ferramenta versionada e testada,
+`apps/api/src/operations/migration-command.ts`, que vai na imagem da API e roda como Cloud Run Job temporário pelo
+`migrate-production.ps1`. Substitui o script embutido que foi escrito à mão em 16/11/2026
+([registro](../../../docs/operations/daybreak/2026-11-16-execucao-migrations-e-publicacao.md)).
+
+```powershell
+./ops/gcp/production/migrate-production.ps1 -Mode inspect -Image '<registro>/forgelex-api@sha256:...' -DryRun   # só mostra o plano
+./ops/gcp/production/migrate-production.ps1 -Mode inspect -Image '...@sha256:...'                              # lê o journal e as contagens
+./ops/gcp/production/migrate-production.ps1 -Mode apply   -Image '...@sha256:...' -Allow <id>,<id>             # aplica só o autorizado
+./ops/gcp/production/migrate-production.ps1 -Mode verify  -Image '...@sha256:...'                              # journal completo?
+```
+
+- **`-Image`** é o digest de um build que já contém a ferramenta, obtido sem trocar tráfego: use o `build-from-main.ps1`
+  (só gera a imagem). **Não** tire o digest de um `deploy-from-main.ps1 -NoTraffic` quando houver migration pendente: a
+  API de produção confere o journal ao subir (`assertMigrationsApplied`) e a revisão nova recusa subir com
+  `MIGRATIONS_PENDING`.
+- **`inspect`** só lê, numa transação `REPEATABLE READ` somente leitura. Mostra o journal (aplicadas, faltantes,
+  desconhecidas) e contagens de dados que as migrations recentes poderiam afetar (casos, minutas, lançamentos do ledger,
+  entregas de webhook, entregas com corpo de resposta, pedidos de reembolso). `null` quer dizer que a tabela ou coluna
+  ainda não existe.
+- **`apply`** só roda se **todas** as faltantes estiverem em `-Allow`, se o journal **não tiver ID desconhecido** e se
+  houver backup `SUCCESSFUL` do Cloud SQL com menos de 120 min (`-MaxBackupAgeMinutes`; não há como pular). Aplica uma
+  migration por vez, relê o journal e termina com erro se algo não bater. Nunca tenta de novo sozinho
+  (`--max-retries=0`): um `apply` que falhou a meio é lido por uma pessoa antes de repetir.
+- **`verify`** termina com erro se faltar migration ou houver ID desconhecido.
+- **Alvo.** O Job copia do serviço da API a conta de serviço, a instância do Cloud SQL e o segredo `DATABASE_URL`
+  (o valor nunca é lido). A ferramenta só abre a conexão se o banco e o host baterem com
+  `FORGELEX_MIGRATION_EXPECTED_DATABASE` e `FORGELEX_MIGRATION_EXPECTED_HOST`, e confere de novo `current_database()`.
+- **Saída.** Uma linha JSON por evento no stdout (o Cloud Run grava em `jsonPayload`, não em `textPayload`). Erros
+  trazem só um código e a mensagem da ferramenta, nunca URL, senha nem SQL. O Job é apagado no fim, também em falha; os
+  logs ficam no Cloud Logging (`resource.labels.job_name`).
+- **Ordem de uma publicação com migration:** `build-from-main.ps1` (imagem) → backup sob demanda → `inspect` →
+  `apply -Allow ...` → `verify` → `deploy-from-main.ps1`. O código novo só sobe depois que o journal está completo.
+- **Armadilhas já vividas** (e como a ferramenta as evita): `node inspect` lido como subcomando do Node (o script vem
+  sempre antes do modo nos argumentos); `import()` de caminho absoluto a partir de URL `data:` (a ferramenta é compilada
+  e fica na imagem); filtro de logs por `textPayload` (a saída é JSON).
+- **Testes:** a lógica e o PostgreSQL de verdade (bancos descartáveis) em `migration-command.test.ts`, no job
+  `postgres` da CI; a montagem dos comandos e a leitura de backups e logs em `deploy-from-main.tests.ps1`. **O gcloud
+  em si (criar/executar/apagar o Job, formato do `sql backups list` e dos logs) só é exercitado numa execução real**:
+  na primeira vez, rode `-Mode inspect` e leia a saída antes de qualquer `apply`.
 
 ## Build por SHA e inspeção do frontend
 

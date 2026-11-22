@@ -51,5 +51,7 @@ describe('indexação pública', () => {
     for (const property of ['og:title', 'og:description', 'og:url', 'og:type', 'og:locale'])
       expect(html).toContain(`property="${property}"`);
     expect(html).toContain('name="twitter:card"');
+    // A imagem de prévia só entra no modelo novo, montada no build (public-site-html-plugin).
+    expect(html).not.toContain('og:image');
   });
 });

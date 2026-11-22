@@ -1,12 +1,16 @@
 import { PageIntro, CreditsInfo } from './PublicSections';
 
-export function CreditsPage() {
+export function CreditsPage({ model = false }: { model?: boolean }) {
   return (
     <>
       <PageIntro
         eyebrow="Créditos"
-        title="Pague pelas operações jurídicas que utilizar."
-        text="Os créditos são pré-pagos em reais, sem mensalidade ForgeLex. A pesquisa jurisprudencial válida é a operação faturável no contrato atual."
+        title={model ? 'Você paga só pelo uso.' : 'Pague pelas operações jurídicas que utilizar.'}
+        text={
+          model
+            ? 'Os créditos são pré-pagos em reais, sem mensalidade ForgeLex. A pesquisa jurisprudencial válida é faturável e os trabalhos da Mesa também usam créditos; abrir e verificar uma autoridade não têm cobrança própria. O aplicativo de IA conectado tem custos próprios.'
+            : 'Os créditos são pré-pagos em reais, sem mensalidade ForgeLex. A pesquisa jurisprudencial válida é a operação faturável no contrato atual.'
+        }
       />
       <CreditsInfo />
     </>

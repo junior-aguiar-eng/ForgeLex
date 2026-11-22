@@ -1,5 +1,86 @@
 # Pendências atuais do ForgeLex
 
+## Estado em 18/11/2026 (`main` em `d2c2d69`)
+
+`main` tem o #196 (U7 parte 1: gerenciar casos na Mesa no tema gelo e `PATCH /api/v2/matters/:matterId`), que **não está
+publicado**: em produção continua `6fe4f75`. Plano e ordem de retomada, da pendência mais antiga para a mais recente:
+[seção 1A do plano unificado](docs/superpowers/plans/2026-11-11-forgelex-plano-unificado.md).
+
+**Diagnóstico das três instabilidades (19/11/2026).** `database is locked`: causa provada e corrigida (espera pela trava só nas conexões de apoio dos E2E). `matter-lifecycle.spec.ts:48`: mecanismo provado, gatilho no CI não provado; o teste passou a esperar a carga inicial. Porta 55432: causa não provada; `e2e-product` passa a usar porta aleatória do serviço (mitigação, decisão de Boni de 19/11; só o CI do PR a exercita). Detalhes e limites: [registro](docs/architecture/2026-11-10-mesa-guiada-execucao.md#ci--diagnóstico-das-três-falhas-intermitentes-do-e2e-product-19112026).
+
+**Terceira instabilidade do `e2e-product` em `main` (18/11, run 525 do #196).** Falhou ao subir o Postgres de serviço:
+`address already in use` na porta 55432; nenhum teste rodou. Reexecutado por Boni, passou. O `ci.yml` fixa `55432:5432` e o job roda em
+`ubuntu-latest` (26.04 nessa execução); a causa da ocupação da porta não foi provada. Com as duas anteriores (`database is locked`, `matter-lifecycle.spec.ts:48`) são três falhas
+intermitentes sem causa corrigida; investigar antes da próxima publicação.
+
+## Daybreak — publicado em produção em 16/11/2026 (registro corrigido)
+
+Boni autorizou commit, push e deploy. Os PRs #153–#158 (um por subsistema) e os de acompanhamento da revisão
+(#159–#162, #164, #165) foram integrados em `main` (último: #165, SSE, em 15/11/2026 05:20 UTC; `main` em `bbda500`).
+Junto entrou o #163 (`research memo` por apps conectados via OAuth, só dentro do MCP), que não é correção Daybreak. Em
+16/11 entraram o #168 e o #169 (Codex, busca STJ). Checklist de deploy:
+[docs/operations/daybreak/2026-11-16-deploy-checklist.md](docs/operations/daybreak/2026-11-16-deploy-checklist.md).
+
+**O Daybreak está em produção.** Em 16/11/2026 (UTC): backup sob demanda às 13:14:40 (`1794834880818`, `SUCCESSFUL`); as
+migrations `persistence-0042`, `persistence-0043` e `billing-ledger-0011-refund-recovery` aplicadas às 13:17:20–21 por um
+Job temporário, que depois foi apagado (journal **54 → 57**; **nenhum dado afetado**: 0 entregas de webhook, 0 corpos de
+resposta gravados, 0 pedidos de reembolso); `af13b1c` (inclui o #168) publicado das 15:11 às 15:13 e `6fe4f75` (inclui o
+#169) das 18:13 às 18:15. A revisão atual é `forgelex-api-prod-6fe4f75-92e59198`, com 100% do tráfego e
+`FORGELEX_SOURCE_SHA=6fe4f75…`. Registro completo, com horários e fontes:
+[docs/operations/daybreak/2026-11-16-execucao-migrations-e-publicacao.md](docs/operations/daybreak/2026-11-16-execucao-migrations-e-publicacao.md).
+
+**Correção deste registro.** Este bloco dizia que nada estava publicado, e isso era falso desde as 15:11 UTC. Os PRs #170 e
+#171 também afirmaram que a contagem 54 → 57 do checklist estava errada; **era erro meu**, e o Job mostrou 54 → 57 (a lista
+completa tem 57 IDs: persistência 43, a 0041, ledger 11 e análise 2). O checklist foi corrigido.
+
+**Não verificado:** a verificação manual da seção 8 do checklist (feita por Boni, sem compra nem reembolso reais); quem
+executou (as ações aparecem na conta do gcloud de Boni, sem distinguir humano de ferramenta); a saída do script de
+publicação; o percentual de tráfego do serviço de encerramento. Compras e reembolsos reais e o encerramento dos achados no
+Daybreak seguem fora da autorização.
+
+**Busca STJ (#168 e #169, Codex), em produção desde `af13b1c` e `6fe4f75`.** Se a classificação por relevância estoura o
+prazo, a busca devolve os julgamentos mais recentes com os mesmos filtros e `ordering=JUDGMENT_DATE_DESC`; termos de um
+dígito deixam de ser descartados; o ranking tem 6 s quando o plano estima 10.000 candidatos ou mais; a minuta salva não pede
+mais descarte de edição ao versionar. Sem migration. Conferido sobre `6fe4f75`: build, ESLint e Prettier do CI, suíte
+completa (2.405 testes) e a busca em PostgreSQL 16 real (28 passaram, 1 pulado). Latência com o corpus de produção não
+medida aqui. O pior caso do banco, 30 s de ranking mais 8 s da alternativa, cabe no limite de 45 s da ferramenta; se a
+alternativa também estourar, a chamada falha, sem segunda alternativa.
+
+**CI de `main` (push, conferida em 16/11/2026):** passou em `bbda500`, `d42337d`, `af13b1c`, `6fe4f75`, `17f05ac`, `5de4813`,
+`4396713`, `a4cf69f`, `cc2250e` e `039f5eb`. O push do merge do #155 (`910ba13`, 15/11) falhou no `e2e-product`: o teste
+`agentic-commercial-flow.spec.ts:328` recebeu `database is locked` ao escrever direto no SQLite enquanto o servidor segurava
+a trava. A mesma árvore passou no CI do PR e os pushes seguintes passaram; **a causa (escrita do teste concorrendo com o
+servidor) não foi corrigida**, e o sucesso posterior não a prova: a falha é intermitente.
+
+**Segunda instabilidade (16/11/2026, #175).** No head `94b4b82` o `e2e-product` falhou em
+`tests/e2e/matter-lifecycle.spec.ts:48` (campo "Texto do documento" desabilitado, `fill` estourou os 60 s); numa única nova
+execução do job, sem mudança de código, passou. O diff não tocava interface e `main` estava verde. **Causa não encontrada**;
+a repetição verde não a prova. Se reaparecer, investigar o `refresh` atrasado que o teste simula, sem repetir às cegas.
+
+## Ferramentas de publicação e de migrations (16/11/2026, em `main`)
+
+Duas ferramentas substituem trabalho que, no Daybreak, foi feito à mão. Ambas entraram em `main` pelos PRs
+[#174](https://github.com/junior-aguiar-eng/ForgeLex/pull/174) (`cc2250e`) e
+[#175](https://github.com/junior-aguiar-eng/ForgeLex/pull/175) (`039f5eb`), com a CI de `main` verde nos dois pushes. Uso e
+armadilhas: `ops/gcp/production/README.md` (seções "Publicação em um comando" e "Migrations em produção").
+
+- **Recibo de publicação (#174).** `deploy-from-main.ps1` grava `docs/operations/deploy-receipts/AAAA-MM-DD-HHMMZ-<sha7>-<resultado>.md`
+  (SHA, build, digest, revisões antes e depois, flags lidas, motivo da falha, reversão). **Não commita**: Boni revisa e
+  commita o arquivo junto com a aprovação. O recibo não prova migrations, verificação manual, autoria nem aprovação. Falhas
+  antes do passo 7 não geram recibo.
+- **Ferramenta de migrations (#175).** `apps/api/src/operations/migration-command.ts`, na imagem da API, com `inspect`,
+  `apply --allow=<id>` e `verify`; `migrate-production.ps1` cria, executa e apaga o Job temporário. `apply` só roda com todas
+  as faltantes autorizadas, sem ID desconhecido no journal, no banco e host esperados e com backup `SUCCESSFUL` de menos de
+  120 min; o Job não tenta de novo sozinho. A imagem do Job vem do `build-from-main.ps1`, não de um `-NoTraffic` com migration
+  pendente (a revisão nova recusa subir com `MIGRATIONS_PENDING`).
+
+**Não verificado (vale ler antes do primeiro uso real).** Não havia `pwsh` onde foram escritos; a parte PowerShell só foi
+exercitada pela CI. O `gcloud` em si **nunca foi exercitado**: criar, executar e apagar o Job, o formato real de
+`sql backups list` e de `logging read`, e a gravação do primeiro recibo numa publicação de verdade. Antes de depender deles:
+`deploy-from-main.ps1 -DryRun`; `migrate-production.ps1 -Mode inspect -DryRun` e depois `-Mode inspect`, lendo a saída antes
+de qualquer `apply`. As ferramentas não autorizam por si publicar, aplicar migration ou ligar flag: isso continua sendo
+decisão e execução de Boni.
+
 ## Conector MCP no Claude: causa raiz e correção (08/11/2026)
 
 **Sintoma:** no chat do Claude, `@forgelex` não achava ferramenta nenhuma ("nenhuma ferramenta correspondente

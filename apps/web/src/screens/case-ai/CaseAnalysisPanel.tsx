@@ -309,7 +309,7 @@ export function CaseAnalysisPanel({
                 <article
                   aria-label={`Proposta ${item.id}`}
                   key={item.id}
-                  className="rounded-xl border border-stone-200 bg-[#FDFBF7] p-4 space-y-3"
+                  className="rounded-xl border border-stone-200 bg-surface-muted p-4 space-y-3"
                 >
                   <div className="flex flex-wrap justify-between gap-2">
                     <p className="text-xs font-semibold">
