@@ -31,7 +31,7 @@ Entradas que o spec implica e nenhuma tarefa exercita por si só; cada linha tem
 
 ---
 
-### Tarefa 1: Comandos de ajuste e resolvedor puro
+### Task 1: Comandos de ajuste e resolvedor puro
 
 **Arquivos:**
 - Criar: `packages/domain/src/contracts/structure-commands.ts` (exportar em `packages/domain/src/index.ts`)
@@ -48,7 +48,7 @@ Entradas que o spec implica e nenhuma tarefa exercita por si só; cada linha tem
 - [ ] **Passo 4:** Rodar o teste. Esperado: PASSA.
 - [ ] **Passo 5:** Commit `feat(domain): comandos de ajuste da estrutura e resolvedor puro (E2)`.
 
-### Tarefa 2: Item acrescentado com selo, no repositório de revisão
+### Task 2: Item acrescentado com selo, no repositório de revisão
 
 **Arquivos:**
 - Modificar: `packages/domain/src/contracts/evidence-review.ts` (campo opcional `userAdded?: { frase: string; addedAt: string }` em `EvidenceReviewItem`)
@@ -65,7 +65,7 @@ Entradas que o spec implica e nenhuma tarefa exercita por si só; cada linha tem
 - [ ] **Passo 4:** Rodar de novo; passa. Rodar também o teste de fixtures de revisão existente para confirmar que revisões antigas (sem `added`) seguem idênticas.
 - [ ] **Passo 5:** Commit `feat(persistence): itens acrescentados pelo usuário entram na revisão com selo (E2)`.
 
-### Tarefa 3: Localizar a análise vigente do caso num ponto único
+### Task 3: Localizar a análise vigente do caso num ponto único
 
 **Arquivos:**
 - Modificar: `apps/api/src/agentic-workspace/execution-routes.ts:710-733` (a rota `GET /api/agentic/matters/:matterId/structure` usa o auxiliar)
@@ -81,7 +81,7 @@ Entradas que o spec implica e nenhuma tarefa exercita por si só; cada linha tem
 - [ ] **Passo 4:** Rodar os testes da rota de estrutura (E1) e o novo; passam.
 - [ ] **Passo 5:** Commit `refactor(api): localizar a análise vigente do caso num auxiliar (E2)`.
 
-### Tarefa 4: Ação `adjust_structure` (agente e contrato novo)
+### Task 4: Ação `adjust_structure` (agente e contrato novo)
 
 **Arquivos (seguir o precedente de `analyze_evidence`):**
 - Modificar: `packages/domain/src/contracts/agentic-case-task.ts` (`AgenticTaskActionSchema` ganha `'adjust_structure'`; novo campo de resultado `structureAdjustment: { commands: StructureCommand[]; caseSummary: string(1..1500) }`)
@@ -99,7 +99,7 @@ Entradas que o spec implica e nenhuma tarefa exercita por si só; cada linha tem
 - [ ] **Passo 4:** Rodar o teste novo e a suíte `pnpm --filter @forgelex/legal-workflows test`; passam, incluindo as fixtures.
 - [ ] **Passo 5:** Commit `feat(agents): ação adjust_structure com comandos estruturados e resumo (E2)`.
 
-### Tarefa 5: Aplicar os comandos quando o trabalho termina
+### Task 5: Aplicar os comandos quando o trabalho termina
 
 **Arquivos:**
 - Modificar: `apps/api/src/agentic-workspace/case-task-driver.ts` (depois de persistir a entrega de `adjust_structure`) e `execution-service.ts`/`pasted-account.ts` (a regra do relato colado ignora pedidos que já trazem `actionId`; nada a mudar além do teste)
@@ -116,7 +116,7 @@ Entradas que o spec implica e nenhuma tarefa exercita por si só; cada linha tem
 - [ ] **Passo 4:** Rodar o teste novo, `execution-service.test.ts` e `pasted-account.test.ts`; passam.
 - [ ] **Passo 5:** Commit `feat(api): aplicar os comandos de ajuste da estrutura ao terminar o trabalho (E2)`.
 
-### Tarefa 6: Aba Estrutura numera, marca e resume; compositor envia a ação
+### Task 6: Aba Estrutura numera, marca e resume; compositor envia a ação
 
 **Arquivos:**
 - Modificar: `apps/web/src/desk/case-structure-model.ts` (numeração `F1…`/`P1…` na ordem exibida, `StructureEntry` ganha `label?: string`, `userAdded?: boolean`), `apps/web/src/desk/DeskCaseStructure.tsx` (mostra o rótulo, o selo "informado por você, a confirmar", o resumo no topo e o que mudou), `apps/web/src/agentic-workspace/Composer.tsx` (envia `actionId: 'adjust_structure'` quando a aba Estrutura da peça está ativa e o usuário não escolheu outra ação)
