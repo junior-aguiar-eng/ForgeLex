@@ -6,13 +6,15 @@ Boni aprovou a base comercial de 30/10/2026 e depois determinou: “Conclua essa
 
 Implementação integrada à `main`. Em 01/11/2026 a produção foi inspecionada e a API já tinha `FORGELEX_AGENTIC_WORKSPACE_ENABLED=true` e `FORGELEX_COMMERCIAL_EXECUTION_ENABLED=true`, interface agêntica no build, `OPENAI_API_KEY` no Secret Manager e a instância sempre ativa descrita abaixo, desde a revisão `commercial-7abf606` (30/10). A autorização de ativação consta acima; **o recibo próprio de publicação e ativação continua sem registro no repositório** (backup, flags, migrations, segredo, instância e ensaio sintético com teto comercial). A publicação de 02/11 (`025f6dd`) preservou essa configuração sem alterá-la: [recibo](2026-11-02-publication.md). A governança mantém Boni como único avaliador e aprovador humano.
 
-## Publicação e editor comercial — 05/11/2026
+## Publicação e ativação do editor comercial em 05 e 06/11/2026
 
-Fonte `a5d9762` publicada na API e no serviço de encerramento após CI aprovada,
-backup e aplicação das migrations 0037/0038. As flags comerciais existentes
-foram preservadas. O editor comercial continua **desativado nos dois serviços**
-por decisão de Boni (`FORGELEX_EDITORIAL_COMMERCIAL_ENABLED=false`).
-[Recibo e limites](2026-11-05-publication.md).
+Em 05/11, a publicação da revisão `a5d9762` na API e no serviço de encerramento
+preservou `FORGELEX_EDITORIAL_COMMERCIAL_ENABLED=false` nos dois serviços após
+o backup e a aplicação das migrations 0037/0038. [Recibo de 05/11](2026-11-05-publication.md).
+
+Em 06/11, com autorização de Boni, a flag passou a `true` nos dois serviços
+por alteração de configuração. A mudança está no [recibo de ativação de 06/11](2026-11-06-editorial-activation.md).
+Consulte o [estado publicado](../../../PENDENCIAS.md) para a configuração registrada mais recente.
 
 A implementação editorial usa a política abaixo, com comando, reserva e recibo
 independentes. Boni decidiu cobrar a revisão concluída, validada e persistida
