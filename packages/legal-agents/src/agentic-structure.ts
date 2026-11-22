@@ -17,7 +17,15 @@ export const StructureTaskPlanSchema = DeliveryTaskPlanSchema.omit({
   requiresNorms: z.literal(false),
   requiresProcedure: z.literal(false),
 });
-export type StructureTaskPlan = z.infer<typeof StructureTaskPlanSchema>;
+/**
+ * v13 plans have no document fields (the schema refuses them). The type declares them absent so code shared with the
+ * v1-v12 plans reads them as undefined; it adds nothing to the schema the model receives.
+ */
+export type StructureTaskPlan = z.infer<typeof StructureTaskPlanSchema> & {
+  documentMode?: undefined;
+  documentPurpose?: undefined;
+  documentType?: undefined;
+};
 
 /** Specialist output in v13: no matrix, no document, no extra capability; the analyst also returns the adjustment. */
 export function structureTaskResultSchema(role: CaseTaskRole) {

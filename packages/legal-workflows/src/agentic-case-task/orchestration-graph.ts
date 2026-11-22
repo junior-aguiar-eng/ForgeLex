@@ -7,8 +7,12 @@ import {
   ADAPTIVE_CASE_TASK_POLICY,
   type AdaptiveTaskSpecialistResult,
   type TaskCapabilityRequest,
-  type EvidenceTaskPlan as TaskPlan,
+  type EvidenceTaskPlan,
+  type DeliveryTaskPlan,
+  type StructureTaskPlan,
 } from '@forgelex/legal-agents';
+// Every plan contract the case task can hold, v1-v13.
+type TaskPlan = EvidenceTaskPlan | DeliveryTaskPlan | StructureTaskPlan;
 
 export const GRAPH_ROLES = [
   'matter-analyst',

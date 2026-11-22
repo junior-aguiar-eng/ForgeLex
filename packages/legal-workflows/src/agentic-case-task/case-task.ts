@@ -199,7 +199,7 @@ const ScopedDeskEditStateSchema = GuidedDeskStateSchema.extend({
 // v13 keeps the v11 state shape (no guidance proposals or skills are bound) and adds the analyst's adjustment.
 const StructureStateSchema = GuidedDeskStateSchema.omit({ version: true, plan: true }).extend({
   version: z.literal(13),
-  plan: StructureTaskPlanSchema.optional(),
+  plan: (StructureTaskPlanSchema as z.ZodType<StructureTaskPlan>).optional(),
   structureAdjustment: StructureAdjustmentSchema.optional(),
 });
 /** Server conferral: every referenced item must belong to the analysis items the agent received. */
@@ -231,6 +231,23 @@ export function caseTaskStepIndex(raw: unknown): number {
 }
 export function caseTaskPreviousDeliveryIds(raw: unknown): string[] | undefined {
   return raw ? StateSchema.parse(raw).previousDeliveryIds : undefined;
+}
+/**
+ * Plan contract of each version. The explicit return type keeps the shared code typed with the union of the plan
+ * contracts (v13 declares its absent document fields); the runtime schemas are the same objects as before.
+ */
+function planSchemaFor(version: CaseTaskState['version']): z.ZodType<TaskPlan> {
+  return version === 13
+    ? (StructureTaskPlanSchema as z.ZodType<StructureTaskPlan>)
+    : version >= 11
+      ? GuidedDeskPlanSchema
+      : version >= 5
+        ? DeliveryTaskPlanSchema
+        : version === 4
+          ? ApprovedCaseTaskPlanSchema
+          : version === 3
+            ? EvidenceTaskPlanSchema
+            : TaskPlanSchema;
 }
 const roles: readonly CaseTaskRole[] = [
   'legal-orchestrator',
@@ -583,17 +600,7 @@ export class AgenticCaseTask {
             : resultFor(state.version),
       schema =
         role === 'legal-orchestrator'
-          ? state.version === 13
-            ? StructureTaskPlanSchema
-            : state.version >= 11
-              ? GuidedDeskPlanSchema
-              : state.version >= 5
-                ? DeliveryTaskPlanSchema
-                : state.version === 4
-                  ? ApprovedCaseTaskPlanSchema
-                  : state.version === 3
-                    ? EvidenceTaskPlanSchema
-                    : TaskPlanSchema
+          ? planSchemaFor(state.version)
           : structureRole
             ? z.strictObject(structureTaskResultSchema(role).shape).extend({ supportChecks: scopedChecks })
             : role === 'legal-drafter'
@@ -1505,19 +1512,7 @@ export class AgenticCaseTask {
       await this.options.persistCheckpoint?.(binding, structuredClone(state));
       const output = await this.run(role, binding, state, packet, signal, node);
       if (role === 'legal-orchestrator') {
-        const plan = (
-          state.version === 13
-            ? StructureTaskPlanSchema
-            : state.version >= 11
-              ? GuidedDeskPlanSchema
-              : state.version >= 5
-                ? DeliveryTaskPlanSchema
-                : state.version === 4
-                  ? ApprovedCaseTaskPlanSchema
-                  : state.version === 3
-                    ? EvidenceTaskPlanSchema
-                    : TaskPlanSchema
-        ).parse(output);
+        const plan = planSchemaFor(state.version).parse(output);
         if (
           state.version >= 10 &&
           plan.action === 'create_document' &&

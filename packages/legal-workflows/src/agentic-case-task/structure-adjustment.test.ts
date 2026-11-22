@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { expect, it } from 'vitest';
-import { FakeAgentProvider } from '@forgelex/agent-core';
+import { FakeAgentProvider, toolJsonSchema } from '@forgelex/agent-core';
 import {
   ApprovedCaseTaskPlanSchema,
   DeliveryTaskPlanSchema,
@@ -9,6 +9,7 @@ import {
   GuidedDeskPlanSchema,
   StructureTaskPlanSchema,
   TaskPlanSchema,
+  structureTaskResultSchema,
 } from '@forgelex/legal-agents';
 import { structureItemsSource, type EvidenceReviewItem } from '@forgelex/domain';
 import { AgenticCaseTask, caseTaskContractHash } from './case-task.js';
@@ -235,4 +236,10 @@ it('keeps every historical contract hash and the pre-* fixtures unchanged', () =
     const { state } = JSON.parse(readFileSync(new URL(name, dir), 'utf8'));
     expect(state.contractHash).toBe(caseTaskContractHash(state.version));
   }
+});
+
+it('advertises the v13 plan and analyst contracts as JSON Schema for real providers', () => {
+  for (const schema of [StructureTaskPlanSchema, structureTaskResultSchema('matter-analyst')])
+    expect(() => toolJsonSchema(schema)).not.toThrow();
+  expect(Object.keys((toolJsonSchema(StructureTaskPlanSchema) as any).properties)).not.toContain('documentMode');
 });
