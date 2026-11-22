@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { afterEach, expect, it } from 'vitest';
-import { NativeCaseTaskRepository } from '@forgelex/persistence';
+import { NativeCaseTaskRepository, NativeEvidenceReviewRepository } from '@forgelex/persistence';
 import { structureItemsSource, type AgenticTaskDelivery, type StructureCommand } from '@forgelex/domain';
 import { createEvidenceFixture } from '../../../../packages/persistence/src/testing/native-evidence-review-fixture.js';
 import { applyStructureAdjustment } from './apply-structure-adjustment.js';
@@ -37,7 +37,11 @@ async function setup() {
   const items = (await f.reviews.preview(f.owner, f.saved.id)).items;
   const byKind = (kind: string) => items.find((i) => i.kind === kind)!;
   /** The adjust delivery as saved by the run: the structure source pins what the agent saw. */
-  const adjustment = async (commands: StructureCommand[], caseSummary = 'Caso sintético: nada está provado.') => {
+  const adjustment = async (
+    commands: StructureCommand[],
+    caseSummary = 'Caso sintético: nada está provado.',
+    executionId: string = execution.id,
+  ) => {
     const review = await f.reviews.preview(f.owner, f.saved.id);
     const structure = structureItemsSource(f.saved.id, review.items, new Set(Object.keys(review.decisions)));
     const delivery: AgenticTaskDelivery = {
@@ -57,10 +61,10 @@ async function setup() {
       issues: [{ id: 'issue', statement: 'Ajustar a estrutura', sourceIds: [`user:${sha(pedido)}`] }],
       structureAdjustment: { commands, caseSummary },
     };
-    return { id: `delivery:${execution.id}`, delivery };
+    return { id: `delivery:${executionId}`, delivery };
   };
-  const apply = (saved: Awaited<ReturnType<typeof adjustment>>) =>
-    applyStructureAdjustment(deps, f.owner, f.matter.id, saved);
+  const apply = (saved: Awaited<ReturnType<typeof adjustment>>, reviews: typeof deps.reviews = f.reviews) =>
+    applyStructureAdjustment({ ...deps, reviews }, f.owner, f.matter.id, saved);
   const rows = async (table: string) => (await f.client.execute(`SELECT * FROM ${table}`)).rows;
   return { f, deps, items, byKind, adjustment, apply, rows, execution, native };
 }
@@ -235,4 +239,90 @@ it('acréscimo que passaria do limite de 50 itens não entra e volta pergunta', 
   );
   expect(result).toEqual({ applied: 1, questions: [{ reason: 'LIMITE_DE_ITENS' }] });
   expect((await f.reviews.preview(f.owner, f.saved.id)).items.filter((i) => i.userAdded)).toHaveLength(50);
+});
+
+it('ALTERAR em item informado pelo usuário não o adota no caso; REMOVER continua possível', async () => {
+  const { f, adjustment, apply, rows } = await setup();
+  await apply(
+    await adjustment([{ op: 'ACRESCENTAR', texto: 'O cliente pagou abril em dinheiro.', frase: 'pagou abril' }]),
+  );
+  const sealed = (await f.reviews.preview(f.owner, f.saved.id)).items.find((i) => i.userAdded)!;
+  const second = await apply(
+    await adjustment(
+      [{ op: 'ALTERAR', itemId: sealed.id, texto: 'O cliente pagou abril em espécie.' }],
+      undefined,
+      randomUUID(),
+    ),
+  );
+  expect(second).toEqual({ applied: 0, questions: [{ itemId: sealed.id, reason: 'ITEM_INFORMADO_A_CONFIRMAR' }] });
+  expect(await rows('facts')).toHaveLength(0);
+  expect((await f.reviews.preview(f.owner, f.saved.id)).decisions[sealed.id]).toBeUndefined();
+  const third = await apply(await adjustment([{ op: 'REMOVER', itemId: sealed.id }], undefined, randomUUID()));
+  expect(third).toEqual({ applied: 1, questions: [] });
+  expect((await f.reviews.preview(f.owner, f.saved.id)).decisions[sealed.id]).toMatchObject({ action: 'DISCARD' });
+  expect(await rows('facts')).toHaveLength(0);
+});
+
+it('falha no meio da aplicação desfaz tudo; a nova tentativa dá o mesmo resultado, sem duplicar', async () => {
+  const { f, byKind, adjustment, apply, rows } = await setup();
+  let matterCalls = 0,
+    failing = true;
+  // Fails on the last authorization check of the apply transaction, after items, decisions and record were written.
+  const flaky = new NativeEvidenceReviewRepository(f.db, async (_owner, matterId) => {
+    if (failing && matterId && ++matterCalls === 3) {
+      failing = false;
+      throw new Error('ACCESS_REVOKED');
+    }
+  });
+  const saved = await adjustment([
+    { op: 'ALTERAR', itemId: byKind('FACT').id, texto: 'A parte alega pagamento em dinheiro.' },
+    { op: 'ACRESCENTAR', texto: 'O cliente pagou abril em dinheiro.', frase: 'pagou abril' },
+  ]);
+  const before = await f.reviews.preview(f.owner, f.saved.id);
+  await expect(apply(saved, flaky)).rejects.toThrow('ACCESS_REVOKED');
+  expect(await f.reviews.preview(f.owner, f.saved.id)).toEqual(before);
+  expect(await rows('facts')).toHaveLength(0);
+  expect(await apply(saved, flaky)).toEqual({ applied: 2, questions: [] });
+  expect(await apply(saved)).toEqual({ applied: 2, questions: [] });
+  const after = await f.reviews.preview(f.owner, f.saved.id);
+  expect(after.items.filter((i) => i.userAdded)).toHaveLength(1);
+  expect(after.revision).toBe(before.revision + 1);
+  expect(await rows('facts')).toHaveLength(1);
+});
+
+it('decisão humana concorrente antes da aplicação: nada do ajuste se aplica e volta pergunta', async () => {
+  const { f, byKind, adjustment, apply, rows } = await setup();
+  const saved = await adjustment([
+    { op: 'ALTERAR', itemId: byKind('FACT').id, texto: 'A parte alega pagamento em dinheiro.' },
+    { op: 'ACRESCENTAR', texto: 'O cliente pagou abril em dinheiro.', frase: 'pagou abril' },
+  ]);
+  const racing: typeof f.reviews = Object.create(f.reviews);
+  racing.applyStructureCommands = async (...args) => {
+    const now = await f.reviews.preview(f.owner, f.saved.id);
+    await f.reviews.decide(f.owner, f.saved.id, {
+      approved: true,
+      commandId: randomUUID(),
+      expectedRevision: now.revision,
+      reviewToken: now.reviewToken,
+      decisions: [{ itemId: byKind('GAP').id, action: 'DISCARD' }],
+    });
+    return f.reviews.applyStructureCommands(...args);
+  };
+  expect(await apply(saved, racing)).toEqual({ applied: 0, questions: [{ reason: 'ANALISE_ALTERADA' }] });
+  const review = await f.reviews.preview(f.owner, f.saved.id);
+  expect(Object.keys(review.decisions)).toEqual([byKind('GAP').id]);
+  expect(review.items.filter((i) => i.userAdded)).toHaveLength(0);
+  expect(await rows('facts')).toHaveLength(0);
+});
+
+it('recusa da revisão durante a aplicação vira pergunta registrada, não erro', async () => {
+  const { f, byKind, adjustment, apply } = await setup();
+  const refusing: typeof f.reviews = Object.create(f.reviews);
+  refusing.applyStructureCommands = async () => {
+    throw new Error('EVIDENCE_REVIEW_LIMIT');
+  };
+  const saved = await adjustment([{ op: 'REMOVER', itemId: byKind('GAP').id }]);
+  expect(await apply(saved, refusing)).toEqual({ applied: 0, questions: [{ reason: 'LIMITE_DE_ITENS' }] });
+  expect(Object.keys((await f.reviews.preview(f.owner, f.saved.id)).decisions)).toHaveLength(0);
+  expect(await apply(saved)).toEqual({ applied: 0, questions: [{ reason: 'LIMITE_DE_ITENS' }] });
 });

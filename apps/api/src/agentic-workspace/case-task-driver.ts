@@ -86,6 +86,19 @@ export function createCaseTaskDriver(
     const review = await reviews.preview(owner, current.deliveryId);
     return structureItemsSource(current.deliveryId, review.items, new Set(Object.keys(review.decisions)));
   };
+  const applyAdjustment = async (owner: AgenticOwner, matterId: string | undefined, id: string) => {
+    if (!matterId) throw new Error('STRUCTURE_NOT_AVAILABLE');
+    const { delivery } = await native.getDelivery(owner, id);
+    return applyStructureAdjustment(
+      { store: { workspace }, native, reviews, manages: options.manages },
+      owner,
+      matterId,
+      {
+        id,
+        delivery,
+      },
+    );
+  };
   const driver: ExecutionDriver = {
     next: ({ execution }) => ({
       callId: `case-task:${caseTaskStepIndex(execution.checkpoint?.caseTask)}:${execution.contextRevision}`,
@@ -101,6 +114,22 @@ export function createCaseTaskDriver(
           matterId: execution.matterId ?? undefined,
           previousDeliveryIds: caseTaskPreviousDeliveryIds(execution.checkpoint?.caseTask),
         };
+        // Re-run of a step whose adjust_structure delivery is already persisted: the review has changed since (that is
+        // the point), so the structure source cannot be rebuilt; finish by (re)applying, which is idempotent.
+        if (binding.actionId === 'adjust_structure') {
+          const id = `delivery:${execution.id}`;
+          const saved = await native.getDelivery(owner, id).then(
+            () => true,
+            (error: unknown) => {
+              if (error instanceof Error && error.message === 'DELIVERY_NOT_FOUND') return false;
+              throw error;
+            },
+          );
+          if (saved) {
+            await applyAdjustment(owner, binding.matterId, id);
+            return { kind: 'completed', checkpoint: execution.checkpoint ?? {}, deliveryIds: [id] };
+          }
+        }
         const tools: AgentTool<any, any>[] = [createNativeSelectedSourceTool(native, binding)];
         if (researchTools) {
           let ordinal = 0;
@@ -155,18 +184,10 @@ export function createCaseTaskDriver(
           authorizeRealProvider: options.authorizeRealProvider,
         });
         const result = await task.step(binding, execution.checkpoint?.caseTask, signal);
-        // adjust_structure: once its delivery is persisted, apply the commands to the current analysis. Idempotent per
-        // execution; what cannot be applied safely is kept as questions with the analysis' review.
-        if (binding.actionId === 'adjust_structure' && result.kind === 'completed' && result.deliveryIds?.length) {
-          const id = result.deliveryIds.at(-1)!;
-          const { delivery } = await native.getDelivery(owner, id);
-          await applyStructureAdjustment(
-            { store: { workspace }, native, reviews, manages: options.manages },
-            owner,
-            binding.matterId!,
-            { id, delivery },
-          );
-        }
+        // adjust_structure: once its delivery is persisted, apply the commands to the current analysis (idempotent per
+        // execution; what cannot be applied safely is kept as questions with the analysis' review).
+        if (binding.actionId === 'adjust_structure' && result.kind === 'completed' && result.deliveryIds?.length)
+          await applyAdjustment(owner, binding.matterId, result.deliveryIds.at(-1)!);
         if (result.kind === 'question')
           return { kind: 'question', checkpoint: { caseTask: result.state }, question: result.question! };
         return {

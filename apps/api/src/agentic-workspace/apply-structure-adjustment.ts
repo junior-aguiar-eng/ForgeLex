@@ -1,18 +1,14 @@
 import { createHash } from 'node:crypto';
-import { z } from 'zod';
 import {
   STRUCTURE_ITEMS_SOURCE_PREFIX,
   StructureCommandsSchema,
   resolveStructureCommands,
-  structureItemsSource,
   type AgenticOwner,
   type AgenticTaskDelivery,
-  type EvidenceReview,
-  type EvidenceReviewCommand,
   type StructureAdjustmentRecord,
+  type StructureCommand,
   type StructureQuestion,
 } from '@forgelex/domain';
-import { EVIDENCE_REVIEW_ADDED_LIMIT } from '@forgelex/persistence';
 import {
   findCurrentStructure,
   type CurrentStructureDeps,
@@ -31,9 +27,18 @@ export interface ApplyStructureAdjustmentDeps<
     };
   };
   reviews: {
-    preview(owner: AgenticOwner, id: string): Promise<EvidenceReview>;
-    addUserItems(owner: AgenticOwner, id: string, items: { texto: string; frase: string }[]): Promise<EvidenceReview>;
-    decide(owner: AgenticOwner, id: string, command: EvidenceReviewCommand): Promise<EvidenceReview>;
+    applyStructureCommands(
+      owner: AgenticOwner,
+      id: string,
+      input: {
+        commandId: string;
+        executionId: string;
+        sourceHash: string;
+        commands: StructureCommand[];
+        caseSummary: string;
+        request?: string;
+      },
+    ): Promise<StructureAdjustmentRecord>;
     recordStructureAdjustment(
       owner: AgenticOwner,
       id: string,
@@ -57,7 +62,19 @@ export function structureCommandId(executionId: string): string {
   const h = b.toString('hex');
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
-const normalize = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+
+/** Refusals of the review that mean "the analysis is not as the agent saw it" or "a limit was reached". */
+const AS_QUESTION: Record<string, StructureQuestion['reason']> = {
+  CONTEXT_CONFLICT: 'ANALISE_ALTERADA',
+  EVIDENCE_REVIEW_CONFLICT: 'ANALISE_ALTERADA',
+  EVIDENCE_ALREADY_DECIDED: 'ANALISE_ALTERADA',
+  EVIDENCE_ITEM_INVALID: 'ANALISE_ALTERADA',
+  EVIDENCE_SOURCE_UNAVAILABLE: 'ANALISE_ALTERADA',
+  EVIDENCE_DATE_REQUIRED: 'ANALISE_ALTERADA',
+  EVIDENCE_DATE_INVALID: 'ANALISE_ALTERADA',
+  EVIDENCE_REVIEW_LIMIT: 'LIMITE_DE_ITENS',
+  EVIDENCE_ADDED_LIMIT: 'LIMITE_DE_ITENS',
+};
 
 /** The user's request of the run (its USER_TEXT source), only when it still matches the hash the run used. */
 async function requestText<E extends CurrentStructureExecution>(
@@ -73,9 +90,10 @@ async function requestText<E extends CurrentStructureExecution>(
 }
 
 /**
- * Applies the commands of a completed adjust_structure work to the case's current analysis. Server-side and
- * deterministic: ALTERAR/REMOVER become ADOPT/DISCARD of the existing review; ACRESCENTAR becomes a sealed item that
- * stays out of the case until an explicit ADOPT. Anything that cannot be applied safely becomes a question.
+ * Applies the commands of a completed adjust_structure work to the case's current analysis. The review repository
+ * does the check, the additions, the decisions and the record in one transaction, idempotent per execution:
+ * ALTERAR/REMOVER become ADOPT/DISCARD of existing items; ACRESCENTAR becomes a sealed item that stays out of the case
+ * until an explicit ADOPT. Anything that cannot be applied safely becomes a question, never an error.
  */
 export async function applyStructureAdjustment<E extends CurrentStructureExecution>(
   deps: ApplyStructureAdjustmentDeps<E>,
@@ -93,86 +111,50 @@ export async function applyStructureAdjustment<E extends CurrentStructureExecuti
   const current = await findCurrentStructure(deps, owner, matterId);
   if (!current) return { applied: 0, questions: [{ reason: 'ANALISE_ALTERADA' }] };
   const target = current.deliveryId;
-  const review = await deps.reviews.preview(owner, target);
-  const prior = review.adjustments?.[commandId];
-  if (prior) return { applied: prior.applied, questions: prior.questions };
-  const record = async (applied: number, questions: StructureQuestion[]) => {
-    const kept = await deps.reviews.recordStructureAdjustment(owner, target, commandId, {
-      executionId,
-      applied,
-      questions,
-      caseSummary: adjustment.caseSummary,
-      recordedAt: new Date().toISOString(),
-    });
-    return { applied: kept.applied, questions: kept.questions };
+  const outcome = (r: StructureAdjustmentRecord) => ({ applied: r.applied, questions: r.questions });
+  const asQuestion = async (reason: StructureQuestion['reason']) => {
+    const questions = [{ reason }];
+    try {
+      return outcome(
+        await deps.reviews.recordStructureAdjustment(owner, target, commandId, {
+          executionId,
+          applied: 0,
+          questions,
+          caseSummary: adjustment.caseSummary,
+          recordedAt: new Date().toISOString(),
+        }),
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message in AS_QUESTION) return { applied: 0, questions };
+      throw error;
+    }
   };
 
-  // Empty list: the agent omitted every command (ambiguous references); only the summary is kept.
-  if (!adjustment.commands.length) return record(0, []);
-  const commands = StructureCommandsSchema.parse(adjustment.commands);
-
-  // The analysis must be exactly the one the agent read: same delivery and same items/decisions (source hash).
-  const decidedIds = new Set(Object.keys(review.decisions));
+  // Empty list (handled before StructureCommandsSchema, which requires 1..20): only the summary is kept.
+  const commands = adjustment.commands.length ? StructureCommandsSchema.parse(adjustment.commands) : [];
+  // The run must have read exactly this analysis; the repository also checks the items/decisions hash.
   const seen = delivery.sources.filter(
     (s) => s.kind === 'PREVIOUS_DELIVERY' && s.id.startsWith(STRUCTURE_ITEMS_SOURCE_PREFIX),
   );
-  if (
-    seen.length !== 1 ||
-    seen[0]!.id !== `${STRUCTURE_ITEMS_SOURCE_PREFIX}${target}` ||
-    seen[0]!.contentHash !== structureItemsSource(target, review.items, decidedIds).contentHash
-  )
-    return record(0, [{ reason: 'ANALISE_ALTERADA' }]);
-
-  const resolution = resolveStructureCommands({ items: review.items, decidedIds, commands });
-  const questions: StructureQuestion[] = [...resolution.questions];
-  const byId = new Map(review.items.map((i) => [i.id, i]));
-
-  // Decisions the review would refuse become questions instead of failing the whole work.
-  const decisions = resolution.decisions.filter((decision) => {
-    const item = byId.get(decision.itemId)!;
-    const blocked =
-      decision.action === 'ADOPT' &&
-      (item.blockedReasons.length > 0 ||
-        (item.kind === 'EVIDENCE' && !item.sources.length) ||
-        (item.kind === 'TIMELINE' &&
-          !z
-            .string()
-            .date()
-            .safeParse(decision.eventDate ?? item.eventDate).success));
-    if (blocked) questions.push({ itemId: item.id, reason: 'ITEM_BLOQUEADO' });
-    return !blocked;
-  });
-
-  // ACRESCENTAR only with a phrase the user actually wrote in this request.
+  const sourceHash =
+    seen.length === 1 && seen[0]!.id === `${STRUCTURE_ITEMS_SOURCE_PREFIX}${target}` ? seen[0]!.contentHash : undefined;
+  if (commands.length && !sourceHash) return asQuestion('ANALISE_ALTERADA');
   const request = await requestText(deps, owner, delivery);
-  let added = resolution.added.filter((a) => {
-    const found = request !== undefined && normalize(request).includes(normalize(a.frase));
-    if (!found) questions.push({ reason: 'FRASE_NAO_ENCONTRADA', texto: a.texto });
-    return found;
-  });
-  const existing = new Set(review.items.filter((i) => i.userAdded).map((i) => i.text));
-  const fresh = new Set(added.map((a) => a.texto).filter((t) => !existing.has(t)));
-  if (existing.size + fresh.size > EVIDENCE_REVIEW_ADDED_LIMIT) {
-    questions.push({ reason: 'LIMITE_DE_ITENS' });
-    added = [];
+  try {
+    return outcome(
+      await deps.reviews.applyStructureCommands(owner, target, {
+        commandId,
+        executionId,
+        sourceHash: sourceHash ?? '',
+        commands,
+        caseSummary: adjustment.caseSummary,
+        ...(request !== undefined ? { request } : {}),
+      }),
+    );
+  } catch (error) {
+    // The transaction rolled back: nothing was applied.
+    const reason = error instanceof Error ? AS_QUESTION[error.message] : undefined;
+    if (reason) return asQuestion(reason);
+    throw error;
   }
-
-  let applied = 0;
-  if (added.length) {
-    const before = review.items.length;
-    applied += (await deps.reviews.addUserItems(owner, target, added)).items.length - before;
-  }
-  if (decisions.length) {
-    // Adding items changes revision and token: decide against the review as it is now.
-    const now = added.length ? await deps.reviews.preview(owner, target) : review;
-    await deps.reviews.decide(owner, target, {
-      approved: true,
-      commandId,
-      expectedRevision: now.revision,
-      reviewToken: now.reviewToken,
-      decisions,
-    });
-    applied += decisions.length;
-  }
-  return record(applied, questions);
 }

@@ -124,6 +124,8 @@ export const STRUCTURE_QUESTION_REASONS = [
   'LIMITE_DE_ITENS',
   // Applying: the item cannot be adopted as is (blocked source, evidence without source, timeline without date).
   'ITEM_BLOQUEADO',
+  // Applying: ALTERAR on an item the user added; confirming it into the case needs the user's explicit confirmation.
+  'ITEM_INFORMADO_A_CONFIRMAR',
 ] as const;
 export type StructureQuestionReason = (typeof STRUCTURE_QUESTION_REASONS)[number];
 export interface StructureQuestion {

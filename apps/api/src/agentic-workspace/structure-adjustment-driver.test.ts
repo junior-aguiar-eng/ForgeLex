@@ -71,9 +71,11 @@ async function setup() {
       return new FakeAgentProvider(registry, undefined, [{ toolCall: { name: 'task.submit', input } }]);
     },
   });
+  const checkpoints: any[] = [];
   const run = async () => {
     let checkpoint: any;
     for (let i = 0; i < 8; i++) {
+      checkpoints.push(checkpoint);
       const context = {
         execution: { ...execution, checkpoint },
         job: { objective: pedido, actionId: 'adjust_structure' },
@@ -85,7 +87,7 @@ async function setup() {
     }
     throw new Error('LOOP');
   };
-  return { f, conversation, execution, items, packets, run, native };
+  return { f, conversation, execution, items, packets, run, native, driver, checkpoints };
 }
 
 it('gives the agent the items of the current analysis and saves the adjustment with that source', async () => {
@@ -131,4 +133,22 @@ it('applies the commands when the work completes, and the analysis stays the cur
   expect(saved!.deliveryIds).toHaveLength(1);
   const current = await findCurrentStructure({ store: { workspace: f.workspace }, native }, f.owner, f.matter.id);
   expect(current).toMatchObject({ executionId: f.execution.id, deliveryId: f.saved.id });
+});
+
+it('a step re-run after the adjustment was applied completes again without applying twice', async () => {
+  const { f, execution, run, driver, checkpoints, packets } = await setup();
+  expect((await run()).kind).toBe('completed');
+  const review = await f.reviews.preview(f.owner, f.saved.id);
+  // The worker lost the outcome of the last step: it re-runs it from the previous checkpoint.
+  for (const role of Object.keys(packets)) delete packets[role];
+  const context = {
+    execution: { ...(await f.workspace.getExecution(f.owner, execution.id))!, checkpoint: checkpoints.at(-1) },
+    job: { objective: pedido, actionId: 'adjust_structure' },
+  };
+  const outcome: any = await driver
+    .next(context as any)!
+    .run({ ...(context as any), signal: new AbortController().signal });
+  expect(outcome).toMatchObject({ kind: 'completed', deliveryIds: [`delivery:${execution.id}`] });
+  expect(packets).toEqual({});
+  expect(await f.reviews.preview(f.owner, f.saved.id)).toEqual(review);
 });
