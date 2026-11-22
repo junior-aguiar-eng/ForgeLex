@@ -17,7 +17,7 @@ import {
   SessionStateMachine,
   ToolRegistry,
 } from '@forgelex/agent-core';
-import { convertZodToOpenAIToolSchema } from './schema-converter.js';
+import { convertZodToOpenAIToolSchema, strictAuthorityParameters } from './schema-converter.js';
 
 interface ForgeLexRunContext {
   sessionId: string;
@@ -185,6 +185,10 @@ export interface OpenAIProviderOptions {
   run?: OpenAIRunFactory;
   /** Trusted server transport; retries are disabled when a budgeted transport is supplied. */
   fetch?: typeof globalThis.fetch;
+  /** Evaluation opt-in for the closed, parameterless native source-list tool. */
+  strictSourceList?: boolean;
+  /** Evaluation opt-in for the two authority tools that share an optional date. */
+  strictAuthorityLookup?: boolean;
 }
 
 export class OpenAIAgentProvider implements AgentProvider {
@@ -193,6 +197,8 @@ export class OpenAIAgentProvider implements AgentProvider {
   private readonly model: string;
   private readonly policyEngine: PolicyEngine;
   private readonly runAgent: OpenAIRunFactory;
+  private readonly strictSourceList: boolean;
+  private readonly strictAuthorityLookup: boolean;
   private readonly activeRuns = new Map<string, ActiveRun>();
   private readonly sessionStates = new Map<string, SessionStateMachine>();
 
@@ -205,6 +211,8 @@ export class OpenAIAgentProvider implements AgentProvider {
     this.apiKey = apiKey;
     this.model = options.model ?? 'gpt-5.6-luna';
     this.policyEngine = options.policyEngine ?? new PolicyEngine();
+    this.strictSourceList = options.strictSourceList ?? false;
+    this.strictAuthorityLookup = options.strictAuthorityLookup ?? false;
 
     if (options.run) {
       this.runAgent = options.run;
@@ -292,12 +300,22 @@ export class OpenAIAgentProvider implements AgentProvider {
     const sdkTools = input.tools.map((forgeLexTool) => {
       const wireName = toWireToolName(forgeLexTool.name, usedWireNames);
       toolsByWireName.set(wireName, forgeLexTool);
+      const parameters = convertZodToOpenAIToolSchema(forgeLexTool.inputSchema);
+      const strictAuthority = this.strictAuthorityLookup
+        ? strictAuthorityParameters(forgeLexTool.name, parameters)
+        : undefined;
+      const strict =
+        this.strictSourceList &&
+        forgeLexTool.name === 'task.get_sources' &&
+        parameters.type === 'object' &&
+        parameters.additionalProperties === false &&
+        Object.keys(parameters.properties ?? {}).length === 0;
 
       return defineSdkTool({
         name: wireName,
         description: forgeLexTool.description,
-        parameters: convertZodToOpenAIToolSchema(forgeLexTool.inputSchema) as any,
-        strict: false,
+        parameters: (strictAuthority ?? parameters) as any,
+        strict: strict || Boolean(strictAuthority),
         timeoutMs: forgeLexTool.timeoutMs,
         needsApproval: async (
           _runContext: RunContext<unknown>,
@@ -327,7 +345,7 @@ export class OpenAIAgentProvider implements AgentProvider {
             userId: input.userId,
             matterId: input.matterId,
           };
-          const rawInputRecord = asRecord(rawInput);
+          const rawInputRecord = { ...asRecord(rawInput) };
           const callId = details?.toolCall?.callId ?? `${wireName}:unknown`;
           const policyCheck = this.policyEngine.evaluateToolCall(forgeLexTool);
 
@@ -338,6 +356,11 @@ export class OpenAIAgentProvider implements AgentProvider {
 
           const toolStart = Date.now();
           try {
+            if (strictAuthority) {
+              if (Object.keys(rawInputRecord).some((key) => !Object.hasOwn(strictAuthority.properties, key)))
+                throw new Error('AUTHORITY_TOOL_UNEXPECTED_FIELD');
+              if (rawInputRecord.judgmentDate === null) delete rawInputRecord.judgmentDate;
+            }
             const result = await toolRegistry.executeTool(forgeLexTool.name, rawInputRecord, {
               sessionId: context.sessionId,
               tenantId: context.tenantId,

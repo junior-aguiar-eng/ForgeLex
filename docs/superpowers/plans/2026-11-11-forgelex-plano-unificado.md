@@ -130,6 +130,9 @@ flowchart LR
     V3 --> M5["M5 Selo de terceira origem"]
     M5 --> R["R · Ratione"]
     V6 --> R
+    A0["A0 Preparar avaliação offline"] --> A1["A1 Consolidar prompts"]
+    A1 --> A2["A2 Perfis e orçamento por papel"]
+    A2 --> A3["A3 Avaliar entrega, cache e schemas"]
 ```
 
 ### Coordenação entre Codex e Claude Code
@@ -139,7 +142,7 @@ flowchart LR
 - **Sobreposição.** Ao encontrar uma correção que alcance o mesmo arquivo ou contrato em trabalho, identificar o cenário, o SHA e os arquivos afetados. Alinhar com Boni qual branch fará a alteração. Até lá, cada frente pode avançar em leitura e nos testes locais que independem da mudança.
 - **Próxima frente.** V0 segue adiada. M3.0 e M3.2 já têm scripts e resultados registrados. Retomar o catálogo somente para uma lacuna identificada, como verificar o manifesto servido ou avaliar uma ficha concreta. As tarefas de M1 e os aceites ainda abertos de M3 permanecem nas respectivas seções.
 
-A Frente V depende das etapas indicadas no diagrama. Em particular, V3 depende de M2, V2 e U4. A Frente R começa após V6 estável e M5.
+A Frente V depende das etapas indicadas no diagrama. Em particular, V3 depende de M2, V2 e U4. A Frente R começa após V6 estável e M5. A Frente A parte da execução comercial integrada e segue A0 → A1 → A2 → A3.
 
 ### PRs por frente
 
@@ -160,6 +163,7 @@ tabela. Proposta de 11/11/2026, a confirmar por Boni.
 | PR-U2 | U      | U7       | PR-V1 (V3); PR-U1 (U6)       | Pendente                                                                                                                              |
 | PR-V2 | V      | V4 a V7  | PR-M2 (M4); PR-U2 (U7)       | Pendente; V6 e D3/D4 nunca na mesma semana                                                                                            |
 | PR-R  | R      | Frente R | PR-V2 (V6); PR-M2 (M5)       | Posterior                                                                                                                             |
+| PR-A  | A      | A0 a A3  | Execução comercial integrada | A0 a A2 verificadas offline. Avaliação paga e ativação seguem autorização de Boni. |
 
 Cada etapa continua com seu registro, seus critérios de aceite e sua reversão; o que muda é só a unidade de PR. As
 etapas que são publicação (M1, M2 em homologação, D2 a D5, V6) seguem exigindo a autorização de Boni no momento de
@@ -728,6 +732,79 @@ Começa depois de V6 estável e de M5. Integração por contrato entre serviços
 | R-e   | Funções equivalentes no MCP do ForgeLex                                                               | Separadas de `research_*` e do módulo de agentes comerciais              |
 | R-f   | Argumenta no “Analisar documento” e conta única                                                       | Só com decisão de produto (DEC-8) e política de retenção                 |
 
+## 9A. Frente A — Qualidade das entregas e configuração da API
+
+**Proposta em 14/11/2026.** Melhorar a taxa de entregas juridicamente úteis por custo total da execução comercial da Mesa. A frente parte do fluxo e do ledger já integrados e pode avançar sem depender do tema, do domínio ou do Ratione. As quatro etapas compõem uma PR. A partida, a verba de avaliação e a eventual ativação seguem as autorizações de Boni previstas na seção 0.
+
+**Referência de código em `5fb4dee`.** A política comercial `commercial-brl-2026-11-10-v2` usa `gpt-6.1-sol`, esforço `low`, até 2.048 tokens de saída por chamada e 24 chamadas por execução. O transporte impõe `store: false`, ferramentas sem paralelismo e cache explícito sem breakpoint. O fallback genérico `gpt-5.6-luna` do SDK interno é uma configuração distinta. A reserva calcula a exposição sem desconto de cache e o transporte rejeita uso com escrita de cache. A fonte da proposta é a [auditoria Melhorias API](https://chatgpt.com/share/6af88df9-ae20-83e9-a9ef-f71c9be29b75).
+
+**Evidência anterior.** Em 02/11, a [primeira calibração](../../architecture/2026-11-02-forgelex-calibration-results.md) mediu 18 chamadas, US$ 0,135442 calculados e 0/6 entregas finais. As rodadas [v7](../../architecture/2026-11-02-forgelex-recalibration-v7-results.md) e [v8](../../architecture/2026-11-03-forgelex-recalibration-v8-results.md) já registraram análise e revisão `LIMITED` em D01/D03. A [v9](../../architecture/2026-11-04-v9-campaign-results.md) reproduziu em D04 uma recusa financeira antes do revisor adversarial. Esses resultados orientam os cenários. A comparação desta frente usa a versão comercial corrente como controle e tem avaliação jurídica por Boni.
+
+### A0 — Preparar a comparação offline
+
+- [x] Reutilizar `packages/legal-agents/src/legal-evaluations.ts` e o corpus em `scripts/forgelex-final-evaluation/`. Registrar SHA, entradas, versões dos prompts, rotas, parâmetros, preços da política comercial, rubrica e saídas esperadas. Preparar respostas fixas para isolar dependência da rede nos testes. Capturar baseline offline antes da alteração de prompts.
+- [x] Selecionar oito cenários sintéticos do corpus ou derivados dele e registrar o resultado esperado de cada um.
+
+| Cenário | Resultado esperado |
+| --- | --- |
+| Revisão de quitação sem comprovante | Aponta a afirmação sem prova e conclui a revisão com ressalva, sem afirmar pagamento ou inadimplemento. |
+| Minuta com requisito de urgência sem prova | Entrega versão condicionada, indica o requisito pendente e preserva os fatos demonstrados. |
+| Prazo exato sem marco inicial e calendário | Pergunta pelos dados indispensáveis ao cálculo e deixa a data em aberto. |
+| Pesquisa com autoridade favorável e contrária | Expõe as duas posições, distingue os casos quando pertinente e vincula cada proposição à fonte autorizada. |
+| Conferência de precedente fictício | Deixa a autoridade sem validação após consulta ao corpus, sem criar número, teor ou referência. |
+| Documentos contraditórios | Preserva as versões e suas fontes sem escolher fato por presunção. |
+| Alteração de texto selecionado | Aplica apenas a modificação autorizada e preserva literalmente o restante. |
+| Correção de gramática e conferência aritmética | Preserva o mérito e os valores de origem. Identifica a divergência e limita eventual correção aos campos autorizados. |
+
+**Aceite e reversão.** O executor offline reproduz os oito casos com expectativas registradas. Separar resultado técnico de avaliação jurídica na rubrica. Usar os resultados esperados como critérios mínimos de avaliação. A preparação pode ser revertida no executor sem afetar a Mesa.
+
+**Evidência.** [A0 no registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#a0--avaliação-offline).
+
+### A1 — Consolidar instruções operacionais (P0)
+
+- [x] Em `packages/legal-agents/src/agentic-delivery.ts`, validar a regra já presente de `deliveryImpact` e preservar os exemplos existentes. Usar `LIMITATION` quando for possível entregar análise, revisão ou minuta condicionada, com consequência explícita para a conclusão. Usar `BLOCKING` quando faltar dado indispensável ao pedido, como o marco de um prazo exato. Fazer uma pergunta objetiva e aproveitar respostas existentes. Verificar `task.submit`, o fluxo de `packages/legal-workflows/src/agentic-case-task/case-task.ts` e o critério de cobrança da entrega parcial.
+- [x] Em `packages/legal-agents/src/agentic-desk.ts` e `agentic-guided-desk.ts`, versionar a composição do prompt. O perfil revisado de EDIT usa `editScope` e devolve apenas `editProposal`, com `target` correspondente, `before` literal e offsets UTF-16 absolutos no intervalo selecionado. Sem seleção, o fluxo pede o trecho. CREATE usa `document`. Conferir que a instrução de documento inteiro saiu do perfil revisado e que checkpoints históricos continuam usando seus contratos.
+- [x] Em `packages/legal-agents/src/instructions/case-task.ts`, consolidar as orientações de pesquisa e verificação por papel. Exigir corpus autorizado, fontes e metadados recuperados, posições favoráveis e contrárias, distinções e eventual superação. Separar identidade da autoridade, suporte textual, pertinência e vigência. Restringir conclusões ao conteúdo recuperado e registrar limitações de ementa ou de busca. Acrescentar exemplos de `SUPPORTED` e `PARTIAL` por proposição e fonte.
+
+**Aceite e reversão.** Cobrir análise e minuta limitadas, prazo bloqueado, respostas aproveitadas, suporte parcial, falha de recuperação e EDIT com e sem seleção. Rodar as suítes de contratos em `packages/legal-agents/src` e de tarefa em `packages/legal-workflows/src/agentic-case-task`. Manter o perfil anterior como padrão enquanto a avaliação não for aprovada e disponível para retomada e reversão.
+
+**Evidência.** [A1 no registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#a1--instruções-operacionais). O perfil revisado 1.14.0 é selecionável para avaliação pela versão 13 de AgenticCaseTask.
+
+### A2 — Perfis por papel e orçamento (P1)
+
+**Dependências.** A0 e A1. Isolar a implementação experimental no executor. Qualquer adoção no fluxo comercial depende da avaliação em A3.
+
+- [x] Vincular papel e perfil versionado à chamada em `apps/api/src/agentic-workspace/commercial-provider.ts` e à política em `packages/billing-ledger/src/commercial-inference-service.ts`. Usar a mesma versão de modelo, tarifas e teto para reservar, enviar e liquidar cada chamada. Fixar a versão durante a execução, inclusive na retomada. Preservar idempotência, tratamento de custo incerto, reserva e limites vigentes por execução, dia e mês, com reserva individual antes de cada chamada. Submeter a chamada de escalonamento ao mesmo controle financeiro antes do envio, preservando o resultado existente se a reserva for recusada.
+- [x] Testar a matriz como hipótese, confirmando IDs, disponibilidade e parâmetros suportados na documentação oficial antes de fechar o pacote.
+
+| Papel | Candidatos |
+| --- | --- |
+| Orquestrador | Terra `low` para classificação. Sol `medium` em ambiguidade material. |
+| Analista de fatos e provas | Terra `medium` para extração e cronologia. Sol `medium` para conflitos complexos. |
+| Pesquisador e verificador de autoridades | Terra `low` ou `medium` para recuperação ou conferência literal. Sol `medium` para interpretação e pertinência. |
+| Assessor processual, redator e revisor adversarial | Sol `medium`. Comparar `high` onde a rubrica exigir raciocínio mais complexo. |
+| Editor final | Luna ou Terra `low` para alterações estritamente editoriais. |
+
+- [x] Isolar a configuração de saída. Comparar o teto atual de 2.048 com 4.096 para tarefas especializadas e 8.192 para geração integral, onde houver margem. Medir truncamento e tokens de raciocínio quando reportados. Testar `text.verbosity` em separado, `low` para saídas estruturadas e `medium` para redação. Reconciliar o teto enviado com o teto informado ao modelo por `packages/legal-agents/src/agentic-bounded-delivery.ts`.
+- [x] Usar `commercial-provider.test.ts` e `commercial-inference-service.test.ts` para cobrir reservas e liquidações com perfis distintos, recusa antes do envio acima do teto e retomada com política anterior. Usar a trilha de chamadas para medir papel, versão do perfil, tentativas, tokens, custo calculado e latência, sem gravar conteúdo ou segredos.
+
+**Aceite e reversão.** O executor demonstra os controles sem rede, incluindo ausência de orçamento para escalonamento. A configuração comercial padrão permanece disponível para desativação dos perfis experimentais.
+
+**Evidência.** [A2 no registro de execução](../../architecture/2026-11-10-mesa-guiada-execucao.md#a2--perfis-por-papel-e-orçamento).
+
+### A3 — Comparar resultados, cache e schemas (P1/P2)
+
+**Dependências.** A0–A2. Toda chamada paga exige autorização de Boni para o orçamento e o pacote de avaliação correspondentes.
+
+**Preparação offline.** [Orçamento, reprodução e limites da A3](../../architecture/2026-11-10-mesa-guiada-execucao.md#a3--comparação-preparada-e-orçamento). Os quatro braços foram simulados. A primeira fase paga encerrou 16 execuções. [Resultados da primeira fase](../../architecture/2026-11-10-mesa-guiada-execucao.md#a3--fase-1-executada-em-14112026). [Segunda fase preparada e validada offline](../../architecture/2026-11-10-mesa-guiada-execucao.md#a3--preparação-da-segunda-fase), com prompts revisados e tetos iguais por papel. [Segunda fase paga concluída](../../architecture/2026-11-10-mesa-guiada-execucao.md#a3--execução-da-segunda-fase-em-15112026). Avaliação jurídica completa, execução paga de cache e comparação paga de handoffs permanecem abertas. [Ensaios de cache e schemas preparados e validados offline](../../architecture/2026-11-10-mesa-guiada-execucao.md#a3--ensaios-offline-de-cache-e-schemas-em-17112026).
+
+- [ ] Comparar primeiro prompts atuais e revisados com modelo e parâmetros fixos. Com os prompts selecionados, comparar modelo fixo e perfis por papel. Com oito cenários em cada braço, são 32 execuções planejadas, incluindo resultados limitados, perguntas esperadas e falhas. Fixar corpus e rubrica para ambas as comparações. A faixa de US$ 1,92–5,76 citada na auditoria deriva de estimativas históricas. Recalcular custo e exposição com preços atuais, rotas, limites de chamadas, tokens, eventuais escritas de cache e reservas incertas antes de pedir autorização.
+- [ ] Usar a rubrica para registrar cobertura jurídica, fidelidade e suporte das fontes, conclusão útil, perguntas indevidas e erros de schema. Registrar tokens de entrada, cache e saída, custo calculado e exposição incerta, além de mediana e P95 de latência por papel e execução. Reportar denominadores, falhas e tamanho da amostra. Tratar P95 como descritivo nesta escala. Distinguir uso medido, custo calculado pelos tokens e previsão de orçamento.
+- [ ] Em experimento separado, comparar cache atual, implícito e breakpoint explícito após instruções estáveis do papel. Conferir suporte do provedor, segregação entre clientes, separação do contexto documental dinâmico e tarifas de leitura e escrita. Adaptar `apps/api/src/agentic-workspace/provider-transport.ts` e o ledger somente se a API suportar o desenho e os testes demonstrarem reserva conservadora, contabilização e reversão. Preservar `store: false` e ferramentas sem paralelismo.
+- [ ] Testar `strict: true` apenas nas ferramentas compatíveis de `packages/agent-provider-openai/src/openai-agent-provider.ts`, com regressões no teste do provider. Conferir opcionais, campos extras e compatibilidade do JSON Schema com o modelo. Manter a validação Zod no servidor e comparar erros de handoff mantendo os demais fatores fixos.
+
+**Aceite e reversão.** Boni avalia o ganho de utilidade jurídica pelo custo total e decide sobre eventual adoção. Origem das fontes, fidelidade aos fatos, escopo da seleção e controles financeiros são critérios de regressão. Registrar os resultados no registro único. Se houver ativação, usar configuração reversível por perfil, cache e schema, com a política anterior disponível para novas execuções e os checkpoints vinculados à versão de origem.
+
 ## 10. Verificação padrão de cada etapa
 
 ```powershell
@@ -764,6 +841,9 @@ etapas D. Falhas preexistentes e testes ignorados são registrados sem contar co
 | Site promete função ainda não publicada               | V5A: texto e função saem juntos, por flag; título vetado mantido                   | V5A        |
 | Alerta de chave não dispara                           | Checagem periódica de `/readyz`                                                    | E3         |
 | Duas mudanças de risco juntas                         | Seção 0, item 6                                                                    | V6, D3, D4 |
+| Escalonamento ou saída maior excede o orçamento | Reservar pela configuração efetiva antes de cada chamada e preservar os tetos | A2 |
+| Cache expõe contexto ou distorce contabilização | Validar segregação e tarifas, contabilizar escrita e testar reversão | A3 |
+| Ganho aparente de custo reduz a qualidade da entrega | Comparações controladas, rubrica jurídica e análise de todas as tentativas | A3 |
 
 ## 12. Referências
 

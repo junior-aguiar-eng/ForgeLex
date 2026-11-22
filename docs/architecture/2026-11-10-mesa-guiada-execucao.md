@@ -1147,3 +1147,257 @@ As referências aprovadas estão na pasta Downloads de Boni. O ZIP e o conteúdo
 | Acervo capturado   | `MinutaIA-Habilidades-Oficiais-2077-2026-11-10.zip`                         |
 
 SHA-256 verificado do ZIP `2a0efbbc301e53c357d5fe6baac1a896c84669fc1646a62c2aec410550543d01`.
+
+## A0 — Avaliação offline
+
+Em 14/11/2026, Boni autorizou A0 e A1 em modo offline. Base de código `5fb4dee293981d58df99b9377a6916a83810da90`. O [ensaio](../../packages/legal-workflows/src/agentic-case-task/api-prompts-offline.test.ts) usa as tarefas e documentos D03/D04 do corpus do executor, cenários derivados e a rubrica jurídica existente. Cada papel devolve uma resposta fixa pelo `FakeAgentProvider`. A pesquisa usa resultados locais, e `fetch` é bloqueado durante os testes.
+
+O controle anterior à correção passou em 8/8. As duas versões históricas da Mesa emitiram os hashes de contrato `b638f35a5c194d0be4903e136db7673f2ba3b766fd5f9c3ca8bb05e0f713c523` (v11) e `0dbb3f5ea7bf95be5ee1aadc60e54af6a05ad6e207de01673b5834ff5c9c59ad` (v12). SHA-256 do relatório inicial `08ecef26b25d31cb72f071e799e43aa0ec00542755c488b75e7b61a51a609dfa`.
+
+| Cenário | Resultado técnico com respostas fixas |
+| --- | --- |
+| Quitação sem comprovante | Revisão com ressalva e apontamento sustentado pela fatura |
+| Minuta com urgência sem prova | Minuta condicionada, com requisitos pendentes |
+| Prazo sem marco e calendário | Pergunta pelos dados indispensáveis, sem entrega de data |
+| Precedentes em posições opostas | Ambas as fontes e correspondência literal registradas |
+| Autoridade ausente do corpus | Resultado limitado, sem referência criada |
+| Relatos contraditórios | As duas versões e suas origens preservadas |
+| Edição de seleção | Troca localizada, com offsets UTF-16 e preservação de quebras e seções |
+| Gramática e soma | Revisão aponta a soma divergente e preserva as parcelas e a peça |
+
+O teste exporta, quando solicitado, hashes das entradas, do contrato e do prompt de cada papel, rota de papéis, desfecho, rubrica e parâmetros/tarifas da política corrente. Para reproduzir em PowerShell:
+
+```powershell
+$env:FORGELEX_API_PROMPTS_OFFLINE_VARIANT = 'baseline'
+$env:FORGELEX_API_PROMPTS_OFFLINE_REPORT = Join-Path $env:TEMP 'forgelex-a0-baseline.json'
+pnpm exec vitest run packages/legal-workflows/src/agentic-case-task/api-prompts-offline.test.ts
+$env:FORGELEX_API_PROMPTS_OFFLINE_VARIANT = 'candidate'
+$env:FORGELEX_API_PROMPTS_OFFLINE_REPORT = Join-Path $env:TEMP 'forgelex-a1-candidate.json'
+pnpm exec vitest run packages/legal-workflows/src/agentic-case-task/api-prompts-offline.test.ts
+```
+
+## A1 — Instruções operacionais
+
+O prompt v12 de EDIT juntava a instrução histórica de devolver o documento inteiro à exigência de retornar `editProposal`. A versão 13 do workflow usa o perfil `1.14.0`, disponível por seleção explícita no motor. O perfil revisado envia um contrato de edição por seleção, orienta a pesquisa por questão e distingue suporte integral de parcial na verificação. A regra anterior de `deliveryImpact` já descrevia quitação sem prova, minuta condicionada e prazo sem dados indispensáveis. Os testes exercitaram essa regra e o reaproveitamento de uma resposta existente.
+
+Foram aprovados 11 testes no controle e 11 no perfil revisado, incluindo suporte parcial, resposta já registrada e edição sem seleção. Os dois relatórios tiveram os mesmos hashes de entrada, desfechos e status por cenário. A edição com seleção retomou um checkpoint original mesmo ao alternar a versão configurada para novas execuções. As suítes de agentes, workflow e resultado cobrável somaram 363 testes aprovados e 1 ignorado. Build, verificação de tipos, lint e formatação do código alterado passaram.
+
+O perfil comercial padrão continua selecionando os contratos históricos. O ensaio valida composição dos prompts, roteamento, contratos e persistência da entrega simulada. Comparação semântica de modelos, custo e latência real e avaliação jurídica de Boni ficam em A3. Nenhuma chamada paga, publicação ou mudança de política financeira foi realizada.
+
+## A2 — Perfis por papel e orçamento
+
+Em 14/11/2026, Boni autorizou a preparação e a validação offline. Os [perfis versionados](../../packages/billing-ledger/src/commercial-inference-profiles.ts) cobrem os sete papéis da Mesa e o editor final. A matriz usa Terra para classificação, análise factual, pesquisa e conferência literal, Sol para assessoria processual, redação e revisão, e Luna para edição final. O teto é de 2.048, 4.096 ou 8.192 tokens, conforme o papel.
+
+| Conjunto | Variável de avaliação |
+| --- | --- |
+| `a2-output-v1` | Tetos por papel, com Sol e esforço low |
+| `a2-roles-v1` | Modelo e esforço por papel, com os mesmos tetos |
+| `a2-escalated-v1` | Configurações de maior esforço selecionadas explicitamente para o ensaio |
+| `a2-verbosity-v1` | Verbosidade low ou medium por papel, com Sol, esforço low e teto de 2.048 |
+
+Modelos e tarifas de contexto curto conferidos na [tabela oficial](https://developers.openai.com/api/docs/pricing) e parâmetros na [referência de Responses](https://developers.openai.com/api/reference/resources/responses/methods/create). A composição de avaliação usa transporte injetado com chave sintética. O runtime comercial padrão continua disponível com Sol, esforço low e 2.048 tokens. Escalonamento automático por ambiguidade e escolha de perfil em produção dependem de evidência da A3.
+
+A reserva vincula o conjunto de perfis à execução. Cada chamada registra o papel e usa o teto e a tarifa correspondentes ao reservar, enviar e liquidar. O transporte informa o mesmo teto no prompt e no payload. A reserva usa bytes serializados mais margem de 8.192 para entrada e o teto inteiro para saída, sem supor desconto de cache. Mantidos os limites de exposição, chamadas, tempo e carteira. Uma chamada recusada pelo ledger termina antes do envio e preserva o uso liquidado. A trilha registra perfil, uso, raciocínio quando reportado, truncamento e duração, sem conteúdo do pedido.
+
+Os ensaios usaram respostas simuladas e ledger local em memória. Verificaram os tetos no payload, a reserva antes do envio, a liquidação de uma saída truncada, a recusa abaixo da reserva mínima e acima da exposição remanescente, e a retomada com tarifas fixadas e reenvio bloqueado por idempotência. As sete suítes pertinentes passaram com 134 testes. Build, verificação de tipos, lint, formatação do código da A2 e git diff --check passaram. Nenhuma chamada paga ou ativação foi realizada.
+
+## A3 — Comparação preparada e orçamento
+
+Em 14/11/2026, Boni autorizou a preparação offline e pediu o orçamento antes de qualquer chamada paga. O [executor offline](../../scripts/forgelex-final-evaluation/api-prompts-a3-offline.mjs) gera pacote com hash, rubrica, versões de contrato, parâmetros, oito entradas congeladas, rotas, custos por chamada e o ledger local de avaliação. Ele recebe `current` ou `revised` para simular a escolha de prompts na segunda fase.
+
+- Primeira comparação, 16 execuções. Prompts atuais e revisados, com Sol, esforço low e 2.048 tokens.
+- Segunda comparação, 16 execuções. Mesmo prompt escolhido após a primeira fase, com Sol fixo de um lado e os perfis `a2-roles-v1` de outro. Os prompts revisados serviram como premissa para o cálculo abaixo. A escolha jurídica cabe a Boni.
+- Nos quatro braços, corpus fechado e sintético, capacidade de pesquisa local, `store: false`, ferramentas sem paralelismo, cache explícito sem breakpoint e schema padrão. Os experimentos de cache e schema ficam fora das 32 execuções.
+- A rubrica registra cobertura, fidelidade, suporte e utilidade por cenário. Uma pergunta indispensável em A03 conta como resultado esperado. A avaliação real deve registrar denominadores, erros de schema, falhas, tokens, custo e exposição, mediana e P95 de latência por papel e execução.
+
+### Orçamento calculado
+
+| Braço | Execuções | Chamadas na simulação | Estimativa em US$ | Soma das reservas simuladas em US$ |
+| --- | ---: | ---: | ---: | ---: |
+| Prompts atuais, Sol fixo | 8 | 25 | 0,312568–0,881102 | 1,659778 |
+| Prompts revisados, Sol fixo | 8 | 25 | 0,313342–0,882656 | 1,662888 |
+| Prompt selecionado, Sol fixo | 8 | 25 | 0,313342–0,882656 | 1,662888 |
+| Prompt selecionado, perfis por papel | 8 | 25 | 0,214136–0,950496 | 1,483178 |
+| **Total** | **32** | **100** | **1,153388–3,596910** | **6,468732** |
+
+A faixa usa as solicitações iniciais serializadas pelo SDK em cada papel observado. O cenário inferior supõe quatro bytes por token de entrada e 512 tokens de saída por chamada. O cenário superior supõe dois bytes por token de entrada e uso integral do teto de saída. São cenários de planejamento. Chamadas adicionais, handoffs mais extensos e raciocínio real podem alterar rota e consumo. A soma de reservas considera bytes serializados mais 8.192 e saída integral. Como o ledger liquida cada chamada antes da próxima e para diante de custo incerto, essa soma expressa margem conservadora sobre as rotas simuladas, sem representar saldo simultaneamente reservado.
+
+O limite de US$ 0,60 por execução, com até 24 chamadas e cinco minutos, resulta em exposição máxima de **US$ 19,20** para 32 execuções. Para limitar a autorização, a proposta é **US$ 3,50 agregados para a primeira fase** e **US$ 7,00 acumulados** para as duas fases, incluindo custos incertos. Um teto menor pode interromper a rodada se a rota real crescer. Valores em USD de inferência antes de câmbio e tributos, com tarifas Standard de contexto curto da [OpenAI](https://developers.openai.com/api/docs/pricing), zero escrita de cache prevista e sem desconto por leitura.
+
+### Evidência offline e pendências
+
+O pacote simulado encerrou 28 entregas e quatro perguntas esperadas. SHA-256 do pacote reproduzido: 50506364f43a997ff5c7d529776b958fab6cf1e72b3512d92c5947541a786357. Passaram 63 testes de provider e workflow, oito testes do ledger de avaliação, build, verificação de tipos, lint e formatação dos arquivos novos e dos ajustes de transporte. Registrou 100 chamadas sintéticas sem custo incerto. A prova de precificação usa os valores de uma resposta sintética fixa e não estima uso real a partir dela. O comando para reproduzir é `node scripts/forgelex-final-evaluation/api-prompts-a3-offline.mjs revised`.
+
+O ensaio de schema habilitou `strict: true` por opção apenas em `task.get_sources` com objeto fechado sem parâmetros. O handoff `task.submit` conserva os opcionais e sua validação Zod. A taxa de erros do modelo fica para experimento separado. [Contrato de ferramentas da OpenAI](https://developers.openai.com/api/docs/guides/function-calling).
+
+O cache implícito pode escrever até o fim de uma mensagem dinâmica elegível. O breakpoint explícito após instruções estáveis exige um bloco de desenvolvedor em `input`. O próximo ensaio sintético deve medir escrita e leitura por duração, limitar o breakpoint ao conteúdo estável e testar isolamento do contexto por cliente antes de qualquer adoção. O transporte atual agora cobre recusa de escrita tarifada tanto no contador agregado quanto em detalhes por duração, retendo custo incerto. [Documentação de prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching).
+
+O executor disponível nesta etapa trabalha somente offline. A campanha paga precisa de autorização explícita, seleção de prompts após a primeira fase e ligação da composição real ao pacote e ao ledger da campanha. Toda inferência real e avaliação jurídica permanecem pendentes.
+
+## A3 — Fase 1 executada em 14/11/2026
+
+Boni autorizou os dois braços de prompts, oito casos cada, com teto agregado de **US$ 3,50** incluindo custos incertos. O executor usou apenas o corpus sintético, pesquisa local, `gpt-6.1-sol` com esforço `low`, teto de 2.048 tokens e a configuração comercial de cache. A prévia pelo mesmo caminho de SDK e ledger passou nos 16 casos com 54 chamadas simuladas. A etapa real encerrou 16 execuções e 37 chamadas, sem repetições e sem iniciar a segunda fase.
+
+| Métrica | Prompts atuais | Prompts revisados |
+| --- | ---: | ---: |
+| Entregas | 4/8 | 4/8 |
+| Perguntas que interromperam o fluxo | 3/8 | 2/8 |
+| Falhas de contrato | 1/8 | 2/8 |
+| Chamadas liquidadas | 17 | 20 |
+| Tokens de entrada / saída | 55.043 / 4.955 | 72.472 / 8.329 |
+| Custo calculado | US$ 0,159636 | US$ 0,228234 |
+| Mediana / P95 por execução | 9,27 s / 21,84 s | 8,22 s / 66,26 s |
+| Mediana / P95 por chamada | 4,41 s / 9,88 s | 4,80 s / 13,03 s |
+
+Custo total calculado pelos tokens **US$ 0,387870**, sem tokens em cache, sem reserva incerta e com 37 chamadas liquidadas. P95 usa posto mais próximo e é descritivo. O tempo por execução inclui perguntas e falhas. A minuta adicional do braço revisado levou 66,26 s e custou US$ 0,093816.
+
+| Caso | Atual | Revisado |
+| --- | --- | --- |
+| A01 · Quitação | Revisão limitada | Revisão limitada |
+| A02 · Urgência | Pediu o tipo de peça | Minuta condicionada de cinco seções, com fundamentos pendentes |
+| A03 · Prazo | `ACTION_CONFLICT` | `ACTION_CONFLICT` |
+| A04 · Posições opostas | Pediu tema e corpus | Pediu tema e corpus |
+| A05 · Autoridade fictícia | Pediu identificação | Pediu identificação |
+| A06 · Datas divergentes | Preservou os dois relatos com ressalva sobre evento e ano | `ACTION_CONFLICT` |
+| A07 · Seleção | Edição exata com CRLF e conteúdo externo preservados | Edição exata com CRLF e conteúdo externo preservados |
+| A08 · Gramática e soma | Revisão entregue | Revisão entregue |
+
+`ACTION_CONFLICT` ocorreu quando o plano sugeriu ação diferente da ação vinculada à execução. Nos casos A04/A05, os dois braços pediram esclarecimento antes de chegar ao pesquisador, portanto a rodada não aferiu os prompts de pesquisa ou de verificação de autoridades. Os resultados de A02 e A06 mostram ganhos e perdas distintas, com uma tentativa por caso. A avaliação jurídica e a escolha do braço ficam com Boni.
+
+Diretório local `%TEMP%/forgelex-a3-phase1-real-fb8149c2b7f1444b8d162b47b2feef9f`. Contém 16 resultados, trilha por papel, pacote, resumo e ledger. SHA-256 do pacote `7b3a500f1380902beeaff47ee8f09d20d2612cd2bcfd2e075c1541146a2d3b69`, do resumo `937ecd6d9ffa2ee2b4a597a100b532f9e64208fa5bd09c4105d1efb8ec5580a5`. Ledger e formatação verificados juntamente com o ensaio offline.
+
+## A3 — Diagnóstico de ACTION_CONFLICT e revalidação offline
+
+Em 14/11/2026, a primeira fase paga registrou `ACTION_CONFLICT` em A03 nos dois braços e em A06 no braço revisado. O erro ocorre quando `plan.action` difere da ação vinculada pelo servidor. O orquestrador recebia o objetivo textual, enquanto a ação vinculada aparecia apenas na validação do workflow. A ação que o modelo tentou devolver nos três casos não consta da trilha histórica.
+
+O orquestrador passou a receber `boundAction` na política confiável. A instrução exige o mesmo identificador em `task.submit.action` e orienta registrar lacuna impeditiva sem mudar a ação. A rejeição de divergência continua ativa. A07 e os testes de retomada preservam os contratos históricos. Como a política do orquestrador mudou nos dois braços, resultados antigos podem servir como histórico, e uma nova comparação completa usa as 16 execuções com a mesma revisão do contrato.
+
+- **A03** declara que faltam data de intimação e calendário. Espera a pergunta necessária, sem data calculada.
+- **A04** delimita a suficiência da prova de entrega de equipamento e nomeia o corpus fechado P-01. A simulação chegou ao pesquisador e ao verificador, com dois suportes rastreáveis.
+- **A05** dá o identificador e a origem alegada da referência sintética X00. A simulação chegou ao pesquisador, consultou o corpus e registrou `SEARCH_NO_RESULTS`.
+- **A06** explicita que os relatos tratam do mesmo equipamento e do mesmo ano. A análise preservou as duas datas e suas origens.
+
+Passaram 77 testes do workflow e de compatibilidade, build, verificação de tipos, lint e formatação dos arquivos ajustados. Os quatro braços passaram nas 32 simulações. O executor da primeira fase passou nos 16 casos com 54 chamadas sintéticas, duas perguntas esperadas e nenhum custo incerto. SHA-256 do pacote atualizado `9f572b790fee104fccad1917db729ffb8483faa91a545e7de83b7c006937759b`.
+
+| Reexecução proposta | Execuções | Chamadas simuladas | Custo estimado | Soma das reservas simuladas | Teto proposto com incerteza |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| A03–A06 nos dois braços, para confirmar as correções | 8 | 22 | US$ 0,277818–0,780902 | US$ 1,471676 | US$ 1,75 |
+| Primeira fase integral, para comparar prompts sob o contrato corrigido | 16 | 54 | US$ 0,683160–1,919230 | US$ 3,617222 | US$ 3,50 |
+
+São opções alternativas. O cálculo usa as reservas do executor completo, incluindo o turno adicional de consulta em A04/A05. Mantém as hipóteses de entrada e saída do orçamento anterior e as [tarifas oficiais](https://developers.openai.com/api/docs/pricing). A soma das reservas é conservadora. O ledger liquida a chamada antes da próxima e impede uma nova reserva que exceda o teto. Os oito casos focados confirmariam os pontos afetados, enquanto a execução integral também reavaliaria A01, A02, A07 e A08 com a nova instrução. Nenhuma inferência paga foi feita nesta revisão.
+
+## A3 — Reexecução da primeira fase com os ajustes
+
+Em 14/11/2026, Boni autorizou 16 novas execuções da primeira fase com teto adicional de US$ 3,50, incluindo custo incerto. O pacote validado offline foi executado com Sol, esforço low e teto de 2.048 tokens. As 16 execuções fizeram 44 chamadas liquidadas. Uso calculado de **US$ 0,431990**, exposição igual ao uso e nenhuma reserva incerta. Somada à rodada original, a primeira fase acumulou US$ 0,819860. A segunda fase segue pendente.
+
+| Métrica | Prompts atuais | Prompts revisados |
+| --- | ---: | ---: |
+| Entregas / perguntas / falhas | 6 / 2 / 0 | 6 / 2 / 0 |
+| Chamadas | 22 | 22 |
+| Tokens de entrada / saída | 72.563 / 7.140 | 72.767 / 6.993 |
+| Custo pelos tokens | US$ 0,216526 | US$ 0,215464 |
+| Mediana / P95 por execução | 13,72 s / 29,87 s | 12,81 s / 30,12 s |
+| Mediana / P95 por chamada | 4,92 s / 10,90 s | 4,62 s / 10,32 s |
+
+Cache reportado em zero. P95 usa posto mais próximo e é descritivo. As métricas de execução incluem perguntas.
+
+| Caso | Resultado observado nos dois braços |
+| --- | --- |
+| A01 · Quitação | Entregaram revisão com ressalva sobre a falta de comprovante. |
+| A02 · Urgência | Pediram o tipo de peça antes de redigir. A minuta do braço revisado na rodada original não se repetiu. |
+| A03 · Prazo | Listaram os dados faltantes, sem calcular uma data. Produziram entrega limitada em vez da pergunta esperada na simulação. |
+| A04 · Posições opostas | Pediram os registros do P-01 antes do pesquisador. O braço revisado apontou que a ferramenta não estava acessível naquele passo. A comparação positiva de fontes e o verificador continuam sem evidência real. |
+| A05 · Autoridade fictícia | Chegaram ao pesquisador e registraram resultado vazio e X00 sem validação no corpus. |
+| A06 · Datas divergentes | Preservaram as duas datas e suas origens, sem escolher a data efetiva. |
+| A07 · Seleção | A alteração foi exata nos dois braços, com CRLF e conteúdo fora da seleção preservados. |
+| A08 · Gramática e soma | Entregaram a revisão. |
+
+Nenhum ACTION_CONFLICT na repetição, incluindo os pares A03 e A06. Os dois braços empataram em desfechos e tiveram custos quase iguais. A avaliação jurídica e a seleção de prompt continuam com Boni. Em A04, a ferramenta está registrada para o pesquisador e o orquestrador pode interromper o fluxo antes de o pesquisador receber a tarefa. O resultado aponta para essa passagem entre papéis.
+
+Evidências locais em %TEMP%/forgelex-a3-recheck-real-20261114. SHA-256 do pacote 9f572b790fee104fccad1917db729ffb8483faa91a545e7de83b7c006937759b. SHA-256 do resumo 00db120eb60791341c98a6b3082a81a5a95aeff7a3b29ecf530aee3ab78e3ecf. A soma das 44 liquidações foi conferida contra o resumo e o ledger encerrou sem lock.
+
+## A3 — Encaminhamento de A04
+
+Na reexecução paga, os dois braços pediram os registros P-01 antes de chegar ao pesquisador. O orquestrador sabia que a execução tinha capacidade de pesquisa, mas sua lista de ferramentas não incluía a consulta reservada ao especialista. A política confiável agora identifica o pesquisador, a ferramenta disponível no próximo passo e o campo requiresCaseLaw do plano. Com tema e recorte definidos, os registros a recuperar passam a ser descritos como produto da consulta. Dúvidas indispensáveis sobre o próprio pedido continuam elegíveis a esclarecimento.
+
+O teste de contrato reproduziu a ausência da instrução e passou após a correção. Passaram 77 testes, build e verificação de tipos do workflow, lint focado e diff check. O executor offline completou os quatro braços. No teste dirigido pelo SDK e ledger com transporte simulado, os dois braços de A04 passaram por orquestrador, pesquisador e verificador, com quatro chamadas por braço e duas fontes rastreadas em cada entrega. SHA-256 do pacote 09266302dfb98262678c820bd89900fa35eacce20423d5e07b505fcfbdaa81f4.
+
+O custo estimado das duas execuções é de US$ 0,102666 a US$ 0,287248. A soma conservadora das reservas da rota simulada é de US$ 0,541726. Teto agregado proposto de US$ 0,60 incluindo custo incerto, com possibilidade de interrupção se a rota real crescer. Mantidos os parâmetros de Sol Standard da primeira fase. O ensaio usou respostas simuladas. O encaminhamento pelo modelo real ainda precisa ser confirmado. Nenhuma chamada paga foi feita.
+
+## A3 — Reexecução paga de A04
+
+Em 14/11/2026, Boni autorizou somente A04 nos dois braços, com teto agregado de US$ 0,60 incluindo custos incertos. A prévia com o mesmo escopo e teto passou nos dois braços. O ledger real encerrou as duas execuções e liquidou as dez chamadas por **US$ 0,084944**, sem custo incerto. A segunda fase segue pendente.
+
+| Braço | Pesquisador | Verificador | Resultado | Chamadas | Custo |
+| --- | --- | --- | --- | ---: | ---: |
+| Prompts atuais | Sim | Sim | Entrega limitada | 5 | US$ 0,042688 |
+| Prompts revisados | Sim | Sim | Entrega limitada | 5 | US$ 0,042256 |
+
+Nos dois braços, o verificador registrou quatro pares proposição–fonte com trecho literal correspondente. Duas proposições tiveram suporte integral e duas, suporte parcial. O corpus é sintético e as entregas preservaram ressalvas de escopo.
+
+Evidências em %TEMP%/forgelex-a04-real-20261114. SHA-256 do pacote: b37c6d8d206ca41106ac86492b605bdb7c26738a3b2e9dffbe687ee38c1a38a1.
+
+## A3 — Preparação da segunda fase
+
+Boni selecionou os prompts revisados. Os dois braços usam a versão 13 do workflow e os oito cenários com a mesma entrada e o mesmo teto por papel. O controle usa Sol com esforço low em a2-output-v1. O candidato usa Sol ou Terra e esforço low ou medium conforme o papel em a2-roles-v1. Os tetos comuns são 2.048 para o orquestrador, 8.192 para o redator e 4.096 para os outros papéis exercitados. Cache, schema, corpus e ferramentas são iguais. O editor final e Luna ficam fora desta amostra.
+
+A02 agora pede expressamente minuta preliminar condicionada com modalidade e fase em aberto. A03 aceita pergunta indispensável ou entrega limitada que identifique os dados faltantes e deixe a data em aberto. A04 exige consulta ao P-01 pelo pesquisador e verificação rastreável das duas posições. Suporte parcial fundamentado é válido. As demais dimensões da rubrica continuam aplicáveis.
+
+| Braço | Execuções | Chamadas simuladas | Custo projetado | Soma das reservas simuladas |
+| --- | ---: | ---: | ---: | ---: |
+| Sol fixo, a2-output-v1 | 8 | 27 | US$ 0,343286–1,434064 | US$ 2,286472 |
+| Perfis por papel, a2-roles-v1 | 8 | 27 | US$ 0,229608–1,012157 | US$ 1,581924 |
+| Total | 16 | 54 | US$ 0,572894–2,446221 | US$ 3,868396 |
+
+Estimativa pelas solicitações reais do SDK com transporte simulado, em Standard de contexto curto. O cenário inferior usa quatro bytes por token de entrada e 512 tokens de saída. O superior usa dois bytes por token de entrada e usa o teto inteiro de saída. Não conta com economia de cache. A soma conservadora das reservas inclui margem de entrada e teto de saída. Teto adicional proposto de US$ 4,00 incluindo custos incertos. A exposição máxima sob os tetos individuais, sem o limite agregado proposto, seria US$ 9,60. [Tarifas oficiais](https://developers.openai.com/api/docs/pricing).
+
+O executor realizou as 16 simulações, com 14 entregas, duas perguntas esperadas e nenhuma falha. A04 chegou ao pesquisador e ao verificador nos dois braços. Foram conferidos os oito pares de hashes e os tetos de saída por papel. Passaram oito testes do ledger, formatação e diff check. O pacote tem SHA-256 a2d5b94d5660209414ce0fadd29ba888e02427289bc65c59135b7877cae99d6f. Evidências em %TEMP%/forgelex-a3-fase2-mock-1a50843ce551464885ac5085078a138f.
+
+O modo mock-profiles aceita apenas transporte simulado. O despacho real dos perfis deverá usar o teto aprovado e preservar a mesma composição e as mesmas verificações testadas aqui. Nenhuma chamada paga foi realizada nesta preparação.
+
+## A3 — Execução da segunda fase em 15/11/2026
+
+Boni autorizou 16 execuções pagas com teto agregado de US$ 4,00, incluindo custos incertos. O executor usou os prompts revisados, os oito cenários congelados e tetos de saída iguais por papel. O braço fixo usou Sol em low. O outro usou Sol e Terra com esforço por papel. A prévia passou com 54 chamadas simuladas. A rodada real encerrou as 16 execuções com 60 chamadas liquidadas, custo calculado de **US$ 0,587839** e nenhuma reserva incerta.
+
+| Métrica | Sol fixo | Perfis por papel |
+| --- | ---: | ---: |
+| Entregas / perguntas / falhas | 8 / 0 / 0 | 8 / 0 / 0 |
+| Entregas LIMITED / CANDIDATE | 8 / 0 | 7 / 1 |
+| Chamadas | 30 | 30 |
+| Tokens de entrada / saída | 108.290 / 13.032 | 104.439 / 12.403 |
+| Custo calculado | US$ 0,346900 | US$ 0,240939 |
+| Mediana / P95 por execução | 21,34 s / 71,22 s | 17,13 s / 70,91 s |
+
+Os perfis por papel reduziram o custo calculado em 30,5% e a mediana por execução em 19,7% nesta amostra. O P95 usa posto mais próximo e corresponde ao maior tempo em cada braço de oito execuções. O cache reportado foi zero.
+
+Nos dois braços, A02 entregou minuta condicionada, com cinco seções no braço fixo e quatro no braço por papel. A03 identificou dados faltantes e deixou o prazo sem cálculo. A04 passou pelo pesquisador e pelo verificador em ambos, com dois pares de suporte integral e dois de suporte parcial por braço. A07 preservou CRLF e conteúdo fora da seleção. Os códigos de entrega descrevem o estado do workflow. A avaliação jurídica pela rubrica permanece com Boni.
+
+Foram verificados 36 testes do transporte comercial, tipos da API e git diff --check. Evidências em %TEMP%/forgelex-a3-fase2-real-20261115. SHA-256 do pacote a50a7aaf0277db39731f6ab7ed0027f4affcd92f558b442ebafbc7d0ec737b73. SHA-256 do resumo a54f2bd79b772fa303828f2b80277603f15335052760091f0710241193400330. O ledger confirmou o teto autorizado, o total das liquidações e o encerramento sem lock. Cache e schema seguem como experimentos separados.
+
+## A3 — Ensaios offline de cache e schemas em 17/11/2026
+
+Boni autorizou a preparação offline de dois experimentos com os perfis por papel `a2-roles-v1`. O ensaio de cache usa o pesquisador em Terra e o redator em Sol. O ensaio de schemas usa o pesquisador e o verificador em Terra com seus esforços e tetos originais. Cada experimento tem um controle próprio.
+
+### Cache de prompts
+
+São 24 chamadas propostas, quatro por papel em cada um dos três modos. O controle usa cache explícito sem breakpoint. Os braços experimentais usam cache implícito e cache explícito com breakpoint após as instruções estáveis. Ambos usam TTL de 30 minutos. A sequência cobre início sem cache, outro tenant sintético, repetição no primeiro tenant e alteração da parte dinâmica. O prefixo começa com um identificador derivado de campanha, braço, papel e tenant. No modo explícito, o breakpoint precede o texto dinâmico. O modo implícito pode incluir a mensagem do usuário no prefixo e, neste ensaio, fica restrito ao corpus sintético. [Documentação de Prompt Caching](https://developers.openai.com/api/docs/guides/prompt-caching).
+
+O simulador conferiu leitura e escrita, separação de prefixos, rejeição de uso inconsistente ou escrita de 12 horas e retenção da reserva de chamada incerta. A reserva dos braços de cache cobre toda a entrada pela tarifa de escrita de 30 minutos. A taxa real de acertos, a latência e o isolamento do serviço do provedor ficam para a execução controlada. O ensaio usa apenas transporte simulado. A execução paga depende de ligar o transporte de avaliação ao controle de reserva e à leitura do evento terminal do provedor.
+
+### Schemas estritos
+
+São oito chamadas propostas. Cada braço testa `research.get_authority` e `research.verify_authority` com data conhecida e desconhecida, encerrando após a primeira entrega válida da ferramenta. O braço estrito torna a data obrigatória no JSON e permite valor nulo. O adapter converte o nulo em ausência antes de chamar o validador Zod e recusa campos extras. Os testes também cobrem a regressão de `task.get_sources`, que já admite objeto fechado vazio. `task.submit` conserva o contrato atual. [Documentação de Function Calling](https://developers.openai.com/api/docs/guides/function-calling).
+
+As oito chamadas simuladas atravessaram o SDK e o transporte com reserva prévia. Os testes de provider confirmaram rejeição de campos extras e ausência de identificador obrigatório. A rodada paga mede aceitação pelo provedor, argumentos válidos na primeira tentativa, erros de ferramenta, custo e latência. Quatro casos por braço dão evidência de compatibilidade neste recorte.
+
+### Orçamento proposto
+
+| Experimento | Chamadas | Estimativa de custo | Soma conservadora das reservas | Teto proposto incluindo custo incerto |
+| --- | ---: | ---: | ---: | ---: |
+| Cache | 24 | US$ 0,175384–1,530532 | US$ 2,176320 | US$ 2,25 |
+| Schemas | 8 | US$ 0,012521–0,168398 | US$ 0,238488 | US$ 0,25 |
+| Total | 32 | US$ 0,187905–1,698930 | US$ 2,414808 | US$ 2,50 |
+
+A estimativa inferior usa quatro bytes serializados por token de entrada e 256 tokens de saída. A superior usa dois bytes por token e o teto inteiro de saída, com tarifa de escrita de 30 minutos em toda a entrada nos braços de cache. Ambas prescindem de descontos por acertos. A soma conservadora usa bytes serializados mais 8.192 como limite de entrada e o teto de saída. Tarifas Standard de contexto curto conferidas em 17/11. [Preços de Sol](https://developers.openai.com/api/docs/pricing) · [Preços de Terra](https://developers.openai.com/api/docs/models/gpt-6.1-terra).
+
+Para reproduzir os orçamentos offline, definir `FORGELEX_A3_EXPERIMENT_BUDGET=1` e executar o Vitest com `--reporter=verbose --silent=false` nos dois arquivos de teste. Passaram 57 testes focados, build do provider, verificação de tipos da API e lint focado. Chamadas pagas nesta preparação: zero.

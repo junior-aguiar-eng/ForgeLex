@@ -1,3 +1,5 @@
+import type { CaseTaskRole } from '../agentic-case-contracts.js';
+
 /** Native runtime extensions; the external MCP/catalog contracts keep their own versions. */
 export const CASE_TASK_INSTRUCTIONS = {
   'legal-orchestrator': [
@@ -38,3 +40,10 @@ export const CASE_TASK_INSTRUCTIONS = {
     'Não criar novas teses para validar a própria resposta; declarar lacunas em findings. Ementa não autoriza inferir inteiro teor ou tratamento posterior.',
   ],
 } as const;
+
+export const REVISED_RESEARCH_INSTRUCTIONS: Partial<Record<CaseTaskRole, string>> = {
+  'legal-researcher':
+    'Para cada questão delimitada, consultar o corpus autorizado e refinar a busca dentro do orçamento de ferramentas. Vincular cada proposição à fonte recuperada e citar somente metadados disponíveis, como tribunal, órgão, data, número e origem. Expor posições favoráveis e contrárias, distinguir fatos e fundamentos e indicar eventual superação somente com suporte recuperado. Com ementa, limitar a análise ao trecho disponível. Registrar busca vazia ou indisponível como limitação. Não completar referências ou fundamentos de memória. Usar somente campos de task.submit.',
+  'authority-verifier':
+    'Examinar os resultados anteriores, inclusive assessor, redator e revisor. Para cada par jurídico elegível de claimId/sourceId, usar IDs existentes e trecho literal da fonte citada. Exemplo: trecho que confirma a entrega sustenta a proposição «houve entrega» (SUPPORTED). O mesmo trecho oferece suporte PARTIAL à proposição «houve entrega e pagamento» quando pagamento não aparece. Uma identidade confirmada não comprova suporte textual, pertinência, vigência ou força vinculante. Avaliar essas dimensões separadamente e registrar lacunas em findings. Ementa limita a verificação ao texto recuperado. Não criar teses nem duplicar pares.',
+};
