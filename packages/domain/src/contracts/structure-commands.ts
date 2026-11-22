@@ -4,6 +4,7 @@ import type { EvidenceReviewCommand, EvidenceReviewItem } from './evidence-revie
 import type { TaskSource } from './agentic-case-task.js';
 // Pure numbering lives in its own module (no Node imports) so the web tab can reuse it.
 import { structureItemLabels } from './structure-labels.js';
+import { exceedsSourceTextLimit } from './agentic-limits.js';
 
 const ItemIdSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const TextoSchema = z.string().trim().min(3).max(4000);
@@ -53,7 +54,8 @@ const StructureListedItemSchema = z.strictObject({
   decided: z.literal(true).optional(),
   userAdded: z.literal(true).optional(),
 });
-const StructureListSchema = z.strictObject({ items: z.array(StructureListedItemSchema).max(1000) });
+const STRUCTURE_LIST_MAX_ITEMS = 1000;
+const StructureListSchema = z.strictObject({ items: z.array(StructureListedItemSchema).max(STRUCTURE_LIST_MAX_ITEMS) });
 
 /**
  * One PREVIOUS_DELIVERY source with the items of the current analysis (id and text), so the agent can resolve the
@@ -64,6 +66,9 @@ export function structureItemsSource(
   items: readonly EvidenceReviewItem[],
   decidedIds: ReadonlySet<string>,
 ): TaskSource {
+  // A list that does not fit one source is the same limit as any oversized context: a coded error, never a raw
+  // validation failure.
+  if (items.length > STRUCTURE_LIST_MAX_ITEMS) throw new Error('TASK_CONTEXT_LIMIT');
   const labels = structureItemLabels(items);
   const text = JSON.stringify(
     StructureListSchema.parse({
@@ -80,6 +85,7 @@ export function structureItemsSource(
       })),
     }),
   );
+  if (exceedsSourceTextLimit(text)) throw new Error('TASK_CONTEXT_LIMIT');
   return {
     id: `${STRUCTURE_ITEMS_SOURCE_PREFIX}${deliveryId}`,
     kind: 'PREVIOUS_DELIVERY',

@@ -289,6 +289,37 @@ describe('persistência do trabalho agêntico', () => {
       'CONTEXT_CONFLICT',
     );
   });
+  it('lista as conversas de um caso por páginas, sem limite de 50 sobre todas as conversas do usuário', async () => {
+    const f = await fixture();
+    const matter = await new MatterRepository(f.db).createMatter({
+      ...owner,
+      createdBy: owner.userId,
+      title: 'Caso sintético',
+    });
+    const run = async (matterId: string | undefined, key: string) => {
+      const conversation = await f.repo.createConversation(owner, {
+        objective: 'Pedido sintético',
+        ...(matterId ? { matterId } : {}),
+        context,
+      });
+      await f.repo.createExecution(owner, { ...f.input, conversationId: conversation.id, idempotencyKey: key });
+      return conversation;
+    };
+    const first = await run(matter.id, 'caso-0');
+    for (let i = 0; i < 3; i++) await run(matter.id, `caso-${i + 1}`);
+    for (let i = 0; i < 55; i++) await run(undefined, `solta-${i}`);
+    expect((await f.repo.listRecentConversations(owner, 50, false)).some((c) => c.conversationId === first.id)).toBe(
+      false,
+    );
+    const page1 = await f.repo.listMatterConversations(owner, matter.id, { limit: 3, offset: 0 });
+    const page2 = await f.repo.listMatterConversations(owner, matter.id, { limit: 3, offset: 3 });
+    expect(page1).toHaveLength(3);
+    expect(page2).toHaveLength(1);
+    expect([...page1, ...page2].every((c) => c.matterId === matter.id && c.execution)).toBe(true);
+    expect([...page1, ...page2].map((c) => c.conversationId)).toContain(first.id);
+    expect(new Set([...page1, ...page2].map((c) => c.conversationId)).size).toBe(4);
+    expect(await f.repo.listMatterConversations({ ...owner, userId: 'outro' }, matter.id)).toEqual([]);
+  });
   it('valida referências reais de caso/documento/versão e seu tenant', async () => {
     const f = await fixture();
     const matters = new MatterRepository(f.db);

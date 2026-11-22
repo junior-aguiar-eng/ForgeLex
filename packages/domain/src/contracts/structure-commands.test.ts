@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { StructureCommandSchema, StructureCommandsSchema, resolveStructureCommands } from './structure-commands.js';
+import {
+  StructureCommandSchema,
+  StructureCommandsSchema,
+  resolveStructureCommands,
+  structureItemsSource,
+} from './structure-commands.js';
 import type { EvidenceReviewItem } from './evidence-review.js';
 
 const idA = 'a'.repeat(64);
@@ -84,5 +89,25 @@ describe('resolveStructureCommands', () => {
       { op: 'REMOVER', itemId: idA },
     ]);
     expect(r.decisions).toEqual([{ itemId: idA, action: 'DISCARD' }]);
+  });
+});
+
+describe('structureItemsSource: limite de tamanho', () => {
+  const many = (count: number, size: number) =>
+    Array.from({ length: count }, (_, i) =>
+      item(i.toString(16).padStart(64, '0'), 'FACT', `Fato sintético número ${i}. ${'x'.repeat(size)}`),
+    );
+
+  it('análise grande demais para a lista vira TASK_CONTEXT_LIMIT, não erro de validação cru', () => {
+    // ~160 itens longos passam de 100.000 caracteres.
+    expect(() => structureItemsSource('delivery:grande', many(160, 700), new Set())).toThrow('TASK_CONTEXT_LIMIT');
+    // Mais de 1000 itens, mesmo curtos.
+    expect(() => structureItemsSource('delivery:muitos', many(1001, 1), new Set())).toThrow('TASK_CONTEXT_LIMIT');
+  });
+
+  it('análise dentro do limite continua listada', () => {
+    const source = structureItemsSource('delivery:normal', many(20, 50), new Set());
+    expect(source.text.length).toBeLessThanOrEqual(100000);
+    expect(JSON.parse(source.text).items).toHaveLength(20);
   });
 });

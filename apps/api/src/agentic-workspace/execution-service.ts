@@ -297,6 +297,8 @@ export class ExecutionService {
     // E2: a structure adjustment always opens its own conversation; sharing the analysis' conversation would make the
     // adjustment that conversation's latest work and hide the analysis it corrects.
     if (requested.actionId === 'adjust_structure' && requested.conversationId) throw new Error('CONTEXT_CONFLICT');
+    // The adjustment targets the case's current analysis; without a case there is nothing to adjust.
+    if (requested.actionId === 'adjust_structure' && !requested.matterId) throw new Error('MATTER_REQUIRED');
     const executionId = await this.command(
       owner,
       key,

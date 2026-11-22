@@ -15,10 +15,11 @@ export interface CurrentStructureExecution {
 export interface CurrentStructureDeps<E extends CurrentStructureExecution = CurrentStructureExecution> {
   store: {
     workspace: {
-      listRecentConversations(
+      /** Conversations of this case only, newest first, one page at a time (each with its newest execution). */
+      listMatterConversations(
         owner: CurrentStructureOwner,
-        limit: number,
-        trash: boolean,
+        matterId: string,
+        page: { limit: number; offset: number },
       ): Promise<Array<{ matterId?: string | null; execution: E }>>;
     };
   };
@@ -32,23 +33,41 @@ export interface CurrentStructure {
   executionId: string;
   deliveryId: string;
   updatedAt: string;
+  /** The analysis the current one replaced, if any: its corrections made through the conversation were not carried over. */
+  previousDeliveryId?: string;
 }
+
+/** Page size and the per-case bound of the scan (every correction opens a conversation of its own). */
+const PAGE = 50;
+const MAX_PAGES = 20;
 
 export async function findCurrentStructure<E extends CurrentStructureExecution>(
   deps: CurrentStructureDeps<E>,
   owner: CurrentStructureOwner,
   matterId: string,
 ): Promise<CurrentStructure | null> {
-  const conversations = await deps.store.workspace.listRecentConversations(owner, 50, false);
-  for (const conversation of conversations) {
-    const execution = conversation.execution;
-    if (conversation.matterId !== matterId || execution.status !== 'COMPLETED') continue;
-    if (deps.manages && !deps.manages(execution)) continue;
-    const deliveryId = execution.deliveryIds.at(-1);
-    if (!deliveryId) continue;
-    const found = await deps.native.getDelivery(owner, deliveryId);
-    if (found.delivery.action !== 'analyze_evidence') continue;
-    return { executionId: execution.id, deliveryId, updatedAt: execution.updatedAt };
+  const found: Array<{ executionId: string; deliveryId: string; updatedAt: string }> = [];
+  for (let page = 0; page < MAX_PAGES && found.length < 2; page++) {
+    const conversations = await deps.store.workspace.listMatterConversations(owner, matterId, {
+      limit: PAGE,
+      offset: page * PAGE,
+    });
+    const ordered = [...conversations].sort((a, b) => b.execution.updatedAt.localeCompare(a.execution.updatedAt));
+    for (const conversation of ordered) {
+      if (found.length >= 2) break;
+      const execution = conversation.execution;
+      if (conversation.matterId !== matterId || execution.status !== 'COMPLETED') continue;
+      if (deps.manages && !deps.manages(execution)) continue;
+      const deliveryId = execution.deliveryIds.at(-1);
+      if (!deliveryId) continue;
+      const delivery = await deps.native.getDelivery(owner, deliveryId);
+      if (delivery.delivery.action !== 'analyze_evidence') continue;
+      found.push({ executionId: execution.id, deliveryId, updatedAt: execution.updatedAt });
+    }
+    if (conversations.length < PAGE) break;
   }
-  return null;
+  found.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const [current, previous] = found;
+  if (!current) return null;
+  return { ...current, ...(previous ? { previousDeliveryId: previous.deliveryId } : {}) };
 }

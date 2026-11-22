@@ -17,7 +17,13 @@ function deps(
   manages?: (e: CurrentStructureExecution) => boolean,
 ) {
   return {
-    store: { workspace: { listRecentConversations: async () => conversations } },
+    store: {
+      workspace: {
+        // Same contract as the repository: only this case, newest first, one page at a time.
+        listMatterConversations: async (_o: unknown, matterId: string, page: { limit: number; offset: number }) =>
+          conversations.filter((c) => c.matterId === matterId).slice(page.offset, page.offset + page.limit),
+      },
+    },
     native: {
       getDelivery: async (_o: unknown, id: string) => ({ delivery: { action: actions[id] ?? 'analyze_evidence' } }),
     },
@@ -35,7 +41,12 @@ describe('findCurrentStructure', () => {
       owner,
       MATTER,
     );
-    expect(found).toEqual({ executionId: 'e2', deliveryId: 'd-e2', updatedAt: '2026-11-02T00:00:00.000Z' });
+    expect(found).toEqual({
+      executionId: 'e2',
+      deliveryId: 'd-e2',
+      updatedAt: '2026-11-02T00:00:00.000Z',
+      previousDeliveryId: 'd-e1',
+    });
   });
 
   it('devolve null quando só há execução cancelada', async () => {
@@ -77,5 +88,44 @@ describe('findCurrentStructure', () => {
       MATTER,
     );
     expect(found?.executionId).toBe('e1');
+  });
+
+  it('acha a análise mesmo com mais de 50 conversas recentes de outros casos', async () => {
+    const others = Array.from({ length: 80 }, (_, i) =>
+      conv(`o${i}`, OTHER, 'COMPLETED', `2026-11-10T00:00:${String(i % 60).padStart(2, '0')}.000Z`),
+    );
+    const found = await findCurrentStructure(
+      deps([...others, conv('e1', MATTER, 'COMPLETED', '2026-11-01T00:00:00.000Z')]),
+      owner,
+      MATTER,
+    );
+    expect(found).toEqual({ executionId: 'e1', deliveryId: 'd-e1', updatedAt: '2026-11-01T00:00:00.000Z' });
+  });
+
+  it('acha a análise depois de muitas conversas de ajuste do mesmo caso, sem perder a anterior', async () => {
+    const adjusts = Array.from({ length: 130 }, (_, i) =>
+      conv(
+        `a${i}`,
+        MATTER,
+        'COMPLETED',
+        `2026-11-05T00:${String(Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}.000Z`,
+      ),
+    ).reverse();
+    const actions = Object.fromEntries(adjusts.map((c) => [`d-${c.execution.id}`, 'adjust_structure']));
+    const found = await findCurrentStructure(
+      deps(
+        [
+          ...adjusts,
+          conv('e2', MATTER, 'COMPLETED', '2026-11-02T00:00:00.000Z'),
+          ...adjusts.map((c) => ({ ...c, execution: { ...c.execution, id: `b${c.execution.id}` } })),
+          conv('e1', MATTER, 'COMPLETED', '2026-11-01T00:00:00.000Z'),
+        ],
+        actions,
+      ),
+      owner,
+      MATTER,
+    );
+    expect(found?.executionId).toBe('e2');
+    expect(found?.previousDeliveryId).toBe('d-e1');
   });
 });

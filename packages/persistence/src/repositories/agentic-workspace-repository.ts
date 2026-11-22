@@ -348,6 +348,59 @@ export class AgenticWorkspaceRepository {
     }
     return items.sort((a, b) => b.execution.updatedAt.localeCompare(a.execution.updatedAt)).slice(0, limit);
   }
+  /**
+   * The owner's visible conversations of one case, newest first, one page at a time, each with its newest execution.
+   * Scoped by case so that conversations of other cases (or many later ones) never push an older one out of reach.
+   */
+  async listMatterConversations(
+    owner: AgenticOwner,
+    matterId: string,
+    { limit = 50, offset = 0 }: { limit?: number; offset?: number } = {},
+  ) {
+    AgenticOwnerSchema.parse(owner);
+    const page = z.object({ limit: z.number().int().min(1).max(100), offset: z.number().int().min(0) }).parse({
+      limit,
+      offset,
+    });
+    const conversations = await this.db
+      .select()
+      .from(s.agenticConversations)
+      .where(
+        and(
+          eq(s.agenticConversations.tenantId, owner.tenantId),
+          eq(s.agenticConversations.userId, owner.userId),
+          eq(s.agenticConversations.matterId, matterId),
+          isNull(s.agenticConversations.historyHiddenAt),
+        ),
+      )
+      .orderBy(desc(s.agenticConversations.createdAt), desc(s.agenticConversations.id))
+      .limit(page.limit)
+      .offset(page.offset);
+    const items = [];
+    for (const conversation of conversations) {
+      const rows = await this.db
+        .select({ payloadJson: s.agenticExecutions.payloadJson })
+        .from(s.agenticExecutions)
+        .where(
+          and(
+            eq(s.agenticExecutions.conversationId, conversation.id),
+            eq(s.agenticExecutions.tenantId, owner.tenantId),
+            eq(s.agenticExecutions.userId, owner.userId),
+          ),
+        );
+      const latest = rows
+        .map((row) => AgenticExecutionSchema.parse(JSON.parse(row.payloadJson)))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      if (latest)
+        items.push({
+          conversationId: conversation.id,
+          objective: conversation.objective,
+          matterId: conversation.matterId,
+          execution: latest,
+        });
+    }
+    return items;
+  }
   async getExecution(owner: AgenticOwner, id: string): Promise<AgenticExecution | undefined> {
     const [row] = await this.db.select().from(s.agenticExecutions).where(this.executionScope(owner, id)).limit(1);
     return row ? AgenticExecutionSchema.parse(JSON.parse(row.payloadJson)) : undefined;

@@ -286,6 +286,7 @@ export function registerAgenticWorkspace(
                   'LIFECYCLE_CONFLICT',
                   'IDEMPOTENCY_CONFLICT',
                   'CONTEXT_CONFLICT',
+                  'MATTER_REQUIRED',
                   'APPROVED_CONTEXT_CHANGED',
                   'APPROVED_FACT_REQUIRED',
                   'TASK_CONTEXT_LIMIT',
@@ -311,7 +312,7 @@ export function registerAgenticWorkspace(
         const status =
           code === 'STREAM_LIMIT_EXCEEDED'
             ? 429
-            : code === 'INVALID_INPUT'
+            : code === 'INVALID_INPUT' || code === 'MATTER_REQUIRED'
               ? 400
               : code === 'EXECUTION_NOT_FOUND'
                 ? 404
@@ -327,7 +328,9 @@ export function registerAgenticWorkspace(
               ? 'Confira os dados da solicitação.'
               : code === 'COMMERCIAL_INPUT_TOO_LARGE'
                 ? 'O texto passa de 100.000 caracteres, cerca de 30 páginas. Envie um trecho menor. Nada foi cobrado.'
-                : 'Não foi possível concluir esta operação. Consulte o estado do trabalho.',
+                : code === 'MATTER_REQUIRED'
+                  ? 'Escolha o caso cuja estrutura será ajustada.'
+                  : 'Não foi possível concluir esta operação. Consulte o estado do trabalho.',
         });
       }
     };

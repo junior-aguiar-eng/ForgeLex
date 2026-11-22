@@ -832,10 +832,27 @@ it('ajuste da estrutura só começa em conversa nova, para não esconder a anál
       conversationId: first.conversationId,
     }),
   ).rejects.toThrow('CONTEXT_CONFLICT');
+  const matter = await new MatterRepository(f.db).createMatter({
+    ...owner,
+    createdBy: owner.userId,
+    title: 'Caso do ajuste',
+  });
   const fresh = await f.service.startExecution(owner, 'adjust-new-conversation', {
     ...input,
     objective: 'Tire a lacuna sobre o recibo.',
     actionId: 'adjust_structure',
+    matterId: matter.id,
   });
   expect(fresh.conversationId).not.toBe(first.conversationId);
+});
+
+it('ajuste da estrutura sem caso é recusado no início, com código próprio', async () => {
+  const f = await fixture();
+  await expect(
+    f.service.startExecution(owner, 'adjust-without-matter', {
+      ...input,
+      objective: 'Tire a prova 2.',
+      actionId: 'adjust_structure',
+    }),
+  ).rejects.toThrow('MATTER_REQUIRED');
 });
