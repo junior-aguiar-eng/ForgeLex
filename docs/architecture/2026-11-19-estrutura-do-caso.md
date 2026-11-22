@@ -164,3 +164,27 @@ caso; 3 testes, com mutação) e aba **Estrutura** na peça (gelo), que mostra o
 formulário e sem botão. Ambiente sem o fluxo de análise (rota ausente) mostra o estado vazio, não erro. **Limite:** o teste de navegador usa as
 duas rotas de leitura simuladas; o encontro real rota + tela só aparece com o fluxo de análise ligado. **Falta:** disparo automático ao salvar
 documento ou colar relato (E1b), decisão pela conversa (E2), estrutura na orientação guiada e na minuta (E3), PDF direto (E4).
+
+**E2 entregue (22/11/2026, branch `claude/e2-ajustar-estrutura`):** ação `adjust_structure` no contrato v13 (v1 a v12 e as fixtures `pre-*`
+intactos). Com a aba Estrutura aberta **e uma estrutura carregada**, o pedido no compositor (modo Automático) vira ajuste, numa conversa
+nova; o campo diz isso em texto ("Corrija a estrutura do caso…"). Aba vazia, carregando ou com falha: o pedido segue o fluxo normal
+(E1/E1b). O agente recebe os itens da análise vigente (localizada pelo caso, paginando as conversas do próprio caso) e devolve comandos
+ALTERAR/REMOVER/ACRESCENTAR e um resumo; pedido que não é correção (redigir, pesquisar, reanalisar, relato novo) volta sem comandos e com
+aviso para pedir fora da aba. O servidor aplica numa transação, idempotente por trabalho; ACRESCENTAR só entra no caso por ADOPT explícito.
+A aba numera F/P, mostra o selo "informado por você, a confirmar", as marcas "corrigido por você e confirmado no caso" (sem as citações do
+texto antigo) e "retirado por você", o resumo e as perguntas em português; recarrega quando o ajuste termina; e, quando uma análise nova
+substituiu outra com correções pela conversa, avisa em "Pontos a conferir" que elas não foram reaplicadas. Ajuste sem caso é recusado
+(`MATTER_REQUIRED`); análise grande demais para a lista falha com `TASK_CONTEXT_LIMIT`. A revisão guarda só os 10 registros de ajuste mais
+recentes (a idempotência fica nos ids de comando, que não são podados).
+
+**Limites e pendências do E2 (para Boni decidir):**
+- **Decisão 8 em parte:** só o item acrescentado mostra a frase do usuário ("Você disse: …"); alterados e retirados mostram a marca sem a
+  frase, porque a decisão não guarda o pedido.
+- **Confirmar item acrescentado pela conversa não existe:** ALTERAR num item "informado por você" vira pergunta; a confirmação hoje é só
+  pelo painel de conferência antigo.
+- **ALTERAR = ADOPT (decisão 5):** corrigir um item o confirma no caso; a marca da aba diz isso ("corrigido por você e confirmado no caso").
+- **Cobrança:** trabalho com pelo menos um comando é cobrado mesmo que todos virem perguntas; sem comando, não é cobrado.
+- **Histórico:** cada correção abre uma conversa e aparece na lista de conversas recentes (adiado).
+- **Busca da análise vigente:** percorre até 1000 conversas visíveis do caso; conversa escondida do histórico não conta.
+- **Não verificado:** o caminho real até o modelo (pedido em linguagem natural resolvido pelo agente) não foi exercitado; os testes de
+  navegador usam as rotas de leitura e do trabalho simuladas.
