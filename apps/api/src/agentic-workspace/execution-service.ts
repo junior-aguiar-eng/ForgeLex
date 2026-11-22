@@ -299,11 +299,16 @@ export class ExecutionService {
       key,
       { kind: 'start', input: requested, approval, ...(initialCheckpoint ? { initialCheckpoint } : {}) },
       async (s) => {
-        const input = routePastedAccount(
-          this.options.prepareStart
-            ? StartExecutionSchema.parse(await this.options.prepareStart(s, owner, requested))
-            : requested,
-        );
+        const prepared = this.options.prepareStart
+          ? StartExecutionSchema.parse(await this.options.prepareStart(s, owner, requested))
+          : requested;
+        // E1b: o relato colado vira análise de fatos e provas, salvo se o mesmo texto já foi analisado neste caso.
+        const routed = routePastedAccount(prepared);
+        const input =
+          routed.actionId !== prepared.actionId &&
+          (await s.hasLiveEvidenceAnalysis(owner, routed.matterId!, routed.objective))
+            ? prepared
+            : routed;
         let conversation = input.conversationId
           ? await s.workspace.getConversation(owner, input.conversationId)
           : undefined;

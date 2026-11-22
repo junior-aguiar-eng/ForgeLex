@@ -91,7 +91,9 @@ pedido do usuário. Fica fora do E1b e só volta por nova decisão dele.
   Mesa diz isso em uma frase.
 - Cobrança: o disparo automático gasta créditos como qualquer análise. A Mesa mostra o custo previsto no mesmo ponto em que hoje pede
   confirmação; não há gasto escondido.
-- Antiduplicação: um documento ou relato com o mesmo hash de conteúdo não dispara de novo no mesmo caso.
+- Antiduplicação (entregue): o mesmo texto, no mesmo caso, já com análise de fatos e provas viva (não falha nem cancelada) não é
+  roteado de novo para `analyze_evidence`; o pedido segue pelo orquestrador como antes. Compara o texto exato do pedido, não um hash,
+  e não impede o usuário de pedir a análise pelo seletor.
 - A análise só propõe (matriz probatória, `quoteStatus`); adotar fatos continua sendo decisão do usuário pelo fluxo `evidence-review`.
 
 **Testes.** Unidade da regra (cada condição falhando isoladamente muda o resultado); ação escolhida preservada; sem caso não dispara;
