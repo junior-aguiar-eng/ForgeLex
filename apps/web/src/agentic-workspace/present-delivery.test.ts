@@ -20,6 +20,30 @@ describe('revisão na conversa com a entrega sintética de 06/11', () => {
     expect(JSON.stringify(deskReview)).toBe(before);
   });
 
+  it('preserva as afirmações e os requisitos de revisões com fatos do caso ou escopo indefinido', () => {
+    for (const variant of ['case', 'procedural', 'legacy']) {
+      const d = structuredClone(deskReview);
+      if (variant === 'case') {
+        d.sources.push({
+          id: 'fact',
+          kind: 'CASE_FACT',
+          approvedItem: { text: 'Fato aprovado', status: 'APPROVED', sources: [] },
+        });
+        d.claims[0].sourceIds = ['fact'];
+      } else if (variant === 'procedural') {
+        d.requirements[0].kind = 'PROCEDURAL';
+      } else {
+        d.requirements = [];
+      }
+      const view = presentDelivery(d);
+      expect(view.blocks.some((block) => block.text === d.claims[0].statement && block.citations.length > 0)).toBe(
+        true,
+      );
+      if (d.requirements.length)
+        expect(view.blocks.some((block) => block.text === d.requirements[0].statement)).toBe(true);
+    }
+  });
+
   it('mantém divergências com outros valores, fontes ou mais de uma ocorrência', () => {
     for (const change of ['values', 'source', 'multiple', 'blocking', 'wrong-sum']) {
       const d = structuredClone(deskReview);

@@ -123,13 +123,22 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
     return numbers;
   };
   const blocks: PresentedBlock[] = [];
+  const unstructuredReview = delivery.action === 'review_text' && !delivery.review;
+  const editorialOnly =
+    unstructuredReview &&
+    delivery.requirements.length > 0 &&
+    delivery.requirements.every((requirement) => requirement.kind === 'EDITORIAL') &&
+    delivery.sources.length > 0 &&
+    delivery.sources.every(
+      (source) => !source.approvedItem && (source.kind === 'DRAFT' || source.kind === 'USER_TEXT'),
+    );
   const doc = delivery.document;
   if (doc) {
     for (const section of doc.sections) {
       blocks.push({ kind: 'heading', text: section.title, citations: [] });
       blocks.push({ kind: 'paragraph', text: section.content, citations: cite(section.sourceIds) });
     }
-  } else if (delivery.action !== 'review_text' || delivery.review) {
+  } else if (!editorialOnly) {
     const coveredIssues = new Set(delivery.evidenceMatrix?.rows.flatMap((row) => row.issueIds) ?? []);
     const coveredClaims = new Set(delivery.evidenceMatrix?.rows.map((row) => row.claimId) ?? []);
     const issues = delivery.issues.filter((issue) => !coveredIssues.has(issue.id));
@@ -205,7 +214,7 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
         citations: cite(conflict.claimIds.flatMap((id) => delivery.claims.find((c) => c.id === id)?.sourceIds ?? [])),
       });
   }
-  if (delivery.action === 'review_text' && !delivery.review) {
+  if (editorialOnly) {
     for (const finding of reviewFindings(delivery.findings))
       blocks.push({ kind: 'paragraph', text: finding.statement, citations: cite(finding.sourceIds) });
     // Older deliveries may not have promoted unverified requirements to findings.
@@ -221,6 +230,9 @@ export function presentDelivery(delivery: Delivery['delivery']): PresentedDelive
         text: 'Nenhuma alteração foi sugerida nesta revisão. Isso não confirma fatos, fontes ou adequação jurídica.',
         citations: [],
       });
+  } else if (unstructuredReview) {
+    for (const item of [...delivery.findings, ...delivery.requirements])
+      blocks.push({ kind: 'paragraph', text: item.statement, citations: cite(item.sourceIds) });
   }
   if (delivery.review) {
     const section = (title: string, items: { text: string; sourceIds: string[] }[]) => {
