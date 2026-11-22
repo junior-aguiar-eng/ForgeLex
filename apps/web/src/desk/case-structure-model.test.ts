@@ -8,6 +8,7 @@ import {
   STRUCTURE_LEAD_TITLE,
   USER_ADDED_SEAL,
   USER_ADDED_TITLE,
+  replacedCorrectionsNotice,
   structureQuestions,
   structureSections,
   structureSize,
@@ -246,5 +247,48 @@ describe('structureSummary e structureQuestions (E2)', () => {
       expect(line, reason).toBeTruthy();
       expect(line).not.toContain(reason);
     }
+  });
+});
+
+describe('replacedCorrectionsNotice', () => {
+  const added = (id: string): StructureReviewItem => ({
+    id,
+    kind: 'FACT',
+    text: 'Fato informado pelo usuário.',
+    originIds: [],
+    references: [],
+    userAdded: { frase: 'fato informado', addedAt: '2026-11-22T10:00:00.000Z' },
+  });
+  const record: StructureAdjustmentRecord = {
+    executionId: 'x',
+    applied: 2,
+    questions: [],
+    recordedAt: '2026-11-22T10:00:00.000Z',
+  };
+
+  it('avisa quando a análise anterior tinha correções feitas pela conversa', () => {
+    const previous: StructureReview = {
+      items: [added('a'.repeat(64)), added('b'.repeat(64))],
+      decisions: { ['c'.repeat(64)]: { action: 'DISCARD', text: 'Item retirado.' } },
+      adjustments: { cmd: record },
+    };
+    expect(replacedCorrectionsNotice(previous)).toBe(
+      'Uma análise nova substituiu a anterior; 3 correções feitas pela conversa não foram reaplicadas. Diga de novo o que quiser manter.',
+    );
+    expect(
+      replacedCorrectionsNotice({ items: [added('a'.repeat(64))], decisions: {}, adjustments: { cmd: record } }),
+    ).toBe(
+      'Uma análise nova substituiu a anterior; 1 correção feita pela conversa não foi reaplicada. Diga de novo o que quiser manter.',
+    );
+  });
+
+  it('sem análise anterior, ou sem correção pela conversa nela, não há aviso', () => {
+    expect(replacedCorrectionsNotice(undefined)).toBeUndefined();
+    expect(
+      replacedCorrectionsNotice({
+        items: [],
+        decisions: { ['c'.repeat(64)]: { action: 'DISCARD', text: 'Retirado no painel antigo.' } },
+      }),
+    ).toBeUndefined();
   });
 });

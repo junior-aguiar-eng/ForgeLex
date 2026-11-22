@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { adjustsStructure, structureAdjustInput } from './structure-request';
+import {
+  STRUCTURE_COMPOSER_PLACEHOLDER,
+  adjustsStructure,
+  pieceStructureTabActive,
+  structureAdjustInput,
+  structureRefreshKey,
+} from './structure-request';
 
 const MATTER = '00000000-0000-4000-8000-000000000001';
 
@@ -29,7 +35,6 @@ describe('structureAdjustInput', () => {
     const input = structureAdjustInput({
       objective: 'o fato 2 foi em 2021',
       matterId: MATTER,
-      text: 'o fato 2 foi em 2021',
     });
     expect(input).toEqual({
       objective: 'o fato 2 foi em 2021',
@@ -49,9 +54,50 @@ describe('structureAdjustInput', () => {
         700,
       );
     expect(correction).toHaveLength(700);
-    const input = structureAdjustInput({ objective: correction, matterId: MATTER, text: correction });
+    const input = structureAdjustInput({ objective: correction, matterId: MATTER });
     expect(input.actionId).toBe('adjust_structure');
     expect(input.matterId).toBe(MATTER);
     expect(input.conversationId).toBeUndefined();
+  });
+});
+
+describe('pieceStructureTabActive', () => {
+  const base = { ice: true, tab: 'estrutura', matterId: MATTER, ready: true };
+  it('só vale com a aba Estrutura aberta e uma estrutura já carregada', () => {
+    expect(pieceStructureTabActive(base)).toBe(true);
+  });
+  it('aba vazia, carregando ou com falha não ativa o ajuste: o pedido segue o fluxo normal (E1/E1b)', () => {
+    expect(pieceStructureTabActive({ ...base, ready: false })).toBe(false);
+  });
+  it('outra aba, sem caso ou fora do tema gelo também não', () => {
+    expect(pieceStructureTabActive({ ...base, tab: 'texto' })).toBe(false);
+    expect(pieceStructureTabActive({ ...base, matterId: null })).toBe(false);
+    expect(pieceStructureTabActive({ ...base, ice: false })).toBe(false);
+  });
+});
+
+describe('o ajuste leva só as palavras do usuário', () => {
+  it('o contexto é o próprio pedido, sem anexos nem matérias indicadas', () => {
+    const input = structureAdjustInput({ objective: 'tire a P2', matterId: MATTER });
+    expect(input.context).toEqual({ text: 'tire a P2', origin: 'USER', documents: [] });
+  });
+});
+
+describe('structureRefreshKey', () => {
+  const run = { id: 'run-1', actionId: 'adjust_structure', status: 'COMPLETED', matterId: MATTER } as const;
+  it('um ajuste concluído pede para recarregar a aba', () => {
+    expect(structureRefreshKey(run)).toBe('run-1');
+  });
+  it('ajuste em andamento, outra ação ou sem caso não', () => {
+    expect(structureRefreshKey({ ...run, status: 'RUNNING' })).toBeUndefined();
+    expect(structureRefreshKey({ ...run, actionId: 'analyze_evidence' })).toBeUndefined();
+    expect(structureRefreshKey({ ...run, matterId: null })).toBeUndefined();
+  });
+});
+
+describe('dica do campo de pedido', () => {
+  it('diz, em texto, que o pedido corrige a estrutura do caso', () => {
+    expect(STRUCTURE_COMPOSER_PLACEHOLDER).toMatch(/^Corrija a estrutura do caso/);
+    expect(STRUCTURE_COMPOSER_PLACEHOLDER).not.toMatch(/[A-Z_]{6,}/);
   });
 });

@@ -197,3 +197,22 @@ export function structureQuestions(review?: StructureReview): string[] {
   }
   return lines;
 }
+
+/**
+ * Aviso de que uma análise nova substituiu a anterior (E2): o que o usuário mudou pela conversa ficou na revisão da
+ * análise anterior e não foi reaplicado. Conta os itens que ele acrescentou e as decisões tomadas sobre os demais. Sem
+ * análise anterior, ou sem nenhuma correção pela conversa nela, não há aviso.
+ */
+export function replacedCorrectionsNotice(previous?: StructureReview): string | undefined {
+  if (!previous) return undefined;
+  const added = previous.items.filter((item) => item.userAdded);
+  if (!added.length && !Object.keys(previous.adjustments ?? {}).length) return undefined;
+  const addedIds = new Set(added.map((item) => item.id));
+  const count = added.length + Object.keys(previous.decisions).filter((id) => !addedIds.has(id)).length;
+  if (!count) return undefined;
+  const what =
+    count === 1
+      ? '1 correção feita pela conversa não foi reaplicada'
+      : `${count} correções feitas pela conversa não foram reaplicadas`;
+  return `Uma análise nova substituiu a anterior; ${what}. Diga de novo o que quiser manter.`;
+}

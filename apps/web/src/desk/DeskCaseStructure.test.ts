@@ -61,8 +61,11 @@ describe('DeskCaseStructureView', () => {
     for (const label of ['F1', 'F2', 'P1', 'F3']) expect(html).toContain(`>${label}<`);
     expect(html).toContain(USER_ADDED_SEAL);
     expect(html).toContain('o cliente também pagou abril em dinheiro');
-    expect(html).toContain('corrigido por você');
+    expect(html).toContain('corrigido por você e confirmado no caso');
     expect(html).toContain('O réu atrasou a entrega em 2020.');
+    // O texto corrigido é do usuário: as citações da análise não ficam ao lado dele.
+    const corrected = html.slice(html.indexOf('O réu atrasou a entrega em 2021.'));
+    expect(corrected.slice(0, corrected.indexOf('Antes:'))).not.toMatch(/\[\d+\]/);
     expect(html).toContain('retirado por você');
     expect(html).toContain('Pontos a conferir');
     // Item informado não tem fonte nem citação.

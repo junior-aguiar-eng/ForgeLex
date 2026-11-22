@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiRequestError, requestApi } from '../api-client';
 import type { Delivery } from '../agentic-workspace/execution-model';
 import { presentDelivery, type PresentedDelivery } from '../agentic-workspace/present-delivery';
 import {
+  replacedCorrectionsNotice,
   structureQuestions,
   structureSections,
   structureSize,
@@ -32,15 +33,34 @@ const failureText = (failure: unknown) =>
  * classificação (alegação, inferência…) e as fontes que o sustentam; o que não tem fonte aparece com o aviso do próprio
  * resultado, nunca como fato.
  */
-export function DeskCaseStructure({ matterId }: { matterId: string }) {
+export function DeskCaseStructure({
+  matterId,
+  refreshKey,
+  onReadyChange,
+}: {
+  matterId: string;
+  /** Muda quando um ajuste da estrutura termina: a aba recarrega sem piscar o que já mostra. */
+  refreshKey?: string;
+  /** Diz à peça se há estrutura carregada: só então o pedido do compositor vira ajuste. */
+  onReadyChange?: (ready: boolean) => void;
+}) {
   const [state, setState] = useState<StructureViewState>({ phase: 'loading' });
+  const ready = state.phase === 'ready';
+  const notify = useRef(onReadyChange);
+  notify.current = onReadyChange;
+  useEffect(() => {
+    notify.current?.(ready);
+  }, [ready]);
+  useEffect(() => () => notify.current?.(false), []);
 
   useEffect(() => {
     const controller = new AbortController();
-    setState({ phase: 'loading' });
+    setState((old) => (old.phase === 'ready' ? old : { phase: 'loading' }));
     void (async () => {
       try {
-        const found = await requestApi<{ structure: { deliveryId: string; updatedAt: string } | null }>(
+        const found = await requestApi<{
+          structure: { deliveryId: string; updatedAt: string; previousDeliveryId?: string } | null;
+        }>(
           `/api/agentic/matters/${encodeURIComponent(matterId)}/structure`,
           { signal: controller.signal },
           { sessionOnly: true },
@@ -67,10 +87,25 @@ export function DeskCaseStructure({ matterId }: { matterId: string }) {
           if (controller.signal.aborted) return;
           review = undefined;
         }
+        // Análise nova sobre outra que tinha correções pela conversa: o usuário é avisado de que elas não foram
+        // reaplicadas. Falha ao ler a anterior só tira o aviso.
+        let previous: StructureReview | undefined;
+        if (found.structure.previousDeliveryId) {
+          try {
+            previous = await requestApi<StructureReview>(
+              `/api/agentic/deliveries/${encodeURIComponent(found.structure.previousDeliveryId)}/evidence-review`,
+              { signal: controller.signal },
+              { sessionOnly: true },
+            );
+          } catch {
+            if (controller.signal.aborted) return;
+          }
+        }
         const presented = presentDelivery(result.delivery);
         const sections = structureSections(presented.blocks, review);
         const summary = structureSummary(review);
-        const pending = [...presented.pending];
+        const replaced = replacedCorrectionsNotice(previous);
+        const pending = [...(replaced ? [replaced] : []), ...presented.pending];
         for (const line of structureQuestions(review)) if (!pending.includes(line)) pending.push(line);
         setState(
           structureSize(sections) === 0
@@ -92,7 +127,7 @@ export function DeskCaseStructure({ matterId }: { matterId: string }) {
       }
     })();
     return () => controller.abort();
-  }, [matterId]);
+  }, [matterId, refreshKey]);
 
   return <DeskCaseStructureView state={state} />;
 }
@@ -102,7 +137,7 @@ function ChangeMark({ entry }: { entry: StructureEntry }) {
   if (!entry.change) return null;
   return (
     <span className="mr-2 rounded border border-line px-1.5 py-0.5 text-[11px] font-medium text-muted">
-      {entry.change.kind === 'removed' ? 'retirado por você' : 'corrigido por você'}
+      {entry.change.kind === 'removed' ? 'retirado por você' : 'corrigido por você e confirmado no caso'}
     </span>
   );
 }
@@ -165,7 +200,8 @@ export function DeskCaseStructureView({ state }: { state: StructureViewState }) 
                     >
                       {entry.text}
                     </span>
-                    {!entry.userAdded && entry.citations.length > 0 && (
+                    {/* O texto corrigido é do usuário: as citações da análise eram do texto de antes. */}
+                    {!entry.userAdded && entry.change?.kind !== 'corrected' && entry.citations.length > 0 && (
                       <span className="ml-1 text-xs text-subtle" aria-label={`Fontes ${entry.citations.join(', ')}`}>
                         {entry.citations.map((n) => `[${n}]`).join(' ')}
                       </span>

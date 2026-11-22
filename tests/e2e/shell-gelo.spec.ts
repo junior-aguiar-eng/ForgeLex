@@ -578,7 +578,7 @@ test('aba Estrutura (E2): rótulos, selo, resumo e marcas; o pedido feito com a 
   await expect(panel.getByText('F2', { exact: true })).toBeVisible();
   await expect(panel.getByText('informado por você, a confirmar', { exact: true })).toBeVisible();
   await expect(panel.getByText('O cliente pagou abril em dinheiro.')).toBeVisible();
-  await expect(panel.getByText('corrigido por você', { exact: true })).toBeVisible();
+  await expect(panel.getByText('corrigido por você e confirmado no caso', { exact: true })).toBeVisible();
   await expect(panel.getByText('O autor pagou março e abril.')).toBeVisible();
   await expect(panel.getByText('Não identifiquei a qual item você se referiu', { exact: false })).toBeVisible();
   await expect(panel).not.toContainText('ITEM_DESCONHECIDO');
@@ -588,6 +588,11 @@ test('aba Estrutura (E2): rótulos, selo, resumo e marcas; o pedido feito com a 
   const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(axe.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 
+  // Com a aba aberta e a estrutura carregada, o campo diz em texto que o pedido corrige a estrutura.
+  await expect(page.getByLabel('O que você precisa fazer?', { exact: true })).toHaveAttribute(
+    'placeholder',
+    /^Corrija a estrutura do caso/,
+  );
   // Com a aba aberta, o pedido sai como ajuste explícito, com o caso e sem conversa, mesmo longo (não vira relato colado).
   let sent: { actionId?: string; matterId?: string; conversationId?: string; contextRevision?: number } | undefined;
   await page.route('**/api/agentic/executions', async (route) => {
@@ -602,6 +607,178 @@ test('aba Estrutura (E2): rótulos, selo, resumo e marcas; o pedido feito com a 
   expect(sent?.matterId).toBeTruthy();
   expect(sent?.conversationId).toBeUndefined();
   expect(sent?.contextRevision).toBeUndefined();
+});
+
+// E2: com a aba Estrutura vazia, a instrução da própria aba ("analise os fatos e as provas deste caso") segue o fluxo
+// normal; só uma estrutura carregada torna o pedido um ajuste.
+test('aba Estrutura vazia: o pedido que a aba sugere segue o fluxo normal, sem virar ajuste', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const { piece } = await openSavedPiece(page);
+  await piece
+    .getByRole('tablist', { name: 'Partes da peça' })
+    .getByRole('tab', { name: 'Estrutura', exact: true })
+    .click();
+  await expect(piece.getByRole('tabpanel', { name: 'Estrutura' }).getByText('ainda não analisou')).toBeVisible();
+  const field = page.getByLabel('O que você precisa fazer?', { exact: true });
+  await expect(field).not.toHaveAttribute('placeholder', /Corrija a estrutura/);
+  let sent: { actionId?: string; matterId?: string } | undefined;
+  await page.route('**/api/agentic/executions', async (route) => {
+    sent = route.request().postDataJSON();
+    await route.fulfill({ status: 503, json: { error: 'SYNTHETIC_STOP' } });
+  });
+  await field.fill('analise os fatos e as provas deste caso');
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect.poll(() => sent).toBeTruthy();
+  expect(sent?.actionId).toBeUndefined();
+  expect(sent?.matterId).toBeTruthy();
+});
+
+// E2: o ajuste concluído recarrega a aba sem recarregar a página; e, quando uma análise nova substituiu outra que tinha
+// correções feitas pela conversa, a aba avisa. Rotas de leitura e do trabalho simuladas.
+test('aba Estrutura (E2): o ajuste concluído aparece na aba, e análise nova avisa das correções não reaplicadas', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const { piece } = await openSavedPiece(page);
+  const ids = { fact: 'a'.repeat(64), proof: 'b'.repeat(64), old: 'd'.repeat(64) };
+  const delivery = {
+    id: 'delivery:estrutura-recarga',
+    delivery: {
+      action: 'analyze_evidence',
+      status: 'COMPLETED',
+      humanReviewRequired: true,
+      legalAssessment: 'Leitura sintética.',
+      issues: [{ id: 'q1', statement: 'Houve pagamento do aluguel?', sourceIds: ['s1'] }],
+      claims: [{ id: 'c1', statement: 'O autor pagou março.', classification: 'ALLEGATION', sourceIds: ['s1'] }],
+      requirements: [],
+      findings: [],
+      sources: [{ id: 's1', kind: 'DOCUMENT', documentId: 'd1', versionId: 'v1' }],
+      evidenceMatrix: {
+        assessment: 'MODEL_PROPOSAL_NOT_FACT_CONFIRMATION',
+        rows: [
+          {
+            id: 'r1',
+            claimId: 'c1',
+            issueIds: ['q1'],
+            coverage: 'DOCUMENT_LINKED',
+            gaps: [],
+            references: [
+              { sourceId: 's1', quote: 'recibo de março', start: 0, relation: 'SUPPORTS', quoteStatus: 'MATCHED' },
+            ],
+          },
+        ],
+        chronology: [],
+        contradictions: [],
+      },
+    },
+  };
+  const items = [
+    { id: ids.fact, kind: 'FACT', text: 'O autor pagou março.', originIds: ['r1', 'c1'], references: [] },
+    {
+      id: ids.proof,
+      kind: 'EVIDENCE',
+      text: 'recibo de março',
+      originIds: ['r1', 'c1'],
+      references: [{ sourceId: 's1', quote: 'recibo de março', start: 0 }],
+    },
+  ];
+  let review: Record<string, unknown> = { deliveryId: delivery.id, items, decisions: {} };
+  const previous = {
+    deliveryId: 'delivery:anterior',
+    items: [
+      {
+        id: ids.old,
+        kind: 'FACT',
+        text: 'O cliente pagou abril em dinheiro.',
+        originIds: [],
+        references: [],
+        userAdded: { frase: 'pagou abril em dinheiro', addedAt: '2026-11-20T10:00:00.000Z' },
+      },
+    ],
+    decisions: {},
+    adjustments: {
+      cmd: { executionId: 'x', applied: 1, questions: [], recordedAt: '2026-11-20T10:00:00.000Z' },
+    },
+  };
+  await page.route(/\/api\/agentic\/matters\/[^/]+\/structure$/, (route) =>
+    route.fulfill({
+      json: {
+        structure: {
+          executionId: 'e1',
+          deliveryId: delivery.id,
+          updatedAt: '2026-11-22T12:00:00.000Z',
+          previousDeliveryId: previous.deliveryId,
+        },
+      },
+    }),
+  );
+  await page.route(/\/api\/agentic\/deliveries\/delivery%3Aestrutura-recarga$/, (route) =>
+    route.fulfill({ json: delivery }),
+  );
+  await page.route(/\/api\/agentic\/deliveries\/delivery%3Aestrutura-recarga\/evidence-review$/, (route) =>
+    route.fulfill({ json: review }),
+  );
+  await page.route(/\/api\/agentic\/deliveries\/delivery%3Aanterior\/evidence-review$/, (route) =>
+    route.fulfill({ json: previous }),
+  );
+  await piece
+    .getByRole('tablist', { name: 'Partes da peça' })
+    .getByRole('tab', { name: 'Estrutura', exact: true })
+    .click();
+  const panel = piece.getByRole('tabpanel', { name: 'Estrutura' });
+  await expect(panel.getByText('P1', { exact: true })).toBeVisible();
+  await expect(panel.getByText('retirado por você', { exact: true })).toHaveCount(0);
+  await expect(
+    panel.getByText(
+      'Uma análise nova substituiu a anterior; 1 correção feita pela conversa não foi reaplicada. Diga de novo o que quiser manter.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+
+  // O ajuste "tire a P1" conclui: a aba mostra o resultado sem recarregar a página.
+  const run = {
+    id: 'run-ajuste-sintetico',
+    objective: 'tire a P1',
+    actionId: 'adjust_structure',
+    conversationId: 'conversa-ajuste',
+    matterId: 'm',
+    contextRevision: 1,
+    status: 'COMPLETED',
+    deliveryIds: [],
+    question: null,
+    requiresReevaluation: false,
+    successorId: null,
+    context: { text: 'tire a P1', origin: 'USER', documents: [] },
+    messages: [],
+    history: [],
+  };
+  await page.route('**/api/agentic/executions', async (route) => {
+    run.matterId = route.request().postDataJSON().matterId;
+    review = {
+      ...review,
+      decisions: { [ids.proof]: { action: 'DISCARD', text: 'recibo de março' } },
+      adjustments: {
+        ajuste: { executionId: run.id, applied: 1, questions: [], recordedAt: new Date().toISOString() },
+      },
+    };
+    await route.fulfill({ json: run });
+  });
+  await page.route(`**/api/agentic/executions/${run.id}`, (route) => route.fulfill({ json: run }));
+  await page.route('**/api/agentic/executions/*/events?*', (route) =>
+    route.fulfill({
+      contentType: 'text/event-stream',
+      body: `id: 1\nevent: status\ndata: ${JSON.stringify({
+        executionId: run.id,
+        sequence: 1,
+        type: 'STATUS',
+        payload: { status: 'COMPLETED' },
+      })}\n\n`,
+    }),
+  );
+  await page.getByLabel('O que você precisa fazer?', { exact: true }).fill('tire a P1');
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect(panel.getByText('retirado por você', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('button')).toHaveCount(0);
 });
 
 test('etapas do trabalho: lista ordenada com o estado de cada etapa, sem nome de documento nem identificador', async ({
