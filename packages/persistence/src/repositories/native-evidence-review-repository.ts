@@ -8,6 +8,7 @@ import {
   type EvidenceReview,
   type EvidenceReviewCommand,
   type EvidenceReviewDecision,
+  type EvidenceReviewItem,
 } from '@forgelex/domain';
 import type { ForgeLexDatabase } from '../db.js';
 import * as s from '../schema/schema.js';
@@ -23,9 +24,14 @@ interface SavedReview {
   version: 1;
   revision: number;
   decisions: Record<string, EvidenceReviewDecision>;
+  added?: EvidenceReviewItem[];
   commands: Record<string, { inputHash: string }>;
 }
 const emptyReview = (): SavedReview => ({ version: 1, revision: 1, decisions: {}, commands: {} });
+const addedItem = z.strictObject({
+  texto: z.string().trim().min(3).max(4000),
+  frase: z.string().trim().min(1).max(4000),
+});
 const approvedText = z.string().trim().min(3).max(4000);
 
 /** Human-session entrypoint only; never registered as an agent tool. */
@@ -59,7 +65,7 @@ export class NativeEvidenceReviewRepository {
       row: typeof s.agenticTaskDeliveries.$inferSelect,
       review: EvidenceReview,
       saved: SavedReview,
-      token: (revision: number) => string,
+      token: (revision: number, list?: EvidenceReviewItem[]) => string,
     ) => Promise<T>,
   ): Promise<T> {
     const initial = await this.row(this.db, owner, id);
@@ -188,19 +194,19 @@ export class NativeEvidenceReviewRepository {
         } catch {
           throw new Error('DELIVERY_INTEGRITY_FAILED');
         }
-        const items = deriveEvidenceReviewItems(id, delivery, sources);
+        const items = [...deriveEvidenceReviewItems(id, delivery, sources), ...(saved.added ?? [])];
         const lifecycleRevision = await new MatterWriteGuard(tx).captureRevision({
           tenantId: owner.tenantId,
           matterId,
         });
-        const token = (revision: number) =>
+        const token = (revision: number, list: EvidenceReviewItem[] = items) =>
           evidenceHash([
             row.contentHash,
             revision,
             context,
             lifecycleRevision,
             sources.map((source) => [source.id, source.blocked, source.fingerprint]),
-            items,
+            list,
           ]);
         const review: EvidenceReview = {
           deliveryId: id,
@@ -219,6 +225,50 @@ export class NativeEvidenceReviewRepository {
   }
   async preview(owner: AgenticOwner, id: string): Promise<EvidenceReview> {
     return this.guarded(owner, id, async (_db, _row, review) => review);
+  }
+  /** Acrescenta itens que o usuário informou na conversa. Ficam só na revisão, com selo, até um ADOPT explícito. */
+  async addUserItems(
+    owner: AgenticOwner,
+    id: string,
+    raw: { texto: string; frase: string }[],
+  ): Promise<EvidenceReview> {
+    const input = z.array(addedItem).min(1).max(50).parse(raw);
+    return this.guarded(owner, id, async (db, row, review, saved, token) => {
+      const addedAt = new Date().toISOString();
+      const fresh: EvidenceReviewItem[] = [];
+      for (const { texto, frase } of input) {
+        const itemId = evidenceHash([id, 'user', texto]);
+        if (review.items.some((i) => i.id === itemId) || fresh.some((i) => i.id === itemId)) continue;
+        fresh.push({
+          id: itemId,
+          kind: 'FACT',
+          text: texto,
+          classification: 'ALLEGATION',
+          sources: [],
+          references: [],
+          originIds: [],
+          blockedReasons: [],
+          userAdded: { frase, addedAt },
+        });
+      }
+      if (!fresh.length) return review;
+      saved.added = [...(saved.added ?? []), ...fresh];
+      saved.revision++;
+      const evidenceReviewJson = JSON.stringify(saved);
+      if (Buffer.byteLength(evidenceReviewJson) > 1000000) throw new Error('EVIDENCE_REVIEW_LIMIT');
+      await db
+        .update(s.agenticTaskDeliveries)
+        .set({ evidenceReviewJson })
+        .where(
+          and(
+            eq(s.agenticTaskDeliveries.id, row.id),
+            eq(s.agenticTaskDeliveries.tenantId, owner.tenantId),
+            eq(s.agenticTaskDeliveries.userId, owner.userId),
+          ),
+        );
+      const items = [...review.items, ...fresh];
+      return { ...review, items, revision: saved.revision, reviewToken: token(saved.revision, items) };
+    });
   }
   async decide(owner: AgenticOwner, id: string, raw: EvidenceReviewCommand): Promise<EvidenceReview> {
     const input = EvidenceReviewCommandSchema.parse(raw);

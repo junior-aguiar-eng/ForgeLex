@@ -8,6 +8,8 @@ export interface EvidenceReviewItem extends Omit<AnalysisItem, 'sources'> {
   originIds: string[];
   blockedReasons: string[];
   dateText?: string;
+  /** Item acrescentado pelo usuário na conversa: selo "informado por você, a confirmar"; não é prova. */
+  userAdded?: { frase: string; addedAt: string };
 }
 export interface EvidenceReviewDecision extends AnalysisDecision {
   eventDate?: string;

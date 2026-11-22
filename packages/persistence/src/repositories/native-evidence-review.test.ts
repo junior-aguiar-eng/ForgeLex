@@ -274,3 +274,48 @@ it('recusa identificador reservado e recibo alterado sem criar itens', async () 
   await expect(f.reviews.preview(f.owner, f.saved.id)).rejects.toThrow('DELIVERY_INTEGRITY_FAILED');
   expect((await f.client.execute('SELECT id FROM facts')).rows).toHaveLength(0);
 });
+it('item acrescentado pelo usuário entra com selo, sem fonte, sem duplicar e sem tocar o caso antes do ADOPT', async () => {
+  const f = await evidenceFixture();
+  const before = await f.reviews.preview(f.owner, f.saved.id);
+  const contextBefore = (await f.client.execute('SELECT * FROM agentic_conversations')).rows;
+  const added = [{ texto: 'O pagamento foi feito em dinheiro.', frase: 'o pagamento foi em dinheiro' }];
+  const review = await f.reviews.addUserItems(f.owner, f.saved.id, added);
+  const item = review.items.find((i) => i.userAdded)!;
+  expect(review.items).toHaveLength(before.items.length + 1);
+  expect(item).toMatchObject({
+    kind: 'FACT',
+    classification: 'ALLEGATION',
+    text: 'O pagamento foi feito em dinheiro.',
+    sources: [],
+    references: [],
+    originIds: [],
+    blockedReasons: [],
+    userAdded: { frase: 'o pagamento foi em dinheiro' },
+  });
+  expect(item.id).toBe(evidenceHash([f.saved.id, 'user', 'O pagamento foi feito em dinheiro.']));
+  expect(new Date(item.userAdded!.addedAt).toString()).not.toBe('Invalid Date');
+  expect(review.reviewToken).not.toBe(before.reviewToken);
+  expect(review.revision).toBe(before.revision + 1);
+  const again = await f.reviews.addUserItems(f.owner, f.saved.id, added);
+  expect(again.items).toHaveLength(review.items.length);
+  expect(again.reviewToken).toBe(review.reviewToken);
+  expect((await f.reviews.preview(f.owner, f.saved.id)).items.filter((i) => i.userAdded)).toHaveLength(1);
+  // a palavra do usuário não é prova: nada entra no caso nem no contexto antes da confirmação
+  expect((await f.client.execute('SELECT * FROM facts')).rows).toHaveLength(0);
+  expect((await f.client.execute('SELECT * FROM evidence_items')).rows).toHaveLength(0);
+  expect((await f.client.execute('SELECT * FROM timeline_events')).rows).toHaveLength(0);
+  expect((await f.client.execute('SELECT * FROM agentic_conversations')).rows).toEqual(contextBefore);
+  // comando emitido contra o token antigo é recusado
+  await expect(
+    f.reviews.decide(f.owner, f.saved.id, command(before, [{ itemId: item.id, action: 'ADOPT' }])),
+  ).rejects.toThrow('EVIDENCE_REVIEW_CONFLICT');
+  const result = await f.reviews.decide(f.owner, f.saved.id, command(review, [{ itemId: item.id, action: 'ADOPT' }]));
+  expect(result.decisions[item.id]).toMatchObject({ action: 'ADOPT' });
+  expect((await f.client.execute('SELECT statement,status FROM facts')).rows).toEqual([
+    { statement: 'O pagamento foi feito em dinheiro.', status: 'ASSERTED' },
+  ]);
+  expect((await f.client.execute('SELECT * FROM fact_source_links')).rows).toHaveLength(0);
+  await expect(
+    f.reviews.decide(f.owner, f.saved.id, command(result, [{ itemId: item.id, action: 'DISCARD' }])),
+  ).rejects.toThrow('EVIDENCE_ALREADY_DECIDED');
+});
