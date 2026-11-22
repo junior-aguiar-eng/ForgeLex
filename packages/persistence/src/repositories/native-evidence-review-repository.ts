@@ -35,7 +35,12 @@ interface SavedReview {
 }
 /** Cap of items the user may add to one review (also the schema limit of the saved review). */
 export const EVIDENCE_REVIEW_ADDED_LIMIT = 50;
-const ADJUSTMENT_RECORDS_KEPT = 100;
+/**
+ * Outcome records kept per review: the tab reads only the latest, and each record can be large (summary and up to 100
+ * questions), so few are kept to spare the review's 1 MB budget. Idempotency does not depend on them: every adjustment
+ * command id also stays in `commands`, which is never evicted.
+ */
+const ADJUSTMENT_RECORDS_KEPT = 10;
 /** One dedupe rule for items the user adds: the id is the hash of (delivery, 'user', text). */
 function freshUserItems(
   id: string,
@@ -61,13 +66,31 @@ function freshUserItems(
   }
   return fresh;
 }
-function keepAdjustment(saved: SavedReview, commandId: string, record: StructureAdjustmentRecord) {
+function keepAdjustment(saved: SavedReview, commandId: string, record: StructureAdjustmentRecord, inputHash: string) {
   const kept = Object.entries(saved.adjustments ?? {})
     .sort(([, a], [, b]) => b.recordedAt.localeCompare(a.recordedAt))
     .slice(0, ADJUSTMENT_RECORDS_KEPT - 1);
   saved.adjustments = { ...Object.fromEntries(kept), [commandId]: record };
+  saved.commands[commandId] = { inputHash };
+}
+/**
+ * First write wins per adjustment command: the stored record, or, once it left the recent records, an empty outcome
+ * (the command was already handled; replaying it must neither apply nor record anything again).
+ */
+function handledAdjustment(
+  saved: SavedReview,
+  commandId: string,
+  executionId: string,
+): StructureAdjustmentRecord | undefined {
+  const existing = saved.adjustments?.[commandId];
+  if (existing) return existing;
+  if (saved.commands[commandId])
+    return { executionId, applied: 0, questions: [], recordedAt: new Date().toISOString() };
+  return undefined;
 }
 async function writeReview(db: ForgeLexDatabase, owner: AgenticOwner, rowId: string, saved: SavedReview) {
+  // Every writer goes through the same schema the reader uses: an invalid review is refused, never stored.
+  savedReviewSchema.parse(saved);
   const evidenceReviewJson = JSON.stringify(saved);
   if (Buffer.byteLength(evidenceReviewJson) > 1000000) throw new Error('EVIDENCE_REVIEW_LIMIT');
   await db
@@ -313,9 +336,9 @@ export class NativeEvidenceReviewRepository {
   ): Promise<StructureAdjustmentRecord> {
     z.string().uuid().parse(commandId);
     return this.guarded(owner, id, async (db, row, _review, saved) => {
-      const existing = saved.adjustments?.[commandId];
-      if (existing) return existing;
-      keepAdjustment(saved, commandId, record);
+      const handled = handledAdjustment(saved, commandId, record.executionId);
+      if (handled) return handled;
+      keepAdjustment(saved, commandId, record, evidenceHash(record));
       await writeReview(db, owner, row.id, saved);
       return record;
     });
@@ -408,8 +431,8 @@ export class NativeEvidenceReviewRepository {
   ): Promise<StructureAdjustmentRecord> {
     const input = { ...raw, commandId: z.string().uuid().parse(raw.commandId) };
     return this.guarded(owner, id, async (db, row, review, saved) => {
-      const existing = saved.adjustments?.[input.commandId];
-      if (existing) return existing;
+      const handled = handledAdjustment(saved, input.commandId, input.executionId);
+      if (handled) return handled;
       const questions: StructureQuestion[] = [];
       let applied = 0;
       const decidedIds = new Set(Object.keys(review.decisions));
@@ -453,10 +476,7 @@ export class NativeEvidenceReviewRepository {
         if (fresh.length) saved.added = [...(saved.added ?? []), ...fresh];
         await this.applyDecisions(db, owner, id, review, saved, decisions);
         applied = fresh.length + decisions.length;
-        if (applied) {
-          saved.revision++;
-          saved.commands[input.commandId] = { inputHash: evidenceHash(input) };
-        }
+        if (applied) saved.revision++;
       }
       const record: StructureAdjustmentRecord = {
         executionId: input.executionId,
@@ -465,7 +485,7 @@ export class NativeEvidenceReviewRepository {
         caseSummary: input.caseSummary,
         recordedAt: new Date().toISOString(),
       };
-      keepAdjustment(saved, input.commandId, record);
+      keepAdjustment(saved, input.commandId, record, evidenceHash(input));
       await writeReview(db, owner, row.id, saved);
       return record;
     });

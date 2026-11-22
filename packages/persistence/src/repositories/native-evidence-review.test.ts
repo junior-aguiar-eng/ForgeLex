@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { evidenceHash } from './evidence-review-items.js';
 import { createDatabase } from '../db.js';
 import { createEvidenceFixture } from '../testing/native-evidence-review-fixture.js';
-import type { EvidenceReview, EvidenceReviewCommand } from '@forgelex/domain';
+import { structureItemsSource, type EvidenceReview, type EvidenceReviewCommand } from '@forgelex/domain';
 
 const connections: Awaited<ReturnType<typeof createDatabase>>[] = [];
 afterEach(() => {
@@ -350,4 +350,53 @@ it('resultado do ajuste da estrutura fica com a revisão, sem mudar revisão nem
   const after = await f.reviews.preview(f.owner, f.saved.id);
   expect(after.adjustments).toEqual({ [commandId]: record });
   expect([after.revision, after.reviewToken]).toEqual([before.revision, before.reviewToken]);
+});
+
+it('revisão inválida nunca é gravada: o registro do ajuste é validado antes da escrita', async () => {
+  const f = await evidenceFixture();
+  const before = await f.reviews.preview(f.owner, f.saved.id);
+  const record = {
+    executionId: 'exec-sintetica',
+    applied: 0,
+    questions: [],
+    caseSummary: '',
+    recordedAt: new Date().toISOString(),
+  };
+  await expect(f.reviews.recordStructureAdjustment(f.owner, f.saved.id, randomUUID(), record)).rejects.toThrow();
+  // Nada foi gravado: a revisão continua legível e igual.
+  expect(await f.reviews.preview(f.owner, f.saved.id)).toEqual(before);
+});
+
+it('guarda só os registros de ajuste recentes, e um comando aplicado não se aplica de novo depois de sair da lista', async () => {
+  const f = await evidenceFixture();
+  const review = await f.reviews.preview(f.owner, f.saved.id);
+  const target = review.items.find((i) => i.kind === 'FACT')!;
+  const commandId = randomUUID();
+  const apply = (id: string) =>
+    f.reviews.applyStructureCommands(f.owner, f.saved.id, {
+      commandId: id,
+      executionId: 'exec-remover',
+      sourceHash: structureItemsSource(f.saved.id, review.items, new Set()).contentHash,
+      commands: [{ op: 'REMOVER', itemId: target.id }],
+      caseSummary: 'Resumo sintético.',
+    });
+  expect((await apply(commandId)).applied).toBe(1);
+  const applied = await f.reviews.preview(f.owner, f.saved.id);
+  for (let i = 0; i < 12; i++)
+    await f.reviews.recordStructureAdjustment(f.owner, f.saved.id, randomUUID(), {
+      executionId: `exec-${i}`,
+      applied: 0,
+      questions: [],
+      caseSummary: `Resumo sintético ${i}.`,
+      recordedAt: new Date(Date.now() + (i + 1) * 1000).toISOString(),
+    });
+  const crowded = await f.reviews.preview(f.owner, f.saved.id);
+  expect(Object.keys(crowded.adjustments ?? {}).length).toBeLessThanOrEqual(10);
+  expect(crowded.adjustments?.[commandId]).toBeUndefined();
+  // Repetição do mesmo trabalho (por exemplo, nova tentativa depois de falha): nada muda, nem grava registro novo.
+  await apply(commandId);
+  const replayed = await f.reviews.preview(f.owner, f.saved.id);
+  expect(replayed.decisions).toEqual(applied.decisions);
+  expect([replayed.revision, replayed.reviewToken]).toEqual([crowded.revision, crowded.reviewToken]);
+  expect(replayed.adjustments).toEqual(crowded.adjustments);
 });
