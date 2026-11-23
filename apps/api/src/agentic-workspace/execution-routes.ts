@@ -35,6 +35,7 @@ import type { ClosedPilot } from './closed-pilot.js';
 import type { CommercialRuntime } from './commercial-runtime.js';
 import { EditorialCommercialCommand } from './editorial-commercial-runtime.js';
 import { findCurrentStructure } from './current-structure.js';
+import { findCaseStructure } from './case-structure.js';
 import { reportAgenticFailure, throttledReporter } from './failure-log.js';
 import { GuidanceService, type GuidanceServiceOptions } from './guidance-service.js';
 import { registerGuidanceRoutes } from './guidance-routes.js';
@@ -730,7 +731,13 @@ export function registerAgenticWorkspace(
           owner(req),
           matterId,
         );
-        return { structure };
+        // E4: a estrutura é a soma das análises vivas do caso; `structure` segue sendo a mais recente.
+        const structures = await findCaseStructure(
+          { store: required().store, native: caseTask.native, manages },
+          owner(req),
+          matterId,
+        );
+        return { structure, structures };
       }),
     );
   if (caseTask)

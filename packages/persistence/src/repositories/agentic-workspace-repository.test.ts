@@ -319,6 +319,13 @@ describe('persistência do trabalho agêntico', () => {
     expect([...page1, ...page2].map((c) => c.conversationId)).toContain(first.id);
     expect(new Set([...page1, ...page2].map((c) => c.conversationId)).size).toBe(4);
     expect(await f.repo.listMatterConversations({ ...owner, userId: 'outro' }, matter.id)).toEqual([]);
+    // Conversa escondida do histórico sai da lista comum e volta com includeHidden (E4: a estrutura do caso a conta).
+    await f.repo.setConversationHidden(owner, page1[0]!.execution.id, true);
+    const visible = await f.repo.listMatterConversations(owner, matter.id, { limit: 10, offset: 0 });
+    const all = await f.repo.listMatterConversations(owner, matter.id, { limit: 10, offset: 0, includeHidden: true });
+    expect(visible.map((c) => c.conversationId)).not.toContain(page1[0]!.conversationId);
+    expect(all.map((c) => c.conversationId)).toContain(page1[0]!.conversationId);
+    expect(all).toHaveLength(visible.length + 1);
   });
   it('valida referências reais de caso/documento/versão e seu tenant', async () => {
     const f = await fixture();
