@@ -4,6 +4,8 @@ import {
   StructureCommandsSchema,
   resolveStructureCommands,
   structureItemsSource,
+  structureContextSource,
+  readStructureContext,
 } from './structure-commands.js';
 import type { EvidenceReviewItem } from './evidence-review.js';
 
@@ -109,5 +111,69 @@ describe('structureItemsSource: limite de tamanho', () => {
     const source = structureItemsSource('delivery:normal', many(20, 50), new Set());
     expect(source.text.length).toBeLessThanOrEqual(100000);
     expect(JSON.parse(source.text).items).toHaveLength(20);
+  });
+});
+
+describe('structureContextSource (E3)', () => {
+  const many = (count: number, size: number) =>
+    Array.from({ length: count }, (_, i) =>
+      item(i.toString(16).padStart(64, '0'), 'FACT', `Fato sintético número ${i}. ${'x'.repeat(size)}`),
+    );
+  const decide = (entries: [string, 'ADOPT' | 'DISCARD'][]) => new Map(entries);
+
+  it('sem decisão vira A_CONFIRMAR, ADOPT vira CONFIRMADO e DISCARD não aparece', () => {
+    const source = structureContextSource(
+      'delivery:x',
+      [item(idA, 'FACT'), item(idB, 'FACT'), item(idC, 'FACT')],
+      decide([
+        [idA, 'ADOPT'],
+        [idC, 'DISCARD'],
+      ]),
+      'Resumo sintético do caso.',
+    )!;
+    expect(source.id).toBe('structure-context:delivery:x');
+    expect(source.kind).toBe('PREVIOUS_DELIVERY');
+    const body = JSON.parse(source.text);
+    expect(body.summary).toBe('Resumo sintético do caso.');
+    expect(body.items.map((i: { id: string; state: string }) => [i.id, i.state])).toEqual([
+      [idA, 'CONFIRMADO'],
+      [idB, 'A_CONFIRMAR'],
+    ]);
+    expect(body.items[0]).toMatchObject({ label: 'F1', kind: 'FACT', classification: 'ALLEGATION' });
+  });
+
+  it('item acrescentado pelo usuário leva userAdded e fica a confirmar', () => {
+    const added = { ...item(idA, 'FACT'), userAdded: true as const };
+    const body = JSON.parse(structureContextSource('d', [added], new Map())!.text);
+    expect(body.items[0]).toMatchObject({ state: 'A_CONFIRMAR', userAdded: true });
+  });
+
+  it('estrutura grande: cabe, mantém resumo e confirmados primeiro e diz quantos itens ficaram de fora', () => {
+    const list = many(160, 700);
+    const decisions = decide([[list[159]!.id, 'ADOPT']]);
+    const source = structureContextSource('delivery:grande', list, decisions, 'Resumo.')!;
+    expect(source.text.length).toBeLessThanOrEqual(100000);
+    const body = JSON.parse(source.text);
+    expect(body.summary).toBe('Resumo.');
+    expect(body.omitted).toBeGreaterThan(0);
+    expect(body.items.length + body.omitted).toBe(160);
+    expect(body.items[0].id).toBe(list[159]!.id);
+  });
+
+  it('sem itens e sem resumo não há fonte', () => {
+    expect(structureContextSource('d', [], new Map())).toBeUndefined();
+    expect(structureContextSource('d', [item(idA, 'FACT')], decide([[idA, 'DISCARD']]))).toBeUndefined();
+  });
+
+  it('readStructureContext devolve só os A_CONFIRMAR e rejeita fonte adulterada ou duplicada', () => {
+    const source = structureContextSource('d', [item(idA, 'FACT'), item(idB, 'FACT')], decide([[idA, 'ADOPT']]))!;
+    expect([...readStructureContext([source])!.keys()]).toEqual([idB]);
+    expect(readStructureContext([])).toBeUndefined();
+    expect(() => readStructureContext([{ ...source, text: source.text.replace('Texto', 'Outro') }])).toThrow(
+      'STRUCTURE_SOURCE_CONFLICT',
+    );
+    expect(() => readStructureContext([source, { ...source, id: source.id + '2' }])).toThrow(
+      'STRUCTURE_SOURCE_CONFLICT',
+    );
   });
 });
